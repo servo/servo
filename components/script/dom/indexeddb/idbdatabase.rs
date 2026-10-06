@@ -22,7 +22,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::domstringlist::DOMStringList;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -35,11 +35,11 @@ use crate::dom::indexeddb::key::is_valid_key_path;
 pub struct IDBDatabase {
     eventtarget: EventTarget,
     /// <https://w3c.github.io/IndexedDB/#database-name>
-    name: DOMString,
+    name: RootedDOMString,
     /// <https://w3c.github.io/IndexedDB/#database-version>
     version: Cell<u64>,
     /// <https://w3c.github.io/IndexedDB/#object-store>
-    object_store_names: DomRefCell<Vec<DOMString>>,
+    object_store_names: DomRefCell<Vec<RootedDOMString>>,
     /// <https://w3c.github.io/IndexedDB/#database-upgrade-transaction>
     upgrade_transaction: MutNullableDom<IDBTransaction>,
 
@@ -53,7 +53,7 @@ pub struct IDBDatabase {
 
 impl IDBDatabase {
     pub fn new_inherited(
-        name: DOMString,
+        name: RootedDOMString,
         id: Uuid,
         version: u64,
         object_store_names: Vec<String>,
@@ -74,7 +74,7 @@ impl IDBDatabase {
     pub fn new(
         cx: &mut JSContext,
         global: &GlobalScope,
-        name: DOMString,
+        name: RootedDOMString,
         id: Uuid,
         version: u64,
         object_store_names: Vec<String>,
@@ -95,7 +95,7 @@ impl IDBDatabase {
         self.global().storage_threads().sender()
     }
 
-    pub fn get_name(&self) -> DOMString {
+    pub fn get_name(&self) -> RootedDOMString {
         self.name.clone()
     }
 
@@ -103,27 +103,27 @@ impl IDBDatabase {
         DOMStringList::new(cx, &self.global(), self.object_store_names.borrow().clone())
     }
 
-    pub(crate) fn object_store_names_snapshot(&self) -> Vec<DOMString> {
+    pub(crate) fn object_store_names_snapshot(&self) -> Vec<RootedDOMString> {
         // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
         // Step 4. Set connection’s object store set to the set of object stores in database if database previously existed,
         // or the empty set if database was newly created.
         self.object_store_names.borrow().clone()
     }
 
-    pub(crate) fn restore_object_store_names(&self, names: Vec<DOMString>) {
+    pub(crate) fn restore_object_store_names(&self, names: Vec<RootedDOMString>) {
         // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
         // Step 4. NOTE: This reverts the value of objectStoreNames returned by the IDBDatabase object.
         *self.object_store_names.borrow_mut() = names;
     }
 
-    pub(crate) fn rename_object_store_name(&self, old_name: &DOMString, new_name: DOMString) {
+    pub(crate) fn rename_object_store_name(&self, old_name: &RootedDOMString, new_name: RootedDOMString) {
         let mut object_store_names = self.object_store_names.borrow_mut();
         if let Some(position) = object_store_names.iter().position(|name| name == old_name) {
             object_store_names[position] = new_name;
         }
     }
 
-    pub(crate) fn object_store_exists(&self, name: &DOMString) -> bool {
+    pub(crate) fn object_store_exists(&self, name: &RootedDOMString) -> bool {
         self.object_store_names
             .borrow()
             .iter()
@@ -269,7 +269,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
     fn CreateObjectStore(
         &self,
         cx: &mut JSContext,
-        name: DOMString,
+        name: RootedDOMString,
         options: &IDBObjectStoreParameters,
     ) -> Fallible<DomRoot<IDBObjectStore>> {
         // Step 1. Let database be this’s associated database.
@@ -371,7 +371,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
     }
 
     /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbdatabase-deleteobjectstore>
-    fn DeleteObjectStore(&self, name: DOMString) -> Fallible<()> {
+    fn DeleteObjectStore(&self, name: RootedDOMString) -> Fallible<()> {
         // Steps 1 & 2
         let transaction = self.upgrade_transaction.get();
         let transaction = match transaction {
@@ -415,7 +415,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
     }
 
     /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbdatabase-name>
-    fn Name(&self) -> DOMString {
+    fn Name(&self) -> RootedDOMString {
         self.name.clone()
     }
 

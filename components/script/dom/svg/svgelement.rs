@@ -8,7 +8,7 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::codegen::GenericBindings::ElementBinding::ScrollLogicalPosition;
 use script_bindings::codegen::GenericBindings::WindowBinding::ScrollBehavior;
-use script_bindings::str::DOMString;
+use script_bindings::str::RootedDOMString;
 use style::attr::AttrValue;
 use style::parser::ParserContext;
 use style::properties::{PropertyDeclaration, longhands};
@@ -168,12 +168,12 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
     global_event_handlers!();
 
     /// <https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce>
-    fn Nonce(&self) -> DOMString {
+    fn Nonce(&self) -> RootedDOMString {
         self.as_element().nonce_value().into()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce>
-    fn SetNonce(&self, cx: &mut JSContext, value: DOMString) {
+    fn SetNonce(&self, cx: &mut JSContext, value: RootedDOMString) {
         self.as_element()
             .update_nonce_internal_slot(String::from(value), cx.no_gc())
     }

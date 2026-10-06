@@ -12,7 +12,7 @@ use servo_url::ServoUrl;
 use crate::dom::bindings::codegen::Bindings::HTMLBaseElementBinding::HTMLBaseElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::document::Document;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
@@ -111,7 +111,7 @@ impl HTMLBaseElement {
 
 impl HTMLBaseElementMethods<crate::DomTypeHolder> for HTMLBaseElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-base-href>
-    fn Href(&self) -> DOMString {
+    fn Href(&self) -> RootedDOMString {
         // Step 1. Let document be element's node document.
         let document = self.owner_document();
 

@@ -20,7 +20,7 @@ use js::rust::{
     HandleValue as SafeHandleValue, MutableHandleString as SafeMutableHandleString, ToString,
 };
 
-pub use crate::domstring::DOMString;
+pub use crate::domstring::RootedDOMString;
 use crate::error::Error;
 
 /// Encapsulates the IDL `ByteString` type.
@@ -139,7 +139,7 @@ impl From<USVString> for String {
     }
 }
 
-impl From<USVString> for DOMString {
+impl From<USVString> for RootedDOMString {
     fn from(value: USVString) -> Self {
         value.0.into()
     }
@@ -171,7 +171,7 @@ pub fn is_token(s: &[u8]) -> bool {
 pub fn serialize_jsval_to_json_utf8(
     cx: &mut JSContext,
     data: HandleValue,
-) -> Result<DOMString, Error> {
+) -> Result<RootedDOMString, Error> {
     #[repr(C)]
     struct ToJSONCallbackData {
         string: Option<String>,

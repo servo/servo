@@ -9,17 +9,17 @@ use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::DOMStringListBinding::DOMStringListMethods;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::globalscope::GlobalScope;
 
 #[dom_struct]
 pub(crate) struct DOMStringList {
     reflector_: Reflector,
-    strings: Vec<DOMString>,
+    strings: Vec<RootedDOMString>,
 }
 
 impl DOMStringList {
-    pub(crate) fn new_inherited(strings: Vec<DOMString>) -> DOMStringList {
+    pub(crate) fn new_inherited(strings: Vec<RootedDOMString>) -> DOMStringList {
         DOMStringList {
             reflector_: Reflector::new(),
             strings,
@@ -29,7 +29,7 @@ impl DOMStringList {
     pub(crate) fn new(
         cx: &mut JSContext,
         global: &GlobalScope,
-        strings: Vec<DOMString>,
+        strings: Vec<RootedDOMString>,
     ) -> DomRoot<DOMStringList> {
         reflect_dom_object(cx, Box::new(DOMStringList::new_inherited(strings)), global)
     }
@@ -38,7 +38,7 @@ impl DOMStringList {
     pub(crate) fn new_sorted<'a>(
         cx: &mut JSContext,
         global: &GlobalScope,
-        strings: impl IntoIterator<Item = &'a DOMString>,
+        strings: impl IntoIterator<Item = &'a RootedDOMString>,
     ) -> DomRoot<DOMStringList> {
         let sorted = strings
             .into_iter()
@@ -62,17 +62,17 @@ impl DOMStringListMethods<crate::DomTypeHolder> for DOMStringList {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-domstringlist-item>
-    fn Item(&self, index: u32) -> Option<DOMString> {
+    fn Item(&self, index: u32) -> Option<RootedDOMString> {
         self.strings.get(index as usize).cloned()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-domstringlist-contains>
-    fn Contains(&self, string: DOMString) -> bool {
+    fn Contains(&self, string: RootedDOMString) -> bool {
         self.strings.contains(&string)
     }
 
     // check-tidy: no specs after this line
-    fn IndexedGetter(&self, index: u32) -> Option<DOMString> {
+    fn IndexedGetter(&self, index: u32) -> Option<RootedDOMString> {
         self.Item(index)
     }
 }

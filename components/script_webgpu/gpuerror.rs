@@ -17,7 +17,7 @@ use webgpu_traits::{Error, ErrorFilter};
 
 use crate::JSTraceable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::gpuconvert::WebGPUConvert;
 use crate::gpuinternalerror::GPUInternalError;
 use crate::gpuoutofmemoryerror::GPUOutOfMemoryError;
@@ -27,7 +27,7 @@ use crate::traits::Equivalence;
 #[dom_struct]
 pub struct GPUError<D: DomTypes> {
     reflector_: Reflector,
-    message: DOMString,
+    message: RootedDOMString,
     #[no_trace = "PhantomData does not exist"]
     phantom: PhantomData<D>,
 }
@@ -36,7 +36,7 @@ impl<D> GPUError<D>
 where
     D: Equivalence,
 {
-    pub(crate) fn new_inherited(message: DOMString) -> Self {
+    pub(crate) fn new_inherited(message: RootedDOMString) -> Self {
         Self {
             reflector_: Reflector::new(),
             message,
@@ -48,7 +48,7 @@ where
     pub(crate) fn new(
         cx: &mut JSContext,
         global: &D::GlobalScope,
-        message: DOMString,
+        message: RootedDOMString,
     ) -> DomRoot<Self> {
         Self::new_with_proto(cx, global, None, message)
     }
@@ -57,7 +57,7 @@ where
         cx: &mut JSContext,
         global: &D::GlobalScope,
         proto: Option<HandleObject>,
-        message: DOMString,
+        message: RootedDOMString,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_proto_and_wrap::<D, _, _>(
             cx,
@@ -94,7 +94,7 @@ where
 
 impl<D: Equivalence> GPUErrorMethods<D> for GPUError<D> {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuerror-message>
-    fn Message(&self) -> DOMString {
+    fn Message(&self) -> RootedDOMString {
         self.message.clone()
     }
 }

@@ -29,7 +29,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::comparator::compare_dom_positions;
 use crate::dom::document::Document;
 use crate::dom::eventtarget::EventTarget;
@@ -840,7 +840,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-type>
-    fn Type(&self) -> DOMString {
+    fn Type(&self) -> RootedDOMString {
         // > The attribute must return "None" if this is empty or either focus or anchor
         // > is not in the document tree, "Caret" if this's range is collapsed, and "Range"
         // > otherwise.
@@ -849,24 +849,24 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // do the document tree check (other browsers don't either).
         let range = self.range.borrow();
         let Some(range) = range.as_ref() else {
-            return DOMString::from_static("None");
+            return RootedDOMString::from_static("None");
         };
         if range.collapsed() {
-            DOMString::from_static("Caret")
+            RootedDOMString::from_static("Caret")
         } else {
-            DOMString::from_static("Range")
+            RootedDOMString::from_static("Range")
         }
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-direction>
-    fn Direction(&self) -> DOMString {
+    fn Direction(&self) -> RootedDOMString {
         // > The attribute must return "none" if this is empty or this selection is
         // > directionless. "forward" if this selection's direction is forwards and
         // > "backward" if this selection's direction is backwards.
         match self.direction.get() {
-            Direction::Directionless => DOMString::from_static("none"),
-            Direction::Forwards => DOMString::from_static("forward"),
-            Direction::Backwards => DOMString::from_static("backward"),
+            Direction::Directionless => RootedDOMString::from_static("none"),
+            Direction::Forwards => RootedDOMString::from_static("forward"),
+            Direction::Backwards => RootedDOMString::from_static("backward"),
         }
     }
 
@@ -1391,7 +1391,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-stringifier>
-    fn Stringifier(&self, cx: &mut JSContext) -> DOMString {
+    fn Stringifier(&self, cx: &mut JSContext) -> RootedDOMString {
         // > The stringification must return the string, which is the concatenation of the
         // > rendered text if there is a range associated with this.
         // >
@@ -1400,14 +1400,14 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         let Some(visible_selection) =
             FlatTreeSelection::from_selection_if_renderable(cx.no_gc(), self)
         else {
-            return DOMString::new();
+            return RootedDOMString::new();
         };
 
         // Flush all layout before stringifying so that rendered text is up-to-date.
         self.document.window().layout_reflow(QueryMsg::StyleQuery);
 
         let mut user_select_cache = Default::default();
-        let mut string = DOMString::new();
+        let mut string = RootedDOMString::new();
         for node in visible_selection.traversal() {
             let Some(character_data) = node.downcast::<CharacterData>() else {
                 continue;

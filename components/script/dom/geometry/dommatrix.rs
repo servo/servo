@@ -11,7 +11,7 @@ use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{Float32Array, Float64Array};
 use rustc_hash::FxHashMap;
 use script_bindings::reflector::reflect_dom_object_with_proto;
-use script_bindings::str::DOMString;
+use script_bindings::str::RootedDOMString;
 use script_bindings::structuredclone::StructuredData;
 use servo_base::id::{DomMatrixId, DomMatrixIndex};
 use servo_constellation_traits::DomMatrix;
@@ -486,7 +486,7 @@ impl DOMMatrixMethods<crate::DomTypeHolder> for DOMMatrix {
     }
 
     /// <https://drafts.csswg.org/geometry-1/#dom-dommatrix-setmatrixvalue>
-    fn SetMatrixValue(&self, transformList: DOMString) -> Fallible<DomRoot<DOMMatrix>> {
+    fn SetMatrixValue(&self, transformList: RootedDOMString) -> Fallible<DomRoot<DOMMatrix>> {
         // 1. Parse transformList into an abstract matrix, and let
         // matrix and 2dTransform be the result. If the result is failure,
         // then throw a "SyntaxError" DOMException.

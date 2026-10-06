@@ -11,7 +11,7 @@ use servo_config::pref;
 use crate::dom::bindings::codegen::Bindings::WorkerNavigatorBinding::WorkerNavigatorMethods;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::navigator::hardware_concurrency;
 use crate::dom::navigatorinfo;
@@ -49,22 +49,22 @@ impl WorkerNavigator {
 
 impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-product>
-    fn Product(&self) -> DOMString {
+    fn Product(&self) -> RootedDOMString {
         navigatorinfo::Product()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-productsub>
-    fn ProductSub(&self) -> DOMString {
+    fn ProductSub(&self) -> RootedDOMString {
         navigatorinfo::ProductSub()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-vendor>
-    fn Vendor(&self) -> DOMString {
+    fn Vendor(&self) -> RootedDOMString {
         navigatorinfo::Vendor()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-vendorsub>
-    fn VendorSub(&self) -> DOMString {
+    fn VendorSub(&self) -> RootedDOMString {
         navigatorinfo::VendorSub()
     }
 
@@ -74,32 +74,32 @@ impl WorkerNavigatorMethods<crate::DomTypeHolder> for WorkerNavigator {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-appname>
-    fn AppName(&self) -> DOMString {
+    fn AppName(&self) -> RootedDOMString {
         navigatorinfo::AppName()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-appcodename>
-    fn AppCodeName(&self) -> DOMString {
+    fn AppCodeName(&self) -> RootedDOMString {
         navigatorinfo::AppCodeName()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-platform>
-    fn Platform(&self) -> DOMString {
+    fn Platform(&self) -> RootedDOMString {
         navigatorinfo::Platform()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-useragent>
-    fn UserAgent(&self) -> DOMString {
+    fn UserAgent(&self) -> RootedDOMString {
         navigatorinfo::UserAgent(&pref!(user_agent))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-appversion>
-    fn AppVersion(&self) -> DOMString {
+    fn AppVersion(&self) -> RootedDOMString {
         navigatorinfo::AppVersion()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#navigatorlanguage>
-    fn Language(&self) -> DOMString {
+    fn Language(&self) -> RootedDOMString {
         navigatorinfo::Language()
     }
 

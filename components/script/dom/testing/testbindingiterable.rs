@@ -13,13 +13,13 @@ use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::codegen::Bindings::TestBindingIterableBinding::TestBindingIterableMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::globalscope::GlobalScope;
 
 #[dom_struct]
 pub(crate) struct TestBindingIterable {
     reflector: Reflector,
-    vals: DomRefCell<Vec<DOMString>>,
+    vals: DomRefCell<Vec<RootedDOMString>>,
 }
 
 impl TestBindingIterable {
@@ -49,16 +49,16 @@ impl TestBindingIterableMethods<crate::DomTypeHolder> for TestBindingIterable {
         Ok(TestBindingIterable::new(cx, global, proto))
     }
 
-    fn Add(&self, v: DOMString) {
+    fn Add(&self, v: RootedDOMString) {
         self.vals.borrow_mut().push(v);
     }
     fn Length(&self) -> u32 {
         self.vals.borrow().len() as u32
     }
-    fn GetItem(&self, n: u32) -> DOMString {
+    fn GetItem(&self, n: u32) -> RootedDOMString {
         self.IndexedGetter(n).unwrap_or_default()
     }
-    fn IndexedGetter(&self, n: u32) -> Option<DOMString> {
+    fn IndexedGetter(&self, n: u32) -> Option<RootedDOMString> {
         self.vals.borrow().get(n as usize).cloned()
     }
 }

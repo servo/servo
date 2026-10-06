@@ -76,7 +76,7 @@ use crate::dom::bindings::error::{
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::document::Document;
 use crate::dom::domrect::DOMRect;
 use crate::dom::element::Element;
@@ -329,7 +329,7 @@ fn all_matching_links(
     // Step 7.2. If a DOMException, SyntaxError, XPathException, or other error occurs
     // during the execution of the element location strategy, return error invalid selector.
     root_node
-        .query_selector_all(cx, DOMString::from_static("a"))
+        .query_selector_all(cx, RootedDOMString::from_static("a"))
         .map_err(|_| ErrorStatus::InvalidSelector)
         .map(|nodes| matching_links(cx, &nodes, link_text, partial).collect())
 }
@@ -843,7 +843,7 @@ pub(crate) fn handle_find_elements_css_selector(
         Ok(document) => reply
             .send(
                 document
-                    .QuerySelectorAll(cx, DOMString::from(selector))
+                    .QuerySelectorAll(cx, RootedDOMString::from(selector))
                     .map_err(|_| ErrorStatus::InvalidSelector)
                     .map(|nodes| {
                         nodes
@@ -888,7 +888,7 @@ pub(crate) fn handle_find_elements_tag_name(
     match retrieve_document_and_check_root_existence(documents, pipeline) {
         Ok(document) => reply
             .send(Ok(document
-                .GetElementsByTagName(cx, DOMString::from(selector))
+                .GetElementsByTagName(cx, RootedDOMString::from(selector))
                 .elements_iter(cx.no_gc())
                 .map(|x| x.upcast::<Node>().unique_id(pipeline))
                 .collect::<Vec<String>>()))
@@ -911,7 +911,7 @@ fn find_elements_xpath_strategy(
     // A snapshot is used to promote operation atomicity.
     let evaluate_result = match document.Evaluate(
         cx,
-        DOMString::from(selector),
+        RootedDOMString::from(selector),
         start_node,
         None,
         XPathResultConstants::ORDERED_NODE_SNAPSHOT_TYPE,
@@ -991,7 +991,7 @@ pub(crate) fn handle_find_element_elements_css_selector(
             get_known_element(documents, pipeline, element_id).and_then(|element| {
                 element
                     .upcast::<Node>()
-                    .query_selector_all(cx, DOMString::from(selector))
+                    .query_selector_all(cx, RootedDOMString::from(selector))
                     .map_err(|_| ErrorStatus::InvalidSelector)
                     .map(|nodes| {
                         nodes
@@ -1034,7 +1034,7 @@ pub(crate) fn handle_find_element_elements_tag_name(
         .send(
             get_known_element(documents, pipeline, element_id).map(|element| {
                 element
-                    .GetElementsByTagName(cx, DOMString::from(selector))
+                    .GetElementsByTagName(cx, RootedDOMString::from(selector))
                     .elements_iter(cx.no_gc())
                     .map(|x| x.upcast::<Node>().unique_id(pipeline))
                     .collect::<Vec<String>>()
@@ -1082,7 +1082,7 @@ pub(crate) fn handle_find_shadow_elements_css_selector(
             get_known_shadow_root(documents, pipeline, shadow_root_id).and_then(|shadow_root| {
                 shadow_root
                     .upcast::<Node>()
-                    .query_selector_all(cx, DOMString::from(selector))
+                    .query_selector_all(cx, RootedDOMString::from(selector))
                     .map_err(|_| ErrorStatus::InvalidSelector)
                     .map(|nodes| {
                         nodes
@@ -1131,7 +1131,7 @@ pub(crate) fn handle_find_shadow_elements_tag_name(
             get_known_shadow_root(documents, pipeline, shadow_root_id).map(|shadow_root| {
                 shadow_root
                     .upcast::<Node>()
-                    .query_selector_all(cx, DOMString::from(selector))
+                    .query_selector_all(cx, RootedDOMString::from(selector))
                     .map(|nodes| {
                         nodes
                             .iter(cx)
@@ -1203,7 +1203,7 @@ fn handle_send_keys_file(
     // on the newline (\n) character.
     //
     // Be sure to also remove empty strings, as "" always splits to a single string.
-    let files: Vec<DOMString> = text
+    let files: Vec<RootedDOMString> = text
         .split("\n")
         .filter_map(|string| {
             if string.is_empty() {
@@ -1732,14 +1732,14 @@ pub(crate) fn handle_get_attribute(
         .send(
             get_known_element(documents, pipeline, node_id).map(|element| {
                 if is_boolean_attribute(&name) {
-                    if element.HasAttribute(cx, DOMString::from(name)) {
+                    if element.HasAttribute(cx, RootedDOMString::from(name)) {
                         Some(String::from("true"))
                     } else {
                         None
                     }
                 } else {
                     element
-                        .GetAttribute(cx, DOMString::from(name))
+                        .GetAttribute(cx, RootedDOMString::from(name))
                         .map(String::from)
                 }
             }),
@@ -1803,7 +1803,7 @@ pub(crate) fn handle_get_css(
                 String::from(
                     window
                         .GetComputedStyle(cx, &element, None)
-                        .GetPropertyValue(DOMString::from(name)),
+                        .GetPropertyValue(RootedDOMString::from(name)),
                 )
             }),
         )

@@ -29,7 +29,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLTemplateElementBinding::HTMLTem
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::comment::Comment;
 use crate::dom::customelementregistry::CustomElementReactionStack;
 use crate::dom::document::Document;
@@ -488,7 +488,7 @@ impl Tokenizer {
                 self.current_line.set(current_line);
                 let attrs = attrs
                     .into_iter()
-                    .map(|attr| ElementAttribute::new(attr.name, DOMString::from(attr.value)))
+                    .map(|attr| ElementAttribute::new(attr.name, RootedDOMString::from(attr.value)))
                     .collect();
                 let element = create_element_for_token(
                     cx,
@@ -503,7 +503,7 @@ impl Tokenizer {
                 self.insert_node(node, Dom::from_ref(element.upcast()));
             },
             ParseOperation::CreateComment { text, node } => {
-                let comment = Comment::new(cx, DOMString::from(text), document, None);
+                let comment = Comment::new(cx, RootedDOMString::from(text), document, None);
                 self.insert_node(node, Dom::from_ref(comment.upcast()));
             },
             ParseOperation::AppendBeforeSibling { sibling, node } => {
@@ -530,9 +530,9 @@ impl Tokenizer {
             } => {
                 let doctype = DocumentType::new(
                     cx,
-                    DOMString::from(name),
-                    Some(DOMString::from(public_id)),
-                    Some(DOMString::from(system_id)),
+                    RootedDOMString::from(name),
+                    Some(RootedDOMString::from(public_id)),
+                    Some(RootedDOMString::from(system_id)),
                     document,
                 );
 
@@ -547,7 +547,11 @@ impl Tokenizer {
                     .downcast::<Element>()
                     .expect("tried to set attrs on non-Element in HTML parsing");
                 for attr in attrs {
-                    elem.set_attribute_from_parser(cx, attr.name, DOMString::from(attr.value));
+                    elem.set_attribute_from_parser(
+                        cx,
+                        attr.name,
+                        RootedDOMString::from(attr.value),
+                    );
                 }
             },
             ParseOperation::RemoveFromParent { target } => {
@@ -604,8 +608,8 @@ impl Tokenizer {
             ParseOperation::CreatePI { node, target, data } => {
                 let pi = ProcessingInstruction::new(
                     cx,
-                    DOMString::from(target),
-                    DOMString::from(data),
+                    RootedDOMString::from(target),
+                    RootedDOMString::from(data),
                     document,
                 );
                 self.insert_node(node, Dom::from_ref(pi.upcast()));

@@ -27,7 +27,7 @@ use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::readablestream::PipeTo;
@@ -60,7 +60,7 @@ pub(crate) enum AbortAlgorithm {
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct RemovableDomEventListener {
     pub(crate) event_target: Dom<EventTarget>,
-    pub(crate) ty: DOMString,
+    pub(crate) ty: RootedDOMString,
     pub(crate) listener: Option<TracedCallback<EventListener>>,
     pub(crate) options: EventListenerOptions,
 }
@@ -385,7 +385,7 @@ impl AbortSignalMethods<crate::DomTypeHolder> for AbortSignal {
 
         // Step 3. Run steps after a timeout given global, "AbortSignal-timeout", milliseconds, and the following step:
         global.run_steps_after_a_timeout(
-            DOMString::from_static("AbortSignal-timeout"),
+            RootedDOMString::from_static("AbortSignal-timeout"),
             ms_i64,
             move |_cx, global| {
                 let task_source = global.task_manager().timer_task_source().to_sendable();

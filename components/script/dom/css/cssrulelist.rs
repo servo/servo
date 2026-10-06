@@ -10,7 +10,7 @@ use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use script_bindings::inheritance::Castable;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
-use script_bindings::str::DOMString;
+use script_bindings::str::RootedDOMString;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, SharedRwLockReadGuard};
 use style::stylesheets::{
@@ -118,7 +118,7 @@ impl CSSRuleList {
     pub(crate) fn insert_rule(
         &self,
         cx: &mut JSContext,
-        rule: &DOMString,
+        rule: &RootedDOMString,
         idx: u32,
     ) -> Fallible<u32> {
         self.parent_stylesheet.will_modify(cx.no_gc());

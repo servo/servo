@@ -12,7 +12,7 @@ use script_bindings::callback::{OwnerWindow, RootedCallback, TracedCallback};
 use script_bindings::cell::DomRefCell;
 use script_bindings::match_domstring_ascii;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
-use script_bindings::str::DOMString;
+use script_bindings::str::RootedDOMString;
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -36,7 +36,7 @@ pub(crate) struct ReportingObserver {
 
     callback: TracedCallback<ReportingObserverCallback>,
     buffered: Cell<bool>,
-    types: DomRefCell<Vec<DOMString>>,
+    types: DomRefCell<Vec<RootedDOMString>>,
     report_queue: DomRefCell<Vec<Report>>,
 }
 
@@ -163,10 +163,10 @@ impl ReportingObserver {
     /// <https://w3c.github.io/reporting/#generate-a-report>
     fn generate_a_report(
         global: &GlobalScope,
-        type_: DOMString,
+        type_: RootedDOMString,
         url: Option<ServoUrl>,
         body: Option<CSPViolationReportBody>,
-        destination: DOMString,
+        destination: RootedDOMString,
     ) -> Report {
         // Step 2. If url was not provided by the caller, let url be settings’s creation URL.
         let url = url.unwrap_or(global.creation_url());
@@ -194,9 +194,9 @@ impl ReportingObserver {
     /// <https://w3c.github.io/reporting/#generate-and-queue-a-report>
     pub(crate) fn generate_and_queue_a_report(
         global: &GlobalScope,
-        type_: DOMString,
+        type_: RootedDOMString,
         body: Option<CSPViolationReportBody>,
-        destination: DOMString,
+        destination: RootedDOMString,
     ) {
         // Step 1. Let settings be context’s relevant settings object.
         // Step 2. Let report be the result of running generate a report with data, type, destination and settings.

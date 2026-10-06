@@ -14,7 +14,7 @@ use net_traits::request::{
     create_request_body_with_content,
 };
 use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming};
-use script_bindings::str::DOMString;
+use script_bindings::str::RootedDOMString;
 use serde::Serialize;
 use servo_url::{ImmutableOrigin, ServoUrl};
 
@@ -36,7 +36,7 @@ use crate::fetch::network_listener::{
 #[derive(Clone, Eq, Hash, MallocSizeOf, PartialEq)]
 pub(crate) struct ReportingEndpoint {
     /// <https://w3c.github.io/reporting/#dom-endpoint-name>
-    name: DOMString,
+    name: RootedDOMString,
     /// <https://w3c.github.io/reporting/#dom-endpoint-url>
     url: ServoUrl,
     /// <https://w3c.github.io/reporting/#dom-endpoint-failures>

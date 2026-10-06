@@ -11,7 +11,7 @@ use script_bindings::codegen::GenericBindings::IDBIndexBinding::IDBIndexMethods;
 use script_bindings::codegen::GenericBindings::IDBTransactionBinding::IDBTransactionMode;
 use script_bindings::error::{Error, ErrorResult, Fallible};
 use script_bindings::reflector::{Reflector, reflect_dom_object};
-use script_bindings::str::DOMString;
+use script_bindings::str::RootedDOMString;
 use storage_traits::indexeddb::{AsyncOperation, AsyncReadOnlyOperation};
 
 use crate::dom::bindings::codegen::Bindings::IDBCursorBinding::IDBCursorDirection;
@@ -30,7 +30,7 @@ use crate::dom::indexeddb::key::convert_value_to_key_range;
 pub(crate) struct IDBIndex {
     reflector_: Reflector,
     object_store: Dom<IDBObjectStore>,
-    name: DomRefCell<DOMString>,
+    name: DomRefCell<RootedDOMString>,
     multi_entry: bool,
     unique: bool,
     key_path: KeyPath,
@@ -39,7 +39,7 @@ pub(crate) struct IDBIndex {
 impl IDBIndex {
     pub fn new_inherited(
         object_store: &IDBObjectStore,
-        name: DOMString,
+        name: RootedDOMString,
         multi_entry: bool,
         unique: bool,
         key_path: KeyPath,
@@ -58,7 +58,7 @@ impl IDBIndex {
         cx: &mut JSContext,
         global: &GlobalScope,
         object_store: &IDBObjectStore,
-        name: DOMString,
+        name: RootedDOMString,
         multi_entry: bool,
         unique: bool,
         key_path: KeyPath,
@@ -180,12 +180,12 @@ impl IDBIndex {
 
 impl IDBIndexMethods<crate::DomTypeHolder> for IDBIndex {
     /// <https://www.w3.org/TR/IndexedDB/#dom-idbindex-name>
-    fn Name(&self) -> DOMString {
+    fn Name(&self) -> RootedDOMString {
         self.name.borrow().clone()
     }
 
     /// <https://www.w3.org/TR/IndexedDB/#ref-for-dom-idbindex-name%E2%91%A2>
-    fn SetName(&self, name: DOMString) -> ErrorResult {
+    fn SetName(&self, name: RootedDOMString) -> ErrorResult {
         // Step 1: Let name be the given value.
         // Step 2: Let transaction be this’s transaction.
         let transaction = self.object_store.transaction();

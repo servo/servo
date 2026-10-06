@@ -22,7 +22,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::NodeTypeId;
 use crate::dom::bindings::root::{DomRoot, DomSlice, UnrootedDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::element::Element;
 use crate::dom::execcommand::basecommand::{CommandName, CssPropertyName};
@@ -807,7 +807,7 @@ where
 pub(crate) struct RecordedValueAndCommandOfNode {
     node: DomRoot<Node>,
     command: CommandName,
-    specified_command_value: Option<DOMString>,
+    specified_command_value: Option<RootedDOMString>,
 }
 
 /// <https://w3c.github.io/editing/docs/execCommand/#record-the-values>
@@ -932,7 +932,7 @@ impl Node {
         &self,
         cx: &mut JSContext,
         command: &CommandName,
-        new_value: Option<DOMString>,
+        new_value: Option<RootedDOMString>,
     ) {
         // Step 1. Let command be the current command.
         //
@@ -1062,7 +1062,7 @@ impl Node {
         &self,
         cx: &mut JSContext,
         command: &CommandName,
-        new_value: &DOMString,
+        new_value: &RootedDOMString,
     ) {
         // Step 1. Let candidate equal node.
         let mut candidate = DomRoot::from_ref(self);
@@ -1138,7 +1138,7 @@ impl Node {
         &self,
         cx: &mut JSContext,
         command: &CommandName,
-        new_value: Option<&DOMString>,
+        new_value: Option<&RootedDOMString>,
     ) {
         // Step 1. Let command be the current command.
         //
@@ -2239,7 +2239,7 @@ impl Node {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#effective-command-value>
-    pub(crate) fn effective_command_value(&self, command: &CommandName) -> Option<DOMString> {
+    pub(crate) fn effective_command_value(&self, command: &CommandName) -> Option<RootedDOMString> {
         // Step 1. If neither node nor its parent is an Element, return null.
         // Step 2. If node is not an Element, return the effective command value of its parent for command.
         let Some(element) = self.downcast::<Element>() else {
@@ -2282,7 +2282,7 @@ impl Node {
                     }
                     current_element = element.upcast::<Node>().GetParentElement();
                 }
-                Some(DOMString::from_static("rgba(0, 0, 0, 0)"))
+                Some(RootedDOMString::from_static("rgba(0, 0, 0, 0)"))
             },
             // Step 5. If command is "subscript" or "superscript":
             CommandName::Subscript | CommandName::Superscript => {
@@ -2311,11 +2311,11 @@ impl Node {
                 Some(match (affected_by_subscript, affected_by_superscript) {
                     // Step 5.3. If affected by subscript and affected by superscript are both true,
                     // return the string "mixed".
-                    (true, true) => DOMString::from_static("mixed"),
+                    (true, true) => RootedDOMString::from_static("mixed"),
                     // Step 5.4. If affected by subscript is true, return "subscript".
-                    (true, false) => DOMString::from_static("subscript"),
+                    (true, false) => RootedDOMString::from_static("subscript"),
                     // Step 5.5. If affected by superscript is true, return "superscript".
-                    (false, true) => DOMString::from_static("superscript"),
+                    (false, true) => RootedDOMString::from_static("superscript"),
                     // Step 5.6. Return null.
                     (false, false) => return None,
                 })
@@ -2332,7 +2332,7 @@ impl Node {
                         })
                         .is_some_and(|property| property.contains("line-through"))
                 })
-                .then_some(DOMString::from_static("line-through")),
+                .then_some(RootedDOMString::from_static("line-through")),
             // Step 7. If command is "underline",
             // and the "text-decoration" property of node or any of its ancestors has resolved value containing "underline",
             // return "underline". Otherwise, return null.
@@ -2345,7 +2345,7 @@ impl Node {
                         })
                         .is_some_and(|property| property.contains("underline"))
                 })
-                .then_some(DOMString::from_static("underline")),
+                .then_some(RootedDOMString::from_static("underline")),
             // Step 8. Return the resolved value for node of the relevant CSS property for command.
             _ => command.resolved_value_for_node(element),
         }

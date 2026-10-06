@@ -100,7 +100,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::settings_stack::{entry_global, incumbent_global};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::{CustomTraceable, HashMapTracedValues, RootedTraceableBox};
 use crate::dom::bindings::weakref::{DOMTracker, WeakRef};
@@ -201,7 +201,7 @@ pub(crate) struct GlobalScope {
     worker_map: DomRefCell<HashMapTracedValues<ServiceWorkerId, Dom<ServiceWorker>, FxBuildHasher>>,
 
     /// Timers (milliseconds) used by the Console API.
-    console_timers: DomRefCell<HashMap<DOMString, Instant>>,
+    console_timers: DomRefCell<HashMap<RootedDOMString, Instant>>,
 
     /// For providing instructions to an optional devtools server.
     #[no_trace]
@@ -297,12 +297,12 @@ pub(crate) struct GlobalScope {
     frozen_supported_performance_entry_types: CachedFrozenArray,
 
     /// The stack of active group labels for the Console APIs.
-    console_group_stack: DomRefCell<Vec<DOMString>>,
+    console_group_stack: DomRefCell<Vec<RootedDOMString>>,
 
     /// The count map for the Console APIs.
     ///
     /// <https://console.spec.whatwg.org/#count>
-    console_count_map: DomRefCell<HashMap<DOMString, usize>>,
+    console_count_map: DomRefCell<HashMap<RootedDOMString, usize>>,
 
     /// Is considered in a secure context
     inherited_secure_context: Option<bool>,
@@ -2066,7 +2066,7 @@ impl GlobalScope {
         }
     }
 
-    pub(crate) fn time(&self, label: DOMString) -> Result<(), ()> {
+    pub(crate) fn time(&self, label: RootedDOMString) -> Result<(), ()> {
         let mut timers = self.console_timers.borrow_mut();
         if timers.len() >= 10000 {
             return Err(());
@@ -2083,7 +2083,7 @@ impl GlobalScope {
     /// Computes the delta time since a label has been created
     ///
     /// Returns an error if the label does not exist.
-    pub(crate) fn time_log(&self, label: &DOMString) -> Result<u64, ()> {
+    pub(crate) fn time_log(&self, label: &RootedDOMString) -> Result<u64, ()> {
         self.console_timers
             .borrow()
             .get(label)
@@ -2095,7 +2095,7 @@ impl GlobalScope {
     /// tracking the label.
     ///
     /// Returns an error if the label does not exist.
-    pub(crate) fn time_end(&self, label: &DOMString) -> Result<u64, ()> {
+    pub(crate) fn time_end(&self, label: &RootedDOMString) -> Result<u64, ()> {
         self.console_timers
             .borrow_mut()
             .remove(label)
@@ -2836,7 +2836,7 @@ impl GlobalScope {
             || {
                 EntryType::VARIANTS
                     .iter()
-                    .map(|t| DOMString::from(t.as_str()))
+                    .map(|t| RootedDOMString::from(t.as_str()))
                     .collect()
             },
             retval,
@@ -2957,14 +2957,14 @@ impl GlobalScope {
         }
     }
 
-    pub(crate) fn current_group_label(&self) -> Option<DOMString> {
+    pub(crate) fn current_group_label(&self) -> Option<RootedDOMString> {
         self.console_group_stack
             .borrow()
             .last()
-            .map(|label| DOMString::from(format!("[{}]", label)))
+            .map(|label| RootedDOMString::from(format!("[{}]", label)))
     }
 
-    pub(crate) fn push_console_group(&self, group: DOMString) {
+    pub(crate) fn push_console_group(&self, group: RootedDOMString) {
         self.console_group_stack.borrow_mut().push(group);
     }
 
@@ -2972,7 +2972,7 @@ impl GlobalScope {
         let _ = self.console_group_stack.borrow_mut().pop();
     }
 
-    pub(crate) fn increment_console_count(&self, label: &DOMString) -> usize {
+    pub(crate) fn increment_console_count(&self, label: &RootedDOMString) -> usize {
         *self
             .console_count_map
             .borrow_mut()
@@ -2981,7 +2981,7 @@ impl GlobalScope {
             .or_insert(1)
     }
 
-    pub(crate) fn reset_console_count(&self, label: &DOMString) -> Result<(), ()> {
+    pub(crate) fn reset_console_count(&self, label: &RootedDOMString) -> Result<(), ()> {
         match self.console_count_map.borrow_mut().get_mut(label) {
             Some(value) => {
                 *value = 0;
@@ -3136,7 +3136,7 @@ impl GlobalScope {
     /// integrate as per <https://html.spec.whatwg.org/multipage/#timers:run-steps-after-a-timeout?
     pub(crate) fn run_steps_after_a_timeout<F>(
         &self,
-        ordering_identifier: DOMString,
+        ordering_identifier: RootedDOMString,
         milliseconds: i64,
         completion_steps: F,
     ) -> i32

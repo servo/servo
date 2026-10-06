@@ -6,7 +6,7 @@
 // pub use script_bindings::cell::DomRefCell;
 pub use crate::dom::bindings::refcounted::TrustedPromise;
 // pub use crate::dom::bindings::root::Dom;
-pub use crate::dom::bindings::str::{ByteString, DOMString};
+pub use crate::dom::bindings::str::{ByteString, RootedDOMString};
 // pub use crate::dom::node::Node;
 
 pub mod area {

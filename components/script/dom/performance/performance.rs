@@ -35,7 +35,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{AsHandleValue, Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -61,7 +61,7 @@ impl PerformanceEntryList {
     /// <https://www.w3.org/TR/performance-timeline/#dfn-filter-buffer-map-by-name-and-type>
     pub(crate) fn get_entries_by_name_and_type(
         &self,
-        name: Option<DOMString>,
+        name: Option<RootedDOMString>,
         entry_type: Option<EntryType>,
     ) -> Vec<DomRoot<PerformanceEntry>> {
         let mut result = self
@@ -89,7 +89,7 @@ impl PerformanceEntryList {
 
     pub(crate) fn clear_entries_by_name_and_type(
         &mut self,
-        name: Option<DOMString>,
+        name: Option<RootedDOMString>,
         entry_type: EntryType,
     ) {
         self.entries.retain(|e| {
@@ -99,7 +99,7 @@ impl PerformanceEntryList {
 
     fn get_last_entry_start_time_with_name_and_type(
         &self,
-        name: DOMString,
+        name: RootedDOMString,
         entry_type: EntryType,
     ) -> Option<CrossProcessInstant> {
         self.entries
@@ -562,7 +562,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
     }
 
     /// <https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentriesbytype>
-    fn GetEntriesByType(&self, entry_type: DOMString) -> Vec<DomRoot<PerformanceEntry>> {
+    fn GetEntriesByType(&self, entry_type: RootedDOMString) -> Vec<DomRoot<PerformanceEntry>> {
         let Ok(entry_type) = EntryType::try_from(&*entry_type.str()) else {
             return Vec::new();
         };
@@ -574,8 +574,8 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
     /// <https://www.w3.org/TR/performance-timeline-2/#dom-performance-getentriesbyname>
     fn GetEntriesByName(
         &self,
-        name: DOMString,
-        entry_type: Option<DOMString>,
+        name: RootedDOMString,
+        entry_type: Option<RootedDOMString>,
     ) -> Vec<DomRoot<PerformanceEntry>> {
         let entry_type = match entry_type {
             Some(entry_type) => {
@@ -595,7 +595,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
     fn Mark(
         &self,
         cx: &mut JSContext,
-        mark_name: DOMString,
+        mark_name: RootedDOMString,
         mark_options: &PerformanceMarkOptions,
     ) -> Fallible<DomRoot<PerformanceMark>> {
         // Step 1. Run the PerformanceMark constructor and let entry be the newly created object.
@@ -611,7 +611,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
     }
 
     /// <https://w3c.github.io/user-timing/#dom-performance-clearmarks>
-    fn ClearMarks(&self, mark_name: Option<DOMString>) {
+    fn ClearMarks(&self, mark_name: Option<RootedDOMString>) {
         self.buffer
             .borrow_mut()
             .clear_entries_by_name_and_type(mark_name, EntryType::Mark);
@@ -621,9 +621,9 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
     fn Measure(
         &self,
         cx: &mut JSContext,
-        measure_name: DOMString,
+        measure_name: RootedDOMString,
         start_or_measure_options: StringOrPerformanceMeasureOptions,
-        end_mark: Option<DOMString>,
+        end_mark: Option<RootedDOMString>,
     ) -> Fallible<DomRoot<PerformanceMeasure>> {
         // Step 1. If startOrMeasureOptions is a PerformanceMeasureOptions object and at least one of start,
         // end, duration, and detail exist, run the following checks:
@@ -781,7 +781,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
     }
 
     /// <https://w3c.github.io/user-timing/#dom-performance-clearmeasures>
-    fn ClearMeasures(&self, measure_name: Option<DOMString>) {
+    fn ClearMeasures(&self, measure_name: Option<RootedDOMString>) {
         self.buffer
             .borrow_mut()
             .clear_entries_by_name_and_type(measure_name, EntryType::Measure);

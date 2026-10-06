@@ -21,7 +21,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLButtonElementBinding::HTMLButto
 use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::commandevent::CommandEvent;
 use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
@@ -103,7 +103,7 @@ impl HTMLButtonElement {
 
 impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-button-command>
-    fn Command(&self) -> DOMString {
+    fn Command(&self) -> RootedDOMString {
         // Step 1. Let command be this's command attribute.
         match self.command_state() {
             // Step 2. If command is in the Custom state, then return command's value.
@@ -111,10 +111,10 @@ impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
                 .upcast::<Element>()
                 .get_string_attribute(&local_name!("command")),
             // Step 3. If command is in the Unknown state, then return the empty string.
-            CommandState::Unknown => DOMString::default(),
+            CommandState::Unknown => RootedDOMString::default(),
             // Step 4. Return the keyword corresponding to the value of command.
-            CommandState::Close => DOMString::from_static("close"),
-            CommandState::ShowModal => DOMString::from_static("show-modal"),
+            CommandState::Close => RootedDOMString::from_static("close"),
+            CommandState::ShowModal => RootedDOMString::from_static("show-modal"),
         }
     }
 
@@ -133,11 +133,11 @@ impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-button-type>
-    fn Type(&self) -> DOMString {
+    fn Type(&self) -> RootedDOMString {
         match self.button_type.get() {
-            ButtonType::Submit => DOMString::from_static("submit"),
-            ButtonType::Button => DOMString::from_static("button"),
-            ButtonType::Reset => DOMString::from_static("reset"),
+            ButtonType::Submit => RootedDOMString::from_static("submit"),
+            ButtonType::Button => RootedDOMString::from_static("button"),
+            ButtonType::Reset => RootedDOMString::from_static("reset"),
         }
     }
 
@@ -220,12 +220,12 @@ impl HTMLButtonElementMethods<crate::DomTypeHolder> for HTMLButtonElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
-    fn ValidationMessage(&self, cx: &mut JSContext) -> DOMString {
+    fn ValidationMessage(&self, cx: &mut JSContext) -> RootedDOMString {
         self.validation_message(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity>
-    fn SetCustomValidity(&self, cx: &mut JSContext, error: DOMString) {
+    fn SetCustomValidity(&self, cx: &mut JSContext, error: RootedDOMString) {
         self.validity_state(cx).set_custom_error_message(cx, error);
     }
 }
@@ -262,7 +262,7 @@ impl HTMLButtonElement {
         })
     }
 
-    fn set_type(&self, cx: &mut JSContext, value: DOMString) {
+    fn set_type(&self, cx: &mut JSContext, value: RootedDOMString) {
         let value = if value.eq_ignore_ascii_case("reset") {
             ButtonType::Reset
         } else if value.eq_ignore_ascii_case("button") {
@@ -344,7 +344,7 @@ impl HTMLButtonElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-button-element:concept-fe-optional-value>
-    pub(crate) fn optional_value(&self) -> Option<DOMString> {
+    pub(crate) fn optional_value(&self) -> Option<RootedDOMString> {
         // The element's optional value is the value of the element's value attribute,
         // if there is one; otherwise null.
         self.upcast::<Element>()

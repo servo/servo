@@ -19,7 +19,7 @@ use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::cdatasection::CDATASection;
 use crate::dom::comment::Comment;
 use crate::dom::document::Document;
@@ -39,7 +39,7 @@ pub(crate) struct CharacterData {
 }
 
 impl CharacterData {
-    pub(crate) fn new_inherited(data: DOMString, document: &Document) -> CharacterData {
+    pub(crate) fn new_inherited(data: RootedDOMString, document: &Document) -> CharacterData {
         CharacterData {
             node: Node::new_inherited(document),
             data: AtomicRefCell::new(String::from(data)),
@@ -49,7 +49,7 @@ impl CharacterData {
     pub(crate) fn clone_with_data(
         &self,
         cx: &mut js::context::JSContext,
-        data: DOMString,
+        data: RootedDOMString,
         document: &Document,
     ) -> DomRoot<Node> {
         match self.upcast::<Node>().type_id() {
@@ -129,12 +129,12 @@ impl CharacterData {
 
 impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     /// <https://dom.spec.whatwg.org/#dom-characterdata-data>
-    fn Data(&self) -> DOMString {
-        DOMString::from(self.data.borrow().clone())
+    fn Data(&self) -> RootedDOMString {
+        RootedDOMString::from(self.data.borrow().clone())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-data>
-    fn SetData(&self, cx: &mut JSContext, data: DOMString) {
+    fn SetData(&self, cx: &mut JSContext, data: RootedDOMString) {
         self.queue_mutation_record(cx);
         let old_length = self.Length();
         *self.data.safe_borrow_mut(cx.no_gc()) = String::from(data.str());
@@ -162,7 +162,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-substringdata>
-    fn SubstringData(&self, offset: u32, count: u32) -> Fallible<DOMString> {
+    fn SubstringData(&self, offset: u32, count: u32) -> Fallible<RootedDOMString> {
         let data = self.data.borrow();
         // Step 1.
         let mut substring = String::new();
@@ -193,11 +193,11 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
                 }
             },
         };
-        Ok(DOMString::from(substring))
+        Ok(RootedDOMString::from(substring))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-appenddata>
-    fn AppendData(&self, cx: &mut JSContext, data: DOMString) {
+    fn AppendData(&self, cx: &mut JSContext, data: RootedDOMString) {
         // > The appendData(data) method steps are to replace data of this with this’s length, 0, and data.
         //
         // FIXME(ajeffrey): Efficient append on DOMStrings?
@@ -205,7 +205,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-insertdata>
-    fn InsertData(&self, cx: &mut JSContext, offset: u32, arg: DOMString) -> ErrorResult {
+    fn InsertData(&self, cx: &mut JSContext, offset: u32, arg: RootedDOMString) -> ErrorResult {
         // > The insertData(offset, data) method steps are to replace data of this with offset, 0, and data.
         self.ReplaceData(cx, offset, 0, arg)
     }
@@ -213,7 +213,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     /// <https://dom.spec.whatwg.org/#dom-characterdata-deletedata>
     fn DeleteData(&self, cx: &mut JSContext, offset: u32, count: u32) -> ErrorResult {
         // > The deleteData(offset, count) method steps are to replace data of this with offset, count, and the empty string.
-        self.ReplaceData(cx, offset, count, DOMString::new())
+        self.ReplaceData(cx, offset, count, RootedDOMString::new())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-characterdata-replacedata>
@@ -222,7 +222,7 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
         cx: &mut JSContext,
         offset: u32,
         count: u32,
-        arg: DOMString,
+        arg: RootedDOMString,
     ) -> ErrorResult {
         let mut new_data;
         {

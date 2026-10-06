@@ -6,7 +6,7 @@ use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
-use script_bindings::domstring::DOMString;
+use script_bindings::domstring::RootedDOMString;
 use script_bindings::root::DomRoot;
 use stylo_atoms::Atom;
 
@@ -43,7 +43,7 @@ impl SpecificInputType for RadioInputType {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):suffering-from-being-missing>
-    fn suffers_from_being_missing(&self, input: &HTMLInputElement, _value: &DOMString) -> bool {
+    fn suffers_from_being_missing(&self, input: &HTMLInputElement, _value: &RootedDOMString) -> bool {
         if input.radio_group_name().is_none() {
             return false;
         }

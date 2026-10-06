@@ -12,7 +12,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputE
 use crate::dom::bindings::codegen::Bindings::NodeListBinding::NodeListMethods;
 use crate::dom::bindings::codegen::Bindings::RadioNodeListBinding::RadioNodeListMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::form_controls::input_type::InputType;
 use crate::dom::html::htmlformelement::HTMLFormElement;
@@ -85,7 +85,7 @@ impl RadioNodeListMethods<crate::DomTypeHolder> for RadioNodeList {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-radionodelist-value>
-    fn Value(&self, no_gc: &NoGC) -> DOMString {
+    fn Value(&self, no_gc: &NoGC) -> RootedDOMString {
         self.upcast::<NodeList>()
             .iter(no_gc)
             .find_map(|node| {
@@ -95,7 +95,7 @@ impl RadioNodeListMethods<crate::DomTypeHolder> for RadioNodeList {
                         // Step 3-4
                         let value = input.Value();
                         Some(if value.is_empty() {
-                            DOMString::from_static("on")
+                            RootedDOMString::from_static("on")
                         } else {
                             value
                         })
@@ -105,11 +105,11 @@ impl RadioNodeListMethods<crate::DomTypeHolder> for RadioNodeList {
                 })
             })
             // Step 2
-            .unwrap_or(DOMString::new())
+            .unwrap_or(RootedDOMString::new())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-radionodelist-value>
-    fn SetValue(&self, cx: &mut JSContext, value: DOMString) {
+    fn SetValue(&self, cx: &mut JSContext, value: RootedDOMString) {
         let node_list = self.upcast::<NodeList>();
         // Inlining `node_list.iter()` so `cx` doesn’t stay borrowed
         for index in 0..node_list.Length(cx.no_gc()) {

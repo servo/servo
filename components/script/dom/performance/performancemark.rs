@@ -17,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::PerformanceMarkBinding::Performance
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{AsHandleValue, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performance::performanceentry::{EntryType, PerformanceEntry};
@@ -32,7 +32,7 @@ pub(crate) struct PerformanceMark {
 
 impl PerformanceMark {
     fn new_inherited(
-        name: DOMString,
+        name: RootedDOMString,
         start_time: CrossProcessInstant,
         duration: Duration,
     ) -> PerformanceMark {
@@ -55,7 +55,7 @@ impl PerformanceMark {
         cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        name: DOMString,
+        name: RootedDOMString,
         start_time: CrossProcessInstant,
         duration: Duration,
     ) -> DomRoot<PerformanceMark> {
@@ -79,7 +79,7 @@ impl PerformanceMarkMethods<crate::DomTypeHolder> for PerformanceMark {
         cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        mark_name: DOMString,
+        mark_name: RootedDOMString,
         mark_options: &PerformanceMarkOptions,
     ) -> Fallible<DomRoot<PerformanceMark>> {
         // The PerformanceMark constructor must run the following steps:

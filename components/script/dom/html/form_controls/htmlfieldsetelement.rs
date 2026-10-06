@@ -13,7 +13,7 @@ use stylo_dom::ElementState;
 use crate::dom::bindings::codegen::Bindings::HTMLFieldSetElementBinding::HTMLFieldSetElementMethods;
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::customelementregistry::CallbackReaction;
 use crate::dom::document::Document;
 use crate::dom::element::attributes::storage::AttrRef;
@@ -133,18 +133,18 @@ impl HTMLFieldSetElementMethods<crate::DomTypeHolder> for HTMLFieldSetElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
-    fn ValidationMessage(&self, cx: &mut JSContext) -> DOMString {
+    fn ValidationMessage(&self, cx: &mut JSContext) -> RootedDOMString {
         self.validation_message(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity>
-    fn SetCustomValidity(&self, cx: &mut JSContext, error: DOMString) {
+    fn SetCustomValidity(&self, cx: &mut JSContext, error: RootedDOMString) {
         self.validity_state(cx).set_custom_error_message(cx, error);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-fieldset-type>
-    fn Type(&self) -> DOMString {
-        DOMString::from_static("fieldset")
+    fn Type(&self) -> RootedDOMString {
+        RootedDOMString::from_static("fieldset")
     }
 }
 

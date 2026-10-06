@@ -12,26 +12,26 @@ use script_bindings::reflector::{Reflector, reflect_dom_object};
 use crate::dom::audio::audiotracklist::AudioTrackList;
 use crate::dom::bindings::codegen::Bindings::AudioTrackBinding::AudioTrackMethods;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::window::Window;
 
 #[dom_struct]
 pub(crate) struct AudioTrack {
     reflector_: Reflector,
-    id: DOMString,
-    kind: DOMString,
-    label: DOMString,
-    language: DOMString,
+    id: RootedDOMString,
+    kind: RootedDOMString,
+    label: RootedDOMString,
+    language: RootedDOMString,
     enabled: Cell<bool>,
     track_list: DomRefCell<Option<Dom<AudioTrackList>>>,
 }
 
 impl AudioTrack {
     pub(crate) fn new_inherited(
-        id: DOMString,
-        kind: DOMString,
-        label: DOMString,
-        language: DOMString,
+        id: RootedDOMString,
+        kind: RootedDOMString,
+        label: RootedDOMString,
+        language: RootedDOMString,
         track_list: Option<&AudioTrackList>,
     ) -> AudioTrack {
         AudioTrack {
@@ -48,10 +48,10 @@ impl AudioTrack {
     pub(crate) fn new(
         cx: &mut JSContext,
         window: &Window,
-        id: DOMString,
-        kind: DOMString,
-        label: DOMString,
-        language: DOMString,
+        id: RootedDOMString,
+        kind: RootedDOMString,
+        label: RootedDOMString,
+        language: RootedDOMString,
         track_list: Option<&AudioTrackList>,
     ) -> DomRoot<AudioTrack> {
         reflect_dom_object(
@@ -63,11 +63,11 @@ impl AudioTrack {
         )
     }
 
-    pub(crate) fn id(&self) -> DOMString {
+    pub(crate) fn id(&self) -> RootedDOMString {
         self.id.clone()
     }
 
-    pub(crate) fn kind(&self) -> DOMString {
+    pub(crate) fn kind(&self) -> RootedDOMString {
         self.kind.clone()
     }
 
@@ -90,22 +90,22 @@ impl AudioTrack {
 
 impl AudioTrackMethods<crate::DomTypeHolder> for AudioTrack {
     /// <https://html.spec.whatwg.org/multipage/#dom-audiotrack-id>
-    fn Id(&self) -> DOMString {
+    fn Id(&self) -> RootedDOMString {
         self.id()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-audiotrack-kind>
-    fn Kind(&self) -> DOMString {
+    fn Kind(&self) -> RootedDOMString {
         self.kind()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-audiotrack-label>
-    fn Label(&self) -> DOMString {
+    fn Label(&self) -> RootedDOMString {
         self.label.clone()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-audiotrack-language>
-    fn Language(&self) -> DOMString {
+    fn Language(&self) -> RootedDOMString {
         self.language.clone()
     }
 

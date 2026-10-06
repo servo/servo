@@ -5,7 +5,7 @@
 use js::context::JSContext;
 use script_bindings::dom::UnrootedDom;
 use script_bindings::root::DomRoot;
-use script_bindings::str::DOMString;
+use script_bindings::str::RootedDOMString;
 
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{TextTrackMethods, TextTrackMode};
 use crate::dom::html::htmlmediaelement::HTMLMediaElement;
@@ -33,7 +33,7 @@ impl RulesForUpdatingTheTextTrackRendering {
         cx: &mut JSContext,
         media_element: &HTMLMediaElement,
         text_tracks: Vec<DomRoot<TextTrack>>,
-        _language: Option<DOMString>,
+        _language: Option<RootedDOMString>,
         _reset: ShouldResetRenderingControls,
     ) {
         debug_assert!(*self == RulesForUpdatingTheTextTrackRendering::WebVTT);

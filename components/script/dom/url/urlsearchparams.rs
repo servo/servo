@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::UnionTypes::USVStringSequenceSequenceOrUSVStr
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::iterable::Iterable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::{RootedDOMString, USVString};
 use crate::dom::bindings::weakref::MutableWeakRef;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::url::URL;
@@ -208,8 +208,8 @@ impl URLSearchParamsMethods<crate::DomTypeHolder> for URLSearchParams {
     }
 
     /// <https://url.spec.whatwg.org/#stringification-behavior>
-    fn Stringifier(&self) -> DOMString {
-        DOMString::from(self.serialize_utf8())
+    fn Stringifier(&self) -> RootedDOMString {
+        RootedDOMString::from(self.serialize_utf8())
     }
 }
 

@@ -20,7 +20,7 @@ use script_bindings::interfaces::{GlobalScopeHelpers, PromiseHelpers};
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use script_bindings::root::DomRoot;
 use script_bindings::routed_promise::RoutedPromiseListener;
-use script_bindings::str::DOMString;
+use script_bindings::str::RootedDOMString;
 use servo_constellation_traits::ScriptToConstellationMessage;
 use webgpu_traits::{PowerPreference, RequestAdapterOptions, WebGPUAdapterResponse};
 
@@ -163,7 +163,7 @@ where
                     cx,
                     &self.global_from_reflector(),
                     adapter.channel,
-                    DOMString::from(format!(
+                    RootedDOMString::from(format!(
                         "{} ({:?})",
                         adapter.adapter_info.name, adapter.adapter_id.0
                     )),

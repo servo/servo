@@ -17,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::CSSBinding::CSSMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::window::Window;
 use crate::dom::worklet::Worklet;
 
@@ -29,14 +29,14 @@ pub(crate) struct CSS {
 
 impl CSSMethods<crate::DomTypeHolder> for CSS {
     /// <https://drafts.csswg.org/cssom/#the-css.escape()-method>
-    fn Escape(_: &Window, ident: DOMString) -> Fallible<DOMString> {
+    fn Escape(_: &Window, ident: RootedDOMString) -> Fallible<RootedDOMString> {
         let mut escaped = String::new();
         serialize_identifier(&ident.str(), &mut escaped).unwrap();
-        Ok(DOMString::from(escaped))
+        Ok(RootedDOMString::from(escaped))
     }
 
     /// <https://drafts.csswg.org/css-conditional/#dom-css-supports>
-    fn Supports(win: &Window, property: DOMString, value: DOMString) -> bool {
+    fn Supports(win: &Window, property: RootedDOMString, value: RootedDOMString) -> bool {
         let mut decl = String::new();
         serialize_identifier(&property.str(), &mut decl).unwrap();
         decl.push_str(": ");
@@ -52,7 +52,7 @@ impl CSSMethods<crate::DomTypeHolder> for CSS {
     }
 
     /// <https://drafts.csswg.org/css-conditional/#dom-css-supports>
-    fn Supports_(win: &Window, condition: DOMString) -> bool {
+    fn Supports_(win: &Window, condition: RootedDOMString) -> bool {
         let condition = condition.str();
         let mut input = Parser::new(&condition);
         let cond = match parse_condition_or_declaration(&mut input) {

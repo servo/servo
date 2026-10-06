@@ -5,7 +5,7 @@
 use js::context::JSContext;
 use style::color::AbsoluteColor;
 
-use crate::dom::bindings::str::{DOMString, FromInputValueString};
+use crate::dom::bindings::str::{RootedDOMString, FromInputValueString};
 use crate::dom::document::Document;
 use crate::dom::execcommand::basecommand::CommandName;
 use crate::dom::selection::Selection;
@@ -15,7 +15,7 @@ pub(crate) fn execute_forecolor_command(
     cx: &mut JSContext,
     document: &Document,
     selection: &Selection,
-    value: DOMString,
+    value: RootedDOMString,
 ) -> bool {
     // Step 1. If value is not a valid CSS color, prepend "#" to it.
     let value = if !value.str().is_valid_simple_color_string() {
@@ -35,7 +35,7 @@ pub(crate) fn execute_forecolor_command(
     true
 }
 
-pub(crate) fn serialize_to_simple_color(absolute_color: AbsoluteColor) -> DOMString {
+pub(crate) fn serialize_to_simple_color(absolute_color: AbsoluteColor) -> RootedDOMString {
     let r = absolute_color
         .c0()
         .map(|v| (v * 255.0).round() as u8)

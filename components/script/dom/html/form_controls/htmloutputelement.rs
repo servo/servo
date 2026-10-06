@@ -11,7 +11,7 @@ use script_bindings::cell::DomRefCell;
 use crate::dom::bindings::codegen::Bindings::HTMLOutputElementBinding::HTMLOutputElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::document::Document;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
@@ -28,7 +28,7 @@ pub(crate) struct HTMLOutputElement {
     htmlelement: HTMLElement,
     form_owner: MutNullableDom<HTMLFormElement>,
     labels_node_list: MutNullableDom<NodeList>,
-    default_value_override: DomRefCell<Option<DOMString>>,
+    default_value_override: DomRefCell<Option<RootedDOMString>>,
     validity_state: MutNullableDom<ValidityState>,
 }
 
@@ -80,7 +80,7 @@ impl HTMLOutputElementMethods<crate::DomTypeHolder> for HTMLOutputElement {
     make_labels_getter!(Labels, labels_node_list);
 
     /// <https://html.spec.whatwg.org/multipage/#dom-output-defaultvaleu>
-    fn DefaultValue(&self) -> DOMString {
+    fn DefaultValue(&self) -> RootedDOMString {
         let dvo = self.default_value_override.borrow();
         if let Some(ref dv) = *dvo {
             dv.clone()
@@ -90,7 +90,7 @@ impl HTMLOutputElementMethods<crate::DomTypeHolder> for HTMLOutputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-output-defaultvalue>
-    fn SetDefaultValue(&self, cx: &mut JSContext, value: DOMString) {
+    fn SetDefaultValue(&self, cx: &mut JSContext, value: RootedDOMString) {
         if self.default_value_override.borrow().is_none() {
             // Step 1 ("and return")
             Node::string_replace_all(cx, value, self.upcast::<Node>());
@@ -101,19 +101,19 @@ impl HTMLOutputElementMethods<crate::DomTypeHolder> for HTMLOutputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-output-value>
-    fn Value(&self) -> DOMString {
+    fn Value(&self) -> RootedDOMString {
         self.upcast::<Node>().descendant_text_content()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-output-value>
-    fn SetValue(&self, cx: &mut JSContext, value: DOMString) {
+    fn SetValue(&self, cx: &mut JSContext, value: RootedDOMString) {
         *self.default_value_override.borrow_mut() = Some(self.DefaultValue());
         Node::string_replace_all(cx, value, self.upcast::<Node>());
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-output-type>
-    fn Type(&self) -> DOMString {
-        DOMString::from_static("output")
+    fn Type(&self) -> RootedDOMString {
+        RootedDOMString::from_static("output")
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-name
@@ -143,12 +143,12 @@ impl HTMLOutputElementMethods<crate::DomTypeHolder> for HTMLOutputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
-    fn ValidationMessage(&self, cx: &mut JSContext) -> DOMString {
+    fn ValidationMessage(&self, cx: &mut JSContext) -> RootedDOMString {
         self.validation_message(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity>
-    fn SetCustomValidity(&self, cx: &mut JSContext, error: DOMString) {
+    fn SetCustomValidity(&self, cx: &mut JSContext, error: RootedDOMString) {
         self.validity_state(cx).set_custom_error_message(cx, error);
     }
 }

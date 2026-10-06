@@ -17,7 +17,7 @@ use super::cssrule::SpecificCSSRule;
 use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::codegen::Bindings::CSSLayerBlockRuleBinding::CSSLayerBlockRuleMethods;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::window::Window;
 
 #[dom_struct]
@@ -78,7 +78,7 @@ impl SpecificCSSRule for CSSLayerBlockRule {
         CssRuleType::LayerBlock
     }
 
-    fn get_css(&self) -> DOMString {
+    fn get_css(&self) -> RootedDOMString {
         let guard = self.css_grouping_rule.shared_lock().read();
         self.layer_block_rule.borrow().to_css_string(&guard).into()
     }
@@ -86,7 +86,7 @@ impl SpecificCSSRule for CSSLayerBlockRule {
 
 impl CSSLayerBlockRuleMethods<crate::DomTypeHolder> for CSSLayerBlockRule {
     /// <https://drafts.csswg.org/css-cascade-5/#dom-csslayerblockrule-name>
-    fn Name(&self) -> DOMString {
+    fn Name(&self) -> RootedDOMString {
         self.layer_block_rule
             .borrow()
             .name

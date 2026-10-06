@@ -17,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::document::Document;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, CustomElementCreationMode, Element, ElementCreator};
@@ -571,7 +571,7 @@ impl VirtualMethods for HTMLTableElement {
         }
     }
 
-    fn parse_plain_attribute(&self, local_name: &LocalName, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, local_name: &LocalName, value: RootedDOMString) -> AttrValue {
         match *local_name {
             local_name!("border") => AttrValue::from_u32(value.into(), 1),
             local_name!("width") => AttrValue::from_nonzero_dimension(value.into()),

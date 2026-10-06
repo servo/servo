@@ -8,7 +8,7 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use style::str::split_commas;
 
-use crate::dom::bindings::str::{DOMString, FromInputValueString};
+use crate::dom::bindings::str::{FromInputValueString, RootedDOMString};
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::form_controls::input_type::SpecificInputType;
 use crate::dom::html::form_controls::input_type::text_input_widget::TextInputWidget;
@@ -24,14 +24,14 @@ impl SpecificInputType for EmailInputType {
         Some(&self.text_input_widget)
     }
 
-    fn sanitize_value(&self, input: &HTMLInputElement, value: &mut DOMString) {
+    fn sanitize_value(&self, input: &HTMLInputElement, value: &mut RootedDOMString) {
         if !input.Multiple() {
             value.strip_newlines();
             value.strip_leading_and_trailing_ascii_whitespace();
         } else {
             let sanitized = split_commas(&value.str())
                 .map(|token| {
-                    let mut token = DOMString::from(token.to_string());
+                    let mut token = RootedDOMString::from(token.to_string());
                     token.strip_newlines();
                     token.strip_leading_and_trailing_ascii_whitespace();
                     token
@@ -44,7 +44,7 @@ impl SpecificInputType for EmailInputType {
 
     /// <https://html.spec.whatwg.org/multipage/#email-state-(type=email):suffering-from-bad-input>
     /// <https://html.spec.whatwg.org/multipage/i#email-state-(type=email):suffering-from-bad-input-2>
-    fn suffers_from_bad_input(&self, _value: &DOMString) -> bool {
+    fn suffers_from_bad_input(&self, _value: &RootedDOMString) -> bool {
         // TODO: Check for input that cannot be converted to punycode.
         // Currently we don't support conversion of email values to punycode
         // so always return false.
@@ -53,7 +53,11 @@ impl SpecificInputType for EmailInputType {
 
     /// <https://html.spec.whatwg.org/multipage/#e-mail-state-(type=email):suffering-from-a-type-mismatch>
     /// <https://html.spec.whatwg.org/multipage/#e-mail-state-(type=email):suffering-from-a-type-mismatch-2>
-    fn suffers_from_type_mismatch(&self, input: &HTMLInputElement, value: &DOMString) -> bool {
+    fn suffers_from_type_mismatch(
+        &self,
+        input: &HTMLInputElement,
+        value: &RootedDOMString,
+    ) -> bool {
         if input.Multiple() {
             !split_commas(&value.str()).all(|string| string.is_valid_email_address_string())
         } else {

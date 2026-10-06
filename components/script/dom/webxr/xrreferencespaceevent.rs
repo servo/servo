@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::XRReferenceSpaceEventBinding::{
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::event::Event;
 use crate::dom::window::Window;
 use crate::dom::xrreferencespace::XRReferenceSpace;
@@ -85,7 +85,7 @@ impl XRReferenceSpaceEventMethods<crate::DomTypeHolder> for XRReferenceSpaceEven
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        type_: RootedDOMString,
         init: &XRReferenceSpaceEventInit,
     ) -> Fallible<DomRoot<XRReferenceSpaceEvent>> {
         Ok(XRReferenceSpaceEvent::new_with_proto(

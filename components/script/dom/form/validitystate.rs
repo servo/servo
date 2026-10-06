@@ -18,7 +18,7 @@ use crate::dom::bindings::codegen::Bindings::ElementInternalsBinding::ValiditySt
 use crate::dom::bindings::codegen::Bindings::ValidityStateBinding::ValidityStateMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::element::Element;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::FormControlElementHelpers;
@@ -78,7 +78,7 @@ impl fmt::Display for ValidationFlags {
 pub(crate) struct ValidityState {
     reflector_: Reflector,
     element: Dom<Element>,
-    custom_error_message: DomRefCell<DOMString>,
+    custom_error_message: DomRefCell<RootedDOMString>,
     invalid_flags: Cell<ValidationFlags>,
 }
 
@@ -87,7 +87,7 @@ impl ValidityState {
         ValidityState {
             reflector_: Reflector::new(),
             element: Dom::from_ref(element),
-            custom_error_message: DomRefCell::new(DOMString::new()),
+            custom_error_message: DomRefCell::new(RootedDOMString::new()),
             invalid_flags: Cell::new(ValidationFlags::empty()),
         }
     }
@@ -101,12 +101,12 @@ impl ValidityState {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#custom-validity-error-message>
-    pub(crate) fn custom_error_message(&self) -> Ref<'_, DOMString> {
+    pub(crate) fn custom_error_message(&self) -> Ref<'_, RootedDOMString> {
         self.custom_error_message.borrow()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#custom-validity-error-message>
-    pub(crate) fn set_custom_error_message(&self, cx: &mut JSContext, error: DOMString) {
+    pub(crate) fn set_custom_error_message(&self, cx: &mut JSContext, error: RootedDOMString) {
         *self.custom_error_message.borrow_mut() = error;
         self.perform_validation_and_update(cx, ValidationFlags::CUSTOM_ERROR);
     }

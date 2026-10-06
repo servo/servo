@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::PerformanceEntryBinding::Performanc
 use crate::dom::bindings::codegen::Bindings::VisibilityStateEntryBinding::VisibilityStateEntryMethods;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performance::performanceentry::{EntryType, PerformanceEntry};
 
@@ -30,8 +30,8 @@ impl VisibilityStateEntry {
         timestamp: CrossProcessInstant,
     ) -> VisibilityStateEntry {
         let name = match state {
-            DocumentVisibilityState::Visible => DOMString::from_static("visible"),
-            DocumentVisibilityState::Hidden => DOMString::from_static("hidden"),
+            DocumentVisibilityState::Visible => RootedDOMString::from_static("visible"),
+            DocumentVisibilityState::Hidden => RootedDOMString::from_static("hidden"),
         };
         VisibilityStateEntry {
             entry: PerformanceEntry::new_inherited(
@@ -59,12 +59,12 @@ impl VisibilityStateEntry {
 
 impl VisibilityStateEntryMethods<crate::DomTypeHolder> for VisibilityStateEntry {
     /// <https://html.spec.whatwg.org/multipage/#visibilitystateentry-name>
-    fn Name(&self) -> DOMString {
+    fn Name(&self) -> RootedDOMString {
         self.entry.Name()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#visibilitystateentry-entrytype>
-    fn EntryType(&self) -> DOMString {
+    fn EntryType(&self) -> RootedDOMString {
         self.entry.EntryType()
     }
 

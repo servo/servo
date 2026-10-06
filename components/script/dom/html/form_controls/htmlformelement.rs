@@ -47,7 +47,7 @@ use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementType
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomOnceCell, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::bindings::trace::{HashMapTracedValues, NoTrace};
 use crate::dom::blob::Blob;
 use crate::dom::customelementregistry::CallbackReaction;
@@ -250,12 +250,12 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     make_setter!(SetEnctype, "enctype");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-fs-encoding>
-    fn Encoding(&self) -> DOMString {
+    fn Encoding(&self) -> RootedDOMString {
         self.Enctype()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-fs-encoding>
-    fn SetEncoding(&self, cx: &mut JSContext, value: DOMString) {
+    fn SetEncoding(&self, cx: &mut JSContext, value: RootedDOMString) {
         self.SetEnctype(cx, value)
     }
 
@@ -453,7 +453,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-form-element%3Adetermine-the-value-of-a-named-property>
-    fn NamedGetter(&self, cx: &mut JSContext, name: DOMString) -> Option<RadioNodeListOrElement> {
+    fn NamedGetter(&self, cx: &mut JSContext, name: RootedDOMString) -> Option<RadioNodeListOrElement> {
         let window = self.owner_window();
 
         let name = Atom::from(name);
@@ -506,7 +506,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-a-rel>
-    fn SetRel(&self, cx: &mut JSContext, rel: DOMString) {
+    fn SetRel(&self, cx: &mut JSContext, rel: RootedDOMString) {
         self.upcast::<Element>()
             .set_tokenlist_attribute(cx, &local_name!("rel"), rel);
     }
@@ -528,7 +528,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-form-element:supported-property-names>
-    fn SupportedPropertyNames(&self, no_gc: &NoGC) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self, no_gc: &NoGC) -> Vec<RootedDOMString> {
         // Step 1
         #[derive(Debug, Eq, Ord, PartialEq, PartialOrd)]
         enum SourcedNameSource {
@@ -648,10 +648,10 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
         sourced_names_vec.retain(|sn| !sn.name.to_string().is_empty());
 
         // Step 7-8
-        let mut names_vec: Vec<DOMString> = Vec::new();
+        let mut names_vec: Vec<RootedDOMString> = Vec::new();
         for elem in sourced_names_vec.iter() {
             if !names_vec.iter().any(|name| *name == *elem.name) {
-                names_vec.push(DOMString::from(&*elem.name));
+                names_vec.push(RootedDOMString::from(&*elem.name));
             }
         }
 
@@ -824,7 +824,7 @@ impl HTMLFormElement {
 
         // Step 13. If action is the empty string, let action be the URL of the form document.
         if action.is_empty() {
-            action = DOMString::from(base.as_str());
+            action = RootedDOMString::from(base.as_str());
         }
         // Step 14. Let parsed action be the result of encoding-parsing a URL given action, relative to submitter's node document.
         let action_components = match doc.encoding_parse_a_url(&action.str()) {
@@ -1318,11 +1318,11 @@ impl HTMLFormElement {
             {
                 // Step: 5.11.2 Let dir be the string "ltr" if the directionality of the element is 'ltr',
                 // and "rtl" otherwise (i.e., when the directionality of the element is 'rtl').
-                let dir = DOMString::from(child_element.directionality());
+                let dir = RootedDOMString::from(child_element.directionality());
 
                 // Step: 5.11.3 Create an entry with dirname and dir, and append it to entry list.
                 data_set.push(FormDatum {
-                    ty: DOMString::from_static("string"),
+                    ty: RootedDOMString::from_static("string"),
                     name: dirname,
                     value: FormDatumValue::String(dir),
                 });
@@ -1495,14 +1495,14 @@ impl Element {
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum FormDatumValueUnrooted {
     File(Dom<File>),
-    String(DOMString),
+    String(RootedDOMString),
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct FormDatumUnrooted {
-    pub(crate) ty: DOMString,
-    pub(crate) name: DOMString,
+    pub(crate) ty: RootedDOMString,
+    pub(crate) name: RootedDOMString,
     pub(crate) value: FormDatumValueUnrooted,
 }
 
@@ -1535,18 +1535,18 @@ impl From<FormDatum> for FormDatumUnrooted {
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) enum FormDatumValue {
     File(DomRoot<File>),
-    String(DOMString),
+    String(RootedDOMString),
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct FormDatum {
-    pub(crate) ty: DOMString,
-    pub(crate) name: DOMString,
+    pub(crate) ty: RootedDOMString,
+    pub(crate) name: RootedDOMString,
     pub(crate) value: FormDatumValue,
 }
 
 impl FormDatum {
-    pub(crate) fn replace_value(&self) -> &DOMString {
+    pub(crate) fn replace_value(&self) -> &RootedDOMString {
         match self.value {
             FormDatumValue::File(ref f) => f.name(),
             FormDatumValue::String(ref s) => s,
@@ -1580,7 +1580,7 @@ pub(crate) enum FormSubmitterElement<'a> {
 
 impl FormSubmitterElement<'_> {
     /// <https://html.spec.whatwg.org/multipage/#concept-fs-action>
-    fn action(&self) -> DOMString {
+    fn action(&self) -> RootedDOMString {
         match *self {
             FormSubmitterElement::Form(form) => form.Action(),
             FormSubmitterElement::Input(input_element) => input_element
@@ -1648,7 +1648,7 @@ impl FormSubmitterElement<'_> {
         )
     }
 
-    fn target(&self) -> DOMString {
+    fn target(&self) -> RootedDOMString {
         match *self {
             FormSubmitterElement::Form(form) => form.Target(),
             FormSubmitterElement::Input(input_element) => input_element.get_form_attribute(
@@ -1868,16 +1868,16 @@ pub(crate) trait FormControl: DomObject<ReflectorType = ()> + NodeTraits {
         attr: &LocalName,
         input: InputFn,
         owner: OwnerFn,
-    ) -> DOMString
+    ) -> RootedDOMString
     where
-        InputFn: Fn(&Self) -> DOMString,
-        OwnerFn: Fn(&HTMLFormElement) -> DOMString,
+        InputFn: Fn(&Self) -> RootedDOMString,
+        OwnerFn: Fn(&HTMLFormElement) -> RootedDOMString,
         Self: Sized,
     {
         if self.to_element().has_attribute(attr) {
             input(self)
         } else {
-            self.form_owner().map_or(DOMString::new(), |t| owner(&t))
+            self.form_owner().map_or(RootedDOMString::new(), |t| owner(&t))
         }
     }
 
@@ -1952,7 +1952,7 @@ impl VirtualMethods for HTMLFormElement {
         }
     }
 
-    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: RootedDOMString) -> AttrValue {
         match name {
             &local_name!("rel") => AttrValue::from_serialized_tokenlist(value.into()),
             _ => self

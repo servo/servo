@@ -10,13 +10,13 @@ use style::values::computed::CSSPixelLength;
 use style::values::specified::FontSize;
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::document::Document;
 use crate::dom::execcommand::basecommand::CommandName;
 use crate::dom::selection::Selection;
 
 /// <https://w3c.github.io/editing/docs/execCommand/#legacy-font-size-for>
-pub(crate) fn legacy_font_size_for(pixel_size: f32, document: &Document) -> DOMString {
+pub(crate) fn legacy_font_size_for(pixel_size: f32, document: &Document) -> RootedDOMString {
     let quirks_mode = document.quirks_mode();
     let base_size = CSSPixelLength::from(Au::from_f32_px(pref!(fonts_default_size) as f32));
     // Step 1. Let returned size be 1.
@@ -66,7 +66,7 @@ pub(crate) fn execute_fontsize_command(
     cx: &mut JSContext,
     document: &Document,
     selection: &Selection,
-    value: DOMString,
+    value: RootedDOMString,
 ) -> bool {
     // Step 1. Strip leading and trailing whitespace from value.
     let value = {
@@ -86,7 +86,7 @@ pub(crate) fn execute_fontsize_command(
     let (value, mode) = if value.starts_with('+') {
         let stripped_plus = &value.str()[1..];
         // FIXME: This is not optimal, but not sure how to both delete the first character and check here
-        if !DOMString::from(stripped_plus).is_valid_floating_point_number_string() {
+        if !RootedDOMString::from(stripped_plus).is_valid_floating_point_number_string() {
             return false;
         }
         (stripped_plus.to_owned(), ParsingMode::RelativePlus)
@@ -122,7 +122,7 @@ pub(crate) fn execute_fontsize_command(
 pub(crate) fn value_for_fontsize_command(
     cx: &mut JSContext,
     document: &Document,
-) -> Option<DOMString> {
+) -> Option<RootedDOMString> {
     // Step 1. If the active range is null, return the empty string.
     let selection = document.GetSelection(cx)?;
     let active_range = selection.active_range(cx)?;
@@ -143,9 +143,9 @@ pub(crate) fn value_for_fontsize_command(
 /// font size or corresponding css value. This avoids expensive
 /// conversions of pixels to other values.
 pub(crate) fn maybe_normalize_pixels(
-    command_value: &DOMString,
+    command_value: &RootedDOMString,
     document: &Document,
-) -> Option<DOMString> {
+) -> Option<RootedDOMString> {
     if let Some(px_value) = command_value.str().strip_suffix("px") {
         px_value
             .parse::<f32>()
@@ -184,7 +184,10 @@ pub(crate) fn font_size_to_css_font(value: &u32) -> &str {
 
 /// Handles fontsize command part of
 /// <https://w3c.github.io/editing/docs/execCommand/#loosely-equivalent-values>
-pub(crate) fn font_size_loosely_equivalent(first: &DOMString, second: &DOMString) -> bool {
+pub(crate) fn font_size_loosely_equivalent(
+    first: &RootedDOMString,
+    second: &RootedDOMString,
+) -> bool {
     // > one of the quantities is one of "x-small", "small", "medium", "large", "x-large", "xx-large", or "xxx-large";
     // > and the other quantity is the resolved value of "font-size" on a font element whose size attribute
     // > has the corresponding value set ("1" through "7" respectively).

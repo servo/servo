@@ -4,7 +4,7 @@
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
-use script_bindings::domstring::DOMString;
+use script_bindings::domstring::RootedDOMString;
 use script_bindings::inheritance::Castable;
 
 use crate::dom::event::Event;
@@ -32,7 +32,11 @@ impl SpecificInputType for CheckboxInputType {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#checkbox-state-(type=checkbox):suffering-from-being-missing>
-    fn suffers_from_being_missing(&self, input: &HTMLInputElement, _value: &DOMString) -> bool {
+    fn suffers_from_being_missing(
+        &self,
+        input: &HTMLInputElement,
+        _value: &RootedDOMString,
+    ) -> bool {
         input.Required() && !input.Checked()
     }
 

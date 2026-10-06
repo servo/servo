@@ -18,7 +18,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::Wind
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -154,7 +154,7 @@ impl UIEventMethods<crate::DomTypeHolder> for UIEvent {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        event_type: DOMString,
+        event_type: RootedDOMString,
         init: &UIEventBinding::UIEventInit,
     ) -> Fallible<DomRoot<UIEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
@@ -186,7 +186,7 @@ impl UIEventMethods<crate::DomTypeHolder> for UIEvent {
     /// <https://w3c.github.io/uievents/#widl-UIEvent-initUIEvent>
     fn InitUIEvent(
         &self,
-        event_type: DOMString,
+        event_type: RootedDOMString,
         can_bubble: bool,
         cancelable: bool,
         view: Option<&Window>,

@@ -12,7 +12,7 @@ use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServerBinding::B
 use crate::dom::bindings::codegen::Bindings::BluetoothRemoteGATTServiceBinding::BluetoothRemoteGATTServiceMethods;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::bluetooth::{AsyncBluetoothListener, get_gatt_children};
 use crate::dom::bluetoothdevice::BluetoothDevice;
 use crate::dom::bluetoothuuid::{BluetoothCharacteristicUUID, BluetoothServiceUUID, BluetoothUUID};
@@ -25,7 +25,7 @@ use crate::dom::promise::RootedPromise;
 pub(crate) struct BluetoothRemoteGATTService {
     eventtarget: EventTarget,
     device: Dom<BluetoothDevice>,
-    uuid: DOMString,
+    uuid: RootedDOMString,
     is_primary: bool,
     instance_id: String,
 }
@@ -33,7 +33,7 @@ pub(crate) struct BluetoothRemoteGATTService {
 impl BluetoothRemoteGATTService {
     pub(crate) fn new_inherited(
         device: &BluetoothDevice,
-        uuid: DOMString,
+        uuid: RootedDOMString,
         is_primary: bool,
         instance_id: String,
     ) -> BluetoothRemoteGATTService {
@@ -51,7 +51,7 @@ impl BluetoothRemoteGATTService {
         cx: &mut JSContext,
         global: &GlobalScope,
         device: &BluetoothDevice,
-        uuid: DOMString,
+        uuid: RootedDOMString,
         isPrimary: bool,
         instanceID: String,
     ) -> DomRoot<BluetoothRemoteGATTService> {
@@ -81,7 +81,7 @@ impl BluetoothRemoteGATTServiceMethods<crate::DomTypeHolder> for BluetoothRemote
     }
 
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-uuid>
-    fn Uuid(&self) -> DOMString {
+    fn Uuid(&self) -> RootedDOMString {
         self.uuid.clone()
     }
 

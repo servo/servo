@@ -33,7 +33,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::domexception::DOMException;
 use crate::dom::domstringlist::DOMStringList;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -67,7 +67,7 @@ pub struct IDBTransaction {
     version_change_old_version: Cell<Option<u64>>,
     // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
     // Step 4. NOTE: This reverts the value of objectStoreNames returned by the IDBDatabase object.
-    version_change_old_object_store_names: DomRefCell<Option<Vec<DOMString>>>,
+    version_change_old_object_store_names: DomRefCell<Option<Vec<RootedDOMString>>>,
     // https://w3c.github.io/IndexedDB/#transaction-concept
     // “A transaction optionally has a cleanup event loop which is an event loop.”
     #[no_trace]
@@ -173,7 +173,7 @@ impl IDBTransaction {
 
     fn create_transaction(
         global: &GlobalScope,
-        db_name: DOMString,
+        db_name: RootedDOMString,
         mode: IDBTransactionMode,
         scope: &DOMStringList,
     ) -> u64 {
@@ -270,7 +270,11 @@ impl IDBTransaction {
         self.version_change_old_version.set(Some(version));
     }
 
-    pub(crate) fn register_object_store_handle(&self, name: &DOMString, store: &IDBObjectStore) {
+    pub(crate) fn register_object_store_handle(
+        &self,
+        name: &RootedDOMString,
+        store: &IDBObjectStore,
+    ) {
         self.store_handles
             .borrow_mut()
             .insert(name.to_string(), Dom::from_ref(store));
@@ -278,8 +282,8 @@ impl IDBTransaction {
 
     pub(crate) fn rename_object_store_handle_cache(
         &self,
-        old_name: &DOMString,
-        new_name: &DOMString,
+        old_name: &RootedDOMString,
+        new_name: &RootedDOMString,
         store: &IDBObjectStore,
     ) {
         let mut store_handles = self.store_handles.borrow_mut();
@@ -413,7 +417,7 @@ impl IDBTransaction {
         self.mode
     }
 
-    pub fn get_db_name(&self) -> DOMString {
+    pub fn get_db_name(&self) -> RootedDOMString {
         self.db.get_name()
     }
 
@@ -681,7 +685,7 @@ impl IDBTransaction {
 
     fn object_store_parameters(
         &self,
-        object_store_name: &DOMString,
+        object_store_name: &RootedDOMString,
     ) -> Option<(IDBObjectStoreParameters, Vec<IndexedDBIndex>, Option<i64>)> {
         let global = self.global();
         let idb_sender = global.storage_threads().sender();
@@ -750,7 +754,7 @@ impl IDBTransactionMethods<crate::DomTypeHolder> for IDBTransaction {
     fn ObjectStore(
         &self,
         cx: &mut JSContext,
-        name: DOMString,
+        name: RootedDOMString,
     ) -> Fallible<DomRoot<IDBObjectStore>> {
         // Step 1: If transaction has finished, throw an "InvalidStateError" DOMException.
         if self.finished.get() || self.abort_initiated.get() {

@@ -8,7 +8,7 @@ use script_bindings::reflector::Reflector;
 
 use crate::dom::bindings::codegen::Bindings::PluginBinding::PluginMethods;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::mimetype::MimeType;
 
 #[dom_struct]
@@ -18,17 +18,17 @@ pub(crate) struct Plugin {
 
 impl PluginMethods<crate::DomTypeHolder> for Plugin {
     /// <https://html.spec.whatwg.org/multipage/#dom-plugin-name>
-    fn Name(&self) -> DOMString {
+    fn Name(&self) -> RootedDOMString {
         unreachable!()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-plugin-description>
-    fn Description(&self) -> DOMString {
+    fn Description(&self) -> RootedDOMString {
         unreachable!()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-plugin-filename>
-    fn Filename(&self) -> DOMString {
+    fn Filename(&self) -> RootedDOMString {
         unreachable!()
     }
 
@@ -43,7 +43,7 @@ impl PluginMethods<crate::DomTypeHolder> for Plugin {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-plugin-nameditem>
-    fn NamedItem(&self, _name: DOMString) -> Option<DomRoot<MimeType>> {
+    fn NamedItem(&self, _name: RootedDOMString) -> Option<DomRoot<MimeType>> {
         unreachable!()
     }
 
@@ -53,12 +53,12 @@ impl PluginMethods<crate::DomTypeHolder> for Plugin {
     }
 
     // check-tidy: no specs after this line
-    fn NamedGetter(&self, _name: DOMString) -> Option<DomRoot<MimeType>> {
+    fn NamedGetter(&self, _name: RootedDOMString) -> Option<DomRoot<MimeType>> {
         unreachable!()
     }
 
     /// <https://heycam.github.io/webidl/#dfn-supported-property-names>
-    fn SupportedPropertyNames(&self, _: &NoGC) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self, _: &NoGC) -> Vec<RootedDOMString> {
         unreachable!()
     }
 }

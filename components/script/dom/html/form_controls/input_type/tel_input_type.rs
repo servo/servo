@@ -4,7 +4,7 @@
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::form_controls::input_type::SpecificInputType;
 use crate::dom::html::form_controls::input_type::text_input_widget::TextInputWidget;
@@ -20,7 +20,7 @@ impl SpecificInputType for TelInputType {
         Some(&self.text_input_widget)
     }
 
-    fn sanitize_value(&self, _input: &HTMLInputElement, value: &mut DOMString) {
+    fn sanitize_value(&self, _input: &HTMLInputElement, value: &mut RootedDOMString) {
         value.strip_newlines();
     }
 

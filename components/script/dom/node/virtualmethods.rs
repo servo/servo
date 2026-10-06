@@ -12,7 +12,7 @@ use crate::dom::bindings::inheritance::{
     NodeTypeId, SVGElementTypeId, SVGGeometryElementTypeId, SVGGradientElementTypeId,
     SVGGraphicsElementTypeId, SVGTextContentElementTypeId, SVGTextPositioningElementTypeId,
 };
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::document::Document;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::element::attributes::storage::AttrRef;
@@ -122,7 +122,7 @@ pub(crate) trait VirtualMethods {
 
     /// Returns the right AttrValue variant for the attribute with name `name`
     /// on this element.
-    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: RootedDOMString) -> AttrValue {
         match self.super_type() {
             Some(s) => s.parse_plain_attribute(name, value),
             _ => AttrValue::String(value.into()),

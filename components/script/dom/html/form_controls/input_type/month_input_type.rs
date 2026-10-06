@@ -7,7 +7,7 @@ use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use time::{Month, OffsetDateTime};
 
-use crate::dom::bindings::str::{DOMString, FromInputValueString, ToInputValueString};
+use crate::dom::bindings::str::{RootedDOMString, FromInputValueString, ToInputValueString};
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::form_controls::input_type::SpecificInputType;
 use crate::dom::html::form_controls::input_type::text_input_widget::TextInputWidget;
@@ -23,7 +23,7 @@ impl SpecificInputType for MonthInputType {
         Some(&self.text_input_widget)
     }
 
-    fn sanitize_value(&self, _input: &HTMLInputElement, value: &mut DOMString) {
+    fn sanitize_value(&self, _input: &HTMLInputElement, value: &mut RootedDOMString) {
         if !value.str().is_valid_month_string() {
             value.clear();
         }
@@ -45,7 +45,7 @@ impl SpecificInputType for MonthInputType {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#month-state-(type=month):concept-input-value-string-number>
-    fn convert_number_to_string(&self, input: f64) -> Option<DOMString> {
+    fn convert_number_to_string(&self, input: f64) -> Option<RootedDOMString> {
         // > The algorithm to convert a number to a string, given a number input,
         // > is as follows: Return a valid month string that represents the month
         // > that has input months between it and January 1970.
@@ -70,19 +70,19 @@ impl SpecificInputType for MonthInputType {
     /// <https://html.spec.whatwg.org/multipage/#month-state-(type=month):concept-input-value-string-date>
     /// This does the safe Rust part of conversion; the unsafe JS Date part
     /// is in GetValueAsDate
-    fn convert_string_to_naive_datetime(&self, value: DOMString) -> Option<OffsetDateTime> {
+    fn convert_string_to_naive_datetime(&self, value: RootedDOMString) -> Option<OffsetDateTime> {
         value.str().parse_month_string()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#month-state-(type=month):concept-input-value-date-string>
     /// This does the safe Rust part of conversion; the unsafe JS Date part
     /// is in SetValueAsDate
-    fn convert_datetime_to_dom_string(&self, value: OffsetDateTime) -> DOMString {
+    fn convert_datetime_to_dom_string(&self, value: OffsetDateTime) -> RootedDOMString {
         value.to_month_string().into()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#month-state-(type=month):suffering-from-bad-input>
-    fn suffers_from_bad_input(&self, value: &DOMString) -> bool {
+    fn suffers_from_bad_input(&self, value: &RootedDOMString) -> bool {
         !value.str().is_valid_month_string()
     }
 

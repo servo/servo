@@ -14,7 +14,7 @@ use script_bindings::callback::{ExceptionHandling, RootedCallback};
 use script_bindings::codegen::GenericBindings::AttrBinding::AttrMethods;
 use script_bindings::codegen::GenericBindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use script_bindings::root::Dom;
-use script_bindings::str::DOMString;
+use script_bindings::str::RootedDOMString;
 use style::Atom;
 use style::dom::OpaqueNode;
 
@@ -284,7 +284,11 @@ impl xpath::NamespaceResolver for XPathWrapper<RootedCallback<XPathNSResolver>> 
 
     fn resolve_namespace_prefix(&self, cx: &mut JSContext, prefix: &str) -> Option<String> {
         self.0
-            .LookupNamespaceURI__(cx, Some(DOMString::from(prefix)), ExceptionHandling::Report)
+            .LookupNamespaceURI__(
+                cx,
+                Some(RootedDOMString::from(prefix)),
+                ExceptionHandling::Report,
+            )
             .ok()
             .flatten()
             .map(String::from)

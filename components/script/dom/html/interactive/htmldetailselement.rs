@@ -11,7 +11,7 @@ use html5ever::{LocalName, Prefix, local_name, ns};
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
-use script_bindings::domstring::DOMString;
+use script_bindings::domstring::RootedDOMString;
 use style::selector_parser::PseudoElement;
 
 use crate::dom::bindings::codegen::Bindings::HTMLDetailsElementBinding::HTMLDetailsElementMethods;
@@ -109,7 +109,7 @@ pub(crate) struct HTMLDetailsElement {
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct DetailsNameGroups {
     /// Map from `name` attribute to a list of details elements.
-    pub(crate) groups: HashMap<DOMString, Vec<Dom<HTMLDetailsElement>>>,
+    pub(crate) groups: HashMap<RootedDOMString, Vec<Dom<HTMLDetailsElement>>>,
 }
 
 /// Describes how to proceed in case two details elements in the same
@@ -137,7 +137,7 @@ impl DetailsNameGroups {
 
     fn unregister_details_element(
         &mut self,
-        name: DOMString,
+        name: RootedDOMString,
         details_element: &HTMLDetailsElement,
     ) {
         if name.is_empty() {
@@ -156,7 +156,7 @@ impl DetailsNameGroups {
     /// Returns an iterator over all members with the given name, except for `details`.
     fn group_members_for(
         &self,
-        name: &DOMString,
+        name: &RootedDOMString,
         details: &HTMLDetailsElement,
     ) -> impl Iterator<Item = DomRoot<HTMLDetailsElement>> {
         self.groups
@@ -432,8 +432,8 @@ impl VirtualMethods for HTMLDetailsElement {
                             atom!("toggle"),
                             EventBubbles::DoesNotBubble,
                             EventCancelable::NotCancelable,
-                            DOMString::from(old_state),
-                            DOMString::from(new_state),
+                            RootedDOMString::from(old_state),
+                            RootedDOMString::from(new_state),
                             None,
                         );
                         let event = event.upcast::<Event>();

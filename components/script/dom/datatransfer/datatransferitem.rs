@@ -19,7 +19,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::{RootedDOMString, USVString};
 use crate::dom::file::File;
 use crate::dom::filesystem::FileSystem;
 use crate::dom::filesystemdirectoryentry::FileSystemDirectoryEntry;
@@ -89,18 +89,18 @@ impl DataTransferItem {
 
 impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitem-kind>
-    fn Kind(&self) -> DOMString {
+    fn Kind(&self) -> RootedDOMString {
         self.item_kind()
-            .map_or(DOMString::new(), |item| match *item {
-                Kind::Text { .. } => DOMString::from_static("string"),
-                Kind::File { .. } => DOMString::from_static("file"),
+            .map_or(RootedDOMString::new(), |item| match *item {
+                Kind::Text { .. } => RootedDOMString::from_static("string"),
+                Kind::File { .. } => RootedDOMString::from_static("file"),
             })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitem-type>
-    fn Type(&self) -> DOMString {
+    fn Type(&self) -> RootedDOMString {
         self.item_kind()
-            .map_or(DOMString::new(), |item| item.type_())
+            .map_or(RootedDOMString::new(), |item| item.type_())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitem-getasstring>
@@ -142,7 +142,7 @@ impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
                             .safe_borrow_mut(cx.no_gc())
                             .swap_remove(index)
                             .callback);
-                        let _ = callback.Call__(cx, DOMString::from(string), ExceptionHandling::Report);
+                        let _ = callback.Call__(cx, RootedDOMString::from(string), ExceptionHandling::Report);
                     }
                 }));
         }

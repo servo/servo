@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::XRSessionEventBinding::{self, XRSes
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::event::Event;
 use crate::dom::window::Window;
 use crate::dom::xrsession::XRSession;
@@ -72,7 +72,7 @@ impl XRSessionEventMethods<crate::DomTypeHolder> for XRSessionEvent {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        type_: RootedDOMString,
         init: &XRSessionEventBinding::XRSessionEventInit,
     ) -> Fallible<DomRoot<XRSessionEvent>> {
         Ok(XRSessionEvent::new_with_proto(

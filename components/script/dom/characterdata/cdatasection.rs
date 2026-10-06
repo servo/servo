@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::document::Document;
 use crate::dom::node::Node;
 use crate::dom::text::Text;
@@ -16,7 +16,7 @@ pub(crate) struct CDATASection {
 }
 
 impl CDATASection {
-    fn new_inherited(text: DOMString, document: &Document) -> CDATASection {
+    fn new_inherited(text: RootedDOMString, document: &Document) -> CDATASection {
         CDATASection {
             text: Text::new_inherited(text, document),
         }
@@ -24,7 +24,7 @@ impl CDATASection {
 
     pub(crate) fn new(
         cx: &mut js::context::JSContext,
-        text: DOMString,
+        text: RootedDOMString,
         document: &Document,
     ) -> DomRoot<CDATASection> {
         Node::reflect_node(

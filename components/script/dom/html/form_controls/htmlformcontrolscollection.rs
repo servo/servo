@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::UnionTypes::RadioNodeListOrElement;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::element::Element;
 use crate::dom::html::htmlcollection::{CollectionFilter, HTMLCollection};
 use crate::dom::html::htmlformelement::HTMLFormElement;
@@ -65,7 +65,7 @@ impl HTMLFormControlsCollectionMethods<crate::DomTypeHolder> for HTMLFormControl
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmlformcontrolscollection-nameditem>
-    fn NamedItem(&self, cx: &mut JSContext, name: DOMString) -> Option<RadioNodeListOrElement> {
+    fn NamedItem(&self, cx: &mut JSContext, name: RootedDOMString) -> Option<RadioNodeListOrElement> {
         // Step 1
         if name.is_empty() {
             return None;
@@ -110,12 +110,12 @@ impl HTMLFormControlsCollectionMethods<crate::DomTypeHolder> for HTMLFormControl
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-htmlformcontrolscollection-nameditem>
-    fn NamedGetter(&self, cx: &mut JSContext, name: DOMString) -> Option<RadioNodeListOrElement> {
+    fn NamedGetter(&self, cx: &mut JSContext, name: RootedDOMString) -> Option<RadioNodeListOrElement> {
         self.NamedItem(cx, name)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-htmlformcontrolscollection-interface:supported-property-names>
-    fn SupportedPropertyNames(&self, no_gc: &NoGC) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self, no_gc: &NoGC) -> Vec<RootedDOMString> {
         self.collection.SupportedPropertyNames(no_gc)
     }
 

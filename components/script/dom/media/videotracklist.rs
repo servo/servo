@@ -12,7 +12,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlmediaelement::HTMLMediaElement;
 use crate::dom::videotrack::VideoTrack;
@@ -133,7 +133,7 @@ impl VideoTrackListMethods<crate::DomTypeHolder> for VideoTrackList {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-videotracklist-gettrackbyid>
-    fn GetTrackById(&self, id: DOMString) -> Option<DomRoot<VideoTrack>> {
+    fn GetTrackById(&self, id: RootedDOMString) -> Option<DomRoot<VideoTrack>> {
         self.tracks
             .borrow()
             .iter()

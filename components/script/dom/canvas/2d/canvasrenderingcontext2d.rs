@@ -28,7 +28,7 @@ use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::canvasgradient::CanvasGradient;
 use crate::dom::canvaspattern::CanvasPattern;
 use crate::dom::dommatrix::DOMMatrix;
@@ -291,12 +291,12 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation>
-    fn GlobalCompositeOperation(&self) -> DOMString {
+    fn GlobalCompositeOperation(&self) -> RootedDOMString {
         self.canvas_state.global_composite_operation()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation>
-    fn SetGlobalCompositeOperation(&self, op_str: DOMString) {
+    fn SetGlobalCompositeOperation(&self, op_str: RootedDOMString) {
         self.canvas_state.set_global_composite_operation(op_str)
     }
 
@@ -375,7 +375,7 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext>
-    fn FillText(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>) {
+    fn FillText(&self, text: RootedDOMString, x: f64, y: f64, max_width: Option<f64>) {
         self.canvas_state.fill_text(
             &self.global(),
             self.canvas.canvas().as_deref(),
@@ -388,7 +388,7 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-stroketext>
-    fn StrokeText(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>) {
+    fn StrokeText(&self, text: RootedDOMString, x: f64, y: f64, max_width: Option<f64>) {
         self.canvas_state.stroke_text(
             &self.global(),
             self.canvas.canvas().as_deref(),
@@ -401,18 +401,18 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
     }
 
     /// <https://html.spec.whatwg.org/multipage/#textmetrics>
-    fn MeasureText(&self, cx: &mut JSContext, text: DOMString) -> DomRoot<TextMetrics> {
+    fn MeasureText(&self, cx: &mut JSContext, text: RootedDOMString) -> DomRoot<TextMetrics> {
         self.canvas_state
             .measure_text(&self.global(), self.canvas.canvas().as_deref(), text, cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-font>
-    fn Font(&self) -> DOMString {
+    fn Font(&self) -> RootedDOMString {
         self.canvas_state.font()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-font>
-    fn SetFont(&self, value: DOMString) {
+    fn SetFont(&self, value: RootedDOMString) {
         self.canvas_state
             .set_font(self.canvas.canvas().as_deref(), value)
     }
@@ -689,7 +689,7 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
         &self,
         cx: &mut JSContext,
         image: CanvasImageSource,
-        repetition: DOMString,
+        repetition: RootedDOMString,
     ) -> Fallible<Option<DomRoot<CanvasPattern>>> {
         self.canvas_state
             .create_pattern(&self.global(), cx, image, repetition)
@@ -786,12 +786,12 @@ impl CanvasRenderingContext2DMethods<crate::DomTypeHolder> for CanvasRenderingCo
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor>
-    fn ShadowColor(&self) -> DOMString {
+    fn ShadowColor(&self) -> RootedDOMString {
         self.canvas_state.shadow_color()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor>
-    fn SetShadowColor(&self, value: DOMString) {
+    fn SetShadowColor(&self, value: RootedDOMString) {
         self.canvas_state
             .set_shadow_color(self.canvas.canvas().as_deref(), value)
     }

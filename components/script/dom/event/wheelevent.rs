@@ -22,7 +22,7 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::mouseevent::MouseEvent;
@@ -202,7 +202,7 @@ impl WheelEventMethods<crate::DomTypeHolder> for WheelEvent {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        event_type: DOMString,
+        event_type: RootedDOMString,
         init: &WheelEventBinding::WheelEventInit,
     ) -> Fallible<DomRoot<WheelEvent>> {
         let bubbles = EventBubbles::from(init.parent.parent.parent.parent.bubbles);
@@ -263,7 +263,7 @@ impl WheelEventMethods<crate::DomTypeHolder> for WheelEvent {
     /// <https://w3c.github.io/uievents/#widl-WheelEvent-initWheelEvent>
     fn InitWheelEvent(
         &self,
-        type_arg: DOMString,
+        type_arg: RootedDOMString,
         can_bubble_arg: bool,
         cancelable_arg: bool,
         view_arg: Option<&Window>,

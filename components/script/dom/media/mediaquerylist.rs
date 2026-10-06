@@ -20,7 +20,7 @@ use crate::dom::bindings::codegen::Bindings::EventTargetBinding::{
 use crate::dom::bindings::codegen::Bindings::MediaQueryListBinding::MediaQueryListMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::document::Document;
 use crate::dom::eventtarget::EventTarget;
 
@@ -91,7 +91,7 @@ impl MediaQueryList {
 
 impl MediaQueryListMethods<crate::DomTypeHolder> for MediaQueryList {
     /// <https://drafts.csswg.org/cssom-view/#dom-mediaquerylist-media>
-    fn Media(&self) -> DOMString {
+    fn Media(&self) -> RootedDOMString {
         self.media_query_list.to_css_string().into()
     }
 
@@ -106,7 +106,7 @@ impl MediaQueryListMethods<crate::DomTypeHolder> for MediaQueryList {
     /// <https://drafts.csswg.org/cssom-view/#dom-mediaquerylist-addlistener>
     fn AddListener(&self, listener: Option<RootedCallback<EventListener>>) {
         self.upcast::<EventTarget>().add_event_listener(
-            DOMString::from_static("change"),
+            RootedDOMString::from_static("change"),
             listener,
             AddEventListenerOptions {
                 parent: EventListenerOptions { capture: false },
@@ -120,7 +120,7 @@ impl MediaQueryListMethods<crate::DomTypeHolder> for MediaQueryList {
     /// <https://drafts.csswg.org/cssom-view/#dom-mediaquerylist-removelistener>
     fn RemoveListener(&self, listener: Option<RootedCallback<EventListener>>) {
         self.upcast::<EventTarget>().remove_event_listener(
-            DOMString::from_static("change"),
+            RootedDOMString::from_static("change"),
             listener.as_deref(),
             &EventListenerOptions { capture: false },
         );

@@ -23,7 +23,7 @@ use crate::dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethod
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::{RootedDOMString, USVString};
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::attributes::storage::AttrRef;
@@ -105,7 +105,7 @@ impl VirtualMethods for HTMLAnchorElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: RootedDOMString) -> AttrValue {
         match name {
             &local_name!("rel") => AttrValue::from_serialized_tokenlist(value.into()),
             _ => self
@@ -146,12 +146,12 @@ impl VirtualMethods for HTMLAnchorElement {
 
 impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-a-text>
-    fn Text(&self) -> DOMString {
+    fn Text(&self) -> RootedDOMString {
         self.upcast::<Node>().GetTextContent().unwrap()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-a-text>
-    fn SetText(&self, cx: &mut JSContext, value: DOMString) {
+    fn SetText(&self, cx: &mut JSContext, value: RootedDOMString) {
         self.upcast::<Node>()
             .set_text_content_for_element(cx, Some(value))
     }
@@ -160,7 +160,7 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     make_getter!(Rel, "rel");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-a-rel>
-    fn SetRel(&self, cx: &mut JSContext, rel: DOMString) {
+    fn SetRel(&self, cx: &mut JSContext, rel: RootedDOMString) {
         self.upcast::<Element>()
             .set_tokenlist_attribute(cx, &local_name!("rel"), rel);
     }
@@ -333,7 +333,7 @@ impl HTMLAnchorElementMethods<crate::DomTypeHolder> for HTMLAnchorElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-a-referrerpolicy>
-    fn ReferrerPolicy(&self) -> DOMString {
+    fn ReferrerPolicy(&self) -> RootedDOMString {
         reflect_referrer_policy_attribute(self.upcast::<Element>())
     }
 

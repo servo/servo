@@ -24,7 +24,7 @@ use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
 use crate::dom::document_embedder_controls::ControlElement;
@@ -55,7 +55,7 @@ pub(crate) struct HTMLTextAreaElement {
     htmlelement: HTMLElement,
     #[no_trace]
     text_input: DomRefCell<TextInput<EmbedderClipboardProvider>>,
-    placeholder: RefCell<DOMString>,
+    placeholder: RefCell<RootedDOMString>,
     // https://html.spec.whatwg.org/multipage/#concept-textarea-dirty
     value_dirty: Cell<bool>,
     form_owner: MutNullableDom<HTMLFormElement>,
@@ -119,7 +119,7 @@ impl HTMLTextAreaElement {
             placeholder: Default::default(),
             text_input: DomRefCell::new(TextInput::new(
                 Lines::Multiple,
-                DOMString::new(),
+                RootedDOMString::new(),
                 EmbedderClipboardProvider {
                     embedder_sender,
                     webview_id: document.webview_id(),
@@ -304,11 +304,11 @@ impl TextControlElement for HTMLTextAreaElement {
         }
     }
 
-    fn placeholder_text<'a>(&'a self) -> Ref<'a, DOMString> {
+    fn placeholder_text<'a>(&'a self) -> Ref<'a, RootedDOMString> {
         self.placeholder.borrow()
     }
 
-    fn value_text(&self) -> DOMString {
+    fn value_text(&self) -> RootedDOMString {
         self.Value()
     }
 
@@ -424,17 +424,17 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     make_setter!(SetWrap, "wrap");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea-type>
-    fn Type(&self) -> DOMString {
-        DOMString::from_static("textarea")
+    fn Type(&self) -> RootedDOMString {
+        RootedDOMString::from_static("textarea")
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue>
-    fn DefaultValue(&self) -> DOMString {
+    fn DefaultValue(&self) -> RootedDOMString {
         self.upcast::<Node>().GetTextContent().unwrap()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea-defaultvalue>
-    fn SetDefaultValue(&self, cx: &mut JSContext, value: DOMString) {
+    fn SetDefaultValue(&self, cx: &mut JSContext, value: RootedDOMString) {
         self.upcast::<Node>()
             .set_text_content_for_element(cx, Some(value));
 
@@ -446,12 +446,12 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea-value>
-    fn Value(&self) -> DOMString {
+    fn Value(&self) -> RootedDOMString {
         self.text_input.borrow().get_content()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea-value>
-    fn SetValue(&self, cx: &mut JSContext, value: DOMString) {
+    fn SetValue(&self, cx: &mut JSContext, value: RootedDOMString) {
         // Step 1: Let oldAPIValue be this element's API value.
         let old_api_value = self.Value();
 
@@ -505,7 +505,7 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
-    fn GetSelectionDirection(&self) -> Option<DOMString> {
+    fn GetSelectionDirection(&self) -> Option<RootedDOMString> {
         self.dom_direction()
     }
 
@@ -513,13 +513,13 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     fn SetSelectionDirection(
         &self,
         _cx: &mut JSContext,
-        direction: Option<DOMString>,
+        direction: Option<RootedDOMString>,
     ) -> ErrorResult {
         self.set_dom_direction(direction)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange>
-    fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) -> ErrorResult {
+    fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<RootedDOMString>) -> ErrorResult {
         self.set_dom_range(
             Utf16CodeUnits::from(start),
             Utf16CodeUnits::from(end),
@@ -528,14 +528,14 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
-    fn SetRangeText(&self, replacement: DOMString) -> ErrorResult {
+    fn SetRangeText(&self, replacement: RootedDOMString) -> ErrorResult {
         self.set_dom_range_text(replacement, None, None, Default::default())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
     fn SetRangeText_(
         &self,
-        replacement: DOMString,
+        replacement: RootedDOMString,
         start: u32,
         end: u32,
         selection_mode: SelectionMode,
@@ -569,12 +569,12 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
-    fn ValidationMessage(&self, cx: &mut JSContext) -> DOMString {
+    fn ValidationMessage(&self, cx: &mut JSContext) -> RootedDOMString {
         self.validation_message(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity>
-    fn SetCustomValidity(&self, cx: &mut JSContext, error: DOMString) {
+    fn SetCustomValidity(&self, cx: &mut JSContext, error: RootedDOMString) {
         self.validity_state(cx).set_custom_error_message(cx, error);
     }
 }
@@ -584,7 +584,7 @@ impl HTMLTextAreaElement {
     /// Used by WebDriver to clear the textarea element.
     pub(crate) fn clear(&self) {
         self.value_dirty.set(false);
-        self.text_input.borrow_mut().set_content(DOMString::new());
+        self.text_input.borrow_mut().set_content(RootedDOMString::new());
     }
 
     pub(crate) fn reset(&self, cx: &mut JSContext) {
@@ -703,7 +703,7 @@ impl VirtualMethods for HTMLTextAreaElement {
         self.handle_text_content_changed(cx);
     }
 
-    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: RootedDOMString) -> AttrValue {
         match *name {
             local_name!("cols") => AttrValue::from_limited_u32(value.into(), DEFAULT_COLS),
             local_name!("rows") => AttrValue::from_limited_u32(value.into(), DEFAULT_ROWS),

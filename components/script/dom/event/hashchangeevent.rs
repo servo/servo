@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::HashChangeEventBinding::HashChangeE
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::{RootedDOMString, USVString};
 use crate::dom::event::Event;
 use crate::dom::window::Window;
 
@@ -100,7 +100,7 @@ impl HashChangeEventMethods<crate::DomTypeHolder> for HashChangeEvent {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        type_: RootedDOMString,
         init: &HashChangeEventBinding::HashChangeEventInit,
     ) -> Fallible<DomRoot<HashChangeEvent>> {
         Ok(HashChangeEvent::new_with_proto(

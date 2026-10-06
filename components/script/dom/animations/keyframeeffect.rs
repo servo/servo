@@ -33,7 +33,7 @@ use script_bindings::inheritance::Castable;
 use script_bindings::num::Finite;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_bindings::root::DomRoot;
-use script_bindings::str::DOMString;
+use script_bindings::str::RootedDOMString;
 use style::parser::ParserContext;
 use style::properties::generated::PropertyDeclaration;
 use style::properties::{
@@ -304,7 +304,7 @@ fn process_a_keyframes_argument(
 #[derive(JSTraceable, MallocSizeOf)]
 struct Keyframe {
     offset: Option<Finite<f64>>,
-    easing_function: DOMString,
+    easing_function: RootedDOMString,
     composite: CompositeOperationOrAuto,
     declarations: Vec<KeyframePropertyDeclaration>,
 }
@@ -449,7 +449,7 @@ fn get_property_declarations(
         // Otherwise,
         // Let property values be the result of converting raw value to a DOMString using the procedure
         // for converting an ECMAScript value to a DOMString [WEBIDL].
-        let property_value = match DOMString::from_jsval(
+        let property_value = match RootedDOMString::from_jsval(
             cx,
             property_value.handle(),
             StringificationBehavior::Default,

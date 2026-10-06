@@ -12,7 +12,7 @@ use crate::dom::bindings::codegen::Bindings::BeforeUnloadEventBinding::BeforeUnl
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::window::Window;
 
@@ -20,14 +20,14 @@ use crate::dom::window::Window;
 #[dom_struct]
 pub(crate) struct BeforeUnloadEvent {
     event: Event,
-    return_value: DomRefCell<DOMString>,
+    return_value: DomRefCell<RootedDOMString>,
 }
 
 impl BeforeUnloadEvent {
     fn new_inherited() -> BeforeUnloadEvent {
         BeforeUnloadEvent {
             event: Event::new_inherited(),
-            return_value: DomRefCell::new(DOMString::new()),
+            return_value: DomRefCell::new(RootedDOMString::new()),
         }
     }
 
@@ -56,12 +56,12 @@ impl BeforeUnloadEvent {
 
 impl BeforeUnloadEventMethods<crate::DomTypeHolder> for BeforeUnloadEvent {
     /// <https://html.spec.whatwg.org/multipage/#dom-beforeunloadevent-returnvalue>
-    fn ReturnValue(&self) -> DOMString {
+    fn ReturnValue(&self) -> RootedDOMString {
         self.return_value.borrow().clone()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-beforeunloadevent-returnvalue>
-    fn SetReturnValue(&self, value: DOMString) {
+    fn SetReturnValue(&self, value: RootedDOMString) {
         *self.return_value.borrow_mut() = value;
     }
 

@@ -32,7 +32,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, NodeTypeId};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::console::Console;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::element::Element;
@@ -159,7 +159,7 @@ impl Sanitizer {
         cx: &mut JSContext,
         target: &Node,
         context_element: &Element,
-        html: DOMString,
+        html: RootedDOMString,
         options: &impl SanitizerMember,
         safe: bool,
     ) -> ErrorResult {
@@ -308,8 +308,8 @@ fn inner_sanitize_steps(
                 let child = DomRoot::downcast::<Element>(child).expect("Guaranteed by Step 1.1");
                 let element_name =
                     SanitizerElement::SanitizerElementNamespace(SanitizerElementNamespace {
-                        name: DOMString::from(&**child.local_name()),
-                        namespace: Some(DOMString::from(&**child.namespace())),
+                        name: RootedDOMString::from(&**child.local_name()),
+                        namespace: Some(RootedDOMString::from(&**child.namespace())),
                     });
 
                 // Step 1.5.2. If configuration["replaceWithChildrenElements"] exists and if
@@ -395,7 +395,7 @@ fn inner_sanitize_steps(
 
                 // Step 1.5.7. Let elementWithLocalAttributes be « [] ».
                 let mut element_with_local_attributes =
-                    SanitizerElementWithAttributes::String(DOMString::new());
+                    SanitizerElementWithAttributes::String(RootedDOMString::new());
 
                 // Step 1.5.8. If configuration["elements"] exists and configuration["elements"]
                 // contains elementName, then set elementWithLocalAttributes to
@@ -433,11 +433,11 @@ fn inner_sanitize_steps(
                     // local name and namespace.
                     let attribute_name = SanitizerAttribute::SanitizerAttributeNamespace(
                         SanitizerAttributeNamespace {
-                            name: DOMString::from(attribute_local_name.as_ref()),
+                            name: RootedDOMString::from(attribute_local_name.as_ref()),
                             namespace: if attribute_namespace.is_empty() {
                                 None
                             } else {
-                                Some(DOMString::from(attribute_namespace.as_ref()))
+                                Some(RootedDOMString::from(attribute_namespace.as_ref()))
                             },
                         },
                     );
@@ -510,9 +510,15 @@ fn inner_sanitize_steps(
                                     entry_attribute_namespace.as_deref(),
                                 ) == (
                                     element_name.name().str().as_ref(),
-                                    element_name.namespace().map(DOMString::str).as_deref(),
+                                    element_name
+                                        .namespace()
+                                        .map(RootedDOMString::str)
+                                        .as_deref(),
                                     attribute_name.name().str().as_ref(),
-                                    attribute_name.namespace().map(DOMString::str).as_deref(),
+                                    attribute_name
+                                        .namespace()
+                                        .map(RootedDOMString::str)
+                                        .as_deref(),
                                 )
                             },
                         ) && contains_javascript_url(attribute_value)
@@ -549,9 +555,15 @@ fn inner_sanitize_steps(
                                     entry_attribute_namespace.as_deref(),
                                 ) == (
                                     element_name.name().str().as_ref(),
-                                    element_name.namespace().map(DOMString::str).as_deref(),
+                                    element_name
+                                        .namespace()
+                                        .map(RootedDOMString::str)
+                                        .as_deref(),
                                     attribute_name.name().str().as_ref(),
-                                    attribute_name.namespace().map(DOMString::str).as_deref(),
+                                    attribute_name
+                                        .namespace()
+                                        .map(RootedDOMString::str)
+                                        .as_deref(),
                                 )
                             },
                         ) && matches!(attribute_value.as_ref(), "href" | "xlink:href")
@@ -1843,7 +1855,7 @@ impl SanitizerConfigAlgorithm for SanitizerConfig {
         // Step 5. For each attribute listed in event handler content attributes:
         for attribute in CONTENT_EVENT_HANDLER_NAMES.iter() {
             // Step 5.1. If removing attribute from configuration is true, then set result to true.
-            let attribute = SanitizerAttribute::String(DOMString::from(*attribute));
+            let attribute = SanitizerAttribute::String(RootedDOMString::from(*attribute));
             if self.remove_attribute(attribute) {
                 result = true;
             }
@@ -2108,7 +2120,7 @@ impl<T: Canonicalization> Canonicalization for Vec<T> {
 }
 
 trait NameCanonicalization: NameMember {
-    fn new_dictionary(name: DOMString, namespace: Option<DOMString>) -> Self;
+    fn new_dictionary(name: RootedDOMString, namespace: Option<RootedDOMString>) -> Self;
     fn is_string(&self) -> bool;
     fn is_dictionary(&self) -> bool;
 
@@ -2122,7 +2134,7 @@ trait NameCanonicalization: NameMember {
         if self.is_string() {
             return Self::new_dictionary(
                 std::mem::take(self.name_mut()),
-                default_namespace.map(DOMString::from),
+                default_namespace.map(RootedDOMString::from),
             );
         }
 
@@ -2150,7 +2162,7 @@ trait NameCanonicalization: NameMember {
 }
 
 impl NameCanonicalization for SanitizerElement {
-    fn new_dictionary(name: DOMString, namespace: Option<DOMString>) -> Self {
+    fn new_dictionary(name: RootedDOMString, namespace: Option<RootedDOMString>) -> Self {
         SanitizerElement::SanitizerElementNamespace(SanitizerElementNamespace { name, namespace })
     }
 
@@ -2164,7 +2176,7 @@ impl NameCanonicalization for SanitizerElement {
 }
 
 impl NameCanonicalization for SanitizerAttribute {
-    fn new_dictionary(name: DOMString, namespace: Option<DOMString>) -> Self {
+    fn new_dictionary(name: RootedDOMString, namespace: Option<RootedDOMString>) -> Self {
         SanitizerAttribute::SanitizerAttributeNamespace(SanitizerAttributeNamespace {
             name,
             namespace,
@@ -2220,7 +2232,7 @@ where
         self.iter().any(move |entry| {
             !used.insert((
                 entry.name().to_string(),
-                entry.namespace().map(DOMString::to_string),
+                entry.namespace().map(RootedDOMString::to_string),
             ))
         })
     }
@@ -2359,10 +2371,10 @@ where
 /// Helper functions for accessing the "name" and "namespace" members of
 /// [`SanitizerElementWithAttributes`], [`SanitizerElement`] and [`SanitizerAttribute`].
 trait NameMember: Sized {
-    fn name(&self) -> &DOMString;
-    fn name_mut(&mut self) -> &mut DOMString;
-    fn namespace(&self) -> Option<&DOMString>;
-    fn namespace_mut(&mut self) -> Option<&mut DOMString>;
+    fn name(&self) -> &RootedDOMString;
+    fn name_mut(&mut self) -> &mut RootedDOMString;
+    fn namespace(&self) -> Option<&RootedDOMString>;
+    fn namespace_mut(&mut self) -> Option<&mut RootedDOMString>;
 
     fn set_namespace(&mut self, namespace: Option<&str>);
 
@@ -2425,7 +2437,7 @@ trait NameMember: Sized {
 }
 
 impl NameMember for SanitizerElementWithAttributes {
-    fn name(&self) -> &DOMString {
+    fn name(&self) -> &RootedDOMString {
         match self {
             SanitizerElementWithAttributes::String(name) => name,
             SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(dictionary) => {
@@ -2434,7 +2446,7 @@ impl NameMember for SanitizerElementWithAttributes {
         }
     }
 
-    fn name_mut(&mut self) -> &mut DOMString {
+    fn name_mut(&mut self) -> &mut RootedDOMString {
         match self {
             SanitizerElementWithAttributes::String(name) => name,
             SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(dictionary) => {
@@ -2443,7 +2455,7 @@ impl NameMember for SanitizerElementWithAttributes {
         }
     }
 
-    fn namespace(&self) -> Option<&DOMString> {
+    fn namespace(&self) -> Option<&RootedDOMString> {
         match self {
             SanitizerElementWithAttributes::String(_) => None,
             SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(dictionary) => {
@@ -2452,7 +2464,7 @@ impl NameMember for SanitizerElementWithAttributes {
         }
     }
 
-    fn namespace_mut(&mut self) -> Option<&mut DOMString> {
+    fn namespace_mut(&mut self) -> Option<&mut RootedDOMString> {
         match self {
             SanitizerElementWithAttributes::String(_) => None,
             SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(dictionary) => {
@@ -2469,7 +2481,7 @@ impl NameMember for SanitizerElementWithAttributes {
                         SanitizerElementNamespaceWithAttributes {
                             parent: SanitizerElementNamespace {
                                 name: std::mem::take(name),
-                                namespace: namespace.map(DOMString::from),
+                                namespace: namespace.map(RootedDOMString::from),
                             },
                             attributes: None,
                             removeAttributes: None,
@@ -2478,28 +2490,28 @@ impl NameMember for SanitizerElementWithAttributes {
                 *self = new_instance;
             },
             SanitizerElementWithAttributes::SanitizerElementNamespaceWithAttributes(dictionary) => {
-                dictionary.parent.namespace = namespace.map(DOMString::from);
+                dictionary.parent.namespace = namespace.map(RootedDOMString::from);
             },
         }
     }
 }
 
 impl NameMember for SanitizerElement {
-    fn name(&self) -> &DOMString {
+    fn name(&self) -> &RootedDOMString {
         match self {
             SanitizerElement::String(name) => name,
             SanitizerElement::SanitizerElementNamespace(dictionary) => &dictionary.name,
         }
     }
 
-    fn name_mut(&mut self) -> &mut DOMString {
+    fn name_mut(&mut self) -> &mut RootedDOMString {
         match self {
             SanitizerElement::String(name) => name,
             SanitizerElement::SanitizerElementNamespace(dictionary) => &mut dictionary.name,
         }
     }
 
-    fn namespace(&self) -> Option<&DOMString> {
+    fn namespace(&self) -> Option<&RootedDOMString> {
         match self {
             SanitizerElement::String(_) => None,
             SanitizerElement::SanitizerElementNamespace(dictionary) => {
@@ -2508,7 +2520,7 @@ impl NameMember for SanitizerElement {
         }
     }
 
-    fn namespace_mut(&mut self) -> Option<&mut DOMString> {
+    fn namespace_mut(&mut self) -> Option<&mut RootedDOMString> {
         match self {
             SanitizerElement::String(_) => None,
             SanitizerElement::SanitizerElementNamespace(dictionary) => {
@@ -2523,33 +2535,33 @@ impl NameMember for SanitizerElement {
                 let new_instance =
                     SanitizerElement::SanitizerElementNamespace(SanitizerElementNamespace {
                         name: std::mem::take(name),
-                        namespace: namespace.map(DOMString::from),
+                        namespace: namespace.map(RootedDOMString::from),
                     });
                 *self = new_instance;
             },
             SanitizerElement::SanitizerElementNamespace(dictionary) => {
-                dictionary.namespace = namespace.map(DOMString::from);
+                dictionary.namespace = namespace.map(RootedDOMString::from);
             },
         }
     }
 }
 
 impl NameMember for SanitizerAttribute {
-    fn name(&self) -> &DOMString {
+    fn name(&self) -> &RootedDOMString {
         match self {
             SanitizerAttribute::String(name) => name,
             SanitizerAttribute::SanitizerAttributeNamespace(dictionary) => &dictionary.name,
         }
     }
 
-    fn name_mut(&mut self) -> &mut DOMString {
+    fn name_mut(&mut self) -> &mut RootedDOMString {
         match self {
             SanitizerAttribute::String(name) => name,
             SanitizerAttribute::SanitizerAttributeNamespace(dictionary) => &mut dictionary.name,
         }
     }
 
-    fn namespace(&self) -> Option<&DOMString> {
+    fn namespace(&self) -> Option<&RootedDOMString> {
         match self {
             SanitizerAttribute::String(_) => None,
             SanitizerAttribute::SanitizerAttributeNamespace(dictionary) => {
@@ -2558,7 +2570,7 @@ impl NameMember for SanitizerAttribute {
         }
     }
 
-    fn namespace_mut(&mut self) -> Option<&mut DOMString> {
+    fn namespace_mut(&mut self) -> Option<&mut RootedDOMString> {
         match self {
             SanitizerAttribute::String(_) => None,
             SanitizerAttribute::SanitizerAttributeNamespace(dictionary) => {
@@ -2573,12 +2585,12 @@ impl NameMember for SanitizerAttribute {
                 let new_instance =
                     SanitizerAttribute::SanitizerAttributeNamespace(SanitizerAttributeNamespace {
                         name: std::mem::take(name),
-                        namespace: namespace.map(DOMString::from),
+                        namespace: namespace.map(RootedDOMString::from),
                     });
                 *self = new_instance;
             },
             SanitizerAttribute::SanitizerAttributeNamespace(dictionary) => {
-                dictionary.namespace = namespace.map(DOMString::from);
+                dictionary.namespace = namespace.map(RootedDOMString::from);
             },
         }
     }
@@ -2685,11 +2697,11 @@ impl AttributeMember for SanitizerElementWithAttributes {
 
 /// Helper functions for accessing the "target" members of [`SanitizerPI`].
 trait TargetMember {
-    fn target(&self) -> &DOMString;
+    fn target(&self) -> &RootedDOMString;
 }
 
 impl TargetMember for SanitizerPI {
-    fn target(&self) -> &DOMString {
+    fn target(&self) -> &RootedDOMString {
         match self {
             SanitizerPI::String(string) => string,
             SanitizerPI::SanitizerProcessingInstruction(dictionary) => &dictionary.target,
@@ -3171,15 +3183,15 @@ thread_local! {
         LazyCell::new(|| {
             vec![
                 SanitizerElement::SanitizerElementNamespace(SanitizerElementNamespace {
-                    name: DOMString::from_static("html"),
+                    name: RootedDOMString::from_static("html"),
                     namespace: Some(ns!(html).as_str().into()),
                 }),
                 SanitizerElement::SanitizerElementNamespace(SanitizerElementNamespace {
-                    name: DOMString::from_static("svg"),
+                    name: RootedDOMString::from_static("svg"),
                     namespace: Some(ns!(svg).as_str().into()),
                 }),
                 SanitizerElement::SanitizerElementNamespace(SanitizerElementNamespace {
-                    name: DOMString::from_static("math"),
+                    name: RootedDOMString::from_static("math"),
                     namespace: Some(ns!(mathml).as_str().into()),
                 }),
             ]

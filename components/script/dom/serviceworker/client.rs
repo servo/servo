@@ -18,7 +18,7 @@ use crate::dom::bindings::codegen::Bindings::ClientBinding::{ClientMethods, Fram
 use crate::dom::bindings::codegen::Bindings::MessagePortBinding::StructuredSerializeOptions;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::{RootedDOMString, USVString};
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
@@ -147,7 +147,7 @@ impl ClientMethods<crate::DomTypeHolder> for Client {
     }
 
     /// <https://w3c.github.io/ServiceWorker/#client-id>
-    fn Id(&self) -> DOMString {
+    fn Id(&self) -> RootedDOMString {
         format!("{}", self.worker_id).into()
     }
 }

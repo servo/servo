@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::SubmitEventBinding;
 use crate::dom::bindings::codegen::Bindings::SubmitEventBinding::SubmitEventMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::event::Event;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::window::Window;
@@ -72,7 +72,7 @@ impl SubmitEventMethods<crate::DomTypeHolder> for SubmitEvent {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        type_: RootedDOMString,
         init: &SubmitEventBinding::SubmitEventInit,
     ) -> DomRoot<SubmitEvent> {
         SubmitEvent::new_with_proto(

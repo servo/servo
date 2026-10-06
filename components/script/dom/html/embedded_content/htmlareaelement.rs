@@ -22,7 +22,7 @@ use crate::dom::activation::Activatable;
 use crate::dom::bindings::codegen::Bindings::HTMLAreaElementBinding::HTMLAreaElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::{RootedDOMString, USVString};
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
 use crate::dom::element::attributes::storage::AttrRef;
@@ -335,7 +335,7 @@ impl VirtualMethods for HTMLAreaElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: RootedDOMString) -> AttrValue {
         match name {
             &local_name!("rel") => AttrValue::from_serialized_tokenlist(value.into()),
             _ => self
@@ -385,7 +385,7 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     make_getter!(Rel, "rel");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-a-rel>
-    fn SetRel(&self, cx: &mut JSContext, rel: DOMString) {
+    fn SetRel(&self, cx: &mut JSContext, rel: RootedDOMString) {
         self.upcast::<Element>()
             .set_tokenlist_attribute(cx, &local_name!("rel"), rel);
     }
@@ -407,7 +407,7 @@ impl HTMLAreaElementMethods<crate::DomTypeHolder> for HTMLAreaElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#attr-iframe-referrerpolicy>
-    fn ReferrerPolicy(&self) -> DOMString {
+    fn ReferrerPolicy(&self) -> RootedDOMString {
         reflect_referrer_policy_attribute(self.upcast::<Element>())
     }
 

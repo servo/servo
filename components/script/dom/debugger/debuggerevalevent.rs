@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::reflector::reflect_dom_object;
-use script_bindings::str::DOMString;
+use script_bindings::str::RootedDOMString;
 
 use crate::dom::bindings::codegen::Bindings::DebuggerEvalEventBinding::DebuggerEvalEventMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
@@ -17,10 +17,10 @@ use crate::dom::types::{GlobalScope, PipelineId};
 /// Event for Rust → JS calls in [`crate::dom::debugger::DebuggerGlobalScope`].
 pub(crate) struct DebuggerEvalEvent {
     event: Event,
-    code: DOMString,
+    code: RootedDOMString,
     pipeline_id: Dom<PipelineId>,
-    worker_id: Option<DOMString>,
-    frame_actor_id: Option<DOMString>,
+    worker_id: Option<RootedDOMString>,
+    frame_actor_id: Option<RootedDOMString>,
     eager: bool,
 }
 
@@ -28,10 +28,10 @@ impl DebuggerEvalEvent {
     pub(crate) fn new(
         cx: &mut JSContext,
         debugger_global: &GlobalScope,
-        code: DOMString,
+        code: RootedDOMString,
         pipeline_id: &PipelineId,
-        worker_id: Option<DOMString>,
-        frame_actor_id: Option<DOMString>,
+        worker_id: Option<RootedDOMString>,
+        frame_actor_id: Option<RootedDOMString>,
         eager: bool,
     ) -> DomRoot<Self> {
         let result = Box::new(Self {
@@ -51,7 +51,7 @@ impl DebuggerEvalEvent {
 
 impl DebuggerEvalEventMethods<crate::DomTypeHolder> for DebuggerEvalEvent {
     // check-tidy: no specs after this line
-    fn Code(&self) -> DOMString {
+    fn Code(&self) -> RootedDOMString {
         self.code.clone()
     }
 
@@ -61,11 +61,11 @@ impl DebuggerEvalEventMethods<crate::DomTypeHolder> for DebuggerEvalEvent {
         DomRoot::from_ref(&self.pipeline_id)
     }
 
-    fn GetWorkerId(&self) -> Option<DOMString> {
+    fn GetWorkerId(&self) -> Option<RootedDOMString> {
         self.worker_id.clone()
     }
 
-    fn GetFrameActorId(&self) -> Option<DOMString> {
+    fn GetFrameActorId(&self) -> Option<RootedDOMString> {
         self.frame_actor_id.clone()
     }
 

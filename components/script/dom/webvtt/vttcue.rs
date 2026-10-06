@@ -33,7 +33,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::node::Node;
 use crate::dom::texttrack::TextTrack;
@@ -54,7 +54,7 @@ pub(crate) struct VTTCue {
     position_align: Cell<PositionAlignSetting>,
     size: Cell<f64>,
     align: Cell<AlignSetting>,
-    text: DomRefCell<DOMString>,
+    text: DomRefCell<RootedDOMString>,
 }
 
 impl VTTCue {
@@ -62,8 +62,8 @@ impl VTTCue {
     fn new_inherited(
         start_time: f64,
         end_time: f64,
-        text: DOMString,
-        id: DOMString,
+        text: RootedDOMString,
+        id: RootedDOMString,
         vertical: DirectionSetting,
         snap_to_lines: bool,
         line: LineAndPositionSetting,
@@ -102,8 +102,8 @@ impl VTTCue {
         proto: Option<HandleObject>,
         start_time: f64,
         end_time: f64,
-        text: DOMString,
-        id: DOMString,
+        text: RootedDOMString,
+        id: RootedDOMString,
         vertical: DirectionSetting,
         snap_to_lines: bool,
         line: LineAndPositionSetting,
@@ -195,7 +195,7 @@ impl VTTCue {
                         WebVTTNodeObjectKind::Language => "span",
                         WebVTTNodeObjectKind::Text(text) => {
                             // > Text node whose data is the value of the WebVTT Text Object.
-                            let text = document.CreateTextNode(cx, DOMString::from(text.as_ref()));
+                            let text = document.CreateTextNode(cx, RootedDOMString::from(text.as_ref()));
                             current
                                 .AppendChild(cx, text.upcast())
                                 .expect("Must always be able to append");
@@ -211,7 +211,7 @@ impl VTTCue {
                             let new_child = document
                                 .CreateProcessingInstruction(
                                     cx,
-                                    DOMString::from_static("timestamp"),
+                                    RootedDOMString::from_static("timestamp"),
                                     format!("{timestamp}").into(),
                                 )
                                 .expect("Must always be able to create processing instruction");
@@ -287,7 +287,7 @@ impl VTTCueMethods<crate::DomTypeHolder> for VTTCue {
         proto: Option<HandleObject>,
         start_time: Finite<f64>,
         end_time: Finite<f64>,
-        text: DOMString,
+        text: RootedDOMString,
     ) -> Fallible<DomRoot<Self>> {
         // Step 3. If the value of the endTime argument is negative Infinity or a Not-a-Number (NaN) value,
         // then throw a TypeError exception.
@@ -439,12 +439,12 @@ impl VTTCueMethods<crate::DomTypeHolder> for VTTCue {
     }
 
     /// <https://w3c.github.io/webvtt/#dom-vttcue-text>
-    fn Text(&self) -> DOMString {
+    fn Text(&self) -> RootedDOMString {
         self.text.borrow().clone()
     }
 
     /// <https://w3c.github.io/webvtt/#dom-vttcue-text>
-    fn SetText(&self, value: DOMString) {
+    fn SetText(&self, value: RootedDOMString) {
         *self.text.borrow_mut() = value;
     }
 

@@ -7,7 +7,7 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::match_domstring_ascii;
 use script_bindings::reflector::reflect_dom_object_with_proto;
-use script_bindings::str::DOMString;
+use script_bindings::str::RootedDOMString;
 use style::Atom;
 
 use crate::dom::bindings::codegen::Bindings::ClipboardEventBinding::{
@@ -45,8 +45,8 @@ impl ClipboardEventType {
     }
 }
 
-impl From<DOMString> for ClipboardEventType {
-    fn from(value: DOMString) -> Self {
+impl From<RootedDOMString> for ClipboardEventType {
+    fn from(value: RootedDOMString) -> Self {
         match_domstring_ascii!(value,
             "clipboardchange" => return ClipboardEventType::Change,
             "copy" => return ClipboardEventType::Copy,
@@ -136,7 +136,7 @@ impl ClipboardEventMethods<crate::DomTypeHolder> for ClipboardEvent {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        event_type: DOMString,
+        event_type: RootedDOMString,
         init: &ClipboardEventInit,
     ) -> DomRoot<ClipboardEvent> {
         let bubbles = EventBubbles::from(init.parent.bubbles);

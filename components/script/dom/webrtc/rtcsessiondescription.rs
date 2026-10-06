@@ -12,18 +12,18 @@ use crate::dom::bindings::codegen::Bindings::RTCSessionDescriptionBinding::{
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::window::Window;
 
 #[dom_struct]
 pub(crate) struct RTCSessionDescription {
     reflector: Reflector,
     ty: RTCSdpType,
-    sdp: DOMString,
+    sdp: RootedDOMString,
 }
 
 impl RTCSessionDescription {
-    pub(crate) fn new_inherited(ty: RTCSdpType, sdp: DOMString) -> RTCSessionDescription {
+    pub(crate) fn new_inherited(ty: RTCSdpType, sdp: RootedDOMString) -> RTCSessionDescription {
         RTCSessionDescription {
             reflector: Reflector::new(),
             ty,
@@ -36,7 +36,7 @@ impl RTCSessionDescription {
         window: &Window,
         proto: Option<HandleObject>,
         ty: RTCSdpType,
-        sdp: DOMString,
+        sdp: RootedDOMString,
     ) -> DomRoot<RTCSessionDescription> {
         reflect_dom_object_with_proto(
             cx,
@@ -70,7 +70,7 @@ impl RTCSessionDescriptionMethods<crate::DomTypeHolder> for RTCSessionDescriptio
     }
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcsessiondescription-sdp>
-    fn Sdp(&self) -> DOMString {
+    fn Sdp(&self) -> RootedDOMString {
         self.sdp.clone()
     }
 }

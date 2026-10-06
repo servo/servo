@@ -18,7 +18,7 @@ use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::codegen::Bindings::CSSMediaRuleBinding::CSSMediaRuleMethods;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::css::cssgroupingrule::CSSGroupingRule;
 use crate::dom::medialist::MediaList;
 use crate::dom::window::Window;
@@ -80,7 +80,7 @@ impl CSSMediaRule {
     }
 
     /// <https://drafts.csswg.org/css-conditional-3/#the-cssmediarule-interface>
-    pub(crate) fn get_condition_text(&self) -> DOMString {
+    pub(crate) fn get_condition_text(&self) -> RootedDOMString {
         let guard = self.css_condition_rule.shared_lock().read();
         self.media_rule
             .borrow()
@@ -105,7 +105,7 @@ impl SpecificCSSRule for CSSMediaRule {
         CssRuleType::Media
     }
 
-    fn get_css(&self) -> DOMString {
+    fn get_css(&self) -> RootedDOMString {
         let guard = self.css_condition_rule.shared_lock().read();
         self.media_rule.borrow().to_css_string(&guard).into()
     }

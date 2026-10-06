@@ -15,7 +15,7 @@ use crate::dom::bindings::conversions::{
 };
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlareaelement::HTMLAreaElement;
@@ -122,7 +122,7 @@ impl OriginMethods<crate::DomTypeHolder> for Origin {
 
         // Step 2. If value is a string:
         if value.get().is_string() {
-            let s = match DOMString::from_jsval(cx, value, StringificationBehavior::Default) {
+            let s = match RootedDOMString::from_jsval(cx, value, StringificationBehavior::Default) {
                 Ok(ConversionResult::Success(s)) => s,
                 _ => return Err(Error::Type(c"Failed to convert value to string".to_owned())),
             };

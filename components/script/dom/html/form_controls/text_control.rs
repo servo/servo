@@ -19,7 +19,7 @@ use servo_base::text::Utf16CodeUnits;
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::event::{EventBubbles, EventCancelable, EventFlags};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::form_controls::text_input::{
@@ -44,8 +44,8 @@ pub(crate) trait TextControlElement {
     fn is_password_field(&self) -> bool {
         false
     }
-    fn placeholder_text<'a>(&'a self) -> Ref<'a, DOMString>;
-    fn value_text(&self) -> DOMString;
+    fn placeholder_text<'a>(&'a self) -> Ref<'a, RootedDOMString>;
+    fn value_text(&self) -> RootedDOMString;
     fn read_only_or_disabled(&self) -> bool;
     fn handle_text_content_changed(&self, cx: &mut JSContext);
     fn handle_key_reaction(&self, cx: &mut JSContext, action: KeyReaction);
@@ -127,7 +127,7 @@ pub(crate) trait TextControlElement {
             true,
             Some(window),
             0,
-            data.map(DOMString::from),
+            data.map(RootedDOMString::from),
             is_composing.into(),
             input_type.as_str().into(),
         );
@@ -169,7 +169,7 @@ pub(crate) trait TextControlElement {
                     false,
                     Some(window),
                     0,
-                    data.map(DOMString::from),
+                    data.map(RootedDOMString::from),
                     is_composing.into(),
                     input_type.as_str().into(),
                 );
@@ -272,17 +272,17 @@ pub(crate) trait TextControlElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
-    fn dom_direction(&self) -> Option<DOMString> {
+    fn dom_direction(&self) -> Option<RootedDOMString> {
         // Step 1
         if !self.selection_api_applies() {
             return None;
         }
 
-        Some(DOMString::from(self.direction()))
+        Some(RootedDOMString::from(self.direction()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
-    fn set_dom_direction(&self, direction: Option<DOMString>) -> ErrorResult {
+    fn set_dom_direction(&self, direction: Option<RootedDOMString>) -> ErrorResult {
         // Step 1
         if !self.selection_api_applies() {
             return Err(Error::InvalidState(Some(
@@ -305,7 +305,7 @@ pub(crate) trait TextControlElement {
         &self,
         start: Utf16CodeUnits,
         end: Utf16CodeUnits,
-        direction: Option<DOMString>,
+        direction: Option<RootedDOMString>,
     ) -> ErrorResult {
         // Step 1
         if !self.selection_api_applies() {
@@ -327,7 +327,7 @@ pub(crate) trait TextControlElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
     fn set_dom_range_text(
         &self,
-        replacement: DOMString,
+        replacement: RootedDOMString,
         start: Option<Utf16CodeUnits>,
         end: Option<Utf16CodeUnits>,
         selection_mode: SelectionMode,

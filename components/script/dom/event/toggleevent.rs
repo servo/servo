@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::ToggleEventBinding;
 use crate::dom::bindings::codegen::Bindings::ToggleEventBinding::ToggleEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -26,17 +26,17 @@ use crate::dom::types::Window;
 pub(crate) struct ToggleEvent {
     event: Event,
     /// <https://html.spec.whatwg.org/multipage/#dom-toggleevent-oldstate>
-    old_state: DOMString,
+    old_state: RootedDOMString,
     /// <https://html.spec.whatwg.org/multipage/#dom-toggleevent-newstate>
-    new_state: DOMString,
+    new_state: RootedDOMString,
     /// <https://html.spec.whatwg.org/multipage/#dom-toggleevent-source>
     source: Option<Dom<Element>>,
 }
 
 impl ToggleEvent {
     pub(crate) fn new_inherited(
-        old_state: DOMString,
-        new_state: DOMString,
+        old_state: RootedDOMString,
+        new_state: RootedDOMString,
         source: Option<&Element>,
     ) -> ToggleEvent {
         ToggleEvent {
@@ -54,8 +54,8 @@ impl ToggleEvent {
         type_: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
-        old_state: DOMString,
-        new_state: DOMString,
+        old_state: RootedDOMString,
+        new_state: RootedDOMString,
         source: Option<&Element>,
     ) -> DomRoot<ToggleEvent> {
         Self::new_with_proto(
@@ -71,8 +71,8 @@ impl ToggleEvent {
         type_: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
-        old_state: DOMString,
-        new_state: DOMString,
+        old_state: RootedDOMString,
+        new_state: RootedDOMString,
         source: Option<&Element>,
     ) -> DomRoot<ToggleEvent> {
         let event = Box::new(ToggleEvent::new_inherited(old_state, new_state, source));
@@ -92,7 +92,7 @@ impl ToggleEventMethods<crate::DomTypeHolder> for ToggleEvent {
         window: &Window,
         proto: Option<HandleObject>,
 
-        type_: DOMString,
+        type_: RootedDOMString,
         init: &ToggleEventBinding::ToggleEventInit,
     ) -> Fallible<DomRoot<ToggleEvent>> {
         let bubbles = EventBubbles::from(init.parent.bubbles);
@@ -116,12 +116,12 @@ impl ToggleEventMethods<crate::DomTypeHolder> for ToggleEvent {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-toggleevent-oldstate>
-    fn OldState(&self) -> DOMString {
+    fn OldState(&self) -> RootedDOMString {
         self.old_state.clone()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-toggleevent-newstate>
-    fn NewState(&self) -> DOMString {
+    fn NewState(&self) -> RootedDOMString {
         self.new_state.clone()
     }
 

@@ -13,7 +13,7 @@ use super::performance::ToDOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
 use crate::dom::bindings::codegen::Bindings::PerformanceEntryBinding::PerformanceEntryMethods;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 
 /// All supported entry types, in alphabetical order.
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq, VariantArray)]
@@ -64,7 +64,7 @@ pub(crate) struct PerformanceEntry {
     reflector_: Reflector,
 
     /// <https://www.w3.org/TR/performance-timeline/#dom-performanceentry-name>
-    name: DOMString,
+    name: RootedDOMString,
 
     /// <https://www.w3.org/TR/performance-timeline/#dom-performanceentry-entrytype>
     entry_type: EntryType,
@@ -84,7 +84,7 @@ pub(crate) struct PerformanceEntry {
 
 impl PerformanceEntry {
     pub(crate) fn new_inherited(
-        name: DOMString,
+        name: RootedDOMString,
         entry_type: EntryType,
         start_time: Option<CrossProcessInstant>,
         duration: Duration,
@@ -104,7 +104,7 @@ impl PerformanceEntry {
     }
 
     /// <https://www.w3.org/TR/performance-timeline/#dom-performanceentry-entrytype>
-    pub(crate) fn name(&self) -> &DOMString {
+    pub(crate) fn name(&self) -> &RootedDOMString {
         &self.name
     }
 
@@ -116,13 +116,13 @@ impl PerformanceEntry {
 
 impl PerformanceEntryMethods<crate::DomTypeHolder> for PerformanceEntry {
     /// <https://w3c.github.io/performance-timeline/#dom-performanceentry-name>
-    fn Name(&self) -> DOMString {
+    fn Name(&self) -> RootedDOMString {
         self.name.clone()
     }
 
     /// <https://w3c.github.io/performance-timeline/#dom-performanceentry-entrytype>
-    fn EntryType(&self) -> DOMString {
-        DOMString::from(self.entry_type.as_str())
+    fn EntryType(&self) -> RootedDOMString {
+        RootedDOMString::from(self.entry_type.as_str())
     }
 
     /// <https://w3c.github.io/performance-timeline/#dom-performanceentry-starttime>

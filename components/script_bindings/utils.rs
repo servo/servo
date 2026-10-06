@@ -47,7 +47,7 @@ use crate::interfaces::DomHelpers;
 use crate::proxyhandler::{
     is_cross_origin_object, is_platform_object_same_origin, report_cross_origin_denial,
 };
-use crate::str::DOMString;
+use crate::str::RootedDOMString;
 use crate::trace::trace_object;
 
 /// The struct that holds inheritance information for DOM object reflectors.
@@ -216,7 +216,7 @@ pub(crate) fn find_enum_value<'a, T>(
     cx: &mut JSContext,
     v: HandleValue,
     pairs: &'a [(&'static str, T)],
-) -> Result<(Option<&'a T>, DOMString), ()> {
+) -> Result<(Option<&'a T>, RootedDOMString), ()> {
     match NonNull::new(unsafe { ToString(cx, v) }) {
         Some(jsstr) => {
             let search = unsafe { jsstr_to_string(cx, jsstr) }.into();

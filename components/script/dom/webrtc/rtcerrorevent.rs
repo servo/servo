@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::RTCErrorEventBinding::{
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::event::Event;
 use crate::dom::rtcerror::RTCError;
 use crate::dom::window::Window;
@@ -73,7 +73,7 @@ impl RTCErrorEventMethods<crate::DomTypeHolder> for RTCErrorEvent {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        type_: RootedDOMString,
         init: &RTCErrorEventInit,
     ) -> DomRoot<RTCErrorEvent> {
         RTCErrorEvent::new_with_proto(

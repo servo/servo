@@ -20,7 +20,7 @@ use crate::dom::bindings::codegen::UnionTypes::ArrayBufferViewOrArrayBuffer;
 use crate::dom::bindings::error::Error::{self, InvalidModification, Network, Security};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::{ByteString, DOMString};
+use crate::dom::bindings::str::{ByteString, RootedDOMString};
 use crate::dom::bluetooth::{AsyncBluetoothListener, response_async};
 use crate::dom::bluetoothremotegattcharacteristic::{
     BluetoothRemoteGATTCharacteristic, MAXIMUM_ATTRIBUTE_LENGTH,
@@ -33,7 +33,7 @@ use crate::dom::promise::{Promise, RootedPromise};
 pub(crate) struct BluetoothRemoteGATTDescriptor {
     reflector_: Reflector,
     characteristic: Dom<BluetoothRemoteGATTCharacteristic>,
-    uuid: DOMString,
+    uuid: RootedDOMString,
     value: DomRefCell<Option<ByteString>>,
     instance_id: String,
 }
@@ -41,7 +41,7 @@ pub(crate) struct BluetoothRemoteGATTDescriptor {
 impl BluetoothRemoteGATTDescriptor {
     pub(crate) fn new_inherited(
         characteristic: &BluetoothRemoteGATTCharacteristic,
-        uuid: DOMString,
+        uuid: RootedDOMString,
         instance_id: String,
     ) -> BluetoothRemoteGATTDescriptor {
         BluetoothRemoteGATTDescriptor {
@@ -57,7 +57,7 @@ impl BluetoothRemoteGATTDescriptor {
         cx: &mut JSContext,
         global: &GlobalScope,
         characteristic: &BluetoothRemoteGATTCharacteristic,
-        uuid: DOMString,
+        uuid: RootedDOMString,
         instance_id: String,
     ) -> DomRoot<BluetoothRemoteGATTDescriptor> {
         reflect_dom_object(
@@ -87,7 +87,7 @@ impl BluetoothRemoteGATTDescriptorMethods<crate::DomTypeHolder> for BluetoothRem
     }
 
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattdescriptor-uuid>
-    fn Uuid(&self) -> DOMString {
+    fn Uuid(&self) -> RootedDOMString {
         self.uuid.clone()
     }
 

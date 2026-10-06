@@ -41,7 +41,7 @@ use crate::dom::bindings::error::{
 use crate::dom::bindings::inheritance::{Castable, DocumentFragmentTypeId, NodeTypeId};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{AsHandleValue, Dom, DomRoot, UnrootedDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::document::Document;
 use crate::dom::domexception::{DOMErrorName, DOMException};
@@ -385,7 +385,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
     fn Define(
         &self,
         cx: &mut JSContext,
-        name: DOMString,
+        name: RootedDOMString,
         constructor_: RootedCallback<CustomElementConstructor>,
         options: &ElementDefinitionOptions,
     ) -> ErrorResult {
@@ -509,29 +509,29 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
 
         // Step 14.5: Handle the case where with `attributeChangedCallback` on `lifecycleCallbacks`
         // is not null.
-        let observed_attributes: Vec<DOMString> = if callbacks.attribute_changed_callback.is_some()
-        {
-            let mut realm = AutoRealm::new_from_handle(cx, constructor.handle());
-            match get_property(
-                &mut realm,
-                constructor.handle(),
-                c"observedAttributes",
-                StringificationBehavior::Default,
-            ) {
-                Ok(attributes) => attributes.unwrap_or_default(),
-                Err(error) => {
-                    self.element_definition_is_running.set(false);
-                    return Err(error);
-                },
-            }
-        } else {
-            Vec::new()
-        };
+        let observed_attributes: Vec<RootedDOMString> =
+            if callbacks.attribute_changed_callback.is_some() {
+                let mut realm = AutoRealm::new_from_handle(cx, constructor.handle());
+                match get_property(
+                    &mut realm,
+                    constructor.handle(),
+                    c"observedAttributes",
+                    StringificationBehavior::Default,
+                ) {
+                    Ok(attributes) => attributes.unwrap_or_default(),
+                    Err(error) => {
+                        self.element_definition_is_running.set(false);
+                        return Err(error);
+                    },
+                }
+            } else {
+                Vec::new()
+            };
 
         // Steps 14.6 - 14.10: Handle `disabledFeatures`.
         let (disable_internals, disable_shadow) = {
             let mut realm = AutoRealm::new_from_handle(cx, constructor.handle());
-            match get_property::<Vec<DOMString>>(
+            match get_property::<Vec<RootedDOMString>>(
                 &mut realm,
                 constructor.handle(),
                 c"disabledFeatures",
@@ -646,7 +646,7 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-get>
-    fn Get(&self, cx: &mut JSContext, name: DOMString, mut retval: MutableHandleValue) {
+    fn Get(&self, cx: &mut JSContext, name: RootedDOMString, mut retval: MutableHandleValue) {
         match self.definitions.borrow().get(&LocalName::from(name)) {
             Some(definition) => definition.constructor.to_jsval(cx, retval),
             None => retval.set(UndefinedValue()),
@@ -654,17 +654,20 @@ impl CustomElementRegistryMethods<crate::DomTypeHolder> for CustomElementRegistr
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-getname>
-    fn GetName(&self, constructor: RootedCallback<CustomElementConstructor>) -> Option<DOMString> {
+    fn GetName(
+        &self,
+        constructor: RootedCallback<CustomElementConstructor>,
+    ) -> Option<RootedDOMString> {
         self.definitions
             .borrow()
             .0
             .values()
             .find(|definition| definition.constructor.callback() == constructor.callback())
-            .map(|definition| DOMString::from(definition.name.to_string()))
+            .map(|definition| RootedDOMString::from(definition.name.to_string()))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-whendefined>
-    fn WhenDefined(&self, realm: &mut CurrentRealm, name: DOMString) -> RootedPromise {
+    fn WhenDefined(&self, realm: &mut CurrentRealm, name: RootedDOMString) -> RootedPromise {
         let name = LocalName::from(name);
 
         // Step 1
@@ -886,7 +889,7 @@ pub(crate) struct CustomElementDefinition {
     pub(crate) constructor: TracedCallback<CustomElementConstructor>,
 
     /// <https://html.spec.whatwg.org/multipage/#concept-custom-element-definition-observed-attributes>
-    pub(crate) observed_attributes: Vec<DOMString>,
+    pub(crate) observed_attributes: Vec<RootedDOMString>,
 
     /// <https://html.spec.whatwg.org/multipage/#concept-custom-element-definition-lifecycle-callbacks>
     pub(crate) callbacks: LifecycleCallbacks,
@@ -910,7 +913,7 @@ impl CustomElementDefinition {
         name: LocalName,
         local_name: LocalName,
         constructor: RootedCallback<CustomElementConstructor>,
-        observed_attributes: Vec<DOMString>,
+        observed_attributes: Vec<RootedDOMString>,
         callbacks: RootedLifecycleCallbacks,
         form_associated: bool,
         disable_internals: bool,
@@ -1416,7 +1419,7 @@ impl CustomElementReactionStack {
                 let mut realm = enter_auto_realm(cx, &*element.global());
                 let cx = &mut realm;
 
-                let local_name = DOMString::from(&*local_name);
+                let local_name = RootedDOMString::from(&*local_name);
                 rooted!(&in(cx) let mut name_value = UndefinedValue());
                 local_name.to_jsval(cx, name_value.handle_mut());
 
@@ -1432,7 +1435,7 @@ impl CustomElementReactionStack {
 
                 rooted!(&in(cx) let mut namespace_value = NullValue());
                 if namespace != ns!() {
-                    let namespace = DOMString::from(&*namespace);
+                    let namespace = RootedDOMString::from(&*namespace);
                     namespace.to_jsval(cx, namespace_value.handle_mut());
                 }
 

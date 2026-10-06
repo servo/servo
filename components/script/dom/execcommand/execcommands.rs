@@ -11,7 +11,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMeth
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::comment::Comment;
 use crate::dom::document::Document;
 use crate::dom::event::Event;
@@ -65,7 +65,7 @@ fn bump_selection_out_of_invalid_node(cx: &mut JSContext, selection: &Selection)
 }
 
 /// <https://w3c.github.io/editing/docs/execCommand/#dfn-map-an-edit-command-to-input-type-value>
-fn mapped_value_of_command(command: CommandName) -> DOMString {
+fn mapped_value_of_command(command: CommandName) -> RootedDOMString {
     match command {
         CommandName::BackColor => "formatBackColor",
         CommandName::Bold => "formatBold",
@@ -148,7 +148,7 @@ impl Document {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#supported>
-    fn command_if_command_is_supported(&self, command_id: &DOMString) -> Option<CommandName> {
+    fn command_if_command_is_supported(&self, command_id: &RootedDOMString) -> Option<CommandName> {
         // https://w3c.github.io/editing/docs/execCommand/#methods-to-query-and-execute-commands
         // > All of these methods must treat their command argument ASCII case-insensitively.
         Some(match_ignore_ascii_case! { &command_id.str(),
@@ -182,31 +182,35 @@ impl Document {
 }
 
 pub(crate) trait DocumentExecCommandSupport {
-    fn is_command_supported(&self, command_id: DOMString) -> bool;
-    fn is_command_indeterminate(&self, cx: &mut JSContext, command_id: DOMString) -> bool;
-    fn command_state_for_command(&self, cx: &mut JSContext, command_id: DOMString) -> bool;
-    fn command_value_for_command(&self, cx: &mut JSContext, command_id: DOMString) -> DOMString;
+    fn is_command_supported(&self, command_id: RootedDOMString) -> bool;
+    fn is_command_indeterminate(&self, cx: &mut JSContext, command_id: RootedDOMString) -> bool;
+    fn command_state_for_command(&self, cx: &mut JSContext, command_id: RootedDOMString) -> bool;
+    fn command_value_for_command(
+        &self,
+        cx: &mut JSContext,
+        command_id: RootedDOMString,
+    ) -> RootedDOMString;
     fn check_support_and_enabled(
         &self,
         cx: &mut JSContext,
-        command_id: &DOMString,
+        command_id: &RootedDOMString,
     ) -> Option<(CommandName, DomRoot<Selection>)>;
     fn exec_command_for_command_id(
         &self,
         cx: &mut JSContext,
-        command_id: DOMString,
-        value: DOMString,
+        command_id: RootedDOMString,
+        value: RootedDOMString,
     ) -> bool;
 }
 
 impl DocumentExecCommandSupport for Document {
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandsupported()>
-    fn is_command_supported(&self, command_id: DOMString) -> bool {
+    fn is_command_supported(&self, command_id: RootedDOMString) -> bool {
         self.command_if_command_is_supported(&command_id).is_some()
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandindeterm()>
-    fn is_command_indeterminate(&self, cx: &mut JSContext, command_id: DOMString) -> bool {
+    fn is_command_indeterminate(&self, cx: &mut JSContext, command_id: RootedDOMString) -> bool {
         // Step 1. If command is not supported or has no indeterminacy, return false.
         // Step 2. Return true if command is indeterminate, otherwise false.
         self.command_if_command_is_supported(&command_id)
@@ -214,7 +218,7 @@ impl DocumentExecCommandSupport for Document {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandstate()>
-    fn command_state_for_command(&self, cx: &mut JSContext, command_id: DOMString) -> bool {
+    fn command_state_for_command(&self, cx: &mut JSContext, command_id: RootedDOMString) -> bool {
         // Step 1. If command is not supported or has no state, return false.
         let Some(command) = self.command_if_command_is_supported(&command_id) else {
             return false;
@@ -228,13 +232,17 @@ impl DocumentExecCommandSupport for Document {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandvalue()>
-    fn command_value_for_command(&self, cx: &mut JSContext, command_id: DOMString) -> DOMString {
+    fn command_value_for_command(
+        &self,
+        cx: &mut JSContext,
+        command_id: RootedDOMString,
+    ) -> RootedDOMString {
         // Step 1. If command is not supported or has no value, return the empty string.
         let Some(command) = self.command_if_command_is_supported(&command_id) else {
-            return DOMString::new();
+            return RootedDOMString::new();
         };
         let Some(value) = command.current_value(cx, self) else {
-            return DOMString::new();
+            return RootedDOMString::new();
         };
         // Step 3. If the value override for command is set, return it.
         self.value_override(&command)
@@ -255,7 +263,7 @@ impl DocumentExecCommandSupport for Document {
     fn check_support_and_enabled(
         &self,
         cx: &mut JSContext,
-        command_id: &DOMString,
+        command_id: &RootedDOMString,
     ) -> Option<(CommandName, DomRoot<Selection>)> {
         // Step 2. Return true if command is both supported and enabled, false otherwise.
         let command = self.command_if_command_is_supported(command_id)?;
@@ -267,8 +275,8 @@ impl DocumentExecCommandSupport for Document {
     fn exec_command_for_command_id(
         &self,
         cx: &mut JSContext,
-        command_id: DOMString,
-        value: DOMString,
+        command_id: RootedDOMString,
+        value: RootedDOMString,
     ) -> bool {
         let window = self.window();
         // Step 3. If command is not supported or not enabled, return false.

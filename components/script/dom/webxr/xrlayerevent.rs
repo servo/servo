@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::XRLayerEventBinding::{
     XRLayerEventInit, XRLayerEventMethods,
 };
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::event::Event;
 use crate::dom::window::Window;
 use crate::dom::xrlayer::XRLayer;
@@ -54,7 +54,7 @@ impl XRLayerEventMethods<crate::DomTypeHolder> for XRLayerEvent {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        type_: RootedDOMString,
         init: &XRLayerEventInit,
     ) -> DomRoot<XRLayerEvent> {
         let event = XRLayerEvent::new(cx, window, proto, &init.layer);

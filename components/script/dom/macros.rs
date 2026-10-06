@@ -5,7 +5,7 @@
 #[macro_export]
 macro_rules! make_getter(
     ( $attr:ident, $htmlname:tt ) => (
-        fn $attr(&self) -> DOMString {
+        fn $attr(&self) -> RootedDOMString {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
             let element = self.upcast::<Element>();
@@ -117,7 +117,7 @@ macro_rules! make_url_setter(
 #[macro_export]
 macro_rules! make_form_action_getter(
     ( $attr:ident, $htmlname:tt ) => (
-        fn $attr(&self) -> DOMString {
+        fn $attr(&self) -> RootedDOMString {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
             let element = self.upcast::<Element>();
@@ -161,7 +161,7 @@ macro_rules! make_enumerated_getter(
         invalid => $invalid:literal,
         empty => $empty:literal
     ) => (
-        fn $attr(&self) -> DOMString {
+        fn $attr(&self) -> RootedDOMString {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
 
@@ -173,13 +173,13 @@ macro_rules! make_enumerated_getter(
                     // Step 1.1. If the attribute has a missing value default state defined, then return that
                     // missing value default state.
                     // Step 1.2 Otherwise, return no state.
-                    return DOMString::from_static($missing);
+                    return RootedDOMString::from_static($missing);
                 },
                 Some(mut value) => {
                     // Step 2. If the attribute's value is an ASCII case-insensitive match for one of the keywords
                     // defined for the attribute, then return the state represented by that keyword.
                     value.make_ascii_lowercase();
-                    let value: DOMString = value.into();
+                    let value: RootedDOMString = value.into();
                     $(
                         if value.str() == $choices {
                             return value;
@@ -189,13 +189,13 @@ macro_rules! make_enumerated_getter(
                     // Step 3. If the attribute has an empty value default state defined and the attribute's value
                     // is the empty string, then return that empty value default state.
                     if value.is_empty() {
-                        return DOMString::from_static($empty)
+                        return RootedDOMString::from_static($empty)
                     }
 
                     // Step 4. If the attribute has an invalid value default state defined, then return that invalid
                     // value default state.
                     // Step 5. Return no state.
-                    return DOMString::from_static($invalid);
+                    return RootedDOMString::from_static($invalid);
                 }
             }
         }
@@ -263,7 +263,7 @@ macro_rules! make_enumerated_getter(
 #[macro_export]
 macro_rules! make_setter(
     ( $attr:ident, $htmlname:tt ) => (
-        fn $attr(&self, cx: &mut js::context::JSContext, value: DOMString) {
+        fn $attr(&self, cx: &mut js::context::JSContext, value: RootedDOMString) {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
             let element = self.upcast::<Element>();
@@ -348,7 +348,7 @@ macro_rules! make_limited_uint_setter(
 #[macro_export]
 macro_rules! make_atomic_setter(
     ( $attr:ident, $htmlname:tt ) => (
-        fn $attr(&self, cx: &mut js::context::JSContext, value: DOMString) {
+        fn $attr(&self, cx: &mut js::context::JSContext, value: RootedDOMString) {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
             let element = self.upcast::<Element>();
@@ -360,7 +360,7 @@ macro_rules! make_atomic_setter(
 #[macro_export]
 macro_rules! make_legacy_color_setter(
     ( $attr:ident, $htmlname:tt ) => (
-        fn $attr(&self, cx: &mut js::context::JSContext, value: DOMString) {
+        fn $attr(&self, cx: &mut js::context::JSContext, value: RootedDOMString) {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
             use style::attr::AttrValue;
@@ -374,7 +374,7 @@ macro_rules! make_legacy_color_setter(
 #[macro_export]
 macro_rules! make_dimension_setter(
     ( $attr:ident, $htmlname:tt ) => (
-        fn $attr(&self, cx: &mut js::context::JSContext, value: DOMString) {
+        fn $attr(&self, cx: &mut js::context::JSContext, value: RootedDOMString) {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
             let element = self.upcast::<Element>();
@@ -387,7 +387,7 @@ macro_rules! make_dimension_setter(
 #[macro_export]
 macro_rules! make_nonzero_dimension_setter(
     ( $attr:ident, $htmlname:tt ) => (
-        fn $attr(&self, cx: &mut js::context::JSContext, value: DOMString) {
+        fn $attr(&self, cx: &mut js::context::JSContext, value: RootedDOMString) {
             use $crate::dom::bindings::inheritance::Castable;
             use $crate::dom::element::Element;
             let element = self.upcast::<Element>();

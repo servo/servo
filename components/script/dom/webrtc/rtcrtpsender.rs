@@ -11,7 +11,7 @@ use crate::dom::bindings::codegen::Bindings::RTCRtpSenderBinding::{
 };
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::{Promise, RootedPromise};
 
@@ -44,7 +44,7 @@ impl RTCRtpSenderMethods<crate::DomTypeHolder> for RTCRtpSender {
                 },
                 codecs: vec![],
             },
-            transactionId: DOMString::new(),
+            transactionId: RootedDOMString::new(),
             encodings: vec![],
         }
     }

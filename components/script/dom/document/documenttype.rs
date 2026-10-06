@@ -10,7 +10,7 @@ use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
 use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::document::Document;
 use crate::dom::node::Node;
 
@@ -19,16 +19,16 @@ use crate::dom::node::Node;
 #[dom_struct]
 pub(crate) struct DocumentType {
     node: Node,
-    name: DOMString,
-    public_id: DOMString,
-    system_id: DOMString,
+    name: RootedDOMString,
+    public_id: RootedDOMString,
+    system_id: RootedDOMString,
 }
 
 impl DocumentType {
     fn new_inherited(
-        name: DOMString,
-        public_id: Option<DOMString>,
-        system_id: Option<DOMString>,
+        name: RootedDOMString,
+        public_id: Option<RootedDOMString>,
+        system_id: Option<RootedDOMString>,
         document: &Document,
     ) -> DocumentType {
         DocumentType {
@@ -40,9 +40,9 @@ impl DocumentType {
     }
     pub(crate) fn new(
         cx: &mut js::context::JSContext,
-        name: DOMString,
-        public_id: Option<DOMString>,
-        system_id: Option<DOMString>,
+        name: RootedDOMString,
+        public_id: Option<RootedDOMString>,
+        system_id: Option<RootedDOMString>,
         document: &Document,
     ) -> DomRoot<DocumentType> {
         Node::reflect_node(
@@ -55,34 +55,34 @@ impl DocumentType {
     }
 
     #[inline]
-    pub(crate) fn name(&self) -> &DOMString {
+    pub(crate) fn name(&self) -> &RootedDOMString {
         &self.name
     }
 
     #[inline]
-    pub(crate) fn public_id(&self) -> &DOMString {
+    pub(crate) fn public_id(&self) -> &RootedDOMString {
         &self.public_id
     }
 
     #[inline]
-    pub(crate) fn system_id(&self) -> &DOMString {
+    pub(crate) fn system_id(&self) -> &RootedDOMString {
         &self.system_id
     }
 }
 
 impl DocumentTypeMethods<crate::DomTypeHolder> for DocumentType {
     /// <https://dom.spec.whatwg.org/#dom-documenttype-name>
-    fn Name(&self) -> DOMString {
+    fn Name(&self) -> RootedDOMString {
         self.name.clone()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-documenttype-publicid>
-    fn PublicId(&self) -> DOMString {
+    fn PublicId(&self) -> RootedDOMString {
         self.public_id.clone()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-documenttype-systemid>
-    fn SystemId(&self) -> DOMString {
+    fn SystemId(&self) -> RootedDOMString {
         self.system_id.clone()
     }
 

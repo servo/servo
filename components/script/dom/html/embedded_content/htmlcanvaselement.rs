@@ -48,7 +48,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom};
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::{RootedDOMString, USVString};
 use crate::dom::blob::Blob;
 use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
 use crate::dom::document::Document;
@@ -502,7 +502,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     fn GetContext(
         &self,
         cx: &mut js::context::JSContext,
-        id: DOMString,
+        id: RootedDOMString,
         options: HandleValue,
     ) -> Fallible<Option<RootedRenderingContext>> {
         // Step 1. If options is not an object, then set options to null.
@@ -543,7 +543,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-canvas-todataurl>
-    fn ToDataURL(&self, mime_type: DOMString, quality: HandleValue) -> Fallible<USVString> {
+    fn ToDataURL(&self, mime_type: RootedDOMString, quality: HandleValue) -> Fallible<USVString> {
         // Step 1: If this canvas element's bitmap's origin-clean flag is set to false,
         // then throw a "SecurityError" DOMException.
         if !self.origin_is_clean() {
@@ -590,7 +590,7 @@ impl HTMLCanvasElementMethods<crate::DomTypeHolder> for HTMLCanvasElement {
     fn ToBlob(
         &self,
         callback: RootedCallback<BlobCallback>,
-        mime_type: DOMString,
+        mime_type: RootedDOMString,
         quality: HandleValue,
     ) -> Fallible<()> {
         // Step 1.
@@ -742,7 +742,7 @@ impl VirtualMethods for HTMLCanvasElement {
         }
     }
 
-    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: RootedDOMString) -> AttrValue {
         match *name {
             local_name!("width") => AttrValue::from_u32(value.into(), DEFAULT_WIDTH),
             local_name!("height") => AttrValue::from_u32(value.into(), DEFAULT_HEIGHT),

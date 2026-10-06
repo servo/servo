@@ -22,7 +22,7 @@ use crate::dom::bindings::codegen::Bindings::CSSStyleRuleBinding::CSSStyleRuleMe
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::cssgroupingrule::CSSGroupingRule;
 use crate::dom::types::CSSRule;
 use crate::dom::window::Window;
@@ -110,7 +110,7 @@ impl SpecificCSSRule for CSSStyleRule {
         CssRuleType::Style
     }
 
-    fn get_css(&self) -> DOMString {
+    fn get_css(&self) -> RootedDOMString {
         let guard = self.css_grouping_rule.shared_lock().read();
         self.style_rule
             .borrow()
@@ -139,7 +139,7 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylerule-selectortext>
-    fn SelectorText(&self) -> DOMString {
+    fn SelectorText(&self) -> RootedDOMString {
         let guard = self.css_grouping_rule.shared_lock().read();
         self.style_rule
             .borrow()
@@ -150,7 +150,7 @@ impl CSSStyleRuleMethods<crate::DomTypeHolder> for CSSStyleRule {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylerule-selectortext>
-    fn SetSelectorText(&self, no_gc: &NoGC, value: DOMString) {
+    fn SetSelectorText(&self, no_gc: &NoGC, value: RootedDOMString) {
         let value = value.str();
         let Ok(mut selector) = ({
             let guard = self.css_grouping_rule.shared_lock().read();

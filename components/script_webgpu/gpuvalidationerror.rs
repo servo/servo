@@ -16,7 +16,7 @@ use script_bindings::reflector::reflect_dom_object_with_proto_and_wrap;
 
 use crate::JSTraceable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::gpuerror::GPUError;
 use crate::traits::Equivalence;
 
@@ -33,7 +33,7 @@ where
     D::GPUOutOfMemoryError: DerivedFrom<GPUError<D>>,
     D::GPUInternalError: DerivedFrom<GPUError<D>>,
 {
-    fn new_inherited(message: DOMString) -> Self {
+    fn new_inherited(message: RootedDOMString) -> Self {
         Self {
             gpu_error: GPUError::new_inherited(message),
         }
@@ -43,7 +43,7 @@ where
         cx: &mut JSContext,
         global: &D::GlobalScope,
         proto: Option<HandleObject>,
-        message: DOMString,
+        message: RootedDOMString,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_proto_and_wrap::<D, _, _>(
             cx,
@@ -68,7 +68,7 @@ where
         cx: &mut js::context::JSContext,
         global: &D::GlobalScope,
         proto: Option<HandleObject>,
-        message: DOMString,
+        message: RootedDOMString,
     ) -> DomRoot<Self> {
         Self::new_with_proto(cx, global, proto, message)
     }

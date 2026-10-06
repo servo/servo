@@ -16,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLCollectionBinding::HTMLCollecti
 use crate::dom::bindings::domname::namespace_from_domstring;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::element::Element;
 use crate::dom::iterators::ShadowIncluding;
@@ -282,8 +282,8 @@ impl HTMLCollection {
         cx: &mut js::context::JSContext,
         window: &Window,
         root: &Node,
-        tag: DOMString,
-        maybe_ns: Option<DOMString>,
+        tag: RootedDOMString,
+        maybe_ns: Option<RootedDOMString>,
     ) -> DomRoot<HTMLCollection> {
         let local = LocalName::from(tag);
         let ns = namespace_from_domstring(maybe_ns);
@@ -317,7 +317,7 @@ impl HTMLCollection {
         cx: &mut js::context::JSContext,
         window: &Window,
         root: &Node,
-        classes: DOMString,
+        classes: RootedDOMString,
     ) -> DomRoot<HTMLCollection> {
         let class_atoms = split_html_space_chars(&classes.str())
             .map(Atom::from)
@@ -480,7 +480,7 @@ impl HTMLCollectionMethods<crate::DomTypeHolder> for HTMLCollection {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-htmlcollection-nameditem>
-    fn NamedItem(&self, cx: &JSContext, key: DOMString) -> Option<DomRoot<Element>> {
+    fn NamedItem(&self, cx: &JSContext, key: RootedDOMString) -> Option<DomRoot<Element>> {
         // Step 1.
         if key.is_empty() {
             return None;
@@ -504,12 +504,12 @@ impl HTMLCollectionMethods<crate::DomTypeHolder> for HTMLCollection {
     }
 
     // check-tidy: no specs after this line
-    fn NamedGetter(&self, cx: &JSContext, name: DOMString) -> Option<DomRoot<Element>> {
+    fn NamedGetter(&self, cx: &JSContext, name: RootedDOMString) -> Option<DomRoot<Element>> {
         self.NamedItem(cx, name)
     }
 
     /// <https://dom.spec.whatwg.org/#interface-htmlcollection>
-    fn SupportedPropertyNames(&self, no_gc: &NoGC) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self, no_gc: &NoGC) -> Vec<RootedDOMString> {
         // Step 1
         let mut result = vec![];
 
@@ -517,7 +517,7 @@ impl HTMLCollectionMethods<crate::DomTypeHolder> for HTMLCollection {
         for elem in self.elements_iter(no_gc) {
             // Step 2.1
             if let Some(id_atom) = elem.get_id() {
-                let id_str = DOMString::from(&*id_atom);
+                let id_str = RootedDOMString::from(&*id_atom);
                 if !result.contains(&id_str) {
                     result.push(id_str);
                 }
@@ -526,7 +526,7 @@ impl HTMLCollectionMethods<crate::DomTypeHolder> for HTMLCollection {
             if *elem.namespace() == ns!(html) &&
                 let Some(name_atom) = elem.get_name()
             {
-                let name_str = DOMString::from(&*name_atom);
+                let name_str = RootedDOMString::from(&*name_atom);
                 if !result.contains(&name_str) {
                     result.push(name_str)
                 }

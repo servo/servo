@@ -5,7 +5,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
-use script_bindings::str::{DOMString, USVString};
+use script_bindings::str::{RootedDOMString, USVString};
 
 use crate::dom::bindings::codegen::Bindings::CredentialBinding::CredentialMethods;
 use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
@@ -18,11 +18,11 @@ use crate::dom::window::Window;
 pub(crate) struct Credential {
     reflector_: Reflector,
     id: USVString,
-    credential_type: DOMString,
+    credential_type: RootedDOMString,
 }
 
 impl Credential {
-    pub(crate) fn new_inherited(id: USVString, credential_type: DOMString) -> Credential {
+    pub(crate) fn new_inherited(id: USVString, credential_type: RootedDOMString) -> Credential {
         Credential {
             reflector_: Reflector::new(),
             id,
@@ -35,7 +35,7 @@ impl Credential {
         cx: &mut JSContext,
         global: &GlobalScope,
         id: USVString,
-        credential_type: DOMString,
+        credential_type: RootedDOMString,
     ) -> DomRoot<Credential> {
         reflect_dom_object(
             cx,
@@ -52,7 +52,7 @@ impl CredentialMethods<DomTypeHolder> for Credential {
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#dom-credential-type>
-    fn Type(&self) -> DOMString {
+    fn Type(&self) -> RootedDOMString {
         self.credential_type.clone()
     }
 

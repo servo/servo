@@ -33,7 +33,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::domstringlist::DOMStringList;
 use crate::dom::globalscope::GlobalScope;
@@ -49,8 +49,8 @@ use crate::dom::indexeddb::key::{
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub enum KeyPath {
-    String(DOMString),
-    StringSequence(Vec<DOMString>),
+    String(RootedDOMString),
+    StringSequence(Vec<RootedDOMString>),
 }
 
 impl From<StringOrStringSequence> for KeyPath {
@@ -87,7 +87,7 @@ impl From<KeyPath> for indexeddb::KeyPath {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 struct IDBObjectStoreRollbackState {
     newly_created_during_transaction: bool,
-    rollback_name: Option<DOMString>,
+    rollback_name: Option<RootedDOMString>,
     #[no_trace]
     rollback_indexes: Vec<indexeddb::IndexedDBIndex>,
     key_generator_current_number: Option<i64>,
@@ -96,9 +96,9 @@ struct IDBObjectStoreRollbackState {
 #[dom_struct]
 pub struct IDBObjectStore {
     reflector_: Reflector,
-    name: DomRefCell<DOMString>,
+    name: DomRefCell<RootedDOMString>,
     key_path: Option<KeyPath>,
-    index_set: DomRefCell<HashMap<DOMString, Dom<IDBIndex>>>,
+    index_set: DomRefCell<HashMap<RootedDOMString, Dom<IDBIndex>>>,
     abort_state_on_abort: DomRefCell<Option<IDBObjectStoreRollbackState>>,
     transaction: Dom<IDBTransaction>,
     has_key_generator: bool,
@@ -106,7 +106,7 @@ pub struct IDBObjectStore {
 
     // We store the db name in the object store to address backend operations
     // that are keyed by (origin, database name, object store name).
-    db_name: DOMString,
+    db_name: RootedDOMString,
 }
 
 pub(crate) struct IDBObjectStoreAbortState {
@@ -117,8 +117,8 @@ pub(crate) struct IDBObjectStoreAbortState {
 
 impl IDBObjectStore {
     pub fn new_inherited(
-        db_name: DOMString,
-        name: DOMString,
+        db_name: RootedDOMString,
+        name: RootedDOMString,
         options: Option<&IDBObjectStoreParameters>,
         abort_state: IDBObjectStoreAbortState,
         transaction: &IDBTransaction,
@@ -165,8 +165,8 @@ impl IDBObjectStore {
     pub fn new(
         cx: &mut JSContext,
         global: &GlobalScope,
-        db_name: DOMString,
-        name: DOMString,
+        db_name: RootedDOMString,
+        name: RootedDOMString,
         options: Option<&IDBObjectStoreParameters>,
         abort_state: IDBObjectStoreAbortState,
         transaction: &IDBTransaction,
@@ -184,7 +184,7 @@ impl IDBObjectStore {
         )
     }
 
-    pub fn get_name(&self) -> DOMString {
+    pub fn get_name(&self) -> RootedDOMString {
         self.name.borrow().clone()
     }
 
@@ -577,7 +577,7 @@ impl IDBObjectStore {
     pub(crate) fn add_index(
         &self,
         cx: &mut JSContext,
-        name: DOMString,
+        name: RootedDOMString,
         options: &IDBIndexParameters,
         key_path: KeyPath,
     ) -> DomRoot<IDBIndex> {
@@ -596,12 +596,12 @@ impl IDBObjectStore {
         index
     }
 
-    pub(crate) fn has_index(&self, name: &DOMString) -> bool {
+    pub(crate) fn has_index(&self, name: &RootedDOMString) -> bool {
         self.index_set.borrow().contains_key(name)
     }
 
     /// The caller must ensure that the original index exists.
-    pub(crate) fn rename_index(&self, name: &DOMString, new_name: &DOMString) {
+    pub(crate) fn rename_index(&self, name: &RootedDOMString, new_name: &RootedDOMString) {
         let operation = AsyncSchemaOperation::RenameIndex {
             callback: self.transaction.create_abort_callback(),
             index_name: name.to_string(),
@@ -904,12 +904,12 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     }
 
     /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-name>
-    fn Name(&self) -> DOMString {
+    fn Name(&self) -> RootedDOMString {
         self.name.borrow().clone()
     }
 
     /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-name>
-    fn SetName(&self, value: DOMString) -> ErrorResult {
+    fn SetName(&self, value: RootedDOMString) -> ErrorResult {
         // Step 1. Let name be the given value.
         let name = value;
 
@@ -983,7 +983,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     fn CreateIndex(
         &self,
         cx: &mut JSContext,
-        name: DOMString,
+        name: RootedDOMString,
         key_path: StringOrStringSequence,
         options: &IDBIndexParameters,
     ) -> Fallible<DomRoot<IDBIndex>> {
@@ -1052,7 +1052,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     }
 
     /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbobjectstore-deleteindex>
-    fn DeleteIndex(&self, name: DOMString) -> Fallible<()> {
+    fn DeleteIndex(&self, name: RootedDOMString) -> Fallible<()> {
         // Step 3. If transaction is not an upgrade transaction, throw an "InvalidStateError" DOMException.
         if self.transaction.Mode() != IDBTransactionMode::Versionchange {
             return Err(Error::InvalidState(None));
@@ -1090,7 +1090,7 @@ impl IDBObjectStoreMethods<crate::DomTypeHolder> for IDBObjectStore {
     }
 
     /// <https://w3c.github.io/IndexedDB/#dom-idbobjectstore-index>
-    fn Index(&self, name: DOMString) -> Fallible<DomRoot<IDBIndex>> {
+    fn Index(&self, name: RootedDOMString) -> Fallible<DomRoot<IDBIndex>> {
         // Step 3. If store has been deleted, throw an "InvalidStateError" DOMException.
         self.verify_not_deleted()?;
 

@@ -68,7 +68,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::canvasgradient::{CanvasGradient, CanvasGradientStyle, ToFillOrStrokeStyle};
 use crate::dom::canvaspattern::CanvasPattern;
 use crate::dom::dommatrix::DOMMatrix;
@@ -1228,14 +1228,18 @@ impl CanvasState {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor>
-    pub(super) fn shadow_color(&self) -> DOMString {
+    pub(super) fn shadow_color(&self) -> RootedDOMString {
         let mut result = String::new();
         serialize(&self.state.borrow().shadow_color, &mut result).unwrap();
-        DOMString::from(result)
+        RootedDOMString::from(result)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor>
-    pub(super) fn set_shadow_color(&self, canvas: Option<&HTMLCanvasElement>, value: DOMString) {
+    pub(super) fn set_shadow_color(
+        &self,
+        canvas: Option<&HTMLCanvasElement>,
+        value: RootedDOMString,
+    ) {
         if let Ok(rgba) = parse_color(canvas, &value) {
             self.state.borrow_mut().shadow_color = rgba;
         }
@@ -1247,7 +1251,7 @@ impl CanvasState {
             CanvasFillOrStrokeStyle::Color(ref rgba) => {
                 let mut result = String::new();
                 serialize(rgba, &mut result).unwrap();
-                StringOrCanvasGradientOrCanvasPattern::String(DOMString::from(result))
+                StringOrCanvasGradientOrCanvasPattern::String(RootedDOMString::from(result))
             },
             CanvasFillOrStrokeStyle::Gradient(ref gradient) => {
                 StringOrCanvasGradientOrCanvasPattern::CanvasGradient(DomRoot::from_ref(gradient))
@@ -1290,7 +1294,7 @@ impl CanvasState {
             CanvasFillOrStrokeStyle::Color(ref rgba) => {
                 let mut result = String::new();
                 serialize(rgba, &mut result).unwrap();
-                StringOrCanvasGradientOrCanvasPattern::String(DOMString::from(result))
+                StringOrCanvasGradientOrCanvasPattern::String(RootedDOMString::from(result))
             },
             CanvasFillOrStrokeStyle::Gradient(ref gradient) => {
                 StringOrCanvasGradientOrCanvasPattern::CanvasGradient(DomRoot::from_ref(gradient))
@@ -1382,7 +1386,7 @@ impl CanvasState {
         global: &GlobalScope,
         cx: &mut JSContext,
         image: CanvasImageSource,
-        mut repetition: DOMString,
+        mut repetition: RootedDOMString,
     ) -> Fallible<Option<DomRoot<CanvasPattern>>> {
         let snapshot = match image {
             CanvasImageSource::HTMLImageElement(ref image) => {
@@ -1492,15 +1496,15 @@ impl CanvasState {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation>
-    pub(super) fn global_composite_operation(&self) -> DOMString {
+    pub(super) fn global_composite_operation(&self) -> RootedDOMString {
         match self.state.borrow().global_composition {
-            CompositionOrBlending::Composition(op) => DOMString::from(op.to_string()),
-            CompositionOrBlending::Blending(op) => DOMString::from(op.to_string()),
+            CompositionOrBlending::Composition(op) => RootedDOMString::from(op.to_string()),
+            CompositionOrBlending::Blending(op) => RootedDOMString::from(op.to_string()),
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation>
-    pub(super) fn set_global_composite_operation(&self, op_str: DOMString) {
+    pub(super) fn set_global_composite_operation(&self, op_str: RootedDOMString) {
         if let Ok(op) = CompositionOrBlending::from_str(&op_str.str()) {
             self.state.borrow_mut().global_composition = op;
         }
@@ -1521,7 +1525,7 @@ impl CanvasState {
         &self,
         global_scope: &GlobalScope,
         canvas: Option<&HTMLCanvasElement>,
-        text: DOMString,
+        text: RootedDOMString,
         x: f64,
         y: f64,
         max_width: Option<f64>,
@@ -1565,7 +1569,7 @@ impl CanvasState {
         &self,
         global_scope: &GlobalScope,
         canvas: Option<&HTMLCanvasElement>,
-        text: DOMString,
+        text: RootedDOMString,
         x: f64,
         y: f64,
         max_width: Option<f64>,
@@ -1612,7 +1616,7 @@ impl CanvasState {
         &self,
         global: &GlobalScope,
         canvas: Option<&HTMLCanvasElement>,
-        text: DOMString,
+        text: RootedDOMString,
         cx: &mut JSContext,
     ) -> DomRoot<TextMetrics> {
         // > Step 1: If maxWidth was provided but is less than or equal to zero or equal to NaN, then return an empty array.0
@@ -1698,7 +1702,7 @@ impl CanvasState {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-font>
-    pub(super) fn set_font(&self, canvas: Option<&HTMLCanvasElement>, value: DOMString) {
+    pub(super) fn set_font(&self, canvas: Option<&HTMLCanvasElement>, value: RootedDOMString) {
         let canvas = match canvas {
             Some(element) => element,
             None => return, // offscreen canvas doesn't have a placeholder canvas
@@ -1723,13 +1727,13 @@ impl CanvasState {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-font>
-    pub(super) fn font(&self) -> DOMString {
+    pub(super) fn font(&self) -> RootedDOMString {
         self.state.borrow().font_style.as_ref().map_or_else(
             || CanvasContextState::DEFAULT_FONT_STYLE.into(),
             |style| {
                 let mut result = String::new();
                 serialize_font(style, &mut result).unwrap();
-                DOMString::from(result)
+                RootedDOMString::from(result)
             },
         )
     }
@@ -2708,7 +2712,7 @@ impl UnshapedTextRun<'_> {
 /// <https://drafts.csswg.org/css-color/#parse-a-css-color-value>
 pub(super) fn parse_color(
     canvas: Option<&HTMLCanvasElement>,
-    string: &DOMString,
+    string: &RootedDOMString,
 ) -> Result<AbsoluteColor, ()> {
     let string = string.str();
     let mut parser = Parser::new(&string);

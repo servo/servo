@@ -25,7 +25,7 @@ use crate::dom::bindings::codegen::UnionTypes::{
 use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::canvasgradient::CanvasGradient;
 use crate::dom::canvaspattern::CanvasPattern;
 use crate::dom::canvasrenderingcontext2d::CanvasRenderingContext2D;
@@ -174,12 +174,12 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor>
-    fn ShadowColor(&self) -> DOMString {
+    fn ShadowColor(&self) -> RootedDOMString {
         self.context.ShadowColor()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-shadowcolor>
-    fn SetShadowColor(&self, value: DOMString) {
+    fn SetShadowColor(&self, value: RootedDOMString) {
         self.context.SetShadowColor(value)
     }
 
@@ -235,7 +235,7 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
         &self,
         cx: &mut JSContext,
         image: CanvasImageSource,
-        repetition: DOMString,
+        repetition: RootedDOMString,
     ) -> Fallible<Option<DomRoot<CanvasPattern>>> {
         self.context.CreatePattern(cx, image, repetition)
     }
@@ -266,12 +266,12 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation>
-    fn GlobalCompositeOperation(&self) -> DOMString {
+    fn GlobalCompositeOperation(&self) -> RootedDOMString {
         self.context.GlobalCompositeOperation()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-globalcompositeoperation>
-    fn SetGlobalCompositeOperation(&self, op_str: DOMString) {
+    fn SetGlobalCompositeOperation(&self, op_str: RootedDOMString) {
         self.context.SetGlobalCompositeOperation(op_str)
     }
 
@@ -286,27 +286,27 @@ impl OffscreenCanvasRenderingContext2DMethods<crate::DomTypeHolder>
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-filltext>
-    fn FillText(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>) {
+    fn FillText(&self, text: RootedDOMString, x: f64, y: f64, max_width: Option<f64>) {
         self.context.FillText(text, x, y, max_width)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-stroketext>
-    fn StrokeText(&self, text: DOMString, x: f64, y: f64, max_width: Option<f64>) {
+    fn StrokeText(&self, text: RootedDOMString, x: f64, y: f64, max_width: Option<f64>) {
         self.context.StrokeText(text, x, y, max_width)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#textmetrics>
-    fn MeasureText(&self, cx: &mut JSContext, text: DOMString) -> DomRoot<TextMetrics> {
+    fn MeasureText(&self, cx: &mut JSContext, text: RootedDOMString) -> DomRoot<TextMetrics> {
         self.context.MeasureText(cx, text)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-font>
-    fn Font(&self) -> DOMString {
+    fn Font(&self) -> RootedDOMString {
         self.context.Font()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-font>
-    fn SetFont(&self, value: DOMString) {
+    fn SetFont(&self, value: RootedDOMString) {
         self.context.SetFont(value)
     }
 

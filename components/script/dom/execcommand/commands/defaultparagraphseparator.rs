@@ -2,14 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::document::Document;
 use crate::dom::execcommand::basecommand::DefaultSingleLineContainerName;
 
 /// <https://w3c.github.io/editing/docs/execCommand/#the-defaultparagraphseparator-command>
 pub(crate) fn execute_default_paragraph_separator_command(
     document: &Document,
-    value: DOMString,
+    value: RootedDOMString,
 ) -> bool {
     // > Let value be converted to ASCII lowercase. If value is then equal to "p" or "div",
     // > set the context object's default single-line container name to value, then return true. Otherwise, return false.

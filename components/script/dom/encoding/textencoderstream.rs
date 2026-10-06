@@ -20,7 +20,7 @@ use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::TextEncoderStreamBinding::TextEncoderStreamMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::{ConversionResult, DOMString};
+use crate::dom::bindings::str::{ConversionResult, RootedDOMString};
 use crate::dom::stream::readablestream::ReadableStream;
 use crate::dom::stream::transformstreamdefaultcontroller::TransformerType;
 use crate::dom::stream::writablestream::WritableStream;
@@ -272,9 +272,9 @@ impl TextEncoderStreamMethods<crate::DomTypeHolder> for TextEncoderStream {
     }
 
     /// <https://encoding.spec.whatwg.org/#dom-textencoder-encoding>
-    fn Encoding(&self) -> DOMString {
+    fn Encoding(&self) -> RootedDOMString {
         // Returns "utf-8".
-        DOMString::from_static("utf-8")
+        RootedDOMString::from_static("utf-8")
     }
 
     /// <https://streams.spec.whatwg.org/#dom-generictransformstream-readable>

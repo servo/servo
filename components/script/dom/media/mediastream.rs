@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::MediaStreamBinding::MediaStreamMeth
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::media::mediastreamtrack::MediaStreamTrack;
@@ -135,7 +135,7 @@ impl MediaStreamMethods<crate::DomTypeHolder> for MediaStream {
     }
 
     /// <https://w3c.github.io/mediacapture-main/#dom-mediastream-gettrackbyid>
-    fn GetTrackById(&self, id: DOMString) -> Option<DomRoot<MediaStreamTrack>> {
+    fn GetTrackById(&self, id: RootedDOMString) -> Option<DomRoot<MediaStreamTrack>> {
         self.tracks
             .borrow()
             .iter()

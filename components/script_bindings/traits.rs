@@ -5,7 +5,7 @@
 use style::Atom;
 
 use crate::DomTypes;
-use crate::str::DOMString;
+use crate::str::RootedDOMString;
 
 /// Trait for subcrates to use DOM events.
 pub trait DomEventTrait<D: DomTypes> {
@@ -18,5 +18,5 @@ pub trait DomEventTrait<D: DomTypes> {
 
 /// Trait for subcrates to use DomExceptions.
 pub trait DomExceptionTrait {
-    fn new_inherited(message: DOMString, name: DOMString) -> Self;
+    fn new_inherited(message: RootedDOMString, name: RootedDOMString) -> Self;
 }

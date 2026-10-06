@@ -6,7 +6,7 @@
 
 use html5ever::{LocalName, Namespace, Prefix, ns};
 use script_bindings::error::{Error, Fallible};
-use script_bindings::str::DOMString;
+use script_bindings::str::RootedDOMString;
 
 /// <https://infra.spec.whatwg.org/#xml-namespace>
 const XML_NAMESPACE: &str = "http://www.w3.org/XML/1998/namespace";
@@ -91,7 +91,7 @@ pub(crate) fn is_valid_element_local_name(name: &str) -> bool {
 }
 
 /// <https://dom.spec.whatwg.org/#valid-doctype-name>
-pub(crate) fn is_valid_doctype_name(name: &DOMString) -> bool {
+pub(crate) fn is_valid_doctype_name(name: &RootedDOMString) -> bool {
     // A string is a valid doctype name if it does not contain
     // ASCII whitespace, U+0000 NULL, or U+003E (>).
     !name
@@ -116,7 +116,7 @@ pub(crate) fn is_custom_data_attribute(name: &str, namespace: Option<&str>) -> b
 /// Convert a possibly-null URL to a namespace.
 ///
 /// If the URL is None, returns the empty namespace.
-pub(crate) fn namespace_from_domstring(url: Option<DOMString>) -> Namespace {
+pub(crate) fn namespace_from_domstring(url: Option<RootedDOMString>) -> Namespace {
     match url {
         None => ns!(),
         Some(s) => Namespace::from(s),
@@ -134,8 +134,8 @@ pub(crate) enum Context {
 
 /// <https://dom.spec.whatwg.org/#validate-and-extract>
 pub(crate) fn validate_and_extract(
-    namespace: Option<DOMString>,
-    qualified_name: &DOMString,
+    namespace: Option<RootedDOMString>,
+    qualified_name: &RootedDOMString,
     context: Context,
 ) -> Fallible<(Namespace, Option<Prefix>, LocalName)> {
     let qualified_name = String::from(&*qualified_name.str());

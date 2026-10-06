@@ -38,7 +38,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeConstants;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::bindings::trace::NoTrace;
 use crate::dom::css::cssstyledeclaration::ENABLED_LONGHAND_PROPERTIES;
 use crate::dom::css::cssstylerule::CSSStyleRule;
@@ -763,7 +763,7 @@ pub(crate) fn handle_modify_attribute(
                     AttrValue::String(string),
                 );
             },
-            None => elem.RemoveAttribute(cx, DOMString::from(modification.attribute_name)),
+            None => elem.RemoveAttribute(cx, RootedDOMString::from(modification.attribute_name)),
         }
     }
 }

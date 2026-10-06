@@ -14,17 +14,17 @@ use crate::dom::bindings::codegen::Bindings::TestBindingPairIterableBinding::Tes
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::iterable::Iterable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::globalscope::GlobalScope;
 
 #[dom_struct]
 pub(crate) struct TestBindingPairIterable {
     reflector: Reflector,
-    map: DomRefCell<Vec<(DOMString, u32)>>,
+    map: DomRefCell<Vec<(RootedDOMString, u32)>>,
 }
 
 impl Iterable for TestBindingPairIterable {
-    type Key = DOMString;
+    type Key = RootedDOMString;
     type Value = u32;
 
     fn get_iterable_length(&self, _cx: &mut JSContext) -> u32 {
@@ -33,7 +33,7 @@ impl Iterable for TestBindingPairIterable {
     fn get_value_at_index(&self, _cx: &mut JSContext, index: u32) -> u32 {
         *self.map.borrow().get(index as usize).map(|a| &a.1).unwrap()
     }
-    fn get_key_at_index(&self, _cx: &mut JSContext, index: u32) -> DOMString {
+    fn get_key_at_index(&self, _cx: &mut JSContext, index: u32) -> RootedDOMString {
         self.map
             .borrow()
             .get(index as usize)
@@ -70,7 +70,7 @@ impl TestBindingPairIterableMethods<crate::DomTypeHolder> for TestBindingPairIte
         Ok(TestBindingPairIterable::new(cx, global, proto))
     }
 
-    fn Add(&self, key: DOMString, value: u32) {
+    fn Add(&self, key: RootedDOMString, value: u32) {
         self.map.borrow_mut().push((key, value));
     }
 }

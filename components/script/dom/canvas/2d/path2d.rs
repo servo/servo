@@ -10,7 +10,7 @@ use js::rust::HandleObject;
 use script_bindings::codegen::GenericBindings::DOMMatrixBinding::DOMMatrix2DInit;
 use script_bindings::error::ErrorResult;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
-use script_bindings::str::DOMString;
+use script_bindings::str::RootedDOMString;
 use servo_canvas_traits::canvas::Path;
 
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::Path2DMethods;
@@ -231,7 +231,7 @@ impl Path2DMethods<crate::DomTypeHolder> for Path2D {
         cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        path_string: DOMString,
+        path_string: RootedDOMString,
     ) -> DomRoot<Path2D> {
         reflect_dom_object_with_proto(
             cx,

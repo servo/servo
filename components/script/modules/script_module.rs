@@ -62,7 +62,7 @@ use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exc
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::{RootedDOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::css::cssstylesheet::CSSStyleSheet;
@@ -330,7 +330,7 @@ impl ModuleTree {
         let dictionary = CSSStyleSheetInit {
             baseURL: Some(url.into_string().into()),
             disabled: false,
-            media: MediaListOrString::String(DOMString::new()),
+            media: MediaListOrString::String(RootedDOMString::new()),
         };
         let sheet = CSSStyleSheet::Constructor(cx, global.as_window(), None, &dictionary);
 

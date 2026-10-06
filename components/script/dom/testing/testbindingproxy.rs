@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use js::context::NoGC;
 
 use crate::dom::bindings::codegen::Bindings::TestBindingProxyBinding::TestBindingProxyMethods;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::testbinding::TestBinding;
 
 #[dom_struct]
@@ -20,28 +20,28 @@ impl TestBindingProxyMethods<crate::DomTypeHolder> for TestBindingProxy {
     fn Length(&self) -> u32 {
         0
     }
-    fn SupportedPropertyNames(&self, _: &NoGC) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self, _: &NoGC) -> Vec<RootedDOMString> {
         vec![]
     }
-    fn GetNamedItem(&self, _: DOMString) -> DOMString {
-        DOMString::new()
+    fn GetNamedItem(&self, _: RootedDOMString) -> RootedDOMString {
+        RootedDOMString::new()
     }
-    fn SetNamedItem(&self, _: DOMString, _: DOMString) {}
-    fn GetItem(&self, _: u32) -> DOMString {
-        DOMString::new()
+    fn SetNamedItem(&self, _: RootedDOMString, _: RootedDOMString) {}
+    fn GetItem(&self, _: u32) -> RootedDOMString {
+        RootedDOMString::new()
     }
-    fn SetItem(&self, _: u32, _: DOMString) {}
-    fn RemoveItem(&self, _: DOMString) {}
-    fn Stringifier(&self) -> DOMString {
-        DOMString::new()
+    fn SetItem(&self, _: u32, _: RootedDOMString) {}
+    fn RemoveItem(&self, _: RootedDOMString) {}
+    fn Stringifier(&self) -> RootedDOMString {
+        RootedDOMString::new()
     }
-    fn IndexedGetter(&self, _: u32) -> Option<DOMString> {
+    fn IndexedGetter(&self, _: u32) -> Option<RootedDOMString> {
         None
     }
-    fn NamedDeleter(&self, _: DOMString) {}
-    fn IndexedSetter(&self, _: u32, _: DOMString) {}
-    fn NamedSetter(&self, _: DOMString, _: DOMString) {}
-    fn NamedGetter(&self, _: DOMString) -> Option<DOMString> {
+    fn NamedDeleter(&self, _: RootedDOMString) {}
+    fn IndexedSetter(&self, _: u32, _: RootedDOMString) {}
+    fn NamedSetter(&self, _: RootedDOMString, _: RootedDOMString) {}
+    fn NamedGetter(&self, _: RootedDOMString) -> Option<RootedDOMString> {
         None
     }
 }

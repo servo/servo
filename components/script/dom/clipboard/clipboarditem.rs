@@ -25,7 +25,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::blob::Blob;
 use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
@@ -48,7 +48,7 @@ impl Callback for RepresentationDataPromiseFulfillmentHandler {
         // 1. If v is a DOMString, then follow the below steps:
         if v.get().is_string() {
             // 1.1 Let dataAsBytes be the result of UTF-8 encoding v.
-            let data_as_bytes = match DOMString::from_jsval(cx, v, StringificationBehavior::Default)
+            let data_as_bytes = match RootedDOMString::from_jsval(cx, v, StringificationBehavior::Default)
             {
                 Ok(ConversionResult::Success(s)) => s.as_bytes(cx.no_gc()).to_owned(),
                 _ => return,
@@ -142,7 +142,7 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
         cx: &mut JSContext,
         global: &Window,
         proto: Option<HandleObject>,
-        items: Record<DOMString, RootedPromise>,
+        items: Record<RootedDOMString, RootedPromise>,
         options: &ClipboardItemOptions,
     ) -> Fallible<DomRoot<ClipboardItem>> {
         // Step 1 If items is empty, then throw a TypeError.
@@ -242,7 +242,7 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
                         };
 
                         // Step 6.13 Add mimeTypeString to types.
-                        types.push(DOMString::from(mime_type_string));
+                        types.push(RootedDOMString::from(mime_type_string));
                     });
                 types
             },
@@ -251,7 +251,7 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
     }
 
     /// <https://w3c.github.io/clipboard-apis/#dom-clipboarditem-gettype>
-    fn GetType(&self, realm: &mut CurrentRealm, type_: DOMString) -> Fallible<RootedPromise> {
+    fn GetType(&self, realm: &mut CurrentRealm, type_: RootedDOMString) -> Fallible<RootedPromise> {
         // Step 1 Let realm be this’s relevant realm.
         let global = self.global();
 
@@ -318,7 +318,7 @@ impl ClipboardItemMethods<crate::DomTypeHolder> for ClipboardItem {
     }
 
     /// <https://w3c.github.io/clipboard-apis/#dom-clipboarditem-supports>
-    fn Supports(_: &Window, type_: DOMString) -> bool {
+    fn Supports(_: &Window, type_: RootedDOMString) -> bool {
         // TODO Step 1 If type is in mandatory data types or optional data types, then return true.
         // Step 2 If not, then return false.
         // NOTE: We only supports text/plain

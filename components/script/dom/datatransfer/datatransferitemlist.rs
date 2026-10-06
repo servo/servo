@@ -15,7 +15,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::datatransferitem::DataTransferItem;
 use crate::dom::file::File;
 use crate::dom::window::Window;
@@ -104,8 +104,8 @@ impl DataTransferItemListMethods<crate::DomTypeHolder> for DataTransferItemList 
     fn Add(
         &self,
         cx: &mut js::context::JSContext,
-        data: DOMString,
-        mut type_: DOMString,
+        data: RootedDOMString,
+        mut type_: RootedDOMString,
     ) -> Fallible<Option<DomRoot<DataTransferItem>>> {
         // Step 1 If the DataTransferItemList object is not in the read/write mode, return null.
         let index = {

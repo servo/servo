@@ -18,7 +18,7 @@ use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::codegen::Bindings::CSSFontFaceRuleBinding::CSSFontFaceRuleMethods;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::css::cssfontfacedescriptors::CSSFontFaceDescriptors;
 use crate::dom::cssgroupingrule::CSSGroupingRule;
 use crate::dom::window::Window;
@@ -68,7 +68,7 @@ impl CSSFontFaceRule {
     }
 
     /// Retrieve the value of a given descriptor in the `@font-face` rule.
-    pub(crate) fn get_descriptor(&self, descriptor_id: DescriptorId) -> DOMString {
+    pub(crate) fn get_descriptor(&self, descriptor_id: DescriptorId) -> RootedDOMString {
         let guard = self.css_rule.shared_lock().read();
         let mut result = String::new();
         self.font_face_rule
@@ -82,7 +82,7 @@ impl CSSFontFaceRule {
     }
 
     /// Return the value n'th existing descriptor in the `@font-face` rule.
-    pub(crate) fn get_descriptor_by_index(&self, index: u32) -> Option<DOMString> {
+    pub(crate) fn get_descriptor_by_index(&self, index: u32) -> Option<RootedDOMString> {
         let guard = self.css_rule.shared_lock().read();
         let descriptor_id_at_index = self
             .font_face_rule
@@ -109,7 +109,7 @@ impl SpecificCSSRule for CSSFontFaceRule {
         CssRuleType::FontFace
     }
 
-    fn get_css(&self) -> DOMString {
+    fn get_css(&self) -> RootedDOMString {
         let guard = self.css_rule.shared_lock().read();
         self.font_face_rule
             .borrow()

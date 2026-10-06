@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLAudioElementBinding::HTMLAudioE
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::document::Document;
 use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::html::htmlmediaelement::HTMLMediaElement;
@@ -61,7 +61,7 @@ impl HTMLAudioElementMethods<crate::DomTypeHolder> for HTMLAudioElement {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        src: Option<DOMString>,
+        src: Option<RootedDOMString>,
     ) -> Fallible<DomRoot<HTMLAudioElement>> {
         // Step 1. Let document be the current global object's associated Document.
         let document = window.Document();

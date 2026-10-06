@@ -16,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
@@ -971,7 +971,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             let mut jwk = JsonWebKey::default();
 
             // Step 3.2. Set the kty attribute of jwk to "EC".
-            jwk.kty = Some(DOMString::from_static("EC"));
+            jwk.kty = Some(RootedDOMString::from_static("EC"));
 
             // Step 3.3.
             let KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm) = key.algorithm() else {
@@ -995,7 +995,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
                 // If the namedCurve attribute of the [[algorithm]] internal slot of key is
                 // "P-521":
                 //     Set the crv attribute of jwk to "P-521"
-                jwk.crv = Some(DOMString::from(algorithm.named_curve.as_str()));
+                jwk.crv = Some(RootedDOMString::from(algorithm.named_curve.as_str()));
 
                 // Step 3.3.2. Set the x attribute of jwk according to the definition in Section
                 // 6.2.1.2 of JSON Web Algorithms [JWA].

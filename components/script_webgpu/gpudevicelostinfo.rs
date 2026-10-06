@@ -15,20 +15,20 @@ use script_bindings::reflector::{Reflector, reflect_dom_object_with_wrap};
 
 use crate::JSTraceable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::traits::Equivalence;
 
 #[dom_struct]
 pub struct GPUDeviceLostInfo<D: DomTypes> {
     reflector_: Reflector,
-    message: DOMString,
+    message: RootedDOMString,
     reason: GPUDeviceLostReason,
     #[no_trace = "PhantomData does not exist"]
     phantom: PhantomData<D>,
 }
 
 impl<D: Equivalence> GPUDeviceLostInfo<D> {
-    fn new_inherited(message: DOMString, reason: GPUDeviceLostReason) -> Self {
+    fn new_inherited(message: RootedDOMString, reason: GPUDeviceLostReason) -> Self {
         Self {
             reflector_: Reflector::new(),
             message,
@@ -40,7 +40,7 @@ impl<D: Equivalence> GPUDeviceLostInfo<D> {
     pub(crate) fn new(
         cx: &mut JSContext,
         global: &D::GlobalScope,
-        message: DOMString,
+        message: RootedDOMString,
         reason: GPUDeviceLostReason,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_wrap::<D, _, _>(
@@ -54,7 +54,7 @@ impl<D: Equivalence> GPUDeviceLostInfo<D> {
 
 impl<D: DomTypes> GPUDeviceLostInfoMethods<D> for GPUDeviceLostInfo<D> {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpudevicelostinfo-message>
-    fn Message(&self) -> DOMString {
+    fn Message(&self) -> RootedDOMString {
         self.message.clone()
     }
 

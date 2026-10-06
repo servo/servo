@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::BroadcastChannelBinding::BroadcastC
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -23,7 +23,7 @@ use crate::dom::globalscope::GlobalScope;
 #[dom_struct]
 pub(crate) struct BroadcastChannel {
     eventtarget: EventTarget,
-    name: DOMString,
+    name: RootedDOMString,
     closed: Cell<bool>,
     #[no_trace]
     id: Uuid,
@@ -34,7 +34,7 @@ impl BroadcastChannel {
         cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        name: DOMString,
+        name: RootedDOMString,
     ) -> DomRoot<BroadcastChannel> {
         let channel = reflect_dom_object_with_proto(
             cx,
@@ -46,7 +46,7 @@ impl BroadcastChannel {
         channel
     }
 
-    pub(crate) fn new_inherited(name: DOMString) -> BroadcastChannel {
+    pub(crate) fn new_inherited(name: RootedDOMString) -> BroadcastChannel {
         BroadcastChannel {
             eventtarget: EventTarget::new_inherited(),
             name,
@@ -73,7 +73,7 @@ impl BroadcastChannelMethods<crate::DomTypeHolder> for BroadcastChannel {
         cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        name: DOMString,
+        name: RootedDOMString,
     ) -> DomRoot<BroadcastChannel> {
         BroadcastChannel::new(cx, global, proto, name)
     }
@@ -103,7 +103,7 @@ impl BroadcastChannelMethods<crate::DomTypeHolder> for BroadcastChannel {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-broadcastchannel-name>
-    fn Name(&self) -> DOMString {
+    fn Name(&self) -> RootedDOMString {
         self.name.clone()
     }
 

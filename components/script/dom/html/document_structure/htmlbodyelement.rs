@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLBodyElementBinding::HTMLBodyEle
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, LayoutDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::document::Document;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
@@ -72,7 +72,7 @@ impl HTMLBodyElementMethods<crate::DomTypeHolder> for HTMLBodyElement {
     make_getter!(Background, "background");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-body-background>
-    fn SetBackground(&self, cx: &mut JSContext, input: DOMString) {
+    fn SetBackground(&self, cx: &mut JSContext, input: RootedDOMString) {
         let value =
             AttrValue::from_resolved_url(&self.owner_document().base_url().get_arc(), input.into());
         self.upcast::<Element>()
@@ -133,7 +133,7 @@ impl VirtualMethods for HTMLBodyElement {
         }
     }
 
-    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: RootedDOMString) -> AttrValue {
         match *name {
             local_name!("bgcolor") | local_name!("text") => {
                 AttrValue::from_legacy_color(value.into())

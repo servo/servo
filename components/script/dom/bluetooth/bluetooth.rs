@@ -13,7 +13,7 @@ use servo_bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilte
 use servo_bluetooth_traits::scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
 use js::realm::CurrentRealm;
 use script_bindings::cformat;
-use script_bindings::domstring::{DOMString, TracedDOMString};
+use script_bindings::domstring::{RootedDOMString, TracedDOMString};
 use js::context::JSContext;
 use crate::conversions::Convert;
 use script_bindings::cell::{Ref, DomRefCell};
@@ -609,8 +609,8 @@ impl AsyncBluetoothListener for Bluetooth {
                 let bt_device = BluetoothDevice::new(
                     cx,
                     &self.global(),
-                    DOMString::from(device.id.clone()),
-                    device.name.map(DOMString::from),
+                    RootedDOMString::from(device.id.clone()),
+                    device.name.map(RootedDOMString::from),
                     self,
                 );
                 self.device_instance_map

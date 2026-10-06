@@ -9,7 +9,7 @@ use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::WebGLActiveInfoBinding::WebGLActiveInfoMethods;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::window::Window;
 
 #[dom_struct]
@@ -18,11 +18,11 @@ pub(crate) struct WebGLActiveInfo {
     size: i32,
     // NOTE: `ty` stands for `type`, which is a reserved keyword
     ty: u32,
-    name: DOMString,
+    name: RootedDOMString,
 }
 
 impl WebGLActiveInfo {
-    fn new_inherited(size: i32, ty: u32, name: DOMString) -> WebGLActiveInfo {
+    fn new_inherited(size: i32, ty: u32, name: RootedDOMString) -> WebGLActiveInfo {
         WebGLActiveInfo {
             reflector_: Reflector::new(),
             size,
@@ -36,7 +36,7 @@ impl WebGLActiveInfo {
         window: &Window,
         size: i32,
         ty: u32,
-        name: DOMString,
+        name: RootedDOMString,
     ) -> DomRoot<WebGLActiveInfo> {
         reflect_dom_object(
             cx,
@@ -58,7 +58,7 @@ impl WebGLActiveInfoMethods<crate::DomTypeHolder> for WebGLActiveInfo {
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.11.1>
-    fn Name(&self) -> DOMString {
+    fn Name(&self) -> RootedDOMString {
         self.name.clone()
     }
 }

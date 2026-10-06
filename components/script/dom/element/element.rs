@@ -113,7 +113,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDOMString;
 use crate::dom::csp::{CspReporting, InlineCheckType, SourcePosition};
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReaction, CustomElementRegistry,
@@ -1812,7 +1812,7 @@ impl Element {
         &self.local_name
     }
 
-    pub(crate) fn parsed_name(&self, mut name: DOMString) -> LocalName {
+    pub(crate) fn parsed_name(&self, mut name: RootedDOMString) -> LocalName {
         if self.html_element_in_html_document() {
             name.make_ascii_lowercase();
         }
@@ -1861,7 +1861,7 @@ impl Element {
     }
 
     /// Element branch of <https://dom.spec.whatwg.org/#locate-a-namespace>
-    pub(crate) fn locate_namespace(&self, prefix: Option<DOMString>) -> Namespace {
+    pub(crate) fn locate_namespace(&self, prefix: Option<RootedDOMString>) -> Namespace {
         let namespace_prefix = prefix.as_ref().map(|s| Prefix::from(&*s.str()));
 
         // Step 1. If prefix is "xml", then return the XML namespace.
@@ -1989,7 +1989,7 @@ impl Element {
     }
 
     /// <https://dom.spec.whatwg.org/#locate-a-namespace-prefix>
-    pub(crate) fn lookup_prefix(&self, namespace: Namespace) -> Option<DOMString> {
+    pub(crate) fn lookup_prefix(&self, namespace: Namespace) -> Option<RootedDOMString> {
         for node in self
             .upcast::<Node>()
             .inclusive_ancestors(ShadowIncluding::No)
@@ -2007,7 +2007,7 @@ impl Element {
                 if attr.prefix() == Some(&namespace_prefix!("xmlns")) &&
                     **attr.value() == *namespace
                 {
-                    return Some(DOMString::from(&**attr.local_name()));
+                    return Some(RootedDOMString::from(&**attr.local_name()));
                 }
             }
         }
@@ -2107,7 +2107,7 @@ impl Element {
         let mutation = LazyCell::new(|| Mutation::Attribute {
             name: name.clone(),
             namespace: namespace.clone(),
-            old_value: old_value.map(|old_value| DOMString::from(&**old_value)),
+            old_value: old_value.map(|old_value| RootedDOMString::from(&**old_value)),
         });
         MutationObserver::queue_a_mutation_record(cx, &self.node, mutation);
 
@@ -2225,7 +2225,7 @@ impl Element {
     pub(crate) fn get_attribute_by_name(
         &self,
         cx: &mut JSContext,
-        name: DOMString,
+        name: RootedDOMString,
     ) -> Option<DomRoot<Attr>> {
         let name = &self.parsed_name(name);
         let idx = self.attrs.borrow().iter().position(|a| a.name() == name)?;
@@ -2248,7 +2248,7 @@ impl Element {
         &self,
         cx: &mut JSContext,
         qname: QualName,
-        value: DOMString,
+        value: RootedDOMString,
     ) {
         // Don't set if the attribute already exists, so we can handle add_attrs_if_missing
         if self
@@ -2345,7 +2345,7 @@ impl Element {
         &self,
         namespace: &Namespace,
         local_name: &LocalName,
-        value: DOMString,
+        value: RootedDOMString,
     ) -> AttrValue {
         if is_relevant_attribute(namespace, local_name) {
             vtable_for(self.upcast()).parse_plain_attribute(local_name, value)
@@ -2604,7 +2604,7 @@ impl Element {
         // Step 2.1: Let nonce be element's [[CryptographicNonce]].
         let nonce = self.nonce_value();
         // Step 2.2: Set an attribute value for element using "nonce" and the empty string.
-        self.set_string_attribute(cx, &local_name!("nonce"), DOMString::new());
+        self.set_string_attribute(cx, &local_name!("nonce"), RootedDOMString::new());
         // Step 2.3: Set element's [[CryptographicNonce]] to nonce.
         self.update_nonce_internal_slot(nonce, cx.no_gc());
     }
@@ -2734,7 +2734,7 @@ impl Element {
     /// <https://html.spec.whatwg.org/multipage/#fragment-parsing-algorithm-steps>
     pub(crate) fn parse_fragment(
         &self,
-        markup: DOMString,
+        markup: RootedDOMString,
         cx: &mut JSContext,
     ) -> Fallible<DomRoot<DocumentFragment>> {
         // Steps 1-2.
@@ -2815,7 +2815,7 @@ impl Element {
             .map(|sr| DomRoot::from_ref(&**sr))
     }
 
-    pub(crate) fn outer_html(&self, cx: &mut JSContext) -> Fallible<DOMString> {
+    pub(crate) fn outer_html(&self, cx: &mut JSContext) -> Fallible<RootedDOMString> {
         match self.GetOuterHTML(cx)? {
             TrustedHTMLOrNullIsEmptyString::NullIsEmptyString(str) => Ok(str),
             TrustedHTMLOrNullIsEmptyString::TrustedHTML(_) => unreachable!(),
@@ -2960,23 +2960,23 @@ impl Element {
 
 impl ElementMethods<crate::DomTypeHolder> for Element {
     /// <https://dom.spec.whatwg.org/#dom-element-namespaceuri>
-    fn GetNamespaceURI(&self) -> Option<DOMString> {
+    fn GetNamespaceURI(&self) -> Option<RootedDOMString> {
         Node::namespace_to_string(self.namespace.clone())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-localname>
-    fn LocalName(&self) -> DOMString {
+    fn LocalName(&self) -> RootedDOMString {
         // FIXME(ajeffrey): Convert directly from LocalName to DOMString
-        DOMString::from(&*self.local_name)
+        RootedDOMString::from(&*self.local_name)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-prefix>
-    fn GetPrefix(&self) -> Option<DOMString> {
-        self.prefix.borrow().as_ref().map(|p| DOMString::from(&**p))
+    fn GetPrefix(&self) -> Option<RootedDOMString> {
+        self.prefix.borrow().as_ref().map(|p| RootedDOMString::from(&**p))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-tagname>
-    fn TagName(&self) -> DOMString {
+    fn TagName(&self) -> RootedDOMString {
         // The tagName getter steps are to return this's HTML-uppercased qualified name.
         //
         // An element's HTML-uppercased qualified name is the return value of these steps:
@@ -2992,28 +2992,28 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
                 LocalName::from(qualified_name)
             }
         });
-        DOMString::from(&*name)
+        RootedDOMString::from(&*name)
     }
 
     // https://dom.spec.whatwg.org/#dom-element-id
     // This always returns a string; if you'd rather see None
     // on a null id, call get_id
-    fn Id(&self) -> DOMString {
+    fn Id(&self) -> RootedDOMString {
         self.get_string_attribute(&local_name!("id"))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-id>
-    fn SetId(&self, cx: &mut JSContext, id: DOMString) {
+    fn SetId(&self, cx: &mut JSContext, id: RootedDOMString) {
         self.set_atomic_attribute(cx, &local_name!("id"), id);
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-classname>
-    fn ClassName(&self) -> DOMString {
+    fn ClassName(&self) -> RootedDOMString {
         self.get_string_attribute(&local_name!("class"))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-classname>
-    fn SetClassName(&self, cx: &mut JSContext, class: DOMString) {
+    fn SetClassName(&self, cx: &mut JSContext, class: RootedDOMString) {
         self.set_tokenlist_attribute(cx, &local_name!("class"), class);
     }
 
@@ -3041,16 +3041,16 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-getattributenames>
-    fn GetAttributeNames(&self) -> Vec<DOMString> {
+    fn GetAttributeNames(&self) -> Vec<RootedDOMString> {
         self.attrs
             .borrow()
             .iter()
-            .map(|attr| DOMString::from(&**attr.name()))
+            .map(|attr| RootedDOMString::from(&**attr.name()))
             .collect()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-getattribute>
-    fn GetAttribute(&self, cx: &mut JSContext, name: DOMString) -> Option<DOMString> {
+    fn GetAttribute(&self, cx: &mut JSContext, name: RootedDOMString) -> Option<RootedDOMString> {
         self.GetAttributeNode(cx, name).map(|s| s.Value())
     }
 
@@ -3058,15 +3058,15 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn GetAttributeNS(
         &self,
         cx: &mut JSContext,
-        namespace: Option<DOMString>,
-        local_name: DOMString,
-    ) -> Option<DOMString> {
+        namespace: Option<RootedDOMString>,
+        local_name: RootedDOMString,
+    ) -> Option<RootedDOMString> {
         self.GetAttributeNodeNS(cx, namespace, local_name)
             .map(|attr| attr.Value())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-getattributenode>
-    fn GetAttributeNode(&self, cx: &mut JSContext, name: DOMString) -> Option<DomRoot<Attr>> {
+    fn GetAttributeNode(&self, cx: &mut JSContext, name: RootedDOMString) -> Option<DomRoot<Attr>> {
         self.get_attribute_by_name(cx, name)
     }
 
@@ -3074,8 +3074,8 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn GetAttributeNodeNS(
         &self,
         cx: &mut JSContext,
-        namespace: Option<DOMString>,
-        local_name: DOMString,
+        namespace: Option<RootedDOMString>,
+        local_name: RootedDOMString,
     ) -> Option<DomRoot<Attr>> {
         let namespace = &namespace_from_domstring(namespace);
         self.get_attribute_with_namespace(cx, namespace, &LocalName::from(local_name))
@@ -3085,7 +3085,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn ToggleAttribute(
         &self,
         cx: &mut JSContext,
-        name: DOMString,
+        name: RootedDOMString,
         force: Option<bool>,
     ) -> Fallible<bool> {
         // Step 1. If qualifiedName is not a valid attribute local name,
@@ -3134,7 +3134,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn SetAttribute(
         &self,
         cx: &mut JSContext,
-        name: DOMString,
+        name: RootedDOMString,
         value: TrustedTypeOrString,
     ) -> ErrorResult {
         // Step 1. If qualifiedName does not match the Name production in XML,
@@ -3181,8 +3181,8 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn SetAttributeNS(
         &self,
         cx: &mut JSContext,
-        namespace: Option<DOMString>,
-        qualified_name: DOMString,
+        namespace: Option<RootedDOMString>,
+        qualified_name: RootedDOMString,
         value: TrustedTypeOrString,
     ) -> ErrorResult {
         // Step 1. Let namespace, prefix, and localName be the result of passing namespace and qualifiedName to validate and extract.
@@ -3227,7 +3227,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-removeattribute>
-    fn RemoveAttribute(&self, cx: &mut JSContext, name: DOMString) {
+    fn RemoveAttribute(&self, cx: &mut JSContext, name: RootedDOMString) {
         let name = self.parsed_name(name);
         self.remove_attribute_by_name(cx, &name);
     }
@@ -3236,8 +3236,8 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn RemoveAttributeNS(
         &self,
         cx: &mut JSContext,
-        namespace: Option<DOMString>,
-        local_name: DOMString,
+        namespace: Option<RootedDOMString>,
+        local_name: RootedDOMString,
     ) {
         let namespace = namespace_from_domstring(namespace);
         let local_name = LocalName::from(local_name);
@@ -3253,7 +3253,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-hasattribute>
-    fn HasAttribute(&self, cx: &mut JSContext, name: DOMString) -> bool {
+    fn HasAttribute(&self, cx: &mut JSContext, name: RootedDOMString) -> bool {
         self.GetAttribute(cx, name).is_some()
     }
 
@@ -3261,8 +3261,8 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn HasAttributeNS(
         &self,
         cx: &mut JSContext,
-        namespace: Option<DOMString>,
-        local_name: DOMString,
+        namespace: Option<RootedDOMString>,
+        local_name: RootedDOMString,
     ) -> bool {
         self.GetAttributeNS(cx, namespace, local_name).is_some()
     }
@@ -3271,7 +3271,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn GetElementsByTagName(
         &self,
         cx: &mut JSContext,
-        localname: DOMString,
+        localname: RootedDOMString,
     ) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
         HTMLCollection::by_qualified_name(cx, &window, self.upcast(), LocalName::from(localname))
@@ -3281,8 +3281,8 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn GetElementsByTagNameNS(
         &self,
         cx: &mut JSContext,
-        maybe_ns: Option<DOMString>,
-        localname: DOMString,
+        maybe_ns: Option<RootedDOMString>,
+        localname: RootedDOMString,
     ) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
         HTMLCollection::by_tag_name_ns(cx, &window, self.upcast(), localname, maybe_ns)
@@ -3292,7 +3292,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn GetElementsByClassName(
         &self,
         cx: &mut JSContext,
-        classes: DOMString,
+        classes: RootedDOMString,
     ) -> DomRoot<HTMLCollection> {
         let window = self.owner_window();
         HTMLCollection::by_class_name(cx, &window, self.upcast(), classes)
@@ -3694,7 +3694,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn SetHTML(
         &self,
         cx: &mut JSContext,
-        html: DOMString,
+        html: RootedDOMString,
         options: &SetHTMLOptions,
     ) -> ErrorResult {
         // Step 1. Let target be this’s template contents if this is a template; otherwise this.
@@ -3709,7 +3709,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-element-gethtml>
-    fn GetHTML(&self, cx: &mut JSContext, options: &GetHTMLOptions) -> DOMString {
+    fn GetHTML(&self, cx: &mut JSContext, options: &GetHTMLOptions) -> RootedDOMString {
         // > Element's getHTML(options) method steps are to return the result of HTML fragment serialization
         // > algorithm with this, options["serializableShadowRoots"], and options["shadowRoots"].
         self.upcast::<Node>().html_serialize(
@@ -3918,7 +3918,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn QuerySelector(
         &self,
         cx: &mut JSContext,
-        selectors: DOMString,
+        selectors: RootedDOMString,
     ) -> Fallible<Option<DomRoot<Element>>> {
         let root = self.upcast::<Node>();
         root.query_selector(cx.no_gc(), selectors)
@@ -3928,7 +3928,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn QuerySelectorAll(
         &self,
         cx: &mut JSContext,
-        selectors: DOMString,
+        selectors: RootedDOMString,
     ) -> Fallible<DomRoot<NodeList>> {
         let root = self.upcast::<Node>();
         root.query_selector_all(cx, selectors)
@@ -3956,7 +3956,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
     /// <https://dom.spec.whatwg.org/#dom-element-matches>
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn Matches(&self, selectors: DOMString) -> Fallible<bool> {
+    fn Matches(&self, selectors: RootedDOMString) -> Fallible<bool> {
         let document = self.owner_document();
         let url = document.url();
         let selectors = match SelectorParser::parse_author_origin_no_namespace(
@@ -3986,13 +3986,13 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-webkitmatchesselector>
-    fn WebkitMatchesSelector(&self, selectors: DOMString) -> Fallible<bool> {
+    fn WebkitMatchesSelector(&self, selectors: RootedDOMString) -> Fallible<bool> {
         self.Matches(selectors)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-closest>
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    fn Closest(&self, selectors: DOMString) -> Fallible<Option<DomRoot<Element>>> {
+    fn Closest(&self, selectors: RootedDOMString) -> Fallible<Option<DomRoot<Element>>> {
         let document = self.owner_document();
         let url = document.url();
         let selectors = match SelectorParser::parse_author_origin_no_namespace(
@@ -4022,7 +4022,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn InsertAdjacentElement(
         &self,
         cx: &mut JSContext,
-        where_: DOMString,
+        where_: RootedDOMString,
         element: &Element,
     ) -> Fallible<Option<DomRoot<Element>>> {
         let where_ = where_.parse::<AdjacentPosition>()?;
@@ -4034,8 +4034,8 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn InsertAdjacentText(
         &self,
         cx: &mut JSContext,
-        where_: DOMString,
-        data: DOMString,
+        where_: RootedDOMString,
+        data: RootedDOMString,
     ) -> ErrorResult {
         // Step 1.
         let text = Text::new(cx, data, &self.owner_document());
@@ -4049,7 +4049,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     fn InsertAdjacentHTML(
         &self,
         cx: &mut JSContext,
-        position: DOMString,
+        position: RootedDOMString,
         text: TrustedHTMLOrString,
     ) -> ErrorResult {
         // Step 1: Let compliantString be the result of invoking the
@@ -4248,356 +4248,356 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     /// <https://w3c.github.io/aria/#ref-for-dom-ariamixin-role-1>
-    fn GetRole(&self) -> Option<DOMString> {
+    fn GetRole(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("role"))
     }
 
     /// <https://w3c.github.io/aria/#ref-for-dom-ariamixin-role-1>
-    fn SetRole(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetRole(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_tokenlist_attribute(cx, &local_name!("role"), value);
     }
 
-    fn GetAriaAtomic(&self) -> Option<DOMString> {
+    fn GetAriaAtomic(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-atomic"))
     }
 
-    fn SetAriaAtomic(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaAtomic(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-atomic"), value);
     }
 
-    fn GetAriaAutoComplete(&self) -> Option<DOMString> {
+    fn GetAriaAutoComplete(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-autocomplete"))
     }
 
-    fn SetAriaAutoComplete(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaAutoComplete(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-autocomplete"), value);
     }
 
-    fn GetAriaBrailleLabel(&self) -> Option<DOMString> {
+    fn GetAriaBrailleLabel(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-braillelabel"))
     }
 
-    fn SetAriaBrailleLabel(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaBrailleLabel(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-braillelabel"), value);
     }
 
-    fn GetAriaBrailleRoleDescription(&self) -> Option<DOMString> {
+    fn GetAriaBrailleRoleDescription(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-brailleroledescription"))
     }
 
-    fn SetAriaBrailleRoleDescription(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaBrailleRoleDescription(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-brailleroledescription"), value);
     }
 
-    fn GetAriaBusy(&self) -> Option<DOMString> {
+    fn GetAriaBusy(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-busy"))
     }
 
-    fn SetAriaBusy(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaBusy(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-busy"), value);
     }
 
-    fn GetAriaChecked(&self) -> Option<DOMString> {
+    fn GetAriaChecked(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-checked"))
     }
 
-    fn SetAriaChecked(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaChecked(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-checked"), value);
     }
 
-    fn GetAriaColCount(&self) -> Option<DOMString> {
+    fn GetAriaColCount(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-colcount"))
     }
 
-    fn SetAriaColCount(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaColCount(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-colcount"), value);
     }
 
-    fn GetAriaColIndex(&self) -> Option<DOMString> {
+    fn GetAriaColIndex(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-colindex"))
     }
 
-    fn SetAriaColIndex(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaColIndex(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-colindex"), value);
     }
 
-    fn GetAriaColIndexText(&self) -> Option<DOMString> {
+    fn GetAriaColIndexText(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-colindextext"))
     }
 
-    fn SetAriaColIndexText(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaColIndexText(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-colindextext"), value);
     }
 
-    fn GetAriaColSpan(&self) -> Option<DOMString> {
+    fn GetAriaColSpan(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-colspan"))
     }
 
-    fn SetAriaColSpan(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaColSpan(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-colspan"), value);
     }
 
-    fn GetAriaCurrent(&self) -> Option<DOMString> {
+    fn GetAriaCurrent(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-current"))
     }
 
-    fn SetAriaCurrent(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaCurrent(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-current"), value);
     }
 
-    fn GetAriaDescription(&self) -> Option<DOMString> {
+    fn GetAriaDescription(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-description"))
     }
 
-    fn SetAriaDescription(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaDescription(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-description"), value);
     }
 
-    fn GetAriaDisabled(&self) -> Option<DOMString> {
+    fn GetAriaDisabled(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-disabled"))
     }
 
-    fn SetAriaDisabled(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaDisabled(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-disabled"), value);
     }
 
-    fn GetAriaExpanded(&self) -> Option<DOMString> {
+    fn GetAriaExpanded(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-expanded"))
     }
 
-    fn SetAriaExpanded(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaExpanded(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-expanded"), value);
     }
 
-    fn GetAriaHasPopup(&self) -> Option<DOMString> {
+    fn GetAriaHasPopup(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-haspopup"))
     }
 
-    fn SetAriaHasPopup(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaHasPopup(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-haspopup"), value);
     }
 
-    fn GetAriaHidden(&self) -> Option<DOMString> {
+    fn GetAriaHidden(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-hidden"))
     }
 
-    fn SetAriaHidden(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaHidden(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-hidden"), value);
     }
 
-    fn GetAriaInvalid(&self) -> Option<DOMString> {
+    fn GetAriaInvalid(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-invalid"))
     }
 
-    fn SetAriaInvalid(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaInvalid(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-invalid"), value);
     }
 
-    fn GetAriaKeyShortcuts(&self) -> Option<DOMString> {
+    fn GetAriaKeyShortcuts(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-keyshortcuts"))
     }
 
-    fn SetAriaKeyShortcuts(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaKeyShortcuts(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-keyshortcuts"), value);
     }
 
-    fn GetAriaLabel(&self) -> Option<DOMString> {
+    fn GetAriaLabel(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-label"))
     }
 
-    fn SetAriaLabel(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaLabel(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-label"), value);
     }
 
-    fn GetAriaLevel(&self) -> Option<DOMString> {
+    fn GetAriaLevel(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-level"))
     }
 
-    fn SetAriaLevel(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaLevel(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-level"), value);
     }
 
-    fn GetAriaLive(&self) -> Option<DOMString> {
+    fn GetAriaLive(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-live"))
     }
 
-    fn SetAriaLive(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaLive(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-live"), value);
     }
 
-    fn GetAriaModal(&self) -> Option<DOMString> {
+    fn GetAriaModal(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-modal"))
     }
 
-    fn SetAriaModal(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaModal(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-modal"), value);
     }
 
-    fn GetAriaMultiLine(&self) -> Option<DOMString> {
+    fn GetAriaMultiLine(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-multiline"))
     }
 
-    fn SetAriaMultiLine(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaMultiLine(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-multiline"), value);
     }
 
-    fn GetAriaMultiSelectable(&self) -> Option<DOMString> {
+    fn GetAriaMultiSelectable(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-multiselectable"))
     }
 
-    fn SetAriaMultiSelectable(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaMultiSelectable(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-multiselectable"), value);
     }
 
-    fn GetAriaOrientation(&self) -> Option<DOMString> {
+    fn GetAriaOrientation(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-orientation"))
     }
 
-    fn SetAriaOrientation(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaOrientation(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-orientation"), value);
     }
 
-    fn GetAriaPlaceholder(&self) -> Option<DOMString> {
+    fn GetAriaPlaceholder(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-placeholder"))
     }
 
-    fn SetAriaPlaceholder(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaPlaceholder(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-placeholder"), value);
     }
 
-    fn GetAriaPosInSet(&self) -> Option<DOMString> {
+    fn GetAriaPosInSet(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-posinset"))
     }
 
-    fn SetAriaPosInSet(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaPosInSet(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-posinset"), value);
     }
 
-    fn GetAriaPressed(&self) -> Option<DOMString> {
+    fn GetAriaPressed(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-pressed"))
     }
 
-    fn SetAriaPressed(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaPressed(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-pressed"), value);
     }
 
-    fn GetAriaReadOnly(&self) -> Option<DOMString> {
+    fn GetAriaReadOnly(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-readonly"))
     }
 
-    fn SetAriaReadOnly(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaReadOnly(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-readonly"), value);
     }
 
-    fn GetAriaRelevant(&self) -> Option<DOMString> {
+    fn GetAriaRelevant(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-relevant"))
     }
 
-    fn SetAriaRelevant(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaRelevant(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-relevant"), value);
     }
 
-    fn GetAriaRequired(&self) -> Option<DOMString> {
+    fn GetAriaRequired(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-required"))
     }
 
-    fn SetAriaRequired(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaRequired(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-required"), value);
     }
 
-    fn GetAriaRoleDescription(&self) -> Option<DOMString> {
+    fn GetAriaRoleDescription(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-roledescription"))
     }
 
-    fn SetAriaRoleDescription(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaRoleDescription(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-roledescription"), value);
     }
 
-    fn GetAriaRowCount(&self) -> Option<DOMString> {
+    fn GetAriaRowCount(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-rowcount"))
     }
 
-    fn SetAriaRowCount(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaRowCount(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-rowcount"), value);
     }
 
-    fn GetAriaRowIndex(&self) -> Option<DOMString> {
+    fn GetAriaRowIndex(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-rowindex"))
     }
 
-    fn SetAriaRowIndex(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaRowIndex(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-rowindex"), value);
     }
 
-    fn GetAriaRowIndexText(&self) -> Option<DOMString> {
+    fn GetAriaRowIndexText(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-rowindextext"))
     }
 
-    fn SetAriaRowIndexText(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaRowIndexText(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-rowindextext"), value);
     }
 
-    fn GetAriaRowSpan(&self) -> Option<DOMString> {
+    fn GetAriaRowSpan(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-rowspan"))
     }
 
-    fn SetAriaRowSpan(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaRowSpan(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-rowspan"), value);
     }
 
-    fn GetAriaSelected(&self) -> Option<DOMString> {
+    fn GetAriaSelected(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-selected"))
     }
 
-    fn SetAriaSelected(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaSelected(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-selected"), value);
     }
 
-    fn GetAriaSetSize(&self) -> Option<DOMString> {
+    fn GetAriaSetSize(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-setsize"))
     }
 
-    fn SetAriaSetSize(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaSetSize(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-setsize"), value);
     }
 
-    fn GetAriaSort(&self) -> Option<DOMString> {
+    fn GetAriaSort(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-sort"))
     }
 
-    fn SetAriaSort(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaSort(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-sort"), value);
     }
 
-    fn GetAriaValueMax(&self) -> Option<DOMString> {
+    fn GetAriaValueMax(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-valuemax"))
     }
 
-    fn SetAriaValueMax(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaValueMax(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-valuemax"), value);
     }
 
-    fn GetAriaValueMin(&self) -> Option<DOMString> {
+    fn GetAriaValueMin(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-valuemin"))
     }
 
-    fn SetAriaValueMin(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaValueMin(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-valuemin"), value);
     }
 
-    fn GetAriaValueNow(&self) -> Option<DOMString> {
+    fn GetAriaValueNow(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-valuenow"))
     }
 
-    fn SetAriaValueNow(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaValueNow(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-valuenow"), value);
     }
 
-    fn GetAriaValueText(&self) -> Option<DOMString> {
+    fn GetAriaValueText(&self) -> Option<RootedDOMString> {
         self.get_nullable_string_attribute(&local_name!("aria-valuetext"))
     }
 
-    fn SetAriaValueText(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetAriaValueText(&self, cx: &mut JSContext, value: Option<RootedDOMString>) {
         self.set_nullable_string_attribute(cx, &local_name!("aria-valuetext"), value);
     }
 
@@ -4877,7 +4877,7 @@ impl VirtualMethods for Element {
         }
     }
 
-    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: RootedDOMString) -> AttrValue {
         match *name {
             local_name!("id") => AttrValue::Atom(value.into()),
             local_name!("name") => AttrValue::Atom(value.into()),
@@ -5424,11 +5424,11 @@ impl TagName {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#cors-settings-attribute>
-pub(crate) fn reflect_cross_origin_attribute(element: &Element) -> Option<DOMString> {
+pub(crate) fn reflect_cross_origin_attribute(element: &Element) -> Option<RootedDOMString> {
     element
         .get_attribute_string_value(&local_name!("crossorigin"))
         .map(|value| {
-            DOMString::from_static(
+            RootedDOMString::from_static(
                 ["anonymous", "use-credentials"]
                     .into_iter()
                     .find(|keyword| value.eq_ignore_ascii_case(keyword))
@@ -5440,7 +5440,7 @@ pub(crate) fn reflect_cross_origin_attribute(element: &Element) -> Option<DOMStr
 pub(crate) fn set_cross_origin_attribute(
     cx: &mut JSContext,
     element: &Element,
-    value: Option<DOMString>,
+    value: Option<RootedDOMString>,
 ) {
     match value {
         Some(val) => element.set_string_attribute(cx, &local_name!("crossorigin"), val),
@@ -5451,11 +5451,11 @@ pub(crate) fn set_cross_origin_attribute(
 }
 
 /// <https://html.spec.whatwg.org/multipage/#referrer-policy-attribute>
-pub(crate) fn reflect_referrer_policy_attribute(element: &Element) -> DOMString {
+pub(crate) fn reflect_referrer_policy_attribute(element: &Element) -> RootedDOMString {
     element
         .get_attribute_string_value(&local_name!("referrerpolicy"))
         .map(|value| {
-            DOMString::from(
+            RootedDOMString::from(
                 [
                     "no-referrer",
                     "no-referrer-when-downgrade",

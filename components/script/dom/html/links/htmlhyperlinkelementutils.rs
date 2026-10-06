@@ -9,7 +9,7 @@ use script_bindings::cell::DomRefCell;
 
 use crate::dom::bindings::conversions::DerivedFrom;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::{RootedDOMString, USVString};
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::node::NodeTraits;
@@ -499,7 +499,7 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
         self.upcast::<Element>().set_string_attribute(
             cx,
             &local_name!("href"),
-            DOMString::from(url),
+            RootedDOMString::from(url),
         );
     }
 

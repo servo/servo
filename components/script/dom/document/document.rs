@@ -131,7 +131,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{
     Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout, ToLayoutOptional, UnrootedDom,
 };
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::{RootedDOMString, USVString};
 use crate::dom::bindings::trace::{HashMapTracedValues, NoTrace};
 use crate::dom::bindings::weakref::DOMTracker;
 use crate::dom::bindings::xmlname::matches_name_production;
@@ -709,7 +709,7 @@ pub(crate) struct Document {
 
     /// <https://w3c.github.io/editing/docs/execCommand/#value-override>
     #[no_trace]
-    value_override: DomRefCell<FxHashMap<CommandName, DOMString>>,
+    value_override: DomRefCell<FxHashMap<CommandName, RootedDOMString>>,
 
     /// <https://w3c.github.io/editing/docs/execCommand/#default-single-line-container-name>
     #[no_trace]
@@ -1365,7 +1365,7 @@ impl Document {
 
     pub(crate) fn register_form_id_listener<T: ?Sized + FormControl>(
         &self,
-        id: DOMString,
+        id: RootedDOMString,
         listener: &T,
     ) {
         let mut map = self.form_id_listener_map.borrow_mut();
@@ -1376,7 +1376,7 @@ impl Document {
 
     pub(crate) fn unregister_form_id_listener<T: ?Sized + FormControl>(
         &self,
-        id: DOMString,
+        id: RootedDOMString,
         listener: &T,
     ) {
         let mut map = self.form_id_listener_map.borrow_mut();
@@ -1632,7 +1632,7 @@ impl Document {
     /// Determine the title of the [`Document`] according to the specification at:
     /// <https://html.spec.whatwg.org/multipage/#document.title>. The difference
     /// here is that when the title isn't specified `None` is returned.
-    fn title(&self) -> Option<DOMString> {
+    fn title(&self) -> Option<RootedDOMString> {
         let title = self.GetDocumentElement().and_then(|root| {
             if root.namespace() == &ns!(svg) && root.local_name() == &local_name!("svg") {
                 // Step 1.
@@ -1653,7 +1653,7 @@ impl Document {
         title.map(|title| {
             // Steps 3-4.
             let value = title.child_text_content();
-            DOMString::from(str_join(value.str().split_html_space_characters(), " "))
+            RootedDOMString::from(str_join(value.str().split_html_space_characters(), " "))
         })
     }
 
@@ -1842,12 +1842,12 @@ impl Document {
         }
     }
 
-    pub(crate) fn get_body_attribute(&self, local_name: &LocalName) -> DOMString {
+    pub(crate) fn get_body_attribute(&self, local_name: &LocalName) -> RootedDOMString {
         match self.GetBody() {
             Some(ref body) if body.is_body_element() => {
                 body.upcast::<Element>().get_string_attribute(local_name)
             },
-            _ => DOMString::new(),
+            _ => RootedDOMString::new(),
         }
     }
 
@@ -1855,7 +1855,7 @@ impl Document {
         &self,
         cx: &mut JSContext,
         local_name: &LocalName,
-        value: DOMString,
+        value: RootedDOMString,
     ) {
         if let Some(ref body) = self.GetBody().filter(|elem| elem.is_body_element()) {
             let body = body.upcast::<Element>();
@@ -4469,7 +4469,7 @@ impl Document {
         })
     }
 
-    pub(crate) fn elements_by_name_count(&self, name: &DOMString) -> u32 {
+    pub(crate) fn elements_by_name_count(&self, name: &RootedDOMString) -> u32 {
         if name.is_empty() {
             return 0;
         }
@@ -4480,7 +4480,7 @@ impl Document {
         &self,
         no_gc: &'a NoGC,
         index: u32,
-        name: &DOMString,
+        name: &RootedDOMString,
     ) -> Option<UnrootedDom<'a, Node>> {
         if name.is_empty() {
             return None;
@@ -4492,7 +4492,7 @@ impl Document {
 
     // Note that document.getByName does not match on the same conditions
     // as the document named getter.
-    fn is_element_in_get_by_name(node: &Node, name: &DOMString) -> bool {
+    fn is_element_in_get_by_name(node: &Node, name: &RootedDOMString) -> bool {
         let element = match node.downcast::<Element>() {
             Some(element) => element,
             None => return false,
@@ -5278,12 +5278,16 @@ impl Document {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#value-override>
-    pub(crate) fn value_override(&self, command_name: &CommandName) -> Option<DOMString> {
+    pub(crate) fn value_override(&self, command_name: &CommandName) -> Option<RootedDOMString> {
         self.value_override.borrow().get(command_name).cloned()
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#value-override>
-    pub(crate) fn set_value_override(&self, command_name: CommandName, value: Option<DOMString>) {
+    pub(crate) fn set_value_override(
+        &self,
+        command_name: CommandName,
+        value: Option<RootedDOMString>,
+    ) {
         if let Some(value) = value {
             self.value_override.borrow_mut().insert(command_name, value);
         } else {
@@ -5471,7 +5475,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn ParseHTML(
         cx: &mut JSContext,
         window: &Window,
-        html: DOMString,
+        html: RootedDOMString,
         options: &SetHTMLOptions,
     ) -> Fallible<DomRoot<Document>> {
         // Step 1. Let document be a new Document, whose content type is "text/html".
@@ -5589,19 +5593,19 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-domain>
-    fn Domain(&self) -> DOMString {
+    fn Domain(&self) -> RootedDOMString {
         // Step 1. Let effectiveDomain be this's origin's effective domain.
         match self.origin().effective_domain() {
             // Step 2. If effectiveDomain is null, then return the empty string.
-            None => DOMString::new(),
+            None => RootedDOMString::new(),
             // Step 3. Return effectiveDomain, serialized.
-            Some(Host::Domain(domain)) => DOMString::from(domain),
-            Some(host) => DOMString::from(host.to_string()),
+            Some(Host::Domain(domain)) => RootedDOMString::from(domain),
+            Some(host) => RootedDOMString::from(host.to_string()),
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-domain>
-    fn SetDomain(&self, value: DOMString) -> ErrorResult {
+    fn SetDomain(&self, value: RootedDOMString) -> ErrorResult {
         // Step 1. If this's browsing context is null, then throw a "SecurityError" DOMException.
         if !self.has_browsing_context {
             return Err(Error::Security(Some(
@@ -5643,10 +5647,10 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-referrer>
-    fn Referrer(&self) -> DOMString {
+    fn Referrer(&self) -> RootedDOMString {
         match self.referrer {
-            Some(ref referrer) => DOMString::from(referrer.to_string()),
-            None => DOMString::new(),
+            Some(ref referrer) => RootedDOMString::from(referrer.to_string()),
+            None => RootedDOMString::new(),
         }
     }
 
@@ -5656,31 +5660,31 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-compatmode>
-    fn CompatMode(&self) -> DOMString {
-        DOMString::from(match self.quirks_mode.get() {
+    fn CompatMode(&self) -> RootedDOMString {
+        RootedDOMString::from(match self.quirks_mode.get() {
             QuirksMode::LimitedQuirks | QuirksMode::NoQuirks => "CSS1Compat",
             QuirksMode::Quirks => "BackCompat",
         })
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-characterset>
-    fn CharacterSet(&self) -> DOMString {
-        DOMString::from_static(self.encoding.get().name())
+    fn CharacterSet(&self) -> RootedDOMString {
+        RootedDOMString::from_static(self.encoding.get().name())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-charset>
-    fn Charset(&self) -> DOMString {
+    fn Charset(&self) -> RootedDOMString {
         self.CharacterSet()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-inputencoding>
-    fn InputEncoding(&self) -> DOMString {
+    fn InputEncoding(&self) -> RootedDOMString {
         self.CharacterSet()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-content_type>
-    fn ContentType(&self) -> DOMString {
-        DOMString::from(self.content_type.to_string())
+    fn ContentType(&self) -> RootedDOMString {
+        RootedDOMString::from(self.content_type.to_string())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-doctype>
@@ -5697,7 +5701,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn GetElementsByTagName(
         &self,
         cx: &mut JSContext,
-        qualified_name: DOMString,
+        qualified_name: RootedDOMString,
     ) -> DomRoot<HTMLCollection> {
         let qualified_name = LocalName::from(qualified_name);
         if let Some(entry) = self.tag_map.borrow_mut().get(&qualified_name) {
@@ -5719,8 +5723,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn GetElementsByTagNameNS(
         &self,
         cx: &mut JSContext,
-        maybe_ns: Option<DOMString>,
-        tag_name: DOMString,
+        maybe_ns: Option<RootedDOMString>,
+        tag_name: RootedDOMString,
     ) -> DomRoot<HTMLCollection> {
         let ns = namespace_from_domstring(maybe_ns);
         let local = LocalName::from(tag_name);
@@ -5740,7 +5744,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn GetElementsByClassName(
         &self,
         cx: &mut JSContext,
-        classes: DOMString,
+        classes: RootedDOMString,
     ) -> DomRoot<HTMLCollection> {
         let class_atoms: Vec<Atom> = split_html_space_chars(&classes.str())
             .map(Atom::from)
@@ -5764,7 +5768,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn GetElementById(
         &self,
         cx: &js::context::JSContext,
-        id: DOMString,
+        id: RootedDOMString,
     ) -> Option<DomRoot<Element>> {
         self.get_element_by_id(cx, &Atom::from(id))
     }
@@ -5773,7 +5777,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn CreateElement(
         &self,
         cx: &mut JSContext,
-        mut local_name: DOMString,
+        mut local_name: RootedDOMString,
         options: StringOrElementCreationOptions,
     ) -> Fallible<DomRoot<Element>> {
         // Step 1. If localName is not a valid element local name, then throw an "InvalidCharacterError" DOMException.
@@ -5817,8 +5821,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn CreateElementNS(
         &self,
         cx: &mut JSContext,
-        namespace: Option<DOMString>,
-        qualified_name: DOMString,
+        namespace: Option<RootedDOMString>,
+        qualified_name: RootedDOMString,
         options: StringOrElementCreationOptions,
     ) -> Fallible<DomRoot<Element>> {
         // Step 1. Let (namespace, prefix, localName) be the result of
@@ -5853,7 +5857,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn CreateAttribute(
         &self,
         cx: &mut JSContext,
-        mut local_name: DOMString,
+        mut local_name: RootedDOMString,
     ) -> Fallible<DomRoot<Attr>> {
         // Step 1. If localName is not a valid attribute local name, then throw an "InvalidCharacterError" DOMException
         if !is_valid_attribute_local_name(&local_name.str()) {
@@ -5885,8 +5889,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn CreateAttributeNS(
         &self,
         cx: &mut JSContext,
-        namespace: Option<DOMString>,
-        qualified_name: DOMString,
+        namespace: Option<RootedDOMString>,
+        qualified_name: RootedDOMString,
     ) -> Fallible<DomRoot<Attr>> {
         // Step 1. Let (namespace, prefix, localName) be the result of validating and
         //      extracting namespace and qualifiedName given "attribute".
@@ -5913,7 +5917,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-createtextnode>
-    fn CreateTextNode(&self, cx: &mut JSContext, data: DOMString) -> DomRoot<Text> {
+    fn CreateTextNode(&self, cx: &mut JSContext, data: RootedDOMString) -> DomRoot<Text> {
         Text::new(cx, data, self)
     }
 
@@ -5921,7 +5925,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn CreateCDATASection(
         &self,
         cx: &mut JSContext,
-        data: DOMString,
+        data: RootedDOMString,
     ) -> Fallible<DomRoot<CDATASection>> {
         // Step 1
         if self.is_html_document {
@@ -5942,7 +5946,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-document-createcomment>
-    fn CreateComment(&self, cx: &mut JSContext, data: DOMString) -> DomRoot<Comment> {
+    fn CreateComment(&self, cx: &mut JSContext, data: RootedDOMString) -> DomRoot<Comment> {
         Comment::new(cx, data, self, None)
     }
 
@@ -5950,8 +5954,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn CreateProcessingInstruction(
         &self,
         cx: &mut JSContext,
-        target: DOMString,
-        data: DOMString,
+        target: RootedDOMString,
+        data: RootedDOMString,
     ) -> Fallible<DomRoot<ProcessingInstruction>> {
         // Step 1. If target does not match the Name production, then throw an "InvalidCharacterError" DOMException.
         if !matches_name_production(&target.str()) {
@@ -6049,7 +6053,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn CreateEvent(
         &self,
         cx: &mut JSContext,
-        mut interface: DOMString,
+        mut interface: RootedDOMString,
     ) -> Fallible<DomRoot<Event>> {
         interface.make_ascii_lowercase();
         match &*interface.str() {
@@ -6093,7 +6097,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             "storageevent" => Ok(DomRoot::upcast(StorageEvent::new_uninitialized(
                 cx,
                 &self.window,
-                DOMString::new(),
+                RootedDOMString::new(),
             ))),
             "textevent" => Ok(DomRoot::upcast(TextEvent::new_uninitialized(
                 cx,
@@ -6123,8 +6127,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-lastmodified>
-    fn LastModified(&self) -> DOMString {
-        DOMString::from(self.last_modified.as_ref().cloned().unwrap_or_else(|| {
+    fn LastModified(&self) -> RootedDOMString {
+        RootedDOMString::from(self.last_modified.as_ref().cloned().unwrap_or_else(|| {
             // Ideally this would get the local time using `time`, but `time` always fails to get the local
             // timezone on Unix unless the application is single threaded unless the library is explicitly
             // set to "unsound" mode. Maybe that's fine, but it needs more investigation. see
@@ -6162,12 +6166,12 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#document.title>
-    fn Title(&self) -> DOMString {
+    fn Title(&self) -> RootedDOMString {
         self.title().unwrap_or_default()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#document.title>
-    fn SetTitle(&self, cx: &mut JSContext, title: DOMString) {
+    fn SetTitle(&self, cx: &mut JSContext, title: RootedDOMString) {
         let root = match self.GetDocumentElement() {
             Some(root) => root,
             None => return,
@@ -6259,14 +6263,14 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-dir>
-    fn Dir(&self) -> DOMString {
+    fn Dir(&self) -> RootedDOMString {
         self.get_html_element()
             .map(|html| html.upcast::<HTMLElement>().Dir())
             .unwrap_or_default()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-dir>
-    fn SetDir(&self, cx: &mut JSContext, dir: DOMString) {
+    fn SetDir(&self, cx: &mut JSContext, dir: RootedDOMString) {
         if let Some(html) = self.get_html_element() {
             html.upcast::<HTMLElement>().SetDir(cx, dir);
         }
@@ -6359,7 +6363,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-getelementsbyname>
-    fn GetElementsByName(&self, cx: &mut JSContext, name: DOMString) -> DomRoot<NodeList> {
+    fn GetElementsByName(&self, cx: &mut JSContext, name: RootedDOMString) -> DomRoot<NodeList> {
         NodeList::new_elements_by_name_list(cx, self.window(), self, name)
     }
 
@@ -6484,7 +6488,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn QuerySelector(
         &self,
         cx: &mut JSContext,
-        selectors: DOMString,
+        selectors: RootedDOMString,
     ) -> Fallible<Option<DomRoot<Element>>> {
         self.upcast::<Node>().query_selector(cx.no_gc(), selectors)
     }
@@ -6493,7 +6497,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn QuerySelectorAll(
         &self,
         cx: &mut JSContext,
-        selectors: DOMString,
+        selectors: RootedDOMString,
     ) -> Fallible<DomRoot<NodeList>> {
         self.upcast::<Node>().query_selector_all(cx, selectors)
     }
@@ -6513,9 +6517,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-cookie>
-    fn GetCookie(&self) -> Fallible<DOMString> {
+    fn GetCookie(&self) -> Fallible<RootedDOMString> {
         if self.is_cookie_averse() {
-            return Ok(DOMString::new());
+            return Ok(RootedDOMString::new());
         }
 
         if !self.origin().is_tuple() {
@@ -6531,11 +6535,11 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             .resource_threads()
             .send(GetCookieStringForUrl(url, tx, NonHTTP));
         let cookies = rx.recv().unwrap();
-        Ok(cookies.map_or(DOMString::new(), DOMString::from))
+        Ok(cookies.map_or(RootedDOMString::new(), RootedDOMString::from))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-cookie>
-    fn SetCookie(&self, cookie: DOMString) -> ErrorResult {
+    fn SetCookie(&self, cookie: RootedDOMString) -> ErrorResult {
         if self.is_cookie_averse() {
             return Ok(());
         }
@@ -6563,27 +6567,27 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-bgcolor>
-    fn BgColor(&self) -> DOMString {
+    fn BgColor(&self) -> RootedDOMString {
         self.get_body_attribute(&local_name!("bgcolor"))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-bgcolor>
-    fn SetBgColor(&self, cx: &mut JSContext, value: DOMString) {
+    fn SetBgColor(&self, cx: &mut JSContext, value: RootedDOMString) {
         self.set_body_attribute(cx, &local_name!("bgcolor"), value)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-fgcolor>
-    fn FgColor(&self) -> DOMString {
+    fn FgColor(&self) -> RootedDOMString {
         self.get_body_attribute(&local_name!("text"))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-fgcolor>
-    fn SetFgColor(&self, cx: &mut JSContext, value: DOMString) {
+    fn SetFgColor(&self, cx: &mut JSContext, value: RootedDOMString) {
         self.set_body_attribute(cx, &local_name!("text"), value)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:dom-document-nameditem-filter>
-    fn NamedGetter(&self, cx: &mut JSContext, name: DOMString) -> Option<NamedPropertyValue> {
+    fn NamedGetter(&self, cx: &mut JSContext, name: RootedDOMString) -> Option<NamedPropertyValue> {
         if name.is_empty() {
             return None;
         }
@@ -6658,7 +6662,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names>
-    fn SupportedPropertyNames(&self, no_gc: &NoGC) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self, no_gc: &NoGC) -> Vec<RootedDOMString> {
         let mut names_with_first_named_element_map = HashMap::new();
         self.name_map
             .for_each(no_gc, self.upcast(), |name, elements| {
@@ -6711,7 +6715,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
         names_with_first_named_element_vec
             .into_iter()
-            .map(|(k, _)| DOMString::from(&*k))
+            .map(|(k, _)| RootedDOMString::from(&*k))
             .collect()
     }
 
@@ -6790,8 +6794,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn Open(
         &self,
         cx: &mut JSContext,
-        _unused1: Option<DOMString>,
-        _unused2: Option<DOMString>,
+        _unused1: Option<RootedDOMString>,
+        _unused2: Option<RootedDOMString>,
     ) -> Fallible<DomRoot<Document>> {
         // Step 1. If document is an XML document, then throw an "InvalidStateError" DOMException.
         if !self.is_html_document() {
@@ -6932,8 +6936,8 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         &self,
         cx: &mut JSContext,
         url: USVString,
-        target: DOMString,
-        features: DOMString,
+        target: RootedDOMString,
+        features: RootedDOMString,
     ) -> Fallible<Option<DomRoot<WindowProxy>>> {
         self.browsing_context()
             .ok_or(Error::InvalidAccess(Some(
@@ -6992,7 +6996,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn ExecCommand(
         &self,
         cx: &mut JSContext,
-        command_id: DOMString,
+        command_id: RootedDOMString,
         _show_ui: bool,
         value: TrustedHTMLOrString,
     ) -> Fallible<bool> {
@@ -7014,13 +7018,13 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandenabled()>
-    fn QueryCommandEnabled(&self, cx: &mut JSContext, command_id: DOMString) -> bool {
+    fn QueryCommandEnabled(&self, cx: &mut JSContext, command_id: RootedDOMString) -> bool {
         // Step 2. Return true if command is both supported and enabled, false otherwise.
         self.check_support_and_enabled(cx, &command_id).is_some()
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandsupported()>
-    fn QueryCommandSupported(&self, command_id: DOMString) -> bool {
+    fn QueryCommandSupported(&self, command_id: RootedDOMString) -> bool {
         // > When the queryCommandSupported(command) method on the Document interface is invoked,
         // the user agent must return true if command is supported and available
         // within the current script on the current site, and false otherwise.
@@ -7028,17 +7032,21 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandindeterm()>
-    fn QueryCommandIndeterm(&self, cx: &mut JSContext, command_id: DOMString) -> bool {
+    fn QueryCommandIndeterm(&self, cx: &mut JSContext, command_id: RootedDOMString) -> bool {
         self.is_command_indeterminate(cx, command_id)
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandstate()>
-    fn QueryCommandState(&self, cx: &mut JSContext, command_id: DOMString) -> bool {
+    fn QueryCommandState(&self, cx: &mut JSContext, command_id: RootedDOMString) -> bool {
         self.command_state_for_command(cx, command_id)
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#querycommandvalue()>
-    fn QueryCommandValue(&self, cx: &mut JSContext, command_id: DOMString) -> DOMString {
+    fn QueryCommandValue(
+        &self,
+        cx: &mut JSContext,
+        command_id: RootedDOMString,
+    ) -> RootedDOMString {
         self.command_value_for_command(cx, command_id)
     }
 
@@ -7075,7 +7083,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     // check-tidy: no specs after this line
     // Servo only API to get an instance of the controls of a specific
     // media element matching the given id.
-    fn ServoGetMediaControls(&self, id: DOMString) -> Fallible<DomRoot<ShadowRoot>> {
+    fn ServoGetMediaControls(&self, id: RootedDOMString) -> Fallible<DomRoot<ShadowRoot>> {
         match self.media_controls.borrow().get(&*id.str()) {
             Some(m) => Ok(DomRoot::from_ref(m)),
             None => Err(Error::InvalidAccess(Some(
@@ -7112,7 +7120,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn CreateExpression(
         &self,
         cx: &mut JSContext,
-        expression: DOMString,
+        expression: RootedDOMString,
         resolver: Option<RootedCallback<XPathNSResolver>>,
     ) -> Fallible<DomRoot<crate::dom::types::XPathExpression>> {
         let parsed_expression =
@@ -7135,7 +7143,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
     fn Evaluate(
         &self,
         cx: &mut JSContext,
-        expression: DOMString,
+        expression: RootedDOMString,
         context_node: &Node,
         resolver: Option<RootedCallback<XPathNSResolver>>,
         result_type: u16,
