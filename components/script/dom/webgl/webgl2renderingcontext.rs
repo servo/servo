@@ -311,7 +311,7 @@ impl WebGL2RenderingContext {
                     VertexAttrib::Uint(_, _, _, _) => constants::UNSIGNED_INT,
                     VertexAttrib::Float(_, _, _, _) => constants::FLOAT,
                 }
-            } else if attrib.integer {
+            } else if attrib.kind.is_integer() {
                 match attrib.type_ {
                     constants::BYTE | constants::SHORT | constants::INT => constants::INT,
                     _ => constants::UNSIGNED_INT,

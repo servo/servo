@@ -3685,7 +3685,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 constants::VERTEX_ATTRIB_ARRAY_SIZE => retval.set(Int32Value(data.size as i32)),
                 constants::VERTEX_ATTRIB_ARRAY_TYPE => retval.set(Int32Value(data.type_ as i32)),
                 constants::VERTEX_ATTRIB_ARRAY_NORMALIZED => {
-                    retval.set(BooleanValue(data.normalized))
+                    retval.set(BooleanValue(data.kind.is_normalized()))
                 },
                 constants::VERTEX_ATTRIB_ARRAY_STRIDE => retval.set(Int32Value(data.stride as i32)),
                 constants::VERTEX_ATTRIB_ARRAY_BUFFER_BINDING => {
@@ -3701,7 +3701,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
                 WebGL2RenderingContextConstants::VERTEX_ATTRIB_ARRAY_INTEGER
                     if self.webgl_version() == WebGLVersion::WebGL2 =>
                 {
-                    retval.set(BooleanValue(data.integer))
+                    retval.set(BooleanValue(data.kind.is_integer()))
                 },
                 _ => {
                     self.webgl_error(InvalidEnum);

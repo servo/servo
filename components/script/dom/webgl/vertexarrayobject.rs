@@ -175,12 +175,11 @@ impl VertexArrayObject {
             size: size as u8,
             type_,
             bytes_per_vertex: size as u8 * bytes_per_component as u8,
-            normalized: matches!(kind, VertexAttribPointerKind::Float { normalized: true }),
+            kind,
             stride: stride as u8,
             offset: offset as u32,
             buffer: buffer.map(|b| Dom::from_ref(&*b)),
             divisor: data.divisor,
-            integer: matches!(kind, VertexAttribPointerKind::Integer),
         };
 
         Ok(())
@@ -274,12 +273,22 @@ impl Drop for VertexArrayObject {
 }
 
 /// How a `vertexAttrib*Pointer` call delivers attribute values to the shader.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
 pub(crate) enum VertexAttribPointerKind {
     /// `vertexAttribPointer`: converted to float.
     Float { normalized: bool },
     /// `vertexAttribIPointer`: kept as int/uint.
     Integer,
+}
+
+impl VertexAttribPointerKind {
+    pub(crate) fn is_normalized(self) -> bool {
+        matches!(self, Self::Float { normalized: true })
+    }
+
+    pub(crate) fn is_integer(self) -> bool {
+        matches!(self, Self::Integer)
+    }
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -289,13 +298,11 @@ pub(crate) struct VertexAttribData {
     pub(crate) size: u8,
     pub(crate) type_: u32,
     bytes_per_vertex: u8,
-    pub(crate) normalized: bool,
+    pub(crate) kind: VertexAttribPointerKind,
     pub(crate) stride: u8,
     pub(crate) offset: u32,
     pub(crate) buffer: Option<Dom<WebGLBuffer>>,
     pub(crate) divisor: u32,
-    /// Whether the shader receives this attribute as int/uint rather than float.
-    pub(crate) integer: bool,
 }
 
 impl Default for VertexAttribData {
@@ -305,12 +312,11 @@ impl Default for VertexAttribData {
             size: 4,
             type_: constants::FLOAT,
             bytes_per_vertex: 16,
-            normalized: false,
+            kind: VertexAttribPointerKind::Float { normalized: false },
             stride: 0,
             offset: 0,
             buffer: None,
             divisor: 0,
-            integer: false,
         }
     }
 }
