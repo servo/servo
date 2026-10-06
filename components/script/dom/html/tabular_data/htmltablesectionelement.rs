@@ -117,7 +117,7 @@ impl LayoutDom<'_, HTMLTableSectionElement> {
             .cloned()
     }
 
-    pub(crate) fn get_height(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn height(self) -> LengthOrPercentageOrAuto {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("height"))
             .map(AttrValue::as_dimension)

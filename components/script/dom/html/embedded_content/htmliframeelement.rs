@@ -915,7 +915,7 @@ impl LayoutDom<'_, HTMLIFrameElement> {
         (self.unsafe_get()).browsing_context_id.get()
     }
 
-    pub(crate) fn get_width(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn width(self) -> LengthOrPercentageOrAuto {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("width"))
             .map(AttrValue::as_dimension)
@@ -923,7 +923,7 @@ impl LayoutDom<'_, HTMLIFrameElement> {
             .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 
-    pub(crate) fn get_height(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn height(self) -> LengthOrPercentageOrAuto {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("height"))
             .map(AttrValue::as_dimension)

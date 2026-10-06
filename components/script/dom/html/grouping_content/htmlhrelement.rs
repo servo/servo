@@ -107,7 +107,7 @@ impl LayoutDom<'_, HTMLHRElement> {
             .cloned()
     }
 
-    pub(crate) fn get_width(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn width(self) -> LengthOrPercentageOrAuto {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("width"))
             .map(AttrValue::as_dimension)

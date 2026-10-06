@@ -147,7 +147,7 @@ impl<'dom> LayoutDom<'dom, HTMLTableCellElement> {
         })
     }
 
-    pub(crate) fn get_width(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn width(self) -> LengthOrPercentageOrAuto {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("width"))
             .map(AttrValue::as_dimension)
@@ -155,7 +155,7 @@ impl<'dom> LayoutDom<'dom, HTMLTableCellElement> {
             .unwrap_or(LengthOrPercentageOrAuto::Auto)
     }
 
-    pub(crate) fn get_height(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn height(self) -> LengthOrPercentageOrAuto {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("height"))
             .map(AttrValue::as_dimension)

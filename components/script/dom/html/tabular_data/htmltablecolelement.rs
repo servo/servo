@@ -77,7 +77,7 @@ impl<'dom> LayoutDom<'dom, HTMLTableColElement> {
             .map(AttrValue::as_uint)
     }
 
-    pub(crate) fn get_width(self) -> LengthOrPercentageOrAuto {
+    pub(crate) fn width(self) -> LengthOrPercentageOrAuto {
         self.upcast::<Element>()
             .get_attr_for_layout(&ns!(), &local_name!("width"))
             .map(AttrValue::as_dimension)
