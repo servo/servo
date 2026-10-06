@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::LazyLock;
+
 use html5ever::{LocalName, Namespace, local_name, ns};
 use js::context::JSContext;
 use servo_arc::Arc as ServoArc;
@@ -12,14 +14,27 @@ use crate::dom::bindings::codegen::UnionTypes::{TrustedHTMLOrString, TrustedScri
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::element::Element;
 use crate::dom::element::attributes::storage::AttrRef;
-use crate::dom::element::storage::AttributesBorrow;
+use crate::dom::element::storage::{AttrName, AttributesBorrow, ContentAttributeData};
 use crate::dom::node::NodeTraits;
 
-/// A reference to an attribute value as `&str`. Keeps the borrow alive.
-pub(crate) struct AttrStrRef<'a> {
+static EMPTY_CONTENTATTRIBUTE_DATA: LazyLock<ContentAttributeData> =
+    LazyLock::new(|| ContentAttributeData {
+        identifier: AttrName::new(local_name!(""), local_name!(""), ns!(), None),
+        value: AttrValue::Atom(atom!("")),
+    });
+
+pub(crate) struct AttrStrRefInner<'a> {
     attributes_borrow: AttributesBorrow<'a>,
     position: usize,
 }
+
+/// A reference to an attribute value as `&str`. Keeps the borrow alive.
+// We need to support `get_attribute_string_ref().unwrap_or_default()` and return an empty `&str` for this.
+// To support this, we always return `Some(AttrStrRef(Some(AttrStrRefInner)))` if we find an attribute and `None` otherwise.
+// We only create a `AttrStrRef(None)` with the default constructor. For `as_attr_ref`, we can then return a special empty `ContentAttribute`
+// packages in a `AttrRef`.
+#[derive(Default)]
+pub(crate) struct AttrStrRef<'a>(Option<AttrStrRefInner<'a>>);
 
 impl<'a> AttrStrRef<'a> {
     /// Create a new [`AttrStrRef`] from localname.
@@ -31,14 +46,20 @@ impl<'a> AttrStrRef<'a> {
         let position = attrs.iter().position(|attribute| {
             attribute.local_name() == local_name && attribute.namespace() == namespace
         });
-        position.map(|position| AttrStrRef {
-            attributes_borrow: attrs,
-            position,
+        position.map(|position| {
+            AttrStrRef(Some(AttrStrRefInner {
+                attributes_borrow: attrs,
+                position,
+            }))
         })
     }
 
     pub(crate) fn as_attr_ref<'b>(&'b self) -> AttrRef<'b> {
-        self.attributes_borrow.get(self.position).unwrap()
+        if let Some(inner) = &self.0 {
+            inner.attributes_borrow.get(inner.position).unwrap()
+        } else {
+            AttrRef::Raw(&EMPTY_CONTENTATTRIBUTE_DATA)
+        }
     }
 }
 
