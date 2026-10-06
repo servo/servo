@@ -136,12 +136,11 @@ class Base:
         return True
 
     def install_cargo_deny(self, force: bool) -> bool:
-        # Tidy needs at least version 0.18.6 installed.
-        if not force and clap_tool_already_installed("cargo-deny", (0, 18, 6)):
+        if not force and clap_tool_already_installed("cargo-deny", (0, 20, 2)):
             return False
 
         print(" * Installing cargo-deny...")
-        if subprocess.call(["cargo", "install", "cargo-deny@0.19.0", "--locked"]) != 0:
+        if subprocess.call(["cargo", "install", "cargo-deny@0.20.2", "--locked"]) != 0:
             raise EnvironmentError("Installation of cargo-deny failed.")
         return True
 
