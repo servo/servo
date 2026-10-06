@@ -322,6 +322,8 @@ pub struct TouchEvent {
     pub pointer_type: TouchPointerType,
     /// cancelable default value is true, once the first move has been processed by script disable it.
     cancelable: bool,
+    /// Whether this `touchend` should generate the compatibility mouse events.
+    pub can_synthesize_mouse_events: bool,
 }
 
 impl TouchEvent {
@@ -337,6 +339,7 @@ impl TouchEvent {
             point,
             pointer_type,
             cancelable: true,
+            can_synthesize_mouse_events: false,
         }
     }
 
