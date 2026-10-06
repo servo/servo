@@ -293,18 +293,71 @@ pub enum UnderlyingSinkType {
     Transform(Dom<TransformStream>, TracedPromise),
 }
 
-impl UnderlyingSinkType {
+/// The type of sink algorithms we are using.
+pub(crate) enum UnderlyingSinkTypeRef<'a> {
+    /// Algorithms are provided by Js callbacks.
+    Js {
+        /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-abortalgorithm>
+        abort: Option<&'a TracedCallback<UnderlyingSinkAbortCallback>>,
+
+        start: Option<&'a TracedCallback<UnderlyingSinkStartCallback>>,
+
+        /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-closealgorithm>
+        close: Option<&'a TracedCallback<UnderlyingSinkCloseCallback>>,
+
+        /// <https://streams.spec.whatwg.org/#writablestreamdefaultcontroller-writealgorithm>
+        write: Option<&'a TracedCallback<UnderlyingSinkWriteCallback>>,
+    },
+    /// Algorithms supporting streams transfer are implemented in Rust.
+    /// The promise and port used in those algorithms are stored here.
+    Transfer {
+        backpressure_promise: &'a Rc<RefCell<Option<TracedPromise>>>,
+        port: &'a MessagePort,
+    },
+    /// Algorithms supporting transform streams are implemented in Rust.
+    Transform(&'a TransformStream, &'a RootedPromise),
+}
+
+impl<'a> UnderlyingSinkTypeRef<'a> {
     pub(crate) fn new_js(
-        abort: Option<&TracedCallback<UnderlyingSinkAbortCallback>>,
-        start: Option<&TracedCallback<UnderlyingSinkStartCallback>>,
-        close: Option<&TracedCallback<UnderlyingSinkCloseCallback>>,
-        write: Option<&TracedCallback<UnderlyingSinkWriteCallback>>,
+        abort: Option<&'a TracedCallback<UnderlyingSinkAbortCallback>>,
+        start: Option<&'a TracedCallback<UnderlyingSinkStartCallback>>,
+        close: Option<&'a TracedCallback<UnderlyingSinkCloseCallback>>,
+        write: Option<&'a TracedCallback<UnderlyingSinkWriteCallback>>,
     ) -> Self {
-        UnderlyingSinkType::Js {
-            abort: RefCell::new(abort.cloned()),
-            start: RefCell::new(start.cloned()),
-            close: RefCell::new(close.cloned()),
-            write: RefCell::new(write.cloned()),
+        UnderlyingSinkTypeRef::Js {
+            abort,
+            start,
+            close,
+            write,
+        }
+    }
+}
+
+impl From<UnderlyingSinkTypeRef<'_>> for UnderlyingSinkType {
+    fn from(sink_type: UnderlyingSinkTypeRef<'_>) -> Self {
+        match sink_type {
+            UnderlyingSinkTypeRef::Js {
+                abort,
+                start,
+                close,
+                write,
+            } => UnderlyingSinkType::Js {
+                abort: RefCell::new(abort.cloned()),
+                start: RefCell::new(start.cloned()),
+                close: RefCell::new(close.cloned()),
+                write: RefCell::new(write.cloned()),
+            },
+            UnderlyingSinkTypeRef::Transfer {
+                backpressure_promise,
+                port,
+            } => UnderlyingSinkType::Transfer {
+                backpressure_promise: backpressure_promise.clone(),
+                port: Dom::from_ref(port),
+            },
+            UnderlyingSinkTypeRef::Transform(stream, promise) => {
+                UnderlyingSinkType::Transform(Dom::from_ref(stream), promise.to_traced())
+            },
         }
     }
 }
@@ -345,41 +398,38 @@ pub struct WritableStreamDefaultController {
 
 impl WritableStreamDefaultController {
     /// <https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller-from-underlying-sink>
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_inherited(
-        cx: &mut JSContext,
-        global: &GlobalScope,
-        underlying_sink_type: UnderlyingSinkType,
+        underlying_sink_type: UnderlyingSinkTypeRef<'_>,
         strategy_hwm: f64,
         strategy_size: RootedCallback<QueuingStrategySize>,
+        abort_controller: &AbortController,
     ) -> WritableStreamDefaultController {
         WritableStreamDefaultController {
             reflector_: Reflector::new(),
-            underlying_sink_type,
+            underlying_sink_type: underlying_sink_type.into(),
             queue: Default::default(),
             stream: Default::default(),
             underlying_sink_obj: Default::default(),
             strategy_hwm,
             strategy_size: RefCell::new(Some(strategy_size.to_traced())),
             started: Default::default(),
-            abort_controller: Dom::from_ref(&AbortController::new_with_proto(cx, global, None)),
+            abort_controller: Dom::from_ref(abort_controller),
         }
     }
 
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(
         cx: &mut JSContext,
         global: &GlobalScope,
-        underlying_sink_type: UnderlyingSinkType,
+        underlying_sink_type: UnderlyingSinkTypeRef<'_>,
         strategy_hwm: f64,
         strategy_size: RootedCallback<QueuingStrategySize>,
     ) -> DomRoot<WritableStreamDefaultController> {
+        let abort_controller = AbortController::new_with_proto(cx, global, None);
         let obj = Box::new(WritableStreamDefaultController::new_inherited(
-            cx,
-            global,
             underlying_sink_type,
             strategy_hwm,
             strategy_size,
+            &abort_controller,
         ));
         reflect_dom_object(cx, obj, global)
     }

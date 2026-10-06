@@ -45,7 +45,7 @@ use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::readablestream::{ReadableStream, get_type_and_value_from_message};
 use crate::dom::stream::countqueuingstrategy::{extract_high_water_mark, extract_size_algorithm};
 use crate::dom::stream::writablestreamdefaultcontroller::{
-    UnderlyingSinkType, WritableStreamDefaultController,
+    UnderlyingSinkTypeRef, WritableStreamDefaultController,
 };
 use crate::dom::stream::writablestreamdefaultwriter::WritableStreamDefaultWriter;
 use crate::realms::enter_auto_realm;
@@ -873,9 +873,9 @@ impl WritableStream {
         let controller = WritableStreamDefaultController::new(
             cx,
             &global,
-            UnderlyingSinkType::Transfer {
-                backpressure_promise: backpressure_promise.0.clone(),
-                port: Dom::from_ref(port),
+            UnderlyingSinkTypeRef::Transfer {
+                backpressure_promise: &backpressure_promise.0,
+                port,
             },
             1.0,
             size_algorithm,
@@ -937,7 +937,7 @@ impl WritableStream {
         let controller = WritableStreamDefaultController::new(
             cx,
             global,
-            UnderlyingSinkType::new_js(
+            UnderlyingSinkTypeRef::new_js(
                 underlying_sink.abort.as_ref(),
                 underlying_sink.start.as_ref(),
                 underlying_sink.close.as_ref(),
@@ -957,13 +957,12 @@ impl WritableStream {
 }
 
 /// <https://streams.spec.whatwg.org/#create-writable-stream>
-#[cfg_attr(crown, expect(crown::unrooted_must_root))]
 pub(crate) fn create_writable_stream(
     cx: &mut JSContext,
     global: &GlobalScope,
     writable_high_water_mark: f64,
     writable_size_algorithm: RootedCallback<QueuingStrategySize>,
-    underlying_sink_type: UnderlyingSinkType,
+    underlying_sink_type: UnderlyingSinkTypeRef<'_>,
 ) -> Fallible<DomRoot<WritableStream>> {
     // Assert: ! IsNonNegativeNumber(highWaterMark) is true.
     assert!(writable_high_water_mark >= 0.0);
