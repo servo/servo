@@ -1,0 +1,33 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Setting a constant vertex attribute leaves VERTEX_ATTRIB_ARRAY_TYPE unchanged</title>
+<link rel="author" title="mxmgorin" href="mailto:102797145+mxmgorin@users.noreply.github.com">
+<link rel="help" href="https://registry.khronos.org/webgl/specs/latest/1.0/#5.14.10">
+<link rel="help" href="https://registry.khronos.org/webgl/specs/latest/2.0/#4.7.8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const setters = [
+    { versions: ["webgl", "webgl2"], name: "vertexAttrib4f", set: gl => gl.vertexAttrib4f(0, 1, 2, 3, 4) },
+    { versions: ["webgl", "webgl2"], name: "vertexAttrib1fv", set: gl => gl.vertexAttrib1fv(0, [1]) },
+    { versions: ["webgl2"], name: "vertexAttribI4i", set: gl => gl.vertexAttribI4i(0, 1, 2, 3, 4) },
+    { versions: ["webgl2"], name: "vertexAttribI4iv", set: gl => gl.vertexAttribI4iv(0, [1, 2, 3, 4]) },
+    { versions: ["webgl2"], name: "vertexAttribI4ui", set: gl => gl.vertexAttribI4ui(0, 1, 2, 3, 4) },
+    { versions: ["webgl2"], name: "vertexAttribI4uiv", set: gl => gl.vertexAttribI4uiv(0, [1, 2, 3, 4]) },
+];
+
+for (const { versions, name, set } of setters) {
+    for (const version of versions) {
+        for (const type of ["UNSIGNED_BYTE", "FLOAT"]) {
+            test(function() {
+                const gl = document.createElement("canvas").getContext(version);
+                gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+                gl.vertexAttribPointer(0, 4, gl[type], false, 0, 0);
+                set(gl);
+                assert_equals(gl.getVertexAttrib(0, gl.VERTEX_ATTRIB_ARRAY_TYPE), gl[type]);
+                assert_equals(gl.getError(), gl.NO_ERROR);
+            }, `${version}: ${name} keeps a ${type} array type`);
+        }
+    }
+}
+</script>

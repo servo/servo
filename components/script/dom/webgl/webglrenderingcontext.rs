@@ -529,19 +529,11 @@ impl WebGLRenderingContext {
         }
     }
 
-    fn vertex_attrib(&self, cx: &mut JSContext, indx: u32, x: f32, y: f32, z: f32, w: f32) {
+    fn vertex_attrib(&self, indx: u32, x: f32, y: f32, z: f32, w: f32) {
         if indx >= self.limits.max_vertex_attribs {
             return self.webgl_error(InvalidValue);
         }
 
-        match self.webgl_version() {
-            WebGLVersion::WebGL1 => self
-                .current_vao(cx)
-                .set_vertex_attrib_type(indx, constants::FLOAT),
-            WebGLVersion::WebGL2 => self
-                .current_vao_webgl2(cx)
-                .set_vertex_attrib_type(indx, constants::FLOAT),
-        };
         self.current_vertex_attribs.borrow_mut()[indx as usize] = VertexAttrib::Float(x, y, z, w);
 
         self.send_command(WebGLCommand::VertexAttrib(indx, x, y, z, w));
@@ -4399,14 +4391,14 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
-    fn VertexAttrib1f(&self, cx: &mut JSContext, indx: u32, x: f32) {
-        self.vertex_attrib(cx, indx, x, 0f32, 0f32, 1f32)
+    fn VertexAttrib1f(&self, _cx: &mut JSContext, indx: u32, x: f32) {
+        self.vertex_attrib(indx, x, 0f32, 0f32, 1f32)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn VertexAttrib1fv(
         &self,
-        cx: &mut JSContext,
+        _cx: &mut JSContext,
         indx: u32,
         v: Float32ArrayOrUnrestrictedFloatSequence,
     ) {
@@ -4420,18 +4412,18 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             // https://github.com/KhronosGroup/WebGL/issues/2700
             return self.webgl_error(InvalidValue);
         }
-        self.vertex_attrib(cx, indx, values[0], 0f32, 0f32, 1f32);
+        self.vertex_attrib(indx, values[0], 0f32, 0f32, 1f32);
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
-    fn VertexAttrib2f(&self, cx: &mut JSContext, indx: u32, x: f32, y: f32) {
-        self.vertex_attrib(cx, indx, x, y, 0f32, 1f32)
+    fn VertexAttrib2f(&self, _cx: &mut JSContext, indx: u32, x: f32, y: f32) {
+        self.vertex_attrib(indx, x, y, 0f32, 1f32)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn VertexAttrib2fv(
         &self,
-        cx: &mut JSContext,
+        _cx: &mut JSContext,
         indx: u32,
         v: Float32ArrayOrUnrestrictedFloatSequence,
     ) {
@@ -4445,18 +4437,18 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             // https://github.com/KhronosGroup/WebGL/issues/2700
             return self.webgl_error(InvalidValue);
         }
-        self.vertex_attrib(cx, indx, values[0], values[1], 0f32, 1f32);
+        self.vertex_attrib(indx, values[0], values[1], 0f32, 1f32);
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
-    fn VertexAttrib3f(&self, cx: &mut JSContext, indx: u32, x: f32, y: f32, z: f32) {
-        self.vertex_attrib(cx, indx, x, y, z, 1f32)
+    fn VertexAttrib3f(&self, _cx: &mut JSContext, indx: u32, x: f32, y: f32, z: f32) {
+        self.vertex_attrib(indx, x, y, z, 1f32)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn VertexAttrib3fv(
         &self,
-        cx: &mut JSContext,
+        _cx: &mut JSContext,
         indx: u32,
         v: Float32ArrayOrUnrestrictedFloatSequence,
     ) {
@@ -4470,18 +4462,18 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             // https://github.com/KhronosGroup/WebGL/issues/2700
             return self.webgl_error(InvalidValue);
         }
-        self.vertex_attrib(cx, indx, values[0], values[1], values[2], 1f32);
+        self.vertex_attrib(indx, values[0], values[1], values[2], 1f32);
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
-    fn VertexAttrib4f(&self, cx: &mut JSContext, indx: u32, x: f32, y: f32, z: f32, w: f32) {
-        self.vertex_attrib(cx, indx, x, y, z, w)
+    fn VertexAttrib4f(&self, _cx: &mut JSContext, indx: u32, x: f32, y: f32, z: f32, w: f32) {
+        self.vertex_attrib(indx, x, y, z, w)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
     fn VertexAttrib4fv(
         &self,
-        cx: &mut JSContext,
+        _cx: &mut JSContext,
         indx: u32,
         v: Float32ArrayOrUnrestrictedFloatSequence,
     ) {
@@ -4495,7 +4487,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             // https://github.com/KhronosGroup/WebGL/issues/2700
             return self.webgl_error(InvalidValue);
         }
-        self.vertex_attrib(cx, indx, values[0], values[1], values[2], values[3]);
+        self.vertex_attrib(indx, values[0], values[1], values[2], values[3]);
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
