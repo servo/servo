@@ -20,7 +20,7 @@ use webrender_api::units::DeviceIntSize;
 use crate::id::*;
 use crate::{
     BindGroupDescriptor, BindGroupLayoutDescriptor, BufferAccessError, BufferDescriptor,
-    CommandBufferDescriptor, CommandEncoderCommand, CommandEncoderDescriptor,
+    BufferUpdate, CommandBufferDescriptor, CommandEncoderCommand, CommandEncoderDescriptor,
     ComputePassEncoderCommand, ComputePipelineDescriptor, ContextConfiguration, DeviceDescriptor,
     Error, ErrorFilter, Extent3d, HostMap, Label, Mapping, PRESENTATION_BUFFER_COUNT,
     PassTimestampWrites, PipelineLayoutDescriptor, QuerySetDescriptor, RenderBundleDescriptor,
@@ -53,6 +53,7 @@ pub enum WebGPURequest {
         host_map: HostMap,
         offset: u64,
         size: Option<u64>,
+        buffer_size: u64,
     },
     CommandEncoderFinish {
         command_encoder_id: CommandEncoderId,
@@ -247,8 +248,7 @@ pub enum WebGPURequest {
     },
     UnmapBuffer {
         buffer_id: BufferId,
-        /// Return back mapping for writeback
-        mapping: Option<Mapping>,
+        buffer_update: BufferUpdate,
     },
     WriteBuffer {
         device_id: DeviceId,

@@ -227,3 +227,9 @@ impl From<wgpu_core::instance::RequestDeviceError> for RequestDeviceError {
         }
     }
 }
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum BufferUpdate {
+    Read(GenericSharedMemory),
+    Write(GenericSharedMemory, Range<u64>),
+}
