@@ -9410,6 +9410,7 @@ dependencies = [
  "servo-profile-traits",
  "servo-script-bindings",
  "servo-script-traits",
+ "servo-script-webcrypto",
  "servo-script-webgpu",
  "servo-storage-traits",
  "servo-timers",
@@ -9532,6 +9533,13 @@ dependencies = [
  "stylo_atoms",
  "stylo_traits",
  "webrender_api",
+]
+
+[[package]]
+name = "servo-script-webcrypto"
+version = "0.7.0"
+dependencies = [
+ "servo-script-bindings",
 ]
 
 [[package]]
