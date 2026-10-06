@@ -832,8 +832,12 @@ impl FontGroup {
             _ => codepoint,
         };
 
-        let options =
-            FallbackFontSelectionOptions::new(codepoint, next_codepoint, language, &self.families);
+        let options = FallbackFontSelectionOptions::new(
+            codepoint,
+            next_codepoint,
+            language,
+            Some(&self.families),
+        );
 
         let should_look_for_small_caps = self.descriptor.variant == font_variant_caps::T::SmallCaps &&
             options.character.is_ascii_lowercase();
@@ -1039,7 +1043,7 @@ impl FontGroupFamilyTemplate {
 /// only if actually needed. A single `FontGroupFamily` can have multiple fonts, in the case that
 /// individual fonts only cover part of the Unicode range.
 #[derive(MallocSizeOf)]
-pub(crate) struct FontGroupFamily {
+pub struct FontGroupFamily {
     pub(crate) family_descriptor: FontFamilyDescriptor,
     pub(crate) members: OnceLock<Vec<FontGroupFamilyTemplate>>,
 }

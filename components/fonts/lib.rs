@@ -68,11 +68,11 @@ impl Default for FallbackFontSelectionOptions<'_> {
 }
 
 impl<'a> FallbackFontSelectionOptions<'a> {
-    pub(crate) fn new(
+    pub fn new(
         character: char,
         next_character: Option<char>,
         language: Language,
-        preferred_font_families: &'a SmallVec<[FontGroupFamily; 8]>,
+        preferred_font_families: Option<&'a SmallVec<[FontGroupFamily; 8]>>,
     ) -> Self {
         let presentation_preference = match next_character {
             Some(next_character) if emoji::is_emoji_presentation_selector(next_character) => {
@@ -102,7 +102,7 @@ impl<'a> FallbackFontSelectionOptions<'a> {
             character,
             presentation_preference,
             language,
-            preferred_font_families: Some(preferred_font_families),
+            preferred_font_families,
         }
     }
 }
