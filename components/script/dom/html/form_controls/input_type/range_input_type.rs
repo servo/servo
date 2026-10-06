@@ -56,30 +56,6 @@ pub(crate) struct RangeInputType {
 }
 
 impl RangeInputType {
-    /// Get the shadow tree for this [`HTMLInputElement`], if it is created and valid, otherwise
-    /// recreate the shadow tree and return it.
-    fn get_or_create_shadow_tree(
-        &self,
-        cx: &mut JSContext,
-        input: &HTMLInputElement,
-    ) -> Ref<'_, RangeInputShadowTree> {
-        {
-            if let Ok(shadow_tree) = Ref::filter_map(self.shadow_tree.borrow(), |shadow_tree| {
-                shadow_tree.as_ref()
-            }) {
-                return shadow_tree;
-            }
-        }
-
-        let element = input.upcast::<Element>();
-        let shadow_root = element
-            .shadow_root()
-            .unwrap_or_else(|| element.attach_ua_shadow_root(cx, true));
-        let shadow_root = shadow_root.upcast();
-        *self.shadow_tree.borrow_mut() = Some(RangeInputShadowTree::new(cx, shadow_root));
-        self.get_or_create_shadow_tree(cx, input)
-    }
-
     /// Start dragging the thumb with the pointer that just went down.
     fn handle_pointer_down(
         &self,
