@@ -40,6 +40,9 @@
 //! For a minimal working example, refer to the [`winit_minimal`] code.
 //!
 //! [`winit_minimal`]: https://github.com/servo/servo/blob/main/components/servo/examples/winit_minimal.rs
+//!
+//! ## Cargo Features
+#![doc = document_features::document_features!()]
 
 mod clipboard_delegate;
 #[cfg(feature = "gamepad")]
