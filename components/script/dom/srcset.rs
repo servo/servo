@@ -369,10 +369,13 @@ impl SourceSet {
             .hidpi_scale_factor
             .get() as f64;
 
-        // Find the smallest density that is larger than device_pixel_ratio
+        // Find the smallest density that is larger than device_pixel_ratio which is not iin repeated_indices
         let selected_source = self
             .image_sources
             .iter()
+            .enumerate()
+            .filter(|(index, _image_source)| !repeat_indices.contains(index))
+            .map(|(_index, image_source)| image_source)
             .filter(|image_source| image_source.descriptor.density.unwrap() >= device_pixel_ratio)
             .min_by(|image_source1, image_source2| {
                 image_source1
@@ -381,7 +384,19 @@ impl SourceSet {
                     .unwrap()
                     .total_cmp(&image_source2.descriptor.density.unwrap())
             })
-            .expect("Could not find src to select");
+            .unwrap_or_else(|| {
+                // Take the maximum density
+                self.image_sources
+                    .iter()
+                    .max_by(|image_sourc1, image_source2| {
+                        image_sourc1
+                            .descriptor
+                            .density
+                            .unwrap()
+                            .total_cmp(&image_source2.descriptor.density.unwrap())
+                    })
+                    .expect("Maximum density always exists")
+            });
 
         // Step 3. Return selectedSource and its associated pixel density.
         Some((
