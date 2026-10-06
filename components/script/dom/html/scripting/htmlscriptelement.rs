@@ -301,12 +301,9 @@ impl FetchResponseListener for ClassicContext {
         _: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
-        self.metadata = metadata.ok().map(|meta| {
-            self.response_was_cors_cross_origin = meta.is_cors_cross_origin();
-            match meta {
-                FetchMetadata::Unfiltered(m) => m,
-                FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
-            }
+        self.metadata = metadata.ok().map(|metadata| {
+            self.response_was_cors_cross_origin = metadata.is_cors_cross_origin();
+            metadata.into()
         });
 
         let status = self

@@ -182,10 +182,7 @@ impl FetchResponseListener for ScriptFetchContext {
         _request_id: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
-        self.response = metadata.ok().map(|m| match m {
-            FetchMetadata::Unfiltered(m) => m,
-            FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
-        });
+        self.response = metadata.ok().map(Into::into);
     }
 
     fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, chunk: Bytes) {

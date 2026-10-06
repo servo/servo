@@ -20,7 +20,7 @@ use js::jsval::UndefinedValue;
 use js::rust::HandleObject;
 use mime::{self, Mime};
 use net_traits::request::{CacheMode, CorsSettings, Destination, RequestBuilder, RequestId};
-use net_traits::{FetchMetadata, FilteredMetadata, NetworkError, ResourceFetchTiming};
+use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::reflect_weak_referenceable_dom_object_with_proto;
 use servo_url::ServoUrl;
@@ -397,29 +397,28 @@ impl FetchResponseListener for EventSourceContext {
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
         match metadata {
-            Ok(fm) => {
-                let meta = match fm {
-                    FetchMetadata::Unfiltered(m) => m,
-                    FetchMetadata::Filtered { unsafe_, filtered } => match filtered {
-                        FilteredMetadata::Opaque | FilteredMetadata::OpaqueRedirect(_) => {
-                            return self.fail_the_connection();
-                        },
-                        _ => unsafe_,
-                    },
-                };
-                // Step 15.3 if res's status is not 200, or if res's `Content-Type` is not
-                // `text/event-stream`, then fail the connection.
-                if meta.status.code() != StatusCode::OK {
+            Ok(fetch_metadata) => {
+                if fetch_metadata.is_cors_cross_origin() {
                     return self.fail_the_connection();
                 }
-                let mime = match meta.content_type {
+                let metadata: Metadata = fetch_metadata.into();
+                // Step 15.3 if res's status is not 200, or if res's `Content-Type` is not
+                // `text/event-stream`, then fail the connection.
+                if metadata.status.code() != StatusCode::OK {
+                    return self.fail_the_connection();
+                }
+                let mime = match metadata.content_type {
                     None => return self.fail_the_connection(),
                     Some(ct) => <ContentType as Into<Mime>>::into(ct.into_inner()),
                 };
                 if (mime.type_(), mime.subtype()) != (mime::TEXT, mime::EVENT_STREAM) {
                     return self.fail_the_connection();
                 }
-                self.origin = meta.final_url.origin().ascii_serialization().into_owned();
+                self.origin = metadata
+                    .final_url
+                    .origin()
+                    .ascii_serialization()
+                    .into_owned();
                 // Step 15.4 announce the connection and interpret res's body line by line.
                 self.announce_the_connection();
             },

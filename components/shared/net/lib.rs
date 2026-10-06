@@ -321,6 +321,18 @@ pub enum FilteredMetadata {
     OpaqueRedirect(ServoUrl),
 }
 
+impl From<FetchMetadata> for Metadata {
+    fn from(value: FetchMetadata) -> Self {
+        match value {
+            FetchMetadata::Unfiltered(metadata) => metadata,
+            FetchMetadata::Filtered {
+                filtered: _,
+                unsafe_,
+            } => unsafe_,
+        }
+    }
+}
+
 // FIXME: https://github.com/servo/servo/issues/34591
 #[expect(clippy::large_enum_variant)]
 #[derive(Clone, Debug, Deserialize, Serialize)]

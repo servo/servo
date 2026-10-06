@@ -21,7 +21,7 @@ use net_traits::image_cache::{
     ImageResponse, PendingImageId, RasterizationCompleteResponse, VectorImage,
 };
 use net_traits::request::CorsSettings;
-use net_traits::{FetchMetadata, FetchResponseMsg, FilteredMetadata, NetworkError};
+use net_traits::{FetchResponseMsg, Metadata, NetworkError};
 use paint_api::{CrossProcessPaintApi, ImageUpdate, SerializableImageData};
 use parking_lot::Mutex;
 use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage, load_from_memory};
@@ -1243,19 +1243,14 @@ impl ImageCache for ImageCacheImpl {
                 debug!("Received {:?} for {:?}", response.as_ref().map(|_| ()), id);
                 let mut store = self.store.lock();
                 if let Some(pending_load) = store.pending_loads.get_by_key_mut(&id) {
-                    let (cors_status, metadata) = match response {
-                        Ok(meta) => match meta {
-                            FetchMetadata::Unfiltered(m) => (CorsStatus::Safe, Some(m)),
-                            FetchMetadata::Filtered { unsafe_, filtered } => (
-                                match filtered {
-                                    FilteredMetadata::Basic(_) | FilteredMetadata::Cors(_) => {
-                                        CorsStatus::Safe
-                                    },
-                                    FilteredMetadata::Opaque |
-                                    FilteredMetadata::OpaqueRedirect(_) => CorsStatus::Unsafe,
-                                },
-                                Some(unsafe_),
-                            ),
+                    let (cors_status, metadata): (_, Option<Metadata>) = match response {
+                        Ok(fetch_metadata) => {
+                            let cors_status = if fetch_metadata.is_cors_cross_origin() {
+                                CorsStatus::Unsafe
+                            } else {
+                                CorsStatus::Safe
+                            };
+                            (cors_status, Some(fetch_metadata.into()))
                         },
                         Err(_) => (CorsStatus::Unsafe, None),
                     };

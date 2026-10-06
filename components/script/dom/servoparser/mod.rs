@@ -1343,13 +1343,7 @@ impl ParserContext {
         meta_result: Result<FetchMetadata, NetworkError>,
     ) {
         let (metadata, mut error) = match meta_result {
-            Ok(meta) => (
-                Some(match meta {
-                    FetchMetadata::Unfiltered(m) => m,
-                    FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
-                }),
-                None,
-            ),
+            Ok(meta) => (Some(meta.into()), None),
             Err(error) => (
                 // Check variant without moving
                 match &error {

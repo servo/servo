@@ -20,7 +20,8 @@ use net_traits::image_cache::{
 };
 use net_traits::request::{CredentialsMode, Destination, RequestBuilder, RequestId};
 use net_traits::{
-    CoreResourceThread, FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming,
+    CoreResourceThread, FetchMetadata, FetchResponseMsg, Metadata, NetworkError,
+    ResourceFetchTiming,
 };
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use script_bindings::cell::DomRefCell;
@@ -502,10 +503,7 @@ impl FetchResponseListener for PosterFrameFetchContext {
             FetchResponseMsg::ProcessResponse(request_id, metadata.clone()),
         );
 
-        let metadata = metadata.ok().map(|meta| match meta {
-            FetchMetadata::Unfiltered(m) => m,
-            FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
-        });
+        let metadata: Option<Metadata> = metadata.ok().map(Into::into);
 
         let status_is_ok = metadata
             .as_ref()
