@@ -32,9 +32,7 @@ use crate::dom::input_type::text_input_widget::TextInputWidget;
 use crate::dom::node::{Node, NodeTraits, UnbindContext};
 use crate::dom::pointerevent::PointerEvent;
 use crate::dom::shadowroot::shadowroot::ShadowRoot;
-use crate::dom::shadowroot::ua_shadowroot::{
-    SpecificShadowTree, UAShadowRoot, UpdateUAShadowRootForOther,
-};
+use crate::dom::shadowroot::ua_shadowroot::{SpecificShadowTree, UAShadowRoot};
 use crate::dom::types::MouseEvent;
 
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
@@ -254,7 +252,8 @@ impl SpecificInputType for RangeInputType {
     }
 
     fn update_shadow_tree(&self, cx: &mut JSContext, input: &HTMLInputElement) {
-        UpdateUAShadowRootForOther::update_shadow_tree(self, cx, input)
+        self.ensure_shadow_tree(cx, input.upcast())
+            .update(cx, self, input)
     }
 
     /// The user changes the value of a range input by dragging its thumb. Pointer

@@ -23,9 +23,7 @@ use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
 use crate::dom::html::form_controls::text_control::TextControlElement;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::shadowroot::shadowroot::ShadowRoot;
-use crate::dom::shadowroot::ua_shadowroot::{
-    SpecificShadowTree, UAShadowRoot, UpdateUAShadowRootForOther,
-};
+use crate::dom::shadowroot::ua_shadowroot::{SpecificShadowTree, UAShadowRoot};
 
 const PASSWORD_REPLACEMENT_CHAR: char = '●';
 
@@ -41,7 +39,8 @@ impl TextInputWidget {
         cx: &mut JSContext,
         element: &(impl TextControlElement + DerivedFrom<Element>),
     ) {
-        UpdateUAShadowRootForOther::update_shadow_tree(self, cx, element)
+        self.ensure_shadow_tree(cx, element.upcast())
+            .update(cx, self, element)
     }
 
     pub(crate) fn update_placeholder_contents(

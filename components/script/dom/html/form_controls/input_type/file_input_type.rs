@@ -36,9 +36,7 @@ use crate::dom::htmlelement::HTMLElement;
 use crate::dom::input_type::text_input_widget::TextInputWidget;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::shadowroot::shadowroot::ShadowRoot;
-use crate::dom::shadowroot::ua_shadowroot::{
-    SpecificShadowTree, UAShadowRoot, UpdateUAShadowRootForOther,
-};
+use crate::dom::shadowroot::ua_shadowroot::{SpecificShadowTree, UAShadowRoot};
 
 const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
 const DEFAULT_FILE_INPUT_MULTIPLE_VALUE: &str = "No files chosen";
@@ -181,7 +179,8 @@ impl SpecificInputType for FileInputType {
     }
 
     fn update_shadow_tree(&self, cx: &mut JSContext, input: &HTMLInputElement) {
-        UpdateUAShadowRootForOther::update_shadow_tree(self, cx, input)
+        self.ensure_shadow_tree(cx, input.upcast())
+            .update(cx, self, input)
     }
 }
 
