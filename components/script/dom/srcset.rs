@@ -8,7 +8,7 @@ use app_units::Au;
 use cssparser::Parser;
 use js::context::NoGC;
 use regex::Regex;
-use rustc_hash::FxHashSet;
+use rustc_hash::{FxBuildHasher, FxHashSet};
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::dom::UnrootedDom;
 use script_bindings::inheritance::Castable;
@@ -346,7 +346,8 @@ impl SourceSet {
         let len = self.image_sources.len();
 
         // Using FxHash is ok here as the indices are just 0..len
-        let mut repeat_indices = FxHashSet::default();
+        let mut repeat_indices = FxHashSet::with_capacity_and_hasher(len, FxBuildHasher::default());
+
         for outer_index in 0..len {
             if repeat_indices.contains(&outer_index) {
                 continue;
@@ -361,42 +362,34 @@ impl SourceSet {
             }
         }
 
+        let mut max = (0f64, 0);
+        let mut img_sources = Vec::with_capacity(len);
+        for (index, image_source) in self.image_sources.iter().enumerate() {
+            if repeat_indices.contains(&index) {
+                continue;
+            }
+            let den = image_source.descriptor.density.unwrap();
+            if max.0 < den {
+                max = (den, img_sources.len());
+            }
+            img_sources.push(image_source);
+        }
+
         // Step 2. In an implementation-defined manner, choose one image source from sourceSet. Let
         // selectedSource be this choice.
+        let mut best_candidate = max;
         let device_pixel_ratio = document
             .window()
             .viewport_details()
             .hidpi_scale_factor
             .get() as f64;
-
-        // Find the smallest density that is larger than device_pixel_ratio which is not iin repeated_indices
-        let selected_source = self
-            .image_sources
-            .iter()
-            .enumerate()
-            .filter(|(index, _image_source)| !repeat_indices.contains(index))
-            .map(|(_index, image_source)| image_source)
-            .filter(|image_source| image_source.descriptor.density.unwrap() >= device_pixel_ratio)
-            .min_by(|image_source1, image_source2| {
-                image_source1
-                    .descriptor
-                    .density
-                    .unwrap()
-                    .total_cmp(&image_source2.descriptor.density.unwrap())
-            })
-            .unwrap_or_else(|| {
-                // Take the maximum density
-                self.image_sources
-                    .iter()
-                    .max_by(|image_sourc1, image_source2| {
-                        image_sourc1
-                            .descriptor
-                            .density
-                            .unwrap()
-                            .total_cmp(&image_source2.descriptor.density.unwrap())
-                    })
-                    .expect("Maximum density always exists")
-            });
+        for (index, image_source) in img_sources.iter().enumerate() {
+            let current_den = image_source.descriptor.density.unwrap();
+            if current_den < best_candidate.0 && current_den >= device_pixel_ratio {
+                best_candidate = (current_den, index);
+            }
+        }
+        let selected_source = img_sources.remove(best_candidate.1);
 
         // Step 3. Return selectedSource and its associated pixel density.
         Some((
