@@ -1854,7 +1854,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                         .paint_timing_handler
                         .check_if_paintable(layer.bounds, style.slow_clone_opacity());
                 },
-                ResolvedImage::Image { image, size } => {
+                ResolvedImage::Image { image, size, url } => {
                     // FIXME: https://drafts.csswg.org/css-images-4/#the-image-resolution
                     let dppx = 1.0;
                     let intrinsic =
@@ -1930,7 +1930,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                             layer.bounds,
                             layer.common.clip_rect,
                             self.fragment.base.tag,
-                            None,
+                            Some(url),
                             natural_width,
                             natural_height,
                         );
@@ -2109,7 +2109,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             .resolve_image(node, &border.border_image_source)
         {
             Err(_) => return false,
-            Ok(ResolvedImage::Image { image, size }) => {
+            Ok(ResolvedImage::Image { image, size, .. }) => {
                 let scale = builder.device_pixel_ratio.get();
                 let raster_size = Size2D::new(size.width * scale, size.height * scale).to_i32();
                 let Some(key) =
