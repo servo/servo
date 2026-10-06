@@ -1852,7 +1852,7 @@ impl FlexItem<'_> {
             {
                 SizeConstraint::Definite(used_main_size)
             } else {
-                SizeConstraint::default()
+                SizeConstraint::MinMax(self.content_min_main_size, self.content_max_main_size)
             };
             (cross_size, main_size)
         };
