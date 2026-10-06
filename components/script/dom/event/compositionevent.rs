@@ -80,10 +80,6 @@ impl CompositionEvent {
             .init_event(event_type, can_bubble, cancelable, view, detail);
         ev
     }
-
-    pub(crate) fn data(&self) -> &DOMString {
-        &self.data
-    }
 }
 
 impl CompositionEventMethods<crate::DomTypeHolder> for CompositionEvent {

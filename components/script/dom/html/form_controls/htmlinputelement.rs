@@ -34,7 +34,6 @@ use xml5ever::ns;
 
 use crate::dom::activation::Activatable;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
-use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
 use crate::dom::bindings::codegen::Bindings::HTMLInputElementBinding::HTMLInputElementMethods;
@@ -44,7 +43,6 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
 use crate::dom::document_embedder_controls::ControlElement;
 use crate::dom::element::attributes::storage::AttrRef;
@@ -2413,36 +2411,7 @@ impl VirtualMethods for HTMLInputElement {
     // https://w3c.github.io/uievents/#default-action
     /// <https://dom.spec.whatwg.org/#action-versus-occurance>
     fn handle_event(&self, cx: &mut JSContext, event: &Event) {
-        if (event.type_() == atom!("compositionstart") ||
-            event.type_() == atom!("compositionupdate") ||
-            event.type_() == atom!("compositionend")) &&
-            self.input_type().is_textual_or_password() &&
-            event.IsTrusted()
-        {
-            if let Some(compositionevent) = event.downcast::<CompositionEvent>() {
-                if event.type_() == atom!("compositionend") {
-                    let action = self
-                        .text_input
-                        .borrow_mut()
-                        .handle_compositionend(compositionevent);
-                    self.handle_key_reaction(cx, action);
-                    self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
-                    self.update_placeholder_shown_state();
-                } else if event.type_() == atom!("compositionupdate") {
-                    let action = self
-                        .text_input
-                        .borrow_mut()
-                        .handle_compositionupdate(compositionevent);
-                    self.handle_key_reaction(cx, action);
-                    self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
-                    self.update_placeholder_shown_state();
-                } else if event.type_() == atom!("compositionstart") {
-                    // Update placeholder state when composition starts
-                    self.update_placeholder_shown_state();
-                }
-                event.mark_as_handled();
-            }
-        } else if let Some(event) = event.downcast::<FocusEvent>() {
+        if let Some(event) = event.downcast::<FocusEvent>() {
             self.handle_focus_event(cx, event)
         }
 

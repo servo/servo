@@ -61,37 +61,7 @@ pub(crate) trait TextControlElement {
     }
 
     fn perform_editing_action(&self, cx: &mut JSContext, action: EditingAction) -> bool {
-        let canceled = match action {
-            EditingAction::InsertText(ref text) => self.fire_beforeinput_event(
-                cx,
-                Some(text),
-                IsComposing::NotComposing,
-                InputEventType::InsertText,
-            ),
-            EditingAction::Backspace(_) => self.fire_beforeinput_event(
-                cx,
-                None,
-                IsComposing::NotComposing,
-                InputEventType::DeleteContentBackward,
-            ),
-            EditingAction::Delete => self.fire_beforeinput_event(
-                cx,
-                None,
-                IsComposing::NotComposing,
-                InputEventType::DeleteContentForward,
-            ),
-            EditingAction::InsertNewline | EditingAction::InsertParagraph
-                if self.text_input().mode() == Lines::Multiple =>
-            {
-                self.fire_beforeinput_event(
-                    cx,
-                    None,
-                    IsComposing::NotComposing,
-                    InputEventType::InsertLineBreak,
-                )
-            },
-            _ => false,
-        };
+        let canceled = self.maybe_fire_beforeinput_event_for_editing_action(cx, &action);
         if canceled {
             return false;
         }
@@ -103,6 +73,38 @@ pub(crate) trait TextControlElement {
 
         self.handle_key_reaction(cx, key_reaction);
         true // TODO: Return true if the action can have any effect.
+    }
+
+    /// Returns true if and only if the editing action should be canceled.
+    fn maybe_fire_beforeinput_event_for_editing_action(
+        &self,
+        cx: &mut JSContext,
+        action: &EditingAction,
+    ) -> bool {
+        let (data, event_type) = match action {
+            EditingAction::InsertText(text) => (Some(text.as_str()), InputEventType::InsertText),
+            EditingAction::InsertCompositionText(text) => {
+                (Some(text.as_str()), InputEventType::InsertCompositionText)
+            },
+            EditingAction::Backspace(_) => (None, InputEventType::DeleteContentBackward),
+            EditingAction::Delete => (None, InputEventType::DeleteContentForward),
+            EditingAction::InsertNewline | EditingAction::InsertParagraph
+                if self.text_input().mode() == Lines::Multiple =>
+            {
+                (None, InputEventType::InsertLineBreak)
+            },
+            _ => return false,
+        };
+        self.fire_beforeinput_event(
+            cx,
+            data,
+            if event_type == InputEventType::InsertCompositionText {
+                IsComposing::Composing
+            } else {
+                IsComposing::NotComposing
+            },
+            event_type,
+        )
     }
 
     /// <https://w3c.github.io/uievents/#event-type-beforeinput>
