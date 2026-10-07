@@ -743,7 +743,7 @@ impl HTMLImageElement {
         let Some((selected_source, selected_pixel_density)) = self
             .source_set
             .borrow_mut()
-            .select_image_source(self.upcast::<Element>())
+            .select_image_source(cx.no_gc(), self.upcast::<Element>())
         else {
             // Step 11. If selected source is null, then:
 
@@ -990,7 +990,7 @@ impl HTMLImageElement {
         let Some((selected_source, selected_pixel_density)) = self
             .source_set
             .borrow_mut()
-            .select_image_source(self.upcast::<Element>())
+            .select_image_source(cx.no_gc(), self.upcast::<Element>())
         else {
             // Step 4. If selected source is null, then return.
             return;

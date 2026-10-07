@@ -338,7 +338,7 @@ impl VirtualMethods for HTMLLinkElement {
                 // When the href attribute of the link element of an external resource link
                 // that is already browsing-context connected is changed.
                 if self.relations.get().contains(LinkRelations::PRELOAD) {
-                    self.handle_preload_url();
+                    self.handle_preload_url(cx.no_gc());
                 }
 
                 // https://html.spec.whatwg.org/multipage/#link-type-modulepreload
@@ -349,7 +349,7 @@ impl VirtualMethods for HTMLLinkElement {
             local_name!("imagesrcset") => {
                 self.source_set
                     .borrow_mut()
-                    .update_source_set(self.upcast::<Element>());
+                    .update_source_set(cx.no_gc(), self.upcast::<Element>());
             },
             local_name!("imagesizes") => {
                 if self
@@ -358,7 +358,7 @@ impl VirtualMethods for HTMLLinkElement {
                 {
                     self.source_set
                         .borrow_mut()
-                        .update_source_set(self.upcast::<Element>());
+                        .update_source_set(cx.no_gc(), self.upcast::<Element>());
                 }
             },
             local_name!("sizes") if self.relations.get().contains(LinkRelations::ICON) => {
@@ -386,7 +386,7 @@ impl VirtualMethods for HTMLLinkElement {
                 if self.relations.get().contains(LinkRelations::PRELOAD) &&
                     let AttributeMutation::Set(Some(_)) = mutation
                 {
-                    self.handle_preload_url();
+                    self.handle_preload_url(cx.no_gc());
                 }
             },
             local_name!("type") => {
@@ -409,7 +409,7 @@ impl VirtualMethods for HTMLLinkElement {
                 if self.relations.get().contains(LinkRelations::PRELOAD) &&
                     !self.previous_type_matched.get()
                 {
-                    self.handle_preload_url();
+                    self.handle_preload_url(cx.no_gc());
                 }
             },
             local_name!("media") => {
@@ -422,7 +422,7 @@ impl VirtualMethods for HTMLLinkElement {
                 {
                     match mutation {
                         AttributeMutation::Removed | AttributeMutation::Set(Some(_)) => {
-                            self.handle_preload_url()
+                            self.handle_preload_url(cx.no_gc())
                         },
                         _ => {},
                     };
@@ -501,7 +501,7 @@ impl VirtualMethods for HTMLLinkElement {
             }
 
             if relations.contains(LinkRelations::PRELOAD) {
-                self.handle_preload_url();
+                self.handle_preload_url(cx.no_gc());
             }
         }
     }
@@ -918,11 +918,11 @@ impl HTMLLinkElement {
 
     /// <https://html.spec.whatwg.org/multipage/#link-type-preload:fetch-and-process-the-linked-resource-2>
     /// and type matching destination steps of <https://html.spec.whatwg.org/multipage/#preload>
-    fn handle_preload_url(&self) {
+    fn handle_preload_url(&self, no_gc: &NoGC) {
         // Step 1. Update the source set for el.
         self.source_set
             .borrow_mut()
-            .update_source_set(self.upcast::<Element>());
+            .update_source_set(no_gc, self.upcast::<Element>());
         // Step 2. Let options be the result of creating link options from el.
         let mut options = self.processing_options();
         // Step 3. Let destination be the result of translating the keyword
