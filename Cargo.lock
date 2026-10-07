@@ -8809,6 +8809,7 @@ dependencies = [
 name = "servo-media"
 version = "0.7.0"
 dependencies = [
+ "log",
  "servo-base",
  "servo-media-audio",
  "servo-media-player",
