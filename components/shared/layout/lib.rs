@@ -724,6 +724,8 @@ pub struct ReflowRequestRestyle {
 pub struct ReflowRequestAccessibility {
     /// Damage to the accessibility tree from DOM mutations.
     pub damage: Vec<(TrustedNodeAddress, AccessibilityDamage)>,
+    /// The document's focused element at the time of the reflow, if any.
+    pub focused_element: Option<OpaqueNode>,
     /// Nodes which were removed from the DOM tree since the last reflow, which were rooted in
     /// [`AccessibilityData`]. Only set if [`pref::expensive_accessibility_test_assertions_enabled`]
     /// is set.

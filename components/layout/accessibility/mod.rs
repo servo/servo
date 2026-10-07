@@ -60,6 +60,7 @@ bitflags! {
 pub(super) struct AccessibilityContext<'update> {
     pub(super) layout_thread: &'update LayoutThread,
     pub(super) stacking_context_tree: &'update StackingContextTree,
+    pub(super) focused_element: Option<OpaqueNode>,
     pub(super) rooted_nodes_for_integrity_check: Option<FxHashSet<OpaqueNode>>,
 }
 
@@ -94,6 +95,8 @@ struct AccessibilityUpdate<'update> {
     accesskit_tree: Option<accesskit::Tree>,
     /// Nodes that changed their relation to the tree within the current update.
     tree_changes: FxHashMap<NodeId, TreeChange>,
+    /// Whether the tree's focused node has changed in this update.
+    focused_node_changed: bool,
     /// Counters to track how many nodes we've checked for changes or updated in this tree update.
     counters: UpdateCounters,
 
@@ -158,6 +161,8 @@ pub struct AccessibilityTree {
     /// All nodes currently in the tree as of the most recent update. New nodes are added and stale
     /// nodes are pruned during [`AccessibilityTree::update_tree()`].
     nodes: FxHashMap<NodeId, ArcRefCell<AccessibilityNode>>,
+    /// The node which has focus.
+    focused_node_id: Option<NodeId>,
     /// A map to allow retrieving the [`AccessibilityNode`] which corresponds to a particular DOM
     /// node, if any.
     ///
@@ -231,6 +236,7 @@ impl AccessibilityTree {
     pub(super) fn new(tree_id: accesskit::TreeId, embedder_epoch: Epoch) -> Self {
         Self {
             nodes: FxHashMap::default(),
+            focused_node_id: None,
             opaque_node_to_id: FxHashMap::default(),
             id_to_opaque_node: FxHashMap::default(),
             tree_id,
@@ -256,6 +262,8 @@ impl AccessibilityTree {
         self.ensure_root_node(root_dom_node, &context, &mut update);
 
         self.apply_changes_from_dom_tree(&context, &mut update);
+
+        self.update_focused_node(context.focused_element, &mut update);
 
         self.handle_pending_scroll_updates(&mut update);
 
@@ -459,9 +467,34 @@ impl AccessibilityTree {
         lowest_common_ancestor
     }
 
-    /// Get the [`AccessibilityNode`] corresponding to the given DOM node.
-    /// If there is no existing [`AccessibilityNode`] for this DOM node, it will be created and
-    /// marked as having [`AccessibilityDamage::Rebuild`] in `update`.
+    fn update_focused_node(
+        &mut self,
+        focused_element: Option<OpaqueNode>,
+        update: &mut AccessibilityUpdate,
+    ) {
+        let mut focused_node_id = None;
+        if let Some(focused_element) = focused_element &&
+            let Some(node_id) = self.existing_id_for_opaque(focused_element) &&
+            let Some(focused_node) = self.node_for_id(node_id)
+        {
+            let focused_node = focused_node.borrow();
+            if focused_node.role() == Role::GenericContainer {
+                // Avoid moving focus to a node which is effectively hidden from accessibility, but
+                // don't reset focus to the root node either.
+                focused_node_id = self.focused_node_id;
+            } else {
+                focused_node_id = Some(focused_node.id);
+            }
+        }
+
+        if focused_node_id == self.focused_node_id {
+            return;
+        }
+
+        update.focused_node_changed = true;
+        self.focused_node_id = focused_node_id;
+    }
+
     fn get_or_create_node(
         &mut self,
         dom_node: &ServoLayoutNode<'_>,
@@ -684,7 +717,7 @@ impl AccessibilityTree {
         };
 
         let mut print_tree = PrintTree::new("Accessibility Tree");
-        root_node.borrow().print(&mut print_tree);
+        root_node.borrow().print(&mut print_tree, self);
         print_tree.end_level();
     }
 }
@@ -1125,16 +1158,23 @@ impl AccessibilityNode {
         Some(text.trim().to_owned())
     }
 
-    fn print(&self, print_tree: &mut PrintTree) {
+    fn print(&self, print_tree: &mut PrintTree, tree: &AccessibilityTree) {
+        let focused = if tree.focused_node_id == Some(self.id) {
+            "[focused] "
+        } else {
+            ""
+        };
+        let node_string = format!("{focused}{self:?}");
+
         if self.child_nodes.is_empty() {
-            print_tree.add_item(format!("{self:?}"));
+            print_tree.add_item(node_string);
             return;
         }
 
-        print_tree.new_level(format!("{self:?}"));
+        print_tree.new_level(node_string);
 
         for child in self.children() {
-            child.borrow().print(print_tree);
+            child.borrow().print(print_tree, tree);
         }
         print_tree.end_level();
     }
@@ -1370,6 +1410,7 @@ impl<'update> AccessibilityUpdate<'update> {
             changed_nodes: FxHashSet::default(),
             accesskit_tree: None,
             tree_changes: FxHashMap::default(),
+            focused_node_changed: false,
             counters: UpdateCounters::default(),
             damage_map,
             dom_node_map: RefCell::new(dom_node_map),
@@ -1418,7 +1459,10 @@ impl<'update> AccessibilityUpdate<'update> {
     ) -> (Option<accesskit::TreeUpdate>, UpdateCounters) {
         let mut tree_update = None;
         let mut counters = std::mem::take(&mut self.counters);
-        if !self.changed_nodes.is_empty() || self.accesskit_tree.is_some() {
+        if !self.changed_nodes.is_empty() ||
+            self.accesskit_tree.is_some() ||
+            self.focused_node_changed
+        {
             let changed_nodes = std::mem::take(&mut self.changed_nodes);
             let accesskit_tree = std::mem::take(&mut self.accesskit_tree);
 
@@ -1431,11 +1475,18 @@ impl<'update> AccessibilityUpdate<'update> {
 
             counters.nodes_in_tree_update = changed_nodes.len().try_into().unwrap_or_default();
 
+            let focus = tree.focused_node_id.unwrap_or(
+                tree.root_node
+                    .as_ref()
+                    .expect("Root node must be set")
+                    .borrow()
+                    .id,
+            );
             tree_update = Some(accesskit::TreeUpdate {
                 // Filter out any nodes which were both changed and removed.
                 nodes: changed_nodes,
                 tree: accesskit_tree,
-                focus: NodeId(1),
+                focus,
                 tree_id: tree.tree_id,
             });
         } else {
@@ -1582,7 +1633,7 @@ fn test_accessibility_update_add_some_nodes_twice() {
             ],
             tree: None,
             tree_id: accesskit::TreeId::ROOT,
-            focus: NodeId(1),
+            focus: NodeId(0),
         }
     );
 }

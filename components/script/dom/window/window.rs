@@ -2721,11 +2721,17 @@ impl Window {
         {
             let rooted_nodes_for_integrity_check =
                 document.rooted_nodes_for_accessibility_integrity_check();
+            let focused_element = document
+                .focus_handler()
+                .focused_area()
+                .element()
+                .map(|element| element.upcast::<Node>().to_opaque());
             let damage = document
                 .accessibility_data_mut()
                 .drain_pending_accessibility_damage();
             Some(ReflowRequestAccessibility {
                 damage,
+                focused_element,
                 rooted_nodes_for_integrity_check,
             })
         } else {

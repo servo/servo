@@ -996,6 +996,7 @@ impl LayoutThread {
         let accessibility_context = AccessibilityContext {
             layout_thread: self,
             stacking_context_tree,
+            focused_element: reflow_accessibility.focused_element,
             rooted_nodes_for_integrity_check: reflow_accessibility.rooted_nodes_for_integrity_check,
         };
 
