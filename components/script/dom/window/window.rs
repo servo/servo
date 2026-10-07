@@ -51,8 +51,9 @@ use layout_api::{
     AccessibilityActionRequest, AxesOverflow, BoxAreaType, CSSPixelRectVec, FragmentType,
     HitTestFlags, LCPCandidate, Layout, LayoutImageDestination, PendingImage, PendingImageState,
     PendingRasterizationImage, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
-    ReflowRequestRestyle, ReflowStatistics, RestyleReason, ScrollContainerQueryFlags,
-    ScrollContainerResponse, TrustedNodeAddress, combine_id_with_fragment_type,
+    ReflowRequestAccessibility, ReflowRequestRestyle, ReflowStatistics, RestyleReason,
+    ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
+    combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
@@ -2717,14 +2718,21 @@ impl Window {
 
         let document_context = self.web_font_context(cx.no_gc());
 
-        let mut rooted_nodes_for_accessibility_integrity_check = None;
-        let mut accessibility_damage = None;
-        if reflow_goal == ReflowGoal::UpdateTheRendering && self.layout().accessibility_active() {
-            rooted_nodes_for_accessibility_integrity_check =
+        let accessibility = if reflow_goal == ReflowGoal::UpdateTheRendering &&
+            self.layout().accessibility_active()
+        {
+            let rooted_nodes_for_integrity_check =
                 document.rooted_nodes_for_accessibility_integrity_check();
-            let mut accessibility_data = document.accessibility_data_mut();
-            accessibility_damage = Some(accessibility_data.drain_pending_accessibility_damage());
-        }
+            let damage = document
+                .accessibility_data_mut()
+                .drain_pending_accessibility_damage();
+            Some(ReflowRequestAccessibility {
+                damage,
+                rooted_nodes_for_integrity_check,
+            })
+        } else {
+            None
+        };
 
         // Send new document and relevant styles to layout.
         let reflow = ReflowRequest {
@@ -2745,8 +2753,7 @@ impl Window {
             paint_timing_eligible: document.paint_timing_eligible(),
             paint_timing_info: document.paint_timing_info(),
             document_context,
-            accessibility_damage,
-            rooted_nodes_for_accessibility_integrity_check,
+            accessibility,
         };
 
         let Some(reflow_result) = self.layout.borrow_mut().reflow(reflow) else {

@@ -25,8 +25,8 @@ use layout_api::{
     DangerousStyleNode, HitTestFlags, HitTestResult, IFrameSizes, Layout, LayoutConfig,
     LayoutDamage, LayoutElement, LayoutFactory, LayoutNode, NodeRenderingType,
     OffsetParentResponse, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
-    ReflowRequestRestyle, ReflowResult, ReflowStatistics, ScrollContainerQueryFlags,
-    ScrollContainerResponse, TrustedNodeAddress, with_layout_state,
+    ReflowRequestAccessibility, ReflowRequestRestyle, ReflowResult, ReflowStatistics,
+    ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress, with_layout_state,
 };
 use log::{debug, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
@@ -39,7 +39,7 @@ use profile_traits::time::{
     self as profile_time, TimerMetadata, TimerMetadataFrameType, TimerMetadataReflowType,
 };
 use profile_traits::{path, time_profile};
-use rustc_hash::{FxHashMap, FxHashSet};
+use rustc_hash::FxHashMap;
 use script::layout_dom::{
     ServoDangerousStyleDocument, ServoDangerousStyleElement, ServoLayoutElement, ServoLayoutNode,
 };
@@ -904,7 +904,7 @@ impl LayoutThread {
             return false;
         }
         // If the accessibility tree needs an update, we need reflow to build the accessibility tree.
-        if self.needs_accessibility_update() || reflow_request.accessibility_damage.is_some() {
+        if self.needs_accessibility_update() || reflow_request.accessibility.is_some() {
             return false;
         }
 
@@ -966,10 +966,13 @@ impl LayoutThread {
         &self,
         root_element: &ServoLayoutNode,
         accessibility_damage: Option<AccessibilityDamageMap>,
-        rooted_nodes: Option<FxHashSet<OpaqueNode>>,
+        reflow_accessibility: Option<ReflowRequestAccessibility>,
         pending_accessibility_actions: &mut Vec<AccessibilityActionRequest>,
         reflow_statistics: &mut ReflowStatistics,
     ) -> bool {
+        let Some(reflow_accessibility) = reflow_accessibility else {
+            return false;
+        };
         let Some(damage) = accessibility_damage else {
             return false;
         };
@@ -984,9 +987,6 @@ impl LayoutThread {
 
         let accessibility_tree = &mut *accessibility_tree;
 
-        // Check for the stacking context tree before draining any state out of `reflow_request`, so
-        // that we don't discard accessibility damage if it is missing. In practice it is always
-        // present here, since we only reach this method for an `UpdateTheRendering` reflow.
         let stacking_context_tree = self.stacking_context_tree.borrow();
         let Some(stacking_context_tree) = stacking_context_tree.as_ref() else {
             return false;
@@ -996,6 +996,7 @@ impl LayoutThread {
         let accessibility_context = AccessibilityContext {
             layout_thread: self,
             stacking_context_tree,
+            rooted_nodes_for_integrity_check: reflow_accessibility.rooted_nodes_for_integrity_check,
         };
 
         let action_requests = self.pending_accessibility_actions.take();
@@ -1005,7 +1006,6 @@ impl LayoutThread {
             damage,
             action_requests,
             accessibility_context,
-            rooted_nodes,
         );
         if let Some(tree_update) = tree_update {
             // FIXME: Handle send error. Could have a method on accessibility tree to
@@ -1071,8 +1071,12 @@ impl LayoutThread {
         });
         let mut reflow_statistics = Default::default();
 
-        let mut accessibility_damage =
-            to_accessibility_damage_map(std::mem::take(&mut reflow_request.accessibility_damage));
+        let mut reflow_accessibility = std::mem::take(&mut reflow_request.accessibility);
+        let mut accessibility_damage = to_accessibility_damage_map(
+            reflow_accessibility
+                .as_mut()
+                .map(|accessibility| std::mem::take(&mut accessibility.damage)),
+        );
 
         let (mut reflow_phases_run, iframe_sizes, changed_web_fonts) = self
             .restyle_and_build_trees(
@@ -1096,7 +1100,7 @@ impl LayoutThread {
         if self.handle_accessibility_tree_update(
             &root_element.as_node(),
             accessibility_damage,
-            reflow_request.rooted_nodes_for_accessibility_integrity_check,
+            reflow_accessibility,
             &mut pending_accessibility_actions,
             &mut reflow_statistics,
         ) {
