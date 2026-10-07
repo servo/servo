@@ -39,6 +39,7 @@ use url::Position;
 use crate::dom::bindings::codegen::Bindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::document::AbortReason;
 use crate::dom::element::Element;
 use crate::dom::html::htmliframeelement::HTMLIFrameElement;
 use crate::dom::node::node::NodeTraits;
@@ -556,7 +557,7 @@ pub(crate) fn navigate(
         .task_manager()
         .navigation_and_traversal_task_source()
         .queue(task!(abort_a_document_and_its_descendants: move |cx| {
-            trusted_document.root().abort_a_document_and_its_descendants(cx);
+            trusted_document.root().abort_a_document_and_its_descendants(cx, AbortReason::Navigate);
         }));
 
     // Step 24.9. Attempt to populate the history entry's document for historyEntry,
