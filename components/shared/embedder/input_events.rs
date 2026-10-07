@@ -190,6 +190,10 @@ pub struct MouseButtonEvent {
     pub action: MouseButtonAction,
     pub button: MouseButton,
     pub point: WebViewPoint,
+    #[doc(hidden)]
+    // An internal flag marking a compatibility mouse event synthesized for a
+    // touch/pen tap. Such events must not generate pointer events.
+    pub is_compatibility_event_for_touch: bool,
 }
 
 impl MouseButtonEvent {
@@ -198,6 +202,21 @@ impl MouseButtonEvent {
             action,
             button,
             point,
+            is_compatibility_event_for_touch: false,
+        }
+    }
+
+    #[doc(hidden)]
+    pub fn new_compatibility_for_touch(
+        action: MouseButtonAction,
+        button: MouseButton,
+        point: WebViewPoint,
+    ) -> Self {
+        Self {
+            action,
+            button,
+            point,
+            is_compatibility_event_for_touch: true,
         }
     }
 }

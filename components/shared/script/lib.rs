@@ -18,7 +18,7 @@ use crossbeam_channel::RecvTimeoutError;
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use embedder_traits::user_contents::{UserContentManagerId, UserContents};
 use embedder_traits::{
-    EmbedderControlId, EmbedderControlResponse, FocusSequenceNumber, InputEventAndId,
+    EmbedderControlId, EmbedderControlResponse, FocusSequenceNumber, InputEvent, InputEventAndId,
     JavaScriptEvaluationId, MediaSessionActionType, MouseButton, PaintHitTestResult,
     ScriptToEmbedderChan, Theme, ViewportDetails, WebDriverScriptCommand,
 };
@@ -434,6 +434,15 @@ impl ConstellationInputEvent {
     /// Returns whether `pressed_mouse_buttons` includes the auxiliary (middle) button
     pub fn auxiliary_button_is_pressed(&self) -> bool {
         self.pressed_mouse_buttons.contains(MouseButtons::Auxiliary)
+    }
+
+    /// Returns whether this is a compatibility mouse event synthesized for a touch.
+    pub fn is_compatibility_event_for_touch(&self) -> bool {
+        match self.event.event {
+            InputEvent::MouseMove(ref event) => event.is_compatibility_event_for_touch,
+            InputEvent::MouseButton(ref event) => event.is_compatibility_event_for_touch,
+            _ => false,
+        }
     }
 }
 
