@@ -6334,9 +6334,9 @@ dependencies = [
 
 [[package]]
 name = "ohos-vsync-sys"
-version = "0.1.6"
+version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "41d5d6c8e9a296dab3b7631db09cc0e1cf718ab39a705f17611966d307fef603"
+checksum = "8ab595808abdcdc644d3ee0a9ce3a16ed176edda3ea433f36fa99926fc6fc848"
 
 [[package]]
 name = "ohos-window-manager-sys"
