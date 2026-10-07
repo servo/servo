@@ -222,7 +222,7 @@ impl FileManager {
                     return;
                 }
                 let length = {
-                    let buffer = reader.fill_buf().unwrap().to_vec();
+                    let buffer = reader.fill_buf().unwrap();
                     let mut buffer_len = buffer.len();
                     if let ResponseBody::Receiving(ref mut body) = *res_body.lock() {
                         let offset = usize::min(
