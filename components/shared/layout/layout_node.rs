@@ -190,7 +190,7 @@ pub trait LayoutNode<'dom>: Copy + Debug + NodeInfo + Send + Sync {
     /// If this is an image element, returns its URL. If this is not an image element, fails.
     fn image_url(&self) -> Option<ServoUrl>;
 
-    /// If this is an image element, returns the time its image request finished loading.
+    /// If this is an image element, returns the time when image request finished loading.
     fn load_time(&self) -> Option<CrossProcessInstant>;
 
     /// If this is an image element, returns its current-pixel-density. If this is not an image element, fails.

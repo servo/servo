@@ -58,7 +58,7 @@ pub struct VectorImage {
     pub svg_id: Option<Uuid>,
     pub metadata: ImageMetadata,
     pub cors_status: CorsStatus,
-    pub load_time: CrossProcessInstant,
+    pub load_time: Option<CrossProcessInstant>,
 }
 
 impl Image {
@@ -86,7 +86,7 @@ impl Image {
     pub fn load_time(&self) -> Option<CrossProcessInstant> {
         match self {
             Image::Raster(image) => image.load_time,
-            Image::Vector(image) => Some(image.load_time),
+            Image::Vector(image) => image.load_time,
         }
     }
 }

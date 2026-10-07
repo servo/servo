@@ -351,6 +351,9 @@ struct PendingLoad {
     /// Once loading is complete, the result of the operation.
     result: Option<Result<(), NetworkError>>,
 
+    /// The time when the response finished loading.
+    response_end: Option<CrossProcessInstant>,
+
     /// The listeners that are waiting for this response to complete.
     listeners: Vec<ImageLoadListener>,
 
@@ -384,6 +387,7 @@ impl PendingLoad {
             bytes: ImageBytes::InProgress(vec![]),
             metadata: None,
             result: None,
+            response_end: None,
             listeners: vec![],
             url,
             load_origin,
@@ -678,7 +682,7 @@ impl ImageCacheStore {
         let image_response = match load_result {
             LoadResult::LoadedRasterImage(mut raster_image) => {
                 assert!(raster_image.id.is_some());
-                raster_image.load_time = Some(CrossProcessInstant::now());
+                raster_image.load_time = pending_load.response_end;
                 ImageResponse::Loaded(Image::Raster(Arc::new(raster_image)), url.unwrap())
             },
             LoadResult::LoadedVectorImage(vector_image) => {
@@ -694,7 +698,7 @@ impl ImageCacheStore {
                     svg_id: None,
                     metadata,
                     cors_status: vector_image.cors_status,
-                    load_time: CrossProcessInstant::now(),
+                    load_time: pending_load.response_end,
                 };
                 ImageResponse::Loaded(Image::Vector(vector_image), url.unwrap())
             },
@@ -1293,7 +1297,7 @@ impl ImageCache for ImageCacheImpl {
                     debug!("Pending load for id {:?} already evicted from cache", id);
                 }
             },
-            (FetchResponseMsg::ProcessResponseEOF(_, result, _), key) => {
+            (FetchResponseMsg::ProcessResponseEOF(_, result, timing), key) => {
                 debug!("Received EOF for {:?}", key);
                 match result {
                     Ok(_) => {
@@ -1301,6 +1305,9 @@ impl ImageCache for ImageCacheImpl {
                             let mut store = self.store.lock();
                             if let Some(pending_load) = store.pending_loads.get_by_key_mut(&id) {
                                 pending_load.result = Some(Ok(()));
+                                pending_load.response_end = Some(
+                                    timing.response_end.unwrap_or_else(CrossProcessInstant::now),
+                                );
                                 debug!("Async decoding {} ({:?})", pending_load.url, key);
                                 (
                                     pending_load.bytes.mark_complete(),

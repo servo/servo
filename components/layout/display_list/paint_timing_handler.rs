@@ -592,6 +592,7 @@ impl PaintTimingHandler {
             clip_rect,
             transform,
             url: None,
+            load_time: None,
             natural_width,
             natural_height,
         };
