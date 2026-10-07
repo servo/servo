@@ -1,56 +1,49 @@
-import promptAction from '@ohos.promptAction';
+import { BusinessError } from '@ohos.base';
 import servoshell from 'libservoshell.so';
 
-function prompt_toast(msg: string) {
-  promptAction.showToast({
-    message: msg,
-    duration: 2000
-  });
-}
-
-// Use the getShared API to obtain the LocalStorage instance shared by stage.
-let storage = LocalStorage.getShared()
-
-@Entry(storage)
+@Entry({ useSharedStorage: true })
 @Component
 struct Index {
-  xComponentAttrs: XComponentAttrs = {
-    id: 'ServoDemo',
-    type: XComponentType.SURFACE,
-    libraryname: 'servoshell',
-  }
-
   // The state seem to be required to be on the top.
   @State urlToLoad: string = ""
   @State tablist: Array<number> = [0];
-  @State currentIndex: number = 0;
+  @State currentId: number = 0;
+  private nextTabId: number = 1;
 
-  @Builder tabBuilder(title: string, index: number) {
+  @Builder
+  tabBuilder(id: number, index: number) {
     Row() {
+      // TODO: Hook-up title here.
       Text(String(index))
         .padding('10pt')
       Button('X')
-      .backgroundColor('#00000000')
-      .visibility(this.tablist.length>1 && index != 0 ? Visibility.Visible: Visibility.Hidden)
-      .fontColor(Color.Black)
-      .fontWeight(FontWeight.Bolder)
-      .onClick((event) => {
-          this.currentIndex = 0;
+        .backgroundColor('#00000000')
+        .visibility(this.tablist.length > 1 && index != 0 ? Visibility.Visible : Visibility.Hidden)
+        .fontColor(Color.Black)
+        .fontWeight(FontWeight.Bolder)
+        .onClick((event) => {
+          this.currentId = this.tablist[0];
           servoshell.deleteWebview(index, this.tablist);
-          this.tablist.splice(index,1);
+          this.tablist.splice(index, 1);
+          // TODO: Instead of defaulting to 0, remember the previously focused Webview.
+          servoshell.focusWebview(0, this.tablist)
         })
     }
     .width(65)
     .height(40)
     .justifyContent(FlexAlign.Center)
-    .backgroundColor(this.currentIndex === index ? '#1B8381': Color.White)
+    .backgroundColor(this.currentId === id ? '#1B8381' : Color.White)
     .borderRadius(10)
     .shadow({
-          radius: 10,
-          color: Color.Gray,
-          offsetX: 10,
-          offsetY: 10
-        })
+      radius: 10,
+      color: Color.Gray,
+      offsetX: 10,
+      offsetY: 10
+    })
+    .onClick(() => {
+      this.currentId = id;
+      servoshell.focusWebview(index, this.tablist)
+    })
   }
 
   aboutToAppear(): void {
@@ -59,7 +52,18 @@ struct Index {
       console.info('New URL from native: ', new_url)
       this.urlToLoad = new_url
     })
-    servoshell.registerPromptToastCallback(prompt_toast)
+    const promptAction = this.getUIContext().getPromptAction();
+    servoshell.registerPromptToastCallback((msg: string) => {
+      try {
+        promptAction.showToast({
+          message: msg,
+          duration: 2000
+        });
+      } catch (error) {
+        let err = error as BusinessError;
+        console.warn(`showToast failed with error code ${err.code}, message: ${err.message}`);
+      }
+    })
   }
 
   // Called when the user swipes from the right or left edge to the middle
@@ -73,7 +77,7 @@ struct Index {
     // We originally use `Column()` here, but for some reason the column
     // extends beyond the edge of the screen. This does not happen with
     // Flex.
-    Flex({ direction: FlexDirection.Column}) {
+    Flex({ direction: FlexDirection.Column }) {
       Row() {
         Button('+')
           .backgroundColor(Color.White)
@@ -82,10 +86,11 @@ struct Index {
           .fontSize(22)
           .width('12%')
           .onClick((event) => {
-            const new_id = this.tablist[this.tablist.length-1]+1;
-            // the order is important as setting the new index will automatically create a new surface.
+            const new_id = this.nextTabId++;
+            // the order is important as adding a new tab will automatically create a new surface.
             servoshell.nextWindowId(new_id);
-            this.currentIndex = this.tablist.push(new_id) - 1;
+            this.tablist.push(new_id)
+            this.currentId = new_id;
           })
         Button('⇦')
           .backgroundColor(Color.White)
@@ -117,28 +122,33 @@ struct Index {
           })
       }
 
-      Tabs({ barPosition: BarPosition.Start, index: this.currentIndex}) {
+      List({ space: 10 }) {
         ForEach(this.tablist, (item: number, index: number) => {
-          TabContent() {
-            XComponent(this.xComponentAttrs)
-              .focusable(true)
-              .focusOnTouch(true)
-          }.tabBar(this.tabBuilder(String(item), index))
+          ListItem() {
+            this.tabBuilder(item, index)
+          }
         })
-      }.barHeight(40)
-      .scrollable(false)
-      .onChange((index: number) => {
-        this.currentIndex = index;
-        servoshell.focusWebview(index, this.tablist);
-      })
+      }
+      .listDirection(Axis.Horizontal)
+      .height(40)
+      .width('100%')
+      .padding({ left: 10, right: 10 })
+      .backgroundColor('#e1e1e1')
+
+      Stack() {
+        ForEach(this.tablist, (item: number) => {
+          XComponent({ id: 'servo-window-' + item, type: XComponentType.SURFACE, libraryname: 'servoshell' })
+            .width('100%')
+            .height('100%')
+            .visibility(this.currentId === item ? Visibility.Visible : Visibility.Hidden)
+            .focusable(true)
+            .focusOnTouch(true)
+        }, (item: number) => String(item))
+      }
+      .flexGrow(1)
+      .width('100%')
       .backgroundColor('#e1e1e1')
     }
     .width('100%')
   }
-}
-
-interface XComponentAttrs {
-  id: string;
-  type: number;
-  libraryname: string;
 }
