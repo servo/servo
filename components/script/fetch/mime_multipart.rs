@@ -246,12 +246,12 @@ fn inner<R: BufRead>(
             let mut output = Vec::with_capacity(2 + boundary.len());
             output.push(b'\r');
             output.push(b'\n');
-            output.extend(boundary.clone());
+            output.extend_from_slice(&boundary);
             (vec![b'\r', b'\n'], vec![b'\r', b'\n', b'\r', b'\n'], output)
         } else if !peeker.is_empty() && peeker[0] == b'\n' {
             let mut output = Vec::with_capacity(1 + boundary.len());
             output.push(b'\n');
-            output.extend(boundary.clone());
+            output.extend_from_slice(&boundary);
             (vec![b'\n'], vec![b'\n', b'\n'], output)
         } else {
             return Err(Error::NoCrLfAfterBoundary);
@@ -352,7 +352,7 @@ fn inner<R: BufRead>(
         if is_file {
             // Setup a file to capture the contents.
             let mut filepart = FilePart::create(part_headers)?;
-            let mut file = File::create(filepart.path.clone())?;
+            let mut file = File::create(&filepart.path)?;
 
             // Stream out the file.
             let (read, found) = reader.stream_until_token(&lt_boundary, &mut file)?;
