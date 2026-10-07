@@ -4317,7 +4317,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
         let (metadata, origin_clean) = match metadata {
             Ok(fetch_metadata) => {
-                let is_cross_origin = !fetch_metadata.is_cors_cross_origin();
+                let is_cross_origin = fetch_metadata.is_cors_cross_origin();
                 (Some(fetch_metadata.into()), !is_cross_origin)
             },
             Err(_) => (None, true),
