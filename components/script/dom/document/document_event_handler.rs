@@ -118,9 +118,7 @@ impl ClickCountingInfo {
             Instant::now().duration_since(previous_time) > double_click_timeout ||
             distance > double_click_distance_threshold as f64
         {
-            self.count = 0;
-            self.time = None;
-            self.point = None;
+            self.reset_click_count();
         }
     }
 
@@ -134,6 +132,12 @@ impl ClickCountingInfo {
         self.button = Some(button);
         self.count += 1;
         self.count
+    }
+
+    fn reset_click_count(&mut self) {
+        self.count = 0;
+        self.time = None;
+        self.point = None;
     }
 }
 
@@ -1595,13 +1599,24 @@ impl DocumentEventHandler {
 
         // Generate the compatibility mouse events synchronously as part of
         // `touchend`, before the embedder is told the touch event was handled.
-        if matches!(event.event_type, TouchEventType::Up) &&
+        let synthesizes_mouse_events = matches!(event.event_type, TouchEventType::Up) &&
             event.can_synthesize_mouse_events &&
             self.touch_sequence_click_allowed.get() &&
             !flags.contains(EventFlags::Canceled) &&
-            self.active_touch_points.borrow().is_empty()
-        {
+            self.active_touch_points.borrow().is_empty();
+
+        if synthesizes_mouse_events {
             self.synthesize_compatibility_mouse_events(cx, &event, input_event);
+        } else if matches!(
+            event.event_type,
+            TouchEventType::Up | TouchEventType::Cancel
+        ) {
+            // A touchend that doesn't synthesize compatibility mouse events ends the
+            // click sequence.
+            // See https://github.com/servo/servo/issues/46497#issuecomment-6030515485>
+            self.click_counting_info
+                .safe_borrow_mut(cx.no_gc())
+                .reset_click_count();
         }
 
         flags.into()
