@@ -32,7 +32,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::documentfragment::DocumentFragment;
 use crate::dom::node::Node;
@@ -45,7 +45,7 @@ use crate::dom::window::Window;
 #[dom_struct]
 pub(crate) struct VTTCue {
     texttrackcue: TextTrackCue,
-    region: DomRefCell<Option<Dom<VTTRegion>>>,
+    region: MutNullableDom<VTTRegion>,
     vertical: Cell<DirectionSetting>,
     snap_to_lines: Cell<bool>,
     line: DomRefCell<LineAndPositionSetting>,
@@ -83,7 +83,7 @@ impl VTTCue {
                 RulesForUpdatingTheTextTrackRendering::WebVTT,
             ),
             text: DomRefCell::new(text),
-            region: DomRefCell::new(None),
+            region: MutNullableDom::new(None),
             vertical: Cell::new(vertical),
             snap_to_lines: Cell::new(snap_to_lines),
             line: DomRefCell::new(line),
@@ -335,15 +335,12 @@ impl VTTCueMethods<crate::DomTypeHolder> for VTTCue {
 
     /// <https://w3c.github.io/webvtt/#dom-vttcue-region>
     fn GetRegion(&self) -> Option<DomRoot<VTTRegion>> {
-        self.region
-            .borrow()
-            .as_ref()
-            .map(|r| DomRoot::from_ref(&**r))
+        self.region.get()
     }
 
     /// <https://w3c.github.io/webvtt/#dom-vttcue-region>
     fn SetRegion(&self, value: Option<&VTTRegion>) {
-        *self.region.borrow_mut() = value.map(Dom::from_ref)
+        self.region.set(value);
     }
 
     /// <https://w3c.github.io/webvtt/#dom-vttcue-vertical>
