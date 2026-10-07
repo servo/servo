@@ -209,7 +209,6 @@ impl FetchResponseListener for ScriptFetchContext {
         _request_id: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
-        _body: Option<servo_arc::Arc<parking_lot::Mutex<net_traits::response::ResponseBody>>>,
     ) {
         let scope = self.scope.root();
 

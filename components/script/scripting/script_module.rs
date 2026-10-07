@@ -447,7 +447,6 @@ impl FetchResponseListener for ModuleContext {
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
-        _body: Option<servo_arc::Arc<parking_lot::Mutex<net_traits::response::ResponseBody>>>,
     ) {
         let global = self.owner.root();
         let (_url, module_type) = &self.module_request;
