@@ -1021,16 +1021,14 @@ impl TextControlElement for HTMLInputElement {
             selection
         };
 
-        if let Some(text_input_widget) = self.input_type.borrow().as_specific().text_input_widget()
+        // If an already laid out text run exists, we only need to repaint. If it doesn't
+        // exist (or the layout box is for different element type), it indicates that
+        // layout is not up-to-date and layout will get the selection value from the DOM
+        // when it rebuilds the box tree.
+        if let Some(text_input_widget) = self.input_type.borrow().as_specific().text_input_widget() &&
+            text_input_widget.borrow().set_text_run_selection(selection)
         {
-            if text_input_widget.borrow().set_text_run_selection(selection) {
-                // Found an already laid out text run to update, so we only need to repaint:
-                self.owner_window().layout().set_needs_new_display_list();
-            } else {
-                // If there isn’t a text run, layout is pending to create it anyway
-            }
-        } else {
-            // Non-text input type. Would this be even called?
+            self.owner_window().layout().set_needs_new_display_list();
         }
     }
 
@@ -1066,6 +1064,7 @@ impl TextControlElement for HTMLInputElement {
                 self.value_dirty.set(true);
                 self.update_placeholder_shown_state();
                 self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
+                self.maybe_update_shared_selection();
             },
             KeyReaction::RedrawSelection => {
                 self.maybe_update_shared_selection();
