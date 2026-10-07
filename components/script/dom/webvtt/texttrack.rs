@@ -16,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{
 };
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom, UnrootedDom};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom, UnrootedDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::element::Element;
 use crate::dom::eventtarget::EventTarget;
@@ -44,8 +44,8 @@ pub(crate) struct TextTrack {
     cue_list: MutNullableDom<TextTrackCueList>,
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-activecues>
     active_cue_list: MutNullableDom<TextTrackCueList>,
-    track_list: DomRefCell<Option<Dom<TextTrackList>>>,
-    associated_track: DomRefCell<Option<Dom<HTMLTrackElement>>>,
+    track_list: MutNullableDom<TextTrackList>,
+    associated_track: MutNullableDom<HTMLTrackElement>,
     /// <https://html.spec.whatwg.org/multipage/#rules-for-updating-the-text-track-rendering>
     rules_for_updating_the_text_track_rendering:
         Cell<Option<RulesForUpdatingTheTextTrackRendering>>,
@@ -69,7 +69,7 @@ impl TextTrack {
             mode: Cell::new(mode),
             cue_list: Default::default(),
             active_cue_list: Default::default(),
-            track_list: DomRefCell::new(track_list.map(Dom::from_ref)),
+            track_list: MutNullableDom::new(track_list),
             associated_track: Default::default(),
             rules_for_updating_the_text_track_rendering: Default::default(),
         }
@@ -125,30 +125,24 @@ impl TextTrack {
     }
 
     pub(crate) fn track_list(&self) -> Option<DomRoot<TextTrackList>> {
-        self.track_list
-            .borrow()
-            .as_ref()
-            .map(|track_list| track_list.as_rooted())
+        self.track_list.get()
     }
 
     pub(crate) fn add_track_list(&self, track_list: &TextTrackList) {
-        *self.track_list.borrow_mut() = Some(Dom::from_ref(track_list));
+        self.track_list.set(Some(track_list));
     }
 
     pub(crate) fn remove_track_list(&self) {
-        *self.track_list.borrow_mut() = None;
+        self.track_list.set(None);
     }
 
     pub(crate) fn associated_track(&self) -> Option<DomRoot<HTMLTrackElement>> {
-        self.associated_track
-            .borrow()
-            .as_ref()
-            .map(|track| DomRoot::from_ref(&**track))
+        self.associated_track.get()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#sourcing-out-of-band-text-tracks>
     pub(crate) fn set_associated_track(&self, track_element: &HTMLTrackElement) {
-        *self.associated_track.borrow_mut() = Some(Dom::from_ref(track_element));
+        self.associated_track.set(Some(track_element));
         // > When a track element is created, it must be associated with
         // > a new text track (with its value set as defined below).
         self.update_attributes_from_track_element(track_element);
@@ -201,7 +195,7 @@ impl TextTrack {
         self.mode.set(value);
         // https://html.spec.whatwg.org/multipage/#sourcing-out-of-band-text-tracks:start-the-track-processing-model
         // > The text track has its text track mode changed.
-        if let Some(track_element) = self.associated_track.borrow().as_ref() {
+        if let Some(track_element) = self.associated_track.get() {
             track_element.start_the_track_processing_model(cx);
         }
     }
