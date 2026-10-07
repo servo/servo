@@ -130,31 +130,33 @@ impl PlatformWindow for EmbeddedPlatformWindow {
         let load_status_changed = Some(new_load_status) != self.current_load_status.get();
         if load_status_changed {
             self.host.notify_load_status_changed(new_load_status);
-
-            #[cfg(all(feature = "tracing", feature = "tracing-hitrace"))]
-            if new_load_status == LoadStatus::Complete {
-                let (callback, receiver) =
-                    servo_base::generic_channel::GenericCallback::new_blocking()
-                        .expect("Could not create channel");
-                state.servo().create_memory_report(callback);
-                std::thread::spawn(move || {
-                    let result = receiver.recv().expect("Could not get memory report");
-                    let reports = result
-                        .results
-                        .first()
-                        .expect("We should have some memory report");
-                    let search_string = String::from("resident-according-to-smaps");
-                    let sum = reports
-                        .reports
-                        .iter()
-                        .filter(|report| report.path.contains(&search_string))
-                        .map(|report| report.size)
-                        .sum::<usize>();
-                    hitrace::trace_metric_str(
-                        "servo_memory_profiling:resident-according-to-smaps/sum",
-                        sum as i64,
-                    );
-                });
+            if state.servoshell_preferences.memory_output && new_load_status == LoadStatus::Complete
+            {
+                #[cfg(all(feature = "tracing", feature = "tracing-hitrace"))]
+                {
+                    let (callback, receiver) =
+                        servo_base::generic_channel::GenericCallback::new_blocking()
+                            .expect("Could not create channel");
+                    state.servo().create_memory_report(callback);
+                    std::thread::spawn(move || {
+                        let result = receiver.recv().expect("Could not get memory report");
+                        let reports = result
+                            .results
+                            .first()
+                            .expect("We should have some memory report");
+                        let search_string = String::from("resident-according-to-smaps");
+                        let sum = reports
+                            .reports
+                            .iter()
+                            .filter(|report| report.path.contains(&search_string))
+                            .map(|report| report.size)
+                            .sum::<usize>();
+                        hitrace::trace_metric_str(
+                            "servo_memory_profiling:resident-according-to-smaps/sum",
+                            sum as i64,
+                        );
+                    });
+                }
             }
         }
 
