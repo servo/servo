@@ -319,7 +319,7 @@ impl std::fmt::Debug for DOMStringType {
 /// expensive. For now, you should assume that all the functions incur this
 /// conversion cost.
 #[repr(transparent)]
-#[derive(Debug, Default, MallocSizeOf, JSTraceable)]
+#[derive(Clone, Debug, Default, MallocSizeOf, JSTraceable)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub struct TracedDOMString(RefCell<DOMStringType>);
 
@@ -347,20 +347,9 @@ impl Deref for DOMString {
     }
 }
 
-impl Clone for TracedDOMString {
-    fn clone(&self) -> Self {
-        TracedDOMString(RefCell::new(DOMStringType::Rust(
-            self.ensure_rust_string().clone(),
-        )))
-    }
-}
-
 impl Clone for DOMString {
     fn clone(&self) -> Self {
-        TracedDOMString(RefCell::new(DOMStringType::Rust(
-            self.ensure_rust_string().clone(),
-        )))
-        .root()
+        self.0.clone().root()
     }
 }
 
