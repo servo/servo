@@ -10997,7 +10997,7 @@
      []
     ],
     "input-events.js": [
-     "d5c471f80064d5d848283d833c49cfe36f2475e2",
+     "7719729157c8b92c0d6a37c4431100f1b8383639",
      []
     ]
    },
@@ -13476,8 +13476,26 @@
       }
      ]
     ],
+    "double-and-triple-click-in-document.html": [
+     "f4493be4224f601466bef3807276a6b82b97f28d",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
     "double-and-triple-click-in-text-input.html": [
      "d54e4abc508dfeb1ec2fe24710f9611708b7ad38",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
+    "double-and-triple-click-then-drag-in-document.html": [
+     "815e0209f2b69e06f157281c722dd6d713320100",
      [
       null,
       {

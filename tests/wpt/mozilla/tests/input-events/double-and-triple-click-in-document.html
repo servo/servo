@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<title>Double and triple clicking in document text should select words / lines</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="input-events.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<div id="targetA" style="font: 25px/1 Ahem; width: min-content;">AAAA AAAA AAAA AAAA AAAA</div>
+<div id="targetB" style="font: 25px/1 Ahem; width: max-content;">BBBB BBBB BBBB</div>
+<div id="targetC" style="font: 25px/1 Ahem; width: max-content;">CCC1 CCCC CCCC<br>CCC2 CCCC CCCC<br>CCC3 CCCC CCCC<br></div>
+<pre id="targetD" style="font: 25px/1 Ahem; width: max-content;">DDD1 DDDD DDDD
+DDD2 DDDD DDDD
+DDD3 DDDD DDDD</pre>
+
+<script>
+promise_setup(() => document.fonts.ready);
+
+async function doubleClickAtPointAndAssertSelection(x, y, anchorNode, anchorOffset, focusNode, focusOffset) {
+    await doubleClickAtPoint(x, y);
+    assertSelection(anchorNode, anchorOffset, focusNode, focusOffset);
+}
+
+async function tripleClickAtPointAndAssertSelection(x, y, anchorNode, anchorOffset, focusNode, focusOffset) {
+    await tripleClickAtPoint(x, y);
+    assertSelection(anchorNode, anchorOffset, focusNode, focusOffset);
+}
+
+promise_test(async test => {
+    let targetRect = targetA.getBoundingClientRect()
+    let middleOfBlock = targetRect.top + (targetRect.height / 2);
+    let middleOfInline = targetRect.left + (targetRect.width / 2);
+    let textChild = targetA.childNodes[0];
+
+    await doubleClickAtPointAndAssertSelection(middleOfInline, middleOfBlock, textChild, 10, textChild, 14);
+    await tripleClickAtPointAndAssertSelection(middleOfInline, middleOfBlock, textChild, 0, textChild, 24);
+}, 'Double and triple click with soft wrap works as expected');
+
+promise_test(async test => {
+    let targetRect = targetB.getBoundingClientRect()
+    let middleOfBlock = targetRect.top + (targetRect.height / 2);
+    let middleOfInline = targetRect.left + (targetRect.width / 2);
+    let textChild = targetB.childNodes[0];
+
+    // Double click on first , middle, and last words.
+    await doubleClickAtPointAndAssertSelection(targetRect.left + 10, middleOfBlock, textChild, 0, textChild, 4);
+    await doubleClickAtPointAndAssertSelection(middleOfInline, middleOfBlock, textChild, 5, textChild, 9);
+    await doubleClickAtPointAndAssertSelection(targetRect.right - 10, middleOfBlock, textChild, 10, textChild, 14);
+
+    await tripleClickAtPointAndAssertSelection(middleOfInline, middleOfBlock, textChild, 0, textChild, 14);
+}, 'Double and triple click with no line wrap works as expected');
+
+promise_test(async test => {
+    let targetRect = targetC.getBoundingClientRect()
+    let middleOfBlock = targetRect.top + (targetRect.height / 2);
+    let middleOfInline = targetRect.left + (targetRect.width / 2);
+    let textChild = targetC.childNodes[2];
+
+    await doubleClickAtPointAndAssertSelection(middleOfInline, middleOfBlock, textChild, 5, textChild, 9);
+    await tripleClickAtPointAndAssertSelection(middleOfInline, middleOfBlock, textChild, 0, textChild, 14);
+}, 'Double and triple click with hard line breaks works as expected');
+
+promise_test(async test => {
+    let targetRect = targetD.getBoundingClientRect()
+    let middleOfBlock = targetRect.top + (targetRect.height / 2);
+    let middleOfInline = targetRect.left + (targetRect.width / 2);
+    let textChild = targetD.childNodes[0];
+
+    await doubleClickAtPointAndAssertSelection(middleOfInline, middleOfBlock, textChild, 20, textChild, 24);
+    await tripleClickAtPointAndAssertSelection(middleOfInline, middleOfBlock, textChild, 15, textChild, 30);
+}, 'Double and triple click with <pre> element works as expected');
+</script>

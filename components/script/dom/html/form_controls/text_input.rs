@@ -12,6 +12,7 @@ use embedder_traits::{
     EditingAction, EditingDirection, EditingMotion, EmbedderMsg, ModifySelection,
     ScriptToEmbedderChan,
 };
+use layout_api::SegmentGranularity;
 use script_bindings::match_domstring_ascii;
 use script_bindings::root::Dom;
 use script_bindings::trace::CustomTraceable;
@@ -23,7 +24,7 @@ use servo_base::{Rope, RopeIndex, RopeMovement, RopeSlice};
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::editing::SelectionGranularity;
+use crate::dom::editing::MouseButtonSelectionAction;
 use crate::dom::event::Event;
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::mouseevent::MouseEvent;
@@ -677,22 +678,18 @@ impl<T: ClipboardProvider> TextInput<T> {
     ) -> bool {
         assert_eq!(mouse_event.upcast::<Event>().type_(), atom!("mousedown"));
 
-        let selection_changed = match SelectionGranularity::from_mouse_event(mouse_event) {
-            Some(SelectionGranularity::LineIgnoringSoftWrap) => {
-                let line_boundaries = self.rope.line_boundaries(self.edit_point);
-                self.edit_point = line_boundaries.end;
-                self.selection_origin = Some(line_boundaries.start);
+        let selection_changed = match MouseButtonSelectionAction::from_mouse_event(mouse_event) {
+            Some(MouseButtonSelectionAction::SelectRange(granularity)) => {
+                let boundaries = match granularity {
+                    SegmentGranularity::Word => self.rope.relevant_word_boundaries(self.edit_point),
+                    SegmentGranularity::HardLineBreak => self.rope.line_boundaries(self.edit_point),
+                };
+                self.edit_point = boundaries.end;
+                self.selection_origin = Some(boundaries.start);
                 self.update_selection_direction();
                 true
             },
-            Some(SelectionGranularity::Word) => {
-                let word_boundaries = self.rope.relevant_word_boundaries(self.edit_point);
-                self.edit_point = word_boundaries.end;
-                self.selection_origin = Some(word_boundaries.start);
-                self.update_selection_direction();
-                true
-            },
-            Some(SelectionGranularity::Position) => {
+            Some(MouseButtonSelectionAction::MoveCursor) => {
                 self.clear_selection();
                 self.edit_point = self.edit_point_for_hit_test_result(hit_test_result);
                 self.selection_origin = Some(self.edit_point);
