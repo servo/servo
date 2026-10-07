@@ -64,17 +64,26 @@ impl<'a> AttrStrRef<'a> {
     }
 
     pub(crate) fn is_empty(&self) -> bool {
-        self.attributes_borrow
-            .get(self.position)
-            .unwrap()
-            .value()
-            .is_empty()
+        if let Some(inner) = self.0.as_ref() {
+            inner
+                .attributes_borrow
+                .get(inner.position)
+                .unwrap()
+                .value()
+                .is_empty()
+        } else {
+            true
+        }
     }
 
     pub(crate) fn eq_ignore_ascii_case(&self, other: &str) -> bool {
-        let attr_ref = self.attributes_borrow.get(self.position).unwrap();
-        let value = attr_ref.value();
-        value.eq_ignore_ascii_case(other)
+        if let Some(inner) = self.0.as_ref() {
+            let attr_ref = inner.attributes_borrow.get(inner.position).unwrap();
+            let value = attr_ref.value();
+            value.eq_ignore_ascii_case(other)
+        } else {
+            other.is_empty()
+        }
     }
 }
 
