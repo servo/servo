@@ -406,7 +406,7 @@ struct CmdArgs {
     ///  A comma-separated string of debug options. Pass help to show available options.
     #[bpaf(
         short('Z'),
-        argument("layout_grid_enabled=true,dom_async_clipboard_enabled"),
+        argument("layout_flexbox_balance=true,dom_async_clipboard_enabled"),
         long,
         map(map_debug_options),
         fallback(vec![])

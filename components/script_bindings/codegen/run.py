@@ -165,7 +165,6 @@ def add_css_properties_attributes(css_properties_json: str, parser: Parser) -> N
             ["layout.unimplemented", "layout_unimplemented"],
             ["layout.threads", "layout_threads"],
             ["layout.columns.enabled", "layout_columns_enabled"],
-            ["layout.grid.enabled", "layout_grid_enabled"],
             ["layout.css.ellipse-corners.enabled", "layout_css_ellipse_corners_enabled"],
             ["layout.writing-mode.enabled", "layout_writing_mode_enabled"],
             ["layout.container-queries.enabled", "layout_container_queries_enabled"],
