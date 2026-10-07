@@ -1213,7 +1213,6 @@ impl DocumentEventHandler {
         // From <https://w3c.github.io/pointerevents/#click>
         // > The click event type MUST be dispatched on the topmost event target indicated by the
         // > pointer, when the user presses down and releases the primary pointer button.
-        let element = &element.inclusive_ancestor_element_in_non_ua_shadow_root();
         self.most_recently_clicked_element.set(Some(element));
 
         let click_count = self.click_counting_info.borrow().count;
@@ -3015,19 +3014,4 @@ pub(crate) fn character_to_code(character: char) -> Option<Code> {
         ' ' => Code::Space,
         _ => return None,
     })
-}
-
-impl Element {
-    /// Find the first inclusive ancestor of this [`Element`] that is not in a UA shadow root.
-    fn inclusive_ancestor_element_in_non_ua_shadow_root(&self) -> DomRoot<Element> {
-        if !self.upcast::<Node>().is_in_ua_widget() {
-            return DomRoot::from_ref(self);
-        }
-        let Some(shadow_root) = self.containing_shadow_root() else {
-            return DomRoot::from_ref(self);
-        };
-        shadow_root
-            .Host()
-            .inclusive_ancestor_element_in_non_ua_shadow_root()
-    }
 }
