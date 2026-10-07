@@ -70,6 +70,12 @@ impl<'a> AttrStrRef<'a> {
             .value()
             .is_empty()
     }
+
+    pub(crate) fn eq_ignore_ascii_case(&self, other: &str) -> bool {
+        let attr_ref = self.attributes_borrow.get(self.position).unwrap();
+        let value = attr_ref.value();
+        value.eq_ignore_ascii_case(other)
+    }
 }
 
 impl Element {

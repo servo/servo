@@ -5485,7 +5485,6 @@ pub(crate) fn reflect_referrer_policy_attribute(element: &Element) -> DOMString 
     element
         .get_attribute_string_ref(&local_name!("referrerpolicy"))
         .map(|value| {
-            let value = value.as_attr_ref().value();
             DOMString::from(
                 [
                     "no-referrer",
