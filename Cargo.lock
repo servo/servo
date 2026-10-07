@@ -12864,9 +12864,9 @@ dependencies = [
 
 [[package]]
 name = "xcomponent-sys"
-version = "0.4.0"
+version = "0.4.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50ea5fc2cd5a198d7ceaf9b50985a966459dd50cdc7d95fbc8d085a721080113"
+checksum = "b49f82bca343bcaf201cb4022e76eecf034ce143a31f9f2f49d49022541c3f10"
 dependencies = [
  "arkui-sys",
  "keyboard-types",
