@@ -1538,7 +1538,7 @@ fn test_fetch_request_intercepted() {
                     HeaderValue::from_static(HEADERVALUE),
                 );
                 let response =
-                    embedder_traits::WebResourceResponse::new(web_resource_request.url.clone())
+                    embedder_traits::WebResourceResponse::new(web_resource_request.url.into_url())
                         .headers(headers)
                         .status_code(StatusCode::FOUND)
                         .status_message(STATUS_MESSAGE.to_vec());
