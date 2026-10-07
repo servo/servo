@@ -13,6 +13,7 @@ use servo_config::opts;
 use crate::platform::freetype::ohos::font_list::FontList;
 
 const CACHE_FILENAME_SUFFIX: &str = "_font-cache.bin";
+const TMP_FILE_SUFFIX: &str = "tmp";
 
 /// If there is any change in the fields of `FontList`, this value should be updated.
 /// Currently, the convention is to set it to current date in DDMMYYYY format.
@@ -24,7 +25,7 @@ const CACHE_REVISION: &str = "_28092026";
 pub fn font_file_cached_on_disk() -> bool {
     thread::spawn(remove_redundant_cache_files); // do clean up of the directory
 
-    match parse_file_path(false) {
+    match parse_file_path() {
         Ok(file_path) => {
             let Ok(res) = fs::exists(file_path) else {
                 return false;
@@ -53,11 +54,19 @@ pub fn serialize_and_write_to_disk_wrapper(input_data: FontList) {
 /// Reads the OHOS FontList cache file. Returns a `Result` so the caller can know if this function fails
 /// and that the caller needs to find another way to get the FontList.
 pub fn read_from_disk() -> Result<FontList, Box<dyn Error>> {
-    let file_path = parse_file_path(false)?;
-    let mut file_handler = File::open(file_path)?;
+    let file_path = parse_file_path()?;
+    let mut file_handler = File::open(&file_path)?;
     let mut buffer = [0u8; 1024]; // NB: This simply means that the deserializer will be deserializing 1024B of data at a time.
 
-    let (font_list, (_, _)) = from_io((&mut file_handler, &mut buffer))?;
+    let font_list = match from_io((&mut file_handler, &mut buffer)) {
+        Ok((font_list, _)) => font_list,
+        Err(error) => {
+            log::error!("Failed to read font list from disk: {:?}", error);
+            let _ = fs::remove_file(&file_path)
+                .inspect_err(|e| log::warn!("Failed to delete broken font list: {:?}", e));
+            return Err(error.into());
+        },
+    };
 
     Ok(font_list)
 }
@@ -75,12 +84,8 @@ fn remove_redundant_cache_files() {
             return;
         },
     };
-    let Ok(expected_cache_filename) = parse_filename(false) else {
+    let Ok(expected_cache_filename) = parse_filename() else {
         log::debug!("Could not determine font cache filename. Skipping cleanup");
-        return;
-    };
-    let Ok(expected_temporary_cache_filename) = parse_filename(true) else {
-        log::debug!("Could not determine temporary font cache filename. Skipping cleanup");
         return;
     };
     if let Ok(entries) = fs::read_dir(&base_dir) {
@@ -90,10 +95,10 @@ fn remove_redundant_cache_files() {
             };
             let filename = entry.file_name().into_encoded_bytes();
 
-            // A cache file that is neither the expected one nor its temporary file is obsolete.
-            if filename.ends_with(CACHE_FILENAME_SUFFIX.as_bytes()) &&
-                filename != expected_cache_filename.as_bytes() &&
-                filename != expected_temporary_cache_filename.as_bytes() &&
+            // A (tmp) cache file that doesn't match the expected name is obsolete.
+            if (filename.ends_with(CACHE_FILENAME_SUFFIX.as_bytes()) ||
+                filename.ends_with(TMP_FILE_SUFFIX.as_bytes())) &&
+                !filename.starts_with(expected_cache_filename.as_bytes()) &&
                 let Err(e) = fs::remove_file(entry.path())
             {
                 error!(
@@ -105,11 +110,10 @@ fn remove_redundant_cache_files() {
     }
 }
 
-/// Helper function to parse the filepath of the cache file, or of the temporary file it is renamed
-/// into place from.
-fn parse_file_path(is_temporary_file: bool) -> Result<PathBuf, Box<dyn Error>> {
+/// Helper function to parse the filepath of the cache file.
+fn parse_file_path() -> Result<PathBuf, Box<dyn Error>> {
     let base_dir = get_directory()?;
-    let cache_filename = parse_filename(is_temporary_file)?;
+    let cache_filename = parse_filename()?;
 
     Ok(base_dir.join(cache_filename))
 }
@@ -125,12 +129,10 @@ fn get_directory() -> Result<PathBuf, Box<dyn Error>> {
 }
 
 /// Helper function to parse the filename. The naming format is
-/// <OS_VERSION>_<revision date>_font-cache.bin, prefixed with `.tmp_` for the temporary file.
-fn parse_filename(is_temporary_file: bool) -> Result<String, Box<dyn Error>> {
-    let prefix: &str = if is_temporary_file { ".tmp_" } else { "" };
-
+/// <OS_VERSION>_<revision date>_font-cache.bin.
+fn parse_filename() -> Result<String, Box<dyn Error>> {
     let filename = ohos_deviceinfo::get_incremental_version()
-        .map(|os_version| [prefix, os_version, CACHE_REVISION, CACHE_FILENAME_SUFFIX].concat())
+        .map(|os_version| [os_version, CACHE_REVISION, CACHE_FILENAME_SUFFIX].concat())
         .ok_or("OH_get_incremental_version failed")?;
     Ok(filename)
 }
@@ -138,11 +140,13 @@ fn parse_filename(is_temporary_file: bool) -> Result<String, Box<dyn Error>> {
 /// This function serializes `FontList` and caches its result into disk. The data is written to a
 /// temporary file and renamed into place, so that a crash during the write leaves it intact.
 fn serialize_and_write_to_disk(input_data: &FontList) -> Result<(), Box<dyn Error>> {
-    let file_path = parse_file_path(false)?;
-    let temp_file_path = parse_file_path(true)?;
+    let file_path = parse_file_path()?;
+    let temp_file_path = file_path.with_added_extension(TMP_FILE_SUFFIX);
 
     if let Err(e) = write_cache_file(&temp_file_path, input_data) {
-        let _ = fs::remove_file(temp_file_path);
+        if let Err(e) = fs::remove_file(temp_file_path) {
+            log::debug!("Failed to remove temporary file: {:?}", e);
+        }
         return Err(e);
     }
 
@@ -150,7 +154,7 @@ fn serialize_and_write_to_disk(input_data: &FontList) -> Result<(), Box<dyn Erro
     Ok(())
 }
 
-/// Writes `input_data` into `file_path` and flushes it before the file is renamed into place.
+/// Writes `input_data` into `file_path` and flushes.
 fn write_cache_file(file_path: &Path, input_data: &FontList) -> Result<(), Box<dyn Error>> {
     let file = File::create(file_path)?;
     to_io(input_data, &file)?;
