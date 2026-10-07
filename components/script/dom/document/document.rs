@@ -273,13 +273,14 @@ pub(crate) enum AbortReason {
 }
 
 #[derive(Debug)]
-#[expect(dead_code)]
 pub(crate) enum SetParserReason {
     AboutBlankComplete,
     ParsingHtmlDocument,
     ParsingHtmlScriptInput,
     ParsingHtmlFragment,
     ParsingXmlDocument,
+    #[expect(dead_code)]
+    // AbortReason is only read by the Debug impl.
     Abort(AbortReason),
     ParsingBytesChunk,
     FinishingParser,
