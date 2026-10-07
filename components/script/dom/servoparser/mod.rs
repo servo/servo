@@ -468,7 +468,7 @@ impl ServoParser {
         self.last_chunk_received.set(true);
 
         // Step 5. If this's pending parsing-blocking script is not null, then return.
-        if self.suspended.get() {
+        if self.document.has_pending_parsing_blocking_script() {
             return;
         }
 

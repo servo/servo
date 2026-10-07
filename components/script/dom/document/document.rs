@@ -1114,42 +1114,46 @@ impl Document {
         self.window().resume(cx);
         media.resume(&client_context_id);
 
-        if self.ready_state.get() != DocumentReadyState::Complete {
-            return;
-        }
+        self.reactivate(cx);
+    }
 
-        // This step used to be Step 4.6 in html.spec.whatwg.org/multipage/#history-traversal
-        // But it's now Step 4 in https://html.spec.whatwg.org/multipage/#reactivate-a-document
-        // TODO: See #32687 for more information.
-        let document = Trusted::new(self);
-        self.owner_global()
-            .task_manager()
-            .dom_manipulation_task_source()
-            .queue(task!(fire_pageshow_event: move |cx| {
-                let document = document.root();
-                let window = document.window();
-                // Step 4.6.1
-                if document.page_showing.get() {
-                    return;
-                }
-                // Step 4.6.2 Set document's page showing flag to true.
-                document.page_showing.set(true);
-                // Step 4.6.3 Update the visibility state of document to "visible".
-                document.update_visibility_state(cx, DocumentVisibilityState::Visible);
-                // Step 4.6.4 Fire a page transition event named pageshow at document's relevant
-                // global object with true.
-                let event = PageTransitionEvent::new(
-                    cx,
-                    window,
-                    atom!("pageshow"),
-                    false, // bubbles
-                    false, // cancelable
-                    true, // persisted
-                );
-                let event = event.upcast::<Event>();
-                event.set_trusted(true);
-                window.dispatch_event_with_target_override(cx, event);
-            }))
+    /// <https://html.spec.whatwg.org/multipage/#reactivate-a-document>
+    fn reactivate(&self, cx: &mut JSContext) {
+        // Step 1. For each formControl of form controls in document with
+        // an autofill field name of "off", invoke the reset algorithm for formControl.
+        // TODO
+        // Step 2. If document's suspended timer handles is not empty:
+        // TODO
+        // Step 3. Update the navigation API entries for reactivation given
+        // document's relevant global object's navigation API,
+        // entriesForNavigationAPI, and reactivatedEntry.
+        // TODO
+
+        // Step 4. If document's current document readiness is "complete",
+        // and document's page showing is false:
+        if self.ready_state.get() == DocumentReadyState::Complete && !self.page_showing.get() {
+            // Step 4.1. Set document's page showing to true.
+            println!("Setting to true in reactivate");
+            self.page_showing.set(true);
+            // Step 4.2. Set document's has been revealed to false.
+            // TODO
+            // Step 4.3. Update the visibility state of document to "visible".
+            self.update_visibility_state(cx, DocumentVisibilityState::Visible);
+            // Step 4.4. Fire a page transition event named pageshow at
+            // document's relevant global object with true.
+            let window = self.window();
+            let event = PageTransitionEvent::new(
+                cx,
+                window,
+                atom!("pageshow"),
+                false, // bubbles
+                false, // cancelable
+                true, // persisted
+            );
+            let event = event.upcast::<Event>();
+            event.set_trusted(true);
+            window.dispatch_event_with_target_override(cx, event);
+        }
     }
 
     pub(crate) fn origin(&self) -> Ref<'_, MutableOrigin> {
@@ -2417,7 +2421,7 @@ impl Document {
     /// <https://html.spec.whatwg.org/multipage/#completely-finish-loading>
     fn completely_finish_loading(&self) {
         // Step 1. Assert: document's browsing context is non-null.
-        // TODO: Adding this assert fails a lot of tests
+        assert!(self.browsing_context().is_some());
 
         // Step 2. Set document's completely loaded time to the current time.
         self.completely_loaded.set(true);
@@ -2504,6 +2508,11 @@ impl Document {
                 debug!("About to dispatch load for {:?}", document.url());
                 window.dispatch_event_with_target_override(cx, &load_event);
 
+                // Step 9.6. If the Document object's browsing context is null, then abort these steps.
+                if document.browsing_context().is_none() {
+                    return;
+                }
+
                 // Step 9.6. Invoke WebDriver BiDi load complete with the Document's browsing context,
                 // and a new WebDriver BiDi navigation status whose id is the Document object's during-loading navigation ID
                 // for WebDriver BiDi, status is "complete", and url is the Document object's URL.
@@ -2516,9 +2525,10 @@ impl Document {
                 update_with_current_instant(&document.navigation_timing.load_event_end);
 
                 // Step 9.9. Assert: Document's page showing is false.
-                // TODO: Adding this assert fails a lot of tests
+                assert!(!document.page_showing.get());
 
                 // Step 9.10. Set the Document's page showing to true.
+                println!("Setting to true in queue document completion");
                 document.page_showing.set(true);
 
                 // Step 9.11. Fire a page transition event named pageshow at window with false.
@@ -2565,7 +2575,14 @@ impl Document {
         }
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#completely-loaded>
     pub(crate) fn completely_loaded(&self) -> bool {
+        // > A Document is considered completely loaded if
+        // > its completely loaded time is non-null.
+        //
+        // We don't model this as a timestamp, but instead a boolean.
+        // The timestamp is only used for the refresh directive, which
+        // we directly call in `Document::completely_finish_loading`
         self.completely_loaded.get()
     }
 
