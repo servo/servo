@@ -186,12 +186,9 @@ impl EventListenerType {
             EventListenerType::Additive(ref listener) => {
                 Some(CompiledEventListener::Listener(listener.clone()))
             },
-            EventListenerType::Wasm(ref handler_id, ref global) => {
-                Some(CompiledEventListener::Wasm(
-                    handler_id.clone(),
-                    Dom::from_ref(&**global),
-                ))
-            },
+            EventListenerType::Wasm(ref handler_id, ref global) => Some(
+                CompiledEventListener::Wasm(handler_id.clone(), Dom::from_ref(&**global)),
+            ),
         }
     }
 

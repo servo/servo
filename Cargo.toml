@@ -369,6 +369,7 @@ servo-webvtt = { version = "=0.7.0", path = "components/webvtt" }
 storage = { package = "servo-storage", version = "=0.7.0", path = "components/storage" }
 storage_traits = { package = "servo-storage-traits", version = "=0.7.0", path = "components/shared/storage" }
 timers = { package = "servo-timers", version = "=0.7.0", path = "components/timers" }
+servo-wasm = { package = "servo-wasm", version = "=0.1.0", path = "components/wasm" }
 webdriver_server = { package = "servo-webdriver-server", version = "=0.7.0", path = "components/webdriver_server" }
 webgl = { package = "servo-webgl", version = "=0.7.0", path = "components/webgl", default-features = false }
 webgpu = { package = "servo-webgpu", version = "=0.7.0", path = "components/webgpu" }

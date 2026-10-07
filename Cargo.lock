@@ -9649,6 +9649,7 @@ dependencies = [
  "servo-timers",
  "servo-tracing",
  "servo-url",
+ "servo-wasm",
  "servo-webgpu-traits",
  "servo-webvtt",
  "servo-webxr-api",
@@ -9879,6 +9880,13 @@ version = "0.7.0"
 dependencies = [
  "serde",
  "servo-embedder-traits",
+]
+
+[[package]]
+name = "servo-wasm"
+version = "0.1.0"
+dependencies = [
+ "wasmtime",
 ]
 
 [[package]]

@@ -5,12 +5,14 @@
 #![allow(unsafe_code)]
 
 use std::cell::RefCell;
+use std::sync::LazyLock;
 
 use js::context::JSContext;
 use script_bindings::codegen::GenericUnionTypes::{
     StringOrElementCreationOptions, TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString,
 };
 use script_bindings::realms::enter_auto_realm;
+use servo_wasm::{COMPONENT_REGISTRY, SERVO_WASM_ENGINE};
 use wasmtime::component::{Component, HasSelf, Linker, Resource};
 use wasmtime::{Config, Engine, Store};
 
@@ -24,6 +26,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLTextAreaElementBinding::{
 };
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
+use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -70,6 +73,11 @@ pub fn dispatch_wasm_event(
         // 2. Refresh the ambient JSContext in WasmHostState with the active context for this event turn
         store.data_mut().cx = cx;
 
+        let global = store.data().global_scope.clone();
+        let _realm = enter_auto_realm::<crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder>(
+            cx, &*global,
+        );
+
         // 3. Invoke Wasm guest on_event
         if let Err(e) = app.call_on_event(&mut store, handler_id, event_type) {
             eprintln!("[Servo Wasm Error on-event]: {:?}", e);
@@ -89,7 +97,7 @@ pub fn dispatch_wasm_event(
 pub struct WasmHostState {
     pub cx: *mut JSContext,
     pub global_scope: DomRoot<GlobalScope>,
-    pub elements: Vec<Option<DomRoot<Element>>>,
+    pub elements: Vec<Option<DomRoot<Node>>>,
 }
 
 impl WasmHostState {
@@ -115,6 +123,37 @@ impl ConsoleHost for WasmHostState {
 
 // 3. Implement the Element resource lifecycle trait (HostElement)
 impl HostElement for WasmHostState {
+    fn parent_node(
+        &mut self,
+        self_rep: Resource<wit_dom::servo::dom::document::Element>,
+    ) -> Option<Resource<wit_dom::servo::dom::document::Element>> {
+        let id = self_rep.rep() as usize;
+        let node = self.elements.get(id)?.as_ref()?;
+        let parent = node.GetParentNode()?;
+        let new_id = self.elements.len() as u32;
+        self.elements.push(Some(parent));
+        Some(Resource::new_own(new_id))
+    }
+
+    fn replace_child(
+        &mut self,
+        self_rep: Resource<wit_dom::servo::dom::document::Element>,
+        new_rep: Resource<wit_dom::servo::dom::document::Element>,
+        old_rep: Resource<wit_dom::servo::dom::document::Element>,
+    ) {
+        let parent_id = self_rep.rep() as usize;
+        let new_id = new_rep.rep() as usize;
+        let old_id = old_rep.rep() as usize;
+        if let (Some(Some(parent)), Some(Some(new_node)), Some(Some(old_node))) = (
+            self.elements.get(parent_id),
+            self.elements.get(new_id),
+            self.elements.get(old_id),
+        ) {
+            let cx = unsafe { &mut *self.cx };
+            let _ = parent.ReplaceChild(cx, new_node, old_node);
+        }
+    }
+
     fn add_event_listener(
         &mut self,
         self_rep: Resource<wit_dom::servo::dom::document::Element>,
@@ -163,12 +202,14 @@ impl HostElement for WasmHostState {
         value: String,
     ) -> () {
         let id = self_rep.rep() as usize;
-        if let Some(Some(element)) = self.elements.get(id) {
-            let cx = unsafe { &mut *self.cx };
-            let val = TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString::String(
-                DOMString::from(value),
-            );
-            let _ = element.SetAttribute(cx, DOMString::from(name), val);
+        if let Some(Some(node)) = self.elements.get(id) {
+            if let Some(element) = node.downcast::<Element>() {
+                let cx = unsafe { &mut *self.cx };
+                let val = TrustedHTMLOrTrustedScriptOrTrustedScriptURLOrString::String(
+                    DOMString::from(value),
+                );
+                let _ = element.SetAttribute(cx, DOMString::from(name), val);
+            }
         }
     }
 
@@ -179,10 +220,14 @@ impl HostElement for WasmHostState {
     ) -> Option<String> {
         let id = self_rep.rep() as usize;
         let cx = unsafe { &mut *self.cx };
-        if let Some(Some(element)) = self.elements.get(id) {
-            element
-                .GetAttribute(cx, DOMString::from(name))
-                .map(|s| s.to_string())
+        if let Some(Some(node)) = self.elements.get(id) {
+            if let Some(element) = node.downcast::<Element>() {
+                element
+                    .GetAttribute(cx, DOMString::from(name))
+                    .map(|s| s.to_string())
+            } else {
+                None
+            }
         } else {
             None
         }
@@ -194,15 +239,11 @@ impl HostElement for WasmHostState {
         name: String,
     ) -> String {
         let id = self_rep.rep() as usize;
-        if let Some(Some(element)) = self.elements.get(id) {
-            let cx = unsafe { &mut *self.cx };
-            // let global = self.global_scope;
-            // let _realm = enter_auto_realm(cx, &*global);
-
+        if let Some(Some(node)) = self.elements.get(id) {
             if name == "value" {
-                if let Some(input) = element.downcast::<HTMLInputElement>() {
+                if let Some(input) = node.downcast::<HTMLInputElement>() {
                     return input.Value().to_string();
-                } else if let Some(textarea) = element.downcast::<HTMLTextAreaElement>() {
+                } else if let Some(textarea) = node.downcast::<HTMLTextAreaElement>() {
                     return textarea.Value().to_string();
                 }
             }
@@ -217,15 +258,12 @@ impl HostElement for WasmHostState {
         value: String,
     ) -> () {
         let id = self_rep.rep() as usize;
-        if let Some(Some(element)) = self.elements.get(id) {
+        if let Some(Some(node)) = self.elements.get(id) {
             let cx = unsafe { &mut *self.cx };
-            // let global = self.global_scope;
-            // let _realm = enter_auto_realm(cx, &*global);
-
             if name == "value" {
-                if let Some(input) = element.downcast::<HTMLInputElement>() {
+                if let Some(input) = node.downcast::<HTMLInputElement>() {
                     input.SetValue(cx, DOMString::from(value));
-                } else if let Some(textarea) = element.downcast::<HTMLTextAreaElement>() {
+                } else if let Some(textarea) = node.downcast::<HTMLTextAreaElement>() {
                     textarea.SetValue(cx, DOMString::from(value));
                 }
             }
@@ -348,6 +386,19 @@ impl HostElement for WasmHostState {
 
 // 4. Implement the Document host API
 impl DocumentHost for WasmHostState {
+    fn create_text_node(
+        &mut self,
+        text: String,
+    ) -> Result<Resource<wit_dom::servo::dom::document::Element>, String> {
+        let window = self.global_scope.as_window();
+        let doc = window.Document();
+        let cx = unsafe { &mut *self.cx };
+        let text_node = doc.CreateTextNode(cx, DOMString::from(text));
+        let id = self.elements.len() as u32;
+        self.elements.push(Some(DomRoot::upcast(text_node)));
+        Ok(Resource::new_own(id))
+    }
+
     fn create_element(
         &mut self,
         tag: String,
@@ -361,7 +412,7 @@ impl DocumentHost for WasmHostState {
         match doc.CreateElement(cx, dom_tag, options) {
             Ok(element) => {
                 let id = self.elements.len() as u32;
-                self.elements.push(Some(element));
+                self.elements.push(Some(DomRoot::upcast(element)));
                 Ok(Resource::new_own(id))
             },
             Err(_) => Err("Failed to create DOM element".to_string()),
@@ -376,7 +427,7 @@ impl DocumentHost for WasmHostState {
                 let element = body_element.upcast::<Element>();
                 let root = DomRoot::from_ref(element);
                 let id = self.elements.len() as u32;
-                self.elements.push(Some(root));
+                self.elements.push(Some(DomRoot::upcast(root)));
                 Ok(Resource::new_own(id))
             },
             None => Err("Document has no body element".to_string()),
@@ -395,7 +446,7 @@ impl DocumentHost for WasmHostState {
         match doc.GetElementById(cx, dom_id) {
             Some(element) => {
                 let id = self.elements.len() as u32;
-                self.elements.push(Some(element));
+                self.elements.push(Some(DomRoot::upcast(element)));
                 Ok(Resource::new_own(id))
             },
             None => Err("Element not found".to_string()),
@@ -412,13 +463,21 @@ impl DocumentHost for WasmHostState {
 
         if let Ok(Some(elem)) = doc.QuerySelector(cx, DOMString::from(selector)) {
             let id = self.elements.len() as u32;
-            self.elements.push(Some(elem));
+            self.elements.push(Some(DomRoot::upcast(elem)));
             Some(Resource::new_own(id))
         } else {
             None
         }
     }
 }
+
+static SCRIPT_LINKER: LazyLock<Linker<WasmHostState>> = LazyLock::new(|| {
+    let engine = &*SERVO_WASM_ENGINE;
+    let mut linker = Linker::new(engine);
+    App::add_to_linker::<_, HasSelf<_>>(&mut linker, |state: &mut WasmHostState| state)
+        .expect("[Servo Wasm Host]: Failed to register DOM host APIs in Linker");
+    linker
+});
 
 // 5. Runner entrypoint invoked from HTMLScriptElement::execute
 pub fn run_wasm_component(
@@ -430,11 +489,10 @@ pub fn run_wasm_component(
         "[Servo Wasm Debug]: run_wasm_component received {} bytes",
         wasm_bytes.len()
     );
-    let mut config = Config::new();
-    config.wasm_component_model(true);
-    let engine = Engine::new(&config)?;
-
-    let component = Component::from_binary(&engine, wasm_bytes)?;
+    let engine = &*SERVO_WASM_ENGINE;
+    let linker = &*SCRIPT_LINKER;
+    // Fast-compiled or retrieved from cache
+    let component = COMPONENT_REGISTRY.get_or_load_binary("inline_script", wasm_bytes)?;
 
     let mut linker = Linker::new(&engine);
     App::add_to_linker::<_, HasSelf<_>>(&mut linker, |state: &mut WasmHostState| state)?;

@@ -16,6 +16,9 @@ interface document {
         append-child: func(child: borrow<element>);
         insert-before: func(child: borrow<element>, reference-child: borrow<element>);
         remove-child: func(child: borrow<element>);
+        replace-child: func(new-child: borrow<element>, old-child: borrow<element>);
+        parent-node: func() -> option<element>;
+
         set-text-content: func(text: string);
         get-text-content: func() -> string;
         add-event-listener: func(event-type: string, handler-id: string);
@@ -23,6 +26,7 @@ interface document {
     }
 
     create-element: func(tag: string) -> result<element, string>;
+    create-text-node: func(text: string) -> result<element, string>;
     get-body: func() -> result<element, string>;
     get-element-by-id: func(id: string) -> result<element, string>;
     query-selector: func(selector: string) -> option<element>;
