@@ -22,7 +22,7 @@ use crate::dom::node::Node;
 use crate::dom::selection::Selection;
 use crate::dom::text::Text;
 
-// <https://w3c.github.io/editing/docs/execCommand/#indent>
+/// <https://w3c.github.io/editing/docs/execCommand/#indent>
 pub(crate) fn indent(cx: &mut JSContext, document: &Document, node_list: Vec<DomRoot<Node>>) {
     // Step 1. If node list is empty, do nothing and abort these steps.
     if node_list.is_empty() {
