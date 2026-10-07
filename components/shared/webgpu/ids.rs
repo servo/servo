@@ -4,16 +4,16 @@
 
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use serde::{Deserialize, Serialize};
-pub use wgpu_core::id::markers::{
+pub use wgpu_core_remote_types::id::markers::{
     ComputePassEncoder as ComputePass, RenderPassEncoder as RenderPass,
 };
-use wgpu_core::id::{
+use wgpu_core_remote_types::id::{
     AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, CommandEncoderId,
     ComputePipelineId, DeviceId, ExternalTextureId, PipelineLayoutId, QuerySetId, QueueId,
     RenderBundleEncoderId, RenderBundleId, RenderPipelineId, SamplerId, ShaderModuleId, SurfaceId,
     TextureId, TextureViewId,
 };
-pub use wgpu_core::id::{
+pub use wgpu_core_remote_types::id::{
     ComputePassEncoderId as ComputePassId, RenderPassEncoderId as RenderPassId,
 };
 

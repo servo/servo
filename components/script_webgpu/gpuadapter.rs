@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
+
 use dom_struct::dom_struct;
 use js::jsapi::{HandleObject, Heap, JSObject};
 use js::realm::CurrentRealm;
@@ -11,7 +13,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use script_bindings::callback::CallbackContainer;
 use script_bindings::codegen::GenericBindings::EventHandlerBinding::EventHandlerNonNull;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
-    GPUAdapterMethods, GPUAdapterWrap, GPUDeviceDescriptor, GPUDeviceLostReason,
+    GPUAdapterMethods, GPUAdapterWrap, GPUDeviceDescriptor,
 };
 use script_bindings::domstring::TracedDOMString;
 use script_bindings::interfaces::{GlobalScopeHelpers, PromiseHelpers};
@@ -20,8 +22,8 @@ use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object
 use script_bindings::routed_promise::RoutedPromiseListener;
 use script_bindings::{DomTypes, cformat};
 use webgpu_traits::{
-    AdapterInfo, DeviceDescriptor, DeviceType, ExperimentalFeatures, Features, Limits, MemoryHints,
-    RequestDeviceError, Trace, WebGPU, WebGPUAdapter, WebGPUDeviceResponse, WebGPURequest,
+    AdapterInfo, DeviceDescriptor, DeviceType, Features, Limits, QueueDescriptor,
+    RequestDeviceError, WebGPU, WebGPUAdapter, WebGPUDeviceResponse, WebGPURequest,
 };
 
 use crate::dom::bindings::error::Error;
@@ -243,10 +245,10 @@ where
         let desc = DeviceDescriptor {
             required_features,
             required_limits,
-            label: Some(descriptor.parent.label.to_string()),
-            memory_hints: MemoryHints::MemoryUsage,
-            trace: Trace::Off,
-            experimental_features: ExperimentalFeatures::disabled(),
+            label: Some(Cow::Owned(descriptor.parent.label.to_string())),
+            default_queue: QueueDescriptor {
+                label: Some(Cow::Owned(descriptor.defaultQueue.parent.label.to_string())),
+            },
         };
         let device_id = self
             .global_from_reflector()
@@ -310,7 +312,7 @@ where
     ) {
         match response {
             // 3.1 Let device be a new device with the capabilities described by descriptor.
-            (device_id, queue_id, Ok(descriptor)) => {
+            (device_id, queue_id, Ok((descriptor, external_texture_supported))) => {
                 let device = GPUDevice::<D>::new(
                     cx,
                     &self.global_from_reflector(),
@@ -321,45 +323,29 @@ where
                     descriptor.required_limits,
                     device_id,
                     queue_id,
-                    descriptor.label.unwrap_or_default(),
+                    descriptor
+                        .label
+                        .map(|l| l.to_string())
+                        .unwrap_or(String::new()),
+                    external_texture_supported,
                 );
                 self.global_from_reflector().add_webgpu_device(&device);
                 promise.resolve_native(cx, &device);
             },
             // 1. If features are not supported reject promise with a TypeError.
-            (_, _, Err(RequestDeviceError::UnsupportedFeature(f))) => promise.reject_error(
-                cx,
-                Error::Type(cformat!("Unsupported features were requested: {}", f)),
-            ),
+            (_, _, Err(RequestDeviceError::UnsupportedFeature(f))) => {
+                promise.reject_error(cx, Error::Type(cformat!("{f}")))
+            },
             // 2. If limits are not supported reject promise with an OperationError.
-            (_, _, Err(RequestDeviceError::LimitsExceeded(l))) => {
+            (_, _, Err(RequestDeviceError::FailedLimit(l))) => {
                 warn!("{}", l);
-                promise.reject_error(
-                    cx,
-                    Error::Operation(Some("WebGPU Device Limit exceeded".to_string())),
-                )
+                promise.reject_error(cx, Error::Operation(Some(l)))
             },
             // 3. user agent otherwise cannot fulfill the request
-            (device_id, queue_id, Err(RequestDeviceError::Other(e))) => {
-                // TODO(sagudev): firefox always says operation error,
-                // meanwhile we create "invalid" device that is not invalid in wgpu
-                // causing crashes when one tries to use it
-                // 1. Let device be a new device.
-                let device = GPUDevice::<D>::new(
-                    cx,
-                    &self.global_from_reflector(),
-                    self.channel(),
-                    self,
-                    HandleObject::null(),
-                    Features::default(),
-                    Limits::default(),
-                    device_id,
-                    queue_id,
-                    String::new(),
-                );
-                // 2. Lose the device(device, "unknown").
-                device.lose(GPUDeviceLostReason::Unknown, e);
-                promise.resolve_native(cx, &device);
+            (_, _, Err(RequestDeviceError::Other(e))) => {
+                // TODO(sagudev): we should return invalid device here,
+                // but wgpu does not support this so we return OperationError like firefox does
+                promise.reject_error(cx, Error::Operation(Some(e)));
             },
         }
     }

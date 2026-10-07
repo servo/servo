@@ -9,5 +9,5 @@ use crate::{DeviceDescriptor, RequestDeviceError, WebGPUDevice, WebGPUQueue};
 pub type WebGPUDeviceResponse = (
     WebGPUDevice,
     WebGPUQueue,
-    Result<DeviceDescriptor<Option<String>>, RequestDeviceError>,
+    Result<DeviceDescriptor<'static>, RequestDeviceError>,
 );

@@ -49,6 +49,10 @@ impl<D: Equivalence> WGSLLanguageFeatures<D> {
                 internal: DomRefCell::new(
                     ImplementedLanguageExtension::all()
                         .iter()
+                        // we filter out this until we implement it in servo
+                        .filter(|ext| {
+                            !matches!(ext, ImplementedLanguageExtension::ImmediateAddressSpace)
+                        })
                         .map(|le| DOMString::from_static(le.to_ident()).traced())
                         .collect(),
                 ),

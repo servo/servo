@@ -9,7 +9,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use script_bindings::DomTypes;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
-    GPUIndexFormat, GPURenderPassEncoderMethods, GPURenderPassEncoderWrap,
+    GPUIndexFormat, GPURenderPassEncoderMethods, GPURenderPassEncoderWrap, GPUSize64,
 };
 use script_bindings::codegen::GenericUnionTypes::DoubleSequenceOrGPUColorDict as GPUColor;
 use script_bindings::error::Fallible;
@@ -17,8 +17,8 @@ use script_bindings::interfaces::PromiseHelpers;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_wrap};
 use script_bindings::root::DomRoot;
 use webgpu_traits::{
-    BindingCommand, BufferSize, DebugCommand, IndexFormat, RenderCommand, RenderPassEncoderCommand,
-    WebGPU, WebGPURenderPass, WebGPURequest,
+    BindingCommand, DebugCommand, IndexFormat, RenderCommand, RenderPassEncoderCommand, WebGPU,
+    WebGPURenderPass, WebGPURequest,
 };
 
 use crate::JSTraceable;
@@ -195,12 +195,7 @@ where
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderpassencoder-end>
     fn End(&self) {
-        if let Err(e) = self.droppable.channel.0.send(WebGPURequest::EndRenderPass {
-            render_pass_id: self.id().0,
-            device_id: self.command_encoder.device_id().0,
-        }) {
-            warn!("Failed to send WebGPURequest::EndRenderPass: {e:?}");
-        }
+        self.send_render_command(RenderPassEncoderCommand::End);
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setpipeline>
@@ -216,7 +211,7 @@ where
         buffer: &GPUBuffer<D>,
         index_format: GPUIndexFormat,
         offset: u64,
-        size: u64,
+        size: Option<GPUSize64>,
     ) {
         self.send_render_command(RenderPassEncoderCommand::RenderCommand(
             RenderCommand::SetIndexBuffer {
@@ -226,19 +221,25 @@ where
                     GPUIndexFormat::Uint32 => IndexFormat::Uint32,
                 },
                 offset,
-                size: BufferSize::new(size),
+                size,
             },
         ))
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpurenderencoderbase-setvertexbuffer>
-    fn SetVertexBuffer(&self, slot: u32, buffer: Option<&GPUBuffer<D>>, offset: u64, size: u64) {
+    fn SetVertexBuffer(
+        &self,
+        slot: u32,
+        buffer: Option<&GPUBuffer<D>>,
+        offset: u64,
+        size: Option<GPUSize64>,
+    ) {
         self.send_render_command(RenderPassEncoderCommand::RenderCommand(
             RenderCommand::SetVertexBuffer {
                 slot,
                 buffer: buffer.map(|b| b.id().0),
                 offset,
-                size: BufferSize::new(size),
+                size,
             },
         ))
     }

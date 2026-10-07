@@ -114,6 +114,7 @@ interface GPUAdapter {
 dictionary GPUDeviceDescriptor : GPUObjectDescriptorBase {
     sequence<GPUFeatureName> requiredFeatures = [];
     record<DOMString, GPUSize64> requiredLimits;// = {};
+    GPUQueueDescriptor defaultQueue = {};
 };
 
 enum GPUFeatureName {
@@ -954,7 +955,7 @@ interface GPUCommandEncoder {
         GPUSize64 sourceOffset,
         GPUBuffer destination,
         GPUSize64 destinationOffset,
-        GPUSize64 size);
+        optional GPUSize64 size);
 
     [Throws]
     undefined copyBufferToTexture(
@@ -1125,11 +1126,11 @@ interface mixin GPURenderCommandsMixin {
     undefined setIndexBuffer(GPUBuffer buffer,
                              GPUIndexFormat indexFormat,
                              optional GPUSize64 offset = 0,
-                             optional GPUSize64 size = 0);
+                             optional GPUSize64 size);
     undefined setVertexBuffer(GPUIndex32 slot,
                              GPUBuffer? buffer,
                              optional GPUSize64 offset = 0,
-                             optional GPUSize64 size = 0);
+                             optional GPUSize64 size);
 
     undefined draw(GPUSize32 vertexCount,
                    optional GPUSize32 instanceCount = 1,

@@ -13,11 +13,12 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
 };
 use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_wrap};
-use webgpu_traits::ShaderCompilationInfo;
+use webgpu_traits::{CompilationMessage, Utf16SourceLocation};
 
 use crate::JSTraceable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::gpuconvert::WebGPUConvert as _;
 use crate::traits::Equivalence;
 
 #[dom_struct]
@@ -78,17 +79,23 @@ impl<D: Equivalence> GPUCompilationMessage<D> {
     pub(crate) fn from(
         cx: &mut JSContext,
         global: &D::GlobalScope,
-        info: ShaderCompilationInfo,
+        info: CompilationMessage,
     ) -> DomRoot<Self> {
+        let location = info.location.unwrap_or(Utf16SourceLocation {
+            line_number: 0,
+            offset: 0,
+            length: 0,
+            line_position: 0,
+        });
         GPUCompilationMessage::new(
             cx,
             global,
             info.message.into(),
-            GPUCompilationMessageType::Error,
-            info.line_number,
-            info.line_pos,
-            info.offset,
-            info.length,
+            info.message_type.convert(),
+            location.line_number as u64,
+            location.line_position as u64,
+            location.offset as u64,
+            location.length as u64,
         )
     }
 }

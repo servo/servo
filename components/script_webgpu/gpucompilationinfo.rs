@@ -12,7 +12,7 @@ use script_bindings::codegen::GenericBindings::WebGPUBinding::{
 };
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_wrap};
 use script_bindings::utils::to_frozen_array;
-use webgpu_traits::ShaderCompilationInfo;
+use webgpu_traits::CompilationInfo;
 
 use crate::JSTraceable;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -22,7 +22,6 @@ use crate::traits::Equivalence;
 #[dom_struct]
 pub struct GPUCompilationInfo<D: DomTypes> {
     reflector_: Reflector,
-    // currently we only get one message from wgpu
     msg: Vec<Dom<GPUCompilationMessage<D>>>,
 }
 
@@ -51,11 +50,13 @@ impl<D: Equivalence> GPUCompilationInfo<D> {
     pub fn from(
         cx: &mut JSContext,
         global: &D::GlobalScope,
-        error: Option<ShaderCompilationInfo>,
+        error: CompilationInfo,
     ) -> DomRoot<Self> {
         let msg = error
-            .map(|error| vec![GPUCompilationMessage::from(cx, global, error)])
-            .unwrap_or_default();
+            .messages
+            .into_iter()
+            .map(|error| GPUCompilationMessage::from(cx, global, error))
+            .collect();
         Self::new(cx, global, msg)
     }
 }

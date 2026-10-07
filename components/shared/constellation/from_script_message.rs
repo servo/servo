@@ -856,8 +856,8 @@ pub enum ScriptToConstellationMessage {
     /// Create a WebGPU Adapter instance
     RequestAdapter(
         GenericCallback<WebGPUAdapterResponse>,
-        wgpu_core::instance::RequestAdapterOptions,
-        wgpu_core::id::AdapterId,
+        webgpu_traits::RequestAdapterOptions,
+        webgpu_traits::id::AdapterId,
     ),
     #[cfg(feature = "webgpu")]
     /// Get WebGPU channel

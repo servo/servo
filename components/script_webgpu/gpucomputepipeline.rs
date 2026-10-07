@@ -124,7 +124,6 @@ where
             label: (&descriptor.parent.parent).convert(),
             layout: pipeline_layout.explicit(),
             stage: (&descriptor.compute).convert(),
-            cache: None,
         };
 
         device

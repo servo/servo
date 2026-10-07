@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
+
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use js::realm::CurrentRealm;
@@ -17,7 +19,9 @@ use script_bindings::interfaces::{
 };
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use script_bindings::routed_promise::RoutedPromiseListener;
-use webgpu_traits::{ShaderCompilationInfo, WebGPU, WebGPURequest, WebGPUShaderModule};
+use webgpu_traits::{
+    CompilationInfo, ShaderModuleDescriptor, WebGPU, WebGPURequest, WebGPUShaderModule,
+};
 
 use crate::JSTraceable;
 use crate::dom::bindings::root::DomRoot;
@@ -131,8 +135,10 @@ where
             .send(WebGPURequest::CreateShaderModule {
                 device_id: device.id().0,
                 program_id,
-                program: descriptor.code.0.clone(),
-                label: None,
+                descriptor: ShaderModuleDescriptor {
+                    code: Cow::Owned(descriptor.code.0.clone()),
+                    label: Some(Cow::Owned(descriptor.parent.label.0.clone())),
+                },
                 callback,
             })
             .expect("Failed to create WebGPU ShaderModule");
@@ -157,14 +163,14 @@ impl<D: DomTypes> GPUShaderModuleMethods<D> for GPUShaderModule<D> {
     }
 }
 
-impl<D: Equivalence> RoutedPromiseListener<D, Option<ShaderCompilationInfo>> for GPUShaderModule<D>
+impl<D: Equivalence> RoutedPromiseListener<D, CompilationInfo> for GPUShaderModule<D>
 where
     Self: DomGlobalGeneric<D>,
 {
     fn handle_response(
         &self,
         cx: &mut js::context::JSContext,
-        response: Option<ShaderCompilationInfo>,
+        response: CompilationInfo,
         promise: &<D::Promise as PromiseHelpers<D>>::StackRoot,
     ) {
         let info = GPUCompilationInfo::<D>::from(cx, &self.global_from_reflector(), response);
