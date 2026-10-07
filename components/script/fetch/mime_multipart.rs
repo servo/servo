@@ -375,7 +375,7 @@ fn inner<R: BufRead>(
 
             nodes.push(Node::Part(Part {
                 headers: part_headers,
-                body: buf.clone(),
+                body: std::mem::take(&mut buf),
             }));
         }
     }
