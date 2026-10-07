@@ -5457,7 +5457,6 @@ pub(crate) fn reflect_cross_origin_attribute(element: &Element) -> Option<DOMStr
     element
         .get_attribute_string_ref(&local_name!("crossorigin"))
         .map(|value| {
-            let value = value.as_attr_ref().value();
             DOMString::from_static(
                 ["anonymous", "use-credentials"]
                     .into_iter()
@@ -5528,7 +5527,6 @@ pub(crate) fn cors_settings_attribute_credential_mode(element: &Element) -> Cred
     element
         .get_attribute_string_ref(&local_name!("crossorigin"))
         .map(|value| {
-            let value = value.as_attr_ref().value();
             if value.eq_ignore_ascii_case("use-credentials") {
                 CredentialsMode::Include
             } else {
