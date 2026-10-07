@@ -6,11 +6,10 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::VideoTrackBinding::VideoTrackMethods;
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::videotracklist::VideoTrackList;
 use crate::dom::window::Window;
@@ -23,7 +22,7 @@ pub(crate) struct VideoTrack {
     label: DOMString,
     language: DOMString,
     selected: Cell<bool>,
-    track_list: DomRefCell<Option<Dom<VideoTrackList>>>,
+    track_list: MutNullableDom<VideoTrackList>,
 }
 
 impl VideoTrack {
@@ -41,7 +40,7 @@ impl VideoTrack {
             label,
             language,
             selected: Cell::new(false),
-            track_list: DomRefCell::new(track_list.map(Dom::from_ref)),
+            track_list: MutNullableDom::new(track_list),
         }
     }
 
@@ -80,11 +79,11 @@ impl VideoTrack {
     }
 
     pub(crate) fn add_track_list(&self, track_list: &VideoTrackList) {
-        *self.track_list.borrow_mut() = Some(Dom::from_ref(track_list));
+        self.track_list.set(Some(track_list));
     }
 
     pub(crate) fn remove_track_list(&self) {
-        *self.track_list.borrow_mut() = None;
+        self.track_list.set(None);
     }
 }
 
@@ -116,7 +115,7 @@ impl VideoTrackMethods<crate::DomTypeHolder> for VideoTrack {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-videotrack-selected>
     fn SetSelected(&self, value: bool) {
-        if let Some(list) = self.track_list.borrow().as_ref() &&
+        if let Some(list) = self.track_list.get() &&
             let Some(idx) = list.find(self)
         {
             list.set_selected(idx, value);
