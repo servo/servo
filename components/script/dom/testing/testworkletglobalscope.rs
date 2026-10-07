@@ -19,7 +19,7 @@ use servo_url::{MutableOrigin, ServoUrl};
 use crate::dom::bindings::codegen::Bindings::TestWorkletGlobalScopeBinding;
 use crate::dom::bindings::codegen::Bindings::TestWorkletGlobalScopeBinding::TestWorkletGlobalScopeMethods;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::worklet::WorkletExecutor;
 use crate::dom::workletglobalscope::{WorkletGlobalScope, WorkletGlobalScopeInit};
 
@@ -70,7 +70,7 @@ impl TestWorkletGlobalScope {
 }
 
 impl TestWorkletGlobalScopeMethods<crate::DomTypeHolder> for TestWorkletGlobalScope {
-    fn RegisterKeyValue(&self, key: DOMString, value: DOMString) {
+    fn RegisterKeyValue(&self, key: RootedDomString, value: RootedDomString) {
         debug!("Registering test worklet key/value {}/{}.", key, value);
         self.lookup_table
             .borrow_mut()

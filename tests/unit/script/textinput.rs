@@ -8,7 +8,7 @@
 // except according to those terms.
 
 use embedder_traits::{EditingAction, EditingMotion, ModifySelection};
-use script::test::DOMString;
+use script::test::RootedDomString;
 use script::test::text_input::{
     ClipboardProvider, EditingDirection, Lines, SelectionDirection, TextInput,
 };
@@ -37,27 +37,34 @@ impl ClipboardProvider for DummyClipboardContext {
 }
 
 fn make_text_input(lines: Lines, s: &str) -> TextInput<DummyClipboardContext> {
-    TextInput::new(lines, DOMString::from(s), DummyClipboardContext::new(""))
+    TextInput::new(
+        lines,
+        RootedDomString::from(s),
+        DummyClipboardContext::new(""),
+    )
 }
 
 #[test]
 fn test_set_content_ignores_max_length() {
     let mut text_input = TextInput::new(
         Lines::Single,
-        DOMString::from(""),
+        RootedDomString::from(""),
         DummyClipboardContext::new(""),
     );
 
     text_input.set_max_length(Some(Utf16CodeUnits(1)));
-    text_input.set_content(DOMString::from("mozilla rocks"));
-    assert_eq!(text_input.get_content(), DOMString::from("mozilla rocks"));
+    text_input.set_content(RootedDomString::from("mozilla rocks"));
+    assert_eq!(
+        text_input.get_content(),
+        RootedDomString::from("mozilla rocks")
+    );
 }
 
 #[test]
 fn test_text_input_when_inserting_multiple_lines_over_a_selection_respects_max_length() {
     let mut text_input = TextInput::new(
         Lines::Multiple,
-        DOMString::from("hello\nworld"),
+        RootedDomString::from("hello\nworld"),
         DummyClipboardContext::new(""),
     );
 
@@ -78,7 +85,7 @@ fn test_text_input_when_inserting_multiple_lines_over_a_selection_respects_max_l
 fn test_text_input_when_inserting_multiple_lines_still_respects_max_length() {
     let mut text_input = TextInput::new(
         Lines::Multiple,
-        DOMString::from("hello\nworld"),
+        RootedDomString::from("hello\nworld"),
         DummyClipboardContext::new(""),
     );
 
@@ -93,7 +100,7 @@ fn test_text_input_when_content_is_already_longer_than_max_length_and_theres_no_
  {
     let mut text_input = TextInput::new(
         Lines::Single,
-        DOMString::from("abc"),
+        RootedDomString::from("abc"),
         DummyClipboardContext::new(""),
     );
 
@@ -107,7 +114,7 @@ fn test_multi_line_text_input_with_maxlength_doesnt_allow_appending_characters_w
  {
     let mut text_input = TextInput::new(
         Lines::Multiple,
-        DOMString::from("abc\nd"),
+        RootedDomString::from("abc\nd"),
         DummyClipboardContext::new(""),
     );
 
@@ -121,7 +128,7 @@ fn test_single_line_text_input_with_max_length_doesnt_allow_appending_characters
  {
     let mut text_input = TextInput::new(
         Lines::Single,
-        DOMString::from("abcde"),
+        RootedDomString::from("abcde"),
         DummyClipboardContext::new(""),
     );
 
@@ -132,7 +139,7 @@ fn test_single_line_text_input_with_max_length_doesnt_allow_appending_characters
     // Selection is now "abcde"
     //                    ---
 
-    text_input.replace_selection(&DOMString::from("too long"));
+    text_input.replace_selection(&RootedDomString::from("too long"));
 
     assert_eq!(text_input.get_content(), "atooe");
 }
@@ -141,7 +148,7 @@ fn test_single_line_text_input_with_max_length_doesnt_allow_appending_characters
 fn test_single_line_text_input_with_max_length_allows_deletion_when_replacing_a_selection() {
     let mut text_input = TextInput::new(
         Lines::Single,
-        DOMString::from("abcde"),
+        RootedDomString::from("abcde"),
         DummyClipboardContext::new(""),
     );
 
@@ -152,7 +159,7 @@ fn test_single_line_text_input_with_max_length_allows_deletion_when_replacing_a_
     // Selection is now "abcde"
     //                    --
 
-    text_input.replace_selection(&DOMString::from("only deletion should be applied"));
+    text_input.replace_selection(&RootedDomString::from("only deletion should be applied"));
 
     assert_eq!(text_input.get_content(), "ade");
 }
@@ -161,7 +168,7 @@ fn test_single_line_text_input_with_max_length_allows_deletion_when_replacing_a_
 fn test_single_line_text_input_with_max_length_multibyte() {
     let mut text_input = TextInput::new(
         Lines::Single,
-        DOMString::from(""),
+        RootedDomString::from(""),
         DummyClipboardContext::new(""),
     );
 
@@ -178,7 +185,7 @@ fn test_single_line_text_input_with_max_length_multibyte() {
 fn test_single_line_text_input_with_max_length_multi_code_unit() {
     let mut text_input = TextInput::new(
         Lines::Single,
-        DOMString::from(""),
+        RootedDomString::from(""),
         DummyClipboardContext::new(""),
     );
 
@@ -197,7 +204,7 @@ fn test_single_line_text_input_with_max_length_multi_code_unit() {
 fn test_single_line_text_input_with_max_length_inside_char() {
     let mut text_input = TextInput::new(
         Lines::Single,
-        DOMString::from("\u{10437}"),
+        RootedDomString::from("\u{10437}"),
         DummyClipboardContext::new(""),
     );
 
@@ -211,7 +218,7 @@ fn test_single_line_text_input_with_max_length_doesnt_allow_appending_characters
  {
     let mut text_input = TextInput::new(
         Lines::Single,
-        DOMString::from("a"),
+        RootedDomString::from("a"),
         DummyClipboardContext::new(""),
     );
 
@@ -297,11 +304,11 @@ fn test_text_input_replace_selection() {
     let mut text_input = make_text_input(Lines::Single, "abcdefg");
     text_input.modify_edit_point(2, RopeMovement::Grapheme);
     text_input.modify_selection(2, RopeMovement::Grapheme);
-    text_input.replace_selection(&DOMString::from("xyz"));
+    text_input.replace_selection(&RootedDomString::from("xyz"));
     assert_eq!(text_input.get_content(), "abxyzefg");
 
     text_input.modify_selection(-3, RopeMovement::Grapheme);
-    text_input.replace_selection(&DOMString::from("\n1\n2\r3\r\n4\n"));
+    text_input.replace_selection(&RootedDomString::from("\n1\n2\r3\r\n4\n"));
     assert_eq!(
         text_input.get_content(),
         "ab 1 2 3 4 efg",
@@ -311,7 +318,7 @@ fn test_text_input_replace_selection() {
     let mut text_input = make_text_input(Lines::Single, "abcdefg");
     text_input.modify_edit_point(2, RopeMovement::Grapheme);
     text_input.modify_selection(0, RopeMovement::Grapheme);
-    text_input.replace_selection(&DOMString::from("1\n\n\n\n\n2"));
+    text_input.replace_selection(&RootedDomString::from("1\n\n\n\n\n2"));
     assert_eq!(
         text_input.get_content(),
         "ab1     2cdefg",
@@ -323,7 +330,7 @@ fn test_text_input_replace_selection() {
 fn test_text_input_replace_selection_multibyte_char() {
     let mut text_input = make_text_input(Lines::Single, "é");
     text_input.modify_selection(1, RopeMovement::Grapheme);
-    text_input.replace_selection(&DOMString::from("e"));
+    text_input.replace_selection(&RootedDomString::from("e"));
     assert_eq!(text_input.get_content(), "e");
 }
 
@@ -515,14 +522,14 @@ fn test_text_input_set_content() {
     let mut text_input = make_text_input(Lines::Multiple, "abc\nde\nf");
     assert_eq!(text_input.get_content(), "abc\nde\nf");
 
-    text_input.set_content(DOMString::from("abc\nf"));
+    text_input.set_content(RootedDomString::from("abc\nf"));
     assert_eq!(text_input.get_content(), "abc\nf");
     assert_eq!(text_input.edit_point(), RopeIndex::new(0, 0));
 
     text_input.modify_edit_point(3, RopeMovement::Grapheme);
     assert_eq!(text_input.edit_point(), RopeIndex::new(0, 3));
 
-    text_input.set_content(DOMString::from("de"));
+    text_input.set_content(RootedDomString::from("de"));
     assert_eq!(text_input.get_content(), "de");
     assert_eq!(text_input.edit_point(), RopeIndex::new(0, 2));
 }
@@ -690,5 +697,8 @@ fn test_backspace_in_textarea_at_beginning_of_line() {
         ModifySelection::No,
     ));
     text_input.perform_editing_action(EditingAction::Backspace(EditingMotion::Grapheme));
-    assert_eq!(text_input.get_content(), DOMString::from("first line"));
+    assert_eq!(
+        text_input.get_content(),
+        RootedDomString::from("first line")
+    );
 }

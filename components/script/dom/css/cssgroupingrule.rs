@@ -19,7 +19,7 @@ use crate::dom::bindings::error::{ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 
 #[dom_struct]
 pub(crate) struct CSSGroupingRule {
@@ -87,7 +87,7 @@ impl CSSGroupingRuleMethods<crate::DomTypeHolder> for CSSGroupingRule {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssgroupingrule-insertrule>
-    fn InsertRule(&self, cx: &mut JSContext, rule: DOMString, index: u32) -> Fallible<u32> {
+    fn InsertRule(&self, cx: &mut JSContext, rule: RootedDomString, index: u32) -> Fallible<u32> {
         self.rulelist(cx).insert_rule(cx, &rule, index)
     }
 

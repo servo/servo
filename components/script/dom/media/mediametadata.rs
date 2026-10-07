@@ -13,7 +13,7 @@ use crate::dom::bindings::codegen::Bindings::MediaMetadataBinding::{
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::media::mediasession::MediaSession;
 use crate::dom::window::Window;
 
@@ -21,9 +21,9 @@ use crate::dom::window::Window;
 pub(crate) struct MediaMetadata {
     reflector_: Reflector,
     session: MutNullableDom<MediaSession>,
-    title: DomRefCell<DOMString>,
-    artist: DomRefCell<DOMString>,
-    album: DomRefCell<DOMString>,
+    title: DomRefCell<RootedDomString>,
+    artist: DomRefCell<RootedDomString>,
+    album: DomRefCell<RootedDomString>,
 }
 
 impl MediaMetadata {
@@ -80,34 +80,34 @@ impl MediaMetadataMethods<crate::DomTypeHolder> for MediaMetadata {
     }
 
     /// <https://w3c.github.io/mediasession/#dom-mediametadata-title>
-    fn Title(&self) -> DOMString {
+    fn Title(&self) -> RootedDomString {
         self.title.borrow().clone()
     }
 
     /// <https://w3c.github.io/mediasession/#dom-mediametadata-title>
-    fn SetTitle(&self, value: DOMString) {
+    fn SetTitle(&self, value: RootedDomString) {
         *self.title.borrow_mut() = value;
         self.queue_update_metadata_algorithm();
     }
 
     /// <https://w3c.github.io/mediasession/#dom-mediametadata-artist>
-    fn Artist(&self) -> DOMString {
+    fn Artist(&self) -> RootedDomString {
         self.artist.borrow().clone()
     }
 
     /// <https://w3c.github.io/mediasession/#dom-mediametadata-artist>
-    fn SetArtist(&self, value: DOMString) {
+    fn SetArtist(&self, value: RootedDomString) {
         *self.artist.borrow_mut() = value;
         self.queue_update_metadata_algorithm();
     }
 
     /// <https://w3c.github.io/mediasession/#dom-mediametadata-album>
-    fn Album(&self) -> DOMString {
+    fn Album(&self) -> RootedDomString {
         self.album.borrow().clone()
     }
 
     /// <https://w3c.github.io/mediasession/#dom-mediametadata-album>
-    fn SetAlbum(&self, value: DOMString) {
+    fn SetAlbum(&self, value: RootedDomString) {
         *self.album.borrow_mut() = value;
         self.queue_update_metadata_algorithm();
     }

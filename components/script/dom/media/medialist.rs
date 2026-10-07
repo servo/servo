@@ -20,7 +20,7 @@ use crate::dom::bindings::codegen::Bindings::MediaListBinding::MediaListMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::css::cssstylesheet::CSSStyleSheet;
 use crate::dom::document::Document;
 use crate::dom::node::NodeTraits;
@@ -142,9 +142,9 @@ impl MediaList {
 
 impl MediaListMethods<crate::DomTypeHolder> for MediaList {
     /// <https://drafts.csswg.org/cssom/#dom-medialist-mediatext>
-    fn MediaText(&self) -> DOMString {
+    fn MediaText(&self) -> RootedDomString {
         let guard = self.shared_lock().read();
-        DOMString::from(
+        RootedDomString::from(
             self.media_queries
                 .borrow()
                 .read_with(&guard)
@@ -153,7 +153,7 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-medialist-mediatext>
-    fn SetMediaText(&self, no_gc: &NoGC, value: DOMString) {
+    fn SetMediaText(&self, no_gc: &NoGC, value: RootedDomString) {
         self.parent_stylesheet.will_modify(no_gc);
         let global = self.global();
         let mut guard = self.shared_lock().write();
@@ -174,7 +174,7 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-medialist-item>
-    fn Item(&self, index: u32) -> Option<DOMString> {
+    fn Item(&self, index: u32) -> Option<RootedDomString> {
         let guard = self.shared_lock().read();
         self.media_queries
             .borrow()
@@ -185,12 +185,12 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-medialist-item>
-    fn IndexedGetter(&self, index: u32) -> Option<DOMString> {
+    fn IndexedGetter(&self, index: u32) -> Option<RootedDomString> {
         self.Item(index)
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-medialist-appendmedium>
-    fn AppendMedium(&self, no_gc: &NoGC, medium: DOMString) {
+    fn AppendMedium(&self, no_gc: &NoGC, medium: RootedDomString) {
         // Step 1
         let global = self.global();
         let medium = medium.str();
@@ -226,7 +226,7 @@ impl MediaListMethods<crate::DomTypeHolder> for MediaList {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-medialist-deletemedium>
-    fn DeleteMedium(&self, no_gc: &NoGC, medium: DOMString) {
+    fn DeleteMedium(&self, no_gc: &NoGC, medium: RootedDomString) {
         // Step 1
         let global = self.global();
         let medium = medium.str();

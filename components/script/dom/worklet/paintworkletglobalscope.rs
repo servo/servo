@@ -41,7 +41,7 @@ use crate::dom::bindings::conversions::{get_property, get_property_jsval};
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::css::cssstylevalue::CSSStyleValue;
 use crate::dom::css::stylepropertymapreadonly::StylePropertyMapReadOnly;
@@ -570,7 +570,7 @@ impl PaintWorkletGlobalScopeMethods<crate::DomTypeHolder> for PaintWorkletGlobal
     fn RegisterPaint(
         &self,
         cx: &mut JSContext,
-        name: DOMString,
+        name: RootedDomString,
         paint_ctor: RootedCallback<VoidFunction>,
     ) -> Fallible<()> {
         let name = Atom::from(name);

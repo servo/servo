@@ -16,7 +16,7 @@ use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::codegen::Bindings::TestBindingMaplikeWithInterfaceBinding::TestBindingMaplikeWithInterfaceMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::testbinding::TestBinding;
 use crate::maplike;
@@ -26,7 +26,7 @@ use crate::maplike;
 pub(crate) struct TestBindingMaplikeWithInterface {
     reflector: Reflector,
     #[custom_trace]
-    internal: DomRefCell<IndexMap<DOMString, DomRoot<TestBinding>>>,
+    internal: DomRefCell<IndexMap<RootedDomString, DomRoot<TestBinding>>>,
 }
 
 impl TestBindingMaplikeWithInterface {
@@ -58,7 +58,7 @@ impl TestBindingMaplikeWithInterfaceMethods<crate::DomTypeHolder>
         Ok(TestBindingMaplikeWithInterface::new(cx, global, proto))
     }
 
-    fn SetInternal(&self, cx: &mut JSContext, key: DOMString, value: &TestBinding) {
+    fn SetInternal(&self, cx: &mut JSContext, key: RootedDomString, value: &TestBinding) {
         let value = DomRoot::from_ref(value);
         self.internal.set(cx, key, value)
     }
@@ -67,15 +67,15 @@ impl TestBindingMaplikeWithInterfaceMethods<crate::DomTypeHolder>
         self.internal.clear(cx)
     }
 
-    fn DeleteInternal(&self, cx: &mut JSContext, key: DOMString) -> bool {
+    fn DeleteInternal(&self, cx: &mut JSContext, key: RootedDomString) -> bool {
         self.internal.delete(cx, key)
     }
 
-    fn HasInternal(&self, cx: &mut JSContext, key: DOMString) -> bool {
+    fn HasInternal(&self, cx: &mut JSContext, key: RootedDomString) -> bool {
         self.internal.has(cx, key)
     }
 
-    fn GetInternal(&self, key: DOMString) -> Fallible<DomRoot<TestBinding>> {
+    fn GetInternal(&self, key: RootedDomString) -> Fallible<DomRoot<TestBinding>> {
         // TODO: error type?
         self.internal
             .borrow()
@@ -90,7 +90,7 @@ impl TestBindingMaplikeWithInterfaceMethods<crate::DomTypeHolder>
 }
 
 impl Maplike for TestBindingMaplikeWithInterface {
-    type Key = DOMString;
+    type Key = RootedDomString;
     type Value = DomRoot<TestBinding>;
 
     maplike!(self, internal);

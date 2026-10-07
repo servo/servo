@@ -32,7 +32,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::css::cssstyledeclaration::{
     CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner,
@@ -135,7 +135,7 @@ impl HTMLElement {
     /// `.outerText` in JavaScript.`
     ///
     /// <https://html.spec.whatwg.org/multipage/#get-the-text-steps>
-    pub(crate) fn get_inner_outer_text(&self) -> DOMString {
+    pub(crate) fn get_inner_outer_text(&self) -> RootedDomString {
         let node = self.upcast::<Node>();
         let window = node.owner_window();
         let element = self.as_element();
@@ -151,11 +151,11 @@ impl HTMLElement {
             .layout()
             .query_element_inner_outer_text(node.to_trusted_node_address());
 
-        DOMString::from(text)
+        RootedDomString::from(text)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#set-the-inner-text-steps>
-    pub(crate) fn set_inner_text(&self, cx: &mut JSContext, input: DOMString) {
+    pub(crate) fn set_inner_text(&self, cx: &mut JSContext, input: RootedDomString) {
         // Step 1: Let fragment be the rendered text fragment for value given element's node
         // document.
         let fragment = self.rendered_text_fragment(cx, input);
@@ -444,7 +444,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#attr-itemtype>
-    fn Itemtypes(&self) -> Option<Vec<DOMString>> {
+    fn Itemtypes(&self) -> Option<Vec<RootedDomString>> {
         let atoms = self
             .element
             .get_tokenlist_attribute(&local_name!("itemtype"));
@@ -457,7 +457,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             FxHashSet::from_iter(
                 atoms
                     .iter()
-                    .map(|attr_value| DOMString::from(String::from(attr_value.trim()))),
+                    .map(|attr_value| RootedDomString::from(String::from(attr_value.trim()))),
             )
             .into_iter()
             .collect(),
@@ -465,7 +465,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#names:-the-itemprop-attribute>
-    fn PropertyNames(&self) -> Option<Vec<DOMString>> {
+    fn PropertyNames(&self) -> Option<Vec<RootedDomString>> {
         let atoms = self
             .element
             .get_tokenlist_attribute(&local_name!("itemprop"));
@@ -478,7 +478,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             FxHashSet::from_iter(
                 atoms
                     .iter()
-                    .map(|attr_value| DOMString::from(String::from(attr_value.trim()))),
+                    .map(|attr_value| RootedDomString::from(String::from(attr_value.trim()))),
             )
             .into_iter()
             .collect(),
@@ -627,22 +627,22 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute>
-    fn InnerText(&self) -> DOMString {
+    fn InnerText(&self) -> RootedDomString {
         self.get_inner_outer_text()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#set-the-inner-text-steps>
-    fn SetInnerText(&self, cx: &mut JSContext, input: DOMString) {
+    fn SetInnerText(&self, cx: &mut JSContext, input: RootedDomString) {
         self.set_inner_text(cx, input)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-outertext>
-    fn GetOuterText(&self) -> Fallible<DOMString> {
+    fn GetOuterText(&self) -> Fallible<RootedDomString> {
         Ok(self.get_inner_outer_text())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-innertext-idl-attribute:dom-outertext-2>
-    fn SetOuterText(&self, cx: &mut JSContext, input: DOMString) -> Fallible<()> {
+    fn SetOuterText(&self, cx: &mut JSContext, input: RootedDomString) -> Fallible<()> {
         // Step 1: If this's parent is null, then throw a "NoModificationAllowedError" DOMException.
         let Some(parent) = self.upcast::<Node>().GetParentNode() else {
             return Err(Error::NoModificationAllowed(Some(
@@ -666,7 +666,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // Step 5: If fragment has no children, then append a new Text node whose data is the empty
         // string and node document is this's node document to fragment.
         if fragment.upcast::<Node>().children_count() == 0 {
-            let text_node = Text::new(cx, DOMString::new(), &document);
+            let text_node = Text::new(cx, RootedDomString::new(), &document);
 
             fragment
                 .upcast::<Node>()
@@ -703,8 +703,8 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             cx,
             &html5ever::local_name!("translate"),
             match yesno {
-                true => DOMString::from_static("yes"),
-                false => DOMString::from_static("no"),
+                true => RootedDomString::from_static("yes"),
+                false => RootedDomString::from_static("no"),
             },
         );
     }
@@ -720,7 +720,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     );
 
     /// <https://html.spec.whatwg.org/multipage/#dom-contenteditable>
-    fn SetContentEditable(&self, cx: &mut JSContext, value: DOMString) -> ErrorResult {
+    fn SetContentEditable(&self, cx: &mut JSContext, value: RootedDomString) -> ErrorResult {
         let attr_name = &local_name!("contenteditable");
         if value.eq_ignore_ascii_case("inherit") {
             // > On setting, if the new value is an ASCII case-insensitive match for the string "inherit", then the content attribute must be removed,
@@ -827,12 +827,12 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce>
-    fn Nonce(&self) -> DOMString {
+    fn Nonce(&self) -> RootedDomString {
         self.as_element().nonce_value().into()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce>
-    fn SetNonce(&self, cx: &mut JSContext, value: DOMString) {
+    fn SetNonce(&self, cx: &mut JSContext, value: RootedDomString) {
         self.as_element()
             .update_nonce_internal_slot(String::from(value), cx.no_gc())
     }
@@ -866,7 +866,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     make_setter!(SetAccessKey, "accesskey");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-accesskeylabel>
-    fn AccessKeyLabel(&self) -> DOMString {
+    fn AccessKeyLabel(&self) -> RootedDomString {
         // The accessKeyLabel IDL attribute must return a string that represents the element's
         // assigned access key, if any. If the element does not have one, then the IDL attribute
         // must return the empty string.
@@ -892,7 +892,7 @@ fn append_text_node_to_fragment(
     fragment: &DocumentFragment,
     text: String,
 ) {
-    let text = Text::new(cx, DOMString::from(text), document);
+    let text = Text::new(cx, RootedDomString::from(text), document);
     fragment
         .upcast::<Node>()
         .AppendChild(cx, text.upcast())
@@ -1127,7 +1127,7 @@ impl HTMLElement {
     fn rendered_text_fragment(
         &self,
         cx: &mut JSContext,
-        input: DOMString,
+        input: RootedDomString,
     ) -> DomRoot<DocumentFragment> {
         // Step 1: Let fragment be a new DocumentFragment whose node document is document.
         let document = self.owner_document();
@@ -1458,7 +1458,7 @@ impl VirtualMethods for HTMLElement {
             .attribute_affects_presentational_hints(attr)
     }
 
-    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: RootedDomString) -> AttrValue {
         match *name {
             local_name!("itemprop") => AttrValue::from_serialized_tokenlist(value.into()),
             local_name!("itemtype") => AttrValue::from_serialized_tokenlist(value.into()),

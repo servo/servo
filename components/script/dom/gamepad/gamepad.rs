@@ -19,7 +19,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, DomSlice};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::gamepadevent::{GamepadEvent, GamepadEventType};
@@ -147,8 +147,8 @@ impl Gamepad {
 
 impl GamepadMethods<crate::DomTypeHolder> for Gamepad {
     /// <https://w3c.github.io/gamepad/#dom-gamepad-id>
-    fn Id(&self) -> DOMString {
-        DOMString::from(self.id.clone())
+    fn Id(&self) -> RootedDomString {
+        RootedDomString::from(self.id.clone())
     }
 
     /// <https://w3c.github.io/gamepad/#dom-gamepad-index>
@@ -167,8 +167,8 @@ impl GamepadMethods<crate::DomTypeHolder> for Gamepad {
     }
 
     /// <https://w3c.github.io/gamepad/#dom-gamepad-mapping>
-    fn Mapping(&self) -> DOMString {
-        DOMString::from(self.mapping_type.clone())
+    fn Mapping(&self) -> RootedDomString {
+        RootedDomString::from(self.mapping_type.clone())
     }
 
     /// <https://w3c.github.io/gamepad/#dom-gamepad-axes>

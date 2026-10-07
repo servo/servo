@@ -5,7 +5,7 @@ use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use url::Url;
 
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::form_controls::input_type::SpecificInputType;
 use crate::dom::html::form_controls::input_type::text_input_widget::TextInputWidget;
@@ -21,13 +21,17 @@ impl SpecificInputType for UrlInputType {
         Some(&self.text_input_widget)
     }
 
-    fn sanitize_value(&self, _input: &HTMLInputElement, value: &mut DOMString) {
+    fn sanitize_value(&self, _input: &HTMLInputElement, value: &mut RootedDomString) {
         value.strip_newlines();
         value.strip_leading_and_trailing_ascii_whitespace();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#url-state-(type=url):suffering-from-a-type-mismatch>
-    fn suffers_from_type_mismatch(&self, _input: &HTMLInputElement, value: &DOMString) -> bool {
+    fn suffers_from_type_mismatch(
+        &self,
+        _input: &HTMLInputElement,
+        value: &RootedDomString,
+    ) -> bool {
         Url::parse(&value.str()).is_err()
     }
 

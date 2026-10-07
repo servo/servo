@@ -18,7 +18,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::storageevent::StorageEvent;
 use crate::dom::window::Window;
@@ -80,7 +80,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-storage-key>
-    fn Key(&self, index: u32) -> Option<DOMString> {
+    fn Key(&self, index: u32) -> Option<RootedDomString> {
         let (sender, receiver) =
             generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
 
@@ -92,11 +92,11 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
             index,
         ))
         .unwrap();
-        receiver.recv().unwrap().map(DOMString::from)
+        receiver.recv().unwrap().map(RootedDomString::from)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-storage-getitem>
-    fn GetItem(&self, name: DOMString) -> Option<DOMString> {
+    fn GetItem(&self, name: RootedDomString) -> Option<RootedDomString> {
         let (sender, receiver) =
             generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let name = String::from(name);
@@ -109,11 +109,11 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
             name,
         );
         self.send_storage_msg(msg).unwrap();
-        receiver.recv().unwrap().map(DOMString::from)
+        receiver.recv().unwrap().map(RootedDomString::from)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-storage-setitem>
-    fn SetItem(&self, name: DOMString, value: DOMString) -> ErrorResult {
+    fn SetItem(&self, name: RootedDomString, value: RootedDomString) -> ErrorResult {
         let (sender, receiver) =
             generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let name = String::from(name);
@@ -143,7 +143,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-storage-removeitem>
-    fn RemoveItem(&self, name: DOMString) {
+    fn RemoveItem(&self, name: RootedDomString) {
         let (sender, receiver) =
             generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
         let name = String::from(name);
@@ -179,7 +179,7 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-storage-interface:supported-property-names>
-    fn SupportedPropertyNames(&self, _: &NoGC) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self, _: &NoGC) -> Vec<RootedDomString> {
         let time_profiler = self.global().time_profiler_chan().clone();
         let (sender, receiver) = generic_channel::channel(time_profiler).unwrap();
 
@@ -194,20 +194,20 @@ impl StorageMethods<crate::DomTypeHolder> for Storage {
             .recv()
             .unwrap()
             .into_iter()
-            .map(DOMString::from)
+            .map(RootedDomString::from)
             .collect()
     }
 
     // check-tidy: no specs after this line
-    fn NamedGetter(&self, name: DOMString) -> Option<DOMString> {
+    fn NamedGetter(&self, name: RootedDomString) -> Option<RootedDomString> {
         self.GetItem(name)
     }
 
-    fn NamedSetter(&self, name: DOMString, value: DOMString) -> ErrorResult {
+    fn NamedSetter(&self, name: RootedDomString, value: RootedDomString) -> ErrorResult {
         self.SetItem(name, value)
     }
 
-    fn NamedDeleter(&self, name: DOMString) {
+    fn NamedDeleter(&self, name: RootedDomString) {
         self.RemoveItem(name);
     }
 }
@@ -251,10 +251,10 @@ impl Storage {
                     atom!("storage"),
                     EventBubbles::DoesNotBubble,
                     EventCancelable::NotCancelable,
-                    key.map(DOMString::from),
-                    old_value.map(DOMString::from),
-                    new_value.map(DOMString::from),
-                    DOMString::from(url.into_string()),
+                    key.map(RootedDomString::from),
+                    old_value.map(RootedDomString::from),
+                    new_value.map(RootedDomString::from),
+                    RootedDomString::from(url.into_string()),
                     Some(&this),
                 );
                 event.upcast::<Event>().fire(cx, global.upcast());

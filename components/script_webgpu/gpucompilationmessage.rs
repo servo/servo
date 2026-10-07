@@ -16,13 +16,13 @@ use webgpu_traits::ShaderCompilationInfo;
 
 use crate::JSTraceable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::traits::Equivalence;
 
 #[dom_struct]
 pub struct GPUCompilationMessage<D: DomTypes> {
     reflector_: Reflector,
-    message: DOMString,
+    message: RootedDomString,
     mtype: GPUCompilationMessageType,
     line_num: u64,
     line_pos: u64,
@@ -34,7 +34,7 @@ pub struct GPUCompilationMessage<D: DomTypes> {
 
 impl<D: Equivalence> GPUCompilationMessage<D> {
     fn new_inherited(
-        message: DOMString,
+        message: RootedDomString,
         mtype: GPUCompilationMessageType,
         line_num: u64,
         line_pos: u64,
@@ -57,7 +57,7 @@ impl<D: Equivalence> GPUCompilationMessage<D> {
     pub(crate) fn new(
         cx: &mut JSContext,
         global: &D::GlobalScope,
-        message: DOMString,
+        message: RootedDomString,
         mtype: GPUCompilationMessageType,
         line_num: u64,
         line_pos: u64,
@@ -94,7 +94,7 @@ impl<D: Equivalence> GPUCompilationMessage<D> {
 
 impl<D: DomTypes> GPUCompilationMessageMethods<D> for GPUCompilationMessage<D> {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucompilationmessage-message>
-    fn Message(&self) -> DOMString {
+    fn Message(&self) -> RootedDomString {
         self.message.to_owned()
     }
 

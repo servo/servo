@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
@@ -497,13 +497,13 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             let mut jwk = JsonWebKey::default();
 
             // Step 3.2. Set the kty attribute of jwk to "OKP".
-            jwk.kty = Some(DOMString::from_static("OKP"));
+            jwk.kty = Some(RootedDomString::from_static("OKP"));
 
             // Step 3.3. Set the alg attribute of jwk to "Ed25519".
-            jwk.alg = Some(DOMString::from_static("Ed25519"));
+            jwk.alg = Some(RootedDomString::from_static("Ed25519"));
 
             // Step 3.4. Set the crv attribute of jwk to "Ed25519".
-            jwk.crv = Some(DOMString::from_static("Ed25519"));
+            jwk.crv = Some(RootedDomString::from_static("Ed25519"));
 
             // Step 3.5. Set the x attribute of jwk according to the definition in Section 2 of
             // [RFC8037].

@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::event::Event;
 use crate::dom::window::Window;
 
@@ -25,7 +25,7 @@ pub(crate) struct AnimationEvent {
     #[no_trace]
     animation_name: Atom,
     elapsed_time: Finite<f32>,
-    pseudo_element: DOMString,
+    pseudo_element: RootedDomString,
 }
 
 impl AnimationEvent {
@@ -74,15 +74,15 @@ impl AnimationEventMethods<crate::DomTypeHolder> for AnimationEvent {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        type_: RootedDomString,
         init: &AnimationEventInit,
     ) -> DomRoot<AnimationEvent> {
         AnimationEvent::new_with_proto(cx, window, proto, Atom::from(type_), init)
     }
 
     /// <https://drafts.csswg.org/css-animations/#interface-animationevent-attributes>
-    fn AnimationName(&self) -> DOMString {
-        DOMString::from(&*self.animation_name)
+    fn AnimationName(&self) -> RootedDomString {
+        RootedDomString::from(&*self.animation_name)
     }
 
     /// <https://drafts.csswg.org/css-animations/#interface-animationevent-attributes>
@@ -91,7 +91,7 @@ impl AnimationEventMethods<crate::DomTypeHolder> for AnimationEvent {
     }
 
     /// <https://drafts.csswg.org/css-animations/#interface-animationevent-attributes>
-    fn PseudoElement(&self) -> DOMString {
+    fn PseudoElement(&self) -> RootedDomString {
         self.pseudo_element.clone()
     }
 

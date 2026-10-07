@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::uievent::UIEvent;
@@ -111,7 +111,7 @@ impl FocusEventMethods<crate::DomTypeHolder> for FocusEvent {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        event_type: DOMString,
+        event_type: RootedDomString,
         init: &FocusEventBinding::FocusEventInit,
     ) -> Fallible<DomRoot<FocusEvent>> {
         let bubbles = EventBubbles::from(init.parent.parent.bubbles);

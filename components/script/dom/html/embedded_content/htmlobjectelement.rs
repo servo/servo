@@ -15,7 +15,7 @@ use servo_arc::Arc;
 use crate::dom::bindings::codegen::Bindings::HTMLObjectElementBinding::HTMLObjectElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::document::Document;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
@@ -127,12 +127,12 @@ impl HTMLObjectElementMethods<crate::DomTypeHolder> for HTMLObjectElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
-    fn ValidationMessage(&self, cx: &mut JSContext) -> DOMString {
+    fn ValidationMessage(&self, cx: &mut JSContext) -> RootedDomString {
         self.validation_message(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity>
-    fn SetCustomValidity(&self, cx: &mut JSContext, error: DOMString) {
+    fn SetCustomValidity(&self, cx: &mut JSContext, error: RootedDomString) {
         self.validity_state(cx).set_custom_error_message(cx, error);
     }
 }

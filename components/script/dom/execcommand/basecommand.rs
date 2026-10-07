@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::CSSStyleDeclarationBinding::CSSStyl
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLFontElementBinding::HTMLFontElementMethods;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::execcommand::commands::backcolor::execute_backcolor_command;
@@ -67,22 +67,22 @@ impl DefaultSingleLineContainerName {
     }
 }
 
-impl From<DefaultSingleLineContainerName> for DOMString {
+impl From<DefaultSingleLineContainerName> for RootedDomString {
     fn from(default_single_line_container_name: DefaultSingleLineContainerName) -> Self {
         match default_single_line_container_name {
-            DefaultSingleLineContainerName::Div => DOMString::from_static("div"),
-            DefaultSingleLineContainerName::Paragraph => DOMString::from_static("p"),
+            DefaultSingleLineContainerName::Div => RootedDomString::from_static("div"),
+            DefaultSingleLineContainerName::Paragraph => RootedDomString::from_static("p"),
         }
     }
 }
 
 pub(crate) enum BoolOrOptionalString {
     Bool(bool),
-    OptionalString(Option<DOMString>),
+    OptionalString(Option<RootedDomString>),
 }
 
-impl From<Option<DOMString>> for BoolOrOptionalString {
-    fn from(optional_string: Option<DOMString>) -> Self {
+impl From<Option<RootedDomString>> for BoolOrOptionalString {
+    fn from(optional_string: Option<RootedDomString>) -> Self {
         Self::OptionalString(optional_string)
     }
 }
@@ -154,7 +154,7 @@ pub(crate) enum CssPropertyName {
 }
 
 impl CssPropertyName {
-    pub(crate) fn resolved_value_for_node(&self, element: &Element) -> Option<DOMString> {
+    pub(crate) fn resolved_value_for_node(&self, element: &Element) -> Option<RootedDomString> {
         let style = element.style()?;
 
         Some(
@@ -253,7 +253,7 @@ impl CssPropertyName {
     /// Retrieves a respective css longhand value from the style declarations of an
     /// element. Note that this is different than the computed values, since this is
     /// only relevant when the author specified rules on the specific element.
-    pub(crate) fn value_set_for_style(&self, element: &Element) -> Option<DOMString> {
+    pub(crate) fn value_set_for_style(&self, element: &Element) -> Option<RootedDomString> {
         let style_attribute = element.style_attribute().borrow();
         let declarations = style_attribute.as_ref()?;
         let document = element.owner_document();
@@ -286,7 +286,7 @@ impl CssPropertyName {
             })
     }
 
-    fn property_name(&self) -> DOMString {
+    fn property_name(&self) -> RootedDomString {
         match self {
             CssPropertyName::BackgroundColor => "background-color",
             CssPropertyName::Color => "color",
@@ -304,11 +304,11 @@ impl CssPropertyName {
         &self,
         cx: &mut JSContext,
         element: &HTMLElement,
-        new_value: DOMString,
+        new_value: RootedDomString,
     ) {
         let style = element.Style(cx);
 
-        let _ = style.SetProperty(cx, self.property_name(), new_value, DOMString::new());
+        let _ = style.SetProperty(cx, self.property_name(), new_value, RootedDomString::new());
     }
 
     pub(crate) fn remove_from_element(&self, cx: &mut JSContext, element: &HTMLElement) {
@@ -377,7 +377,7 @@ impl CommandName {
             return false;
         };
         let mut at_least_two_different_effective_values = false;
-        let mut previous_effective_value: Option<DOMString> = None;
+        let mut previous_effective_value: Option<RootedDomString> = None;
         active_range.for_each_effectively_contained_child(cx, |cx, node| {
             if at_least_two_different_effective_values || !node.is_formattable(cx.no_gc()) {
                 return;
@@ -457,7 +457,7 @@ impl CommandName {
         &self,
         cx: &mut JSContext,
         document: &Document,
-    ) -> Option<DOMString> {
+    ) -> Option<RootedDomString> {
         Some(match self {
             CommandName::DefaultParagraphSeparator => {
                 // https://w3c.github.io/editing/docs/execCommand/#the-defaultparagraphseparator-command
@@ -487,8 +487,8 @@ impl CommandName {
     /// <https://w3c.github.io/editing/docs/execCommand/#equivalent-values>
     pub(crate) fn are_equivalent_values(
         &self,
-        first: Option<&DOMString>,
-        second: Option<&DOMString>,
+        first: Option<&RootedDomString>,
+        second: Option<&RootedDomString>,
     ) -> bool {
         match (first, second) {
             // > Two quantities are equivalent values for a command if either both are null,
@@ -537,8 +537,8 @@ impl CommandName {
     /// <https://w3c.github.io/editing/docs/execCommand/#loosely-equivalent-values>
     pub(crate) fn are_loosely_equivalent_values(
         &self,
-        first: Option<&DOMString>,
-        second: Option<&DOMString>,
+        first: Option<&RootedDomString>,
+        second: Option<&RootedDomString>,
     ) -> bool {
         // > Two quantities are loosely equivalent values for a command if either they are equivalent values for the command,
         if self.are_equivalent_values(first, second) {
@@ -619,7 +619,7 @@ impl CommandName {
         })
     }
 
-    pub(crate) fn resolved_value_for_node(&self, element: &Element) -> Option<DOMString> {
+    pub(crate) fn resolved_value_for_node(&self, element: &Element) -> Option<RootedDomString> {
         let property = self.relevant_css_property()?;
         property.resolved_value_for_node(element)
     }
@@ -725,7 +725,7 @@ impl CommandName {
         cx: &mut JSContext,
         document: &Document,
         selection: &Selection,
-        value: DOMString,
+        value: RootedDomString,
     ) -> bool {
         // https://w3c.github.io/editing/docs/execCommand/#preserves-overrides
         // > If a command preserves overrides, then before taking its action,

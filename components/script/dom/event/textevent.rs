@@ -8,7 +8,7 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::UIEventBinding::UIEventMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::reflector::reflect_dom_object;
-use script_bindings::str::DOMString;
+use script_bindings::str::RootedDomString;
 
 use crate::dom::bindings::codegen::Bindings::TextEventBinding::TextEventMethods;
 use crate::dom::bindings::root::DomRoot;
@@ -20,14 +20,14 @@ use crate::dom::window::Window;
 /// <https://w3c.github.io/uievents/#textevent>
 pub(crate) struct TextEvent {
     uievent: UIEvent,
-    data: DomRefCell<DOMString>,
+    data: DomRefCell<RootedDomString>,
 }
 
 impl TextEvent {
     pub(crate) fn new_inherited() -> TextEvent {
         TextEvent {
             uievent: UIEvent::new_inherited(),
-            data: DomRefCell::new(DOMString::new()),
+            data: DomRefCell::new(RootedDomString::new()),
         }
     }
 
@@ -40,11 +40,11 @@ impl TextEventMethods<crate::DomTypeHolder> for TextEvent {
     /// <https://w3c.github.io/uievents/event-algo.html#dom-textevent-inittextevent>
     fn InitTextEvent(
         &self,
-        type_: DOMString,
+        type_: RootedDomString,
         bubbles: bool,
         cancelable: bool,
         view: Option<&Window>,
-        data: DOMString,
+        data: RootedDomString,
     ) {
         // 1. If this’s dispatch flag is set, then return.
         if self.upcast::<Event>().dispatching() {
@@ -63,7 +63,7 @@ impl TextEventMethods<crate::DomTypeHolder> for TextEvent {
         *self.data.borrow_mut() = data;
     }
 
-    fn Data(&self) -> DOMString {
+    fn Data(&self) -> RootedDomString {
         self.data.borrow().clone()
     }
 

@@ -19,7 +19,7 @@ use crate::dom::bindings::codegen::Bindings::DOMExceptionBinding::{
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::globalscope::GlobalScope;
 
 #[repr(u16)]
@@ -60,7 +60,7 @@ pub(crate) enum DOMErrorName {
 }
 
 impl DOMErrorName {
-    pub(crate) fn from(s: &DOMString) -> Option<DOMErrorName> {
+    pub(crate) fn from(s: &RootedDomString) -> Option<DOMErrorName> {
         match_domstring_ascii!(s,
             "IndexSizeError" => Some(DOMErrorName::IndexSizeError),
             "HierarchyRequestError" => Some(DOMErrorName::HierarchyRequestError),
@@ -101,12 +101,12 @@ impl DOMErrorName {
 #[dom_struct]
 pub(crate) struct DOMException {
     reflector_: Reflector,
-    message: DOMString,
-    name: DOMString,
+    message: RootedDomString,
+    name: RootedDomString,
 }
 
 impl DOMException {
-    fn get_error_data_by_code(code: DOMErrorName) -> (DOMString, DOMString) {
+    fn get_error_data_by_code(code: DOMErrorName) -> (RootedDomString, RootedDomString) {
         let message = match &code {
             DOMErrorName::IndexSizeError => "The index is not in the allowed range.",
             DOMErrorName::HierarchyRequestError => {
@@ -163,12 +163,12 @@ impl DOMException {
         };
 
         (
-            DOMString::from(message),
-            DOMString::from(format!("{:?}", code)),
+            RootedDomString::from(message),
+            RootedDomString::from(format!("{:?}", code)),
         )
     }
 
-    pub(crate) fn new_inherited(message: DOMString, name: DOMString) -> DOMException {
+    pub(crate) fn new_inherited(message: RootedDomString, name: RootedDomString) -> DOMException {
         DOMException {
             reflector_: Reflector::new(),
             message,
@@ -200,14 +200,17 @@ impl DOMException {
 
         reflect_dom_object(
             cx,
-            Box::new(DOMException::new_inherited(DOMString::from(message), name)),
+            Box::new(DOMException::new_inherited(
+                RootedDomString::from(message),
+                name,
+            )),
             global,
         )
     }
 
     // not an IDL stringifier, used internally
-    pub(crate) fn stringifier(&self) -> DOMString {
-        DOMString::from(format!("{}: {}", self.name, self.message))
+    pub(crate) fn stringifier(&self) -> RootedDomString {
+        RootedDomString::from(format!("{}: {}", self.name, self.message))
     }
 }
 
@@ -217,8 +220,8 @@ impl DOMExceptionMethods<crate::DomTypeHolder> for DOMException {
         cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        message: DOMString,
-        name: DOMString,
+        message: RootedDomString,
+        name: RootedDomString,
     ) -> Result<DomRoot<DOMException>, Error> {
         Ok(reflect_dom_object_with_proto(
             cx,
@@ -237,12 +240,12 @@ impl DOMExceptionMethods<crate::DomTypeHolder> for DOMException {
     }
 
     /// <https://webidl.spec.whatwg.org/#dom-domexception-name>
-    fn Name(&self) -> DOMString {
+    fn Name(&self) -> RootedDomString {
         self.name.clone()
     }
 
     /// <https://webidl.spec.whatwg.org/#dom-domexception-message>
-    fn Message(&self) -> DOMString {
+    fn Message(&self) -> RootedDomString {
         self.message.clone()
     }
 }
@@ -272,7 +275,7 @@ impl Serializable for DOMException {
         Ok(Self::new_with_custom_message(
             cx,
             owner,
-            DOMErrorName::from(&DOMString::from(serialized.name)).ok_or(())?,
+            DOMErrorName::from(&RootedDomString::from(serialized.name)).ok_or(())?,
             serialized.message,
         ))
     }
@@ -289,8 +292,8 @@ impl Serializable for DOMException {
 
 impl DomExceptionTrait for DOMException {
     fn new_inherited(
-        message: script_bindings::str::DOMString,
-        name: script_bindings::str::DOMString,
+        message: script_bindings::str::RootedDomString,
+        name: script_bindings::str::RootedDomString,
     ) -> Self {
         DOMException::new_inherited(message, name)
     }

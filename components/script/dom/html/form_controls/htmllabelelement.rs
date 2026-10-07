@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLLabelElementBinding::HTMLLabelE
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::document::Document;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
@@ -160,7 +160,7 @@ impl VirtualMethods for HTMLLabelElement {
         Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
     }
 
-    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: RootedDomString) -> AttrValue {
         match name {
             &local_name!("for") => AttrValue::from_atomic(value.into()),
             _ => self

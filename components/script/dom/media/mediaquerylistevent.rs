@@ -17,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::MediaQueryListEventBinding::{
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
@@ -26,7 +26,7 @@ use crate::dom::window::Window;
 #[dom_struct]
 pub(crate) struct MediaQueryListEvent {
     event: Event,
-    media: DOMString,
+    media: RootedDomString,
     matches: Cell<bool>,
 }
 
@@ -35,7 +35,7 @@ impl MediaQueryListEvent {
         cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        media: DOMString,
+        media: RootedDomString,
         matches: bool,
     ) -> DomRoot<MediaQueryListEvent> {
         let ev = Box::new(MediaQueryListEvent {
@@ -52,7 +52,7 @@ impl MediaQueryListEvent {
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
-        media: DOMString,
+        media: RootedDomString,
         matches: bool,
     ) -> DomRoot<MediaQueryListEvent> {
         Self::new_with_proto(cx, global, None, type_, bubbles, cancelable, media, matches)
@@ -66,7 +66,7 @@ impl MediaQueryListEvent {
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
-        media: DOMString,
+        media: RootedDomString,
         matches: bool,
     ) -> DomRoot<MediaQueryListEvent> {
         let ev = MediaQueryListEvent::new_initialized(cx, global, proto, media, matches);
@@ -84,7 +84,7 @@ impl MediaQueryListEventMethods<crate::DomTypeHolder> for MediaQueryListEvent {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        type_: RootedDomString,
         init: &MediaQueryListEventInit,
     ) -> Fallible<DomRoot<MediaQueryListEvent>> {
         Ok(MediaQueryListEvent::new_with_proto(
@@ -100,7 +100,7 @@ impl MediaQueryListEventMethods<crate::DomTypeHolder> for MediaQueryListEvent {
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-mediaquerylistevent-media>
-    fn Media(&self) -> DOMString {
+    fn Media(&self) -> RootedDomString {
         self.media.clone()
     }
 

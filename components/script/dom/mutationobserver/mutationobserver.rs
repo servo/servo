@@ -20,7 +20,7 @@ use crate::dom::bindings::codegen::Bindings::MutationObserverBinding::{
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::mutationrecord::MutationRecord;
 use crate::dom::node::Node;
@@ -39,7 +39,7 @@ pub(crate) enum Mutation<'a> {
     Attribute {
         name: LocalName,
         namespace: Namespace,
-        old_value: Option<DOMString>,
+        old_value: Option<RootedDomString>,
     },
     CharacterData {
         old_value: String,
@@ -67,7 +67,7 @@ pub(crate) struct ObserverOptions {
     character_data_old_value: bool,
     child_list: bool,
     subtree: bool,
-    attribute_filter: Vec<DOMString>,
+    attribute_filter: Vec<RootedDomString>,
 }
 
 impl MutationObserver {
@@ -110,8 +110,10 @@ impl MutationObserver {
             return;
         }
         // Step 1 Let interestedObservers be an empty map.
-        let mut interested_observers: FxHashMap<DomRoot<MutationObserver>, Option<DOMString>> =
-            FxHashMap::default();
+        let mut interested_observers: FxHashMap<
+            DomRoot<MutationObserver>,
+            Option<RootedDomString>,
+        > = FxHashMap::default();
 
         // Step 2 Let nodes be the inclusive ancestors of target.
         // Step 3 For each node in nodes ...
@@ -176,7 +178,7 @@ impl MutationObserver {
                         if registered.options.character_data_old_value {
                             // 3.2.3 ... type is "characterData" and options["characterDataOldValue"] is true
                             interested_observers
-                                .insert(mo, Some(DOMString::from(old_value.clone())));
+                                .insert(mo, Some(RootedDomString::from(old_value.clone())));
                         } else {
                             // 3.2.2 If interestedObservers[mo] does not exist, then set interestedObservers[mo] to null.
                             interested_observers.entry(mo).or_insert(None);

@@ -13,7 +13,7 @@ use style::str::HTML_SPACE_CHARACTERS;
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::element::referrer_policy_for_element;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlareaelement::HTMLAreaElement;
@@ -286,7 +286,10 @@ impl LinkRelations {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#get-an-element%27s-noopener>
-    pub(crate) fn get_element_noopener(&self, target_attribute_value: Option<&DOMString>) -> bool {
+    pub(crate) fn get_element_noopener(
+        &self,
+        target_attribute_value: Option<&RootedDomString>,
+    ) -> bool {
         // Step 1. If element's link types include the noopener or noreferrer keyword, then return true.
         if self.contains(Self::NO_OPENER) || self.contains(Self::NO_REFERRER) {
             return true;
@@ -308,7 +311,7 @@ impl LinkRelations {
 malloc_size_of_is_0!(LinkRelations);
 
 /// <https://html.spec.whatwg.org/multipage/#valid-navigable-target-name>
-fn valid_navigable_target_name(target: &DOMString) -> bool {
+fn valid_navigable_target_name(target: &RootedDomString) -> bool {
     // > A valid navigable target name is any string with at least one character that does not contain both
     // > an ASCII tab or newline and a U+003C (<), and it does not start with a U+005F (_).
     // > (Names starting with a U+005F (_) are reserved for special keywords.)
@@ -325,7 +328,7 @@ fn valid_navigable_target_name(target: &DOMString) -> bool {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#valid-navigable-target-name-or-keyword>
-pub(crate) fn valid_navigable_target_name_or_keyword(target: &DOMString) -> bool {
+pub(crate) fn valid_navigable_target_name_or_keyword(target: &RootedDomString) -> bool {
     // > A valid navigable target name or keyword is any string that is either a valid navigable target name
     // > or that is an ASCII case-insensitive match for one of: _blank, _self, _parent, or _top.
     if valid_navigable_target_name(target) {
@@ -340,8 +343,8 @@ pub(crate) fn valid_navigable_target_name_or_keyword(target: &DOMString) -> bool
 /// <https://html.spec.whatwg.org/multipage/#get-an-element%27s-target>
 pub(crate) fn get_element_target(
     subject: &Element,
-    target: Option<DOMString>,
-) -> Option<DOMString> {
+    target: Option<RootedDomString>,
+) -> Option<RootedDomString> {
     assert!(
         subject.is::<HTMLAreaElement>() ||
             subject.is::<HTMLAnchorElement>() ||
@@ -378,7 +381,7 @@ pub(crate) fn get_element_target(
         target.contains_tab_or_newline() &&
         target.contains("\u{003C}")
     {
-        return Some(DOMString::from_static("_blank"));
+        return Some(RootedDomString::from_static("_blank"));
     }
     // Step 3. Return target.
     target
@@ -411,7 +414,7 @@ pub(crate) fn follow_hyperlink(
                 .event_handler()
                 .alternate_action_keyboard_modifier_active()
             {
-                Some(DOMString::from_static("_blank"))
+                Some(RootedDomString::from_static("_blank"))
             } else {
                 get_element_target(subject, None)
             }

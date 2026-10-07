@@ -19,7 +19,7 @@ use crate::dom::bindings::domname::{is_valid_doctype_name, namespace_from_domstr
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::documenttype::DocumentType;
 use crate::dom::element::{CustomElementCreationMode, ElementCreator};
@@ -60,9 +60,9 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
     fn CreateDocumentType(
         &self,
         cx: &mut js::context::JSContext,
-        qualified_name: DOMString,
-        pubid: DOMString,
-        sysid: DOMString,
+        qualified_name: RootedDomString,
+        pubid: RootedDomString,
+        sysid: RootedDomString,
     ) -> Fallible<DomRoot<DocumentType>> {
         // Step 1. If name is not a valid doctype name, then throw an
         //      "InvalidCharacterError" DOMException.
@@ -85,8 +85,8 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
     fn CreateDocument(
         &self,
         cx: &mut JSContext,
-        maybe_namespace: Option<DOMString>,
-        qname: DOMString,
+        maybe_namespace: Option<RootedDomString>,
+        qname: RootedDomString,
         maybe_doctype: Option<&DocumentType>,
     ) -> Fallible<DomRoot<XMLDocument>> {
         let win = self.document.window();
@@ -160,7 +160,7 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
     fn CreateHTMLDocument(
         &self,
         cx: &mut JSContext,
-        title: Option<DOMString>,
+        title: Option<RootedDomString>,
     ) -> DomRoot<Document> {
         let win = self.document.window();
         let loader = DocumentLoader::new(&self.document.loader());
@@ -196,7 +196,8 @@ impl DOMImplementationMethods<crate::DomTypeHolder> for DOMImplementation {
         {
             // Step 3. Append a new doctype, with "html" as its name and with its node document set to doc, to doc.
             let doc_node = doc.upcast::<Node>();
-            let doc_type = DocumentType::new(cx, DOMString::from_static("html"), None, None, &doc);
+            let doc_type =
+                DocumentType::new(cx, RootedDomString::from_static("html"), None, None, &doc);
             doc_node.AppendChild(cx, doc_type.upcast()).unwrap();
         }
 

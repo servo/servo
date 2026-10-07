@@ -19,7 +19,7 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{AsHandleValue, Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::client::Client;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -79,9 +79,9 @@ pub(crate) struct ExtendableMessageEvent {
     #[ignore_malloc_size_of = "mozjs"]
     data: Heap<JSVal>,
     /// <https://w3c.github.io/ServiceWorker/#extendablemessage-event-origin>
-    origin: DOMString,
+    origin: RootedDomString,
     /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-lasteventid>
-    lastEventId: DOMString,
+    lastEventId: RootedDomString,
     /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-source>
     source: Option<MessageSource>,
     /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-ports>
@@ -93,8 +93,8 @@ pub(crate) struct ExtendableMessageEvent {
 #[expect(non_snake_case)]
 impl ExtendableMessageEvent {
     pub(crate) fn new_inherited(
-        origin: DOMString,
-        lastEventId: DOMString,
+        origin: RootedDomString,
+        lastEventId: RootedDomString,
         source: Option<&ClientOrServiceWorkerOrMessagePort>,
         ports: Vec<DomRoot<MessagePort>>,
     ) -> ExtendableMessageEvent {
@@ -120,8 +120,8 @@ impl ExtendableMessageEvent {
         bubbles: bool,
         cancelable: bool,
         data: HandleValue,
-        origin: DOMString,
-        lastEventId: DOMString,
+        origin: RootedDomString,
+        lastEventId: RootedDomString,
         source: Option<&ClientOrServiceWorkerOrMessagePort>,
         ports: Vec<DomRoot<MessagePort>>,
     ) -> DomRoot<ExtendableMessageEvent> {
@@ -149,8 +149,8 @@ impl ExtendableMessageEvent {
         bubbles: bool,
         cancelable: bool,
         data: HandleValue,
-        origin: DOMString,
-        lastEventId: DOMString,
+        origin: RootedDomString,
+        lastEventId: RootedDomString,
         source: Option<&ClientOrServiceWorkerOrMessagePort>,
         ports: Vec<DomRoot<MessagePort>>,
     ) -> DomRoot<ExtendableMessageEvent> {
@@ -185,8 +185,8 @@ impl ExtendableMessageEvent {
             false,
             false,
             message,
-            DOMString::new(),
-            DOMString::new(),
+            RootedDomString::new(),
+            RootedDomString::new(),
             source,
             ports,
         );
@@ -201,8 +201,8 @@ impl ExtendableMessageEvent {
             false,
             false,
             HandleValue::null(),
-            DOMString::new(),
-            DOMString::new(),
+            RootedDomString::new(),
+            RootedDomString::new(),
             None,
             Vec::new(),
         );
@@ -216,7 +216,7 @@ impl ExtendableMessageEventMethods<crate::DomTypeHolder> for ExtendableMessageEv
         cx: &mut JSContext,
         worker: &ServiceWorkerGlobalScope,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        type_: RootedDomString,
         init: &ExtendableMessageEventInit,
     ) -> Fallible<DomRoot<ExtendableMessageEvent>> {
         let global = worker.upcast::<GlobalScope>();
@@ -242,12 +242,12 @@ impl ExtendableMessageEventMethods<crate::DomTypeHolder> for ExtendableMessageEv
     }
 
     /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-origin>
-    fn Origin(&self) -> DOMString {
+    fn Origin(&self) -> RootedDomString {
         self.origin.clone()
     }
 
     /// <https://w3c.github.io/ServiceWorker/#dom-extendablemessageevent-lasteventid>
-    fn LastEventId(&self) -> DOMString {
+    fn LastEventId(&self) -> RootedDomString {
         self.lastEventId.clone()
     }
 

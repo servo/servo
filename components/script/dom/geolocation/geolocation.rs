@@ -13,7 +13,7 @@ use script_bindings::codegen::GenericBindings::GeolocationBinding::{
 };
 use script_bindings::codegen::GenericBindings::PermissionStatusBinding::PermissionName;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
-use script_bindings::domstring::DOMString;
+use script_bindings::domstring::RootedDomString;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::root::DomRoot;
 
@@ -66,7 +66,7 @@ impl Geolocation {
                 let position_error = GeolocationPositionError::permission_denied(
                     cx,
                     &self.global(),
-                    DOMString::from("User denied Geolocation".to_string()),
+                    RootedDomString::from("User denied Geolocation".to_string()),
                 );
                 let _ = error_callback.Call_(cx, self, &position_error, ExceptionHandling::Report);
             }
@@ -84,7 +84,7 @@ impl Geolocation {
                 let position_error = GeolocationPositionError::permission_denied(
                     cx,
                     &self.global(),
-                    DOMString::from("Insecure context for Geolocation".to_string()),
+                    RootedDomString::from("Insecure context for Geolocation".to_string()),
                 );
                 let _ = error_callback.Call_(cx, self, &position_error, ExceptionHandling::Report);
             }
@@ -113,7 +113,7 @@ impl GeolocationMethods<DomTypeHolder> for Geolocation {
                 let position_error = GeolocationPositionError::position_unavailable(
                     cx,
                     &self.global(),
-                    DOMString::from("Document is not fully active".to_string()),
+                    RootedDomString::from("Document is not fully active".to_string()),
                 );
                 let _ = error_callback.Call_(cx, self, &position_error, ExceptionHandling::Report);
             }
@@ -139,7 +139,7 @@ impl GeolocationMethods<DomTypeHolder> for Geolocation {
                 let position_error = GeolocationPositionError::position_unavailable(
                     cx,
                     &self.global(),
-                    DOMString::from("Document is not fully active".to_string()),
+                    RootedDomString::from("Document is not fully active".to_string()),
                 );
                 let _ = error_callback.Call_(cx, self, &position_error, ExceptionHandling::Report);
             }

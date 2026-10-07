@@ -20,7 +20,7 @@ use crate::dom::bindings::codegen::Bindings::TextEncoderBinding::{
 };
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::{RootedDomString, USVString};
 use crate::dom::globalscope::GlobalScope;
 
 /// <https://encoding.spec.whatwg.org/#textencoder>
@@ -56,8 +56,8 @@ impl TextEncoderMethods<crate::DomTypeHolder> for TextEncoder {
     }
 
     /// <https://encoding.spec.whatwg.org/#dom-textencoder-encoding>
-    fn Encoding(&self) -> DOMString {
-        DOMString::from_static("utf-8")
+    fn Encoding(&self) -> RootedDomString {
+        RootedDomString::from_static("utf-8")
     }
 
     /// <https://encoding.spec.whatwg.org/#dom-textencoder-encode>

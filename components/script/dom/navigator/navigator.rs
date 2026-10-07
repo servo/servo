@@ -38,7 +38,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::{RootedDomString, USVString};
 use crate::dom::bindings::utils::to_frozen_array;
 #[cfg(feature = "bluetooth")]
 use crate::dom::bluetooth::Bluetooth;
@@ -242,7 +242,7 @@ impl Navigator {
     /// <https://html.spec.whatwg.org/multipage/#normalize-protocol-handler-parameters>
     fn normalize_protocol_handler_parameters(
         &self,
-        scheme: DOMString,
+        scheme: RootedDomString,
         url: USVString,
     ) -> Fallible<(String, ServoUrl)> {
         // Step 1. Set scheme to scheme, converted to ASCII lowercase.
@@ -300,22 +300,22 @@ impl Navigator {
 
 impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-product>
-    fn Product(&self) -> DOMString {
+    fn Product(&self) -> RootedDomString {
         navigatorinfo::Product()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-productsub>
-    fn ProductSub(&self) -> DOMString {
+    fn ProductSub(&self) -> RootedDomString {
         navigatorinfo::ProductSub()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-vendor>
-    fn Vendor(&self) -> DOMString {
+    fn Vendor(&self) -> RootedDomString {
         navigatorinfo::Vendor()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-vendorsub>
-    fn VendorSub(&self) -> DOMString {
+    fn VendorSub(&self) -> RootedDomString {
         navigatorinfo::VendorSub()
     }
 
@@ -325,27 +325,27 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-appname>
-    fn AppName(&self) -> DOMString {
+    fn AppName(&self) -> RootedDomString {
         navigatorinfo::AppName()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-appcodename>
-    fn AppCodeName(&self) -> DOMString {
+    fn AppCodeName(&self) -> RootedDomString {
         navigatorinfo::AppCodeName()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-platform>
-    fn Platform(&self) -> DOMString {
+    fn Platform(&self) -> RootedDomString {
         navigatorinfo::Platform()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-useragent>
-    fn UserAgent(&self) -> DOMString {
+    fn UserAgent(&self) -> RootedDomString {
         navigatorinfo::UserAgent(&pref!(user_agent))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-appversion>
-    fn AppVersion(&self) -> DOMString {
+    fn AppVersion(&self) -> RootedDomString {
         navigatorinfo::AppVersion()
     }
 
@@ -368,7 +368,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#navigatorlanguage>
-    fn Language(&self) -> DOMString {
+    fn Language(&self) -> RootedDomString {
         navigatorinfo::Language()
     }
 
@@ -623,7 +623,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-registerprotocolhandler>
-    fn RegisterProtocolHandler(&self, scheme: DOMString, url: USVString) -> Fallible<()> {
+    fn RegisterProtocolHandler(&self, scheme: RootedDomString, url: USVString) -> Fallible<()> {
         // Step 1. Let (normalizedScheme, normalizedURLString) be the result of
         // running normalize protocol handler parameters with scheme, url, and this's relevant settings object.
         let (scheme, url) = self.normalize_protocol_handler_parameters(scheme, url)?;
@@ -647,7 +647,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-navigator-unregisterprotocolhandler>
-    fn UnregisterProtocolHandler(&self, scheme: DOMString, url: USVString) -> Fallible<()> {
+    fn UnregisterProtocolHandler(&self, scheme: RootedDomString, url: USVString) -> Fallible<()> {
         // Step 1. Let (normalizedScheme, normalizedURLString) be the result of
         // running normalize protocol handler parameters with scheme, url, and this's relevant settings object.
         let (scheme, url) = self.normalize_protocol_handler_parameters(scheme, url)?;

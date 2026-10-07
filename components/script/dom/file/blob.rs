@@ -31,7 +31,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::Serializable;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::encoding::textdecoderstream::TextDecoderStream;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
@@ -280,8 +280,8 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
     }
 
     /// <https://w3c.github.io/FileAPI/#dfn-type>
-    fn Type(&self) -> DOMString {
-        DOMString::from(self.type_string())
+    fn Type(&self) -> RootedDomString {
+        RootedDomString::from(self.type_string())
     }
 
     // <https://w3c.github.io/FileAPI/#blob-get-stream>
@@ -313,7 +313,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
         cx: &mut JSContext,
         start: Option<i64>,
         end: Option<i64>,
-        content_type: Option<DOMString>,
+        content_type: Option<RootedDomString>,
     ) -> DomRoot<Blob> {
         let global = self.global();
         let type_string = normalize_type_string(&content_type.unwrap_or_default().str());
@@ -346,7 +346,7 @@ impl BlobMethods<crate::DomTypeHolder> for Blob {
             Box::new(|cx, promise, bytes| match bytes {
                 Ok(b) => {
                     let (text, _) = UTF_8.decode_with_bom_removal(&b);
-                    let text = DOMString::from(text);
+                    let text = RootedDomString::from(text);
                     promise.resolve_native(cx, &text);
                 },
                 Err(e) => {

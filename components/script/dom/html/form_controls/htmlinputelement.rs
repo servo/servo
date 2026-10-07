@@ -43,7 +43,7 @@ use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::{RootedDomString, USVString};
 use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
 use crate::dom::document_embedder_controls::ControlElement;
@@ -109,7 +109,7 @@ pub(crate) struct HTMLInputElement {
     /// textual input. This is cached so that it can be read during layout.
     is_textual_or_password: Cell<bool>,
 
-    placeholder: DomRefCell<DOMString>,
+    placeholder: DomRefCell<RootedDomString>,
     size: Cell<u32>,
     maxlength: Cell<i32>,
     minlength: Cell<i32>,
@@ -168,7 +168,7 @@ impl HTMLInputElement {
             ),
             input_type: DomRefCell::new(InputType::new_text()),
             is_textual_or_password: Cell::new(true),
-            placeholder: DomRefCell::new(DOMString::new()),
+            placeholder: DomRefCell::new(RootedDomString::new()),
             checkedness: Cell::new(false),
             checked_changed: Cell::new(false),
             maxlength: Cell::new(DEFAULT_MAX_LENGTH),
@@ -176,7 +176,7 @@ impl HTMLInputElement {
             size: Cell::new(DEFAULT_INPUT_SIZE),
             text_input: DomRefCell::new(TextInput::new(
                 Lines::Single,
-                DOMString::new(),
+                RootedDomString::new(),
                 EmbedderClipboardProvider {
                     embedder_sender,
                     webview_id: document.webview_id(),
@@ -689,14 +689,14 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#suffering-from-being-missing>
-    fn suffers_from_being_missing(&self, value: &DOMString) -> bool {
+    fn suffers_from_being_missing(&self, value: &RootedDomString) -> bool {
         self.input_type()
             .as_specific()
             .suffers_from_being_missing(self, value)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#suffering-from-a-type-mismatch>
-    fn suffers_from_type_mismatch(&self, value: &DOMString) -> bool {
+    fn suffers_from_type_mismatch(&self, value: &RootedDomString) -> bool {
         if value.is_empty() {
             return false;
         }
@@ -707,7 +707,7 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#suffering-from-a-pattern-mismatch>
-    fn suffers_from_pattern_mismatch(&self, cx: &mut JSContext, value: &DOMString) -> bool {
+    fn suffers_from_pattern_mismatch(&self, cx: &mut JSContext, value: &RootedDomString) -> bool {
         // https://html.spec.whatwg.org/multipage/#the-pattern-attribute%3Asuffering-from-a-pattern-mismatch
         // https://html.spec.whatwg.org/multipage/#the-pattern-attribute%3Asuffering-from-a-pattern-mismatch-2
         let pattern_str = self.Pattern();
@@ -734,7 +734,7 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#suffering-from-bad-input>
-    fn suffers_from_bad_input(&self, value: &DOMString) -> bool {
+    fn suffers_from_bad_input(&self, value: &RootedDomString) -> bool {
         if value.is_empty() {
             return false;
         }
@@ -746,7 +746,7 @@ impl HTMLInputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#suffering-from-being-too-long>
     /// <https://html.spec.whatwg.org/multipage/#suffering-from-being-too-short>
-    fn suffers_from_length_issues(&self, value: &DOMString) -> ValidationFlags {
+    fn suffers_from_length_issues(&self, value: &RootedDomString) -> ValidationFlags {
         // https://html.spec.whatwg.org/multipage/#limiting-user-input-length%3A-the-maxlength-attribute%3Asuffering-from-being-too-long
         // https://html.spec.whatwg.org/multipage/#setting-minimum-input-length-requirements%3A-the-minlength-attribute%3Asuffering-from-being-too-short
         let value_dirty = self.value_dirty.get();
@@ -776,7 +776,7 @@ impl HTMLInputElement {
     /// * <https://html.spec.whatwg.org/multipage/#suffering-from-an-underflow>
     /// * <https://html.spec.whatwg.org/multipage/#suffering-from-an-overflow>
     /// * <https://html.spec.whatwg.org/multipage/#suffering-from-a-step-mismatch>
-    fn suffers_from_range_issues(&self, value: &DOMString) -> ValidationFlags {
+    fn suffers_from_range_issues(&self, value: &RootedDomString) -> ValidationFlags {
         if value.is_empty() || !self.does_value_as_number_apply() {
             return ValidationFlags::empty();
         }
@@ -841,7 +841,7 @@ impl HTMLInputElement {
     }
 
     /// Return a string that represents the contents of the element in its displayed shadow DOM.
-    pub(crate) fn value_for_shadow_dom(&self) -> DOMString {
+    pub(crate) fn value_for_shadow_dom(&self) -> RootedDomString {
         let input_type = &*self.input_type();
         match input_type {
             InputType::Checkbox(_) |
@@ -1038,11 +1038,11 @@ impl TextControlElement for HTMLInputElement {
         matches!(*self.input_type(), InputType::Password(_))
     }
 
-    fn placeholder_text<'a>(&'a self) -> Ref<'a, DOMString> {
+    fn placeholder_text<'a>(&'a self) -> Ref<'a, RootedDomString> {
         self.placeholder.borrow()
     }
 
-    fn value_text(&self) -> DOMString {
+    fn value_text(&self) -> RootedDomString {
         self.Value()
     }
 
@@ -1169,15 +1169,15 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     make_limited_uint_setter!(SetSize, "size", DEFAULT_INPUT_SIZE);
 
     /// <https://html.spec.whatwg.org/multipage/#dom-input-type>
-    fn Type(&self) -> DOMString {
-        DOMString::from(self.input_type().as_str())
+    fn Type(&self) -> RootedDomString {
+        RootedDomString::from(self.input_type().as_str())
     }
 
     // https://html.spec.whatwg.org/multipage/#dom-input-type
     make_atomic_setter!(SetType, "type");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-input-value>
-    fn Value(&self) -> DOMString {
+    fn Value(&self) -> RootedDomString {
         match self.value_mode() {
             ValueMode::Value => self.text_input.borrow().get_content(),
             ValueMode::Default => self
@@ -1189,9 +1189,9 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                 .upcast::<Element>()
                 .get_attribute_string_value(&local_name!("value"))
                 .map(|value| value.into())
-                .unwrap_or(DOMString::from_static("on")),
+                .unwrap_or(RootedDomString::from_static("on")),
             ValueMode::Filename => {
-                let mut path = DOMString::new();
+                let mut path = RootedDomString::new();
                 match self.input_type().as_specific().get_files() {
                     Some(ref fl) => match fl.Item(0) {
                         Some(ref f) => {
@@ -1208,7 +1208,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-input-value>
-    fn SetValue(&self, cx: &mut JSContext, mut value: DOMString) -> ErrorResult {
+    fn SetValue(&self, cx: &mut JSContext, mut value: RootedDomString) -> ErrorResult {
         match self.value_mode() {
             ValueMode::Value => {
                 {
@@ -1303,7 +1303,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             )));
         }
         if value.is_null() {
-            return self.SetValue(cx, DOMString::new());
+            return self.SetValue(cx, RootedDomString::new());
         }
         let mut msecs: f64 = 0.0;
         // We need to go through unsafe code to interrogate jsapi about a Date.
@@ -1321,12 +1321,12 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                 return Err(Error::JSFailed);
             }
             if !msecs.is_finite() {
-                return self.SetValue(cx, DOMString::new());
+                return self.SetValue(cx, RootedDomString::new());
             }
         }
 
         let Ok(date_time) = OffsetDateTime::from_unix_timestamp_nanos((msecs * 1e6) as i128) else {
-            return self.SetValue(cx, DOMString::new());
+            return self.SetValue(cx, RootedDomString::new());
         };
         self.SetValue(
             cx,
@@ -1351,7 +1351,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                 "Input element value cannot be treated as a number".into(),
             )))
         } else if value.is_nan() {
-            self.SetValue(cx, DOMString::new())
+            self.SetValue(cx, RootedDomString::new())
         } else if let Some(converted) = self.convert_number_to_string(value) {
             self.SetValue(cx, converted)
         } else {
@@ -1359,7 +1359,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
             // overflow is impossible, but just setting an overflow to the empty string
             // matches Firefox's behavior. For example, try input.valueAsNumber=1e30 on
             // a type="date" input.
-            self.SetValue(cx, DOMString::new())
+            self.SetValue(cx, RootedDomString::new())
         }
     }
 
@@ -1525,7 +1525,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-selectiondirection>
-    fn GetSelectionDirection(&self) -> Option<DOMString> {
+    fn GetSelectionDirection(&self) -> Option<RootedDomString> {
         self.dom_direction()
     }
 
@@ -1533,13 +1533,18 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     fn SetSelectionDirection(
         &self,
         _cx: &mut JSContext,
-        direction: Option<DOMString>,
+        direction: Option<RootedDomString>,
     ) -> ErrorResult {
         self.set_dom_direction(direction)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setselectionrange>
-    fn SetSelectionRange(&self, start: u32, end: u32, direction: Option<DOMString>) -> ErrorResult {
+    fn SetSelectionRange(
+        &self,
+        start: u32,
+        end: u32,
+        direction: Option<RootedDomString>,
+    ) -> ErrorResult {
         self.set_dom_range(
             Utf16CodeUnits::from(start),
             Utf16CodeUnits::from(end),
@@ -1548,14 +1553,14 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
-    fn SetRangeText(&self, replacement: DOMString) -> ErrorResult {
+    fn SetRangeText(&self, replacement: RootedDomString) -> ErrorResult {
         self.set_dom_range_text(replacement, None, None, Default::default())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
     fn SetRangeText_(
         &self,
-        replacement: DOMString,
+        replacement: RootedDomString,
         start: u32,
         end: u32,
         selection_mode: SelectionMode,
@@ -1570,7 +1575,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
 
     /// Select the files based on filepaths passed in, enabled by
     /// `dom_testing_html_input_element_select_files_enabled`, used for test purpose.
-    fn SelectFiles(&self, paths: Vec<DOMString>) {
+    fn SelectFiles(&self, paths: Vec<RootedDomString>) {
         self.input_type()
             .as_specific()
             .select_files(self, Some(paths));
@@ -1607,12 +1612,12 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
-    fn ValidationMessage(&self, cx: &mut JSContext) -> DOMString {
+    fn ValidationMessage(&self, cx: &mut JSContext) -> RootedDomString {
         self.validation_message(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-setcustomvalidity>
-    fn SetCustomValidity(&self, cx: &mut JSContext, error: DOMString) {
+    fn SetCustomValidity(&self, cx: &mut JSContext, error: RootedDomString) {
         self.validity_state(cx).set_custom_error_message(cx, error);
     }
 }
@@ -1672,8 +1677,8 @@ impl HTMLInputElement {
 
                 // Step 5.2.3: Let namex be the concatenation of name and "x", and let namey be the
                 // concatenation of name and "y".
-                let name_x: DOMString = format!("{prefix}x").into();
-                let name_y: DOMString = format!("{prefix}y").into();
+                let name_x: RootedDomString = format!("{prefix}x").into();
+                let name_y: RootedDomString = format!("{prefix}y").into();
 
                 // Step 5.2.4: The field element's selected coordinate consists of an x-component and a
                 // y-component. Create an entry with namex and the x-component, and an entry with namey
@@ -1698,7 +1703,7 @@ impl HTMLInputElement {
                 // Step 5.7.1: If the field element has a value attribute specified, then let value be the value of that attribute; otherwise, let value be the string "on".
                 let field_value = self.Value();
                 let value = if field_value.is_empty() {
-                    DOMString::from_static("on")
+                    RootedDomString::from_static("on")
                 } else {
                     field_value
                 };
@@ -1725,7 +1730,7 @@ impl HTMLInputElement {
                             // but this is _type_ of element rather than content right?
                             ty,
                             name,
-                            value: FormDatumValue::String(DOMString::new()),
+                            value: FormDatumValue::String(RootedDomString::new()),
                         })
                     },
                     // Step 5.8.2: Otherwise, for each file in selected files, create an entry with name and a File object representing the file, and append it to entry list.
@@ -1747,8 +1752,8 @@ impl HTMLInputElement {
             InputType::Hidden(_) if name.eq_ignore_ascii_case("_charset_") => {
                 // Step 5.9.1: Let charset be the name of encoding.
                 let charset = match encoding {
-                    None => DOMString::from_static("UTF-8"),
-                    Some(enc) => DOMString::from(enc.name()),
+                    None => RootedDomString::from_static("UTF-8"),
+                    Some(enc) => RootedDomString::from(enc.name()),
                 };
                 // Step 5.9.2: Create an entry with name and charset, and append it to entry list.
                 vec![FormDatum {
@@ -1848,7 +1853,9 @@ impl HTMLInputElement {
         self.value_dirty.set(false);
         self.checked_changed.set(false);
         // Step 2. Set value to empty string.
-        self.text_input.borrow_mut().set_content(DOMString::new());
+        self.text_input
+            .borrow_mut()
+            .set_content(RootedDomString::new());
         // Step 3. Set checkedness based on presence of content attribute.
         self.update_checkedness(cx, self.DefaultChecked(), false);
         // Step 4. Empty selected files
@@ -1883,7 +1890,7 @@ impl HTMLInputElement {
 
     pub(crate) fn select_files_for_webdriver(
         &self,
-        test_paths: Vec<DOMString>,
+        test_paths: Vec<RootedDomString>,
         response_sender: GenericSender<Result<bool, ErrorStatus>>,
     ) {
         let mut stored_sender = self.pending_webdriver_response.borrow_mut();
@@ -1904,7 +1911,7 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#value-sanitization-algorithm>
-    fn sanitize_value(&self, value: &mut DOMString) {
+    fn sanitize_value(&self, value: &mut RootedDomString) {
         self.input_type().as_specific().sanitize_value(self, value);
     }
 
@@ -1981,7 +1988,7 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-input-value-string-number>
-    fn convert_number_to_string(&self, value: f64) -> Option<DOMString> {
+    fn convert_number_to_string(&self, value: f64) -> Option<RootedDomString> {
         self.input_type()
             .as_specific()
             .convert_number_to_string(value)
@@ -2214,7 +2221,7 @@ impl VirtualMethods for HTMLInputElement {
                             (_, _, ValueMode::Filename)
                                 if old_value_mode != ValueMode::Filename =>
                             {
-                                self.SetValue(cx, DOMString::new())
+                                self.SetValue(cx, RootedDomString::new())
                                     .expect("Failed to set input value on type change to ValueMode::Filename.");
                             },
                             _ => {},
@@ -2270,7 +2277,7 @@ impl VirtualMethods for HTMLInputElement {
                 // has a different behavior than `SetValue` which is triggered by setting the
                 // value property in script.
                 let value = mutation.new_value(attr).map(|value| (**value).to_owned());
-                let mut value = value.map_or(DOMString::new(), DOMString::from);
+                let mut value = value.map_or(RootedDomString::new(), RootedDomString::from);
 
                 self.sanitize_value(&mut value);
                 self.text_input.borrow_mut().set_content(value);
@@ -2346,7 +2353,7 @@ impl VirtualMethods for HTMLInputElement {
         }
     }
 
-    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
+    fn parse_plain_attribute(&self, name: &LocalName, value: RootedDomString) -> AttrValue {
         match *name {
             local_name!("accept") => AttrValue::from_comma_separated_tokenlist(value.into()),
             local_name!("size") => AttrValue::from_limited_u32(value.into(), DEFAULT_INPUT_SIZE),

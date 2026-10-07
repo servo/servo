@@ -22,7 +22,7 @@ use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_wr
 use webgpu_traits::ImplementedLanguageExtension;
 
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::traits::Equivalence;
 
 #[dom_struct]
@@ -30,7 +30,7 @@ pub struct WGSLLanguageFeatures<D: DomTypes> {
     reflector: Reflector,
     // internal storage for features
     #[custom_trace]
-    internal: DomRefCell<IndexSet<DOMString>>,
+    internal: DomRefCell<IndexSet<RootedDomString>>,
     #[no_trace = "PhantomData does not exist"]
     phantom: PhantomData<D>,
 }
@@ -66,7 +66,7 @@ impl<D: DomTypes> WGSLLanguageFeaturesMethods<D> for WGSLLanguageFeatures<D> {
 }
 
 impl<D: DomTypes> Setlike for WGSLLanguageFeatures<D> {
-    type Key = DOMString;
+    type Key = RootedDomString;
 
     #[inline(always)]
     fn get_index(&self, cx: &mut JSContext, index: u32) -> Option<Self::Key> {

@@ -27,7 +27,7 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::document::FireMouseEventType;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
@@ -377,7 +377,7 @@ impl MouseEvent {
             0,        // twist
             PI / 2.0, // altitude_angle (perpendicular to surface)
             0.0,      // azimuth_angle
-            DOMString::from_static("mouse"),
+            RootedDomString::from_static("mouse"),
             true,   // is_primary (mouse is always primary)
             vec![], // coalesced_events
             vec![], // predicted_events
@@ -436,7 +436,7 @@ impl MouseEvent {
             0,                       // twist
             PI / 2.0,                // altitude_angle (perpendicular to surface)
             0.0,                     // azimuth_angle
-            DOMString::from_static("mouse"),
+            RootedDomString::from_static("mouse"),
             true,   // is_primary (mouse is always primary)
             vec![], // coalesced_events
             vec![], // predicted_events
@@ -475,7 +475,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        event_type: DOMString,
+        event_type: RootedDomString,
         init: &MouseEventBinding::MouseEventInit,
     ) -> Fallible<DomRoot<MouseEvent>> {
         let bubbles = EventBubbles::from(init.parent.parent.parent.bubbles);
@@ -653,7 +653,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
     /// <https://w3c.github.io/pointerevents/#dom-mouseevent-initmouseevent>
     fn InitMouseEvent(
         &self,
-        type_arg: DOMString,
+        type_arg: RootedDomString,
         can_bubble_arg: bool,
         cancelable_arg: bool,
         view_arg: Option<&Window>,
@@ -726,7 +726,7 @@ impl MouseEventMethods<crate::DomTypeHolder> for MouseEvent {
     }
 
     /// <https://w3c.github.io/pointerevents/#dfn-getmodifierstate-keyarg>
-    fn GetModifierState(&self, key_arg: DOMString) -> bool {
+    fn GetModifierState(&self, key_arg: RootedDomString) -> bool {
         self.modifiers
             .get()
             .contains(match_domstring_ascii!(key_arg,

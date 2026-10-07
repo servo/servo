@@ -81,7 +81,7 @@ use crate::dom::bindings::inheritance::{
 use crate::dom::bindings::root::{
     Dom, DomRoot, DomSlice, LayoutDom, MutNullableDom, ToLayout, UnrootedDom,
 };
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::{RootedDomString, USVString};
 use crate::dom::characterdata::CharacterData;
 use crate::dom::comparator::{DomPositionContainment, compare_dom_positions};
 use crate::dom::context::{BindContext, IsShadowTree, MoveContext, UnbindContext};
@@ -619,7 +619,7 @@ impl Node {
             0,                                  // twist
             PI / 2.0,                           // altitude_angle
             0.0,                                // azimuth_angle
-            DOMString::new(),                   // pointer_type
+            RootedDomString::new(),             // pointer_type
             false,                              // is_primary
             vec![],                             // coalesced_events
             vec![],                             // predicted_events
@@ -1638,7 +1638,7 @@ impl Node {
     pub(crate) fn query_selector(
         &self,
         no_gc: &NoGC,
-        selectors: DOMString,
+        selectors: RootedDomString,
     ) -> Fallible<Option<DomRoot<Element>>> {
         // > The querySelector(selectors) method steps are to return the first result of running scope-match
         // > a selectors string selectors against this, if the result is not an empty list; otherwise null.
@@ -1668,7 +1668,7 @@ impl Node {
     pub(crate) fn query_selector_all(
         &self,
         cx: &mut JSContext,
-        selectors: DOMString,
+        selectors: RootedDomString,
     ) -> Fallible<DomRoot<NodeList>> {
         // > The querySelectorAll(selectors) method steps are to return the static result of running scope-match
         // > a selectors string selectors against this.
@@ -2977,7 +2977,7 @@ impl Node {
     }
 
     /// <https://dom.spec.whatwg.org/multipage/#string-replace-all>
-    pub(crate) fn string_replace_all(cx: &mut JSContext, string: DOMString, parent: &Node) {
+    pub(crate) fn string_replace_all(cx: &mut JSContext, string: RootedDomString, parent: &Node) {
         if string.is_empty() {
             Node::replace_all(cx, None, parent);
         } else {
@@ -3325,32 +3325,32 @@ impl Node {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#child-text-content>
-    pub(crate) fn child_text_content(&self) -> DOMString {
+    pub(crate) fn child_text_content(&self) -> RootedDomString {
         Node::collect_text_contents(self.children())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#descendant-text-content>
-    pub(crate) fn descendant_text_content(&self) -> DOMString {
+    pub(crate) fn descendant_text_content(&self) -> RootedDomString {
         Node::collect_text_contents(self.traverse_preorder(ShadowIncluding::No))
     }
 
     pub(crate) fn collect_text_contents<T: Iterator<Item = DomRoot<Node>>>(
         iterator: T,
-    ) -> DOMString {
+    ) -> RootedDomString {
         let mut content = String::new();
         for node in iterator {
             if let Some(text) = node.downcast::<Text>() {
                 content.push_str(&text.upcast::<CharacterData>().data());
             }
         }
-        DOMString::from(content)
+        RootedDomString::from(content)
     }
 
     /// <https://dom.spec.whatwg.org/#string-replace-all>
     pub(crate) fn set_text_content_for_element(
         &self,
         cx: &mut JSContext,
-        value: Option<DOMString>,
+        value: Option<RootedDomString>,
     ) {
         // This should only be called for elements and document fragments when setting the
         // text content: https://dom.spec.whatwg.org/#set-text-content
@@ -3372,16 +3372,16 @@ impl Node {
         Self::replace_all(cx, node.as_deref(), self);
     }
 
-    pub(crate) fn namespace_to_string(namespace: Namespace) -> Option<DOMString> {
+    pub(crate) fn namespace_to_string(namespace: Namespace) -> Option<RootedDomString> {
         match namespace {
             ns!() => None,
             // FIXME(ajeffrey): convert directly from Namespace to DOMString
-            _ => Some(DOMString::from(&*namespace)),
+            _ => Some(RootedDomString::from(&*namespace)),
         }
     }
 
     /// <https://dom.spec.whatwg.org/#locate-a-namespace>
-    pub(crate) fn locate_namespace(node: &Node, prefix: Option<DOMString>) -> Namespace {
+    pub(crate) fn locate_namespace(node: &Node, prefix: Option<RootedDomString>) -> Namespace {
         match node.type_id() {
             NodeTypeId::Element(_) => node.downcast::<Element>().unwrap().locate_namespace(prefix),
             NodeTypeId::Attr => node
@@ -3431,7 +3431,7 @@ impl Node {
         traversal_scope: html_serialize::TraversalScope,
         serialize_shadow_roots: bool,
         shadow_roots: Vec<DomRoot<ShadowRoot>>,
-    ) -> DOMString {
+    ) -> RootedDomString {
         let mut writer = vec![];
         let mut serializer = HtmlSerializer::new(
             &mut writer,
@@ -3452,14 +3452,14 @@ impl Node {
         .expect("Serializing node failed");
 
         // FIXME(ajeffrey): Directly convert UTF8 to DOMString
-        DOMString::from(String::from_utf8(writer).unwrap())
+        RootedDomString::from(String::from_utf8(writer).unwrap())
     }
 
     /// <https://w3c.github.io/DOM-Parsing/#dfn-xml-serialization>
     pub(crate) fn xml_serialize(
         &self,
         traversal_scope: xml_serialize::TraversalScope,
-    ) -> Fallible<DOMString> {
+    ) -> Fallible<RootedDomString> {
         let mut writer = vec![];
         xml_serialize::serialize(
             &mut writer,
@@ -3472,7 +3472,7 @@ impl Node {
         })?;
 
         // FIXME(ajeffrey): Directly convert UTF8 to DOMString
-        let string = DOMString::from(String::from_utf8(writer).map_err(|error| {
+        let string = RootedDomString::from(String::from_utf8(writer).map_err(|error| {
             error!("Cannot serialize node: {error}");
             Error::InvalidState(Some("Cannot serialize node".into()))
         })?);
@@ -3485,7 +3485,7 @@ impl Node {
         &self,
         cx: &mut JSContext,
         require_well_formed: bool,
-    ) -> Fallible<DOMString> {
+    ) -> Fallible<RootedDomString> {
         // Step 1. Let context document be node's node document.
         let context_document = self.owner_document();
 
@@ -3682,25 +3682,25 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-nodename>
-    fn NodeName(&self) -> DOMString {
+    fn NodeName(&self) -> RootedDomString {
         match self.type_id() {
             NodeTypeId::Attr => self.downcast::<Attr>().unwrap().qualified_name(),
             NodeTypeId::Element(..) => self.downcast::<Element>().unwrap().TagName(),
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::Text)) => {
-                DOMString::from_static("#text")
+                RootedDomString::from_static("#text")
             },
             NodeTypeId::CharacterData(CharacterDataTypeId::Text(TextTypeId::CDATASection)) => {
-                DOMString::from_static("#cdata-section")
+                RootedDomString::from_static("#cdata-section")
             },
             NodeTypeId::CharacterData(CharacterDataTypeId::ProcessingInstruction) => {
                 self.downcast::<ProcessingInstruction>().unwrap().Target()
             },
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
-                DOMString::from_static("#comment")
+                RootedDomString::from_static("#comment")
             },
             NodeTypeId::DocumentType => self.downcast::<DocumentType>().unwrap().name().clone(),
-            NodeTypeId::DocumentFragment(_) => DOMString::from_static("#document-fragment"),
-            NodeTypeId::Document(_) => DOMString::from_static("#document"),
+            NodeTypeId::DocumentFragment(_) => RootedDomString::from_static("#document-fragment"),
+            NodeTypeId::Document(_) => RootedDomString::from_static("#document"),
         }
     }
 
@@ -3788,7 +3788,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-nodevalue>
-    fn GetNodeValue(&self) -> Option<DOMString> {
+    fn GetNodeValue(&self) -> Option<RootedDomString> {
         match self.type_id() {
             NodeTypeId::Attr => Some(self.downcast::<Attr>().unwrap().Value()),
             NodeTypeId::CharacterData(_) => {
@@ -3799,7 +3799,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-nodevalue>
-    fn SetNodeValue(&self, cx: &mut JSContext, val: Option<DOMString>) -> Fallible<()> {
+    fn SetNodeValue(&self, cx: &mut JSContext, val: Option<RootedDomString>) -> Fallible<()> {
         match self.type_id() {
             NodeTypeId::Attr => {
                 let attr = self.downcast::<Attr>().unwrap();
@@ -3815,7 +3815,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-textcontent>
-    fn GetTextContent(&self) -> Option<DOMString> {
+    fn GetTextContent(&self) -> Option<RootedDomString> {
         match self.type_id() {
             NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
                 let content =
@@ -3832,7 +3832,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#set-text-content>
-    fn SetTextContent(&self, cx: &mut JSContext, value: Option<DOMString>) -> Fallible<()> {
+    fn SetTextContent(&self, cx: &mut JSContext, value: Option<RootedDomString>) -> Fallible<()> {
         match self.type_id() {
             NodeTypeId::DocumentFragment(_) | NodeTypeId::Element(..) => {
                 self.set_text_content_for_element(cx, value);
@@ -4460,7 +4460,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-lookupprefix>
-    fn LookupPrefix(&self, namespace: Option<DOMString>) -> Option<DOMString> {
+    fn LookupPrefix(&self, namespace: Option<RootedDomString>) -> Option<RootedDomString> {
         let namespace = namespace_from_domstring(namespace);
 
         // Step 1.
@@ -4489,7 +4489,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-lookupnamespaceuri>
-    fn LookupNamespaceURI(&self, prefix: Option<DOMString>) -> Option<DOMString> {
+    fn LookupNamespaceURI(&self, prefix: Option<RootedDomString>) -> Option<RootedDomString> {
         // Step 1. If prefix is the empty string, then set it to null.
         let prefix = prefix.filter(|prefix| !prefix.is_empty());
 
@@ -4498,7 +4498,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-node-isdefaultnamespace>
-    fn IsDefaultNamespace(&self, namespace: Option<DOMString>) -> bool {
+    fn IsDefaultNamespace(&self, namespace: Option<RootedDomString>) -> bool {
         // Step 1.
         let namespace = namespace_from_domstring(namespace);
         // Steps 2 and 3.

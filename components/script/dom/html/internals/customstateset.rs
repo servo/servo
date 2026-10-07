@@ -10,7 +10,7 @@ use script_bindings::codegen::GenericBindings::ElementInternalsBinding::CustomSt
 use script_bindings::like::Setlike;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::root::{Dom, DomRoot};
-use script_bindings::str::DOMString;
+use script_bindings::str::RootedDomString;
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -22,7 +22,7 @@ use crate::dom::window::Window;
 pub(crate) struct CustomStateSet {
     reflector: Reflector,
     #[no_trace]
-    internal: AtomicRefCell<IndexSet<DOMString>>,
+    internal: AtomicRefCell<IndexSet<RootedDomString>>,
     owner_element: Dom<HTMLElement>,
 }
 
@@ -39,7 +39,7 @@ impl CustomStateSet {
         reflect_dom_object(cx, Box::new(Self::new_inherited(element)), window)
     }
 
-    pub(crate) fn set_for_layout(&self) -> AtomicRef<'_, IndexSet<DOMString>> {
+    pub(crate) fn set_for_layout(&self) -> AtomicRef<'_, IndexSet<RootedDomString>> {
         self.internal.borrow()
     }
 
@@ -51,7 +51,7 @@ impl CustomStateSet {
 }
 
 impl Setlike for CustomStateSet {
-    type Key = DOMString;
+    type Key = RootedDomString;
 
     #[inline(always)]
     fn get_index(&self, cx: &mut JSContext, index: u32) -> Option<Self::Key> {

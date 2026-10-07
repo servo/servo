@@ -23,7 +23,7 @@ use crate::dom::bindings::error::Error::{
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::{ByteString, DOMString};
+use crate::dom::bindings::str::{ByteString, RootedDomString};
 use crate::dom::bluetooth::{AsyncBluetoothListener, get_gatt_children, response_async};
 use crate::dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
 use crate::dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
@@ -41,7 +41,7 @@ pub(crate) const MAXIMUM_ATTRIBUTE_LENGTH: usize = 512;
 pub(crate) struct BluetoothRemoteGATTCharacteristic {
     eventtarget: EventTarget,
     service: Dom<BluetoothRemoteGATTService>,
-    uuid: DOMString,
+    uuid: RootedDomString,
     properties: Dom<BluetoothCharacteristicProperties>,
     value: DomRefCell<Option<ByteString>>,
     instance_id: String,
@@ -50,7 +50,7 @@ pub(crate) struct BluetoothRemoteGATTCharacteristic {
 impl BluetoothRemoteGATTCharacteristic {
     pub(crate) fn new_inherited(
         service: &BluetoothRemoteGATTService,
-        uuid: DOMString,
+        uuid: RootedDomString,
         properties: &BluetoothCharacteristicProperties,
         instance_id: String,
     ) -> BluetoothRemoteGATTCharacteristic {
@@ -68,7 +68,7 @@ impl BluetoothRemoteGATTCharacteristic {
         cx: &mut JSContext,
         global: &GlobalScope,
         service: &BluetoothRemoteGATTService,
-        uuid: DOMString,
+        uuid: RootedDomString,
         properties: &BluetoothCharacteristicProperties,
         instance_id: String,
     ) -> DomRoot<BluetoothRemoteGATTCharacteristic> {
@@ -107,7 +107,7 @@ impl BluetoothRemoteGATTCharacteristicMethods<crate::DomTypeHolder>
     }
 
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattcharacteristic-uuid>
-    fn Uuid(&self) -> DOMString {
+    fn Uuid(&self) -> RootedDomString {
         self.uuid.clone()
     }
 

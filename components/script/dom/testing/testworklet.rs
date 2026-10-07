@@ -18,7 +18,7 @@ use crate::dom::bindings::codegen::Bindings::WorkletBinding::Worklet_Binding::Wo
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletOptions;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::{RootedDomString, USVString};
 use crate::dom::types::{TestWorkletGlobalScope, WorkletGlobalScope};
 use crate::dom::window::Window;
 use crate::dom::worklet::Worklet;
@@ -78,7 +78,7 @@ impl TestWorkletMethods<crate::DomTypeHolder> for TestWorklet {
         self.worklet.AddModule(realm, module_url, options)
     }
 
-    fn Lookup(&self, key: DOMString) -> Option<DOMString> {
+    fn Lookup(&self, key: RootedDomString) -> Option<RootedDomString> {
         let id = self.worklet.worklet_id();
 
         let (sender, receiver) = unbounded();
@@ -97,7 +97,7 @@ impl TestWorkletMethods<crate::DomTypeHolder> for TestWorklet {
             .perform_a_worklet_task(id, Box::new(lookup_task));
 
         match receiver.recv() {
-            Ok(value) => value.map(DOMString::from),
+            Ok(value) => value.map(RootedDomString::from),
             Err(err) => {
                 error!("Test Worklet died? {}", err);
                 None

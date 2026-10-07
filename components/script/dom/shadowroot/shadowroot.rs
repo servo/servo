@@ -40,7 +40,7 @@ use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::css::cssstylesheet::CSSStyleSheet;
 use crate::dom::css::stylesheetlist::{StyleSheetList, StyleSheetListOwner};
 use crate::dom::customelementregistry::CustomElementRegistry;
@@ -95,7 +95,7 @@ pub(crate) struct ShadowRoot {
     /// <https://dom.spec.whatwg.org/#shadowroot-available-to-element-internals>
     available_to_element_internals: Cell<bool>,
 
-    slots: DomRefCell<HashMap<DOMString, Vec<Dom<HTMLSlotElement>>>>,
+    slots: DomRefCell<HashMap<RootedDomString, Vec<Dom<HTMLSlotElement>>>>,
 
     is_user_agent_widget: bool,
 
@@ -309,7 +309,7 @@ impl ShadowRoot {
         slots_with_the_same_name.insert_pre_order(slot, self.upcast::<Node>());
     }
 
-    pub(crate) fn unregister_slot(&self, name: DOMString, slot: &HTMLSlotElement) {
+    pub(crate) fn unregister_slot(&self, name: RootedDomString, slot: &HTMLSlotElement) {
         debug!("Unregistering slot with name={:?}", name.str());
 
         let mut slots = self.slots.borrow_mut();
@@ -320,7 +320,7 @@ impl ShadowRoot {
     }
 
     /// Find the first slot with the given name among this root's descendants in tree order
-    pub(crate) fn slot_for_name(&self, name: &DOMString) -> Option<DomRoot<HTMLSlotElement>> {
+    pub(crate) fn slot_for_name(&self, name: &RootedDomString) -> Option<DomRoot<HTMLSlotElement>> {
         self.slots
             .borrow()
             .get(name)
@@ -478,7 +478,7 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-shadowroot-gethtml>
-    fn GetHTML(&self, cx: &mut JSContext, options: &GetHTMLOptions) -> DOMString {
+    fn GetHTML(&self, cx: &mut JSContext, options: &GetHTMLOptions) -> RootedDomString {
         // > ShadowRoot's getHTML(options) method steps are to return the result of HTML fragment serialization
         // >  algorithm with this, options["serializableShadowRoots"], and options["shadowRoots"].
         self.upcast::<Node>().html_serialize(
@@ -568,7 +568,7 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     fn SetHTML(
         &self,
         cx: &mut JSContext,
-        html: DOMString,
+        html: RootedDomString,
         options: &SetHTMLOptions,
     ) -> ErrorResult {
         // Step 1. Set and filter HTML using this (as target), this (as context element), html,

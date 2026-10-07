@@ -56,7 +56,7 @@ use crate::dom::bindings::error::{Error, Fallible, report_pending_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::csp::{CspReporting, InlineCheckType};
 use crate::dom::document::Document;
@@ -118,7 +118,7 @@ pub(crate) enum ListenerPhase {
 /// <https://html.spec.whatwg.org/multipage/#internal-raw-uncompiled-handler>
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
 struct InternalRawUncompiledHandler {
-    source: DOMString,
+    source: RootedDomString,
     #[no_trace]
     url: ServoUrl,
     line: usize,
@@ -667,7 +667,7 @@ impl EventTarget {
         };
 
         let handler = InternalRawUncompiledHandler {
-            source: DOMString::from(source),
+            source: RootedDomString::from(source),
             line,
             url,
         };
@@ -928,7 +928,7 @@ impl EventTarget {
     /// and <https://dom.spec.whatwg.org/#add-an-event-listener>
     pub(crate) fn add_event_listener(
         &self,
-        ty: DOMString,
+        ty: RootedDomString,
         listener: Option<RootedCallback<EventListener>>,
         options: AddEventListenerOptions,
     ) {
@@ -991,7 +991,7 @@ impl EventTarget {
     /// and <https://dom.spec.whatwg.org/#remove-an-event-listener>
     pub(crate) fn remove_event_listener(
         &self,
-        ty: DOMString,
+        ty: RootedDomString,
         listener: Option<&EventListener>,
         options: &EventListenerOptions,
     ) {
@@ -1144,7 +1144,7 @@ impl EventTargetMethods<crate::DomTypeHolder> for EventTarget {
     /// <https://dom.spec.whatwg.org/#dom-eventtarget-addeventlistener>
     fn AddEventListener(
         &self,
-        ty: DOMString,
+        ty: RootedDomString,
         listener: Option<RootedCallback<EventListener>>,
         options: AddEventListenerOptionsOrBoolean,
     ) {
@@ -1154,7 +1154,7 @@ impl EventTargetMethods<crate::DomTypeHolder> for EventTarget {
     /// <https://dom.spec.whatwg.org/#dom-eventtarget-removeeventlistener>
     fn RemoveEventListener(
         &self,
-        ty: DOMString,
+        ty: RootedDomString,
         listener: Option<RootedCallback<EventListener>>,
         options: EventListenerOptionsOrBoolean,
     ) {

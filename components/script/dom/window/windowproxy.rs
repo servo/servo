@@ -77,7 +77,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::settings_stack::maybe_entry_global;
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::{RootedDomString, USVString};
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::bindings::utils::get_array_index_from_id;
 use crate::dom::dissimilaroriginwindow::DissimilarOriginWindow;
@@ -119,7 +119,7 @@ pub(crate) struct WindowProxy {
 
     /// The name of the browsing context (sometimes, but not always,
     /// equal to the name of a container element)
-    name: DomRefCell<DOMString>,
+    name: DomRefCell<RootedDomString>,
     /// The pipeline id of the currently active document.
     /// May be None, when the currently active document is in another script thread.
     /// We do not try to keep the pipeline id for documents in other threads,
@@ -171,7 +171,7 @@ impl WindowProxy {
         opener: Option<BrowsingContextId>,
         creator: CreatorBrowsingContextInfo,
     ) -> WindowProxy {
-        let name = frame_element.map_or(DOMString::new(), |e| {
+        let name = frame_element.map_or(RootedDomString::new(), |e| {
             e.get_string_attribute(&local_name!("name"))
         });
         WindowProxy {
@@ -326,7 +326,7 @@ impl WindowProxy {
     fn create_auxiliary_browsing_context(
         &self,
         cx: &mut JSContext,
-        name: DOMString,
+        name: RootedDomString,
         noopener: bool,
     ) -> Option<DomRoot<WindowProxy>> {
         let (response_sender, response_receiver) = generic_channel::channel().unwrap();
@@ -513,8 +513,8 @@ impl WindowProxy {
         &self,
         cx: &mut JSContext,
         url: USVString,
-        target: DOMString,
-        features: DOMString,
+        target: RootedDomString,
+        features: RootedDomString,
     ) -> Fallible<Option<DomRoot<WindowProxy>>> {
         // Note: this does not map to the spec,
         // but it does prevent a panic at the constellation because the browsing context
@@ -550,7 +550,7 @@ impl WindowProxy {
         };
         // Step 5. If target is the empty string, then set target to "_blank".
         let non_empty_target = if target.is_empty() {
-            DOMString::from_static("_blank")
+            RootedDomString::from_static("_blank")
         } else {
             target
         };
@@ -661,7 +661,7 @@ impl WindowProxy {
     pub(crate) fn choose_a_navigable(
         &self,
         cx: &mut JSContext,
-        name: DOMString,
+        name: RootedDomString,
         noopener: bool,
     ) -> (Option<DomRoot<WindowProxy>>, bool) {
         // Step 1. Let chosen be null.
@@ -739,7 +739,10 @@ impl WindowProxy {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#find-a-navigable-by-target-name>
-    fn find_navigable_by_target_name(&self, name: &DOMString) -> Option<DomRoot<WindowProxy>> {
+    fn find_navigable_by_target_name(
+        &self,
+        name: &RootedDomString,
+    ) -> Option<DomRoot<WindowProxy>> {
         // Step 1. Let currentDocument be currentNavigable's active document.
         //
         // Step 2. Let sourceSnapshotParams be the result of snapshotting source snapshot
@@ -831,7 +834,7 @@ impl WindowProxy {
     /// <https://html.spec.whatwg.org/multipage/#find-a-navigable-by-target-name> step 4 and 7 substeps.
     fn find_navigable_by_target_name_in_descendants(
         &self,
-        name: &DOMString,
+        name: &RootedDomString,
     ) -> Option<DomRoot<WindowProxy>> {
         // Never traverse or return a `WindowProxy` with a discarded browsing context.
         if self.is_browsing_context_discarded() {
@@ -1045,11 +1048,11 @@ impl WindowProxy {
         self.currently_active.get()
     }
 
-    pub(crate) fn get_name(&self) -> DOMString {
+    pub(crate) fn get_name(&self) -> RootedDomString {
         self.name.borrow().clone()
     }
 
-    pub(crate) fn set_name(&self, name: DOMString) {
+    pub(crate) fn set_name(&self, name: RootedDomString) {
         *self.name.borrow_mut() = name;
     }
 }
@@ -1095,7 +1098,7 @@ impl CreatorBrowsingContextInfo {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#concept-window-open-features-tokenize>
-fn tokenize_open_features(features: DOMString) -> IndexMap<String, String> {
+fn tokenize_open_features(features: RootedDomString) -> IndexMap<String, String> {
     let is_feature_sep = |c: char| c.is_ascii_whitespace() || ['=', ','].contains(&c);
     // Step 1
     let mut tokenized_features = IndexMap::new();

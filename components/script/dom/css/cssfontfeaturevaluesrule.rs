@@ -16,7 +16,7 @@ use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::codegen::Bindings::CSSFontFeatureValuesRuleBinding::CSSFontFeatureValuesRuleMethods;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::cssfontfeaturevaluesmap::CSSFontFeatureValuesMap;
 use crate::dom::cssgroupingrule::CSSGroupingRule;
 use crate::dom::window::Window;
@@ -91,7 +91,7 @@ impl SpecificCSSRule for CSSFontFeatureValuesRule {
         CssRuleType::FontFeatureValues
     }
 
-    fn get_css(&self) -> DOMString {
+    fn get_css(&self) -> RootedDomString {
         let guard = self.css_rule.shared_lock().read();
         self.font_feature_values_rule.to_css_string(&guard).into()
     }
@@ -99,7 +99,7 @@ impl SpecificCSSRule for CSSFontFeatureValuesRule {
 
 impl CSSFontFeatureValuesRuleMethods<crate::DomTypeHolder> for CSSFontFeatureValuesRule {
     /// <https://drafts.csswg.org/css-fonts/#dom-cssfontfeaturevaluesrule-fontfamily>
-    fn FontFamily(&self) -> DOMString {
+    fn FontFamily(&self) -> RootedDomString {
         self.font_feature_values_rule
             .family_names
             .to_css_string()

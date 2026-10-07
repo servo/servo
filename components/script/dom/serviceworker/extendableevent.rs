@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::ExtendableEventBinding::{
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::event::Event;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 
@@ -72,7 +72,7 @@ impl ExtendableEventMethods<crate::DomTypeHolder> for ExtendableEvent {
         cx: &mut JSContext,
         worker: &ServiceWorkerGlobalScope,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        type_: RootedDomString,
         init: &ExtendableEventInit,
     ) -> Fallible<DomRoot<ExtendableEvent>> {
         Ok(ExtendableEvent::new_with_proto(

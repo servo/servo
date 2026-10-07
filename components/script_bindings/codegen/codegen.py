@@ -949,7 +949,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
                 else:
                     default = f'{union_native_type(type)}::USVString(USVString("{defaultValue.value}".to_owned()))'
             elif tag is IDLType.Tags.domstring:
-                default = f'{union_native_type(type)}::String(DOMString::from_static("{defaultValue.value}"))'
+                default = f'{union_native_type(type)}::String(RootedDomString::from_static("{defaultValue.value}"))'
             elif defaultValue.type.isEnum():
                 enum = defaultValue.type.inner.identifier.name
                 default = f"{union_native_type(type)}::{enum}({enum}::{getEnumValueName(defaultValue.value)})"
@@ -1134,11 +1134,11 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
             default = "None"
         else:
             assert defaultValue.type.tag() == IDLType.Tags.domstring
-            default = f'DOMString::from_static("{defaultValue.value}")'
+            default = f'RootedDomString::from_static("{defaultValue.value}")'
             if type.nullable():
                 default = f"Some({default})"
 
-        declType = "DOMString"
+        declType = "RootedDomString"
         if type.nullable():
             declType = f"Option<{declType}>"
 
@@ -1651,7 +1651,7 @@ def getRetvalDeclarationForType(returnType: IDLType | None, descriptorProvider: 
             result = CGWrapper(result, pre="Option<", post=">")
         return result
     if returnType.isDOMString():
-        result = CGGeneric("DOMString")
+        result = CGGeneric("RootedDomString")
         if returnType.nullable():
             result = CGWrapper(result, pre="Option<", post=">")
         return result
@@ -2417,7 +2417,7 @@ class CGRecord(CGThing):
         if self.keyType.isByteString():
             keyDef = "ByteString"
         elif self.keyType.isDOMString():
-            keyDef = "DOMString"
+            keyDef = "RootedDomString"
         elif self.keyType.isUSVString():
             keyDef = "USVString"
         else:
@@ -3098,7 +3098,7 @@ def DomTypes(descriptors: list[Descriptor],
     elements += [CGGeneric("}\n")]
     imports = [
         CGGeneric("use crate::root::DomRoot;\n"),
-        CGGeneric("use crate::domstring::DOMString;\n"),
+        CGGeneric("use crate::domstring::RootedDomString;\n"),
     ]
     return CGList(imports + elements)
 
@@ -5557,7 +5557,7 @@ def getUnionTypeTemplateVars(type: IDLType, descriptorProvider: DescriptorProvid
         typeName = "ByteString"
     elif type.isDOMString():
         name = type.name
-        typeName = "DOMString"
+        typeName = "RootedDomString"
     elif type.isUSVString():
         name = type.name
         typeName = "USVString"
@@ -7196,7 +7196,7 @@ class CGInterfaceTrait(CGThing):
                         # WebIDL, Second Draft, section 3.2.4.5
                         # https://heycam.github.io/webidl/#idl-named-properties
                         if operation.isNamed():
-                            yield "SupportedPropertyNames", [("no_gc", "&NoGC")], "Vec<DOMString>", False
+                            yield "SupportedPropertyNames", [("no_gc", "&NoGC")], "Vec<RootedDomString>", False
                     else:
                         arguments = method_arguments(descriptor, rettype, arguments,
                                                      no_gc=name in descriptor.no_gcMethods,

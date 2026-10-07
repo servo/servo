@@ -7,7 +7,7 @@ use js::context::{JSContext, NoGC};
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::HTMLDocumentBinding::HTMLDocumentMethods;
 use script_bindings::root::DomRoot;
-use script_bindings::str::DOMString;
+use script_bindings::str::RootedDomString;
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::NamedPropertyValue;
 use crate::dom::types::{Document, Location};
@@ -25,7 +25,7 @@ impl HTMLDocumentMethods<crate::DomTypeHolder> for HTMLDocument {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names>
-    fn SupportedPropertyNames(&self, no_gc: &NoGC) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self, no_gc: &NoGC) -> Vec<RootedDomString> {
         self.document.SupportedPropertyNames(no_gc)
     }
 
@@ -33,7 +33,7 @@ impl HTMLDocumentMethods<crate::DomTypeHolder> for HTMLDocument {
     fn NamedGetter(
         &self,
         cx: &mut js::context::JSContext,
-        name: DOMString,
+        name: RootedDomString,
     ) -> Option<NamedPropertyValue> {
         self.document.NamedGetter(cx, name)
     }

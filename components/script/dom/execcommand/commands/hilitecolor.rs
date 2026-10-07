@@ -4,7 +4,7 @@
 
 use js::context::JSContext;
 
-use crate::dom::bindings::str::{DOMString, FromInputValueString};
+use crate::dom::bindings::str::{FromInputValueString, RootedDomString};
 use crate::dom::document::Document;
 use crate::dom::execcommand::basecommand::CommandName;
 use crate::dom::selection::Selection;
@@ -14,7 +14,7 @@ pub(crate) fn execute_hilitecolor_command(
     cx: &mut JSContext,
     document: &Document,
     selection: &Selection,
-    value: DOMString,
+    value: RootedDomString,
 ) -> bool {
     // Step 1. If value is not a valid CSS color, prepend "#" to it.
     let value = if !value.str().is_valid_simple_color_string() {

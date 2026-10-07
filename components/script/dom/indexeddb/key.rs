@@ -27,7 +27,7 @@ use crate::dom::bindings::codegen::Bindings::FileBinding::FileMethods;
 use crate::dom::bindings::codegen::UnionTypes::StringOrStringSequence as StrOrStringSequence;
 use crate::dom::bindings::conversions::{get_property_jsval, root_from_handlevalue};
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::bindings::utils::{define_dictionary_property, has_own_property};
 use crate::dom::blob::Blob;
 use crate::dom::file::File;
@@ -162,7 +162,7 @@ pub(crate) fn is_valid_key_path(
     };
 
     // A valid key path is one of:
-    let is_valid = |cx: &mut JSContext, path: &DOMString| -> Result<bool, Error> {
+    let is_valid = |cx: &mut JSContext, path: &RootedDomString| -> Result<bool, Error> {
         // An empty string.
         let is_empty_string = path.is_empty();
 
@@ -641,7 +641,7 @@ pub(crate) enum ExtractionResult {
 pub(crate) fn can_inject_key_into_value(
     cx: &mut JSContext,
     value: HandleValue,
-    key_path: &DOMString,
+    key_path: &RootedDomString,
 ) -> Result<bool, Error> {
     // Step 1. Let identifiers be the result of strictly splitting keyPath on U+002E FULL STOP
     // characters (.).
@@ -697,7 +697,7 @@ pub(crate) fn inject_key_into_value(
     cx: &mut JSContext,
     value: HandleValue,
     key: &IndexedDBKeyType,
-    key_path: &DOMString,
+    key_path: &RootedDomString,
 ) -> Result<bool, Error> {
     // Step 1. Let identifiers be the result of strictly splitting keyPath on U+002E FULL STOP characters (.).
     let key_path_string = key_path.str();

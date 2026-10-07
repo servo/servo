@@ -43,7 +43,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::{RootedDomString, USVString};
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::eventtarget::EventTarget;
@@ -66,9 +66,9 @@ pub(crate) struct Notification {
     /// <https://notifications.spec.whatwg.org/#service-worker-registration>
     serviceworker_registration: Option<Dom<ServiceWorkerRegistration>>,
     /// <https://notifications.spec.whatwg.org/#concept-title>
-    title: DOMString,
+    title: RootedDomString,
     /// <https://notifications.spec.whatwg.org/#body>
-    body: DOMString,
+    body: RootedDomString,
     /// <https://notifications.spec.whatwg.org/#data>
     #[ignore_malloc_size_of = "mozjs"]
     data: Heap<JSVal>,
@@ -81,11 +81,11 @@ pub(crate) struct Notification {
     /// <https://notifications.spec.whatwg.org/#badge-url>
     badge: Option<USVString>,
     /// <https://notifications.spec.whatwg.org/#concept-language>
-    lang: DOMString,
+    lang: RootedDomString,
     /// <https://notifications.spec.whatwg.org/#silent-preference-flag>
     silent: Option<bool>,
     /// <https://notifications.spec.whatwg.org/#tag>
-    tag: DOMString,
+    tag: RootedDomString,
     /// <https://notifications.spec.whatwg.org/#concept-origin>
     #[no_trace] // ImmutableOrigin is not traceable
     origin: ImmutableOrigin,
@@ -121,7 +121,7 @@ impl Notification {
     pub(crate) fn new(
         cx: &mut JSContext,
         global: &GlobalScope,
-        title: DOMString,
+        title: RootedDomString,
         options: &NotificationOptions,
         origin: ImmutableOrigin,
         base_url: ServoUrl,
@@ -150,7 +150,7 @@ impl Notification {
     /// partial implementation of <https://notifications.spec.whatwg.org/#create-a-notification>
     fn new_inherited(
         global: &GlobalScope,
-        title: DOMString,
+        title: RootedDomString,
         options: &NotificationOptions,
         origin: ImmutableOrigin,
         base_url: ServoUrl,
@@ -348,7 +348,7 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
         cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        title: DOMString,
+        title: RootedDomString,
         options: &NotificationOptions,
     ) -> Fallible<DomRoot<Notification>> {
         // step 1: Check global is a ServiceWorkerGlobalScope
@@ -454,7 +454,7 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
     }
 
     /// <https://notifications.spec.whatwg.org/#dom-notification-title>
-    fn Title(&self) -> DOMString {
+    fn Title(&self) -> RootedDomString {
         self.title.clone()
     }
 
@@ -464,17 +464,17 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
     }
 
     /// <https://notifications.spec.whatwg.org/#dom-notification-lang>
-    fn Lang(&self) -> DOMString {
+    fn Lang(&self) -> RootedDomString {
         self.lang.clone()
     }
 
     /// <https://notifications.spec.whatwg.org/#dom-notification-body>
-    fn Body(&self) -> DOMString {
+    fn Body(&self) -> RootedDomString {
         self.body.clone()
     }
 
     /// <https://notifications.spec.whatwg.org/#dom-notification-tag>
-    fn Tag(&self) -> DOMString {
+    fn Tag(&self) -> RootedDomString {
         self.tag.clone()
     }
 
@@ -574,9 +574,9 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
 struct Action {
     id: String,
     /// <https://notifications.spec.whatwg.org/#action-name>
-    name: DOMString,
+    name: RootedDomString,
     /// <https://notifications.spec.whatwg.org/#action-title>
-    title: DOMString,
+    title: RootedDomString,
     /// <https://notifications.spec.whatwg.org/#action-icon-url>
     icon_url: Option<USVString>,
     /// <https://notifications.spec.whatwg.org/#action-icon-resource>
@@ -589,7 +589,7 @@ struct Action {
 fn create_notification_with_settings_object(
     cx: &mut JSContext,
     global: &GlobalScope,
-    title: DOMString,
+    title: RootedDomString,
     options: &NotificationOptions,
     proto: Option<HandleObject>,
 ) -> Fallible<DomRoot<Notification>> {
@@ -622,7 +622,7 @@ fn create_notification_with_settings_object(
 fn create_notification(
     cx: &mut JSContext,
     global: &GlobalScope,
-    title: DOMString,
+    title: RootedDomString,
     options: &NotificationOptions,
     origin: ImmutableOrigin,
     base_url: ServoUrl,

@@ -14,7 +14,7 @@ use script_bindings::codegen::GenericBindings::HTMLButtonElementBinding::HTMLBut
 use script_bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElementMethods;
 use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
-use script_bindings::domstring::DOMString;
+use script_bindings::domstring::RootedDomString;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::Dom;
 use style::selector_parser::PseudoElement;
@@ -112,11 +112,15 @@ impl SpecificInputType for FileInputType {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file):suffering-from-being-missing>
-    fn suffers_from_being_missing(&self, input: &HTMLInputElement, _value: &DOMString) -> bool {
+    fn suffers_from_being_missing(
+        &self,
+        input: &HTMLInputElement,
+        _value: &RootedDomString,
+    ) -> bool {
         input.Required() && self.filelist.get().is_none_or(|files| files.Length() == 0)
     }
 
-    fn value_for_shadow_dom(&self, input: &HTMLInputElement) -> DOMString {
+    fn value_for_shadow_dom(&self, input: &HTMLInputElement) -> RootedDomString {
         let Some(filelist) = self.filelist.get() else {
             if input.Multiple() {
                 return DEFAULT_FILE_INPUT_MULTIPLE_VALUE.into();
@@ -144,7 +148,7 @@ impl SpecificInputType for FileInputType {
     /// Select files by invoking UI or by passed in argument.
     ///
     /// <https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file)>
-    fn select_files(&self, input: &HTMLInputElement, test_paths: Option<Vec<DOMString>>) {
+    fn select_files(&self, input: &HTMLInputElement, test_paths: Option<Vec<RootedDomString>>) {
         let current_paths = match &test_paths {
             Some(test_paths) => test_paths
                 .iter()
@@ -199,7 +203,7 @@ impl SpecificInputActivationType for FileInputActivation {
 }
 
 /// <https://html.spec.whatwg.org/multipage/#attr-input-accept>
-fn filter_from_accept(s: &DOMString) -> Vec<FilterPattern> {
+fn filter_from_accept(s: &RootedDomString) -> Vec<FilterPattern> {
     let mut filter = vec![];
     for p in split_commas(&s.str()) {
         let p = p.trim();
@@ -234,7 +238,7 @@ impl FileInputShadowTree {
         selector_button
             .downcast::<HTMLButtonElement>()
             .expect("This should be guaranteed by the element type used above")
-            .SetType(cx, DOMString::from_static("button"));
+            .SetType(cx, RootedDomString::from_static("button"));
 
         selector_button
             .downcast::<HTMLElement>()
@@ -271,14 +275,14 @@ impl SpecificShadowTree<HTMLInputElement, FileInputType> for FileInputShadowTree
                 .upcast::<Node>()
                 .set_text_content_for_element(
                     cx,
-                    Some(DOMString::from_static(SELECTOR_BUTTON_MULTIPLE_TEXT)),
+                    Some(RootedDomString::from_static(SELECTOR_BUTTON_MULTIPLE_TEXT)),
                 );
         } else {
             self.selector_button
                 .upcast::<Node>()
                 .set_text_content_for_element(
                     cx,
-                    Some(DOMString::from_static(SELECTOR_BUTTON_TEXT)),
+                    Some(RootedDomString::from_static(SELECTOR_BUTTON_TEXT)),
                 );
         }
 

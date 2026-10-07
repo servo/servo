@@ -10,7 +10,7 @@ use style::attr::AttrValue;
 
 use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::document::Document;
 use crate::dom::execcommand::contenteditable::selection::SelectionDeletionStripWrappers;
 use crate::dom::html::htmlbrelement::HTMLBRElement;
@@ -21,7 +21,7 @@ pub(crate) fn execute_insert_image_command(
     cx: &mut JSContext,
     document: &Document,
     selection: &Selection,
-    value: DOMString,
+    value: RootedDomString,
 ) -> bool {
     // Step 1. If value is the empty string, return false.
     if value.is_empty() {

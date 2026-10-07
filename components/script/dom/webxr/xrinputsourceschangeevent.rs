@@ -16,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::XRInputSourcesChangeEventBinding::{
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::event::Event;
 use crate::dom::window::Window;
@@ -99,7 +99,7 @@ impl XRInputSourcesChangeEventMethods<crate::DomTypeHolder> for XRInputSourcesCh
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        type_: RootedDomString,
         init: &XRInputSourcesChangeEventBinding::XRInputSourcesChangeEventInit,
     ) -> DomRoot<XRInputSourcesChangeEvent> {
         XRInputSourcesChangeEvent::new_with_proto(

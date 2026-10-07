@@ -16,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::CustomEventBinding::{
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{AsHandleValue, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::event::Event;
 use crate::dom::globalscope::GlobalScope;
 
@@ -88,7 +88,7 @@ impl CustomEventMethods<crate::DomTypeHolder> for CustomEvent {
         cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        type_: RootedDomString,
         init: &CustomEventInit,
     ) -> DomRoot<CustomEvent> {
         let event = CustomEvent::new(
@@ -112,7 +112,7 @@ impl CustomEventMethods<crate::DomTypeHolder> for CustomEvent {
     /// <https://dom.spec.whatwg.org/#dom-customevent-initcustomevent>
     fn InitCustomEvent(
         &self,
-        type_: DOMString,
+        type_: RootedDomString,
         can_bubble: bool,
         cancelable: bool,
         detail: HandleValue,

@@ -31,7 +31,7 @@ use crate::dom::bindings::codegen::UnionTypes::TrustedHTMLOrString;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::{Castable, CharacterDataTypeId, NodeTypeId};
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::bindings::trace::JSTraceable;
 use crate::dom::bindings::weakref::{WeakRef, WeakRefVec};
 use crate::dom::characterdata::CharacterData;
@@ -867,7 +867,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                 cx,
                 start_offset,
                 end_offset - start_offset,
-                DOMString::new(),
+                RootedDomString::new(),
             )?;
             // Step 4.5.
             return Ok(fragment);
@@ -915,7 +915,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                     cx,
                     start_offset,
                     start_node.len() - start_offset,
-                    DOMString::new(),
+                    RootedDomString::new(),
                 )?;
             } else {
                 // Step 16.1.
@@ -957,7 +957,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                 // Step 18.3.
                 fragment.upcast::<Node>().AppendChild(cx, &clone)?;
                 // Step 18.4.
-                end_data.ReplaceData(cx, 0, end_offset, DOMString::new())?;
+                end_data.ReplaceData(cx, 0, end_offset, RootedDomString::new())?;
             } else {
                 // Step 19.1.
                 let clone = child.CloneNode(cx, /* deep */ false)?;
@@ -1097,7 +1097,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                 cx,
                 start_offset,
                 end_offset - start_offset,
-                DOMString::new(),
+                RootedDomString::new(),
             );
         }
 
@@ -1155,7 +1155,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
                 cx,
                 start_offset,
                 start_node.len() - start_offset,
-                DOMString::new(),
+                RootedDomString::new(),
             )
             .unwrap();
         }
@@ -1168,7 +1168,7 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
         // Step 11. If originalEndNode is a CharacterData node,
         // then replace data of originalEndNode with 0, originalEndOffset, and the empty string.
         if let Some(text) = end_node.downcast::<CharacterData>() {
-            text.ReplaceData(cx, 0, end_offset, DOMString::new())
+            text.ReplaceData(cx, 0, end_offset, RootedDomString::new())
                 .unwrap();
         }
 
@@ -1217,12 +1217,12 @@ impl RangeMethods<crate::DomTypeHolder> for Range {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-range-stringifier>
-    fn Stringifier(&self, no_gc: &NoGC) -> DOMString {
+    fn Stringifier(&self, no_gc: &NoGC) -> RootedDomString {
         let start_node = self.start_container();
         let end_node = self.end_container();
 
         // Step 1. Let string be the empty string.
-        let mut s = DOMString::new();
+        let mut s = RootedDomString::new();
 
         if let Some(text_node) = start_node.downcast::<Text>() {
             let char_data = text_node.upcast::<CharacterData>();

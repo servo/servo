@@ -16,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::XPathResultBinding::{
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::node::Node;
 use crate::dom::window::Window;
 use crate::xpath::Value;
@@ -62,7 +62,7 @@ enum XPathResultValue {
     Boolean(bool),
     /// A IEEE-754 double-precision floating point number
     Number(f64),
-    String(DOMString),
+    String(RootedDomString),
     /// A collection of unique nodes
     Nodeset(Vec<Dom<Node>>),
 }
@@ -172,7 +172,7 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-xpathresult-stringvalue>
-    fn GetStringValue(&self) -> Fallible<DOMString> {
+    fn GetStringValue(&self) -> Fallible<RootedDomString> {
         match (&*self.value.borrow(), self.result_type.get()) {
             (XPathResultValue::String(s), XPathResultType::String) => Ok(s.clone()),
             _ => Err(Error::Type(

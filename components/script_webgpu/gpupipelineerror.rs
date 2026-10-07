@@ -17,7 +17,7 @@ use script_bindings::traits::DomExceptionTrait;
 
 use crate::JSTraceable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::gpuerror::GPUError;
 use crate::traits::Equivalence;
 
@@ -37,11 +37,11 @@ where
     D::GPUInternalError: DerivedFrom<GPUError<D>>,
     D::DOMException: DomExceptionTrait,
 {
-    fn new_inherited(message: DOMString, reason: GPUPipelineErrorReason) -> Self {
+    fn new_inherited(message: RootedDomString, reason: GPUPipelineErrorReason) -> Self {
         Self {
             exception: D::DOMException::new_inherited(
                 message,
-                DOMString::from_static("GPUPipelineError"),
+                RootedDomString::from_static("GPUPipelineError"),
             ),
             reason,
         }
@@ -51,7 +51,7 @@ where
         cx: &mut JSContext,
         global: &D::GlobalScope,
         proto: Option<HandleObject>,
-        message: DOMString,
+        message: RootedDomString,
         reason: GPUPipelineErrorReason,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_proto_and_wrap::<D, _, _>(
@@ -66,7 +66,7 @@ where
     pub fn new(
         cx: &mut JSContext,
         global: &D::GlobalScope,
-        message: DOMString,
+        message: RootedDomString,
         reason: GPUPipelineErrorReason,
     ) -> DomRoot<Self> {
         Self::new_with_proto(cx, global, None, message, reason)
@@ -87,7 +87,7 @@ where
         cx: &mut JSContext,
         global: &D::GlobalScope,
         proto: Option<HandleObject>,
-        message: DOMString,
+        message: RootedDomString,
         options: &GPUPipelineErrorInit,
     ) -> DomRoot<Self> {
         Self::new_with_proto(cx, global, proto, message, options.reason)

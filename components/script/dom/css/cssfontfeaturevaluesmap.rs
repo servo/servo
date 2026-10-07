@@ -15,7 +15,7 @@ use style::stylesheets::font_feature_values_rule::{
 use crate::dom::GlobalScope;
 use crate::dom::bindings::codegen::Bindings::CSSFontFeatureValuesRuleBinding::CSSFontFeatureValuesMapMethods;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::maplike;
 
 /// <https://drafts.csswg.org/css-fonts/#cssfontfeaturevaluesmap>
@@ -26,11 +26,11 @@ pub(crate) struct CSSFontFeatureValuesMap {
     /// The map from identifiers to font feature values, derived from a single block
     /// of the `@font-feature-values` rule.
     #[custom_trace]
-    internal: DomRefCell<IndexMap<DOMString, Vec<u32>>>,
+    internal: DomRefCell<IndexMap<RootedDomString, Vec<u32>>>,
 }
 
 impl CSSFontFeatureValuesMap {
-    fn new_inherited(map: IndexMap<DOMString, Vec<u32>>) -> CSSFontFeatureValuesMap {
+    fn new_inherited(map: IndexMap<RootedDomString, Vec<u32>>) -> CSSFontFeatureValuesMap {
         CSSFontFeatureValuesMap {
             reflector: Reflector::new(),
             internal: DomRefCell::new(map),
@@ -40,7 +40,7 @@ impl CSSFontFeatureValuesMap {
     pub(crate) fn new(
         cx: &mut JSContext,
         global: &GlobalScope,
-        map: IndexMap<DOMString, Vec<u32>>,
+        map: IndexMap<RootedDomString, Vec<u32>>,
     ) -> DomRoot<CSSFontFeatureValuesMap> {
         reflect_dom_object(
             cx,
@@ -69,7 +69,7 @@ impl CSSFontFeatureValuesMap {
 }
 
 impl Maplike for CSSFontFeatureValuesMap {
-    type Key = DOMString;
+    type Key = RootedDomString;
     type Value = Vec<u32>;
 
     maplike!(self, internal);

@@ -8,7 +8,7 @@ use script_bindings::codegen::GenericBindings::GeolocationPositionErrorBinding::
 use script_bindings::codegen::GenericBindings::GeolocationPositionErrorBinding::GeolocationPositionErrorMethods;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::root::DomRoot;
-use script_bindings::str::DOMString;
+use script_bindings::str::RootedDomString;
 
 use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
 use crate::dom::globalscope::GlobalScope;
@@ -17,11 +17,11 @@ use crate::dom::globalscope::GlobalScope;
 pub struct GeolocationPositionError {
     reflector_: Reflector,
     code: u16,
-    message: DOMString,
+    message: RootedDomString,
 }
 
 impl GeolocationPositionError {
-    fn new_inherited(code: u16, message: DOMString) -> Self {
+    fn new_inherited(code: u16, message: RootedDomString) -> Self {
         GeolocationPositionError {
             reflector_: Reflector::new(),
             code,
@@ -33,7 +33,7 @@ impl GeolocationPositionError {
         cx: &mut JSContext,
         global: &GlobalScope,
         code: u16,
-        message: DOMString,
+        message: RootedDomString,
     ) -> DomRoot<Self> {
         reflect_dom_object(cx, Box::new(Self::new_inherited(code, message)), global)
     }
@@ -41,7 +41,7 @@ impl GeolocationPositionError {
     pub(crate) fn permission_denied(
         cx: &mut JSContext,
         global: &GlobalScope,
-        message: DOMString,
+        message: RootedDomString,
     ) -> DomRoot<Self> {
         Self::new(cx, global, PERMISSION_DENIED, message)
     }
@@ -49,7 +49,7 @@ impl GeolocationPositionError {
     pub(crate) fn position_unavailable(
         cx: &mut JSContext,
         global: &GlobalScope,
-        message: DOMString,
+        message: RootedDomString,
     ) -> DomRoot<Self> {
         Self::new(cx, global, POSITION_UNAVAILABLE, message)
     }
@@ -58,7 +58,7 @@ impl GeolocationPositionError {
     pub(crate) fn timeout(
         cx: &mut JSContext,
         global: &GlobalScope,
-        message: DOMString,
+        message: RootedDomString,
     ) -> DomRoot<Self> {
         Self::new(cx, global, TIMEOUT, message)
     }
@@ -69,7 +69,7 @@ impl GeolocationPositionErrorMethods<DomTypeHolder> for GeolocationPositionError
         self.code
     }
 
-    fn Message(&self) -> DOMString {
+    fn Message(&self) -> RootedDomString {
         self.message.clone()
     }
 }

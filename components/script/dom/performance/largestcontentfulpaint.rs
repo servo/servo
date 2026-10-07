@@ -17,7 +17,7 @@ use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeS
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::node::Node;
@@ -30,7 +30,7 @@ pub(crate) struct LargestContentfulPaint {
     #[no_trace]
     render_time: CrossProcessInstant,
     size: usize,
-    url: DOMString,
+    url: RootedDomString,
     element: Option<Dom<Element>>,
     /// <https://www.w3.org/TR/paint-timing/#paint-timing-info>
     #[no_trace]
@@ -51,7 +51,7 @@ impl LargestContentfulPaint {
         let render_time = paint_timing_info.default_paint_timestamp();
         LargestContentfulPaint {
             entry: PerformanceEntry::new_inherited(
-                DOMString::new(),
+                RootedDomString::new(),
                 EntryType::LargestContentfulPaint,
                 Some(render_time),
                 Duration::ZERO,
@@ -62,7 +62,7 @@ impl LargestContentfulPaint {
             url: candidate
                 .url
                 .as_ref()
-                .map(|url| DOMString::from(url.as_str()))
+                .map(|url| RootedDomString::from(url.as_str()))
                 .unwrap_or_default(),
             element: element.map(Dom::from_ref),
             paint_timing_info,
@@ -111,12 +111,12 @@ impl LargestContentfulPaintMethods<crate::DomTypeHolder> for LargestContentfulPa
     }
 
     /// <https://www.w3.org/TR/largest-contentful-paint/#dom-largestcontentfulpaint-url>
-    fn Url(&self) -> DOMString {
+    fn Url(&self) -> RootedDomString {
         self.url.clone()
     }
 
     /// <https://www.w3.org/TR/largest-contentful-paint/#dom-largestcontentfulpaint-id>
-    fn Id(&self) -> DOMString {
+    fn Id(&self) -> RootedDomString {
         self.GetElement()
             .map(|element| element.Id())
             .unwrap_or_default()

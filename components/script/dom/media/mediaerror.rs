@@ -8,7 +8,7 @@ use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::window::Window;
 
 #[dom_struct]
@@ -37,7 +37,7 @@ impl MediaErrorMethods<crate::DomTypeHolder> for MediaError {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-mediaerror-message>
-    fn Message(&self) -> DOMString {
-        DOMString::new()
+    fn Message(&self) -> RootedDomString {
+        RootedDomString::new()
     }
 }

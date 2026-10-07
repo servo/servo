@@ -13,7 +13,7 @@ use style::values::specified::box_::DisplayOutside;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::{ElementTypeId, HTMLElementTypeId, NodeTypeId};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::element::Element;
 use crate::dom::execcommand::basecommand::{CommandName, CssPropertyName};
 use crate::dom::execcommand::commands::fontsize::font_size_to_css_font;
@@ -28,7 +28,7 @@ impl Element {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#specified-command-value>
-    pub(crate) fn specified_command_value(&self, command: &CommandName) -> Option<DOMString> {
+    pub(crate) fn specified_command_value(&self, command: &CommandName) -> Option<RootedDomString> {
         match command {
             // Step 1. If command is "backColor" or "hiliteColor" and the Element's display property does not have resolved value "inline", return null.
             CommandName::BackColor | CommandName::HiliteColor
@@ -56,11 +56,11 @@ impl Element {
             CommandName::Subscript | CommandName::Superscript => {
                 // Step 3.1. If element is a sup, return "superscript".
                 if matches!(*self.local_name(), local_name!("sup")) {
-                    return Some(DOMString::from_static("superscript"));
+                    return Some(RootedDomString::from_static("superscript"));
                 }
                 // Step 3.2. If element is a sub, return "subscript".
                 if matches!(*self.local_name(), local_name!("sub")) {
-                    return Some(DOMString::from_static("subscript"));
+                    return Some(RootedDomString::from_static("subscript"));
                 }
                 // Step 3.3. Return null.
                 return None;
@@ -72,11 +72,11 @@ impl Element {
                     // Step 4.2. Return null.
                     return value
                         .contains("line-through")
-                        .then_some(DOMString::from_static("line-through"));
+                        .then_some(RootedDomString::from_static("line-through"));
                 }
                 // Step 5. If command is "strikethrough" and element is an s or strike element, return "line-through".
                 if matches!(*self.local_name(), local_name!("s") | local_name!("strike")) {
-                    return Some(DOMString::from_static("line-through"));
+                    return Some(RootedDomString::from_static("line-through"));
                 }
             },
             CommandName::Underline => {
@@ -86,11 +86,11 @@ impl Element {
                     // Step 6.2. Return null.
                     return value
                         .contains("underline")
-                        .then_some(DOMString::from_static("underline"));
+                        .then_some(RootedDomString::from_static("underline"));
                 }
                 // Step 7. If command is "underline" and element is a u element, return "underline".
                 if *self.local_name() == local_name!("u") {
-                    return Some(DOMString::from_static("underline"));
+                    return Some(RootedDomString::from_static("underline"));
                 }
             },
             _ => {},
@@ -126,12 +126,12 @@ impl Element {
             CssPropertyName::FontWeight
                 if element_name == &local_name!("b") || element_name == &local_name!("strong") =>
             {
-                Some(DOMString::from_static("bold"))
+                Some(RootedDomString::from_static("bold"))
             },
             CssPropertyName::FontStyle
                 if element_name == &local_name!("i") || element_name == &local_name!("em") =>
             {
-                Some(DOMString::from_static("italic"))
+                Some(RootedDomString::from_static("italic"))
             },
             // Step 13. Return null.
             _ => None,

@@ -17,7 +17,7 @@ use crate::dom::bindings::codegen::UnionTypes::FileOrUSVStringOrFormData;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayoutOptional};
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::{RootedDomString, USVString};
 use crate::dom::element::Element;
 use crate::dom::file::File;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -70,8 +70,8 @@ pub(crate) struct ElementInternals {
     attached: Cell<bool>,
     target_element: Dom<HTMLElement>,
     validity_state: MutNullableDom<ValidityState>,
-    validation_message: DomRefCell<DOMString>,
-    custom_validity_error_message: DomRefCell<DOMString>,
+    validation_message: DomRefCell<RootedDomString>,
+    custom_validity_error_message: DomRefCell<RootedDomString>,
     validation_anchor: MutNullableDom<HTMLElement>,
     submission_value: DomRefCell<SubmissionValue>,
     state: DomRefCell<SubmissionValue>,
@@ -89,8 +89,8 @@ impl ElementInternals {
             attached: Cell::new(false),
             target_element: Dom::from_ref(target_element),
             validity_state: Default::default(),
-            validation_message: DomRefCell::new(DOMString::new()),
-            custom_validity_error_message: DomRefCell::new(DOMString::new()),
+            validation_message: DomRefCell::new(RootedDomString::new()),
+            custom_validity_error_message: DomRefCell::new(RootedDomString::new()),
             validation_anchor: MutNullableDom::new(None),
             submission_value: DomRefCell::new(SubmissionValue::None),
             state: DomRefCell::new(SubmissionValue::None),
@@ -113,11 +113,11 @@ impl ElementInternals {
         self.target_element.is_form_associated_custom_element()
     }
 
-    fn set_validation_message(&self, message: DOMString) {
+    fn set_validation_message(&self, message: RootedDomString) {
         *self.validation_message.borrow_mut() = message;
     }
 
-    fn set_custom_validity_error_message(&self, message: DOMString) {
+    fn set_custom_validity_error_message(&self, message: RootedDomString) {
         *self.custom_validity_error_message.borrow_mut() = message;
     }
 
@@ -170,14 +170,14 @@ impl ElementInternals {
             SubmissionValue::None => {},
             SubmissionValue::USVString(string) => {
                 entry_list.push(FormDatum {
-                    ty: DOMString::from_static("string"),
+                    ty: RootedDomString::from_static("string"),
                     name,
-                    value: FormDatumValue::String(DOMString::from(string.to_string())),
+                    value: FormDatumValue::String(RootedDomString::from(string.to_string())),
                 });
             },
             SubmissionValue::File(file) => {
                 entry_list.push(FormDatum {
-                    ty: DOMString::from_static("file"),
+                    ty: RootedDomString::from_static("file"),
                     name,
                     value: FormDatumValue::File(DomRoot::from_ref(file)),
                 });
@@ -246,7 +246,7 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
         &self,
         cx: &mut JSContext,
         flags: &ValidityStateFlags,
-        message: Option<DOMString>,
+        message: Option<RootedDomString>,
         anchor: Option<&HTMLElement>,
     ) -> ErrorResult {
         // Step 1. Let element be this's target element.
@@ -275,7 +275,7 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
         // Step 5: Set element's validation message to the empty string if message is not given
         // or all of element's validity flags are false, or to message otherwise.
         if bits.is_empty() {
-            self.set_validation_message(DOMString::new());
+            self.set_validation_message(RootedDomString::new());
         } else {
             self.set_validation_message(message.unwrap_or_default());
         }
@@ -286,7 +286,7 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
         if bits.contains(ValidationFlags::CUSTOM_ERROR) {
             self.set_custom_validity_error_message(self.validation_message.borrow().clone());
         } else {
-            self.set_custom_validity_error_message(DOMString::new());
+            self.set_custom_validity_error_message(RootedDomString::new());
         }
 
         let anchor = match anchor {
@@ -315,7 +315,7 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-validationmessage>
-    fn GetValidationMessage(&self) -> Fallible<DOMString> {
+    fn GetValidationMessage(&self) -> Fallible<RootedDomString> {
         // This check isn't in the spec but it's in WPT tests and it maintains
         // consistency with other methods that do specify it
         if !self.is_target_form_associated() {

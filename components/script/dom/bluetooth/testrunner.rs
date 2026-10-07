@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::TestRunnerBinding::TestRunnerMethod
 use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::globalscope::GlobalScope;
 
 // https://webbluetoothcg.github.io/web-bluetooth/tests#test-runner
@@ -42,7 +42,7 @@ impl TestRunner {
 impl TestRunnerMethods<crate::DomTypeHolder> for TestRunner {
     // https://webbluetoothcg.github.io/web-bluetooth/tests#setBluetoothMockDataSet
     #[expect(non_snake_case)]
-    fn SetBluetoothMockDataSet(&self, dataSetName: DOMString) -> ErrorResult {
+    fn SetBluetoothMockDataSet(&self, dataSetName: RootedDomString) -> ErrorResult {
         let (sender, receiver) =
             generic_channel::channel(self.global().time_profiler_chan().clone()).unwrap();
         self.get_bluetooth_thread()

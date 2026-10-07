@@ -23,7 +23,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::csp::CspReporting;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -46,8 +46,8 @@ pub(crate) static DEFAULT_SCRIPT_SINK_GROUP: &str = "'script'";
 
 // We currently always clone the result, so keep the `clone()` in the trait
 // for now to keep the caller side clean
-impl Convert<DOMString> for TrustedTypeOrString {
-    fn convert(self) -> DOMString {
+impl Convert<RootedDomString> for TrustedTypeOrString {
+    fn convert(self) -> RootedDomString {
         match self {
             TrustedTypeOrString::TrustedHTML(trusted_html) => trusted_html.data().clone(),
             TrustedTypeOrString::TrustedScript(trusted_script) => trusted_script.data().clone(),
@@ -197,7 +197,7 @@ impl TrustedTypePolicyFactory {
         attribute_namespace: Option<&Namespace>,
         new_value: TrustedTypeOrString,
         global: &GlobalScope,
-    ) -> Fallible<DOMString> {
+    ) -> Fallible<RootedDomString> {
         // Step 1. If attributeNs is the empty string, set attributeNs to null.
         let attribute_namespace = attribute_namespace.filter(|a| **a != ns!());
         // Step 2. Set attributeData to the result of Get Trusted Type data for attribute algorithm,
@@ -246,9 +246,9 @@ impl TrustedTypePolicyFactory {
         cx: &mut JSContext,
         expected_type: TrustedType,
         global: &GlobalScope,
-        input: DOMString,
+        input: RootedDomString,
         sink: &str,
-    ) -> Fallible<Option<DOMString>> {
+    ) -> Fallible<Option<RootedDomString>> {
         // Step 1: Let defaultPolicy be the value of global’s trusted type policy factory's default policy.
         let global_policy_factory = global.trusted_types(cx);
         let default_policy = match global_policy_factory.default_policy.get() {
@@ -292,10 +292,10 @@ impl TrustedTypePolicyFactory {
         cx: &mut JSContext,
         expected_type: TrustedType,
         global: &GlobalScope,
-        input: DOMString,
+        input: RootedDomString,
         sink: &str,
         sink_group: &str,
-    ) -> Fallible<DOMString> {
+    ) -> Fallible<RootedDomString> {
         // Step 2: Let requireTrustedTypes be the result of executing Does sink type require trusted types?
         // algorithm, passing global, sinkGroup, and true.
         let require_trusted_types = global
@@ -361,7 +361,7 @@ impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicy
     fn CreatePolicy(
         &self,
         cx: &mut JSContext,
-        policy_name: DOMString,
+        policy_name: RootedDomString,
         options: &TrustedTypePolicyOptions,
     ) -> Fallible<DomRoot<TrustedTypePolicy>> {
         self.create_trusted_type_policy(cx, String::from(policy_name), options, &self.global())
@@ -380,20 +380,20 @@ impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicy
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-emptyhtml>
     fn EmptyHTML(&self, cx: &mut JSContext) -> DomRoot<TrustedHTML> {
-        TrustedHTML::new(cx, DOMString::new(), &self.global())
+        TrustedHTML::new(cx, RootedDomString::new(), &self.global())
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-emptyscript>
     fn EmptyScript(&self, cx: &mut JSContext) -> DomRoot<TrustedScript> {
-        TrustedScript::new(cx, DOMString::new(), &self.global())
+        TrustedScript::new(cx, RootedDomString::new(), &self.global())
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-getattributetype>
     fn GetAttributeType(
         &self,
-        tag_name: DOMString,
-        attribute: DOMString,
-        element_namespace: Option<DOMString>,
-        attribute_namespace: Option<DOMString>,
-    ) -> Option<DOMString> {
+        tag_name: RootedDomString,
+        attribute: RootedDomString,
+        element_namespace: Option<RootedDomString>,
+        attribute_namespace: Option<RootedDomString>,
+    ) -> Option<RootedDomString> {
         // Step 1: Set localName to tagName in ASCII lowercase.
         let local_name = tag_name.to_ascii_lowercase();
         // Step 2: Set attribute to attribute in ASCII lowercase.
@@ -421,16 +421,16 @@ impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicy
             &attribute,
             attribute_namespace.as_ref(),
         )
-        .map(|tuple| DOMString::from(tuple.0.as_ref()))
+        .map(|tuple| RootedDomString::from(tuple.0.as_ref()))
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicyfactory-getpropertytype>
     #[expect(clippy::if_same_then_else)]
     fn GetPropertyType(
         &self,
-        tag_name: DOMString,
-        property: DOMString,
-        element_namespace: Option<DOMString>,
-    ) -> Option<DOMString> {
+        tag_name: RootedDomString,
+        property: RootedDomString,
+        element_namespace: Option<RootedDomString>,
+    ) -> Option<RootedDomString> {
         // Step 1: Set localName to tagName in ASCII lowercase.
         let local_name = tag_name.to_ascii_lowercase();
         // Step 2: If elementNs is null or an empty string, set elementNs to HTML namespace.
@@ -450,31 +450,31 @@ impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicy
             interface.local == local_name!("iframe") &&
             property == "srcdoc"
         {
-            expected_type = Some(DOMString::from_static("TrustedHTML"))
+            expected_type = Some(RootedDomString::from_static("TrustedHTML"))
         } else if interface.ns == ns!(html) &&
             interface.local == local_name!("script") &&
             property == "innerText"
         {
-            expected_type = Some(DOMString::from_static("TrustedScript"))
+            expected_type = Some(RootedDomString::from_static("TrustedScript"))
         } else if interface.ns == ns!(html) &&
             interface.local == local_name!("script") &&
             property == "src"
         {
-            expected_type = Some(DOMString::from_static("TrustedScriptURL"))
+            expected_type = Some(RootedDomString::from_static("TrustedScriptURL"))
         } else if interface.ns == ns!(html) &&
             interface.local == local_name!("script") &&
             property == "text"
         {
-            expected_type = Some(DOMString::from_static("TrustedScript"))
+            expected_type = Some(RootedDomString::from_static("TrustedScript"))
         } else if interface.ns == ns!(html) &&
             interface.local == local_name!("script") &&
             property == "textContent"
         {
-            expected_type = Some(DOMString::from_static("TrustedScript"))
+            expected_type = Some(RootedDomString::from_static("TrustedScript"))
         } else if property == "innerHTML" {
-            expected_type = Some(DOMString::from_static("TrustedHTML"))
+            expected_type = Some(RootedDomString::from_static("TrustedHTML"))
         } else if property == "outerHTML" {
-            expected_type = Some(DOMString::from_static("TrustedHTML"))
+            expected_type = Some(RootedDomString::from_static("TrustedHTML"))
         }
         // Step 6: Return expectedType.
         expected_type

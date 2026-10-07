@@ -27,7 +27,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, UnrootedDom};
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::{RootedDomString, USVString};
 use crate::dom::csp::Violation;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
@@ -244,7 +244,7 @@ impl HTMLTrackElement {
 
 impl HTMLTrackElementMethods<crate::DomTypeHolder> for HTMLTrackElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-track-kind>
-    fn Kind(&self) -> DOMString {
+    fn Kind(&self) -> RootedDomString {
         let element = self.upcast::<Element>();
         // Get the value of "kind" and transform all uppercase
         // chars into lowercase.
@@ -255,17 +255,17 @@ impl HTMLTrackElementMethods<crate::DomTypeHolder> for HTMLTrackElement {
             "subtitles" | "captions" | "descriptions" | "chapters" | "metadata" => {
                 // The value of "kind" is valid. Return the lowercase version
                 // of it.
-                DOMString::from(kind)
+                RootedDomString::from(kind)
             },
             _ if kind.is_empty() => {
                 // The default value should be "subtitles". If "kind" has not
                 // been set, the real value for "kind" is "subtitles"
-                DOMString::from_static("subtitles")
+                RootedDomString::from_static("subtitles")
             },
             _ => {
                 // If "kind" has been set but it is not one of the valid
                 // values, return the default invalid value of "metadata"
-                DOMString::from_static("metadata")
+                RootedDomString::from_static("metadata")
             },
         }
     }

@@ -9,18 +9,18 @@ use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecord_Binding::MutationRecordMethods;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::nodelist::NodeList;
 
 #[dom_struct]
 pub(crate) struct MutationRecord {
     reflector_: Reflector,
-    record_type: DOMString,
+    record_type: RootedDomString,
     target: Dom<Node>,
-    attribute_name: Option<DOMString>,
-    attribute_namespace: Option<DOMString>,
-    old_value: Option<DOMString>,
+    attribute_name: Option<RootedDomString>,
+    attribute_namespace: Option<RootedDomString>,
+    old_value: Option<RootedDomString>,
     added_nodes: MutNullableDom<NodeList>,
     removed_nodes: MutNullableDom<NodeList>,
     next_sibling: Option<Dom<Node>>,
@@ -34,13 +34,13 @@ impl MutationRecord {
         target: &Node,
         attribute_name: &LocalName,
         attribute_namespace: Option<&Namespace>,
-        old_value: Option<DOMString>,
+        old_value: Option<RootedDomString>,
     ) -> DomRoot<MutationRecord> {
         let record = Box::new(MutationRecord::new_inherited(
             "attributes",
             target,
-            Some(DOMString::from(&**attribute_name)),
-            attribute_namespace.map(|n| DOMString::from(&**n)),
+            Some(RootedDomString::from(&**attribute_name)),
+            attribute_namespace.map(|n| RootedDomString::from(&**n)),
             old_value,
             None,
             None,
@@ -53,7 +53,7 @@ impl MutationRecord {
     pub(crate) fn character_data_mutated(
         cx: &mut JSContext,
         target: &Node,
-        old_value: Option<DOMString>,
+        old_value: Option<RootedDomString>,
     ) -> DomRoot<MutationRecord> {
         reflect_dom_object(
             cx,
@@ -107,9 +107,9 @@ impl MutationRecord {
     fn new_inherited(
         record_type: &str,
         target: &Node,
-        attribute_name: Option<DOMString>,
-        attribute_namespace: Option<DOMString>,
-        old_value: Option<DOMString>,
+        attribute_name: Option<RootedDomString>,
+        attribute_namespace: Option<RootedDomString>,
+        old_value: Option<RootedDomString>,
         added_nodes: Option<&NodeList>,
         removed_nodes: Option<&NodeList>,
         next_sibling: Option<&Node>,
@@ -117,7 +117,7 @@ impl MutationRecord {
     ) -> MutationRecord {
         MutationRecord {
             reflector_: Reflector::new(),
-            record_type: DOMString::from(record_type),
+            record_type: RootedDomString::from(record_type),
             target: Dom::from_ref(target),
             attribute_name,
             attribute_namespace,
@@ -132,7 +132,7 @@ impl MutationRecord {
 
 impl MutationRecordMethods<crate::DomTypeHolder> for MutationRecord {
     /// <https://dom.spec.whatwg.org/#dom-mutationrecord-type>
-    fn Type(&self) -> DOMString {
+    fn Type(&self) -> RootedDomString {
         self.record_type.clone()
     }
 
@@ -142,17 +142,17 @@ impl MutationRecordMethods<crate::DomTypeHolder> for MutationRecord {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-mutationrecord-attributename>
-    fn GetAttributeName(&self) -> Option<DOMString> {
+    fn GetAttributeName(&self) -> Option<RootedDomString> {
         self.attribute_name.clone()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-mutationrecord-attributenamespace>
-    fn GetAttributeNamespace(&self) -> Option<DOMString> {
+    fn GetAttributeNamespace(&self) -> Option<RootedDomString> {
         self.attribute_namespace.clone()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-mutationrecord-oldvalue>
-    fn GetOldValue(&self) -> Option<DOMString> {
+    fn GetOldValue(&self) -> Option<RootedDomString> {
         self.old_value.clone()
     }
 

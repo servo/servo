@@ -11,27 +11,27 @@ use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::VideoTrackBinding::VideoTrackMethods;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::videotracklist::VideoTrackList;
 use crate::dom::window::Window;
 
 #[dom_struct]
 pub(crate) struct VideoTrack {
     reflector_: Reflector,
-    id: DOMString,
-    kind: DOMString,
-    label: DOMString,
-    language: DOMString,
+    id: RootedDomString,
+    kind: RootedDomString,
+    label: RootedDomString,
+    language: RootedDomString,
     selected: Cell<bool>,
     track_list: DomRefCell<Option<Dom<VideoTrackList>>>,
 }
 
 impl VideoTrack {
     pub(crate) fn new_inherited(
-        id: DOMString,
-        kind: DOMString,
-        label: DOMString,
-        language: DOMString,
+        id: RootedDomString,
+        kind: RootedDomString,
+        label: RootedDomString,
+        language: RootedDomString,
         track_list: Option<&VideoTrackList>,
     ) -> VideoTrack {
         VideoTrack {
@@ -48,10 +48,10 @@ impl VideoTrack {
     pub(crate) fn new(
         cx: &mut JSContext,
         window: &Window,
-        id: DOMString,
-        kind: DOMString,
-        label: DOMString,
-        language: DOMString,
+        id: RootedDomString,
+        kind: RootedDomString,
+        label: RootedDomString,
+        language: RootedDomString,
         track_list: Option<&VideoTrackList>,
     ) -> DomRoot<VideoTrack> {
         reflect_dom_object(
@@ -63,11 +63,11 @@ impl VideoTrack {
         )
     }
 
-    pub(crate) fn id(&self) -> DOMString {
+    pub(crate) fn id(&self) -> RootedDomString {
         self.id.clone()
     }
 
-    pub(crate) fn kind(&self) -> DOMString {
+    pub(crate) fn kind(&self) -> RootedDomString {
         self.kind.clone()
     }
 
@@ -90,22 +90,22 @@ impl VideoTrack {
 
 impl VideoTrackMethods<crate::DomTypeHolder> for VideoTrack {
     /// <https://html.spec.whatwg.org/multipage/#dom-videotrack-id>
-    fn Id(&self) -> DOMString {
+    fn Id(&self) -> RootedDomString {
         self.id()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-videotrack-kind>
-    fn Kind(&self) -> DOMString {
+    fn Kind(&self) -> RootedDomString {
         self.kind()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-videotrack-label>
-    fn Label(&self) -> DOMString {
+    fn Label(&self) -> RootedDomString {
         self.label.clone()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-videotrack-language>
-    fn Language(&self) -> DOMString {
+    fn Language(&self) -> RootedDomString {
         self.language.clone()
     }
 

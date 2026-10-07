@@ -19,7 +19,7 @@ use crate::dom::bindings::codegen::UnionTypes::RequestOrUSVString;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::fetch::request::Request;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::{Promise, RootedPromise, TracedPromise};
@@ -31,7 +31,7 @@ pub(crate) struct Cache {
 
     /// The name used to identify
     /// <https://w3c.github.io/ServiceWorker/#dfn-relevant-request-response-list>
-    name: DOMString,
+    name: RootedDomString,
 
     #[no_trace]
     #[ignore_malloc_size_of = "GenericCallback"]
@@ -42,7 +42,7 @@ pub(crate) struct Cache {
 }
 
 impl Cache {
-    fn new_inherited(name: DOMString) -> Cache {
+    fn new_inherited(name: RootedDomString) -> Cache {
         Cache {
             reflector_: Reflector::new(),
             name,
@@ -51,7 +51,11 @@ impl Cache {
         }
     }
 
-    pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope, name: DOMString) -> DomRoot<Cache> {
+    pub(crate) fn new(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        name: RootedDomString,
+    ) -> DomRoot<Cache> {
         reflect_dom_object(cx, Box::new(Cache::new_inherited(name)), global)
     }
 

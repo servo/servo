@@ -40,7 +40,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::csp::{CspReporting, GlobalCspReporting, InlineCheckType, Violation};
 use crate::dom::document::Document;
 use crate::dom::domtokenlist::DOMTokenList;
@@ -101,7 +101,7 @@ pub(crate) struct HTMLScriptElement {
     line_number: u64,
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#htmlscriptelement-script-text>
-    script_text: DomRefCell<DOMString>,
+    script_text: DomRefCell<RootedDomString>,
 
     /// <https://html.spec.whatwg.org/multipage/#concept-script-external>
     from_an_external_file: Cell<bool>,
@@ -133,7 +133,7 @@ impl HTMLScriptElement {
             parser_document: Dom::from_ref(document),
             preparation_time_document: MutNullableDom::new(None),
             line_number: creator.return_line_number(),
-            script_text: DomRefCell::new(DOMString::new()),
+            script_text: DomRefCell::new(RootedDomString::new()),
             from_an_external_file: Cell::new(false),
             blocking: Default::default(),
             marked_as_render_blocking: Default::default(),
@@ -563,7 +563,7 @@ impl HTMLScriptElement {
     fn has_render_blocking_attribute(&self) -> bool {
         self.blocking
             .get()
-            .is_some_and(|list| list.Contains(DOMString::from_static("render")))
+            .is_some_and(|list| list.Contains(RootedDomString::from_static("render")))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#potentially-render-blocking>
@@ -1128,11 +1128,11 @@ impl HTMLScriptElement {
         self.already_started.set(already_started);
     }
 
-    fn text(&self) -> DOMString {
+    fn text(&self) -> RootedDomString {
         match self.Text() {
             TrustedScriptOrString::String(value) => value,
             TrustedScriptOrString::TrustedScript(trusted_script) => {
-                DOMString::from(trusted_script.to_string())
+                RootedDomString::from(trusted_script.to_string())
             },
         }
     }
@@ -1310,17 +1310,17 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     make_setter!(SetHtmlFor, "for");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-script-crossorigin>
-    fn GetCrossOrigin(&self) -> Option<DOMString> {
+    fn GetCrossOrigin(&self) -> Option<RootedDomString> {
         reflect_cross_origin_attribute(self.upcast::<Element>())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-script-crossorigin>
-    fn SetCrossOrigin(&self, cx: &mut JSContext, value: Option<DOMString>) {
+    fn SetCrossOrigin(&self, cx: &mut JSContext, value: Option<RootedDomString>) {
         set_cross_origin_attribute(cx, self.upcast::<Element>(), value);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-script-referrerpolicy>
-    fn ReferrerPolicy(&self) -> DOMString {
+    fn ReferrerPolicy(&self) -> RootedDomString {
         reflect_referrer_policy_attribute(self.upcast::<Element>())
     }
 
@@ -1390,7 +1390,7 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
         let value = TrustedScript::get_trusted_type_compliant_string(
             cx,
             &self.owner_global(),
-            value.unwrap_or(TrustedScriptOrString::String(DOMString::new())),
+            value.unwrap_or(TrustedScriptOrString::String(RootedDomString::new())),
             "HTMLScriptElement textContent",
         )?;
         // Step 2: Set this's script text value to value.
@@ -1402,7 +1402,7 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-script-supports>
-    fn Supports(_window: &Window, type_: DOMString) -> bool {
+    fn Supports(_window: &Window, type_: RootedDomString) -> bool {
         // The type argument has to exactly match these values,
         // we do not perform an ASCII case-insensitive match.
         matches!(&*type_.str(), "classic" | "module" | "importmap")

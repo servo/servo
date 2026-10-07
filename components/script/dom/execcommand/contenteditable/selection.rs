@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::CharacterDataBinding::CharacterData
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::TextBinding::TextMethods;
 use crate::dom::bindings::root::{DomRoot, DomSlice};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::execcommand::basecommand::CommandName;
@@ -771,7 +771,7 @@ impl Selection {
     pub(crate) fn set_the_selection_value(
         &self,
         cx: &mut JSContext,
-        new_value: Option<DOMString>,
+        new_value: Option<RootedDomString>,
         command: CommandName,
         context_object: &Document,
     ) {

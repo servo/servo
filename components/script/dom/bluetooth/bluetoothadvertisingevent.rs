@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventM
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::bluetoothdevice::BluetoothDevice;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
@@ -26,7 +26,7 @@ use crate::dom::window::Window;
 pub(crate) struct BluetoothAdvertisingEvent {
     event: Event,
     device: Dom<BluetoothDevice>,
-    name: Option<DOMString>,
+    name: Option<RootedDomString>,
     appearance: Option<u16>,
     tx_power: Option<i8>,
     rssi: Option<i8>,
@@ -36,7 +36,7 @@ pub(crate) struct BluetoothAdvertisingEvent {
 impl BluetoothAdvertisingEvent {
     pub(crate) fn new_inherited(
         device: &BluetoothDevice,
-        name: Option<DOMString>,
+        name: Option<RootedDomString>,
         appearance: Option<u16>,
         tx_power: Option<i8>,
         rssi: Option<i8>,
@@ -60,7 +60,7 @@ impl BluetoothAdvertisingEvent {
         bubbles: EventBubbles,
         cancelable: EventCancelable,
         device: &BluetoothDevice,
-        name: Option<DOMString>,
+        name: Option<RootedDomString>,
         appearance: Option<u16>,
         txPower: Option<i8>,
         rssi: Option<i8>,
@@ -88,7 +88,7 @@ impl BluetoothAdvertisingEventMethods<crate::DomTypeHolder> for BluetoothAdverti
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        type_: RootedDomString,
         init: &BluetoothAdvertisingEventInit,
     ) -> Fallible<DomRoot<BluetoothAdvertisingEvent>> {
         let name = init.name.clone();
@@ -118,7 +118,7 @@ impl BluetoothAdvertisingEventMethods<crate::DomTypeHolder> for BluetoothAdverti
     }
 
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothadvertisingevent-name>
-    fn GetName(&self) -> Option<DOMString> {
+    fn GetName(&self) -> Option<RootedDomString> {
         self.name.clone()
     }
 

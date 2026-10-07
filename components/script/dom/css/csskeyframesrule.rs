@@ -23,7 +23,7 @@ use crate::dom::bindings::error::ErrorResult;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::cssgroupingrule::CSSGroupingRule;
 use crate::dom::window::Window;
 
@@ -81,7 +81,7 @@ impl CSSKeyframesRule {
     }
 
     /// Given a keyframe selector, finds the index of the first corresponding rule if any
-    fn find_rule(&self, selector: &DOMString) -> Option<usize> {
+    fn find_rule(&self, selector: &RootedDomString) -> Option<usize> {
         let selector = selector.str();
         let mut input = Parser::new(&selector);
         if let Ok(sel) = KeyframeSelectors::parse(&mut input) {
@@ -119,7 +119,7 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
     }
 
     /// <https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-appendrule>
-    fn AppendRule(&self, no_gc: &NoGC, rule: DOMString) {
+    fn AppendRule(&self, no_gc: &NoGC, rule: RootedDomString) {
         let style_stylesheet = self.css_rule.parent_stylesheet().style_stylesheet();
         let rule = rule.str();
         let rule = {
@@ -153,7 +153,7 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
     }
 
     /// <https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-deleterule>
-    fn DeleteRule(&self, cx: &mut JSContext, selector: DOMString) {
+    fn DeleteRule(&self, cx: &mut JSContext, selector: RootedDomString) {
         if let Some(idx) = self.find_rule(&selector) {
             let _ = self.rulelist(cx).remove_rule(cx, idx as u32);
         }
@@ -163,7 +163,7 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
     fn FindRule(
         &self,
         cx: &mut JSContext,
-        selector: DOMString,
+        selector: RootedDomString,
     ) -> Option<DomRoot<CSSKeyframeRule>> {
         self.find_rule(&selector)
             .and_then(|idx| self.rulelist(cx).item(cx, idx as u32))
@@ -171,9 +171,9 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
     }
 
     /// <https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name>
-    fn Name(&self) -> DOMString {
+    fn Name(&self) -> RootedDomString {
         let guard = self.css_rule.shared_lock().read();
-        DOMString::from(
+        RootedDomString::from(
             &**self
                 .keyframes_rule
                 .borrow()
@@ -184,7 +184,7 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
     }
 
     /// <https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name>
-    fn SetName(&self, no_gc: &NoGC, value: DOMString) -> ErrorResult {
+    fn SetName(&self, no_gc: &NoGC, value: RootedDomString) -> ErrorResult {
         // Spec deviation: https://github.com/w3c/csswg-drafts/issues/801
         // Setting this property to a CSS-wide keyword or `none` does not throw,
         // it stores a value that serializes as a quoted string.
@@ -204,7 +204,7 @@ impl SpecificCSSRule for CSSKeyframesRule {
         CssRuleType::Keyframes
     }
 
-    fn get_css(&self) -> DOMString {
+    fn get_css(&self) -> RootedDomString {
         let guard = self.css_rule.shared_lock().read();
         self.keyframes_rule
             .borrow()

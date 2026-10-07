@@ -18,7 +18,7 @@ use crate::dom::bindings::codegen::Bindings::CacheStorageBinding::CacheStorageMe
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::serviceworker::cache::Cache;
 use crate::dom::{Promise, RootedPromise, TracedPromise};
@@ -158,7 +158,7 @@ impl CacheStorage {
                     return;
                 };
                 // Resolve promise with a new Cache object that represents value.
-                let cache = Cache::new(cx, &self.global(), DOMString::from(cache_name));
+                let cache = Cache::new(cx, &self.global(), RootedDomString::from(cache_name));
                 promise.resolve_native(cx, &cache);
             },
             // <https://w3c.github.io/ServiceWorker/#dom-cachestorage-delete>
@@ -226,7 +226,7 @@ fn relevant_name_to_cache_map(
 
 impl CacheStorageMethods<crate::DomTypeHolder> for CacheStorage {
     /// <https://w3c.github.io/ServiceWorker/#cache-storage-has>
-    fn Has(&self, cx: &mut JSContext, cache_name: DOMString) -> RootedPromise {
+    fn Has(&self, cx: &mut JSContext, cache_name: RootedDomString) -> RootedPromise {
         let global = self.global();
 
         // Step 1: Let promise be a new promise.
@@ -267,7 +267,7 @@ impl CacheStorageMethods<crate::DomTypeHolder> for CacheStorage {
     }
 
     /// <https://w3c.github.io/ServiceWorker/#dom-cachestorage-open>
-    fn Open(&self, cx: &mut JSContext, cache_name: DOMString) -> RootedPromise {
+    fn Open(&self, cx: &mut JSContext, cache_name: RootedDomString) -> RootedPromise {
         // Step 1: Let promise be a new promise.
         let global = self.global();
         let promise = Promise::new(cx, &global);
@@ -308,7 +308,7 @@ impl CacheStorageMethods<crate::DomTypeHolder> for CacheStorage {
     }
 
     /// <https://w3c.github.io/ServiceWorker/#dom-cachestorage-delete>
-    fn Delete(&self, cx: &mut JSContext, cache_name: DOMString) -> RootedPromise {
+    fn Delete(&self, cx: &mut JSContext, cache_name: RootedDomString) -> RootedPromise {
         // Step 1: Let promise be the result of running the algorithm specified in has(cacheName) method with cacheName.
         // Step 2: Return the result of reacting to promise with a fulfillment handler that,
         // when called with argument cacheExists, performs the following substeps:

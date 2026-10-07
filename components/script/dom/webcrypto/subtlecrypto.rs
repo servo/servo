@@ -77,7 +77,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::{DOMString, serialize_jsval_to_json_utf8};
+use crate::dom::bindings::str::{RootedDomString, serialize_jsval_to_json_utf8};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::bindings::utils::set_dictionary_property;
 use crate::dom::cryptokey::{CryptoKey, CryptoKeyOrCryptoKeyPair};
@@ -1298,7 +1298,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // the export key operation.
                 let export_key_algorithm = match normalize_algorithm::<ExportKeyOperation>(
                     cx,
-                    &AlgorithmIdentifier::String(DOMString::from(key.algorithm().name().as_str())),
+                    &AlgorithmIdentifier::String(RootedDomString::from(key.algorithm().name().as_str())),
                 ) {
                     Ok(normalized_algorithm) => normalized_algorithm,
                     Err(error) => {
@@ -1437,7 +1437,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                 // the export key operation.
                 let export_key_algorithm = match normalize_algorithm::<ExportKeyOperation>(
                     cx,
-                    &AlgorithmIdentifier::String(DOMString::from(key.algorithm().name().as_str())),
+                    &AlgorithmIdentifier::String(RootedDomString::from(key.algorithm().name().as_str())),
                 ) {
                     Ok(normalized_algorithm) => normalized_algorithm,
                     Err(error) => {
@@ -2196,7 +2196,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // getPublicKey operation.
         let get_public_key_algorithm = match normalize_algorithm::<GetPublicKeyOperation>(
             cx,
-            &AlgorithmIdentifier::String(DOMString::from_static(algorithm.name().as_str())),
+            &AlgorithmIdentifier::String(RootedDomString::from_static(algorithm.name().as_str())),
         ) {
             Ok(normalized_algorithm) => normalized_algorithm,
             Err(error) => {
@@ -2274,7 +2274,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
     fn Supports(
         cx: &mut JSContext,
         _global: &GlobalScope,
-        operation: DOMString,
+        operation: RootedDomString,
         algorithm: AlgorithmIdentifier,
         length: Option<u32>,
     ) -> bool {
@@ -2315,7 +2315,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
     fn Supports_(
         cx: &mut JSContext,
         _global: &GlobalScope,
-        operation: DOMString,
+        operation: RootedDomString,
         algorithm: AlgorithmIdentifier,
         additional_algorithm: AlgorithmIdentifier,
     ) -> bool {
@@ -2481,7 +2481,7 @@ pub(crate) fn check_support_for_algorithm(
         // getPublicKey operation.
         return normalize_algorithm::<GetPublicKeyOperation>(
             cx,
-            &AlgorithmIdentifier::String(DOMString::from_static(
+            &AlgorithmIdentifier::String(RootedDomString::from_static(
                 normalized_algorithm.name().as_str(),
             )),
         )
@@ -3013,7 +3013,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for EcKeyGenParams {
     ) -> Result<Self, Self::Error> {
         Ok(EcKeyGenParams {
             name: algorithm_name,
-            named_curve: String::from(get_required_parameter::<DOMString>(
+            named_curve: String::from(get_required_parameter::<RootedDomString>(
                 cx,
                 object,
                 c"namedCurve",
@@ -3092,7 +3092,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for EcKeyImportParams {
     ) -> Result<Self, Self::Error> {
         Ok(EcKeyImportParams {
             name: algorithm_name,
-            named_curve: String::from(get_required_parameter::<DOMString>(
+            named_curve: String::from(get_required_parameter::<RootedDomString>(
                 cx,
                 object,
                 c"namedCurve",
@@ -4278,7 +4278,7 @@ impl Display for JwkStringField {
 
 trait JsonWebKeyExt {
     fn parse(cx: &mut JSContext, data: &[u8]) -> Result<JsonWebKey, Error>;
-    fn stringify(&self, cx: &mut JSContext) -> Result<Zeroizing<DOMString>, Error>;
+    fn stringify(&self, cx: &mut JSContext) -> Result<Zeroizing<RootedDomString>, Error>;
     fn get_usages_from_key_ops(&self) -> Result<Vec<KeyUsage>, Error>;
     fn check_key_ops(&self, specified_usages: &[KeyUsage]) -> Result<(), Error>;
     fn set_key_ops(&mut self, usages: &[KeyUsage]);
@@ -4347,7 +4347,7 @@ impl JsonWebKeyExt for JsonWebKey {
     /// <https://infra.spec.whatwg.org/#serialize-a-javascript-value-to-a-json-string>. This acts
     /// like the opposite of JsonWebKey::parse if you further convert the stringified result to
     /// bytes.
-    fn stringify(&self, cx: &mut JSContext) -> Result<Zeroizing<DOMString>, Error> {
+    fn stringify(&self, cx: &mut JSContext) -> Result<Zeroizing<RootedDomString>, Error> {
         rooted!(&in(cx) let mut data = UndefinedValue());
         self.to_jsval(cx, data.handle_mut());
         serialize_jsval_to_json_utf8(cx, data.handle()).map(Zeroizing::new)
@@ -4414,7 +4414,7 @@ impl JsonWebKeyExt for JsonWebKey {
         self.key_ops = Some(
             usages
                 .iter()
-                .map(|usage| DOMString::from(usage.as_str()))
+                .map(|usage| RootedDomString::from(usage.as_str()))
                 .collect(),
         );
     }
@@ -4422,7 +4422,7 @@ impl JsonWebKeyExt for JsonWebKey {
     // Encode a byte sequence to a base64url-encoded string, and set the field to the encoded
     // string.
     fn encode_string_field(&mut self, field: JwkStringField, data: &[u8]) {
-        let encoded_data = DOMString::from(Base64UrlUnpadded::encode_string(data));
+        let encoded_data = RootedDomString::from(Base64UrlUnpadded::encode_string(data));
         match field {
             JwkStringField::X => self.x = Some(encoded_data),
             JwkStringField::Y => self.y = Some(encoded_data),
@@ -4595,7 +4595,7 @@ fn normalize_algorithm<Op: Operation>(
             // by alg to the IDL dictionary type Algorithm, as defined by [WebIDL].
             // Step 3. If an error occurred, return the error and terminate this algorithm.
             // Step 4. Let algName be the value of the name attribute of initialAlg.
-            let algorithm_name = get_required_parameter::<DOMString>(
+            let algorithm_name = get_required_parameter::<RootedDomString>(
                 cx,
                 object.handle(),
                 c"name",

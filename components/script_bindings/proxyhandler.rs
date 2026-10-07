@@ -49,7 +49,7 @@ use crate::error::Error;
 use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
 use crate::principals::ServoJSPrincipalsRef;
 use crate::reflector::DomObject;
-use crate::str::DOMString;
+use crate::str::RootedDomString;
 
 /// In WindowProxy and ProxyObject, the second slot is reserved for the
 /// cross-origin property holder weak map. This is a weak map between the realm
@@ -264,7 +264,7 @@ pub fn set_property_descriptor(
     *is_none = false;
 }
 
-fn id_to_source(cx: &mut JSContext, id: HandleId) -> Option<DOMString> {
+fn id_to_source(cx: &mut JSContext, id: HandleId) -> Option<RootedDomString> {
     unsafe {
         if RUST_JSID_IS_VOID(id) {
             return None;
@@ -966,7 +966,8 @@ pub(crate) struct JSProxyHandlerOwnPropertyKeysConfig<T: DomObject> {
     pub(crate) indexed_getter_and_length: Option<fn(&T, &mut JSContext) -> u32>,
     pub(crate) cross_origin: Option<&'static CrossOriginProperties>,
     pub(crate) unwrapped_proxy: unsafe fn(RawHandleObject) -> *const T,
-    pub(crate) supported_named_properties: Option<fn(*const T, &mut JSContext) -> Vec<DOMString>>,
+    pub(crate) supported_named_properties:
+        Option<fn(*const T, &mut JSContext) -> Vec<RootedDomString>>,
 }
 
 /// Helper type to keep AutoRealm and &mut CurrentRealm alive with Deref to JSContext

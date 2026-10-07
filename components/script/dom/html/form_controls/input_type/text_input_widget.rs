@@ -12,7 +12,7 @@ use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
-use script_bindings::str::DOMString;
+use script_bindings::str::RootedDomString;
 use servo_base::text::{RangeAny, Utf32CodeUnits};
 use style::selector_parser::PseudoElement;
 
@@ -213,7 +213,7 @@ fn create_ua_widget_div_with_text_node(
         .unwrap();
     el.upcast::<Node>()
         .set_implemented_pseudo_element(implemented_pseudo);
-    let text_node = document.CreateTextNode(cx, DOMString::new());
+    let text_node = document.CreateTextNode(cx, RootedDomString::new());
 
     if !as_first_child {
         el.upcast::<Node>()
@@ -255,7 +255,7 @@ impl<Element: TextControlElement> SpecificShadowTree<Element, TextInputWidget>
                 .collect::<String>()
                 .into(),
             (false, _) => value,
-            (true, _) => DOMString::from_static("\u{200B}"),
+            (true, _) => RootedDomString::from_static("\u{200B}"),
         };
 
         if let Some(character_data) = self.value_character_data() &&

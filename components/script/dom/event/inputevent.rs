@@ -16,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::InputEventBinding::{self, InputEven
 use crate::dom::bindings::codegen::Bindings::UIEventBinding::UIEvent_Binding::UIEventMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::datatransfer::DataTransfer;
 use crate::dom::node::Node;
 use crate::dom::staticrange::StaticRange;
@@ -26,9 +26,9 @@ use crate::dom::window::Window;
 #[dom_struct]
 pub(crate) struct InputEvent {
     uievent: UIEvent,
-    data: Option<DOMString>,
+    data: Option<RootedDomString>,
     is_composing: bool,
-    input_type: DOMString,
+    input_type: RootedDomString,
 }
 
 impl InputEvent {
@@ -42,9 +42,9 @@ impl InputEvent {
         cancelable: bool,
         view: Option<&Window>,
         detail: i32,
-        data: Option<DOMString>,
+        data: Option<RootedDomString>,
         is_composing: bool,
-        input_type: DOMString,
+        input_type: RootedDomString,
     ) -> DomRoot<InputEvent> {
         let event = reflect_dom_object_with_proto(
             cx,
@@ -70,7 +70,7 @@ impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        event_type: DOMString,
+        event_type: RootedDomString,
         init: &InputEventBinding::InputEventInit,
     ) -> Fallible<DomRoot<InputEvent>> {
         let event = InputEvent::new(
@@ -90,7 +90,7 @@ impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
     }
 
     /// <https://w3c.github.io/uievents/#dom-inputevent-data>
-    fn GetData(&self) -> Option<DOMString> {
+    fn GetData(&self) -> Option<RootedDomString> {
         self.data.clone()
     }
 
@@ -100,7 +100,7 @@ impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
     }
 
     /// <https://w3c.github.io/uievents/#dom-inputevent-inputtype>
-    fn InputType(&self) -> DOMString {
+    fn InputType(&self) -> RootedDomString {
         self.input_type.clone()
     }
 

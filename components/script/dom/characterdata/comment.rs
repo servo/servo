@@ -9,7 +9,7 @@ use crate::dom::bindings::codegen::Bindings::CommentBinding::CommentMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::characterdata::CharacterData;
 use crate::dom::document::Document;
 use crate::dom::node::Node;
@@ -22,7 +22,7 @@ pub(crate) struct Comment {
 }
 
 impl Comment {
-    fn new_inherited(text: DOMString, document: &Document) -> Comment {
+    fn new_inherited(text: RootedDomString, document: &Document) -> Comment {
         Comment {
             characterdata: CharacterData::new_inherited(text, document),
         }
@@ -30,7 +30,7 @@ impl Comment {
 
     pub(crate) fn new(
         cx: &mut js::context::JSContext,
-        text: DOMString,
+        text: RootedDomString,
         document: &Document,
         proto: Option<HandleObject>,
     ) -> DomRoot<Comment> {
@@ -49,7 +49,7 @@ impl CommentMethods<crate::DomTypeHolder> for Comment {
         cx: &mut js::context::JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        data: DOMString,
+        data: RootedDomString,
     ) -> Fallible<DomRoot<Comment>> {
         let document = window.Document();
         Ok(Comment::new(cx, data, &document, proto))

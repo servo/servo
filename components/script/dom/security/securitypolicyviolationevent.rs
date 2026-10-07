@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::SecurityPolicyViolationEventBinding
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::{RootedDomString, USVString};
 use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
 use crate::dom::globalscope::GlobalScope;
 
@@ -26,11 +26,11 @@ pub(crate) struct SecurityPolicyViolationEvent {
     document_uri: USVString,
     referrer: USVString,
     blocked_uri: USVString,
-    effective_directive: DOMString,
-    violated_directive: DOMString,
-    original_policy: DOMString,
+    effective_directive: RootedDomString,
+    violated_directive: RootedDomString,
+    original_policy: RootedDomString,
     source_file: USVString,
-    sample: DOMString,
+    sample: RootedDomString,
     disposition: SecurityPolicyViolationEventDisposition,
     status_code: u16,
     line_number: u32,
@@ -109,7 +109,7 @@ impl SecurityPolicyViolationEventMethods<crate::DomTypeHolder> for SecurityPolic
         cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        type_: RootedDomString,
         init: &SecurityPolicyViolationEventInit,
     ) -> DomRoot<Self> {
         SecurityPolicyViolationEvent::new_with_proto(
@@ -140,17 +140,17 @@ impl SecurityPolicyViolationEventMethods<crate::DomTypeHolder> for SecurityPolic
     }
 
     /// <https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-effectivedirective>
-    fn EffectiveDirective(&self) -> DOMString {
+    fn EffectiveDirective(&self) -> RootedDomString {
         self.effective_directive.clone()
     }
 
     /// <https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-violateddirective>
-    fn ViolatedDirective(&self) -> DOMString {
+    fn ViolatedDirective(&self) -> RootedDomString {
         self.violated_directive.clone()
     }
 
     /// <https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-originalpolicy>
-    fn OriginalPolicy(&self) -> DOMString {
+    fn OriginalPolicy(&self) -> RootedDomString {
         self.original_policy.clone()
     }
 
@@ -160,7 +160,7 @@ impl SecurityPolicyViolationEventMethods<crate::DomTypeHolder> for SecurityPolic
     }
 
     /// <https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-sample>
-    fn Sample(&self) -> DOMString {
+    fn Sample(&self) -> RootedDomString {
         self.sample.clone()
     }
 

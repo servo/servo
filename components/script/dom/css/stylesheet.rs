@@ -10,23 +10,23 @@ use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::codegen::Bindings::StyleSheetBinding::StyleSheetMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::element::Element;
 use crate::dom::medialist::MediaList;
 
 #[dom_struct]
 pub(crate) struct StyleSheet {
     reflector_: Reflector,
-    type_: DOMString,
-    href: Option<DOMString>,
-    title: Option<DOMString>,
+    type_: RootedDomString,
+    href: Option<RootedDomString>,
+    title: Option<RootedDomString>,
 }
 
 impl StyleSheet {
     pub(crate) fn new_inherited(
-        type_: DOMString,
-        href: Option<DOMString>,
-        title: Option<DOMString>,
+        type_: RootedDomString,
+        href: Option<RootedDomString>,
+        title: Option<RootedDomString>,
     ) -> StyleSheet {
         StyleSheet {
             reflector_: Reflector::new(),
@@ -39,12 +39,12 @@ impl StyleSheet {
 
 impl StyleSheetMethods<crate::DomTypeHolder> for StyleSheet {
     /// <https://drafts.csswg.org/cssom/#dom-stylesheet-type>
-    fn Type(&self) -> DOMString {
+    fn Type(&self) -> RootedDomString {
         self.type_.clone()
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-stylesheet-href>
-    fn GetHref(&self) -> Option<DOMString> {
+    fn GetHref(&self) -> Option<RootedDomString> {
         self.href.clone()
     }
 
@@ -60,7 +60,7 @@ impl StyleSheetMethods<crate::DomTypeHolder> for StyleSheet {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-stylesheet-title>
-    fn GetTitle(&self) -> Option<DOMString> {
+    fn GetTitle(&self) -> Option<RootedDomString> {
         self.title.clone()
     }
 

@@ -18,7 +18,7 @@ use crate::dom::bindings::error::Error::Type;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::trustedtypes::trustedhtml::TrustedHTML;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
@@ -80,7 +80,7 @@ impl TrustedTypePolicy {
     }
 
     /// <https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-policy-value-algorithm>
-    fn check_callback_if_missing(throw_if_missing: bool) -> Fallible<Option<DOMString>> {
+    fn check_callback_if_missing(throw_if_missing: bool) -> Fallible<Option<RootedDomString>> {
         // Step 3.1: If throwIfMissing throw a TypeError.
         if throw_if_missing {
             Err(Type(c"Cannot find type".to_owned()))
@@ -95,10 +95,10 @@ impl TrustedTypePolicy {
         &self,
         cx: &mut js::context::JSContext,
         expected_type: TrustedType,
-        input: DOMString,
+        input: RootedDomString,
         arguments: Vec<HandleValue>,
         throw_if_missing: bool,
-    ) -> Fallible<Option<DOMString>> {
+    ) -> Fallible<Option<RootedDomString>> {
         // Step 1: Let functionName be a function name for the given trustedTypeName, based on the following table:
         match expected_type {
             TrustedType::TrustedHTML => match &self.create_html {
@@ -133,7 +133,7 @@ impl TrustedTypePolicy {
                     // rethrowing any exceptions.
                     callback
                         .Call__(cx, input, arguments, ExceptionHandling::Rethrow)
-                        .map(|result| result.map(DOMString::from))
+                        .map(|result| result.map(RootedDomString::from))
                 },
             },
         }
@@ -154,13 +154,13 @@ impl TrustedTypePolicy {
         &self,
         cx: &mut js::context::JSContext,
         expected_type: TrustedType,
-        input: DOMString,
+        input: RootedDomString,
         arguments: Vec<HandleValue>,
         trusted_type_creation_callback: TrustedTypeCallback,
     ) -> Fallible<DomRoot<R>>
     where
         R: DomObject,
-        TrustedTypeCallback: FnOnce(&mut js::context::JSContext, DOMString) -> DomRoot<R>,
+        TrustedTypeCallback: FnOnce(&mut js::context::JSContext, RootedDomString) -> DomRoot<R>,
     {
         // Step 1: Let policyValue be the result of executing Get Trusted Type policy value
         // with the same arguments as this algorithm and additionally true as throwIfMissing.
@@ -174,7 +174,7 @@ impl TrustedTypePolicy {
                 let data_string = match policy_value {
                     Some(value) => value,
                     // Step 4: If policyValue is null or undefined, set dataString to the empty string.
-                    None => DOMString::new(),
+                    None => RootedDomString::new(),
                 };
                 // Step 5: Return a new instance of an interface with a type name trustedTypeName,
                 // with its associated data value set to dataString.
@@ -186,14 +186,14 @@ impl TrustedTypePolicy {
 
 impl TrustedTypePolicyMethods<crate::DomTypeHolder> for TrustedTypePolicy {
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicy-name>
-    fn Name(&self) -> DOMString {
-        DOMString::from(&*self.name)
+    fn Name(&self) -> RootedDomString {
+        RootedDomString::from(&*self.name)
     }
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedtypepolicy-createhtml>
     fn CreateHTML(
         &self,
         cx: &mut js::context::JSContext,
-        input: DOMString,
+        input: RootedDomString,
         arguments: Vec<HandleValue>,
     ) -> Fallible<DomRoot<TrustedHTML>> {
         self.create_trusted_type(
@@ -208,7 +208,7 @@ impl TrustedTypePolicyMethods<crate::DomTypeHolder> for TrustedTypePolicy {
     fn CreateScript(
         &self,
         cx: &mut js::context::JSContext,
-        input: DOMString,
+        input: RootedDomString,
         arguments: Vec<HandleValue>,
     ) -> Fallible<DomRoot<TrustedScript>> {
         self.create_trusted_type(
@@ -223,7 +223,7 @@ impl TrustedTypePolicyMethods<crate::DomTypeHolder> for TrustedTypePolicy {
     fn CreateScriptURL(
         &self,
         cx: &mut js::context::JSContext,
-        input: DOMString,
+        input: RootedDomString,
         arguments: Vec<HandleValue>,
     ) -> Fallible<DomRoot<TrustedScriptURL>> {
         self.create_trusted_type(

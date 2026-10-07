@@ -37,7 +37,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::{RootedDomString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::blob::{Blob, normalize_type_string};
 use crate::dom::encoding::textdecoderstream::TextDecoderStream;
@@ -392,7 +392,7 @@ pub(crate) struct ExtractedBody {
     /// <https://fetch.spec.whatwg.org/#concept-body-total-bytes>
     pub(crate) total_bytes: Option<usize>,
     /// <https://fetch.spec.whatwg.org/#body-with-type-type>
-    pub(crate) content_type: Option<DOMString>,
+    pub(crate) content_type: Option<RootedDomString>,
 }
 
 impl ExtractedBody {
@@ -619,7 +619,7 @@ impl Extractable for Blob {
     }
 }
 
-impl Extractable for DOMString {
+impl Extractable for RootedDomString {
     fn extract(
         &self,
         cx: &mut js::context::JSContext,
@@ -628,7 +628,7 @@ impl Extractable for DOMString {
     ) -> Fallible<ExtractedBody> {
         let bytes = self.as_bytes(cx.no_gc()).to_owned();
         let total_bytes = bytes.len();
-        let content_type = Some(DOMString::from_static("text/plain;charset=UTF-8"));
+        let content_type = Some(RootedDomString::from_static("text/plain;charset=UTF-8"));
         let stream = stream_from_body_init_bytes(cx, global, bytes)?;
         Ok(ExtractedBody {
             stream,
@@ -649,7 +649,7 @@ impl Extractable for FormData {
         let boundary = generate_boundary();
         let bytes = encode_multipart_form_data(&mut self.datums(), boundary.clone(), UTF_8);
         let total_bytes = bytes.len();
-        let content_type = Some(DOMString::from(format!(
+        let content_type = Some(RootedDomString::from(format!(
             "multipart/form-data; boundary={}",
             boundary
         )));
@@ -672,7 +672,7 @@ impl Extractable for URLSearchParams {
     ) -> Fallible<ExtractedBody> {
         let bytes = self.serialize_utf8().into_bytes();
         let total_bytes = bytes.len();
-        let content_type = Some(DOMString::from_static(
+        let content_type = Some(RootedDomString::from_static(
             "application/x-www-form-urlencoded;charset=UTF-8",
         ));
         let stream = stream_from_body_init_bytes(cx, global, bytes)?;
@@ -991,7 +991,7 @@ fn append_form_data_entry_from_part(
             cx,
             root,
             BlobImpl::new_from_bytes(body, normalize_type_string(&content_type)),
-            DOMString::from(filename),
+            RootedDomString::from(filename),
             None,
         );
         let blob = file.upcast::<Blob>();

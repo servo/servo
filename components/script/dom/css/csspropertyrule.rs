@@ -16,7 +16,7 @@ use super::cssrule::{CSSRule, SpecificCSSRule};
 use super::cssstylesheet::CSSStyleSheet;
 use crate::dom::bindings::codegen::Bindings::CSSPropertyRuleBinding::CSSPropertyRuleMethods;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::css::cssgroupingrule::CSSGroupingRule;
 use crate::dom::window::Window;
 
@@ -68,7 +68,7 @@ impl SpecificCSSRule for CSSPropertyRule {
         CssRuleType::Property
     }
 
-    fn get_css(&self) -> DOMString {
+    fn get_css(&self) -> RootedDomString {
         let guard = self.css_rule.shared_lock().read();
         self.property_rule.borrow().to_css_string(&guard).into()
     }
@@ -76,12 +76,12 @@ impl SpecificCSSRule for CSSPropertyRule {
 
 impl CSSPropertyRuleMethods<crate::DomTypeHolder> for CSSPropertyRule {
     /// <https://drafts.css-houdini.org/css-properties-values-api/#dom-csspropertyrule-name>
-    fn Name(&self) -> DOMString {
+    fn Name(&self) -> RootedDomString {
         format!("--{}", self.property_rule.borrow().name.0).into()
     }
 
     /// <https://drafts.css-houdini.org/css-properties-values-api/#dom-csspropertyrule-syntax>
-    fn Syntax(&self) -> DOMString {
+    fn Syntax(&self) -> RootedDomString {
         self.property_rule
             .borrow()
             .descriptors
@@ -96,7 +96,7 @@ impl CSSPropertyRuleMethods<crate::DomTypeHolder> for CSSPropertyRule {
     }
 
     /// <https://drafts.css-houdini.org/css-properties-values-api/#dom-csspropertyrule-initialvalue>
-    fn GetInitialValue(&self) -> Option<DOMString> {
+    fn GetInitialValue(&self) -> Option<RootedDomString> {
         self.property_rule
             .borrow()
             .descriptors

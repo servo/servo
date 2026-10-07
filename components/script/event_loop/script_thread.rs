@@ -123,7 +123,7 @@ use crate::dom::bindings::conversions::{
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::csp::{CspReporting, GlobalCspReporting, Violation};
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
@@ -3699,7 +3699,7 @@ impl ScriptThread {
             incomplete.opener,
         );
         if let Some(name) = incomplete.frame_name {
-            window_proxy.set_name(DOMString::from(name));
+            window_proxy.set_name(RootedDomString::from(name));
         }
         if window_proxy.parent().is_some() {
             // https://html.spec.whatwg.org/multipage/#navigating-across-documents:delaying-load-events-mode-2
@@ -3821,7 +3821,7 @@ impl ScriptThread {
 
     fn notify_devtools(
         &self,
-        title: DOMString,
+        title: RootedDomString,
         url: ServoUrl,
         is_top_level_global: bool,
         (browsing_context_id, pipeline_id, worker_id, webview_id): (
@@ -3996,7 +3996,7 @@ impl ScriptThread {
             return false;
         }
         let Ok(ConversionResult::Success(body)) =
-            DOMString::from_jsval(cx, return_value.handle(), StringificationBehavior::Empty)
+            RootedDomString::from_jsval(cx, return_value.handle(), StringificationBehavior::Empty)
         else {
             return false;
         };

@@ -4,7 +4,7 @@
 
 use js::context::{JSContext, NoGC};
 use script_bindings::inheritance::Castable;
-use script_bindings::str::DOMString;
+use script_bindings::str::RootedDomString;
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
@@ -305,7 +305,7 @@ impl Range {
                             cx,
                             context_object,
                             selection,
-                            DOMString::new(),
+                            RootedDomString::new(),
                         );
                     },
                     BoolOrOptionalString::OptionalString(optional_string) => {
@@ -348,7 +348,7 @@ impl Range {
                                         .map(|value| {
                                             legacy_font_size_for(value as f32, context_object)
                                         })
-                                        .unwrap_or(DOMString::from_static("7"));
+                                        .unwrap_or(RootedDomString::from_static("7"));
                                     // Step 2.6. Take the action for "fontSize", with value equal to override.
                                     CommandName::FontSize.execute(
                                         cx,

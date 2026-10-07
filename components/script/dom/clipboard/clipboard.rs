@@ -21,7 +21,7 @@ use crate::dom::bindings::error::Error;
 use crate::dom::bindings::refcounted::TrustedPromise;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::blob::Blob;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -125,7 +125,7 @@ impl ClipboardMethods<crate::DomTypeHolder> for Clipboard {
     }
 
     /// <https://w3c.github.io/clipboard-apis/#dom-clipboard-writetext>
-    fn WriteText(&self, realm: &mut CurrentRealm, data: DOMString) -> RootedPromise {
+    fn WriteText(&self, realm: &mut CurrentRealm, data: RootedDomString) -> RootedPromise {
         // Step 1 Let realm be this's relevant realm.
         let global = self.global();
         // Step 2 Let p be a new promise in realm.
@@ -206,7 +206,7 @@ impl RoutedPromiseListener<crate::DomTypeHolder, Result<String, String>> for Cli
         rooted!(&in(cx) let representation = Representation {
             mime_type,
             is_custom: false,
-            data: Promise::new_resolved(cx, &global, DOMString::from(text)).to_traced(),
+            data: Promise::new_resolved(cx, &global, RootedDomString::from(text)).to_traced(),
         });
 
         // Step 3.4.1.1.4 If representation’s MIME type essence is "text/plain", then:

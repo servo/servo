@@ -33,7 +33,7 @@ use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::document::{Document, RenderingUpdateReason};
 use crate::dom::domrectreadonly::DOMRectReadOnly;
@@ -756,7 +756,7 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     /// > they are ignored.
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-rootmargin>
-    fn RootMargin(&self) -> DOMString {
+    fn RootMargin(&self) -> RootedDomString {
         self.root_margin.borrow().to_css_string().into()
     }
 
@@ -764,7 +764,7 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     /// > effectively growing or shrinking the clip rects used to calculate intersections.
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-scrollmargin>
-    fn ScrollMargin(&self) -> DOMString {
+    fn ScrollMargin(&self) -> RootedDomString {
         self.scroll_margin.borrow().to_css_string().into()
     }
 
@@ -881,7 +881,7 @@ impl IntersectionObserverRegistration {
 }
 
 /// <https://w3c.github.io/IntersectionObserver/#parse-a-margin>
-fn parse_a_margin(value: Option<&DOMString>) -> Result<IntersectionObserverMargin, ()> {
+fn parse_a_margin(value: Option<&RootedDomString>) -> Result<IntersectionObserverMargin, ()> {
     // <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserverinit-rootmargin> &&
     // <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserverinit-scrollmargin>
     // > ... defaulting to "0px".

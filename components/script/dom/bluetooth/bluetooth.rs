@@ -13,7 +13,7 @@ use servo_bluetooth_traits::scanfilter::{BluetoothScanfilter, BluetoothScanfilte
 use servo_bluetooth_traits::scanfilter::{RequestDeviceoptions, ServiceUUIDSequence};
 use js::realm::CurrentRealm;
 use script_bindings::cformat;
-use script_bindings::domstring::{DOMString, TracedDOMString};
+use script_bindings::domstring::{RootedDomString, TracedDomString};
 use js::context::JSContext;
 use crate::conversions::Convert;
 use script_bindings::cell::{Ref, DomRefCell};
@@ -70,14 +70,14 @@ const BT_DESC_CONVERSION_ERROR: &CStr =
 #[expect(non_snake_case)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct AllowedBluetoothDevice {
-    pub(crate) deviceId: TracedDOMString,
+    pub(crate) deviceId: TracedDomString,
     pub(crate) mayUseGATT: bool,
 }
 
 impl AllowedBluetoothDevice {
     pub(crate) fn new(device_id: String) -> Self {
         Self {
-            deviceId: TracedDOMString::from(device_id),
+            deviceId: TracedDomString::from(device_id),
             mayUseGATT: true,
         }
     }
@@ -106,7 +106,7 @@ impl BluetoothExtraPermissionData {
         self.allowed_devices.borrow()
     }
 
-    pub(crate) fn allowed_devices_contains_id(&self, id: &TracedDOMString) -> bool {
+    pub(crate) fn allowed_devices_contains_id(&self, id: &TracedDomString) -> bool {
         self.allowed_devices
             .borrow()
             .iter()
@@ -609,8 +609,8 @@ impl AsyncBluetoothListener for Bluetooth {
                 let bt_device = BluetoothDevice::new(
                     cx,
                     &self.global(),
-                    DOMString::from(device.id.clone()),
-                    device.name.map(DOMString::from),
+                    RootedDomString::from(device.id.clone()),
+                    device.name.map(RootedDomString::from),
                     self,
                 );
                 self.device_instance_map

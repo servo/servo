@@ -20,7 +20,7 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{AsHandleValue, Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
@@ -58,9 +58,9 @@ pub(crate) struct MessageEvent {
     event: Event,
     #[ignore_malloc_size_of = "mozjs"]
     data: Heap<JSVal>,
-    origin: DomRefCell<DOMString>,
+    origin: DomRefCell<RootedDomString>,
     source: DomRefCell<Option<SrcObject>>,
-    lastEventId: DomRefCell<DOMString>,
+    lastEventId: DomRefCell<RootedDomString>,
     ports: DomRefCell<Vec<Dom<MessagePort>>>,
     #[ignore_malloc_size_of = "mozjs"]
     frozen_ports: CachedFrozenArray,
@@ -69,9 +69,9 @@ pub(crate) struct MessageEvent {
 #[expect(non_snake_case)]
 impl MessageEvent {
     pub(crate) fn new_inherited(
-        origin: DOMString,
+        origin: RootedDomString,
         source: Option<&WindowProxyOrMessagePortOrServiceWorker>,
-        lastEventId: DOMString,
+        lastEventId: RootedDomString,
         ports: Vec<DomRoot<MessagePort>>,
     ) -> MessageEvent {
         MessageEvent {
@@ -107,9 +107,9 @@ impl MessageEvent {
             global,
             proto,
             HandleValue::undefined(),
-            DOMString::new(),
+            RootedDomString::new(),
             None,
-            DOMString::new(),
+            RootedDomString::new(),
             vec![],
         )
     }
@@ -120,9 +120,9 @@ impl MessageEvent {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         data: HandleValue,
-        origin: DOMString,
+        origin: RootedDomString,
         source: Option<&WindowProxyOrMessagePortOrServiceWorker>,
-        lastEventId: DOMString,
+        lastEventId: RootedDomString,
         ports: Vec<DomRoot<MessagePort>>,
     ) -> DomRoot<MessageEvent> {
         let ev = Box::new(MessageEvent::new_inherited(
@@ -145,9 +145,9 @@ impl MessageEvent {
         bubbles: bool,
         cancelable: bool,
         data: HandleValue,
-        origin: DOMString,
+        origin: RootedDomString,
         source: Option<&WindowProxyOrMessagePortOrServiceWorker>,
-        lastEventId: DOMString,
+        lastEventId: RootedDomString,
         ports: Vec<DomRoot<MessagePort>>,
     ) -> DomRoot<MessageEvent> {
         Self::new_with_proto(
@@ -174,9 +174,9 @@ impl MessageEvent {
         bubbles: bool,
         cancelable: bool,
         data: HandleValue,
-        origin: DOMString,
+        origin: RootedDomString,
         source: Option<&WindowProxyOrMessagePortOrServiceWorker>,
-        lastEventId: DOMString,
+        lastEventId: RootedDomString,
         ports: Vec<DomRoot<MessagePort>>,
     ) -> DomRoot<MessageEvent> {
         let ev = MessageEvent::new_initialized(
@@ -212,13 +212,13 @@ impl MessageEvent {
             false,
             false,
             message,
-            DOMString::from(origin.unwrap_or("")),
+            RootedDomString::from(origin.unwrap_or("")),
             source
                 .map(|source| {
                     WindowProxyOrMessagePortOrServiceWorker::WindowProxy(DomRoot::from_ref(source))
                 })
                 .as_ref(),
-            DOMString::new(),
+            RootedDomString::new(),
             ports,
         );
         messageevent.upcast::<Event>().fire(cx, target);
@@ -248,7 +248,7 @@ impl MessageEventMethods<crate::DomTypeHolder> for MessageEvent {
         cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        type_: RootedDomString,
         init: &MessageEventInit,
     ) -> Fallible<DomRoot<MessageEvent>> {
         let ev = MessageEvent::new_with_proto(
@@ -273,7 +273,7 @@ impl MessageEventMethods<crate::DomTypeHolder> for MessageEvent {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-origin>
-    fn Origin(&self) -> DOMString {
+    fn Origin(&self) -> RootedDomString {
         self.origin.borrow().clone()
     }
 
@@ -294,7 +294,7 @@ impl MessageEventMethods<crate::DomTypeHolder> for MessageEvent {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageevent-lasteventid>
-    fn LastEventId(&self) -> DOMString {
+    fn LastEventId(&self) -> RootedDomString {
         self.lastEventId.borrow().clone()
     }
 
@@ -323,12 +323,12 @@ impl MessageEventMethods<crate::DomTypeHolder> for MessageEvent {
     fn InitMessageEvent(
         &self,
         cx: &mut JSContext,
-        type_: DOMString,
+        type_: RootedDomString,
         bubbles: bool,
         cancelable: bool,
         data: HandleValue,
-        origin: DOMString,
-        lastEventId: DOMString,
+        origin: RootedDomString,
+        lastEventId: RootedDomString,
         source: Option<WindowProxyOrMessagePortOrServiceWorker>,
         ports: Vec<DomRoot<MessagePort>>,
     ) {

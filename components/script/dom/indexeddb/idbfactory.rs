@@ -28,7 +28,7 @@ use crate::dom::bindings::error::{Error, ErrorToJsval, Fallible};
 use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
@@ -452,7 +452,7 @@ impl IDBFactory {
     fn open_database(
         &self,
         storage_key: ImmutableOrigin,
-        name: DOMString,
+        name: RootedDomString,
         version: Option<u64>,
         request: &IDBOpenDBRequest,
         proxy_map: StorageProxyMap,
@@ -560,7 +560,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
     fn Open(
         &self,
         cx: &mut JSContext,
-        name: DOMString,
+        name: RootedDomString,
         version: Option<u64>,
     ) -> Fallible<DomRoot<IDBOpenDBRequest>> {
         // Step 1: If version is 0 (zero), throw a TypeError.
@@ -603,7 +603,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
     fn DeleteDatabase(
         &self,
         cx: &mut JSContext,
-        name: DOMString,
+        name: RootedDomString,
     ) -> Fallible<DomRoot<IDBOpenDBRequest>> {
         // Step 1: Let environment be this’s relevant settings object.
         let global = self.global();
@@ -684,7 +684,7 @@ impl IDBFactoryMethods<crate::DomTypeHolder> for IDBFactory {
                         let info_list: Vec<IDBDatabaseInfo> = info_list
                             .into_iter()
                             .map(|info| IDBDatabaseInfo {
-                                name: Some(DOMString::from(info.name)),
+                                name: Some(RootedDomString::from(info.name)),
                                 version: Some(info.version),
                         })
                         .collect();

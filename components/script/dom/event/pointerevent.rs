@@ -22,7 +22,7 @@ use crate::dom::bindings::codegen::Bindings::PointerEventBinding::{
 };
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::mouseevent::MouseEvent;
@@ -48,7 +48,7 @@ pub(crate) struct PointerEvent {
     twist: Cell<i32>,
     altitude_angle: Cell<f64>,
     azimuth_angle: Cell<f64>,
-    pointer_type: DomRefCell<DOMString>,
+    pointer_type: DomRefCell<RootedDomString>,
     is_primary: Cell<bool>,
     coalesced_events: DomRefCell<Vec<Dom<PointerEvent>>>,
     predicted_events: DomRefCell<Vec<Dom<PointerEvent>>>,
@@ -68,7 +68,7 @@ impl PointerEvent {
             twist: Cell::new(0),
             altitude_angle: Cell::new(0.),
             azimuth_angle: Cell::new(0.),
-            pointer_type: DomRefCell::new(DOMString::new()),
+            pointer_type: DomRefCell::new(RootedDomString::new()),
             is_primary: Cell::new(false),
             coalesced_events: DomRefCell::new(Vec::new()),
             predicted_events: DomRefCell::new(Vec::new()),
@@ -110,7 +110,7 @@ impl PointerEvent {
         twist: i32,
         altitude_angle: f64,
         azimuth_angle: f64,
-        pointer_type: DOMString,
+        pointer_type: RootedDomString,
         is_primary: bool,
         coalesced_events: Vec<DomRoot<PointerEvent>>,
         predicted_events: Vec<DomRoot<PointerEvent>>,
@@ -177,7 +177,7 @@ impl PointerEvent {
         twist: i32,
         altitude_angle: f64,
         azimuth_angle: f64,
-        pointer_type: DOMString,
+        pointer_type: RootedDomString,
         is_primary: bool,
         coalesced_events: Vec<DomRoot<PointerEvent>>,
         predicted_events: Vec<DomRoot<PointerEvent>>,
@@ -228,7 +228,7 @@ impl PointerEventMethods<crate::DomTypeHolder> for PointerEvent {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        event_type: DOMString,
+        event_type: RootedDomString,
         init: &PointerEventInit,
     ) -> DomRoot<PointerEvent> {
         let bubbles = EventBubbles::from(init.parent.parent.parent.parent.bubbles);
@@ -323,7 +323,7 @@ impl PointerEventMethods<crate::DomTypeHolder> for PointerEvent {
     }
 
     /// <https://w3c.github.io/pointerevents/#dom-pointerevent-pointertype>
-    fn PointerType(&self) -> DOMString {
+    fn PointerType(&self) -> RootedDomString {
         self.pointer_type.borrow().clone()
     }
 

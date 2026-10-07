@@ -14,7 +14,7 @@ use crate::dom::bindings::codegen::Bindings::RTCDataChannelEventBinding::{
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::event::Event;
 use crate::dom::rtcdatachannel::RTCDataChannel;
 use crate::dom::window::Window;
@@ -73,7 +73,7 @@ impl RTCDataChannelEventMethods<crate::DomTypeHolder> for RTCDataChannelEvent {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        type_: RootedDomString,
         init: &RTCDataChannelEventInit,
     ) -> DomRoot<RTCDataChannelEvent> {
         RTCDataChannelEvent::new_with_proto(

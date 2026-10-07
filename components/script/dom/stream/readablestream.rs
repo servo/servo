@@ -30,7 +30,7 @@ use crate::dom::bindings::codegen::Bindings::ReadableStreamBinding::{
     ReadableStreamGetReaderOptions, ReadableStreamMethods, ReadableStreamReaderMode,
     ReadableWritablePair, StreamPipeOptions,
 };
-use script_bindings::str::DOMString;
+use script_bindings::str::RootedDomString;
 use crate::dom::domexception::{DOMErrorName, DOMException};
 use crate::dom::encoding::textdecoderstream::TextDecoderStream;
 use script_bindings::codegen::GenericBindings::TextDecoderStreamBinding::TextDecoderStreamMethods;
@@ -2329,7 +2329,7 @@ pub(crate) fn get_type_and_value_from_message(
     cx: &mut JSContext,
     data: SafeHandleValue,
     value: SafeMutableHandleValue,
-) -> DOMString {
+) -> RootedDomString {
     // Let data be the data of the message.
     // Note: we are passed the data as argument,
     // which originates in the return value of `structuredclone::read`.
@@ -2339,7 +2339,7 @@ pub(crate) fn get_type_and_value_from_message(
     rooted!(&in(cx) let data_object = data.to_object());
 
     // Let type be ! Get(data, "type").
-    let type_ = get_property::<DOMString>(
+    let type_ = get_property::<RootedDomString>(
         cx,
         data_object.handle(),
         c"type",

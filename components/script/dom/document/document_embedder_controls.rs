@@ -23,7 +23,7 @@ use script_bindings::codegen::GenericBindings::HistoryBinding::HistoryMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
-use script_bindings::str::DOMString;
+use script_bindings::str::RootedDomString;
 use servo_base::Epoch;
 use servo_base::generic_channel::GenericSend;
 use servo_constellation_traits::{LoadData, NavigationHistoryBehavior};
@@ -435,7 +435,7 @@ impl ContextMenuNodes {
             };
             let (browsing_context, new) = browsing_context.choose_a_navigable(
                 cx,
-                DOMString::from_static("_blank"),
+                RootedDomString::from_static("_blank"),
                 true, /* noopener */
             );
             let Some(browsing_context) = browsing_context else {

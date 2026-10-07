@@ -10,7 +10,7 @@ use servo_url::ServoUrl;
 
 use crate::dom::bindings::codegen::Bindings::CSSStyleValueBinding::CSSStyleValueMethods;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::globalscope::GlobalScope;
 
 #[dom_struct]
@@ -38,8 +38,8 @@ impl CSSStyleValue {
 
 impl CSSStyleValueMethods<crate::DomTypeHolder> for CSSStyleValue {
     /// <https://drafts.css-houdini.org/css-typed-om-1/#CSSStyleValue-stringification-behavior>
-    fn Stringifier(&self) -> DOMString {
-        DOMString::from(&*self.value)
+    fn Stringifier(&self) -> RootedDomString {
+        RootedDomString::from(&*self.value)
     }
 }
 

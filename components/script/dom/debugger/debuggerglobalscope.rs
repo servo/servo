@@ -37,7 +37,7 @@ use crate::dom::bindings::codegen::GenericBindings::DebuggerGlobalScopeBinding::
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::debugger::debuggerblackboxevent::DebuggerBlackboxEvent;
 use crate::dom::debugger::debuggerclearbreakpointevent::DebuggerClearBreakpointEvent;
@@ -190,7 +190,7 @@ impl DebuggerGlobalScope {
     pub(crate) fn fire_eval(
         &self,
         cx: &mut JSContext,
-        code: DOMString,
+        code: RootedDomString,
         debuggee_pipeline_id: PipelineId,
         debuggee_worker_id: Option<WorkerId>,
         frame_actor_id: Option<String>,
@@ -332,8 +332,8 @@ impl DebuggerGlobalScope {
         let event = DomRoot::upcast::<Event>(DebuggerResumeEvent::new(
             cx,
             self.upcast(),
-            resume_limit_type.map(DOMString::from),
-            frame_actor_id.map(DOMString::from),
+            resume_limit_type.map(RootedDomString::from),
+            frame_actor_id.map(RootedDomString::from),
         ));
         assert!(
             event.fire(cx, self.upcast()),
@@ -559,7 +559,7 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
         let _ = sender.send(reply);
     }
 
-    fn RegisterObjectActor(&self, serialized_value: DOMString) -> Option<DOMString> {
+    fn RegisterObjectActor(&self, serialized_value: RootedDomString) -> Option<RootedDomString> {
         let chan = self.upcast::<GlobalScope>().devtools_chan()?;
         let (tx, rx) = channel::<String>().unwrap();
 
@@ -575,7 +575,7 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
         let msg = ScriptToDevtoolsControlMsg::CreateObjectActor(tx, value);
         let _ = chan.send(msg);
 
-        rx.recv().ok().map(DOMString::from)
+        rx.recv().ok().map(RootedDomString::from)
     }
 
     fn PauseAndRespond(
@@ -615,7 +615,7 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
         &self,
         pipeline_id: &PipelineIdInit,
         result: &FrameInfo,
-    ) -> Option<DOMString> {
+    ) -> Option<RootedDomString> {
         let pipeline_id = PipelineId {
             namespace_id: PipelineNamespaceId(pipeline_id.namespaceId),
             index: Index::new(pipeline_id.index).expect("`pipelineId.index` must not be zero"),
@@ -646,10 +646,10 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
         let msg = ScriptToDevtoolsControlMsg::CreateFrameActor(tx, pipeline_id, frame);
         let _ = chan.send(msg);
 
-        rx.recv().ok().map(DOMString::from)
+        rx.recv().ok().map(RootedDomString::from)
     }
 
-    fn ListFramesResult(&self, frame_actor_ids: Vec<DOMString>) {
+    fn ListFramesResult(&self, frame_actor_ids: Vec<RootedDomString>) {
         info!("ListFramesResult: {frame_actor_ids:?}");
         let sender = self
             .get_list_frame_result_sender
@@ -662,9 +662,9 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
     fn RegisterEnvironmentActor(
         &self,
         environment: &EnvironmentInfo,
-        parent: Option<DOMString>,
-        actor: Option<DOMString>,
-    ) -> Option<DOMString> {
+        parent: Option<RootedDomString>,
+        actor: Option<RootedDomString>,
+    ) -> Option<RootedDomString> {
         let chan = self.upcast::<GlobalScope>().devtools_chan()?;
         let (tx, rx) = channel::<String>().unwrap();
 
@@ -705,10 +705,10 @@ impl DebuggerGlobalScopeMethods<crate::DomTypeHolder> for DebuggerGlobalScope {
         );
         let _ = chan.send(msg);
 
-        rx.recv().ok().map(DOMString::from)
+        rx.recv().ok().map(RootedDomString::from)
     }
 
-    fn GetEnvironmentResult(&self, environment_actor_id: DOMString) {
+    fn GetEnvironmentResult(&self, environment_actor_id: RootedDomString) {
         let sender = self
             .get_environment_result_sender
             .take()

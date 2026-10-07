@@ -44,7 +44,7 @@ use crate::dom::bindings::codegen::UnionTypes::WindowProxyOrMessagePortOrService
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::dedicatedworkerglobalscope::fetch_a_classic_worker_script;
 use crate::dom::event::Event;
@@ -238,7 +238,7 @@ impl SharedWorkerGlobalScope {
     fn new_inherited(
         init: WorkerGlobalScopeInit,
         webview_id: WebViewId,
-        worker_name: DOMString,
+        worker_name: RootedDomString,
         worker_type: WorkerType,
         worker_url: ServoUrl,
         worker: TrustedSharedWorkerAddress,
@@ -300,7 +300,7 @@ impl SharedWorkerGlobalScope {
     pub(crate) fn new(
         init: WorkerGlobalScopeInit,
         webview_id: WebViewId,
-        worker_name: DOMString,
+        worker_name: RootedDomString,
         worker_type: WorkerType,
         worker_url: ServoUrl,
         worker: TrustedSharedWorkerAddress,
@@ -363,7 +363,7 @@ impl SharedWorkerGlobalScope {
         mut init: WorkerGlobalScopeInit,
         webview_id: WebViewId,
         browsing_context: Option<BrowsingContextId>,
-        worker_name: DOMString,
+        worker_name: RootedDomString,
         worker_type: WorkerType,
         worker_url: UrlWithBlobClaim,
         worker: TrustedSharedWorkerAddress,
@@ -691,7 +691,7 @@ impl SharedWorkerGlobalScope {
                 let inside_port = inside_port.root();
 
                 rooted!(&in(cx) let mut data = UndefinedValue());
-                DOMString::new().to_jsval(cx, data.handle_mut());
+                RootedDomString::new().to_jsval(cx, data.handle_mut());
 
                 let source = WindowProxyOrMessagePortOrServiceWorker::MessagePort(
                     inside_port.clone(),
@@ -703,9 +703,9 @@ impl SharedWorkerGlobalScope {
                     false,
                     false,
                     data.handle(),
-                    DOMString::new(),
+                    RootedDomString::new(),
                     Some(&source),
-                    DOMString::new(),
+                    RootedDomString::new(),
                     vec![inside_port],
                 );
 
@@ -798,7 +798,7 @@ impl SharedWorkerGlobalScope {
 
 impl SharedWorkerGlobalScopeMethods<crate::DomTypeHolder> for SharedWorkerGlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#dom-sharedworkerglobalscope-name>
-    fn Name(&self) -> DOMString {
+    fn Name(&self) -> RootedDomString {
         // The name getter steps are to return this's name.
         // Its value represents the name that can be used to obtain a reference to the worker using the SharedWorker constructor.
         self.workerglobalscope.worker_name()

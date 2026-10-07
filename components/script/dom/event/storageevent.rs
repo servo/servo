@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::StorageEventBinding::StorageEventMe
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::{RootedDomString, USVString};
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::storage::Storage;
 use crate::dom::window::Window;
@@ -23,20 +23,20 @@ use crate::dom::window::Window;
 #[dom_struct]
 pub(crate) struct StorageEvent {
     event: Event,
-    key: DomRefCell<Option<DOMString>>,
-    old_value: DomRefCell<Option<DOMString>>,
-    new_value: DomRefCell<Option<DOMString>>,
-    url: DomRefCell<DOMString>,
+    key: DomRefCell<Option<RootedDomString>>,
+    old_value: DomRefCell<Option<RootedDomString>>,
+    new_value: DomRefCell<Option<RootedDomString>>,
+    url: DomRefCell<RootedDomString>,
     storage_area: MutNullableDom<Storage>,
 }
 
 #[expect(non_snake_case)]
 impl StorageEvent {
     pub(crate) fn new_inherited(
-        key: Option<DOMString>,
-        old_value: Option<DOMString>,
-        new_value: Option<DOMString>,
-        url: DOMString,
+        key: Option<RootedDomString>,
+        old_value: Option<RootedDomString>,
+        new_value: Option<RootedDomString>,
+        url: RootedDomString,
         storage_area: Option<&Storage>,
     ) -> StorageEvent {
         StorageEvent {
@@ -52,7 +52,7 @@ impl StorageEvent {
     pub(crate) fn new_uninitialized(
         cx: &mut JSContext,
         window: &Window,
-        url: DOMString,
+        url: RootedDomString,
     ) -> DomRoot<StorageEvent> {
         Self::new_uninitialized_with_proto(cx, window, None, url)
     }
@@ -61,7 +61,7 @@ impl StorageEvent {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        url: DOMString,
+        url: RootedDomString,
     ) -> DomRoot<StorageEvent> {
         reflect_dom_object_with_proto(
             cx,
@@ -78,10 +78,10 @@ impl StorageEvent {
         type_: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
-        key: Option<DOMString>,
-        oldValue: Option<DOMString>,
-        newValue: Option<DOMString>,
-        url: DOMString,
+        key: Option<RootedDomString>,
+        oldValue: Option<RootedDomString>,
+        newValue: Option<RootedDomString>,
+        url: RootedDomString,
         storageArea: Option<&Storage>,
     ) -> DomRoot<StorageEvent> {
         Self::new_with_proto(
@@ -107,10 +107,10 @@ impl StorageEvent {
         type_: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
-        key: Option<DOMString>,
-        oldValue: Option<DOMString>,
-        newValue: Option<DOMString>,
-        url: DOMString,
+        key: Option<RootedDomString>,
+        oldValue: Option<RootedDomString>,
+        newValue: Option<RootedDomString>,
+        url: RootedDomString,
         storageArea: Option<&Storage>,
     ) -> DomRoot<StorageEvent> {
         let ev = reflect_dom_object_with_proto(
@@ -140,7 +140,7 @@ impl StorageEventMethods<crate::DomTypeHolder> for StorageEvent {
         cx: &mut JSContext,
         global: &Window,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        type_: RootedDomString,
         init: &StorageEventBinding::StorageEventInit,
     ) -> Fallible<DomRoot<StorageEvent>> {
         let key = init.key.clone();
@@ -167,22 +167,22 @@ impl StorageEventMethods<crate::DomTypeHolder> for StorageEvent {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-storageevent-key>
-    fn GetKey(&self) -> Option<DOMString> {
+    fn GetKey(&self) -> Option<RootedDomString> {
         self.key.borrow().clone()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-storageevent-oldvalue>
-    fn GetOldValue(&self) -> Option<DOMString> {
+    fn GetOldValue(&self) -> Option<RootedDomString> {
         self.old_value.borrow().clone()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-storageevent-newvalue>
-    fn GetNewValue(&self) -> Option<DOMString> {
+    fn GetNewValue(&self) -> Option<RootedDomString> {
         self.new_value.borrow().clone()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-storageevent-url>
-    fn Url(&self) -> DOMString {
+    fn Url(&self) -> RootedDomString {
         self.url.borrow().clone()
     }
 
@@ -199,12 +199,12 @@ impl StorageEventMethods<crate::DomTypeHolder> for StorageEvent {
     /// <https://html.spec.whatwg.org/multipage/#dom-storageevent-initstorageevent>
     fn InitStorageEvent(
         &self,
-        type_: DOMString,
+        type_: RootedDomString,
         bubbles: bool,
         cancelable: bool,
-        key: Option<DOMString>,
-        oldValue: Option<DOMString>,
-        newValue: Option<DOMString>,
+        key: Option<RootedDomString>,
+        oldValue: Option<RootedDomString>,
+        newValue: Option<RootedDomString>,
         url: USVString,
         storageArea: Option<&Storage>,
     ) {

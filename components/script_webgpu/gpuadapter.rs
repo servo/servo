@@ -25,7 +25,7 @@ use webgpu_traits::{
 
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::gpuadapterinfo::GPUAdapterInfo;
 use crate::gpudevice::GPUDevice;
 use crate::gpusupportedfeatures::{GPUSupportedFeatures, gpu_to_wgt_feature};
@@ -58,7 +58,7 @@ impl Drop for DroppableGPUAdapter {
 #[dom_struct]
 pub struct GPUAdapter<D: DomTypes> {
     reflector_: Reflector,
-    name: DOMString,
+    name: RootedDomString,
     #[ignore_malloc_size_of = "mozjs"]
     extensions: Heap<*mut JSObject>,
     features: Dom<GPUSupportedFeatures<D>>,
@@ -73,7 +73,7 @@ where
 {
     fn new_inherited(
         channel: WebGPU,
-        name: DOMString,
+        name: RootedDomString,
         features: &GPUSupportedFeatures<D>,
         limits: &GPUSupportedLimits<D>,
         info: &GPUAdapterInfo<D>,
@@ -95,7 +95,7 @@ where
         cx: &mut js::context::JSContext,
         global: &D::GlobalScope,
         channel: WebGPU,
-        name: DOMString,
+        name: RootedDomString,
         extensions: HandleObject,
         features: Features,
         limits: Limits,
@@ -131,7 +131,7 @@ where
         let vendor = if info.vendor != 0 {
             info.vendor.to_string().into()
         } else {
-            DOMString::new()
+            RootedDomString::new()
         };
 
         // Step 3. If the architecture is known, set adapterInfo.architecture to a normalized
@@ -141,7 +141,7 @@ where
         // string.
         // TODO: AdapterInfo::architecture missing
         // https://github.com/gfx-rs/wgpu/issues/2170
-        let architecture = DOMString::new();
+        let architecture = RootedDomString::new();
 
         // Step 4. If the device is known, set adapterInfo.device to a normalized identifier string
         // representing a vendor-specific identifier for adapter. To preserve privacy, the user
@@ -150,7 +150,7 @@ where
         let device = if info.device != 0 {
             info.device.to_string().into()
         } else {
-            DOMString::new()
+            RootedDomString::new()
         };
 
         // Step 5. If a description is known, set adapterInfo.description to a description of the
@@ -164,7 +164,7 @@ where
         // Step 7. If "subgroups" is supported, set subgroupMaxSize to the largest supported
         // subgroup size. Otherwise, set this value to 128.
         let (subgroup_min_size, subgroup_max_size) =
-            if features.has(cx, DOMString::from_static("subgroups")) {
+            if features.has(cx, RootedDomString::from_static("subgroups")) {
                 (info.subgroup_min_size, info.subgroup_max_size)
             } else {
                 (4, 128)

@@ -33,7 +33,7 @@ use script_bindings::conversions::get_dom_class;
 use crate::dom::bindings::codegen::Bindings::ConsoleBinding::consoleMethods;
 use crate::dom::bindings::error::report_pending_exception;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 
@@ -166,10 +166,10 @@ impl Console {
 }
 
 #[expect(unsafe_code)]
-fn handle_value_to_string(cx: &mut JSContext, value: HandleValue) -> DOMString {
+fn handle_value_to_string(cx: &mut JSContext, value: HandleValue) -> RootedDomString {
     match std::ptr::NonNull::new(unsafe { JS_ValueToSource(cx, value) }) {
         Some(js_str) => unsafe { jsstr_to_string(cx, js_str) }.into(),
-        None => DOMString::from_static("<error converting value to string>"),
+        None => RootedDomString::from_static("<error converting value to string>"),
     }
 }
 
@@ -506,7 +506,7 @@ fn console_object_from_handle_value(
 }
 
 #[expect(unsafe_code)]
-pub(crate) fn stringify_handle_value(cx: &mut JSContext, message: HandleValue) -> DOMString {
+pub(crate) fn stringify_handle_value(cx: &mut JSContext, message: HandleValue) -> RootedDomString {
     if message.is_string() {
         let jsstr = std::ptr::NonNull::new(message.to_string()).unwrap();
         return unsafe { jsstr_to_string(cx, jsstr) }.into();
@@ -515,11 +515,11 @@ pub(crate) fn stringify_handle_value(cx: &mut JSContext, message: HandleValue) -
         cx: &mut JSContext,
         value: HandleValue,
         parents: Vec<u64>,
-    ) -> DOMString {
+    ) -> RootedDomString {
         rooted!(&in(cx) let mut obj = value.to_object());
         let mut object_class = ESClass::Other;
         if !unsafe { GetBuiltinClass(cx, obj.handle(), &mut object_class as *mut _) } {
-            return DOMString::from_static("/* invalid */");
+            return RootedDomString::from_static("/* invalid */");
         }
         let mut ids = IdVector::new(cx);
         if !unsafe {
@@ -530,12 +530,12 @@ pub(crate) fn stringify_handle_value(cx: &mut JSContext, message: HandleValue) -
                 ids.handle_mut(),
             )
         } {
-            return DOMString::from_static("/* invalid */");
+            return RootedDomString::from_static("/* invalid */");
         }
         let truncate = ids.len() > MAX_LOG_CHILDREN;
         if object_class != ESClass::Array && object_class != ESClass::Object {
             if truncate {
-                return DOMString::from_static("…");
+                return RootedDomString::from_static("…");
             } else {
                 return handle_value_to_string(cx, value);
             }
@@ -557,13 +557,13 @@ pub(crate) fn stringify_handle_value(cx: &mut JSContext, message: HandleValue) -
                     &mut is_none,
                 )
             } {
-                return DOMString::from_static("/* invalid */");
+                return RootedDomString::from_static("/* invalid */");
             }
 
             rooted!(&in(cx) let mut property = UndefinedValue());
             if !unsafe { JS_GetPropertyById(cx, obj.handle(), id.handle(), property.handle_mut()) }
             {
-                return DOMString::from_static("/* invalid */");
+                return RootedDomString::from_static("/* invalid */");
             }
 
             if !explicit_keys {
@@ -582,11 +582,11 @@ pub(crate) fn stringify_handle_value(cx: &mut JSContext, message: HandleValue) -
                 let key = if id.is_string() || id.is_symbol() || id.is_int() {
                     rooted!(&in(cx) let mut key_value = UndefinedValue());
                     if !unsafe { JS_IdToValue(cx, id.handle().get(), key_value.handle_mut()) } {
-                        return DOMString::from_static("/* invalid */");
+                        return RootedDomString::from_static("/* invalid */");
                     }
                     handle_value_to_string(cx, key_value.handle())
                 } else {
-                    return DOMString::from_static("/* invalid */");
+                    return RootedDomString::from_static("/* invalid */");
                 };
                 props.push(format!("{}: {}", key, value_string,));
             } else {
@@ -597,22 +597,26 @@ pub(crate) fn stringify_handle_value(cx: &mut JSContext, message: HandleValue) -
             props.push("…".to_string());
         }
         if object_class == ESClass::Array {
-            DOMString::from(format!("[{}]", itertools::join(props, ", ")))
+            RootedDomString::from(format!("[{}]", itertools::join(props, ", ")))
         } else {
-            DOMString::from(format!("{{{}}}", itertools::join(props, ", ")))
+            RootedDomString::from(format!("{{{}}}", itertools::join(props, ", ")))
         }
     }
-    fn stringify_inner(cx: &mut JSContext, value: HandleValue, mut parents: Vec<u64>) -> DOMString {
+    fn stringify_inner(
+        cx: &mut JSContext,
+        value: HandleValue,
+        mut parents: Vec<u64>,
+    ) -> RootedDomString {
         if parents.len() >= MAX_LOG_DEPTH {
-            return DOMString::from_static("...");
+            return RootedDomString::from_static("...");
         }
         let value_bits = value.asBits_;
         if parents.contains(&value_bits) {
-            return DOMString::from_static("[circular]");
+            return RootedDomString::from_static("[circular]");
         }
         if value.is_undefined() {
             // This produces a better value than "(void 0)" from JS_ValueToSource.
-            return DOMString::from_static("undefined");
+            return RootedDomString::from_static("undefined");
         } else if !value.is_object() {
             return handle_value_to_string(cx, value);
         }
@@ -629,7 +633,7 @@ pub(crate) fn stringify_handle_value(cx: &mut JSContext, message: HandleValue) -
 }
 
 #[expect(unsafe_code)]
-fn maybe_stringify_dom_object(cx: &mut JSContext, value: HandleValue) -> Option<DOMString> {
+fn maybe_stringify_dom_object(cx: &mut JSContext, value: HandleValue) -> Option<RootedDomString> {
     // The standard object serialization is not effective for DOM objects,
     // since their properties generally live on the prototype object.
     // Instead, fall back to the output of JSON.stringify combined
@@ -641,7 +645,7 @@ fn maybe_stringify_dom_object(cx: &mut JSContext, value: HandleValue) -> Option<
     }
     rooted!(&in(cx) let class_name = unsafe { ToString(cx, value) });
     let Some(class_name) = NonNull::new(class_name.get()) else {
-        return Some(DOMString::from_static(
+        return Some(RootedDomString::from_static(
             "<error converting DOM object to string>",
         ));
     };
@@ -675,7 +679,7 @@ fn maybe_stringify_dom_object(cx: &mut JSContext, value: HandleValue) -> Option<
         )
     };
     if !stringify_result {
-        return Some(DOMString::from_static(
+        return Some(RootedDomString::from_static(
             "<error converting DOM object to string>",
         ));
     }
@@ -792,8 +796,8 @@ fn format_float_substitution(result: &mut String, num: Result<f64, ()>) {
     }
 }
 
-fn stringify_handle_values(cx: &mut JSContext, messages: &[HandleValue]) -> DOMString {
-    DOMString::from(itertools::join(
+fn stringify_handle_values(cx: &mut JSContext, messages: &[HandleValue]) -> RootedDomString {
+    RootedDomString::from(itertools::join(
         messages
             .iter()
             .copied()
@@ -992,7 +996,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
     }
 
     /// <https://console.spec.whatwg.org/#time>
-    fn Time(cx: &mut JSContext, global: &GlobalScope, label: DOMString) {
+    fn Time(cx: &mut JSContext, global: &GlobalScope, label: RootedDomString) {
         if let Ok(()) = global.time(label.clone()) {
             let message = format!("{label}: timer started");
             Console::send_string_message(cx, global, ConsoleLogLevel::Log, message);
@@ -1000,7 +1004,12 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
     }
 
     /// <https://console.spec.whatwg.org/#timelog>
-    fn TimeLog(cx: &mut JSContext, global: &GlobalScope, label: DOMString, data: Vec<HandleValue>) {
+    fn TimeLog(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        label: RootedDomString,
+        data: Vec<HandleValue>,
+    ) {
         if let Ok(delta) = global.time_log(&label) {
             let message = format!("{label}: {delta}ms {}", stringify_handle_values(cx, &data));
 
@@ -1009,7 +1018,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
     }
 
     /// <https://console.spec.whatwg.org/#timeend>
-    fn TimeEnd(cx: &mut JSContext, global: &GlobalScope, label: DOMString) {
+    fn TimeEnd(cx: &mut JSContext, global: &GlobalScope, label: RootedDomString) {
         if let Ok(delta) = global.time_end(&label) {
             let message = format!("{label}: {delta}ms");
 
@@ -1033,7 +1042,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
     }
 
     /// <https://console.spec.whatwg.org/#count>
-    fn Count(cx: &mut JSContext, global: &GlobalScope, label: DOMString) {
+    fn Count(cx: &mut JSContext, global: &GlobalScope, label: RootedDomString) {
         let count = global.increment_console_count(&label);
         let message = format!("{label}: {count}");
 
@@ -1041,7 +1050,7 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
     }
 
     /// <https://console.spec.whatwg.org/#countreset>
-    fn CountReset(cx: &mut JSContext, global: &GlobalScope, label: DOMString) {
+    fn CountReset(cx: &mut JSContext, global: &GlobalScope, label: RootedDomString) {
         if global.reset_console_count(&label).is_err() {
             Self::internal_warn(cx, global, format!("Counter “{label}” doesn’t exist."))
         }

@@ -22,7 +22,7 @@ use crate::dom::bindings::codegen::Bindings::DocumentBinding::{
 use crate::dom::bindings::codegen::Bindings::XMLDocumentBinding::XMLDocumentMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::customelementregistry::CustomElementReactionStack;
 use crate::dom::document::{Document, HasBrowsingContext, IsHTMLDocument};
 use crate::dom::location::Location;
@@ -135,7 +135,7 @@ impl XMLDocumentMethods<crate::DomTypeHolder> for XMLDocument {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tree-accessors:supported-property-names>
-    fn SupportedPropertyNames(&self, no_gc: &NoGC) -> Vec<DOMString> {
+    fn SupportedPropertyNames(&self, no_gc: &NoGC) -> Vec<RootedDomString> {
         self.upcast::<Document>().SupportedPropertyNames(no_gc)
     }
 
@@ -143,7 +143,7 @@ impl XMLDocumentMethods<crate::DomTypeHolder> for XMLDocument {
     fn NamedGetter(
         &self,
         cx: &mut js::context::JSContext,
-        name: DOMString,
+        name: RootedDomString,
     ) -> Option<NamedPropertyValue> {
         self.upcast::<Document>().NamedGetter(cx, name)
     }

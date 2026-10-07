@@ -16,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMeth
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::document::Document;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
@@ -131,7 +131,7 @@ impl HTMLProgressElementMethods<crate::DomTypeHolder> for HTMLProgressElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-progress-value>
     fn SetValue(&self, cx: &mut JSContext, new_val: Finite<f64>) {
         if *new_val >= 0.0 {
-            let mut string_value = DOMString::from((*new_val).to_string());
+            let mut string_value = RootedDomString::from((*new_val).to_string());
             string_value.set_best_representation_of_the_floating_point_number();
             self.upcast::<Element>()
                 .set_string_attribute(cx, &local_name!("value"), string_value);
@@ -158,7 +158,7 @@ impl HTMLProgressElementMethods<crate::DomTypeHolder> for HTMLProgressElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-progress-max>
     fn SetMax(&self, cx: &mut JSContext, new_val: Finite<f64>) {
         if *new_val > 0.0 {
-            let mut string_value = DOMString::from((*new_val).to_string());
+            let mut string_value = RootedDomString::from((*new_val).to_string());
             string_value.set_best_representation_of_the_floating_point_number();
             self.upcast::<Element>()
                 .set_string_attribute(cx, &local_name!("max"), string_value);

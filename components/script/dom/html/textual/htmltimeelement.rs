@@ -8,7 +8,7 @@ use js::rust::HandleObject;
 
 use crate::dom::bindings::codegen::Bindings::HTMLTimeElementBinding::HTMLTimeElementMethods;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::document::Document;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::Node;

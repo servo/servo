@@ -7,7 +7,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMeth
 use crate::dom::bindings::codegen::Bindings::HTMLOrSVGElementBinding::FocusOptions;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::element::Element;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmldatalistelement::HTMLDataListElement;
@@ -88,12 +88,12 @@ pub(crate) trait Validatable {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-cva-validationmessage>
-    fn validation_message(&self, cx: &mut JSContext) -> DOMString {
+    fn validation_message(&self, cx: &mut JSContext) -> RootedDomString {
         if self.is_instance_validatable(cx.no_gc()) {
             let flags = self.validity_state(cx).invalid_flags();
             validation_message_for_flags(&self.validity_state(cx), flags)
         } else {
-            DOMString::new()
+            RootedDomString::new()
         }
     }
 }
@@ -106,10 +106,13 @@ pub(crate) fn is_barred_by_datalist_ancestor(no_gc: &NoGC, elem: &Node) -> bool 
 }
 
 // Get message for given validation flags or custom error message
-fn validation_message_for_flags(state: &ValidityState, failed_flags: ValidationFlags) -> DOMString {
+fn validation_message_for_flags(
+    state: &ValidityState,
+    failed_flags: ValidationFlags,
+) -> RootedDomString {
     if failed_flags.contains(ValidationFlags::CUSTOM_ERROR) {
         state.custom_error_message().clone()
     } else {
-        DOMString::from(failed_flags.to_string())
+        RootedDomString::from(failed_flags.to_string())
     }
 }

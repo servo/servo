@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::domstring::DOMString;
+use script_bindings::domstring::RootedDomString;
 
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -30,7 +30,7 @@ impl SpecificInputType for ResetInputType {
         None
     }
 
-    fn value_for_shadow_dom(&self, _input: &HTMLInputElement) -> DOMString {
+    fn value_for_shadow_dom(&self, _input: &HTMLInputElement) -> RootedDomString {
         DEFAULT_RESET_VALUE.into()
     }
 

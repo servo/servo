@@ -36,7 +36,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::eventtarget::{EventListeners, EventTarget, ListenerPhase};
@@ -901,7 +901,7 @@ impl EventMethods<crate::DomTypeHolder> for Event {
         cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        type_: DOMString,
+        type_: RootedDomString,
         init: &EventBinding::EventInit,
     ) -> Fallible<DomRoot<Event>> {
         // Step 1. Let event be the result of running the inner event creation steps with
@@ -921,8 +921,8 @@ impl EventMethods<crate::DomTypeHolder> for Event {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-type>
-    fn Type(&self) -> DOMString {
-        DOMString::from(&*self.type_()) // FIXME(ajeffrey): Directly convert from Atom to DOMString
+    fn Type(&self) -> RootedDomString {
+        RootedDomString::from(&*self.type_()) // FIXME(ajeffrey): Directly convert from Atom to DOMString
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-target>
@@ -1137,7 +1137,7 @@ impl EventMethods<crate::DomTypeHolder> for Event {
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-initevent>
-    fn InitEvent(&self, type_: DOMString, bubbles: bool, cancelable: bool) {
+    fn InitEvent(&self, type_: RootedDomString, bubbles: bool, cancelable: bool) {
         self.init_event(Atom::from(type_), bubbles, cancelable)
     }
 

@@ -13,7 +13,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmlmediaelement::HTMLMediaElement;
 use crate::dom::window::Window;
@@ -125,7 +125,7 @@ impl AudioTrackListMethods<crate::DomTypeHolder> for AudioTrackList {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-audiotracklist-gettrackbyid>
-    fn GetTrackById(&self, id: DOMString) -> Option<DomRoot<AudioTrack>> {
+    fn GetTrackById(&self, id: RootedDomString) -> Option<DomRoot<AudioTrack>> {
         self.tracks
             .borrow()
             .iter()

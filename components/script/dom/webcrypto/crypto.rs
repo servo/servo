@@ -16,7 +16,7 @@ use crate::dom::bindings::codegen::Bindings::CryptoBinding::CryptoMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::SubtleCrypto;
 
@@ -96,7 +96,7 @@ impl CryptoMethods<crate::DomTypeHolder> for Crypto {
     }
 
     /// <https://w3c.github.io/webcrypto/#Crypto-method-randomUUID>
-    fn RandomUUID(&self) -> DOMString {
+    fn RandomUUID(&self) -> RootedDomString {
         // Step 1. Let bytes be a byte sequence of length 16.
         // Step 2. Fill bytes with cryptographically secure random bytes.
         // Step 3. Set the 4 most significant bits of bytes[6], which represent the UUID version, to 0100.

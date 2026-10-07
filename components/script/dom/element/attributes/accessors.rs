@@ -11,7 +11,7 @@ use style::attr::AttrValue;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::UnionTypes::{TrustedHTMLOrString, TrustedScriptURLOrUSVString};
-use crate::dom::bindings::str::{DOMString, USVString};
+use crate::dom::bindings::str::{RootedDomString, USVString};
 use crate::dom::element::Element;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::storage::{AttrName, AttributesBorrow, ContentAttributeData};
@@ -117,7 +117,7 @@ impl Element {
         &self,
         cx: &mut JSContext,
         local_name: &LocalName,
-        value: DOMString,
+        value: RootedDomString,
     ) {
         self.set_attribute(cx, local_name, AttrValue::from_atomic(value.into()));
     }
@@ -132,7 +132,7 @@ impl Element {
             return;
         }
         if value {
-            self.set_string_attribute(cx, local_name, DOMString::new());
+            self.set_string_attribute(cx, local_name, RootedDomString::new());
         } else {
             self.remove_attribute(cx, &ns!(), local_name);
         }
@@ -177,7 +177,7 @@ impl Element {
         TrustedHTMLOrString::String(self.get_string_attribute(local_name))
     }
 
-    pub(crate) fn get_string_attribute(&self, local_name: &LocalName) -> DOMString {
+    pub(crate) fn get_string_attribute(&self, local_name: &LocalName) -> RootedDomString {
         self.get_attribute_string_value(local_name)
             .map(|value| value.into())
             .unwrap_or_default()
@@ -187,7 +187,7 @@ impl Element {
         &self,
         cx: &mut JSContext,
         local_name: &LocalName,
-        value: DOMString,
+        value: RootedDomString,
     ) {
         self.set_attribute(cx, local_name, value.str().to_string().into());
     }
@@ -197,7 +197,7 @@ impl Element {
     pub(crate) fn get_nullable_string_attribute(
         &self,
         local_name: &LocalName,
-    ) -> Option<DOMString> {
+    ) -> Option<RootedDomString> {
         if self.has_attribute(local_name) {
             Some(self.get_string_attribute(local_name))
         } else {
@@ -211,7 +211,7 @@ impl Element {
         &self,
         cx: &mut JSContext,
         local_name: &LocalName,
-        value: Option<DOMString>,
+        value: Option<RootedDomString>,
     ) {
         match value {
             Some(val) => {
@@ -227,7 +227,7 @@ impl Element {
         &self,
         cx: &mut JSContext,
         local_name: &LocalName,
-        value: Option<DOMString>,
+        value: Option<RootedDomString>,
     ) {
         match value {
             Some(string_value) => {
@@ -263,7 +263,7 @@ impl Element {
         &self,
         cx: &mut JSContext,
         local_name: &LocalName,
-        value: DOMString,
+        value: RootedDomString,
     ) {
         self.set_attribute(
             cx,

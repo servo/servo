@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLDialogElementBinding::HTMLDialo
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
@@ -31,7 +31,7 @@ use crate::dom::toggleevent::ToggleEvent;
 #[dom_struct]
 pub(crate) struct HTMLDialogElement {
     htmlelement: HTMLElement,
-    return_value: DomRefCell<DOMString>,
+    return_value: DomRefCell<RootedDomString>,
 }
 
 impl HTMLDialogElement {
@@ -42,7 +42,7 @@ impl HTMLDialogElement {
     ) -> HTMLDialogElement {
         HTMLDialogElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
-            return_value: DomRefCell::new(DOMString::new()),
+            return_value: DomRefCell::new(RootedDomString::new()),
         }
     }
 
@@ -107,8 +107,8 @@ impl HTMLDialogElement {
             atom!("beforetoggle"),
             EventBubbles::DoesNotBubble,
             EventCancelable::Cancelable,
-            DOMString::from_static("closed"),
-            DOMString::from_static("open"),
+            RootedDomString::from_static("closed"),
+            RootedDomString::from_static("open"),
             source.as_deref(),
         );
         let event = event.upcast::<Event>();
@@ -172,7 +172,7 @@ impl HTMLDialogElement {
     pub fn close_the_dialog(
         &self,
         cx: &mut js::context::JSContext,
-        result: Option<DOMString>,
+        result: Option<RootedDomString>,
         source: Option<DomRoot<Element>>,
     ) {
         let subject = self.upcast::<Element>();
@@ -188,8 +188,8 @@ impl HTMLDialogElement {
             atom!("beforetoggle"),
             EventBubbles::DoesNotBubble,
             EventCancelable::NotCancelable,
-            DOMString::from_static("open"),
-            DOMString::from_static("closed"),
+            RootedDomString::from_static("open"),
+            RootedDomString::from_static("closed"),
             source.as_deref(),
         );
         let event = event.upcast::<Event>();
@@ -294,8 +294,8 @@ impl HTMLDialogElement {
                     atom!("toggle"),
                     EventBubbles::DoesNotBubble,
                     EventCancelable::NotCancelable,
-                    DOMString::from(old_state),
-                    DOMString::from(new_state),
+                    RootedDomString::from(old_state),
+                    RootedDomString::from(new_state),
                     source.as_deref(),
                 );
                 let event = event.upcast::<Event>();
@@ -356,13 +356,13 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
     make_bool_setter!(SetOpen, "open");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-dialog-returnvalue>
-    fn ReturnValue(&self) -> DOMString {
+    fn ReturnValue(&self) -> RootedDomString {
         let return_value = self.return_value.borrow();
         return_value.clone()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-dialog-returnvalue>
-    fn SetReturnValue(&self, _cx: &mut JSContext, return_value: DOMString) {
+    fn SetReturnValue(&self, _cx: &mut JSContext, return_value: RootedDomString) {
         *self.return_value.borrow_mut() = return_value;
     }
 
@@ -390,8 +390,8 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
             atom!("beforetoggle"),
             EventBubbles::DoesNotBubble,
             EventCancelable::Cancelable,
-            DOMString::from_static("closed"),
-            DOMString::from_static("open"),
+            RootedDomString::from_static("closed"),
+            RootedDomString::from_static("open"),
             None,
         );
         let event = event.upcast::<Event>();
@@ -442,7 +442,7 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-dialog-close>
-    fn Close(&self, cx: &mut js::context::JSContext, return_value: Option<DOMString>) {
+    fn Close(&self, cx: &mut js::context::JSContext, return_value: Option<RootedDomString>) {
         // Step 1. If returnValue is not given, then set it to null.
         // Step 2. Close the dialog this with returnValue and null.
         self.close_the_dialog(cx, return_value, None);

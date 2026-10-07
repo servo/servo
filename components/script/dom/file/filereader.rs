@@ -30,7 +30,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::blob::Blob;
 use crate::dom::domexception::{DOMErrorName, DOMException};
@@ -115,14 +115,14 @@ pub(crate) enum FileReaderReadyState {
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) enum FileReaderResult {
     ArrayBuffer(#[ignore_malloc_size_of = "mozjs"] RootedTraceableBox<Heap<JSVal>>),
-    String(DOMString),
+    String(RootedDomString),
 }
 
 pub(crate) struct FileReaderSharedFunctionality;
 
 impl FileReaderSharedFunctionality {
     /// <https://w3c.github.io/FileAPI/#blob-package-data>
-    pub(crate) fn dataurl_for_bytes(bytes: &[u8], blob_type: &str) -> DOMString {
+    pub(crate) fn dataurl_for_bytes(bytes: &[u8], blob_type: &str) -> RootedDomString {
         // If mimeType (blobType) is not available return a Data URL without a media-type. [RFC2397].
         // Spec says a Data URL without a media-type when blob_type is unavailable.
         // However, all other browsers use "application/octet-stream" in this case.
@@ -137,16 +137,16 @@ impl FileReaderSharedFunctionality {
 
     /// [RFC2397]
     /// <https://www.rfc-editor.org/rfc/rfc2397.html>
-    fn dataurl_format(bytes: &[u8], mime_type: &str) -> DOMString {
+    fn dataurl_format(bytes: &[u8], mime_type: &str) -> RootedDomString {
         let base64 = base64::engine::general_purpose::STANDARD.encode(bytes);
         let dataurl = format!("data:{};base64,{}", mime_type, base64);
 
-        DOMString::from(dataurl)
+        RootedDomString::from(dataurl)
     }
 
     /// <https://w3c.github.io/FileAPI/#blob-package-data>
-    pub(crate) fn binary_string_for_bytes(bytes: &[u8]) -> DOMString {
-        DOMString::from(bytes.iter().map(|&byte| byte as char).collect::<String>())
+    pub(crate) fn binary_string_for_bytes(bytes: &[u8]) -> RootedDomString {
+        RootedDomString::from(bytes.iter().map(|&byte| byte as char).collect::<String>())
     }
 
     /// <https://w3c.github.io/FileAPI/#blob-package-data>
@@ -154,7 +154,7 @@ impl FileReaderSharedFunctionality {
         bytes: &[u8],
         blob_type: &str,
         encoding: &Option<String>,
-    ) -> DOMString {
+    ) -> RootedDomString {
         // https://w3c.github.io/FileAPI/#encoding-determination
         // FIXME: This url is non-existent. Fixing later...
         // Steps 1 & 2 & 3
@@ -180,7 +180,7 @@ impl FileReaderSharedFunctionality {
         // Step 7
         // https://encoding.spec.whatwg.org/#decode
         let (output, _, _) = enc.decode(convert);
-        DOMString::from(output)
+        RootedDomString::from(output)
     }
 }
 
@@ -448,7 +448,7 @@ impl FileReaderMethods<crate::DomTypeHolder> for FileReader {
         &self,
         cx: &mut js::context::JSContext,
         blob: &Blob,
-        encoding: Option<DOMString>,
+        encoding: Option<RootedDomString>,
     ) -> ErrorResult {
         // > The readAsText(blob, encoding) method, when invoked,
         // must initiate a read operation for blob with Text and encoding.
@@ -528,7 +528,7 @@ impl FileReader {
         cx: &mut js::context::JSContext,
         function: FileReaderFunction,
         blob: &Blob,
-        encoding: Option<DOMString>,
+        encoding: Option<RootedDomString>,
     ) -> ErrorResult {
         // If fr’s state is "loading", throw an InvalidStateError DOMException.
         if self.ready_state.get() == FileReaderReadyState::Loading {

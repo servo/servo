@@ -27,7 +27,7 @@ use super::csssupportsrule::CSSSupportsRule;
 use crate::dom::bindings::codegen::Bindings::CSSRuleBinding::CSSRuleMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::cssgroupingrule::CSSGroupingRule;
 use crate::dom::window::Window;
 
@@ -325,19 +325,19 @@ impl CSSRuleMethods<crate::DomTypeHolder> for CSSRule {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssrule-csstext>
-    fn CssText(&self) -> DOMString {
+    fn CssText(&self) -> RootedDomString {
         self.as_specific().get_css()
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssrule-csstext>
-    fn SetCssText(&self, _: DOMString) {
+    fn SetCssText(&self, _: RootedDomString) {
         // do nothing
     }
 }
 
 pub(crate) trait SpecificCSSRule {
     fn ty(&self) -> CssRuleType;
-    fn get_css(&self) -> DOMString;
+    fn get_css(&self) -> RootedDomString;
     /// Remove parentStylesheet from all transitive children
     fn deparent_children(&self) {
         // most CSSRules do nothing here

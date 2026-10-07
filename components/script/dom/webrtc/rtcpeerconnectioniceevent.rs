@@ -15,7 +15,7 @@ use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionIceEventBinding::{
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::event::Event;
 use crate::dom::rtcicecandidate::RTCIceCandidate;
 use crate::dom::window::Window;
@@ -24,13 +24,13 @@ use crate::dom::window::Window;
 pub(crate) struct RTCPeerConnectionIceEvent {
     event: Event,
     candidate: Option<Dom<RTCIceCandidate>>,
-    url: Option<DOMString>,
+    url: Option<RootedDomString>,
 }
 
 impl RTCPeerConnectionIceEvent {
     pub(crate) fn new_inherited(
         candidate: Option<&RTCIceCandidate>,
-        url: Option<DOMString>,
+        url: Option<RootedDomString>,
     ) -> RTCPeerConnectionIceEvent {
         RTCPeerConnectionIceEvent {
             event: Event::new_inherited(),
@@ -44,7 +44,7 @@ impl RTCPeerConnectionIceEvent {
         window: &Window,
         ty: Atom,
         candidate: Option<&RTCIceCandidate>,
-        url: Option<DOMString>,
+        url: Option<RootedDomString>,
         trusted: bool,
     ) -> DomRoot<RTCPeerConnectionIceEvent> {
         Self::new_with_proto(cx, window, None, ty, candidate, url, trusted)
@@ -56,7 +56,7 @@ impl RTCPeerConnectionIceEvent {
         proto: Option<HandleObject>,
         ty: Atom,
         candidate: Option<&RTCIceCandidate>,
-        url: Option<DOMString>,
+        url: Option<RootedDomString>,
         trusted: bool,
     ) -> DomRoot<RTCPeerConnectionIceEvent> {
         let e = reflect_dom_object_with_proto(
@@ -78,7 +78,7 @@ impl RTCPeerConnectionIceEventMethods<crate::DomTypeHolder> for RTCPeerConnectio
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        ty: DOMString,
+        ty: RootedDomString,
         init: &RTCPeerConnectionIceEventInit,
     ) -> Fallible<DomRoot<RTCPeerConnectionIceEvent>> {
         Ok(RTCPeerConnectionIceEvent::new_with_proto(
@@ -101,7 +101,7 @@ impl RTCPeerConnectionIceEventMethods<crate::DomTypeHolder> for RTCPeerConnectio
     }
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnectioniceevent-url>
-    fn GetUrl(&self) -> Option<DOMString> {
+    fn GetUrl(&self) -> Option<RootedDomString> {
         self.url.clone()
     }
 

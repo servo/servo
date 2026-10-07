@@ -78,7 +78,7 @@ use crate::dom::bindings::refcounted::{
 };
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::trace_roots;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::bindings::utils::DOM_CALLBACKS;
 use crate::dom::bindings::{principals, settings_stack};
 use crate::dom::console::{Console, stringify_handle_value};
@@ -328,8 +328,8 @@ unsafe extern "C" fn promise_rejection_tracker(
 }
 
 #[expect(unsafe_code)]
-fn safely_convert_null_to_string(cx: &JSContext, str_: HandleString) -> DOMString {
-    DOMString::from(match std::ptr::NonNull::new(*str_) {
+fn safely_convert_null_to_string(cx: &JSContext, str_: HandleString) -> RootedDomString {
+    RootedDomString::from(match std::ptr::NonNull::new(*str_) {
         None => String::new(),
         Some(str_) => unsafe { jsstr_to_string(cx, str_) },
     })
@@ -416,12 +416,12 @@ unsafe extern "C" fn content_security_policy_allows(
                                 // as if it is a string, since we don't need the actual contents
                                 // of the object.
                                 parameter_args_vec
-                                    .push(TrustedScriptOrString::String(DOMString::new()));
+                                    .push(TrustedScriptOrString::String(RootedDomString::new()));
                             }
                         } else if value.is_string() {
                             // We don't need to know the specific string, only that it is untrusted
                             parameter_args_vec
-                                .push(TrustedScriptOrString::String(DOMString::new()));
+                                .push(TrustedScriptOrString::String(RootedDomString::new()));
                         } else {
                             unreachable!();
                         }

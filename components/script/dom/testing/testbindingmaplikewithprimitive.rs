@@ -16,7 +16,7 @@ use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use crate::dom::bindings::codegen::Bindings::TestBindingMaplikeWithPrimitiveBinding::TestBindingMaplikeWithPrimitiveMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::globalscope::GlobalScope;
 use crate::maplike;
 
@@ -25,7 +25,7 @@ use crate::maplike;
 pub(crate) struct TestBindingMaplikeWithPrimitive {
     reflector: Reflector,
     #[custom_trace]
-    internal: DomRefCell<IndexMap<DOMString, i32>>,
+    internal: DomRefCell<IndexMap<RootedDomString, i32>>,
 }
 
 impl TestBindingMaplikeWithPrimitive {
@@ -57,7 +57,7 @@ impl TestBindingMaplikeWithPrimitiveMethods<crate::DomTypeHolder>
         Ok(TestBindingMaplikeWithPrimitive::new(cx, global, proto))
     }
 
-    fn SetInternal(&self, cx: &mut JSContext, key: DOMString, value: i32) {
+    fn SetInternal(&self, cx: &mut JSContext, key: RootedDomString, value: i32) {
         self.internal.set(cx, key, value)
     }
 
@@ -65,15 +65,15 @@ impl TestBindingMaplikeWithPrimitiveMethods<crate::DomTypeHolder>
         self.internal.clear(cx)
     }
 
-    fn DeleteInternal(&self, cx: &mut JSContext, key: DOMString) -> bool {
+    fn DeleteInternal(&self, cx: &mut JSContext, key: RootedDomString) -> bool {
         self.internal.delete(cx, key)
     }
 
-    fn HasInternal(&self, cx: &mut JSContext, key: DOMString) -> bool {
+    fn HasInternal(&self, cx: &mut JSContext, key: RootedDomString) -> bool {
         self.internal.has(cx, key)
     }
 
-    fn GetInternal(&self, key: DOMString) -> Fallible<i32> {
+    fn GetInternal(&self, key: RootedDomString) -> Fallible<i32> {
         // TODO: error type?
         self.internal
             .borrow()
@@ -88,7 +88,7 @@ impl TestBindingMaplikeWithPrimitiveMethods<crate::DomTypeHolder>
 }
 
 impl Maplike for TestBindingMaplikeWithPrimitive {
-    type Key = DOMString;
+    type Key = RootedDomString;
     type Value = i32;
 
     maplike!(self, internal);

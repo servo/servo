@@ -23,7 +23,7 @@ use crate::dom::bindings::codegen::Bindings::HTMLStyleElementBinding::HTMLStyleE
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::csp::{CspReporting, InlineCheckType};
 use crate::dom::css::cssstylesheet::CSSStyleSheet;
 use crate::dom::css::stylesheet::StyleSheet as DOMStyleSheet;
@@ -254,7 +254,7 @@ impl HTMLStyleElement {
                     cx,
                     &self.owner_window(),
                     Some(self.upcast::<Element>()),
-                    DOMString::from_static("text/css"),
+                    RootedDomString::from_static("text/css"),
                     None, // todo handle location
                     None, // todo handle title
                     sheet,
@@ -439,7 +439,7 @@ impl StylesheetOwner for HTMLStyleElement {
         self.parser_inserted() ||
             self.blocking
                 .get()
-                .is_some_and(|list| list.Contains(DOMString::from_static("render")))
+                .is_some_and(|list| list.Contains(RootedDomString::from_static("render")))
     }
 
     fn referrer_policy(&self, _cx: &mut JSContext) -> ReferrerPolicy {

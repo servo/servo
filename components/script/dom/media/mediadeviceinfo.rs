@@ -12,16 +12,16 @@ use crate::dom::bindings::codegen::Bindings::MediaDeviceInfoBinding::{
     MediaDeviceInfoMethods, MediaDeviceKind,
 };
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::globalscope::GlobalScope;
 
 #[dom_struct]
 pub(crate) struct MediaDeviceInfo {
     reflector_: Reflector,
-    device_id: DOMString,
+    device_id: RootedDomString,
     kind: MediaDeviceKind,
-    label: DOMString,
-    group_id: DOMString,
+    label: RootedDomString,
+    group_id: RootedDomString,
 }
 
 impl MediaDeviceInfo {
@@ -33,10 +33,10 @@ impl MediaDeviceInfo {
     ) -> MediaDeviceInfo {
         MediaDeviceInfo {
             reflector_: Reflector::new(),
-            device_id: DOMString::from(device_id),
+            device_id: RootedDomString::from(device_id),
             kind,
-            label: DOMString::from(label),
-            group_id: DOMString::from(group_id),
+            label: RootedDomString::from(label),
+            group_id: RootedDomString::from(group_id),
         }
     }
 
@@ -60,7 +60,7 @@ impl MediaDeviceInfo {
 
 impl MediaDeviceInfoMethods<crate::DomTypeHolder> for MediaDeviceInfo {
     /// <https://w3c.github.io/mediacapture-main/#dom-mediadeviceinfo-deviceid>
-    fn DeviceId(&self) -> DOMString {
+    fn DeviceId(&self) -> RootedDomString {
         self.device_id.clone()
     }
 
@@ -70,12 +70,12 @@ impl MediaDeviceInfoMethods<crate::DomTypeHolder> for MediaDeviceInfo {
     }
 
     /// <https://w3c.github.io/mediacapture-main/#dom-mediadeviceinfo-label>
-    fn Label(&self) -> DOMString {
+    fn Label(&self) -> RootedDomString {
         self.label.clone()
     }
 
     /// <https://w3c.github.io/mediacapture-main/#dom-mediadeviceinfo-groupid>
-    fn GroupId(&self) -> DOMString {
+    fn GroupId(&self) -> RootedDomString {
         self.group_id.clone()
     }
 }

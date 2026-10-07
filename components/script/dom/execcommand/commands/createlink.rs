@@ -7,7 +7,7 @@ use js::context::JSContext;
 use script_bindings::inheritance::Castable;
 
 use crate::dom::bindings::codegen::Bindings::HTMLAnchorElementBinding::HTMLAnchorElementMethods;
-use crate::dom::bindings::str::DOMString;
+use crate::dom::bindings::str::RootedDomString;
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::execcommand::basecommand::CommandName;
@@ -20,7 +20,7 @@ pub(crate) fn execute_createlink_command(
     cx: &mut JSContext,
     document: &Document,
     selection: &Selection,
-    value: DOMString,
+    value: RootedDomString,
 ) -> bool {
     // Step 1. If value is the empty string, return false.
     if value.is_empty() {
