@@ -26,12 +26,12 @@ use crate::{
 
 pub(crate) fn for_each_available_family<F>(mut callback: F)
 where
-    F: FnMut(String),
+    F: FnMut(&str),
 {
     let family_names = unsafe { CTFontManagerCopyAvailableFontFamilyNames() };
     let family_names = unsafe { family_names.cast_unchecked::<CFString>() };
     for family_name in family_names.iter() {
-        callback(family_name.to_string());
+        callback(&family_name.to_string());
     }
 }
 

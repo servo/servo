@@ -18,12 +18,12 @@ use crate::{
 
 pub(crate) fn for_each_available_family<F>(mut callback: F)
 where
-    F: FnMut(String),
+    F: FnMut(&str),
 {
     let system_fc = FontCollection::system();
     for family in system_fc.families_iter() {
         if let Ok(family_name) = family.family_name() {
-            callback(family_name);
+            callback(&family_name);
         }
     }
 }

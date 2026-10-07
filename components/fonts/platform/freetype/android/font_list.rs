@@ -415,13 +415,13 @@ impl FontList {
 // Functions used by SystemFontSerivce
 pub(crate) fn for_each_available_family<F>(mut callback: F)
 where
-    F: FnMut(String),
+    F: FnMut(&str),
 {
     for family in &FONT_LIST.families {
-        callback(family.name.clone());
+        callback(&family.name);
     }
     for alias in &FONT_LIST.aliases {
-        callback(alias.from.clone());
+        callback(&alias.from);
     }
 }
 
