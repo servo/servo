@@ -680,18 +680,15 @@ impl StyleStylesheetLoader for ElementStylesheetLoader<'_> {
                 pipeline_id,
             }) => {
                 let element = element.clone();
-                let task = task!(load_import_stylesheet_on_main_thread: move || {
-                    // TODO: https://github.com/servo/servo/issues/44685
-                    #[expect(unsafe_code)]
-                    let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
+                let task = task!(load_import_stylesheet_on_main_thread: move |cx| {
                     Self::load_with_element(
-                        &mut cx,
+                        cx,
                         &element.root(),
                         source,
                         media,
                         resolved_url.into(),
                         None,
-                        String::new()
+                        String::new(),
                     );
                 });
                 let _ =
