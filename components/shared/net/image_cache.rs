@@ -8,12 +8,10 @@ use log::debug;
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
 use paint_api::CrossProcessPaintApi;
-use parking_lot::Mutex;
 use pixels::{CorsStatus, ImageMetadata, RasterImage};
 use profile_traits::mem::Report;
 use resvg::usvg::{Font, fontdb};
 use serde::{Deserialize, Serialize};
-use servo_arc::Arc as ServoArc;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{PipelineId, WebViewId};
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -70,7 +68,7 @@ pub struct EncodedImage {
 #[derive(MallocSizeOf)]
 pub enum EncodedImageBytes {
     /// The completed response body retained by the HTTP cache.
-    Cached(#[conditional_malloc_size_of] ServoArc<Mutex<ResponseBody>>),
+    Cached(#[conditional_malloc_size_of] servo_arc::Arc<parking_lot::Mutex<ResponseBody>>),
     /// Bytes retained by sources that are not backed by the HTTP cache.
     Owned(#[conditional_malloc_size_of] Arc<Vec<u8>>),
 }

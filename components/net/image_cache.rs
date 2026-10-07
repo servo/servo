@@ -31,7 +31,6 @@ use profile_traits::path;
 use resvg::tiny_skia;
 use resvg::usvg::{self, fontdb};
 use rustc_hash::{FxHashMap, FxHashSet};
-use servo_arc::Arc as ServoArc;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{PipelineId, WebViewId};
 use servo_base::threadpool::ThreadPool;
@@ -360,9 +359,9 @@ struct PendingLoad {
     /// is complete and the buffer has been transmitted to the decoder.
     bytes: ImageBytes,
 
-    /// The completed HTTP response body, when the fetch path retained one.
+    /// The completed HTTP response body, stored as a source of encoded images when possible.
     #[ignore_malloc_size_of = "shared with the HTTP cache"]
-    encoded_body: Option<ServoArc<Mutex<net_traits::response::ResponseBody>>>,
+    encoded_body: Option<servo_arc::Arc<Mutex<net_traits::response::ResponseBody>>>,
 
     /// Image metadata, if available.
     metadata: Option<ImageMetadata>,
