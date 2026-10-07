@@ -507,7 +507,6 @@ impl FetchResponseListener for LinkFetchContext {
         _: RequestId,
         response_result: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
-        _body: Option<servo_arc::Arc<parking_lot::Mutex<net_traits::response::ResponseBody>>>,
     ) {
         submit_timing(cx, global, &self, &response_result, &timing);
 

@@ -751,7 +751,6 @@ impl FetchResponseListener for FetchContext {
         request_id: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
-        _body: Option<servo_arc::Arc<parking_lot::Mutex<net_traits::response::ResponseBody>>>,
     ) {
         let call_state = global.fetch_group().fetch_call_request(&request_id);
         if let Some(call_state) = call_state {
@@ -814,7 +813,6 @@ impl FetchResponseListener for FetchLaterListener {
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
-        _body: Option<servo_arc::Arc<parking_lot::Mutex<net_traits::response::ResponseBody>>>,
     ) {
         network_listener::submit_timing(cx, global, &self, &response, &timing);
     }

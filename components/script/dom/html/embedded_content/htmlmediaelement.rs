@@ -4164,7 +4164,6 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         _: RequestId,
         status: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
-        _body: Option<servo_arc::Arc<parking_lot::Mutex<net_traits::response::ResponseBody>>>,
     ) {
         let element = self.element.root();
 
