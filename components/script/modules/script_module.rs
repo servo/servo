@@ -13,7 +13,6 @@ use std::fmt::Debug;
 use std::ptr::NonNull;
 use std::rc::Rc;
 use std::sync::Arc;
-use std::{mem, ptr};
 
 use bytes::{Bytes, BytesMut};
 use encoding_rs::UTF_8;
@@ -23,19 +22,18 @@ use js::context::JSContext;
 use js::conversions::{ToJSValConvertible, jsstr_to_string};
 use js::gc::{HandleObject, MutableHandleValue};
 use js::jsapi::{
-    CallArgs, ColumnNumberOneOrigin, ExceptionStackBehavior, GetFunctionNativeReserved,
-    GetModuleLoadHook, Handle as RawHandle, HandleValue as RawHandleValue, Heap,
-    JS_GetFunctionObject, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE, JSRuntime,
-    JSScript, ModuleErrorBehaviour, ModuleType, SetFunctionNativeReserved, SetModuleLoadHook,
-    SetModuleMetadataHook, SetModulePrivate, SetScriptPrivateReferenceHooks, Value,
+    CallArgs, ColumnNumberOneOrigin, GetFunctionNativeReserved, GetModuleLoadHook,
+    Handle as RawHandle, HandleValue as RawHandleValue, Heap, JS_GetFunctionObject,
+    JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE, JSRuntime, JSScript, ModuleType,
+    SetFunctionNativeReserved, SetModuleLoadHook, SetModuleMetadataHook, SetModulePrivate,
+    SetScriptPrivateReferenceHooks, Value,
 };
 use js::jsval::{JSVal, ObjectValue, PrivateValue, UndefinedValue};
-use js::realm::{AutoRealm, CurrentRealm};
+use js::realm::CurrentRealm;
 use js::rust::wrappers2::{
     CompileJsonModule1, CompileModule1, CreateDefaultExportSyntheticModule,
     DefineFunctionWithReserved, GetModuleRequestSpecifier, JS_ClearPendingException,
     JS_DefineProperty4, JS_GetModulePrivate, JS_GetPendingException, JS_NewStringCopyN,
-    JS_SetPendingException, ModuleEvaluate, ThrowOnModuleEvaluationFailure,
 };
 use js::rust::{Handle, HandleValue, ToString, transform_str_to_source_text};
 use mime::Mime;
@@ -59,7 +57,7 @@ use crate::dom::bindings::codegen::Bindings::CSSStyleSheetBinding::{
     CSSStyleSheetInit, CSSStyleSheetMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::MediaListOrString;
-use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exception};
+use crate::dom::bindings::error::{Error, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::DomRoot;
@@ -380,62 +378,6 @@ impl ModuleTree {
         script
     }
 
-    /// Execute the provided module, storing the evaluation return value in the provided
-    /// mutable handle.
-    #[expect(unsafe_code)]
-    pub(crate) fn execute_module(
-        &self,
-        cx: &mut JSContext,
-        global: &GlobalScope,
-        module_record: HandleObject,
-        mut eval_result: MutableHandleValue,
-    ) -> Result<(), RethrowError> {
-        let mut realm = AutoRealm::new(
-            cx,
-            NonNull::new(global.reflector().get_jsobject().get()).unwrap(),
-        );
-        let cx = &mut *realm;
-
-        unsafe {
-            let ok = ModuleEvaluate(cx, module_record, eval_result.reborrow());
-            assert!(ok, "module evaluation failed");
-
-            rooted!(&in(cx) let mut evaluation_promise = ptr::null_mut::<JSObject>());
-            if eval_result.is_object() {
-                evaluation_promise.set(eval_result.to_object());
-            }
-
-            let throw_result = ThrowOnModuleEvaluationFailure(
-                cx,
-                evaluation_promise.handle(),
-                ModuleErrorBehaviour::ThrowModuleErrorsSync,
-            );
-            if !throw_result {
-                warn!("fail to evaluate module");
-
-                Err(RethrowError::from_pending_exception(cx))
-            } else {
-                debug!("module evaluated successfully");
-                Ok(())
-            }
-        }
-    }
-
-    #[expect(unsafe_code)]
-    pub(crate) fn report_error(&self, cx: &mut JSContext, global: &GlobalScope) {
-        let module_error = self.rethrow_error.borrow();
-
-        if let Some(exception) = &*module_error {
-            let mut realm = enter_auto_realm(cx, global);
-            let cx = &mut realm.current_realm();
-
-            unsafe {
-                JS_SetPendingException(cx, exception.handle(), ExceptionStackBehavior::Capture);
-            }
-            report_pending_exception(cx);
-        }
-    }
-
     /// <https://html.spec.whatwg.org/multipage/#resolve-a-module-specifier>
     pub(crate) fn resolve_module_specifier(
         global: &GlobalScope,
@@ -584,7 +526,7 @@ impl FetchResponseListener for ModuleContext {
 
     fn process_response(
         &mut self,
-        _: &mut js::context::JSContext,
+        _: &mut JSContext,
         _: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
@@ -612,12 +554,7 @@ impl FetchResponseListener for ModuleContext {
         };
     }
 
-    fn process_response_chunk(
-        &mut self,
-        _: &mut js::context::JSContext,
-        _: RequestId,
-        chunk: Bytes,
-    ) {
+    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, chunk: Bytes) {
         if self.status.is_ok() {
             self.data.extend_from_slice(&chunk);
         }
@@ -627,7 +564,7 @@ impl FetchResponseListener for ModuleContext {
     /// Step 13
     fn process_response_eof(
         mut self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -791,7 +728,7 @@ impl FetchResponseListener for ModuleContext {
 
     fn process_csp_violations(
         &mut self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         _request_id: RequestId,
         violations: Vec<Violation>,
     ) {
@@ -845,8 +782,8 @@ pub(crate) unsafe fn EnsureModuleHooksInitialized(rt: *mut JSRuntime) {
 #[expect(unsafe_code)]
 unsafe extern "C" fn host_add_ref_top_level_script(value: *const Value) {
     let val = unsafe { Rc::from_raw((*value).to_private() as *const ModuleScript) };
-    mem::forget(val.clone());
-    mem::forget(val);
+    std::mem::forget(val.clone());
+    std::mem::forget(val);
 }
 
 #[expect(unsafe_code)]
@@ -1027,7 +964,7 @@ unsafe extern "C" fn HostPopulateImportMeta(
 #[expect(unsafe_code)]
 unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *mut JSVal) -> bool {
     // SAFETY: it is safe to construct a JSContext from engine hook.
-    let mut cx = unsafe { JSContext::from_ptr(ptr::NonNull::new(cx).unwrap()) };
+    let mut cx = unsafe { JSContext::from_ptr(NonNull::new(cx).unwrap()) };
     let mut realm = CurrentRealm::assert(&mut cx);
     let global_scope = GlobalScope::from_current_realm(&mut realm);
 

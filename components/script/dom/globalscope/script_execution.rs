@@ -10,12 +10,14 @@ use bitflags::bitflags;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use js::context::JSContext;
 use js::gc::Handle;
-use js::jsapi::{ExceptionStackBehavior, Heap, JSScript, SetScriptPrivate};
+use js::jsapi::{
+    ExceptionStackBehavior, Heap, JSObject, JSScript, ModuleErrorBehaviour, SetScriptPrivate,
+};
 use js::jsval::{PrivateValue, UndefinedValue};
 use js::panic::maybe_resume_unwind;
 use js::rust::wrappers2::{
     Compile1, JS_ClearPendingException, JS_ExecuteScript, JS_GetScriptPrivate,
-    JS_IsExceptionPending, JS_SetPendingException,
+    JS_IsExceptionPending, JS_SetPendingException, ModuleEvaluate, ThrowOnModuleEvaluationFailure,
 };
 use js::rust::{
     CompileOptionsWrapper, HandleValue, MutableHandleValue, transform_str_to_source_text,
@@ -236,6 +238,7 @@ impl GlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-a-module-script>
+    #[expect(unsafe_code)]
     pub(crate) fn run_a_module_script(
         &self,
         cx: &mut JSContext,
@@ -254,33 +257,54 @@ impl GlobalScope {
         // Step 3. Record module script execution start time given script.
         // TODO
 
+        let mut realm = enter_auto_realm(cx, self);
+        let cx = &mut realm.current_realm();
+
         // Step 4. Prepare to run script given settings.
         run_a_script::<DomTypeHolder, _, _>(cx, self, |cx| {
             // Step 6. If script's error to rethrow is not null, then set evaluationPromise to a
             // promise rejected with script's error to rethrow.
             {
                 let module_error = module_tree.get_rethrow_error().borrow();
-                if module_error.is_some() {
-                    module_tree.report_error(cx, self);
+                if let Some(exception) = &*module_error {
+                    unsafe {
+                        JS_SetPendingException(
+                            cx,
+                            exception.handle(),
+                            ExceptionStackBehavior::Capture,
+                        );
+                    }
+                    report_pending_exception(cx);
                     return;
                 }
             }
 
             // Step 7.1. Otherwise: Let record be script's record.
-            let record = module_tree.get_record().map(|record| record.handle());
+            let record = module_tree.get_record().unwrap();
 
-            if let Some(record) = record {
-                // Step 7.2. Set evaluationPromise to record.Evaluate().
-                rooted!(&in(cx) let mut rval = UndefinedValue());
-                let evaluated = module_tree.execute_module(cx, self, record, rval.handle_mut());
+            // Step 7.2. Set evaluationPromise to record.Evaluate().
+            rooted!(&in(cx) let mut rval = UndefinedValue());
+            let ok = unsafe { ModuleEvaluate(cx, record.handle(), rval.handle_mut()) };
+            assert!(ok, "module evaluation failed");
 
-                // Step 8. If preventErrorReporting is false, then upon rejection of evaluationPromise
-                // with reason, report an exception given by reason for script's settings object's
-                // global object.
-                if let Err(exception) = evaluated {
-                    module_tree.set_rethrow_error(exception);
-                    module_tree.report_error(cx, self);
-                }
+            rooted!(&in(cx) let mut evaluation_promise = std::ptr::null_mut::<JSObject>());
+            if rval.is_object() {
+                evaluation_promise.set(rval.to_object());
+            }
+
+            // Step 8. If preventErrorReporting is false, then upon rejection of evaluationPromise
+            // with reason, report an exception given by reason for script's settings object's
+            // global object.
+            let throw_result = unsafe {
+                ThrowOnModuleEvaluationFailure(
+                    cx,
+                    evaluation_promise.handle(),
+                    ModuleErrorBehaviour::ThrowModuleErrorsSync,
+                )
+            };
+
+            if !throw_result {
+                report_pending_exception(cx);
             }
         });
     }
