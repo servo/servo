@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<title>Double and triple clicking then dragging in document text should select by words / lines</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="input-events.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<div id="targetA" style="font: 25px/1 Ahem; width: max-content;">AAAA AAAA AAAA AAAA AAAA</div>
+<div id="targetB" style="font: 25px/1 Ahem; width: max-content;">BBB1 <span>BBB2</span> BBB3</div>
+<pre id="targetC" style="font: 25px/1 Ahem; width: max-content;">CCC1 CCCC CCCC
+CCC2 CCCC CCCC
+CCC3 CCCC CCCC</pre>
+
+<script>
+promise_setup(() => document.fonts.ready);
+
+async function doubleClickAndDrag(x1, y1, x2, y2) {
+    await clearClickCounter();
+    await new test_driver.Actions()
+      .pointerMove(x1, y1)
+      .pointerDown().pointerUp()
+      .pointerDown()
+      .pointerMove(x2, y2)
+      .pointerUp()
+          .send();
+}
+
+async function tripleClickAndDrag(x1, y1, x2, y2) {
+    await clearClickCounter();
+    await new test_driver.Actions()
+      .pointerMove(x1, y1)
+      .pointerDown().pointerUp()
+      .pointerDown().pointerUp()
+      .pointerDown()
+      .pointerMove(x2, y2)
+      .pointerUp()
+          .send();
+}
+
+promise_test(async test => {
+    let targetRect = targetA.getBoundingClientRect()
+    let middleOfBlock = targetRect.top + (targetRect.height / 2);
+    let middleOfInline = targetRect.left + (targetRect.width / 2);
+    let textChild = targetA.childNodes[0];
+
+    // Backward selection
+    await doubleClickAndDrag(middleOfInline, middleOfBlock, middleOfInline - (25 * 5) + 5, middleOfBlock);
+    assertSelection(textChild, 14, textChild, 5);
+    await doubleClickAndDrag(middleOfInline, middleOfBlock, middleOfInline - (25 * 10) + 5, middleOfBlock);
+    assertSelection(textChild, 14, textChild, 0);
+
+    // Backward selection within same word at word boundary.
+    await doubleClickAndDrag(middleOfInline, middleOfBlock, middleOfInline - 45, middleOfBlock);
+    assertSelection(textChild, 10, textChild, 14);
+
+    // Forward selection
+    await doubleClickAndDrag(middleOfInline, middleOfBlock, middleOfInline + (25 * 5) + 5, middleOfBlock);
+    assertSelection(textChild, 10, textChild, 19);
+    await doubleClickAndDrag(middleOfInline, middleOfBlock, middleOfInline + (25 * 10) + 5, middleOfBlock);
+    assertSelection(textChild, 10, textChild, 24);
+
+    // Forward selection within same word at word boundary.
+    await doubleClickAndDrag(middleOfInline, middleOfBlock, middleOfInline + 40, middleOfBlock);
+    assertSelection(textChild, 10, textChild, 14);
+}, 'Double click and then dragging works as expected');
+
+promise_test(async test => {
+    let targetRect = targetB.getBoundingClientRect()
+    let middleOfBlock = targetRect.top + (targetRect.height / 2);
+    let middleOfInline = targetRect.left + (targetRect.width / 2);
+
+    let textChild1 = targetB.childNodes[0];
+    let textChild2 = targetB.childNodes[1].childNodes[0];
+    let textChild3 = targetB.childNodes[2];
+
+    // Backward selection
+    await doubleClickAndDrag(middleOfInline, middleOfBlock, middleOfInline - (25 * 5) + 5, middleOfBlock);
+    assertSelection(textChild2, 4, textChild1, 0);
+
+    // Forward selection
+    await doubleClickAndDrag(middleOfInline, middleOfBlock, middleOfInline + (25 * 5) + 5, middleOfBlock);
+    assertSelection(textChild2, 0, textChild3, 5);
+}, 'Double click and then dragging works across nodes as expected');
+
+promise_test(async test => {
+    let targetRect = targetC.getBoundingClientRect()
+    let middleOfBlock = targetRect.top + (targetRect.height / 2);
+    let middleOfInline = targetRect.left + (targetRect.width / 2);
+    let textChild = targetC.childNodes[0];
+
+    // Backward selection
+    await tripleClickAndDrag(middleOfInline, middleOfBlock, middleOfInline, middleOfBlock - 25);
+    assertSelection(textChild, 30, textChild, 0);
+
+    // Forward selection
+    await tripleClickAndDrag(middleOfInline, middleOfBlock, middleOfInline, middleOfBlock + 25);
+    assertSelection(textChild, 15, textChild, 44);
+}, 'Triple click and then dragging works as expected');
+</script>

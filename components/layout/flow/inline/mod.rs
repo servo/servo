@@ -2546,6 +2546,23 @@ impl InlineFormattingContext {
         let number_of_tab_stops = number_of_tab_stops.ceil();
         tab_stop_advance.scale_by(number_of_tab_stops) - current_inline_advance
     }
+
+    pub(crate) fn non_pseudo_text_runs<'a>(
+        &'a self,
+    ) -> impl DoubleEndedIterator<Item = AtomicRef<'a, TextRun>> {
+        self.inline_items
+            .iter()
+            .filter_map(|item| match item {
+                InlineItem::TextRun(text_run) => Some(text_run.borrow()),
+                _ => None,
+            })
+            .filter(|text_run| {
+                text_run
+                    .base_fragment_info
+                    .tag
+                    .is_some_and(|tag| tag.pseudo_element_chain.is_empty())
+            })
+    }
 }
 
 impl InlineContainerState {

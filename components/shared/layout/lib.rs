@@ -417,6 +417,17 @@ pub trait Layout {
         node: TrustedNodeAddress,
         point_in_viewport: Point2D<Au, CSSPixel>,
     ) -> Option<(OpaqueNode, Utf32CodeUnits)>;
+    /// Find the text segment of the given [`SegmentGranularity`] at the given `offset` in the
+    /// given node. Returns `None` when `node` is not a text node or due to any other failure.
+    fn query_text_segment(
+        &self,
+        node: TrustedNodeAddress,
+        offset: Utf32CodeUnitsOrNodeOffset,
+        granularity: SegmentGranularity,
+    ) -> Option<(
+        (OpaqueNode, Utf32CodeUnitsOrNodeOffset),
+        (OpaqueNode, Utf32CodeUnitsOrNodeOffset),
+    )>;
     fn hit_test(&self, flags: HitTestFlags, point: LayoutPoint) -> HitTestResult;
     fn query_effective_overflow(&self, node: TrustedNodeAddress) -> Option<AxesOverflow>;
     fn stylist_mut(&mut self) -> &mut Stylist;
@@ -444,6 +455,16 @@ pub trait Layout {
     fn handle_accessibility_action(&self, action_request: ActionRequest);
 
     fn font_context(&self) -> &Arc<FontContext>;
+}
+
+/// The granularity of the text boundaries to find.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+pub enum SegmentGranularity {
+    /// A Unicode word boundary.
+    Word,
+    /// A hard line break. If no hard line break is found, this is the entire
+    /// containing inline formatting context's text.
+    HardLineBreak,
 }
 
 /// This trait is part of `layout_api` because it depends on both `script_traits`
@@ -572,7 +593,7 @@ pub enum QueryMsg {
     ResolvedStyleQuery(PropertyId),
     ScrollingAreaOrOffsetQuery,
     StyleQuery,
-    TextIndexQuery,
+    TextIndexOrSegmentQuery,
     PaddingQuery,
     FlushForUpdateTheRenderingQuery,
 }

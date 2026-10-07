@@ -770,6 +770,24 @@ impl Selection {
             let _ = self.Extend(cx, &boundary.container, boundary.offset);
         }
     }
+
+    /// Call [`Selection::SetBaseAndExtent`] with the given `anchor` and `focus`
+    /// arguments. Like `SetBaseAndExtent` the selection direction is determined by the
+    /// order of `anchor` and `focus` in the DOM.
+    pub(crate) fn set_anchor_and_focus(
+        &self,
+        cx: &mut JSContext,
+        anchor: &RootedSelectionBoundary,
+        focus: &RootedSelectionBoundary,
+    ) {
+        let _ = self.SetBaseAndExtent(
+            cx,
+            &anchor.container,
+            anchor.offset,
+            &focus.container,
+            focus.offset,
+        );
+    }
 }
 
 impl SelectionMethods<crate::DomTypeHolder> for Selection {
@@ -1554,7 +1572,7 @@ fn project_into_shared_tree<'a>(
 /// Compare two shadow-including DOM positions by first projecting them into
 /// a shared root and then comparing the two positions. This function assumes
 /// that the two positions share a [`Document`].
-fn compare_shadow_including_dom_positions(
+pub(crate) fn compare_shadow_including_dom_positions(
     no_gc: &NoGC,
     container_a: &Node,
     offset_a: u32,

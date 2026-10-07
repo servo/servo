@@ -383,9 +383,30 @@ impl SharedTextRunData {
         &self,
         offset: Utf32CodeUnits,
     ) -> Utf32CodeUnits {
-        let offset_map = self.offset_map.borrow();
-        let offset_in_ifc_text = self.character_range_in_ifc_text.start;
-        offset_map.reverse_map(offset + offset_in_ifc_text) - self.original_offset
+        self.map_transformed_ifc_offset_to_dom_offset(
+            offset + self.character_range_in_ifc_text.start,
+        )
+    }
+
+    /// Map a UTF-32 offset in the transformed `InlineFormattingContext::text_content`
+    /// into an offset in the `TextRun`'s DOM node. The input value will be clamped to
+    /// this `TextRun`'s actual text range before mapping.
+    pub(crate) fn map_transformed_ifc_offset_to_dom_offset(
+        &self,
+        offset: Utf32CodeUnits,
+    ) -> Utf32CodeUnits {
+        let run_range = &self.character_range_in_ifc_text;
+        let offset = offset.clamp(run_range.start, run_range.end);
+        self.offset_map.borrow().reverse_map(offset) - self.original_offset
+    }
+
+    /// Map an offset in the `TextRun`'s DOM node into a UTF-32 offset in the transformed
+    /// `InlineFormattingContext::text_content`.
+    pub(crate) fn map_dom_offset_to_transformed_ifc_offset(
+        &self,
+        offset: Utf32CodeUnits,
+    ) -> Utf32CodeUnits {
+        self.offset_map.borrow().map(offset + self.original_offset)
     }
 }
 
