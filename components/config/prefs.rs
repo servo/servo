@@ -69,7 +69,6 @@ pub fn set(preferences: Preferences) {
         "layout.variable_fonts.enabled",
         preferences.layout_variable_fonts_enabled
     );
-    stylo_static_prefs::set_pref!("layout.flexbox.balance", preferences.layout_flexbox_balance);
 
     *PREFERENCES.write().unwrap() = preferences;
 
