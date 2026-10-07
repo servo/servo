@@ -180,6 +180,7 @@ use crate::dom::promise::RootedPromise;
 use crate::dom::reporting::reportingendpoint::{ReportingEndpoint, SendReportsToEndpoints};
 use crate::dom::reporting::reportingobserver::ReportingObserver;
 use crate::dom::selection::Selection;
+use crate::dom::selection_range::RootedSelectionBoundary;
 use crate::dom::serviceworker::cachestorage::CacheStorage;
 use crate::dom::shadowroot::shadowroot::ShadowRoot;
 use crate::dom::storage::Storage;
@@ -3286,9 +3287,9 @@ impl Window {
         };
         Some(HitTestResult {
             node: from_opaque_node(item.node),
-            dom_position_for_selection: result
-                .dom_position_for_selection
-                .map(|(node, offset)| (from_opaque_node(node), offset)),
+            dom_position_for_selection: result.dom_position_for_selection.map(|(node, offset)| {
+                RootedSelectionBoundary::new_with_utf32_offset(from_opaque_node(node), offset)
+            }),
             cursor: item.cursor,
             point_in_node: item.point_in_target,
             point_in_frame,

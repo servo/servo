@@ -36,7 +36,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::iterators::{PrePostIteration, UnrootedFollowingFlatTreeNodesTraversal};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::range::Range;
-use crate::dom::selection_range::{SelectionBoundary, SelectionRange};
+use crate::dom::selection_range::{RootedSelectionBoundary, SelectionBoundary, SelectionRange};
 use crate::dom::staticrange::StaticRange;
 use crate::dom::traversal::FlatTreeForSelectionNoGcTraversal;
 use crate::dom::types::ShadowRoot;
@@ -485,13 +485,16 @@ impl Selection {
         self.visible_selection_dirty.set(true);
     }
 
-    pub(crate) fn composed_anchor_position(&self) -> Option<(DomRoot<Node>, u32)> {
+    pub(crate) fn composed_anchor_position(&self) -> Option<RootedSelectionBoundary> {
         let range = self.range.borrow();
         let range = range.as_ref()?;
-        Some(match self.direction.get() {
+        let (container, offset) = match self.direction.get() {
             Direction::Forwards => (range.start.container.as_rooted(), range.start.offset),
             _ => (range.end.container.as_rooted(), range.end.offset),
-        })
+        };
+        Some(RootedSelectionBoundary::new_with_utf16_offset(
+            container, offset,
+        ))
     }
 
     /// <https://w3c.github.io/selection-api/#dfn-anchor>
@@ -747,33 +750,24 @@ impl Selection {
     pub(crate) fn collapse_to_dom_position(
         &self,
         cx: &mut JSContext,
-        container: &Node,
-        offset: Utf32CodeUnitsOrNodeOffset,
+        boundary: &RootedSelectionBoundary,
     ) {
-        let _ = self.Collapse(
-            cx,
-            Some(container),
-            container.to_sibling_or_utf16_offset(offset),
-        );
+        let _ = self.Collapse(cx, Some(&boundary.container), boundary.offset);
     }
 
     pub(crate) fn collapse_or_extend_to_dom_position(
         &self,
         cx: &mut JSContext,
-        container: &Node,
-        offset: Utf32CodeUnitsOrNodeOffset,
+        boundary: &RootedSelectionBoundary,
     ) {
-        let offset = container.to_sibling_or_utf16_offset(offset);
-        let is_anchor =
-            self.composed_anchor_position()
-                .is_some_and(|(anchor_node, anchor_offset)| {
-                    &*anchor_node == container && anchor_offset == offset
-                });
+        let is_anchor = self
+            .composed_anchor_position()
+            .is_some_and(|anchor| anchor == *boundary);
 
         if self.range.borrow().is_none() || is_anchor {
-            let _ = self.Collapse(cx, Some(container), offset);
+            let _ = self.Collapse(cx, Some(&boundary.container), boundary.offset);
         } else {
-            let _ = self.Extend(cx, container, offset);
+            let _ = self.Extend(cx, &boundary.container, boundary.offset);
         }
     }
 }
@@ -1130,7 +1124,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // newFocus be the boundary point (node, offset).
         //
         // Note: oldFocus is unused, so we do not set it here.
-        let (old_anchor_node, old_anchor_offset) = self
+        let old_anchor = self
             .composed_anchor_position()
             .expect("has range, therefore has anchor node");
 
@@ -1155,8 +1149,8 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
             let is_old_anchor_before_or_equal = matches!(
                 compare_shadow_including_dom_positions(
                     cx.no_gc(),
-                    &old_anchor_node,
-                    old_anchor_offset,
+                    &old_anchor.container,
+                    old_anchor.offset,
                     node,
                     offset
                 ),
@@ -1168,7 +1162,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
                 self.set_range(
                     cx.no_gc(),
                     Some(SelectionRange::new(
-                        SelectionBoundary::new(&old_anchor_node, old_anchor_offset),
+                        SelectionBoundary::new(&old_anchor.container, old_anchor.offset),
                         SelectionBoundary::new(node, offset),
                     )),
                 );
@@ -1180,7 +1174,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
                     cx.no_gc(),
                     Some(SelectionRange::new(
                         SelectionBoundary::new(node, offset),
-                        SelectionBoundary::new(&old_anchor_node, old_anchor_offset),
+                        SelectionBoundary::new(&old_anchor.container, old_anchor.offset),
                     )),
                 );
                 direction = Direction::Backwards;
@@ -1497,6 +1491,21 @@ impl Node {
         } else {
             offset.0
         }
+    }
+
+    /// Get the `Utf32CodeUnitsOrNodeOffset` for `self` and the given UTF-16 offset if
+    /// `self` is `CharacterData` or else return the offset in the child list.
+    pub(crate) fn to_sibling_or_utf32_offset(&self, offset: u32) -> Utf32CodeUnitsOrNodeOffset {
+        Utf32CodeUnitsOrNodeOffset(
+            if let Some(character_data) = self.downcast::<CharacterData>() {
+                // TODO: ensure that each `CharacterData` holds no more than 4 GiB?
+                Utf16CodeUnits(offset)
+                    .to_utf32_code_units_in(&character_data.data())
+                    .0
+            } else {
+                offset
+            },
+        )
     }
 }
 

@@ -2,10 +2,69 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cmp::Ordering;
+
+use js::context::NoGC;
+use script_bindings::root::DomRoot;
+use servo_base::text::Utf32CodeUnitsOrNodeOffset;
+
 use crate::dom::abstractrange::BoundaryPoint;
 use crate::dom::bindings::root::Dom;
+use crate::dom::comparator::compare_dom_positions;
 use crate::dom::node::Node;
 use crate::dom::range::Range;
+use crate::dom::traversal::FlatTreeForSelectionNoGcTraversal;
+
+/// A rooted selection boundary. This is similar to `SelectionBoundary`, but is rooted.
+/// This means it is appropriate to use in variables stored on the stack.
+#[derive(Clone, PartialEq)]
+pub(crate) struct RootedSelectionBoundary {
+    pub container: DomRoot<Node>,
+    pub offset: u32,
+}
+
+impl RootedSelectionBoundary {
+    pub(crate) fn start_of(node: &Node) -> Self {
+        Self {
+            container: DomRoot::from_ref(node),
+            offset: 0,
+        }
+    }
+
+    pub(crate) fn end_of(node: &Node) -> Self {
+        Self {
+            container: DomRoot::from_ref(node),
+            offset: node.len(),
+        }
+    }
+
+    pub(crate) fn new_with_utf16_offset(container: DomRoot<Node>, offset: u32) -> Self {
+        Self { container, offset }
+    }
+
+    pub(crate) fn new_with_utf32_offset(
+        container: DomRoot<Node>,
+        utf32_offset: Utf32CodeUnitsOrNodeOffset,
+    ) -> Self {
+        let offset = container.to_sibling_or_utf16_offset(utf32_offset);
+        Self { container, offset }
+    }
+
+    pub(crate) fn utf32_offset(&self) -> Utf32CodeUnitsOrNodeOffset {
+        self.container.to_sibling_or_utf32_offset(self.offset)
+    }
+
+    pub(crate) fn compare_dom_positions(&self, no_gc: &NoGC, other: &Self) -> Option<Ordering> {
+        compare_dom_positions::<FlatTreeForSelectionNoGcTraversal>(
+            no_gc,
+            &self.container,
+            self.offset,
+            &other.container,
+            other.offset,
+        )
+        .0
+    }
+}
 
 /// A selection boundary. This is similar to `BoundaryPoint`, but supports
 /// positions in the composed tree.

@@ -653,11 +653,11 @@ impl<T: ClipboardProvider> TextInput<T> {
         hit_test_result
             .dom_position_for_selection
             .as_ref()
-            .map(|(_, character_offset)| {
+            .map(|boundary| {
                 self.rope.move_by(
                     Default::default(),
                     RopeMovement::Character,
-                    character_offset.0 as isize,
+                    boundary.utf32_offset().0 as isize,
                 )
             })
             .unwrap_or_else(|| self.rope.last_index())
