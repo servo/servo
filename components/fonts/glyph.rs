@@ -675,9 +675,9 @@ impl ShapedTextSlice {
         };
 
         let split_glyph_range = if self.shaped_text.is_rtl {
-            self.glyph_range.start..self.glyph_range.start + trimmed_glyph_count
+            self.glyph_range.start..glyph_range.start
         } else {
-            self.glyph_range.end - trimmed_glyph_count..self.glyph_range.end
+            glyph_range.end..self.glyph_range.end
         };
 
         let mut trimmed_characters = Utf32CodeUnits(0);

@@ -255,15 +255,13 @@ fn trailing_white_space_of(
     text: &str,
     style: &ComputedValues,
 ) -> (TrailingWhiteSpace<Utf32CodeUnits>, bool) {
-    let (anything_hangable, anything_removable) = match (
-        style.clone_white_space_collapse(),
-        style.clone_text_wrap_mode(),
-    ) {
-        (WhiteSpaceCollapse::BreakSpaces, _) |
-        (WhiteSpaceCollapse::Preserve, TextWrapMode::Nowrap) => (false, false),
-        (WhiteSpaceCollapse::Preserve, TextWrapMode::Wrap) => (true, false),
-        _ => (true, true),
-    };
+    let (anything_hangable, anything_removable) =
+        match (style.get_white_space_collapse(), style.get_text_wrap_mode()) {
+            (WhiteSpaceCollapse::BreakSpaces, _) |
+            (WhiteSpaceCollapse::Preserve, TextWrapMode::Nowrap) => (false, false),
+            (WhiteSpaceCollapse::Preserve, TextWrapMode::Wrap) => (true, false),
+            _ => (true, true),
+        };
 
     let mut removable = 0;
     let mut hangable = 0;
@@ -493,8 +491,9 @@ impl From<char> for CssTextType {
             // > additional space separator characters. [UNICODE] In this specification all characters
             // > in the Unicode general category Zs except space (U+0020) and no-break space (U+00A0)
             // > are collectively referred to as other space separators.
+            //
+            // Note: ' ' (space) is handled above.
             _ if GeneralCategory::for_char(character) == GeneralCategory::SpaceSeparator &&
-                character != ' ' &&
                 character != '\u{00a0}' =>
             {
                 Self::OtherSpaceSeparator

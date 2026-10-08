@@ -1184,7 +1184,7 @@ impl Fragment {
             // An element target is contentful when one or more of the following apply:
             // > target has a text node child, representing non-empty text, and the node’s
             // > used opacity is greater than zero.
-            if parent_style.clone_opacity() > 0. {
+            if *parent_style.get_opacity() > 0. {
                 builder.mark_is_contentful();
 
                 // Accumulate this text fragment for LCP by the containing element's tag
