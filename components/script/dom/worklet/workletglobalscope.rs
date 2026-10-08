@@ -38,9 +38,9 @@ use crate::dom::testworkletglobalscope::TestWorkletGlobalScope;
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worklet::WorkletExecutor;
 use crate::messaging::MainThreadScriptMsg;
-use crate::modules::script_module::{ModuleRequest, ModuleStatus};
 use crate::realms::enter_auto_realm;
 use crate::runtime::job_queue::job_queue_microtask_checkpoint;
+use crate::scripting::script_module::{ModuleRequest, ModuleStatus};
 use crate::tasks::task::TaskCanceller;
 use crate::tasks::task_manager::TaskManager;
 

@@ -47,7 +47,6 @@ use net_traits::request::{
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use script_bindings::cell::DomRefCell;
-use script_bindings::error::Fallible;
 use script_bindings::reflector::DomObject;
 use script_bindings::trace::CustomTraceable;
 use servo_config::pref;
@@ -57,7 +56,7 @@ use crate::dom::bindings::codegen::Bindings::CSSStyleSheetBinding::{
     CSSStyleSheetInit, CSSStyleSheetMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::MediaListOrString;
-use crate::dom::bindings::error::{Error, throw_dom_exception};
+use crate::dom::bindings::error::throw_dom_exception;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::DomRoot;
@@ -66,22 +65,22 @@ use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::css::cssstylesheet::CSSStyleSheet;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::globalscope::script_execution::fill_compile_options;
 use crate::dom::html::htmlscriptelement::substitute_with_local_script;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promisenativehandler::Callback;
-use crate::dom::script_execution::ScriptOptions;
 use crate::dom::types::{
     DedicatedWorkerGlobalScope, SharedWorkerGlobalScope, WorkerGlobalScope, WorkletGlobalScope,
 };
 use crate::dom::window::Window;
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
-use crate::modules::import_map::{ModuleSpecifierMap, resolve_url_like_module_specifier};
-use crate::modules::module_loading::{
-    LoadState, host_load_imported_module, load_requested_modules,
-};
 use crate::realms::enter_auto_realm;
 use crate::runtime::script_runtime::IntroductionType;
+use crate::scripting::fetching_options::{BaseScript, ScriptFetchOptions};
+use crate::scripting::import_map::ImportMap;
+use crate::scripting::module_loading::{
+    LoadState, host_load_imported_module, load_requested_modules,
+};
+use crate::scripting::script_execution::{ScriptOptions, fill_compile_options};
 use crate::tasks::task::NonSendTaskBox;
 use crate::unminify::{ScriptSource, unminify_js};
 
@@ -129,26 +128,6 @@ impl Debug for RethrowError {
 impl Clone for RethrowError {
     fn clone(&self) -> Self {
         Self(RootedTraceableBox::from_box(Heap::boxed(self.0.get())))
-    }
-}
-
-pub(crate) struct ModuleScript {
-    pub(crate) base_url: ServoUrl,
-    pub(crate) options: ScriptFetchOptions,
-    pub(crate) owner: Option<Trusted<GlobalScope>>,
-}
-
-impl ModuleScript {
-    pub(crate) fn new(
-        base_url: ServoUrl,
-        options: ScriptFetchOptions,
-        owner: Option<Trusted<GlobalScope>>,
-    ) -> Self {
-        ModuleScript {
-            base_url,
-            options,
-            owner,
-        }
     }
 }
 
@@ -247,7 +226,7 @@ impl ModuleTree {
             // Step 3. Set script's settings object to settings.
             // Step 4. Set script's base URL to baseURL.
             // Step 5. Set script's fetch options to options.
-            let module_script_data = Rc::new(ModuleScript::new(url.clone(), options, Some(owner)));
+            let module_script_data = Rc::new(BaseScript::new(url.clone(), options, Some(owner)));
 
             SetModulePrivate(
                 module_script.get(),
@@ -376,106 +355,6 @@ impl ModuleTree {
 
         // Step 7. Return script.
         script
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#resolve-a-module-specifier>
-    pub(crate) fn resolve_module_specifier(
-        global: &GlobalScope,
-        script: Option<&ModuleScript>,
-        specifier: String,
-    ) -> Fallible<ServoUrl> {
-        // Step 1~3 to get settingsObject and baseURL
-        let script_global = script.and_then(|s| s.owner.as_ref().map(|o| o.root()));
-        // Step 1. Let settingsObject and baseURL be null.
-        let (global, base_url): (&GlobalScope, &ServoUrl) = match script {
-            // Step 2. If referringScript is not null, then:
-            // Set settingsObject to referringScript's settings object.
-            // Set baseURL to referringScript's base URL.
-            Some(s) => (script_global.as_ref().map_or(global, |g| g), &s.base_url),
-            // Step 3. Otherwise:
-            // Set settingsObject to the current settings object.
-            // Set baseURL to settingsObject's API base URL.
-            // FIXME(#37553): Is this the correct current settings object?
-            None => (global, &global.api_base_url()),
-        };
-
-        // Step 4. Let importMap be an empty import map.
-        // Step 5. If settingsObject's global object implements Window, then set importMap to settingsObject's
-        // global object's import map.
-        let import_map = if global.is::<Window>() {
-            Some(global.import_map())
-        } else {
-            None
-        };
-
-        // Step 6. Let serializedBaseURL be baseURL, serialized.
-        let serialized_base_url = base_url.as_str();
-        // Step 7. Let asURL be the result of resolving a URL-like module specifier given specifier and baseURL.
-        let as_url = resolve_url_like_module_specifier(&specifier, base_url);
-        // Step 8. Let normalizedSpecifier be the serialization of asURL, if asURL is non-null;
-        // otherwise, specifier.
-        let normalized_specifier = match &as_url {
-            Some(url) => url.as_str(),
-            None => &specifier,
-        };
-
-        // Step 9. Let result be a URL-or-null, initially null.
-        let mut result = None;
-        if let Some(map) = import_map {
-            // Step 10. For each scopePrefix → scopeImports of importMap's scopes:
-            for (prefix, imports) in &map.scopes {
-                // Step 10.1 If scopePrefix is serializedBaseURL, or if scopePrefix ends with U+002F (/)
-                // and scopePrefix is a code unit prefix of serializedBaseURL, then:
-                let prefix = prefix.as_str();
-                if prefix == serialized_base_url ||
-                    (serialized_base_url.starts_with(prefix) && prefix.ends_with('\u{002f}'))
-                {
-                    // Step 10.1.1 Let scopeImportsMatch be the result of resolving an imports match
-                    // given normalizedSpecifier, asURL, and scopeImports.
-                    let scope_imports_match =
-                        resolve_imports_match(normalized_specifier, as_url.as_ref(), imports)?;
-
-                    // Step 10.1.2 If scopeImportsMatch is not null, then set result to scopeImportsMatch, and break.
-                    if scope_imports_match.is_some() {
-                        result = scope_imports_match;
-                        break;
-                    }
-                }
-            }
-
-            // Step 11. If result is null, set result to the result of resolving an imports match given
-            // normalizedSpecifier, asURL, and importMap's imports.
-            if result.is_none() {
-                result =
-                    resolve_imports_match(normalized_specifier, as_url.as_ref(), &map.imports)?;
-            }
-        }
-
-        // Step 12. If result is null, set it to asURL.
-        if result.is_none() {
-            result = as_url.clone();
-        }
-
-        // Step 13. If result is not null, then:
-        match result {
-            Some(result) => {
-                // Step 13.1 Add module to resolved module set given settingsObject, serializedBaseURL,
-                // normalizedSpecifier, and asURL.
-                global.add_module_to_resolved_module_set(
-                    serialized_base_url,
-                    normalized_specifier,
-                    as_url.clone(),
-                );
-                // Step 13.2 Return result.
-                Ok(result)
-            },
-            // Step 14. Throw a TypeError indicating that specifier was a bare specifier,
-            // but was not remapped to anything by importMap.
-            None => Err(Error::Type(
-                c"Specifier was a bare specifier, but was not remapped to anything by importMap."
-                    .to_owned(),
-            )),
-        }
     }
 }
 
@@ -781,77 +660,24 @@ pub(crate) unsafe fn EnsureModuleHooksInitialized(rt: *mut JSRuntime) {
 
 #[expect(unsafe_code)]
 unsafe extern "C" fn host_add_ref_top_level_script(value: *const Value) {
-    let val = unsafe { Rc::from_raw((*value).to_private() as *const ModuleScript) };
+    let val = unsafe { Rc::from_raw((*value).to_private() as *const BaseScript) };
     std::mem::forget(val.clone());
     std::mem::forget(val);
 }
 
 #[expect(unsafe_code)]
 unsafe extern "C" fn host_release_top_level_script(value: *const Value) {
-    let _val = unsafe { Rc::from_raw((*value).to_private() as *const ModuleScript) };
-}
-
-#[derive(Clone, Debug, JSTraceable, MallocSizeOf)]
-/// <https://html.spec.whatwg.org/multipage/#script-fetch-options>
-pub(crate) struct ScriptFetchOptions {
-    pub(crate) integrity_metadata: String,
-    #[no_trace]
-    pub(crate) credentials_mode: CredentialsMode,
-    pub(crate) cryptographic_nonce: String,
-    #[no_trace]
-    pub(crate) parser_metadata: ParserMetadata,
-    #[no_trace]
-    pub(crate) referrer_policy: ReferrerPolicy,
-    /// <https://html.spec.whatwg.org/multipage/#concept-script-fetch-options-render-blocking>
-    /// The boolean value of render-blocking used for the initial fetch and for fetching any imported modules.
-    /// Unless otherwise stated, its value is false.
-    pub(crate) render_blocking: bool,
-}
-
-impl ScriptFetchOptions {
-    /// <https://html.spec.whatwg.org/multipage/#default-classic-script-fetch-options>
-    pub(crate) fn default_classic_script() -> ScriptFetchOptions {
-        Self {
-            cryptographic_nonce: String::new(),
-            integrity_metadata: String::new(),
-            parser_metadata: ParserMetadata::NotParserInserted,
-            credentials_mode: CredentialsMode::CredentialsSameOrigin,
-            referrer_policy: ReferrerPolicy::EmptyString,
-            render_blocking: false,
-        }
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#descendant-script-fetch-options>
-    pub(crate) fn descendant_fetch_options(
-        &self,
-        url: &ServoUrl,
-        global: &GlobalScope,
-    ) -> ScriptFetchOptions {
-        // Step 2. Let integrity be the result of resolving a module integrity metadata with url and settingsObject.
-        let integrity = global.import_map().resolve_a_module_integrity_metadata(url);
-
-        // Step 1. Let newOptions be a copy of originalOptions.
-        // TODO Step 4. Set newOptions's fetch priority to "auto".
-        Self {
-            // Step 3. Set newOptions's integrity metadata to integrity.
-            integrity_metadata: integrity,
-            cryptographic_nonce: self.cryptographic_nonce.clone(),
-            credentials_mode: self.credentials_mode,
-            parser_metadata: self.parser_metadata,
-            referrer_policy: self.referrer_policy,
-            render_blocking: self.render_blocking,
-        }
-    }
+    let _val = unsafe { Rc::from_raw((*value).to_private() as *const BaseScript) };
 }
 
 #[expect(unsafe_code)]
 pub(crate) unsafe fn module_script_from_reference_private<'a>(
     reference_private: Handle<'a, JSVal>,
-) -> Option<&'a ModuleScript> {
+) -> Option<&'a BaseScript> {
     if reference_private.get().is_undefined() {
         return None;
     }
-    unsafe { (reference_private.get().to_private() as *const ModuleScript).as_ref() }
+    unsafe { (reference_private.get().to_private() as *const BaseScript).as_ref() }
 }
 
 #[expect(unsafe_code)]
@@ -993,7 +819,7 @@ unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *
     };
 
     // Step 4.2. Let url be the result of resolving a module specifier given moduleScript and specifier.
-    let url = ModuleTree::resolve_module_specifier(&global_scope, module_data, specifier);
+    let url = ImportMap::resolve_module_specifier(&global_scope, module_data, specifier);
 
     match url {
         Ok(url) => {
@@ -1394,87 +1220,4 @@ impl ResolvedModule {
             specifier_url,
         }
     }
-}
-
-/// <https://html.spec.whatwg.org/multipage/#resolving-an-imports-match>
-///
-/// When the error is thrown, it will terminate the entire resolve a module specifier algorithm
-/// without any further fallbacks.
-fn resolve_imports_match(
-    normalized_specifier: &str,
-    as_url: Option<&ServoUrl>,
-    specifier_map: &ModuleSpecifierMap,
-) -> Fallible<Option<ServoUrl>> {
-    // Step 1. For each specifierKey → resolutionResult of specifierMap:
-    for (specifier_key, resolution_result) in specifier_map {
-        // Step 1.1 If specifierKey is normalizedSpecifier, then:
-        if specifier_key == normalized_specifier {
-            if let Some(resolution_result) = resolution_result {
-                // Step 1.1.2 Assert: resolutionResult is a URL.
-                // This is checked by Url type already.
-                // Step 1.1.3 Return resolutionResult.
-                return Ok(Some(resolution_result.clone()));
-            } else {
-                // Step 1.1.1 If resolutionResult is null, then throw a TypeError.
-                return Err(Error::Type(
-                    c"Resolution of specifierKey was blocked by a null entry.".to_owned(),
-                ));
-            }
-        }
-
-        // Step 1.2 If all of the following are true:
-        // - specifierKey ends with U+002F (/)
-        // - specifierKey is a code unit prefix of normalizedSpecifier
-        // - either asURL is null, or asURL is special, then:
-        if specifier_key.ends_with('\u{002f}') &&
-            normalized_specifier.starts_with(specifier_key) &&
-            (as_url.is_none() || as_url.is_some_and(|u| u.is_special_scheme()))
-        {
-            // Step 1.2.1 If resolutionResult is null, then throw a TypeError.
-            // Step 1.2.2 Assert: resolutionResult is a URL.
-            let Some(resolution_result) = resolution_result else {
-                return Err(Error::Type(
-                    c"Resolution of specifierKey was blocked by a null entry.".to_owned(),
-                ));
-            };
-
-            // Step 1.2.3 Let afterPrefix be the portion of normalizedSpecifier after the initial specifierKey prefix.
-            let after_prefix = normalized_specifier
-                .strip_prefix(specifier_key)
-                .expect("specifier_key should be the prefix of normalized_specifier");
-
-            // Step 1.2.4 Assert: resolutionResult, serialized, ends with U+002F (/), as enforced during parsing.
-            debug_assert!(resolution_result.as_str().ends_with('\u{002f}'));
-
-            // Step 1.2.5 Let url be the result of URL parsing afterPrefix with resolutionResult.
-            let url = ServoUrl::parse_with_base(Some(resolution_result), after_prefix);
-
-            // Step 1.2.6 If url is failure, then throw a TypeError
-            // Step 1.2.7 Assert: url is a URL.
-            let Ok(url) = url else {
-                return Err(Error::Type(
-                    c"Resolution of normalizedSpecifier was blocked since
-                    the afterPrefix portion could not be URL-parsed relative to
-                    the resolutionResult mapped to by the specifierKey prefix."
-                        .to_owned(),
-                ));
-            };
-
-            // Step 1.2.8 If the serialization of resolutionResult is not
-            // a code unit prefix of the serialization of url, then throw a TypeError
-            if !url.as_str().starts_with(resolution_result.as_str()) {
-                return Err(Error::Type(
-                    c"Resolution of normalizedSpecifier was blocked due to
-                    it backtracking above its prefix specifierKey."
-                        .to_owned(),
-                ));
-            }
-
-            // Step 1.2.9 Return url.
-            return Ok(Some(url));
-        }
-    }
-
-    // Step 2. Return null.
-    Ok(None)
 }

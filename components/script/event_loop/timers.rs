@@ -40,16 +40,16 @@ use crate::dom::csp::CspReporting;
 use crate::dom::document::RefreshRedirectDue;
 use crate::dom::eventsource::EventSourceTimeoutCallback;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::globalscope::script_execution::RethrowErrors;
-use crate::dom::script_execution::ScriptOptions;
 #[cfg(feature = "testbinding")]
 use crate::dom::testbinding::TestBindingCallback;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::dom::types::Window;
 use crate::dom::xmlhttprequest::XHRTimeoutCallback;
 use crate::event_loop::script_thread::ScriptThread;
-use crate::modules::script_module::{ScriptFetchOptions, module_script_from_reference_private};
 use crate::runtime::script_runtime::IntroductionType;
+use crate::scripting::fetching_options::ScriptFetchOptions;
+use crate::scripting::script_execution::{RethrowErrors, ScriptOptions};
+use crate::scripting::script_module::module_script_from_reference_private;
 use crate::tasks::task_source::SendableTaskSource;
 
 type TimerKey = i32;
@@ -1101,6 +1101,7 @@ impl TimerListener {
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 pub(crate) struct InitiatingScriptFetchInfo {
+    #[no_trace]
     fetch_options: ScriptFetchOptions,
     #[no_trace]
     base_url: ServoUrl,
