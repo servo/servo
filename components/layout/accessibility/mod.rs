@@ -1633,7 +1633,7 @@ fn test_accessibility_update_add_some_nodes_twice() {
             ],
             tree: None,
             tree_id: accesskit::TreeId::ROOT,
-            focus: NodeId(0),
+            focus: NodeId(2),
         }
     );
 }
