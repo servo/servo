@@ -1835,8 +1835,8 @@ async fn block_for_cache_ready<'a>(
             // Step 8.25.2 If storedResponse is non-null, then:
             if let Some(response_from_cache) = stored_response {
                 let response_headers = response_from_cache.response.headers.clone();
-                let validation_status = response_from_cache.validation_status;
-                let revalidation_guard = response_from_cache.revalidation_guard.clone();
+                let validation_status = &response_from_cache.validation_status;
+                let revalidation_guard = &response_from_cache.revalidation_guard;
 
                 // Substep 1, 2, 3, 4
                 let (cached_response, needs_synchronous_revalidation) =
@@ -1850,7 +1850,7 @@ async fn block_for_cache_ready<'a>(
                         (CacheMode::Reload, _) => (None, false),
                         (_, _) => (
                             Some(response_from_cache.response),
-                            validation_status ==
+                            *validation_status ==
                                 (ValidationStatus::Stale {
                                     revalidate_in_background: false,
                                 }),
@@ -1874,12 +1874,16 @@ async fn block_for_cache_ready<'a>(
                 } else {
                     // Substep 6
                     // If it's a stale-while-revalidate response, also refresh it in the background.
-                    let revalidate_in_background = validation_status ==
+                    let revalidate_in_background = *validation_status ==
                         (ValidationStatus::Stale {
                             revalidate_in_background: true,
                         });
                     if revalidate_in_background && cached_response.is_some() {
-                        spawn_stale_while_revalidate(context, http_request, revalidation_guard);
+                        spawn_stale_while_revalidate(
+                            context,
+                            http_request,
+                            revalidation_guard.clone(),
+                        );
                     }
                     *response = cached_response;
                     if let Some(response) = response {
@@ -2677,7 +2681,7 @@ fn cors_check(request: &Request, response: &Response) -> Result<(), ()> {
         // Step 2. If origin is null, then return failure.
         return Err(());
     };
-    let origin = origins.into_iter().map(char::from).collect::<String>();
+    let origin = String::from_utf8(origins).map_err(|_| ())?;
 
     // Step 3. If request’s credentials mode is not "include" and origin is `*`, then return success.
     if request.credentials_mode != CredentialsMode::Include && origin == "*" {

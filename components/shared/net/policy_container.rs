@@ -27,6 +27,15 @@ pub enum RequestPolicyContainer {
     PolicyContainer(#[conditional_malloc_size_of] Arc<PolicyContainer>),
 }
 
+impl RequestPolicyContainer {
+    pub fn policy_container(&self) -> Option<&PolicyContainer> {
+        match self {
+            RequestPolicyContainer::Client => None,
+            RequestPolicyContainer::PolicyContainer(policy_container) => Some(policy_container),
+        }
+    }
+}
+
 /// <https://html.spec.whatwg.org/multipage/#policy-containers>
 #[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
 pub struct PolicyContainer {
