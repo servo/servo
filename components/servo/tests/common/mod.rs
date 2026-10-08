@@ -13,8 +13,8 @@ use embedder_traits::EventLoopWaker;
 use paint_api::rendering_context::{RenderingContext, SoftwareRenderingContext};
 use servo::{
     ConsoleLogLevel, EmbedderControl, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus,
-    MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent, Preferences, Servo,
-    ServoBuilder, SimpleDialog, WebView, WebViewDelegate,
+    MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent, Preferences, ScreenGeometry,
+    Servo, ServoBuilder, SimpleDialog, WebView, WebViewDelegate,
 };
 use webrender_api::units::DevicePoint;
 
@@ -97,6 +97,7 @@ pub(crate) struct WebViewDelegateImpl {
     pub(crate) console_messages: RefCell<Vec<(ConsoleLogLevel, String)>>,
     pub(crate) fullscreen: Cell<bool>,
     pub(crate) crashes: Cell<usize>,
+    pub(crate) screen_geometry: Cell<Option<ScreenGeometry>>,
 }
 
 #[allow(dead_code)] // Used by some tests and not others
@@ -112,6 +113,7 @@ impl WebViewDelegateImpl {
         self.console_messages.borrow_mut().clear();
         self.fullscreen.set(false);
         self.crashes.set(0);
+        self.screen_geometry.set(None);
     }
 }
 
@@ -174,6 +176,10 @@ impl WebViewDelegate for WebViewDelegateImpl {
 
     fn notify_crashed(&self, _webview: WebView, _reason: String, _backtrace: Option<String>) {
         self.crashes.set(self.crashes.get() + 1);
+    }
+
+    fn screen_geometry(&self, _webview: WebView) -> Option<ScreenGeometry> {
+        self.screen_geometry.get()
     }
 }
 

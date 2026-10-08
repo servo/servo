@@ -2182,22 +2182,22 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-screenx>
     fn ScreenX(&self) -> i32 {
-        self.client_window().min.x
+        self.screen_position().x
     }
 
     /// <https://drafts.csswg.org/cssom-view/#ref-for-dom-window-screenleft>
     fn ScreenLeft(&self) -> i32 {
-        self.client_window().min.x
+        self.screen_position().x
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-screeny>
     fn ScreenY(&self) -> i32 {
-        self.client_window().min.y
+        self.screen_position().y
     }
 
     /// <https://drafts.csswg.org/cssom-view/#ref-for-dom-window-screentop>
     fn ScreenTop(&self) -> i32 {
-        self.client_window().min.y
+        self.screen_position().y
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-outerheight>
@@ -2609,6 +2609,11 @@ impl Window {
         self.send_to_embedder(EmbedderMsg::GetWindowRect(self.webview_id(), sender));
 
         receiver.recv().unwrap_or_default()
+    }
+
+    pub(crate) fn screen_position(&self) -> Point2D<i32, CSSPixel> {
+        let min = self.client_window().min;
+        Point2D::new(min.x, min.y)
     }
 
     /// Prepares to tick animations and then does a reflow which also advances the

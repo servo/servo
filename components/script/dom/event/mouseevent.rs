@@ -233,6 +233,7 @@ impl MouseEvent {
         event_name: FireMouseEventType,
         hit_test_result: &HitTestResult,
         input_event: &ConstellationInputEvent,
+        screen_point: Point2D<i32, CSSPixel>,
     ) -> DomRoot<Self> {
         // These values come from the event tables in
         // <https://w3c.github.io/pointerevents/#mouse-event-types>.
@@ -255,7 +256,7 @@ impl MouseEvent {
             cancelable,
             Some(window),
             0i32,
-            hit_test_result.point_in_frame.to_i32(),
+            screen_point,
             hit_test_result.point_in_frame.to_i32(),
             hit_test_result
                 .point_relative_to_initial_containing_block
@@ -287,6 +288,7 @@ impl MouseEvent {
         hit_test_result: &HitTestResult,
         modifiers: Modifiers,
         click_count: usize,
+        screen_point: Point2D<i32, CSSPixel>,
     ) -> DomRoot<Self> {
         let client_point = hit_test_result.point_in_frame.to_i32();
         let page_point = hit_test_result
@@ -301,7 +303,7 @@ impl MouseEvent {
             EventCancelable::Cancelable,
             Some(window),
             click_count as i32,
-            client_point, // TODO: Get real screen coordinates?
+            screen_point,
             client_point,
             page_point,
             modifiers,

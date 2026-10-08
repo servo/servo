@@ -71,6 +71,14 @@ impl WebViewPoint {
             Self::Page(point) => *point * scale,
         }
     }
+
+    /// Convert this [`WebViewPoint`] to CSS pixels using the given HiDPI scale factor.
+    pub fn to_css_pixel(&self, scale: Scale<f32, CSSPixel, DevicePixel>) -> Point2D<f32, CSSPixel> {
+        match self {
+            Self::Device(point) => *point / scale,
+            Self::Page(point) => *point,
+        }
+    }
 }
 
 impl From<DevicePoint> for WebViewPoint {
