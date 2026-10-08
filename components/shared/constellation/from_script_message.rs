@@ -83,6 +83,39 @@ pub enum LoadOrigin {
     Script(OriginSnapshot),
 }
 
+/// Messages sent from the service worker manager to the constellation.
+#[derive(Debug, Deserialize, IntoStaticStr, Serialize)]
+pub enum ServiceWorkerManagerMsg {
+    /// <https://w3c.github.io/ServiceWorker/#update-worker-state>
+    UpdateWorkerState {
+        /// The identity of the service worker.
+        worker_id: ServiceWorkerId,
+        /// The new state of the service worker.
+        state: ServiceWorkerState,
+        /// The script url origin.
+        origin: ImmutableOrigin,
+    },
+}
+
+/// <https://w3c.github.io/ServiceWorker/#dfn-state>
+/// A service worker has an associated state, which is one of:
+#[derive(Clone, Debug, Deserialize, IntoStaticStr, Serialize)]
+pub enum ServiceWorkerState {
+    /// "parsed".
+    /// It is initially "parsed".
+    Parsed,
+    /// "installing".
+    Installing,
+    /// "installed".
+    Installed,
+    /// "activating".
+    Activating,
+    /// "activated".
+    Activated,
+    /// "redundant".
+    Redundant,
+}
+
 /// can be passed to `LoadUrl` to load a page with GET/POST
 /// parameters or headers
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -253,6 +286,8 @@ pub struct DOMMessage {
 /// Channels to allow service worker manager to communicate with constellation and resource thread
 #[derive(Deserialize, Serialize)]
 pub struct SWManagerSenders {
+    /// Sender of messages to the constellation.
+    pub constellation_sender: GenericSender<ServiceWorkerManagerMsg>,
     /// [`ResourceThreads`] for initating fetches or using i/o.
     pub resource_threads: ResourceThreads,
     /// [`CrossProcessPaintApi`] for communicating with `Paint`.
