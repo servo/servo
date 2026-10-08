@@ -563,6 +563,10 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
         );
         box_slot.set(LayoutBox::InlineLevel(inline_item));
 
+        if info.node.is_html_wbr_element() {
+            inline_builder.push_soft_wrap_opportunity();
+        }
+
         if is_list_item &&
             let Some((marker_info, marker_contents)) =
                 crate::lists::make_marker(self.context, info)

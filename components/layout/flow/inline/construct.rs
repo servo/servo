@@ -539,6 +539,12 @@ impl InlineFormattingContextBuilder {
             default_bidi_level,
         ))
     }
+
+    /// Push a soft wrap opportunity to this [`InlineFormattingContextBuilder`] which pushes
+    /// a zero-width space to the text content.
+    pub(crate) fn push_soft_wrap_opportunity(&mut self) {
+        self.push_control_character_string("\u{200B}");
+    }
 }
 
 /// Computes the range of the first letter.
