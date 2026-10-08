@@ -2795,14 +2795,13 @@ impl WebGLImpl {
         gl: &Gl,
         program_id: WebGLProgramId,
         name: &str,
-        chan: &GenericSender<i32>,
+        chan: &GenericSender<Option<i32>>,
     ) {
         let location = unsafe {
             gl.get_uniform_location(program_id.glow(), &to_name_in_compiled_shader(name))
         };
         // (#34300): replace this with WebGLUniformId
-        chan.send(location.map(|l| l.0).unwrap_or_default() as i32)
-            .unwrap();
+        chan.send(location.map(|l| l.0 as i32)).unwrap();
     }
 
     fn shader_info_log(gl: &Gl, shader_id: WebGLShaderId, chan: &GenericSender<String>) {
