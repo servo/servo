@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<title>Column Flex Child Center with Indefinite</title>
+<title>Column Flex Child Center with Indefinite Height</title>
 <link rel="author" title="Tin Tun Aung" mailto="rayguo17@gmail.com">
 <link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#algo-main-item">
 <link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#main-size">
@@ -15,16 +15,16 @@
     flex-direction: column;
 }
 .enrichment-status {
-    min-height: 30px;
+    min-height: 100px;
     border: 1px solid black;
-    display: inline-flex;
+    display: flex;
     align-items: center;
     width: max-content;
 }
 </style>
 </head>
 <body>
-<p>Test passes if hello is align to <strong>center</strong>.</p>
+<p>Test passes if hello is vertically aligned to <strong>center</strong>.</p>
 <div class="container">
     <span class="enrichment-status" >
     hello
