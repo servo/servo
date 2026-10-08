@@ -719,6 +719,12 @@ impl HeadedWindow {
                     Ime::Commit(text) => {
                         webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
                             servo::CompositionEvent {
+                                state: servo::CompositionState::Update,
+                                data: text.clone(),
+                            },
+                        )));
+                        webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(
+                            servo::CompositionEvent {
                                 state: servo::CompositionState::End,
                                 data: text,
                             },

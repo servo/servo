@@ -21,7 +21,7 @@ use embedder_traits::{
 use euclid::{Point2D, Vector2D};
 use js::context::{JSContext, NoGC};
 use keyboard_types::{
-    Code, Key, KeyState, KeyboardEvent as KeyboardTypesEvent, Modifiers, NamedKey,
+    Code, CompositionState, Key, KeyState, KeyboardEvent as KeyboardTypesEvent, Modifiers, NamedKey,
 };
 use layout_api::{HitTestFlags, ScrollContainerQueryFlags, node_id_from_scroll_id};
 use rustc_hash::FxHashMap;
@@ -52,7 +52,9 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::bindings::trace::NoTrace;
 use crate::dom::document::FireMouseEventType;
-use crate::dom::document::editing::editing_action_from_keyboard_event;
+use crate::dom::document::editing::{
+    editing_action_from_composition_event, editing_action_from_keyboard_event,
+};
 use crate::dom::document::focus::FocusableArea;
 use crate::dom::document::interactive_element_command::InteractiveElementCommand;
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventFlags};
@@ -1763,7 +1765,7 @@ impl DocumentEventHandler {
             return Default::default();
         };
 
-        let cancelable = composition_event.state == keyboard_types::CompositionState::Start;
+        let cancelable = composition_event.state == CompositionState::Start;
         let event = CompositionEvent::new(
             cx,
             &self.window,
@@ -1772,12 +1774,27 @@ impl DocumentEventHandler {
             cancelable,
             Some(&self.window),
             0,
-            DOMString::from(composition_event.data),
+            DOMString::from(composition_event.data.as_str()),
         );
 
         let event = event.upcast::<Event>();
         event.fire(cx, focused_element.upcast());
-        event.flags().into()
+        let composition_event_result: InputEventResult = event.flags().into();
+
+        if event
+            .flags()
+            .intersects(EventFlags::Canceled | EventFlags::Handled)
+        {
+            return composition_event_result;
+        }
+
+        let editing_action = editing_action_from_composition_event(&composition_event);
+        let editing_host = document.editing_context(cx.no_gc(), focused_element.upcast());
+        if editing_host.perform_editing_action(cx, editing_action) {
+            return composition_event_result | InputEventResult::Consumed;
+        }
+
+        composition_event_result
     }
 
     fn handle_wheel_event(

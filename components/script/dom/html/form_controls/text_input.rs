@@ -23,7 +23,6 @@ use servo_base::{Rope, RopeIndex, RopeMovement, RopeSlice};
 
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::editing::SelectionGranularity;
 use crate::dom::event::Event;
 use crate::dom::inputevent::HitTestResult;
@@ -577,6 +576,18 @@ impl<T: ClipboardProvider> TextInput<T> {
                     InputEventType::InsertText,
                 )
             },
+            EditingAction::InsertCompositionText(text) => {
+                self.insert_for_composition(&text);
+                KeyReaction::DispatchInput(
+                    Some(text),
+                    IsComposing::Composing,
+                    InputEventType::InsertCompositionText,
+                )
+            },
+            EditingAction::EndComposition(..) => {
+                self.clear_selection();
+                KeyReaction::RedrawSelection
+            },
             EditingAction::Delete => {
                 if self.delete_unit_or_selection(RopeMovement::Grapheme, EditingDirection::Forward)
                 {
@@ -609,44 +620,21 @@ impl<T: ClipboardProvider> TextInput<T> {
                     KeyReaction::Nothing
                 }
             },
-            EditingAction::SelectAll | EditingAction::Clipboard(..) => KeyReaction::Nothing,
+            EditingAction::SelectAll |
+            EditingAction::Clipboard(..) |
+            EditingAction::StartComposition => KeyReaction::Nothing,
         }
     }
 
-    pub(crate) fn handle_compositionend(&mut self, event: &CompositionEvent) -> KeyReaction {
-        let insertion = event.data().str();
-        if insertion.is_empty() {
-            self.clear_selection();
-            return KeyReaction::RedrawSelection;
-        }
-
-        self.insert(insertion.to_string());
-        KeyReaction::DispatchInput(
-            Some(insertion.to_string()),
-            IsComposing::NotComposing,
-            InputEventType::InsertCompositionText,
-        )
-    }
-
-    pub(crate) fn handle_compositionupdate(&mut self, event: &CompositionEvent) -> KeyReaction {
-        let insertion = event.data().str();
-        if insertion.is_empty() {
-            return KeyReaction::Nothing;
-        }
-
+    fn insert_for_composition<S: Into<String>>(&mut self, insertion: S) {
         let start = self.selection_start_offset();
-        let insertion = insertion.to_string();
-        self.insert(insertion.clone());
+        let insertion = insertion.into();
+        self.insert(&insertion);
         self.set_selection_range_utf8(
             start,
-            start + event.data().len_utf8(),
+            start + Utf8CodeUnits(insertion.len() as u32),
             SelectionDirection::Forward,
         );
-        KeyReaction::DispatchInput(
-            Some(insertion),
-            IsComposing::Composing,
-            InputEventType::InsertCompositionText,
-        )
     }
 
     fn edit_point_for_hit_test_result(&self, hit_test_result: &HitTestResult) -> RopeIndex {

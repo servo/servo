@@ -12,7 +12,6 @@ use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::SelectionBinding::SelectionMethods;
-use script_bindings::traits::DomEventTrait;
 use servo_base::text::{RangeAny, Utf16CodeUnits, Utf32CodeUnits};
 use style::attr::AttrValue;
 use stylo_dom::ElementState;
@@ -25,7 +24,6 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::compositionevent::CompositionEvent;
 use crate::dom::document::Document;
 use crate::dom::document_embedder_controls::ControlElement;
 use crate::dom::element::attributes::storage::AttrRef;
@@ -42,7 +40,7 @@ use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{FormControl, HTMLFormElement};
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
-    BindContext, ChildrenMutation, CloneChildrenFlag, Node, NodeDamage, NodeTraits, UnbindContext,
+    BindContext, ChildrenMutation, CloneChildrenFlag, Node, NodeTraits, UnbindContext,
 };
 use crate::dom::nodelist::NodeList;
 use crate::dom::text_input::EmbedderClipboardProvider;
@@ -776,31 +774,7 @@ impl VirtualMethods for HTMLTextAreaElement {
 
     // copied and modified from htmlinputelement.rs
     fn handle_event(&self, cx: &mut JSContext, event: &Event) {
-        if (event.type_() == atom!("compositionstart") ||
-            event.type_() == atom!("compositionupdate") ||
-            event.type_() == atom!("compositionend")) &&
-            event.IsTrusted()
-        {
-            if let Some(compositionevent) = event.downcast::<CompositionEvent>() {
-                if event.type_() == atom!("compositionend") {
-                    let action = self
-                        .text_input
-                        .borrow_mut()
-                        .handle_compositionend(compositionevent);
-                    self.handle_key_reaction(cx, action);
-                    self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
-                } else if event.type_() == atom!("compositionupdate") {
-                    let action = self
-                        .text_input
-                        .borrow_mut()
-                        .handle_compositionupdate(compositionevent);
-                    self.handle_key_reaction(cx, action);
-                    self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
-                }
-                self.maybe_update_shared_selection();
-                event.mark_as_handled();
-            }
-        } else if let Some(event) = event.downcast::<FocusEvent>() {
+        if let Some(event) = event.downcast::<FocusEvent>() {
             self.handle_focus_event(cx, event);
         }
 

@@ -120,11 +120,14 @@ pub enum EditingAction {
     Backspace(EditingMotion),
     Clipboard(ClipboardAction),
     Delete,
+    EndComposition(String),
+    InsertCompositionText(String),
     InsertNewline,
     InsertParagraph,
     InsertText(String),
     MoveCursor(EditingDirection, EditingMotion, ModifySelection),
     SelectAll,
+    StartComposition,
 }
 
 impl InputEvent {
