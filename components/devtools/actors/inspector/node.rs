@@ -260,6 +260,10 @@ impl Actor for NodeActor {
 }
 
 impl NodeActor {
+    pub(crate) fn parent_script_id(&self) -> String {
+        self.node_info.borrow().parent.clone()
+    }
+
     pub fn register_or_update(
         registry: &ActorRegistry,
         walker_name: &str,
