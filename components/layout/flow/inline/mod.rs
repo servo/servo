@@ -549,7 +549,24 @@ impl LineUnderConstruction {
                 LineItem::InlineEndBoxPaddingBorderMargin(_) |
                 LineItem::Float(..) |
                 LineItem::AbsolutelyPositioned(..) => continue,
-                LineItem::Atomic(..) | LineItem::BlockLevel(..) | LineItem::Tab { .. } => break,
+                LineItem::Atomic(..) | LineItem::BlockLevel(..) => break,
+                LineItem::Tab {
+                    conditionally_hangs,
+                    advance,
+                    ..
+                } => {
+                    if !*conditionally_hangs {
+                        break;
+                    }
+
+                    if white_space_still_hanging_conditionally {
+                        conditionally_hanging += *advance;
+                    } else {
+                        unconditionally_hanging += *advance;
+                    }
+
+                    continue;
+                },
                 LineItem::TextRun(_, text_run) => text_run,
             };
 
@@ -561,7 +578,8 @@ impl LineUnderConstruction {
                 count.hangable += count.removable;
             }
 
-            if white_space_still_hanging_conditionally && text_run.white_space_hangs_conditionally()
+            let style = text_run.text_fragment_run_data.inline_styles.style.borrow();
+            if white_space_still_hanging_conditionally && style.white_space_may_hang_conditionally()
             {
                 conditionally_hanging += count.hangable;
             } else {
@@ -3126,9 +3144,11 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
                             // and start measuring from the inline origin once more.
                             self.forced_line_break();
                         },
-                        TextRunItem::Tab { .. } => {
-                            self.process_preserved_tab(&parent_style, inline_formatting_context)
-                        },
+                        TextRunItem::Tab { break_at_start, .. } => self.process_preserved_tab(
+                            &parent_style,
+                            inline_formatting_context,
+                            *break_at_start,
+                        ),
                         TextRunItem::TextSegment(segment) => {
                             self.process_text_segment(&parent_style, segment)
                         },
@@ -3216,9 +3236,8 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
         // > are not taken into account when computing min-content sizes and any sizes
         // > derived thereof, but they are taken into account for max-content sizes and any
         // > sizes derived thereof.
-        let hangable_characters_count_for_max_content = style_text.white_space_collapse ==
-            WhiteSpaceCollapse::Preserve &&
-            style_text.text_wrap_mode == TextWrapMode::Wrap;
+        let hangable_characters_count_for_max_content =
+            parent_style.white_space_may_hang_conditionally();
 
         for (run_index, run) in segment.runs.iter().enumerate() {
             // Break before each unbreakable run in this TextRun, except the first unless the
@@ -3256,15 +3275,33 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
         &mut self,
         parent_style: &AtomicRef<'_, ServoArc<ComputedValues>>,
         inline_formatting_context: &InlineFormattingContext,
+        break_at_start: bool,
     ) {
-        self.commit_pending_opening_pbm_for_inline_boxes();
-        self.commit_pending_whitespace();
+        let can_wrap = parent_style.get_inherited_text().text_wrap_mode == TextWrapMode::Wrap;
+        if break_at_start && can_wrap {
+            self.line_break_opportunity();
+        }
 
-        self.current_line.min_content += inline_formatting_context
+        self.commit_pending_opening_pbm_for_inline_boxes();
+
+        let conditionally_hangs = parent_style.white_space_may_hang_conditionally();
+        if !conditionally_hangs {
+            self.commit_pending_whitespace();
+        }
+
+        let next_tab_stop_for_min_content = inline_formatting_context
             .next_tab_stop_after_inline_advance(parent_style, self.current_line.min_content);
-        self.current_line.max_content += inline_formatting_context
+        let next_tab_stop_for_max_content = inline_formatting_context
             .next_tab_stop_after_inline_advance(parent_style, self.current_line.max_content);
-        if parent_style.get_inherited_text().text_wrap_mode == TextWrapMode::Wrap {
+
+        if conditionally_hangs {
+            self.pending_whitespace.min_content += next_tab_stop_for_min_content;
+        } else {
+            self.current_line.min_content += next_tab_stop_for_min_content;
+        }
+        self.current_line.max_content += next_tab_stop_for_max_content;
+
+        if can_wrap {
             self.line_break_opportunity();
         }
     }

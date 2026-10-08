@@ -236,7 +236,7 @@ fn suppresses_line_break_for_keep_all(character: char) -> bool {
     !matches!(line_break_class, LineBreak::ComplexContext)
 }
 
-fn breaks_for_break_spaces(character: char) -> bool {
+pub(crate) fn breaks_for_break_spaces(character: char) -> bool {
     match CssTextType::from(character) {
         CssTextType::NonWhiteSpace => false,
         CssTextType::DocumentWhiteSpace => true,
