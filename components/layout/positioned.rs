@@ -1024,9 +1024,11 @@ impl AbsoluteAxisSolver {
             AlignFlags::SELF_END if self_value_matches_container() => AlignFlags::END,
             AlignFlags::SELF_END => AlignFlags::START,
             // https://drafts.csswg.org/css-align/#valdef-justify-content-left
+            AlignFlags::LEFT if self.axis == Direction::Block => AlignFlags::START,
             AlignFlags::LEFT if alignment_container_writing_mode.is_bidi_ltr() => AlignFlags::START,
             AlignFlags::LEFT => AlignFlags::END,
             // https://drafts.csswg.org/css-align/#valdef-justify-content-right
+            AlignFlags::RIGHT if self.axis == Direction::Block => AlignFlags::START,
             AlignFlags::RIGHT if alignment_container_writing_mode.is_bidi_ltr() => AlignFlags::END,
             AlignFlags::RIGHT => AlignFlags::START,
             // https://drafts.csswg.org/css-align/#valdef-self-position-end
