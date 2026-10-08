@@ -24,12 +24,12 @@ use script_bindings::inheritance::Castable;
 use script_bindings::root::DomRoot;
 use script_bindings::str::DOMString;
 use servo_base::generic_channel::GenericCallback;
-use servo_base::text::Utf32CodeUnitsOrNodeOffset;
 
 use crate::dom::clipboardevent::ClipboardEventType;
 use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::execcommand::execcommands::DocumentExecCommandSupport;
 use crate::dom::inputevent::HitTestResult;
+use crate::dom::selection_range::RootedSelectionBoundary;
 use crate::dom::text_control::TextControlElement;
 use crate::dom::text_input::{InputEventType, IsComposing};
 use crate::dom::types::{
@@ -475,17 +475,16 @@ impl Document {
         // When the hit test cannot find a suitable DOM position for selection, just
         // use the first offset within the target node of the `mousedown` event. This
         // is a reasonable place to start the selection from.
-        let (container, offset) = hit_test_result
+        let boundary = hit_test_result
             .dom_position_for_selection
-            .as_ref()
-            .map(|(node, offset)| (node, *offset))
-            .unwrap_or((&hit_test_result.node, Utf32CodeUnitsOrNodeOffset(0)));
-        let Some((container, offset, user_select_contain_node)) =
-            adjust_anchor_for_user_select(cx, container.clone(), offset)
+            .clone()
+            .unwrap_or_else(|| RootedSelectionBoundary::start_of(&hit_test_result.node));
+        let Some((boundary, user_select_contain_node)) =
+            adjust_anchor_for_user_select(cx, boundary)
         else {
             return;
         };
-        selection.collapse_to_dom_position(cx, &container, offset);
+        selection.collapse_to_dom_position(cx, &boundary);
         self.event_handler().install_drag_gesture(DragGesture::new(
             DragHandler::DocumentSelection(DocumentSelectionDragHandler::new(
                 user_select_contain_node.as_deref(),
