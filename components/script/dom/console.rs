@@ -249,9 +249,9 @@ mod devtools {
                 }
 
                 seen.push(handle_value.asBits_);
-            rooted!(&in(cx) let object = handle_value.to_object());
+                rooted!(&in(cx) let object = handle_value.to_object());
                 let console_object = console_object_from_handle_value(cx, handle_value, seen);
-            let prototype = object_prototype_debugger_value(cx, object.handle(), seen)?;
+                let prototype = object_prototype_debugger_value(cx, object.handle(), seen)?;
                 let js_value = seen.pop();
                 debug_assert_eq!(js_value, Some(handle_value.asBits_));
 
@@ -261,7 +261,7 @@ mod devtools {
                         class,
                         own_property_length: preview.own_properties_length,
                         preview: Some(Box::new(preview)),
-                    prototype,
+                        prototype,
                     });
                 }
 
@@ -283,50 +283,28 @@ mod devtools {
         }
     }
 
-#[expect(unsafe_code)]
-#[cfg(feature = "devtools")]
-fn object_prototype_debugger_value(
-    cx: &mut JSContext,
-    object: HandleObject,
-    seen: &mut Vec<u64>,
-) -> Result<Option<Box<DebuggerValue>>, ()> {
-    rooted!(&in(cx) let mut prototype = ptr::null_mut::<jsapi::JSObject>());
-    if unsafe { !JS_GetPrototype(cx, object, prototype.handle_mut()) } {
-        return Err(());
-    }
-    if prototype.is_null() {
-        return Ok(Some(Box::new(DebuggerValue::NullValue(false))));
-    }
+    #[cfg(feature = "devtools")]
+    #[expect(unsafe_code)]
+    fn object_prototype_debugger_value(
+        cx: &mut JSContext,
+        object: HandleObject,
+        seen: &mut Vec<u64>,
+    ) -> Result<Option<Box<DebuggerValue>>, ()> {
+        rooted!(&in(cx) let mut prototype = ptr::null_mut::<jsapi::JSObject>());
+        if unsafe { !JS_GetPrototype(cx, object, prototype.handle_mut()) } {
+            return Err(());
+        }
+        if prototype.is_null() {
+            return Ok(Some(Box::new(DebuggerValue::NullValue(false))));
+        }
 
-    rooted!(&in(cx) let prototype = ObjectValue(prototype.get()));
-    Ok(Some(Box::new(console_argument_from_handle_value(
-        cx,
-        prototype.handle(),
-        seen,
-    ))))
-}
-
-#[expect(unsafe_code)]
-fn object_prototype_debugger_value(
-    cx: &mut JSContext,
-    object: HandleObject,
-    seen: &mut Vec<u64>,
-) -> Result<Option<Box<DebuggerValue>>, ()> {
-    rooted!(&in(cx) let mut prototype = ptr::null_mut::<jsapi::JSObject>());
-    if unsafe { !JS_GetPrototype(cx, object, prototype.handle_mut()) } {
-        return Err(());
+        rooted!(&in(cx) let prototype = ObjectValue(prototype.get()));
+        Ok(Some(Box::new(console_argument_from_handle_value(
+            cx,
+            prototype.handle(),
+            seen,
+        ))))
     }
-    if prototype.is_null() {
-        return Ok(Some(Box::new(DebuggerValue::NullValue(false))));
-    }
-
-    rooted!(&in(cx) let prototype = ObjectValue(prototype.get()));
-    Ok(Some(Box::new(console_argument_from_handle_value(
-        cx,
-        prototype.handle(),
-        seen,
-    ))))
-}
 
     fn accessor_value_from_property_descriptor(descriptor: &PropertyDescriptor) -> DebuggerValue {
         // https://console.spec.whatwg.org/#printer
