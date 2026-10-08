@@ -3243,7 +3243,7 @@ impl GlobalScope {
     /// <https://www.w3.org/TR/CSP/#get-csp-of-object>
     pub(crate) fn get_csp_list(&self) -> Option<CspList> {
         if self.is::<Window>() || self.is::<WorkerGlobalScope>() {
-            return Arc::unwrap_or_clone(self.policy_container()).csp_list;
+            return self.policy_container().csp_list.clone();
         }
         // TODO: Worklet global scopes.
         None
