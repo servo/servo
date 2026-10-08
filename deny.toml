@@ -216,6 +216,11 @@ skip = [
     "phf_generator",
     "phf_macros",
     "phf_shared",
+
+    # Duplicated by serde_with crate (proc macro helpers, so no binary size increase)
+    "darling",
+    "darling_core",
+    "darling_macro",
 ]
 
 # github.com organizations to allow git sources for
