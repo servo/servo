@@ -68,7 +68,8 @@ use crate::dom::medialist::MediaList;
 use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
-    BindContext, MoveContext, Node, NodeTraits, UnbindContext, from_untrusted_node_address,
+    BindContext, MoveContext, Node, NodeDamage, NodeTraits, UnbindContext,
+    from_untrusted_node_address,
 };
 use crate::dom::shadowroot::shadowroot::ShadowRoot;
 use crate::dom::text::Text;
@@ -1350,12 +1351,10 @@ impl VirtualMethods for HTMLElement {
                 },
             },
             // containertiming is not in html5ever, so for now we check manually
-            (name, mutation) if &**name == "containertiming" => {
-                let node = self.upcast::<Node>();
-                let enabled = matches!(mutation, AttributeMutation::Set(..));
-                for descendant in node.traverse_preorder(ShadowIncluding::No) {
-                    descendant.set_has_container_timing(enabled);
-                }
+            // Layout records these attributes as fragment flags when it builds this element's
+            // boxes, so the boxes have to be rebuilt when they change.
+            (name, _) if &**name == "containertiming" || &**name == "containertimingignore" => {
+                self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
             },
             _ => {},
         }

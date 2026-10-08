@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use euclid::Box2D;
 use js::context::JSContext;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use time::Duration;
 use webrender_api::units::LayoutPixel;
@@ -77,7 +77,8 @@ impl PerformanceContainerTiming {
         last_painted_element: Option<&Element>,
         root_element: Option<&Element>,
     ) -> DomRoot<PerformanceContainerTiming> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(PerformanceContainerTiming::new_inherited(
                 identifier,
                 intersection_rect,
@@ -88,7 +89,6 @@ impl PerformanceContainerTiming {
                 root_element,
             )),
             global,
-            cx,
         )
     }
 }

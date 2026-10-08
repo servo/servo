@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
 
 use app_units::Au;
 use euclid::Rect;
@@ -18,7 +19,7 @@ use style::properties::ComputedValues;
 use webrender_api::units::{LayoutRect, LayoutSize};
 
 use super::painted_region::PaintedRegion;
-use crate::fragment_tree::Tag;
+use crate::fragment_tree::{BaseFragment, FragmentFlags, Tag};
 use crate::query::transform_f32_rectangle;
 
 /// <https://w3c.github.io/paint-timing/#pending-image-record>
@@ -62,13 +63,61 @@ enum LCPCandidateType<'a> {
     Text,
 }
 
+/// <https://wicg.github.io/container-timing/#get-the-container-root-element>
+/// One link in the chain of Container Timing roots that marks a point in the fragment
+/// tree, nearest first. The chain is passed down the stacking context tree build and the
+/// paint traversal,
+#[derive(Debug)]
+pub(crate) struct ContainerTimingRootChain {
+    root: OpaqueNode,
+    parent: ContainerTimingRoots,
+}
+
+pub(crate) type ContainerTimingRoots = Option<Rc<ContainerTimingRootChain>>;
+
+impl ContainerTimingRootChain {
+    /// Returns the roots that apply to the contents of the fragment with the given `base`,
+    /// given the `inherited` roots that apply to the fragment itself.
+    pub(crate) fn for_contents_of(
+        inherited: &ContainerTimingRoots,
+        base: &BaseFragment,
+    ) -> ContainerTimingRoots {
+        let flags = base.flags;
+        let ignore = flags.contains(FragmentFlags::IS_CONTAINER_TIMING_IGNORE);
+        let root = base
+            .tag
+            .filter(|_| flags.contains(FragmentFlags::IS_CONTAINER_TIMING_ROOT))
+            .map(|tag| tag.node);
+
+        match root {
+            // An element can produce nested fragments (e.g. an inline box split around a
+            // block), so don't push the same root twice.
+            Some(root) if inherited.as_ref().is_some_and(|chain| chain.root == root) => {
+                inherited.clone()
+            },
+            // A root that is also ignored only reports to itself, not to enclosing roots.
+            Some(root) => Some(Rc::new(Self {
+                root,
+                parent: if ignore { None } else { inherited.clone() },
+            })),
+            // We're at an ignore point, so don't report to any enclosing roots.
+            None if ignore => None,
+            // Otherwise, just inherit the enclosing roots.
+            None => inherited.clone(),
+        }
+    }
+
+    /// Iterate over the roots in this chain, nearest first.
+    pub(crate) fn iter(&self) -> impl Iterator<Item = OpaqueNode> + '_ {
+        std::iter::successors(Some(self), |chain| chain.parent.as_deref()).map(|chain| chain.root)
+    }
+}
+
 /// The Container Timing state accumulated for one container root, i.e. one element
 /// carrying a `containertiming` attribute.
 ///
 /// <https://wicg.github.io/container-timing/>
 struct ContainerRecord {
-    /// The value of the container's `containertiming` attribute.
-    identifier: String,
     /// Descendant nodes that have already contributed painted area to this container, at
     /// any point in the past. Once a node is in this set it is never reconsidered.
     /// TODO: This algorithm could change in future <https://github.com/WICG/container-timing/issues/72>
@@ -501,8 +550,8 @@ impl PaintTimingHandler {
         // Note: Step 6-7 are handled in script.
     }
 
-    /// Accumulate a painted text or image fragment into the Container Timing state of
-    /// its nearest ancestor carrying a `containertiming` attribute, if any.
+    /// Accumulate a painted text or image fragment, painted by `node`, into the Container
+    /// Timing state of each of the enclosing `container_roots`.
     ///
     /// Called during display list building, unlike the LCP collection which only
     /// accumulates here and computes in [`Self::mark_paint_timing`]. Container Timing has
@@ -511,8 +560,10 @@ impl PaintTimingHandler {
     ///
     /// <https://wicg.github.io/container-timing/#maybe-update-last-new-painted-area>
     #[servo_tracing::instrument(name = "Update Container Timing", skip_all)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn update_container_timing(
         &mut self,
+        container_roots: &ContainerTimingRootChain,
         node: OpaqueNode,
         bounds: LayoutRect,
         clip_rect: LayoutRect,
@@ -520,11 +571,6 @@ impl PaintTimingHandler {
         natural_width: Option<Au>,
         natural_height: Option<Au>,
     ) {
-        let container_roots = script::layout_dom::container_timing_roots_for_node(node);
-        if container_roots.is_empty() {
-            return;
-        }
-
         let intersection_rect = transform_f32_rectangle(clip_rect.to_rect(), transform)
             .unwrap_or_default()
             .intersection(&self.viewport_rect.to_rect())
@@ -553,8 +599,8 @@ impl PaintTimingHandler {
             return;
         }
 
-        // report to all roots, not just the direct one above
-        for container_root in container_roots {
+        // Report to every enclosing root, not just the nearest one.
+        for container_root in container_roots.iter() {
             let pending = self
                 .container_timing_pending
                 .entry(container_root)
@@ -578,11 +624,6 @@ impl PaintTimingHandler {
                 .container_timing_records
                 .entry(container_root)
                 .or_insert_with(|| ContainerRecord {
-                    identifier: script::layout_dom::container_timing_identifier_for_root(
-                        container_root,
-                    )
-                    .map(|identifier| identifier.to_string())
-                    .unwrap_or_default(),
                     contributing_nodes: FxHashSet::default(),
                     painted_region: PaintedRegion::default(),
                     last_painted_element: None,
@@ -615,7 +656,6 @@ impl PaintTimingHandler {
             self.container_timing_next_uuid += 1;
             records.push(ContainerTimingRecord {
                 id,
-                identifier: record.identifier.clone(),
                 size: record.painted_region.area(),
                 intersection_rect: record.painted_region.bounds(),
                 root_element: container_root,

@@ -13,8 +13,6 @@ use webrender_api::units::LayoutPixel;
 pub struct ContainerTimingRecord {
     /// A unique identifier for this particular update.
     pub id: ContainerTimingID,
-    /// The value of the `containertiming` attribute on the container element.
-    pub identifier: String,
     /// The painted area within the container, in CSS pixels.
     pub size: f32,
     /// The viewport-clipped, union'd painted rect, in CSS pixels.

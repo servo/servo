@@ -309,6 +309,7 @@ struct LCPCandidateAndElement {
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct ContainerTimingRecordAndElements {
+    identifier: DOMString,
     root_element: Dom<Element>,
     last_painted_element: Option<Dom<Element>>,
     #[no_trace]
@@ -3667,12 +3668,14 @@ impl Document {
     pub(crate) fn store_container_timing_record(
         &self,
         record: ContainerTimingRecord,
+        identifier: DOMString,
         root_element: &Element,
         last_painted_element: Option<&Element>,
     ) {
         self.container_timing_records.borrow_mut().insert(
             record.id,
             ContainerTimingRecordAndElements {
+                identifier,
                 root_element: Dom::from_ref(root_element),
                 last_painted_element: last_painted_element.map(Dom::from_ref),
                 record,
@@ -3707,7 +3710,7 @@ impl Document {
                     PerformanceContainerTiming::new(
                         cx,
                         self.window.as_global_scope(),
-                        DOMString::from(stored.record.identifier),
+                        stored.identifier,
                         stored.record.intersection_rect,
                         stored.record.size,
                         first_render_time,

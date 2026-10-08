@@ -34,6 +34,7 @@ use fonts::{
     CspViolationHandler, FontContext, NetworkTimingHandler, WebFontDocumentContext,
     WebFontSetDifference,
 };
+use html5ever::LocalName;
 use js::context::{JSContext, NoGC};
 use js::conversions::ToJSValConvertible;
 use js::glue::DumpJSStack;
@@ -3787,9 +3788,18 @@ impl Window {
             let Some(root_element) = resolve(record.root_element) else {
                 continue;
             };
+            // Layout only knows that this element was a container root when its boxes were
+            // built. Read the identifier now, and skip the record if the attribute has
+            // since been removed.
+            let Some(identifier) =
+                root_element.get_attribute_string_value(&LocalName::from("containertiming"))
+            else {
+                continue;
+            };
             let last_painted_element = record.last_painted_element.and_then(resolve);
             document.store_container_timing_record(
                 record,
+                identifier.into(),
                 &root_element,
                 last_painted_element.as_deref(),
             );

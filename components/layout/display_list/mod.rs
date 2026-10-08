@@ -82,7 +82,9 @@ mod painted_region;
 mod stacking_context;
 
 pub(crate) use hit_test::{ClosestFragmentSearch, HitTest};
-pub(crate) use paint_timing_handler::PaintTimingHandler;
+pub(crate) use paint_timing_handler::{
+    ContainerTimingRootChain, ContainerTimingRoots, PaintTimingHandler,
+};
 pub(crate) use stacking_context::*;
 
 const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(AU_PER_PX);
@@ -733,24 +735,28 @@ impl DisplayListBuilder<'_> {
         );
     }
 
-    /// Accumulate a painted fragment into its Container Timing container, if it is
-    /// inside one.
-    #[allow(clippy::too_many_arguments)]
+    /// Accumulate a fragment painted by the element with the given `tag` into the
+    /// Container Timing state of each of the enclosing `container_timing_roots`.
+    #[expect(clippy::too_many_arguments)]
     fn collect_container_timing_record(
         &mut self,
         state: &TraversalState,
+        container_timing_roots: &ContainerTimingRoots,
+        tag: Option<Tag>,
         bounds: LayoutRect,
         clip_rect: LayoutRect,
-        flags: FragmentFlags,
         natural_width: Option<Au>,
         natural_height: Option<Au>,
     ) {
-        if !self.container_timing_enabled || !flags.contains(FragmentFlags::HAS_CONTAINER_TIMING) {
+        if !self.container_timing_enabled {
             return;
         }
+        let Some(container_timing_roots) = container_timing_roots else {
+            return;
+        };
 
         // Like LCP collection, we skip if there's no containing element tag.
-        let Some(tag) = state.containing_element_tag else {
+        let Some(tag) = tag else {
             return;
         };
 
@@ -760,6 +766,7 @@ impl DisplayListBuilder<'_> {
             .cumulative_node_to_root_transform(state.spatial_id);
 
         self.paint_timing_handler.update_container_timing(
+            container_timing_roots,
             tag.node,
             bounds,
             clip_rect,
@@ -958,9 +965,10 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
 
                 self.collect_container_timing_record(
                     state,
+                    &state.container_timing_roots,
+                    state.containing_element_tag,
                     rect,
                     common.clip_rect,
-                    fragment.base.flags,
                     fragment.natural_width,
                     fragment.natural_height,
                 );
@@ -1278,29 +1286,32 @@ impl Fragment {
             if *parent_style.get_opacity() > 0. {
                 builder.mark_is_contentful();
 
-        builder.collect_container_timing_record(
-            state,
-            glyph_bounds,
-            common.clip_rect,
-            fragment.base.flags,
-            None,
-            None,
-        );
+                builder.collect_container_timing_record(
+                    state,
+                    &state.container_timing_roots,
+                    state.containing_element_tag,
+                    glyph_bounds,
+                    common.clip_rect,
+                    None,
+                    None,
+                );
 
-        // Accumulate this text fragment for LCP by the containing element's tag
-        if let Some(tag) = state.containing_element_tag &&
-            builder.largest_contentful_paint_enabled
-        {
-            let transform = builder
-                .paint_info
-                .scroll_tree
-                .cumulative_node_to_root_transform(state.spatial_id);
-            builder.paint_timing_handler.accumulate_text_rect(
-                tag,
-                rect.to_webrender(),
-                transform,
-                &parent_style,
-            );
+                // Accumulate this text fragment for LCP by the containing element's tag
+                if let Some(tag) = state.containing_element_tag &&
+                    builder.largest_contentful_paint_enabled
+                {
+                    let transform = builder
+                        .paint_info
+                        .scroll_tree
+                        .cumulative_node_to_root_transform(state.spatial_id);
+                    builder.paint_timing_handler.accumulate_text_rect(
+                        tag,
+                        rect.to_webrender(),
+                        transform,
+                        &parent_style,
+                    );
+                }
+            }
         }
 
         for text_decoration in state.text_decorations.iter() {
@@ -2033,9 +2044,10 @@ impl<'a> BuilderForBoxFragment<'a> {
 
                         builder.collect_container_timing_record(
                             state,
+                            &state.container_timing_roots_including(self.fragment),
+                            self.fragment.base.tag.or(state.containing_element_tag),
                             layer.bounds,
                             layer.common.clip_rect,
-                            self.fragment.base.flags,
                             natural_width,
                             natural_height,
                         );
