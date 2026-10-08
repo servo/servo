@@ -621,7 +621,9 @@ impl OneshotTimers {
 
         let expected_event_id = self.invalidate_expected_event_id();
         let context = match timer.data.source {
-            TimerSource::FromWorker => TimerListenerContext::Worker(Trusted::new(&*self.global_scope)),
+            TimerSource::FromWorker => {
+                TimerListenerContext::Worker(Trusted::new(&*self.global_scope))
+            },
             TimerSource::FromWindow(pipelineid) => TimerListenerContext::Window(pipelineid),
         };
 
@@ -1050,14 +1052,14 @@ pub struct TimerEventId(pub u32);
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct TimerEvent(pub TimerSource, pub TimerEventId);
 
-/// A helper to refer to the global of the timer. 
+/// A helper to refer to the global of the timer.
 /// For workers the scheduler is owned by the worker itself.
 /// For window sources, the `Trusted` reference would keep the window alive until
 /// the timer fires, so we lookup the global via the pipeline instead.
 #[derive(Clone)]
 enum TimerListenerContext {
     Worker(Trusted<GlobalScope>),
-    Window(PipelineId)
+    Window(PipelineId),
 }
 
 /// A wrapper between timer events coming in over IPC, and the event-loop.
