@@ -756,7 +756,7 @@ impl FetchResponseListener for ResourceFetchListener {
             FetchResponseMsg::ProcessResponse(request_id, metadata.clone()),
         );
 
-        let metadata = metadata.ok().map(|meta| meta.into());
+        let metadata = metadata.ok().map(Into::into);
 
         let status = metadata
             .as_ref()
