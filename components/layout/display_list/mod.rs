@@ -1068,17 +1068,10 @@ impl Fragment {
         let mut baseline_origin = rect.origin;
         baseline_origin.y += fragment.font_metrics.ascent;
 
-        let include_whitespace = fragment.run_data.selection.borrow().is_some() ||
-            state
-                .text_decorations
-                .iter()
-                .any(|item| !item.line.is_empty());
-
-        let (glyphs, largest_advance) = glyphs(
+        let (glyphs, largest_advance, entirely_white_space) = glyphs(
             &fragment.glyphs,
             baseline_origin,
             fragment.justification_adjustment,
-            include_whitespace,
         );
 
         if glyphs.is_empty() && !fragment.is_empty_for_text_cursor {
@@ -1182,29 +1175,34 @@ impl Fragment {
             None,
         );
 
-        builder
-            .paint_timing_handler
-            .check_if_paintable(glyph_bounds, parent_style.slow_clone_opacity());
+        if !entirely_white_space {
+            builder
+                .paint_timing_handler
+                .check_if_paintable(glyph_bounds, parent_style.slow_clone_opacity());
 
-        // From <https://www.w3.org/TR/paint-timing/#contentful>:
-        // An element target is contentful when one or more of the following apply:
-        // > target has a text node child, representing non-empty text, and the node’s used opacity is greater than zero.
-        builder.mark_is_contentful();
+            // From <https://www.w3.org/TR/paint-timing/#contentful>:
+            // An element target is contentful when one or more of the following apply:
+            // > target has a text node child, representing non-empty text, and the node’s
+            // > used opacity is greater than zero.
+            if *parent_style.get_opacity() > 0. {
+                builder.mark_is_contentful();
 
-        // Accumulate this text fragment for LCP by the containing element's tag
-        if let Some(tag) = state.containing_element_tag &&
-            builder.largest_contentful_paint_enabled
-        {
-            let transform = builder
-                .paint_info
-                .scroll_tree
-                .cumulative_node_to_root_transform(state.spatial_id);
-            builder.paint_timing_handler.accumulate_text_rect(
-                tag,
-                rect.to_webrender(),
-                transform,
-                &parent_style,
-            );
+                // Accumulate this text fragment for LCP by the containing element's tag
+                if let Some(tag) = state.containing_element_tag &&
+                    builder.largest_contentful_paint_enabled
+                {
+                    let transform = builder
+                        .paint_info
+                        .scroll_tree
+                        .cumulative_node_to_root_transform(state.spatial_id);
+                    builder.paint_timing_handler.accumulate_text_rect(
+                        tag,
+                        rect.to_webrender(),
+                        transform,
+                        &parent_style,
+                    );
+                }
+            }
         }
 
         for text_decoration in state.text_decorations.iter() {
@@ -2316,29 +2314,33 @@ fn rgba(color: AbsoluteColor) -> wr::ColorF {
     )
 }
 
+/// Return a tuple for the given `shaped_text_slices` that contains:
+///
+/// - A vector of [`GlyphInstance`] for every glyph in the slices.
+/// - The measure of the largest advance
+/// - A boolean which is true if the slices only contained white space.
 fn glyphs(
     shaped_text_slices: &[Arc<ShapedTextSlice>],
     mut baseline_origin: PhysicalPoint<Au>,
     justification_adjustment: Au,
-    include_whitespace: bool,
-) -> (Vec<GlyphInstance>, Au) {
+) -> (Vec<GlyphInstance>, Au, bool) {
     let mut glyphs = vec![];
     let mut largest_advance = Au::zero();
+    let mut entirely_white_space = true;
 
     for shaped_text_slice in shaped_text_slices {
+        entirely_white_space &= shaped_text_slice.all_white_space();
         for glyph in shaped_text_slice.glyphs() {
-            if !shaped_text_slice.is_whitespace() || include_whitespace {
-                let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
-                let point = LayoutPoint::new(
-                    baseline_origin.x.to_f32_px() + glyph_offset.x.to_f32_px(),
-                    baseline_origin.y.to_f32_px() + glyph_offset.y.to_f32_px(),
-                );
-                let glyph_instance = GlyphInstance {
-                    index: glyph.id(),
-                    point,
-                };
-                glyphs.push(glyph_instance);
-            }
+            let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
+            let point = LayoutPoint::new(
+                baseline_origin.x.to_f32_px() + glyph_offset.x.to_f32_px(),
+                baseline_origin.y.to_f32_px() + glyph_offset.y.to_f32_px(),
+            );
+            let glyph_instance = GlyphInstance {
+                index: glyph.id(),
+                point,
+            };
+            glyphs.push(glyph_instance);
 
             if glyph.char_is_word_separator() {
                 baseline_origin.x += justification_adjustment;
@@ -2349,7 +2351,7 @@ fn glyphs(
             largest_advance.max_assign(advance);
         }
     }
-    (glyphs, largest_advance)
+    (glyphs, largest_advance, entirely_white_space)
 }
 
 /// Given a set of corner radii for a rectangle, this function returns the corresponding radii

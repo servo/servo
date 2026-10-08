@@ -234,8 +234,8 @@ impl Fragment {
                 fragment.with_style().scrollable_overflow_for_parent()
             },
             Fragment::Positioning(fragment) => fragment.scrollable_overflow_for_parent(),
+            Fragment::Text(fragment) => fragment.scrollable_overflow_for_parent(),
             Fragment::AbsoluteOrFixedPositionedPlaceholder(_) |
-            Fragment::Text(..) |
             Fragment::Image(..) |
             Fragment::IFrame(..) => self.base().map(|base| base.rect()).unwrap_or_default(),
         }
@@ -558,6 +558,22 @@ impl TextFragment {
         }
 
         Some(current_character)
+    }
+
+    fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
+        let mut rect = self.base.rect();
+        let mut hanging_advance = Au::zero();
+        for slice in self.glyphs.iter().rev() {
+            hanging_advance += slice.hangable_advance();
+            if slice.has_non_hangable_non_removable_content() {
+                break;
+            }
+        }
+
+        // TODO: This is not correct for vertical and right-to-left writing modes.
+        rect.size.width -= hanging_advance;
+
+        rect
     }
 }
 

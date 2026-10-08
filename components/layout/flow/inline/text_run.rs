@@ -282,7 +282,7 @@ impl TextRunSegment {
             }
 
             let run_start = text_run.run_data.character_range_in_ifc_text.start;
-            ifc.push_glyph_store_to_unbreakable_segment(
+            ifc.push_shaped_text_slice_to_unbreakable_segment(
                 run.clone(),
                 text_run,
                 &self.info,
@@ -683,18 +683,23 @@ impl TextRun {
         ifc_layout: &mut InlineFormattingContextLayout,
         bidi_level: Level,
     ) {
+        let position_after_current_segment =
+            ifc_layout.current_line.inline_position + ifc_layout.current_line_segment.inline_size;
         let advance = ifc_layout.ifc.next_tab_stop_after_inline_advance(
             &self.inline_styles().style.borrow(),
-            ifc_layout.potential_line_size().inline,
+            position_after_current_segment,
         );
         if advance.is_zero() {
             return;
         }
 
+        // TODO: Tabs should hang when `pre-wrap` is active.
         ifc_layout.update_unbreakable_segment_for_new_content(
             &LineBlockSizes::zero(),
             advance,
-            SegmentContentFlags::empty(),
+            Au::zero(),
+            Au::zero(),
+            SegmentContentFlags::Contentful | SegmentContentFlags::IncorporateTrailingWhiteSpace,
         );
         ifc_layout.push_line_item_to_unbreakable_segment(LineItem::Tab {
             inline_box_identifier: ifc_layout.current_inline_box_identifier(),
