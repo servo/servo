@@ -6310,9 +6310,9 @@ dependencies = [
 
 [[package]]
 name = "ohos-pasteboard-sys"
-version = "0.1.5"
+version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "52a26fed7fe51d995248785dddb53afeb3f862a4094d406e09de7ab36169411c"
+checksum = "a6ba1975ddf156b067ead2315dddc6fac697d43b028c457f2ab0b2a408a0d069"
 dependencies = [
  "ohos-sys-opaque-types",
 ]
