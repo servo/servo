@@ -345,7 +345,10 @@ pub(crate) struct SharedTextRunData {
     // TODO: make this more compact with a pair of `AtomicUsize`?
     pub selection: AtomicRefCell<Option<RangeAny<Utf32CodeUnits>>>,
     /// Whether a caret should be painted when the selection is an empty range (start == end)
-    pub paint_caret: bool,
+    pub paints_caret: bool,
+    /// Whether a caret placeholder should be added for empty text runs or for empty
+    /// lines after a forced line break.
+    pub needs_caret_placeholder: bool,
     /// The [`OffsetMap`] used when creating this `TextRun`'s `InlineFormattingContext`. This
     /// is used for mapping between DOM text offsets and layout text offsets (and vice-versa).
     pub offset_map: ArcRefCell<OffsetMap>,
@@ -548,8 +551,8 @@ impl TextRun {
 
             if character == '\n' {
                 finish_current_segment(&mut current, &mut results);
-                let paint_caret = self.run_data.paint_caret;
-                results.push(TextRunItem::LineBreak(paint_caret.then(|| {
+                let needs_caret_placeholder = self.run_data.needs_caret_placeholder;
+                results.push(TextRunItem::LineBreak(needs_caret_placeholder.then(|| {
                     CaretPlaceholder {
                         run_data: self.run_data.clone(),
                         base_fragment_info: self.base_fragment_info,
@@ -646,6 +649,13 @@ impl TextRun {
 
     pub(super) fn layout_into_line_items(&self, ifc: &mut InlineFormattingContextLayout) {
         if self.text_range.is_empty() {
+            if self.run_data.needs_caret_placeholder {
+                ifc.current_line.caret_placeholder = Some(CaretPlaceholder {
+                    run_data: self.run_data.clone(),
+                    base_fragment_info: self.base_fragment_info,
+                    character_index: Utf32CodeUnits(0),
+                });
+            }
             return;
         }
 

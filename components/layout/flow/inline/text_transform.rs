@@ -443,10 +443,6 @@ fn map_character_for_webkit_text_security(mode: &WebKitTextSecurity, character: 
 
     // TODO: When MSRV is 1.95+ use std::hint::cold_path().
     match character {
-        // This is not ideal, but zero width space is used for some special reasons in
-        // `<input>` fields, so these remain untransformed, otherwise they would show up
-        // in empty text fields.
-        '\u{200B}' => '\u{200B}',
         // Newlines are preserved, so that `<br>` keeps working as expected.
         '\n' => '\n',
         _ => match mode {

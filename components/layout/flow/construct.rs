@@ -436,7 +436,7 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
     }
 
     fn handle_text(&mut self, info: &NodeAndStyleInfo<'dom>, text: BoxTreeString<'dom>) {
-        if text.is_empty() {
+        if text.is_empty() && !info.node.text_node_needs_caret_placeholder() {
             return;
         }
 

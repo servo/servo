@@ -256,6 +256,10 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
         self.node.text_node_paints_caret()
     }
 
+    fn text_node_needs_caret_placeholder(&self) -> bool {
+        self.node.text_node_needs_caret_placeholder()
+    }
+
     fn replaced_is_selected(&self) -> bool {
         self.node.replaced_is_selected()
     }

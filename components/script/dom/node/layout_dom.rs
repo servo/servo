@@ -282,19 +282,15 @@ impl<'dom> LayoutDom<'dom, Node> {
     }
 
     pub(crate) fn text_node_paints_caret(&self) -> bool {
-        if let Some(shadow_root) = self.containing_shadow_root_for_layout() {
-            let host = shadow_root.get_host_for_layout();
-            if host.is::<HTMLInputElement>() || host.is::<HTMLTextAreaElement>() {
-                // This is the cases where, if `selection_for_text_node` returns a selection
-                // it is a `TextInput` selection
-                return true;
-            }
-        }
-        // This is the cases where, if `selection_for_text_node` returns a selection
-        // it is a document selection.
-        // For now, never paint a caret for document selection.
-        // This will change as we improve `contenteditable` support.
-        false
+        // TODO: Add support for `contenteditable`.
+        self.parent_node_ref()
+            .is_some_and(|parent| parent.is_text_container_of_single_line_input())
+    }
+
+    pub(crate) fn text_node_needs_caret_placeholder(&self) -> bool {
+        // TODO: Add support for `contenteditable`.
+        self.parent_node_ref()
+            .is_some_and(|parent| parent.is_text_container_of_single_line_input())
     }
 
     pub(crate) fn replaced_is_selected(&self) -> bool {
