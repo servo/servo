@@ -9,12 +9,15 @@ use serde_json::{Map as JsonMap, Value as JsonValue};
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exception};
+use crate::dom::bindings::inheritance::Castable;
 use crate::dom::console::Console;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::window::Window;
 use crate::realms::enter_auto_realm;
+use crate::scripting::fetching_options::BaseScript;
 
 type ModuleIntegrityMap = IndexMap<ServoUrl, String>;
-pub(crate) type ModuleSpecifierMap = IndexMap<String, Option<ServoUrl>>;
+type ModuleSpecifierMap = IndexMap<String, Option<ServoUrl>>;
 
 /// <https://html.spec.whatwg.org/multipage/#import-map-processing-model>
 #[derive(Default, JSTraceable, MallocSizeOf)]
@@ -35,6 +38,105 @@ impl ImportMap {
         // Step 2. If map's integrity[url] does not exist, then return the empty string.
         // Step 3. Return map's integrity[url].
         self.integrity.get(url).cloned().unwrap_or_default()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#resolve-a-module-specifier>
+    pub(crate) fn resolve_module_specifier(
+        global: &GlobalScope,
+        script: Option<&BaseScript>,
+        specifier: String,
+    ) -> Fallible<ServoUrl> {
+        // Step 1~3 to get settingsObject and baseURL
+        let script_global = script.and_then(|s| s.owner.as_ref().map(|o| o.root()));
+        // Step 1. Let settingsObject and baseURL be null.
+        let (global, base_url): (&GlobalScope, &ServoUrl) = match script {
+            // Step 2. If referringScript is not null, then:
+            // Set settingsObject to referringScript's settings object.
+            // Set baseURL to referringScript's base URL.
+            Some(s) => (script_global.as_ref().map_or(global, |g| g), &s.base_url),
+            // Step 3. Otherwise:
+            // Set settingsObject to the current settings object.
+            // Set baseURL to settingsObject's API base URL.
+            None => (global, &global.api_base_url()),
+        };
+
+        // Step 4. Let importMap be an empty import map.
+        // Step 5. If settingsObject's global object implements Window, then set importMap to settingsObject's
+        // global object's import map.
+        let import_map = if global.is::<Window>() {
+            Some(global.import_map())
+        } else {
+            None
+        };
+
+        // Step 6. Let serializedBaseURL be baseURL, serialized.
+        let serialized_base_url = base_url.as_str();
+        // Step 7. Let asURL be the result of resolving a URL-like module specifier given specifier and baseURL.
+        let as_url = resolve_url_like_module_specifier(&specifier, base_url);
+        // Step 8. Let normalizedSpecifier be the serialization of asURL, if asURL is non-null;
+        // otherwise, specifier.
+        let normalized_specifier = match &as_url {
+            Some(url) => url.as_str(),
+            None => &specifier,
+        };
+
+        // Step 9. Let result be a URL-or-null, initially null.
+        let mut result = None;
+        if let Some(map) = import_map {
+            // Step 10. For each scopePrefix → scopeImports of importMap's scopes:
+            for (prefix, imports) in &map.scopes {
+                // Step 10.1 If scopePrefix is serializedBaseURL, or if scopePrefix ends with U+002F (/)
+                // and scopePrefix is a code unit prefix of serializedBaseURL, then:
+                let prefix = prefix.as_str();
+                if prefix == serialized_base_url ||
+                    (serialized_base_url.starts_with(prefix) && prefix.ends_with('\u{002f}'))
+                {
+                    // Step 10.1.1 Let scopeImportsMatch be the result of resolving an imports match
+                    // given normalizedSpecifier, asURL, and scopeImports.
+                    let scope_imports_match =
+                        resolve_imports_match(normalized_specifier, as_url.as_ref(), imports)?;
+
+                    // Step 10.1.2 If scopeImportsMatch is not null, then set result to scopeImportsMatch, and break.
+                    if scope_imports_match.is_some() {
+                        result = scope_imports_match;
+                        break;
+                    }
+                }
+            }
+
+            // Step 11. If result is null, set result to the result of resolving an imports match given
+            // normalizedSpecifier, asURL, and importMap's imports.
+            if result.is_none() {
+                result =
+                    resolve_imports_match(normalized_specifier, as_url.as_ref(), &map.imports)?;
+            }
+        }
+
+        // Step 12. If result is null, set it to asURL.
+        if result.is_none() {
+            result = as_url.clone();
+        }
+
+        // Step 13. If result is not null, then:
+        match result {
+            Some(result) => {
+                // Step 13.1 Add module to resolved module set given settingsObject, serializedBaseURL,
+                // normalizedSpecifier, and asURL.
+                global.add_module_to_resolved_module_set(
+                    serialized_base_url,
+                    normalized_specifier,
+                    as_url,
+                );
+                // Step 13.2 Return result.
+                Ok(result)
+            },
+            // Step 14. Throw a TypeError indicating that specifier was a bare specifier,
+            // but was not remapped to anything by importMap.
+            None => Err(Error::Type(
+                c"Specifier was a bare specifier, but was not remapped to anything by importMap."
+                    .to_owned(),
+            )),
+        }
     }
 }
 
@@ -521,10 +623,7 @@ fn normalize_specifier_key(
 }
 
 /// <https://html.spec.whatwg.org/multipage/#resolving-a-url-like-module-specifier>
-pub(crate) fn resolve_url_like_module_specifier(
-    specifier: &str,
-    base_url: &ServoUrl,
-) -> Option<ServoUrl> {
+fn resolve_url_like_module_specifier(specifier: &str, base_url: &ServoUrl) -> Option<ServoUrl> {
     // Step 1. If specifier starts with "/", "./", or "../", then:
     if specifier.starts_with('/') || specifier.starts_with("./") || specifier.starts_with("../") {
         // Step 1.1. Let url be the result of URL parsing specifier with baseURL.
@@ -532,4 +631,87 @@ pub(crate) fn resolve_url_like_module_specifier(
     }
     // Step 2. Let url be the result of URL parsing specifier (with no base URL).
     ServoUrl::parse(specifier).ok()
+}
+
+/// <https://html.spec.whatwg.org/multipage/#resolving-an-imports-match>
+///
+/// When the error is thrown, it will terminate the entire resolve a module specifier algorithm
+/// without any further fallbacks.
+fn resolve_imports_match(
+    normalized_specifier: &str,
+    as_url: Option<&ServoUrl>,
+    specifier_map: &ModuleSpecifierMap,
+) -> Fallible<Option<ServoUrl>> {
+    // Step 1. For each specifierKey → resolutionResult of specifierMap:
+    for (specifier_key, resolution_result) in specifier_map {
+        // Step 1.1 If specifierKey is normalizedSpecifier, then:
+        if specifier_key == normalized_specifier {
+            if let Some(resolution_result) = resolution_result {
+                // Step 1.1.2 Assert: resolutionResult is a URL.
+                // This is checked by Url type already.
+                // Step 1.1.3 Return resolutionResult.
+                return Ok(Some(resolution_result.clone()));
+            } else {
+                // Step 1.1.1 If resolutionResult is null, then throw a TypeError.
+                return Err(Error::Type(
+                    c"Resolution of specifierKey was blocked by a null entry.".to_owned(),
+                ));
+            }
+        }
+
+        // Step 1.2 If all of the following are true:
+        // - specifierKey ends with U+002F (/)
+        // - specifierKey is a code unit prefix of normalizedSpecifier
+        // - either asURL is null, or asURL is special, then:
+        if specifier_key.ends_with('\u{002f}') &&
+            normalized_specifier.starts_with(specifier_key) &&
+            (as_url.is_none() || as_url.is_some_and(|u| u.is_special_scheme()))
+        {
+            // Step 1.2.1 If resolutionResult is null, then throw a TypeError.
+            // Step 1.2.2 Assert: resolutionResult is a URL.
+            let Some(resolution_result) = resolution_result else {
+                return Err(Error::Type(
+                    c"Resolution of specifierKey was blocked by a null entry.".to_owned(),
+                ));
+            };
+
+            // Step 1.2.3 Let afterPrefix be the portion of normalizedSpecifier after the initial specifierKey prefix.
+            let after_prefix = normalized_specifier
+                .strip_prefix(specifier_key)
+                .expect("specifier_key should be the prefix of normalized_specifier");
+
+            // Step 1.2.4 Assert: resolutionResult, serialized, ends with U+002F (/), as enforced during parsing.
+            debug_assert!(resolution_result.as_str().ends_with('\u{002f}'));
+
+            // Step 1.2.5 Let url be the result of URL parsing afterPrefix with resolutionResult.
+            let url = ServoUrl::parse_with_base(Some(resolution_result), after_prefix);
+
+            // Step 1.2.6 If url is failure, then throw a TypeError
+            // Step 1.2.7 Assert: url is a URL.
+            let Ok(url) = url else {
+                return Err(Error::Type(
+                    c"Resolution of normalizedSpecifier was blocked since
+                    the afterPrefix portion could not be URL-parsed relative to
+                    the resolutionResult mapped to by the specifierKey prefix."
+                        .to_owned(),
+                ));
+            };
+
+            // Step 1.2.8 If the serialization of resolutionResult is not
+            // a code unit prefix of the serialization of url, then throw a TypeError
+            if !url.as_str().starts_with(resolution_result.as_str()) {
+                return Err(Error::Type(
+                    c"Resolution of normalizedSpecifier was blocked due to
+                    it backtracking above its prefix specifierKey."
+                        .to_owned(),
+                ));
+            }
+
+            // Step 1.2.9 Return url.
+            return Ok(Some(url));
+        }
+    }
+
+    // Step 2. Return null.
+    Ok(None)
 }

@@ -93,9 +93,9 @@ use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::dom::window::Window;
 use crate::engine::handle::current_js_engine_handle;
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
-use crate::modules::script_module::EnsureModuleHooksInitialized;
 use crate::realms::enter_auto_realm;
 use crate::runtime::job_queue::{JobQueue, job_queue_clear};
+use crate::scripting::script_module::EnsureModuleHooksInitialized;
 use crate::tasks::task_source::TaskSourceName;
 use crate::{DomTypeHolder, ScriptThread};
 

@@ -55,17 +55,16 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::extendableevent::ExtendableEvent;
 use crate::dom::extendablemessageevent::ExtendableMessageEvent;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::globalscope::script_execution::RethrowErrors;
-use crate::dom::script_execution::ScriptOptions;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worker::TrustedWorkerAddress;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 use crate::fetch::fetch::{CspViolationsProcessor, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
-use crate::modules::script_module::ScriptFetchOptions;
 use crate::realms::enter_auto_realm;
 use crate::runtime::script_runtime::{IntroductionType, Runtime, ThreadSafeJSContext};
+use crate::scripting::fetching_options::ScriptFetchOptions;
+use crate::scripting::script_execution::{RethrowErrors, ScriptOptions};
 use crate::tasks::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::tasks::task_source::TaskSourceName;
 

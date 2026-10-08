@@ -33,8 +33,9 @@ use crate::dom::bindings::error::{Error, ErrorInfo, ErrorResult, report_pending_
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
-use crate::modules::script_module::{ModuleScript, ModuleTree, RethrowError, ScriptFetchOptions};
 use crate::realms::enter_auto_realm;
+use crate::scripting::fetching_options::{BaseScript, ScriptFetchOptions};
+use crate::scripting::script_module::{ModuleTree, RethrowError};
 use crate::unminify::{ScriptSource, unminify_js};
 
 /// Options that were used when creating a script.
@@ -370,7 +371,7 @@ pub(crate) fn maybe_associate_with_script(
     // When `ScriptPrivate` for the compiled script is undefined,
     // we need to set it so that it can be used in dynamic import context.
     if script_private.is_undefined() {
-        let module_script_data = Rc::new(ModuleScript::new(
+        let module_script_data = Rc::new(BaseScript::new(
             url,
             fetch_options,
             // We can't initialize an module owner here because
