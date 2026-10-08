@@ -39,3 +39,10 @@ where
         data: StructuredData<'a, '_>,
     ) -> &'a mut Option<FxHashMap<NamespaceIndex<Self::Index>, Self::Data>>;
 }
+
+pub fn assert_serializable<T, D>()
+where
+    T: Serializable<D>,
+    D: DomTypes,
+{
+}

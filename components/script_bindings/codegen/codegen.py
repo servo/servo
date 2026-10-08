@@ -8059,19 +8059,25 @@ class CGStructuredCloneMarker(CGThing):
     """
     Generate a type assertion for inheritance
     """
-    def __init__(self, descriptor: Descriptor, marker: str) -> None:
+    def __init__(self, descriptor: Descriptor, marker: str, generic: bool = False) -> None:
         CGThing.__init__(self)
         self.descriptor = descriptor
         self.marker = marker
         self.marker_lower = marker.lower()
+        self.generic = generic
 
     def define(self) -> str:
         ifaceName = self.descriptor.interface.identifier.name
+        (generics, suffix) = ("<D: Equivalence>", "<D>") if self.generic else ("", "")
+        if self.generic:
+            functionCall = f"script_bindings::{self.marker_lower}::assert_{self.marker_lower}::<Self, D>;"
+        else:
+            functionCall = f"crate::dom::bindings::{self.marker_lower}::assert_{self.marker_lower}::<Self>;"
         return f"""
-impl script_bindings::structuredclone::MarkedAs{self.marker}InIdl for {ifaceName} {{
+impl{generics} script_bindings::structuredclone::MarkedAs{self.marker}InIdl for {ifaceName}{suffix} {{
     #[allow(path_statements)]
     fn assert_{self.marker_lower}() {{
-        crate::dom::bindings::{self.marker_lower}::assert_{self.marker_lower}::<Self>;
+        {functionCall}
     }}
 }}
 """
@@ -8166,7 +8172,7 @@ class CGConcreteBindingRoot(CGThing):
             # These are all things that will be generated in the subcrates
             for marker in ["Serializable", "Transferable"]:
                 if d.interface.getExtendedAttribute(marker):
-                    cgthings += [CGStructuredCloneMarker(d, marker)]
+                    cgthings += [CGStructuredCloneMarker(d, marker, generic = generic)]
 
             if d.concrete:
                 if not d.interface.isIteratorInterface():
