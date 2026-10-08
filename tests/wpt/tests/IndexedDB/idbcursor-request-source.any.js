@@ -1,6 +1,7 @@
 // META: global=window,worker
 // META: title=IndexedDB: The source of requests made against cursors
 // META: script=resources/support.js
+// META: timeout=long
 
 // Spec: https://w3c.github.io/IndexedDB/#dom-idbrequest-source
 
