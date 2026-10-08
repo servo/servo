@@ -620,15 +620,15 @@ impl OneshotTimers {
         };
 
         let expected_event_id = self.invalidate_expected_event_id();
-        let worker_context = match timer.data.source {
-            TimerSource::FromWorker => Some(Trusted::new(&*self.global_scope)),
-            TimerSource::FromWindow(_) => None,
+        let context = match timer.data.source {
+            TimerSource::FromWorker => TimerListenerContext::Worker(Trusted::new(&*self.global_scope)),
+            TimerSource::FromWindow(pipelineid) => TimerListenerContext::Window(pipelineid),
         };
 
         // Step 12. Let completionStep be an algorithm step which queues a global
         // task on the timer task source given global to run task.
         let callback = TimerListener {
-            worker_context,
+            context,
             task_source: self
                 .global_scope
                 .task_manager()
@@ -1050,14 +1050,21 @@ pub struct TimerEventId(pub u32);
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 pub struct TimerEvent(pub TimerSource, pub TimerEventId);
 
+/// A helper to refer to the global of the timer. 
+/// For workers the scheduler is owned by the worker itself.
+/// For window sources, the `Trusted` reference would keep the window alive until
+/// the timer fires, so we lookup the global via the pipeline instead.
+#[derive(Clone)]
+enum TimerListenerContext {
+    Worker(Trusted<GlobalScope>),
+    Window(PipelineId)
+}
+
 /// A wrapper between timer events coming in over IPC, and the event-loop.
 #[derive(Clone)]
 struct TimerListener {
     task_source: SendableTaskSource,
-    /// For workers the scheduler is owned by the worker itself.
-    /// For window sources, the `Trusted` reference would keep the window alive until
-    /// the timer fires, so we lookup the global via the pipeline instead.
-    worker_context: Option<Trusted<GlobalScope>>,
+    context: TimerListenerContext,
     source: TimerSource,
     id: TimerEventId,
 }
@@ -1067,15 +1074,15 @@ impl TimerListener {
     /// by queuing the appropriate task on the relevant event-loop.
     /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
     fn handle(&self, event: TimerEvent) {
-        let worker_context = self.worker_context.clone();
+        let context = self.context.clone();
         // Step 9. Let task be a task that runs the following substeps:
         self.task_source.queue(task!(timer_event: move |cx| {
-            let TimerEvent(source, id) = event;
-            let global = match source {
-                TimerSource::FromWorker => {
-                    worker_context.expect("Worker timer must have worker global").root()
+            let TimerEvent(_source, id) = event;
+            let global = match context {
+                TimerListenerContext::Worker(global) => {
+                    global.root()
                 },
-                TimerSource::FromWindow(pipeline) => match ScriptThread::find_window(pipeline) {
+                TimerListenerContext::Window(pipeline) => match ScriptThread::find_window(pipeline) {
                     Some(window) => DomRoot::upcast::<GlobalScope>(window),
                     None => return,
                 },
