@@ -826,6 +826,8 @@ pub enum ScriptToConstellationMessage {
     /// aggregate lock count and notify the provider only when the count transitions from N to 0.
     /// <https://w3c.github.io/screen-wake-lock/#dfn-release-wake-lock>
     ReleaseWakeLock(WakeLockType),
+    /// Tells canvas thread to clear resources from its caches.
+    ClearCanvasResources(WebViewId),
 }
 
 impl fmt::Debug for ScriptToConstellationMessage {

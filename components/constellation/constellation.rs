@@ -2002,6 +2002,13 @@ where
                     }
                 },
             },
+            ScriptToConstellationMessage::ClearCanvasResources(webview_id) => {
+                if let Some(canvas_constellation_sender) = self.canvas.get() {
+                    let _ = canvas_constellation_sender
+                        .0
+                        .send(ConstellationCanvasMsg::ClearResources(webview_id));
+                }
+            },
         }
     }
 
