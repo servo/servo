@@ -357,10 +357,7 @@ impl FetchResponseListener for StylesheetContext {
             self.origin_clean = false;
         }
 
-        self.metadata = metadata.ok().map(|m| match m {
-            FetchMetadata::Unfiltered(m) => m,
-            FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
-        });
+        self.metadata = metadata.ok().map(Into::into);
     }
 
     fn process_response_chunk(

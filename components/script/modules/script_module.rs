@@ -587,10 +587,7 @@ impl FetchResponseListener for ModuleContext {
         _: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
-        self.metadata = metadata.ok().map(|meta| match meta {
-            FetchMetadata::Unfiltered(m) => m,
-            FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
-        });
+        self.metadata = metadata.ok().map(Into::into);
 
         let status = self
             .metadata

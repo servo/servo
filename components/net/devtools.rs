@@ -13,7 +13,7 @@ use devtools_traits::{
 use http::{HeaderMap, Method};
 use hyper_serde::Serde;
 use log::error;
-use net_traits::FetchMetadata;
+use net_traits::Metadata;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{Destination, Request};
 use net_traits::response::{CacheState, Response};
@@ -78,17 +78,13 @@ pub(crate) fn send_response_to_devtools(
     response: &Response,
     body_data: Option<Vec<u8>>,
 ) {
-    let meta = match response.metadata() {
-        Ok(FetchMetadata::Unfiltered(m)) => m,
-        Ok(FetchMetadata::Filtered { unsafe_, .. }) => unsafe_,
-        Err(_) => {
-            log::warn!("No metadata available, skipping devtools response.");
-            return;
-        },
+    let Ok(metadata): Result<Metadata, _> = response.metadata().map(Into::into) else {
+        log::warn!("No metadata available, skipping devtools response.");
+        return;
     };
     send_response_values_to_devtools(
-        meta.headers.map(Serde::into_inner),
-        meta.status,
+        metadata.headers.map(Serde::into_inner),
+        metadata.status,
         body_data,
         response.cache_state,
         request,
@@ -134,18 +130,14 @@ pub(crate) fn send_security_info_to_devtools(
     context: &FetchContext,
     response: &Response,
 ) {
-    let meta = match response.metadata() {
-        Ok(FetchMetadata::Unfiltered(m)) => m,
-        Ok(FetchMetadata::Filtered { unsafe_, .. }) => unsafe_,
-        Err(_) => {
-            log::warn!("No metadata available, skipping devtools security info.");
-            return;
-        },
+    let Ok(metadata): Result<Metadata, _> = response.metadata().map(Into::into) else {
+        log::warn!("No metadata available, skipping devtools security info.");
+        return;
     };
 
     if let (Some(devtools_chan), Some(security_info), Some(webview_id)) = (
         context.devtools_chan.clone(),
-        meta.tls_security_info,
+        metadata.tls_security_info,
         request.target_webview_id,
     ) {
         let update = NetworkEvent::SecurityInfo(SecurityInfoUpdate {

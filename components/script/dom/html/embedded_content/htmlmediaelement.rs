@@ -23,9 +23,7 @@ use js::realm::CurrentRealm;
 use layout_api::MediaFrame;
 use media::{GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
 use net_traits::request::{Destination, RequestId};
-use net_traits::{
-    CoreResourceThread, FetchMetadata, FilteredMetadata, NetworkError, ResourceFetchTiming,
-};
+use net_traits::{CoreResourceThread, FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
 use paint_api::{CrossProcessPaintApi, ImageUpdate, SerializableImageData};
 use pixels::RasterImage;
 use script_bindings::assert::assert_in_script;
@@ -4318,24 +4316,20 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         let element = self.element.root();
 
         let (metadata, origin_clean) = match metadata {
-            Ok(fetch_metadata) => match fetch_metadata {
-                FetchMetadata::Unfiltered(metadata) => (Some(metadata), true),
-                FetchMetadata::Filtered { filtered, unsafe_ } => (
-                    Some(unsafe_),
-                    matches!(
-                        filtered,
-                        FilteredMetadata::Basic(_) | FilteredMetadata::Cors(_)
-                    ),
-                ),
+            Ok(fetch_metadata) => {
+                let is_cross_origin = fetch_metadata.is_cors_cross_origin();
+                (Some(fetch_metadata.into()), !is_cross_origin)
             },
             Err(_) => (None, true),
         };
 
         let (status_is_success, is_seekable) =
-            metadata.as_ref().map_or((false, false), |metadata| {
-                let status = &metadata.status;
-                (status.is_success(), *status == StatusCode::PARTIAL_CONTENT)
-            });
+            metadata
+                .as_ref()
+                .map_or((false, false), |metadata: &Metadata| {
+                    let status = &metadata.status;
+                    (status.is_success(), *status == StatusCode::PARTIAL_CONTENT)
+                });
 
         // <https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list>
         if !status_is_success {
