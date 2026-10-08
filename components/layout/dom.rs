@@ -411,6 +411,10 @@ impl Drop for BoxSlot<'_> {
 }
 
 pub(crate) trait NodeExt<'dom> {
+    /// Return true if the element is an HTML `<br>` element.
+    fn is_html_br_element(&self) -> bool;
+    /// Return true if the element is an HTML `<wbr>` element.
+    fn is_html_wbr_element(&self) -> bool;
     /// Returns the relevant data wrapping into respective struct and its size in pixels.
     fn as_image(&self) -> Option<(ImageInfo, PhysicalSize<f64>)>;
     fn as_canvas(&self) -> Option<(CanvasInfo, PhysicalSize<f64>)>;
@@ -483,6 +487,16 @@ pub(crate) trait NodeExt<'dom> {
 }
 
 impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
+    fn is_html_br_element(&self) -> bool {
+        self.as_html_element()
+            .is_some_and(|element| element.local_name() == &local_name!("br"))
+    }
+
+    fn is_html_wbr_element(&self) -> bool {
+        self.as_html_element()
+            .is_some_and(|element| element.local_name() == &local_name!("wbr"))
+    }
+
     fn as_image(&self) -> Option<(ImageInfo, PhysicalSize<f64>)> {
         let (resource, metadata) = self.image_data()?;
         let width = metadata.map(|metadata| metadata.width).unwrap_or_default();

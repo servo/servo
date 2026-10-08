@@ -17,6 +17,7 @@ use style::selector_parser::PseudoElement;
 use stylo_atoms::atom;
 use web_atoms::{local_name, ns};
 
+use crate::dom::NodeExt;
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSize, SyncPhysicalRectAu};
 
@@ -173,11 +174,7 @@ impl From<ServoLayoutNode<'_>> for BaseFragmentInfo {
                 PseudoElement::ServoAnonymousTableRow => return Self::anonymous(),
                 // A `<br>` forces a new line using a `::before` pseudo-element. Both of them need to get
                 // this flag.
-                PseudoElement::Before
-                    if node
-                        .as_html_element()
-                        .is_some_and(|element| element.local_name() == &local_name!("br")) =>
-                {
+                PseudoElement::Before if node.is_html_br_element() => {
                     flags.insert(FragmentFlags::IS_BR_ELEMENT);
                 },
                 _ => {},
