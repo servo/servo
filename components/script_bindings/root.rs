@@ -399,9 +399,9 @@ pub struct RootCollection {
 impl RootCollection {
     /// Create an empty collection of roots
     #[expect(clippy::new_without_default)]
-    pub const fn new() -> RootCollection {
+    pub fn new() -> RootCollection {
         RootCollection {
-            roots: UnsafeCell::new(vec![]),
+            roots: UnsafeCell::new(Vec::with_capacity(256)),
         }
     }
 
@@ -437,7 +437,7 @@ impl RootCollection {
     }
 }
 
-thread_local!(pub static STACK_ROOTS: RootCollection = const { RootCollection::new() });
+thread_local!(static STACK_ROOTS: RootCollection =  RootCollection::new());
 
 /// SM Callback that traces the rooted reflectors
 ///
