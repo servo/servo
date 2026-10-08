@@ -995,22 +995,19 @@ impl WebView {
         );
     }
 
+    /// After a new tree has been grafted, move focus to the graft node so that the grafted tree's
+    /// focused node becomes the focused node for the webview.
     fn move_accessibility_focus_to_graft_node(&self) {
         let Some(webview_accesskit_tree_id) = self.inner().accesskit_tree_id else {
             return;
         };
-        let root_node_id = NodeId(0);
         let graft_node_id = NodeId(1);
 
         self.delegate().notify_accessibility_tree_update(
             self.clone(),
             TreeUpdate {
                 nodes: vec![],
-                tree: Some(Tree {
-                    root: root_node_id,
-                    toolkit_name: None,
-                    toolkit_version: None,
-                }),
+                tree: None,
                 tree_id: webview_accesskit_tree_id,
                 focus: graft_node_id,
             },
