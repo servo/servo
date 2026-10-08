@@ -33,13 +33,15 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::comparator::compare_dom_positions;
 use crate::dom::document::Document;
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::iterators::{PrePostIteration, UnrootedFollowingFlatTreeNodesTraversal};
+use crate::dom::iterators::{
+    PrePostIteration, ShadowIncluding, UnrootedFollowingFlatTreeNodesTraversal,
+};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::range::Range;
 use crate::dom::selection_range::{RootedSelectionBoundary, SelectionBoundary, SelectionRange};
 use crate::dom::staticrange::StaticRange;
 use crate::dom::traversal::FlatTreeForSelectionNoGcTraversal;
-use crate::dom::types::ShadowRoot;
+use crate::dom::types::{HTMLInputElement, HTMLTextAreaElement, ShadowRoot};
 use crate::dom::{CharacterData, FlatTreeParent, NodeDamage, NodeFlags, StartOrEnd};
 
 /// Used value of [`user-select`](https://drafts.csswg.org/css-ui-4/#propdef-user-select):
@@ -74,6 +76,7 @@ pub(crate) struct Selection {
     /// * It is `None` if the selection is unrenderable.
     /// * Boundaries are in flat tree order.
     visible_range: DomRefCell<Option<SelectionRange>>,
+    paints_caret: Cell<bool>,
     /// The [`Direction`] of this [`Selection`] which determines which endpoint of
     /// [`Self::range`] is the anchor and which is the focus.
     direction: Cell<Direction>,
@@ -92,6 +95,7 @@ impl Selection {
             range: Default::default(),
             live_range: MutNullableDom::new(None),
             visible_range: Default::default(),
+            paints_caret: Cell::new(false),
             direction: Cell::new(Direction::Directionless),
             has_scheduled_selectionchange_event: Cell::new(false),
             visible_selection_dirty: Cell::new(false),
@@ -346,6 +350,39 @@ impl Selection {
             &self.document,
         );
         self.set_visible_range(flat_tree_selection);
+        if let Some(range) = self.range.borrow().as_ref() {
+            let new_paints_caret = self.should_paint_caret(range, no_gc);
+            if new_paints_caret != self.paints_caret.get() {
+                self.paints_caret.set(new_paints_caret);
+                // And since this only gets read during layout, so we need to rerun that for our
+                // changes to be visible.
+                if let Some(ancestor) = range.end.container.common_ancestor(&range.start.container, ShadowIncluding::No) {
+                    // TODO: Invalidate layout of this ancestor.
+                }
+            }
+        } else {
+            // Note that this doesn't invalidate layout, but that should be fine because we have
+            // no range. And what isn't there cannot be seen either way.
+            self.paints_caret.set(false);
+        }
+    }
+
+    fn should_paint_caret(&self, range: &SelectionRange, no_gc: &NoGC) -> bool {
+        if let Some(shadow_root) = range.end.container.containing_shadow_root() {
+            let host = shadow_root.host_unrooted(no_gc);
+            if host.is::<HTMLInputElement>() || host.is::<HTMLTextAreaElement>() {
+                // This is the cases where, if `selection_for_text_node` returns a selection
+                // it is a `TextInput` selection
+                return true;
+            }
+        }
+        // This is the cases where, if `selection_for_text_node` returns a selection,
+        // it is a document selection.
+        range
+            .end
+            .container
+            .common_ancestor(&range.start.container, ShadowIncluding::No)
+            .is_some_and(|ancestor| ancestor.editing_host_of().is_some())
     }
 
     /// <https://w3c.github.io/selection-api/#dfn-schedule-a-selectionchange-event>
@@ -1426,6 +1463,10 @@ impl<'dom> LayoutDom<'dom, Selection> {
     #[expect(unsafe_code)]
     pub(crate) fn range_for_layout(&self) -> &Option<SelectionRange> {
         unsafe { self.unsafe_get().visible_range.borrow_for_layout() }
+    }
+
+    pub(crate) fn paints_caret_for_layout(&self) -> bool {
+        self.unsafe_get().paints_caret.get()
     }
 }
 
