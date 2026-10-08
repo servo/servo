@@ -58,11 +58,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         #[cfg(not(windows))]
         panic!("Cross-compiling to windows is currently not supported");
-    } else if target_os == "macos" {
-        println!("cargo:rerun-if-changed=platform/macos/count_threads.c");
-        cc::Build::new()
-            .file("platform/macos/count_threads.c")
-            .compile("count_threads");
     } else if target_os == "android" {
         // FIXME: We need this workaround since jemalloc-sys still links
         // to libgcc instead of libunwind, but Android NDK 23c and above
