@@ -723,10 +723,13 @@ impl HTMLLinkElement {
         // Step 3
         let cors_setting = cors_setting_for_element(element);
 
-        let mq_str = element
-            .get_attribute_string_value(&local_name!("media"))
+        let media_query_string = element
+            .get_attribute_string_ref(&local_name!("media"))
             .unwrap_or_default();
-        let media = MediaList::parse_media_list(&mq_str, document.window());
+        let media = MediaList::parse_media_list(
+            &media_query_string.as_attr_ref().value(),
+            document.window(),
+        );
         let media = Arc::new(document.style_shared_author_lock().wrap(media));
 
         let integrity_metadata = element
