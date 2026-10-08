@@ -95,7 +95,7 @@ impl FetchResponseListener for LayoutImageContext {
 
 impl ResourceTimingListener for LayoutImageContext {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
-        (InitiatorType::Other, self.url.clone())
+        (InitiatorType::Css, self.url.clone())
     }
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
