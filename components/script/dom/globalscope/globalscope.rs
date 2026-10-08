@@ -2285,12 +2285,12 @@ impl GlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-policy-container>
-    pub(crate) fn policy_container(&self) -> PolicyContainer {
+    pub(crate) fn policy_container(&self) -> Arc<PolicyContainer> {
         if let Some(window) = self.downcast::<Window>() {
-            return window.Document().policy_container().to_owned();
+            return window.Document().policy_container().clone();
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
-            return worker.policy_container().to_owned();
+            return worker.policy_container().clone();
         }
         unreachable!();
     }
@@ -2882,7 +2882,7 @@ impl GlobalScope {
     /// <https://www.w3.org/TR/CSP/#get-csp-of-object>
     pub(crate) fn get_csp_list(&self) -> Option<CspList> {
         if self.is::<Window>() || self.is::<WorkerGlobalScope>() {
-            return self.policy_container().csp_list;
+            return self.policy_container().csp_list.clone();
         }
         // TODO: Worklet global scopes.
         None
