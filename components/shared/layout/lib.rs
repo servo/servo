@@ -718,6 +718,18 @@ pub struct ReflowRequestRestyle {
     pub pending_restyles: Vec<(TrustedNodeAddress, PendingRestyle)>,
 }
 
+/// Information needed for a script-initiated reflow that requires the accessibility tree to be
+/// updated.
+#[derive(Debug)]
+pub struct ReflowRequestAccessibility {
+    /// Damage to the accessibility tree from DOM mutations.
+    pub damage: Vec<(TrustedNodeAddress, AccessibilityDamage)>,
+    /// Nodes which were removed from the DOM tree since the last reflow, which were rooted in
+    /// [`AccessibilityData`]. Only set if [`pref::expensive_accessibility_test_assertions_enabled`]
+    /// is set.
+    pub rooted_nodes_for_integrity_check: Option<FxHashSet<OpaqueNode>>,
+}
+
 /// Information needed for a script-initiated reflow.
 #[derive(Debug)]
 pub struct ReflowRequest {
@@ -725,7 +737,7 @@ pub struct ReflowRequest {
     pub document: TrustedNodeAddress,
     /// The current layout [`Epoch`] managed by the script thread.
     pub epoch: Epoch,
-    /// If a restyle is necessary, all of the informatio needed to do that restyle.
+    /// If a restyle is necessary, all of the information needed to do that restyle.
     pub restyle: Option<ReflowRequestRestyle>,
     /// The current [`ViewportDetails`] to use for this reflow.
     pub viewport_details: ViewportDetails,
@@ -756,12 +768,8 @@ pub struct ReflowRequest {
     pub paint_timing_info: PaintTimingInfo,
     /// The current font context.
     pub document_context: WebFontDocumentContext,
-    /// Damage to the accessibility tree from DOM mutations.
-    pub accessibility_damage: Option<Vec<(TrustedNodeAddress, AccessibilityDamage)>>,
-    /// Nodes which were removed from the DOM tree since the last reflow, which were rooted in
-    /// [`AccessibilityData`]. Only set if [`pref::expensive_accessibility_test_assertions_enabled`]
-    /// is set.
-    pub rooted_nodes_for_accessibility_integrity_check: Option<FxHashSet<OpaqueNode>>,
+    /// If an accessibility tree update is necessary, all the information needed to do the update.
+    pub accessibility: Option<ReflowRequestAccessibility>,
 }
 
 impl ReflowRequest {
