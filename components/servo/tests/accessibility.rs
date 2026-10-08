@@ -1395,7 +1395,6 @@ fn test_accessibility_focus_moves() {
                        <a href='https://servo.org'>Servo</a> aims to empower developers\
                    </p>\
                </main>";
-    dbg!(&url);
     let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url);
 
     let focused_node = tree.state().focus().expect("Should be a focused node");
