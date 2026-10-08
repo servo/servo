@@ -575,7 +575,10 @@ impl WebGLProgram {
             name.into(),
             sender,
         ));
-        let location = receiver.recv().unwrap();
+        // Members of a named uniform block have no location.
+        let Some(location) = receiver.recv().unwrap() else {
+            return Ok(None);
+        };
         let context_id = self.upcast().context_id();
 
         Ok(Some(WebGLUniformLocation::new(
