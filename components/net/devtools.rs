@@ -112,25 +112,25 @@ mod enabled {
         }
     }
 
-pub(crate) fn send_response_to_devtools(
-    request: &Request,
-    context: &FetchContext,
-    response: &Response,
-    body_data: Option<Vec<u8>>,
-) {
-    let Ok(metadata): Result<Metadata, _> = response.metadata().map(Into::into) else {
-        log::warn!("No metadata available, skipping devtools response.");
-        return;
-    };
-    send_response_values_to_devtools(
-        metadata.headers.map(Serde::into_inner),
-        metadata.status,
-        body_data,
-        response.cache_state,
-        request,
-        context.devtools_chan.clone(),
-    );
-}
+    pub(crate) fn send_response_to_devtools(
+        request: &Request,
+        context: &FetchContext,
+        response: &Response,
+        body_data: Option<Vec<u8>>,
+    ) {
+        let Ok(metadata): Result<Metadata, _> = response.metadata().map(Into::into) else {
+            log::warn!("No metadata available, skipping devtools response.");
+            return;
+        };
+        send_response_values_to_devtools(
+            metadata.headers.map(Serde::into_inner),
+            metadata.status,
+            body_data,
+            response.cache_state,
+            request,
+            context.devtools_chan.clone(),
+        );
+    }
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn send_response_values_to_devtools(
@@ -168,15 +168,15 @@ pub(crate) fn send_response_to_devtools(
         }
     }
 
-pub(crate) fn send_security_info_to_devtools(
-    request: &Request,
-    context: &FetchContext,
-    response: &Response,
-) {
-    let Ok(metadata): Result<Metadata, _> = response.metadata().map(Into::into) else {
-        log::warn!("No metadata available, skipping devtools security info.");
-        return;
-    };
+    pub(crate) fn send_security_info_to_devtools(
+        request: &Request,
+        context: &FetchContext,
+        response: &Response,
+    ) {
+        let Ok(metadata): Result<Metadata, _> = response.metadata().map(Into::into) else {
+            log::warn!("No metadata available, skipping devtools security info.");
+            return;
+        };
 
         if let (Some(devtools_chan), Some(security_info), Some(webview_id)) = (
             context.devtools_chan.clone(),
