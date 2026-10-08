@@ -24,7 +24,7 @@ pub(crate) struct HTMLMarqueeElement {
 }
 
 impl HTMLMarqueeElement {
-    fn new_inherited(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> Self {
+    fn new_inherited3(local_name: LocalName, prefix: Option<Prefix>, document: &Document) -> Self {
         Self {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
         }
@@ -39,7 +39,7 @@ impl HTMLMarqueeElement {
     ) -> DomRoot<Self> {
         Node::reflect_node_with_proto(
             cx,
-            Box::new(Self::new_inherited(local_name, prefix, document)),
+            Box::new(Self::new_inherited3(local_name, prefix, document)),
             document,
             proto,
         )

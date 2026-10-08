@@ -30,6 +30,9 @@ use rustc_interface::interface::Config;
 
 mod common;
 
+#[cfg(feature = "domstruct_in_new_inherited")]
+mod domstruct_in_new_inherited;
+
 #[cfg(feature = "jscontext_first_arg")]
 mod jscontext_first_arg;
 
@@ -56,6 +59,8 @@ impl Callbacks for MyCallbacks {
                 return;
             }
 
+            #[cfg(feature = "domstruct_in_new_inherited")]
+            domstruct_in_new_inherited::register(lint_store);
             #[cfg(feature = "jscontext_first_arg")]
             jscontext_first_arg::register(lint_store);
             #[cfg(feature = "manual_domstring_new")]

@@ -77,8 +77,12 @@ impl MutationObserver {
         proto: Option<HandleObject>,
         callback: RootedCallback<MutationCallback>,
     ) -> DomRoot<MutationObserver> {
-        let boxed_observer = Box::new(MutationObserver::new_inherited(callback));
-        reflect_dom_object_with_proto(cx, boxed_observer, global, proto)
+        reflect_dom_object_with_proto(
+            cx,
+            Box::new(MutationObserver::new_inherited(callback)),
+            global,
+            proto,
+        )
     }
 
     fn new_inherited(callback: RootedCallback<MutationCallback>) -> MutationObserver {
