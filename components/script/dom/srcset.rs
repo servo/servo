@@ -21,7 +21,6 @@ use style_traits::ParsingMode;
 use xml5ever::local_name;
 
 use crate::css::css::{ANONYMOUS_CONTENT_URL_DATA, parser_context_for_anonymous_content};
-use crate::dom::accessors::AttrStrRef;
 use crate::dom::htmlimageelement::HTMLImageElement;
 use crate::dom::htmllinkelement::HTMLLinkElement;
 use crate::dom::htmlpictureelement::HTMLPictureElement;
@@ -197,11 +196,7 @@ impl SourceSet {
                     // Step 5.1.1: Let default source be the empty string.
                     // Step 5.1.2: Let srcset be the empty string.
                     // Step 5.1.3: Let sizes be the empty string.
-                    (
-                        AttrStrRef::default(),
-                        AttrStrRef::default(),
-                        AttrStrRef::default(),
-                    )
+                    Default::default()
                 };
 
                 let default_source = default_source.as_attr_ref();
