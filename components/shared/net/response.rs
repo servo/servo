@@ -359,11 +359,11 @@ impl Response {
 
                     match self.response_type {
                         ResponseType::Basic => Ok(FetchMetadata::Filtered {
-                            filtered: FilteredMetadata::Basic(metadata.unwrap()),
+                            filtered: FilteredMetadata::Basic(metadata.unwrap().into()),
                             unsafe_: unsafe_metadata,
                         }),
                         ResponseType::Cors => Ok(FetchMetadata::Filtered {
-                            filtered: FilteredMetadata::Cors(metadata.unwrap()),
+                            filtered: FilteredMetadata::Cors(metadata.unwrap().into()),
                             unsafe_: unsafe_metadata,
                         }),
                         ResponseType::Default => unreachable!(),

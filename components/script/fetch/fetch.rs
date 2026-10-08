@@ -22,8 +22,10 @@ use net_traits::request::{
 };
 use net_traits::{
     CoreResourceMsg, CoreResourceThread, FetchChannels, FetchMetadata, FetchResponseMsg,
-    FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming, cancel_async_fetch, fetch_async,
+    FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming, SpecialMetadata,
+    cancel_async_fetch, fetch_async,
 };
+use pixels::CorsStatus;
 use rustc_hash::FxHashMap;
 use script_bindings::cformat;
 use serde::{Deserialize, Serialize};
@@ -714,7 +716,7 @@ impl FetchResponseListener for FetchContext {
             Ok(metadata) => match metadata {
                 FetchMetadata::Unfiltered(m) => {
                     let r = self.response_object.root();
-                    fill_headers_with_metadata(cx, &r, m);
+                    fill_headers_with_metadata(cx, &r, m.into());
                     r.set_type(cx, DOMResponseType::Default);
                 },
                 FetchMetadata::Filtered { filtered, .. } => match filtered {
@@ -850,7 +852,7 @@ impl ResourceTimingListener for FetchLaterListener {
     }
 }
 
-fn fill_headers_with_metadata(cx: &mut JSContext, r: &Response, m: Metadata) {
+fn fill_headers_with_metadata(cx: &mut JSContext, r: &Response, m: SpecialMetadata) {
     r.set_headers(cx, m.headers);
     r.set_status(&m.status);
     r.set_final_url(m.final_url);
@@ -885,15 +887,12 @@ pub(crate) fn load_whole_resource(
         match action_receiver.recv().unwrap() {
             FetchResponseMsg::ProcessRequestBody(..) => {},
             FetchResponseMsg::ProcessResponse(_, Ok(m)) => {
-                muted_errors = m.is_cors_cross_origin();
-                metadata = Some(match m {
-                    FetchMetadata::Unfiltered(m) => m,
-                    FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
-                })
+                muted_errors = m.cors_status() == CorsStatus::Unsafe;
+                metadata = Some(m.into());
             },
             FetchResponseMsg::ProcessResponseChunk(_, data) => buf.extend_from_slice(&data),
             FetchResponseMsg::ProcessResponseEOF(_, Ok(_), _) => {
-                let metadata = metadata.unwrap();
+                let metadata: Metadata = metadata.unwrap();
                 if let Some(timing) = &metadata.timing {
                     submit_timing_data(cx, global, url, InitiatorType::Other, timing);
                 }

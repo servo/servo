@@ -1047,12 +1047,12 @@ impl XMLHttpRequest {
         gen_id: GenerationId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) -> Result<(), Error> {
-        let metadata = match metadata {
+        let (headers, status, final_url) = match metadata {
             Ok(meta) => match meta {
-                FetchMetadata::Unfiltered(m) => m,
+                FetchMetadata::Unfiltered(m) => (m.headers, m.status, m.final_url),
                 FetchMetadata::Filtered { filtered, .. } => match filtered {
-                    FilteredMetadata::Basic(m) => m,
-                    FilteredMetadata::Cors(m) => m,
+                    FilteredMetadata::Basic(m) => (m.headers, m.status, m.final_url),
+                    FilteredMetadata::Cors(m) => (m.headers, m.status, m.final_url),
                     FilteredMetadata::Opaque => return Err(Error::Network(None)),
                     FilteredMetadata::OpaqueRedirect(_) => return Err(Error::Network(None)),
                 },
@@ -1066,17 +1066,13 @@ impl XMLHttpRequest {
             },
         };
 
-        metadata.final_url[..Position::AfterQuery]
+        final_url[..Position::AfterQuery]
             .clone_into(&mut self.response_url.safe_borrow_mut(cx.no_gc()));
 
         // XXXManishearth Clear cache entries in case of a network error
         self.process_partial_response(
             cx,
-            XHRProgress::HeadersReceived(
-                gen_id,
-                metadata.headers.map(Serde::into_inner),
-                metadata.status,
-            ),
+            XHRProgress::HeadersReceived(gen_id, headers.map(Serde::into_inner), status),
         );
         Ok(())
     }
