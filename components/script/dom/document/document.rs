@@ -263,6 +263,29 @@ pub(crate) struct RefreshRedirectDue {
     pub(crate) from_meta_element: bool,
 }
 
+#[derive(Debug, Copy, Clone)]
+pub(crate) enum AbortReason {
+    PipelineExited,
+    DocumentOpen,
+    Destroy,
+    StopLoading,
+    Navigate,
+}
+
+#[derive(Debug)]
+pub(crate) enum SetParserReason {
+    AboutBlankComplete,
+    ParsingHtmlDocument,
+    ParsingHtmlScriptInput,
+    ParsingHtmlFragment,
+    ParsingXmlDocument,
+    #[expect(dead_code)]
+    // AbortReason is only read by the Debug impl.
+    Abort(AbortReason),
+    ParsingBytesChunk,
+    FinishingParser,
+}
+
 /// An LCP candidate paired with its resolved element.
 ///
 /// <https://www.w3.org/TR/largest-contentful-paint/#largest-contentful-paint-candidate>
@@ -2235,7 +2258,7 @@ impl Document {
     /// <https://html.spec.whatwg.org/multipage/#delay-the-load-event>
     pub(crate) fn finish_load(&self, load: LoadType, cx: &mut JSContext) {
         // This does not delay the load event anymore.
-        debug!("Document got finish_load: {:?}", load);
+        debug!("Document {:?} got finish_load: {:?}", self.url(), load);
         self.loader.borrow_mut().finish_load(&load);
 
         match load {
@@ -2884,7 +2907,7 @@ impl Document {
     pub(crate) fn destroy(&self, cx: &mut JSContext) {
         let exited_window = self.window();
         // Step 2. Abort document.
-        self.abort(cx);
+        self.abort(cx, AbortReason::Destroy);
         // Step 3. Set document's salvageable state to false.
         self.salvageable.set(false);
         // Step 4. Let ports be the list of MessagePorts whose relevant
@@ -2932,7 +2955,7 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#abort-a-document>
-    pub(crate) fn abort(&self, cx: &mut JSContext) {
+    pub(crate) fn abort(&self, cx: &mut JSContext, reason: AbortReason) {
         // We need to inhibit the loader before anything else.
         self.loader.borrow_mut().inhibit_events();
 
@@ -2975,14 +2998,18 @@ impl Document {
             // Step 4.1. Set document's active parser was aborted to true.
             self.active_parser_was_aborted.set(true);
             // Step 4.2. Abort that parser.
-            parser.abort(cx);
+            parser.abort(cx, reason);
             // Step 4.3. Make document unsalvageable given document and "parser-aborted".
             self.salvageable.set(false);
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#abort-a-document-and-its-descendants>
-    pub(crate) fn abort_a_document_and_its_descendants(&self, cx: &mut JSContext) {
+    pub(crate) fn abort_a_document_and_its_descendants(
+        &self,
+        cx: &mut JSContext,
+        reason: AbortReason,
+    ) {
         // Step 1. Assert: this is running as part of a task queued on document's relevant agent's event loop.
         // TODO
 
@@ -3001,7 +3028,7 @@ impl Document {
                     .queue(task!(abort_iframe_document: move |cx| {
                         let descendant_document = trusted_descendant_document.root();
                         // Step 3.1. Abort descendantNavigable's active document.
-                        descendant_document.abort(cx);
+                        descendant_document.abort(cx, reason);
                         // Step 3.2. If descendantNavigable's active document's salvageable is false, then set document's salvageable to false.
                         if !descendant_document.salvageable.get() {
                             document.root().salvageable.set(false);
@@ -3011,7 +3038,7 @@ impl Document {
         }
 
         // Step 4. Abort document.
-        self.abort(cx);
+        self.abort(cx, reason);
     }
 
     pub(crate) fn notify_constellation_load(&self) {
@@ -3019,7 +3046,17 @@ impl Document {
             .send_to_constellation(ScriptToConstellationMessage::LoadComplete);
     }
 
-    pub(crate) fn set_current_parser(&self, script: Option<&ServoParser>) {
+    pub(crate) fn set_current_parser(&self, script: Option<&ServoParser>, reason: SetParserReason) {
+        trace!(
+            "{} parser for {:?} due to {:?}",
+            if script.is_some() {
+                "setting"
+            } else {
+                "clearing"
+            },
+            self.url(),
+            reason
+        );
         self.current_parser.set(script);
     }
 
@@ -6853,7 +6890,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         if self.has_browsing_context() {
             // spec says "stop document loading",
             // which is a process that does more than just abort
-            self.abort(cx);
+            self.abort(cx, AbortReason::DocumentOpen);
         }
 
         // Step 9. For each shadow-including inclusive descendant node of document,
