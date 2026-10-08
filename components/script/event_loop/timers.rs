@@ -34,7 +34,7 @@ use crate::dom::bindings::codegen::UnionTypes::TrustedScriptOrString;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::root::{AsHandleValue, Dom};
+use crate::dom::bindings::root::{AsHandleValue, Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::CspReporting;
 use crate::dom::document::RefreshRedirectDue;
@@ -45,7 +45,7 @@ use crate::dom::script_execution::ScriptOptions;
 #[cfg(feature = "testbinding")]
 use crate::dom::testbinding::TestBindingCallback;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
-use crate::dom::types::{Window, WorkerGlobalScope};
+use crate::dom::types::Window;
 use crate::dom::xmlhttprequest::XHRTimeoutCallback;
 use crate::event_loop::script_thread::ScriptThread;
 use crate::modules::script_module::{ScriptFetchOptions, module_script_from_reference_private};
@@ -620,10 +620,15 @@ impl OneshotTimers {
         };
 
         let expected_event_id = self.invalidate_expected_event_id();
+        let worker_context = match timer.data.source {
+            TimerSource::FromWorker => Some(Trusted::new(&*self.global_scope)),
+            TimerSource::FromWindow(_) => None,
+        };
+
         // Step 12. Let completionStep be an algorithm step which queues a global
         // task on the timer task source given global to run task.
         let callback = TimerListener {
-            context: Trusted::new(&*self.global_scope),
+            worker_context,
             task_source: self
                 .global_scope
                 .task_manager()
@@ -1049,7 +1054,10 @@ pub struct TimerEvent(pub TimerSource, pub TimerEventId);
 #[derive(Clone)]
 struct TimerListener {
     task_source: SendableTaskSource,
-    context: Trusted<GlobalScope>,
+    /// For workers the scheduler is owned by the worker itself.
+    /// For window sources, the `Trusted` reference would keep the window alive until
+    /// the timer fires, so we lookup the global via the pipeline instead.
+    worker_context: Option<Trusted<GlobalScope>>,
     source: TimerSource,
     id: TimerEventId,
 }
@@ -1059,23 +1067,21 @@ impl TimerListener {
     /// by queuing the appropriate task on the relevant event-loop.
     /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
     fn handle(&self, event: TimerEvent) {
-        let context = self.context.clone();
+        let worker_context = self.worker_context.clone();
         // Step 9. Let task be a task that runs the following substeps:
         self.task_source.queue(task!(timer_event: move |cx| {
-                let global = context.root();
-                let TimerEvent(source, id) = event;
-                match source {
-                    TimerSource::FromWorker => {
-                        global.downcast::<WorkerGlobalScope>().expect("Window timer delivered to worker");
-                    },
-                    TimerSource::FromWindow(pipeline) => {
-                        assert_eq!(pipeline, global.pipeline_id());
-                        global.downcast::<Window>().expect("Worker timer delivered to window");
-                    },
-                };
-                global.fire_timer(id, cx);
-            })
-        );
+            let TimerEvent(source, id) = event;
+            let global = match source {
+                TimerSource::FromWorker => {
+                    worker_context.expect("Worker timer must have worker global").root()
+                },
+                TimerSource::FromWindow(pipeline) => match ScriptThread::find_window(pipeline) {
+                    Some(window) => DomRoot::upcast::<GlobalScope>(window),
+                    None => return,
+                },
+            };
+            global.fire_timer(id, cx);
+        }));
     }
 
     fn into_callback(self) -> BoxedTimerCallback {
