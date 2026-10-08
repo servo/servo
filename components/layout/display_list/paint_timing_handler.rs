@@ -69,6 +69,9 @@ pub(crate) struct PaintTimingHandler {
     is_document_contentful: bool,
     /// <https://www.w3.org/TR/paint-timing/#set-of-previously-reported-paints>
     previously_reported_paints: PaintTimingReport,
+    /// Whether LCP computation has been halted for this document, see
+    /// <https://www.w3.org/TR/largest-contentful-paint/#limitations>
+    pub(crate) lcp_halted: bool,
     /// Counter for generating unique LCP candidate UUIDs.
     lcp_next_uuid: u64,
     /// The LCP candidate, it may be a image or text.
@@ -90,6 +93,7 @@ impl PaintTimingHandler {
             is_document_paintable: false,
             is_document_contentful: false,
             previously_reported_paints: PaintTimingReport::default(),
+            lcp_halted: false,
             lcp_next_uuid: 0,
             lcp_candidate: None,
             viewport_rect: LayoutRect::from_size(viewport_size),
@@ -426,7 +430,8 @@ impl PaintTimingHandler {
         // Step 1. Let window be document’s relevant global object.
         // Step 2. If either of window’s has dispatched scroll event or has
         // dispatched input event is true, return.
-        if halt_lcp {
+        self.lcp_halted |= halt_lcp;
+        if self.lcp_halted {
             return;
         }
 

@@ -670,7 +670,7 @@ impl DisplayListBuilder<'_> {
         natural_width: Option<Au>,
         natural_height: Option<Au>,
     ) {
-        if !self.largest_contentful_paint_enabled {
+        if !self.largest_contentful_paint_enabled || self.paint_timing_handler.lcp_halted {
             return;
         }
 
@@ -1193,7 +1193,8 @@ impl Fragment {
 
         // Accumulate this text fragment for LCP by the containing element's tag
         if let Some(tag) = state.containing_element_tag &&
-            builder.largest_contentful_paint_enabled
+            builder.largest_contentful_paint_enabled &&
+            !builder.paint_timing_handler.lcp_halted
         {
             let transform = builder
                 .paint_info
