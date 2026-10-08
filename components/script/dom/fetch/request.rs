@@ -176,7 +176,7 @@ impl Request {
         let mut request: NetTraitsRequest;
         request = net_request_from_global(global, temporary_request.current_url());
         request.method = temporary_request.method;
-        request.headers = temporary_request.headers.clone();
+        request.headers = temporary_request.headers;
         request.unsafe_request = true;
         request.traversable_for_user_prompts = traversable_for_user_prompts;
         // TODO: `entry settings object` is not implemented in Servo yet.
@@ -669,20 +669,17 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
 
     /// <https://fetch.spec.whatwg.org/#dom-request-credentials>
     fn Credentials(&self) -> RequestCredentials {
-        let r = self.request.borrow().clone();
-        r.credentials_mode.convert()
+        self.request.borrow().credentials_mode.convert()
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-request-cache>
     fn Cache(&self) -> RequestCache {
-        let r = self.request.borrow().clone();
-        r.cache_mode.convert()
+        self.request.borrow().cache_mode.convert()
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-request-redirect>
     fn Redirect(&self) -> RequestRedirect {
-        let r = self.request.borrow().clone();
-        r.redirect_mode.convert()
+        self.request.borrow().redirect_mode.convert()
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-request-integrity>
