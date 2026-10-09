@@ -60,7 +60,6 @@ import androidx.window.core.layout.WindowSizeClass
 import kotlinx.coroutines.launch
 import org.servo.servoview.Servo
 import org.servo.servoview.ServoNavigator
-import org.servo.servoview.ServoView
 
 class MainActivity : ComponentActivity(), Servo.Client {
     private val urlTextFieldState = TextFieldState()
@@ -91,12 +90,6 @@ class MainActivity : ComponentActivity(), Servo.Client {
                 scope = lifecycleScope,
                 client = this,
                 context = this,
-                navigator = navigator,
-            )
-        val servoView =
-            ServoView(
-                context = this,
-                servo = servo,
                 navigator = navigator,
             )
 
@@ -255,8 +248,9 @@ class MainActivity : ComponentActivity(), Servo.Client {
                 },
             ) { innerPadding ->
                 Servo(
-                    servoView = servoView,
                     softKeyboardVisible = softKeyboardVisible,
+                    servo = servo,
+                    navigator = navigator,
                     modifier = Modifier.padding(innerPadding).focusRequester(servoFocusRequester),
                 )
                 BackHandler(enabled = navigator.canGoBack) { navigator.back() }
