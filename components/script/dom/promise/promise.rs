@@ -155,12 +155,6 @@ impl Deref for TracedPromise {
 #[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_in_rc)]
 pub(crate) struct Promise {
     reflector: Reflector,
-    /// Since Promise values are natively reference counted without the knowledge of
-    /// the SpiderMonkey GC, an explicit root for the reflector is stored while any
-    /// native instance exists. This ensures that the reflector will never be GCed
-    /// while native code could still interact with its native representation.
-    /// FIXME(#47747) Deprecated and planned for removal.
-    permanent_js_root: Option<PermanentRoot>,
 }
 
 impl Promise {
@@ -212,7 +206,6 @@ impl Promise {
     fn duplicate_unrooted(&self) -> Rc<Promise> {
         let promise = Promise {
             reflector: Reflector::new(),
-            permanent_js_root: None,
         };
         let promise = Rc::new(promise);
         unsafe {
@@ -231,7 +224,6 @@ impl Promise {
         }
         let promise = Promise {
             reflector: Reflector::new(),
-            permanent_js_root: None,
         };
         let promise = Rc::new((promise, PermanentRoot::default()));
         unsafe {
