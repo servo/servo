@@ -800,43 +800,6 @@ impl Element {
         Ok(shadow_root)
     }
 
-    /// Attach a UA widget shadow root with its default parameters.
-    /// Additionally mark ShadowRoot to use styling configuration for a UA widget.
-    ///
-    /// The general trait of these elements is that it would hide the implementation.
-    /// Thus, we would make it inaccessible (i.e., closed mode, not cloneable, and
-    /// not serializable).
-    ///
-    /// With UA shadow root element being assumed as one element, any focus should
-    /// be delegated to its host.
-    ///
-    // TODO: Ideally, all of the UA shadow root should use UA widget styling, but
-    //       some of the UA widget implemented prior to the implementation of Gecko's
-    //       UA widget matching might need some tweaking.
-    // FIXME: We are yet to implement more complex focusing with that is necessary
-    //        for delegate focus, and we are using workarounds for that right now.
-    pub(crate) fn attach_ua_shadow_root(
-        &self,
-        cx: &mut JSContext,
-        use_ua_widget_styling: bool,
-    ) -> DomRoot<ShadowRoot> {
-        let root = self
-            .attach_shadow(
-                cx,
-                IsUserAgentWidget::Yes,
-                ShadowRootMode::Closed,
-                false,
-                false,
-                false,
-                SlotAssignmentMode::Manual,
-            )
-            .expect("Attaching UA shadow root failed");
-
-        root.upcast::<Node>()
-            .set_in_ua_widget(use_ua_widget_styling);
-        root
-    }
-
     /// <https://html.spec.whatwg.org/multipage/#translation-mode>
     pub(crate) fn is_translate_enabled(&self) -> bool {
         let name = &local_name!("translate");

@@ -12,8 +12,9 @@ use script_bindings::inheritance::Castable;
 use script_bindings::root::Dom;
 use script_bindings::traits::DomEventTrait;
 use style_traits::CSSPixel;
-use xml5ever::{QualName, local_name, ns};
+use xml5ever::{local_name, ns};
 
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
@@ -22,8 +23,10 @@ use crate::dom::htmlformelement::{FormControl, FormSubmitterElement, SubmittedFr
 use crate::dom::input_type::InputType;
 use crate::dom::input_type::text_input_widget::TextInputWidget;
 use crate::dom::node::NodeTraits;
+use crate::dom::shadowroot::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::ua_shadowroot::{SpecificShadowTree, UAShadowRoot};
 use crate::dom::types::MouseEvent;
-use crate::dom::{CustomElementCreationMode, Element, ElementCreator, Node};
+use crate::dom::{Element, Node};
 
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -43,7 +46,8 @@ impl SpecificInputType for ImageInputType {
     }
 
     fn update_shadow_tree(&self, cx: &mut JSContext, input: &HTMLInputElement) {
-        self.get_or_create_shadow_tree(cx, input).update(cx, input)
+        self.ensure_shadow_tree(cx, input.upcast())
+            .update(cx, self, input)
     }
 }
 
@@ -60,28 +64,6 @@ impl ImageInputType {
             mouse_event.ClientX() - rect.origin.x,
             mouse_event.ClientY() - rect.origin.y,
         ));
-    }
-
-    fn get_or_create_shadow_tree(
-        &self,
-        cx: &mut JSContext,
-        input: &HTMLInputElement,
-    ) -> Ref<'_, ImageInputShadowTree> {
-        {
-            if let Ok(shadow_tree) = Ref::filter_map(self.shadow_tree.borrow(), |shadow_tree| {
-                shadow_tree.as_ref()
-            }) {
-                return shadow_tree;
-            }
-        }
-
-        let element = input.upcast::<Element>();
-        let shadow_root = element
-            .shadow_root()
-            .unwrap_or_else(|| element.attach_ua_shadow_root(cx, true));
-        let shadow_root = shadow_root.upcast();
-        *self.shadow_tree.borrow_mut() = Some(ImageInputShadowTree::new(cx, shadow_root));
-        self.get_or_create_shadow_tree(cx, input)
     }
 
     pub(crate) fn selected_coordinate(&self) -> Point2D<i32, CSSPixel> {
@@ -132,23 +114,18 @@ pub(crate) struct ImageInputShadowTree {
 
 impl ImageInputShadowTree {
     pub(crate) fn new(cx: &mut JSContext, shadow_root: &Node) -> Self {
-        let img = Element::create(
-            cx,
-            QualName::new(None, ns!(html), local_name!("img")),
-            None,
-            &shadow_root.owner_document(),
-            ElementCreator::ScriptCreated,
-            CustomElementCreationMode::Asynchronous,
-            None,
-        );
+        let document = shadow_root.owner_document();
+        let img = Self::create_element_in_ua_shadowroot(cx, &document, local_name!("img"));
         Node::replace_all(cx, Some(img.upcast()), shadow_root);
         Self {
             image_element: img.as_traced(),
         }
     }
+}
 
-    pub(crate) fn update(&self, cx: &mut JSContext, input: &HTMLInputElement) {
-        let input_element = input.upcast::<Element>();
+impl SpecificShadowTree<HTMLInputElement, ImageInputType> for ImageInputShadowTree {
+    fn update(&self, cx: &mut JSContext, _: &ImageInputType, input_element: &HTMLInputElement) {
+        let input_element = input_element.upcast::<Element>();
         for name in [&local_name!("src"), &local_name!("alt")] {
             let new = input_element.get_attribute_string_value(name);
             if new == self.image_element.get_attribute_string_value(name) {
@@ -161,5 +138,15 @@ impl ImageInputShadowTree {
                 },
             }
         }
+    }
+}
+
+impl UAShadowRoot<ImageInputShadowTree> for ImageInputType {
+    fn store_for_shadow_tree(&self, cx: &mut JSContext, shadow_root: DomRoot<ShadowRoot>) {
+        *self.shadow_tree.borrow_mut() = Some(ImageInputShadowTree::new(cx, shadow_root.upcast()));
+    }
+
+    fn borrow_for_shadow_tree(&self) -> Ref<'_, Option<ImageInputShadowTree>> {
+        self.shadow_tree.borrow()
     }
 }
