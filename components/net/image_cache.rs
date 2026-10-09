@@ -966,8 +966,9 @@ impl ImageCacheStore {
                 let ImageBytes::Complete(bytes) = &pending.bytes else {
                     return;
                 };
-                // In case if net is done and the responce has valid body, we pass the body
-                // otherwise, we pass the wrapped vector, which would preserve second allocation.
+                // Share net's completed body when supplied, releasing our encoded
+                // buffer after the initial decode. IPC EOF messages omit the body
+                // to avoid retransmitting it, so retain our existing buffer there.
                 LoadResult::LoadedEncodedRaster(Arc::new(EncodedImage {
                     id: msg.key,
                     metadata: raster_image.metadata,
