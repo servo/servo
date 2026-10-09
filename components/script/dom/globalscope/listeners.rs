@@ -16,6 +16,7 @@ use uuid::Uuid;
 
 use crate::dom::GlobalScope;
 use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::refcounted::TrustedPromise;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::HashMapTracedValues;
@@ -29,7 +30,6 @@ use crate::dom::readablestream::ReadableStream;
 use crate::dom::transformstream::CrossRealmTransform;
 use crate::realms::enter_auto_realm;
 use crate::tasks::task_source::SendableTaskSource;
-use crate::test::TrustedPromise;
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
 pub(super) struct MessageListener {

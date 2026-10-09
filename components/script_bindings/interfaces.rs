@@ -93,6 +93,11 @@ pub trait GlobalScopeHelpers<D: DomTypes>: DomObject + Sized {
     fn entry() -> DomRoot<Self>;
 }
 
+pub trait ThreadTrustedPromiseHelpers<D: DomTypes> {
+    type StackRoot;
+    fn root(self, cx: &JSContext) -> Self::StackRoot;
+}
+
 pub trait HeapTracedPromiseHelpers<D: DomTypes> {
     type StackRoot;
     fn root(&self, cx: &JSContext) -> Self::StackRoot;
@@ -100,7 +105,11 @@ pub trait HeapTracedPromiseHelpers<D: DomTypes> {
 
 pub trait StackRootPromiseHelpers<D: DomTypes> {
     type HeapTraced;
+    type ThreadTrusted: Send
+        + Deref<Target = D::Promise>
+        + ThreadTrustedPromiseHelpers<D, StackRoot = Self>;
     fn to_traced(&self) -> Self::HeapTraced;
+    fn to_trusted(&self) -> Self::ThreadTrusted;
 }
 
 pub trait PromiseHelpers<D: DomTypes> {
@@ -112,6 +121,7 @@ pub trait PromiseHelpers<D: DomTypes> {
         + MallocSizeOf
         + Deref<Target = D::Promise>
         + HeapTracedPromiseHelpers<D, StackRoot = Self::StackRoot>;
+    type ThreadTrusted;
     fn new_in_realm(cx: &mut CurrentRealm) -> Self::StackRoot;
     fn new(cx: &mut JSContext, global: &D::GlobalScope) -> Self::StackRoot;
     fn reject_error(&self, cx: &mut JSContext, error: Error);

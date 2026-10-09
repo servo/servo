@@ -63,8 +63,12 @@ pub(crate) struct RootedPromise(Rc<(Promise, PermanentRoot)>);
 
 impl StackRootPromiseHelpers<crate::DomTypeHolder> for RootedPromise {
     type HeapTraced = TracedPromise;
+    type ThreadTrusted = TrustedPromise;
     fn to_traced(&self) -> TracedPromise {
         RootedPromise::to_traced(self)
+    }
+    fn to_trusted(&self) -> TrustedPromise {
+        TrustedPromise::new(self)
     }
 }
 
@@ -713,6 +717,7 @@ pub(crate) fn wait_for_all_promise(
 impl PromiseHelpers<crate::DomTypeHolder> for Promise {
     type StackRoot = RootedPromise;
     type HeapTraced = TracedPromise;
+    type ThreadTrusted = TrustedPromise;
 
     fn new_in_realm(cx: &mut CurrentRealm) -> RootedPromise {
         Promise::new_in_realm(cx)
