@@ -2741,28 +2741,30 @@ impl Window {
         document.id_map().resolve_all(cx.no_gc(), document.upcast());
 
         let document_context = self.web_font_context(cx.no_gc());
-
-        let accessibility = if reflow_goal == ReflowGoal::UpdateTheRendering &&
-            self.layout().accessibility_active()
-        {
-            let rooted_nodes_for_integrity_check =
-                document.rooted_nodes_for_accessibility_integrity_check();
-            let focused_element = document
-                .focus_handler()
-                .focused_area()
-                .element()
-                .map(|element| element.upcast::<Node>().to_opaque());
-            let damage = document
-                .accessibility_data_mut()
-                .drain_pending_accessibility_damage();
-            Some(ReflowRequestAccessibility {
-                damage,
-                focused_element,
-                rooted_nodes_for_integrity_check,
-            })
-        } else {
-            None
-        };
+        let should_update_accessibility_tree = matches!(
+            reflow_goal,
+            ReflowGoal::UpdateTheRendering | ReflowGoal::LayoutQuery(QueryMsg::AccessKitNodeQuery)
+        );
+        let accessibility =
+            if should_update_accessibility_tree && self.layout().accessibility_active() {
+                let rooted_nodes_for_integrity_check =
+                    document.rooted_nodes_for_accessibility_integrity_check();
+                let focused_element = document
+                    .focus_handler()
+                    .focused_area()
+                    .element()
+                    .map(|element| element.upcast::<Node>().to_opaque());
+                let damage = document
+                    .accessibility_data_mut()
+                    .drain_pending_accessibility_damage();
+                Some(ReflowRequestAccessibility {
+                    damage,
+                    focused_element,
+                    rooted_nodes_for_integrity_check,
+                })
+            } else {
+                None
+            };
 
         // Send new document and relevant styles to layout.
         let reflow = ReflowRequest {
@@ -3182,6 +3184,14 @@ impl Window {
             animations,
             document.current_animation_timeline_value(),
         ))
+    }
+
+    pub(crate) fn accesskit_node_query(
+        &self,
+        element: TrustedNodeAddress,
+    ) -> Option<accesskit::Node> {
+        self.layout_reflow(QueryMsg::AccessKitNodeQuery);
+        self.layout.borrow().query_accesskit_node(element)
     }
 
     /// If the given |browsing_context_id| refers to an `<iframe>` that is an element
