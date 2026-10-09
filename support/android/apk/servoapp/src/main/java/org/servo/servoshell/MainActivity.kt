@@ -100,7 +100,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                 navigator = navigator,
             )
 
-        mediaSession = MediaSession(servoView, applicationContext)
+        mediaSession = MediaSession(servo, applicationContext)
         historyManager = HistoryManager(this)
 
         val historyActivityResultLauncher =

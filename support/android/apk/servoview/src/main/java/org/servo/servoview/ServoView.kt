@@ -27,10 +27,6 @@ class ServoView(
         holder.addCallback(surfaceHolderCallback)
     }
 
-    fun mediaSessionAction(action: Int) {
-        servo.mediaSessionAction(action)
-    }
-
     fun setExperimentalMode(enable: Boolean) {
         servo.setExperimentalMode(enable)
     }
