@@ -6,7 +6,7 @@
 use std::borrow::{Cow, ToOwned};
 use std::cell::{Ref, RefCell, RefMut};
 use std::default::Default;
-use std::ops::{Deref, DerefMut};
+use std::ops::Deref;
 use std::ptr::{self, NonNull};
 use std::str::FromStr;
 use std::sync::LazyLock;
@@ -323,19 +323,27 @@ impl std::fmt::Debug for DOMStringType {
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub struct TracedDOMString(RefCell<DOMStringType>);
 
-// TODO: Removed RootedTraceableBox if TracedDOMString is not a js type.
-#[derive(Default, MallocSizeOf, JSTraceable)]
-pub struct DOMString(RootedTraceableBox<TracedDOMString>);
+/// The storage of a [`DOMString`]. Only a string that holds a JS string needs to be rooted, so the
+/// others aren't registered as traceables.
+#[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+enum DOMStringStorage {
+    /// A string that doesn't hold a JS string. It can never change to hold one since [`DOMString`] doesn't
+    /// implement `DerefMut`.
+    Unrooted(TracedDOMString),
+    /// A string that holds a JS string, which is rooted while the [`DOMString`] lives.
+    Rooted(RootedTraceableBox<TracedDOMString>),
+}
+
+/// Unlike a [`TracedDOMString`], a `DOMString` doesn't need to be rooted: it roots its string
+/// itself when that holds a JS string.
+#[derive(MallocSizeOf, JSTraceable)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
+pub struct DOMString(DOMStringStorage);
 
 impl std::fmt::Debug for DOMString {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_tuple("DOMString").field(&*self.0).finish()
-    }
-}
-
-impl DerefMut for DOMString {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
+        f.debug_tuple("DOMString").field(&**self).finish()
     }
 }
 
@@ -343,13 +351,22 @@ impl Deref for DOMString {
     type Target = TracedDOMString;
 
     fn deref(&self) -> &Self::Target {
-        &self.0
+        match &self.0 {
+            DOMStringStorage::Unrooted(string) => string,
+            DOMStringStorage::Rooted(string) => string,
+        }
     }
 }
 
 impl Clone for DOMString {
     fn clone(&self) -> Self {
-        self.0.clone().root()
+        (**self).clone().root()
+    }
+}
+
+impl Default for DOMString {
+    fn default() -> Self {
+        DOMString::new()
     }
 }
 
@@ -401,12 +418,61 @@ impl DOMString {
         TracedDOMString(RefCell::new(DOMStringType::RustStatic(s))).root()
     }
 
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub fn traced(self) -> TracedDOMString {
-        *self.0.into_box()
+        match self.0 {
+            DOMStringStorage::Unrooted(string) => string,
+            DOMStringStorage::Rooted(string) => *string.into_box(),
+        }
     }
 
     pub fn str(&self) -> StringView<'_> {
-        self.0.str()
+        (**self).str()
+    }
+
+    /// The [`TracedDOMString`] of this string, for the methods below that change it.
+    fn inner_mut(&mut self) -> &mut TracedDOMString {
+        match &mut self.0 {
+            DOMStringStorage::Unrooted(string) => string,
+            DOMStringStorage::Rooted(string) => string,
+        }
+    }
+
+    /// See [`TracedDOMString::clear`].
+    pub fn clear(&mut self) {
+        self.inner_mut().clear();
+    }
+
+    /// See [`TracedDOMString::make_ascii_lowercase`].
+    pub fn make_ascii_lowercase(&mut self) {
+        self.inner_mut().make_ascii_lowercase();
+    }
+
+    /// See [`TracedDOMString::push_str`].
+    pub fn push_str(&mut self, string_to_push: &str) {
+        self.inner_mut().push_str(string_to_push);
+    }
+
+    /// See [`TracedDOMString::strip_leading_and_trailing_ascii_whitespace`].
+    pub fn strip_leading_and_trailing_ascii_whitespace(&mut self) {
+        self.inner_mut()
+            .strip_leading_and_trailing_ascii_whitespace();
+    }
+
+    /// See [`TracedDOMString::set_best_representation_of_the_floating_point_number`].
+    pub fn set_best_representation_of_the_floating_point_number(&mut self) {
+        self.inner_mut()
+            .set_best_representation_of_the_floating_point_number();
+    }
+
+    /// See [`TracedDOMString::strip_newlines`].
+    pub fn strip_newlines(&mut self) {
+        self.inner_mut().strip_newlines();
+    }
+
+    /// See [`TracedDOMString::normalize_newlines`].
+    pub fn normalize_newlines(&mut self) {
+        self.inner_mut().normalize_newlines();
     }
 }
 
@@ -423,7 +489,12 @@ impl From<String> for TracedDOMString {
 impl TracedDOMString {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub fn root(self) -> DOMString {
-        DOMString(RootedTraceableBox::from_box(Box::new(self)))
+        if matches!(*self.0.borrow(), DOMStringType::JSString(..)) {
+            return DOMString(DOMStringStorage::Rooted(RootedTraceableBox::from_box(
+                Box::new(self),
+            )));
+        }
+        DOMString(DOMStringStorage::Unrooted(self))
     }
 
     /// Transforms the internal storage of this [`DOMString`] into a Rust string if it is not
@@ -936,7 +1007,7 @@ impl PartialOrd for TracedDOMString {
 
 impl PartialOrd for DOMString {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        self.0.partial_cmp(&other.0)
+        (**self).partial_cmp(&**other)
     }
 }
 
@@ -946,9 +1017,15 @@ impl Extend<char> for TracedDOMString {
     }
 }
 
+impl Extend<char> for DOMString {
+    fn extend<T: IntoIterator<Item = char>>(&mut self, iter: T) {
+        self.inner_mut().extend(iter)
+    }
+}
+
 impl ToJSValConvertible for DOMString {
     fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
-        let val = self.0.0.borrow();
+        let val = (**self).0.borrow();
         match *val {
             DOMStringType::Rust(ref s) => s.to_jsval(cx, rval),
             DOMStringType::JSString(ref rooted_traceable_box) => unsafe {
@@ -1008,7 +1085,7 @@ impl std::cmp::PartialEq<str> for TracedDOMString {
 
 impl std::cmp::PartialEq<str> for DOMString {
     fn eq(&self, other: &str) -> bool {
-        self.0.eq(other)
+        (**self).eq(other)
     }
 }
 
@@ -1020,7 +1097,7 @@ impl std::cmp::PartialEq<&str> for TracedDOMString {
 
 impl std::cmp::PartialEq<&str> for DOMString {
     fn eq(&self, other: &&str) -> bool {
-        self.0.eq(*other)
+        (**self).eq(*other)
     }
 }
 
@@ -1032,7 +1109,7 @@ impl std::cmp::PartialEq<String> for TracedDOMString {
 
 impl std::cmp::PartialEq<String> for DOMString {
     fn eq(&self, other: &String) -> bool {
-        self.0.eq(other.as_str())
+        (**self).eq(other.as_str())
     }
 }
 
@@ -1044,7 +1121,7 @@ impl std::cmp::PartialEq<TracedDOMString> for String {
 
 impl std::cmp::PartialEq<DOMString> for String {
     fn eq(&self, other: &DOMString) -> bool {
-        other.0.eq(self)
+        (**other).eq(self)
     }
 }
 
@@ -1056,7 +1133,7 @@ impl std::cmp::PartialEq<TracedDOMString> for str {
 
 impl std::cmp::PartialEq<DOMString> for str {
     fn eq(&self, other: &DOMString) -> bool {
-        other.0.eq(self)
+        (**other).eq(self)
     }
 }
 
@@ -1093,7 +1170,7 @@ impl std::cmp::PartialEq for TracedDOMString {
 
 impl std::cmp::PartialEq for DOMString {
     fn eq(&self, other: &Self) -> bool {
-        *self.0 == *other.0
+        **self == **other
     }
 }
 
@@ -1194,7 +1271,7 @@ impl Zeroize for TracedDOMString {
 
 impl Zeroize for DOMString {
     fn zeroize(&mut self) {
-        self.0.zeroize()
+        self.inner_mut().zeroize()
     }
 }
 
