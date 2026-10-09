@@ -312,7 +312,8 @@ pub(crate) fn job_queue_microtask_checkpoint(
         }
     }
 
-    // TODO: Step 6. Perform ClearKeptObjects().
+    // Step 6. Perform ClearKeptObjects().
+    unsafe { js::rust::wrappers2::ClearKeptObjects(cx) };
 
     // Step 7. Set the event loop's performing a microtask checkpoint to false.
     unsafe {
