@@ -390,8 +390,7 @@ impl FetchTaskTarget for GenericCallback<FetchResponseMsg> {
 
         let actual_response = response.actual_response();
         let body_is_done = actual_response.body.lock().is_done();
-        let shared_body = (result.is_ok() && body_is_done)
-            .then(|| actual_response.body.clone());
+        let shared_body = (result.is_ok() && body_is_done).then(|| actual_response.body.clone());
         let _ = self.send(FetchResponseMsg::ProcessResponseEOF(
             request.id,
             result,

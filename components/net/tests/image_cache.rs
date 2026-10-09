@@ -313,10 +313,10 @@ fn test_encoded_image_decodes_from_cached_response_body() {
             height: 427,
         },
         cors_status: CorsStatus::Safe,
-        bytes: EncodedImageBytes::Cached(body.clone()),
+        bytes: EncodedImageBytes::NetResponseBody(body.clone()),
     };
 
-    let EncodedImageBytes::Cached(source) = &image.bytes else {
+    let EncodedImageBytes::NetResponseBody(source) = &image.bytes else {
         panic!("Expected the HTTP cache body to be retained");
     };
     assert!(servo_arc::Arc::ptr_eq(source, &body));

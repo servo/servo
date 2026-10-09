@@ -68,9 +68,9 @@ pub struct EncodedImage {
 #[derive(MallocSizeOf)]
 pub enum EncodedImageBytes {
     /// The completed response body retained by the HTTP cache.
-    Cached(#[conditional_malloc_size_of] servo_arc::Arc<parking_lot::Mutex<ResponseBody>>),
+    NetResponseBody(#[conditional_malloc_size_of] servo_arc::Arc<parking_lot::Mutex<ResponseBody>>),
     /// Bytes retained by sources that are not backed by the HTTP cache.
-    Owned(#[conditional_malloc_size_of] Arc<Vec<u8>>),
+    ImageBufferFallback(#[conditional_malloc_size_of] Arc<Vec<u8>>),
 }
 
 impl std::fmt::Debug for EncodedImage {
@@ -105,11 +105,11 @@ impl EncodedImage {
 
     fn with_bytes<T>(&self, f: impl FnOnce(&[u8]) -> Option<T>) -> Option<T> {
         match &self.bytes {
-            EncodedImageBytes::Cached(body) => match &*body.lock() {
+            EncodedImageBytes::NetResponseBody(body) => match &*body.lock() {
                 ResponseBody::Done(bytes) => f(bytes),
                 ResponseBody::Empty | ResponseBody::Receiving(_) => None,
             },
-            EncodedImageBytes::Owned(bytes) => f(bytes),
+            EncodedImageBytes::ImageBufferFallback(bytes) => f(bytes),
         }
     }
 }
