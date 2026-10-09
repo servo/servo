@@ -18,6 +18,7 @@ use rustc_hash::FxHashMap;
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::cformat;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::serializable::Serializable;
 use script_bindings::structuredclone::StructuredData;
 use script_bindings::trace::RootedTraceableBox;
 use servo_base::id::{DomMatrixId, DomMatrixIndex};
@@ -38,7 +39,6 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::dommatrix::DOMMatrix;
 use crate::dom::dompoint::DOMPoint;
@@ -984,7 +984,7 @@ impl DOMMatrixReadOnlyMethods<crate::DomTypeHolder> for DOMMatrixReadOnly {
     }
 }
 
-impl Serializable for DOMMatrixReadOnly {
+impl Serializable<crate::DomTypeHolder> for DOMMatrixReadOnly {
     type Index = DomMatrixIndex;
     type Data = DomMatrix;
 

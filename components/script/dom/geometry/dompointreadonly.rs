@@ -9,6 +9,7 @@ use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
+use script_bindings::serializable::Serializable;
 use script_bindings::structuredclone::StructuredData;
 use servo_base::id::{DomPointId, DomPointIndex};
 use servo_constellation_traits::DomPoint;
@@ -19,7 +20,6 @@ use crate::dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointRe
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::serializable::Serializable;
 use crate::dom::dommatrixreadonly::dommatrixinit_to_matrix;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::types::DOMPoint;
@@ -178,7 +178,7 @@ impl DOMPointWriteMethods for DOMPointReadOnly {
     }
 }
 
-impl Serializable for DOMPointReadOnly {
+impl Serializable<crate::DomTypeHolder> for DOMPointReadOnly {
     type Index = DomPointIndex;
     type Data = DomPoint;
 

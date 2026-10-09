@@ -5,14 +5,8 @@
 //! Trait representing the concept of [serializable objects]
 //! (<https://html.spec.whatwg.org/multipage/#serializable-objects>).
 
-use js::context::{JSContext, NoGC};
-use rustc_hash::FxHashMap;
-use script_bindings::reflector::DomObject;
-use script_bindings::structuredclone::{MarkedAsSerializableInIdl, StructuredData};
+use script_bindings::serializable::Serializable;
 use servo_base::id::{Index, NamespaceIndex, PipelineNamespaceId};
-
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::globalscope::GlobalScope;
 
 /// The key corresponding to the storage location
 /// of a serialized platform object stored in a StructuredDataHolder.
@@ -42,31 +36,4 @@ impl<T> From<StorageKey> for NamespaceIndex<T> {
     }
 }
 
-/// Interface for serializable platform objects.
-/// <https://html.spec.whatwg.org/multipage/#serializable>
-pub(crate) trait Serializable: DomObject + MarkedAsSerializableInIdl
-where
-    Self: Sized,
-{
-    type Index: Copy + Eq + std::hash::Hash;
-    type Data;
-
-    /// <https://html.spec.whatwg.org/multipage/#serialization-steps>
-    fn serialize(&self, no_gc: &NoGC) -> Result<(NamespaceIndex<Self::Index>, Self::Data), ()>;
-    /// <https://html.spec.whatwg.org/multipage/#deserialization-steps>
-    fn deserialize(
-        cx: &mut JSContext,
-        owner: &GlobalScope,
-        serialized: Self::Data,
-    ) -> Result<DomRoot<Self>, ()>
-    where
-        Self: Sized;
-
-    /// Returns the field of [StructuredDataReader]/[StructuredDataWriter] that
-    /// should be used to read/store serialized instances of this type.
-    fn serialized_storage<'a>(
-        data: StructuredData<'a, '_>,
-    ) -> &'a mut Option<FxHashMap<NamespaceIndex<Self::Index>, Self::Data>>;
-}
-
-pub(crate) fn assert_serializable<T: Serializable>() {}
+pub(crate) fn assert_serializable<T: Serializable<crate::DomTypeHolder>>() {}
