@@ -3490,13 +3490,7 @@ where
         };
 
         let browsing_context_size = browsing_context.viewport_details;
-        // TODO(servo#30571) revert to debug_assert_eq!() once underlying bug is fixed
-        #[cfg(debug_assertions)]
-        if !(browsing_context_size == load_info.viewport_details) {
-            warn!(
-                "debug assertion failed! browsing_context_size == load_info.viewport_details.initial_viewport"
-            );
-        }
+        debug_assert_eq!(browsing_context_size, load_info.viewport_details);
 
         // Create the new pipeline, attached to the parent and push to pending changes
         self.new_pipeline(
