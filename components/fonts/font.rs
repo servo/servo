@@ -16,7 +16,7 @@ use euclid::default::{Point2D, Rect};
 use euclid::num::Zero;
 use font_types::NameId;
 use fonts_traits::FontDescriptor;
-use icu_locale_core::subtags::Language;
+use icu_locale_core::LanguageIdentifier;
 use icu_properties::props::{EnumeratedProperty, GeneralCategory};
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
@@ -478,7 +478,7 @@ pub struct ShapingOptions {
     /// The Unicode script property of the characters in this run.
     pub script: Script,
     /// The preferred language, obtained from the `lang` attribute.
-    pub language: Language,
+    pub language: LanguageIdentifier,
     /// The value of the `font-variant-ligatures` property.
     pub ligatures: FontVariantLigatures,
     /// The value of the `font-variant-numeric` property.
@@ -514,7 +514,7 @@ struct ShapeCacheEntry {
     letter_spacing: Au,
     word_spacing: Au,
     script: Script,
-    language: Language,
+    language: LanguageIdentifier, // TODO: change this to LanguageIdentifier later.
     font_features: Box<[(Tag, u32)]>,
     flags: ShapingFlags,
 }
@@ -530,7 +530,7 @@ impl Font {
             letter_spacing: options.letter_spacing,
             word_spacing: options.word_spacing,
             script: options.script,
-            language: options.language,
+            language: options.language.clone(), // TODO: do not clone!
             flags: options.flags,
             font_features,
         };
@@ -766,7 +766,8 @@ impl Deref for FontRef {
 pub struct FallbackKey {
     script: Script,
     unicode_block: Option<UnicodeBlock>,
-    language: Language,
+    #[ignore_malloc_size_of = "TODO: how to properly impl mallocsizeof???"]
+    language: LanguageIdentifier,
 }
 
 impl FallbackKey {
@@ -774,7 +775,7 @@ impl FallbackKey {
         Self {
             script: Script::from(options.character),
             unicode_block: options.character.block(),
-            language: options.language,
+            language: options.language.clone(), // TODO: do not clone!
         }
     }
 }
@@ -822,7 +823,7 @@ impl FontGroup {
         font_context: &FontContext,
         codepoint: char,
         next_codepoint: Option<char>,
-        language: Language,
+        language: LanguageIdentifier,
     ) -> Option<FontRef> {
         // Tab characters are converted into spaces when rendering.
         // TODO: We should not render a tab character. Instead they should be converted into tab stops

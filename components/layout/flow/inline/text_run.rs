@@ -10,6 +10,7 @@ use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use fonts::font_feature_values::ResolvedFontVariantAlternates;
 use fonts::{FontContext, FontRef, ShapedText, ShapedTextSlice, ShapingFlags, ShapingOptions};
+use icu_locale_core::LanguageIdentifier;
 use icu_locale_core::subtags::Language;
 use icu_properties::props::{EnumeratedProperty, LineBreak};
 use log::warn;
@@ -83,7 +84,8 @@ pub(crate) struct FontInfo {
     /// The BiDi [`Level`] used when shaping a [`TextRunSegment`].
     pub bidi_level: Level,
     /// The [`Language`] used when shaping a [`TextRunSegment`].
-    pub language: Language,
+    #[ignore_malloc_size_of = "TODO: how to impl malloc_size_of???"]
+    pub language: LanguageIdentifier,
     /// Spacing to add between each letter. Corresponds to the CSS 2.1 `letter-spacing` property.
     ///
     /// Letter spacing is not applied to all characters. Use [Self::letter_spacing_for_character] to
@@ -116,7 +118,7 @@ impl FontInfo {
         Self {
             font,
             bidi_level: Level::ltr(),
-            language: Language::UNKNOWN,
+            language: LanguageIdentifier::from(Language::UNKNOWN),
             letter_spacing: None,
             word_spacing: None,
             text_rendering: TextRendering::Auto,
@@ -165,7 +167,7 @@ impl From<&FontAndScriptInfo> for ShapingOptions {
             letter_spacing,
             word_spacing,
             script: info.script,
-            language: info.font_info.language,
+            language: info.font_info.language.clone(),
             ligatures,
             numeric: info.font_info.numeric,
             east_asian: info.font_info.east_asian,
@@ -489,7 +491,11 @@ impl TextRun {
         parent_style: &ServoArc<ComputedValues>,
     ) -> Vec<TextRunItem> {
         let font_style = parent_style.clone_font();
-        let language = font_style._x_lang.0.parse().unwrap_or(Language::UNKNOWN);
+        let language = font_style
+            ._x_lang
+            .0
+            .parse()
+            .unwrap_or(LanguageIdentifier::from(Language::UNKNOWN));
         let language_for_shaping = Some(font_style.font_language_override)
             .filter(|language_override| *language_override != FontLanguageOverride::normal())
             .and_then(|language_override| {
@@ -501,9 +507,9 @@ impl TextRun {
                 // https://www.w3.org/TR/css-fonts-4/#font-language-override-string-value
                 //
                 // For now we need to truncate the language tag ):
-                Language::try_from_utf8(&language_override.0.to_be_bytes()[..3]).ok()
+                LanguageIdentifier::try_from_utf8(&language_override.0.to_be_bytes()[..3]).ok()
             })
-            .unwrap_or(language);
+            .unwrap_or(language.clone());
         let font_size = font_style.font_size.computed_size().into();
         let kerning = font_style.font_kerning;
         let ligatures = font_style.font_variant_ligatures;
@@ -584,7 +590,7 @@ impl TextRun {
                         &layout_context.font_context,
                         character,
                         next_character,
-                        language,
+                        language.clone(), // TODO: do not clone!
                     ),
                     Script::from(character),
                     bidi_levels.level(current_byte_index.into()),
@@ -619,7 +625,7 @@ impl TextRun {
                 font_info: Arc::new(FontInfo {
                     font,
                     bidi_level,
-                    language: language_for_shaping,
+                    language: language_for_shaping.clone(),
                     word_spacing,
                     letter_spacing,
                     text_rendering,

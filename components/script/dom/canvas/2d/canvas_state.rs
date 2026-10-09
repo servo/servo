@@ -18,6 +18,7 @@ use fonts::{
     FontBaseline, FontContext, FontGroup, FontIdentifier, FontMetrics, FontRef, ShapingFlags,
     ShapingOptions,
 };
+use icu_locale_core::LanguageIdentifier;
 use icu_locale_core::subtags::Language;
 use js::context::{JSContext, NoGC};
 use net_traits::image_cache::{ImageCache, ImageResponse};
@@ -2510,8 +2511,11 @@ impl CanvasState {
         // TODO: canvas also has experimental `lang` attribute (https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/lang),
         // which Servo doesn't support yet. When this attribute is supported, some changes may be needed here.
         let x_language = self.font_style()._x_lang.clone();
-        let language = x_language.0.parse().unwrap_or(Language::UNKNOWN);
-        let mut current_text_run = UnshapedTextRun::new(language);
+        let language = x_language
+            .0
+            .parse()
+            .unwrap_or(LanguageIdentifier::from(Language::UNKNOWN));
+        let mut current_text_run = UnshapedTextRun::new(language.clone()); // FIXME: maybe dont clone?
         let mut current_text_run_start_index = 0;
 
         // Variation Selectors (U+FE00–U+FE0F) and Variation Selectors Supplement (U+E0100–U+E01EF)
@@ -2528,7 +2532,9 @@ impl CanvasState {
 
             let script = Script::from(character);
 
-            let font = font_group.find_by_codepoint(font_context, character, next_char, language);
+            // TODO: do not clone!
+            let font =
+                font_group.find_by_codepoint(font_context, character, next_char, language.clone());
 
             if !is_variation_selector(character) &&
                 !current_text_run.script_and_font_compatible(script, &font)
@@ -2539,7 +2545,7 @@ impl CanvasState {
                         font: font.clone(),
                         script,
                         string: Default::default(),
-                        language,
+                        language: language.clone(),
                     },
                 );
                 current_text_run_start_index = index;
@@ -2615,16 +2621,16 @@ struct UnshapedTextRun<'a> {
     font: Option<FontRef>,
     script: Script,
     string: &'a str,
-    language: Language,
+    language: LanguageIdentifier,
 }
 
 impl UnshapedTextRun<'_> {
-    fn new(language: Language) -> Self {
+    fn new(language: LanguageIdentifier) -> Self {
         Self {
             font: Default::default(),
             script: Default::default(),
             string: Default::default(),
-            language,
+            language: language.clone(), // TODO: dont clone!
         }
     }
 
