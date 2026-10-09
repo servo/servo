@@ -2515,7 +2515,7 @@ impl CanvasState {
             .0
             .parse()
             .unwrap_or(LanguageIdentifier::from(Language::UNKNOWN));
-        let mut current_text_run = UnshapedTextRun::new(language.clone()); // FIXME: maybe dont clone?
+        let mut current_text_run = UnshapedTextRun::new(language.clone());
         let mut current_text_run_start_index = 0;
 
         // Variation Selectors (U+FE00–U+FE0F) and Variation Selectors Supplement (U+E0100–U+E01EF)
@@ -2532,9 +2532,7 @@ impl CanvasState {
 
             let script = Script::from(character);
 
-            // TODO: do not clone!
-            let font =
-                font_group.find_by_codepoint(font_context, character, next_char, language.clone());
+            let font = font_group.find_by_codepoint(font_context, character, next_char, &language);
 
             if !is_variation_selector(character) &&
                 !current_text_run.script_and_font_compatible(script, &font)
@@ -2630,7 +2628,7 @@ impl UnshapedTextRun<'_> {
             font: Default::default(),
             script: Default::default(),
             string: Default::default(),
-            language: language.clone(), // TODO: dont clone!
+            language,
         }
     }
 
@@ -2654,7 +2652,7 @@ impl UnshapedTextRun<'_> {
             letter_spacing: Au::zero(),
             word_spacing: Au::zero(),
             script: self.script,
-            language: self.language,
+            language: &self.language,
             flags: ShapingFlags::empty(),
             ligatures: FontVariantLigatures::NORMAL,
             numeric: FontVariantNumeric::NORMAL,
