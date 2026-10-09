@@ -15,6 +15,7 @@ PATCHES = [
     ("unit.patch", "conformance/more/unit.js"),
     ("timeout.patch", None),
     ("set-zero-timeout.patch", "js/webgl-test-utils.js"),
+    ("cross-origin-image.patch", "js/webgl-test-utils.js"),
     ("compressed-images.patch", "conformance/extensions/s3tc-and-rgtc.html"),
     ("shader-varying-packing-restrictions.patch", "conformance/glsl/misc/shader-varying-packing-restrictions.html"),
 ]

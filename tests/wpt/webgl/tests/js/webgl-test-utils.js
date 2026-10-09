@@ -3228,6 +3228,14 @@ var getRelativePath = function(path) {
 }
 
 async function loadCrossOriginImage(img, webUrl, localUrl) {
+  // Under WPT, the alternate host is a different origin on the same local server.
+  if (window.location.hostname == "web-platform.test") {
+    img.src = window.location.protocol + "//not-web-platform.test:" +
+      window.location.port + getRelativePath(localUrl);
+    await img.decode();
+    return;
+  }
+
   if (runningOnLocalhost()) {
     img.src = getLocalCrossOrigin() + getRelativePath(localUrl);
     console.log('[loadCrossOriginImage]', '  trying', img.src);
