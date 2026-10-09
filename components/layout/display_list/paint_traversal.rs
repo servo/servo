@@ -10,7 +10,8 @@ use servo_base::id::ScrollTreeNodeId;
 use style::values::computed::TextDecorationLine;
 
 use crate::display_list::{
-    ClipId, FragmentTextDecoration, StackingContext, StackingContextFragments,
+    ClipId, ContainerTimingRootChain, ContainerTimingRoots, FragmentTextDecoration,
+    StackingContext, StackingContextFragments,
 };
 use crate::fragment_tree::{
     BoxFragment, BoxFragmentWithStyle, Fragment, FragmentFlags, IFrameFragment, ImageFragment,
@@ -557,6 +558,10 @@ pub(crate) struct TraversalState {
     /// Used for text LCP candidate grouping — all text fragments within
     /// a single element are unioned before computing effective visual size.
     pub containing_element_tag: Option<Tag>,
+    /// The Container Timing roots enclosing this point in the traversal, nearest first.
+    /// Note that this does not include the box currently being visited, see
+    /// [`Self::container_timing_roots_including`].
+    pub container_timing_roots: ContainerTimingRoots,
 }
 
 impl TraversalState {
@@ -603,12 +608,23 @@ impl TraversalState {
             clip_id: box_fragment.generated_clip_id().unwrap_or(self.clip_id),
             text_decorations,
             containing_element_tag: box_fragment.base.tag.or(self.containing_element_tag),
+            container_timing_roots: self.container_timing_roots_including(box_fragment),
         }
+    }
+
+    /// The Container Timing roots that apply to the given box fragment, which is visited
+    /// with this state, including the fragment itself if it is a root.
+    pub(crate) fn container_timing_roots_including(
+        &self,
+        box_fragment: &BoxFragment,
+    ) -> ContainerTimingRoots {
+        ContainerTimingRootChain::for_contents_of(&self.container_timing_roots, &box_fragment.base)
     }
 
     pub(crate) fn without_text_decorations(&self) -> Self {
         Self {
             text_decorations: Default::default(),
+            container_timing_roots: self.container_timing_roots.clone(),
             ..*self
         }
     }
@@ -623,6 +639,7 @@ impl TraversalState {
             clip_id: self.clip_id,
             text_decorations: self.text_decorations.clone(),
             containing_element_tag: self.containing_element_tag,
+            container_timing_roots: self.container_timing_roots.clone(),
         }
     }
 
@@ -633,6 +650,7 @@ impl TraversalState {
             clip_id: stacking_context.clip_id,
             text_decorations: stacking_context.text_decorations.clone(),
             containing_element_tag: self.containing_element_tag,
+            container_timing_roots: stacking_context.container_timing_roots.clone(),
         }
     }
 }

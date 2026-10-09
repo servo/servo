@@ -8,6 +8,7 @@
 
 #![deny(unsafe_code)]
 
+mod container_timing_record;
 mod largest_contentful_paint_candidate;
 mod layout_damage;
 mod layout_dom;
@@ -26,6 +27,7 @@ use accesskit::{Action, ActionData, ActionRequest};
 use app_units::Au;
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use bitflags::bitflags;
+pub use container_timing_record::ContainerTimingRecord;
 use embedder_traits::{Cursor, ScriptToEmbedderChan, Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::{Point2D, Rect};
 use fonts::{FontContext, WebFontDocumentContext, WebFontSetDifference};
@@ -664,6 +666,8 @@ pub struct ReflowResult {
     pub lcp_candidate: Option<LCPCandidate>,
     /// Actions which have been requested by assistive technology, if any.
     pub pending_accessibility_actions: Vec<AccessibilityActionRequest>,
+    /// The containers whose painted area grew during this layout pass, if any.
+    pub container_timing_records: Vec<ContainerTimingRecord>,
 }
 
 bitflags! {

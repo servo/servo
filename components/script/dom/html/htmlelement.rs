@@ -68,7 +68,8 @@ use crate::dom::medialist::MediaList;
 use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
-    BindContext, MoveContext, Node, NodeTraits, UnbindContext, from_untrusted_node_address,
+    BindContext, MoveContext, Node, NodeDamage, NodeTraits, UnbindContext,
+    from_untrusted_node_address,
 };
 use crate::dom::shadowroot::shadowroot::ShadowRoot;
 use crate::dom::text::Text;
@@ -1351,6 +1352,12 @@ impl VirtualMethods for HTMLElement {
                 AttributeMutation::Removed => {
                     element.update_nonce_internal_slot(String::new(), cx.no_gc());
                 },
+            },
+            // containertiming is not in html5ever, so for now we check manually
+            // Layout records these attributes as fragment flags when it builds this element's
+            // boxes, so the boxes have to be rebuilt when they change.
+            (name, _) if &**name == "containertiming" || &**name == "containertimingignore" => {
+                self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
             },
             _ => {},
         }
