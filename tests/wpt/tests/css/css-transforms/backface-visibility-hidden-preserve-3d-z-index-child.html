@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<title>backface visibility: hidden hides descendants with z-index when participating in a 3D rendering context</title>
+<link rel="help" href="http://www.w3.org/TR/css-transforms-1/#transform-property">
+<link rel="help" href="http://www.w3.org/TR/css-transforms-2/#propdef-backface-visibility">
+<link rel="match" href="backface-visibility-hidden-003-ref.html">
+
+<p>The test passes if there is a green rectangle and no red.</p>
+<style>
+.outer {
+  transform-style: preserve-3d;
+  transform: rotateY(180deg);
+  width: 100px;
+  height: 100px;
+  position: relative;
+}
+
+.face {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100px;
+  height: 100px;
+  backface-visibility: hidden;
+}
+
+.front {
+  display: flex;
+  background-color: red;
+}
+
+.back {
+  background-color: green;
+  transform: rotateY(180deg);
+}
+
+.item {
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  background-color: red;
+}
+
+</style>
+
+<div class="outer">
+  <div class="face front">
+    <div class="item"></div>
+  </div>
+  <div class="face back"></div>
+</div>

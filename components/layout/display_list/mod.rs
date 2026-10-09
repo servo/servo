@@ -13,7 +13,7 @@ use euclid::{Box2D, Point2D, Rect, Scale, SideOffsets2D, Size2D, UnknownUnit, Ve
 use fonts::ShapedTextSlice;
 use gradient::WebRenderGradient;
 use layout_api::ReflowStatistics;
-use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
+use paint_api::display_list::{PaintDisplayListInfo, ScrollTree, SpatialTreeNodeInfo};
 use servo_arc::Arc as ServoArc;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{PipelineId, ScrollTreeNodeId};
@@ -832,6 +832,10 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
     /// the `DisplayListBuilder` when a stacking context was visited (or `None` if
     /// the value was unmodified).
     type StackingContextState = (usize, Option<ScrollTreeNodeId>);
+
+    fn scroll_tree(&self) -> &ScrollTree {
+        &self.paint_info.scroll_tree
+    }
 
     fn visit_stacking_context(
         &mut self,
