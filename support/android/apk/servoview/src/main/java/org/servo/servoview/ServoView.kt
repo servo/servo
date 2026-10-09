@@ -27,10 +27,6 @@ class ServoView(
         holder.addCallback(surfaceHolderCallback)
     }
 
-    fun setExperimentalMode(enable: Boolean) {
-        servo.setExperimentalMode(enable)
-    }
-
     private class SurfaceHolderCallback(
         private val resources: Resources,
         private val servo: Servo,

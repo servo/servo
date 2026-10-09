@@ -119,7 +119,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
             LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
                 val updatedSettings = Settings(sharedPreferences)
                 if (updatedSettings.experimental != settings.experimental) {
-                    servoView.setExperimentalMode(updatedSettings.experimental)
+                    servo.setExperimentalMode(updatedSettings.experimental)
                 }
                 settings = updatedSettings
             }
