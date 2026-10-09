@@ -131,7 +131,7 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
             // In Japanese typography, it is not common to use different fonts
             // for Kanji(Han), Hiragana, and Katakana within the same document. Since Hiragino supports
             // a comprehensive set of Japanese kanji, we uniformly fallback to Hiragino for all Japanese text.
-            _ if options.language == language!("ja") => {
+            _ if options.language.language == language!("ja") => {
                 families.push("Hiragino Sans");
                 families.push("Hiragino Kaku Gothic ProN");
             },
@@ -140,7 +140,7 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
             // language font to try for fallback is rather arbitrary. Usually, though,
             // we hope that font prefs will have handled this earlier.
             _ if matches!(script, Script::Bopomofo | Script::Han) &&
-                options.language != language!("ja") =>
+                options.language.language != language!("ja") =>
             {
                 // TODO: Need to differentiate between traditional and simplified Han here!
                 families.push("Songti SC");
