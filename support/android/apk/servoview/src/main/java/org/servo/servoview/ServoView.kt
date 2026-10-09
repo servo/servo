@@ -14,10 +14,9 @@ import android.view.SurfaceHolder
 import android.view.SurfaceView
 
 @SuppressLint("ViewConstructor")
-class ServoView(
+internal class ServoView(
     context: Context,
-    internal val servo: Servo,
-    internal val navigator: ServoNavigator,
+    servo: Servo,
 ) : SurfaceView(context) {
     init {
         isFocusable = true

@@ -46,26 +46,25 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun Servo(
-    servoView: ServoView,
     softKeyboardVisible: Boolean,
+    servo: Servo,
+    navigator: ServoNavigator,
     modifier: Modifier = Modifier,
 ) {
-    LifecycleResumeEffect(servoView) {
-        servoView.servo.suspend(false)
-        onPauseOrDispose { servoView.servo.suspend(true) }
+    LifecycleResumeEffect(servo) {
+        servo.suspend(false)
+        onPauseOrDispose { servo.suspend(true) }
     }
     LaunchedEffect(Unit) {
         while (true) {
-            withFrameNanos { servoView.servo.onDoFrame() }
+            withFrameNanos { servo.onDoFrame() }
         }
     }
-    LaunchedEffect(servoView.servo, servoView.navigator) {
-        servoView.navigator.consumeNavigationEvents(servoView.servo)
-    }
+    LaunchedEffect(servo, navigator) { navigator.consumeNavigationEvents(servo) }
 
     val focusRequester = remember { FocusRequester() }
     AndroidView(
-        factory = { _ -> servoView },
+        factory = { context -> ServoView(context, servo) },
         modifier =
             modifier
                 .focusRequester(focusRequester)
@@ -73,7 +72,7 @@ fun Servo(
                 .onKeyEvent { keyEvent ->
                     when (keyEvent.type) {
                         KeyEventType.KeyDown if keyEvent.key != Key.Back -> {
-                            servoView.servo.onKeyDown(
+                            servo.onKeyDown(
                                 keyEvent.key.nativeKeyCode,
                                 keyEvent.nativeKeyEvent,
                             )
@@ -81,7 +80,7 @@ fun Servo(
                         }
 
                         KeyEventType.KeyUp if keyEvent.key != Key.Back -> {
-                            servoView.servo.onKeyUp(
+                            servo.onKeyUp(
                                 keyEvent.key.nativeKeyCode,
                                 keyEvent.nativeKeyEvent,
                             )
@@ -102,17 +101,16 @@ fun Servo(
 
                     when (action) {
                         MotionEvent.ACTION_DOWN,
-                        MotionEvent.ACTION_POINTER_DOWN ->
-                            servoView.servo.touchDown(x, y, pointerId)
-                        MotionEvent.ACTION_MOVE -> servoView.servo.touchMove(x, y, pointerId)
+                        MotionEvent.ACTION_POINTER_DOWN -> servo.touchDown(x, y, pointerId)
+                        MotionEvent.ACTION_MOVE -> servo.touchMove(x, y, pointerId)
                         MotionEvent.ACTION_UP,
-                        MotionEvent.ACTION_POINTER_UP -> servoView.servo.touchUp(x, y, pointerId)
-                        MotionEvent.ACTION_CANCEL -> servoView.servo.touchCancel(x, y, pointerId)
+                        MotionEvent.ACTION_POINTER_UP -> servo.touchUp(x, y, pointerId)
+                        MotionEvent.ACTION_CANCEL -> servo.touchCancel(x, y, pointerId)
                     }
 
                     true
                 },
-        onRelease = { servoView.servo.glDispatcher.close() },
+        onRelease = { servo.glDispatcher.close() },
     )
 }
 
