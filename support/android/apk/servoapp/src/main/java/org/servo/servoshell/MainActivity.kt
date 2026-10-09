@@ -82,20 +82,25 @@ class MainActivity : ComponentActivity(), Servo.Client {
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
         var settings = Settings(sharedPreferences)
         val navigator = ServoNavigator()
+        val servo =
+            Servo(
+                args = intent.getStringExtra("servoargs"),
+                url = if (Intent.ACTION_VIEW == intent.action) intent.data.toString() else null,
+                logStr = intent.getStringExtra("servolog"),
+                experimentalMode = settings.experimental,
+                scope = lifecycleScope,
+                client = this,
+                context = this,
+                navigator = navigator,
+            )
         val servoView =
             ServoView(
                 context = this,
-                client = this,
-                servoArgs = intent.getStringExtra("servoargs"),
-                servoLog = intent.getStringExtra("servolog"),
-                experimentalMode = settings.experimental,
-                initialUri =
-                    if (Intent.ACTION_VIEW == intent.action) intent.data.toString() else null,
+                servo = servo,
                 navigator = navigator,
-                scope = lifecycleScope,
             )
 
-        mediaSession = MediaSession(servoView, applicationContext)
+        mediaSession = MediaSession(servo, applicationContext)
         historyManager = HistoryManager(this)
 
         val historyActivityResultLauncher =
@@ -114,7 +119,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
             LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
                 val updatedSettings = Settings(sharedPreferences)
                 if (updatedSettings.experimental != settings.experimental) {
-                    servoView.setExperimentalMode(updatedSettings.experimental)
+                    servo.setExperimentalMode(updatedSettings.experimental)
                 }
                 settings = updatedSettings
             }

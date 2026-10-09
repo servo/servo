@@ -12,45 +12,19 @@ import android.util.Log
 import android.util.Size
 import android.view.SurfaceHolder
 import android.view.SurfaceView
-import kotlinx.coroutines.CoroutineScope
 
 @SuppressLint("ViewConstructor")
 class ServoView(
     context: Context,
-    client: Servo.Client,
-    servoArgs: String?,
-    servoLog: String?,
-    experimentalMode: Boolean,
-    initialUri: String?,
+    internal val servo: Servo,
     internal val navigator: ServoNavigator,
-    scope: CoroutineScope,
 ) : SurfaceView(context) {
-    internal val servo =
-        Servo(
-            servoArgs,
-            initialUri,
-            servoLog,
-            experimentalMode,
-            scope,
-            client,
-            context,
-            navigator,
-        )
-
     init {
         isFocusable = true
         isFocusableInTouchMode = true
         addTouchables(arrayListOf(this))
         val surfaceHolderCallback = SurfaceHolderCallback(resources, servo)
         holder.addCallback(surfaceHolderCallback)
-    }
-
-    fun mediaSessionAction(action: Int) {
-        servo.mediaSessionAction(action)
-    }
-
-    fun setExperimentalMode(enable: Boolean) {
-        servo.setExperimentalMode(enable)
     }
 
     private class SurfaceHolderCallback(
