@@ -817,6 +817,12 @@ impl ComputedValuesExt for ComputedValues {
             return true;
         }
 
+        // A value of `hidden` for `backface-visibility` makes the element a stacking context, so
+        // that WebRender can hide everything flattened into it when it faces away.
+        if self.get_box().backface_visibility == BackfaceVisiblity::Hidden {
+            return true;
+        }
+
         // From <https://www.w3.org/TR/css-color-3/#transparency>
         // > implementations must create a new stacking context for any element with opacity less than 1.
         // Note `will-change: opacity` is handled above by `WillChangeBits::OPACITY`.

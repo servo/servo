@@ -329795,6 +329795,19 @@
        {}
       ]
      ],
+     "backface-visibility-hidden-preserve-3d-z-index-child.html": [
+      "d896073360b9fbe50fd493fdfc494fc6bc4ff57c",
+      [
+       "css/css-transforms/backface-visibility-hidden-preserve-3d-z-index-child.html",
+       [
+        [
+         "/css/css-transforms/backface-visibility-hidden-003-ref.html",
+         "=="
+        ]
+       ],
+       {}
+      ]
+     ],
      "backface-visibility-with-sibling-001.html": [
       "a61d4c2309a31a277ac3002daf899ca72f4025af",
       [
