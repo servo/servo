@@ -771,6 +771,9 @@ impl Layout for LayoutThread {
     }
 
     fn needs_accessibility_update(&self) -> bool {
+        if !self.accessibility_active() {
+            return false;
+        }
         if self.force_accessibility_update.get() {
             return true;
         }
