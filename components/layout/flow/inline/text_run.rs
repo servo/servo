@@ -84,8 +84,8 @@ pub(crate) struct FontInfo {
     /// The BiDi [`Level`] used when shaping a [`TextRunSegment`].
     pub bidi_level: Level,
     /// The [`Language`] used when shaping a [`TextRunSegment`].
-    #[ignore_malloc_size_of = "TODO: how to impl malloc_size_of???"]
-    pub language: LanguageIdentifier,
+    #[ignore_malloc_size_of = "pointers have negligible size"]
+    pub language: Arc<LanguageIdentifier>,
     /// Spacing to add between each letter. Corresponds to the CSS 2.1 `letter-spacing` property.
     ///
     /// Letter spacing is not applied to all characters. Use [Self::letter_spacing_for_character] to
@@ -118,7 +118,7 @@ impl FontInfo {
         Self {
             font,
             bidi_level: Level::ltr(),
-            language: LanguageIdentifier::from(Language::UNKNOWN),
+            language: Arc::new(LanguageIdentifier::from(Language::UNKNOWN)),
             letter_spacing: None,
             word_spacing: None,
             text_rendering: TextRendering::Auto,
@@ -133,8 +133,8 @@ impl FontInfo {
     }
 }
 
-impl From<&FontAndScriptInfo> for ShapingOptions {
-    fn from(info: &FontAndScriptInfo) -> Self {
+impl<'a> From<&'a FontAndScriptInfo> for ShapingOptions<'a> {
+    fn from(info: &'a FontAndScriptInfo) -> Self {
         let mut ligatures = info.font_info.ligatures;
         let mut flags = ShapingFlags::empty();
         if info.font_info.bidi_level.is_rtl() {
@@ -167,7 +167,7 @@ impl From<&FontAndScriptInfo> for ShapingOptions {
             letter_spacing,
             word_spacing,
             script: info.script,
-            language: info.font_info.language.clone(),
+            language: &info.font_info.language,
             ligatures,
             numeric: info.font_info.numeric,
             east_asian: info.font_info.east_asian,
@@ -509,7 +509,7 @@ impl TextRun {
                 // For now we need to truncate the language tag ):
                 LanguageIdentifier::try_from_utf8(&language_override.0.to_be_bytes()[..3]).ok()
             })
-            .unwrap_or(language.clone());
+            .unwrap_or(language);
         let font_size = font_style.font_size.computed_size().into();
         let kerning = font_style.font_kerning;
         let ligatures = font_style.font_variant_ligatures;
@@ -590,7 +590,7 @@ impl TextRun {
                         &layout_context.font_context,
                         character,
                         next_character,
-                        language.clone(), // TODO: do not clone!
+                        &language_for_shaping,
                     ),
                     Script::from(character),
                     bidi_levels.level(current_byte_index.into()),
@@ -625,7 +625,7 @@ impl TextRun {
                 font_info: Arc::new(FontInfo {
                     font,
                     bidi_level,
-                    language: language_for_shaping.clone(),
+                    language: Arc::new(language_for_shaping.clone()),
                     word_spacing,
                     letter_spacing,
                     text_rendering,
