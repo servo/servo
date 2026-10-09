@@ -228,7 +228,7 @@ pub struct LayoutThread {
     accessibility_tree: RefCell<Option<AccessibilityTree>>,
 
     /// See [Layout::force_accessibility_update()].
-    force_accessibility_update: Cell<bool>,
+    force_accessibility_update_if_active: Cell<bool>,
 
     /// Accessibility action requests which have arrived from assistive technology since the last
     /// reflow, in chronological order.
@@ -727,7 +727,7 @@ impl Layout for LayoutThread {
                 accessibility_tree.add_pending_scroll_updates(offsets);
             };
 
-            self.set_force_accessibility_update();
+            self.set_force_accessibility_update_if_active();
         }
     }
 
@@ -759,7 +759,7 @@ impl Layout for LayoutThread {
             return;
         }
 
-        self.set_force_accessibility_update();
+        self.set_force_accessibility_update_if_active();
         let mut accessibility_tree = self.accessibility_tree.borrow_mut();
         if accessibility_tree.is_none() {
             *accessibility_tree = Some(AccessibilityTree::new(self.id.into(), epoch));
@@ -774,7 +774,7 @@ impl Layout for LayoutThread {
         if !self.accessibility_active() {
             return false;
         }
-        if self.force_accessibility_update.get() {
+        if self.force_accessibility_update_if_active.get() {
             return true;
         }
         if !self.pending_accessibility_actions.borrow().is_empty() {
@@ -784,8 +784,8 @@ impl Layout for LayoutThread {
         false
     }
 
-    fn set_force_accessibility_update(&self) {
-        self.force_accessibility_update.set(true);
+    fn set_force_accessibility_update_if_active(&self) {
+        self.force_accessibility_update_if_active.set(true);
     }
 
     fn handle_accessibility_action(&self, action_request: ActionRequest) {
@@ -866,7 +866,7 @@ impl LayoutThread {
             user_stylesheets: config.user_stylesheets,
             accessibility_active: Cell::new(false),
             accessibility_tree: Default::default(),
-            force_accessibility_update: Cell::new(false),
+            force_accessibility_update_if_active: Cell::new(false),
             pending_accessibility_actions: RefCell::new(vec![]),
             web_font_finished_loading_callback: Arc::new(web_font_finished_loading_callback)
                 as StylesheetWebFontLoadFinishedCallback,
@@ -1029,7 +1029,7 @@ impl LayoutThread {
         reflow_statistics.nodes_updated_bounds = counters.nodes_updated_bounds;
         reflow_statistics.nodes_in_tree_update = counters.nodes_in_tree_update;
 
-        self.force_accessibility_update.set(false);
+        self.force_accessibility_update_if_active.set(false);
 
         *pending_accessibility_actions = accessibility_tree.take_pending_actions();
 
@@ -1646,7 +1646,7 @@ impl LayoutThread {
 
                 // Ensure the scroll updates are applied in the accessibility tree and sent to the
                 // embedder, even if there are no other changes which affect the accessibility tree.
-                self.set_force_accessibility_update();
+                self.set_force_accessibility_update_if_active();
             }
             true
         } else {
