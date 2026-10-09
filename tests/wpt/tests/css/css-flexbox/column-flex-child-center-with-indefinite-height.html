@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Column Flex Child Center with Indefinite Height</title>
+<link rel="author" title="Tin Tun Aung" mailto="rayguo17@gmail.com">
+<link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#algo-main-item">
+<link rel="help" href="https://www.w3.org/TR/css-flexbox-1/#main-size">
+<link rel="match" href="reference/column-flex-child-center-with-indefinite-height-ref.html">
+<meta name="assert" content="Contents of a flex item with indefinite height should be layout with used main size.">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+.container {
+    display: flex;
+    flex-direction: column;
+}
+.enrichment-status {
+    min-height: 100px;
+    border: 1px solid black;
+    display: flex;
+    align-items: center;
+    width: max-content;
+}
+</style>
+</head>
+<body>
+<p>Test passes if hello is vertically aligned to <strong>center</strong>.</p>
+<div class="container">
+    <span class="enrichment-status" >
+    hello
+    </span>
+</div>
+</body>
+</html>

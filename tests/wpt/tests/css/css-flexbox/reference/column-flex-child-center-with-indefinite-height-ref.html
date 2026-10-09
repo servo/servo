@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Column Flex Child Center with Indefinite Height Reference</title>
+<style>
+.container {
+    display: flex;
+    flex-direction: column;
+}
+.enrichment-status {
+    height: 100px;
+    border: 1px solid black;
+    display: flex;
+    align-items: center;
+    width: max-content;
+}
+</style>
+</head>
+<body>
+<p>Test passes if hello is vertically aligned to <strong>center</strong>.</p>
+<div class="container">
+    <span class="enrichment-status" >
+        hello
+    </span>
+</div>
+</body>
+</html>
