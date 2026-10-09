@@ -67,9 +67,9 @@ pub struct EncodedImage {
 /// The encoded source retained for a static raster image.
 #[derive(MallocSizeOf)]
 pub enum EncodedImageBytes {
-    /// The completed response body retained by the HTTP cache.
+    /// Net's completed response body shared through in-process delivery.
     NetResponseBody(#[conditional_malloc_size_of] servo_arc::Arc<parking_lot::Mutex<ResponseBody>>),
-    /// Bytes retained by sources that are not backed by the HTTP cache.
+    /// Chunk-assembled bytes retained when no shared body is supplied, including over IPC.
     ImageBufferFallback(#[conditional_malloc_size_of] Arc<Vec<u8>>),
 }
 
