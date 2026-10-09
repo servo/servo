@@ -184,7 +184,7 @@ impl FontResolver for SvgFontResolver {
         let fallback_options = FallbackFontSelectionOptions::new(
             character,
             None,
-            icu_locale_core::subtags::Language::UNKNOWN,
+            icu_locale_core::subtags::Language::UNKNOWN.into(),
         );
         for family in fallback_font_families(fallback_options) {
             let family = FontFamilyDescriptor::new(

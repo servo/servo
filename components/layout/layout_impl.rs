@@ -1942,7 +1942,7 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             .zero_horizontal_advance
             .or_else(|| {
                 font_group
-                    .find_by_codepoint(font_context, '0', None, Language::UNKNOWN)?
+                    .find_by_codepoint(font_context, '0', None, Language::UNKNOWN.into())?
                     .metrics()
                     .zero_horizontal_advance
             })
@@ -1952,7 +1952,7 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             .ic_horizontal_advance
             .or_else(|| {
                 font_group
-                    .find_by_codepoint(font_context, '\u{6C34}', None, Language::UNKNOWN)?
+                    .find_by_codepoint(font_context, '\u{6C34}', None, Language::UNKNOWN.into())?
                     .metrics()
                     .ic_horizontal_advance
             })
