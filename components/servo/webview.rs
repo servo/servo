@@ -995,6 +995,25 @@ impl WebView {
         );
     }
 
+    /// After a new tree has been grafted, move focus to the graft node so that the grafted tree's
+    /// focused node becomes the focused node for the webview.
+    fn move_accessibility_focus_to_graft_node(&self) {
+        let Some(webview_accesskit_tree_id) = self.inner().accesskit_tree_id else {
+            return;
+        };
+        let graft_node_id = NodeId(1);
+
+        self.delegate().notify_accessibility_tree_update(
+            self.clone(),
+            TreeUpdate {
+                nodes: vec![],
+                tree: None,
+                tree_id: webview_accesskit_tree_id,
+                focus: graft_node_id,
+            },
+        );
+    }
+
     pub(crate) fn process_accessibility_tree_update(&self, tree_update: TreeUpdate, epoch: Epoch) {
         if self
             .inner()
@@ -1012,9 +1031,19 @@ impl WebView {
             .grafted_accesskit_tree_epoch
             .is_none_or(|current| epoch > current)
         {
+            // This three-step process is necessary because we need the graft node to be the focused
+            // node in the WebView's accessibility tree, but we can't make it the focused node until
+            // the graft is completed by sending the initial tree update for the new tree.
             self.notify_document_accessibility_tree_id(tree_update.tree_id);
             self.inner_mut().grafted_accesskit_tree_epoch = Some(epoch);
+
+            self.delegate()
+                .notify_accessibility_tree_update(self.clone(), tree_update);
+
+            self.move_accessibility_focus_to_graft_node();
+            return;
         }
+
         self.delegate()
             .notify_accessibility_tree_update(self.clone(), tree_update);
     }

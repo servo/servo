@@ -14,8 +14,8 @@ use accesskit::{Action, ActionRequest, Affine, NodeId, Rect, TreeId, TreeUpdate}
 use accesskit_consumer::TreeChangeHandler;
 use euclid::Scale;
 use servo::{
-    DiagnosticsLoggingOption, LoadStatus, Opts, Preferences, Scroll, WebView, WebViewBuilder,
-    WebViewPoint, WebViewVector,
+    DiagnosticsLoggingOption, InputEvent, Key, KeyState, KeyboardEvent, LoadStatus, NamedKey, Opts,
+    Preferences, Scroll, WebView, WebViewBuilder, WebViewPoint, WebViewVector,
 };
 use url::Url;
 use webrender_api::units::{DevicePoint, DeviceVector2D};
@@ -1369,8 +1369,9 @@ fn test_accessibility_click_link() {
         .servo
         .forward_accessibility_action(action_request);
 
-    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
-    assert_eq!(updates.len(), 2);
+    // Graft node, new pipeline, focus graft node.
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 3);
+    assert_eq!(updates.len(), 3);
     for update in updates {
         tree.update_and_process_changes(update, &mut NoOpChangeHandler);
     }
@@ -1379,6 +1380,98 @@ fn test_accessibility_click_link() {
     let text = children[0];
     assert_eq!(text.role(), Role::TextRun);
     assert_eq!(text.value(), Some("just a text node".to_owned()));
+}
+
+#[test]
+fn test_accessibility_focus_moves() {
+    let url = "data:text/html,<!DOCTYPE html>\
+               <a id='link' href='%23main'>Skip to main content</a>\
+               <nav>\
+                   <a id='news' href='/news'>News</a>\
+                   <a id='contact' href='/contact'>Contact</a>\
+               </nav>\
+               <main id='main'>\
+                   <p>\
+                       <a href='https://servo.org'>Servo</a> aims to empower developers\
+                   </p>\
+               </main>";
+    let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url);
+
+    let focused_node = tree.state().focus().expect("Should be a focused node");
+    assert_eq!(
+        focused_node.data().html_tag(),
+        Some("html"),
+        "Focus is on document root node on initial page load"
+    );
+
+    press_tab_key(&webview);
+
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    for update in updates {
+        tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+    }
+
+    let focused_node = tree.state().focus().expect("Should be a focused node");
+    assert_eq!(
+        focused_node.label(),
+        Some("Skip to main content".to_owned()),
+        "Focus is on skip link after pressing tab"
+    );
+
+    // Click the skip link
+    let (target_node, target_tree) = focused_node.locate();
+    let action_request = ActionRequest {
+        action: Action::Click,
+        target_tree,
+        target_node,
+        data: None,
+    };
+
+    servo_test
+        .servo
+        .forward_accessibility_action(action_request);
+
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    assert_eq!(updates.len(), 1);
+    for update in updates {
+        tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+    }
+
+    let focused_node = tree.state().focus().expect("Should be a focused node");
+    assert_eq!(
+        focused_node.data().html_tag(),
+        Some("html"),
+        "Focus is back on document root node after clicking skip link"
+    );
+
+    press_tab_key(&webview);
+
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    for update in updates {
+        tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+    }
+
+    let focused_node = tree.state().focus().expect("Should be a focused node");
+    assert_eq!(
+        focused_node.label(),
+        Some("Servo".to_owned()),
+        "Focus is on Servo link after pressing tab"
+    );
+
+    // Move focus using JavaScript
+    let _ = evaluate_javascript(&servo_test, webview.clone(), "contact.focus();");
+
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    for update in updates {
+        tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+    }
+
+    let focused_node = tree.state().focus().expect("Should be a focused node");
+    assert_eq!(
+        focused_node.label(),
+        Some("Contact".to_owned()),
+        "Focus is on Contact link after focusing it programatically"
+    );
 }
 
 // ************************************************************************************************
@@ -1458,7 +1551,7 @@ fn build_webview_and_tree(
     let load_webview = webview.clone();
     servo_test.spin(|| load_webview.load_status() != LoadStatus::Complete);
 
-    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 2);
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 3);
     let tree = build_tree(updates);
 
     // Neither load status nor accessibility updates imply a built WebRender
@@ -1513,7 +1606,7 @@ fn build_tree(tree_updates: Vec<TreeUpdate>) -> accesskit_consumer::Tree {
 
     let root_update = TreeUpdate {
         nodes: vec![(root_node_id, root_node), (graft_node_id, graft_node)],
-        tree: Some(root_tree),
+        tree: Some(root_tree.clone()),
         tree_id: TreeId::ROOT,
         focus: root_node_id,
     };
@@ -1523,6 +1616,16 @@ fn build_tree(tree_updates: Vec<TreeUpdate>) -> accesskit_consumer::Tree {
     for tree_update in tree_updates {
         tree.update_and_process_changes(tree_update, &mut NoOpChangeHandler);
     }
+
+    // After building the rest of the tree, focus the graft node.
+    let focus_update = TreeUpdate {
+        nodes: vec![],
+        tree: Some(root_tree),
+        tree_id: TreeId::ROOT,
+        focus: graft_node_id,
+    };
+    tree.update_and_process_changes(focus_update, &mut NoOpChangeHandler);
+
     tree
 }
 
@@ -1585,4 +1688,15 @@ fn wait_for_webview_scene_to_be_up_to_date(servo_test: &ServoTest, webview: &Web
         callback_waiting.set(false);
     });
     servo_test.spin(|| waiting.get());
+}
+
+fn press_tab_key(webview: &servo::WebView) {
+    webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent::from_state_and_key(
+        KeyState::Down,
+        Key::Named(NamedKey::Tab),
+    )));
+    webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent::from_state_and_key(
+        KeyState::Up,
+        Key::Named(NamedKey::Tab),
+    )));
 }
