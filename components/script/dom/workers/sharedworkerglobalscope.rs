@@ -28,6 +28,7 @@ use net_traits::request::{
 };
 use script_bindings::cell::DomRefCell;
 use script_bindings::interfaces::HasOrigin;
+use script_bindings::trace::RootedTraceableBox;
 use servo_base::generic_channel::{GenericReceiver, RoutedReceiver};
 use servo_base::id::{BrowsingContextId, ScriptEventLoopId, WebViewId};
 use servo_constellation_traits::{MessagePortImpl, WorkerGlobalScopeInit, WorkerScriptLoadOrigin};
@@ -567,7 +568,9 @@ impl SharedWorkerGlobalScope {
                             credentials,
                             Some(IntroductionType::WORKER),
                             move |cx, module_tree| {
-                                worker_scope.on_complete(cx, module_tree.map(Script::Module));
+                                let module_script = module_tree
+                                    .map(|module| Script::Module(RootedTraceableBox::new(module)));
+                                worker_scope.on_complete(cx, module_script);
                             },
                         );
                     },
