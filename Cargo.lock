@@ -9491,6 +9491,7 @@ dependencies = [
  "strum",
  "stylo",
  "stylo_atoms",
+ "stylo_static_prefs",
  "tendril",
  "tracing",
  "xml5ever",
