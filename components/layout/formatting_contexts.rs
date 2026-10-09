@@ -18,6 +18,7 @@ use crate::dom::WeakLayoutBox;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents};
 use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
+use crate::flow::inline::InlineFormattingContext;
 use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags};
 use crate::layout_box_base::{IndependentFormattingContextLayoutResult, LayoutBoxBase};
 use crate::positioned::{LayoutRootLayoutInputs, PositioningContext};
@@ -618,6 +619,15 @@ impl IndependentFormattingContext {
                 replaced_contents.set_selection(selected)
             },
             _ => false,
+        }
+    }
+
+    pub(crate) fn inline_formatting_context(&self) -> Option<&InlineFormattingContext> {
+        match &self.contents {
+            IndependentFormattingContextContents::Flow(block_formatting_context) => {
+                block_formatting_context.inline_formatting_context()
+            },
+            _ => None,
         }
     }
 }

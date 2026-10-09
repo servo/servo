@@ -52,7 +52,7 @@ use layout_api::{
     HitTestFlags, LCPCandidate, Layout, LayoutImageDestination, PendingImage, PendingImageState,
     PendingRasterizationImage, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
     ReflowRequestAccessibility, ReflowRequestRestyle, ReflowStatistics, RestyleReason,
-    ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
+    ScrollContainerQueryFlags, ScrollContainerResponse, SegmentGranularity, TrustedNodeAddress,
     combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
@@ -82,7 +82,7 @@ use servo_arc::Arc as ServoArc;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::{self, GenericCallback, GenericSender};
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
-use servo_base::text::Utf32CodeUnits;
+use servo_base::text::{Utf32CodeUnits, Utf32CodeUnitsOrNodeOffset};
 #[cfg(feature = "bluetooth")]
 use servo_bluetooth_traits::BluetoothRequest;
 #[cfg(feature = "webgl")]
@@ -3224,13 +3224,39 @@ impl Window {
         node: &Node,
         point_in_viewport: Point2D<Au, CSSPixel>,
     ) -> Option<(DomRoot<Node>, Utf32CodeUnits)> {
-        self.layout_reflow(QueryMsg::TextIndexQuery);
+        self.layout_reflow(QueryMsg::TextIndexOrSegmentQuery);
         let result = self
             .layout
             .borrow()
             .query_text_index(node.to_trusted_node_address(), point_in_viewport)?;
         let node = unsafe { from_untrusted_node_address(result.0.into()) };
         Some((node, result.1))
+    }
+
+    /// For the given `CharacterData` node and UTF-32 text offset in that node, find
+    /// the text segment with the given granularity within its containing inline
+    /// formatting context. This returns `None` when the node isn't a `CharacterData`
+    /// or the segment otherwise cannot be found.
+    #[expect(unsafe_code)]
+    pub(crate) fn query_text_segment(
+        &self,
+        node: &Node,
+        offset: Utf32CodeUnitsOrNodeOffset,
+        granularity: SegmentGranularity,
+    ) -> Option<(RootedSelectionBoundary, RootedSelectionBoundary)> {
+        self.layout_reflow(QueryMsg::TextIndexOrSegmentQuery);
+        let ((start_node, start_offset), (end_node, end_offset)) = self
+            .layout()
+            .query_text_segment(node.to_trusted_node_address(), offset, granularity)?;
+        let start = RootedSelectionBoundary::new_with_utf32_offset(
+            unsafe { from_untrusted_node_address(start_node.into()) },
+            start_offset,
+        );
+        let end = RootedSelectionBoundary::new_with_utf32_offset(
+            unsafe { from_untrusted_node_address(end_node.into()) },
+            end_offset,
+        );
+        Some((start, end))
     }
 
     pub(crate) fn elements_from_point_query(

@@ -14,7 +14,7 @@ use keyboard_types::{
     CompositionEvent, CompositionState, Key, KeyState, KeyboardEvent as KeyboardTypesEvent,
     Modifiers, NamedKey, ShortcutMatcher,
 };
-use layout_api::QueryMsg;
+use layout_api::{QueryMsg, SegmentGranularity};
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
 use script_bindings::codegen::GenericBindings::SelectionBinding::SelectionMethods;
@@ -29,7 +29,7 @@ use crate::dom::clipboardevent::ClipboardEventType;
 use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::execcommand::execcommands::DocumentExecCommandSupport;
 use crate::dom::inputevent::HitTestResult;
-use crate::dom::selection_range::RootedSelectionBoundary;
+use crate::dom::selection_range::{RootedSelectionBoundary, SelectionRange};
 use crate::dom::text_control::TextControlElement;
 use crate::dom::text_input::{InputEventType, IsComposing};
 use crate::dom::types::{
@@ -38,7 +38,7 @@ use crate::dom::types::{
 };
 use crate::dom::{Document, Node, NodeTraits};
 use crate::drag::document_selection_drag::{
-    DocumentSelectionDragHandler, adjust_anchor_for_user_select,
+    DocumentDragSegment, DocumentSelectionDragHandler, adjust_anchor_for_user_select,
 };
 use crate::drag::drag_data_store::{DragDataStore, Kind, Mode};
 use crate::drag::drag_gesture::{DragGesture, DragHandler};
@@ -53,24 +53,21 @@ pub(crate) const ALT_OR_CONTROL: Modifiers = Modifiers::ALT;
 #[cfg(not(target_os = "macos"))]
 pub(crate) const ALT_OR_CONTROL: Modifiers = Modifiers::CONTROL;
 
-/// A selection granularity to use when selecting via mouse button events.
+/// A selection action to use when handling mouse button events.
 #[derive(Clone, Copy, Debug, PartialEq)]
-pub(crate) enum SelectionGranularity {
+pub(crate) enum MouseButtonSelectionAction {
     /// Select a single selection focus node position. This is created via single primary click
     /// or middle clicks.
-    Position,
-    /// Select a word at the target point. This is created via double primary clicks.
-    Word,
-    /// Select to the paragraph boundaries or to a hard line break, whatever comes first.
-    /// This is triggered via triple primary clicks.
-    LineIgnoringSoftWrap,
+    MoveCursor,
+    /// Select a range at the target point. This is created via double and triple primary clicks.
+    SelectRange(SegmentGranularity),
 }
 
-impl SelectionGranularity {
+impl MouseButtonSelectionAction {
     pub(crate) fn from_mouse_event(mouse_event: &MouseEvent) -> Option<Self> {
         match mouse_event.button() {
             MouseButton::Primary => {}, // continue below
-            MouseButton::Auxiliary => return Some(Self::Position),
+            MouseButton::Auxiliary => return Some(Self::MoveCursor),
             _ => return None,
         }
 
@@ -84,9 +81,9 @@ impl SelectionGranularity {
         // behaviors.
         let click_count = mouse_event.upcast::<UIEvent>().Detail();
         match click_count {
-            1 => Some(Self::Position),
-            2 => Some(Self::Word),
-            3 => Some(Self::LineIgnoringSoftWrap),
+            1 => Some(Self::MoveCursor),
+            2 => Some(Self::SelectRange(SegmentGranularity::Word)),
+            3 => Some(Self::SelectRange(SegmentGranularity::HardLineBreak)),
             _ => None,
         }
     }
@@ -469,8 +466,9 @@ impl Document {
             return;
         }
 
-        // TODO: handle double/triple click:
-        // match SelectionTarget::from_mouse_event(mouse_event) {…}
+        let Some(action) = MouseButtonSelectionAction::from_mouse_event(mouse_event) else {
+            return;
+        };
 
         // When the hit test cannot find a suitable DOM position for selection, just
         // use the first offset within the target node of the `mousedown` event. This
@@ -484,12 +482,32 @@ impl Document {
         else {
             return;
         };
-        selection.collapse_to_dom_position(cx, &boundary);
+
+        let segment = match action {
+            MouseButtonSelectionAction::MoveCursor => {
+                selection.collapse_to_dom_position(cx, &boundary);
+                None
+            },
+            MouseButtonSelectionAction::SelectRange(granularity) => self
+                .window()
+                .query_text_segment(&boundary.container, boundary.utf32_offset(), granularity)
+                .map(|(start, end)| {
+                    selection.set_anchor_and_focus(cx, &start, &end);
+                    DocumentDragSegment {
+                        granularity,
+                        range: SelectionRange::new_from_rooted(start, end),
+                    }
+                }),
+        };
+
         self.event_handler().install_drag_gesture(DragGesture::new(
             DragHandler::DocumentSelection(DocumentSelectionDragHandler::new(
+                self,
                 user_select_contain_node.as_deref(),
+                segment,
             )),
         ));
+
         mouse_event.upcast::<Event>().mark_as_handled();
     }
 }

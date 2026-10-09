@@ -26,3 +26,38 @@ function getTextEntryContentRect(node, scale = 1, rotate90Degrees = false) {
   rectangle.height -= (topInset + bottomInset);
   return rectangle;
 }
+
+async function clearClickCounter() {
+    // Click somewhere unusual to clear the click counter.
+    await new test_driver.Actions()
+      .pointerMove(500, 500)
+      .pointerDown()
+      .pointerUp()
+      .send();
+}
+
+async function doubleClickAtPoint(x, y) {
+    await clearClickCounter();
+    await new test_driver.Actions()
+      .pointerMove(x, y)
+      .pointerDown().pointerUp()
+      .pointerDown().pointerUp()
+          .send();
+}
+
+async function tripleClickAtPoint(x, y) {
+    await clearClickCounter();
+    await new test_driver.Actions()
+      .pointerMove(x, y)
+      .pointerDown().pointerUp()
+      .pointerDown().pointerUp()
+      .pointerDown().pointerUp()
+          .send();
+}
+
+function assertSelection(anchorNode, anchorOffset, focusNode, focusOffset) {
+    let selection = document.getSelection();
+    let expected = [anchorNode, anchorOffset, focusNode, focusOffset];
+    let actual = [selection.anchorNode, selection.anchorOffset, selection.focusNode, selection.focusOffset];
+    assert_array_equals(actual, expected);
+}

@@ -26,7 +26,8 @@ use layout_api::{
     LayoutDamage, LayoutElement, LayoutFactory, LayoutNode, NodeRenderingType,
     OffsetParentResponse, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
     ReflowRequestAccessibility, ReflowRequestRestyle, ReflowResult, ReflowStatistics,
-    ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress, with_layout_state,
+    ScrollContainerQueryFlags, ScrollContainerResponse, SegmentGranularity, TrustedNodeAddress,
+    with_layout_state,
 };
 use log::{debug, warn};
 use malloc_size_of::{MallocConditionalSizeOf, MallocSizeOf, MallocSizeOfOps};
@@ -47,7 +48,7 @@ use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter, ScriptThr
 use servo_arc::Arc as ServoArc;
 use servo_base::Epoch;
 use servo_base::id::{PipelineId, WebViewId};
-use servo_base::text::Utf32CodeUnits;
+use servo_base::text::{Utf32CodeUnits, Utf32CodeUnitsOrNodeOffset};
 use servo_config::opts::{self, DiagnosticsLogging, DiagnosticsLoggingOption};
 use servo_config::pref;
 use servo_url::ServoUrl;
@@ -96,6 +97,7 @@ use crate::query::{
     process_resolved_font_style_query, process_resolved_style_request,
     process_scroll_container_query,
 };
+use crate::selection::PositionInInlineFormattingContext;
 use crate::traversal::{RecalcStyle, compute_damage_and_rebuild_box_tree};
 use crate::{BoxTree, FragmentTree};
 
@@ -590,6 +592,23 @@ impl Layout for LayoutThread {
                 stacking_context_tree,
                 point_in_viewport,
             )
+        })
+    }
+
+    #[servo_tracing::instrument(skip_all)]
+    fn query_text_segment(
+        &self,
+        node: TrustedNodeAddress,
+        offset: Utf32CodeUnitsOrNodeOffset,
+        granularity: SegmentGranularity,
+    ) -> Option<(
+        (OpaqueNode, Utf32CodeUnitsOrNodeOffset),
+        (OpaqueNode, Utf32CodeUnitsOrNodeOffset),
+    )> {
+        with_layout_state(|| {
+            let node = unsafe { ServoLayoutNode::new(&node) };
+            PositionInInlineFormattingContext::from_dom_position_in_text_node(&node, offset)?
+                .segment(granularity)
         })
     }
 
@@ -2039,7 +2058,7 @@ impl ReflowPhases {
                 QueryMsg::FlushForUpdateTheRenderingQuery |
                 QueryMsg::OffsetParentQuery |
                 QueryMsg::ScrollingAreaOrOffsetQuery |
-                QueryMsg::TextIndexQuery => Self::StackingContextTreeConstruction,
+                QueryMsg::TextIndexOrSegmentQuery => Self::StackingContextTreeConstruction,
                 QueryMsg::ClientRectQuery |
                 QueryMsg::CurrentCSSZoomQuery |
                 QueryMsg::EffectiveOverflow |

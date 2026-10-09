@@ -5,6 +5,7 @@
 use std::cmp::Ordering;
 
 use js::context::{JSContext, NoGC};
+use layout_api::SegmentGranularity;
 use rustc_hash::FxHashMap;
 use script_bindings::dom::UnrootedDom;
 use script_bindings::inheritance::Castable;
@@ -13,21 +14,43 @@ use style::values::computed::UserSelect;
 
 use crate::dom::inputevent::HitTestResult;
 use crate::dom::selection::UsedUserSelect;
-use crate::dom::selection_range::RootedSelectionBoundary;
-use crate::dom::{Element, Node, NodeTraits};
+use crate::dom::selection_range::{RootedSelectionBoundary, SelectionRange};
+use crate::dom::{Document, Element, Node};
+
+/// Information stored when the start of the drag was triggered via double or triple
+/// click which highlighted a segment of text.
+#[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) struct DocumentDragSegment {
+    /// The granularity of the selection drag.
+    #[no_trace]
+    pub granularity: SegmentGranularity,
+    /// The original segment that was highlighted at the start of the drag.
+    pub range: SelectionRange,
+}
 
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct DocumentSelectionDragHandler {
+    /// The [`Document`] of this [`DocumentSelectionDragHandler`].
+    document: Dom<Document>,
     /// The node with `user-select: contain` that this selection must not leave, if any.
     user_select_contain_node_for_selection_anchor: Option<Dom<Node>>,
+    /// Information when the start of the drag highlighted a segment of text.
+    segment: Option<DocumentDragSegment>,
 }
 
 impl DocumentSelectionDragHandler {
-    pub(crate) fn new(user_select_contain_node: Option<&Node>) -> Self {
+    pub(crate) fn new(
+        document: &Document,
+        user_select_contain_node: Option<&Node>,
+        segment: Option<DocumentDragSegment>,
+    ) -> Self {
         Self {
+            document: Dom::from_ref(document),
             user_select_contain_node_for_selection_anchor: user_select_contain_node
                 .map(Dom::from_ref),
+            segment,
         }
     }
 
@@ -41,20 +64,64 @@ impl DocumentSelectionDragHandler {
     ///
     /// Returns `true` if the drag should continue and `false` otherwise.
     pub(crate) fn moved(&self, cx: &mut JSContext, hit_test_result: &HitTestResult) -> bool {
+        let Some(selection) = self.document.selection() else {
+            return true;
+        };
+
         let Some(boundary) = hit_test_result.dom_position_for_selection.as_ref() else {
             return true;
         };
-        let Some(selection) = boundary.container.owner_document().selection() else {
+
+        let adjust_for_user_select =
+            |anchor: Option<&RootedSelectionBoundary>, focus: RootedSelectionBoundary| {
+                adjust_focus_for_user_select(
+                    cx,
+                    anchor,
+                    focus,
+                    self.user_select_contain_node_for_selection_anchor
+                        .as_deref(),
+                )
+            };
+
+        let Some(segment) = &self.segment else {
+            selection.collapse_or_extend_to_dom_position(
+                cx,
+                &adjust_for_user_select(
+                    selection.composed_anchor_position().as_ref(),
+                    boundary.clone(),
+                ),
+            );
             return true;
         };
-        let boundary = adjust_focus_for_user_select(
-            cx,
-            selection.composed_anchor_position().as_ref(),
-            boundary.clone(),
-            self.user_select_contain_node_for_selection_anchor
-                .as_deref(),
-        );
-        selection.collapse_or_extend_to_dom_position(cx, &boundary);
+
+        let (start, end) = self
+            .document
+            .window()
+            .query_text_segment(
+                &boundary.container,
+                boundary.utf32_offset(),
+                segment.granularity,
+            )
+            .unwrap_or_else(|| (boundary.clone(), boundary.clone()));
+
+        let original_start = segment.range.start.rooted();
+        let original_end = segment.range.end.rooted();
+        let (anchor, focus) = if boundary.cmp(cx.no_gc(), &original_start) == Ordering::Less {
+            // If the drag position is before the original starting point, then the newly
+            // selected text extends from the old end to the start of the drag segment.
+            (original_end, start)
+        } else if boundary.cmp(cx.no_gc(), &original_end) == Ordering::Greater {
+            // If the drag position is after the original end, then the newly selected
+            // text extends from the original start to the end of the drag segment.
+            (original_start, end)
+        } else {
+            // This is when we are dragging within the original segment and want to keep
+            // it selected.
+            (original_start, original_end)
+        };
+
+        let focus = adjust_for_user_select(Some(&anchor), focus);
+        selection.set_anchor_and_focus(cx, &anchor, &focus);
         true
     }
 }

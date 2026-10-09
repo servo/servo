@@ -100,6 +100,15 @@ impl BlockContainer {
             },
         }
     }
+
+    pub(crate) fn inline_formatting_context(&self) -> Option<&InlineFormattingContext> {
+        match self {
+            BlockContainer::BlockLevelBoxes(..) => None,
+            BlockContainer::InlineFormattingContext(inline_formatting_context) => {
+                Some(inline_formatting_context)
+            },
+        }
+    }
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -529,6 +538,10 @@ impl BlockFormattingContext {
 
     pub(crate) fn attached_to_tree(&self, layout_box: WeakLayoutBox) {
         self.contents.attached_to_tree(layout_box);
+    }
+
+    pub(crate) fn inline_formatting_context(&self) -> Option<&InlineFormattingContext> {
+        self.contents.inline_formatting_context()
     }
 }
 
