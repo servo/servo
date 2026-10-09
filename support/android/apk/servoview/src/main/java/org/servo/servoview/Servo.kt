@@ -11,6 +11,7 @@ import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.Surface
 import android.view.inputmethod.BaseInputConnection
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -68,6 +69,7 @@ fun Servo(
         modifier =
             modifier
                 .focusRequester(focusRequester)
+                .focusable()
                 .softKeyboardVisible(softKeyboardVisible)
                 .onKeyEvent { keyEvent ->
                     when (keyEvent.type) {

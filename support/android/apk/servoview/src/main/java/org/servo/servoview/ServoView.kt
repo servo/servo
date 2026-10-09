@@ -19,9 +19,6 @@ internal class ServoView(
     servo: Servo,
 ) : SurfaceView(context) {
     init {
-        isFocusable = true
-        isFocusableInTouchMode = true
-        addTouchables(arrayListOf(this))
         val surfaceHolderCallback = SurfaceHolderCallback(resources, servo)
         holder.addCallback(surfaceHolderCallback)
     }
