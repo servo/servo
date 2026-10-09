@@ -243,7 +243,7 @@ impl GlobalScope {
     pub(crate) fn run_a_module_script(
         &self,
         cx: &mut JSContext,
-        module_tree: Rc<ModuleTree>,
+        module_tree: RootedTraceableBox<ModuleTree>,
         _rethrow_errors: bool,
     ) {
         // Step 1. Let settings be the settings object of script.

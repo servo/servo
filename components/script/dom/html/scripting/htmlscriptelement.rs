@@ -7,7 +7,6 @@ use std::cell::Cell;
 use std::ffi::CStr;
 use std::fs::read_to_string;
 use std::path::PathBuf;
-use std::rc::Rc;
 
 use bytes::{Bytes, BytesMut};
 use dom_struct::dom_struct;
@@ -23,6 +22,7 @@ use net_traits::request::{
 use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
 use script_bindings::cell::DomRefCell;
 use script_bindings::domstring::{DOMString, TracedDOMString};
+use script_bindings::trace::RootedTraceableBox;
 use servo_base::id::WebViewId;
 use servo_url::ServoUrl;
 use style::attr::AttrValue;
@@ -114,7 +114,7 @@ pub(crate) struct HTMLScriptElement {
     marked_as_render_blocking: Cell<bool>,
 
     /// <https://html.spec.whatwg.org/multipage/#concept-script-result>
-    result: DomRefCell<Option<Box<ScriptResult>>>,
+    result: DomRefCell<Option<TracedScriptResult>>,
 }
 
 impl HTMLScriptElement {
@@ -203,25 +203,29 @@ impl HTMLScriptElement {
 
     /// <https://html.spec.whatwg.org/multipage/#steps-to-run-when-the-result-is-ready>
     fn finish_fetching_a_script(&self, cx: &mut JSContext, script_kind: ExternalScriptKind) {
-        let load = self.result.take().expect("Result must be ready to proceed");
+        let load = self
+            .result
+            .take()
+            .map(|result| result.map(Into::into))
+            .expect("Result must be ready to proceed");
 
         // Step 2. If el's steps to run when the result is ready are not null, then run them.
         match script_kind {
             ExternalScriptKind::Asap => {
                 let document = self.preparation_time_document.get().unwrap();
-                document.asap_script_loaded(cx, self, *load)
+                document.asap_script_loaded(cx, self, load)
             },
             ExternalScriptKind::AsapInOrder => {
                 let document = self.preparation_time_document.get().unwrap();
-                document.asap_in_order_script_loaded(cx, self, *load)
+                document.asap_in_order_script_loaded(cx, self, load)
             },
             ExternalScriptKind::Deferred => {
                 let document = self.parser_document.as_rooted();
-                document.deferred_script_loaded(cx, self, *load);
+                document.deferred_script_loaded(cx, self, load);
             },
             ExternalScriptKind::ParsingBlocking => {
                 let document = self.parser_document.as_rooted();
-                document.pending_parsing_blocking_script_loaded(self, *load, cx);
+                document.pending_parsing_blocking_script_loaded(self, load, cx);
             },
         }
 
@@ -258,14 +262,43 @@ pub(crate) enum ScriptType {
     ImportMap,
 }
 
-pub(crate) type ScriptResult = Result<Script, ()>;
-
-// TODO merge classic and module scripts
 #[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) enum TracedScript {
+    Classic(ClassicScript),
+    Module(Box<ModuleTree>),
+}
+
+#[expect(clippy::large_enum_variant)]
 pub(crate) enum Script {
     Classic(ClassicScript),
-    Module(#[conditional_malloc_size_of] Rc<ModuleTree>),
+    Module(RootedTraceableBox<ModuleTree>),
     ImportMap(Fallible<ImportMap>),
+}
+
+pub(crate) type TracedScriptResult = Result<TracedScript, ()>;
+pub(crate) type ScriptResult = Result<Script, ()>;
+
+impl From<Script> for TracedScript {
+    fn from(value: Script) -> Self {
+        match value {
+            Script::Classic(classic) => TracedScript::Classic(classic),
+            Script::Module(module) => TracedScript::Module(module.into_box()),
+            Script::ImportMap(_) => {
+                unreachable!("Import maps are executed immediately, traced variant is not needed")
+            },
+        }
+    }
+}
+
+impl From<TracedScript> for Script {
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    fn from(value: TracedScript) -> Self {
+        match value {
+            TracedScript::Classic(classic) => Script::Classic(classic),
+            TracedScript::Module(module) => Script::Module(RootedTraceableBox::from_box(module)),
+        }
+    }
 }
 
 /// The context required for asynchronously loading an external script source.
@@ -355,7 +388,7 @@ impl FetchResponseListener for ClassicContext {
                     error, self.url
                 );
                 // Step 6, response is an error.
-                *elem.result.borrow_mut() = Some(Box::new(Err(())));
+                *elem.result.borrow_mut() = Some(Err(()));
                 elem.finish_fetching_a_script(cx, self.kind);
                 return;
             },
@@ -432,7 +465,7 @@ impl FetchResponseListener for ClassicContext {
                 .is_null());
             }
         } else {*/
-        *elem.result.borrow_mut() = Some(Box::new(Ok(Script::Classic(script))));
+        *elem.result.borrow_mut() = Some(Ok(TracedScript::Classic(script)));
         elem.finish_fetching_a_script(cx, self.kind);
         // }
     }
@@ -844,8 +877,10 @@ impl HTMLScriptElement {
                         global,
                         script_fetch_options,
                         move |cx, module_tree| {
-                            let load = module_tree.map(Script::Module).ok_or(());
-                            *script.result.borrow_mut() = Some(Box::new(load));
+                            let load = module_tree
+                                .map(|module| Script::Module(module.into_rooted_traceable_box()))
+                                .ok_or(());
+                            *script.result.borrow_mut() = Some(load.map(Into::into));
 
                             script.finish_fetching_a_script(cx, kind);
                         },
@@ -913,8 +948,10 @@ impl HTMLScriptElement {
                         self.line_number as u32,
                         introduction_type,
                         move |_, module_tree| {
-                            let load = module_tree.map(Script::Module).ok_or(());
-                            *script.result.borrow_mut() = Some(Box::new(load));
+                            let load = module_tree
+                                .map(|module| Script::Module(module.into_rooted_traceable_box()))
+                                .ok_or(());
+                            *script.result.borrow_mut() = Some(load.map(Into::into));
 
                             let trusted = Trusted::new(&*script);
 

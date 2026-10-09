@@ -579,7 +579,10 @@ impl SharedWorkerGlobalScope {
                             credentials,
                             Some(IntroductionType::WORKER),
                             move |cx, module_tree| {
-                                worker_scope.on_complete(cx, module_tree.map(Script::Module));
+                                let module_script = module_tree.map(|module| {
+                                    Script::Module(module.into_rooted_traceable_box())
+                                });
+                                worker_scope.on_complete(cx, module_script);
                             },
                         );
                     },

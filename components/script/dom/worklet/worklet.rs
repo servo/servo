@@ -837,7 +837,8 @@ impl WorkletThread {
                         }
 
                         // Step 6.4.4. Run a module script given script.
-                        rooted_global.run_a_module_script(cx, script, false);
+                        let module_script = script.into_rooted_traceable_box();
+                        rooted_global.run_a_module_script(cx, module_script, false);
 
                         // NOTE: we are treating all negative values as -1
                         // Step 6.4.5.1. If pendingTasks is not −1:

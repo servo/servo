@@ -188,6 +188,24 @@ impl ModuleTree {
             .map(|error| RethrowError::new(Heap::boxed(error.get())))
     }
 
+    pub(crate) fn into_rooted_traceable_box(&self) -> RootedTraceableBox<ModuleTree> {
+        let module = RootedTraceableBox::new(ModuleTree::default());
+
+        if let Some(record) = self.record() {
+            module.set_record(record.handle());
+        }
+
+        if let Some(parse_error) = self.parse_error() {
+            module.set_parse_error(parse_error.handle());
+        }
+
+        if let Some(rethrow_error) = self.rethrow_error() {
+            module.set_rethrow_error(rethrow_error.handle());
+        }
+
+        module
+    }
+
     #[expect(unsafe_code)]
     #[expect(clippy::too_many_arguments)]
     /// <https://html.spec.whatwg.org/multipage/#creating-a-javascript-module-script>
