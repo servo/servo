@@ -46,6 +46,7 @@ webcrypto = [
     "dep:elliptic-curve",
     "dep:hkdf",
     "dep:k12",
+    "dep:kem",
     "dep:keccak",
     "dep:ml-dsa",
     "dep:ml-kem",
@@ -58,6 +59,7 @@ webcrypto = [
     "dep:sha1",
     "dep:sha2",
     "dep:sha3",
+    "dep:shake",
     "dep:sponge-cursor",
     "dep:x-wing",
     "dep:x25519-dalek",
@@ -139,6 +141,7 @@ itertools = { workspace = true }
 js = { workspace = true }
 jstraceable_derive = { workspace = true }
 k12 = { workspace = true, optional = true }
+kem = { workspace = true, optional = true }
 keyboard-types = { workspace = true }
 keccak = { workspace = true, optional = true }
 layout_api = { workspace = true }
@@ -195,6 +198,7 @@ servo_arc = { workspace = true }
 sha1 = { workspace = true, optional = true }
 sha2 = { workspace = true, optional = true }
 sha3 = { workspace = true, optional = true }
+shake = { workspace = true, optional = true }
 smallvec = { workspace = true }
 sponge-cursor = { workspace = true, optional = true }
 storage_traits = { workspace = true }
