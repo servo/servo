@@ -100,7 +100,6 @@ enum XMLHttpRequestState {
 enum ErrorType {
     Abort,
     Timeout,
-    Error,
     Network,
 }
 
@@ -1272,7 +1271,7 @@ impl XMLHttpRequest {
                 let errormsg = match e {
                     ErrorType::Abort => "abort",
                     ErrorType::Timeout => "timeout",
-                    ErrorType::Error | ErrorType::Network => "error",
+                    ErrorType::Network => "error",
                 };
 
                 let upload_complete = &self.upload_complete;
