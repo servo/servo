@@ -14,7 +14,7 @@ on:
       # Commit of https://github.com/servo/perf-analysis-tools to use.
       perf-analysis-tools-rev:
         required: false
-        default: "8bc50689c8628e672df0b4141efb91831ff364e8"
+        default: "838b1187fc253167881a3f84e78bd6ba74960444"
         type: string
       force-github-hosted-runner:
         required: false
@@ -117,21 +117,6 @@ jobs:
         uses: dtolnay/rust-toolchain@master
         with:
           toolchain: "1.81"
-      - name: Patch perf-analysis-tools for current servoshell
-        run: |
-          # `--print-pwm` was removed from servoshell (servo#43209) and is now
-          # `-Z progressive-web-metrics`. The PWM metrics are still recorded in
-          # the profiler trace regardless of the flag, so drop it until
-          # perf-analysis-tools is updated upstream.
-          python3 - "$GITHUB_WORKSPACE/perf-analysis-tools" <<'PY'
-          import sys
-          from pathlib import Path
-          tools = Path(sys.argv[1])
-          collect = tools / "src" / "collect.rs"
-          collect.write_text(collect.read_text().replace('.arg("--print-pwm")\n', ""))
-          bench = tools / "benchmark-servo.sh"
-          bench.write_text(bench.read_text().replace(" --print-pwm \\\n", " \\\n"))
-          PY
       - name: Build perf-analysis-tools
         working-directory: perf-analysis-tools
         run: cargo build --release --locked
