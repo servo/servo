@@ -170,6 +170,17 @@ impl AudioBuffer {
                 return None;
             }
 
+            // <https://webaudio.github.io/web-audio-api/#acquire-the-content>
+            // > If any of the AudioBuffer’s ArrayBuffers are detached, return true,
+            // abort these steps, and return a zero-length channel data buffer to the invoker.
+            if channel.is_detached_buffer(cx) {
+                println!("Found detached buffer in AudioBuffer. Abort acquiring buffer content.");
+                return Some(ServoMediaAudioBuffer::new(
+                    self.number_of_channels as u8,
+                    0,
+                    self.sample_rate,
+                ));
+            }
             // Step 3.
             result.buffers[i] = channel.acquire_data(cx).ok()?;
         }
