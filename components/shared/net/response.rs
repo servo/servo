@@ -259,7 +259,6 @@ impl Response {
             return Response::network_error(e);
         }
 
-        let exposed_headers = old_response.cors_exposed_header_name_list.clone();
         let mut response = old_response.clone();
         let old_headers = std::mem::take(&mut response.headers);
         response.internal_response = Some(Box::new(old_response));
@@ -300,7 +299,8 @@ impl Response {
                         {
                             false
                         } else {
-                            exposed_headers
+                            response
+                                .cors_exposed_header_name_list
                                 .iter()
                                 .any(|h| h.as_str().eq_ignore_ascii_case(name))
                         }
