@@ -60,6 +60,10 @@ mod webview_delegate;
 // These are Servo's public exports. Everything (apart from a couple exceptions below)
 // should be exported at the root. See <https://github.com/servo/servo/issues/18475>.
 pub use accesskit;
+// Re-exported so that embedders can use the cookie types in the public
+// `SiteDataManager` API without depending on a specific version of the
+// `cookie` crate themselves.
+pub use cookie::Cookie;
 pub use embedder_traits::user_contents::UserScript;
 pub use embedder_traits::{submit_resource_reader, *};
 pub use image::RgbaImage;
