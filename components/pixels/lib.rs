@@ -18,6 +18,7 @@ use image::{ImageBuffer, ImageFormat, Rgba};
 use log::{debug, error};
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::GenericSharedMemory;
 pub use snapshot::*;
 use webrender_api::units::DeviceIntSize;
@@ -302,6 +303,7 @@ pub struct RasterImage {
     pub format: PixelFormat,
     pub id: Option<ImageKey>,
     pub cors_status: CorsStatus,
+    pub load_time: Option<CrossProcessInstant>,
     #[conditional_malloc_size_of]
     pub bytes: Arc<Vec<u8>>,
     pub frames: Vec<ImageFrame>,
