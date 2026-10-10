@@ -260,6 +260,7 @@ impl Response {
         }
 
         let mut response = old_response.clone();
+        // This is ok as we always set the `response.headers` in all branches in the following.
         let old_headers = std::mem::take(&mut response.headers);
         response.internal_response = Some(Box::new(old_response));
         response.response_type = filter_type;
