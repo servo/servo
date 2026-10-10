@@ -31,9 +31,9 @@ use crate::traits::Equivalence;
 const ED448_OID_STRING: &str = "1.3.101.113";
 
 /// <https://wicg.github.io/webcrypto-secure-curves/#ed448-operations>
-pub(crate) fn sign(
+pub(crate) fn sign<D: Equivalence>(
     normalized_algorithm: &SubtleEd448Params,
-    key: &CryptoKey,
+    key: &CryptoKey<D>,
     message: &[u8],
 ) -> Result<Vec<u8>, Error> {
     // Step 1. If the [[type]] internal slot of key is not "private", then throw an
@@ -72,9 +72,9 @@ pub(crate) fn sign(
 }
 
 /// <https://wicg.github.io/webcrypto-secure-curves/#ed448-operations>
-pub(crate) fn verify(
+pub(crate) fn verify<D: Equivalence>(
     normalized_algorithm: &SubtleEd448Params,
-    key: &CryptoKey,
+    key: &CryptoKey<D>,
     message: &[u8],
     signature: &[u8],
 ) -> Result<bool, Error> {
@@ -129,12 +129,12 @@ pub(crate) fn verify(
 }
 
 /// <https://wicg.github.io/webcrypto-secure-curves/#ed448-operations>
-pub(crate) fn generate_key(
+pub(crate) fn generate_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<CryptoKeyPair, Error> {
+) -> Result<CryptoKeyPair<D>, Error> {
     // Step 1. If usages contains a value which is not one of "sign" or "verify", then throw a
     // SyntaxError.
     usages.ensure_only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
@@ -199,14 +199,14 @@ pub(crate) fn generate_key(
 }
 
 /// <https://wicg.github.io/webcrypto-secure-curves/#ed448-operations>
-pub(crate) fn import_key(
+pub(crate) fn import_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     // Step 1. Let keyData be the key data to be imported.
 
     // Step 2.
@@ -491,7 +491,10 @@ pub(crate) fn import_key(
 }
 
 /// <https://wicg.github.io/webcrypto-secure-curves/#ed448-operations>
-pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
+pub(crate) fn export_key<D: Equivalence>(
+    format: KeyFormat,
+    key: &CryptoKey<D>,
+) -> Result<ExportedKey, Error> {
     // Step 1. Let key be the CryptoKey to be exported.
 
     // Step 2. If the underlying cryptographic key material represented by the [[handle]] internal
@@ -683,13 +686,13 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-getPublicKey>
 /// Step 9 - 15, for Ed448
-pub(crate) fn get_public_key(
+pub(crate) fn get_public_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
-    key: &CryptoKey,
+    global: &D::GlobalScope,
+    key: &CryptoKey<D>,
     algorithm: &KeyAlgorithmAndDerivatives,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     // Step 9. If usages contains an entry which is not supported for a public key by the algorithm
     // identified by algorithm, then throw a SyntaxError.
     //

@@ -33,14 +33,14 @@ pub(crate) enum EcAlgorithm {
 
 /// <https://w3c.github.io/webcrypto/#ecdsa-operations-generate-key>
 /// <https://w3c.github.io/webcrypto/#ecdh-operations-generate-key>
-pub(crate) fn generate_key(
+pub(crate) fn generate_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     ec_algorithm: EcAlgorithm,
     normalized_algorithm: &EcKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<CryptoKeyPair, Error> {
+) -> Result<CryptoKeyPair<D>, Error> {
     match ec_algorithm {
         EcAlgorithm::Ecdsa => {
             // Step 1. If usages contains a value which is not one of "sign" or "verify", then throw
@@ -194,16 +194,16 @@ pub(crate) fn generate_key(
 /// format is "jwk", Step 3.2 and Step 3.3 in the specification of the importKey operation of ECDH
 /// are combined into a single step, and Step 3.9.1 to Step 3.9.3 here are skipped for ECDH.
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn import_key(
+pub(crate) fn import_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     ec_algorithm: EcAlgorithm,
     normalized_algorithm: &EcKeyImportParams,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     // Step 1. If the namedCurve member of normalizedAlgorithm is not one of "P-256", "P-384" or
     // "P-521", and is not a value specified in an applicable specification that specifies the use
     // of that value with ECDSA, then throw a NotSupportedError.
@@ -832,7 +832,10 @@ pub(crate) fn import_key(
 
 /// <https://w3c.github.io/webcrypto/#ecdsa-operations-export-key>
 /// <https://w3c.github.io/webcrypto/#ecdh-operations-export-key>
-pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
+pub(crate) fn export_key<D: Equivalence>(
+    format: KeyFormat,
+    key: &CryptoKey<D>,
+) -> Result<ExportedKey, Error> {
     // Step 1. Let key be the CryptoKey to be exported.
 
     // Step 2. If the underlying cryptographic key material represented by the [[handle]] internal
@@ -1159,14 +1162,14 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-getPublicKey>
 /// Step 9 - 15, for elliptic curve cryptography
-pub(crate) fn get_public_key(
+pub(crate) fn get_public_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     ec_algorithm: EcAlgorithm,
-    key: &CryptoKey,
+    key: &CryptoKey<D>,
     algorithm: &KeyAlgorithmAndDerivatives,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     // Step 9. If usages contains an entry which is not supported for a public key by the algorithm
     // identified by algorithm, then throw a SyntaxError.
     //

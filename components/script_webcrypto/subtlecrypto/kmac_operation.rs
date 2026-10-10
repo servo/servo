@@ -24,9 +24,9 @@ use crate::subtlecrypto::{
 use crate::traits::Equivalence;
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#kmac-operations-sign>
-pub(crate) fn sign(
+pub(crate) fn sign<D: Equivalence>(
     normalized_algorithm: &KmacParams,
-    key: &CryptoKey,
+    key: &CryptoKey<D>,
     message: &[u8],
 ) -> Result<Vec<u8>, Error> {
     // Step 1. Let customization be the customization member of normalizedAlgorithm if present or
@@ -85,9 +85,9 @@ pub(crate) fn sign(
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#kmac-operations-verify>
-pub(crate) fn verify(
+pub(crate) fn verify<D: Equivalence>(
     normalized_algorithm: &KmacParams,
-    key: &CryptoKey,
+    key: &CryptoKey<D>,
     message: &[u8],
     signature: &[u8],
 ) -> Result<bool, Error> {
@@ -149,13 +149,13 @@ pub(crate) fn verify(
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#kmac-operations-generate-key>
-pub(crate) fn generate_key(
+pub(crate) fn generate_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     normalized_algorithm: &KmacKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     // Step 1. If usages contains an entry which is not "sign" or "verify", then throw a
     // SyntaxError.
     usages.ensure_only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
@@ -225,15 +225,15 @@ pub(crate) fn generate_key(
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#kmac-operations-import-key>
-pub(crate) fn import_key(
+pub(crate) fn import_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     normalized_algorithm: &KmacImportParams,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     // Step 1. Let keyData be the key data to be imported.
     // NOTE: It is given as a method parameter.
 
@@ -383,7 +383,10 @@ pub(crate) fn import_key(
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#kmac-operations-export-key>
-pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
+pub(crate) fn export_key<D: Equivalence>(
+    format: KeyFormat,
+    key: &CryptoKey<D>,
+) -> Result<ExportedKey, Error> {
     // Step 1. If the underlying cryptographic key material represented by the [[handle]] internal
     // slot of key cannot be accessed, then throw an OperationError.
 

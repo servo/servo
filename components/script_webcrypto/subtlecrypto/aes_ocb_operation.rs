@@ -26,9 +26,9 @@ use crate::subtlecrypto::{
 use crate::traits::Equivalence;
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-encrypt>
-pub(crate) fn encrypt(
+pub(crate) fn encrypt<D: Equivalence>(
     normalized_algorithm: &AeadParams,
-    key: &CryptoKey,
+    key: &CryptoKey<D>,
     plaintext: &[u8],
 ) -> Result<Vec<u8>, Error> {
     // Step 1. If the iv member of normalizedAlgorithm has a length greater than 15 bytes, then
@@ -243,9 +243,9 @@ where
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-decrypt>
-pub(crate) fn decrypt(
+pub(crate) fn decrypt<D: Equivalence>(
     normalized_algorithm: &AeadParams,
-    key: &CryptoKey,
+    key: &CryptoKey<D>,
     ciphertext: &[u8],
 ) -> Result<Vec<u8>, Error> {
     // Step 1. If the iv member of normalizedAlgorithm has a length greater than 15 bytes, then
@@ -472,13 +472,13 @@ where
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-generate-key>
-pub(crate) fn generate_key(
+pub(crate) fn generate_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     normalized_algorithm: &AesKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     aes_common::generate_key(
         cx,
         global,
@@ -490,14 +490,14 @@ pub(crate) fn generate_key(
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-import-key>
-pub(crate) fn import_key(
+pub(crate) fn import_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     aes_common::import_key(
         cx,
         global,
@@ -510,7 +510,10 @@ pub(crate) fn import_key(
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-export-key>
-pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
+pub(crate) fn export_key<D: Equivalence>(
+    format: KeyFormat,
+    key: &CryptoKey<D>,
+) -> Result<ExportedKey, Error> {
     aes_common::export_key(AesAlgorithm::AesOcb, format, key)
 }
 

@@ -16,7 +16,10 @@ use crate::subtlecrypto::{AesDerivedKeyParams, AesKeyGenParams, ExportedKey, aes
 use crate::traits::Equivalence;
 
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-wrap-key>
-pub(crate) fn wrap_key(key: &CryptoKey, plaintext: &[u8]) -> Result<Vec<u8>, Error> {
+pub(crate) fn wrap_key<D: Equivalence>(
+    key: &CryptoKey<D>,
+    plaintext: &[u8],
+) -> Result<Vec<u8>, Error> {
     // Step 1. If plaintext is not a multiple of 64 bits in length, then throw an OperationError.
     if !plaintext.len().is_multiple_of(8) {
         return Err(Error::Operation(Some(
@@ -59,7 +62,10 @@ pub(crate) fn wrap_key(key: &CryptoKey, plaintext: &[u8]) -> Result<Vec<u8>, Err
 }
 
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-unwrap-key>
-pub(crate) fn unwrap_key(key: &CryptoKey, ciphertext: &[u8]) -> Result<Vec<u8>, Error> {
+pub(crate) fn unwrap_key<D: Equivalence>(
+    key: &CryptoKey<D>,
+    ciphertext: &[u8],
+) -> Result<Vec<u8>, Error> {
     // Step 1. Let plaintext be the result of performing the Key Unwrap operation described in
     // Section 2.2.2 of [RFC3394] with ciphertext as the input ciphertext and using the default
     // Initial Value defined in Section 2.2.3.1 of the same document.
@@ -95,13 +101,13 @@ pub(crate) fn unwrap_key(key: &CryptoKey, ciphertext: &[u8]) -> Result<Vec<u8>, 
 }
 
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-generate-key>
-pub(crate) fn generate_key(
+pub(crate) fn generate_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     normalized_algorithm: &AesKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     aes_common::generate_key(
         cx,
         global,
@@ -113,14 +119,14 @@ pub(crate) fn generate_key(
 }
 
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-import-key>
-pub(crate) fn import_key(
+pub(crate) fn import_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     aes_common::import_key(
         cx,
         global,
@@ -133,7 +139,10 @@ pub(crate) fn import_key(
 }
 
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-export-key>
-pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
+pub(crate) fn export_key<D: Equivalence>(
+    format: KeyFormat,
+    key: &CryptoKey<D>,
+) -> Result<ExportedKey, Error> {
     aes_common::export_key(AesAlgorithm::AesKw, format, key)
 }
 

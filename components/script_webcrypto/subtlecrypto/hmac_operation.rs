@@ -24,7 +24,7 @@ use crate::subtlecrypto::{
 use crate::traits::Equivalence;
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-sign>
-pub(crate) fn sign(key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {
+pub(crate) fn sign<D: Equivalence>(key: &CryptoKey<D>, message: &[u8]) -> Result<Vec<u8>, Error> {
     // Step 1. Let mac be the result of performing the MAC Generation operation described in
     // Section 4 of [FIPS-198-1] using the key represented by the [[handle]] internal slot of key,
     // the hash function identified by the hash attribute of the [[algorithm]] internal slot of key
@@ -55,7 +55,11 @@ pub(crate) fn sign(key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {
 }
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-verify>
-pub(crate) fn verify(key: &CryptoKey, message: &[u8], signature: &[u8]) -> Result<bool, Error> {
+pub(crate) fn verify<D: Equivalence>(
+    key: &CryptoKey<D>,
+    message: &[u8],
+    signature: &[u8],
+) -> Result<bool, Error> {
     // Step 1. Let mac be the result of performing the MAC Generation operation described in
     // Section 4 of [FIPS-198-1] using the key represented by the [[handle]] internal slot of key,
     // the hash function identified by the hash attribute of the [[algorithm]] internal slot of key
@@ -87,13 +91,13 @@ pub(crate) fn verify(key: &CryptoKey, message: &[u8], signature: &[u8]) -> Resul
 }
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-generate-key>
-pub(crate) fn generate_key(
+pub(crate) fn generate_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     normalized_algorithm: &HmacKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     // Step 1. If usages contains any entry which is not "sign" or "verify", then throw a
     // SyntaxError.
     usages.ensure_only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
@@ -160,15 +164,15 @@ pub(crate) fn generate_key(
 }
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-import-key>
-pub(crate) fn import_key(
+pub(crate) fn import_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     normalized_algorithm: &HmacImportParams,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     // Step 1. If the length member of normalizedAlgorithm is present and is zero, then throw a
     // DataError.
     if normalized_algorithm
@@ -361,7 +365,10 @@ pub(crate) fn import_key(
 }
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-export-key>
-pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
+pub(crate) fn export_key<D: Equivalence>(
+    format: KeyFormat,
+    key: &CryptoKey<D>,
+) -> Result<ExportedKey, Error> {
     match format {
         KeyFormat::Raw | KeyFormat::Raw_secret => match key.handle() {
             Handle::Hmac(key_data) => Ok(ExportedKey::new_bytes(key_data.as_slice().to_vec())),

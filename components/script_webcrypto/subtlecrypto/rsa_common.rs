@@ -36,14 +36,14 @@ pub(crate) enum RsaAlgorithm {
 /// <https://w3c.github.io/webcrypto/#rsassa-pkcs1-operations-generate-key>
 /// <https://w3c.github.io/webcrypto/#rsa-pss-operations-generate-key>
 /// <https://w3c.github.io/webcrypto/#rsa-oaep-operations-generate-key>
-pub(crate) fn generate_key(
+pub(crate) fn generate_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     rsa_algorithm: RsaAlgorithm,
     normalized_algorithm: &RsaHashedKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<CryptoKeyPair, Error> {
+) -> Result<CryptoKeyPair<D>, Error> {
     match rsa_algorithm {
         RsaAlgorithm::RsassaPkcs1v1_5 | RsaAlgorithm::RsaPss => {
             // Step 1. If usages contains an entry which is not "sign" or "verify", then throw a
@@ -171,16 +171,16 @@ pub(crate) fn generate_key(
 /// When format is "jwk", Step 2.7 in the specification for RSASSA-PKCS1-v1_5 is skipped since it is redundent.
 /// When format is "jwk", Step 2.2 and 2.3 in the specification of RSA-OAEP are combined into a single step.
 #[allow(clippy::too_many_arguments)]
-pub(crate) fn import_key(
+pub(crate) fn import_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     rsa_algorithm: RsaAlgorithm,
     normalized_algorithm: &RsaHashedImportParams,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     // Step 1. Let keyData be the key data to be imported.
 
     // Step 2.
@@ -607,10 +607,10 @@ pub(crate) fn import_key(
 /// <https://w3c.github.io/webcrypto/#rsassa-pkcs1-operations-export-key>
 /// <https://w3c.github.io/webcrypto/#rsa-pss-operations-export-key>
 /// <https://w3c.github.io/webcrypto/#rsa-oaep-operations-export-key>
-pub(crate) fn export_key(
+pub(crate) fn export_key<D: Equivalence>(
     rsa_algorithm: RsaAlgorithm,
     format: KeyFormat,
-    key: &CryptoKey,
+    key: &CryptoKey<D>,
 ) -> Result<ExportedKey, Error> {
     // Step 1. Let key be the key to be exported.
 
@@ -921,14 +921,14 @@ pub(crate) fn export_key(
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-getPublicKey>
 /// Step 9 - 15, for RSA algorithms
-pub(crate) fn get_public_key(
+pub(crate) fn get_public_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     rsa_algorithm: RsaAlgorithm,
-    key: &CryptoKey,
+    key: &CryptoKey<D>,
     algorithm: &KeyAlgorithmAndDerivatives,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     // Step 9. If usages contains an entry which is not supported for a public key by the algorithm
     // identified by algorithm, then throw a SyntaxError.
     //

@@ -27,13 +27,13 @@ use crate::subtlecrypto::{
 use crate::traits::Equivalence;
 
 /// <https://w3c.github.io/webcrypto/#ecdh-operations-generate-key>
-pub(crate) fn generate_key(
+pub(crate) fn generate_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     normalized_algorithm: &EcKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<CryptoKeyPair, Error> {
+) -> Result<CryptoKeyPair<D>, Error> {
     ec_common::generate_key(
         cx,
         global,
@@ -45,9 +45,9 @@ pub(crate) fn generate_key(
 }
 
 /// <https://w3c.github.io/webcrypto/#ecdh-operations-derive-bits>
-pub(crate) fn derive_bits(
-    normalized_algorithm: &EcdhKeyDeriveParams,
-    key: &CryptoKey,
+pub(crate) fn derive_bits<D: Equivalence>(
+    normalized_algorithm: &EcdhKeyDeriveParams<D>,
+    key: &CryptoKey<D>,
     length: Option<u32>,
 ) -> Result<Vec<u8>, Error> {
     // Step 1. Let publicKey be the public member of normalizedAlgorithm.
@@ -218,15 +218,15 @@ pub(crate) fn derive_bits(
 }
 
 /// <https://w3c.github.io/webcrypto/#ecdh-operations-import-key>
-pub(crate) fn import_key(
+pub(crate) fn import_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     normalized_algorithm: &EcKeyImportParams,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     ec_common::import_key(
         cx,
         global,
@@ -240,26 +240,29 @@ pub(crate) fn import_key(
 }
 
 /// <https://w3c.github.io/webcrypto/#ecdh-operations-export-key>
-pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
+pub(crate) fn export_key<D: Equivalence>(
+    format: KeyFormat,
+    key: &CryptoKey<D>,
+) -> Result<ExportedKey, Error> {
     ec_common::export_key(format, key)
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-getPublicKey>
 /// Step 9 - 15, for ECDH
-pub(crate) fn get_public_key(
+pub(crate) fn get_public_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
-    key: &CryptoKey,
+    global: &D::GlobalScope,
+    key: &CryptoKey<D>,
     algorithm: &KeyAlgorithmAndDerivatives,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     ec_common::get_public_key(cx, global, EcAlgorithm::Ecdh, key, algorithm, usages)
 }
 
 /// Given an elliptic curve key, returns the length in bits of the output of the field element to
 /// octet string conversion defined in Section 6.2 of [RFC6090] for the EC domain parameters
 /// associated with key.
-pub(crate) fn maximum_length(key: &CryptoKey) -> Result<u32, Error> {
+pub(crate) fn maximum_length<D: Equivalence>(key: &CryptoKey<D>) -> Result<u32, Error> {
     let KeyAlgorithmAndDerivatives::EcKeyAlgorithm(algorithm) = key.algorithm() else {
         return Err(Error::Operation(Some(
             "The key is not an elliptic curve algorithm key".to_string(),

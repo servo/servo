@@ -23,9 +23,9 @@ use crate::subtlecrypto::{
 use crate::traits::Equivalence;
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#hybrid-kems-operations-encapsulate>
-pub(crate) fn encapsulate(
+pub(crate) fn encapsulate<D: Equivalence>(
     normalized_algorithm: &Algorithm,
-    key: &CryptoKey,
+    key: &CryptoKey<D>,
 ) -> Result<EncapsulatedBits, Error> {
     // Step 1. If the [[type]] internal slot of key is not "public", then throw an
     // InvalidAccessError.
@@ -69,9 +69,9 @@ pub(crate) fn encapsulate(
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#hybrid-kems-operations-decapsulate>
-pub(crate) fn decapsulate(
+pub(crate) fn decapsulate<D: Equivalence>(
     normalized_algorithm: &Algorithm,
-    key: &CryptoKey,
+    key: &CryptoKey<D>,
     ciphertext: &[u8],
 ) -> Result<Vec<u8>, Error> {
     // Step 1. If the [[type]] internal slot of key is not "private", then throw an
@@ -118,13 +118,13 @@ pub(crate) fn get_shared_key_length() -> u32 {
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#ml-kem-operations-generate-key>
-pub(crate) fn generate_key(
+pub(crate) fn generate_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     normalized_algorithm: &Algorithm,
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<CryptoKeyPair, Error> {
+) -> Result<CryptoKeyPair<D>, Error> {
     // Step 1. If usages contains an entry which is not one of "encapsulateKey", "encapsulateBits",
     // "decapsulateKey" or "decapsulateBits", then throw a SyntaxError.
     usages.ensure_only_contain_entries_from(&[
@@ -207,15 +207,15 @@ pub(crate) fn generate_key(
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#hybrid-kems-operations-import-key>
-pub(crate) fn import_key(
+pub(crate) fn import_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     normalized_algorithm: &Algorithm,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     // Step 1. Let keyData be the key data to be imported.
 
     // Step 2.
@@ -547,7 +547,10 @@ pub(crate) fn import_key(
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#hybrid-kems-operations-export-key>
-pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
+pub(crate) fn export_key<D: Equivalence>(
+    format: KeyFormat,
+    key: &CryptoKey<D>,
+) -> Result<ExportedKey, Error> {
     // Step 1. Let key be the CryptoKey to be exported.
 
     // Step 2. If the underlying cryptographic key material represented by the [[handle]] internal
@@ -675,13 +678,13 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-getPublicKey>
 /// Step 9 - 15, for hybrid KEM
-pub(crate) fn get_public_key(
+pub(crate) fn get_public_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
-    key: &CryptoKey,
+    global: &D::GlobalScope,
+    key: &CryptoKey<D>,
     algorithm: &KeyAlgorithmAndDerivatives,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     // Step 9. If usages contains an entry which is not supported for a public key by the algorithm
     // identified by algorithm, then throw a SyntaxError.
     //

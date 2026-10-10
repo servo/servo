@@ -23,9 +23,9 @@ use crate::subtlecrypto::{
 use crate::traits::Equivalence;
 
 /// <https://w3c.github.io/webcrypto/#rsa-pss-operations-sign>
-pub(crate) fn sign(
+pub(crate) fn sign<D: Equivalence>(
     normalized_algorithm: &RsaPssParams,
-    key: &CryptoKey,
+    key: &CryptoKey<D>,
     message: &[u8],
 ) -> Result<Vec<u8>, Error> {
     // Step 1. If the [[type]] internal slot of key is not "private", then throw an
@@ -94,9 +94,9 @@ pub(crate) fn sign(
 }
 
 /// <https://w3c.github.io/webcrypto/#rsa-pss-operations-verify>
-pub(crate) fn verify(
+pub(crate) fn verify<D: Equivalence>(
     normalized_algorithm: &RsaPssParams,
-    key: &CryptoKey,
+    key: &CryptoKey<D>,
     message: &[u8],
     signature: &[u8],
 ) -> Result<bool, Error> {
@@ -167,13 +167,13 @@ pub(crate) fn verify(
 }
 
 /// <https://w3c.github.io/webcrypto/#rsa-pss-operations-generate-key>
-pub(crate) fn generate_key(
+pub(crate) fn generate_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     normalized_algorithm: &RsaHashedKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<CryptoKeyPair, Error> {
+) -> Result<CryptoKeyPair<D>, Error> {
     rsa_common::generate_key(
         cx,
         global,
@@ -185,15 +185,15 @@ pub(crate) fn generate_key(
 }
 
 /// <https://w3c.github.io/webcrypto/#rsa-pss-operations-import-key>
-pub(crate) fn import_key(
+pub(crate) fn import_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     normalized_algorithm: &RsaHashedImportParams,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     rsa_common::import_key(
         cx,
         global,
@@ -207,18 +207,21 @@ pub(crate) fn import_key(
 }
 
 /// <https://w3c.github.io/webcrypto/#rsa-pss-operations-export-key>
-pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
+pub(crate) fn export_key<D: Equivalence>(
+    format: KeyFormat,
+    key: &CryptoKey<D>,
+) -> Result<ExportedKey, Error> {
     rsa_common::export_key(RsaAlgorithm::RsaPss, format, key)
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-getPublicKey>
 /// Step 9 - 15, for RSA-PSS
-pub(crate) fn get_public_key(
+pub(crate) fn get_public_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
-    key: &CryptoKey,
+    global: &D::GlobalScope,
+    key: &CryptoKey<D>,
     algorithm: &KeyAlgorithmAndDerivatives,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     rsa_common::get_public_key(cx, global, RsaAlgorithm::RsaPss, key, algorithm, usages)
 }

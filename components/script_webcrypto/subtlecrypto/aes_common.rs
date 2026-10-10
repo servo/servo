@@ -38,14 +38,14 @@ pub(crate) enum AesAlgorithm {
 ///
 /// The step order in the specification of AES-OCB is slightly different, but it is equivalent to
 /// this implementation.
-pub(crate) fn generate_key(
+pub(crate) fn generate_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     aes_algorithm: AesAlgorithm,
     normalized_algorithm: &AesKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     match aes_algorithm {
         AesAlgorithm::AesCtr |
         AesAlgorithm::AesCbc |
@@ -154,15 +154,15 @@ pub(crate) fn generate_key(
 ///
 /// As it is simply used to name the variable, it is safe to omit it in the implementation below to
 /// align with the specification of other AES algorithms.
-pub(crate) fn import_key(
+pub(crate) fn import_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     aes_algorithm: AesAlgorithm,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     match &aes_algorithm {
         AesAlgorithm::AesCtr |
         AesAlgorithm::AesCbc |
@@ -496,10 +496,10 @@ pub(crate) fn import_key(
 /// <https://w3c.github.io/webcrypto/#aes-gcm-operations-export-key>
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-export-key>
 /// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-export-key>
-pub(crate) fn export_key(
+pub(crate) fn export_key<D: Equivalence>(
     aes_algorithm: AesAlgorithm,
     format: KeyFormat,
-    key: &CryptoKey,
+    key: &CryptoKey<D>,
 ) -> Result<ExportedKey, Error> {
     // Step 1. If the underlying cryptographic key material represented by the [[handle]] internal
     // slot of key cannot be accessed, then throw an OperationError.

@@ -18,9 +18,9 @@ use crate::subtlecrypto::{
 use crate::traits::Equivalence;
 
 /// <https://w3c.github.io/webcrypto/#pbkdf2-operations-derive-bits>
-pub(crate) fn derive_bits(
+pub(crate) fn derive_bits<D: Equivalence>(
     normalized_algorithm: &Pbkdf2Params,
-    key: &CryptoKey,
+    key: &CryptoKey<D>,
     length: Option<u32>,
 ) -> Result<Vec<u8>, Error> {
     // Step 1. If length is null or is not a multiple of 8, then throw an OperationError.
@@ -83,14 +83,14 @@ pub(crate) fn derive_bits(
 }
 
 /// <https://w3c.github.io/webcrypto/#pbkdf2-operations-import-key>
-pub(crate) fn import_key(
+pub(crate) fn import_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     // Step 1. If format is not "raw", throw a NotSupportedError
     if !matches!(format, KeyFormat::Raw | KeyFormat::Raw_secret) {
         return Err(Error::NotSupported(Some("Format is not raw".into())));

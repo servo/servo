@@ -206,19 +206,30 @@ impl CryptoAlgorithm {
 
 /// <https://w3c.github.io/webcrypto/#subtlecrypto-interface>
 #[dom_struct]
-pub(crate) struct SubtleCrypto {
+pub struct SubtleCrypto<D: DomTypes> {
     reflector_: Reflector,
+    #[no_trace = "PhantomData does not exist"]
+    phantom: PhantomData<D>,
 }
 
-impl SubtleCrypto {
-    fn new_inherited() -> SubtleCrypto {
+impl<D> SubtleCrypto<D>
+where
+    D: Equivalence,
+{
+    fn new_inherited() -> SubtleCrypto<D> {
         SubtleCrypto {
             reflector_: Reflector::new(),
+            phantom: PhantomData,
         }
     }
 
-    pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<SubtleCrypto> {
-        reflect_dom_object(cx, Box::new(SubtleCrypto::new_inherited()), global)
+    pub(crate) fn new(cx: &mut JSContext, global: &D::GlobalScope) -> DomRoot<SubtleCrypto<D>> {
+        reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
+            Box::new(SubtleCrypto::new_inherited()),
+            global,
+            SubtleCryptoWrap::<D>,
+        )
     }
 
     /// Queue a global task on the crypto task source, given realm's global object, to resolve
@@ -352,7 +363,7 @@ impl SubtleCrypto {
     fn resolve_promise_with_encapsulated_key(
         &self,
         promise: &RootedPromise,
-        encapsulated_key: EncapsulatedKey,
+        encapsulated_key: EncapsulatedKey<D>,
     ) {
         let trusted_promise = TrustedPromise::from(promise);
         self.global().task_manager().crypto_task_source().queue(
@@ -381,13 +392,16 @@ impl SubtleCrypto {
     }
 }
 
-impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
+impl<D> SubtleCryptoMethods<D> for SubtleCrypto<D>
+where
+    D: Equivalence,
+{
     /// <https://w3c.github.io/webcrypto/#SubtleCrypto-method-encrypt>
     fn Encrypt(
         &self,
         cx: &mut CurrentRealm,
         algorithm: AlgorithmIdentifier,
-        key: &CryptoKey,
+        key: &CryptoKey<D>,
         data: ArrayBufferViewOrArrayBuffer,
     ) -> RootedPromise {
         // Step 1. Let algorithm and key be the algorithm and key parameters passed to the
@@ -471,7 +485,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         &self,
         cx: &mut CurrentRealm,
         algorithm: AlgorithmIdentifier,
-        key: &CryptoKey,
+        key: &CryptoKey<D>,
         data: ArrayBufferViewOrArrayBuffer,
     ) -> RootedPromise {
         // Step 1. Let algorithm and key be the algorithm and key parameters passed to the
@@ -555,7 +569,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         &self,
         cx: &mut CurrentRealm,
         algorithm: AlgorithmIdentifier,
-        key: &CryptoKey,
+        key: &CryptoKey<D>,
         data: ArrayBufferViewOrArrayBuffer,
     ) -> RootedPromise {
         // Step 1. Let algorithm and key be the algorithm and key parameters passed to the sign()
@@ -638,7 +652,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         &self,
         cx: &mut CurrentRealm,
         algorithm: AlgorithmIdentifier,
-        key: &CryptoKey,
+        key: &CryptoKey<D>,
         signature: ArrayBufferViewOrArrayBuffer,
         data: ArrayBufferViewOrArrayBuffer,
     ) -> RootedPromise {
@@ -860,8 +874,10 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
                     CryptoKeyOrCryptoKeyPair::CryptoKeyPair(crypto_key_pair) => {
                         if crypto_key_pair
                             .privateKey
-                            .as_ref()
-                            .is_none_or(|private_key| private_key.usages().is_empty())
+                            .as_deref()
+                            .is_none_or(|private_key: &CryptoKey<D>| {
+                                private_key.usages().is_empty()
+                            })
                         {
                             subtle.reject_promise_with_error(promise, Error::Syntax(Some("Private key usages is an empty sequence".into())));
                             return;
@@ -892,7 +908,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         &self,
         cx: &mut CurrentRealm,
         algorithm: AlgorithmIdentifier,
-        base_key: &CryptoKey,
+        base_key: &CryptoKey<D>,
         derived_key_type: AlgorithmIdentifier,
         extractable: bool,
         usages: Vec<KeyUsage>,
@@ -906,14 +922,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // to algorithm and op set to "deriveBits".
         // Step 3. If an error occurred, return a Promise rejected with normalizedAlgorithm.
         let promise = Promise::new_in_realm(cx);
-        let normalized_algorithm = match normalize_algorithm::<DeriveBitsOperation>(cx, &algorithm)
-        {
-            Ok(normalized_algorithm) => normalized_algorithm,
-            Err(error) => {
-                promise.reject_error(cx, error);
-                return promise;
-            },
-        };
+        let normalized_algorithm =
+            match normalize_algorithm::<DeriveBitsOperation<D>>(cx, &algorithm) {
+                Ok(normalized_algorithm) => normalized_algorithm,
+                Err(error) => {
+                    promise.reject_error(cx, error);
+                    return promise;
+                },
+            };
 
         // Step 4. Let normalizedDerivedKeyAlgorithmImport be the result of normalizing an
         // algorithm, with alg set to derivedKeyType and op set to "importKey".
@@ -1042,7 +1058,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         &self,
         cx: &mut CurrentRealm,
         algorithm: AlgorithmIdentifier,
-        base_key: &CryptoKey,
+        base_key: &CryptoKey<D>,
         length: Option<u32>,
     ) -> RootedPromise {
         // Step 1. Let algorithm, baseKey and length, be the algorithm, baseKey and length
@@ -1053,14 +1069,14 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         // to algorithm and op set to "deriveBits".
         // Step 3. If an error occurred, return a Promise rejected with normalizedAlgorithm.
         let promise = Promise::new_in_realm(cx);
-        let normalized_algorithm = match normalize_algorithm::<DeriveBitsOperation>(cx, &algorithm)
-        {
-            Ok(normalized_algorithm) => normalized_algorithm,
-            Err(error) => {
-                promise.reject_error(cx, error);
-                return promise;
-            },
-        };
+        let normalized_algorithm =
+            match normalize_algorithm::<DeriveBitsOperation<D>>(cx, &algorithm) {
+                Ok(normalized_algorithm) => normalized_algorithm,
+                Err(error) => {
+                    promise.reject_error(cx, error);
+                    return promise;
+                },
+            };
 
         // Step 4. Let realm be the relevant realm of this.
         // Step 5. Let promise be a new Promise.
@@ -1270,7 +1286,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         &self,
         cx: &mut CurrentRealm,
         format: KeyFormat,
-        key: &CryptoKey,
+        key: &CryptoKey<D>,
     ) -> RootedPromise {
         // Step 1. Let format and key be the format and key parameters passed to the exportKey()
         // method, respectively.
@@ -1359,8 +1375,8 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         &self,
         cx: &mut CurrentRealm,
         format: KeyFormat,
-        key: &CryptoKey,
-        wrapping_key: &CryptoKey,
+        key: &CryptoKey<D>,
+        wrapping_key: &CryptoKey<D>,
         algorithm: AlgorithmIdentifier,
     ) -> RootedPromise {
         // Step 1. Let format, key, wrappingKey and algorithm be the format, key, wrappingKey and
@@ -1534,7 +1550,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         cx: &mut CurrentRealm,
         format: KeyFormat,
         wrapped_key: ArrayBufferViewOrArrayBuffer,
-        unwrapping_key: &CryptoKey,
+        unwrapping_key: &CryptoKey<D>,
         algorithm: AlgorithmIdentifier,
         unwrapped_key_algorithm: AlgorithmIdentifier,
         extractable: bool,
@@ -1717,7 +1733,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         &self,
         cx: &mut CurrentRealm,
         encapsulation_algorithm: AlgorithmIdentifier,
-        encapsulation_key: &CryptoKey,
+        encapsulation_key: &CryptoKey<D>,
         shared_key_algorithm: AlgorithmIdentifier,
         extractable: bool,
         usages: Vec<KeyUsage>,
@@ -1864,7 +1880,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         &self,
         cx: &mut CurrentRealm,
         encapsulation_algorithm: AlgorithmIdentifier,
-        encapsulation_key: &CryptoKey,
+        encapsulation_key: &CryptoKey<D>,
     ) -> RootedPromise {
         // Step 1. Let encapsulationAlgorithm and encapsulationKey be the encapsulationAlgorithm
         // and encapsulationKey parameters passed to the encapsulateBits() method, respectively.
@@ -1952,7 +1968,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         &self,
         cx: &mut CurrentRealm,
         decapsulation_algorithm: AlgorithmIdentifier,
-        decapsulation_key: &CryptoKey,
+        decapsulation_key: &CryptoKey<D>,
         ciphertext: ArrayBufferViewOrArrayBuffer,
         shared_key_algorithm: AlgorithmIdentifier,
         extractable: bool,
@@ -2091,7 +2107,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         &self,
         cx: &mut CurrentRealm,
         decapsulation_algorithm: AlgorithmIdentifier,
-        decapsulation_key: &CryptoKey,
+        decapsulation_key: &CryptoKey<D>,
         ciphertext: ArrayBufferViewOrArrayBuffer,
     ) -> RootedPromise {
         // Step 1. Let decapsulationAlgorithm and decapsulationKey be the decapsulationAlgorithm
@@ -2185,7 +2201,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
     fn GetPublicKey(
         &self,
         cx: &mut CurrentRealm,
-        key: &CryptoKey,
+        key: &CryptoKey<D>,
         usages: Vec<KeyUsage>,
     ) -> RootedPromise {
         // Step 1. Let key and usages be the key and keyUsages parameters passed to the
@@ -2279,7 +2295,7 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
     /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-SubtleCrypto-method-supports>
     fn Supports(
         cx: &mut JSContext,
-        _global: &GlobalScope,
+        _global: &D::GlobalScope,
         operation: DOMString,
         algorithm: AlgorithmIdentifier,
         length: Option<u32>,
@@ -2314,13 +2330,13 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 2. Return the result of checking support for an algorithm, with op set to
         // operation, alg set to algorithm, and length set to length.
-        check_support_for_algorithm(cx, operation, &algorithm, length)
+        check_support_for_algorithm::<D>(cx, operation, &algorithm, length)
     }
 
     /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-SubtleCrypto-method-supports-additionalAlgorithm>
     fn Supports_(
         cx: &mut JSContext,
-        _global: &GlobalScope,
+        _global: &D::GlobalScope,
         operation: DOMString,
         algorithm: AlgorithmIdentifier,
         additional_algorithm: AlgorithmIdentifier,
@@ -2361,12 +2377,12 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         //     If the result of checking support for an algorithm with op set to "exportKey" and
         //     alg set to additionalAlgorithm is false, return false.
         if matches!(operation, "deriveKey" | "unwrapKey") &&
-            !check_support_for_algorithm(cx, "importKey", &additional_algorithm, None)
+            !check_support_for_algorithm::<D>(cx, "importKey", &additional_algorithm, None)
         {
             return false;
         }
         if operation == "wrapKey" &&
-            !check_support_for_algorithm(cx, "exportKey", &additional_algorithm, None)
+            !check_support_for_algorithm::<D>(cx, "exportKey", &additional_algorithm, None)
         {
             return false;
         }
@@ -2421,7 +2437,8 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
         if operation == "deriveKey" {
             // Step 5.1. If the result of checking support for an algorithm with op set to "get key
             // length" and alg set to additionalAlgorithm is false, return false.
-            if !check_support_for_algorithm(cx, "get key length", &additional_algorithm, None) {
+            if !check_support_for_algorithm::<D>(cx, "get key length", &additional_algorithm, None)
+            {
                 return false;
             }
 
@@ -2448,12 +2465,12 @@ impl SubtleCryptoMethods<crate::DomTypeHolder> for SubtleCrypto {
 
         // Step 6. Return the result of checking support for an algorithm, with op set to
         // operation, alg set to algorithm, and length set to length.
-        check_support_for_algorithm(cx, operation, &algorithm, length)
+        check_support_for_algorithm::<D>(cx, operation, &algorithm, length)
     }
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-check-support-for-algorithm>
-pub(crate) fn check_support_for_algorithm(
+fn check_support_for_algorithm<D: Equivalence>(
     cx: &mut JSContext,
     mut operation: &str,
     algorithm: &AlgorithmIdentifier,
@@ -2506,45 +2523,45 @@ pub(crate) fn check_support_for_algorithm(
     // normalizedAlgorithm set to normalizedAlgorithm, and length set to length.
     match operation {
         "encrypt" => {
-            normalize_and_determine_support::<EncryptOperation>(cx, operation, algorithm, length)
+            normalize_and_determine_support::<EncryptOperation, D>(cx, operation, algorithm, length)
         },
         "decrypt" => {
-            normalize_and_determine_support::<DecryptOperation>(cx, operation, algorithm, length)
+            normalize_and_determine_support::<DecryptOperation, D>(cx, operation, algorithm, length)
         },
         "sign" => {
-            normalize_and_determine_support::<SignOperation>(cx, operation, algorithm, length)
+            normalize_and_determine_support::<SignOperation, D>(cx, operation, algorithm, length)
         },
         "verify" => {
-            normalize_and_determine_support::<VerifyOperation>(cx, operation, algorithm, length)
+            normalize_and_determine_support::<VerifyOperation, D>(cx, operation, algorithm, length)
         },
         "digest" => {
-            normalize_and_determine_support::<DigestOperation>(cx, operation, algorithm, length)
+            normalize_and_determine_support::<DigestOperation, D>(cx, operation, algorithm, length)
         },
-        "deriveBits" => {
-            normalize_and_determine_support::<DeriveBitsOperation>(cx, operation, algorithm, length)
-        },
+        "deriveBits" => normalize_and_determine_support::<DeriveBitsOperation<D>, D>(
+            cx, operation, algorithm, length,
+        ),
         "wrapKey" => {
-            normalize_and_determine_support::<WrapKeyOperation>(cx, operation, algorithm, length)
+            normalize_and_determine_support::<WrapKeyOperation, D>(cx, operation, algorithm, length)
         },
-        "unwrapKey" => {
-            normalize_and_determine_support::<UnwrapKeyOperation>(cx, operation, algorithm, length)
-        },
-        "generateKey" => normalize_and_determine_support::<GenerateKeyOperation>(
+        "unwrapKey" => normalize_and_determine_support::<UnwrapKeyOperation, D>(
             cx, operation, algorithm, length,
         ),
-        "importKey" => {
-            normalize_and_determine_support::<ImportKeyOperation>(cx, operation, algorithm, length)
-        },
-        "exportKey" => {
-            normalize_and_determine_support::<ExportKeyOperation>(cx, operation, algorithm, length)
-        },
-        "get key length" => normalize_and_determine_support::<GetKeyLengthOperation>(
+        "generateKey" => normalize_and_determine_support::<GenerateKeyOperation, D>(
             cx, operation, algorithm, length,
         ),
-        "encapsulate" => normalize_and_determine_support::<EncapsulateOperation>(
+        "importKey" => normalize_and_determine_support::<ImportKeyOperation, D>(
             cx, operation, algorithm, length,
         ),
-        "decapsulate" => normalize_and_determine_support::<DecapsulateOperation>(
+        "exportKey" => normalize_and_determine_support::<ExportKeyOperation, D>(
+            cx, operation, algorithm, length,
+        ),
+        "get key length" => normalize_and_determine_support::<GetKeyLengthOperation, D>(
+            cx, operation, algorithm, length,
+        ),
+        "encapsulate" => normalize_and_determine_support::<EncapsulateOperation, D>(
+            cx, operation, algorithm, length,
+        ),
+        "decapsulate" => normalize_and_determine_support::<DecapsulateOperation, D>(
             cx, operation, algorithm, length,
         ),
         _ => false,
@@ -2553,7 +2570,7 @@ pub(crate) fn check_support_for_algorithm(
 
 /// Helper function for Step 4 - 6 of
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-check-support-for-algorithm>
-fn normalize_and_determine_support<T: Operation>(
+fn normalize_and_determine_support<T: Operation, D: Equivalence>(
     cx: &mut JSContext,
     op: &str,
     algorithm: &AlgorithmIdentifier,
@@ -2563,8 +2580,8 @@ fn normalize_and_determine_support<T: Operation>(
         normalized_algorithm.determine_support_from_operation_steps(length)
     } else {
         match op {
-            "wrapKey" => check_support_for_algorithm(cx, "encrypt", algorithm, length),
-            "unwrapKey" => check_support_for_algorithm(cx, "decrypt", algorithm, length),
+            "wrapKey" => check_support_for_algorithm::<D>(cx, "encrypt", algorithm, length),
+            "unwrapKey" => check_support_for_algorithm::<D>(cx, "decrypt", algorithm, length),
             _ => false,
         }
     }
@@ -3110,15 +3127,15 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for EcKeyImportParams {
 
 /// <https://w3c.github.io/webcrypto/#dfn-EcdhKeyDeriveParams>
 #[derive(Clone, MallocSizeOf)]
-struct EcdhKeyDeriveParams {
+struct EcdhKeyDeriveParams<D: DomTypes> {
     /// <https://w3c.github.io/webcrypto/#dom-algorithm-name>
     name: CryptoAlgorithm,
 
     /// <https://w3c.github.io/webcrypto/#dfn-EcdhKeyDeriveParams-public>
-    public: Trusted<CryptoKey>,
+    public: Trusted<CryptoKey<D>>,
 }
 
-impl<'a> TryFromWithCxAndName<HandleObject<'a>> for EcdhKeyDeriveParams {
+impl<'a, D: DomTypes> TryFromWithCxAndName<HandleObject<'a>> for EcdhKeyDeriveParams<D> {
     type Error = Error;
 
     fn try_from_with_cx_and_name(
@@ -3126,7 +3143,7 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for EcdhKeyDeriveParams {
         algorithm_name: CryptoAlgorithm,
         object: HandleObject<'a>,
     ) -> Result<Self, Self::Error> {
-        let public = get_required_parameter::<DomRoot<CryptoKey>>(cx, object, c"public", ())?;
+        let public = get_required_parameter::<DomRoot<CryptoKey<D>>>(cx, object, c"public", ())?;
 
         Ok(EcdhKeyDeriveParams {
             name: algorithm_name,
@@ -3969,15 +3986,15 @@ impl<'a> TryFromWithCxAndName<HandleObject<'a>> for Argon2Params {
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-EncapsulatedKey>
-struct EncapsulatedKey {
+struct EncapsulatedKey<D: DomTypes> {
     /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-EncapsulatedKey-sharedKey>
-    shared_key: Option<Trusted<CryptoKey>>,
+    shared_key: Option<Trusted<CryptoKey<D>>>,
 
     /// <https://wicg.github.io/webcrypto-modern-algos/#dfn-EncapsulatedKey-ciphertext>
     ciphertext: Option<Vec<u8>>,
 }
 
-impl ToJSValConvertible for EncapsulatedKey {
+impl<D: DomTypes> ToJSValConvertible for EncapsulatedKey<D> {
     #[expect(unsafe_code)]
     fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
         rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
@@ -4882,7 +4899,11 @@ impl NormalizedAlgorithm for EncryptAlgorithm {
 }
 
 impl EncryptAlgorithm {
-    fn encrypt(&self, key: &CryptoKey, plaintext: &[u8]) -> Result<Vec<u8>, Error> {
+    fn encrypt<D: Equivalence>(
+        &self,
+        key: &CryptoKey<D>,
+        plaintext: &[u8],
+    ) -> Result<Vec<u8>, Error> {
         match self {
             EncryptAlgorithm::RsaOaep(algorithm) => {
                 rsa_oaep_operation::encrypt(algorithm, key, plaintext)
@@ -5006,7 +5027,11 @@ impl NormalizedAlgorithm for DecryptAlgorithm {
 }
 
 impl DecryptAlgorithm {
-    fn decrypt(&self, key: &CryptoKey, ciphertext: &[u8]) -> Result<Vec<u8>, Error> {
+    fn decrypt<D: Equivalence>(
+        &self,
+        key: &CryptoKey<D>,
+        ciphertext: &[u8],
+    ) -> Result<Vec<u8>, Error> {
         match self {
             DecryptAlgorithm::RsaOaep(algorithm) => {
                 rsa_oaep_operation::decrypt(algorithm, key, ciphertext)
@@ -5122,7 +5147,7 @@ impl NormalizedAlgorithm for SignAlgorithm {
 }
 
 impl SignAlgorithm {
-    fn sign(&self, key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {
+    fn sign<D: Equivalence>(&self, key: &CryptoKey<D>, message: &[u8]) -> Result<Vec<u8>, Error> {
         match self {
             SignAlgorithm::RsassaPkcs1V1_5(_algorithm) => {
                 rsassa_pkcs1_v1_5_operation::sign(key, message)
@@ -5230,7 +5255,12 @@ impl NormalizedAlgorithm for VerifyAlgorithm {
 }
 
 impl VerifyAlgorithm {
-    fn verify(&self, key: &CryptoKey, message: &[u8], signature: &[u8]) -> Result<bool, Error> {
+    fn verify<D: Equivalence>(
+        &self,
+        key: &CryptoKey<D>,
+        message: &[u8],
+        signature: &[u8],
+    ) -> Result<bool, Error> {
         match self {
             VerifyAlgorithm::RsassaPkcs1V1_5(_algorithm) => {
                 rsassa_pkcs1_v1_5_operation::verify(key, message, signature)
@@ -5393,24 +5423,26 @@ impl From<&DigestAlgorithm> for SerializableDigestAlgorithm {
 }
 
 /// The value of the key "deriveBits" in the internal object supportedAlgorithms
-struct DeriveBitsOperation {}
+struct DeriveBitsOperation<D: Equivalence> {
+    phantom: PhantomData<D>,
+}
 
-impl Operation for DeriveBitsOperation {
-    type RegisteredAlgorithm = DeriveBitsAlgorithm;
+impl<D: Equivalence> Operation for DeriveBitsOperation<D> {
+    type RegisteredAlgorithm = DeriveBitsAlgorithm<D>;
 }
 
 /// Normalized algorithm for the "deriveBits" operation, used as output of
 /// <https://w3c.github.io/webcrypto/#dfn-normalize-an-algorithm>
-enum DeriveBitsAlgorithm {
-    Ecdh(EcdhKeyDeriveParams),
-    X25519(EcdhKeyDeriveParams),
-    X448(EcdhKeyDeriveParams),
+enum DeriveBitsAlgorithm<D: Equivalence> {
+    Ecdh(EcdhKeyDeriveParams<D>),
+    X25519(EcdhKeyDeriveParams<D>),
+    X448(EcdhKeyDeriveParams<D>),
     Hkdf(HkdfParams),
     Pbkdf2(Pbkdf2Params),
     Argon2(Argon2Params),
 }
 
-impl NormalizedAlgorithm for DeriveBitsAlgorithm {
+impl<D: Equivalence> NormalizedAlgorithm for DeriveBitsAlgorithm<D> {
     fn from_object(
         cx: &mut JSContext,
         algorithm_name: CryptoAlgorithm,
@@ -5500,8 +5532,8 @@ impl NormalizedAlgorithm for DeriveBitsAlgorithm {
     }
 }
 
-impl DeriveBitsAlgorithm {
-    fn derive_bits(&self, key: &CryptoKey, length: Option<u32>) -> Result<Vec<u8>, Error> {
+impl<D: Equivalence> DeriveBitsAlgorithm<D> {
+    fn derive_bits(&self, key: &CryptoKey<D>, length: Option<u32>) -> Result<Vec<u8>, Error> {
         match self {
             DeriveBitsAlgorithm::Ecdh(algorithm) => {
                 ecdh_operation::derive_bits(algorithm, key, length)
@@ -5569,7 +5601,11 @@ impl NormalizedAlgorithm for WrapKeyAlgorithm {
 }
 
 impl WrapKeyAlgorithm {
-    fn wrap_key(&self, key: &CryptoKey, plaintext: &[u8]) -> Result<Vec<u8>, Error> {
+    fn wrap_key<D: Equivalence>(
+        &self,
+        key: &CryptoKey<D>,
+        plaintext: &[u8],
+    ) -> Result<Vec<u8>, Error> {
         match self {
             WrapKeyAlgorithm::AesKw(_algorithm) => aes_kw_operation::wrap_key(key, plaintext),
         }
@@ -5620,7 +5656,11 @@ impl NormalizedAlgorithm for UnwrapKeyAlgorithm {
 }
 
 impl UnwrapKeyAlgorithm {
-    fn unwrap_key(&self, key: &CryptoKey, ciphertext: &[u8]) -> Result<Vec<u8>, Error> {
+    fn unwrap_key<D: Equivalence>(
+        &self,
+        key: &CryptoKey<D>,
+        ciphertext: &[u8],
+    ) -> Result<Vec<u8>, Error> {
         match self {
             UnwrapKeyAlgorithm::AesKw(_algorithm) => aes_kw_operation::unwrap_key(key, ciphertext),
         }
@@ -5796,13 +5836,13 @@ impl NormalizedAlgorithm for GenerateKeyAlgorithm {
 }
 
 impl GenerateKeyAlgorithm {
-    fn generate_key(
+    fn generate_key<D: Equivalence>(
         &self,
         cx: &mut JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         extractable: bool,
         usages: Vec<KeyUsage>,
-    ) -> Result<CryptoKeyOrCryptoKeyPair, Error> {
+    ) -> Result<CryptoKeyOrCryptoKeyPair<D>, Error> {
         match self {
             GenerateKeyAlgorithm::RsassaPkcs1V1_5(algorithm) => {
                 rsassa_pkcs1_v1_5_operation::generate_key(
@@ -6076,15 +6116,15 @@ impl NormalizedAlgorithm for ImportKeyAlgorithm {
 }
 
 impl ImportKeyAlgorithm {
-    fn import_key(
+    fn import_key<D: Equivalence>(
         &self,
         cx: &mut JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         format: KeyFormat,
         key_data: &[u8],
         extractable: bool,
         usages: Vec<KeyUsage>,
-    ) -> Result<DomRoot<CryptoKey>, Error> {
+    ) -> Result<DomRoot<CryptoKey<D>>, Error> {
         match self {
             ImportKeyAlgorithm::RsassaPkcs1V1_5(algorithm) => {
                 rsassa_pkcs1_v1_5_operation::import_key(
@@ -6431,7 +6471,11 @@ impl NormalizedAlgorithm for ExportKeyAlgorithm {
 }
 
 impl ExportKeyAlgorithm {
-    fn export_key(&self, format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
+    fn export_key<D: Equivalence>(
+        &self,
+        format: KeyFormat,
+        key: &CryptoKey<D>,
+    ) -> Result<ExportedKey, Error> {
         match self {
             ExportKeyAlgorithm::RsassaPkcs1V1_5(_algorithm) => {
                 rsassa_pkcs1_v1_5_operation::export_key(format, key)
@@ -6654,7 +6698,7 @@ impl NormalizedAlgorithm for EncapsulateAlgorithm {
 }
 
 impl EncapsulateAlgorithm {
-    fn encapsulate(&self, key: &CryptoKey) -> Result<EncapsulatedBits, Error> {
+    fn encapsulate<D: Equivalence>(&self, key: &CryptoKey<D>) -> Result<EncapsulatedBits, Error> {
         match self {
             EncapsulateAlgorithm::MlKem(algorithm) => ml_kem_operation::encapsulate(algorithm, key),
             EncapsulateAlgorithm::HybridKem(algorithm) => {
@@ -6715,7 +6759,11 @@ impl NormalizedAlgorithm for DecapsulateAlgorithm {
 }
 
 impl DecapsulateAlgorithm {
-    fn decapsulate(&self, key: &CryptoKey, ciphertext: &[u8]) -> Result<Vec<u8>, Error> {
+    fn decapsulate<D: Equivalence>(
+        &self,
+        key: &CryptoKey<D>,
+        ciphertext: &[u8],
+    ) -> Result<Vec<u8>, Error> {
         match self {
             DecapsulateAlgorithm::MlKem(algorithm) => {
                 ml_kem_operation::decapsulate(algorithm, key, ciphertext)
@@ -6879,14 +6927,14 @@ impl NormalizedAlgorithm for GetPublicKeyAlgorithm {
 }
 
 impl GetPublicKeyAlgorithm {
-    fn get_public_key(
+    fn get_public_key<D: Equivalence>(
         &self,
         cx: &mut JSContext,
-        global: &GlobalScope,
-        key: &CryptoKey,
+        global: &D::GlobalScope,
+        key: &CryptoKey<D>,
         algorithm: &KeyAlgorithmAndDerivatives,
         usages: Vec<KeyUsage>,
-    ) -> Result<DomRoot<CryptoKey>, Error> {
+    ) -> Result<DomRoot<CryptoKey<D>>, Error> {
         match self {
             GetPublicKeyAlgorithm::RsassaPkcs1v1_5(_algorithm) => {
                 rsassa_pkcs1_v1_5_operation::get_public_key(cx, global, key, algorithm, usages)

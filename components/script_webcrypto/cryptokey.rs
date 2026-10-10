@@ -33,9 +33,9 @@ use zeroize::Zeroizing;
 use crate::subtlecrypto::KeyAlgorithmAndDerivatives;
 use crate::traits::Equivalence;
 
-pub(crate) enum CryptoKeyOrCryptoKeyPair {
-    CryptoKey(DomRoot<CryptoKey>),
-    CryptoKeyPair(CryptoKeyPair),
+pub(crate) enum CryptoKeyOrCryptoKeyPair<D: DomTypes> {
+    CryptoKey(DomRoot<CryptoKey<D>>),
+    CryptoKeyPair(CryptoKeyPair<D>),
 }
 
 /// The underlying cryptographic data this key represents.
@@ -87,7 +87,7 @@ pub(crate) enum Handle {
 
 /// <https://w3c.github.io/webcrypto/#cryptokey-interface>
 #[dom_struct]
-pub(crate) struct CryptoKey {
+pub struct CryptoKey<D: DomTypes> {
     reflector_: Reflector,
 
     /// <https://w3c.github.io/webcrypto/#dfn-CryptoKey-slot-type>
@@ -119,16 +119,22 @@ pub(crate) struct CryptoKey {
     /// <https://w3c.github.io/webcrypto/#dfn-CryptoKey-slot-handle>
     #[no_trace]
     handle: Handle,
+
+    #[no_trace = "PhantomData does not exist"]
+    phantom: PhantomData<D>,
 }
 
-impl CryptoKey {
+impl<D> CryptoKey<D>
+where
+    D: Equivalence,
+{
     fn new_inherited(
         key_type: KeyType,
         extractable: bool,
         algorithm: KeyAlgorithmAndDerivatives,
         usages: Vec<KeyUsage>,
         handle: Handle,
-    ) -> CryptoKey {
+    ) -> CryptoKey<D> {
         CryptoKey {
             reflector_: Reflector::new(),
             key_type,
@@ -138,19 +144,20 @@ impl CryptoKey {
             usages,
             usages_cached: Heap::default(),
             handle,
+            phantom: PhantomData,
         }
     }
 
     pub(crate) fn new(
         cx: &mut js::context::JSContext,
-        global: &GlobalScope,
+        global: &D::GlobalScope,
         key_type: KeyType,
         extractable: bool,
         algorithm: KeyAlgorithmAndDerivatives,
         usages: Vec<KeyUsage>,
         handle: Handle,
-    ) -> DomRoot<CryptoKey> {
-        let crypto_key = reflect_dom_object(
+    ) -> DomRoot<CryptoKey<D>> {
+        let crypto_key = reflect_dom_object_with_wrap::<D, _, _>(
             cx,
             Box::new(CryptoKey::new_inherited(
                 key_type,
@@ -160,6 +167,7 @@ impl CryptoKey {
                 handle,
             )),
             global,
+            CryptoKeyWrap::<D>,
         );
 
         // Create and store a cached object of algorithm
@@ -206,7 +214,10 @@ impl CryptoKey {
     }
 }
 
-impl CryptoKeyMethods<crate::DomTypeHolder> for CryptoKey {
+impl<D> CryptoKeyMethods<D> for CryptoKey<D>
+where
+    D: DomTypes,
+{
     /// <https://w3c.github.io/webcrypto/#dom-cryptokey-type>
     fn Type(&self) -> KeyType {
         // Reflects the [[type]] internal slot, which contains the type of the underlying key.
@@ -234,7 +245,10 @@ impl CryptoKeyMethods<crate::DomTypeHolder> for CryptoKey {
     }
 }
 
-impl Serializable<crate::DomTypeHolder> for CryptoKey {
+impl<D> Serializable<D> for CryptoKey<D>
+where
+    D: Equivalence,
+{
     type Index = CryptoKeyIndex;
     type Data = SerializableCryptoKey;
 
@@ -264,7 +278,7 @@ impl Serializable<crate::DomTypeHolder> for CryptoKey {
     /// <https://w3c.github.io/webcrypto/#cryptokey-interface-serializable>
     fn deserialize(
         cx: &mut js::context::JSContext,
-        owner: &GlobalScope,
+        owner: &D::GlobalScope,
         serialized: Self::Data,
     ) -> Result<DomRoot<Self>, ()> {
         // Step 1. Initialize the [[type]] internal slot of value to serialized.[[Type]].

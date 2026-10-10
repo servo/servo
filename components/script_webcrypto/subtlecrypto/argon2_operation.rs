@@ -16,9 +16,9 @@ use crate::subtlecrypto::{
 use crate::traits::Equivalence;
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#argon2-operations-derive-bits>
-pub(crate) fn derive_bits(
+pub(crate) fn derive_bits<D: Equivalence>(
     normalized_algorithm: &Argon2Params,
-    key: &CryptoKey,
+    key: &CryptoKey<D>,
     length: Option<u32>,
 ) -> Result<Vec<u8>, Error> {
     // Step 1. If length is null, or is less than 32 (4*8), then throw an OperationError.
@@ -127,15 +127,15 @@ pub(crate) fn derive_bits(
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#argon2-operations-import-key>
-pub(crate) fn import_key(
+pub(crate) fn import_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     normalized_algorithm: &Algorithm,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     // Step 1. Let keyData be the key data to be imported.
 
     // Step 2. If format is not "raw-secret", throw a NotSupportedError

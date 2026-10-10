@@ -24,7 +24,7 @@ use crate::subtlecrypto::{
 use crate::traits::Equivalence;
 
 /// <https://w3c.github.io/webcrypto/#ed25519-operations-sign>
-pub(crate) fn sign(key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {
+pub(crate) fn sign<D: Equivalence>(key: &CryptoKey<D>, message: &[u8]) -> Result<Vec<u8>, Error> {
     // Step 1. If the [[type]] internal slot of key is not "private", then throw an
     // InvalidAccessError.
     key.ensure_type(KeyType::Private)?;
@@ -48,7 +48,11 @@ pub(crate) fn sign(key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {
 }
 
 /// <https://w3c.github.io/webcrypto/#ed25519-operations-verify>
-pub(crate) fn verify(key: &CryptoKey, message: &[u8], signature: &[u8]) -> Result<bool, Error> {
+pub(crate) fn verify<D: Equivalence>(
+    key: &CryptoKey<D>,
+    message: &[u8],
+    signature: &[u8],
+) -> Result<bool, Error> {
     // Step 1. If the [[type]] internal slot of key is not "public", then throw an
     // InvalidAccessError.
     key.ensure_type(KeyType::Public)?;
@@ -79,12 +83,12 @@ pub(crate) fn verify(key: &CryptoKey, message: &[u8], signature: &[u8]) -> Resul
 }
 
 /// <https://w3c.github.io/webcrypto/#ed25519-operations-generate-key>
-pub(crate) fn generate_key(
+pub(crate) fn generate_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<CryptoKeyPair, Error> {
+) -> Result<CryptoKeyPair<D>, Error> {
     // Step 1. If usages contains any entry which is not "sign" or "verify", then throw a
     // SyntaxError.
     usages.ensure_only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
@@ -145,14 +149,14 @@ pub(crate) fn generate_key(
 }
 
 /// <https://w3c.github.io/webcrypto/#ed25519-operations-import-key>
-pub(crate) fn import_key(
+pub(crate) fn import_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     // Step 1. Let keyData be the key data to be imported.
     // NOTE: It is given as a method parameter.
 
@@ -416,7 +420,10 @@ pub(crate) fn import_key(
 }
 
 /// <https://w3c.github.io/webcrypto/#ed25519-operations-export-key>
-pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
+pub(crate) fn export_key<D: Equivalence>(
+    format: KeyFormat,
+    key: &CryptoKey<D>,
+) -> Result<ExportedKey, Error> {
     // Step 1. Let key be the CryptoKey to be exported.
     // NOTE: It is given as a method parameter.
 
@@ -576,13 +583,13 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#SubtleCrypto-method-getPublicKey>
 /// Step 9 - 15, for Ed25519
-pub(crate) fn get_public_key(
+pub(crate) fn get_public_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
-    key: &CryptoKey,
+    global: &D::GlobalScope,
+    key: &CryptoKey<D>,
     algorithm: &KeyAlgorithmAndDerivatives,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     // Step 9. If usages contains an entry which is not supported for a public key by the algorithm
     // identified by algorithm, then throw a SyntaxError.
     //

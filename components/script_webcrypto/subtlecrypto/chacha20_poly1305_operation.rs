@@ -22,9 +22,9 @@ use crate::subtlecrypto::{
 use crate::traits::Equivalence;
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-operations-encrypt>
-pub(crate) fn encrypt(
+pub(crate) fn encrypt<D: Equivalence>(
     normalized_algorithm: &AeadParams,
-    key: &CryptoKey,
+    key: &CryptoKey<D>,
     plaintext: &[u8],
 ) -> Result<Vec<u8>, Error> {
     // Step 1. If the iv member of normalizedAlgorithm does not have a length of 12 bytes, then
@@ -83,9 +83,9 @@ pub(crate) fn encrypt(
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-operations-decrypt>
-pub(crate) fn decrypt(
+pub(crate) fn decrypt<D: Equivalence>(
     normalized_algorithm: &AeadParams,
-    key: &CryptoKey,
+    key: &CryptoKey<D>,
     ciphertext: &[u8],
 ) -> Result<Vec<u8>, Error> {
     // Step 1. If the iv member of normalizedAlgorithm does not have a length of 12 bytes, then
@@ -156,12 +156,12 @@ pub(crate) fn decrypt(
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-operations-generate-key>
-pub(crate) fn generate_key(
+pub(crate) fn generate_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     // Step 1. If usages contains any entry which is not one of "encrypt", "decrypt", "wrapKey" or
     // "unwrapKey", then throw a SyntaxError.
     usages.ensure_only_contain_entries_from(&[
@@ -201,14 +201,14 @@ pub(crate) fn generate_key(
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-operations-import-key>
-pub(crate) fn import_key(
+pub(crate) fn import_key<D: Equivalence>(
     cx: &mut JSContext,
-    global: &GlobalScope,
+    global: &D::GlobalScope,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
-) -> Result<DomRoot<CryptoKey>, Error> {
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
     // Step 1. Let keyData be the key data to be imported.
 
     // Step 2. If usages contains an entry which is not one of "encrypt", "decrypt", "wrapKey" or
@@ -325,7 +325,10 @@ pub(crate) fn import_key(
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-operations-export-key>
-pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedKey, Error> {
+pub(crate) fn export_key<D: Equivalence>(
+    format: KeyFormat,
+    key: &CryptoKey<D>,
+) -> Result<ExportedKey, Error> {
     // Step 1. If the underlying cryptographic key material represented by the [[handle]] internal
     // slot of key cannot be accessed, then throw an OperationError.
     let Handle::ChaCha20Poly1305Key(chacha20poly1305_key) = key.handle() else {
