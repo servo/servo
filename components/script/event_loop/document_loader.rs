@@ -6,10 +6,9 @@
 //!
 //! <https://html.spec.whatwg.org/multipage/#the-end>
 
-#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
-
 use std::collections::HashMap;
 
+use js::context::JSContext;
 use net_traits::ResourceThreads;
 use script_bindings::cell::DomRefCell;
 use script_bindings::script_runtime::{during_gc_collection, runtime_is_alive};
@@ -50,10 +49,7 @@ impl LoadBlocker {
     }
 
     /// Remove this load from the associated document's list of blocking loads.
-    pub(crate) fn terminate(
-        blocker: &DomRefCell<Option<LoadBlocker>>,
-        cx: &mut js::context::JSContext,
-    ) {
+    pub(crate) fn terminate(cx: &mut JSContext, blocker: &DomRefCell<Option<LoadBlocker>>) {
         let Some(load) = blocker
             .safe_borrow_mut(cx.no_gc())
             .as_mut()

@@ -226,7 +226,7 @@ impl HTMLScriptElement {
         }
 
         // Step 4. Set el's delaying the load event to false.
-        LoadBlocker::terminate(&self.delaying_the_load_event, cx);
+        LoadBlocker::terminate(cx, &self.delaying_the_load_event);
     }
 }
 

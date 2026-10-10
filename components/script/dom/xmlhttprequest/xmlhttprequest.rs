@@ -1671,7 +1671,7 @@ impl XMLHttpRequest {
 
         if let Some(script_port) = script_port {
             loop {
-                if !global.process_event(script_port.recv().unwrap(), cx) {
+                if !global.process_event(cx, script_port.recv().unwrap()) {
                     // We're exiting.
                     return Err(Error::Abort(None));
                 }

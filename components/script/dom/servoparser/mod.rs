@@ -1437,11 +1437,11 @@ impl ParserContext {
         );
 
         let Some(document) = script_thread.handle_page_headers_available(
+            cx,
             self.webview_id,
             self.pipeline_id,
             metadata.as_ref(),
             origin.clone(),
-            cx,
         ) else {
             return;
         };

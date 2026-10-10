@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
-
 use std::collections::{HashMap, HashSet};
 use std::ffi::CString;
 use std::ptr::NonNull;
@@ -651,10 +649,10 @@ impl Callback for WebDriverExecuteScriptRejectionHandler {
 }
 
 pub(crate) fn handle_execute_script(
+    cx: &mut JSContext,
     window: Option<DomRoot<Window>>,
     eval: String,
     reply_sender: GenericSender<WebDriverJSResult>,
-    cx: &mut JSContext,
 ) {
     let Some(window) = window else {
         reply_sender
@@ -1756,12 +1754,12 @@ pub(crate) fn handle_get_attribute(
 }
 
 pub(crate) fn handle_get_property(
+    cx: &mut JSContext,
     documents: &DocumentCollection,
     pipeline: PipelineId,
     node_id: String,
     name: String,
     reply: GenericSender<Result<JSValue, ErrorStatus>>,
-    cx: &mut JSContext,
 ) {
     reply
         .send(

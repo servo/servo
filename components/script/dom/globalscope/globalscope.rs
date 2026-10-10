@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
-
 use std::borrow::Cow;
 use std::cell::{Cell, OnceCell, Ref, RefCell};
 use std::collections::hash_map::Entry;
@@ -485,7 +483,7 @@ impl GlobalScope {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn get_serviceworker_registration(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         script_url: &ServoUrl,
         scope: &ServoUrl,
         registration_id: ServiceWorkerRegistrationId,
@@ -529,7 +527,7 @@ impl GlobalScope {
     /// <https://w3c.github.io/ServiceWorker/#get-the-service-worker-object>
     pub(crate) fn get_serviceworker(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         script_url: &ServoUrl,
         scope: &ServoUrl,
         worker_id: ServiceWorkerId,
@@ -560,7 +558,7 @@ impl GlobalScope {
     /// Complete the transfer of a message-port.
     pub(super) fn complete_port_transfer(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         port_id: MessagePortId,
         tasks: VecDeque<PortMessageTask>,
         disentangled: bool,
@@ -598,11 +596,7 @@ impl GlobalScope {
 
     /// The closing of `otherPort`, if it is in a different global.
     /// <https://html.spec.whatwg.org/multipage/#disentangle>
-    pub(super) fn try_complete_disentanglement(
-        &self,
-        cx: &mut js::context::JSContext,
-        port_id: MessagePortId,
-    ) {
+    pub(super) fn try_complete_disentanglement(&self, cx: &mut JSContext, port_id: MessagePortId) {
         let dom_port = if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
@@ -690,7 +684,7 @@ impl GlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#disentangle>
-    pub(crate) fn disentangle_port(&self, cx: &mut js::context::JSContext, port: &MessagePort) {
+    pub(crate) fn disentangle_port(&self, cx: &mut JSContext, port: &MessagePort) {
         let initiator_port = port.message_port_id();
         // Let otherPort be the MessagePort which initiatorPort was entangled with.
         let Some(other_port) = port.disentangle() else {
@@ -804,11 +798,7 @@ impl GlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-messageport-start>
-    pub(crate) fn start_message_port(
-        &self,
-        cx: &mut js::context::JSContext,
-        port_id: &MessagePortId,
-    ) {
+    pub(crate) fn start_message_port(&self, cx: &mut JSContext, port_id: &MessagePortId) {
         let (message_buffer, dom_port) = if let MessagePortState::Managed(_id, message_ports) =
             &mut *self.message_port_state.borrow_mut()
         {
@@ -1086,7 +1076,7 @@ impl GlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#message-port-post-message-steps>
     pub(super) fn route_task_to_port(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         port_id: MessagePortId,
         task: PortMessageTask,
     ) {
@@ -1833,7 +1823,7 @@ impl GlobalScope {
     /// <https://w3c.github.io/FileAPI/#blob-get-stream>
     pub(crate) fn get_blob_stream(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         blob_id: &BlobId,
     ) -> Fallible<DomRoot<ReadableStream>> {
         let (file_id, size) = match self.get_blob_bytes_or_file_id(blob_id) {
@@ -2412,7 +2402,7 @@ impl GlobalScope {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#report-an-exception>
-    pub(crate) fn report_an_exception(&self, cx: &mut js::context::JSContext, error: HandleValue) {
+    pub(crate) fn report_an_exception(&self, cx: &mut JSContext, error: HandleValue) {
         // Step 2. Let errorInfo be the result of extracting error information from exception.
         let error_info = ErrorInfo::from_value(cx, error);
 
@@ -2434,7 +2424,7 @@ impl GlobalScope {
     /// Steps 6-7 of <https://html.spec.whatwg.org/multipage/#report-an-exception>
     pub(crate) fn report_an_error(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         error_info: ErrorInfo,
         value: HandleValue,
     ) {
@@ -2641,7 +2631,7 @@ impl GlobalScope {
     /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
     pub(crate) fn set_timeout_or_interval(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         callback: TimerCallback,
         arguments: Vec<HandleValue>,
         timeout: Duration,
@@ -2664,8 +2654,8 @@ impl GlobalScope {
         self.with_timers(|timers| timers.clear_timeout_or_interval(self, handle));
     }
 
-    pub(crate) fn fire_timer(&self, handle: TimerEventId, cx: &mut js::context::JSContext) {
-        self.with_timers(|timers| timers.fire_timer(handle, cx));
+    pub(crate) fn fire_timer(&self, cx: &mut JSContext, handle: TimerEventId) {
+        self.with_timers(|timers| timers.fire_timer(cx, handle));
     }
 
     pub(crate) fn resume(&self) {
@@ -2709,10 +2699,7 @@ impl GlobalScope {
     }
 
     /// Potentially instantiate and return this [`GlobalScope`]'s [`IDBFactory`].
-    pub(crate) fn ensure_indexeddb_factory(
-        &self,
-        cx: &mut js::context::JSContext,
-    ) -> DomRoot<IDBFactory> {
+    pub(crate) fn ensure_indexeddb_factory(&self, cx: &mut JSContext) -> DomRoot<IDBFactory> {
         self.indexeddb.or_init(|| IDBFactory::new(cx, self))
     }
 
@@ -2722,7 +2709,7 @@ impl GlobalScope {
     }
 
     /// Perform a microtask checkpoint.
-    pub(crate) fn perform_a_microtask_checkpoint(&self, cx: &mut js::context::JSContext) {
+    pub(crate) fn perform_a_microtask_checkpoint(&self, cx: &mut JSContext) {
         if let Some(window) = self.downcast::<Window>() {
             window.perform_a_microtask_checkpoint(cx);
         } else if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
@@ -2761,13 +2748,9 @@ impl GlobalScope {
     /// Process a single event as if it were the next event
     /// in the queue for the event-loop where this global scope is running on.
     /// Returns a boolean indicating whether further events should be processed.
-    pub(crate) fn process_event(
-        &self,
-        msg: CommonScriptMsg,
-        cx: &mut js::context::JSContext,
-    ) -> bool {
+    pub(crate) fn process_event(&self, cx: &mut JSContext, msg: CommonScriptMsg) -> bool {
         if self.is::<Window>() {
-            return ScriptThread::process_event(msg, cx);
+            return ScriptThread::process_event(cx, msg);
         }
         if let Some(worker) = self.downcast::<WorkerGlobalScope>() {
             return worker.process_event(msg, cx);
@@ -2828,7 +2811,7 @@ impl GlobalScope {
     /// <https://w3c.github.io/performance-timeline/#supportedentrytypes-attribute>
     pub(crate) fn supported_performance_entry_types(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         retval: MutableHandleValue,
     ) {
         self.frozen_supported_performance_entry_types.get_or_init(
@@ -2993,7 +2976,7 @@ impl GlobalScope {
 
     pub(crate) fn structured_clone(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         value: HandleValue,
         options: &StructuredSerializeOptions,
         retval: MutableHandleValue,
@@ -3141,7 +3124,7 @@ impl GlobalScope {
         completion_steps: F,
     ) -> i32
     where
-        F: 'static + FnOnce(&mut js::context::JSContext, &GlobalScope),
+        F: 'static + FnOnce(&mut JSContext, &GlobalScope),
     {
         let ms = milliseconds.max(0) as u64;
         let delay = std::time::Duration::from_millis(ms);
@@ -3181,7 +3164,7 @@ impl GlobalScope {
 /// Returns the Rust global scope from a JS global object.
 #[expect(unsafe_code)]
 unsafe fn global_scope_from_global(
-    cx: &mut js::context::JSContext,
+    cx: &mut JSContext,
     global: *mut JSObject,
 ) -> DomRoot<GlobalScope> {
     unsafe {
@@ -3233,7 +3216,7 @@ impl GlobalScopeHelpers<crate::DomTypeHolder> for GlobalScope {
         GlobalScope::incumbent()
     }
 
-    fn perform_a_microtask_checkpoint(&self, cx: &mut js::context::JSContext) {
+    fn perform_a_microtask_checkpoint(&self, cx: &mut JSContext) {
         GlobalScope::perform_a_microtask_checkpoint(self, cx)
     }
 

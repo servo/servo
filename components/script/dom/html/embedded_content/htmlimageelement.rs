@@ -413,7 +413,7 @@ impl HTMLImageElement {
 
         self.pending_request.borrow_mut().take();
 
-        LoadBlocker::terminate(&self.current_request.borrow().blocker, cx);
+        LoadBlocker::terminate(cx, &self.current_request.borrow().blocker);
         // Mark the node dirty
         self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
         self.resolve_image_decode_promises(cx);
@@ -560,7 +560,7 @@ impl HTMLImageElement {
     fn abort_request(&self, cx: &mut JSContext, state: State, request: ImageRequestPhase) {
         match request {
             ImageRequestPhase::Current => {
-                LoadBlocker::terminate(&self.current_request.borrow().blocker, cx);
+                LoadBlocker::terminate(cx, &self.current_request.borrow().blocker);
 
                 let mut request = self.current_request.safe_borrow_mut(cx);
                 request.state = state;
@@ -570,7 +570,7 @@ impl HTMLImageElement {
             },
             ImageRequestPhase::Pending => {
                 if let Some(pending_request) = &*self.pending_request.borrow() {
-                    LoadBlocker::terminate(&pending_request.blocker, cx);
+                    LoadBlocker::terminate(cx, &pending_request.blocker);
                 }
                 self.pending_request.borrow_mut().take();
             },
@@ -598,7 +598,7 @@ impl HTMLImageElement {
             request.metadata = None;
         }
         let document = self.owner_document();
-        LoadBlocker::terminate(&request.borrow().blocker, cx);
+        LoadBlocker::terminate(cx, &request.borrow().blocker);
         *request.borrow_mut().blocker.borrow_mut() =
             Some(LoadBlocker::new(&document, LoadType::Image(url.clone())));
     }
@@ -620,12 +620,12 @@ impl HTMLImageElement {
         }
         let document = self.owner_document();
         LoadBlocker::terminate(
+            cx,
             &request
                 .borrow()
                 .as_ref()
                 .expect("Just created a request")
                 .blocker,
-            cx,
         );
         *request
             .safe_borrow_mut(cx)
