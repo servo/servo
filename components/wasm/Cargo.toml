@@ -1,0 +1,13 @@
+[package]
+name = "servo-wasm"
+version = "0.1.0"
+authors = ["The Servo Project Developers"]
+license = "MPL-2.0"
+edition = "2024"
+publish = false
+
+[dependencies]
+wasmtime = { workspace = true, features = ["component-model"] }
+
+[lints]
+workspace = true

@@ -166,6 +166,8 @@ fn get_compiled_handler(
 enum EventListenerType {
     Additive(TracedCallback<EventListener>),
     Inline(RefCell<InlineEventListener>),
+
+    Wasm(DOMString, Dom<GlobalScope>),
 }
 
 impl js::gc::Rootable for EventListenerType {}
@@ -184,6 +186,9 @@ impl EventListenerType {
             EventListenerType::Additive(ref listener) => {
                 Some(CompiledEventListener::Listener(listener.clone()))
             },
+            EventListenerType::Wasm(ref handler_id, ref global) => Some(
+                CompiledEventListener::Wasm(handler_id.clone(), Dom::from_ref(&**global)),
+            ),
         }
     }
 
@@ -199,6 +204,8 @@ impl EventListenerType {
 pub(crate) enum CompiledEventListener {
     Listener(TracedCallback<EventListener>),
     Handler(CommonEventHandler),
+
+    Wasm(DOMString, Dom<GlobalScope>),
 }
 
 impl js::gc::Rootable for CompiledEventListener {}
@@ -206,6 +213,10 @@ impl js::gc::Rootable for CompiledEventListener {}
 impl CompiledEventListener {
     #[expect(unsafe_code)]
     pub(crate) fn associated_global(&self) -> DomRoot<GlobalScope> {
+        if let CompiledEventListener::Wasm(_, global) = self {
+            return DomRoot::from_ref(&**global);
+        }
+
         let obj = match self {
             CompiledEventListener::Listener(listener) => listener.callback(),
             CompiledEventListener::Handler(CommonEventHandler::EventHandler(handler)) => {
@@ -217,6 +228,7 @@ impl CompiledEventListener {
             CompiledEventListener::Handler(CommonEventHandler::BeforeUnloadEventHandler(
                 handler,
             )) => handler.callback(),
+            CompiledEventListener::Wasm(..) => unreachable!(),
         };
         unsafe { GlobalScope::from_object(obj) }
     }
@@ -231,6 +243,25 @@ impl CompiledEventListener {
     ) -> Fallible<()> {
         // Step 3
         match *self {
+            CompiledEventListener::Wasm(ref handler_id, _) => {
+                let event_type = event.type_();
+                println!(
+                    "[Servo EventTarget]: Firing native Wasm handler '{}' for event '{}'",
+                    handler_id, event_type
+                );
+                // 1. Enter the target global realm using the cx passed into call_or_handle_event
+                let mut realm = enter_auto_realm(cx, &*self.associated_global());
+                let cx = &mut realm.current_realm();
+
+                // 2. Dispatch event to Wasm host with active JSContext
+                crate::wasm_host::dispatch_wasm_event(
+                    cx,
+                    0,
+                    &handler_id.to_string(),
+                    &event_type.to_string(),
+                );
+                Ok(())
+            },
             CompiledEventListener::Listener(ref listener) => {
                 listener.HandleEvent_(cx, object, event, exception_handle)
             },
@@ -447,6 +478,26 @@ impl EventTarget {
             reflector_: Reflector::new(),
             handlers: DomRefCell::new(None),
         }
+    }
+
+    /// Register a native WebAssembly event listener directly on this EventTarget!
+    pub(crate) fn add_wasm_event_listener(&self, ty: DOMString, handler_id: DOMString) {
+        let ty_atom = Atom::from(ty);
+        let mut handlers = self.ensure_handlers();
+        let entries = match handlers.entry(ty_atom.clone()) {
+            Occupied(entry) => entry.into_mut(),
+            Vacant(entry) => entry.insert(EventListeners(vec![])),
+        };
+
+        let global = self.global();
+        entries.push(Rc::new(RefCell::new(EventListenerEntry {
+            phase: ListenerPhase::Bubbling,
+            listener: EventListenerType::Wasm(handler_id, Dom::from_ref(&*global)),
+            once: false,
+            passive: false,
+            removed: false,
+        })));
+        self.notify_listener_added(&ty_atom);
     }
 
     /// Mutably borrow the listener map, allocating it if this target has none yet.

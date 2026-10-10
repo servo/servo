@@ -190,6 +190,7 @@ servo-geometry = { workspace = true }
 servo-media = { workspace = true }
 servo-tracing = { workspace = true }
 servo-url = { workspace = true }
+servo-wasm = { workspace = true }
 servo-webvtt = { workspace = true }
 servo_arc = { workspace = true }
 sha1 = { workspace = true, optional = true }
@@ -215,6 +216,7 @@ unicode-script = { workspace = true }
 url = { workspace = true }
 urlpattern = { workspace = true }
 uuid = { workspace = true, features = ["serde"] }
+wasmtime = { workspace = true, features = ["component-model"] }
 web_atoms = { workspace = true }
 webdriver = { workspace = true }
 webgpu_traits = { workspace = true, optional = true }
