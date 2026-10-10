@@ -62,6 +62,7 @@ use js::rust::wrappers2::{JS_AddInterruptCallback, JS_GC, SetWindowProxyClass};
 use layout_api::{LayoutConfig, LayoutFactory, RestyleReason, ScriptThreadFactory};
 use media::WindowGLContext;
 use metrics::MAX_TASK_NS;
+use net_traits::fetch::fetch_controller::FetchController;
 use net_traits::image_cache::{ImageCacheFactory, ImageCacheResponseMessage};
 use net_traits::pub_domains::is_same_site;
 use net_traits::request::{Referrer, RequestId};
@@ -150,7 +151,6 @@ use crate::event_loop::script_mutation_observers::ScriptMutationObservers;
 use crate::event_loop::script_window_proxies::ScriptWindowProxies;
 use crate::event_loop::svg_font::SvgFontResolver;
 use crate::event_loop::webdriver_handlers::{self, jsval_to_webdriver};
-use crate::fetch::fetch::FetchCanceller;
 use crate::fetch::network_listener::submit_timing;
 use crate::messaging::{
     CommonScriptMsg, MainThreadScriptMsg, MixedMessage, ScriptEventLoopSender,
@@ -3635,7 +3635,6 @@ impl ScriptThread {
             loader,
             referrer,
             Some(metadata.status.raw_code()),
-            incomplete.canceller,
             incomplete.load_data.is_initial_about_blank,
             true,
             incomplete.load_data.inherited_insecure_requests_policy,
@@ -4113,7 +4112,7 @@ impl ScriptThread {
             .push((incomplete.pipeline_id, context));
 
         let request_builder = incomplete.request_builder();
-        incomplete.canceller = FetchCanceller::new(
+        incomplete.controller = FetchController::new(
             request_builder.id,
             false,
             self.resource_threads.core_thread.clone(),
@@ -4301,7 +4300,7 @@ impl ScriptThread {
                 .unwrap_or(200),
         });
 
-        incomplete_load.canceller = FetchCanceller::new(
+        incomplete_load.controller = FetchController::new(
             request_builder.id,
             false,
             self.resource_threads.core_thread.clone(),

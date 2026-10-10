@@ -49,6 +49,7 @@ use crate::request::{Request, RequestBuilder};
 use crate::response::{Response, ResponseInit};
 
 pub mod blob_url_store;
+pub mod fetch;
 pub mod filemanager_thread;
 pub mod http_status;
 pub mod image_cache;
@@ -67,11 +68,6 @@ pub use resource_fetch_timing::{
 /// <https://fetch.spec.whatwg.org/#document-accept-header-value>
 pub const DOCUMENT_ACCEPT_HEADER_VALUE: HeaderValue =
     HeaderValue::from_static("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
-
-/// An implementation of the [Fetch specification](https://fetch.spec.whatwg.org/)
-pub mod fetch {
-    pub mod headers;
-}
 
 /// A loading context, for context-specific sniffing, as defined in
 /// <https://mimesniff.spec.whatwg.org/#context-specific-sniffing>
