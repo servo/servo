@@ -888,15 +888,6 @@ impl WebGL2RenderingContext {
         height: i32,
         depth: i32,
     ) {
-        let expected_dimensions = match target {
-            constants::TEXTURE_2D | constants::TEXTURE_CUBE_MAP => 2,
-            constants::TEXTURE_3D | constants::TEXTURE_2D_ARRAY => 3,
-            _ => return self.base.webgl_error(InvalidEnum),
-        };
-        if dimensions != expected_dimensions {
-            return self.base.webgl_error(InvalidEnum);
-        }
-
         let validator = TexStorageValidator::new(
             &self.base,
             dimensions,
