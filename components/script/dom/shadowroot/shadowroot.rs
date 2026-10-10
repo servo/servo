@@ -9,7 +9,6 @@ use std::collections::hash_map::Entry;
 use dom_struct::dom_struct;
 use html5ever::serialize::TraversalScope;
 use js::context::{JSContext, NoGC};
-use js::rust::{HandleValue, MutableHandleValue};
 use script_bindings::cell::{DomRefCell, RefMut};
 use script_bindings::dom::UnrootedDom;
 use script_bindings::error::{ErrorResult, Fallible};
@@ -36,7 +35,6 @@ use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
 use crate::dom::bindings::codegen::UnionTypes::{
     TrustedHTMLOrNullIsEmptyString, TrustedHTMLOrString,
 };
-use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
@@ -108,13 +106,9 @@ pub(crate) struct ShadowRoot {
     /// <https://dom.spec.whatwg.org/#shadowroot-delegates-focus>
     delegates_focus: Cell<bool>,
 
-    /// The constructed stylesheet that is adopted by this [ShadowRoot].
+    /// The DOM-side adopted stylesheet list for this [ShadowRoot], including duplicates.
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
     adopted_stylesheets: DomRefCell<Vec<Dom<CSSStyleSheet>>>,
-
-    /// Cached frozen array of [`Self::adopted_stylesheets`]
-    #[ignore_malloc_size_of = "mozjs"]
-    adopted_stylesheets_frozen_types: CachedFrozenArray,
 
     details_name_groups: DomRefCell<Option<DetailsNameGroups>>,
 }
@@ -154,7 +148,6 @@ impl ShadowRoot {
             serializable: Cell::new(false),
             delegates_focus: Cell::new(false),
             adopted_stylesheets: Default::default(),
-            adopted_stylesheets_frozen_types: CachedFrozenArray::new(),
             details_name_groups: Default::default(),
         }
     }
@@ -584,40 +577,32 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
     event_handler!(slotchange, GetOnslotchange, SetOnslotchange);
 
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
-    fn AdoptedStyleSheets(&self, cx: &mut JSContext, retval: MutableHandleValue) {
-        self.adopted_stylesheets_frozen_types.get_or_init(
-            cx,
-            || {
-                self.adopted_stylesheets
-                    .borrow()
-                    .clone()
-                    .iter()
-                    .map(|sheet| sheet.as_rooted())
-                    .collect()
-            },
-            retval,
-        );
+    fn OnSetAdoptedStyleSheets(
+        &self,
+        cx: &mut JSContext,
+        value: DomRoot<CSSStyleSheet>,
+        index: u32,
+    ) -> ErrorResult {
+        DocumentOrShadowRoot::on_set_adopted_stylesheets(
+            self.adopted_stylesheets.safe_borrow_mut(cx).as_mut(),
+            &value,
+            index,
+            &StyleSheetListOwner::ShadowRoot(Dom::from_ref(self)),
+        )
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
-    fn SetAdoptedStyleSheets(&self, cx: &mut JSContext, val: HandleValue) -> ErrorResult {
-        let result = DocumentOrShadowRoot::set_adopted_stylesheet_from_jsval(
-            cx,
-            &self.adopted_stylesheets,
-            val,
+    fn OnDeleteAdoptedStyleSheets(
+        &self,
+        cx: &mut JSContext,
+        _value: DomRoot<CSSStyleSheet>,
+        index: u32,
+    ) -> ErrorResult {
+        DocumentOrShadowRoot::on_delete_adopted_stylesheets(
+            self.adopted_stylesheets.safe_borrow_mut(cx).as_mut(),
+            index,
             &StyleSheetListOwner::ShadowRoot(Dom::from_ref(self)),
-        );
-
-        if result.is_ok() {
-            if self.author_styles.borrow().stylesheets.dirty() {
-                self.invalidate_stylesheets(cx.no_gc());
-            }
-
-            // Clear the FrozenArray cache.
-            self.adopted_stylesheets_frozen_types.clear();
-        }
-
-        result
+        )
     }
 
     /// <https://fullscreen.spec.whatwg.org/#dom-document-fullscreenelement>
