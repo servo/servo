@@ -960,6 +960,12 @@ pub(crate) fn editing_action_from_keyboard_event(
         .shortcut(ALT_OR_CONTROL, Key::Named(NamedKey::Backspace), || {
             Some(EditingAction::Backspace(EditingMotion::Word))
         })
+        .optional_shortcut(
+            cfg!(target_os = "macos"),
+            Modifiers::META,
+            Key::Named(NamedKey::Backspace),
+            || Some(EditingAction::Backspace(EditingMotion::Line)),
+        )
         .otherwise(|| match &event.key {
             Key::Character(character) if modifiers.is_empty() => {
                 Some(EditingAction::InsertText(character.to_string()))
