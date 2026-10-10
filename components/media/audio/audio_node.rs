@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::any::Any;
 use std::cmp::min;
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, OnceLock};
@@ -184,7 +185,7 @@ pub(crate) trait AudioNodeEngine: Send + AudioNodeCommon {
             AudioNodeMessage::SetParam(id, event) => self
                 .get_param(id)
                 .insert_event(event.convert_to_event(sample_rate)),
-            AudioNodeMessage::SetParamRange(id, range) => self.get_param(id).update_range(range),
+            AudioNodeMessage::SetParamRange(id, range) => self.get_param(id).set_range(range),
             AudioNodeMessage::SetParamRate(id, rate) => self.get_param(id).set_rate(rate),
             _ => self.message_specific(msg, sample_rate),
         }
@@ -235,6 +236,8 @@ pub(crate) trait AudioNodeEngine: Send + AudioNodeCommon {
     fn set_listenerdata(&mut self, _: Block) {
         panic!("can't accept listener connections")
     }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any>;
 }
 
 #[derive(MallocSizeOf)]
