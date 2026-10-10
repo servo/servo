@@ -36,19 +36,24 @@ fn assert_parse(
 
     match data {
         Some(data) => {
+            use net_traits::Metadata;
+
             assert!(!response.is_network_error());
             assert_eq!(response.headers.len(), 1);
 
             let header_content_type = response.headers.typed_get::<ContentType>();
             assert_eq!(header_content_type, content_type);
 
-            let metadata = match response.metadata() {
+            match response.metadata() {
                 Ok(FetchMetadata::Filtered {
                     filtered: FilteredMetadata::Basic(m),
                     ..
                 }) => m,
                 result => panic!("{:?}", result),
             };
+            let metadata = response.metadata().unwrap();
+            let metadata: &Metadata = metadata.metadata().into();
+            let metadata = metadata.clone();
             assert_eq!(metadata.content_type.map(Serde::into_inner), content_type);
             assert_eq!(metadata.charset.as_ref().map(String::deref), charset);
 

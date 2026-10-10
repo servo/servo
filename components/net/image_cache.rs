@@ -1245,12 +1245,7 @@ impl ImageCache for ImageCacheImpl {
                 if let Some(pending_load) = store.pending_loads.get_by_key_mut(&id) {
                     let (cors_status, metadata): (_, Option<Metadata>) = match response {
                         Ok(fetch_metadata) => {
-                            let cors_status = if fetch_metadata.is_cors_cross_origin() {
-                                CorsStatus::Unsafe
-                            } else {
-                                CorsStatus::Safe
-                            };
-                            (cors_status, Some(fetch_metadata.into()))
+                            (fetch_metadata.cors_status(), Some(fetch_metadata.into()))
                         },
                         Err(_) => (CorsStatus::Unsafe, None),
                     };

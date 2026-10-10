@@ -27,6 +27,17 @@ use webrender_api::{
 
 use crate::decoding::ServoImageDecoder;
 
+/// Whether this response passed any CORS checks, and is thus safe to read from
+/// in cross-origin environments.
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub enum CorsStatus {
+    /// The response is either same-origin or cross-origin but passed CORS checks.
+    Safe,
+    /// The response is cross-origin and did not pass CORS checks. It is unsafe
+    /// to expose pixel data to the requesting environment.
+    Unsafe,
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
 pub enum FilterQuality {
     /// No image interpolation (Nearest-neighbor)
@@ -264,17 +275,6 @@ impl EncodedImageType {
             Self::Webp => "image/webp",
         }
     }
-}
-
-/// Whether this response passed any CORS checks, and is thus safe to read from
-/// in cross-origin environments.
-#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
-pub enum CorsStatus {
-    /// The response is either same-origin or cross-origin but passed CORS checks.
-    Safe,
-    /// The response is cross-origin and did not pass CORS checks. It is unsafe
-    /// to expose pixel data to the requesting environment.
-    Unsafe,
 }
 
 #[derive(Clone, MallocSizeOf, PartialEq)]

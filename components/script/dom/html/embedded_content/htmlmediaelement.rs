@@ -25,7 +25,7 @@ use media::{GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
 use net_traits::request::{Destination, RequestId};
 use net_traits::{CoreResourceThread, FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
 use paint_api::{CrossProcessPaintApi, ImageUpdate, SerializableImageData};
-use pixels::RasterImage;
+use pixels::{CorsStatus, RasterImage};
 use script_bindings::assert::assert_in_script;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::InheritTypes::{
@@ -4321,12 +4321,12 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
     ) {
         let element = self.element.root();
 
-        let (metadata, origin_clean) = match metadata {
+        let (metadata, cors_status) = match metadata {
             Ok(fetch_metadata) => {
-                let is_cross_origin = fetch_metadata.is_cors_cross_origin();
-                (Some(fetch_metadata.into()), !is_cross_origin)
+                let cors_status = fetch_metadata.cors_status();
+                (Some(fetch_metadata.into()), cors_status)
             },
-            Err(_) => (None, true),
+            Err(_) => (None, CorsStatus::Safe),
         };
 
         let (status_is_success, is_seekable) =
@@ -4351,7 +4351,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
 
         if let Some(ref mut current_fetch_context) = *element.current_fetch_context.borrow_mut() {
             current_fetch_context.set_seekable(is_seekable);
-            current_fetch_context.set_origin_clean(origin_clean);
+            current_fetch_context.set_origin_clean(cors_status == CorsStatus::Safe);
         }
 
         if let Some(metadata) = metadata.as_ref() &&
