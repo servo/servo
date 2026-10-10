@@ -270,7 +270,6 @@ impl ServoParser {
             loader,
             None,
             None,
-            Default::default(),
             false,
             allow_declarative_shadow_roots,
             Some(context_document.insecure_requests_policy()),
