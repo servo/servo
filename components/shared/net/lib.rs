@@ -668,6 +668,41 @@ impl ResourceThreads {
         let _ = receiver.recv();
     }
 
+    /// Delete all cookies matching the given cookie's name, domain and path,
+    /// blocking until the deletion is done.
+    pub fn delete_cookie_sync(&self, cookie: Cookie<'static>) {
+        // NOTE: See the deadlock comment in `clear_cache`.
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self.core_thread.send(CoreResourceMsg::DeleteCookieByAttrs(
+            Serde(cookie),
+            Some(sender),
+        ));
+        let _ = receiver.recv();
+    }
+
+    pub fn delete_cookies_for_url_sync(&self, url: ServoUrl) {
+        // NOTE: See the deadlock comment in `clear_cache`.
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::DeleteCookies(Some(url), Some(sender)));
+        let _ = receiver.recv();
+    }
+
+    pub fn all_cookies_sync(&self) -> Vec<Cookie<'static>> {
+        // NOTE: See the deadlock comment in `clear_cache`.
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::GetAllCookies(sender));
+        receiver
+            .recv()
+            .unwrap()
+            .into_iter()
+            .map(|cookie| cookie.into_inner())
+            .collect()
+    }
+
     pub fn cookies_for_url_async(
         &self,
         id: CookieOperationId,
@@ -706,6 +741,24 @@ impl ResourceThreads {
         let _ = self
             .core_thread
             .send(CoreResourceMsg::EmbedderClearSessionCookies(id));
+    }
+
+    pub fn delete_cookie_async(&self, id: CookieOperationId, cookie: Cookie<'static>) {
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::EmbedderDeleteCookie(id, Serde(cookie)));
+    }
+
+    pub fn delete_cookies_for_url_async(&self, id: CookieOperationId, url: ServoUrl) {
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::EmbedderDeleteCookiesForUrl(id, url));
+    }
+
+    pub fn all_cookies_async(&self, id: CookieOperationId) {
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::EmbedderGetAllCookies(id));
     }
 }
 
@@ -812,10 +865,28 @@ pub enum CoreResourceMsg {
     EmbedderClearCookies(CookieOperationId),
     /// Clear session cookies on behalf of the embedder. The response is sent via NetToEmbedderMsg.
     EmbedderClearSessionCookies(CookieOperationId),
+    /// Delete cookies matching the given cookie's name, domain and path, on behalf of the
+    /// embedder. The response is sent via NetToEmbedderMsg.
+    EmbedderDeleteCookie(CookieOperationId, Serde<Cookie<'static>>),
+    /// Delete all cookies stored for the domain of the given URL, on behalf of the embedder.
+    /// The response is sent via NetToEmbedderMsg.
+    EmbedderDeleteCookiesForUrl(CookieOperationId, ServoUrl),
+    /// Retrieve every cookie in the jar, on behalf of the embedder. The response is
+    /// sent via NetToEmbedderMsg.
+    EmbedderGetAllCookies(CookieOperationId),
+    /// Delete all cookies whose name, domain and path match the given cookie.
+    /// When a sender is provided, the caller blocks until the deletion is done;
+    /// the resource thread must reply without sending messages back to the
+    /// originating thread (see the deadlock comment in `ResourceThreads::clear_cache`).
+    DeleteCookieByAttrs(Serde<Cookie<'static>>, Option<GenericSender<()>>),
+    /// Retrieve every cookie in the jar via the provided sender. The caller may
+    /// block on the reply, so the resource thread must not send messages back to
+    /// the originating thread while handling this message.
+    GetAllCookies(GenericSender<Vec<Serde<Cookie<'static>>>>),
     GetCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
     GetAllCookieDataForUrlAsync(CookieStoreId, ServoUrl, Option<String>),
     DeleteCookiesForSites(Vec<String>, GenericSender<()>),
-    /// This currently is used by unit tests and WebDriver only.
+    /// Used by the embedder cookie APIs, unit tests and WebDriver.
     /// When url is `None`, this clears cookies across all origins.
     DeleteCookies(Option<ServoUrl>, Option<GenericSender<()>>),
     /// Delete all session cookies (cookies without an expiry or max-age).
