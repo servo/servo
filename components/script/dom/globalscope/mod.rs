@@ -11,4 +11,3 @@ mod listeners;
 pub(crate) mod messagechannel;
 pub(crate) mod messageport;
 pub(crate) mod origin;
-pub(crate) mod script_execution;

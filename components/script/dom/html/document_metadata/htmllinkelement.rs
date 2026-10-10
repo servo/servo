@@ -68,7 +68,8 @@ use crate::dom::types::{EventTarget, GlobalScope};
 use crate::fetch::network_listener::{
     FetchResponseListener, ResourceTimingListener, submit_timing,
 };
-use crate::modules::script_module::{ScriptFetchOptions, fetch_a_modulepreload_module};
+use crate::scripting::fetching_options::ScriptFetchOptions;
+use crate::scripting::script_module::fetch_a_modulepreload_module;
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
