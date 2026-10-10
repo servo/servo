@@ -8576,6 +8576,7 @@ dependencies = [
  "log",
  "malloc_size_of_derive",
  "memmap2",
+ "ndk",
  "num-traits",
  "objc2 0.6.5",
  "objc2-core-foundation",
@@ -8609,7 +8610,6 @@ dependencies = [
  "uuid",
  "webrender_api",
  "winapi",
- "xml",
  "yeslogic-fontconfig-sys",
 ]
 
