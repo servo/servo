@@ -54,6 +54,8 @@ pub(crate) struct TaskQueue<T> {
     throttled: DomRefCell<FxHashMap<TaskSourceName, VecDeque<QueuedTask>>>,
     /// Tasks for not fully-active documents.
     inactive: DomRefCell<FxHashMap<PipelineId, VecDeque<QueuedTask>>>,
+    /// List of pipelines that have been owned and closed by the parent script thread.
+    closed_pipelines: DomRefCell<FxHashSet<PipelineId>>,
 }
 
 impl<T: QueuedTaskConversion> TaskQueue<T> {
@@ -65,6 +67,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
             taken_task_counter: Default::default(),
             throttled: Default::default(),
             inactive: Default::default(),
+            closed_pipelines: Default::default(),
         }
     }
 
@@ -73,6 +76,11 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
     /// the next time the queue is processed.
     pub(crate) fn remove_tasks_for_exiting_pipeline(&self, pipeline_id: &PipelineId) {
         self.inactive.borrow_mut().remove(pipeline_id);
+        self.closed_pipelines.borrow_mut().insert(*pipeline_id);
+    }
+
+    pub(crate) fn is_pipeline_closed(&self, pipeline_id: &PipelineId) -> bool {
+        self.closed_pipelines.borrow().contains(pipeline_id)
     }
 
     /// Release previously held-back tasks for documents that are now fully-active.
@@ -96,16 +104,19 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
     /// Hold back tasks for currently not fully-active documents.
     /// <https://html.spec.whatwg.org/multipage/#event-loop-processing-model:fully-active>
     fn store_task_for_inactive_pipeline(&self, msg: T, pipeline_id: &PipelineId) {
-        let mut inactive = self.inactive.borrow_mut();
-        let inactive_queue = inactive.entry(*pipeline_id).or_default();
-        inactive_queue.push_back(
-            msg.into_queued_task()
-                .expect("Incoming messages should always be convertible into queued tasks"),
-        );
+        if !self.is_pipeline_closed(pipeline_id) {
+            let mut inactive = self.inactive.borrow_mut();
+            let inactive_queue = inactive.entry(*pipeline_id).or_default();
+            inactive_queue.push_back(
+                msg.into_queued_task()
+                    .expect("Incoming messages should always be convertible into queued tasks"),
+            );
+        }
+
         let mut msg_queue = self.msg_queue.borrow_mut();
         if msg_queue.is_empty() {
             // Ensure there is at least one message.
-            // Otherwise if the just stored inactive message
+            // Otherwise if the just stored inactive message (or dropped message)
             // was the first and last of this iteration,
             // it will result in a spurious wake-up of the event-loop.
             msg_queue.push_back(T::inactive_msg());
