@@ -19,6 +19,7 @@ use js::conversions::ToJSValConvertible;
 use js::jsval::UndefinedValue;
 use js::rust::HandleObject;
 use mime::{self, Mime};
+use net_traits::fetch::fetch_controller::FetchController;
 use net_traits::request::{CacheMode, CorsSettings, Destination, RequestBuilder, RequestId};
 use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
 use script_bindings::cell::DomRefCell;
@@ -42,9 +43,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::event_loop::timers::OneshotTimerCallback;
-use crate::fetch::fetch::{
-    FetchCanceller, RequestWithGlobalScope, create_a_potential_cors_request,
-};
+use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
 
@@ -63,20 +62,21 @@ enum ReadyState {
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableEventSource {
-    canceller: DomRefCell<FetchCanceller>,
+    #[no_trace]
+    controller: DomRefCell<FetchController>,
 }
 
 impl DroppableEventSource {
-    pub(crate) fn new(canceller: DomRefCell<FetchCanceller>) -> Self {
-        DroppableEventSource { canceller }
+    pub(crate) fn new(controller: DomRefCell<FetchController>) -> Self {
+        DroppableEventSource { controller }
     }
 
     pub(crate) fn cancel(&self) {
-        self.canceller.borrow_mut().abort();
+        self.controller.borrow_mut().abort();
     }
 
-    pub(crate) fn set_canceller(&self, data: FetchCanceller) {
-        *self.canceller.borrow_mut() = data;
+    pub(crate) fn set_controller(&self, controller: FetchController) {
+        *self.controller.borrow_mut() = controller;
     }
 }
 
@@ -635,7 +635,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         // Step 14 Let processEventSourceEndOfBody given response res be the following step:
         // if res is not a network error, then reestablish the connection.
 
-        event_source.droppable.set_canceller(FetchCanceller::new(
+        event_source.droppable.set_controller(FetchController::new(
             request.id,
             false,
             global.core_resource_thread(),

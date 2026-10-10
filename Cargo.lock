@@ -9167,6 +9167,7 @@ dependencies = [
  "servo-default-resources",
  "servo-embedder-traits",
  "servo-hyper-serde",
+ "servo-jstraceable-derive",
  "servo-malloc-size-of",
  "servo-paint-api",
  "servo-pixels",

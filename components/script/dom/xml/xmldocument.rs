@@ -68,7 +68,6 @@ impl XMLDocument {
                 doc_loader,
                 None,
                 None,
-                Default::default(),
                 false,
                 false,
                 inherited_insecure_requests_policy,

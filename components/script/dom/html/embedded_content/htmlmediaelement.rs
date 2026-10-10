@@ -22,6 +22,7 @@ use js::context::{JSContext, NoGC};
 use js::realm::CurrentRealm;
 use layout_api::MediaFrame;
 use media::{GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
+use net_traits::fetch::fetch_controller::FetchController;
 use net_traits::request::{Destination, RequestId};
 use net_traits::{CoreResourceThread, FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
 use paint_api::{CrossProcessPaintApi, ImageUpdate, SerializableImageData};
@@ -111,9 +112,7 @@ use crate::dom::videotracklist::VideoTrackList;
 use crate::dom::{RootedPromise, TracedPromise, referrer_policy_for_element};
 use crate::event_loop::document_loader::{LoadBlocker, LoadType};
 use crate::event_loop::script_thread::ScriptThread;
-use crate::fetch::fetch::{
-    FetchCanceller, RequestWithGlobalScope, create_a_potential_cors_request,
-};
+use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
 use crate::runtime::job_queue::MicrotaskRunnable;
@@ -4231,9 +4230,9 @@ pub(crate) struct HTMLMediaElementFetchContext {
     origin_clean: bool,
     /// The buffered data source which to be processed by media backend.
     data_source: RefCell<BufferedDataSource>,
-    /// Fetch canceller. Allows cancelling the current fetch request by
+    /// Fetch controller. Allows cancelling the current fetch request by
     /// manually calling its .cancel() method or automatically on Drop.
-    fetch_canceller: FetchCanceller,
+    fetch_controller: FetchController,
 }
 
 impl HTMLMediaElementFetchContext {
@@ -4247,7 +4246,7 @@ impl HTMLMediaElementFetchContext {
             is_seekable: false,
             origin_clean: true,
             data_source: RefCell::new(BufferedDataSource::new()),
-            fetch_canceller: FetchCanceller::new(request_id, false, core_resource_thread),
+            fetch_controller: FetchController::new(request_id, false, core_resource_thread),
         }
     }
 
@@ -4281,7 +4280,7 @@ impl HTMLMediaElementFetchContext {
         }
         self.cancel_reason = Some(reason);
         self.data_source.borrow_mut().reset();
-        self.fetch_canceller.abort();
+        self.fetch_controller.abort();
     }
 
     fn cancel_reason(&self) -> &Option<CancelReason> {

@@ -14,6 +14,7 @@ use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use layout_api::{HTMLMediaData, MediaMetadata};
 use net_traits::blob_url_store::UrlWithBlobClaim;
+use net_traits::fetch::fetch_controller::FetchController;
 use net_traits::image_cache::{
     ImageCache, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable, ImageResponse,
     PendingImageId,
@@ -46,7 +47,7 @@ use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeDamage, NodeTraits};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::event_loop::document_loader::{LoadBlocker, LoadType};
-use crate::fetch::fetch::{FetchCanceller, RequestWithGlobalScope};
+use crate::fetch::fetch::RequestWithGlobalScope;
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
@@ -483,13 +484,13 @@ struct PosterFrameFetchContext {
     cancelled: bool,
     /// Url for the resource
     url: ServoUrl,
-    /// A [`FetchCanceller`] for this request.
-    fetch_canceller: FetchCanceller,
+    /// A [`FetchController`] for this request.
+    fetch_controller: FetchController,
 }
 
 impl FetchResponseListener for PosterFrameFetchContext {
     fn process_request_body(&mut self, _: RequestId) {
-        self.fetch_canceller.ignore()
+        self.fetch_controller.ignore()
     }
 
     fn process_response(
@@ -511,7 +512,7 @@ impl FetchResponseListener for PosterFrameFetchContext {
 
         if !status_is_ok {
             self.cancelled = true;
-            self.fetch_canceller.abort();
+            self.fetch_controller.abort();
         }
     }
 
@@ -591,7 +592,7 @@ impl PosterFrameFetchContext {
             id,
             cancelled: false,
             url,
-            fetch_canceller: FetchCanceller::new(request_id, false, core_resource_thread),
+            fetch_controller: FetchController::new(request_id, false, core_resource_thread),
         }
     }
 }

@@ -30,6 +30,7 @@ http = { workspace = true }
 hyper-util = { workspace = true }
 hyper_serde = { workspace = true }
 ipc-channel = { workspace = true }
+jstraceable_derive = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
