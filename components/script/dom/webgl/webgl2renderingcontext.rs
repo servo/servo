@@ -855,24 +855,20 @@ impl WebGL2RenderingContext {
         true
     }
 
-    fn vertex_attrib_i(&self, cx: &mut JSContext, index: u32, x: i32, y: i32, z: i32, w: i32) {
+    fn vertex_attrib_i(&self, index: u32, x: i32, y: i32, z: i32, w: i32) {
         if index >= self.base.limits().max_vertex_attribs {
             return self.base.webgl_error(InvalidValue);
         }
         self.base.current_vertex_attribs()[index as usize] = VertexAttrib::Int(x, y, z, w);
-        self.current_vao(cx)
-            .set_vertex_attrib_type(index, constants::INT);
         self.base
             .send_command(WebGLCommand::VertexAttribI(index, x, y, z, w));
     }
 
-    fn vertex_attrib_u(&self, cx: &mut JSContext, index: u32, x: u32, y: u32, z: u32, w: u32) {
+    fn vertex_attrib_u(&self, index: u32, x: u32, y: u32, z: u32, w: u32) {
         if index >= self.base.limits().max_vertex_attribs {
             return self.base.webgl_error(InvalidValue);
         }
         self.base.current_vertex_attribs()[index as usize] = VertexAttrib::Uint(x, y, z, w);
-        self.current_vao(cx)
-            .set_vertex_attrib_type(index, constants::UNSIGNED_INT);
         self.base
             .send_command(WebGLCommand::VertexAttribU(index, x, y, z, w));
     }
@@ -3055,12 +3051,12 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.8>
-    fn VertexAttribI4i(&self, cx: &mut JSContext, index: u32, x: i32, y: i32, z: i32, w: i32) {
-        self.vertex_attrib_i(cx, index, x, y, z, w)
+    fn VertexAttribI4i(&self, _cx: &mut JSContext, index: u32, x: i32, y: i32, z: i32, w: i32) {
+        self.vertex_attrib_i(index, x, y, z, w)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.8>
-    fn VertexAttribI4iv(&self, cx: &mut JSContext, index: u32, v: Int32ArrayOrLongSequence) {
+    fn VertexAttribI4iv(&self, _cx: &mut JSContext, index: u32, v: Int32ArrayOrLongSequence) {
         let values = match v {
             Int32ArrayOrLongSequence::Int32Array(v) => v.to_vec().unwrap_or_default(),
             Int32ArrayOrLongSequence::LongSequence(v) => v,
@@ -3068,18 +3064,18 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         if values.len() < 4 {
             return self.base.webgl_error(InvalidValue);
         }
-        self.vertex_attrib_i(cx, index, values[0], values[1], values[2], values[3]);
+        self.vertex_attrib_i(index, values[0], values[1], values[2], values[3]);
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.8>
-    fn VertexAttribI4ui(&self, cx: &mut JSContext, index: u32, x: u32, y: u32, z: u32, w: u32) {
-        self.vertex_attrib_u(cx, index, x, y, z, w)
+    fn VertexAttribI4ui(&self, _cx: &mut JSContext, index: u32, x: u32, y: u32, z: u32, w: u32) {
+        self.vertex_attrib_u(index, x, y, z, w)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/2.0/#4.7.8>
     fn VertexAttribI4uiv(
         &self,
-        cx: &mut JSContext,
+        _cx: &mut JSContext,
         index: u32,
         v: Uint32ArrayOrUnsignedLongSequence,
     ) {
@@ -3090,7 +3086,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         if values.len() < 4 {
             return self.base.webgl_error(InvalidValue);
         }
-        self.vertex_attrib_u(cx, index, values[0], values[1], values[2], values[3]);
+        self.vertex_attrib_u(index, values[0], values[1], values[2], values[3]);
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.10>
