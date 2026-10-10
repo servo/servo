@@ -949,6 +949,12 @@ impl HTMLImageElement {
             }
         }
 
+        // TODO(https://github.com/whatwg/html/issues/8207): Add spec step once spec is aligned
+        // with implementations
+        self.source_set
+            .borrow_mut()
+            .update_source_set(cx.no_gc(), self.upcast::<Element>());
+
         // Step 8. Queue a microtask to perform the rest of this algorithm, allowing the task that
         // invoked this algorithm to continue.
         let task = ImageElementMicrotask::UpdateImageData {
