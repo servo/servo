@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>CSS Display: `display: contents` on element with replaced `content`</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://www.w3.org/TR/css-display-3/#valdef-display-contents">
+<link rel="help" href="https://www.w3.org/TR/css-content-3/#typedef-content-content-replacement">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14102">
+<link rel="match" href="../reference/ref-filled-green-200px-square.html">
+<meta name="assert" content="
+  When `content` is set to a value that would make the element replaced,
+  `display: contents` doesn't behave as `none`.">
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div style="width: 200px; height: 200px; background: red">
+  <div style="display: contents; content: linear-gradient(cyan)">
+    <div style="width: 200px; height: 200px; background: green"></div>
+  </div>
+</div>
