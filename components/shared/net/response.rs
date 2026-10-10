@@ -259,9 +259,9 @@ impl Response {
             return Response::network_error(e);
         }
 
-        let old_headers = old_response.headers.clone();
-        let exposed_headers = old_response.cors_exposed_header_name_list.clone();
         let mut response = old_response.clone();
+        // This is ok as we always set the `response.headers` in all branches in the following.
+        let old_headers = std::mem::take(&mut response.headers);
         response.internal_response = Some(Box::new(old_response));
         response.response_type = filter_type;
 
@@ -300,7 +300,8 @@ impl Response {
                         {
                             false
                         } else {
-                            exposed_headers
+                            response
+                                .cors_exposed_header_name_list
                                 .iter()
                                 .any(|h| h.as_str().eq_ignore_ascii_case(name))
                         }
