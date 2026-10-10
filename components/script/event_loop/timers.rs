@@ -442,7 +442,7 @@ impl OneshotTimers {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#timer-initialisation-steps>
-    pub(crate) fn fire_timer(&self, id: TimerEventId, cx: &mut JSContext) {
+    pub(crate) fn fire_timer(&self, cx: &mut JSContext, id: TimerEventId) {
         // Step 9.2. If id does not exist in global's map of setTimeout and setInterval IDs, then abort these steps.
         let expected_id = self.expected_event_id.get();
         if expected_id != id {
@@ -1089,7 +1089,7 @@ impl TimerListener {
                     None => return,
                 },
             };
-            global.fire_timer(id, cx);
+            global.fire_timer(cx, id);
         }));
     }
 

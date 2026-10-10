@@ -846,7 +846,7 @@ impl HTMLMediaElement {
                     Some(LoadBlocker::new(&self.owner_document(), LoadType::Media));
             }
         } else {
-            LoadBlocker::terminate(blocker, cx);
+            LoadBlocker::terminate(cx, blocker);
         }
     }
 

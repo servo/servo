@@ -322,7 +322,7 @@ impl HTMLVideoElement {
         // (which triggers no media load algorithm unless a explicit call to .load() is done)
         // will block the document's load event forever.
         let blocker = &self.load_blocker;
-        LoadBlocker::terminate(blocker, cx);
+        LoadBlocker::terminate(cx, blocker);
         let document = self.owner_document();
         *blocker.borrow_mut() = Some(LoadBlocker::new(
             &document,
@@ -356,14 +356,14 @@ impl HTMLVideoElement {
                         .set_poster_frame(cx.no_gc(), Some(image)),
                     None => warn!("Vector images are not yet supported in video poster"),
                 }
-                LoadBlocker::terminate(&self.load_blocker, cx);
+                LoadBlocker::terminate(cx, &self.load_blocker);
             },
             ImageResponse::MetadataLoaded(..) => {},
             // The image cache may have loaded a placeholder for an invalid poster url
             ImageResponse::FailedToLoadOrDecode => {
                 self.htmlmediaelement.set_poster_frame(cx.no_gc(), None);
                 // A failed load should unblock the document load.
-                LoadBlocker::terminate(&self.load_blocker, cx);
+                LoadBlocker::terminate(cx, &self.load_blocker);
             },
         }
     }
