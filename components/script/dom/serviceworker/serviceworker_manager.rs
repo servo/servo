@@ -22,7 +22,7 @@ use servo_config::pref;
 use servo_constellation_traits::{
     DOMMessage, Job, JobError, JobResult, JobResultValue, JobType, SWManagerSenders, ScopeThings,
     ServiceWorkerAlgorithm, ServiceWorkerAlgorithmResult, ServiceWorkerManagerFactory,
-    ServiceWorkerMsg, ServiceWorkerRegistrationInfo,
+    ServiceWorkerManagerMsg, ServiceWorkerMsg, ServiceWorkerRegistrationInfo, ServiceWorkerState,
 };
 use servo_url::{ImmutableOrigin, ServoUrl};
 
@@ -47,6 +47,8 @@ pub(crate) struct ServiceWorker {
     pub(crate) script_url: ServoUrl,
     /// A sender to the running service worker scope.
     pub(crate) sender: Sender<ServiceWorkerScriptMsg>,
+    /// <https://w3c.github.io/ServiceWorker/#dfn-state>
+    pub(crate) state: ServiceWorkerState,
 }
 
 impl ServiceWorker {
@@ -59,6 +61,7 @@ impl ServiceWorker {
             id,
             script_url,
             sender,
+            state: ServiceWorkerState::Parsed,
         }
     }
 
@@ -229,6 +232,8 @@ pub struct ServiceWorkerManager {
     registrations: HashMap<ServoUrl, ServiceWorkerRegistration>,
     // own sender to send messages here
     own_sender: GenericSender<ServiceWorkerMsg>,
+    /// Sender of messages to the constellation.
+    constellation_sender: GenericSender<ServiceWorkerManagerMsg>,
     // receiver to receive messages from constellation
     own_port: RoutedReceiver<ServiceWorkerMsg>,
     // to receive resource messages
@@ -240,6 +245,7 @@ pub struct ServiceWorkerManager {
 impl ServiceWorkerManager {
     fn new(
         own_sender: GenericSender<ServiceWorkerMsg>,
+        constellation_sender: GenericSender<ServiceWorkerManagerMsg>,
         from_constellation_receiver: RoutedReceiver<ServiceWorkerMsg>,
         resource_port: RoutedReceiver<CustomResponseMediator>,
         font_context: Arc<FontContext>,
@@ -250,6 +256,7 @@ impl ServiceWorkerManager {
         ServiceWorkerManager {
             registrations: HashMap::new(),
             own_sender,
+            constellation_sender,
             own_port: from_constellation_receiver,
             resource_receiver: resource_port,
             font_context,
@@ -600,6 +607,29 @@ impl ServiceWorkerManager {
         }
     }
 
+    /// <https://w3c.github.io/ServiceWorker/#update-worker-state>
+    fn update_worker_state(&mut self, worker: &mut ServiceWorker, state: ServiceWorkerState) {
+        // Step 1: Assert: state is not "parsed".
+        debug_assert!(match state {
+            ServiceWorkerState::Parsed => false,
+            _ => true,
+        });
+
+        // Step 2: Set worker’s state to state.
+        worker.state = state.clone();
+
+        // Step 3: Let settingsObjects be all environment settings objects whose origin is worker’s script url’s origin.
+        // Step 4: For each settingsObject of settingsObjects, queue a task on settingsObject’s responsible event loop.
+        // Note: task will be queued to all pipelines for the script origin by the constellation.
+        let origin = worker.script_url.origin();
+        self.constellation_sender
+            .send(ServiceWorkerManagerMsg::UpdateWorkerState {
+                worker_id: worker.id,
+                state,
+                origin,
+            });
+    }
+
     /// <https://www.w3.org/TR/service-workers/#install>
     fn install(&mut self, job: Job, new_worker: ServiceWorker) {
         let Some(registration) = self.registrations.get_mut(&job.scope_url) else {
@@ -780,6 +810,7 @@ impl ServiceWorkerManagerFactory for ServiceWorkerManager {
         let (resource_chan, resource_port) = generic_channel::channel().unwrap();
 
         let SWManagerSenders {
+            constellation_sender,
             resource_threads,
             own_sender,
             receiver,
@@ -800,8 +831,14 @@ impl ServiceWorkerManagerFactory for ServiceWorkerManager {
         ));
 
         let swmanager_thread = move || {
-            ServiceWorkerManager::new(own_sender, from_constellation, resource_port, font_context)
-                .handle_message()
+            ServiceWorkerManager::new(
+                own_sender,
+                constellation_sender,
+                from_constellation,
+                resource_port,
+                font_context,
+            )
+            .handle_message()
         };
         if thread::Builder::new()
             .name("SvcWorkerManager".to_owned())

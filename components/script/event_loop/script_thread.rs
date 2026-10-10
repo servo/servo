@@ -1725,6 +1725,7 @@ impl ScriptThread {
 
     fn handle_msg_from_constellation(&self, cx: &mut JSContext, msg: ScriptThreadMessage) {
         match msg {
+            ScriptThreadMessage::UpdateServiceWorkerState { pipeline_id, .. } => {},
             ScriptThreadMessage::StopDelayingLoadEventsMode(pipeline_id) => {
                 self.handle_stop_delaying_load_events_mode(pipeline_id)
             },

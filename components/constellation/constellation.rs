@@ -162,7 +162,7 @@ use servo_constellation_traits::{
     IFrameSizeMsg, LoadData, LogEntry, MessagePortMsg, NavigationHistoryBehavior, PaintMetricEvent,
     PortMessageTask, PortTransferInfo, RemoteFocusOperation, SWManagerSenders,
     ScreenshotReadinessResponse, ScriptToConstellationMessage, ScrollStateUpdate,
-    ServiceWorkerAlgorithm, ServiceWorkerManagerFactory, ServiceWorkerMsg,
+    ServiceWorkerAlgorithm, ServiceWorkerManagerFactory, ServiceWorkerManagerMsg, ServiceWorkerMsg,
     SessionHistoryTraversalRequest, StructuredSerializedData, TargetSnapshotParams,
     TraversalDirection, UserContentManagerAction, WindowSizeType, WorkerAnimationFrameTick,
 };
@@ -336,6 +336,12 @@ pub struct Constellation<STF, SWF> {
     /// A channel for the constellation to receiver messages
     /// from the background hang monitor.
     background_hang_monitor_receiver: RoutedReceiver<HangAlert>,
+
+    /// Receiver of messages from the service worker manager.
+    sw_manager_receiver: RoutedReceiver<ServiceWorkerManagerMsg>,
+
+    /// Sender of messages from the service worker manager.
+    sw_manager_sender: GenericSender<ServiceWorkerManagerMsg>,
 
     /// A factory for creating layouts. This allows customizing the kind
     /// of layout created for a [`Constellation`] and prevents a circular crate
@@ -630,6 +636,10 @@ where
                 let background_hang_monitor_receiver =
                     background_hang_monitor_ipc_receiver.route_preserving_errors();
 
+                let (sw_manager_sender, sw_manager_ipc_receiver) =
+                    generic_channel::channel().expect("ipc channel failure");
+                let sw_manager_receiver = sw_manager_ipc_receiver.route_preserving_errors();
+
                 // If we are in multiprocess mode,
                 // a dedicated per-process hang monitor will be initialized later inside the content process.
                 // See run_content_process in servo/lib.rs
@@ -669,6 +679,8 @@ where
 
                 let mut constellation: Constellation<STF, SWF> = Constellation {
                     event_loops: Default::default(),
+                    sw_manager_sender,
+                    sw_manager_receiver,
                     namespace_receiver,
                     namespace_ipc_sender,
                     script_sender: script_ipc_sender,
@@ -1130,6 +1142,7 @@ where
         #[expect(clippy::large_enum_variant)]
         #[derive(Debug)]
         enum Request {
+            ServiceWorkerManager(ServiceWorkerManagerMsg),
             PipelineNamespace(PipelineNamespaceRequest),
             Script((WebViewId, PipelineId, ScriptToConstellationMessage)),
             BackgroundHangMonitor(HangAlert),
@@ -1149,6 +1162,7 @@ where
         // being called. If this happens, there's not much we can do
         // other than panic.
         let mut sel = Select::new();
+        sel.recv(&self.sw_manager_receiver);
         sel.recv(&self.namespace_receiver);
         sel.recv(&self.script_receiver);
         sel.recv(&self.background_hang_monitor_receiver);
@@ -1166,18 +1180,22 @@ where
 
             match index {
                 0 => oper
+                    .recv(&self.sw_manager_receiver)
+                    .expect("Unexpected service worker manager channel panic in constellation")
+                    .map(Request::ServiceWorkerManager),
+                1 => oper
                     .recv(&self.namespace_receiver)
                     .expect("Unexpected script channel panic in constellation")
                     .map(Request::PipelineNamespace),
-                1 => oper
+                2 => oper
                     .recv(&self.script_receiver)
                     .expect("Unexpected script channel panic in constellation")
                     .map(Request::Script),
-                2 => oper
+                3 => oper
                     .recv(&self.background_hang_monitor_receiver)
                     .expect("Unexpected BHM channel panic in constellation")
                     .map(Request::BackgroundHangMonitor),
-                3 => Ok(Request::Embedder(
+                4 => Ok(Request::Embedder(
                     oper.recv(&self.embedder_to_constellation_receiver)
                         .expect("Unexpected embedder channel panic in constellation"),
                 )),
@@ -1197,6 +1215,9 @@ where
         };
 
         match request {
+            Request::ServiceWorkerManager(message) => {
+                self.handle_request_from_service_worker_manager(message);
+            },
             Request::PipelineNamespace(message) => {
                 self.handle_request_for_pipeline_namespace(message)
             },
@@ -1225,6 +1246,37 @@ where
         // TODO: In case of a permanent hang being reported, add a "kill script" workflow,
         // via the embedder?
         warn!("Component hang alert: {:?}", message);
+    }
+
+    fn handle_request_from_service_worker_manager(&mut self, message: ServiceWorkerManagerMsg) {
+        match message {
+            ServiceWorkerManagerMsg::UpdateWorkerState {
+                worker_id,
+                state,
+                origin,
+            } => {
+                // Send a message to all pipelines for the origin.
+                self.pipelines
+                    .values()
+                    .filter(|pipeline| pipeline.url.origin() == origin)
+                    .for_each(|pipeline| {
+                        if pipeline
+                            .event_loop
+                            .send(ScriptThreadMessage::UpdateServiceWorkerState {
+                                pipeline_id: pipeline.id,
+                                worker_id,
+                                state: state.clone(),
+                            })
+                            .is_err()
+                        {
+                            error!(
+                                "Failed to send UpdateServiceWorkerState to pipeline {}",
+                                pipeline.id
+                            );
+                        }
+                    });
+            },
+        }
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -2475,6 +2527,7 @@ where
                     generic_channel::channel().expect("Failed to create IPC channel!");
 
                 let sw_senders = SWManagerSenders {
+                    constellation_sender: self.sw_manager_sender.clone(),
                     resource_threads: self.public_resource_threads.clone(),
                     own_sender: own_sender.clone(),
                     receiver,
