@@ -110,7 +110,7 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
             _marker: NoTrace(PhantomData),
         });
         let global = D::GlobalScope::from_current_realm(realm);
-        <D as DomHelpers<D>>::reflect_dom_object_with_cx(realm, iterator, &*global)
+        <D as DomHelpers<D>>::reflect_dom_object(realm, iterator, &*global)
     }
 
     /// Return the next value from the iterable object.
