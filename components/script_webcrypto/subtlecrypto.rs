@@ -456,14 +456,19 @@ where
                 // attribute of the [[algorithm]] internal slot of key then throw an
                 // InvalidAccessError.
                 if normalized_algorithm.name() != key.algorithm().name() {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some("Algorithm's name does not equal key algorithm name".into())));
+                    subtle.reject_promise_with_error(promise,
+                        Error::InvalidAccess(Some(
+                            "Algorithm's name does not equal key algorithm name".into()
+                        )));
                     return;
                 }
 
                 // Step 10. If the [[usages]] internal slot of key does not contain an entry that
                 // is "encrypt", then throw an InvalidAccessError.
                 if !key.usages().contains(&KeyUsage::Encrypt) {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some("Key usages does not contain 'encrypt' entry".into())));
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some(
+                        "Key usages does not contain 'encrypt' entry".into()
+                    )));
                     return;
                 }
 
@@ -538,14 +543,18 @@ where
                 // attribute of the [[algorithm]] internal slot of key then throw an
                 // InvalidAccessError.
                 if normalized_algorithm.name() != key.algorithm().name() {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some("Normalized algorithm name does not equal key algorithm name".into())));
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some(
+                        "Normalized algorithm name does not equal key algorithm name".into()
+                    )));
                     return;
                 }
 
                 // Step 10. If the [[usages]] internal slot of key does not contain an entry that
                 // is "decrypt", then throw an InvalidAccessError.
                 if !key.usages().contains(&KeyUsage::Decrypt) {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some("Key usages does not contain 'decrypt' entry".into())));
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some(
+                        "Key usages does not contain 'decrypt' entry".into()
+                    )));
                     return;
                 }
 
@@ -620,14 +629,18 @@ where
                 // attribute of the [[algorithm]] internal slot of key then throw an
                 // InvalidAccessError.
                 if normalized_algorithm.name() != key.algorithm().name() {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some("Normalized algorithm name does not equal key algorithm name".into())));
+                    subtle.reject_promise_with_error(promise,Error::InvalidAccess(Some(
+                        "Normalized algorithm name does not equal key algorithm name".into()
+                    )));
                     return;
                 }
 
                 // Step 10. If the [[usages]] internal slot of key does not contain an entry that
                 // is "sign", then throw an InvalidAccessError.
                 if !key.usages().contains(&KeyUsage::Sign) {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some("Key usages does not contain 'sign' entry".into())));
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some(
+                        "Key usages does not contain 'sign' entry".into()
+                    )));
                     return;
                 }
 
@@ -706,14 +719,18 @@ where
                 // attribute of the [[algorithm]] internal slot of key then throw an
                 // InvalidAccessError.
                 if normalized_algorithm.name() != key.algorithm().name() {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some("Normalized algorithm name does not equal key algorithm name".into())));
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some(
+                        "Normalized algorithm name does not equal key algorithm name".into()
+                    )));
                     return;
                 }
 
                 // Step 11. If the [[usages]] internal slot of key does not contain an entry that
                 // is "verify", then throw an InvalidAccessError.
                 if !key.usages().contains(&KeyUsage::Verify) {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some("Key usages does not contain 'verify' entry".into())));
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some(
+                        "Key usages does not contain 'verify' entry".into()
+                    )));
                     return;
                 }
 
@@ -865,7 +882,9 @@ where
                         if matches!(crpyto_key.Type(), KeyType::Secret | KeyType::Private)
                             && crpyto_key.usages().is_empty()
                         {
-                            subtle.reject_promise_with_error(promise, Error::Syntax(Some("Crypto key usages is empty".into())));
+                            subtle.reject_promise_with_error(promise, Error::Syntax(Some(
+                                "Crypto key usages is empty".into()
+                            )));
                             return;
                         }
                     },
@@ -877,7 +896,9 @@ where
                                 private_key.usages().is_empty()
                             })
                         {
-                            subtle.reject_promise_with_error(promise, Error::Syntax(Some("Private key usages is an empty sequence".into())));
+                            subtle.reject_promise_with_error(promise, Error::Syntax(Some(
+                                "Private key usages is an empty sequence".into()
+                            )));
                             return;
                         }
                     }
@@ -977,14 +998,18 @@ where
                 // attribute of the [[algorithm]] internal slot of baseKey then throw an
                 // InvalidAccessError.
                 if normalized_algorithm.name() != base_key.algorithm().name() {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some("Normalized algorithm name does not equal name of base key algorithm".into())));
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some(
+                        "Normalized algorithm name does not equal name of base key algorithm".into()
+                    )));
                     return;
                 }
 
                 // Step 13. If the [[usages]] internal slot of baseKey does not contain an entry
                 // that is "deriveKey", then throw an InvalidAccessError.
                 if !base_key.usages().contains(&KeyUsage::DeriveKey) {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some("Key usages does not contain 'deriveKey' entry".into())));
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some(
+                        "Key usages does not contain 'deriveKey' entry".into()
+                    )));
                     return;
                 }
 
@@ -1031,7 +1056,9 @@ where
                 // Step 17. If the [[type]] internal slot of result is "secret" or "private" and
                 // usages is empty, then throw a SyntaxError.
                 if matches!(result.Type(), KeyType::Secret | KeyType::Private) && usages.is_empty() {
-                    subtle.reject_promise_with_error(promise, Error::Syntax(Some("Key usages is empty".into())));
+                    subtle.reject_promise_with_error(promise, Error::Syntax(Some(
+                        "Key usages is empty".into()
+                    )));
                     return;
                 }
 
@@ -1098,14 +1125,18 @@ where
                 // attribute of the [[algorithm]] internal slot of baseKey then throw an
                 // InvalidAccessError.
                 if normalized_algorithm.name() != base_key.algorithm().name() {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some("Normalized algorithm name does not equal name of base key algorithm".into())));
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some(
+                        "Normalized algorithm name does not equal name of base key algorithm".into()
+                    )));
                     return;
                 }
 
                 // Step 9. If the [[usages]] internal slot of baseKey does not contain an entry
                 // that is "deriveBits", then throw an InvalidAccessError.
                 if !base_key.usages().contains(&KeyUsage::DeriveBits) {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some("Key usages does not contain 'deriveBits' entry".into())));
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some(
+                        "Key usages does not contain 'deriveBits' entry".into()
+                    )));
                     return;
                 }
 
@@ -1254,8 +1285,12 @@ where
 
                 // Step 10. If the [[type]] internal slot of result is "secret" or "private" and
                 // usages is empty, then throw a SyntaxError.
-                if matches!(result.Type(), KeyType::Secret | KeyType::Private) && key_usages.is_empty() {
-                    subtle.reject_promise_with_error(promise, Error::Syntax(Some("Key usages is empty".into())));
+                if matches!(result.Type(), KeyType::Secret | KeyType::Private) &&
+                    key_usages.is_empty()
+                {
+                    subtle.reject_promise_with_error(promise, Error::Syntax(Some(
+                        "Key usages is empty".into()
+                    )));
                     return;
                 }
 
@@ -1324,7 +1359,9 @@ where
                 // Step 7. If the [[extractable]] internal slot of key is false, then throw an
                 // InvalidAccessError.
                 if !key.Extractable() {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some("Key is not extractable".into())));
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some(
+                        "Key is not extractable".into()
+                    )));
                     return;
                 }
 
@@ -1431,14 +1468,19 @@ where
                     },
                 };
                 if normalized_algorithm_name != wrapping_key.algorithm().name() {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some("Normalized algorithm name does not equal name of wrapping key algorithm".into())));
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some(
+                        "Normalized algorithm name does not equal name of wrapping key algorithm"
+                            .into()
+                    )));
                     return;
                 }
 
                 // Step 10. If the [[usages]] internal slot of wrappingKey does not contain an
                 // entry that is "wrapKey", then throw an InvalidAccessError.
                 if !wrapping_key.usages().contains(&KeyUsage::WrapKey) {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some("Wrapping key usages does not contain 'wrapKey' entry".into())));
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some(
+                        "Wrapping key usages does not contain 'wrapKey' entry".into()
+                    )));
                     return;
                 }
 
@@ -1461,7 +1503,9 @@ where
                 // Step 12. If the [[extractable]] internal slot of key is false, then throw an
                 // InvalidAccessError.
                 if !key.Extractable() {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some("Key is not extractable".into())));
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some(
+                        "Key is not extractable".into()
+                    )));
                     return;
                 }
 
@@ -1489,7 +1533,9 @@ where
                 let bytes = match exported_key {
                     ExportedKey::Bytes(bytes) => bytes,
                     ExportedKey::Jwk(jwk) => match jwk.stringify(cx) {
-                        Ok(stringified_jwk) => Zeroizing::new(stringified_jwk.as_bytes(cx.no_gc()).to_vec()),
+                        Ok(stringified_jwk) => {
+                            Zeroizing::new(stringified_jwk.as_bytes(cx.no_gc()).to_vec())
+                        },
                         Err(error) => {
                             subtle.reject_promise_with_error(promise, error);
                             return;
@@ -1622,14 +1668,19 @@ where
                     },
                 };
                 if normalized_algorithm_name != unwrapping_key.algorithm().name() {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some("Normalized algorithm name does not equal name of unwrapping key algorithm".into())));
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some(
+                        "Normalized algorithm name does not equal name of unwrapping key algorithm"
+                            .into()
+                    )));
                     return;
                 }
 
                 // Step 13. If the [[usages]] internal slot of unwrappingKey does not contain an
                 // entry that is "unwrapKey", then throw an InvalidAccessError.
                 if !unwrapping_key.usages().contains(&KeyUsage::UnwrapKey) {
-                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some("Unwrapping key usages does not contain 'unwrapKey' entry".into())));
+                    subtle.reject_promise_with_error(promise, Error::InvalidAccess(Some(
+                        "Unwrapping key usages does not contain 'unwrapKey' entry".into()
+                    )));
                     return;
                 }
 
@@ -1697,8 +1748,12 @@ where
 
                 // Step 17. If the [[type]] internal slot of result is "secret" or "private" and
                 // usages is empty, then throw a SyntaxError.
-                if matches!(result.Type(), KeyType::Secret | KeyType::Private) && usages.is_empty() {
-                    subtle.reject_promise_with_error(promise, Error::Syntax(Some("Key usages is empty".into())));
+                if matches!(result.Type(), KeyType::Secret | KeyType::Private) &&
+                    usages.is_empty()
+                {
+                    subtle.reject_promise_with_error(promise, Error::Syntax(Some(
+                        "Key usages is empty".into()
+                    )));
                     return;
                 }
 
@@ -1713,8 +1768,7 @@ where
                 // in realm, as defined by [WebIDL].
                 // Step 22. Resolve promise with result.
                 subtle.resolve_promise_with_key(promise, &result);
-            }),
-        );
+            }));
         promise
     }
 
