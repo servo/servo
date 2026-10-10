@@ -10,12 +10,16 @@ use bitflags::bitflags;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use js::context::JSContext;
 use js::gc::Handle;
-use js::jsapi::{ExceptionStackBehavior, Heap, JSScript, SetScriptPrivate};
+use js::jsapi::{
+    ExceptionStackBehavior, HadFrontendErrors, Heap, InstantiateOptions, JSScript, SetScriptPrivate,
+};
 use js::jsval::{PrivateValue, UndefinedValue};
+use js::offthread::CompilationResult;
 use js::panic::maybe_resume_unwind;
 use js::rust::wrappers2::{
-    Compile1, JS_ClearPendingException, JS_ExecuteScript, JS_GetScriptPrivate,
-    JS_IsExceptionPending, JS_SetPendingException,
+    Compile1, ConvertFrontendErrorsToRuntimeErrors, InstantiateGlobalStencil,
+    JS_ClearPendingException, JS_ExecuteScript, JS_GetScriptPrivate, JS_IsExceptionPending,
+    JS_SetPendingException,
 };
 use js::rust::{
     CompileOptionsWrapper, HandleValue, MutableHandleValue, transform_str_to_source_text,
@@ -59,6 +63,55 @@ pub(crate) struct ClassicScript {
     pub record: Result<RootedTraceableBox<Heap<*mut JSScript>>, RethrowError>,
     /// The options that were used when compiling this script.
     options: ScriptOptions,
+}
+
+impl ClassicScript {
+    #[expect(unsafe_code)]
+    pub(crate) fn from_stencil(
+        cx: &mut JSContext,
+        compilation_result: CompilationResult,
+        url: ServoUrl,
+        script_options: ScriptOptions,
+        fetch_options: ScriptFetchOptions,
+    ) -> ClassicScript {
+        let CompilationResult {
+            stencil,
+            mut storage,
+            fc,
+            compile_options,
+        } = compilation_result;
+
+        let options = compile_options.read_only();
+
+        let record = if unsafe { HadFrontendErrors(*fc) } {
+            unsafe { ConvertFrontendErrorsToRuntimeErrors(cx, *fc, options) };
+            Err(RethrowError::from_pending_exception(cx))
+        } else {
+            debug_assert!(!stencil.is_null());
+            let instantiate_options = InstantiateOptions {
+                skipFilenameValidation: options._base.skipFilenameValidation_,
+                hideScriptFromDebugger: options._base.hideScriptFromDebugger_,
+                deferDebugMetadata: options._base.deferDebugMetadata_,
+                eagerDelazificationStrategy_: options._base.eagerDelazificationStrategy_,
+                eagerBaselineStrategy_: options._base.eagerBaselineStrategy_,
+            };
+
+            rooted!(&in(cx) let script = unsafe { InstantiateGlobalStencil(
+                cx,
+                &instantiate_options,
+                *stencil,
+                storage.as_mut_ptr(),
+            )});
+            maybe_associate_with_script(cx, script.handle(), url, fetch_options);
+
+            Ok(RootedTraceableBox::from_box(Heap::boxed(script.get())))
+        };
+
+        ClassicScript {
+            record,
+            options: script_options,
+        }
+    }
 }
 
 pub(crate) enum RethrowErrors {
