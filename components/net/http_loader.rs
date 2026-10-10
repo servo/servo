@@ -1218,22 +1218,19 @@ pub async fn http_redirect_fetch(
 
     // Step 9. If request’s mode is "cors", locationURL includes credentials,
     // and request’s origin is not same origin with locationURL’s origin, then return a network error.
-    let same_origin = match request.origin {
-        Origin::Origin(ref origin) => *origin == location_url.origin(),
-        Origin::Client => panic!(
-            "Request origin should not be client for {}",
-            request.current_url()
-        ),
-    };
-
     let has_credentials = has_credentials(&location_url);
+    if request.mode == RequestMode::CorsMode {
+        let same_origin = match request.origin {
+            Origin::Origin(ref origin) => *origin == location_url.origin(),
+            Origin::Client => panic!(
+                "Request origin should not be client for {}",
+                request.current_url()
+            ),
+        };
 
-    if request.mode == RequestMode::CorsMode && !same_origin && has_credentials {
-        return Response::network_error(NetworkError::CorsCredentials);
-    }
-
-    if cors_flag && location_url.origin() != request.current_url().origin() {
-        request.origin = Origin::Origin(ImmutableOrigin::new_opaque());
+        if !same_origin && has_credentials {
+            return Response::network_error(NetworkError::CorsCredentials);
+        }
     }
 
     // Step 10. If request’s response tainting is "cors" and locationURL includes credentials, then return a network error.
