@@ -25,7 +25,7 @@ use style::values::computed::basic_shape::ClipPath;
 use style::values::computed::image::Image as ComputedImageLayer;
 use style::values::computed::{
     BorderSideWidth, BorderStyle, Color, Inset, ItemPlacement, LengthPercentage, Margin,
-    SelfAlignment,
+    SelfAlignment, TextWrapMode, WhiteSpaceCollapse,
 };
 use style::values::generics::box_::Perspective;
 use style::values::generics::position::{GenericAspectRatio, PreferredRatio};
@@ -382,6 +382,9 @@ pub(crate) trait ComputedValuesExt {
     fn is_atomic_inline_level(&self, fragment_flags: FragmentFlags) -> bool;
     fn overflow_direction(&self) -> OverflowDirection;
     fn to_bidi_level(&self) -> Level;
+    /// Whether or not this style causes conditional hanging in inline layout
+    /// i.e. if it is `white-space-collapse: preserve` and `text-wrap-mode: wrap`.
+    fn conditionally_hangs(&self) -> bool;
 }
 
 impl ComputedValuesExt for ComputedValues {
@@ -1117,6 +1120,11 @@ impl ComputedValuesExt for ComputedValues {
         } else {
             Level::rtl()
         }
+    }
+
+    fn conditionally_hangs(&self) -> bool {
+        *self.get_white_space_collapse() == WhiteSpaceCollapse::Preserve &&
+            *self.get_text_wrap_mode() == TextWrapMode::Wrap
     }
 }
 

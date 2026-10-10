@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Level 3: Preserved tabs at the end of a line should hang when `white-space` is `pre-wrap`</title>
+<link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#hanging">
+<link rel="help" href="https://drafts.csswg.org/css-text-3/#white-space-phase-2">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<meta name="assert" content="Phase II of the white space processing rules indicates that preserved tabs at the end of a line should hang when `white-space` is `pre-wrap`." >
+
+<style>
+  .container {
+    width: min-content;
+    white-space: pre-wrap;
+    background: green;
+    line-height: 0;
+  }
+
+  .spacer {
+    display: inline-block;
+    width: 100px;
+    height: 100px;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div class="container"><div class="spacer"></div> <span>&#x09;</span></div>

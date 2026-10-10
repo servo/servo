@@ -13,8 +13,6 @@ use itertools::Either;
 use servo_base::text::Utf32CodeUnits;
 use style::Zero;
 use style::computed_values::position::T as Position;
-use style::computed_values::text_wrap_mode::T as TextWrapMode;
-use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::values::computed::BaselineShift;
 use style::values::generics::box_::BaselineShiftKeyword;
 use style::values::specified::align::AlignFlags;
@@ -35,6 +33,7 @@ use crate::geom::{
 use crate::positioned::{
     AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, relative_adjustement,
 };
+use crate::style_ext::ComputedValuesExt;
 use crate::{ContainingBlock, ContainingBlockSize};
 
 pub(super) struct LineMetrics {
@@ -912,6 +911,7 @@ pub(super) enum LineItem {
         inline_box_identifier: Option<InlineBoxIdentifier>,
         advance: Au,
         bidi_level: Level,
+        conditionally_hangs: bool,
     },
 }
 
@@ -969,11 +969,7 @@ pub(super) struct TextRunLineItem {
 impl TextRunLineItem {
     pub(crate) fn white_space_hangs_conditionally(&self) -> bool {
         let style = self.text_fragment_run_data.inline_styles.style.borrow();
-        let text = style.get_inherited_text();
-        matches!(
-            (text.white_space_collapse, text.text_wrap_mode),
-            (WhiteSpaceCollapse::Preserve, TextWrapMode::Wrap)
-        )
+        style.conditionally_hangs()
     }
 
     /// Trim the removable white space at the end of this [`TextRunLineItem`].
