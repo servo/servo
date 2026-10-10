@@ -7,17 +7,17 @@ use cbc::cipher::block_padding::Pkcs7;
 use cbc::cipher::{BlockModeDecrypt, BlockModeEncrypt, KeyIvInit};
 use cbc::{Decryptor, Encryptor};
 use js::context::JSContext;
+use script_bindings::codegen::GenericBindings::CryptoKeyBinding::KeyUsage;
+use script_bindings::codegen::GenericBindings::SubtleCryptoBinding::KeyFormat;
+use script_bindings::error::Error;
+use script_bindings::root::DomRoot;
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::KeyUsage;
-use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyFormat;
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::cryptokey::{CryptoKey, Handle};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::subtlecrypto::aes_common::AesAlgorithm;
-use crate::dom::subtlecrypto::{
+use crate::cryptokey::{CryptoKey, Handle};
+use crate::subtlecrypto::aes_common::AesAlgorithm;
+use crate::subtlecrypto::{
     AesCbcParams, AesDerivedKeyParams, AesKeyGenParams, ExportedKey, aes_common,
 };
+use crate::traits::Equivalence;
 
 /// <https://w3c.github.io/webcrypto/#aes-cbc-operations-encrypt>
 pub(crate) fn encrypt(

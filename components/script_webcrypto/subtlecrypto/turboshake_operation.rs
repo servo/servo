@@ -3,10 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use keccak::{Keccak, State1600};
+use script_bindings::error::Error;
 use sponge_cursor::SpongeCursor;
 
-use crate::dom::bindings::error::Error;
-use crate::dom::subtlecrypto::{CryptoAlgorithm, TurboShakeParams};
+use crate::subtlecrypto::{CryptoAlgorithm, TurboShakeParams};
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#turboshake-operations-digest>
 pub(crate) fn digest(

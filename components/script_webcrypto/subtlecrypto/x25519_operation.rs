@@ -6,22 +6,22 @@ use js::context::JSContext;
 use pkcs8::der::asn1::OctetStringRef;
 use pkcs8::der::{Decode, Encode};
 use pkcs8::{AlgorithmIdentifierRef, ObjectIdentifier, PrivateKeyInfoRef, SubjectPublicKeyInfoRef};
+use script_bindings::codegen::GenericBindings::CryptoKeyBinding::{
+    CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
+};
+use script_bindings::codegen::GenericBindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
+use script_bindings::error::Error;
+use script_bindings::root::DomRoot;
+use script_bindings::str::DOMString;
 use x25519_dalek::{PublicKey, StaticSecret};
 use zeroize::Zeroizing;
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
-    CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
-};
-use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::subtlecrypto::{
+use crate::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
+use crate::subtlecrypto::{
     CryptoAlgorithm, EcdhKeyDeriveParams, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithm,
     KeyAlgorithmAndDerivatives,
 };
+use crate::traits::Equivalence;
 
 /// `id-X25519` object identifier defined in [RFC8410]
 const X25519_OID_STRING: &str = "1.3.101.110";

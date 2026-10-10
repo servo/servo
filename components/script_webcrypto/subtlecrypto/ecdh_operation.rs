@@ -11,18 +11,20 @@ use p384::NistP384;
 use p384::ecdh::diffie_hellman as p384_diffie_hellman;
 use p521::NistP521;
 use p521::ecdh::diffie_hellman as p521_diffie_hellman;
+use script_bindings::codegen::GenericBindings::CryptoKeyBinding::{
+    CryptoKeyPair, KeyType, KeyUsage,
+};
+use script_bindings::codegen::GenericBindings::SubtleCryptoBinding::KeyFormat;
+use script_bindings::error::Error;
+use script_bindings::root::DomRoot;
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{CryptoKeyPair, KeyType, KeyUsage};
-use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyFormat;
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::cryptokey::{CryptoKey, Handle};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::subtlecrypto::ec_common::EcAlgorithm;
-use crate::dom::subtlecrypto::{
+use crate::cryptokey::{CryptoKey, Handle};
+use crate::subtlecrypto::ec_common::EcAlgorithm;
+use crate::subtlecrypto::{
     EcKeyGenParams, EcKeyImportParams, EcdhKeyDeriveParams, ExportedKey,
     KeyAlgorithmAndDerivatives, NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521, ec_common,
 };
+use crate::traits::Equivalence;
 
 /// <https://w3c.github.io/webcrypto/#ecdh-operations-generate-key>
 pub(crate) fn generate_key(

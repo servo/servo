@@ -4,16 +4,16 @@
 
 use aes_kw::{KeyInit, KwAes128, KwAes192, KwAes256};
 use js::context::JSContext;
+use script_bindings::codegen::GenericBindings::CryptoKeyBinding::KeyUsage;
+use script_bindings::codegen::GenericBindings::SubtleCryptoBinding::KeyFormat;
+use script_bindings::error::Error;
+use script_bindings::root::DomRoot;
 use zeroize::Zeroizing;
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::KeyUsage;
-use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyFormat;
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::cryptokey::{CryptoKey, Handle};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::subtlecrypto::aes_common::AesAlgorithm;
-use crate::dom::subtlecrypto::{AesDerivedKeyParams, AesKeyGenParams, ExportedKey, aes_common};
+use crate::cryptokey::{CryptoKey, Handle};
+use crate::subtlecrypto::aes_common::AesAlgorithm;
+use crate::subtlecrypto::{AesDerivedKeyParams, AesKeyGenParams, ExportedKey, aes_common};
+use crate::traits::Equivalence;
 
 /// <https://w3c.github.io/webcrypto/#aes-kw-operations-wrap-key>
 pub(crate) fn wrap_key(key: &CryptoKey, plaintext: &[u8]) -> Result<Vec<u8>, Error> {

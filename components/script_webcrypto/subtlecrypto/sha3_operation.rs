@@ -2,11 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use script_bindings::error::Error;
 use sha3::digest::Digest;
 use sha3::{Sha3_256, Sha3_384, Sha3_512};
 
-use crate::dom::bindings::error::Error;
-use crate::dom::subtlecrypto::{Algorithm, CryptoAlgorithm};
+use crate::subtlecrypto::{Algorithm, CryptoAlgorithm};
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#sha3-operations-digest>
 pub(crate) fn digest(normalized_algorithm: &Algorithm, message: &[u8]) -> Result<Vec<u8>, Error> {

@@ -9,20 +9,20 @@ use ml_dsa::{
     Generate, KeyExport, KeyInit, Keypair, MlDsa44, MlDsa65, MlDsa87, Signature, SignatureEncoding,
     SigningKey, VerifyingKey,
 };
-
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
+use script_bindings::codegen::GenericBindings::CryptoKeyBinding::{
     CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
 };
-use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::subtlecrypto::{
+use script_bindings::codegen::GenericBindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
+use script_bindings::error::Error;
+use script_bindings::root::DomRoot;
+use script_bindings::str::DOMString;
+
+use crate::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
+use crate::subtlecrypto::{
     Algorithm, ContextParams, CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField,
     KeyAlgorithm, KeyAlgorithmAndDerivatives,
 };
+use crate::traits::Equivalence;
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#ml-dsa-operations-sign>
 pub(crate) fn sign(

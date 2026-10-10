@@ -9,23 +9,23 @@ use rsa::pkcs8::spki::{DecodePublicKey, EncodePublicKey};
 use rsa::pkcs8::{DecodePrivateKey, EncodePrivateKey};
 use rsa::traits::{PrivateKeyParts, PublicKeyParts};
 use rsa::{BoxedUint, RsaPrivateKey, RsaPublicKey};
-
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
+use script_bindings::codegen::GenericBindings::CryptoKeyBinding::{
     CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
 };
-use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
+use script_bindings::codegen::GenericBindings::SubtleCryptoBinding::{
     AlgorithmIdentifier, JsonWebKey, KeyFormat, RsaOtherPrimesInfo,
 };
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::subtlecrypto::{
+use script_bindings::error::Error;
+use script_bindings::root::DomRoot;
+use script_bindings::str::DOMString;
+
+use crate::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
+use crate::subtlecrypto::{
     CryptoAlgorithm, DigestOperation, ExportedKey, JsonWebKeyExt, JwkStringField,
     KeyAlgorithmAndDerivatives, NormalizedAlgorithm, RsaHashedImportParams, RsaHashedKeyAlgorithm,
     RsaHashedKeyGenParams, normalize_algorithm,
 };
+use crate::traits::Equivalence;
 
 pub(crate) enum RsaAlgorithm {
     RsassaPkcs1v1_5,

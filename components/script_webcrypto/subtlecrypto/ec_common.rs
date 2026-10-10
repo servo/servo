@@ -10,21 +10,20 @@ use p256::NistP256;
 use p384::NistP384;
 use p521::NistP521;
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
+use crate::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
+use crate::dom::bindings::codegen::GenericBindings::CryptoKeyBinding::{
     CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
 };
-use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
+use crate::dom::bindings::codegen::GenericBindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::subtlecrypto::{
-    CryptoAlgorithm, EcKeyAlgorithm, EcKeyGenParams, EcKeyImportParams, ExportedKey,
+use crate::subtlecrypto::{
+    CryptoAlgorithm, EcKeyAlgorithm, EcKeyGenParams, EcKeyImportParams, ExportedKey, JsonWebKeyExt,
     JwkStringField, KeyAlgorithmAndDerivatives, NAMED_CURVE_P256, NAMED_CURVE_P384,
     NAMED_CURVE_P521, SUPPORTED_CURVES,
 };
-use crate::dom::webcrypto::subtlecrypto::JsonWebKeyExt;
+use crate::traits::Equivalence;
 
 #[derive(PartialEq)]
 pub(crate) enum EcAlgorithm {

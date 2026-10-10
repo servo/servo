@@ -5,20 +5,22 @@
 use js::context::JSContext;
 use rsa::pkcs1v15::{Signature, SigningKey, VerifyingKey};
 use rsa::signature::{SignatureEncoding, Signer, Verifier};
+use script_bindings::codegen::GenericBindings::CryptoKeyBinding::{
+    CryptoKeyPair, KeyType, KeyUsage,
+};
+use script_bindings::codegen::GenericBindings::SubtleCryptoBinding::KeyFormat;
+use script_bindings::error::Error;
+use script_bindings::root::DomRoot;
 use sha1::Sha1;
 use sha2::{Sha256, Sha384, Sha512};
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{CryptoKeyPair, KeyType, KeyUsage};
-use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyFormat;
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::cryptokey::{CryptoKey, Handle};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::subtlecrypto::rsa_common::{self, RsaAlgorithm};
-use crate::dom::subtlecrypto::{
+use crate::cryptokey::{CryptoKey, Handle};
+use crate::subtlecrypto::rsa_common::{self, RsaAlgorithm};
+use crate::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, KeyAlgorithmAndDerivatives, NormalizedAlgorithm,
     RsaHashedImportParams, RsaHashedKeyGenParams,
 };
+use crate::traits::Equivalence;
 
 /// <https://w3c.github.io/webcrypto/#rsassa-pkcs1-operations-sign>
 pub(crate) fn sign(key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {

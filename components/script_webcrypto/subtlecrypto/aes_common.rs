@@ -5,21 +5,21 @@
 use aes::cipher::common::{Generate, Key};
 use aes::{Aes128, Aes192, Aes256};
 use js::context::JSContext;
-use zeroize::Zeroizing;
-
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
+use script_bindings::codegen::GenericBindings::CryptoKeyBinding::{
     CryptoKeyMethods, KeyType, KeyUsage,
 };
-use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::subtlecrypto::{
+use script_bindings::codegen::GenericBindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
+use script_bindings::error::Error;
+use script_bindings::root::DomRoot;
+use script_bindings::str::DOMString;
+use zeroize::Zeroizing;
+
+use crate::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
+use crate::subtlecrypto::{
     AesDerivedKeyParams, AesKeyAlgorithm, AesKeyGenParams, CryptoAlgorithm, ExportedKey,
     JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
 };
+use crate::traits::Equivalence;
 
 #[expect(clippy::enum_variant_names)]
 pub(crate) enum AesAlgorithm {

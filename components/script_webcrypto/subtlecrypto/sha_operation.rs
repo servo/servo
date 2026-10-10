@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use aws_lc_rs::digest;
+use script_bindings::error::Error;
 
-use crate::dom::bindings::error::Error;
-use crate::dom::subtlecrypto::{Algorithm, CryptoAlgorithm};
+use crate::subtlecrypto::{Algorithm, CryptoAlgorithm};
 
 /// <https://w3c.github.io/webcrypto/#sha-operations-digest>
 pub(crate) fn digest(nomrmalized_algorithm: &Algorithm, message: &[u8]) -> Result<Vec<u8>, Error> {

@@ -4,9 +4,9 @@
 
 use cshake::digest::{ExtendableOutput, Update};
 use cshake::{CShake128, CShake256};
+use script_bindings::error::Error;
 
-use crate::dom::bindings::error::Error;
-use crate::dom::subtlecrypto::{CShakeParams, CryptoAlgorithm};
+use crate::subtlecrypto::{CShakeParams, CryptoAlgorithm};
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#cshake-operations-digest>
 pub(crate) fn digest(

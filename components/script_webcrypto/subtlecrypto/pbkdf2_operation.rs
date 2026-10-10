@@ -6,16 +6,16 @@ use std::num::NonZero;
 
 use aws_lc_rs::pbkdf2;
 use js::context::JSContext;
+use script_bindings::codegen::GenericBindings::CryptoKeyBinding::{KeyType, KeyUsage};
+use script_bindings::codegen::GenericBindings::SubtleCryptoBinding::KeyFormat;
+use script_bindings::error::Error;
+use script_bindings::root::DomRoot;
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{KeyType, KeyUsage};
-use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyFormat;
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::subtlecrypto::{
+use crate::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
+use crate::subtlecrypto::{
     CryptoAlgorithm, KeyAlgorithm, KeyAlgorithmAndDerivatives, NormalizedAlgorithm, Pbkdf2Params,
 };
+use crate::traits::Equivalence;
 
 /// <https://w3c.github.io/webcrypto/#pbkdf2-operations-derive-bits>
 pub(crate) fn derive_bits(

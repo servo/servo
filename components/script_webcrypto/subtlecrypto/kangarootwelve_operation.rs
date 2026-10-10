@@ -3,9 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use k12::{CustomRefKt128, CustomRefKt256, ExtendableOutput, Update};
+use script_bindings::error::Error;
 
-use crate::dom::bindings::error::Error;
-use crate::dom::subtlecrypto::{CryptoAlgorithm, KangarooTwelveParams};
+use crate::subtlecrypto::{CryptoAlgorithm, KangarooTwelveParams};
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#kangarootwelve-operations-digest>
 pub(crate) fn digest(

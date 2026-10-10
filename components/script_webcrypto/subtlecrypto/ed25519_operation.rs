@@ -7,21 +7,21 @@ use ed25519_dalek::pkcs8::{
 };
 use ed25519_dalek::{Signature, Signer, SigningKey, VerifyingKey};
 use js::context::JSContext;
-use zeroize::Zeroize;
-
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
+use script_bindings::codegen::GenericBindings::CryptoKeyBinding::{
     CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
 };
-use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::subtlecrypto::{
+use script_bindings::codegen::GenericBindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
+use script_bindings::error::Error;
+use script_bindings::root::DomRoot;
+use script_bindings::str::DOMString;
+use zeroize::Zeroize;
+
+use crate::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
+use crate::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithm,
     KeyAlgorithmAndDerivatives,
 };
+use crate::traits::Equivalence;
 
 /// <https://w3c.github.io/webcrypto/#ed25519-operations-sign>
 pub(crate) fn sign(key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {

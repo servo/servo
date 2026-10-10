@@ -7,20 +7,21 @@ use aws_lc_rs::hmac;
 use js::context::JSContext;
 use rand::TryRng;
 use rand::rngs::SysRng;
-use script_bindings::codegen::GenericBindings::CryptoKeyBinding::CryptoKeyMethods;
+use script_bindings::codegen::GenericBindings::CryptoKeyBinding::{
+    CryptoKeyMethods, KeyType, KeyUsage,
+};
+use script_bindings::codegen::GenericBindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
 use script_bindings::domstring::DOMString;
+use script_bindings::error::Error;
+use script_bindings::root::DomRoot;
 use zeroize::Zeroizing;
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{KeyType, KeyUsage};
-use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::subtlecrypto::{
+use crate::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
+use crate::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, HmacImportParams, HmacKeyAlgorithm, HmacKeyGenParams,
     JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives, NormalizedAlgorithm,
 };
+use crate::traits::Equivalence;
 
 /// <https://w3c.github.io/webcrypto/#hmac-operations-sign>
 pub(crate) fn sign(key: &CryptoKey, message: &[u8]) -> Result<Vec<u8>, Error> {

@@ -7,17 +7,17 @@ use ctr::Ctr128BE;
 use ctr::cipher::StreamCipher;
 use ctr::cipher::common::KeyIvInit;
 use js::context::JSContext;
+use script_bindings::codegen::GenericBindings::CryptoKeyBinding::KeyUsage;
+use script_bindings::codegen::GenericBindings::SubtleCryptoBinding::KeyFormat;
+use script_bindings::error::Error;
+use script_bindings::root::DomRoot;
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::KeyUsage;
-use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyFormat;
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::cryptokey::{CryptoKey, Handle};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::subtlecrypto::aes_common::AesAlgorithm;
-use crate::dom::subtlecrypto::{
+use crate::cryptokey::{CryptoKey, Handle};
+use crate::subtlecrypto::aes_common::AesAlgorithm;
+use crate::subtlecrypto::{
     AesCtrParams, AesDerivedKeyParams, AesKeyGenParams, ExportedKey, aes_common,
 };
+use crate::traits::Equivalence;
 
 /// Use aes::Ctr128BE by default. According to the WebCrypto API specification, the counter MUST be
 /// 16 bytes (the AES block size), and the counter bits are interpreted as a big-endian integer.

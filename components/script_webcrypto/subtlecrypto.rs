@@ -35,20 +35,48 @@ mod x25519_operation;
 mod x448_operation;
 
 use std::fmt::Display;
+use std::marker::PhantomData;
 use std::ptr;
 use std::str::FromStr;
 
 use base64ct::{Base64UrlUnpadded, Encoding};
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use js::conversions::{ConversionBehavior, ConversionResult, FromJSValConvertible};
+use js::conversions::{
+    ConversionBehavior, ConversionResult, FromJSValConvertible, ToJSValConvertible,
+};
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{ObjectOrNullValue, UndefinedValue};
 use js::realm::CurrentRealm;
+use js::rooted;
 use js::rust::wrappers2::{JS_NewObject, JS_ParseJSON};
 use js::rust::{HandleObject, MutableHandleValue, Trace};
 use js::typedarray::{ArrayBufferU8, HeapUint8Array};
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use jstraceable_derive::JSTraceable;
+use malloc_size_of_derive::MallocSizeOf;
+use script_bindings::buffer_source::{create_buffer_source, get_buffer_source_copy};
+use script_bindings::codegen::GenericBindings::CryptoKeyBinding::{
+    CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
+};
+use script_bindings::codegen::GenericBindings::SubtleCryptoBinding::{
+    Algorithm as AlgorithmWithDOMString, AlgorithmIdentifier, JsonWebKey, KeyFormat,
+    SubtleCryptoMethods, Wrap as SubtleCryptoWrap,
+};
+use script_bindings::codegen::GenericUnionTypes::{
+    ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey,
+};
+use script_bindings::conversions::{StringificationBehavior, get_property};
+use script_bindings::error::{Error, Fallible};
+use script_bindings::interfaces::{
+    PromiseHelpers, StackRootPromiseHelpers, ThreadTrustedPromiseHelpers,
+};
+use script_bindings::refcounted::Trusted;
+use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
+use script_bindings::root::DomRoot;
+use script_bindings::str::{DOMString, serialize_jsval_to_json_utf8};
+use script_bindings::trace::RootedTraceableBox;
+use script_bindings::utils::set_dictionary_property;
+use script_bindings::{DomTypes, task};
 use servo_constellation_traits::{
     SerializableAesKeyAlgorithm, SerializableAlgorithm, SerializableCShakeParams,
     SerializableDigestAlgorithm, SerializableEcKeyAlgorithm, SerializableHmacKeyAlgorithm,
@@ -59,30 +87,8 @@ use servo_constellation_traits::{
 use strum::{EnumString, IntoStaticStr, VariantArray};
 use zeroize::Zeroizing;
 
-use crate::dom::bindings::buffer_source::{create_buffer_source, get_buffer_source_copy};
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
-    CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
-};
-use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{
-    Algorithm as AlgorithmWithDOMString, AlgorithmIdentifier, JsonWebKey, KeyFormat,
-    SubtleCryptoMethods,
-};
-use crate::dom::bindings::codegen::UnionTypes::{
-    ArrayBufferViewOrArrayBuffer, ArrayBufferViewOrArrayBufferOrJsonWebKey,
-};
-use crate::dom::bindings::conversions::{
-    StringificationBehavior, ToJSValConvertible, get_property,
-};
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::{DOMString, serialize_jsval_to_json_utf8};
-use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::bindings::utils::set_dictionary_property;
-use crate::dom::cryptokey::{CryptoKey, CryptoKeyOrCryptoKeyPair};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::{Promise, RootedPromise};
+use crate::cryptokey::{CryptoKey, CryptoKeyOrCryptoKeyPair};
+use crate::traits::{Equivalence, WebCryptoGlobalTrait};
 
 // Named elliptic curves
 const NAMED_CURVE_P256: &str = "P-256";

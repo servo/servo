@@ -9,17 +9,17 @@ use aes_gcm::aead::common::typenum::{U4, U8, U12, U13, U14, U15, U16, U32};
 use aes_gcm::aes::cipher::BlockCipherEncrypt;
 use aes_gcm::{AeadInOut, AesGcm, Key, KeyInit, TagSize as SealedTagSize};
 use js::context::JSContext;
+use script_bindings::codegen::GenericBindings::CryptoKeyBinding::KeyUsage;
+use script_bindings::codegen::GenericBindings::SubtleCryptoBinding::KeyFormat;
+use script_bindings::error::Error;
+use script_bindings::root::DomRoot;
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::KeyUsage;
-use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyFormat;
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::cryptokey::{CryptoKey, Handle};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::subtlecrypto::aes_common::AesAlgorithm;
-use crate::dom::subtlecrypto::{
+use crate::cryptokey::{CryptoKey, Handle};
+use crate::subtlecrypto::aes_common::AesAlgorithm;
+use crate::subtlecrypto::{
     AesDerivedKeyParams, AesGcmParams, AesKeyGenParams, ExportedKey, aes_common,
 };
+use crate::traits::Equivalence;
 
 /// <https://w3c.github.io/webcrypto/#aes-gcm-operations-encrypt>
 pub(crate) fn encrypt(

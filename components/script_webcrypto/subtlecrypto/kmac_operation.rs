@@ -7,21 +7,21 @@ use cshake::digest::{ExtendableOutput, Update};
 use ctutils::CtEq;
 use js::context::JSContext;
 use rand::TryRng;
-use zeroize::Zeroizing;
-
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
+use script_bindings::codegen::GenericBindings::CryptoKeyBinding::{
     CryptoKeyMethods, KeyType, KeyUsage,
 };
-use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
-use crate::dom::bindings::error::Error;
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::str::DOMString;
-use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::subtlecrypto::{
+use script_bindings::codegen::GenericBindings::SubtleCryptoBinding::{JsonWebKey, KeyFormat};
+use script_bindings::error::Error;
+use script_bindings::root::DomRoot;
+use script_bindings::str::DOMString;
+use zeroize::Zeroizing;
+
+use crate::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
+use crate::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
     KmacImportParams, KmacKeyAlgorithm, KmacKeyGenParams, KmacParams,
 };
+use crate::traits::Equivalence;
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#kmac-operations-sign>
 pub(crate) fn sign(

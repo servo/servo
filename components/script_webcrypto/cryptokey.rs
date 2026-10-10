@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::marker::PhantomData;
 use std::str::FromStr;
 
 use dom_struct::dom_struct;
@@ -9,10 +10,19 @@ use itertools::Itertools;
 use js::context::NoGC;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::{Heap, JSObject, Value};
+use js::rooted;
 use js::rust::MutableHandleObject;
-use malloc_size_of::MallocSizeOf;
+use jstraceable_derive::JSTraceable;
+use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
+use malloc_size_of_derive::MallocSizeOf;
 use rustc_hash::FxHashMap;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::DomTypes;
+use script_bindings::codegen::GenericBindings::CryptoKeyBinding::{
+    CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage, Wrap as CryptoKeyWrap,
+};
+use script_bindings::error::{Error, ErrorResult};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_wrap};
+use script_bindings::root::DomRoot;
 use script_bindings::serializable::Serializable;
 use script_bindings::structuredclone::StructuredData;
 use servo_base::id::{CryptoKeyId, CryptoKeyIndex};
@@ -20,13 +30,8 @@ use servo_constellation_traits::{SerializableCryptoKey, SerializableCryptoKeyHan
 use strum::VariantArray;
 use zeroize::Zeroizing;
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
-    CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
-};
-use crate::dom::bindings::error::{Error, ErrorResult};
-use crate::dom::bindings::root::DomRoot;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::subtlecrypto::KeyAlgorithmAndDerivatives;
+use crate::subtlecrypto::KeyAlgorithmAndDerivatives;
+use crate::traits::Equivalence;
 
 pub(crate) enum CryptoKeyOrCryptoKeyPair {
     CryptoKey(DomRoot<CryptoKey>),
@@ -306,7 +311,7 @@ impl Handle {
 }
 
 impl MallocSizeOf for Handle {
-    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
         match self {
             Handle::RsaPrivateKey(private_key) => private_key.size_of(ops),
             Handle::RsaPublicKey(public_key) => public_key.size_of(ops),
