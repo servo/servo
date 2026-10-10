@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Region subtags affects localized glyph selection</title>
+<link rel="help", href="https://drafts.csswg.org/css-fonts-4/#default-features">
+<link rel="help", href="https://datatracker.ietf.org/doc/html/rfc5646#section-2.2.4">
+<link rel="author" title="Richard Tjokroutomo" href="mailto:richard.tjokro2@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+    /*
+     * Font obtained from Adobe's LOCL Test:
+     * https://github.com/adobe-fonts/locl-test
+     *
+     * Modified the glyph advances for zh-CN and zh-HK for the character '遍'
+     * from 1000 units to 500 and 1500 units respectively.
+     */
+    @font-face {
+        font-family: "ModifiedLOCLFont";
+        src: url("support/fonts/Modified-LOCLTest-Regular.otf");
+    }
+
+    .sample {
+        font-family: "ModifiedLOCLFont";
+        font-size: 100px;
+        font-synthesis: none;
+        font-feature-settings: "locl" 1;
+        display: inline-block;
+        white-space: nowrap;
+    }
+</style>
+
+<div id="cn" class="sample" lang="zh-CN">遍</div>
+<div id="hk" class="sample" lang="zh-HK">遍</div>
+
+<script>
+    promise_test(async () => {
+        const loaded = await document.fonts.load('100px "ModifiedLOCLFont');
+        await document.fonts.ready;
+
+        assert_equals(loaded.length, 1, "Expected the test font to load");
+
+        const cnWidth = document.getElementById("cn").getBoundingClientRect().width;
+        const hkWidth = document.getElementById("hk").getBoundingClientRect().width;
+
+        assert_approx_equals(
+            cnWidth, 50, 0.1,
+            "zh-CN should use the glyph with advance 500 units, which corresponds to 50px"
+        );
+
+        assert_approx_equals(
+            hkWidth, 150, 0.1,
+            "zh-HK should use the glyph with advance 1500 units, which corresponds to 150px"
+        );
+    }, "Language region subtags select different glyphs");
+</script>

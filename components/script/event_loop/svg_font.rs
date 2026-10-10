@@ -9,6 +9,8 @@ use fonts::{
     FallbackFontSelectionOptions, FontContext, FontDescriptor, FontFamilyDescriptor,
     FontSearchScope, fallback_font_families,
 };
+use icu_locale_core::LanguageIdentifier;
+use icu_locale_core::subtags::Language;
 use net_traits::image_cache::FontResolver;
 use resvg::usvg::{Font, FontFamily, FontStretch, FontStyle, fontdb};
 use rustc_hash::FxHashMap;
@@ -181,11 +183,8 @@ impl FontResolver for SvgFontResolver {
                 return Some(*font_id);
             }
         }
-        let fallback_options = FallbackFontSelectionOptions::new(
-            character,
-            None,
-            icu_locale_core::subtags::Language::UNKNOWN,
-        );
+        let language = LanguageIdentifier::from(Language::UNKNOWN);
+        let fallback_options = FallbackFontSelectionOptions::new(character, None, &language);
         for family in fallback_font_families(fallback_options) {
             let family = FontFamilyDescriptor::new(
                 SingleFontFamily::FamilyName(FamilyName {
