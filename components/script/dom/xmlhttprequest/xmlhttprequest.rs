@@ -182,7 +182,7 @@ impl ResourceTimingListener for XHRContext {
 }
 
 #[derive(Clone)]
-pub(crate) enum XHRProgress {
+enum XHRProgress {
     /// Notify that headers have been received
     HeadersReceived(GenerationId, Option<HeaderMap>, HttpStatus),
     /// Partial progress (after receiving headers), containing portion of the response
