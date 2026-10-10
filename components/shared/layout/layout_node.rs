@@ -11,6 +11,7 @@ use atomic_refcell::AtomicRef;
 use net_traits::image_cache::Image;
 use pixels::ImageMetadata;
 use servo_arc::Arc;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{BrowsingContextId, PipelineId};
 use servo_base::text::{RangeAny, Utf32CodeUnits};
 use servo_url::ServoUrl;
@@ -188,6 +189,9 @@ pub trait LayoutNode<'dom>: Copy + Debug + NodeInfo + Send + Sync {
 
     /// If this is an image element, returns its URL. If this is not an image element, fails.
     fn image_url(&self) -> Option<ServoUrl>;
+
+    /// If this is an image element, returns the time when image request finished loading.
+    fn load_time(&self) -> Option<CrossProcessInstant>;
 
     /// If this is an image element, returns its current-pixel-density. If this is not an image element, fails.
     fn image_density(&self) -> Option<f64>;

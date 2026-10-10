@@ -15,6 +15,7 @@ use layout_api::{
 use net_traits::image_cache::Image;
 use pixels::ImageMetadata;
 use servo_arc::Arc;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{BrowsingContextId, PipelineId};
 use servo_base::text::{RangeAny, Utf32CodeUnits};
 use servo_url::ServoUrl;
@@ -278,6 +279,10 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
 
     fn image_data(&self) -> Option<(Option<Image>, Option<ImageMetadata>)> {
         self.node.image_data()
+    }
+
+    fn load_time(&self) -> Option<CrossProcessInstant> {
+        self.node.load_time()
     }
 
     fn canvas_data(&self) -> Option<HTMLCanvasData> {

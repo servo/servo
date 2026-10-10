@@ -14,6 +14,7 @@ use pixels::ImageMetadata;
 use script_bindings::codegen::InheritTypes::{
     ElementTypeId, HTMLElementTypeId, SVGElementTypeId, SVGGraphicsElementTypeId,
 };
+use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{BrowsingContextId, PipelineId};
 use servo_base::text::{RangeAny, Utf16CodeUnits, Utf32CodeUnits};
 use servo_url::ServoUrl;
@@ -307,6 +308,11 @@ impl<'dom> LayoutDom<'dom, Node> {
 
     pub(crate) fn image_data(self) -> Option<(Option<Image>, Option<ImageMetadata>)> {
         self.downcast::<HTMLImageElement>().map(|e| e.image_data())
+    }
+
+    pub(crate) fn load_time(self) -> Option<CrossProcessInstant> {
+        self.downcast::<HTMLImageElement>()
+            .and_then(|image_element| image_element.load_time())
     }
 
     pub(crate) fn image_density(self) -> Option<f64> {

@@ -15,6 +15,7 @@ use gradient::WebRenderGradient;
 use layout_api::ReflowStatistics;
 use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
 use servo_arc::Arc as ServoArc;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{PipelineId, ScrollTreeNodeId};
 use servo_config::opts::{DiagnosticsLogging, DiagnosticsLoggingOption};
 use servo_config::{pref, prefs};
@@ -714,6 +715,7 @@ impl DisplayListBuilder<'_> {
         url: Option<ServoUrl>,
         natural_width: Option<Au>,
         natural_height: Option<Au>,
+        load_time: Option<CrossProcessInstant>,
     ) {
         if !self.largest_contentful_paint_enabled {
             return;
@@ -732,6 +734,7 @@ impl DisplayListBuilder<'_> {
             url,
             natural_width,
             natural_height,
+            load_time,
         );
     }
 
@@ -961,6 +964,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
                     fragment.url.clone(),
                     fragment.natural_width,
                     fragment.natural_height,
+                    fragment.load_time,
                 );
 
                 self.collect_container_timing_record(
@@ -2040,6 +2044,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                             Some(url),
                             natural_width,
                             natural_height,
+                            image.load_time(),
                         );
 
                         builder.collect_container_timing_record(
