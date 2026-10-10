@@ -767,7 +767,7 @@ impl Deref for FontRef {
 pub struct FallbackKey {
     script: Script,
     unicode_block: Option<UnicodeBlock>,
-    #[ignore_malloc_size_of = "pointers have negligible size"]
+    #[ignore_malloc_size_of = "LanguageIdentifier doesn't implement MallocSizeOf"]
     language: LanguageIdentifier,
 }
 
