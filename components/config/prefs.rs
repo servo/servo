@@ -330,6 +330,8 @@ pub struct Preferences {
     pub layout_variable_fonts_enabled: bool,
     // feature: CSS writing modes | #2560 | Web/CSS/Guides/Writing_modes
     pub layout_writing_mode_enabled: bool,
+    /// Whether MathML Core support is enabled.
+    pub mathml_core_enabled: bool,
     /// Enable hardware acceleration for video playback.
     pub media_glvideo_enabled: bool,
     /// Enable a non-standard event handler for verifying behavior of media elements during tests.
@@ -559,6 +561,7 @@ impl Preferences {
             layout_unimplemented: false,
             layout_variable_fonts_enabled: false,
             layout_writing_mode_enabled: false,
+            mathml_core_enabled: false,
             media_glvideo_enabled: false,
             media_testing_enabled: false,
             network_connection_timeout: 15,

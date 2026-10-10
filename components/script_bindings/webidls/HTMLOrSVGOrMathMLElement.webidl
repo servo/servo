@@ -14,7 +14,7 @@ dictionary FocusOptions {
   // boolean focusVisible;
 };
 
-interface mixin HTMLOrSVGElement {
+interface mixin HTMLOrSVGOrMathMLElement {
   // [SameObject] readonly attribute DOMStringMap dataset;
   attribute DOMString nonce; // intentionally no [CEReactions]
 

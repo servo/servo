@@ -86,6 +86,7 @@ use crate::dom::html::htmlulistelement::HTMLUListElement;
 use crate::dom::html::htmlunknownelement::HTMLUnknownElement;
 use crate::dom::html::htmlvideoelement::HTMLVideoElement;
 use crate::dom::htmlmarqueeelement::HTMLMarqueeElement;
+use crate::dom::mathmlelement::MathMLElement;
 use crate::dom::svg::svgaelement::SVGAElement;
 use crate::dom::svg::svgcircleelement::SVGCircleElement;
 use crate::dom::svg::svgdefselement::SVGDefsElement;
@@ -149,6 +150,19 @@ fn create_svg_element(
         local_name!("use") => make!(SVGUseElement),
         _ => make!(SVGElement),
     }
+}
+
+fn create_mathml_element(
+    cx: &mut JSContext,
+    name: QualName,
+    prefix: Option<Prefix>,
+    document: &Document,
+    proto: Option<HandleObject>,
+) -> DomRoot<Element> {
+    assert_eq!(name.ns, ns!(mathml));
+
+    let obj = MathMLElement::new(cx, name.local, prefix, document, proto);
+    DomRoot::upcast(obj)
 }
 
 /// <https://dom.spec.whatwg.org/#concept-create-element>
@@ -488,6 +502,7 @@ pub(crate) fn create_element(
     match name.ns {
         ns!(html) => create_html_element(cx, name, prefix, is, document, creator, mode, proto),
         ns!(svg) => create_svg_element(cx, name, prefix, document, proto),
+        ns!(mathml) => create_mathml_element(cx, name, prefix, document, proto),
         _ => Element::new(cx, name.local, name.ns, prefix, document, proto),
     }
 }
