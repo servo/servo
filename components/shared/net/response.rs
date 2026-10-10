@@ -259,9 +259,9 @@ impl Response {
             return Response::network_error(e);
         }
 
-        let old_headers = old_response.headers.clone();
         let exposed_headers = old_response.cors_exposed_header_name_list.clone();
         let mut response = old_response.clone();
+        let old_headers = std::mem::take(&mut response.headers);
         response.internal_response = Some(Box::new(old_response));
         response.response_type = filter_type;
 
