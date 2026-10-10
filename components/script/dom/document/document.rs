@@ -4009,6 +4009,11 @@ impl<'dom> LayoutDom<'dom, Document> {
     }
 
     #[inline]
+    pub(crate) fn encoding_for_layout(&self) -> &'static Encoding {
+        self.unsafe_get().encoding.get()
+    }
+
+    #[inline]
     pub(crate) fn quirks_mode(self) -> QuirksMode {
         self.unsafe_get().quirks_mode.get()
     }

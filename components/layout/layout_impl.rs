@@ -16,6 +16,7 @@ use bitflags::bitflags;
 use embedder_traits::{
     EmbedderMsg, ScriptToEmbedderChan, Theme, UntrustedNodeAddress, ViewportDetails,
 };
+use encoding_rs::ISO_8859_8;
 use euclid::{Point2D, Rect, Scale, Size2D};
 use fonts::{FontContext, FontContextWebFontMethods};
 use fonts_traits::{StylesheetWebFontLoadFinishedCallback, WebFontSetDifference};
@@ -121,6 +122,9 @@ static PRESENTATIONAL_HINTS_CSS: &[u8] = include_bytes!("./stylesheets/presentat
 
 /// A CSS file to style the quirks mode.
 static QUIRKS_MODE_CSS: &[u8] = include_bytes!("./stylesheets/quirks-mode.css");
+
+/// A CSS file to style documents that use the ISO-8859-8 encoding.
+static ISO_8859_8_CSS: &[u8] = include_bytes!("./stylesheets/iso-8859-8.css");
 
 /// Information needed by layout.
 pub struct LayoutThread {
@@ -1183,6 +1187,13 @@ impl LayoutThread {
                     ua_stylesheets.html_mode_stylesheet.clone(),
                     guards.ua_or_user,
                 );
+
+                if document.encoding() == ISO_8859_8 {
+                    self.stylist.append_stylesheet(
+                        ua_stylesheets.iso_8859_8_stylesheet.clone(),
+                        guards.ua_or_user,
+                    );
+                }
             }
 
             for user_stylesheet in self.user_stylesheets.iter() {
@@ -1821,10 +1832,14 @@ fn get_ua_stylesheets(shared_lock: &SharedRwLock) -> Rc<UserAgentStylesheets> {
                 let quirks_mode_stylesheet =
                     parse_ua_stylesheet(shared_lock, "quirks-mode.css", QUIRKS_MODE_CSS);
 
+                let iso_8859_8_stylesheet =
+                    parse_ua_stylesheet(shared_lock, "iso-8859-8.css", ISO_8859_8_CSS);
+
                 Rc::new(UserAgentStylesheets {
                     user_agent_stylesheets,
                     html_mode_stylesheet,
                     quirks_mode_stylesheet,
+                    iso_8859_8_stylesheet,
                 })
             })
             .clone()
@@ -1839,6 +1854,8 @@ pub struct UserAgentStylesheets {
     pub html_mode_stylesheet: DocumentStyleSheet,
     /// The quirks mode stylesheet.
     pub quirks_mode_stylesheet: DocumentStyleSheet,
+    /// The user agent stylesheet for documents that use the ISO-8859-8 encoding.
+    pub iso_8859_8_stylesheet: DocumentStyleSheet,
 }
 
 struct RegisteredPainterImpl {
