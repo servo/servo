@@ -2,18 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ffi::{CStr, CString, c_char, c_void};
+use std::ffi::{CStr, CString, c_char, c_int, c_void};
 use std::path::PathBuf;
 
-use embedder_traits::{
-    ConsoleLogLevel, Cursor, PermissionFeature, WebResourceRequest, WebResourceResponse,
-};
+use embedder_traits::{ConsoleLogLevel, Cursor, PermissionFeature};
 use url::Url;
 
-use crate::download::{
-    ServoDownloadContinueCallback, ServoDownloadItem, ServoDownloadUpdatedCallback,
-};
-use crate::find::{ServoFindResult, ServoFindResultCallback};
+use crate::download::{ServoDownloadContinueCallback, ServoDownloadItem};
+use crate::find::ServoFindResult;
 use crate::protocol_handler::{ServoWebResourceRequest, ServoWebResourceResponse};
 pub use servo_api::LoadStatus;
 use servo_api::{WebView, WebViewDelegate};
@@ -316,18 +312,6 @@ pub type ServoUnloadCallback = Option<unsafe extern "C" fn(proceed: bool, user_d
 /// (the certificate will be added to the override list), `false` to cancel the request.
 pub type ServoCertErrorCallback = Option<unsafe extern "C" fn(allow: bool, user_data: *mut c_void)>;
 
-/// Callback type for file picker dialog responses.
-///
-/// `paths` is an array of NUL-terminated UTF-8 file path strings, or NULL to cancel.
-/// `path_count` is the number of file paths in `paths`.
-/// `user_data` is the user data pointer passed to the trampoline.
-pub type ServoFilePickerCallback = Option<
-    unsafe extern "C" fn(
-        paths: *const *const c_char,
-        path_count: usize,
-        user_data: *mut c_void,
-    ),
->;
 
 /// The delegate that receives notifications about `WebView` events.
 ///
@@ -528,19 +512,6 @@ pub struct ServoWebViewDelegate {
     >,
 
     // Embedder control category (new)
-    /// Called when a file picker dialog should be shown (for `<input type=file>`).
-    ///
-    /// `params` contains the file picker parameters.
-    /// The embedder should show the dialog and call `callback` with the
-    /// selected files, or `NULL`/0 for Cancel.
-    pub show_file_picker: Option<
-        unsafe extern "C" fn(
-            webview: *mut WebView,
-            params: *const ServoFilePickerParams,
-            callback: ServoFilePickerCallback,
-            user_data: *mut c_void,
-        ),
-    >,
 
     /// Called when a select element dropdown should be shown (for `<select>`).
     ///

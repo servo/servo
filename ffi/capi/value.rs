@@ -6,10 +6,10 @@
 //! CefDictionaryValue, CefListValue).
 
 use std::collections::HashMap;
-use std::ffi::{CStr, CString, c_char, c_void};
-use std::os::raw::c_int;
+use std::ffi::{CStr, c_char};
 use std::sync::Arc;
 
+use base64::Engine;
 use servo_api::JSValue;
 
 use crate::ServoError;
@@ -228,7 +228,7 @@ impl ServoValue {
             ValueData::Binary(bytes) => {
                 // Encode binary as base64 string in JSON
                 output.push('"');
-                output.push_str(&base64::encode(bytes));
+                output.push_str(&base64::engine::general_purpose::STANDARD.encode(bytes));
                 output.push('"');
             },
             ValueData::Dictionary(map) => {

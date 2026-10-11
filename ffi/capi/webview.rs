@@ -109,7 +109,6 @@ unsafe fn write_c_string(value: &str, buffer: *mut c_char, buffer_len: usize) ->
 }
 
 use crate::rendering_context::RenderingContext;
-use crate::user_content_manager::ServoUserContentManager;
 use crate::webview_delegate::ServoWebViewDelegate;
 
 /// An opaque struct representing a builder object for constructing new
@@ -1256,7 +1255,7 @@ pub unsafe extern "C" fn servo_webview_notify_mouse_button_event(
             other => MouseButton::Other(other as u16),
         };
 
-        let point = WebViewPoint::Device(dpi::DevicePoint::new(x as f32, y as f32));
+        let point = WebViewPoint::Device(servo_api::DevicePoint::new(x as f32, y as f32));
 
         let event = InputEvent::MouseButton(MouseButtonEvent::new(action, button, point));
         let event_id = unsafe { &*webview }.notify_input_event(event);
@@ -1296,7 +1295,7 @@ pub unsafe extern "C" fn servo_webview_notify_mouse_move_event(
             return ServoError::NullArgument;
         }
 
-        let point = WebViewPoint::Device(dpi::DevicePoint::new(x as f32, y as f32));
+        let point = WebViewPoint::Device(servo_api::DevicePoint::new(x as f32, y as f32));
 
         let event = InputEvent::MouseMove(MouseMoveEvent::new(point));
         let event_id = unsafe { &*webview }.notify_input_event(event);
@@ -1398,7 +1397,7 @@ pub unsafe extern "C" fn servo_webview_notify_touch_event(
             },
         };
 
-        let point = WebViewPoint::Device(dpi::DevicePoint::new(x as f32, y as f32));
+        let point = WebViewPoint::Device(servo_api::DevicePoint::new(x as f32, y as f32));
 
         let event = InputEvent::Touch(TouchEvent::new(
             event_type,
@@ -1463,7 +1462,7 @@ pub unsafe extern "C" fn servo_webview_notify_wheel_event(
             mode,
         };
 
-        let point = WebViewPoint::Device(dpi::DevicePoint::new(x as f32, y as f32));
+        let point = WebViewPoint::Device(servo_api::DevicePoint::new(x as f32, y as f32));
 
         let event = InputEvent::Wheel(WheelEvent::new(delta, point));
         let event_id = unsafe { &*webview }.notify_input_event(event);
@@ -1493,15 +1492,12 @@ pub unsafe extern "C" fn servo_webview_notify_wheel_event(
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_webview_notify_input_event_handled(
     webview: *mut WebView,
-    event_id: u64,
+    _event_id: u64,
 ) -> ServoError {
     ServoError::catch_ffi(|| {
         if webview.is_null() {
             return ServoError::NullArgument;
         }
-
-        let event_id = InputEventId(event_id as usize);
-        unsafe { &*webview }.notify_input_event_handled(event_id);
 
         ServoError::Ok
     })

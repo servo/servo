@@ -6,7 +6,8 @@ use std::ffi::c_char;
 use std::os::raw::c_int;
 
 use cookie::Cookie;
-use servo_api::{Servo, Url};
+use servo_api::Servo;
+use url::Url;
 
 use crate::ServoError;
 
@@ -237,7 +238,7 @@ pub unsafe extern "C" fn servo_site_data_cookies_for_url(
         let cookies = manager
             .servo
             .site_data_manager()
-            .cookies_for_url(url, cookie::CookieSource::HTTP);
+            .cookies_for_url(url, servo_api::CookieSource::HTTP);
 
         // Store strings in thread-local storage
         COOKIE_STORAGE.with(|storage| {

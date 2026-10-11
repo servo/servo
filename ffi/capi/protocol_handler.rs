@@ -40,7 +40,6 @@ pub struct ServoProtocolHandler {
 /// - `response` is a valid pointer to a `ServoWebResourceResponse` that the callback populates.
 /// - The callback does not unwind across the FFI boundary.
 /// - The callback does not retain or use `request` or `response` after returning.
-#[repr(C)]
 pub type ServoProtocolHandlerCallback = unsafe extern "C" fn(
     request: *const ServoWebResourceRequest,
     response: *mut ServoWebResourceResponse,

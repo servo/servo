@@ -13,12 +13,12 @@ use crate::WebViewPoint;
 
 /// An opaque id for an [`InputEvent`].
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
-pub struct InputEventId(usize);
+pub struct InputEventId(pub usize);
 
 static INPUT_EVENT_ID: AtomicUsize = AtomicUsize::new(0);
 
 impl InputEventId {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Self(INPUT_EVENT_ID.fetch_add(1, Ordering::Relaxed))
     }
 }

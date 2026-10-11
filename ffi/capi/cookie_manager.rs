@@ -10,7 +10,7 @@ use crate::{
     ServoCookie, ServoSiteDataManager,
 };
 use cookie::Cookie;
-use servo_api::Url;
+use url::Url;
 
 /// Cookie visitor callback.
 ///
@@ -273,7 +273,7 @@ pub unsafe extern "C" fn servo_site_data_visit_cookies_for_url(
         let cookies = manager
             .servo
             .site_data_manager()
-            .visit_cookies_for_url(url, net_traits::CookieSource::HTTP);
+            .visit_cookies_for_url(url, servo_api::CookieSource::HTTP);
 
         // Call visitor for each cookie
         visit_cookies_with_callback(cookies, visitor, user_data);

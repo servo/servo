@@ -5,7 +5,7 @@
 use std::ffi::{c_char, c_void};
 use std::rc::Rc;
 
-use servo_api::{AllowOrDenyRequest, Servo, ServoDelegate};
+use servo_api::{AllowOrDenyRequest, Servo, ServoDelegate as RustServoDelegate};
 
 /// A delegate that receives notifications about Servo-level events.
 ///
@@ -73,7 +73,7 @@ struct ServoDelegateWrapper {
     delegate: ServoDelegate,
 }
 
-impl ServoDelegate for ServoDelegateWrapper {
+impl RustServoDelegate for ServoDelegateWrapper {
     fn notify_devtools_server_started(&self, port: u16, token: String) {
         let Some(callback) = self.delegate.notify_devtools_server_started else {
             return;
@@ -115,6 +115,6 @@ impl ServoDelegate for ServoDelegateWrapper {
 }
 
 /// Creates a boxed `ServoDelegate` trait object from the C delegate struct.
-pub fn make_servo_delegate(delegate: ServoDelegate) -> Rc<dyn ServoDelegate> {
+pub fn make_servo_delegate(delegate: ServoDelegate) -> Rc<dyn RustServoDelegate> {
     Rc::new(ServoDelegateWrapper { delegate })
 }

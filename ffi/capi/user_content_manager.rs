@@ -4,10 +4,9 @@
 
 //! UserContentManager C API for managing user scripts and styles.
 
-use std::ffi::c_void;
 use std::rc::Rc;
 
-use servo_api::{Servo, UserContentManager, WebViewBuilder};
+use servo_api::{Servo, UserContentManager};
 
 use crate::ServoError;
 

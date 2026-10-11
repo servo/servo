@@ -120,10 +120,9 @@ pub use javascript::{
 
 // Re-export user content manager types
 pub use user_content_manager::{
-    ServoUserContentManager, servo_user_content_manager_add_script,
-    servo_user_content_manager_add_style_sheet, servo_user_content_manager_create,
-    servo_user_content_manager_free, servo_user_content_manager_remove_script,
-    servo_user_content_manager_remove_style_sheet,
+    ServoUserContentManager, servo_user_content_manager_create,
+    servo_user_content_manager_enable_message_router,
+    servo_user_content_manager_free,
     servo_webview_builder_set_user_content_manager,
 };
 
