@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<link rel=help href="https://html.spec.whatwg.org/multipage/semantics-other.html#selector-open">
+<link rel=help href="https://html.spec.whatwg.org/multipage/rendering.html#the-select-element-2">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../../../popovers/resources/popover-utils.js"></script>
+
+<style>
+select, select::picker(select) {
+  appearance: base-select;
+}
+div:has(> select:open) {
+  color: rgb(0, 128, 0);
+}
+</style>
+
+<div>
+  <select id=staysDropdownBox>
+    <option id=staysDropdownBoxOption>one</option>
+    <option>two</option>
+  </select>
+</div>
+
+<div>
+  <select id=sizeMakesListBox>
+    <option>one</option>
+    <option>two</option>
+  </select>
+</div>
+
+<div>
+  <select id=multipleMakesListBox>
+    <option>one</option>
+    <option>two</option>
+  </select>
+</div>
+
+<script>
+const green = 'rgb(0, 128, 0)';
+
+promise_test(async t => {
+  const select = staysDropdownBox;
+  t.add_cleanup(() => select.remove());
+  await test_driver.click(select);
+  assert_true(select.matches(':open'), 'Select should be open after clicking it.');
+
+  select.size = 1;
+  await new Promise(requestAnimationFrame);
+  assert_true(select.matches(':open'), 'Select should still be open after setting size to 1.');
+  assert_true(staysDropdownBoxOption.checkVisibility(),
+    'The picker should still be showing after setting size to 1.');
+
+  select.removeAttribute('size');
+  await new Promise(requestAnimationFrame);
+  assert_true(select.matches(':open'), 'Select should still be open after removing size.');
+  assert_true(staysDropdownBoxOption.checkVisibility(),
+    'The picker should still be showing after removing size.');
+  assert_equals(getComputedStyle(select.parentElement).color, green,
+    'The parent should still match :has(> select:open).');
+
+  await test_driver.click(select);
+  assert_false(select.matches(':open'), 'Select should be closed after clicking it again.');
+}, 'A select that stays a dropdown box when its size changes keeps its picker open.');
+
+promise_test(async t => {
+  const select = sizeMakesListBox;
+  t.add_cleanup(() => select.remove());
+  await test_driver.click(select);
+  assert_true(select.matches(':open'), 'Select should be open after clicking it.');
+
+  select.size = 2;
+  assert_false(select.matches(':open'), 'A list box should not match :open.');
+  assert_not_equals(getComputedStyle(select.parentElement).color, green,
+    'The parent should no longer match :has(> select:open).');
+
+  await waitForRender();
+  select.removeAttribute('size');
+  await new Promise(requestAnimationFrame);
+  assert_false(select.matches(':open'),
+    'The picker should not reopen when the select becomes a dropdown box again.');
+}, 'A select that becomes a list box because of size stops matching :open.');
+
+promise_test(async t => {
+  const select = multipleMakesListBox;
+  t.add_cleanup(() => select.remove());
+  await test_driver.click(select);
+  assert_true(select.matches(':open'), 'Select should be open after clicking it.');
+
+  select.multiple = true;
+  assert_false(select.matches(':open'), 'A list box should not match :open.');
+  assert_not_equals(getComputedStyle(select.parentElement).color, green,
+    'The parent should no longer match :has(> select:open).');
+
+  await waitForRender();
+  select.multiple = false;
+  await new Promise(requestAnimationFrame);
+  assert_false(select.matches(':open'),
+    'The picker should not reopen when the select becomes a dropdown box again.');
+}, 'A select that becomes a list box because of multiple stops matching :open.');
+</script>

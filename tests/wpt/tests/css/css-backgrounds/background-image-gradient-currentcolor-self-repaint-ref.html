@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<style>
+  .box {
+    width: 100px;
+    height: 100px;
+    margin: 10px;
+    color: green;
+    outline-color: black;
+  }
+  #linear {
+    background: linear-gradient(white, green);
+  }
+  #color-mix {
+    background: linear-gradient(white, color-mix(in srgb, green, blue));
+  }
+</style>
+<p>There should be two squares below, and neither should contain red.</p>
+<div class="box" id="linear"></div>
+<div class="box" id="color-mix"></div>

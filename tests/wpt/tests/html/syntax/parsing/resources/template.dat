@@ -1745,6 +1745,8 @@ template
 | <table>
 |   <form>
 
+#description
+form start tags inside template do not set the form element pointer, so nested forms are kept
 #data
 <template><form><form><input></template>
 #errors

@@ -55,6 +55,19 @@ promise_test(async t => {
 
 promise_test(async t => {
     const placeholder = document.createElement("div");
+    const writer = placeholder.streamHTMLUnsafe().getWriter();
+    await writer.write("ABC");
+    assert_equals(placeholder.textContent, "ABC", "Text is inserted once write() resolves");
+    assert_equals(placeholder.childNodes.length, 1);
+    await writer.write("DEF");
+    assert_equals(placeholder.textContent, "ABCDEF");
+    assert_equals(placeholder.childNodes.length, 1, "Text from consecutive chunks is merged into one Text node");
+    await writer.close();
+    assert_equals(placeholder.textContent, "ABCDEF");
+}, "streamHTMLUnsafe() inserts bare text before close()");
+
+promise_test(async t => {
+    const placeholder = document.createElement("div");
     placeholder.innerHTML = "Before";
     const writable = placeholder.streamHTMLUnsafe();
     assert_true(writable instanceof WritableStream, "streamHTMLUnsafe() returns a writable stream");
@@ -108,7 +121,7 @@ promise_test(async t => {
     await writer.write("ABC");
     await writer.abort("abort-reason");
     await writer.write("DEF").catch(() => {});
-    assert_equals(placeholder.textContent, "");
+    assert_equals(placeholder.textContent, "ABC");
   }, "Aborting streamHTMLUnsafe()");
 
   promise_test(async t => {
@@ -179,4 +192,21 @@ promise_test(async t => {
     await writer.write("/script>");
     assert_false(window.did_eval_script);
 }, "streamHTMLUnsafe should not execute scripts when disconnected");
+
+promise_test(async t => {
+    const element = document.createElement("div");
+    document.body.append(element);
+    t.add_cleanup(() => element.remove());
+    const writer = element.streamHTMLUnsafe().getWriter();
+    await writer.write("<div id='styled-target-unsafe'>text</div><style>#styled-target-unsafe { color: rgb(0, 128, 0); }");
+    await writer.abort();
+    const style = element.querySelector("style");
+    assert_not_equals(style, null);
+    assert_not_equals(style.sheet, null, "Aborted open <style> element must have a parsed stylesheet");
+    assert_equals(
+        getComputedStyle(element.querySelector("#styled-target-unsafe")).color,
+        "rgb(0, 128, 0)",
+        "Aborted open <style> rules must apply",
+    );
+}, "Aborting streamHTMLUnsafe with an open <style> element pops open elements and applies styles");
 </script>

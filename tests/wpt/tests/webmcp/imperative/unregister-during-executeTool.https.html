@@ -10,27 +10,38 @@
 </head>
 <body>
 <script>
-const host_info = get_host_info();
+const hostInfo = get_host_info();
+
+// NOTE(https://crbug.com/565332588): For imperative tools (and declarative
+// tools that have already called SubmitEvent.respondWith()), unregistering
+// the tool mid-execution removes it from `getTools()` but intentionally
+// does NOT cancel in-flight `executeTool()` calls; those executions continue
+// until they naturally settle or are explicitly cancelled via `signal`.
+// By contrast, unregistering a declarative tool BEFORE submission (e.g.
+// removing the <form> element or its tool attributes while waiting for
+// submission) immediately cancels the pending execution and fires
+// `toolcancel` (see `declarative/unregister-during-executeTool.https.html`).
 
 promise_test(async t => {
   const iframe = document.createElement('iframe');
-  iframe.src = `${host_info.HTTPS_REMOTE_ORIGIN}/webmcp/imperative/resources/iframe-register-tool.html`;
+  iframe.src = `${hostInfo.HTTPS_REMOTE_ORIGIN}/webmcp/imperative/resources/iframe-register-tool.html`;
   iframe.allow = 'tools *';
 
-  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  const { promise: loadPromise, resolve: resolveLoad } = Promise.withResolvers();
+  iframe.onload = resolveLoad;
   document.body.appendChild(iframe);
   t.add_cleanup(() => iframe.remove());
-  await load_promise;
+  await loadPromise;
 
-  const toolStartedPromise = new Promise(resolve => window.addEventListener('message', e => {
+  const { promise: toolStartedPromise, resolve: resolveToolStarted } = Promise.withResolvers();
+  window.addEventListener('message', e => {
     if (e.data?.action === 'tool_started') {
-      resolve();
+      resolveToolStarted();
     }
-  }, { once: true }));
+  }, { once: true });
 
-  const toolchange_promise = new Promise(resolve => {
-    document.modelContext.addEventListener('toolchange', resolve, { once: true });
-  });
+  const { promise: toolChangePromise, resolve: resolveToolChange } = Promise.withResolvers();
+  document.modelContext.addEventListener('toolchange', resolveToolChange, { once: true });
 
   // 1. Tell the cross-origin iframe to register an endless tool,
   // exposing it to the parent origin.
@@ -44,10 +55,10 @@ promise_test(async t => {
     delayResolutionAndReportAbort: true
   }, '*');
 
-  await toolchange_promise;
+  await toolChangePromise;
 
   const tools = await document.modelContext.getTools(
-      {fromOrigins: [host_info.HTTPS_REMOTE_ORIGIN]});
+      {fromOrigins: [hostInfo.HTTPS_REMOTE_ORIGIN]});
   const tool = tools.find(t => t.name === 'endless_tool');
   assert_true(!!tool, 'Tool should be registered and visible to parent');
 
@@ -64,8 +75,8 @@ promise_test(async t => {
     }
   }, { once: true });
 
-  const nextToolChangePromise = new Promise(resolve =>
-      document.modelContext.addEventListener('toolchange', resolve, { once: true }));
+  const { promise: nextToolChangePromise, resolve: resolveNextToolChange } = Promise.withResolvers();
+  document.modelContext.addEventListener('toolchange', resolveNextToolChange, { once: true });
 
   // 3. Unregister the tool in the target iframe while execution is pending.
   iframe.contentWindow.postMessage({
@@ -75,7 +86,7 @@ promise_test(async t => {
   await nextToolChangePromise;
 
   const currentTools = await document.modelContext.getTools(
-      {fromOrigins: [host_info.HTTPS_REMOTE_ORIGIN]});
+      {fromOrigins: [hostInfo.HTTPS_REMOTE_ORIGIN]});
   assert_array_equals(currentTools, [], 'Unregistered tool should no longer be returned by getTools()');
 
   // 4. Tell iframe to finish tool execution.
@@ -95,11 +106,12 @@ promise_test(async t => {
   await document.modelContext.registerTool({
     name: 'same_doc_unregister_tool',
     description: 'Test unregister during exec in same doc',
-    execute: (input, options) => new Promise(resolve => {
+    execute: async (input, options) => {
       options.signal.onabort = t.unreached_func('tool options.signal should NOT be aborted when tool is unregistered');
       resolveToolStarted();
-      finishToolPromise.then(() => resolve('same_doc_result'));
-    })
+      await finishToolPromise;
+      return 'same_doc_result';
+    }
   }, { signal: regController.signal });
 
   const [tool] = await document.modelContext.getTools();
@@ -107,8 +119,8 @@ promise_test(async t => {
 
   await toolStartedPromise;
 
-  const toolChangePromise = new Promise(resolve =>
-      document.modelContext.addEventListener('toolchange', resolve, { once: true }));
+  const { promise: toolChangePromise, resolve: resolveToolChange } = Promise.withResolvers();
+  document.modelContext.addEventListener('toolchange', resolveToolChange, { once: true });
   regController.abort();
   await toolChangePromise;
 
@@ -120,6 +132,87 @@ promise_test(async t => {
   const result = await executePromise;
   assert_equals(result, 'same_doc_result', 'Pending execution Promise should resolve to tool result even if target tool was unregistered mid-execution');
 }, 'Pending executeTool() Promise resolves successfully when target same-document tool is unregistered mid-execution');
+
+promise_test(async t => {
+  const regController = new AbortController();
+  t.add_cleanup(() => regController.abort());
+
+  const { promise: toolStartedPromise, resolve: resolveToolStarted } = Promise.withResolvers();
+  const { promise: signalAbortedPromise, resolve: resolveSignalAborted } = Promise.withResolvers();
+
+  await document.modelContext.registerTool({
+    name: 'sync_unregister_then_abort_tool',
+    description: 'Synchronously unregisters itself during execute(), then gets cancelled',
+    execute: (input, options) => {
+      options.signal.addEventListener('abort', resolveSignalAborted);
+      // Synchronously unregister the tool while execute() is on the stack.
+      regController.abort();
+      resolveToolStarted();
+      return new Promise(() => {});
+    }
+  }, { signal: regController.signal });
+
+  const [tool] = await document.modelContext.getTools();
+  const execController = new AbortController();
+  const executePromise = document.modelContext.executeTool(
+      tool, {}, { signal: execController.signal });
+
+  await toolStartedPromise;
+  execController.abort('caller_cancelled');
+
+  await promise_rejects_exactly(t, 'caller_cancelled', executePromise);
+  await signalAbortedPromise;
+}, 'executeTool() cancellation propagates to options.signal even when tool synchronously unregistered itself inside execute()');
+
+promise_test(async t => {
+  const outerRegController = new AbortController();
+  const innerRegController = new AbortController();
+  t.add_cleanup(() => {
+    outerRegController.abort();
+    innerRegController.abort();
+  });
+
+  const { promise: innerStarted, resolve: resolveInnerStarted } = Promise.withResolvers();
+  const { promise: finishInner, resolve: resolveFinishInner } = Promise.withResolvers();
+
+  await document.modelContext.registerTool({
+    name: 'reentrant_unregister_inner',
+    description: 'Inner tool that unregisters both outer and inner tools',
+    execute: async (input, options) => {
+      options.signal.onabort = t.unreached_func('inner tool options.signal should NOT be aborted when tools are unregistered');
+      outerRegController.abort();
+      innerRegController.abort();
+      resolveInnerStarted();
+      await finishInner;
+      return 'inner_done';
+    }
+  }, { signal: innerRegController.signal });
+
+  await document.modelContext.registerTool({
+    name: 'reentrant_unregister_outer',
+    description: 'Outer tool that calls reentrant_unregister_inner',
+    execute: async (input, options) => {
+      options.signal.onabort = t.unreached_func('outer tool options.signal should NOT be aborted when tools are unregistered');
+      const tools = await document.modelContext.getTools();
+      const innerTool = tools.find(t => t.name === 'reentrant_unregister_inner');
+      const innerResult = await document.modelContext.executeTool(innerTool);
+      return `outer:${innerResult}`;
+    }
+  }, { signal: outerRegController.signal });
+
+  const tools = await document.modelContext.getTools();
+  const outerTool = tools.find(t => t.name === 'reentrant_unregister_outer');
+  const outerPromise = document.modelContext.executeTool(outerTool);
+
+  await innerStarted;
+
+  const remainingTools = await document.modelContext.getTools();
+  assert_array_equals(remainingTools, [], 'Both tools should be unregistered from getTools()');
+
+  resolveFinishInner();
+  const result = await outerPromise;
+  assert_equals(result, 'outer:inner_done');
+}, 'unregistering both outer and inner imperative tools during re-entrant executeTool() allows in-flight executions to settle');
 </script>
 </body>
 </html>

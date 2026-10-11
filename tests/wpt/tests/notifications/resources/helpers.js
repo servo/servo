@@ -4,11 +4,17 @@ function unregisterAllServiceWorker() {
   });
 }
 
-async function prepareActiveServiceWorker(script) {
+async function prepareActiveServiceWorker(script, options) {
   await unregisterAllServiceWorker();
-  const reg = await navigator.serviceWorker.register(script);
+  const reg = await navigator.serviceWorker.register(script, options);
   add_completion_callback(() => reg.unregister());
   await navigator.serviceWorker.ready;
+  return reg;
+}
+
+async function prepareActiveServiceWorkerForTest(t, script, options) {
+  const reg = await prepareActiveServiceWorker(script, options);
+  t.add_cleanup(() => reg.unregister());
   return reg;
 }
 

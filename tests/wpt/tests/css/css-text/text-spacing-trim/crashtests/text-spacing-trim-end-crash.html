@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<div id="t" style='font: 16px "PingFang SC"; width: 8px; overflow-wrap: break-word'>&#x3002;&#x300f;</div>
+<pre id="log">calling getClientRects() ...</pre>
+<script>
+const text = document.getElementById('t').firstChild;
+const range = document.createRange();
+range.setStart(text, 0);
+range.setEnd(text, 1);
+const rects = range.getClientRects();
+document.getElementById('log').textContent = 'returned ' + rects.length + ' rect(s)';
+</script>
+</html>

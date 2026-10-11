@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<title>Hit testing line boxes with single-axis overflow clipping</title>
+<link rel="author" title="Peng Zhou" href="mailto:pengzhou@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#overflow-properties">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#behind {
+  position: fixed;
+  inset: 0;
+}
+#container {
+  position: fixed;
+  left: 100px;
+  top: 100px;
+  z-index: 1;
+  width: 60px;
+  height: 20px;
+  border: 10px solid red;
+  overflow-x: clip;
+  font-size: 0;
+  line-height: 30px;
+}
+#negative {
+  position: absolute;
+  z-index: -1;
+}
+.box {
+  display: inline-block;
+  width: 120px;
+  height: 30px;
+  background: green;
+  pointer-events: none;
+}
+</style>
+<div id="behind"></div>
+<div id="container">
+  <span id="negative"></span>
+  <span class="box"></span>
+  <br>
+  <span class="box" id="second-line"></span>
+</div>
+<script>
+test(() => {
+  const rect = container.getBoundingClientRect();
+  const lineRect = document.getElementById('second-line').getBoundingClientRect();
+  const y = lineRect.top + lineRect.height / 2;
+  assert_greater_than(y, rect.bottom,
+      'The second line is below the container border box');
+  assert_equals(document.elementFromPoint(rect.right - 5, y), behind,
+      'Clipped line box content must not hit its container');
+}, 'Hit testing respects single-axis overflow clipping with negative z-index children');
+</script>

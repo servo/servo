@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#auto-margins">
+<meta name="assert" content="When a grid item is aligned with 'auto' margins, only the free space left after the item's specified non-auto margins is distributed to the auto margins.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/css/support/alignment.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+body {
+    margin: 0;
+}
+
+.grid {
+    grid-template-columns: 100px;
+    grid-template-rows: 100px;
+    width: fit-content;
+    position: relative;
+}
+
+.item {
+    width: 20px;
+    height: 40px;
+    margin: 5px 7px 11px 13px;
+    background-color: lime;
+    grid-column: 1;
+    grid-row: 1;
+}
+
+.autoMarginTop { margin-top: auto; }
+.autoMarginRight { margin-right: auto; }
+.autoMarginBottom { margin-bottom: auto; }
+.autoMarginLeft { margin-left: auto; }
+.autoMargin { margin: auto; }
+</style>
+<body onload="checkLayout('.grid')">
+<div id=log></div>
+
+<p>This test checks auto-margins alignment respects the specified margins.</p>
+
+<p>margin: 5px 7px 11px 13px | <b>margin-left: auto</b> </p>
+<div class="grid">
+    <div class="item autoMarginLeft" data-offset-x="73" data-offset-y="5"></div>
+</div>
+
+<p>margin: 5px 7px 11px 13px | <b>margin-right: auto</b> </p>
+<div class="grid">
+    <div class="item autoMarginRight" data-offset-x="13" data-offset-y="5"></div>
+</div>
+
+<p>margin: 5px 7px 11px 13px | <b>margin-left: auto</b> and <b>margin-right: auto</b></p>
+<div class="grid">
+    <div class="item autoMarginLeft autoMarginRight" data-offset-x="40" data-offset-y="5"></div>
+</div>
+
+<p>margin: 5px 7px 11px 13px | <b>margin-top: auto</b> </p>
+<div class="grid">
+    <div class="item autoMarginTop" data-offset-x="13" data-offset-y="49"></div>
+</div>
+
+<p>margin: 5px 7px 11px 13px | <b>margin-bottom: auto</b> </p>
+<div class="grid">
+    <div class="item autoMarginBottom" data-offset-x="13" data-offset-y="5"></div>
+</div>
+
+<p>margin: 5px 7px 11px 13px | <b>margin-bottom: auto</b> and <b>margin-top: auto</b></p>
+<div class="grid">
+    <div class="item autoMarginTop autoMarginBottom" data-offset-x="13" data-offset-y="30"></div>
+</div>
+
+<p>margin: 5px 7px 11px 13px | <b>margin: auto</b></p>
+<div class="grid">
+    <div class="item autoMargin" data-offset-x="40" data-offset-y="30"></div>
+</div>
+</body>

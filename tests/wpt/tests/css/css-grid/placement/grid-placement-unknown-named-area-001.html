@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#line-placement">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#implicit-grids">
+<meta name="assert" content="A grid-placement property naming an area that does not exist resolves as if all implicit grid lines had that name, so the item is placed in implicit tracks after the explicit grid.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/css/support/alignment.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.grid {
+    grid-template-rows: 10px 20px;
+    grid-auto-rows: 5px;
+    grid-template-columns: 30px 40px;
+    grid-auto-columns: 15px;
+    grid-auto-flow: row;
+}
+
+.bothNamedGridLineRow {
+    grid-row: nonExistentArea / nonExistentArea;
+    grid-column: 1;
+    background-color: lime;
+}
+
+.bothNamedGridLineColumn {
+    grid-row: 1;
+    grid-column: nonExistentArea / span 3;
+    background-color: lime;
+}
+
+.namedGridLineSpanRow {
+    grid-row: nonExistentArea / span 5 firstRow;
+    grid-column: 1;
+    background-color: lime;
+}
+
+.namedGridLineSpanColumn {
+    grid-row: 1;
+    grid-column: nonExistentArea / span 1;
+    background-color: lime;
+}
+</style>
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+
+<p>This test checks that unknown named areas are resolved properly considering all the implicit grid lines to have the given names.</p>
+
+<div style="position: relative">
+    <div class="grid">
+        <div class="sizedToGridArea firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="30" data-expected-height="10"></div>
+        <div class="sizedToGridArea bothNamedGridLineRow" data-offset-x="0" data-offset-y="35" data-expected-width="30" data-expected-height="5"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <div class="grid contentStart">
+        <div class="sizedToGridArea firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="30" data-expected-height="10"></div>
+        <div class="sizedToGridArea bothNamedGridLineColumn" data-offset-x="85" data-offset-y="0" data-expected-width="45" data-expected-height="10"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <div class="grid">
+        <div class="sizedToGridArea firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="30" data-expected-height="10"></div>
+        <div class="sizedToGridArea namedGridLineSpanRow" data-offset-x="0" data-offset-y="35" data-expected-width="30" data-expected-height="25"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <div class="grid">
+        <div class="sizedToGridArea firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="30" data-expected-height="10"></div>
+        <div class="sizedToGridArea namedGridLineSpanColumn" data-offset-x="85" data-offset-y="0" data-expected-width="15" data-expected-height="10"></div>
+    </div>
+</div>
+
+</body>

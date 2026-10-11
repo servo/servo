@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Postmessage of a WebAssembly.Module in a cross-origin isolated window</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/test-incrementer.js"></script>
+
+<body>
+<script>
+async function insertIframe(t, url) {
+  const iframe = document.createElement("iframe");
+  iframe.src = url + "?pipe=header(Cross-Origin-Embedder-Policy,require-corp)|header(Cross-Origin-Resource-Policy,cross-origin)";
+  const iframeLoaded = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await iframeLoaded;
+  return iframe;
+}
+
+test(() => {
+  assert_true(self.crossOriginIsolated);
+}, "The window is cross-origin isolated");
+
+promise_test(async t => {
+  const iframe = await insertIframe(t, "/wasm/serialization/module/resources/incrementer-iframe.html");
+  await testSharingViaIncrementerScript(t, window, "window", iframe.contentWindow, "iframe", "*");
+}, "postMessaging a wasm module to a same-origin iframe succeeds");
+
+promise_test(async t => {
+  const iframe = await insertIframe(t, "//{{domains[www1]}}:{{location[port]}}/wasm/serialization/module/resources/incrementer-iframe-failure.html");
+  const module = await createWasmModule();
+  const reply = new Promise(resolve => window.onmessage = resolve);
+  iframe.contentWindow.postMessage({message: 'send module', module}, "*");
+  assert_equals((await reply).data, 'messageerror received');
+}, "postMessaging a wasm module to a same-site cross-origin iframe fails");
+</script>
+</body>

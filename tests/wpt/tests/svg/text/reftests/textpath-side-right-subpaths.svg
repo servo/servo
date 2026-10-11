@@ -1,0 +1,17 @@
+<svg width="400" height="200" viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>textPath side="right" reverses the order of subpaths as well as their direction</title>
+  <metadata>
+    <html:link rel="author" title="Karl Dubost" href="mailto:k_dubost@apple.com"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementSideAttribute"/>
+    <html:link rel="match" href="textpath-side-right-subpaths-ref.svg"/>
+    <html:meta name="assert" content="With side=right, a path made of two subpaths is laid out as if it were drawn backwards from its last point: the last subpath comes first, and each subpath runs in the opposite direction."/>
+  </metadata>
+  <html:link rel="stylesheet" type="text/css" href="/fonts/ahem.css"/>
+  <style>
+    text { font-family: Ahem; font-size: 20px; }
+  </style>
+  <path id="p" d="M 50,100 L 170,100 M 230,100 L 350,100" fill="none" stroke="lightblue"/>
+  <text>
+    <textPath href="#p" side="right"><tspan fill="blue">XXXX</tspan><tspan fill="orange">XXXX</tspan></textPath>
+  </text>
+</svg>

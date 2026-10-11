@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<link rel="help" href="https://github.com/whatwg/html/issues/10032">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+  body {
+    margin: 0;
+  }
+  #container {
+    margin-top: 100px;
+  }
+  a {
+    display: block;
+  }
+  .originating {
+    width: 100px;
+    height: 50px;
+  }
+  .scroller {
+    overflow: auto;
+    white-space: nowrap;
+  }
+  .scroller span {
+    display: inline-block;
+    width: 300px;
+    height: 10px;
+  }
+  /* The ::scroll-button is at the top left of the viewport, outside the
+     link's box, so a click there reaches the link only through the
+     ::scroll-button. */
+  .originating::scroll-button(inline-end) {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 20px;
+    height: 20px;
+  }
+</style>
+<div id="container"></div>
+
+<script>
+// A ::scroll-button whose originating element is not a scroll container does
+// nothing when clicked, so the click is not handled, and an <a href> that is
+// the originating element or one of its ancestors is followed. A
+// ::scroll-button that scrolls handles the click, so the link is not followed.
+
+function runCase({description, markup, expectedHash}) {
+  promise_test(async t => {
+    const container = document.getElementById('container');
+    t.add_cleanup(() => {
+      container.innerHTML = '';
+      history.replaceState(null, '', location.pathname + location.search);
+    });
+    container.innerHTML = markup;
+    const originating = container.querySelector('.originating');
+    assert_equals(document.elementFromPoint(10, 10), originating,
+        'the ::scroll-button is at the click location');
+    await new test_driver.Actions()
+      .pointerMove(10, 10)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    assert_equals(location.hash, expectedHash, 'location.hash');
+  }, description);
+}
+
+runCase({
+  description: '::scroll-button of an <a href> that is not a scroll ' +
+      'container follows the link',
+  markup: '<a href="#nav" class="originating"></a>',
+  expectedHash: '#nav',
+});
+runCase({
+  description: '::scroll-button of an element inside an <a href> that is ' +
+      'not a scroll container follows the link',
+  markup: '<a href="#nav"><div class="originating"></div></a>',
+  expectedHash: '#nav',
+});
+runCase({
+  description: '::scroll-button of an <a href> scroll container does not ' +
+      'follow the link',
+  markup: '<a href="#nav" class="originating scroller"><span></span></a>',
+  expectedHash: '',
+});
+runCase({
+  description: '::scroll-button of a scroll container inside an <a href> ' +
+      'does not follow the link',
+  markup: '<a href="#nav"><div class="originating scroller"><span></span>' +
+      '</div></a>',
+  expectedHash: '',
+});
+</script>

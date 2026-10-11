@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-item-sizing">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-content">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#orthogonal-flows">
+<meta name="assert" content="Grid items whose writing mode is orthogonal to the grid container's are sized and positioned correctly in content-sized tracks.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/css/support/alignment.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+body {
+    margin: 0;
+}
+
+.container {
+    position: relative;
+}
+
+.grid {
+    font: 10px/1 Ahem;
+    width: 300px;
+    height: 160px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+<div id="log"></div>
+<p>This test checks that grid items positioning works as expected with orthogonal flows.</p>
+
+<p>HORIZONTAL-TB container with VERTICAL-LR items.</p>
+<div class="container">
+    <div class="grid itemsStart contentStart" data-expected-width="300" data-expected-height="160">
+        <div class="firstRowFirstColumn   verticalLR" data-offset-x="0"  data-offset-y="0"  data-expected-width="20" data-expected-height="80">X X X X X X</div>
+        <div class="firstRowSecondColumn  verticalLR" data-offset-x="20" data-offset-y="0"  data-expected-width="20" data-expected-height="80">X X X X X X</div>
+        <div class="secondRowFirstColumn  verticalLR" data-offset-x="0"  data-offset-y="80" data-expected-width="20" data-expected-height="80">X X X X X X</div>
+        <div class="secondRowSecondColumn verticalLR" data-offset-x="20" data-offset-y="80" data-expected-width="20" data-expected-height="80">X X X X X X</div>
+    </div>
+</div>
+
+<p>HORIZONTAL-TB container with VERTICAL-RL items.</p>
+<div class="container">
+    <div class="grid itemsStart contentStart" data-expected-width="300" data-expected-height="160">
+        <div class="firstRowFirstColumn   verticalRL" data-offset-x="0"  data-offset-y="0"  data-expected-width="20" data-expected-height="80">X X X X X X</div>
+        <div class="firstRowSecondColumn  verticalRL" data-offset-x="20" data-offset-y="0"  data-expected-width="20" data-expected-height="80">X X X X X X</div>
+        <div class="secondRowFirstColumn  verticalRL" data-offset-x="0"  data-offset-y="80" data-expected-width="20" data-expected-height="80">X X X X X X</div>
+        <div class="secondRowSecondColumn verticalRL" data-offset-x="20" data-offset-y="80" data-expected-width="20" data-expected-height="80">X X X X X X</div>
+    </div>
+</div>
+
+<p>VERTICAL-LR container with HORIZONTAL-TB items.</p>
+<div class="container">
+    <div class="grid itemsStart contentStart verticalLR" data-expected-width="300" data-expected-height="160">
+        <div class="firstRowFirstColumn   horizontalTB" data-offset-x="0"   data-offset-y="0"  data-expected-width="110" data-expected-height="10">X X X X X X</div>
+        <div class="firstRowSecondColumn  horizontalTB" data-offset-x="0" data-offset-y="10" data-expected-width="110" data-expected-height="10">X X X X X X</div>
+        <div class="secondRowFirstColumn  horizontalTB" data-offset-x="110"   data-offset-y="0"  data-expected-width="110" data-expected-height="10">X X X X X X</div>
+        <div class="secondRowSecondColumn horizontalTB" data-offset-x="110" data-offset-y="10" data-expected-width="110" data-expected-height="10">X X X X X X</div>
+    </div>
+</div>
+
+<p>VERTICAL-RL container with HORIZONTAL-TB items.</p>
+<div class="container">
+    <div class="grid itemsStart contentStart verticalRL" data-expected-width="300" data-expected-height="160">
+        <div class="firstRowFirstColumn   horizontalTB" data-offset-x="190" data-offset-y="0"  data-expected-width="110" data-expected-height="10">X X X X X X</div>
+        <div class="firstRowSecondColumn  horizontalTB" data-offset-x="190"   data-offset-y="10" data-expected-width="110" data-expected-height="10">X X X X X X</div>
+        <div class="secondRowFirstColumn  horizontalTB" data-offset-x="80" data-offset-y="0"  data-expected-width="110" data-expected-height="10">X X X X X X</div>
+        <div class="secondRowSecondColumn horizontalTB" data-offset-x="80"   data-offset-y="10" data-expected-width="110" data-expected-height="10">X X X X X X</div>
+    </div>
+</div>
+</body>

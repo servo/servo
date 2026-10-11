@@ -65,6 +65,8 @@ def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
                       "chaos_mode_flags": kwargs["chaos_mode_flags"],
                       "config": config,
                       "debug_test": kwargs["debug_test"],
+                      # android only
+                      "isolated_process": kwargs["isolated_process"],
                       }
 
     if test_type == "wdspec":
@@ -141,7 +143,7 @@ def env_options():
             "supports_debugger": True}
 
 
-def get_environ(chaos_mode_flags, env_extras=None):
+def get_environ(chaos_mode_flags, isolated_process=False, env_extras=None):
     env = {}
     if env_extras is not None:
         env.update(env_extras)
@@ -152,6 +154,8 @@ def get_environ(chaos_mode_flags, env_extras=None):
     env["MOZ_DISABLE_NONLOCAL_CONNECTIONS"] = "1"
     if chaos_mode_flags is not None:
         env["MOZ_CHAOSMODE"] = hex(chaos_mode_flags)
+    if isolated_process:
+        env["MOZ_ANDROID_CONTENT_SERVICE_ISOLATED_PROCESS"] = "1"
     return env
 
 
@@ -238,7 +242,7 @@ class FirefoxAndroidBrowser(Browser):
                  binary_args=None, timeout_multiplier=None, leak_check=False, asan=False,
                  chaos_mode_flags=None, config=None, browser_channel="nightly",
                  install_fonts=False, tests_root=None, specialpowers_path=None, adb_binary=None,
-                 debug_test=False, disable_fission=False, env_extras=None, **kwargs):
+                 debug_test=False, disable_fission=False, env_extras=None, isolated_process=False, **kwargs):
 
         super().__init__(logger, **kwargs)
         self.prefs_root = prefs_root
@@ -263,6 +267,7 @@ class FirefoxAndroidBrowser(Browser):
         self.specialpowers_path = specialpowers_path
         self.adb_binary = adb_binary
         self.disable_fission = disable_fission
+        self.isolated_process = isolated_process
 
         self.profile_creator = ProfileCreator(logger,
                                               prefs_root,
@@ -318,7 +323,7 @@ class FirefoxAndroidBrowser(Browser):
         debug_args, cmd = browser_command(
             self.package_name, args, self.debug_info)
 
-        env = get_environ(self.chaos_mode_flags, self.env_extras)
+        env = get_environ(self.chaos_mode_flags, self.isolated_process, self.env_extras)
         # Allow Marionette to execute commands in the chrome scope of the
         # application. Not set in get_environ() because for wdspec tests the
         # environment is forwarded to geckodriver via capabilities, which
@@ -440,8 +445,8 @@ class FirefoxAndroidWdSpecBrowser(FirefoxPytestBrowser):
             self.logger.warning("Failed to remove forwarded or reversed ports: %s" % e)
         super().stop(force=force)
 
-    def get_env(self, binary, debug_info, headless, gmp_path, chaos_mode_flags, e10s):
-        env = get_environ(chaos_mode_flags)
+    def get_env(self, binary, debug_info, headless, gmp_path, chaos_mode_flags, e10s, isolated_process):
+        env = get_environ(chaos_mode_flags, isolated_process)
         env["RUST_BACKTRACE"] = "1"
         return env
 

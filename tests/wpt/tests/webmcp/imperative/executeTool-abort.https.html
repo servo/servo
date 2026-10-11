@@ -5,6 +5,7 @@
 <link rel="author" href="mailto:dom@chromium.org">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
 </head>
 <body>
 <script>
@@ -12,12 +13,12 @@ promise_test(async t => {
   const regController = new AbortController();
   t.add_cleanup(() => regController.abort());
 
-  let received_signal = null;
+  let receivedSignal = null;
   await document.modelContext.registerTool({
     name: 'default_signal_tool',
     description: 'Test default signal',
     execute: async (input, options) => {
-      received_signal = options.signal;
+      receivedSignal = options.signal;
       return 'success';
     }
   }, { signal: regController.signal });
@@ -25,8 +26,8 @@ promise_test(async t => {
   const [tool] = await document.modelContext.getTools();
   const result = await document.modelContext.executeTool(tool);
   assert_equals(result, 'success');
-  assert_true(received_signal instanceof AbortSignal, 'options.signal should be an AbortSignal instance');
-  assert_false(received_signal.aborted, 'signal should not be aborted');
+  assert_true(receivedSignal instanceof AbortSignal, 'options.signal should be an AbortSignal instance');
+  assert_false(receivedSignal.aborted, 'signal should not be aborted');
 }, 'executeTool() provides a non-aborted default AbortSignal when called without options');
 
 promise_test(async t => {
@@ -230,6 +231,59 @@ promise_test(async t => {
   resolveExec2Complete('exec2 result');
   assert_equals(await execPromise2, 'exec2 result');
 }, 'concurrent executions of the same tool have independent AbortSignals');
+
+promise_test(async t => {
+  const regController = new AbortController();
+  t.add_cleanup(() => regController.abort());
+
+  const execController = new AbortController();
+  const { promise: signalAbortPromise, resolve: resolveSignalAbort } = Promise.withResolvers();
+  const toolCancelPromise = waitForToolCancel('sync_self_cancel_tool');
+
+  await document.modelContext.registerTool({
+    name: 'sync_self_cancel_tool',
+    description: 'Synchronously aborts caller controller during execute()',
+    execute: (input, options) => {
+      options.signal.addEventListener('abort', resolveSignalAbort);
+      execController.abort('sync self-cancel');
+      return new Promise(() => {});
+    }
+  }, { signal: regController.signal });
+
+  const [tool] = await document.modelContext.getTools();
+  const executePromise = document.modelContext.executeTool(
+      tool, {}, { signal: execController.signal });
+
+  await promise_rejects_exactly(t, 'sync self-cancel', executePromise);
+  await Promise.all([signalAbortPromise, toolCancelPromise]);
+}, 'tool synchronously self-cancelling via caller AbortSignal aborts options.signal and fires toolcancel');
+
+promise_test(async t => {
+  const regController = new AbortController();
+  t.add_cleanup(() => regController.abort());
+
+  const execController = new AbortController();
+  const { promise: signalAbortPromise, resolve: resolveSignalAbort } = Promise.withResolvers();
+  const toolCancelPromise = waitForToolCancel('async_self_cancel_tool');
+
+  await document.modelContext.registerTool({
+    name: 'async_self_cancel_tool',
+    description: 'Asynchronously aborts caller controller during execute()',
+    execute: async (input, options) => {
+      options.signal.addEventListener('abort', resolveSignalAbort);
+      await new Promise(r => t.step_timeout(r, 0));
+      execController.abort('async self-cancel');
+      return new Promise(() => {});
+    }
+  }, { signal: regController.signal });
+
+  const [tool] = await document.modelContext.getTools();
+  const executePromise = document.modelContext.executeTool(
+      tool, {}, { signal: execController.signal });
+
+  await promise_rejects_exactly(t, 'async self-cancel', executePromise);
+  await Promise.all([signalAbortPromise, toolCancelPromise]);
+}, 'tool asynchronously self-cancelling via caller AbortSignal aborts options.signal and fires toolcancel');
 </script>
 </body>
 </html>

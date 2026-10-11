@@ -1,0 +1,75 @@
+<!doctype html>
+<title>SVGPathElement.getPathSegmentAtLength() returns the segment at a distance</title>
+<link rel="help" href="https://svgwg.org/specs/paths/#InterfaceSVGPathData">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/getPathData-helpers.js"></script>
+
+<script>
+// d: M(0,0) L(100,0) [0..100] L(100,100) [100..200].
+const D = "M 0 0 L 100 0 L 100 100";
+
+test(() => {
+  const path = createPath(D);
+  assert_path_segment_equals(
+      path.getPathSegmentAtLength(50), { type: "L", values: [100, 0] });
+}, "distance inside the first line returns that segment");
+
+test(() => {
+  const path = createPath(D);
+  assert_path_segment_equals(
+      path.getPathSegmentAtLength(150), { type: "L", values: [100, 100] });
+}, "distance inside the second line returns that segment");
+
+test(() => {
+  const path = createPath("M 0 0 h 100");
+  assert_path_segment_equals(
+      path.getPathSegmentAtLength(50), { type: "h", values: [100] });
+}, "the original (not normalized) relative command is returned");
+
+test(() => {
+  const path = createPath("M 0 0 A 50 50 0 0 1 100 0");
+  assert_path_segment_equals(
+      path.getPathSegmentAtLength(10),
+      { type: "A", values: [50, 50, 0, 0, 1, 100, 0] });
+}, "an arc command is returned unmodified");
+
+test(() => {
+  const path = createPath("M 0 0 C 0 50 100 50 100 0");
+  assert_path_segment_equals(
+      path.getPathSegmentAtLength(10),
+      { type: "C", values: [0, 50, 100, 50, 100, 0] });
+}, "a cubic command is returned unmodified");
+
+test(() => {
+  // Q normalizes to a cubic; distance 250 lands in the following L.
+  const path = createPath("M 0 0 Q 50 50 100 0 L 300 0");
+  assert_path_segment_equals(
+      path.getPathSegmentAtLength(10), { type: "Q", values: [50, 50, 100, 0] });
+  assert_path_segment_equals(
+      path.getPathSegmentAtLength(250), { type: "L", values: [300, 0] });
+}, "a quadratic (Q) command is returned and contributes length");
+
+test(() => {
+  const path = createPath("M 0 0 Q 1 1 2 0 T 200 0");
+  assert_path_segment_equals(
+      path.getPathSegmentAtLength(100), { type: "T", values: [200, 0] });
+}, "a smooth-quadratic (T) command is returned unmodified");
+
+test(() => {
+  // Z has length.  The subsequent zero-length interior MoveTo is skipped.
+  const path = createPath("M 0 0 L 100 0 Z M 200 0 L 300 0");
+  assert_path_segment_equals(
+      path.getPathSegmentAtLength(150), { type: "Z", values: [] });
+  assert_path_segment_equals(
+      path.getPathSegmentAtLength(250), { type: "L", values: [300, 0] });
+}, "closed (Z) and multi-subpath geometry is measured correctly");
+
+test(() => {
+  const path = createPath(D);
+  const a = path.getPathSegmentAtLength(50);
+  const b = path.getPathSegmentAtLength(50);
+  assert_not_equals(a, b, "each call returns a fresh segment object");
+  assert_not_equals(a.values, b.values, "each call returns a fresh values array");
+}, "getPathSegmentAtLength() returns a fresh object on each call");
+</script>

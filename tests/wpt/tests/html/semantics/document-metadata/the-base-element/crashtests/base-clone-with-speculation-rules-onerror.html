@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Cloning a customized built-in base element with invalid speculation rules</title>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/568730794">
+<base href="data:,x">
+<script type=speculationrules>x</script>
+<script>
+const word = 0x414243444540n;
+const keep = [], fills = [];
+for (let k = 0; k < 16; k++) {
+  const c = [48 + k, 48, 48, 48];
+  for (let slot = 1; slot < 8; slot++) {
+    for (let half = 0; half < 2; half++) {
+      for (let i = 0n; i < 8n; i++) {
+        c.push(Number((word >> (8n * i)) & 255n));
+      }
+    }
+  }
+  fills.push(String.fromCharCode.apply(null, c));
+}
+let armed = false;
+customElements.define('x-b', class extends HTMLBaseElement {
+  constructor() {
+    super();
+    if (!armed) return;
+    armed = false;
+    this.setAttribute('z', '');
+    for (const s of fills) keep.push(document.createTextNode(s));
+  }
+}, { extends: 'base' });
+document.querySelector('script[type=speculationrules]').addEventListener('error', () => {});
+</script>
+<body>
+<select><button><selectedcontent></selectedcontent></button>
+<option selected><script>
+{
+  const b = document.createElement('base', { is: 'x-b' });
+  b.setAttribute('hidden', '');
+  for (let i = 0; i < 6; i++) b.setAttribute('a' + i, '');
+  b.setAttribute('href', 'q');
+  document.body.appendChild(b);
+  getComputedStyle(b).display;
+  document.currentScript.parentNode.appendChild(b);
+  armed = true;
+}
+</script></option>
+</select>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<!--
+   Tentative due to:
+     https://github.com/WICG/capability-delegation
+-->
+<title>Capability Delegation: Frame-to-frame popup delegation is blocked</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+<iframe id="iframe" src="/common/blank.html"></iframe>
+<script>
+promise_test(async t => {
+  const iframe = document.getElementById('iframe');
+  if (!iframe.contentDocument || iframe.contentDocument.readyState !== 'complete') {
+    await new Promise(resolve => iframe.onload = resolve);
+  }
+
+  // Trigger user activation.
+  await test_driver.bless();
+
+  // Try to delegate 'popup' to the iframe.
+  // This should throw NotSupportedError because frame-to-frame popup
+  // delegation is not supported, even with user activation.
+  assert_throws_dom("NotSupportedError", iframe.contentWindow.DOMException, () => {
+    iframe.contentWindow.postMessage('message', {
+      targetOrigin: '/',
+      delegate: 'popup'
+    });
+  });
+}, "Frame-to-frame popup delegation throws NotSupportedError even with user activation");
+</script>
+</body>

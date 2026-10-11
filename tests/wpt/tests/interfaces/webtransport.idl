@@ -34,7 +34,7 @@ interface WebTransport {
   readonly attribute WebTransportCongestionControl congestionControl;
   attribute [EnforceRange] unsigned short? anticipatedConcurrentIncomingUnidirectionalStreams;
   attribute [EnforceRange] unsigned short? anticipatedConcurrentIncomingBidirectionalStreams;
-  [SameObject] readonly attribute Headers? responseHeaders;
+  readonly attribute Headers? responseHeaders;
   readonly attribute DOMString protocol;
 
   readonly attribute Promise<WebTransportCloseInfo> closed;

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#auto-margins">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-item-sizing">
+<meta name="assert" content="A grid item with 'auto' margins in one axis is fit-content sized and centered in that axis, and is still stretched in the other axis, in horizontal and vertical writing modes and in both directions.">
+<link rel="stylesheet" href="/css/support/width-keyword-classes.css">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+body {
+    margin: 0;
+}
+
+.grid {
+    grid-template-columns: 100px 100px;
+    grid-template-rows: 200px 200px;
+    margin-bottom: 20px;
+    font: 15px/1 Ahem;
+}
+
+.autoMarginsTopBottom {
+    margin: auto 0px;
+}
+
+.autoMarginsRightLeft {
+    margin: 0px auto;
+}
+
+.autoMargins {
+    margin: auto auto;
+}
+
+.onlyWidthSet {
+    width: 20px;
+}
+
+.onlyHeightSet {
+    height: 40px;
+}
+
+.widthAndHeightSet {
+    width: 20px;
+    height: 40px;
+}
+</style>
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+
+<p>This test checks that the 'stretch' value is only applied if neither of its margins (in the appropriate axis) are 'auto'.</p>
+
+<div style="position: relative">
+    <div class="grid fit-content" data-expected-width="200" data-expected-height="400">
+        <div class="firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="100" data-expected-height="200">
+            <div class="widthAndHeightSet"></div>
+        </div>
+        <div class="autoMargins firstRowSecondColumn" data-offset-x="140" data-offset-y="80" data-expected-width="20" data-expected-height="40">
+            <div class="widthAndHeightSet"></div>
+        </div>
+        <div class="autoMarginsRightLeft secondRowFirstColumn" data-offset-x="40" data-offset-y="200" data-expected-width="20" data-expected-height="200">
+            <div class="widthAndHeightSet"></div>
+        </div>
+        <div class="autoMarginsTopBottom secondRowSecondColumn" data-offset-x="100" data-offset-y="280" data-expected-width="100" data-expected-height="40">
+            <div class="widthAndHeightSet"></div>
+        </div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <div class="grid fit-content verticalRL" data-expected-width="400" data-expected-height="200">
+        <div class="firstRowFirstColumn" data-offset-x="200" data-offset-y="0" data-expected-width="200" data-expected-height="100">
+            <div class="widthAndHeightSet"></div>
+        </div>
+        <div class="autoMargins firstRowSecondColumn" data-offset-x="290" data-offset-y="130" data-expected-width="20" data-expected-height="40">
+            <div class="widthAndHeightSet"></div>
+        </div>
+        <div class="autoMarginsRightLeft secondRowFirstColumn" data-offset-x="90" data-offset-y="0" data-expected-width="20" data-expected-height="100">
+            <div class="widthAndHeightSet"></div>
+        </div>
+        <div class="autoMarginsTopBottom secondRowSecondColumn" data-offset-x="0" data-offset-y="130" data-expected-width="200" data-expected-height="40">
+            <div class="widthAndHeightSet"></div>
+        </div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <div class="grid fit-content verticalLR" data-expected-width="400" data-expected-height="200">
+        <div class="firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="100">
+            <div class="widthAndHeightSet"></div>
+        </div>
+        <div class="autoMargins firstRowSecondColumn" data-offset-x="90" data-offset-y="130" data-expected-width="20" data-expected-height="40">
+            <div class="widthAndHeightSet"></div>
+        </div>
+        <div class="autoMarginsRightLeft secondRowFirstColumn" data-offset-x="290" data-offset-y="0" data-expected-width="20" data-expected-height="100">
+            <div class="widthAndHeightSet"></div>
+        </div>
+        <div class="autoMarginsTopBottom secondRowSecondColumn" data-offset-x="200" data-offset-y="130" data-expected-width="200" data-expected-height="40">
+            <div class="widthAndHeightSet"></div>
+        </div>
+    </div>
+</div>
+
+<!-- RTL direction -->
+<div style="position: relative">
+    <div class="grid fit-content directionRTL" data-expected-width="200" data-expected-height="400">
+        <div class="firstRowFirstColumn" data-offset-x="100" data-offset-y="0" data-expected-width="100" data-expected-height="200">
+            <div class="widthAndHeightSet"></div>
+        </div>
+        <div class="autoMargins firstRowSecondColumn" data-offset-x="40" data-offset-y="80" data-expected-width="20" data-expected-height="40">
+            <div class="widthAndHeightSet"></div>
+        </div>
+        <div class="autoMarginsRightLeft secondRowFirstColumn" data-offset-x="140" data-offset-y="200" data-expected-width="20" data-expected-height="200">
+            <div class="widthAndHeightSet"></div>
+        </div>
+        <div class="autoMarginsTopBottom secondRowSecondColumn" data-offset-x="0" data-offset-y="280" data-expected-width="100" data-expected-height="40">
+            <div class="widthAndHeightSet"></div>
+        </div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <div class="grid fit-content directionRTL verticalRL" data-expected-width="400" data-expected-height="200">
+        <div class="firstRowFirstColumn" data-offset-x="200" data-offset-y="100" data-expected-width="200" data-expected-height="100">
+            <div class="widthAndHeightSet"></div>
+        </div>
+        <div class="autoMargins firstRowSecondColumn" data-offset-x="290" data-offset-y="30" data-expected-width="20" data-expected-height="40">
+            <div class="widthAndHeightSet"></div>
+        </div>
+        <div class="autoMarginsRightLeft secondRowFirstColumn" data-offset-x="90" data-offset-y="100" data-expected-width="20" data-expected-height="100">
+            <div class="widthAndHeightSet"></div>
+        </div>
+        <div class="autoMarginsTopBottom secondRowSecondColumn" data-offset-x="0" data-offset-y="30" data-expected-width="200" data-expected-height="40">
+            <div class="widthAndHeightSet"></div>
+        </div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <div class="grid fit-content directionRTL verticalLR" data-expected-width="400" data-expected-height="200">
+        <div class="firstRowFirstColumn" data-offset-x="0" data-offset-y="100" data-expected-width="200" data-expected-height="100">
+            <div class="widthAndHeightSet"></div>
+        </div>
+        <div class="autoMargins firstRowSecondColumn" data-offset-x="90" data-offset-y="30" data-expected-width="20" data-expected-height="40">
+            <div class="widthAndHeightSet"></div>
+        </div>
+        <div class="autoMarginsRightLeft secondRowFirstColumn" data-offset-x="290" data-offset-y="100" data-expected-width="20" data-expected-height="100">
+            <div class="widthAndHeightSet"></div>
+        </div>
+        <div class="autoMarginsTopBottom secondRowSecondColumn" data-offset-x="200" data-offset-y="30" data-expected-width="200" data-expected-height="40">
+            <div class="widthAndHeightSet"></div>
+        </div>
+    </div>
+</div>
+
+</body>

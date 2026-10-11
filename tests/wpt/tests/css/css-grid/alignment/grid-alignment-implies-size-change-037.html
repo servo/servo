@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-item-sizing">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-align-items">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#valdef-align-self-stretch">
+<meta name="assert" content="Changing the grid's align-items value from 'end' to 'stretch' updates both the height and the position of non-replaced grid items.">
+<style>
+.grid {
+  position: relative;
+  display: grid;
+  grid-template-rows: 150px;
+  grid-template-columns: 100px 100px;
+  align-items: end;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script src="support/style-change.js"></script>
+<script>
+setup({ explicit_done: true });
+function runTest() {
+  evaluateStyleChangeMultiple("before", {
+    item1: { "data-expected-height": 50, "data-offset-y": 100 },
+    item2: { "data-expected-height": 100, "data-offset-y": 50 }
+  });
+  grid.style.alignItems = "stretch";
+  evaluateStyleChangeMultiple("after", {
+    item1: { "data-expected-height": 150, "data-offset-y": 0 },
+    item2: { "data-expected-height": 150, "data-offset-y": 0 }
+  });
+  done();
+}
+</script>
+<body onload="runTest()">
+<div class="grid" id="grid">
+  <div id="item1" style="width: 50px; grid-area: 1 / 1;">
+    <div style="height: 50px;"></div>
+  </div>
+  <div id="item2" style="width: 50px; grid-area: 1 / 2;">
+    <div style="height: 100px;"></div>
+  </div>
+</div>
+</body>

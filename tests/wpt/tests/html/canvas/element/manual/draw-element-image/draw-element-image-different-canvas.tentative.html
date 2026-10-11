@@ -32,8 +32,8 @@
     }, 'Drawing an ElementImage into a different canvas must throw InvalidStateError');
 
     assert_throws_dom('InvalidStateError', () => {
-      canvas2.getElementTransform(elementImage1, new DOMMatrix());
-    }, 'Getting transform for an ElementImage from a different canvas must throw InvalidStateError');
+      canvas2.getElementImageDefaultSize(elementImage1);
+    }, 'Getting default size for an ElementImage from a different canvas must throw InvalidStateError');
 
     assert_throws_dom('InvalidStateError', () => {
       let standaloneCtx = new OffscreenCanvas(200, 200).getContext('2d');
@@ -42,8 +42,8 @@
 
     assert_throws_dom('InvalidStateError', () => {
       let standalone = new OffscreenCanvas(200, 200);
-      standalone.getElementTransform(elementImage1, new DOMMatrix());
-    }, 'Getting transform for an ElementImage from a standalone OffscreenCanvas must throw InvalidStateError');
+      standalone.getElementImageDefaultSize(elementImage1);
+    }, 'Getting default size for an ElementImage from a standalone OffscreenCanvas must throw InvalidStateError');
   }, 'Prevent drawing ElementImage into a different canvas on main thread');
 
   const workerCode = `
@@ -67,10 +67,10 @@
         }
 
         try {
-          canvas2.getElementTransform(e.data.elementImage1, new DOMMatrix());
-          results.transformError = 'success';
+          canvas2.getElementImageDefaultSize(e.data.elementImage1);
+          results.sizeError = 'success';
         } catch (e) {
-          results.transformError = e.name;
+          results.sizeError = e.name;
         }
 
         try {
@@ -83,10 +83,10 @@
 
         try {
           let standalone = new OffscreenCanvas(200, 200);
-          standalone.getElementTransform(e.data.elementImage1, new DOMMatrix());
-          results.standaloneTransformError = 'success';
+          standalone.getElementImageDefaultSize(e.data.elementImage1);
+          results.standaloneSizeError = 'success';
         } catch (e) {
-          results.standaloneTransformError = e.name;
+          results.standaloneSizeError = e.name;
         }
 
         self.postMessage(results);
@@ -117,8 +117,8 @@
 
     const result = await response_promise;
     assert_equals(result.drawError, 'InvalidStateError', 'Drawing an ElementImage into a different canvas must throw InvalidStateError');
-    assert_equals(result.transformError, 'InvalidStateError', 'Getting the transform for an ElementImage from a different canvas must throw InvalidStateError');
+    assert_equals(result.sizeError, 'InvalidStateError', 'Getting the default size for an ElementImage from a different canvas must throw InvalidStateError');
     assert_equals(result.standaloneDrawError, 'InvalidStateError', 'Drawing an ElementImage into a standalone OffscreenCanvas must throw InvalidStateError');
-    assert_equals(result.standaloneTransformError, 'InvalidStateError', 'Getting the transform for an ElementImage from a standalone OffscreenCanvas must throw InvalidStateError');
+    assert_equals(result.standaloneSizeError, 'InvalidStateError', 'Getting the default size for an ElementImage from a standalone OffscreenCanvas must throw InvalidStateError');
   }, 'Prevent drawing ElementImage into a different canvas in a worker thread');
 </script>

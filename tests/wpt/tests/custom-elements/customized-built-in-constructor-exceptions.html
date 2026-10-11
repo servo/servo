@@ -39,7 +39,7 @@ class MyCustomVideo extends HTMLVideoElement {
 }
 customElements.define('custom-video', MyCustomVideo, { extends: 'video' });
 </script>
-<video id=targetvideo is='custom-video'> <source></source> </video>
+<video id=targetvideo is='custom-video'> <source> </video>
 <script>
 test(t => {
   let target = document.getElementById('targetvideo');

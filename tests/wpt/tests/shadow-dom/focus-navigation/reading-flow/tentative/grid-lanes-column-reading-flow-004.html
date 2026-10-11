@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Grid Lanes: reading-flow reads down each stacking axis with auto-placement</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#masonry-layout-algorithm">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/shadow-dom.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+
+<style>
+.lanes {
+  display: grid-lanes;
+  grid-template-columns: repeat(3, 90px);
+  flow-tolerance: 0;
+  reading-flow: grid-columns;
+}
+.lanes > button {
+  box-sizing: border-box;
+}
+</style>
+
+<div class="test-case" data-expect="a,b,d,e,c">
+  <div class="lanes">
+    <button id="a" style="height: 70px">A</button>
+    <button id="b" style="height: 20px">B</button>
+    <button id="c" style="height: 50px">C</button>
+    <button id="d" style="height: 15px">D</button>
+    <button id="e" style="height: 10px">E</button>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

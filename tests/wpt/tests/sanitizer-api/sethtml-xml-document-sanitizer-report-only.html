@@ -1,0 +1,330 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/trusted-types/support/csp-violations.js"></script>
+  </head>
+  <body>
+    <script>
+      let createHTML = null;
+      let createParserOptions = null;
+
+      trustedTypes.createPolicy("default", {
+        createHTML: (html, ...args) => (createHTML ? createHTML(html, ...args) : null),
+        createParserOptions: (options, ...args) => (createParserOptions ? createParserOptions(options, ...args) : null),
+      });
+
+      const testPolicy = trustedTypes.createPolicy("test-policy", {
+        createHTML: (html) => html,
+        createParserOptions: (options) => options,
+      });
+
+      function createXmlDoc() {
+        return document.implementation.createDocument("application/xml", "xml");
+      }
+
+      function createXmlElem(doc) {
+        const elem = doc.createElement("div");
+        doc.documentElement.appendChild(elem);
+        return elem;
+      }
+
+      /* -------------------------------------------------------------
+       * Scenario 1: Default policy supplies ONLY createParserOptions
+       * (with a sanitizer), but NO createHTML (createHTML returns null).
+       * In XML documents, get trusted type compliant input falls through
+       * to get trusted type compliant string. Because createHTML is not
+       * defined (or returns null), it triggers CSP violation check.
+       * In report-only mode, it sends a violation report and allows
+       * the string (does not throw TypeError).
+       * ----------------------------------------------------------- */
+
+      promise_test(async (t) => {
+        t.add_cleanup(() => {
+          createParserOptions = null;
+          createHTML = null;
+        });
+        let createParserOptionsCalled = false;
+        createParserOptions = (options) => {
+          createParserOptionsCalled = true;
+          return { sanitizer: { removeElements: ["div"] } };
+        };
+        createHTML = null;
+
+        const doc = createXmlDoc();
+        const elem = createXmlElem(doc);
+
+        const violation = await trusted_type_violation_without_exception_for(() => {
+          elem.innerHTML = "<span id='xml-span'></span>";
+        });
+        assert_equals(violation.effectiveDirective, "require-trusted-types-for");
+        assert_equals(violation.disposition, "report");
+        assert_false(createParserOptionsCalled, "createParserOptions should not be called for XML sink");
+        assert_not_equals(elem.querySelector("#xml-span"), null);
+      }, "innerHTML on XML document does not call createParserOptions or throw TypeError in report-only mode and reports violation when createHTML is missing");
+
+      promise_test(async (t) => {
+        t.add_cleanup(() => {
+          createParserOptions = null;
+          createHTML = null;
+        });
+        let createParserOptionsCalled = false;
+        createParserOptions = (options) => {
+          createParserOptionsCalled = true;
+          return { sanitizer: { removeElements: ["div"] } };
+        };
+        createHTML = null;
+
+        const doc = createXmlDoc();
+        const elem = createXmlElem(doc);
+
+        const violation = await trusted_type_violation_without_exception_for(() => {
+          elem.outerHTML = "<span id='xml-span'></span>";
+        });
+        assert_equals(violation.effectiveDirective, "require-trusted-types-for");
+        assert_equals(violation.disposition, "report");
+        assert_false(createParserOptionsCalled, "createParserOptions should not be called for XML sink");
+        assert_not_equals(doc.querySelector("#xml-span"), null);
+      }, "outerHTML on XML document does not call createParserOptions or throw TypeError in report-only mode and reports violation when createHTML is missing");
+
+      promise_test(async (t) => {
+        t.add_cleanup(() => {
+          createParserOptions = null;
+          createHTML = null;
+        });
+        let createParserOptionsCalled = false;
+        createParserOptions = (options) => {
+          createParserOptionsCalled = true;
+          return { sanitizer: { removeElements: ["div"] } };
+        };
+        createHTML = null;
+
+        const doc = createXmlDoc();
+        const elem = createXmlElem(doc);
+
+        const violation = await trusted_type_violation_without_exception_for(() => {
+          elem.insertAdjacentHTML("beforeend", "<span id='xml-span'></span>");
+        });
+        assert_equals(violation.effectiveDirective, "require-trusted-types-for");
+        assert_equals(violation.disposition, "report");
+        assert_false(createParserOptionsCalled, "createParserOptions should not be called for XML sink");
+        assert_not_equals(elem.querySelector("#xml-span"), null);
+      }, "insertAdjacentHTML on XML document does not call createParserOptions or throw TypeError in report-only mode and reports violation when createHTML is missing");
+
+      promise_test(async (t) => {
+        t.add_cleanup(() => {
+          createParserOptions = null;
+          createHTML = null;
+        });
+        let createParserOptionsCalled = false;
+        createParserOptions = (options) => {
+          createParserOptionsCalled = true;
+          return { sanitizer: { removeElements: ["div"] } };
+        };
+        createHTML = null;
+
+        const doc = createXmlDoc();
+        const range = doc.createRange();
+        range.selectNode(doc.documentElement);
+
+        let fragment;
+        const violation = await trusted_type_violation_without_exception_for(() => {
+          fragment = range.createContextualFragment("<span id='xml-span'></span>");
+        });
+        assert_equals(violation.effectiveDirective, "require-trusted-types-for");
+        assert_equals(violation.disposition, "report");
+        assert_false(createParserOptionsCalled, "createParserOptions should not be called for XML sink");
+        assert_not_equals(fragment.querySelector("#xml-span"), null);
+      }, "createContextualFragment on XML document does not call createParserOptions or throw TypeError in report-only mode and reports violation when createHTML is missing");
+
+      promise_test(async (t) => {
+        t.add_cleanup(() => {
+          createParserOptions = null;
+          createHTML = null;
+        });
+        let createParserOptionsCalled = false;
+        createParserOptions = (options) => {
+          createParserOptionsCalled = true;
+          return { sanitizer: { removeElements: ["div"] } };
+        };
+        createHTML = null;
+
+        const doc = createXmlDoc();
+        const elem = createXmlElem(doc);
+
+        // setHTMLUnsafe should NOT report a violation because it uses HTML parser mode with createParserOptions sanitizer
+        await no_trusted_type_violation_for(() => {
+          elem.setHTMLUnsafe("<span id='xml-span'></span>");
+        });
+        assert_true(createParserOptionsCalled, "createParserOptions must be called for setHTMLUnsafe on XML document");
+        assert_not_equals(elem.querySelector("#xml-span"), null);
+      }, "setHTMLUnsafe on XML document does not report violation in report-only mode when createParserOptions has sanitizer");
+
+      promise_test(async (t) => {
+        t.add_cleanup(() => {
+          createParserOptions = null;
+          createHTML = null;
+        });
+        let createParserOptionsCalled = false;
+        createParserOptions = (options) => {
+          createParserOptionsCalled = true;
+          return {};
+        };
+        createHTML = null;
+
+        const doc = createXmlDoc();
+        const elem = createXmlElem(doc);
+
+        // setHTMLUnsafe should NOT report a violation because it uses HTML parser mode with createParserOptions even without sanitizer
+        await no_trusted_type_violation_for(() => {
+          elem.setHTMLUnsafe("<span id='xml-span'></span>");
+        });
+        assert_true(createParserOptionsCalled, "createParserOptions must be called for setHTMLUnsafe on XML document");
+        assert_not_equals(elem.querySelector("#xml-span"), null);
+      }, "setHTMLUnsafe on XML document does not report violation in report-only mode when createParserOptions has no sanitizer");
+
+      promise_test(async (t) => {
+        t.add_cleanup(() => {
+          createParserOptions = null;
+          createHTML = null;
+        });
+        let createParserOptionsCalled = false;
+        createParserOptions = (options) => {
+          createParserOptionsCalled = true;
+          return { sanitizer: { removeElements: ["div"] } };
+        };
+        createHTML = null;
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(testPolicy.createHTML("<xml></xml>"), "application/xml");
+        const elem = createXmlElem(doc);
+
+        const violation = await trusted_type_violation_without_exception_for(() => {
+          elem.innerHTML = "<span id='xml-span'></span>";
+        });
+        assert_equals(violation.effectiveDirective, "require-trusted-types-for");
+        assert_equals(violation.disposition, "report");
+        assert_false(createParserOptionsCalled, "createParserOptions should not be called for XML sink");
+        assert_not_equals(elem.querySelector("#xml-span"), null);
+      }, "innerHTML on XML document created by DOMParser does not call createParserOptions and reports violation when createHTML is missing");
+
+      /* -------------------------------------------------------------
+       * Scenario 2: Default policy supplies BOTH createParserOptions
+       * (with a sanitizer) AND createHTML.
+       * In XML documents, createHTML executes and transforms/allows the
+       * string without triggering a CSP violation report.
+       * ----------------------------------------------------------- */
+
+      promise_test(async (t) => {
+        t.add_cleanup(() => {
+          createParserOptions = null;
+          createHTML = null;
+        });
+        let createHTMLCalled = false;
+        let createParserOptionsCalled = false;
+        createParserOptions = (options) => {
+          createParserOptionsCalled = true;
+          return { sanitizer: { removeElements: ["span"] } };
+        };
+        createHTML = (html) => {
+          createHTMLCalled = true;
+          return html;
+        };
+
+        const doc = createXmlDoc();
+        const elem = createXmlElem(doc);
+
+        await no_trusted_type_violation_for(() => {
+          elem.innerHTML = "<span id='xml-span'></span>";
+        });
+        assert_true(createHTMLCalled, "createHTML should have been called");
+        assert_false(createParserOptionsCalled, "createParserOptions should not be called for XML sink");
+        assert_not_equals(elem.querySelector("#xml-span"), null);
+      }, "innerHTML on XML document executes createHTML, does not call createParserOptions, and does not report violation when default policy provides both");
+
+      promise_test(async (t) => {
+        t.add_cleanup(() => {
+          createParserOptions = null;
+          createHTML = null;
+        });
+        let createHTMLCalled = false;
+        let createParserOptionsCalled = false;
+        createParserOptions = (options) => {
+          createParserOptionsCalled = true;
+          return { sanitizer: { removeElements: ["span"] } };
+        };
+        createHTML = (html) => {
+          createHTMLCalled = true;
+          return html;
+        };
+
+        const doc = createXmlDoc();
+        const elem = createXmlElem(doc);
+
+        await no_trusted_type_violation_for(() => {
+          elem.outerHTML = "<span id='xml-span'></span>";
+        });
+        assert_true(createHTMLCalled, "createHTML should have been called");
+        assert_false(createParserOptionsCalled, "createParserOptions should not be called for XML sink");
+        assert_not_equals(doc.querySelector("#xml-span"), null);
+      }, "outerHTML on XML document executes createHTML, does not call createParserOptions, and does not report violation when default policy provides both");
+
+      promise_test(async (t) => {
+        t.add_cleanup(() => {
+          createParserOptions = null;
+          createHTML = null;
+        });
+        let createHTMLCalled = false;
+        let createParserOptionsCalled = false;
+        createParserOptions = (options) => {
+          createParserOptionsCalled = true;
+          return { sanitizer: { removeElements: ["span"] } };
+        };
+        createHTML = (html) => {
+          createHTMLCalled = true;
+          return html;
+        };
+
+        const doc = createXmlDoc();
+        const elem = createXmlElem(doc);
+
+        await no_trusted_type_violation_for(() => {
+          elem.insertAdjacentHTML("beforeend", "<span id='xml-span'></span>");
+        });
+        assert_true(createHTMLCalled, "createHTML should have been called");
+        assert_false(createParserOptionsCalled, "createParserOptions should not be called for XML sink");
+        assert_not_equals(elem.querySelector("#xml-span"), null);
+      }, "insertAdjacentHTML on XML document executes createHTML, does not call createParserOptions, and does not report violation when default policy provides both");
+
+      promise_test(async (t) => {
+        t.add_cleanup(() => {
+          createParserOptions = null;
+          createHTML = null;
+        });
+        let createHTMLCalled = false;
+        let createParserOptionsCalled = false;
+        createParserOptions = (options) => {
+          createParserOptionsCalled = true;
+          return { sanitizer: { removeElements: ["span"] } };
+        };
+        createHTML = (html) => {
+          createHTMLCalled = true;
+          return html;
+        };
+
+        const doc = createXmlDoc();
+        const range = doc.createRange();
+        range.selectNode(doc.documentElement);
+
+        let fragment;
+        await no_trusted_type_violation_for(() => {
+          fragment = range.createContextualFragment("<span id='xml-span'></span>");
+        });
+        assert_true(createHTMLCalled, "createHTML should have been called");
+        assert_false(createParserOptionsCalled, "createParserOptions should not be called for XML sink");
+        assert_not_equals(fragment.querySelector("#xml-span"), null);
+      }, "createContextualFragment on XML document executes createHTML, does not call createParserOptions, and does not report violation when default policy provides both");
+    </script>
+  </body>
+</html>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#intrinsic-sizes">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-containers">
+<meta name="assert" content="The border-box size of a shrink-to-fit grid container is the size of its tracks plus its padding and border, in both horizontal-tb and vertical-rl writing modes.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<style>
+.grid {
+    grid-template-columns: 100px;
+    grid-template-rows: 50px;
+    /* Force the grid element to be shrink-to-fit. */
+    position: absolute;
+}
+
+.padding {
+    padding: 20px 10px 30px 50px;
+}
+
+.border {
+    border-style: solid;
+    border-color: green;
+    border-width: 10px 20px 30px 40px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.grid')">
+
+<p>Test that paddings and borders are added to a grid container's size.</p>
+
+<div class="grid padding" data-expected-height="100" data-expected-width="160"></div>
+<div class="grid padding verticalRL" data-expected-height="150" data-expected-width="110"></div>
+<div class="grid border" data-expected-height="90" data-expected-width="160"></div>
+<div class="grid border verticalRL" data-expected-height="140" data-expected-width="110"></div>
+<div class="grid border padding" data-expected-height="140" data-expected-width="220"></div>
+<div class="grid border padding verticalRL" data-expected-height="190" data-expected-width="170"></div>
+
+</body>

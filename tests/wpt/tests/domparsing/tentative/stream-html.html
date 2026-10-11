@@ -137,7 +137,7 @@
     await writer.write("ABC");
     await writer.abort("abort-reason");
     await writer.write("DEF").catch(() => {});
-    assert_equals(placeholder.textContent, "");
+    assert_equals(placeholder.textContent, "ABC");
   }, "Aborting streamHTML()");
 
   promise_test(async (t) => {
@@ -185,7 +185,7 @@
     const element = document.createElement("div");
     document.body.append(element);
     const writer = element.streamHTML().getWriter();
-    await writer.write("<script id=forbidden<" + "/script>");
+    await writer.write("<script id=forbidden><" + "/script>");
     await writer.close();
     assert_equals(element.querySelector("script"), null);
   }, "streamHTML uses safe sanitizer");
@@ -209,8 +209,25 @@
     const shadow = element.attachShadow({mode: "open"});
     document.body.append(element);
     const writer = shadow.streamHTML().getWriter();
-    await writer.write("<script id=forbidden<" + "/script>");
+    await writer.write("<script id=forbidden><" + "/script>");
     await writer.close();
     assert_equals(shadow.querySelector("script"), null);
   }, "streamHTML on ShadowRoot uses safe sanitizer");
+
+  promise_test(async (t) => {
+    const element = document.createElement("div");
+    document.body.append(element);
+    t.add_cleanup(() => element.remove());
+    const writer = element.streamHTML({ sanitizer: { elements: ["div", "style"], attributes: ["id"] } }).getWriter();
+    await writer.write("<div id='styled-target'>text</div><style>#styled-target { color: rgb(255, 0, 0); }");
+    await writer.abort();
+    const style = element.querySelector("style");
+    assert_not_equals(style, null);
+    assert_not_equals(style.sheet, null, "Aborted open <style> element must have a parsed stylesheet");
+    assert_equals(
+      getComputedStyle(element.querySelector("#styled-target")).color,
+      "rgb(255, 0, 0)",
+      "Aborted open <style> rules must apply",
+    );
+  }, "Aborting streamHTML with an open <style> element pops open elements and applies styles");
 </script>

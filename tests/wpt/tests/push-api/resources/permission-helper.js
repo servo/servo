@@ -1,6 +1,6 @@
 import { createVapid } from "./vapid.js";
 
-export function permissionTest(origin, sender, registration) {
+export async function permissionTest(origin, sender, registration) {
   function ping(message) {
     if (!globalThis.WorkerGlobalScope) {
       window.top.postMessage(message, origin);
@@ -9,13 +9,13 @@ export function permissionTest(origin, sender, registration) {
     }
   }
 
-  (async () => {
-    const vapid = await createVapid();
-    const subscribed = await registration.pushManager.subscribe({
-      applicationServerKey: vapid.publicKey
-    }).then(() => true, _ => false)
-    ping({ sender, subscribed });
-  })();
+  // Wait for subscription before proceeding to worker subscription,
+  // to prevent collision between multiple permission requests.
+  const vapid = await createVapid();
+  const subscribed = await registration.pushManager.subscribe({
+    applicationServerKey: vapid.publicKey
+  }).then(() => true, _ => false);
+  ping({ sender, subscribed });
 
   if (!globalThis.WorkerGlobalScope) {
     const workerUrl = new URL(`./permission-worker.js`, import.meta.url);

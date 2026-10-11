@@ -1,0 +1,21 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+  .scope { contain: style }
+  .q::before { content: open-quote }
+</style>
+<div style="display:table"><div style="display:table-column-group"><span id="a" class="q scope"></span></div></div>
+<div id="b" class="scope"><span id="before" class="q"></span></div>
+<script>
+function flush() { document.body.offsetHeight; }
+onload = () => {
+  flush();
+  a.className = "q";
+  b.append(a);
+  flush();
+  a.remove();
+  flush();
+  before.remove();
+  flush();
+};
+</script>

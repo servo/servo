@@ -268,8 +268,12 @@ promise_test(async t => {
   send(opener_iframe_token, addScriptAndTriggerOnload(
     directory + "/reporting/resources/try-access.js", `tryAccess(openee);`));
 
-  let reports = await receive(this_window_token, 2000);
-  assert_equals(reports, "timeout", "Unexpected report received.");
+  // `receive()` has no timeout and polls the dispatcher forever, so use
+  // `receiveReport()`, which gives up after a few seconds and returns
+  // "timeout" when no report has been dispatched.
+  let report = await receiveReport(this_window_token,
+                                   "access-from-coop-page-to-openee");
+  assert_equals(report, "timeout", "Unexpected report received.");
 }, "Access from cross-site iframe")
 
 </script>

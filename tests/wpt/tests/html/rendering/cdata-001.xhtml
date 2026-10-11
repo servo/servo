@@ -22,8 +22,10 @@
         <div id="container"></div>
         <script>
             const container = document.getElementById("container");
-            document.fonts.ready.then(() => {
+            document.fonts.ready.then(async () => {
                 container.appendChild(document.createCDATASection("X"));
+                // Fonts may not have loaded without usage, so wait again after usage.
+                await document.fonts.ready;
                 takeScreenshot();
             });
         </script>

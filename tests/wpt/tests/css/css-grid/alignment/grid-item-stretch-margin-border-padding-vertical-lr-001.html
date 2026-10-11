@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-item-sizing">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#justify-grid">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#align-grid">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#block-flow">
+<meta name="assert" content="A stretched grid item's margin box fills its grid area, so margins shrink its border box while borders and paddings only shrink its content box, in vertical-lr grids in LTR and RTL.">
+<link rel="stylesheet" href="/css/support/width-keyword-classes.css">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+body {
+    margin: 0;
+}
+
+.grid {
+    grid-template-columns: 100px 100px;
+    grid-template-rows: 200px 200px;
+    margin-bottom: 20px;
+    position: relative;
+    font: 15px/1 Ahem;
+}
+
+.margins {
+    margin: 4px 8px 12px 16px;
+}
+
+.paddings {
+    padding: 4px 6px 8px 10px;
+}
+
+.borders {
+    border-width: 5px 10px 15px 20px;
+    border-style: dotted;
+}
+
+</style>
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+
+<p>This test checks that the 'stretch' value is applied correctly for 'align' and 'justify' properties.</p>
+
+<div style="position: relative">
+    <p>direction: LTR | margin: 4px 8px 12px 16px</p>
+    <div class="grid fit-content verticalLR" data-expected-width="400" data-expected-height="200">
+        <div class="margins firstRowFirstColumn" data-offset-x="16" data-offset-y="4" data-expected-width="176" data-expected-height="84" data-expected-client-width="176" data-expected-client-height="84">X X X X X X X X X X X X X X</div>
+        <div class="firstRowSecondColumn" data-offset-x="0" data-offset-y="100" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100"></div>
+        <div class="secondRowFirstColumn" data-offset-x="200" data-offset-y="0" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100"></div>
+        <div class="margins secondRowSecondColumn" data-offset-x="216" data-offset-y="104" data-expected-width="176" data-expected-height="84" data-expected-client-width="176" data-expected-client-height="84"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <p>direction: LTR | border: 5px 10px 15px 20px</p>
+    <div class="grid fit-content verticalLR" data-expected-width="400" data-expected-height="200">
+        <div class="borders firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="100" data-expected-client-width="170" data-expected-client-height="80">X X X X X X X X X X X X X X</div>
+        <div class="firstRowSecondColumn" data-offset-x="0" data-offset-y="100" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100"></div>
+        <div class="secondRowFirstColumn" data-offset-x="200" data-offset-y="0" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100"></div>
+        <div class="borders secondRowSecondColumn" data-offset-x="200" data-offset-y="100" data-expected-width="200" data-expected-height="100" data-expected-client-width="170" data-expected-client-height="80"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <p>direction: LTR | padding: 4px 6px 8px 10px</p>
+    <div class="grid fit-content verticalLR" data-expected-width="400" data-expected-height="200">
+        <div class="paddings firstRowFirstColumn" data-total-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100">X X X X X X X X X X X X X X</div>
+        <div class="firstRowSecondColumn" data-offset-x="0" data-offset-y="100" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100"></div>
+        <div class="secondRowFirstColumn" data-offset-x="200" data-offset-y="0" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100"></div>
+        <div class="paddings secondRowSecondColumn" data-offset-x="200" data-offset-y="100" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <p>direction: LTR | margin: 4px 8px 12px 16px | border: 5px 10px 15px 20px</p>
+    <div class="grid fit-content verticalLR" data-expected-width="400" data-expected-height="200">
+        <div class="margins borders firstRowFirstColumn" data-offset-x="16" data-offset-y="4" data-expected-width="176" data-expected-height="84" data-expected-client-width="146" data-expected-client-height="64">X X X X X X X X X X X X X X</div>
+        <div class="firstRowSecondColumn" data-offset-x="0" data-offset-y="100" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100"></div>
+        <div class="secondRowFirstColumn" data-offset-x="200" data-offset-y="0" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100"></div>
+        <div class="margins borders secondRowSecondColumn" data-offset-x="216" data-offset-y="104" data-expected-width="176" data-expected-height="84" data-expected-client-width="146" data-expected-client-height="64"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <p>direction: LTR | margin: 4px 8px 12px 16px | padding: 4px 6px 8px 10px</p>
+    <div class="grid fit-content verticalLR" data-expected-width="400" data-expected-height="200">
+        <div class="margins paddings firstRowFirstColumn" data-offset-x="16" data-offset-y="4" data-expected-width="176" data-expected-height="84" data-expected-client-width="176" data-expected-client-height="84">X X X X X X X X X X X X X X</div>
+        <div class="firstRowSecondColumn" data-offset-x="0" data-offset-y="100" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100"></div>
+        <div class="secondRowFirstColumn" data-offset-x="200" data-offset-y="0" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100"></div>
+        <div class="margins paddings secondRowSecondColumn" data-offset-x="216" data-offset-y="104" data-expected-width="176" data-expected-height="84" data-expected-client-width="176" data-expected-client-height="84"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <p>direction: LTR | margin: 4px 8px 12px 16px | border: 5px 10px 15px 20px | padding: 4px 6px 8px 10px</p>
+    <div class="grid fit-content verticalLR" data-expected-width="400" data-expected-height="200">
+        <div class="margins borders paddings firstRowFirstColumn" data-offset-x="16" data-offset-y="4" data-expected-width="176" data-expected-height="84" data-expected-client-width="146" data-expected-client-height="64">X X X X X X X X X X X X X X</div>
+        <div class="firstRowSecondColumn" data-offset-x="0" data-offset-y="100" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100"></div>
+        <div class="secondRowFirstColumn" data-offset-x="200" data-offset-y="0" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100"></div>
+        <div class="margins borders paddings secondRowSecondColumn" data-offset-x="216" data-offset-y="104" data-expected-width="176" data-expected-height="84"></div>
+    </div>
+</div>
+
+<!-- rtl direction -->
+<div style="position: relative">
+    <p>direction: RTL | margin: 4px 8px 12px 16px</p>
+    <div class="grid fit-content verticalLR directionRTL" data-expected-width="400" data-expected-height="200">
+        <div class="margins firstRowFirstColumn" data-offset-x="16" data-offset-y="104" data-expected-width="176" data-expected-height="84" data-expected-client-width="176" data-expected-client-height="84">X X X X X X X X X X X X X X</div>
+        <div class="firstRowSecondColumn" data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100"></div>
+        <div class="secondRowFirstColumn" data-offset-x="200" data-offset-y="100" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100"></div>
+        <div class="margins secondRowSecondColumn" data-offset-x="216" data-offset-y="4" data-expected-width="176" data-expected-height="84" data-expected-client-width="176" data-expected-client-height="84"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <p>direction: RTL | border: 5px 10px 15px 20px</p>
+    <div class="grid fit-content verticalLR directionRTL" data-expected-width="400" data-expected-height="200">
+        <div class="borders firstRowFirstColumn" data-offset-x="0" data-offset-y="100" data-expected-width="200" data-expected-height="100" data-expected-client-width="170" data-expected-client-height="80">X X X X X X X X X X X X X X</div>
+        <div class="firstRowSecondColumn" data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100"></div>
+        <div class="secondRowFirstColumn" data-offset-x="200" data-offset-y="100" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100"></div>
+        <div class="borders secondRowSecondColumn" data-offset-x="200" data-offset-y="0" data-expected-width="200" data-expected-height="100" data-expected-client-width="170" data-expected-client-height="80"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <p>direction: RTL | padding: 4px 6px 8px 10px</p>
+    <div class="grid fit-content verticalLR directionRTL" data-expected-width="400" data-expected-height="200">
+        <div class="paddings firstRowFirstColumn" data-total-x="0" data-offset-y="100" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100">X X X X X X X X X X X X X X</div>
+        <div class="firstRowSecondColumn" data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100"></div>
+        <div class="secondRowFirstColumn" data-offset-x="200" data-offset-y="100" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100"></div>
+        <div class="paddings secondRowSecondColumn" data-offset-x="200" data-offset-y="0" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <p>direction: RTL | margin: 4px 8px 12px 16px | border: 5px 10px 15px 20px</p>
+    <div class="grid fit-content verticalLR directionRTL" data-expected-width="400" data-expected-height="200">
+        <div class="margins borders firstRowFirstColumn" data-offset-x="16" data-offset-y="104" data-expected-width="176" data-expected-height="84" data-expected-client-width="146" data-expected-client-height="64">X X X X X X X X X X X X X X</div>
+        <div class="firstRowSecondColumn" data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100"></div>
+        <div class="secondRowFirstColumn" data-offset-x="200" data-offset-y="100" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100"></div>
+        <div class="margins borders secondRowSecondColumn" data-offset-x="216" data-offset-y="4" data-expected-width="176" data-expected-height="84" data-expected-client-width="146" data-expected-client-height="64"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <p>direction: RTL | margin: 4px 8px 12px 16px | padding: 4px 6px 8px 10px</p>
+    <div class="grid fit-content verticalLR directionRTL" data-expected-width="400" data-expected-height="200">
+        <div class="margins paddings firstRowFirstColumn" data-offset-x="16" data-offset-y="104" data-expected-width="176" data-expected-height="84" data-expected-client-width="176" data-expected-client-height="84">X X X X X X X X X X X X X X</div>
+        <div class="firstRowSecondColumn" data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100"></div>
+        <div class="secondRowFirstColumn" data-offset-x="200" data-offset-y="100" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100"></div>
+        <div class="margins paddings secondRowSecondColumn" data-offset-x="216" data-offset-y="4" data-expected-width="176" data-expected-height="84" data-expected-client-width="176" data-expected-client-height="84"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <p>direction: RTL | margin: 4px 8px 12px 16px | border: 5px 10px 15px 20px | padding: 4px 6px 8px 10px</p>
+    <div class="grid fit-content verticalLR  directionRTL" data-expected-width="400" data-expected-height="200">
+        <div class="margins borders paddings firstRowFirstColumn" data-offset-x="16" data-offset-y="104" data-expected-width="176" data-expected-height="84" data-expected-client-width="146" data-expected-client-height="64">X X X X X X X X X X X X X X</div>
+        <div class="firstRowSecondColumn" data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100"></div>
+        <div class="secondRowFirstColumn" data-offset-x="200" data-offset-y="100" data-expected-width="200" data-expected-height="100" data-expected-client-width="200" data-expected-client-height="100"></div>
+        <div class="margins borders paddings secondRowSecondColumn" data-offset-x="216" data-offset-y="4" data-expected-width="176" data-expected-height="84"></div>
+    </div>
+</div>
+
+</body>

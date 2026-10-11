@@ -45,10 +45,15 @@ interface PushSubscription {
   PushSubscriptionJSON toJSON();
 };
 
+dictionary PushSubscriptionKeys {
+  USVString p256dh;
+  USVString auth;
+};
+
 dictionary PushSubscriptionJSON {
   USVString endpoint;
   EpochTimeStamp? expirationTime = null;
-  record<DOMString, USVString> keys;
+  PushSubscriptionKeys keys;
 };
 
 enum PushEncryptionKeyName {

@@ -138,3 +138,35 @@ test(() => {
   const module = new WebAssembly.Module(emptyModuleBinary);
   assert_sections(WebAssembly.Module.customSections(module, "", {}), []);
 }, "Stray argument");
+
+test(() => {
+  const bytes = [0x11, 0x22, 0x33];
+  const builder = new WasmModuleBuilder();
+  builder.addCustomSection("copy", bytes);
+  const module = new WebAssembly.Module(builder.toBuffer());
+
+  const first = WebAssembly.Module.customSections(module, "copy");
+  const second = WebAssembly.Module.customSections(module, "copy");
+  assert_equals(first.length, 1);
+  assert_equals(second.length, 1);
+  assert_not_equals(first, second);
+  assert_not_equals(first[0], second[0]);
+}, "Custom section buffers are independent copies");
+
+test(() => {
+  const bytes = [0x11, 0x22, 0x33];
+  const builder = new WasmModuleBuilder();
+  builder.addCustomSection("copy", bytes);
+  const module = new WebAssembly.Module(builder.toBuffer());
+
+  const first = WebAssembly.Module.customSections(module, "copy");
+  const second = WebAssembly.Module.customSections(module, "copy");
+  const view = new Uint8Array(first[0]);
+  view[0] = 0xff;
+  view[1] = 0xee;
+  view[2] = 0xdd;
+
+  const again = WebAssembly.Module.customSections(module, "copy");
+  assert_array_equals(new Uint8Array(again[0]), bytes);
+  assert_array_equals(new Uint8Array(second[0]), bytes);
+}, "Mutating a custom section buffer does not change other copies");

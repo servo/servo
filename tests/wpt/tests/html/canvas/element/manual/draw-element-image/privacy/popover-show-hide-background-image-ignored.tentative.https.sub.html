@@ -1,0 +1,50 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage does not draw cross-origin background images after popover is closed</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <script src='/resources/testharness.js'></script>
+  <script src='/resources/testharnessreport.js'></script>
+  <script src='/html/canvas/resources/canvas-tests.js'></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    iframe {
+      display: block !important;
+      position: static !important;
+      width: 100px;
+      height: 100px;
+    }
+    .forceRedrawBackground {
+      background-position: 0 1px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="300" height="150" content=drawable>
+    <div drawable id="child">
+      <iframe popover=manual id=iframe src="support/subframe-cross-origin-background-image-on-html.https.sub.html"></iframe>
+    </div>
+  </canvas>
+
+  <script>
+    window.onload = () => {
+      promise_test(async function(t) {
+        iframe.showPopover();
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        iframe.contentDocument.documentElement.classList.add("forceRedrawBackground");
+        await new Promise(resolve => requestAnimationFrame(resolve));
+        iframe.hidePopover();
+        await new Promise(resolve => requestAnimationFrame(resolve));
+
+        await waitForCanvasPaint(canvas);
+        const context = canvas.getContext("2d");
+        context.drawElementImage(child, 0, 0);
+
+        const imgData = context.getImageData(0, 0, canvas.width, canvas.height);
+        let pixel = _getPixelFromImageData(imgData, 50, 50);
+        assert_array_equals(pixel, [0, 128, 0, 255], "Cross origin should not draw");
+      });
+    };
+  </script>
+</body>
+</html>

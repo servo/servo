@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#explicit-grids">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#intrinsic-sizes">
+<meta name="assert" content="A shrink-to-fit grid container with no items and only explicit columns (or only explicit rows) is sized by its explicit tracks in that axis and has zero size in the other axis.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<style>
+.gridNoRow {
+    grid-template-columns: 50px;
+    /* Make the grid shrink-to-fit. */
+    position: absolute;
+}
+.gridNoColumn {
+    grid-template-rows: 50px 80px;
+    /* Make the grid shrink-to-fit. */
+    position: absolute;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.grid')">
+<p>This test checks that a grid container with row(s) (resp. column(s)) but no column (resp. row) is properly laid out.</p>
+<div class="grid gridNoRow" data-expected-width="50" data-expected-height="0"></div>
+<div class="grid gridNoColumn" data-expected-width="0" data-expected-height="130"></div>
+
+</body>

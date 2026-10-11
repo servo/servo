@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-item-sizing">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#abspos-items">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#percentage-sizing">
+<meta name="assert" content="Percentage widths and heights on a grid item's child resolve against the grid item's size when the item is stretched, has a fixed or percentage size, or is absolutely positioned with insets; start-aligned or auto-sized absolutely positioned empty items and their children are zero-sized.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/css/support/alignment.css">
+<style>
+
+.grid {
+    grid: 100px / 200px;
+    position: relative;
+}
+
+.fixedSize350 {
+    width: 350px;
+    height: 350px;
+}
+
+.percentSize100 {
+    width: 100%;
+    height: 100%;
+}
+
+.percentSize50 {
+    width: 50%;
+    height: 50%;
+}
+
+.positioned {
+    position: absolute;
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+}
+
+.offsets {
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.grid')">
+
+<p>This test checks that percentages are properly resolved for grid items' children.</p>
+
+<div class="grid">
+    <div data-expected-width="200" data-expected-height="100">
+        <div class="percentSize100" data-expected-width="200" data-expected-height="100">
+        </div>
+    </div>
+</div>
+
+<div class="grid">
+    <div data-expected-width="200" data-expected-height="100">
+        <div class="percentSize50" data-expected-width="100" data-expected-height="50">
+        </div>
+    </div>
+</div>
+
+<div class="grid itemsStart">
+    <div data-expected-width="0" data-expected-height="0">
+        <div class="percentSize100" data-expected-width="0" data-expected-height="0">
+        </div>
+    </div>
+</div>
+
+<div class="grid itemsStart">
+    <div data-expected-width="0" data-expected-height="0">
+        <div class="percentSize50" data-expected-width="0" data-expected-height="0">
+        </div>
+    </div>
+</div>
+
+<div class="grid">
+    <div class="fixedSize350" data-expected-width="350" data-expected-height="350">
+        <div class="percentSize100" data-expected-width="350" data-expected-height="350">
+        </div>
+    </div>
+</div>
+
+<div class="grid">
+    <div class="fixedSize350" data-expected-width="350" data-expected-height="350">
+        <div class="percentSize50" data-expected-width="175" data-expected-height="175">
+        </div>
+    </div>
+</div>
+
+<div class="grid">
+    <div class="percentSize100" data-expected-width="200" data-expected-height="100">
+        <div class="percentSize100" data-expected-width="200" data-expected-height="100">
+        </div>
+    </div>
+</div>
+
+<div class="grid">
+    <div class="percentSize100" data-expected-width="200" data-expected-height="100">
+        <div class="percentSize50" data-expected-width="100" data-expected-height="50">
+        </div>
+    </div>
+</div>
+
+<div class="grid">
+    <div class="percentSize50" data-expected-width="100" data-expected-height="50">
+        <div class="percentSize100" data-expected-width="100" data-expected-height="50">
+        </div>
+    </div>
+</div>
+
+<div class="grid">
+    <div class="percentSize50" data-expected-width="100" data-expected-height="50">
+        <div class="percentSize50" data-expected-width="50" data-expected-height="25">
+        </div>
+    </div>
+</div>
+
+<div class="grid">
+    <div class="positioned" data-expected-width="0" data-expected-height="0">
+        <div class="percentSize100" data-expected-width="0" data-expected-height="0">
+        </div>
+    </div>
+</div>
+
+<div class="grid">
+    <div class="positioned" data-expected-width="0" data-expected-height="0">
+        <div class="percentSize50" data-expected-width="0" data-expected-height="0">
+        </div>
+    </div>
+</div>
+
+<div class="grid">
+    <div class="positioned offsets" data-expected-width="200" data-expected-height="100">
+        <div class="percentSize100" data-expected-width="200" data-expected-height="100">
+        </div>
+    </div>
+</div>
+
+<div class="grid">
+    <div class="positioned offsets" data-expected-width="200" data-expected-height="100">
+        <div class="percentSize50" data-expected-width="100" data-expected-height="50">
+        </div>
+    </div>
+</div>
+
+</body>

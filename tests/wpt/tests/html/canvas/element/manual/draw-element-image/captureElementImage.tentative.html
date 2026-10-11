@@ -26,30 +26,49 @@ promise_test(async t => {
   await waitForCanvasPaint(canvas);
 
   let elementImageA = canvas.captureElementImage(child);
-  assert_equals(elementImageA.width, 100);
-  assert_equals(elementImageA.height, 100);
+  assert_false('width' in elementImageA, 'ElementImage should not have a width property');
+  assert_false('height' in elementImageA, 'ElementImage should not have a height property');
+  let sizeA = canvas.getElementImageDefaultSize(elementImageA);
+  assert_equals(sizeA.width, 100);
+  assert_equals(sizeA.height, 100);
+  let childSize = canvas.getElementImageDefaultSize(child);
+  assert_equals(childSize.width, 100);
+  assert_equals(childSize.height, 100);
 
   // Change the child size.
   child.style.width = '150px';
 
-  // `captureElementImage` should still return the last painted element image.
+  // `captureElementImage` and `getElementImageDefaultSize` should still reflect
+  // the last painted element image before the next paint.
   let elementImageB = canvas.captureElementImage(child);
-  assert_equals(elementImageB.width, 100);
-  assert_equals(elementImageB.height, 100);
+  let sizeB = canvas.getElementImageDefaultSize(elementImageB);
+  assert_equals(sizeB.width, 100);
+  assert_equals(sizeB.height, 100);
+  childSize = canvas.getElementImageDefaultSize(child);
+  assert_equals(childSize.width, 100);
+  assert_equals(childSize.height, 100);
 
   await waitForCanvasPaint(canvas);
 
-  // `captureElementImage` should return the updated element image size.
+  // After paint, `getElementImageDefaultSize(child)` and newly captured
+  // `ElementImage`s should return the updated element image size.
+  childSize = canvas.getElementImageDefaultSize(child);
+  assert_equals(childSize.width, 150);
+  assert_equals(childSize.height, 100);
+
   let elementImageC = canvas.captureElementImage(child);
-  assert_equals(elementImageC.width, 150);
-  assert_equals(elementImageC.height, 100);
+  let sizeC = canvas.getElementImageDefaultSize(elementImageC);
+  assert_equals(sizeC.width, 150);
+  assert_equals(sizeC.height, 100);
 
   // The previous element images should not be affected by the changed size.
-  assert_equals(elementImageA.width, 100);
-  assert_equals(elementImageA.height, 100);
-  assert_equals(elementImageB.width, 100);
-  assert_equals(elementImageB.height, 100);
-}, 'captureElementImage size should be the most recently painted size');
+  sizeA = canvas.getElementImageDefaultSize(elementImageA);
+  assert_equals(sizeA.width, 100);
+  assert_equals(sizeA.height, 100);
+  sizeB = canvas.getElementImageDefaultSize(elementImageB);
+  assert_equals(sizeB.width, 100);
+  assert_equals(sizeB.height, 100);
+}, 'captureElementImage and getElementImageDefaultSize should use the most recently painted size');
 
 promise_test(async t => {
   const child = document.getElementById('child');
@@ -63,8 +82,9 @@ promise_test(async t => {
   await waitForCanvasPaint(canvas);
 
   let greenElementImage = canvas.captureElementImage(child);
-  assert_equals(greenElementImage.width, 100);
-  assert_equals(greenElementImage.height, 100);
+  let greenSize = canvas.getElementImageDefaultSize(greenElementImage);
+  assert_equals(greenSize.width, 100);
+  assert_equals(greenSize.height, 100);
   context.drawElementImage(greenElementImage, 0, 0);
   assert_array_equals(context.getImageData(0, 0, 1, 1).data, [0, 128, 0, 255]);
 
@@ -74,14 +94,16 @@ promise_test(async t => {
   await waitForCanvasPaint(canvas);
 
   let blueElementImage = canvas.captureElementImage(child);
-  assert_equals(blueElementImage.width, 100);
-  assert_equals(blueElementImage.height, 100);
+  let blueSize = canvas.getElementImageDefaultSize(blueElementImage);
+  assert_equals(blueSize.width, 100);
+  assert_equals(blueSize.height, 100);
   context.drawElementImage(blueElementImage, 0, 0);
   assert_array_equals(context.getImageData(0, 0, 1, 1).data, [0, 0, 255, 255]);
 
   // `greenElementImage` should still be green.
-  assert_equals(greenElementImage.width, 100);
-  assert_equals(greenElementImage.height, 100);
+  greenSize = canvas.getElementImageDefaultSize(greenElementImage);
+  assert_equals(greenSize.width, 100);
+  assert_equals(greenSize.height, 100);
   context.drawElementImage(greenElementImage, 0, 0);
   assert_array_equals(context.getImageData(0, 0, 1, 1).data, [0, 128, 0, 255],
     'greenElementImage should still draw green');
@@ -91,20 +113,22 @@ promise_test(async t => {
   await waitForCanvasPaint(canvas);
 
   let elementImage = canvas.captureElementImage(child);
-  assert_equals(elementImage.width, 100);
-  assert_equals(elementImage.height, 100);
+  let size = canvas.getElementImageDefaultSize(elementImage);
+  assert_equals(size.width, 100);
+  assert_equals(size.height, 100);
 
   assert_true('close' in elementImage,
     'ElementImage should have a close method');
 
-  // Ensure an ElementImage cannot be drawn after `close()`.
+  // Ensure an ElementImage cannot be drawn or queried for size after `close()`.
   elementImage.close();
-  assert_equals(elementImage.width, 0);
-  assert_equals(elementImage.height, 0);
+  assert_throws_dom('InvalidStateError',
+    () => canvas.getElementImageDefaultSize(elementImage),
+    'A closed ElementImage has no default size.');
   assert_throws_dom('InvalidStateError',
     () => canvas.getContext('2d').drawElementImage(elementImage, 0, 0),
     'A closed ElementImage cannot be drawn.');
-}, 'ElementImage.close() invalidates the image for drawing');
+}, 'ElementImage.close() invalidates the image for drawing and default size queries');
 
 promise_test(async t => {
   const nestedCanvas = document.createElement('canvas');
@@ -127,9 +151,13 @@ promise_test(async t => {
   await waitForCanvasPaint(canvas);
 
   let elementImage = nestedCanvas.captureElementImage(childDiv);
-  assert_equals(elementImage.width, 100);
-  assert_equals(elementImage.height, 100);
-}, 'captureElementImage on a nested canvas should succeed');
+  let imageSize = nestedCanvas.getElementImageDefaultSize(elementImage);
+  assert_equals(imageSize.width, 100);
+  assert_equals(imageSize.height, 100);
+  let elementSize = nestedCanvas.getElementImageDefaultSize(childDiv);
+  assert_equals(elementSize.width, 100);
+  assert_equals(elementSize.height, 100);
+}, 'captureElementImage and getElementImageDefaultSize on a nested canvas should succeed');
 
 promise_test(async t => {
   const child = document.getElementById('child');
@@ -166,16 +194,21 @@ promise_test(async t => {
   // In canvas pixel grid coordinate space:
   // width = (dpWidth * 2) * 0.5 = dpWidth
   // height = (dpHeight * 0.5) * 0.5 = dpHeight * 0.25
-  assert_equals(elementImage.width, dpWidth);
-  assert_equals(elementImage.height, dpHeight * 0.25);
+  let imageSize = canvas.getElementImageDefaultSize(elementImage);
+  assert_equals(imageSize.width, dpWidth);
+  assert_equals(imageSize.height, dpHeight * 0.25);
+
+  let elementSize = canvas.getElementImageDefaultSize(child);
+  assert_equals(elementSize.width, dpWidth);
+  assert_equals(elementSize.height, dpHeight * 0.25);
 
   // Verify that drawing the ElementImage at 1:1 canvas grid scale matches
   // its reported width and height in canvas pixel grid coordinates.
   let context = canvas.getContext('2d', { willReadFrequently: true });
   context.reset();
   context.drawElementImage(elementImage, 0, 0);
-  const drawnWidth = Math.floor(elementImage.width);
-  const drawnHeight = Math.floor(elementImage.height);
+  const drawnWidth = Math.floor(imageSize.width);
+  const drawnHeight = Math.floor(imageSize.height);
   assert_array_equals(
     context.getImageData(drawnWidth - 1, drawnHeight - 1, 1, 1).data,
     [0, 128, 0, 255],
@@ -188,7 +221,7 @@ promise_test(async t => {
     context.getImageData(drawnWidth - 1, drawnHeight + 1, 1, 1).data,
     [0, 0, 0, 0],
     'Pixel outside ElementImage height should be transparent');
-}, 'ElementImage width and height should be in canvas pixel grid coordinate space');
+}, 'getElementImageDefaultSize should return size in canvas pixel grid coordinate space');
 
 promise_test(async t => {
   const child = document.getElementById('child');
@@ -218,31 +251,47 @@ promise_test(async t => {
   await waitForCanvasPaint(canvas);
 
   let elementImageA = canvas.captureElementImage(child);
-  assert_equals(elementImageA.width, dpWidth);
-  assert_equals(elementImageA.height, dpHeight * 0.25);
+  let sizeA = canvas.getElementImageDefaultSize(elementImageA);
+  assert_equals(sizeA.width, dpWidth);
+  assert_equals(sizeA.height, dpHeight * 0.25);
+  let childSize = canvas.getElementImageDefaultSize(child);
+  assert_equals(childSize.width, dpWidth);
+  assert_equals(childSize.height, dpHeight * 0.25);
 
   // Change canvas pixel grid size to a different non-standard scale factor.
   canvas.width = dpWidth * 3;
   canvas.height = dpHeight * 1.5;
 
-  // ElementImage width and height are based on the current canvas grid size,
-  // so existing and newly captured ElementImages immediately reflect the new
-  // canvas pixel grid dimensions even before the next paint.
-  assert_equals(elementImageA.width, dpWidth * 1.5);
-  assert_equals(elementImageA.height, dpHeight * 0.75);
+  // getElementImageDefaultSize is based on the current canvas grid size, so
+  // existing ElementImages, newly captured ElementImages, and Elements
+  // immediately reflect the new canvas pixel grid dimensions even before the
+  // next paint.
+  sizeA = canvas.getElementImageDefaultSize(elementImageA);
+  assert_equals(sizeA.width, dpWidth * 1.5);
+  assert_equals(sizeA.height, dpHeight * 0.75);
+  childSize = canvas.getElementImageDefaultSize(child);
+  assert_equals(childSize.width, dpWidth * 1.5);
+  assert_equals(childSize.height, dpHeight * 0.75);
 
   let elementImageB = canvas.captureElementImage(child);
-  assert_equals(elementImageB.width, dpWidth * 1.5);
-  assert_equals(elementImageB.height, dpHeight * 0.75);
+  let sizeB = canvas.getElementImageDefaultSize(elementImageB);
+  assert_equals(sizeB.width, dpWidth * 1.5);
+  assert_equals(sizeB.height, dpHeight * 0.75);
 
   await waitForCanvasPaint(canvas);
 
   let elementImageC = canvas.captureElementImage(child);
-  assert_equals(elementImageC.width, dpWidth * 1.5);
-  assert_equals(elementImageC.height, dpHeight * 0.75);
-  assert_equals(elementImageA.width, dpWidth * 1.5);
-  assert_equals(elementImageA.height, dpHeight * 0.75);
-  assert_equals(elementImageB.width, dpWidth * 1.5);
-  assert_equals(elementImageB.height, dpHeight * 0.75);
-}, 'ElementImage width and height update when canvas pixel grid size changes');
+  let sizeC = canvas.getElementImageDefaultSize(elementImageC);
+  assert_equals(sizeC.width, dpWidth * 1.5);
+  assert_equals(sizeC.height, dpHeight * 0.75);
+  sizeA = canvas.getElementImageDefaultSize(elementImageA);
+  assert_equals(sizeA.width, dpWidth * 1.5);
+  assert_equals(sizeA.height, dpHeight * 0.75);
+  sizeB = canvas.getElementImageDefaultSize(elementImageB);
+  assert_equals(sizeB.width, dpWidth * 1.5);
+  assert_equals(sizeB.height, dpHeight * 0.75);
+  childSize = canvas.getElementImageDefaultSize(child);
+  assert_equals(childSize.width, dpWidth * 1.5);
+  assert_equals(childSize.height, dpHeight * 0.75);
+}, 'getElementImageDefaultSize updates when canvas pixel grid size changes');
 </script>

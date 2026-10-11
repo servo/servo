@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+  body { margin: 0; }
+  .cases { display: flex; gap: 20px; }
+  .case { position: relative; }
+  .lanes {
+    background: #cdd5e0;
+    display: grid;
+    gap: 20px;
+    grid-template-columns: repeat(2, 60px);
+    grid-template-rows: repeat(4, 40px);
+    width: max-content;
+  }
+  .lanes > div {
+    background: #5b8def;
+    grid-column: 1;
+    grid-row: 1;
+    height: 40px;
+  }
+  .lanes > .tall { grid-column: 2; grid-row: 1 / span 2; height: 100px; }
+  .lanes > .overlap {
+    background: #1f9d6b;
+    grid-row: 2;
+    margin-top: -30px;
+  }
+  .lanes > .spanner {
+    background: #8a6df0;
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+  .lanes > .centered {
+    align-self: center;
+    background: #1f9d6b;
+    grid-row: 2;
+    height: 20px;
+  }
+  .lanes > .tail { grid-row: 4; }
+  .col-rule {
+    border-left: 4px solid blue;
+    height: 40px;
+    left: 68px;
+    position: absolute;
+    width: 0;
+  }
+</style>
+<div class="cases">
+  <div class="case">
+    <div class="lanes">
+      <div></div>
+      <div class="tall"></div>
+      <div class="overlap"></div>
+      <div class="spanner"></div>
+      <div class="tail"></div>
+    </div>
+    <div class="col-rule" style="top: 0;"></div>
+    <div class="col-rule" style="top: 60px;"></div>
+    <div class="col-rule" style="top: 180px;"></div>
+  </div>
+  <div class="case">
+    <div class="lanes">
+      <div></div>
+      <div class="tall"></div>
+      <div class="spanner"></div>
+      <div class="centered"></div>
+      <div class="tail"></div>
+    </div>
+    <div class="col-rule" style="top: 0;"></div>
+    <div class="col-rule" style="top: 60px;"></div>
+    <div class="col-rule" style="top: 180px;"></div>
+  </div>
+</div>

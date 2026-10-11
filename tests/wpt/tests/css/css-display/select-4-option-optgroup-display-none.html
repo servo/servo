@@ -18,6 +18,12 @@
 
 select { -webkit-appearance: none; }
 
+:root {
+  /* Setting will-change:transform here and in the reference file fixes
+     subpixel rendering differences of rounded corners. */
+  will-change: transform;
+}
+
   </style>
 </head>
 <body>

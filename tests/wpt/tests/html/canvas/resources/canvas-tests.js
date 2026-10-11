@@ -148,6 +148,32 @@ function forEachCanvasSource(crossOriginUrl, sameOriginUrl, callback) {
     },
 
     {
+      name: "redirected to cross-origin HTMLImageElement",
+      factory: () => {
+        return new Promise((resolve, reject) => {
+          const image = new Image();
+          image.onload = () => resolve(image);
+          image.onerror = reject;
+          image.src = "/common/redirect.py?location=" +
+              crossOriginUrl + "/images/red.png";
+        });
+      },
+    },
+
+    {
+      name: "redirected to same-origin HTMLImageElement",
+      factory: () => {
+        return new Promise((resolve, reject) => {
+          const image = new Image();
+          image.onload = () => resolve(image);
+          image.onerror = reject;
+          image.src = crossOriginUrl + "/common/redirect.py?location=" +
+              sameOriginUrl + "/images/red.png";
+        });
+      },
+    },
+
+    {
       name: "cross-origin SVGImageElement",
       factory: () => {
         return new Promise((resolve, reject) => {

@@ -296,9 +296,15 @@ async function createProofreader(options = {}) {
   return await Proofreader.create(options);
 }
 
-async function createClassifier(options = {}) {
+async function createDecisionModel(options = {}) {
+  if (!options.monitor) {
+    const availability = await DecisionModel.availability(options);
+    assert_implements_optional(
+        availability !== 'unavailable',
+        'DecisionModel is not available for the given options');
+  }
   await test_driver.bless();
-  return await Classifier.create(options);
+  return await DecisionModel.create(options);
 }
 
 async function ensureLanguageModel(options = {}) {

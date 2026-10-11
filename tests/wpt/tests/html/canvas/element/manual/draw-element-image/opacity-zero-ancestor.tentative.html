@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Canvas.drawElementImage: opacity: 0 on canvas, ancestors, or drawable</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="match" href="opacity-zero-ancestor-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+canvas {
+  display: block;
+  background: red;
+}
+#canvas4 {
+  background: green;
+}
+.box {
+  width: 100px;
+  height: 25px;
+}
+.green {
+  background: green;
+}
+.red {
+  background: red;
+}
+</style>
+
+<div id="ancestor" style="opacity: 0;">
+  <canvas id="canvas1" width="100" height="25" content="drawable">
+    <div drawable id="child1" class="box green"></div>
+  </canvas>
+</div>
+
+<canvas id="canvas2" style="opacity: 0;" width="100" height="25" content="drawable">
+  <div drawable id="child2" class="box green"></div>
+</canvas>
+
+<canvas id="canvas3" width="100" height="25" content="drawable">
+  <div style="opacity: 0;">
+    <div drawable id="child3" class="box green"></div>
+  </div>
+</canvas>
+
+<canvas id="canvas4" width="100" height="25" content="drawable">
+  <div drawable id="child4" class="box red" style="opacity: 0;"></div>
+</canvas>
+
+<script>
+onload = async () => {
+  await Promise.all([
+    waitForCanvasPaint(canvas1),
+    waitForCanvasPaint(canvas2),
+    waitForCanvasPaint(canvas3),
+    waitForCanvasPaint(canvas4),
+  ]);
+
+  canvas1.getContext("2d").drawElementImage(child1, 0, 0);
+  ancestor.style.opacity = 1;
+
+  canvas2.getContext("2d").drawElementImage(child2, 0, 0);
+  canvas2.style.opacity = 1;
+
+  canvas3.getContext("2d").drawElementImage(child3, 0, 0);
+
+  canvas4.getContext("2d").drawElementImage(child4, 0, 0);
+
+  takeScreenshot();
+};
+</script>
+</html>

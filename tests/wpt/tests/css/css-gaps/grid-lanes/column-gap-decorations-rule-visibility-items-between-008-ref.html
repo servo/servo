@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+  body { margin: 0; }
+  .case { position: relative; width: max-content; }
+  .lanes {
+    background: #cdd5e0;
+    display: grid;
+    gap: 20px;
+    grid-template-columns: repeat(2, 60px);
+    grid-template-rows: repeat(3, 40px);
+    width: max-content;
+  }
+  .lanes > div {
+    background: #5b8def;
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .lanes > .first { grid-column: 1; height: 30px; }
+  .lanes > .second { grid-row: 2; }
+  .lanes > .spanner {
+    background: #8a6df0;
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+  .col-rule {
+    border-left: 4px solid blue;
+    height: 40px;
+    left: 68px;
+    position: absolute;
+    top: 0;
+    width: 0;
+  }
+</style>
+<div class="case">
+  <div class="lanes">
+    <div class="first"></div>
+    <div></div>
+    <div class="second"></div>
+    <div class="spanner"></div>
+  </div>
+  <div class="col-rule"></div>
+</div>

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#track-sizing">
+<meta name="assert" content="Percentage track sizes resolve against the grid container's content box, so the container's margin, border and padding do not affect them.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<style>
+.grid {
+    width: 100px;
+    height: 100px;
+    grid-template-columns: 20% 50% 30%;
+    grid-template-rows: 40% 60%;
+}
+
+.margin {
+    margin: 10px;
+}
+
+.border {
+    border: 5px solid black;
+}
+
+.padding {
+    padding: 20px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.grid')">
+    <p>This test checks that percentage tracks ignore grid container's margin, border and padding in order to calculate their breadths.</p>
+
+    <div class="grid">
+        <div data-expected-width="20" data-expected-height="40"></div>
+        <div data-expected-width="50" data-expected-height="40"></div>
+        <div data-expected-width="30" data-expected-height="40"></div>
+        <div data-expected-width="20" data-expected-height="60"></div>
+        <div data-expected-width="50" data-expected-height="60"></div>
+        <div data-expected-width="30" data-expected-height="60"></div>
+    </div>
+
+    <div class="grid margin">
+        <div data-expected-width="20" data-expected-height="40"></div>
+        <div data-expected-width="50" data-expected-height="40"></div>
+        <div data-expected-width="30" data-expected-height="40"></div>
+        <div data-expected-width="20" data-expected-height="60"></div>
+        <div data-expected-width="50" data-expected-height="60"></div>
+        <div data-expected-width="30" data-expected-height="60"></div>
+    </div>
+
+    <div class="grid border">
+        <div data-expected-width="20" data-expected-height="40"></div>
+        <div data-expected-width="50" data-expected-height="40"></div>
+        <div data-expected-width="30" data-expected-height="40"></div>
+        <div data-expected-width="20" data-expected-height="60"></div>
+        <div data-expected-width="50" data-expected-height="60"></div>
+        <div data-expected-width="30" data-expected-height="60"></div>
+    </div>
+
+    <div class="grid padding">
+        <div data-expected-width="20" data-expected-height="40"></div>
+        <div data-expected-width="50" data-expected-height="40"></div>
+        <div data-expected-width="30" data-expected-height="40"></div>
+        <div data-expected-width="20" data-expected-height="60"></div>
+        <div data-expected-width="50" data-expected-height="60"></div>
+        <div data-expected-width="30" data-expected-height="60"></div>
+    </div>
+
+    <div class="grid margin border">
+        <div data-expected-width="20" data-expected-height="40"></div>
+        <div data-expected-width="50" data-expected-height="40"></div>
+        <div data-expected-width="30" data-expected-height="40"></div>
+        <div data-expected-width="20" data-expected-height="60"></div>
+        <div data-expected-width="50" data-expected-height="60"></div>
+        <div data-expected-width="30" data-expected-height="60"></div>
+    </div>
+
+    <div class="grid margin padding">
+        <div data-expected-width="20" data-expected-height="40"></div>
+        <div data-expected-width="50" data-expected-height="40"></div>
+        <div data-expected-width="30" data-expected-height="40"></div>
+        <div data-expected-width="20" data-expected-height="60"></div>
+        <div data-expected-width="50" data-expected-height="60"></div>
+        <div data-expected-width="30" data-expected-height="60"></div>
+    </div>
+
+    <div class="grid border padding">
+        <div data-expected-width="20" data-expected-height="40"></div>
+        <div data-expected-width="50" data-expected-height="40"></div>
+        <div data-expected-width="30" data-expected-height="40"></div>
+        <div data-expected-width="20" data-expected-height="60"></div>
+        <div data-expected-width="50" data-expected-height="60"></div>
+        <div data-expected-width="30" data-expected-height="60"></div>
+    </div>
+
+    <div class="grid margin border padding">
+        <div data-expected-width="20" data-expected-height="40"></div>
+        <div data-expected-width="50" data-expected-height="40"></div>
+        <div data-expected-width="30" data-expected-height="40"></div>
+        <div data-expected-width="20" data-expected-height="60"></div>
+        <div data-expected-width="50" data-expected-height="60"></div>
+        <div data-expected-width="30" data-expected-height="60"></div>
+    </div>
+</body>

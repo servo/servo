@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>CSS Test Reference: Variable fonts with an italic axis</title>
+<style>
+  @font-face {
+    font-family: "ital test font";
+    src: url("resources/FontStyleTest-ital-VF.woff2");
+    font-style: italic;
+  }
+
+  @font-face {
+    font-family: "ital and slnt italic test font";
+    src: url("resources/FontStyleTest-slnt_ital-VF.woff2");
+    font-style: italic;
+  }
+
+  @font-face {
+    font-family: "ital and slnt oblique test font";
+    src: url("resources/FontStyleTest-slnt_ital-VF.woff2");
+    font-style: oblique 0deg 15deg;
+  }
+
+  .test {
+    font-size: 3em;
+  }
+
+  .ital {
+    font-family: "ital test font";
+    font-style: italic;
+    font-variation-settings: "ital" 1;
+  }
+
+  .ital-and-slnt-italic {
+    font-family: "ital and slnt italic test font";
+    font-style: italic;
+    font-variation-settings: "ital" 1, "slnt" 0;
+  }
+
+  .ital-and-slnt-oblique {
+    font-family: "ital and slnt oblique test font";
+    font-style: oblique;
+    font-variation-settings: "ital" 0, "slnt" -14;
+  }
+</style>
+
+<p class="test ital">varfont</p>
+<p class="test ital-and-slnt-italic">varfont</p>
+<p class="test ital-and-slnt-oblique">varfont</p>

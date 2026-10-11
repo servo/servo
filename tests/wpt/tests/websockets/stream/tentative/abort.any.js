@@ -27,6 +27,15 @@ promise_test(async t => {
 }, 'abort before constructing should prevent connection');
 
 promise_test(async t => {
+  const wss = new WebSocketStream(ECHOURL, {signal: AbortSignal.abort()});
+  wss.close();
+  await promise_rejects_dom(t, 'AbortError', wss.opened,
+                            'opened should reject');
+  await promise_rejects_dom(t, 'AbortError', wss.closed,
+                            'closed should reject');
+}, 'close after abort before constructing should do nothing');
+
+promise_test(async t => {
   const controller = new AbortController();
   const wss = new WebSocketStream(`${BASEURL}/handshake_sleep_2`,
                                   { signal: controller.signal });
@@ -38,6 +47,18 @@ promise_test(async t => {
   await promise_rejects_dom(
       t, 'AbortError', wss.closed, 'closed should reject');
 }, 'abort during handshake should work');
+
+promise_test(async t => {
+  const controller = new AbortController();
+  const wss = new WebSocketStream(`${BASEURL}/handshake_sleep_2`,
+                                  {signal: controller.signal});
+  controller.abort();
+  wss.close();
+  await promise_rejects_dom(t, 'AbortError', wss.opened,
+                            'opened should reject');
+  await promise_rejects_dom(t, 'AbortError', wss.closed,
+                            'closed should reject');
+}, 'close after abort during handshake should do nothing');
 
 promise_test(async t => {
   const controller = new AbortController();

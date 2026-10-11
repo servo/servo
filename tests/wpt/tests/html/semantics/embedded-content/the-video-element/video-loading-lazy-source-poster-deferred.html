@@ -25,8 +25,12 @@
       assert_false(loadStarted, "Video load should not start while offscreen");
       assert_equals(video.readyState, HTMLMediaElement.HAVE_NOTHING);
 
-      video.addEventListener("loadstart", t.step_func_done(() => {}),
-                             {once: true});
+      video.addEventListener("loadstart", t.step_func(() => {
+        // Decode a same-URL image to wait until the poster is fully decoded.
+        const img = new Image();
+        img.src = video.poster;
+        img.decode().then(t.step_func_done(), t.step_func_done());
+      }), {once: true});
       video.scrollIntoView();
     }, 1000);
   }, "Video with loading=lazy, poster and source does not load until visible");

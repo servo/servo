@@ -62,6 +62,19 @@ def test_add_credential_with_sign_count(session, authenticator):
     assert credentials[0]["signCount"] == 42
 
 
+def test_add_credential_with_null_sign_count(session, authenticator):
+    # A null signCount indicates the credential has no signature counter.
+    credential = create_credential(credential_id="bnVsbGNvdW50", sign_count=None)
+
+    response = add_credential(session, authenticator, credential)
+    assert_success(response)
+
+    credentials = session.web_authn.get_credentials(authenticator)
+    assert len(credentials) == 1
+    assert credentials[0]["credentialId"] == "bnVsbGNvdW50"
+    assert credentials[0]["signCount"] is None
+
+
 def test_add_multiple_credentials(session, authenticator):
     credential_ids = ["Y3JlZC0w", "Y3JlZC0x", "Y3JlZC0y"]
     for credential_id in credential_ids:

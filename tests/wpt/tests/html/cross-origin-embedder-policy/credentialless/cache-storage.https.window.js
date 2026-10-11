@@ -96,7 +96,7 @@ cacheStorageTest(`[${environment}] unsafe-none => require-corp (omit)`,
   context_none,
   context_require_corp,
   "",
-  "include",
+  "omit",
   "error");
 cacheStorageTest(`[${environment}] unsafe-none => require-corp + CORP`,
   context_none,

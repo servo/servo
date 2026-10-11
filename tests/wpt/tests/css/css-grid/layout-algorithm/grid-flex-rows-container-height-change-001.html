@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-flex-tracks">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-find-fr-size">
+<meta name="assert" content="Switching the grid container's height between 'auto' (indefinite) and a length (definite) recomputes the sizes of its flexible rows.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<style>
+.grid {
+    grid: minmax(5px, 1fr) minmax(5px, 2fr) / 50px;
+}
+
+#fromIndefinite { height: auto; }
+#toIndefinite { height: 90px; }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<p>Tests how a change in grid's height requires evaluating again whether the grid has indefinite or definite height.</p>
+
+<p>The grid below had initially 'height: auto' (indefinite) and has been changed to '90px' (definite).</p>
+<div class="constrainedContainer">
+    <div id="fromIndefinite"  class="grid">
+        <div class="firstRowFirstColumn" data-expected-width="50" data-expected-height="30"></div>
+        <div class="secondRowFirstColumn" data-expected-width="50" data-expected-height="60"></div>
+    </div>
+</div>
+
+<hr style="margin-top: 150px;">
+
+<p>The grid below had initially 'height: 90px' (definite) and has been changed to 'auto' (indefinite).</p>
+<div class="constrainedContainer">
+    <div id="toIndefinite" class="grid">
+        <div class="firstRowFirstColumn" data-expected-width="50" data-expected-height="5"></div>
+        <div class="secondRowFirstColumn" data-expected-width="50" data-expected-height="10"></div>
+    </div>
+</div>
+
+<script>
+document.body.offsetLeft;
+document.getElementById("toIndefinite").style.height = "auto";
+document.getElementById("fromIndefinite").style.height = "90px";
+checkLayout(".grid");
+</script>

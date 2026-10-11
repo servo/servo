@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: between column rule segments with a middle grid lane ending before its neighbors</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#visibility">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#segments">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#segment-endpoints">
+<link rel="match" href="column-gap-decorations-rule-visibility-items-between-005-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    background: #cdd5e0;
+    column-rule: 4px solid blue;
+    column-rule-break: intersection;
+    column-rule-visibility-items: between;
+    display: grid-lanes;
+    gap: 20px;
+    grid-template-columns: repeat(3, 60px);
+    width: max-content;
+  }
+  .lanes > div {
+    background: #5b8def;
+    height: 40px;
+  }
+  .first-lane { grid-column: 1; }
+  .lanes > .middle-lane {
+    grid-column: 2;
+    height: 70px;
+  }
+  .last-lane { grid-column: 3; }
+  .lanes > .long { height: 100px; }
+  .lanes > .medium { height: 60px; }
+  .lanes > .middle-end { height: 60px; }
+</style>
+<div class="lanes">
+  <div class="first-lane"></div>
+  <div class="middle-lane"></div>
+  <div class="last-lane long"></div>
+  <div class="first-lane long"></div>
+  <div class="middle-lane middle-end"></div>
+  <div class="last-lane"></div>
+  <div class="first-lane"></div>
+  <div class="last-lane medium"></div>
+  <div class="first-lane"></div>
+  <div class="last-lane"></div>
+</div>

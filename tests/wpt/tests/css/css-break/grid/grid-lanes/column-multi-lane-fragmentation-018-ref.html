@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<style>
+  .container {
+    font-size: 0;
+    height: 60px;
+    width: 180px;
+  }
+  .fragment,
+  .item {
+    display: inline-block;
+    vertical-align: top;
+  }
+  .fragment {
+    height: 60px;
+    width: 90px;
+  }
+  .outer-left { background: #20b2aa; }
+  .outer-right { background: #87cefa; }
+  .parent-left { background: #90ee90; }
+  .parent-right { background: #dda0dd; }
+  .packed-left { background: #ffd700; }
+  .packed-right { background: #ff8c00; }
+</style>
+<p>Test passes if the two rectangles are identical.</p>
+<div class="container">
+  <div class="fragment">
+    <div class="item outer-left" style="width: 15px; height: 60px;"></div>
+    <div class="item packed-left" style="width: 30px; height: 60px;"></div>
+    <div class="item packed-right" style="width: 30px; height: 60px;"></div>
+    <div class="item outer-right" style="width: 15px; height: 60px;"></div>
+  </div>
+  <div class="fragment">
+    <div class="line">
+      <div class="item outer-left" style="width: 15px; height: 40px;"></div>
+      <div class="item packed-left" style="width: 30px; height: 40px;"></div>
+      <div class="item packed-right" style="width: 30px; height: 40px;"></div>
+      <div class="item outer-right" style="width: 15px; height: 40px;"></div>
+    </div>
+    <div class="line">
+      <div class="item parent-left" style="width: 30px; height: 20px;"></div>
+      <div class="item" style="width: 30px; height: 20px;"></div>
+      <div class="item parent-right" style="width: 30px; height: 20px;"></div>
+    </div>
+  </div>
+</div>

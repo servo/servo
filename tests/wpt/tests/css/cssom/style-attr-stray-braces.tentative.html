@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSSOM: Stray braces in style attribute and cssText</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14565">
+<link rel="help" href="https://drafts.csswg.org/css-style-attr/#syntax">
+<link rel="help" href="https://drafts.csswg.org/cssom-1/#parse-a-css-declaration-block">
+<link rel="help" href="https://drafts.csswg.org/css-syntax-3/#parse-block-contents">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="target"></div>
+<script>
+const TESTS = [
+  ["}color: red", ""],
+  ["} color: red; z-index: 1", "z-index: 1;"],
+  ["}; z-index: 1", "z-index: 1;"],
+  ["z-index: 1; }color: red", "z-index: 1;"],
+  ["z-index: 1; }", "z-index: 1;"],
+  ["{}color: red", ""],
+  ["{}color: red; z-index: 1", "z-index: 1;"],
+  ["@foo{}z-index: 1", "z-index: 1;"],
+];
+
+const target = document.getElementById("target");
+
+for (const [input, expected] of TESTS) {
+  test(() => {
+    target.setAttribute("style", input);
+    assert_equals(target.style.cssText, expected);
+  }, `style attribute: ${input}`);
+
+  test(() => {
+    target.removeAttribute("style");
+    target.style.cssText = input;
+    assert_equals(target.style.cssText, expected);
+  }, `cssText setter: ${input}`);
+}
+</script>

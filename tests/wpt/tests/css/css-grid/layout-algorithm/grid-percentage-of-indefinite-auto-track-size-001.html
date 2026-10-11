@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#track-sizing">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#auto-tracks">
+<meta name="assert" content="Percentage implicit track sizes that resolve against an indefinite size behave as 'auto': as min-content in the min track sizing function and as max-content in the max track sizing function.">
+<link rel="stylesheet" href="/css/support/width-keyword-classes.css">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.grid {
+    font: 10px/1 Ahem;
+}
+.gridWithPercent {
+    grid-auto-columns: 25%;
+    grid-auto-rows: 30%;
+}
+.gridWithPercentInMinOfMinMax {
+    grid-auto-columns: minmax(20%, max-content);
+    grid-auto-rows: minmax(100%, 15px);
+}
+.gridWithPercentInMinOfMinMax2 {
+    grid-auto-columns: minmax(20%, 50px);
+    grid-auto-rows: minmax(100%, max-content);
+}
+.gridWithPercentInMaxOfMinMax {
+    grid-auto-columns: minmax(min-content, 25%);
+    grid-auto-rows: minmax(0px, 1%);
+}
+.gridWithPercentInMaxOfMinMax2 {
+    grid-auto-columns: minmax(20px, 25%);
+    grid-auto-rows: minmax(min-content, 1%);
+}
+.gridWithPercentsInMinMax {
+    grid-auto-columns: minmax(25%, 50%);
+    grid-auto-rows: minmax(10%, 90%);
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+<p>This test checks that percentages of indefinite sizes are treated as min-content (for the min track sizing function) or max-content (for the max track sizing function).</p>
+<div style="position: relative;">
+    <div class="grid min-content gridWithPercent" data-expected-width="30" data-expected-height="20">
+        <div class="firstRowFirstColumn">XXX<br>XXX</div>
+    </div>
+</div>
+<div style="position: relative;">
+    <div class="grid min-content gridWithPercentInMinOfMinMax" data-expected-width="30" data-expected-height="15">
+        <div class="firstRowFirstColumn">XXX</div>
+        <div class="firstRowFirstColumn">XX XX</div>
+    </div>
+</div>
+<div style="position: relative;">
+    <div class="grid min-content gridWithPercentInMinOfMinMax2" data-expected-width="30" data-expected-height="20">
+        <div class="firstRowFirstColumn">XXX</div>
+        <div class="firstRowFirstColumn">XX XX</div>
+    </div>
+</div>
+<div style="position: relative;">
+    <div class="grid min-content gridWithPercentInMaxOfMinMax" data-expected-width="40" data-expected-height="20">
+        <div class="firstRowFirstColumn">XXXX<br>X</div>
+    </div>
+</div>
+<div style="position: relative;">
+    <div class="grid min-content gridWithPercentInMaxOfMinMax2" data-expected-width="20" data-expected-height="20">
+        <div class="firstRowFirstColumn">XXXX<br>X</div>
+    </div>
+</div>
+<div style="position: relative;">
+    <div class="grid min-content gridWithPercentsInMinMax" data-expected-width="40" data-expected-height="40">
+        <div class="firstRowFirstColumn">XXX<br>XX XX<br>XXXX</div>
+    </div>
+</div>
+</body>

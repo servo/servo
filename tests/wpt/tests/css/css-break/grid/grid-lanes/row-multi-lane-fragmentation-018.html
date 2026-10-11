@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>Multi-lane row grid-lanes fragmentation with a densely packed spanner</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    background: red;
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0;
+    height: 100px;
+    width: 100px;
+  }
+  .grid-lanes {
+    display: grid-lanes;
+    flow-tolerance: 0;
+    grid-auto-flow: dense;
+    grid-lanes-pack: dense;
+    grid-template-rows: 50px 50px 100px;
+    width: 50px;
+  }
+  .first {
+    grid-row: 1;
+    width: 20px;
+  }
+  .parent {
+    grid-row: 1 / span 2;
+    width: 30px;
+  }
+  .packed {
+    grid-row: 2 / span 2;
+    width: 20px;
+  }
+  .follower {
+    grid-row: 3;
+    width: 30px;
+  }
+  .grid-lanes > div {
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div class="grid-lanes">
+    <div class="first"></div>
+    <div class="parent"></div>
+    <div class="packed"></div>
+    <div class="follower"></div>
+  </div>
+</div>

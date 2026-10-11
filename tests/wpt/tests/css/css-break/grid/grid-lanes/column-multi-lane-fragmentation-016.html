@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>Multi-lane column grid-lanes fragmentation with a fragmenting densely packed item</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="match" href="column-multi-lane-fragmentation-016-ref.html">
+<style>
+  .multicol {
+    column-count: 3;
+    column-fill: auto;
+    column-gap: 0;
+    height: 60px;
+    width: 180px;
+  }
+  .grid-lanes {
+    display: grid-lanes;
+    flow-tolerance: 0;
+    grid-auto-flow: dense;
+    grid-lanes-pack: dense;
+    grid-template-columns: repeat(3, 20px);
+    width: 60px;
+  }
+  .tall-item {
+    background: #87cefa;
+    grid-column: 3;
+    height: 150px;
+  }
+  .parent {
+    background: #dda0dd;
+    grid-column: 1 / span 3;
+    height: 30px;
+  }
+  .packed {
+    background: #ffd700;
+    grid-column: span 2;
+    height: 150px;
+  }
+</style>
+<p>Test passes if the two rectangles are identical.</p>
+<div class="multicol">
+  <div class="grid-lanes">
+    <div class="tall-item"></div>
+    <div class="parent"></div>
+    <div class="packed"></div>
+  </div>
+</div>

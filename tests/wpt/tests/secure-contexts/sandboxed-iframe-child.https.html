@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>An iframe nested in a sandboxed iframe is a secure context</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/webappapis.html#secure-context">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/common/get-host-info.sub.js></script>
+<body>
+<script>
+promise_test(async t => {
+  const { HTTPS_ORIGIN, HTTPS_NOTSAMESITE_ORIGIN } = get_host_info();
+  const child = HTTPS_ORIGIN + "/secure-contexts/postMessage-helper.https.html";
+
+  const iframe = document.createElement("iframe");
+  iframe.sandbox = "allow-scripts";
+  iframe.src = HTTPS_NOTSAMESITE_ORIGIN + "/secure-contexts/support/iframe-with-child.html?src=" + encodeURIComponent(child);
+  const message = new Promise(resolve => window.addEventListener("message", event => resolve(event.data), { once: true }));
+  document.body.append(iframe);
+  t.add_cleanup(() => iframe.remove());
+
+  assert_true(await message);
+}, "A cross-site iframe in a sandboxed cross-site iframe is a secure context");
+</script>

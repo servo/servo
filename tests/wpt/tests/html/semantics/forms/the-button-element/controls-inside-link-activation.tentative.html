@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://github.com/whatwg/html/issues/10032">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-elements.html#the-button-element:activation-behaviour">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/input.html#the-input-element:activation-behaviour">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="container"></div>
+
+<script>
+// This test is tentative because the HTML Standard says that every <button>
+// and <input> has activation behavior, so a click on one of them inside an
+// <a href> should never follow the link. All engines instead follow the link
+// unless the inner control does something that "handles" the click (e.g.
+// submitting or resetting a form, or checking a checkbox). Whether the control
+// does something is decided after the click event listeners have run. See
+// https://github.com/whatwg/html/issues/10032.
+
+const noActivation = {navigated: true};
+
+function runCase({description, form, markup, duringClick, expected,
+                  hasHref = true}) {
+  test(t => {
+    const container = document.getElementById('container');
+    t.add_cleanup(() => {
+      for (const p of container.querySelectorAll('[popover]')) {
+        p.hidePopover();
+      }
+      container.innerHTML = '';
+      history.replaceState(null, '', location.pathname + location.search);
+    });
+    const href = hasHref ? ' href="#nav"' : '';
+    const link = `<a id="link"${href}>${markup}</a>`;
+    container.innerHTML = (form ? `<form id="form">${link}</form>` : link) +
+        '<div id="popover" popover>popover</div><div id="target"></div>';
+    const control = document.getElementById('control');
+    const anchor = document.getElementById('link');
+    let submitted = false;
+    let reset = false;
+    let commandFired = false;
+    const formElement = document.getElementById('form');
+    if (formElement) {
+      formElement.addEventListener('submit', e => {
+        e.preventDefault();
+        submitted = true;
+      });
+      formElement.addEventListener('reset', () => reset = true);
+    }
+    document.getElementById('target').addEventListener('command',
+        () => commandFired = true);
+    if (duringClick) {
+      control.addEventListener('click',
+          e => duringClick(control, anchor, e));
+    }
+    control.click();
+    const popover = document.getElementById('popover');
+    assert_equals(location.hash === '#nav', !!expected.navigated,
+        'link navigated');
+    assert_equals(submitted, !!expected.submitted, 'form submitted');
+    assert_equals(reset, !!expected.reset, 'form reset');
+    assert_equals(popover.matches(':popover-open'), !!expected.popoverOpen,
+        'popover open');
+    assert_equals(commandFired, !!expected.commandFired, 'command fired');
+    if ('checked' in expected) {
+      assert_equals(control.checked, expected.checked, 'control checked');
+    }
+  }, description);
+}
+
+// Runs three cases for a behavior: present before the click, added by a click
+// listener, and removed by a click listener.
+function runBehavior({element, name, form, withMarkup, withoutMarkup, add,
+                      remove, expected}) {
+  runCase({
+    description: `${element} ${name}, present before click`,
+    form,
+    markup: withMarkup,
+    expected,
+  });
+  runCase({
+    description: `${element} ${name}, added during click`,
+    form,
+    markup: withoutMarkup,
+    duringClick: add,
+    expected,
+  });
+  runCase({
+    description: `${element} ${name}, removed during click`,
+    form,
+    markup: withMarkup,
+    duringClick: remove,
+    expected: noActivation,
+  });
+}
+
+// Controls that do nothing when clicked, so the link is followed.
+for (const [description, form, markup] of [
+  ['<button>, no form', false, '<button id="control">b</button>'],
+  ['<button type=button>, no form', false,
+   '<button type="button" id="control">b</button>'],
+  ['<button type=button>, in form', true,
+   '<button type="button" id="control">b</button>'],
+  ['<button type=submit>, no form', false,
+   '<button type="submit" id="control">b</button>'],
+  ['<button type=reset>, no form', false,
+   '<button type="reset" id="control">b</button>'],
+  ['<button commandfor> without command', false,
+   '<button type="button" commandfor="popover" id="control">b</button>'],
+  ['<button command> without commandfor', false,
+   '<button type="button" command="show-popover" id="control">b</button>'],
+  ['<input type=button>, no form', false,
+   '<input type="button" id="control">'],
+  ['<input type=button>, in form', true, '<input type="button" id="control">'],
+  ['<input type=submit>, no form', false,
+   '<input type="submit" id="control">'],
+  ['<input type=reset>, no form', false, '<input type="reset" id="control">'],
+  ['<input type=text>', false, '<input type="text" id="control">'],
+]) {
+  runCase({
+    description: `${description} follows the link`,
+    form,
+    markup,
+    expected: noActivation,
+  });
+}
+
+// Behaviors that handle the click, so the link is not followed.
+for (const [element, tag] of [['<button>', 'button'], ['<input>', 'input']]) {
+  const markup = type => tag === 'button' ?
+      `<button type="${type}" id="control">b</button>` :
+      `<input type="${type}" id="control">`;
+  runBehavior({
+    element,
+    name: 'type=submit in form',
+    form: true,
+    withMarkup: markup('submit'),
+    withoutMarkup: markup('button'),
+    add: control => control.type = 'submit',
+    remove: control => control.type = 'button',
+    expected: {submitted: true},
+  });
+  runBehavior({
+    element,
+    name: 'type=reset in form',
+    form: true,
+    withMarkup: markup('reset'),
+    withoutMarkup: markup('button'),
+    add: control => control.type = 'reset',
+    remove: control => control.type = 'button',
+    expected: {reset: true},
+  });
+}
+
+runCase({
+  description: '<input type=image> in form submits and does not follow the link',
+  form: true,
+  markup: '<input type="image" id="control">',
+  expected: {submitted: true},
+});
+runCase({
+  description: '<input type=checkbox> is checked and does not follow the link',
+  form: false,
+  markup: '<input type="checkbox" id="control">',
+  expected: {checked: true},
+});
+runCase({
+  description: '<input type=radio> is checked and does not follow the link',
+  form: false,
+  markup: '<input type="radio" id="control">',
+  expected: {checked: true},
+});
+
+// Behaviors that do not handle the click, so the link is also followed.
+for (const [element, withoutMarkup] of [
+  ['<button>', '<button type="button" id="control">b</button>'],
+  ['<input>', '<input type="button" id="control">'],
+]) {
+  runBehavior({
+    element,
+    name: 'popovertarget',
+    form: false,
+    withMarkup: withoutMarkup.replace('id=', 'popovertarget="popover" id='),
+    withoutMarkup,
+    add: control => control.setAttribute('popovertarget', 'popover'),
+    remove: control => control.removeAttribute('popovertarget'),
+    expected: {popoverOpen: true, navigated: true},
+  });
+}
+
+const plainButton = '<button type="button" id="control">b</button>';
+runBehavior({
+  element: '<button>',
+  name: 'commandfor/command=show-popover',
+  form: false,
+  withMarkup: '<button type="button" commandfor="popover" ' +
+      'command="show-popover" id="control">b</button>',
+  withoutMarkup: plainButton,
+  add: control => {
+    control.setAttribute('commandfor', 'popover');
+    control.setAttribute('command', 'show-popover');
+  },
+  remove: control => {
+    control.removeAttribute('commandfor');
+    control.removeAttribute('command');
+  },
+  expected: {popoverOpen: true, navigated: true},
+});
+runBehavior({
+  element: '<button>',
+  name: 'commandfor/command=--custom',
+  form: false,
+  withMarkup: '<button type="button" commandfor="target" command="--custom" ' +
+      'id="control">b</button>',
+  withoutMarkup: plainButton,
+  add: control => {
+    control.setAttribute('commandfor', 'target');
+    control.setAttribute('command', '--custom');
+  },
+  remove: control => {
+    control.removeAttribute('commandfor');
+    control.removeAttribute('command');
+  },
+  expected: {commandFired: true, navigated: true},
+});
+
+// Changes to the link during the click.
+for (const [element, markup] of [
+  ['<button>', plainButton],
+  ['<input>', '<input type="button" id="control">'],
+]) {
+  runCase({
+    description: `Link that loses href during click on ${element} is not ` +
+        'followed',
+    form: false,
+    markup,
+    duringClick: (control, anchor) => anchor.removeAttribute('href'),
+    expected: {},
+  });
+  runCase({
+    description: `Link that gains href during click on ${element} is followed`,
+    form: false,
+    markup,
+    hasHref: false,
+    duringClick: (control, anchor) => anchor.href = '#nav',
+    expected: noActivation,
+  });
+}
+
+runCase({
+  description: 'Link that gains href during click on a <span> is followed',
+  form: false,
+  markup: '<span id="control">s</span>',
+  hasHref: false,
+  duringClick: (control, anchor) => anchor.href = '#nav',
+  expected: noActivation,
+});
+
+// An element between the clicked element and the link that gains or loses
+// activation behavior during the click is treated the same as one that had
+// (or did not have) activation behavior before the click.
+function runInnerCase({description, markup, duringClick, expectedHash,
+                       expectedChecked}) {
+  test(t => {
+    const container = document.getElementById('container');
+    t.add_cleanup(() => {
+      container.innerHTML = '';
+      history.replaceState(null, '', location.pathname + location.search);
+    });
+    container.innerHTML = '<a id="link" href="#nav"></a>' +
+        '<input type="checkbox" id="checkbox">';
+    // Nested <a> elements can't be created by the parser.
+    const inner = document.createElement('div');
+    inner.innerHTML = markup;
+    document.getElementById('link').appendChild(inner.firstElementChild);
+    const control = document.getElementById('control');
+    control.addEventListener('click', () => duringClick());
+    control.click();
+    assert_equals(location.hash, expectedHash, 'location.hash');
+    assert_equals(document.getElementById('checkbox').checked,
+        expectedChecked, 'checkbox checked');
+  }, description);
+}
+
+runInnerCase({
+  description: 'Inner link that gains href during click is followed ' +
+      'instead of the outer link',
+  markup: '<a id="inner"><span id="control">s</span></a>',
+  duringClick: () => document.getElementById('inner').href = '#inner',
+  expectedHash: '#inner',
+  expectedChecked: false,
+});
+runInnerCase({
+  description: 'Inner link that loses href during click is not followed, ' +
+      'and the outer link is followed',
+  markup: '<a id="inner" href="#inner"><span id="control">s</span></a>',
+  duringClick: () => document.getElementById('inner').removeAttribute('href'),
+  expectedHash: '#nav',
+  expectedChecked: false,
+});
+runInnerCase({
+  description: 'Inner label that gains a control during click clicks the ' +
+      'control, and the outer link is not followed',
+  markup: '<label id="label"><span id="control">s</span></label>',
+  duringClick: () => document.getElementById('label').htmlFor = 'checkbox',
+  expectedHash: '',
+  expectedChecked: true,
+});
+runInnerCase({
+  description: 'Inner label that loses its control during click does not ' +
+      'click it, and the outer link is followed',
+  markup: '<label id="label" for="checkbox"><span id="control">s</span>' +
+      '</label>',
+  duringClick: () => document.getElementById('label').htmlFor = '',
+  expectedHash: '#nav',
+  expectedChecked: false,
+});
+
+runCase({
+  description: 'Canceling the click prevents both the popover and the link',
+  form: false,
+  markup: '<button type="button" popovertarget="popover" ' +
+      'id="control">b</button>',
+  duringClick: (control, anchor, event) => event.preventDefault(),
+  expected: {},
+});
+</script>

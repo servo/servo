@@ -5,7 +5,7 @@
 // META: variant=?includeAppServerKey=true
 // META: variant=?includeAppServerKey=false
 
-import { encrypt } from "./resources/helpers.js"
+import { pushMessage } from "./resources/helpers.js"
 import { createVapid } from "./resources/vapid.js";
 
 const includeAppServerKey = new URL(location.href).searchParams.get("includeAppServerKey") === "true";
@@ -44,29 +44,12 @@ async function subscribe(t) {
   }
 }
 
-async function pushMessage(subscription, { vapid, message }) {
-  const result = !message
-    ? { headers: { TTL: 15 } }
-    : await encrypt(
-      message,
-      subscription.getKey("p256dh"),
-      subscription.getKey("auth")
-    );
-
-  if (includeAppServerKey) {
-    result.headers.Authorization = await vapid.generateAuthHeader(
-      new URL(subscription.endpoint).origin
-    );
-  }
-
+async function pushMessageAndWaitForPushEvent(subscription, options) {
   const promise = new Promise(r => {
     navigator.serviceWorker.addEventListener("message", r, { once: true })
   });
 
-  await fetch(subscription.endpoint, {
-    method: "post",
-    ...result
-  });
+  pushMessage(subscription, options);
 
   return (await promise).data;
 }
@@ -79,7 +62,7 @@ promise_setup(async () => {
 promise_test(async (t) => {
   const { vapid, subscription } = await subscribe(t);
 
-  const event = await pushMessage(subscription, { vapid });
+  const event = await pushMessageAndWaitForPushEvent(subscription, { vapid });
 
   assert_equals(event.constructor, "PushEvent");
   assert_equals(event.data, null);
@@ -97,7 +80,7 @@ for (const { isJSON, message } of entries) {
   promise_test(async (t) => {
     const { vapid, subscription } = await subscribe(t);
 
-    const event = await pushMessage(subscription, { vapid, message });
+    const event = await pushMessageAndWaitForPushEvent(subscription, { vapid, message });
 
     assert_equals(event.constructor, "PushEvent");
     assert_array_equals(new Uint8Array(event.data.arrayBuffer), message);

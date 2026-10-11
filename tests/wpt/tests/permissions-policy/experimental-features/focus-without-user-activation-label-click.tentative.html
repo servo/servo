@@ -1,0 +1,75 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Scripted label activation uses the caller's focus permission</title>
+<link rel="help" href="https://html.spec.whatwg.org/#allow-focus-steps">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<input id="parking">
+<label id="label" for="target">Target</label>
+<input id="target">
+<script>
+for (const method of ["click", "dispatchEvent"]) {
+  promise_test(async t => {
+    const parking = document.getElementById("parking");
+    const label = document.getElementById("label");
+    const target = document.getElementById("target");
+    const frame = document.createElement("iframe");
+    frame.allow = "focus-without-user-activation 'none'";
+    frame.srcdoc = `
+      <label for="input">Child target</label><input id="input">
+      <script>
+        function activateParentLabel(method) {
+          const label = parent.document.getElementById("label");
+          if (method === "click") {
+            label.click();
+          } else {
+            label.dispatchEvent(
+                new parent.MouseEvent("click", {view: parent}));
+          }
+        }
+      <\/script>`;
+
+    t.add_cleanup(() => {
+      frame.remove();
+      label.onclick = target.onclick = null;
+    });
+
+    const loaded = new Promise(resolve => frame.onload = resolve);
+    document.body.append(frame);
+    await loaded;
+
+    const feature = "focus-without-user-activation";
+    assert_true(document.featurePolicy.allowsFeature(feature),
+                "The parent may initiate focus");
+    assert_false(frame.contentDocument.featurePolicy.allowsFeature(feature),
+                 "The child may not initiate focus without activation");
+    assert_false(frame.contentWindow.navigator.userActivation.isActive);
+    parking.focus();
+    assert_equals(document.activeElement, parking);
+
+    // Check the restricted child activating the parent's label.
+    let labelClicked = false;
+    let controlClicked = false;
+    label.onclick = () => { labelClicked = true; };
+    target.onclick = () => { controlClicked = true; };
+    frame.contentWindow.activateParentLabel(method);
+    assert_equals(document.activeElement, parking,
+                  "Label activation must not bypass the child's restriction");
+    assert_true(labelClicked, "The parent's label listener ran");
+    assert_true(controlClicked,
+                "Blocking focus does not suppress the control's click event");
+
+    // Check the allowed parent activating the child's label.
+    const childLabel = frame.contentDocument.querySelector("label");
+    if (method === "click") {
+      childLabel.click();
+    } else {
+      childLabel.dispatchEvent(new MouseEvent("click"));
+    }
+    assert_equals(document.activeElement, frame,
+                  "The allowed parent can activate the child's label");
+    assert_equals(frame.contentDocument.activeElement,
+                  frame.contentDocument.getElementById("input"));
+  }, `${method} on a label checks the caller's focus permission`);
+}
+</script>

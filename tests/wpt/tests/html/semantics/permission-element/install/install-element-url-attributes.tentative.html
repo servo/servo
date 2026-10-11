@@ -10,9 +10,9 @@
 test(() => {
   const install = document.createElement("install");
 
-  assert_equals(install.manifest, null);
-  assert_equals(install.manifestId, null);
-}, "The manifest and manifestId IDL attributes are null when omitted");
+  assert_equals(install.manifest, "");
+  assert_equals(install.manifestId, "");
+}, "The manifest and manifestId IDL attributes are empty strings when omitted");
 
 test(() => {
   const install = document.createElement("install");
@@ -52,16 +52,22 @@ test(() => {
       new URL("app-id", document.baseURI).href);
 }, "The manifestId IDL attribute trims HTML whitespace before resolving a relative URL");
 
-test(() => {
-  const install = document.createElement("install");
-  install.manifestId = "app-id";
+for (const [idlAttribute, contentAttribute] of [
+  ["manifest", "manifest"],
+  ["manifestId", "manifestid"],
+]) {
+  test(() => {
+    const install = document.createElement("install");
+    install[idlAttribute] = "app-id";
 
-  assert_equals(install.getAttribute("manifestid"), "app-id");
-  assert_equals(install.manifestId,
-      new URL("app-id", document.baseURI).href);
+    assert_equals(install.getAttribute(contentAttribute), "app-id");
+    assert_equals(install[idlAttribute],
+        new URL("app-id", document.baseURI).href);
 
-  install.manifestId = null;
-  assert_false(install.hasAttribute("manifestid"));
-  assert_equals(install.manifestId, null);
-}, "The manifestId IDL attribute setter reflects values and removes null");
+    install[idlAttribute] = null;
+    assert_equals(install.getAttribute(contentAttribute), "null");
+    assert_equals(install[idlAttribute],
+        new URL("null", document.baseURI).href);
+  }, `The ${idlAttribute} IDL attribute setter stringifies null`);
+}
 </script>

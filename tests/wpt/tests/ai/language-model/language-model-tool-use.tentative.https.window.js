@@ -567,7 +567,8 @@ promise_test(async t => {
   await ensureLanguageModel();
 
   // Test with expectedOutputs includes tool-call but no tools - should succeed.
-  // (Will return text since no tools are available)
+  // (Will return text message in sequence since tool-call is in
+  // expectedOutputs)
   const model = await createLanguageModel({
     expectedOutputs: [
       { type: "tool-call" }
@@ -577,10 +578,17 @@ promise_test(async t => {
 
   assert_true(!!model, 'Model should be created successfully');
 
-  // Should work normally. Since no tools are available, will return text string.
+  // When expectedOutputs includes tool-call, prompt() consistently resolves to
+  // a sequence of LanguageModelMessageContent even when only text is produced.
   const result = await model.prompt('Hello');
-  assert_equals(typeof result, 'string', 'Result should be a string when no tools available');
-  assert_true(result.includes('Hello'), 'Result should echo back the input "Hello"');
+  assert_true(
+      Array.isArray(result),
+      'Result should be an array when expectedOutputs includes tool-call');
+  assert_equals(result.length, 1);
+  assert_equals(result[0].type, 'text');
+  assert_equals(typeof result[0].value, 'string');
+  assert_true(result[0].value.includes('Hello'),
+              'Result should echo back the input "Hello"');
 }, 'createLanguageModel should succeed with tool-call in expectedOutputs but no tools.');
 
 promise_test(async t => {
@@ -609,8 +617,11 @@ promise_test(async t => {
   }));
 
   const response = await model.prompt('Continue');
-  assert_equals(typeof response, 'string');
-  const calls = extractEchoedToolCalls(response);
+  assert_true(Array.isArray(response));
+  assert_equals(response.length, 1);
+  assert_equals(response[0].type, 'text');
+  assert_equals(typeof response[0].value, 'string');
+  const calls = extractEchoedToolCalls(response[0].value);
   assert_equals(calls.length, 4);
   assert_equals(calls[0].callId, 'nested-call');
   assert_equals(calls[0].name, 'lookup');
@@ -644,12 +655,16 @@ promise_test(async t => {
   ]);
 
   const appendedResponse = await model.prompt('Continue');
-  const appendedCalls = extractEchoedToolCalls(appendedResponse);
+  assert_true(Array.isArray(appendedResponse));
+  assert_equals(appendedResponse.length, 1);
+  assert_equals(appendedResponse[0].type, 'text');
+  const appendedCalls = extractEchoedToolCalls(appendedResponse[0].value);
   assert_equals(appendedCalls.length, 1);
   assert_equals(appendedCalls[0].callId, 'history-call');
   assert_equals(appendedCalls[0].name, 'lookup');
   assert_equals(appendedCalls[0].arguments.query, 'original');
-  const appendedResponses = extractEchoedToolResponses(appendedResponse);
+  const appendedResponses =
+      extractEchoedToolResponses(appendedResponse[0].value);
   assert_equals(appendedResponses.length, 1);
   assert_equals(appendedResponses[0].callId, 'history-call');
   assert_equals(appendedResponses[0].name, 'lookup');
@@ -670,8 +685,12 @@ promise_test(async t => {
     }]
   }));
   const recreatedResponse = await recreated.prompt('Continue');
-  assert_equals(extractEchoedToolCalls(recreatedResponse)[0].arguments.query,
-                'edited');
+  assert_true(Array.isArray(recreatedResponse));
+  assert_equals(recreatedResponse.length, 1);
+  assert_equals(recreatedResponse[0].type, 'text');
+  assert_equals(
+      extractEchoedToolCalls(recreatedResponse[0].value)[0].arguments.query,
+      'edited');
 }, 'append() and recreated sessions preserve caller-supplied tool-call history');
 
 promise_test(async t => {
@@ -841,8 +860,11 @@ promise_test(async t => {
   }]);
 
   // Model should process the tool response.
-  assert_equals(typeof secondResult, 'string', 'Second result should be a string');
-  assert_true(secondResult.includes('4'), 'Response should include the result "4"');
+  assert_true(Array.isArray(secondResult), 'Second result should be an array');
+  assert_equals(secondResult.length, 1);
+  assert_equals(secondResult[0].type, 'text');
+  assert_true(secondResult[0].value.includes('4'),
+              'Response should include the result "4"');
 }, 'Open-loop pattern - send tool response via follow-up prompt');
 
 promise_test(async t => {
@@ -1233,8 +1255,11 @@ promise_test(async t => {
   }]);
 
   // Model should handle the error response.
-  assert_equals(typeof secondResult, 'string', 'Should return a string response');
-  const echoedResponses = extractEchoedToolResponses(secondResult);
+  assert_true(Array.isArray(secondResult),
+              'Should return a message sequence response');
+  assert_equals(secondResult.length, 1);
+  assert_equals(secondResult[0].type, 'text');
+  const echoedResponses = extractEchoedToolResponses(secondResult[0].value);
   assert_equals(echoedResponses.length, 1);
   assert_equals(echoedResponses[0].callId, callId);
   assert_equals(echoedResponses[0].name, 'errorTool');
@@ -1402,7 +1427,11 @@ promise_test(async t => {
     }]
   }]);
 
-  assert_equals(typeof secondResult, 'string', 'Valid tool response should succeed');
+  assert_true(Array.isArray(secondResult),
+              'Valid tool response should succeed');
+  assert_equals(secondResult.length, 1);
+  assert_equals(secondResult[0].type, 'text');
+  assert_equals(typeof secondResult[0].value, 'string');
 }, 'Tool response with valid serializable values should succeed');
 
 promise_test(async t => {

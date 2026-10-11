@@ -1,0 +1,61 @@
+<!DOCTYPE HTML>
+<title>canvas.drawElementImage dest rect variants</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='/html/canvas/resources/canvas-tests.js'></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<style>
+  #child {
+    width: 100px;
+    height: 100px;
+    background-color: red;
+  }
+</style>
+<canvas id="canvas" width="200" height="200" content=drawable>
+  <div drawable id="child">
+  </div>
+</canvas>
+
+<script>
+  'use strict';
+
+  promise_test(async t => {
+    const child = document.getElementById('child');
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    context.fillStyle = 'green';
+    context.fillRect(0, 0, 200, 200);
+
+    await waitForCanvasPaint(canvas);
+
+    context.drawElementImage(child, Number.POSITIVE_INFINITY, 0, 100, 100);
+    var canvasTransform = canvas.getElementTransform(child);
+    assert_equals(canvasTransform.e, 0, "CanvasTransform x translate for dest Number.POSITIVE_INFINITY, 0, 100, 100");
+    assert_equals(canvasTransform.f, 0, "CanvasTransform y translate for dest Number.POSITIVE_INFINITY, 0, 100, 100");
+
+    context.drawElementImage(child, 200, Number.POSITIVE_INFINITY, -100, 100);
+    canvasTransform = canvas.getElementTransform(child);
+    assert_equals(canvasTransform.e, 0, "CanvasTransform x translate for dest 200, Number.POSITIVE_INFINITY, -100, 100");
+    assert_equals(canvasTransform.f, 0, "CanvasTransform y translate for dest 200, Number.POSITIVE_INFINITY, -100, 100");
+
+    context.drawElementImage(child, Number.NaN, 200, 100, -100);
+    canvasTransform = canvas.getElementTransform(child);
+    assert_equals(canvasTransform.e, 0, "CanvasTransform x translate for dest Number.NaN, 200, 100, -100");
+    assert_equals(canvasTransform.f, 0, "CanvasTransform y translate for dest Number.NaN, 200, 100, -100");
+
+    context.drawElementImage(child, 200, Number.NaN, -100, -100);
+    canvasTransform = canvas.getElementTransform(child);
+    assert_equals(canvasTransform.e, 0, "CanvasTransform x translate for dest 200, Number.NaN, -100, -100");
+    assert_equals(canvasTransform.f, 0, "CanvasTransform y translate for dest 200, Number.NaN, -100, -100");
+
+    const imgData = context.getImageData(0, 0, canvas.width, canvas.height);
+    const expected = [0, 128, 0, 255];
+    assert_array_equals(_getPixelFromImageData(imgData, 50, 50), expected,
+      "top left incorrect");
+    assert_array_equals(_getPixelFromImageData(imgData, 150, 50), expected,
+      "top right incorrect");
+    assert_array_equals(_getPixelFromImageData(imgData, 50, 150), expected,
+      "bottom left incorrect");
+    assert_array_equals(_getPixelFromImageData(imgData, 150, 150), expected,
+      "bottom right incorrect");
+}, 'drawElementImage handles non-finite dest rect parameters');
+</script>

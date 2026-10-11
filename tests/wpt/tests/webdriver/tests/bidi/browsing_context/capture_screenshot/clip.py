@@ -210,6 +210,56 @@ async def test_clip_box_scroll_to(bidi_session, top_context, inline, compare_png
     assert comparison.equal()
 
 
+async def test_clip_element_scroll_to(
+    bidi_session, top_context, inline, compare_png_bidi
+):
+    element_styles = "background-color: black; width: 50px; height:50px;"
+
+    # Render an element inside of viewport for the reference.
+    reference_data = await get_reference_screenshot(
+        bidi_session,
+        inline,
+        top_context["context"],
+        f"""<div style="{element_styles}"></div>""",
+    )
+
+    viewport_dimensions = await get_viewport_dimensions(bidi_session, top_context)
+
+    # Render the same element outside of viewport.
+    url = inline(
+        f"""<div style="{element_styles} margin-top: {viewport_dimensions["height"]}px"></div>"""
+    )
+    await bidi_session.browsing_context.navigate(
+        context=top_context["context"], url=url, wait="complete"
+    )
+
+    element = await bidi_session.script.call_function(
+        await_promise=False,
+        function_declaration="""() => {
+            const element = document.querySelector('div');
+
+            const rect = element.getBoundingClientRect();
+            // Scroll to have the element in the viewport.
+            window.scrollTo(0, rect.y);
+
+            return element;
+        }""",
+        target=ContextTarget(top_context["context"]),
+    )
+    element_dimensions = await get_physical_element_dimensions(
+        bidi_session, top_context, element
+    )
+    new_data = await bidi_session.browsing_context.capture_screenshot(
+        context=top_context["context"],
+        clip=ElementOptions(element=element),
+    )
+
+    assert png_dimensions(new_data) == element_dimensions
+
+    comparison = await compare_png_bidi(reference_data, new_data)
+    assert comparison.equal()
+
+
 async def test_clip_box_partially_visible(
     bidi_session, top_context, inline, compare_png_bidi
 ):

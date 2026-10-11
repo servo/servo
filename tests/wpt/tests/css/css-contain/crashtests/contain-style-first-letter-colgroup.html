@@ -1,0 +1,29 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+  #host::first-letter { float: left; font-size: 200% }
+  .scope { contain: style }
+  .counter { counter-increment: list-item }
+  .counter::before { content: counter(list-item) }
+  .counters::after { content: counters(list-item, '.') }
+  .active .old { display: none !important }
+</style>
+<div id="host"><span class="old">First</span><span id="wrapper" style="display:contents"><span id="a" class="scope" style="display:contents">Second</span></span></div>
+<div id="b" class="scope"><span id="before" class="counter"></span></div>
+<script>
+function flush() { document.body.offsetHeight; }
+onload = () => {
+  flush();
+  document.body.classList.add("active");
+  a.style.display = "inline";
+  wrapper.style.display = "table-column-group";
+  flush();
+  a.className = "counter counters";
+  b.append(a);
+  flush();
+  a.remove();
+  flush();
+  before.remove();
+  flush();
+};
+</script>

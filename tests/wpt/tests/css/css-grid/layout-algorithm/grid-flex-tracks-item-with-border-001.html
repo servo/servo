@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-flex-tracks">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-item-sizing">
+<meta name="assert" content="A grid item's border is included in its size when it stretches in a flexible track, and the flexible track sizes account for the item's border and margin.">
+<link rel="stylesheet" href="/css/support/width-keyword-classes.css">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.frGrid {
+    grid: 1fr / 1fr;
+    font: 50px/1 Ahem;
+    border: 50px solid magenta;
+    width: 300px;
+}
+
+.item {
+    border: 50px solid rgba(0, 255, 250, 0.5);
+}
+
+.borderMargin {
+    border: 20px solid blue;
+    margin: 30px;
+}
+
+.frRowsGrid {
+    grid-auto-columns: 100px;
+    grid-auto-rows: minmax(0, 1fr);
+}
+
+.frColsGrid {
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-rows: 100px;
+}
+
+span {
+    background: yellow;
+    border: 10px solid;
+}
+
+.child {
+    height:40px;
+    width:40px;
+}
+
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+
+<div class="grid frGrid" data-expected-width="400" data-expected-height="250" data-expected-client-width="300" data-expected-client-height="150">
+    <div class="item" data-expected-width="300" data-expected-height="150" data-expected-client-width="200" data-expected-client-height="50">X</div>
+</div>
+
+<div class="grid borderMargin fit-content frRowsGrid" data-expected-width="140" data-expected-height="100" data-expected-client-width="100" data-expected-client-height="60">
+    <span data-expected-width="100" data-expected-height="60" data-expected-client-width="80" data-expected-client-height="40">
+        <div class="child"></div>
+    </span>
+</div>
+
+<div class="grid borderMargin fit-content frColsGrid" data-expected-width="100" data-expected-height="140" data-expected-client-width="60" data-expected-client-height="100">
+    <span data-expected-width="60" data-expected-height="100" data-expected-client-width="40" data-expected-client-height="80">
+        <div class="child"></div>
+    </span>
+</div>
+
+</body>

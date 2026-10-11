@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<title>CSSOM MediaList stays mutable after its owner is garbage collected</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-medialist-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/gc.js"></script>
+<script>
+function mediaRuleMediaList() {
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync("@media screen { }");
+  return sheet.cssRules[0].media;
+}
+
+async function importRuleMediaList() {
+  const style = document.createElement("style");
+  style.textContent = "@import url(data:text/css,) screen;";
+  const loaded = new Promise(resolve => style.onload = resolve);
+  document.head.append(style);
+  await loaded;
+  const media = style.sheet.cssRules[0].media;
+  style.remove();
+  return media;
+}
+
+function styleSheetMediaList() {
+  return new CSSStyleSheet({ media: "screen" }).media;
+}
+
+for (const [name, create] of [
+  ["CSSMediaRule", mediaRuleMediaList],
+  ["CSSImportRule", importRuleMediaList],
+  ["CSSStyleSheet", styleSheetMediaList],
+]) {
+  promise_test(async () => {
+    const media = await create();
+    await garbageCollect();
+    media.mediaText = "print";
+    assert_equals(media.mediaText, "print");
+    assert_equals(media.length, 1);
+  }, `${name} media: mediaText setter after owner GC`);
+
+  promise_test(async () => {
+    const media = await create();
+    await garbageCollect();
+    media.appendMedium("print");
+    assert_equals(media.mediaText, "screen, print");
+    assert_equals(media.length, 2);
+  }, `${name} media: appendMedium() after owner GC`);
+
+  promise_test(async () => {
+    const media = await create();
+    await garbageCollect();
+    media.deleteMedium("screen");
+    assert_equals(media.mediaText, "");
+    assert_equals(media.length, 0);
+  }, `${name} media: deleteMedium() after owner GC`);
+}
+</script>

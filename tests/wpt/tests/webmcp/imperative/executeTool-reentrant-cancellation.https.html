@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP executeTool re-entrant cancellation and early abort</title>
+<link rel="author" href="mailto:mfoltz@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/helpers.js"></script>
+</head>
+<body>
+<script>
+// Tests cancellation and early-abort scenarios during re-entrant (nested)
+// `executeTool()` calls (where an outer tool's `execute()` callback invokes
+// `document.modelContext.executeTool()` on an inner tool).
+// See https://crbug.com/565332588.
+
+promise_test(async t => {
+  const regController = new AbortController();
+  t.add_cleanup(() => regController.abort());
+
+  const { promise: innerStarted, resolve: resolveInnerStarted } = Promise.withResolvers();
+  const { promise: outerSignalAborted, resolve: resolveOuterSignalAborted } = Promise.withResolvers();
+  const { promise: innerSignalAborted, resolve: resolveInnerSignalAborted } = Promise.withResolvers();
+
+  const bothCancelled = Promise.all([
+    waitForToolCancel('outer_tool'),
+    waitForToolCancel('inner_tool'),
+  ]);
+
+  await document.modelContext.registerTool({
+    name: 'inner_tool',
+    description: 'Inner tool that hangs until aborted',
+    execute: (input, options) => {
+      options.signal.addEventListener('abort', resolveInnerSignalAborted);
+      resolveInnerStarted();
+      return new Promise(() => {});
+    }
+  }, { signal: regController.signal });
+
+  await document.modelContext.registerTool({
+    name: 'outer_tool',
+    description: 'Outer tool that re-entrantly calls inner_tool',
+    execute: async (input, options) => {
+      options.signal.addEventListener('abort', resolveOuterSignalAborted);
+      const tools = await document.modelContext.getTools();
+      const innerTool = tools.find(t => t.name === 'inner_tool');
+      return await document.modelContext.executeTool(
+          innerTool, {}, { signal: options.signal });
+    }
+  }, { signal: regController.signal });
+
+  const tools = await document.modelContext.getTools();
+  const outerTool = tools.find(t => t.name === 'outer_tool');
+
+  const callerController = new AbortController();
+  const outerPromise = document.modelContext.executeTool(
+      outerTool, {}, { signal: callerController.signal });
+
+  await innerStarted;
+  callerController.abort('cascade abort');
+
+  await promise_rejects_exactly(t, 'cascade abort', outerPromise);
+  await Promise.all([outerSignalAborted, innerSignalAborted, bothCancelled]);
+}, 'caller signal abort cascades through re-entrant executeTool() when outer tool forwards options.signal');
+
+promise_test(async t => {
+  const regController = new AbortController();
+  t.add_cleanup(() => regController.abort());
+
+  const callerController = new AbortController();
+  const { promise: outerSignalAborted, resolve: resolveOuterSignalAborted } = Promise.withResolvers();
+  const { promise: innerSignalAborted, resolve: resolveInnerSignalAborted } = Promise.withResolvers();
+
+  const bothCancelled = Promise.all([
+    waitForToolCancel('outer_for_self_cancel_tool'),
+    waitForToolCancel('inner_self_cancel_tool'),
+  ]);
+
+  await document.modelContext.registerTool({
+    name: 'inner_self_cancel_tool',
+    description: 'Inner tool that aborts the outer caller controller',
+    execute: (input, options) => {
+      options.signal.addEventListener('abort', resolveInnerSignalAborted);
+      callerController.abort('inner aborted outer controller');
+      return new Promise(() => {});
+    }
+  }, { signal: regController.signal });
+
+  await document.modelContext.registerTool({
+    name: 'outer_for_self_cancel_tool',
+    description: 'Outer tool that calls inner_self_cancel_tool',
+    execute: async (input, options) => {
+      options.signal.addEventListener('abort', resolveOuterSignalAborted);
+      const tools = await document.modelContext.getTools();
+      const innerTool = tools.find(t => t.name === 'inner_self_cancel_tool');
+      return await document.modelContext.executeTool(
+          innerTool, {}, { signal: options.signal });
+    }
+  }, { signal: regController.signal });
+
+  const tools = await document.modelContext.getTools();
+  const outerTool = tools.find(t => t.name === 'outer_for_self_cancel_tool');
+
+  const outerPromise = document.modelContext.executeTool(
+      outerTool, {}, { signal: callerController.signal });
+
+  await promise_rejects_exactly(t, 'inner aborted outer controller', outerPromise);
+  await Promise.all([outerSignalAborted, innerSignalAborted, bothCancelled]);
+}, 'inner tool self-cancelling the outer caller AbortController aborts both nested executions and fires toolcancel');
+
+promise_test(async t => {
+  const regController = new AbortController();
+  t.add_cleanup(() => regController.abort());
+
+  const iframe = document.createElement('iframe');
+  iframe.src = '/common/blank.html';
+  iframe.allow = 'tools *';
+
+  const { promise: loadPromise, resolve: resolveLoad } = Promise.withResolvers();
+  iframe.onload = resolveLoad;
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await loadPromise;
+
+  const { promise: innerStarted, resolve: resolveInnerStarted } = Promise.withResolvers();
+  const { promise: toolchangePromise, resolve: resolveToolchange } = Promise.withResolvers();
+  document.modelContext.addEventListener('toolchange', resolveToolchange, { once: true });
+
+  await iframe.contentDocument.modelContext.registerTool({
+    name: 'iframe_inner_tool',
+    description: 'Inner tool hosted in child iframe',
+    execute: () => {
+      resolveInnerStarted();
+      return new Promise(() => {});
+    }
+  });
+  await toolchangePromise;
+
+  await document.modelContext.registerTool({
+    name: 'parent_outer_tool',
+    description: 'Outer tool in parent that calls iframe_inner_tool',
+    execute: async () => {
+      const tools = await document.modelContext.getTools();
+      const innerTool = tools.find(t => t.name === 'iframe_inner_tool');
+      return await document.modelContext.executeTool(innerTool);
+    }
+  }, { signal: regController.signal });
+
+  const tools = await document.modelContext.getTools();
+  const outerTool = tools.find(t => t.name === 'parent_outer_tool');
+
+  const outerPromise = document.modelContext.executeTool(outerTool);
+  await innerStarted;
+
+  // Detach the target iframe while the nested `executeTool()` is pending.
+  iframe.remove();
+
+  await promise_rejects_dom(t, 'UnknownError', outerPromise,
+      'Detaching child target frame during nested executeTool() should reject outer tool');
+}, 'detaching inner target frame during re-entrant executeTool() rejects inner and outer tool executions');
+</script>
+</body>
+</html>
+

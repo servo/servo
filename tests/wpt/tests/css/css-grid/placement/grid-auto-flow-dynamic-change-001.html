@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-auto-flow-property">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#auto-placement-algo">
+<meta name="assert" content="Dynamically changing grid-auto-flow re-runs the auto-placement algorithm and moves auto-placed items accordingly; invalid values are ignored.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.grid {
+    grid-template-columns: 50px 100px;
+    grid-template-rows: 50px 100px;
+}
+</style>
+<script>
+function testGrid(flow, positionAndSize)
+{
+    var gridElement = document.getElementsByClassName("grid")[0];
+    gridElement.style.gridAutoFlow = flow;
+    var gridItem = document.getElementById("autoItem");
+    gridItem.setAttribute("data-offset-x", positionAndSize.offsetX);
+    gridItem.setAttribute("data-offset-y", positionAndSize.offsetY);
+    gridItem.setAttribute("data-expected-width", positionAndSize.width);
+    gridItem.setAttribute("data-expected-height", positionAndSize.height);
+    checkLayout(".grid", false);
+}
+
+function updateAutoFlow()
+{
+    checkLayout(".grid", false);
+
+    testGrid("column", { 'offsetX': '0', 'offsetY': '50', 'width': '50', 'height': '100' });
+    testGrid("dense", { 'offsetX': '50', 'offsetY': '0', 'width': '100', 'height': '50' });
+    testGrid("", { 'offsetX': '50', 'offsetY': '0', 'width': '100', 'height': '50' });
+    testGrid("invalid", { 'offsetX': '50', 'offsetY': '0', 'width': '100', 'height': '50' });
+    testGrid("none", { 'offsetX': '50', 'offsetY': '0', 'width': '100', 'height': '50' });
+}
+</script>
+<body onload="document.fonts.ready.then(() => { updateAutoFlow(); done(); })">
+<div>This test checks that updating the grid container's grid-auto-flow property recomputes the grid.</div>
+<div style="position: relative">
+    <div class="grid">
+        <div class="sizedToGridArea autoRowAutoColumn" id="autoItem" data-offset-x="50" data-offset-y="0" data-expected-width="100" data-expected-height="50"></div>
+        <div class="sizedToGridArea firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="50"></div>
+    </div>
+</div>
+</body>

@@ -2,15 +2,24 @@
 <html class="test-wait">
 <meta charset="utf-8">
 <title>shape-outside on transitioning element should not crash</title>
+<link rel="help" href="https://crbug.com/425473">
 <input id="input" autofocus>
 <style>
   input {
     transition: ease, 50ms;
     shape-outside: padding-box;
+    color: rgb(0, 0, 0);
+  }
+  input.changed {
+    color: rgb(0, 128, 0);
   }
 </style>
 <script>
-  document.getElementById("input").addEventListener("transitionend", function() {
+  const input = document.getElementById("input");
+  input.addEventListener("transitionend", () => {
     document.documentElement.classList.remove("test-wait");
-  });
+  }, { once: true });
+
+  getComputedStyle(input).color;
+  input.classList.add("changed");
 </script>

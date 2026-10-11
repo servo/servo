@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Grid Lanes: grid-rows reading flow with spanning items and dense packing</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-layout">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/shadow-dom.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+
+<style>
+.test-case {
+  margin-top: 20px;
+}
+.lanes {
+  display: grid-lanes;
+  grid-template-rows: repeat(3, 80px);
+  flow-tolerance: 0;
+  reading-flow: grid-rows;
+  width: 120px;
+}
+.lanes > button {
+  box-sizing: border-box;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+}
+</style>
+
+<!-- Spanning items are read once, when first encountered in visual track order. -->
+<div class="test-case" data-expect="a,c,b,d"
+     data-description="Grid-rows reads spanning items once in visual row order">
+  <div class="lanes">
+    <button id="a" style="width: 40px">A</button>
+    <button id="b" style="grid-row: span 2; width: 100px">B</button>
+    <button id="c" style="grid-row: span 2; width: 20px">C</button>
+    <button id="d" style="width: 20px">D</button>
+  </div>
+</div>
+
+<!-- The gap between E and G in the first track is large enough to backfill H. -->
+<div class="test-case" data-expect="e,h,g,f"
+     data-description="Grid-rows follows visual row order after dense backfill">
+  <div class="lanes" style="grid-lanes-pack: dense">
+    <button id="e" style="width: 40px">E</button>
+    <button id="f" style="grid-row: span 2; width: 100px">F</button>
+    <button id="g" style="grid-row: span 2; width: 20px">G</button>
+    <button id="h" style="width: 20px">H</button>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

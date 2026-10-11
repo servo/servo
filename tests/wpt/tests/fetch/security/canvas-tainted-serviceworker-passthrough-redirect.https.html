@@ -1,0 +1,55 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Canvas is tainted for a no-cors image laundered through a pass-through service worker (same-origin -> cross-origin -> same-origin)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script>
+// A same-origin pass-through service worker (respondWith(fetch(e.request)))
+// follows an image's redirect chain internally. When that chain leaves this
+// origin and returns to it, the response is opaque even though its final URL is
+// same-origin. A no-cors image delivered by an opaque response must taint the
+// canvas, exactly as for the identical direct load (see
+// canvas-remote-read-remote-image-redirect.html).
+promise_test(async t => {
+  const info = get_host_info();
+
+  const reg = await service_worker_unregister_and_register(
+      t, 'passthrough-serviceworker.js', './');
+  t.add_cleanup(() => reg.unregister());
+  await wait_for_state(t, reg.installing || reg.waiting || reg.active,
+                       'activated');
+  if (!navigator.serviceWorker.controller) {
+    await new Promise(resolve => navigator.serviceWorker.addEventListener(
+        'controllerchange', resolve, {once: true}));
+  }
+
+  // same-origin -> cross-origin -> same-origin, whose initial request is
+  // same-origin so the controlling service worker intercepts it.
+  const finalURL = info.HTTPS_ORIGIN + '/images/blue-100x100.png';
+  const crossOriginHop = info.HTTPS_REMOTE_ORIGIN +
+      '/common/redirect.py?location=' + finalURL;
+  const initialURL = info.HTTPS_ORIGIN +
+      '/common/redirect.py?sw_passthrough&location=' +
+      encodeURIComponent(crossOriginHop);
+
+  const image = new Image();
+  await new Promise((resolve, reject) => {
+    image.onload = resolve;
+    image.onerror = () => reject(new Error('image failed to load'));
+    image.src = initialURL;
+  });
+
+  const canvas = document.createElement('canvas');
+  canvas.width = 100;
+  canvas.height = 100;
+  const context = canvas.getContext('2d');
+  context.drawImage(image, 0, 0);
+
+  assert_throws_dom('SecurityError', () => {
+    context.getImageData(0, 0, 100, 100);
+  });
+}, 'Canvas tainted by a pass-through service worker laundering a cross-origin ' +
+   'image redirect (same-origin -> cross-origin -> same-origin)');
+</script>

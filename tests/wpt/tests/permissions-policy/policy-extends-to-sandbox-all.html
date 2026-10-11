@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>Permissions Policy with wildcard '*' extends to sandboxed frame with opaque origin</title>
+<link rel="help" href="https://w3c.github.io/webappsec-permissions-policy/#allowlist">
+<link rel="help" href="https://crbug.com/565859110">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+"use strict";
+
+async_test(t => {
+  let frame = document.createElement('iframe');
+  frame.src = "/permissions-policy/resources/sandbox-self.html";
+  // The wildcard '*' allowlist must match all origins, including opaque origins
+  // (per W3C Permissions Policy §Allowlist matching algorithm step 1).
+  frame.allow = "fullscreen *";
+  frame.sandbox = "allow-scripts";
+
+  var handle_message = t.step_func(evt => {
+    if (evt.source === frame.contentWindow) {
+      assert_equals(evt.data.child, true,
+        "Wildcard '*' in allow attribute must match opaque origin of sandboxed frame.");
+      assert_equals(evt.data.grandchild, false,
+        "Nested sandboxed frame does not inherit container policy by default unless specified.");
+      document.body.removeChild(frame);
+      window.removeEventListener('message', handle_message);
+      t.done();
+    }
+  });
+  window.addEventListener('message', handle_message);
+  document.body.appendChild(frame);
+}, "Permissions Policy with wildcard '*' extends to sandboxed frame with opaque origin");
+</script>
+</body>

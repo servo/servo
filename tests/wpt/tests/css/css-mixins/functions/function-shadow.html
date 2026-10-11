@@ -182,6 +182,53 @@
   </template>
 </div>
 
+<div data-name=":host resolves nested references of an outer-scope function">
+  <template shadowrootmode=open>
+    <style>
+      @function --nested() {
+        result: --leaf();
+      }
+      @function --leaf() {
+        result: 30px;
+      }
+    </style>
+    <div id=target>
+      <template shadowrootmode=open>
+        <style>
+          :host {
+            --actual: --nested();
+            --expected: 30px;
+          }
+        </style>
+      </template>
+    </div>
+  </template>
+</div>
+
+<div data-name=":host resolves local var referencing nested function of outer-scope function">
+  <template shadowrootmode=open>
+    <style>
+      @function --nested() {
+        --tmp: --leaf();
+        result: var(--tmp);
+      }
+      @function --leaf() {
+        result: 31px;
+      }
+    </style>
+    <div id=target>
+      <template shadowrootmode=open>
+        <style>
+          :host {
+            --actual: --nested();
+            --expected: 31px;
+          }
+        </style>
+      </template>
+    </div>
+  </template>
+</div>
+
 <div data-name="Outer functions can't see inner functions">
   <template shadowrootmode=open>
     <style>
