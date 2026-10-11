@@ -55,9 +55,9 @@ use crate::dom::workletglobalscope::{
     WorkletGlobalScope, WorkletGlobalScopeInit, WorkletGlobalScopeType,
 };
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg, ScriptEventLoopSender};
-use crate::modules::script_module::fetch_a_module_script_graph;
 use crate::realms::enter_auto_realm;
 use crate::runtime::script_runtime::{IntroductionType, Runtime, ScriptThreadEventCategory};
+use crate::scripting::script_module::fetch_a_module_script_graph;
 use crate::tasks::task_source::TaskSourceName;
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
@@ -262,7 +262,7 @@ pub trait WorkletThreadPool: JSTraceable {
         origin: ImmutableOrigin,
         base_url: ServoUrl,
         script_url: ServoUrl,
-        policy_container: PolicyContainer,
+        policy_container: Arc<PolicyContainer>,
         credentials: RequestCredentials,
         pending_tasks_struct: PendingTasksStruct,
         promise: &RootedPromise,
@@ -395,7 +395,7 @@ impl WorkletThreadPool for StatelessWorkletThreadPool {
         origin: ImmutableOrigin,
         base_url: ServoUrl,
         script_url: ServoUrl,
-        policy_container: PolicyContainer,
+        policy_container: Arc<PolicyContainer>,
         credentials: RequestCredentials,
         pending_tasks_struct: PendingTasksStruct,
         promise: &RootedPromise,
@@ -471,7 +471,7 @@ pub(crate) enum WorkletControl {
         origin: ImmutableOrigin,
         base_url: ServoUrl,
         script_url: ServoUrl,
-        policy_container: PolicyContainer,
+        policy_container: Arc<PolicyContainer>,
         credentials: RequestCredentials,
         pending_tasks_struct: PendingTasksStruct,
         promise: TrustedPromise,
@@ -755,7 +755,7 @@ impl WorkletThread {
         pipeline_id: PipelineId,
         origin: ImmutableOrigin,
         script_url: ServoUrl,
-        policy_container: PolicyContainer,
+        policy_container: Arc<PolicyContainer>,
         credentials: RequestCredentials,
         pending_tasks_struct: PendingTasksStruct,
         promise: TrustedPromise,

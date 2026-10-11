@@ -960,3 +960,57 @@ test_scope_invalidation(document.currentScript, () => {
   assert_green(b);
 }, 'Sandwiched deep implicit scope root, :scope in subject')
 </script>
+
+<template>
+  <style>
+    @scope (.root:empty) {
+      :scope { background-color: green; }
+    }
+  </style>
+  <div class=root></div>
+</template>
+<script>
+test_scope_invalidation(document.currentScript, () => {
+  let root = main.querySelector('.root');
+  assert_green(root);
+  // Structural mutation: root is no longer :empty, so it stops being a scope root.
+  root.appendChild(document.createElement('div'));
+  assert_not_green(root);
+  root.firstElementChild.remove();
+  assert_green(root);
+}, ':empty in scope root, invalidated by child insertion/removal');
+</script>
+
+<template>
+  <style>
+    @scope (:nth-child(2)) {
+      :scope { background-color: green; }
+    }
+  </style>
+  <div id=wrapper>
+    <div class=first></div>
+    <div class=second></div>
+  </div>
+</template>
+<script>
+test_scope_invalidation(document.currentScript, () => {
+  let wrapper = main.querySelector('#wrapper');
+  let first = main.querySelector('#wrapper > .first');
+  let second = main.querySelector('#wrapper > .second');
+
+  // .second is :nth-child(2) -> scope root.
+  assert_not_green(first);
+  assert_green(second);
+
+  // Structural mutation: prepend a sibling so indices shift by one.
+  let inserted = document.createElement('div');
+  wrapper.insertBefore(inserted, first);
+  assert_not_green(inserted);
+  assert_green(first);
+  assert_not_green(second);
+
+  inserted.remove();
+  assert_not_green(first);
+  assert_green(second);
+}, ':nth-child() in scope root, invalidated by sibling insertion/removal');
+</script>

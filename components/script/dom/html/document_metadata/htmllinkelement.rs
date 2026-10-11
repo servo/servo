@@ -68,7 +68,8 @@ use crate::dom::types::{EventTarget, GlobalScope};
 use crate::fetch::network_listener::{
     FetchResponseListener, ResourceTimingListener, submit_timing,
 };
-use crate::modules::script_module::{ScriptFetchOptions, fetch_a_modulepreload_module};
+use crate::scripting::fetching_options::ScriptFetchOptions;
+use crate::scripting::script_module::fetch_a_modulepreload_module;
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq)]
@@ -545,7 +546,7 @@ impl HTMLLinkElement {
             cryptographic_nonce_metadata: self.upcast::<Element>().nonce_value(),
             cross_origin: cors_setting_for_element(element),
             referrer_policy: referrer_policy_for_element(element),
-            policy_container: document.policy_container().to_owned(),
+            policy_container: document.policy_container().clone(),
             source_set: Some(self.source_set.borrow().clone()),
             origin: document.borrow().origin().immutable().to_owned(),
             base_url: document.borrow().base_url(),
@@ -723,10 +724,13 @@ impl HTMLLinkElement {
         // Step 3
         let cors_setting = cors_setting_for_element(element);
 
-        let mq_str = element
-            .get_attribute_string_value(&local_name!("media"))
+        let media_query_string = element
+            .get_attribute_string_ref(&local_name!("media"))
             .unwrap_or_default();
-        let media = MediaList::parse_media_list(&mq_str, document.window());
+        let media = MediaList::parse_media_list(
+            &media_query_string.as_attr_ref().value(),
+            document.window(),
+        );
         let media = Arc::new(document.style_shared_author_lock().wrap(media));
 
         let integrity_metadata = element

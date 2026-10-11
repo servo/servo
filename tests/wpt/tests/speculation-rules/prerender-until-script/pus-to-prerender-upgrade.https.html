@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<title>A prerender-until-script host is upgraded to a full prerender when a
+matching prerender speculation rule is added for the same URL</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<body>
+<script>
+setup(() => assertSpeculationRulesIsSupported('prerender'));
+
+const UPGRADE_TIMEOUT_MS = 30_000;
+
+promise_test(async t => {
+  /*
+  Workflow:
+  1. The initiator (pus-upgrade-initiator-template.html) adds a
+     `prerender_until_script` rule for the target URL. A
+     prerender-until-script host starts loading the page with JavaScript
+     execution paused.
+
+  2. The prerendered page (pus-upgrade-page-template.html) starts loading.
+     Its async `<script src="...">` request confirms that the PUS host exists
+     before the upgrade rule is added. Fetching is allowed while script
+     execution is paused.
+
+  3. The server responds to the initiator's pending "pus-loaded" fetch.
+
+  4. The initiator then adds a regular `prerender` speculation rule for the
+     SAME URL. This triggers the upgrade: the existing prerender-until-
+     script host becomes a full prerender host, and its paused JavaScript
+     resumes.
+
+  5. The (previously paused) inline `<script>` on the prerendered page now
+     runs, captures `document.prerendering`, and posts the value back via
+     `PrerenderChannel`. The page also signals the server via the "js-ran"
+     stash key so the initiator can activate.
+
+  6. We assert the page reported `document.prerendering === true`, which
+     proves the inline script ran during prerendering (before activation),
+     i.e. the prerender-until-script host was upgraded.
+  */
+
+  const uid = token();
+  const jsRanUid = token();
+
+  const channel = new PrerenderChannel('test-channel', uid);
+  t.add_cleanup(() => channel.close());
+
+  const gotMessage = new Promise((resolve, reject) => {
+    channel.addEventListener('message', e => {
+      // Surface initiator failures directly instead of reporting a misleading
+      // mismatch against the expected prerendering-state message.
+      if (typeof e.data === 'string' &&
+          e.data.startsWith('Initiator failure: ')) {
+        reject(new Error(e.data));
+        return;
+      }
+      resolve(e.data);
+    }, { once: true });
+  });
+
+  const url =
+      `resources/pus-upgrade-handler.py?type=main&uid=${uid}` +
+      `&js_uid=${jsRanUid}`;
+  window.open(url, '_blank', 'noopener');
+
+  // Fail with an upgrade-specific diagnostic before the harness times out.
+  const timedOut = new Promise((_, reject) => {
+    t.step_timeout(() => {
+      reject(new Error(
+          'Timed out waiting for the prerendered page to report its ' +
+          '`document.prerendering` value. The prerender-until-script ' +
+          'host was likely not upgraded, so its previously paused inline ' +
+          'JavaScript never ran.'));
+    }, UPGRADE_TIMEOUT_MS);
+  });
+
+  const result = await Promise.race([gotMessage, timedOut]);
+  assert_equals(
+      result,
+      'prerendering state when executing JS: true',
+      'inline JS on the upgraded prerender-until-script page must execute ' +
+      'during prerendering (before activation), proving the prerender-' +
+      'until-script host was upgraded to a full prerender host by the ' +
+      'matching prerender rule');
+}, 'Adding a prerender rule for a URL that already has a prerender-until-' +
+   'script rule upgrades the existing prerender-until-script host and ' +
+   'resumes JavaScript execution during prerendering.');
+</script>
+</body>

@@ -1,0 +1,119 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Navigation activation after traversing a COOP/COEP switch</title>
+<meta name="timeout" content="long">
+<meta name="variant" content="?from=none&to=coop">
+<meta name="variant" content="?from=coop&to=none">
+<meta name="variant" content="?from=none&to=coop-coep">
+<meta name="variant" content="?from=coop-coep&to=none">
+<meta name="variant" content="?from=coop&to=coop-coep">
+<meta name="variant" content="?from=coop-coep&to=coop">
+<meta name="variant" content="?from=none&to=coop&cross-origin">
+<meta name="variant" content="?from=coop&to=none&cross-origin">
+<meta name="variant" content="?from=none&to=coop-coep&cross-origin">
+<meta name="variant" content="?from=coop-coep&to=none&cross-origin">
+<meta name="variant" content="?from=coop&to=coop-coep&cross-origin">
+<meta name="variant" content="?from=coop-coep&to=coop&cross-origin">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#update-document-for-history-step-application">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#getting-session-history-entries-for-the-navigation-api">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/helper.sub.js"></script>
+
+<script>
+const params = new URLSearchParams(location.search);
+const from = params.get("from");
+const to = params.get("to");
+const crossOrigin = params.has("cross-origin");
+const expected = {
+  pageAIsolated: from === "coop-coep",
+  pageBIsolated: to === "coop-coep",
+  fromIsNull: crossOrigin,
+  fromMatchesPrevious: !crossOrigin,
+  fromState: crossOrigin ? undefined : "page B state",
+  fromIsForwardEntry: !crossOrigin,
+  entriesIncludePrevious: !crossOrigin
+};
+const policies = {
+  none: "",
+  coop: "header(Cross-Origin-Opener-Policy,same-origin)",
+  "coop-coep": "header(Cross-Origin-Opener-Policy,same-origin)|header(Cross-Origin-Embedder-Policy,require-corp)"
+};
+
+function executorURL(context, policy, origin = originSameOrigin) {
+  const url = new URL(executorPath + context.context_id, origin);
+  url.searchParams.set("pipe", policies[policy]);
+  return url.href;
+}
+
+promise_test(async () => {
+  const pageA = new RemoteContext(token());
+  const pageB = new RemoteContext(token());
+  const urlA = executorURL(pageA, from);
+  const urlB = executorURL(pageB, to,
+                          crossOrigin ? originCrossSite : originSameOrigin);
+
+  window.open(urlA, "_blank", "noopener");
+  await pageA.execute_script(waitForPageShow);
+  assert_equals(await pageA.execute_script(() => crossOriginIsolated),
+                expected.pageAIsolated, "Page A's isolation state");
+
+  await pageA.execute_script(url => {
+    prepareNavigation(() => { location.href = url; });
+  }, [urlB]);
+  await pageB.execute_script(waitForPageShow);
+  assert_equals(await pageB.execute_script(() => crossOriginIsolated),
+                expected.pageBIsolated, "Page B's isolation state");
+
+  const previous = await pageB.execute_script(() => {
+    navigation.updateCurrentEntry({ state: "page B state" });
+    return {
+      key: navigation.currentEntry.key,
+      id: navigation.currentEntry.id
+    };
+  });
+
+  await pageB.execute_script(() => {
+    prepareNavigation(() => { history.back(); });
+  });
+  await pageA.execute_script(waitForPageShow);
+  await assert_bfcached(pageA);
+
+  const activation = await pageA.execute_script(() => {
+    const { entry, from, navigationType } = navigation.activation;
+    return {
+      entryURL: entry.url,
+      entryIsCurrent: entry === navigation.currentEntry,
+      navigationType,
+      fromIsNull: from === null,
+      fromURL: from?.url,
+      fromKey: from?.key,
+      fromId: from?.id,
+      fromState: from?.getState(),
+      fromIsForwardEntry:
+        from === navigation.entries()[navigation.currentEntry.index + 1],
+      entryURLs: navigation.entries().map(entry => entry.url)
+    };
+  });
+
+  assert_equals(activation.entryURL, urlA);
+  assert_true(activation.entryIsCurrent);
+  assert_equals(activation.navigationType, "traverse");
+  assert_equals(activation.fromIsNull, expected.fromIsNull,
+                "Whether activation.from is null");
+  assert_equals(activation.fromURL === urlB, expected.fromMatchesPrevious,
+                "Whether activation.from exposes the previous entry's URL");
+  assert_equals(activation.fromKey === previous.key, expected.fromMatchesPrevious,
+                "Whether activation.from exposes the previous entry's key");
+  assert_equals(activation.fromId === previous.id, expected.fromMatchesPrevious,
+                "Whether activation.from exposes the previous entry's ID");
+  assert_equals(activation.fromState, expected.fromState,
+                "The state exposed by activation.from");
+  assert_equals(activation.fromIsForwardEntry, expected.fromIsForwardEntry,
+                "Whether activation.from is the forward navigation entry");
+  assert_equals(activation.entryURLs.includes(urlB), expected.entriesIncludePrevious,
+                "Whether navigation.entries() includes the previous page");
+}, `navigation.activation.from after ${crossOrigin ? "cross-origin" : "same-origin"} ${from} to ${to} and back`);
+</script>

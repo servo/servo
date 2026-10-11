@@ -76,7 +76,6 @@ use crate::dom::csp::{GlobalCspReporting, Violation, parse_csp_list_from_metadat
 use crate::dom::debugger::debuggerglobalscope::DebuggerGlobalScope;
 use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerGlobalScope;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::globalscope::script_execution::RethrowErrors;
 use crate::dom::htmlscriptelement::{SCRIPT_JS_MIMES, Script};
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::performance::performance::Performance;
@@ -84,7 +83,6 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::promise::RootedPromise;
 use crate::dom::reporting::reportingendpoint::{ReportingEndpoint, SendReportsToEndpoints};
 use crate::dom::reporting::reportingobserver::ReportingObserver;
-use crate::dom::script_execution::ScriptOptions;
 use crate::dom::serviceworker::cachestorage::CacheStorage;
 use crate::dom::sharedworkerglobalscope::SharedWorkerGlobalScope;
 use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
@@ -103,10 +101,12 @@ use crate::fetch::network_listener::{
     FetchResponseListener, ResourceTimingListener, submit_timing,
 };
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
-use crate::modules::script_module::{ModuleRequest, ModuleStatus, ScriptFetchOptions};
 use crate::realms::enter_auto_realm;
 use crate::runtime::job_queue::{MicrotaskRunnable, UserMicrotask, job_queue_microtask_checkpoint};
 use crate::runtime::script_runtime::{IntroductionType, Runtime, get_reports};
+use crate::scripting::fetching_options::ScriptFetchOptions;
+use crate::scripting::script_execution::{RethrowErrors, ScriptOptions};
+use crate::scripting::script_module::{ModuleRequest, ModuleStatus};
 use crate::tasks::task::TaskCanceller;
 use crate::tasks::task_manager::TaskManager;
 
@@ -154,14 +154,14 @@ pub(crate) struct ScriptFetchContext {
     response: Option<Metadata>,
     body_bytes: BytesMut,
     url: ServoUrl,
-    policy_container: PolicyContainer,
+    policy_container: Arc<PolicyContainer>,
 }
 
 impl ScriptFetchContext {
     pub(crate) fn new(
         scope: Trusted<WorkerGlobalScope>,
         url: ServoUrl,
-        policy_container: PolicyContainer,
+        policy_container: Arc<PolicyContainer>,
     ) -> ScriptFetchContext {
         ScriptFetchContext {
             scope,
@@ -182,10 +182,7 @@ impl FetchResponseListener for ScriptFetchContext {
         _request_id: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
-        self.response = metadata.ok().map(|m| match m {
-            FetchMetadata::Unfiltered(m) => m,
-            FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
-        });
+        self.response = metadata.ok().map(Into::into);
     }
 
     fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, chunk: Bytes) {
@@ -320,7 +317,8 @@ pub(crate) struct WorkerGlobalScope {
     crypto: MutNullableDom<Crypto>,
     #[no_trace]
     /// <https://html.spec.whatwg.org/multipage/#the-workerglobalscope-common-interface:policy-container>
-    policy_container: DomRefCell<PolicyContainer>,
+    #[conditional_malloc_size_of]
+    policy_container: DomRefCell<Arc<PolicyContainer>>,
 
     #[ignore_malloc_size_of = "Defined in base"]
     #[no_trace]
@@ -553,17 +551,16 @@ impl WorkerGlobalScope {
         self.task_manager.clone()
     }
 
-    pub(crate) fn policy_container(&self) -> Ref<'_, PolicyContainer> {
+    pub(crate) fn policy_container(&self) -> Ref<'_, Arc<PolicyContainer>> {
         self.policy_container.borrow()
     }
 
     pub(crate) fn set_csp_list(&self, csp_list: Option<CspList>) {
-        self.policy_container.borrow_mut().set_csp_list(csp_list);
+        Arc::make_mut(&mut *self.policy_container.borrow_mut()).set_csp_list(csp_list);
     }
 
     pub(crate) fn set_referrer_policy(&self, referrer_policy: ReferrerPolicy) {
-        self.policy_container
-            .borrow_mut()
+        Arc::make_mut(&mut *self.policy_container.borrow_mut())
             .set_referrer_policy(referrer_policy);
     }
 

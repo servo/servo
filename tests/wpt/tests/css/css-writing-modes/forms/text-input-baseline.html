@@ -9,7 +9,7 @@
 
 <style>
 input, span {
-  font-size: 30px/1 Ahem;
+  font: 30px/1 Ahem;
 }
 </style>
 <div id="container">
@@ -18,6 +18,8 @@ input, span {
 </div>
 
 <script>
+promise_setup(() => document.fonts.ready);
+
 for (const inputType of ["text", "password", "search", "number", "email", "tel", "url"]) {
     testInput.type = inputType;
     for (const writingMode of ["vertical-lr", "vertical-rl", "horizontal-tb"]) {

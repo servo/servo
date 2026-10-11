@@ -5,14 +5,15 @@
 use std::ops::Range;
 use std::sync::Arc;
 
-use fonts::{ShapedText, ShapedTextSlice, ShapedTextSliceType, ShapedTextSlicer, ShapingOptions};
+use fonts::{ShapedText, ShapedTextSlice, ShapedTextSlicer, ShapingOptions, TrailingWhiteSpace};
+use icu_properties::props::{EnumeratedProperty, GeneralCategory, LineBreak};
 use icu_segmenter::options::LineBreakOptions;
 use servo_base::text::{AssumeUnder4GB, Utf8CodeUnits, Utf32CodeUnits};
+use style::computed_values::text_wrap_mode::T as TextWrapMode;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::computed_values::word_break::T as WordBreak;
 use style::properties::ComputedValues;
-use style::str::char_is_whitespace;
-use style::values::computed::OverflowWrap;
+use style::properties::style_structs::InheritedText;
 use unicode_script::Script;
 
 use crate::ArcRefCell;
@@ -89,122 +90,207 @@ impl BatchSlicer<'_> {
         // of line breaks. Also add a simulated break at the end of the segment in order to ensure the final
         // piece of text is processed.
         let range = segment.byte_range.clone();
+        let text_style = parent_style.get_inherited_text();
+        let mut break_at_start =
+            self.line_breaker.take_additional_break_at_start() == Some(range.start);
         let linebreaks = self
             .line_breaker
             .advance_to_linebreaks_in_range(segment.byte_range.clone());
         let linebreak_iter = linebreaks.iter().chain(std::iter::once(&range.end));
 
-        let mut break_at_start = false;
-
-        let text_style = parent_style.get_inherited_text();
-        let can_break_anywhere = text_style.word_break == WordBreak::BreakAll ||
-            text_style.overflow_wrap == OverflowWrap::Anywhere ||
-            text_style.overflow_wrap == OverflowWrap::BreakWord;
-
-        let mut last_slice = segment.byte_range.start..segment.byte_range.start;
         let mut current_character_offset =
             segment.character_range.start - self.character_offset_origin;
 
-        let mut runs = Vec::with_capacity(linebreaks.len());
-        let mut maybe_push_run = |run: Option<Arc<ShapedTextSlice>>| {
-            if let Some(run) = run {
-                runs.push(run);
+        let mut slices = Vec::with_capacity(linebreaks.len());
+        let mut maybe_push_slice_and_update_character_offset = |slice_text: &str| {
+            current_character_offset += Utf32CodeUnits::length_of(AssumeUnder4GB, slice_text);
+            let (trailing_white_space, all_white_space) =
+                trailing_white_space_of(slice_text, parent_style);
+            if let Some(slice) = self.slicer.slice_until_character_offset(
+                current_character_offset,
+                trailing_white_space,
+                all_white_space,
+            ) {
+                slices.push(slice);
             }
         };
 
+        let mut last_slice_end = segment.byte_range.start;
         for break_index in linebreak_iter {
-            if *break_index == segment.byte_range.start {
+            if *break_index == segment.byte_range.start &&
+                !line_break_ignored_for_keep_all(self.text, text_style, *break_index)
+            {
                 break_at_start = true;
                 continue;
             }
 
-            // Extend the slice to the next UAX#14 line break opportunity.
-            let mut slice = last_slice.end..*break_index;
-            let word = &self.text[Utf8CodeUnits::to_usize_range(&slice)];
+            let slice = last_slice_end..*break_index;
 
-            // Split off any trailing whitespace into a separate glyph run.
-            let mut whitespace = slice.end..slice.end;
-            let rev_char_indices = word.char_indices().rev().peekable();
-
-            let mut slice_type = ShapedTextSliceType::Word;
-            let mut ends_with_whitespace = false;
-            if let Some((first_white_space_index, first_white_space_character)) = rev_char_indices
-                .take_while(|&(_, character)| char_is_whitespace(character))
-                .last()
-            {
-                ends_with_whitespace = true;
-                whitespace.start = slice.start + Utf8CodeUnits(first_white_space_index as u32);
-
-                // If line breaking for a piece of text that has `white-space-collapse:
-                // break-spaces` there is a line break opportunity *after* every preserved space,
-                // but not before. This means that we should not split off the first whitespace.
-                //
-                // An exception to this is if the style tells us that we can break in the middle of words.
-                if text_style.white_space_collapse == WhiteSpaceCollapse::BreakSpaces &&
-                    !can_break_anywhere
-                {
-                    whitespace.start += Utf8CodeUnits::length_of_char(first_white_space_character);
-                    slice_type = ShapedTextSliceType::WordAndWhiteSpace;
-                }
-
-                slice.end = whitespace.start;
-            }
-
-            // If there's no whitespace and `word-break` is set to `keep-all`, try increasing the slice.
-            // TODO: This should only happen for CJK text.
-            if !ends_with_whitespace &&
-                *break_index != segment.byte_range.end &&
-                text_style.word_break == WordBreak::KeepAll &&
-                !can_break_anywhere
+            // `keep-all` might suppress line breaks between certain characters and that check
+            // is done here, but not in the case that the line break is the last one for this
+            // segment (in order to push the rest of the text).
+            if *break_index != segment.byte_range.end &&
+                line_break_ignored_for_keep_all(self.text, text_style, *break_index)
             {
                 continue;
             }
 
-            // Only advance the last slice if we are not going to try to expand the slice.
-            last_slice = slice.start..*break_index;
-
-            // Push the non-whitespace part of the range.
-            if !slice.is_empty() {
-                // TODO: ensure layout doesn’t handle more than 4 GiB at a time?
-                current_character_offset += Utf32CodeUnits::length_of(
-                    AssumeUnder4GB,
-                    &self.text[Utf8CodeUnits::to_usize_range(&slice)],
-                );
-                maybe_push_run(
-                    self.slicer
-                        .slice_until_character_offset(current_character_offset, slice_type),
-                );
-            }
-
-            let whitespace = Utf8CodeUnits::to_usize_range(&whitespace);
-            if whitespace.is_empty() {
+            last_slice_end = *break_index;
+            if slice.is_empty() {
                 continue;
             }
 
-            // If `white-space-collapse: break-spaces` is active, insert a line breaking opportunity
-            // between each white space character in the white space that we trimmed off.
-            if text_style.white_space_collapse == WhiteSpaceCollapse::BreakSpaces {
-                for _ in self.text[whitespace].chars() {
-                    current_character_offset += Utf32CodeUnits(1);
-                    maybe_push_run(self.slicer.slice_until_character_offset(
-                        current_character_offset,
-                        ShapedTextSliceType::WhiteSpace,
-                    ));
+            let full_slice_text = &self.text[Utf8CodeUnits::to_usize_range(&slice)];
+            if text_style.white_space_collapse != WhiteSpaceCollapse::BreakSpaces {
+                maybe_push_slice_and_update_character_offset(full_slice_text)
+            } else {
+                for slice_text in full_slice_text.split_inclusive(breaks_for_break_spaces) {
+                    maybe_push_slice_and_update_character_offset(slice_text)
                 }
-                continue;
             }
-
-            // TODO: ensure layout doesn’t handle more than 4 GiB at a time?
-            current_character_offset +=
-                Utf32CodeUnits::length_of(AssumeUnder4GB, &self.text[whitespace]);
-            maybe_push_run(self.slicer.slice_until_character_offset(
-                current_character_offset,
-                ShapedTextSliceType::WhiteSpace,
-            ));
         }
 
-        (runs, break_at_start)
+        if text_style.white_space_collapse == WhiteSpaceCollapse::BreakSpaces &&
+            self.text[Utf8CodeUnits::to_usize_range(&segment.byte_range)]
+                .chars()
+                .last()
+                .is_some_and(breaks_for_break_spaces)
+        {
+            self.line_breaker
+                .set_additional_break_at_start(segment.byte_range.end);
+        }
+
+        (slices, break_at_start)
     }
+}
+
+fn line_break_ignored_for_keep_all(
+    text: &str,
+    text_style: &InheritedText,
+    break_index: Utf8CodeUnits,
+) -> bool {
+    if text_style.word_break != WordBreak::KeepAll {
+        return false;
+    }
+
+    let break_index = break_index.0 as usize;
+    let text_before = &text[..break_index];
+    let Some(character_before) = text_before.chars().rev().find(|character| {
+        !matches!(
+            LineBreak::for_char(*character),
+            LineBreak::CombiningMark | LineBreak::ZWJ,
+        )
+    }) else {
+        return false;
+    };
+
+    if !suppresses_line_break_for_keep_all(character_before) {
+        return false;
+    }
+
+    text[break_index..]
+        .chars()
+        .next()
+        .is_some_and(suppresses_line_break_for_keep_all)
+}
+
+/// From <https://drafts.csswg.org/css-text-4/#valdef-word-break-keep-all>:
+/// > Breaking is forbidden within “words”: implicit soft wrap opportunities between
+/// > typographic letter units (or other typographic character units belonging to the NU,
+/// > AL, AI, or ID Unicode line breaking classes [UAX14]) are suppressed, i.e. breaks are
+/// > prohibited between pairs of such characters (regardless of line-break settings other
+/// > than anywhere) except where opportunities exist due to § 6.1.1.1 Lexical Word
+/// > Breaking. Otherwise this option is equivalent to normal. In this style, sequences of
+/// > CJK characters do not break.
+///
+/// From <https://drafts.csswg.org/css-text-4/#typographic-letter-unit>:
+/// > A typographic letter unit (or letter for the purpose of this specification) is a
+/// > typographic character unit belonging to one of the Letter or Number general
+/// > categories. See Appendix E: Characters and Properties for how to determine the Unicode
+/// > properties of a typographic character unit.
+fn suppresses_line_break_for_keep_all(character: char) -> bool {
+    let line_break_class = LineBreak::for_char(character);
+    (matches!(
+        GeneralCategory::for_char(character),
+        GeneralCategory::UppercaseLetter |
+            GeneralCategory::LowercaseLetter |
+            GeneralCategory::TitlecaseLetter |
+            GeneralCategory::ModifierLetter |
+            GeneralCategory::OtherLetter |
+            GeneralCategory::DecimalNumber |
+            GeneralCategory::LetterNumber |
+            GeneralCategory::OtherNumber
+    ) || matches!(
+        line_break_class,
+        LineBreak::Numeric | LineBreak::Alphabetic | LineBreak::Ambiguous | LineBreak::Ideographic
+    )) &&
+    // From <https://drafts.csswg.org/css-text-4/#lexical-breaking>:
+    // > To provide the expected normal behavior for Southeast Asian languages, typographic
+    // > character units with line breaking class SA in [UAX14] must be treated as if they
+    // > had class AL. However, the user agent must additionally analyze the content of a
+    // > run of such characters to detect word boundaries and treat each boundary as a soft
+    // > wrap opportunities.
+    //
+    // `ComplexContext` is the SA class here. `break-all` must not suppress dictionary-based
+    // word breaks inside SA text.
+    !matches!(line_break_class, LineBreak::ComplexContext)
+}
+
+fn breaks_for_break_spaces(character: char) -> bool {
+    match CssTextType::from(character) {
+        CssTextType::NonWhiteSpace => false,
+        CssTextType::DocumentWhiteSpace => true,
+        // From <https://www.unicode.org/reports/tr14/tr14-57.html#GL>:
+        // > Non-breaking characters prohibit breaks on either side, but that prohibition
+        // > can be overridden by SP or ZW.
+        //
+        // The specification also marks this class of characters as non-tailorable.
+        CssTextType::OtherSpaceSeparator => LineBreak::for_char(character) != LineBreak::Glue,
+    }
+}
+
+/// Returns a tuple containing the [`TrailingWhiteSpace`] values for the text and boolean
+/// indicating whether all of the content was white space.
+fn trailing_white_space_of(
+    text: &str,
+    style: &ComputedValues,
+) -> (TrailingWhiteSpace<Utf32CodeUnits>, bool) {
+    let (anything_hangable, anything_removable) =
+        match (style.get_white_space_collapse(), style.get_text_wrap_mode()) {
+            (WhiteSpaceCollapse::BreakSpaces, _) |
+            (WhiteSpaceCollapse::Preserve, TextWrapMode::Nowrap) => (false, false),
+            (WhiteSpaceCollapse::Preserve, TextWrapMode::Wrap) => (true, false),
+            _ => (true, true),
+        };
+
+    let mut removable = 0;
+    let mut hangable = 0;
+    let mut all_white_space = true;
+    for character in text.chars().rev() {
+        match CssTextType::from(character) {
+            CssTextType::NonWhiteSpace => {
+                all_white_space = false;
+                break;
+            },
+            CssTextType::DocumentWhiteSpace if hangable == 0 && anything_removable => {
+                removable += 1;
+            },
+            CssTextType::DocumentWhiteSpace | CssTextType::OtherSpaceSeparator
+                if anything_hangable =>
+            {
+                hangable += 1;
+            },
+            _ => {},
+        }
+    }
+
+    (
+        TrailingWhiteSpace {
+            hangable: Utf32CodeUnits(hangable),
+            removable: Utf32CodeUnits(removable),
+        },
+        all_white_space,
+    )
 }
 
 /// The [`ShapingQueue`] is responsible for shaping text during inline formatting context
@@ -376,6 +462,43 @@ impl<'a> ShapingQueue<'a> {
         match entry {
             ShapingQueueEntry::PreservedTabOrNewline => self.flush(),
             ShapingQueueEntry::Text(shaping_queue_text) => self.push_text(shaping_queue_text),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum CssTextType {
+    /// A [`char`] that is non-space content.
+    NonWhiteSpace,
+    /// <https://drafts.csswg.org/css-text-3/#white-space>.
+    DocumentWhiteSpace,
+    /// <https://drafts.csswg.org/css-text-3/#other-space-separators>.
+    OtherSpaceSeparator,
+}
+
+impl From<char> for CssTextType {
+    fn from(character: char) -> Self {
+        match character {
+            // See <https://drafts.csswg.org/css-text-3/#white-space>:
+            // > Except where specified otherwise, white space processing in CSS affects only the
+            // > document white space characters: spaces (U+0020), tabs (U+0009), and segment breaks.
+            ' ' | '\t' | '\n' | '\r' => Self::DocumentWhiteSpace,
+            // This is a fast path to avoid having to do Unicode category classification for ASCII
+            // characters.
+            _ if character.is_ascii() => Self::NonWhiteSpace,
+            // See <https://drafts.csswg.org/css-text-3/#other-space-separators>:
+            // > Besides space (U+0020) and no-break space (U+00A0), Unicode defines a number of
+            // > additional space separator characters. [UNICODE] In this specification all characters
+            // > in the Unicode general category Zs except space (U+0020) and no-break space (U+00A0)
+            // > are collectively referred to as other space separators.
+            //
+            // Note: ' ' (space) is handled above.
+            _ if GeneralCategory::for_char(character) == GeneralCategory::SpaceSeparator &&
+                character != '\u{00a0}' =>
+            {
+                Self::OtherSpaceSeparator
+            },
+            _ => Self::NonWhiteSpace,
         }
     }
 }

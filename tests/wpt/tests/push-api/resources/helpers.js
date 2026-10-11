@@ -37,3 +37,27 @@ export async function encrypt(data, p256dhKey, authKey) {
     headers,
   }
 }
+
+export async function pushMessage(subscription, { vapid, message }) {
+  if (typeof message === "string") {
+    message = new TextEncoder().encode(message);
+  }
+  const result = !message
+    ? { headers: { TTL: 15 } }
+    : await encrypt(
+      message,
+      subscription.getKey("p256dh"),
+      subscription.getKey("auth")
+    );
+
+  if (vapid) {
+    result.headers.Authorization = await vapid.generateAuthHeader(
+      new URL(subscription.endpoint).origin
+    );
+  }
+
+  await fetch(subscription.endpoint, {
+    method: "post",
+    ...result
+  });
+}

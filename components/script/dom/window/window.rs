@@ -34,6 +34,7 @@ use fonts::{
     CspViolationHandler, FontContext, NetworkTimingHandler, WebFontDocumentContext,
     WebFontSetDifference,
 };
+use html5ever::LocalName;
 use js::context::{JSContext, NoGC};
 use js::conversions::ToJSValConvertible;
 use js::glue::DumpJSStack;
@@ -48,12 +49,12 @@ use js::rust::{
     CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleObject, MutableHandleValue,
 };
 use layout_api::{
-    AccessibilityActionRequest, AxesOverflow, BoxAreaType, CSSPixelRectVec, FragmentType,
-    HitTestFlags, LCPCandidate, Layout, LayoutImageDestination, PendingImage, PendingImageState,
-    PendingRasterizationImage, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
-    ReflowRequestAccessibility, ReflowRequestRestyle, ReflowStatistics, RestyleReason,
-    ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress,
-    combine_id_with_fragment_type,
+    AccessibilityActionRequest, AxesOverflow, BoxAreaType, CSSPixelRectVec, ContainerTimingRecord,
+    FragmentType, HitTestFlags, LCPCandidate, Layout, LayoutImageDestination, PendingImage,
+    PendingImageState, PendingRasterizationImage, PhysicalSides, QueryMsg, ReflowGoal,
+    ReflowPhasesRun, ReflowRequest, ReflowRequestAccessibility, ReflowRequestRestyle,
+    ReflowStatistics, RestyleReason, ScrollContainerQueryFlags, ScrollContainerResponse,
+    TrustedNodeAddress, combine_id_with_fragment_type,
 };
 use malloc_size_of::MallocSizeOf;
 use media::WindowGLContext;
@@ -2576,9 +2577,29 @@ impl Window {
         _behavior: ScrollBehavior,
         element: Option<&Element>,
     ) {
-        // TODO Step 1
-        // TODO(mrobinson, #18709): Add smooth scrolling support to WebRender so that we can
-        // properly process ScrollBehavior here.
+        // Step 1. Abort any ongoing smooth scroll for box.
+        // TODO: Implement this when we have smooth scrolling.
+
+        // Step 2. Resolve all pending scroll Promises whose scroll container is box with
+        // an interrupted scroll result.
+        // TODO: Implement this when we have smooth scrolling.
+
+        // Step 3. Let scrollPromise be a new Promise.
+        // TODO: Implement this when we have smooth scrolling.
+
+        // Step 4. Return scrollPromise, and run the remaining steps in parallel.
+        // TODO: Implement this when we have smooth scrolling.
+
+        // Step 5. If the user agent honors the scroll-behavior property and one of the
+        // following is true:
+        // * behavior is "auto" and element is not null and its computed value of the
+        //   scroll-behavior property is smooth, or
+        // * behavior is smooth
+        // then perform a smooth scroll of box to position; otherwise, perform an instant
+        // scroll of box to position.
+        //
+        // TODO(mrobinson, #18709): Add smooth scrolling support to WebRender so that we
+        // can properly process ScrollBehavior here.
         let (reflow_phases_run, _) = self.reflow(
             cx,
             ReflowGoal::UpdateScrollNode(scroll_id, Vector2D::new(x, y)),
@@ -2588,16 +2609,22 @@ impl Window {
                 .generate_frame(vec![self.webview_id().into()]);
         }
 
-        // > If the scroll position did not change as a result of the user interaction or programmatic
-        // > invocation, where no translations were applied as a result, then no scrollend event fires
-        // > because no scrolling occurred.
-        // Even though the note mention the scrollend, it is relevant to the scroll as well.
+        // Step 6. Wait until either the position has finished updating, or scrollPromise
+        // has been resolved.
+        // TODO: Implement this when we have smooth scrolling.
+
+        // Step 7. If scrollPromise is still in the pending state:
+        // Step 7.1. If the scroll position changed as a result of this call, emit the
+        // scrollend event.
         if reflow_phases_run.contains(ReflowPhasesRun::UpdatedScrollNodeOffset) {
             match element {
                 Some(element) if !scroll_id.is_root() => element.handle_scroll_event(),
                 _ => self.Document().handle_viewport_scroll_event(),
             };
         }
+
+        // Step 7.2. Resolve scrollPromise with a non-interrupted scroll result.
+        // TODO: Implement this when we have smooth scrolling.
     }
 
     pub(crate) fn device_pixel_ratio(&self) -> Scale<f32, CSSPixel, DevicePixel> {
@@ -2715,22 +2742,30 @@ impl Window {
         document.id_map().resolve_all(cx.no_gc(), document.upcast());
 
         let document_context = self.web_font_context(cx.no_gc());
-
-        let accessibility = if reflow_goal == ReflowGoal::UpdateTheRendering &&
-            self.layout().accessibility_active()
-        {
-            let rooted_nodes_for_integrity_check =
-                document.rooted_nodes_for_accessibility_integrity_check();
-            let damage = document
-                .accessibility_data_mut()
-                .drain_pending_accessibility_damage();
-            Some(ReflowRequestAccessibility {
-                damage,
-                rooted_nodes_for_integrity_check,
-            })
-        } else {
-            None
-        };
+        let should_update_accessibility_tree = matches!(
+            reflow_goal,
+            ReflowGoal::UpdateTheRendering | ReflowGoal::LayoutQuery(QueryMsg::AccessKitNodeQuery)
+        );
+        let accessibility =
+            if should_update_accessibility_tree && self.layout().accessibility_active() {
+                let rooted_nodes_for_integrity_check =
+                    document.rooted_nodes_for_accessibility_integrity_check();
+                let focused_element = document
+                    .focus_handler()
+                    .focused_area()
+                    .element()
+                    .map(|element| element.upcast::<Node>().to_opaque());
+                let damage = document
+                    .accessibility_data_mut()
+                    .drain_pending_accessibility_damage();
+                Some(ReflowRequestAccessibility {
+                    damage,
+                    focused_element,
+                    rooted_nodes_for_integrity_check,
+                })
+            } else {
+                None
+            };
 
         // Send new document and relevant styles to layout.
         let reflow = ReflowRequest {
@@ -2776,6 +2811,13 @@ impl Window {
 
         if let Some(candidate) = reflow_result.lcp_candidate {
             self.process_lcp_candidate_post_reflow(candidate, &document);
+        }
+
+        if !reflow_result.container_timing_records.is_empty() {
+            self.process_container_timing_records_post_reflow(
+                reflow_result.container_timing_records,
+                &document,
+            );
         }
 
         if let Some(iframe_sizes) = reflow_result.iframe_sizes {
@@ -3150,6 +3192,14 @@ impl Window {
             animations,
             document.current_animation_timeline_value(),
         ))
+    }
+
+    pub(crate) fn accesskit_node_query(
+        &self,
+        element: TrustedNodeAddress,
+    ) -> Option<accesskit::Node> {
+        self.layout_reflow(QueryMsg::AccessKitNodeQuery);
+        self.layout.borrow().query_accesskit_node(element)
     }
 
     /// If the given |browsing_context_id| refers to an `<iframe>` that is an element
@@ -3755,6 +3805,47 @@ impl Window {
             DomRoot::downcast::<Element>(node)
         });
         document.store_lcp_candidate(candidate, element.as_deref());
+    }
+
+    /// Resolve each Container Timing record's [`OpaqueNode`]s to DOM elements and park
+    /// the record on the document, keyed by its ID, until paint reports the time the
+    /// frame carrying it was composited.
+    ///
+    /// <https://wicg.github.io/container-timing/>
+    #[expect(unsafe_code)]
+    fn process_container_timing_records_post_reflow(
+        &self,
+        records: Vec<ContainerTimingRecord>,
+        document: &Document,
+    ) {
+        // Safety: these are nodes layout saw during the display list build for this same
+        // reflow, so they are still live. Same reasoning as
+        // `process_lcp_candidate_post_reflow` above.
+        let resolve = |node: OpaqueNode| unsafe {
+            let node_address = UntrustedNodeAddress(node.id() as *const c_void);
+            DomRoot::downcast::<Element>(from_untrusted_node_address(node_address))
+        };
+
+        for record in records {
+            let Some(root_element) = resolve(record.root_element) else {
+                continue;
+            };
+            // Layout only knows that this element was a container root when its boxes were
+            // built. Read the identifier now, and skip the record if the attribute has
+            // since been removed.
+            let Some(identifier) =
+                root_element.get_attribute_string_value(&LocalName::from("containertiming"))
+            else {
+                continue;
+            };
+            let last_painted_element = record.last_painted_element.and_then(resolve);
+            document.store_container_timing_record(
+                record,
+                identifier.into(),
+                &root_element,
+                last_painted_element.as_deref(),
+            );
+        }
     }
 
     #[expect(unsafe_code)]

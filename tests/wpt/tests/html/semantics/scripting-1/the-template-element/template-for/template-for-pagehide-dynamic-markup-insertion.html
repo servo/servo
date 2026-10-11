@@ -1,0 +1,61 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>HTML partial updates - dynamic markup insertion in pagehide during prepare content patching throws</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    for (const [name, fn] of [
+      ["document.open()", (doc) => doc.open()],
+      ["document.write()", (doc) => doc.write("<p>Hi")],
+      ["document.writeln()", (doc) => doc.writeln("<p>Hi")],
+      ["document.close()", (doc) => doc.close()],
+    ]) {
+      promise_test(async (t) => {
+        const container = document.createElement("div");
+        container.innerHTML = `<?start name="p"><iframe></iframe><?end>`;
+        document.body.appendChild(container);
+        t.add_cleanup(() => container.remove());
+
+        let pagehideRan = false;
+        container.querySelector("iframe").contentWindow.onpagehide = t.step_func(() => {
+          pagehideRan = true;
+          assert_throws_dom("InvalidStateError", () => {
+            fn(document);
+          });
+        });
+
+        const writer = container.streamAppendHTMLUnsafe().getWriter();
+        await writer.write(`<template for="p">New</template>`);
+        await writer.close();
+        assert_true(pagehideRan, "pagehide should have fired");
+        assert_equals(container.textContent, "New");
+      }, `${name} in pagehide throws InvalidStateError during prepare content patching (via streamAppendHTMLUnsafe)`);
+
+      test((t) => {
+        const outerIframe = document.createElement("iframe");
+        document.body.appendChild(outerIframe);
+        t.add_cleanup(() => outerIframe.remove());
+
+        const doc = outerIframe.contentDocument;
+        doc.open();
+        doc.write(`<div id="target"><?start name="p"><iframe></iframe><?end></div>`);
+
+        let pagehideRan = false;
+        doc.querySelector("iframe").contentWindow.onpagehide = t.step_func(() => {
+          pagehideRan = true;
+          assert_throws_dom("InvalidStateError", outerIframe.contentWindow.DOMException, () => {
+            fn(doc);
+          });
+        });
+
+        doc.write(`<template for="p">New</template>`);
+        doc.close();
+
+        assert_true(pagehideRan, "pagehide should have fired");
+        assert_equals(doc.querySelector("#target").textContent, "New");
+      }, `${name} in pagehide throws InvalidStateError during prepare content patching (via document.write)`);
+    }
+  </script>
+</body>

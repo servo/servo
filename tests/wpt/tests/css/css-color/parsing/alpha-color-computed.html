@@ -49,6 +49,12 @@ test_computed_value("color", "alpha(from alpha(from rebeccapurple / 0%) / 100%)"
 test_computed_value("color", "alpha(from color-mix(in srgb, red, blue) / 0.5)", "color(srgb 0.5 0 0.5 / 0.5)");
 test_computed_value("color", "alpha(from rgb(from red r g b) / 0.8)", "color(srgb 1 0 0 / 0.8)");
 
+// Origin color with 'none'.
+test_computed_value("color", "alpha(from rgb(none none none / none) / alpha)", "color(srgb none none none / none)");
+test_computed_value("color", "alpha(from rgb(none none none) / alpha)", "color(srgb none none none)");
+test_computed_value("color", "alpha(from rgb(0 255 0 / none) / alpha)", "color(srgb 0 1 0 / none)");
+test_computed_value("color", "alpha(from rgb(0 none 0) / alpha)", "color(srgb 0 none 0)");
+
 // alpha() as the origin of other relative color functions: the `alpha` channel
 // keyword reads the alpha produced by alpha().
 test_computed_value("color", "rgb(from alpha(from red / 0.5) r g b / alpha)", "color(srgb 1 0 0 / 0.5)");

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Select rendering invalidation when an ancestor's dir changes</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#the-select-element-2">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=326092">
+<link rel="match" href="select-dir-invalidation-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<div id="container"><select><option>abc!</option></select></div>
+<script>
+waitForAtLeastOneFrame().then(() => {
+  container.dir = "rtl";
+  return waitForAtLeastOneFrame();
+}).then(takeScreenshot);
+</script>

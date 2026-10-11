@@ -22,6 +22,13 @@
     <div id="non_drawable_descendant">
       <div id="deep_nested_drawable" drawable></div>
     </div>
+    <div id="non_drawable_ancestor">
+      <div id="drawable_in_non_drawable_ancestor" drawable></div>
+    </div>
+    <div id="drawable_ancestor" drawable>
+      <div id="drawable_in_drawable_ancestor" drawable></div>
+    </div>
+    <div id="display_none_drawable" drawable></div>
   </div>
   <div id="direct_drawable" drawable></div>
 </canvas>
@@ -48,10 +55,8 @@
     await waitForOneFrame();
     assert_equals(onPaintCount, 1,
       'onpaint should fire after a deeply nested drawable element is removed.');
-    // Note this should probably change when we stop automatically making all
-    // direct canvas children drawable.
-    assert_array_equals(lastChanged, [parent_div],
-      'The removed element\'s first drawable ancestor should be reported in changedElements.');
+    assert_array_equals(lastChanged, [],
+      'No elements should be reported in changedElements.');
 
     await waitForOneFrame();
     assert_equals(onPaintCount, 1,
@@ -68,14 +73,56 @@
       lastChanged = event.changedElements;
     };
 
+    non_drawable_ancestor.remove();
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1,
+      'onpaint should fire after a non-drawable ancestor of a drawable element is removed.');
+    assert_array_equals(lastChanged, [],
+      'No elements should be reported in changedElements.');
+
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1,
+      'onpaint should not fire without additional changes.');
+  }, 'onpaint should fire when a non-drawable ancestor of an element with the drawable attribute is removed');
+
+  promise_test(async t => {
+    await waitForOneFrame();
+
+    let onPaintCount = 0;
+    let lastChanged = [];
+    canvas.onpaint = () => {
+      onPaintCount++;
+      lastChanged = event.changedElements;
+    };
+
+    drawable_in_drawable_ancestor.remove();
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1,
+      'onpaint should fire after a drawable element inside a drawable ancestor is removed.');
+    assert_array_equals(lastChanged, [drawable_ancestor],
+      'The removed element\'s drawable ancestor should be reported in changedElements.');
+
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1,
+      'onpaint should not fire without additional changes.');
+  }, 'onpaint should fire and report drawable ancestor when a nested drawable element is removed');
+
+  promise_test(async t => {
+    await waitForOneFrame();
+
+    let onPaintCount = 0;
+    let lastChanged = [];
+    canvas.onpaint = () => {
+      onPaintCount++;
+      lastChanged = event.changedElements;
+    };
+
     nested_drawable.remove();
     await waitForOneFrame();
     assert_equals(onPaintCount, 1,
       'onpaint should fire after a nested drawable element is removed.');
-    // Note this should probably change when we stop automatically making all
-    // direct canvas children drawable.
-    assert_array_equals(lastChanged, [parent_div],
-      'The removed element\'s parent should be reported in changedElements.');
+    assert_array_equals(lastChanged, [],
+      'No elements should be reported in changedElements.');
 
     await waitForOneFrame();
     assert_equals(onPaintCount, 1,
@@ -118,13 +165,33 @@
     await waitForOneFrame();
     assert_equals(onPaintCount, 1,
       'onpaint should fire after a nested inline drawable element is removed.');
-    // Note this should probably change when we stop automatically making all
-    // direct canvas children drawable.
-    assert_array_equals(lastChanged, [parent_div],
-      'The removed element\'s parent should be reported in changedElements.');
+    assert_array_equals(lastChanged, [],
+      'No elements should be reported in changedElements.');
 
     await waitForOneFrame();
     assert_equals(onPaintCount, 1,
       'onpaint should not fire without additional changes.');
   }, 'onpaint should fire when an inline element with the drawable attribute is removed');
+
+  promise_test(async t => {
+    await waitForOneFrame();
+
+    let onPaintCount = 0;
+    let lastChanged = [];
+    canvas.onpaint = () => {
+      onPaintCount++;
+      lastChanged = event.changedElements;
+    };
+
+    display_none_drawable.style.display = 'none';
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1,
+      'onpaint should fire after a drawable element becomes display:none.');
+    assert_array_equals(lastChanged, [],
+      'No elements should be reported in changedElements.');
+
+    await waitForOneFrame();
+    assert_equals(onPaintCount, 1,
+      'onpaint should not fire without additional changes.');
+  }, 'onpaint should fire when a drawable element becomes display:none');
 </script>

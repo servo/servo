@@ -17,29 +17,26 @@ promise_test(async t => {
 
   await waitForTool('endless_tool');
 
-  let resolveRespondWith;
-  const submitted_promise = new Promise((resolve) => {
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      // Respond with a Promise that resolves when resolveRespondWith is called.
-      e.respondWith(new Promise(res => {
-        resolveRespondWith = res;
-      }));
-      resolve();
-    });
+  const { promise: submittedPromise, resolve: resolveSubmitted } = Promise.withResolvers();
+  const { promise: respondWithPromise, resolve: resolveRespondWith } = Promise.withResolvers();
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    // Respond with a Promise that resolves when resolveRespondWith is called.
+    e.respondWith(respondWithPromise);
+    resolveSubmitted();
   });
 
   const tools = await document.modelContext.getTools();
   const tool = tools.find(t => t.name === 'endless_tool');
   assert_true(!!tool, 'Tool should be registered');
 
-  const execute_promise = document.modelContext.executeTool(tool);
+  const executePromise = document.modelContext.executeTool(tool);
 
   // Wait deterministically for the form to submit and call respondWith().
-  await submitted_promise;
+  await submittedPromise;
 
-  const toolChangePromise = new Promise(resolve =>
-      document.modelContext.addEventListener('toolchange', resolve, { once: true }));
+  const { promise: toolChangePromise, resolve: resolveToolChange } = Promise.withResolvers();
+  document.modelContext.addEventListener('toolchange', resolveToolChange, { once: true });
 
   // Unregister the declarative tool by removing the form element while execution is pending.
   form.remove();
@@ -50,7 +47,7 @@ promise_test(async t => {
 
   resolveRespondWith('form_dom_result');
 
-  const result = await execute_promise;
+  const result = await executePromise;
   assert_equals(result, 'form_dom_result', 'Pending execution Promise should resolve to tool result even if form element was removed from DOM');
 }, 'Pending executeTool() Promise resolves successfully when target declarative tool is unregistered via DOM removal');
 
@@ -64,28 +61,25 @@ promise_test(async t => {
 
   await waitForTool('endless_tool_attr');
 
-  let resolveRespondWith;
-  const submitted_promise = new Promise((resolve) => {
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      e.respondWith(new Promise(res => {
-        resolveRespondWith = res;
-      }));
-      resolve();
-    });
+  const { promise: submittedPromise, resolve: resolveSubmitted } = Promise.withResolvers();
+  const { promise: respondWithPromise, resolve: resolveRespondWith } = Promise.withResolvers();
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    e.respondWith(respondWithPromise);
+    resolveSubmitted();
   });
 
   const tools = await document.modelContext.getTools();
   const tool = tools.find(t => t.name === 'endless_tool_attr');
   assert_true(!!tool, 'Tool should be registered');
 
-  const execute_promise = document.modelContext.executeTool(tool);
+  const executePromise = document.modelContext.executeTool(tool);
 
   // Wait deterministically for the form to submit and call respondWith().
-  await submitted_promise;
+  await submittedPromise;
 
-  const toolChangePromise = new Promise(resolve =>
-      document.modelContext.addEventListener('toolchange', resolve, { once: true }));
+  const { promise: toolChangePromise, resolve: resolveToolChange } = Promise.withResolvers();
+  document.modelContext.addEventListener('toolchange', resolveToolChange, { once: true });
 
   // Unregister by removing required tooldescription attribute while execution is pending.
   form.removeAttribute('tooldescription');
@@ -96,8 +90,152 @@ promise_test(async t => {
 
   resolveRespondWith('form_attr_result');
 
-  const result = await execute_promise;
+  const result = await executePromise;
   assert_equals(result, 'form_attr_result', 'Pending execution Promise should resolve to tool result even if form attribute was removed');
 }, 'Pending executeTool() Promise resolves successfully when target declarative tool is unregistered via attribute removal');
+
+// NOTE(https://crbug.com/565332588): Unlike imperative tools (or declarative
+// tools above that have already submitted and passed a Promise to
+// `SubmitEvent.respondWith()`), unregistering a declarative tool BEFORE the
+// form is submitted (while `:tool-form-active` is true and waiting for user
+// submission) immediately cancels the pending execution, resets active
+// pseudo-classes, and dispatches `toolcancel`.
+
+promise_test(async t => {
+  const form = document.createElement('form');
+  form.setAttribute('toolname', 'paused_dom_remove_tool');
+  form.setAttribute('tooldescription', 'Declarative tool without toolautosubmit');
+  // Forms without `toolautosubmit` require a submit button; otherwise
+  // `executeTool()` immediately rejects before pausing for submission.
+  const button = document.createElement('button');
+  button.type = 'submit';
+  form.appendChild(button);
+  document.body.appendChild(form);
+  t.add_cleanup(() => form.remove());
+
+  await waitForTool('paused_dom_remove_tool');
+
+  const { promise: activatedPromise, resolve: resolveActivated } = Promise.withResolvers();
+  document.modelContext.addEventListener('toolactivated', e => {
+    if (e.toolName === 'paused_dom_remove_tool') {
+      resolveActivated();
+    }
+  }, { once: true });
+
+  let toolCancelFired = false;
+  document.modelContext.addEventListener('toolcancel', e => {
+    if (e.toolName === 'paused_dom_remove_tool') {
+      toolCancelFired = true;
+    }
+  }, { once: true });
+
+  const tools = await document.modelContext.getTools();
+  const tool = tools.find(t => t.name === 'paused_dom_remove_tool');
+  assert_true(!!tool, 'Tool should be registered');
+
+  const executePromise = document.modelContext.executeTool(tool);
+  await activatedPromise;
+  assert_true(form.matches(':tool-form-active'), 'Form should match :tool-form-active while waiting for submit');
+
+  // Removing the form before submission cancels the pending execution.
+  form.remove();
+
+  await promise_rejects_dom(t, 'UnknownError', executePromise,
+      'Pre-submission form removal should cancel and reject executeTool()');
+  assert_false(form.matches(':tool-form-active'), ':tool-form-active should be cleared');
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+  // TODO(crbug.com/565332588): Dispatch toolcancel when a pending declarative tool is unregistered.
+  assert_true(toolCancelFired, 'toolcancel should fire when declarative tool is removed while pending');
+}, 'Pre-submission DOM removal of declarative tool cancels pending executeTool() and fires toolcancel');
+
+promise_test(async t => {
+  const form = document.createElement('form');
+  form.setAttribute('toolname', 'paused_attr_remove_tool');
+  form.setAttribute('tooldescription', 'Declarative tool attribute removal before submit');
+  // Forms without `toolautosubmit` require a submit button; otherwise
+  // `executeTool()` immediately rejects before pausing for submission.
+  const button = document.createElement('button');
+  button.type = 'submit';
+  form.appendChild(button);
+  document.body.appendChild(form);
+  t.add_cleanup(() => form.remove());
+
+  await waitForTool('paused_attr_remove_tool');
+
+  const { promise: activatedPromise, resolve: resolveActivated } = Promise.withResolvers();
+  document.modelContext.addEventListener('toolactivated', e => {
+    if (e.toolName === 'paused_attr_remove_tool') {
+      resolveActivated();
+    }
+  }, { once: true });
+
+  let toolCancelFired = false;
+  document.modelContext.addEventListener('toolcancel', e => {
+    if (e.toolName === 'paused_attr_remove_tool') {
+      toolCancelFired = true;
+    }
+  }, { once: true });
+
+  const tools = await document.modelContext.getTools();
+  const tool = tools.find(t => t.name === 'paused_attr_remove_tool');
+  assert_true(!!tool, 'Tool should be registered');
+
+  const executePromise = document.modelContext.executeTool(tool);
+  await activatedPromise;
+  assert_true(form.matches(':tool-form-active'), 'Form should match :tool-form-active while waiting for submit');
+
+  // Removing required attribute before submission unregisters and cancels the tool.
+  form.removeAttribute('tooldescription');
+
+  await promise_rejects_dom(t, 'UnknownError', executePromise,
+      'Pre-submission attribute removal should cancel and reject executeTool()');
+  assert_false(form.matches(':tool-form-active'), ':tool-form-active should be cleared');
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+  // TODO(crbug.com/565332588): Dispatch toolcancel when a pending declarative tool is unregistered.
+  assert_true(toolCancelFired, 'toolcancel should fire when declarative tool attribute is removed while pending');
+}, 'Pre-submission attribute removal of declarative tool cancels pending executeTool() and fires toolcancel');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  iframe.src = '/common/blank.html';
+  iframe.allow = 'tools *';
+
+  const { promise: loadPromise, resolve: resolveLoad } = Promise.withResolvers();
+  iframe.onload = resolveLoad;
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await loadPromise;
+
+  const { promise: toolChangePromise, resolve: resolveToolChange } = Promise.withResolvers();
+  document.modelContext.addEventListener('toolchange', resolveToolChange, { once: true });
+
+  const form = iframe.contentDocument.createElement('form');
+  form.setAttribute('toolname', 'iframe_decl_tool');
+  form.setAttribute('tooldescription', 'Iframe declarative tool');
+  form.setAttribute('toolautosubmit', '');
+  iframe.contentDocument.body.appendChild(form);
+
+  const { promise: submittedPromise, resolve: resolveSubmitted } = Promise.withResolvers();
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    e.respondWith(new Promise(() => {}));
+    resolveSubmitted();
+  });
+
+  await toolChangePromise;
+
+  const tools = await document.modelContext.getTools();
+  const tool = tools.find(t => t.name === 'iframe_decl_tool');
+  assert_true(!!tool, 'Iframe declarative tool should be visible to parent');
+
+  const executePromise = document.modelContext.executeTool(tool);
+  await submittedPromise;
+
+  // Detach the target iframe while the declarative tool's respondWith() promise is pending.
+  iframe.remove();
+
+  await promise_rejects_dom(t, 'UnknownError', executePromise,
+      'Detaching target frame mid-execution should reject declarative executeTool()');
+}, 'Target frame detachment during pending declarative executeTool() rejects caller promise');
 </script>
 </body>

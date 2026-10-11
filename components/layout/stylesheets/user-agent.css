@@ -131,7 +131,6 @@ q::after { content: close-quote; }
 br::before { content: "\A"; white-space: pre }
 
 nobr { white-space: nowrap; }
-wbr { display-outside: break-opportunity; } /* this also has bidi implications */
 nobr wbr { white-space: normal; }
 
 

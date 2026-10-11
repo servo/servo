@@ -68,7 +68,6 @@ pub fn set(preferences: Preferences) {
         "layout.variable_fonts.enabled",
         preferences.layout_variable_fonts_enabled
     );
-    stylo_static_prefs::set_pref!("layout.flexbox.balance", preferences.layout_flexbox_balance);
 
     *PREFERENCES.write().unwrap() = preferences;
 
@@ -291,6 +290,8 @@ pub struct Preferences {
     pub js_wasm_baseline_enabled: bool,
     pub js_wasm_enabled: bool,
     pub js_wasm_ion_enabled: bool,
+    // feature: Container Timing| #48490 | Web/API/ContainerTiming
+    pub container_timing_enabled: bool,
     // feature: Largest Contentful Paint | #42000 | Web/API/LargestContentfulPaint
     pub largest_contentful_paint_enabled: bool,
     pub layout_animations_test_enabled: bool,
@@ -543,6 +544,7 @@ impl Preferences {
             js_wasm_baseline_enabled: true,
             js_wasm_enabled: true,
             js_wasm_ion_enabled: true,
+            container_timing_enabled: false,
             largest_contentful_paint_enabled: false,
             layout_animations_test_enabled: false,
             layout_columns_enabled: false,

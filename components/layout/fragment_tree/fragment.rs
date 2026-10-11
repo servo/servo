@@ -13,6 +13,7 @@ use fonts::{FontMetrics, ShapedTextSlice};
 use layout_api::BoxAreaType;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::PipelineId;
 use servo_base::print_tree::PrintTree;
 use servo_base::text::Utf32CodeUnits;
@@ -123,6 +124,7 @@ pub(crate) struct ImageFragment {
     pub image_key: Option<ImageKey>,
     pub showing_broken_image_icon: bool,
     pub url: Option<ServoUrl>,
+    pub load_time: Option<CrossProcessInstant>,
     /// The intrinsic (natural) width of the image, if known.
     pub natural_width: Option<Au>,
     /// The intrinsic (natural) height of the image, if known.
@@ -234,8 +236,8 @@ impl Fragment {
                 fragment.with_style().scrollable_overflow_for_parent()
             },
             Fragment::Positioning(fragment) => fragment.scrollable_overflow_for_parent(),
+            Fragment::Text(fragment) => fragment.scrollable_overflow_for_parent(),
             Fragment::AbsoluteOrFixedPositionedPlaceholder(_) |
-            Fragment::Text(..) |
             Fragment::Image(..) |
             Fragment::IFrame(..) => self.base().map(|base| base.rect()).unwrap_or_default(),
         }
@@ -558,6 +560,22 @@ impl TextFragment {
         }
 
         Some(current_character)
+    }
+
+    fn scrollable_overflow_for_parent(&self) -> PhysicalRect<Au> {
+        let mut rect = self.base.rect();
+        let mut hanging_advance = Au::zero();
+        for slice in self.glyphs.iter().rev() {
+            hanging_advance += slice.hangable_advance();
+            if slice.has_non_hangable_non_removable_content() {
+                break;
+            }
+        }
+
+        // TODO: This is not correct for vertical and right-to-left writing modes.
+        rect.size.width -= hanging_advance;
+
+        rect
     }
 }
 

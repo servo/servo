@@ -12,6 +12,7 @@ use pixels::{CorsStatus, ImageMetadata, RasterImage};
 use profile_traits::mem::Report;
 use resvg::usvg::{Font, fontdb};
 use serde::{Deserialize, Serialize};
+use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{PipelineId, WebViewId};
 use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
@@ -57,6 +58,7 @@ pub struct VectorImage {
     pub svg_id: Option<Uuid>,
     pub metadata: ImageMetadata,
     pub cors_status: CorsStatus,
+    pub load_time: Option<CrossProcessInstant>,
 }
 
 impl Image {
@@ -78,6 +80,13 @@ impl Image {
         match self {
             Image::Raster(image) => Some(image.clone()),
             Image::Vector(..) => None,
+        }
+    }
+
+    pub fn load_time(&self) -> Option<CrossProcessInstant> {
+        match self {
+            Image::Raster(image) => image.load_time,
+            Image::Vector(image) => image.load_time,
         }
     }
 }

@@ -33,6 +33,11 @@ pub(crate) trait UAShadowRoot<ShadowTree> {
             .ok()
             .expect("UA shadow tree was not created")
     }
+
+    /// TODO: Remove this method and fix the media element controls to properly be clickable
+    fn should_mark_as_ua_widget(&self) -> bool {
+        true
+    }
 }
 
 pub(crate) trait CreateUAShadowRootForSelf<ShadowTree>:
@@ -86,26 +91,8 @@ pub(crate) trait SpecificShadowTree<ElementType, ShadowTreeHolder> {
     }
 }
 
-pub(crate) trait UpdateUAShadowRootForOther<ElementType, ShadowTree>:
-    UAShadowRoot<ShadowTree>
-{
-    fn update_shadow_tree(&self, cx: &mut JSContext, element: &ElementType);
-}
-
-impl<
-    T: UAShadowRoot<ShadowTree>,
-    ShadowTree: SpecificShadowTree<ElementType, T>,
-    ElementType: Castable + DerivedFrom<Element>,
-> UpdateUAShadowRootForOther<ElementType, ShadowTree> for T
-{
-    fn update_shadow_tree(&self, cx: &mut JSContext, element: &ElementType) {
-        self.ensure_shadow_tree(cx, element.upcast())
-            .update(cx, self, element)
-    }
-}
-
 trait UAShadowRootHelpers<ShadowTree>: UAShadowRoot<ShadowTree> {
-    fn attach_ua_shadow_root(cx: &mut JSContext, element: &Element) -> DomRoot<ShadowRoot>;
+    fn attach_ua_shadow_root(&self, cx: &mut JSContext, element: &Element) -> DomRoot<ShadowRoot>;
     fn create_shadow_tree(&self, cx: &mut JSContext, element: &Element);
 }
 
@@ -125,7 +112,7 @@ impl<T: ?Sized + UAShadowRoot<ShadowTree>, ShadowTree> UAShadowRootHelpers<Shado
     //       UA widget matching might need some tweaking.
     // FIXME: We are yet to implement more complex focusing with that is necessary
     //        for delegate focus, and we are using workarounds for that right now.
-    fn attach_ua_shadow_root(cx: &mut JSContext, element: &Element) -> DomRoot<ShadowRoot> {
+    fn attach_ua_shadow_root(&self, cx: &mut JSContext, element: &Element) -> DomRoot<ShadowRoot> {
         let root = element
             .attach_shadow(
                 cx,
@@ -138,14 +125,16 @@ impl<T: ?Sized + UAShadowRoot<ShadowTree>, ShadowTree> UAShadowRootHelpers<Shado
             )
             .expect("Attaching UA shadow root failed");
 
-        root.upcast::<Node>().set_in_ua_widget(true);
+        if self.should_mark_as_ua_widget() {
+            root.upcast::<Node>().mark_in_ua_widget();
+        }
         root
     }
 
     fn create_shadow_tree(&self, cx: &mut JSContext, element: &Element) {
         let root = element
             .shadow_root()
-            .unwrap_or_else(|| Self::attach_ua_shadow_root(cx, element));
+            .unwrap_or_else(|| self.attach_ua_shadow_root(cx, element));
 
         self.store_for_shadow_tree(cx, root);
 

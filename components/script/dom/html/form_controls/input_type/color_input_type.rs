@@ -30,9 +30,7 @@ use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::input_type::text_input_widget::TextInputWidget;
 use crate::dom::node::{Node, NodeTraits, UnbindContext};
 use crate::dom::shadowroot::shadowroot::ShadowRoot;
-use crate::dom::shadowroot::ua_shadowroot::{
-    SpecificShadowTree, UAShadowRoot, UpdateUAShadowRootForOther,
-};
+use crate::dom::shadowroot::ua_shadowroot::{SpecificShadowTree, UAShadowRoot};
 use crate::dom::text_control::TextControlElement;
 
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
@@ -195,7 +193,8 @@ impl SpecificInputType for ColorInputType {
     }
 
     fn update_shadow_tree(&self, cx: &mut JSContext, input: &HTMLInputElement) {
-        UpdateUAShadowRootForOther::update_shadow_tree(self, cx, input)
+        self.ensure_shadow_tree(cx, input.upcast())
+            .update(cx, self, input)
     }
 
     fn attribute_mutated(

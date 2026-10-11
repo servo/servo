@@ -157,9 +157,6 @@ pub struct CallbackObject<D: DomTypes> {
     /// The underlying `JSObject`.
     #[ignore_malloc_size_of = "measured by mozjs"]
     callback: Heap<*mut JSObject>,
-    // TODO(47889): Remove this field once no more uses of Rc<Callback> remain.
-    permanent_js_root: Option<PermanentRoot>,
-
     /// The ["callback context"], that is, the global to use as incumbent
     /// global when calling the callback.
     ///
@@ -178,7 +175,6 @@ impl<D: DomTypes> CallbackObject<D> {
     fn new_from_existing(other: &CallbackObject<D>) -> Self {
         Self {
             callback: Heap::default(),
-            permanent_js_root: None,
             incumbent: other.incumbent.clone(),
         }
     }
@@ -186,7 +182,6 @@ impl<D: DomTypes> CallbackObject<D> {
     fn new_with_exterior_root() -> Self {
         Self {
             callback: Heap::default(),
-            permanent_js_root: None,
             incumbent: D::GlobalScope::incumbent().map(|i| Dom::from_ref(&*i)),
         }
     }
@@ -232,18 +227,6 @@ pub trait CallbackContainer {
     unsafe fn new(cx: &JSContext, callback: *mut JSObject) -> RootedCallback<Self>
     where
         Self: Sized;
-}
-
-/// A trait to be implemented by concrete IDL callback function and
-/// callback interface types that have not yet been converted to RootedCallback.
-pub trait DeprecatedCallbackContainer {
-    /// Create a new CallbackContainer object for the given `JSObject`.
-    ///
-    /// *Deprecated*: Use [CallbackContainer] instead.
-    ///
-    /// # Safety
-    /// `callback` must point to a valid, non-null JSObject.
-    unsafe fn new(cx: &JSContext, callback: *mut JSObject) -> Rc<Self>;
 }
 
 /// A common base class for representing IDL callback function types.

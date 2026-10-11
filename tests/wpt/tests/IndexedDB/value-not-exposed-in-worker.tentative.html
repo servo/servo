@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Reading a stored value whose interface is not exposed in a worker</title>
+<link rel="help" href="https://github.com/w3c/IndexedDB/issues/391">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const DATABASE = 'value-not-exposed-in-worker';
+
+function deleteDatabase() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.deleteDatabase(DATABASE);
+    request.onsuccess = resolve;
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function storeCertificate() {
+  await deleteDatabase();
+  const certificate = await RTCPeerConnection.generateCertificate({ name: 'ECDSA', namedCurve: 'P-256' });
+  const db = await new Promise((resolve, reject) => {
+    const request = indexedDB.open(DATABASE, 1);
+    request.onupgradeneeded = () => request.result.createObjectStore('store');
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+  await new Promise((resolve, reject) => {
+    const transaction = db.transaction('store', 'readwrite');
+    transaction.objectStore('store').put({ name: 'record', certificate }, 'key');
+    transaction.oncomplete = resolve;
+    transaction.onerror = () => reject(transaction.error);
+  });
+  db.close();
+}
+
+let report;
+promise_setup(async () => {
+  await storeCertificate();
+  const worker = new Worker('value-not-exposed-in-worker-helper.js');
+  report = await new Promise(resolve => {
+    worker.onmessage = e => resolve(e.data);
+    worker.postMessage(DATABASE);
+  });
+  worker.terminate();
+  await deleteDatabase();
+});
+
+const reads = [
+  ['get', 'get() result'],
+  ['getAll', 'getAll() result'],
+  ['cursor', 'IDBCursorWithValue value'],
+  ['getAllRecords', 'getAllRecords() IDBRecord value'],
+];
+
+for (const [key, description] of reads) {
+  promise_test(async () => {
+    assert_implements_optional(report[key] !== 'unsupported', `${key} is supported`);
+    assert_equals(report[key].event, 'success', 'the request succeeds');
+    assert_equals(report[key].exception, 'DataCloneError', 'reading the value throws');
+  }, `Reading the ${description} in a worker where RTCCertificate is not exposed throws a DataCloneError`);
+}
+</script>

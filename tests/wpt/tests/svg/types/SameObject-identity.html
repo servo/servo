@@ -13,8 +13,8 @@
 
   Note on SVGTransform.matrix: the [SameObject] guarantee is per-SVGTransform, so
   the test holds ONE SVGTransform and reads .matrix twice. (SVGTransformList.getItem
-  is NOT required to return the same wrapper, so re-fetching the item would test the
-  wrong thing.)
+  does return the same object for the same index, per types.html#ListItemIdentity, but
+  that is a separate requirement, tested in scripted/SVGList-getItem-identity.html.)
 -->
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>

@@ -605,6 +605,64 @@
 |     <p>
 |       "a"
 
+#description
+U+FFFD character sets frameset-ok to "not ok"
+#data
+<!doctype html>�<frameset><frame>
+#errors
+(1,26): unexpected-start-tag
+(1,33): unexpected-start-tag-ignored
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     "�"
+
+#description
+U+FFFD from a character reference sets frameset-ok to "not ok"
+#data
+<!doctype html>&#xFFFD;<frameset><frame>
+#errors
+(1,33): unexpected-start-tag
+(1,40): unexpected-start-tag-ignored
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     "�"
+
+#description
+Null character reference becomes U+FFFD and sets frameset-ok to "not ok"
+#data
+<!doctype html>&#0;<frameset><frame>
+#errors
+(1,19): null-character-reference
+(1,29): unexpected-start-tag
+(1,36): unexpected-start-tag-ignored
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     "�"
+
+#description
+U+FFFD in foreign content sets frameset-ok to "not ok"
+#data
+<!doctype html><svg>&#xFFFD;</svg><frameset><frame>
+#errors
+(1,44): unexpected-start-tag
+(1,51): unexpected-start-tag-ignored
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <svg svg>
+|       "�"
+
 #data
 <!doctype html><p> <frameset><frame>
 #errors

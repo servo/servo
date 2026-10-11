@@ -45,3 +45,17 @@ function toolsAreEqual(actual, expected) {
 
   return true;
 }
+
+// Helper to wait for a `toolcancel` event on `document.modelContext` for a
+// specific `toolName`.
+function waitForToolCancel(toolName) {
+  return new Promise(resolve => {
+    const listener = e => {
+      if (e.toolName === toolName) {
+        document.modelContext.removeEventListener('toolcancel', listener);
+        resolve(e);
+      }
+    };
+    document.modelContext.addEventListener('toolcancel', listener);
+  });
+}

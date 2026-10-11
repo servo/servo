@@ -8,6 +8,7 @@
 
 #![deny(unsafe_code)]
 
+mod container_timing_record;
 mod largest_contentful_paint_candidate;
 mod layout_damage;
 mod layout_dom;
@@ -26,6 +27,7 @@ use accesskit::{Action, ActionData, ActionRequest};
 use app_units::Au;
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
 use bitflags::bitflags;
+pub use container_timing_record::ContainerTimingRecord;
 use embedder_traits::{Cursor, ScriptToEmbedderChan, Theme, UntrustedNodeAddress, ViewportDetails};
 use euclid::{Point2D, Rect};
 use fonts::{FontContext, WebFontDocumentContext, WebFontSetDifference};
@@ -401,6 +403,9 @@ pub trait Layout {
         animations: DocumentAnimationSet,
         animation_timeline_value: f64,
     ) -> String;
+
+    fn query_accesskit_node(&self, node: TrustedNodeAddress) -> Option<accesskit::Node>;
+
     fn query_resolved_font_style(
         &self,
         node: TrustedNodeAddress,
@@ -428,17 +433,21 @@ pub trait Layout {
     /// Returns whether accessibility is active for this Layout.
     fn accessibility_active(&self) -> bool;
 
-    /// Whether the accessibility tree must be updated. This is set to true when
-    /// - accessibility is activated; or
-    /// - a page is loaded after accesibility is activated.
+    /// Whether the accessibility tree must be updated. This is true when accessibility is
+    /// activated, and at least one of the following conditions is met:
+    /// - the accessibility tree has not yet been built after activating accessibility;
+    /// - set_force_accessibility_update_if_active() has been called since the accessibility tree
+    ///   was last updated (for example, if a scroll occurred, or the focused element changed);
+    /// - there are pending actions from assistive technology.
     ///
-    /// Checked in can_skip_reflow_request_entirely(), as a dirty accessibility tree
-    /// should force a reflow, and handle_reflow() to determine whether to update the
-    /// accessibility tree during reflow.
+    /// Checked in can_skip_reflow_request_entirely(), as a pending accessibility tree update
+    /// should force a reflow, and during reflow to determine whether to update the
+    /// accessibility tree.
     fn needs_accessibility_update(&self) -> bool;
 
+    /// If accessibility is active, force an accessibility update on the next reflow.
     /// See [Self::needs_accessibility_update()].
-    fn set_force_accessibility_update(&self);
+    fn set_force_accessibility_update_if_active(&self);
 
     /// Handle an accessibility action.
     fn handle_accessibility_action(&self, action_request: ActionRequest);
@@ -575,6 +584,7 @@ pub enum QueryMsg {
     TextIndexQuery,
     PaddingQuery,
     FlushForUpdateTheRenderingQuery,
+    AccessKitNodeQuery,
 }
 
 /// The goal of a reflow request.
@@ -656,6 +666,8 @@ pub struct ReflowResult {
     pub lcp_candidate: Option<LCPCandidate>,
     /// Actions which have been requested by assistive technology, if any.
     pub pending_accessibility_actions: Vec<AccessibilityActionRequest>,
+    /// The containers whose painted area grew during this layout pass, if any.
+    pub container_timing_records: Vec<ContainerTimingRecord>,
 }
 
 bitflags! {
@@ -724,6 +736,8 @@ pub struct ReflowRequestRestyle {
 pub struct ReflowRequestAccessibility {
     /// Damage to the accessibility tree from DOM mutations.
     pub damage: Vec<(TrustedNodeAddress, AccessibilityDamage)>,
+    /// The document's focused element at the time of the reflow, if any.
+    pub focused_element: Option<OpaqueNode>,
     /// Nodes which were removed from the DOM tree since the last reflow, which were rooted in
     /// [`AccessibilityData`]. Only set if [`pref::expensive_accessibility_test_assertions_enabled`]
     /// is set.
@@ -1081,6 +1095,7 @@ mod test {
             bytes: Arc::new(vec![1]),
             frames: image_frames,
             cors_status: CorsStatus::Unsafe,
+            load_time: None,
             loop_count: Some(Repeat::Infinite),
             is_opaque: false,
         };
@@ -1122,6 +1137,7 @@ mod test {
             bytes: Arc::new(vec![1]),
             frames: image_frames,
             cors_status: CorsStatus::Unsafe,
+            load_time: None,
             loop_count: Some(Repeat::Finite(NonZeroU32::new(1).unwrap())),
             is_opaque: false,
         };

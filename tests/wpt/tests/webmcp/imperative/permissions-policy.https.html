@@ -6,110 +6,167 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
+<script src="resources/helpers.js"></script>
 </head>
 <body>
 <script>
-const host_info = get_host_info();
+const hostInfo = get_host_info();
 
 promise_test(async t => {
   const iframe = document.createElement('iframe');
 
-  const origin_b = host_info.HTTPS_REMOTE_ORIGIN;
-  const origin_c = host_info.HTTPS_OTHER_NOTSAMESITE_ORIGIN;
+  const originB = hostInfo.HTTPS_REMOTE_ORIGIN;
+  const originC = hostInfo.HTTPS_OTHER_NOTSAMESITE_ORIGIN;
 
-  iframe.src = origin_b + '/webmcp/imperative/resources/iframe-register-tool.html';
-  iframe.allow = `tools ${origin_b}`;
+  iframe.src = originB + '/webmcp/imperative/resources/iframe-register-tool.html';
+  iframe.allow = `tools ${originB}`;
 
-  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  const { promise: loadPromise, resolve: resolveLoad } = Promise.withResolvers();
+  iframe.onload = resolveLoad;
   document.body.appendChild(iframe);
   t.add_cleanup(() => iframe.remove());
-  await load_promise;
+  await loadPromise;
 
-  const toolchange_promise = new Promise((resolve) => {
-    document.modelContext.addEventListener('toolchange', resolve, {once: true});
-  });
+  const { promise: toolChangePromise, resolve: resolveToolChange } = Promise.withResolvers();
+  document.modelContext.addEventListener('toolchange', resolveToolChange, {once: true});
 
   iframe.contentWindow.postMessage({
     action: 'register',
     tool: { name: 'iframe_tool', description: 'Origin B tool' },
-    options: { exposedTo: [host_info.HTTPS_ORIGIN] }
+    options: { exposedTo: [hostInfo.HTTPS_ORIGIN] }
   }, '*');
-  await toolchange_promise;
+  await toolChangePromise;
 
-  const navigate_promise = new Promise(resolve => iframe.onload = resolve);
-  iframe.src = origin_c + '/webmcp/imperative/resources/iframe-register-tool.html';
-  await navigate_promise;
+  const { promise: navigatePromise, resolve: resolveNavigate } = Promise.withResolvers();
+  iframe.onload = resolveNavigate;
+  iframe.src = originC + '/webmcp/imperative/resources/iframe-register-tool.html';
+  await navigatePromise;
 
-  const failure_promise = new Promise(resolve => {
-    window.addEventListener('message', e => {
-      if (e.data.startsWith('tool registration failed:')) {
-        resolve(e.data);
-      }
-    }, {once: true});
-  });
+  const { promise: failurePromise, resolve: resolveFailure } = Promise.withResolvers();
+  window.addEventListener('message', e => {
+    if (e.data.startsWith('tool registration failed:')) {
+      resolveFailure(e.data);
+    }
+  }, {once: true});
 
   iframe.contentWindow.postMessage({
     action: 'register',
     tool: { name: 'iframe_tool', description: 'Origin C tool' }
   }, '*');
-  const failure_msg = await failure_promise;
+  const failureMsg = await failurePromise;
 
-  assert_true(failure_msg.includes('NotAllowedError'), `Expected NotAllowedError in navigated iframe, got: ${failure_msg}`);
+  assert_true(failureMsg.includes('NotAllowedError'), `Expected NotAllowedError in navigated iframe, got: ${failureMsg}`);
 }, 'registerTool() rejects in iframe, after navigation to an origin not covered by permissions policy');
 
 promise_test(async t => {
   const iframe = document.createElement('iframe');
-  const origin_b = host_info.HTTPS_REMOTE_ORIGIN;
+  const originB = hostInfo.HTTPS_REMOTE_ORIGIN;
 
-  iframe.src = origin_b + '/webmcp/imperative/resources/iframe-register-tool.html';
+  iframe.src = originB + '/webmcp/imperative/resources/iframe-register-tool.html';
   // No `allow` attribute.
 
-  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  const { promise: loadPromise, resolve: resolveLoad } = Promise.withResolvers();
+  iframe.onload = resolveLoad;
   document.body.appendChild(iframe);
   t.add_cleanup(() => iframe.remove());
-  await load_promise;
+  await loadPromise;
 
-  const failure_promise = new Promise(resolve => {
-    window.addEventListener('message', e => {
-      if (typeof e.data === 'string' && e.data.startsWith('getTools promise rejected:')) {
-        resolve(e.data);
-      }
-    }, {once: true});
-  });
+  const { promise: failurePromise, resolve: resolveFailure } = Promise.withResolvers();
+  window.addEventListener('message', e => {
+    if (typeof e.data === 'string' && e.data.startsWith('getTools promise rejected:')) {
+      resolveFailure(e.data);
+    }
+  }, {once: true});
 
   iframe.contentWindow.postMessage('getTools', '*');
-  const failure_msg = await failure_promise;
+  const failureMsg = await failurePromise;
 
-  assert_true(failure_msg.includes('NotAllowedError'), `Expected NotAllowedError in iframe, got: ${failure_msg}`);
+  assert_true(failureMsg.includes('NotAllowedError'), `Expected NotAllowedError in iframe, got: ${failureMsg}`);
 }, 'getTools() throws NotAllowedError in iframe when permissions policy is disabled');
 
 promise_test(async t => {
   const iframe = document.createElement('iframe');
-  const origin_b = host_info.HTTPS_REMOTE_ORIGIN;
+  const originB = hostInfo.HTTPS_REMOTE_ORIGIN;
 
-  iframe.src = origin_b + '/webmcp/imperative/resources/iframe-register-tool.html';
+  iframe.src = originB + '/webmcp/imperative/resources/iframe-register-tool.html';
   // No `allow` attribute.
 
-  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  const { promise: loadPromise, resolve: resolveLoad } = Promise.withResolvers();
+  iframe.onload = resolveLoad;
   document.body.appendChild(iframe);
   t.add_cleanup(() => iframe.remove());
-  await load_promise;
+  await loadPromise;
 
-  const failure_promise = new Promise(resolve => {
-    window.addEventListener('message', e => {
-      if (e.data.action === 'executeFakeToolResponse') {
-        resolve(e.data);
-      }
-    }, {once: true});
-  });
+  const { promise: failurePromise, resolve: resolveFailure } = Promise.withResolvers();
+  window.addEventListener('message', e => {
+    if (e.data.action === 'executeFakeToolResponse') {
+      resolveFailure(e.data);
+    }
+  }, {once: true});
 
   // Direct the iframe to construct a conceivable `RegisteredTool` and call
   // `executeTool()` on it.
   iframe.contentWindow.postMessage({ action: 'execute_fake_tool', name: 'dummy_tool' }, '*');
-  const response = await failure_promise;
+  const response = await failurePromise;
 
   assert_equals(response.error_name, 'NotAllowedError', 'Should reject with NotAllowedError');
 }, 'executeTool() throws NotAllowedError in iframe when permissions policy is disabled');
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  const originB = hostInfo.HTTPS_REMOTE_ORIGIN;
+
+  iframe.src = originB + '/webmcp/imperative/resources/iframe-register-tool.html';
+  iframe.allow = `tools ${originB}`;
+
+  const { promise: loadPromise, resolve: resolveLoad } = Promise.withResolvers();
+  iframe.onload = resolveLoad;
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await loadPromise;
+
+  const { promise: toolChangePromise, resolve: resolveToolChange } = Promise.withResolvers();
+  document.modelContext.addEventListener('toolchange', resolveToolChange, {once: true});
+
+  iframe.contentWindow.postMessage({
+    action: 'register',
+    tool: { name: 'revocable_tool', description: 'Origin B revocable tool' },
+    options: { exposedTo: [self.origin] }
+  }, '*');
+  await toolChangePromise;
+
+  const tools = await document.modelContext.getTools({fromOrigins: [originB]});
+  const tool = tools.find(t => t.name === 'revocable_tool');
+  assert_true(!!tool, 'Tool should initially be visible to parent');
+
+  // Revoke exposure to the parent origin by unregistering and re-registering
+  // without `exposedTo: [self.origin]`.
+  const { promise: unregisterChange, resolve: resolveUnregisterChange } = Promise.withResolvers();
+  document.modelContext.addEventListener('toolchange', resolveUnregisterChange, {once: true});
+  iframe.contentWindow.postMessage({
+    action: 'unregister',
+    name: 'revocable_tool'
+  }, '*');
+  await unregisterChange;
+
+  iframe.contentWindow.postMessage({
+    action: 'register',
+    tool: { name: 'revocable_tool', description: 'Origin B private tool' },
+    options: { exposedTo: [] }
+  }, '*');
+
+  // Wait for the iframe to finish re-registering by querying its own tools.
+  iframe.contentWindow.postMessage('getTools', '*');
+  const response = await waitForIframeMessage('getToolsResponse');
+  assert_equals(response.tools.length, 1);
+  assert_equals(response.tools[0].name, 'revocable_tool');
+
+  // Executing the previously retrieved RegisteredTool reference must now reject
+  // because the target frame no longer exposes the tool to the caller's origin.
+  await promise_rejects_dom(
+      t, 'UnknownError', document.modelContext.executeTool(tool),
+      'executeTool() should reject when target frame revokes origin exposure');
+}, 'executeTool() rejects when target frame revokes exposedTo permission after getTools()');
 </script>
 </body>
 </html>

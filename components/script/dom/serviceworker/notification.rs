@@ -21,7 +21,7 @@ use net_traits::image_cache::{
     ImageOrMetadataAvailable, ImageResponse, PendingImageId,
 };
 use net_traits::request::{Destination, RequestBuilder, RequestId};
-use net_traits::{FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming};
+use net_traits::{FetchMetadata, FetchResponseMsg, Metadata, NetworkError, ResourceFetchTiming};
 use pixels::RasterImage;
 use rustc_hash::FxHashSet;
 use script_bindings::cell::DomRefCell;
@@ -756,14 +756,11 @@ impl FetchResponseListener for ResourceFetchListener {
             FetchResponseMsg::ProcessResponse(request_id, metadata.clone()),
         );
 
-        let metadata = metadata.ok().map(|meta| match meta {
-            FetchMetadata::Unfiltered(m) => m,
-            FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
-        });
+        let metadata = metadata.ok().map(Into::into);
 
         let status = metadata
             .as_ref()
-            .map(|m| m.status.clone())
+            .map(|metadata: &Metadata| metadata.status.clone())
             .unwrap_or_else(HttpStatus::new_error);
 
         self.status = {

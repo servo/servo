@@ -12,25 +12,37 @@
 </style>
 <canvas id="canvas" width="200" height="200" content=drawable>
   <div drawable id="child"></div>
+  <canvas drawable id="webgl_child" width="100" height="100"></canvas>
 </canvas>
 
 <script>
 'use strict';
 
 const workerCode = `
+  let offscreenCanvas;
   let ctx;
   self.onmessage = function(e) {
     if (e.data.canvas) {
-      ctx = e.data.canvas.getContext('2d');
+      offscreenCanvas = e.data.canvas;
+      ctx = offscreenCanvas.getContext('2d');
     }
     if (e.data.elementImage) {
+      const size = offscreenCanvas.getElementImageDefaultSize(e.data.elementImage);
       ctx.drawElementImage(e.data.elementImage, 0, 0);
-      self.postMessage(ctx.getImageData(0, 0, 1, 1).data);
+      self.postMessage({
+        pixels: ctx.getImageData(0, 0, 1, 1).data,
+        width: size.width,
+        height: size.height,
+      });
     }
   };
 `;
 
 promise_test(async t => {
+  const gl = webgl_child.getContext('webgl2');
+  gl.clearColor(0, 0, 1, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
   await waitForCanvasPaint(canvas);
 
   const blob = new Blob([workerCode], { type: 'application/javascript' });
@@ -41,8 +53,10 @@ promise_test(async t => {
 
   const green_promise = new Promise(resolve => {
     worker.onmessage = t.step_func(msg => {
-      if (msg.data instanceof Uint8ClampedArray) {
-        assert_array_equals(msg.data, [0, 128, 0, 255]);
+      if (msg.data && msg.data.pixels instanceof Uint8ClampedArray) {
+        assert_equals(msg.data.width, 100);
+        assert_equals(msg.data.height, 100);
+        assert_array_equals(msg.data.pixels, [0, 128, 0, 255]);
         resolve();
       } else {
         assert_unreached();
@@ -53,6 +67,24 @@ promise_test(async t => {
   let elementImage = canvas.captureElementImage(child);
   worker.postMessage({ elementImage: elementImage }, [elementImage]);
 
-  return green_promise;
+  await green_promise;
+
+  const blue_promise = new Promise(resolve => {
+    worker.onmessage = t.step_func(msg => {
+      if (msg.data && msg.data.pixels instanceof Uint8ClampedArray) {
+        assert_equals(msg.data.width, 100);
+        assert_equals(msg.data.height, 100);
+        assert_array_equals(msg.data.pixels, [0, 0, 255, 255]);
+        resolve();
+      } else {
+        assert_unreached();
+      }
+    })
+  });
+
+  let webglElementImage = canvas.captureElementImage(webgl_child);
+  worker.postMessage({ elementImage: webglElementImage }, [webglElementImage]);
+
+  return blue_promise;
 }, 'OffscreenCanvas.drawElementImage should work in a worker thread');
 </script>

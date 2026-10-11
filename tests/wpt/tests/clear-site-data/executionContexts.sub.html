@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta name="timeout" content="long">
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="/common/get-host-info.sub.js"></script>
@@ -8,39 +9,62 @@
 
   <body>
     <script>
-      function createAndLoadIframe() {
-        return new Promise(resolve => {
-          addEventListener("message", function() {
-            assert_true(true, "Iframe loaded");
-            resolve();
-          }, { once: true });
+      // How long to wait for the iframe to (re)load before concluding that it
+      // is not going to happen. This keeps the test from running into the
+      // harness timeout in user agents that do not implement
+      // "executionContexts" (see w3c/webappsec-clear-site-data#59).
+      const WAIT_FOR_MESSAGE_MS = 1000;
 
-          let ifr = document.createElement('iframe');
-          document.body.appendChild(ifr);
-          ifr.src = get_host_info().HTTPS_REMOTE_ORIGIN + "/clear-site-data/support/iframe_executionContexts.html";
+      // Returns a promise that resolves to true if the iframe posts a message
+      // to this window before |ready| resolves plus WAIT_FOR_MESSAGE_MS, and
+      // false otherwise. The listener is registered synchronously so that no
+      // message can be missed.
+      function waitForMessage(test, ready = Promise.resolve()) {
+        return new Promise(resolve => {
+          let timer;
+          const onMessage = () => {
+            clearTimeout(timer);
+            resolve(true);
+          };
+          addEventListener("message", onMessage, { once: true });
+          ready.then(() => {
+            timer = test.step_timeout(() => {
+              removeEventListener("message", onMessage);
+              resolve(false);
+            }, WAIT_FOR_MESSAGE_MS);
+          });
         });
       }
 
-      function loadClearSiteDataResource(what) {
-        return new Promise(resolve => {
-          addEventListener("message", function() {
-            assert_true(true, "Iframe re-loaded");
-            resolve();
-          }, { once: true });
-
-          let image = new Image();
-          image.src = get_host_info().HTTPS_REMOTE_ORIGIN + "/clear-site-data/support/echo-clear-site-data.py?" + what;
-        });
+      async function createAndLoadIframe(test) {
+        const loaded = waitForMessage(test);
+        const ifr = document.createElement('iframe');
+        test.add_cleanup(() => ifr.remove());
+        document.body.appendChild(ifr);
+        ifr.src = get_host_info().HTTPS_REMOTE_ORIGIN + "/clear-site-data/support/iframe_executionContexts.html";
+        assert_true(await loaded, "Iframe loaded");
       }
 
-      promise_test(function(test) {
-        return createAndLoadIframe()
-          .then(() => loadClearSiteDataResource("executionContexts"))
+      async function loadClearSiteDataResource(test, what) {
+        const image = new Image();
+        // Only start the clock once the response carrying the Clear-Site-Data
+        // header has been fully received.
+        const responseDone = new Promise(resolve => {
+          image.onload = image.onerror = resolve;
+        });
+        const reloaded = waitForMessage(test, responseDone);
+        image.src = get_host_info().HTTPS_REMOTE_ORIGIN + "/clear-site-data/support/echo-clear-site-data.py?" + what;
+        assert_true(await reloaded, "Iframe re-loaded");
+      }
+
+      promise_test(async function(test) {
+        await createAndLoadIframe(test);
+        await loadClearSiteDataResource(test, "executionContexts");
       }, "executionContexts triggers the reload of contexts");
 
-      promise_test(function(test) {
-        return createAndLoadIframe()
-          .then(() => loadClearSiteDataResource("*"));
+      promise_test(async function(test) {
+        await createAndLoadIframe(test);
+        await loadClearSiteDataResource(test, "*");
       }, "* triggers the reload of contexts");
     </script>
   </body>

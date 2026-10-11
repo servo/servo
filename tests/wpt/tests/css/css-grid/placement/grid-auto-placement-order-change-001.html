@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#order-property">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#auto-placement-algo">
+<meta name="assert" content="Dynamically changing the 'order' property of grid items re-runs the auto-placement algorithm, which processes items in order-modified document order.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.grid {
+    grid-auto-flow: row;
+    grid-template-rows: 50px 100px;
+    grid-template-columns: 40px;
+}
+
+#firstGridItem {
+    grid-row: auto;
+    grid-column: 1;
+}
+
+#secondGridItem {
+    grid-row: 1;
+    grid-column: auto;
+}
+
+#thirdGridItem {
+    grid-row: auto;
+    grid-column: auto;
+}
+</style>
+<script>
+function testGridItemsOrder(firstGridItemData, secondGridItemData, thirdGridItemData)
+{
+    var firstGridItem = document.getElementById("firstGridItem");
+    firstGridItem.style.order = firstGridItemData.order;
+    firstGridItem.setAttribute("data-expected-width", firstGridItemData.width);
+    firstGridItem.setAttribute("data-expected-height", firstGridItemData.height);
+    firstGridItem.setAttribute("data-offset-x", firstGridItemData.x);
+    firstGridItem.setAttribute("data-offset-y", firstGridItemData.y);
+
+    var secondGridItem = document.getElementById("secondGridItem");
+    secondGridItem.style.order = secondGridItemData.order;
+    secondGridItem.setAttribute("data-expected-width", secondGridItemData.width);
+    secondGridItem.setAttribute("data-expected-height", secondGridItemData.height);
+    secondGridItem.setAttribute("data-offset-x", secondGridItemData.x);
+    secondGridItem.setAttribute("data-offset-y", secondGridItemData.y);
+
+    var thirdGridItem = document.getElementById("thirdGridItem");
+    thirdGridItem.style.order = thirdGridItemData.order;
+    thirdGridItem.setAttribute("data-expected-width", thirdGridItemData.width);
+    thirdGridItem.setAttribute("data-expected-height", thirdGridItemData.height);
+    thirdGridItem.setAttribute("data-offset-x", thirdGridItemData.x);
+    thirdGridItem.setAttribute("data-offset-y", thirdGridItemData.y);
+
+    checkLayout(".grid", false);
+}
+
+function testChangingGridItemsOrder()
+{
+    testGridItemsOrder({ 'order': '0', 'width': '40', 'height': '100', 'x': '0', 'y': '50' }, { 'order': '0', 'width': '40', 'height': '50', 'x': '0', 'y': '0' }, { 'order': '0', 'width': '40', 'height': '0', 'x': '0', 'y': '150' });
+    testGridItemsOrder({ 'order': '0', 'width': '40', 'height': '100', 'x': '0', 'y': '50' }, { 'order': '-1', 'width': '40', 'height': '50', 'x': '0', 'y': '0' }, { 'order': '0', 'width': '40', 'height': '0', 'x': '0', 'y': '150' });
+    testGridItemsOrder({ 'order': '1', 'width': '40', 'height': '0', 'x': '0', 'y': '150' }, { 'order': '-1', 'width': '40', 'height': '50', 'x': '0', 'y': '0' }, { 'order': '0', 'width': '40', 'height': '100', 'x': '0', 'y': '50' });
+    testGridItemsOrder({ 'order': '1', 'width': '40', 'height': '100', 'x': '0', 'y': '50' }, { 'order': '-1', 'width': '40', 'height': '50', 'x': '0', 'y': '0' }, { 'order': '10', 'width': '40', 'height': '0', 'x': '0', 'y': '150' });
+}
+
+</script>
+<body onload="document.fonts.ready.then(() => { testChangingGridItemsOrder(); done(); })">
+<div>This test checks that dynamic changes to grid items' 'order' recompute the positions of automatically placed grid items.</div>
+
+<div style="position: relative">
+    <div class="grid">
+        <div class="sizedToGridArea" id="firstGridItem"></div>
+        <div class="sizedToGridArea" id="secondGridItem"></div>
+        <div class="sizedToGridArea" id="thirdGridItem"></div>
+    </div>
+</div>
+
+</body>

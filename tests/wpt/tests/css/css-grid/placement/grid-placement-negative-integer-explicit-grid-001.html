@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#line-placement">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#implicit-grids">
+<meta name="assert" content="Negative &lt;integer&gt; line numbers count from the end edge of the explicit grid, ignoring implicit tracks.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.columnGrid {
+    grid-template-columns: 50px 100px;
+    /* grid-template-rows is left unset so that the grid items' row is implicit. */
+    font: 10px/1 Ahem;
+}
+
+.rowGrid {
+    grid-template-rows: 50px 100px;
+    /* grid-template-columns is left unset so that the grid items' column is implicit. */
+    font: 10px/1 Ahem;
+}
+</style>
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+
+<p>Test that negative &lt;integer&gt; positions are resolved against the explicit grid (that is don't account for implicit columns and rows).</p>
+
+<div class="constrainedContainer">
+    <div class="grid columnGrid">
+        <div class="sizedToGridArea autoRowThirdColumn" data-expected-width="60" data-expected-height="30">XXXXXX XXXXX XXXXX</div>
+        <div class="sizedToGridArea autoLastRowAutoLastColumn" data-expected-width="100" data-expected-height="30"></div>
+    </div>
+</div>
+
+<div class="constrainedContainer">
+    <div class="grid columnGrid">
+        <div class="sizedToGridArea thirdRowAutoColumn" data-expected-width="50" data-expected-height="30">XXXXXX XXXXX XXXXX</div>
+        <div class="sizedToGridArea autoLastRowAutoLastColumn" data-expected-width="100" data-expected-height="0"></div>
+    </div>
+</div>
+
+<div class="constrainedContainer">
+    <div class="grid rowGrid">
+        <div class="sizedToGridArea autoRowThirdColumn" data-expected-width="60" data-expected-height="50">XXXXXX XXXXX XXXXX</div>
+        <div class="sizedToGridArea autoLastRowAutoLastColumn" data-expected-width="0" data-expected-height="100"></div>
+    </div>
+</div>
+
+<div class="constrainedContainer">
+    <div class="grid rowGrid">
+        <div class="sizedToGridArea thirdRowAutoColumn" data-expected-width="60" data-expected-height="30">XXXXXX XXXXX XXXXX</div>
+        <div class="sizedToGridArea autoLastRowAutoLastColumn" data-expected-width="60" data-expected-height="100"></div>
+    </div>
+</div>
+
+</body>

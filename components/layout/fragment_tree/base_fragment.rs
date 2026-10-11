@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::LazyLock;
 use std::sync::atomic::{AtomicU8, Ordering};
 
 use app_units::Au;
@@ -15,10 +16,17 @@ use script::layout_dom::ServoLayoutNode;
 use style::dom::OpaqueNode;
 use style::selector_parser::PseudoElement;
 use stylo_atoms::atom;
-use web_atoms::{local_name, ns};
+use web_atoms::{LocalName, local_name, ns};
 
+use crate::dom::NodeExt;
 use crate::dom_traversal::NodeAndStyleInfo;
 use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSize, SyncPhysicalRectAu};
+
+/// The Container Timing attributes aren't static atoms, so intern them once.
+static CONTAINERTIMING_ATTRIBUTE: LazyLock<LocalName> =
+    LazyLock::new(|| LocalName::from("containertiming"));
+static CONTAINERTIMINGIGNORE_ATTRIBUTE: LazyLock<LocalName> =
+    LazyLock::new(|| LocalName::from("containertimingignore"));
 
 #[derive(Clone, Debug, Default, FromPrimitive, MallocSizeOf, PartialEq)]
 #[repr(u8)]
@@ -173,11 +181,7 @@ impl From<ServoLayoutNode<'_>> for BaseFragmentInfo {
                 PseudoElement::ServoAnonymousTableRow => return Self::anonymous(),
                 // A `<br>` forces a new line using a `::before` pseudo-element. Both of them need to get
                 // this flag.
-                PseudoElement::Before
-                    if node
-                        .as_html_element()
-                        .is_some_and(|element| element.local_name() == &local_name!("br")) =>
-                {
+                PseudoElement::Before if node.is_html_br_element() => {
                     flags.insert(FragmentFlags::IS_BR_ELEMENT);
                 },
                 _ => {},
@@ -221,6 +225,19 @@ impl From<ServoLayoutNode<'_>> for BaseFragmentInfo {
                     flags.insert(FragmentFlags::IS_BUTTON);
                 },
                 _ => {},
+            }
+
+            if element
+                .attribute(&ns!(), &CONTAINERTIMING_ATTRIBUTE)
+                .is_some()
+            {
+                flags.insert(FragmentFlags::IS_CONTAINER_TIMING_ROOT);
+            }
+            if element
+                .attribute(&ns!(), &CONTAINERTIMINGIGNORE_ATTRIBUTE)
+                .is_some()
+            {
+                flags.insert(FragmentFlags::IS_CONTAINER_TIMING_IGNORE);
             }
         };
 
@@ -276,6 +293,13 @@ bitflags! {
         const IS_INPUT_ELEMENT = 1 << 12;
         /// Whether this is a <button> element, or an <input> that uses button layout.
         const IS_BUTTON = 1 << 13;
+        /// Whether or not the element that created this fragment has the `containertiming`
+        /// attribute, so we can later map out where roots are.
+        const IS_CONTAINER_TIMING_ROOT = 1 << 14;
+        /// Whether or not the element that created this fragment has the
+        /// `containertimingignore` attribute, so that it and its descendants do not
+        /// contribute to any enclosing container root.
+        const IS_CONTAINER_TIMING_IGNORE = 1 << 15;
     }
 }
 

@@ -181,7 +181,7 @@ impl HTMLIFrameElement {
             let load_blocker = &self.load_blocker;
             // Any oustanding load is finished from the point of view of the blocked
             // document; the new navigation will continue blocking it.
-            LoadBlocker::terminate(load_blocker, cx);
+            LoadBlocker::terminate(cx, load_blocker);
 
             *load_blocker.borrow_mut() = Some(LoadBlocker::new(
                 &document,
@@ -223,7 +223,7 @@ impl HTMLIFrameElement {
                         Some(this.upcast()),
                         Some(mode == ProcessingMode::FirstTime),
                     ) {
-                        LoadBlocker::terminate(&this.load_blocker, cx);
+                        LoadBlocker::terminate(cx, &this.load_blocker);
                         return;
                     }
                     load_data.about_base_url = doc.root().about_base_url();
@@ -416,7 +416,7 @@ impl HTMLIFrameElement {
         // > An iframe element whose current navigation was lazy loaded boolean is false potentially delays the load event.
         self.current_navigation_was_lazy_loaded.set(true);
         let blocker = &self.load_blocker;
-        LoadBlocker::terminate(blocker, cx);
+        LoadBlocker::terminate(cx, blocker);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#process-the-iframe-attributes>
@@ -648,7 +648,7 @@ impl HTMLIFrameElement {
         // The load blocker will be terminated for a navigation in iframe_load_event_steps.
         if reason == UpdatePipelineIdReason::Traversal {
             let blocker = &self.load_blocker;
-            LoadBlocker::terminate(blocker, cx);
+            LoadBlocker::terminate(cx, blocker);
         }
 
         self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
@@ -794,7 +794,7 @@ impl HTMLIFrameElement {
         if let Some(document) = child_document {
             if document.mute_iframe_load_flag() {
                 let blocker = &self.load_blocker;
-                LoadBlocker::terminate(blocker, cx);
+                LoadBlocker::terminate(cx, blocker);
                 return;
             }
             document.set_iframe_load_in_progress(true);
@@ -807,7 +807,7 @@ impl HTMLIFrameElement {
         self.upcast::<EventTarget>().fire_event(cx, atom!("load"));
 
         let blocker = &self.load_blocker;
-        LoadBlocker::terminate(blocker, cx);
+        LoadBlocker::terminate(cx, blocker);
 
         // Step 7. Unset childDocument's iframe load in progress flag
         if let Some(child_document) = self.GetContentDocument() {
@@ -848,7 +848,7 @@ impl HTMLIFrameElement {
     /// <https://html.spec.whatwg.org/multipage/#destroy-a-child-navigable>
     fn destroy_child_navigable(&self, cx: &mut JSContext) {
         let blocker = &self.load_blocker;
-        LoadBlocker::terminate(blocker, cx);
+        LoadBlocker::terminate(cx, blocker);
 
         // Step 1. Let navigable be container's content navigable.
         let Some(browsing_context_id) = self.browsing_context_id() else {

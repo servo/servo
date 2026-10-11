@@ -172,7 +172,7 @@ impl DomHelpers<crate::DomTypeHolder> for crate::DomTypeHolder {
         ScriptThread::custom_element_reaction_stack().pop_current_element_queue(cx)
     }
 
-    fn reflect_dom_object_with_cx<T, U>(cx: &mut JSContext, obj: Box<T>, global: &U) -> DomRoot<T>
+    fn reflect_dom_object<T, U>(cx: &mut JSContext, obj: Box<T>, global: &U) -> DomRoot<T>
     where
         T: DomObject + DomObjectWrap<crate::DomTypeHolder>,
         U: DerivedFrom<GlobalScope>,

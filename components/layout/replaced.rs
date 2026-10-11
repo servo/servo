@@ -15,6 +15,7 @@ use net_traits::image_cache::{Image, ImageOrMetadataAvailable, VectorImage};
 use net_traits::request::InternalRequest;
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{BrowsingContextId, PipelineId};
 use servo_url::ServoUrl;
 use style::Zero;
@@ -142,6 +143,7 @@ pub(crate) struct ImageInfo {
     pub image: Option<Image>,
     pub showing_broken_image_icon: bool,
     pub url: Option<ServoUrl>,
+    pub load_time: Option<CrossProcessInstant>,
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -387,6 +389,7 @@ impl ReplacedContents {
         Some(Self {
             base_fragment_info: node.into(),
             kind: ReplacedContentKind::Image(ImageInfo {
+                load_time: image.as_ref().and_then(|image| image.load_time()),
                 image,
                 showing_broken_image_icon: false,
                 url: Some(image_url.clone().into()),
@@ -419,6 +422,7 @@ impl ReplacedContents {
                 image: None,
                 showing_broken_image_icon: false,
                 url: None,
+                load_time: None,
             }),
             is_content_replacement: false,
             selected: Default::default(),
@@ -459,7 +463,7 @@ impl ReplacedContents {
         if let ReplacedContentKind::Image(ImageInfo {
             image: Some(Image::Raster(image)),
             showing_broken_image_icon: true,
-            url: _,
+            ..
         }) = &self.kind
         {
             let size = Size2D::new(
@@ -549,6 +553,7 @@ impl ReplacedContents {
                         image_key: Some(image_key),
                         showing_broken_image_icon: image_info.showing_broken_image_icon,
                         url: image_info.url.clone(),
+                        load_time: image_info.load_time,
                         natural_width: self.natural_size.width,
                         natural_height: self.natural_size.height,
                         selected: self.selected.clone(),
@@ -565,6 +570,7 @@ impl ReplacedContents {
                     image_key: video_info.image_key,
                     showing_broken_image_icon: false,
                     url: video_info.poster_url.clone(),
+                    load_time: None,
                     natural_width: self.natural_size.width,
                     natural_height: self.natural_size.height,
                     selected: self.selected.clone(),
@@ -611,6 +617,7 @@ impl ReplacedContents {
                     image_key: Some(image_key),
                     showing_broken_image_icon: false,
                     url: None,
+                    load_time: None,
                     natural_width: self.natural_size.width,
                     natural_height: self.natural_size.height,
                     selected: self.selected.clone(),
@@ -668,6 +675,7 @@ impl ReplacedContents {
                             image_key: Some(image_key),
                             showing_broken_image_icon: false,
                             url: None,
+                            load_time: None,
                             natural_width: self.natural_size.width,
                             natural_height: self.natural_size.height,
                             selected: self.selected.clone(),

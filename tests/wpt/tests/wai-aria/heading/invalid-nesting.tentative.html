@@ -1,0 +1,154 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>WAI-ARIA tests for invalidly nested elements with heading role</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+
+<body>
+
+  <h1>WAI-ARIA tests for invalidly nested heading elements</h1>
+  <p>Equivalent native patterns tested in <code>/html-aam/heading/invalid-nesting.html</code>.</p>
+
+  <h2>Accessible names and roles</h2>
+  <hr>
+
+  <div
+    role="heading"
+    aria-level="1"
+    class="ex-label"
+    data-testname="div[role=heading][aria-level=1] with invalid div[role=heading][aria-level=2] descendant"
+    data-expectedlabel="SPEC_AMBIGUOUS_LOG_VALUE — perhaps `` to imitate native html-aam behavior"
+  >
+    <div
+      role="heading"
+      aria-level="2"
+    >Invalid div[role=heading][aria-level=2]</div>
+  </div>
+
+  <div
+    role="heading"
+    aria-level="4"
+    class="ex-label"
+    data-testname="div[role=heading][aria-level=4] with invalid div[role=heading][aria-level=3] descendant"
+    data-expectedlabel="SPEC_AMBIGUOUS_LOG_VALUE — perhaps `` to imitate native html-aam behavior"
+  >
+    <div
+      role="heading"
+      aria-level="3"
+    >Invalid div[role=heading][aria-level=3]</div>
+  </div>
+
+  <div
+    role="heading"
+    aria-level="5"
+    class="ex-label"
+    data-testname="div[role=heading][aria-level=5] with invalid div[role=heading][aria-level=6] descendant"
+    data-expectedlabel="SPEC_AMBIGUOUS_LOG_VALUE — perhaps `` to imitate native html-aam behavior"
+  >
+    <div
+      role="heading"
+      aria-level="6"
+    >Invalid div[role=heading][aria-level=6]</div>
+  </div>
+
+  <div
+    role="heading"
+    aria-level="1"
+    class="ex-label"
+    data-testname="div[role=heading][aria-level=1] with text contents and invalid div[role=heading][aria-level=2] descendant"
+  data-expectedlabel="SPEC_AMBIGUOUS_LOG_VALUE — perhaps `Chocolate` to imitate native html-aam behavior"
+  >Chocolate
+    <div
+      role="heading"
+      aria-level="2"
+    >Peanut butter</div>
+  </div>
+
+  <h2>No heading ancestors</h2>
+  <hr>
+
+  <div
+    role="heading"
+    aria-level="1"
+  >One
+    <div
+      role="heading"
+      aria-level="2"
+      class="ex-no-heading-ancestor"
+    data-testname="div[role=heading][aria-level=2] invalidly nested inside div[role=heading][aria-level=1] should not, if imitating native html-aam behavior, have any DOM ancestor with a heading role"
+    >Two
+      <div
+        role="heading"
+        aria-level="3"
+        class="ex-no-heading-ancestor"
+        data-testname="div[role=heading][aria-level=3] invalidly nested inside div[role=heading][aria-level=1] > div[role=heading][aria-level=2] should not, if imitating native html-aam behavior, have any DOM ancestor with a heading role"
+      >Three</div>
+    </div>
+  </div>
+
+  <h2>ARIA heading impostors</h2>
+  <hr>
+
+  <button
+    role="heading"
+    aria-level="1"
+    class="ex-label"
+    data-testname="button[role=heading][aria-level=1] with text contents and invalid span[role=heading][aria-level=2] descendant"
+    data-expectedlabel="SPEC_AMBIGUOUS_LOG_VALUE — perhaps `Macaroni` to imitate native html-aam behavior"
+  >Macaroni
+    <span
+      role="heading"
+      aria-level="2"
+    >Cheese</span>
+  </button>
+
+  <p
+    role="heading"
+    aria-level="1"
+    class="ex-label"
+    data-testname="p[role=heading][aria-level=1] with text contents and invalid span[role=heading][aria-level=2] descendant"
+    data-expectedlabel="SPEC_AMBIGUOUS_LOG_VALUE — perhaps `Biscuits` to imitate native html-aam behavior"
+  >Biscuits
+    <span
+    role="heading"
+    aria-level="2"
+  >Gravy</span>
+  </p>
+
+  <script>
+    AriaUtils.verifyLabelsBySelector(".ex-label");
+    verifyNoForbiddenAncestorRole(".ex-no-heading-ancestor", "heading");
+
+    function verifyNoForbiddenAncestorRole(selector, forbiddenRole) {
+      const els = document.querySelectorAll(selector);
+      if (!els.length) {
+        throw `Selector passed in verifyNoForbiddenAncestorRole("${selector}") should match at least one element.`;
+      }
+      for (const el of els) {
+        let testName = el.getAttribute("data-testname");
+        let ancestors = [];
+        let ancestor = el.parentNode;
+        promise_test(async t => {
+          // Get computed role of each ancestor up to but excluding the root.
+          while (ancestor && ancestor != document.documentElement) {
+            const computedRole = await test_driver.get_computed_role(ancestor);
+            ancestors.push(computedRole);
+            ancestor = ancestor.parentNode;
+          }
+          assert_false(ancestors.includes(forbiddenRole));
+        }, `${testName}`);
+      }
+    }
+
+  </script>
+</body>
+
+</html>

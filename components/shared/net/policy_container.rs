@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
+
 use content_security_policy::CspList;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
@@ -22,7 +24,16 @@ use crate::ReferrerPolicy;
 pub enum RequestPolicyContainer {
     #[default]
     Client,
-    PolicyContainer(PolicyContainer),
+    PolicyContainer(#[conditional_malloc_size_of] Arc<PolicyContainer>),
+}
+
+impl RequestPolicyContainer {
+    pub fn policy_container(&self) -> Option<&PolicyContainer> {
+        match self {
+            RequestPolicyContainer::Client => None,
+            RequestPolicyContainer::PolicyContainer(policy_container) => Some(policy_container),
+        }
+    }
 }
 
 /// <https://html.spec.whatwg.org/multipage/#policy-containers>

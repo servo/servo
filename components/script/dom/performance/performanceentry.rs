@@ -18,6 +18,7 @@ use crate::dom::bindings::str::DOMString;
 /// All supported entry types, in alphabetical order.
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf, PartialEq, VariantArray)]
 pub(crate) enum EntryType {
+    ContainerTiming,
     LargestContentfulPaint,
     Mark,
     Measure,
@@ -30,6 +31,7 @@ pub(crate) enum EntryType {
 impl EntryType {
     pub(crate) fn as_str(&self) -> &'static str {
         match self {
+            EntryType::ContainerTiming => "container",
             EntryType::Measure => "measure",
             EntryType::Mark => "mark",
             EntryType::LargestContentfulPaint => "largest-contentful-paint",
@@ -46,6 +48,7 @@ impl<'a> TryFrom<&'a str> for EntryType {
 
     fn try_from(value: &'a str) -> Result<EntryType, ()> {
         Ok(match value {
+            "container" => EntryType::ContainerTiming,
             "measure" => EntryType::Measure,
             "mark" => EntryType::Mark,
             "largest-contentful-paint" => EntryType::LargestContentfulPaint,

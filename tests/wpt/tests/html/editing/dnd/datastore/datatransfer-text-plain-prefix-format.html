@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>DataTransfer formats that merely start with "text/plain" are distinct from text/plain</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dnd.html#dom-datatransfer-setdata">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dnd.html#dom-datatransfer-getdata">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dnd.html#dom-datatransfer-cleardata">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const formats = ["text/plainfoo", "text/plain-x", "TEXT/PLAINFOO"];
+
+for (const format of formats) {
+  test(() => {
+    const dt = new DataTransfer();
+    dt.setData("text/plain", "plain");
+    dt.setData(format, "other");
+    assert_equals(dt.getData("text/plain"), "plain");
+    assert_equals(dt.getData(format), "other");
+    assert_array_equals(dt.types, ["text/plain", format.toLowerCase()]);
+  }, `setData(${JSON.stringify(format)}) does not overwrite text/plain`);
+
+  test(() => {
+    const dt = new DataTransfer();
+    dt.setData("text/plain", "plain");
+    assert_equals(dt.getData(format), "");
+  }, `getData(${JSON.stringify(format)}) does not return text/plain data`);
+
+  test(() => {
+    const dt = new DataTransfer();
+    dt.setData("text/plain", "plain");
+    dt.clearData(format);
+    assert_equals(dt.getData("text/plain"), "plain");
+    assert_array_equals(dt.types, ["text/plain"]);
+  }, `clearData(${JSON.stringify(format)}) does not clear text/plain`);
+}
+
+test(() => {
+  const dt = new DataTransfer();
+  dt.setData("text/plain", "plain");
+  assert_equals(dt.getData("text/plain"), "plain");
+  assert_array_equals(dt.types, ["text/plain"]);
+  dt.setData("text/plain", "replaced");
+  assert_equals(dt.getData("text/plain"), "replaced");
+  assert_array_equals(dt.types, ["text/plain"]);
+  dt.clearData("text/plain");
+  assert_equals(dt.getData("text/plain"), "");
+  assert_array_equals(dt.types, []);
+}, `setData/getData/clearData("text/plain") operate on text/plain`);
+</script>

@@ -48,6 +48,7 @@ pub mod reflector;
 pub mod root;
 pub mod routed_promise;
 pub mod script_runtime;
+pub mod serializable;
 pub mod settings_stack;
 pub mod str;
 pub mod structuredclone;

@@ -37,6 +37,7 @@
       ];
 
       for (const method of methods) {
+      const is_unsafe = method.endsWith("Unsafe");
       promise_test(async (t) => {
         t.add_cleanup(cleanup);
         let d = document.createElement("div");
@@ -46,8 +47,8 @@
         window.did_run = false;
         await writer.write("<script>window.did_run = true;<" + "/script>");
         await writer.close();
-        assert_false(window.did_run);
-      }, `The default TT policy cannot turn runScripts on if they are off in the options for ${method}`);
+        assert_equals(window.did_run, is_unsafe);
+      }, `The default TT policy ${is_unsafe ? "can" : "cannot"} turn runScripts on if they are off in the options for ${method}`);
       }
     </script>
   </body>

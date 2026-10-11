@@ -10,7 +10,7 @@ use std::fmt::Debug;
 use std::rc::Rc;
 use std::sync::{Arc, LazyLock};
 
-use accesskit::ActionRequest;
+use accesskit::{ActionRequest, Node};
 use app_units::Au;
 use bitflags::bitflags;
 use embedder_traits::{
@@ -22,8 +22,8 @@ use fonts_traits::{StylesheetWebFontLoadFinishedCallback, WebFontSetDifference};
 use icu_locale_core::subtags::Language;
 use layout_api::{
     AccessibilityActionRequest, AccessibilityDamage, AxesOverflow, BoxAreaType, CSSPixelRectVec,
-    DangerousStyleNode, HitTestFlags, HitTestResult, IFrameSizes, Layout, LayoutConfig,
-    LayoutDamage, LayoutElement, LayoutFactory, LayoutNode, NodeRenderingType,
+    ContainerTimingRecord, DangerousStyleNode, HitTestFlags, HitTestResult, IFrameSizes, Layout,
+    LayoutConfig, LayoutDamage, LayoutElement, LayoutFactory, LayoutNode, NodeRenderingType,
     OffsetParentResponse, PhysicalSides, QueryMsg, ReflowGoal, ReflowPhasesRun, ReflowRequest,
     ReflowRequestAccessibility, ReflowRequestRestyle, ReflowResult, ReflowStatistics,
     ScrollContainerQueryFlags, ScrollContainerResponse, TrustedNodeAddress, with_layout_state,
@@ -220,6 +220,12 @@ pub struct LayoutThread {
     /// Handler for all Paint Timings
     paint_timing_handler: RefCell<Option<PaintTimingHandler>>,
 
+    /// The Container Timing records produced by the display list build of the reflow
+    /// currently in progress, waiting to be handed to script on the [`ReflowResult`].
+    /// Paint receives only their [`servo_base::id::ContainerTimingID`]s, via the display
+    /// list, and hands them back once it knows the frame's real paint time.
+    pending_container_timing_records: RefCell<Vec<ContainerTimingRecord>>,
+
     /// Whether accessibility is active for this Layout.
     accessibility_active: Cell<bool>,
 
@@ -228,7 +234,7 @@ pub struct LayoutThread {
     accessibility_tree: RefCell<Option<AccessibilityTree>>,
 
     /// See [Layout::force_accessibility_update()].
-    force_accessibility_update: Cell<bool>,
+    force_accessibility_update_if_active: Cell<bool>,
 
     /// Accessibility action requests which have arrived from assistive technology since the last
     /// reflow, in chronological order.
@@ -531,6 +537,15 @@ impl Layout for LayoutThread {
         })
     }
 
+    fn query_accesskit_node(&self, node: TrustedNodeAddress) -> Option<Node> {
+        with_layout_state(|| {
+            let node = unsafe { ServoLayoutNode::new(&node) };
+            let accessibility_tree = self.accessibility_tree.borrow();
+            let accessibility_tree = accessibility_tree.as_ref()?;
+            accessibility_tree.accesskit_node_for_dom_node(&node)
+        })
+    }
+
     #[servo_tracing::instrument(skip_all)]
     fn query_resolved_font_style(
         &self,
@@ -727,7 +742,7 @@ impl Layout for LayoutThread {
                 accessibility_tree.add_pending_scroll_updates(offsets);
             };
 
-            self.set_force_accessibility_update();
+            self.set_force_accessibility_update_if_active();
         }
     }
 
@@ -759,7 +774,7 @@ impl Layout for LayoutThread {
             return;
         }
 
-        self.set_force_accessibility_update();
+        self.set_force_accessibility_update_if_active();
         let mut accessibility_tree = self.accessibility_tree.borrow_mut();
         if accessibility_tree.is_none() {
             *accessibility_tree = Some(AccessibilityTree::new(self.id.into(), epoch));
@@ -771,7 +786,10 @@ impl Layout for LayoutThread {
     }
 
     fn needs_accessibility_update(&self) -> bool {
-        if self.force_accessibility_update.get() {
+        if !self.accessibility_active() {
+            return false;
+        }
+        if self.force_accessibility_update_if_active.get() {
             return true;
         }
         if !self.pending_accessibility_actions.borrow().is_empty() {
@@ -781,8 +799,8 @@ impl Layout for LayoutThread {
         false
     }
 
-    fn set_force_accessibility_update(&self) {
-        self.force_accessibility_update.set(true);
+    fn set_force_accessibility_update_if_active(&self) {
+        self.force_accessibility_update_if_active.set(true);
     }
 
     fn handle_accessibility_action(&self, action_request: ActionRequest) {
@@ -860,10 +878,11 @@ impl LayoutThread {
             debug: opts::get().debug.clone(),
             previously_highlighted_dom_node: Cell::new(None),
             paint_timing_handler: Default::default(),
+            pending_container_timing_records: Default::default(),
             user_stylesheets: config.user_stylesheets,
             accessibility_active: Cell::new(false),
             accessibility_tree: Default::default(),
-            force_accessibility_update: Cell::new(false),
+            force_accessibility_update_if_active: Cell::new(false),
             pending_accessibility_actions: RefCell::new(vec![]),
             web_font_finished_loading_callback: Arc::new(web_font_finished_loading_callback)
                 as StylesheetWebFontLoadFinishedCallback,
@@ -996,6 +1015,7 @@ impl LayoutThread {
         let accessibility_context = AccessibilityContext {
             layout_thread: self,
             stacking_context_tree,
+            focused_element: reflow_accessibility.focused_element,
             rooted_nodes_for_integrity_check: reflow_accessibility.rooted_nodes_for_integrity_check,
         };
 
@@ -1025,7 +1045,7 @@ impl LayoutThread {
         reflow_statistics.nodes_updated_bounds = counters.nodes_updated_bounds;
         reflow_statistics.nodes_in_tree_update = counters.nodes_in_tree_update;
 
-        self.force_accessibility_update.set(false);
+        self.force_accessibility_update_if_active.set(false);
 
         *pending_accessibility_actions = accessibility_tree.take_pending_actions();
 
@@ -1137,6 +1157,9 @@ impl LayoutThread {
             changed_web_fonts,
             lcp_candidate,
             pending_accessibility_actions,
+            container_timing_records: std::mem::take(
+                &mut *self.pending_container_timing_records.borrow_mut(),
+            ),
         })
     }
 
@@ -1590,6 +1613,15 @@ impl LayoutThread {
             stacking_context_tree.paint_info.lcp_candidate = None;
         }
 
+        // Paint only needs the IDs in order to attach a paint time to them; the records
+        // themselves go to script on the `ReflowResult`.
+        let container_timing_records = paint_timing_handler.take_container_timing_records();
+        stacking_context_tree.paint_info.container_timing_candidates = container_timing_records
+            .iter()
+            .map(|record| record.id)
+            .collect();
+        *self.pending_container_timing_records.borrow_mut() = container_timing_records;
+
         self.paint_api.send_display_list(
             self.webview_id,
             &stacking_context_tree.paint_info,
@@ -1642,7 +1674,7 @@ impl LayoutThread {
 
                 // Ensure the scroll updates are applied in the accessibility tree and sent to the
                 // embedder, even if there are no other changes which affect the accessibility tree.
-                self.set_force_accessibility_update();
+                self.set_force_accessibility_update_if_active();
             }
             true
         } else {
@@ -2033,6 +2065,7 @@ impl ReflowPhases {
                 QueryMsg::NodesFromPointQuery => {
                     Self::StackingContextTreeConstruction | Self::DisplayListConstruction
                 },
+                QueryMsg::AccessKitNodeQuery |
                 QueryMsg::BoxArea |
                 QueryMsg::BoxAreas |
                 QueryMsg::ElementsFromPoint |

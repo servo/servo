@@ -39,7 +39,9 @@ use wr::units::{LayoutPixel, LayoutSize};
 use super::ClipId;
 use super::clip::StackingContextTreeClipStore;
 use crate::display_list::conversions::ToWebRender;
-use crate::display_list::{BuilderForBoxFragment, offset_radii};
+use crate::display_list::{
+    BuilderForBoxFragment, ContainerTimingRootChain, ContainerTimingRoots, offset_radii,
+};
 use crate::fragment_tree::{
     BoxFragment, BoxFragmentWithStyle, ContainingBlockCalculation, ContainingBlockManager,
     Fragment, FragmentFlags, FragmentTree, PositioningFragment,
@@ -201,6 +203,8 @@ impl StackingContextTree {
                 // to process it, if it is.
                 StackingContextBuildMode::IncludeHoisted,
                 &text_decorations,
+                &None, /* container_timing_roots */
+                false, /* participates_in_3d_rendering_context */
             );
         }
 
@@ -385,9 +389,19 @@ pub struct StackingContext {
     #[conditional_malloc_size_of]
     pub(crate) text_decorations: Rc<Vec<FragmentTextDecoration>>,
 
+    /// The Container Timing roots that enclose this [`StackingContext`] in tree order,
+    /// not including its own root fragment. Stacking contexts are painted out of tree
+    /// order, so these are captured while building the stacking context tree.
+    #[ignore_malloc_size_of = "Small and shared with other stacking contexts"]
+    pub(crate) container_timing_roots: ContainerTimingRoots,
+
     /// If this [`StackingContext`] also created a WebRender reference frame, this field
     /// holds information about that reference frame.
     pub(crate) reference_frame_info: Option<StackingContextReferenceFrameInfo>,
+
+    /// Whether or not this [`StackingContext`] participates in a 3D rendering context.
+    /// See <https://www.w3.org/TR/css-transforms-2/#3d-rendering-contexts>
+    pub(crate) participates_in_a_3d_rendering_context: bool,
 }
 
 impl StackingContext {
@@ -401,7 +415,9 @@ impl StackingContext {
             clip_id: ClipId::INVALID,
             z_index: 0,
             text_decorations: Default::default(),
+            container_timing_roots: None,
             reference_frame_info: None,
+            participates_in_a_3d_rendering_context: false,
         }
     }
 
@@ -414,7 +430,9 @@ impl StackingContext {
         clip_id: ClipId,
         initializing_fragment: Arc<BoxFragment>,
         text_decorations: Rc<Vec<FragmentTextDecoration>>,
+        container_timing_roots: ContainerTimingRoots,
         reference_frame_info: Option<StackingContextReferenceFrameInfo>,
+        participates_in_a_3d_rendering_context: bool,
     ) -> Self {
         let z_index = initializing_fragment
             .style()
@@ -428,7 +446,9 @@ impl StackingContext {
             clip_id,
             z_index,
             text_decorations,
+            container_timing_roots,
             reference_frame_info,
+            participates_in_a_3d_rendering_context,
         }
     }
 
@@ -473,6 +493,7 @@ pub(crate) enum StackingContextBuildMode {
 }
 
 impl Fragment {
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn build_stacking_context_tree(
         &self,
         stacking_context_tree: &mut StackingContextTree,
@@ -480,6 +501,8 @@ impl Fragment {
         stacking_context: &mut StackingContext,
         mode: StackingContextBuildMode,
         text_decorations: &Rc<Vec<FragmentTextDecoration>>,
+        container_timing_roots: &ContainerTimingRoots,
+        participates_in_3d_rendering_context: bool,
     ) {
         let containing_block = containing_block_info.get_containing_block_for_fragment(self);
         let cumulative_containing_block = containing_block
@@ -519,6 +542,8 @@ impl Fragment {
                     containing_block_info,
                     stacking_context,
                     text_decorations,
+                    container_timing_roots,
+                    participates_in_3d_rendering_context,
                 );
             },
             Fragment::LayoutRoot(..) => {
@@ -538,6 +563,8 @@ impl Fragment {
                     stacking_context,
                     StackingContextBuildMode::IncludeHoisted,
                     &Default::default(),
+                    container_timing_roots,
+                    participates_in_3d_rendering_context,
                 );
             },
             Fragment::Positioning(fragment) => {
@@ -547,6 +574,8 @@ impl Fragment {
                     containing_block_info,
                     stacking_context,
                     text_decorations,
+                    container_timing_roots,
+                    participates_in_3d_rendering_context,
                 );
             },
             Fragment::Text(_) | Fragment::Image(_) | Fragment::IFrame(_) => {},
@@ -585,6 +614,7 @@ impl BoxFragment {
         None
     }
 
+    #[expect(clippy::too_many_arguments)]
     fn build_stacking_context_tree(
         self: &Arc<Self>,
         fragment: Fragment,
@@ -593,6 +623,8 @@ impl BoxFragment {
         containing_block_info: &ContainingBlockInfo,
         parent_stacking_context: &mut StackingContext,
         text_decorations: &Rc<Vec<FragmentTextDecoration>>,
+        container_timing_roots: &ContainerTimingRoots,
+        participates_in_3d_rendering_context: bool,
     ) {
         self.clear_stacking_context_tree_traversal_data();
         self.build_stacking_context_tree_maybe_creating_reference_frame(
@@ -602,9 +634,12 @@ impl BoxFragment {
             containing_block_info,
             parent_stacking_context,
             text_decorations,
+            container_timing_roots,
+            participates_in_3d_rendering_context,
         );
     }
 
+    #[expect(clippy::too_many_arguments)]
     fn build_stacking_context_tree_maybe_creating_reference_frame(
         self: &Arc<Self>,
         fragment: Fragment,
@@ -613,6 +648,8 @@ impl BoxFragment {
         containing_block_info: &ContainingBlockInfo,
         parent_stacking_context: &mut StackingContext,
         text_decorations: &Rc<Vec<FragmentTextDecoration>>,
+        container_timing_roots: &ContainerTimingRoots,
+        participates_in_3d_rendering_context: bool,
     ) {
         let reference_frame_data =
             match self.reference_frame_data_if_necessary(&containing_block.rect) {
@@ -625,7 +662,9 @@ impl BoxFragment {
                         containing_block_info,
                         parent_stacking_context,
                         text_decorations,
+                        container_timing_roots,
                         None, /* reference_frame_info */
+                        participates_in_3d_rendering_context,
                     );
                 },
             };
@@ -688,7 +727,9 @@ impl BoxFragment {
             &new_containing_block_info,
             parent_stacking_context,
             text_decorations,
+            container_timing_roots,
             Some(reference_frame_info),
+            participates_in_3d_rendering_context,
         );
     }
 
@@ -701,7 +742,9 @@ impl BoxFragment {
         containing_block_info: &ContainingBlockInfo,
         parent_stacking_context: &mut StackingContext,
         text_decorations: &Rc<Vec<FragmentTextDecoration>>,
+        container_timing_roots: &ContainerTimingRoots,
         reference_frame_info: Option<StackingContextReferenceFrameInfo>,
+        participates_in_3d_rendering_context: bool,
     ) {
         let with_style = &self.with_style();
         let style = with_style.style();
@@ -712,6 +755,8 @@ impl BoxFragment {
                 containing_block_info,
                 parent_stacking_context,
                 text_decorations,
+                container_timing_roots,
+                participates_in_3d_rendering_context,
             );
             return;
         };
@@ -765,6 +810,7 @@ impl BoxFragment {
             .retrieve_box_fragment()
             .expect("Should never try to make stacking context for non-BoxFragment")
             .clone();
+
         let mut child_stacking_context = parent_stacking_context.create_descendant(
             stacking_context_type,
             containing_block.rect.origin,
@@ -772,7 +818,9 @@ impl BoxFragment {
             containing_block.clip_id,
             box_fragment,
             text_decorations.clone(),
+            container_timing_roots.clone(),
             reference_frame_info,
+            participates_in_3d_rendering_context,
         );
         with_style.build_stacking_context_tree_for_children(
             stacking_context_tree,
@@ -780,6 +828,8 @@ impl BoxFragment {
             containing_block_info,
             &mut child_stacking_context,
             text_decorations,
+            container_timing_roots,
+            participates_in_3d_rendering_context,
         );
 
         let mut stolen_children = vec![];
@@ -800,6 +850,7 @@ impl BoxFragment {
 }
 
 impl BoxFragmentWithStyle<'_> {
+    #[expect(clippy::too_many_arguments)]
     fn build_stacking_context_tree_for_children(
         &self,
         stacking_context_tree: &mut StackingContextTree,
@@ -807,6 +858,8 @@ impl BoxFragmentWithStyle<'_> {
         containing_block_info: &ContainingBlockInfo,
         stacking_context: &mut StackingContext,
         text_decorations: &Rc<Vec<FragmentTextDecoration>>,
+        container_timing_roots: &ContainerTimingRoots,
+        participates_in_3d_rendering_context: bool,
     ) {
         let style = self.style();
         let establishes_containing_block_for_all_descendants =
@@ -919,6 +972,16 @@ impl BoxFragmentWithStyle<'_> {
             },
         };
 
+        let participates_in_3d_rendering_context = if self.base.is_anonymous() {
+            participates_in_3d_rendering_context
+        } else {
+            self.style()
+                .establishes_or_extends_3d_rendering_context(self.base.flags)
+        };
+
+        let container_timing_roots =
+            ContainerTimingRootChain::for_contents_of(container_timing_roots, &self.base);
+
         for child in &self.children {
             child.build_stacking_context_tree(
                 stacking_context_tree,
@@ -926,6 +989,8 @@ impl BoxFragmentWithStyle<'_> {
                 stacking_context,
                 StackingContextBuildMode::SkipHoisted,
                 text_decorations,
+                &container_timing_roots,
+                participates_in_3d_rendering_context,
             );
         }
     }
@@ -1421,6 +1486,7 @@ impl BoxFragment {
 }
 
 impl PositioningFragment {
+    #[expect(clippy::too_many_arguments)]
     fn build_stacking_context_tree(
         &self,
         stacking_context_tree: &mut StackingContextTree,
@@ -1428,6 +1494,8 @@ impl PositioningFragment {
         containing_block_info: &ContainingBlockInfo,
         stacking_context: &mut StackingContext,
         text_decorations: &Rc<Vec<FragmentTextDecoration>>,
+        container_timing_roots: &ContainerTimingRoots,
+        participates_in_3d_rendering_context: bool,
     ) {
         let rect = self
             .base
@@ -1444,6 +1512,8 @@ impl PositioningFragment {
                 stacking_context,
                 StackingContextBuildMode::SkipHoisted,
                 text_decorations,
+                container_timing_roots,
+                participates_in_3d_rendering_context,
             );
         }
     }

@@ -29,6 +29,7 @@ use js::rust::{
 };
 use rustc_hash::FxHashMap;
 use script_bindings::conversions::IDLInterface;
+use script_bindings::serializable::Serializable;
 use script_bindings::structuredclone::{
     StructuredData, StructuredDataReader, StructuredDataWriter,
 };
@@ -42,7 +43,7 @@ use strum::IntoEnumIterator;
 use crate::dom::bindings::conversions::root_from_object;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::serializable::{Serializable, StorageKey};
+use crate::dom::bindings::serializable::StorageKey;
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::blob::Blob;
 #[cfg(feature = "webcrypto")]
@@ -161,7 +162,7 @@ fn reader_for_type(
     }
 }
 
-unsafe fn read_object<T: Serializable>(
+unsafe fn read_object<T: Serializable<crate::DomTypeHolder>>(
     cx: &mut JSContext,
     owner: &GlobalScope,
     r: *mut JSStructuredCloneReader,
@@ -203,7 +204,7 @@ unsafe fn read_object<T: Serializable>(
     ptr::null_mut()
 }
 
-unsafe fn write_object<T: Serializable>(
+unsafe fn write_object<T: Serializable<crate::DomTypeHolder>>(
     no_gc: &NoGC,
     interface: SerializableInterface,
     owner: &GlobalScope,
@@ -276,7 +277,7 @@ enum OperationError {
     Exception(Error),
 }
 
-unsafe fn try_serialize<T: Serializable + IDLInterface>(
+unsafe fn try_serialize<T: Serializable<crate::DomTypeHolder> + IDLInterface>(
     cx: &mut JSContext,
     val: SerializableInterface,
     object: RawHandleObject,

@@ -11,6 +11,8 @@ use servo_base::text::Utf8CodeUnits;
 pub(crate) struct LineBreaker {
     linebreaks: Vec<Utf8CodeUnits>,
     current_linebreak_offset: usize,
+    /// Whether or not the line breaker should include a break at this starting index.
+    additional_break_at_start: Option<Utf8CodeUnits>,
 }
 
 impl LineBreaker {
@@ -29,6 +31,7 @@ impl LineBreaker {
                 .map(|offset| Utf8CodeUnits(offset as u32))
                 .collect(),
             current_linebreak_offset: 0,
+            additional_break_at_start: None,
         }
     }
 
@@ -63,6 +66,15 @@ impl LineBreaker {
         }
         linebreaks_range.end = ending_linebreak_index;
         linebreaks_range
+    }
+
+    pub(crate) fn set_additional_break_at_start(&mut self, index: Utf8CodeUnits) {
+        debug_assert!(self.additional_break_at_start.is_none());
+        self.additional_break_at_start = Some(index);
+    }
+
+    pub(crate) fn take_additional_break_at_start(&mut self) -> Option<Utf8CodeUnits> {
+        self.additional_break_at_start.take()
     }
 }
 

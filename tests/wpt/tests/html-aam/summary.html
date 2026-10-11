@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+<head>
+  <title>Summary Element - HTML-AAM Contextual-Specific Role Verification Tests</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+
+<h1>Summary Element - HTML-AAM Contextual-Specific Role Verification Tests</h1>
+<p>Tests contextual computedrole mappings for <code>summary</code> defined in
+  <a href="https://html.spec.whatwg.org/multipage/interactive-elements.html#the-summary-element">summary (HTML spec)</a>
+  and <a href="https://www.w3.org/TR/html-aam-1.0/#el-summary">HTML-AAM summary mapping</a>
+<p>
+
+<!--
+  Per HTML/HTML-AAM, the mapping for <summary> element is:
+
+  If the element is the first child of its type within a parent details element: html-summary
+  Otherwise, if it is not the first child of its type of a parent details element, or it is not a child of a details element: generic role
+
+-->
+
+<summary data-testname="orphan summary has generic role" class="ex-generic">x</summary>
+
+<details>
+  <ol>
+    <li>x</li>
+    <li>x</li>
+  </ol>
+  <summary>x</summary>
+  <summary data-testname="descendant summary of details, that is not the first descendant summary, has generic role" class="ex-generic">x</summary>
+</details>
+
+<details>
+  <div>
+    <summary data-testname="descendant summary of details with intervening element, has generic role" class="ex-generic">x</summary>
+  </div>
+  <p>Other content</p>
+</details>
+<script>
+AriaUtils.verifyGenericRolesBySelector(".ex-generic");
+</script>
+
+</body>
+</html>

@@ -203,6 +203,9 @@ impl DocumentFocusHandler {
         if new_focusable_area == *self.focused_area.borrow() {
             return;
         }
+        self.window
+            .layout()
+            .set_force_accessibility_update_if_active();
 
         // From <https://html.spec.whatwg.org/multipage/#selector-focus>
         // > For the purposes of the CSS :focus pseudo-class, an element has the focus when:

@@ -23,13 +23,6 @@ bench = false
 [lints]
 workspace = true
 
-# Some of these dependencies are only needed for a specific target OS, but
-# since build-scripts can't detect the Cargo target OS at build-time, we
-# must unconditionally add these dependencies. See https://github.com/rust-lang/cargo/issues/4932
-[build-dependencies]
-# macOS only
-cc = { workspace = true }
-
 [target.'cfg(windows)'.build-dependencies]
 winresource = { workspace = true }
 
@@ -155,6 +148,7 @@ servo = { workspace = true, features = ["no-wgl"] }
 windows-sys = { workspace = true, features = ["Win32_Graphics_Gdi", "Win32_System_Console"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
+mach2 = { workspace = true }
 objc2-app-kit = { workspace = true, features = [
     "std",
     "NSColorSpace",

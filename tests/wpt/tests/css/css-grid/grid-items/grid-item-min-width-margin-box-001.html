@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#min-size-auto">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-content">
+<meta name="assert" content="When a grid item spans only a column whose max track sizing function is fixed (minmax(auto, 0px)), its content-based automatic minimum width is clamped by that fixed size, while explicit fixed, percentage, min-content and max-content min-width values still size the column, including the item's margin, border and padding.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/css/support/alignment.css">
+<link rel="stylesheet" href="/css/support/width-keyword-classes.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.grid {
+    border: 5px solid magenta;
+    margin-bottom: 60px;
+    grid-template-columns: minmax(auto, 0px);
+}
+
+.item {
+    font: 25px/1 Ahem;
+}
+
+.stretchedItem {
+    background-color: green;
+    grid-row: 2;
+    height: 15px;
+}
+
+.container { width: 150px; }
+
+.borderPaddingMargin {
+    margin: 7px 10px 12px 14px;
+    border-width: 2px 3px 5px 9px;
+    border-style: solid;
+    border-color: blue;
+    padding: 4px 9px 12px 20px;
+}
+
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+
+<h3>grid width: auto</h3>
+<div class="container">
+    <div class="grid" data-expected-width="150" data-expected-height="50">
+        <div class="item" data-expected-width="0" data-expected-height="25">XXXX</div>
+        <div class="stretchedItem" data-expected-width="0" data-expected-height="15"></div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="grid" data-expected-width="150" data-expected-height="92">
+        <div class="item borderPaddingMargin" data-expected-width="41" data-expected-height="48">XXXX</div>
+        <div class="stretchedItem" data-expected-width="65" data-expected-height="15"></div>
+    </div>
+</div>
+
+<h3>min-width: 0px. grid height: auto</h3>
+<div class="container">
+    <div class="grid" data-expected-width="150" data-expected-height="50">
+        <div class="item" style="min-width: 0px;" data-expected-width="0" data-expected-height="25">XXXX</div>
+        <div class="stretchedItem" data-expected-width="0" data-expected-height="15"></div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="grid" data-expected-width="150" data-expected-height="92">
+        <div class="item borderPaddingMargin" style="min-width: 0px;" data-expected-width="41" data-expected-height="48">XXXX</div>
+        <div class="stretchedItem" data-expected-width="65" data-expected-height="15"></div>
+    </div>
+</div>
+
+<h3>min-width: 0px. grid height: 15px</h3>
+<div class="container">
+    <div class="grid" style="height: 15px;" data-expected-width="150" data-expected-height="25">
+        <div class="item" style="min-width: 0px;" data-expected-width="0" data-expected-height="25">XXXX</div>
+        <div class="stretchedItem" data-expected-width="0" data-expected-height="15"></div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="grid" style="height: 15px;" data-expected-width="150" data-expected-height="25">
+        <div class="item borderPaddingMargin" style="min-width: 0px;" data-expected-width="41" data-expected-height="48">XXXX</div>
+        <div class="stretchedItem" data-expected-width="65" data-expected-height="15"></div>
+    </div>
+</div>
+
+<h3>min-width: 125px. grid height: auto</h3>
+<div class="container">
+    <div class="grid" data-expected-width="150" data-expected-height="50">
+        <div class="item" style="min-width: 125px;" data-expected-width="125" data-expected-height="25">XXXX</div>
+        <div class="stretchedItem" data-expected-width="125" data-expected-height="15"></div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="grid" data-expected-width="150" data-expected-height="92">
+        <div class="item borderPaddingMargin" style="min-width: 125px;" data-expected-width="166" data-expected-height="48">XXXX</div>
+        <div class="stretchedItem" data-expected-width="190" data-expected-height="15"></div>
+    </div>
+</div>
+
+<h3>min-width: 50%. grid height: auto</h3>
+<div class="container">
+    <div class="grid" data-expected-width="150" data-expected-height="75">
+        <div class="item" style="min-width: 50%;" data-expected-width="0" data-expected-height="50">XXX XX</div>
+        <div class="stretchedItem" data-expected-width="0" data-expected-height="15"></div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="grid" data-expected-width="150" data-expected-height="117">
+        <div class="item borderPaddingMargin" style="min-width: 50%;" data-expected-width="74" data-expected-height="73">XXX XX</div>
+        <div class="stretchedItem" data-expected-width="65" data-expected-height="15"></div>
+    </div>
+</div>
+
+
+<h3>min-width: min-content. grid height: auto</h3>
+<div class="container">
+    <div class="grid" data-expected-width="150" data-expected-height="75">
+        <div class="item min-width-min-content" data-expected-width="75" data-expected-height="50">XXX XX</div>
+        <div class="stretchedItem" data-expected-width="75" data-expected-height="15"></div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="grid" data-expected-width="150" data-expected-height="117">
+        <div class="item borderPaddingMargin min-width-min-content" data-expected-width="116" data-expected-height="73">XXX XX</div>
+        <div class="stretchedItem" data-expected-width="140" data-expected-height="15"></div>
+    </div>
+</div>
+
+<h3>min-width: max-content. grid height: auto</h3>
+<div class="container">
+    <div class="grid" data-expected-width="150" data-expected-height="50">
+        <div class="item alignSelfStart min-width-max-content" data-expected-width="150" data-expected-height="25">XXX XX</div>
+        <div class="stretchedItem" data-expected-width="150" data-expected-height="15"></div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="grid" data-expected-width="150" data-expected-height="92">
+        <div class="item alignSelfStart borderPaddingMargin min-width-max-content" data-expected-width="191" data-expected-height="48">XXX XX</div>
+        <div class="stretchedItem" data-expected-width="215" data-expected-height="15"></div>
+    </div>
+</div>
+
+</body>

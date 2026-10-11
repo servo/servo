@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>COEP is ignored by an HTTPS iframe in an HTTP page and by its workers, as they are not secure contexts</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<div id=log></div>
+<script>
+const { HTTPS_ORIGIN, HTTPS_REMOTE_ORIGIN } = get_host_info();
+const resourcesPath = new URL("resources/", location).pathname;
+const requireCORP = "?pipe=header(Cross-Origin-Embedder-Policy,require-corp)";
+
+function runInHTTPSFrame(t, query, script) {
+  return new Promise(resolve => {
+    const frame = document.body.appendChild(document.createElement("iframe"));
+    t.add_cleanup(() => frame.remove());
+    window.onmessage = ({ data }) => resolve(data);
+    frame.onload = () => frame.contentWindow.postMessage(script, "*");
+    frame.src = `${HTTPS_ORIGIN}${resourcesPath}iframe.html${query}`;
+  });
+}
+
+promise_test(async t => {
+  const result = await runInHTTPSFrame(t, requireCORP, `
+    const image = new Image();
+    image.onload = () => parent.postMessage("loaded", "*");
+    image.onerror = () => parent.postMessage("blocked", "*");
+    image.src = ${JSON.stringify(`${HTTPS_REMOTE_ORIGIN}/images/green.png`)};
+  `);
+  assert_equals(result, "loaded");
+}, "An HTTPS iframe in an HTTP page ignores Cross-Origin-Embedder-Policy");
+
+promise_test(async t => {
+  const fetchScript = `fetch(${JSON.stringify(`${HTTPS_REMOTE_ORIGIN}/common/blank.html`)}, { mode: "no-cors" }).then(() => postMessage("loaded"), () => postMessage("blocked"));`;
+  const result = await runInHTTPSFrame(t, "", `
+    const worker = new Worker(${JSON.stringify(`universal-worker.js${requireCORP}`)});
+    worker.onmessage = ({ data }) => parent.postMessage(data, "*");
+    worker.postMessage(${JSON.stringify(fetchScript)});
+  `);
+  assert_equals(result, "loaded");
+}, "A dedicated worker of an HTTPS iframe in an HTTP page ignores Cross-Origin-Embedder-Policy");
+</script>

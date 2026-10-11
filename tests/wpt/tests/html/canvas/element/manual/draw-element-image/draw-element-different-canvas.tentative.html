@@ -30,8 +30,8 @@
     }, 'Drawing an Element from a different canvas must throw InvalidStateError');
 
     assert_throws_dom('InvalidStateError', () => {
-      canvas2.getElementTransform(child1, new DOMMatrix());
-    }, 'Getting transform for an Element from a different canvas must throw InvalidStateError');
+      canvas2.getElementImageDefaultSize(child1);
+    }, 'Getting default size for an Element from a different canvas must throw InvalidStateError');
 
     assert_throws_dom('InvalidStateError', () => {
       let standaloneCtx = new OffscreenCanvas(200, 200).getContext('2d');
@@ -40,7 +40,7 @@
 
     assert_throws_dom('InvalidStateError', () => {
       let standalone = new OffscreenCanvas(200, 200);
-      standalone.getElementTransform(child1, new DOMMatrix());
-    }, 'Getting transform for an Element from a standalone OffscreenCanvas must throw InvalidStateError');
+      standalone.getElementImageDefaultSize(child1);
+    }, 'Getting default size for an Element from a standalone OffscreenCanvas must throw InvalidStateError');
   }, 'Prevent drawing Element into a different canvas');
 </script>

@@ -181,21 +181,14 @@ fn traverse_element<'dom>(
     match Display::from(info.style.get_box().display) {
         Display::None => {},
         Display::Contents => {
-            if ReplacedContents::for_element(element, context).is_some() {
-                // `display: content` on a replaced element computes to `display: none`
-                // <https://drafts.csswg.org/css-display-3/#valdef-display-contents>
-                element.unset_all_boxes()
-            } else {
-                let shared_inline_styles =
-                    SharedInlineStyles::from_info_and_context(&info, context);
-                element
-                    .box_slot()
-                    .set(LayoutBox::DisplayContents(shared_inline_styles.clone()));
+            let shared_inline_styles = SharedInlineStyles::from_info_and_context(&info, context);
+            element
+                .box_slot()
+                .set(LayoutBox::DisplayContents(shared_inline_styles.clone()));
 
-                handler.enter_display_contents(shared_inline_styles);
-                traverse_children_of(&info, context, handler);
-                handler.leave_display_contents();
-            }
+            handler.enter_display_contents(shared_inline_styles);
+            traverse_children_of(&info, context, handler);
+            handler.leave_display_contents();
         },
         Display::GeneratingBox(display) => {
             let contents = Contents::for_element(element, context);

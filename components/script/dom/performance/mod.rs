@@ -5,6 +5,7 @@
 pub(crate) mod largestcontentfulpaint;
 #[allow(clippy::module_inception, reason = "The interface name is Performance")]
 pub(crate) mod performance;
+pub(crate) mod performancecontainertiming;
 pub(crate) mod performanceentry;
 pub(crate) mod performancemark;
 pub(crate) mod performancemeasure;

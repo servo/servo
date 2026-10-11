@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+  body { margin: 0; }
+  .cases { display: flex; gap: 20px; }
+  .case { position: relative; }
+  .lanes {
+    background: #cdd5e0;
+    display: grid;
+    gap: 20px;
+    grid-template-rows: repeat(2, 60px);
+    grid-template-columns: repeat(4, 40px);
+    width: max-content;
+  }
+  .lanes > div {
+    background: #5b8def;
+    grid-row: 1;
+    grid-column: 1;
+    width: 40px;
+  }
+  .lanes > .tall { grid-row: 2; grid-column: 1 / span 2; width: 100px; }
+  .lanes > .overlap {
+    background: #1f9d6b;
+    grid-column: 2;
+    margin-left: -30px;
+  }
+  .lanes > .spanner {
+    background: #8a6df0;
+    grid-row: 1 / -1;
+    grid-column: 3;
+  }
+  .lanes > .centered {
+    justify-self: center;
+    background: #1f9d6b;
+    grid-column: 2;
+    width: 20px;
+  }
+  .lanes > .tail { grid-column: 4; }
+  .row-rule {
+    border-top: 4px solid blue;
+    height: 0;
+    position: absolute;
+    top: 68px;
+    width: 40px;
+  }
+</style>
+<div class="cases">
+  <div class="case">
+    <div class="lanes">
+      <div></div>
+      <div class="tall"></div>
+      <div class="overlap"></div>
+      <div class="spanner"></div>
+      <div class="tail"></div>
+    </div>
+    <div class="row-rule" style="left: 0;"></div>
+    <div class="row-rule" style="left: 60px;"></div>
+  </div>
+  <div class="case">
+    <div class="lanes">
+      <div></div>
+      <div class="tall"></div>
+      <div class="spanner"></div>
+      <div class="centered"></div>
+      <div class="tail"></div>
+    </div>
+    <div class="row-rule" style="left: 0;"></div>
+    <div class="row-rule" style="left: 60px;"></div>
+  </div>
+</div>

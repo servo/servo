@@ -1,0 +1,98 @@
+<meta name=timeout content=long>
+<title>reporting with a report-to parameter that is not a string</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/cross-origin-opener-policy/resources/common.js"></script>
+<script src="/html/cross-origin-opener-policy/reporting/resources/reporting-common.js?pipe=sub&report_id=be2fb139-1957-4137-adbc-948bd9c8e6ff&report_only_id=bf30f5b5-31ab-4e86-9623-1cbf583c5390"></script>
+
+<script>
+
+// Opening a cross-origin popup with a same-origin COOP always produces a report
+// for this page (opener). The popup's report is only sent if its report-to
+// parameter is a string.
+const openerReport = () => ({
+  "endpoint": reportEndpoint,
+  "report": {
+    "body": {
+      "disposition": "enforce",
+      "effectivePolicy": "same-origin",
+      "nextResponseURL": /uuid=EXECUTOR_UUID$/,
+      "type": "navigation-from-response"
+    },
+    "url": `${location.href}`,
+    "type": "coop"
+  }
+});
+
+const popupReport = (endpoint, disposition) => ({
+  "endpoint": endpoint,
+  "report": {
+    "body": {
+      "disposition": disposition,
+      "effectivePolicy": "same-origin",
+      "previousResponseURL": "",
+      "referrer": '', // referrer (empty due to the Referrer Policy)
+      "type": "navigation-to-response"
+    },
+    "url": /uuid=EXECUTOR_UUID$/,
+    "type": "coop"
+  }
+});
+
+const tests = [
+  // popup origin, popup COOP, popup COEP, popup COOP report only, popup COEP report only, expected reports
+
+  // A string report-to, to show that the popup's report is sent.
+  [
+    CROSS_ORIGIN,
+    `same-origin; report-to="${popupReportEndpoint.name}"`,
+    "",
+    "",
+    "",
+    [openerReport(), popupReport(popupReportEndpoint, "enforce")]
+  ],
+  // A token report-to is ignored.
+  [
+    CROSS_ORIGIN,
+    `same-origin; report-to=${popupReportEndpoint.name}`,
+    "",
+    "",
+    "",
+    [openerReport()]
+  ],
+  // A byte sequence report-to is ignored.
+  [
+    CROSS_ORIGIN,
+    `same-origin; report-to=:${btoa(popupReportEndpoint.name)}:`,
+    "",
+    "",
+    "",
+    [openerReport()]
+  ],
+  // A string report-to on the report-only header, to show that the popup's
+  // report-only report is sent.
+  [
+    CROSS_ORIGIN,
+    "",
+    "",
+    `same-origin; report-to="${popupReportOnlyEndpoint.name}"`,
+    "",
+    [openerReport(), popupReport(popupReportOnlyEndpoint, "reporting")]
+  ],
+  // A token report-to on the report-only header is ignored.
+  [
+    CROSS_ORIGIN,
+    "",
+    "",
+    `same-origin; report-to=${popupReportOnlyEndpoint.name}`,
+    "",
+    [openerReport()]
+  ]
+];
+
+runNavigationReportingTests(document.title, tests);
+
+</script>

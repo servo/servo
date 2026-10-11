@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#track-sizing">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#line-placement">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#implicit-grids">
+<meta name="assert" content="Grid items spanning several percentage-sized tracks, including tracks in the implicit grid, get the combined size of the grid area they span.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.grid {
+    grid-template-columns: 40% 60%;
+    grid-template-rows: 30% 70%;
+    width: 400px;
+    height: 300px;
+    grid-auto-columns: 200px;
+    grid-auto-rows: 250px;
+}
+
+#bigGrid {
+    grid-template-columns: 25% 25% 25% 25%;
+    grid-template-rows: 25% 25% 25% 25%;
+    height: 100px;
+    width: 200px;
+}
+
+#fixedGrid {
+    grid-template-columns: 10px 20px 40px 80px;
+    grid-template-rows: 15px 30px 60px 120px;
+}
+
+.negativeOverflowRowFirstColumn {
+    grid-row: 1 / -5;
+    grid-column: 1;
+}
+
+.overflowRowFirstColumn {
+    grid-row: 1 / 5;
+    grid-column: 1;
+}
+
+.firstRowNegativeOverflowColumn {
+    grid-row: 1;
+    grid-column: 1 / -5;
+}
+
+.firstRowOverflowColumn {
+    grid-row: 1;
+    grid-column: 1 / 5;
+}
+
+.secondRowSecondColumnNoSpan {
+    grid-column: 2 / 3;
+    grid-row: 2 / 3;
+}
+
+.thirdRowThirdColumnNoSpan {
+    grid-column: 3 / 4;
+    grid-row: 3 / 4;
+}
+
+.firstRowSpanning3SecondColumn {
+    grid-column: 2;
+    grid-row: 1 / span 3;
+}
+
+.thirdRowSecondColumnSpanning2 {
+    grid-column: 2 / span 2;
+    grid-row: 3;
+}
+
+.spanning3Row5SecondColumn {
+    grid-column: 2;
+    grid-row: span 3 / 5;
+}
+
+.thirdRowSpanning2Column3 {
+    grid-column: span 2 / 3;
+    grid-row: 3;
+}
+
+.underflowSpanning {
+    grid-column: span 3 / 3;
+    grid-row: span 8 / 4;
+}
+
+.doubleSpan {
+    grid-column: span 2 / span 2;
+    grid-row: span 3 / span 1;
+}
+
+.spanAndAuto {
+    grid-column: auto / span 2;
+    grid-row: span 3 / auto;
+}
+
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+
+<p>Test that spanning rows / columns inside percentage sized grid areas get properly sized.</p>
+
+<div style="position: relative">
+<div class="grid" data-expected-width="400" data-expected-height="300">
+    <div class="sizedToGridArea firstRowBothColumn" data-offset-x="0" data-offset-y="0" data-expected-width="400" data-expected-height="90"></div>
+</div>
+</div>
+
+<div style="position: relative">
+<div class="grid" data-expected-width="400" data-expected-height="300">
+    <div class="sizedToGridArea secondRowBothColumn" data-offset-x="0" data-offset-y="90" data-expected-width="400" data-expected-height="210"></div>
+</div>
+</div>
+
+<div style="position: relative">
+<div class="grid" data-expected-width="400" data-expected-height="300">
+    <div class="sizedToGridArea bothRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="160" data-expected-height="300"></div>
+</div>
+</div>
+
+<div style="position: relative">
+<div class="grid" data-expected-width="400" data-expected-height="300">
+    <div class="sizedToGridArea bothRowSecondColumn" data-offset-x="160" data-offset-y="0" data-expected-width="240" data-expected-height="300"></div>
+</div>
+</div>
+
+<div style="position: relative">
+<div class="grid" data-expected-width="400" data-expected-height="300">
+    <div class="sizedToGridArea bothRowBothColumn" data-offset-x="0" data-offset-y="0" data-expected-width="400" data-expected-height="300"></div>
+</div>
+</div>
+
+<div style="position: relative">
+<div class="grid" data-expected-width="400" data-expected-height="300">
+    <div class="sizedToGridArea negativeOverflowRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="160" data-expected-height="500"></div>
+</div>
+</div>
+
+<div style="position: relative">
+<div class="grid" data-expected-width="400" data-expected-height="300">
+    <div class="sizedToGridArea overflowRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="160" data-expected-height="800"></div>
+</div>
+</div>
+
+<div style="position: relative">
+<div class="grid" data-expected-width="400" data-expected-height="300">
+    <div class="sizedToGridArea firstRowNegativeOverflowColumn" data-offset-x="0" data-offset-y="0" data-expected-width="400" data-expected-height="90"></div>
+</div>
+</div>
+
+<div style="position: relative">
+<div class="grid" data-expected-width="400" data-expected-height="300">
+    <div class="sizedToGridArea firstRowOverflowColumn" data-offset-x="0" data-offset-y="0" data-expected-width="800" data-expected-height="90"></div>
+</div>
+</div>
+
+<div style="position: relative">
+<div class="grid" data-expected-width="400" data-expected-height="300">
+    <div class="sizedToGridArea firstAutoRowSecondAutoColumn" data-offset-x="160" data-offset-y="0" data-expected-width="240" data-expected-height="90"></div>
+</div>
+</div>
+
+<div style="position: relative">
+<div class="grid" data-expected-width="400" data-expected-height="300">
+    <div class="sizedToGridArea autoSecondRowAutoFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="200" data-expected-height="90"></div>
+</div>
+</div>
+
+<div style="position: relative">
+<div class="grid" id="bigGrid" data-expected-width="200" data-expected-height="100">
+    <div class="sizedToGridArea secondRowSecondColumnNoSpan" data-offset-x="50" data-offset-y="25" data-expected-width="50" data-expected-height="25"></div>
+    <div class="sizedToGridArea thirdRowThirdColumnNoSpan" data-offset-x="100" data-offset-y="50" data-expected-width="50" data-expected-height="25"></div>
+</div>
+
+<div style="position: relative">
+<div class="grid" id="bigGrid" data-expected-width="200" data-expected-height="100">
+    <div class="sizedToGridArea firstRowSpanning3SecondColumn" data-offset-x="50" data-offset-y="0" data-expected-width="50" data-expected-height="75"></div>
+</div>
+</div>
+
+<div style="position: relative">
+<div class="grid" id="bigGrid" data-expected-width="200" data-expected-height="100">
+    <div class="sizedToGridArea thirdRowSecondColumnSpanning2" data-offset-x="50" data-offset-y="50" data-expected-width="100" data-expected-height="25"></div>
+</div>
+
+<div style="position: relative">
+<div class="grid" id="bigGrid" data-expected-width="200" data-expected-height="100">
+    <div class="sizedToGridArea spanning3Row5SecondColumn" data-offset-x="50" data-offset-y="25" data-expected-width="50" data-expected-height="75"></div>
+</div>
+</div>
+
+<div style="position: relative">
+<div class="grid" id="bigGrid" data-expected-width="200" data-expected-height="100">
+    <div class="sizedToGridArea thirdRowSpanning2Column3" data-offset-x="0" data-offset-y="50" data-expected-width="100" data-expected-height="25"></div>
+</div>
+
+<div style="position: relative">
+<div class="grid" id="bigGrid" data-expected-width="200" data-expected-height="100">
+    <div class="sizedToGridArea underflowSpanning" data-offset-x="0" data-offset-y="0" data-expected-width="300" data-expected-height="1325"></div>
+</div>
+
+<!-- Check that the end span is ignored when two opposing spans are specified-->
+<div style="position: relative">
+<div class="grid" id="fixedGrid" style="grid-auto-flow: row;">
+    <div class="sizedToGridArea" style="grid-column: 1; grid-row: 1;" data-offset-x="0" data-offset-y="0" data-expected-width="10" data-expected-height="15"></div>
+    <div class="sizedToGridArea doubleSpan" data-offset-x="10" data-offset-y="0" data-expected-width="60" data-expected-height="105"></div>
+</div>
+
+<div style="position: relative">
+<div class="grid" id="fixedGrid" style="grid-auto-flow: column;">
+    <div class="sizedToGridArea" style="grid-column: 1; grid-row: 1;" data-offset-x="0" data-offset-y="0" data-expected-width="10" data-expected-height="15"></div>
+    <div class="sizedToGridArea doubleSpan" data-offset-x="0" data-offset-y="15" data-expected-width="30" data-expected-height="210"></div>
+</div>
+</body>

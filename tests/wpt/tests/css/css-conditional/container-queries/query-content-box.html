@@ -93,7 +93,7 @@
 
   const green = "rgb(0, 128, 0)";
   const blue = "rgb(0, 0, 255)";
-  const has_non_overlay_scrollbars = document.getElementById('sentinel') != 0;
+  const has_non_overlay_scrollbars = document.getElementById('sentinel').offsetWidth != 0;
   const scroll_color = has_non_overlay_scrollbars ? blue : green;
 
   test(() => {

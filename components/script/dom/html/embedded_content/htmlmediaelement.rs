@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell};
+use std::cell::{Cell, Ref, RefCell};
 use std::collections::VecDeque;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex, OnceLock, RwLock, Weak};
@@ -15,17 +15,16 @@ use dom_struct::dom_struct;
 use embedder_traits::{MediaPositionState, MediaSessionEvent, MediaSessionPlaybackState};
 use euclid::default::Size2D;
 use headers::{ContentLength, ContentRange, HeaderMapExt, Range as RangeHeader};
-use html5ever::{LocalName, Prefix, QualName, local_name, ns};
+use html5ever::{LocalName, Prefix, local_name};
 use http::StatusCode;
 use http::header::HeaderMap;
 use js::context::{JSContext, NoGC};
 use js::realm::CurrentRealm;
 use layout_api::MediaFrame;
 use media::{GLPlayerMsg, GLPlayerMsgForward, WindowGLContext};
+use net_traits::fetch::fetch_controller::FetchController;
 use net_traits::request::{Destination, RequestId};
-use net_traits::{
-    CoreResourceThread, FetchMetadata, FilteredMetadata, NetworkError, ResourceFetchTiming,
-};
+use net_traits::{CoreResourceThread, FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
 use paint_api::{CrossProcessPaintApi, ImageUpdate, SerializableImageData};
 use pixels::RasterImage;
 use script_bindings::assert::assert_in_script;
@@ -79,8 +78,8 @@ use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{
-    AttributeMutation, CustomElementCreationMode, Element, ElementCreator,
-    cors_setting_for_element, reflect_cross_origin_attribute, set_cross_origin_attribute,
+    AttributeMutation, Element, cors_setting_for_element, reflect_cross_origin_attribute,
+    set_cross_origin_attribute,
 };
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -100,6 +99,8 @@ use crate::dom::promise::Promise;
 use crate::dom::rules_for_rendering::{
     RulesForUpdatingTheTextTrackRendering, ShouldResetRenderingControls,
 };
+use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::ua_shadowroot::{CreateUAShadowRootForSelf, UAShadowRoot};
 use crate::dom::texttrack::TextTrack;
 use crate::dom::texttrackcue::TextTrackCue;
 use crate::dom::texttracklist::TextTrackList;
@@ -111,9 +112,7 @@ use crate::dom::videotracklist::VideoTrackList;
 use crate::dom::{RootedPromise, TracedPromise, referrer_policy_for_element};
 use crate::event_loop::document_loader::{LoadBlocker, LoadType};
 use crate::event_loop::script_thread::ScriptThread;
-use crate::fetch::fetch::{
-    FetchCanceller, RequestWithGlobalScope, create_a_potential_cors_request,
-};
+use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
 use crate::runtime::job_queue::MicrotaskRunnable;
@@ -627,6 +626,7 @@ pub(crate) struct HTMLMediaElement {
     position_when_time_marches_on_ran: Cell<Option<f64>>,
     /// <https://html.spec.whatwg.org/multipage/#list-of-newly-introduced-cues>
     newly_introduced_cues: DomRefCell<Vec<Dom<TextTrackCue>>>,
+    shadow_tree: DomRefCell<Option<ShadowTree>>,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#dom-media-networkstate>
@@ -666,6 +666,63 @@ enum PlaybackPositionWasMoved {
     #[default]
     ExplicitMove,
     NormalPlayback,
+}
+
+/// Holds handles to all slots in the UA shadow tree
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct ShadowTree {
+    // TODO(22314): add cue element here
+}
+
+impl UAShadowRoot<ShadowTree> for HTMLMediaElement {
+    fn store_for_shadow_tree(&self, cx: &mut JSContext, shadow_root: DomRoot<ShadowRoot>) {
+        let script = self.create_element_in_ua_shadowroot(cx, local_name!("script"));
+        // This is our hacky way to temporarily workaround the lack of a privileged
+        // JS context.
+        // The media controls UI accesses the document.servoGetMediaControls(id) API
+        // to get an instance to the media controls ShadowRoot.
+        // `id` needs to match the internally generated UUID assigned to a media element.
+        let id = Uuid::new_v4().to_string();
+        let document = self.owner_document();
+        document.register_media_controls(&id, &shadow_root);
+        let media_controls_script = MEDIA_CONTROL_JS.replace("@@@id@@@", &id);
+        *self.media_controls_id.borrow_mut() = Some(id);
+        script
+            .upcast::<Node>()
+            .set_text_content_for_element(cx, Some(DOMString::from(media_controls_script)));
+        if let Err(e) = shadow_root
+            .upcast::<Node>()
+            .AppendChild(cx, script.upcast::<Node>())
+        {
+            warn!("Could not render media controls {:?}", e);
+            return;
+        }
+
+        let style = self.create_element_in_ua_shadowroot(cx, local_name!("style"));
+
+        style
+            .upcast::<Node>()
+            .set_text_content_for_element(cx, Some(DOMString::from(MEDIA_CONTROL_CSS)));
+
+        if let Err(e) = shadow_root
+            .upcast::<Node>()
+            .AppendChild(cx, style.upcast::<Node>())
+        {
+            warn!("Could not render media controls {:?}", e);
+        }
+
+        let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {});
+    }
+
+    fn borrow_for_shadow_tree(&self) -> Ref<'_, Option<ShadowTree>> {
+        self.shadow_tree.borrow()
+    }
+
+    // TODO: Remove this and properly implement controls in the UA shadow root
+    fn should_mark_as_ua_widget(&self) -> bool {
+        false
+    }
 }
 
 impl HTMLMediaElement {
@@ -723,6 +780,7 @@ impl HTMLMediaElement {
             did_perform_automatic_track_selection: Default::default(),
             position_when_time_marches_on_ran: Default::default(),
             newly_introduced_cues: Default::default(),
+            shadow_tree: Default::default(),
         }
     }
 
@@ -787,7 +845,7 @@ impl HTMLMediaElement {
                     Some(LoadBlocker::new(&self.owner_document(), LoadType::Media));
             }
         } else {
-            LoadBlocker::terminate(blocker, cx);
+            LoadBlocker::terminate(cx, blocker);
         }
     }
 
@@ -3209,66 +3267,11 @@ impl HTMLMediaElement {
     }
 
     fn render_controls(&self, cx: &mut JSContext) {
-        if self.upcast::<Element>().is_shadow_host() {
+        if self.borrow_for_shadow_tree().is_some() {
             // Bail out if we are already showing the controls.
             return;
         }
-
-        // FIXME(stevennovaryo): Recheck styling of media element to avoid
-        //                       reparsing styles.
-        let shadow_root = self.upcast::<Element>().attach_ua_shadow_root(cx, false);
-        let document = self.owner_document();
-        let script = Element::create(
-            cx,
-            QualName::new(None, ns!(html), local_name!("script")),
-            None,
-            &document,
-            ElementCreator::ScriptCreated,
-            CustomElementCreationMode::Asynchronous,
-            None,
-        );
-        // This is our hacky way to temporarily workaround the lack of a privileged
-        // JS context.
-        // The media controls UI accesses the document.servoGetMediaControls(id) API
-        // to get an instance to the media controls ShadowRoot.
-        // `id` needs to match the internally generated UUID assigned to a media element.
-        let id = Uuid::new_v4().to_string();
-        document.register_media_controls(&id, &shadow_root);
-        let media_controls_script = MEDIA_CONTROL_JS.replace("@@@id@@@", &id);
-        *self.media_controls_id.borrow_mut() = Some(id);
-        script
-            .upcast::<Node>()
-            .set_text_content_for_element(cx, Some(DOMString::from(media_controls_script)));
-        if let Err(e) = shadow_root
-            .upcast::<Node>()
-            .AppendChild(cx, script.upcast::<Node>())
-        {
-            warn!("Could not render media controls {:?}", e);
-            return;
-        }
-
-        let style = Element::create(
-            cx,
-            QualName::new(None, ns!(html), local_name!("style")),
-            None,
-            &document,
-            ElementCreator::ScriptCreated,
-            CustomElementCreationMode::Asynchronous,
-            None,
-        );
-
-        style
-            .upcast::<Node>()
-            .set_text_content_for_element(cx, Some(DOMString::from(MEDIA_CONTROL_CSS)));
-
-        if let Err(e) = shadow_root
-            .upcast::<Node>()
-            .AppendChild(cx, style.upcast::<Node>())
-        {
-            warn!("Could not render media controls {:?}", e);
-        }
-
-        self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
+        let _ = self.shadow_tree(cx);
 
         // https://html.spec.whatwg.org/multipage/#embedded-content-rendering-rules:rules-for-updating-the-text-track-rendering
         // > When the user agent starts exposing a user interface for a video element,
@@ -4227,9 +4230,9 @@ pub(crate) struct HTMLMediaElementFetchContext {
     origin_clean: bool,
     /// The buffered data source which to be processed by media backend.
     data_source: RefCell<BufferedDataSource>,
-    /// Fetch canceller. Allows cancelling the current fetch request by
+    /// Fetch controller. Allows cancelling the current fetch request by
     /// manually calling its .cancel() method or automatically on Drop.
-    fetch_canceller: FetchCanceller,
+    fetch_controller: FetchController,
 }
 
 impl HTMLMediaElementFetchContext {
@@ -4243,7 +4246,7 @@ impl HTMLMediaElementFetchContext {
             is_seekable: false,
             origin_clean: true,
             data_source: RefCell::new(BufferedDataSource::new()),
-            fetch_canceller: FetchCanceller::new(request_id, false, core_resource_thread),
+            fetch_controller: FetchController::new(request_id, false, core_resource_thread),
         }
     }
 
@@ -4277,7 +4280,7 @@ impl HTMLMediaElementFetchContext {
         }
         self.cancel_reason = Some(reason);
         self.data_source.borrow_mut().reset();
-        self.fetch_canceller.abort();
+        self.fetch_controller.abort();
     }
 
     fn cancel_reason(&self) -> &Option<CancelReason> {
@@ -4318,24 +4321,20 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         let element = self.element.root();
 
         let (metadata, origin_clean) = match metadata {
-            Ok(fetch_metadata) => match fetch_metadata {
-                FetchMetadata::Unfiltered(metadata) => (Some(metadata), true),
-                FetchMetadata::Filtered { filtered, unsafe_ } => (
-                    Some(unsafe_),
-                    matches!(
-                        filtered,
-                        FilteredMetadata::Basic(_) | FilteredMetadata::Cors(_)
-                    ),
-                ),
+            Ok(fetch_metadata) => {
+                let is_cross_origin = fetch_metadata.is_cors_cross_origin();
+                (Some(fetch_metadata.into()), !is_cross_origin)
             },
             Err(_) => (None, true),
         };
 
         let (status_is_success, is_seekable) =
-            metadata.as_ref().map_or((false, false), |metadata| {
-                let status = &metadata.status;
-                (status.is_success(), *status == StatusCode::PARTIAL_CONTENT)
-            });
+            metadata
+                .as_ref()
+                .map_or((false, false), |metadata: &Metadata| {
+                    let status = &metadata.status;
+                    (status.is_success(), *status == StatusCode::PARTIAL_CONTENT)
+                });
 
         // <https://html.spec.whatwg.org/multipage/#media-data-processing-steps-list>
         if !status_is_success {

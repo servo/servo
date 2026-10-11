@@ -664,3 +664,71 @@ test<div>p</div>tt<p>div</p><test>test</test>
 #document
 | <div>
 |   "after"
+
+#data
+<b>before</b><template><span>A</span><template><i>nested</i></template></template><b>after</b>
+#config
+{ "replaceWithChildrenElements": ["template"] }
+#document
+| <b>
+|   "before"
+| <b>
+|   "after"
+
+#data
+<table><template><span>A</span></template><td>cell</td></table>
+#config
+{ "replaceWithChildrenElements": ["template"] }
+#document
+| <table>
+|   <tbody>
+|     <tr>
+|       <td>
+|         "cell"
+
+#data
+<div><div><b>Hello</b></div>after</div>
+#config
+{ "replaceWithChildrenElements": ["div"] }
+#document
+| <b>
+|   "Hello"
+| "after"
+
+#data
+<div><table><tr>foster<td>cell</td></tr></table></div>
+#config
+{ "replaceWithChildrenElements": ["div"] }
+#document
+| "foster"
+| <table>
+|   <tbody>
+|     <tr>
+|       <td>
+|         "cell"
+
+#data
+<table><div><span>Content</span></div><td>cell</td></table>
+#config
+{ "replaceWithChildrenElements": ["div"] }
+#document
+| <span>
+|   "Content"
+| <table>
+|   <tbody>
+|     <tr>
+|       <td>
+|         "cell"
+
+#data
+<table><tr><div><span>Content</span></div><td>cell</td></tr></table>
+#config
+{ "replaceWithChildrenElements": ["div"] }
+#document
+| <span>
+|   "Content"
+| <table>
+|   <tbody>
+|     <tr>
+|       <td>
+|         "cell"

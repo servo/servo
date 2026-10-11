@@ -203,6 +203,19 @@ for (const s of SUBJECTS) {
     el.setAttribute(s.attr, s.v3b);
     assert_equals(s.list(el), list, "the list object is not replaced");
   }, s.name + ": the list interface object survives the change");
+
+  // An empty string parses to an empty list, so new length is 0 and step 4.1
+  // detaches every item.
+  test(() => {
+    const el = s.build();
+    const list = s.list(el);
+    const held = list.getItem(0);
+    el.setAttribute(s.attr, "");
+    assert_equals(list.numberOfItems, 0, "numberOfItems");
+    assert_equals(s.read(held), s.oldAt[0], "the detached item keeps its value");
+    s.write(held, 42);
+    assert_equals(list.numberOfItems, 0, "a write through the detached item does not reach the list");
+  }, s.name + ": an empty string empties the list and detaches every item");
 }
 
 // Step 4.4 carries no condition on the transform function, and 4.4.4 requires

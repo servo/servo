@@ -436,7 +436,7 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
     }
 
     fn handle_text(&mut self, info: &NodeAndStyleInfo<'dom>, text: BoxTreeString<'dom>) {
-        if text.is_empty() {
+        if text.is_empty() && !info.node.text_node_needs_caret_placeholder() {
             return;
         }
 
@@ -562,6 +562,10 @@ impl<'dom> BlockContainerBuilder<'dom, '_> {
             old_layout_box,
         );
         box_slot.set(LayoutBox::InlineLevel(inline_item));
+
+        if info.node.is_html_wbr_element() {
+            inline_builder.push_soft_wrap_opportunity();
+        }
 
         if is_list_item &&
             let Some((marker_info, marker_contents)) =

@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<title>Hit testing negative z-index inline children of a stacking context</title>
+<link rel="author" title="Peng Zhou" href="mailto:pengzhou@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-document-elementfrompoint">
+<link rel="help" href="https://drafts.csswg.org/css2/#elaborate-stacking-contexts">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.stacking-context {
+  position: fixed;
+  left: 20px;
+  top: 20px;
+  width: 300px;
+  z-index: 1;
+}
+.negative {
+  position: relative;
+  z-index: -1;
+}
+.box {
+  display: inline-block;
+  width: 60px;
+  height: 20px;
+  vertical-align: middle;
+  background: green;
+}
+.first-line::first-line {
+  background: red;
+}
+</style>
+<body>
+<script>
+function createStackingContext(t, markup) {
+  const container = document.createElement('div');
+  container.className = 'stacking-context';
+  container.innerHTML = markup;
+  document.body.append(container);
+  t.add_cleanup(() => container.remove());
+  return container;
+}
+
+function pointIn(element, x = 0.5, y = 0.5) {
+  const rect = element.getBoundingClientRect();
+  return [rect.left + rect.width * x, rect.top + rect.height * y];
+}
+
+test(t => {
+  const container = createStackingContext(t, '<input type="text" class="negative">');
+  const target = container.firstChild;
+  assert_equals(document.elementFromPoint(...pointIn(target)), target);
+}, 'Negative z-index input inside a stacking context is hit');
+
+test(t => {
+  const container = createStackingContext(t, 'text <span class="negative box" id="target"></span> text');
+  const target = container.querySelector('#target');
+  assert_equals(document.elementFromPoint(...pointIn(target)), target);
+}, 'Negative z-index inline-block inside a stacking context is hit');
+
+test(t => {
+  const container = createStackingContext(t, '<span class="negative box" style="pointer-events:none"></span>');
+  const target = container.firstChild;
+  assert_equals(document.elementFromPoint(...pointIn(target)), container);
+}, 'A negative z-index child with pointer-events:none falls through to its stacking context');
+
+test(t => {
+  const container = createStackingContext(t, '<span class="negative box"></span>');
+  const target = container.firstChild;
+  assert_array_equals(document.elementsFromPoint(...pointIn(target)).slice(0, 2),
+                      [target, container]);
+}, 'elementsFromPoint places a negative z-index child before its stacking context background');
+
+test(t => {
+  const container = createStackingContext(t, '<span><span class="negative box"></span></span>');
+  const wrapper = container.firstChild;
+  assert_equals(document.elementFromPoint(...pointIn(wrapper.firstChild)), wrapper);
+}, 'An inline ancestor remains above its negative z-index child');
+
+test(t => {
+  const container = createStackingContext(t, '<span class="negative box"></span>');
+  container.classList.add('first-line');
+  assert_equals(document.elementFromPoint(...pointIn(container.firstChild)), container);
+}, 'A first-line background stays above negative z-index children');
+
+test(t => {
+  const container = createStackingContext(t, '<div style="background:red"><span class="negative box"></span></div>');
+  const block = container.firstChild;
+  assert_equals(document.elementFromPoint(...pointIn(block.firstChild)), block);
+}, 'A non-stacking block ancestor remains above a negative z-index child');
+
+test(t => {
+  const container = createStackingContext(t, '<span class="box" style="width:200px"></span><span class="negative box"></span>');
+  container.style.cssText += 'width:100px;overflow:auto;white-space:nowrap;scrollbar-width:none;';
+  container.scrollLeft = 180;
+  const target = container.lastChild;
+  assert_equals(document.elementFromPoint(...pointIn(target)), target);
+}, 'Scrolling preserves hit testing of negative z-index inline content');
+</script>
+</body>

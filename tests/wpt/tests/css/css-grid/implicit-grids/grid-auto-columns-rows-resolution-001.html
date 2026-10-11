@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#implicit-grids">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#auto-tracks">
+<meta name="assert" content="An item placed past the explicit grid creates an implicit row and column that are sized by grid-auto-rows and grid-auto-columns for fixed, minmax() with percentages, and content-sized values.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.grid {
+    grid-template-rows: 20px;
+    grid-template-columns: 10px;
+}
+
+.gridAutoFixedFixed {
+    grid-auto-rows: 30px;
+    grid-auto-columns: 50px;
+}
+
+.gridAutoMinMax {
+    width: 1000px;
+    height: 1000px;
+    grid-auto-rows: minmax(10%, 15px);
+    grid-auto-columns: minmax(30%, 100px);
+}
+
+.gridAutoMinMaxContent {
+    grid-auto-rows: min-content;
+    grid-auto-columns: max-content;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+
+<p>This test checks that implicit rows and columns obey grid-auto-rows and grid-auto-columns.</p>
+
+<div class="unconstrainedContainer" style="position: relative">
+    <div class="grid gridAutoFixedFixed">
+        <div class="sizedToGridArea secondRowSecondColumn" data-offset-x="10" data-offset-y="20" data-expected-width="50" data-expected-height="30">XXXXX XXXXXX</div>
+    </div>
+</div>
+
+<div class="unconstrainedContainer" style="position: relative">
+    <div class="grid gridAutoMinMax">
+        <div class="sizedToGridArea secondRowSecondColumn" data-offset-x="10" data-offset-y="20" data-expected-width="300" data-expected-height="100">XXXXX XXXXXX</div>
+    </div>
+</div>
+
+<div class="unconstrainedContainer" style="position: relative">
+    <div class="grid gridAutoMinMaxContent">
+        <div class="sizedToGridArea secondRowSecondColumn" data-offset-x="10" data-offset-y="20" data-expected-width="120" data-expected-height="10">XXXXX XXXXXX</div>
+    </div>
+</div>
+
+</body>

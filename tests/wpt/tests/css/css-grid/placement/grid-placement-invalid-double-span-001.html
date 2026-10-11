@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-placement-errors">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#line-placement">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#auto-placement-algo">
+<meta name="assert" content="A placement made of a span for a named line and an 'auto' or span end is handled by the grid placement conflict handling rules and the item is auto-placed; invalid values such as 'span / span 3' and 'span / auto' are ignored.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.grid {
+    display: grid;
+    grid-template-rows: [firstRow] 10px 20px;
+    grid-template-columns: [firstColumn] 30px 40px;
+    grid-auto-flow: row;
+}
+
+.bothSpanRow {
+    grid-column: 1;
+    grid-row: span 5 firstRow / span 1;
+}
+
+.bothSpanColumn {
+    grid-column: span / span 3;
+    grid-row: 1;
+}
+
+.spanAutoRow {
+    grid-column: 1;
+    grid-row: span 5 firstRow / auto;
+}
+
+.spanAutoColumn {
+    grid-column: span / auto;
+    grid-row: 1;
+}
+</style>
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+
+<p>This test checks that we resolve 2 opposite 'span' / 'auto' positions by applying the auto-placement algorithm.</p>
+
+<div style="position: relative">
+    <div class="grid">
+        <div class="sizedToGridArea firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="30" data-expected-height="10"></div>
+        <div class="sizedToGridArea bothSpanRow" data-offset-x="0" data-offset-y="10" data-expected-width="30" data-expected-height="20"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <div class="grid">
+        <div class="sizedToGridArea firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="30" data-expected-height="10"></div>
+        <div class="sizedToGridArea bothSpanColumn" data-offset-x="30" data-offset-y="0" data-expected-width="40" data-expected-height="10"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <div class="grid">
+        <div class="sizedToGridArea firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="30" data-expected-height="10"></div>
+        <div class="sizedToGridArea spanAutoRow" data-offset-x="0" data-offset-y="10" data-expected-width="30" data-expected-height="20"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <div class="grid">
+        <div class="sizedToGridArea firstRowFirstColumn" data-offset-x="0" data-offset-y="0" data-expected-width="30" data-expected-height="10"></div>
+        <div class="sizedToGridArea spanAutoColumn" data-offset-x="30" data-offset-y="0" data-expected-width="40" data-expected-height="10"></div>
+    </div>
+</div>
+
+</body>

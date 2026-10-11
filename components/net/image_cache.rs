@@ -21,7 +21,7 @@ use net_traits::image_cache::{
     ImageResponse, PendingImageId, RasterizationCompleteResponse, VectorImage,
 };
 use net_traits::request::CorsSettings;
-use net_traits::{FetchMetadata, FetchResponseMsg, FilteredMetadata, NetworkError};
+use net_traits::{FetchResponseMsg, Metadata, NetworkError};
 use paint_api::{CrossProcessPaintApi, ImageUpdate, SerializableImageData};
 use parking_lot::Mutex;
 use pixels::{CorsStatus, ImageFrame, ImageMetadata, PixelFormat, RasterImage, load_from_memory};
@@ -30,6 +30,7 @@ use profile_traits::path;
 use resvg::tiny_skia;
 use resvg::usvg::{self, fontdb};
 use rustc_hash::{FxHashMap, FxHashSet};
+use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{PipelineId, WebViewId};
 use servo_base::threadpool::ThreadPool;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -350,6 +351,9 @@ struct PendingLoad {
     /// Once loading is complete, the result of the operation.
     result: Option<Result<(), NetworkError>>,
 
+    /// The time when the response finished loading.
+    response_end: Option<CrossProcessInstant>,
+
     /// The listeners that are waiting for this response to complete.
     listeners: Vec<ImageLoadListener>,
 
@@ -383,6 +387,7 @@ impl PendingLoad {
             bytes: ImageBytes::InProgress(vec![]),
             metadata: None,
             result: None,
+            response_end: None,
             listeners: vec![],
             url,
             load_origin,
@@ -675,8 +680,9 @@ impl ImageCacheStore {
         };
         let url = pending_load.final_url.clone();
         let image_response = match load_result {
-            LoadResult::LoadedRasterImage(raster_image) => {
+            LoadResult::LoadedRasterImage(mut raster_image) => {
                 assert!(raster_image.id.is_some());
+                raster_image.load_time = pending_load.response_end;
                 ImageResponse::Loaded(Image::Raster(Arc::new(raster_image)), url.unwrap())
             },
             LoadResult::LoadedVectorImage(vector_image) => {
@@ -692,6 +698,7 @@ impl ImageCacheStore {
                     svg_id: None,
                     metadata,
                     cors_status: vector_image.cors_status,
+                    load_time: pending_load.response_end,
                 };
                 ImageResponse::Loaded(Image::Vector(vector_image), url.unwrap())
             },
@@ -1162,6 +1169,7 @@ impl ImageCache for ImageCacheImpl {
                     bytes: Arc::new(bytes),
                     id: None,
                     cors_status: vector_image.cors_status,
+                    load_time: None,
                     is_opaque: false,
                     loop_count: None,
                 }
@@ -1243,19 +1251,14 @@ impl ImageCache for ImageCacheImpl {
                 debug!("Received {:?} for {:?}", response.as_ref().map(|_| ()), id);
                 let mut store = self.store.lock();
                 if let Some(pending_load) = store.pending_loads.get_by_key_mut(&id) {
-                    let (cors_status, metadata) = match response {
-                        Ok(meta) => match meta {
-                            FetchMetadata::Unfiltered(m) => (CorsStatus::Safe, Some(m)),
-                            FetchMetadata::Filtered { unsafe_, filtered } => (
-                                match filtered {
-                                    FilteredMetadata::Basic(_) | FilteredMetadata::Cors(_) => {
-                                        CorsStatus::Safe
-                                    },
-                                    FilteredMetadata::Opaque |
-                                    FilteredMetadata::OpaqueRedirect(_) => CorsStatus::Unsafe,
-                                },
-                                Some(unsafe_),
-                            ),
+                    let (cors_status, metadata): (_, Option<Metadata>) = match response {
+                        Ok(fetch_metadata) => {
+                            let cors_status = if fetch_metadata.is_cors_cross_origin() {
+                                CorsStatus::Unsafe
+                            } else {
+                                CorsStatus::Safe
+                            };
+                            (cors_status, Some(fetch_metadata.into()))
                         },
                         Err(_) => (CorsStatus::Unsafe, None),
                     };
@@ -1294,7 +1297,7 @@ impl ImageCache for ImageCacheImpl {
                     debug!("Pending load for id {:?} already evicted from cache", id);
                 }
             },
-            (FetchResponseMsg::ProcessResponseEOF(_, result, _), key) => {
+            (FetchResponseMsg::ProcessResponseEOF(_, result, timing), key) => {
                 debug!("Received EOF for {:?}", key);
                 match result {
                     Ok(_) => {
@@ -1302,6 +1305,9 @@ impl ImageCache for ImageCacheImpl {
                             let mut store = self.store.lock();
                             if let Some(pending_load) = store.pending_loads.get_by_key_mut(&id) {
                                 pending_load.result = Some(Ok(()));
+                                pending_load.response_end = Some(
+                                    timing.response_end.unwrap_or_else(CrossProcessInstant::now),
+                                );
                                 debug!("Async decoding {} ({:?})", pending_load.url, key);
                                 (
                                     pending_load.bytes.mark_complete(),

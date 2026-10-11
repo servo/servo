@@ -8,7 +8,7 @@ with import (builtins.fetchTarball {
   # NixOS users: if servoshell crashes with an assertion failure in surfman’s x11/connection.rs,
   # eglInitialize() may be failing, or you may be building with an incompatible version of glibc.
   # Use your system nixpkgs here, change `llvmPackages` below if necessary, then do a clean build.
-  url = "https://github.com/NixOS/nixpkgs/archive/34ab99075ac4f7e40cf037eef32cb1c360bb85e9.tar.gz";
+  url = "https://github.com/NixOS/nixpkgs/archive/e7439b6b14ad3cc35d05608ebca9bce01a25f5f8.tar.gz";
 }) {
   overlays = [
     (import (builtins.fetchTarball {

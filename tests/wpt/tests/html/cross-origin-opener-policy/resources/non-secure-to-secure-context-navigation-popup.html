@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script>
+const urlParams = new URLSearchParams(location.search);
+if (urlParams.get("secure") == "1") {
+    let bc = new BroadcastChannel('non-secure-to-secure-context-navigation');
+    bc.postMessage(window.opener ? "has_opener" : "does_not_have_opener");
+} else
+    onload = () => location.href = urlParams.get("next");
+</script>
+</body>
+</html>

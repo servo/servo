@@ -10,6 +10,8 @@ import { permissionTest } from "./permission-helper.js"
 
 // Grant the permission so that we can confirm the permission being denied
 // regardless of the actual permission status.
+// Note that this will not set the permission for the current iframe if
+// running on a browser engine with partitioned storage.
 test_driver.set_test_context(window.top);
 await test_driver.set_permission({ name: "notifications" }, "granted");
 
@@ -18,7 +20,9 @@ const registration = await navigator.serviceWorker.register("../noop-sw.js");
 
 const firstPartyOrigin = 'https://{{hosts[][]}}:{{ports[https][0]}}';
 
-permissionTest(firstPartyOrigin, "parent", registration);
+await test_driver.bless("Triggering a subscription", async () => {
+  await permissionTest(firstPartyOrigin, "parent", registration);
+});
 
 const nestedChild =
   `${firstPartyOrigin}/push-api/resources/cross-origin-nested-child.sub.html`;

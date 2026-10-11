@@ -322,7 +322,7 @@ pub enum WebGLCommand {
     GetExtensions(GenericSender<String>),
     GetShaderPrecisionFormat(u32, u32, GenericSender<(i32, i32, i32)>),
     GetFragDataLocation(WebGLProgramId, String, GenericSender<i32>),
-    GetUniformLocation(WebGLProgramId, String, GenericSender<i32>),
+    GetUniformLocation(WebGLProgramId, String, GenericSender<Option<i32>>),
     GetShaderInfoLog(WebGLShaderId, GenericSender<String>),
     GetProgramInfoLog(WebGLProgramId, GenericSender<String>),
     GetFramebufferAttachmentParameter(u32, u32, u32, GenericSender<i32>),

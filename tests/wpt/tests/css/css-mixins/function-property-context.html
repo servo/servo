@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<title>Custom Functions: font-relative units use the property calling context</title>
+<link rel="help" href="https://drafts.csswg.org/css-mixins-1/#calling-context">
+<link rel="help" href="https://drafts.csswg.org/css-mixins-1/#evaluate-a-custom-function">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#font-relative-lengths">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- In font-size, 2em resolves against the parent's 10px font size. In
+     border-left-width, it resolves against the target's resulting 20px font
+     size. -->
+
+<style>
+  @function --em-argument(--x <length>) returns <length> {
+    result: var(--x);
+  }
+  @function --em-default(--x <length>: 2em) returns <length> {
+    result: var(--x);
+  }
+  @function --em-local() returns <length> {
+    --x: 2em;
+    result: var(--x);
+  }
+  @function --em-result() returns <length> {
+    result: 2em;
+  }
+  #calling-context {
+    font-size: 10px;
+  }
+  #calling-context > div {
+    border-left-style: solid;
+  }
+  #argument {
+    font-size: --em-argument(2em);
+    border-left-width: --em-argument(2em);
+  }
+  #default {
+    font-size: --em-default();
+    border-left-width: --em-default();
+  }
+  #local {
+    font-size: --em-local();
+    border-left-width: --em-local();
+  }
+  #result {
+    font-size: --em-result();
+    border-left-width: --em-result();
+  }
+</style>
+
+<div id=calling-context>
+  <div id=argument></div>
+  <div id=default></div>
+  <div id=local></div>
+  <div id=result></div>
+</div>
+
+<script>
+  for (const id of ["argument", "default", "local", "result"]) {
+    test(() => {
+      const style = getComputedStyle(document.getElementById(id));
+      assert_equals(style.fontSize, "20px");
+      assert_equals(style.borderLeftWidth, "40px");
+    }, `em in ${id} uses the property calling context`);
+  }
+</script>

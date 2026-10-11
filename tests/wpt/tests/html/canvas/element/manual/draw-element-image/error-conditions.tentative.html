@@ -44,15 +44,16 @@ promise_test(async () => {
     () => canvas.captureElementImage(child),
     "Can't capture element image if content=drawable is not specified.");
   assert_throws_dom("InvalidStateError",
-    () => canvas.getElementTransform(child, new DOMMatrix()),
-    "Can't get element transform if content=drawable is not specified.");
+    () => canvas.getElementImageDefaultSize(child),
+    "Can't get element image default size if content=drawable is not specified.");
 
   canvas.setAttribute("content", "drawable"); // Add attribute.
   await waitForCanvasPaint(canvas);
   // Should not throw an exception.
   canvas.getContext("2d").drawElementImage(child, 20, 30);
   let img = canvas.captureElementImage(child);
-  canvas.getElementTransform(child, new DOMMatrix());
+  canvas.getElementImageDefaultSize(child);
+  canvas.getElementImageDefaultSize(img);
 
   canvaswithoutlayout.removeAttribute("content");
   assert_throws_dom("InvalidStateError",
@@ -63,16 +64,16 @@ promise_test(async () => {
     () => canvaswithoutlayout.captureElementImage(child2),
     "Can't capture element image if content=drawable is not specified.");
   assert_throws_dom("InvalidStateError",
-    () => canvaswithoutlayout.getElementTransform(child2, new DOMMatrix()),
-    "Can't get element transform if content=drawable is not specified.");
+    () => canvaswithoutlayout.getElementImageDefaultSize(child2),
+    "Can't get element image default size if content=drawable is not specified.");
 
-  // Also test wrong children exceptions
+  // Also test non-drawable descendants exceptions
   assert_throws_dom("InvalidStateError",
     () => canvas.captureElementImage(grandchild),
-    "Can't capture non-direct children.");
+    "Can't capture non-drawable descendants.");
   assert_throws_dom("InvalidStateError",
-    () => canvas.getElementTransform(grandchild, new DOMMatrix()),
-    "Can't get transform for non-direct children.");
+    () => canvas.getElementImageDefaultSize(grandchild),
+    "Can't get default size for non-drawable descendants.");
 });
 </script>
 </html>

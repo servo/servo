@@ -282,7 +282,7 @@ impl TextRunSegment {
             }
 
             let run_start = text_run.run_data.character_range_in_ifc_text.start;
-            ifc.push_glyph_store_to_unbreakable_segment(
+            ifc.push_shaped_text_slice_to_unbreakable_segment(
                 run.clone(),
                 text_run,
                 &self.info,
@@ -345,7 +345,10 @@ pub(crate) struct SharedTextRunData {
     // TODO: make this more compact with a pair of `AtomicUsize`?
     pub selection: AtomicRefCell<Option<RangeAny<Utf32CodeUnits>>>,
     /// Whether a caret should be painted when the selection is an empty range (start == end)
-    pub paint_caret: bool,
+    pub paints_caret: bool,
+    /// Whether a caret placeholder should be added for empty text runs or for empty
+    /// lines after a forced line break.
+    pub needs_caret_placeholder: bool,
     /// The [`OffsetMap`] used when creating this `TextRun`'s `InlineFormattingContext`. This
     /// is used for mapping between DOM text offsets and layout text offsets (and vice-versa).
     pub offset_map: ArcRefCell<OffsetMap>,
@@ -548,8 +551,8 @@ impl TextRun {
 
             if character == '\n' {
                 finish_current_segment(&mut current, &mut results);
-                let paint_caret = self.run_data.paint_caret;
-                results.push(TextRunItem::LineBreak(paint_caret.then(|| {
+                let needs_caret_placeholder = self.run_data.needs_caret_placeholder;
+                results.push(TextRunItem::LineBreak(needs_caret_placeholder.then(|| {
                     CaretPlaceholder {
                         run_data: self.run_data.clone(),
                         base_fragment_info: self.base_fragment_info,
@@ -646,6 +649,13 @@ impl TextRun {
 
     pub(super) fn layout_into_line_items(&self, ifc: &mut InlineFormattingContextLayout) {
         if self.text_range.is_empty() {
+            if self.run_data.needs_caret_placeholder {
+                ifc.current_line.caret_placeholder = Some(CaretPlaceholder {
+                    run_data: self.run_data.clone(),
+                    base_fragment_info: self.base_fragment_info,
+                    character_index: Utf32CodeUnits(0),
+                });
+            }
             return;
         }
 
@@ -683,18 +693,23 @@ impl TextRun {
         ifc_layout: &mut InlineFormattingContextLayout,
         bidi_level: Level,
     ) {
+        let position_after_current_segment =
+            ifc_layout.current_line.inline_position + ifc_layout.current_line_segment.inline_size;
         let advance = ifc_layout.ifc.next_tab_stop_after_inline_advance(
             &self.inline_styles().style.borrow(),
-            ifc_layout.potential_line_size().inline,
+            position_after_current_segment,
         );
         if advance.is_zero() {
             return;
         }
 
+        // TODO: Tabs should hang when `pre-wrap` is active.
         ifc_layout.update_unbreakable_segment_for_new_content(
             &LineBlockSizes::zero(),
             advance,
-            SegmentContentFlags::empty(),
+            Au::zero(),
+            Au::zero(),
+            SegmentContentFlags::Contentful | SegmentContentFlags::IncorporateTrailingWhiteSpace,
         );
         ifc_layout.push_line_item_to_unbreakable_segment(LineItem::Tab {
             inline_box_identifier: ifc_layout.current_inline_box_identifier(),

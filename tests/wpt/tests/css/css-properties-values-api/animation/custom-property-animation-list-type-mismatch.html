@@ -15,4 +15,88 @@ animation_test({
   expected: "200"
 }, 'Animating a custom property allowing multiple list types with two mismatching types');
 
+animation_test({
+  syntax: "<number>+ | <transform-list>",
+  inherits: false,
+  initialValue: "translateX(100px)"
+}, {
+  composite: "add",
+  keyframes: ["100", "200"],
+  expected: "150"
+}, 'Additive animation of <number>+ when underlying value is <transform-list>');
+
+animation_test({
+  syntax: "<number>+ | <transform-list>",
+  inherits: false,
+  initialValue: "100"
+}, {
+  composite: "add",
+  keyframes: ["translateX(100px)", "translateX(200px)"],
+  expected: "translateX(150px)"
+}, 'Additive animation of <transform-list> when underlying value is <number>+');
+
+animation_test({
+  syntax: "<transform-function> | <transform-list>",
+  inherits: false,
+  initialValue: "translateX(100px) scale(2)"
+}, {
+  composite: "add",
+  keyframes: ["translateX(200px)", "translateX(300px)"],
+  expected: "translateX(250px)"
+}, 'Additive animation of <transform-function> when underlying value is a multi-item <transform-list>');
+
+animation_test({
+  syntax: "<length># | <transform-function>#",
+  inherits: false,
+  initialValue: "10px, 20px"
+}, {
+  composite: "add",
+  keyframes: ["translateX(100px), scale(2)", "translateX(200px), scale(4)"],
+  expected: "translateX(150px), scale(3)"
+}, 'Additive animation of <transform-function># when underlying value is <length>#');
+
+animation_test({
+  syntax: "<transform-function># | none",
+  inherits: false,
+  initialValue: "none"
+}, {
+  composite: "add",
+  keyframes: ["translateX(100px), scale(2)", "translateX(200px), scale(4)"],
+  expected: "translateX(150px), scale(3)"
+}, 'Additive animation of <transform-function># when underlying value is none');
+
+test(() => {
+  const name = generate_name();
+  CSS.registerProperty({
+    name,
+    syntax: "<transform-function>#",
+    inherits: false,
+    initialValue: "translateX(10px), scale(2)"
+  });
+
+  target.style.setProperty(name, "translateX(10px)");
+  const anim = target.animate(
+    { [name]: ["translateX(20px), scale(3)", "translateX(40px), scale(5)"] },
+    { duration: 1000, composite: "add" }
+  );
+  anim.pause();
+  anim.currentTime = 500;
+
+  // Underlying list length (1) != keyframe list length (2), falls back to replace.
+  assert_equals(
+    getComputedStyle(target).getPropertyValue(name),
+    "translateX(30px), scale(4)"
+  );
+
+  // Dynamically updating underlying list to length 2 invalidates cache and composites.
+  target.style.setProperty(name, "translateX(10px), scale(2)");
+  assert_equals(
+    getComputedStyle(target).getPropertyValue(name),
+    "translateX(40px), scale(5)"
+  );
+
+  target.style.removeProperty(name);
+  anim.cancel();
+}, 'Additive <transform-function># animation with dynamic underlying list length and value update');
+
 </script>

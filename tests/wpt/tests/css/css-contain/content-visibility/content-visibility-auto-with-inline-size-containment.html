@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>CSS Contain: Both contain-intrinsic-size components should be honored, for skipped content-visibility:auto content that also has single-axis inline containment</title>
+<link rel="author" title="Daniel Holbert" href="mailto:dholbert@mozilla.com">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2079026">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#content-visibility">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#skips-its-contents">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#containment-inline-size">
+<meta name="assert" content="An element whose contents are skipped by content-visibility:auto gets size containment on both axes, so contain-intrinsic-size is honored in both axes, even when the element is specified as only having single-axis inline containment (from container-type:inline-size or contain:inline-size) that would otherwise contain just the inline axis.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .scroller {
+    border: 1px solid black;
+    overflow: auto;
+    height: 200px;
+    width: 500px;
+  }
+  .spacer {
+    /* Tall height to push the probes way off the bottom of the scroller */
+    height: 10000px;
+  }
+  .probe {
+    /* Use an intrinsic width (along with our implicitly-intrinsic height),
+       so that our test JS can measure both of our dimensions to find out
+       whether our contain-intrinsic-size decl is being honored. */
+    width: max-content;
+    content-visibility: auto;
+    contain-intrinsic-size: 123px 456px;
+  }
+  #probe-container-type {
+    container-type: inline-size;
+  }
+  #probe-contain {
+    contain: inline-size;
+  }
+</style>
+<div class="scroller">
+  <div class="spacer"></div>
+  <div id="probe-container-type" class="probe">
+    <div id="child-container-type"></div>
+  </div>
+  <div id="probe-contain" class="probe">
+    <div id="child-contain"></div>
+  </div>
+</div>
+<script>
+  function checkProbe(probeId, childId, description) {
+    test(() => {
+      const probe = document.getElementById(probeId);
+      const child = document.getElementById(childId);
+
+      const actualInlineSize = probe.offsetWidth;
+      const actualBlockSize = probe.offsetHeight;
+
+      // Check that probe is indeed skipping its contents (i.e. its child
+      // reports that it's not rendering, via the checkVisibility API)
+      assert_false(child.checkVisibility({contentVisibilityAuto: true}),
+        "precondition: the offscreen content-visibility:auto element " +
+        "should be skipping its contents");
+
+      // The expected values here are from our 'contain-intrinsic-size' decl:
+      assert_equals(actualInlineSize, 123,
+        "skipped content-visibility:auto element with single-axis inline " +
+        "containment must honor the inline-size component of " +
+        "contain-intrinsic-size");
+      assert_equals(actualBlockSize, 456,
+        "skipped content-visibility:auto element with single-axis inline " +
+        "containment must honor the block-size component of " +
+        "contain-intrinsic-size");
+    }, description);
+  }
+
+  checkProbe("probe-container-type", "child-container-type",
+    "contain-intrinsic-size is honored for skipped content that is also " +
+    "an inline-size query container (container-type: inline-size)");
+
+  checkProbe("probe-contain", "child-contain",
+    "contain-intrinsic-size is honored for skipped content that also has " +
+    "contain: inline-size");
+</script>
+</html>

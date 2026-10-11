@@ -23,7 +23,7 @@ use mime::{self, Mime};
 use net_traits::fetch::headers::{determine_nosniff, extract_mime_type_as_mime};
 use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
 use net_traits::http_status::HttpStatus;
-use net_traits::policy_container::{PolicyContainer, RequestPolicyContainer};
+use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, CredentialsMode, Destination, Initiator,
     InsecureRequestsPolicy, InternalRequest, Origin, ParserMetadata, RedirectMode, Referrer,
@@ -432,16 +432,17 @@ pub async fn main_fetch(
     }
 
     // The request should have a valid policy_container associated with it.
-    let policy_container = match &request.policy_container {
-        RequestPolicyContainer::Client => unreachable!(),
-        RequestPolicyContainer::PolicyContainer(container) => container.to_owned(),
-    };
-
     // Step 4. Run report Content Security Policy violations for request.
     let csp_request = convert_request_to_csp_request(request);
     if let Some(csp_request) = csp_request.as_ref() {
         // Step 2.2.
-        let violations = report_violations_for_request_by_csp(csp_request, &policy_container);
+        let violations = report_violations_for_request_by_csp(
+            csp_request,
+            request
+                .policy_container
+                .policy_container()
+                .expect("Always has a valid policycontainer"),
+        );
 
         if !violations.is_empty() {
             target.process_csp_violations(request, violations);
@@ -485,8 +486,14 @@ pub async fn main_fetch(
         // Step 7. If should request be blocked due to a bad port, should fetching request be blocked
         // as mixed content, or should request be blocked by Content Security Policy returns blocked,
         // then set response to a network error.
-        let (check_result, violations) =
-            should_request_be_blocked_by_csp(csp_request, &policy_container);
+
+        let (check_result, violations) = should_request_be_blocked_by_csp(
+            csp_request,
+            request
+                .policy_container
+                .policy_container()
+                .expect("Always has a valid policy container"),
+        );
 
         if !violations.is_empty() {
             target.process_csp_violations(request, violations);
@@ -507,7 +514,11 @@ pub async fn main_fetch(
     // Step 8: If request’s referrer policy is the empty string, then set request’s referrer policy
     // to request’s policy container’s referrer policy.
     if request.referrer_policy == ReferrerPolicy::EmptyString {
-        request.referrer_policy = policy_container.get_referrer_policy();
+        request.referrer_policy = request
+            .policy_container
+            .policy_container()
+            .expect("Always has a valid policycontainer")
+            .get_referrer_policy();
     }
 
     // Step 9, If request’s referrer is not "no-referrer", then set request’s referrer to the result
@@ -712,8 +723,14 @@ pub async fn main_fetch(
         let should_replace_with_mixed_content = !response_is_network_error &&
             should_response_be_blocked_as_mixed_content(request, &response, &context.protocols);
         let should_replace_with_csp_error = csp_request.is_some_and(|csp_request| {
-            let (check_result, violations) =
-                should_response_be_blocked_by_csp(&csp_request, &response, &policy_container);
+            let (check_result, violations) = should_response_be_blocked_by_csp(
+                &csp_request,
+                &response,
+                request
+                    .policy_container
+                    .policy_container()
+                    .expect("Always has a valid policy container"),
+            );
             if !violations.is_empty() {
                 target.process_csp_violations(request, violations);
             }

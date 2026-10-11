@@ -10,6 +10,8 @@ import android.util.Size
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.Surface
+import android.view.inputmethod.BaseInputConnection
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.Interaction
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -29,44 +31,50 @@ import androidx.compose.ui.input.key.nativeKeyCode
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.input.pointer.pointerInteropFilter
+import androidx.compose.ui.node.ModifierNodeElement
+import androidx.compose.ui.platform.PlatformTextInputModifierNode
+import androidx.compose.ui.platform.establishTextInputSession
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import java.util.concurrent.Executors
 import kotlin.coroutines.EmptyCoroutineContext
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.launch
 
 @Composable
 fun Servo(
-    servoView: ServoView,
+    softKeyboardVisible: Boolean,
+    servo: Servo,
+    navigator: ServoNavigator,
     modifier: Modifier = Modifier,
 ) {
-    LifecycleResumeEffect(servoView) {
-        servoView.servo.suspend(false)
-        onPauseOrDispose { servoView.servo.suspend(true) }
+    LifecycleResumeEffect(servo) {
+        servo.suspend(false)
+        onPauseOrDispose { servo.suspend(true) }
     }
     LaunchedEffect(Unit) {
         while (true) {
-            withFrameNanos { servoView.servo.onDoFrame() }
+            withFrameNanos { servo.onDoFrame() }
         }
     }
-    LaunchedEffect(servoView.servo, servoView.navigator) {
-        servoView.navigator.consumeNavigationEvents(servoView.servo)
-    }
+    LaunchedEffect(servo, navigator) { navigator.consumeNavigationEvents(servo) }
 
     val focusRequester = remember { FocusRequester() }
     AndroidView(
-        factory = { _ -> servoView },
+        factory = { context -> ServoView(context, servo) },
         modifier =
             modifier
                 .focusRequester(focusRequester)
+                .focusable()
+                .softKeyboardVisible(softKeyboardVisible)
                 .onKeyEvent { keyEvent ->
                     when (keyEvent.type) {
                         KeyEventType.KeyDown if keyEvent.key != Key.Back -> {
-                            servoView.servo.onKeyDown(
+                            servo.onKeyDown(
                                 keyEvent.key.nativeKeyCode,
                                 keyEvent.nativeKeyEvent,
                             )
@@ -74,7 +82,7 @@ fun Servo(
                         }
 
                         KeyEventType.KeyUp if keyEvent.key != Key.Back -> {
-                            servoView.servo.onKeyUp(
+                            servo.onKeyUp(
                                 keyEvent.key.nativeKeyCode,
                                 keyEvent.nativeKeyEvent,
                             )
@@ -95,17 +103,16 @@ fun Servo(
 
                     when (action) {
                         MotionEvent.ACTION_DOWN,
-                        MotionEvent.ACTION_POINTER_DOWN ->
-                            servoView.servo.touchDown(x, y, pointerId)
-                        MotionEvent.ACTION_MOVE -> servoView.servo.touchMove(x, y, pointerId)
+                        MotionEvent.ACTION_POINTER_DOWN -> servo.touchDown(x, y, pointerId)
+                        MotionEvent.ACTION_MOVE -> servo.touchMove(x, y, pointerId)
                         MotionEvent.ACTION_UP,
-                        MotionEvent.ACTION_POINTER_UP -> servoView.servo.touchUp(x, y, pointerId)
-                        MotionEvent.ACTION_CANCEL -> servoView.servo.touchCancel(x, y, pointerId)
+                        MotionEvent.ACTION_POINTER_UP -> servo.touchUp(x, y, pointerId)
+                        MotionEvent.ACTION_CANCEL -> servo.touchCancel(x, y, pointerId)
                     }
 
                     true
                 },
-        onRelease = { servoView.servo.glDispatcher.close() },
+        onRelease = { servo.glDispatcher.close() },
     )
 }
 
@@ -162,6 +169,32 @@ class ServoNavigator {
 
     fun stop() {
         coroutineScope.launch { navigationEvents.emit(NavigationEvent.Stop) }
+    }
+}
+
+private fun Modifier.softKeyboardVisible(visible: Boolean) = this then SoftKeyboardVisible(visible)
+
+private data class SoftKeyboardVisible(val visible: Boolean) :
+    ModifierNodeElement<SoftKeyboardVisibleNode>() {
+    override fun create() = SoftKeyboardVisibleNode()
+
+    override fun update(node: SoftKeyboardVisibleNode) {
+        node.update(visible)
+    }
+}
+
+private class SoftKeyboardVisibleNode : Modifier.Node(), PlatformTextInputModifierNode {
+    private var textInputSessionJob: Job? = null
+
+    fun update(visible: Boolean) {
+        textInputSessionJob?.cancel()
+        if (visible) {
+            textInputSessionJob = coroutineScope.launch {
+                establishTextInputSession {
+                    startInputMethod { _ -> BaseInputConnection(view, true) }
+                }
+            }
+        }
     }
 }
 

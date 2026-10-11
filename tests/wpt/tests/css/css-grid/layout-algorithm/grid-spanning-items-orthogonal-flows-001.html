@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-track-sizing">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-spanning-items">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#orthogonal-flows">
+<meta name="assert" content="Track sizes are correct when grid items with orthogonal writing modes span more than one column or row, which requires re-running the track sizing algorithm for rows once the column sizes are known.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/css/support/alignment.css">
+<link rel="stylesheet" href="/css/support/width-keyword-classes.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+body {
+    margin: 0;
+}
+
+.container {
+    position: relative;
+}
+
+.grid {
+    font: 10px/1 Ahem;
+    position: relative;
+}
+
+.oneMinContentColTwoMinContentRows {
+    font: 50px/1 Ahem;
+    grid: min-content min-content / min-content;
+}
+
+.fixedSize {
+    width: 300px;
+    height: 200px;
+}
+
+.grid > :nth-child(1) { background-color: blue; }
+.grid > :nth-child(2) { background-color: magenta; }
+.grid > :nth-child(3) { background-color: orange; }
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+<p>This test checks that grid sizing works as expected with orthogonal flows and items spanning more than 1 columns or rows. These cases require an extra track-sizing algorithm cycle on the rows to determine final dimensions of the grid.</p>
+
+<div class="container">
+    <p>Grid: <b>auto</b> | align: <b>start</b> | fixed-sized: <b>300 x 200</b> | font: <b>10px</b> | Blue(LR) - row: 1 col: 1 | Magenta - row: 1 col: 3 | Orange(LR) - row: 2 col: 2</p>
+    <div class="grid fixedSize itemsStart">
+        <div class="verticalLR" style="grid-row: 1; grid-column: 1"          data-offset-x="0"   data-offset-y="0"   data-expected-width="20"  data-expected-height="105">XX XXX X XXX XX</div>
+        <div class=""           style="grid-row: 1; grid-column: 3"          data-offset-x="180" data-offset-y="0"   data-expected-width="120" data-expected-height="60">XXXX XX X XX XX X XXX XX XXXXX XXX XXX XX X XXX XX XXX X XXX XX XX</div>
+        <div class="verticalLR" style="grid-row: 2; grid-column: 2"          data-offset-x="20"  data-offset-y="105"  data-expected-width="200" data-expected-height="95">XXX X XXX XXX XXX XX X XXXXX XXX XX X XXXXX XX X XX XX X XXX XXX XXX XX X XXXX XXX XXX XXX XX X XXX XX XXXXX XXX XXX XX X XXX XX XXX  XXX XXX XX X XXX XX X XXX XX XX</div>
+    </div>
+</div>
+
+<div class="container">
+    <p>Grid: <b>auto</b> | align: <b>start</b> | fixed-sized: <b>300 x 200</b> | font: <b>10px</b> | Blue(LR) - <b>row: 1 / 3</b> col: 1 | Magenta - row: 1 col: 3 | Orange(LR) - row: 2 <b>col: 2 / 4</b></p>
+    <div class="grid fixedSize itemsStart">
+        <div class="verticalLR" style="grid-row: 1 / 3; grid-column: 1"      data-offset-x="0"   data-offset-y="0"   data-expected-width="10"  data-expected-height="150">XX XXX X XXX XX</div>
+        <div class=""           style="grid-row: 1;     grid-column: 3"      data-offset-x="35"  data-offset-y="0"   data-expected-width="265" data-expected-height="30">XXXX XX X XX XX X XXX XX XXXXX XXX XXX XX X XXX XX XXX X XXX XX XX</div>
+        <div class="verticalLR" style="grid-row: 2;     grid-column: 2 / 4;" data-offset-x="10"  data-offset-y="30"  data-expected-width="100" data-expected-height="170">XXX X XXX XXX XXX XX X XXXXX XXX XX X XXXXX XX X XX XX X XXX XXX XXX XX X XXXX XXX XXX XXX XX X XXX XX XXXXX XXX XXX XX X XXX XX XXX  XXX XXX XX X XXX XX X XXX XX XX</div>
+    </div>
+</div>
+
+<div class="container">
+    <p>Grid: <b>auto</b> | align: <b>start</b> | fixed-sized: <b>300 x 200</b> | font: <b>10px</b> | Blue(LR) - <b>row: 1 / 3</b> col: 1 | Magenta - <b>row: 1 / 3</b> col: 3 | Orange(LR) - <b>row: 3 col: 2 / 3</b></p>
+    <div class="grid fixedSize itemsStart" data-expected-width="300" data-expected-height="200">
+        <div class="verticalLR" style="grid-row: 1 / 3; grid-column: 1"      data-offset-x="0"   data-offset-y="0"   data-expected-width="20"  data-expected-height="130">XX XXX X XXX XX</div>
+        <div class=""           style="grid-row: 1 / 3; grid-column: 3"      data-offset-x="220" data-offset-y="0"   data-expected-width="80"  data-expected-height="90">XXXX XX X XX XX X XXX XX XXXXX XXX XXX XX X XXX XX XXX X XXX XX XX</div>
+        <div class="verticalLR" style="grid-row: 3;     grid-column: 2 / 3;" data-offset-x="20"  data-offset-y="130" data-expected-width="250" data-expected-height="70">XXX X XXX XXX XXX XX X XXXXX XXX XX X XXXXX XX X XX XX X XXX XXX XXX XX X XXXX XXX XXX XXX XX X XXX XX XXXXX XXX XXX XX X XXX XX XXX  XXX XXX XX X XXX XX X XXX XX XX</div>
+    </div>
+</div>
+
+<div class="container">
+    <p>Grid: <b>auto</b> | align: <b>start</b> | fixed-sized: <b>300 x 200</b> | font: <b>10px</b> | Blue(LR) - <b>row: 1 / 3</b> col: 1 | Magenta - row: 1 col: 3 | Orange(LR) - row: 2 <b>col: 2 / 3</b></p>
+    <div class="grid fixedSize itemsStart">
+        <div class="verticalLR" style="grid-row: 1 / 3; grid-column: 1"      data-offset-x="0"   data-offset-y="0"   data-expected-width="10"  data-expected-height="150">XX XXX X XXX XX</div>
+        <div class=""           style="grid-row: 1;     grid-column: 3"      data-offset-x="110" data-offset-y="0"   data-expected-width="190" data-expected-height="40">XXXX XX X XX XX X XXX XX XXXXX XXX XXX XX X XXX XX XXX X XXX XX XX</div>
+        <div class="verticalLR" style="grid-row: 2;     grid-column: 2 / 3;" data-offset-x="10"  data-offset-y="40"  data-expected-width="110" data-expected-height="160">XXX X XXX XXX XXX XX X XXXXX XXX XX X XXXXX XX X XX XX X XXX XXX XXX XX X XXXX XXX XXX XXX XX X XXX XX XXXXX XXX XXX XX X XXX XX XXX  XXX XXX XX X XXX XX X XXX XX XX</div>
+    </div>
+</div>
+
+<div class="container">
+    <p>Grid: <b>auto</b> | align: <b>start</b> | fixed-sized: <b>300 x 200</b> | font: <b>10px</b> | Blue(LR) - <b>row: 1 / 3</b> col: 1 | Magenta - row: 1 col: 3 | Orange(LR) - <b>row: 2 / 4 col: 2 / 3</b></p>
+    <div class="grid fixedSize itemsStart">
+        <div class="verticalLR" style="grid-row: 1 / 3; grid-column: 1"      data-offset-x="0"   data-offset-y="0"   data-expected-width="20"  data-expected-height="115">XX XXX X XXX XX</div>
+        <div class=""           style="grid-row: 1;     grid-column: 2"      data-offset-x="20"  data-offset-y="0"   data-expected-width="280" data-expected-height="30">XXXX XX X XX XX X XXX XX XXXXX XXX XXX XX X XXX XX XXX X XXX XX XX</div>
+        <div class="verticalLR" style="grid-row: 2 / 4; grid-column: 2 / 3;" data-offset-x="20"  data-offset-y="30"  data-expected-width="100" data-expected-height="170">XXX X XXX XXX XXX XX X XXXXX XXX XX X XXXXX XX X XX XX X XXX XXX XXX XX X XXXX XXX XXX XXX XX X XXX XX XXXXX XXX XXX XX X XXX XX XXX  XXX XXX XX X XXX XX X XXX XX XX</div>
+    </div>
+</div>
+
+<p>Grid: <b>min-content</b> / <b>min-content min-content</b> | align: <b>stretch</b> | content-sized: <b>fit-content x auto</b> | font: <b>50px</b> | Blue(LR) - <b>row: 1 / 3</b> col: 1 - <b>XX X X</b> | Magenta - row: 1 col: 1 - <b>X X</b></p>
+<div class="grid itemsStart oneMinContentColTwoMinContentRows fit-content" data-expected-width="150" data-expected-height="100">
+    <div class="verticalLR"     style="grid-row: 1 / 3; grid-column: 1" data-expected-width="150"  data-expected-height="100">XX X X</div>
+    <div class=""               style="grid-row: 1;     grid-column: 1" data-expected-width="150"  data-expected-height="50">X X</div>
+</div>
+
+</body>

@@ -28,8 +28,18 @@
           offscreen = e.data.canvas;
           ctx = offscreen.getContext('2d');
         }
-        if (e.data.action === 'draw') {
+        if (e.data.action === 'resize') {
+          offscreen.width = e.data.width;
+          offscreen.height = e.data.height;
+          self.postMessage({action: 'resize_done'});
+        } else if (e.data.action === 'draw') {
           ctx.reset();
+          if (e.data.translate) {
+            ctx.translate(e.data.translate[0], e.data.translate[1]);
+          }
+          if (e.data.rotate) {
+            ctx.rotate(e.data.rotate);
+          }
           const opts = e.data.options || {};
           let ret;
           if (e.data.args.length === 2) {
@@ -269,6 +279,119 @@
     assert_equals(rect.left, 0);
     assert_equals(rect.top, 0);
   }, 'clearElementGeometry on worker clears geometry and dispatches elementgeometryupdate event');
+
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+      canvas.clearElementGeometry(target);
+    });
+
+    await waitForCanvasPaint(canvas);
+    const elementImage = canvas.captureElementImage(target);
+    const updatePromise = waitForElementGeometryUpdate(canvas);
+    worker.postMessage({
+      action: 'draw',
+      elementImage: elementImage,
+      args: [10, 5, 50, 25, 17, -9, 100, 50],
+    }, [elementImage]);
+
+    await updatePromise;
+    const expected = new DOMMatrix()
+      .translateSelf(17, -9)
+      .scaleSelf(2, 2)
+      .translateSelf(-10, -5);
+    assert_array_approx_equals(
+      canvas.getElementTransform(target).toFloat64Array(),
+      expected.toFloat64Array(), 0.001);
+  }, 'drawElementImage on worker accounts for non-zero sx and sy offset');
+
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+      target.style.transform = '';
+      canvas.clearElementGeometry(target);
+    });
+
+    target.style.transform = 'rotate(45deg)';
+    await waitForCanvasPaint(canvas);
+    const elementImage = canvas.captureElementImage(target);
+    const updatePromise = waitForElementGeometryUpdate(canvas);
+    worker.postMessage({
+      action: 'draw',
+      elementImage: elementImage,
+      args: [0, 0],
+    }, [elementImage]);
+
+    await updatePromise;
+    assert_array_equals(
+      canvas.getElementTransform(target).toFloat64Array(),
+      new DOMMatrix().toFloat64Array());
+  }, 'drawElementImage on worker element transform does not include CSS transform on the element');
+
+  promise_test(async (t) => {
+    t.add_cleanup(() => {
+      canvas.style.width = '400px';
+      canvas.style.height = '400px';
+      canvas.clearElementGeometry(target);
+    });
+
+    canvas.style.width = '200px';
+    canvas.style.height = '800px';
+    await waitForCanvasPaint(canvas);
+    const elementImage = canvas.captureElementImage(target);
+    const updatePromise = waitForElementGeometryUpdate(canvas);
+    worker.postMessage({
+      action: 'draw',
+      elementImage: elementImage,
+      args: [7, 11],
+    }, [elementImage]);
+
+    await updatePromise;
+    const expected = new DOMMatrix()
+      .scaleSelf(0.5, 2)
+      .translateSelf(7, 11)
+      .scaleSelf(2, 0.5);
+    assert_array_equals(
+      canvas.getElementTransform(target).toFloat64Array(),
+      expected.toFloat64Array());
+  }, 'drawElementImage on worker element transform accounts for canvas CSS pixel scale');
+
+  promise_test(async (t) => {
+    t.add_cleanup(async () => {
+      const resizeDone = waitForWorkerMessage(worker, 'resize_done');
+      worker.postMessage({action: 'resize', width: 400, height: 400});
+      await resizeDone;
+      canvas.style.zoom = '';
+      target.style.transformOrigin = '0 0';
+      canvas.clearElementGeometry(target);
+    });
+
+    const resizeDone = waitForWorkerMessage(worker, 'resize_done');
+    worker.postMessage({action: 'resize', width: 800, height: 200});
+    await resizeDone;
+    canvas.style.zoom = '1.5';
+    target.style.transformOrigin = '5px 5px';
+    await waitForCanvasPaint(canvas);
+
+    const elementImage = canvas.captureElementImage(target);
+    const updatePromise = waitForElementGeometryUpdate(canvas);
+    worker.postMessage({
+      action: 'draw',
+      elementImage: elementImage,
+      translate: [42, 17],
+      rotate: Math.PI / 4,
+      args: [13, -9],
+    }, [elementImage]);
+
+    await updatePromise;
+    const expected = new DOMMatrix()
+      .scaleSelf(0.5, 2)
+      .translateSelf(42, 17)
+      .rotateSelf(45)
+      .translateSelf(13, -9)
+      .scaleSelf(2, 0.5);
+    assert_array_approx_equals(
+      canvas.getElementTransform(target).toFloat64Array(),
+      expected.toFloat64Array(), 0.001);
+  }, 'drawElementImage on worker element transform accounts for offscreen pixel scale, zoom, CTM, and dx/dy');
   </script>
 </body>
 </html>

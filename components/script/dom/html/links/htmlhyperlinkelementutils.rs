@@ -447,19 +447,20 @@ impl<T: HyperlinkElement + DerivedFrom<Element> + Castable + NodeTraits> Hyperli
 
         let attribute = self
             .upcast::<Element>()
-            .get_attribute_string_value(&local_name!("href"));
+            .get_attribute_string_ref(&local_name!("href"));
 
         // Step 2. If this element's href content attribute is absent, then return.
         let Some(attribute) = attribute else {
             return;
         };
+        let attribute = attribute.as_attr_ref();
 
         let document = self.owner_document();
         let global = self.owner_global();
 
         // Step 3. Let url be the result of encoding-parsing a URL given this element's href content
         // attribute's value, relative to this element's node document.
-        let url = document.encoding_parse_a_url(&attribute);
+        let url = document.encoding_parse_a_url(&attribute.value());
 
         // Step 4. If url is not failure, then set this element's url to url.
         if let Ok(url) = url {

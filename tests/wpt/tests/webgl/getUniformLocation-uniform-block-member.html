@@ -1,0 +1,61 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>getUniformLocation returns null for members of a named uniform block</title>
+<link rel="author" title="mxmgorin" href="mailto:102797145+mxmgorin@users.noreply.github.com">
+<link rel="help" href="https://registry.khronos.org/OpenGL/specs/es/3.0/es_spec_3.0.pdf#page=72">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+const vertexSource = `#version 300 es
+layout(std140) uniform Globals { mat4 view; vec4 tint; };
+uniform vec4 color;
+out vec4 v_color;
+void main() {
+    gl_Position = view * vec4(0.0, 0.0, 0.0, 1.0) + tint;
+    v_color = color;
+}`;
+const fragmentSource = `#version 300 es
+precision highp float;
+in vec4 v_color;
+out vec4 o;
+void main() { o = v_color; }`;
+
+function linkProgram(gl) {
+    const program = gl.createProgram();
+    for (const [type, source] of [[gl.VERTEX_SHADER, vertexSource],
+                                  [gl.FRAGMENT_SHADER, fragmentSource]]) {
+        const shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        gl.attachShader(program, shader);
+    }
+    gl.linkProgram(program);
+    assert_true(gl.getProgramParameter(program, gl.LINK_STATUS), gl.getProgramInfoLog(program));
+    return program;
+}
+
+test(function() {
+    const gl = document.createElement("canvas").getContext("webgl2");
+    const program = linkProgram(gl);
+    const active = [];
+    for (let i = 0; i < gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS); i++) {
+        active.push(gl.getActiveUniform(program, i).name);
+    }
+    for (const name of ["view", "tint"]) {
+        assert_in_array(name, active, `${name} is an active uniform`);
+        assert_equals(gl.getUniformLocation(program, name), null, name);
+    }
+    assert_equals(gl.getError(), gl.NO_ERROR);
+}, "Members of a named uniform block are active but have no location");
+
+test(function() {
+    const gl = document.createElement("canvas").getContext("webgl2");
+    const program = linkProgram(gl);
+    gl.useProgram(program);
+    const location = gl.getUniformLocation(program, "color");
+    assert_not_equals(location, null);
+    gl.uniform4f(location, 0.25, 0.5, 0.75, 1);
+    assert_array_equals(gl.getUniform(program, location), [0.25, 0.5, 0.75, 1]);
+    assert_equals(gl.getError(), gl.NO_ERROR);
+}, "A uniform outside the block keeps its own location");
+</script>

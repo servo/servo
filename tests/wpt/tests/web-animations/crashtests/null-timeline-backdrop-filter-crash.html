@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>Null timeline animation does not crash.</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations-1/#the-animation-interface">
+<link rel="help" href="https://crbug.com/567645136">
+<script src="/common/rendering-utils.js"></script>
+
+<div id="target" style="width: 100px; height: 100px;"></div>
+
+<script>
+onload = async () => {
+  const anim_no_timeline = new Animation(
+    new KeyframeEffect(document.body,
+                       { 'opacity': ['0', '1'] },
+                       { duration: 1000, fill: 'both' }),
+    null
+  );
+  await waitForAtLeastOneFrame();
+  anim_no_timeline.currentTime = 900;
+  await waitForAtLeastOneFrame();
+  const anim = new Animation(
+    new KeyframeEffect(target,
+                       { 'transform': ['scaleX(1)', 'scaleX(2)'] },
+                       { duration: 1000, fill: 'both' }),
+    document.timeline
+  );
+  anim.play();
+  await waitForAtLeastOneFrame();
+  document.documentElement.classList.remove('test-wait');
+};
+</script>
+</html>

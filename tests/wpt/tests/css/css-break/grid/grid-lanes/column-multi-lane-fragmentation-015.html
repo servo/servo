@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>Multi-lane column grid-lanes fragmentation with a densely packed item</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    background: red;
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0;
+    height: 100px;
+    width: 100px;
+  }
+  .grid-lanes {
+    display: grid-lanes;
+    flow-tolerance: 0;
+    grid-auto-flow: dense;
+    grid-lanes-pack: dense;
+    grid-template-columns: repeat(2, 25px);
+    width: 50px;
+  }
+  .first {
+    grid-column: 1;
+    height: 80px;
+  }
+  .tall {
+    grid-column: 2;
+    height: 160px;
+  }
+  .parent {
+    grid-column: span 2;
+    height: 40px;
+  }
+  .packed {
+    grid-column: 1;
+    height: 80px;
+  }
+  .grid-lanes > div {
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div class="grid-lanes">
+    <div class="first"></div>
+    <div class="tall"></div>
+    <div class="parent"></div>
+    <div class="packed"></div>
+  </div>
+</div>

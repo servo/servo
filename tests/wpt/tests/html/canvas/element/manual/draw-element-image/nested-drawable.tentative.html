@@ -26,6 +26,22 @@
     height: 50px;
     background: purple;
   }
+  #grandchildd {
+    position: relative;
+    width: 50px;
+    height: 50px;
+    background: orange;
+  }
+  #grandchilde {
+    width: 50px;
+    height: 50px;
+    background: cyan;
+  }
+  #grandchildf {
+    width: 50px;
+    height: 50px;
+    background: magenta;
+  }
   #canvas {
     background: #ccc;
   }
@@ -36,6 +52,14 @@
     <div id="grandchilda" drawable></div>
     <div id="grandchildb"></div>
     <div id="grandchildc" drawable></div>
+    <div id="grandchildd">
+      <div style="opacity: 0.5">
+        <div id="grandchilde" drawable></div>
+      </div>
+    </div>
+    <div style="overflow: hidden; width: 0; height: 0;">
+      <div id="grandchildf" drawable></div>
+    </div>
   </div>
 </canvas>
 
@@ -43,12 +67,18 @@
   onload = async () => {
     await waitForCanvasPaint(canvas);
     // Draw the 100x200 green #child at the origin. This should not include the
-    // drawable grandchildren, but should include #grandchildb.
+    // drawable grandchildren, but should include #grandchildb and #grandchildd.
     canvas.getContext('2d').drawElementImage(child, 0, 0);
     // Draw the 50x50 blue #grandchilda at 100,0.
     canvas.getContext('2d').drawElementImage(grandchilda, 100, 0);
     // Draw the 50x50 purple #grandchildc at 200,0.
     canvas.getContext('2d').drawElementImage(grandchildc, 200, 0);
+    // Draw the 50x50 cyan #grandchilde at 100,100; the non-drawable ancestor's
+    // opacity should be ignored.
+    canvas.getContext('2d').drawElementImage(grandchilde, 100, 100);
+    // Draw the 50x50 magenta #grandchildf at 200,100; the ancestor clip
+    // should be ignored.
+    canvas.getContext('2d').drawElementImage(grandchildf, 200, 100);
     takeScreenshot();
   };
 </script>

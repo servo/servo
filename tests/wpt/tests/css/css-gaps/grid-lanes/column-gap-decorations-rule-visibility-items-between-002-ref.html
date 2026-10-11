@@ -18,8 +18,8 @@
     background: #5b8def;
   }
   .track-one { grid-column: 1; }
-  .track-two { grid-column: 2; }
-  .col-rule { position: absolute; top: 0; left: 68px; width: 0; height: 280px; border-left: 4px solid blue; }
+  .lanes > .track-two { grid-column: 2; height: 70px; }
+  .col-rule { position: absolute; left: 68px; width: 0; height: 40px; border-left: 4px solid blue; }
 </style>
 <div class="case">
   <div class="lanes">
@@ -30,5 +30,6 @@
     <div class="track-one"></div>
     <div class="track-two"></div>
   </div>
-  <div class="col-rule"></div>
+  <div class="col-rule" style="top: 0;"></div>
+  <div class="col-rule" style="top: 60px;"></div>
 </div>

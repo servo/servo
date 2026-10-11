@@ -32,20 +32,15 @@
 //! | sequences               | `Vec<T>`        |                |
 //! | union types             | `T`             |                |
 
-use std::ffi;
-
 use js::context::JSContext;
 pub(crate) use js::conversions::{
     ConversionBehavior, ConversionResult, FromJSValConvertible, ToJSValConvertible,
 };
 use js::jsapi::JSObject;
-use js::jsval::UndefinedValue;
-use js::rust::wrappers2::JS_GetProperty;
-use js::rust::{HandleObject, MutableHandleValue};
+use js::rust::HandleObject;
 pub(crate) use script_bindings::conversions::{is_dom_proxy, *};
 use script_bindings::reflector::DomObject;
 
-use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::DomRoot;
 
 /// Get a `DomRoot<T>` for the given DOM object, unwrapping any wrapper
@@ -70,43 +65,4 @@ where
     T: DomObject + IDLInterface,
 {
     unsafe { root_from_object(cx, obj.get()) }
-}
-
-/// Get a property from a JS object.
-pub(crate) fn get_property_jsval(
-    cx: &mut JSContext,
-    object: HandleObject,
-    name: &ffi::CStr,
-    rval: MutableHandleValue,
-) -> Fallible<()> {
-    if unsafe { !JS_GetProperty(cx, object, name.as_ptr(), rval) } {
-        return Err(Error::JSFailed);
-    }
-
-    Ok(())
-}
-
-/// Get a property from a JS object, and convert it to a Rust value.
-pub(crate) fn get_property<T>(
-    cx: &mut JSContext,
-    object: HandleObject,
-    name: &ffi::CStr,
-    option: T::Config,
-) -> Fallible<Option<T>>
-where
-    T: FromJSValConvertible,
-{
-    rooted!(&in(cx) let mut result = UndefinedValue());
-    get_property_jsval(cx, object, name, result.handle_mut())?;
-
-    if result.is_undefined() {
-        return Ok(None);
-    }
-
-    let value = T::from_jsval(cx, result.handle(), option);
-    match value {
-        Ok(ConversionResult::Success(value)) => Ok(Some(value)),
-        Ok(ConversionResult::Failure(error)) => Err(Error::Type(error.into_owned())),
-        Err(()) => Err(Error::JSFailed),
-    }
 }

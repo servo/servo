@@ -8,11 +8,12 @@ use std::sync::Arc;
 
 use app_units::Au;
 use bitflags::bitflags;
-use fonts::ShapedTextSlice;
+use fonts::{ShapedTextSlice, TrailingWhiteSpace};
 use itertools::Either;
 use servo_base::text::Utf32CodeUnits;
 use style::Zero;
 use style::computed_values::position::T as Position;
+use style::computed_values::text_wrap_mode::T as TextWrapMode;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::values::computed::BaselineShift;
 use style::values::generics::box_::BaselineShiftKeyword;
@@ -24,7 +25,9 @@ use super::inline_box::{InlineBoxContainerState, InlineBoxIdentifier, InlineBoxT
 use super::{InlineFormattingContextLayout, LineBlockSizes, line_height};
 use crate::cell::ArcRefCell;
 use crate::flow::inline::text_run::{FontAndScriptInfo, SharedTextRunData};
-use crate::fragment_tree::{BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, TextFragment};
+use crate::fragment_tree::{
+    BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, FragmentFlags, TextFragment,
+};
 use crate::geom::{
     LogicalRect, LogicalSides, LogicalVec2, PhysicalRect, PhysicalSize, ToLogical,
     ToLogicalWithContainingBlock,
@@ -579,6 +582,9 @@ impl LineItemLayout<'_, '_> {
             margin.to_physical(containing_block_writing_mode),
             None, /* specific_layout_info */
         );
+        if self.for_block_level {
+            fragment.base.flags.insert(FragmentFlags::DO_NOT_PAINT);
+        }
 
         let offset_from_parent_ifc = LogicalVec2 {
             inline: pbm_sums.inline_start + self.current_state.inline_advance,
@@ -933,19 +939,6 @@ impl LineItem {
         }
     }
 
-    pub(super) fn trim_whitespace_at_end(&mut self, whitespace_trimmed: &mut Au) -> bool {
-        match self {
-            LineItem::InlineStartBoxPaddingBorderMargin(_) => true,
-            LineItem::InlineEndBoxPaddingBorderMargin(_) => true,
-            LineItem::TextRun(_, item) => item.trim_whitespace_at_end(whitespace_trimmed),
-            LineItem::Atomic(..) => false,
-            LineItem::AbsolutelyPositioned(..) => true,
-            LineItem::Float(..) => true,
-            LineItem::BlockLevel(..) => true,
-            LineItem::Tab { .. } => false,
-        }
-    }
-
     pub(super) fn trim_whitespace_at_start(&mut self, whitespace_trimmed: &mut Au) -> bool {
         match self {
             LineItem::InlineStartBoxPaddingBorderMargin(_) => true,
@@ -974,54 +967,32 @@ pub(super) struct TextRunLineItem {
 }
 
 impl TextRunLineItem {
-    fn trim_whitespace_at_end(&mut self, whitespace_trimmed: &mut Au) -> bool {
-        if matches!(
-            self.text_fragment_run_data
-                .inline_styles
-                .style
-                .borrow()
-                .get_inherited_text()
-                .white_space_collapse,
-            WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces
-        ) {
-            return false;
+    pub(crate) fn white_space_hangs_conditionally(&self) -> bool {
+        let style = self.text_fragment_run_data.inline_styles.style.borrow();
+        let text = style.get_inherited_text();
+        matches!(
+            (text.white_space_collapse, text.text_wrap_mode),
+            (WhiteSpaceCollapse::Preserve, TextWrapMode::Wrap)
+        )
+    }
+
+    /// Trim the removable white space at the end of this [`TextRunLineItem`].
+    pub(crate) fn trim_removable_white_space_at_end(&mut self) {
+        while let Some(last) = self.text.last_mut() {
+            if last.all_removable() {
+                self.text.pop();
+                continue;
+            }
+            *last = last.without_removable_white_space();
+            break;
         }
-
-        let index_of_last_non_whitespace = self
-            .text
-            .iter()
-            .rev()
-            .position(|glyph| !glyph.is_whitespace())
-            .map(|offset_from_end| self.text.len() - offset_from_end);
-
-        let first_whitespace_index = index_of_last_non_whitespace.unwrap_or(0);
-        *whitespace_trimmed += self
-            .text
-            .drain(first_whitespace_index..)
-            .map(|glyph| glyph.total_advance())
-            .sum();
-
-        // Only keep going if we only encountered whitespace.
-        index_of_last_non_whitespace.is_none()
     }
 
     fn trim_whitespace_at_start(&mut self, whitespace_trimmed: &mut Au) -> bool {
-        if matches!(
-            self.text_fragment_run_data
-                .inline_styles
-                .style
-                .borrow()
-                .get_inherited_text()
-                .white_space_collapse,
-            WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces
-        ) {
-            return false;
-        }
-
         let index_of_first_non_whitespace = self
             .text
             .iter()
-            .position(|glyph| !glyph.is_whitespace())
+            .position(|slice| !slice.all_removable())
             .unwrap_or(self.text.len());
 
         *whitespace_trimmed += self
@@ -1032,6 +1003,37 @@ impl TextRunLineItem {
 
         // Only keep going if we only encountered whitespace.
         self.text.is_empty()
+    }
+
+    /// Returns a [`TrailingWhiteSpace`] with the measurement of hanging
+    /// and removable white space and boolean saying whether or not there
+    /// was preceding content.
+    pub(crate) fn trailing_white_space(&self) -> (TrailingWhiteSpace<Au>, bool) {
+        let mut hangable = Au::zero();
+        let mut removable = Au::zero();
+        let mut preceded_by_content = false;
+
+        for slice in self.text.iter().rev() {
+            if hangable.is_zero() {
+                removable += slice.removable_advance();
+            } else {
+                hangable += slice.removable_advance();
+            }
+            hangable += slice.hangable_advance();
+
+            if slice.has_non_hangable_non_removable_content() {
+                preceded_by_content = true;
+                break;
+            }
+        }
+
+        (
+            TrailingWhiteSpace {
+                hangable,
+                removable,
+            },
+            preceded_by_content,
+        )
     }
 }
 

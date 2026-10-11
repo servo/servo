@@ -22,7 +22,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{CacheMode, Request};
 use net_traits::response::{Response, ResponseBody};
-use net_traits::{CacheEntryDescriptor, FetchMetadata, Metadata, ResourceFetchTiming};
+use net_traits::{CacheEntryDescriptor, Metadata, ResourceFetchTiming};
 use parking_lot::Mutex as ParkingLotMutex;
 use quick_cache::sync::{Cache, PlaceholderGuard};
 use quick_cache::{DefaultHashBuilder, Lifecycle, UnitWeighter};
@@ -1194,13 +1194,8 @@ impl<'a> CachedResourcesOrGuard<'a> {
             // responses to be stored is present in the response.
             return;
         };
-        let metadata = match response.metadata() {
-            Ok(FetchMetadata::Filtered {
-                filtered: _,
-                unsafe_: metadata,
-            }) |
-            Ok(FetchMetadata::Unfiltered(metadata)) => metadata,
-            _ => return,
+        let Ok(metadata): Result<Metadata, _> = response.metadata().map(Into::into) else {
+            return;
         };
         if !response_is_cacheable(&metadata) {
             return;

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid/#layout-algorithm">
+<meta name="assert" content="Check that the grid's 'auto' tracks are sized to include grid items' margins, and that items are positioned within their grid areas accordingly, when using vertical-lr writing mode in a grid with a definite block size.">
+<link href="/css/support/grid.css" rel="stylesheet">
+<link href="/css/support/alignment.css" rel="stylesheet">
+<style>
+.grid {
+    grid-template-rows: auto auto;
+    grid-template-columns: auto auto;
+    width: 200px;
+    position: relative;
+    margin-bottom: 20px;
+}
+.gridItem {
+    width: 20px;
+    height: 40px;
+}
+.marginTop {
+    margin-top: 20px;
+}
+.marginBottom {
+    margin-bottom: 20px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.grid')">
+<div id="log"></div>
+<div class="grid contentStart verticalLR" data-expected-width="200" data-expected-height="120">
+    <div class="gridItem marginTop firstRowFirstColumn" data-offset-x="0" data-offset-y="20"></div>
+    <div class="gridItem firstRowSecondColumn" data-offset-x="0" data-offset-y="60"></div>
+    <div class="gridItem secondRowFirstColumn" data-offset-x="20" data-offset-y="0"></div>
+    <div class="gridItem marginBottom secondRowSecondColumn" data-offset-x="20" data-offset-y="60"></div>
+</div>
+<div class="grid contentStart verticalLR" data-expected-width="200" data-expected-height="100">
+    <div class="gridItem marginTop firstRowFirstColumn" data-offset-x="0" data-offset-y="20"></div>
+    <div class="gridItem firstRowSecondColumn" data-offset-x="0" data-offset-y="60"></div>
+    <div class="gridItem marginBottom secondRowFirstColumn" data-offset-x="20" data-offset-y="0"></div>
+    <div class="gridItem secondRowSecondColumn" data-offset-x="20" data-offset-y="60"></div>
+</div>
+</body>

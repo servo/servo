@@ -8,6 +8,7 @@ use std::borrow::Cow;
 use std::cell::{Cell, RefCell};
 use std::mem;
 use std::rc::Rc;
+use std::sync::Arc;
 
 use base64::Engine as _;
 use base64::engine::general_purpose;
@@ -269,7 +270,6 @@ impl ServoParser {
             loader,
             None,
             None,
-            Default::default(),
             false,
             allow_declarative_shadow_roots,
             Some(context_document.insecure_requests_policy()),
@@ -927,7 +927,7 @@ impl Tokenizer {
 /// of the struct when used in loading document spec algorithms.
 struct NavigationParams {
     /// <https://html.spec.whatwg.org/multipage/#navigation-params-policy-container>
-    policy_container: PolicyContainer,
+    policy_container: Arc<PolicyContainer>,
     /// content-type of this document, if known. Otherwise need to sniff it
     content_type: Option<Mime>,
     /// link headers from the response
@@ -1007,11 +1007,11 @@ impl ParserContext {
         }
     }
 
-    pub(crate) fn set_policy_container(&mut self, policy_container: Option<&PolicyContainer>) {
+    pub(crate) fn set_policy_container(&mut self, policy_container: Option<Arc<PolicyContainer>>) {
         let Some(policy_container) = policy_container else {
             return;
         };
-        self.navigation_params.policy_container = policy_container.clone();
+        self.navigation_params.policy_container = policy_container;
     }
 
     pub(crate) fn set_about_base_url(&mut self, about_base_url: Option<ServoUrl>) {
@@ -1369,13 +1369,7 @@ impl ParserContext {
         meta_result: Result<FetchMetadata, NetworkError>,
     ) {
         let (metadata, mut error) = match meta_result {
-            Ok(meta) => (
-                Some(match meta {
-                    FetchMetadata::Unfiltered(m) => m,
-                    FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
-                }),
-                None,
-            ),
+            Ok(meta) => (Some(meta.into()), None),
             Err(error) => (
                 // Check variant without moving
                 match &error {
@@ -1442,11 +1436,11 @@ impl ParserContext {
         );
 
         let Some(document) = script_thread.handle_page_headers_available(
+            cx,
             self.webview_id,
             self.pipeline_id,
             metadata.as_ref(),
             origin.clone(),
-            cx,
         ) else {
             return;
         };
@@ -1517,7 +1511,7 @@ impl ParserContext {
             self.parser = Some(Trusted::new(&*parser));
         }
         self.navigation_params = NavigationParams {
-            policy_container,
+            policy_container: Arc::new(policy_container),
             content_type,
             final_sandboxing_flag_set,
             link_headers,

@@ -58,17 +58,15 @@ jobs:
         uses: ./.github/actions/setup-python
       - name: Install taplo
         if: ${{ runner.environment != 'self-hosted' }}
-        uses: baptiste0928/cargo-install@v3
+        uses: taiki-e/install-action@v2
         with:
-          crate: taplo-cli
-          locked: true
+          tool: taplo-cli
       - name: Install cargo-deny
         if: ${{ runner.environment != 'self-hosted' }}
-        uses: baptiste0928/cargo-install@v3
+        uses: taiki-e/install-action@v2
         with:
-          crate: cargo-deny
-          version: 0.19.0
-          locked: true
+          # Keep this in sync with the bootstrap version!
+          tool: cargo-deny@0.20.2
       - name: Change Mirror Priorities
         if: ${{ runner.environment != 'self-hosted' }}
         uses: ./.github/actions/apt-mirrors

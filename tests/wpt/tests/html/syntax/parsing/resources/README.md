@@ -13,10 +13,16 @@ of the file. For instance:
 
 Where [TEST] is the following format:
 
-Each test must begin with a string "\#data" followed by a newline (LF).
-All subsequent lines until a line that says "\#errors" are the test data
-and must be passed to the system being tested unchanged, except with the
-final newline (on the last line) removed.
+Each test \*may\* begin with a string "\#description" followed by a
+newline (LF). All subsequent lines until a line that says "\#data" are
+the test description and \*should\* be passed to the test harness to
+supplement the test's name.
+
+Each test must either begin with "\#description" (see above) or begin
+with a string "\#data" followed by a newline (LF). All subsequent lines
+until a line that says "\#errors" are the test data and must be passed
+to the system being tested unchanged, except with the final newline
+(on the last line) removed.
 
 Then there must be a line that says "\#errors". It must be followed by
 one line per parse error that a conformant checker would return. It

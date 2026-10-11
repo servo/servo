@@ -353,6 +353,9 @@ scheme host and port.""")
     gecko_view_group = parser.add_argument_group("GeckoView-specific")
     gecko_view_group.add_argument("--setenv", dest="env", action="append", default=[],
                                   help="Set target environment variable, like FOO=BAR")
+    gecko_view_group.add_argument("--enable-isolated-process", dest="isolated_process",
+                                  action="store_true", default=False,
+                                  help="Enable content service isolated process.")
 
     servo_group = parser.add_argument_group("Servo-specific")
     servo_group.add_argument("--user-stylesheet",

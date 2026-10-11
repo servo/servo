@@ -13,6 +13,10 @@
 // Start the video.rVFC callbacks before starting the XR Session.
 let video = document.createElement('video');
 video.muted = true;
+// The video is shared by all subtests and only lasts 5s. Loop it so that
+// rVFC callbacks keep coming if loading the page and running the subtests
+// takes longer than that.
+video.loop = true;
 video.src = getVideoURI('/media/movie_5');
 
 var numberVFCs = 0;
@@ -57,8 +61,6 @@ let testFunction = async function(session, fakeDeviceController, t) {
 
 xr_session_promise_test('Make sure video.rVFC works during a non-immersive session',
     testFunction, TRACKED_IMMERSIVE_DEVICE, 'inline');
-
-video.currentTime = 0;
 
 xr_session_promise_test('Make sure video.rVFC works during an immersive session',
     testFunction, TRACKED_IMMERSIVE_DEVICE, 'immersive-vr');

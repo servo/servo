@@ -16,6 +16,8 @@ navigator.serviceWorker.addEventListener("message", ev => {
 
 // Grant the permission so that we can confirm the permission being denied
 // regardless of the actual permission status.
+// Note that this will not set the permission for the current iframe if
+// running on a browser engine with partitioned storage.
 test_driver.set_test_context(window.top);
 await test_driver.set_permission({ name: "notifications" }, "granted");
 

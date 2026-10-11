@@ -64,9 +64,14 @@ function navigateToAboutBlankTest(
     let opener_window_proxy = window.open(opener_url, opener_token);
 
     // 2. Create the iframe.
+    // The allow-top-navigation sandbox flag disables the intervention
+    // requiring a user gesture to navigate top
+    // (https://github.com/WICG/interventions/issues/16), while
+    // allow-same-origin preserves the iframe's origin.
     send(opener_token, `
       iframe = document.createElement('iframe');
       iframe.src = "${iframe_url}";
+      iframe.sandbox = "allow-top-navigation allow-scripts allow-same-origin";
       document.body.appendChild(iframe);
     `);
 
@@ -81,19 +86,10 @@ function navigateToAboutBlankTest(
     send(openee_token, `send("${this_window_token}", "Ack");`);
     assert_equals(await receive(this_window_token), "Ack");
 
-    // 5. The iframe navigates its top-level document to about:blank. It needs
-    // to receive a user action as it may be cross-origin and it navigates top
-    // to a cross-origin document.
-    // https://github.com/WICG/interventions/issues/16
-    send(iframe_token, addScriptAndTriggerOnload(
-      "/resources/testdriver.js",
-      `${addScriptAndTriggerOnload("/resources/testdriver-vendor.js",
-        `
-        test_driver.bless('navigate top to about:blank', () => {
-          open("about:blank", "_top");
-        });
-      `)}
-    `));
+    // 5. The iframe navigates its top-level document to about:blank.
+    send(iframe_token, `
+      open("about:blank", "_top");
+    `);
 
     // 6. Ensure opener is fully loaded and then retrieve the results.
     send(openee_token, `
@@ -160,12 +156,14 @@ navigateToAboutBlankTest(
   true
 );
 
-// Same origin allow popups allows the navigation of top to the cross-origin
-// about:blank (origin inherited from the iframe) page, which does not have COOP
-// (initiator is a cross origin iframe).
+// Same-origin-allow-popups only allows popups (navigating from the initial
+// empty document) to stay in the same browsing context group when navigating to
+// unsafe-none. Navigating the top-level document itself to a cross-origin
+// about:blank page (COOP: unsafe-none) still leads to a browsing context group
+// switch.
 navigateToAboutBlankTest(
   coop_same_origin_allow_popups_header,
   cross_origin,
-  false
+  true
 );
 </script>

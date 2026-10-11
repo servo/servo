@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/urls-and-fetching.html#respond-to-base-url-changes">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#update-speculation-rules">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#the-base-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// Invalid inline speculation rules report a TypeError exception on window,
+// which testharness.js's global error listener would otherwise treat as an
+// unexpected harness error.
+setup({ allow_uncaught_exception: true });
+
+promise_test(async t => {
+  const script = document.createElement('script');
+  script.type = 'speculationrules';
+  script.textContent = 'invalid json';
+  t.add_cleanup(() => script.remove());
+
+  let elementErrorCount = 0;
+  let globalErrorCount = 0;
+
+  const elementError = new Promise(resolve => {
+    script.addEventListener('error', () => {
+      elementErrorCount++;
+      resolve();
+    });
+  });
+
+  const onWindowError = e => {
+    e.preventDefault();
+    globalErrorCount++;
+  };
+  window.addEventListener('error', onWindowError);
+  t.add_cleanup(() => window.removeEventListener('error', onWindowError));
+
+  document.head.appendChild(script);
+  await elementError;
+  assert_equals(elementErrorCount, 1, 'initial element error event count');
+  assert_equals(globalErrorCount, 1, 'initial window error event count');
+
+  // Modifying a disconnected <base> element should not trigger base URL updates.
+  const disconnectedBase = document.createElement('base');
+  disconnectedBase.href = 'https://example.com/disconnected/';
+  disconnectedBase.cloneNode(true);
+  assert_equals(elementErrorCount, 1, 'element error count after disconnected base');
+  assert_equals(globalErrorCount, 1, 'window error count after disconnected base');
+
+  // Inserting, updating, and removing a connected <base> element should not
+  // re-fire error events for an already-errored speculationrules script.
+  const base = document.createElement('base');
+  base.href = 'https://example.com/sub1/';
+  t.add_cleanup(() => base.remove());
+  document.head.appendChild(base);
+  base.href = 'https://example.com/sub2/';
+  base.remove();
+
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+  assert_equals(elementErrorCount, 1, 'element error count after base URL changes');
+  assert_equals(globalErrorCount, 1, 'window error count after base URL changes');
+}, 'Base URL changes do not re-fire error events on invalid speculation rules');
+</script>

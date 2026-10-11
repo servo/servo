@@ -1,0 +1,24 @@
+<!doctype html>
+<title>SVGPathElement.getPathSegmentAtLength() clamps out-of-range distances</title>
+<link rel="help" href="https://svgwg.org/specs/paths/#InterfaceSVGPathData">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/getPathData-helpers.js"></script>
+
+<script>
+// d: M(0,0) L(100,0) [0..100] L(100,100) [100..200].
+const D = "M 0 0 L 100 0 L 100 100";
+
+test(() => {
+  const path = createPath(D);
+  assert_path_segment_equals(
+      path.getPathSegmentAtLength(-10), { type: "M", values: [0, 0] });
+}, "negative distance is clamped to the first segment");
+
+test(() => {
+  const path = createPath(D);
+  assert_path_segment_equals(
+      path.getPathSegmentAtLength(1000), { type: "L", values: [100, 100] });
+}, "distance beyond the path returns the last segment");
+
+</script>

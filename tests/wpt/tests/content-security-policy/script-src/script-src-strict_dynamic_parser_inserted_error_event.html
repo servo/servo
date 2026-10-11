@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+    <title>Parser-inserted external scripts blocked by `strict-dynamic` fire an error event.</title>
+    <script src='/resources/testharness.js' nonce='dummy'></script>
+    <script src='/resources/testharnessreport.js' nonce='dummy'></script>
+</head>
+<body>
+    <div id='log'></div>
+    <script nonce='dummy'>
+        for (const type of ['classic', 'module']) {
+            async_test(t => {
+                const id = 'documentWrite-' + type;
+                window.addEventListener('message', t.step_func(e => {
+                    if (e.data === id)
+                        assert_unreached('Blocked script should not execute.');
+                }));
+                window.addEventListener('error', t.step_func(e => {
+                    if (e.target.id !== id)
+                        return;
+                    assert_equals(e.type, 'error');
+                    t.done();
+                }), true);
+                const typeAttribute = type === 'module' ? ' type="module"' : '';
+                document.write('<scr' + 'ipt id="' + id + '"' + typeAttribute + ' src="simpleSourcedScript.js?' + id + '"></scr' + 'ipt>');
+            }, `Parser-inserted ${type} script blocked by \`strict-dynamic\` fires an error event.`);
+        }
+    </script>
+</body>
+</html>

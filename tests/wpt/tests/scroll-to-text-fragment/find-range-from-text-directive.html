@@ -347,6 +347,45 @@ let test_cases = [
     expect_to_scroll: true,
     description: 'Match across broken image'
   },
+  {
+    fragment: '#:~:text=he%27s',
+    expect_to_scroll: true,
+    // he's is a whole word, so should match
+    description: 'Match containing an apostrophe is word bounded'
+  },
+  {
+    fragment: '#:~:text=he',
+    expect_to_scroll: false,
+    // "he" in "he's" isn't a whole word, so text=he must find no match.
+    description: 'Match must not start mid-word before an apostrophe'
+  },
+  {
+    fragment: '#:~:text=%27t',
+    expect_to_scroll: true,
+    // Should match "'t " before "were a sin", but not 't in Won't
+    description: 'Match starts with apostrophe'
+  },
+  {
+    fragment: '#:~:text=5',
+    expect_to_scroll: false,
+    description: 'Match must not start mid-number inside 3.5'
+  },
+  {
+    fragment: '#:~:text=3%2E',
+    expect_to_scroll: false,
+    description: 'Match must not end mid-number at 3. in 3.5'
+  },
+  {
+    fragment: '#:~:text=2',
+    expect_to_scroll: false,
+    description: 'Match must not start mid-number inside multi-node 40.2'
+  },
+  {
+    fragment: '#:~:text=i-,the%20cat',
+    expect_to_scroll: false,
+    // 'II' second I is mid-word, not a prefix word-start
+    description: 'Prefix must start on a word boundary at the start of a node'
+  },
 ];
 
 for (const test_case of test_cases) {

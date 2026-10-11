@@ -274,7 +274,7 @@ class Request:
         self._headers = None
         self.raw_headers = request_handler.headers
 
-        scheme = request_handler.server.scheme
+        scheme = request_handler.scheme
         host = self.raw_headers.get("Host")
         port = request_handler.server.server_address[1]
 

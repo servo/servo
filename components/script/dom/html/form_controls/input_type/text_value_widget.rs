@@ -15,9 +15,7 @@ use crate::dom::characterdata::CharacterData;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::shadowroot::shadowroot::ShadowRoot;
-use crate::dom::shadowroot::ua_shadowroot::{
-    SpecificShadowTree, UAShadowRoot, UpdateUAShadowRootForOther,
-};
+use crate::dom::shadowroot::ua_shadowroot::{SpecificShadowTree, UAShadowRoot};
 use crate::dom::text::Text;
 
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
@@ -28,7 +26,8 @@ pub(crate) struct TextValueWidget {
 
 impl TextValueWidget {
     pub(crate) fn update_shadow_tree(&self, cx: &mut JSContext, input: &HTMLInputElement) {
-        UpdateUAShadowRootForOther::update_shadow_tree(self, cx, input)
+        self.ensure_shadow_tree(cx, input.upcast())
+            .update(cx, self, input)
     }
 }
 

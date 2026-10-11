@@ -174,4 +174,73 @@
     assert_false(window.detached_script_ran, "Scripts in detached element should not execute");
     assert_equals(detachedDiv.querySelector("p").textContent, "text");
   }, "streamHTMLUnsafe on detached element should parse markup without executing scripts");
+
+  // D5: Unclosed <script> at close never runs; element is in the DOM and marked already started
+  promise_test(async (t) => {
+    window.unclosed_close_ran = false;
+    t.add_cleanup(() => { delete window.unclosed_close_ran; });
+    const placeholder = document.getElementById("placeholder");
+    placeholder.replaceChildren();
+    const writer = placeholder.streamHTMLUnsafe({ runScripts: true }).getWriter();
+
+    await writer.write("<script id='unclosed-script'>window.unclosed_close_ran = true;");
+    await writer.close();
+
+    const script = placeholder.querySelector("#unclosed-script");
+    assert_not_equals(script, null, "Unclosed <script> element is in the DOM");
+    assert_false(window.unclosed_close_ran, "Unclosed <script> must not execute on close()");
+
+    // Because it is marked already started at EOF, modifying it or re-inserting it must not execute it.
+    script.appendChild(document.createTextNode("window.unclosed_close_ran = true;"));
+    assert_false(window.unclosed_close_ran, "Appending text to unclosed <script> after close() must not execute it");
+  }, "Unclosed <script> at close() never runs, stays in the DOM, and is marked already started");
+
+  // D6: A rejected write aborts the parser so a pending blocking script never runs and buffered markup is not inserted
+  for (const rejectKind of ["symbol", "toStringThrow", "displacedRef"]) {
+    promise_test(async (t) => {
+      window.events = [];
+      const placeholder = document.getElementById("placeholder");
+      placeholder.replaceChildren();
+      const ref = document.createElement("span");
+      placeholder.appendChild(ref);
+
+      const writer = ref.streamBeforeHTMLUnsafe({ runScripts: true }).getWriter();
+      await writer.write(
+        "<script src='resources/slow.js?pipe=trickle(d0.2)&d6=" + rejectKind + "'><" + "/script>" +
+        "<p id='buffered-after-blocking'>buffered</p>"
+      );
+
+      if (rejectKind === "symbol") {
+        await promise_rejects_js(t, TypeError, writer.write(Symbol("bad")));
+      } else if (rejectKind === "toStringThrow") {
+        await promise_rejects_js(t, Error, writer.write({ toString() { throw new Error("boom"); } }));
+      } else {
+        ref.remove();
+        await promise_rejects_dom(t, "HierarchyRequestError", writer.write("more"));
+      }
+
+      await new Promise(r => t.step_timeout(r, 350));
+      assert_array_equals(window.events, [], `Pending blocking script must not execute after rejected write (${rejectKind})`);
+      assert_equals(placeholder.querySelector("#buffered-after-blocking"), null, `Buffered markup after blocking script must not be inserted after rejected write (${rejectKind})`);
+    }, `Rejected write (${rejectKind}) stops the parser and prevents pending blocking script and buffered markup from running`);
+  }
+
+  // D7: Abort with an unclosed <script> marks it already started so later DOM mutation does not execute it
+  promise_test(async (t) => {
+    window.aborted_script_ran = false;
+    t.add_cleanup(() => { delete window.aborted_script_ran; });
+    const placeholder = document.getElementById("placeholder");
+    placeholder.replaceChildren();
+    const writer = placeholder.streamHTMLUnsafe({ runScripts: true }).getWriter();
+
+    await writer.write("<script id='aborted-open'>window.aborted_script_ran = true;");
+    await writer.abort();
+
+    const script = placeholder.querySelector("#aborted-open");
+    assert_not_equals(script, null);
+    assert_false(window.aborted_script_ran);
+
+    script.appendChild(document.createTextNode("window.aborted_script_ran = true;"));
+    assert_false(window.aborted_script_ran, "Aborted unclosed <script> is marked already started");
+  }, "Abort with an unclosed <script> marks it already started");
 </script>

@@ -1,0 +1,81 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Document-Isolation-Policy header parsing</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<body>
+<script>
+"use strict";
+
+const noCorpURL = get_host_info().HTTPS_REMOTE_ORIGIN + "/html/document-isolation-policy/resources/nothing-no-corp.js";
+
+// Loads a same-origin frame with the given Document-Isolation-Policy header values and resolves
+// with whether a no-cors fetch of a cross-origin resource without CORP was blocked in that frame.
+function fetchInFrame(t, values) {
+  const id = token();
+  const params = values.map(value => {
+    const percentEncodedValue = typeof value === "object" ? value.percentEncoded : encodeURIComponent(value);
+    return `value=${percentEncodedValue}`;
+  });
+  params.push(`url=${encodeURIComponent(noCorpURL)}`, `id=${id}`);
+
+  const result = new Promise(resolve => {
+    window.addEventListener("message", function listener(event) {
+      if (event.data.id !== id)
+        return;
+      window.removeEventListener("message", listener);
+      resolve(event.data.result);
+    });
+  });
+
+  const frame = document.createElement("iframe");
+  frame.src = `resources/header-parsing-frame.py?${params.join("&")}`;
+  document.body.append(frame);
+  t.add_cleanup(() => frame.remove());
+  return result;
+}
+
+[
+  [],
+  [""],
+  ["none"],
+  ["jibberish"],
+  [{ percentEncoded: "isolate-and-require%FFcorp" }], // non-ASCII byte
+  ["isolate-and-require-corp;"],
+  ["\u000bisolate-and-require-corp\u000b"], // vertical tab
+  ["\u000cisolate-and-require-corp\u000c"], // form feed
+  ["\u000disolate-and-require-corp\u000d"], // carriage return
+  ["Isolate-and-require-corp"],
+  ["ISOLATE-AND-REQUIRE-CORP"],
+  ["\"isolate-and-require-corp\""], // HTTP structured header "string" item
+  [":aXNvbGF0ZS1hbmQtcmVxdWlyZS1jb3Jw:"], // HTTP structured header "byte sequence" item
+  ["isolate-and-require-corp;\tfoo=bar"],
+  ["isolate-and-require-corp isolate-and-require-corp"],
+  ["isolate-and-require-corp,isolate-and-require-corp"],
+  ["isolate-and-require-corp", "isolate-and-require-corp"],
+  ["", "isolate-and-require-corp"],
+  ["isolate-and-require-corp", ""],
+].forEach(values => {
+  promise_test(async t => {
+    assert_equals(await fetchInFrame(t, values), "allowed");
+  }, `policy ignored for ${JSON.stringify(values)}`);
+});
+
+[
+  ["isolate-and-require-corp"],
+  [" isolate-and-require-corp "],
+  ["\tisolate-and-require-corp\t"], // leading and trailing OWS is not part of the field-value per HTTP
+  [" \tisolate-and-require-corp"],
+  ["isolate-and-require-corp\t "],
+  ["isolate-and-require-corp; foo=bar"],
+  ["isolate-and-require-corp;isolate-and-require-corp"],
+  ["isolate-and-require-corp; report-to=\"endpoint\""],
+].forEach(values => {
+  promise_test(async t => {
+    assert_equals(await fetchInFrame(t, values), "blocked");
+  }, `policy applied for ${JSON.stringify(values)}`);
+});
+</script>

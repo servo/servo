@@ -54,10 +54,25 @@
       stashResultsThenClose(key, results);
     }
 
-    window.addEventListener("load", () => {
+    // The UA is allowed to delay the text fragment search after load, see
+    // https://wicg.github.io/scroll-to-text-fragment/#search-timing. Don't
+    // assume the scroll has happened within two frames of load; instead poll
+    // across animation frames until the document is scrolled or a maximum
+    // frame count passes.
+    const kMaxFrames = 10;
+
+    function pollScroll(framesRemaining) {
+      if (window.scrollY !== 0 || framesRemaining <= 0) {
+        checkScroll();
+        return;
+      }
       window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(checkScroll);
+        pollScroll(framesRemaining - 1);
       });
+    }
+
+    window.addEventListener("load", () => {
+      pollScroll(kMaxFrames);
     });
   </script>
 </head>

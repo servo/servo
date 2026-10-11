@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>'outline: auto' follows 'corner-shape' with positive 'outline-offset'</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shape-rendering">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#outline-style">
+<meta name="assert" content="Checks that 'outline: auto' follows the element's outer contour shaped by 'corner-shape', offset by a positive 'outline-offset'">
+<link rel="match" href="corner-shape-outline-auto-002-ref.html">
+<style>
+  #container {
+    position: relative;
+    width: 400px;
+    height: 400px;
+    background-color: gray;
+  }
+
+  #target {
+    position: absolute;
+    top: 100px;
+    left: 100px;
+
+    width: 200px;
+    height: 200px;
+    border-radius: 100px;
+
+    corner-shape: bevel notch squircle scoop;
+    outline: 3px auto red;
+    outline-offset: 50px;
+  }
+
+  svg {
+    position: absolute;
+  }
+</style>
+<div id="container">
+  <div id="target"></div>
+
+  <svg width="400" height="400">
+    <path d="M179.29 50H250v100h100v55.079c-.005 62.792-.412 97.602-23.866
+      121.055-23.453 23.454-58.263 23.86-121.055 23.866H150v-50a50 50 0 0
+      0-50-50H50v-70.71z"
+      fill="none" stroke="green" stroke-width="16" />
+  </svg>
+</div>

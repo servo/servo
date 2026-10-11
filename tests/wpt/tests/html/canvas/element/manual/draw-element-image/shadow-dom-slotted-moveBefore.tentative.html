@@ -38,7 +38,7 @@ onload = async () => {
   });
   // This move results in the slotted element actually being slotted.
   shadowHost.moveBefore(slotted, null);
-  // Wait for a rendering lifecycle to complete the move.
+  // Wait for a rendering update to complete the move.
   await new Promise(resolve => {
     canvas.addEventListener('paint', resolve, {once: true});
     canvas.requestPaint();

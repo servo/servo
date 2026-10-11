@@ -15,6 +15,7 @@ use gradient::WebRenderGradient;
 use layout_api::ReflowStatistics;
 use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
 use servo_arc::Arc as ServoArc;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{PipelineId, ScrollTreeNodeId};
 use servo_config::opts::{DiagnosticsLogging, DiagnosticsLoggingOption};
 use servo_config::{pref, prefs};
@@ -78,10 +79,13 @@ mod gradient;
 mod hit_test;
 mod paint_timing_handler;
 mod paint_traversal;
+mod painted_region;
 mod stacking_context;
 
 pub(crate) use hit_test::{ClosestFragmentSearch, HitTest};
-pub(crate) use paint_timing_handler::PaintTimingHandler;
+pub(crate) use paint_timing_handler::{
+    ContainerTimingRootChain, ContainerTimingRoots, PaintTimingHandler,
+};
 pub(crate) use stacking_context::*;
 
 const INSERTION_POINT_LOGICAL_WIDTH: Au = Au(AU_PER_PX);
@@ -138,6 +142,9 @@ pub(crate) struct DisplayListBuilder<'a> {
 
     /// Whether the `largest_contentul_paint_enabled` preference is enabled.
     largest_contentful_paint_enabled: bool,
+
+    /// Whether the `container_timing_enabled` preference is enabled.
+    container_timing_enabled: bool,
 
     /// The background color used for the shell.
     shell_background_color: AbsoluteColor,
@@ -239,6 +246,7 @@ impl DisplayListBuilder<'_> {
             paint_timing_handler,
             reflow_statistics,
             largest_contentful_paint_enabled: pref!(largest_contentful_paint_enabled),
+            container_timing_enabled: pref!(container_timing_enabled),
             shell_background_color,
             frame_focused,
         };
@@ -426,6 +434,51 @@ impl DisplayListBuilder<'_> {
         }))
     }
 
+    fn push_webrender_stacking_context_for_transform_if_necessary(
+        &mut self,
+        stacking_context: &StackingContext,
+    ) -> bool {
+        let StackingContextFragments::Fragment(fragment) = &stacking_context.fragment else {
+            return false;
+        };
+
+        let style = fragment.style();
+        let transform_style = style
+            .used_transform_style(fragment.base.flags)
+            .to_webrender();
+
+        if !style.has_effective_transform_or_perspective(FragmentFlags::empty()) &&
+            (transform_style == TransformStyle::Flat &&
+                !stacking_context.participates_in_a_3d_rendering_context)
+        {
+            return false;
+        }
+
+        // WebRender has two different ways of expressing "no clip." ClipChainId::INVALID
+        // should be used for primitives, but `None` is used for stacking contexts and
+        // clip chains. We convert to the `Option<ClipChainId>` representation here. Just
+        // passing Some(ClipChainId::INVALID) causes a panic.
+        let clip_chain_id = match stacking_context.clip_id {
+            ClipId::INVALID => None,
+            clip_id => Some(self.clip_chain_id(clip_id)),
+        };
+        let spatial_id = self.spatial_id(stacking_context.scroll_tree_node_id);
+
+        self.wr().push_stacking_context(
+            spatial_id,
+            style.webrender_primitive_flags(),
+            clip_chain_id,
+            transform_style,
+            MixBlendMode::Normal,
+            &[], // filters
+            &[], // filter_datas
+            wr::RasterSpace::Screen,
+            StackingContextFlags::empty(),
+            None, // snapshot
+        );
+        true
+    }
+
     fn push_webrender_stacking_context_if_necessary(
         &mut self,
         stacking_context: &StackingContext,
@@ -441,7 +494,6 @@ impl DisplayListBuilder<'_> {
         });
 
         let primitive_flags;
-        let transform_style;
         let mix_blend_mode;
         let mut filters: Vec<_>;
         let mut stacking_context_flags = StackingContextFlags::empty();
@@ -450,11 +502,8 @@ impl DisplayListBuilder<'_> {
                 let style = fragment.style();
                 let effects = style.get_effects();
 
-                transform_style = style
-                    .used_transform_style(fragment.base.flags)
-                    .to_webrender();
                 mix_blend_mode = effects.mix_blend_mode.to_webrender();
-                primitive_flags = style.get_webrender_primitive_flags();
+                primitive_flags = style.webrender_primitive_flags();
 
                 // Do not create another blend container stacking context started by the root
                 // element, because the root background is painted above of it (at the root
@@ -470,9 +519,7 @@ impl DisplayListBuilder<'_> {
                     effects.filter.0.is_empty() &&
                     effects.opacity == 1.0 &&
                     effects.mix_blend_mode == ComputedMixBlendMode::Normal &&
-                    !style.has_effective_transform_or_perspective(FragmentFlags::empty()) &&
-                    style.get_svg().clip_path == ComputedClipPath::None &&
-                    transform_style == TransformStyle::Flat
+                    style.get_svg().clip_path == ComputedClipPath::None
                 {
                     return false;
                 }
@@ -495,7 +542,6 @@ impl DisplayListBuilder<'_> {
             // WebRender only needs a stacking context at the root when the root stacking
             // context itself is a blend container.
             StackingContextFragments::Root if is_blend_container => {
-                transform_style = TransformStyle::Flat;
                 primitive_flags = PrimitiveFlags::empty();
                 mix_blend_mode = MixBlendMode::Normal;
                 filters = Vec::new();
@@ -521,7 +567,7 @@ impl DisplayListBuilder<'_> {
             spatial_id,
             primitive_flags,
             clip_chain_id,
-            transform_style,
+            TransformStyle::Flat,
             mix_blend_mode,
             &filters,
             &[], // filter_datas
@@ -546,7 +592,7 @@ impl DisplayListBuilder<'_> {
             clip_rect,
             spatial_id: self.spatial_id(state.spatial_id),
             clip_chain_id: self.clip_chain_id(state.clip_id),
-            flags: style.get_webrender_primitive_flags(),
+            flags: style.webrender_primitive_flags(),
         }
     }
 
@@ -669,6 +715,7 @@ impl DisplayListBuilder<'_> {
         url: Option<ServoUrl>,
         natural_width: Option<Au>,
         natural_height: Option<Au>,
+        load_time: Option<CrossProcessInstant>,
     ) {
         if !self.largest_contentful_paint_enabled {
             return;
@@ -685,6 +732,48 @@ impl DisplayListBuilder<'_> {
             clip_rect,
             transform,
             url,
+            natural_width,
+            natural_height,
+            load_time,
+        );
+    }
+
+    /// Accumulate a fragment painted by the element with the given `tag` into the
+    /// Container Timing state of each of the enclosing `container_timing_roots`.
+    #[expect(clippy::too_many_arguments)]
+    fn collect_container_timing_record(
+        &mut self,
+        state: &TraversalState,
+        container_timing_roots: &ContainerTimingRoots,
+        tag: Option<Tag>,
+        bounds: LayoutRect,
+        clip_rect: LayoutRect,
+        natural_width: Option<Au>,
+        natural_height: Option<Au>,
+    ) {
+        if !self.container_timing_enabled {
+            return;
+        }
+        let Some(container_timing_roots) = container_timing_roots else {
+            return;
+        };
+
+        // Like LCP collection, we skip if there's no containing element tag.
+        let Some(tag) = tag else {
+            return;
+        };
+
+        let transform = self
+            .paint_info
+            .scroll_tree
+            .cumulative_node_to_root_transform(state.spatial_id);
+
+        self.paint_timing_handler.update_container_timing(
+            container_timing_roots,
+            tag.node,
+            bounds,
+            clip_rect,
+            transform,
             natural_width,
             natural_height,
         );
@@ -750,6 +839,9 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
     ) -> Self::StackingContextState {
         let (mut stacking_contexts_pushed, old_reference_frame) =
             self.visit_stacking_context_reference_frame_info(stacking_context);
+        if self.push_webrender_stacking_context_for_transform_if_necessary(stacking_context) {
+            stacking_contexts_pushed += 1;
+        }
         if self.push_webrender_stacking_context_if_necessary(stacking_context) {
             stacking_contexts_pushed += 1;
         }
@@ -870,6 +962,17 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
                     common.clip_rect,
                     fragment.base.tag,
                     fragment.url.clone(),
+                    fragment.natural_width,
+                    fragment.natural_height,
+                    fragment.load_time,
+                );
+
+                self.collect_container_timing_record(
+                    state,
+                    &state.container_timing_roots,
+                    state.containing_element_tag,
+                    rect,
+                    common.clip_rect,
                     fragment.natural_width,
                     fragment.natural_height,
                 );
@@ -1068,17 +1171,10 @@ impl Fragment {
         let mut baseline_origin = rect.origin;
         baseline_origin.y += fragment.font_metrics.ascent;
 
-        let include_whitespace = fragment.run_data.selection.borrow().is_some() ||
-            state
-                .text_decorations
-                .iter()
-                .any(|item| !item.line.is_empty());
-
-        let (glyphs, largest_advance) = glyphs(
+        let (glyphs, largest_advance, entirely_white_space) = glyphs(
             &fragment.glyphs,
             baseline_origin,
             fragment.justification_adjustment,
-            include_whitespace,
         );
 
         if glyphs.is_empty() && !fragment.is_empty_for_text_cursor {
@@ -1182,29 +1278,44 @@ impl Fragment {
             None,
         );
 
-        builder
-            .paint_timing_handler
-            .check_if_paintable(glyph_bounds, parent_style.slow_clone_opacity());
+        if !entirely_white_space {
+            builder
+                .paint_timing_handler
+                .check_if_paintable(glyph_bounds, parent_style.slow_clone_opacity());
 
-        // From <https://www.w3.org/TR/paint-timing/#contentful>:
-        // An element target is contentful when one or more of the following apply:
-        // > target has a text node child, representing non-empty text, and the node’s used opacity is greater than zero.
-        builder.mark_is_contentful();
+            // From <https://www.w3.org/TR/paint-timing/#contentful>:
+            // An element target is contentful when one or more of the following apply:
+            // > target has a text node child, representing non-empty text, and the node’s
+            // > used opacity is greater than zero.
+            if *parent_style.get_opacity() > 0. {
+                builder.mark_is_contentful();
 
-        // Accumulate this text fragment for LCP by the containing element's tag
-        if let Some(tag) = state.containing_element_tag &&
-            builder.largest_contentful_paint_enabled
-        {
-            let transform = builder
-                .paint_info
-                .scroll_tree
-                .cumulative_node_to_root_transform(state.spatial_id);
-            builder.paint_timing_handler.accumulate_text_rect(
-                tag,
-                rect.to_webrender(),
-                transform,
-                &parent_style,
-            );
+                builder.collect_container_timing_record(
+                    state,
+                    &state.container_timing_roots,
+                    state.containing_element_tag,
+                    glyph_bounds,
+                    common.clip_rect,
+                    None,
+                    None,
+                );
+
+                // Accumulate this text fragment for LCP by the containing element's tag
+                if let Some(tag) = state.containing_element_tag &&
+                    builder.largest_contentful_paint_enabled
+                {
+                    let transform = builder
+                        .paint_info
+                        .scroll_tree
+                        .cumulative_node_to_root_transform(state.spatial_id);
+                    builder.paint_timing_handler.accumulate_text_rect(
+                        tag,
+                        rect.to_webrender(),
+                        transform,
+                        &parent_style,
+                    );
+                }
+            }
         }
 
         for text_decoration in state.text_decorations.iter() {
@@ -1427,7 +1538,7 @@ impl Fragment {
             return;
         }
 
-        if !fragment.run_data.paint_caret {
+        if !fragment.run_data.paints_caret {
             return;
         }
 
@@ -1933,6 +2044,17 @@ impl<'a> BuilderForBoxFragment<'a> {
                             Some(url),
                             natural_width,
                             natural_height,
+                            image.load_time(),
+                        );
+
+                        builder.collect_container_timing_record(
+                            state,
+                            &state.container_timing_roots_including(self.fragment),
+                            self.fragment.base.tag.or(state.containing_element_tag),
+                            layer.bounds,
+                            layer.common.clip_rect,
+                            natural_width,
+                            natural_height,
                         );
                     }
                 },
@@ -2316,29 +2438,33 @@ fn rgba(color: AbsoluteColor) -> wr::ColorF {
     )
 }
 
+/// Return a tuple for the given `shaped_text_slices` that contains:
+///
+/// - A vector of [`GlyphInstance`] for every glyph in the slices.
+/// - The measure of the largest advance
+/// - A boolean which is true if the slices only contained white space.
 fn glyphs(
     shaped_text_slices: &[Arc<ShapedTextSlice>],
     mut baseline_origin: PhysicalPoint<Au>,
     justification_adjustment: Au,
-    include_whitespace: bool,
-) -> (Vec<GlyphInstance>, Au) {
+) -> (Vec<GlyphInstance>, Au, bool) {
     let mut glyphs = vec![];
     let mut largest_advance = Au::zero();
+    let mut entirely_white_space = true;
 
     for shaped_text_slice in shaped_text_slices {
+        entirely_white_space &= shaped_text_slice.all_white_space();
         for glyph in shaped_text_slice.glyphs() {
-            if !shaped_text_slice.is_whitespace() || include_whitespace {
-                let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
-                let point = LayoutPoint::new(
-                    baseline_origin.x.to_f32_px() + glyph_offset.x.to_f32_px(),
-                    baseline_origin.y.to_f32_px() + glyph_offset.y.to_f32_px(),
-                );
-                let glyph_instance = GlyphInstance {
-                    index: glyph.id(),
-                    point,
-                };
-                glyphs.push(glyph_instance);
-            }
+            let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
+            let point = LayoutPoint::new(
+                baseline_origin.x.to_f32_px() + glyph_offset.x.to_f32_px(),
+                baseline_origin.y.to_f32_px() + glyph_offset.y.to_f32_px(),
+            );
+            let glyph_instance = GlyphInstance {
+                index: glyph.id(),
+                point,
+            };
+            glyphs.push(glyph_instance);
 
             if glyph.char_is_word_separator() {
                 baseline_origin.x += justification_adjustment;
@@ -2349,7 +2475,7 @@ fn glyphs(
             largest_advance.max_assign(advance);
         }
     }
-    (glyphs, largest_advance)
+    (glyphs, largest_advance, entirely_white_space)
 }
 
 /// Given a set of corner radii for a rectangle, this function returns the corresponding radii

@@ -192,17 +192,6 @@ skip = [
     # Duplicated by bindgen
     "shlex",
 
-    # Duplicated by vello (disabled by default) which uses old wgpu.
-    "bit-set",
-    "naga",
-    "wgpu-core",
-    "wgpu-core-deps-apple",
-    "wgpu-core-deps-emscripten",
-    "wgpu-core-deps-windows-linux-android",
-    "wgpu-hal",
-    "wgpu-naga-bridge",
-    "wgpu-types",
-
     # duplicated by mozjs which brings in new versions
     "anstream",
     "anstyle-parse",
@@ -216,6 +205,11 @@ skip = [
     "phf_generator",
     "phf_macros",
     "phf_shared",
+
+    # Duplicated by serde_with crate (proc macro helpers, so no binary size increase)
+    "darling",
+    "darling_core",
+    "darling_macro",
 ]
 
 # github.com organizations to allow git sources for

@@ -1,0 +1,48 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Cross-origin stylesheet cssRules is blocked when laundered through a pass-through service worker (same-origin -> cross-origin -> same-origin)</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script>
+// The same redirect laundering as the canvas case, through a stylesheet:
+// reading cssRules of a stylesheet whose no-cors load left this origin and
+// returned to it must throw a SecurityError, since the load is opaque even
+// though its final URL is same-origin.
+promise_test(async t => {
+  const info = get_host_info();
+
+  const reg = await service_worker_unregister_and_register(
+      t, 'passthrough-serviceworker.js', './');
+  t.add_cleanup(() => reg.unregister());
+  await wait_for_state(t, reg.installing || reg.waiting || reg.active,
+                       'activated');
+  if (!navigator.serviceWorker.controller) {
+    await new Promise(resolve => navigator.serviceWorker.addEventListener(
+        'controllerchange', resolve, {once: true}));
+  }
+
+  const finalURL = info.HTTPS_ORIGIN +
+      '/fetch/security/support/passthrough-tainted.css';
+  const crossOriginHop = info.HTTPS_REMOTE_ORIGIN +
+      '/common/redirect.py?location=' + finalURL;
+  const initialURL = info.HTTPS_ORIGIN +
+      '/common/redirect.py?sw_passthrough&location=' +
+      encodeURIComponent(crossOriginHop);
+
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = initialURL;
+  t.add_cleanup(() => link.remove());
+  await new Promise((resolve, reject) => {
+    link.onload = resolve;
+    link.onerror = () => reject(new Error('stylesheet failed to load'));
+    document.head.appendChild(link);
+  });
+
+  assert_not_equals(link.sheet, null, 'stylesheet should be associated');
+  assert_throws_dom('SecurityError', () => link.sheet.cssRules);
+}, 'Cross-origin stylesheet cssRules blocked when laundered through a ' +
+   'pass-through service worker (same-origin -> cross-origin -> same-origin)');
+</script>

@@ -3,6 +3,9 @@
 // (https://github.com/w3c/webref)
 // Source: Prompt API (https://webmachinelearning.github.io/prompt-api/)
 
+// The return type from prompt() method and those alike.
+typedef (DOMString or sequence<LanguageModelMessageContent>) LanguageModelPromptResult;
+
 [Exposed=Window, SecureContext]
 interface LanguageModel : EventTarget {
   static Promise<LanguageModel> create(optional LanguageModelCreateOptions options = {});
@@ -10,8 +13,8 @@ interface LanguageModel : EventTarget {
   // **EXPERIMENTAL**: Only available in extension and experimental contexts.
   static Promise<LanguageModelParams?> params();
 
-  // These will throw "NotSupportedError" DOMExceptions if role = "system"
-  Promise<DOMString> prompt(
+  // These will throw a TypeError if role = "system"
+  Promise<LanguageModelPromptResult> prompt(
     LanguageModelPrompt input,
     optional LanguageModelPromptOptions options = {}
   );
@@ -65,16 +68,15 @@ interface LanguageModelParams {
   readonly attribute float maxTemperature;
 };
 
-callback LanguageModelToolFunction = Promise<DOMString> (any... arguments);
-
 // A description of a tool call that a language model can invoke.
-dictionary LanguageModelTool {
+// Note: When considering changes to this dictionary, authors should ensure
+// general alignment with ModelContextTool from WebMCP
+// (https://webmachinelearning.github.io/webmcp/#model-context-tool).
+dictionary LanguageModelToolDeclaration {
   required DOMString name;
   required DOMString description;
   // JSON schema for the input parameters.
   required object inputSchema;
-  // The function to be invoked by user agent on behalf of language model.
-  required LanguageModelToolFunction execute;
 };
 
 dictionary LanguageModelCreateCoreOptions {
@@ -94,14 +96,14 @@ dictionary LanguageModelCreateCoreOptions {
 
   // Tools that the language model can use.
   // **EXPERIMENTAL**: Only available in experimental contexts.
-  sequence<LanguageModelTool> tools;
+  sequence<LanguageModelToolDeclaration> tools = [];
 };
 
 dictionary LanguageModelCreateOptions : LanguageModelCreateCoreOptions {
   AbortSignal signal;
   CreateMonitorCallback monitor;
 
-  sequence<LanguageModelMessage> initialPrompts;
+  sequence<LanguageModelMessage> initialPrompts = [];
 };
 
 dictionary LanguageModelPromptOptions {
@@ -156,4 +158,60 @@ typedef (
   or AudioBuffer
   or BufferSource
   or DOMString
+  or LanguageModelToolCall
+  or LanguageModelToolResponse
 ) LanguageModelMessageValue;
+
+// The definitions of `LanguageModelToolCall` and `LanguageModelToolResponse` values
+enum LanguageModelToolResultType { "text", "image", "audio", "object" };
+
+dictionary LanguageModelToolResultContent {
+  required LanguageModelToolResultType type;
+  required any value;
+};
+
+// Represents a tool call requested by the language model.
+[Exposed=Window, SecureContext]
+interface LanguageModelToolCall {
+  constructor(LanguageModelToolCallInit init);
+  readonly attribute DOMString callId;
+  readonly attribute DOMString name;
+  readonly attribute object? arguments;
+};
+
+dictionary LanguageModelToolCallInit {
+  required DOMString callId;
+  required DOMString name;
+  object arguments;
+};
+
+[Exposed=Window, SecureContext]
+interface LanguageModelToolSuccess {
+  constructor(LanguageModelToolSuccessInit init);
+  readonly attribute DOMString callId;
+  readonly attribute DOMString name;
+  readonly attribute FrozenArray<LanguageModelToolResultContent> result;
+};
+
+dictionary LanguageModelToolSuccessInit {
+  required DOMString callId;
+  required DOMString name;
+  required sequence<LanguageModelToolResultContent> result;
+};
+
+[Exposed=Window, SecureContext]
+interface LanguageModelToolError {
+  constructor(LanguageModelToolErrorInit init);
+  readonly attribute DOMString callId;
+  readonly attribute DOMString name;
+  readonly attribute DOMString errorMessage;
+};
+
+dictionary LanguageModelToolErrorInit {
+  required DOMString callId;
+  required DOMString name;
+  required DOMString errorMessage;
+};
+
+// The response from executing a tool call - either success or error.
+typedef (LanguageModelToolSuccess or LanguageModelToolError) LanguageModelToolResponse;

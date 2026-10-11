@@ -90,14 +90,14 @@ impl MimeClassifier {
         data: &'a [u8],
     ) -> Mime {
         let supplied_type_or_octet_stream = supplied_type
-            .clone()
-            .unwrap_or(mime::APPLICATION_OCTET_STREAM);
+            .as_ref()
+            .unwrap_or(&mime::APPLICATION_OCTET_STREAM);
         // Step 1. If the supplied MIME type is an XML MIME type or HTML MIME type,
         // the computed MIME type is the supplied MIME type.
-        if Self::is_xml(&supplied_type_or_octet_stream) ||
-            Self::is_html(&supplied_type_or_octet_stream)
+        if Self::is_xml(supplied_type_or_octet_stream) ||
+            Self::is_html(supplied_type_or_octet_stream)
         {
-            return supplied_type_or_octet_stream;
+            return supplied_type_or_octet_stream.clone();
         }
         match context {
             LoadContext::Browsing => match *supplied_type {
@@ -147,7 +147,7 @@ impl MimeClassifier {
                     Some(MediaType::Xml) => None,
                     _ => self.image_classifier.classify(data),
                 }
-                .unwrap_or(supplied_type_or_octet_stream)
+                .unwrap_or_else(|| supplied_type_or_octet_stream.clone())
             },
             LoadContext::AudioVideo => {
                 // Section 8.3 Sniffing an image context
@@ -155,7 +155,7 @@ impl MimeClassifier {
                     Some(MediaType::Xml) => None,
                     _ => self.audio_video_classifier.classify(data),
                 }
-                .unwrap_or(supplied_type_or_octet_stream)
+                .unwrap_or_else(|| supplied_type_or_octet_stream.clone())
             },
             LoadContext::Plugin => {
                 // 8.4 Sniffing in a plugin context
@@ -164,7 +164,7 @@ impl MimeClassifier {
                 // of this implementation.
                 match *supplied_type {
                     None => mime::APPLICATION_OCTET_STREAM,
-                    _ => supplied_type_or_octet_stream,
+                    _ => supplied_type_or_octet_stream.clone(),
                 }
             },
             LoadContext::Style => {
@@ -187,7 +187,7 @@ impl MimeClassifier {
                 // of this implementation.
                 match *supplied_type {
                     None => mime::TEXT_JAVASCRIPT,
-                    _ => supplied_type_or_octet_stream,
+                    _ => supplied_type_or_octet_stream.clone(),
                 }
             },
             LoadContext::Font => {
@@ -196,7 +196,7 @@ impl MimeClassifier {
                     Some(MediaType::Xml) => None,
                     _ => self.font_classifier.classify(data),
                 }
-                .unwrap_or(supplied_type_or_octet_stream)
+                .unwrap_or_else(|| supplied_type_or_octet_stream.clone())
             },
             LoadContext::TextTrack => {
                 // 8.8 Sniffing in a text track context

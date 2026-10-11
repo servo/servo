@@ -1204,6 +1204,9 @@ def startup_failed(logger):
 
 
 def start_http_server(logger, host, port, paths, routes, bind_address, config, **kwargs):
+    # If SSL is available, allow upgrading to TLS after a CONNECT request so
+    # that the HTTP server can also act as an HTTPS proxy.
+    ssl_config = config.ssl_config
     try:
         return wptserve.WebTestHttpd(host=host,
                                      port=port,
@@ -1212,9 +1215,10 @@ def start_http_server(logger, host, port, paths, routes, bind_address, config, *
                                      rewrites=rewrites,
                                      bind_address=bind_address,
                                      config=config,
-                                     use_ssl=False,
-                                     key_file=None,
-                                     certificate=None,
+                                     use_ssl=ssl_config is not None,
+                                     key_file=ssl_config["key_path"] if ssl_config else None,
+                                     certificate=ssl_config["cert_path"] if ssl_config else None,
+                                     encrypt_after_connect=ssl_config is not None,
                                      latency=kwargs.get("latency"))
     except Exception as error:
         logger.critical(f"start_http_server: Caught exception from wptserve.WebTestHttpd: {error}")
@@ -1459,7 +1463,8 @@ class ConfigBuilder(config.ConfigBuilder):
             },
             "pregenerated": {
                 "host_key_path": os.path.join(repo_root, "tools", "certs", "web-platform.test.key"),
-                "host_cert_path": os.path.join(repo_root, "tools", "certs", "web-platform.test.pem")
+                "host_cert_path": os.path.join(repo_root, "tools", "certs", "web-platform.test.pem"),
+                "ca_cert_path": os.path.join(repo_root, "tools", "certs", "cacert.pem")
             },
             "none": {}
         },

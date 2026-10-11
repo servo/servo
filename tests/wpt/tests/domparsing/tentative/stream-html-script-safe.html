@@ -6,84 +6,115 @@
 <script src="/resources/testharnessreport.js"></script>
 <body>
 <script>
-  async function test_safe_setter_on_script(method, setup_target) {
-    promise_test(async (t) => {
+  const containerMethods = [
+    "streamHTML",
+    "streamAppendHTML",
+    "streamPrependHTML",
+    "streamHTMLUnsafe",
+    "streamAppendHTMLUnsafe",
+    "streamPrependHTMLUnsafe",
+  ];
+
+  const positionalMethods = [
+    "streamBeforeHTML",
+    "streamAfterHTML",
+    "streamReplaceWithHTML",
+    "streamBeforeHTMLUnsafe",
+    "streamAfterHTMLUnsafe",
+    "streamReplaceWithHTMLUnsafe",
+  ];
+
+  function test_setter_on_script(method, is_positional) {
+    test((t) => {
       const script = document.createElement("script");
+      const initialChild = document.createTextNode("/* setup */");
+      script.appendChild(initialChild);
       document.body.appendChild(script);
       t.add_cleanup(() => script.remove());
 
-      const target = setup_target ? setup_target(script) : script;
+      const target = is_positional ? initialChild : script;
       const var_name = `executed_${method}`;
       window[var_name] = false;
 
-      let writable;
-      try {
-        writable = target[method]();
-      } catch (e) {
-        // If the safe setter throws an exception when targeting a script element,
-        // that is a valid safe-mode behavior.
-        assert_false(window[var_name], "Script should not execute");
-        return;
-      }
-
-      assert_true(writable instanceof WritableStream);
-      const writer = writable.getWriter();
-      await writer.write(`window.${var_name} = true;`);
-      await writer.close();
-
-      assert_false(window[var_name], `Streaming content into a script element using safe ${method} should not execute the script`);
-    }, `Safe streaming setter ${method} targeting a script element should not allow script execution`);
+      assert_throws_dom("NotSupportedError", () => {
+        target[method]();
+      });
+      assert_false(window[var_name], "Script should not execute");
+      assert_equals(script.childNodes.length, 1, "Existing children of <script> must remain untouched");
+      assert_equals(script.firstChild, initialChild, "Initial child node is preserved");
+      assert_equals(script.textContent, "/* setup */");
+    }, `Streaming setter ${method} targeting an HTML <script> element throws NotSupportedError and preserves children`);
   }
 
-  for (const method of ["streamHTML", "streamAppendHTML", "streamPrependHTML"]) {
-    test_safe_setter_on_script(method);
+  for (const method of containerMethods) {
+    test_setter_on_script(method, false);
   }
 
-  for (const method of ["streamBeforeHTML", "streamAfterHTML", "streamReplaceWithHTML"]) {
-    test_safe_setter_on_script(method, (s) => {
-      s.appendChild(document.createTextNode("/* setup */"));
-      return s.firstChild;
-    });
+  for (const method of positionalMethods) {
+    test_setter_on_script(method, true);
   }
 
-  async function test_safe_setter_on_svg_script(method, setup_target) {
-    promise_test(async (t) => {
+  function test_setter_on_svg_script(method, is_positional) {
+    test((t) => {
       const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       const script = document.createElementNS("http://www.w3.org/2000/svg", "script");
+      const initialChild = document.createTextNode("/* setup */");
+      script.appendChild(initialChild);
       svg.appendChild(script);
       document.body.appendChild(svg);
       t.add_cleanup(() => svg.remove());
 
-      const target = setup_target ? setup_target(script) : script;
+      const target = is_positional ? initialChild : script;
       const var_name = `executed_svg_${method}`;
       window[var_name] = false;
 
-      let writable;
-      try {
-        writable = target[method]();
-      } catch (e) {
-        assert_false(window[var_name], "Script should not execute");
-        return;
-      }
-
-      assert_true(writable instanceof WritableStream);
-      const writer = writable.getWriter();
-      await writer.write(`window.${var_name} = true;`);
-      await writer.close();
-
-      assert_false(window[var_name], `Streaming content into an SVG script element using safe ${method} should not execute the script`);
-    }, `Safe streaming setter ${method} targeting an SVG script element should not allow script execution`);
+      assert_throws_dom("NotSupportedError", () => {
+        target[method]();
+      });
+      assert_false(window[var_name], "Script should not execute");
+      assert_equals(script.childNodes.length, 1, "Existing children of SVG <script> must remain untouched");
+      assert_equals(script.firstChild, initialChild, "Initial child node is preserved");
+      assert_equals(script.textContent, "/* setup */");
+    }, `Streaming setter ${method} targeting an SVG <script> element throws NotSupportedError and preserves children`);
   }
 
-  for (const method of ["streamHTML", "streamAppendHTML", "streamPrependHTML"]) {
-    test_safe_setter_on_svg_script(method);
+  for (const method of containerMethods) {
+    test_setter_on_svg_script(method, false);
   }
 
-  for (const method of ["streamBeforeHTML", "streamAfterHTML", "streamReplaceWithHTML"]) {
-    test_safe_setter_on_svg_script(method, (s) => {
-      s.appendChild(document.createTextNode("/* setup */"));
-      return s.firstChild;
-    });
+  for (const method of positionalMethods) {
+    test_setter_on_svg_script(method, true);
+  }
+
+  // B4: NotSupportedError on <script> is thrown before invalid-sanitizer TypeError
+  for (const method of containerMethods) {
+    test((t) => {
+      const script = document.createElement("script");
+      const initialChild = document.createTextNode("/* setup */");
+      script.appendChild(initialChild);
+      document.body.appendChild(script);
+      t.add_cleanup(() => script.remove());
+
+      assert_throws_dom("NotSupportedError", () => {
+        script[method]({ sanitizer: { elements: ["div"], removeElements: ["div"] } });
+      });
+      assert_equals(script.firstChild, initialChild);
+    }, `${method} on <script> throws NotSupportedError before validating sanitizer config`);
+  }
+
+  for (const method of positionalMethods) {
+    test((t) => {
+      const script = document.createElement("script");
+      const initialChild = document.createTextNode("/* setup */");
+      script.appendChild(initialChild);
+      document.body.appendChild(script);
+      t.add_cleanup(() => script.remove());
+
+      assert_throws_dom("NotSupportedError", () => {
+        initialChild[method]({ sanitizer: { elements: ["div"], removeElements: ["div"] } });
+      });
+      assert_equals(script.firstChild, initialChild);
+    }, `${method} on child of <script> throws NotSupportedError before validating sanitizer config`);
   }
 </script>
 </body>

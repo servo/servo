@@ -164,6 +164,8 @@ EVENT_HANDLER_CALLBACKS = {
     "OnBeforeUnloadEventHandlerNonNull",
 }
 
+STYLO_PREF_PREFIX = "stylo:"
+
 def isIDLType(obj: IDLObject) -> TypeGuard[IDLType]:
     if obj.isType():
         assert isinstance(obj, IDLType)
@@ -1754,7 +1756,11 @@ def MemberCondition(pref: str | None, func: str | None, exposed: set | None, sec
     if secure:
         conditions.append('Condition::SecureContext()')
     if pref:
-        conditions.append(f'Condition::Pref("{pref}")')
+        if pref.startswith(STYLO_PREF_PREFIX):
+            pref = pref.removeprefix(STYLO_PREF_PREFIX)
+            conditions.append(f'Condition::Func(|_, _| stylo_static_prefs::pref!("{pref}"))')
+        else:
+            conditions.append(f'Condition::Pref("{pref}")')
     if func:
         conditions.append(f'Condition::Func(D::{func})')
     if exposed:

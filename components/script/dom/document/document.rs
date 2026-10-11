@@ -36,8 +36,8 @@ use js::jsapi::JSObject;
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use layout_api::{
-    LCPCandidate, PendingRestyle, ReflowGoal, ReflowPhasesRun, ReflowStatistics, RestyleReason,
-    ScrollContainerQueryFlags, TrustedNodeAddress,
+    ContainerTimingRecord, LCPCandidate, PendingRestyle, ReflowGoal, ReflowPhasesRun,
+    ReflowStatistics, RestyleReason, ScrollContainerQueryFlags, TrustedNodeAddress,
 };
 use malloc_size_of::MallocSizeOfOps;
 use metrics::{InteractiveFlag, InteractiveWindow, ProgressiveWebMetrics};
@@ -66,7 +66,7 @@ use script_traits::{DocumentActivity, ProgressiveWebMetricType};
 use servo_arc::Arc;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::GenericSend;
-use servo_base::id::{LCPCandidateID, PipelineId, WebViewId};
+use servo_base::id::{ContainerTimingID, LCPCandidateID, PipelineId, WebViewId};
 use servo_base::{Epoch, generic_channel};
 use servo_config::pref;
 use servo_constellation_traits::{
@@ -197,6 +197,7 @@ use crate::dom::node::{Node, NodeDamage, NodeFlags, NodeTraits};
 use crate::dom::nodeiterator::NodeIterator;
 use crate::dom::nodelist::NodeList;
 use crate::dom::pagetransitionevent::PageTransitionEvent;
+use crate::dom::performance::performancecontainertiming::PerformanceContainerTiming;
 use crate::dom::performance::performanceentry::PerformanceEntry;
 use crate::dom::performance::performancepainttiming::PerformancePaintTiming;
 use crate::dom::processinginstruction::ProcessingInstruction;
@@ -223,12 +224,12 @@ use crate::dom::{FlatTreeParent, RootedPromise, WeakRangeVec};
 use crate::event_loop::document_loader::{DocumentLoader, LoadType};
 use crate::event_loop::script_thread::{ScriptThread, SharedRwLocks};
 use crate::event_loop::timers::{OneshotTimerCallback, OneshotTimers};
-use crate::fetch::fetch::{DeferredFetchRecordInvokeState, FetchCanceller};
+use crate::fetch::fetch::DeferredFetchRecordInvokeState;
 use crate::fetch::network_listener::FetchResponseListener;
 use crate::mime::{APPLICATION, CHARSET};
-use crate::modules::script_module::{ModuleRequest, ModuleStatus};
 use crate::navigation::navigate;
 use crate::runtime::script_runtime::compute_size;
+use crate::scripting::script_module::{ModuleRequest, ModuleStatus};
 use crate::tasks::task::NonSendTaskBox;
 use crate::tasks::task_manager::TaskManager;
 use crate::tasks::task_source::TaskSourceName;
@@ -296,9 +297,20 @@ struct LCPCandidateAndElement {
     element: Option<Dom<Element>>,
     #[no_trace]
     candidate: LCPCandidate,
-    /// The time the candidate's image became completely available, if any.
+}
+
+/// A Container Timing update paired with its resolved elements, parked until paint
+/// reports the time at which the frame carrying it was composited.
+///
+/// <https://wicg.github.io/container-timing/>
+#[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct ContainerTimingRecordAndElements {
+    identifier: DOMString,
+    root_element: Dom<Element>,
+    last_painted_element: Option<Dom<Element>>,
     #[no_trace]
-    load_time: Option<CrossProcessInstant>,
+    record: ContainerTimingRecord,
 }
 
 impl RefreshRedirectDue {
@@ -536,7 +548,8 @@ pub(crate) struct Document {
     target_element: MutNullableDom<Element>,
     /// <https://html.spec.whatwg.org/multipage/#concept-document-policy-container>
     #[no_trace]
-    policy_container: DomRefCell<PolicyContainer>,
+    #[conditional_malloc_size_of]
+    policy_container: DomRefCell<StdArc<PolicyContainer>>,
     /// <https://html.spec.whatwg.org/multipage/#map-of-preloaded-resources>
     #[no_trace]
     preloaded_resources: DomRefCell<PreloadedResources>,
@@ -563,8 +576,6 @@ pub(crate) struct Document {
     interactive_time: DomRefCell<ProgressiveWebMetrics>,
     #[no_trace]
     tti_window: DomRefCell<InteractiveWindow>,
-    /// RAII canceller for Fetch
-    canceller: FetchCanceller,
     /// <https://html.spec.whatwg.org/multipage/#throw-on-dynamic-markup-insertion-counter>
     throw_on_dynamic_markup_insertion_counter: Cell<u64>,
     /// <https://html.spec.whatwg.org/multipage/#page-showing>
@@ -668,6 +679,16 @@ pub(crate) struct Document {
     /// <https://www.w3.org/TR/paint-timing/#paint-timing-info>
     #[no_trace]
     paint_timing_info: Cell<PaintTimingInfo>,
+    /// Container Timing updates awaiting a paint time, keyed by their [ContainerTimingID].
+    container_timing_records:
+        DomRefCell<HashMapTracedValues<ContainerTimingID, ContainerTimingRecordAndElements>>,
+    /// The first time each container was painted, keyed by
+    /// [`ContainerTimingRecord::root_element`]. Layout has no notion of when compositing
+    /// happens, so this is remembered here, from the paint time of the first entry
+    /// reported for a given container.
+    /// <https://wicg.github.io/container-timing/#dom-performancecontainertiming-firstrendertime>
+    #[no_trace]
+    container_first_render_times: DomRefCell<HashMap<OpaqueNode, CrossProcessInstant>>,
     /// The constructed stylesheet that is adopted by this [Document].
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
     adopted_stylesheets: DomRefCell<Vec<Dom<CSSStyleSheet>>>,
@@ -2035,16 +2056,16 @@ impl Document {
         }
     }
 
-    pub(crate) fn policy_container(&self) -> Ref<'_, PolicyContainer> {
+    pub(crate) fn policy_container(&self) -> Ref<'_, StdArc<PolicyContainer>> {
         self.policy_container.borrow()
     }
 
-    pub(crate) fn set_policy_container(&self, policy_container: PolicyContainer) {
+    pub(crate) fn set_policy_container(&self, policy_container: StdArc<PolicyContainer>) {
         *self.policy_container.borrow_mut() = policy_container;
     }
 
     pub(crate) fn set_csp_list(&self, csp_list: Option<CspList>) {
-        self.policy_container.borrow_mut().set_csp_list(csp_list);
+        StdArc::make_mut(&mut *self.policy_container.borrow_mut()).set_csp_list(csp_list);
     }
 
     /// <https://www.w3.org/TR/CSP/#enforced>
@@ -2052,9 +2073,7 @@ impl Document {
         // > A policy is enforced or monitored for a global object by inserting it into the global object’s CSP list.
         let mut csp_list = self.get_csp_list().clone().unwrap_or(CspList(vec![]));
         csp_list.push(policy);
-        self.policy_container
-            .borrow_mut()
-            .set_csp_list(Some(csp_list));
+        StdArc::make_mut(&mut *self.policy_container.borrow_mut()).set_csp_list(Some(csp_list));
     }
 
     pub(crate) fn get_csp_list(&self) -> Ref<'_, Option<CspList>> {
@@ -3628,17 +3647,71 @@ impl Document {
     }
 
     pub(crate) fn store_lcp_candidate(&self, candidate: LCPCandidate, element: Option<&Element>) {
-        let load_time = element
-            .and_then(|element| element.downcast::<HTMLImageElement>())
-            .and_then(HTMLImageElement::load_time);
         self.lcp_candidates.borrow_mut().insert(
             candidate.id,
             LCPCandidateAndElement {
                 element: element.map(Dom::from_ref),
                 candidate,
-                load_time,
             },
         );
+    }
+
+    pub(crate) fn store_container_timing_record(
+        &self,
+        record: ContainerTimingRecord,
+        identifier: DOMString,
+        root_element: &Element,
+        last_painted_element: Option<&Element>,
+    ) {
+        self.container_timing_records.borrow_mut().insert(
+            record.id,
+            ContainerTimingRecordAndElements {
+                identifier,
+                root_element: Dom::from_ref(root_element),
+                last_painted_element: last_painted_element.map(Dom::from_ref),
+                record,
+            },
+        );
+    }
+
+    /// Build the `PerformanceContainerTiming` entries for the Container Timing updates
+    /// that were presented in the frame composited at `paint_time`.
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    fn container_timing_entries(
+        &self,
+        cx: &mut JSContext,
+        paint_time: CrossProcessInstant,
+        ids: Vec<ContainerTimingID>,
+    ) -> Vec<DomRoot<PerformanceEntry>> {
+        ids.into_iter()
+            .filter_map(|id| {
+                let stored = self
+                    .container_timing_records
+                    .safe_borrow_mut(cx)
+                    .remove(&id)?;
+                // The first frame that painted anything for this container fixes its
+                // `firstRenderTime`; every later update to the same container carries
+                // that same value forward.
+                let first_render_time = *self
+                    .container_first_render_times
+                    .safe_borrow_mut(cx)
+                    .entry(stored.record.root_element)
+                    .or_insert(paint_time);
+                Some(DomRoot::upcast::<PerformanceEntry>(
+                    PerformanceContainerTiming::new(
+                        cx,
+                        self.window.as_global_scope(),
+                        stored.identifier,
+                        stored.record.intersection_rect,
+                        stored.record.size,
+                        first_render_time,
+                        paint_time,
+                        stored.last_painted_element.as_deref(),
+                        Some(&stored.root_element),
+                    ),
+                ))
+            })
+            .collect()
     }
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
@@ -3678,9 +3751,19 @@ impl Document {
                     self.window.as_global_scope(),
                     &stored_candidate.candidate,
                     stored_candidate.element.as_deref(),
-                    stored_candidate.load_time,
+                    stored_candidate.candidate.load_time,
                     paint_timing_info,
                 ))
+            },
+            // Unlike the other paint metrics, a single composited frame can present
+            // several Container Timing updates at once, so this queues its own entries
+            // rather than producing one.
+            PaintMetricEvent::ContainerTiming(paint_time, ids) => {
+                drop(metrics);
+                for entry in self.container_timing_entries(cx, paint_time, ids) {
+                    self.window.Performance(cx).queue_entry(&entry);
+                }
+                return;
             },
         };
         self.window.Performance(cx).queue_entry(&entry);
@@ -4032,7 +4115,6 @@ impl Document {
         doc_loader: DocumentLoader,
         referrer: Option<String>,
         status_code: Option<u16>,
-        canceller: FetchCanceller,
         is_initial_about_blank: bool,
         allow_declarative_shadow_roots: bool,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
@@ -4144,7 +4226,7 @@ impl Document {
             origin: DomRefCell::new(origin),
             referrer,
             target_element: MutNullableDom::new(None),
-            policy_container: DomRefCell::new(PolicyContainer::default()),
+            policy_container: DomRefCell::new(StdArc::new(PolicyContainer::default())),
             preloaded_resources: Default::default(),
             ignore_destructive_writes_counter: Default::default(),
             ignore_opens_during_unload_counter: Default::default(),
@@ -4153,7 +4235,6 @@ impl Document {
             form_id_listener_map: Default::default(),
             interactive_time: DomRefCell::new(interactive_time),
             tti_window: DomRefCell::new(InteractiveWindow::default()),
-            canceller,
             throw_on_dynamic_markup_insertion_counter: Cell::new(0),
             page_showing: Cell::new(false),
             salvageable: Cell::new(true),
@@ -4191,6 +4272,8 @@ impl Document {
             highlighted_dom_node: Default::default(),
             lcp_candidates: DomRefCell::new(Default::default()),
             paint_timing_info: Cell::new(PaintTimingInfo::now()),
+            container_timing_records: DomRefCell::new(Default::default()),
+            container_first_render_times: DomRefCell::new(Default::default()),
             adopted_stylesheets: Default::default(),
             adopted_stylesheets_frozen_types: CachedFrozenArray::new(),
             pending_scroll_events: Default::default(),
@@ -4350,7 +4433,6 @@ impl Document {
         doc_loader: DocumentLoader,
         referrer: Option<String>,
         status_code: Option<u16>,
-        canceller: FetchCanceller,
         is_initial_about_blank: bool,
         allow_declarative_shadow_roots: bool,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
@@ -4375,7 +4457,6 @@ impl Document {
             doc_loader,
             referrer,
             status_code,
-            canceller,
             is_initial_about_blank,
             allow_declarative_shadow_roots,
             inherited_insecure_requests_policy,
@@ -4403,7 +4484,6 @@ impl Document {
         doc_loader: DocumentLoader,
         referrer: Option<String>,
         status_code: Option<u16>,
-        canceller: FetchCanceller,
         is_initial_about_blank: bool,
         allow_declarative_shadow_roots: bool,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
@@ -4429,7 +4509,6 @@ impl Document {
                 doc_loader,
                 referrer,
                 status_code,
-                canceller,
                 is_initial_about_blank,
                 allow_declarative_shadow_roots,
                 inherited_insecure_requests_policy,
@@ -4632,7 +4711,6 @@ impl Document {
                     DocumentLoader::new(&self.loader()),
                     None,
                     None,
-                    Default::default(),
                     false,
                     self.allow_declarative_shadow_roots(),
                     Some(self.insecure_requests_policy()),
@@ -4718,9 +4796,7 @@ impl Document {
     }
 
     pub(crate) fn set_referrer_policy(&self, policy: ReferrerPolicy) {
-        self.policy_container
-            .borrow_mut()
-            .set_referrer_policy(policy);
+        StdArc::make_mut(&mut *self.policy_container.borrow_mut()).set_referrer_policy(policy);
     }
 
     pub(crate) fn get_referrer_policy(&self) -> ReferrerPolicy {
@@ -5427,7 +5503,6 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             docloader,
             None,
             None,
-            Default::default(),
             false,
             doc.allow_declarative_shadow_roots(),
             Some(doc.insecure_requests_policy()),
@@ -5479,7 +5554,6 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             loader,
             None,
             None,
-            Default::default(),
             false,
             true,
             Some(doc.insecure_requests_policy()),
@@ -5533,7 +5607,6 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             loader,
             None,
             None,
-            Default::default(),
             false,
             true,
             Some(doc.insecure_requests_policy()),

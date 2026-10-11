@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#auto-tracks">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-content">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-stretch">
+<meta name="assert" content="An implicit column with the initial grid-auto-columns: auto is sized to at least its item's min-content contribution, grows up to its max-content contribution when space is available, and is stretched to fill the grid container unless justify-content is start.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/css/support/alignment.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.gridAutoContent {
+    /* grid-template-columns is left unset so that the grid item's column is implicit. */
+    grid-template-rows: 50px;
+}
+
+.firstRowFirstColumn {
+    font: 10px/1 Ahem;
+    /* Make us fit our grid area. */
+    width: 100%;
+    height: 100%;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="document.fonts.ready.then(() => { checkLayout('.gridAutoContent'); })">
+
+<p>Test that auto implicit columns are sized to their grid items' content.</p>
+
+<div class="constrainedContainer">
+    <div class="grid gridAutoContent">
+        <div class="firstRowFirstColumn" data-expected-width="30" data-expected-height="50">XXX XXX XXX</div>
+    </div>
+</div>
+
+<!-- Allow the extra space distribution to occur. -->
+<div style="width: 40px; height: 10px">
+    <div class="grid gridAutoContent">
+        <div class="firstRowFirstColumn" data-expected-width="40" data-expected-height="50">XX XX XX XX XX XX</div>
+    </div>
+</div>
+
+<div style="width: 100px; height: 10px;">
+    <div class="grid gridAutoContent justifyContentStart">
+        <div class="firstRowFirstColumn" data-expected-width="50" data-expected-height="50">XXXXX</div>
+    </div>
+</div>
+
+</body>

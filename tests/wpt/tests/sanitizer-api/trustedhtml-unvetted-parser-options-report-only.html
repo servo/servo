@@ -1,0 +1,67 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>TrustedHTML with parser options that need vetting, in report-only mode</title>
+<link rel="help" href="https://w3c.github.io/trusted-types/dist/spec/#get-trusted-type-compliant-parser-options-algorithm">
+<link rel="help" href="https://github.com/w3c/trusted-types/issues/615">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/trusted-types/support/csp-violations.js"></script>
+<script src="support/trustedhtml-parser-options.js"></script>
+<body>
+<script>
+  const policy = trustedTypes.createPolicy("policy", { createHTML: s => s });
+
+  for (const sink of sinks) {
+    promise_test(async t => {
+      const target = sink.createTarget(t);
+      let root;
+      const violation = await trusted_type_violation_without_exception_for(() => {
+        root = sink.parse(target, policy.createHTML(markup),
+            { sanitizer: { replaceWithChildrenElements: ["div"] } });
+      });
+      assert_equals(violation.blockedURI, "trusted-types-sink");
+      assert_equals(violation.sample, `${sink.sample}|`);
+      assert_equals(violation.disposition, "report");
+      assert_equals(root.querySelector("#wrapper"), null, "sanitizer was applied");
+      assert_not_equals(root.querySelector("#inner"), null);
+    }, `${sink.name}: TrustedHTML with a sanitizer config is reported and allowed`);
+
+    if (sink.hasRunScripts) {
+      promise_test(async t => {
+        resetScriptRan(t);
+        const target = sink.createTarget(t);
+        const violation = await trusted_type_violation_without_exception_for(() => {
+          sink.parse(target, policy.createHTML(scriptMarkup), { runScripts: true });
+        });
+        assert_equals(violation.sample, `${sink.sample}|`);
+        assert_true(window.scriptRan, "script ran");
+      }, `${sink.name}: TrustedHTML with runScripts true is reported and allowed`);
+    }
+
+    promise_test(async t => {
+      const target = sink.createTarget(t);
+      await no_trusted_type_violation_for(() => {
+        sink.parse(target, policy.createHTML(markup), { sanitizer: {} });
+      });
+    }, `${sink.name}: TrustedHTML with an empty sanitizer config is not reported`);
+
+    promise_test(async t => {
+      const target = sink.createTarget(t);
+      let root;
+      const { violations, exception } = await trusted_type_violations_and_exception_for(() => {
+        root = sink.parse(target, markup,
+            { sanitizer: { replaceWithChildrenElements: ["div"] } });
+      });
+      assert_equals(exception, null, "no exception thrown");
+      assert_equals(violations.length, 2, "two violations reported (one for parser options, one for string)");
+      assert_equals(violations[0].blockedURI, "trusted-types-sink");
+      assert_equals(violations[0].sample, `${sink.sample}|`);
+      assert_equals(violations[0].disposition, "report");
+      assert_equals(violations[1].blockedURI, "trusted-types-sink");
+      assert_equals(violations[1].sample, `${sink.sample}|${clipSampleIfNeeded(markup)}`);
+      assert_equals(violations[1].disposition, "report");
+      assert_equals(root.querySelector("#wrapper"), null, "sanitizer was applied");
+      assert_not_equals(root.querySelector("#inner"), null);
+    }, `${sink.name}: string with a sanitizer config is reported twice and allowed`);
+  }
+</script>

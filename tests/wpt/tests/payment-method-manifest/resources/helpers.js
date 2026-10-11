@@ -69,7 +69,7 @@ function createPaymentMethodManifestUrl(testId, options = {}) {
  *
  * @param {string} testId - The unique test run token.
  * @param {Object} [options] - URL configuration options.
- * @param {string} [options.host] - Custom host (default: location.host).
+ * @param {string} [options.origin] - Custom origin (default: location.origin).
  * @param {string} [options.app] - Optional app identifier for
  *     logging/differentiation.
  * @param {string} [options.redirect_location] - Target URL for redirect.
@@ -79,9 +79,9 @@ function createPaymentMethodManifestUrl(testId, options = {}) {
  * @returns {string} Fully qualified web app manifest URL.
  */
 function createWebAppManifestUrl(testId, options = {}) {
-  const host = options.host || location.host;
+  const origin = options.origin || location.origin;
   const url = new URL(
-      `https://${host}/payment-method-manifest/resources/web-app-manifest.py`);
+      `${origin}/payment-method-manifest/resources/web-app-manifest.py`);
   url.searchParams.set('id', testId);
   if (options.app !== undefined) {
     url.searchParams.set('app', options.app);

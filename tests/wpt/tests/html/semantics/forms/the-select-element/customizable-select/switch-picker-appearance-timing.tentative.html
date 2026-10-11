@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<link rel=help href="https://github.com/whatwg/html/issues/13027">
+<link rel=help href="https://html.spec.whatwg.org/multipage/webappapis.html#update-the-rendering">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../../../popovers/resources/popover-utils.js"></script>
+
+<style>
+select, select::picker(select) {
+  appearance: base-select;
+}
+.autoPicker::picker(select) {
+  appearance: auto;
+}
+</style>
+
+<select id=selectAppearance>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<select id=pickerAppearance>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<script>
+promise_test(async t => {
+  const select = selectAppearance;
+  t.add_cleanup(() => select.remove());
+  await test_driver.click(select);
+  assert_true(select.matches(':open'), 'Select should be open after clicking it.');
+
+  select.style.appearance = 'auto';
+  assert_equals(getComputedStyle(select).appearance, 'auto');
+  assert_true(select.matches(':open'), 'Computing style should not close the picker.');
+
+  await waitForRender();
+  assert_false(select.matches(':open'), 'The picker should be closed after a rendering update.');
+}, 'A picker whose select stops having base appearance closes when the rendering is updated, not when style is computed.');
+
+promise_test(async t => {
+  const select = pickerAppearance;
+  t.add_cleanup(() => select.remove());
+  await test_driver.click(select);
+  assert_true(select.matches(':open'), 'Select should be open after clicking it.');
+
+  select.classList.add('autoPicker');
+  assert_equals(getComputedStyle(select, '::picker(select)').appearance, 'auto');
+  assert_true(select.matches(':open'), 'Computing style should not close the picker.');
+
+  await waitForRender();
+  assert_false(select.matches(':open'), 'The picker should be closed after a rendering update.');
+}, 'A picker that stops having base appearance closes when the rendering is updated, not when style is computed.');
+</script>

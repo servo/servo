@@ -356,6 +356,115 @@ test(t => {
   assert_not_equals(div.querySelector("div"), null, "div is allowed by default setHTML()");
   assert_equals(div.querySelector("custom-tag"), null, "custom-tag is stripped by default setHTML()");
 }, "A modified Sanitizer used in setHTML() does not affect default configuration or other Sanitizers");
+
+test(t => {
+  const s = new Sanitizer({
+    elements: [
+      { name: "div", attributes: ["id", "onclick"] },
+      "script",
+      "iframe",
+      "a"
+    ],
+    attributes: ["title", "onload"],
+    javascriptURLs: true
+  });
+  const beforeConfig = s.get();
+  assert_true(beforeConfig.elements.some(e => e.name === "script"), "script is in initial config");
+  assert_true(beforeConfig.elements.some(e => e.name === "iframe"), "iframe is in initial config");
+  assert_true(beforeConfig.attributes.some(a => a.name === "onload"), "onload is in initial config");
+  assert_true(beforeConfig.javascriptURLs, "javascriptURLs is true in initial config");
+
+  const div = document.createElement("div");
+  document.querySelector("#container").appendChild(div);
+  t.add_cleanup(() => div.remove());
+
+  div.setHTML(
+    "<div id='d' onclick='alert(1)' onload='alert(2)'><script>alert(3)<\/script><iframe id='f'></iframe><a id='link' href='javascript:alert(4)'>link</a></div>",
+    { sanitizer: s }
+  );
+
+  // setHTML() must enforce safe sanitization on the output DOM:
+  assert_not_equals(div.querySelector("#d"), null, "div is allowed");
+  assert_equals(div.querySelector("#d").getAttribute("id"), "d", "id attribute is allowed");
+  assert_false(div.querySelector("#d").hasAttribute("onclick"), "onclick must be stripped by setHTML()");
+  assert_false(div.querySelector("#d").hasAttribute("onload"), "onload must be stripped by setHTML()");
+  assert_equals(div.querySelector("script"), null, "script must be stripped by setHTML()");
+  assert_equals(div.querySelector("iframe"), null, "iframe must be stripped by setHTML()");
+
+  // s.get() must remain completely unchanged after setHTML():
+  const afterConfig = s.get();
+  assert_object_equals(
+    afterConfig,
+    beforeConfig,
+    "s.get() must be unchanged after setHTML() even when s contains unsafe entries"
+  );
+  assert_true(afterConfig.elements.some(e => e.name === "script"), "script must still be in s.get()");
+  assert_true(afterConfig.elements.some(e => e.name === "iframe"), "iframe must still be in s.get()");
+  assert_true(afterConfig.attributes.some(a => a.name === "onload"), "onload must still be in s.get()");
+  const divEntry = afterConfig.elements.find(e => e.name === "div");
+  assert_true(divEntry.attributes.some(a => a.name === "onclick"), "per-element onclick must still be in s.get()");
+  assert_true(afterConfig.javascriptURLs, "javascriptURLs must still be true in s.get()");
+}, "s.get() is unchanged after Element.prototype.setHTML() when Sanitizer has unsafe allowlist entries");
+
+test(t => {
+  const s = new Sanitizer({
+    removeElements: ["span"],
+    removeAttributes: ["data-drop"],
+    javascriptURLs: true
+  });
+  const beforeConfig = s.get();
+
+  const div = document.createElement("div");
+  document.querySelector("#container").appendChild(div);
+  t.add_cleanup(() => div.remove());
+
+  div.setHTML(
+    "<div onclick='alert(1)'><span>dropped</span><script>alert(2)<\/script><p>kept</p></div>",
+    { sanitizer: s }
+  );
+
+  assert_equals(div.querySelector("span"), null, "span is removed");
+  assert_equals(div.querySelector("script"), null, "script is stripped by setHTML()");
+  assert_false(div.querySelector("div").hasAttribute("onclick"), "onclick is stripped by setHTML()");
+  assert_not_equals(div.querySelector("p"), null, "p is kept");
+
+  assert_object_equals(
+    s.get(),
+    beforeConfig,
+    "s.get() must be unchanged after setHTML() when Sanitizer uses removeElements/removeAttributes"
+  );
+}, "s.get() is unchanged after Element.prototype.setHTML() when Sanitizer has unsafe remove-list configuration");
+
+test(t => {
+  if (!("parseHTML" in Document)) {
+    return;
+  }
+  const s = new Sanitizer({
+    elements: [
+      "html",
+      "head",
+      "body",
+      { name: "div", attributes: ["id", "onclick"] },
+      "script"
+    ],
+    attributes: ["onload"],
+    javascriptURLs: true
+  });
+  const beforeConfig = s.get();
+
+  const doc = Document.parseHTML(
+    "<div id='d' onclick='alert(1)' onload='alert(2)'><script>alert(3)<\/script></div>",
+    { sanitizer: s }
+  );
+  assert_equals(doc.querySelector("script"), null, "script is stripped by Document.parseHTML()");
+  assert_false(doc.querySelector("#d").hasAttribute("onclick"), "onclick is stripped by Document.parseHTML()");
+
+  assert_object_equals(
+    s.get(),
+    beforeConfig,
+    "s.get() must be unchanged after Document.parseHTML() when s contains unsafe entries"
+  );
+}, "s.get() is unchanged after Document.parseHTML() when Sanitizer has unsafe entries");
 </script>
 </body>
 </html>

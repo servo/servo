@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Grid Lanes: normal and source-order reading flow</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-layout">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/shadow-dom.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+
+<style>
+.test-case {
+  margin-top: 20px;
+}
+.lanes {
+  display: grid-lanes;
+  grid-template-columns: repeat(3, 80px);
+}
+</style>
+
+<div class="test-case" data-expect="a,b,c"
+     data-description="`normal` follows source order and overrides visual placement">
+  <div class="lanes" style="reading-flow: normal">
+    <button id="a" style="grid-column: 2">A</button>
+    <button id="b" style="grid-column: 3">B</button>
+    <button id="c" style="grid-column: 1">C</button>
+  </div>
+</div>
+
+<div class="test-case" data-expect="d,e,f"
+     data-description="`source-order` ignores CSS order on Grid Lanes items">
+  <div class="lanes" style="reading-flow: source-order">
+    <button id="d" style="order: 2">D</button>
+    <button id="e" style="order: -1">E</button>
+    <button id="f">F</button>
+  </div>
+</div>
+
+<div class="test-case" data-expect="h,i,g"
+     data-description="`source-order` groups by `reading-order` and breaks ties by `source-order`">
+  <div class="lanes" style="reading-flow: source-order">
+    <button id="i" style="order: -1">I</button>
+    <button id="h" style="order: 2; reading-order: -1">H</button>
+    <button id="g" style="order: -2">G</button>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

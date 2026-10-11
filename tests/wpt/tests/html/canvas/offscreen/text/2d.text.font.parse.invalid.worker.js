@@ -62,6 +62,10 @@ t.step(function() {
   ctx.font = '20px serif';
   ctx.font = '1em serif; background: green; margin: 10px';
   _assertSame(ctx.font, '20px serif', "ctx.font", "'20px serif'");
+
+  ctx.font = '20px serif';
+  ctx.font = 'if(supports(list-style-type: disc): 13px MyFont)';
+  _assertSame(ctx.font, '20px serif', "ctx.font", "'20px serif'");
   t.done();
 });
 done();

@@ -6,6 +6,7 @@
 
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
+use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::LCPCandidateID;
 use servo_url::ServoUrl;
 use style::dom::OpaqueNode;
@@ -21,6 +22,8 @@ pub struct LCPCandidate {
     pub area: usize,
     /// The candidate's request URL.
     pub url: Option<ServoUrl>,
+    /// The time at which image finished loading, None for text candidates.
+    pub load_time: Option<CrossProcessInstant>,
     /// The DOM node of the candidate's element, if any.
     pub node: Option<OpaqueNode>,
 }
@@ -31,12 +34,14 @@ impl LCPCandidate {
         area: usize,
         url: Option<ServoUrl>,
         node: Option<OpaqueNode>,
+        load_time: Option<CrossProcessInstant>,
     ) -> Self {
         Self {
             id,
             area,
             url,
             node,
+            load_time,
         }
     }
 }

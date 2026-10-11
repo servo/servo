@@ -19,8 +19,9 @@ use js::conversions::ToJSValConvertible;
 use js::jsval::UndefinedValue;
 use js::rust::HandleObject;
 use mime::{self, Mime};
+use net_traits::fetch::fetch_controller::FetchController;
 use net_traits::request::{CacheMode, CorsSettings, Destination, RequestBuilder, RequestId};
-use net_traits::{FetchMetadata, FilteredMetadata, NetworkError, ResourceFetchTiming};
+use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::reflect_weak_referenceable_dom_object_with_proto;
 use servo_url::ServoUrl;
@@ -42,9 +43,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::event_loop::timers::OneshotTimerCallback;
-use crate::fetch::fetch::{
-    FetchCanceller, RequestWithGlobalScope, create_a_potential_cors_request,
-};
+use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
 
@@ -63,20 +62,21 @@ enum ReadyState {
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableEventSource {
-    canceller: DomRefCell<FetchCanceller>,
+    #[no_trace]
+    controller: DomRefCell<FetchController>,
 }
 
 impl DroppableEventSource {
-    pub(crate) fn new(canceller: DomRefCell<FetchCanceller>) -> Self {
-        DroppableEventSource { canceller }
+    pub(crate) fn new(controller: DomRefCell<FetchController>) -> Self {
+        DroppableEventSource { controller }
     }
 
     pub(crate) fn cancel(&self) {
-        self.canceller.borrow_mut().abort();
+        self.controller.borrow_mut().abort();
     }
 
-    pub(crate) fn set_canceller(&self, data: FetchCanceller) {
-        *self.canceller.borrow_mut() = data;
+    pub(crate) fn set_controller(&self, controller: FetchController) {
+        *self.controller.borrow_mut() = controller;
     }
 }
 
@@ -397,29 +397,28 @@ impl FetchResponseListener for EventSourceContext {
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
         match metadata {
-            Ok(fm) => {
-                let meta = match fm {
-                    FetchMetadata::Unfiltered(m) => m,
-                    FetchMetadata::Filtered { unsafe_, filtered } => match filtered {
-                        FilteredMetadata::Opaque | FilteredMetadata::OpaqueRedirect(_) => {
-                            return self.fail_the_connection();
-                        },
-                        _ => unsafe_,
-                    },
-                };
-                // Step 15.3 if res's status is not 200, or if res's `Content-Type` is not
-                // `text/event-stream`, then fail the connection.
-                if meta.status.code() != StatusCode::OK {
+            Ok(fetch_metadata) => {
+                if fetch_metadata.is_cors_cross_origin() {
                     return self.fail_the_connection();
                 }
-                let mime = match meta.content_type {
+                let metadata: Metadata = fetch_metadata.into();
+                // Step 15.3 if res's status is not 200, or if res's `Content-Type` is not
+                // `text/event-stream`, then fail the connection.
+                if metadata.status.code() != StatusCode::OK {
+                    return self.fail_the_connection();
+                }
+                let mime = match metadata.content_type {
                     None => return self.fail_the_connection(),
                     Some(ct) => <ContentType as Into<Mime>>::into(ct.into_inner()),
                 };
                 if (mime.type_(), mime.subtype()) != (mime::TEXT, mime::EVENT_STREAM) {
                     return self.fail_the_connection();
                 }
-                self.origin = meta.final_url.origin().ascii_serialization().into_owned();
+                self.origin = metadata
+                    .final_url
+                    .origin()
+                    .ascii_serialization()
+                    .into_owned();
                 // Step 15.4 announce the connection and interpret res's body line by line.
                 self.announce_the_connection();
             },
@@ -636,7 +635,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         // Step 14 Let processEventSourceEndOfBody given response res be the following step:
         // if res is not a network error, then reestablish the connection.
 
-        event_source.droppable.set_canceller(FetchCanceller::new(
+        event_source.droppable.set_controller(FetchController::new(
             request.id,
             false,
             global.core_resource_thread(),

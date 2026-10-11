@@ -38,7 +38,9 @@ async_test(t => {
       // `childCrossOriginIsolated` is set.
       assert_equals(childCrossOriginIsolated, false);
 
-      assert_false(hasSharedArrayBuffer);
+      // SharedArrayBuffer is only removed from the global when the agent
+      // cluster's cross-origin isolation mode is "none", which it isn't here.
+      assert_true(hasSharedArrayBuffer);
       t.done();
       return;
     }

@@ -992,6 +992,37 @@
                     return window.test_driver_internal.bidi.emulation.set_touch_override(
                         params);
                 },
+                /**
+                 * Overrides whether the browser respects the
+                 * `<meta name=viewport>` tag for the specified browsing
+                 * contexts.
+                 * Matches the `emulation.setViewportMetaOverride
+                 * <https://w3c.github.io/webdriver-bidi/#command-emulation-setViewportMetaOverride>`_
+                 * WebDriver BiDi command.
+                 *
+                 * @example
+                 * await test_driver.bidi.emulation.set_viewport_meta_override({
+                 *     viewportMeta: true
+                 * });
+                 *
+                 * @param {object} params - Parameters for the command.
+                 * @param {null|true} params.viewportMeta - Whether to enable
+                 * viewport meta tag parsing (`true`). If `null` or omitted, the
+                 * override will be removed.
+                 * @param {null|Array.<(Context)>} [params.contexts] The
+                 * optional contexts parameter specifies which browsing contexts
+                 * to set the viewport meta override on. It should be either an
+                 * array of Context objects (window or browsing context id), or
+                 * null. If null or omitted, the override will be set on the
+                 * current browsing context.
+                 * @returns {Promise<void>} Resolves when the viewport meta
+                 * override is successfully set.
+                 */
+                set_viewport_meta_override: function (params) {
+                    assertBidiIsEnabled();
+                    return window.test_driver_internal.bidi.emulation.set_viewport_meta_override(
+                        params);
+                },
             },
             /**
              * `user_agent_client_hints <https://wicg.github.io/ua-client-hints/#automation>`_ module.
@@ -2584,6 +2615,10 @@
                 set_touch_override: function (params) {
                     throw new Error(
                         "bidi.emulation.set_touch_override is not implemented by testdriver-vendor.js");
+                },
+                set_viewport_meta_override: function (params) {
+                    throw new Error(
+                        "bidi.emulation.set_viewport_meta_override is not implemented by testdriver-vendor.js");
                 }
             },
             user_agent_client_hints: {

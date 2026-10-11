@@ -14,6 +14,7 @@ use pixels::ImageMetadata;
 use script_bindings::codegen::InheritTypes::{
     ElementTypeId, HTMLElementTypeId, SVGElementTypeId, SVGGraphicsElementTypeId,
 };
+use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{BrowsingContextId, PipelineId};
 use servo_base::text::{RangeAny, Utf16CodeUnits, Utf32CodeUnits};
 use servo_url::ServoUrl;
@@ -282,19 +283,15 @@ impl<'dom> LayoutDom<'dom, Node> {
     }
 
     pub(crate) fn text_node_paints_caret(&self) -> bool {
-        if let Some(shadow_root) = self.containing_shadow_root_for_layout() {
-            let host = shadow_root.get_host_for_layout();
-            if host.is::<HTMLInputElement>() || host.is::<HTMLTextAreaElement>() {
-                // This is the cases where, if `selection_for_text_node` returns a selection
-                // it is a `TextInput` selection
-                return true;
-            }
-        }
-        // This is the cases where, if `selection_for_text_node` returns a selection
-        // it is a document selection.
-        // For now, never paint a caret for document selection.
-        // This will change as we improve `contenteditable` support.
-        false
+        // TODO: Add support for `contenteditable`.
+        self.parent_node_ref()
+            .is_some_and(|parent| parent.is_text_container_of_single_line_input())
+    }
+
+    pub(crate) fn text_node_needs_caret_placeholder(&self) -> bool {
+        // TODO: Add support for `contenteditable`.
+        self.parent_node_ref()
+            .is_some_and(|parent| parent.is_text_container_of_single_line_input())
     }
 
     pub(crate) fn replaced_is_selected(&self) -> bool {
@@ -311,6 +308,11 @@ impl<'dom> LayoutDom<'dom, Node> {
 
     pub(crate) fn image_data(self) -> Option<(Option<Image>, Option<ImageMetadata>)> {
         self.downcast::<HTMLImageElement>().map(|e| e.image_data())
+    }
+
+    pub(crate) fn load_time(self) -> Option<CrossProcessInstant> {
+        self.downcast::<HTMLImageElement>()
+            .and_then(|image_element| image_element.load_time())
     }
 
     pub(crate) fn image_density(self) -> Option<f64> {

@@ -52,23 +52,23 @@ use crate::dom::element::{
 };
 use crate::dom::event::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::globalscope::script_execution::{ClassicScript, RethrowErrors};
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{ChildrenMutation, CloneChildrenFlag, Node, NodeTraits, UnbindContext};
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
-use crate::dom::script_execution::ScriptOptions;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::dom::trustedtypes::trustedscripturl::TrustedScriptURL;
 use crate::dom::window::Window;
 use crate::event_loop::document_loader::{LoadBlocker, LoadType};
 use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request_with_claim};
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
-use crate::modules::import_map::{ImportMap, parse_an_import_map_string, register_import_map};
-use crate::modules::script_module::{
-    ModuleTree, ScriptFetchOptions, fetch_an_external_module_script, fetch_inline_module_script,
-};
 use crate::runtime::script_runtime::IntroductionType;
+use crate::scripting::fetching_options::ScriptFetchOptions;
+use crate::scripting::import_map::{ImportMap, parse_an_import_map_string, register_import_map};
+use crate::scripting::script_execution::{ClassicScript, RethrowErrors, ScriptOptions};
+use crate::scripting::script_module::{
+    ModuleTree, fetch_an_external_module_script, fetch_inline_module_script,
+};
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 #[dom_struct]
@@ -226,7 +226,7 @@ impl HTMLScriptElement {
         }
 
         // Step 4. Set el's delaying the load event to false.
-        LoadBlocker::terminate(&self.delaying_the_load_event, cx);
+        LoadBlocker::terminate(cx, &self.delaying_the_load_event);
     }
 }
 
@@ -301,12 +301,9 @@ impl FetchResponseListener for ClassicContext {
         _: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
-        self.metadata = metadata.ok().map(|meta| {
-            self.response_was_cors_cross_origin = meta.is_cors_cross_origin();
-            match meta {
-                FetchMetadata::Unfiltered(m) => m,
-                FetchMetadata::Filtered { unsafe_, .. } => unsafe_,
-            }
+        self.metadata = metadata.ok().map(|metadata| {
+            self.response_was_cors_cross_origin = metadata.is_cors_cross_origin();
+            metadata.into()
         });
 
         let status = self

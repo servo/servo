@@ -1,0 +1,34 @@
+<!doctype html>
+<title>SVGPathElement.getPathSegmentAtLength() during SMIL animation</title>
+<link rel="help" href="https://svgwg.org/specs/paths/#InterfaceSVGPathData">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/getPathData-helpers.js"></script>
+<script src="/common/rendering-utils.js"></script>
+
+<svg id="svg" width="200" height="200">
+  <path id="path" d="M 0 0 L 50 0">
+    <set attributeName="d" to="M 0 0 L 100 0" fill="freeze"/>
+  </path>
+</svg>
+<script>
+promise_test(async () => {
+  const svg = document.getElementById("svg");
+  const path = document.getElementById("path");
+
+  // Apply the animation.
+  svg.pauseAnimations();
+  svg.setCurrentTime(1);
+  await waitForAtLeastOneFrame();
+
+  // `getPathSegmentAtLength()` must use the base value, ignoring the animation.
+  assert_path_segment_equals(
+      path.getPathSegmentAtLength(25), { type: "L", values: [50, 0] });
+
+  // `getPathData()` must also return the base value.
+  assert_path_data_equals(path.getPathData(), [
+    { type: "M", values: [0, 0] },
+    { type: "L", values: [50, 0] }
+  ]);
+}, "getPathSegmentAtLength() must not use the animated value during SMIL animation");
+</script>

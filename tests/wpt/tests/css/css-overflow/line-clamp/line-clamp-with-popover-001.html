@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Overflow: popover after line-clamp point</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp-container">
+<meta name="assert" content="A top-layer popover whose placeholder is after the clamp point remains visible.">
+<link rel="match" href="reference/line-clamp-with-popover-001-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+.line-clamp {
+  line-clamp: 3;
+  font: 16px / 32px serif;
+  width: 200px;
+}
+#popover {
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: green;
+  font: 16px / 32px serif;
+}
+</style>
+<div class="line-clamp">
+  Line 1<br>
+  Line 2<br>
+  Line 3, last unclamped<br>
+  <div id="popover" popover="manual">Hello</div>
+</div>
+<script>
+window.onload = () => {
+  popover.showPopover();
+  requestAnimationFrame(takeScreenshot);
+};
+</script>

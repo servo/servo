@@ -68,7 +68,8 @@ use crate::dom::medialist::MediaList;
 use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
-    BindContext, MoveContext, Node, NodeTraits, UnbindContext, from_untrusted_node_address,
+    BindContext, MoveContext, Node, NodeDamage, NodeTraits, UnbindContext,
+    from_untrusted_node_address,
 };
 use crate::dom::shadowroot::shadowroot::ShadowRoot;
 use crate::dom::text::Text;
@@ -170,8 +171,11 @@ impl HTMLElement {
         // a string consisting of only ASCII whitespace, or is a media query list that
         // matches the user's environment according to the definitions given in Media Queries. [MQ]
         self.element
-            .get_attribute_string_value(&local_name!("media"))
-            .is_none_or(|media| MediaList::matches_environment(&self.owner_document(), &media))
+            .get_attribute_string_ref(&local_name!("media"))
+            .is_none_or(|media| {
+                let media = media.as_attr_ref();
+                MediaList::matches_environment(&self.owner_document(), &media.value())
+            })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#editing-host>
@@ -1348,6 +1352,12 @@ impl VirtualMethods for HTMLElement {
                 AttributeMutation::Removed => {
                     element.update_nonce_internal_slot(String::new(), cx.no_gc());
                 },
+            },
+            // containertiming is not in html5ever, so for now we check manually
+            // Layout records these attributes as fragment flags when it builds this element's
+            // boxes, so the boxes have to be rebuilt when they change.
+            (name, _) if &**name == "containertiming" || &**name == "containertimingignore" => {
+                self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
             },
             _ => {},
         }
