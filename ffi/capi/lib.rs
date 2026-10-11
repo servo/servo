@@ -99,10 +99,8 @@ pub use request_context::{
 
 // Re-export value types and constants
 pub use value::{
-    SERVO_VALUE_TYPE_BINARY, SERVO_VALUE_TYPE_BOOL, SERVO_VALUE_TYPE_DICTIONARY,
-    SERVO_VALUE_TYPE_DOUBLE, SERVO_VALUE_TYPE_INT, SERVO_VALUE_TYPE_INVALID, SERVO_VALUE_TYPE_LIST,
-    SERVO_VALUE_TYPE_NULL, SERVO_VALUE_TYPE_STRING, ServoDictionaryValue, ServoListValue,
-    ServoValue, servo_dictionary_create, servo_dictionary_free, servo_dictionary_get_key,
+    ServoDictionaryValue, ServoListValue, ServoValue, ServoValueType,
+    servo_dictionary_create, servo_dictionary_free, servo_dictionary_get_key,
     servo_dictionary_get_keys, servo_dictionary_get_size, servo_dictionary_has_key,
     servo_dictionary_set_key, servo_list_create, servo_list_free, servo_list_get_size,
     servo_list_get_value, servo_list_set_value, servo_value_create, servo_value_free,

@@ -33,18 +33,6 @@ impl From<ServoValueType> for i32 {
         v as i32
     }
 }
-
-/// C-compatible constants for value types.
-pub const SERVO_VALUE_TYPE_INVALID: i32 = ServoValueType::Invalid as i32;
-pub const SERVO_VALUE_TYPE_NULL: i32 = ServoValueType::Null as i32;
-pub const SERVO_VALUE_TYPE_BOOL: i32 = ServoValueType::Bool as i32;
-pub const SERVO_VALUE_TYPE_INT: i32 = ServoValueType::Int as i32;
-pub const SERVO_VALUE_TYPE_DOUBLE: i32 = ServoValueType::Double as i32;
-pub const SERVO_VALUE_TYPE_STRING: i32 = ServoValueType::String as i32;
-pub const SERVO_VALUE_TYPE_BINARY: i32 = ServoValueType::Binary as i32;
-pub const SERVO_VALUE_TYPE_DICTIONARY: i32 = ServoValueType::Dictionary as i32;
-pub const SERVO_VALUE_TYPE_LIST: i32 = ServoValueType::List as i32;
-
 /// The actual value data, mirroring JSValue but owned.
 #[derive(Clone, Debug)]
 enum ValueData {

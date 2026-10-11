@@ -605,6 +605,11 @@ static struct WebView* create_about_blank_webview(void)
     return webview;
 }
 
+static struct WebView* get_test_webview(void)
+{
+    return create_about_blank_webview();
+}
+
 /* Covers `servo_capi_version()`: the version string must be non-NULL,
  * non-empty, and start with the "0." prefix of the current 0.x API. */
 int test_capi_version(void)
@@ -1404,6 +1409,20 @@ int test_builder_register_protocol_handler(void)
 /* Covers that the intercept_request delegate callback can be set and called.
  * We can't easily test the actual interception without a running load, but we
  * can verify the delegate struct accepts the callback. */
+static bool my_intercept_callback(struct WebView* webview,
+                                  const struct ServoWebResourceRequest* request,
+                                  struct ServoWebResourceResponse* response,
+                                  void* user_data)
+{
+    (void)webview;
+    (void)request;
+    (void)response;
+    if (user_data) {
+        *(bool*)user_data = true;
+    }
+    return false; // Don't actually intercept
+}
+
 int test_webview_delegate_intercept_request(void)
 {
     struct Servo* servo = create_test_servo();
@@ -1419,18 +1438,6 @@ int test_webview_delegate_intercept_request(void)
         return 1;
 
     bool intercepted = false;
-    bool my_intercept_callback(struct WebView* webview,
-                               const struct ServoWebResourceRequest* request,
-                               struct ServoWebResourceResponse* response,
-                               void* user_data)
-    {
-        (void)webview;
-        (void)request;
-        (void)response;
-        (void)user_data;
-        intercepted = true;
-        return false; // Don't actually intercept
-    }
 
     ServoWebViewDelegate delegate = {
         .user_data = &intercepted,
@@ -1516,6 +1523,33 @@ int test_download_item_getters(void)
     return 0;
 }
 
+static void on_before_download(struct WebView* webview,
+                               struct ServoDownloadItem* download,
+                               void (*callback)(bool, void*),
+                               void* user_data)
+{
+    (void)webview;
+    (void)download;
+    if (user_data) {
+        *(bool*)user_data = true;
+    }
+    /* Allow download by default */
+    if (callback) {
+        callback(true, NULL);
+    }
+}
+
+static void on_download_updated(struct WebView* webview,
+                                struct ServoDownloadItem* download,
+                                void* user_data)
+{
+    (void)webview;
+    (void)download;
+    if (user_data) {
+        *(bool*)user_data = true;
+    }
+}
+
 /* Test that delegate callbacks can be set in ServoWebViewDelegate. */
 int test_download_delegate_callbacks(void)
 {
@@ -1532,31 +1566,6 @@ int test_download_delegate_callbacks(void)
         return 1;
 
     bool before_download_called = false;
-    bool download_updated_called = false;
-
-    void on_before_download(struct WebView* webview,
-                            struct ServoDownloadItem* download,
-                            void (*callback)(bool, void*),
-                            void* user_data)
-    {
-        (void)webview;
-        (void)download;
-        (void)callback;
-        bool* flag = (bool*)user_data;
-        *flag = true;
-        /* Allow download by default */
-        callback(true, NULL);
-    }
-
-    void on_download_updated(struct WebView* webview,
-                             struct ServoDownloadItem* download,
-                             void* user_data)
-    {
-        (void)webview;
-        (void)download;
-        bool* flag = (bool*)user_data;
-        *flag = true;
-    }
 
     ServoWebViewDelegate delegate = {
         .user_data = &before_download_called,
@@ -1758,6 +1767,21 @@ int test_find_result_getters(void)
     return 0;
 }
 
+static void on_find_result(struct WebView* webview,
+                           int identifier,
+                           int count,
+                           const struct ServoFindResult* result,
+                           void* user_data)
+{
+    (void)webview;
+    (void)identifier;
+    (void)count;
+    (void)result;
+    if (user_data) {
+        *(bool*)user_data = true;
+    }
+}
+
 /* Test that find delegate callback can be set. */
 int test_find_delegate_callback(void)
 {
@@ -1774,20 +1798,6 @@ int test_find_delegate_callback(void)
         return 1;
 
     bool find_result_called = false;
-
-    void on_find_result(struct WebView* webview,
-                        int identifier,
-                        int count,
-                        const struct ServoFindResult* result,
-                        void* user_data)
-    {
-        (void)webview;
-        (void)identifier;
-        (void)count;
-        (void)result;
-        bool* flag = (bool*)user_data;
-        *flag = true;
-    }
 
     ServoWebViewDelegate delegate = {
         .user_data = &find_result_called,
@@ -1868,6 +1878,7 @@ int test_webview_hidpi_scale_factor(void)
 
     /* Reset back to 1.0 */
     servo_webview_set_hidpi_scale_factor(webview, 1.0f);
+    servo_webview_free(webview);
     return 0;
 }
 
@@ -1884,6 +1895,7 @@ int test_webview_animating(void)
     if (servo_webview_is_animating(webview, &animating) != SERVO_ERROR_OK)
         return 1;
 
+    servo_webview_free(webview);
     return 0;
 }
 
@@ -1907,6 +1919,7 @@ int test_webview_pinch_zoom(void)
     if (servo_webview_adjust_pinch_zoom(webview, 1.1f, 50.0f, 50.0f) != SERVO_ERROR_OK)
         return 1;
 
+    servo_webview_free(webview);
     return 0;
 }
 
@@ -1922,6 +1935,7 @@ int test_webview_exit_fullscreen(void)
     if (servo_webview_exit_fullscreen(webview) != SERVO_ERROR_OK)
         return 1;
 
+    servo_webview_free(webview);
     return 0;
 }
 
@@ -1943,6 +1957,7 @@ int test_webview_load_request(void)
     if (servo_webview_load_request(webview, "data:text/html,<h1>test</h1>", headers, 2) != SERVO_ERROR_OK)
         return 1;
 
+    servo_webview_free(webview);
     return 0;
 }
 
@@ -1966,6 +1981,7 @@ int test_webview_scroll(void)
     if (servo_webview_scroll_to_end(webview) != SERVO_ERROR_OK)
         return 1;
 
+    servo_webview_free(webview);
     return 0;
 }
 
@@ -1997,6 +2013,7 @@ int test_webview_ime(void)
     if (servo_webview_notify_ime_dismissed(webview) != SERVO_ERROR_OK)
         return 1;
 
+    servo_webview_free(webview);
     return 0;
 }
 
@@ -2018,6 +2035,7 @@ int test_webview_media_session(void)
     if (servo_webview_notify_media_session_action(webview, SERVO_MEDIA_SESSION_ACTION_STOP) != SERVO_ERROR_OK)
         return 1;
 
+    servo_webview_free(webview);
     return 0;
 }
 
