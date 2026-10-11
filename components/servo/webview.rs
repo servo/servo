@@ -44,7 +44,7 @@ use crate::responders::AutomaticResponder;
 use crate::servo::PendingHandledInputEvent;
 use crate::webview_delegate::{CreateNewWebViewRequest, DefaultWebViewDelegate, WebViewDelegate};
 use crate::{
-    ColorPicker, ContextMenu, EmbedderControl, InputMethodControl, SelectElement, Servo,
+    ColorPicker, ContextMenu, EmbedderControl, InputMethodControl, RequestContext, SelectElement, Servo,
     UserContentManager, WebRenderDebugOption,
 };
 
@@ -811,10 +811,10 @@ impl WebView {
         let screen_geometry = self.delegate().screen_geometry(self.clone())?;
         let window_rect = screen_geometry.window_rect;
         Some((
-            window_rect.origin.x,
-            window_rect.origin.y,
-            window_rect.size.width as u32,
-            window_rect.size.height as u32,
+            window_rect.min.x,
+            window_rect.min.y,
+            window_rect.size().width as u32,
+            window_rect.size().height as u32,
         ))
     }
 
@@ -1275,7 +1275,7 @@ impl WebView {
     }
 
     /// Clear the find results for the given identifier.
-    pub fn clear_find(&self, identifier: i32) {
+    pub fn clear_find(&self, _identifier: i32) {
         self.servo()
             .constellation_proxy()
             .send(EmbedderToConstellationMessage::ClearFind(self.id()));

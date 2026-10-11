@@ -54,7 +54,7 @@ use script::JSEngineSetup;
 use script::ServiceWorkerManager;
 #[cfg(feature = "multiprocess")]
 use servo_background_hang_monitor::HangMonitorRegister;
-use servo_base::generic_channel::{GenericCallback, GenericSender, RoutedReceiver, SendError};
+use servo_base::generic_channel::{GenericCallback, RoutedReceiver, SendError};
 pub use servo_base::id::WebViewId;
 use servo_base::id::{EMBEDDER_PIPELINE_NAMESPACE_ID, PipelineNamespace};
 #[cfg(feature = "bluetooth")]
@@ -83,7 +83,7 @@ use servo_constellation::{
 };
 #[cfg(feature = "multiprocess")]
 use servo_constellation::{FromScriptLogger, NewScriptEventLoopProcessInfo};
-use servo_constellation_traits::{EmbedderToConstellationMessage, FindResult};
+use servo_constellation_traits::EmbedderToConstellationMessage;
 #[cfg(feature = "multiprocess")]
 use servo_constellation_traits::ScriptToConstellationSender;
 use servo_geometry::{
@@ -107,12 +107,13 @@ use crate::network_manager::NetworkManager;
 use crate::proxies::ConstellationProxy;
 use crate::responders::ServoErrorChannel;
 use crate::servo_delegate::{DefaultServoDelegate, ServoDelegate, ServoError};
+use crate::request_context::RequestContext;
 use crate::site_data_manager::{CookieOperationResponse, SiteDataManager};
 use crate::webview::{MINIMUM_WEBVIEW_SIZE, WebView, WebViewInner};
 use crate::webview_delegate::{
     AllowOrDenyRequest, AuthenticationRequest, BluetoothDeviceSelectionRequest, CertificateError,
-    CertificateErrorRequest, EmbedderControl, FilePicker, NavigationRequest, PermissionRequest,
-    ProtocolHandlerRegistration, WebResourceLoad,
+    CertificateErrorRequest, CertificateErrorResponse, EmbedderControl, FilePicker,
+    NavigationRequest, PermissionRequest, ProtocolHandlerRegistration, WebResourceLoad,
 };
 
 #[cfg(feature = "media-gstreamer")]

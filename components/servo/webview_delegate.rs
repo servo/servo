@@ -162,14 +162,7 @@ impl CertificateError {
     }
 }
 
-/// Response to a certificate error request.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CertificateErrorResponse {
-    /// Allow the connection despite the certificate error.
-    Allow,
-    /// Deny the connection (certificate error will be reported).
-    Deny,
-}
+pub use net::embedder::CertificateErrorResponse;
 
 /// A request to handle a certificate error for a navigation.
 /// The embedder should allow or deny the request.
@@ -1227,8 +1220,8 @@ pub trait WebViewDelegate {
     fn on_before_download(
         &self,
         _webview: WebView,
-        _download: servo_api::DownloadItem,
-        continue_callback: servo_api::DownloadContinueCallback,
+        _download: DownloadItem,
+        continue_callback: DownloadContinueCallback,
     ) {
         continue_callback(true);
     }

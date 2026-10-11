@@ -10,6 +10,7 @@ use log::warn;
 use net_traits::pub_domains::registered_domain_name;
 use net_traits::{CookieOperationId, ResourceThreads, SiteDescriptor};
 use rustc_hash::FxHashMap;
+use servo_base::generic_channel;
 use servo_url::ServoUrl;
 use storage_traits::StorageThreads;
 use storage_traits::webstorage_thread::{OriginDescriptor, WebStorageType};
@@ -454,44 +455,34 @@ impl SiteDataManager {
         session: Option<bool>,
         callback: Option<Box<dyn FnOnce(usize) + Send + 'static>>,
     ) {
+        let servo_url: Option<ServoUrl> = url.map(Into::into);
         match callback {
             None => {
                 self.public_resource_threads.delete_all_cookies(
-                    url, name.clone(), domain.clone(), path.clone(), secure, session,
+                    servo_url.clone(), name.clone(), domain.clone(), path.clone(), secure, session,
                 );
                 self.private_resource_threads.delete_all_cookies(
-                    url, name, domain, path, secure, session,
+                    servo_url, name, domain, path, secure, session,
                 );
             },
             Some(callback) => {
-                let id = self.next_operation_id();
-                let remaining = std::cell::Cell::new(2);
-                let callback = std::rc::Rc::new(callback);
-                let cb_public = callback.clone();
-                let cb_private = callback;
-
-                let public_callback = Box::new(move |count: usize| {
-                    if remaining.get() > 1 {
-                        remaining.set(remaining.get() - 1);
-                    } else {
-                        cb_public(count);
-                    }
-                });
-
-                let private_callback = Box::new(move |count: usize| {
-                    if remaining.get() > 1 {
-                        remaining.set(remaining.get() - 1);
-                    } else {
-                        cb_private(count);
-                    }
-                });
+                let id1 = self.next_operation_id();
+                let id2 = self.next_operation_id();
+                let (sender1, receiver1) = generic_channel::channel().unwrap();
+                let (sender2, receiver2) = generic_channel::channel().unwrap();
 
                 self.public_resource_threads.delete_all_cookies_async(
-                    id, url.clone(), name.clone(), domain.clone(), path.clone(), secure, session, public_callback,
+                    id1, servo_url.clone(), name.clone(), domain.clone(), path.clone(), secure, session, sender1,
                 );
                 self.private_resource_threads.delete_all_cookies_async(
-                    id, url, name, domain, path, secure, session, private_callback,
+                    id2, servo_url, name, domain, path, secure, session, sender2,
                 );
+
+                std::thread::spawn(move || {
+                    let count1 = receiver1.recv().unwrap_or(0);
+                    let count2 = receiver2.recv().unwrap_or(0);
+                    callback(count1 + count2);
+                });
             },
         }
     }
@@ -502,36 +493,26 @@ impl SiteDataManager {
         url: Url,
         callback: Option<Box<dyn FnOnce(usize) + Send + 'static>>,
     ) {
+        let servo_url: ServoUrl = url.into();
         match callback {
             None => {
-                self.public_resource_threads.delete_cookies_for_url(url.clone());
-                self.private_resource_threads.delete_cookies_for_url(url);
+                self.public_resource_threads.delete_cookies_for_url(servo_url.clone());
+                self.private_resource_threads.delete_cookies_for_url(servo_url);
             },
             Some(callback) => {
-                let id = self.next_operation_id();
-                let remaining = std::cell::Cell::new(2);
-                let callback = std::rc::Rc::new(callback);
-                let cb_public = callback.clone();
-                let cb_private = callback;
+                let id1 = self.next_operation_id();
+                let id2 = self.next_operation_id();
+                let (sender1, receiver1) = generic_channel::channel().unwrap();
+                let (sender2, receiver2) = generic_channel::channel().unwrap();
 
-                let public_callback = Box::new(move |count: usize| {
-                    if remaining.get() > 1 {
-                        remaining.set(remaining.get() - 1);
-                    } else {
-                        cb_public(count);
-                    }
+                self.public_resource_threads.delete_cookies_for_url_async(id1, servo_url.clone(), sender1);
+                self.private_resource_threads.delete_cookies_for_url_async(id2, servo_url, sender2);
+
+                std::thread::spawn(move || {
+                    let count1 = receiver1.recv().unwrap_or(0);
+                    let count2 = receiver2.recv().unwrap_or(0);
+                    callback(count1 + count2);
                 });
-
-                let private_callback = Box::new(move |count: usize| {
-                    if remaining.get() > 1 {
-                        remaining.set(remaining.get() - 1);
-                    } else {
-                        cb_private(count);
-                    }
-                });
-
-                self.public_resource_threads.delete_cookies_for_url_async(id, url.clone(), public_callback);
-                self.private_resource_threads.delete_cookies_for_url_async(id, url, private_callback);
             },
         }
     }
@@ -543,36 +524,26 @@ impl SiteDataManager {
         name: String,
         callback: Option<Box<dyn FnOnce(usize) + Send + 'static>>,
     ) {
+        let servo_url: ServoUrl = url.into();
         match callback {
             None => {
-                self.public_resource_threads.embedder_delete_cookie(url.clone(), name.clone());
-                self.private_resource_threads.embedder_delete_cookie(url, name);
+                self.public_resource_threads.embedder_delete_cookie(servo_url.clone(), name.clone());
+                self.private_resource_threads.embedder_delete_cookie(servo_url, name);
             },
             Some(callback) => {
-                let id = self.next_operation_id();
-                let remaining = std::cell::Cell::new(2);
-                let callback = std::rc::Rc::new(callback);
-                let cb_public = callback.clone();
-                let cb_private = callback;
+                let id1 = self.next_operation_id();
+                let id2 = self.next_operation_id();
+                let (sender1, receiver1) = generic_channel::channel().unwrap();
+                let (sender2, receiver2) = generic_channel::channel().unwrap();
 
-                let public_callback = Box::new(move |count: usize| {
-                    if remaining.get() > 1 {
-                        remaining.set(remaining.get() - 1);
-                    } else {
-                        cb_public(count);
-                    }
+                self.public_resource_threads.embedder_delete_cookie_async(id1, servo_url.clone(), name.clone(), sender1);
+                self.private_resource_threads.embedder_delete_cookie_async(id2, servo_url, name, sender2);
+
+                std::thread::spawn(move || {
+                    let count1 = receiver1.recv().unwrap_or(0);
+                    let count2 = receiver2.recv().unwrap_or(0);
+                    callback(count1 + count2);
                 });
-
-                let private_callback = Box::new(move |count: usize| {
-                    if remaining.get() > 1 {
-                        remaining.set(remaining.get() - 1);
-                    } else {
-                        cb_private(count);
-                    }
-                });
-
-                self.public_resource_threads.embedder_delete_cookie_async(id, url.clone(), name.clone(), public_callback);
-                self.private_resource_threads.embedder_delete_cookie_async(id, url, name, private_callback);
             },
         }
     }
@@ -585,30 +556,19 @@ impl SiteDataManager {
                 self.private_resource_threads.flush_cookie_store();
             },
             Some(callback) => {
-                let id = self.next_operation_id();
-                let remaining = std::cell::Cell::new(2);
-                let callback = std::rc::Rc::new(callback);
-                let cb_public = callback.clone();
-                let cb_private = callback;
+                let id1 = self.next_operation_id();
+                let id2 = self.next_operation_id();
+                let (sender1, receiver1) = generic_channel::channel().unwrap();
+                let (sender2, receiver2) = generic_channel::channel().unwrap();
 
-                let public_callback = Box::new(move || {
-                    if remaining.get() > 1 {
-                        remaining.set(remaining.get() - 1);
-                    } else {
-                        cb_public();
-                    }
+                self.public_resource_threads.flush_cookie_store_async(id1, sender1);
+                self.private_resource_threads.flush_cookie_store_async(id2, sender2);
+
+                std::thread::spawn(move || {
+                    let _ = receiver1.recv();
+                    let _ = receiver2.recv();
+                    callback();
                 });
-
-                let private_callback = Box::new(move || {
-                    if remaining.get() > 1 {
-                        remaining.set(remaining.get() - 1);
-                    } else {
-                        cb_private();
-                    }
-                });
-
-                self.public_resource_threads.flush_cookie_store_async(id, public_callback);
-                self.private_resource_threads.flush_cookie_store_async(id, private_callback);
             },
         }
     }
