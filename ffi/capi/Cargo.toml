@@ -30,8 +30,10 @@ http = { workspace = true }
 keyboard-types = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
+parking_lot = { workspace = true }
 raw-window-handle = { workspace = true }
 serde_json = { workspace = true }
+servo_arc = { workspace = true }
 servo-constellation-traits = { workspace = true }
 # TODO: We need 'baked-in-resources' as the `inventory` based `ResourceReader`
 # doesn't work when libservo is a cdylib.

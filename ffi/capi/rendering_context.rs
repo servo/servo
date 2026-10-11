@@ -4,7 +4,7 @@
 
 use std::rc::Rc;
 
-use raw_window_handle::{RawDisplayHandle, RawWindowHandle};
+use raw_window_handle::{DisplayHandle, RawDisplayHandle, RawWindowHandle, WindowHandle};
 use servo_api::{OffscreenRenderingContext, SoftwareRenderingContext, WindowRenderingContext};
 
 use crate::ServoError;
@@ -24,6 +24,7 @@ use crate::ServoError;
 // cbindgen:opaque
 pub struct RenderingContext {
     pub(crate) inner: Rc<dyn servo_api::RenderingContext>,
+    pub(crate) window_context: Option<Rc<WindowRenderingContext>>,
 }
 
 /// Rendering context type constants for future type queries.
@@ -50,6 +51,7 @@ pub extern "C" fn servo_rendering_context_create_software(
         match SoftwareRenderingContext::new(size) {
             Ok(context) => Box::into_raw(Box::new(RenderingContext {
                 inner: Rc::new(context),
+                window_context: None,
             })),
             Err(error) => {
                 log::error!("Failed to create SoftwareRenderingContext: {error:?}");
@@ -101,14 +103,17 @@ pub unsafe extern "C" fn servo_rendering_context_create_window(
         let display_handle = unsafe { &*(display_handle as *const RawDisplayHandle) };
         let window_handle = unsafe { &*(window_handle as *const RawWindowHandle) };
 
-        // Clone the handles since WindowRenderingContext::new takes them by value.
-        let display_handle = display_handle.clone();
-        let window_handle = window_handle.clone();
+        let display_handle = unsafe { DisplayHandle::borrow_raw(*display_handle) };
+        let window_handle = unsafe { WindowHandle::borrow_raw(*window_handle) };
 
         match WindowRenderingContext::new(display_handle, window_handle, size) {
-            Ok(context) => Box::into_raw(Box::new(RenderingContext {
-                inner: Rc::new(context),
-            })),
+            Ok(context) => {
+                let rc = Rc::new(context);
+                Box::into_raw(Box::new(RenderingContext {
+                    inner: rc.clone(),
+                    window_context: Some(rc),
+                }))
+            },
             Err(error) => {
                 log::error!("Failed to create WindowRenderingContext: {error:?}");
                 std::ptr::null_mut()
@@ -158,26 +163,19 @@ pub unsafe extern "C" fn servo_rendering_context_create_offscreen(
         // SAFETY: The caller guarantees `parent` is a valid pointer to a RenderingContext.
         let parent_ctx = unsafe { &*parent };
 
-        // Downcast the inner trait object to WindowRenderingContext.
-        let window_ctx = match parent_ctx
-            .inner
-            .as_any()
-            .downcast_ref::<WindowRenderingContext>()
-        {
-            Some(ctx) => Rc::clone(ctx),
-            None => {
-                log::error!(
-                    "parent RenderingContext must be a WindowRenderingContext (created by servo_rendering_context_create_window)"
-                );
-                return std::ptr::null_mut();
-            },
+        let Some(window_ctx) = &parent_ctx.window_context else {
+            log::error!(
+                "parent RenderingContext must be a WindowRenderingContext (created by servo_rendering_context_create_window)"
+            );
+            return std::ptr::null_mut();
         };
 
         // Create the offscreen context as a child of the window context.
-        let offscreen_ctx = OffscreenRenderingContext::new(window_ctx, size);
+        let offscreen_ctx = window_ctx.offscreen_context(size);
 
         Box::into_raw(Box::new(RenderingContext {
             inner: Rc::new(offscreen_ctx),
+            window_context: None,
         }))
     })
 }

@@ -8419,11 +8419,13 @@ dependencies = [
  "keyboard-types",
  "libc",
  "log",
+ "parking_lot",
  "raw-window-handle",
  "serde_json",
  "servo",
  "servo-constellation-traits",
  "servo-embedder-traits",
+ "servo_arc",
  "url",
 ]
 

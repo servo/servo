@@ -217,7 +217,7 @@ impl ServoWebResourceResponse {
         );
         response.headers = self.headers;
         response.status = HttpStatus::new_raw(self.status_code.as_u16(), self.status_message);
-        response.body = Arc::new(Mutex::new(ResponseBody::Done(self.body)));
+        response.body = servo_arc::Arc::new(parking_lot::Mutex::new(ResponseBody::Done(self.body)));
         response
     }
 
@@ -344,8 +344,8 @@ pub extern "C" fn servo_web_resource_request_get_header(
 #[unsafe(no_mangle)]
 pub extern "C" fn servo_web_resource_request_get_body(
     request: *const ServoWebResourceRequest,
-    buffer: *mut u8,
-    buffer_len: usize,
+    _buffer: *mut u8,
+    _buffer_len: usize,
 ) -> usize {
     if request.is_null() {
         return 0;

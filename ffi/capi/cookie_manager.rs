@@ -218,7 +218,12 @@ pub unsafe extern "C" fn servo_site_data_visit_all_cookies(
         let manager = unsafe { &*manager };
 
         // Get all cookies from SiteDataManager
-        let cookies = manager.servo.site_data_manager().visit_all_cookies();
+        let (tx, rx) = std::sync::mpsc::channel();
+        manager.servo.site_data_manager().visit_all_cookies(move |c| {
+            let _ = tx.send(c.clone());
+            true
+        });
+        let cookies: Vec<_> = rx.into_iter().collect();
 
         // Call visitor for each cookie
         visit_cookies_with_callback(cookies, visitor, user_data);
@@ -272,10 +277,15 @@ pub unsafe extern "C" fn servo_site_data_visit_cookies_for_url(
         };
 
         // Get cookies for URL from SiteDataManager
-        let cookies = manager
+        let (tx, rx) = std::sync::mpsc::channel();
+        manager
             .servo
             .site_data_manager()
-            .visit_cookies_for_url(url, servo_api::CookieSource::HTTP);
+            .visit_cookies_for_url(url, servo_api::CookieSource::HTTP, move |c| {
+                let _ = tx.send(c.clone());
+                true
+            });
+        let cookies: Vec<_> = rx.into_iter().collect();
 
         // Call visitor for each cookie
         visit_cookies_with_callback(cookies, visitor, user_data);
@@ -378,10 +388,11 @@ pub unsafe extern "C" fn servo_site_data_delete_all_cookies(
             secure_opt,
             session_opt,
             callback.map(|cb| {
-                let user_data = user_data;
-                Box::new(move |count: usize| {
-                    unsafe { cb(count, user_data) };
-                })
+                let user_data = user_data as usize;
+                let boxed: Box<dyn FnOnce(usize) + Send + 'static> = Box::new(move |count: usize| {
+                    unsafe { cb(count, user_data as *mut c_void) };
+                });
+                boxed
             }),
         );
 
@@ -434,10 +445,11 @@ pub unsafe extern "C" fn servo_site_data_delete_cookies_for_url(
         manager.servo.site_data_manager().delete_cookies_for_url(
             url,
             callback.map(|cb| {
-                let user_data = user_data;
-                Box::new(move |count: usize| {
-                    unsafe { cb(count, user_data) };
-                })
+                let user_data = user_data as usize;
+                let boxed: Box<dyn FnOnce(usize) + Send + 'static> = Box::new(move |count: usize| {
+                    unsafe { cb(count, user_data as *mut c_void) };
+                });
+                boxed
             }),
         );
 
@@ -500,10 +512,11 @@ pub unsafe extern "C" fn servo_site_data_delete_cookie(
             url,
             name_str.to_string(),
             callback.map(|cb| {
-                let user_data = user_data;
-                Box::new(move |count: usize| {
-                    unsafe { cb(count, user_data) };
-                })
+                let user_data = user_data as usize;
+                let boxed: Box<dyn FnOnce(usize) + Send + 'static> = Box::new(move |count: usize| {
+                    unsafe { cb(count, user_data as *mut c_void) };
+                });
+                boxed
             }),
         );
 
@@ -544,10 +557,11 @@ pub unsafe extern "C" fn servo_site_data_flush_store(
             .servo
             .site_data_manager()
             .flush_store(callback.map(|cb| {
-                let user_data = user_data;
-                Box::new(move || {
-                    unsafe { cb(user_data) };
-                })
+                let user_data = user_data as usize;
+                let boxed: Box<dyn FnOnce() + Send + 'static> = Box::new(move || {
+                    unsafe { cb(user_data as *mut c_void) };
+                });
+                boxed
             }));
 
         crate::ServoError::Ok

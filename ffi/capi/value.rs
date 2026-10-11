@@ -61,21 +61,21 @@ enum ValueData {
 /// An opaque struct representing a generic value container.
 /// Can hold: null, bool, int, double, string, binary, dictionary, list.
 // cbindgen:opaque
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ServoValue {
     value: ValueData,
 }
 
 /// An opaque struct representing a dictionary value (key-value map).
 // cbindgen:opaque
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ServoDictionaryValue {
     map: HashMap<String, ServoValue>,
 }
 
 /// An opaque struct representing a list value (ordered array).
 // cbindgen:opaque
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ServoListValue {
     list: Vec<ServoValue>,
 }
@@ -146,7 +146,7 @@ impl ServoValue {
         self.value = ValueData::Binary(val);
     }
 
-    fn from_jsvalue(value: &JSValue) -> Self {
+    pub(crate) fn from_jsvalue(value: &JSValue) -> Self {
         match value {
             JSValue::Undefined | JSValue::Null => Self::new(ValueData::Null),
             JSValue::Boolean(b) => Self::new(ValueData::Bool(*b)),
@@ -486,7 +486,7 @@ pub unsafe extern "C" fn servo_value_get_string(
     }
     let value = unsafe { &*value };
     match &value.value {
-        ValueData::String(s) => write_c_string(s, buffer, buffer_len),
+        ValueData::String(s) => unsafe { write_c_string(s, buffer, buffer_len) },
         _ => 0,
     }
 }
@@ -768,7 +768,7 @@ pub unsafe extern "C" fn servo_dictionary_get_keys(
         write_json_string(key, &mut output);
     }
     output.push(']');
-    write_c_string(&output, buffer, buffer_len)
+    unsafe { write_c_string(&output, buffer, buffer_len) }
 }
 
 /// Creates a new empty list value.
@@ -905,7 +905,7 @@ pub unsafe extern "C" fn servo_value_to_json(
     }
     let value = unsafe { &*value };
     let json = value.to_json_string();
-    write_c_string(&json, buffer, buffer_len)
+    unsafe { write_c_string(&json, buffer, buffer_len) }
 }
 
 /// Writes `value` into a caller-provided NUL terminated UTF-8 buffer.

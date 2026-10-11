@@ -5,6 +5,7 @@
 use std::ffi::{CStr, c_void};
 use std::os::raw::{c_char, c_int};
 use std::rc::Rc;
+use std::str::FromStr;
 
 use keyboard_types::{Code, CompositionEvent, CompositionState, Key, KeyState, Location, Modifiers, NamedKey};
 use servo_api::{Servo, WebView, WebViewBuilder};
@@ -127,8 +128,8 @@ pub struct ServoWebViewBuilder {
     rendering_context: Rc<dyn servo_api::RenderingContext>,
     url: Option<url::Url>,
     delegate: Option<ServoWebViewDelegate>,
-    user_content_manager: Option<Rc<servo_api::UserContentManager>>,
-    request_context: Option<servo_api::RequestContext>,
+    pub(crate) user_content_manager: Option<Rc<servo_api::UserContentManager>>,
+    pub(crate) request_context: Option<servo_api::RequestContext>,
     hidpi_scale_factor: Option<f32>,
 }
 
@@ -1287,7 +1288,7 @@ pub unsafe extern "C" fn servo_webview_notify_mouse_move_event(
     webview: *mut WebView,
     x: f64,
     y: f64,
-    modifiers: u32,
+    _modifiers: u32,
     out_event_id: *mut u64,
 ) -> ServoError {
     ServoError::catch_ffi(|| {
@@ -2033,10 +2034,10 @@ pub unsafe extern "C" fn servo_webview_scroll_by(
             return ServoError::NullArgument;
         }
 
-        let delta = WebViewVector::new(dx, dy);
+        let delta = WebViewVector::Device(servo_api::DeviceVector2D::new(dx, dy));
         unsafe { &*webview }.notify_scroll_event(
             Scroll::Delta(delta),
-            WebViewPoint::zero(),
+            WebViewPoint::Device(servo_api::DevicePoint::zero()),
         );
 
         ServoError::Ok
@@ -2063,7 +2064,7 @@ pub unsafe extern "C" fn servo_webview_scroll_to_start(
 
         unsafe { &*webview }.notify_scroll_event(
             Scroll::Start,
-            WebViewPoint::zero(),
+            WebViewPoint::Device(servo_api::DevicePoint::zero()),
         );
 
         ServoError::Ok
@@ -2090,7 +2091,7 @@ pub unsafe extern "C" fn servo_webview_scroll_to_end(
 
         unsafe { &*webview }.notify_scroll_event(
             Scroll::End,
-            WebViewPoint::zero(),
+            WebViewPoint::Device(servo_api::DevicePoint::zero()),
         );
 
         ServoError::Ok

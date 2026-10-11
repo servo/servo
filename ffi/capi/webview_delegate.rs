@@ -66,49 +66,41 @@ pub enum ServoCursorType {
 impl From<Cursor> for ServoCursorType {
     fn from(cursor: Cursor) -> Self {
         match cursor {
+            Cursor::None => ServoCursorType::None,
+            Cursor::Default => ServoCursorType::Auto,
             Cursor::Pointer => ServoCursorType::Pointer,
-            Cursor::Crosshair => ServoCursorType::Crosshair,
-            Cursor::Hand => ServoCursorType::Hand,
-            Cursor::IBeam => ServoCursorType::IBeam,
-            Cursor::Wait => ServoCursorType::Wait,
-            Cursor::Help => ServoCursorType::Help,
-            Cursor::EastResize => ServoCursorType::EastResize,
-            Cursor::NorthResize => ServoCursorType::NorthResize,
-            Cursor::NorthEastResize => ServoCursorType::NorthEastResize,
-            Cursor::NorthWestResize => ServoCursorType::NorthWestResize,
-            Cursor::SouthResize => ServoCursorType::SouthResize,
-            Cursor::SouthEastResize => ServoCursorType::SouthEastResize,
-            Cursor::SouthWestResize => ServoCursorType::SouthWestResize,
-            Cursor::WestResize => ServoCursorType::WestResize,
-            Cursor::NorthSouthResize => ServoCursorType::NorthSouthResize,
-            Cursor::EastWestResize => ServoCursorType::EastWestResize,
-            Cursor::NorthEastSouthWestResize => ServoCursorType::NorthEastSouthWestResize,
-            Cursor::NorthWestSouthEastResize => ServoCursorType::NorthWestSouthEastResize,
-            Cursor::ColumnResize => ServoCursorType::ColumnResize,
-            Cursor::RowResize => ServoCursorType::RowResize,
-            Cursor::MiddlePanning => ServoCursorType::MiddlePanning,
-            Cursor::EastPanning => ServoCursorType::EastPanning,
-            Cursor::NorthPanning => ServoCursorType::NorthPanning,
-            Cursor::NorthEastPanning => ServoCursorType::NorthEastPanning,
-            Cursor::NorthWestPanning => ServoCursorType::NorthWestPanning,
-            Cursor::SouthPanning => ServoCursorType::SouthPanning,
-            Cursor::SouthEastPanning => ServoCursorType::SouthEastPanning,
-            Cursor::SouthWestPanning => ServoCursorType::SouthWestPanning,
-            Cursor::WestPanning => ServoCursorType::WestPanning,
-            Cursor::Move => ServoCursorType::Move,
-            Cursor::VerticalText => ServoCursorType::VerticalText,
-            Cursor::Cell => ServoCursorType::Cell,
             Cursor::ContextMenu => ServoCursorType::ContextMenu,
-            Cursor::Alias => ServoCursorType::Alias,
+            Cursor::Help => ServoCursorType::Help,
             Cursor::Progress => ServoCursorType::Progress,
-            Cursor::NoDrop => ServoCursorType::NoDrop,
+            Cursor::Wait => ServoCursorType::Wait,
+            Cursor::Cell => ServoCursorType::Cell,
+            Cursor::Crosshair => ServoCursorType::Crosshair,
+            Cursor::Text => ServoCursorType::IBeam,
+            Cursor::VerticalText => ServoCursorType::VerticalText,
+            Cursor::Alias => ServoCursorType::Alias,
             Cursor::Copy => ServoCursorType::Copy,
+            Cursor::Move => ServoCursorType::Move,
+            Cursor::NoDrop => ServoCursorType::NoDrop,
             Cursor::NotAllowed => ServoCursorType::NotAllowed,
             Cursor::Grab => ServoCursorType::Grab,
             Cursor::Grabbing => ServoCursorType::Grabbing,
-            Cursor::Custom => ServoCursorType::Custom,
-            Cursor::None => ServoCursorType::None,
-            Cursor::Auto => ServoCursorType::Auto,
+            Cursor::EResize => ServoCursorType::EastResize,
+            Cursor::NResize => ServoCursorType::NorthResize,
+            Cursor::NeResize => ServoCursorType::NorthEastResize,
+            Cursor::NwResize => ServoCursorType::NorthWestResize,
+            Cursor::SResize => ServoCursorType::SouthResize,
+            Cursor::SeResize => ServoCursorType::SouthEastResize,
+            Cursor::SwResize => ServoCursorType::SouthWestResize,
+            Cursor::WResize => ServoCursorType::WestResize,
+            Cursor::EwResize => ServoCursorType::EastWestResize,
+            Cursor::NsResize => ServoCursorType::NorthSouthResize,
+            Cursor::NeswResize => ServoCursorType::NorthEastSouthWestResize,
+            Cursor::NwseResize => ServoCursorType::NorthWestSouthEastResize,
+            Cursor::ColResize => ServoCursorType::ColumnResize,
+            Cursor::RowResize => ServoCursorType::RowResize,
+            Cursor::AllScroll => ServoCursorType::MiddlePanning,
+            Cursor::ZoomIn => ServoCursorType::Custom,
+            Cursor::ZoomOut => ServoCursorType::Custom,
         }
     }
 }
@@ -1396,7 +1388,7 @@ impl WebViewDelegate for ServoWebViewDelegate {
                 &mut webview as *mut WebView,
                 identifier,
                 count,
-                c_result.unwrap_or(std::ptr::null()),
+                c_result.unwrap_or(std::ptr::null_mut()),
                 self.user_data,
             )
         };
@@ -1543,7 +1535,7 @@ unsafe extern "C" fn permission_trampoline(granted: bool, user_data: *mut c_void
         return;
     }
     let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        let responder = Box::from_raw(user_data as *mut Box<dyn FnOnce(bool)>);
+        let responder = unsafe { Box::from_raw(user_data as *mut Box<dyn FnOnce(bool)>) };
         responder(granted);
     }));
 }
@@ -1557,16 +1549,16 @@ unsafe extern "C" fn authentication_trampoline(
         return;
     }
     let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        let responder = Box::from_raw(user_data as *mut Box<dyn FnOnce(String, String)>);
+        let responder = unsafe { Box::from_raw(user_data as *mut Box<dyn FnOnce(String, String)>) };
         let username = if username.is_null() {
             String::new()
         } else {
-            CStr::from_ptr(username).to_string_lossy().into_owned()
+            unsafe { CStr::from_ptr(username) }.to_string_lossy().into_owned()
         };
         let password = if password.is_null() {
             String::new()
         } else {
-            CStr::from_ptr(password).to_string_lossy().into_owned()
+            unsafe { CStr::from_ptr(password) }.to_string_lossy().into_owned()
         };
         responder(username, password);
     }));
@@ -1577,7 +1569,7 @@ unsafe extern "C" fn unload_trampoline(proceed: bool, user_data: *mut c_void) {
         return;
     }
     let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        let responder = Box::from_raw(user_data as *mut Box<dyn FnOnce(bool)>);
+        let responder = unsafe { Box::from_raw(user_data as *mut Box<dyn FnOnce(bool)>) };
         responder(proceed);
     }));
 }
@@ -1587,7 +1579,7 @@ unsafe extern "C" fn certificate_error_trampoline(allow: bool, user_data: *mut c
         return;
     }
     let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        let responder = Box::from_raw(user_data as *mut Box<dyn FnOnce(bool)>);
+        let responder = unsafe { Box::from_raw(user_data as *mut Box<dyn FnOnce(bool)>) };
         responder(allow);
     }));
 }
@@ -1597,7 +1589,7 @@ unsafe extern "C" fn download_continue_trampoline(continue_download: bool, user_
         return;
     }
     let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        let responder = Box::from_raw(user_data as *mut Box<dyn FnOnce(bool)>);
+        let responder = unsafe { Box::from_raw(user_data as *mut Box<dyn FnOnce(bool)>) };
         responder(continue_download);
     }));
 }
@@ -1607,7 +1599,7 @@ unsafe extern "C" fn alert_trampoline(_result: bool, user_data: *mut c_void) {
         return;
     }
     let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        let responder = Box::from_raw(user_data as *mut Box<dyn FnOnce(bool)>);
+        let responder = unsafe { Box::from_raw(user_data as *mut Box<dyn FnOnce(bool)>) };
         responder(true);
     }));
 }
@@ -1617,7 +1609,7 @@ unsafe extern "C" fn confirm_trampoline(result: bool, user_data: *mut c_void) {
         return;
     }
     let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        let responder = Box::from_raw(user_data as *mut Box<dyn FnOnce(bool)>);
+        let responder = unsafe { Box::from_raw(user_data as *mut Box<dyn FnOnce(bool)>) };
         responder(result);
     }));
 }
@@ -1627,11 +1619,11 @@ unsafe extern "C" fn prompt_trampoline(result: *const c_char, user_data: *mut c_
         return;
     }
     let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        let responder = Box::from_raw(user_data as *mut Box<dyn FnOnce(Option<String>)>);
+        let responder = unsafe { Box::from_raw(user_data as *mut Box<dyn FnOnce(Option<String>)>) };
         let text = if result.is_null() {
             None
         } else {
-            CStr::from_ptr(result).to_str().ok().map(|s| s.to_owned())
+            unsafe { CStr::from_ptr(result) }.to_str().ok().map(|s| s.to_owned())
         };
         responder(text);
     }));
@@ -1646,18 +1638,20 @@ unsafe extern "C" fn file_picker_trampoline(
         return;
     }
     let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-        let responder = Box::from_raw(
-            user_data as *mut Box<dyn FnOnce(Option<Vec<PathBuf>>)>,
-        );
+        let responder = unsafe {
+            Box::from_raw(
+                user_data as *mut Box<dyn FnOnce(Option<Vec<PathBuf>>)>,
+            )
+        };
         if paths.is_null() || path_count == 0 {
             responder(None);
             return;
         }
         let mut result_paths = Vec::with_capacity(path_count);
         for i in 0..path_count {
-            let p = *paths.add(i);
+            let p = unsafe { *paths.add(i) };
             if !p.is_null() {
-                if let Ok(s) = CStr::from_ptr(p).to_str() {
+                if let Ok(s) = unsafe { CStr::from_ptr(p) }.to_str() {
                     result_paths.push(PathBuf::from(s));
                 }
             }

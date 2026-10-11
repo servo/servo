@@ -180,6 +180,9 @@ pub enum ServoError {
 
     /// A panic was caught at the FFI boundary.
     InternalPanic = -8,
+
+    /// An invalid argument was provided.
+    InvalidArgument = -9,
 }
 
 impl ServoError {
