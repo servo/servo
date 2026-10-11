@@ -8,6 +8,7 @@ use embedder_traits::{
 };
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::{PipelineId, WebViewId};
+use servo_constellation_traits::FindResult;
 use servo_url::ServoUrl;
 
 /// Messages sent from the `Constellation` to the embedder.
@@ -40,4 +41,6 @@ pub enum ConstellationToEmbedderMsg {
     AllowNavigationRequest(WebViewId, PipelineId, ServoUrl),
     /// The history state has changed.
     HistoryChanged(WebViewId, Vec<ServoUrl>, usize),
+    /// Find-in-page result.
+    FindResult(WebViewId, FindResult),
 }

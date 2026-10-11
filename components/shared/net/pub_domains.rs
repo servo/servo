@@ -15,6 +15,7 @@
 //! those cases are not present.
 
 use std::iter::FromIterator;
+use std::net::IpAddr;
 use std::sync::LazyLock;
 
 use embedder_traits::resources::{self, Resource};
@@ -190,4 +191,18 @@ pub fn registered_domain_name(url: &ServoUrl) -> Option<Host> {
         ImmutableOrigin::Tuple(_, ip, _) => Some(ip),
         ImmutableOrigin::Opaque(_) => None,
     }
+}
+
+/// Normalize a host for cookie domain matching.
+/// Handles IPv6 addresses (with brackets) and returns the registrable suffix for domains.
+pub fn reg_host(url: &str) -> String {
+    let host_for_ip_parse = url
+        .strip_prefix('[')
+        .and_then(|url| url.strip_suffix(']'))
+        .unwrap_or(url);
+    if let Ok(address) = host_for_ip_parse.parse::<IpAddr>() {
+        return address.to_string();
+    }
+
+    reg_suffix(url).to_lowercase()
 }

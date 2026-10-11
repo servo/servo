@@ -30,6 +30,7 @@ use paint_api::display_list::PaintTimingInfo;
 use profile_traits::mem::MemoryReportResult;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
+use euclid::Rect;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::GenericCallback;
 use servo_base::id::{
@@ -41,6 +42,41 @@ pub use structured_data::*;
 use strum::IntoStaticStr;
 use webrender_api::units::LayoutVector2D;
 use webrender_api::{ExternalScrollId, ImageKey};
+
+/// A request to find text in a page.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct FindRequest {
+    /// Unique identifier for this find request.
+    pub identifier: i32,
+    /// The text to search for.
+    pub text: String,
+    /// Whether to search forward (true) or backward (false).
+    pub forward: bool,
+    /// Whether the search should be case-sensitive.
+    pub match_case: bool,
+}
+
+/// A request to find the next match.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct FindNextRequest {
+    /// The identifier of the original find request.
+    pub identifier: i32,
+    /// Whether to search forward (true) or backward (false).
+    pub forward: bool,
+}
+
+/// Result of a find operation.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct FindResult {
+    /// The identifier of the find request.
+    pub identifier: i32,
+    /// The ordinal of the active match (1-based).
+    pub active_match_ordinal: i32,
+    /// The total number of matches found.
+    pub number_of_matches: i32,
+    /// The selection rectangle of the active match in CSS pixels relative to the viewport.
+    pub selection_rect: Option<Rect<f32, euclid::UnknownUnit>>,
+}
 
 /// Messages to the Constellation from the embedding layer, whether from `ServoRenderer` or
 /// from `libservo` itself.
@@ -123,6 +159,12 @@ pub enum EmbedderToConstellationMessage {
     /// Clears the session history for the `WebView` with the given `WebViewId`, leaving
     /// the `WebView` with only the current URL in its session history.
     ClearSessionHistory(WebViewId),
+    /// Request to find text in the page.
+    Find(WebViewId, FindRequest),
+    /// Request to find the next match.
+    FindNext(WebViewId, FindNextRequest),
+    /// Request to clear find results.
+    ClearFind(WebViewId),
 }
 
 pub enum UserContentManagerAction {

@@ -1,0 +1,162 @@
+# Build Servo's C API (`servo-capi`) and run the C API integration tests, then
+# verify that the public C header can still be generated with cbindgen.
+#
+# The tests live in `tests/capi`. Their `build.rs` invokes `cargo cinstall` (a
+# `cargo-c` subcommand) to build `servo-capi` as a cdylib and to install its
+# generated headers into the test crate's `OUT_DIR`, which the C sources under
+# `tests/capi/c` are then compiled against. `cargo-c` is therefore a hard
+# requirement for this workflow.
+#
+# NOTE: `cargo-c` is incompatible with `sccache`, so this workflow deliberately
+# does NOT enable sccache (and explicitly disables it for the test step).
+name: Embedding API (C API)
+
+on:
+  workflow_dispatch:
+  push:
+    paths: &embedding-paths
+      - 'ffi/capi/**'
+      - 'tests/capi/**'
+      - 'components/**'
+      - 'ports/servoshell/**'
+      - 'docs/embedding/**'
+      - '.github/workflows/embedding-api.yml'
+      - 'Cargo.lock'
+      - 'Cargo.toml'
+  pull_request:
+    paths: *embedding-paths
+
+# Cancel superseded runs for the same ref / pull request.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  # A single job definition shared by every supported platform. OS-specific
+  # setup steps are gated on `runner.os`, and the matrix is the one place to
+  # add or remove platforms.
+  capi:
+    name: C API (${{ matrix.name }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            runner: ubuntu-22.04
+          - name: macOS
+            runner: macos-15
+          - name: Windows
+            runner: windows-2022
+    steps:
+      - uses: actions/checkout@v6
+
+      # `rust-toolchain.toml` pins the toolchain (and components) used by the
+      # repository; `rustup show` makes sure it is installed on the runner.
+      - name: Setup Rust toolchain
+        run: rustup show
+
+      - name: Free Disk Space (Ubuntu)
+        if: runner.os == 'Linux'
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          large-packages: false
+          swap-storage: false
+
+      - name: Setup Python
+        if: runner.os == 'Windows'
+        uses: ./.github/actions/setup-python
+
+      - name: Install LLVM and Clang
+        if: runner.os != 'macOS'
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "20.1"
+          directory: ${{ runner.temp }}/llvm
+
+      - name: Set LIBCLANG_PATH env (Linux)
+        if: runner.os == 'Linux'
+        run: echo "LIBCLANG_PATH=${LLVM_PATH}/lib" >> $GITHUB_ENV
+
+      - name: Set LIBCLANG_PATH env (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $llvm_bin = Join-Path $env:LLVM_PATH "bin"
+          echo "LIBCLANG_PATH=$llvm_bin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Change Mirror Priorities
+        if: runner.os == 'Linux'
+        uses: ./.github/actions/apt-mirrors
+
+      - name: Install EGL library and headers
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt update
+          sudo apt install -y libegl1-mesa-dev libegl-dev
+
+      # Cache the cargo registry only. Build artifacts are intentionally not
+      # cached: cargo-c manages its own target directory and sccache is not
+      # compatible with it.
+      - name: Cache cargo registry
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      # `cargo-c` provides the `cargo cinstall` command invoked by
+      # tests/capi/build.rs to build and install `servo-capi`.
+      - name: Install cargo-c
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-c@0.10.23
+
+      # Used by the header-generation check below; reads ffi/capi/cbindgen.toml.
+      - name: Install cbindgen
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cbindgen
+
+      # Windows needs the moztools that `servo` links against.
+      - name: Passive bootstrap (Windows)
+        if: runner.os == 'Windows'
+        run: .\mach fetch
+
+      - name: Configure Windows C compiler
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          "CC=clang-cl.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "CXX=clang-cl.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "MOZTOOLS_PATH=${{ github.workspace }}\target\dependencies\moztools\4.0" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      # This builds `servo-capi` via `cargo cinstall` (see tests/capi/build.rs)
+      # and then compiles and runs the C integration tests against it.
+      - name: Build and test servo-capi-tests
+        env:
+          # `cargo-c` does not work with sccache, so explicitly disable it.
+          RUSTC_WRAPPER: ""
+          SCCACHE_GHA_ENABLED: "false"
+        run: cargo test -p servo-capi-tests --locked
+
+      # Regenerate the public C header from ffi/capi/cbindgen.toml and fail if
+      # generation errors out or produces an empty header.
+      - name: Generate C API header (cbindgen)
+        shell: bash
+        run: |
+          mkdir -p target
+          cbindgen --config ffi/capi/cbindgen.toml --output target/servo_capi.h ffi/capi
+          test -s target/servo_capi.h

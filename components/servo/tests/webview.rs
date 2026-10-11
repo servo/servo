@@ -1201,3 +1201,56 @@ fn test_hide_animating_webview() {
     webview.hide();
     servo_test.spin(|| webview.animating());
 }
+
+#[test]
+fn test_window_management_api() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .build();
+
+    // Test initial fullscreen state
+    assert!(!webview.is_fullscreen());
+
+    // Test set_fullscreen
+    webview.set_fullscreen(true);
+    assert!(webview.is_fullscreen());
+    assert!(delegate.window_fullscreen_changed.get());
+    assert!(delegate.window_fullscreen_state.get());
+
+    webview.set_fullscreen(false);
+    assert!(!webview.is_fullscreen());
+    assert!(delegate.window_fullscreen_state.get() == false);
+
+    // Test was_resized
+    webview.was_resized(800, 600);
+    assert!(delegate.window_resized.get());
+    assert_eq!(delegate.window_resized_width.get(), 800);
+    assert_eq!(delegate.window_resized_height.get(), 600);
+
+    // Test was_moved
+    webview.was_moved(100, 200);
+    assert!(delegate.window_moved.get());
+    assert_eq!(delegate.window_moved_x.get(), 100);
+    assert_eq!(delegate.window_moved_y.get(), 200);
+
+    // Test was_hidden
+    webview.was_hidden();
+    assert!(delegate.window_minimized.get());
+
+    // Test was_maximized
+    webview.was_maximized();
+    assert!(delegate.window_maximized.get());
+
+    // Test was_shown
+    webview.was_shown();
+    assert!(delegate.window_restored.get());
+
+    // Test notify_move_or_resize_started
+    webview.notify_move_or_resize_started();
+    assert!(delegate.window_move_or_resize_started.get());
+
+    // Test window_bounds (returns None because test delegate doesn't implement screen_geometry)
+    assert!(webview.window_bounds().is_none());
+}

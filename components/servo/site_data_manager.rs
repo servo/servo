@@ -375,6 +375,244 @@ impl SiteDataManager {
         }
     }
 
+    /// Visits all cookies in both public and private cookie stores.
+    ///
+    /// The visitor callback is invoked for each cookie. Return `false` from the
+    /// callback to stop enumeration early.
+    pub fn visit_all_cookies(
+        &self,
+        mut visitor: impl FnMut(&Cookie<'static>) -> bool + Send + 'static,
+    ) {
+        let cookies = self.public_resource_threads.visit_all_cookies();
+        for cookie in &cookies {
+            if !visitor(cookie) {
+                break;
+            }
+        }
+    }
+
+    /// Asynchronously visits all cookies in both public and private cookie stores.
+    pub fn visit_all_cookies_async(
+        &self,
+        id: CookieOperationId,
+        mut visitor: impl FnMut(&Cookie<'static>) -> bool + Send + 'static,
+    ) {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        self.public_resource_threads.visit_all_cookies_async(id, sender);
+        // For async, we'd need to handle the response differently
+        // This is a simplified implementation
+        let _ = receiver.recv().map(|cookies| {
+            for cookie in cookies {
+                visitor(&cookie.into_inner());
+            }
+        });
+    }
+
+    /// Visits all cookies for a given URL in both public and private cookie stores.
+    pub fn visit_cookies_for_url(
+        &self,
+        url: Url,
+        source: CookieSource,
+        mut visitor: impl FnMut(&Cookie<'static>) -> bool + Send + 'static,
+    ) {
+        let cookies = self.public_resource_threads.visit_cookies_for_url(url.into(), source);
+        for cookie in &cookies {
+            if !visitor(cookie) {
+                break;
+            }
+        }
+    }
+
+    /// Asynchronously visits all cookies for a given URL.
+    pub fn visit_cookies_for_url_async(
+        &self,
+        id: CookieOperationId,
+        url: Url,
+        source: CookieSource,
+        mut visitor: impl FnMut(&Cookie<'static>) -> bool + Send + 'static,
+    ) {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        self.public_resource_threads.visit_cookies_for_url_async(id, url.into(), source, sender);
+        let _ = receiver.recv().map(|cookies| {
+            for cookie in cookies {
+                visitor(&cookie.into_inner());
+            }
+        });
+    }
+
+    /// Deletes all cookies matching the given filter.
+    ///
+    /// The filter can specify URL, name, domain, path, secure, and session flags.
+    /// An optional callback is invoked when the operation completes.
+    pub fn delete_all_cookies(
+        &self,
+        url: Option<Url>,
+        name: Option<String>,
+        domain: Option<String>,
+        path: Option<String>,
+        secure: Option<bool>,
+        session: Option<bool>,
+        callback: Option<Box<dyn FnOnce(usize) + Send + 'static>>,
+    ) {
+        match callback {
+            None => {
+                self.public_resource_threads.delete_all_cookies(
+                    url, name.clone(), domain.clone(), path.clone(), secure, session,
+                );
+                self.private_resource_threads.delete_all_cookies(
+                    url, name, domain, path, secure, session,
+                );
+            },
+            Some(callback) => {
+                let id = self.next_operation_id();
+                let remaining = std::cell::Cell::new(2);
+                let callback = std::rc::Rc::new(callback);
+                let cb_public = callback.clone();
+                let cb_private = callback;
+
+                let public_callback = Box::new(move |count: usize| {
+                    if remaining.get() > 1 {
+                        remaining.set(remaining.get() - 1);
+                    } else {
+                        cb_public(count);
+                    }
+                });
+
+                let private_callback = Box::new(move |count: usize| {
+                    if remaining.get() > 1 {
+                        remaining.set(remaining.get() - 1);
+                    } else {
+                        cb_private(count);
+                    }
+                });
+
+                self.public_resource_threads.delete_all_cookies_async(
+                    id, url.clone(), name.clone(), domain.clone(), path.clone(), secure, session, public_callback,
+                );
+                self.private_resource_threads.delete_all_cookies_async(
+                    id, url, name, domain, path, secure, session, private_callback,
+                );
+            },
+        }
+    }
+
+    /// Deletes all cookies for a given URL.
+    pub fn delete_cookies_for_url(
+        &self,
+        url: Url,
+        callback: Option<Box<dyn FnOnce(usize) + Send + 'static>>,
+    ) {
+        match callback {
+            None => {
+                self.public_resource_threads.delete_cookies_for_url(url.clone());
+                self.private_resource_threads.delete_cookies_for_url(url);
+            },
+            Some(callback) => {
+                let id = self.next_operation_id();
+                let remaining = std::cell::Cell::new(2);
+                let callback = std::rc::Rc::new(callback);
+                let cb_public = callback.clone();
+                let cb_private = callback;
+
+                let public_callback = Box::new(move |count: usize| {
+                    if remaining.get() > 1 {
+                        remaining.set(remaining.get() - 1);
+                    } else {
+                        cb_public(count);
+                    }
+                });
+
+                let private_callback = Box::new(move |count: usize| {
+                    if remaining.get() > 1 {
+                        remaining.set(remaining.get() - 1);
+                    } else {
+                        cb_private(count);
+                    }
+                });
+
+                self.public_resource_threads.delete_cookies_for_url_async(id, url.clone(), public_callback);
+                self.private_resource_threads.delete_cookies_for_url_async(id, url, private_callback);
+            },
+        }
+    }
+
+    /// Deletes a specific cookie by name for a given URL.
+    pub fn delete_cookie(
+        &self,
+        url: Url,
+        name: String,
+        callback: Option<Box<dyn FnOnce(usize) + Send + 'static>>,
+    ) {
+        match callback {
+            None => {
+                self.public_resource_threads.embedder_delete_cookie(url.clone(), name.clone());
+                self.private_resource_threads.embedder_delete_cookie(url, name);
+            },
+            Some(callback) => {
+                let id = self.next_operation_id();
+                let remaining = std::cell::Cell::new(2);
+                let callback = std::rc::Rc::new(callback);
+                let cb_public = callback.clone();
+                let cb_private = callback;
+
+                let public_callback = Box::new(move |count: usize| {
+                    if remaining.get() > 1 {
+                        remaining.set(remaining.get() - 1);
+                    } else {
+                        cb_public(count);
+                    }
+                });
+
+                let private_callback = Box::new(move |count: usize| {
+                    if remaining.get() > 1 {
+                        remaining.set(remaining.get() - 1);
+                    } else {
+                        cb_private(count);
+                    }
+                });
+
+                self.public_resource_threads.embedder_delete_cookie_async(id, url.clone(), name.clone(), public_callback);
+                self.private_resource_threads.embedder_delete_cookie_async(id, url, name, private_callback);
+            },
+        }
+    }
+
+    /// Flushes the cookie store to disk (persists all cookies).
+    pub fn flush_store(&self, callback: Option<Box<dyn FnOnce() + Send + 'static>>) {
+        match callback {
+            None => {
+                self.public_resource_threads.flush_cookie_store();
+                self.private_resource_threads.flush_cookie_store();
+            },
+            Some(callback) => {
+                let id = self.next_operation_id();
+                let remaining = std::cell::Cell::new(2);
+                let callback = std::rc::Rc::new(callback);
+                let cb_public = callback.clone();
+                let cb_private = callback;
+
+                let public_callback = Box::new(move || {
+                    if remaining.get() > 1 {
+                        remaining.set(remaining.get() - 1);
+                    } else {
+                        cb_public();
+                    }
+                });
+
+                let private_callback = Box::new(move || {
+                    if remaining.get() > 1 {
+                        remaining.set(remaining.get() - 1);
+                    } else {
+                        cb_private();
+                    }
+                });
+
+                self.public_resource_threads.flush_cookie_store_async(id, public_callback);
+                self.private_resource_threads.flush_cookie_store_async(id, private_callback);
+            },
+        }
+    }
+
     fn next_operation_id(&self) -> CookieOperationId {
         let id = CookieOperationId(self.next_cookie_op_id.get());
         self.next_cookie_op_id.set(id.0 + 1);

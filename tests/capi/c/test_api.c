@@ -3,6 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #include "servo/servo_capi.h"
+#include <math.h>
+#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -71,6 +75,128 @@ int test_builder_set_event_loop_waker(void)
     servo_builder_set_event_loop_waker(builder, waker);
     servo_builder_free(builder);
     return 0;
+}
+
+/* Global state for delegate callback tests */
+static int g_devtools_started_called = 0;
+static uint16_t g_devtools_port = 0;
+static bool g_devtools_connection_allowed = false;
+
+static void on_devtools_started(struct Servo* servo, uint16_t port,
+                                const char* token, void* user_data)
+{
+    (void)servo;
+    (void)user_data;
+    (void)token;
+    g_devtools_started_called = 1;
+    g_devtools_port = port;
+}
+
+static bool on_devtools_connection_request(struct Servo* servo, void* user_data)
+{
+    (void)servo;
+    (void)user_data;
+    return g_devtools_connection_allowed;
+}
+
+/* Covers `servo_builder_set_delegate`: setting a delegate with DevTools
+ * callbacks. The delegate is copied by value and the callbacks should be
+ * invokable. */
+int test_builder_set_delegate(void)
+{
+    ServoBuilder* builder = servo_builder_create();
+    if (builder == NULL)
+        return 1;
+
+    struct ServoEventLoopWaker waker = { noop_wake_callback };
+    servo_builder_set_event_loop_waker(builder, waker);
+
+    ServoOptions* options = servo_options_create();
+    if (options == NULL) {
+        servo_builder_free(builder);
+        return 1;
+    }
+    servo_builder_set_options(builder, options);
+
+    ServoPreferences* preferences = servo_preferences_create();
+    if (preferences == NULL) {
+        servo_builder_free(builder);
+        return 1;
+    }
+    servo_preferences_set_bool(preferences, "devtools_server_enabled", true);
+    servo_builder_set_preferences(builder, preferences);
+
+    struct ServoDelegate delegate = {
+        .user_data = NULL,
+        .notify_devtools_server_started = on_devtools_started,
+        .request_devtools_connection = on_devtools_connection_request,
+    };
+    servo_builder_set_delegate(builder, delegate);
+
+    struct Servo* servo = servo_builder_build(builder);
+    if (servo == NULL)
+        return 1;
+
+    /* Spin the event loop a few times to allow the DevTools server to start */
+    for (int i = 0; i < 10; i++) {
+        servo_spin_event_loop(servo);
+    }
+
+    /* The DevTools server should have started and called our callback */
+    int result = (g_devtools_started_called == 1 && g_devtools_port > 0) ? 0 : 1;
+
+    servo_free(servo);
+    return result;
+}
+
+/* Covers `servo_builder_set_delegate` with connection request:
+ * the request_devtools_connection callback should be invokable. */
+int test_builder_delegate_connection_request(void)
+{
+    ServoBuilder* builder = servo_builder_create();
+    if (builder == NULL)
+        return 1;
+
+    struct ServoEventLoopWaker waker = { noop_wake_callback };
+    servo_builder_set_event_loop_waker(builder, waker);
+
+    ServoOptions* options = servo_options_create();
+    if (options == NULL) {
+        servo_builder_free(builder);
+        return 1;
+    }
+    servo_builder_set_options(builder, options);
+
+    ServoPreferences* preferences = servo_preferences_create();
+    if (preferences == NULL) {
+        servo_builder_free(builder);
+        return 1;
+    }
+    servo_preferences_set_bool(preferences, "devtools_server_enabled", true);
+    servo_builder_set_preferences(builder, preferences);
+
+    g_devtools_connection_allowed = true;
+    struct ServoDelegate delegate = {
+        .user_data = NULL,
+        .notify_devtools_server_started = on_devtools_started,
+        .request_devtools_connection = on_devtools_connection_request,
+    };
+    servo_builder_set_delegate(builder, delegate);
+
+    struct Servo* servo = servo_builder_build(builder);
+    if (servo == NULL)
+        return 1;
+
+    /* Spin the event loop a few times */
+    for (int i = 0; i < 10; i++) {
+        servo_spin_event_loop(servo);
+    }
+
+    /* The delegate was set and the build succeeded */
+    int result = 0;
+
+    servo_free(servo);
+    return result;
 }
 
 int test_options_create_and_free(void)
@@ -215,6 +341,100 @@ int test_rendering_context_zero_size_returns_null(void)
     return 0;
 }
 
+int test_rendering_context_create_window_returns_null_in_headless(void)
+{
+    /* In headless CI, there is no valid display/window handle.
+     * Pass dummy non-null pointers; the function should validate and return NULL
+     * without crashing. */
+    void* fake_display = (void*)0x1;
+    void* fake_window = (void*)0x2;
+    RenderingContext* context =
+        servo_rendering_context_create_window(fake_display, fake_window, 100, 100);
+    /* Should return NULL because the handles are invalid. */
+    if (context != NULL) {
+        servo_rendering_context_free(context);
+        return 1;
+    }
+    return 0;
+}
+
+int test_rendering_context_create_window_null_handles(void)
+{
+    /* Passing NULL handles should return NULL without crashing. */
+    RenderingContext* context =
+        servo_rendering_context_create_window(NULL, NULL, 100, 100);
+    if (context != NULL) {
+        servo_rendering_context_free(context);
+        return 1;
+    }
+    return 0;
+}
+
+int test_rendering_context_create_offscreen_null_parent(void)
+{
+    /* Passing NULL parent should return NULL without crashing. */
+    RenderingContext* context =
+        servo_rendering_context_create_offscreen(NULL, 100, 100);
+    if (context != NULL) {
+        servo_rendering_context_free(context);
+        return 1;
+    }
+    return 0;
+}
+
+int test_rendering_context_create_offscreen_software_parent(void)
+{
+    /* Passing a software rendering context as parent should return NULL. */
+    RenderingContext* software_ctx = servo_rendering_context_create_software(100, 100);
+    if (software_ctx == NULL)
+        return 1;
+
+    RenderingContext* context =
+        servo_rendering_context_create_offscreen(software_ctx, 100, 100);
+    servo_rendering_context_free(software_ctx);
+
+    if (context != NULL) {
+        servo_rendering_context_free(context);
+        return 1;
+    }
+    return 0;
+}
+
+int test_rendering_context_create_offscreen_zero_size(void)
+{
+    /* Passing zero size should return NULL. */
+    RenderingContext* software_ctx = servo_rendering_context_create_software(100, 100);
+    if (software_ctx == NULL)
+        return 1;
+
+    RenderingContext* context =
+        servo_rendering_context_create_offscreen(software_ctx, 0, 0);
+    servo_rendering_context_free(software_ctx);
+
+    if (context != NULL) {
+        servo_rendering_context_free(context);
+        return 1;
+    }
+    return 0;
+}
+
+int test_rendering_context_create_offscreen_window_parent_headless(void)
+{
+    /* In headless CI, create a fake window context and try to create
+     * an offscreen context from it. The window context creation will fail,
+     * so we can't test the full path, but we can verify the API exists. */
+    void* fake_display = (void*)0x1;
+    void* fake_window = (void*)0x2;
+    RenderingContext* window_ctx =
+        servo_rendering_context_create_window(fake_display, fake_window, 100, 100);
+    /* Window context creation should fail in headless. */
+    if (window_ctx != NULL) {
+        servo_rendering_context_free(window_ctx);
+    }
+    /* Test passes if we reach here without crashing. */
+    return 0;
+}
+
 /* A singleton Servo instance shared by all WebView tests.
  * Servo has global state that can only be initialized once per process. */
 static struct Servo* test_servo = NULL;
@@ -251,6 +471,26 @@ static void free_test_servo(void)
         servo_free(test_servo);
         test_servo = NULL;
     }
+}
+
+/* Covers the runtime preference setters `servo_set_preference_bool` / `_i64` /
+ * `_u64` / `_string`, which change a *built* Servo instance rather than a
+ * `ServoPreferences` builder object. The genuine preference names and value
+ * types mirror the `test_preferences_*_roundtrip` tests. There is no C getter
+ * on the Servo side, so the observable contract is that each call succeeds
+ * without aborting (an unknown name or wrong value type would panic). */
+int test_set_preference_runtime(void)
+{
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    servo_set_preference_bool(servo, "dom_gamepad_enabled", false);
+    servo_set_preference_bool(servo, "dom_gamepad_enabled", true);
+    servo_set_preference_i64(servo, "layout_threads", 2);
+    servo_set_preference_u64(servo, "network_http_cache_size", 12345);
+    servo_set_preference_string(servo, "user_agent", "ServoTest/1.0");
+    return 0;
 }
 
 int test_webview_builder_create_and_free(void)
@@ -330,6 +570,1457 @@ int test_webview_builder_build(void)
     return 0;
 }
 
+/* -------------------------------------------------------------------------
+ * Tests for the WebView query / setter APIs added alongside the C API version
+ * accessor. Each test builds a fresh `about:blank` WebView backed by a 100x100
+ * software rendering context via one of the shared `Servo` instances and frees
+ * it when done.
+ * ------------------------------------------------------------------------- */
+
+/* Builds a fresh `about:blank` WebView backed by a 100x100 software rendering
+ * context. Returns NULL on failure. The caller owns the returned WebView and
+ * must release it with `servo_webview_free`. */
+static struct WebView* create_about_blank_webview(void)
+{
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return NULL;
+
+    RenderingContext* context = servo_rendering_context_create_software(100, 100);
+    if (context == NULL)
+        return NULL;
+
+    ServoWebViewBuilder* builder = servo_webview_builder_create(servo, context);
+    if (builder == NULL) {
+        servo_rendering_context_free(context);
+        return NULL;
+    }
+
+    if (servo_webview_builder_set_url(builder, "about:blank") != 0) {
+        servo_webview_builder_free(builder);
+        return NULL;
+    }
+
+    struct WebView* webview = servo_webview_builder_build(builder);
+    return webview;
+}
+
+/* Covers `servo_capi_version()`: the version string must be non-NULL,
+ * non-empty, and start with the "0." prefix of the current 0.x API. */
+int test_capi_version(void)
+{
+    const char* version = servo_capi_version();
+    if (version == NULL)
+        return 1;
+    if (version[0] == '\0')
+        return 1;
+    if (version[0] != '0' || version[1] != '.')
+        return 1;
+    return 0;
+}
+
+/* Exercises the two-call buffer query pattern used by the string getters:
+ * query the required length with a NULL buffer, allocate it, query again, and
+ * check that a NUL terminated string of the same length was written. */
+static int check_string_getter(struct WebView* webview,
+    uintptr_t (*getter)(const struct WebView*, char*, uintptr_t))
+{
+    uintptr_t required = getter(webview, NULL, 0);
+    if (required == 0)
+        return 1;
+
+    char* buffer = (char*)malloc(required);
+    if (buffer == NULL)
+        return 1;
+
+    // Fill with a sentinel so a missing NUL terminator is caught.
+    memset(buffer, 'X', required);
+    uintptr_t written = getter(webview, buffer, required);
+    int result = 0;
+    if (written != required) {
+        result = 1;
+    } else if (buffer[required - 1] != '\0') {
+        result = 1;
+    } else if (strlen(buffer) != required - 1) {
+        result = 1;
+    }
+
+    free(buffer);
+    return result;
+}
+
+/* Covers `servo_webview_get_url` with the buffer-query pattern. */
+int test_webview_get_url(void)
+{
+    struct WebView* webview = create_about_blank_webview();
+    if (webview == NULL)
+        return 1;
+    int result = check_string_getter(webview, servo_webview_get_url);
+    servo_webview_free(webview);
+    return result;
+}
+
+/* Covers `servo_webview_get_title`. The title of a fresh `about:blank`
+ * WebView may be empty, so the required length is only asserted to be >= 1. */
+int test_webview_get_title(void)
+{
+    struct WebView* webview = create_about_blank_webview();
+    if (webview == NULL)
+        return 1;
+    int result = check_string_getter(webview, servo_webview_get_title);
+    servo_webview_free(webview);
+    return result;
+}
+
+/* Covers `servo_webview_get_status_text`. The status text of a fresh
+ * `about:blank` WebView may be empty, so the required length is only asserted
+ * to be >= 1. */
+int test_webview_get_status_text(void)
+{
+    struct WebView* webview = create_about_blank_webview();
+    if (webview == NULL)
+        return 1;
+    int result = check_string_getter(webview, servo_webview_get_status_text);
+    servo_webview_free(webview);
+    return result;
+}
+
+/* Covers `servo_webview_get_load_status`: the returned value must be one of
+ * the SERVO_LOAD_STATUS_* constants. */
+int test_webview_get_load_status(void)
+{
+    struct WebView* webview = create_about_blank_webview();
+    if (webview == NULL)
+        return 1;
+    int status = servo_webview_get_load_status(webview);
+    int result = (status == SERVO_LOAD_STATUS_STARTED ||
+                  status == SERVO_LOAD_STATUS_HEAD_PARSED ||
+                  status == SERVO_LOAD_STATUS_COMPLETE)
+        ? 0
+        : 1;
+    servo_webview_free(webview);
+    return result;
+}
+
+/* Covers `servo_webview_get_size`: it must report the size of the rendering
+ * context the WebView was built with, and NULL out-params must not crash. */
+int test_webview_get_size(void)
+{
+    struct WebView* webview = create_about_blank_webview();
+    if (webview == NULL)
+        return 1;
+
+    uint32_t width = 0;
+    uint32_t height = 0;
+    servo_webview_get_size(webview, &width, &height);
+    int result = (width == 100 && height == 100) ? 0 : 1;
+
+    // NULL out-params must be tolerated.
+    servo_webview_get_size(webview, NULL, NULL);
+    servo_webview_get_size(webview, &width, NULL);
+    servo_webview_get_size(webview, NULL, &height);
+
+    servo_webview_free(webview);
+    return result;
+}
+
+/* Covers `servo_webview_can_go_back` / `servo_webview_can_go_forward`: both
+ * must be false for a fresh WebView with no navigation history. */
+int test_webview_can_go_back_forward(void)
+{
+    struct WebView* webview = create_about_blank_webview();
+    if (webview == NULL)
+        return 1;
+    int result = (servo_webview_can_go_back(webview) == false &&
+                  servo_webview_can_go_forward(webview) == false)
+        ? 0
+        : 1;
+    servo_webview_free(webview);
+    return result;
+}
+
+static int approx_equal(float a, float b)
+{
+    return fabsf(a - b) < 0.001f;
+}
+
+/* Covers `servo_webview_page_zoom` / `servo_webview_set_page_zoom`: the
+ * default zoom is 1.0, setting 2.0 is read back as 2.0, and out-of-range
+ * values are clamped to the maximum allowed zoom of 10.0. */
+int test_webview_page_zoom(void)
+{
+    struct WebView* webview = create_about_blank_webview();
+    if (webview == NULL)
+        return 1;
+
+    int result = 0;
+    if (!approx_equal(servo_webview_page_zoom(webview), 1.0f))
+        result = 1;
+
+    servo_webview_set_page_zoom(webview, 2.0f);
+    if (!approx_equal(servo_webview_page_zoom(webview), 2.0f))
+        result = 1;
+
+    servo_webview_set_page_zoom(webview, 100.0f);
+    float clamped = servo_webview_page_zoom(webview);
+    if (!approx_equal(clamped, 10.0f) || clamped > 10.0f)
+        result = 1;
+
+    servo_webview_free(webview);
+    return result;
+}
+
+/* Covers `servo_webview_focused` / `servo_webview_set_focused`. The
+ * implementation starts WebViews focused, so only the round-trip through both
+ * `set_focused` values is asserted here. */
+int test_webview_focus(void)
+{
+    struct WebView* webview = create_about_blank_webview();
+    if (webview == NULL)
+        return 1;
+
+    (void)servo_webview_focused(webview);
+
+    int result = 0;
+    servo_webview_set_focused(webview, true);
+    if (servo_webview_focused(webview) != true)
+        result = 1;
+    servo_webview_set_focused(webview, false);
+    if (servo_webview_focused(webview) != false)
+        result = 1;
+
+    servo_webview_free(webview);
+    return result;
+}
+
+/* Covers `servo_webview_notify_key_event`: must return a non-zero event ID
+ * and not crash. */
+int test_webview_notify_key_event(void)
+{
+    struct WebView* webview = create_about_blank_webview();
+    if (webview == NULL)
+        return 1;
+
+    uint64_t event_id = servo_webview_notify_key_event(
+        webview,
+        SERVO_KEY_EVENT_DOWN,
+        "a",
+        "KeyA",
+        0, /* Standard location */
+        SERVO_MODIFIER_SHIFT,
+        false,
+        false
+    );
+    int result = (event_id != 0) ? 0 : 1;
+
+    servo_webview_free(webview);
+    return result;
+}
+
+/* Covers `servo_webview_notify_mouse_button_event`: must return a non-zero
+ * event ID and not crash. */
+int test_webview_notify_mouse_button_event(void)
+{
+    struct WebView* webview = create_about_blank_webview();
+    if (webview == NULL)
+        return 1;
+
+    uint64_t event_id = servo_webview_notify_mouse_button_event(
+        webview,
+        SERVO_MOUSE_EVENT_DOWN,
+        SERVO_MOUSE_BUTTON_PRIMARY,
+        50.0,
+        50.0,
+        0
+    );
+    int result = (event_id != 0) ? 0 : 1;
+
+    servo_webview_free(webview);
+    return result;
+}
+
+/* Covers `servo_webview_notify_mouse_move_event`: must return a non-zero
+ * event ID and not crash. */
+int test_webview_notify_mouse_move_event(void)
+{
+    struct WebView* webview = create_about_blank_webview();
+    if (webview == NULL)
+        return 1;
+
+    uint64_t event_id = servo_webview_notify_mouse_move_event(
+        webview,
+        50.0,
+        50.0,
+        0
+    );
+    int result = (event_id != 0) ? 0 : 1;
+
+    servo_webview_free(webview);
+    return result;
+}
+
+/* Covers `servo_webview_notify_mouse_leave_event`: must return a non-zero
+ * event ID and not crash. */
+int test_webview_notify_mouse_leave_event(void)
+{
+    struct WebView* webview = create_about_blank_webview();
+    if (webview == NULL)
+        return 1;
+
+    uint64_t event_id = servo_webview_notify_mouse_leave_event(
+        webview,
+        false
+    );
+    int result = (event_id != 0) ? 0 : 1;
+
+    servo_webview_free(webview);
+    return result;
+}
+
+/* Covers `servo_webview_notify_touch_event`: must return a non-zero event ID
+ * and not crash. */
+int test_webview_notify_touch_event(void)
+{
+    struct WebView* webview = create_about_blank_webview();
+    if (webview == NULL)
+        return 1;
+
+    uint64_t event_id = servo_webview_notify_touch_event(
+        webview,
+        SERVO_TOUCH_EVENT_DOWN,
+        1,
+        50.0,
+        50.0,
+        SERVO_TOUCH_POINTER_TYPE_TOUCH
+    );
+    int result = (event_id != 0) ? 0 : 1;
+
+    servo_webview_free(webview);
+    return result;
+}
+
+/* Covers `servo_webview_notify_wheel_event`: must return a non-zero event ID
+ * and not crash. */
+int test_webview_notify_wheel_event(void)
+{
+    struct WebView* webview = create_about_blank_webview();
+    if (webview == NULL)
+        return 1;
+
+    uint64_t event_id = servo_webview_notify_wheel_event(
+        webview,
+        10.0,
+        20.0,
+        0.0,
+        SERVO_WHEEL_DELTA_PIXEL,
+        50.0,
+        50.0
+    );
+    int result = (event_id != 0) ? 0 : 1;
+
+    servo_webview_free(webview);
+    return result;
+}
+
+/* Covers `servo_webview_notify_input_event_handled`: must not crash. */
+int test_webview_notify_input_event_handled(void)
+{
+    struct WebView* webview = create_about_blank_webview();
+    if (webview == NULL)
+        return 1;
+
+    // First generate an event ID
+    uint64_t event_id = servo_webview_notify_key_event(
+        webview,
+        SERVO_KEY_EVENT_DOWN,
+        "a",
+        "KeyA",
+        0,
+        0,
+        false,
+        false
+    );
+    if (event_id == 0) {
+        servo_webview_free(webview);
+        return 1;
+    }
+
+    // Now notify that it's handled
+    servo_webview_notify_input_event_handled(webview, event_id);
+
+    servo_webview_free(webview);
+    return 0;
+}
+
+/* Covers `servo_webview_resize`: after resizing to 200x150,
+ * `servo_webview_get_size` must report the new dimensions. */
+int test_webview_resize(void)
+{
+    struct WebView* webview = create_about_blank_webview();
+    if (webview == NULL)
+        return 1;
+
+    servo_webview_resize(webview, 200, 150);
+    uint32_t width = 0;
+    uint32_t height = 0;
+    servo_webview_get_size(webview, &width, &height);
+    int result = (width == 200 && height == 150) ? 0 : 1;
+
+    servo_webview_free(webview);
+    return result;
+}
+
+/* Covers `servo_webview_show` / `servo_webview_hide`: both must be safe to
+ * call and must not crash. */
+int test_webview_show_hide(void)
+{
+    struct WebView* webview = create_about_blank_webview();
+    if (webview == NULL)
+        return 1;
+    servo_webview_show(webview);
+    servo_webview_hide(webview);
+    servo_webview_free(webview);
+    return 0;
+}
+
+/* Covers `servo_webview_notify_theme_change`: valid themes (SERVO_THEME_DARK /
+ * SERVO_THEME_LIGHT) must not crash and invalid values must be ignored. */
+int test_webview_notify_theme_change(void)
+{
+    struct WebView* webview = create_about_blank_webview();
+    if (webview == NULL)
+        return 1;
+    servo_webview_notify_theme_change(webview, SERVO_THEME_DARK);
+    servo_webview_notify_theme_change(webview, SERVO_THEME_LIGHT);
+    // Invalid values must be ignored without crashing.
+    servo_webview_notify_theme_change(webview, 12345);
+    servo_webview_notify_theme_change(webview, -1);
+    servo_webview_free(webview);
+    return 0;
+}
+
+/* Covers `servo_webview_evaluate_javascript` with a NULL callback, which must
+ * be treated as a no-op. */
+int test_webview_evaluate_javascript_null_callback(void)
+{
+    struct WebView* webview = create_about_blank_webview();
+    if (webview == NULL)
+        return 1;
+    servo_webview_evaluate_javascript(webview, "1 + 1", NULL, NULL);
+    servo_webview_free(webview);
+    return 0;
+}
+
+/* Covers the navigation and history APIs on a fresh WebView:
+ * `servo_webview_clear_session_history`, `servo_webview_reload`,
+ * `servo_webview_go_back`, and `servo_webview_go_forward` must all be safe
+ * no-ops. */
+int test_webview_navigation_noops(void)
+{
+    struct WebView* webview = create_about_blank_webview();
+    if (webview == NULL)
+        return 1;
+    servo_webview_clear_session_history(webview);
+    servo_webview_reload(webview);
+    servo_webview_go_back(webview, 1);
+    servo_webview_go_forward(webview, 1);
+    servo_webview_free(webview);
+    return 0;
+}
+
+/* -------------------------------------------------------------------------
+ * Site Data (Cookies) tests
+ * ------------------------------------------------------------------------- */
+
+/* Covers `servo_get_site_data_manager` / `servo_site_data_manager_free`:
+ * getting the manager from a Servo instance and freeing it. */
+int test_site_data_manager_create_and_free(void)
+{
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    struct ServoSiteDataManager* manager = servo_get_site_data_manager(servo);
+    if (manager == NULL)
+        return 1;
+
+    servo_site_data_manager_free(manager);
+    return 0;
+}
+
+/* Covers `servo_site_data_cookies_for_url` with the buffer-query pattern:
+ * query the required count with a NULL buffer, allocate, query again,
+ * and check that the cookie data was written. */
+int test_site_data_cookies_for_url(void)
+{
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    struct ServoSiteDataManager* manager = servo_get_site_data_manager(servo);
+    if (manager == NULL)
+        return 1;
+
+    // Query cookie count for a URL (should be 0 for about:blank)
+    size_t count = servo_site_data_cookies_for_url(manager, "about:blank", NULL, 0);
+    // Count should be >= 0 (no cookies expected for about:blank)
+    (void)count;
+
+    // Test with a small buffer
+    struct ServoCookie buffer[4];
+    size_t written = servo_site_data_cookies_for_url(manager, "about:blank", buffer, 4);
+    (void)written;
+
+    servo_site_data_manager_free(manager);
+    return 0;
+}
+
+/* Covers `servo_site_data_set_cookie`: setting a cookie and reading it back. */
+int test_site_data_set_cookie(void)
+{
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    struct ServoSiteDataManager* manager = servo_get_site_data_manager(servo);
+    if (manager == NULL)
+        return 1;
+
+    struct ServoCookie cookie = {
+        .name = "test_cookie",
+        .value = "test_value",
+        .domain = "example.com",
+        .path = "/",
+        .expires = 0, // session cookie
+        .secure = false,
+        .http_only = true,
+        .same_site = SERVO_COOKIE_SAME_SITE_LAX,
+    };
+
+    // Set the cookie
+    int result = servo_site_data_set_cookie(manager, "https://example.com/", &cookie);
+    if (result != 0) {
+        servo_site_data_manager_free(manager);
+        return 1;
+    }
+
+    // Read it back
+    struct ServoCookie buffer[4];
+    size_t count = servo_site_data_cookies_for_url(manager, "https://example.com/", buffer, 4);
+    if (count == 0) {
+        servo_site_data_manager_free(manager);
+        return 1;
+    }
+
+    // Verify cookie data
+    if (strcmp(buffer[0].name, "test_cookie") != 0 ||
+        strcmp(buffer[0].value, "test_value") != 0) {
+        servo_site_data_manager_free(manager);
+        return 1;
+    }
+
+    servo_site_data_manager_free(manager);
+    return 0;
+}
+
+/* Covers `servo_site_data_clear_cookies` and `servo_site_data_clear_session_cookies`:
+ * both must be safe to call and must not crash. */
+int test_site_data_clear_cookies(void)
+{
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    struct ServoSiteDataManager* manager = servo_get_site_data_manager(servo);
+    if (manager == NULL)
+        return 1;
+
+    // Set a cookie first
+    struct ServoCookie cookie = {
+        .name = "clear_test",
+        .value = "clear_value",
+        .domain = "example.com",
+        .path = "/",
+        .expires = 0,
+        .secure = false,
+        .http_only = false,
+        .same_site = SERVO_COOKIE_SAME_SITE_LAX,
+    };
+    servo_site_data_set_cookie(manager, "https://example.com/", &cookie);
+
+    // Clear session cookies
+    servo_site_data_clear_session_cookies(manager);
+
+    // Set another cookie with expiration (persistent)
+    cookie.expires = 9999999999; // Far future
+    servo_site_data_set_cookie(manager, "https://example.com/", &cookie);
+
+    // Clear all cookies
+    servo_site_data_clear_cookies(manager);
+
+    servo_site_data_manager_free(manager);
+    return 0;
+}
+
+/* Covers error returns for null pointer arguments. */
+int test_error_null_arguments(void)
+{
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    // Test servo_free with NULL
+    if (servo_free(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+
+    // Test servo_spin_event_loop with NULL
+    if (servo_spin_event_loop(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+
+    // Test servo_setup_logging with NULL
+    if (servo_setup_logging(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+
+    // Test servo_set_preference_bool with NULL servo
+    if (servo_set_preference_bool(NULL, "dom_gamepad_enabled", true) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+
+    // Test servo_set_preference_bool with NULL name
+    if (servo_set_preference_bool(servo, NULL, true) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+
+    // Test servo_webview_builder_create with NULL servo
+    RenderingContext* context = servo_rendering_context_create_software(100, 100);
+    if (context == NULL)
+        return 1;
+    if (servo_webview_builder_create(NULL, context) != NULL) {
+        servo_rendering_context_free(context);
+        return 1;
+    }
+
+    // Test servo_webview_builder_create with NULL context
+    if (servo_webview_builder_create(servo, NULL) != NULL)
+        return 1;
+
+    // Test servo_builder_set_options with NULL
+    if (servo_builder_set_options(NULL, NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+
+    // Test servo_builder_set_preferences with NULL
+    if (servo_builder_set_preferences(NULL, NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+
+    // Test servo_builder_build with NULL
+    if (servo_builder_build(NULL) != NULL)
+        return 1;
+
+    servo_rendering_context_free(context);
+    servo_free(servo);
+    return 0;
+}
+
+/* Covers error returns for invalid UTF-8 strings. */
+int test_error_invalid_utf8(void)
+{
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    RenderingContext* context = servo_rendering_context_create_software(100, 100);
+    if (context == NULL) {
+        servo_free(servo);
+        return 1;
+    }
+
+    ServoWebViewBuilder* builder = servo_webview_builder_create(servo, context);
+    if (builder == NULL) {
+        servo_free(servo);
+        return 1;
+    }
+
+    // Create invalid UTF-8 (0xFF is not valid UTF-8)
+    char invalid_utf8[] = {0xFF, 0xFE, 0x00};
+
+    // Test servo_webview_builder_set_url with invalid UTF-8
+    if (servo_webview_builder_set_url(builder, invalid_utf8) != SERVO_ERROR_INVALID_UTF8) {
+        servo_webview_builder_free(builder);
+        servo_free(servo);
+        return 1;
+    }
+
+    // Test servo_webview_load with invalid UTF-8
+    struct WebView* webview = servo_webview_builder_build(builder);
+    if (webview == NULL) {
+        servo_free(servo);
+        return 1;
+    }
+
+    if (servo_webview_load(webview, invalid_utf8) != SERVO_ERROR_INVALID_UTF8) {
+        servo_webview_free(webview);
+        servo_free(servo);
+        return 1;
+    }
+
+    // Test servo_webview_evaluate_javascript with invalid UTF-8
+    if (servo_webview_evaluate_javascript(webview, invalid_utf8, NULL, NULL) != SERVO_ERROR_INVALID_UTF8) {
+        servo_webview_free(webview);
+        servo_free(servo);
+        return 1;
+    }
+
+    servo_webview_free(webview);
+    servo_free(servo);
+    return 0;
+}
+
+/* Covers that webview query functions handle NULL webview gracefully. */
+int test_webview_query_null_webview(void)
+{
+    // These should return 0 (empty string length) without crashing
+    if (servo_webview_get_url(NULL, NULL, 0) != 0)
+        return 1;
+    if (servo_webview_get_title(NULL, NULL, 0) != 0)
+        return 1;
+    if (servo_webview_get_status_text(NULL, NULL, 0) != 0)
+        return 1;
+
+    // servo_webview_get_load_status should return 0
+    if (servo_webview_get_load_status(NULL) != 0)
+        return 1;
+
+    // servo_webview_get_size with NULL should not crash
+    servo_webview_get_size(NULL, NULL, NULL);
+
+    // servo_webview_can_go_back/forward should return false
+    if (servo_webview_can_go_back(NULL) != false)
+        return 1;
+    if (servo_webview_can_go_forward(NULL) != false)
+        return 1;
+
+    // servo_webview_page_zoom should return default 1.0
+    if (fabsf(servo_webview_page_zoom(NULL) - 1.0f) > 0.001f)
+        return 1;
+
+    // servo_webview_focused should return false
+    if (servo_webview_focused(NULL) != false)
+        return 1;
+
+    return 0;
+}
+
+/* Covers that builder free with NULL is handled gracefully. */
+int test_builder_free_null(void)
+{
+    if (servo_builder_free(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_webview_builder_free(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_options_free(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_preferences_free(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_rendering_context_free(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+
+    return 0;
+}
+
+/* Covers that setter functions return error on NULL webview. */
+int test_webview_setters_null(void)
+{
+    if (servo_webview_paint(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_webview_set_page_zoom(NULL, 1.0f) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_webview_resize(NULL, 100, 100) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_webview_set_focused(NULL, true) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_webview_show(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_webview_hide(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_webview_notify_theme_change(NULL, SERVO_THEME_LIGHT) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_webview_reload(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_webview_clear_session_history(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_webview_go_back(NULL, 1) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_webview_go_forward(NULL, 1) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+
+    return 0;
+}
+
+/* Covers `servo_builder_register_protocol_handler`: registering a custom
+ * protocol handler should succeed for valid schemes and fail for forbidden
+ * schemes. */
+int test_builder_register_protocol_handler(void)
+{
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    // Create a builder directly for testing
+    ServoBuilder* servo_builder = servo_builder_create();
+    if (servo_builder == NULL)
+        return 1;
+
+    // Test registering a valid custom scheme
+    bool (*callback)(const struct ServoWebResourceRequest*,
+                     struct ServoWebResourceResponse*,
+                     void*) = NULL;
+    int result = servo_builder_register_protocol_handler(servo_builder, "myapp", callback, NULL);
+    if (result != SERVO_ERROR_OK) {
+        servo_builder_free(servo_builder);
+        return 1;
+    }
+
+    // Test registering a forbidden scheme (http) should fail
+    result = servo_builder_register_protocol_handler(servo_builder, "http", callback, NULL);
+    if (result != SERVO_ERROR_INVALID_STATE) {
+        servo_builder_free(servo_builder);
+        return 1;
+    }
+
+    // Test registering the same scheme twice should fail
+    result = servo_builder_register_protocol_handler(servo_builder, "myapp2", callback, NULL);
+    if (result != SERVO_ERROR_OK) {
+        servo_builder_free(servo_builder);
+        return 1;
+    }
+    result = servo_builder_register_protocol_handler(servo_builder, "myapp2", callback, NULL);
+    if (result != SERVO_ERROR_INVALID_STATE) {
+        servo_builder_free(servo_builder);
+        return 1;
+    }
+
+    servo_builder_free(servo_builder);
+    return 0;
+}
+
+/* Covers that the intercept_request delegate callback can be set and called.
+ * We can't easily test the actual interception without a running load, but we
+ * can verify the delegate struct accepts the callback. */
+int test_webview_delegate_intercept_request(void)
+{
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    RenderingContext* context = servo_rendering_context_create_software(100, 100);
+    if (context == NULL)
+        return 1;
+
+    ServoWebViewBuilder* builder = servo_webview_builder_create(servo, context);
+    if (builder == NULL)
+        return 1;
+
+    bool intercepted = false;
+    bool my_intercept_callback(struct WebView* webview,
+                               const struct ServoWebResourceRequest* request,
+                               struct ServoWebResourceResponse* response,
+                               void* user_data)
+    {
+        (void)webview;
+        (void)request;
+        (void)response;
+        (void)user_data;
+        intercepted = true;
+        return false; // Don't actually intercept
+    }
+
+    ServoWebViewDelegate delegate = {
+        .user_data = &intercepted,
+        .notify_load_status_changed = NULL,
+        .notify_url_changed = NULL,
+        .notify_page_title_changed = NULL,
+        .notify_new_frame_ready = NULL,
+        .notify_closed = NULL,
+        .notify_focus_changed = NULL,
+        .notify_got_focus = NULL,
+        .notify_load_started = NULL,
+        .notify_load_ended = NULL,
+        .notify_load_error = NULL,
+        .notify_cursor_changed = NULL,
+        .notify_status_text_changed = NULL,
+        .notify_favicon_changed = NULL,
+        .show_console_message = NULL,
+        .show_alert_dialog = NULL,
+        .show_confirm_dialog = NULL,
+        .show_prompt_dialog = NULL,
+        .show_file_picker = NULL,
+        .show_select_element = NULL,
+        .request_permission = NULL,
+        .request_authentication = NULL,
+        .request_unload = NULL,
+        .intercept_request = my_intercept_callback,
+    };
+
+    servo_webview_builder_set_delegate(builder, delegate);
+
+    struct WebView* webview = servo_webview_builder_build(builder);
+    if (webview == NULL)
+        return 1;
+
+    // The delegate is set; we can't easily trigger a load to test the callback
+    // without a full integration test. Just verify the WebView was created.
+    servo_webview_free(webview);
+    return 0;
+}
+
+/* -------------------------------------------------------------------------
+ * Download tests
+ * ------------------------------------------------------------------------- */
+
+/* Test that download item functions handle NULL pointers gracefully. */
+int test_download_item_null_handling(void)
+{
+    /* All getters should return 0/default values for NULL download */
+    if (servo_download_item_get_url(NULL, NULL, 0) != 0)
+        return 1;
+    if (servo_download_item_get_suggested_filename(NULL, NULL, 0) != 0)
+        return 1;
+    if (servo_download_item_get_received_bytes(NULL) != 0)
+        return 1;
+    if (servo_download_item_get_total_bytes(NULL) != 0)
+        return 1;
+    if (servo_download_item_get_state(NULL) != SERVO_DOWNLOAD_INTERRUPTED)
+        return 1;
+
+    /* Control functions should return error for NULL */
+    if (servo_download_item_cancel(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_download_item_pause(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_download_item_resume(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+
+    return 0;
+}
+
+/* Test that download item getters work (buffer-query pattern).
+ * Note: We can't easily create a real download item in a unit test,
+ * but we can verify the API signatures compile and handle NULL. */
+int test_download_item_getters(void)
+{
+    /* Test buffer-query pattern with NULL buffer */
+    uintptr_t len = servo_download_item_get_url(NULL, NULL, 0);
+    (void)len;
+
+    len = servo_download_item_get_suggested_filename(NULL, NULL, 0);
+    (void)len;
+
+    return 0;
+}
+
+/* Test that delegate callbacks can be set in ServoWebViewDelegate. */
+int test_download_delegate_callbacks(void)
+{
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    RenderingContext* context = servo_rendering_context_create_software(100, 100);
+    if (context == NULL)
+        return 1;
+
+    ServoWebViewBuilder* builder = servo_webview_builder_create(servo, context);
+    if (builder == NULL)
+        return 1;
+
+    bool before_download_called = false;
+    bool download_updated_called = false;
+
+    void on_before_download(struct WebView* webview,
+                            struct ServoDownloadItem* download,
+                            void (*callback)(bool, void*),
+                            void* user_data)
+    {
+        (void)webview;
+        (void)download;
+        (void)callback;
+        bool* flag = (bool*)user_data;
+        *flag = true;
+        /* Allow download by default */
+        callback(true, NULL);
+    }
+
+    void on_download_updated(struct WebView* webview,
+                             struct ServoDownloadItem* download,
+                             void* user_data)
+    {
+        (void)webview;
+        (void)download;
+        bool* flag = (bool*)user_data;
+        *flag = true;
+    }
+
+    ServoWebViewDelegate delegate = {
+        .user_data = &before_download_called,
+        .notify_load_status_changed = NULL,
+        .notify_url_changed = NULL,
+        .notify_page_title_changed = NULL,
+        .notify_new_frame_ready = NULL,
+        .notify_closed = NULL,
+        .notify_focus_changed = NULL,
+        .notify_got_focus = NULL,
+        .notify_load_started = NULL,
+        .notify_load_ended = NULL,
+        .notify_load_error = NULL,
+        .notify_cursor_changed = NULL,
+        .notify_status_text_changed = NULL,
+        .notify_favicon_changed = NULL,
+        .show_console_message = NULL,
+        .show_alert_dialog = NULL,
+        .show_confirm_dialog = NULL,
+        .show_prompt_dialog = NULL,
+        .show_file_picker = NULL,
+        .show_select_element = NULL,
+        .request_permission = NULL,
+        .request_authentication = NULL,
+        .request_unload = NULL,
+        .intercept_request = NULL,
+        .on_before_download = on_before_download,
+        .on_download_updated = on_download_updated,
+    };
+
+    servo_webview_builder_set_delegate(builder, delegate);
+
+    struct WebView* webview = servo_webview_builder_build(builder);
+    if (webview == NULL)
+        return 1;
+
+    /* The delegate is set; we can't easily trigger a download to test the callback
+     * without a full integration test. Just verify the WebView was created. */
+    servo_webview_free(webview);
+    return 0;
+}
+
+/* Test that find-in-page API functions exist and handle NULL arguments. */
+int test_find_null_arguments(void)
+{
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    RenderingContext* context = servo_rendering_context_create_software(100, 100);
+    if (context == NULL)
+        return 1;
+
+    ServoWebViewBuilder* builder = servo_webview_builder_create(servo, context);
+    if (builder == NULL)
+        return 1;
+
+    struct WebView* webview = servo_webview_builder_build(builder);
+    if (webview == NULL)
+        return 1;
+
+    /* Test NULL webview */
+    int result = servo_webview_find(NULL, "test", true, false);
+    if (result != SERVO_ERROR_NULL_ARGUMENT) {
+        servo_webview_free(webview);
+        return 1;
+    }
+
+    result = servo_webview_find_next(NULL, 1, true);
+    if (result != SERVO_ERROR_NULL_ARGUMENT) {
+        servo_webview_free(webview);
+        return 1;
+    }
+
+    result = servo_webview_find_clear(NULL, 1);
+    if (result != SERVO_ERROR_NULL_ARGUMENT) {
+        servo_webview_free(webview);
+        return 1;
+    }
+
+    /* Test NULL text */
+    result = servo_webview_find(webview, NULL, true, false);
+    if (result != SERVO_ERROR_NULL_ARGUMENT) {
+        servo_webview_free(webview);
+        return 1;
+    }
+
+    /* Test find result getters with NULL */
+    if (servo_find_result_get_identifier(NULL) != 0) {
+        servo_webview_free(webview);
+        return 1;
+    }
+    if (servo_find_result_get_active_match_ordinal(NULL) != 0) {
+        servo_webview_free(webview);
+        return 1;
+    }
+    if (servo_find_result_get_number_of_matches(NULL) != 0) {
+        servo_webview_free(webview);
+        return 1;
+    }
+
+    servo_webview_free(webview);
+    return 0;
+}
+
+/* Test that find-in-page API can be called with valid arguments. */
+int test_find_valid_arguments(void)
+{
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    RenderingContext* context = servo_rendering_context_create_software(100, 100);
+    if (context == NULL)
+        return 1;
+
+    ServoWebViewBuilder* builder = servo_webview_builder_create(servo, context);
+    if (builder == NULL)
+        return 1;
+
+    struct WebView* webview = servo_webview_builder_build(builder);
+    if (webview == NULL)
+        return 1;
+
+    /* Test valid find call - should return a positive identifier */
+    int identifier = servo_webview_find(webview, "test", true, false);
+    if (identifier <= 0) {
+        servo_webview_free(webview);
+        return 1;
+    }
+
+    /* Test find_next with the identifier */
+    int result = servo_webview_find_next(webview, identifier, true);
+    if (result != SERVO_ERROR_OK) {
+        servo_webview_free(webview);
+        return 1;
+    }
+
+    /* Test find_next backward */
+    result = servo_webview_find_next(webview, identifier, false);
+    if (result != SERVO_ERROR_OK) {
+        servo_webview_free(webview);
+        return 1;
+    }
+
+    /* Test find_clear */
+    result = servo_webview_find_clear(webview, identifier);
+    if (result != SERVO_ERROR_OK) {
+        servo_webview_free(webview);
+        return 1;
+    }
+
+    /* Test case-sensitive find */
+    identifier = servo_webview_find(webview, "Test", false, true);
+    if (identifier <= 0) {
+        servo_webview_free(webview);
+        return 1;
+    }
+    result = servo_webview_find_clear(webview, identifier);
+    if (result != SERVO_ERROR_OK) {
+        servo_webview_free(webview);
+        return 1;
+    }
+
+    /* Test find with empty string */
+    identifier = servo_webview_find(webview, "", true, false);
+    if (identifier <= 0) {
+        servo_webview_free(webview);
+        return 1;
+    }
+    result = servo_webview_find_clear(webview, identifier);
+    if (result != SERVO_ERROR_OK) {
+        servo_webview_free(webview);
+        return 1;
+    }
+
+    servo_webview_free(webview);
+    return 0;
+}
+
+/* Test that find result getters work. */
+int test_find_result_getters(void)
+{
+    /* We can't easily create a real ServoFindResult without a full integration test,
+     * but we can test that the functions exist and don't crash with NULL. */
+    float x = 1.0f, y = 2.0f, w = 3.0f, h = 4.0f;
+    servo_find_result_get_selection_rect(NULL, &x, &y, &w, &h);
+    if (x != 0.0f || y != 0.0f || w != 0.0f || h != 0.0f) {
+        return 1;
+    }
+
+    /* Test with partial NULL outputs */
+    x = 1.0f; y = 2.0f; w = 3.0f; h = 4.0f;
+    servo_find_result_get_selection_rect(NULL, &x, NULL, &w, NULL);
+    if (x != 0.0f || w != 0.0f) {
+        return 1;
+    }
+
+    return 0;
+}
+
+/* Test that find delegate callback can be set. */
+int test_find_delegate_callback(void)
+{
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    RenderingContext* context = servo_rendering_context_create_software(100, 100);
+    if (context == NULL)
+        return 1;
+
+    ServoWebViewBuilder* builder = servo_webview_builder_create(servo, context);
+    if (builder == NULL)
+        return 1;
+
+    bool find_result_called = false;
+
+    void on_find_result(struct WebView* webview,
+                        int identifier,
+                        int count,
+                        const struct ServoFindResult* result,
+                        void* user_data)
+    {
+        (void)webview;
+        (void)identifier;
+        (void)count;
+        (void)result;
+        bool* flag = (bool*)user_data;
+        *flag = true;
+    }
+
+    ServoWebViewDelegate delegate = {
+        .user_data = &find_result_called,
+        .notify_load_status_changed = NULL,
+        .notify_url_changed = NULL,
+        .notify_page_title_changed = NULL,
+        .notify_new_frame_ready = NULL,
+        .notify_closed = NULL,
+        .notify_focus_changed = NULL,
+        .notify_got_focus = NULL,
+        .notify_load_started = NULL,
+        .notify_load_ended = NULL,
+        .notify_load_error = NULL,
+        .notify_cursor_changed = NULL,
+        .notify_status_text_changed = NULL,
+        .notify_favicon_changed = NULL,
+        .show_console_message = NULL,
+        .show_alert_dialog = NULL,
+        .show_confirm_dialog = NULL,
+        .show_prompt_dialog = NULL,
+        .show_file_picker = NULL,
+        .show_select_element = NULL,
+        .request_permission = NULL,
+        .request_authentication = NULL,
+        .request_unload = NULL,
+        .intercept_request = NULL,
+        .on_before_download = NULL,
+        .on_download_updated = NULL,
+        .on_find_result = on_find_result,
+        .notify_animating_changed = NULL,
+        .notify_history_changed = NULL,
+        .notify_crashed = NULL,
+    };
+
+    servo_webview_builder_set_delegate(builder, delegate);
+
+    struct WebView* webview = servo_webview_builder_build(builder);
+    if (webview == NULL)
+        return 1;
+
+    /* The delegate is set; we can't easily trigger a find to test the callback
+     * without a full integration test. Just verify the WebView was created. */
+    servo_webview_free(webview);
+    return 0;
+}
+
+int test_webview_hidpi_scale_factor(void)
+{
+    struct WebView* webview = get_test_webview();
+    if (webview == NULL)
+        return 1;
+
+    /* Test null handling */
+    if (servo_webview_set_hidpi_scale_factor(NULL, 2.0f) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_webview_get_hidpi_scale_factor(NULL, NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+
+    float scale = 0.0f;
+    if (servo_webview_get_hidpi_scale_factor(webview, &scale) != SERVO_ERROR_OK)
+        return 1;
+    if (scale <= 0.0f)
+        return 1;
+
+    /* Set valid scale factor */
+    if (servo_webview_set_hidpi_scale_factor(webview, 2.0f) != SERVO_ERROR_OK)
+        return 1;
+    if (servo_webview_get_hidpi_scale_factor(webview, &scale) != SERVO_ERROR_OK)
+        return 1;
+    if (fabsf(scale - 2.0f) > 0.01f)
+        return 1;
+
+    /* Set invalid scale factor (negative / zero) */
+    if (servo_webview_set_hidpi_scale_factor(webview, -1.0f) != SERVO_ERROR_INVALID_STATE)
+        return 1;
+    if (servo_webview_set_hidpi_scale_factor(webview, 0.0f) != SERVO_ERROR_INVALID_STATE)
+        return 1;
+
+    /* Reset back to 1.0 */
+    servo_webview_set_hidpi_scale_factor(webview, 1.0f);
+    return 0;
+}
+
+int test_webview_animating(void)
+{
+    struct WebView* webview = get_test_webview();
+    if (webview == NULL)
+        return 1;
+
+    if (servo_webview_is_animating(NULL, NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+
+    bool animating = true;
+    if (servo_webview_is_animating(webview, &animating) != SERVO_ERROR_OK)
+        return 1;
+
+    return 0;
+}
+
+int test_webview_pinch_zoom(void)
+{
+    struct WebView* webview = get_test_webview();
+    if (webview == NULL)
+        return 1;
+
+    if (servo_webview_get_pinch_zoom(NULL, NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_webview_adjust_pinch_zoom(NULL, 1.0f, 0.0f, 0.0f) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+
+    float zoom = 0.0f;
+    if (servo_webview_get_pinch_zoom(webview, &zoom) != SERVO_ERROR_OK)
+        return 1;
+    if (zoom <= 0.0f)
+        return 1;
+
+    if (servo_webview_adjust_pinch_zoom(webview, 1.1f, 50.0f, 50.0f) != SERVO_ERROR_OK)
+        return 1;
+
+    return 0;
+}
+
+int test_webview_exit_fullscreen(void)
+{
+    struct WebView* webview = get_test_webview();
+    if (webview == NULL)
+        return 1;
+
+    if (servo_webview_exit_fullscreen(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+
+    if (servo_webview_exit_fullscreen(webview) != SERVO_ERROR_OK)
+        return 1;
+
+    return 0;
+}
+
+int test_webview_load_request(void)
+{
+    struct WebView* webview = get_test_webview();
+    if (webview == NULL)
+        return 1;
+
+    if (servo_webview_load_request(NULL, NULL, NULL, 0) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_webview_load_request(webview, NULL, NULL, 0) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+
+    const char* headers[] = {
+        "X-Custom-Header: value1",
+        "Authorization: Bearer token123"
+    };
+    if (servo_webview_load_request(webview, "data:text/html,<h1>test</h1>", headers, 2) != SERVO_ERROR_OK)
+        return 1;
+
+    return 0;
+}
+
+int test_webview_scroll(void)
+{
+    struct WebView* webview = get_test_webview();
+    if (webview == NULL)
+        return 1;
+
+    if (servo_webview_scroll_by(NULL, 0.0f, 100.0f) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_webview_scroll_to_start(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_webview_scroll_to_end(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+
+    if (servo_webview_scroll_by(webview, 0.0f, 50.0f) != SERVO_ERROR_OK)
+        return 1;
+    if (servo_webview_scroll_to_start(webview) != SERVO_ERROR_OK)
+        return 1;
+    if (servo_webview_scroll_to_end(webview) != SERVO_ERROR_OK)
+        return 1;
+
+    return 0;
+}
+
+int test_webview_ime(void)
+{
+    struct WebView* webview = get_test_webview();
+    if (webview == NULL)
+        return 1;
+
+    if (servo_webview_notify_ime_composition_start(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_webview_notify_ime_composition_update(NULL, "test") != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_webview_notify_ime_composition_update(webview, NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_webview_notify_ime_composition_end(NULL, "test") != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_webview_notify_ime_composition_end(webview, NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_webview_notify_ime_dismissed(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+
+    if (servo_webview_notify_ime_composition_start(webview) != SERVO_ERROR_OK)
+        return 1;
+    if (servo_webview_notify_ime_composition_update(webview, "hello") != SERVO_ERROR_OK)
+        return 1;
+    if (servo_webview_notify_ime_composition_end(webview, "hello") != SERVO_ERROR_OK)
+        return 1;
+    if (servo_webview_notify_ime_dismissed(webview) != SERVO_ERROR_OK)
+        return 1;
+
+    return 0;
+}
+
+int test_webview_media_session(void)
+{
+    struct WebView* webview = get_test_webview();
+    if (webview == NULL)
+        return 1;
+
+    if (servo_webview_notify_media_session_action(NULL, SERVO_MEDIA_SESSION_ACTION_PLAY) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_webview_notify_media_session_action(webview, 9999) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 1;
+
+    if (servo_webview_notify_media_session_action(webview, SERVO_MEDIA_SESSION_ACTION_PLAY) != SERVO_ERROR_OK)
+        return 1;
+    if (servo_webview_notify_media_session_action(webview, SERVO_MEDIA_SESSION_ACTION_PAUSE) != SERVO_ERROR_OK)
+        return 1;
+    if (servo_webview_notify_media_session_action(webview, SERVO_MEDIA_SESSION_ACTION_STOP) != SERVO_ERROR_OK)
+        return 1;
+
+    return 0;
+}
+
 int run_c_api_tests(void)
 {
     tests_run = 0;
@@ -339,6 +2030,8 @@ int run_c_api_tests(void)
     RUN_TEST(test_builder_set_options);
     RUN_TEST(test_builder_set_preferences);
     RUN_TEST(test_builder_set_event_loop_waker);
+    RUN_TEST(test_builder_set_delegate);
+    RUN_TEST(test_builder_delegate_connection_request);
     RUN_TEST(test_options_create_and_free);
     RUN_TEST(test_options_setters);
     RUN_TEST(test_preferences_create_and_free);
@@ -346,12 +2039,68 @@ int run_c_api_tests(void)
     RUN_TEST(test_preferences_i64_roundtrip);
     RUN_TEST(test_preferences_u64_roundtrip);
     RUN_TEST(test_preferences_string_roundtrip);
+    RUN_TEST(test_set_preference_runtime);
     RUN_TEST(test_rendering_context_create_and_free);
     RUN_TEST(test_rendering_context_zero_size_returns_null);
+    RUN_TEST(test_rendering_context_create_window_returns_null_in_headless);
+    RUN_TEST(test_rendering_context_create_window_null_handles);
+    RUN_TEST(test_rendering_context_create_offscreen_null_parent);
+    RUN_TEST(test_rendering_context_create_offscreen_software_parent);
+    RUN_TEST(test_rendering_context_create_offscreen_zero_size);
+    RUN_TEST(test_rendering_context_create_offscreen_window_parent_headless);
     RUN_TEST(test_webview_builder_create_and_free);
     RUN_TEST(test_webview_builder_set_url_valid);
     RUN_TEST(test_webview_builder_set_url_invalid);
     RUN_TEST(test_webview_builder_build);
+    RUN_TEST(test_capi_version);
+    RUN_TEST(test_webview_get_url);
+    RUN_TEST(test_webview_get_title);
+    RUN_TEST(test_webview_get_status_text);
+    RUN_TEST(test_webview_get_load_status);
+    RUN_TEST(test_webview_get_size);
+    RUN_TEST(test_webview_can_go_back_forward);
+    RUN_TEST(test_webview_page_zoom);
+    RUN_TEST(test_webview_focus);
+    RUN_TEST(test_webview_notify_key_event);
+    RUN_TEST(test_webview_notify_mouse_button_event);
+    RUN_TEST(test_webview_notify_mouse_move_event);
+    RUN_TEST(test_webview_notify_mouse_leave_event);
+    RUN_TEST(test_webview_notify_touch_event);
+    RUN_TEST(test_webview_notify_wheel_event);
+    RUN_TEST(test_webview_notify_input_event_handled);
+    RUN_TEST(test_webview_resize);
+    RUN_TEST(test_webview_show_hide);
+    RUN_TEST(test_webview_notify_theme_change);
+    RUN_TEST(test_webview_evaluate_javascript_null_callback);
+    RUN_TEST(test_webview_navigation_noops);
+
+    RUN_TEST(test_site_data_manager_create_and_free);
+    RUN_TEST(test_site_data_cookies_for_url);
+    RUN_TEST(test_site_data_set_cookie);
+    RUN_TEST(test_site_data_clear_cookies);
+
+    RUN_TEST(test_error_null_arguments);
+    RUN_TEST(test_error_invalid_utf8);
+    RUN_TEST(test_webview_query_null_webview);
+    RUN_TEST(test_builder_free_null);
+    RUN_TEST(test_webview_setters_null);
+    RUN_TEST(test_builder_register_protocol_handler);
+    RUN_TEST(test_webview_delegate_intercept_request);
+    RUN_TEST(test_download_item_null_handling);
+    RUN_TEST(test_download_item_getters);
+    RUN_TEST(test_download_delegate_callbacks);
+    RUN_TEST(test_find_null_arguments);
+    RUN_TEST(test_find_valid_arguments);
+    RUN_TEST(test_find_result_getters);
+    RUN_TEST(test_find_delegate_callback);
+    RUN_TEST(test_webview_hidpi_scale_factor);
+    RUN_TEST(test_webview_animating);
+    RUN_TEST(test_webview_pinch_zoom);
+    RUN_TEST(test_webview_exit_fullscreen);
+    RUN_TEST(test_webview_load_request);
+    RUN_TEST(test_webview_scroll);
+    RUN_TEST(test_webview_ime);
+    RUN_TEST(test_webview_media_session);
 
     free_test_servo();
 

@@ -47,8 +47,10 @@ mod gamepad_delegate;
 #[cfg(feature = "media-gstreamer")]
 mod gstreamer_plugins;
 mod javascript_evaluator;
+mod message_router;
 mod network_manager;
 mod proxies;
+mod request_context;
 mod responders;
 mod servo;
 mod servo_delegate;
@@ -107,7 +109,9 @@ pub use crate::clipboard_delegate::{ClipboardDelegate, StringRequest};
 pub use crate::gamepad_delegate::{
     GamepadDelegate, GamepadHapticEffectRequest, GamepadHapticEffectRequestType,
 };
+pub use crate::message_router::MessageRouter;
 pub use crate::network_manager::{CacheEntry, NetworkManager};
+pub use crate::request_context::{ProxyConfig, ProxyMode, RequestContext};
 #[cfg(feature = "multiprocess")]
 pub use crate::servo::run_content_process;
 pub use crate::servo::{Servo, ServoBuilder};
@@ -117,9 +121,11 @@ pub use crate::user_content_manager::UserContentManager;
 pub use crate::webview::{WebView, WebViewBuilder};
 pub use crate::webview_delegate::{
     AlertDialog, AllowOrDenyRequest, AuthenticationRequest, BluetoothDeviceSelectionRequest,
-    ColorPicker, ConfirmDialog, ContextMenu, CreateNewWebViewRequest, EmbedderControl, FilePicker,
-    InputMethodControl, NavigationRequest, PermissionRequest, PromptDialog, SelectElement,
-    SimpleDialog, WebResourceLoad, WebViewDelegate,
+    CertificateError, CertificateErrorRequest, CertificateErrorResponse,
+    ColorPicker, ConfirmDialog, ContextMenu, CreateNewWebViewRequest, DownloadContinueCallback,
+    DownloadItem, DownloadState, EmbedderControl, FilePicker, InputMethodControl, NavigationRequest,
+    PermissionRequest, PromptDialog, ProtocolHandlerRegistration, SelectElement, SimpleDialog,
+    WebResourceLoad, WebViewDelegate,
 };
 
 #[cfg(feature = "webxr")]
@@ -142,7 +148,7 @@ pub mod protocol_handler {
     pub use net_traits::http_status::HttpStatus;
     pub use net_traits::request::Request;
     pub use net_traits::response::{Response, ResponseBody};
-    pub use net_traits::{NetworkError, ResourceFetchTiming};
+    pub use net_traits::{NetworkError, ResourceFetchTiming, ResourceTimingType};
 
     pub use crate::webview_delegate::ProtocolHandlerRegistration;
 }

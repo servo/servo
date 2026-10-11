@@ -97,6 +97,20 @@ pub(crate) struct WebViewDelegateImpl {
     pub(crate) console_messages: RefCell<Vec<(ConsoleLogLevel, String)>>,
     pub(crate) fullscreen: Cell<bool>,
     pub(crate) crashes: Cell<usize>,
+    // Window management callbacks
+    pub(crate) window_resized: Cell<bool>,
+    pub(crate) window_resized_width: Cell<u32>,
+    pub(crate) window_resized_height: Cell<u32>,
+    pub(crate) window_moved: Cell<bool>,
+    pub(crate) window_moved_x: Cell<i32>,
+    pub(crate) window_moved_y: Cell<i32>,
+    pub(crate) window_minimized: Cell<bool>,
+    pub(crate) window_maximized: Cell<bool>,
+    pub(crate) window_restored: Cell<bool>,
+    pub(crate) window_fullscreen_changed: Cell<bool>,
+    pub(crate) window_fullscreen_state: Cell<bool>,
+    pub(crate) window_close_requested: Cell<bool>,
+    pub(crate) window_move_or_resize_started: Cell<bool>,
 }
 
 #[allow(dead_code)] // Used by some tests and not others
@@ -112,6 +126,14 @@ impl WebViewDelegateImpl {
         self.console_messages.borrow_mut().clear();
         self.fullscreen.set(false);
         self.crashes.set(0);
+        self.window_resized.set(false);
+        self.window_moved.set(false);
+        self.window_minimized.set(false);
+        self.window_maximized.set(false);
+        self.window_restored.set(false);
+        self.window_fullscreen_changed.set(false);
+        self.window_close_requested.set(false);
+        self.window_move_or_resize_started.set(false);
     }
 }
 
@@ -170,6 +192,44 @@ impl WebViewDelegate for WebViewDelegateImpl {
 
     fn notify_fullscreen_state_changed(&self, _webview: WebView, fullscreen: bool) {
         self.fullscreen.set(fullscreen);
+    }
+
+    fn notify_window_resized(&self, _webview: WebView, width: u32, height: u32) {
+        self.window_resized.set(true);
+        self.window_resized_width.set(width);
+        self.window_resized_height.set(height);
+    }
+
+    fn notify_window_moved(&self, _webview: WebView, x: i32, y: i32) {
+        self.window_moved.set(true);
+        self.window_moved_x.set(x);
+        self.window_moved_y.set(y);
+    }
+
+    fn notify_window_minimized(&self, _webview: WebView) {
+        self.window_minimized.set(true);
+    }
+
+    fn notify_window_maximized(&self, _webview: WebView) {
+        self.window_maximized.set(true);
+    }
+
+    fn notify_window_restored(&self, _webview: WebView) {
+        self.window_restored.set(true);
+    }
+
+    fn notify_window_fullscreen_changed(&self, _webview: WebView, fullscreen: bool) {
+        self.window_fullscreen_changed.set(true);
+        self.window_fullscreen_state.set(fullscreen);
+    }
+
+    fn notify_window_close_requested(&self, _webview: WebView) -> bool {
+        self.window_close_requested.set(true);
+        true // Allow close by default
+    }
+
+    fn notify_window_move_or_resize_started(&self, _webview: WebView) {
+        self.window_move_or_resize_started.set(true);
     }
 
     fn notify_crashed(&self, _webview: WebView, _reason: String, _backtrace: Option<String>) {

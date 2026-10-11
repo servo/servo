@@ -66,6 +66,20 @@ impl UserContentManager {
             ),
         );
     }
+
+    /// Inject the `window.servoMessageRouter` bootstrap script into all pages
+    /// managed by this `UserContentManager`.
+    ///
+    /// This must be called before [`crate::WebView::post_message`] and
+    /// [`crate::WebView::poll_js_messages`] can be used for bidirectional
+    /// messaging. Like other user content, changes take effect after the page is
+    /// reloaded.
+    pub fn inject_message_router(&self) {
+        self.add_script(Rc::new(UserScript::new(
+            crate::message_router::MessageRouter::bootstrap_script(),
+            None,
+        )));
+    }
 }
 
 impl Drop for UserContentManager {

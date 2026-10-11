@@ -83,7 +83,7 @@ use servo_constellation::{
 };
 #[cfg(feature = "multiprocess")]
 use servo_constellation::{FromScriptLogger, NewScriptEventLoopProcessInfo};
-use servo_constellation_traits::EmbedderToConstellationMessage;
+use servo_constellation_traits::{EmbedderToConstellationMessage, FindResult};
 #[cfg(feature = "multiprocess")]
 use servo_constellation_traits::ScriptToConstellationSender;
 use servo_geometry::{
@@ -110,8 +110,9 @@ use crate::servo_delegate::{DefaultServoDelegate, ServoDelegate, ServoError};
 use crate::site_data_manager::{CookieOperationResponse, SiteDataManager};
 use crate::webview::{MINIMUM_WEBVIEW_SIZE, WebView, WebViewInner};
 use crate::webview_delegate::{
-    AllowOrDenyRequest, AuthenticationRequest, BluetoothDeviceSelectionRequest, EmbedderControl,
-    FilePicker, NavigationRequest, PermissionRequest, ProtocolHandlerRegistration, WebResourceLoad,
+    AllowOrDenyRequest, AuthenticationRequest, BluetoothDeviceSelectionRequest, CertificateError,
+    CertificateErrorRequest, EmbedderControl, FilePicker, NavigationRequest, PermissionRequest,
+    ProtocolHandlerRegistration, WebResourceLoad,
 };
 
 #[cfg(feature = "media-gstreamer")]
@@ -483,6 +484,33 @@ impl ServoInner {
                 self.site_data_manager
                     .handle_cookie_response(operation_id, CookieOperationResponse::Done);
             },
+            NetToEmbedderMsg::RequestCertificateError(
+                webview_id,
+                url,
+                error_code,
+                error_text,
+                certificate_der,
+                response_sender,
+            ) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let certificate_error = CertificateError::new(
+                        url.into_url(),
+                        error_code,
+                        error_text,
+                        certificate_der,
+                    );
+                    let certificate_error_request = CertificateErrorRequest::new(
+                        response_sender,
+                        self.servo_errors.sender(),
+                    );
+                    webview
+                        .delegate()
+                        .certificate_error(webview, certificate_error, certificate_error_request);
+                } else {
+                    // No webview found, deny by default
+                    let _ = response_sender.send(CertificateErrorResponse::Deny);
+                }
+            },
         }
     }
 
@@ -611,6 +639,7 @@ impl ServoInner {
             },
             EmbedderMsg::NotifyFullscreenStateChanged(webview_id, fullscreen) => {
                 if let Some(webview) = self.get_webview_handle(webview_id) {
+                    webview.set_fullscreen_from_page(fullscreen);
                     webview
                         .delegate()
                         .notify_fullscreen_state_changed(webview, fullscreen);
@@ -872,6 +901,18 @@ impl ServoInner {
                         .notify_media_session_event(webview, media_session_event);
                 }
             },
+            ConstellationToEmbedderMsg::FindResult(webview_id, find_result) => {
+                if let Some(webview) = self.get_webview_handle(webview_id) {
+                    let count = find_result.number_of_matches;
+                    let identifier = find_result.identifier;
+                    webview.delegate().on_find_result(
+                        webview,
+                        identifier,
+                        count,
+                        Some(find_result),
+                    );
+                }
+            },
         }
     }
 }
@@ -905,6 +946,11 @@ impl Servo {
         let opts = builder.opts.map(|opts| *opts).unwrap_or_default();
         opts::initialize_options(opts);
         let opts = opts::get();
+
+        // Use request context if provided, otherwise fall back to global opts.
+        let request_context = builder.request_context.unwrap_or_default();
+        let config_dir = request_context.config_dir.clone().or(opts.config_dir.clone());
+        let temporary_storage = request_context.temporary_storage || opts.temporary_storage;
 
         // Set the preferences globally.
         // TODO: It would be better to make these private to a particular Servo instance.
@@ -990,7 +1036,7 @@ impl Servo {
                 time_profiler_chan.clone(),
                 mem_profiler_chan.clone(),
                 net_embedder_proxy,
-                opts.config_dir.clone(),
+                config_dir.clone(),
                 opts.certificate_path.clone(),
                 opts.ignore_certificate_errors,
                 protocols.clone(),
@@ -998,8 +1044,8 @@ impl Servo {
 
         let (private_storage_threads, public_storage_threads) = new_storage_threads(
             mem_profiler_chan.clone(),
-            opts.config_dir.clone(),
-            opts.temporary_storage,
+            config_dir.clone(),
+            temporary_storage,
         );
 
         create_constellation(
@@ -1450,6 +1496,7 @@ pub struct ServoBuilder {
     preferences: Option<Box<Preferences>>,
     event_loop_waker: Box<dyn EventLoopWaker>,
     protocol_registry: ProtocolRegistry,
+    request_context: Option<RequestContext>,
 }
 
 impl Default for ServoBuilder {
@@ -1459,6 +1506,7 @@ impl Default for ServoBuilder {
             preferences: Default::default(),
             event_loop_waker: Box::new(DefaultEventLoopWaker),
             protocol_registry: Default::default(),
+            request_context: Default::default(),
         }
     }
 }
@@ -1485,6 +1533,17 @@ impl ServoBuilder {
 
     pub fn protocol_registry(mut self, protocol_registry: ProtocolRegistry) -> Self {
         self.protocol_registry = protocol_registry;
+        self
+    }
+
+    /// Sets the request context for this Servo instance.
+    ///
+    /// The request context provides profile/cookie isolation, proxy configuration,
+    /// cache path selection, and accept language settings. All WebViews created
+    /// within this Servo instance will use this request context unless overridden
+    /// at the WebView level.
+    pub fn request_context(mut self, request_context: RequestContext) -> Self {
+        self.request_context = Some(request_context);
         self
     }
 }

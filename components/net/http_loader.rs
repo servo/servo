@@ -85,7 +85,7 @@ use crate::decoder::Decoder;
 use crate::devtools::{
     prepare_devtools_request, send_request_to_devtools, send_response_values_to_devtools,
 };
-use crate::embedder::NetToEmbedderMsg;
+use crate::embedder::{CertificateErrorResponse, NetToEmbedderMsg};
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::FetchParams;
 use crate::fetch::headers::{SecFetchDest, SecFetchMode, SecFetchSite, SecFetchUser};
@@ -97,6 +97,61 @@ use crate::http_cache::{
 };
 use crate::resource_thread::{AuthCache, AuthCacheEntry};
 use crate::websocket_loader::start_websocket;
+
+/// Certificate error codes for mapping TLS errors to CEF-compatible codes.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[allow(dead_code)]
+enum CertErrorCode {
+    None = 0,
+    Expired = 1,
+    NotYetValid = 2,
+    SelfSigned = 3,
+    UnknownCA = 4,
+    CommonNameInvalid = 5,
+    Revoked = 6,
+    Invalid = 7,
+    IncompleteChain = 8,
+    WeakSignatureAlgorithm = 9,
+    WeakKey = 10,
+    InvalidUsage = 11,
+    TransparencyRequired = 12,
+    SymantecLegacy = 13,
+    Other = -1,
+}
+
+impl CertErrorCode {
+    /// Convert from a string error description to an error code.
+    fn from_error_text(text: &str) -> i32 {
+        let text_lower = text.to_lowercase();
+        if text_lower.contains("expired") || text_lower.contains("expiry") {
+            CertErrorCode::Expired as i32
+        } else if text_lower.contains("not yet valid") || text_lower.contains("not valid before") {
+            CertErrorCode::NotYetValid as i32
+        } else if text_lower.contains("self signed") || text_lower.contains("self-signed") {
+            CertErrorCode::SelfSigned as i32
+        } else if text_lower.contains("unknown") && text_lower.contains("authority") {
+            CertErrorCode::UnknownCA as i32
+        } else if text_lower.contains("common name") || text_lower.contains("hostname") || text_lower.contains("subject alternative") {
+            CertErrorCode::CommonNameInvalid as i32
+        } else if text_lower.contains("revoked") {
+            CertErrorCode::Revoked as i32
+        } else if text_lower.contains("incomplete chain") || text_lower.contains("chain incomplete") {
+            CertErrorCode::IncompleteChain as i32
+        } else if text_lower.contains("weak signature") || text_lower.contains("sha1") || text_lower.contains("md5") {
+            CertErrorCode::WeakSignatureAlgorithm as i32
+        } else if text_lower.contains("weak key") || text_lower.contains("key size") || text_lower.contains("rsa.*1024") {
+            CertErrorCode::WeakKey as i32
+        } else if text_lower.contains("transparency") || text_lower.contains("ct log") {
+            CertErrorCode::TransparencyRequired as i32
+        } else if text_lower.contains("symantec") || text_lower.contains("legacy") {
+            CertErrorCode::SymantecLegacy as i32
+        } else if text_lower.contains("invalid") || text_lower.contains("validation failed") {
+            CertErrorCode::Invalid as i32
+        } else {
+            CertErrorCode::Other as i32
+        }
+    }
+}
 
 /// The various states an entry of the HttpCache can be in.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -169,6 +224,37 @@ impl HttpState {
                 sender,
             ));
         receiver.await.ok()?
+    }
+
+    /// Handle a certificate error for a navigation request.
+    /// Returns `Some(true)` if the embedder allowed the connection, `Some(false)` if denied,
+    /// `None` if the request is not a navigation request or has no webview_id.
+    async fn request_certificate_error(
+        &self,
+        request: &Request,
+        error_code: i32,
+        error_text: String,
+        certificate_der: Vec<u8>,
+    ) -> Option<bool> {
+        // We do not make a certificate error request for non-WebView associated HTTP requests.
+        let webview_id = request.target_webview_id?;
+
+        // Only handle certificate errors for navigation requests.
+        if request.mode != RequestMode::Navigate {
+            return Some(false);
+        }
+
+        let (sender, receiver) = tokio::sync::oneshot::channel();
+        self.embedder_proxy
+            .send(NetToEmbedderMsg::RequestCertificateError(
+                webview_id,
+                request.url(),
+                error_code,
+                error_text,
+                certificate_der,
+                sender,
+            ));
+        Some(matches!(receiver.await.ok(), Some(CertificateErrorResponse::Allow)))
     }
 }
 
@@ -2235,14 +2321,70 @@ async fn http_network_fetch(
                 request.destination,
                 is_xhr,
                 context,
-                fetch_terminated_sender,
+                fetch_terminated_sender.clone(),
                 browsing_context_id,
             );
 
             // This will only get the headers, the body is read later
             let (response_stream, msg) = match response_future.await {
                 Ok(wrapped_response) => wrapped_response,
-                Err(error) => return Response::network_error(error),
+                Err(error) => {
+                    // Check if this is a certificate error
+                    if let NetworkError::SslValidation(ref error_text, ref certificate_der) = error {
+                        // Try to handle the certificate error via the embedder
+                        // Only for navigation requests with a webview
+                        if request.mode == RequestMode::Navigate {
+                            // Clone body and sender for potential retry
+                            let body_clone = request.body.as_ref().map(|body| body.clone_stream());
+                            let fetch_terminated_sender_clone = fetch_terminated_sender.clone();
+                            let source_is_null = request
+                                .body
+                                .as_ref()
+                                .is_some_and(|body| body.source_is_null());
+
+                            let allowed = context.state.request_certificate_error(
+                                request,
+                                CertErrorCode::from_error_text(error_text),
+                                error_text.clone(),
+                                certificate_der.clone(),
+                            ).await;
+
+                            match allowed {
+                                Some(true) => {
+                                    // Add certificate to override manager and retry
+                                    context.state.override_manager.add_override(
+                                        &rustls_pki_types::CertificateDer::from_slice(certificate_der).into_owned()
+                                    );
+                                    // Retry the request
+                                    let retry_future = obtain_response(
+                                        &context.state.client,
+                                        &url,
+                                        &request.method,
+                                        &mut request.headers,
+                                        body_clone,
+                                        source_is_null,
+                                        &request.pipeline_id,
+                                        Some(&request_id),
+                                        request.destination,
+                                        is_xhr,
+                                        context,
+                                        fetch_terminated_sender_clone,
+                                        browsing_context_id,
+                                    );
+                                    match retry_future.await {
+                                        Ok(wrapped_response) => wrapped_response,
+                                        Err(retry_error) => return Response::network_error(retry_error),
+                                    }
+                                }
+                                _ => return Response::network_error(error),
+                            }
+                        } else {
+                            return Response::network_error(error);
+                        }
+                    } else {
+                        return Response::network_error(error);
+                    }
+                }
             };
             (response_stream, msg)
         },

@@ -31,7 +31,10 @@ use webrender_api::units::{DeviceIntRect, DevicePixel};
 /// Implementors of this trait are responsible for handling the creation,
 /// management, and destruction of the rendering context and its associated
 /// resources.
-pub trait RenderingContext {
+pub trait RenderingContext: std::any::Any {
+    /// Returns a reference to the trait object as `&dyn Any` for downcasting.
+    fn as_any(&self) -> &dyn std::any::Any;
+
     /// Prepare this [`RenderingContext`] to be rendered upon by Servo. For instance,
     /// by binding a framebuffer to the current OpenGL context.
     fn prepare_for_rendering(&self) {}
@@ -118,9 +121,9 @@ impl SurfmanRenderingContext {
     ) -> Result<Self, Error> {
         let device = connection.create_device(adapter)?;
 
-        let flags = ContextAttributeFlags::ALPHA |
-            ContextAttributeFlags::DEPTH |
-            ContextAttributeFlags::STENCIL;
+        let flags = ContextAttributeFlags::ALPHA
+            | ContextAttributeFlags::DEPTH
+            | ContextAttributeFlags::STENCIL;
         let gl_api = connection.gl_api();
         let version = match &gl_api {
             GLApi::GLES => surfman::GLVersion { major: 3, minor: 0 },
@@ -328,6 +331,10 @@ impl Drop for SoftwareRenderingContext {
 }
 
 impl RenderingContext for SoftwareRenderingContext {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
     fn prepare_for_rendering(&self) {
         self.surfman_rendering_info.prepare_for_rendering();
     }
@@ -528,6 +535,10 @@ impl WindowRenderingContext {
 }
 
 impl RenderingContext for WindowRenderingContext {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
     fn prepare_for_rendering(&self) {
         self.surfman_context.prepare_for_rendering();
     }
@@ -815,6 +826,10 @@ impl OffscreenRenderingContext {
 }
 
 impl RenderingContext for OffscreenRenderingContext {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
     fn size(&self) -> PhysicalSize<u32> {
         self.size.get()
     }

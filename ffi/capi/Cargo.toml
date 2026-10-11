@@ -18,11 +18,21 @@ crate-type = ["cdylib"]
 capi = [] # Needed by `cargo-c`.
 # TODO: Need to think about which features from servo can be
 # exposed here for conditional compilation of C API.
+multiprocess = ["servo/multiprocess"]
 
 [dependencies]
+base64 = { workspace = true }
+cookie = { workspace = true }
 dpi = { workspace = true }
+embedder_traits = { workspace = true }
+euclid = { workspace = true }
+http = { workspace = true }
+keyboard-types = { workspace = true }
 libc = { workspace = true }
 log = { workspace = true }
+raw-window-handle = { workspace = true }
+serde_json = { workspace = true }
+servo-constellation-traits = { workspace = true }
 # TODO: We need 'baked-in-resources' as the `inventory` based `ResourceReader`
 # doesn't work when libservo is a cdylib.
 servo = { workspace = true, features = ["js_jit", "baked-in-resources", "bundled_freetype"] }

@@ -7,6 +7,8 @@ use std::path::PathBuf;
 
 use log::warn;
 
+use crate::ServoError;
+
 /// An opaque struct representing an Options object for configuring
 /// Servo at initialization time. These configuration options cannot
 /// be changed at runtime.
@@ -27,11 +29,10 @@ pub use servo::DiagnosticsLoggingOption;
 ///
 /// Returns a newly allocated `ServoOptions` handle.
 /// The ownership of the returned handle is transferred to the caller, who
-/// must free it using [`servo_options_free`].
+/// must free it using [`servo_options_free`]. Returns `NULL` on allocation failure.
 #[unsafe(no_mangle)]
 pub extern "C" fn servo_options_create() -> *mut ServoOptions {
-    let options = Box::new(servo::Opts::default());
-    Box::into_raw(options)
+    ServoError::catch_ffi_ptr(|| Box::into_raw(Box::new(servo::Opts::default())))
 }
 
 /// Enables and configures Servo's time profiler to write profiling data in TSV
@@ -41,7 +42,6 @@ pub extern "C" fn servo_options_create() -> *mut ServoOptions {
 /// The ownership of `options` remains with the caller after the call.
 ///
 /// `file_path` is a NUL terminated UTF-8 string.
-/// The function panics if it is not a valid UTF-8 string.
 /// The ownership of `file_path` remains with the caller after the call.
 ///
 /// # Safety
@@ -53,24 +53,37 @@ pub extern "C" fn servo_options_create() -> *mut ServoOptions {
 ///   passed to another API that takes ownership of it.
 /// - `file_path` is a non-null pointer to a C string that remains
 ///   unmodified for the duration of the call.
+///
+/// # Errors
+///
+/// Returns `ServoError::NullArgument` if `options` or `file_path` is null.
+/// Returns `ServoError::InvalidUtf8` if `file_path` is not valid UTF-8.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_enable_time_profiling_to_file(
     options: *mut ServoOptions,
     file_path: *const c_char,
-) {
-    assert!(!options.is_null(), "options pointer must not be null");
-    assert!(!file_path.is_null(), "file_path pointer must not be null");
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if options.is_null() {
+            return ServoError::NullArgument;
+        }
+        if file_path.is_null() {
+            return ServoError::NullArgument;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `file_path` documented above.
-    let filename = unsafe { CStr::from_ptr(file_path) }
-        .to_str()
-        .expect("invalid time profiler file path")
-        .to_string();
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `file_path` documented above.
+        let filename = match unsafe { CStr::from_ptr(file_path) }.to_str() {
+            Ok(s) => s.to_string(),
+            Err(_) => return ServoError::InvalidUtf8,
+        };
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `options` documented above.
-    unsafe { &mut *options }.time_profiling = Some(servo::OutputOptions::FileName(filename));
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `options` documented above.
+        unsafe { &mut *options }.time_profiling = Some(servo::OutputOptions::FileName(filename));
+
+        ServoError::Ok
+    })
 }
 
 /// Sets the path to dump a self-contained HTML file visualizing the
@@ -81,7 +94,6 @@ pub unsafe extern "C" fn servo_options_enable_time_profiling_to_file(
 /// The ownership of `options` remains with the caller after the call.
 ///
 /// `trace_path` is a NUL terminated UTF-8 string.
-/// The function panics if it is not a valid UTF-8 string.
 /// The ownership of `trace_path` remains with the caller after the call.
 ///
 /// # Safety
@@ -93,24 +105,37 @@ pub unsafe extern "C" fn servo_options_enable_time_profiling_to_file(
 ///   passed to another API that takes ownership of it.
 /// - `trace_path` is a non-null pointer to a C string that remains
 ///   unmodified for the duration of the call.
+///
+/// # Errors
+///
+/// Returns `ServoError::NullArgument` if `options` or `trace_path` is null.
+/// Returns `ServoError::InvalidUtf8` if `trace_path` is not valid UTF-8.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_set_time_profiler_trace_path(
     options: *mut ServoOptions,
     trace_path: *const c_char,
-) {
-    assert!(!options.is_null(), "options pointer must not be null");
-    assert!(!trace_path.is_null(), "trace_path pointer must not be null");
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if options.is_null() {
+            return ServoError::NullArgument;
+        }
+        if trace_path.is_null() {
+            return ServoError::NullArgument;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `trace_path` documented above.
-    let trace_path = unsafe { CStr::from_ptr(trace_path) }
-        .to_str()
-        .expect("invalid time profiler trace path")
-        .to_string();
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `trace_path` documented above.
+        let trace_path = match unsafe { CStr::from_ptr(trace_path) }.to_str() {
+            Ok(s) => s.to_string(),
+            Err(_) => return ServoError::InvalidUtf8,
+        };
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `options` documented above.
-    unsafe { &mut *options }.time_profiler_trace_path = Some(trace_path);
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `options` documented above.
+        unsafe { &mut *options }.time_profiler_trace_path = Some(trace_path);
+
+        ServoError::Ok
+    })
 }
 
 /// Enables and configures Servo's time profiler to write profiling data to
@@ -119,22 +144,26 @@ pub unsafe extern "C" fn servo_options_set_time_profiler_trace_path(
 /// `options` is a handle to a `ServoOptions` object.
 /// The ownership of `options` remains with the caller after the call.
 ///
-/// # Safety
+/// # Errors
 ///
-/// The caller must ensure that `options` is a non-null pointer to a
-/// `ServoOptions` previously returned by `servo_options_create` and has
-/// not yet been freed nor passed to another API that takes ownership of
-/// it.
+/// Returns `ServoError::NullArgument` if `options` is null.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_enable_time_profiling_to_stdout(
     options: *mut ServoOptions,
     interval_seconds: f64,
-) {
-    assert!(!options.is_null(), "options pointer must not be null");
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if options.is_null() {
+            return ServoError::NullArgument;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `options` documented above.
-    unsafe { &mut *options }.time_profiling = Some(servo::OutputOptions::Stdout(interval_seconds));
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `options` documented above.
+        unsafe { &mut *options }.time_profiling =
+            Some(servo::OutputOptions::Stdout(interval_seconds));
+
+        ServoError::Ok
+    })
 }
 
 /// Enables or diables the hard fail option. When enabled Servo exits
@@ -149,13 +178,26 @@ pub unsafe extern "C" fn servo_options_enable_time_profiling_to_stdout(
 /// `ServoOptions` previously returned by `servo_options_create` and has
 /// not yet been freed nor passed to another API that takes ownership of
 /// it.
+///
+/// # Errors
+///
+/// Returns `ServoError::NullArgument` if `options` is null.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn servo_options_set_hard_fail(options: *mut ServoOptions, hard_fail: bool) {
-    assert!(!options.is_null(), "options pointer must not be null");
+pub unsafe extern "C" fn servo_options_set_hard_fail(
+    options: *mut ServoOptions,
+    hard_fail: bool,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if options.is_null() {
+            return ServoError::NullArgument;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `options` documented above.
-    unsafe { &mut *options }.hard_fail = hard_fail;
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `options` documented above.
+        unsafe { &mut *options }.hard_fail = hard_fail;
+
+        ServoError::Ok
+    })
 }
 
 /// Enabled or disables the multiprocess mode.
@@ -169,16 +211,26 @@ pub unsafe extern "C" fn servo_options_set_hard_fail(options: *mut ServoOptions,
 /// `ServoOptions` previously returned by `servo_options_create` and has
 /// not yet been freed nor passed to another API that takes ownership of
 /// it.
+///
+/// # Errors
+///
+/// Returns `ServoError::NullArgument` if `options` is null.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_set_multiprocess(
     options: *mut ServoOptions,
     multiprocess: bool,
-) {
-    assert!(!options.is_null(), "options pointer must not be null");
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if options.is_null() {
+            return ServoError::NullArgument;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `options` documented above.
-    unsafe { &mut *options }.multiprocess = multiprocess;
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `options` documented above.
+        unsafe { &mut *options }.multiprocess = multiprocess;
+
+        ServoError::Ok
+    })
 }
 
 /// Enables or disables the force IPC option. When enabled
@@ -194,13 +246,26 @@ pub unsafe extern "C" fn servo_options_set_multiprocess(
 /// `ServoOptions` previously returned by `servo_options_create` and has
 /// not yet been freed nor passed to another API that takes ownership of
 /// it.
+///
+/// # Errors
+///
+/// Returns `ServoError::NullArgument` if `options` is null.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn servo_options_set_force_ipc(options: *mut ServoOptions, force_ipc: bool) {
-    assert!(!options.is_null(), "options pointer must not be null");
+pub unsafe extern "C" fn servo_options_set_force_ipc(
+    options: *mut ServoOptions,
+    force_ipc: bool,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if options.is_null() {
+            return ServoError::NullArgument;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `options` documented above.
-    unsafe { &mut *options }.force_ipc = force_ipc;
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `options` documented above.
+        unsafe { &mut *options }.force_ipc = force_ipc;
+
+        ServoError::Ok
+    })
 }
 
 /// Enables or disables the background hang monitor.
@@ -214,16 +279,26 @@ pub unsafe extern "C" fn servo_options_set_force_ipc(options: *mut ServoOptions,
 /// `ServoOptions` previously returned by `servo_options_create` and has
 /// not yet been freed nor passed to another API that takes ownership of
 /// it.
+///
+/// # Errors
+///
+/// Returns `ServoError::NullArgument` if `options` is null.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_set_background_hang_monitor(
     options: *mut ServoOptions,
     background_hang_monitor: bool,
-) {
-    assert!(!options.is_null(), "options pointer must not be null");
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if options.is_null() {
+            return ServoError::NullArgument;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `options` documented above.
-    unsafe { &mut *options }.background_hang_monitor = background_hang_monitor;
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `options` documented above.
+        unsafe { &mut *options }.background_hang_monitor = background_hang_monitor;
+
+        ServoError::Ok
+    })
 }
 
 /// Enables or disables Servo's sandbox.
@@ -237,13 +312,26 @@ pub unsafe extern "C" fn servo_options_set_background_hang_monitor(
 /// `ServoOptions` previously returned by `servo_options_create` and has
 /// not yet been freed nor passed to another API that takes ownership of
 /// it.
+///
+/// # Errors
+///
+/// Returns `ServoError::NullArgument` if `options` is null.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn servo_options_set_sandbox(options: *mut ServoOptions, sandbox: bool) {
-    assert!(!options.is_null(), "options pointer must not be null");
+pub unsafe extern "C" fn servo_options_set_sandbox(
+    options: *mut ServoOptions,
+    sandbox: bool,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if options.is_null() {
+            return ServoError::NullArgument;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `options` documented above.
-    unsafe { &mut *options }.sandbox = sandbox;
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `options` documented above.
+        unsafe { &mut *options }.sandbox = sandbox;
+
+        ServoError::Ok
+    })
 }
 
 /// Enables or disables Servo's use of temporary storage. When enabled
@@ -258,16 +346,26 @@ pub unsafe extern "C" fn servo_options_set_sandbox(options: *mut ServoOptions, s
 /// `ServoOptions` previously returned by `servo_options_create` and has
 /// not yet been freed nor passed to another API that takes ownership of
 /// it.
+///
+/// # Errors
+///
+/// Returns `ServoError::NullArgument` if `options` is null.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_set_temporary_storage(
     options: *mut ServoOptions,
     temporary_storage: bool,
-) {
-    assert!(!options.is_null(), "options pointer must not be null");
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if options.is_null() {
+            return ServoError::NullArgument;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `options` documented above.
-    unsafe { &mut *options }.temporary_storage = temporary_storage;
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `options` documented above.
+        unsafe { &mut *options }.temporary_storage = temporary_storage;
+
+        ServoError::Ok
+    })
 }
 
 /// Enables or disables the option to ignore SSL certificate
@@ -282,16 +380,26 @@ pub unsafe extern "C" fn servo_options_set_temporary_storage(
 /// `ServoOptions` previously returned by `servo_options_create` and has
 /// not yet been freed nor passed to another API that takes ownership of
 /// it.
+///
+/// # Errors
+///
+/// Returns `ServoError::NullArgument` if `options` is null.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_set_ignore_certificate_errors(
     options: *mut ServoOptions,
     ignore_certificate_errors: bool,
-) {
-    assert!(!options.is_null(), "options pointer must not be null");
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if options.is_null() {
+            return ServoError::NullArgument;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `options` documented above.
-    unsafe { &mut *options }.ignore_certificate_errors = ignore_certificate_errors;
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `options` documented above.
+        unsafe { &mut *options }.ignore_certificate_errors = ignore_certificate_errors;
+
+        ServoError::Ok
+    })
 }
 
 /// Enables or disables the unminification of JavaScript for debugging.
@@ -305,16 +413,26 @@ pub unsafe extern "C" fn servo_options_set_ignore_certificate_errors(
 /// `ServoOptions` previously returned by `servo_options_create` and has
 /// not yet been freed nor passed to another API that takes ownership of
 /// it.
+///
+/// # Errors
+///
+/// Returns `ServoError::NullArgument` if `options` is null.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_set_unminify_js(
     options: *mut ServoOptions,
     unminify_js: bool,
-) {
-    assert!(!options.is_null(), "options pointer must not be null");
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if options.is_null() {
+            return ServoError::NullArgument;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `options` documented above.
-    unsafe { &mut *options }.unminify_js = unminify_js;
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `options` documented above.
+        unsafe { &mut *options }.unminify_js = unminify_js;
+
+        ServoError::Ok
+    })
 }
 
 /// Enables or disables the unminification of stylesheets for debugging.
@@ -328,16 +446,26 @@ pub unsafe extern "C" fn servo_options_set_unminify_js(
 /// `ServoOptions` previously returned by `servo_options_create` and has
 /// not yet been freed nor passed to another API that takes ownership of
 /// it.
+///
+/// # Errors
+///
+/// Returns `ServoError::NullArgument` if `options` is null.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_set_unminify_css(
     options: *mut ServoOptions,
     unminify_css: bool,
-) {
-    assert!(!options.is_null(), "options pointer must not be null");
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if options.is_null() {
+            return ServoError::NullArgument;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `options` documented above.
-    unsafe { &mut *options }.unminify_css = unminify_css;
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `options` documented above.
+        unsafe { &mut *options }.unminify_css = unminify_css;
+
+        ServoError::Ok
+    })
 }
 
 /// Sets the PEM-encoded SSL CA certificate store path.
@@ -346,7 +474,6 @@ pub unsafe extern "C" fn servo_options_set_unminify_css(
 /// The ownership of `options` remains with the caller after the call.
 ///
 /// `certificate_path` is a NUL terminated UTF-8 string.
-/// The function panics if it is not a valid UTF-8 string.
 /// The ownership of `certificate_path` remains with the caller after the
 /// call.
 ///
@@ -359,27 +486,37 @@ pub unsafe extern "C" fn servo_options_set_unminify_css(
 ///   passed to another API that takes ownership of it.
 /// - `certificate_path` is a non-null pointer to a C string that remains
 ///   unmodified for the duration of the call.
+///
+/// # Errors
+///
+/// Returns `ServoError::NullArgument` if `options` or `certificate_path` is null.
+/// Returns `ServoError::InvalidUtf8` if `certificate_path` is not valid UTF-8.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_set_certificate_path(
     options: *mut ServoOptions,
     certificate_path: *const c_char,
-) {
-    assert!(!options.is_null(), "options pointer must not be null");
-    assert!(
-        !certificate_path.is_null(),
-        "certificate_path pointer must not be null"
-    );
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if options.is_null() {
+            return ServoError::NullArgument;
+        }
+        if certificate_path.is_null() {
+            return ServoError::NullArgument;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `certificate_path` documented above.
-    let path = unsafe { CStr::from_ptr(certificate_path) }
-        .to_str()
-        .expect("invalid certificate path")
-        .to_string();
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `certificate_path` documented above.
+        let path = match unsafe { CStr::from_ptr(certificate_path) }.to_str() {
+            Ok(s) => s.to_string(),
+            Err(_) => return ServoError::InvalidUtf8,
+        };
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `options` documented above.
-    unsafe { &mut *options }.certificate_path = Some(path);
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `options` documented above.
+        unsafe { &mut *options }.certificate_path = Some(path);
+
+        ServoError::Ok
+    })
 }
 
 /// Sets the directory path that was created with 'unminify-js'.
@@ -388,7 +525,6 @@ pub unsafe extern "C" fn servo_options_set_certificate_path(
 /// The ownership of `options` remains with the caller after the call.
 ///
 /// `local_script_source` is a NUL terminated UTF-8 string.
-/// The function panics if it is not a valid UTF-8 string.
 /// The ownership of `local_script_source` remains with the caller after
 /// the call.
 ///
@@ -401,27 +537,37 @@ pub unsafe extern "C" fn servo_options_set_certificate_path(
 ///   passed to another API that takes ownership of it.
 /// - `local_script_source` is a non-null pointer to a C string that
 ///   remains unmodified for the duration of the call.
+///
+/// # Errors
+///
+/// Returns `ServoError::NullArgument` if `options` or `local_script_source` is null.
+/// Returns `ServoError::InvalidUtf8` if `local_script_source` is not valid UTF-8.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_set_local_script_source(
     options: *mut ServoOptions,
     local_script_source: *const c_char,
-) {
-    assert!(!options.is_null(), "options pointer must not be null");
-    assert!(
-        !local_script_source.is_null(),
-        "local_script_source pointer must not be null"
-    );
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if options.is_null() {
+            return ServoError::NullArgument;
+        }
+        if local_script_source.is_null() {
+            return ServoError::NullArgument;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `local_script_source` documented above.
-    let path = unsafe { CStr::from_ptr(local_script_source) }
-        .to_str()
-        .expect("invalid local script source path")
-        .to_string();
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `local_script_source` documented above.
+        let path = match unsafe { CStr::from_ptr(local_script_source) }.to_str() {
+            Ok(s) => s.to_string(),
+            Err(_) => return ServoError::InvalidUtf8,
+        };
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `options` documented above.
-    unsafe { &mut *options }.local_script_source = Some(path);
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `options` documented above.
+        unsafe { &mut *options }.local_script_source = Some(path);
+
+        ServoError::Ok
+    })
 }
 
 /// Sets the path to load WebRender shaders from disk.
@@ -430,7 +576,6 @@ pub unsafe extern "C" fn servo_options_set_local_script_source(
 /// The ownership of `options` remains with the caller after the call.
 ///
 /// `shaders_path` is a NUL terminated UTF-8 string.
-/// The function panics if it is not a valid UTF-8 string.
 /// The ownership of `shaders_path` remains with the caller after the call.
 ///
 /// # Safety
@@ -442,27 +587,37 @@ pub unsafe extern "C" fn servo_options_set_local_script_source(
 ///   passed to another API that takes ownership of it.
 /// - `shaders_path` is a non-null pointer to a C string that remains
 ///   unmodified for the duration of the call.
+///
+/// # Errors
+///
+/// Returns `ServoError::NullArgument` if `options` or `shaders_path` is null.
+/// Returns `ServoError::InvalidUtf8` if `shaders_path` is not valid UTF-8.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_set_shaders_path(
     options: *mut ServoOptions,
     shaders_path: *const c_char,
-) {
-    assert!(!options.is_null(), "options pointer must not be null");
-    assert!(
-        !shaders_path.is_null(),
-        "shaders_path pointer must not be null"
-    );
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if options.is_null() {
+            return ServoError::NullArgument;
+        }
+        if shaders_path.is_null() {
+            return ServoError::NullArgument;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `shaders_path` documented above.
-    let path = unsafe { CStr::from_ptr(shaders_path) }
-        .to_str()
-        .expect("invalid shaders path")
-        .to_string();
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `shaders_path` documented above.
+        let path = match unsafe { CStr::from_ptr(shaders_path) }.to_str() {
+            Ok(s) => s.to_string(),
+            Err(_) => return ServoError::InvalidUtf8,
+        };
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `options` documented above.
-    unsafe { &mut *options }.shaders_path = Some(PathBuf::from(path));
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `options` documented above.
+        unsafe { &mut *options }.shaders_path = Some(PathBuf::from(path));
+
+        ServoError::Ok
+    })
 }
 
 /// Sets the path to the default config directory.
@@ -471,7 +626,6 @@ pub unsafe extern "C" fn servo_options_set_shaders_path(
 /// The ownership of `options` remains with the caller after the call.
 ///
 /// `config_dir` is a NUL terminated UTF-8 string.
-/// The function panics if it is not a valid UTF-8 string.
 /// The ownership of `config_dir` remains with the caller after the call.
 ///
 /// # Safety
@@ -483,24 +637,37 @@ pub unsafe extern "C" fn servo_options_set_shaders_path(
 ///   passed to another API that takes ownership of it.
 /// - `config_dir` is a non-null pointer to a C string that remains
 ///   unmodified for the duration of the call.
+///
+/// # Errors
+///
+/// Returns `ServoError::NullArgument` if `options` or `config_dir` is null.
+/// Returns `ServoError::InvalidUtf8` if `config_dir` is not valid UTF-8.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_set_config_dir(
     options: *mut ServoOptions,
     config_dir: *const c_char,
-) {
-    assert!(!options.is_null(), "options pointer must not be null");
-    assert!(!config_dir.is_null(), "config_dir pointer must not be null");
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if options.is_null() {
+            return ServoError::NullArgument;
+        }
+        if config_dir.is_null() {
+            return ServoError::NullArgument;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `config_dir` documented above.
-    let path = unsafe { CStr::from_ptr(config_dir) }
-        .to_str()
-        .expect("invalid config directory path")
-        .to_string();
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `config_dir` documented above.
+        let path = match unsafe { CStr::from_ptr(config_dir) }.to_str() {
+            Ok(s) => s.to_string(),
+            Err(_) => return ServoError::InvalidUtf8,
+        };
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `options` documented above.
-    unsafe { &mut *options }.config_dir = Some(PathBuf::from(path));
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `options` documented above.
+        unsafe { &mut *options }.config_dir = Some(PathBuf::from(path));
+
+        ServoError::Ok
+    })
 }
 
 /// Sets the probability of randomly closing a pipeline. This is
@@ -515,16 +682,26 @@ pub unsafe extern "C" fn servo_options_set_config_dir(
 /// `ServoOptions` previously returned by `servo_options_create` and has
 /// not yet been freed nor passed to another API that takes ownership of
 /// it.
+///
+/// # Errors
+///
+/// Returns `ServoError::NullArgument` if `options` is null.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_set_random_pipeline_closure_probability(
     options: *mut ServoOptions,
     probability: f32,
-) {
-    assert!(!options.is_null(), "options pointer must not be null");
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if options.is_null() {
+            return ServoError::NullArgument;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `options` documented above.
-    unsafe { &mut *options }.random_pipeline_closure_probability = Some(probability);
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `options` documented above.
+        unsafe { &mut *options }.random_pipeline_closure_probability = Some(probability);
+
+        ServoError::Ok
+    })
 }
 
 /// Sets the seed for the random number generator used to randomly close
@@ -540,16 +717,26 @@ pub unsafe extern "C" fn servo_options_set_random_pipeline_closure_probability(
 /// `ServoOptions` previously returned by `servo_options_create` and has
 /// not yet been freed nor passed to another API that takes ownership of
 /// it.
+///
+/// # Errors
+///
+/// Returns `ServoError::NullArgument` if `options` is null.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_set_random_pipeline_closure_seed(
     options: *mut ServoOptions,
     seed: usize,
-) {
-    assert!(!options.is_null(), "options pointer must not be null");
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if options.is_null() {
+            return ServoError::NullArgument;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `options` documented above.
-    unsafe { &mut *options }.random_pipeline_closure_seed = Some(seed);
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `options` documented above.
+        unsafe { &mut *options }.random_pipeline_closure_seed = Some(seed);
+
+        ServoError::Ok
+    })
 }
 
 /// Enables or disables a specific diagnostics option.
@@ -565,23 +752,34 @@ pub unsafe extern "C" fn servo_options_set_random_pipeline_closure_seed(
 /// `ServoOptions` previously returned by `servo_options_create` and has
 /// not yet been freed nor passed to another API that takes ownership of
 /// it.
+///
+/// # Errors
+///
+/// Returns `ServoError::NullArgument` if `options` is null.
+/// Returns `ServoError::InvalidState` if `option` is not a valid diagnostics option.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_set_debug_option(
     options: *mut ServoOptions,
     option: c_int,
     enabled: bool,
-) {
-    assert!(!options.is_null(), "options pointer must not be null");
-    let Ok(diagnostics_option) = DiagnosticsLoggingOption::try_from(option) else {
-        warn!("invalid diagnostics option value: {option}");
-        return;
-    };
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if options.is_null() {
+            return ServoError::NullArgument;
+        }
+        let Ok(diagnostics_option) = DiagnosticsLoggingOption::try_from(option) else {
+            warn!("invalid diagnostics option value: {option}");
+            return ServoError::InvalidState;
+        };
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `options` documented above.
-    unsafe { &mut *options }
-        .debug
-        .toggle_option(diagnostics_option.into(), enabled);
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `options` documented above.
+        unsafe { &mut *options }
+            .debug
+            .toggle_option(diagnostics_option.into(), enabled);
+
+        ServoError::Ok
+    })
 }
 
 /// Destroys `servo_options` and frees its memory.
@@ -595,16 +793,23 @@ pub unsafe extern "C" fn servo_options_set_debug_option(
 /// The caller must ensure that `servo_options` was previously returned by
 /// `servo_options_create` and has not yet been freed nor passed to
 /// another API that takes ownership of it.
+///
+/// # Errors
+///
+/// Returns `ServoError::NullArgument` if `servo_options` is null.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn servo_options_free(servo_options: *mut ServoOptions) {
-    assert!(
-        !servo_options.is_null(),
-        "servo_options pointer must not be null"
-    );
+pub unsafe extern "C" fn servo_options_free(servo_options: *mut ServoOptions) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if servo_options.is_null() {
+            return ServoError::NullArgument;
+        }
 
-    // SAFETY: The caller is assumed to uphold the safety requirements
-    // for `servo_options` documented above.
-    unsafe {
-        let _ = Box::from_raw(servo_options);
-    }
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `servo_options` documented above.
+        unsafe {
+            let _ = Box::from_raw(servo_options);
+        }
+
+        ServoError::Ok
+    })
 }

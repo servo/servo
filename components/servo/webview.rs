@@ -27,8 +27,8 @@ use servo_base::generic_channel::GenericSender;
 use servo_base::id::WebViewId;
 use servo_config::pref;
 use servo_constellation_traits::{
-    EmbedderToConstellationMessage, HistoryTraversalSource, SessionHistoryTraversalRequest,
-    TraversalDirection,
+    EmbedderToConstellationMessage, FindNextRequest, FindRequest, HistoryTraversalSource,
+    SessionHistoryTraversalRequest, TraversalDirection,
 };
 use servo_geometry::DeviceIndependentPixel;
 use servo_url::ServoUrl;
@@ -39,6 +39,7 @@ use webrender_api::units::{DeviceIntRect, DevicePixel, DevicePoint, DeviceSize};
 use crate::clipboard_delegate::{ClipboardDelegate, DefaultClipboardDelegate};
 #[cfg(feature = "gamepad")]
 use crate::gamepad_delegate::{DefaultGamepadDelegate, GamepadDelegate};
+use crate::message_router::MessageRouter;
 use crate::responders::AutomaticResponder;
 use crate::servo::PendingHandledInputEvent;
 use crate::webview_delegate::{CreateNewWebViewRequest, DefaultWebViewDelegate, WebViewDelegate};
@@ -133,12 +134,20 @@ pub(crate) struct WebViewInner {
     focused: bool,
     animating: bool,
     cursor: Cursor,
+    fullscreen: bool,
 
     /// The back / forward list of this WebView.
     back_forward_list: Vec<Url>,
 
     /// The current index in the back / forward list.
     back_forward_list_index: usize,
+
+    /// The request context for this WebView, if set.
+    /// This provides profile/cookie isolation, proxy config, cache path, and accept language.
+    request_context: Option<RequestContext>,
+
+    /// The message router for bidirectional native ↔ JavaScript messaging.
+    message_router: MessageRouter,
 }
 
 impl Drop for WebViewInner {
@@ -182,9 +191,13 @@ impl WebView {
             focused: true,
             animating: false,
             cursor: Cursor::Pointer,
+            fullscreen: false,
+
             back_forward_list: Default::default(),
             back_forward_list_index: 0,
             user_content_manager: builder.user_content_manager.clone(),
+            request_context: builder.request_context,
+            message_router: MessageRouter::new(),
         })));
 
         let viewport_details = webview.viewport_details();
@@ -421,6 +434,13 @@ impl WebView {
             self.servo().constellation_proxy().send(
                 EmbedderToConstellationMessage::SetWebViewHasSystemFocus(self.id(), focused),
             );
+
+            let delegate = self.delegate();
+            let webview = self.clone();
+            if focused {
+                delegate.notify_got_focus(webview.clone());
+            }
+            delegate.notify_focus_changed(webview, focused);
         }
     }
 
@@ -543,6 +563,19 @@ impl WebView {
         self.servo()
             .constellation_proxy()
             .send(EmbedderToConstellationMessage::Reload(self.id()))
+    }
+
+    /// Explicitly close this [`WebView`], asking Servo to release the resources
+    /// associated with it.
+    ///
+    /// This is equivalent to dropping the last handle to the [`WebView`], but it
+    /// allows the embedder to request the close at a specific point in time. This
+    /// is the CEF-style `close_browser` behaviour. The [`WebView`] handle itself
+    /// remains valid; after closing, further navigation requests are ignored.
+    pub fn close(&self) {
+        self.servo()
+            .constellation_proxy()
+            .send(EmbedderToConstellationMessage::CloseWebView(self.id()));
     }
 
     /// Whether or not this [`WebView`] can go backward in its navigation history.
@@ -699,6 +732,105 @@ impl WebView {
             .send(EmbedderToConstellationMessage::ExitFullScreen(self.id()));
     }
 
+    /// Notify Servo that the window containing this [`WebView`] has been resized.
+    ///
+    /// The embedder should call this when the containing window's size changes.
+    /// This will notify the delegate via `WebViewDelegate::notify_window_resized`.
+    pub fn was_resized(&self, width: u32, height: u32) {
+        self.delegate().notify_window_resized(self.clone(), width, height);
+    }
+
+    /// Notify Servo that the window containing this [`WebView`] has been moved.
+    ///
+    /// The embedder should call this when the containing window's position changes.
+    /// This will notify the delegate via `WebViewDelegate::notify_window_moved`.
+    pub fn was_moved(&self, x: i32, y: i32) {
+        self.delegate().notify_window_moved(self.clone(), x, y);
+    }
+
+    /// Notify Servo that the window containing this [`WebView`] has been hidden.
+    ///
+    /// The embedder should call this when the containing window is hidden/minimized.
+    /// This will notify the delegate via `WebViewDelegate::notify_window_minimized`.
+    pub fn was_hidden(&self) {
+        self.delegate().notify_window_minimized(self.clone());
+    }
+
+    /// Notify Servo that the window containing this [`WebView`] has been shown.
+    ///
+    /// The embedder should call this when the containing window is shown/restored.
+    /// This will notify the delegate via `WebViewDelegate::notify_window_restored`.
+    pub fn was_shown(&self) {
+        self.delegate().notify_window_restored(self.clone());
+    }
+
+    /// Notify Servo that the window containing this [`WebView`] has been maximized.
+    ///
+    /// The embedder should call this when the containing window is maximized.
+    /// This will notify the delegate via `WebViewDelegate::notify_window_maximized`.
+    pub fn was_maximized(&self) {
+        self.delegate().notify_window_maximized(self.clone());
+    }
+
+    /// Notify Servo that a window move or resize operation has started.
+    ///
+    /// The embedder should call this when the user begins dragging the window
+    /// title bar or resize handle. This will notify the delegate via
+    /// `WebViewDelegate::notify_window_move_or_resize_started`.
+    pub fn notify_move_or_resize_started(&self) {
+        self.delegate()
+            .notify_window_move_or_resize_started(self.clone());
+    }
+
+    /// Set the fullscreen state of the window containing this [`WebView`].
+    ///
+    /// This will notify the delegate via `WebViewDelegate::notify_window_fullscreen_changed`
+    /// and update the internal fullscreen state. The embedder is responsible for actually
+    /// making the window fullscreen (e.g., by calling platform APIs).
+    pub fn set_fullscreen(&self, fullscreen: bool) {
+        let mut inner = self.inner_mut();
+        if inner.fullscreen == fullscreen {
+            return;
+        }
+        inner.fullscreen = fullscreen;
+        drop(inner);
+        self.delegate()
+            .notify_window_fullscreen_changed(self.clone(), fullscreen);
+    }
+
+    /// Get the current fullscreen state of the window containing this [`WebView`].
+    pub fn is_fullscreen(&self) -> bool {
+        self.inner().fullscreen
+    }
+
+    /// Get the window bounds (position and size) of the window containing this [`WebView`].
+    ///
+    /// Returns the window rect in device pixels via out parameters.
+    /// The embedder should implement `screen_geometry` in the delegate to provide this.
+    pub fn window_bounds(&self) -> Option<(i32, i32, u32, u32)> {
+        let screen_geometry = self.delegate().screen_geometry(self.clone())?;
+        let window_rect = screen_geometry.window_rect;
+        Some((
+            window_rect.origin.x,
+            window_rect.origin.y,
+            window_rect.size.width as u32,
+            window_rect.size.height as u32,
+        ))
+    }
+
+    /// Update the fullscreen state from the page (called when page content requests fullscreen).
+    ///
+    /// This is called internally when the page enters/exits fullscreen via the Fullscreen API.
+    /// It updates the internal state without notifying the delegate (since the delegate is
+    /// already being notified via `notify_fullscreen_state_changed`).
+    pub(crate) fn set_fullscreen_from_page(&self, fullscreen: bool) {
+        let mut inner = self.inner_mut();
+        if inner.fullscreen == fullscreen {
+            return;
+        }
+        inner.fullscreen = fullscreen;
+    }
+
     /// Toggle the given [`WebRenderDebugOption`] from its current state.
     ///
     /// Note that this method toggles the debugging options globally i.e., it affects
@@ -738,6 +870,59 @@ impl WebView {
             script.to_string(),
             Box::new(callback),
         );
+    }
+
+    /// Get the [`MessageRouter`] associated with this [`WebView`].
+    ///
+    /// The router is used for bidirectional native ↔ JavaScript messaging. In
+    /// order for JavaScript to use the router, the
+    /// [`MessageRouter::bootstrap_script`] must have been injected via
+    /// [`UserContentManager::inject_message_router`].
+    pub fn message_router(&self) -> MessageRouter {
+        self.inner().message_router.clone()
+    }
+
+    /// Remove all native handlers registered for the given message `name`.
+    pub fn remove_message_handler(&self, name: &str) {
+        self.message_router().remove_message_handler(name);
+    }
+
+    /// Send a message from native code to JavaScript (native → JS).
+    ///
+    /// This dispatches a `servo-message` [`CustomEvent`] on `window` with
+    /// `detail: { name, data }`. JavaScript listeners registered via
+    /// `window.servoMessageRouter.addEventListener(name, handler)` are invoked
+    /// with `data`.
+    ///
+    /// `data_json` must contain a JSON value (for example `"\"hello\""` for the
+    /// string `hello`). If it is not valid JSON, the message is ignored by
+    /// JavaScript.
+    pub fn post_message(&self, name: &str, data_json: &str) {
+        let script = MessageRouter::message_to_javascript(name, data_json);
+        self.evaluate_javascript(script, |_| {});
+    }
+
+    /// Poll for pending messages sent from JavaScript (JS → native) and dispatch
+    /// them to the registered handlers.
+    ///
+    /// This should be called periodically while spinning the event loop.
+    pub fn poll_js_messages(&self) {
+        let router = self.message_router();
+        self.evaluate_javascript(MessageRouter::poll_script(), move |result| {
+            let Ok(JSValue::Array(messages)) = result else {
+                return;
+            };
+            for message in messages {
+                let JSValue::Object(object) = message else {
+                    continue;
+                };
+                let Some(JSValue::String(name)) = object.get("name") else {
+                    continue;
+                };
+                let data = object.get("data").cloned().unwrap_or(JSValue::Null);
+                router.handle_js_message(name.clone(), crate::message_router::jsvalue_to_json_string(&data));
+            }
+        });
     }
 
     /// Asynchronously take a screenshot of the [`WebView`] contents, given a `rect` or the whole
@@ -1057,6 +1242,44 @@ impl WebView {
             EmbedderToConstellationMessage::ClearSessionHistory(self.id()),
         );
     }
+
+    /// Search for text in the page. Returns a unique identifier for this find request
+    /// that can be used with [`find_next`] and [`clear_find`].
+    ///
+    /// The results will be delivered asynchronously via
+    /// [`WebViewDelegate::on_find_result`].
+    pub fn find(&self, text: &str, forward: bool, match_case: bool) -> i32 {
+        let identifier = self.servo().constellation_proxy().next_find_identifier();
+        self.servo().constellation_proxy().send(
+            EmbedderToConstellationMessage::Find(
+                self.id(),
+                FindRequest {
+                    identifier,
+                    text: text.to_string(),
+                    forward,
+                    match_case,
+                },
+            ),
+        );
+        identifier
+    }
+
+    /// Find the next match for the given find request identifier.
+    pub fn find_next(&self, identifier: i32, forward: bool) {
+        self.servo().constellation_proxy().send(
+            EmbedderToConstellationMessage::FindNext(
+                self.id(),
+                FindNextRequest { identifier, forward },
+            ),
+        );
+    }
+
+    /// Clear the find results for the given identifier.
+    pub fn clear_find(&self, identifier: i32) {
+        self.servo()
+            .constellation_proxy()
+            .send(EmbedderToConstellationMessage::ClearFind(self.id()));
+    }
 }
 
 /// A structure used to expose a view of the [`WebView`] to the Servo
@@ -1101,6 +1324,7 @@ pub struct WebViewBuilder {
     clipboard_delegate: Option<Rc<dyn ClipboardDelegate>>,
     #[cfg(feature = "gamepad")]
     gamepad_delegate: Option<Rc<dyn GamepadDelegate>>,
+    request_context: Option<RequestContext>,
 }
 
 impl WebViewBuilder {
@@ -1120,6 +1344,7 @@ impl WebViewBuilder {
             clipboard_delegate: None,
             #[cfg(feature = "gamepad")]
             gamepad_delegate: None,
+            request_context: None,
         }
     }
 
@@ -1175,6 +1400,16 @@ impl WebViewBuilder {
     #[cfg(feature = "gamepad")]
     pub fn gamepad_delegate(mut self, gamepad_delegate: Rc<dyn GamepadDelegate>) -> Self {
         self.gamepad_delegate = Some(gamepad_delegate);
+        self
+    }
+
+    /// Sets the request context for this [`WebView`].
+    ///
+    /// The request context provides profile/cookie isolation, proxy configuration,
+    /// cache path selection, and accept language settings. This overrides the
+    /// request context set at the [`Servo`] level for this specific [`WebView`].
+    pub fn request_context(mut self, request_context: RequestContext) -> Self {
+        self.request_context = Some(request_context);
         self
     }
 

@@ -158,13 +158,14 @@ use servo_canvas_traits::canvas::{CanvasId, CanvasMsg};
 use servo_config::{opts, pref};
 use servo_constellation_traits::{
     AuxiliaryWebViewCreationRequest, AuxiliaryWebViewCreationResponse, ConstellationInterest,
-    EmbedderToConstellationMessage, HistoryTraversalSource, IFrameLoadInfo, IFrameLoadInfoWithData,
-    IFrameSizeMsg, LoadData, LogEntry, MessagePortMsg, NavigationHistoryBehavior, PaintMetricEvent,
-    PortMessageTask, PortTransferInfo, RemoteFocusOperation, SWManagerSenders,
-    ScreenshotReadinessResponse, ScriptToConstellationMessage, ScrollStateUpdate,
-    ServiceWorkerAlgorithm, ServiceWorkerManagerFactory, ServiceWorkerMsg,
-    SessionHistoryTraversalRequest, StructuredSerializedData, TargetSnapshotParams,
-    TraversalDirection, UserContentManagerAction, WindowSizeType, WorkerAnimationFrameTick,
+    EmbedderToConstellationMessage, FindNextRequest, FindRequest, FindResult, HistoryTraversalSource,
+    IFrameLoadInfo, IFrameLoadInfoWithData, IFrameSizeMsg, LoadData, LogEntry, MessagePortMsg,
+    NavigationHistoryBehavior, PaintMetricEvent, PortMessageTask, PortTransferInfo,
+    RemoteFocusOperation, SWManagerSenders, ScreenshotReadinessResponse,
+    ScriptToConstellationMessage, ScrollStateUpdate, ServiceWorkerAlgorithm,
+    ServiceWorkerManagerFactory, ServiceWorkerMsg, SessionHistoryTraversalRequest,
+    StructuredSerializedData, TargetSnapshotParams, TraversalDirection,
+    UserContentManagerAction, WindowSizeType, WorkerAnimationFrameTick,
 };
 use servo_url::{Host, ImmutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
@@ -1405,6 +1406,15 @@ where
             },
             EmbedderToConstellationMessage::ClearSessionHistory(webview_id) => {
                 self.handle_clear_session_history(webview_id);
+            },
+            EmbedderToConstellationMessage::Find(webview_id, request) => {
+                self.handle_find(webview_id, request);
+            },
+            EmbedderToConstellationMessage::FindNext(webview_id, request) => {
+                self.handle_find_next(webview_id, request);
+            },
+            EmbedderToConstellationMessage::ClearFind(webview_id) => {
+                self.handle_clear_find(webview_id);
             },
         }
     }
@@ -3205,6 +3215,42 @@ where
         webview.session_history.future.clear();
         webview.session_history.past.clear();
         self.notify_history_changed(webview_id);
+    }
+
+    fn handle_find(&mut self, webview_id: WebViewId, request: FindRequest) {
+        // TODO: Implement find in page
+        // Default: just notify with no results
+        let result = FindResult {
+            identifier: request.identifier,
+            active_match_ordinal: 0,
+            number_of_matches: 0,
+            selection_rect: None,
+        };
+        let _ = self.constellation_to_embedder_proxy.send(ConstellationToEmbedderMsg::FindResult(
+            webview_id,
+            result,
+        ));
+    }
+
+    fn handle_find_next(&mut self, webview_id: WebViewId, request: FindNextRequest) {
+        // TODO: Implement find next in page
+        // Default: just notify with no results
+        let result = FindResult {
+            identifier: request.identifier,
+            active_match_ordinal: 0,
+            number_of_matches: 0,
+            selection_rect: None,
+        };
+        let _ = self.constellation_to_embedder_proxy.send(ConstellationToEmbedderMsg::FindResult(
+            webview_id,
+            result,
+        ));
+    }
+
+    fn handle_clear_find(&mut self, webview_id: WebViewId) {
+        // TODO: Implement clear find
+        // Nothing to do for now
+        let _ = webview_id;
     }
 
     fn forward_input_event(

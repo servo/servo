@@ -707,6 +707,137 @@ impl ResourceThreads {
             .core_thread
             .send(CoreResourceMsg::EmbedderClearSessionCookies(id));
     }
+
+    pub fn visit_all_cookies(&self) -> Vec<Cookie<'static>> {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::VisitAllCookies(sender));
+        receiver.recv().unwrap().into_iter().map(|c| c.into_inner()).collect()
+    }
+
+    pub fn visit_all_cookies_async(
+        &self,
+        id: CookieOperationId,
+        sender: GenericSender<Vec<Serde<Cookie<'static>>>>,
+    ) {
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::VisitAllCookiesAsync(id, sender));
+    }
+
+    pub fn visit_cookies_for_url(
+        &self,
+        url: ServoUrl,
+        source: CookieSource,
+    ) -> Vec<Cookie<'static>> {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::VisitCookiesForUrl(url, source, sender));
+        receiver.recv().unwrap().into_iter().map(|c| c.into_inner()).collect()
+    }
+
+    pub fn visit_cookies_for_url_async(
+        &self,
+        id: CookieOperationId,
+        url: ServoUrl,
+        source: CookieSource,
+        sender: GenericSender<Vec<Serde<Cookie<'static>>>>,
+    ) {
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::VisitCookiesForUrlAsync(id, url, source, sender));
+    }
+
+    pub fn delete_all_cookies(
+        &self,
+        url: Option<ServoUrl>,
+        name: Option<String>,
+        domain: Option<String>,
+        path: Option<String>,
+        secure: Option<bool>,
+        session: Option<bool>,
+    ) {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self.core_thread.send(CoreResourceMsg::DeleteAllCookies(
+            url, name, domain, path, secure, session, Some(sender),
+        ));
+        let _ = receiver.recv();
+    }
+
+    pub fn delete_all_cookies_async(
+        &self,
+        id: CookieOperationId,
+        url: Option<ServoUrl>,
+        name: Option<String>,
+        domain: Option<String>,
+        path: Option<String>,
+        secure: Option<bool>,
+        session: Option<bool>,
+        sender: GenericSender<usize>,
+    ) {
+        let _ = self.core_thread.send(CoreResourceMsg::DeleteAllCookiesAsync(
+            id, url, name, domain, path, secure, session, sender,
+        ));
+    }
+
+    pub fn delete_cookies_for_url(&self, url: ServoUrl) {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::DeleteCookiesForUrl(url, Some(sender)));
+        let _ = receiver.recv();
+    }
+
+    pub fn delete_cookies_for_url_async(
+        &self,
+        id: CookieOperationId,
+        url: ServoUrl,
+        sender: GenericSender<usize>,
+    ) {
+        let _ = self.core_thread.send(CoreResourceMsg::DeleteCookiesForUrlAsync(
+            id, url, sender,
+        ));
+    }
+
+    pub fn embedder_delete_cookie(&self, url: ServoUrl, name: String) {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::EmbedderDeleteCookie(url, name, Some(sender)));
+        let _ = receiver.recv();
+    }
+
+    pub fn embedder_delete_cookie_async(
+        &self,
+        id: CookieOperationId,
+        url: ServoUrl,
+        name: String,
+        sender: GenericSender<usize>,
+    ) {
+        let _ = self.core_thread.send(CoreResourceMsg::EmbedderDeleteCookieAsync(
+            id, url, name, sender,
+        ));
+    }
+
+    pub fn flush_cookie_store(&self) {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::FlushCookieStore(Some(sender)));
+        let _ = receiver.recv();
+    }
+
+    pub fn flush_cookie_store_async(
+        &self,
+        id: CookieOperationId,
+        sender: GenericSender<()>,
+    ) {
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::FlushCookieStoreAsync(id, sender));
+    }
 }
 
 impl GenericSend<CoreResourceMsg> for ResourceThreads {
@@ -829,6 +960,56 @@ pub enum CoreResourceMsg {
     ),
     RemoveCookieListener(CookieStoreId),
     ListCookies(GenericSender<Vec<SiteDescriptor>>),
+    /// Visit all cookies in the cookie store (returns all cookies).
+    VisitAllCookies(GenericSender<Vec<Serde<Cookie<'static>>>>),
+    /// Asynchronously visit all cookies in the cookie store.
+    VisitAllCookiesAsync(CookieOperationId, GenericSender<Vec<Serde<Cookie<'static>>>>),
+    /// Visit cookies for a specific URL (returns all cookies).
+    VisitCookiesForUrl(ServoUrl, CookieSource, GenericSender<Vec<Serde<Cookie<'static>>>>),
+    /// Asynchronously visit cookies for a specific URL.
+    VisitCookiesForUrlAsync(CookieOperationId, ServoUrl, CookieSource, GenericSender<Vec<Serde<Cookie<'static>>>>),
+    /// Delete all cookies matching the given filter.
+    DeleteAllCookies(
+        Option<ServoUrl>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<bool>,
+        Option<bool>,
+        Option<GenericSender<usize>>,
+    ),
+    /// Asynchronously delete all cookies matching the given filter.
+    DeleteAllCookiesAsync(
+        CookieOperationId,
+        Option<ServoUrl>,
+        Option<String>,
+        Option<String>,
+        Option<String>,
+        Option<bool>,
+        Option<bool>,
+        GenericSender<usize>,
+    ),
+    /// Delete all cookies for a given URL.
+    DeleteCookiesForUrl(ServoUrl, Option<GenericSender<usize>>),
+    /// Asynchronously delete all cookies for a given URL.
+    DeleteCookiesForUrlAsync(
+        CookieOperationId,
+        ServoUrl,
+        GenericSender<usize>,
+    ),
+    /// Delete a specific cookie by name for a given URL (embedder API).
+    EmbedderDeleteCookie(ServoUrl, String, Option<GenericSender<()>>),
+    /// Asynchronously delete a specific cookie by name for a given URL (embedder API).
+    EmbedderDeleteCookieAsync(
+        CookieOperationId,
+        ServoUrl,
+        String,
+        GenericSender<usize>,
+    ),
+    /// Flush the cookie store to disk.
+    FlushCookieStore(Option<GenericSender<()>>),
+    /// Asynchronously flush the cookie store to disk.
+    FlushCookieStoreAsync(CookieOperationId, GenericSender<()>),
     /// Get a history state by a given history state id
     GetHistoryState(HistoryStateId, GenericSender<Option<Vec<u8>>>),
     /// Set a history state for a given history state id

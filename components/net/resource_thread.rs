@@ -623,6 +623,170 @@ impl ResourceChannelManager {
                 cookie_jar.remove_all_expired_cookies();
                 sender.send_or_ignore(cookie_jar.cookie_site_descriptors());
             },
+            CoreResourceMsg::VisitAllCookies(sender) => {
+                let mut cookie_jar = http_state.cookie_jar.write();
+                cookie_jar.remove_all_expired_cookies();
+                let mut cookies = Vec::new();
+                for cookie in cookie_jar.all_cookies() {
+                    cookies.push(Serde(cookie.cookie.clone()));
+                }
+                sender.send_or_ignore(cookies);
+            },
+            CoreResourceMsg::VisitAllCookiesAsync(operation_id, sender) => {
+                let mut cookie_jar = http_state.cookie_jar.write();
+                cookie_jar.remove_all_expired_cookies();
+                let mut cookies = Vec::new();
+                for cookie in cookie_jar.all_cookies() {
+                    cookies.push(Serde(cookie.cookie.clone()));
+                }
+                sender.send_or_ignore(cookies);
+                http_state.embedder_proxy.send(
+                    NetToEmbedderMsg::EmbedderCookieOperationResponse(operation_id),
+                );
+            },
+            CoreResourceMsg::VisitCookiesForUrl(url, source, sender) => {
+                let mut cookie_jar = http_state.cookie_jar.write();
+                cookie_jar.remove_expired_cookies_for_url(&url);
+                let mut cookies = Vec::new();
+                for cookie in cookie_jar.cookies_data_for_url(&url, source) {
+                    cookies.push(Serde(cookie));
+                }
+                sender.send_or_ignore(cookies);
+            },
+            CoreResourceMsg::VisitCookiesForUrlAsync(operation_id, url, source, sender) => {
+                let mut cookie_jar = http_state.cookie_jar.write();
+                cookie_jar.remove_expired_cookies_for_url(&url);
+                let mut cookies = Vec::new();
+                for cookie in cookie_jar.cookies_data_for_url(&url, source) {
+                    cookies.push(Serde(cookie));
+                }
+                sender.send_or_ignore(cookies);
+                http_state.embedder_proxy.send(
+                    NetToEmbedderMsg::EmbedderCookieOperationResponse(operation_id),
+                );
+            },
+            CoreResourceMsg::DeleteAllCookies(
+                url_opt,
+                name_opt,
+                domain_opt,
+                path_opt,
+                secure_opt,
+                session_opt,
+                sender_opt,
+            ) => {
+                let mut cookie_jar = http_state.cookie_jar.write();
+                let mut deleted = 0;
+                if let Some(url) = url_opt {
+                    // Delete for specific URL
+                    cookie_jar.remove_expired_cookies_for_url(&url);
+                    let domain = net_traits::pub_domains::reg_host(url.host_str().unwrap_or(""));
+                    if let Some(cookies) = cookie_jar.cookies_for_domain_mut(&domain) {
+                        for cookie in cookies {
+                            if matches_filter(cookie, &name_opt, &domain_opt, &path_opt, secure_opt, session_opt) {
+                                cookie.set_expiry_time_in_past();
+                                deleted += 1;
+                            }
+                        }
+                    }
+                } else {
+                    // Delete all matching cookies
+                    for cookie in cookie_jar.all_cookies_mut() {
+                        if matches_filter(cookie, &name_opt, &domain_opt, &path_opt, secure_opt, session_opt) {
+                            cookie.set_expiry_time_in_past();
+                            deleted += 1;
+                        }
+                    }
+                }
+                cookie_jar.remove_all_expired_cookies();
+                if let Some(sender) = sender_opt {
+                    let _ = sender.send(deleted);
+                }
+            },
+            CoreResourceMsg::DeleteAllCookiesAsync(
+                operation_id,
+                url_opt,
+                name_opt,
+                domain_opt,
+                path_opt,
+                secure_opt,
+                session_opt,
+                sender,
+            ) => {
+                let mut cookie_jar = http_state.cookie_jar.write();
+                let mut deleted = 0;
+                if let Some(url) = url_opt {
+                    cookie_jar.remove_expired_cookies_for_url(&url);
+                    let domain = net_traits::pub_domains::reg_host(url.host_str().unwrap_or(""));
+                    if let Some(cookies) = cookie_jar.cookies_for_domain_mut(&domain) {
+                        for cookie in cookies {
+                            if matches_filter(cookie, &name_opt, &domain_opt, &path_opt, secure_opt, session_opt) {
+                                cookie.set_expiry_time_in_past();
+                                deleted += 1;
+                            }
+                        }
+                    }
+                } else {
+                    // Delete all matching cookies
+                    for cookie in cookie_jar.all_cookies_mut() {
+                        if matches_filter(cookie, &name_opt, &domain_opt, &path_opt, secure_opt, session_opt) {
+                            cookie.set_expiry_time_in_past();
+                            deleted += 1;
+                        }
+                    }
+                }
+                cookie_jar.remove_all_expired_cookies();
+                sender.send_or_ignore(deleted);
+                http_state.embedder_proxy.send(
+                    NetToEmbedderMsg::EmbedderCookieOperationResponse(operation_id),
+                );
+            },
+            CoreResourceMsg::DeleteCookiesForUrl(url, sender_opt) => {
+                let mut cookie_jar = http_state.cookie_jar.write();
+                cookie_jar.remove_expired_cookies_for_url(&url);
+                cookie_jar.clear_storage(Some(&url));
+                cookie_jar.remove_all_expired_cookies();
+                if let Some(sender) = sender_opt {
+                    let _ = sender.send(0); // We don't track exact count here
+                }
+            },
+            CoreResourceMsg::DeleteCookiesForUrlAsync(operation_id, url, sender) => {
+                let mut cookie_jar = http_state.cookie_jar.write();
+                cookie_jar.remove_expired_cookies_for_url(&url);
+                cookie_jar.clear_storage(Some(&url));
+                cookie_jar.remove_all_expired_cookies();
+                sender.send_or_ignore(0); // We don't track exact count here
+                http_state.embedder_proxy.send(
+                    NetToEmbedderMsg::EmbedderCookieOperationResponse(operation_id),
+                );
+            },
+            CoreResourceMsg::EmbedderDeleteCookie(url, name, sender_opt) => {
+                let mut cookie_jar = http_state.cookie_jar.write();
+                cookie_jar.delete_cookie_with_name(&url, name);
+                if let Some(sender) = sender_opt {
+                    let _ = sender.send(());
+                }
+            },
+            CoreResourceMsg::EmbedderDeleteCookieAsync(operation_id, url, name, sender) => {
+                let mut cookie_jar = http_state.cookie_jar.write();
+                cookie_jar.delete_cookie_with_name(&url, name);
+                sender.send_or_ignore(1);
+                http_state.embedder_proxy.send(
+                    NetToEmbedderMsg::EmbedderCookieOperationResponse(operation_id),
+                );
+            },
+            CoreResourceMsg::FlushCookieStore(sender_opt) => {
+                // The cookie store is persisted automatically on exit.
+                // This is a no-op for now but could be extended to force a write.
+                if let Some(sender) = sender_opt {
+                    let _ = sender.send(());
+                }
+            },
+            CoreResourceMsg::FlushCookieStoreAsync(operation_id, sender) => {
+                sender.send_or_ignore(());
+                http_state.embedder_proxy.send(
+                    NetToEmbedderMsg::EmbedderCookieOperationResponse(operation_id),
+                );
+            },
             CoreResourceMsg::GetHistoryState(history_state_id, consumer) => {
                 let history_states = http_state.history_states.read();
                 consumer.send_or_ignore(history_states.get(&history_state_id).cloned());
@@ -920,7 +1084,7 @@ impl CoreResourceManager {
         spawn_task(async move {
             let mut event_sender = event_sender;
 
-            // Let requestURL be a copy of url, with its scheme set to "http", if url’s scheme is
+            // Let requestURL be a copy of url, with its scheme set to "http", if url's scheme is
             // "ws"; otherwise to "https"
             let scheme = match request.url.scheme() {
                 "ws" => "http",
@@ -962,4 +1126,43 @@ impl CoreResourceManager {
             }
         });
     }
+}
+
+/// Helper function to check if a cookie matches the given filter criteria.
+fn matches_filter(
+    cookie: &crate::cookie::ServoCookie,
+    name_opt: &Option<String>,
+    domain_opt: &Option<String>,
+    path_opt: &Option<String>,
+    secure_opt: Option<bool>,
+    session_opt: Option<bool>,
+) -> bool {
+    if let Some(name) = name_opt {
+        if cookie.cookie.name() != name {
+            return false;
+        }
+    }
+    if let Some(domain) = domain_opt {
+        if cookie.cookie.domain().as_deref() != Some(domain.as_str()) {
+            return false;
+        }
+    }
+    if let Some(path) = path_opt {
+        if cookie.cookie.path().as_deref() != Some(path.as_str()) {
+            return false;
+        }
+    }
+    if let Some(secure) = secure_opt {
+        if cookie.cookie.secure().unwrap_or(false) != secure {
+            return false;
+        }
+    }
+    if let Some(session) = session_opt {
+        if cookie.persistent == session {
+            // session=true means session cookie (non-persistent)
+            // session=false means persistent cookie
+            return false;
+        }
+    }
+    true
 }

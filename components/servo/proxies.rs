@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 
 use crossbeam_channel::{Receiver, SendError, Sender};
 use log::warn;
@@ -14,6 +14,7 @@ use servo_constellation_traits::EmbedderToConstellationMessage;
 pub(crate) struct ConstellationProxy {
     sender: Sender<EmbedderToConstellationMessage>,
     disconnected: Arc<AtomicBool>,
+    find_identifier_counter: Arc<AtomicI32>,
 }
 
 impl ConstellationProxy {
@@ -23,6 +24,7 @@ impl ConstellationProxy {
             Self {
                 sender,
                 disconnected: Arc::default(),
+                find_identifier_counter: Arc::new(AtomicI32::new(1)),
             },
             receiver,
         )
@@ -56,6 +58,10 @@ impl ConstellationProxy {
 
     pub fn sender(&self) -> Sender<EmbedderToConstellationMessage> {
         self.sender.clone()
+    }
+
+    pub fn next_find_identifier(&self) -> i32 {
+        self.find_identifier_counter.fetch_add(1, Ordering::SeqCst)
     }
 }
 
