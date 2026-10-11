@@ -1,0 +1,43 @@
+<html>
+  <!-- Used to test how a video element is rendered with subtitles -->
+  <body>
+    <button>Toggle controls</button>
+    <video src="https://assets.mixkit.co/videos/1778/1778-720.mp4"></video>
+    <script>
+      const video = document.querySelector('video');
+      const track = video.addTextTrack('subtitles');
+      track.addCue(new VTTCue(0, 4, "Hello world from Servo!"));
+      track.addCue(new VTTCue(4, 10, "Servo can now render subtitles or captions for videos"));
+      track.addCue(new VTTCue(10, 14, "It even supports <b>bold</b> and <u>underline</u>!"));
+      track.addCue(new VTTCue(14, 20, "Next steps are to correctly position it, which is a lot trickier than one might think. Since this is a long sentence, it wraps."));
+      track.mode = 'showing';
+      video.play();
+
+      // Test that adding and removing controls back-and-forth will still
+      // show the controls in the end and they work. That's because cues
+      // also are rendered in the shadowroot, which means that the controls
+      // are present in the DOM.
+      requestAnimationFrame(() => {
+        video.setAttribute('controls', '');
+
+        requestAnimationFrame(() => {
+          video.removeAttribute('controls');
+
+          requestAnimationFrame(() => {
+            video.setAttribute('controls', '');
+
+            // Test that removal of DOM and reinsertion keeps on working for
+            // controls and cues
+            let parent = video.parentNode;
+            video.remove();
+            parent.appendChild(video);
+          });
+        });
+      });
+
+      document.querySelector('button').addEventListener('click', () => {
+        video.toggleAttribute('controls');
+      })
+    </script>
+  </body>
+</html>
