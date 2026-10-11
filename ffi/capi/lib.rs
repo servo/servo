@@ -189,30 +189,30 @@ impl ServoError {
     /// which would be undefined behavior. If a panic occurs, it is caught
     /// and `ServoError::InternalPanic` is returned.
     #[inline]
-    pub fn catch_ffi<F: FnOnce() -> ServoError + std::panic::UnwindSafe>(f: F) -> ServoError {
-        std::panic::catch_unwind(f).unwrap_or(ServoError::InternalPanic)
+    pub fn catch_ffi<F: FnOnce() -> ServoError>(f: F) -> ServoError {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).unwrap_or(ServoError::InternalPanic)
     }
 
     /// Creates a `catch_unwind` boundary for FFI functions that return a raw
     /// `i32` (for example, an identifier). Panics are caught and converted to
     /// `ServoError::InternalPanic` as an `i32`.
     #[inline]
-    pub fn catch_ffi_i32<F: FnOnce() -> i32 + std::panic::UnwindSafe>(f: F) -> i32 {
-        std::panic::catch_unwind(f).unwrap_or(ServoError::InternalPanic as i32)
+    pub fn catch_ffi_i32<F: FnOnce() -> i32>(f: F) -> i32 {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).unwrap_or(ServoError::InternalPanic as i32)
     }
 
     /// Creates a `catch_unwind` boundary for FFI functions that return a raw pointer.
     /// Panics are caught and `NULL` (`null_mut()`) is returned.
     #[inline]
-    pub fn catch_ffi_ptr<T, F: FnOnce() -> *mut T + std::panic::UnwindSafe>(f: F) -> *mut T {
-        std::panic::catch_unwind(f).unwrap_or(std::ptr::null_mut())
+    pub fn catch_ffi_ptr<T, F: FnOnce() -> *mut T>(f: F) -> *mut T {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).unwrap_or(std::ptr::null_mut())
     }
 
     /// Creates a `catch_unwind` boundary for FFI functions that return a const pointer.
     /// Panics are caught and `NULL` (`null()`) is returned.
     #[inline]
-    pub fn catch_ffi_const_ptr<T, F: FnOnce() -> *const T + std::panic::UnwindSafe>(f: F) -> *const T {
-        std::panic::catch_unwind(f).unwrap_or(std::ptr::null())
+    pub fn catch_ffi_const_ptr<T, F: FnOnce() -> *const T>(f: F) -> *const T {
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).unwrap_or(std::ptr::null())
     }
 }
 

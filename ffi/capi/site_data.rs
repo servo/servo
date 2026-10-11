@@ -28,7 +28,7 @@ pub const SERVO_COOKIE_SAME_SITE_NONE: c_int = 2;
 /// The handle must be used only from the thread that created the `Servo` instance.
 // cbindgen:opaque
 pub struct ServoSiteDataManager {
-    servo: Servo,
+    pub(crate) servo: Servo,
 }
 
 /// Cookie struct for C ABI compatibility.
@@ -38,6 +38,7 @@ pub struct ServoSiteDataManager {
 /// `servo_site_data_*` function. The embedder must copy them if longer
 /// lifetime is needed.
 #[repr(C)]
+#[derive(Clone, Copy)]
 pub struct ServoCookie {
     pub name: *const c_char,
     pub value: *const c_char,

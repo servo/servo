@@ -127,8 +127,8 @@ pub enum ServoConsoleLogLevel {
 impl From<ConsoleLogLevel> for ServoConsoleLogLevel {
     fn from(level: ConsoleLogLevel) -> Self {
         match level {
-            ConsoleLogLevel::Debug => ServoConsoleLogLevel::Debug,
-            ConsoleLogLevel::Log => ServoConsoleLogLevel::Log,
+            ConsoleLogLevel::Debug | ConsoleLogLevel::Trace => ServoConsoleLogLevel::Debug,
+            ConsoleLogLevel::Log | ConsoleLogLevel::Dir => ServoConsoleLogLevel::Log,
             ConsoleLogLevel::Info => ServoConsoleLogLevel::Info,
             ConsoleLogLevel::Warn => ServoConsoleLogLevel::Warn,
             ConsoleLogLevel::Error => ServoConsoleLogLevel::Error,

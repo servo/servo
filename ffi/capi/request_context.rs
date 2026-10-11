@@ -130,9 +130,9 @@ pub unsafe extern "C" fn servo_request_context_set_cache_path(
         } else {
             // SAFETY: The caller is assumed to uphold the safety requirements
             // for `path` documented above.
-            let path_str = unsafe { CStr::from_ptr(path) }
-                .to_str()
-                .map_err(|_| ServoError::InvalidUtf8)?;
+            let Ok(path_str) = (unsafe { CStr::from_ptr(path) }).to_str() else {
+                return ServoError::InvalidUtf8;
+            };
             Some(PathBuf::from(path_str))
         };
 
@@ -182,9 +182,9 @@ pub unsafe extern "C" fn servo_request_context_set_cookie_path(
         } else {
             // SAFETY: The caller is assumed to uphold the safety requirements
             // for `path` documented above.
-            let path_str = unsafe { CStr::from_ptr(path) }
-                .to_str()
-                .map_err(|_| ServoError::InvalidUtf8)?;
+            let Ok(path_str) = (unsafe { CStr::from_ptr(path) }).to_str() else {
+                return ServoError::InvalidUtf8;
+            };
             Some(PathBuf::from(path_str))
         };
 
@@ -250,9 +250,9 @@ pub unsafe extern "C" fn servo_request_context_set_proxy_config(
         } else {
             // SAFETY: The caller is assumed to uphold the safety requirements
             // for `config.server` documented above.
-            let s = unsafe { CStr::from_ptr(config_ref.server) }
-                .to_str()
-                .map_err(|_| ServoError::InvalidUtf8)?;
+            let Ok(s) = (unsafe { CStr::from_ptr(config_ref.server) }).to_str() else {
+                return ServoError::InvalidUtf8;
+            };
             Some(s.to_string())
         };
 
@@ -261,9 +261,9 @@ pub unsafe extern "C" fn servo_request_context_set_proxy_config(
         } else {
             // SAFETY: The caller is assumed to uphold the safety requirements
             // for `config.bypass_list` documented above.
-            let s = unsafe { CStr::from_ptr(config_ref.bypass_list) }
-                .to_str()
-                .map_err(|_| ServoError::InvalidUtf8)?;
+            let Ok(s) = (unsafe { CStr::from_ptr(config_ref.bypass_list) }).to_str() else {
+                return ServoError::InvalidUtf8;
+            };
             Some(s.to_string())
         };
 
@@ -320,9 +320,9 @@ pub unsafe extern "C" fn servo_request_context_set_accept_language(
         } else {
             // SAFETY: The caller is assumed to uphold the safety requirements
             // for `lang` documented above.
-            let lang_str = unsafe { CStr::from_ptr(lang) }
-                .to_str()
-                .map_err(|_| ServoError::InvalidUtf8)?;
+            let Ok(lang_str) = (unsafe { CStr::from_ptr(lang) }).to_str() else {
+                return ServoError::InvalidUtf8;
+            };
             Some(lang_str.to_string())
         };
 

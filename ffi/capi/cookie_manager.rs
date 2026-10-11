@@ -263,11 +263,13 @@ pub unsafe extern "C" fn servo_site_data_visit_cookies_for_url(
 
         // SAFETY: The caller is assumed to uphold the safety requirements.
         let manager = unsafe { &*manager };
-        let url_str = unsafe { std::ffi::CStr::from_ptr(url) }
-            .to_str()
-            .map_err(|_| crate::ServoError::InvalidUtf8)?;
+        let Ok(url_str) = (unsafe { std::ffi::CStr::from_ptr(url) }).to_str() else {
+            return crate::ServoError::InvalidUtf8;
+        };
 
-        let url = Url::parse(url_str).map_err(|_| crate::ServoError::InvalidUtf8)?;
+        let Ok(url) = Url::parse(url_str) else {
+            return crate::ServoError::InvalidUtf8;
+        };
 
         // Get cookies for URL from SiteDataManager
         let cookies = manager
@@ -322,33 +324,36 @@ pub unsafe extern "C" fn servo_site_data_delete_all_cookies(
             let url = if filter.url.is_null() {
                 None
             } else {
-                let url_str = unsafe { std::ffi::CStr::from_ptr(filter.url) }
-                    .to_str()
-                    .map_err(|_| crate::ServoError::InvalidUtf8)?;
-                Some(Url::parse(url_str).map_err(|_| crate::ServoError::InvalidUtf8)?)
+                let Ok(url_str) = (unsafe { std::ffi::CStr::from_ptr(filter.url) }).to_str() else {
+                    return crate::ServoError::InvalidUtf8;
+                };
+                let Ok(parsed_url) = Url::parse(url_str) else {
+                    return crate::ServoError::InvalidUtf8;
+                };
+                Some(parsed_url)
             };
             let name = if filter.name.is_null() || (filter.flags & 0) != 0 {
                 None
             } else {
-                let name_str = unsafe { std::ffi::CStr::from_ptr(filter.name) }
-                    .to_str()
-                    .map_err(|_| crate::ServoError::InvalidUtf8)?;
+                let Ok(name_str) = (unsafe { std::ffi::CStr::from_ptr(filter.name) }).to_str() else {
+                    return crate::ServoError::InvalidUtf8;
+                };
                 Some(name_str.to_string())
             };
             let domain = if filter.domain.is_null() {
                 None
             } else {
-                let domain_str = unsafe { std::ffi::CStr::from_ptr(filter.domain) }
-                    .to_str()
-                    .map_err(|_| crate::ServoError::InvalidUtf8)?;
+                let Ok(domain_str) = (unsafe { std::ffi::CStr::from_ptr(filter.domain) }).to_str() else {
+                    return crate::ServoError::InvalidUtf8;
+                };
                 Some(domain_str.to_string())
             };
             let path = if filter.path.is_null() {
                 None
             } else {
-                let path_str = unsafe { std::ffi::CStr::from_ptr(filter.path) }
-                    .to_str()
-                    .map_err(|_| crate::ServoError::InvalidUtf8)?;
+                let Ok(path_str) = (unsafe { std::ffi::CStr::from_ptr(filter.path) }).to_str() else {
+                    return crate::ServoError::InvalidUtf8;
+                };
                 Some(path_str.to_string())
             };
             let secure = if filter.flags & ServoCookieFilterFlags::HasSecure as u32 != 0 {
@@ -417,11 +422,13 @@ pub unsafe extern "C" fn servo_site_data_delete_cookies_for_url(
 
         // SAFETY: The caller is assumed to uphold the safety requirements.
         let manager = unsafe { &*manager };
-        let url_str = unsafe { std::ffi::CStr::from_ptr(url) }
-            .to_str()
-            .map_err(|_| crate::ServoError::InvalidUtf8)?;
+        let Ok(url_str) = (unsafe { std::ffi::CStr::from_ptr(url) }).to_str() else {
+            return crate::ServoError::InvalidUtf8;
+        };
 
-        let url = Url::parse(url_str).map_err(|_| crate::ServoError::InvalidUtf8)?;
+        let Ok(url) = Url::parse(url_str) else {
+            return crate::ServoError::InvalidUtf8;
+        };
 
         // Call delete_cookies_for_url on SiteDataManager
         manager.servo.site_data_manager().delete_cookies_for_url(
@@ -477,14 +484,16 @@ pub unsafe extern "C" fn servo_site_data_delete_cookie(
 
         // SAFETY: The caller is assumed to uphold the safety requirements.
         let manager = unsafe { &*manager };
-        let url_str = unsafe { std::ffi::CStr::from_ptr(url) }
-            .to_str()
-            .map_err(|_| crate::ServoError::InvalidUtf8)?;
-        let name_str = unsafe { std::ffi::CStr::from_ptr(name) }
-            .to_str()
-            .map_err(|_| crate::ServoError::InvalidUtf8)?;
+        let Ok(url_str) = (unsafe { std::ffi::CStr::from_ptr(url) }).to_str() else {
+            return crate::ServoError::InvalidUtf8;
+        };
+        let Ok(name_str) = (unsafe { std::ffi::CStr::from_ptr(name) }).to_str() else {
+            return crate::ServoError::InvalidUtf8;
+        };
 
-        let url = Url::parse(url_str).map_err(|_| crate::ServoError::InvalidUtf8)?;
+        let Ok(url) = Url::parse(url_str) else {
+            return crate::ServoError::InvalidUtf8;
+        };
 
         // Call delete_cookie on SiteDataManager
         manager.servo.site_data_manager().delete_cookie(

@@ -7,7 +7,6 @@
 
 use std::collections::HashMap;
 use std::ffi::{CStr, c_char};
-use std::sync::Arc;
 
 use base64::Engine;
 use servo_api::JSValue;
@@ -46,11 +45,6 @@ pub const SERVO_VALUE_TYPE_BINARY: i32 = ServoValueType::Binary as i32;
 pub const SERVO_VALUE_TYPE_DICTIONARY: i32 = ServoValueType::Dictionary as i32;
 pub const SERVO_VALUE_TYPE_LIST: i32 = ServoValueType::List as i32;
 
-/// Internal representation of a ServoValue.
-struct ServoValueInner {
-    value: ValueData,
-}
-
 /// The actual value data, mirroring JSValue but owned.
 #[derive(Clone, Debug)]
 enum ValueData {
@@ -69,32 +63,30 @@ enum ValueData {
 // cbindgen:opaque
 #[derive(Clone)]
 pub struct ServoValue {
-    inner: Arc<ServoValueInner>,
+    value: ValueData,
 }
 
 /// An opaque struct representing a dictionary value (key-value map).
 // cbindgen:opaque
 #[derive(Clone)]
 pub struct ServoDictionaryValue {
-    inner: Arc<ServoValueInner>,
+    map: HashMap<String, ServoValue>,
 }
 
 /// An opaque struct representing a list value (ordered array).
 // cbindgen:opaque
 #[derive(Clone)]
 pub struct ServoListValue {
-    inner: Arc<ServoValueInner>,
+    list: Vec<ServoValue>,
 }
 
 impl ServoValue {
     fn new(value: ValueData) -> Self {
-        Self {
-            inner: Arc::new(ServoValueInner { value }),
-        }
+        Self { value }
     }
 
     fn get_type(&self) -> ServoValueType {
-        match &self.inner.value {
+        match &self.value {
             ValueData::Null => ServoValueType::Null,
             ValueData::Bool(_) => ServoValueType::Bool,
             ValueData::Int(_) => ServoValueType::Int,
@@ -107,51 +99,51 @@ impl ServoValue {
     }
 
     fn as_dictionary(&self) -> Option<&HashMap<String, ServoValue>> {
-        match &self.inner.value {
+        match &self.value {
             ValueData::Dictionary(map) => Some(map),
             _ => None,
         }
     }
 
     fn as_list(&self) -> Option<&Vec<ServoValue>> {
-        match &self.inner.value {
+        match &self.value {
             ValueData::List(list) => Some(list),
             _ => None,
         }
     }
 
     fn as_dictionary_mut(&mut self) -> Option<&mut HashMap<String, ServoValue>> {
-        match &mut self.inner.value {
+        match &mut self.value {
             ValueData::Dictionary(map) => Some(map),
             _ => None,
         }
     }
 
     fn as_list_mut(&mut self) -> Option<&mut Vec<ServoValue>> {
-        match &mut self.inner.value {
+        match &mut self.value {
             ValueData::List(list) => Some(list),
             _ => None,
         }
     }
 
     fn set_bool(&mut self, val: bool) {
-        self.inner.value = ValueData::Bool(val);
+        self.value = ValueData::Bool(val);
     }
 
     fn set_int(&mut self, val: i64) {
-        self.inner.value = ValueData::Int(val);
+        self.value = ValueData::Int(val);
     }
 
     fn set_double(&mut self, val: f64) {
-        self.inner.value = ValueData::Double(val);
+        self.value = ValueData::Double(val);
     }
 
     fn set_string(&mut self, val: String) {
-        self.inner.value = ValueData::String(val);
+        self.value = ValueData::String(val);
     }
 
     fn set_binary(&mut self, val: Vec<u8>) {
-        self.inner.value = ValueData::Binary(val);
+        self.value = ValueData::Binary(val);
     }
 
     fn from_jsvalue(value: &JSValue) -> Self {
@@ -185,7 +177,7 @@ impl ServoValue {
     }
 
     fn to_jsvalue(&self) -> JSValue {
-        match &self.inner.value {
+        match &self.value {
             ValueData::Null => JSValue::Null,
             ValueData::Bool(b) => JSValue::Boolean(*b),
             ValueData::Int(i) => JSValue::Number(*i as f64),
@@ -213,7 +205,7 @@ impl ServoValue {
     }
 
     fn write_json(&self, output: &mut String) {
-        match &self.inner.value {
+        match &self.value {
             ValueData::Null => output.push_str("null"),
             ValueData::Bool(b) => output.push_str(if *b { "true" } else { "false" }),
             ValueData::Int(i) => output.push_str(&i.to_string()),
@@ -293,48 +285,32 @@ impl ServoValue {
 impl ServoDictionaryValue {
     fn new() -> Self {
         Self {
-            inner: Arc::new(ServoValueInner {
-                value: ValueData::Dictionary(HashMap::new()),
-            }),
+            map: HashMap::new(),
         }
     }
 
     fn get_map(&self) -> &HashMap<String, ServoValue> {
-        match &self.inner.value {
-            ValueData::Dictionary(map) => map,
-            _ => unreachable!("ServoDictionaryValue must contain a dictionary"),
-        }
+        &self.map
     }
 
     fn get_map_mut(&mut self) -> &mut HashMap<String, ServoValue> {
-        match &mut self.inner.value {
-            ValueData::Dictionary(map) => map,
-            _ => unreachable!("ServoDictionaryValue must contain a dictionary"),
-        }
+        &mut self.map
     }
 }
 
 impl ServoListValue {
     fn new() -> Self {
         Self {
-            inner: Arc::new(ServoValueInner {
-                value: ValueData::List(Vec::new()),
-            }),
+            list: Vec::new(),
         }
     }
 
     fn get_list(&self) -> &Vec<ServoValue> {
-        match &self.inner.value {
-            ValueData::List(list) => list,
-            _ => unreachable!("ServoListValue must contain a list"),
-        }
+        &self.list
     }
 
     fn get_list_mut(&mut self) -> &mut Vec<ServoValue> {
-        match &mut self.inner.value {
-            ValueData::List(list) => list,
-            _ => unreachable!("ServoListValue must contain a list"),
-        }
+        &mut self.list
     }
 }
 
@@ -431,7 +407,7 @@ pub unsafe extern "C" fn servo_value_get_bool(
             return ServoError::NullArgument;
         }
         let value = unsafe { &*value };
-        match &value.inner.value {
+        match &value.value {
             ValueData::Bool(b) => {
                 unsafe { *out = *b };
                 ServoError::Ok
@@ -457,7 +433,7 @@ pub unsafe extern "C" fn servo_value_get_int(
             return ServoError::NullArgument;
         }
         let value = unsafe { &*value };
-        match &value.inner.value {
+        match &value.value {
             ValueData::Int(i) => {
                 unsafe { *out = *i };
                 ServoError::Ok
@@ -483,7 +459,7 @@ pub unsafe extern "C" fn servo_value_get_double(
             return ServoError::NullArgument;
         }
         let value = unsafe { &*value };
-        match &value.inner.value {
+        match &value.value {
             ValueData::Double(d) => {
                 unsafe { *out = *d };
                 ServoError::Ok
@@ -509,7 +485,7 @@ pub unsafe extern "C" fn servo_value_get_string(
         return 0;
     }
     let value = unsafe { &*value };
-    match &value.inner.value {
+    match &value.value {
         ValueData::String(s) => write_c_string(s, buffer, buffer_len),
         _ => 0,
     }
@@ -531,7 +507,7 @@ pub unsafe extern "C" fn servo_value_get_binary(
         return 0;
     }
     let value = unsafe { &*value };
-    match &value.inner.value {
+    match &value.value {
         ValueData::Binary(data) => {
             let required = data.len();
             if buffer.is_null() || buffer_len < required {
