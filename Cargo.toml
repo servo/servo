@@ -331,6 +331,7 @@ profile_traits = { package = "servo-profile-traits", version = "=0.7.0", path = 
 script = { package = "servo-script", version = "=0.7.0", path = "components/script" }
 script_bindings = { package = "servo-script-bindings", version = "=0.7.0", path = "components/script_bindings" }
 script_traits = { package = "servo-script-traits", version = "=0.7.0", path = "components/shared/script" }
+script_webcrypto = { package = "servo-script-webcrypto", version = "=0.7.0", path = "components/script_webcrypto" }
 script_webgpu = { package = "servo-script-webgpu", version = "=0.7.0", path = "components/script_webgpu" }
 servo = { version = "=0.7.0", path = "components/servo", default-features = false }
 servo-allocator = { version = "=0.7.0", path = "components/allocator" }
