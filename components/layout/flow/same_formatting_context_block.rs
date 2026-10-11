@@ -14,7 +14,7 @@ use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
 use style::Zero;
 use style::context::SharedStyleContext;
-use style::logical_geometry::Direction;
+use style::logical_geometry::LogicalAxis;
 use style::properties::ComputedValues;
 use style::servo::selector_parser::PseudoElement;
 
@@ -347,7 +347,7 @@ impl SameFormattingContextBlock {
         }
 
         let block_size = block_sizes.resolve(
-            Direction::Block,
+            LogicalAxis::Block,
             Size::FitContent,
             Au::zero,
             available_block_size,

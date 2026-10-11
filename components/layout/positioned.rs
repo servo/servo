@@ -14,7 +14,7 @@ use rayon::prelude::{IndexedParallelIterator, ParallelIterator};
 use servo_arc::Arc as ServoArc;
 use style::Zero;
 use style::computed_values::position::T as Position;
-use style::logical_geometry::{Direction, WritingMode};
+use style::logical_geometry::{LogicalAxis, WritingMode};
 use style::properties::ComputedValues;
 use style::values::specified::align::AlignFlags;
 
@@ -643,7 +643,7 @@ impl IndependentFormattingContext {
         };
 
         let inline_axis_solver = AbsoluteAxisSolver {
-            axis: Direction::Inline,
+            axis: LogicalAxis::Inline,
             containing_size: cbis,
             padding_border_sum: pbm.padding_border_sums.inline,
             computed_margin_start: pbm.margin.inline_start,
@@ -651,7 +651,7 @@ impl IndependentFormattingContext {
             computed_sizes: content_box_sizes.inline,
             avoid_negative_margin_start: true,
             box_offsets: inline_box_offsets,
-            static_position_rect_axis: static_position_rect.get_axis(Direction::Inline),
+            static_position_rect_axis: static_position_rect.get_axis(LogicalAxis::Inline),
             alignment: inline_alignment,
             flip_anchor: original_parent_writing_mode.is_bidi_ltr() !=
                 containing_block_writing_mode.is_bidi_ltr(),
@@ -666,7 +666,7 @@ impl IndependentFormattingContext {
             false => resolved_alignment.block,
         };
         let block_axis_solver = AbsoluteAxisSolver {
-            axis: Direction::Block,
+            axis: LogicalAxis::Block,
             containing_size: cbbs,
             padding_border_sum: pbm.padding_border_sums.block,
             computed_margin_start: pbm.margin.block_start,
@@ -674,7 +674,7 @@ impl IndependentFormattingContext {
             computed_sizes: content_box_sizes.block,
             avoid_negative_margin_start: false,
             box_offsets: block_box_offsets,
-            static_position_rect_axis: static_position_rect.get_axis(Direction::Block),
+            static_position_rect_axis: static_position_rect.get_axis(LogicalAxis::Block),
             alignment: block_alignment,
             flip_anchor: false,
             is_table_or_replaced,
@@ -689,7 +689,7 @@ impl IndependentFormattingContext {
             self.tentative_block_content_size(preferred_aspect_ratio, inline_stretch_size);
         let tentative_block_size = if let Some(block_content_size) = tentative_block_content_size {
             SizeConstraint::Definite(block_axis_solver.computed_sizes.resolve(
-                Direction::Block,
+                LogicalAxis::Block,
                 block_automatic_size,
                 Au::zero,
                 block_stretch_size,
@@ -713,7 +713,7 @@ impl IndependentFormattingContext {
                 .sizes
         };
         let inline_size = inline_axis_solver.computed_sizes.resolve(
-            Direction::Inline,
+            LogicalAxis::Inline,
             inline_axis_solver.automatic_size(),
             Au::zero,
             Some(inline_stretch_size),
@@ -738,7 +738,7 @@ impl IndependentFormattingContext {
         let mut positioning_context = PositioningContext::default();
         let lazy_block_size = LazySize::new(
             &block_axis_solver.computed_sizes,
-            Direction::Block,
+            LogicalAxis::Block,
             block_automatic_size,
             Au::zero,
             block_stretch_size,
@@ -842,13 +842,13 @@ struct RectAxis {
 }
 
 impl LogicalRect<Au> {
-    fn get_axis(&self, axis: Direction) -> RectAxis {
+    fn get_axis(&self, axis: LogicalAxis) -> RectAxis {
         match axis {
-            Direction::Block => RectAxis {
+            LogicalAxis::Block => RectAxis {
                 origin: self.start_corner.block,
                 length: self.size.block,
             },
-            Direction::Inline => RectAxis {
+            LogicalAxis::Inline => RectAxis {
                 origin: self.start_corner.inline,
                 length: self.size.inline,
             },
@@ -857,7 +857,7 @@ impl LogicalRect<Au> {
 }
 
 struct AbsoluteAxisSolver {
-    axis: Direction,
+    axis: LogicalAxis,
     containing_size: Au,
     padding_border_sum: Au,
     computed_margin_start: AuOrAuto,
@@ -1002,7 +1002,7 @@ impl AbsoluteAxisSolver {
             "Mixed horizontal and vertical writing modes are not supported yet"
         );
         let self_value_matches_container = || {
-            self.axis == Direction::Block ||
+            self.axis == LogicalAxis::Block ||
                 self_writing_mode.is_bidi_ltr() == alignment_container_writing_mode.is_bidi_ltr()
         };
 

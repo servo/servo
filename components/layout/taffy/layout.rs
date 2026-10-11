@@ -4,7 +4,7 @@
 
 use app_units::Au;
 use atomic_refcell::{AtomicRef, AtomicRefCell};
-use style::logical_geometry::Direction;
+use style::logical_geometry::LogicalAxis;
 use style::properties::ComputedValues;
 use style::values::computed::CSSPixelLength;
 use style::values::computed::length_percentage::CalcLengthPercentage;
@@ -230,7 +230,7 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                 let lazy_block_size = match content_box_known_dimensions.height {
                     None => LazySize::new(
                         &content_box_sizes.block,
-                        Direction::Block,
+                        LogicalAxis::Block,
                         Size::FitContent,
                         Au::zero,
                         None,
