@@ -7,44 +7,59 @@ use js::context::JSContext;
 use js::jsapi::Type;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{ArrayBufferView, HeapArrayBufferView};
+use jstraceable_derive::JSTraceable;
+use malloc_size_of_derive::MallocSizeOf;
+use script_bindings::DomTypes;
 use script_bindings::buffer_source::HeapBufferSource;
-use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::codegen::GenericBindings::CryptoBinding::{CryptoMethods, Wrap as CryptoWrap};
+use script_bindings::dom::MutNullableDom;
+use script_bindings::error::{Error, Fallible};
+use script_bindings::interfaces::SubtleCryptoHelpers;
+use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
+use script_bindings::root::DomRoot;
+use script_bindings::str::DOMString;
 use script_bindings::trace::RootedTraceableBox;
 use uuid::Uuid;
 
-use crate::dom::bindings::codegen::Bindings::CryptoBinding::CryptoMethods;
-use crate::dom::bindings::error::{Error, Fallible};
-use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
-use crate::dom::globalscope::GlobalScope;
-use crate::dom::subtlecrypto::SubtleCrypto;
+use crate::traits::Equivalence;
 
 /// <https://w3c.github.io/webcrypto/#crypto-interface>
 #[dom_struct]
-pub(crate) struct Crypto {
+pub struct Crypto<D: DomTypes> {
     reflector_: Reflector,
-    subtle: MutNullableDom<SubtleCrypto>,
+    subtle: MutNullableDom<D::SubtleCrypto>,
 }
 
-impl Crypto {
-    fn new_inherited() -> Crypto {
+impl<D> Crypto<D>
+where
+    D: Equivalence,
+{
+    fn new_inherited() -> Crypto<D> {
         Crypto {
             reflector_: Reflector::new(),
             subtle: MutNullableDom::default(),
         }
     }
 
-    pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<Crypto> {
-        reflect_dom_object(cx, Box::new(Crypto::new_inherited()), global)
+    pub fn new(cx: &mut JSContext, global: &D::GlobalScope) -> DomRoot<Crypto<D>> {
+        reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
+            Box::new(Crypto::new_inherited()),
+            global,
+            CryptoWrap::<D>,
+        )
     }
 }
 
-impl CryptoMethods<crate::DomTypeHolder> for Crypto {
+impl<D> CryptoMethods<D> for Crypto<D>
+where
+    D: DomTypes,
+    Self: DomGlobalGeneric<D>,
+{
     /// <https://w3c.github.io/webcrypto/#dfn-Crypto-attribute-subtle>
-    fn Subtle(&self, cx: &mut JSContext) -> DomRoot<SubtleCrypto> {
+    fn Subtle(&self, cx: &mut JSContext) -> DomRoot<D::SubtleCrypto> {
         self.subtle
-            .or_init(|| SubtleCrypto::new(cx, &self.global()))
+            .or_init(|| D::SubtleCrypto::new(cx, &*self.global_from_reflector()))
     }
 
     /// <https://w3c.github.io/webcrypto/#Crypto-method-getRandomValues>

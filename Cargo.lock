@@ -9539,7 +9539,16 @@ dependencies = [
 name = "servo-script-webcrypto"
 version = "0.7.0"
 dependencies = [
+ "malloc_size_of_derive",
+ "mozjs",
+ "rand 0.10.3",
+ "servo-deny-public-fields",
+ "servo-dom-struct",
+ "servo-jstraceable-derive",
+ "servo-malloc-size-of",
  "servo-script-bindings",
+ "trait-set",
+ "uuid",
 ]
 
 [[package]]

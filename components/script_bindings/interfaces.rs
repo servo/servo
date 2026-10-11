@@ -150,3 +150,10 @@ pub trait WindowHelpers {
 pub trait HasOrigin {
     fn origin(&self) -> MutableOrigin;
 }
+
+/// Helper trait to allow script_webcrypto access SubtleCrypto in script crate. Temporarily used
+/// until SubtleCrypto is moved from script crate to script_webcrypto crate.
+#[allow(clippy::new_ret_no_self)]
+pub trait SubtleCryptoHelpers<D: DomTypes> {
+    fn new(cx: &mut JSContext, global: &D::GlobalScope) -> DomRoot<D::SubtleCrypto>;
+}

@@ -18,4 +18,13 @@ path = "lib.rs"
 workspace = true
 
 [dependencies]
+deny_public_fields = { workspace = true }
+dom_struct = { workspace = true }
+js = { workspace = true }
+jstraceable_derive = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
+rand = { workspace = true }
 script_bindings = { workspace = true, features = ["webcrypto"] }
+trait-set = { workspace = true }
+uuid = { workspace = true }
