@@ -13,7 +13,7 @@ use js::gc::Handle;
 use js::jsapi::{
     ExceptionStackBehavior, Heap, JSObject, JSScript, ModuleErrorBehaviour, SetScriptPrivate,
 };
-use js::jsval::{PrivateValue, UndefinedValue};
+use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use js::panic::maybe_resume_unwind;
 use js::rust::wrappers2::{
     Compile1, JS_ClearPendingException, JS_ExecuteScript, JS_GetScriptPrivate,
@@ -67,6 +67,64 @@ pub(crate) struct ClassicScript {
 pub(crate) enum RethrowErrors {
     Yes,
     No,
+}
+
+/// A read-only variant of `ModuleTree`
+#[derive(Default, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) struct ModuleScript {
+    #[ignore_malloc_size_of = "mozjs"]
+    record: Option<Heap<*mut JSObject>>,
+    #[ignore_malloc_size_of = "mozjs"]
+    error_to_rethrow: Option<Heap<JSVal>>,
+}
+
+impl ModuleScript {
+    #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+    #[expect(unsafe_code)]
+    fn record<'a>(&'a self) -> Option<Handle<'a, *mut JSObject>> {
+        self.record
+            .as_ref()
+            .map(|value| unsafe { Handle::from_raw(value.handle()) })
+    }
+
+    #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+    #[expect(unsafe_code)]
+    fn error_to_rethrow<'a>(&'a self) -> Option<HandleValue<'a>> {
+        self.error_to_rethrow
+            .as_ref()
+            .map(|value| unsafe { Handle::from_raw(value.handle()) })
+    }
+
+    pub(crate) fn has_rethrow_error(&self) -> bool {
+        self.error_to_rethrow.is_some()
+    }
+}
+
+impl From<&ModuleTree> for RootedTraceableBox<ModuleScript> {
+    fn from(module_tree: &ModuleTree) -> Self {
+        let mut module_script = RootedTraceableBox::new(ModuleScript::default());
+
+        if let Some(record) = module_tree.record() {
+            module_script.record = Some(Heap::default());
+            module_script
+                .record
+                .as_ref()
+                .unwrap()
+                .set(record.handle().get())
+        }
+
+        if let Some(error) = module_tree.rethrow_error() {
+            module_script.error_to_rethrow = Some(Heap::default());
+            module_script
+                .error_to_rethrow
+                .as_ref()
+                .unwrap()
+                .set(error.handle().get())
+        }
+
+        module_script
+    }
 }
 
 impl GlobalScope {
@@ -243,7 +301,7 @@ impl GlobalScope {
     pub(crate) fn run_a_module_script(
         &self,
         cx: &mut JSContext,
-        module_tree: RootedTraceableBox<ModuleTree>,
+        script: RootedTraceableBox<ModuleScript>,
         _rethrow_errors: bool,
     ) {
         // Step 1. Let settings be the settings object of script.
@@ -265,26 +323,18 @@ impl GlobalScope {
         run_a_script::<DomTypeHolder, _, _>(cx, self, |cx| {
             // Step 6. If script's error to rethrow is not null, then set evaluationPromise to a
             // promise rejected with script's error to rethrow.
-            {
-                if let Some(exception) = module_tree.rethrow_error() {
-                    unsafe {
-                        JS_SetPendingException(
-                            cx,
-                            exception.handle(),
-                            ExceptionStackBehavior::Capture,
-                        );
-                    }
-                    report_pending_exception(cx);
-                    return;
-                }
+            if let Some(error) = script.error_to_rethrow() {
+                unsafe { JS_SetPendingException(cx, error, ExceptionStackBehavior::Capture) };
+                report_pending_exception(cx);
+                return;
             }
 
             // Step 7.1. Otherwise: Let record be script's record.
-            let record = module_tree.record().unwrap();
+            let record = script.record().unwrap();
 
             // Step 7.2. Set evaluationPromise to record.Evaluate().
             rooted!(&in(cx) let mut rval = UndefinedValue());
-            let ok = unsafe { ModuleEvaluate(cx, record.handle(), rval.handle_mut()) };
+            let ok = unsafe { ModuleEvaluate(cx, record, rval.handle_mut()) };
             assert!(ok, "module evaluation failed");
 
             rooted!(&in(cx) let mut evaluation_promise = std::ptr::null_mut::<JSObject>());

@@ -805,7 +805,7 @@ impl WorkletThread {
             credentials.convert(),
             Some(IntroductionType::WORKLET),
             move |cx, module_tree| {
-                match module_tree {
+                match module_tree.as_deref() {
                     // Step 6.4.1. If script is null:
                     None => {
                         debug!("Failed to load script.");
@@ -837,8 +837,7 @@ impl WorkletThread {
                         }
 
                         // Step 6.4.4. Run a module script given script.
-                        let module_script = script.into_rooted_traceable_box();
-                        rooted_global.run_a_module_script(cx, module_script, false);
+                        rooted_global.run_a_module_script(cx, script.into(), false);
 
                         // NOTE: we are treating all negative values as -1
                         // Step 6.4.5.1. If pendingTasks is not −1:

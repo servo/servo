@@ -65,9 +65,11 @@ use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTiming
 use crate::runtime::script_runtime::IntroductionType;
 use crate::scripting::fetching_options::ScriptFetchOptions;
 use crate::scripting::import_map::{ImportMap, parse_an_import_map_string, register_import_map};
-use crate::scripting::script_execution::{ClassicScript, RethrowErrors, ScriptOptions};
+use crate::scripting::script_execution::{
+    ClassicScript, ModuleScript, RethrowErrors, ScriptOptions,
+};
 use crate::scripting::script_module::{
-    ModuleTree, fetch_an_external_module_script, fetch_inline_module_script,
+    fetch_an_external_module_script, fetch_inline_module_script,
 };
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
@@ -266,13 +268,13 @@ pub(crate) enum ScriptType {
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum TracedScript {
     Classic(ClassicScript),
-    Module(Box<ModuleTree>),
+    Module(Box<ModuleScript>),
 }
 
 #[expect(clippy::large_enum_variant)]
 pub(crate) enum Script {
     Classic(ClassicScript),
-    Module(RootedTraceableBox<ModuleTree>),
+    Module(RootedTraceableBox<ModuleScript>),
     ImportMap(Fallible<ImportMap>),
 }
 
@@ -878,7 +880,8 @@ impl HTMLScriptElement {
                         script_fetch_options,
                         move |cx, module_tree| {
                             let load = module_tree
-                                .map(|module| Script::Module(module.into_rooted_traceable_box()))
+                                .as_deref()
+                                .map(|module| Script::Module(module.into()))
                                 .ok_or(());
                             *script.result.borrow_mut() = Some(load.map(Into::into));
 
@@ -949,7 +952,8 @@ impl HTMLScriptElement {
                         introduction_type,
                         move |_, module_tree| {
                             let load = module_tree
-                                .map(|module| Script::Module(module.into_rooted_traceable_box()))
+                                .as_deref()
+                                .map(|module| Script::Module(module.into()))
                                 .ok_or(());
                             *script.result.borrow_mut() = Some(load.map(Into::into));
 

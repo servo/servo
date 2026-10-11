@@ -677,9 +677,7 @@ impl WorkerGlobalScope {
         // Step 1. If script is null or if script's error to rethrow is non-null, then:
         let script = match script {
             Some(Script::Classic(script)) if script.record.is_ok() => Script::Classic(script),
-            Some(Script::Module(module_tree)) if module_tree.rethrow_error().is_none() => {
-                Script::Module(module_tree)
-            },
+            Some(Script::Module(module)) if !module.has_rethrow_error() => Script::Module(module),
             _ => {
                 // Step 1.1. Queue a global task on the DOM manipulation task source given
                 // worker's relevant global object to fire an event named error at worker.
