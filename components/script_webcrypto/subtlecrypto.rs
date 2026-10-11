@@ -48,7 +48,6 @@ use js::realm::CurrentRealm;
 use js::rust::wrappers2::{JS_NewObject, JS_ParseJSON};
 use js::rust::{HandleObject, MutableHandleValue, Trace};
 use js::typedarray::{ArrayBufferU8, HeapUint8Array};
-use script_bindings::interfaces::SubtleCryptoHelpers;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_constellation_traits::{
     SerializableAesKeyAlgorithm, SerializableAlgorithm, SerializableCShakeParams,
@@ -6920,11 +6919,5 @@ impl GetPublicKeyAlgorithm {
                 ml_dsa_operation::get_public_key(cx, global, key, algorithm, usages)
             },
         }
-    }
-}
-
-impl SubtleCryptoHelpers<crate::DomTypeHolder> for SubtleCrypto {
-    fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<SubtleCrypto> {
-        SubtleCrypto::new(cx, global)
     }
 }

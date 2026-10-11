@@ -7,6 +7,8 @@
 #![cfg_attr(crown, register_tool(crown))]
 
 pub mod crypto;
+pub mod cryptokey;
+pub mod subtlecrypto;
 pub mod traits;
 
 pub(crate) use js::gc::Traceable as JSTraceable;
@@ -26,19 +28,41 @@ pub(crate) mod dom {
 pub(crate) mod codegen {
     #[expect(unused)]
     pub(crate) mod Bindings {
-        use std::ptr;
+        pub(crate) mod import {
+            pub(crate) use std::ptr;
 
-        use script_bindings::DomTypes;
-        use script_bindings::codegen::PrototypeList;
-        use script_bindings::conversions::IDLInterface;
-        use script_bindings::reflector::Reflector;
-        use script_bindings::utils::DOMClass;
+            pub(crate) use script_bindings::DomTypes;
+            pub(crate) use script_bindings::codegen::PrototypeList;
+            pub(crate) use script_bindings::conversions::IDLInterface;
+            pub(crate) use script_bindings::reflector::Reflector;
+            pub(crate) use script_bindings::utils::DOMClass;
 
-        use crate::crypto::Crypto;
-        use crate::traits::Equivalence;
-        include!(concat!(
-            env!("OUT_DIR"),
-            "/ConcreteBindings/CryptoBinding.rs"
-        ));
+            pub(crate) use crate::traits::Equivalence;
+        }
+
+        pub(crate) mod CryptoBinding {
+            use crate::codegen::Bindings::import::*;
+            use crate::crypto::Crypto;
+            include!(concat!(
+                env!("OUT_DIR"),
+                "/ConcreteBindings/CryptoBinding.rs"
+            ));
+        }
+        pub(crate) mod CryptoKeyBinding {
+            use crate::codegen::Bindings::import::*;
+            use crate::cryptokey::CryptoKey;
+            include!(concat!(
+                env!("OUT_DIR"),
+                "/ConcreteBindings/CryptoKeyBinding.rs"
+            ));
+        }
+        pub(crate) mod SubtleCryptoBinding {
+            use crate::codegen::Bindings::import::*;
+            use crate::subtlecrypto::SubtleCrypto;
+            include!(concat!(
+                env!("OUT_DIR"),
+                "/ConcreteBindings/SubtleCryptoBinding.rs"
+            ));
+        }
     }
 }
