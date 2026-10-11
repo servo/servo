@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-item-sizing">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-content">
+<meta name="assert" content="Percentage heights and min-heights on grid items resolve against the height of their grid area once the rows are sized, even when the grid container's height is auto or its containing block's height is definite but the grid's is not.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.gridMinMaxMinMax {
+    grid-template-columns: 50px 100px;
+    grid-template-rows: minmax(10px, min-content) minmax(50px, 100px);
+}
+
+.gridAutoAuto {
+    grid-template-columns: 50px 100px;
+    grid-template-rows: auto auto;
+}
+
+.sizedToGridAreaMinSizes {
+    font: 10px/1 Ahem;
+    min-width: 100%;
+    min-height: 100%;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+
+<p>Test that grid items with a percentage logical height inside a grid without explicit sizes resolve their size properly.</p>
+
+<div class="unconstrainedContainer" style="position: relative">
+<div class="grid gridMinMaxMinMax">
+    <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="20">XXXXX XXXXXX</div>
+    <div class="sizedToGridArea firstRowSecondColumn" data-expected-width="100" data-expected-height="20">XXXXX XXXXXX</div>
+    <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="100">XXXXX XXXXXX</div>
+    <div class="sizedToGridArea secondRowSecondColumn" data-expected-width="100" data-expected-height="100">XXXXX XXXXXX</div>
+</div>
+</div>
+
+<div style="position: relative; height: 100px;">
+<div class="grid gridMinMaxMinMax">
+    <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="20">XXXXX XXXXXX</div>
+    <div class="sizedToGridArea firstRowSecondColumn" data-expected-width="100" data-expected-height="20">XXXXX XXXXXX</div>
+    <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="100">XXXXX XXXXXX</div>
+    <div class="sizedToGridArea secondRowSecondColumn" data-expected-width="100" data-expected-height="100">XXXXX XXXXXX</div>
+</div>
+</div>
+
+<div style="position: relative;">
+<div class="grid gridMinMaxMinMax" style="height: 100px;">
+    <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="20">XXXXX XXXXXX</div>
+    <div class="sizedToGridArea firstRowSecondColumn" data-expected-width="100" data-expected-height="20">XXXXX XXXXXX</div>
+    <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="80">XXXXX XXXXXX</div>
+    <div class="sizedToGridArea secondRowSecondColumn" data-expected-width="100" data-expected-height="80">XXXXX XXXXXX</div>
+</div>
+</div>
+
+<div class="unconstrainedContainer" style="position: relative">
+<div class="grid gridAutoAuto">
+    <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="30">XXXXX XXXXXX</div>
+    <div class="sizedToGridArea firstRowSecondColumn" data-expected-width="100" data-expected-height="30">XXXXX XXXXX XXXXXX</div>
+    <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="40">XXXXX XXXXXX</div>
+    <div class="sizedToGridArea secondRowSecondColumn" data-expected-width="100" data-expected-height="40">XXXXX XXXXX XXXXX XXXXXX</div>
+</div>
+</div>
+
+<div class="unconstrainedContainer" style="position: relative">
+<div class="grid gridMinMaxMinMax">
+    <div class="sizedToGridAreaMinSizes firstRowFirstColumn" data-expected-width="50" data-expected-height="20">XXXXX XXXXXX</div>
+    <div class="sizedToGridAreaMinSizes firstRowSecondColumn" data-expected-width="100" data-expected-height="20">XXXXX XXXXXX</div>
+    <div class="sizedToGridAreaMinSizes secondRowFirstColumn" data-expected-width="50" data-expected-height="100">XXXXX XXXXXX</div>
+    <div class="sizedToGridAreaMinSizes secondRowSecondColumn" data-expected-width="100" data-expected-height="100">XXXXX XXXXXX</div>
+</div>
+</div>
+
+<div style="position: relative; height: 100px;">
+<div class="grid gridMinMaxMinMax">
+    <div class="sizedToGridAreaMinSizes firstRowFirstColumn" data-expected-width="50" data-expected-height="20">XXXXX XXXXXX</div>
+    <div class="sizedToGridAreaMinSizes firstRowSecondColumn" data-expected-width="100" data-expected-height="20">XXXXX XXXXXX</div>
+    <div class="sizedToGridAreaMinSizes secondRowFirstColumn" data-expected-width="50" data-expected-height="100">XXXXX XXXXXX</div>
+    <div class="sizedToGridAreaMinSizes secondRowSecondColumn" data-expected-width="100" data-expected-height="100">XXXXX XXXXXX</div>
+</div>
+</div>
+
+<div style="position: relative;">
+<div class="grid gridMinMaxMinMax" style="height: 100px;">
+    <div class="sizedToGridAreaMinSizes firstRowFirstColumn" data-expected-width="50" data-expected-height="20">XXXXX XXXXXX</div>
+    <div class="sizedToGridAreaMinSizes firstRowSecondColumn" data-expected-width="100" data-expected-height="20">XXXXX XXXXXX</div>
+    <div class="sizedToGridAreaMinSizes secondRowFirstColumn" data-expected-width="50" data-expected-height="80">XXXXX XXXXXX</div>
+    <div class="sizedToGridAreaMinSizes secondRowSecondColumn" data-expected-width="100" data-expected-height="80">XXXXX XXXXXX</div>
+</div>
+</div>
+
+<div class="unconstrainedContainer" style="position: relative">
+<div class="grid gridAutoAuto">
+    <div class="sizedToGridAreaMinSizes firstRowFirstColumn" data-expected-width="50" data-expected-height="30">XXXXX XXXXXX</div>
+    <div class="sizedToGridAreaMinSizes firstRowSecondColumn" data-expected-width="100" data-expected-height="30">XXXXX XXXXX XXXXXX</div>
+    <div class="sizedToGridAreaMinSizes secondRowFirstColumn" data-expected-width="50" data-expected-height="40">XXXXX XXXXXX</div>
+    <div class="sizedToGridAreaMinSizes secondRowSecondColumn" data-expected-width="100" data-expected-height="40">XXXXX XXXXX XXXXX XXXXXX</div>
+</div>
+</div>
+
+</body>

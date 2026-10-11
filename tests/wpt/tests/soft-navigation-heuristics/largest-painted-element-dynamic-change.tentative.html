@@ -26,7 +26,7 @@
       await new Promise(r => t.step_timeout(r, 0));
 
       // First paint (small).
-      const small = await addTextParagraphToMain("Small");
+      const small = addTextParagraphToMain("Small");
       smallId = small.id;
 
       // URL change to trigger soft navigation commit.
@@ -38,7 +38,7 @@
       await clickEventPause;
 
       // Paint a much larger element.
-      const large = await addTextParagraphToMain("Much larger element that will become the largest interaction contentful paint");
+      const large = addTextParagraphToMain("Much larger element that will become the largest interaction contentful paint");
       largeId = large.id;
     });
 

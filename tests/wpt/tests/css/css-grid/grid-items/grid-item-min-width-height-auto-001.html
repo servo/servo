@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#min-size-auto">
+<meta name="assert" content="A grid item in fixed-size tracks has its automatic minimum size clamped by the track size, so it stretches to the grid area instead of its content size; explicit min-width and min-height override this, and max-width and max-height do not enlarge it, including in a vertical-lr grid.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.grid {
+    grid-template-columns: 5px;
+    grid-template-rows: 5px;
+}
+
+.container {
+    width: 200px;
+    height: 100px;
+}
+
+.ahem {
+    font: 25px/1 Ahem;
+}
+
+.minSmaller {
+    min-width: 10px;
+    min-height: 10px;
+}
+
+.minBigger {
+    min-width: 150px;
+    min-height: 75px;
+}
+
+.maxSmaller {
+    max-width: 10px;
+    max-height: 10px;
+}
+
+.maxBigger {
+    max-width: 150px;
+    max-height: 75px;
+}
+
+.minHeightSmaller { min-height: 12px; }
+.minWidthSmaller { min-width: 12px; }
+
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+
+<p>This test checks the automatic minimum size ('min-width: auto' and 'min-height: auto') of grid items.</p>
+
+<div class="container">
+    <div class="grid">
+        <div class="ahem" data-expected-width="5" data-expected-height="5">XXXX</div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="grid">
+        <div class="ahem minSmaller" data-expected-width="10" data-expected-height="10">XXXX</div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="grid">
+        <div class="ahem minBigger" data-expected-width="150" data-expected-height="75">XXXX</div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="grid">
+        <div class="ahem maxSmaller" data-expected-width="5" data-expected-height="5">XXXX</div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="grid">
+        <div class="ahem maxBigger" data-expected-width="5" data-expected-height="5">XXXX</div>
+    </div>
+</div>
+
+<!-- Check that min-width min-height behavior is preserved when using vertical writing modes -->
+<div class="container">
+    <div class="grid verticalLR">
+        <div class="ahem" data-expected-width="5" data-expected-height="5">XXXX</div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="grid verticalLR">
+        <div class="ahem minHeightSmaller" data-expected-width="5" data-expected-height="12">XXXX</div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="grid verticalLR">
+        <div class="ahem minWidthSmaller" data-expected-width="12" data-expected-height="5">XXXX</div>
+    </div>
+</div>
+
+</body>

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/selectors/#relational">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2035307">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+.box {
+  width: 100px;
+  height: 100px;
+  background: green;
+}
+
+#container:has(> .element) + .box {
+  display: none;
+}
+
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id=container>
+    <p class=element></p>
+    <p class=element></p>
+    <p class=element></p>
+</div>
+<div class=box></div>
+<script>
+document.body.offsetTop;
+while (container.children.length != 0) {
+  container.firstElementChild.remove();
+}
+document.body.offsetTop;
+document.documentElement.className = '';
+</script>
+</html>

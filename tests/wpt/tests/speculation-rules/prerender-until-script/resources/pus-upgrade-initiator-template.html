@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Initiator: prerender-until-script to prerender upgrade</title>
+</head>
+<body>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script type="speculationrules">
+{
+  "prerender_until_script": [
+    {
+      "urls": ["{{prerendering_url}}"]
+    }
+  ]
+}
+</script>
+<script>
+  const pus_loaded_url = `{{pus_loaded_url}}`;
+  const js_ran_url = `{{js_ran_url}}`;
+  const prerendering_url = `{{prerendering_url}}`;
+
+  function reportFailure(message) {
+    const testChannel = new PrerenderChannel('test-channel');
+    testChannel.postMessage(`Initiator failure: ${message}`);
+    testChannel.close();
+    window.close();
+  }
+
+  // Wait until the PUS target starts loading. Its async-script request
+  // confirms that the PUS host exists before the upgrade rule is added.
+  fetch(pus_loaded_url).then(response => {
+    if (response.status !== 200) {
+      reportFailure(
+          `pus-loaded signal returned status ${response.status}`);
+      return null;
+    }
+
+    // Add a matching prerender rule. This should upgrade the existing PUS
+    // host rather than start a full prerender directly.
+    const upgrade_script = document.createElement('script');
+    upgrade_script.type = 'speculationrules';
+    upgrade_script.text = JSON.stringify({
+      prerender: [
+        {
+          source: 'list',
+          urls: [prerendering_url]
+        }
+      ]
+    });
+    document.head.appendChild(upgrade_script);
+
+    // Wait until the target's inline script runs after the upgrade.
+    return fetch(js_ran_url);
+  }).then(response => {
+    if (response === null) {
+      return;
+    }
+    if (response.status !== 200) {
+      reportFailure(`js-ran signal returned status ${response.status}`);
+      return;
+    }
+    // Activate by navigating to the prerendered URL.
+    window.location = prerendering_url;
+  }).catch(e => {
+    reportFailure(e.toString());
+  });
+</script>
+</body>
+</html>

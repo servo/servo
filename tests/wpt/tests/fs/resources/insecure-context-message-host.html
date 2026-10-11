@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Non-secure page that embeds a frame of the test's origin</title>
+<script>
+const frame = document.createElement('iframe');
+frame.src = new URL(location).searchParams.get('target');
+document.documentElement.append(frame);
+</script>

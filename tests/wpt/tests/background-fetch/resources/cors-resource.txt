@@ -1,0 +1,1 @@
+Cross-origin Background Fetch text resource.

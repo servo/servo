@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<title>CSS Transitions Test: revert-layer inside @starting-style rolls back to @starting-style declarations</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/#defining-before-change-style-the-starting-style-rule">
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#revert-layer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/css-transitions/support/helper.js"></script>
+<style>
+  .color-transition {
+    /* steps(2, start) keeps the transition parked at the midpoint of the
+       (before-change -> after-change) interpolation, so a running transition
+       is observable while a non-transition stays at the after-change value. */
+    transition: color 100s steps(2, start);
+  }
+
+  /* Test 1: revert-layer in an @starting-style rule must roll back to an
+     @starting-style declaration in a lower priority layer (rgb(0, 0, 255)),
+     not skip it and behave like "unset". */
+  @layer t1-base, t1-override;
+  @layer t1-base {
+    @starting-style {
+      #t1 { color: rgb(0, 0, 255); }
+    }
+  }
+  @layer t1-override {
+    #t1 { color: rgb(0, 128, 0); }
+    @starting-style {
+      #t1 { color: revert-layer; }
+    }
+  }
+
+  /* Test 2: chained revert-layer across multiple layers must still land on the
+     @starting-style declaration in the lowest priority layer. */
+  @layer t2-base, t2-mid, t2-top;
+  @layer t2-base {
+    @starting-style {
+      #t2 { color: rgb(0, 0, 255); }
+    }
+  }
+  @layer t2-mid {
+    @starting-style {
+      #t2 { color: revert-layer; }
+    }
+  }
+  @layer t2-top {
+    #t2 { color: rgb(0, 128, 0); }
+    @starting-style {
+      #t2 { color: revert-layer; }
+    }
+  }
+</style>
+<div id="t1" hidden class="color-transition"></div>
+<div id="t2" hidden class="color-transition"></div>
+<script>
+  setup(() => {
+    assert_true(supportsStartingStyle(), "Prerequisite: @starting-style parses");
+  });
+
+  // before-change (starting) = rgb(0, 0, 255), after-change = rgb(0, 128, 0).
+  // steps(2, start) midpoint = rgb(0, 64, 128).
+  const expectedMidpoint = "rgb(0, 64, 128)";
+
+  promise_test(async t => {
+    await waitForAnimationFrames(2);
+    t1.removeAttribute("hidden");
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(t1).color, expectedMidpoint,
+                  "Transition started from the lower layer's @starting-style value");
+  }, "revert-layer inside @starting-style rolls back to a lower layer's @starting-style declaration");
+
+  promise_test(async t => {
+    await waitForAnimationFrames(2);
+    t2.removeAttribute("hidden");
+    await waitForAnimationFrames(2);
+    assert_equals(getComputedStyle(t2).color, expectedMidpoint,
+                  "Chained revert-layer started from the lowest layer's @starting-style value");
+  }, "Chained revert-layer inside @starting-style rolls back through layers to an @starting-style declaration");
+</script>

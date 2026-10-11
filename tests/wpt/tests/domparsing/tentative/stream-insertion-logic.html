@@ -171,7 +171,170 @@
           },
           `${get_method_name(method, safe)} in a ShadowRoot`,
         );
+
+        // B6: toString that removes the ref makes the write reject with HierarchyRequestError
+        promise_test(
+          async (t) => {
+            const parent = document.createElement("div");
+            const ref_node = document.createElement("span");
+            parent.appendChild(ref_node);
+            const stream = create_stream(method, safe, parent, ref_node);
+            const writer = stream.getWriter();
+            await writer.write("<p>A</p>");
+            await promise_rejects_dom(
+              t,
+              "HierarchyRequestError",
+              writer.write({
+                toString() {
+                  ref_node.remove();
+                  return "<p>B</p>";
+                },
+              }),
+            );
+            assert_equals(parent.innerHTML, "<p>A</p>");
+          },
+          `${get_method_name(method, safe)}: chunk toString() removing ref_node rejects with HierarchyRequestError`,
+        );
       }
+    }
+
+    // E1, E2, E3: Reference child displaced mid-chunk and target removed mid-stream
+    for (const method of ["Before", "ReplaceWith", "Prepend"]) {
+      const method_name = `stream${method}HTMLUnsafe`;
+
+      function create_unsafe_stream(parent, ref_node, options = { runScripts: true }) {
+        switch (method) {
+          case "Before":
+            return ref_node[method_name](options);
+          case "ReplaceWith": {
+            const placeholder = document.createElement("div");
+            parent.insertBefore(placeholder, ref_node);
+            return placeholder[method_name](options);
+          }
+          case "Prepend":
+            return parent[method_name](options);
+        }
+      }
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        document.body.appendChild(parent);
+        t.add_cleanup(() => parent.remove());
+        const ref_node = document.createElement("span");
+        ref_node.id = "displaced-ref";
+        parent.appendChild(ref_node);
+
+        const other_parent = document.createElement("div");
+        const other_text = document.createTextNode("unrelated");
+        other_parent.appendChild(other_text);
+
+        window.displace_ref = () => {
+          // Move ref_node right after other_text in other_parent to verify
+          // FlushPendingText does not merge into an unrelated Text sibling.
+          other_parent.appendChild(ref_node);
+        };
+        t.add_cleanup(() => { delete window.displace_ref; });
+
+        const writer = create_unsafe_stream(parent, ref_node).getWriter();
+        await writer.write(
+          "before<script>window.displace_ref();<" + "/script><p><b>x</b></p>t<!--c-->"
+        );
+        // The write resolves even though ref_node was displaced mid-chunk;
+        // nodes after displacement are dropped, and close() resolves.
+        await writer.close();
+
+        assert_equals(parent.querySelector("p"), null, "Dropped element must not be in parent");
+        assert_equals(parent.querySelector("b"), null, "Dropped subtree must not be in parent");
+        assert_equals(other_parent.querySelector("p"), null, "Dropped element must not be in other_parent");
+        assert_equals(other_text.data, "unrelated", "Pending text must not merge into unrelated Text node");
+        assert_equals(parent.innerHTML, "before<script>window.displace_ref();<" + "/script>");
+      }, `${method_name}: displacing ref_node mid-chunk drops subsequent nodes/subtrees/text/comments and close() resolves`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        document.body.appendChild(parent);
+        t.add_cleanup(() => parent.remove());
+        const ref_node = document.createElement("span");
+        parent.appendChild(ref_node);
+
+        window.remove_ref = () => ref_node.remove();
+        t.add_cleanup(() => { delete window.remove_ref; });
+
+        const writer = create_unsafe_stream(parent, ref_node, {
+          runScripts: true,
+          sanitizer: {
+            removeElements: ["i"],
+            replaceWithChildrenElements: ["section"],
+          },
+        }).getWriter();
+        await writer.write(
+          "before<section><em>kept</em><script>window.remove_ref();<" + "/script><p><b>x</b></p>t<!--c--></section><p>after</p>"
+        );
+        assert_equals(parent.querySelector("p"), null, "Sanitizer path must drop (not append) when ref_node is displaced, including inside replaceWithChildrenElements");
+        assert_equals(parent.innerHTML, "before<em>kept</em><script>window.remove_ref();<" + "/script>");
+
+        await promise_rejects_dom(
+          t,
+          "HierarchyRequestError",
+          writer.write("<p>next</p>"),
+          "Subsequent write after ref_node displacement must reject with HierarchyRequestError",
+        );
+      }, `${method_name}: displacing ref_node mid-chunk with sanitizer and replaceWithChildrenElements drops nodes and rejects next write`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        document.body.appendChild(parent);
+        t.add_cleanup(() => parent.remove());
+        const ref_node = document.createElement("span");
+        parent.appendChild(ref_node);
+
+        window.remove_ref = () => ref_node.remove();
+        t.add_cleanup(() => { delete window.remove_ref; });
+
+        const writer = create_unsafe_stream(parent, ref_node).getWriter();
+        await writer.write("A<script>window.remove_ref();<" + "/script><p>dropped</p>");
+        assert_equals(parent.querySelector("p"), null);
+
+        // E2: Move ref_node back into parent before the next write
+        parent.appendChild(ref_node);
+        await writer.write("<p>kept</p>");
+        await writer.close();
+
+        assert_not_equals(parent.querySelector("p"), null);
+        assert_equals(parent.querySelector("p").textContent, "kept");
+        assert_equals(parent.lastChild, ref_node);
+      }, `${method_name}: moving ref_node back into parent before next write allows stream to continue`);
+    }
+
+    // E3: Target removed with runScripts: nodes still go into target; scripts don't run
+    for (const method of ["streamHTMLUnsafe", "streamAppendHTMLUnsafe", "streamPrependHTMLUnsafe"]) {
+      promise_test(async (t) => {
+        const target = document.createElement("div");
+        document.body.appendChild(target);
+        t.add_cleanup(() => target.remove());
+
+        window.remove_target = () => target.remove();
+        window.script_after_remove_ran = false;
+        t.add_cleanup(() => {
+          delete window.remove_target;
+          delete window.script_after_remove_ran;
+        });
+
+        const writer = target[method]({ runScripts: true }).getWriter();
+        await writer.write(
+          "<script>window.remove_target();<" + "/script>" +
+          "<p id='inserted-after-remove'>still inserted</p>" +
+          "<script>window.script_after_remove_ran = true;<" + "/script>"
+        );
+        await writer.write("<em id='second-write'>more</em>");
+        await writer.close();
+
+        assert_false(target.isConnected);
+        assert_not_equals(target.querySelector("#inserted-after-remove"), null);
+        assert_equals(target.querySelector("#inserted-after-remove").textContent, "still inserted");
+        assert_not_equals(target.querySelector("#second-write"), null);
+        assert_false(window.script_after_remove_ran, "Scripts must not run after target is disconnected");
+      }, `${method}: disconnecting target mid-stream continues inserting nodes into target without running scripts`);
     }
   </script>
 </body>

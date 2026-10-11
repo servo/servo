@@ -234,14 +234,16 @@
         });
         let report_body = null;
         if (with_reporting) {
-          if (test_case.policy_violation) {
-            report_body = await report_observed_promise;
-          } else {
-            const timeout_promise = new Promise(r => setTimeout(() => r('timeout'), 100));
-            const race_result = await Promise.race([report_observed_promise, timeout_promise]);
-            if (race_result !== 'timeout') {
-              report_body = race_result;
-            }
+          // Never wait indefinitely for a report: an implementation that
+          // doesn't dispatch one should fail the assertions below rather than
+          // time out the whole test. The style has already finished loading
+          // at this point, so a report, if any, is imminent; give it a bit
+          // more time when one is expected than when one is not.
+          const timeout_ms = test_case.policy_violation ? 1000 : 100;
+          const timeout_promise = new Promise(r => setTimeout(() => r('timeout'), timeout_ms));
+          const race_result = await Promise.race([report_observed_promise, timeout_promise]);
+          if (race_result !== 'timeout') {
+            report_body = race_result;
           }
         }
         const ran = getComputedStyle(document.getElementById("colorme")).color === "rgb(255, 0, 0)";

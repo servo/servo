@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<link rel=help href="https://html.spec.whatwg.org/multipage/semantics-other.html#selector-open">
+<link rel=help href="https://html.spec.whatwg.org/multipage/popover.html#hide-popovers-until">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+select, select::picker(select) {
+  appearance: base-select;
+}
+div:has(> select:open) {
+  color: rgb(0, 128, 0);
+}
+</style>
+
+<div>
+  <select id=autoPopoverSelect>
+    <option>one</option>
+    <option>two</option>
+  </select>
+</div>
+
+<div>
+  <select id=manualPopoverSelect>
+    <option>one</option>
+    <option>two</option>
+  </select>
+</div>
+
+<div>
+  <select id=dialogSelect>
+    <option>one</option>
+    <option>two</option>
+  </select>
+</div>
+
+<div>
+  <select id=modalDialogSelect>
+    <option>one</option>
+    <option>two</option>
+  </select>
+</div>
+
+<div id=autoPopover popover=auto>auto popover</div>
+<div id=manualPopover popover=manual>manual popover</div>
+<dialog id=dialog>dialog</dialog>
+
+<script>
+const green = 'rgb(0, 128, 0)';
+
+async function openPicker(select) {
+  await test_driver.click(select);
+  assert_true(select.matches(':open'), 'Select should be open after clicking it.');
+  assert_equals(getComputedStyle(select.parentElement).color, green,
+    'The parent should match :has(> select:open).');
+}
+
+function assertPickerClosed(select, message) {
+  assert_false(select.matches(':open'), message);
+  assert_not_equals(getComputedStyle(select.parentElement).color, green,
+    'The parent should no longer match :has(> select:open).');
+}
+
+promise_test(async t => {
+  const select = autoPopoverSelect;
+  t.add_cleanup(() => {
+    autoPopover.hidePopover();
+    select.remove();
+  });
+  await openPicker(select);
+  autoPopover.showPopover();
+  assertPickerClosed(select, 'Select should be closed after showing an auto popover.');
+}, 'Showing an unrelated auto popover closes the picker.');
+
+promise_test(async t => {
+  const select = manualPopoverSelect;
+  t.add_cleanup(() => {
+    manualPopover.hidePopover();
+    select.remove();
+  });
+  await openPicker(select);
+  manualPopover.showPopover();
+  assert_true(select.matches(':open'), 'Select should still be open after showing a manual popover.');
+
+  await test_driver.click(select);
+  assertPickerClosed(select, 'Select should be closed after clicking it again.');
+}, 'Showing an unrelated manual popover leaves the picker open.');
+
+promise_test(async t => {
+  const select = dialogSelect;
+  t.add_cleanup(() => {
+    dialog.close();
+    select.remove();
+  });
+  await openPicker(select);
+  dialog.show();
+  assertPickerClosed(select, 'Select should be closed after showing a dialog.');
+}, 'Showing an unrelated dialog closes the picker.');
+
+promise_test(async t => {
+  const select = modalDialogSelect;
+  t.add_cleanup(() => {
+    dialog.close();
+    select.remove();
+  });
+  await openPicker(select);
+  dialog.showModal();
+  assertPickerClosed(select, 'Select should be closed after showing a modal dialog.');
+}, 'Showing an unrelated modal dialog closes the picker.');
+</script>

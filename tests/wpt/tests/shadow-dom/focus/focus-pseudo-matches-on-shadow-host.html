@@ -14,23 +14,17 @@
 <div id="container"></div>
 <script>
 
-let focusedDefault = false;
+let focusedDefault = document.activeElement == defaultFocus;
 function didFocusDefault() { }
 function handleFocus() {
     if (!focusedDefault) {
+        focusedDefault = true;
         // Use step_timeout here to avoid nested focusing steps.
         // For example, <input id="defaultFocus" autofocus> could run scripts
         // while it's autofocusing which may run the tests, so that the
         // focus() usage in the tests becomes nested focusing steps.
-        step_timeout(function() {
-          testInMode('open', false);
-          testInMode('open', true);
-          testInMode('closed', false);
-          testInMode('closed', true);
-        }, 0);
+        step_timeout(didFocusDefault, 0);
     }
-    focusedDefault = true;
-    didFocusDefault();
 }
 defaultFocus.addEventListener('focus', handleFocus);
 
@@ -116,6 +110,11 @@ function testInMode(mode, delegatesFocus) {
         assert_false(host.matches(':focus'));
     }, `:focus behavior on tree structure changes; ${modeString}`);
 }
+
+testInMode('open', false);
+testInMode('open', true);
+testInMode('closed', false);
+testInMode('closed', true);
 
 </script>
 </body>

@@ -1,0 +1,64 @@
+<!-- This test intentionally has no doctype so that it runs in quirks mode. -->
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-item-sizing">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-area-concept">
+<link rel="help" href="https://quirks.spec.whatwg.org/#the-percentage-height-calculation-quirk">
+<meta name="assert" content="In quirks mode, percentage widths and heights on grid items still resolve against their grid area, in horizontal-tb and vertical-rl grid containers and for grid items orthogonal to their grid container.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<style>
+.grid {
+    grid-template-columns: 100px 300px;
+    grid-template-rows: 50px 150px;
+}
+
+.percentWidth {
+    width: 100%;
+    height: 15px;
+}
+
+.percentHeight {
+    width: 15px;
+    height: 100%;
+}
+
+.percentHeightAndWidth {
+    width: 100%;
+    height: 100%;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.grid')">
+
+<p>Test that resolving percent lengths on grid items works properly on a fixed grid with different writing modes in quirks mode.</p>
+
+<div class="grid">
+    <div class="firstRowFirstColumn percentWidth" data-expected-width="100" data-expected-height="15"></div>
+    <div class="firstRowSecondColumn percentHeight" data-expected-width="15" data-expected-height="50"></div>
+    <div class="secondRowFirstColumn percentHeightAndWidth" data-expected-width="100" data-expected-height="150"></div>
+    <div class="secondRowSecondColumn percentHeightAndWidth" data-expected-width="300" data-expected-height="150"></div>
+</div>
+
+<div class="grid verticalRL">
+    <div class="firstRowFirstColumn percentWidth" data-expected-width="50" data-expected-height="15"></div>
+    <div class="firstRowSecondColumn percentHeight" data-expected-width="15" data-expected-height="300"></div>
+    <div class="secondRowFirstColumn percentHeightAndWidth" data-expected-width="150" data-expected-height="100"></div>
+    <div class="secondRowSecondColumn percentHeightAndWidth" data-expected-width="150" data-expected-height="300"></div>
+</div>
+
+<div class="grid">
+    <div class="firstRowFirstColumn percentWidth verticalRL" data-expected-width="100" data-expected-height="15"></div>
+    <div class="firstRowSecondColumn percentHeight verticalRL" data-expected-width="15" data-expected-height="50"></div>
+    <div class="secondRowFirstColumn percentHeightAndWidth verticalRL" data-expected-width="100" data-expected-height="150"></div>
+    <div class="secondRowSecondColumn percentHeightAndWidth verticalRL" data-expected-width="300" data-expected-height="150"></div>
+</div>
+
+<div class="grid">
+    <div class="firstRowFirstColumn percentWidth verticalRL" data-expected-width="100" data-expected-height="15"></div>
+    <div class="firstRowSecondColumn percentHeight" data-expected-width="15" data-expected-height="50"></div>
+    <div class="secondRowFirstColumn percentHeightAndWidth verticalRL" data-expected-width="100" data-expected-height="150"></div>
+    <div class="secondRowSecondColumn percentHeightAndWidth" data-expected-width="300" data-expected-height="150"></div>
+</div>
+
+</body>

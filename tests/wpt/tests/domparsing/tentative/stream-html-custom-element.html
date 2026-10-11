@@ -208,6 +208,34 @@ for (const method of [
   "streamAppendHTML", "streamAppendHTMLUnsafe",
   "streamPrependHTML", "streamPrependHTMLUnsafe",
 ]) {
+  // D5: replaceWithChildrenElements preserves scoped customElementRegistry for children
+  promise_test(async (t) => {
+    const container = document.getElementById("container");
+    t.add_cleanup(() => container.replaceChildren());
+
+    const scoped = new CustomElementRegistry();
+    const scopedLog = [];
+    scoped.define("scoped-replaced-child", class extends HTMLElement {
+      constructor() { super(); scopedLog.push("constructed"); }
+      connectedCallback() { scopedLog.push("connected"); }
+    });
+
+    const inner = document.createElement("div", { customElementRegistry: scoped });
+    container.append(inner);
+
+    const writer = inner[method]({
+      sanitizer: {
+        elements: ["scoped-replaced-child"],
+        replaceWithChildrenElements: ["div"],
+      },
+    }).getWriter();
+    await writer.write("<div><scoped-replaced-child></scoped-replaced-child></div>");
+    await writer.close();
+
+    assert_array_equals(scopedLog, ["constructed", "connected"],
+      `${method} with replaceWithChildrenElements must preserve scoped customElementRegistry`);
+  }, `${method} with replaceWithChildrenElements preserves scoped customElementRegistry`);
+
   promise_test(async (t) => {
     const container = document.getElementById("container");
     t.add_cleanup(() => container.replaceChildren());
@@ -237,6 +265,53 @@ for (const method of [
     assert_array_equals(scopedLog, ["constructed", "connected"],
       `${method} should use scoped custom element registry`);
   }, `${method} should use scoped custom element registry`);
+
+  // D6: ShadowRoot target uses ShadowRoot's customElementRegistry, not host's
+  promise_test(async (t) => {
+    const container = document.getElementById("container");
+    t.add_cleanup(() => container.replaceChildren());
+
+    const hostRegistry = new CustomElementRegistry();
+    const shadowRegistry = new CustomElementRegistry();
+    const log = [];
+    hostRegistry.define("scoped-target-ce", class extends HTMLElement {
+      constructor() { super(); log.push("host-registry"); }
+    });
+    shadowRegistry.define("scoped-target-ce", class extends HTMLElement {
+      constructor() { super(); log.push("shadow-registry"); }
+    });
+
+    const host = document.createElement("div", { customElementRegistry: hostRegistry });
+    container.appendChild(host);
+    const shadow = host.attachShadow({ mode: "open", customElementRegistry: shadowRegistry });
+
+    const options = method.includes("Unsafe") ? undefined : { sanitizer: { elements: ["scoped-target-ce"] } };
+    const writer = shadow[method](options).getWriter();
+    await writer.write("<scoped-target-ce></scoped-target-ce>");
+    await writer.close();
+
+    assert_array_equals(log, ["shadow-registry"],
+      `${method} on ShadowRoot must use ShadowRoot's customElementRegistry`);
+  }, `${method} on ShadowRoot uses ShadowRoot's customElementRegistry`);
+}
+
+for (const method of ["streamHTML", "streamHTMLUnsafe", "streamAppendHTML", "streamAppendHTMLUnsafe"]) {
+  promise_test(async (t) => {
+    const { name, cls, log } = createCustomElementClass();
+    const tpl = document.createElement("template");
+    const options = method.includes("Unsafe") ? undefined : { sanitizer: { elements: [name, "div"] } };
+    const writer = tpl[method](options).getWriter();
+    await writer.write(`<${name}></${name}><div><${name}></${name}></div>`);
+    await writer.close();
+
+    assert_array_equals(log, [], `${method} on <template> must not construct custom elements in the inert template document`);
+    const els = tpl.content.querySelectorAll(name);
+    assert_equals(els.length, 2);
+    for (const el of els) {
+      assert_false(el instanceof cls, "Custom element inside <template> must remain unupgraded");
+      assert_equals(el.ownerDocument, tpl.content.ownerDocument);
+    }
+  }, `${method} on <template> does not construct or upgrade top-level or nested custom elements`);
 }
 </script>
 </body>

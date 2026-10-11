@@ -46,10 +46,12 @@
         document.getElementById("initial_image2").remove();
         // Add an LCP element, but have it be small enough to not trigger the
         // Soft Navigation heuristics.
-        await addTextParagraphToMain(
+        const icp_promise = getNextEntry('interaction-contentful-paint');
+        addTextParagraphToMain(
           "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod");
+        await icp_promise;
         // Add a smaller element that gets us over that threshold.
-        await addTextParagraphToMain("dolore magna aliqua.");
+        addTextParagraphToMain("dolore magna aliqua.");
       },
     });
   })();

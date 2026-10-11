@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-track-sizing">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-content">
+<meta name="assert" content="Removing grid items recomputes the sizes of the intrinsic and minmax() tracks they occupied.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/css/support/alignment.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.gridAutoContent {
+    grid-template-columns: auto;
+    grid-template-rows: auto;
+}
+
+.gridMinContentFixed {
+    grid-template-columns: minmax(min-content, 100px);
+    grid-template-rows: minmax(min-content, 40px);
+}
+
+.gridMaxContentFixed {
+    grid-template-columns: minmax(max-content, 150px);
+    grid-template-rows: minmax(max-content, 40px);
+}
+
+.gridFixedMinContent {
+    grid-template-columns: minmax(100px, min-content);
+    grid-template-rows: minmax(40px, min-content);
+}
+
+.gridFixedMaxContent {
+    grid-template-columns: minmax(100px, max-content);
+    grid-template-rows: minmax(40px, max-content);
+}
+
+.lessConstrainedContainer {
+    width: 60px;
+    height: 20px;
+}
+
+.firstRowFirstColumn {
+    font: 10px/1 Ahem;
+    /* Make us fit our grid area. */
+    width: 100%;
+    height: 100%;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+function testRemoval(gridElementID, size1, size2, size3)
+{
+    var gridElement = document.getElementById(gridElementID);
+    var gridItem1 = gridElement.firstChild.nextSibling;
+    var gridItem2 = gridItem1.nextSibling.nextSibling;
+    var gridItem3 = gridItem2.nextSibling.nextSibling;
+    gridItem1.setAttribute("data-expected-width", size1.width);
+    gridItem1.setAttribute("data-expected-height", size1.height);
+    gridItem2.setAttribute("data-expected-width", size1.width);
+    gridItem2.setAttribute("data-expected-height", size1.height);
+    gridItem3.setAttribute("data-expected-width", size1.width);
+    gridItem3.setAttribute("data-expected-height", size1.height);
+    checkLayout("#" + gridElementID, false);
+
+    gridElement.removeChild(gridItem1);
+    gridItem2.setAttribute("data-expected-width", size2.width);
+    gridItem2.setAttribute("data-expected-height", size2.height);
+    gridItem3.setAttribute("data-expected-width", size2.width);
+    gridItem3.setAttribute("data-expected-height", size2.height);
+    checkLayout("#" + gridElementID, false);
+
+    gridElement.removeChild(gridItem2);
+    gridItem3.setAttribute("data-expected-width", size3.width);
+    gridItem3.setAttribute("data-expected-height", size3.height);
+    checkLayout("#" + gridElementID, false);
+}
+
+function testRemovals()
+{
+    testRemoval("constrainedAutoGrid", { 'width': '50', 'height': '40' }, { 'width': '40', 'height': '40' }, { 'width': '30', 'height': '30' });
+    testRemoval("constrainedMinContentFixedGrid", { 'width': '50', 'height': '40' }, { 'width': '40', 'height': '40' }, { 'width': '30', 'height': '30' });
+    testRemoval("constrainedMinContentFixedGridUndefinedHeight", { 'width': '50', 'height': '40' }, { 'width': '40', 'height': '40' }, { 'width': '30', 'height': '40' });
+    testRemoval("constrainedMaxContentFixedGrid", { 'width': '190', 'height': '10' }, { 'width': '190', 'height': '10' }, { 'width': '110', 'height': '10' });
+    testRemoval("constrainedMaxContentFixedGridUndefinedHeight", { 'width': '190', 'height': '40' }, { 'width': '190', 'height': '40' }, { 'width': '110', 'height': '40' });
+    testRemoval("constrainedFixedMinContentGrid", { 'width': '100', 'height': '40' }, { 'width': '100', 'height': '40' }, { 'width': '100', 'height': '40' });
+    testRemoval("constrainedFixedMaxContentGrid", { 'width': '100', 'height': '40' }, { 'width': '100', 'height': '40' }, { 'width': '100', 'height': '40' });
+
+    testRemoval("unconstrainedAutoGrid", { 'width': '390', 'height': '10' }, { 'width': '350', 'height': '10' }, { 'width': '170', 'height': '10' });
+    testRemoval("unconstrainedMinContentFixedGrid", { 'width': '100', 'height': '60' }, { 'width': '100', 'height': '60' }, { 'width': '100', 'height': '40' });
+    testRemoval("unconstrainedMinContentFixedGridUndefinedHeight", { 'width': '100', 'height': '60' }, { 'width': '100', 'height': '60' }, { 'width': '100', 'height': '40' });
+    testRemoval("unconstrainedMaxContentFixedGrid", { 'width': '390', 'height': '40' }, { 'width': '350', 'height': '40' }, { 'width': '170', 'height': '40' });
+    testRemoval("unconstrainedFixedMinContentGrid", { 'width': '100', 'height': '60' }, { 'width': '100', 'height': '60' }, { 'width': '100', 'height': '40' });
+    testRemoval("unconstrainedFixedMaxContentGrid", { 'width': '390', 'height': '40' }, { 'width': '350', 'height': '40' }, { 'width': '170', 'height': '40' });
+
+    testRemoval("lessConstrainedAutoGrid", { 'width': '60', 'height': '90' }, { 'width': '60', 'height': '60' }, { 'width': '60', 'height': '30' });
+    testRemoval("lessConstrainedMinContentFixedGrid", { 'width': '60', 'height': '90' }, { 'width': '60', 'height': '60' }, { 'width': '60', 'height': '30' });
+    testRemoval("lessConstrainedMinContentFixedGridUndefinedHeight", { 'width': '60', 'height': '90' }, { 'width': '60', 'height': '60' }, { 'width': '60', 'height': '40' });
+    testRemoval("lessConstrainedMaxContentFixedGrid", { 'width': '350', 'height': '20' }, { 'width': '350', 'height': '20' }, { 'width': '170', 'height': '20' });
+    testRemoval("lessConstrainedMaxContentFixedGridUndefinedHeight", { 'width': '350', 'height': '40' }, { 'width': '350', 'height': '40' }, { 'width': '170', 'height': '40' });
+    testRemoval("lessConstrainedFixedMinContentGrid", { 'width': '100', 'height': '40' }, { 'width': '100', 'height': '40' }, { 'width': '100', 'height': '40' });
+    testRemoval("lessConstrainedFixedMinContentGridUndefinedHeight", { 'width': '100', 'height': '60' }, { 'width': '100', 'height': '60' }, { 'width': '100', 'height': '40' });
+    testRemoval("lessConstrainedFixedMaxContentGrid", { 'width': '100', 'height': '40' }, { 'width': '100', 'height': '40' }, { 'width': '100', 'height': '40' });
+    testRemoval("lessConstrainedFixedMaxContentGridUndefinedHeight", { 'width': '100', 'height': '60' }, { 'width': '100', 'height': '60' }, { 'width': '100', 'height': '40' });
+    done();
+}
+window.addEventListener("load", () => { document.fonts.ready.then(testRemovals); });
+</script>
+<body>
+
+<p>This test checks that the tracks' breadth are recomputed after removing a grid item.</p>
+
+<div class="constrainedContainer">
+    <div class="grid gridAutoContent" id="constrainedAutoGrid">
+        <div class="firstRowFirstColumn">XXXXX XXXXX XXXXX</div>
+        <div class="firstRowFirstColumn">XXXX XXXX XXXX XXXX</div>
+        <div class="firstRowFirstColumn">XXX XXX XXX</div>
+    </div>
+</div>
+
+<div class="constrainedContainer">
+    <div class="grid gridMinContentFixed" id="constrainedMinContentFixedGrid" style="height: 100%">
+        <div class="firstRowFirstColumn">XXXXX XXXXX XXXXX</div>
+        <div class="firstRowFirstColumn">XXXX XXXX XXXX XXXX</div>
+        <div class="firstRowFirstColumn">XXX XXX XXX</div>
+    </div>
+</div>
+
+<div class="constrainedContainer">
+    <div class="grid gridMinContentFixed" id="constrainedMinContentFixedGridUndefinedHeight">
+        <div class="firstRowFirstColumn">XXXXX XXXXX XXXXX</div>
+        <div class="firstRowFirstColumn">XXXX XXXX XXXX XXXX</div>
+        <div class="firstRowFirstColumn">XXX XXX XXX</div>
+    </div>
+</div>
+
+<div class="constrainedContainer">
+    <div class="grid gridMaxContentFixed" id="constrainedMaxContentFixedGrid" style="height: 100%">
+        <div class="firstRowFirstColumn">XXXXX XXXXX XXXXX</div>
+        <div class="firstRowFirstColumn">XXXX XXXX XXXX XXXX</div>
+        <div class="firstRowFirstColumn">XXX XXX XXX</div>
+    </div>
+</div>
+
+<div class="constrainedContainer">
+    <div class="grid gridMaxContentFixed" id="constrainedMaxContentFixedGridUndefinedHeight">
+        <div class="firstRowFirstColumn">XXXXX XXXXX XXXXX</div>
+        <div class="firstRowFirstColumn">XXXX XXXX XXXX XXXX</div>
+        <div class="firstRowFirstColumn">XXX XXX XXX</div>
+    </div>
+</div>
+
+<div class="constrainedContainer">
+    <div class="grid gridFixedMinContent" id="constrainedFixedMinContentGrid">
+        <div class="firstRowFirstColumn">XXXXX XXXXX XXXXX</div>
+        <div class="firstRowFirstColumn">XXXX XXXX XXXX XXXX</div>
+        <div class="firstRowFirstColumn">XXX XXX XXX</div>
+    </div>
+</div>
+
+<div class="constrainedContainer">
+    <div class="grid gridFixedMaxContent" id="constrainedFixedMaxContentGrid">
+        <div class="firstRowFirstColumn">XXXXX XXXXX XXXXX</div>
+        <div class="firstRowFirstColumn">XXXX XXXX XXXX XXXX</div>
+        <div class="firstRowFirstColumn">XXX XXX XXX</div>
+    </div>
+</div>
+
+<!-- The container is big enough to allow all the extra space distribution we want. -->
+<div class="unconstrainedContainer">
+    <div class="grid gridAutoContent justifyContentStart" id="unconstrainedAutoGrid">
+        <div class="firstRowFirstColumn">XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX</div>
+        <div class="firstRowFirstColumn">XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX</div>
+        <div class="firstRowFirstColumn">XX XX XX XX XX XX</div>
+    </div>
+</div>
+
+<div class="unconstrainedContainer">
+    <div class="grid gridMinContentFixed" id="unconstrainedMinContentFixedGrid" style="height: 100%">
+        <div class="firstRowFirstColumn">XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX</div>
+        <div class="firstRowFirstColumn">XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX</div>
+        <div class="firstRowFirstColumn">XX XX XX XX XX XX</div>
+    </div>
+</div>
+
+<div class="unconstrainedContainer">
+    <div class="grid gridMinContentFixed" id="unconstrainedMinContentFixedGridUndefinedHeight">
+        <div class="firstRowFirstColumn">XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX</div>
+        <div class="firstRowFirstColumn">XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX</div>
+        <div class="firstRowFirstColumn">XX XX XX XX XX XX</div>
+    </div>
+</div>
+
+<div class="unconstrainedContainer">
+    <div class="grid gridMaxContentFixed" id="unconstrainedMaxContentFixedGrid">
+        <div class="firstRowFirstColumn">XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX</div>
+        <div class="firstRowFirstColumn">XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX</div>
+        <div class="firstRowFirstColumn">XX XX XX XX XX XX</div>
+    </div>
+</div>
+
+<div class="unconstrainedContainer">
+    <div class="grid gridFixedMinContent" id="unconstrainedFixedMinContentGrid">
+        <div class="firstRowFirstColumn">XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX</div>
+        <div class="firstRowFirstColumn">XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX</div>
+        <div class="firstRowFirstColumn">XX XX XX XX XX XX</div>
+    </div>
+</div>
+
+<div class="unconstrainedContainer">
+    <div class="grid gridFixedMaxContent" id="unconstrainedFixedMaxContentGrid">
+        <div class="firstRowFirstColumn">XXX XXX XXX XXX XXX XXX XXX XXX XXX XXX</div>
+        <div class="firstRowFirstColumn">XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX</div>
+        <div class="firstRowFirstColumn">XX XX XX XX XX XX</div>
+    </div>
+</div>
+
+<!-- The container allows some expansion but also constrain the growth. -->
+<div class="lessConstrainedContainer">
+    <div class="grid gridAutoContent" id="lessConstrainedAutoGrid">
+        <div class="firstRowFirstColumn">XXX XXX XXX XXX XXX XXX XXX XXX XXX</div>
+        <div class="firstRowFirstColumn">XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX</div>
+        <div class="firstRowFirstColumn">XX XX XX XX XX XX</div>
+    </div>
+</div>
+
+<div class="lessConstrainedContainer">
+    <div class="grid gridMinContentFixed" id="lessConstrainedMinContentFixedGrid" style="height: 100%">
+        <div class="firstRowFirstColumn">XXX XXX XXX XXX XXX XXX XXX XXX XXX</div>
+        <div class="firstRowFirstColumn">XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX</div>
+        <div class="firstRowFirstColumn">XX XX XX XX XX XX</div>
+    </div>
+</div>
+
+<div class="lessConstrainedContainer">
+    <div class="grid gridMinContentFixed" id="lessConstrainedMinContentFixedGridUndefinedHeight">
+        <div class="firstRowFirstColumn">XXX XXX XXX XXX XXX XXX XXX XXX XXX</div>
+        <div class="firstRowFirstColumn">XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX</div>
+        <div class="firstRowFirstColumn">XX XX XX XX XX XX</div>
+    </div>
+</div>
+
+<div class="lessConstrainedContainer">
+    <div class="grid gridMaxContentFixed" id="lessConstrainedMaxContentFixedGrid" style="height: 100%">
+        <div class="firstRowFirstColumn">XXX XXX XXX XXX XXX XXX XXX XXX XXX</div>
+        <div class="firstRowFirstColumn">XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX</div>
+        <div class="firstRowFirstColumn">XX XX XX XX XX XX</div>
+    </div>
+</div>
+
+<div class="lessConstrainedContainer">
+    <div class="grid gridMaxContentFixed" id="lessConstrainedMaxContentFixedGridUndefinedHeight">
+        <div class="firstRowFirstColumn">XXX XXX XXX XXX XXX XXX XXX XXX XXX</div>
+        <div class="firstRowFirstColumn">XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX</div>
+        <div class="firstRowFirstColumn">XX XX XX XX XX XX</div>
+    </div>
+</div>
+
+<div class="lessConstrainedContainer">
+    <div class="grid gridFixedMinContent" id="lessConstrainedFixedMinContentGrid" style="height: 100%">
+        <div class="firstRowFirstColumn">XXX XXX XXX XXX XXX XXX XXX XXX XXX</div>
+        <div class="firstRowFirstColumn">XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX</div>
+        <div class="firstRowFirstColumn">XX XX XX XX XX XX</div>
+    </div>
+</div>
+
+<div class="lessConstrainedContainer">
+    <div class="grid gridFixedMinContent" id="lessConstrainedFixedMinContentGridUndefinedHeight">
+        <div class="firstRowFirstColumn">XXX XXX XXX XXX XXX XXX XXX XXX XXX</div>
+        <div class="firstRowFirstColumn">XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX</div>
+        <div class="firstRowFirstColumn">XX XX XX XX XX XX</div>
+    </div>
+</div>
+
+<div class="lessConstrainedContainer">
+    <div class="grid gridFixedMaxContent" id="lessConstrainedFixedMaxContentGrid" style="height: 100%">
+        <div class="firstRowFirstColumn">XXX XXX XXX XXX XXX XXX XXX XXX XXX</div>
+        <div class="firstRowFirstColumn">XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX</div>
+        <div class="firstRowFirstColumn">XX XX XX XX XX XX</div>
+    </div>
+</div>
+
+<div class="lessConstrainedContainer">
+    <div class="grid gridFixedMaxContent" id="lessConstrainedFixedMaxContentGridUndefinedHeight">
+        <div class="firstRowFirstColumn">XXX XXX XXX XXX XXX XXX XXX XXX XXX</div>
+        <div class="firstRowFirstColumn">XXXXX XXXXX XXXXX XXXXX XXXXX XXXXX</div>
+        <div class="firstRowFirstColumn">XX XX XX XX XX XX</div>
+    </div>
+</div>
+
+</body>

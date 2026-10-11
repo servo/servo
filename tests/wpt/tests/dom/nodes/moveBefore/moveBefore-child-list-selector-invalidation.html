@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<title>moveBefore() invalidates selectors that depend on the old and new parents' children</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#move">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=326182">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .has-marked-child:has(> .marked) { color: green; }
+  .empty-check:empty { color: green; }
+  .first-check > :first-child { color: green; }
+  .last-check > :last-child { color: green; }
+  .nth-check > :nth-child(2) { color: green; }
+  .nth-last-check > :nth-last-child(2) { color: green; }
+  .sibling-check > .a + .b { color: green; }
+</style>
+<body>
+<div id="container"></div>
+<script>
+const green = "rgb(0, 128, 0)";
+
+function setUp(t, html) {
+  container.innerHTML = html;
+  t.add_cleanup(() => container.replaceChildren());
+  // Resolve style before the move so that only invalidation can update it.
+  for (const element of container.querySelectorAll("*"))
+    getComputedStyle(element).color;
+  return id => document.getElementById(id);
+}
+
+test(t => {
+  const get = setUp(t, `<div id=source class=has-marked-child><span id=moved class=marked></span></div>
+    <div id=destination class=has-marked-child></div>`);
+  assert_equals(getComputedStyle(get("source")).color, green);
+  get("destination").moveBefore(get("moved"), null);
+  assert_not_equals(getComputedStyle(get("source")).color, green, "old parent");
+  assert_equals(getComputedStyle(get("destination")).color, green, "new parent");
+}, ":has(> .marked) on the old and new parents");
+
+test(t => {
+  const get = setUp(t, `<div id=source class=empty-check><span id=moved></span></div>
+    <div id=destination class=empty-check></div>`);
+  get("destination").moveBefore(get("moved"), null);
+  assert_equals(getComputedStyle(get("source")).color, green, "old parent");
+  assert_not_equals(getComputedStyle(get("destination")).color, green, "new parent");
+}, ":empty on the old and new parents when moving an element");
+
+test(t => {
+  const get = setUp(t, `<div id=source class=empty-check>text</div><div id=destination class=empty-check></div>`);
+  get("destination").moveBefore(get("source").firstChild, null);
+  assert_equals(getComputedStyle(get("source")).color, green, "old parent");
+  assert_not_equals(getComputedStyle(get("destination")).color, green, "new parent");
+}, ":empty on the old and new parents when moving a Text node");
+
+test(t => {
+  const get = setUp(t, `<div class=first-check><span id=moved></span><span id=next></span></div>
+    <div id=destination class=first-check><span id=existing></span></div>`);
+  get("destination").moveBefore(get("moved"), get("existing"));
+  assert_equals(getComputedStyle(get("next")).color, green, "new first child of the old parent");
+  assert_not_equals(getComputedStyle(get("existing")).color, green, "old first child of the new parent");
+}, ":first-child on siblings in the old and new parents");
+
+test(t => {
+  const get = setUp(t, `<div class=last-check><span id=previous></span><span id=moved></span></div>
+    <div id=destination class=last-check><span id=existing></span></div>`);
+  get("destination").moveBefore(get("moved"), null);
+  assert_equals(getComputedStyle(get("previous")).color, green, "new last child of the old parent");
+  assert_not_equals(getComputedStyle(get("existing")).color, green, "old last child of the new parent");
+}, ":last-child on siblings in the old and new parents");
+
+test(t => {
+  const get = setUp(t, `<div class=nth-check><span id=moved></span><span></span><span id=third></span></div>
+    <div id=destination class=nth-check><span id=existing></span></div>`);
+  get("destination").moveBefore(get("moved"), get("existing"));
+  assert_equals(getComputedStyle(get("third")).color, green, "later sibling in the old parent");
+  assert_equals(getComputedStyle(get("existing")).color, green, "later sibling in the new parent");
+}, ":nth-child(2) on later siblings in the old and new parents");
+
+test(t => {
+  const get = setUp(t, `<div class=nth-last-check><span id=first></span><span></span><span id=moved></span></div>
+    <div id=destination class=nth-last-check><span id=existing></span></div>`);
+  get("destination").moveBefore(get("moved"), null);
+  assert_equals(getComputedStyle(get("first")).color, green, "earlier sibling in the old parent");
+  assert_equals(getComputedStyle(get("existing")).color, green, "earlier sibling in the new parent");
+}, ":nth-last-child(2) on earlier siblings in the old and new parents");
+
+test(t => {
+  const get = setUp(t, `<div class=sibling-check><span id=moved class=a></span><span id=b class=b></span></div>
+    <div id=destination class=sibling-check><span id=otherB class=b></span></div>`);
+  assert_equals(getComputedStyle(get("b")).color, green);
+  get("destination").moveBefore(get("moved"), get("otherB"));
+  assert_not_equals(getComputedStyle(get("b")).color, green, "next sibling in the old parent");
+  assert_equals(getComputedStyle(get("otherB")).color, green, "next sibling in the new parent");
+}, ".a + .b on the next siblings in the old and new parents");
+
+test(t => {
+  const get = setUp(t, `<div id=parent class=first-check><span id=first></span><span id=moved></span></div>`);
+  get("parent").moveBefore(get("moved"), get("first"));
+  assert_equals(getComputedStyle(get("moved")).color, green, "moved element");
+  assert_not_equals(getComputedStyle(get("first")).color, green, "previous first child");
+}, ":first-child when reordering children of the same parent");
+</script>

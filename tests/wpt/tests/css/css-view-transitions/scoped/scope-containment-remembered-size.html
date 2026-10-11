@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Scoped View Transition: scope keeps its exact size during the update callback</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .scope {
+    display: inline-block;
+    padding: 10px 20px;
+    border: 5px solid;
+  }
+  .child {
+    width: 123.5px;
+    height: 45.25px;
+  }
+  #vertical { writing-mode: vertical-rl; }
+  #zoomed { zoom: 2; }
+</style>
+</head>
+<body>
+<div class="scope" id="horizontal"><div class="child"></div></div>
+<div class="scope" id="vertical"><div class="child"></div></div>
+<div class="scope" id="zoomed"><div class="child"></div></div>
+<script>
+// While the update callback runs, the scope behaves as if it had
+// `contain: size; contain-intrinsic-size: auto`, with its last remembered size
+// set to its size from before the transition. Removing all of its content must
+// therefore not change its size at all.
+async function runTest(id) {
+  const scope = document.getElementById(id);
+  const before = scope.getBoundingClientRect();
+  let during;
+  const transition = scope.startViewTransition(() => {
+    scope.replaceChildren();
+    during = scope.getBoundingClientRect();
+  });
+  await transition.finished;
+  const after = scope.getBoundingClientRect();
+
+  assert_equals(during.width, before.width, "width during update callback");
+  assert_equals(during.height, before.height, "height during update callback");
+
+  // Once the transition is done, the containment is gone and the (now empty)
+  // scope shrinks down to its padding and border.
+  assert_less_than(after.width, before.width, "width after transition");
+  assert_less_than(after.height, before.height, "height after transition");
+}
+
+promise_test(() => runTest("horizontal"), "Remembered size accounts for padding and border");
+promise_test(() => runTest("vertical"), "Remembered size accounts for vertical writing mode");
+promise_test(() => runTest("zoomed"), "Remembered size accounts for zoom");
+</script>
+</body>
+</html>

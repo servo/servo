@@ -6,7 +6,7 @@
 <link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
 <link rel="stylesheet" href="/fonts/ahem.css">
 <link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
-<meta name="assert" content="Preserved tabs are properly taken into account when clamping. In particular, if the last line before clamp is also the last line of the line-clamp container, and it ends in a tab that doesn't cause it to overflow, then that shouldn't cause it to have an ellipsis.">
+<meta name="assert" content="When the block-ellipsis displaces an entire line, that line contains a strut styled according to the root inline box. It does not have struts corresponding to any other open inline boxes.">
 <style>
 .parent {
   height: 100px;

@@ -155,6 +155,176 @@
       assert_equals(rect.width, 200);
       assert_equals(rect.height, 100);
     }, 'drawElementImage() with source and destination rect overload (8 arguments)');
+
+    promise_test(async (t) => {
+      const canvas = document.getElementById('canvas');
+      const target = document.getElementById('target');
+      const ctx = canvas.getContext('2d');
+      t.add_cleanup(() => {
+        ctx.reset();
+        canvas.clearElementGeometry(target);
+      });
+
+      await waitForCanvasPaint(canvas);
+
+      ctx.drawElementImage(target, 10, 5, 50, 25, 17, -9, 100, 50);
+      const expected = new DOMMatrix()
+        .translateSelf(17, -9)
+        .scaleSelf(2, 2)
+        .translateSelf(-10, -5);
+      assert_array_approx_equals(
+        canvas.getElementTransform(target).toFloat64Array(),
+        expected.toFloat64Array(), 0.001);
+    }, 'drawElementImage() accounts for non-zero sx and sy offset');
+
+    promise_test(async (t) => {
+      const canvas = document.getElementById('canvas');
+      const target = document.getElementById('target');
+      const ctx = canvas.getContext('2d');
+      t.add_cleanup(() => {
+        target.style.transform = '';
+        ctx.reset();
+        canvas.clearElementGeometry(target);
+      });
+
+      target.style.transform = 'rotate(45deg)';
+      await waitForCanvasPaint(canvas);
+
+      ctx.drawElementImage(target, 0, 0);
+      assert_array_equals(
+        canvas.getElementTransform(target).toFloat64Array(),
+        new DOMMatrix().toFloat64Array());
+    }, 'drawElementImage() element transform does not include CSS transform on the element');
+
+    promise_test(async (t) => {
+      const canvas = document.getElementById('canvas');
+      const target = document.getElementById('target');
+      const ctx = canvas.getContext('2d');
+      t.add_cleanup(() => {
+        target.style.transformOrigin = '0 0';
+        ctx.reset();
+        canvas.clearElementGeometry(target);
+      });
+
+      await waitForCanvasPaint(canvas);
+
+      ctx.translate(42, 17);
+      ctx.drawElementImage(target, 0, 0);
+      assert_array_equals(
+        canvas.getElementTransform(target).toFloat64Array(),
+        new DOMMatrix().translateSelf(42, 17).toFloat64Array());
+
+      ctx.reset();
+      target.style.transformOrigin = '5px 5px';
+      await waitForCanvasPaint(canvas);
+
+      ctx.rotate(Math.PI / 4);
+      ctx.drawElementImage(target, 0, 0);
+      assert_array_approx_equals(
+        canvas.getElementTransform(target).toFloat64Array(),
+        new DOMMatrix().rotateSelf(45).toFloat64Array(), 0.001);
+    }, 'drawElementImage() accounts for CTM and ignores element transform-origin');
+
+    promise_test(async (t) => {
+      const canvas = document.getElementById('canvas');
+      const target = document.getElementById('target');
+      const ctx = canvas.getContext('2d');
+      t.add_cleanup(() => {
+        canvas.style.zoom = '';
+        ctx.reset();
+        canvas.clearElementGeometry(target);
+      });
+
+      canvas.style.zoom = '1.5';
+      await waitForCanvasPaint(canvas);
+
+      ctx.drawElementImage(target, 7, 11);
+      assert_array_equals(
+        canvas.getElementTransform(target).toFloat64Array(),
+        new DOMMatrix().translateSelf(7, 11).toFloat64Array());
+    }, 'drawElementImage() element transform is not affected by zoom on the canvas');
+
+    promise_test(async (t) => {
+      const canvas = document.getElementById('canvas');
+      const target = document.getElementById('target');
+      const ctx = canvas.getContext('2d');
+      t.add_cleanup(() => {
+        canvas.width = 400;
+        canvas.height = 400;
+        canvas.clearElementGeometry(target);
+      });
+
+      canvas.width = 800;
+      canvas.height = 200;
+      await waitForCanvasPaint(canvas);
+
+      ctx.drawElementImage(target, 7, 11);
+      const expected = new DOMMatrix()
+        .scaleSelf(0.5, 2)
+        .translateSelf(7, 11)
+        .scaleSelf(2, 0.5);
+      assert_array_equals(
+        canvas.getElementTransform(target).toFloat64Array(),
+        expected.toFloat64Array());
+    }, 'drawElementImage() element transform accounts for canvas grid pixel scale');
+
+    promise_test(async (t) => {
+      const canvas = document.getElementById('canvas');
+      const target = document.getElementById('target');
+      const ctx = canvas.getContext('2d');
+      t.add_cleanup(() => {
+        canvas.style.width = '400px';
+        canvas.style.height = '400px';
+        ctx.reset();
+        canvas.clearElementGeometry(target);
+      });
+
+      canvas.style.width = '200px';
+      canvas.style.height = '800px';
+      await waitForCanvasPaint(canvas);
+
+      ctx.drawElementImage(target, 7, 11);
+      const expected = new DOMMatrix()
+        .scaleSelf(0.5, 2)
+        .translateSelf(7, 11)
+        .scaleSelf(2, 0.5);
+      assert_array_equals(
+        canvas.getElementTransform(target).toFloat64Array(),
+        expected.toFloat64Array());
+    }, 'drawElementImage() element transform accounts for canvas CSS pixel scale');
+
+    promise_test(async (t) => {
+      const canvas = document.getElementById('canvas');
+      const target = document.getElementById('target');
+      const ctx = canvas.getContext('2d');
+      t.add_cleanup(() => {
+        canvas.width = 400;
+        canvas.height = 400;
+        canvas.style.zoom = '';
+        target.style.transformOrigin = '0 0';
+        ctx.reset();
+        canvas.clearElementGeometry(target);
+      });
+
+      canvas.width = 800;
+      canvas.height = 200;
+      canvas.style.zoom = '1.5';
+      target.style.transformOrigin = '5px 5px';
+      await waitForCanvasPaint(canvas);
+
+      ctx.translate(42, 17);
+      ctx.rotate(Math.PI / 4);
+      ctx.drawElementImage(target, 13, -9);
+      const expected = new DOMMatrix()
+        .scaleSelf(0.5, 2)
+        .translateSelf(42, 17)
+        .rotateSelf(45)
+        .translateSelf(13, -9)
+        .scaleSelf(2, 0.5);
+      assert_array_approx_equals(
+        canvas.getElementTransform(target).toFloat64Array(),
+        expected.toFloat64Array(), 0.001);
+    }, 'drawElementImage() element transform accounts for canvas pixel scale, zoom, CTM, and dx/dy');
   </script>
 </body>
 </html>

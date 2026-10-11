@@ -10,19 +10,19 @@
 </head>
 <body>
 <script>
-function timeout_promise(t, msg) {
+function timeoutPromise(t, msg) {
   return new Promise((_, reject) => {
     t.step_timeout(() => reject(msg), 3000);
   });
 }
 
-const child_origins = [self.origin, get_host_info().HTTPS_REMOTE_ORIGIN];
-for (const origin of child_origins) {
-  run_test(origin);
+const childOrigins = [self.origin, get_host_info().HTTPS_REMOTE_ORIGIN];
+for (const origin of childOrigins) {
+  runTest(origin);
 }
 
-function run_test(origin) {
-  const origin_for_description =
+function runTest(origin) {
+  const originForDescription =
       origin === self.origin ? 'same-origin' : 'cross-origin';
 
   promise_test(async t => {
@@ -30,36 +30,34 @@ function run_test(origin) {
     iframe.src = origin + '/webmcp/imperative/resources/iframe-caller.html';
     iframe.allow = `tools ${origin}`;
 
-    const load_promise = new Promise(resolve => iframe.onload = resolve);
+    const { promise: loadPromise, resolve: resolveLoad } = Promise.withResolvers();
+    iframe.onload = resolveLoad;
     document.body.appendChild(iframe);
     t.add_cleanup(() => iframe.remove());
-    await load_promise;
+    await loadPromise;
 
-    let resolve_tool_started;
-    const tool_started_promise =
-        new Promise(resolve => { resolve_tool_started = resolve; });
-
-    let resolve_signal_aborted, reject_signal_aborted;
-    const signal_aborted_promise = new Promise((resolve, reject) => {
-      resolve_signal_aborted = resolve;
-      reject_signal_aborted = reject;
-    });
+    const { promise: toolStartedPromise, resolve: resolveToolStarted } = Promise.withResolvers();
+    const {
+      promise: signalAbortedPromise,
+      resolve: resolveSignalAborted,
+      reject: rejectSignalAborted
+    } = Promise.withResolvers();
 
     const controller = new AbortController();
     await document.modelContext.registerTool({
       name: 'parent_tool',
       description: 'Parent tool',
       execute: async (input, opts) => {
-        resolve_tool_started();
+        resolveToolStarted();
 
         // If an `AbortSignal` is not passed into the `execute()` callback, reject
-        // `signal_aborted_promise`.
+        // `signalAbortedPromise`.
         if (!opts || !opts.signal) {
-          reject_signal_aborted('signal not provided to execute()');
+          rejectSignalAborted('signal not provided to execute()');
           return;
         }
 
-        opts.signal.onabort = resolve_signal_aborted;
+        opts.signal.onabort = resolveSignalAborted;
 
         // The parent's tool runs "forever", waiting for the signal to abort.
         await new Promise(() => {});
@@ -74,7 +72,9 @@ function run_test(origin) {
           options: {fromOrigins: [self.origin]}
         },
         '*');
-    await Promise.race([tool_started_promise, timeout_promise(t, 'tool never ran')]);
+    await Promise.race([toolStartedPromise, timeoutPromise(t, 'tool never ran')]);
+
+    const toolCancelPromise = waitForToolCancel('parent_tool');
 
     // The iframe navigates away before the tool has finished executing. Instead
     // of navigating the iframe with its `src` attribute, we request it initiate
@@ -83,8 +83,56 @@ function run_test(origin) {
     // doing regarding navigations and tool executions.
     iframe.contentWindow.postMessage({action: 'navigate'}, '*');
 
-    await Promise.race([signal_aborted_promise, timeout_promise(t, 'signal never aborted')]);
-  }, `executeTool() aborts target signal when the invoker document (${origin_for_description}) navigates away`);
+    await Promise.race([
+      Promise.all([signalAbortedPromise, toolCancelPromise]),
+      timeoutPromise(t, 'signal or toolcancel never fired')
+    ]);
+  }, `executeTool() aborts target signal and fires toolcancel when the invoker document (${originForDescription}) navigates away`);
+
+  promise_test(async t => {
+    const iframe = document.createElement('iframe');
+    iframe.src = origin + '/webmcp/imperative/resources/iframe-caller.html';
+    iframe.allow = `tools ${origin}`;
+
+    const { promise: loadPromise, resolve: resolveLoad } = Promise.withResolvers();
+    iframe.onload = resolveLoad;
+    document.body.appendChild(iframe);
+    t.add_cleanup(() => iframe.remove());
+    await loadPromise;
+
+    const { promise: toolStartedPromise, resolve: resolveToolStarted } = Promise.withResolvers();
+    const { promise: signalAbortedPromise, resolve: resolveSignalAborted } = Promise.withResolvers();
+    const toolCancelPromise = waitForToolCancel('parent_tool_detach');
+
+    const controller = new AbortController();
+    t.add_cleanup(() => controller.abort());
+    await document.modelContext.registerTool({
+      name: 'parent_tool_detach',
+      description: 'Parent tool for caller detachment',
+      execute: async (input, opts) => {
+        opts.signal.onabort = resolveSignalAborted;
+        resolveToolStarted();
+        await new Promise(() => {});
+      }
+    }, { exposedTo: [origin], signal: controller.signal });
+
+    iframe.contentWindow.postMessage(
+        {
+          action: 'invoke',
+          name: 'parent_tool_detach',
+          options: {fromOrigins: [self.origin]}
+        },
+        '*');
+    await Promise.race([toolStartedPromise, timeoutPromise(t, 'tool never ran')]);
+
+    // Detach the caller iframe from the DOM while the parent tool is executing.
+    iframe.remove();
+
+    await Promise.race([
+      Promise.all([signalAbortedPromise, toolCancelPromise]),
+      timeoutPromise(t, 'signal or toolcancel never fired after caller detachment')
+    ]);
+  }, `executeTool() aborts target signal and fires toolcancel when the invoker frame (${originForDescription}) is detached from the DOM`);
 }
 </script>
 </body>

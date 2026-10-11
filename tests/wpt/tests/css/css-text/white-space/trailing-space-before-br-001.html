@@ -7,7 +7,7 @@
 <style>
 #container > div {
   display: inline-block;
-  -font-family: Ahem;
+  font-family: Ahem;
   font-size: 10px;
 }
 </style>
@@ -24,14 +24,15 @@
   <div>1111 <br> </div>
 </div>
 <script>
+promise_setup(() => document.fonts.ready);
+
 (function () {
   const epsilon = 1;
   let elements = Array.from(container.children);
   let reference = elements[0];
-  let reference_width = reference.offsetWidth;
   for (let element of elements) {
-    test(() => {
-      assert_approx_equals(element.offsetWidth, reference_width, epsilon);
+    promise_test(async () => {
+      assert_approx_equals(element.offsetWidth, reference.offsetWidth, epsilon);
     }, escapeSpaces(element.innerHTML));
   }
 })();

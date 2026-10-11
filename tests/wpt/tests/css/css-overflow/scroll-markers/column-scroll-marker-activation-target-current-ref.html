@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow Test Reference: activated ::column::scroll-marker becomes :target-current regardless of scroll-marker-group position</title>
+<style>
+  body {
+    margin: 0;
+  }
+  .group {
+    display: flex;
+    width: 300px;
+    height: 50px;
+  }
+  .group > div {
+    width: 100px;
+    height: 50px;
+    background: red;
+  }
+  .group > .active {
+    background: green;
+  }
+  .scroller {
+    width: 300px;
+    height: 100px;
+  }
+</style>
+<div class="group"><div></div><div class="active"></div><div></div></div>
+<div class="scroller"></div>
+<div class="scroller"></div>
+<div class="group"><div></div><div class="active"></div><div></div></div>

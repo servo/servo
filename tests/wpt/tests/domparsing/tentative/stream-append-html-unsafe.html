@@ -96,7 +96,7 @@ promise_test(async t => {
     await writer.write("ABC");
     await writer.abort("abort-reason");
     await writer.write("DEF").catch(() => {});
-    assert_equals(placeholder.textContent, "start ");
+    assert_equals(placeholder.textContent, "start ABC");
 }, "Aborting streamAppendHTMLUnsafe()");
 
 promise_test(async t => {

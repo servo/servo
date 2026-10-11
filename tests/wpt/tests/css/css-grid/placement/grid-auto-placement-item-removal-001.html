@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#auto-placement-algo">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-auto-flow-property">
+<meta name="assert" content="Removing grid items re-runs the auto-placement algorithm and moves the remaining auto-placed item, in sparse and dense row and column flows.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/css/support/alignment.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.grid {
+    grid-template-columns: 50px 100px;
+    grid-template-rows: 50px 100px;
+}
+</style>
+<script>
+function testRemoval(gridElementID, autoFlowElementID, size)
+{
+    var gridElement = document.getElementById(gridElementID);
+    var autoFlowElement = document.getElementById(autoFlowElementID);
+
+    // Remove the white space and the first grid item.
+    gridElement.removeChild(gridElement.firstChild);
+    gridElement.removeChild(gridElement.firstChild);
+
+    autoFlowElement.setAttribute("data-expected-width", size.width);
+    autoFlowElement.setAttribute("data-expected-height", size.height);
+    checkLayout("#" + gridElementID, false);
+}
+
+function testRemovals()
+{
+    checkLayout("#gridAutoFlowColumnSparse", false);
+    testRemoval("gridAutoFlowColumnSparse", "autoFlowColumnElement", { 'width': '100', 'height': '100' });
+    testRemoval("gridAutoFlowColumnSparse", "autoFlowColumnElement", { 'width': '100', 'height': '50' });
+    testRemoval("gridAutoFlowColumnSparse", "autoFlowColumnElement", { 'width': '50', 'height': '100' });
+    testRemoval("gridAutoFlowColumnSparse", "autoFlowColumnElement", { 'width': '50', 'height': '50' });
+
+    checkLayout("#gridAutoFlowRowSparse", false);
+    testRemoval("gridAutoFlowRowSparse", "autoFlowRowElement", { 'width': '100', 'height': '100' });
+    testRemoval("gridAutoFlowRowSparse", "autoFlowRowElement", { 'width': '100', 'height': '50' });
+    testRemoval("gridAutoFlowRowSparse", "autoFlowRowElement", { 'width': '50', 'height': '50' });
+    testRemoval("gridAutoFlowRowSparse", "autoFlowRowElement", { 'width': '50', 'height': '50' });
+
+    checkLayout("#gridAutoFlowColumnWithAutoItems", false);
+    testRemoval("gridAutoFlowColumnWithAutoItems", "autoFlowRowElementWithAutoItems", { 'width': '100', 'height': '100' });
+    testRemoval("gridAutoFlowColumnWithAutoItems", "autoFlowRowElementWithAutoItems", { 'width': '100', 'height': '50' });
+    testRemoval("gridAutoFlowColumnWithAutoItems", "autoFlowRowElementWithAutoItems", { 'width': '50', 'height': '100' });
+    testRemoval("gridAutoFlowColumnWithAutoItems", "autoFlowRowElementWithAutoItems", { 'width': '50', 'height': '50' });
+
+    checkLayout("#gridAutoFlowRowWithAutoAndFixedItems", false);
+    testRemoval("gridAutoFlowRowWithAutoAndFixedItems", "autoFlowRowElementWithAutoAndFixedItems", { 'width': '100', 'height': '100' });
+    testRemoval("gridAutoFlowRowWithAutoAndFixedItems", "autoFlowRowElementWithAutoAndFixedItems", { 'width': '100', 'height': '50' });
+    testRemoval("gridAutoFlowRowWithAutoAndFixedItems", "autoFlowRowElementWithAutoAndFixedItems", { 'width': '100', 'height': '50' });
+    testRemoval("gridAutoFlowRowWithAutoAndFixedItems", "autoFlowRowElementWithAutoAndFixedItems", { 'width': '50', 'height': '50' });
+}
+</script>
+<body onload="document.fonts.ready.then(() => { testRemovals(); done(); })">
+
+<p>This test checks that the tracks' auto positions are recomputed after removing a grid item.</p>
+
+<div class="unconstrainedContainer">
+    <div class="grid gridAutoFlowColumnSparse justifyContentStart" id="gridAutoFlowColumnSparse">
+        <div class="sizedToGridArea secondRowSecondColumn">XXXXX XXXXX XXXXX</div>
+        <div class="sizedToGridArea firstRowSecondColumn">XXXXX XXXXX XXXXX</div>
+        <div class="sizedToGridArea secondRowFirstColumn">XXXXX XXXXX XXXXX</div>
+        <div class="sizedToGridArea firstRowFirstColumn">XXXXX XXXXX XXXXX</div>
+        <div class="sizedToGridArea autoRowAutoColumn" id="autoFlowColumnElement" data-expected-width="170" data-expected-height="50">XXXXX XXXXX XXXXX</div>
+    </div>
+</div>
+
+<div class="unconstrainedContainer">
+    <div class="grid gridAutoFlowRowSparse" id="gridAutoFlowRowSparse">
+        <div class="sizedToGridArea secondRowSecondColumn">XXXXX XXXXX XXXXX</div>
+        <div class="sizedToGridArea firstRowSecondColumn">XXXXX XXXXX XXXXX</div>
+        <div class="sizedToGridArea firstRowFirstColumn">XXXXX XXXXX XXXXX</div>
+        <div class="sizedToGridArea secondRowFirstColumn">XXXXX XXXXX XXXXX</div>
+        <div class="sizedToGridArea autoRowAutoColumn" id="autoFlowRowElement" data-expected-width="50" data-expected-height="30">XXXXX XXXXX XXXXX</div>
+    </div>
+</div>
+
+<div class="unconstrainedContainer">
+    <div class="grid gridAutoFlowColumnDense justifyContentStart" id="gridAutoFlowColumnWithAutoItems">
+        <div class="sizedToGridArea autoRowFirstColumn">XXXXX XXXXX XXXXX</div>
+        <div class="sizedToGridArea autoRowSecondColumn">XXXXX XXXXX XXXXX</div>
+        <div class="sizedToGridArea secondRowAutoColumn">XXXXX XXXXX XXXXX</div>
+        <div class="sizedToGridArea firstRowAutoColumn">XXXXX XXXXX XXXXX</div>
+        <div class="sizedToGridArea autoRowAutoColumn" id="autoFlowRowElementWithAutoItems" data-expected-width="100" data-expected-height="100">XXXXX XXXXX XXXXX</div>
+    </div>
+</div>
+
+<div class="unconstrainedContainer">
+    <div class="grid gridAutoFlowRowDense" id="gridAutoFlowRowWithAutoAndFixedItems">
+        <div class="sizedToGridArea autoRowFirstColumn">XXXXX XXXXX XXXXX</div>
+        <div class="sizedToGridArea firstRowSecondColumn">XXXXX XXXXX XXXXX</div>
+        <div class="sizedToGridArea secondRowAutoColumn">XXXXX XXXXX XXXXX</div>
+        <div class="sizedToGridArea firstRowAutoColumn">XXXXX XXXXX XXXXX</div>
+        <div class="sizedToGridArea autoRowAutoColumn" id="autoFlowRowElementWithAutoAndFixedItems" data-expected-width="100" data-expected-height="100">XXXXX XXXXX XXXXX</div>
+    </div>
+</div>
+
+</body>

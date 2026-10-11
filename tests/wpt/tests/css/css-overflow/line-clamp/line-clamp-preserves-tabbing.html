@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp preserves tabbability</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<meta name="assert" content="line-clamp affects rendering without removing clamped text or elements from being focusable.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+#clamped {
+  line-clamp: 1;
+}
+</style>
+
+<button id=b1>Button 1</button>
+<div id="clamped">
+    Visible line.<br>
+    <button id=b2>Button 2</button>
+</div>
+<button id=b3>Button 3</button>
+
+<script>
+promise_test(async () => {
+    const b1 = document.getElementById("b1");
+    b1.focus();
+    await test_driver.send_keys(b1, "\uE004");
+    assert_equals(document.activeElement.id, "b2");
+}, "clamped content remains focusable.");
+</script>

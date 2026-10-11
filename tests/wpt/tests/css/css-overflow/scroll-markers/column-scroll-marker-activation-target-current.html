@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Overflow Test: activated ::column::scroll-marker becomes :target-current regardless of scroll-marker-group position</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-activation">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#active-scroll-marker">
+<link rel="help" href="https://issues.chromium.org/issues/566965154">
+<link rel="match" href="column-scroll-marker-activation-target-current-ref.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/reftest-wait.js"></script>
+<script src="/css/css-transitions/support/helper.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<style>
+  body {
+    margin: 0;
+  }
+  .scroller {
+    overflow: hidden;
+    columns: 1;
+    column-fill: auto;
+    gap: 0;
+    width: 300px;
+    height: 100px;
+  }
+  .scroller::scroll-marker-group {
+    display: flex;
+    width: 300px;
+    height: 50px;
+  }
+  .scroller::column::scroll-marker {
+    display: block;
+    width: 100px;
+    height: 50px;
+    background: red;
+    content: "";
+  }
+  .scroller::column::scroll-marker:target-current {
+    background: green;
+  }
+  #before {
+    scroll-marker-group: before;
+  }
+  #after {
+    scroll-marker-group: after;
+  }
+  .content {
+    height: 300px;
+  }
+</style>
+<!-- Each scroller lays out three 300px wide columns, hence three markers. -->
+<div id="before" class="scroller"><div class="content"></div></div>
+<div id="after" class="scroller"><div class="content"></div></div>
+<script>
+  function clickAt(x, y) {
+    return new test_driver.Actions()
+      .pointerMove(x, y)
+      .pointerDown()
+      .pointerUp()
+      .send();
+  }
+
+  reftestPromise(async () => {
+    await waitForCompositorReady();
+    // Activate the second ::column::scroll-marker of the scroller whose
+    // ::scroll-marker-group is laid out before it...
+    await clickAt(150, 25);
+    // ...and of the scroller whose ::scroll-marker-group is laid out after it.
+    await clickAt(150, 275);
+    await waitForAnimationFrames(2);
+    takeScreenshot();
+  });
+</script>
+</html>

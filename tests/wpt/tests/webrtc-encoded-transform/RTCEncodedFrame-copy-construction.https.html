@@ -228,6 +228,44 @@ function different(value) {
     assert_throws_dom("DataCloneError", () => {new window[constr](frame)});
   }, `${constr} copy c'tor using transferred frame throws DataCloneError on main thread.`);
 
+  promise_test(async t => {
+    let frame = structuredClone(reuse[kind]);
+    const popup = window.open("about:blank");
+    frame.data = new popup.ArrayBuffer(16);
+    new popup.Uint8Array(frame.data).fill(0xa5);
+
+    const clone = structuredClone(frame);
+    assert_equals(clone.data.byteLength, 16);
+    assert_true(new Uint8Array(clone.data).every(b => b == 0xa5));
+
+    popup.close();
+
+    const cloneAgain = structuredClone(frame);
+    assert_equals(cloneAgain.data.byteLength, 16);
+    assert_true(new Uint8Array(cloneAgain.data).every(b => b == 0xa5));
+
+    const transferred = structuredClone(frame, {transfer: [frame.data]});
+    assert_equals(transferred.data.byteLength, 16);
+    assert_true(new Uint8Array(transferred.data).every(b => b == 0xa5));
+  }, `${constr} clone works with buffer from a different window`);
+
+  promise_test(async t => {
+    let frame = structuredClone(reuse[kind]);
+    const popup = window.open("about:blank");
+    frame.data = new popup.ArrayBuffer(16);
+    new popup.Uint8Array(frame.data).fill(0xa5);
+
+    const copy = new window[constr](frame);
+    assert_equals(copy.data.byteLength, 16);
+    assert_true(new Uint8Array(copy.data).every(b => b == 0xa5));
+
+    popup.close();
+
+    const copyAgain = new window[constr](frame);
+    assert_equals(copyAgain.data.byteLength, 16);
+    assert_true(new Uint8Array(copyAgain.data).every(b => b == 0xa5));
+  }, `${constr} copy c'tor works with buffer from a different window`);
+
 });
 </script>
 </body>

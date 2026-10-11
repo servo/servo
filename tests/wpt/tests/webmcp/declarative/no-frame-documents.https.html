@@ -50,5 +50,30 @@ promise_test(async t => {
   iframe.remove();
   form.setAttribute('toolname', 'differenttool');
 }, "Declarative tool in iframe removed after registration does not crash on attribute modification");
+
+for (const operation of ['adoptNode', 'cloneNode', 'importNode']) {
+  promise_test(async t => {
+    const doc = document.implementation.createHTMLDocument();
+    const name = `transferred_form_${operation}`;
+    doc.body.innerHTML = `
+      <form toolname="${name}" tooldescription="Transferred tool" toolautosubmit>
+        <input name="query" required>
+      </form>`;
+    const source = doc.querySelector('form');
+    assert_false((await document.modelContext.getTools()).some(tool => tool.name === name));
+
+    const form = operation === 'cloneNode'
+        ? source.cloneNode(true) : document[operation](source, true);
+    t.add_cleanup(() => form.remove());
+    form.addEventListener('submit', t.step_func(event => {
+      event.preventDefault();
+      event.respondWith(Promise.resolve(form.querySelector('input').value));
+    }));
+    document.body.append(form);
+
+    const tool = await waitForTool(name);
+    assert_equals(await document.modelContext.executeTool(tool, {query: 'ok'}), 'ok');
+  }, `${operation} transfers a frameless form into an active document and registers a working tool`);
+}
 </script>
 </body>

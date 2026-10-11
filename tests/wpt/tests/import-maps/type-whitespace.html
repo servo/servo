@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Import maps with whitespace around the type attribute value</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#prepare-the-script-element">
+<link rel="help" href="https://github.com/whatwg/html/issues/13012">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script type="importmap">
+{ "imports": { "control": "data:text/javascript,export default 'control'" } }
+</script>
+<script type="importmap ">
+{ "imports": { "trailing": "data:text/javascript,export default 'trailing'" } }
+</script>
+<script type=" importmap">
+{ "imports": { "leading": "data:text/javascript,export default 'leading'" } }
+</script>
+<script type=" importmap ">
+{ "imports": { "both": "data:text/javascript,export default 'both'" } }
+</script>
+<script>
+promise_test(async () => {
+  const module = await import("control");
+  assert_equals(module.default, "control");
+}, 'type="importmap"');
+
+for (const [specifier, type] of [["trailing", "importmap "], ["leading", " importmap"], ["both", " importmap "]]) {
+  promise_test(t => {
+    return promise_rejects_js(t, TypeError, import(specifier));
+  }, `type="${type}"`);
+}
+</script>

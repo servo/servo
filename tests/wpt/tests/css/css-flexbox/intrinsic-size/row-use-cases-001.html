@@ -275,30 +275,32 @@
 </section>
 
 <script>
-  test(_ => {
+  promise_setup(() => document.fonts.ready);
+
+  promise_test(async _ => {
     let left = bug423112.querySelector("#left-item");
     let right = bug423112.querySelector("#right-item");
     assert_less_than_equal(left.getBoundingClientRect().right, right.getBoundingClientRect().left);
   }, "left < right");
 
-  test(_ => {
+  promise_test(async _ => {
     const container = bug464210.querySelector(".FlexInnerContainer");
     const right = bug464210.querySelector("#right-item");
     assert_less_than_equal(right.getBoundingClientRect().right, container.getBoundingClientRect().right);
   }, "no overflow");
 
-  test(_ => {
+  promise_test(async _ => {
     const middle = bug533627c3.querySelector(".middle");
     const middle2 = bug533627c3.querySelector(".middle2");
     assert_equals(middle.offsetWidth, middle2.offsetWidth);
   }, "same widths");
 
-  test(_ => {
+  promise_test(async _ => {
     const middle = bug441768.querySelector(".middle");
     assert_equals(middle.offsetWidth, 0);
   }, "zero width");
 
-  test(_ => {
+  promise_test(async _ => {
     const top = bug1144312.querySelector("#top");
     const middle = bug1144312.querySelector("#middle");
     const bottom = bug1144312.querySelector("#bottom");
@@ -306,7 +308,7 @@
     assert_equals(middle.offsetHeight, bottom.offsetHeight);
   }, "same heights");
 
-  test(_ => {
+  promise_test(async _ => {
     const container = bug1154243.querySelector("#container");
     const right = bug1154243.querySelector("#right");
     assert_less_than_equal(right.getBoundingClientRect().right, container.getBoundingClientRect().right)

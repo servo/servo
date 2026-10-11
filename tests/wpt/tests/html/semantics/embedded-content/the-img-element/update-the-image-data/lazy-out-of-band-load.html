@@ -16,8 +16,8 @@
 async function run_test(prop, image, placement, t) {
   let value = `${image.path}?lazy-out-of-band-load-` + Math.random();
   let lazy = document.createElement("img")
-  lazy[prop] = value;
   lazy.loading = "lazy";
+  lazy[prop] = value;
   lazy.addEventListener("error", t.unreached_func("error: should never try to load"));
   lazy.addEventListener("load", t.unreached_func("load: should never try to load"));
   if (placement == "display-none") {

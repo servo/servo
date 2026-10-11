@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml" width="200" height="100">
+  <title>Unknown elements inside &#x3c;text&#x3e;, such as the removed &#x3c;altGlyph&#x3e;, are not rendered</title>
+  <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextLayoutAlgorithm"/>
+  <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/changes.html#text"/>
+  <h:link rel="match" href="text-unknown-element-not-rendered-ref.svg"/>
+  <h:link rel="stylesheet" type="text/css" href="/fonts/ahem.css"/>
+  <g font-family="Ahem" font-size="20" fill="green">
+    <text x="10" y="40">AB<altGlyph fill="red">XX</altGlyph>CD</text>
+    <text x="10" y="80">AB<unknown fill="red">XX</unknown>CD</text>
+  </g>
+</svg>

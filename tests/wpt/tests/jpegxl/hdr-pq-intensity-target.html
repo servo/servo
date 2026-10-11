@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>JPEG XL: intensity_target is the peak luminance of a PQ image</title>
+<link rel="help" href="https://github.com/web-platform-tests/interop-jpegxl">
+<meta name="assert" content="Two PQ images with identical pixels but different intensity_target tone map differently: the one stating the lower peak is brighter on an SDR canvas.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+<script>
+
+// Both fixtures are a flat patch of 588 cd/m2 in BT.2100 PQ. They differ only
+// in intensity_target: 600 states a peak just above the content, 10000 states
+// the peak of PQ itself.
+promise_test(async () => {
+  const stated = samplePixel(
+      await loadImage('resources/pq_intensity_target_600.jxl'), 4, 4);
+  const unstated = samplePixel(
+      await loadImage('resources/pq_intensity_target_10000.jxl'), 4, 4);
+
+  assert_greater_than(stated[0], unstated[0],
+      'content peaking at its stated intensity_target should not be ' +
+      'compressed as if it peaked at 10000 cd/m2');
+}, 'intensity_target sets the peak luminance that a PQ image tone maps from.');
+
+</script>

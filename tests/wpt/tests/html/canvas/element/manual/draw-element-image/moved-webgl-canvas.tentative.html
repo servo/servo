@@ -5,7 +5,7 @@
 <script src="/resources/testharnessreport.js"></script>
 
 <canvas id="container" content="drawable" width="100" height="100"></canvas>
-<canvas id="webgl" width="100" height="100"></canvas>
+<canvas id="webgl" drawable width="100" height="100"></canvas>
 
 <script>
 function waitForPaintEvent(canvas) {
@@ -27,8 +27,8 @@ promise_test(async (t) => {
   gl.clearColor(0, 0, 1, 1);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
-  // Wait for initial paint/commit so the WebGL canvas is composited outside
-  // the container canvas first.
+  // Wait for initial paint so the WebGL canvas is rendered outside the
+  // container canvas first.
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
   // Move the WebGL canvas into the container canvas after the first paint.

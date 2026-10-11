@@ -41,8 +41,16 @@ onload = () => {
       "Can't draw a display: none child.");
     assert_throws_dom(
       "InvalidStateError",
+      () => canvas1.getElementImageDefaultSize(child1),
+      "Can't get default size of a display: none child.");
+    assert_throws_dom(
+      "InvalidStateError",
       () => canvas2.getContext("2d").drawElementImage(child2, 20, 30),
       "Can't draw into a display-none <canvas>.");
-  }, "Canvas drawElementImage() should throw when drawn child is not laid out.");
+    assert_throws_dom(
+      "InvalidStateError",
+      () => canvas2.getElementImageDefaultSize(child2),
+      "Can't get default size from a display-none <canvas>.");
+  }, "Canvas drawElementImage() and getElementImageDefaultSize() should throw when drawn child is not laid out.");
 };
 </script>

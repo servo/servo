@@ -1,8 +1,10 @@
 <!doctype html>
+<html class="reftest-wait">
 <meta charset="utf-8">
 <title>CSS Pseudo-Elements Test: Shadows on highlights vertical text - reference</title>
 <link rel="author" name="Stephen Chenney" href="mailto:schenney@igalia.com">
 <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<script src="/common/reftest-wait.js"></script>
 <style>
     :root {
         font-family: Ahem;
@@ -60,11 +62,15 @@
 <p id="both_shadow">ta</p>
 <p id="target">rget</p>
 <script>
-    originatingCS = getComputedStyle(originating_text);
-    selection_only.style.top = (parseFloat(originatingCS.height) + parseFloat(originatingCS.top)).toString() + "px";
-    selectionCS = getComputedStyle(selection_only);
-    both_text.style.top = (parseFloat(selectionCS.height) + parseFloat(selectionCS.top)).toString() + "px";
-    both_shadow.style.top =  both_text.style.top;
-    bothCS = getComputedStyle(both_text);
-    target.style.top = (parseFloat(bothCS.height) + parseFloat(bothCS.top)).toString() + "px";
+    document.fonts.ready.then(() => {
+        originatingCS = getComputedStyle(originating_text);
+        selection_only.style.top = (parseFloat(originatingCS.height) + parseFloat(originatingCS.top)).toString() + "px";
+        selectionCS = getComputedStyle(selection_only);
+        both_text.style.top = (parseFloat(selectionCS.height) + parseFloat(selectionCS.top)).toString() + "px";
+        both_shadow.style.top =  both_text.style.top;
+        bothCS = getComputedStyle(both_text);
+        target.style.top = (parseFloat(bothCS.height) + parseFloat(bothCS.top)).toString() + "px";
+        takeScreenshot();
+    });
 </script>
+</html>

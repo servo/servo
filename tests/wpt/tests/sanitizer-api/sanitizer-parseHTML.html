@@ -57,6 +57,30 @@ TypeError
 |   <body>
 |     "Hello"
 
+#data
+<noscript><p>x</noscript>y
+#config
+{}
+#document
+| <html>
+|   <head>
+|     <noscript>
+|   <body>
+|     <p>
+|       "xy"
+
+#data
+<noscript><p>x</noscript>y
+#config
+{ "elements": ["html", "head", "body", "noscript", "p"] }
+#document
+| <html>
+|   <head>
+|     <noscript>
+|   <body>
+|     <p>
+|       "xy"
+
 </script>
 <script id="safe" type="html5lib-testcases">
 #data
@@ -144,6 +168,15 @@ TypeError
 |     <p>
 |      "Click handler!"
 
+#data
+<noscript><p>x</noscript>y
+#document
+| <html>
+|   <head>
+|   <body>
+|     <p>
+|       "xy"
+
 </script>
 <script id="unsafe" type="html5lib-testcases">
 #data
@@ -197,6 +230,16 @@ TypeError
 { "replaceWithChildrenElements": ["html"], "removeElements": [] }
 #error
 TypeError
+
+#data
+<noscript><p>x</noscript>y
+#document
+| <html>
+|   <head>
+|     <noscript>
+|   <body>
+|     <p>
+|       "xy"
 
 </script>
 <script id="document" type="html5lib-testcases">

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>prerender-until-script upgrade target page</title>
+</head>
+<body>
+<h1>This page tests the prerender-until-script to prerender upgrade.</h1>
+<div>
+<!--
+  This request confirms that the PUS target started loading before the
+  initiator adds the upgrade rule. PUS allows fetching scripts but pauses
+  their execution.
+-->
+<script async src="{{pus_loaded_path}}"></script>
+</div>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script>
+  // Capture whether the PUS pause was lifted by the upgrade (true) or by
+  // activation (false).
+  const prerenderingStateWhenJsRan = document.prerendering;
+
+  const testChannel = new PrerenderChannel('test-channel');
+  testChannel.postMessage(
+      `prerendering state when executing JS: ${prerenderingStateWhenJsRan}`);
+  testChannel.close();
+
+  // Release the initiator so it can activate by navigating.
+  fetch('{{js_ran_path}}').finally(() => {
+    // Closing before activation would cancel the prerender host.
+    if (document.prerendering) {
+      document.addEventListener(
+          'prerenderingchange', () => window.close(), {once: true});
+    } else {
+      window.close();
+    }
+  });
+</script>
+</body>
+</html>

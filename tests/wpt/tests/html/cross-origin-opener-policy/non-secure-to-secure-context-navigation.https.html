@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset=utf-8>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="/common/get-host-info.sub.js"></script>
+</head>
+<body>
+<script>
+async_test((t) => {
+    let bc = new BroadcastChannel('non-secure-to-secure-context-navigation');
+    bc.onmessage = t.step_func((event) => {
+        assert_equals(event.data, "does_not_have_opener");
+        t.step_wait_func_done(() => win.closed);
+    });
+
+    // The popup starts in a non-secure context and then navigates to HTTPS with COOP=same-origin.
+    const popupPath = new URL("resources/non-secure-to-secure-context-navigation-popup.html", location).pathname;
+    const secureURL = location.origin + popupPath + "?secure=1&pipe=header(Cross-Origin-Opener-Policy,same-origin)";
+    win = open(get_host_info().UNAUTHENTICATED_ORIGIN + popupPath + "?next=" + encodeURIComponent(secureURL));
+}, "COOP causes a browsing context group switch when navigating from a non-secure context to a secure one");
+</script>
+</body>
+</html>

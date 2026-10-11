@@ -48,8 +48,14 @@
             case "remove-shadow-root":
               assert_equals(parent.querySelector("span").shadowRoot, null);
               break;
-            case "remove-specific":
+            case "remove-internal":
               assert_not_equals(parent.querySelector("span").shadowRoot, null);
+              assert_equals(
+                parent
+                  .querySelector("span")
+                  .shadowRoot.querySelector("h1").textContent,
+                "Forbidden",
+              );
               assert_false(
                 parent
                   .querySelector("span")
@@ -72,4 +78,37 @@
       }
     }
   }
+
+  promise_test(async (t) => {
+    const streamTarget = document.createElement("div");
+    const writer = streamTarget.streamHTMLUnsafe().getWriter();
+    await writer.write('<div><template shadowrootmode="open"><p>streamed</p></template></div>');
+    await writer.close();
+    assert_not_equals(streamTarget.firstElementChild.shadowRoot, null);
+
+    const innerHTMLTarget = document.createElement("div");
+    innerHTMLTarget.innerHTML = '<div><template shadowrootmode="open"><p>inner</p></template></div>';
+    assert_equals(
+      innerHTMLTarget.firstElementChild.shadowRoot,
+      null,
+      "streamHTMLUnsafe must not leak declarative shadow root allowance to subsequent innerHTML calls",
+    );
+
+    const doc = document.implementation.createHTMLDocument();
+    const docTarget = doc.createElement("div");
+    doc.body.appendChild(docTarget);
+    const docWriter = docTarget.streamHTMLUnsafe().getWriter();
+    await docWriter.write('<div><template shadowrootmode="open"><p>streamed</p></template></div>');
+    await docWriter.close();
+    assert_not_equals(docTarget.firstElementChild.shadowRoot, null);
+
+    doc.open();
+    doc.write('<div id="written"><template shadowrootmode="open"><p>written</p></template></div>');
+    doc.close();
+    assert_equals(
+      doc.getElementById("written").shadowRoot,
+      null,
+      "streamHTMLUnsafe must not enable declarative shadow roots for subsequent document.write()",
+    );
+  }, "streamHTMLUnsafe does not enable declarative shadow roots for subsequent innerHTML or document.write()");
 </script>

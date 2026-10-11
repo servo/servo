@@ -87,24 +87,26 @@
     }, `${method} on <plaintext> initializes tokenizer in PLAINTEXT state`);
   }
 
-  // 4. Script data context: unsafe <script> target
-  for (const method of ["streamHTMLUnsafe", "streamAppendHTMLUnsafe", "streamPrependHTMLUnsafe"]) {
-    promise_test(async (t) => {
-      const container = document.getElementById("container");
-      t.add_cleanup(() => container.replaceChildren());
+  // 4. RAWTEXT context: <xmp>, <iframe>, <noembed>, <noframes>
+  for (const tag of ["xmp", "iframe", "noembed", "noframes"]) {
+    for (const method of ["streamHTMLUnsafe", "streamAppendHTMLUnsafe", "streamPrependHTMLUnsafe"]) {
+      promise_test(async (t) => {
+        const container = document.getElementById("container");
+        t.add_cleanup(() => container.replaceChildren());
 
-      const script = document.createElement("script");
-      container.appendChild(script);
+        const el = document.createElement(tag);
+        container.appendChild(el);
 
-      const writer = script[method]().getWriter();
-      await writer.write("var str = '<b>&a");
-      await writer.write("mp;</b>';");
-      await writer.close();
+        const writer = el[method]().getWriter();
+        await writer.write("<b>&a");
+        await writer.write("mp;</b>");
+        await writer.close();
 
-      assert_equals(script.childNodes.length, 1);
-      assert_equals(script.firstChild.nodeType, Node.TEXT_NODE);
-      assert_equals(script.textContent, "var str = '<b>&amp;</b>';");
-    }, `${method} on <script> initializes tokenizer in Script data state`);
+        assert_equals(el.childNodes.length, 1);
+        assert_equals(el.firstChild.nodeType, Node.TEXT_NODE);
+        assert_equals(el.textContent, "<b>&amp;</b>");
+      }, `${method} on <${tag}> initializes tokenizer in RAWTEXT state`);
+    }
   }
 
   // 5. <noscript> context with scripting enabled (RAWTEXT)
@@ -127,40 +129,44 @@
   }
 
   // 6. <noscript> context with scripting disabled (Data state)
-  promise_test(async (t) => {
-    const doc = document.implementation.createHTMLDocument("");
-    const noscript = doc.createElement("noscript");
-    doc.body.appendChild(noscript);
+  for (const method of ["streamHTML", "streamHTMLUnsafe", "streamAppendHTML", "streamAppendHTMLUnsafe"]) {
+    promise_test(async (t) => {
+      const doc = document.implementation.createHTMLDocument("");
+      const noscript = doc.createElement("noscript");
+      doc.body.appendChild(noscript);
 
-    const writer = noscript.streamHTMLUnsafe().getWriter();
-    await writer.write("<b>hello &a");
-    await writer.write("mp; world</b>");
-    await writer.close();
+      const writer = noscript[method]().getWriter();
+      await writer.write("<b>hello &a");
+      await writer.write("mp; world</b>");
+      await writer.close();
 
-    assert_equals(noscript.querySelectorAll("b").length, 1, "<b> element should be created when scripting is disabled");
-    assert_equals(noscript.querySelector("b").textContent, "hello & world", "Char refs must be expanded in Data state");
-  }, "streamHTMLUnsafe on <noscript> in scripting-disabled document (createHTMLDocument) initializes tokenizer in Data state");
+      assert_equals(noscript.querySelectorAll("b").length, 1, "<b> element should be created when scripting is disabled");
+      assert_equals(noscript.querySelector("b").textContent, "hello & world", "Char refs must be expanded in Data state");
+    }, `${method} on <noscript> in scripting-disabled document (createHTMLDocument) initializes tokenizer in Data state`);
+  }
 
-  promise_test(async (t) => {
-    const iframe = document.createElement("iframe");
-    iframe.setAttribute("sandbox", "allow-same-origin");
-    const loadPromise = new Promise(resolve => iframe.addEventListener("load", resolve, { once: true }));
-    iframe.src = "about:blank";
-    document.body.appendChild(iframe);
-    t.add_cleanup(() => iframe.remove());
-    await loadPromise;
+  for (const method of ["streamHTML", "streamHTMLUnsafe"]) {
+    promise_test(async (t) => {
+      const iframe = document.createElement("iframe");
+      iframe.setAttribute("sandbox", "allow-same-origin");
+      const loadPromise = new Promise(resolve => iframe.addEventListener("load", resolve, { once: true }));
+      iframe.src = "about:blank";
+      document.body.appendChild(iframe);
+      t.add_cleanup(() => iframe.remove());
+      await loadPromise;
 
-    const doc = iframe.contentDocument;
-    const noscript = doc.createElement("noscript");
-    doc.body.appendChild(noscript);
+      const doc = iframe.contentDocument;
+      const noscript = doc.createElement("noscript");
+      doc.body.appendChild(noscript);
 
-    const writer = noscript.streamHTMLUnsafe().getWriter();
-    await writer.write("<b>hello &a");
-    await writer.write("mp; world</b>");
-    await writer.close();
+      const writer = noscript[method]().getWriter();
+      await writer.write("<b>hello &a");
+      await writer.write("mp; world</b>");
+      await writer.close();
 
-    assert_equals(noscript.querySelectorAll("b").length, 1, "<b> element should be created when scripting is disabled in sandboxed iframe");
-    assert_equals(noscript.querySelector("b").textContent, "hello & world", "Char refs must be expanded in Data state");
-  }, "streamHTMLUnsafe on <noscript> in sandboxed iframe initializes tokenizer in Data state");
+      assert_equals(noscript.querySelectorAll("b").length, 1, "<b> element should be created when scripting is disabled in sandboxed iframe");
+      assert_equals(noscript.querySelector("b").textContent, "hello & world", "Char refs must be expanded in Data state");
+    }, `${method} on <noscript> in sandboxed iframe initializes tokenizer in Data state`);
+  }
 </script>
 </body>

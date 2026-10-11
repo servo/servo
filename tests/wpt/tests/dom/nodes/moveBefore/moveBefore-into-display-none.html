@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>moveBefore() into a display: none parent stops rendering the moved node</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#move">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="hidden" style="display: none"></div>
+<span id="span">Text in light DOM</span>
+<script>
+test(() => {
+  assert_greater_than(span.getBoundingClientRect().width, 0);
+  hidden.moveBefore(span, null);
+  assert_equals(span.getBoundingClientRect().width, 0);
+});
+</script>

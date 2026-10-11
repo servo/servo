@@ -1,0 +1,31 @@
+<!doctype html>
+<title>SVGPathElement.getPathSegmentAtLength() with NaN distance and empty paths</title>
+<link rel="help" href="https://svgwg.org/specs/paths/#InterfaceSVGPathData">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/getPathData-helpers.js"></script>
+
+<script>
+  test(() => {
+    const path = createPath("M 0 0 L 100 0 L 100 100");
+    assert_throws_js(TypeError, () => { path.getPathSegmentAtLength(NaN); });
+  }, "a NaN distance must throw an exception");
+
+  test(() => {
+    const path = createPath("M 0 0 L 100 0 L 100 100");
+    assert_throws_js(TypeError, () => { path.getPathSegmentAtLength(Infinity); });
+  }, "an infinite distance must throw an exception");
+
+  test(() => {
+    const path = createPath("M 0 0 L 100 0 L 100 100");
+    assert_throws_js(TypeError, () => { path.getPathSegmentAtLength(-Infinity); });
+  }, "a negative infinite distance must throw an exception");
+
+  test(() => {
+    assert_equals(createPath().getPathSegmentAtLength(10), null);
+  }, "a path with no d returns null");
+
+  test(() => {
+    assert_equals(createPath("").getPathSegmentAtLength(10), null);
+  }, "a path with an empty d returns null");
+</script>

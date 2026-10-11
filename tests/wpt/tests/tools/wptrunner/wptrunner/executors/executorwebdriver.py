@@ -413,6 +413,10 @@ class WebDriverBidiEmulationProtocolPart(BidiEmulationProtocolPart):
         return await self.webdriver.bidi_session.emulation.set_touch_override(
             max_touch_points=max_touch_points, contexts=contexts)
 
+    async def set_viewport_meta_override(self, viewport_meta, contexts):
+        return await self.webdriver.bidi_session.emulation.set_viewport_meta_override(
+            viewport_meta=viewport_meta, contexts=contexts)
+
 
 class WebDriverBidiPermissionsProtocolPart(BidiPermissionsProtocolPart):
     def __init__(self, parent):

@@ -1,3 +1,5 @@
+#description
+search start tag closes an open p element
 #data
 <!doctype html><p>foo<search>bar<p>baz
 #errors
@@ -44,3 +46,87 @@
 |           <svg a>
 |             <svg search>
 |     <b>
+
+#data
+<!doctype html><a><search>x</a>y
+#errors
+ * (1,32) adoption agency: formatting element is not the current node
+ * (1,33) unexpected end of file
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <a>
+|     <search>
+|       <a>
+|         "x"
+|       "y"
+
+#data
+<!doctype html><a><search>x<p>y<a>z
+#errors
+ * (1,34) unexpected start tag a implies end tag a
+ * (1,35) unexpected end of file
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <a>
+|     <search>
+|       <a>
+|         "x"
+|       <p>
+|         <a>
+|           "y"
+|         <a>
+|           "z"
+
+#description
+search is in the special category, so an li start tag does not close the li outside it
+#data
+<!doctype html><li>a<search><li>b
+#errors
+ * (1,35) unexpected end of file
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <li>
+|       "a"
+|       <search>
+|         <li>
+|           "b"
+
+#description
+search is in the special category, so a dt start tag does not close the dd outside it
+#data
+<!doctype html><dd>a<search><dt>b
+#errors
+ * (1,35) unexpected end of file
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <dd>
+|       "a"
+|       <search>
+|         <dt>
+|           "b"
+
+#data
+<!doctype html><x><search></x>y
+#errors
+ * (1,30) unexpected end tag x
+ * (1,31) unexpected end of file
+#document
+| <!DOCTYPE html>
+| <html>
+|   <head>
+|   <body>
+|     <x>
+|       <search>
+|         "y"

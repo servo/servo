@@ -143,7 +143,7 @@ async function SetFirstPartyCookie(origin, cookie="cookie=unpartitioned;Secure;S
         resolve();
       }
     };
-    window.addEventListener('message', onMessage, { once: true });
+    window.addEventListener('message', onMessage);
 
     RunCallbackWithGesture(() => {
       window.open(`${origin}/storage-access-api/resources/set-document-cookie.html?${cookie}`);

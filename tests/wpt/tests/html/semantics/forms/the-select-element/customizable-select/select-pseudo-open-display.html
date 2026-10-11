@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<link rel=help href="https://html.spec.whatwg.org/multipage/semantics-other.html#selector-open">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+select, select::picker(select) {
+  appearance: base-select;
+}
+div:has(> select:open) {
+  color: rgb(0, 128, 0);
+}
+#displayFromRule {
+  display: inline-block;
+}
+#displayFromRule:open {
+  display: block;
+}
+</style>
+
+<div>
+  <select id=displayFromScript>
+    <option id=displayFromScriptOption>one</option>
+    <option>two</option>
+  </select>
+</div>
+
+<div>
+  <select id=displayFromRule>
+    <option id=displayFromRuleOption>one</option>
+    <option>two</option>
+  </select>
+</div>
+
+<script>
+const green = 'rgb(0, 128, 0)';
+
+promise_test(async t => {
+  const select = displayFromScript;
+  t.add_cleanup(() => select.remove());
+  await test_driver.click(select);
+  assert_true(select.matches(':open'), 'Select should be open after clicking it.');
+
+  select.style.display = 'block';
+  await new Promise(requestAnimationFrame);
+  assert_true(select.matches(':open'), 'Select should still be open after its display changed.');
+  assert_true(displayFromScriptOption.checkVisibility(), 'The picker should still be showing.');
+  assert_equals(getComputedStyle(select.parentElement).color, green,
+    'The parent should still match :has(> select:open).');
+
+  await test_driver.click(select);
+  assert_false(select.matches(':open'), 'Select should be closed after clicking it again.');
+  assert_not_equals(getComputedStyle(select.parentElement).color, green,
+    'The parent should no longer match :has(> select:open).');
+}, 'A select keeps matching :open when its display changes while its picker is open.');
+
+promise_test(async t => {
+  const select = displayFromRule;
+  t.add_cleanup(() => select.remove());
+  assert_equals(getComputedStyle(select).display, 'inline-block',
+    'The :open rule should not apply before the picker opens.');
+
+  await test_driver.click(select);
+  assert_true(select.matches(':open'), 'Select should be open after clicking it.');
+  assert_equals(getComputedStyle(select).display, 'block', 'The :open rule should apply.');
+
+  await new Promise(requestAnimationFrame);
+  assert_true(select.matches(':open'), 'Select should still be open a frame later.');
+  assert_equals(getComputedStyle(select).display, 'block', 'The :open rule should still apply.');
+  assert_true(displayFromRuleOption.checkVisibility(), 'The picker should still be showing.');
+
+  await test_driver.click(select);
+  assert_false(select.matches(':open'), 'Select should be closed after clicking it again.');
+  assert_equals(getComputedStyle(select).display, 'inline-block',
+    'The :open rule should no longer apply.');
+}, 'A :open rule that changes the display of a select keeps applying while its picker is open.');
+</script>

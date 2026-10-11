@@ -76,8 +76,8 @@ function getUrl(cacheHelper, {
  * @param {string} firstUuid - uuid returned by first url
  * @param {array[string]} testUrls - array of all urls that should be visited
  * @param {integer} curIdx - index in testUrls that is visited in the current function call
- * @param {function assert_not_equal|assert_equal} assert - function that gets passed first and last
- *        uuid and determines the success of the test case
+ * @param {function assert_not_equals|assert_equals} assert - whether the first and last uuid are
+ *        expected to be equal (resource served from cache) or different (cache was cleared)
  * @param {function} resolve - function to call when test case is complete
  * @param {*} options - URL generation options.
  */
@@ -92,7 +92,16 @@ function openTestPageHelper(test, firstUuid, testUrls, curIdx, assert, resolve) 
             openTestPageHelper(test, firstUuid, testUrls, curIdx + 1, assert, resolve);
         } else {
             // Last Step
-            assert(firstUuid, curUuid);
+            // The values are random on every server response (uuid4 strings,
+            // random image dimensions). Don't include them in the assertion,
+            // otherwise the failure message differs on every run. Only report
+            // whether the two values were equal.
+            const equal = firstUuid === curUuid;
+            if (assert === assert_equals) {
+                assert_true(equal, "first and last value should be equal (served from cache)");
+            } else {
+                assert_false(equal, "first and last value should differ (cache was cleared)");
+            }
             resolve();
         }
     }), {once: true});

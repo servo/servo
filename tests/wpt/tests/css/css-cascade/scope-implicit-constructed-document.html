@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<title>@scope - implicit scope root in constructed stylesheet adopted by a document</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scope-limits">
+<link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scoped-rules">
+<link rel="help" href="https://drafts.csswg.org/cssom/#extensions-to-the-document-or-shadow-root-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="outer" class="b">
+  <div id="inner" class="a"></div>
+  <div class="limit">
+    <div id="limited" class="a"></div>
+  </div>
+</div>
+
+<script>
+function adopt(t, text) {
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(text);
+  document.adoptedStyleSheets = [sheet];
+  t.add_cleanup(() => { document.adoptedStyleSheets = []; });
+  return sheet;
+}
+
+function createShadowRoot(t) {
+  const host = document.createElement("div");
+  document.body.append(host);
+  t.add_cleanup(() => host.remove());
+  const root = host.attachShadow({ mode: "open" });
+  root.innerHTML = `<div class="a"></div>`;
+  return root;
+}
+
+const zIndex = element => getComputedStyle(element).zIndex;
+
+test(t => {
+  adopt(t, `@scope { .a { z-index: 1; } }`);
+  assert_equals(zIndex(inner), "1");
+}, "Implicit @scope in a constructed stylesheet adopted by a document matches descendants");
+
+test(t => {
+  adopt(t, `@scope { html { z-index: 1; } }`);
+  assert_equals(zIndex(document.documentElement), "1");
+}, "Implicit @scope in a constructed stylesheet adopted by a document matches the root element");
+
+test(t => {
+  adopt(t, `@scope { :scope { z-index: 1; } }`);
+  assert_equals(zIndex(document.documentElement), "auto");
+  assert_equals(zIndex(document.body), "auto");
+}, ":scope in implicit @scope in a constructed stylesheet adopted by a document does not match any element");
+
+test(t => {
+  adopt(t, `@scope { z-index: 1; }`);
+  assert_equals(zIndex(document.documentElement), "auto");
+  assert_equals(zIndex(document.body), "auto");
+}, "Scoped declarations in implicit @scope in a constructed stylesheet adopted by a document do not match any element");
+
+test(t => {
+  adopt(t, `@scope { :scope .a { z-index: 1; } }`);
+  assert_equals(zIndex(inner), "1");
+}, "Explicit :scope with a descendant combinator in implicit @scope in a constructed stylesheet adopted by a document");
+
+test(t => {
+  adopt(t, `@scope { & .a { z-index: 1; } }`);
+  assert_equals(zIndex(inner), "1");
+}, "& with a descendant combinator in implicit @scope in a constructed stylesheet adopted by a document");
+
+test(t => {
+  adopt(t, `@scope { > html { z-index: 1; } > body { z-index: 1; } }`);
+  assert_equals(zIndex(document.documentElement), "1");
+  assert_equals(zIndex(document.body), "auto");
+}, "Child combinator in implicit @scope in a constructed stylesheet adopted by a document matches only the root element");
+
+test(t => {
+  adopt(t, `@scope to (.limit) { .a { z-index: 1; } }`);
+  assert_equals(zIndex(inner), "1");
+  assert_equals(zIndex(limited), "auto");
+}, "Implicit @scope with a scope end in a constructed stylesheet adopted by a document");
+
+test(t => {
+  adopt(t, `
+    @scope { .a { z-index: 1; } }
+    .a { z-index: 2; }
+  `);
+  assert_equals(zIndex(inner), "1");
+}, "Implicit @scope in a constructed stylesheet adopted by a document wins over unscoped rules by proximity");
+
+test(t => {
+  adopt(t, `
+    @scope (#outer) { .a { z-index: 2; } }
+    @scope { .a { z-index: 1; } }
+  `);
+  assert_equals(zIndex(inner), "2");
+}, "Implicit @scope in a constructed stylesheet adopted by a document loses to a closer scoping root by proximity");
+
+test(t => {
+  adopt(t, `@scope { @scope (.b) { .a { z-index: 1; } } }`);
+  assert_equals(zIndex(inner), "1");
+}, "Nested @scope inside implicit @scope in a constructed stylesheet adopted by a document");
+
+test(t => {
+  const root = createShadowRoot(t);
+  adopt(t, `@scope { .a { z-index: 1; } }`);
+  assert_equals(zIndex(inner), "1");
+  assert_equals(zIndex(root.querySelector(".a")), "auto");
+}, "Implicit @scope in a constructed stylesheet adopted by a document does not match in shadow trees");
+
+test(t => {
+  const root = createShadowRoot(t);
+  const sheet = adopt(t, `@scope { .a { z-index: 1; } }`);
+  root.adoptedStyleSheets = [sheet];
+  assert_equals(zIndex(inner), "1");
+  assert_equals(zIndex(root.querySelector(".a")), "1");
+}, "Implicit @scope in a constructed stylesheet adopted by both a document and a shadow root");
+
+test(t => {
+  adopt(t, `@scope { .a { z-index: 1; } }`);
+  assert_equals(zIndex(inner), "1");
+  document.adoptedStyleSheets = [];
+  assert_equals(zIndex(inner), "auto");
+}, "Implicit @scope in a constructed stylesheet stops matching once the document no longer adopts it");
+</script>

@@ -1,0 +1,23 @@
+<svg width="400" height="200" xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml" class="reftest-wait">
+  <title>Inserting the referenced path after the textPath renders the text along it</title>
+  <metadata>
+    <html:link rel="author" title="Nikolas Zimmermann" href="mailto:nzimmermann@igalia.com"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementHrefAttribute"/>
+    <html:link rel="match" href="textpath-dynamic-target-ref.svg"/>
+  </metadata>
+  <defs id="defs"/>
+  <text font-size="24">
+    <textPath href="#curve">Text along a quadratic curve</textPath>
+  </text>
+  <script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    path.setAttribute("id", "curve");
+    path.setAttribute("d", "M 10 100 Q 100 20 200 100 T 390 100");
+    document.getElementById("defs").appendChild(path);
+    document.documentElement.classList.remove("reftest-wait");
+  });
+});
+  </script>
+</svg>

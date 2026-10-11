@@ -85,12 +85,15 @@ backgroundFetchTest(async (test, backgroundFetch) => {
 }, 'Empty URL is OK.');
 
 backgroundFetchTest(async (test, backgroundFetch) => {
+  const filePath = '/background-fetch/resources/feature-name.txt';
+  const crossOriginUrl = `${get_host_info().HTTPS_REMOTE_ORIGIN}${
+      filePath}?pipe=header(Access-Control-Allow-Origin, *)|header(Access-Control-Allow-Methods, PUT)`;
+
   const registrationId = uniqueId();
   const registration =
-    await backgroundFetch.fetch(registrationId,
-        new Request('https://example/com', {
-        method: 'PUT',
-      }));
+      await backgroundFetch.fetch(registrationId, new Request(crossOriginUrl, {
+                                    method: 'PUT',
+                                  }));
 
   assert_equals(registration.id, registrationId);
 
@@ -102,13 +105,15 @@ backgroundFetchTest(async (test, backgroundFetch) => {
 }, 'Requests with PUT method require CORS Preflight and succeed.');
 
 backgroundFetchTest(async (test, backgroundFetch) => {
+  const filePath = '/background-fetch/resources/feature-name.txt';
+  const crossOriginUrl = `${get_host_info().HTTPS_REMOTE_ORIGIN}${
+      filePath}?pipe=header(Access-Control-Allow-Origin, *)|header(Access-Control-Allow-Headers, content-type)`;
+
   const registrationId = uniqueId();
-  const registration =
-    await backgroundFetch.fetch(registrationId,
-        new Request('https://example/com', {
-        method: 'POST',
-        headers: {'Content-Type': 'text/json'}
-      }));
+  const registration = await backgroundFetch.fetch(
+      registrationId,
+      new Request(crossOriginUrl,
+                  {method: 'POST', headers: {'Content-Type': 'text/json'}}));
 
   assert_equals(registration.id, registrationId);
 

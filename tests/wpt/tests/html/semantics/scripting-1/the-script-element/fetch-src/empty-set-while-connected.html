@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Setting script src to the empty string on a connected script element</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/scripting.html#script-processing-model">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/scripting.html#prepare-the-script-element">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<div id=log></div>
+<script>
+for (const type of ["classic", "module"]) {
+  promise_test(async t => {
+    const script = document.createElement("script");
+    if (type === "module")
+      script.type = "module";
+    document.body.appendChild(script);
+    t.add_cleanup(() => script.remove());
+
+    const errorEvent = new Promise(resolve => script.onerror = resolve);
+    script.onload = t.unreached_func("load event should not fire");
+    script.setAttribute("src", "");
+    await errorEvent;
+  }, `Setting src to the empty string on a connected ${type} script fires an error event`);
+}
+</script>

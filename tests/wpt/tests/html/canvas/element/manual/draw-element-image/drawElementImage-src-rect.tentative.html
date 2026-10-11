@@ -69,7 +69,7 @@
     context.drawElementImage(child, 0, 200, 100, -100, 0, 100, 100, 100);
     canvasTransform = canvas.getElementTransform(child);
     assert_equals(canvasTransform.e, 0, "CanvasTransform x translate for src 0, 200, 100, -100");
-    assert_equals(canvasTransform.f, 0, "CanvasTransform y translate for src 0, 200, 100, -1000");
+    assert_equals(canvasTransform.f, 0, "CanvasTransform y translate for src 0, 200, 100, -100");
 
     context.drawElementImage(child, 200, 200, -100, -100, 100, 100, 100, 100);
     canvasTransform = canvas.getElementTransform(child);

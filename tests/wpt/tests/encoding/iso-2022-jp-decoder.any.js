@@ -50,3 +50,21 @@ decode([0x50, 0x1b, 0x28, 0x4A], "P", "character, Roman ESC")
 decode([0x50, 0x1b, 0x28, 0x49], "P", "character, Katakana ESC")
 decode([0x50, 0x1b, 0x24, 0x40], "P", "character, Multibyte ESC")
 decode([0x50, 0x1b, 0x24, 0x42], "P", "character, Multibyte ESC #2")
+
+for (const fatal of [false, true]) {
+  test(() => {
+    const decoder = new TextDecoder('iso-2022-jp', {fatal});
+    assert_equals(decoder.decode(Uint8Array.of(0x1b, 0x28), {stream: true}),
+                  '');
+    assert_equals(decoder.decode(Uint8Array.of(0x49, 0x21)), '\uFF61');
+    assert_equals(decoder.decode(Uint8Array.of(0x21)), '!');
+  }, `iso-2022-jp decoder: reset after a final chunk, fatal=${fatal}`);
+
+  test(() => {
+    const decoder = new TextDecoder('iso-2022-jp', {fatal});
+    assert_equals(
+        decoder.decode(Uint8Array.of(0x1b, 0x28, 0x49), {stream: true}), '');
+    assert_equals(decoder.decode(), '');
+    assert_equals(decoder.decode(Uint8Array.of(0x21)), '!');
+  }, `iso-2022-jp decoder: reset after an empty flush, fatal=${fatal}`);
+}

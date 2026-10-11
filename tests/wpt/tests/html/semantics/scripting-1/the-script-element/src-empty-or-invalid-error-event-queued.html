@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Error events for script elements with an empty or invalid src are fired from a queued task</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/scripting.html#prepare-the-script-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+for (const type of ["classic", "module"]) {
+  for (const [label, src] of [["empty", ""], ["invalid", "https://["]]) {
+    promise_test(async t => {
+      const script = document.createElement("script");
+      if (type === "module")
+        script.type = "module";
+      script.src = src;
+      let fired = false;
+      const errorEvent = new Promise(resolve => {
+        script.onerror = () => {
+          fired = true;
+          resolve();
+        };
+      });
+      script.onload = t.unreached_func("load event should not fire");
+      document.body.appendChild(script);
+      t.add_cleanup(() => script.remove());
+      assert_false(fired, "error event should not fire synchronously");
+      await errorEvent;
+    }, `${type} script with ${label} src fires error event asynchronously`);
+  }
+}
+</script>

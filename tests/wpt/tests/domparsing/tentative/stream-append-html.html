@@ -154,7 +154,7 @@
     await writer.write("ABC");
     await writer.abort("abort-reason");
     await writer.write("DEF").catch(() => {});
-    assert_equals(placeholder.textContent, "start ");
+    assert_equals(placeholder.textContent, "start ABC");
   }, "Aborting streamAppendHTML()");
 
   promise_test(async (t) => {
@@ -228,7 +228,7 @@
     const shadow = element.attachShadow({mode: "open"});
     document.body.append(element);
     const writer = shadow.streamAppendHTML().getWriter();
-    await writer.write("<script id=forbidden<" + "/script>");
+    await writer.write("<script id=forbidden><" + "/script>");
     await writer.close();
     assert_equals(shadow.querySelector("script"), null);
   }, "streamAppendHTML on ShadowRoot uses safe sanitizer");

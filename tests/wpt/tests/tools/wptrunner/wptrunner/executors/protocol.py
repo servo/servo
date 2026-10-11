@@ -5,7 +5,7 @@ import traceback
 from http.client import HTTPConnection
 
 from abc import ABCMeta, abstractmethod
-from typing import Any, Awaitable, Callable, ClassVar, Dict, List, Mapping, Optional, \
+from typing import Any, Awaitable, Callable, ClassVar, Dict, List, Literal, Mapping, Optional, \
     Tuple, Type, TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
@@ -664,6 +664,12 @@ class BidiEmulationProtocolPart(ProtocolPart):
     @abstractmethod
     async def set_touch_override(self,
             max_touch_points: Optional[int],
+            contexts: List[str]) -> None:
+        pass
+
+    @abstractmethod
+    async def set_viewport_meta_override(self,
+            viewport_meta: Optional[Literal[True]],
             contexts: List[str]) -> None:
         pass
 

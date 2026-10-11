@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<script>
+onmessage = event => parent.postMessage(event.data, "*");
+const iframe = document.createElement("iframe");
+iframe.src = new URL(location).searchParams.get("src");
+document.documentElement.append(iframe);
+</script>

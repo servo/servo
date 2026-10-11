@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Inherited style of the ancestors of a select inserted in the same task as a style change</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=326092">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+  :root { --theme: light; }
+  :root[data-theme="dark"] { --theme: dark; }
+  #container[data-theme="dark"] { color: rgb(10, 10, 10); }
+</style>
+<div id="container"></div>
+<script>
+function updateStyle() {
+  getComputedStyle(document.body).color;
+}
+
+function setTheme(t, element) {
+  element.setAttribute("data-theme", "dark");
+  t.add_cleanup(() => element.removeAttribute("data-theme"));
+}
+
+function insertSelect(t) {
+  const section = document.createElement("section");
+  section.innerHTML = "<div><select><option>a</option></select></div>";
+  container.append(section);
+  t.add_cleanup(() => section.remove());
+  return [section, section.firstElementChild, section.querySelector("select")];
+}
+
+test(t => {
+  updateStyle();
+  setTheme(t, document.documentElement);
+  for (const element of insertSelect(t))
+    assert_equals(getComputedStyle(element).getPropertyValue("--theme"), "dark", element.localName);
+}, "Custom property changed on the root element");
+
+test(t => {
+  updateStyle();
+  setTheme(t, container);
+  const [section, div] = insertSelect(t);
+  for (const element of [section, div])
+    assert_equals(getComputedStyle(element).color, "rgb(10, 10, 10)", element.localName);
+}, "Inherited property changed on the parent");
+
+promise_test(async t => {
+  await waitForAtLeastOneFrame();
+  setTheme(t, document.documentElement);
+  const elements = insertSelect(t);
+  await waitForAtLeastOneFrame();
+  for (const element of elements)
+    assert_equals(getComputedStyle(element).getPropertyValue("--theme"), "dark", element.localName);
+}, "Custom property changed on the root element, read after a rendering update");
+</script>

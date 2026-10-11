@@ -10,21 +10,21 @@
 </head>
 <body>
 <script>
-const host_info = get_host_info();
+const hostInfo = get_host_info();
 
 promise_test(async t => {
   const iframe = document.createElement('iframe');
-  iframe.src = `${host_info.HTTPS_REMOTE_ORIGIN}/webmcp/imperative/resources/iframe-register-tool.html`;
+  iframe.src = `${hostInfo.HTTPS_REMOTE_ORIGIN}/webmcp/imperative/resources/iframe-register-tool.html`;
   iframe.allow = 'tools *';
 
-  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  const { promise: loadPromise, resolve: resolveLoad } = Promise.withResolvers();
+  iframe.onload = resolveLoad;
   document.body.appendChild(iframe);
   t.add_cleanup(() => iframe.remove());
-  await load_promise;
+  await loadPromise;
 
-  const toolchange_promise = new Promise(resolve => {
-    document.modelContext.addEventListener('toolchange', resolve, { once: true });
-  });
+  const { promise: toolChangePromise, resolve: resolveToolChange } = Promise.withResolvers();
+  document.modelContext.addEventListener('toolchange', resolveToolChange, { once: true });
 
   iframe.contentWindow.postMessage({
     action: 'register',
@@ -36,70 +36,74 @@ promise_test(async t => {
     hangsForeverAndReportsAbort: true
   }, '*');
 
-  await toolchange_promise;
+  await toolChangePromise;
 
   const tools = await document.modelContext.getTools(
-      {fromOrigins: [host_info.HTTPS_REMOTE_ORIGIN]});
+      {fromOrigins: [hostInfo.HTTPS_REMOTE_ORIGIN]});
   const tool = tools.find(t => t.name === 'cross_origin_iframe_tool');
   assert_true(!!tool, 'Tool should be registered and visible to parent');
 
-  let resolve_tool_started;
-  const tool_started = new Promise(r => resolve_tool_started = r);
+  const { promise: toolStarted, resolve: resolveToolStarted } = Promise.withResolvers();
+  const { promise: abortReported, resolve: resolveAbortReported } = Promise.withResolvers();
+  const { promise: toolCancelReported, resolve: resolveToolCancelReported } = Promise.withResolvers();
 
-  let resolve_abort_reported;
-  const abort_reported = new Promise(r => resolve_abort_reported = r);
-
-  const message_handler = e => {
+  const messageHandler = e => {
     if (e.data && e.data.action === 'tool_started') {
-      resolve_tool_started();
+      resolveToolStarted();
     } else if (e.data && e.data.action === 'signal_aborted_result') {
-      resolve_abort_reported(e.data);
+      resolveAbortReported(e.data);
+    } else if (e.data && e.data.action === 'toolcancel_fired') {
+      resolveToolCancelReported(e.data);
     }
   };
-  window.addEventListener('message', message_handler);
-  t.add_cleanup(() => window.removeEventListener('message', message_handler));
+  window.addEventListener('message', messageHandler);
+  t.add_cleanup(() => window.removeEventListener('message', messageHandler));
 
   const controller = new AbortController();
-  const execute_promise = document.modelContext.executeTool(tool, {}, { signal: controller.signal });
+  const executePromise = document.modelContext.executeTool(tool, {}, { signal: controller.signal });
 
-  await tool_started;
+  await toolStarted;
   controller.abort('parent cross-origin abort reason');
 
-  await promise_rejects_exactly(t, 'parent cross-origin abort reason', execute_promise);
-  const report = await abort_reported;
+  await promise_rejects_exactly(t, 'parent cross-origin abort reason', executePromise);
+  const [report, cancelEvent] = await Promise.all([abortReported, toolCancelReported]);
   assert_equals(report.error, undefined, 'signal should have been provided to iframe tool');
   assert_true(report.reason.includes('AbortError'), 'abort signal should fire in cross-origin iframe tool');
+  assert_equals(cancelEvent.toolName, 'cross_origin_iframe_tool', 'toolcancel should fire in cross-origin iframe tool');
 }, 'caller abort in parent document propagates to options.signal in cross-origin iframe tool');
 
 promise_test(async t => {
-  let parent_signal_aborted = false;
-  let parent_abort_reason = null;
-  let resolve_parent_started;
-  const parent_started = new Promise(r => resolve_parent_started = r);
+  let parentSignalAborted = false;
+  let parentAbortReason = null;
+  const { promise: parentStarted, resolve: resolveParentStarted } = Promise.withResolvers();
+  const parentToolCancel = waitForToolCancel('parent_target_tool');
 
+  const regController = new AbortController();
+  t.add_cleanup(() => regController.abort());
   await document.modelContext.registerTool({
     name: 'parent_target_tool',
     description: 'Parent target tool',
     execute: (input, options) => new Promise((resolve) => {
-      resolve_parent_started();
+      resolveParentStarted();
       if (options && options.signal) {
         options.signal.addEventListener('abort', () => {
-          parent_signal_aborted = true;
-          parent_abort_reason = options.signal.reason;
+          parentSignalAborted = true;
+          parentAbortReason = options.signal.reason;
           resolve('aborted');
         });
       }
     })
-  }, { exposedTo: [host_info.HTTPS_REMOTE_ORIGIN] });
+  }, { exposedTo: [hostInfo.HTTPS_REMOTE_ORIGIN], signal: regController.signal });
 
   const iframe = document.createElement('iframe');
-  iframe.src = `${host_info.HTTPS_REMOTE_ORIGIN}/webmcp/imperative/resources/iframe-caller.html`;
+  iframe.src = `${hostInfo.HTTPS_REMOTE_ORIGIN}/webmcp/imperative/resources/iframe-caller.html`;
   iframe.allow = 'tools *';
 
-  const load_promise = new Promise(resolve => iframe.onload = resolve);
+  const { promise: loadPromise, resolve: resolveLoad } = Promise.withResolvers();
+  iframe.onload = resolveLoad;
   document.body.appendChild(iframe);
   t.add_cleanup(() => iframe.remove());
-  await load_promise;
+  await loadPromise;
 
   iframe.contentWindow.postMessage({
     action: 'invoke_with_abort',
@@ -109,16 +113,85 @@ promise_test(async t => {
     abortReason: 'iframe cross-origin abort reason'
   }, '*');
 
-  await parent_started;
+  await parentStarted;
 
   // Wait for the abort to propagate from the iframe to the parent tool
-  while (!parent_signal_aborted) {
+  while (!parentSignalAborted) {
     await new Promise(r => t.step_timeout(r, 20));
   }
+  await parentToolCancel;
 
-  assert_true(parent_signal_aborted, 'parent tool options.signal should be aborted by cross-origin iframe caller');
-  assert_equals(parent_abort_reason.name, 'AbortError', 'abort reason should route from cross-origin iframe caller as AbortError');
+  assert_true(parentSignalAborted, 'parent tool options.signal should be aborted by cross-origin iframe caller');
+  assert_equals(parentAbortReason.name, 'AbortError', 'abort reason should route from cross-origin iframe caller as AbortError');
 }, 'caller abort in cross-origin iframe propagates to options.signal in parent document tool');
+
+promise_test(async t => {
+  const targetIframe = document.createElement('iframe');
+  targetIframe.src = `${hostInfo.HTTPS_REMOTE_ORIGIN}/webmcp/imperative/resources/iframe-register-tool.html`;
+  targetIframe.allow = 'tools *';
+
+  const thirdIframe = document.createElement('iframe');
+  thirdIframe.src = '/common/blank.html';
+
+  const { promise: targetLoaded, resolve: resolveTargetLoaded } = Promise.withResolvers();
+  const { promise: thirdLoaded, resolve: resolveThirdLoaded } = Promise.withResolvers();
+  targetIframe.onload = resolveTargetLoaded;
+  thirdIframe.onload = resolveThirdLoaded;
+  document.body.appendChild(targetIframe);
+  document.body.appendChild(thirdIframe);
+  await Promise.all([targetLoaded, thirdLoaded]);
+  t.add_cleanup(() => { targetIframe.remove(); thirdIframe.remove(); });
+
+  const { promise: toolChangePromise, resolve: resolveToolChange } = Promise.withResolvers();
+  document.modelContext.addEventListener('toolchange', resolveToolChange, { once: true });
+
+  targetIframe.contentWindow.postMessage({
+    action: 'register',
+    tool: {
+      name: 'third_frame_cancel_tool',
+      description: 'Cross origin tool cancelled by third frame signal'
+    },
+    options: { exposedTo: [self.origin] },
+    hangsForeverAndReportsAbort: true
+  }, '*');
+
+  await toolChangePromise;
+
+  const tools = await document.modelContext.getTools(
+      {fromOrigins: [hostInfo.HTTPS_REMOTE_ORIGIN]});
+  const tool = tools.find(t => t.name === 'third_frame_cancel_tool');
+  assert_true(!!tool, 'Tool should be registered');
+
+  const { promise: toolStarted, resolve: resolveToolStarted } = Promise.withResolvers();
+  const { promise: abortReported, resolve: resolveAbortReported } = Promise.withResolvers();
+  const { promise: toolCancelReported, resolve: resolveToolCancelReported } = Promise.withResolvers();
+
+  const messageHandler = e => {
+    if (e.data?.action === 'tool_started') {
+      resolveToolStarted();
+    } else if (e.data?.action === 'signal_aborted_result') {
+      resolveAbortReported(e.data);
+    } else if (e.data?.action === 'toolcancel_fired') {
+      resolveToolCancelReported(e.data);
+    }
+  };
+  window.addEventListener('message', messageHandler);
+  t.add_cleanup(() => window.removeEventListener('message', messageHandler));
+
+  // Create the AbortController in the third iframe and pass its signal to
+  // parent's executeTool().
+  const thirdFrameController = new thirdIframe.contentWindow.AbortController();
+  const executePromise = document.modelContext.executeTool(
+      tool, {}, { signal: thirdFrameController.signal });
+
+  await toolStarted;
+  thirdFrameController.abort('aborted from third frame');
+
+  await promise_rejects_exactly(t, 'aborted from third frame', executePromise);
+  const [report, cancelEvent] = await Promise.all([abortReported, toolCancelReported]);
+  assert_true(report.reason.includes('AbortError'));
+  assert_equals(cancelEvent.toolName, 'third_frame_cancel_tool');
+}, 'other frame aborting an AbortController passed to executeTool() cancels target execution and fires toolcancel');
 </script>
 </body>
 </html>

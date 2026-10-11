@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Scoped View Transition: the scope's last remembered size survives the transition</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#last-remembered">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #scope {
+    width: 100px;
+    contain-intrinsic-size: auto 10px;
+  }
+  #scope.hidden { content-visibility: hidden; }
+  #child { height: 100px; }
+</style>
+</head>
+<body>
+<div id="scope"><div id="child"></div></div>
+<script>
+// Resolves one frame after the next resize observations were delivered, which
+// is also when the last remembered size gets recorded.
+function waitForResizeObservations(element) {
+  return new Promise(resolve => {
+    const observer = new ResizeObserver(() => {
+      observer.disconnect();
+      requestAnimationFrame(() => resolve());
+    });
+    observer.observe(element);
+  });
+}
+
+promise_test(async () => {
+  const scope = document.getElementById("scope");
+  // Record a last remembered size of 100px (the child's height).
+  await waitForResizeObservations(scope);
+
+  await scope.startViewTransition().finished;
+  await waitForResizeObservations(scope);
+
+  // Skipping its contents makes the scope use its last remembered size, which
+  // the view transition must not have discarded.
+  scope.classList.add("hidden");
+  assert_equals(scope.offsetHeight, 100);
+}, "A scoped view transition doesn't discard the scope's last remembered size");
+</script>
+</body>
+</html>

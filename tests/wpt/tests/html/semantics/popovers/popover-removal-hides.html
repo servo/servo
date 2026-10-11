@@ -1,0 +1,96 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Removing a showing popover hides it</title>
+<link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+<link
+  rel="help"
+  href="https://html.spec.whatwg.org/multipage/popover.html#check-popover-validity"
+/>
+<link rel="help" href="https://github.com/whatwg/html/pull/13001" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<body>
+  <script>
+    function createPopover(t, type, parent = document.body) {
+      const popover = parent.appendChild(document.createElement("div"));
+      popover.popover = type;
+      t.add_cleanup(() => popover.remove());
+      return popover;
+    }
+
+    function showNested(t, childType) {
+      const parent = createPopover(t, "auto");
+      const invoker = parent.appendChild(document.createElement("button"));
+      const child = createPopover(t, childType);
+      parent.showPopover();
+      child.showPopover({ source: invoker });
+      return { parent, child };
+    }
+
+    function recordToggleEvents(t, ...popovers) {
+      const events = [];
+      for (const popover of popovers) {
+        for (const type of ["beforetoggle", "toggle"]) {
+          popover.addEventListener(
+            type,
+            (e) => events.push(`${e.type} ${e.newState}`),
+            { signal: t.get_signal() },
+          );
+        }
+      }
+      return events;
+    }
+
+    for (const type of ["auto", "manual", "hint"]) {
+      promise_test(async (t) => {
+        const wrapper = document.body.appendChild(
+          document.createElement("div"),
+        );
+        t.add_cleanup(() => wrapper.remove());
+        const popover = createPopover(t, type, wrapper);
+        popover.showPopover();
+        await waitForRender();
+        const events = recordToggleEvents(t, popover);
+
+        wrapper.remove();
+        assert_false(popover.matches(":popover-open"), "after removal");
+        await waitForRender();
+        assert_array_equals(events, [], "no toggle events");
+
+        document.body.append(wrapper);
+        assert_false(popover.matches(":popover-open"), "after reinsertion");
+      }, `Removing the ancestor of a showing popover=${type} hides it`);
+    }
+
+    for (const childType of ["auto", "hint"]) {
+      promise_test(async (t) => {
+        const { parent, child } = showNested(t, childType);
+        await waitForRender();
+        const events = recordToggleEvents(t, parent, child);
+
+        parent.remove();
+        assert_false(parent.matches(":popover-open"), "parent");
+        assert_false(child.matches(":popover-open"), "child");
+        await waitForRender();
+        assert_array_equals(events, [], "no toggle events");
+
+        child.showPopover();
+        assert_true(child.matches(":popover-open"), "child can be shown again");
+      }, `Removing a showing popover=auto hides its popover=${childType} child`);
+    }
+
+    promise_test(async (t) => {
+      const { parent, child } = showNested(t, "auto");
+      await waitForRender();
+      const events = recordToggleEvents(t, parent, child);
+
+      child.remove();
+      assert_false(child.matches(":popover-open"), "child");
+      assert_true(parent.matches(":popover-open"), "parent");
+      await waitForRender();
+      assert_array_equals(events, [], "no toggle events");
+    }, "Removing a showing popover=auto child leaves its parent showing");
+  </script>
+</body>

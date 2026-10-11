@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: transparent text uses the UA selection foreground color</title>
+<link rel="author" title="Helmut Januschka" href="mailto:helmut@januschka.com">
+<link rel="help" href="https://drafts.csswg.org/css-pseudo-4/#highlight-styling">
+<link rel="mismatch" href="selection-transparent-text-invisible-ref.html">
+<meta name="assert" content="When the originating element has a transparent 'color' and no ::selection color is specified, the selected text is painted with the UA default selection foreground color, so it becomes visible.">
+<script src="support/selections.js"></script>
+<style>
+  #test {
+    color: transparent;
+    font-size: 300%;
+  }
+</style>
+<p>Test passes if "Selected Text" is visible (not transparent) while selected.
+<div id="test">Selected Text</div>
+<script>selectNodeContents(document.getElementById("test"));</script>

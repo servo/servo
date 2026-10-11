@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<title>Multi-lane column grid-lanes fragmentation with fill-reverse and track-reverse dense packing</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="match" href="column-multi-lane-fragmentation-020-ref.html">
+<style>
+  .multicol {
+    column-count: 3;
+    column-fill: auto;
+    column-gap: 0;
+    height: 30px;
+    width: 180px;
+  }
+  .grid-lanes {
+    display: grid-lanes;
+    flow-tolerance: 0;
+    grid-auto-flow: dense;
+    grid-lanes-direction: column fill-reverse track-reverse;
+    grid-lanes-pack: dense;
+    grid-template-columns: 4px 28px 28px;
+    height: 90px;
+    width: 60px;
+  }
+  .first {
+    background: #20b2aa;
+    height: 60px;
+  }
+  .parent {
+    background: #87cefa;
+    grid-column: 2 / span 2;
+    height: 30px;
+  }
+  .packed-1 {
+    background: #ffd700;
+    grid-column: 2;
+    height: 35px;
+  }
+  .packed-2 {
+    background: #ff8c00;
+    grid-column: 2;
+    height: 25px;
+  }
+</style>
+<p>Test passes if the two rectangles are identical.</p>
+<div class="multicol">
+  <div class="grid-lanes">
+    <div class="first"></div>
+    <div class="parent"></div>
+    <div class="packed-1"></div>
+    <div class="packed-2"></div>
+  </div>
+</div>

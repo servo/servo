@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Grid Lanes: grid-columns reading flow with placement reversals</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-layout">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/shadow-dom.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+
+<style>
+.test-case {
+  margin-top: 20px;
+}
+.lanes {
+  display: grid-lanes;
+  grid-template-columns: repeat(3, 90px);
+  flow-tolerance: 0;
+  reading-flow: grid-columns;
+  width: 270px;
+  height: 240px;
+}
+.lanes > button {
+  box-sizing: border-box;
+  padding: 0;
+}
+</style>
+
+<div class="test-case" data-expect="c,b,d,e,a"
+     data-description="Grid-columns reads left-to-right columns with track-reverse placement">
+  <div class="lanes" style="grid-lanes-direction: column track-reverse">
+    <button id="a" style="height: 210px">A</button>
+    <button id="b" style="height: 60px">B</button>
+    <button id="c" style="height: 150px">C</button>
+    <button id="d" style="height: 45px">D</button>
+    <button id="e" style="height: 30px">E</button>
+  </div>
+</div>
+
+<div class="test-case" data-expect="f,j,i,g,h"
+     data-description="Grid-columns reads top-to-bottom within columns with fill-reverse placement">
+  <div class="lanes" style="grid-lanes-direction: column fill-reverse">
+    <button id="f" style="height: 210px">F</button>
+    <button id="g" style="height: 60px">G</button>
+    <button id="h" style="height: 150px">H</button>
+    <button id="i" style="height: 45px">I</button>
+    <button id="j" style="height: 30px">J</button>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

@@ -2699,9 +2699,6 @@ interface MessagePort : EventTarget {
   undefined postMessage(any message, optional StructuredSerializeOptions options = {});
   undefined start();
   undefined close();
-
-  // event handlers
-  attribute EventHandler onclose;
 };
 
 MessagePort includes MessageEventTarget;

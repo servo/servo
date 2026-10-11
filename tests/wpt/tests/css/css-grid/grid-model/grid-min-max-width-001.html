@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#intrinsic-sizes">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#min-size-properties">
+<meta name="assert" content="min-width and max-width are applied to the grid container's width, both when its width is auto and when it is sized as fit-content, min-content or max-content.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/css/support/alignment.css">
+<link rel="stylesheet" href="/css/support/width-keyword-classes.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.minWidthGrid {
+    min-width: 100px;
+    grid-template-columns: 50px;
+    grid-template-rows: 40px;
+}
+.maxWidthGrid {
+    max-width: 100px;
+    grid-template-columns: 150px 50px;
+    grid-template-rows: 40px;
+}
+
+.minWidthAutoGrid {
+    min-width: 100px;
+}
+
+.maxWidthAutoGrid {
+    max-width: 100px;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+
+<p>Test that min-width and max-width are accounted for when computing the grid container's intrinsic widths.</p>
+
+<div class="constrainedContainer">
+    <div class="grid minWidthGrid" data-expected-height="40" data-expected-width="100"></div>
+    <div class="grid minWidthAutoGrid justifyContentStart" data-expected-height="10" data-expected-width="100">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-height="10" data-expected-width="70">XXX XXX</div>
+    </div>
+    <!-- These 2 grids have 'width: auto', so they fill their 10px containing block instead of shrinking to fit their content, and the content overflows. -->
+    <div class="grid maxWidthGrid" data-expected-height="40" data-expected-width="10"></div>
+    <div class="grid maxWidthAutoGrid" data-expected-height="10" data-expected-width="10">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-height="10" data-expected-width="110">XXXXXXXXXXX</div>
+    </div>
+
+    <div class="grid fit-content minWidthGrid" data-expected-height="40" data-expected-width="100"></div>
+    <div class="grid fit-content maxWidthGrid" data-expected-height="40" data-expected-width="100"></div>
+
+    <div class="grid max-content minWidthAutoGrid" data-expected-height="10" data-expected-width="110">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-height="10" data-expected-width="110">XXX XXX XXX</div>
+    </div>
+    <div class="grid min-content minWidthAutoGrid" data-expected-height="20" data-expected-width="100">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-height="20" data-expected-width="100">XXX XXX XXX</div>
+    </div>
+
+    <div class="grid max-content maxWidthAutoGrid" data-expected-height="20" data-expected-width="100">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-height="20" data-expected-width="100">XXXXX XXXXXX</div>
+    </div>
+    <div class="grid min-content maxWidthAutoGrid" data-expected-height="20" data-expected-width="60">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-height="20" data-expected-width="60">XXXXX XXXXXX</div>
+    </div>
+</div>
+
+<div class="unconstrainedContainer">
+    <div class="grid minWidthGrid" data-expected-height="40" data-expected-width="1000"></div>
+    <div class="grid minWidthAutoGrid justifyContentStart" data-expected-height="10" data-expected-width="1000">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-height="10" data-expected-width="70">XXX XXX</div>
+    </div>
+    <div class="grid maxWidthGrid" data-expected-height="40" data-expected-width="100"></div>
+    <div class="grid maxWidthAutoGrid" data-expected-height="20" data-expected-width="100">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-height="20" data-expected-width="100">XXXXX XXXXXX</div>
+    </div>
+    <div class="grid fit-content minWidthGrid" data-expected-height="40" data-expected-width="100"></div>
+    <div class="grid fit-content maxWidthGrid" data-expected-height="40" data-expected-width="100"></div>
+
+    <div class="grid max-content minWidthAutoGrid" data-expected-height="10" data-expected-width="110">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-height="10" data-expected-width="110">XXX XXX XXX</div>
+    </div>
+    <div class="grid min-content minWidthAutoGrid" data-expected-height="20" data-expected-width="100">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-height="20" data-expected-width="100">XXX XXX XXX</div>
+    </div>
+
+    <div class="grid max-content maxWidthAutoGrid" data-expected-height="20" data-expected-width="100">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-height="20" data-expected-width="100">XXXXX XXXXXX</div>
+    </div>
+    <div class="grid min-content maxWidthAutoGrid" data-expected-height="20" data-expected-width="60">
+        <div class="sizedToGridArea firstRowFirstColumn" data-expected-height="20" data-expected-width="60">XXXXX XXXXXX</div>
+    </div>
+</div>
+
+</body>

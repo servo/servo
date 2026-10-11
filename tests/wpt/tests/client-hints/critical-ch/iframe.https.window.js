@@ -1,15 +1,18 @@
 // META: script=resources/util.js
 
-async_test((t) => {
-  window.addEventListener('message', message_listener(t, "FAIL"));
-  var iframe = document.createElement("iframe");
-  iframe.src = ECHO_URL;
-  document.body.appendChild(iframe);
-}, "Critical-CH iframe");
+make_iframe_test = (url) =>
+  async (t) => {
+    await clear_client_hints();
+    var iframe = document.createElement("iframe");
+    t.add_cleanup(() => iframe.remove());
+    var message = new Promise((resolve) => {
+      window.addEventListener('message', (e) => resolve(e.data), {once: true});
+    });
+    iframe.src = url;
+    document.body.appendChild(iframe);
+    assert_equals(await message, "FAIL");
+  }
 
-async_test((t) => {
-  window.addEventListener('message', message_listener(t, "FAIL"));
-  var iframe = document.createElement("iframe");
-  iframe.src = ECHO_URL+"?multiple=true";
-  document.body.appendChild(iframe);
-}, "Critical-CH w/ multiple headers and iframe");
+promise_test(make_iframe_test(ECHO_URL), "Critical-CH iframe");
+
+promise_test(make_iframe_test(ECHO_URL+"?multiple=true"), "Critical-CH w/ multiple headers and iframe");

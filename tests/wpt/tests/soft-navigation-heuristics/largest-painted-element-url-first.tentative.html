@@ -24,7 +24,7 @@
       history.pushState({}, '', `foobar.html?${counter++}`);
 
       // Add a large paragraph.
-      const large = await addTextParagraphToMain("Much larger element that should be the largest interaction contentful paint in this interaction context");
+      const large = addTextParagraphToMain("Much larger element that should be the largest interaction contentful paint in this interaction context");
       largeId = large.id;
       large.style = "font-size: 5em";
     });

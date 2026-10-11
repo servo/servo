@@ -34,6 +34,18 @@ promise_test(async () => {
 }, 'Garbage-collecting a stream writer should not crash with close promise pending');
 
 promise_test(async () => {
+  let writer = new WritableStream({
+    write(chunk) { return new Promise(resolve => {}); }
+  }).getWriter();
+  await writer.ready;
+  writer.write('chunk');
+  writer.abort();
+  writer = null;
+  for (let i = 0; i < 5; ++i)
+    await garbageCollect();
+}, 'Garbage-collecting a stream writer should not crash with abort promise pending');
+
+promise_test(async () => {
   const ready = new WritableStream({
     write(chunk) { }
   }, {highWaterMark: 0}).getWriter().ready;

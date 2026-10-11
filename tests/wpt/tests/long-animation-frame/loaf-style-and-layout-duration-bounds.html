@@ -1,0 +1,141 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: styleDuration and layoutDuration bounds</title>
+<meta name="timeout" content="long">
+<link rel="help" href="https://w3c.github.io/long-animation-frames/#dom-performancelonganimationframetiming-styleduration">
+<link rel="help" href="https://w3c.github.io/long-animation-frames/#dom-performancelonganimationframetiming-layoutduration">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<h1>Long Animation Frame: styleDuration and layoutDuration bounds</h1>
+<div id="log"></div>
+<script>
+
+// Allow a small epsilon for the independent time clamping of the timestamps
+// and durations.
+const clamping_epsilon = 1;
+
+const is_resize_observer_callback = script =>
+    script.invokerType === "user-callback" &&
+    script.invoker.startsWith("ResizeObserverCallback");
+
+function assert_implements_style_and_layout_durations() {
+  assert_implements(
+      "styleDuration" in PerformanceLongAnimationFrameTiming.prototype &&
+      "layoutDuration" in PerformanceLongAnimationFrameTiming.prototype,
+      "styleDuration and layoutDuration are not supported");
+}
+
+promise_test(async t => {
+  assert_implements_style_and_layout_durations();
+  const element = document.createElement("div");
+  element.style.width = "100px";
+  element.textContent = "Style and layout bounds";
+  document.body.appendChild(element);
+  t.add_cleanup(() => element.remove());
+
+  const entry = await expect_long_frame(async (t, busy_wait) => {
+    await new Promise(resolve => requestAnimationFrame(() => {
+      // Invalidate style and layout, so that the rendering update has style
+      // and layout work to do.
+      element.style.width = "200px";
+      busy_wait();
+      resolve();
+    }));
+  }, t);
+
+  assert_not_equals(entry, "timeout", "Entry should be detected");
+  assert_greater_than(entry.styleAndLayoutStart, 0,
+      "The frame should include a rendering update");
+  assert_less_than_equal(entry.styleDuration + entry.layoutDuration,
+      entry.paintTime - entry.styleAndLayoutStart + clamping_epsilon,
+      "styleDuration + layoutDuration should not exceed the time between " +
+      "styleAndLayoutStart and paintTime");
+}, "styleDuration + layoutDuration does not exceed the time between " +
+   "styleAndLayoutStart and paintTime");
+
+promise_test(async t => {
+  assert_implements_style_and_layout_durations();
+  const element = document.createElement("div");
+  element.style.width = "100px";
+  document.body.appendChild(element);
+  t.add_cleanup(() => element.remove());
+
+  const [entry, script] = await expect_long_frame_with_script((t, busy_wait) => {
+    const observer = new ResizeObserver(() => {
+      observer.disconnect();
+      busy_wait();
+    });
+    t.add_cleanup(() => observer.disconnect());
+    observer.observe(element);
+  }, is_resize_observer_callback, t);
+
+  assert_true(!!entry, "Entry detected");
+  assert_true(!!script, "ResizeObserver callback detected");
+  assert_greater_than_equal(script.startTime + clamping_epsilon,
+      entry.styleAndLayoutStart,
+      "The ResizeObserver callback should start after styleAndLayoutStart");
+  assert_less_than_equal(script.startTime + script.duration,
+      entry.paintTime + clamping_epsilon,
+      "The ResizeObserver callback should end before paintTime");
+  // The callback runs between styleAndLayoutStart and paintTime. If its time
+  // was counted as style or layout, this sum would exceed that period.
+  assert_less_than_equal(
+      entry.styleDuration + entry.layoutDuration + script.duration,
+      entry.paintTime - entry.styleAndLayoutStart + clamping_epsilon,
+      "styleDuration and layoutDuration should not include the " +
+      "ResizeObserver callback");
+}, "styleDuration and layoutDuration do not include ResizeObserver callbacks");
+
+promise_test(async t => {
+  assert_implements_style_and_layout_durations();
+  assert_implements(
+      "forcedStyleDuration" in PerformanceScriptTiming.prototype &&
+      "forcedLayoutDuration" in PerformanceScriptTiming.prototype,
+      "forcedStyleDuration and forcedLayoutDuration are not supported");
+  const container = document.createElement("div");
+  for (let i = 0; i < 1000; ++i) {
+    const child = document.createElement("div");
+    child.textContent = `Item ${i}`;
+    container.appendChild(child);
+  }
+  document.body.appendChild(container);
+  t.add_cleanup(() => container.remove());
+
+  const [entry, script] = await expect_long_frame_with_script((t, busy_wait) => {
+    const observer = new ResizeObserver(() => {
+      observer.disconnect();
+      // Force style and layout synchronously, multiple times.
+      for (let i = 0; i < 20; ++i) {
+        container.style.width = `${200 + i}px`;
+        container.style.fontSize = `${10 + (i % 5)}px`;
+        void container.offsetHeight;
+      }
+      busy_wait();
+    });
+    t.add_cleanup(() => observer.disconnect());
+    observer.observe(container);
+  }, is_resize_observer_callback, t);
+
+  assert_true(!!entry, "Entry detected");
+  assert_true(!!script, "ResizeObserver callback detected");
+  assert_approx_equals(
+      script.forcedStyleDuration + script.forcedLayoutDuration,
+      script.forcedStyleAndLayoutDuration, clamping_epsilon,
+      "forcedStyleDuration + forcedLayoutDuration should be " +
+      "forcedStyleAndLayoutDuration");
+  // The forced style and layout are part of the callback's duration. If they
+  // were also counted in the frame's styleDuration or layoutDuration, this sum
+  // would exceed the time between styleAndLayoutStart and paintTime.
+  assert_less_than_equal(
+      entry.styleDuration + entry.layoutDuration + script.duration,
+      entry.paintTime - entry.styleAndLayoutStart + clamping_epsilon,
+      "Style and layout forced by the ResizeObserver callback should not be " +
+      "included in styleDuration or layoutDuration");
+}, "Style and layout forced by a ResizeObserver callback are not included in " +
+   "styleDuration or layoutDuration");
+
+</script>
+</body>

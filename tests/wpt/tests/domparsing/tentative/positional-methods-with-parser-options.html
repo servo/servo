@@ -70,7 +70,7 @@
             if (script) script.remove();
             assert_equals(
               window.did_run,
-              run_scripts_at_policy && run_scripts_at_caller && !safe && target_type !== "template.content",
+              run_scripts_at_policy && !safe && target_type !== "template.content",
             );
             if (safe) {
               assert_equals(recorded_type, null);
@@ -84,7 +84,7 @@
             }
 
             check_position(target, pos, ref);
-          }, `Policies can disable scripts but not enable them: ${variant} (runScripts=${run_scripts_at_caller} => ${run_scripts_at_policy})`);
+          }, `Policies determine runScripts: ${variant} (runScripts=${run_scripts_at_caller} => ${run_scripts_at_policy})`);
         }
       }
 

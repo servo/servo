@@ -16,7 +16,11 @@ img:is([sizes="auto" i], [sizes^="auto," i]) {
 
 <style>
 /* Test !important */
-img.test-important { contain: style; contain-intrinsic-size: 30px 15px; }
+/* Using an attribute selector here (rather than the equivalent class
+   selector) to work around https://crbug.com/41276987, where the reference
+   element (created via createElementNS in the non-HTML namespace above)
+   fails to match a plain class selector. */
+img[class~="test-important"] { contain: style; contain-intrinsic-size: 30px 15px; }
 </style>
 
 <div id="log"></div>

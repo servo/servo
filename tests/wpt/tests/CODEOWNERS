@@ -126,7 +126,6 @@ css/css-anchor-position/position-visibility-anchors-visible-css-visibility.html 
 css/css-anchor-position/position-visibility-anchors-visible-non-intervening-container.html @web-platform-tests/interop
 css/css-anchor-position/position-visibility-anchors-visible-stacked-child.html @web-platform-tests/interop
 css/css-anchor-position/position-visibility-anchors-visible-with-position.html @web-platform-tests/interop
-css/css-anchor-position/position-visibility-anchors-visible.html @web-platform-tests/interop
 css/css-anchor-position/position-visibility-no-overflow-scroll.html @web-platform-tests/interop
 css/css-anchor-position/position-visibility-no-overflow-stacked-child.html @web-platform-tests/interop
 css/css-anchor-position/position-visibility-no-overflow.html @web-platform-tests/interop
@@ -919,8 +918,6 @@ fetch/range/data.any.js @web-platform-tests/interop
 fetch/range/general.any.js @web-platform-tests/interop
 fetch/range/general.window.js @web-platform-tests/interop
 fetch/range/non-matching-range-response.html @web-platform-tests/interop
-fetch/range/sw-416.https.window.js @web-platform-tests/interop
-fetch/range/sw.https.window.js @web-platform-tests/interop
 html/dom/render-blocking/blocking-idl-attr.html @web-platform-tests/interop
 html/dom/render-blocking/element-render-blocking-001.html @web-platform-tests/interop
 html/dom/render-blocking/element-render-blocking-002.html @web-platform-tests/interop
@@ -1476,7 +1473,6 @@ scroll-animations/scroll-timelines/play-animation.html @web-platform-tests/inter
 scroll-animations/scroll-timelines/reverse-animation.html @web-platform-tests/interop
 scroll-animations/scroll-timelines/scroll-animation-inactive-timeline.html @web-platform-tests/interop
 scroll-animations/scroll-timelines/scroll-animation.html @web-platform-tests/interop
-scroll-animations/scroll-timelines/scroll-timeline-invalidation.html @web-platform-tests/interop
 scroll-animations/scroll-timelines/scroll-timeline-range.html @web-platform-tests/interop
 scroll-animations/scroll-timelines/scroll-timeline-snapshotting.html @web-platform-tests/interop
 scroll-animations/scroll-timelines/setting-current-time.html @web-platform-tests/interop

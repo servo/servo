@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/567638392">
+
+<datalist id="list">
+  <option value="value" disabled></option>
+</datalist>
+<input list="list">
+<svg>
+  <use href="#target"></use>
+</svg>
+
+<script>
+  const input = document.querySelector('input');
+  document.body.offsetTop;
+  input.focus();
+  // This makes the datalist usable, but doesn't notify the input.
+  document.querySelector('option').disabled = false;
+
+  const target = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  target.id = 'target';
+  const object = document.createElement('object');
+  object.id = 'list';
+  // Fill the attribute storage to (Chromium) capacity, so that adding the
+  // style attribute reallocates it.
+  for (let i = 0; i < 7; ++i) {
+    object.setAttribute(`data-${i}`, '');
+  }
+  object.style.color = 'green';
+  target.appendChild(object);
+  // This test passes if this doesn't crash:
+  document.querySelector('svg').appendChild(target);
+</script>
