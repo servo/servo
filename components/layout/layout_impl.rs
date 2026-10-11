@@ -20,7 +20,6 @@ use euclid::{Point2D, Rect, Scale, Size2D};
 use fonts::{FontContext, FontContextWebFontMethods};
 use fonts_traits::{StylesheetWebFontLoadFinishedCallback, WebFontSetDifference};
 use icu_locale_core::LanguageIdentifier;
-use icu_locale_core::subtags::Language;
 use layout_api::{
     AccessibilityActionRequest, AccessibilityDamage, AxesOverflow, BoxAreaType, CSSPixelRectVec,
     ContainerTimingRecord, DangerousStyleNode, HitTestFlags, HitTestResult, IFrameSizes, Layout,
@@ -1939,7 +1938,7 @@ impl FontMetricsProvider for LayoutFontMetricsProvider {
             .filter(|x_height| !x_height.is_zero())
             .map(CSSPixelLength::from);
 
-        let dummy_language = LanguageIdentifier::from(Language::UNKNOWN);
+        let dummy_language = LanguageIdentifier::UNKNOWN;
         let zero_advance_measure = first_font_metrics
             .zero_horizontal_advance
             .or_else(|| {

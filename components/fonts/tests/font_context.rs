@@ -22,7 +22,6 @@ mod font_context {
         SystemFontServiceProxySender, fallback_font_families,
     };
     use icu_locale_core::LanguageIdentifier;
-    use icu_locale_core::subtags::Language;
     use net_traits::ResourceThreads;
     use paint_api::CrossProcessPaintApi;
     use parking_lot::Mutex;
@@ -168,7 +167,7 @@ mod font_context {
                     fallback_font_families(FallbackFontSelectionOptions::new(
                         ' ',
                         None,
-                        &LanguageIdentifier::from(Language::UNKNOWN),
+                        &LanguageIdentifier::UNKNOWN,
                     ))[0]
                         .to_owned(),
                     fallback,
@@ -267,7 +266,7 @@ mod font_context {
                 &mut context.context,
                 'a',
                 None,
-                &LanguageIdentifier::from(Language::UNKNOWN),
+                &LanguageIdentifier::UNKNOWN,
             )
             .unwrap();
         assert_eq!(&font_face_name(&font.identifier()), "csstest-ascii");
@@ -285,7 +284,7 @@ mod font_context {
                 &mut context.context,
                 'a',
                 None,
-                &LanguageIdentifier::from(Language::UNKNOWN),
+                &LanguageIdentifier::UNKNOWN,
             )
             .unwrap();
         assert_eq!(&font_face_name(&font.identifier()), "csstest-ascii");
@@ -303,7 +302,7 @@ mod font_context {
                 &mut context.context,
                 'á',
                 None,
-                &LanguageIdentifier::from(Language::UNKNOWN),
+                &LanguageIdentifier::UNKNOWN,
             )
             .unwrap();
         assert_eq!(&font_face_name(&font.identifier()), "csstest-basic-regular");
@@ -331,7 +330,7 @@ mod font_context {
                 &mut context.context,
                 'a',
                 None,
-                &LanguageIdentifier::from(Language::UNKNOWN),
+                &LanguageIdentifier::UNKNOWN,
             )
             .unwrap();
         assert_eq!(
@@ -345,7 +344,7 @@ mod font_context {
                 &mut context.context,
                 'á',
                 None,
-                &LanguageIdentifier::from(Language::UNKNOWN),
+                &LanguageIdentifier::UNKNOWN,
             )
             .unwrap();
         assert_eq!(

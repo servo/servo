@@ -17,7 +17,6 @@ use euclid::num::Zero;
 use font_types::NameId;
 use fonts_traits::FontDescriptor;
 use icu_locale_core::LanguageIdentifier;
-use icu_locale_core::subtags::Language;
 use icu_properties::props::{EnumeratedProperty, GeneralCategory};
 use log::debug;
 use malloc_size_of_derive::MallocSizeOf;
@@ -767,7 +766,7 @@ impl Deref for FontRef {
 pub struct FallbackKey {
     script: Script,
     unicode_block: Option<UnicodeBlock>,
-    #[ignore_malloc_size_of = "pointers have negligible size"]
+    #[ignore_malloc_size_of = "LanguageIdentifier doesn't implement MallocSizeOf"]
     language: LanguageIdentifier,
 }
 
@@ -918,11 +917,7 @@ impl FontGroup {
             .or_else(|| {
                 self.find_fallback_using_system_font_list(
                     font_context,
-                    FallbackFontSelectionOptions::new(
-                        ' ',
-                        None,
-                        &LanguageIdentifier::from(Language::UNKNOWN),
-                    ),
+                    FallbackFontSelectionOptions::new(' ', None, &LanguageIdentifier::UNKNOWN),
                     &space_in_template,
                     &font_predicate,
                 )

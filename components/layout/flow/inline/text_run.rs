@@ -11,7 +11,6 @@ use atomic_refcell::AtomicRefCell;
 use fonts::font_feature_values::ResolvedFontVariantAlternates;
 use fonts::{FontContext, FontRef, ShapedText, ShapedTextSlice, ShapingFlags, ShapingOptions};
 use icu_locale_core::LanguageIdentifier;
-use icu_locale_core::subtags::Language;
 use icu_properties::props::{EnumeratedProperty, LineBreak};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
@@ -119,7 +118,7 @@ impl FontInfo {
         Self {
             font,
             bidi_level: Level::ltr(),
-            language: Arc::new(LanguageIdentifier::from(Language::UNKNOWN)),
+            language: Arc::new(LanguageIdentifier::UNKNOWN),
             letter_spacing: None,
             word_spacing: None,
             text_rendering: TextRendering::Auto,
@@ -520,7 +519,7 @@ impl TextRun {
             ._x_lang
             .0
             .parse()
-            .unwrap_or(LanguageIdentifier::from(Language::UNKNOWN));
+            .unwrap_or(LanguageIdentifier::UNKNOWN);
         let language_for_shaping = Some(font_style.font_language_override)
             .filter(|language_override| *language_override != FontLanguageOverride::normal())
             .and_then(|language_override| {

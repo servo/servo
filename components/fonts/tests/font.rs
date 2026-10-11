@@ -13,7 +13,6 @@ use fonts::{
     PlatformFontMethods, ShapingFlags, ShapingOptions,
 };
 use icu_locale_core::LanguageIdentifier;
-use icu_locale_core::subtags::Language;
 use servo_url::ServoUrl;
 use style::Zero;
 use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
@@ -84,7 +83,7 @@ fn test_font_can_do_fast_shaping() {
         letter_spacing: Au::zero(),
         word_spacing: Au::zero(),
         script: Script::Latin,
-        language: &LanguageIdentifier::from(Language::UNKNOWN),
+        language: &LanguageIdentifier::UNKNOWN,
         flags: ShapingFlags::empty(),
         ligatures: FontVariantLigatures::NORMAL,
         numeric: FontVariantNumeric::NORMAL,
@@ -101,7 +100,7 @@ fn test_font_can_do_fast_shaping() {
         letter_spacing: Au::zero(),
         word_spacing: Au::zero(),
         script: Script::Cherokee,
-        language: &LanguageIdentifier::from(Language::UNKNOWN),
+        language: &LanguageIdentifier::UNKNOWN,
         flags: ShapingFlags::empty(),
         ligatures: FontVariantLigatures::NORMAL,
         numeric: FontVariantNumeric::NORMAL,
@@ -118,7 +117,7 @@ fn test_font_can_do_fast_shaping() {
         letter_spacing: Au::zero(),
         word_spacing: Au::zero(),
         script: Script::Latin,
-        language: &LanguageIdentifier::from(Language::UNKNOWN),
+        language: &LanguageIdentifier::UNKNOWN,
         flags: ShapingFlags::RTL_FLAG,
         ligatures: FontVariantLigatures::NORMAL,
         numeric: FontVariantNumeric::NORMAL,
