@@ -49,7 +49,6 @@ pub type ServoProtocolHandlerCallback = unsafe extern "C" fn(
 /// Opaque handle for a web resource request.
 /// Provided to the `intercept_request` delegate callback and protocol handler callback.
 // cbindgen:opaque
-#[repr(C)]
 pub struct ServoWebResourceRequest {
     method: Method,
     url: Url,
@@ -59,7 +58,6 @@ pub struct ServoWebResourceRequest {
 /// Opaque handle for a web resource response.
 /// Populated by the embedder in the `intercept_request` delegate callback or protocol handler callback.
 // cbindgen:opaque
-#[repr(C)]
 pub struct ServoWebResourceResponse {
     url: Url,
     headers: HeaderMap,

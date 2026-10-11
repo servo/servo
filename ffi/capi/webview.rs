@@ -1122,9 +1122,14 @@ pub unsafe extern "C" fn servo_webview_notify_theme_change(
 /// identically here.
 ///
 /// # Errors
+/// Notifies `webview` of a keyboard event.
 ///
-/// Returns `ServoError::NullArgument` if `webview`, `key`, or `code` is null.
-/// Returns `ServoError::InvalidUtf8` if `key` or `code` is not valid UTF-8.
+/// Returns the generated `InputEventId` (as a non-zero `u64`), or `0` on error.
+/// The event ID can be passed to [`servo_webview_notify_input_event_handled`].
+///
+/// # Safety
+///
+/// `webview`, `key`, and `code` must be non-null and valid.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_webview_notify_key_event(
     webview: *mut WebView,
@@ -1135,26 +1140,19 @@ pub unsafe extern "C" fn servo_webview_notify_key_event(
     modifiers: u32,
     repeat: bool,
     is_composing: bool,
-    out_event_id: *mut u64,
-) -> ServoError {
-    ServoError::catch_ffi(|| {
-        if webview.is_null() {
-            return ServoError::NullArgument;
-        }
-        if key.is_null() {
-            return ServoError::NullArgument;
-        }
-        if code.is_null() {
-            return ServoError::NullArgument;
+) -> u64 {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        if webview.is_null() || key.is_null() || code.is_null() {
+            return 0;
         }
 
         let key_str = match unsafe { CStr::from_ptr(key) }.to_str() {
             Ok(s) => s,
-            Err(_) => return ServoError::InvalidUtf8,
+            Err(_) => return 0,
         };
         let code_str = match unsafe { CStr::from_ptr(code) }.to_str() {
             Ok(s) => s,
-            Err(_) => return ServoError::InvalidUtf8,
+            Err(_) => return 0,
         };
 
         let state = match event_type {
@@ -1162,7 +1160,7 @@ pub unsafe extern "C" fn servo_webview_notify_key_event(
             SERVO_KEY_EVENT_UP => KeyState::Up,
             _ => {
                 log::warn!("Invalid key event type: {event_type}");
-                return ServoError::InvalidArgument;
+                return 0;
             },
         };
 
@@ -1199,29 +1197,18 @@ pub unsafe extern "C" fn servo_webview_notify_key_event(
 
         let event = InputEvent::Keyboard(KeyboardEvent::new(keyboard_event));
         let event_id = unsafe { &*webview }.notify_input_event(event);
-
-        if !out_event_id.is_null() {
-            unsafe { *out_event_id = event_id.0 as u64 };
-        }
-
-        ServoError::Ok
-    })
+        event_id.0 as u64
+    }))
+    .unwrap_or(0)
 }
 
 /// Notifies `webview` of a mouse button event.
 ///
-/// `out_event_id` will be set to the `InputEventId` that can be used with
-/// `servo_webview_notify_input_event_handled` to determine the result of
-/// processing the event. May be `NULL` if the caller does not need the ID.
+/// Returns the generated `InputEventId` (as a non-zero `u64`), or `0` on error.
 ///
 /// # Safety
 ///
-/// See [`servo_webview_go_back`] for the safety requirements, which apply
-/// identically here.
-///
-/// # Errors
-///
-/// Returns `ServoError::NullArgument` if `webview` is null.
+/// `webview` must be a valid, non-null pointer.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_webview_notify_mouse_button_event(
     webview: *mut WebView,
@@ -1229,12 +1216,11 @@ pub unsafe extern "C" fn servo_webview_notify_mouse_button_event(
     button: c_int,
     x: f64,
     y: f64,
-    modifiers: u32,
-    out_event_id: *mut u64,
-) -> ServoError {
-    ServoError::catch_ffi(|| {
+    _modifiers: u32,
+) -> u64 {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         if webview.is_null() {
-            return ServoError::NullArgument;
+            return 0;
         }
 
         let action = match event_type {
@@ -1242,7 +1228,7 @@ pub unsafe extern "C" fn servo_webview_notify_mouse_button_event(
             SERVO_MOUSE_EVENT_UP => MouseButtonAction::Up,
             _ => {
                 log::warn!("Invalid mouse button event type: {event_type}");
-                return ServoError::InvalidArgument;
+                return 0;
             },
         };
 
@@ -1260,78 +1246,54 @@ pub unsafe extern "C" fn servo_webview_notify_mouse_button_event(
 
         let event = InputEvent::MouseButton(MouseButtonEvent::new(action, button, point));
         let event_id = unsafe { &*webview }.notify_input_event(event);
-
-        if !out_event_id.is_null() {
-            unsafe { *out_event_id = event_id.0 as u64 };
-        }
-
-        ServoError::Ok
-    })
+        event_id.0 as u64
+    }))
+    .unwrap_or(0)
 }
 
 /// Notifies `webview` of a mouse move event.
 ///
-/// `out_event_id` will be set to the `InputEventId` that can be used with
-/// `servo_webview_notify_input_event_handled` to determine the result of
-/// processing the event. May be `NULL` if the caller does not need the ID.
+/// Returns the generated `InputEventId` (as a non-zero `u64`), or `0` on error.
 ///
 /// # Safety
 ///
-/// See [`servo_webview_go_back`] for the safety requirements, which apply
-/// identically here.
-///
-/// # Errors
-///
-/// Returns `ServoError::NullArgument` if `webview` is null.
+/// `webview` must be a valid, non-null pointer.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_webview_notify_mouse_move_event(
     webview: *mut WebView,
     x: f64,
     y: f64,
     _modifiers: u32,
-    out_event_id: *mut u64,
-) -> ServoError {
-    ServoError::catch_ffi(|| {
+) -> u64 {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         if webview.is_null() {
-            return ServoError::NullArgument;
+            return 0;
         }
 
         let point = WebViewPoint::Device(servo_api::DevicePoint::new(x as f32, y as f32));
 
         let event = InputEvent::MouseMove(MouseMoveEvent::new(point));
         let event_id = unsafe { &*webview }.notify_input_event(event);
-
-        if !out_event_id.is_null() {
-            unsafe { *out_event_id = event_id.0 as u64 };
-        }
-
-        ServoError::Ok
-    })
+        event_id.0 as u64
+    }))
+    .unwrap_or(0)
 }
 
 /// Notifies `webview` that the mouse left the viewport.
 ///
-/// `out_event_id` will be set to the `InputEventId` that can be used with
-/// `servo_webview_notify_input_event_handled` to determine the result of
-/// processing the event. May be `NULL` if the caller does not need the ID.
+/// Returns the generated `InputEventId` (as a non-zero `u64`), or `0` on error.
 ///
 /// # Safety
 ///
-/// See [`servo_webview_go_back`] for the safety requirements, which apply
-/// identically here.
-///
-/// # Errors
-///
-/// Returns `ServoError::NullArgument` if `webview` is null.
+/// `webview` must be a valid, non-null pointer.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_webview_notify_mouse_leave_event(
     webview: *mut WebView,
     focus_moving_to_another_iframe: bool,
-    out_event_id: *mut u64,
-) -> ServoError {
-    ServoError::catch_ffi(|| {
+) -> u64 {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         if webview.is_null() {
-            return ServoError::NullArgument;
+            return 0;
         }
 
         let event = InputEvent::MouseLeftViewport(
@@ -1340,29 +1302,18 @@ pub unsafe extern "C" fn servo_webview_notify_mouse_leave_event(
             },
         );
         let event_id = unsafe { &*webview }.notify_input_event(event);
-
-        if !out_event_id.is_null() {
-            unsafe { *out_event_id = event_id.0 as u64 };
-        }
-
-        ServoError::Ok
-    })
+        event_id.0 as u64
+    }))
+    .unwrap_or(0)
 }
 
 /// Notifies `webview` of a touch event.
 ///
-/// `out_event_id` will be set to the `InputEventId` that can be used with
-/// `servo_webview_notify_input_event_handled` to determine the result of
-/// processing the event. May be `NULL` if the caller does not need the ID.
+/// Returns the generated `InputEventId` (as a non-zero `u64`), or `0` on error.
 ///
 /// # Safety
 ///
-/// See [`servo_webview_go_back`] for the safety requirements, which apply
-/// identically here.
-///
-/// # Errors
-///
-/// Returns `ServoError::NullArgument` if `webview` is null.
+/// `webview` must be a valid, non-null pointer.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_webview_notify_touch_event(
     webview: *mut WebView,
@@ -1371,11 +1322,10 @@ pub unsafe extern "C" fn servo_webview_notify_touch_event(
     x: f64,
     y: f64,
     pointer_type: c_int,
-    out_event_id: *mut u64,
-) -> ServoError {
-    ServoError::catch_ffi(|| {
+) -> u64 {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         if webview.is_null() {
-            return ServoError::NullArgument;
+            return 0;
         }
 
         let event_type = match event_type {
@@ -1385,7 +1335,7 @@ pub unsafe extern "C" fn servo_webview_notify_touch_event(
             SERVO_TOUCH_EVENT_CANCEL => TouchEventType::Cancel,
             _ => {
                 log::warn!("Invalid touch event type: {event_type}");
-                return ServoError::InvalidArgument;
+                return 0;
             },
         };
 
@@ -1407,29 +1357,18 @@ pub unsafe extern "C" fn servo_webview_notify_touch_event(
             pointer_type,
         ));
         let event_id = unsafe { &*webview }.notify_input_event(event);
-
-        if !out_event_id.is_null() {
-            unsafe { *out_event_id = event_id.0 as u64 };
-        }
-
-        ServoError::Ok
-    })
+        event_id.0 as u64
+    }))
+    .unwrap_or(0)
 }
 
 /// Notifies `webview` of a wheel event.
 ///
-/// `out_event_id` will be set to the `InputEventId` that can be used with
-/// `servo_webview_notify_input_event_handled` to determine the result of
-/// processing the event. May be `NULL` if the caller does not need the ID.
+/// Returns the generated `InputEventId` (as a non-zero `u64`), or `0` on error.
 ///
 /// # Safety
 ///
-/// See [`servo_webview_go_back`] for the safety requirements, which apply
-/// identically here.
-///
-/// # Errors
-///
-/// Returns `ServoError::NullArgument` if `webview` is null.
+/// `webview` must be a valid, non-null pointer.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_webview_notify_wheel_event(
     webview: *mut WebView,
@@ -1439,11 +1378,10 @@ pub unsafe extern "C" fn servo_webview_notify_wheel_event(
     delta_mode: c_int,
     x: f64,
     y: f64,
-    out_event_id: *mut u64,
-) -> ServoError {
-    ServoError::catch_ffi(|| {
+) -> u64 {
+    std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         if webview.is_null() {
-            return ServoError::NullArgument;
+            return 0;
         }
 
         let mode = match delta_mode {
@@ -1467,13 +1405,9 @@ pub unsafe extern "C" fn servo_webview_notify_wheel_event(
 
         let event = InputEvent::Wheel(WheelEvent::new(delta, point));
         let event_id = unsafe { &*webview }.notify_input_event(event);
-
-        if !out_event_id.is_null() {
-            unsafe { *out_event_id = event_id.0 as u64 };
-        }
-
-        ServoError::Ok
-    })
+        event_id.0 as u64
+    }))
+    .unwrap_or(0)
 }
 
 /// Notifies `webview` that an input event has been handled by the embedder.

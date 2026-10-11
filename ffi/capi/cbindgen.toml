@@ -18,7 +18,7 @@ allow_constexpr = true
 
 [export]
 include = [
-    "DiagnosticsLoggingOption", "DownloadItem", "DownloadState", "LoadStatus", "ScreenshotCaptureError", "Cursor", "ConsoleLogLevel", "ServoCookie", "ServoFindResult", "ServoSiteDataManager", "ServoDelegate", "ServoDownloadItem", "ServoEventLoopWaker", "ServoWebViewDelegate",
+    "DiagnosticsLoggingOption", "LoadStatus", "ScreenshotCaptureError", "ServoCookie", "ServoFindResult", "ServoSiteDataManager", "ServoDelegate", "ServoDownloadItem", "ServoEventLoopWaker", "ServoWebViewDelegate",
     "ServoProxyConfig", "ServoCookieFilter", "ServoCertificateError", "ServoCertErrorCode", "ServoError",
     "ServoProtocolHandler", "ServoWebResourceRequest", "ServoWebResourceResponse", "ServoProtocolHandlerCallback",
     "ServoUserContentManager", "ServoMessageCallback",
@@ -45,6 +45,4 @@ include = [
 "DiagnosticsLoggingOption" = "ServoDiagnosticsLoggingOption"
 "LoadStatus" = "ServoLoadStatus"
 "ScreenshotCaptureError" = "ServoScreenshotCaptureError"
-"Cursor" = "ServoCursor"
-"ConsoleLogLevel" = "ServoConsoleLogLevel"
 "ServoError" = "ServoError"

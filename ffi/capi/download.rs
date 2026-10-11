@@ -10,10 +10,10 @@ use url::Url;
 use crate::ServoError;
 
 /// C-compatible constants for download states.
-pub const SERVO_DOWNLOAD_IN_PROGRESS: i32 = DownloadState::InProgress as i32;
-pub const SERVO_DOWNLOAD_COMPLETE: i32 = DownloadState::Complete as i32;
-pub const SERVO_DOWNLOAD_CANCELLED: i32 = DownloadState::Cancelled as i32;
-pub const SERVO_DOWNLOAD_INTERRUPTED: i32 = DownloadState::Interrupted as i32;
+pub const SERVO_DOWNLOAD_IN_PROGRESS: i32 = 0;
+pub const SERVO_DOWNLOAD_COMPLETE: i32 = 1;
+pub const SERVO_DOWNLOAD_CANCELLED: i32 = 2;
+pub const SERVO_DOWNLOAD_INTERRUPTED: i32 = 3;
 
 /// Opaque handle for a download item.
 ///
