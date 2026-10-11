@@ -16,6 +16,7 @@ use embedder_traits::{ViewportDetails, WebDriverLoadStatus};
 use http::header;
 use js::context::JSContext;
 use net_traits::blob_url_store::UrlWithBlobClaim;
+use net_traits::fetch::fetch_controller::FetchController;
 use net_traits::request::{
     CredentialsMode, InsecureRequestsPolicy, Origin, PreloadedResources, RedirectMode,
     RequestBuilder, RequestClient, RequestMode,
@@ -46,7 +47,6 @@ use crate::dom::node::node::NodeTraits;
 use crate::dom::window::Window;
 use crate::dom::windowproxy::WindowProxy;
 use crate::event_loop::script_thread::ScriptThread;
-use crate::fetch::fetch::FetchCanceller;
 use crate::messaging::MainThreadScriptMsg;
 
 #[derive(Clone)]
@@ -169,7 +169,8 @@ pub(crate) struct InProgressLoad {
     #[no_trace]
     pub(crate) navigation_start: CrossProcessInstant,
     /// For cancelling the fetch
-    pub(crate) canceller: FetchCanceller,
+    #[no_trace]
+    pub(crate) controller: FetchController,
     /// The [`LoadData`] associated with this load.
     #[no_trace]
     pub(crate) load_data: LoadData,
@@ -205,7 +206,7 @@ impl InProgressLoad {
             activity: DocumentActivity::FullyActive,
             throttled: false,
             navigation_start: CrossProcessInstant::now(),
-            canceller: Default::default(),
+            controller: Default::default(),
             load_data: new_pipeline_info.load_data,
             url_list: vec![url],
             user_content_manager_id: new_pipeline_info.user_content_manager_id,

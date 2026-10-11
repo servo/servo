@@ -29,6 +29,7 @@ use js::rust::wrappers2::{JS_ClearPendingException, JS_ParseJSON};
 use js::rust::{HandleObject, MutableHandleValue};
 use js::typedarray::{ArrayBufferU8, HeapArrayBuffer};
 use net_traits::blob_url_store::UrlWithBlobClaim;
+use net_traits::fetch::fetch_controller::FetchController;
 use net_traits::fetch::headers::extract_mime_type_as_dataurl_mime;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::{CredentialsMode, Referrer, RequestBuilder, RequestId, RequestMode};
@@ -81,7 +82,7 @@ use crate::event_loop::timers::{OneshotTimerCallback, OneshotTimerHandle};
 use crate::fetch::body::{
     BodySource, Extractable, ExtractedBody, decode_to_utf16_with_bom_removal,
 };
-use crate::fetch::fetch::{FetchCanceller, RequestWithGlobalScope};
+use crate::fetch::fetch::RequestWithGlobalScope;
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::mime::{APPLICATION, CHARSET, HTML, MimeExt, TEXT, XML};
 use crate::tasks::task_source::{SendableTaskSource, TaskSourceName};
@@ -248,7 +249,8 @@ pub(crate) struct XMLHttpRequest {
     referrer: Referrer,
     #[no_trace]
     referrer_policy: ReferrerPolicy,
-    canceller: DomRefCell<FetchCanceller>,
+    #[no_trace]
+    controller: DomRefCell<FetchController>,
 }
 
 impl XMLHttpRequest {
@@ -285,7 +287,7 @@ impl XMLHttpRequest {
             response_status: Cell::new(Ok(())),
             referrer: global.get_referrer(),
             referrer_policy: global.get_referrer_policy(),
-            canceller: DomRefCell::new(Default::default()),
+            controller: DomRefCell::new(Default::default()),
         }
     }
 
@@ -1241,7 +1243,7 @@ impl XMLHttpRequest {
                 );
 
                 self.cancel_timeout(cx.no_gc());
-                self.canceller.safe_borrow_mut(cx.no_gc()).ignore();
+                self.controller.safe_borrow_mut(cx.no_gc()).ignore();
 
                 // Part of step 11, send() (processing response end of file)
                 // XXXManishearth handle errors, if any (substep 2)
@@ -1258,7 +1260,7 @@ impl XMLHttpRequest {
             },
             XHRProgress::Errored(_, e) => {
                 self.cancel_timeout(cx.no_gc());
-                self.canceller.safe_borrow_mut(cx.no_gc()).ignore();
+                self.controller.safe_borrow_mut(cx.no_gc()).ignore();
 
                 self.discard_subsequent_responses();
                 self.send_flag.set(false);
@@ -1292,7 +1294,7 @@ impl XMLHttpRequest {
     }
 
     fn terminate_ongoing_fetch(&self, no_gc: &NoGC) {
-        self.canceller.safe_borrow_mut(no_gc).abort();
+        self.controller.safe_borrow_mut(no_gc).abort();
         let GenerationId(prev_id) = self.generation_id.get();
         self.generation_id.set(GenerationId(prev_id + 1));
         self.response_status.set(Ok(()));
@@ -1605,7 +1607,6 @@ impl XMLHttpRequest {
             docloader,
             None,
             None,
-            Default::default(),
             false,
             false,
             Some(doc.insecure_requests_policy()),
@@ -1664,8 +1665,8 @@ impl XMLHttpRequest {
             )
         };
 
-        *self.canceller.safe_borrow_mut(cx.no_gc()) =
-            FetchCanceller::new(request_builder.id, false, global.core_resource_thread());
+        *self.controller.safe_borrow_mut(cx.no_gc()) =
+            FetchController::new(request_builder.id, false, global.core_resource_thread());
 
         global.fetch(request_builder, context, task_source);
 

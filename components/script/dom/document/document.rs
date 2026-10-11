@@ -224,7 +224,7 @@ use crate::dom::{FlatTreeParent, RootedPromise, WeakRangeVec};
 use crate::event_loop::document_loader::{DocumentLoader, LoadType};
 use crate::event_loop::script_thread::{ScriptThread, SharedRwLocks};
 use crate::event_loop::timers::{OneshotTimerCallback, OneshotTimers};
-use crate::fetch::fetch::{DeferredFetchRecordInvokeState, FetchCanceller};
+use crate::fetch::fetch::DeferredFetchRecordInvokeState;
 use crate::fetch::network_listener::FetchResponseListener;
 use crate::mime::{APPLICATION, CHARSET};
 use crate::navigation::navigate;
@@ -576,8 +576,6 @@ pub(crate) struct Document {
     interactive_time: DomRefCell<ProgressiveWebMetrics>,
     #[no_trace]
     tti_window: DomRefCell<InteractiveWindow>,
-    /// RAII canceller for Fetch
-    canceller: FetchCanceller,
     /// <https://html.spec.whatwg.org/multipage/#throw-on-dynamic-markup-insertion-counter>
     throw_on_dynamic_markup_insertion_counter: Cell<u64>,
     /// <https://html.spec.whatwg.org/multipage/#page-showing>
@@ -4117,7 +4115,6 @@ impl Document {
         doc_loader: DocumentLoader,
         referrer: Option<String>,
         status_code: Option<u16>,
-        canceller: FetchCanceller,
         is_initial_about_blank: bool,
         allow_declarative_shadow_roots: bool,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
@@ -4238,7 +4235,6 @@ impl Document {
             form_id_listener_map: Default::default(),
             interactive_time: DomRefCell::new(interactive_time),
             tti_window: DomRefCell::new(InteractiveWindow::default()),
-            canceller,
             throw_on_dynamic_markup_insertion_counter: Cell::new(0),
             page_showing: Cell::new(false),
             salvageable: Cell::new(true),
@@ -4437,7 +4433,6 @@ impl Document {
         doc_loader: DocumentLoader,
         referrer: Option<String>,
         status_code: Option<u16>,
-        canceller: FetchCanceller,
         is_initial_about_blank: bool,
         allow_declarative_shadow_roots: bool,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
@@ -4462,7 +4457,6 @@ impl Document {
             doc_loader,
             referrer,
             status_code,
-            canceller,
             is_initial_about_blank,
             allow_declarative_shadow_roots,
             inherited_insecure_requests_policy,
@@ -4490,7 +4484,6 @@ impl Document {
         doc_loader: DocumentLoader,
         referrer: Option<String>,
         status_code: Option<u16>,
-        canceller: FetchCanceller,
         is_initial_about_blank: bool,
         allow_declarative_shadow_roots: bool,
         inherited_insecure_requests_policy: Option<InsecureRequestsPolicy>,
@@ -4516,7 +4509,6 @@ impl Document {
                 doc_loader,
                 referrer,
                 status_code,
-                canceller,
                 is_initial_about_blank,
                 allow_declarative_shadow_roots,
                 inherited_insecure_requests_policy,
@@ -4719,7 +4711,6 @@ impl Document {
                     DocumentLoader::new(&self.loader()),
                     None,
                     None,
-                    Default::default(),
                     false,
                     self.allow_declarative_shadow_roots(),
                     Some(self.insecure_requests_policy()),
@@ -5512,7 +5503,6 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             docloader,
             None,
             None,
-            Default::default(),
             false,
             doc.allow_declarative_shadow_roots(),
             Some(doc.insecure_requests_policy()),
@@ -5564,7 +5554,6 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             loader,
             None,
             None,
-            Default::default(),
             false,
             true,
             Some(doc.insecure_requests_policy()),
@@ -5618,7 +5607,6 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             loader,
             None,
             None,
-            Default::default(),
             false,
             true,
             Some(doc.insecure_requests_policy()),
