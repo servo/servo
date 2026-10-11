@@ -400,7 +400,9 @@ impl Document {
             // TODO: composition should be supported once editing hosts have selection support
             EditingAction::MoveCursor(..) |
             EditingAction::StartComposition |
-            EditingAction::EndComposition(..) => return false,
+            EditingAction::EndComposition(..) |
+            EditingAction::Undo |
+            EditingAction::Redo => return false,
             EditingAction::SelectAll | EditingAction::Clipboard(_) => {
                 unreachable!("Should have been handled before this point.")
             },
@@ -639,6 +641,20 @@ impl EditingContext {
         }
     }
 
+    pub(crate) fn undo_enabled(&self) -> bool {
+        match self {
+            EditingContext::TextControl(element) => element.text_control_element().can_undo(),
+            EditingContext::Document(..) => false,
+        }
+    }
+
+    pub(crate) fn redo_enabled(&self) -> bool {
+        match self {
+            EditingContext::TextControl(element) => element.text_control_element().can_redo(),
+            EditingContext::Document(..) => false,
+        }
+    }
+
     pub(crate) fn remove_the_contents_of_the_selection(&self, cx: &mut JSContext) {
         match self {
             EditingContext::TextControl(element) => {
@@ -805,6 +821,10 @@ pub(crate) fn editing_action_from_keyboard_event(
         })
         .shortcut(CMD_OR_CONTROL, 'V', || {
             Some(EditingAction::Clipboard(ClipboardAction::Paste))
+        })
+        .shortcut(CMD_OR_CONTROL, 'Z', || Some(EditingAction::Undo))
+        .shortcut(CMD_OR_CONTROL | Modifiers::SHIFT, 'Z', || {
+            Some(EditingAction::Redo)
         })
         // TODO: Figure out if the bit about Option+Enter works and whether or not this
         //       ends up providing the correct behavior on Mac. (i.e. whether or not

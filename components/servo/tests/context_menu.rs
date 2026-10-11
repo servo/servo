@@ -238,6 +238,8 @@ fn test_contextual_context_menu_items() {
     assert_context_menu_items(
         &context_menu_on_input,
         &[
+            (ContextMenuAction::Undo, false),
+            (ContextMenuAction::Redo, false),
             (ContextMenuAction::Cut, false),
             (ContextMenuAction::Copy, false),
             (ContextMenuAction::Paste, true),

@@ -91,7 +91,7 @@ pub mod text_input {
     pub use embedder_traits::EditingDirection;
 
     pub use crate::dom::html::form_controls::text_input::{
-        ClipboardProvider, Lines, SelectionDirection, TextInput,
+        ClipboardProvider, History, Lines, SelectionDirection, TextInput,
     };
 }
 

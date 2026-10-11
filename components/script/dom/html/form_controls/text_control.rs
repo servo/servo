@@ -27,7 +27,9 @@ use crate::dom::html::form_controls::text_input::{
 };
 use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::{Node, NodeTraits};
-use crate::dom::text_input::{EmbedderClipboardProvider, InputEventType, IsComposing, KeyReaction};
+use crate::dom::text_input::{
+    EmbedderClipboardProvider, History, InputEventType, IsComposing, KeyReaction,
+};
 use crate::dom::types::InputEvent;
 use crate::dom::{Element, Event};
 
@@ -51,12 +53,12 @@ pub(crate) trait TextControlElement {
     fn handle_key_reaction(&self, cx: &mut JSContext, action: KeyReaction);
 
     fn insert_content(&self, cx: &mut JSContext, text_content: &str) {
-        self.text_input_mut().insert(text_content);
+        self.text_input_mut().insert(text_content, History::Push);
         self.handle_text_content_changed(cx);
     }
 
     fn remove_the_contents_of_the_selection(&self, cx: &mut JSContext) {
-        self.text_input_mut().delete_selection();
+        self.text_input_mut().delete_selection(History::Push);
         self.handle_text_content_changed(cx);
     }
 
@@ -88,6 +90,12 @@ pub(crate) trait TextControlElement {
             },
             EditingAction::Backspace(_) => (None, InputEventType::DeleteContentBackward),
             EditingAction::Delete => (None, InputEventType::DeleteContentForward),
+            EditingAction::Undo if self.text_input().can_undo() => {
+                (None, InputEventType::HistoryUndo)
+            },
+            EditingAction::Redo if self.text_input().can_redo() => {
+                (None, InputEventType::HistoryRedo)
+            },
             EditingAction::InsertNewline | EditingAction::InsertParagraph
                 if self.text_input().mode() == Lines::Multiple =>
             {
@@ -397,7 +405,7 @@ pub(crate) trait TextControlElement {
             // unit.
             let mut text_input = self.text_input_mut();
             text_input.set_selection_range_utf16(start, end, SelectionDirection::None);
-            text_input.replace_selection(&replacement);
+            text_input.replace_selection(&replacement, History::Clear);
         }
 
         // Step 11: Let *new length* be the length of the value of the first argument.
@@ -551,5 +559,13 @@ pub(crate) trait TextControlElement {
                 EventCancelable::NotCancelable,
             );
         self.maybe_update_shared_selection();
+    }
+
+    fn can_undo(&self) -> bool {
+        self.text_input().can_undo()
+    }
+
+    fn can_redo(&self) -> bool {
+        self.text_input().can_redo()
     }
 }

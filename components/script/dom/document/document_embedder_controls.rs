@@ -8,8 +8,8 @@ use std::cell::Cell;
 
 use embedder_traits::{
     ClipboardAction, ContextMenuAction, ContextMenuElementInformation,
-    ContextMenuElementInformationFlags, ContextMenuItem, ContextMenuRequest, EmbedderControlId,
-    EmbedderControlRequest, EmbedderControlResponse, EmbedderMsg,
+    ContextMenuElementInformationFlags, ContextMenuItem, ContextMenuRequest, EditingAction,
+    EmbedderControlId, EmbedderControlRequest, EmbedderControlResponse, EmbedderMsg,
 };
 use euclid::{Point2D, Rect, Size2D};
 use js::context::{JSContext, NoGC};
@@ -342,10 +342,25 @@ impl DocumentEmbedderControls {
         let can_cut = has_selection && editing_context.cutting_enabled();
         let can_copy = has_selection && editing_context.copying_enabled();
         let can_paste = editing_context.pasting_enabled();
+
         if can_paste {
             info.flags
                 .insert(ContextMenuElementInformationFlags::EditableText);
+            items.extend(vec![
+                ContextMenuItem::Item {
+                    label: "Undo".into(),
+                    action: ContextMenuAction::Undo,
+                    enabled: editing_context.undo_enabled(),
+                },
+                ContextMenuItem::Item {
+                    label: "Redo".into(),
+                    action: ContextMenuAction::Redo,
+                    enabled: editing_context.redo_enabled(),
+                },
+                ContextMenuItem::Separator,
+            ]);
         }
+
         items.extend(vec![
             ContextMenuItem::Item {
                 label: "Cut".into(),
@@ -523,6 +538,14 @@ impl ContextMenuNodes {
             ContextMenuAction::SelectAll => {
                 let editing_context = document.editing_context(cx.no_gc(), &self.node);
                 editing_context.select_all(cx);
+            },
+            ContextMenuAction::Undo => {
+                let editing_context = document.editing_context(cx.no_gc(), &self.node);
+                editing_context.perform_editing_action(cx, EditingAction::Undo);
+            },
+            ContextMenuAction::Redo => {
+                let editing_context = document.editing_context(cx.no_gc(), &self.node);
+                editing_context.perform_editing_action(cx, EditingAction::Redo);
             },
         }
     }

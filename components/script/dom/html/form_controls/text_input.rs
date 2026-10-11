@@ -111,6 +111,136 @@ impl Lines {
     }
 }
 
+#[derive(MallocSizeOf, Clone)]
+struct EditHistoryEntry {
+    old: String,
+    new: String,
+    start: Utf8CodeUnits,
+    from_selection: bool,
+}
+
+impl EditHistoryEntry {
+    /// Returns true iff the merge was successful.
+    fn try_merge(&mut self, other: &EditHistoryEntry) -> bool {
+        // Merge criteria:
+        // * If self inserting, other is inserting, the insertions are contiguous (other on the
+        //   right of self), and the other is not replacing
+        // * If self deleting, other is deleting, the deletions are contiguous (other on the left
+        //   of self), and their `from_selection` statuses match
+        // * Otherwise false
+        if self.is_inserting() &&
+            other.is_inserting() &&
+            self.start + Utf8CodeUnits(self.new.len() as u32) == other.start &&
+            !other.is_replacing()
+        {
+            self.new.push_str(&other.new);
+            true
+        } else if self.is_deleting() &&
+            other.is_deleting() &&
+            other.start + Utf8CodeUnits(other.old.len() as u32) == self.start &&
+            self.from_selection == other.from_selection
+        {
+            self.start = other.start;
+            self.old.insert_str(0, &other.old);
+            true
+        } else {
+            false
+        }
+    }
+
+    fn is_inserting(&self) -> bool {
+        !self.new.is_empty()
+    }
+
+    fn is_deleting(&self) -> bool {
+        self.new.is_empty()
+    }
+
+    fn is_replacing(&self) -> bool {
+        self.is_inserting() && !self.old.is_empty()
+    }
+}
+
+#[derive(MallocSizeOf, Default)]
+struct EditHistory {
+    /// Stack of history entries.
+    entries: Vec<EditHistoryEntry>,
+    /// Cursor for where in the history we currently are. Stored as the
+    /// offset of the entry we are on plus one.
+    cursor: usize,
+}
+
+impl EditHistory {
+    /// Push a new history entry. An attempt to merge entries will be made.
+    fn push(&mut self, entry: EditHistoryEntry) {
+        if entry.old.is_empty() && entry.new.is_empty() {
+            return;
+        }
+        self.entries.truncate(self.cursor);
+        if let Some(last) = self.entries.last_mut() &&
+            last.try_merge(&entry)
+        {
+            return;
+        }
+        self.cursor += 1;
+        self.entries.push(entry);
+    }
+
+    fn has_prev(&self) -> bool {
+        self.cursor > 0
+    }
+
+    fn has_next(&self) -> bool {
+        self.cursor < self.entries.len()
+    }
+
+    fn prev(&mut self) -> Option<&EditHistoryEntry> {
+        if !self.has_prev() {
+            return None;
+        }
+        self.cursor -= 1;
+        Some(&self.entries[self.cursor])
+    }
+
+    fn next(&mut self) -> Option<&EditHistoryEntry> {
+        if !self.has_next() {
+            return None;
+        }
+        self.cursor += 1;
+        Some(&self.entries[self.cursor - 1])
+    }
+
+    fn clear(&mut self) {
+        self.entries.clear();
+        self.cursor = 0;
+    }
+}
+
+/// Indicates if a modification of a [`TextInput`] should add to its edit history, and how.
+#[derive(Clone, Copy, PartialEq)]
+pub enum History {
+    /// Push the edit entry.
+    Push,
+    /// Push the edit entry, selecting any text added back after an undo.
+    PushWithSelection,
+    /// Do not push the edit entry.
+    Nothing,
+    /// Clear the edit history and do not add the entry to the history.
+    Clear,
+}
+
+impl History {
+    /// Turns a [`History::Push`] into a [`History::PushWithSelection`] if the condition
+    /// holds true.
+    fn with_selection_if(self, cond: bool) -> History {
+        if self == History::Push && cond {
+            History::PushWithSelection
+        } else {
+            self
+        }
+    }
+}
+
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) struct SelectionState {
     start: RopeIndex,
@@ -153,6 +283,9 @@ pub struct TextInput<T: ClipboardProvider> {
     was_last_change_by_set_content: bool,
 
     #[no_trace]
+    edit_history: EditHistory,
+
+    #[no_trace]
     pub(crate) previous_selection_range: Range<RopeIndex>,
     #[no_trace]
     pub(crate) selection_for_layout: Option<RangeAny<Utf32CodeUnits>>,
@@ -183,6 +316,8 @@ pub enum InputEventType {
     DeleteByCut,
     DeleteContentBackward,
     DeleteContentForward,
+    HistoryUndo,
+    HistoryRedo,
     Nothing,
 }
 
@@ -196,6 +331,8 @@ impl InputEventType {
             Self::DeleteByCut => "deleteByCut",
             Self::DeleteContentBackward => "deleteContentBackward",
             Self::DeleteContentForward => "deleteContentForward",
+            Self::HistoryUndo => "historyUndo",
+            Self::HistoryRedo => "historyRedo",
             Self::Nothing => "",
         }
     }
@@ -223,6 +360,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             min_length: Default::default(),
             selection_direction: SelectionDirection::None,
             was_last_change_by_set_content: true,
+            edit_history: Default::default(),
             previous_selection_range: Default::default(),
             selection_for_layout: None,
         }
@@ -261,11 +399,11 @@ impl<T: ClipboardProvider> TextInput<T> {
 
     /// If there is an uncollapsed selection, delete it, otherwise do nothing. Returns
     /// true if any text was deleted.
-    pub(crate) fn delete_selection(&mut self) -> bool {
+    pub(crate) fn delete_selection(&mut self, history: History) -> bool {
         if self.selection_start() == self.selection_end() {
             return false;
         }
-        self.replace_selection(&DOMString::new());
+        self.replace_selection(&DOMString::new(), history);
         true
     }
 
@@ -277,24 +415,29 @@ impl<T: ClipboardProvider> TextInput<T> {
         &mut self,
         unit: RopeMovement,
         direction: EditingDirection,
+        history: History,
     ) -> bool {
-        if !self.has_uncollapsed_selection() {
+        let has_selection = self.has_uncollapsed_selection();
+        if !has_selection {
             let amount = match direction {
                 EditingDirection::Forward => 1,
                 EditingDirection::Backward => -1,
             };
             self.modify_selection(amount, unit);
         }
-        self.delete_selection()
+        self.delete_selection(history.with_selection_if(has_selection))
     }
 
     /// Insert a string at the current editing point or replace the selection if
     /// one exists.
-    pub fn insert<S: Into<String>>(&mut self, string: S) {
+    pub fn insert<S: Into<String>>(&mut self, string: S, history: History) {
         if self.selection_origin.is_none() {
             self.selection_origin = Some(self.edit_point);
         }
-        self.replace_selection(&DOMString::from(string.into()));
+        self.replace_selection(
+            &DOMString::from(string.into()),
+            history.with_selection_if(self.has_uncollapsed_selection()),
+        );
     }
 
     /// The start of the selection (or the edit point, if there is no selection). Always less than
@@ -405,7 +548,21 @@ impl<T: ClipboardProvider> TextInput<T> {
     /// Replace the current selection with the given [`DOMString`]. If the [`Rope`] is in
     /// single line mode this *will* strip newlines, as opposed to [`Self::set_content`],
     /// which does not.
-    pub fn replace_selection(&mut self, insert: &DOMString) {
+    pub fn replace_selection(&mut self, insert: &DOMString, history: History) {
+        match history {
+            History::Push => self.push_history_entry(
+                self.selection_content().unwrap_or_default(),
+                insert.str(),
+                false,
+            ),
+            History::PushWithSelection => self.push_history_entry(
+                self.selection_content().unwrap_or_default(),
+                insert.str(),
+                true,
+            ),
+            History::Clear => self.edit_history.clear(),
+            History::Nothing => {},
+        }
         let string_to_insert = if let Some(max_length) = self.max_length {
             let utf16_length_without_selection =
                 self.len_utf16().saturating_sub(self.selection_utf16_len());
@@ -502,7 +659,7 @@ impl<T: ClipboardProvider> TextInput<T> {
     pub fn handle_return(&mut self) -> KeyReaction {
         match self.mode {
             Lines::Multiple => {
-                self.insert('\n');
+                self.insert('\n', History::Push);
                 KeyReaction::DispatchInput(
                     None,
                     IsComposing::NotComposing,
@@ -565,7 +722,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             },
             EditingAction::InsertNewline | EditingAction::InsertParagraph => self.handle_return(),
             EditingAction::InsertText(text) => {
-                self.insert(&text);
+                self.insert(&text, History::Push);
                 KeyReaction::DispatchInput(
                     Some(text),
                     IsComposing::NotComposing,
@@ -573,20 +730,26 @@ impl<T: ClipboardProvider> TextInput<T> {
                 )
             },
             EditingAction::InsertCompositionText(text) => {
-                self.insert_for_composition(&text);
+                // In-progress compositions should not contribute to the edit history
+                self.insert_and_select(&text, History::Nothing);
                 KeyReaction::DispatchInput(
                     Some(text),
                     IsComposing::Composing,
                     InputEventType::InsertCompositionText,
                 )
             },
-            EditingAction::EndComposition(..) => {
+            EditingAction::EndComposition(text) => {
+                // Put the whole composition into the edit history
+                self.push_history_entry(String::new(), text, false);
                 self.clear_selection();
                 KeyReaction::RedrawSelection
             },
             EditingAction::Delete => {
-                if self.delete_unit_or_selection(RopeMovement::Grapheme, EditingDirection::Forward)
-                {
+                if self.delete_unit_or_selection(
+                    RopeMovement::Grapheme,
+                    EditingDirection::Forward,
+                    History::Push,
+                ) {
                     KeyReaction::DispatchInput(
                         None,
                         IsComposing::NotComposing,
@@ -606,11 +769,37 @@ impl<T: ClipboardProvider> TextInput<T> {
                     EditingMotion::Page => return KeyReaction::Nothing,
                     EditingMotion::DocumentStartOrEnd => RopeMovement::RopeStartOrEnd,
                 };
-                if self.delete_unit_or_selection(movement, EditingDirection::Backward) {
+                if self.delete_unit_or_selection(
+                    movement,
+                    EditingDirection::Backward,
+                    History::Push,
+                ) {
                     KeyReaction::DispatchInput(
                         None,
                         IsComposing::NotComposing,
                         InputEventType::DeleteContentBackward,
+                    )
+                } else {
+                    KeyReaction::Nothing
+                }
+            },
+            EditingAction::Undo => {
+                if self.undo() {
+                    KeyReaction::DispatchInput(
+                        None,
+                        IsComposing::NotComposing,
+                        InputEventType::HistoryUndo,
+                    )
+                } else {
+                    KeyReaction::Nothing
+                }
+            },
+            EditingAction::Redo => {
+                if self.redo() {
+                    KeyReaction::DispatchInput(
+                        None,
+                        IsComposing::NotComposing,
+                        InputEventType::HistoryRedo,
                     )
                 } else {
                     KeyReaction::Nothing
@@ -622,10 +811,10 @@ impl<T: ClipboardProvider> TextInput<T> {
         }
     }
 
-    fn insert_for_composition<S: Into<String>>(&mut self, insertion: S) {
+    fn insert_and_select<S: Into<String>>(&mut self, insertion: S, history: History) {
         let start = self.selection_start_offset();
         let insertion = insertion.into();
-        self.insert(&insertion);
+        self.insert(&insertion, history);
         self.set_selection_range_utf8(
             start,
             start + Utf8CodeUnits(insertion.len() as u32),
@@ -743,6 +932,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         self.selection_origin = self
             .selection_origin
             .map(|selection_origin| self.rope.normalize_index(selection_origin));
+        self.edit_history.clear();
     }
 
     pub fn set_selection_range_utf16(
@@ -786,6 +976,65 @@ impl<T: ClipboardProvider> TextInput<T> {
         }
 
         self.assert_ok_selection();
+    }
+
+    /// Returns true iff an undo was successfully applied.
+    pub fn undo(&mut self) -> bool {
+        let Some(entry) = self.edit_history.prev().cloned() else {
+            return false;
+        };
+        let old = entry.old.clone();
+        let start = entry.start;
+        let new_len = Utf8CodeUnits(entry.new.len() as u32);
+        self.set_selection_range_utf8(start, start + new_len, SelectionDirection::Forward);
+        if entry.from_selection {
+            self.insert_and_select(old, History::Nothing);
+        } else {
+            self.insert(old, History::Nothing);
+        }
+        true
+    }
+
+    /// Returns true iff a redo was successfully applied.
+    pub fn redo(&mut self) -> bool {
+        let Some(entry) = self.edit_history.next() else {
+            return false;
+        };
+        let new = entry.new.clone();
+        let start = entry.start;
+        let old_len = Utf8CodeUnits(entry.old.len() as u32);
+        self.set_selection_range_utf8(start, start + old_len, SelectionDirection::Forward);
+        self.insert(new, History::Nothing);
+        true
+    }
+
+    pub fn can_undo(&self) -> bool {
+        self.edit_history.has_prev()
+    }
+
+    pub fn can_redo(&self) -> bool {
+        self.edit_history.has_next()
+    }
+
+    fn push_history_entry<S: Into<String>, L: Into<String>>(
+        &mut self,
+        old: S,
+        new: L,
+        from_selection: bool,
+    ) {
+        self.edit_history.push(EditHistoryEntry {
+            old: old.into(),
+            new: new.into(),
+            start: {
+                let start_index = if self.selection_origin_or_edit_point() > self.edit_point {
+                    self.edit_point
+                } else {
+                    self.selection_origin_or_edit_point()
+                };
+                self.rope.index_to_utf8_offset(start_index)
+            },
+            from_selection,
+        });
     }
 }
 
