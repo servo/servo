@@ -230,7 +230,7 @@ jobs:
       - name: Build with Perfetto tracing
         if: ${{ inputs.perf-analysis }}
         run: |
-          ./mach build --use-crown --locked --profile ${{ inputs.profile }} --features tracing-perfetto
+          ./mach build --use-crown --locked --profile ${{ inputs.profile }} ${{ inputs.build-args }} --features tracing-perfetto
       - name: Package with Perfetto tracing
         if: ${{ inputs.perf-analysis }}
         run: ./mach package --profile ${{ inputs.profile }}

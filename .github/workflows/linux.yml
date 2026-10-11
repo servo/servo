@@ -134,7 +134,7 @@ jobs:
       bencher: ${{ inputs.bencher }}
       coverage: ${{ inputs.coverage }}
       capi: ${{ inputs.capi }}
-      perf-analysis: ${{ inputs.bencher && inputs.profile == 'release' }}
+      perf-analysis: ${{ inputs.bencher }}
 
   wpt-2020:
     if: ${{ inputs.wpt }}
@@ -165,7 +165,8 @@ jobs:
       compressed-file-path: ${{ inputs.profile }}-binary-linux/servo-tech-demo.tar.gz
       binary-path: servo/servoshell
       file-size: true
-      # We only evaluate Perf analysis, speedometer and dromaeo score in release
+      # We only evaluate Perf analysis, speedometer and dromaeo score in 
+      # checked-release profile when triggered by T-bencher
       speedometer: ${{ inputs.profile == 'checked-release' }}
       dromaeo: ${{ inputs.profile == 'checked-release' }}
       perf-analysis: ${{ inputs.profile == 'checked-release' }}
