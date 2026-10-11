@@ -51,7 +51,6 @@
 ./components/script/dom/gamepad/gamepadhapticactuator.rs 3
 ./components/script/dom/geometry/dommatrixreadonly.rs 3
 ./components/script/dom/globalscope/messageport.rs 2
-./components/script/dom/globalscope/script_execution.rs 1
 ./components/script/dom/indexeddb/idbcursor.rs 1
 ./components/script/dom/indexeddb/idbdatabase.rs 13
 ./components/script/dom/indexeddb/idbfactory.rs 9
@@ -103,5 +102,6 @@
 ./components/script/dom/xpath/xpathexpression.rs 2
 ./components/script/dom/xpath/xpathresult.rs 1
 ./components/script/drag/drag_data_store.rs 1
+./components/script/scripting/script_execution.rs 1
 ./components/script/xpath.rs 1
 ./components/script_bindings/proxyhandler.rs 1

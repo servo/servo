@@ -2,10 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-//! An implementation of ecma262's [LoadRequestedModules](https://tc39.es/ecma262/#sec-LoadRequestedModules)
-//! Partly inspired by mozjs implementation: <https://searchfox.org/firefox-main/source/js/src/vm/Modules.cpp#1450>
-//! Since we can't access ModuleObject internals (eg. ModuleRequest records), we deviate from the spec in some aspects.
-
 #![expect(unsafe_code)]
 
 use std::ffi::c_void;
@@ -41,12 +37,14 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
 use crate::dom::window::Window;
-use crate::modules::script_module::{
-    ModuleHandler, ModuleObject, ModuleTree, RethrowError, ScriptFetchOptions,
-    fetch_a_single_module_script, module_script_from_reference_private,
-};
 use crate::realms::enter_auto_realm;
 use crate::runtime::script_runtime::IntroductionType;
+use crate::scripting::fetching_options::ScriptFetchOptions;
+use crate::scripting::import_map::ImportMap;
+use crate::scripting::script_module::{
+    ModuleHandler, ModuleObject, ModuleTree, RethrowError, fetch_a_single_module_script,
+    module_script_from_reference_private,
+};
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -450,7 +448,7 @@ pub(crate) fn host_load_imported_module(
 
     // Step 8. Let url be the result of resolving a module specifier given referencingScript and moduleRequest.[[Specifier]],
     // catching any exceptions. If they throw an exception, let resolutionError be the thrown exception.
-    let url = ModuleTree::resolve_module_specifier(&global_scope, referencing_script, specifier);
+    let url = ImportMap::resolve_module_specifier(&global_scope, referencing_script, specifier);
 
     // Step 9. If the previous step threw an exception, then:
     if let Err(resolution_error) = url {

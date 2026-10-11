@@ -119,9 +119,6 @@ use crate::dom::globalscope::listeners::{
     FileListenerCallback, FileListenerState, FileListenerTarget, ManagedMessagePort,
     MessageListener, MessagePortState,
 };
-use crate::dom::globalscope::script_execution::{
-    fill_compile_options, maybe_associate_with_script,
-};
 use crate::dom::idbfactory::IDBFactory;
 use crate::dom::messageport::MessagePort;
 use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
@@ -129,7 +126,6 @@ use crate::dom::performance::performance::Performance;
 use crate::dom::performance::performanceentry::EntryType;
 use crate::dom::promise::RootedPromise;
 use crate::dom::readablestream::{CrossRealmTransformReadable, ReadableStream};
-use crate::dom::script_execution::ScriptOptions;
 use crate::dom::serviceworker::ServiceWorker;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerGlobalScope;
 use crate::dom::serviceworkerregistration::ServiceWorkerRegistration;
@@ -153,13 +149,15 @@ use crate::event_loop::timers::{
 use crate::fetch::fetch::FetchGroup;
 use crate::fetch::network_listener::{FetchResponseListener, NetworkListener};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopReceiver, ScriptEventLoopSender};
-use crate::modules::import_map::ImportMap;
-use crate::modules::script_module::{
-    ModuleRequest, ModuleStatus, ResolvedModule, ScriptFetchOptions,
-};
 use crate::realms::enter_auto_realm;
 use crate::runtime::job_queue::MicrotaskRunnable;
 use crate::runtime::script_runtime::ThreadSafeJSContext;
+use crate::scripting::fetching_options::ScriptFetchOptions;
+use crate::scripting::import_map::ImportMap;
+use crate::scripting::script_execution::{
+    ScriptOptions, fill_compile_options, maybe_associate_with_script,
+};
+use crate::scripting::script_module::{ModuleRequest, ModuleStatus, ResolvedModule};
 use crate::tasks::task_manager::TaskManager;
 use crate::tasks::task_source::SendableTaskSource;
 use crate::unminify::unminified_path;
