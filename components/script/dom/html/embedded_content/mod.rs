@@ -18,3 +18,4 @@ pub(crate) mod htmlpictureelement;
 pub(crate) mod htmlsourceelement;
 pub(crate) mod htmltrackelement;
 pub(crate) mod htmlvideoelement;
+mod media_elements;
