@@ -344,10 +344,10 @@ int test_rendering_context_zero_size_returns_null(void)
 int test_rendering_context_create_window_returns_null_in_headless(void)
 {
     /* In headless CI, there is no valid display/window handle.
-     * Pass dummy non-null pointers; the function should validate and return NULL
-     * without crashing. */
-    void* fake_display = (void*)0x1;
-    void* fake_window = (void*)0x2;
+     * Pass dummy zeroed buffers; the function will safely fail to initialize a
+     * window context and return NULL without crashing. */
+    char fake_display[256] = {0};
+    char fake_window[256] = {0};
     RenderingContext* context =
         servo_rendering_context_create_window(fake_display, fake_window, 100, 100);
     /* Should return NULL because the handles are invalid. */
@@ -423,8 +423,8 @@ int test_rendering_context_create_offscreen_window_parent_headless(void)
     /* In headless CI, create a fake window context and try to create
      * an offscreen context from it. The window context creation will fail,
      * so we can't test the full path, but we can verify the API exists. */
-    void* fake_display = (void*)0x1;
-    void* fake_window = (void*)0x2;
+    char fake_display[256] = {0};
+    char fake_window[256] = {0};
     RenderingContext* window_ctx =
         servo_rendering_context_create_window(fake_display, fake_window, 100, 100);
     /* Window context creation should fail in headless. */
