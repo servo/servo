@@ -1080,7 +1080,7 @@ fn fetch_the_descendants_and_link_module_script(
     let state = Box::new(LoadState {
         destination,
         fetch_client,
-        module_script: DomRefCell::new(Some(module_script.clone())),
+        module_script: DomRefCell::new(Some(module_script)),
         on_complete: DomRefCell::new(Some(Box::new(on_complete))),
     });
 
