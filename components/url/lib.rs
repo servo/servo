@@ -52,7 +52,7 @@ impl ServoUrl {
     }
 
     pub fn into_string(self) -> String {
-        String::from(self.into_url())
+        String::from(self.as_url().as_str())
     }
 
     pub fn into_url(self) -> Url {
