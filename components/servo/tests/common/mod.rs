@@ -12,9 +12,9 @@ use dpi::PhysicalSize;
 use embedder_traits::EventLoopWaker;
 use paint_api::rendering_context::{RenderingContext, SoftwareRenderingContext};
 use servo::{
-    ConsoleLogLevel, EmbedderControl, InputEvent, JSValue, JavaScriptEvaluationError, LoadStatus,
-    MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent, Preferences, Servo,
-    ServoBuilder, SimpleDialog, WebView, WebViewDelegate,
+    ConsoleLogLevel, EmbedderControl, InputEvent, InputEventId, InputEventResult, JSValue,
+    JavaScriptEvaluationError, LoadStatus, MouseButton, MouseButtonAction, MouseButtonEvent,
+    MouseMoveEvent, Preferences, Servo, ServoBuilder, SimpleDialog, WebView, WebViewDelegate,
 };
 use webrender_api::units::DevicePoint;
 
@@ -97,6 +97,7 @@ pub(crate) struct WebViewDelegateImpl {
     pub(crate) console_messages: RefCell<Vec<(ConsoleLogLevel, String)>>,
     pub(crate) fullscreen: Cell<bool>,
     pub(crate) crashes: Cell<usize>,
+    pub(crate) input_event_result: RefCell<Option<InputEventResult>>,
 }
 
 #[allow(dead_code)] // Used by some tests and not others
@@ -112,6 +113,7 @@ impl WebViewDelegateImpl {
         self.console_messages.borrow_mut().clear();
         self.fullscreen.set(false);
         self.crashes.set(0);
+        *self.input_event_result.borrow_mut() = None;
     }
 }
 
@@ -174,6 +176,15 @@ impl WebViewDelegate for WebViewDelegateImpl {
 
     fn notify_crashed(&self, _webview: WebView, _reason: String, _backtrace: Option<String>) {
         self.crashes.set(self.crashes.get() + 1);
+    }
+
+    fn notify_input_event_handled(
+        &self,
+        _webview: WebView,
+        _event_id: InputEventId,
+        result: InputEventResult,
+    ) {
+        *self.input_event_result.borrow_mut() = Some(result);
     }
 }
 
