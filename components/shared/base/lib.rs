@@ -48,7 +48,7 @@ where
 
     match serde_json::from_reader(buf_reader) {
         Ok(decoded_buffer) => *data = decoded_buffer,
-        Err(why) => warn!("Could not decode buffer{}", why),
+        Err(why) => warn!("Could not deserialize file {}", why),
     }
 }
 
