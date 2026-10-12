@@ -676,7 +676,7 @@ impl WorkerGlobalScope {
     pub(crate) fn on_complete(&self, cx: &mut JSContext, script: Option<Script>) {
         // Step 1. If script is null or if script's error to rethrow is non-null, then:
         let script = match script {
-            Some(Script::Classic(script)) if script.record.is_ok() => Script::Classic(script),
+            Some(Script::Classic(script)) if !script.has_rethrow_error() => Script::Classic(script),
             Some(Script::Module(module)) if !module.has_rethrow_error() => Script::Module(module),
             _ => {
                 // Step 1.1. Queue a global task on the DOM manipulation task source given

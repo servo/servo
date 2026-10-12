@@ -267,13 +267,13 @@ pub(crate) enum ScriptType {
 #[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum TracedScript {
-    Classic(ClassicScript),
+    Classic(Box<ClassicScript>),
     Module(Box<ModuleScript>),
 }
 
 #[expect(clippy::large_enum_variant)]
 pub(crate) enum Script {
-    Classic(ClassicScript),
+    Classic(RootedTraceableBox<ClassicScript>),
     Module(RootedTraceableBox<ModuleScript>),
     ImportMap(Fallible<ImportMap>),
 }
@@ -284,7 +284,7 @@ pub(crate) type ScriptResult = Result<Script, ()>;
 impl From<Script> for TracedScript {
     fn from(value: Script) -> Self {
         match value {
-            Script::Classic(classic) => TracedScript::Classic(classic),
+            Script::Classic(classic) => TracedScript::Classic(classic.into_box()),
             Script::Module(module) => TracedScript::Module(module.into_box()),
             Script::ImportMap(_) => {
                 unreachable!("Import maps are executed immediately, traced variant is not needed")
@@ -297,7 +297,9 @@ impl From<TracedScript> for Script {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn from(value: TracedScript) -> Self {
         match value {
-            TracedScript::Classic(classic) => Script::Classic(classic),
+            TracedScript::Classic(classic) => {
+                Script::Classic(RootedTraceableBox::from_box(classic))
+            },
             TracedScript::Module(module) => Script::Module(RootedTraceableBox::from_box(module)),
         }
     }
@@ -467,7 +469,8 @@ impl FetchResponseListener for ClassicContext {
                 .is_null());
             }
         } else {*/
-        *elem.result.borrow_mut() = Some(Ok(TracedScript::Classic(script)));
+        let load = Script::Classic(script);
+        *elem.result.borrow_mut() = Some(Ok(load.into()));
         elem.finish_fetching_a_script(cx, self.kind);
         // }
     }
