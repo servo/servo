@@ -1,0 +1,19 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Cloned checked checkboxes get their checked state copied correctly</title>
+<link rel="author" title="Glenn Skrzypczak" href="mailto:glenn.skrzypczak@gmail.com"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script>
+test(function() {
+  let input = document.createElement("input");
+  input.setAttribute("type", "checkbox");
+  input.checked = true;
+  assert_true(input.matches(":checked"), 'input should match :checked');
+
+  let clone = input.cloneNode();
+  assert_true(clone.matches(":checked"), 'cloned input should match :checked');
+}, "Cloned checked checkboxes get their checked state copied correctly");
+</script>

@@ -1332213,6 +1332213,15 @@
          {}
         ]
        ],
+       "checked-after-clone.html": [
+        "44ab2f89c57cf8dede2d2a450b0ddafd7290858a",
+        [
+         null,
+         {
+          "testdriver": true
+         }
+        ]
+       ],
        "checked-indeterminate.window.js": [
         "167cbdd37fa1d4fe99b099417a8677381a0ae353",
         [
