@@ -487,6 +487,8 @@ pub(crate) trait SpecificInputType {
         _context: &UnbindContext,
     ) {
     }
+
+    fn form_owner_changed(&self, _cx: &mut JSContext, _input: &HTMLInputElement) {}
 }
 
 pub(crate) trait SpecificInputActivationType {

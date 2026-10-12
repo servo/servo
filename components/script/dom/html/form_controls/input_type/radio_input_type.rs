@@ -171,6 +171,10 @@ impl SpecificInputType for RadioInputType {
                 .perform_validation_and_update(cx, ValidationFlags::all());
         }
     }
+
+    fn form_owner_changed(&self, cx: &mut JSContext, input: &HTMLInputElement) {
+        radio_group_updated(cx, input, input.radio_group_name().as_ref());
+    }
 }
 
 impl SpecificInputActivationType for RadioInputActivation {
