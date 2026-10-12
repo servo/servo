@@ -2490,7 +2490,7 @@ impl VirtualMethods for HTMLInputElement {
         // The spec does not mention cloning the indeterminate state, but other browsers
         // do it and there are WPT tests expecting cloned nodes to preserve this attribute.
         elem.SetIndeterminate(cx, self.Indeterminate());
-        elem.textinput
+        elem.text_input
             .borrow_mut()
             .set_content(self.text_input.borrow().get_content());
         self.value_changed(cx);

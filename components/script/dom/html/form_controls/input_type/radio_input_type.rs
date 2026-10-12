@@ -248,13 +248,13 @@ pub(crate) fn broadcast_radio_checked(
         .upcast::<Node>()
         .GetRootNode(&GetRootNodeOptions::empty());
     let form = broadcaster.form_owner();
-    for r in radio_group_iter(broadcaster, group, form.as_deref(), &root) {
-        if broadcaster != &*r && r.Checked() {
-            r.SetChecked(cx, false);
+    for radio in radio_group_iter(broadcaster, group, form.as_deref(), &root) {
+        if broadcaster != &*radio && radio.Checked() {
+            radio.SetChecked(cx, false);
         }
 
         // The radio button triggering the broadcast is checked, so the group is not indeterminate
-        r.upcast::<Element>()
+        radio.upcast::<Element>()
             .set_state(ElementState::INDETERMINATE, false);
     }
 }
