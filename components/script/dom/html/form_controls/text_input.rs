@@ -199,6 +199,11 @@ impl InputEventType {
             Self::Nothing => "",
         }
     }
+
+    /// <https://www.w3.org/TR/input-events-2/#interface-InputEvent-Attributes>
+    pub(crate) fn is_beforeinput_cancelable(self) -> bool {
+        self != Self::InsertCompositionText
+    }
 }
 
 /// Resulting action to be taken by the owner of a text input that is handling an event.
