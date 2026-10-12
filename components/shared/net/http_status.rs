@@ -70,12 +70,13 @@ impl HttpStatus {
     pub fn message(&self) -> &[u8] {
         if let Some(message) = &self.message {
             message
-        } else {
-            let status_code = StatusCode::from_u16(self.code).unwrap();
+        } else if let Ok(status_code) = StatusCode::from_u16(self.code) {
             status_code
                 .canonical_reason()
                 .unwrap_or_default()
                 .as_bytes()
+        } else {
+            &[]
         }
     }
 
