@@ -16,21 +16,19 @@ use crate::{MallocSizeOf, StatusCode};
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub struct HttpStatus {
     code: u16,
-    message: Vec<u8>,
+    /// Empty means the canonnical reason should be used.
+    message: Option<Vec<u8>>,
 }
 
 impl HttpStatus {
     /// Creates a new HttpStatus for a valid status code.
-    pub fn new(code: StatusCode, message: Vec<u8>) -> Self {
-        Self {
-            code: code.as_u16(),
-            message,
-        }
+    pub fn new(code: StatusCode, message: Option<Vec<u8>>) -> Self {
+        Self { code, message }
     }
 
     /// Creates a new HttpStatus from a raw status code, but will panic
     /// if the code is not in the 100 to 599 valid range.
-    pub fn new_raw(code: u16, message: Vec<u8>) -> Self {
+    pub fn new_raw(code: u16, message: Option<Vec<u8>>) -> Self {
         if !(100..=599).contains(&code) {
             panic!(
                 "HttpStatus code must be in the range 100 to 599, inclusive, but is {}",
@@ -45,7 +43,7 @@ impl HttpStatus {
     pub fn new_error() -> Self {
         Self {
             code: 0,
-            message: vec![],
+            message: None,
         }
     }
 
@@ -67,7 +65,15 @@ impl HttpStatus {
 
     /// Get access to a reference of the message part.
     pub fn message(&self) -> &[u8] {
-        &self.message
+        if let Some(message) = &self.message {
+            message
+        } else {
+            let status_code = StatusCode::from_u16(self.code).unwrap();
+            status_code
+                .canonical_reason()
+                .unwrap_or_default()
+                .as_bytes()
+        }
     }
 
     /// Helper that relays is_success() from the underlying code.
@@ -100,7 +106,7 @@ impl Default for HttpStatus {
     fn default() -> Self {
         Self {
             code: 200,
-            message: b"OK".to_vec(),
+            message: None,
         }
     }
 }
@@ -115,11 +121,7 @@ impl From<StatusCode> for HttpStatus {
     fn from(code: StatusCode) -> Self {
         Self {
             code: code.as_u16(),
-            message: code
-                .canonical_reason()
-                .unwrap_or_default()
-                .as_bytes()
-                .to_vec(),
+            message: None,
         }
     }
 }

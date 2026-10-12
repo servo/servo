@@ -59,7 +59,7 @@ impl RequestInterceptor {
                     response_override.headers = webresource_response.headers;
                     response_override.status = HttpStatus::new(
                         webresource_response.status_code,
-                        webresource_response.status_message,
+                        Some(webresource_response.status_message),
                     );
                     *response = Some(response_override);
                 },

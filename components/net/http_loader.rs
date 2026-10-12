@@ -2307,14 +2307,7 @@ async fn http_network_fetch(
         .extensions()
         .get::<ReasonPhrase>()
         .map(ReasonPhrase::as_bytes)
-        .or_else(|| {
-            response_stream
-                .status()
-                .canonical_reason()
-                .map(str::as_bytes)
-        })
-        .map(Vec::from)
-        .unwrap_or_default();
+        .map(Vec::from);
     response.status = HttpStatus::new(response_stream.status(), status_text);
 
     info!(

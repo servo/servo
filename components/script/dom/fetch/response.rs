@@ -240,7 +240,7 @@ impl ResponseMethods<crate::DomTypeHolder> for Response {
         let response = Response::new(cx, global);
 
         // Step 5
-        *response.status.borrow_mut() = HttpStatus::new_raw(status, vec![]);
+        *response.status.borrow_mut() = HttpStatus::new_raw(status, None);
 
         // Step 6
         let url_bytestring =
@@ -438,7 +438,7 @@ fn initialize_response(
     // 3. Set response’s response’s status to init["status"].
     // 4. Set response’s response’s status message to init["statusText"].
     *response.status.borrow_mut() =
-        HttpStatus::new_raw(init.status, init.statusText.clone().into());
+        HttpStatus::new_raw(init.status, Some(init.statusText.clone().into()));
 
     // 5. If init["headers"] exists, then fill response’s headers with init["headers"].
     if let Some(ref headers_member) = init.headers {

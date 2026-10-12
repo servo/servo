@@ -167,7 +167,7 @@ impl Response {
         res.location_url = init.location_url;
         res.headers = init.headers;
         res.referrer = init.referrer;
-        res.status = HttpStatus::new_raw(init.status_code, vec![]);
+        res.status = HttpStatus::new_raw(init.status_code, None);
         res
     }
 
