@@ -277,7 +277,8 @@ fn inner_sanitize_steps(
                         .downcast::<ProcessingInstruction>()
                         .expect("Guaranteed by pattern matching of child.type_id()")
                         .target()
-                        .clone(),
+                        .clone()
+                        .root(),
                 );
 
                 // Step 1.4.2. If configuration["processingInstructions"] exists:

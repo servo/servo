@@ -941,7 +941,7 @@ impl EventTarget {
             signal.add(&AbortAlgorithm::DomEventListener(
                 RemovableDomEventListener {
                     event_target: Dom::from_ref(self),
-                    ty: ty.clone(),
+                    ty: ty.clone().traced(),
                     listener: listener.as_ref().map(|listener| listener.to_traced()),
                     options: options.parent.clone(),
                 },

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
+use script_bindings::domstring::TracedDOMString;
 
 use crate::dom::bindings::codegen::Bindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
 use crate::dom::bindings::root::DomRoot;
@@ -15,7 +16,7 @@ use crate::dom::node::Node;
 #[dom_struct]
 pub(crate) struct ProcessingInstruction {
     characterdata: CharacterData,
-    target: DOMString,
+    target: TracedDOMString,
 }
 
 impl ProcessingInstruction {
@@ -26,7 +27,7 @@ impl ProcessingInstruction {
     ) -> ProcessingInstruction {
         ProcessingInstruction {
             characterdata: CharacterData::new_inherited(data, document),
-            target,
+            target: target.traced(),
         }
     }
 
@@ -45,7 +46,7 @@ impl ProcessingInstruction {
 }
 
 impl ProcessingInstruction {
-    pub(crate) fn target(&self) -> &DOMString {
+    pub(crate) fn target(&self) -> &TracedDOMString {
         &self.target
     }
 }
@@ -53,6 +54,6 @@ impl ProcessingInstruction {
 impl ProcessingInstructionMethods<crate::DomTypeHolder> for ProcessingInstruction {
     /// <https://dom.spec.whatwg.org/#dom-processinginstruction-target>
     fn Target(&self) -> DOMString {
-        self.target.clone()
+        self.target.clone().root()
     }
 }
