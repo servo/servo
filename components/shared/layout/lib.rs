@@ -8,6 +8,7 @@
 
 #![deny(unsafe_code)]
 
+mod accessibility;
 mod container_timing_record;
 mod largest_contentful_paint_candidate;
 mod layout_damage;
@@ -23,6 +24,10 @@ use std::sync::atomic::AtomicIsize;
 use std::thread::JoinHandle;
 use std::time::Duration;
 
+pub use accessibility::{
+    ACCESSKIT_ROLE_TO_ARIA_ROLE, ARIA_ROLE_TO_ACCESSKIT_ROLE, AccessibilityDamage,
+    SUPPORTED_ARIA_ROLES,
+};
 use accesskit::{Action, ActionData, ActionRequest};
 use app_units::Au;
 use background_hang_monitor_api::BackgroundHangMonitorRegister;
@@ -32,7 +37,7 @@ use embedder_traits::{Cursor, ScriptToEmbedderChan, Theme, UntrustedNodeAddress,
 use euclid::{Point2D, Rect};
 use fonts::{FontContext, WebFontDocumentContext, WebFontSetDifference};
 pub use largest_contentful_paint_candidate::LCPCandidate;
-pub use layout_damage::{AccessibilityDamage, LayoutDamage};
+pub use layout_damage::LayoutDamage;
 pub use layout_dom::{
     DangerousStyleElementOf, DangerousStyleNodeOf, LayoutDomTypeBundle, LayoutElementOf,
     LayoutNodeOf,

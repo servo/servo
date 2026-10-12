@@ -55,19 +55,3 @@ impl From<LayoutDamage> for RestyleDamage {
         RestyleDamage::from_bits_retain(layout_damage.bits())
     }
 }
-
-bitflags! {
-    #[derive(Clone, Copy, Default, Debug, Eq, PartialEq)]
-    pub struct AccessibilityDamage: u16 {
-        /// The properties of this node (other than children) have changed.
-        const Node = 0b0001;
-        /// Children have been added to or removed from this node.
-        const Children = 0b0010;
-        /// This node and its descendants have bounds damage from layout.
-        const Layout = 0b0100;
-
-        /// All properties of this node need to be recomputed.
-        const Rebuild = 0b0111;
-    }
-}
-malloc_size_of::malloc_size_of_is_0!(AccessibilityDamage);
