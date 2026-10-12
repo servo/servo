@@ -393,6 +393,9 @@ impl FetchTaskTarget for GenericCallback<FetchResponseMsg> {
         // An Arc shares the response body only for in-process delivery. Over IPC,
         // serializing it would resend the full body after the chunks already sent.
         // Image consumers can retain their chunk-assembled buffer instead.
+        //
+        // Just relying on Arc's serialization also requires to change ProcessResponseEOF in
+        // too many files (19), so instead its been opted for `process_response_eof_with_body`
         let shared_body = (!self.uses_ipc() && result.is_ok() && body_is_done)
             .then(|| actual_response.body.clone());
         let _ = self.send(FetchResponseMsg::ProcessResponseEOF(

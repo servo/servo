@@ -12,8 +12,6 @@ use net_traits::{
     BoxedFetchCallback, FetchMetadata, FetchResponseMsg, NetworkError, ResourceFetchTiming,
     ResourceTimingType,
 };
-use parking_lot::Mutex as ParkingLotMutex;
-use servo_arc::Arc as ServoArc;
 use servo_url::ServoUrl;
 
 use crate::dom::bindings::inheritance::Castable;
@@ -125,7 +123,7 @@ pub(crate) trait FetchResponseListener: Send + 'static {
         request_id: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
-        body: Option<ServoArc<ParkingLotMutex<net_traits::response::ResponseBody>>>,
+        body: Option<servo_arc::Arc<parking_lot::Mutex<net_traits::response::ResponseBody>>>,
     ) where
         Self: Sized,
     {
