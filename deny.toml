@@ -171,6 +171,7 @@ skip = [
     "fearless_simd",
 
     # Duplicated by resvg/image
+    "harfrust",
     "roxmltree",
     "tiny-skia",
     "tiny-skia-path",

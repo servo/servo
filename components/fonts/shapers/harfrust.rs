@@ -2,13 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
+
 use app_units::Au;
 use euclid::default::Point2D;
-use harfrust::font::BuiltinFontFuncs;
-use harfrust::{
-    BufferClusterLevel, Feature, FontRef as HarfRustFontRef, GlyphBuffer, Language, Script,
-    ShapeOptions, ShaperData, ShaperInstance, Tag, UnicodeBuffer, Variation,
-};
+use harfrust::font::{Blob, Font as HarfRustFont, Variation};
+use harfrust::{Buffer, ClusterLevel, Feature, Language, Script, ShapeOptions, ShaperFont, Tag};
 use num_traits::Zero as _;
 use read_fonts::TableProvider;
 use read_fonts::types::{BigEndian, GlyphId};
@@ -20,15 +19,12 @@ use crate::{
 };
 
 /// Convert a `webrender_api::FontVariation` to a `harfrust::Variation`
-fn wr_variation_to_hr_varation(wr_variation: webrender_api::FontVariation) -> harfrust::Variation {
-    Variation {
-        tag: Tag::from_u32(wr_variation.tag),
-        value: wr_variation.value,
-    }
+fn wr_variation_to_hr_varation(wr_variation: webrender_api::FontVariation) -> Variation {
+    Variation::new(Tag::from_u32(wr_variation.tag), wr_variation.value)
 }
 
 pub(crate) struct HarfrustGlyphShapingResult {
-    data: GlyphBuffer,
+    data: Buffer,
 }
 
 struct ShapedGlyphIterator<'a> {
@@ -113,11 +109,9 @@ pub(crate) struct Shaper {
     // Point-per-em (i.e. the font size)
     ppem: f64,
 
-    /// Pre-computed data for shaping a font
-    shaper_data: ShaperData,
-    /// Pre-computed data for shaping a variable font with a particular set of variations.
-    /// If there are no variations then we don't create a ShaperInstance.
-    shaper_instance: Option<ShaperInstance>,
+    /// The HarfRust font instance (with variations applied, if any). This also owns
+    /// HarfRust's cached shaping data for the font.
+    hr_font: HarfRustFont,
 }
 
 // `Font` and `FontData` are both threadsafe, so we can make the data structures here as thread-safe as well.
@@ -137,27 +131,27 @@ impl Shaper {
         // Set points-per-em. if zero, performs no hinting in that direction
         let ppem = font.descriptor.pt_size.to_f64_px();
 
-        // Create cached shaping data for the font
-        let hr_font = HarfRustFontRef::from_index(font_data.as_ref(), font_index).unwrap();
-        let shaper_data = ShaperData::new(&hr_font);
+        // Create the HarfRust font
+        let blob = Blob::Shared(Arc::new(font_data.clone()));
+        let mut hr_font =
+            HarfRustFont::new(blob, font_index).expect("Error creating HarfRust font");
 
-        // If variable fonts are enabled and the font has variations, create a ShaperInstance to set on the shaper.
+        // If variable fonts are enabled and the font has variations, create an instance with those variations applied.
         let variations = font.variations();
-        let shaper_instance =
-            if servo_config::pref!(layout_variable_fonts_enabled) && !variations.is_empty() {
-                let variations_iter = variations.iter().copied().map(wr_variation_to_hr_varation);
-                Some(ShaperInstance::from_variations(&hr_font, variations_iter))
-            } else {
-                None
-            };
+        if servo_config::pref!(layout_variable_fonts_enabled) && !variations.is_empty() {
+            let variations_iter = variations.iter().copied().map(wr_variation_to_hr_varation);
+            hr_font = hr_font
+                .instance_builder()
+                .variations(variations_iter)
+                .build();
+        }
 
         Self {
             font: font as *const Font,
             font_data,
             font_index,
             ppem,
-            shaper_data,
-            shaper_instance,
+            hr_font,
         }
     }
 }
@@ -169,10 +163,10 @@ impl Shaper {
         options: &crate::ShapingOptions,
         font_features: &[(Tag, u32)],
     ) -> HarfrustGlyphShapingResult {
-        let mut buffer = UnicodeBuffer::new();
+        let mut buffer = Buffer::new();
 
         // Set cluster level
-        buffer.set_cluster_level(BufferClusterLevel::MonotoneCharacters);
+        buffer.set_cluster_level(ClusterLevel::MonotoneCharacters);
 
         // Set direction
         buffer.set_direction(if options.flags.contains(ShapingFlags::RTL_FLAG) {
@@ -183,12 +177,10 @@ impl Shaper {
 
         // Set script
         let script_tag = Tag::from_u32(unicode_script_to_iso15924_tag(options.script));
-        let script = Script::from_iso15924_tag(script_tag).unwrap();
-        buffer.set_script(script);
+        buffer.set_script(Script::from_iso15924_tag(script_tag));
 
         // Set language
-        let language = options.language.as_str().parse::<Language>().unwrap();
-        buffer.set_language(language);
+        buffer.set_language(options.language.as_str().parse::<Language>().ok());
 
         // Push text
         buffer.push_str(text);
@@ -198,24 +190,19 @@ impl Shaper {
             .map(|(tag, value)| Feature::new(*tag, *value, ..))
             .collect();
 
-        let hr_font =
-            HarfRustFontRef::from_index(self.font_data.as_ref(), self.font_index).unwrap();
-        let shaper = self
-            .shaper_data
-            .shaper(&hr_font)
-            .instance(self.shaper_instance.as_ref())
-            .build();
+        let font_funcs = self.font_funcs();
+        let shaper_font = ShaperFont::new(&self.hr_font)
+            .with_scale(Shaper::float_to_fixed(self.ppem))
+            .with_font_funcs(Some(&font_funcs));
 
-        let mut font_funcs = self.font_funcs();
-        let glyph_buffer = shaper.shape(
-            buffer,
-            ShapeOptions::new()
-                .scale(Some(Shaper::float_to_fixed(self.ppem)))
-                .features(&features)
-                .font_funcs(Some(&mut font_funcs)),
-        );
+        harfrust::shape(
+            &shaper_font,
+            &mut buffer,
+            ShapeOptions::new().features(&features),
+        )
+        .expect("Error shaping text with HarfRust");
 
-        HarfrustGlyphShapingResult { data: glyph_buffer }
+        HarfrustGlyphShapingResult { data: buffer }
     }
 
     fn font_funcs(&self) -> FontFuncs<'_> {
@@ -314,9 +301,9 @@ struct FontFuncs<'a> {
     font: &'a Font,
 }
 
-impl harfrust::font::FontFuncs for FontFuncs<'_> {
+impl harfrust::FontFuncs for FontFuncs<'_> {
     /// Nominal character-to-glyph mapping callback.
-    fn nominal_glyph(&mut self, _builtin: &BuiltinFontFuncs, c: u32) -> Option<GlyphId> {
+    fn nominal_glyph(&self, _font: &ShaperFont, c: u32) -> Option<GlyphId> {
         self.font
             .glyph_index(char::from_u32(c).unwrap())
             .map(GlyphId::new)
@@ -326,7 +313,7 @@ impl harfrust::font::FontFuncs for FontFuncs<'_> {
     ///
     /// See "Metrics scaling" in the [trait-level docs](FontFuncs) for details
     /// on what value this method should return.
-    fn advance_width(&mut self, _builtin: &BuiltinFontFuncs, glyph: GlyphId) -> i32 {
+    fn glyph_h_advance(&self, _font: &ShaperFont, glyph: GlyphId) -> i32 {
         Shaper::float_to_fixed(self.font.glyph_h_advance(glyph.to_u32()))
     }
 }
