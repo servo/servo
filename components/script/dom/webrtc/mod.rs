@@ -9,6 +9,7 @@ pub(crate) mod rtcerrorevent;
 pub(crate) mod rtcicecandidate;
 pub(crate) mod rtcpeerconnection;
 pub(crate) mod rtcpeerconnectioniceevent;
+pub(crate) mod rtcrtpreceiver;
 pub(crate) mod rtcrtpsender;
 pub(crate) mod rtcrtptransceiver;
 pub(crate) mod rtcsessiondescription;

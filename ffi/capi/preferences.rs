@@ -554,3 +554,65 @@ pub unsafe extern "C" fn servo_preferences_get_u64(
         _ => 0,
     }
 }
+
+/// Configures the Chrome DevTools remote debugging server.
+///
+/// This provides parity with CEF's `CefSettings.remote_debugging_port`.
+/// When enabled, the DevTools HTTP server listens on the specified `port`
+/// on 127.0.0.1.
+///
+/// `preferences` is a handle to a `ServoPreferences` object.
+/// `enabled` turns the DevTools server on or off.
+/// `port` specifies the TCP port to listen on (e.g. 7000 or 9222). If 0 and enabled, default 7000 is used.
+///
+/// Returns `ServoError::Ok` on success, or `ServoError::NullArgument` if preferences is null.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_preferences_set_devtools_server(
+    preferences: *mut ServoPreferences,
+    enabled: bool,
+    port: u16,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if preferences.is_null() {
+            return ServoError::NullArgument;
+        }
+
+        let prefs = unsafe { &mut *preferences };
+        prefs.devtools_server_enabled = enabled;
+        let effective_port = if port == 0 { 7000 } else { port };
+        prefs.devtools_server_listen_address = format!("127.0.0.1:{}", effective_port);
+
+        ServoError::Ok
+    })
+}
+
+/// Checks whether the DevTools server is enabled in `preferences`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_preferences_get_devtools_server_enabled(
+    preferences: *const ServoPreferences,
+) -> bool {
+    if preferences.is_null() {
+        return false;
+    }
+    unsafe { (*preferences).devtools_server_enabled }
+}
+
+/// Returns the configured port for the DevTools server in `preferences`, or 0 if disabled/invalid.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_preferences_get_devtools_server_port(
+    preferences: *const ServoPreferences,
+) -> u16 {
+    if preferences.is_null() {
+        return 0;
+    }
+    let prefs = unsafe { &*preferences };
+    if !prefs.devtools_server_enabled {
+        return 0;
+    }
+    prefs
+        .devtools_server_listen_address
+        .rsplit_once(':')
+        .and_then(|(_, p)| p.parse::<u16>().ok())
+        .unwrap_or(7000)
+}
+

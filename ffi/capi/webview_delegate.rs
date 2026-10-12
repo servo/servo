@@ -5,8 +5,10 @@
 use std::ffi::{CStr, CString, c_char, c_int, c_void};
 use std::path::PathBuf;
 
-use embedder_traits::{ConsoleLogLevel, Cursor, PermissionFeature};
-use url::Url;
+use embedder_traits::{
+    ConsoleLogLevel, ContextMenuAction, ContextMenuElementInformation, ContextMenuItem, Cursor,
+    PermissionFeature,
+};
 
 use crate::download::{ServoDownloadContinueCallback, ServoDownloadItem};
 use crate::find::ServoFindResult;
@@ -277,6 +279,107 @@ pub type ServoFilePickerCallback =
 pub type ServoSelectElementCallback = Option<
     unsafe extern "C" fn(selected_indices: *const usize, count: usize, user_data: *mut c_void),
 >;
+
+/// Context menu actions matching `embedder_traits::ContextMenuAction`.
+#[repr(i32)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ServoContextMenuAction {
+    Dismiss = -1,
+    GoBack = 0,
+    GoForward = 1,
+    Reload = 2,
+    CopyLink = 3,
+    OpenLinkInNewWebView = 4,
+    CopyImageLink = 5,
+    OpenImageInNewView = 6,
+    Cut = 7,
+    Copy = 8,
+    Paste = 9,
+    SelectAll = 10,
+}
+
+impl From<ContextMenuAction> for ServoContextMenuAction {
+    fn from(action: ContextMenuAction) -> Self {
+        match action {
+            ContextMenuAction::GoBack => ServoContextMenuAction::GoBack,
+            ContextMenuAction::GoForward => ServoContextMenuAction::GoForward,
+            ContextMenuAction::Reload => ServoContextMenuAction::Reload,
+            ContextMenuAction::CopyLink => ServoContextMenuAction::CopyLink,
+            ContextMenuAction::OpenLinkInNewWebView => ServoContextMenuAction::OpenLinkInNewWebView,
+            ContextMenuAction::CopyImageLink => ServoContextMenuAction::CopyImageLink,
+            ContextMenuAction::OpenImageInNewView => ServoContextMenuAction::OpenImageInNewView,
+            ContextMenuAction::Cut => ServoContextMenuAction::Cut,
+            ContextMenuAction::Copy => ServoContextMenuAction::Copy,
+            ContextMenuAction::Paste => ServoContextMenuAction::Paste,
+            ContextMenuAction::SelectAll => ServoContextMenuAction::SelectAll,
+        }
+    }
+}
+
+impl TryFrom<i32> for ContextMenuAction {
+    type Error = ();
+    fn try_from(value: i32) -> Result<Self, Self::Error> {
+        match value {
+            0 => Ok(ContextMenuAction::GoBack),
+            1 => Ok(ContextMenuAction::GoForward),
+            2 => Ok(ContextMenuAction::Reload),
+            3 => Ok(ContextMenuAction::CopyLink),
+            4 => Ok(ContextMenuAction::OpenLinkInNewWebView),
+            5 => Ok(ContextMenuAction::CopyImageLink),
+            6 => Ok(ContextMenuAction::OpenImageInNewView),
+            7 => Ok(ContextMenuAction::Cut),
+            8 => Ok(ContextMenuAction::Copy),
+            9 => Ok(ContextMenuAction::Paste),
+            10 => Ok(ContextMenuAction::SelectAll),
+            _ => Err(()),
+        }
+    }
+}
+
+/// A single item in a context menu.
+#[repr(C)]
+#[derive(Debug, Clone)]
+pub struct ServoContextMenuItem {
+    /// Label to display to the user (NUL terminated UTF-8 string). NULL for separators.
+    pub label: *const c_char,
+    /// Action associated with this item (one of `SERVO_CONTEXT_MENU_ACTION_*`).
+    pub action: i32,
+    /// Whether the item is enabled / clickable.
+    pub is_enabled: bool,
+    /// Whether this item is a visual separator.
+    pub is_separator: bool,
+}
+
+/// Parameters for a context menu request.
+#[repr(C)]
+#[derive(Debug, Clone)]
+pub struct ServoContextMenuParams {
+    /// The bounding rect x coordinate of the element that triggered the context menu.
+    pub x: i32,
+    /// The bounding rect y coordinate of the element that triggered the context menu.
+    pub y: i32,
+    /// The bounding rect width of the element that triggered the context menu.
+    pub width: i32,
+    /// The bounding rect height of the element that triggered the context menu.
+    pub height: i32,
+    /// Bitflags indicating features of the element (see `SERVO_CONTEXT_MENU_FLAG_*`).
+    pub flags: u32,
+    /// Link URL if activated on a link (NUL terminated UTF-8 string), or NULL.
+    pub link_url: *const c_char,
+    /// Image URL if activated on an image (NUL terminated UTF-8 string), or NULL.
+    pub image_url: *const c_char,
+    /// Array of items in the context menu.
+    pub items: *const ServoContextMenuItem,
+    /// Number of items in the array.
+    pub items_count: usize,
+}
+
+/// Callback type for context menu responses.
+///
+/// `action` is one of the `SERVO_CONTEXT_MENU_ACTION_*` constants to activate an action,
+/// or `-1` (`SERVO_CONTEXT_MENU_ACTION_DISMISS`) if the context menu was dismissed without action.
+pub type ServoContextMenuCallback =
+    Option<unsafe extern "C" fn(action: i32, user_data: *mut c_void)>;
 
 /// Callback type for permission request responses.
 ///
@@ -791,6 +894,22 @@ pub struct ServoWebViewDelegate {
             user_data: *mut c_void,
         ),
     >,
+
+    // Context menu category
+    /// Called when a context menu should be displayed (e.g. right click or long press).
+    ///
+    /// `params` contains information about the targeted element, position, and items.
+    /// The embedder should show a native menu and invoke `callback` with the chosen action
+    /// (one of `SERVO_CONTEXT_MENU_ACTION_*`) or `-1` (`SERVO_CONTEXT_MENU_ACTION_DISMISS`)
+    /// to dismiss without selection.
+    pub show_context_menu: Option<
+        unsafe extern "C" fn(
+            webview: *mut WebView,
+            params: *const ServoContextMenuParams,
+            callback: ServoContextMenuCallback,
+            user_data: *mut c_void,
+        ),
+    >,
 }
 
 /// Inherent methods for `ServoWebViewDelegate`.
@@ -1121,8 +1240,83 @@ impl WebViewDelegate for ServoWebViewDelegate {
             EmbedderControl::SelectElement(select_element) => {
                 select_element.submit();
             },
+            EmbedderControl::ContextMenu(context_menu) => {
+                let Some(callback) = self.show_context_menu else {
+                    context_menu.dismiss();
+                    return;
+                };
+
+                let pos = context_menu.position();
+                let element_info = context_menu.element_info();
+                let link_url_cstr = element_info
+                    .link_url
+                    .as_ref()
+                    .and_then(|u| CString::new(u.as_str()).ok());
+                let image_url_cstr = element_info
+                    .image_url
+                    .as_ref()
+                    .and_then(|u| CString::new(u.as_str()).ok());
+
+                let mut c_items = Vec::new();
+                let mut label_cstrings = Vec::new();
+
+                for item in context_menu.items() {
+                    match item {
+                        ContextMenuItem::Item { label, action, enabled } => {
+                            let c_label = CString::new(label.as_str()).unwrap_or_default();
+                            let label_ptr = c_label.as_ptr();
+                            label_cstrings.push(c_label);
+                            let action_val = ServoContextMenuAction::from(*action) as i32;
+                            c_items.push(ServoContextMenuItem {
+                                label: label_ptr,
+                                action: action_val,
+                                is_enabled: *enabled,
+                                is_separator: false,
+                            });
+                        },
+                        ContextMenuItem::Separator => {
+                            c_items.push(ServoContextMenuItem {
+                                label: std::ptr::null(),
+                                action: SERVO_CONTEXT_MENU_ACTION_DISMISS,
+                                is_enabled: false,
+                                is_separator: true,
+                            });
+                        },
+                    }
+                }
+
+                let params = ServoContextMenuParams {
+                    x: pos.min.x,
+                    y: pos.min.y,
+                    width: pos.width(),
+                    height: pos.height(),
+                    flags: element_info.flags.bits() as u32,
+                    link_url: link_url_cstr.as_ref().map_or(std::ptr::null(), |s| s.as_ptr()),
+                    image_url: image_url_cstr.as_ref().map_or(std::ptr::null(), |s| s.as_ptr()),
+                    items: c_items.as_ptr(),
+                    items_count: c_items.len(),
+                };
+
+                let responder: Box<dyn FnOnce(i32)> = Box::new(move |action_val| {
+                    if let Ok(action) = ContextMenuAction::try_from(action_val) {
+                        context_menu.select(action);
+                    } else {
+                        context_menu.dismiss();
+                    }
+                });
+                let responder_ptr = Box::into_raw(Box::new(responder)) as *mut c_void;
+
+                unsafe {
+                    callback(
+                        &mut webview as *mut WebView,
+                        &params,
+                        Some(context_menu_trampoline),
+                        responder_ptr,
+                    );
+                }
+            },
             _ => {
-                // ColorPicker, ContextMenu - not yet exposed to C
+                // ColorPicker - not yet exposed to C
             },
         }
     }
@@ -1660,6 +1854,16 @@ unsafe extern "C" fn file_picker_trampoline(
     }));
 }
 
+unsafe extern "C" fn context_menu_trampoline(action: i32, user_data: *mut c_void) {
+    if user_data.is_null() {
+        return;
+    }
+    let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let responder = unsafe { Box::from_raw(user_data as *mut Box<dyn FnOnce(i32)>) };
+        responder(action);
+    }));
+}
+
 /// Cursor type constants for `notify_cursor_changed` delegate callback.
 /// These match `embedder_traits::Cursor` and `ServoCursorType`.
 pub const SERVO_CURSOR_POINTER: i32 = 0;
@@ -1713,3 +1917,24 @@ pub const SERVO_CONSOLE_LOG_LEVEL_LOG: i32 = 1;
 pub const SERVO_CONSOLE_LOG_LEVEL_INFO: i32 = 2;
 pub const SERVO_CONSOLE_LOG_LEVEL_WARN: i32 = 3;
 pub const SERVO_CONSOLE_LOG_LEVEL_ERROR: i32 = 4;
+
+/// Context menu action constants for `show_context_menu` delegate callback.
+/// These match `embedder_traits::ContextMenuAction` and `ServoContextMenuAction`.
+pub const SERVO_CONTEXT_MENU_ACTION_DISMISS: i32 = -1;
+pub const SERVO_CONTEXT_MENU_ACTION_GO_BACK: i32 = 0;
+pub const SERVO_CONTEXT_MENU_ACTION_GO_FORWARD: i32 = 1;
+pub const SERVO_CONTEXT_MENU_ACTION_RELOAD: i32 = 2;
+pub const SERVO_CONTEXT_MENU_ACTION_COPY_LINK: i32 = 3;
+pub const SERVO_CONTEXT_MENU_ACTION_OPEN_LINK_IN_NEW_WEBVIEW: i32 = 4;
+pub const SERVO_CONTEXT_MENU_ACTION_COPY_IMAGE_LINK: i32 = 5;
+pub const SERVO_CONTEXT_MENU_ACTION_OPEN_IMAGE_IN_NEW_VIEW: i32 = 6;
+pub const SERVO_CONTEXT_MENU_ACTION_CUT: i32 = 7;
+pub const SERVO_CONTEXT_MENU_ACTION_COPY: i32 = 8;
+pub const SERVO_CONTEXT_MENU_ACTION_PASTE: i32 = 9;
+pub const SERVO_CONTEXT_MENU_ACTION_SELECT_ALL: i32 = 10;
+
+/// Context menu element flag constants for `ServoContextMenuParams.flags`.
+pub const SERVO_CONTEXT_MENU_FLAG_LINK: u32 = 1 << 1;
+pub const SERVO_CONTEXT_MENU_FLAG_IMAGE: u32 = 1 << 2;
+pub const SERVO_CONTEXT_MENU_FLAG_EDITABLE_TEXT: u32 = 1 << 3;
+pub const SERVO_CONTEXT_MENU_FLAG_SELECTION: u32 = 1 << 4;

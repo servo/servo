@@ -132,12 +132,14 @@ dictionary RTCRtpTransceiverInit {
 };
 
 partial interface RTCPeerConnection {
-    // sequence<RTCRtpSender>      getSenders();
-    // sequence<RTCRtpReceiver>    getReceivers();
-    // sequence<RTCRtpTransceiver> getTransceivers();
-    // RTCRtpSender                addTrack(MediaStreamTrack track,
-    //                                      MediaStream... streams);
-    // void                        removeTrack(RTCRtpSender sender);
+    sequence<RTCRtpSender>      getSenders();
+    sequence<RTCRtpReceiver>    getReceivers();
+    sequence<RTCRtpTransceiver> getTransceivers();
+    [Throws]
+    RTCRtpSender                addTrack(MediaStreamTrack track,
+                                         MediaStream... streams);
+    [Throws]
+    undefined                   removeTrack(RTCRtpSender sender);
     [Pref="dom_webrtc_transceiver_enabled"]
     RTCRtpTransceiver           addTransceiver((MediaStreamTrack or DOMString) trackOrKind,
                                                optional RTCRtpTransceiverInit init = {});

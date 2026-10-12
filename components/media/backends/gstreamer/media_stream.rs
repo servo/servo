@@ -139,23 +139,47 @@ impl GStreamerMediaStream {
             .build()?;
         match self.type_ {
             MediaStreamType::Video => {
-                let vp8enc = gstreamer::ElementFactory::make("vp8enc")
-                    .property("deadline", 1i64)
-                    .property("error-resilient", "default")
-                    .property("cpu-used", -16i32)
-                    .property("lag-in-frames", 0i32)
-                    .build()?;
+                // Try VP8 first, fallback to H.264 if not available
+                let (encoder, payloader) = if gstreamer::ElementFactory::find("vp8enc").is_some() {
+                    let vp8enc = gstreamer::ElementFactory::make("vp8enc")
+                        .property("deadline", 1i64)
+                        .property("error-resilient", "default")
+                        .property("cpu-used", -16i32)
+                        .property("lag-in-frames", 0i32)
+                        .build()?;
+                    let rtpvp8pay = gstreamer::ElementFactory::make("rtpvp8pay")
+                        .property("picture-id-mode", "15-bit")
+                        .property("mtu", 1200u32)
+                        .build()?;
+                    (vp8enc, rtpvp8pay)
+                } else if gstreamer::ElementFactory::find("x264enc").is_some() {
+                    let x264enc = gstreamer::ElementFactory::make("x264enc")
+                        .property("tune", "zerolatency")
+                        .property("speed-preset", "ultrafast")
+                        .build()?;
+                    let rtph264pay = gstreamer::ElementFactory::make("rtph264pay")
+                        .property("mtu", 1200u32)
+                        .build()?;
+                    (x264enc, rtph264pay)
+                } else if gstreamer::ElementFactory::find("vp9enc").is_some() {
+                    let vp9enc = gstreamer::ElementFactory::make("vp9enc")
+                        .property("deadline", 1i64)
+                        .property("cpu-used", -16i32)
+                        .build()?;
+                    let rtpvp9pay = gstreamer::ElementFactory::make("rtpvp9pay")
+                        .property("mtu", 1200u32)
+                        .build()?;
+                    (vp9enc, rtpvp9pay)
+                } else {
+                    return Err(glib::bool_error!("No supported video encoder found"));
+                };
 
-                let rtpvp8pay = gstreamer::ElementFactory::make("rtpvp8pay")
-                    .property("picture-id-mode", "15-bit")
-                    .property("mtu", 1200u32)
-                    .build()?;
                 let queue2 = gstreamer::ElementFactory::make("queue").build()?;
 
-                pipeline.add_many([&vp8enc, &rtpvp8pay, &queue2, &capsfilter])?;
-                gstreamer::Element::link_many([&src, &vp8enc, &rtpvp8pay, &queue2, &capsfilter])?;
-                vp8enc.sync_state_with_parent()?;
-                rtpvp8pay.sync_state_with_parent()?;
+                pipeline.add_many([&encoder, &payloader, &queue2, &capsfilter])?;
+                gstreamer::Element::link_many([&src, &encoder, &payloader, &queue2, &capsfilter])?;
+                encoder.sync_state_with_parent()?;
+                payloader.sync_state_with_parent()?;
                 queue2.sync_state_with_parent()?;
                 capsfilter.sync_state_with_parent()?;
                 Ok(capsfilter)

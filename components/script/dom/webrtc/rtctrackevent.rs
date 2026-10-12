@@ -15,19 +15,29 @@ use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::mediastreamtrack::MediaStreamTrack;
+use crate::dom::rtcrtpreceiver::RTCRtpReceiver;
+use crate::dom::rtcrtptransceiver::RTCRtpTransceiver;
 use crate::dom::window::Window;
 
 #[dom_struct]
 pub(crate) struct RTCTrackEvent {
     event: Event,
     track: Dom<MediaStreamTrack>,
+    receiver: Dom<RTCRtpReceiver>,
+    transceiver: Dom<RTCRtpTransceiver>,
 }
 
 impl RTCTrackEvent {
-    fn new_inherited(track: &MediaStreamTrack) -> RTCTrackEvent {
+    fn new_inherited(
+        track: &MediaStreamTrack,
+        receiver: &RTCRtpReceiver,
+        transceiver: &RTCRtpTransceiver,
+    ) -> RTCTrackEvent {
         RTCTrackEvent {
             event: Event::new_inherited(),
             track: Dom::from_ref(track),
+            receiver: Dom::from_ref(receiver),
+            transceiver: Dom::from_ref(transceiver),
         }
     }
 
@@ -38,8 +48,10 @@ impl RTCTrackEvent {
         bubbles: bool,
         cancelable: bool,
         track: &MediaStreamTrack,
+        receiver: &RTCRtpReceiver,
+        transceiver: &RTCRtpTransceiver,
     ) -> DomRoot<RTCTrackEvent> {
-        Self::new_with_proto(cx, window, None, type_, bubbles, cancelable, track)
+        Self::new_with_proto(cx, window, None, type_, bubbles, cancelable, track, receiver, transceiver)
     }
 
     fn new_with_proto(
@@ -50,10 +62,12 @@ impl RTCTrackEvent {
         bubbles: bool,
         cancelable: bool,
         track: &MediaStreamTrack,
+        receiver: &RTCRtpReceiver,
+        transceiver: &RTCRtpTransceiver,
     ) -> DomRoot<RTCTrackEvent> {
         let trackevent = reflect_dom_object_with_proto(
             cx,
-            Box::new(RTCTrackEvent::new_inherited(track)),
+            Box::new(RTCTrackEvent::new_inherited(track, receiver, transceiver)),
             window,
             proto,
         );
@@ -82,12 +96,24 @@ impl RTCTrackEventMethods<crate::DomTypeHolder> for RTCTrackEvent {
             init.parent.bubbles,
             init.parent.cancelable,
             &init.track,
+            &init.receiver,
+            &init.transceiver,
         ))
     }
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtctrackevent-track>
     fn Track(&self) -> DomRoot<MediaStreamTrack> {
         DomRoot::from_ref(&*self.track)
+    }
+
+    /// <https://w3c.github.io/webrtc-pc/#dom-rtctrackevent-receiver>
+    fn Receiver(&self) -> DomRoot<RTCRtpReceiver> {
+        DomRoot::from_ref(&*self.receiver)
+    }
+
+    /// <https://w3c.github.io/webrtc-pc/#dom-rtctrackevent-transceiver>
+    fn Transceiver(&self) -> DomRoot<RTCRtpTransceiver> {
+        DomRoot::from_ref(&*self.transceiver)
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>

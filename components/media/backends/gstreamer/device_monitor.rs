@@ -29,7 +29,7 @@ impl GStreamerDeviceMonitor {
         device_monitor.add_filter(Some(AUDIO_SINK), Some(&audio_caps));
         let video_caps = gstreamer_video::VideoCapsBuilder::new().build();
         device_monitor.add_filter(Some(VIDEO_SOURCE), Some(&video_caps));
-        let devices = device_monitor
+        let mut devices: Vec<MediaDeviceInfo> = device_monitor
             .devices()
             .iter()
             .filter_map(|device| {
@@ -46,6 +46,25 @@ impl GStreamerDeviceMonitor {
                 })
             })
             .collect();
+
+        if devices.is_empty() {
+            devices.push(MediaDeviceInfo {
+                device_id: "default-virtual-video-source".to_string(),
+                kind: MediaDeviceKind::VideoInput,
+                label: "Default Virtual Camera".to_string(),
+            });
+            devices.push(MediaDeviceInfo {
+                device_id: "default-virtual-audio-source".to_string(),
+                kind: MediaDeviceKind::AudioInput,
+                label: "Default Virtual Microphone".to_string(),
+            });
+            devices.push(MediaDeviceInfo {
+                device_id: "default-virtual-audio-sink".to_string(),
+                kind: MediaDeviceKind::AudioOutput,
+                label: "Default Virtual Speaker".to_string(),
+            });
+        }
+
         Ok(devices)
     }
 }

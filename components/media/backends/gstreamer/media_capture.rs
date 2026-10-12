@@ -152,15 +152,19 @@ fn create_input_stream(
     constraint_set: MediaTrackConstraintSet,
 ) -> Option<MediaStreamId> {
     let devices = GstMediaDevices::new();
-    devices
-        .get_track(stream_type == MediaStreamType::Video, constraint_set)
-        .map(|track| {
-            let f = match stream_type {
-                MediaStreamType::Audio => GStreamerMediaStream::create_audio_from,
-                MediaStreamType::Video => GStreamerMediaStream::create_video_from,
-            };
-            f(track.element)
-        })
+    if let Some(track) = devices.get_track(stream_type == MediaStreamType::Video, constraint_set) {
+        let f = match stream_type {
+            MediaStreamType::Audio => GStreamerMediaStream::create_audio_from,
+            MediaStreamType::Video => GStreamerMediaStream::create_video_from,
+        };
+        Some(f(track.element))
+    } else {
+        // Fallback for headless environments or machines without hardware capture devices
+        match stream_type {
+            MediaStreamType::Audio => Some(GStreamerMediaStream::create_audio()),
+            MediaStreamType::Video => Some(GStreamerMediaStream::create_video()),
+        }
+    }
 }
 
 pub fn create_audioinput_stream(constraint_set: MediaTrackConstraintSet) -> Option<MediaStreamId> {

@@ -1461,7 +1461,7 @@ pub fn run_content_process(token: String) {
     not(target_arch = "riscv64"),
     not(target_env = "ohos"),
 ))]
-fn create_sandbox() {
+pub fn create_sandbox() {
     ChildSandbox::new(content_process_sandbox_profile())
         .activate()
         .expect("Failed to activate sandbox!");
@@ -1477,7 +1477,7 @@ fn create_sandbox() {
     target_arch = "riscv64",
     target_env = "ohos",
 ))]
-fn create_sandbox() {
+pub fn create_sandbox() {
     panic!("Sandboxing is not supported on Windows, iOS, ARM, RISC-V targets and android.");
 }
 

@@ -204,11 +204,65 @@ impl WebRtcControllerBackend for GStreamerWebRtcController {
         }
     }
 
-    fn configure(&mut self, stun_server: &str, policy: BundlePolicy) -> WebRtcResult {
+    fn configure(
+        &mut self,
+        ice_servers: &[IceServer],
+        bundle_policy: BundlePolicy,
+        ice_transport_policy: IceTransportPolicy,
+        rtcp_mux_policy: RtcpMuxPolicy,
+    ) -> WebRtcResult {
+        // Configure STUN and TURN servers
+        for server in ice_servers {
+            for url in &server.urls {
+                if let Some(rest) = url.strip_prefix("stun:") {
+                    let uri = if rest.starts_with("//") {
+                        url.clone()
+                    } else {
+                        format!("stun://{rest}")
+                    };
+                    self.webrtc.set_property_from_str("stun-server", &uri);
+                } else if let Some(rest) = url.strip_prefix("stuns:") {
+                    let uri = if rest.starts_with("//") {
+                        url.clone()
+                    } else {
+                        format!("stuns://{rest}")
+                    };
+                    self.webrtc.set_property_from_str("stun-server", &uri);
+                } else if let Some(rest) = url.strip_prefix("turn:") {
+                    let uri = if rest.starts_with("//") {
+                        url.clone()
+                    } else {
+                        format!("turn://{rest}")
+                    };
+                    self.webrtc.set_property_from_str("turn-server", &uri);
+                    if let Some(username) = &server.username {
+                        self.webrtc.set_property("turn-user", username);
+                    }
+                    if let Some(credential) = &server.credential {
+                        self.webrtc.set_property("turn-pass", credential);
+                    }
+                } else if let Some(rest) = url.strip_prefix("turns:") {
+                    let uri = if rest.starts_with("//") {
+                        url.clone()
+                    } else {
+                        format!("turns://{rest}")
+                    };
+                    self.webrtc.set_property_from_str("turn-server", &uri);
+                    if let Some(username) = &server.username {
+                        self.webrtc.set_property("turn-user", username);
+                    }
+                    if let Some(credential) = &server.credential {
+                        self.webrtc.set_property("turn-pass", credential);
+                    }
+                }
+            }
+        }
         self.webrtc
-            .set_property_from_str("stun-server", stun_server);
+            .set_property_from_str("bundle-policy", bundle_policy.as_str());
         self.webrtc
-            .set_property_from_str("bundle-policy", policy.as_str());
+            .set_property_from_str("ice-transport-policy", ice_transport_policy.as_str());
+        self.webrtc
+            .set_property_from_str("rtcp-mux-policy", rtcp_mux_policy.as_str());
         Ok(())
     }
 
@@ -722,9 +776,14 @@ fn on_incoming_stream(
     let caps = pad.query_caps(None);
     let name = caps
         .structure(0)
-        .unwrap()
-        .get::<String>("media")
-        .expect("Invalid 'media' field");
+        .and_then(|s| s.get::<String>("media").ok())
+        .unwrap_or_else(|| {
+            if pad.name().contains("audio") {
+                "audio".to_string()
+            } else {
+                "video".to_string()
+            }
+        });
     let decodebin2 = decodebin.clone();
     decodebin.connect_pad_added({
         let pipeline_weak = pipe.downgrade();

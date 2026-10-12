@@ -7,17 +7,17 @@
 [Exposed=Window, Pref="dom_webrtc_enabled"]
 interface RTCTrackEvent : Event {
     [Throws] constructor(DOMString type, RTCTrackEventInit eventInitDict);
-    // readonly attribute RTCRtpReceiver           receiver;
+    readonly attribute RTCRtpReceiver           receiver;
     readonly attribute MediaStreamTrack         track;
     // [SameObject]
     // readonly attribute FrozenArray<MediaStream> streams;
-    // readonly attribute RTCRtpTransceiver        transceiver;
+    readonly attribute RTCRtpTransceiver        transceiver;
 };
 
 // https://www.w3.org/TR/webrtc/#dom-rtctrackeventinit
 dictionary RTCTrackEventInit : EventInit {
-    // required RTCRtpReceiver        receiver;
+    required RTCRtpReceiver        receiver;
     required MediaStreamTrack      track;
-             // sequence<MediaStream> streams = [];
-    // required RTCRtpTransceiver     transceiver;
+    // sequence<MediaStream> streams = [];
+    required RTCRtpTransceiver     transceiver;
 };

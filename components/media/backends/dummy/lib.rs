@@ -319,7 +319,13 @@ impl MediaOutput for DummyMediaOutput {
 pub struct DummyWebRtcController;
 
 impl WebRtcControllerBackend for DummyWebRtcController {
-    fn configure(&mut self, _: &str, _: BundlePolicy) -> WebRtcResult {
+    fn configure(
+        &mut self,
+        _: &[IceServer],
+        _: BundlePolicy,
+        _: IceTransportPolicy,
+        _: RtcpMuxPolicy,
+    ) -> WebRtcResult {
         Ok(())
     }
     fn set_remote_description(

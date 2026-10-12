@@ -113,7 +113,7 @@ pub use crate::message_router::MessageRouter;
 pub use crate::network_manager::{CacheEntry, NetworkManager};
 pub use crate::request_context::{ProxyConfig, ProxyMode, RequestContext};
 #[cfg(feature = "multiprocess")]
-pub use crate::servo::run_content_process;
+pub use crate::servo::{create_sandbox, run_content_process};
 pub use crate::servo::{Servo, ServoBuilder};
 pub use crate::servo_delegate::{ServoDelegate, ServoError};
 pub use crate::site_data_manager::{SiteData, SiteDataManager, StorageType};

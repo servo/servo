@@ -276,7 +276,7 @@ static OPTIONS: OnceLock<Opts> = OnceLock::new();
 /// Should only be called once at process startup.
 /// Must be called before the first call to [`get`].
 pub fn initialize_options(opts: Opts) {
-    OPTIONS.set(opts).expect("Already initialized");
+    let _ = OPTIONS.set(opts);
 }
 
 /// Get the servo options

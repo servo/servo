@@ -37,7 +37,13 @@ impl<T: Display> From<T> for WebRtcError {
 /// This trait is implemented by backends and should never be used directly by
 /// the client. Use WebRtcController instead
 pub trait WebRtcControllerBackend: Send {
-    fn configure(&mut self, stun_server: &str, policy: BundlePolicy) -> WebRtcResult;
+    fn configure(
+        &mut self,
+        ice_servers: &[IceServer],
+        bundle_policy: BundlePolicy,
+        ice_transport_policy: IceTransportPolicy,
+        rtcp_mux_policy: RtcpMuxPolicy,
+    ) -> WebRtcResult;
     fn set_remote_description(
         &mut self,
         _: SessionDescription,
@@ -151,6 +157,22 @@ pub struct IceCandidate {
     // XXXManishearth this is missing a bunch
 }
 
+/// <https://www.w3.org/TR/webrtc/#rtciceserver-dictionary>
+#[derive(Clone, Hash, Debug, PartialEq, Eq)]
+pub struct IceServer {
+    pub urls: Vec<String>,
+    pub username: Option<String>,
+    pub credential: Option<String>,
+    pub credential_type: IceCredentialType,
+}
+
+/// <https://www.w3.org/TR/webrtc/#rtcicecredentialtype-enum>
+#[derive(Clone, Copy, Hash, Debug, PartialEq, Eq)]
+pub enum IceCredentialType {
+    Password,
+    OAuth,
+}
+
 /// <https://developer.mozilla.org/en-US/docs/Web/API/RTCPeerConnection#RTCBundlePolicy_enum>
 #[derive(Clone, Copy, Hash, Debug, PartialEq, Eq)]
 pub enum BundlePolicy {
@@ -165,6 +187,38 @@ impl BundlePolicy {
             BundlePolicy::Balanced => "balanced",
             BundlePolicy::MaxCompat => "max-compat",
             BundlePolicy::MaxBundle => "max-bundle",
+        }
+    }
+}
+
+/// <https://www.w3.org/TR/webrtc/#rtcicetransportpolicy-enum>
+#[derive(Clone, Copy, Hash, Debug, PartialEq, Eq)]
+pub enum IceTransportPolicy {
+    Relay,
+    All,
+}
+
+impl IceTransportPolicy {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            IceTransportPolicy::Relay => "relay",
+            IceTransportPolicy::All => "all",
+        }
+    }
+}
+
+/// <https://www.w3.org/TR/webrtc/#rtcrtcpmuxpolicy-enum>
+#[derive(Clone, Copy, Hash, Debug, PartialEq, Eq)]
+pub enum RtcpMuxPolicy {
+    Negotiate,
+    Require,
+}
+
+impl RtcpMuxPolicy {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            RtcpMuxPolicy::Negotiate => "negotiate",
+            RtcpMuxPolicy::Require => "require",
         }
     }
 }

@@ -36,12 +36,12 @@ dictionary RTCRtpSendParameters : RTCRtpParameters {
 
 [Exposed=Window, Pref="dom_webrtc_transceiver_enabled"]
 interface RTCRtpSender {
-  //readonly attribute MediaStreamTrack? track;
+  readonly attribute MediaStreamTrack? track;
   //readonly attribute RTCDtlsTransport? transport;
   //static RTCRtpCapabilities? getCapabilities(DOMString kind);
   Promise<undefined> setParameters(RTCRtpSendParameters parameters);
   RTCRtpSendParameters getParameters();
-  //Promise<void> replaceTrack(MediaStreamTrack? withTrack);
-  //void setStreams(MediaStream... streams);
+  Promise<undefined> replaceTrack(MediaStreamTrack? withTrack);
+  undefined setStreams(MediaStream... streams);
   //Promise<RTCStatsReport> getStats();
 };

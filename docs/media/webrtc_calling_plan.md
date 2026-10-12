@@ -72,50 +72,50 @@ To successfully establish a call on Instagram Web or Google Meet, a browser engi
 
 ## 4. Step-by-Step Implementation Roadmap
 
-### Phase 1: DOM Preferences & Unified Plan Modernization
+### Phase 1: DOM Preferences & Unified Plan Modernization [COMPLETED]
 1. **Enable WebRTC Preferences**:
-   - Turn on `dom_webrtc_enabled: true` and `dom_webrtc_transceiver_enabled: true` in `components/config/prefs.rs`.
-   - Ensure `RTCPeerConnection`, `MediaDevices`, and `MediaStream` are cleanly exposed to `Window` in secure contexts (`https://`).
+   - [x] Turn on `dom_webrtc_enabled: true` and `dom_webrtc_transceiver_enabled: true` in `components/config/prefs.rs`.
+   - [x] Ensure `RTCPeerConnection`, `MediaDevices`, and `MediaStream` are cleanly exposed to `Window` in secure contexts (`https://`).
 2. **Unified Plan Transceiver Management**:
-   - Complete `RTCRtpTransceiver`, `RTCRtpSender`, and `RTCRtpReceiver` DOM implementations in `components/script/dom/webrtc/`.
-   - Update `RTCPeerConnection.addTransceiver()` and `RTCPeerConnection.getTransceivers()`.
-   - Implement `ontrack` (`RTCTrackEvent`) dispatching when remote tracks are announced in SDP.
+   - [x] Complete `RTCRtpTransceiver`, `RTCRtpSender`, and `RTCRtpReceiver` DOM implementations in `components/script/dom/webrtc/`.
+   - [x] Update `RTCPeerConnection.addTransceiver()` and `RTCPeerConnection.getTransceivers()`.
+   - [x] Implement `ontrack` (`RTCTrackEvent`) dispatching when remote tracks are announced in SDP.
 
-### Phase 2: Local Capture & Permissions Pipeline
+### Phase 2: Local Capture & Permissions Pipeline [COMPLETED]
 1. **Camera & Microphone Permissions**:
-   - Connect `navigator.mediaDevices.getUserMedia()` to `WebViewDelegate::request_permission` (`ServoPermissionType::Camera` / `Microphone`).
-   - If granted, invoke `ServoMedia::create_audioinput_stream` and `ServoMedia::create_videoinput_stream`.
+   - [x] Connect `navigator.mediaDevices.getUserMedia()` to `WebViewDelegate::request_permission` (`ServoPermissionType::Camera` / `Microphone`).
+   - [x] If granted, invoke `ServoMedia::create_audioinput_stream` and `ServoMedia::create_videoinput_stream`.
 2. **GStreamer Capture Pipelines**:
-   - Verify device monitors (`DeviceMonitor`) across platforms:
+   - [x] Verify device monitors (`DeviceMonitor`) across platforms with automatic virtual source fallback:
      - Linux: `v4l2src` (video), `pulsesrc` / `alsasrc` (audio).
      - macOS: `avfvideosrc` (video), `osxaudiosrc` (audio).
      - Windows: `dshowvideosrc` / `mfvideosrc` (video), `wasapisrc` (audio).
-   - Package frames into a local `MediaStreamTrack`.
+   - [x] Package frames into a local `MediaStreamTrack`.
 
-### Phase 3: GStreamer `webrtcbin` Core Engine
+### Phase 3: GStreamer `webrtcbin` Core Engine [COMPLETED]
 1. **STUN / TURN Configuration**:
-   - Parse `RTCConfiguration.iceServers` (URLs, username, credential).
-   - Set `stun-server` and `turn-server` properties on `webrtcbin`.
+   - [x] Parse `RTCConfiguration.iceServers` (URLs, username, credential).
+   - [x] Set `stun-server` and `turn-server` properties on `webrtcbin`.
 2. **SDP Negotiation**:
-   - Complete Offer/Answer generation using `webrtcbin::create-offer` and `webrtcbin::create-answer`.
-   - Handle ICE candidate trickle (`webrtcbin::add-ice-candidate` and `on-ice-candidate` signal).
-   - Standardize codec payloaders: VP8 (`rtpvp8pay`/`rtpvp8depay`), Opus (`rtpopuspay`/`rtpopusdepay`), and H.264 (`rtph264pay`/`rtph264depay`).
+   - [x] Complete Offer/Answer generation using `webrtcbin::create-offer` and `webrtcbin::create-answer`.
+   - [x] Handle ICE candidate trickle (`webrtcbin::add-ice-candidate` and `on-ice-candidate` signal).
+   - [x] Standardize codec payloaders: VP8 (`rtpvp8pay`/`rtpvp8depay`), Opus (`rtpopuspay`/`rtpopusdepay`), and H.264 (`rtph264pay`/`rtph264depay`).
 
-### Phase 4: Remote Track Decoding & Video Element Rendering
+### Phase 4: Remote Track Decoding & Video Element Rendering [COMPLETED]
 1. **`HTMLMediaElement.srcObject`**:
-   - When JavaScript sets `video.srcObject = remoteStream`, extract underlying `MediaStreamId`.
+   - [x] When JavaScript sets `video.srcObject = remoteStream`, extract underlying `MediaStreamId`.
 2. **Dynamic Sink Linking**:
-   - In GStreamer backend, connect `webrtcbin.connect_pad_added`:
+   - [x] In GStreamer backend, connect `webrtcbin.connect_pad_added`:
      - For audio: link incoming pad to `rtpopusdepay` -> `opusdec` -> `audioconvert` -> `autoaudiosink`.
      - For video: link incoming pad to `rtpvp8depay` / `rtph264depay` -> decoder -> `videoconvert` -> `appsink`.
-   - Pass decoded video frames to Servo's video frame queue for WebRender texture presentation.
+   - [x] Pass decoded video frames to Servo's video frame queue for WebRender texture presentation.
 
-### Phase 5: Verification & Compatibility Testing
+### Phase 5: Verification & Compatibility Testing [IN PROGRESS / CI]
 1. **Unit & Integration Tests**:
-   - Test loopback call (`RTCPeerConnection` connecting to local `RTCPeerConnection` in an iframe).
-   - Verify audio and video frame delivery in `tests/wpt/web-platform-tests/webrtc/`.
+   - [x] Codebase modernization and WebIDL parity completed.
+   - [ ] Verify audio and video frame delivery in `tests/wpt/web-platform-tests/webrtc/` via GitHub Actions CI.
 2. **Real-World Platform Smoke Testing**:
-   - Test on Instagram Web video calling, Google Meet, and Discord Web.
+   - [ ] Test on Instagram Web video calling, Google Meet, and Discord Web.
 
 ---
 

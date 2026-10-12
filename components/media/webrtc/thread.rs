@@ -10,8 +10,8 @@ use servo_media_streams::MediaStreamType;
 
 use crate::datachannel::{DataChannelEvent, DataChannelId, DataChannelInit, DataChannelMessage};
 use crate::{
-    BundlePolicy, DescriptionType, IceCandidate, MediaStreamId, SdpType, SessionDescription,
-    WebRtcBackend, WebRtcControllerBackend, WebRtcSignaller,
+    BundlePolicy, DescriptionType, IceCandidate, IceServer, IceTransportPolicy, MediaStreamId, RtcpMuxPolicy,
+    SdpType, SessionDescription, WebRtcBackend, WebRtcControllerBackend, WebRtcSignaller,
 };
 
 #[derive(Clone)]
@@ -39,10 +39,21 @@ impl WebRtcController {
 
         t
     }
-    pub fn configure(&self, stun_server: String, policy: BundlePolicy) {
+    pub fn configure(
+        &self,
+        ice_servers: Vec<IceServer>,
+        bundle_policy: BundlePolicy,
+        ice_transport_policy: IceTransportPolicy,
+        rtcp_mux_policy: RtcpMuxPolicy,
+    ) {
         let _ = self
             .sender
-            .send(RtcThreadEvent::ConfigureStun(stun_server, policy));
+            .send(RtcThreadEvent::ConfigureIceServers(
+                ice_servers,
+                bundle_policy,
+                ice_transport_policy,
+                rtcp_mux_policy,
+            ));
     }
     pub fn set_remote_description(
         &self,
@@ -101,7 +112,12 @@ impl WebRtcController {
 }
 
 pub enum RtcThreadEvent {
-    ConfigureStun(String, BundlePolicy),
+    ConfigureIceServers(
+        Vec<IceServer>,
+        BundlePolicy,
+        IceTransportPolicy,
+        RtcpMuxPolicy,
+    ),
     SetRemoteDescription(SessionDescription, Box<dyn FnOnce() + Send + 'static>),
     SetLocalDescription(SessionDescription, Box<dyn FnOnce() + Send + 'static>),
     AddIceCandidate(IceCandidate),
@@ -141,7 +157,9 @@ pub fn handle_rtc_event(
     event: RtcThreadEvent,
 ) -> bool {
     let result = match event {
-        RtcThreadEvent::ConfigureStun(server, policy) => controller.configure(&server, policy),
+        RtcThreadEvent::ConfigureIceServers(servers, bundle_policy, ice_transport_policy, rtcp_mux_policy) => {
+            controller.configure(&servers, bundle_policy, ice_transport_policy, rtcp_mux_policy)
+        },
         RtcThreadEvent::SetRemoteDescription(desc, cb) => {
             controller.set_remote_description(desc, cb)
         },

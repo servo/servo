@@ -14,6 +14,8 @@ use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::MediaDevicesBinding::{
     MediaDevicesMethods, MediaStreamConstraints,
 };
+use crate::dom::bindings::codegen::Bindings::PermissionsBinding::PermissionName;
+use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionState;
 use crate::dom::bindings::codegen::UnionTypes::{
     BooleanOrMediaTrackConstraints, ClampedUnsignedLongOrConstrainULongRange as ConstrainULong,
     DoubleOrConstrainDoubleRange as ConstrainDouble,
@@ -25,6 +27,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::media::mediadeviceinfo::MediaDeviceInfo;
 use crate::dom::media::mediastream::MediaStream;
 use crate::dom::media::mediastreamtrack::MediaStreamTrack;
+use crate::dom::permission::permissions::request_permission_to_use;
 use crate::dom::promise::{Promise, RootedPromise};
 
 #[dom_struct]
@@ -52,19 +55,74 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
         constraints: &MediaStreamConstraints,
     ) -> RootedPromise {
         let p = Promise::new_in_realm(cx);
-        let media = ServoMedia::get();
-        let stream = MediaStream::new(cx, &self.global());
-        if let Some(constraints) = convert_constraints(&constraints.audio) &&
-            let Some(audio) = media.create_audioinput_stream(constraints)
-        {
-            let track = MediaStreamTrack::new(cx, &self.global(), audio, MediaStreamType::Audio);
-            stream.add_track(&track);
+        let global = self.global();
+
+        // Check if we need camera permission
+        let needs_camera = constraints.video.as_ref().is_some_and(|v| match v {
+            BooleanOrMediaTrackConstraints::Boolean(false) => false,
+            _ => true,
+        });
+
+        // Check if we need microphone permission
+        let needs_microphone = constraints.audio.as_ref().is_some_and(|a| match a {
+            BooleanOrMediaTrackConstraints::Boolean(false) => false,
+            _ => true,
+        });
+
+        if !needs_camera && !needs_microphone {
+            p.reject_error(
+                cx,
+                crate::dom::bindings::error::Error::Type(
+                    c"At least one of audio and video must be requested".to_owned(),
+                ),
+            );
+            return p;
         }
-        if let Some(constraints) = convert_constraints(&constraints.video) &&
-            let Some(video) = media.create_videoinput_stream(constraints)
-        {
-            let track = MediaStreamTrack::new(cx, &self.global(), video, MediaStreamType::Video);
-            stream.add_track(&track);
+
+        // Request permissions if needed
+        let camera_granted = if needs_camera {
+            request_permission_to_use(PermissionName::Camera, &global) == PermissionState::Granted
+        } else {
+            true
+        };
+
+        let microphone_granted = if needs_microphone {
+            request_permission_to_use(PermissionName::Microphone, &global) == PermissionState::Granted
+        } else {
+            true
+        };
+
+        if (!camera_granted && needs_camera) || (!microphone_granted && needs_microphone) {
+            p.reject_error(
+                cx,
+                crate::dom::bindings::error::Error::NotAllowed(Some(
+                    "Permission denied".to_owned(),
+                )),
+            );
+            return p;
+        }
+
+        let media = ServoMedia::get();
+        let stream = MediaStream::new(cx, &global);
+
+        if camera_granted && needs_camera {
+            if let Some(ref video_constraints) = constraints.video &&
+                let Some(c) = convert_constraints(video_constraints) &&
+                let Some(video) = media.create_videoinput_stream(c)
+            {
+                let track = MediaStreamTrack::new(cx, &global, video, MediaStreamType::Video);
+                stream.add_track(&track);
+            }
+        }
+
+        if microphone_granted && needs_microphone {
+            if let Some(ref audio_constraints) = constraints.audio &&
+                let Some(c) = convert_constraints(audio_constraints) &&
+                let Some(audio) = media.create_audioinput_stream(c)
+            {
+                let track = MediaStreamTrack::new(cx, &global, audio, MediaStreamType::Audio);
+                stream.add_track(&track);
+            }
         }
 
         p.resolve_native(cx, &stream);
