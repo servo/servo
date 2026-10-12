@@ -2,15 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::sync::LazyLock;
-
 use app_units::Au;
 use cssparser::Parser;
 use js::context::NoGC;
-use regex::Regex;
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::dom::UnrootedDom;
+use script_bindings::domstring::is_valid_floating_point_number_string;
 use script_bindings::inheritance::Castable;
 use script_bindings::str::USVString;
 use smallvec::{SmallVec, smallvec};
@@ -430,15 +428,6 @@ pub(crate) fn collect_sequence_characters(
 /// TODO(#39315): Use the validation rule from Stylo
 fn is_valid_non_negative_integer_string(s: &str) -> bool {
     s.chars().all(|c| c.is_ascii_digit())
-}
-
-/// <https://html.spec.whatwg.org/multipage/#valid-floating-point-number>
-/// TODO(#39315): Use the validation rule from Stylo
-fn is_valid_floating_point_number_string(s: &str) -> bool {
-    static RE: LazyLock<Regex> =
-        LazyLock::new(|| Regex::new(r"^-?(?:\d+\.\d+|\d+|\.\d+)(?:(e|E)(\+|\-)?\d+)?$").unwrap());
-
-    RE.is_match(s)
 }
 
 /// Parse an `srcset` attribute:
