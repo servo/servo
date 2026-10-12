@@ -141,7 +141,6 @@ impl PositionInInlineFormattingContext {
                     .find_dom_position_of_offset(range.end, SearchAffinity::RangeEnd)?;
                 Some((start, end))
             })
-            .flatten()
     }
 }
 

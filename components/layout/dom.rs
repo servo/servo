@@ -255,10 +255,10 @@ impl LayoutBox {
 
     fn with_independent_formatting_context<T>(
         &self,
-        callback: impl FnOnce(&IndependentFormattingContext) -> T,
+        callback: impl FnOnce(&IndependentFormattingContext) -> Option<T>,
     ) -> Option<T> {
-        Some(match self {
-            LayoutBox::DisplayContents(..) => return None,
+        match self {
+            LayoutBox::DisplayContents(..) => None,
             LayoutBox::BlockLevel(block_level_box) => match &*block_level_box.borrow() {
                 BlockLevelBox::Independent(independent_formatting_context) => {
                     callback(independent_formatting_context)
@@ -267,7 +267,8 @@ impl LayoutBox {
                     callback(&positioned.borrow().context)
                 },
                 BlockLevelBox::OutOfFlowFloatBox(float) => callback(&float.contents),
-                _ => return None,
+                BlockLevelBox::OutsideMarker(..) |
+                BlockLevelBox::SameFormattingContextBlock(..) => None,
             },
             LayoutBox::InlineLevel(inline_item) => match inline_item {
                 InlineItem::Atomic(atomic_item, ..) => callback(&atomic_item.borrow()),
@@ -275,7 +276,10 @@ impl LayoutBox {
                 InlineItem::OutOfFlowAbsolutelyPositionedBox(absolute, ..) => {
                     callback(&absolute.borrow().context)
                 },
-                _ => return None,
+                InlineItem::StartInlineBox(..) |
+                InlineItem::EndInlineBox(..) |
+                InlineItem::TextRun(..) |
+                InlineItem::BlockLevel(..) => None,
             },
             LayoutBox::FlexLevel(flex_level_box) => match &*flex_level_box.borrow() {
                 FlexLevelBox::FlexItem(flex_item) => {
@@ -288,7 +292,7 @@ impl LayoutBox {
             LayoutBox::TableLevelBox(table_level_box) => match table_level_box {
                 TableLevelBox::Caption(caption) => callback(&caption.borrow().context),
                 TableLevelBox::Cell(cell) => callback(&cell.borrow().context),
-                _ => return None,
+                TableLevelBox::TrackGroup(..) | TableLevelBox::Track(..) => None,
             },
             LayoutBox::TaffyItemBox(taffy_item_box) => {
                 match &taffy_item_box.borrow().taffy_level_box {
@@ -300,13 +304,13 @@ impl LayoutBox {
                     },
                 }
             },
-            LayoutBox::Text(..) => return None,
-        })
+            LayoutBox::Text(..) => None,
+        }
     }
 
     pub(crate) fn with_inline_formatting_context<T>(
         &self,
-        callback: impl FnOnce(&InlineFormattingContext) -> T,
+        callback: impl FnOnce(&InlineFormattingContext) -> Option<T>,
     ) -> Option<T> {
         if let LayoutBox::BlockLevel(block_level_box) = self &&
             let BlockLevelBox::SameFormattingContextBlock(same_formatting_context_block) =
@@ -315,15 +319,14 @@ impl LayoutBox {
                 .contents
                 .inline_formatting_context()
         {
-            return Some(callback(inline_formatting_context));
+            return callback(inline_formatting_context);
         }
 
         self.with_independent_formatting_context(|independent_formatting_context| {
             independent_formatting_context
                 .inline_formatting_context()
-                .map(callback)
+                .and_then(callback)
         })
-        .flatten()
     }
 
     pub(crate) fn layout_box_for_containing_inline_formatting_context(&self) -> Option<LayoutBox> {
@@ -406,7 +409,7 @@ impl GenericLayoutDataTrait for DOMLayoutData {
         };
         inner_box
             .with_independent_formatting_context(|independent_formatting_context| {
-                independent_formatting_context.set_selection(selected)
+                Some(independent_formatting_context.set_selection(selected))
             })
             .unwrap_or(false)
     }
