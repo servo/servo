@@ -498737,6 +498737,10 @@
         "c953a546f0a76bbbe58a7e7cbf6bb3fffa4e3ed7",
         []
        ],
+       "Modified-LOCLTest-Regular.otf": [
+        "d2cd466863c4554eeebb8224acc950f4dbbf0eed",
+        []
+       ],
        "NotoSansJP.subset.ttf": [
         "fedbeafbdaae55af7a7909928f29959974672f55",
         []
@@ -1174730,6 +1174734,13 @@
      ],
      "inheritance.html": [
       "8f7d4b9d5add7b22beb9049eaebf2407ec1ec7b6",
+      [
+       null,
+       {}
+      ]
+     ],
+     "language-region-locl.html": [
+      "b134e0ec5c6a79ae3ef3ff116d6db38b955ba310",
       [
        null,
        {}
