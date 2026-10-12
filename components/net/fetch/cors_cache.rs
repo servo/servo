@@ -108,7 +108,7 @@ impl CorsCache {
     /// Remove old entries
     pub fn cleanup(&mut self) {
         let now = Instant::now();
-        self.0.retain(|e| now < e.created + e.max_age);
+        self.0.retain(|entry| now < entry.created + entry.max_age);
     }
 
     /// Returns true if an entry with a
