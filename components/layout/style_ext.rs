@@ -835,6 +835,18 @@ impl ComputedValuesExt for ComputedValues {
             return true;
         }
 
+        // From <https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty>
+        // > A computed value of other than none results in the creation of
+        // > both a stacking context [CSS21] and a Containing Block for
+        // > absolute and fixed position descendants, unless the element it
+        // > applies to is a document root element in the current browsing
+        // > context.
+        // Note `will-change: backdrop-filter` is handled above by
+        // `WillChangeBits::STACKING_CONTEXT_UNCONDITIONAL`.
+        if !effects.backdrop_filter.0.is_empty() {
+            return true;
+        }
+
         // From <https://www.w3.org/TR/compositing-1/#mix-blend-mode>
         // > Applying a blendmode other than `normal` to the element must establish a new stacking context
         // Note `will-change: mix-blend-mode` is handled above by `STACKING_CONTEXT_UNCONDITIONAL`.
@@ -938,8 +950,15 @@ impl ComputedValuesExt for ComputedValues {
         // > A value other than none for the filter property results in the creation of a containing
         // > block for absolute and fixed positioned descendants unless the element it applies to is
         // > a document root element in the current browsing context.
+        //
+        // From <https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty>:
+        // > A computed value other than `none` results in the creation of both
+        // > a stacking context [CSS21] and a containing block for absolute and
+        // > fixed positioned descendants, unless the element it applies to is
+        // > a document root element in the current browsing context.
         if !fragment_flags.contains(FragmentFlags::IS_ROOT_ELEMENT) &&
             (!self.get_effects().filter.0.is_empty() ||
+                !self.get_effects().backdrop_filter.0.is_empty() ||
                 will_change_bits.intersects(WillChangeBits::FIXPOS_CB_NON_SVG))
         {
             return true;
