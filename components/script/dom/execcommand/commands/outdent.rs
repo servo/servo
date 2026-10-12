@@ -9,10 +9,9 @@ use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::CSSStyleDeclarationBinding::CSSStyleDeclarationMethods;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::inheritance::Castable;
-use script_bindings::root::DomSlice;
 
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::{DomRoot, DomSlice};
 use crate::dom::document::Document;
 use crate::dom::element::Element;
 use crate::dom::execcommand::commands::indent::indent;
@@ -83,9 +82,9 @@ pub(crate) fn outdent(cx: &mut JSContext, context_object: &Document, node: &DomR
     //         current ancestor to its parent.
     while let Some(ancestor) = current_ancestor.clone() &&
         ancestor.is_editable() &&
-        !ancestor
+        ancestor
             .downcast::<Element>()
-            .is_some_and(|element| element.is_simple_indentation_element()) &&
+            .is_some_and(|element| !element.is_simple_indentation_element()) &&
         !ancestor.is::<HTMLOListElement>() &&
         !ancestor.is::<HTMLUListElement>()
     {
@@ -111,9 +110,9 @@ pub(crate) fn outdent(cx: &mut JSContext, context_object: &Document, node: &DomR
         //           set current ancestor to its parent.
         while let Some(ancestor) = current_ancestor.clone() &&
             ancestor.is_editable() &&
-            !ancestor
+            ancestor
                 .downcast::<Element>()
-                .is_some_and(|element| element.is_indentation_element()) &&
+                .is_some_and(|element| !element.is_indentation_element()) &&
             !ancestor.is::<HTMLOListElement>() &&
             !ancestor.is::<HTMLUListElement>()
         {
@@ -205,7 +204,7 @@ pub(crate) fn outdent(cx: &mut JSContext, context_object: &Document, node: &DomR
 
         // Step 12.4. If target is an inline node that is not a br, and its nextSibling is a br,
         //            remove target's nextSibling from its parent.
-        if target.is_inline_node() &&
+        if target.is_inline_node() && !target.is::<HTMLBRElement>() &&
             let Some(next_br_sibling) = target.GetNextSibling() &&
             next_br_sibling.is::<HTMLBRElement>()
         {
@@ -270,10 +269,10 @@ pub(crate) fn execute_outdent_command(
     //         is not an ancestor of node; node is editable;
     //         and either node has no editable descendants, or is an ol or ul,
     //         or is an li whose parent is an ol or ul.
-    for node in new_range.contained_nodes() {
+    for node in new_range.contained_nodes(cx.no_gc()) {
         if !node_list
             .last()
-            .is_some_and(|last: &Dom<Node>| last.is_ancestor_of(&node)) &&
+            .is_some_and(|last: &DomRoot<Node>| last.is_ancestor_of(&node)) &&
             node.is_editable() &&
             (!node
                 .traverse_preorder(ShadowIncluding::No)
@@ -285,66 +284,47 @@ pub(crate) fn execute_outdent_command(
                         parent.is::<HTMLOListElement>() || parent.is::<HTMLUListElement>()
                     })))
         {
-            node_list.push(node.as_traced());
+            node_list.push(node.as_rooted());
         }
     }
 
     // Step 6. While node list is not empty:
-    let mut node_list_iter = node_list.iter().peekable();
-    while node_list_iter.peek().is_some() {
+    let mut node_list_iter = node_list.iter();
+    while let Some(first_node) = node_list_iter.next() {
         // Step 6.1. While the first member of node list is an ol or ul or is not the child of an
         //           ol or ul, outdent it and remove it from node list.
-        while node_list_iter.peek().is_some_and(|first| {
-            (first.is::<HTMLOListElement>() || first.is::<HTMLUListElement>()) &&
-                !first.GetParentElement().is_some_and(|parent| {
+        while (first_node.is::<HTMLOListElement>() || first_node.is::<HTMLUListElement>()) ||
+                !first_node.GetParentElement().is_some_and(|parent| {
                     parent.is::<HTMLOListElement>() || parent.is::<HTMLUListElement>()
-                })
-        }) {
+                }) {
             // We just walk the iterator instead of continuously removing things from node list.
-            outdent(
-                cx,
-                document,
-                &node_list_iter
-                    .next()
-                    .expect("Should have a node here.")
-                    .as_rooted(),
-            );
+            outdent(cx, document, first_node);
         }
 
-        // Step 6.2. If node list is empty, break from these substeps.
-        if !node_list_iter.peek().is_some() {
+        let Some(first_node) = node_list_iter.next() else {
+            // Step 6.2. If node list is empty, break from these substeps.
             break;
-        }
+        };
 
         // Step 6.3. Let sublist be a list of nodes, initially empty.
         rooted_vec!(let mut sublist);
 
         // Step 6.4. Remove the first member of node list and append it to sublist.
-        sublist.push(
-            node_list_iter
-                .next()
-                .expect("Must always have a next item")
-                .clone(),
-        );
+        sublist.push(first_node.as_traced());
 
         // Step 6.5. While the first member of node list is the nextSibling of the last member of
         //           sublist, and the first member of node list is not an ol or ul, remove the
         //           first member of node list and append it to sublist.
-        while node_list_iter.peek().is_some_and(|node| {
+        while let Some(node) = node_list_iter.next() &&
             sublist
                 .last()
                 .expect("Must always have last element here.")
                 .GetNextSibling()
-                .is_some_and(|next_sibling| next_sibling == node.as_rooted()) &&
+                .is_some_and(|next_sibling| next_sibling == *node) &&
                 !node.is::<HTMLOListElement>() &&
                 !node.is::<HTMLUListElement>()
-        }) {
-            sublist.push(
-                node_list_iter
-                    .next()
-                    .expect("Must always have a next item")
-                    .clone(),
-            );
+        {
+            sublist.push(node.as_traced());
         }
 
         // Step 6.6. Record the values of sublist, and let values be the result.
