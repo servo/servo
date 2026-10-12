@@ -232,7 +232,6 @@ use crate::mime::{APPLICATION, CHARSET};
 use crate::navigation::navigate;
 use crate::runtime::script_runtime::compute_size;
 use crate::scripting::script_module::{ModuleRequest, ModuleStatus};
-use crate::tasks::task::NonSendTaskBox;
 use crate::tasks::task_manager::TaskManager;
 use crate::tasks::task_source::TaskSourceName;
 use crate::xpath::parse_expression;

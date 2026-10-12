@@ -9,13 +9,13 @@ use std::ptr::NonNull;
 use js::context::{JSContext, RawJSContext};
 use js::conversions::ToJSValConvertible;
 use js::glue::{
-    AppendToIdVector, CreateProxyHandler, GetProxyHandlerExtra, GetProxyPrivate,
+    AppendToIdVector, CreateForwardingProxyHandler, GetProxyHandlerExtra, GetProxyPrivate,
     GetProxyReservedSlot, JS_GetReservedSlot, ProxyTraps, SetProxyReservedSlot,
 };
 use js::jsapi::{
     Handle as RawHandle, HandleId as RawHandleId, HandleObject as RawHandleObject,
-    HandleValue as RawHandleValue, HandleValueArray, JS_SetReservedSlot, JSITER_HIDDEN,
-    JSITER_OWNONLY, JSITER_SYMBOLS, JSObject, JSPROP_ENUMERATE, JSPROP_PERMANENT,
+    HandleValue as RawHandleValue, JS_SetReservedSlot, JSITER_HIDDEN, JSITER_OWNONLY,
+    JSITER_SYMBOLS, JSObject, JSPROP_ENUMERATE, JSPROP_PERMANENT,
     MutableHandle as RawMutableHandle, MutableHandleIdVector as RawMutableHandleIdVector,
     MutableHandleValue as RawMutableHandleValue, ObjectOpResult, PropertyDescriptor, jsid,
 };
@@ -23,7 +23,7 @@ use js::jsval::{ObjectValue, PrivateValue, UndefinedValue};
 use js::rust::wrappers2::{
     GetArrayLength, GetPropertyKeys, JS_DefinePropertyById, JS_DeletePropertyById,
     JS_ForwardGetPropertyTo, JS_ForwardSetPropertyTo, JS_GetElement,
-    JS_GetOwnPropertyDescriptorById, JS_HasPropertyById, JS_SetPrototype, NewArrayObject,
+    JS_GetOwnPropertyDescriptorById, JS_HasPropertyById, JS_SetPrototype, NewArrayObject1,
     SetArrayLength, int_to_jsid,
 };
 use js::rust::{
@@ -90,7 +90,7 @@ static PROXY_TRAPS: ProxyTraps = ProxyTraps {
 pub unsafe fn create_proxy_handler(
     config: *const ObservableArrayProxyHandlerConfig,
 ) -> *const c_void {
-    unsafe { CreateProxyHandler(&PROXY_TRAPS, config as *const c_void) }
+    unsafe { CreateForwardingProxyHandler(&PROXY_TRAPS, config as *const c_void) }
 }
 
 /// # Safety
@@ -100,7 +100,7 @@ pub unsafe fn new_proxy_object(
     handler: *const c_void,
     owner: *const c_void,
 ) -> *mut JSObject {
-    rooted!(&in(cx) let target = unsafe { NewArrayObject(cx, &HandleValueArray::empty()) });
+    rooted!(&in(cx) let target = unsafe { NewArrayObject1(cx, 0) });
     if target.is_null() {
         return ptr::null_mut();
     }
@@ -217,7 +217,7 @@ fn get_backing_list_object(
     }
 
     if slot_value.is_undefined() {
-        rooted!(&in(cx) let new_backing_list = unsafe { NewArrayObject(cx, &HandleValueArray::empty()) });
+        rooted!(&in(cx) let new_backing_list = unsafe { NewArrayObject1(cx, 0) });
         if new_backing_list.is_null() {
             return false;
         }
