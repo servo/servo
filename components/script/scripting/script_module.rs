@@ -188,6 +188,10 @@ impl ModuleTree {
             .map(|error| RethrowError::new(Heap::boxed(error.get())))
     }
 
+    pub(crate) fn has_rethrow_error(&self) -> bool {
+        self.rethrow_error.borrow().is_some()
+    }
+
     #[expect(unsafe_code)]
     #[expect(clippy::too_many_arguments)]
     /// <https://html.spec.whatwg.org/multipage/#creating-a-javascript-module-script>
