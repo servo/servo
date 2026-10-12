@@ -21,7 +21,7 @@ pub mod threadpool;
 mod unicode_block;
 
 use std::fs::File;
-use std::io::{BufWriter, Read};
+use std::io::{BufReader, BufWriter, Read};
 use std::path::Path;
 
 use log::{trace, warn};
@@ -37,21 +37,16 @@ where
     let path = config_dir.join(filename);
     let display = path.display();
 
-    let mut file = match File::open(&path) {
+    let file = match File::open(&path) {
         Err(why) => {
             warn!("couldn't open {}: {}", display, why);
             return;
         },
         Ok(file) => file,
     };
+    let buf_reader = BufReader::new(file);
 
-    let mut string_buffer: String = String::new();
-    match file.read_to_string(&mut string_buffer) {
-        Err(why) => panic!("couldn't read from {}: {}", display, why),
-        Ok(_) => trace!("successfully read from {}", display),
-    }
-
-    match serde_json::from_str(&string_buffer) {
+    match serde_json::from_reader(buf_reader) {
         Ok(decoded_buffer) => *data = decoded_buffer,
         Err(why) => warn!("Could not decode buffer{}", why),
     }
