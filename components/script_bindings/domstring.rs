@@ -593,11 +593,7 @@ impl TracedDOMString {
 
     /// <https://html.spec.whatwg.org/multipage/#valid-floating-point-number>
     pub fn is_valid_floating_point_number_string(&self) -> bool {
-        static RE: LazyLock<Regex> = LazyLock::new(|| {
-            Regex::new(r"^-?(?:\d+\.\d+|\d+|\.\d+)(?:(e|E)(\+|\-)?\d+)?$").unwrap()
-        });
-
-        RE.is_match(self.0.borrow_mut().ensure_rust_string()) &&
+        is_valid_floating_point_number_string(self.0.borrow_mut().ensure_rust_string()) &&
             self.parse_floating_point_number().is_some()
     }
 
@@ -1216,6 +1212,15 @@ macro_rules! match_domstring_ascii_inner {
             $p => $then
         }
     }
+}
+
+/// <https://html.spec.whatwg.org/multipage/#valid-floating-point-number>
+/// TODO(#39315): Use the validation rule from Stylo
+pub fn is_valid_floating_point_number_string(s: &str) -> bool {
+    static RE: LazyLock<Regex> =
+        LazyLock::new(|| Regex::new(r"^-?(?:\d+\.\d+|\d+|\.\d+)(?:(e|E)(\+|\-)?\d+)?$").unwrap());
+
+    RE.is_match(s)
 }
 
 /// Use this to match &str against lazydomstring efficiently.
