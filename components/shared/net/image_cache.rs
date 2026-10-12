@@ -222,7 +222,7 @@ pub trait ImageCache: Sync + Send {
     fn get_cached_image_status(
         &self,
         url: ServoUrl,
-        origin: ImmutableOrigin,
+        origin: &ImmutableOrigin,
         cors_setting: Option<CorsSettings>,
     ) -> ImageCacheResult;
 
