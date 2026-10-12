@@ -1785,22 +1785,9 @@ impl HTMLInputElement {
             self.checked_changed.set(true);
         }
 
-        if matches!(*self.input_type(), InputType::Radio(_)) {
-            if checked {
-                broadcast_radio_checked(cx, self, self.radio_group_name().as_ref());
-            } else if previously_checked {
-                // Only one radio button in a group is checked and if that one gets unchecked, the group becomes indeterminate
-                let group = self.radio_group_name();
-                let form = self.form_owner();
-                let root = self
-                    .upcast::<Node>()
-                    .GetRootNode(&GetRootNodeOptions::empty());
-                for r in radio_group_iter(self, group.as_ref(), form.as_deref(), &root) {
-                    r.upcast::<Element>()
-                        .set_state(ElementState::INDETERMINATE, true);
-                }
-            }
-        }
+        self.input_type()
+            .as_specific()
+            .update_checkedness(cx, self, checked, previously_checked);
 
         self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
     }

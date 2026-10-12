@@ -177,6 +177,30 @@ impl SpecificInputType for RadioInputType {
     fn form_owner_changed(&self, cx: &mut JSContext, input: &HTMLInputElement) {
         radio_group_updated(cx, input, input.radio_group_name().as_ref());
     }
+
+    fn update_checkedness(
+        &self,
+        cx: &mut JSContext,
+        input: &HTMLInputElement,
+        checked: bool,
+        previously_checked: bool,
+    ) {
+        let group = input.radio_group_name();
+        if checked {
+            broadcast_radio_checked(cx, input, group.as_ref());
+        } else if previously_checked {
+            // Only one radio button in a group is checked and if that one gets unchecked, the group becomes indeterminate
+            let form = input.form_owner();
+            let root = input
+                .upcast::<Node>()
+                .GetRootNode(&GetRootNodeOptions::empty());
+            for radio in radio_group_iter(input, group.as_ref(), form.as_deref(), &root) {
+                radio
+                    .upcast::<Element>()
+                    .set_state(ElementState::INDETERMINATE, true);
+            }
+        }
+    }
 }
 
 impl SpecificInputActivationType for RadioInputActivation {
@@ -254,7 +278,8 @@ pub(crate) fn broadcast_radio_checked(
         }
 
         // The radio button triggering the broadcast is checked, so the group is not indeterminate
-        radio.upcast::<Element>()
+        radio
+            .upcast::<Element>()
             .set_state(ElementState::INDETERMINATE, false);
     }
 }
