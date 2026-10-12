@@ -23,7 +23,10 @@ pub struct HttpStatus {
 impl HttpStatus {
     /// Creates a new HttpStatus for a valid status code.
     pub fn new(code: StatusCode, message: Option<Vec<u8>>) -> Self {
-        Self { code, message }
+        Self {
+            code: code.as_u16(),
+            message,
+        }
     }
 
     /// Creates a new HttpStatus from a raw status code, but will panic
