@@ -13,7 +13,7 @@ use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::position::T as ComputedPosition;
 use style::computed_values::transform_style::T as ComputedTransformStyle;
 use style::computed_values::unicode_bidi::T as UnicodeBidi;
-use style::logical_geometry::{Direction as AxisDirection, PhysicalSide, WritingMode};
+use style::logical_geometry::{LogicalAxis, PhysicalSide, WritingMode};
 use style::properties::ComputedValues;
 use style::properties::longhands::backface_visibility::computed_value::T as BackfaceVisiblity;
 use style::properties::longhands::box_sizing::computed_value::T as BoxSizing;
@@ -218,17 +218,17 @@ impl AspectRatio {
     /// Given one side length, compute the other one.
     pub(crate) fn compute_dependent_size(
         &self,
-        ratio_dependent_axis: AxisDirection,
+        ratio_dependent_axis: LogicalAxis,
         ratio_determining_size: Au,
     ) -> Au {
         match ratio_dependent_axis {
             // Calculate the inline size from the block size
-            AxisDirection::Inline => {
+            LogicalAxis::Inline => {
                 (ratio_determining_size + self.box_sizing_adjustment.block).scale_by(self.i_over_b) -
                     self.box_sizing_adjustment.inline
             },
             // Calculate the block size from the inline size
-            AxisDirection::Block => {
+            LogicalAxis::Block => {
                 (ratio_determining_size + self.box_sizing_adjustment.inline)
                     .scale_by(1.0 / self.i_over_b) -
                     self.box_sizing_adjustment.block

@@ -9,7 +9,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::{ServoDangerousStyleElement, ServoLayoutNode};
 use servo_arc::Arc;
 use style::context::SharedStyleContext;
-use style::logical_geometry::Direction;
+use style::logical_geometry::LogicalAxis;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 
@@ -332,11 +332,11 @@ impl IndependentFormattingContext {
                     match (natural_sizes.block, natural_sizes.inline) {
                         (Some(block_size), None) => (block_size, false),
                         (_, Some(inline_size)) => (
-                            ratio.compute_dependent_size(Direction::Block, inline_size),
+                            ratio.compute_dependent_size(LogicalAxis::Block, inline_size),
                             false,
                         ),
                         (None, None) => (
-                            ratio.compute_dependent_size(Direction::Block, inline_stretch_size),
+                            ratio.compute_dependent_size(LogicalAxis::Block, inline_stretch_size),
                             true,
                         ),
                     };
