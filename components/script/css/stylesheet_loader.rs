@@ -14,9 +14,9 @@ use js::context::JSContext;
 use net_traits::mime_classifier::MimeClassifier;
 use net_traits::request::{CorsSettings, Destination, RequestId};
 use net_traits::{
-    FetchMetadata, FilteredMetadata, LoadContext, Metadata, NetworkError, ReferrerPolicy,
-    ResourceFetchTiming,
+    FetchMetadata, LoadContext, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming,
 };
+use pixels::CorsStatus;
 use servo_arc::Arc;
 use servo_config::pref;
 use servo_url::ServoUrl;
@@ -349,10 +349,11 @@ impl FetchResponseListener for StylesheetContext {
         _: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
-        if let Ok(FetchMetadata::Filtered {
-            filtered: FilteredMetadata::Opaque | FilteredMetadata::OpaqueRedirect(_),
-            ..
-        }) = metadata
+        if metadata
+            .as_ref()
+            .map(|metadata| metadata.cors_status())
+            .unwrap_or(CorsStatus::Safe) ==
+            CorsStatus::Unsafe
         {
             self.origin_clean = false;
         }
