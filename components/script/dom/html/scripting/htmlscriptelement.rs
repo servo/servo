@@ -21,6 +21,7 @@ use net_traits::request::{
     CorsSettings, Destination, ParserMetadata, Referrer, RequestBuilder, RequestId,
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
+use pixels::CorsStatus;
 use script_bindings::cell::DomRefCell;
 use script_bindings::domstring::{DOMString, TracedDOMString};
 use script_bindings::trace::RootedTraceableBox;
@@ -339,7 +340,7 @@ impl FetchResponseListener for ClassicContext {
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
         self.metadata = metadata.ok().map(|metadata| {
-            self.response_was_cors_cross_origin = metadata.is_cors_cross_origin();
+            self.response_was_cors_cross_origin = metadata.cors_status() == CorsStatus::Unsafe;
             metadata.into()
         });
 
