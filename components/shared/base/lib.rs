@@ -21,7 +21,7 @@ pub mod threadpool;
 mod unicode_block;
 
 use std::fs::File;
-use std::io::{BufReader, BufWriter, Read};
+use std::io::{BufReader, BufWriter};
 use std::path::Path;
 
 use log::{trace, warn};
