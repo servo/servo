@@ -137,7 +137,7 @@ mod platform {
             let index = ttc_index_from_postscript_name(file_ref, &self.postscript_name);
 
             Some(FontDataAndIndex {
-                data: FontData::from_bytes(&mmap),
+                data: FontData::from_mmap(mmap),
                 index,
             })
         }
