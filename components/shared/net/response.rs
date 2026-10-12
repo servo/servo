@@ -352,41 +352,45 @@ impl Response {
             return Err(error.clone());
         }
 
-        let metadata = self.url.as_ref().map(|url| init_metadata(self, url));
+        if let Some(metadata) = self.url.as_ref().map(|url| init_metadata(self, url)) {
+            if let Some(ref response) = self.internal_response {
+                match response.url {
+                    Some(ref url) => {
+                        let unsafe_metadata = init_metadata(response, url);
 
-        if let Some(ref response) = self.internal_response {
-            match response.url {
-                Some(ref url) => {
-                    let unsafe_metadata = init_metadata(response, url);
-
-                    match self.response_type {
-                        ResponseType::Basic => Ok(FetchMetadata::Filtered {
-                            filtered: FilteredMetadata::Basic(metadata.unwrap().into()),
-                            unsafe_: unsafe_metadata,
-                        }),
-                        ResponseType::Cors => Ok(FetchMetadata::Filtered {
-                            filtered: FilteredMetadata::Cors(metadata.unwrap().into()),
-                            unsafe_: unsafe_metadata,
-                        }),
-                        ResponseType::Default => unreachable!(),
-                        ResponseType::Error(ref network_err) => Err(network_err.clone()),
-                        ResponseType::Opaque => Ok(FetchMetadata::Filtered {
-                            filtered: FilteredMetadata::Opaque,
-                            unsafe_: unsafe_metadata,
-                        }),
-                        ResponseType::OpaqueRedirect => Ok(FetchMetadata::Filtered {
-                            filtered: FilteredMetadata::OpaqueRedirect(url.clone()),
-                            unsafe_: unsafe_metadata,
-                        }),
-                    }
-                },
-                None => Err(NetworkError::ResourceLoadError(
-                    "No url found in unsafe response".to_owned(),
-                )),
+                        match self.response_type {
+                            ResponseType::Basic => Ok(FetchMetadata::Filtered {
+                                filtered: FilteredMetadata::Basic(metadata.into()),
+                                unsafe_: unsafe_metadata,
+                            }),
+                            ResponseType::Cors => Ok(FetchMetadata::Filtered {
+                                filtered: FilteredMetadata::Cors(metadata.into()),
+                                unsafe_: unsafe_metadata,
+                            }),
+                            ResponseType::Default => unreachable!(),
+                            ResponseType::Error(ref network_err) => Err(network_err.clone()),
+                            ResponseType::Opaque => Ok(FetchMetadata::Filtered {
+                                filtered: FilteredMetadata::Opaque,
+                                unsafe_: unsafe_metadata,
+                            }),
+                            ResponseType::OpaqueRedirect => Ok(FetchMetadata::Filtered {
+                                filtered: FilteredMetadata::OpaqueRedirect(url.clone()),
+                                unsafe_: unsafe_metadata,
+                            }),
+                        }
+                    },
+                    None => Err(NetworkError::ResourceLoadError(
+                        "No url found in unsafe response".to_owned(),
+                    )),
+                }
+            } else {
+                assert_eq!(self.response_type, ResponseType::Default);
+                Ok(FetchMetadata::Unfiltered(metadata.unwrap()))
             }
         } else {
-            assert_eq!(self.response_type, ResponseType::Default);
-            Ok(FetchMetadata::Unfiltered(metadata.unwrap()))
+            Err(NetworkError::ResourceLoadError(
+                "No url in response found when transforming to FilteredMetadata".into(),
+            ))
         }
     }
 }
