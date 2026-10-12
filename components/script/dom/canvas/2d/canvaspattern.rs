@@ -51,7 +51,7 @@ impl CanvasPattern {
 
         CanvasPattern {
             reflector_: Reflector::new(),
-            surface_data: surface_data.to_shared(),
+            surface_data: surface_data.into_shared(),
             surface_size,
             repeat_x: x,
             repeat_y: y,

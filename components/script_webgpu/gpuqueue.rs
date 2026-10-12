@@ -377,7 +377,7 @@ where
                 },
                 target_snapshot_format,
             );
-            snapshot.to_shared()
+            snapshot.into_shared()
         });
         // 8. Issue the subsequent steps on the Device timeline of this.
         if let Err(e) = self

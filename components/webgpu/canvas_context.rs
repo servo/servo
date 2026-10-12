@@ -627,7 +627,7 @@ impl crate::WGPU {
                             presentation_staging_buffer.staging_buffer.snapshot()
                         })
                         .unwrap_or_else(Snapshot::empty)
-                        .to_shared(),
+                        .into_shared(),
                 )
                 .unwrap();
         }

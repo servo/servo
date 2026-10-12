@@ -684,7 +684,7 @@ impl Transferable for ImageBitmap {
         // Step 2. Set dataHolder.[[BitmapData]] to value's bitmap data.
         // Step 3. Unset value's bitmap data.
         let transferred = SerializableImageBitmap {
-            bitmap_data: bitmap_data.to_shared(),
+            bitmap_data: bitmap_data.into_shared(),
         };
 
         Ok((ImageBitmapId::new(), transferred))

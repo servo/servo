@@ -302,7 +302,7 @@ impl CanvasPaintThread {
             },
             CanvasCommand::GetImageData(dest_rect, sender) => {
                 let snapshot = self.canvas(canvas_id).read_pixels(dest_rect);
-                if let Err(error) = sender.send(snapshot.to_shared()) {
+                if let Err(error) = sender.send(snapshot.into_shared()) {
                     warn!("GetImageData response failed ({error})");
                 }
             },

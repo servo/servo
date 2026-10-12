@@ -663,7 +663,7 @@ impl WebGLRenderingContext {
                     return Ok(None);
                 };
 
-                let snapshot = snapshot.to_shared();
+                let snapshot = snapshot.into_shared();
                 let size = snapshot.size().cast();
                 let format = match snapshot.format() {
                     SnapshotPixelFormat::RGBA => PixelFormat::RGBA8,
@@ -717,7 +717,7 @@ impl WebGLRenderingContext {
                     return Ok(None);
                 };
 
-                let snapshot = snapshot.to_shared();
+                let snapshot = snapshot.into_shared();
                 let size = snapshot.size().cast();
                 let format: PixelFormat = match snapshot.format() {
                     SnapshotPixelFormat::RGBA => PixelFormat::RGBA8,
@@ -747,7 +747,7 @@ impl WebGLRenderingContext {
                     return Ok(None);
                 };
 
-                let snapshot = snapshot.to_shared();
+                let snapshot = snapshot.into_shared();
                 let size = snapshot.size().cast();
                 let format = match snapshot.format() {
                     SnapshotPixelFormat::RGBA => PixelFormat::RGBA8,
@@ -774,7 +774,7 @@ impl WebGLRenderingContext {
                     return Ok(None);
                 };
 
-                let snapshot = snapshot.to_shared();
+                let snapshot = snapshot.into_shared();
                 let size = snapshot.size().cast();
                 let format: PixelFormat = match snapshot.format() {
                     SnapshotPixelFormat::RGBA => PixelFormat::RGBA8,

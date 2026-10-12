@@ -110,7 +110,7 @@ where
             device_id: self.device_id.0,
             queue_id: self.queue_id.0,
             texture_id: self.texture_id.0,
-            snapshot: snapshot.to_shared(),
+            snapshot: snapshot.into_shared(),
         }) {
             warn!("Failed to send UpdatePlanarTexture ({error})");
         }
