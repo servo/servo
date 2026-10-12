@@ -24,7 +24,7 @@ default = ["bundled", "clipboard", "default_tooling", "js_jit", "multiprocess"]
 #  configuration with `--no-default-features` build
 #
 # A convenience feature to enable all default web features servo has.
-default_web_features = ["brotli-compression-stream", "clipboard", "webcrypto", "webgpu", "webgl", "webxr"]
+default_web_features = ["brotli-compression-stream", "clipboard", "subtlecrypto", "webgpu", "webgl", "webxr"]
 default_tooling = ["devtools"]
 
 # Bundle required resources in the binary.
@@ -91,8 +91,8 @@ tracing = [
 ]
 vello = ["servo-constellation/vello"]
 
-# Enable WebCrypto Web Platform Features
-webcrypto = ["servo-constellation-traits/webcrypto", "script/webcrypto"]
+## Enable SubtleCrypto
+subtlecrypto = ["script/subtlecrypto"]
 webgl_backtrace = [
     "script/webgl_backtrace",
     "webgl/webgl_backtrace",

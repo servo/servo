@@ -34,11 +34,8 @@ profilemozjs = ['js/profilemozjs']
 testbinding = ["script_bindings/testbinding"]
 tracing = ["dep:tracing", "script_bindings/tracing"]
 
-# Enable webcrypto
-webcrypto = [
-    "dep:script_webcrypto",
-    "script_bindings/webcrypto",
-]
+# Enable SubtleCrypto.
+subtlecrypto = ["script_webcrypto/subtlecrypto"]
 webgl_backtrace = ["servo-canvas-traits/webgl_backtrace"]
 webgl = [
     "dep:mozangle",
@@ -124,7 +121,7 @@ regex = { workspace = true }
 resvg = { workspace = true }
 rustc-hash = { workspace = true }
 script_bindings = { workspace = true }
-script_webcrypto = { workspace = true, optional = true }
+script_webcrypto = { workspace = true }
 script_webgpu = { workspace = true, optional = true }
 script_traits = { workspace = true }
 selectors = { workspace = true }

@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::marker::PhantomData;
+
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsapi::Type;
@@ -12,6 +14,7 @@ use malloc_size_of_derive::MallocSizeOf;
 use script_bindings::DomTypes;
 use script_bindings::buffer_source::HeapBufferSource;
 use script_bindings::codegen::GenericBindings::CryptoBinding::{CryptoMethods, Wrap as CryptoWrap};
+#[cfg(feature = "subtlecrypto")]
 use script_bindings::dom::MutNullableDom;
 use script_bindings::error::{Error, Fallible};
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
@@ -20,6 +23,7 @@ use script_bindings::str::DOMString;
 use script_bindings::trace::RootedTraceableBox;
 use uuid::Uuid;
 
+#[cfg(feature = "subtlecrypto")]
 use crate::subtlecrypto::SubtleCrypto;
 use crate::traits::Equivalence;
 
@@ -27,7 +31,10 @@ use crate::traits::Equivalence;
 #[dom_struct]
 pub struct Crypto<D: DomTypes> {
     reflector_: Reflector,
+    #[cfg(feature = "subtlecrypto")]
     subtle: MutNullableDom<SubtleCrypto<D>>,
+    #[no_trace = "PhantomData"]
+    phantom: PhantomData<D>,
 }
 
 impl<D> Crypto<D>
@@ -37,7 +44,9 @@ where
     fn new_inherited() -> Crypto<D> {
         Crypto {
             reflector_: Reflector::new(),
+            #[cfg(feature = "subtlecrypto")]
             subtle: MutNullableDom::default(),
+            phantom: PhantomData,
         }
     }
 
@@ -57,6 +66,7 @@ where
     Self: DomGlobalGeneric<D>,
 {
     /// <https://w3c.github.io/webcrypto/#dfn-Crypto-attribute-subtle>
+    #[cfg(feature = "subtlecrypto")]
     fn Subtle(&self, cx: &mut JSContext) -> DomRoot<SubtleCrypto<D>> {
         self.subtle
             .or_init(|| SubtleCrypto::new(cx, &*self.global_from_reflector()))

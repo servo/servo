@@ -7,7 +7,9 @@
 #![cfg_attr(crown, register_tool(crown))]
 
 pub mod crypto;
+#[cfg(feature = "subtlecrypto")]
 pub mod cryptokey;
+#[cfg(feature = "subtlecrypto")]
 pub mod subtlecrypto;
 pub mod traits;
 
@@ -48,6 +50,7 @@ pub(crate) mod codegen {
                 "/ConcreteBindings/CryptoBinding.rs"
             ));
         }
+        #[cfg(feature = "subtlecrypto")]
         pub(crate) mod CryptoKeyBinding {
             use crate::codegen::Bindings::import::*;
             use crate::cryptokey::CryptoKey;
@@ -56,6 +59,7 @@ pub(crate) mod codegen {
                 "/ConcreteBindings/CryptoKeyBinding.rs"
             ));
         }
+        #[cfg(feature = "subtlecrypto")]
         pub(crate) mod SubtleCryptoBinding {
             use crate::codegen::Bindings::import::*;
             use crate::subtlecrypto::SubtleCrypto;

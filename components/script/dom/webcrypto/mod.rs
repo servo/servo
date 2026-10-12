@@ -2,22 +2,28 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#[cfg(feature = "subtlecrypto")]
 use script_webcrypto::traits::WebCryptoGlobalTrait;
 
+#[cfg(feature = "subtlecrypto")]
 use crate::dom::GlobalScope;
+#[cfg(feature = "subtlecrypto")]
 use crate::tasks::task::TaskOnce;
 
 pub(crate) mod crypto {
     pub(crate) type Crypto = script_webcrypto::crypto::Crypto<crate::DomTypeHolder>;
 }
+#[cfg(feature = "subtlecrypto")]
 pub(crate) mod cryptokey {
     pub(crate) type CryptoKey = script_webcrypto::cryptokey::CryptoKey<crate::DomTypeHolder>;
 }
+#[cfg(feature = "subtlecrypto")]
 pub(crate) mod subtlecrypto {
     pub(crate) type SubtleCrypto =
         script_webcrypto::subtlecrypto::SubtleCrypto<crate::DomTypeHolder>;
 }
 
+#[cfg(feature = "subtlecrypto")]
 impl WebCryptoGlobalTrait<crate::DomTypeHolder> for GlobalScope {
     fn queue_crypto_task_source(&self, task: impl TaskOnce + 'static) {
         self.task_manager().crypto_task_source().queue(task);

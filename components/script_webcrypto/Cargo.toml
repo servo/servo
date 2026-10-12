@@ -14,59 +14,107 @@ description.workspace = true
 name = "script_webcrypto"
 path = "lib.rs"
 
+[features]
+subtlecrypto = [
+    "dep:aes",
+    "dep:aes-gcm",
+    "dep:aes-kw",
+    "dep:argon2",
+    "dep:aws-lc-rs",
+    "dep:base64ct",
+    "dep:cbc",
+    "dep:chacha20poly1305",
+    "dep:crypto-bigint",
+    "dep:cshake",
+    "dep:ctr",
+    "dep:ctutils",
+    "dep:ecdsa",
+    "dep:ed25519-dalek",
+    "dep:ed448-goldilocks",
+    "dep:elliptic-curve",
+    "dep:hkdf",
+    "dep:itertools",
+    "dep:k12",
+    "dep:keccak",
+    "dep:ml-dsa",
+    "dep:ml-kem",
+    "dep:ocb3",
+    "dep:p256",
+    "dep:p384",
+    "dep:p521",
+    "dep:pbkdf2",
+    "dep:pkcs8",
+    "dep:rsa",
+    "dep:rustc-hash",
+    "dep:serde_core",
+    "dep:servo-base",
+    "dep:servo-constellation-traits",
+    "dep:sha1",
+    "dep:sha2",
+    "dep:sha3",
+    "dep:sponge-cursor",
+    "dep:strum",
+    "dep:x-wing",
+    "dep:x25519-dalek",
+    "dep:x448",
+    "dep:zeroize",
+    "script_bindings/subtlecrypto",
+    "servo-constellation-traits/subtlecrypto",
+]
+
 [lints]
 workspace = true
 
 [dependencies]
-aes = { workspace = true }
-aes-gcm = { workspace = true }
-aes-kw = { workspace = true }
-argon2 = { workspace = true }
-aws-lc-rs = { workspace = true }
-base64ct = { workspace = true }
-cbc = { workspace = true }
-chacha20poly1305 = { workspace = true }
-crypto-bigint = { workspace = true }
-cshake = { workspace = true }
-ctr = { workspace = true }
-ctutils = { workspace = true }
+aes = { workspace = true, optional = true }
+aes-gcm = { workspace = true, optional = true }
+aes-kw = { workspace = true, optional = true }
+argon2 = { workspace = true, optional = true }
+aws-lc-rs = { workspace = true, optional = true }
+base64ct = { workspace = true, optional = true }
+cbc = { workspace = true, optional = true }
+chacha20poly1305 = { workspace = true, optional = true }
+crypto-bigint = { workspace = true, optional = true }
+cshake = { workspace = true, optional = true }
+ctr = { workspace = true, optional = true }
+ctutils = { workspace = true, optional = true }
 deny_public_fields = { workspace = true }
 dom_struct = { workspace = true }
-ecdsa = { workspace = true }
-ed25519-dalek = { workspace = true }
-ed448-goldilocks = { workspace = true }
-elliptic-curve = { workspace = true }
-hkdf = { workspace = true }
-itertools = { workspace = true }
+ecdsa = { workspace = true, optional = true }
+ed25519-dalek = { workspace = true, optional = true }
+ed448-goldilocks = { workspace = true, optional = true }
+elliptic-curve = { workspace = true, optional = true }
+hkdf = { workspace = true, optional = true }
+itertools = { workspace = true, optional = true }
 js = { workspace = true }
 jstraceable_derive = { workspace = true }
-k12 = { workspace = true }
-keccak = { workspace = true }
+k12 = { workspace = true, optional = true }
+keccak = { workspace = true, optional = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
-ml-dsa = { workspace = true }
-ml-kem = { workspace = true }
-ocb3 = { workspace = true }
-p256 = { workspace = true }
-p384 = { workspace = true }
-p521 = { workspace = true }
-pbkdf2 = { workspace = true }
-pkcs8 = { workspace = true }
+ml-dsa = { workspace = true, optional = true }
+ml-kem = { workspace = true, optional = true }
+ocb3 = { workspace = true, optional = true }
+p256 = { workspace = true, optional = true }
+p384 = { workspace = true, optional = true }
+p521 = { workspace = true, optional = true }
+pbkdf2 = { workspace = true, optional = true }
+pkcs8 = { workspace = true, optional = true }
 rand = { workspace = true }
-rsa = { workspace = true }
-rustc-hash = { workspace = true }
-script_bindings = { workspace = true, features = ["webcrypto"] }
-serde_core = { workspace = true }
-servo-base = { workspace = true }
-servo-constellation-traits = { workspace = true }
-sha1 = { workspace = true }
-sha2 = { workspace = true }
-sha3 = { workspace = true }
-sponge-cursor = { workspace = true }
-strum = { workspace = true }
+rsa = { workspace = true, optional = true }
+rustc-hash = { workspace = true, optional = true }
+script_bindings = { workspace = true }
+serde_core = { workspace = true, optional = true }
+servo-base = { workspace = true, optional = true }
+servo-constellation-traits = { workspace = true, optional = true }
+sha1 = { workspace = true, optional = true }
+sha2 = { workspace = true, optional = true }
+sha3 = { workspace = true, optional = true }
+sponge-cursor = { workspace = true, optional = true }
+strum = { workspace = true, optional = true }
 trait-set = { workspace = true }
 uuid = { workspace = true }
-x-wing = { workspace = true }
-x25519-dalek = { workspace = true }
-x448 = { workspace = true }
-zeroize = { workspace = true }
+x-wing = { workspace = true, optional = true }
+x25519-dalek = { workspace = true, optional = true }
+x448 = { workspace = true, optional = true }
+zeroize = { workspace = true, optional = true }

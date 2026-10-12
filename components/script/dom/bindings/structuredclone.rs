@@ -47,7 +47,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::serializable::StorageKey;
 use crate::dom::bindings::transferable::Transferable;
 use crate::dom::blob::Blob;
-#[cfg(feature = "webcrypto")]
+#[cfg(feature = "subtlecrypto")]
 use crate::dom::cryptokey::CryptoKey;
 use crate::dom::dompoint::DOMPoint;
 use crate::dom::dompointreadonly::DOMPointReadOnly;
@@ -94,7 +94,7 @@ pub(super) enum StructuredCloneTags {
     DomMatrix = 0xFFFF8012,
     DomMatrixReadOnly = 0xFFFF8013,
     ImageData = 0xFFFF8014,
-    #[cfg(feature = "webcrypto")]
+    #[cfg(feature = "subtlecrypto")]
     CryptoKey = 0xFFFF8015,
     Max = 0xFFFFFFFF,
 }
@@ -116,7 +116,7 @@ impl From<SerializableInterface> for StructuredCloneTags {
             SerializableInterface::ImageBitmap => StructuredCloneTags::ImageBitmap,
             SerializableInterface::QuotaExceededError => StructuredCloneTags::QuotaExceededError,
             SerializableInterface::ImageData => StructuredCloneTags::ImageData,
-            #[cfg(feature = "webcrypto")]
+            #[cfg(feature = "subtlecrypto")]
             SerializableInterface::CryptoKey => StructuredCloneTags::CryptoKey,
         }
     }
@@ -158,7 +158,7 @@ fn reader_for_type(
         SerializableInterface::ImageBitmap => read_object::<ImageBitmap>,
         SerializableInterface::QuotaExceededError => read_object::<QuotaExceededError>,
         SerializableInterface::ImageData => read_object::<ImageData>,
-        #[cfg(feature = "webcrypto")]
+        #[cfg(feature = "subtlecrypto")]
         SerializableInterface::CryptoKey => read_object::<CryptoKey>,
     }
 }
@@ -318,7 +318,7 @@ fn serialize_for_type(val: SerializableInterface) -> SerializeOperation {
         SerializableInterface::ImageBitmap => try_serialize::<ImageBitmap>,
         SerializableInterface::QuotaExceededError => try_serialize::<QuotaExceededError>,
         SerializableInterface::ImageData => try_serialize::<ImageData>,
-        #[cfg(feature = "webcrypto")]
+        #[cfg(feature = "subtlecrypto")]
         SerializableInterface::CryptoKey => try_serialize::<CryptoKey>,
     }
 }

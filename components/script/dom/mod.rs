@@ -353,9 +353,7 @@ pub(crate) mod webgpu;
 pub(crate) use self::webgpu::*;
 #[cfg(not(feature = "webgpu"))]
 pub(crate) mod gpucanvascontext;
-#[cfg(feature = "webcrypto")]
 pub(crate) mod webcrypto;
-#[cfg(feature = "webcrypto")]
 pub(crate) use self::webcrypto::*;
 pub(crate) mod webrtc;
 pub(crate) use self::webrtc::*;
