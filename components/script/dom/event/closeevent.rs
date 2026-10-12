@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
@@ -23,7 +24,7 @@ pub(crate) struct CloseEvent {
     event: Event,
     was_clean: bool,
     code: u16,
-    reason: DOMString,
+    reason: TracedDOMString,
 }
 
 #[expect(non_snake_case)]
@@ -33,7 +34,7 @@ impl CloseEvent {
             event: Event::new_inherited(),
             was_clean,
             code,
-            reason,
+            reason: reason.traced(),
         }
     }
 
@@ -111,7 +112,7 @@ impl CloseEventMethods<crate::DomTypeHolder> for CloseEvent {
 
     /// <https://websockets.spec.whatwg.org/#dom-closeevent-reason>
     fn Reason(&self) -> DOMString {
-        self.reason.clone()
+        self.reason.clone().root()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>

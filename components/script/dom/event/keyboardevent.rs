@@ -10,6 +10,7 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use keyboard_types::{Code, Key, Modifiers, NamedKey};
 use script_bindings::cell::DomRefCell;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use style::Atom;
 
@@ -27,10 +28,10 @@ use crate::dom::window::Window;
 #[dom_struct]
 pub(crate) struct KeyboardEvent {
     uievent: UIEvent,
-    key: DomRefCell<DOMString>,
+    key: DomRefCell<TracedDOMString>,
     #[no_trace]
     typed_key: DomRefCell<Key>,
-    code: DomRefCell<DOMString>,
+    code: DomRefCell<TracedDOMString>,
     #[no_trace]
     original_code: DomRefCell<Option<Code>>,
     location: Cell<u32>,
@@ -130,7 +131,7 @@ impl KeyboardEvent {
             repeat,
         );
         *event.typed_key.safe_borrow_mut(cx.no_gc()) = key;
-        *event.code.safe_borrow_mut(cx.no_gc()) = code;
+        *event.code.safe_borrow_mut(cx.no_gc()) = code.traced();
         *event.original_code.safe_borrow_mut(cx.no_gc()) = original_code;
         event.modifiers.set(modifiers);
         event.is_composing.set(is_composing);
@@ -171,7 +172,7 @@ impl KeyboardEvent {
             view_arg,
             0,
         );
-        *self.key.borrow_mut() = key_arg;
+        *self.key.borrow_mut() = key_arg.traced();
         self.location.set(location_arg);
         self.repeat.set(repeat);
     }
@@ -210,7 +211,7 @@ impl KeyboardEventMethods<crate::DomTypeHolder> for KeyboardEvent {
             init.charCode,
             init.keyCode,
         );
-        *event.key.safe_borrow_mut(cx.no_gc()) = init.key.clone();
+        *event.key.safe_borrow_mut(cx.no_gc()) = init.key.clone().traced();
         Ok(event)
     }
 
@@ -240,12 +241,12 @@ impl KeyboardEventMethods<crate::DomTypeHolder> for KeyboardEvent {
 
     /// <https://w3c.github.io/uievents/#dom-keyboardevent-initkeyboardevent>
     fn Key(&self) -> DOMString {
-        self.key.borrow().clone()
+        self.key.borrow().clone().root()
     }
 
     /// <https://w3c.github.io/uievents/#dom-keyboardevent-code>
     fn Code(&self) -> DOMString {
-        self.code.borrow().clone()
+        self.code.borrow().clone().root()
     }
 
     /// <https://w3c.github.io/uievents/#dom-keyboardevent-location>

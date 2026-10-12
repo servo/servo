@@ -6,6 +6,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::UIEventBinding::UIEventMethods;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::inheritance::Castable;
 use script_bindings::reflector::reflect_dom_object;
 use script_bindings::str::DOMString;
@@ -20,14 +21,14 @@ use crate::dom::window::Window;
 /// <https://w3c.github.io/uievents/#textevent>
 pub(crate) struct TextEvent {
     uievent: UIEvent,
-    data: DomRefCell<DOMString>,
+    data: DomRefCell<TracedDOMString>,
 }
 
 impl TextEvent {
     pub(crate) fn new_inherited() -> TextEvent {
         TextEvent {
             uievent: UIEvent::new_inherited(),
-            data: DomRefCell::new(DOMString::new()),
+            data: DomRefCell::new(DOMString::new().traced()),
         }
     }
 
@@ -60,11 +61,11 @@ impl TextEventMethods<crate::DomTypeHolder> for TextEvent {
             .init_event(type_.into(), bubbles, cancelable, view, 0);
 
         // 6. Set this.data = data
-        *self.data.borrow_mut() = data;
+        *self.data.borrow_mut() = data.traced();
     }
 
     fn Data(&self) -> DOMString {
-        self.data.borrow().clone()
+        self.data.borrow().clone().root()
     }
 
     fn IsTrusted(&self) -> bool {
