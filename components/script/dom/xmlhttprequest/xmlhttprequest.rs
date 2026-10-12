@@ -423,8 +423,7 @@ impl XMLHttpRequestMethods<crate::DomTypeHolder> for XMLHttpRequest {
                 // Step 9. If async is false, the current global object is a Window object, and
                 // either this’s timeout is not 0 or this’s response type is not the empty string,
                 // then throw an "InvalidAccessError" DOMException.
-                if !asynch {
-                    // FIXME: This should only happen if the global environment is a document environment
+                if !asynch && self.global().is::<Window>() {
                     if !self.timeout.get().is_zero() {
                         return Err(Error::InvalidAccess(Some(
                             "Nonzero timeout for synchronous request".into(),
