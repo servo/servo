@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/servo/servo/issues/48812">
+<body>
+    <div id="div">
+        <video id="video" controls="">
+            <script>
+                var track = video.addTextTrack("subtitles", "subtitle");
+                track.mode = "showing";
+                div.remove();
+            </script>
+        </video>
+    </div>
+</body>
