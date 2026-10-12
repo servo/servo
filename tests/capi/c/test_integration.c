@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#ifdef _WIN32
+#define _CRT_SECURE_NO_WARNINGS
+#endif
 #define _POSIX_C_SOURCE 200809L // required by `nanosleep` in `<time.h>`
 #include "servo/servo_capi.h"
 #include <stdatomic.h>
