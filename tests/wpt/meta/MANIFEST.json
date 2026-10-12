@@ -319015,6 +319015,19 @@
         {}
        ]
       ],
+      "hanging-whitespace-005.html": [
+       "6a211d291c3b20676208f224495fed1708073ba0",
+       [
+        null,
+        [
+         [
+          "/css/reference/ref-filled-green-100px-square.xht",
+          "=="
+         ]
+        ],
+        {}
+       ]
+      ],
       "line-edge-white-space-collapse-001.html": [
        "3c5e7052a26647ea2f96a3539e3884cc4189d444",
        [
