@@ -64,12 +64,13 @@ pub struct EncodedImage {
     pub bytes: EncodedImageBytes,
 }
 
-/// The encoded source retained for a static raster image.
+/// The encoded image source for future decodes
 #[derive(MallocSizeOf)]
 pub enum EncodedImageBytes {
     /// Net's completed response body shared through in-process delivery.
     NetResponseBody(#[conditional_malloc_size_of] servo_arc::Arc<parking_lot::Mutex<ResponseBody>>),
     /// Chunk-assembled bytes retained when no shared body is supplied, including over IPC.
+    /// This forces both net and image cache to retain their allocations for the encoded image
     ImageBufferFallback(#[conditional_malloc_size_of] Arc<Vec<u8>>),
 }
 
@@ -84,7 +85,8 @@ impl std::fmt::Debug for EncodedImage {
 }
 
 impl EncodedImage {
-    /// Obtain original pixels for consumers such as canvas. Do not use for layout.
+    /// Decode at original resolution for consumers such as canvas.
+    /// Should not be called from layout directly as it would bypass demand driven decode and block.
     pub fn decode_to_original_size(&self) -> Option<Arc<RasterImage>> {
         self.with_bytes(|bytes| pixels::load_from_memory(bytes, self.cors_status))
             .map(|mut image| {
@@ -93,6 +95,7 @@ impl EncodedImage {
             })
     }
 
+    /// Decode path for single frame (static) images with known layout target dimentions
     pub fn decode_with_target(&self, target: ImageMetadata) -> Option<RasterImage> {
         self.with_bytes(|bytes| {
             pixels::load_from_memory_with_target(bytes, self.cors_status, Some(target))
