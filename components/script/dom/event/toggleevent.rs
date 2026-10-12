@@ -6,6 +6,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::inheritance::Castable;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
@@ -26,9 +27,9 @@ use crate::dom::types::Window;
 pub(crate) struct ToggleEvent {
     event: Event,
     /// <https://html.spec.whatwg.org/multipage/#dom-toggleevent-oldstate>
-    old_state: DOMString,
+    old_state: TracedDOMString,
     /// <https://html.spec.whatwg.org/multipage/#dom-toggleevent-newstate>
-    new_state: DOMString,
+    new_state: TracedDOMString,
     /// <https://html.spec.whatwg.org/multipage/#dom-toggleevent-source>
     source: Option<Dom<Element>>,
 }
@@ -41,8 +42,8 @@ impl ToggleEvent {
     ) -> ToggleEvent {
         ToggleEvent {
             event: Event::new_inherited(),
-            old_state,
-            new_state,
+            old_state: old_state.traced(),
+            new_state: new_state.traced(),
             source: source.map(Dom::from_ref),
         }
     }
@@ -117,12 +118,12 @@ impl ToggleEventMethods<crate::DomTypeHolder> for ToggleEvent {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-toggleevent-oldstate>
     fn OldState(&self) -> DOMString {
-        self.old_state.clone()
+        self.old_state.clone().root()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-toggleevent-newstate>
     fn NewState(&self) -> DOMString {
-        self.new_state.clone()
+        self.new_state.clone().root()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-toggleevent-source>

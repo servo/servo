@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
@@ -25,7 +26,7 @@ pub(crate) struct AnimationEvent {
     #[no_trace]
     animation_name: Atom,
     elapsed_time: Finite<f32>,
-    pseudo_element: DOMString,
+    pseudo_element: TracedDOMString,
 }
 
 impl AnimationEvent {
@@ -34,7 +35,7 @@ impl AnimationEvent {
             event: Event::new_inherited(),
             animation_name: Atom::from(init.animationName.clone()),
             elapsed_time: init.elapsedTime,
-            pseudo_element: init.pseudoElement.clone(),
+            pseudo_element: init.pseudoElement.clone().traced(),
         }
     }
 
@@ -92,7 +93,7 @@ impl AnimationEventMethods<crate::DomTypeHolder> for AnimationEvent {
 
     /// <https://drafts.csswg.org/css-animations/#interface-animationevent-attributes>
     fn PseudoElement(&self) -> DOMString {
-        self.pseudo_element.clone()
+        self.pseudo_element.clone().root()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
