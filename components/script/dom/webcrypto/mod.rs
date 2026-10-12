@@ -5,5 +5,7 @@
 pub(crate) mod crypto {
     pub(crate) type Crypto = script_webcrypto::crypto::Crypto<crate::DomTypeHolder>;
 }
+#[cfg(feature = "subtlecrypto")]
 pub(crate) mod cryptokey;
+#[cfg(feature = "subtlecrypto")]
 pub(crate) mod subtlecrypto;

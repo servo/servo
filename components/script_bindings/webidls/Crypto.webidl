@@ -7,15 +7,15 @@
  *
  */
 
-// skip-unless CARGO_FEATURE_WEBCRYPTO
-
 partial interface mixin WindowOrWorkerGlobalScope {
   [SameObject] readonly attribute Crypto crypto;
 };
 
 [Exposed=(Window,Worker)]
 interface Crypto {
+  // skip-unless CARGO_FEATURE_SUBTLECRYPTO begin
   [SecureContext, Pref="dom_crypto_subtle_enabled"] readonly attribute SubtleCrypto subtle;
+  // skip-unless CARGO_FEATURE_SUBTLECRYPTO end
   [Throws] ArrayBufferView getRandomValues(ArrayBufferView array);
   [SecureContext] DOMString randomUUID();
 };

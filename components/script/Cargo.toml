@@ -34,10 +34,11 @@ profilemozjs = ['js/profilemozjs']
 testbinding = ["script_bindings/testbinding"]
 tracing = ["dep:tracing", "script_bindings/tracing"]
 
-# Enable webcrypto
-webcrypto = [
-    "dep:script_webcrypto",
-    "script_bindings/webcrypto",
+# Enable SubtleCrypto
+subtlecrypto = [
+    "script_webcrypto/subtlecrypto",
+    "script_bindings/subtlecrypto",
+    "servo-constellation-traits/subtlecrypto",
     "dep:aes",
     "dep:aes-gcm",
     "dep:aes-kw",
@@ -182,7 +183,7 @@ resvg = { workspace = true }
 rsa = { workspace = true, optional = true }
 rustc-hash = { workspace = true }
 script_bindings = { workspace = true }
-script_webcrypto = { workspace = true, optional = true }
+script_webcrypto = { workspace = true }
 script_webgpu = { workspace = true, optional = true }
 script_traits = { workspace = true }
 selectors = { workspace = true }
