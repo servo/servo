@@ -2442,7 +2442,7 @@ impl VirtualMethods for HTMLInputElement {
         }
         let elem = copy.downcast::<HTMLInputElement>().unwrap();
         elem.value_dirty.set(self.value_dirty.get());
-        elem.checkedness.set(self.Checked());
+        elem.update_checkedness(cx, self.Checked(), false);
         elem.checked_changed.set(self.checked_changed.get());
         // The spec does not mention cloning the indeterminate state, but other browsers
         // do it and there are WPT tests expecting cloned nodes to preserve this attribute.
