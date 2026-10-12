@@ -10,6 +10,7 @@ use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
 use crossbeam_channel::{Receiver, Sender, after};
+#[cfg(feature = "devtools")]
 use devtools_traits::DevtoolScriptControlMsg;
 use dom_struct::dom_struct;
 use fonts::FontContext;
@@ -48,6 +49,7 @@ use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::client::Client;
 use crate::dom::csp::Violation;
+#[cfg(feature = "devtools")]
 use crate::dom::debugger::debuggerglobalscope::DebuggerGlobalScope;
 use crate::dom::dedicatedworkerglobalscope::AutoWorkerReset;
 use crate::dom::event::Event;
@@ -58,7 +60,9 @@ use crate::dom::globalscope::GlobalScope;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worker::TrustedWorkerAddress;
-use crate::dom::workerglobalscope::WorkerGlobalScope;
+use crate::dom::workerglobalscope::{
+    WorkerDebuggerGlobalScope, WorkerDevtoolsControlMsg, WorkerGlobalScope,
+};
 use crate::fetch::fetch::{CspViolationsProcessor, load_whole_resource};
 use crate::messaging::{CommonScriptMsg, ScriptEventLoopSender};
 use crate::realms::enter_auto_realm;
@@ -150,6 +154,7 @@ pub(crate) enum ServiceWorkerControlMsg {
 
 pub(crate) enum MixedMessage {
     ServiceWorker(ServiceWorkerScriptMsg),
+    #[cfg(feature = "devtools")]
     Devtools(DevtoolScriptControlMsg),
     Control(ServiceWorkerControlMsg),
     Timer,
@@ -221,6 +226,7 @@ impl WorkerEventLoopMethods for ServiceWorkerGlobalScope {
         MixedMessage::ServiceWorker(msg)
     }
 
+    #[cfg(feature = "devtools")]
     fn from_devtools_msg(msg: DevtoolScriptControlMsg) -> MixedMessage {
         MixedMessage::Devtools(msg)
     }
@@ -239,7 +245,7 @@ impl ServiceWorkerGlobalScope {
     fn new_inherited(
         init: WorkerGlobalScopeInit,
         worker_url: ServoUrl,
-        from_devtools_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
+        from_devtools_receiver: Option<RoutedReceiver<WorkerDevtoolsControlMsg>>,
         runtime: Runtime,
         own_sender: Sender<ServiceWorkerScriptMsg>,
         receiver: Receiver<ServiceWorkerScriptMsg>,
@@ -281,7 +287,7 @@ impl ServiceWorkerGlobalScope {
     pub(crate) fn new(
         init: WorkerGlobalScopeInit,
         worker_url: ServoUrl,
-        from_devtools_receiver: RoutedReceiver<DevtoolScriptControlMsg>,
+        from_devtools_receiver: Option<RoutedReceiver<WorkerDevtoolsControlMsg>>,
         runtime: Runtime,
         own_sender: Sender<ServiceWorkerScriptMsg>,
         receiver: Receiver<ServiceWorkerScriptMsg>,
@@ -291,7 +297,7 @@ impl ServiceWorkerGlobalScope {
         control_receiver: Receiver<ServiceWorkerControlMsg>,
         closing: Arc<AtomicBool>,
         font_context: Arc<FontContext>,
-        debugger_global: &DebuggerGlobalScope,
+        debugger_global: Option<&WorkerDebuggerGlobalScope>,
         worker_id: ServiceWorkerId,
         cx: &mut JSContext,
     ) -> DomRoot<ServiceWorkerGlobalScope> {
@@ -315,6 +321,7 @@ impl ServiceWorkerGlobalScope {
             &scope.origin(),
             scope,
         );
+        #[cfg(feature = "devtools")]
         scope
             .upcast::<WorkerGlobalScope>()
             .init_debugger_global(debugger_global, cx);
@@ -329,7 +336,7 @@ impl ServiceWorkerGlobalScope {
         scope_things: ScopeThings,
         own_sender: Sender<ServiceWorkerScriptMsg>,
         receiver: Receiver<ServiceWorkerScriptMsg>,
-        devtools_receiver: GenericReceiver<DevtoolScriptControlMsg>,
+        devtools_receiver: Option<GenericReceiver<WorkerDevtoolsControlMsg>>,
         swmanager_sender: GenericSender<ServiceWorkerMsg>,
         scope_url: ServoUrl,
         control_receiver: Receiver<ServiceWorkerControlMsg>,
@@ -366,6 +373,7 @@ impl ServiceWorkerGlobalScope {
                     pipeline_id,
                 } = worker_load_origin;
 
+                #[cfg(feature = "devtools")]
                 let debugger_global = DebuggerGlobalScope::new(
                     pipeline_id,
                     init.to_devtools_sender.clone(),
@@ -382,6 +390,7 @@ impl ServiceWorkerGlobalScope {
                     Arc::new(IdentityHub::default()),
                     cx,
                 );
+                #[cfg(feature = "devtools")]
                 debugger_global.execute(cx);
 
                 // Service workers are time limited
@@ -389,9 +398,18 @@ impl ServiceWorkerGlobalScope {
                 let sw_lifetime_timeout = pref!(dom_serviceworker_timeout_seconds) as u64;
                 let time_out_port = after(Duration::new(sw_lifetime_timeout, 0));
 
-                let devtools_mpsc_port = devtools_receiver.route_preserving_errors();
+                #[cfg(feature = "devtools")]
+                let devtools_mpsc_port =
+                    devtools_receiver.map(|receiver| receiver.route_preserving_errors());
+                #[cfg(not(feature = "devtools"))]
+                let devtools_mpsc_port = None;
+                #[cfg(feature = "devtools")]
+                let debugger_global_for_scope = Some(&*debugger_global);
+                #[cfg(not(feature = "devtools"))]
+                let debugger_global_for_scope: Option<&WorkerDebuggerGlobalScope> = None;
 
                 let resource_threads_sender = init.resource_threads.sender();
+                #[cfg(feature = "devtools")]
                 let devtools_enabled = init.to_devtools_sender.is_some();
                 let global = ServiceWorkerGlobalScope::new(
                     init,
@@ -406,7 +424,7 @@ impl ServiceWorkerGlobalScope {
                     control_receiver,
                     closing,
                     font_context,
-                    &debugger_global,
+                    debugger_global_for_scope,
                     worker_id,
                     cx,
                 );
@@ -414,6 +432,7 @@ impl ServiceWorkerGlobalScope {
                 let worker_scope = global.upcast::<WorkerGlobalScope>();
                 let global_scope = global.upcast::<GlobalScope>();
 
+                #[cfg(feature = "devtools")]
                 if devtools_enabled {
                     debugger_global.fire_add_debuggee(
                         cx,
@@ -511,6 +530,7 @@ impl ServiceWorkerGlobalScope {
 
     fn handle_mixed_message(&self, msg: MixedMessage, cx: &mut JSContext) -> bool {
         match msg {
+            #[cfg(feature = "devtools")]
             MixedMessage::Devtools(msg) => self
                 .upcast::<WorkerGlobalScope>()
                 .handle_devtools_message(msg, cx),

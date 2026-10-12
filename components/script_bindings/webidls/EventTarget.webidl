@@ -5,7 +5,11 @@
  * https://dom.spec.whatwg.org/#interface-eventtarget
  */
 
-[Exposed=(Window,Worker,Worklet,DissimilarOriginWindow,DebuggerGlobalScope)]
+[Exposed=(Window,Worker,Worklet,DissimilarOriginWindow
+// skip-unless CARGO_FEATURE_DEVTOOLS begin
+,DebuggerGlobalScope
+// skip-unless CARGO_FEATURE_DEVTOOLS end
+)]
 interface EventTarget {
   [Throws] constructor();
   undefined addEventListener(
