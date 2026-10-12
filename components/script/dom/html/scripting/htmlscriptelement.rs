@@ -552,7 +552,7 @@ impl HTMLScriptElement {
                 self.Text(),
                 "HTMLScriptElement text",
             )?;
-            *self.script_text.borrow_mut() = result.traced();
+            *self.script_text.safe_borrow_mut(cx.no_gc()) = result.traced();
         }
 
         Ok(())
@@ -1065,7 +1065,7 @@ impl HTMLScriptElement {
             // el has no type attribute but it has a language attribute and that attribute's value
             // is the empty string; or el has neither a type attribute nor a language attribute,
             // then let the script block's type string for this script element be "text/javascript".
-            (Some(ty), _) if ty.is_empty() => Some(ScriptType::Classic),
+            (Some(type_attribute), _) if type_attribute.is_empty() => Some(ScriptType::Classic),
             (None, Some(lang)) if lang.is_empty() => Some(ScriptType::Classic),
             (None, None) => Some(ScriptType::Classic),
             // Otherwise, el has a non-empty language attribute; let the script block's type string
@@ -1337,7 +1337,7 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
             input,
             "HTMLScriptElement innerText",
         )?;
-        *self.script_text.borrow_mut() = value.clone().traced();
+        *self.script_text.safe_borrow_mut(cx.no_gc()) = value.clone().traced();
         // Step 3: Run set the inner text steps with this and value.
         self.upcast::<HTMLElement>().set_inner_text(cx, value);
         Ok(())
@@ -1359,7 +1359,7 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
             "HTMLScriptElement text",
         )?;
         // Step 2: Set this's script text value to the given value.
-        *self.script_text.borrow_mut() = value.clone().traced();
+        *self.script_text.safe_borrow_mut(cx.no_gc()) = value.clone().traced();
         // Step 3: String replace all with the given value within this.
         Node::string_replace_all(cx, value, self.upcast::<Node>());
         Ok(())
@@ -1388,7 +1388,7 @@ impl HTMLScriptElementMethods<crate::DomTypeHolder> for HTMLScriptElement {
             "HTMLScriptElement textContent",
         )?;
         // Step 2: Set this's script text value to value.
-        *self.script_text.borrow_mut() = value.clone().traced();
+        *self.script_text.safe_borrow_mut(cx.no_gc()) = value.clone().traced();
         // Step 3: Run set text content with this and value.
         self.upcast::<Node>()
             .set_text_content_for_element(cx, Some(value));
