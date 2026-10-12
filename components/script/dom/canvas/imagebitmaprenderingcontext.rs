@@ -91,7 +91,7 @@ impl ImageBitmapRenderingContext {
             pixels::SnapshotPixelFormat::RGBA => ImageFormat::RGBA8,
             pixels::SnapshotPixelFormat::BGRA => ImageFormat::BGRA8,
         };
-        let shared = snapshot.to_shared();
+        let shared = snapshot.into_shared();
         let descriptor = ImageDescriptor {
             format,
             size: DeviceIntSize::new(size.width as i32, size.height as i32),

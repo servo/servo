@@ -645,7 +645,7 @@ impl CanvasState {
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
 
         self.send_canvas_command(CanvasCommand::DrawImage(
-            snapshot.to_shared(),
+            snapshot.into_shared(),
             dest_rect,
             source_rect,
             smoothing_enabled,
@@ -694,7 +694,7 @@ impl CanvasState {
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
 
         self.send_canvas_command(CanvasCommand::DrawImage(
-            snapshot.to_shared(),
+            snapshot.into_shared(),
             dest_rect,
             source_rect,
             smoothing_enabled,
@@ -760,7 +760,7 @@ impl CanvasState {
                     };
 
                     self.send_canvas_command(CanvasCommand::DrawImage(
-                        snapshot.to_shared(),
+                        snapshot.into_shared(),
                         dest_rect,
                         source_rect,
                         smoothing_enabled,
@@ -776,7 +776,7 @@ impl CanvasState {
                     };
 
                     self.send_canvas_command(CanvasCommand::DrawImage(
-                        snapshot.to_shared(),
+                        snapshot.into_shared(),
                         dest_rect,
                         source_rect,
                         smoothing_enabled,
@@ -792,7 +792,7 @@ impl CanvasState {
                     };
 
                     self.send_canvas_command(CanvasCommand::DrawImage(
-                        snapshot.to_shared(),
+                        snapshot.into_shared(),
                         dest_rect,
                         source_rect,
                         smoothing_enabled,
@@ -872,7 +872,7 @@ impl CanvasState {
                     };
 
                     self.send_canvas_command(CanvasCommand::DrawImage(
-                        snapshot.to_shared(),
+                        snapshot.into_shared(),
                         dest_rect,
                         source_rect,
                         smoothing_enabled,
@@ -904,7 +904,7 @@ impl CanvasState {
                             };
 
                             self.send_canvas_command(CanvasCommand::DrawImage(
-                                snapshot.to_shared(),
+                                snapshot.into_shared(),
                                 dest_rect,
                                 source_rect,
                                 smoothing_enabled,
@@ -920,7 +920,7 @@ impl CanvasState {
                             };
 
                             self.send_canvas_command(CanvasCommand::DrawImage(
-                                snapshot.to_shared(),
+                                snapshot.into_shared(),
                                 dest_rect,
                                 source_rect,
                                 smoothing_enabled,
@@ -937,7 +937,7 @@ impl CanvasState {
                             };
 
                             self.send_canvas_command(CanvasCommand::DrawImage(
-                                snapshot.to_shared(),
+                                snapshot.into_shared(),
                                 dest_rect,
                                 source_rect,
                                 smoothing_enabled,
@@ -1004,7 +1004,7 @@ impl CanvasState {
 
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
         self.send_canvas_command(CanvasCommand::DrawImage(
-            snapshot.to_shared(),
+            snapshot.into_shared(),
             dest_rect,
             source_rect,
             smoothing_enabled,
@@ -1053,7 +1053,7 @@ impl CanvasState {
         let smoothing_enabled = self.state.borrow().image_smoothing_enabled;
 
         self.send_canvas_command(CanvasCommand::DrawImage(
-            snapshot.to_shared(),
+            snapshot.into_shared(),
             dest_rect,
             source_rect,
             smoothing_enabled,
@@ -2035,7 +2035,7 @@ impl CanvasState {
         // Flushing is not required for correctness, but optimization heuristics for heavy command.
         self.send_canvas_command_immediate(CanvasCommand::PutImageData(
             dst_rect,
-            snapshot.to_shared(),
+            snapshot.into_shared(),
         ));
     }
 
