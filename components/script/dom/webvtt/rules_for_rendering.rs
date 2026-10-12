@@ -75,7 +75,8 @@ impl RulesForUpdatingTheTextTrackRendering {
                             .rules_for_updating_the_text_track_rendering()
                             .is_some_and(
                                 |rules| rules == RulesForUpdatingTheTextTrackRendering::WebVTT
-                            )
+                            ) ||
+                        text_track.cues(cx.no_gc()).is_empty()
                 );
                 is_showing
             })

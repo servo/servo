@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<link rel="help" href="https://github.com/servo/servo/issues/48812">
+<body>
+    <div id="div">
+        <video id="video" controls="">
+            <script>
+                // Add a video track.
+                var track = video.addTextTrack("subtitles", "subtitle");
+                track.mode = "showing";
+                // Trigger a DOM mutation and rebuild the box tree.
+                div.remove();
+            </script>
+        </video>
+    </div>
+</body>
