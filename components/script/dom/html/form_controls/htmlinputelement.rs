@@ -51,9 +51,7 @@ use crate::dom::event::Event;
 use crate::dom::event::event::{EventBubbles, EventCancelable, EventComposed};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::filelist::FileList;
-use crate::dom::html::form_controls::input_type::radio_input_type::{
-    broadcast_radio_checked, perform_radio_group_validation,
-};
+use crate::dom::html::form_controls::input_type::radio_input_type::perform_radio_group_validation;
 use crate::dom::html::form_controls::input_type::{
     InputActivationType, InputType, ValueChangeEvents,
 };
@@ -119,6 +117,10 @@ pub(crate) struct HTMLInputElement {
     /// <https://html.spec.whatwg.org/multipage/#concept-input-checked-dirty-flag>
     checked_changed: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#concept-input-indeterminate>
+    /// The indeterminateness of an input is independent of its indeterminate element state.
+    /// Every input type can be indeterminate, but this adds the :indeterminate pseudo class only to
+    /// checkboxes. At the same time, radio boxes are matched by :indeterminate when no button in the
+    /// groupo is checked, which is fully independent of the interminateness of the input element.
     indeterminateness: Cell<bool>,
     #[no_trace]
     text_input: DomRefCell<TextInput<EmbedderClipboardProvider>>,
@@ -1817,11 +1819,12 @@ impl HTMLInputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#selector-indeterminate>
     pub(crate) fn update_indeterminate_state(&self) {
+        // > The :indeterminate pseudo-class must match any element falling into one of the following categories:
+        // > - input elements whose type attribute is in the Checkbox state and whose indeterminateness is true
+        // > - input elements whose type attribute is in the Radio Button state and whose radio button
+        // >   group contains no input elements whose checkedness state is true.
         let should_indeterminate_state_apply = match *self.input_type() {
-            // input elements whose type attribute is in the Checkbox state and whose indeterminateness is true
             InputType::Checkbox(_) => self.Indeterminate(),
-            // input elements whose type attribute is in the Radio Button state and whose radio button
-            // group contains no input elements whose checkedness state is true.
             InputType::Radio(_) => {
                 let group = self.radio_group_name();
                 let form = self.form_owner();
