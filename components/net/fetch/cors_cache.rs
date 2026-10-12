@@ -107,13 +107,8 @@ impl CorsCache {
 
     /// Remove old entries
     pub fn cleanup(&mut self) {
-        let CorsCache(buf) = self.clone();
         let now = Instant::now();
-        let new_buf: Vec<CorsCacheEntry> = buf
-            .into_iter()
-            .filter(|e| now < e.created + e.max_age)
-            .collect();
-        *self = CorsCache(new_buf);
+        self.0.retain(|entry| now < entry.created + entry.max_age);
     }
 
     /// Returns true if an entry with a
