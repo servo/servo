@@ -50,7 +50,7 @@ fn test_basic_accessibility_update() {
 
     servo_test.spin(|| webview.load_status() != LoadStatus::Complete);
 
-    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 2);
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 3);
     let tree = build_tree(updates);
     let _ = assert_tree_structure_and_get_root_web_area(&tree);
 }
@@ -69,7 +69,7 @@ fn test_activate_accessibility_after_layout() {
 
     webview.set_accessibility_active(true);
 
-    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 2);
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 3);
     let tree = build_tree(updates);
     let _ = assert_tree_structure_and_get_root_web_area(&tree);
 }
@@ -90,9 +90,8 @@ fn test_navigate_creates_new_accessibility_update() {
 
     servo_test.spin(|| webview.load_status() != LoadStatus::Complete);
 
-    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 2);
+    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 3);
     let mut tree = build_tree(updates);
-
     let root_web_area = assert_tree_structure_and_get_root_web_area(&tree);
 
     let result = find_first_matching_node(root_web_area, |node| {
@@ -105,10 +104,7 @@ fn test_navigate_creates_new_accessibility_update() {
     webview.load(page_2_url.clone());
     servo_test.spin(|| webview.url() != Some(page_2_url.clone()));
 
-    let new_updates = wait_for_min_updates(&servo_test, delegate.clone(), 2);
-    for tree_update in new_updates {
-        tree.update_and_process_changes(tree_update, &mut NoOpChangeHandler);
-    }
+    update_tree_after_min_updates(&servo_test, &delegate, &mut tree, 2);
 
     let root_node = tree.state().root();
     let result =
@@ -125,23 +121,8 @@ fn test_navigate_creates_new_accessibility_update() {
 // a11y tree building, this test will break.
 #[test]
 fn test_accessibility_after_navigate_and_back() {
-    let servo_test = build_test();
-
-    let page_1_url = Url::parse("data:text/html,<!DOCTYPE html> page 1").unwrap();
-    let page_2_url = Url::parse("data:text/html,<!DOCTYPE html> page 2").unwrap();
-
-    let delegate = Rc::new(WebViewDelegateImpl::default());
-    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
-        .delegate(delegate.clone())
-        .url(page_1_url.clone())
-        .build();
-    webview.set_accessibility_active(true);
-
-    servo_test.spin(|| webview.load_status() != LoadStatus::Complete);
-
-    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 2);
-    let mut tree = build_tree(updates);
-
+    let url_1 = "data:text/html,<!DOCTYPE html> page 1";
+    let (servo_test, delegate, webview, mut tree) = build_webview_and_tree(url_1);
     let root_web_area = assert_tree_structure_and_get_root_web_area(&tree);
 
     let result = find_all_matching_nodes(root_web_area, |node| {
@@ -152,13 +133,11 @@ fn test_accessibility_after_navigate_and_back() {
 
     assert_eq!(text_node.value().as_deref(), Some("page 1"));
 
-    webview.load(page_2_url.clone());
-    servo_test.spin(|| webview.url() != Some(page_2_url.clone()));
+    let url_2 = Url::parse("data:text/html,<!DOCTYPE html> page 2").unwrap();
+    webview.load(url_2.clone());
+    servo_test.spin(|| webview.url() != Some(url_2.clone()));
 
-    let new_updates = wait_for_min_updates(&servo_test, delegate.clone(), 2);
-    for tree_update in new_updates {
-        tree.update_and_process_changes(tree_update, &mut NoOpChangeHandler);
-    }
+    update_tree_after_min_updates(&servo_test, &delegate, &mut tree, 3);
 
     let root_node = tree.state().root();
     let result = find_all_matching_nodes(root_node, |node| node.role() == accesskit::Role::TextRun);
@@ -168,12 +147,9 @@ fn test_accessibility_after_navigate_and_back() {
     assert_eq!(text_node.value().as_deref(), Some("page 2"));
 
     webview.go_back(1);
-    servo_test.spin(|| webview.url() != Some(page_1_url.clone()));
+    servo_test.spin(|| webview.url() != Some(Url::parse(url_1).unwrap()));
 
-    let new_updates = wait_for_min_updates(&servo_test, delegate.clone(), 2);
-    for tree_update in new_updates {
-        tree.update_and_process_changes(tree_update, &mut NoOpChangeHandler);
-    }
+    update_tree_after_min_updates(&servo_test, &delegate, &mut tree, 3);
 
     let root_node = tree.state().root();
     let result = find_all_matching_nodes(root_node, |node| node.role() == accesskit::Role::TextRun);
@@ -210,8 +186,8 @@ fn test_accessibility_basic_mapping() {
     }
 
     let (_servo_test, _delegate, _webview, tree) = build_webview_and_tree(url.as_str());
-
     let root = assert_tree_structure_and_get_root_web_area(&tree);
+
     assert_eq!(root.children().len(), element_role_pairs.len());
     for child in root.children() {
         let Some((tag, role)) = element_role_pairs.pop_front() else {
@@ -299,9 +275,7 @@ fn test_accessibility_basic_mutation() {
         "document.getElementById('h2').remove();",
     );
 
-    let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
-    assert_eq!(updates.len(), 1);
-    let update = updates.pop().expect("Guaranteed by assert above");
+    let update = expect_single_update(&servo_test, delegate);
     // The `<html>` element is also re-sent, because removing the `<h2>` made the document shorter
     // and therefore changed its bounds.
     assert_eq!(update.nodes.len(), 2);
@@ -346,9 +320,7 @@ fn test_accessibility_with_mutation_move_nodes() {
         "div1.moveBefore(h1,null); div2.appendChild(h2);",
     );
 
-    let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
-    assert_eq!(updates.len(), 1);
-    let update = updates.pop().expect("Guaranteed by assert above");
+    let update = expect_single_update(&servo_test, delegate);
     assert_eq!(update.nodes.len(), 3);
     assert_eq!(update.nodes[0].1.role(), Role::GenericContainer);
     assert_eq!(update.nodes[0].1.children().len(), 1);
@@ -390,9 +362,7 @@ fn test_accessibility_text_change() {
         webview.clone(),
         "h1.firstChild.appendData(', now with more text');",
     );
-    let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
-    assert_eq!(updates.len(), 1);
-    let update = updates.pop().expect("Guaranteed by assert above");
+    let update = expect_single_update(&servo_test, delegate);
     // Appending text always re-sends the two nodes whose contents changed
     let _ = find_node_with_role(&update, Role::TextRun);
     let heading = find_node_with_role(&update, Role::Heading);
@@ -449,9 +419,7 @@ fn test_accessibility_role_mutations() {
         ",
     );
 
-    let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
-    assert_eq!(updates.len(), 1);
-    let update = updates.pop().expect("Guaranteed by assert above");
+    let update = expect_single_update(&servo_test, delegate);
     assert_eq!(update.nodes.len(), 3);
     assert_eq!(
         update.nodes[0].1.role(),
@@ -513,11 +481,8 @@ fn test_accessibility_partial_subtree_move_and_delete() {
          p.remove();\
          header.remove();",
     );
-    let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
-    assert_eq!(updates.len(), 1);
-    let update = updates.pop().expect("Guaranteed by assert above");
-    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
-    let root = assert_tree_structure_and_get_root_web_area(&tree);
+
+    let root = apply_single_update(&servo_test, delegate, &mut tree);
     let children: Vec<accesskit_consumer::Node> = root.children().collect();
     assert_eq!(children.len(), 1);
     let article = children[0];
@@ -560,12 +525,7 @@ fn test_accessibility_children_of_heading_change() {
         "document.querySelector('code').remove();",
     );
 
-    let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
-    assert_eq!(updates.len(), 1);
-    let update = updates.pop().expect("Guaranteed by assert above");
-    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
-
-    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let root = apply_single_update(&servo_test, delegate, &mut tree);
     let heading = find_first_matching_node(root, |node| node.role() == Role::Heading)
         .expect("Heading should still be in the tree");
     assert_eq!(
@@ -604,12 +564,7 @@ fn test_accessibility_descendants_of_heading_change() {
         "document.querySelector('strong').remove();",
     );
 
-    let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
-    assert_eq!(updates.len(), 1);
-    let update = updates.pop().expect("Guaranteed by assert above");
-    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
-
-    let root = assert_tree_structure_and_get_root_web_area(&tree);
+    let root = apply_single_update(&servo_test, delegate, &mut tree);
     let heading = find_first_matching_node(root, |node| node.role() == Role::Heading)
         .expect("Heading should still be in the tree");
     assert_eq!(
@@ -661,9 +616,7 @@ fn test_accessibility_webview_bounds_updated_after_hidpi_change() {
 
     webview.set_hidpi_scale_factor(Scale::new(2.0));
 
-    for update in wait_for_min_updates(&servo_test, delegate, 1) {
-        tree.update_and_process_changes(update, &mut NoOpChangeHandler);
-    }
+    update_tree_after_min_updates(&servo_test, &delegate, &mut tree, 1);
 
     let scroll_view =
         find_first_matching_node(tree.state().root(), |node| node.role() == Role::ScrollView)
@@ -788,20 +741,14 @@ fn test_accessibility_bounds_updated_after_relayout() {
          box.style.left = '30px'; box.style.width = '200px';",
     );
 
-    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    let update = expect_single_update(&servo_test, delegate);
+    assert_eq!(update.nodes.len(), 1);
+    let (updated_node_id, updated_node) = &update.nodes[0];
+    assert_eq!(*updated_node_id, div_id);
     let expected = Rect::new(30.0, 20.0, 230.0, 70.0);
-    let updated_bounds = updates
-        .iter()
-        .flat_map(|update| update.nodes.iter())
-        .filter(|(id, _)| *id == div_id)
-        .filter_map(|(_, node)| node.bounds())
-        .next_back()
-        .expect("The div should have been re-sent with new bounds");
-    assert_rect_eq(updated_bounds, expected);
+    assert_rect_eq(updated_node.bounds().expect("div have bounds"), expected);
 
-    for update in updates {
-        tree.update_and_process_changes(update, &mut NoOpChangeHandler);
-    }
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
     let root = assert_tree_structure_and_get_root_web_area(&tree);
     let div = root.children().next().expect("Should have a div child");
     assert_rect_eq(div.raw_bounds().expect("div should have bounds"), expected);
@@ -829,11 +776,7 @@ fn test_accessibility_bounds_updated_after_renderer_scroll() {
         Scroll::Delta(WebViewVector::Device(DeviceVector2D::new(20.0, 40.0))),
         WebViewPoint::Device(DevicePoint::new(250.0, 250.0)),
     );
-
-    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
-    for update in updates {
-        tree.update_and_process_changes(update, &mut NoOpChangeHandler);
-    }
+    update_tree_after_min_updates(&servo_test, &delegate, &mut tree, 1);
     let root = assert_tree_structure_and_get_root_web_area(&tree);
     let main = find_first_matching_node(root, |node| node.role() == Role::Main)
         .expect("Document should contain a main element");
@@ -863,12 +806,7 @@ fn test_accessibility_bounds_updated_after_script_scroll() {
     // Scrolling the viewport down and to the right shifts every viewport-relative bound up and to
     // the left by the same amount, mirroring `..._after_renderer_scroll` but driven from script.
     let _ = evaluate_javascript(&servo_test, webview.clone(), "window.scrollTo(20, 40);");
-
-    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
-
-    for update in updates {
-        tree.update_and_process_changes(update, &mut NoOpChangeHandler);
-    }
+    update_tree_after_min_updates(&servo_test, &delegate, &mut tree, 1);
     let root = assert_tree_structure_and_get_root_web_area(&tree);
     let main = find_first_matching_node(root, |node| node.role() == Role::Main)
         .expect("Document should contain a main element");
@@ -947,12 +885,8 @@ fn test_accessibility_unchanged_bounds_are_not_resent() {
         "document.getElementById('a').style.width = '50px';",
     );
 
-    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
-    let resent_ids: Vec<NodeId> = updates
-        .iter()
-        .flat_map(|update| update.nodes.iter())
-        .map(|(id, _)| *id)
-        .collect();
+    let update = expect_single_update(&servo_test, delegate.clone());
+    let resent_ids: Vec<NodeId> = update.nodes.iter().map(|(id, _)| *id).collect();
     assert!(
         !resent_ids.contains(&node_b_id),
         "A node whose bounds did not change should not be re-serialized, but got {resent_ids:?}"
@@ -964,7 +898,7 @@ fn test_accessibility_bounds_are_computed_for_inline_elements() {
     let url = "data:text/html,<!DOCTYPE html>\
                <h1>We really <em>really <strong>really</strong></em> like owls</h1>";
 
-    let (_, _, _, tree) = build_webview_and_tree(url);
+    let (_servo_test, _delegate, _webview, tree) = build_webview_and_tree(url);
     let root = assert_tree_structure_and_get_root_web_area(&tree);
 
     let heading = find_first_matching_node(root, |node| node.role() == Role::Heading)
@@ -1028,14 +962,13 @@ fn test_accessibility_update_failed_layout_from_layout_root() {
          a.style.width = '50px';",
     );
 
-    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    let update = expect_single_update(&servo_test, delegate.clone());
 
     // This test really passes if:
     // a) there's no hang because the accessibility tree never updates, and
     // b) the integrity checks in the accessibility tree pass,
     // but let's check the new bounds anyway.
 
-    let update = &updates[0];
     assert_eq!(update.nodes.len(), 2);
 
     let node_a = find_node_matching(&update, |&id, _node| id == node_a_id);
@@ -1073,8 +1006,7 @@ fn test_accessibility_bounds_changed_by_sibling() {
 
     let _ = evaluate_javascript(&servo_test, webview.clone(), "main.style.height = '200px';");
 
-    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
-    let update = &updates[0];
+    let update = expect_single_update(&servo_test, delegate.clone());
 
     let main = find_node_matching(&update, |&id, _node| id == main_id);
     let main_bounds = main.bounds().expect("main should have bounds after update");
@@ -1130,8 +1062,7 @@ fn test_accessibility_layout_root_node_also_changed() {
          c.style.width = '20px';";
     let _ = evaluate_javascript(&servo_test, webview.clone(), js);
 
-    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
-    let update = updates[0].clone();
+    let update = expect_single_update(&servo_test, delegate);
 
     // Should be node a (new role), node c (bounds updated).
     assert_eq!(update.nodes.len(), 2);
@@ -1171,9 +1102,7 @@ fn test_accessibility_display_none_change() {
         "document.querySelector('section').removeAttribute('class');",
     );
 
-    let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
-    assert_eq!(updates.len(), 1);
-    let update = updates.pop().expect("Guaranteed by assert above");
+    let update = expect_single_update(&servo_test, delegate.clone());
     tree.update_and_process_changes(update, &mut NoOpChangeHandler);
 
     let root = assert_tree_structure_and_get_root_web_area(&tree);
@@ -1194,9 +1123,7 @@ fn test_accessibility_display_none_change() {
          document.querySelector('em').firstChild.appendData(', really');",
     );
 
-    let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
-    assert_eq!(updates.len(), 1);
-    let update = updates.pop().expect("Guaranteed by assert above");
+    let update = expect_single_update(&servo_test, delegate.clone());
     tree.update_and_process_changes(update, &mut NoOpChangeHandler);
 
     let root = assert_tree_structure_and_get_root_web_area(&tree);
@@ -1216,7 +1143,7 @@ fn test_accessibility_display_none_change() {
         "document.querySelector('section').removeAttribute('class');",
     );
 
-    let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    let mut updates = wait_for_min_updates(&servo_test, delegate, 1);
     assert_eq!(updates.len(), 1);
     let update = updates.pop().expect("Guaranteed by assert above");
     tree.update_and_process_changes(update, &mut NoOpChangeHandler);
@@ -1284,8 +1211,7 @@ fn test_accessibility_display_none_change_scroll() {
         "aside.style.display = 'none';",
     );
 
-    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
-    let update = updates[0].clone();
+    let update = expect_single_update(&servo_test, delegate.clone());
     assert_eq!(update.nodes.len(), 1, "only <aside> should be updated");
     let _ = find_node_matching(&update, |id, _node| id == &aside_id);
 
@@ -1298,9 +1224,7 @@ fn test_accessibility_display_none_change_scroll() {
 
     let _ = evaluate_javascript(&servo_test, webview.clone(), "main.scrollTo(0, 500);");
 
-    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
-    assert_eq!(updates.len(), 1);
-    let update = updates[0].clone();
+    let update = expect_single_update(&servo_test, delegate.clone());
     assert_eq!(
         update.nodes.len(),
         2,
@@ -1326,9 +1250,7 @@ fn test_accessibility_display_none_change_scroll() {
         "aside.style.removeProperty('display');",
     );
 
-    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
-    assert_eq!(updates.len(), 1);
-    let update = updates[0].clone();
+    let update = expect_single_update(&servo_test, delegate);
     assert_eq!(update.nodes.len(), 1, "only <aside> should be updated");
     let aside_data = find_node_matching(&update, |id, _node| id == &aside_id);
     assert_eq!(aside_data.transform(), Some(&transform));
@@ -1370,11 +1292,7 @@ fn test_accessibility_click_link() {
         .forward_accessibility_action(action_request);
 
     // Graft node, new pipeline, focus graft node.
-    let updates = wait_for_min_updates(&servo_test, delegate.clone(), 3);
-    assert_eq!(updates.len(), 3);
-    for update in updates {
-        tree.update_and_process_changes(update, &mut NoOpChangeHandler);
-    }
+    update_tree_after_min_updates(&servo_test, &delegate, &mut tree, 3);
     let root = assert_tree_structure_and_get_root_web_area(&tree);
     let children: Vec<accesskit_consumer::Node> = root.children().collect();
     let text = children[0];
@@ -1575,6 +1493,22 @@ fn wait_for_min_updates(
         .collect()
 }
 
+fn expect_single_update(servo_test: &ServoTest, delegate: Rc<WebViewDelegateImpl>) -> TreeUpdate {
+    let mut updates = wait_for_min_updates(&servo_test, delegate.clone(), 1);
+    assert_eq!(updates.len(), 1);
+    updates.pop().expect("Guaranteed by assert above")
+}
+
+fn apply_single_update<'tree>(
+    servo_test: &ServoTest,
+    delegate: Rc<WebViewDelegateImpl>,
+    tree: &'tree mut accesskit_consumer::Tree,
+) -> accesskit_consumer::Node<'tree> {
+    let update = expect_single_update(servo_test, delegate);
+    tree.update_and_process_changes(update, &mut NoOpChangeHandler);
+    assert_tree_structure_and_get_root_web_area(tree)
+}
+
 fn build_tree(tree_updates: Vec<TreeUpdate>) -> accesskit_consumer::Tree {
     let first_update = tree_updates[0].clone();
     let tree_id = first_update.tree_id;
@@ -1642,6 +1576,18 @@ fn assert_tree_structure_and_get_root_web_area<'tree>(
 
     find_first_matching_node(graft_node, |node| node.role() == Role::RootWebArea)
         .expect("Should have a RootWebArea")
+}
+
+fn update_tree_after_min_updates(
+    servo_test: &ServoTest,
+    delegate: &Rc<WebViewDelegateImpl>,
+    tree: &mut accesskit_consumer::Tree,
+    min_updates: usize,
+) {
+    let new_updates = wait_for_min_updates(&servo_test, delegate.clone(), min_updates);
+    for tree_update in new_updates {
+        tree.update_and_process_changes(tree_update, &mut NoOpChangeHandler);
+    }
 }
 
 fn find_first_matching_node(
