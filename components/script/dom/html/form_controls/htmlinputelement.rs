@@ -2472,8 +2472,9 @@ impl FormControl for HTMLInputElement {
         self.form_owner.get()
     }
 
-    fn set_form_owner(&self, _cx: &mut JSContext, form: Option<&HTMLFormElement>) {
+    fn set_form_owner(&self, cx: &mut JSContext, form: Option<&HTMLFormElement>) {
         self.form_owner.set(form);
+        self.input_type().as_specific().form_owner_changed(cx, self);
     }
 
     fn to_html_element(&self) -> &HTMLElement {
