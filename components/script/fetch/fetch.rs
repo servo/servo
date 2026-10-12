@@ -22,8 +22,8 @@ use net_traits::request::{
     RequestBuilder, RequestId, RequestMode, ServiceWorkersMode,
 };
 use net_traits::{
-    CoreResourceMsg, CoreResourceThread, FetchChannels, FetchMetadata, FetchResponseMsg,
-    FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming, ExposedMetadata, fetch_async,
+    CoreResourceMsg, CoreResourceThread, ExposedMetadata, FetchChannels, FetchMetadata,
+    FetchResponseMsg, FilteredMetadata, Metadata, NetworkError, ResourceFetchTiming, fetch_async,
 };
 use pixels::CorsStatus;
 use rustc_hash::FxHashMap;

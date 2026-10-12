@@ -42,7 +42,6 @@ fn assert_parse(
             let header_content_type = response.headers.typed_get::<ContentType>();
             assert_eq!(header_content_type, content_type);
 
-            response.metadata().unwrap().metadata().clone()
             match response.metadata() {
                 Ok(FetchMetadata::Filtered {
                     filtered: FilteredMetadata::Basic(m),
