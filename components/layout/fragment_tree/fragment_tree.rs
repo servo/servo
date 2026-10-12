@@ -11,7 +11,7 @@ use paint_api::display_list::AxesScrollSensitivity;
 use servo_base::print_tree::PrintTree;
 use style::computed_values::position::T as Position;
 
-use super::{BoxFragment, ContainingBlockManager, Fragment};
+use super::{BoxFragment, Fragment};
 use crate::fragment_tree::FragmentFlags;
 use crate::geom::PhysicalRect;
 
@@ -129,14 +129,9 @@ impl FragmentTree {
         &self,
         mut process_func: impl FnMut(&Fragment, usize, &PhysicalRect<Au>) -> Option<T>,
     ) -> Option<T> {
-        let info = ContainingBlockManager {
-            for_non_absolute_descendants: &self.initial_containing_block,
-            for_absolute_descendants: None,
-            for_absolute_and_fixed_descendants: &self.initial_containing_block,
-        };
         self.root_fragments
             .iter()
-            .find_map(|child| child.find(&info, 0, &mut process_func))
+            .find_map(|child| child.find(&self.initial_containing_block, 0, &mut process_func))
     }
 
     /// Find the `<body>` element's [`Fragment`], if it exists in this [`FragmentTree`].

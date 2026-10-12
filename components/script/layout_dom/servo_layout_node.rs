@@ -140,6 +140,17 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
             .map(|parent_element| parent_element.upcast().into())
     }
 
+    unsafe fn dangerous_flat_tree_parent_considering_pseudos(self) -> Option<Self> {
+        if let Some(pseudo_element_chain) = self.pseudo_element_chain.without_innermost() {
+            Some(ServoLayoutNode {
+                pseudo_element_chain,
+                node: self.node,
+            })
+        } else {
+            unsafe { self.dangerous_flat_tree_parent() }
+        }
+    }
+
     fn is_connected(&self) -> bool {
         unsafe { self.node.get_flag(NodeFlags::IS_CONNECTED) }
     }
@@ -176,12 +187,7 @@ impl<'dom> LayoutNode<'dom> for ServoLayoutNode<'dom> {
     }
 
     fn parent_style(&self, context: &SharedStyleContext) -> Arc<ComputedValues> {
-        if let Some(chain) = self.pseudo_element_chain.without_innermost() {
-            let mut parent = *self;
-            parent.pseudo_element_chain = chain;
-            return parent.style(context);
-        }
-        unsafe { self.dangerous_flat_tree_parent() }
+        unsafe { self.dangerous_flat_tree_parent_considering_pseudos() }
             .unwrap()
             .style(context)
     }

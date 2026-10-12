@@ -15,8 +15,8 @@ use embedder_traits::UntrustedNodeAddress;
 use euclid::{Point2D, Rect, Size2D};
 use layout_api::{
     AxesOverflow, BoxAreaType, CSSPixelRectVec, DangerousStyleElementOf, LayoutElement,
-    LayoutElementType, LayoutNode, LayoutNodeType, OffsetParentResponse, PhysicalSides,
-    ScrollContainerQueryFlags, ScrollContainerResponse,
+    LayoutElementType, LayoutNode, LayoutNodeType, OffsetParentResponse, ScrollContainerQueryFlags,
+    ScrollContainerResponse,
 };
 use paint_api::display_list::ScrollTree;
 use script::layout_dom::ServoLayoutNode;
@@ -24,6 +24,7 @@ use servo_arc::Arc as ServoArc;
 use servo_base::text::Utf32CodeUnits;
 use servo_geometry::{FastLayoutTransform, au_rect_to_f32_rect, f32_rect_to_au_rect};
 use servo_url::ServoUrl;
+use style::Zero;
 use style::computed_values::display::T as Display;
 use style::computed_values::position::T as Position;
 use style::computed_values::visibility::T as Visibility;
@@ -56,6 +57,7 @@ use crate::flow::inline::text_transform::TextTransformationIterator;
 use crate::fragment_tree::{
     BoxFragment, Fragment, FragmentFlags, FragmentTree, SpecificLayoutInfo,
 };
+use crate::geom::{AuOrAuto, LengthPercentageOrAuto, PhysicalRect, PhysicalSides};
 use crate::layout_impl::LayoutThread;
 use crate::style_ext::ComputedValuesExt;
 use crate::taffy::SpecificTaffyGridInfo;
@@ -72,21 +74,13 @@ fn root_transform_for_fragments(
     Some(scroll_tree.cumulative_node_to_root_transform(scroll_tree_node_id))
 }
 
-pub(crate) fn process_padding_request(node: ServoLayoutNode<'_>) -> Option<PhysicalSides> {
+pub(crate) fn process_padding_request(node: ServoLayoutNode<'_>) -> Option<PhysicalSides<Au>> {
     let fragments = node.fragments_for_pseudo(None);
     let fragment = fragments.first()?;
     Some(
         fragment
             .retrieve_box_fragment()
-            .map(|box_fragment| {
-                let padding = box_fragment.padding;
-                PhysicalSides {
-                    top: padding.top,
-                    left: padding.left,
-                    bottom: padding.bottom,
-                    right: padding.right,
-                }
-            })
+            .map(|box_fragment| box_fragment.padding)
             .unwrap_or_default(),
     )
 }
@@ -220,8 +214,8 @@ pub fn process_node_scroll_area_request(
 /// Return the resolved value of property for a given (pseudo)element.
 /// <https://drafts.csswg.org/cssom/#resolved-value>
 pub fn process_resolved_style_request(
-    layout_thread: &LayoutThread,
     context: &SharedStyleContext,
+    initial_containing_block: Option<&PhysicalRect<Au>>,
     node: ServoLayoutNode<'_>,
     pseudo: &Option<PseudoElement>,
     property: &PropertyId,
@@ -250,6 +244,7 @@ pub fn process_resolved_style_request(
         },
         None => layout_element,
     };
+    let node = layout_element.as_node();
 
     let style = &*layout_element.style(context);
     let longhand_id = match *property {
@@ -344,30 +339,33 @@ pub fn process_resolved_style_request(
 
     let resolve_for_fragment = |fragment: &Fragment| {
         if let Some(box_fragment) = fragment.retrieve_box_fragment() &&
-            style.get_box().position != Position::Static
+            let Some(initial_containing_block) = initial_containing_block &&
+            matches!(
+                longhand_id,
+                LonghandId::Top | LonghandId::Right | LonghandId::Bottom | LonghandId::Left,
+            ) &&
+            let Some(insets) = box_fragment.resolved_insets_for_non_static(
+                node,
+                style,
+                initial_containing_block,
+            )
         {
-            let resolved_insets =
-                || box_fragment.calculate_resolved_insets_if_positioned(layout_thread.into());
             match longhand_id {
-                LonghandId::Top => return resolved_insets().top.to_css_string(),
-                LonghandId::Right => {
-                    return resolved_insets().right.to_css_string();
-                },
-                LonghandId::Bottom => {
-                    return resolved_insets().bottom.to_css_string();
-                },
-                LonghandId::Left => {
-                    return resolved_insets().left.to_css_string();
-                },
-                LonghandId::Transform => {
-                    // If we can compute the string do it, but otherwise fallback to a cruder serialization
-                    // of the value.
-                    if let Ok(string) = serialize_transform_value(Some(&box_fragment)) {
-                        return string;
-                    }
-                },
-                _ => {},
+                LonghandId::Top => return insets.top.to_css_string(),
+                LonghandId::Right => return insets.right.to_css_string(),
+                LonghandId::Bottom => return insets.bottom.to_css_string(),
+                LonghandId::Left => return insets.left.to_css_string(),
+                _ => unreachable!("Should be impossible by matches! above"),
             }
+        }
+
+        // If we can compute the string do it, but otherwise fallback to a cruder
+        // serialization of the value.
+        if let Some(box_fragment) = fragment.retrieve_box_fragment() &&
+            longhand_id == LonghandId::Transform &&
+            let Ok(string) = serialize_transform_value(Some(&box_fragment))
+        {
+            return string;
         }
 
         if !matches!(
@@ -732,17 +730,21 @@ pub fn process_offset_parent_query(
     // See <https://github.com/w3c/csswg-drafts/issues/10549>.
     let parent_offset_rect = if parent_is_static_body_element {
         if let Some(grandparent_fragment) = offset_parent_fragment.grandparent_box_fragment() {
-            grandparent_fragment.offset_by_containing_block(
+            grandparent_fragment.offset_by_cumulative_content_offset(
                 &grandparent_fragment.border_rect(),
                 layout_thread.into(),
             )
         } else {
-            parent_fragment
-                .offset_by_containing_block(&parent_fragment.padding_rect(), layout_thread.into())
+            parent_fragment.offset_by_cumulative_content_offset(
+                &parent_fragment.padding_rect(),
+                layout_thread.into(),
+            )
         }
     } else {
-        parent_fragment
-            .offset_by_containing_block(&parent_fragment.padding_rect(), layout_thread.into())
+        parent_fragment.offset_by_cumulative_content_offset(
+            &parent_fragment.padding_rect(),
+            layout_thread.into(),
+        )
     }
     .translate(
         cumulative_sticky_offsets
@@ -764,16 +766,6 @@ pub fn process_offset_parent_query(
     })
 }
 
-fn style_and_flags_for_node(
-    node: &ServoLayoutNode,
-) -> Option<(ServoArc<ComputedValues>, FragmentFlags)> {
-    let layout_data = node.inner_layout_data()?;
-    let layout_box = layout_data.self_box.borrow();
-    let layout_box = layout_box.as_ref()?;
-
-    layout_box.with_base(|base| (base.style.clone(), base.base_fragment_info.flags))
-}
-
 fn is_containing_block_for_position(
     position: Position,
     ancestor_style: &ServoArc<ComputedValues>,
@@ -793,27 +785,56 @@ fn is_containing_block_for_position(
 }
 
 fn containing_block_for_node<'a>(node: ServoLayoutNode<'a>) -> Option<ServoLayoutNode<'a>> {
-    let (style, _flags) = style_and_flags_for_node(&node)?;
-
-    let mut current_position_value = style.get_box().position;
+    let node_style = node.with_layout_box_base(|base| base.style.clone())?;
+    let position = node_style.get_box().position;
     let mut current_ancestor = node;
 
     #[expect(unsafe_code)]
-    while let Some(ancestor) = unsafe { current_ancestor.dangerous_flat_tree_parent() } {
+    while let Some(ancestor) =
+        unsafe { current_ancestor.dangerous_flat_tree_parent_considering_pseudos() }
+    {
         current_ancestor = ancestor;
 
-        let Some((ancestor_style, ancestor_flags)) = style_and_flags_for_node(&ancestor) else {
+        let Some((ancestor_style, ancestor_flags)) = ancestor
+            .with_layout_box_base(|base| (base.style.clone(), base.base_fragment_info.flags))
+        else {
             continue;
         };
 
-        if is_containing_block_for_position(current_position_value, &ancestor_style, ancestor_flags)
-        {
+        if is_containing_block_for_position(position, &ancestor_style, ancestor_flags) {
             return Some(ancestor);
         }
-
-        current_position_value = ancestor_style.get_box().position;
     }
     None
+}
+
+fn containing_block_fragment(
+    node: ServoLayoutNode,
+    fragment: &BoxFragment,
+) -> Option<Arc<BoxFragment>> {
+    let containing_block_node = containing_block_for_node(node)?;
+    containing_block_node.with_layout_box_base(|layout_box_base| {
+        let fragments = layout_box_base.fragments();
+
+        // When there is more than a single fragment the containing block has been fragmented,
+        // so we need to search for the fragment that contains the one we are looking for.
+        if fragments.len() > 1 {
+            for potential_fragment in fragments.iter() {
+                if let Some(potential_box_fragment) = potential_fragment.retrieve_box_fragment() &&
+                    potential_box_fragment
+                        .children
+                        .iter()
+                        .any(|child_fragment| child_fragment.is_box_fragment(fragment))
+                {
+                    return Some(potential_box_fragment.clone());
+                }
+            }
+        }
+
+        // Fall back to the first fragment which is necessary for the case of inline
+        // formatting contexts which establish containing blocks for their nested contents.
+        Some(fragments.first()?.retrieve_box_fragment()?.clone())
+    }).flatten()
 }
 
 /// An implementation of `scrollParent` that can also be used to for `scrollIntoView`:
@@ -831,7 +852,8 @@ pub(crate) fn process_scroll_container_query(
 
     // 1. If any of the following holds true, return null and terminate this algorithm:
     //  - The element does not have an associated box.
-    let (style, flags) = style_and_flags_for_node(&node)?;
+    let (style, flags) =
+        node.with_layout_box_base(|base| (base.style.clone(), base.base_fragment_info.flags))?;
 
     // - The element is the root element.
     // - The element is the body element.
@@ -881,7 +903,9 @@ pub(crate) fn process_scroll_container_query(
     while let Some(ancestor) = unsafe { current_ancestor.dangerous_flat_tree_parent() } {
         current_ancestor = ancestor;
 
-        let Some((ancestor_style, ancestor_flags)) = style_and_flags_for_node(&ancestor) else {
+        let Some((ancestor_style, ancestor_flags)) = ancestor
+            .with_layout_box_base(|base| (base.style.clone(), base.base_fragment_info.flags))
+        else {
             continue;
         };
 
@@ -1526,5 +1550,124 @@ pub(crate) fn process_effective_overflow_query(node: ServoLayoutNode<'_>) -> Opt
         box_fragment
             .style()
             .effective_overflow(box_fragment.base.flags),
+    )
+}
+
+impl BoxFragment {
+    fn resolved_insets_for_non_static(
+        &self,
+        node: ServoLayoutNode,
+        style: &ComputedValues,
+        initial_containing_block: &PhysicalRect<Au>,
+    ) -> Option<PhysicalSides<AuOrAuto>> {
+        match style.get_box().position {
+            Position::Static => None,
+            Position::Relative => {
+                self.resolved_insets_for_relative(node, style, initial_containing_block)
+            },
+            Position::Absolute | Position::Fixed => {
+                self.resolved_insets_for_absolute(node, style, initial_containing_block)
+            },
+            Position::Sticky => Some(**self.resolved_sticky_insets()?),
+        }
+    }
+
+    fn resolved_insets_for_relative(
+        &self,
+        node: ServoLayoutNode,
+        style: &ComputedValues,
+        initial_containing_block: &PhysicalRect<Au>,
+    ) -> Option<PhysicalSides<AuOrAuto>> {
+        let get_resolved_axis =
+            |start: &LengthPercentageOrAuto, end: &LengthPercentageOrAuto, container_length: Au| {
+                let start = start.map(|value| value.to_used_value(container_length));
+                let end = end.map(|value| value.to_used_value(container_length));
+                match (start.non_auto(), end.non_auto()) {
+                    (None, None) => (Au::zero(), Au::zero()),
+                    (None, Some(end)) => (-end, end),
+                    (Some(start), None) => (start, -start),
+                    // This is the overconstrained case, for which the resolved insets will
+                    // simply be the computed insets.
+                    (Some(start), Some(end)) => (start, end),
+                }
+            };
+
+        // From <https://drafts.csswg.org/cssom/#resolved-values>:
+        // "A resolved value special case property like top defined in another
+        // specification If the property applies to a positioned element and the
+        // resolved value of the display property is not none or contents, and
+        // the property is not over-constrained, then the resolved value is the
+        // used value. Otherwise the resolved value is the computed value."
+        let insets = style.physical_box_offsets();
+        let containing_block_rect_size = containing_block_fragment(node, self)
+            .map(|fragment| fragment.content_rect())
+            .unwrap_or(*initial_containing_block)
+            .size;
+        let (left, right) = get_resolved_axis(
+            &insets.left,
+            &insets.right,
+            containing_block_rect_size.width,
+        );
+        let (top, bottom) = get_resolved_axis(
+            &insets.top,
+            &insets.bottom,
+            containing_block_rect_size.height,
+        );
+        Some(au_or_auto_sides(PhysicalSides::new(
+            top, right, bottom, left,
+        )))
+    }
+
+    fn resolved_insets_for_absolute(
+        &self,
+        node: ServoLayoutNode,
+        style: &ComputedValues,
+        initial_containing_block: &PhysicalRect<Au>,
+    ) -> Option<PhysicalSides<AuOrAuto>> {
+        let insets = style.physical_box_offsets();
+        let containing_block_rect = containing_block_fragment(node, self)
+            .map(|fragment| fragment.containing_block_rect_for_absolute(style))
+            .unwrap_or(*initial_containing_block);
+
+        let margin_rect = self.margin_rect();
+        let (top, bottom) = match (&insets.top, &insets.bottom) {
+            (
+                LengthPercentageOrAuto::LengthPercentage(top),
+                LengthPercentageOrAuto::LengthPercentage(bottom),
+            ) => (
+                top.to_used_value(containing_block_rect.size.height),
+                bottom.to_used_value(containing_block_rect.size.height),
+            ),
+            _ => (
+                margin_rect.min_y() - containing_block_rect.min_y(),
+                containing_block_rect.max_y() - margin_rect.max_y(),
+            ),
+        };
+        let (left, right) = match (&insets.left, &insets.right) {
+            (
+                LengthPercentageOrAuto::LengthPercentage(left),
+                LengthPercentageOrAuto::LengthPercentage(right),
+            ) => (
+                left.to_used_value(containing_block_rect.size.width),
+                right.to_used_value(containing_block_rect.size.width),
+            ),
+            _ => (
+                margin_rect.min_x() - containing_block_rect.min_x(),
+                containing_block_rect.max_x() - margin_rect.max_x(),
+            ),
+        };
+
+        Some(au_or_auto_sides(PhysicalSides::new(
+            top, right, bottom, left,
+        )))
+    }
+}
+
+fn au_or_auto_sides(sides: PhysicalSides<Au>) -> PhysicalSides<AuOrAuto> {
+    PhysicalSides::new(
+        AuOrAuto::LengthPercentage(sides.top),
+        AuOrAuto::LengthPercentage(sides.right),
+        AuOrAuto::LengthPercentage(sides.bottom),
+        AuOrAuto::LengthPercentage(sides.left),
     )
 }

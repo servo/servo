@@ -58,8 +58,7 @@ pub(crate) struct BaseFragment {
     pub flags: FragmentFlags,
 
     /// The content rect of this fragment in the parent fragment's content rectangle. This
-    /// does not include padding, border, or margin -- it only includes content. This is
-    /// relative to the parent containing block.
+    /// does not include padding, border, or margin -- it only includes content.
     rect: SyncPhysicalRectAu,
 
     /// A [`FragmentStatus`] used to track fragment reuse when collecting reflow statistics.

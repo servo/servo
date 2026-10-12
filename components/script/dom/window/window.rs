@@ -3062,7 +3062,7 @@ impl Window {
     /// This is used for things like `ResizeObserver` which should observe the value
     /// from the most recent reflow, but do not need it to reflect the current state of
     /// the DOM / style.
-    pub(crate) fn padding_query_without_reflow(&self, node: &Node) -> Option<PhysicalSides> {
+    pub(crate) fn padding_query_without_reflow(&self, node: &Node) -> Option<PhysicalSides<Au>> {
         let layout = self.layout.borrow();
         layout.query_padding(node.to_trusted_node_address())
     }

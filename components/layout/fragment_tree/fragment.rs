@@ -23,17 +23,13 @@ use style::properties::ComputedValues;
 use style_traits::CSSPixel;
 use webrender_api::{FontInstanceKey, ImageKey};
 
-use super::{
-    BaseFragment, BoxFragment, ContainingBlockManager, HoistedSharedFragment, PositioningFragment,
-    Tag,
-};
+use super::{BaseFragment, BoxFragment, HoistedSharedFragment, PositioningFragment, Tag};
 use crate::SharedStyle;
 use crate::cell::{ArcRefCell, RefOrAtomicRef};
 use crate::flow::inline::text_run::SharedTextRunData;
 use crate::fragment_tree::FragmentStatus;
 use crate::geom::{LogicalSides, PhysicalPoint, PhysicalRect};
 use crate::layout_impl::LayoutThread;
-use crate::style_ext::ComputedValuesExt;
 
 #[derive(Clone, MallocSizeOf)]
 pub(crate) enum Fragment {
@@ -158,16 +154,16 @@ impl Fragment {
         })
     }
 
-    pub(crate) fn set_containing_block(&self, containing_block: &PhysicalRect<Au>) {
+    pub(crate) fn set_cumulative_content_rect(&self, content_rect: &PhysicalRect<Au>) {
         match self {
             Fragment::LayoutRoot(layout_root_fragment) => layout_root_fragment
                 .inner()
-                .set_containing_block(containing_block),
+                .set_cumulative_content_rect(content_rect),
             Fragment::Box(box_fragment) | Fragment::Float(box_fragment) => {
-                box_fragment.set_containing_block(containing_block)
+                box_fragment.set_cumulative_content_rect(content_rect)
             },
             Fragment::Positioning(positioning_fragment) => {
-                positioning_fragment.set_containing_block(containing_block)
+                positioning_fragment.set_cumulative_content_rect(content_rect)
             },
             Fragment::AbsoluteOrFixedPositionedPlaceholder(..) |
             Fragment::Text(..) |
@@ -203,7 +199,7 @@ impl Fragment {
         self.retrieve_box_fragment().map_or_else(
             || self.scrollable_overflow_for_parent(),
             |box_fragment| {
-                box_fragment.offset_by_containing_block(
+                box_fragment.offset_by_cumulative_content_offset(
                     &box_fragment.with_style().scrollable_overflow(),
                     layout_thread.into(),
                 )
@@ -282,29 +278,27 @@ impl Fragment {
     pub(crate) fn cumulative_box_area_rect(
         &self,
         area: BoxAreaType,
-        containing_block_computation: ContainingBlockCalculation<'_>,
+        cumulative_content_rect_calculation: CumulativeContentRectCalculation<'_>,
     ) -> Option<PhysicalRect<Au>> {
         match self {
             Fragment::LayoutRoot(layout_root_fragment) => layout_root_fragment
                 .inner()
-                .cumulative_box_area_rect(area, containing_block_computation),
+                .cumulative_box_area_rect(area, cumulative_content_rect_calculation),
             Fragment::Box(fragment) | Fragment::Float(fragment) => Some(match area {
                 BoxAreaType::Content => {
-                    fragment.cumulative_content_box_rect(containing_block_computation)
+                    fragment.cumulative_content_box_rect(cumulative_content_rect_calculation)
                 },
                 BoxAreaType::Padding => {
-                    fragment.cumulative_padding_box_rect(containing_block_computation)
+                    fragment.cumulative_padding_box_rect(cumulative_content_rect_calculation)
                 },
                 BoxAreaType::Border => {
-                    fragment.cumulative_border_box_rect(containing_block_computation)
+                    fragment.cumulative_border_box_rect(cumulative_content_rect_calculation)
                 },
             }),
-            Fragment::Positioning(fragment) => {
-                Some(fragment.offset_by_containing_block(
-                    &fragment.base.rect(),
-                    containing_block_computation,
-                ))
-            },
+            Fragment::Positioning(fragment) => Some(fragment.offset_by_containing_block(
+                &fragment.base.rect(),
+                cumulative_content_rect_calculation,
+            )),
             Fragment::Text(_) |
             Fragment::AbsoluteOrFixedPositionedPlaceholder(_) |
             Fragment::Image(_) |
@@ -362,12 +356,11 @@ impl Fragment {
 
     pub(crate) fn find<T>(
         &self,
-        manager: &ContainingBlockManager<PhysicalRect<Au>>,
+        parent_content_rect: &PhysicalRect<Au>,
         level: usize,
         process_func: &mut impl FnMut(&Fragment, usize, &PhysicalRect<Au>) -> Option<T>,
     ) -> Option<T> {
-        let containing_block = manager.get_containing_block_for_fragment(self);
-        if let Some(result) = process_func(self, level, containing_block) {
+        if let Some(result) = process_func(self, level, parent_content_rect) {
             return Some(result);
         }
 
@@ -375,43 +368,24 @@ impl Fragment {
             Fragment::LayoutRoot(layout_root_fragment) => {
                 layout_root_fragment
                     .inner()
-                    .find(manager, level, process_func)
+                    .find(parent_content_rect, level, process_func)
             },
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                let style = fragment.style();
-                let content_rect = fragment
+                let content_rect_for_descendants = fragment
                     .content_rect()
-                    .translate(containing_block.origin.to_vector());
-                let padding_rect = fragment
-                    .padding_rect()
-                    .translate(containing_block.origin.to_vector());
-                let new_manager = if style
-                    .establishes_containing_block_for_all_descendants(fragment.base.flags)
-                {
-                    manager.new_for_absolute_and_fixed_descendants(&content_rect, &padding_rect)
-                } else if style
-                    .establishes_containing_block_for_absolute_descendants(fragment.base.flags)
-                {
-                    manager.new_for_absolute_descendants(&content_rect, &padding_rect)
-                } else {
-                    manager.new_for_non_absolute_descendants(&content_rect)
-                };
-
-                fragment
-                    .children
-                    .iter()
-                    .find_map(|child| child.find(&new_manager, level + 1, process_func))
+                    .translate(parent_content_rect.origin.to_vector());
+                fragment.children.iter().find_map(|child| {
+                    child.find(&content_rect_for_descendants, level + 1, process_func)
+                })
             },
             Fragment::Positioning(fragment) => {
-                let content_rect = fragment
+                let content_rect_for_descendants = fragment
                     .base
                     .rect()
-                    .translate(containing_block.origin.to_vector());
-                let new_manager = manager.new_for_non_absolute_descendants(&content_rect);
-                fragment
-                    .children
-                    .iter()
-                    .find_map(|child| child.find(&new_manager, level + 1, process_func))
+                    .translate(parent_content_rect.origin.to_vector());
+                fragment.children.iter().find_map(|child| {
+                    child.find(&content_rect_for_descendants, level + 1, process_func)
+                })
             },
             _ => None,
         }
@@ -449,6 +423,11 @@ impl Fragment {
             },
             _ => None,
         }
+    }
+
+    pub(crate) fn is_box_fragment(&self, box_fragment: &BoxFragment) -> bool {
+        self.retrieve_box_fragment()
+            .is_some_and(|this_box_fragment| std::ptr::eq(&**this_box_fragment, box_fragment))
     }
 }
 
@@ -655,7 +634,7 @@ impl CollapsedMargin {
 /// some queries might need them beforehand. If the query is executed before stacking
 /// context tree construction, a quick traversal is performed to calculate them for
 /// the purpose of the query.
-pub(crate) enum ContainingBlockCalculation<'a> {
+pub(crate) enum CumulativeContentRectCalculation<'a> {
     /// This token variant is for the purpose of a layout query. In this case, if stacking
     /// context tree construction has not yet taken place, a cumulative containing block
     /// calculation traversal will be performed.
@@ -668,7 +647,7 @@ pub(crate) enum ContainingBlockCalculation<'a> {
     AlreadyDoneWithStackingContextTree,
 }
 
-impl ContainingBlockCalculation<'_> {
+impl CumulativeContentRectCalculation<'_> {
     pub(crate) fn ensure(&self) {
         match self {
             Self::Lazy { layout_thread } => layout_thread.ensure_containing_block_calculation(),
@@ -677,7 +656,7 @@ impl ContainingBlockCalculation<'_> {
     }
 }
 
-impl<'a> From<&'a LayoutThread> for ContainingBlockCalculation<'a> {
+impl<'a> From<&'a LayoutThread> for CumulativeContentRectCalculation<'a> {
     fn from(layout_thread: &'a LayoutThread) -> Self {
         Self::Lazy { layout_thread }
     }
