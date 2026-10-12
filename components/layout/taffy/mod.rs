@@ -22,9 +22,10 @@ use crate::dom::{LayoutBox, WeakLayoutBox};
 use crate::dom_traversal::{NodeAndStyleInfo, NonReplacedContents};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::Fragment;
-use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize};
+use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize};
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
+use crate::style_ext::{AspectRatio, ComputedValuesExt};
 use crate::{DefiniteContainingBlock, PropagatedBoxTreeData};
 
 #[derive(Debug, MallocSizeOf)]
@@ -80,6 +81,14 @@ impl TaffyContainer {
 
     pub(crate) fn repair_style(&mut self, new_style: &Arc<ComputedValues>) {
         self.style = new_style.clone();
+    }
+
+    #[inline]
+    pub(crate) fn preferred_aspect_ratio(
+        &self,
+        padding_border_sums: &LogicalVec2<Au>,
+    ) -> Option<AspectRatio> {
+        self.style.preferred_aspect_ratio(None, padding_border_sums)
     }
 }
 

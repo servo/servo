@@ -178,6 +178,7 @@ impl SameFormattingContextBlock {
             depends_on_block_constraints,
             available_block_size,
             justify_self,
+            preferred_aspect_ratio,
             ..
         } = solve_containing_block_padding_and_border_for_in_flow_box(
             containing_block,
@@ -351,7 +352,18 @@ impl SameFormattingContextBlock {
             Size::FitContent,
             Au::zero,
             available_block_size,
-            || content_block_size.into(),
+            || {
+                if let Some(ratio) = preferred_aspect_ratio {
+                    ratio
+                        .compute_dependent_size(
+                            LogicalAxis::Block,
+                            containing_block_for_children.size.inline,
+                        )
+                        .into()
+                } else {
+                    content_block_size.into()
+                }
+            },
             false, /* is_table */
         );
 
