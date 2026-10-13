@@ -168,7 +168,6 @@ pub(crate) struct SharedWorkerGlobalScope {
     /// The [`WebViewId`] of the `WebView` that this worker is associated with.
     #[no_trace]
     webview_id: WebViewId,
-    #[ignore_malloc_size_of = "Defined in std"]
     task_queue: TaskQueue<SharedWorkerScriptMsg>,
     own_sender: Sender<SharedWorkerScriptMsg>,
     worker: DomRefCell<Option<TrustedSharedWorkerAddress>>,

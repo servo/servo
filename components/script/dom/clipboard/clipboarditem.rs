@@ -100,7 +100,6 @@ const CUSTOM_FORMAT_PREFIX: &str = "web ";
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(super) struct Representation {
     #[no_trace]
-    #[ignore_malloc_size_of = "Extern type"]
     pub mime_type: Mime,
     pub is_custom: bool,
     pub data: TracedPromise,

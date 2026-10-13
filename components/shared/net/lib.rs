@@ -1085,14 +1085,12 @@ pub struct Metadata {
     /// Location URL from the response headers.
     pub location_url: Option<Result<ServoUrl, String>>,
 
-    #[ignore_malloc_size_of = "Defined in hyper"]
     /// MIME type / subtype.
     pub content_type: Option<Serde<ContentType>>,
 
     /// Character set.
     pub charset: Option<String>,
 
-    #[ignore_malloc_size_of = "Defined in hyper"]
     /// Headers
     pub headers: Option<Serde<HeaderMap>>,
 

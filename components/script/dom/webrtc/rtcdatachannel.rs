@@ -44,7 +44,6 @@ use crate::dom::rtcpeerconnection::RTCPeerConnection;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableRTCDataChannel {
-    #[ignore_malloc_size_of = "defined in servo-media"]
     servo_media_id: DataChannelId,
     peer_connection: WeakRef<RTCPeerConnection>,
 }

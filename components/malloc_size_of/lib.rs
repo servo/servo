@@ -127,6 +127,12 @@ impl<T: MallocConditionalSizeOf> MallocConditionalSizeOf for [T] {
     }
 }
 
+impl<T: MallocSizeOf, const N: usize> MallocSizeOf for Box<[T; N]> {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        N * size_of::<T>()
+    }
+}
+
 /// For use on types where size_of() returns 0.
 #[macro_export]
 macro_rules! malloc_size_of_is_0(
@@ -1223,6 +1229,16 @@ where
     }
 }
 
+impl MallocSizeOf for keyboard_types::KeyboardEvent {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        // All other fields are not necessary
+        match &self.key {
+            keyboard_types::Key::Character(s) => s.size_of(ops),
+            keyboard_types::Key::Named(_) => 0,
+        }
+    }
+}
+
 malloc_size_of_hash_map!(indexmap::IndexMap<K, V, S>);
 malloc_size_of_hash_set!(indexmap::IndexSet<T, S>);
 
@@ -1238,6 +1254,7 @@ malloc_size_of_is_0!(content_security_policy::sandboxing_directive::SandboxingFl
 malloc_size_of_is_0!(encoding_rs::Decoder);
 malloc_size_of_is_0!(http::StatusCode);
 malloc_size_of_is_0!(http::Method);
+malloc_size_of_is_0!(headers::ContentType); // Inside ContentType is a mime type which uses atoms for most cases.
 malloc_size_of_is_0!(icu_locale_core::subtags::Language);
 malloc_size_of_is_0!(keyboard_types::Code);
 malloc_size_of_is_0!(keyboard_types::Modifiers);

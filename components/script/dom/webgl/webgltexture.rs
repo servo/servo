@@ -113,7 +113,6 @@ pub(crate) struct WebGLTexture {
     /// The target to which this texture was bound the first time
     target: Cell<Option<u32>>,
     /// Stores information about mipmap levels and cubemap faces.
-    #[ignore_malloc_size_of = "Arrays are cumbersome"]
     image_info_array: DomRefCell<[Option<ImageInfo>; MAX_LEVEL_COUNT * MAX_FACE_COUNT]>,
     /// Face count can only be 1 or 6
     face_count: Cell<u8>,

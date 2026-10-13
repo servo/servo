@@ -583,7 +583,6 @@ pub struct HttpRequest {
 
 #[derive(Debug, PartialEq, MallocSizeOf)]
 pub struct HttpResponse {
-    #[ignore_malloc_size_of = "Http type"]
     pub headers: Option<HeaderMap>,
     pub status: HttpStatus,
     pub body: Option<bytes::Bytes>,

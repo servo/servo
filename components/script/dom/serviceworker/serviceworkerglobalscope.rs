@@ -170,7 +170,6 @@ impl CspViolationsProcessor for ServiceWorkerCspProcessor {
 pub(crate) struct ServiceWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
 
-    #[ignore_malloc_size_of = "Defined in std"]
     #[no_trace]
     task_queue: TaskQueue<ServiceWorkerScriptMsg>,
 
