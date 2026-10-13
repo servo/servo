@@ -46,9 +46,7 @@ pub fn set(preferences: Preferences) {
         return;
     }
 
-    // Map between Stylo preference names and Servo preference names as the This should be
-    // kept in sync with components/script_bindings/codegen/run.py which generates the
-    // DOM CSS style accessors.
+    // Map between Stylo preference names and Servo preference names.
     stylo_static_prefs::set_pref!("layout.unimplemented", preferences.layout_unimplemented);
     stylo_static_prefs::set_pref!("layout.threads", preferences.layout_threads as i32);
     stylo_static_prefs::set_pref!("layout.columns.enabled", preferences.layout_columns_enabled);
