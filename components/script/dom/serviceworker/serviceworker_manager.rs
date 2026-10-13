@@ -621,10 +621,7 @@ impl ServiceWorkerManager {
     /// <https://w3c.github.io/ServiceWorker/#update-worker-state>
     fn update_worker_state(&mut self, worker: &mut ServiceWorker, state: ServiceWorkerState) {
         // Step 1: Assert: state is not "parsed".
-        debug_assert!(match state {
-            ServiceWorkerState::Parsed => false,
-            _ => true,
-        });
+        debug_assert!(!matches!(state, ServiceWorkerState::Parsed));
 
         // Step 2: Set worker’s state to state.
         worker.state = state.clone();
@@ -651,7 +648,7 @@ impl ServiceWorkerManager {
         // Step 5: Run the Update Worker State algorithm
         // passing registration’s installing worker and "installing" as the arguments.
         // Note: running now so that the worker passed to the registration below is in the right state.
-        // TODO: review how workers are passed around and mutated in this module. 
+        // TODO: review how workers are passed around and mutated in this module.
         self.update_worker_state(&mut new_worker, ServiceWorkerState::Installing);
 
         let (registration_id, installing_worker_id, waiting_worker_id, active_worker_id) = {

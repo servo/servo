@@ -1759,7 +1759,7 @@ impl ScriptThread {
         state: ServiceWorkerState,
         worker_id: ServiceWorkerId,
     ) {
-        let Some(global) = self.documents.borrow().find_global(pipeline_id.clone()) else {
+        let Some(global) = self.documents.borrow().find_global(pipeline_id) else {
             log::warn!(
                 "Received update sw worker state for unknown pipeline: {:?}",
                 pipeline_id
