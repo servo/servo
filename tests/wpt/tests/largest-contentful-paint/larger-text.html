@@ -47,7 +47,7 @@
 
       await new Promise(resolve => {
         new PerformanceObserver(
-          (entryList, observer) => {
+          t.step_func((entryList, observer) => {
             entryList.getEntries().forEach(entry => {
               // The tiny images or text1 could be reported as LCP if it is rendered before text2.
               if (entry.id !== 'text2')
@@ -85,8 +85,9 @@
               observer.disconnect();
 
               resolve();
+              })
             })
-          }).observe({ type: 'largest-contentful-paint', buffered: true });
+          ).observe({ type: 'largest-contentful-paint', buffered: true });
       });
     }, 'Largest Contentful Paint: largest text is reported.');
   </script>

@@ -12,7 +12,5 @@ features: [intl-normative-optional]
 let object = new Intl.NumberFormat();
 let newObject = Intl.NumberFormat.call(object);
 let symbols = Object.getOwnPropertySymbols(newObject);
-if (symbols.length !== 0) {
-    assert.sameValue(symbols.length, 1);
-    assert.sameValue(symbols[0].description, "IntlLegacyConstructedSymbol");
-}
+
+assert(symbols.some((symbol) => symbol.description === "IntlLegacyConstructedSymbol"));

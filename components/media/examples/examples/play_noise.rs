@@ -40,7 +40,7 @@ fn run_example(servo_media: Arc<ServoMedia>) {
     context.message_node(
         buffer_source,
         AudioNodeMessage::AudioBufferSourceNode(AudioBufferSourceNodeMessage::SetBuffer(Some(
-            AudioBuffer::from_buffers(buffers, 44100.),
+            AudioBuffer::from_buffers(buffers, 44100.).into(),
         ))),
     );
     let callback = OnEndedCallback::new(|| {

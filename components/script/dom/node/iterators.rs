@@ -9,9 +9,9 @@ use crate::dom::Node;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRoot_Binding::ShadowRootMethods;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{Dom, DomRoot, UnrootedDom};
+use crate::dom::bindings::root::{DomRoot, UnrootedDom};
 use crate::dom::element::Element;
-use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::shadowroot::ShadowRoot;
 
 /// Whether a tree traversal should pass shadow tree boundaries.
 #[derive(Clone, Copy, PartialEq)]
@@ -126,8 +126,8 @@ impl<'b> UnrootedFollowingNodeIterator<'b> {
             return current.get_next_sibling_unrooted(self.no_gc);
         }
 
-        for ancestor in current.inclusive_ancestors(self.shadow_including) {
-            if **self.root == *ancestor {
+        for ancestor in current.inclusive_ancestors_unrooted(self.no_gc, self.shadow_including) {
+            if self.root == ancestor {
                 break;
             }
             if let Some(next_sibling) = ancestor.get_next_sibling_unrooted(self.no_gc) {
@@ -319,6 +319,11 @@ where
     }
 }
 
+pub(crate) type UnrootedAncestorIterator<'no_gc> = UnrootedSimpleNodeIterator<
+    'no_gc,
+    fn(&Node, &'no_gc NoGC) -> Option<UnrootedDom<'no_gc, Node>>,
+>;
+
 pub(crate) struct TreeIterator {
     current: Option<DomRoot<Node>>,
     depth: usize,
@@ -418,7 +423,7 @@ pub(crate) struct UnrootedTreeIterator<'b> {
 impl<'b> UnrootedTreeIterator<'b> {
     pub(crate) fn new(root: &Node, shadow_including: ShadowIncluding, no_gc: &'b NoGC) -> Self {
         Self {
-            current: Some(UnrootedDom::from_dom(Dom::from_ref(root), no_gc)),
+            current: Some(UnrootedDom::from_ref(root, no_gc)),
             depth: 0,
             shadow_including,
             no_gc,
@@ -523,7 +528,7 @@ pub(crate) struct UnrootedFollowingFlatTreeNodesTraversal<'no_gc> {
 impl<'no_gc> UnrootedFollowingFlatTreeNodesTraversal<'no_gc> {
     pub(crate) fn new(root: &Node, no_gc: &'no_gc NoGC) -> Self {
         Self {
-            start: UnrootedDom::from_dom(Dom::from_ref(root), no_gc),
+            start: UnrootedDom::from_ref(root, no_gc),
             previously_returned_item: None,
             no_gc,
         }
@@ -558,11 +563,8 @@ impl<'no_gc> UnrootedFollowingFlatTreeNodesTraversal<'no_gc> {
         if let Some(next_sibling) = previous.next_flat_tree_sibling_unrooted(no_gc) {
             return Some(PrePostIteration::Enter(next_sibling));
         }
-        match previous.parent_in_flat_tree() {
-            FlatTreeParent::Parent(parent_node) => {
-                let parent_node = UnrootedDom::from_dom(parent_node.as_traced(), no_gc);
-                Some(PrePostIteration::Leave(parent_node))
-            },
+        match previous.parent_in_flat_tree(no_gc) {
+            FlatTreeParent::Parent(parent_node) => Some(PrePostIteration::Leave(parent_node)),
             FlatTreeParent::NotInFlatTree => None,
             FlatTreeParent::RootNode => None,
         }

@@ -1,0 +1,34 @@
+<!doctype html>
+<title>@layer with invalid layer names is dropped</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#layering">
+
+<style id="layer-numeric">@layer 123 { .a { color: red } }</style>
+<style id="layer-dot-numeric">@layer foo.123 { .a { color: red } }</style>
+<style id="layer-dash-only">@layer - { .a { color: red } }</style>
+<style id="layer-valid">@layer valid-name { .a { color: red } }</style>
+
+<script>
+"use strict";
+
+test(() => {
+  const { sheet } = document.getElementById("layer-numeric");
+  assert_equals(sheet.cssRules.length, 0);
+}, "@layer with numeric name (123) is dropped");
+
+test(() => {
+  const { sheet } = document.getElementById("layer-dot-numeric");
+  assert_equals(sheet.cssRules.length, 0);
+}, "@layer with numeric segment (foo.123) is dropped");
+
+test(() => {
+  const { sheet } = document.getElementById("layer-dash-only");
+  assert_equals(sheet.cssRules.length, 0);
+}, "@layer with lone dash (-) name is dropped");
+
+test(() => {
+  const { sheet } = document.getElementById("layer-valid");
+  assert_equals(sheet.cssRules.length, 1);
+}, "@layer with valid ident name is accepted");
+</script>

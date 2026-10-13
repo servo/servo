@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes: Row flow-tolerance percentage basis reference</title>
+  <style>
+    .grid {
+      background: gray;
+      block-size: 100px;
+      box-sizing: content-box;
+      display: grid;
+      grid-template-rows: repeat(2, 50px);
+      inline-size: 150px;
+      padding-block: 25px;
+    }
+
+    .calculated {
+      margin-block-start: 10px;
+    }
+
+    .lane {
+      display: flex;
+    }
+
+    .item-one {
+      background: lightcoral;
+    }
+
+    .item-two {
+      background: lightgreen;
+    }
+
+    .item-three {
+      background: lightskyblue;
+    }
+
+    .percentage .item-one {
+      inline-size: 50px;
+    }
+
+    .percentage .item-two,
+    .percentage .item-three {
+      inline-size: 25px;
+    }
+
+    .calculated .item-one {
+      inline-size: 40px;
+    }
+
+    .calculated .item-two,
+    .calculated .item-three {
+      inline-size: 25px;
+    }
+  </style>
+</head>
+<body>
+  <div class="grid percentage">
+    <div class="lane">
+      <div class="item-one"></div>
+    </div>
+    <div class="lane">
+      <div class="item-two"></div>
+      <div class="item-three"></div>
+    </div>
+  </div>
+  <div class="grid calculated">
+    <div class="lane">
+      <div class="item-one"></div>
+      <div class="item-three"></div>
+    </div>
+    <div class="lane">
+      <div class="item-two"></div>
+    </div>
+  </div>
+</body>
+</html>

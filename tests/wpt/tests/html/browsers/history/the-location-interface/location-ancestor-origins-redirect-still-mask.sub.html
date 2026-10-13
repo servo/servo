@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<title>Location#ancestorOrigins masking behavior not changed by HTTP redirects</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/location-ancestor-origins-create-iframe.js"></script>
+<body>
+<script>
+function waitFor(action, frameName) {
+  return new Promise((resolve) => {
+    window.addEventListener("message", function listener(e) {
+      if (e.data.event === action && e.data.name === frameName) {
+        window.removeEventListener("message", listener);
+        resolve(e.data);
+      }
+    });
+  });
+}
+
+const helperPath =
+  "html/browsers/history/the-location-interface/resources/location-ancestor-origins-recursive-iframe.html";
+
+function helperUrl(origin, tag) {
+  return `${origin}/${helperPath}?${tag}`;
+}
+
+function viaRedirect(origin, status, targetUrl) {
+  return `${origin}/common/redirect.py?status=${status}&location=${encodeURIComponent(targetUrl)}`;
+}
+
+const originsToTest = [
+  `http://{{hosts[][]}}:{{ports[http][0]}}`,
+  `http://{{hosts[alt][]}}:{{ports[http][0]}}`,
+];
+
+// Test that re-directs maintains masking
+// <iframe referrerpolicy="no-referrer">
+for (const [ origin, index ] of originsToTest.map((origin, index) => [origin, index])) {
+  const label = index === 0 ? "same-origin" : "cross-origin";
+  for (const status of [301, 302, 307, 308]) {
+    promise_test(async (t) => {
+      assert_implements(location.ancestorOrigins,
+        "location.ancestorOrigins not implemented");
+
+      const name = `noreferrer-${status}-${label}`;
+      const src = viaRedirect(origin, status, helperUrl(origin, name));
+
+      const p = waitFor("sentOrigins", name);
+      const iframe = document.createElement("iframe");
+      t.add_cleanup(() => iframe.remove());
+      await configAndNavigateIFrame(iframe, {
+        name, src, referrerPolicy: "no-referrer"
+      });
+      const { origins } = await p;
+
+      assert_array_equals(origins, ["null"]);
+    }, `no-referrer masks ancestorOrigins after ${label} ${status} redirect`);
+  }
+}
+
+// <iframe referrerpolicy="same-origin">
+// location.ancestorOrigin -> ["null"], when iframe redirect from origin A -> B
+// location.ancestorOrigin -> [A], when iframe redirect from origin B -> A
+for (const [ origin, index ] of originsToTest.map((origin, index) => [origin, index])) {
+  const label = index === 0 ? "same-origin" : "cross-origin";
+  const expectedResult = index === 0 ? ["null"] : [originsToTest[0]];
+  const redirectToOrigin = index === 0 ? originsToTest[1] : originsToTest[0];
+  for (const status of [301, 302, 307, 308]) {
+    promise_test(async (t) => {
+      assert_implements(location.ancestorOrigins,
+        "location.ancestorOrigins not implemented");
+
+      const name = `noreferrer-${status}-${label}`;
+      const src = viaRedirect(origin, status, helperUrl(redirectToOrigin, name));
+
+      const p = waitFor("sentOrigins", name);
+      const iframe = document.createElement("iframe");
+      t.add_cleanup(() => iframe.remove());
+      await configAndNavigateIFrame(iframe, {
+        name, src, referrerPolicy: "same-origin"
+      });
+      const { origins } = await p;
+
+      assert_array_equals(origins, expectedResult);
+    }, `testing referrerpolicy="same-origin" masking after ${status} redirect for iframe of ${label}`);
+  }
+}
+
+</script>
+</body>

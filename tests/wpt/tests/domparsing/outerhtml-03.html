@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>outerHTML miscellaneous tests</title>
+<link rel="help" href="https://w3c.github.io/DOM-Parsing/#dom-element-outerhtml">
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="author" title="Joris van der Wel" href="mailto:joris@jorisvanderwel.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="container">
+  foo
+  <p>bar</p>
+</div>
+
+<iframe></iframe>
+
+<script>
+"use strict";
+
+test(() => {
+
+  const element = document.createElement("div");
+  element.textContent = "foo";
+
+  element.outerHTML = "<p>bar</p>";
+  assert_equals(element.outerHTML, "<div>foo</div>");
+
+}, "Setting outerHTML on an Element without a parent should have no effect");
+
+test(() => {
+
+  const fragment = document.createDocumentFragment();
+  const oldElement = document.createElement("div");
+  fragment.appendChild(oldElement);
+  oldElement.innerHTML = "foo<p>bar</p>";
+
+  const newHTML = `<div><h1>Hysterocrates crassipes</h1>" +
+                   <p>spinnensoort in de taxonomische indeling van de vogelspinnen</p></div>`;
+
+  // the <body> element should not be included
+  // (because the context node will be a temporary <body> element)
+  oldElement.outerHTML = `<body>${newHTML}</body>`;
+
+  assert_equals(oldElement.outerHTML, "<div>foo<p>bar</p></div>");
+  assert_equals(fragment.firstChild.outerHTML, newHTML);
+
+}, "Setting outerHTML on an Element with a DocumentFragment parent should create a temporary <body>");
+
+test(() => {
+
+  const newHTML = "<b>az</b>";
+
+  const container = document.querySelector("#container");
+  const oldElement = container.children[0];
+  oldElement.outerHTML = newHTML;
+
+  assert_equals(oldElement.outerHTML, "<p>bar</p>");
+  assert_equals(container.children[0].outerHTML, newHTML);
+
+}, "Setting outerHTML on an Element with a parent should replace it but leave the element unchanged");
+
+async_test(t => {
+
+  const iframe = document.querySelector("iframe");
+  iframe.onload = t.step_func_done(() => {
+    const newHTML = `<body><h1>Hysterocrates crassipes</h1>
+                     <p>spinnensoort in de taxonomische indeling van de vogelspinnen</p></body>`;
+
+    const oldBody = iframe.contentWindow.document.body;
+    oldBody.outerHTML = newHTML;
+
+    assert_equals(oldBody.outerHTML, "<body>foo<p>bar</p>\n</body>");
+    assert_equals(iframe.contentWindow.document.body.outerHTML, newHTML);
+  });
+  iframe.src = "outerhtml-03-support.html";
+
+}, "Setting outerHTML on a <body> element should replace it but leave the element unchanged");
+</script>

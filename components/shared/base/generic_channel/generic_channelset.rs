@@ -3,8 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use ipc_channel::ipc::{IpcReceiverSet, IpcSelectionResult};
 use serde::{Deserialize, Serialize};
+use smallvec::SmallVec;
 
-use crate::generic_channel::{GenericReceiver, GenericReceiverVariants, use_ipc};
+use crate::generic_channel::{GenericReceiver, GenericReceiverVariants, SendError, use_ipc};
 
 /// A GenericReceiverSet. Allows you to wait on multiple GenericReceivers.
 /// Automatically selects either Ipc or crossbeam depending on multiprocess mode.
@@ -36,7 +37,7 @@ impl<T: Serialize + for<'de> Deserialize<'de>> Default for GenericReceiverSet<T>
 }
 enum GenericReceiverSetVariants<T: for<'de> Deserialize<'de>> {
     Ipc(ipc_channel::ipc::IpcReceiverSet),
-    Crossbeam(Vec<crossbeam_channel::Receiver<Result<T, ipc_channel::IpcError>>>),
+    Crossbeam(Vec<crossbeam_channel::Receiver<Result<T, SendError>>>),
 }
 
 #[cfg(test)]
@@ -162,7 +163,7 @@ impl<T: Serialize + for<'de> Deserialize<'de>> GenericReceiverSet<T> {
     ///
     /// For usage in loops consider using [`GenericReceiverSet::selector()`] to build the selector
     /// once upfront.
-    pub fn select(&mut self) -> Vec<GenericSelectionResult<T>> {
+    pub fn select(&mut self) -> SmallVec<[GenericSelectionResult<T>; 2]> {
         self.selector().select()
     }
 }
@@ -177,7 +178,7 @@ pub struct Selector<'a, T: Serialize + for<'de> Deserialize<'de>> {
 enum SelectorInner<'a, T: for<'de> Deserialize<'de>> {
     Ipc(&'a mut IpcReceiverSet),
     Crossbeam {
-        receivers: &'a [crossbeam_channel::Receiver<Result<T, ipc_channel::IpcError>>],
+        receivers: &'a [crossbeam_channel::Receiver<Result<T, SendError>>],
         sel: crossbeam_channel::Select<'a>,
     },
 }
@@ -187,7 +188,7 @@ impl<'a, T: Serialize + for<'de> Deserialize<'de>> Selector<'a, T> {
     ///
     /// Note: The IPC variant can return multiple results in one call.
     /// The crossbeam variant always returns exactly one.
-    pub fn select(&mut self) -> Vec<GenericSelectionResult<T>> {
+    pub fn select(&mut self) -> SmallVec<[GenericSelectionResult<T>; 2]> {
         match &mut self.inner {
             SelectorInner::Ipc(ipc_receiver_set) => ipc_receiver_set
                 .select()
@@ -197,7 +198,9 @@ impl<'a, T: Serialize + for<'de> Deserialize<'de>> Selector<'a, T> {
                         .map(|selection_result| selection_result.into())
                         .collect()
                 })
-                .unwrap_or_else(|e| vec![GenericSelectionResult::Error(e.to_string())]),
+                .unwrap_or_else(|e| {
+                    smallvec::smallvec![GenericSelectionResult::Error(e.to_string())]
+                }),
             SelectorInner::Crossbeam { receivers, sel } => {
                 let selected = sel.select();
                 let index = selected.index();
@@ -211,7 +214,7 @@ impl<'a, T: Serialize + for<'de> Deserialize<'de>> Selector<'a, T> {
                         Err(_) => GenericSelectionResult::ChannelClosed(index as u64),
                     },
                 };
-                vec![selection_result]
+                smallvec::smallvec![selection_result]
             },
         }
     }

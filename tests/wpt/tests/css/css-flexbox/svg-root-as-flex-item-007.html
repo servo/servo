@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>SVG root as flex item</title>
+<link rel="author" title="Karl Dubost" href="mailto:k_dubost@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#algo-main-item" title="Part E">
+<link rel="help" href="https://drafts.csswg.org/css2/#inline-replaced-width">
+<meta name="assert"
+  content="An SVG root with no width, no height and no viewBox has neither an intrinsic size nor an intrinsic aspect ratio, so as a flex item its used width is the 300px default. A max-height only caps the cross size; with no aspect ratio there is nothing to transfer to the main size.">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<div style="display: flex">
+  <svg xmlns="http://www.w3.org/2000/svg" id="no-constraint"
+    data-expected-bounding-client-rect-width=300
+    data-expected-bounding-client-rect-height=150></svg>
+</div>
+
+<div style="display: flex">
+  <svg xmlns="http://www.w3.org/2000/svg" id="max-height" style="max-height: 45px"
+    data-expected-bounding-client-rect-width=300
+    data-expected-bounding-client-rect-height=45></svg>
+</div>
+
+<script>
+  checkLayout('svg');
+</script>

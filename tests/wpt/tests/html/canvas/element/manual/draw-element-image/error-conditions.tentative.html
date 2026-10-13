@@ -17,13 +17,13 @@
 }
 </style>
 
-<canvas id=canvas width="200" height="200" layoutsubtree>
-  <div id=child>
+<canvas id=canvas width="200" height="200" content=drawable>
+  <div id=child drawable>
     <div id=grandchild></div>
   </div>
 </canvas>
-<canvas id=canvaswithoutlayout layoutsubtree>
-  <div id=child2></div>
+<canvas id=canvaswithoutlayout content=drawable>
+  <div id=child2 drawable></div>
 </div>
 
 </canvas>
@@ -34,45 +34,46 @@ promise_test(async () => {
 
   assert_throws_dom("InvalidStateError",
     () => canvas.getContext("2d").drawElementImage(grandchild, 20, 30),
-    "Can't draw non-direct children.");
+    "Can't draw non-drawable descendants.");
 
-  canvas.toggleAttribute("layoutsubtree"); // Remove attribute.
+  canvas.removeAttribute("content"); // Remove attribute.
   assert_throws_dom("InvalidStateError",
     () => canvas.getContext("2d").drawElementImage(child, 20, 30),
-    "Can't draw canvas children if layoutsubtree is not specified.");
+    "Can't draw canvas children if content=drawable is not specified.");
   assert_throws_dom("InvalidStateError",
     () => canvas.captureElementImage(child),
-    "Can't capture element image if layoutsubtree is not specified.");
+    "Can't capture element image if content=drawable is not specified.");
   assert_throws_dom("InvalidStateError",
-    () => canvas.getElementTransform(child, new DOMMatrix()),
-    "Can't get element transform if layoutsubtree is not specified.");
+    () => canvas.getElementImageDefaultSize(child),
+    "Can't get element image default size if content=drawable is not specified.");
 
-  canvas.toggleAttribute("layoutsubtree"); // Add attribute.
+  canvas.setAttribute("content", "drawable"); // Add attribute.
   await waitForCanvasPaint(canvas);
   // Should not throw an exception.
   canvas.getContext("2d").drawElementImage(child, 20, 30);
   let img = canvas.captureElementImage(child);
-  canvas.getElementTransform(child, new DOMMatrix());
+  canvas.getElementImageDefaultSize(child);
+  canvas.getElementImageDefaultSize(img);
 
-  canvaswithoutlayout.removeAttribute("layoutsubtree");
+  canvaswithoutlayout.removeAttribute("content");
   assert_throws_dom("InvalidStateError",
     () => canvaswithoutlayout.getContext("2d").drawElementImage(
       child2, 20, 30),
-    "Can't draw canvas children if layoutsubtree is not specified.");
+    "Can't draw canvas children if content=drawable is not specified.");
   assert_throws_dom("InvalidStateError",
     () => canvaswithoutlayout.captureElementImage(child2),
-    "Can't capture element image if layoutsubtree is not specified.");
+    "Can't capture element image if content=drawable is not specified.");
   assert_throws_dom("InvalidStateError",
-    () => canvaswithoutlayout.getElementTransform(child2, new DOMMatrix()),
-    "Can't get element transform if layoutsubtree is not specified.");
+    () => canvaswithoutlayout.getElementImageDefaultSize(child2),
+    "Can't get element image default size if content=drawable is not specified.");
 
-  // Also test wrong children exceptions
+  // Also test non-drawable descendants exceptions
   assert_throws_dom("InvalidStateError",
     () => canvas.captureElementImage(grandchild),
-    "Can't capture non-direct children.");
+    "Can't capture non-drawable descendants.");
   assert_throws_dom("InvalidStateError",
-    () => canvas.getElementTransform(grandchild, new DOMMatrix()),
-    "Can't get transform for non-direct children.");
+    () => canvas.getElementImageDefaultSize(grandchild),
+    "Can't get default size for non-drawable descendants.");
 });
 </script>
 </html>

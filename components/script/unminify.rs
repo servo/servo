@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
 use std::env;
 use std::fs::{File, create_dir_all};
 use std::io::{Error, ErrorKind, Read, Seek, Write};
@@ -12,12 +13,10 @@ use servo_url::ServoUrl;
 use tempfile::NamedTempFile;
 use uuid::Uuid;
 
-pub(crate) trait ScriptSource {
-    fn unminified_dir(&self) -> Option<String>;
-    fn extract_bytes(&self) -> &[u8];
-    fn rewrite_source(&mut self, source: String);
-    fn url(&self) -> ServoUrl;
-    fn is_external(&self) -> bool;
+pub(crate) struct ScriptSource<'a> {
+    pub source: Cow<'a, str>,
+    pub url: &'a ServoUrl,
+    pub external: bool,
 }
 
 pub(crate) fn create_temp_files() -> Option<(NamedTempFile, File)> {
@@ -100,13 +99,9 @@ pub fn create_output_file(
     File::create(path)
 }
 
-pub(crate) fn unminify_js(script: &mut dyn ScriptSource) {
-    let Some(unminified_dir) = script.unminified_dir() else {
-        return;
-    };
-
+pub(crate) fn unminify_js(script: &mut ScriptSource, unminified_js_dir: String) {
     if let Some((mut input, mut output)) = create_temp_files() {
-        input.write_all(script.extract_bytes()).unwrap();
+        input.write_all(script.source.as_bytes()).unwrap();
 
         if execute_js_beautify(
             input.path(),
@@ -116,12 +111,12 @@ pub(crate) fn unminify_js(script: &mut dyn ScriptSource) {
             let mut script_content = String::new();
             output.seek(std::io::SeekFrom::Start(0)).unwrap();
             output.read_to_string(&mut script_content).unwrap();
-            script.rewrite_source(script_content);
+            script.source = script_content.into();
         }
     }
 
-    match create_output_file(unminified_dir, &script.url(), Some(script.is_external())) {
-        Ok(mut file) => file.write_all(script.extract_bytes()).unwrap(),
+    match create_output_file(unminified_js_dir, script.url, Some(script.external)) {
+        Ok(mut file) => file.write_all(script.source.as_bytes()).unwrap(),
         Err(why) => warn!("Could not store script {:?}", why),
     }
 }

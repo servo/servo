@@ -6,7 +6,7 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::GamepadButtonBinding::GamepadButtonMethods;
 use crate::dom::bindings::num::Finite;
@@ -37,10 +37,10 @@ impl GamepadButton {
         pressed: bool,
         touched: bool,
     ) -> DomRoot<GamepadButton> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(GamepadButton::new_inherited(pressed, touched)),
             window,
-            cx,
         )
     }
 }

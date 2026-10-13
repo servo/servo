@@ -1,0 +1,152 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Animation and Transition cancel events are fired asynchronously on remove</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#event-dispatch">
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/#event-dispatch">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/testcommon.js"></script>
+<style>
+@keyframes testAnim {
+  from { margin-left: 0px; }
+  to { margin-left: 100px; }
+}
+</style>
+<div id="log"></div>
+<script>
+'use strict';
+
+const setupAnimation = (t, animationStyle) => {
+  const div = addDiv(t, { style: 'animation: ' + animationStyle });
+  const watcher = new EventWatcher(t, div, [
+    'animationstart',
+    'animationiteration',
+    'animationend',
+    'animationcancel',
+  ]);
+  return { watcher, div };
+};
+
+const setupTransition = (t, elem, targetStyle) => {
+  const watcher = new EventWatcher(t, elem, [
+    'transitionrun',
+    'transitionstart',
+    'transitionend',
+    'transitioncancel',
+  ]);
+  getComputedStyle(elem).marginLeft;
+  elem.style.marginLeft = targetStyle;
+  getComputedStyle(elem).marginLeft;
+  return watcher;
+};
+
+promise_test(async t => {
+  const { watcher, div } = setupAnimation(t, 'testAnim 100s paused');
+  await watcher.wait_for('animationstart');
+
+  const cancelPromise = watcher.wait_for('animationcancel');
+  div.remove();
+
+  const race = await Promise.race([
+    cancelPromise.then(() => 'sync'),
+    Promise.resolve('async'),
+  ]);
+  assert_equals(race, 'async', 'animationcancel must not fire synchronously during remove()');
+
+  await cancelPromise;
+}, 'CSS animation: animationcancel event is fired asynchronously on element remove');
+
+promise_test(async t => {
+  const div = addDiv(t, {
+    style: 'transition: margin-left 100s; margin-left: 0px;',
+  });
+  const watcher = setupTransition(t, div, '100px');
+  await watcher.wait_for(['transitionrun', 'transitionstart']);
+
+  const cancelPromise = watcher.wait_for('transitioncancel');
+  div.remove();
+
+  const race = await Promise.race([
+    cancelPromise.then(() => 'sync'),
+    Promise.resolve('async'),
+  ]);
+  assert_equals(race, 'async', 'transitioncancel must not fire synchronously during remove()');
+
+  await cancelPromise;
+}, 'CSS transition: transitioncancel event is fired asynchronously on element remove');
+
+promise_test(async t => {
+  const parent = addDiv(t);
+  const animChild = document.createElement('div');
+  animChild.style.animation = 'testAnim 100s paused';
+  const transChild = document.createElement('div');
+  transChild.style.transition = 'margin-left 100s';
+  transChild.style.marginLeft = '0px';
+
+  parent.appendChild(animChild);
+  parent.appendChild(transChild);
+
+  const animWatcher = new EventWatcher(t, animChild, [
+    'animationstart',
+    'animationcancel',
+  ]);
+  const transWatcher = setupTransition(t, transChild, '100px');
+
+  await Promise.all([
+    animWatcher.wait_for('animationstart'),
+    transWatcher.wait_for(['transitionrun', 'transitionstart']),
+  ]);
+
+  const animCancel = animWatcher.wait_for('animationcancel');
+  const transCancel = transWatcher.wait_for('transitioncancel');
+
+  parent.remove();
+
+  const race = await Promise.race([
+    animCancel.then(() => 'anim-sync'),
+    transCancel.then(() => 'trans-sync'),
+    Promise.resolve('async'),
+  ]);
+  assert_equals(race, 'async', 'cancel events must not fire synchronously during ancestor remove()');
+
+  await Promise.all([animCancel, transCancel]);
+}, 'Ancestor removal: animationcancel and transitioncancel are fired asynchronously');
+
+promise_test(async t => {
+  const container = addDiv(t);
+  const { watcher, div } = setupAnimation(t, 'testAnim 100s paused');
+  await watcher.wait_for('animationstart');
+
+  const cancelPromise = watcher.wait_for('animationcancel');
+  container.append(div);
+
+  const race = await Promise.race([
+    cancelPromise.then(() => 'sync'),
+    Promise.resolve('async'),
+  ]);
+  assert_equals(race, 'async', 'animationcancel must not fire synchronously during re-parenting');
+
+  await cancelPromise;
+}, 'Re-parenting: animationcancel is fired asynchronously');
+
+promise_test(async t => {
+  const div = addDiv(t, { style: 'animation: testAnim 100s paused' });
+  const anim = div.getAnimations()[0];
+  const watcher = new EventWatcher(t, anim, ['cancel']);
+
+  const cancelPromise = watcher.wait_for('cancel');
+  div.remove();
+
+  const race = await Promise.race([
+    cancelPromise.then(() => 'sync'),
+    Promise.resolve('async'),
+  ]);
+  assert_equals(
+    race,
+    'async',
+    'cancel event on Animation object must not fire synchronously on remove()'
+  );
+
+  await cancelPromise;
+}, 'Web Animations: cancel event on Animation object is fired asynchronously on element remove');
+</script>

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>XMLHttpRequest: responseType json with invalid UTF-8</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+// Test that XHR handles invalid UTF-8 sequences in JSON responses gracefully
+// The server returns JSON containing an invalid UTF-8 byte (0xFF)
+
+async_test(t => {
+  const xhr = new XMLHttpRequest();
+  xhr.open("GET", "resources/invalid-utf8.py");
+  xhr.responseType = "json";
+  xhr.onload = t.step_func_done(() => {
+    assert_equals(xhr.status, 200, "Status should be 200");
+    assert_not_equals(xhr.response, null, "Response should not be null");
+    // The invalid byte should be replaced with U+FFFD
+    assert_equals(xhr.response.key, "\uFFFD", "Invalid UTF-8 byte should become replacement character");
+  });
+  xhr.onerror = t.unreached_func("XHR should not error");
+  xhr.send();
+}, "JSON response with invalid UTF-8 should parse with replacement characters");
+</script>

@@ -674,15 +674,25 @@ impl Dialog {
                                                 },
                                             };
 
-                                            ui.style_mut().visuals.widgets.inactive.weak_bg_fill =
-                                                ui.visuals().panel_fill;
-                                            ui.style_mut().visuals.widgets.inactive.bg_fill =
-                                                ui.visuals().panel_fill;
+                                            {
+                                                let panel_fill = ui.visuals().panel_fill;
+                                                let style = ui.style_mut();
+                                                let widgets = &mut style.visuals.widgets;
+
+                                                widgets.inactive.weak_bg_fill = panel_fill;
+                                                widgets.inactive.bg_fill = panel_fill;
+
+                                                // Disable stroke for all button types in the menu.
+                                                widgets.active.bg_stroke = Stroke::NONE;
+                                                widgets.inactive.bg_stroke = Stroke::NONE;
+                                                widgets.hovered.bg_stroke = Stroke::NONE;
+                                                widgets.noninteractive.bg_stroke = Stroke::NONE;
+                                            }
+
                                             let button =
                                                 Button::new(RichText::new(label).color(color))
                                                     .sense(sense)
                                                     .corner_radius(CornerRadius::ZERO)
-                                                    .stroke(Stroke::NONE)
                                                     .wrap_mode(egui::TextWrapMode::Extend)
                                                     .min_size(Vec2 {
                                                         x: MINIMUM_UI_ELEMENT_WIDTH,

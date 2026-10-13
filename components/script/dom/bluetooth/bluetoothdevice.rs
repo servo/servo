@@ -4,14 +4,14 @@
 
 use std::cell::Cell;
 use std::collections::HashMap;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
 use profile_traits::generic_channel;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::domstring::{DOMString, TracedDOMString};
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::generic_channel::GenericSender;
 use servo_bluetooth_traits::{
     BluetoothCharacteristicMsg, BluetoothDescriptorMsg, BluetoothRequest, BluetoothResponse,
@@ -25,7 +25,6 @@ use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
-use crate::dom::bindings::str::DOMString;
 use crate::dom::bluetooth::{AsyncBluetoothListener, Bluetooth, response_async};
 use crate::dom::bluetoothcharacteristicproperties::BluetoothCharacteristicProperties;
 use crate::dom::bluetoothremotegattcharacteristic::BluetoothRemoteGATTCharacteristic;
@@ -34,7 +33,7 @@ use crate::dom::bluetoothremotegattserver::BluetoothRemoteGATTServer;
 use crate::dom::bluetoothremotegattservice::BluetoothRemoteGATTService;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise};
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
@@ -48,8 +47,8 @@ struct AttributeInstanceMap {
 #[dom_struct]
 pub(crate) struct BluetoothDevice {
     eventtarget: EventTarget,
-    id: DOMString,
-    name: Option<DOMString>,
+    id: TracedDOMString,
+    name: Option<TracedDOMString>,
     gatt: MutNullableDom<BluetoothRemoteGATTServer>,
     context: Dom<Bluetooth>,
     attribute_instance_map: AttributeInstanceMap,
@@ -64,8 +63,8 @@ impl BluetoothDevice {
     ) -> BluetoothDevice {
         BluetoothDevice {
             eventtarget: EventTarget::new_inherited(),
-            id,
-            name,
+            id: id.traced(),
+            name: name.map(DOMString::traced),
             gatt: Default::default(),
             context: Dom::from_ref(context),
             attribute_instance_map: AttributeInstanceMap {
@@ -84,10 +83,10 @@ impl BluetoothDevice {
         name: Option<DOMString>,
         context: &Bluetooth,
     ) -> DomRoot<BluetoothDevice> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(BluetoothDevice::new_inherited(id, name, context)),
             global,
-            cx,
         )
     }
 
@@ -292,12 +291,12 @@ impl BluetoothDevice {
 impl BluetoothDeviceMethods<crate::DomTypeHolder> for BluetoothDevice {
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-id>
     fn Id(&self) -> DOMString {
-        self.id.clone()
+        self.id.clone().root()
     }
 
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-name>
     fn GetName(&self) -> Option<DOMString> {
-        self.name.clone()
+        self.name.clone().map(TracedDOMString::root)
     }
 
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-gatt>
@@ -307,7 +306,7 @@ impl BluetoothDeviceMethods<crate::DomTypeHolder> for BluetoothDevice {
             .global()
             .as_window()
             .bluetooth_extra_permission_data()
-            .allowed_devices_contains_id(self.id.clone()) &&
+            .allowed_devices_contains_id(&self.id) &&
             !self.is_represented_device_null()
         {
             return Some(self.get_gatt(cx));
@@ -317,7 +316,7 @@ impl BluetoothDeviceMethods<crate::DomTypeHolder> for BluetoothDevice {
     }
 
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-watchadvertisements>
-    fn WatchAdvertisements(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
+    fn WatchAdvertisements(&self, cx: &mut CurrentRealm) -> RootedPromise {
         let p = Promise::new_in_realm(cx);
         let sender = response_async(&p, self);
         // TODO: Step 1.
@@ -357,7 +356,7 @@ impl AsyncBluetoothListener for BluetoothDevice {
         &self,
         cx: &mut JSContext,
         response: BluetoothResponse,
-        promise: &Rc<Promise>,
+        promise: &RootedPromise,
     ) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothdevice-unwatchadvertisements

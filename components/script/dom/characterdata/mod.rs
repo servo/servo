@@ -4,7 +4,7 @@
 
 pub(crate) use self::characterdata::*;
 pub(crate) mod cdatasection;
-#[allow(
+#[expect(
     clippy::module_inception,
     reason = "The interface name is CharacterData"
 )]

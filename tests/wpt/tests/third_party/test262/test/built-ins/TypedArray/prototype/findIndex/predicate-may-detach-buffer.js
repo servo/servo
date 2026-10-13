@@ -31,8 +31,8 @@ includes: [testTypedArray.js, detachArrayBuffer.js]
 features: [TypedArray]
 ---*/
 
-testWithTypedArrayConstructors(function(TA) {
-  var sample = new TA(2);
+testWithTypedArrayConstructors(function(TA, makeCtorArg) {
+  var sample = new TA(makeCtorArg(2));
   var loops = 0;
 
   sample.findIndex(function() {
@@ -42,4 +42,4 @@ testWithTypedArrayConstructors(function(TA) {
     loops++;
   });
   assert.sameValue(loops, 2, "predicate is called once");
-}, null, ["passthrough"]);
+}, null, null, ["immutable"]);

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Setting font shorthand</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-prop">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- regression test for https://github.com/jsdom/cssstyle/issues/3021 -->
+
+<div id="div"></div>
+<script>
+"use strict";
+
+test(() => {
+  const div = document.getElementById("div");
+  div.style.font = "normal bold 4px sans-serif";
+  assert_equals(div.style.font, "bold 4px sans-serif");
+}, "should get normalized value for font shorthand");
+</script>

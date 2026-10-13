@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>DataTransfer.getData("url") converts text/uri-list to a single URL</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dnd.html#dom-datatransfer-getdata">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// getData() step 6 sets the convert-to-URL flag when the requested format is "url", and
+// step 9 then parses the text/uri-list data and returns only its first URL. Comment lines
+// are those beginning with "#", per RFC 2483.
+
+function uriListDataTransfer(uriList) {
+  const dt = new DataTransfer();
+  dt.setData("text/uri-list", uriList);
+  return dt;
+}
+
+test(() => {
+  assert_equals(uriListDataTransfer("https://a.example/1").getData("url"),
+                "https://a.example/1");
+}, "A single URL is returned unchanged");
+
+test(() => {
+  assert_equals(uriListDataTransfer("https://a.example/1\nhttps://b.example/2").getData("url"),
+                "https://a.example/1");
+}, "Only the first URL is returned, for LF line endings");
+
+test(() => {
+  assert_equals(uriListDataTransfer("https://a.example/1\r\nhttps://b.example/2").getData("url"),
+                "https://a.example/1");
+}, "Only the first URL is returned, for CRLF line endings");
+
+test(() => {
+  assert_equals(uriListDataTransfer("https://a.example/1\n").getData("url"),
+                "https://a.example/1");
+  assert_equals(uriListDataTransfer("https://a.example/1\r\n").getData("url"),
+                "https://a.example/1");
+}, "A trailing line ending is not part of the URL");
+
+test(() => {
+  assert_equals(uriListDataTransfer("# comment\nhttps://a.example/1").getData("url"),
+                "https://a.example/1");
+  assert_equals(uriListDataTransfer("# one\n# two\nhttps://a.example/1\n# three").getData("url"),
+                "https://a.example/1");
+}, "Comment lines are skipped");
+
+test(() => {
+  assert_equals(uriListDataTransfer("https://a.example/1\n\nhttps://b.example/2").getData("url"),
+                "https://a.example/1");
+}, "A blank line after the first URL does not affect the result");
+
+test(() => {
+  assert_equals(uriListDataTransfer("").getData("url"), "");
+  assert_equals(uriListDataTransfer("# only a comment").getData("url"), "");
+  assert_equals(uriListDataTransfer("\r\n\r\n").getData("url"), "");
+}, "The empty string is returned when the list contains no URL");
+
+test(() => {
+  assert_equals(new DataTransfer().getData("url"), "",
+                "no text/uri-list item is present");
+}, "The empty string is returned when there is no text/uri-list item");
+
+test(() => {
+  const uriList = "https://a.example/1\nhttps://b.example/2";
+  for (const format of ["url", "URL", "Url", " url ", "\turl\n"]) {
+    assert_equals(uriListDataTransfer(uriList).getData(format), "https://a.example/1",
+                  `format ${JSON.stringify(format)} must convert to a URL`);
+  }
+}, "The format is matched ASCII case-insensitively after stripping whitespace");
+
+test(() => {
+  const uriList = "# comment\nhttps://a.example/1\nhttps://b.example/2";
+  assert_equals(uriListDataTransfer(uriList).getData("text/uri-list"), uriList,
+                "text/uri-list must be returned unchanged");
+  assert_equals(uriListDataTransfer(uriList).getData("text/uri-list;charset=utf-8"), uriList,
+                "a text/uri-list parameter must not set the convert-to-URL flag");
+}, "Requesting text/uri-list does not convert to a URL");
+
+// Blank lines are not URLs, so "the first URL from the list" skips them. RFC 2483 only
+// specifies the treatment of comment lines, so this case is under-specified; Gecko returns
+// the empty string here instead of the first URL.
+test(() => {
+  assert_equals(uriListDataTransfer("\n\nhttps://a.example/1").getData("url"),
+                "https://a.example/1");
+  assert_equals(uriListDataTransfer("\r\n\r\nhttps://a.example/1").getData("url"),
+                "https://a.example/1");
+}, "Leading blank lines are skipped");
+</script>

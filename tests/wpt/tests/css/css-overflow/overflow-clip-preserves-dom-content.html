@@ -1,0 +1,34 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Overflow: overflow: clip preserves DOM content</title>
+<link rel="author" title="John Jansen" href="mailto:johnjansen@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#valdef-overflow-clip">
+<meta name="assert" content="overflow: clip affects rendering without removing clipped text or elements from the DOM.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#clipped {
+  height: 20px;
+  line-height: 20px;
+  overflow: clip;
+}
+#clipped span {
+  display: block;
+  height: 20px;
+}
+</style>
+<div id="clipped"><span>Visible text.</span><span id="beyond-clip">Clipped text.</span></div>
+<script>
+test(() => {
+  const clipped = document.querySelector("#clipped");
+  assert_equals(clipped.textContent, "Visible text.Clipped text.");
+}, "overflow: clip preserves the complete textContent");
+
+test(() => {
+  const clipped = document.querySelector("#clipped");
+  const beyondClip = clipped.querySelector("#beyond-clip");
+  assert_not_equals(beyondClip, null);
+  assert_equals(beyondClip.parentNode, clipped);
+  assert_equals(beyondClip.textContent, "Clipped text.");
+}, "overflow: clip preserves elements beyond the clip boundary");
+</script>

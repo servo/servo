@@ -5,7 +5,7 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_canvas_traits::webgl::{WebGLContextId, WebGLProgramId};
 
 use crate::dom::bindings::root::DomRoot;
@@ -55,7 +55,8 @@ impl WebGLUniformLocation {
         size: Option<i32>,
         type_: u32,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(Self::new_inherited(
                 id,
                 context_id,
@@ -65,7 +66,6 @@ impl WebGLUniformLocation {
                 type_,
             )),
             window,
-            cx,
         )
     }
 

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-rows: repeat(2, 40px);
+    gap: 10px;
+    background: #cdd5e0;
+    width: max-content;
+  }
+  .lanes > div {
+    background: #5b8def;
+    color: #fff;
+    font: 600 12px/1 sans-serif;
+  }
+  .lanes > div.a { grid-row: 1; width: 30px; }
+  .lanes > div.c { grid-row: 2; width: 50px; }
+  .lanes > div.b { grid-row: 1; width: 30px; }
+  .lanes > div.d { grid-row: 1; width: 30px; }
+  .lanes > div.span {
+    grid-row: 1 / span 2;
+    width: 30px;
+    background: #8a6df0;
+  }
+  .col-rule { position: absolute; width: 0; }
+</style>
+<div class="lanes">
+  <div class="a">1</div>
+  <div class="c">2</div>
+  <div class="b">3</div>
+  <div class="d">4</div>
+  <div class="span">5</div>
+</div>
+<div class="col-rule" style="top: 0; left: 33px; height: 40px; border-left: 4px solid blue;"></div>
+<div class="col-rule" style="top: 0; left: 73px; height: 40px; border-left: 4px solid gold;"></div>
+<div class="col-rule" style="top: 0; left: 113px; height: 40px; border-left: 4px solid blue;"></div>
+<div class="col-rule" style="top: 50px; left: 113px; height: 40px; border-left: 4px solid blue;"></div>

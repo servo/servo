@@ -42,8 +42,3 @@ promise_test(async () => {
   const result = await writer.write(kTestPrompt, {context: kTestContext});
   assert_equals(typeof result, 'string');
 }, 'Simple Writer.write() call');
-
-promise_test(async () => {
-  const writer = await createWriter();
-  await Promise.all([writer.write(kTestPrompt), writer.write(kTestPrompt)]);
-}, 'Multiple Writer.write() calls are resolved successfully');

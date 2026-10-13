@@ -125,7 +125,7 @@ pub(crate) fn value_for_fontsize_command(
 ) -> Option<DOMString> {
     // Step 1. If the active range is null, return the empty string.
     let selection = document.GetSelection(cx)?;
-    let active_range = selection.active_range()?;
+    let active_range = selection.active_range(cx)?;
     // Step 2. Let pixel size be the effective command value of the first formattable
     // node that is effectively contained in the active range, or if there is no such node,
     // the effective command value of the active range's start node,
@@ -146,8 +146,8 @@ pub(crate) fn maybe_normalize_pixels(
     command_value: &DOMString,
     document: &Document,
 ) -> Option<DOMString> {
-    if command_value.ends_with_str("px") {
-        command_value.str()[0..command_value.len() - 2]
+    if let Some(px_value) = command_value.str().strip_suffix("px") {
+        px_value
             .parse::<f32>()
             .ok()
             .map(|value| legacy_font_size_for(value, document))

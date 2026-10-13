@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace};
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecord_Binding::MutationRecordMethods;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
@@ -47,7 +47,7 @@ impl MutationRecord {
             None,
             None,
         ));
-        reflect_dom_object_with_cx(record, &*target.owner_window(), cx)
+        reflect_dom_object(cx, record, &*target.owner_window())
     }
 
     pub(crate) fn character_data_mutated(
@@ -55,7 +55,8 @@ impl MutationRecord {
         target: &Node,
         old_value: Option<DOMString>,
     ) -> DomRoot<MutationRecord> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(MutationRecord::new_inherited(
                 "characterData",
                 target,
@@ -68,7 +69,6 @@ impl MutationRecord {
                 None,
             )),
             &*target.owner_window(),
-            cx,
         )
     }
 
@@ -86,7 +86,8 @@ impl MutationRecord {
         let removed_nodes =
             removed_nodes.map(|list| NodeList::new_simple_list_slice(cx, &window, list));
 
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(MutationRecord::new_inherited(
                 "childList",
                 target,
@@ -99,7 +100,6 @@ impl MutationRecord {
                 prev_sibling,
             )),
             &*window,
-            cx,
         )
     }
 

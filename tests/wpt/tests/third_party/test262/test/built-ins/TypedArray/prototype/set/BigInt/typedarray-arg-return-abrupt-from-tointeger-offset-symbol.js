@@ -17,10 +17,10 @@ features: [BigInt, Symbol, TypedArray]
 
 var s = Symbol("1");
 
-testWithBigIntTypedArrayConstructors(function(TA) {
-  var sample = new TA();
+testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
+  var sample = new TA(makeCtorArg(0));
 
   assert.throws(TypeError, function() {
     sample.set(sample, s);
   });
-}, null, ["passthrough"]);
+}, null, null, ["immutable"]);

@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSStyleSheet's insertRule should update computed styles after rule index is built</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssstylesheet-insertrule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style id="style-block">
+.a {
+  color: rgb(255, 0, 0);
+}
+</style>
+
+<div id="one" class="a"></div>
+<div id="two"></div>
+
+<script>
+"use strict";
+test(() => {
+  const one = document.getElementById("one");
+  const two = document.getElementById("two");
+  const sheet = document.styleSheets[0];
+
+  assert_equals(
+    window.getComputedStyle(one).color,
+    "rgb(255, 0, 0)",
+    "Initial style of #one should be red"
+  );
+
+  sheet.insertRule("#two { color: rgb(0, 0, 255); }", 1);
+
+  assert_equals(
+    window.getComputedStyle(two).color,
+    "rgb(0, 0, 255)",
+    "The computed color of #two should be blue after insertRule"
+  );
+}, "Styles should be recomputed correctly after insertRule even if the style cache was warmed up.");
+</script>

@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#track-sizing">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#percentage-sizing">
+<meta name="assert" content="Percentage tracks resolve against the grid container's content box whether its size is fixed, a calc() expression, a percentage or content-based.">
+<link rel="stylesheet" href="/css/support/width-keyword-classes.css">
+<link rel="stylesheet" href="/css/support/height-keyword-classes.css">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/css/support/alignment.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.grid {
+    grid-template-columns: 20% 50% 30%;
+    grid-template-rows: 40%;
+}
+
+.fixedSize {
+    width: 400px;
+    height: 400px;
+}
+
+.calculatedSize {
+    width: calc(200px + 20%);
+    height: calc(300px + 10%);
+}
+
+.percentageSize {
+    width: 50%;
+    height: 50%;
+}
+
+.indefiniteHeight {
+    height: auto;
+}
+
+.firstRowFirstColumn {
+    color: blue;
+    background-color: cyan;
+}
+
+.firstRowSecondColumn {
+    color: green;
+    background-color: lime;
+}
+
+.firstRowThirdColumn {
+    color: brown;
+    background-color: yellow;
+    grid-column: 3;
+    grid-row: 1;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+    <p>This test checks percentage track breadths are resolved properly regarding the container size.</p>
+    <div class="unconstrainedContainer">
+        <div class="grid">
+            <div class="firstRowFirstColumn sizedToGridArea" data-expected-width="200" data-expected-height="4">XX</div>
+            <div class="firstRowSecondColumn sizedToGridArea" data-expected-width="500" data-expected-height="4">XXXXX</div>
+            <div class="firstRowThirdColumn sizedToGridArea" data-expected-width="300" data-expected-height="4">XXX</div>
+        </div>
+    </div>
+
+    <div class="fit-content indefiniteHeight">
+        <div class="grid">
+            <div class="firstRowFirstColumn sizedToGridArea" data-expected-width="20" data-expected-height="4">XX</div>
+            <div class="firstRowSecondColumn sizedToGridArea" data-expected-width="50" data-expected-height="4">XXXXX</div>
+            <div class="firstRowThirdColumn sizedToGridArea" data-expected-width="30" data-expected-height="4">XXX</div>
+        </div>
+    </div>
+
+    <div class="unconstrainedContainer">
+        <div class="grid fixedSize">
+            <div class="firstRowFirstColumn sizedToGridArea" data-expected-width="80" data-expected-height="160">XX</div>
+            <div class="firstRowSecondColumn sizedToGridArea" data-expected-width="200" data-expected-height="160">XXXXX</div>
+            <div class="firstRowThirdColumn sizedToGridArea" data-expected-width="120" data-expected-height="160">XXX</div>
+        </div>
+    </div>
+
+    <div class="indefiniteHeight">
+        <div class="grid fixedSize">
+            <div class="firstRowFirstColumn sizedToGridArea" data-expected-width="80" data-expected-height="160">XX</div>
+            <div class="firstRowSecondColumn sizedToGridArea" data-expected-width="200" data-expected-height="160">XXXXX</div>
+            <div class="firstRowThirdColumn sizedToGridArea" data-expected-width="120" data-expected-height="160">XXX</div>
+        </div>
+    </div>
+
+    <div class="fit-content indefiniteHeight">
+        <div class="grid calculatedSize">
+            <div class="firstRowFirstColumn sizedToGridArea" data-expected-width="44" data-expected-height="4">XX</div>
+            <div class="firstRowSecondColumn sizedToGridArea" data-expected-width="110" data-expected-height="4">XXXXX</div>
+            <div class="firstRowThirdColumn sizedToGridArea" data-expected-width="66" data-expected-height="4">XXX</div>
+        </div>
+    </div>
+
+    <div class="unconstrainedContainer">
+        <div class="grid calculatedSize">
+            <div class="firstRowFirstColumn sizedToGridArea" data-expected-width="80" data-expected-height="160">XX</div>
+            <div class="firstRowSecondColumn sizedToGridArea" data-expected-width="200" data-expected-height="160">XXXXX</div>
+            <div class="firstRowThirdColumn sizedToGridArea" data-expected-width="120" data-expected-height="160">XXX</div>
+        </div>
+    </div>
+
+    <div class="fit-content indefiniteHeight">
+        <div class="grid percentageSize">
+            <div class="firstRowFirstColumn sizedToGridArea" data-expected-width="10" data-expected-height="4">XX</div>
+            <div class="firstRowSecondColumn sizedToGridArea" data-expected-width="25" data-expected-height="4">XXXXX</div>
+            <div class="firstRowThirdColumn sizedToGridArea" data-expected-width="15" data-expected-height="4">XXX</div>
+        </div>
+    </div>
+
+    <div class="unconstrainedContainer">
+        <div class="grid percentageSize">
+            <div class="firstRowFirstColumn sizedToGridArea" data-expected-width="100" data-expected-height="200">XX</div>
+            <div class="firstRowSecondColumn sizedToGridArea" data-expected-width="250" data-expected-height="200">XXXXX</div>
+            <div class="firstRowThirdColumn sizedToGridArea" data-expected-width="150" data-expected-height="200">XXX</div>
+        </div>
+    </div>
+
+    <div class="fit-content indefiniteHeight">
+        <div class="grid fit-content indefiniteHeight">
+            <div class="firstRowFirstColumn sizedToGridArea" data-expected-width="20" data-expected-height="4">XX</div>
+            <div class="firstRowSecondColumn sizedToGridArea" data-expected-width="50" data-expected-height="4">XXXXX</div>
+            <div class="firstRowThirdColumn sizedToGridArea" data-expected-width="30" data-expected-height="4">XXX</div>
+        </div>
+    </div>
+
+    <div class="unconstrainedContainer">
+        <div class="grid fit-content indefiniteHeight">
+            <div class="firstRowFirstColumn sizedToGridArea" data-expected-width="20" data-expected-height="4">XX</div>
+            <div class="firstRowSecondColumn sizedToGridArea" data-expected-width="50" data-expected-height="4">XXXXX</div>
+            <div class="firstRowThirdColumn sizedToGridArea" data-expected-width="30" data-expected-height="4">XXX</div>
+        </div>
+    </div>
+
+    <div class="indefiniteHeight fit-content">
+        <div class="grid fit-content">
+            <div class="firstRowFirstColumn sizedToGridArea" data-expected-width="20" data-expected-height="4">XX</div>
+            <div class="firstRowSecondColumn sizedToGridArea" data-expected-width="50" data-expected-height="4">XXXXX</div>
+            <div class="firstRowThirdColumn sizedToGridArea" data-expected-width="30" data-expected-height="4">XXX</div>
+        </div>
+    </div>
+
+    <div class="unconstrainedContainer">
+        <div class="grid fit-content">
+            <div class="firstRowFirstColumn sizedToGridArea" data-expected-width="20" data-expected-height="4">XX</div>
+            <div class="firstRowSecondColumn sizedToGridArea" data-expected-width="50" data-expected-height="4">XXXXX</div>
+            <div class="firstRowThirdColumn sizedToGridArea" data-expected-width="30" data-expected-height="4">XXX</div>
+        </div>
+    </div>
+
+</body>

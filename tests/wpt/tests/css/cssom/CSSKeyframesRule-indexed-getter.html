@@ -1,0 +1,42 @@
+<!doctype html>
+<title>CSSKeyframesRule indexed getter</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#interface-csskeyframesrule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @keyframes test {
+    from { opacity: 0 }
+    to { opacity: 1 }
+  }
+</style>
+<script>
+"use strict";
+
+const keyframesRule = document.styleSheets[0].cssRules[0];
+
+test(() => {
+  assert_equals(keyframesRule.length, 2);
+}, "length reflects number of keyframe rules");
+
+test(() => {
+  const rule = keyframesRule[0];
+  assert_equals(rule.keyText, "0%");
+}, "indexed getter returns the rule at the given index");
+
+test(() => {
+  const rule = keyframesRule[1];
+  assert_equals(rule.keyText, "100%");
+}, "indexed getter returns the last rule");
+
+test(() => {
+  assert_equals(keyframesRule[2], undefined);
+}, "indexed getter returns undefined for out-of-bounds index");
+
+test(() => {
+  assert_equals(keyframesRule[-1], undefined);
+}, "indexed getter returns undefined for negative index");
+
+test(() => {
+  assert_equals(keyframesRule[100], undefined);
+}, "indexed getter returns undefined for large out-of-bounds index");
+</script>

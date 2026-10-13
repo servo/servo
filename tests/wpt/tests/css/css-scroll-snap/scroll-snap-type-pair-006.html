@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<title>CSS Scroll Snap: Relatively positioned elements with center alignment under scroll-snap-type: pair</title>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#snap-axis"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #scroller {
+    width: 200px;
+    height: 200px;
+    scroll-snap-type: pair mandatory;
+    overflow: auto;
+    scrollbar-width: none;
+    border: 2px solid #333;
+    background: #fafafa;
+  }
+
+  #space {
+    background-color: #007bff;
+    width: 400px;
+    height: 400px;
+  }
+
+  .target {
+    background-color: #ffc107;
+    width: 50px;
+    height: 50px;
+    position: relative;
+    border: 2px solid #d39e00;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-family: sans-serif;
+  }
+
+  #target1 {
+    top: 200px;
+    left: 100px;
+    scroll-snap-align: center;
+  }
+
+  #target2 {
+    top: 100px;
+    left: 200px;
+    scroll-snap-align: center;
+  }
+</style>
+
+<div id="scroller">
+  <div id="space">
+    <div id="target1" class="target">Target1</div>
+    <div id="target2" class="target">Target2</div>
+  </div>
+</div>
+
+<script>
+test(t => {
+  const scroller = document.getElementById("scroller");
+
+  // target1: center = (125, 225). Centering in 200x200 viewport snaps to (25, 125).
+  assert_equals(scroller.scrollLeft, 25, "Initial scrollLeft should center target1");
+  assert_equals(scroller.scrollTop, 125, "Initial scrollTop should center target1");
+
+  // target2: center = (225, 175). Centering in 200x200 viewport snaps to (125, 75).
+  scroller.scrollTo(130, 80);
+  assert_equals(scroller.scrollLeft, 125, "scrollLeft should snap to center target2");
+  assert_equals(scroller.scrollTop, 75, "scrollTop should snap to center target2");
+}, "Relatively positioned targets with scroll-snap-align: center snap accurately under pair mandatory");
+</script>

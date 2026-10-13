@@ -10,6 +10,10 @@ const WRONG_COMMAND_ARRAY = ["tracing", "devtools", "force_ipc", "multiprocess",
 export default class EntryAbility extends UIAbility {
   init_params: LocalStorage = new LocalStorage();
   onCreate(want: Want, launchParam: AbilityConstant.LaunchParam) {
+    if (servoshell === undefined) {
+      hilog.fatal(0xE0C3, "Servo EntryAbility", "Failed to load libservoshell.so! Search hilog for the reason.");
+      throw new Error("Failed to load libservoshell.so");
+    }
     let uri: string = want.uri || "https://servo.org"
     let params: string[] = []
     if (typeof want.parameters !== "undefined") {

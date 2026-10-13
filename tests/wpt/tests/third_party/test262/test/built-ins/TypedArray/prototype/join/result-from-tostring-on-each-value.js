@@ -30,8 +30,8 @@ features: [TypedArray]
 
 var arr = [-2, Infinity, NaN, -Infinity, 0.6, 9007199254740992];
 
-testWithTypedArrayConstructors(function(TA) {
-  var sample = new TA(arr);
+testWithTypedArrayConstructors(function(TA, makeCtorArg) {
+  var sample = new TA(makeCtorArg(arr));
 
   // Use converted values using Array methods as helpers
   var expected = arr.map(function(_, i) {
@@ -41,4 +41,4 @@ testWithTypedArrayConstructors(function(TA) {
   var result = sample.join();
 
   assert.sameValue(result, expected);
-}, null, ["passthrough"]);
+});

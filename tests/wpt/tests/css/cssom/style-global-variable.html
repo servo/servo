@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Setting CSS global variables</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#cssstyledeclaration">
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-elementcssinlinestyle-mixin">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- regression test for https://github.com/jsdom/jsdom/issues/3833 -->
+
+<body>
+<script>
+"use strict";
+
+test(() => {
+  const { body } = document;
+  body.style.setProperty("top", "0px");
+  assert_equals(body.style.getPropertyValue("top"), "0px", 'Property value is "0px"');
+  body.style.setProperty("top", "unset");
+  assert_equals(body.style.getPropertyValue("top"), "unset", 'Property value changed to "unset"');
+});
+</script>

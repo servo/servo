@@ -1,0 +1,67 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Container Timing: lastPaintedElement is selected by the element's own area</title>
+<body>
+<style>
+body {
+  margin: 0;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/container-timing/resources/container-timing-helpers.js"></script>
+<script>
+  let beforeRender;
+  async_test(function (t) {
+    assert_implements(window.PerformanceContainerTiming, "PerformanceContainerTiming is not implemented");
+
+    const div = document.createElement('div');
+    div.setAttribute('containertiming', 'div_ct');
+    document.body.appendChild(div);
+
+    function addImage(id, left, top, width, height) {
+      const img = document.createElement('img');
+      img.src = '/container-timing/resources/square100.png';
+      img.setAttribute('id', id);
+      img.style.position = 'absolute';
+      img.style.left = left + 'px';
+      img.style.top = top + 'px';
+      img.style.width = width + 'px';
+      img.style.height = height + 'px';
+      div.appendChild(img);
+    }
+
+    let entries = 0;
+    const observer = new PerformanceObserver(t.step_func(function(entryList) {
+      for (const entry of entryList.getEntries()) {
+        ++entries;
+        if (entries == 1) {
+          checkContainerEntry(entry, 'div_ct', 'first_id', beforeRender);
+          checkContainerSize(entry, 10000);
+
+          // Two more images, in a later frame and sharing the already loaded
+          // resource, so that they paint together:
+          //  - 100x120 covering all of the first image, so it contributes only
+          //    a 100x20 strip: 2000 of new area, but 12000 of its own.
+          //  - 60x60 of entirely new area: 3600 either way.
+          // Selecting by the newly contributed area would report the smaller
+          // one; selecting by the element's own area reports the larger one.
+          addImage('overlapping_id', 0, 0, 100, 120);
+          addImage('fresh_id', 200, 200, 60, 60);
+          return;
+        }
+
+        checkContainerEntry(entry, 'div_ct', 'overlapping_id', beforeRender);
+        checkContainerSize(entry, 15600);
+        checkContainerIntersectionRect(entry, [0, 260, 0, 260]);
+        t.done();
+      }
+    }));
+    observer.observe({entryTypes: ['container']});
+
+    addImage('first_id', 0, 0, 100, 100);
+    beforeRender = performance.now();
+  }, 'lastPaintedElement is the element with the largest area of its own, not the largest newly painted area.');
+</script>
+
+</body>

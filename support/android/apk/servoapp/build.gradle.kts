@@ -16,12 +16,12 @@ android {
         minSdk = libs.versions.android.sdk.min.get().toInt()
         targetSdk = 34
         versionCode = generatedVersionCode
-        versionName = "0.5.0"
+        versionName = "0.7.0"
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_1_8
-        targetCompatibility = JavaVersion.VERSION_1_8
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
     }
 
     val signingKeyInfo = getSigningKeyInfo()
@@ -38,8 +38,7 @@ android {
     }
 
     buildTypes {
-        debug {
-        }
+        debug {}
 
         release {
             signingConfig =
@@ -53,54 +52,37 @@ android {
         val debug = getByName("debug")
         val release = getByName("release")
 
-
         register("armv7Debug") {
             initWith(debug)
-            ndk {
-                abiFilters.add(getNDKAbi("armv7"))
-            }
+            ndk { abiFilters.add(getNDKAbi("armv7")) }
         }
         register("armv7Release") {
             initWith(release)
-            ndk {
-                abiFilters.add(getNDKAbi("armv7"))
-            }
+            ndk { abiFilters.add(getNDKAbi("armv7")) }
         }
         register("arm64Debug") {
             initWith(debug)
-            ndk {
-                abiFilters.add(getNDKAbi("arm64"))
-            }
+            ndk { abiFilters.add(getNDKAbi("arm64")) }
         }
         register("arm64Release") {
             initWith(release)
-            ndk {
-                abiFilters.add(getNDKAbi("arm64"))
-            }
+            ndk { abiFilters.add(getNDKAbi("arm64")) }
         }
         register("x86Debug") {
             initWith(debug)
-            ndk {
-                abiFilters.add(getNDKAbi("x86"))
-            }
+            ndk { abiFilters.add(getNDKAbi("x86")) }
         }
         register("x86Release") {
             initWith(release)
-            ndk {
-                abiFilters.add(getNDKAbi("x86"))
-            }
+            ndk { abiFilters.add(getNDKAbi("x86")) }
         }
         register("x64Debug") {
             initWith(debug)
-            ndk {
-                abiFilters.add(getNDKAbi("x64"))
-            }
+            ndk { abiFilters.add(getNDKAbi("x64")) }
         }
         register("x64Release") {
             initWith(release)
-            ndk {
-                abiFilters.add(getNDKAbi("x64"))
-            }
+            ndk { abiFilters.add(getNDKAbi("x64")) }
         }
     }
 }

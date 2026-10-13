@@ -1,0 +1,53 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Proofreader API (https://webmachinelearning.github.io/proofreader-api/)
+
+[Exposed=Window, SecureContext]
+interface Proofreader {
+    static Promise<Proofreader> create(optional ProofreaderCreateOptions options = {});
+    static Promise<Availability> availability(optional ProofreaderCreateCoreOptions options = {});
+
+    Promise<ProofreadResult> proofread(
+        DOMString input,
+        optional ProofreaderProofreadOptions options = {}
+    );
+
+    readonly attribute boolean includeCorrectionTypes;
+    readonly attribute boolean includeCorrectionExplanations;
+
+    readonly attribute FrozenArray<DOMString>? expectedInputLanguages;
+    readonly attribute DOMString? correctionExplanationLanguage;
+};
+
+dictionary ProofreaderCreateCoreOptions {
+    boolean includeCorrectionTypes = false;
+    boolean includeCorrectionExplanations = false;
+
+    sequence<DOMString> expectedInputLanguages;
+    DOMString correctionExplanationLanguage;
+};
+
+dictionary ProofreaderCreateOptions : ProofreaderCreateCoreOptions {
+    AbortSignal signal;
+    CreateMonitorCallback monitor;
+};
+
+dictionary ProofreaderProofreadOptions {
+    AbortSignal signal;
+};
+
+dictionary ProofreadResult {
+    DOMString correctedInput;
+    sequence<ProofreadCorrection> corrections;
+};
+
+dictionary ProofreadCorrection {
+    unsigned long long startIndex;
+    unsigned long long endIndex;
+    DOMString correction;
+    sequence<CorrectionType> types;
+    DOMString explanation;
+};
+
+enum CorrectionType { "spelling", "punctuation", "capitalization", "grammar" };

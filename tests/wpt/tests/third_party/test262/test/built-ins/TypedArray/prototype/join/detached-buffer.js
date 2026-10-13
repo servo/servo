@@ -24,10 +24,10 @@ let obj = {
   }
 };
 
-testWithTypedArrayConstructors(function(TA) {
-  let sample = new TA(1);
+testWithTypedArrayConstructors(function(TA, makeCtorArg) {
+  let sample = new TA(makeCtorArg(1));
   $DETACHBUFFER(sample.buffer);
   assert.throws(TypeError, () => {
     sample.join(obj);
   });
-}, null, ["passthrough"]);
+}, null, null, ["immutable"]);

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver navigate method</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+
+<script>
+// navigate needs an absolute URL
+function target_url(channel) {
+    return new URL(`navigate_target.html?channel=${channel}`, location.href).href;
+}
+
+// Resolves with the message the target page posts once it loads or rejects
+function loaded(t, channel) {
+    const bc = new BroadcastChannel(channel);
+    t.add_cleanup(() => bc.close());
+    return new Promise((resolve, reject) => {
+        bc.addEventListener("message", e => resolve(e.data));
+        t.step_timeout(() => reject(new Error("no message from the target page")), 5000);
+    });
+}
+
+promise_test(async t => {
+    const channel = token();
+    const message = loaded(t, channel);
+    const handle = await test_driver.create_window();
+    await test_driver.navigate(target_url(channel), handle);
+    assert_equals(await message, "loaded");
+}, "navigate accepts a WebDriver window handle as the context");
+
+promise_test(async t => {
+    const channel = token();
+    const message = loaded(t, channel);
+    const popup = window.open("/common/blank.html");
+    assert_not_equals(popup, null, "popup should not be blocked");
+    t.add_cleanup(() => popup.close());
+    await new Promise(resolve => popup.addEventListener("load", resolve));
+    await test_driver.navigate(target_url(channel), popup);
+    assert_equals(await message, "loaded");
+}, "navigate accepts a WindowProxy as the context");
+</script>

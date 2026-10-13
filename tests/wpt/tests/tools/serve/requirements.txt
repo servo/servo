@@ -1,0 +1,4 @@
+# Packages needed by Python handlers in the test tree, which run in the same
+# environment as wptserve itself. These are installed unconditionally for any
+# command that serves tests (`wpt serve`, `wpt serve-wave`, `wpt run`).
+cryptography==50.0.1

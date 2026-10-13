@@ -57,3 +57,8 @@ multi_builder_test(async (t, builder, otherBuilder) => {
       otherBuilder.input('input', {dataType: 'float32', shape: [3, 3]});
   assert_throws_js(TypeError, () => builder.reverse(input));
 }, '[reverse] Throw if input is from another builder');
+
+validateOperandRank('reverse', 'input', (builder, input) => {
+  const rank = input.shape.length;
+  return builder.reverse(input, rank > 0 ? {axes: [rank - 1]} : {});
+});

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/reporting/resources/report-helper.js"></script>
+<script src="/speculation-rules/prefetch/resources/utils.sub.js"></script>
+</head>
+<body>
+<script>
+const { HTTPS_REMOTE_ORIGIN } = get_host_info();
+const endpoint = "/reporting/resources/report.py";
+const reportID = '0a9c8b32-3bf9-45ad-8c12-b08880629a43';
+const url = `${HTTPS_REMOTE_ORIGIN}/common/blank.html`;
+
+promise_test(async t => {
+  insertSpeculationRules({
+    prefetch: [{source: 'list', urls: [url], eagerness: 'immediate'}]
+  });
+
+  const reports = await pollReports(endpoint, reportID);
+
+  const report = reports.find(r => r.type === 'connection-allowlist' && r.body.connection === url);
+  assert_true(!!report, `A report for ${url} should be present.`);
+  assert_equals(report.body.disposition, 'enforce');
+}, 'Connection-Allowlist report is delivered to the reporting endpoint for a blocked speculation rules prefetch.');
+</script>
+</body>
+</html>

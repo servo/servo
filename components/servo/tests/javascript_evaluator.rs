@@ -7,6 +7,11 @@ mod common;
 
 use std::rc::Rc;
 
+use http::{HeaderName, HeaderValue};
+use http_body_util::combinators::BoxBody;
+use hyper::body::{Bytes, Incoming};
+use hyper::{Request as HyperRequest, Response as HyperResponse};
+use net::test_util::{make_body, make_server};
 use servo::{JSValue, JavaScriptEvaluationError, WebViewBuilder};
 
 use crate::common::{ServoTest, WebViewDelegateImpl, evaluate_javascript};
@@ -94,4 +99,33 @@ fn test_evaluate_javascript_panic() {
     let input = "location";
     let result = evaluate_javascript(&servo_test, webview.clone(), input);
     assert!(matches!(result, Ok(JSValue::Object(..))));
+}
+
+#[test]
+fn runs_in_csp_restricted() {
+    let servo_test = ServoTest::new();
+
+    static MESSAGE: &'static [u8] = b"<!DOCTYPE html><p id=\"para\">Some text here</p>";
+    let handler =
+        move |_: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            println!("Request");
+            response.headers_mut().insert(
+                HeaderName::from_static("content-security-policy"),
+                HeaderValue::from_static("sandbox"),
+            );
+            *response.body_mut() = make_body(MESSAGE.to_vec());
+        };
+    let (server, url) = make_server(handler);
+
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(url.url().into_url())
+        .build();
+    servo_test.spin(|| webview.url() != Some(url.url().into_url()));
+    server.close();
+
+    let result = evaluate_javascript(&servo_test, webview.clone(), "document.readyState");
+    assert_eq!(result, Ok(JSValue::String("complete".into())));
 }

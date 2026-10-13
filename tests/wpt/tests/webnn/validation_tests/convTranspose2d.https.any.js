@@ -549,6 +549,46 @@ const tests = [
       label: label,
     },
   },
+  {
+    name:
+        '[convTranspose2d] Throw if a stride is larger than the output height.',
+    input: {dataType: 'float32', shape: [1, 1, 1, 1]},
+    filter: {dataType: 'float32', shape: [1, 1, 1, 1]},
+    options: {
+      strides: [kMaxUnsignedLong, 1],
+      label: label,
+    },
+  },
+  {
+    name:
+        '[convTranspose2d] Throw if a stride is larger than the output width.',
+    input: {dataType: 'float32', shape: [1, 1, 1, 1]},
+    filter: {dataType: 'float32', shape: [1, 1, 1, 1]},
+    options: {
+      strides: [1, kMaxUnsignedLong],
+      label: label,
+    },
+  },
+  {
+    name:
+        '[convTranspose2d] Throw if a dilation is larger than the output height.',
+    input: {dataType: 'float32', shape: [1, 1, 3, 3]},
+    filter: {dataType: 'float32', shape: [1, 1, 1, 1]},
+    options: {
+      dilations: [kMaxUnsignedLong, 1],
+      label: label,
+    },
+  },
+  {
+    name:
+        '[convTranspose2d] Throw if a dilation is larger than the output width.',
+    input: {dataType: 'float32', shape: [1, 1, 3, 3]},
+    filter: {dataType: 'float32', shape: [1, 1, 1, 1]},
+    options: {
+      dilations: [1, kMaxUnsignedLong],
+      label: label,
+    },
+  },
 ];
 
 tests.forEach(

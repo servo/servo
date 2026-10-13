@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Removing src attribute from img after it loads</title>
+<link rel="author" title="atsikov" href="mailto:alexey.tsikov@gmail.com">
+<link rel="help" href="https://html.spec.whatwg.org/#the-img-element">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+async_test(t => {
+  const image = new window.Image();
+  const runTest = t.step_func(() => {
+    image.onload = t.unreached_func("onload should not be called with removed src");
+    image.onerror = t.unreached_func("onerror should not be called with removed src");
+    image.removeAttribute("src");
+
+    assert_equals(image.width, 0);
+    assert_equals(image.height, 0);
+    assert_equals(image.complete, true);
+    assert_equals(image.src, "");
+    assert_equals(image.currentSrc, "");
+
+    // Give it a second to make sure onload/onerror don't fire within that time frame.
+    t.step_timeout(() => {
+      t.done();
+    }, 1000);
+  });
+
+  image.src = "data:image/gif;base64,R0lGODlhAQABAIAAAMLCwgAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==";
+
+  image.onload = runTest;
+
+  // JSDOM specific: when image loading is not supported (i.e. when node-canvas is not installed), run the test anyway.
+  t.step_timeout(runTest, 1000);
+}, "img is cleared when src attribute is removed");
+</script>

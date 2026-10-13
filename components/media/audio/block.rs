@@ -44,6 +44,12 @@ impl Default for Chunk {
 }
 
 impl Chunk {
+    pub fn new(block: Block) -> Self {
+        Chunk {
+            blocks: smallvec![block; 1],
+        }
+    }
+
     pub fn is_empty(&self) -> bool {
         self.blocks.is_empty()
     }
@@ -583,6 +589,24 @@ impl<'a> FrameRef<'a> {
                     chan,
                 )
             }
+        }
+    }
+
+    #[inline]
+    /// Gets the data in the current frame of the block
+    /// Returned slice with one value per channel
+    pub fn get_frame(&self) -> Vec<f32> {
+        if self.block.repeat {
+            vec![self.block.buffer[self.frame.0 as usize]; self.block.channels as usize]
+        } else {
+            let mut frames = Vec::with_capacity(self.block.channels as usize);
+            for channel in 0..self.block.channels {
+                frames.push(
+                    self.block.buffer
+                        [channel as usize * FRAMES_PER_BLOCK_USIZE + self.frame.0 as usize],
+                );
+            }
+            frames
         }
     }
 }

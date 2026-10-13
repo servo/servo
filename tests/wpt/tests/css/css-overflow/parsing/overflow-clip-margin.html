@@ -11,10 +11,12 @@
 <body>
 <script>
 test_valid_value("overflow-clip-margin", '10px', '10px');
+test_valid_value("overflow-clip-margin", '-10px', '-10px');
 
 test_valid_value("overflow-clip-margin", 'content-box', 'content-box');
 test_valid_value("overflow-clip-margin", 'content-box 10px', 'content-box 10px');
 test_valid_value("overflow-clip-margin", '10px content-box', 'content-box 10px');
+test_valid_value("overflow-clip-margin", '-10px content-box', 'content-box -10px');
 test_valid_value("overflow-clip-margin", '0px content-box', 'content-box');
 
 test_valid_value("overflow-clip-margin", 'padding-box', '0px');
@@ -26,9 +28,11 @@ test_valid_value("overflow-clip-margin", 'border-box', 'border-box');
 test_valid_value("overflow-clip-margin", 'border-box 0px', 'border-box');
 test_valid_value("overflow-clip-margin", 'border-box 10px', 'border-box 10px');
 test_valid_value("overflow-clip-margin", '10px border-box', 'border-box 10px');
+test_valid_value("overflow-clip-margin", '-10px border-box', 'border-box -10px');
 
 test_valid_value("overflow-clip-margin", "calc(100px - 50px)", "calc(50px)");
 test_valid_value("overflow-clip-margin", "calc(100px - 100px)", "calc(0px)");
+test_valid_value("overflow-clip-margin", "calc(100px - 150px)", "calc(-50px)");
 test_valid_value("overflow-clip-margin", "calc(0.5em - 100px)");
 test_invalid_value("overflow-clip-margin", "calc(100% - 0.5em)");
 test_invalid_value("overflow-clip-margin", "calc(100% - 50px)");

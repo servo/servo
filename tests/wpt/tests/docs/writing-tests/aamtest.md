@@ -162,6 +162,22 @@ def test_axapi(axapi, session, inline):
     assert role == "AXFoobar"
 ```
 
+### Testing events
+
+Testing events fired by the accessibility API is possible with the
+`expect_event()` method. It registers a listener for the event, runs an action
+to trigger it, then blocks until the event arrives and returns it. If the event
+never arrives, it raises `TimeoutError`.
+
+For example, waiting for an `object:state-changed:foobar` event in AT-SPI:
+```python
+event = atspi.expect_event(
+    "object:state-changed:foobar", dom_id="test",
+    # Trigger the event, e.g. via WebDriver click.
+    action=lambda: session.find.css("#test", all=False).click(),
+)
+```
+
 ## Adding support for an unsupported API
 
 To add an unsupported API:

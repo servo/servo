@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<html class="reftest-wait">
 <meta charset=utf-8>
 <link rel="match" href="large-min-size-reftest-ref.html">
 <link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md#locking-the-pepc-style">
@@ -29,6 +30,11 @@
   }
 </style>
 
-<div><usermedia id="id1" type="microphone"></usermedia></div>
-<div><usermedia id="id2" type="camera"></usermedia></div>
+<div><usermedia id="id1"></usermedia></div>
+<div><geolocation id="id2"></geolocation></div>
+  <script>
+    requestAnimationFrame(() => {
+      document.documentElement.classList.remove('reftest-wait');
+    });
+  </script>
 </body>

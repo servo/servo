@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>text-overflow: &lt;string&gt; in a textarea scrolled back to the start</title>
+<link rel="author" title="Minseong Kim" href="jja08111@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#text-overflow">
+<link rel="mismatch" href="text-overflow-in-textarea-notref.html">
+<meta name="assert" content="The text-overflow string is rendered again once the textarea is scrolled back to the start.">
+<style>
+textarea {
+  white-space: nowrap;
+  text-overflow: "[...]";
+}
+</style>
+<textarea>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</textarea>
+<script>
+const textarea = document.querySelector('textarea');
+textarea.scrollLeft = textarea.scrollWidth;
+requestAnimationFrame(() => {
+  textarea.scrollLeft = 0;
+  requestAnimationFrame(() => {
+    document.documentElement.classList.remove('reftest-wait');
+  });
+});
+</script>
+</html>

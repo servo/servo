@@ -140,4 +140,27 @@ test(function() {
   assertSelectValue(select, "");
 
 }, "set selectedIndex=-1");
+
+test(function() {
+  var select = document.createElement("select");
+  select.innerHTML = `
+    <option value="placeholder">placeholder</option>
+    <option value="{{item}}">foobar</option>`;
+  document.body.appendChild(select);
+  this.add_cleanup(() => { select.remove(); });
+
+  assertSelectedIndex(select, 0);
+
+  select.value = "foobar";
+  assertSelectedIndex(select, -1);
+  assertSelectValue(select, "");
+
+  select.options[1].setAttribute("value", "foobar");
+  assertSelectedIndex(select, -1);
+  assertSelectValue(select, "");
+
+  select.options[0].remove();
+  assertSelectedIndex(select, 0);
+  assertSelectValue(select, "foobar");
+}, "removing a non-selected option with nothing selected asks for a reset");
 </script>

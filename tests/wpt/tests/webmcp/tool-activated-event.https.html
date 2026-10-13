@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: ToolActivatedEvent interface and ontoolactivated handler</title>
+<link rel="help" href="https://webmachinelearning.github.io/webmcp/#tool-activated-event">
+<link rel="author" href="mailto:beaufort.francois@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+test(() => {
+  const event = new ToolActivatedEvent('toolactivated');
+  assert_equals(event.type, 'toolactivated');
+  assert_equals(event.toolName, '', 'toolName defaults to the empty string');
+  assert_false(event.bubbles);
+  assert_false(event.cancelable);
+  assert_false(event.composed);
+  assert_false(event.isTrusted);
+}, 'ToolActivatedEvent constructor with default event init dictionary');
+
+test(() => {
+  const event = new ToolActivatedEvent('toolactivated', {
+    toolName: 'my_tool',
+    bubbles: true,
+    cancelable: true,
+    composed: true,
+  });
+  assert_equals(event.toolName, 'my_tool');
+  assert_true(event.bubbles);
+  assert_true(event.cancelable);
+  assert_true(event.composed);
+}, 'ToolActivatedEvent constructor with an event init dictionary');
+
+test(t => {
+  const events = [];
+  const handler = e => events.push(e);
+  document.modelContext.ontoolactivated = handler;
+  t.add_cleanup(() => { document.modelContext.ontoolactivated = null; });
+
+  const event = new ToolActivatedEvent('toolactivated', { toolName: 'my_tool' });
+  document.modelContext.dispatchEvent(event);
+
+  assert_array_equals(events, [event],
+      'synthetic toolactivated events must reach ontoolactivated');
+  assert_equals(events[0].target, document.modelContext);
+  assert_equals(events[0].toolName, 'my_tool');
+}, 'ontoolactivated is invoked for synthetic toolactivated events dispatched ' +
+   'at ModelContext');
+
+promise_test(async t => {
+  assert_equals(document.modelContext.ontoolactivated, null,
+      'ontoolactivated must initially be null');
+
+  const events = [];
+  const handler = e => events.push(e);
+  document.modelContext.ontoolactivated = handler;
+  t.add_cleanup(() => { document.modelContext.ontoolactivated = null; });
+  assert_equals(document.modelContext.ontoolactivated, handler,
+      'ontoolactivated must reflect the assigned handler');
+
+  const regController = new AbortController();
+  t.add_cleanup(() => regController.abort());
+  await document.modelContext.registerTool({
+    name: 'onevent_tool',
+    description: 'Tool used to trigger ontoolactivated',
+    execute: () => 'result',
+  }, { signal: regController.signal });
+
+  const tools = await document.modelContext.getTools();
+  const tool = tools.find(tool => tool.name === 'onevent_tool');
+  await document.modelContext.executeTool(tool, {});
+
+  assert_equals(events.length, 1, 'ontoolactivated must be invoked once');
+  assert_true(events[0] instanceof ToolActivatedEvent);
+  assert_equals(events[0].toolName, 'onevent_tool');
+
+  document.modelContext.ontoolactivated = null;
+  assert_equals(document.modelContext.ontoolactivated, null,
+      'ontoolactivated must be nullable');
+
+  await document.modelContext.executeTool(tool, {});
+  assert_equals(events.length, 1,
+      'the removed handler must not be invoked again');
+}, 'ontoolactivated is invoked when a tool is activated');
+</script>

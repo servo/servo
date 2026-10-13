@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::MediaErrorBinding::MediaErrorMethods;
 use crate::dom::bindings::root::DomRoot;
@@ -26,7 +26,7 @@ impl MediaError {
     }
 
     pub(crate) fn new(cx: &mut JSContext, window: &Window, code: u16) -> DomRoot<MediaError> {
-        reflect_dom_object_with_cx(Box::new(MediaError::new_inherited(code)), window, cx)
+        reflect_dom_object(cx, Box::new(MediaError::new_inherited(code)), window)
     }
 }
 

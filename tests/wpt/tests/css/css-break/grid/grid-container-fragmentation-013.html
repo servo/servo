@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="author" title="Hoch Hochkeppel" href="mailto:mhochk@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#pagination">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#content-distribution">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="A grid item aligned before the first fragmentainer is rendered in that fragmentainer.">
+<title>CSS Grid: alignment overflowing fragmentainer</title>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; overflow: hidden; columns: 2; column-gap: 0; background: red;">
+  <div style="display: grid; height: 200px; align-content: center;">
+    <div style="height: 300px; background: green;"></div>
+  </div>
+</div>

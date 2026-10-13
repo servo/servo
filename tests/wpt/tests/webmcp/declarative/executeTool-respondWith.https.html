@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: declarative tool submit event and respondWith() behavior</title>
+<link rel="author" href="mailto:beaufort.francois@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/helpers.js"></script>
+
+<form id="spa_form" toolautosubmit toolname="spa_tool" tooldescription="SPA tool" action="about:blank" target="spa_iframe">
+  <input type="text" name="query">
+  <button type="submit">Submit</button>
+</form>
+<iframe name="spa_iframe" style="display:none"></iframe>
+
+<form id="no_respond_form" toolautosubmit toolname="no_respond_tool" tooldescription="No respondWith tool" action="about:blank" target="no_respond_iframe">
+  <input type="text" name="query">
+  <button type="submit">Submit</button>
+</form>
+<iframe name="no_respond_iframe" style="display:none"></iframe>
+
+<form id="no_prevent_default_form" toolautosubmit toolname="no_prevent_default_tool" tooldescription="No preventDefault tool" action="/common/blank.html" target="no_prevent_default_iframe">
+  <input type="text" name="query">
+  <button type="submit">Submit</button>
+</form>
+<iframe name="no_prevent_default_iframe" style="display:none"></iframe>
+
+<form id="manual_form" action="about:blank" target="manual_iframe">
+  <input type="text" name="query">
+</form>
+<iframe name="manual_iframe" style="display:none"></iframe>
+
+<form id="late_respond_form" toolautosubmit toolname="late_respond_tool" tooldescription="Late respondWith tool" action="about:blank" target="late_respond_iframe">
+  <input type="text" name="query">
+</form>
+<iframe name="late_respond_iframe" style="display:none"></iframe>
+
+<form id="navigate_form" toolautosubmit toolname="navigate_tool" tooldescription="Navigate tool" action="about:blank" target="navigate_iframe">
+  <input type="text" name="query">
+  <button type="submit">Submit</button>
+</form>
+<iframe name="navigate_iframe" style="display:none"></iframe>
+
+<script>
+promise_test(async t => {
+  const form = document.querySelector('#spa_form');
+  const input = form.querySelector('input');
+  let submitEventFired = false;
+  let inputValueAtSubmit = '';
+
+  form.addEventListener('submit', e => {
+    submitEventFired = true;
+    inputValueAtSubmit = input.value;
+    assert_true(e.agentInvoked, 'agentInvoked should be true during tool invocation');
+    e.preventDefault();
+    e.respondWith(Promise.resolve('result value'));
+  });
+
+  const tool = await waitForTool('spa_tool');
+  const result = await document.modelContext.executeTool(tool, { query: 'testing' });
+
+  assert_true(submitEventFired, 'submit event should have fired');
+  assert_equals(inputValueAtSubmit, 'testing', 'Input value should match tool arguments during submit');
+  assert_equals(result, 'result value', 'executeTool should resolve to the respondWith promise value');
+}, 'executeTool resolves with respondWith() value when preventDefault() is called');
+
+promise_test(async t => {
+  const form = document.querySelector('#no_respond_form');
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+  });
+
+  const tool = await waitForTool('no_respond_tool');
+  await promise_rejects_dom(
+    t,
+    'UnknownError',
+    document.modelContext.executeTool(tool, { query: 'testing' }),
+    'executeTool should reject when submit is preventDefaulted without calling respondWith'
+  );
+}, 'executeTool rejects when preventDefault() is called without respondWith()');
+
+promise_test(async t => {
+  const form = document.querySelector('#no_prevent_default_form');
+  const iframe = document.querySelector('iframe[name="no_prevent_default_iframe"]');
+  const navPromise = new Promise(resolve => iframe.addEventListener('load', resolve, { once: true }));
+  let respondWithError = null;
+
+  form.addEventListener('submit', e => {
+    try {
+      e.respondWith(Promise.resolve('result'));
+    } catch (err) {
+      respondWithError = err;
+    }
+  });
+
+  const tool = await waitForTool('no_prevent_default_tool');
+  const result = await document.modelContext.executeTool(tool, { query: 'testing' });
+
+  assert_true(respondWithError instanceof DOMException, 'respondWith should throw DOMException');
+  assert_equals(respondWithError.name, 'InvalidStateError', 'respondWith should throw InvalidStateError when preventDefault() was not called');
+  assert_equals(result, null, 'executeTool should resolve to null when form navigates');
+
+  await navPromise;
+}, 'respondWith() throws InvalidStateError if preventDefault() was not called, and form navigates');
+
+test(() => {
+  const form = document.querySelector('#manual_form');
+  let agentInvoked = undefined;
+  let error = null;
+
+  form.addEventListener('submit', e => {
+    agentInvoked = e.agentInvoked;
+    try {
+      e.respondWith(Promise.resolve('result'));
+    } catch (err) {
+      error = err;
+    }
+    e.preventDefault();
+  });
+
+  form.requestSubmit();
+
+  assert_false(agentInvoked, 'agentInvoked should be false for manual submission');
+  assert_true(error instanceof DOMException, 'respondWith should throw DOMException');
+  assert_equals(error.name, 'InvalidStateError', 'respondWith should throw InvalidStateError on manual submit');
+}, 'respondWith() throws InvalidStateError and agentInvoked is false when submit is not agent-invoked');
+
+promise_test(async t => {
+  const form = document.querySelector('#late_respond_form');
+  let savedEvent = null;
+
+  form.addEventListener('submit', e => {
+    savedEvent = e;
+    e.preventDefault();
+    e.respondWith(Promise.resolve('result'));
+  });
+
+  const tool = await waitForTool('late_respond_tool');
+  const result = await document.modelContext.executeTool(tool, { query: 'testing' });
+  assert_equals(result, 'result');
+
+  assert_throws_dom('InvalidStateError', () => {
+    savedEvent.respondWith(Promise.resolve('late'));
+  }, 'late call to respondWith should throw InvalidStateError');
+}, 'Calling respondWith() after submit event dispatch throws InvalidStateError');
+
+promise_test(async t => {
+  const form = document.querySelector('#navigate_form');
+  const iframe = document.querySelector('iframe[name="navigate_iframe"]');
+  const navPromise = new Promise(resolve => iframe.addEventListener('load', resolve, { once: true }));
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    e.respondWith(Promise.resolve('result value'));
+    iframe.src = '/common/blank.html';
+  });
+
+  const tool = await waitForTool('navigate_tool');
+  const result = await document.modelContext.executeTool(tool, { query: 'testing' });
+
+  assert_equals(result, 'result value', 'executeTool should resolve to respondWith value even if navigation occurs');
+
+  await navPromise;
+}, 'executeTool resolves successfully with respondWith() value even if a navigation is initiated');
+</script>

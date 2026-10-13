@@ -1,0 +1,57 @@
+<!DOCTYPE HTML>
+<title>SVGGElement interface</title>
+<link rel="author" title="Timothy Gu" href="mailto:timothygu99@gmail.com">
+<link rel="help" href="https://svgwg.org/svg2-draft/struct.html#InterfaceSVGGElement">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg id="svg">
+  <g id="g" requiredExtensions="a b" systemLanguage="c,d" class="e f">
+    <circle id="myCircle" cx="0" cy="0" r="5" />
+  </g>
+</svg>
+
+<script>
+"use strict";
+{
+  const svg = document.getElementById("svg");
+  const g = document.getElementById("g");
+
+  test(() => {
+    assert_true(g instanceof SVGGElement);
+    assert_true(g instanceof SVGGraphicsElement);
+    assert_true(g instanceof SVGElement);
+  }, "Inheritance chain");
+
+  test(() => {
+    assert_equals(g.ownerSVGElement, svg);
+    assert_equals(g.viewportElement, svg);
+
+    assert_true(g.className instanceof SVGAnimatedString);
+    assert_equals(g.className.baseVal, "e f");
+  }, "SVGElement inherited properties");
+
+  test(() => {
+    assert_true(g.requiredExtensions instanceof SVGStringList);
+    assert_array_equals(g.requiredExtensions, ["a", "b"]);
+
+    assert_true(g.systemLanguage instanceof SVGStringList);
+    assert_array_equals(g.systemLanguage, ["c", "d"]);
+  }, "SVGTests mixin properties");
+}
+
+test(() => {
+  const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+  assert_true(g instanceof SVGGElement);
+  assert_true(g instanceof SVGGraphicsElement);
+  assert_true(g instanceof SVGElement);
+
+  assert_equals(g.ownerSVGElement, null, "ownerSVGElement");
+  assert_equals(g.viewportElement, null, "viewportElement");
+
+  assert_array_equals(g.requiredExtensions, [], "requiredExtensions");
+  assert_array_equals(g.systemLanguage, [], "systemLanguage");
+}, "Detached");
+
+</script>

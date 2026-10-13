@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>'flow-start' and 'flow-end' match 'flex-start' and 'flex-end' for reversed static positioning</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-align-3/#align-justify-content">
+  <link rel="help" href="https://drafts.csswg.org/css-align-3/#align-self-property">
+  <link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#abspos-items">
+  <link rel="match" href="flow-start-flow-end-reverse-abspos-ref.html">
+  <style>
+    html, body {
+      color: black; background-color: white; font: 12.8px/1 monospace; padding: 0; margin: 0;
+    }
+
+    .row {
+      font-size: 0;
+    }
+
+    .container {
+      position: relative;
+      display: inline flex;
+      width: 80px;
+      height: 80px;
+      border: 1px solid black;
+      margin: 4px;
+      vertical-align: top;
+    }
+
+    item {
+      position: absolute;
+      display: block;
+      width: 20px;
+      height: 20px;
+      background: green;
+    }
+
+    .row-reverse {
+      flex-direction: row-reverse;
+    }
+
+    .column-reverse {
+      flex-direction: column-reverse;
+    }
+
+    .row-wrap-reverse {
+      flex-wrap: wrap-reverse;
+    }
+
+    .column-wrap-reverse {
+      flex-flow: column wrap-reverse;
+    }
+  </style>
+</head>
+<body>
+<div class="row">
+  <div class="container row-reverse" style="justify-content: flow-start"><item></item></div>
+  <div class="container row-reverse" style="justify-content: flow-end"><item></item></div>
+  <div class="container column-reverse" style="justify-content: flow-start"><item></item></div>
+  <div class="container column-reverse" style="justify-content: flow-end"><item></item></div>
+</div>
+<div class="row">
+  <div class="container row-wrap-reverse"><item style="align-self: flow-start"></item></div>
+  <div class="container row-wrap-reverse"><item style="align-self: flow-end"></item></div>
+  <div class="container column-wrap-reverse"><item style="align-self: flow-start"></item></div>
+  <div class="container column-wrap-reverse"><item style="align-self: flow-end"></item></div>
+</div>
+</body>
+</html>

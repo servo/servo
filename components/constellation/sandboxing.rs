@@ -19,13 +19,11 @@ use std::{env, process};
     )
 ))]
 use gaol::profile::{Operation, PathPattern, Profile};
-use ipc_channel::IpcError;
 use serde::{Deserialize, Serialize};
 use servo_config::opts::Opts;
 use servo_config::prefs::Preferences;
 
 use crate::event_loop::NewScriptEventLoopProcessInfo;
-use crate::process_manager::Process;
 use crate::serviceworker::ServiceWorkerUnprivilegedContent;
 
 #[derive(Deserialize, Serialize)]
@@ -154,7 +152,9 @@ pub fn content_process_sandbox_profile() {
     target_arch = "riscv32",
     target_arch = "riscv64"
 ))]
-pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, IpcError> {
+pub fn spawn_multiprocess(
+    content: UnprivilegedContent,
+) -> Result<crate::process_manager::Process, ipc_channel::IpcError> {
     use ipc_channel::ipc::{IpcOneShotServer, IpcSender};
     // Note that this function can panic, due to process creation,
     // avoiding this panic would require a mechanism for dealing
@@ -174,7 +174,7 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, IpcEr
     let (_receiver, sender) = server.accept().expect("Server failed to accept.");
     sender.send(content)?;
 
-    Ok(Process::Unsandboxed(child))
+    Ok(crate::process_manager::Process::Unsandboxed(child))
 }
 
 #[cfg(all(
@@ -187,7 +187,9 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, IpcEr
     not(target_arch = "riscv32"),
     not(target_arch = "riscv64")
 ))]
-pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, IpcError> {
+pub fn spawn_multiprocess(
+    content: UnprivilegedContent,
+) -> Result<crate::process_manager::Process, ipc_channel::IpcError> {
     use gaol::sandbox::{self, Sandbox, SandboxMethods};
     use ipc_channel::ipc::{IpcOneShotServer, IpcSender};
 
@@ -223,7 +225,7 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, IpcEr
         setup_common(&mut command, token);
 
         let profile = content_process_sandbox_profile();
-        Process::Sandboxed(
+        crate::process_manager::Process::Sandboxed(
             Sandbox::new(profile)
                 .start(&mut command)
                 .expect("Failed to start sandboxed child process!")
@@ -234,7 +236,7 @@ pub fn spawn_multiprocess(content: UnprivilegedContent) -> Result<Process, IpcEr
         let mut child_process = process::Command::new(path_to_self);
         setup_common(&mut child_process, token);
 
-        Process::Unsandboxed(
+        crate::process_manager::Process::Unsandboxed(
             child_process
                 .spawn()
                 .expect("Failed to start unsandboxed child process!"),

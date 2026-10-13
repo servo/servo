@@ -30,8 +30,11 @@ def test_atspi(atspi, session, inline):
 #     # State: STATE_SYSTEM_HASPOPUP
 #     # State: STATE_SYSTEM_COLLAPSED: if aria-expanded is not "true"
 
-# def test_uia(uia, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # Control Type: Combobox
+def test_uia(uia, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Control Type: ComboBox
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.ComboBox

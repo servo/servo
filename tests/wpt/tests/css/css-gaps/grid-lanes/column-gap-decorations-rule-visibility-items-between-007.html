@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: between column rule visibility per segment with dense packing and a spanner</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#visibility">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#segments">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#segment-endpoints">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-dense-packing">
+<link rel="match" href="column-gap-decorations-rule-visibility-items-between-007-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    background: #cdd5e0;
+    column-rule: 4px solid blue;
+    column-rule-break: intersection;
+    column-rule-visibility-items: between;
+    display: grid-lanes;
+    flow-tolerance: 0;
+    gap: 20px;
+    grid-lanes-pack: dense;
+    grid-template-columns: repeat(2, 60px);
+    width: max-content;
+  }
+  .lanes > div {
+    background: #5b8def;
+    grid-column: 1;
+    height: 40px;
+  }
+  .lanes > .tall {
+    grid-column: 2;
+    height: 100px;
+  }
+  .lanes > .spanner {
+    background: #8a6df0;
+    grid-column: 1 / -1;
+  }
+  .lanes > .packed { background: #1f9d6b; }
+</style>
+<div class="lanes">
+  <div></div>
+  <div class="tall"></div>
+  <div class="spanner"></div>
+  <div class="packed"></div>
+  <div></div>
+</div>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declarative Fragment: sanitize attribute on regular templates</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="container">
+  <!-- Regular template with sanitize attribute -->
+  <template id="regular-template" sanitize>
+    <span id="ok-regular">Allowed</span>
+    <script id="script-regular">window.regularScriptRun = true;</script>
+  </template>
+
+  <!-- Template with non-existent target and sanitize attribute -->
+  <template id="missing-target-template" for="non-existent-marker" sanitize>
+    <span id="ok-missing">Allowed</span>
+    <script id="script-missing">window.missingScriptRun = true;</script>
+  </template>
+</div>
+
+<script>
+test(() => {
+  const regularTemplate = document.getElementById('regular-template');
+  assert_not_equals(regularTemplate.content.querySelector('#ok-regular'), null);
+  assert_not_equals(regularTemplate.content.querySelector('#script-regular'), null, "Script in regular template should not be stripped");
+
+  // Template with missing target should fall back to regular template and not sanitize contents.
+  const missingTargetTemplate = document.getElementById('missing-target-template');
+  assert_not_equals(missingTargetTemplate.content.querySelector('#ok-missing'), null);
+  assert_not_equals(missingTargetTemplate.content.querySelector('#script-missing'), null, "Script in template with non-existent target should not be stripped");
+
+  // Scripts should not have run because template contents are inert.
+  assert_false(!!window.regularScriptRun);
+  assert_false(!!window.missingScriptRun);
+}, "The sanitize attribute does not sanitize contents of regular templates or templates with non-existent targets");
+</script>
+</body>

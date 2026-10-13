@@ -7,8 +7,6 @@
 interface HTMLSelectElement : HTMLElement {
   [HTMLConstructor] constructor();
 
-  // [CEReactions]
-  //          attribute boolean autofocus;
   [CEReactions]
            attribute boolean disabled;
   readonly attribute HTMLFormElement? form;

@@ -332,6 +332,41 @@ test(t => {
 }, 'Test visibleRect metadata override where source display size = 2 * visible size for both width and height');
 
 test(t => {
+  const hdAnamorphic = new VideoFrame(new Uint8Array(1.5 * 1440 * 1080), {
+    format: 'I420',
+    timestamp: 1234,
+    codedWidth: 1440,
+    codedHeight: 1080,
+    displayWidth: 1920,
+    displayHeight: 1080,
+  });
+  t.add_cleanup(() => hdAnamorphic.close());
+
+  const croppedHd = new VideoFrame(
+      hdAnamorphic, {visibleRect: {x: 0, y: 0, width: 720, height: 540}});
+  t.add_cleanup(() => croppedHd.close());
+  assert_equals(croppedHd.displayWidth, 960, 'croppedHd.displayWidth');
+  assert_equals(croppedHd.displayHeight, 540, 'croppedHd.displayHeight');
+
+  const narrowAnamorphic = new VideoFrame(new Uint8Array(1.5 * 640 * 480), {
+    format: 'I420',
+    timestamp: 1234,
+    codedWidth: 640,
+    codedHeight: 480,
+    displayWidth: 160,
+    displayHeight: 480,
+  });
+  t.add_cleanup(() => narrowAnamorphic.close());
+
+  const croppedNarrow = new VideoFrame(
+      narrowAnamorphic, {visibleRect: {x: 0, y: 0, width: 320, height: 240}});
+  t.add_cleanup(() => croppedNarrow.close());
+  assert_equals(croppedNarrow.displayWidth, 80, 'croppedNarrow.displayWidth');
+  assert_equals(croppedNarrow.displayHeight, 240,
+                'croppedNarrow.displayHeight');
+}, 'Test visibleRect metadata override with fractional display size scale');
+
+test(t => {
   const init = {
     format: 'I420',
     timestamp: 1234,

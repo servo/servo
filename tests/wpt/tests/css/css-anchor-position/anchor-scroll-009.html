@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Scroll compensation when the containing block is an inline, and the anchor is in an inner scroller</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#default-scroll-shift">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+
+<style>
+#outer-scroll {
+  overflow: hidden;
+  width: 300px;
+  height: 250px;
+}
+
+#cb {
+  position: relative;
+}
+
+#inner-scroll {
+  overflow: hidden;
+  width: 50px;
+  height: 150px;
+}
+
+#anchor {
+  anchor-name: --a;
+  width: 50px;
+  height: 100px;
+  background: green;
+}
+
+#positioned {
+  position: absolute;
+  position-anchor: --a;
+  left: anchor(right);
+  top: anchor(top);
+  width: 50px;
+  height: 100px;
+  background: green;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="outer-scroll">
+  <span id="cb">
+    <div id="inner-scroll">
+      <div style="height: 50px"></div>
+      <div id="anchor"></div>
+      <div style="height: 1000px"></div>
+    </div>
+    <div id="positioned"></div>
+  </span>
+  <div style="height: 1000px"></div>
+</div>
+
+<script>
+/* The outer-scroll sits above the containing block. Scrolling it moves the
+   containing block and the anchor together, so it should not affect the
+   positioned element's position relative to its anchor. */
+document.getElementById("outer-scroll").scrollTop = 50;
+</script>

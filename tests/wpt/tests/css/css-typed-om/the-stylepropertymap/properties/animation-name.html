@@ -18,6 +18,16 @@ runListValuedPropertyTests('animation-name', [
   // FIXME: This should be <custom-ident>, but the test harness doesn't
   // currently support it.
   { syntax: 'custom-ident' },
+  // 'auto' is a keyword of other properties, but animation-name has no such
+  // keyword, so here it is an ordinary <custom-ident>: <custom-ident> excludes
+  // only the CSS-wide keywords and 'default'.
+  { syntax: 'auto' },
+]);
+
+// 'default' is excluded from every <custom-ident>, so it is not a valid
+// <keyframes-name>.
+runInvalidKeywordTests('animation-name', [
+  'default',
 ]);
 
 </script>

@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Baseline alignment of a grid item that is alone in its baseline-sharing group</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#baseline-sharing-group">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-baselines">
+<meta name="assert" content="A grid item that is the only participant of its baseline-sharing group defines that group's baseline, so baseline alignment never shifts it, not even when its used size is resolved after the track sizing algorithm collected its baseline.">
+<style>
+.grid {
+  display: grid;
+  position: relative;
+  background: silver;
+}
+canvas {
+  background: blue;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.grid')">
+
+<div id="log"></div>
+
+<div class="grid" style="align-items: baseline; width: 300px;" data-expected-height="75">
+  <canvas width="400" height="200" style="max-width: 50%;"
+      data-offset-y="0" data-expected-width="150" data-expected-height="75"></canvas>
+</div>
+
+<div class="grid" style="align-items: last baseline; width: 300px;" data-expected-height="75">
+  <canvas width="400" height="200" style="max-width: 50%;"
+      data-offset-y="0" data-expected-width="150" data-expected-height="75"></canvas>
+</div>
+
+<div class="grid" style="align-items: baseline; height: 300px; writing-mode: vertical-lr;" data-expected-width="75">
+  <canvas width="200" height="400" style="max-height: 50%;"
+      data-offset-x="0" data-expected-width="75" data-expected-height="150"></canvas>
+</div>
+
+<div class="grid" style="justify-items: baseline; align-items: start; grid-template-rows: 300px; width: 400px;" data-expected-height="300">
+  <canvas width="400" height="200" style="max-height: 50%;"
+      data-offset-x="0" data-expected-width="300" data-expected-height="150"></canvas>
+</div>
+
+</body>

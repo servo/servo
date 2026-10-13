@@ -28,6 +28,10 @@ promise_test(async t => {
   assert_throws_js(TypeError, () => builder.leakyRelu(input, options));
 }, '[leakyRelu] Throw if options.alpha is Infinity');
 
+validateOperandRank('leakyRelu', 'input', (builder, input) => {
+  return builder.leakyRelu(input);
+});
+
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);
   const options = {alpha: -NaN};

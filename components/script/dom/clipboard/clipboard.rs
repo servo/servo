@@ -2,7 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
 use std::str::FromStr;
 
 use data_url::mime::Mime;
@@ -11,7 +10,7 @@ use embedder_traits::EmbedderMsg;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
 use js::rust::HandleValue as SafeHandleValue;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_constellation_traits::BlobImpl;
 
 use super::clipboarditem::Representation;
@@ -26,7 +25,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::blob::Blob;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::window::Window;
 use crate::realms::enter_auto_realm;
@@ -35,10 +34,12 @@ use crate::routed_promise::{RoutedPromiseListener, callback_promise};
 /// The fulfillment handler for the reacting to representationDataPromise part of
 /// <https://w3c.github.io/clipboard-apis/#dom-clipboard-readtext>.
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct RepresentationDataPromiseFulfillmentHandler {
-    #[conditional_malloc_size_of]
-    promise: Rc<Promise>,
+    promise: TracedPromise,
 }
+
+impl js::gc::Rootable for RepresentationDataPromiseFulfillmentHandler {}
 
 impl Callback for RepresentationDataPromiseFulfillmentHandler {
     /// The fulfillment case of Step 3.4.1.1.4.3 of
@@ -60,10 +61,12 @@ impl Callback for RepresentationDataPromiseFulfillmentHandler {
 /// The rejection handler for the reacting to representationDataPromise part of
 /// <https://w3c.github.io/clipboard-apis/#dom-clipboard-readtext>.
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct RepresentationDataPromiseRejectionHandler {
-    #[conditional_malloc_size_of]
-    promise: Rc<Promise>,
+    promise: TracedPromise,
 }
+
+impl js::gc::Rootable for RepresentationDataPromiseRejectionHandler {}
 
 impl Callback for RepresentationDataPromiseRejectionHandler {
     /// The rejection case of Step 3.4.1.1.4.3 of
@@ -88,13 +91,13 @@ impl Clipboard {
     }
 
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<Clipboard> {
-        reflect_dom_object_with_cx(Box::new(Clipboard::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(Clipboard::new_inherited()), global)
     }
 }
 
 impl ClipboardMethods<crate::DomTypeHolder> for Clipboard {
     /// <https://w3c.github.io/clipboard-apis/#dom-clipboard-readtext>
-    fn ReadText(&self, realm: &mut CurrentRealm) -> Rc<Promise> {
+    fn ReadText(&self, realm: &mut CurrentRealm) -> RootedPromise {
         // Step 1 Let realm be this's relevant realm.
         let global = self.global();
 
@@ -122,7 +125,7 @@ impl ClipboardMethods<crate::DomTypeHolder> for Clipboard {
     }
 
     /// <https://w3c.github.io/clipboard-apis/#dom-clipboard-writetext>
-    fn WriteText(&self, realm: &mut CurrentRealm, data: DOMString) -> Rc<Promise> {
+    fn WriteText(&self, realm: &mut CurrentRealm, data: DOMString) -> RootedPromise {
         // Step 1 Let realm be this's relevant realm.
         let global = self.global();
         // Step 2 Let p be a new promise in realm.
@@ -137,14 +140,14 @@ impl ClipboardMethods<crate::DomTypeHolder> for Clipboard {
         // to reject p with "NotAllowedError" DOMException in realm.
         // Step 3.2.2 Abort these steps.
 
-        let trusted_promise = TrustedPromise::new(p.clone());
+        let trusted_promise = TrustedPromise::from(&p);
         let bytes = Vec::from(data);
 
         // Step 3.3 Queue a global task on the clipboard task source,
         // given realm’s global object, to perform the below steps:
         global.task_manager().clipboard_task_source().queue(
             task!(write_to_system_clipboard: move |cx| {
-                let promise = trusted_promise.root();
+                let promise = trusted_promise.root(cx);
                 let global = promise.global();
 
                 // Step 3.3.1 Let itemList be an empty sequence<Blob>.
@@ -177,12 +180,12 @@ impl ClipboardMethods<crate::DomTypeHolder> for Clipboard {
     }
 }
 
-impl RoutedPromiseListener<Result<String, String>> for Clipboard {
+impl RoutedPromiseListener<crate::DomTypeHolder, Result<String, String>> for Clipboard {
     fn handle_response(
         &self,
         cx: &mut js::context::JSContext,
         response: Result<String, String>,
-        promise: &Rc<Promise>,
+        promise: &RootedPromise,
     ) {
         let global = self.global();
         let text = response.unwrap_or_default();
@@ -200,11 +203,11 @@ impl RoutedPromiseListener<Result<String, String>> for Clipboard {
         // Note: Since the previous step is infallible, we don't need to handle this case
 
         // Step 3.4.1.1.3 Let representation be a new representation.
-        let representation = Representation {
+        rooted!(&in(cx) let representation = Representation {
             mime_type,
             is_custom: false,
-            data: Promise::new_resolved(cx, &global, DOMString::from(text)),
-        };
+            data: Promise::new_resolved(cx, &global, DOMString::from(text)).to_traced(),
+        });
 
         // Step 3.4.1.1.4 If representation’s MIME type essence is "text/plain", then:
 
@@ -213,17 +216,21 @@ impl RoutedPromiseListener<Result<String, String>> for Clipboard {
 
         // Step 3.4.1.1.4.2 Let representationDataPromise be the representation’s data.
         // Step 3.4.1.1.4.3 React to representationDataPromise:
-        let fulfillment_handler = Box::new(RepresentationDataPromiseFulfillmentHandler {
-            promise: promise.clone(),
-        });
-        let rejection_handler = Box::new(RepresentationDataPromiseRejectionHandler {
-            promise: promise.clone(),
-        });
+        rooted!(&in(cx) let mut fulfillment_handler = Some(RepresentationDataPromiseFulfillmentHandler {
+            promise: promise.to_traced(),
+        }));
+        rooted!(&in(cx) let mut rejection_handler = Some(RepresentationDataPromiseRejectionHandler {
+            promise: promise.to_traced(),
+        }));
         let handler = PromiseNativeHandler::new(
             cx,
             &global,
-            Some(fulfillment_handler),
-            Some(rejection_handler),
+            fulfillment_handler
+                .take()
+                .map(|handler| Box::new(handler) as Box<dyn Callback>),
+            rejection_handler
+                .take()
+                .map(|handler| Box::new(handler) as Box<dyn Callback>),
         );
         let mut realm = enter_auto_realm(cx, &*global);
         let cx = &mut realm.current_realm();

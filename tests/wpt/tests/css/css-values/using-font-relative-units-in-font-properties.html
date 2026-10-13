@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Values 4: using font relative units in font-* properties</title>
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#font-relative-lengths">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<style>
+  #container {
+    font-size: 10px;
+  }
+  #target {
+    font-size: 100px;
+  }
+</style>
+<div id="container">
+  <div id="target"></div>
+</div>
+<script>
+  test_computed_value('font-feature-settings', '"swsh" calc(1em / 1px)', '"swsh" 10');
+  test_computed_value('font-palette', 'ident("--test-" calc(1em / 1px))', '--test-10');
+  test_computed_value('font-size-adjust', 'calc(1em / 1px)', '10');
+  test_computed_value('font-style', 'oblique calc(1em / 1px * 1deg)', 'oblique 10deg');
+  test_computed_value('font-variant-alternates', 'stylistic(ident("test-" calc(1em / 1px)))', 'stylistic(test-10)');
+  test_computed_value('font-variation-settings', '"xhgt" calc(1em / 1px)', '"xhgt" 10');
+  test_computed_value('font-weight', 'calc(1em / 1px)', '10');
+  test_computed_value('font-width', 'calc(1em / 1px * 1%)', '10%');
+
+  // Test font-size last as the other cases are utilizing the one specified in the style.
+  test_computed_value('font-size', 'calc(1em / 1)', '10px');
+</script>

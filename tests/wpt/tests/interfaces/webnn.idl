@@ -37,6 +37,8 @@ interface MLContext {
   undefined dispatch(MLGraph graph, MLNamedTensors inputs, MLNamedTensors outputs);
 
   Promise<MLTensor> createTensor(MLTensorDescriptor descriptor);
+  Promise<MLTensor> createExportableTensor(
+    MLTensorDescriptor descriptor, GPUDevice gpuDevice);
   Promise<MLTensor> createConstantTensor(
     MLOperandDescriptor descriptor, AllowSharedBufferSource inputData);
 
@@ -44,6 +46,8 @@ interface MLContext {
   Promise<undefined> readTensor(MLTensor tensor, AllowSharedBufferSource outputData);
 
   undefined writeTensor(MLTensor tensor, AllowSharedBufferSource inputData);
+
+  GPUBuffer exportToGPU(MLTensor tensor);
 
   MLOpSupportLimits opSupportLimits();
 

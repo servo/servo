@@ -161,4 +161,13 @@ prepopulated_cache_test(simple_entries, function(cache, entries) {
   },
   'Cache.delete with ignoreSearch option (when it is specified as false)');
 
+cache_test(function(cache, test) {
+    return promise_rejects_js(
+      test,
+      TypeError,
+      cache.delete('https://user:password@example.com/'),
+      'Cache.delete should reject with the exception thrown when constructing ' +
+      'a Request from the given URL string fails.');
+  }, 'Cache.delete with a string that cannot construct a Request');
+
 done();

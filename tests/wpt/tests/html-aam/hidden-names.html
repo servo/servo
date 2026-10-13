@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Accname tests for hidden elements that would otherwise provide names to an associated element</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+
+<body>
+
+  <h1>Accname tests for hidden elements that would otherwise provide names to an associated element</h1>
+  <p>These tests are a complement to <a href="https://github.com/w3c/html-aam/pull/533">w3c/html-aam#533</a>.</p>
+
+  <h2>Input with hidden label</h2>
+  <label for="input-01" hidden>Hidden label</label>
+  <input
+    id="input-01"
+    class="ex-label"
+    data-testname="Input with hidden label"
+    data-expectedlabel=""
+  >
+
+  <h2>Table with hidden caption</h2>
+  <table
+    class="ex-label"
+    data-testname="Table with hidden caption"
+    data-expectedlabel=""
+  >
+    <caption hidden>Hidden caption</caption>
+  </table>
+
+  <h2>Table with two captions, the first hidden</h2>
+  <table
+    class="ex-label"
+    data-testname="Table with two captions, the first hidden"
+    data-expectedlabel="Visible caption"
+  >
+    <caption hidden>Hidden caption</caption>
+    <caption>Visible caption</caption>
+  </table>
+
+  <h2>Fieldset with hidden legend</h2>
+  <fieldset
+    class="ex-label"
+    data-testname="Fieldset with hidden legend"
+    data-expectedlabel=""
+  >
+    <legend hidden>Hidden legend</legend>
+  </fieldset>
+
+  <h2>Fieldset with two legends, the first hidden</h2>
+  <fieldset
+    class="ex-label"
+    data-testname="Fieldset with two legends, the first hidden"
+    data-expectedlabel="Visible legend"
+  >
+    <legend hidden>Hidden legend</legend>
+    <legend>Visible legend</legend>
+  </fieldset>
+
+  <script>
+    AriaUtils.verifyLabelsBySelector(".ex-label");
+  </script>
+</body>
+
+</html>

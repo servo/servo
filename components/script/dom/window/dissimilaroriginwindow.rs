@@ -2,17 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
+
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsapi::{Heap, JSObject};
 use js::jsval::UndefinedValue;
-use js::rust::{CustomAutoRooter, CustomAutoRooterGuard, HandleValue, MutableHandleValue};
+use js::rust::{CustomAutoRooterGuard, HandleValue, MutableHandleValue};
 use script_bindings::interfaces::HasOrigin;
+use servo_base::generic_channel;
 use servo_base::id::PipelineId;
 use servo_constellation_traits::{
     RemoteFocusOperation, ScriptToConstellationMessage, StructuredSerializedData,
 };
-use servo_url::{MutableOrigin, ServoUrl};
+use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding;
 use crate::dom::bindings::codegen::Bindings::DissimilarOriginWindowBinding::DissimilarOriginWindowMethods;
@@ -22,8 +25,8 @@ use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::USVString;
 use crate::dom::bindings::structuredclone;
 use crate::dom::bindings::trace::RootedTraceableBox;
-use crate::dom::dissimilaroriginlocation::DissimilarOriginLocation;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::location::Location;
 use crate::dom::windowproxy::WindowProxy;
 
 /// Represents a dissimilar-origin `Window` that exists in another script thread.
@@ -44,7 +47,7 @@ pub(crate) struct DissimilarOriginWindow {
     window_proxy: Dom<WindowProxy>,
 
     /// The location of this window, initialized lazily.
-    location: MutNullableDom<DissimilarOriginLocation>,
+    location: MutNullableDom<Location>,
 
     #[no_trace]
     pipeline_id: PipelineId,
@@ -59,8 +62,14 @@ impl DissimilarOriginWindow {
         global_to_clone_from: &GlobalScope,
         window_proxy: &WindowProxy,
     ) -> DomRoot<Self> {
+        // TODO: We do not know the origin of this new window at this point in the execution
+        // and we *really* don't want to use the origin of `global_to_clone_from`. The whole
+        // point is that this is a window with a *different* origin. Just use an opaque origin
+        // here which is guaranteed to never be equal to `global_to_clone_from`'s origin.
+        let opaque_origin = MutableOrigin::new(ImmutableOrigin::new_opaque());
         let win = Box::new(Self {
             globalscope: GlobalScope::new_inherited(
+                #[cfg(feature = "devtools")]
                 global_to_clone_from.devtools_chan().cloned(),
                 global_to_clone_from.mem_profiler_chan().clone(),
                 global_to_clone_from.time_profiler_chan().clone(),
@@ -69,19 +78,18 @@ impl DissimilarOriginWindow {
                 global_to_clone_from.resource_threads().clone(),
                 global_to_clone_from.storage_threads().clone(),
                 global_to_clone_from.creation_url(),
-                global_to_clone_from.top_level_creation_url().clone(),
+                global_to_clone_from.top_level_creation_url(),
                 #[cfg(feature = "webgpu")]
                 global_to_clone_from.wgpu_id_hub(),
                 Some(global_to_clone_from.is_secure_context()),
                 false,
-                global_to_clone_from.font_context().cloned(),
             ),
             window_proxy: Dom::from_ref(window_proxy),
             location: Default::default(),
             pipeline_id: PipelineId::new(),
-            origin: global_to_clone_from.origin(),
+            origin: opaque_origin.clone(),
         });
-        DissimilarOriginWindowBinding::Wrap::<crate::DomTypeHolder>(cx, &win.origin(), win)
+        DissimilarOriginWindowBinding::Wrap::<crate::DomTypeHolder>(cx, &opaque_origin, win)
     }
 
     pub(crate) fn origin(&self) -> MutableOrigin {
@@ -139,8 +147,21 @@ impl DissimilarOriginWindowMethods<crate::DomTypeHolder> for DissimilarOriginWin
 
     /// <https://html.spec.whatwg.org/multipage/#dom-length>
     fn Length(&self) -> u32 {
-        // TODO: Implement x-origin length
-        0
+        // First try to access the document directly if it is in the same event loop.
+        if let Some(document) = self.window_proxy.document() {
+            return document.iframes().active_iframe_count() as u32;
+        }
+
+        // Fall back to using messaging to get the count from another event loop.
+        let parent_browsing_context_id = self.window_proxy.browsing_context_id();
+        let (result_sender, result_receiver) = generic_channel::channel().unwrap();
+        let _ = self.globalscope.script_to_constellation_chan().send(
+            ScriptToConstellationMessage::GetChildBrowsingContextCount(
+                parent_browsing_context_id,
+                result_sender,
+            ),
+        );
+        result_receiver.recv().unwrap_or_default() as u32
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-close>
@@ -170,18 +191,15 @@ impl DissimilarOriginWindowMethods<crate::DomTypeHolder> for DissimilarOriginWin
         &self,
         cx: &mut JSContext,
         message: HandleValue,
-        options: RootedTraceableBox<WindowPostMessageOptions>,
+        options: &WindowPostMessageOptions,
     ) -> ErrorResult {
-        let mut rooted = CustomAutoRooter::new(
+        auto_root!(&in(cx) let transfer =
             options
                 .parent
                 .transfer
                 .iter()
                 .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
-                .collect(),
-        );
-        #[expect(unsafe_code)]
-        let transfer = unsafe { CustomAutoRooterGuard::new(cx.raw_cx(), &mut rooted) };
+                .collect::<Vec<_>>());
 
         self.post_message_impl(&options.targetOrigin, cx, message, transfer)
     }
@@ -216,9 +234,9 @@ impl DissimilarOriginWindowMethods<crate::DomTypeHolder> for DissimilarOriginWin
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-location>
-    fn Location(&self, cx: &mut js::context::JSContext) -> DomRoot<DissimilarOriginLocation> {
+    fn Location(&self, cx: &mut js::context::JSContext) -> DomRoot<Location> {
         self.location
-            .or_init(|| DissimilarOriginLocation::new(cx, self))
+            .or_init(|| Location::new_dissimilar_origin(cx, self))
     }
 }
 

@@ -1,0 +1,7 @@
+<!doctype html>
+<html class="test-wait">
+<script>
+let a = [];
+setTimeout(() => { for (let i = 0; i < 100000; i++) { a.push(new Array(100)); }}, 0);
+setTimeout(() => document.documentElement.classList.remove('test-wait'), 0);
+</script>

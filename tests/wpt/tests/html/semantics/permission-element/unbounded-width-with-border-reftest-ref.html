@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html class="reftest-wait">
 <meta charset=utf-8>
 <body>
   <div>
@@ -51,22 +51,26 @@ width: fit-content;
     }
   </style>
 
-<div><usermedia id="unlimited-width" type="camera"></usermedia></div>
-<div><usermedia id="no-border-width" type="camera"></usermedia></div>
-<div><usermedia id="no-contrast" type="microphone"></usermedia></div>
-<div><usermedia id="transparent" type="microphone camera"></usermedia></div>
-<div><usermedia id="top-no-contrast" type="microphone"></usermedia></div>
+<div><usermedia id="unlimited-width"></usermedia></div>
+<div><usermedia id="no-border-width"></usermedia></div>
+<div><geolocation id="no-contrast"></geolocation></div>
+<div><usermedia id="transparent"></usermedia></div>
+<div><geolocation id="top-no-contrast"></geolocation></div>
 
 <script>
-  function setWidthToMax(el) {
-    let w = getComputedStyle(el).width;
-    el.style.width = `calc(${w} * 3)`;
-  }
+  requestAnimationFrame(() => {
+    function setWidthToMax(el) {
+      let w = getComputedStyle(el).width;
+      el.style.width = `calc(${w} * 3)`;
+    }
 
-  setWidthToMax(document.getElementById("no-border-width"));
-  setWidthToMax(document.getElementById("no-contrast"));
-  setWidthToMax(document.getElementById("transparent"));
-  setWidthToMax(document.getElementById("top-no-contrast"));
+    setWidthToMax(document.getElementById("no-border-width"));
+    setWidthToMax(document.getElementById("no-contrast"));
+    setWidthToMax(document.getElementById("transparent"));
+    setWidthToMax(document.getElementById("top-no-contrast"));
+
+    document.documentElement.classList.remove('reftest-wait');
+  });
 </script>
 </body>
 </html>

@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::globalscope::GlobalScope;
@@ -22,6 +22,6 @@ impl XMLHttpRequestUpload {
         }
     }
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<XMLHttpRequestUpload> {
-        reflect_dom_object_with_cx(Box::new(XMLHttpRequestUpload::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(XMLHttpRequestUpload::new_inherited()), global)
     }
 }

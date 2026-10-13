@@ -19,6 +19,10 @@ pub(crate) struct MonthInputType {
 }
 
 impl SpecificInputType for MonthInputType {
+    fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>> {
+        Some(&self.text_input_widget)
+    }
+
     fn sanitize_value(&self, _input: &HTMLInputElement, value: &mut DOMString) {
         if !value.str().is_valid_month_string() {
             value.clear();

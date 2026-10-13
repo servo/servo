@@ -36,3 +36,6 @@ wgpu-core = { workspace = true, features = ["gles", "vulkan"] }
 
 [target.'cfg(windows)'.dependencies]
 wgpu-core = { workspace = true, features = ["dx12", "vulkan"] }
+
+[lints]
+workspace = true

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#track-sizing">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-content">
+<meta name="assert" content="Percentage track sizes in a nested grid whose size depends on an intrinsic track of its parent grid are treated as 'auto' when computing the nested grid's contribution.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/css/support/alignment.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.intrinsic {
+    grid-template-rows: max-content;
+    grid-template-columns: max-content;
+    height: 500px;
+    width: 500px;
+}
+
+.percentage {
+    grid-template-rows: 100%;
+    grid-template-columns: 100%;
+    height: 100%;
+    width: 100%;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="document.fonts.ready.then(() => { checkLayout('.percentage'); })">
+    <p>This test checks that percentage track breadths of intrinsic size are treated as auto.</p>
+    <div class="grid intrinsic contentStart">
+        <div class="grid percentage">
+            <div class="sizedToGridArea" data-expected-width="50" data-expected-height="10">XXXXX</div>
+        </div>
+    </div>
+</body>

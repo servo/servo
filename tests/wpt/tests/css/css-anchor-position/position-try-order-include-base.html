@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#fallback-rule">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<style>
+    .testbox {
+        width: 100px;
+        height: 50px;
+    }
+    .anchor {
+        anchor-name: --my-anchor;
+        position: absolute;
+        background-color: green;
+    }
+    .hidden {
+      position: fixed;
+      top: 100px;
+      background-color: red;
+    }
+    @position-try --custom-bottom {
+        top: anchor(bottom);
+        bottom: unset;
+    }
+    .infobox {
+        position: fixed;
+        position-anchor: --my-anchor;
+        position-try: most-height --custom-bottom;
+        bottom: anchor(top);
+        background-color: green;
+    }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="hidden testbox"></div>
+<div class="anchor testbox"></div>
+<div class="infobox testbox">
+</div>

@@ -4,17 +4,28 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 
+<script>
+// SVGImageElement has no "complete" attribute, so a listener added after the
+// element is parsed can miss the 'load' event. Set up the promise before the
+// element exists and hook it up with onload/onerror content attributes, which
+// are registered while the start tag is parsed.
+let resolveImage;
+let rejectImage;
+const imageLoaded = new Promise((resolve, reject) => {
+  resolveImage = resolve;
+  rejectImage = reject;
+});
+</script>
+
 <svg width="30" height="30" viewBox="0 0 3 3">
-  <image id="svgimg" href="resources/3x3_srgb_lossless.jxl" width="3" height="3"></image>
+  <image id="svgimg" href="resources/3x3_srgb_lossless.jxl" width="3" height="3"
+         onload="resolveImage()"
+         onerror="rejectImage(new Error('svg image failed'))"></image>
 </svg>
 
 <script>
 promise_test(async () => {
-  const image = document.getElementById('svgimg');
-  await new Promise((resolve, reject) => {
-    image.addEventListener('load', resolve, { once: true });
-    image.addEventListener('error', () => reject(new Error('svg image failed')), { once: true });
-  });
+  await imageLoaded;
   assert_true(true, 'svg image loaded');
 }, 'SVG <image> can load JPEG XL image');
 </script>

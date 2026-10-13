@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: executeTool with declarative invalid input arguments and validation errors</title>
+<link rel="author" href="mailto:beaufort.francois@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/helpers.js"></script>
+
+<form toolautosubmit toolname="invalid_input_tool" tooldescription="Invalid input tool">
+  <input type="text" name="query">
+</form>
+
+<form toolautosubmit toolname="invalid_select_tool" tooldescription="Invalid select tool">
+  <select name="choice">
+    <option value="a">A</option>
+    <option value="b">B</option>
+  </select>
+</form>
+
+<form toolautosubmit toolname="pattern_tool" tooldescription="Pattern tool">
+  <input type="text" name="query" pattern="[a-z]+">
+  <button type="submit">Submit</button>
+</form>
+
+<form toolautosubmit toolname="validation_tool" tooldescription="Validation tool">
+  <input type="text" name="text_required" required>
+  <input type="number" name="number_min" min="10">
+  <button type="submit">Submit</button>
+</form>
+
+<script>
+promise_test(async t => {
+  const tool = await waitForTool('invalid_input_tool');
+  assert_true(!!tool, 'Tool should be registered');
+
+  await promise_rejects_dom(
+    t,
+    'UnknownError',
+    document.modelContext.executeTool(tool, { nonexistent: 'value' }),
+    'executeTool should reject when input contains parameter not in form'
+  );
+}, 'executeTool rejects when input contains a parameter that does not exist in the form');
+
+promise_test(async t => {
+  const tool = await waitForTool('invalid_select_tool');
+  assert_true(!!tool, 'Tool should be registered');
+
+  await promise_rejects_dom(
+    t,
+    'UnknownError',
+    document.modelContext.executeTool(tool, { choice: 'c' }),
+    'executeTool should reject when select option is invalid'
+  );
+}, 'executeTool rejects when input contains an invalid value for select element');
+
+promise_test(async t => {
+  const tool = await waitForTool('pattern_tool');
+  assert_true(!!tool, 'Tool should be registered');
+
+  await promise_rejects_dom(
+    t,
+    'UnknownError',
+    document.modelContext.executeTool(tool, { query: '123' }),
+    'executeTool should reject when input violates pattern constraint'
+  );
+}, 'executeTool rejects when form input violates pattern constraint');
+
+promise_test(async t => {
+  const tool = await waitForTool('validation_tool');
+  assert_true(!!tool, 'Tool should be registered');
+
+  await promise_rejects_dom(
+    t,
+    'UnknownError',
+    document.modelContext.executeTool(tool, { text_required: '', number_min: 5 }),
+    'executeTool should reject when form input violates required and min constraints'
+  );
+}, 'executeTool rejects when form inputs violate required and min constraints');
+</script>

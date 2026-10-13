@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::CloseEventBinding;
@@ -66,7 +66,7 @@ impl CloseEvent {
         reason: DOMString,
     ) -> DomRoot<CloseEvent> {
         let event = Box::new(CloseEvent::new_inherited(wasClean, code, reason));
-        let ev = reflect_dom_object_with_proto_and_cx(event, global, proto, cx);
+        let ev = reflect_dom_object_with_proto(cx, event, global, proto);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bool::from(bubbles), bool::from(cancelable));

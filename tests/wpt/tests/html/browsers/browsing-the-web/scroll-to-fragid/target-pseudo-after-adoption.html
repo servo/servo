@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:annevk@annevk.nl">
+<link rel=help href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#target-element">
+<link rel=help href="https://github.com/whatwg/html/issues/10029">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id=target>target</div>
+
+<script>
+test(() => {
+  const target = document.getElementById('target');
+  window.location.href = '#target';
+  assert_equals(document.querySelector(':target'), target,
+    ':target should match before adoption.');
+
+  const other = document.implementation.createHTMLDocument();
+  other.body.appendChild(other.adoptNode(target));
+  assert_equals(target.ownerDocument, other,
+    'target should have been adopted into the other document.');
+  assert_false(target.matches(':target'),
+    ':target should not match in a document whose target element is null.');
+  assert_equals(other.querySelector(':target'), null,
+    'the other document should have no target element.');
+
+  document.body.appendChild(document.adoptNode(target));
+  assert_equals(target.ownerDocument, document,
+    'target should have been adopted back.');
+  assert_equals(document.querySelector(':target'), target,
+    ':target should match again after being adopted back.');
+}, ':target should follow the target element back after a round trip through another document.');
+</script>

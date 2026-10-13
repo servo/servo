@@ -54,7 +54,7 @@ impl<'a, T> ContainingBlockManager<'a, T> {
         let Some(box_fragment) = fragment.retrieve_box_fragment() else {
             return self.for_non_absolute_descendants;
         };
-        match box_fragment.style().clone_position() {
+        match box_fragment.style().get_box().position {
             ComputedPosition::Fixed => self.for_absolute_and_fixed_descendants,
             ComputedPosition::Absolute => self
                 .for_absolute_descendants

@@ -2,18 +2,20 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
+
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
-use js::jsval::{DoubleValue, JSVal, ObjectValue, UndefinedValue};
+use js::jsval::{DoubleValue, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::rust::HandleValue;
 use profile_traits::generic_callback::GenericCallback;
-use script_bindings::reflector::{DomObject, reflect_dom_object_with_cx};
+use script_bindings::reflector::{DomObject, reflect_dom_object};
 use serde::{Deserialize, Serialize};
-use servo_base::generic_channel::GenericSend;
+use servo_base::generic_channel::{GenericSend, SendError};
 use storage_traits::indexeddb::{
     AsyncOperation, AsyncReadOnlyOperation, BackendError, BackendResult, IndexedDBKeyType,
     IndexedDBRecord, IndexedDBThreadMsg, IndexedDBTxnMode, PutItemResult, SyncOperation,
@@ -38,7 +40,7 @@ use crate::dom::indexeddb::idbcursor::{IterationParam, iterate_cursor};
 use crate::dom::indexeddb::idbcursorwithvalue::IDBCursorWithValue;
 use crate::dom::indexeddb::idbobjectstore::IDBObjectStore;
 use crate::dom::indexeddb::idbtransaction::IDBTransaction;
-use crate::indexeddb::key_type_to_jsval;
+use crate::dom::indexeddb::key::key_type_to_jsval;
 use crate::realms::enter_auto_realm;
 
 #[derive(Clone)]
@@ -172,7 +174,7 @@ impl RequestListener {
                     for (i, key) in keys.into_iter().enumerate() {
                         key_type_to_jsval(cx, &key, array.handle_mut_at(i));
                     }
-                    array.safe_to_jsval(cx, answer.handle_mut());
+                    array.to_jsval(cx, answer.handle_mut());
                 },
                 IdbResult::Value(serialized_data) => {
                     let result = postcard::from_bytes(&serialized_data)
@@ -206,7 +208,7 @@ impl RequestListener {
                             return;
                         };
                     }
-                    values.safe_to_jsval(cx, answer.handle_mut());
+                    values.to_jsval(cx, answer.handle_mut());
                 },
                 IdbResult::Count(count) => {
                     answer.handle_mut().set(DoubleValue(count as f64));
@@ -242,6 +244,8 @@ impl RequestListener {
                                     .set(ObjectValue(*cursor.reflector().get_jsobject()));
                             },
                         }
+                    } else {
+                        answer.handle_mut().set(NullValue());
                     }
                 },
                 IdbResult::None => {
@@ -415,7 +419,7 @@ impl IDBRequest {
     }
 
     pub fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<IDBRequest> {
-        reflect_dom_object_with_cx(Box::new(IDBRequest::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(IDBRequest::new_inherited()), global)
     }
 
     pub fn set_source(&self, source: Option<&IDBObjectStore>) {
@@ -446,6 +450,10 @@ impl IDBRequest {
 
     pub fn clear_transaction(&self) {
         self.transaction.set(None);
+    }
+
+    pub fn unset_done_flag(&self) {
+        self.ready_state.set(IDBRequestReadyState::Pending);
     }
 
     fn is_done(&self) -> bool {
@@ -508,7 +516,7 @@ impl IDBRequest {
             .database_access_task_source()
             .to_sendable();
 
-        let closure = move |message: Result<BackendResult<T>, ipc_channel::IpcError>| {
+        let closure = move |message: Result<BackendResult<T>, SendError>| {
             let response_listener = response_listener.clone();
             task_source.queue(task!(request_callback: move |cx| {
                 response_listener.handle_async_request_finished(
@@ -521,8 +529,7 @@ impl IDBRequest {
                 );
             }));
         };
-        let callback = GenericCallback::new(global.time_profiler_chan().clone(), closure)
-            .expect("Could not create callback");
+        let callback = GenericCallback::new(closure).expect("Could not create callback");
         let operation = operation_fn(callback);
 
         if matches!(

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTMLCameraElement: track attribute and ontrack event listener</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<camera id="camera_element"></camera>
+
+<script>
+test(() => {
+  const camera = document.getElementById("camera_element");
+  assert_true(camera instanceof HTMLCameraElement);
+  assert_equals(camera.track, null, "track attribute should initially be null");
+  assert_equals(camera.ontrack, null, "ontrack should initially be null");
+
+  let dummy_handler = () => {};
+  camera.ontrack = dummy_handler;
+  assert_equals(camera.ontrack, dummy_handler, "ontrack setter should update listener");
+}, "HTMLCameraElement has track attribute and ontrack event handler");
+</script>
+

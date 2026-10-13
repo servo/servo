@@ -26,7 +26,6 @@ euclid = { workspace = true }
 gleam = { workspace = true }
 glow = { workspace = true }
 image = { workspace = true }
-ipc-channel = { workspace = true }
 log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
@@ -47,3 +46,6 @@ stylo_traits = { workspace = true }
 surfman = { workspace = true, features = ["sm-x11"] }
 tracing = { workspace = true, optional = true }
 webrender_api = { workspace = true }
+
+[lints]
+workspace = true

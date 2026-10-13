@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>querySelectorAll matching empty id attribute</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="root">
+  <div id=""></div>
+  <div id></div>
+  <div></div>
+</div>
+<script>
+  test(() => {
+    assert_equals(root.querySelectorAll("[id]").length, 2);
+    assert_equals(root.querySelectorAll("[id='']").length, 2);
+  }, "querySelector attribute matching empty id");
+
+</script>

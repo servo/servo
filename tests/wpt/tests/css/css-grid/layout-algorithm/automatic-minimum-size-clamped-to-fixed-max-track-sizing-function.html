@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<title>CSS Grid Layout Test: automatic minimum size clamped to a fixed max track sizing function</title>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#min-size-auto">
+<meta name="assert" content="A grid item that spans only tracks with a fixed max track sizing function has its automatic minimum size further clamped to the stretch fit into the grid area's maximum size, so an item larger than its track cannot grow that track past its maximum. A definite <length-percentage> maximum is fixed too. The clamp does not apply to a specified minimum size, to a track whose maximum is intrinsic, or to an item whose automatic minimum size is already zero.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: 50px;
+    grid-auto-rows: minmax(auto, 40px);
+  }
+
+  .definiteHeight {
+    height: 300px;
+  }
+
+  /* Taller than the track's maximum, so the item's automatic minimum size is what
+     would grow the track past that maximum if it were not clamped. */
+  .tallerThanMaximum {
+    height: 100px;
+  }
+
+  .shorterThanMaximum {
+    height: 20px;
+  }
+</style>
+
+<div class="grid" id="indefiniteHeight">
+  <div><div class="tallerThanMaximum"></div></div>
+</div>
+
+<div class="grid definiteHeight" id="definiteHeight">
+  <div><div class="tallerThanMaximum"></div></div>
+</div>
+
+<div class="grid definiteHeight" id="contentShorterThanMaximum">
+  <div><div class="shorterThanMaximum"></div></div>
+</div>
+
+<div class="grid" id="intrinsicMaximum" style="grid-auto-rows: minmax(auto, max-content)">
+  <div><div class="tallerThanMaximum"></div></div>
+</div>
+
+<div class="grid" id="specifiedMinimumSize">
+  <div style="min-height: 100px"><div class="tallerThanMaximum"></div></div>
+</div>
+
+<div class="grid" id="scrollableOverflow">
+  <div style="overflow: hidden"><div class="tallerThanMaximum"></div></div>
+</div>
+
+<div class="grid" id="spanningTwoTracks" style="row-gap: 10px">
+  <div style="grid-row: span 2"><div style="height: 200px"></div></div>
+</div>
+
+<div class="grid" id="itemWithMargins">
+  <div style="margin-top: 5px; margin-bottom: 5px"><div class="tallerThanMaximum"></div></div>
+</div>
+
+<div class="grid definiteHeight" id="percentageMaximum" style="grid-auto-rows: minmax(auto, 20%)">
+  <div><div class="tallerThanMaximum"></div></div>
+</div>
+
+<div class="grid definiteHeight" id="calculatedMaximum" style="grid-auto-rows: minmax(auto, calc(10% + 10px))">
+  <div><div class="tallerThanMaximum"></div></div>
+</div>
+
+<script>
+function usedRowSizes(gridContainer) {
+  return getComputedStyle(gridContainer).gridTemplateRows;
+}
+
+function usedItemHeight(gridContainer) {
+  return gridContainer.firstElementChild.getBoundingClientRect().height;
+}
+
+test(() => {
+  assert_equals(usedRowSizes(indefiniteHeight), "40px");
+}, "An item taller than its track does not grow the track past its fixed maximum");
+
+test(() => {
+  assert_equals(usedRowSizes(definiteHeight), "40px");
+}, "An item taller than its track does not grow the track past its fixed maximum when the grid container height is definite");
+
+test(() => {
+  assert_equals(usedRowSizes(contentShorterThanMaximum), "40px");
+}, "An item shorter than its track's fixed maximum still lets the track grow to that maximum");
+
+test(() => {
+  assert_equals(usedRowSizes(intrinsicMaximum), "100px");
+}, "An item taller than its track grows a track whose maximum is intrinsic");
+
+test(() => {
+  assert_equals(usedRowSizes(specifiedMinimumSize), "100px");
+}, "A specified minimum size is not clamped to the track's fixed maximum");
+
+test(() => {
+  assert_equals(usedRowSizes(scrollableOverflow), "40px");
+}, "A scroll container taller than its track does not grow the track past its fixed maximum");
+
+test(() => {
+  assert_equals(usedRowSizes(spanningTwoTracks), "40px 40px");
+}, "An item spanning several tracks does not grow any of them past their fixed maximums");
+
+test(() => {
+  assert_equals(usedRowSizes(itemWithMargins), "40px");
+}, "An item with margins does not grow its track past its fixed maximum");
+
+test(() => {
+  assert_equals(usedRowSizes(percentageMaximum), "60px");
+}, "An item taller than its track does not grow the track past a definite percentage maximum");
+
+test(() => {
+  assert_equals(usedRowSizes(calculatedMaximum), "40px");
+}, "An item taller than its track does not grow the track past a definite calc() maximum");
+
+test(() => {
+  assert_equals(usedItemHeight(indefiniteHeight), 40);
+}, "An item taller than its track is sized to its grid area, not to its content");
+
+test(() => {
+  assert_equals(usedItemHeight(spanningTwoTracks), 90);
+}, "An item spanning several tracks is sized to its grid area, not to its content");
+
+test(() => {
+  assert_equals(usedItemHeight(itemWithMargins), 30);
+}, "An item with margins is sized to the stretch fit into its grid area");
+</script>

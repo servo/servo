@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-align/#baseline-values">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#alignment">
+<link rel="match" href="grid-align-baseline-explicit-placement-ref.html">
+<meta name="assert" content="A baseline-aligned grid item is shifted to align its baseline even when it has explicit grid placement and a fixed size.">
+<p>Test passes if there are two green squares forming a stair-step: the left square
+   is lower than the right square.</p>
+
+<div style="display: grid; grid-template-columns: 50px 50px; grid-template-rows: 100px; align-items: baseline; line-height: 0; width: 100px;">
+  <div style="grid-row: 1 / 2; grid-column: 1 / 2; height: 50px; background: green;">
+    <span style="display: inline-block; height: 40px;"></span>
+  </div>
+  <div style="grid-row: 1 / 2; grid-column: 2 / 3; height: 50px; background: green;">
+    <span style="display: inline-block; height: 60px;"></span>
+  </div>
+</div>

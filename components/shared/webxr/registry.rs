@@ -3,14 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use embedder_traits::EventLoopWaker;
-use ipc_channel::ipc::IpcSender;
 use log::warn;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{self, GenericCallback, GenericReceiver, GenericSender};
 
 use crate::{
-    DiscoveryAPI, Error, Frame, GLTypes, LayerGrandManager, MainThreadSession, MockDeviceInit,
+    DiscoveryAPI, Error, GLTypes, LayerGrandManager, MainThreadSession, MockDeviceInit,
     MockDeviceMsg, MockDiscoveryAPI, Session, SessionBuilder, SessionId, SessionInit, SessionMode,
 };
 
@@ -62,15 +61,11 @@ impl Registry {
         &mut self,
         mode: SessionMode,
         init: SessionInit,
-        dest: IpcSender<Result<Session, Error>>,
-        animation_frame_handler: IpcSender<Frame>,
+        dest: ProfileGenericCallback<Result<Session, Error>>,
     ) {
-        let _ = self.sender.send(RegistryMsg::RequestSession(
-            mode,
-            init,
-            dest,
-            animation_frame_handler,
-        ));
+        let _ = self
+            .sender
+            .send(RegistryMsg::RequestSession(mode, init, dest));
         self.waker.wake();
     }
 
@@ -157,8 +152,8 @@ impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
             RegistryMsg::SupportsSession(mode, dest) => {
                 let _ = dest.send(self.supports_session(mode));
             },
-            RegistryMsg::RequestSession(mode, init, dest, raf_sender) => {
-                let _ = dest.send(self.request_session(mode, init, raf_sender));
+            RegistryMsg::RequestSession(mode, init, dest) => {
+                let _ = dest.send(self.request_session(mode, init));
             },
             RegistryMsg::SimulateDeviceConnection(init, dest) => {
                 let _ = dest.send(self.simulate_device_connection(init));
@@ -175,23 +170,12 @@ impl<GL: 'static + GLTypes> MainThreadRegistry<GL> {
         Err(Error::NoMatchingDevice)
     }
 
-    fn request_session(
-        &mut self,
-        mode: SessionMode,
-        init: SessionInit,
-        raf_sender: IpcSender<Frame>,
-    ) -> Result<Session, Error> {
+    fn request_session(&mut self, mode: SessionMode, init: SessionInit) -> Result<Session, Error> {
         for discovery in &mut self.discoveries {
             if discovery.supports_session(mode) {
-                let raf_sender = raf_sender.clone();
                 let id = SessionId(self.next_session_id);
                 self.next_session_id += 1;
-                let xr = SessionBuilder::new(
-                    &mut self.sessions,
-                    raf_sender,
-                    self.grand_manager.clone(),
-                    id,
-                );
+                let xr = SessionBuilder::new(&mut self.sessions, self.grand_manager.clone(), id);
                 match discovery.request_session(mode, &init, xr) {
                     Ok(session) => return Ok(session),
                     Err(err) => warn!("XR device error {:?}", err),
@@ -225,8 +209,7 @@ enum RegistryMsg {
     RequestSession(
         SessionMode,
         SessionInit,
-        IpcSender<Result<Session, Error>>,
-        IpcSender<Frame>,
+        ProfileGenericCallback<Result<Session, Error>>,
     ),
     SupportsSession(SessionMode, ProfileGenericCallback<Result<(), Error>>),
     SimulateDeviceConnection(

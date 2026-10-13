@@ -9,9 +9,7 @@ use p256::NistP256;
 use p384::NistP384;
 use p521::NistP521;
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
-    CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
-};
+use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{CryptoKeyPair, KeyType, KeyUsage};
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyFormat;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
@@ -19,23 +17,19 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::ec_common::EcAlgorithm;
 use crate::dom::subtlecrypto::{
-    ExportedKey, KeyAlgorithmAndDerivatives, NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521,
-    SubtleEcKeyGenParams, SubtleEcKeyImportParams, SubtleEcdsaParams, ec_common,
+    EcKeyGenParams, EcKeyImportParams, EcdsaParams, ExportedKey, KeyAlgorithmAndDerivatives,
+    NAMED_CURVE_P256, NAMED_CURVE_P384, NAMED_CURVE_P521, ec_common,
 };
 
 /// <https://w3c.github.io/webcrypto/#ecdsa-operations-sign>
 pub(crate) fn sign(
-    normalized_algorithm: &SubtleEcdsaParams,
+    normalized_algorithm: &EcdsaParams,
     key: &CryptoKey,
     message: &[u8],
 ) -> Result<Vec<u8>, Error> {
     // Step 1. If the [[type]] internal slot of key is not "private", then throw an
     // InvalidAccessError.
-    if key.Type() != KeyType::Private {
-        return Err(Error::InvalidAccess(Some(
-            "The key type is not private.".into(),
-        )));
-    }
+    key.ensure_type(KeyType::Private)?;
 
     // Step 2. Let hashAlgorithm be the hash member of normalizedAlgorithm.
     let hash_algorithm = &normalized_algorithm.hash;
@@ -120,16 +114,14 @@ pub(crate) fn sign(
 
 /// <https://w3c.github.io/webcrypto/#ecdsa-operations-verify>
 pub(crate) fn verify(
-    normalized_algorithm: &SubtleEcdsaParams,
+    normalized_algorithm: &EcdsaParams,
     key: &CryptoKey,
     message: &[u8],
     signature: &[u8],
 ) -> Result<bool, Error> {
     // Step 1. If the [[type]] internal slot of key is not "public", then throw an
     // InvalidAccessError.
-    if key.Type() != KeyType::Public {
-        return Err(Error::InvalidAccess(Some("Key type is not public".into())));
-    }
+    key.ensure_type(KeyType::Public)?;
 
     // Step 2. Let hashAlgorithm be the hash member of normalizedAlgorithm.
     let hash_algorithm = &normalized_algorithm.hash;
@@ -222,14 +214,14 @@ pub(crate) fn verify(
 pub(crate) fn generate_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleEcKeyGenParams,
+    normalized_algorithm: &EcKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<CryptoKeyPair, Error> {
     ec_common::generate_key(
-        EcAlgorithm::Ecdsa,
         cx,
         global,
+        EcAlgorithm::Ecdsa,
         normalized_algorithm,
         extractable,
         usages,
@@ -240,16 +232,16 @@ pub(crate) fn generate_key(
 pub(crate) fn import_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleEcKeyImportParams,
+    normalized_algorithm: &EcKeyImportParams,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     ec_common::import_key(
-        EcAlgorithm::Ecdsa,
         cx,
         global,
+        EcAlgorithm::Ecdsa,
         normalized_algorithm,
         format,
         key_data,
@@ -272,5 +264,5 @@ pub(crate) fn get_public_key(
     algorithm: &KeyAlgorithmAndDerivatives,
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
-    ec_common::get_public_key(cx, global, key, algorithm, usages)
+    ec_common::get_public_key(cx, global, EcAlgorithm::Ecdsa, key, algorithm, usages)
 }

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Sizing: max-content contribution of a ratio-only replaced element transfers the definite height</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<meta name="assert" content="When a box has a definite height and its only child is a replaced element with an intrinsic aspect ratio but no intrinsic size, sized at width:100%;height:100%, the box's max-content width is the definite height transferred through the intrinsic ratio -- not the CSS default object size (300x150) contained at that ratio. Under zoom the transferred width is the zoomed height, so the box stays square.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.box {
+    height: 20px;
+}
+.box > img {
+    width: 100%;
+    height: 100%;
+}
+#shrink-to-fit {
+    display: inline-block;
+}
+#max-content {
+    display: inline-block;
+    width: max-content;
+}
+#min-width-max-content {
+    display: inline-block;
+    min-width: max-content;
+}
+#zoomed-2 {
+    display: inline-block;
+    zoom: 2;
+}
+#zoomed-1-75 {
+    display: inline-block;
+    zoom: 1.75;
+}
+</style>
+
+<!-- 1:1 SVG with no intrinsic width/height, only a viewBox. -->
+<div><span class="box" id="shrink-to-fit"><img alt="" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect fill='green' width='24' height='24'/></svg>"></span></div>
+<div><span class="box" id="max-content"><img alt="" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect fill='green' width='24' height='24'/></svg>"></span></div>
+<div><span class="box" id="min-width-max-content"><img alt="" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect fill='green' width='24' height='24'/></svg>"></span></div>
+<div><span class="box" id="zoomed-2"><img alt="" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect fill='green' width='24' height='24'/></svg>"></span></div>
+<div><span class="box" id="zoomed-1-75"><img alt="" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect fill='green' width='24' height='24'/></svg>"></span></div>
+
+<script>
+setup({ explicit_done: true });
+
+window.addEventListener('load', function() {
+    test(function() {
+        var box = document.getElementById('shrink-to-fit');
+        assert_approx_equals(box.getBoundingClientRect().width, 20, 0.5,
+            'shrink-to-fit width of the 20px-tall box');
+    }, 'Shrink-to-fit width of a definite-height box whose ratio-only image fills it is the transferred height');
+
+    test(function() {
+        var box = document.getElementById('max-content');
+        assert_approx_equals(box.getBoundingClientRect().width, 20, 0.5,
+            'width:max-content of the 20px-tall box');
+    }, 'width:max-content of a definite-height box whose ratio-only image fills it is the transferred height');
+
+    test(function() {
+        var box = document.getElementById('min-width-max-content');
+        assert_approx_equals(box.getBoundingClientRect().width, 20, 0.5,
+            'min-width:max-content of the 20px-tall box');
+    }, 'min-width:max-content of a definite-height box whose ratio-only image fills it is the transferred height');
+
+    test(function() {
+        var box = document.getElementById('zoomed-2');
+        assert_approx_equals(box.getBoundingClientRect().width, 40, 0.5,
+            'shrink-to-fit width of the 20px-tall box at zoom: 2');
+    }, 'The transferred height is the zoomed height (zoom: 2)');
+
+    test(function() {
+        var box = document.getElementById('zoomed-1-75');
+        assert_approx_equals(box.getBoundingClientRect().width, 35, 0.5,
+            'shrink-to-fit width of the 20px-tall box at zoom: 1.75');
+    }, 'The transferred height is the zoomed height (zoom: 1.75)');
+
+    done();
+});
+</script>

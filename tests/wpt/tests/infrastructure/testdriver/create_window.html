@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>TestDriver create_window method</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+promise_test(async () => {
+    const handle = await test_driver.create_window();
+    assert_equals(typeof handle, "string", "handle expected to be a string");
+    assert_not_equals(handle, "", "handle should not be an empty string");
+}, "create_window returns a window handle");
+
+promise_test(async () => {
+    const first = await test_driver.create_window();
+    const second = await test_driver.create_window();
+    assert_not_equals(first, second, "each call should create a distinct window");
+}, "create_window returns a distinct handle for each created window");
+
+// Created windows are deliberately left open.
+// testdriver has no window close API.
+// wptrunner closes leftover windows between tests.
+</script>

@@ -3,6 +3,8 @@
 from io import BytesIO
 from unittest import mock
 
+from mozlog.structuredlog import StructuredLogger
+
 from manifest import manifest as wptmanifest
 from manifest.item import TestharnessTest, RefTest
 from manifest.utils import to_os_path
@@ -117,7 +119,7 @@ def make_test_object(test_name,
                                  test_metadata.get_test(manifestupdate.get_test_name(test.id)))
 
 
-def test_run_info():
+def test_run_info(logger: StructuredLogger):
     run_info = wpttest.get_run_info("/", "fake-product", debug=False)
     assert isinstance(run_info["bits"], int)
     assert isinstance(run_info["os"], str)

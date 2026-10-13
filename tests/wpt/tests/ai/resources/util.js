@@ -5,6 +5,7 @@ const kAvailableAvailabilities = ['downloadable', 'downloading', 'available'];
 const kAudioPrompt = 'transcribe this';
 const kImagePrompt = 'describe this';
 const kTestPrompt = 'Please write a sentence in English.';
+const kTestPrompt2 = 'Please write another sentence in English.';
 
 const kTestContext = 'This is a test; this is only a test.';
 
@@ -109,13 +110,15 @@ async function testAbortPromise(t, method) {
   }
 };
 
-async function testCreateMonitorWithAbortAt(
-    t, loadedToAbortAt, method, options = {}) {
+async function testCreateMonitorWithAbortAt(t, eventIndexToAbortAt, method,
+                                            options = {}) {
   const {promise: eventPromise, resolve} = Promise.withResolvers();
   let hadEvent = false;
+  let eventCount = 0;
   function monitor(m) {
     m.addEventListener('downloadprogress', e => {
-      if (e.loaded != loadedToAbortAt) {
+      if (eventCount !== eventIndexToAbortAt) {
+        eventCount++;
         return;
       }
 
@@ -135,7 +138,7 @@ async function testCreateMonitorWithAbortAt(
   const createPromise =
       method({...options, monitor, signal: controller.signal});
 
-  await eventPromise;
+  await Promise.race([eventPromise, createPromise]);
 
   const err = new Error('test');
   controller.abort(err);
@@ -144,7 +147,6 @@ async function testCreateMonitorWithAbortAt(
 
 async function testCreateMonitorWithAbort(t, method, options = {}) {
   await testCreateMonitorWithAbortAt(t, 0, method, options);
-  await testCreateMonitorWithAbortAt(t, 1, method, options);
 }
 
 // The method should take the AbortSignal as an option and return a
@@ -284,13 +286,25 @@ async function createEmbedder(options = {}) {
 }
 
 async function createProofreader(options = {}) {
+  if (!options.monitor) {
+    const availability = await Proofreader.availability(options);
+    assert_implements_optional(
+        availability !== 'unavailable',
+        'Proofreader is not available for the given options');
+  }
   await test_driver.bless();
   return await Proofreader.create(options);
 }
 
-async function createClassifier(options = {}) {
+async function createDecisionModel(options = {}) {
+  if (!options.monitor) {
+    const availability = await DecisionModel.availability(options);
+    assert_implements_optional(
+        availability !== 'unavailable',
+        'DecisionModel is not available for the given options');
+  }
   await test_driver.bless();
-  return await Classifier.create(options);
+  return await DecisionModel.create(options);
 }
 
 async function ensureLanguageModel(options = {}) {
@@ -386,4 +400,9 @@ function createColorGridCanvas(width, height, isOffscreen = false) {
   context.fillRect(w2, h2, w2, h2);
 
   return canvas;
+}
+
+// Drains a ReadableStream and returns the concatenated string.
+async function readStream(stream) {
+  return (await Array.fromAsync(stream)).join('');
 }

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>aspect-ratio values</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#ratio-value">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/4150 -->
+
+<script>
+"use strict";
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.setProperty("aspect-ratio", "3 / 2");
+  assert_equals(div.style.getPropertyValue("aspect-ratio"), "3 / 2");
+}, "number / number");
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.setProperty("aspect-ratio", "1.5");
+  assert_equals(div.style.getPropertyValue("aspect-ratio"), "1.5 / 1");
+}, "number");
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.setProperty("aspect-ratio", "auto");
+  assert_equals(div.style.getPropertyValue("aspect-ratio"), "auto");
+}, "auto");
+
+test(() => {
+  const img = document.createElement("img");
+  img.style.setProperty("aspect-ratio", "auto 3 / 2");
+  assert_equals(img.style.getPropertyValue("aspect-ratio"), "auto 3 / 2");
+}, "auto number / number");
+
+test(() => {
+  const img = document.createElement("img");
+  img.style.setProperty("aspect-ratio", "auto 1.5");
+  assert_equals(img.style.getPropertyValue("aspect-ratio"), "auto 1.5 / 1");
+}, "auto number");
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.setProperty("aspect-ratio", "0 / 2");
+  assert_equals(div.style.getPropertyValue("aspect-ratio"), "0 / 2");
+}, "zero / number");
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.setProperty("aspect-ratio", "3 / 0");
+  assert_equals(div.style.getPropertyValue("aspect-ratio"), "3 / 0");
+}, "number / zero");
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.setProperty("aspect-ratio", "0");
+  assert_equals(div.style.getPropertyValue("aspect-ratio"), "0 / 1");
+}, "zero");
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.setProperty("aspect-ratio", "-3 / 2");
+  assert_equals(div.style.getPropertyValue("aspect-ratio"), "");
+}, "invalid; negative / number");
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.setProperty("aspect-ratio", "3 / -2");
+  assert_equals(div.style.getPropertyValue("aspect-ratio"), "");
+}, "invalid; number / negative");
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.setProperty("aspect-ratio", "-3");
+  assert_equals(div.style.getPropertyValue("aspect-ratio"), "");
+}, "invalid; negative");
+</script>

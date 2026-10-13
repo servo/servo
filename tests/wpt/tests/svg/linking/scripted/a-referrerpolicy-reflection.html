@@ -1,0 +1,47 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>SVGAElement referrerPolicy reflection</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/linking.html#InterfaceSVGAElement">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg>
+  <a id="link"></a>
+</svg>
+
+<script>
+const link = document.getElementById("link");
+const policies = [
+  "no-referrer",
+  "no-referrer-when-downgrade",
+  "same-origin",
+  "origin",
+  "strict-origin",
+  "origin-when-cross-origin",
+  "strict-origin-when-cross-origin",
+  "unsafe-url",
+];
+
+for (const policy of policies) {
+  test(() => {
+    link.setAttribute("referrerpolicy", policy.toUpperCase());
+    assert_equals(link.referrerPolicy, policy);
+  }, `${policy} is a known referrer policy`);
+}
+
+test(() => {
+  link.removeAttribute("referrerpolicy");
+  assert_equals(link.referrerPolicy, "");
+}, "missing referrerpolicy reflects as the empty string");
+
+test(() => {
+  link.setAttribute("referrerpolicy", "invalid-policy");
+  assert_equals(link.referrerPolicy, "");
+}, "invalid referrerpolicy reflects as the empty string");
+
+test(() => {
+  link.referrerPolicy = "invalid-policy";
+  assert_equals(link.getAttribute("referrerpolicy"), "invalid-policy");
+  assert_equals(link.referrerPolicy, "");
+}, "setting an invalid referrerPolicy preserves the content attribute");
+</script>

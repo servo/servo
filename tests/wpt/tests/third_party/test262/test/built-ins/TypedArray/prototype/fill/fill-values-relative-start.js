@@ -48,4 +48,4 @@ testWithTypedArrayConstructors(function(TA, makeCtorArg) {
     compareArray(new TA(makeCtorArg([0, 0, 0])).fill(8, -5), [8, 8, 8]),
     "start position is 0 when (len + relativeStart) < 0"
   );
-});
+}, null, null, ["immutable"]);

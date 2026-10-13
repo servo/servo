@@ -28,7 +28,42 @@
       try {
         const controller = new AbortController();
         const tool = e.data.tool;
-        if (e.data.hangsForever) {
+        if (e.data.delayResolutionAndReportAbort) {
+          tool.execute = (input, opts) => new Promise((resolve, reject) => {
+            document.modelContext.addEventListener('toolcancel', ev => {
+              parent.postMessage({ action: 'toolcancel_fired', toolName: ev.toolName }, '*');
+            }, { once: true });
+            parent.postMessage({ action: 'tool_started' }, '*');
+            if (!opts || !opts.signal) {
+              parent.postMessage({ action: 'signal_aborted_result', error: 'no signal provided' }, '*');
+              return;
+            }
+            opts.signal.addEventListener('abort', () => {
+              parent.postMessage({ action: 'signal_aborted_result', reason: String(opts.signal.reason) }, '*');
+            });
+            const finishListener = e => {
+              if (typeof e.data === 'string' && e.data === 'finish_tool') {
+                window.removeEventListener('message', finishListener);
+                resolve('delayed_result');
+              }
+            };
+            window.addEventListener('message', finishListener);
+          });
+        } else if (e.data.hangsForeverAndReportsAbort) {
+          tool.execute = (input, opts) => new Promise((resolve, reject) => {
+            document.modelContext.addEventListener('toolcancel', ev => {
+              parent.postMessage({ action: 'toolcancel_fired', toolName: ev.toolName }, '*');
+            }, { once: true });
+            parent.postMessage({ action: 'tool_started' }, '*');
+            if (!opts || !opts.signal) {
+              parent.postMessage({ action: 'signal_aborted_result', error: 'no signal provided' }, '*');
+              return;
+            }
+            opts.signal.addEventListener('abort', () => {
+              parent.postMessage({ action: 'signal_aborted_result', reason: String(opts.signal.reason) }, '*');
+            });
+          });
+        } else if (e.data.hangsForever) {
           tool.execute = () => new Promise(() => {});
         } else {
           tool.execute = async () => 'hello from iframe';
@@ -62,7 +97,7 @@
       });
     } else if (action === 'execute') {
       const name = e.data.name;
-      const args = e.data.args || '{}';
+      const args = e.data.args || {};
       const options = e.data.options || {};
       document.modelContext.getTools(options).then(tools => {
         const tool = tools.find(t => t.name === name);
@@ -73,21 +108,21 @@
         });
       });
     } else if (action === 'execute_fake_tool') {
-      const fake_tool = {
+      const fakeTool = {
         name: e.data.name || 'dummy',
         description: 'fake desc',
         window: window,
         origin: self.origin
       };
-      document.modelContext.executeTool(fake_tool, '{}').then(result => {
+      document.modelContext.executeTool(fakeTool).then(result => {
         parent.postMessage({action: 'executeFakeToolResponse', result: result, success: true}, '*');
       }).catch(err => {
         parent.postMessage({action: 'executeFakeToolResponse', result: String(err), success: false, error_name: err.name}, '*');
       });
     } else if (action === 'listenForToolchange') {
-      let timer_id;
+      let timerId;
       const listener = () => {
-        clearTimeout(timer_id);
+        clearTimeout(timerId);
         parent.postMessage({ action: 'toolchange_result', result: 'fired' }, '*');
       };
 
@@ -95,7 +130,7 @@
       // Send ACK so the caller knows the listener is active.
       parent.postMessage({ action: 'toolchange_listening_ack' }, '*');
 
-      timer_id = step_timeout(() => {
+      timerId = step_timeout(() => {
         document.modelContext.removeEventListener('toolchange', listener);
         parent.postMessage({ action: 'toolchange_result', result: 'timeout' }, '*');
       }, 4000);

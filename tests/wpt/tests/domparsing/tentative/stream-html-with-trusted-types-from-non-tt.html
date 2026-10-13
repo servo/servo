@@ -1,0 +1,60 @@
+<!doctype html>
+<html>
+  <head>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      const methods = [
+        "streamHTML",
+        "streamHTMLUnsafe",
+        "streamAppendHTML",
+        "streamAppendHTMLUnsafe",
+        "streamPrependHTML",
+        "streamPrependHTMLUnsafe",
+        "streamBeforeHTML",
+        "streamBeforeHTMLUnsafe",
+        "streamAfterHTML",
+        "streamAfterHTMLUnsafe",
+        "streamReplaceWithHTML",
+        "streamReplaceWithHTMLUnsafe"
+      ];
+
+      for (const method of methods) {
+        const safe = !method.endsWith("Unsafe");
+        promise_test(async (t) => {
+          const iframe = document.createElement("iframe");
+          t.add_cleanup(() => iframe.remove());
+          iframe.srcdoc = `<!DOCTYPE html>
+            <head>
+              <meta http-equiv="Content-Security-Policy" content="require-trusted-types-for 'script';">
+            </head>
+            <body><div></div></body>`;
+          await new Promise((resolve) => {
+            iframe.addEventListener("load", resolve, { once: true });
+            document.body.appendChild(iframe);
+          });
+
+          const localDiv = document.createElement("div");
+          const adoptedDiv = iframe.contentDocument.adoptNode(localDiv);
+          iframe.contentDocument.body.appendChild(adoptedDiv);
+          t.add_cleanup(() => adoptedDiv.remove());
+
+          if (safe) {
+            const stream = adoptedDiv[method]();
+            assert_true(
+              stream instanceof WritableStream ||
+              stream instanceof iframe.contentWindow.WritableStream
+            );
+          } else {
+            const expectedTypeError = new adoptedDiv.constructor.constructor(
+              "return TypeError"
+            )();
+            assert_throws_js(expectedTypeError, () => adoptedDiv[method]());
+          }
+        }, `${method} called from non-TT document on an element adopted into a TT document ${safe ? "returns a WritableStream" : "throws TypeError"}.`);
+      }
+    </script>
+  </body>
+</html>

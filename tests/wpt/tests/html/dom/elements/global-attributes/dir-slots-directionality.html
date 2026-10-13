@@ -292,4 +292,28 @@ test(() => {
   tree.remove();
 }, 'dir=auto slot is not affected by content inside inner slot (version 2)');
 
+test(() => {
+  let [tree, shadow] = setup_tree(`
+    <div>
+      <div id=root>
+        <div id=container>اختبر</div>
+      </div>
+    </div>
+  `,`
+    <slot dir=auto></slot>
+  `,
+  { slotAssignment: "manual" });
+
+  let slot = shadow.querySelector("slot");
+  let container = tree.querySelector("#container");
+
+  assert_equals(html_direction(slot), "ltr", "Expect default ltr for slot without content");
+  slot.assign(container);
+  assert_equals(html_direction(slot), "rtl", "Expect rtl for slot with assigned rtl content");
+  slot.assign();
+  assert_equals(html_direction(slot), "ltr", "Expect ltr after clearing slot content");
+
+  tree.remove();
+}, "Slot assigned node manual removal");
+
 </script>

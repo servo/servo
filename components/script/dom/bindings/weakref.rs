@@ -119,15 +119,6 @@ pub(crate) struct WeakRefEntry<'a, T: WeakReferenceable> {
     index: &'a mut usize,
 }
 
-impl<'a, T: WeakReferenceable + 'a> WeakRefEntry<'a, T> {
-    /// Remove the entry from the underlying vector of weak references.
-    pub(crate) fn remove(self) -> WeakRef<T> {
-        let ref_ = self.vec.swap_remove(*self.index);
-        mem::forget(self);
-        ref_
-    }
-}
-
 impl<'a, T: WeakReferenceable + 'a> Deref for WeakRefEntry<'a, T> {
     type Target = WeakRef<T>;
 

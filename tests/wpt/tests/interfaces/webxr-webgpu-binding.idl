@@ -1,0 +1,76 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: WebXR/WebGPU Binding Module - Level 1 (https://immersive-web.github.io/webxr-webgpu-binding/)
+
+[Exposed=(Window), SecureContext]
+interface XRGPUSubImage : XRSubImage {
+  [SameObject] readonly attribute GPUTexture colorTexture;
+  [SameObject] readonly attribute GPUTexture? depthStencilTexture;
+  [SameObject] readonly attribute GPUTexture? motionVectorTexture;
+
+  GPUTextureViewDescriptor getViewDescriptor();
+};
+
+dictionary XRGPUProjectionLayerInit {
+  required GPUTextureFormat colorFormat;
+  GPUTextureFormat? depthStencilFormat;
+  GPUTextureUsageFlags textureUsage = 0x10; // GPUTextureUsage.RENDER_ATTACHMENT
+  double scaleFactor = 1.0;
+};
+
+dictionary XRGPULayerInit {
+  required GPUTextureFormat colorFormat;
+  GPUTextureFormat? depthStencilFormat;
+  GPUTextureUsageFlags textureUsage = 0x10; // GPUTextureUsage.RENDER_ATTACHMENT
+  required XRSpace space;
+  unsigned long mipLevels = 1;
+  required unsigned long viewPixelWidth;
+  required unsigned long viewPixelHeight;
+  XRLayerLayout layout = "mono";
+  boolean isStatic = false;
+};
+
+dictionary XRGPUQuadLayerInit : XRGPULayerInit {
+  XRRigidTransform? transform;
+  float width = 1.0;
+  float height = 1.0;
+};
+
+dictionary XRGPUCylinderLayerInit : XRGPULayerInit {
+  XRRigidTransform? transform;
+  float radius = 2.0;
+  float centralAngle = 0.78539;
+  float aspectRatio = 2.0;
+};
+
+dictionary XRGPUEquirectLayerInit : XRGPULayerInit {
+  XRRigidTransform? transform;
+  float radius = 0;
+  float centralHorizontalAngle = 6.28318;
+  float upperVerticalAngle = 1.570795;
+  float lowerVerticalAngle = -1.570795;
+};
+
+dictionary XRGPUCubeLayerInit : XRGPULayerInit {
+  DOMPointReadOnly? orientation;
+};
+
+[Exposed=(Window), SecureContext]
+interface XRGPUBinding {
+  constructor(XRSession session, GPUDevice device);
+
+  readonly attribute double nativeProjectionScaleFactor;
+  readonly attribute boolean usesDepthValues;
+
+  XRProjectionLayer createProjectionLayer(optional XRGPUProjectionLayerInit init = {});
+  XRQuadLayer createQuadLayer(optional XRGPUQuadLayerInit init = {});
+  XRCylinderLayer createCylinderLayer(optional XRGPUCylinderLayerInit init = {});
+  XREquirectLayer createEquirectLayer(optional XRGPUEquirectLayerInit init = {});
+  XRCubeLayer createCubeLayer(optional XRGPUCubeLayerInit init = {});
+
+  XRGPUSubImage getSubImage(XRCompositionLayer layer, XRFrame frame, optional XREye eye = "none");
+  XRGPUSubImage getViewSubImage(XRProjectionLayer layer, XRView view);
+
+  GPUTextureFormat getPreferredColorFormat();
+};

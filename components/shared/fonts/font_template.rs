@@ -8,18 +8,14 @@ use std::sync::Arc;
 
 use atomic_refcell::{AtomicRef, AtomicRefCell};
 use malloc_size_of_derive::MallocSizeOf;
-use read_fonts::collections::int_set::Domain;
-use read_fonts::types::Tag;
 use serde::{Deserialize, Serialize};
-use style::computed_values::font_optical_sizing::T as FontOpticalSizing;
-use style::computed_values::font_stretch::T as FontStretch;
+use servo_arc::Arc as ServoArc;
 use style::computed_values::font_style::T as FontStyle;
-use style::font_face::{ComputedFontStretchRange, ComputedFontStyleRange, ComputedFontWeightRange};
-use style::properties::generated::font_face::Descriptors as FontFaceRuleDescriptors;
+use style::computed_values::font_width::T as FontWidth;
+use style::font_face::{ComputedFontStyleRange, ComputedFontWeightRange, ComputedFontWidthRange};
 use style::values::computed::font::FontWeight;
-use webrender_api::FontVariation;
 
-use crate::{CSSFontFaceDescriptors, FontDescriptor, FontIdentifier};
+use crate::{CSSFontFaceDescriptors, FontDescriptor, FontFaceRuleInfo, FontIdentifier};
 
 /// A reference to a [`FontTemplate`] with shared ownership and mutability.
 #[derive(Clone, Debug, MallocSizeOf)]
@@ -45,24 +41,23 @@ impl Deref for FontTemplateRef {
 #[derive(Clone, Debug, Deserialize, Hash, MallocSizeOf, PartialEq, Serialize)]
 pub struct FontTemplateDescriptor {
     pub weight: ComputedFontWeightRange,
-    pub stretch: ComputedFontStretchRange,
+    pub width: ComputedFontWidthRange,
     pub style: ComputedFontStyleRange,
-    #[ignore_malloc_size_of = "MallocSizeOf does not yet support RangeInclusive"]
     pub unicode_range: Option<Vec<RangeInclusive<u32>>>,
 }
 
 impl Default for FontTemplateDescriptor {
     fn default() -> Self {
-        Self::new(FontWeight::normal(), FontStretch::NORMAL, FontStyle::NORMAL)
+        Self::new(FontWeight::normal(), FontWidth::NORMAL, FontStyle::NORMAL)
     }
 }
 
 impl FontTemplateDescriptor {
     #[inline]
-    pub fn new(weight: FontWeight, stretch: FontStretch, style: FontStyle) -> Self {
+    pub fn new(weight: FontWeight, width: FontWidth, style: FontStyle) -> Self {
         Self {
             weight: ComputedFontWeightRange(weight, weight),
-            stretch: ComputedFontStretchRange(stretch, stretch),
+            width: ComputedFontWidthRange(width, width),
             style: ComputedFontStyleRange(style, style),
             unicode_range: None,
         }
@@ -70,7 +65,7 @@ impl FontTemplateDescriptor {
 
     pub fn is_variation_font(&self) -> bool {
         self.weight.0 != self.weight.1 ||
-            self.stretch.0 != self.stretch.1 ||
+            self.width.0 != self.width.1 ||
             self.style.0 != self.style.1
     }
 
@@ -82,29 +77,29 @@ impl FontTemplateDescriptor {
     /// be commutative (distance(A, B) == distance(B, A)).
     #[inline]
     fn distance_from(&self, target: &FontDescriptor) -> f32 {
-        let stretch_distance = target.stretch.match_distance(&self.stretch);
+        let width_distance = target.width.match_distance(&self.width);
         let style_distance = target.style.match_distance(&self.style);
         let weight_distance = target.weight.match_distance(&self.weight);
 
         // Sanity-check that the distances are within the expected range
         // (update if implementation of the distance functions is changed).
-        assert!((0.0..=2000.0).contains(&stretch_distance));
+        assert!((0.0..=2000.0).contains(&width_distance));
         assert!((0.0..=500.0).contains(&style_distance));
         assert!((0.0..=1600.0).contains(&weight_distance));
 
         // Factors used to weight the distances between the available and target font
         // properties during font-matching. These ensure that we respect the CSS-fonts
-        // requirement that font-stretch >> font-style >> font-weight; and in addition,
+        // requirement that font-width >> font-style >> font-weight; and in addition,
         // a mismatch between the desired and actual glyph presentation (emoji vs text)
         // will take precedence over any of the style attributes.
         //
         // Also relevant for font selection is the emoji presentation preference, but this
         // is handled later when filtering fonts based on the glyphs they contain.
-        const STRETCH_FACTOR: f32 = 1.0e8;
+        const WIDTH_FACTOR: f32 = 1.0e8;
         const STYLE_FACTOR: f32 = 1.0e4;
         const WEIGHT_FACTOR: f32 = 1.0e0;
 
-        stretch_distance * STRETCH_FACTOR +
+        width_distance * WIDTH_FACTOR +
             style_distance * STYLE_FACTOR +
             weight_distance * WEIGHT_FACTOR
     }
@@ -114,8 +109,8 @@ impl FontTemplateDescriptor {
             self.weight.1 >= descriptor_to_match.weight &&
             self.style.0 <= descriptor_to_match.style &&
             self.style.1 >= descriptor_to_match.style &&
-            self.stretch.0 <= descriptor_to_match.stretch &&
-            self.stretch.1 >= descriptor_to_match.stretch
+            self.width.0 <= descriptor_to_match.width &&
+            self.width.1 >= descriptor_to_match.width
     }
 
     pub fn override_values_with_css_font_template_descriptors(
@@ -128,8 +123,8 @@ impl FontTemplateDescriptor {
         if let Some(ref style) = css_font_template_descriptors.style {
             self.style = style.clone();
         }
-        if let Some(ref stretch) = css_font_template_descriptors.stretch {
-            self.stretch = stretch.clone();
+        if let Some(ref width) = css_font_template_descriptors.width {
+            self.width = width.clone();
         }
         if let Some(ref unicode_range) = css_font_template_descriptors.unicode_range {
             self.unicode_range = Some(unicode_range.clone());
@@ -148,7 +143,8 @@ pub struct FontTemplate {
     /// If this font is a web font, this is a reference to the `@font-face` rule that
     /// created it.
     #[serde(skip)]
-    pub font_face_rule: Option<FontFaceRuleDescriptors>,
+    #[conditional_malloc_size_of]
+    pub font_face_rule: Option<ServoArc<FontFaceRuleInfo>>,
 }
 
 impl Debug for FontTemplate {
@@ -165,7 +161,7 @@ impl FontTemplate {
     pub fn new(
         identifier: FontIdentifier,
         descriptor: FontTemplateDescriptor,
-        font_face_rule: Option<FontFaceRuleDescriptors>,
+        font_face_rule: Option<ServoArc<FontFaceRuleInfo>>,
     ) -> FontTemplate {
         FontTemplate {
             identifier,
@@ -180,7 +176,7 @@ impl FontTemplate {
     pub fn new_for_local_web_font(
         local_template: FontTemplateRef,
         css_font_template_descriptors: &CSSFontFaceDescriptors,
-        font_face_rule: Option<FontFaceRuleDescriptors>,
+        font_face_rule: Option<ServoArc<FontFaceRuleInfo>>,
     ) -> Result<FontTemplate, &'static str> {
         let mut alias_template = local_template.borrow().clone();
         alias_template
@@ -194,88 +190,18 @@ impl FontTemplate {
         &self.identifier
     }
 
-    /// <https://drafts.csswg.org/css-fonts-4/#apply-font-matching-variations>
-    pub fn compute_variations(&self, descriptor: &FontDescriptor) -> Vec<FontVariation> {
-        // The steps in this algorithm are inverted order because they are listed in ascending order of precedence.
-        let mut variations: Vec<FontVariation> = vec![];
-
-        let mut add_variation = |variation: FontVariation| {
-            if !variations
-                .iter()
-                .any(|existing_variation| existing_variation.tag == variation.tag)
-            {
-                variations.push(variation);
-            }
-        };
-
-        // Step 12. Font variations implied by the value of the font-variation-settings property are applied.
-        // These values should be clamped to the values that are supported by the font.
-        // NOTE: Clamping happens inside the PlatformFont.
-        descriptor
-            .variation_settings
-            .iter()
-            .copied()
-            .for_each(&mut add_variation);
-
-        // Step 9. Font variations implied by the value of the font-optical-sizing property are applied.
-        // NOTE The precise behaviour of font-optical-sizing:auto is not defined.
-        // We choose to set "opsz" to the font size if it's not already set elsewhere. This is the easiest
-        // at the end of this function, so we move this step down.
-
-        if let Some(font_face_rule) = &self.font_face_rule {
-            // Step 6. If the font is defined via an @font-face rule, the font variations implied by the font-variation-settings
-            // descriptor in the @font-face rule are applied.
-            if let Some(variation_settings) = font_face_rule.font_variation_settings.as_ref() {
-                variation_settings
-                    .0
-                    .iter()
-                    .map(|variation| FontVariation {
-                        tag: variation.tag.0,
-                        value: variation.value.get().expect(
-                            "The value is enforced to be resolvable at parse time \
-                            (see FontVariationSettings::parse_for_font_face_rule).",
-                        ),
-                    })
-                    .for_each(&mut add_variation);
-            }
-        }
-
-        // Step 2. Font variations as enabled by the font-weight, font-width, and font-style properties are applied.
-        // FIXME: Apply variations for font-style
-        // NOTE: font-stretch is a legacy alias to font-width
-        add_variation(FontVariation {
-            tag: Tag::new(b"wght").to_u32(),
-            value: descriptor.weight.value(),
-        });
-
-        add_variation(FontVariation {
-            tag: Tag::new(b"wdth").to_u32(),
-            value: descriptor.stretch.0.to_float(),
-        });
-
-        // This is the implementation for Step 9. Refer to the note on Step 9 for an explanation of why it's here.
-        if descriptor.optical_sizing == FontOpticalSizing::Auto {
-            add_variation(FontVariation {
-                tag: Tag::new(b"opsz").to_u32(),
-                value: descriptor.pt_size.to_f32_px(),
-            });
-        }
-
-        variations
-    }
-
-    pub fn is_defined_by_font_face_rule(&self, rule: &FontFaceRuleDescriptors) -> bool {
+    pub fn is_defined_by_font_face_rule(&self, rule: &ServoArc<FontFaceRuleInfo>) -> bool {
         self.font_face_rule
             .as_ref()
-            .is_some_and(|defining_rule| defining_rule == rule)
+            .is_some_and(|defining_rule| ServoArc::ptr_eq(rule, defining_rule))
     }
 }
 
 pub trait FontTemplateRefMethods {
     /// Get the descriptor.
-    fn descriptor(&self) -> FontTemplateDescriptor;
+    fn descriptor(&self) -> AtomicRef<'_, FontTemplateDescriptor>;
     /// Get the [`FontIdentifier`] for this template.
-    fn identifier(&self) -> FontIdentifier;
+    fn identifier(&self) -> AtomicRef<'_, FontIdentifier>;
     /// Returns true if the given descriptor matches the one in this [`FontTemplate`].
     fn matches_font_descriptor(&self, descriptor_to_match: &FontDescriptor) -> bool;
     /// Calculate the distance from this [`FontTemplate`]s descriptor and return it
@@ -286,16 +212,20 @@ pub trait FontTemplateRefMethods {
     fn char_in_unicode_range(&self, character: char) -> bool;
 
     /// Return the `@font-face` rule that defined this template, if any.
-    fn font_face_rule(&self) -> Option<AtomicRef<'_, FontFaceRuleDescriptors>>;
+    fn font_face_rule(&self) -> Option<AtomicRef<'_, ServoArc<FontFaceRuleInfo>>>;
 }
 
 impl FontTemplateRefMethods for FontTemplateRef {
-    fn descriptor(&self) -> FontTemplateDescriptor {
-        self.borrow().descriptor.clone()
+    fn descriptor(&self) -> AtomicRef<'_, FontTemplateDescriptor> {
+        AtomicRef::map(self.borrow(), |font_template_ref| {
+            &font_template_ref.descriptor
+        })
     }
 
-    fn identifier(&self) -> FontIdentifier {
-        self.borrow().identifier.clone()
+    fn identifier(&self) -> AtomicRef<'_, FontIdentifier> {
+        AtomicRef::map(self.borrow(), |font_template_ref| {
+            &font_template_ref.identifier
+        })
     }
 
     fn matches_font_descriptor(&self, descriptor_to_match: &FontDescriptor) -> bool {
@@ -315,7 +245,7 @@ impl FontTemplateRefMethods for FontTemplateRef {
             .is_none_or(|ranges| ranges.iter().any(|range| range.contains(&character)))
     }
 
-    fn font_face_rule(&self) -> Option<AtomicRef<'_, FontFaceRuleDescriptors>> {
+    fn font_face_rule(&self) -> Option<AtomicRef<'_, ServoArc<FontFaceRuleInfo>>> {
         AtomicRef::filter_map(self.borrow(), |template| template.font_face_rule.as_ref())
     }
 }
@@ -330,31 +260,31 @@ trait FontMatchDistanceMethod<T>: Sized {
     fn to_float(&self) -> f32;
 }
 
-impl FontMatchDistanceMethod<ComputedFontStretchRange> for FontStretch {
-    fn match_distance(&self, range: &ComputedFontStretchRange) -> f32 {
-        // stretch distance ==> [0,2000]
+impl FontMatchDistanceMethod<ComputedFontWidthRange> for FontWidth {
+    fn match_distance(&self, range: &ComputedFontWidthRange) -> f32 {
+        // width distance ==> [0,2000]
         const REVERSE_DISTANCE: f32 = 1000.0;
 
-        let min_stretch = range.0;
-        let max_stretch = range.1;
+        let min_width = range.0;
+        let max_width = range.1;
 
-        // The stretch value is a (non-negative) percentage; currently we support
+        // The width value is a (non-negative) percentage; currently we support
         // values in the range 0 .. 1000. (If the upper limit is ever increased,
         // the kReverseDistance value used here may need to be adjusted.)
-        // If aTargetStretch is >100, we prefer larger values if available;
+        // If aTargetWidth is >100, we prefer larger values if available;
         // if <=100, we prefer smaller values if available.
-        if *self < min_stretch {
-            if *self > FontStretch::NORMAL {
-                return min_stretch.to_float() - self.to_float();
+        if *self < min_width {
+            if *self > FontWidth::NORMAL {
+                return min_width.to_float() - self.to_float();
             }
-            return (min_stretch.to_float() - self.to_float()) + REVERSE_DISTANCE;
+            return (min_width.to_float() - self.to_float()) + REVERSE_DISTANCE;
         }
 
-        if *self > max_stretch {
-            if *self <= FontStretch::NORMAL {
-                return self.to_float() - max_stretch.to_float();
+        if *self > max_width {
+            if *self <= FontWidth::NORMAL {
+                return self.to_float() - max_width.to_float();
             }
-            return (self.to_float() - max_stretch.to_float()) + REVERSE_DISTANCE;
+            return (self.to_float() - max_width.to_float()) + REVERSE_DISTANCE;
         }
         0.0
     }

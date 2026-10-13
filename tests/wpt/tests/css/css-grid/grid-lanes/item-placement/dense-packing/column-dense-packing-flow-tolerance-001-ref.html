@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<style>
+html, body {
+    font: 15px/1 monospace;
+    margin: 0;
+}
+.grid {
+    display: grid;
+    grid-template-columns: repeat(4, 100px);
+    gap: 20px;
+}
+</style>
+<body>
+  <p>Ensure that dense-packing honors flow-tolerance. An item may be packed into an earlier-in-flow track whose running position is within the flow-tolerance of the highest eligible opening. The second pink item (Item 4a) should stack under Item 1 in the first column, not in the last column.</p>
+  <div class="grid">
+    <div style="background: lightblue; height: 90px; grid-column: 1; grid-row: 1;">Item 1</div>
+    <div style="background: lightgreen; height: 180px; grid-column: 2; grid-row: 1;">Item 2</div>
+    <div style="background: lightgray; height: 80px; grid-column: 3; grid-row: 1;">Item 3</div>
+    <div style="background: pink; height: 70px; grid-column: 4; grid-row: 1;">Item 4</div>
+    <div style="background: pink; height: 70px; grid-column: 1; grid-row: 1; transform: translateY(110px);">Item 4a</div>
+    <div style="background: yellow; height: 15px; grid-column: 3; grid-row: 1; transform: translateY(100px);">Item 5</div>
+  </div>
+</body>
+</html>

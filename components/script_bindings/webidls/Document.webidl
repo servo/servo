@@ -109,8 +109,8 @@ partial /*sealed*/ interface Document {
   getter NamedPropertyValue (DOMString name);
   [CEReactions]
            attribute DOMString title;
-  // [CEReactions]
-  //       attribute DOMString dir;
+  [CEReactions]
+           attribute DOMString dir;
   [CEReactions, SetterThrows]
            attribute HTMLElement? body;
   readonly attribute HTMLHeadElement? head;

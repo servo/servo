@@ -2,12 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::generic_channel::GenericSender;
 use servo_bluetooth_traits::{BluetoothRequest, BluetoothResponse};
 
@@ -22,11 +20,11 @@ use crate::dom::bindings::error::Error;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bluetooth::{AllowedBluetoothDevice, AsyncBluetoothListener, Bluetooth};
+use crate::dom::bluetooth::{AsyncBluetoothListener, Bluetooth};
 use crate::dom::bluetoothdevice::BluetoothDevice;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::permissionstatus::PermissionStatus;
-use crate::dom::promise::Promise;
+use crate::dom::promise::RootedPromise;
 
 // https://webbluetoothcg.github.io/web-bluetooth/#bluetoothpermissionresult
 #[dom_struct]
@@ -51,10 +49,10 @@ impl BluetoothPermissionResult {
         global: &GlobalScope,
         status: &PermissionStatus,
     ) -> DomRoot<BluetoothPermissionResult> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(BluetoothPermissionResult::new_inherited(status)),
             global,
-            cx,
         )
     }
 
@@ -102,7 +100,7 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
         &self,
         cx: &mut JSContext,
         response: BluetoothResponse,
-        promise: &Rc<Promise>,
+        promise: &RootedPromise,
     ) {
         match response {
             // https://webbluetoothcg.github.io/web-bluetooth/#request-bluetooth-devices
@@ -136,10 +134,7 @@ impl AsyncBluetoothListener for BluetoothPermissionResult {
                 self.global()
                     .as_window()
                     .bluetooth_extra_permission_data()
-                    .add_new_allowed_device(AllowedBluetoothDevice {
-                        deviceId: DOMString::from(device.id),
-                        mayUseGATT: true,
-                    });
+                    .add_new_allowed_device(device.id);
                 // https://webbluetoothcg.github.io/web-bluetooth/#request-the-bluetooth-permission
                 // Step 3.
                 self.set_devices(vec![Dom::from_ref(&bt_device)]);

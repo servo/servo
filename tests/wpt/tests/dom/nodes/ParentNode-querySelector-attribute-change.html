@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Changing attribute resets the result of querySelector</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#interface-parentnode">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/pull/3954 -->
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3964 -->
+
+<div id="id">
+  <span id="id-span-1"></span>
+  <span></span>
+</div>
+
+<div id="class">
+  <span id="class-span-1" class="foo"></span>
+  <span id="class-span-2"></span>
+</div>
+
+<div id="hidden">
+  <span id="hidden-span-1" hidden></span>
+  <span id="hidden-span-2"></span>
+</div>
+
+<div id="style">
+  <span id="style-span-1" style="display:inline-block;"></span>
+  <span id="style-span-2"></span>
+</div>
+
+<div id="readonly">
+  <input id="readonly-input-1" readonly>
+  <input id="readonly-input-2">
+</div>
+
+<div id="width">
+  <img id="width-img-1" width="200">
+  <img id="width-img-2">
+</div>
+
+<div id="height">
+  <img id="height-img-1" height="200">
+  <img id="height-img-2">
+</div>
+
+<script>
+"use strict";
+
+test(() => {
+  const div = document.getElementById("id");
+  const node1 = div.firstElementChild;
+  const node2 = div.lastElementChild;
+  assert_equals(div.querySelector("[id]"), node1, "initial");
+  assert_equals(div.querySelector(":not([id])"), node2, "initial not");
+  node1.removeAttribute("id");
+  assert_equals(div.querySelector("[id]"), null, "change attribute");
+  assert_equals(div.querySelector(":not([id])"), node1, "change attribute not");
+}, "id attribute");
+
+test(() => {
+  const div = document.getElementById("class");
+  const node1 = document.getElementById("class-span-1");
+  const node2 = document.getElementById("class-span-2");
+  assert_equals(div.querySelector("[class]"), node1, "initial");
+  assert_equals(div.querySelector(":not([class])"), node2, "initial not");
+  node1.removeAttribute("class");
+  assert_equals(div.querySelector("[class]"), null, "change attribute");
+  assert_equals(div.querySelector(":not([class])"), node1, "change attribute not");
+}, "class attribute");
+
+test(() => {
+  const div = document.getElementById("hidden");
+  const node1 = document.getElementById("hidden-span-1");
+  const node2 = document.getElementById("hidden-span-2");
+  assert_equals(div.querySelector("[hidden]"), node1, "initial");
+  assert_equals(div.querySelector(":not([hidden])"), node2, "initial not");
+  node1.removeAttribute("hidden");
+  assert_equals(div.querySelector("[hidden]"), null, "change attribute");
+  assert_equals(div.querySelector(":not([hidden])"), node1, "change attribute not");
+}, "hidden attribute");
+
+test(() => {
+  const div = document.getElementById("style");
+  const node1 = document.getElementById("style-span-1");
+  const node2 = document.getElementById("style-span-2");
+  assert_equals(div.querySelector("[style]"), node1, "initial");
+  assert_equals(div.querySelector(":not([style])"), node2, "initial not");
+  node1.removeAttribute("style");
+  assert_equals(div.querySelector("[style]"), null, "change attribute");
+  assert_equals(div.querySelector(":not([style])"), node1, "change attribute not");
+}, "style attribute");
+
+test(() => {
+  const div = document.getElementById("readonly");
+  const node1 = document.getElementById("readonly-input-1");
+  const node2 = document.getElementById("readonly-input-2");
+  assert_equals(div.querySelector("[readonly]"), node1, "initial");
+  assert_equals(div.querySelector(":not([readonly])"), node2, "initial not");
+  node1.removeAttribute("readonly");
+  assert_equals(div.querySelector("[readonly]"), null, "change attribute");
+  assert_equals(div.querySelector(":not([readonly])"), node1, "change attribute not");
+}, "readonly attribute");
+
+test(() => {
+  const div = document.getElementById("width");
+  const node1 = document.getElementById("width-img-1");
+  const node2 = document.getElementById("width-img-2");
+  assert_equals(div.querySelector("[width]"), node1, "initial");
+  assert_equals(div.querySelector(":not([width])"), node2, "initial not");
+  node1.removeAttribute("width");
+  assert_equals(div.querySelector("[width]"), null, "change attribute");
+  assert_equals(div.querySelector(":not([width])"), node1, "change attribute not");
+}, "width attribute");
+
+test(() => {
+  const div = document.getElementById("height");
+  const node1 = document.getElementById("height-img-1");
+  const node2 = document.getElementById("height-img-2");
+  assert_equals(div.querySelector("[height]"), node1, "initial");
+  assert_equals(div.querySelector(":not([height])"), node2, "initial not");
+  node1.removeAttribute("height");
+  assert_equals(div.querySelector("[height]"), null, "change attribute");
+  assert_equals(div.querySelector(":not([height])"), node1, "change attribute not");
+}, "height attribute");
+</script>

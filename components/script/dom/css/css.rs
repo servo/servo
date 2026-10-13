@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use cssparser::{Parser, ParserInput, serialize_identifier};
+use cssparser::{Parser, serialize_identifier};
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::codegen::GenericBindings::CSSBinding::PropertyDefinition;
@@ -12,7 +12,7 @@ use style::stylesheets::{CssRuleType, UrlExtraData};
 use style::stylist::RegisterCustomPropertyResult;
 use style_traits::ParsingMode;
 
-use crate::css::parser_context_for_anonymous_content;
+use crate::css::css::parser_context_for_anonymous_content;
 use crate::dom::bindings::codegen::Bindings::CSSBinding::CSSMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -43,31 +43,30 @@ impl CSSMethods<crate::DomTypeHolder> for CSS {
         decl.push_str(&value.str());
         let decl = Declaration(decl);
         let url_data = UrlExtraData(win.Document().url().get_arc());
-        let context = parser_context_for_anonymous_content(
+        let mut context = parser_context_for_anonymous_content(
             CssRuleType::Style,
             ParsingMode::DEFAULT,
             &url_data,
         );
-        decl.eval(&context)
+        decl.eval(&mut context)
     }
 
     /// <https://drafts.csswg.org/css-conditional/#dom-css-supports>
     fn Supports_(win: &Window, condition: DOMString) -> bool {
         let condition = condition.str();
-        let mut input = ParserInput::new(&condition);
-        let mut input = Parser::new(&mut input);
+        let mut input = Parser::new(&condition);
         let cond = match parse_condition_or_declaration(&mut input) {
             Ok(c) => c,
             Err(..) => return false,
         };
 
         let url_data = UrlExtraData(win.Document().url().get_arc());
-        let context = parser_context_for_anonymous_content(
+        let mut context = parser_context_for_anonymous_content(
             CssRuleType::Style,
             ParsingMode::DEFAULT,
             &url_data,
         );
-        cond.eval(&context)
+        cond.eval(&mut context)
     }
 
     /// <https://drafts.css-houdini.org/css-paint-api-1/#paint-worklet>
@@ -95,8 +94,12 @@ impl CSSMethods<crate::DomTypeHolder> for CSS {
             InvalidSyntax |
             InvalidInitialValue |
             NoInitialValue |
-            InitialValueNotComputationallyIndependent => Error::Syntax(None),
-            AlreadyRegistered => Error::InvalidModification(None),
+            InitialValueNotComputationallyIndependent => Error::Syntax(Some(
+                "CSS property value is not computationally independent".into(),
+            )),
+            AlreadyRegistered => {
+                Error::InvalidModification(Some("CSS property is already registered".into()))
+            },
         })
     }
 }

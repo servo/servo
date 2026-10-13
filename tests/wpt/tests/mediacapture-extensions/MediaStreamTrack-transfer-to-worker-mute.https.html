@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Muting in the original context propagates to a MediaStreamTrack transferred to a dedicated worker</title>
+<link rel="help" href="https://w3c.github.io/mediacapture-extensions/#transferable-mediastreamtrack">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=support/transfer-helper.js></script>
+<script>
+"use strict";
+
+const sourceScript = `
+  handlers.createGenerator = () => {
+    self.generator = new VideoTrackGenerator();
+    return describeTrack(self.generator.track);
+  };
+  handlers.transferTrack = () =>
+    transfer(self.generator.track, [self.generator.track]);
+  handlers.setMuted = ({muted}) => {
+    self.generator.muted = muted;
+    return self.generator.muted;
+  };
+`;
+
+promise_test(async t => {
+  const source = await createWorker(t, sourceScript);
+  const sink = await createWorker(t, TRACK_WORKER_SCRIPT);
+  await callWorker(source, {type: "createGenerator"});
+  const track = await callWorker(source, {type: "transferTrack"});
+  assert_true(track instanceof MediaStreamTrack);
+  assert_false(track.muted);
+
+  const muteEvent = new Promise(r => track.onmute = r);
+  await callWorker(source, {type: "setMuted", muted: true});
+  await muteEvent;
+  assert_true(track.muted);
+
+  const received = await callWorker(sink, {type: "receive", track}, [track]);
+  assert_true(received.muted, "muted state survives transfer");
+
+  const unmute = callWorker(sink, {type: "waitForEvent", name: "unmute"});
+  await callWorker(source, {type: "setMuted", muted: false});
+  await unmute;
+  assert_false((await callWorker(sink, {type: "state"})).muted);
+
+  const mute = callWorker(sink, {type: "waitForEvent", name: "mute"});
+  await callWorker(source, {type: "setMuted", muted: true});
+  await mute;
+  assert_true((await callWorker(sink, {type: "state"})).muted);
+}, "Muting and unmuting the source propagates to a transferred track");
+</script>

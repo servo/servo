@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html id="top">
+<head>
+<meta charset="utf-8">
+<title>View timeline with an absolutely positioned subject whose containing block is outside the nearest DOM scroll container</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#viewtimeline-interface">
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#view-timelines-ranges">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/scroll-animations/scroll-timelines/testcommon.js"></script>
+<script src="/scroll-animations/view-timelines/testcommon.js"></script>
+<style>
+
+/* The subject's containing block, and the scroll container that its ranges
+   are measured against. */
+#container {
+  position: relative;
+  height: 500px;
+  overflow: auto;
+}
+.space {
+  height: 550px;
+}
+
+/* A scroll container between the subject and its containing block in the DOM.
+   The subject does not scroll with it, so it must not be the timeline's
+   source. */
+#inner {
+  height: 200px;
+  overflow: auto;
+}
+.inner-space {
+  height: 300px;
+}
+
+#target {
+  position: absolute;
+  top: 600px;
+  left: 0;
+  background: orange;
+  width: 100px;
+  height: 100px;
+}
+
+#relwrap {
+  position: relative;
+}
+#scroller2 {
+  height: 200px;
+  overflow: auto;
+}
+#escapee {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100px;
+  height: 100px;
+}
+
+</style>
+</head>
+<body>
+<div id="container">
+  <div class="space"></div>
+  <div id="inner">
+    <div class="inner-space"></div>
+    <div id="target"></div>
+    <div class="inner-space"></div>
+  </div>
+  <div class="space"></div>
+</div>
+
+<div id="relwrap">
+  <div id="scroller2">
+    <div class="inner-space"></div>
+    <div id="escapee"></div>
+    <div class="inner-space"></div>
+  </div>
+</div>
+
+<script type="text/javascript">
+
+// The subject's containing block chain, not its DOM ancestor chain, decides
+// which scroll container it scrolls with, and therefore which scroll container
+// the view progress timeline is measured against. #target is a DOM descendant
+// of #inner but is positioned against #container, so #container is the source.
+//
+// USED_POSITION = the subject's `top` within #container's padding box
+const USED_POSITION = 600;
+
+const TARGET_HEIGHT = 100;
+const VIEWPORT_HEIGHT = 500;
+
+const START = USED_POSITION - VIEWPORT_HEIGHT;
+const END = USED_POSITION + TARGET_HEIGHT;
+
+promise_test(async t => {
+  const timeline = new ViewTimeline({ subject: target, axis: 'block' });
+  assert_equals(timeline.source, container,
+                'source skips the DOM ancestor scroll container');
+
+  // With no positioned ancestor inside the scroll container either, the
+  // containing block chain leaves the scroll container entirely and lands on
+  // the document.
+  const escapedTimeline = new ViewTimeline({ subject: escapee, axis: 'block' });
+  assert_equals(escapedTimeline.source, document.scrollingElement,
+                'source of a subject positioned outside every scroll container');
+}, 'ViewTimeline source follows the containing block chain for absolutely ' +
+   'positioned subjects.');
+
+promise_test(async t => {
+  // Scrolling #inner must not move the subject or change the ranges.
+  inner.scrollTop = 200;
+  t.add_cleanup(() => {
+    inner.scrollTop = 0;
+  });
+  await waitForNextFrame();
+
+  const timeline = new ViewTimeline({ subject: target, axis: 'block' });
+  assert_px_equals(timeline.startOffset, START, 'startOffset');
+  assert_px_equals(timeline.endOffset, END, 'endOffset');
+
+  await runTimelineRangeTest(t, {
+    rangeStart: { rangeName: 'cover', offset: CSS.percent(0) },
+    rangeEnd: { rangeName: 'cover', offset: CSS.percent(100) },
+    startOffset: START,
+    endOffset: END,
+    axis: 'block'
+  });
+  await runTimelineRangeTest(t, {
+    rangeStart: { rangeName: 'contain', offset: CSS.percent(0) },
+    rangeEnd: { rangeName: 'contain', offset: CSS.percent(100) },
+    startOffset: START + TARGET_HEIGHT,
+    endOffset: END - TARGET_HEIGHT,
+    axis: 'block'
+  });
+  await runTimelineRangeTest(t, {
+    rangeStart: { rangeName: 'entry', offset: CSS.percent(0) },
+    rangeEnd: { rangeName: 'entry', offset: CSS.percent(100) },
+    startOffset: START,
+    endOffset: START + TARGET_HEIGHT,
+    axis: 'block'
+  });
+  await runTimelineRangeTest(t, {
+    rangeStart: { rangeName: 'entry-crossing', offset: CSS.percent(0) },
+    rangeEnd: { rangeName: 'entry-crossing', offset: CSS.percent(100) },
+    startOffset: START,
+    endOffset: START + TARGET_HEIGHT,
+    axis: 'block'
+  });
+  await runTimelineRangeTest(t, {
+    rangeStart: { rangeName: 'exit', offset: CSS.percent(0) },
+    rangeEnd: { rangeName: 'exit', offset: CSS.percent(100) },
+    startOffset: END - TARGET_HEIGHT,
+    endOffset: END,
+    axis: 'block'
+  });
+  await runTimelineRangeTest(t, {
+    rangeStart: { rangeName: 'exit-crossing', offset: CSS.percent(0) },
+    rangeEnd: { rangeName: 'exit-crossing', offset: CSS.percent(100) },
+    startOffset: END - TARGET_HEIGHT,
+    endOffset: END,
+    axis: 'block'
+  });
+}, 'View timeline ranges for an absolutely positioned subject whose ' +
+   'containing block is outside the nearest DOM scroll container.');
+
+</script>
+</body>
+</html>

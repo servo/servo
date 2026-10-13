@@ -10,7 +10,7 @@ use dom_struct::dom_struct;
 use euclid::Size2D;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::{
     WebGLCommand, WebGLError, WebGLFramebufferBindingRequest, WebGLFramebufferId,
@@ -144,7 +144,7 @@ impl Drop for DroppableWebGLFramebuffer {
     }
 }
 
-#[dom_struct(associated_memory)] // actual memory usage is reported in WebGLFramebufferAttachment
+#[dom_struct]
 pub(crate) struct WebGLFramebuffer {
     webgl_object: WebGLObject,
     #[no_trace]
@@ -221,10 +221,10 @@ impl WebGLFramebuffer {
         context: &WebGLRenderingContext,
         id: WebGLFramebufferId,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(WebGLFramebuffer::new_inherited(context, id)),
             &*context.global(),
-            cx,
         )
     }
 }
@@ -570,21 +570,22 @@ impl WebGLFramebuffer {
                     constants::DEPTH_BUFFER_BIT | constants::STENCIL_BUFFER_BIT,
                 ),
             ];
+            let colors = self
+                .colors
+                .iter()
+                .map(|attachment| (attachment, constants::COLOR_BUFFER_BIT));
+            // Collect every bit before marking: in WebGL 2 one image can fill two slots.
             let mut clear_bits = 0;
-            for &(attachment, bits) in &attachments {
+            for (attachment, bits) in attachments.into_iter().chain(colors.clone()) {
                 if let Some(ref att) = *attachment.borrow() &&
                     att.needs_initialization()
                 {
-                    att.mark_initialized();
                     clear_bits |= bits;
                 }
             }
-            for attachment in self.colors.iter() {
-                if let Some(ref att) = *attachment.borrow() &&
-                    att.needs_initialization()
-                {
+            for (attachment, _) in attachments.into_iter().chain(colors) {
+                if let Some(ref att) = *attachment.borrow() {
                     att.mark_initialized();
-                    clear_bits |= constants::COLOR_BUFFER_BIT;
                 }
             }
 
@@ -600,6 +601,27 @@ impl WebGLFramebuffer {
         // https://github.com/immersive-web/layers/issues/196
 
         CompleteForRendering::Complete
+    }
+
+    /// Clears the uninitialized attachments of this framebuffer, which is bound for reading only.
+    /// Clearing requires a draw binding, so the `draw_framebuffer` binding is restored afterwards.
+    pub(crate) fn initialize_for_reading(&self, draw_framebuffer: Option<&WebGLFramebuffer>) {
+        if self.is_initialized.get() {
+            return;
+        }
+        let bind_draw = |request| {
+            self.upcast().send_command(WebGLCommand::BindFramebuffer(
+                constants::DRAW_FRAMEBUFFER,
+                request,
+            ))
+        };
+        bind_draw(WebGLFramebufferBindingRequest::Explicit(self.id()));
+        self.check_status_for_rendering();
+        bind_draw(
+            draw_framebuffer.map_or(WebGLFramebufferBindingRequest::Default, |fb| {
+                WebGLFramebufferBindingRequest::Explicit(fb.id())
+            }),
+        );
     }
 
     pub(crate) fn renderbuffer(
@@ -622,6 +644,7 @@ impl WebGLFramebuffer {
                 }
                 *binding.borrow_mut() =
                     Some(WebGLFramebufferAttachment::Renderbuffer(Dom::from_ref(rb)));
+                self.mirror_alias(binding, attachment);
                 rb.attach_to_framebuffer(self);
                 Some(rb.id())
             },
@@ -655,10 +678,12 @@ impl WebGLFramebuffer {
         // https://immersive-web.github.io/webxr/#opaque-framebuffer
         self.validate_transparent()?;
 
-        if let Some(att) = &*binding.borrow() {
-            att.detach();
+        for slot in std::iter::once(binding).chain(self.aliased_binding(attachment)) {
+            if let Some(att) = &*slot.borrow() {
+                att.detach();
+            }
+            *slot.borrow_mut() = None;
         }
-        *binding.borrow_mut() = None;
         if INTERESTING_ATTACHMENT_POINTS.contains(&attachment) {
             self.reattach_depth_stencil()?;
         }
@@ -676,8 +701,32 @@ impl WebGLFramebuffer {
             },
             constants::DEPTH_ATTACHMENT => Some(&self.depth),
             constants::STENCIL_ATTACHMENT => Some(&self.stencil),
-            constants::DEPTH_STENCIL_ATTACHMENT => Some(&self.depthstencil),
+            constants::DEPTH_STENCIL_ATTACHMENT => match self.webgl_version {
+                WebGLVersion::WebGL1 => Some(&self.depthstencil),
+                WebGLVersion::WebGL2 => Some(&self.depth),
+            },
             _ => None,
+        }
+    }
+
+    /// Returns the stencil slot for WebGL 2's `DEPTH_STENCIL_ATTACHMENT`, which aliases
+    /// `DEPTH_ATTACHMENT` + `STENCIL_ATTACHMENT`, and `None` for any other attachment.
+    fn aliased_binding(
+        &self,
+        attachment: u32,
+    ) -> Option<&DomRefCell<Option<WebGLFramebufferAttachment>>> {
+        (self.webgl_version == WebGLVersion::WebGL2 &&
+            attachment == constants::DEPTH_STENCIL_ATTACHMENT)
+            .then_some(&self.stencil)
+    }
+
+    fn mirror_alias(
+        &self,
+        binding: &DomRefCell<Option<WebGLFramebufferAttachment>>,
+        attachment: u32,
+    ) {
+        if let Some(alias) = self.aliased_binding(attachment) {
+            *alias.borrow_mut() = binding.borrow().clone();
         }
     }
 
@@ -685,6 +734,11 @@ impl WebGLFramebuffer {
         // Opaque framebuffers cannot have their attachments changed
         // https://immersive-web.github.io/webxr/#opaque-framebuffer
         self.validate_transparent()?;
+
+        // WebGL 2 attachment points match GL's, so there is nothing to restore.
+        if self.webgl_version == WebGLVersion::WebGL2 {
+            return Ok(());
+        }
 
         let reattach = |attachment: &WebGLFramebufferAttachment, attachment_point| {
             let webgl_object = self.upcast();
@@ -810,6 +864,7 @@ impl WebGLFramebuffer {
                     texture: Dom::from_ref(texture),
                     level,
                 });
+                self.mirror_alias(binding, attachment);
                 texture.attach_to_framebuffer(self);
 
                 Some(texture.id())
@@ -876,6 +931,7 @@ impl WebGLFramebuffer {
                     texture: Dom::from_ref(texture),
                     level,
                 });
+                self.mirror_alias(binding, attachment);
                 texture.attach_to_framebuffer(self);
 
                 Some(texture.id())

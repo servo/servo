@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+<head>
+<style>
+/* Reference: draw the single grid item as an absolutely positioned box so the
+   layout never touches grid. The 10% margin resolves against the 100px column
+   (10px on each side), placing the 80x80 border-box at (10,10). box-sizing:
+   border-box keeps the 5px padding inside, so the content lands at (5,5). The
+   grid is two 100px columns wide (200px) with only the first cell occupied. */
+.grid {
+    position: relative;
+    width: 200px;
+    height: 100px;
+    background-color: green;
+}
+.item {
+    position: absolute;
+    box-sizing: border-box;
+    left: 10px;
+    top: 10px;
+    width: 80px;
+    height: 80px;
+    padding: 5px;
+    background-color: blue;
+}
+.itemContent {
+    width: 20px;
+    height: 20px;
+    background-color: purple;
+}
+</style>
+</head>
+<body>
+<div class="grid">
+    <div class="item"><div class="itemContent"></div></div>
+</div>
+</body>
+</html>

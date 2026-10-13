@@ -1,0 +1,12 @@
+<svg width="400" height="200" viewBox="0 0 400 200" xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <html:link rel="stylesheet" type="text/css" href="/fonts/ahem.css"/>
+  <style>
+    text { font-family: Ahem; font-size: 20px; }
+  </style>
+  <path d="M 50,100 L 170,100 M 230,100 L 350,100" fill="none" stroke="lightblue"/>
+  <!-- The same two subpaths, written backwards by hand: last subpath first, each one reversed. -->
+  <path id="p" d="M 350,100 L 230,100 M 170,100 L 50,100" fill="none"/>
+  <text>
+    <textPath href="#p"><tspan fill="blue">XXXX</tspan><tspan fill="orange">XXXX</tspan></textPath>
+  </text>
+</svg>

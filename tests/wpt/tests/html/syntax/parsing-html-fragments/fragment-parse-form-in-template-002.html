@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>form element inside of template contents during fragment parse</title>
+<link rel="help" href="https://github.com/whatwg/html/issues/12257">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+
+test((t) => {
+  // Unlike fragment-parse-form-in-template-001.html, the context element here
+  // is a node *inside* a template's contents rather than the template itself.
+  // The parser is therefore not producing template contents from scratch, and
+  // any form ancestor of the context element is itself inside those contents,
+  // so this behaves like any other subtree: the form element pointer is seeded
+  // from the context element's ancestors, and the parser's code for dropping
+  // nested forms applies.
+  let template = document.createElement("template");
+  template.innerHTML = "<form id=f><div id=d></div></form>";
+  let div = template.content.getElementById("d");
+  assert_equals(div.closest("form").id, "f", "setup: context element is inside a form");
+
+  div.innerHTML = "<div><form></div><input type=text></form>";
+  assert_equals(div.querySelectorAll("form").length, 0, "<form> should be dropped because the form element pointer is set from the context element's form ancestor");
+  // The form owner of the <input> is deliberately not asserted here: the
+  // <input> is a descendant of #f either way, so insertion into the tree sets
+  // the form owner regardless of what the parser did. See
+  // fragment-parse-form-owner-001.tentative.html for that question.
+  assert_equals(div.querySelectorAll("input").length, 1, "there should be 1 input element");
+}, "management of form element pointer inside of template contents");
+
+</script>

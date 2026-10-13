@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>text-box-trim trims the first line to the larger font-size set by ::first-line, not the block's own font</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<style>
+.spacer {
+  background: lightgray;
+  block-size: 60px;
+}
+.small-line {
+  font: 20px/2 Ahem;
+  text-box: trim-start text;
+}
+.big-line {
+  font: 40px/2 Ahem;
+}
+</style>
+
+<div class="spacer"></div>
+<div class="small-line">Line1</div>
+<div class="big-line">Line2</div>
+<div class="spacer"></div>

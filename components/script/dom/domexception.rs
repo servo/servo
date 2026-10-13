@@ -7,9 +7,10 @@ use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
 use script_bindings::match_domstring_ascii;
-use script_bindings::reflector::{
-    Reflector, reflect_dom_object_with_cx, reflect_dom_object_with_proto,
-};
+use script_bindings::reflector::{Reflector, reflect_dom_object, reflect_dom_object_with_proto};
+use script_bindings::serializable::Serializable;
+use script_bindings::structuredclone::StructuredData;
+use script_bindings::traits::DomExceptionTrait;
 use servo_base::id::{DomExceptionId, DomExceptionIndex};
 use servo_constellation_traits::DomException;
 
@@ -18,9 +19,7 @@ use crate::dom::bindings::codegen::Bindings::DOMExceptionBinding::{
 };
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::serializable::Serializable;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;
 
 #[repr(u16)]
@@ -184,10 +183,10 @@ impl DOMException {
     ) -> DomRoot<DOMException> {
         let (message, name) = DOMException::get_error_data_by_code(code);
 
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(DOMException::new_inherited(message, name)),
             global,
-            cx,
         )
     }
 
@@ -199,10 +198,10 @@ impl DOMException {
     ) -> DomRoot<DOMException> {
         let (_, name) = DOMException::get_error_data_by_code(code);
 
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(DOMException::new_inherited(DOMString::from(message), name)),
             global,
-            cx,
         )
     }
 
@@ -248,7 +247,7 @@ impl DOMExceptionMethods<crate::DomTypeHolder> for DOMException {
     }
 }
 
-impl Serializable for DOMException {
+impl Serializable<crate::DomTypeHolder> for DOMException {
     type Index = DomExceptionIndex;
     type Data = DomException;
 
@@ -285,5 +284,14 @@ impl Serializable for DOMException {
             StructuredData::Reader(reader) => &mut reader.exceptions,
             StructuredData::Writer(writer) => &mut writer.exceptions,
         }
+    }
+}
+
+impl DomExceptionTrait for DOMException {
+    fn new_inherited(
+        message: script_bindings::str::DOMString,
+        name: script_bindings::str::DOMString,
+    ) -> Self {
+        DOMException::new_inherited(message, name)
     }
 }

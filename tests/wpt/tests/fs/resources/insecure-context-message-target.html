@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Reports whether posted values could be deserialized</title>
+<script>
+const report = data => top.opener.postMessage(data, '*');
+window.onmessage = () => report({ type: 'message' });
+window.onmessageerror = () => report({ type: 'messageerror' });
+report({ type: 'ready', isSecureContext });
+</script>

@@ -6,7 +6,7 @@ pub(crate) use self::attributes::*;
 pub(crate) use self::element::*;
 pub(crate) mod attributes;
 pub(crate) mod create;
-#[allow(clippy::module_inception, reason = "The interface name is element")]
+#[expect(clippy::module_inception, reason = "The interface name is element")]
 pub(crate) mod element;
 pub(crate) mod focus;
 pub(crate) mod namednodemap;

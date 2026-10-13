@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Lazy-loading image outside the viewport does not block image inside the viewport</title>
+<link rel="help" href="https://github.com/whatwg/html/issues/10019">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+img {
+  border: 1px solid black;
+  width: 30px;
+  height: 30px;
+}
+
+#notInViewport {
+  position: relative;
+  top: -1000px;
+}
+</style>
+
+<body>
+<script>
+const imageSrc = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg==";
+
+async_test(t => {
+  const notInViewport = document.createElement("img");
+  notInViewport.id = "notInViewport";
+  notInViewport.loading = "lazy";
+
+  const inViewport = document.createElement("img");
+  inViewport.id = "inViewport";
+  inViewport.loading = "lazy";
+  inViewport.onerror = t.unreached_func("The in-viewport lazy image must load");
+  inViewport.onload = t.step_func_done(() => {});
+
+  document.body.append(notInViewport, inViewport);
+  notInViewport.src = imageSrc;
+  inViewport.src = imageSrc;
+}, "A lazy image outside the viewport must not block a later lazy image inside the viewport");
+</script>

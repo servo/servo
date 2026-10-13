@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+.flex {
+  display: inline-flex;
+  border: thick solid;
+  height: 50px;
+  width: 50px;
+  margin: 50px;
+}
+
+.i1 {
+  color: cyan;
+  background: magenta;
+  font-size: 100px;
+}
+
+.auto { overflow: auto; }
+.hidden { overflow: hidden; }
+</style>
+
+<p>This test checks that implied minimum size of grid items is only applied if overflow is visible.</p>
+<p>The test passes if in the first grid the item overflows, in the second one it has scrollbars,
+and in the third one the item doesn't overflow but it doesn't have scrollbars.</p>
+
+<div class="flex" style="align-items: start;">
+  <div class="i1">X</div>
+</div>
+
+<div class="flex">
+  <div class="i1 auto">X</div>
+</div>
+
+<div class="flex">
+  <div class="i1 hidden">X</div>
+</div>

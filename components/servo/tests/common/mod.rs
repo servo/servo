@@ -74,10 +74,8 @@ impl ServoTest {
         &self.servo
     }
 
-    /// Spin the Servo event loop until one of:
-    ///  - The given callback returns `Ok(false)`.
-    ///  - The given callback returns an `Error`, in which case the `Error` will be returned.
-    pub fn spin(&self, callback: impl Fn() -> bool + 'static) {
+    /// Spin the Servo event loop until the provided callback returns `false`.
+    pub fn spin(&self, callback: impl Fn() -> bool) {
         while callback() {
             self.servo.spin_event_loop();
             std::thread::sleep(Duration::from_millis(1));
@@ -97,6 +95,8 @@ pub(crate) struct WebViewDelegateImpl {
     pub(crate) number_of_controls_hidden: Cell<usize>,
     pub(crate) last_accesskit_tree_updates: RefCell<Vec<accesskit::TreeUpdate>>,
     pub(crate) console_messages: RefCell<Vec<(ConsoleLogLevel, String)>>,
+    pub(crate) fullscreen: Cell<bool>,
+    pub(crate) crashes: Cell<usize>,
 }
 
 #[allow(dead_code)] // Used by some tests and not others
@@ -110,6 +110,8 @@ impl WebViewDelegateImpl {
         self.number_of_controls_hidden.set(0);
         self.last_accesskit_tree_updates.borrow_mut().clear();
         self.console_messages.borrow_mut().clear();
+        self.fullscreen.set(false);
+        self.crashes.set(0);
     }
 }
 
@@ -165,22 +167,30 @@ impl WebViewDelegate for WebViewDelegateImpl {
     fn show_console_message(&self, _webview: WebView, level: ConsoleLogLevel, message: String) {
         self.console_messages.borrow_mut().push((level, message));
     }
+
+    fn notify_fullscreen_state_changed(&self, _webview: WebView, fullscreen: bool) {
+        self.fullscreen.set(fullscreen);
+    }
+
+    fn notify_crashed(&self, _webview: WebView, _reason: String, _backtrace: Option<String>) {
+        self.crashes.set(self.crashes.get() + 1);
+    }
 }
 
 // Used by some unit tests only. Since they compile into different binaries,
 // it will be flagged as unused for certain unit tests.
 #[allow(dead_code)]
-pub(crate) fn click_at_point(webview: &WebView, point: DevicePoint) {
+pub(crate) fn click_at_point(webview: &WebView, point: DevicePoint, button: MouseButton) {
     let point = point.into();
     webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(point)));
     webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
         MouseButtonAction::Down,
-        MouseButton::Left,
+        button,
         point,
     )));
     webview.notify_input_event(InputEvent::MouseButton(MouseButtonEvent::new(
         MouseButtonAction::Up,
-        MouseButton::Left,
+        button,
         point,
     )));
 }
@@ -193,8 +203,7 @@ pub(crate) fn evaluate_javascript(
     webview: WebView,
     script: impl ToString,
 ) -> Result<JSValue, JavaScriptEvaluationError> {
-    let load_webview = webview.clone();
-    let _ = servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+    let _ = servo_test.spin(|| webview.load_status() != LoadStatus::Complete);
 
     let saved_result = Rc::new(RefCell::new(None));
     let callback_result = saved_result.clone();
@@ -202,8 +211,7 @@ pub(crate) fn evaluate_javascript(
         *callback_result.borrow_mut() = Some(result)
     });
 
-    let spin_result = saved_result.clone();
-    let _ = servo_test.spin(move || spin_result.borrow().is_none());
+    let _ = servo_test.spin(|| saved_result.borrow().is_none());
 
     (*saved_result.borrow())
         .clone()
@@ -218,8 +226,7 @@ pub(crate) fn show_webview_and_wait_for_rendering_to_be_ready(
     webview: &WebView,
     delegate: &Rc<WebViewDelegateImpl>,
 ) {
-    let load_webview = webview.clone();
-    servo_test.spin(move || load_webview.load_status() != LoadStatus::Complete);
+    servo_test.spin(|| webview.load_status() != LoadStatus::Complete);
 
     delegate.reset();
 
@@ -235,6 +242,21 @@ pub(crate) fn show_webview_and_wait_for_rendering_to_be_ready(
     );
 
     // Wait for at least one frame after the load completes.
-    let captured_delegate = delegate.clone();
-    servo_test.spin(move || !captured_delegate.new_frame_ready.get());
+    servo_test.spin(|| !delegate.new_frame_ready.get());
+}
+
+/// Wait for the WebRender scene to reflect the current state of the WebView
+/// by triggering a screenshot, waiting for it to be ready, and then throwing
+/// away the results.
+// Used by some unit tests only. Since they compile into different binaries,
+// it will be flagged as unused for certain unit tests.
+#[allow(dead_code)]
+pub fn wait_for_webview_scene_to_be_up_to_date(servo_test: &ServoTest, webview: &WebView) {
+    let waiting = Rc::new(Cell::new(true));
+    let callback_waiting = waiting.clone();
+    webview.take_screenshot(None, move |result| {
+        assert!(result.is_ok());
+        callback_waiting.set(false);
+    });
+    servo_test.spin(move || waiting.get());
 }

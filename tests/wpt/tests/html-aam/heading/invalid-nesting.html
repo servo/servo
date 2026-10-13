@@ -1,0 +1,118 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>HTML-AAM tests for invalidly nested heading elements</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+
+<body>
+
+  <h1>HTML-AAM tests for invalidly nested heading elements</h1>
+  <p>Equivalent ARIA patterns tested in <code>/wai-aria/heading/invalid-nesting.tentative.html</code>.</p>
+
+  <h2>Accessible names and roles</h2>
+  <hr>
+
+  <!-- [SIC] Empty heading contents, which throws a parser warning. -->
+  <h1
+    class="ex-label ex-role"
+    data-testname="h1 with invalid h2 descendant should not inherit accname from the text contents of the contained h2, and should still convey heading role"
+    data-expectedlabel=""
+    data-expectedrole="heading"
+  >
+    <h2
+      class="ex-label ex-role"
+      data-testname="Invalidly nested h2 should have accname matching its text contents, and should still convey heading role"
+      data-expectedlabel="Invalid h2"
+      data-expectedrole="heading"
+    >Invalid h2</h2>
+  </h1>
+
+  <h4
+    class="ex-label ex-role"
+    data-testname="h4 with invalid h3 descendant should not inherit accname from the text contents of the contained h3, and should still convey heading role"
+    data-expectedlabel=""
+    data-expectedrole="heading"
+  >
+    <h3
+      class="ex-label ex-role"
+      data-testname="Invalidly nested h3 should have accname matching its text contents, and should still convey heading role"
+      data-expectedlabel="Invalid h3"
+      data-expectedrole="heading"
+    >Invalid h3</h3>
+  </h4>
+
+  <h5
+    class="ex-label ex-role"
+    data-testname="h5 with invalid h6 descendant should not inherit accname from the text contents of the contained h6, and should still convey heading role"
+    data-expectedlabel=""
+    data-expectedrole="heading"
+  >
+    <h6
+      class="ex-label ex-role"
+      data-testname="Invalidly nested h6 should have accname matching its text contents, and should still convey heading role"
+      data-expectedlabel="Invalid h6"
+      data-expectedrole="heading"
+    >Invalid h6</h6>
+  </h5>
+
+  <h1
+    class="ex-label ex-role"
+    data-testname="h1 with text contents and invalid h2 descendant should not accumulate accname from the text contents of the contained h2, and should still convey heading role"
+    data-expectedlabel="Chocolate"
+    data-expectedrole="heading"
+  >Chocolate
+    <h2>Peanut butter</h2>
+  </h1>
+
+  <h2>No heading ancestors</h2>
+  <hr>
+
+  <h1>One
+    <h2
+      class="ex-no-heading-ancestor"
+      data-testname="h2 invalidly nested inside h1 should not, after parsing, have any DOM ancestor with a heading role"
+    >Two
+      <h3
+        class="ex-no-heading-ancestor"
+        data-testname="h3 invalidly nested inside h1 > h2 should not, after parsing, have any DOM ancestor with a heading role"
+      >Three</h3>
+    </h2>
+  </h1>
+
+  <script>
+    AriaUtils.verifyRolesAndLabelsBySelector(".ex-label.ex-role");
+    verifyNoForbiddenAncestorRole(".ex-no-heading-ancestor", "heading");
+
+    function verifyNoForbiddenAncestorRole(selector, forbiddenRole) {
+      const els = document.querySelectorAll(selector);
+      if (!els.length) {
+        throw `Selector passed in verifyNoForbiddenAncestorRole("${selector}") should match at least one element.`;
+      }
+      for (const el of els) {
+        let testName = el.getAttribute("data-testname");
+        let ancestors = [];
+        let ancestor = el.parentNode;
+        promise_test(async t => {
+          // Get computed role of each ancestor up to but excluding the root.
+          while (ancestor && ancestor != document.documentElement) {
+            const computedRole = await test_driver.get_computed_role(ancestor);
+            ancestors.push(computedRole);
+            ancestor = ancestor.parentNode;
+          }
+          assert_false(ancestors.includes(forbiddenRole));
+        }, `${testName}`);
+      }
+    }
+
+  </script>
+</body>
+
+</html>

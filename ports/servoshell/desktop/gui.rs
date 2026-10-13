@@ -3,13 +3,24 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::collections::HashMap;
-#[cfg(any(target_os = "windows", target_os = "linux", target_os = "freebsd"))]
+#[cfg(any(
+    target_os = "windows",
+    target_os = "linux",
+    target_os = "freebsd",
+    target_os = "macos"
+))]
 use std::fs;
-#[cfg(any(target_os = "windows", target_os = "linux", target_os = "freebsd"))]
+#[cfg(any(
+    target_os = "windows",
+    target_os = "linux",
+    target_os = "freebsd",
+    target_os = "macos"
+))]
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
 
+use accesskit::Affine;
 use dpi::PhysicalSize;
 use egui::text::{CCursor, CCursorRange};
 use egui::text_edit::TextEditState;
@@ -17,12 +28,22 @@ use egui::{
     Button, FontDefinitions, Id, Key, Label, LayerId, Modifiers, Order, PaintCallback, Panel, Vec2,
     WidgetInfo, WidgetType, pos2,
 };
-#[cfg(any(target_os = "windows", target_os = "linux", target_os = "freebsd"))]
+#[cfg(any(
+    target_os = "windows",
+    target_os = "linux",
+    target_os = "freebsd",
+    target_os = "macos"
+))]
 use egui::{FontData, FontFamily};
 use egui_glow::{CallbackFn, EguiGlow};
 use egui_winit::EventResponse;
 use euclid::{Length, Point2D, Rect, Scale, Size2D};
-#[cfg(any(target_os = "windows", target_os = "linux", target_os = "freebsd"))]
+#[cfg(any(
+    target_os = "windows",
+    target_os = "linux",
+    target_os = "freebsd",
+    target_os = "macos"
+))]
 use log::info;
 use log::warn;
 use servo::{
@@ -37,7 +58,7 @@ use winit::window::Window;
 use crate::desktop::event_loop::AppEvent;
 use crate::desktop::headed_window;
 use crate::running_app_state::{RunningAppState, UserInterfaceCommand};
-use crate::window::ServoShellWindow;
+use crate::window::{ServoShellWindow, TopLevelWebViewCreationRequest};
 
 /// The user interface of a headed servoshell. Currently this is implemented via
 /// egui.
@@ -82,7 +103,12 @@ fn truncate_with_ellipsis(input: &str, max_length: usize) -> String {
     }
 }
 
-#[cfg(any(target_os = "windows", target_os = "linux", target_os = "freebsd"))]
+#[cfg(any(
+    target_os = "windows",
+    target_os = "linux",
+    target_os = "freebsd",
+    target_os = "macos"
+))]
 fn load_cjk_fonts(font_candidates: &[(&str, &str)]) -> FontDefinitions {
     let mut fonts = FontDefinitions::default();
     let mut loaded_font_names = Vec::new();
@@ -170,9 +196,13 @@ fn configure_fonts() -> FontDefinitions {
 
 #[cfg(target_os = "macos")]
 fn configure_fonts() -> FontDefinitions {
-    // TODO: Default proportional fonts: ["Ubuntu-Light", "NotoEmoji-Regular", "emoji-icon-font"]
-    // does not support CJK. Add them for Mac.
-    FontDefinitions::default()
+    load_cjk_fonts(&[
+        (
+            "/System/Library/Fonts/AppleSDGothicNeo.ttc",
+            "Apple SD Gothic Neo",
+        ), // Korean
+        ("/System/Library/Fonts/STHeiti Medium.ttc", "STHeiti Medium"), // Chinese + Japanese
+    ])
 }
 
 impl Drop for Gui {
@@ -391,7 +421,8 @@ impl Gui {
 
             // TODO: While in fullscreen add some way to mitigate the increased phishing risk
             // when not displaying the URL bar: https://github.com/servo/servo/issues/32443
-            if winit_window.fullscreen().is_none() {
+            // Show toolbar unless fullscreen is from document (web API)
+            if !headed_window.is_fullscreen_from_document() {
                 let frame = egui::Frame::default()
                     .fill(ctx.style().visuals.window_fill)
                     .inner_margin(4.0);
@@ -564,8 +595,9 @@ impl Gui {
                                         info
                                     });
                                     if new_window_button.clicked() {
+                                        let url = Url::parse("servo:newtab").expect("Should be able to unconditionally parse 'servo:newtab' as URL");
                                         window.queue_user_interface_command(
-                                            UserInterfaceCommand::NewWindow,
+                                            UserInterfaceCommand::NewWindow(TopLevelWebViewCreationRequest::WithUrl(url)),
                                         );
                                     }
                                 },
@@ -588,11 +620,24 @@ impl Gui {
             let available_rect = ctx.available_rect_before_wrap();
 
             // Build a graft node for each WebView.
+            let affine = {
+                // The grafted WebView tree reports bounds in device pixels relative to the
+                // WebView's own origin, so this node supplies the offset of the WebView within
+                // the window, and scales it to the same scale as the rest of the nodes in egui's
+                // AccessKit tree.
+                let scale = (1.0 / window.platform_window().hidpi_scale_factor().get()) as f64;
+                let x = available_rect.min.x as f64;
+                let y = available_rect.min.y as f64;
+                Affine::new([scale, 0.0, 0.0, scale, x, y])
+            };
             for (webview_id, webview) in window.webviews() {
                 if let Some(tree_id) = webview.accesskit_tree_id() {
                     let id = egui::Id::new(webview_id);
                     ctx.accesskit_node_builder(id, |node| {
                         node.set_tree_id(tree_id);
+                        // Only the transform is set: AccessKit consumers exclude graft nodes from
+                        // the presented tree, so bounds on this node would never be read.
+                        node.set_transform(affine);
                     });
                 }
             }

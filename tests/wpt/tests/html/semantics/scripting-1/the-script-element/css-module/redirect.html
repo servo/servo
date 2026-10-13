@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS module fetched through a redirect loads and applies</title>
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#fetch-a-single-module-script">
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#module-map">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div id="target"></div>
+  <script>
+    // A module map entry is keyed on the *request* URL, while the fetch
+    // reports the *response* URL, and the two differ once the request has
+    // been redirected. An implementation that conflates the two can fail to
+    // find its own map entry after the fetch completes.
+    const TARGET = "/html/semantics/scripting-1/the-script-element/" +
+        "css-module/resources/redirect-target.css";
+    const REDIRECT = "/common/redirect.py?location=" + TARGET;
+
+    promise_test(async () => {
+      const module = await import(REDIRECT, { with: { type: "css" } });
+      assert_true(module.default instanceof CSSStyleSheet,
+                  "the default export should be a CSSStyleSheet");
+      assert_equals(module.default.cssRules.length, 1,
+                    "the fetched sheet should have been parsed");
+      document.adoptedStyleSheets = [module.default];
+      assert_equals(getComputedStyle(document.querySelector("#target")).color,
+                    "rgb(0, 128, 0)", "the redirected sheet should apply");
+    }, "A CSS module fetched through a redirect loads and applies");
+
+    promise_test(async () => {
+      const first = await import(REDIRECT, { with: { type: "css" } });
+      const second = await import(REDIRECT, { with: { type: "css" } });
+      assert_equals(first.default, second.default,
+                    "importing the same redirecting URL twice should reuse " +
+                    "the same module map entry");
+    }, "Repeated import of a redirecting URL returns the same CSSStyleSheet");
+
+    promise_test(async () => {
+      // The module map is keyed on the request URL, so requesting the
+      // redirector and requesting its target are two distinct entries even
+      // though they are served by the same resource.
+      const viaRedirect = await import(REDIRECT, { with: { type: "css" } });
+      const direct = await import(TARGET, { with: { type: "css" } });
+      assert_not_equals(viaRedirect.default, direct.default,
+                        "the redirecting URL and the redirect target should " +
+                        "be separate module map entries");
+      assert_equals(direct.default.cssRules.length, 1,
+                    "the directly fetched sheet should also be parsed");
+    }, "A redirecting URL and its target are distinct module map entries");
+  </script>
+</body>
+</html>

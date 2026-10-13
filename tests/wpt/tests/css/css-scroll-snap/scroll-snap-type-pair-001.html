@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<title>CSS Scroll Snap: Single-axis snap areas are ignored under scroll-snap-type: pair</title>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#snap-axis"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .scroller {
+    width: 200px;
+    height: 200px;
+    overflow: scroll;
+    position: relative;
+    scroll-snap-type: pair mandatory;
+    scrollbar-width: none;
+    background: #fafafa;
+    border: 2px solid #333;
+  }
+  .space {
+    width: 1000px;
+    height: 1000px;
+    position: absolute;
+  }
+  .target {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    border-radius: 4px;
+  }
+  .valid {
+    left: 400px;
+    top: 400px;
+    background: #28a745;
+    border: 2px solid #1e7e34;
+    scroll-snap-align: start start;
+  }
+  .invalid-x {
+    left: 200px;
+    top: 200px;
+    background: #dc3545;
+    border: 2px solid #bd2130;
+    scroll-snap-align: start none;
+  }
+  .invalid-y {
+    left: 300px;
+    top: 300px;
+    background: #ffc107;
+    border: 2px solid #d39e00;
+    scroll-snap-align: none start;
+  }
+</style>
+
+<div id="scroller" class="scroller">
+  <div class="space"></div>
+  <div class="target invalid-x"></div>
+  <div class="target invalid-y"></div>
+  <div class="target valid"></div>
+</div>
+
+<script>
+test(t => {
+  const scroller = document.getElementById("scroller");
+  assert_equals(scroller.scrollLeft, 400, "scrollLeft must snap to valid 2D target");
+  assert_equals(scroller.scrollTop, 400, "scrollTop must snap to valid 2D target");
+}, "Single-axis snap areas (start none / none start) are skipped under scroll-snap-type: pair");
+</script>

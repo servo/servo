@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>MathML anchor element: rel and relList functionality</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#the-a-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<math>
+  <a id="testAnchor" href="#"></a>
+</math>
+
+<script>
+test(() => {
+  const a = document.getElementById('testAnchor');
+  a.rel = "noopener noreferrer";
+  assert_equals(a.getAttribute('rel'), "noopener noreferrer", "Attribute should reflect IDL setter");
+
+  a.removeAttribute('rel');
+  assert_equals(a.rel, "", "IDL getter should return empty string if attribute is missing");
+
+  a.rel = "noopener external";
+  assert_array_equals(Array.from(a.relList).sort(), ["external", "noopener"], "relList should contain external and noopener");
+  assert_equals(a.relList.value, "noopener external", "relList.value should match rel");
+
+  a.relList.add("noreferrer");
+  assert_equals(a.getAttribute('rel'), "noopener external noreferrer", "Attribute should update when relList.add() is called");
+
+  a.relList.remove("external");
+  assert_equals(a.getAttribute('rel'), "noopener noreferrer", "Attribute should update when relList.remove() is called");
+
+  assert_true(a.relList.supports("noopener"), "noopener should be supported");
+  assert_true(a.relList.supports("noreferrer"), "noreferrer should be supported");
+  assert_false(a.relList.supports("invalid-token-test"), "Arbitrary tokens should not be supported");
+  assert_false(a.relList.supports("external", "external should not be supported since it's removed"));
+}, "MathMLAnchorElement rel and relList should reflect each other and support standard tokens");
+</script>

@@ -24,8 +24,10 @@ const optionOne = select.querySelector('.one');
 const optionTwo = select.querySelector('.two');
 const tabKey = '\uE004';
 const spaceKey = '\uE00D';
-const arrowDown = '\uE015';
+const arrowLeft = '\uE012';
 const arrowUp = '\uE013';
+const arrowRight = '\uE014';
+const arrowDown = '\uE015';
 const escapeKey = '\uE00C';
 
 function pressKey(key) {
@@ -68,9 +70,33 @@ promise_test(async () => {
   assert_equals(select.selectedOptions[0], optionOne,
     'Option one should be the selected option after pressing space on it.');
 
+  await pressKey(arrowLeft);
+  assert_equals(document.activeElement, optionOne,
+    'Option one should stay focused after pressing arrow left.');
+  assert_array_equals(Array.from(select.selectedOptions), [optionOne],
+    'Selected options should not change after pressing arrow left on option one.');
+
+  await pressKey(arrowRight);
+  assert_equals(document.activeElement, optionOne,
+    'Option one should stay focused after pressing arrow right.');
+  assert_array_equals(Array.from(select.selectedOptions), [optionOne],
+    'Selected options should not change after pressing arrow right on option one.');
+
   await pressKey(arrowDown);
   assert_equals(document.activeElement, optionTwo,
     'Option two should become focused after arrow down on option one.');
+
+  await pressKey(arrowLeft);
+  assert_equals(document.activeElement, optionTwo,
+    'Option two should stay focused after pressing arrow left.');
+  assert_array_equals(Array.from(select.selectedOptions), [optionOne],
+    'Selected options should not change after pressing arrow left on option two.');
+
+  await pressKey(arrowRight);
+  assert_equals(document.activeElement, optionTwo,
+    'Option two should stay focused after pressing arrow right.');
+  assert_array_equals(Array.from(select.selectedOptions), [optionOne],
+    'Selected options should not change after pressing arrow right on option two.');
 
   await pressKey(spaceKey);
   assert_true(select.matches(':open'),

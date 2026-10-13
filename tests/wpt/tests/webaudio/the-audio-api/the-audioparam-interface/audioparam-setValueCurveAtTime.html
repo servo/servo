@@ -39,7 +39,7 @@
         return {
           beLessThan(expected) {
             assert_true(actual < expected,
-                        `${description}: ${actual} ≥ ${expected}`);
+                        `${description}: ${actual} >= ${expected}`);
           },
           beLessThanOrEqualTo(expected) {
             assert_true(actual <= expected,
@@ -55,7 +55,7 @@
       }
 
       function automation(value, startTime, endTime) {
-        /* |value| is unused – mirrors the original test. */
+        /* |value| is unused - mirrors the original test. */
         gainNode.gain.setValueCurveAtTime(
             curve, startTime, endTime - startTime);
       }

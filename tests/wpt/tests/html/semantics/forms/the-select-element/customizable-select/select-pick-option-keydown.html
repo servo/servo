@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<link rel=help href="https://html.spec.whatwg.org/multipage/form-elements.html#concept-select-pick">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<style>
+select, select::picker(select) {
+  appearance: base-select;
+}
+</style>
+
+<select>
+  <option class=one>one</option>
+  <option class=two>two</option>
+</select>
+
+<script>
+const Enter = '\uE007';
+const ArrowDown = '\uE015';
+
+promise_test(async () => {
+  const select = document.querySelector('select');
+  assert_equals(getComputedStyle(select).appearance, 'base-select',
+    'appearance:base-select must be supported in order to run this test.');
+
+  await test_driver.click(select);
+  assert_true(select.matches(':open'), 'The picker should be open.');
+
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(document.activeElement, select.querySelector('.two'),
+    'The second option should be focused.');
+
+  // Pick an option is given the keydown event, so canceling the keypress must not prevent it.
+  select.addEventListener('keypress', event => event.preventDefault());
+  await test_driver.send_keys(document.activeElement, Enter);
+
+  assert_equals(select.value, 'two',
+    'The focused option should be picked.');
+  assert_false(select.matches(':open'),
+    'Picking an option should close the picker.');
+}, 'Canceling keypress does not prevent an option from being picked.');
+</script>

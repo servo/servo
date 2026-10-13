@@ -1,6 +1,6 @@
 <!DOCTYPE HTML>
 <meta charset=utf-8>
-<title>Container Timing: two nested containertiming nodes, with a child img inside of the inner, and a containertiming-ignore in the descendant root</title>
+<title>Container Timing: two nested containertiming nodes, with a child img inside of the inner, and a containertimingignore in the descendant root</title>
 <body>
 <style>
 body {
@@ -30,12 +30,12 @@ body {
     div1.setAttribute('containertiming', 'div1_ct');
     document.body.appendChild(div1);
 
-    // Intermediate container timing root with containertiming-ignore blocking
+    // Intermediate container timing root with containertimingignore blocking
     // propagation to the parent containertiming root but still receiving paints
     // from children
     const div2 = document.createElement('div');
     div2.setAttribute('containertiming', 'div2_ct');
-    div2.setAttribute('containertiming-ignore', '');
+    div2.setAttribute('containertimingignore', '');
     div1.appendChild(div2);
 
     // Add image of width equal to 100 and height equal to 100.

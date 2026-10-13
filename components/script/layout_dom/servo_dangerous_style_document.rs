@@ -15,8 +15,8 @@ use style::values::AtomIdent;
 
 use crate::dom::bindings::root::LayoutDom;
 use crate::dom::document::Document;
+use crate::event_loop::script_thread::SharedRwLocks;
 use crate::layout_dom::{ServoDangerousStyleElement, ServoDangerousStyleNode, ServoLayoutElement};
-use crate::script_thread::SharedRwLocks;
 
 /// A wrapper around documents that ensures layout can only ever access safe properties.
 ///

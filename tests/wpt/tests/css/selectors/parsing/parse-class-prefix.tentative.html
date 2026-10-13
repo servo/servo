@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors: class prefix selector parsing</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/selectors-5/#class-prefix">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  // Valid: dash-terminated identifier immediately followed by an asterisk.
+  test_valid_selector('.foo-*');
+  test_valid_selector('.foo--*');
+  test_valid_selector('.foo---*');
+  test_valid_selector('.foo-bar-*');
+
+  // The universal selector may or may not be dropped when serializing a compound
+  // that also has a class prefix selector, just like for a plain class selector.
+  test_valid_selector('*.foo-*', ['*.foo-*', '.foo-*']);
+
+  // Combines with a type selector and with other simple selectors in a compound.
+  test_valid_selector('h1.foo-*');
+  test_valid_selector('p.foo-*.bar-*');
+
+  // Combines with pseudo-classes, logical combinators, and combinators.
+  test_valid_selector('.foo-*:hover');
+  test_valid_selector(':not(.foo-*)');
+  test_valid_selector(':is(.foo-*)');
+  test_valid_selector('.foo-* .bar');
+
+  // Whitespace between the dash-terminated identifier and the asterisk means the
+  // asterisk is not "immediately following" the identifier, so this is instead a
+  // valid descendant combinator selector (".foo-" then a universal selector),
+  // not a class prefix selector.
+  test_valid_selector('.foo- *');
+
+  // Invalid: a class selector immediately followed by an asterisk is only a class
+  // prefix selector when the identifier ends in a hyphen. Otherwise it is a class
+  // selector followed by a bare universal selector, which is invalid.
+  test_invalid_selector('.foo*');
+
+  // Invalid: nothing may follow the asterisk of a class prefix selector.
+  test_invalid_selector('.foo-**');
+
+  // Invalid: "-" alone is not a valid identifier, so this never reaches the class
+  // prefix selector codepath in the first place.
+  test_invalid_selector('.-*');
+
+  // Invalid: a class selector requires an identifier after the dot.
+  test_invalid_selector('.*');
+</script>

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Selection.toString() works according to the flat tree</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="container"><div id="host"><span slot="two">Two</span><span slot="one">One</span></div></div>
+
+<script>
+test(() => {
+    const host = document.getElementById("host");
+    const root = host.attachShadow({ mode: "open" });
+    root.innerHTML = '<slot name="one"></slot><slot name="two"></slot>';
+
+    const selection = document.getSelection();
+    selection.selectAllChildren(container);
+
+    assert_equals(selection.toString(), "OneTwo");
+}, 'Selection.toString() returns results in flat tree order');
+</script>

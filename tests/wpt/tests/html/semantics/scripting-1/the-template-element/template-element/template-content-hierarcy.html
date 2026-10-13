@@ -77,4 +77,31 @@ test(() => {
                 'moving its children.');
 }, 'Template content should throw exception when its ancestor in ' +
    'a different document but connected via host is being append.');
+
+test(() => {
+  const outer = document.createElement('template');
+  const inner = document.createElement('template');
+  const div = document.createElement('div');
+  const span = document.createElement('span');
+  outer.content.appendChild(inner);
+  inner.content.appendChild(div);
+  div.appendChild(span);
+
+  // outer is a host-including inclusive ancestor of everything in inner's
+  // contents, reached through two template content boundaries.
+  assert_throws_dom('HierarchyRequestError', () => {
+    inner.content.appendChild(outer);
+  }, 'Template content should throw if a template two boundaries up is being appended.');
+  assert_throws_dom('HierarchyRequestError', () => {
+    span.appendChild(outer);
+  }, 'Template content descendant should throw if a template two boundaries up is being appended.');
+  assert_throws_dom('HierarchyRequestError', () => {
+    span.appendChild(inner);
+  }, 'Template content descendant should throw if its own host is being appended.');
+
+  // A node that is not an ancestor is still accepted.
+  inner.content.appendChild(document.createElement('p'));
+  assert_equals(inner.content.lastChild.localName, 'p');
+}, 'Template content should throw when an ancestor across two template ' +
+   'boundaries is being appended.');
 </script>

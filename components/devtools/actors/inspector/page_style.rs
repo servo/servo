@@ -182,7 +182,7 @@ impl PageStyleActor {
             // get all of the rules associated with it.
 
             let style_attribute_rule = MatchedRule {
-                selector: "".into(),
+                selector: String::new(),
                 stylesheet_index: usize::MAX,
                 block_id: 0,
                 ancestor_data: vec![],
@@ -244,7 +244,7 @@ impl PageStyleActor {
             .ok_or(ActorError::BadParameterType)?;
         let node_actor = registry.find::<NodeActor>(node_name);
         let style_attribute_rule = devtools_traits::MatchedRule {
-            selector: "".into(),
+            selector: String::new(),
             stylesheet_index: usize::MAX,
             block_id: 0,
             ancestor_data: vec![],

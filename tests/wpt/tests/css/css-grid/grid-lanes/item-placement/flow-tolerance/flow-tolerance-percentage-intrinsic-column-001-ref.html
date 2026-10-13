@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes: Intrinsic column flow-tolerance percentage basis reference</title>
+  <style>
+    .grid {
+      background: gray;
+      block-size: 150px;
+      display: inline-grid;
+      grid-template-columns: repeat(2, 200px);
+      vertical-align: top;
+    }
+
+    .lane {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .item-one {
+      background: lightcoral;
+      block-size: 60px;
+    }
+
+    .item-two {
+      background: lightgreen;
+      block-size: 30px;
+    }
+
+    .item-three {
+      background: lightskyblue;
+      block-size: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="grid">
+    <div class="lane">
+      <div class="item-one"></div>
+      <div class="item-three"></div>
+    </div>
+    <div class="lane">
+      <div class="item-two"></div>
+    </div>
+  </div>
+</body>
+</html>

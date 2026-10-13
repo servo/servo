@@ -32,12 +32,13 @@
 function runTest() {
   canvas.onpaint = () => {
     // This will run on every rendering update, but at the point of execution
-    // cc property trees have already been copied off for commit so any
-    // modification to main thread property trees will *not* be included in the
-    // display of this update. The rAF callback below ensures that #opacity is
-    // always painted and drawn with opacity:.9.
+    // the rendering state for the current frame has already been determined, so
+    // any style modification here will *not* be included in the display of this
+    // update. The rAF callback below ensures that #opacity is always painted
+    // and drawn with opacity:.9.
     opacity.style.opacity = '.1';
-    const forceLayer = document.elementsFromPoint(50, 50);
+    // Force a synchronous update for hit testing.
+    document.elementsFromPoint(50, 50);
     requestAnimationFrame(() => {
       opacity.style.opacity = '.9';
       takeScreenshot();

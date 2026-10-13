@@ -49,11 +49,15 @@ jobs:
           tool-cache: true
           android: false
           swap-storage: false
-      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+      - uses: servo/ci-runners/actions/checkout@b42c96524cdd72126255602c69c4ad649c750ebf
       - name: Install crown
         run: cargo install --path support/crown
       - name: Change Mirror Priorities
         uses: ./.github/actions/apt-mirrors
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "20.1"
       - name: Setup Python
         uses: ./.github/actions/setup-python
       - name: Bootstrap dependencies
@@ -67,12 +71,15 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v4
         with:
-          packages: 'tools platform-tools platforms;android-34'
+          packages: 'platform-tools platforms;android-34'
       - name: Install Android NDK
         uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
-          ndk-version: r28b
+          # When updating this version, be sure to update the README instructions as well
+          # as the corresponding page in the book:
+          # https://book.servo.org/building/android.html.
+          ndk-version: r29
       - name: Setup Gradle caches
         uses: gradle/actions/setup-gradle@v4
       - name: Trigger initial download of Gradle with retries

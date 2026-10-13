@@ -42,7 +42,9 @@
                 let pointerdown_count = 0;
                 on_event(target0, 'pointerdown', function(e) {
                     pointerdown_count++;
-                    assert_less_than_equal(pointerdown_count, 2);
+                    test_pointerEvent.step(function () {
+                        assert_less_than_equal(pointerdown_count, 2);
+                    });
                     detected_pointertypes[e.pointerType] = true;
                     if (pointerdown_count === 1) {
                         event_log.push('pointerdown@target0');

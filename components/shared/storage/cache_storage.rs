@@ -62,10 +62,35 @@ pub enum CacheStorageThreadMessage {
         proxy: StorageProxyMap,
         origin: ImmutableOrigin,
     },
+    /// <https://w3c.github.io/ServiceWorker/#cache-storage-open>
+    OpenCache {
+        cache_name: String,
+        callback: GenericCallback<CacheStorageThreadResponse>,
+        proxy: StorageProxyMap,
+        origin: ImmutableOrigin,
+    },
+    /// <https://w3c.github.io/ServiceWorker/#cache-keys>
+    Keys {
+        cache_name: String,
+        callback: GenericCallback<CacheStorageThreadResponse>,
+        origin: ImmutableOrigin,
+    },
+    DeleteCache {
+        cache_name: String,
+        callback: GenericCallback<CacheStorageThreadResponse>,
+        proxy: StorageProxyMap,
+        origin: ImmutableOrigin,
+    },
     Exit(GenericSender<()>),
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum CacheStorageThreadResponse {
     HasCacheResult(Result<bool, String>),
+    OpenCacheResult {
+        result: Result<(), String>,
+        cache_name: String,
+    },
+    KeysResult(Result<Vec<String>, String>),
+    DeleteCacheResult(Result<bool, String>),
 }

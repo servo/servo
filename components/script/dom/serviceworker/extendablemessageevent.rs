@@ -7,19 +7,19 @@ use js::context::JSContext;
 use js::jsapi::Heap;
 use js::jsval::JSVal;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
-use crate::dom::bindings::codegen::Bindings::ExtendableEventBinding::ExtendableEvent_Binding::ExtendableEventMethods;
-use crate::dom::bindings::codegen::Bindings::ExtendableMessageEventBinding;
-use crate::dom::bindings::codegen::Bindings::ExtendableMessageEventBinding::ExtendableMessageEventMethods;
+use crate::dom::bindings::codegen::Bindings::ExtendableEventBinding::ExtendableEventMethods;
+use crate::dom::bindings::codegen::Bindings::ExtendableMessageEventBinding::{
+    ExtendableMessageEventInit, ExtendableMessageEventMethods,
+};
 use crate::dom::bindings::codegen::UnionTypes::ClientOrServiceWorkerOrMessagePort;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::frozenarray::CachedFrozenArray;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::{AsHandleValue, Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::client::Client;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
@@ -160,7 +160,7 @@ impl ExtendableMessageEvent {
             source,
             ports,
         ));
-        let ev = reflect_dom_object_with_proto_and_cx(ev, global, proto, cx);
+        let ev = reflect_dom_object_with_proto(cx, ev, global, proto);
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bubbles, cancelable);
@@ -217,7 +217,7 @@ impl ExtendableMessageEventMethods<crate::DomTypeHolder> for ExtendableMessageEv
         worker: &ServiceWorkerGlobalScope,
         proto: Option<HandleObject>,
         type_: DOMString,
-        init: RootedTraceableBox<ExtendableMessageEventBinding::ExtendableMessageEventInit>,
+        init: &ExtendableMessageEventInit,
     ) -> Fallible<DomRoot<ExtendableMessageEvent>> {
         let global = worker.upcast::<GlobalScope>();
         let ev = ExtendableMessageEvent::new_with_proto(
@@ -227,7 +227,7 @@ impl ExtendableMessageEventMethods<crate::DomTypeHolder> for ExtendableMessageEv
             Atom::from(type_),
             init.parent.parent.bubbles,
             init.parent.parent.cancelable,
-            init.data.handle(),
+            init.data.as_handle_value(),
             init.origin.clone(),
             init.lastEventId.clone(),
             init.source.as_ref().and_then(Option::as_ref),

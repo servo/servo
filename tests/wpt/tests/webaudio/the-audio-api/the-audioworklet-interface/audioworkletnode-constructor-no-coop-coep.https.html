@@ -1,0 +1,44 @@
+<!doctype html>
+<head>
+<title>Test non cross-origin isolated shared memory clone error in AudioWorkletNodeOptions processorOptions</title>
+</head>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='/resources/testdriver.js'></script>
+<script src='/resources/testdriver-vendor.js'></script>
+<script>
+'use strict';
+
+const sampleRate = 48000;
+const filePath = 'processors/dummy-processor.js';
+
+/**
+https://html.spec.whatwg.org/multipage/structured-data.html#structuredserializeinternal
+13.1. If IsSharedArrayBuffer(value) is true:
+      1. If the current settings object's cross-origin isolated capability is
+         false, then throw a "DataCloneError" DOMException.
+
+See also:
+  /wasm/serialization/memory/clone-error.tentative.https.any.js
+  /html/infrastructure/safe-passing-of-structured-data/shared-array-buffers/no-coop-coep.https.any.js
+ **/
+promise_test(async t => {
+  assert_false(self.crossOriginIsolated);
+
+  const context = new OfflineAudioContext(1, 1, sampleRate);
+  await context.audioWorklet.addModule(filePath);
+
+  const memory =
+        new WebAssembly.Memory({ shared: true, initial: 1, maximum: 1 });
+  assert_throws_dom('DataCloneError', () => {
+    new AudioWorkletNode(context, 'dummy', {
+      processorOptions: {buffer: memory.buffer}
+    });
+  }, 'SharedArrayBuffer');
+  assert_throws_dom('DataCloneError', () => {
+    new AudioWorkletNode(context, 'dummy', {
+      processorOptions: {memory: memory}
+    });
+  }, 'Memory');
+}, 'non cross-origin isolated shared memory clone error in AudioWorkletNodeOptions processorOptions');
+</script>

@@ -12,6 +12,7 @@ use servo_base::print_tree::PrintTree;
 use style::properties::ComputedValues;
 
 use super::{BaseFragment, BaseFragmentInfo, Fragment};
+use crate::SharedStyle;
 use crate::fragment_tree::ContainingBlockCalculation;
 use crate::geom::{PhysicalRect, SyncPhysicalRectAu};
 
@@ -21,6 +22,10 @@ use crate::geom::{PhysicalRect, SyncPhysicalRectAu};
 #[derive(MallocSizeOf)]
 pub(crate) struct PositioningFragment {
     pub base: BaseFragment,
+
+    /// The style for this [`PositioningFragment`].
+    pub style: SharedStyle,
+
     pub children: Vec<Fragment>,
 
     /// The scrollable overflow of this anonymous fragment's children.
@@ -67,7 +72,8 @@ impl PositioningFragment {
         is_line_box: bool,
     ) -> Arc<Self> {
         Arc::new(Self {
-            base: BaseFragment::new(base_fragment_info, style.into(), rect),
+            base: BaseFragment::new(base_fragment_info, rect),
+            style: style.into(),
             children,
             scrollable_overflow: Default::default(),
             scrollable_overflow_is_up_to_date: AtomicBool::new(false),

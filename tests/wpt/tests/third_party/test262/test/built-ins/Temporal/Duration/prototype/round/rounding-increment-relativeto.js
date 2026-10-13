@@ -39,8 +39,3 @@ TemporalHelpers.assertDuration(new Temporal.Duration(0, 1, 0, 30).round({
   roundingIncrement: 2,
   relativeTo: new Temporal.PlainDate(1970, 7, 31)
 }), 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, `1m30d to 2m with relativeTo 1970-07-31`);
-TemporalHelpers.assertDuration(new Temporal.Duration(0, 1, 0, 30).round({
-  smallestUnit: "months",
-  roundingIncrement: 2,
-  relativeTo: Temporal.ZonedDateTime.from('2025-03-09T03:00:00-07:00[America/Vancouver]')
-}), 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, `1m30d to 2m with relativeTo 2025-03-09T03:00:00-07:00[America/Vancouver]`);

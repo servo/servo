@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>CSS Shapes: oversized shape-outside float respects direction</title>
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#shape-outside-property">
+<link rel="help" href="https://drafts.csswg.org/css2/#floats">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.container {
+  display: flow-root;
+  width: 100px;
+}
+.float {
+  width: 200px;
+  height: 50px;
+  shape-outside: border-box;
+}
+.line {
+  display: inline-block;
+  width: 0;
+  height: 10px;
+}
+#ltr-float {
+  float: left;
+}
+#rtl-float {
+  float: right;
+}
+</style>
+<div class="container"><div id="ltr-float" class="float"></div><div id="ltr-line" class="line"></div></div>
+<div class="container" dir="rtl"><div id="rtl-float" class="float"></div><div id="rtl-line" class="line"></div></div>
+<script>
+test(() => {
+  const floatRect = document.querySelector('#ltr-float').getBoundingClientRect();
+  const lineRect = document.querySelector('#ltr-line').getBoundingClientRect();
+  assert_equals(lineRect.left, floatRect.right);
+}, 'The zero-width line is placed after an oversized left float in LTR');
+
+test(() => {
+  const floatRect = document.querySelector('#rtl-float').getBoundingClientRect();
+  const lineRect = document.querySelector('#rtl-line').getBoundingClientRect();
+  assert_equals(lineRect.right, floatRect.left);
+}, 'The zero-width line is placed after an oversized right float in RTL');
+</script>

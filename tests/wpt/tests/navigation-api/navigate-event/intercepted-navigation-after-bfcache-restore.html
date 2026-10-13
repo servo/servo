@@ -1,0 +1,114 @@
+<!doctype html>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/helper.sub.js"></script>
+
+<script>
+  promise_test(async (t) => {
+    const pageA = new RemoteContext(token());
+    const iframeA = new RemoteContext(token());
+    const pageB = new RemoteContext(token());
+
+    const urlA = executorPath + pageA.context_id;
+    const urlIframe = originCrossSite + executorPath + iframeA.context_id;
+    const urlB = originSameOrigin + executorPath + pageB.context_id;
+
+    window.open(urlA, "_blank", "noopener");
+    await pageA.execute_script(waitForPageShow);
+
+    // Add a cross-site iframe to A. It is used below to navigate A away
+    // without firing a navigate event on A, which would otherwise abort the
+    // ongoing navigation.
+    await pageA.execute_script(
+      (url) => {
+        const iframe = document.createElement("iframe");
+        iframe.src = url;
+        document.body.append(iframe);
+        return new Promise((resolve) => (iframe.onload = () => resolve()));
+      },
+      [urlIframe],
+    );
+    await iframeA.execute_script(waitForPageShow);
+
+    // Start an intercepted same-document navigation whose handler stays
+    // pending until `window.resolveHandler()` is called.
+    await pageA.execute_script(() => {
+      window.navigatesuccess_fired = false;
+      window.navigateerror_fired = false;
+      navigation.addEventListener("navigatesuccess", () => {
+        window.navigatesuccess_fired = true;
+      });
+      navigation.addEventListener("navigateerror", () => {
+        window.navigateerror_fired = true;
+      });
+      navigation.addEventListener(
+        "navigate",
+        (e) => {
+          e.intercept({
+            handler: () =>
+              new Promise((resolve) => (window.resolveHandler = resolve)),
+          });
+        },
+        { once: true },
+      );
+      window.finished_promise = navigation
+        .navigate("#dashboard", { history: "replace" })
+        .finished.then(
+          () => "success",
+          (e) => `error: ${e.name}`,
+        );
+    });
+    assert_equals(
+      await pageA.execute_script(() => typeof window.resolveHandler),
+      "function",
+    );
+
+    // Suspend A's executor before navigating away.
+    await pageA.execute_script(() => {
+      prepareNavigation(() => {});
+    });
+
+    // Navigate A to B from the cross-site iframe. As the initiator is
+    // cross-origin to A, no navigate event fires on A, so the intercepted
+    // navigation is still ongoing when A enters the BFCache.
+    await iframeA.execute_script(
+      (url) => {
+        prepareNavigation(() => {
+          top.location.href = url;
+        });
+      },
+      [urlB],
+    );
+
+    await pageB.execute_script(waitForPageShow);
+
+    // Navigate back to A.
+    await pageB.execute_script(() => {
+      prepareNavigation(() => {
+        history.back();
+      });
+    });
+
+    await pageA.execute_script(waitForPageShow);
+    await assert_bfcached(pageA);
+
+    // Settle the handler. The intercepted navigation should still be ongoing
+    // after the BFCache restore, and should finish successfully.
+    const result = await pageA.execute_script(() => {
+      window.resolveHandler();
+      return window.finished_promise;
+    });
+    assert_equals(result, "success", "navigation.navigate() should finish");
+    assert_true(
+      await pageA.execute_script(() => window.navigatesuccess_fired),
+      "navigatesuccess should fire",
+    );
+    assert_false(
+      await pageA.execute_script(() => window.navigateerror_fired),
+      "navigateerror should not fire",
+    );
+  }, "An intercepted navigation that is ongoing when entering the BFCache should finish after restoring");
+</script>

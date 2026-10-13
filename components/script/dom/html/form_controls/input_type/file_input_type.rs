@@ -6,9 +6,8 @@ use std::path::PathBuf;
 use std::str::FromStr;
 
 use embedder_traits::{EmbedderControlRequest, FilePickerRequest, FilterPattern, SelectedFile};
-use html5ever::{local_name, ns};
+use html5ever::local_name;
 use js::context::JSContext;
-use markup5ever::QualName;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::FileListBinding::FileListMethods;
 use script_bindings::codegen::GenericBindings::HTMLButtonElementBinding::HTMLButtonElementMethods;
@@ -23,16 +22,21 @@ use style::str::split_commas;
 
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::document_embedder_controls::ControlElement;
-use crate::dom::element::{CustomElementCreationMode, Element, ElementCreator};
-use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
+use crate::dom::element::Element;
+use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::file::File;
 use crate::dom::filelist::FileList;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
-use crate::dom::html::form_controls::input_type::{SpecificInputActivationType, SpecificInputType};
+use crate::dom::html::form_controls::input_type::{
+    SpecificInputActivationType, SpecificInputType, ValueChangeEvents,
+};
 use crate::dom::htmlbuttonelement::HTMLButtonElement;
 use crate::dom::htmlelement::HTMLElement;
+use crate::dom::input_type::text_input_widget::TextInputWidget;
 use crate::dom::node::{Node, NodeTraits};
+use crate::dom::shadowroot::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::ua_shadowroot::{SpecificShadowTree, UAShadowRoot};
 
 const DEFAULT_FILE_INPUT_VALUE: &str = "No file chosen";
 const DEFAULT_FILE_INPUT_MULTIPLE_VALUE: &str = "No files chosen";
@@ -50,30 +54,6 @@ pub(crate) struct FileInputType {
 pub(crate) struct FileInputActivation;
 
 impl FileInputType {
-    /// Get the shadow tree for this [`HTMLInputElement`], if it is created and valid, otherwise
-    /// recreate the shadow tree and return it.
-    fn get_or_create_shadow_tree(
-        &self,
-        cx: &mut JSContext,
-        input: &HTMLInputElement,
-    ) -> Ref<'_, FileInputShadowTree> {
-        {
-            if let Ok(shadow_tree) = Ref::filter_map(self.shadow_tree.borrow(), |shadow_tree| {
-                shadow_tree.as_ref()
-            }) {
-                return shadow_tree;
-            }
-        }
-
-        let element = input.upcast::<Element>();
-        let shadow_root = element
-            .shadow_root()
-            .unwrap_or_else(|| element.attach_ua_shadow_root(cx, true));
-        let shadow_root = shadow_root.upcast();
-        *self.shadow_tree.borrow_mut() = Some(FileInputShadowTree::new(cx, shadow_root));
-        self.get_or_create_shadow_tree(cx, input)
-    }
-
     pub(crate) fn handle_file_picker_response(
         &self,
         cx: &mut js::context::JSContext,
@@ -120,19 +100,15 @@ impl FileInputType {
         }
 
         self.set_files(&FileList::new(cx, &window, files));
-        let target = input.upcast::<EventTarget>();
-        target.fire_event_with_params(
-            cx,
-            atom!("input"),
-            EventBubbles::Bubbles,
-            EventCancelable::NotCancelable,
-            EventComposed::Composed,
-        );
-        target.fire_bubbling_event(cx, atom!("change"));
+        input.fire_value_change_events(cx, ValueChangeEvents::Input | ValueChangeEvents::Change);
     }
 }
 
 impl SpecificInputType for FileInputType {
+    fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>> {
+        None
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file):suffering-from-being-missing>
     fn suffers_from_being_missing(&self, input: &HTMLInputElement, _value: &DOMString) -> bool {
         input.Required() && self.filelist.get().is_none_or(|files| files.Length() == 0)
@@ -203,11 +179,8 @@ impl SpecificInputType for FileInputType {
     }
 
     fn update_shadow_tree(&self, cx: &mut JSContext, input: &HTMLInputElement) {
-        self.get_or_create_shadow_tree(cx, input).update(
-            cx,
-            self.value_for_shadow_dom(input),
-            input.Multiple(),
-        )
+        self.ensure_shadow_tree(cx, input.upcast())
+            .update(cx, self, input)
     }
 }
 
@@ -253,20 +226,14 @@ pub(crate) struct FileInputShadowTree {
 
 impl FileInputShadowTree {
     pub(crate) fn new(cx: &mut JSContext, shadow_root: &Node) -> Self {
-        let selector_button = Element::create(
-            cx,
-            QualName::new(None, ns!(html), local_name!("button")),
-            None,
-            &shadow_root.owner_document(),
-            ElementCreator::ScriptCreated,
-            CustomElementCreationMode::Asynchronous,
-            None,
-        );
+        let document = shadow_root.owner_document();
+        let selector_button =
+            Self::create_element_in_ua_shadowroot(cx, &document, local_name!("button"));
 
         selector_button
             .downcast::<HTMLButtonElement>()
             .expect("This should be guaranteed by the element type used above")
-            .SetType(cx, DOMString::from("button"));
+            .SetType(cx, DOMString::from_static("button"));
 
         selector_button
             .downcast::<HTMLElement>()
@@ -279,15 +246,8 @@ impl FileInputShadowTree {
             .upcast::<Node>()
             .set_implemented_pseudo_element(PseudoElement::FileSelectorButton);
 
-        let value_container = Element::create(
-            cx,
-            QualName::new(None, ns!(html), local_name!("span")),
-            None,
-            &shadow_root.owner_document(),
-            ElementCreator::ScriptCreated,
-            CustomElementCreationMode::Asynchronous,
-            None,
-        );
+        let value_container =
+            Self::create_element_in_ua_shadowroot(cx, &document, local_name!("span"));
 
         let _ = shadow_root.AppendChild(cx, value_container.upcast());
 
@@ -296,23 +256,43 @@ impl FileInputShadowTree {
             value_container: value_container.as_traced(),
         }
     }
+}
 
-    pub(crate) fn update(&self, cx: &mut JSContext, input_value: DOMString, multiple: bool) {
-        if multiple {
+impl SpecificShadowTree<HTMLInputElement, FileInputType> for FileInputShadowTree {
+    fn update(
+        &self,
+        cx: &mut JSContext,
+        file_input: &FileInputType,
+        input_element: &HTMLInputElement,
+    ) {
+        if input_element.Multiple() {
             self.selector_button
                 .upcast::<Node>()
                 .set_text_content_for_element(
                     cx,
-                    Some(DOMString::from(SELECTOR_BUTTON_MULTIPLE_TEXT)),
+                    Some(DOMString::from_static(SELECTOR_BUTTON_MULTIPLE_TEXT)),
                 );
         } else {
             self.selector_button
                 .upcast::<Node>()
-                .set_text_content_for_element(cx, Some(DOMString::from(SELECTOR_BUTTON_TEXT)));
+                .set_text_content_for_element(
+                    cx,
+                    Some(DOMString::from_static(SELECTOR_BUTTON_TEXT)),
+                );
         }
 
         self.value_container
             .upcast::<Node>()
-            .set_text_content_for_element(cx, Some(input_value));
+            .set_text_content_for_element(cx, Some(file_input.value_for_shadow_dom(input_element)));
+    }
+}
+
+impl UAShadowRoot<FileInputShadowTree> for FileInputType {
+    fn store_for_shadow_tree(&self, cx: &mut JSContext, shadow_root: DomRoot<ShadowRoot>) {
+        *self.shadow_tree.borrow_mut() = Some(FileInputShadowTree::new(cx, shadow_root.upcast()));
+    }
+
+    fn borrow_for_shadow_tree(&self) -> Ref<'_, Option<FileInputShadowTree>> {
+        self.shadow_tree.borrow()
     }
 }

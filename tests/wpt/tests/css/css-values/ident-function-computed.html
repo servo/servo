@@ -20,6 +20,13 @@
   test_computed_value(prop, 'ident(-- myident)', '--myident');
   test_computed_value(prop, 'ident(my 3 3 3 3 ident)', 'my3333ident');
 
+  // <integer> includes math functions.
+  test_computed_value(prop, 'ident("--prop" calc(1 + 2))', '--prop3');
+
+  // Not an <ident-arg>+, so invalid at computed-value time.
+  test_computed_value(prop, 'ident(5px)', 'none');
+  test_computed_value(prop, 'ident(rgb(1, 2, 3))', 'none');
+
   // Check for support in specific properties (WIP):
   let actual_ident = 'ident("myident" 42)';
   let expected_ident = 'myident42';

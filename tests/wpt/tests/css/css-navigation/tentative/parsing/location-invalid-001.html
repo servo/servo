@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Invalid @location rules</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-navigation-1/#at-location">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test(()=> {
+    test_invalid_rule(`@location nodashes {\n}`);
+  }, "no double-dash in location name");
+
+  test(()=> {
+    test_invalid_rule(`@location --r1 --r2 {\n}`);
+  }, "two names");
+
+  test(()=> {
+    test_invalid_rule(`@location (--r1) {\n}`);
+  }, "parentheses");
+</script>

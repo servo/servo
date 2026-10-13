@@ -1,0 +1,15 @@
+<svg width="400" height="200" xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>textPath path data with a command missing its coordinates is used up to that command</title>
+  <metadata>
+    <html:link rel="author" title="Karl Dubost" href="mailto:k_dubost@apple.com"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementPathAttribute"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/paths.html#PathDataErrorHandling"/>
+    <html:link rel="match" href="textpath-path-attr-ref.svg"/>
+    <html:meta name="assert" content="The error here is a lineto whose coordinate pair never arrives, not an unrecognised token. A parser can reject a stray word at the lexer and still mishandle a command that runs out of numbers, so the two shapes of error are tested separately. Everything before the error is kept."/>
+  </metadata>
+  <text>
+    <textPath path="M 10 50 Q 100 10 200 50 T 390 50 L 100">
+      Text along a quadratic curve
+    </textPath>
+  </text>
+</svg>

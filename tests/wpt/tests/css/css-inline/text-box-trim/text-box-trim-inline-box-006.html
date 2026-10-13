@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>Test of text-box-trim on fragmented inline boxes with border and padding</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-edge">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<link rel="match" href="text-box-trim-inline-box-006-ref.html">
+<meta charset="utf-8">
+<link rel="stylesheet" href="/fonts/baseline-diagnostic/baseline-diagnostic-font.css">
+<style>
+.spacer {
+  block-size: 100px;
+  background: lightgray;
+}
+
+.container {
+  font: 100px/1.5 BaselineDiagnosticAlphabeticZero;
+  width: 5em;
+}
+
+.target {
+  padding-block: 20px;
+  border-block: 20px solid orange;
+  background: green;
+  text-box: trim-both cap alphabetic;
+}
+</style>
+<div class="spacer"></div>
+<div class="container">
+  <span class="target">█BxIF █BxIF █BxIF</span>
+</div>
+<div class="spacer"></div>

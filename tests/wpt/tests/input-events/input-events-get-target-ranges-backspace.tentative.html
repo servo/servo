@@ -71,6 +71,63 @@ promise_test(async (t) => {
   checkGetTargetRangesOfInputOnDeleteSomething();
 }, 'Backspace at "<p>abc[]</p>"');
 
+// A grapheme cluster may consist of multiple code points, but Backspace
+// deletes only the last code point of it.  `getTargetRanges()` must cover only
+// the deleted code point, even though it's only a part of the grapheme cluster.
+// https://w3c.github.io/input-events/#dom-inputevent-gettargetranges
+// The following three subtests were added for https://crbug.com/539754135.
+// Note that Backspace granularity itself is unspecified, so an engine which
+// deletes the whole grapheme cluster fails the editor content assertion below
+// even if its getTargetRanges() is self-consistent.
+promise_test(async (t) => {
+  // Thai "ที่" (U+0E17 THAI CHARACTER THO THAHAN,
+  // U+0E35 THAI CHARACTER SARA II, U+0E48 THAI CHARACTER MAI EK).
+  initializeTest("<p>ที่</p>");
+  gSelection.collapse(gEditor.firstChild.firstChild, 3);
+  await sendBackspaceKey();
+  checkEditorContentResultAsSubTest("<p>ที</p>", t.name);
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: gEditor.firstChild.firstChild,
+    startOffset: 2,
+    endContainer: gEditor.firstChild.firstChild,
+    endOffset: 3,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, 'Backspace at "<p>ที่[]</p>" (Thai grapheme cluster)');
+
+promise_test(async (t) => {
+  // Devanagari "क्षि" (U+0915 DEVANAGARI LETTER KA,
+  // U+094D DEVANAGARI SIGN VIRAMA, U+0937 DEVANAGARI LETTER SSA,
+  // U+093F DEVANAGARI VOWEL SIGN I).
+  initializeTest("<p>क्षि</p>");
+  gSelection.collapse(gEditor.firstChild.firstChild, 4);
+  await sendBackspaceKey();
+  checkEditorContentResultAsSubTest("<p>क्ष</p>", t.name);
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: gEditor.firstChild.firstChild,
+    startOffset: 3,
+    endContainer: gEditor.firstChild.firstChild,
+    endOffset: 4,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, 'Backspace at "<p>क्षि[]</p>" (Devanagari grapheme cluster)');
+
+promise_test(async (t) => {
+  // Hangul "각" made of conjoining jamo (U+1100 HANGUL CHOSEONG
+  // KIYEOK, U+1161 HANGUL JUNGSEONG A, U+11A8 HANGUL JONGSEONG KIYEOK).
+  initializeTest("<p>각</p>");
+  gSelection.collapse(gEditor.firstChild.firstChild, 3);
+  await sendBackspaceKey();
+  checkEditorContentResultAsSubTest("<p>가</p>", t.name);
+  checkGetTargetRangesOfBeforeinputOnDeleteSomething({
+    startContainer: gEditor.firstChild.firstChild,
+    startOffset: 2,
+    endContainer: gEditor.firstChild.firstChild,
+    endOffset: 3,
+  });
+  checkGetTargetRangesOfInputOnDeleteSomething();
+}, 'Backspace at "<p>각[]</p>" (Hangul conjoining jamo)');
+
 // Should delete the `<span>` element because it becomes empty.
 // However, we need discussion whether the `<span>` element should be
 // contained by a range of `getTargetRanges()`.

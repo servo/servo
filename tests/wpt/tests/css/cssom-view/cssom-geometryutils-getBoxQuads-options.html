@@ -59,18 +59,41 @@
     border: 4px solid black;
     padding: 6px;
   }
+
+  #inline-container {
+    position: absolute;
+    left: 420px;
+    top: 30px;
+    width: 115px;
+    font: 18px/2 sans-serif;
+  }
+
+  #inline {
+    margin: 7px 11px;
+    border: solid;
+    border-width: 3px 5px;
+    padding: 2px 4px;
+  }
+
+  #scroll-spacer {
+    width: calc(100vw + 200px);
+    height: calc(100vh + 200px);
+  }
 </style>
 <div id="target"></div>
 <div id="relative">
   <div id="child"></div>
 </div>
 <div id="rtl"></div>
+<div id="inline-container"><span id="inline">inline content wraps here</span></div>
+<div id="scroll-spacer"></div>
 <script>
 const boxes = ["margin", "border", "padding", "content"];
 const target = document.getElementById("target");
 const relative = document.getElementById("relative");
 const child = document.getElementById("child");
 const rtl = document.getElementById("rtl");
+const inline = document.getElementById("inline");
 
 test(() => {
   assert_geometry_utils_exist();
@@ -144,13 +167,76 @@ test(() => {
   assert_true(quad.p1.y < quad.p4.y, "p1 remains the physical top corner");
 }, "getBoxQuads() point order is physical for bidi and writing-mode");
 
-test(() => {
-  const quad = document.getBoxQuads()[0];
-  assert_point_approx_equals(quad.p1, new DOMPoint(0, 0),
-                             "document quad origin");
-  assert_approx_equals(quad.getBounds().width, document.documentElement.clientWidth,
-                       GEOMETRY_UTILS_EPSILON, "document quad width");
-  assert_approx_equals(quad.getBounds().height, document.documentElement.clientHeight,
-                       GEOMETRY_UTILS_EPSILON, "document quad height");
-}, "Document.getBoxQuads() returns the viewport quad");
+for (const box of boxes) {
+  test(() => {
+    const style = getComputedStyle(inline);
+    const borderRects = inline.getClientRects();
+    const quads = inline.getBoxQuads({box});
+    assert_greater_than(quads.length, 1, "inline produces fragments");
+    assert_equals(quads.length, borderRects.length, "fragment count");
+
+    let left = 0;
+    let top = 0;
+    let right = 0;
+    let bottom = 0;
+    if (box === "margin") {
+      left = i => i === 0 ? -parseFloat(style.marginLeft) : 0;
+      top = -parseFloat(style.marginTop);
+      right = i => i === quads.length - 1 ? parseFloat(style.marginRight) : 0;
+      bottom = parseFloat(style.marginBottom);
+    } else if (box === "padding" || box === "content") {
+      left = i => i === 0 ? parseFloat(style.borderLeftWidth) : 0;
+      top = parseFloat(style.borderTopWidth);
+      right = i => i === quads.length - 1
+        ? -parseFloat(style.borderRightWidth) : 0;
+      bottom = -parseFloat(style.borderBottomWidth);
+      if (box === "content") {
+        const borderLeft = left;
+        const borderRight = right;
+        left = i => borderLeft(i) +
+          (i === 0 ? parseFloat(style.paddingLeft) : 0);
+        top += parseFloat(style.paddingTop);
+        right = i => borderRight(i) -
+          (i === quads.length - 1 ? parseFloat(style.paddingRight) : 0);
+        bottom -= parseFloat(style.paddingBottom);
+      }
+    }
+
+    for (let i = 0; i < quads.length; ++i) {
+      const rect = borderRects[i];
+      const fragmentLeft = typeof left === "function" ? left(i) : left;
+      const fragmentRight = typeof right === "function" ? right(i) : right;
+      assert_rect_approx_equals(
+        quads[i].getBounds(),
+        new DOMRect(rect.left + fragmentLeft, rect.top + top,
+                    rect.width + fragmentRight - fragmentLeft,
+                    rect.height + bottom - top),
+        `${box} fragment ${i}`
+      );
+    }
+  }, `getBoxQuads({box: "${box}"}) applies box edges to inline fragments`);
+}
+
+for (const box of boxes) {
+  test(() => {
+    assert_greater_than(document.scrollingElement.scrollWidth,
+                        document.documentElement.clientWidth,
+                        "the document has horizontal overflow");
+    assert_greater_than(document.scrollingElement.scrollHeight,
+                        document.documentElement.clientHeight,
+                        "the document has vertical overflow");
+
+    const quad = document.getBoxQuads({box})[0];
+    assert_point_approx_equals(quad.p1, new DOMPoint(0, 0),
+                               "document quad origin");
+    assert_approx_equals(quad.getBounds().width,
+                         document.documentElement.clientWidth,
+                         GEOMETRY_UTILS_EPSILON,
+                         "document quad excludes the vertical scrollbar");
+    assert_approx_equals(quad.getBounds().height,
+                         document.documentElement.clientHeight,
+                         GEOMETRY_UTILS_EPSILON,
+                         "document quad excludes the horizontal scrollbar");
+  }, `Document.getBoxQuads({box: "${box}"}) returns the layout viewport`);
+}
 </script>

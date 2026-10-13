@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<style>
+  body {
+    margin: 0;
+  }
+  .multi-col {
+    position: relative;
+    columns: 3;
+    column-fill: auto;
+    column-gap: 10px;
+    width: 320px;
+    height: 10px;
+    background: lightgray;
+  }
+  .grid-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: 10px;
+    column-gap: 10px;
+    padding-block-start: 20px;
+  }
+  .grid-item {
+    background: skyblue;
+  }
+  .column-rule {
+    position: absolute;
+    left: 267px;
+    top: 0;
+    width: 6px;
+    height: 10px;
+    background: blue;
+  }
+</style>
+<div class="multi-col">
+  <div class="grid-container">
+    <div class="grid-item"></div>
+    <div class="grid-item"></div>
+  </div>
+  <div class="column-rule"></div>
+</div>

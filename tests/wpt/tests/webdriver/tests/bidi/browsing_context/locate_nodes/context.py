@@ -25,14 +25,14 @@ async def test_locate_in_different_contexts(bidi_session, inline, top_context, n
     )
 
     # Try to locate nodes in the other context
-    result = await bidi_session.browsing_context.locate_nodes(
+    nodes = await bidi_session.browsing_context.locate_nodes(
         context=new_tab["context"], locator={"type": "css", "value": ".in-top-context"}
     )
 
-    assert result["nodes"] == []
+    assert nodes == []
 
     # Locate in the correct context
-    result = await bidi_session.browsing_context.locate_nodes(
+    nodes = await bidi_session.browsing_context.locate_nodes(
         context=top_context["context"], locator={"type": "css", "value": ".in-top-context"}
     )
 
@@ -50,7 +50,7 @@ async def test_locate_in_different_contexts(bidi_session, inline, top_context, n
         }
     ]
 
-    recursive_compare(expected, result["nodes"])
+    recursive_compare(expected, nodes)
 
 
 @pytest.mark.parametrize("domain", ["", "alt"], ids=["same_origin", "cross_origin"])
@@ -65,7 +65,7 @@ async def test_locate_in_iframe(bidi_session, inline, top_context, domain, ifram
     contexts = await bidi_session.browsing_context.get_tree(root=top_context["context"])
     iframe_context = contexts[0]["children"][0]
 
-    result = await bidi_session.browsing_context.locate_nodes(
+    nodes = await bidi_session.browsing_context.locate_nodes(
         context=iframe_context["context"],
         locator={"type": "css", "value": "#in-iframe"}
     )
@@ -84,4 +84,4 @@ async def test_locate_in_iframe(bidi_session, inline, top_context, domain, ifram
         }
     ]
 
-    recursive_compare(expected, result["nodes"])
+    recursive_compare(expected, nodes)

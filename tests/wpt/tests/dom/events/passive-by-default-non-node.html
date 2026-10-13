@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Default passive event listeners on non-Node event targets</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#default-passive-value">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+const eventTargets = {
+  EventTarget: () => new EventTarget(),
+  Performance: () => performance
+};
+
+for (const [name, createEventTarget] of Object.entries(eventTargets)) {
+  test(t => {
+    const eventTarget = createEventTarget();
+    function listener(event) {
+      event.preventDefault();
+    }
+    eventTarget.addEventListener("wheel", listener);
+    t.add_cleanup(() => eventTarget.removeEventListener("wheel", listener));
+
+    const event = new Event("wheel", { cancelable: true });
+    const returnValue = eventTarget.dispatchEvent(event);
+
+    assert_true(event.defaultPrevented);
+    assert_false(returnValue);
+  }, `wheel listeners on ${name} are not passive by default`);
+}
+</script>

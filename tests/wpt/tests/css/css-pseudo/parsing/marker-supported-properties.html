@@ -51,6 +51,9 @@ test_pseudo_computed_value("::marker", "direction", "rtl");
 // ::marker supports `content`
 test_pseudo_computed_value("::marker", "content", "\"foo\"");
 
+// ::marker supports `quotes`.
+test_pseudo_computed_value("::marker", "quotes", '"«" "»"');
+
 // ::marker supports animation properties.
 test_pseudo_computed_value("::marker", "animation", "1s linear 2s infinite alternate forwards paused anim");
 test_pseudo_computed_value("::marker", "animation-delay", "1s");

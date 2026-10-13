@@ -47,6 +47,7 @@ dictionary TestDictionary {
   DOMString? nonRequiredNullable2;
   SimpleCallback noCallbackImport;
   callbackWithOnlyOneOptionalArg noCallbackImport2;
+  Promise<undefined> promiseValue;
 };
 
 dictionary TestDictionaryWithTypedArray {
@@ -126,6 +127,7 @@ interface TestBinding {
            attribute float floatAttribute;
            attribute unrestricted double unrestrictedDoubleAttribute;
            attribute double doubleAttribute;
+           [BindingAlias=stringAttributeAlias, BindingAlias=stringAttributeAlias2]
            attribute DOMString stringAttribute;
            attribute USVString usvstringAttribute;
            attribute ByteString byteStringAttribute;
@@ -440,7 +442,7 @@ interface TestBinding {
   undefined passOptionalNullableObjectWithDefault(optional object? arg = null);
   undefined passOptionalNullableUnionWithDefault(optional (HTMLElement or long)? arg = null);
   undefined passOptionalNullableUnion2WithDefault(optional (Event or DOMString)? data = null);
-  // void passOptionalNullableCallbackFunctionWithDefault(optional Function? fun = null);
+  undefined passOptionalNullableCallbackFunctionWithDefault(optional Function? fun = null);
   undefined passOptionalNullableCallbackInterfaceWithDefault(optional EventListener? listener = null);
   undefined passOptionalAnyWithDefault(optional any arg = null);
 
@@ -609,6 +611,19 @@ interface TestBinding {
 
   TestDictionaryWithParent getDictionaryWithParent(DOMString parent, DOMString child);
   undefined getDictionaryWithTypedArray(optional TestDictionaryWithTypedArray dict = {});
+
+  undefined defaultByte(optional byte value = 0);
+  undefined defaultOctect(optional octet value = 0);
+  undefined defaultShort(optional short value = 0);
+  undefined defaultUnsignedShort(optional unsigned short value = 0);
+  undefined defaultLong(optional long value = 0);
+  undefined defaultUnsignedLong(optional unsigned long value = 0);
+  undefined defaultLongLong(optional long long value = 0);
+  undefined defaultUnsignedLongLong(optional unsigned long long value = 0);
+  undefined defaultFloat(optional float value = 0.0);
+  undefined defaultUnrestrictedFloat(optional unrestricted float value = 0.0);
+  undefined defaultDouble(optional double value = 0.0);
+  undefined defaultUnrestrictedDouble(optional unrestricted double value = 0.0);
 };
 
 [Exposed=(Window)]

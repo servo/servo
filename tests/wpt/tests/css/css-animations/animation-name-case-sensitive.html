@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>animation-name case-sensivity</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-1/#animation-name">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/cssstyle/issues/303 -->
+
+<script>
+"use strict";
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.animationName = "fooBar";
+  assert_equals(div.style.getPropertyValue("animation-name"), "fooBar");
+}, "animation-name is case-sensitive");
+</script>

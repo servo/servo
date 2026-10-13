@@ -121,9 +121,9 @@
         let snr1 = 10 * Math.log10(computeSNR(actual1, reference1));
 
         assert_greater_than_equal(
-            snr0, 148.71, 'Left SNR (in dB) must be ≥ 148.71');
+            snr0, 148.71, 'Left SNR (in dB) must be >= 148.71');
         assert_greater_than_equal(
-            snr1, 148.71, 'Right SNR (in dB) must be ≥ 148.71');
+            snr1, 148.71, 'Right SNR (in dB) must be >= 148.71');
       }, 'GainNode should scale gains properly across notes');
     </script>
   </body>

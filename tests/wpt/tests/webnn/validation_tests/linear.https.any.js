@@ -28,6 +28,10 @@ promise_test(async t => {
   assert_throws_js(TypeError, () => builder.linear(input, options));
 }, '[linear] Throw if options.beta is -Infinity');
 
+validateOperandRank('linear', 'input', (builder, input) => {
+  return builder.linear(input);
+});
+
 promise_test(async t => {
   const builder = new MLGraphBuilder(context);
   const options = {alpha: NaN};

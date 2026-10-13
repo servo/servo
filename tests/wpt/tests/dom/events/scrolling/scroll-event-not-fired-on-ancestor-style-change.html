@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>No scroll event is fired when a style change on an ancestor leaves the scroll position alone</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#scrolling-events">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2066409">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+
+<div id="host">
+  <div id="scroller" style="height: 100px; overflow-y: auto">
+    <div style="height: 2000px"></div>
+  </div>
+</div>
+
+<script>
+promise_test(async (t) => {
+  scroller.scrollTop = 50;
+  await new Promise(resolve => {
+    scroller.addEventListener("scrollend", resolve, { once: true });
+  });
+
+  let scrollEvents = 0;
+  scroller.addEventListener("scroll", () => scrollEvents++);
+
+  // Setting 'overflow' turns #host into a scroll container and removing it turns
+  // it back into a regular block. Reading scrollTop in between forces layout, so
+  // #scroller is laid out once in each of the two states.
+  host.style.overflow = "hidden";
+  assert_equals(scroller.scrollTop, 50,
+                "scrollTop while the ancestor is a scroll container");
+  host.style.removeProperty("overflow");
+  assert_equals(scroller.scrollTop, 50,
+                "scrollTop once the ancestor is a block again");
+
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  await new Promise(resolve => requestAnimationFrame(resolve));
+
+  assert_equals(scroller.scrollTop, 50, "scrollTop after the toggle");
+  assert_equals(scrollEvents, 0,
+                "no scroll event for a toggle that did not scroll anything");
+}, "Setting and removing 'overflow' on an ancestor fires no scroll event.");
+</script>

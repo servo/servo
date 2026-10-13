@@ -21,4 +21,4 @@ testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
   var sample = new TA(makeCtorArg([42n]));
   assert.sameValue(Reflect.set(sample, '-0', 1n), true, 'Reflect.set("new TA(makeCtorArg([42n]))", "-0", 1n) must return true');
   assert.sameValue(sample.hasOwnProperty('-0'), false, 'sample.hasOwnProperty("-0") must return false');
-});
+}, null, null, ["immutable"]);

@@ -2,9 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
+
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::TextMetricsBinding::TextMetricsMethods;
 use crate::dom::bindings::num::Finite;
@@ -80,7 +82,8 @@ impl TextMetrics {
         alphabeticBaseline: f64,
         ideographicBaseline: f64,
     ) -> DomRoot<TextMetrics> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(TextMetrics::new_inherited(
                 width,
                 actualBoundingBoxLeft,
@@ -96,29 +99,6 @@ impl TextMetrics {
                 ideographicBaseline,
             )),
             global,
-            cx,
-        )
-    }
-
-    pub(crate) fn default(global: &GlobalScope, cx: &mut JSContext) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
-            Box::new(Self {
-                reflector_: Reflector::new(),
-                width: Default::default(),
-                actualBoundingBoxLeft: Default::default(),
-                actualBoundingBoxRight: Default::default(),
-                fontBoundingBoxAscent: Default::default(),
-                fontBoundingBoxDescent: Default::default(),
-                actualBoundingBoxAscent: Default::default(),
-                actualBoundingBoxDescent: Default::default(),
-                emHeightAscent: Default::default(),
-                emHeightDescent: Default::default(),
-                hangingBaseline: Default::default(),
-                alphabeticBaseline: Default::default(),
-                ideographicBaseline: Default::default(),
-            }),
-            global,
-            cx,
         )
     }
 }

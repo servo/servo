@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Spaces inside style sheet properties should work fine</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/2123 -->
+
+<style>
+.cool-class {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+</style>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<p class="cool-class">
+  Hello!
+</p>
+
+<script>
+"use strict";
+
+setup({ single_test: true });
+
+const el = document.querySelector(".cool-class");
+// Check whitespace parsing independently of font-family serialization.
+assert_in_array(window.getComputedStyle(el).fontFamily, [
+  `"Helvetica Neue", Helvetica, Arial, sans-serif`,
+  "Helvetica Neue, Helvetica, Arial, sans-serif"
+]);
+
+done();
+</script>

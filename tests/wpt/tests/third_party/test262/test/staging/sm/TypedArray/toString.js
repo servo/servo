@@ -6,6 +6,7 @@ includes: [sm/non262-TypedArray-shell.js, propertyHelper.js]
 description: |
   pending
 esid: pending
+features: [Float16Array]
 ---*/
 const TypedArrayPrototype = Object.getPrototypeOf(Int8Array.prototype);
 

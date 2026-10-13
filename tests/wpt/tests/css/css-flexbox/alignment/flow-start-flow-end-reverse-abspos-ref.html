@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    html, body {
+      color: black; background-color: white; font: 12.8px/1 monospace; padding: 0; margin: 0;
+    }
+
+    .row {
+      font-size: 0;
+    }
+
+    .container {
+      position: relative;
+      display: inline flex;
+      width: 80px;
+      height: 80px;
+      border: 1px solid black;
+      margin: 4px;
+      vertical-align: top;
+    }
+
+    item {
+      position: absolute;
+      display: block;
+      width: 20px;
+      height: 20px;
+      background: green;
+    }
+
+    .row-reverse {
+      flex-direction: row-reverse;
+    }
+
+    .column-reverse {
+      flex-direction: column-reverse;
+    }
+
+    .row-wrap-reverse {
+      flex-wrap: wrap-reverse;
+    }
+
+    .column-wrap-reverse {
+      flex-flow: column wrap-reverse;
+    }
+  </style>
+</head>
+<body>
+<div class="row">
+  <div class="container row-reverse" style="justify-content: flex-start"><item></item></div>
+  <div class="container row-reverse" style="justify-content: flex-end"><item></item></div>
+  <div class="container column-reverse" style="justify-content: flex-start"><item></item></div>
+  <div class="container column-reverse" style="justify-content: flex-end"><item></item></div>
+</div>
+<div class="row">
+  <div class="container row-wrap-reverse"><item style="align-self: flex-start"></item></div>
+  <div class="container row-wrap-reverse"><item style="align-self: flex-end"></item></div>
+  <div class="container column-wrap-reverse"><item style="align-self: flex-start"></item></div>
+  <div class="container column-wrap-reverse"><item style="align-self: flex-end"></item></div>
+</div>
+</body>
+</html>

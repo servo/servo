@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: ToolCancelEvent interface and ontoolcancel handler</title>
+<link rel="help" href="https://webmachinelearning.github.io/webmcp/#tool-cancel-event">
+<link rel="author" href="mailto:beaufort.francois@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+test(() => {
+  const event = new ToolCancelEvent('toolcancel');
+  assert_equals(event.type, 'toolcancel');
+  assert_equals(event.toolName, '', 'toolName defaults to the empty string');
+  assert_false(event.bubbles);
+  assert_false(event.cancelable);
+  assert_false(event.composed);
+  assert_false(event.isTrusted);
+}, 'ToolCancelEvent constructor with default event init dictionary');
+
+test(() => {
+  const event = new ToolCancelEvent('toolcancel', {
+    toolName: 'my_tool',
+    bubbles: true,
+    cancelable: true,
+    composed: true,
+  });
+  assert_equals(event.toolName, 'my_tool');
+  assert_true(event.bubbles);
+  assert_true(event.cancelable);
+  assert_true(event.composed);
+}, 'ToolCancelEvent constructor with an event init dictionary');
+
+test(t => {
+  const events = [];
+  const handler = e => events.push(e);
+  document.modelContext.ontoolcancel = handler;
+  t.add_cleanup(() => { document.modelContext.ontoolcancel = null; });
+
+  const event = new ToolCancelEvent('toolcancel', { toolName: 'my_tool' });
+  document.modelContext.dispatchEvent(event);
+
+  assert_array_equals(events, [event],
+      'synthetic toolcancel events must reach ontoolcancel');
+  assert_equals(events[0].target, document.modelContext);
+  assert_equals(events[0].toolName, 'my_tool');
+}, 'ontoolcancel is invoked for synthetic toolcancel events dispatched ' +
+   'at ModelContext');
+
+promise_test(async t => {
+  assert_equals(document.modelContext.ontoolcancel, null,
+      'ontoolcancel must initially be null');
+
+  const events = [];
+  const handler = e => events.push(e);
+  document.modelContext.ontoolcancel = handler;
+  t.add_cleanup(() => { document.modelContext.ontoolcancel = null; });
+  assert_equals(document.modelContext.ontoolcancel, handler,
+      'ontoolcancel must reflect the assigned handler');
+
+  const regController = new AbortController();
+  t.add_cleanup(() => regController.abort());
+  await document.modelContext.registerTool({
+    name: 'onevent_tool',
+    description: 'Tool used to trigger ontoolcancel',
+    execute: () => new Promise(() => {}),
+  }, { signal: regController.signal });
+
+  const tools = await document.modelContext.getTools();
+  const tool = tools.find(tool => tool.name === 'onevent_tool');
+
+  // Executes the tool, aborts it, and resolves once the `toolcancel` event has
+  // been dispatched at the ModelContext. The signal's abort steps reject the
+  // executeTool() promise first, and only then cancel the pending tool
+  // execution in parallel, which queues the task that fires `toolcancel`.
+  // Awaiting the rejection alone is therefore not enough to observe the event.
+  // https://webmachinelearning.github.io/webmcp/#cancel-a-pending-tool-execution
+  const executeAndCancelTool = async () => {
+    const cancelPromise = new Promise(resolve => {
+      document.modelContext.addEventListener('toolcancel', resolve, { once: true });
+    });
+    const controller = new AbortController();
+    const execPromise =
+        document.modelContext.executeTool(tool, {}, { signal: controller.signal });
+    const rejectPromise = promise_rejects_dom(t, 'AbortError', execPromise);
+    controller.abort();
+    await rejectPromise;
+    await cancelPromise;
+  };
+
+  await executeAndCancelTool();
+
+  assert_equals(events.length, 1, 'ontoolcancel must be invoked once');
+  assert_true(events[0] instanceof ToolCancelEvent);
+  assert_equals(events[0].toolName, 'onevent_tool');
+
+  document.modelContext.ontoolcancel = null;
+  assert_equals(document.modelContext.ontoolcancel, null,
+      'ontoolcancel must be nullable');
+
+  await executeAndCancelTool();
+
+  assert_equals(events.length, 1,
+      'the removed handler must not be invoked again');
+}, 'ontoolcancel is invoked when a tool invocation is canceled');
+</script>

@@ -1,0 +1,42 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Selectors: :active applies to element clicked inside a link</title>
+<link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+<link rel="help" href="https://drafts.csswg.org/selectors/#the-active-pseudo" />
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2067272" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+  #target {
+    width: 100px;
+    height: 100px;
+  }
+</style>
+
+<a id="link" href="#">
+  <div id="target">click me</div>
+</a>
+
+<script>
+  promise_test(async (t) => {
+    link.addEventListener("click", (e) => e.preventDefault(), {
+      signal: t.get_signal(),
+    });
+    t.add_cleanup(() => new test_driver.Actions().pointerUp().send());
+
+    await new test_driver.Actions()
+      .pointerMove(0, 0, { origin: target })
+      .pointerDown()
+      .send();
+
+    assert_true(
+      target.matches(":active"),
+      "clicked element inside link matches :active",
+    );
+    assert_true(link.matches(":active"), "ancestor link matches :active");
+  }, "element clicked inside a link matches :active");
+</script>

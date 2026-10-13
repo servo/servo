@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>script with error HTTP status should fire error event and not execute</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/scripting.html#the-script-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+"use strict";
+
+async_test(t => {
+  window.script404Ran = false;
+  const script = document.createElement("script");
+
+  script.onerror = t.step_func_done(() => {
+    assert_false(window.script404Ran, "script content should not have executed");
+  });
+
+  script.onload = t.step_func(() => {
+    assert_unreached("load event should not fire for 404 response");
+  });
+
+  script.src = "resources/script-sets-flag.js?pipe=status(404)";
+  document.body.append(script);
+}, "script should fire error event for 404 response and not execute");
+
+async_test(t => {
+  window.script503Ran = false;
+  const script = document.createElement("script");
+
+  script.onerror = t.step_func_done(() => {
+    assert_false(window.script503Ran, "script content should not have executed");
+  });
+
+  script.onload = t.step_func(() => {
+    assert_unreached("load event should not fire for 503 response");
+  });
+
+  script.src = "resources/script-sets-flag.js?pipe=status(503)";
+  document.body.append(script);
+}, "script should fire error event for 503 response and not execute");
+</script>
+</body>

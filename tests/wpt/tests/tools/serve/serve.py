@@ -16,7 +16,7 @@ import time
 import traceback
 import urllib
 import uuid
-from collections import defaultdict, OrderedDict
+from collections import defaultdict
 from io import IOBase
 from itertools import chain, product
 from html5lib import html5parser
@@ -900,7 +900,7 @@ class RoutesBuilder:
             with open(inject_script, "rb") as f:
                 self.inject_script_data = f.read()
 
-        self.mountpoint_routes = OrderedDict()
+        self.mountpoint_routes = {}
 
         self.add_mount_point("/", None)
 
@@ -967,8 +967,10 @@ class RoutesBuilder:
             ("*", "/.well-known/interest-group/real-time-report", handlers.PythonScriptHandler),
             ("*", "/.well-known/private-aggregation/*", handlers.PythonScriptHandler),
             ("GET", "/.well-known/shared-storage/trusted-origins", handlers.PythonScriptHandler),
+            ("GET", "/.well-known/web-app-origin-association", handlers.PythonScriptHandler),
             ("*", "/.well-known/web-identity", handlers.PythonScriptHandler),
             ("*", "/.well-known/device-bound-sessions", handlers.PythonScriptHandler),
+            ("*", "/.well-known/email-verification", handlers.PythonScriptHandler),
             ("*", "*.py", handlers.PythonScriptHandler),
             ("GET", "*", handlers.FileHandler)
         ]
@@ -1149,18 +1151,25 @@ def start_servers(logger, host, ports, paths, routes, bind_address, config,
     for scheme, ports in ports.items():
         assert len(ports) == {"http": 2, "https": 2}.get(scheme, 1)
 
-        # If trying to start HTTP/2.0 server, check compatibility
-        if scheme == 'h2' and not http2_compatible():
-            logger.error('Cannot start HTTP/2.0 server as the environment is not compatible. ' +
-                         'Requires OpenSSL 1.0.2+')
-            continue
+        # Skip HTTP/2 server if it is disabled or if incompatible.
+        if scheme == "h2":
+            if not kwargs.get("h2", True):
+                logging.warning("HTTP/2 server disabled")
+                continue
+
+            if not http2_compatible():
+                logger.error("Cannot start HTTP/2 server as the environment is not compatible. " +
+                             "Requires OpenSSL 1.0.2+")
+                continue
 
         # Skip WebTransport over HTTP/3 server unless it is enabled explicitly.
         if scheme == "webtransport-h3" and not kwargs.get("webtransport_h3"):
+            logging.warning("WebTransport over HTTP/3 server disabled")
             continue
 
         # Skip over DNS unless it is enabled explicitly.
         if scheme == "dns" and not kwargs.get("dns"):
+            logging.info("DNS server disabled")
             continue
 
         for port in ports:
@@ -1195,6 +1204,9 @@ def startup_failed(logger):
 
 
 def start_http_server(logger, host, port, paths, routes, bind_address, config, **kwargs):
+    # If SSL is available, allow upgrading to TLS after a CONNECT request so
+    # that the HTTP server can also act as an HTTPS proxy.
+    ssl_config = config.ssl_config
     try:
         return wptserve.WebTestHttpd(host=host,
                                      port=port,
@@ -1203,9 +1215,10 @@ def start_http_server(logger, host, port, paths, routes, bind_address, config, *
                                      rewrites=rewrites,
                                      bind_address=bind_address,
                                      config=config,
-                                     use_ssl=False,
-                                     key_file=None,
-                                     certificate=None,
+                                     use_ssl=ssl_config is not None,
+                                     key_file=ssl_config["key_path"] if ssl_config else None,
+                                     certificate=ssl_config["cert_path"] if ssl_config else None,
+                                     encrypt_after_connect=ssl_config is not None,
                                      latency=kwargs.get("latency"))
     except Exception as error:
         logger.critical(f"start_http_server: Caught exception from wptserve.WebTestHttpd: {error}")
@@ -1429,6 +1442,7 @@ class ConfigBuilder(config.ConfigBuilder):
             "https": [8443, 8444],
             "https-local": ["auto"],
             "https-public": ["auto"],
+            "h2": [9000],
             "ws": ["auto"],
             "wss": ["auto"],
             "webtransport-h3": ["auto"],
@@ -1449,7 +1463,8 @@ class ConfigBuilder(config.ConfigBuilder):
             },
             "pregenerated": {
                 "host_key_path": os.path.join(repo_root, "tools", "certs", "web-platform.test.key"),
-                "host_cert_path": os.path.join(repo_root, "tools", "certs", "web-platform.test.pem")
+                "host_cert_path": os.path.join(repo_root, "tools", "certs", "web-platform.test.pem"),
+                "ca_cert_path": os.path.join(repo_root, "tools", "certs", "cacert.pem")
             },
             "none": {}
         },
@@ -1496,12 +1511,6 @@ class ConfigBuilder(config.ConfigBuilder):
 
 def build_config(logger, override_path=None, config_cls=ConfigBuilder, **kwargs):
     rv = config_cls(logger)
-
-    enable_http2 = kwargs.get("h2")
-    if enable_http2 is None:
-        enable_http2 = True
-    if enable_http2:
-        rv._default["ports"]["h2"] = [9000]
 
     if override_path and os.path.exists(override_path):
         with open(override_path) as f:
@@ -1551,10 +1560,10 @@ def get_parser():
                         help="Path to script file to inject, useful for testing polyfills.")
     parser.add_argument("--alias_file",
                         help="File with entries for aliases/multiple doc roots. In form of `/ALIAS_NAME/, DOC_ROOT\\n`")
-    parser.add_argument("--h2", action="store_true", default=None,
+    parser.add_argument("--h2", action="store_true", default=True,
                         help=argparse.SUPPRESS)
-    parser.add_argument("--no-h2", action="store_false", dest="h2", default=None,
-                        help="Disable the HTTP/2.0 server")
+    parser.add_argument("--no-h2", action="store_false", dest="h2",
+                        help="Disable the HTTP/2 server")
     parser.add_argument("--webtransport-h3", action="store_true",
                         help="Enable WebTransport over HTTP/3 server")
     parser.add_argument("--dns", action="store_true",

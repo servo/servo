@@ -29,7 +29,7 @@ embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fonts = { workspace = true }
 fonts_traits = { workspace = true }
-icu_locid = { workspace = true }
+icu_locale_core = { workspace = true }
 icu_properties = { workspace = true, features = ["compiled_data"] }
 icu_segmenter = { workspace = true }
 itertools = { workspace = true }
@@ -44,6 +44,7 @@ num-traits = { workspace = true }
 once_cell = { workspace = true }
 paint_api = { workspace = true }
 parking_lot = { workspace = true }
+phf = { workspace = true }
 pixels = { workspace = true }
 profile_traits = { workspace = true }
 rayon = { workspace = true }
@@ -75,3 +76,6 @@ webrender_api = { workspace = true }
 
 [dev-dependencies]
 quickcheck = { workspace = true }
+
+[lints]
+workspace = true

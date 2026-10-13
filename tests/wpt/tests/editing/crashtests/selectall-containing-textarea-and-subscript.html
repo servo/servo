@@ -1,0 +1,29 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+addEventListener("DOMContentLoaded", () => {
+  document.designMode = "on";
+  document.onselectionchange = () => {
+    document.execCommand("undo");
+    document.execCommand("subscript");
+    document.execCommand("delete");
+  };
+  document.execCommand("selectAll", false);
+}, {once: true});
+</script></head>
+<body>
+AAAA
+<tt>
+<style>
+*::selection {
+  background-origin: border-box, border-box;
+}
+</style>
+</tt>
+<textarea></textarea>
+</body>
+</html>

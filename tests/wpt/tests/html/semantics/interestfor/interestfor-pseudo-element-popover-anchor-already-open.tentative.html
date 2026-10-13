@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<link rel="match" href="interestfor-pseudo-element-popover-anchor-ref.html">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+
+<div id=container>
+  <button id=invoker interestfor=target>Button</button>
+</div>
+<div id=target popover></div>
+
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    border: none;
+  }
+  #container {
+    position: absolute;
+    left: 50px;
+    top: 50px;
+  }
+  button {
+    width: 100px;
+    height: 50px;
+    /* Show interest immediately on hover, and don't lose it. */
+    interest-delay: 0s 1000s;
+  }
+  ::interest-button, #target {
+    width: 50px;
+    height: 50px;
+  }
+  ::interest-button {
+    content: "";
+    position: absolute;
+    left: 250px;
+    top: 0;
+    background: green;
+  }
+  #target {
+    position-anchor: auto;
+    position-area: bottom;
+    background: blue;
+  }
+</style>
+
+<script>
+(async () => {
+  // Open the popover by hovering the invoker, which anchors it to the invoker.
+  await hoverOver(invoker);
+  const i = invoker.getBoundingClientRect();
+  const t = target.getBoundingClientRect();
+  if (!target.matches(':popover-open') || t.left !== i.left + 25) {
+    // Precondition failed; make the reftest fail.
+    target.remove();
+  } else {
+    // Tap the ::interest-button while the popover is open. The implicit
+    // anchor should move to the ::interest-button.
+    const rect = container.getBoundingClientRect();
+    await new test_driver.Actions()
+      .addPointer("touchPointer", "touch")
+      .pointerMove(Math.round(rect.x + 275), Math.round(rect.y + 25), {})
+      .pointerDown()
+      .pointerUp()
+      .send();
+    await waitForRender();
+  }
+  document.documentElement.classList.remove('reftest-wait');
+})();
+</script>

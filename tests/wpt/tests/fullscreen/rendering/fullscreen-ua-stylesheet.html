@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<title>UA stylesheet: :not(:root):fullscreen applies margin, box-sizing, object-fit</title>
+<link rel="help" href="https://fullscreen.spec.whatwg.org/#user-agent-level-style-sheet-defaults">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../trusted-click.js"></script>
+<style>
+    #ua-should-win {
+        margin: 42px;
+        box-sizing: content-box;
+    }
+    #author-important-object-fit:fullscreen {
+        object-fit: cover !important;
+    }
+</style>
+<div id="log"></div>
+<div id="ua-should-win"></div>
+<div id="author-important-object-fit"></div>
+<script>
+// The UA default stylesheet applies to :not(:root):fullscreen:
+//   margin: 0 !important
+//   box-sizing: border-box !important
+//   object-fit: contain      (non-important; author can override)
+
+promise_test(async t => {
+    const el = document.getElementById("ua-should-win");
+    t.add_cleanup(async () => {
+        if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+    });
+    await trusted_request(el);
+
+    const cs = getComputedStyle(el);
+    assert_equals(cs.marginTop, "0px",
+        "UA :not(:root):fullscreen sets margin-top:0!important (overrides author non-important)");
+    assert_equals(cs.marginRight, "0px", "margin-right:0!important");
+    assert_equals(cs.marginBottom, "0px", "margin-bottom:0!important");
+    assert_equals(cs.marginLeft, "0px", "margin-left:0!important");
+    assert_equals(cs.boxSizing, "border-box",
+        "UA :not(:root):fullscreen sets box-sizing:border-box!important");
+}, "UA stylesheet: margin:0!important and box-sizing:border-box!important apply to fullscreen element");
+
+promise_test(async t => {
+    // Baseline: no author :fullscreen rule for object-fit — UA :fullscreen
+    // rule (non-important) applies, object-fit is "contain".
+    const el = document.getElementById("ua-should-win");
+    t.add_cleanup(async () => {
+        if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+    });
+    await trusted_request(el);
+
+    assert_equals(getComputedStyle(el).objectFit, "contain",
+        "UA :not(:root):fullscreen sets object-fit:contain (non-important) " +
+        "when no author :fullscreen object-fit rule is present");
+}, "UA stylesheet: object-fit:contain applies to fullscreen element when author has no :fullscreen override");
+
+promise_test(async t => {
+    // Author !important with :fullscreen selector overrides UA
+    // non-important object-fit.
+    const el = document.getElementById("author-important-object-fit");
+    t.add_cleanup(async () => {
+        if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+    });
+    await trusted_request(el);
+
+    assert_equals(getComputedStyle(el).objectFit, "cover",
+        "author :fullscreen !important rule overrides UA non-important object-fit");
+}, "UA stylesheet: object-fit:contain is not !important - author can override");
+</script>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>location href in iframe when setting src attribute</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/history.html#the-location-interface">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#the-iframe-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+
+<script>
+"use strict";
+setup({ explicit_done: true });
+
+const tests = [
+  {
+    inputSrc: null,
+    expectedLocationHref: "about:blank"
+  },
+  {
+    inputSrc: "about:blank",
+    expectedLocationHref: "about:blank"
+  },
+  {
+    inputSrc: "",
+    expectedLocationHref: "about:blank"
+  },
+  {
+    inputSrc: "http://:80/invalid-url",
+    expectedLocationHref: "about:blank"
+  }
+];
+
+window.onload = () => {
+  for (const { inputSrc, expectedLocationHref } of tests) {
+    async_test(t => {
+      const iframe = document.createElement("iframe");
+
+      iframe.onload = t.step_func_done(() => {
+        assert_equals(iframe.contentWindow.location.href, expectedLocationHref);
+      });
+
+      if (inputSrc !== null) {
+        iframe.src = inputSrc;
+      }
+      document.body.append(iframe);
+    }, "Testing location href of iframe with input src: " + inputSrc);
+  }
+
+  done();
+};
+</script>

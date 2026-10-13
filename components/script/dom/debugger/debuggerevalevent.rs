@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use script_bindings::str::DOMString;
 
 use crate::dom::bindings::codegen::Bindings::DebuggerEvalEventBinding::DebuggerEvalEventMethods;
@@ -21,6 +21,7 @@ pub(crate) struct DebuggerEvalEvent {
     pipeline_id: Dom<PipelineId>,
     worker_id: Option<DOMString>,
     frame_actor_id: Option<DOMString>,
+    eager: bool,
 }
 
 impl DebuggerEvalEvent {
@@ -31,6 +32,7 @@ impl DebuggerEvalEvent {
         pipeline_id: &PipelineId,
         worker_id: Option<DOMString>,
         frame_actor_id: Option<DOMString>,
+        eager: bool,
     ) -> DomRoot<Self> {
         let result = Box::new(Self {
             event: Event::new_inherited(),
@@ -38,8 +40,9 @@ impl DebuggerEvalEvent {
             pipeline_id: Dom::from_ref(pipeline_id),
             worker_id,
             frame_actor_id,
+            eager,
         });
-        let result = reflect_dom_object_with_cx(result, debugger_global, cx);
+        let result = reflect_dom_object(cx, result, debugger_global);
         result.event.init_event("eval".into(), false, false);
 
         result
@@ -64,6 +67,10 @@ impl DebuggerEvalEventMethods<crate::DomTypeHolder> for DebuggerEvalEvent {
 
     fn GetFrameActorId(&self) -> Option<DOMString> {
         self.frame_actor_id.clone()
+    }
+
+    fn Eager(&self) -> bool {
+        self.eager
     }
 
     fn IsTrusted(&self) -> bool {

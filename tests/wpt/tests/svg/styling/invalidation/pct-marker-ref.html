@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <style>
+    svg {
+      width: 100%;
+      display: block;
+    }
+  </style>
+
+  <div style="width: 200px; overflow: hidden">
+    <svg height="120">
+      <defs>
+        <marker id="m"
+                markerUnits="userSpaceOnUse"
+                markerWidth="20%"
+                markerHeight="40"
+                refX="0"
+                refY="0">
+          <rect width="4000" height="40" fill="green"/>
+        </marker>
+      </defs>
+      <path d="M0 50 L1 50" marker-start="url(#m)"/>
+    </svg>
+  </div>
+</html>

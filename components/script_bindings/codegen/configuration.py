@@ -218,7 +218,6 @@ class DescriptorProvider:
         """
         return self.config.getDescriptor(interfaceName)
 
-
 def MemberIsLegacyUnforgeable(member: IDLAttribute | IDLMethod, descriptor: Descriptor) -> bool:
     return ((member.isAttr() or member.isMethod())
             and not member.isStatic()
@@ -275,7 +274,7 @@ class Descriptor(DescriptorProvider):
         elif self.interface.isCallback():
             ty = 'crate::codegen::GenericBindings::%sBinding::%s' % (ifaceName, ifaceName)
             pathDefault = ty
-            self.returnType = "Rc<%s<D>>" % ty
+            self.returnType = "RootedCallback<%s<D>>" % ty
             self.argumentType = "???"
             self.nativeType = ty
         else:
@@ -515,6 +514,9 @@ class Descriptor(DescriptorProvider):
         # If we're isGlobal and have cross-origin members, we're a Window, and
         # that's not a cross-origin object.  The WindowProxy is.
         return self.concrete and self.interface.hasCrossOriginMembers and not self.isGlobal()
+
+    def emitsCrossOriginPropertyTable(self) -> bool:
+        return self.concrete and self.interface.hasCrossOriginMembers
 
     def hasDescendants(self) -> bool:
         return (self.interface.getUserData("hasConcreteDescendant", False)

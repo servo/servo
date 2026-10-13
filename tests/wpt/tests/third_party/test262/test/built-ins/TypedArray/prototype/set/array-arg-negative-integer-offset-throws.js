@@ -32,4 +32,4 @@ testWithTypedArrayConstructors(function(TA, makeCtorArg) {
   assert.throws(RangeError, function() {
     sample.set([1], -Infinity);
   }, "-Infinity");
-});
+}, null, null, ["immutable"]);

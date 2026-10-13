@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<title>Test of text-box-trim (trim-start) on inline boxes with border and padding</title>
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-edge">
+<link rel="help" href="https://drafts.csswg.org/css-inline-3/#text-box-trim">
+<script src="support/variant-class.js"></script>
+<meta charset="utf-8">
+<meta name="variant" content="?class=auto">
+<meta name="variant" content="?class=text">
+<meta name="variant" content="?class=cap">
+<meta name="variant" content="?class=ex">
+<meta name="variant" content="?class=vrl,auto">
+<meta name="variant" content="?class=vrl,text">
+<meta name="variant" content="?class=vrl,cap">
+<meta name="variant" content="?class=vrl,ex">
+<meta name="variant" content="?class=vlr,auto">
+<meta name="variant" content="?class=vlr,text">
+<meta name="variant" content="?class=vlr,alphabetic">
+<link rel="stylesheet" href="/fonts/baseline-diagnostic/baseline-diagnostic-font.css">
+<style>
+.spacer {
+  block-size: 100px;
+  background: lightgray;
+}
+
+.container {
+  font: 100px/1 BaselineDiagnosticAlphabeticZero;
+  position: relative;
+  z-index: 0;
+}
+
+.target {
+  position: relative;
+}
+
+.target::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: green;
+  margin-block: -40px;
+  border-block: 20px solid orange;
+}
+
+:root:not(.vrl, .vlr) .target::before { top: var(--block-start-inset, 0); }
+:root.vrl .target::before { right: var(--block-start-inset, 0); }
+:root.vlr .target::before { left: var(--block-start-inset, 0); }
+:root.vrl { writing-mode: vertical-rl; }
+:root.vlr { writing-mode: vertical-lr; }
+
+.cap .target::before { --block-start-inset: calc(var(--baseline-diagnostic-alphabetic-zero-cap-height) * 1em); }
+.ex .target::before { --block-start-inset: calc(var(--baseline-diagnostic-alphabetic-zero-x-height) * 1em); }
+.vlr.alphabetic .target { --block-start-inset: calc((1 - var(--baseline-diagnostic-alphabetic-zero-alphabetic)) * 1em); }
+
+</style>
+<div class="spacer"></div>
+<div class="container">
+  <span class="target">█BxIF</span>
+</div>
+<div class="spacer"></div>

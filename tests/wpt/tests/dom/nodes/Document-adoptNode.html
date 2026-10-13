@@ -47,4 +47,43 @@ test(function() {
   var doc = document.implementation.createDocument(null, null, null)
   assert_throws_dom("NOT_SUPPORTED_ERR", function() { document.adoptNode(doc) })
 }, "Adopting a Document should throw.")
+
+test(function() {
+  var doc = document.implementation.createHTMLDocument("Title")
+  var div = doc.createElement("div")
+  div.setAttribute("data-a", "1")
+  var attr = div.getAttributeNode("data-a")
+  assert_equals(attr.ownerDocument, doc)
+  assert_equals(document.adoptNode(div), div)
+  assert_equals(div.ownerDocument, document)
+  assert_equals(attr.ownerDocument, document,
+                "existing Attr node must be adopted with its element")
+  assert_equals(div.getAttributeNode("data-a"), attr,
+                "Attr node identity must be preserved")
+  assert_equals(div.getAttributeNode("data-a").ownerDocument, document)
+}, "Adopting an Element should adopt its Attr nodes.")
+
+test(function() {
+  var doc = document.implementation.createHTMLDocument("Title")
+  var div = doc.createElement("div")
+  var attr = doc.createAttribute("data-b")
+  div.setAttributeNode(attr)
+  document.body.appendChild(div)
+  assert_equals(div.ownerDocument, document)
+  assert_equals(attr.ownerDocument, document,
+                "Attr node must be adopted when its element is inserted into another document")
+  div.remove()
+}, "Inserting an Element into another document should adopt its Attr nodes.")
+
+test(function() {
+  var doc = document.implementation.createHTMLDocument("Title")
+  var el = doc.createElement("a")
+  el.setAttributeNS("x", "y", "1")
+  document.adoptNode(el)
+  assert_equals(el.ownerDocument, document)
+  assert_equals(el.getAttributeNode("y").ownerDocument, document,
+                "Attr node created after adoption must belong to the new document")
+  assert_equals(el.getAttributeNodeNS("x", "y").ownerDocument, document)
+  assert_equals(el.attributes[0].ownerDocument, document)
+}, "Adopting an Element should adopt its namespaced attributes.")
 </script>

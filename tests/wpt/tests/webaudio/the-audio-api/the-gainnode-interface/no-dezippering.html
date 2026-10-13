@@ -32,7 +32,7 @@
         const g = new GainNode(context, {gain: 1});
         src.connect(g).connect(context.destination);
 
-        // Schedule the suspend but DON’T await it here
+        // Schedule the suspend but DON'T await it here
         context
             .suspend(RENDER_QUANTUM_FRAMES / context.sampleRate)
             .then(() => {

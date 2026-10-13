@@ -6,7 +6,7 @@ WPT_ROOT=$SCRIPT_DIR/../..
 cd $WPT_ROOT
 
 if ./wpt test-jobs --includes tools_unittest; then
-    pip install --user -U tox
+    pip install -U tox
     cd tools
     tox -f "$TOXENV"
     cd $WPT_ROOT

@@ -272,6 +272,34 @@
     await new Promise(resolve => t.step_timeout(resolve, 300));
   }, `Setting transceiver.currentDirection to recvonly in the middle of tonechange events should stop future tonechange events from firing`);
 
+  promise_test(async t => {
+    const pc = new RTCPeerConnection();
+    t.add_cleanup(() => pc.close());
+    const dtmfSender = await createDtmfSender(pc);
+    const pc2 = pc.otherPc;
+    assert_true(pc2 instanceof RTCPeerConnection,
+      'Expect pc2 to be a RTCPeerConnection');
+    t.add_cleanup(() => pc2.close());
+    const transceiver = pc.getTransceivers()[0];
+    assert_equals(transceiver.sender.dtmf, dtmfSender);
+
+    // Spec says a no-delay playout task is queued immediately, not scheduled
+    // as a timeout of 0. So this should cause a task to be queued...
+    dtmfSender.insertDTMF('A');
+    const tonechangePromise = new Promise(r => dtmfSender.addEventListener(
+      'tonechange',
+      () => r('tonechange'),
+      {once: true}
+    ));
+
+    // ...and because nothing is chained right now, so should this...
+    const createOfferPromise = pc.createOffer();
+
+    // ...and they should resolve in that order.
+    const result = await Promise.race([tonechangePromise, createOfferPromise]);
+    assert_equals(result, 'tonechange', 'ontonechange occurs first');
+  }, 'DTMF playout task steps are queued without any timer');
+
   /* Section 7.3 - Tone change event */
   test(t => {
     let ev = new RTCDTMFToneChangeEvent('tonechange', {'tone': '1'});

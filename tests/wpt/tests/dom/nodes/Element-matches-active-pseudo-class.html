@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>:active pseudo-class matching behavior</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3610 -->
+
+<div id="test">Test element</div>
+<button id="button">Button element</button>
+<a id="link" href="#">Link element</a>
+
+<script>
+"use strict";
+
+test(() => {
+  const element = document.getElementById("test");
+  assert_false(element.matches(":active"));
+}, "Regular div should not match :active by default");
+
+test(() => {
+  const button = document.getElementById("button");
+  assert_false(button.matches(":active"));
+}, "Button should not match :active by default");
+
+test(() => {
+  const link = document.getElementById("link");
+  assert_false(link.matches(":active"));
+}, "Link should not match :active by default");
+
+test(() => {
+  const activeElements = document.querySelectorAll(":active");
+  assert_equals(activeElements.length, 0);
+}, "No elements should match :active by default via querySelectorAll");
+</script>

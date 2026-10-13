@@ -25,9 +25,19 @@ jobs:
     permissions:
       actions: read
 
+  generate-matrix:
+    name: Generate test matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.gen.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v7
+      - id: gen
+        run: echo "matrix=$(./wpt generate-matrix --browser safari)" >> $GITHUB_OUTPUT
+
   safari-stable-results:
     name: "All Tests: Safari (stable)"
-    needs: check-workflow-run
+    needs: [check-workflow-run, generate-matrix]
     if: |
       github.event_name != 'workflow_run' || fromJSON(needs.check-workflow-run.outputs.updated-refs)['refs/heads/epochs/daily'] != null
     uses: ./.github/workflows/safari-wptrunner.yml
@@ -35,6 +45,6 @@ jobs:
       artifact-name: safari-results
       safari-technology-preview: false
       safaridriver-diagnose: false
-      matrix: '{"current-chunk": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], "total-chunks": [12]}'
+      matrix: ${{ needs.generate-matrix.outputs.matrix }}
       extra-options: --no-fail-on-unexpected
       fetch-ref: ${{ fromJSON(needs.check-workflow-run.outputs.updated-refs || '{}')['refs/heads/epochs/daily'] }}

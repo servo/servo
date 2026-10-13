@@ -1,0 +1,98 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Clones and re-transfers of a MediaStreamTrack transferred to a dedicated worker are tied to the source only</title>
+<link rel="help" href="https://w3c.github.io/mediacapture-extensions/#transferable-mediastreamtrack">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=/mediacapture-streams/permission-helper.js></script>
+<script src=support/transfer-helper.js></script>
+<script>
+"use strict";
+
+promise_setup(() => setMediaPermission());
+
+const workerScript = TRACK_WORKER_SCRIPT + `
+  const NESTED_SCRIPT = ${JSON.stringify(
+    WORKER_PRELUDE + TRACK_WORKER_SCRIPT + "self.postMessage('ready');")};
+
+  handlers.clone = () => {
+    self.clone = self.track.clone();
+    logEvents(self.clone, ["ended", "mute", "unmute"]);
+    return describeTrack(self.clone);
+  };
+  handlers.cloneState = () => describeTrack(self.clone);
+  handlers.readCloneFrame = () => readFrame(self.clone);
+
+  async function callNested(message, transferList = []) {
+    const reply = new Promise(resolve => {
+      self.nested.addEventListener("message", e => resolve(e.data),
+                                   {once: true});
+    });
+    self.nested.postMessage(message, transferList);
+    const {result, error} = await reply;
+    if (error !== undefined) {
+      throw new Error("Nested worker: " + error);
+    }
+    return result;
+  }
+  handlers.startNested = async () => {
+    const blob = new Blob([NESTED_SCRIPT], {type: "text/javascript"});
+    const url = URL.createObjectURL(blob);
+    self.nested = new Worker(url);
+    await new Promise(r =>
+      self.nested.addEventListener("message", r, {once: true}));
+    URL.revokeObjectURL(url);
+  };
+  handlers.transferCloneToNested = () =>
+    callNested({type: "receive", track: self.clone}, [self.clone]);
+  handlers.nested = ({message}) => callNested(message);
+`;
+
+promise_test(async t => {
+  const worker = await createWorker(t, workerScript);
+  const track = await getTrack(t, "video");
+  const original = await callWorker(worker, {type: "receive", track}, [track]);
+  const clone = await callWorker(worker, {type: "clone"});
+  assert_not_equals(clone.id, original.id);
+  assert_equals(clone.kind, original.kind);
+  assert_equals(clone.label, original.label);
+  assert_equals(clone.readyState, "live");
+  assert_array_equals(Object.keys(clone.settings),
+                      Object.keys(original.settings));
+  for (const key of Object.keys(original.settings)) {
+    assert_equals(clone.settings[key], original.settings[key],
+                  `settings.${key}`);
+  }
+
+  const stopped = await callWorker(worker, {type: "stop"});
+  assert_equals(stopped.readyState, "ended");
+  const size = await callWorker(worker, {type: "readCloneFrame"});
+  assert_greater_than(size.width, 0);
+  const cloneState = await callWorker(worker, {type: "cloneState"});
+  assert_equals(cloneState.readyState, "live");
+}, "A clone made in the worker survives stopping the transferred track");
+
+promise_test(async t => {
+  const worker = await createWorker(t, workerScript);
+  const track = await getTrack(t, "video");
+  await callWorker(worker, {type: "receive", track}, [track]);
+  const clone = await callWorker(worker, {type: "clone"});
+  await callWorker(worker, {type: "startNested"});
+
+  const nested = await callWorker(worker, {type: "transferCloneToNested"});
+  assert_equals(nested.id, clone.id);
+  assert_equals(nested.readyState, "live");
+  const detached = await callWorker(worker, {type: "cloneState"});
+  assert_equals(detached.readyState, "ended", "transferred-from clone");
+
+  await callWorker(worker, {type: "stop"});
+  const size = await callWorker(worker, {type: "nested",
+                                         message: {type: "readFrame"}});
+  assert_greater_than(size.width, 0);
+  const state = await callWorker(worker, {type: "nested",
+                                          message: {type: "state"}});
+  assert_equals(state.readyState, "live");
+}, "A track transferred again to a nested worker survives stopping the intermediate track");
+</script>

@@ -60,4 +60,4 @@ testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
   result = sample.set(srcObj, 2);
   assert(compareArray(sample, [1n, 2n, 7n, 17n]), "offset: 2, result: " + sample);
   assert.sameValue(result, undefined, "returns undefined");
-});
+}, null, null, ["immutable"]);

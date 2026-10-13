@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>element.focus() / element.blur()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<input>
+
+<script>
+"use strict";
+
+const input = document.querySelector("input");
+
+promise_test(async t => {
+  // Wait for the test window to gain focus before testing synchronous focus changes.
+  const sentinel = document.createElement("button");
+  document.body.append(sentinel);
+  t.add_cleanup(() => sentinel.remove());
+  await new Promise(resolve => {
+    sentinel.addEventListener("focus", resolve, { once: true });
+    sentinel.focus();
+  });
+  sentinel.blur();
+
+  t.add_cleanup(() => input.blur());
+  assert_false(input.matches(":focus"));
+
+  input.focus();
+  assert_true(input.matches(":focus"));
+
+  input.blur();
+  assert_false(input.matches(":focus"));
+}, "The focus() and blur() methods change the focus as expected");
+</script>

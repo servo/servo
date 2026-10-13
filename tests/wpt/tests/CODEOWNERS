@@ -9,8 +9,12 @@
 tools/docker/Dockerfile @web-platform-tests/wpt-core-team @web-platform-tests/admins
 .taskcluster.yml @web-platform-tests/wpt-core-team @web-platform-tests/admins
 
-# Prevent accidentally touching wasm/core which is updated by a workflow
+# Prevent accidentally touching wasm/core and wasm/proposals which are updated by a workflow
 wasm/core/ @web-platform-tests/wpt-core-team
+wasm/proposals @web-platform-tests/wpt-core-team
+
+# Prevent accidentally touching test262 which is updated by a workflow
+third_party/test262/ @web-platform-tests/wpt-core-team
 
 # GENERATED: interop-tests
 css/css-anchor-position/anchor-as-multicol-crash.html @web-platform-tests/interop
@@ -122,7 +126,6 @@ css/css-anchor-position/position-visibility-anchors-visible-css-visibility.html 
 css/css-anchor-position/position-visibility-anchors-visible-non-intervening-container.html @web-platform-tests/interop
 css/css-anchor-position/position-visibility-anchors-visible-stacked-child.html @web-platform-tests/interop
 css/css-anchor-position/position-visibility-anchors-visible-with-position.html @web-platform-tests/interop
-css/css-anchor-position/position-visibility-anchors-visible.html @web-platform-tests/interop
 css/css-anchor-position/position-visibility-no-overflow-scroll.html @web-platform-tests/interop
 css/css-anchor-position/position-visibility-no-overflow-stacked-child.html @web-platform-tests/interop
 css/css-anchor-position/position-visibility-no-overflow.html @web-platform-tests/interop
@@ -737,7 +740,6 @@ css/css-scroll-snap/snap-after-relayout/not-resnap-outside-proximity-threshold.h
 css/css-scroll-snap/snap-after-relayout/resnap-on-oveflow-hidden-container.html @web-platform-tests/interop
 css/css-scroll-snap/snap-after-relayout/resnap-on-overflowing-snap-area.html @web-platform-tests/interop
 css/css-scroll-snap/snap-after-relayout/resnap-on-reconstructing-frame.html @web-platform-tests/interop
-css/css-scroll-snap/snap-fling-in-large-area.html @web-platform-tests/interop
 css/css-scroll-snap/snap-intended-direction.html @web-platform-tests/interop
 css/css-scroll-snap/snap-on-focus.html @web-platform-tests/interop
 css/css-scroll-snap/snap-to-combination-of-two-elements-1.html @web-platform-tests/interop
@@ -771,7 +773,6 @@ css/css-view-transitions/duplicate-tag-rejects-start.html @web-platform-tests/in
 css/css-view-transitions/dynamic-stylesheet-animations-timing-function.html @web-platform-tests/interop
 css/css-view-transitions/dynamic-stylesheet-animations.html @web-platform-tests/interop
 css/css-view-transitions/event-pseudo-name.html @web-platform-tests/interop
-css/css-view-transitions/finished-promise-defers-cleanup.html @web-platform-tests/interop
 css/css-view-transitions/group-animation-for-root-transition.html @web-platform-tests/interop
 css/css-view-transitions/hit-test-pseudo-element-element-from-point.html @web-platform-tests/interop
 css/css-view-transitions/hit-test-unpainted-element-from-point.html @web-platform-tests/interop
@@ -917,8 +918,6 @@ fetch/range/data.any.js @web-platform-tests/interop
 fetch/range/general.any.js @web-platform-tests/interop
 fetch/range/general.window.js @web-platform-tests/interop
 fetch/range/non-matching-range-response.html @web-platform-tests/interop
-fetch/range/sw-416.https.window.js @web-platform-tests/interop
-fetch/range/sw.https.window.js @web-platform-tests/interop
 html/dom/render-blocking/blocking-idl-attr.html @web-platform-tests/interop
 html/dom/render-blocking/element-render-blocking-001.html @web-platform-tests/interop
 html/dom/render-blocking/element-render-blocking-002.html @web-platform-tests/interop
@@ -1366,7 +1365,6 @@ navigation-api/scroll-behavior/after-transition-intercept-handler-modifies.html 
 navigation-api/scroll-behavior/after-transition-push.html @web-platform-tests/interop
 navigation-api/scroll-behavior/after-transition-reject.html @web-platform-tests/interop
 navigation-api/scroll-behavior/after-transition-reload-no-scroll-anchoring.html @web-platform-tests/interop
-navigation-api/scroll-behavior/after-transition-reload.html @web-platform-tests/interop
 navigation-api/scroll-behavior/after-transition-replace.html @web-platform-tests/interop
 navigation-api/scroll-behavior/after-transition-timing.html @web-platform-tests/interop
 navigation-api/scroll-behavior/manual-basic.html @web-platform-tests/interop
@@ -1377,7 +1375,6 @@ navigation-api/scroll-behavior/manual-scroll-fragment-does-not-exist.html @web-p
 navigation-api/scroll-behavior/manual-scroll-in-precommit-handler.html @web-platform-tests/interop
 navigation-api/scroll-behavior/manual-scroll-push.html @web-platform-tests/interop
 navigation-api/scroll-behavior/manual-scroll-reload-no-scroll-anchoring.html @web-platform-tests/interop
-navigation-api/scroll-behavior/manual-scroll-reload.html @web-platform-tests/interop
 navigation-api/scroll-behavior/manual-scroll-repeated.html @web-platform-tests/interop
 navigation-api/scroll-behavior/manual-scroll-replace.html @web-platform-tests/interop
 navigation-api/scroll-behavior/manual-scroll-resets-when-no-fragment.html @web-platform-tests/interop
@@ -1410,7 +1407,6 @@ scroll-animations/css/animation-shorthand.html @web-platform-tests/interop
 scroll-animations/css/animation-timeline-computed.html @web-platform-tests/interop
 scroll-animations/css/animation-timeline-in-keyframe.html @web-platform-tests/interop
 scroll-animations/css/animation-timeline-multiple.html @web-platform-tests/interop
-scroll-animations/css/animation-timeline-none.html @web-platform-tests/interop
 scroll-animations/css/animation-timeline-parsing.html @web-platform-tests/interop
 scroll-animations/css/chrome-40925697.html @web-platform-tests/interop
 scroll-animations/css/get-animations-inactive-timeline.html @web-platform-tests/interop
@@ -1426,7 +1422,6 @@ scroll-animations/css/scroll-timeline-axis-computed.html @web-platform-tests/int
 scroll-animations/css/scroll-timeline-axis-parsing.html @web-platform-tests/interop
 scroll-animations/css/scroll-timeline-axis-writing-mode.html @web-platform-tests/interop
 scroll-animations/css/scroll-timeline-document-scroller-quirks.html @web-platform-tests/interop
-scroll-animations/css/scroll-timeline-in-container-query.html @web-platform-tests/interop
 scroll-animations/css/scroll-timeline-inactive.html @web-platform-tests/interop
 scroll-animations/css/scroll-timeline-name-computed.html @web-platform-tests/interop
 scroll-animations/css/scroll-timeline-name-parsing.html @web-platform-tests/interop
@@ -1478,7 +1473,6 @@ scroll-animations/scroll-timelines/play-animation.html @web-platform-tests/inter
 scroll-animations/scroll-timelines/reverse-animation.html @web-platform-tests/interop
 scroll-animations/scroll-timelines/scroll-animation-inactive-timeline.html @web-platform-tests/interop
 scroll-animations/scroll-timelines/scroll-animation.html @web-platform-tests/interop
-scroll-animations/scroll-timelines/scroll-timeline-invalidation.html @web-platform-tests/interop
 scroll-animations/scroll-timelines/scroll-timeline-range.html @web-platform-tests/interop
 scroll-animations/scroll-timelines/scroll-timeline-snapshotting.html @web-platform-tests/interop
 scroll-animations/scroll-timelines/setting-current-time.html @web-platform-tests/interop
@@ -1505,12 +1499,10 @@ scroll-animations/view-timelines/sticky/view-timeline-sticky-offscreen-6.html @w
 scroll-animations/view-timelines/sticky/view-timeline-sticky-offscreen-7.html @web-platform-tests/interop
 scroll-animations/view-timelines/svg-graphics-element-001.html @web-platform-tests/interop
 scroll-animations/view-timelines/svg-graphics-element-002.html @web-platform-tests/interop
-scroll-animations/view-timelines/svg-graphics-element-003.html @web-platform-tests/interop
 scroll-animations/view-timelines/timeline-offset-in-keyframe.html @web-platform-tests/interop
 scroll-animations/view-timelines/unattached-subject-inset.html @web-platform-tests/interop
 scroll-animations/view-timelines/view-timeline-get-set-range.html @web-platform-tests/interop
 scroll-animations/view-timelines/view-timeline-inset.html @web-platform-tests/interop
-scroll-animations/view-timelines/view-timeline-missing-subject.html @web-platform-tests/interop
 scroll-animations/view-timelines/view-timeline-on-display-none-element.html @web-platform-tests/interop
 scroll-animations/view-timelines/view-timeline-range-large-subject.html @web-platform-tests/interop
 scroll-animations/view-timelines/view-timeline-range.html @web-platform-tests/interop

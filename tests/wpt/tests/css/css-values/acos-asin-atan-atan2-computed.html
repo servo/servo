@@ -52,6 +52,8 @@ test_math_used('calc(atan2(1, sign(1em - 1px)))', '45deg', {type:'angle', approx
 // Test unresolved at computed-value time.
 test_math_computed('calc(tan(atan2(round(up,1px,100%),round(up,1px,100%)))*1px)',
                    'calc(tan(atan2(round(up,1px,100%),round(up,1px,100%)))*1px)', {type:'length'});
+test_math_computed('calc(1px * pow(tan(atan2(50%, 1px)), 1))',
+                   'calc(1px * pow(tan(atan2(50%, 1px)), 1))', {type:'length'});
 
 // Test nesting
 test_math_used('calc(cos(sin(acos(cos(pi)))))', '1', {type:'number', approx:0.1});

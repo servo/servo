@@ -14,8 +14,8 @@ includes: [testTypedArray.js]
 features: [TypedArray, array-find-from-last]
 ---*/
 
-testWithTypedArrayConstructors(function(TA) {
-  var sample = new TA();
+testWithTypedArrayConstructors(function(TA, makeCtorArg) {
+  var sample = new TA(makeCtorArg(0));
   assert.throws(TypeError, function() {
     sample.findLastIndex({});
   }, "{}");
@@ -51,5 +51,4 @@ testWithTypedArrayConstructors(function(TA) {
   assert.throws(TypeError, function() {
     sample.findLastIndex(/./);
   }, "/./");
-}, null, ["passthrough"]);
-
+});

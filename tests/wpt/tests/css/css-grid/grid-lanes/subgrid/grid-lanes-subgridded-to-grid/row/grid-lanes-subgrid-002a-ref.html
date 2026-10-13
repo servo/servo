@@ -1,0 +1,64 @@
+<!DOCTYPE HTML>
+<html><head>
+  <meta charset="utf-8">
+  <style>
+    html,body {
+      color:black; background-color:white; font:10px/1 monospace; padding:0; margin:0;
+    }
+
+    grid {
+      display: inline grid;
+      grid-template-rows: 40px 30px 20px;
+      grid-auto-flow: column;
+      gap: 4px;
+      padding: 1px 3px 5px 7px;
+      border: solid;
+      border-width: 3px 5px 1px 1px;
+      background: lightgrey content-box;
+    }
+    item {
+      background: grey;
+      width: 3ch;
+      position: relative;
+    }
+    grid > item:nth-child(2n) { background:purple; width:auto; }
+    grid > item:nth-child(1) {
+      border: solid;
+      border-width: 3px 5px 1px 1px;
+      margin: 7px 1px 5px 3px;
+    }
+    subgrid {
+      display: grid;
+      width: 36px;
+      grid-template-columns: max-content 30px;
+      grid-template-rows: subgrid;
+      gap: 4px;
+      grid-row: auto/span 2;
+      background: yellow;
+    }
+    subgrid > item.alt {
+      justify-self: start;
+      background:purple;
+      width:auto;
+    }
+    subgrid > item.first {
+      border: solid;
+      border-width: 3px 5px 1px 1px;
+      margin: 7px 1px 5px 3px;
+    }
+  </style>
+</head>
+<body>
+<grid>
+  <item>1</item>
+  <item>2</item>
+  <item>3</item>
+  <subgrid>
+    <item class="first" style="grid-row: 1; grid-column: 1 / -1">4a</item>
+    <item class="alt" style="grid-row: 2; grid-column: 1">4b</item>
+    <item style="grid-row: 2; grid-column: 2">4c</item>
+  </subgrid>
+  <item>5</item>
+</grid>
+</body>
+</html>

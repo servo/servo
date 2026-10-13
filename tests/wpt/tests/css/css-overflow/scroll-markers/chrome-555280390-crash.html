@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>Chrome crash bug 555280390</title>
+<link rel="help" href="https://crbug.com/555280390">
+<style>
+  #host { scroll-target-group: auto; }
+</style>
+<div id="host">
+  <template shadowrootmode="open">
+    <slot></slot>
+  </template>
+  <div><a href="#intro">Introduction</a></div>
+  <div id="slotted"><a href="#ch1">Chapter 1</a></div>
+</div>
+<h1 id="intro">Intro</h1>
+<h2 id="ch1">Chapter 1</h2>
+<script>
+  window.onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+    slotted.slot = "foo";
+    host.querySelector(":target-after");
+    document.documentElement.className = "";
+  }));
+</script>

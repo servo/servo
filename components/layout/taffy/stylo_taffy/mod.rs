@@ -42,3 +42,7 @@ mod stylo {
     };
     pub(crate) use style::values::specified::GenericGridTemplateComponent;
 }
+
+fn as_clamped_i16(input: i32) -> i16 {
+    input.clamp(i16::MIN as i32, i16::MAX as i32) as i16
+}

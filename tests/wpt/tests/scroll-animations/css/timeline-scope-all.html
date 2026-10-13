@@ -47,22 +47,18 @@
 <template id=timeline_scope_all_basic>
   <div class="scope-all">
     <div class=target style="animation-timeline:--mytimeline">Test</div>
-    <div class=scroller style="scroll-timeline-name:--mytimeline">
-      <div class=content></div>
-    </div>
+  </div>
+  <div class=scroller style="scroll-timeline-name:--mytimeline">
+    <div class=content></div>
   </div>
 </template>
 <script>
   promise_test(async (t) => {
     await inflate(t, timeline_scope_all_basic);
-    let scroller = main.querySelector('.scroller');
     let target = main.querySelector('.target');
 
     const anim = target.getAnimations()[0];
-    await anim.ready;
-
-    await scrollTop(scroller, 350); // 50%
-    assert_equals(getComputedStyle(target).width, '100px'); // 0px => 200px, 50%
+    assert_false(!!anim.timeline);
   }, 'timeline-scope:all scopes all names (basic)');
 </script>
 
@@ -71,9 +67,9 @@
   <div class="scope-all">
     <div class=target style="animation-timeline:--t1">Test</div>
     <div class=target style="animation-timeline:--t2">Test</div>
-    <div class=scroller style="scroll-timeline-name:--t1, --t2">
-      <div class=content></div>
-    </div>
+  </div>
+  <div class=scroller style="scroll-timeline-name:--t1, --t2">
+    <div class=content></div>
   </div>
 </template>
 <script>
@@ -84,13 +80,9 @@
     let target2 = main.querySelector('.target:nth-child(2)');
 
     const anim1 = target1.getAnimations()[0];
-    await anim1.ready;
+    assert_false(!!anim1.timeline);
     const anim2 = target2.getAnimations()[0];
-    await anim2.ready;
-
-    await scrollTop(scroller, 350); // 50%
-    assert_equals(getComputedStyle(target1).width, '100px'); // 0px => 200px, 50%
-    assert_equals(getComputedStyle(target2).width, '100px'); // 0px => 200px, 50%
+    assert_false(!!anim2.timeline);
   }, 'timeline-scope:all scopes all names (multiple)');
 </script>
 
@@ -126,6 +118,7 @@
     await scrollTop(outer_scroller, 350); // 50%
     await scrollTop(inner_scroller, 140); // 20%
     assert_equals(getComputedStyle(outer_target).width, '100px'); // 0px => 200px, 50%
+    // Timeline lookup stopped by the inner scope.
     assert_equals(getComputedStyle(inner_target).width, '40px'); // 0px => 200px, 20%
   }, 'Inner scope is isolated from outer scope');
 </script>

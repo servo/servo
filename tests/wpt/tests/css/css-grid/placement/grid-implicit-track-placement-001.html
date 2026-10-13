@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: placement onto lines past the end of the explicit grid</title>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#line-placement">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#auto-tracks">
+<meta name="assert" content="A line number past the end edge of the explicit grid generates trailing implicit tracks, which take their sizes from grid-auto-columns/grid-auto-rows applied forwards from the explicit grid. Gaps apply between implicit tracks just as they do between explicit ones.">
+<style>
+.grid {
+    display: grid;
+    position: relative;
+    grid-auto-columns: 30px;
+    grid-auto-rows: 20px;
+    /* Sizes the grid to its tracks, so tracks added after the explicit grid are observable. */
+    width: max-content;
+}
+.oneColumn { grid-template-columns: 50px; }
+.twoColumns { grid-template-columns: 50px 50px; }
+.oneRow { grid-template-rows: 40px; }
+.twoRows { grid-template-rows: 40px 40px; }
+.cyclingColumns { grid-auto-columns: 30px 10px; }
+.columnGap { column-gap: 10px; }
+.rowGap { row-gap: 10px; }
+.grid > div { background: silver; }
+</style>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+
+<body onload="checkLayout('.grid')">
+<div id="log"></div>
+
+<!-- A line one past the end edge adds a single trailing implicit column, sized by grid-auto-columns. -->
+<div class="grid twoColumns oneRow">
+  <div style="grid-column: 1 / 2; grid-row: 1 / 2" data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="40">i1</div>
+  <div style="grid-column: 3 / 4; grid-row: 1 / 2" data-offset-x="100" data-offset-y="0" data-expected-width="30" data-expected-height="40">i2</div>
+</div>
+
+<!-- Two trailing implicit columns take grid-auto-columns forwards from the explicit grid: the
+     track nearest the explicit grid gets the first size (30px) and the one after it gets 10px. -->
+<div class="grid oneColumn oneRow cyclingColumns">
+  <div style="grid-column: 1 / 2; grid-row: 1 / 2" data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="40">i1</div>
+  <div style="grid-column: 2 / 3; grid-row: 1 / 2" data-offset-x="50" data-offset-y="0" data-expected-width="30" data-expected-height="40">i2</div>
+  <div style="grid-column: 3 / 4; grid-row: 1 / 2" data-offset-x="80" data-offset-y="0" data-expected-width="10" data-expected-height="40">i3</div>
+</div>
+
+<!-- The same thing in the block axis: a trailing implicit row sized by grid-auto-rows. -->
+<div class="grid oneColumn twoRows">
+  <div style="grid-row: 1 / 2; grid-column: 1 / 2" data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="40">i1</div>
+  <div style="grid-row: 3 / 4; grid-column: 1 / 2" data-offset-x="0" data-offset-y="80" data-expected-width="50" data-expected-height="20">i2</div>
+</div>
+
+<!-- A row start past the end edge with an auto row end still locks the item to that implicit row. -->
+<div class="grid oneColumn oneRow">
+  <div style="grid-row: 3" data-offset-x="0" data-offset-y="60" data-expected-width="50" data-expected-height="20">i1</div>
+  <div data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="40">i2</div>
+</div>
+
+<!-- A trailing implicit column is separated from the explicit grid by the column gap. -->
+<div class="grid twoColumns oneRow columnGap">
+  <div style="grid-column: 1 / 2; grid-row: 1 / 2" data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="40">i1</div>
+  <div style="grid-column: 2 / 3; grid-row: 1 / 2" data-offset-x="60" data-offset-y="0" data-expected-width="50" data-expected-height="40">i2</div>
+  <div style="grid-column: 3 / 4; grid-row: 1 / 2" data-offset-x="120" data-offset-y="0" data-expected-width="30" data-expected-height="40">i3</div>
+</div>
+
+<!-- A trailing implicit row is separated from the explicit grid by the row gap. -->
+<div class="grid oneColumn oneRow rowGap">
+  <div style="grid-row: 1 / 2; grid-column: 1 / 2" data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="40">i1</div>
+  <div style="grid-row: 2 / 3; grid-column: 1 / 2" data-offset-x="0" data-offset-y="50" data-expected-width="50" data-expected-height="20">i2</div>
+</div>
+
+<!-- Implicit tracks are generated on both edges at once: one before the explicit grid and one after. -->
+<div class="grid oneColumn oneRow">
+  <div style="grid-column: -3 / -2; grid-row: 1 / 2" data-offset-x="0" data-offset-y="0" data-expected-width="30" data-expected-height="40">i1</div>
+  <div style="grid-column: 1 / 2; grid-row: 1 / 2" data-offset-x="30" data-offset-y="0" data-expected-width="50" data-expected-height="40">i2</div>
+  <div style="grid-column: 2 / 3; grid-row: 1 / 2" data-offset-x="80" data-offset-y="0" data-expected-width="30" data-expected-height="40">i3</div>
+</div>
+
+<!-- A line far past the end edge generates every intervening implicit track, so the explicit
+     column is followed by 18 auto-sized columns before the one holding the item. -->
+<div class="grid oneColumn oneRow">
+  <div style="grid-column: 1 / 2; grid-row: 1 / 2" data-offset-x="0" data-offset-y="0" data-expected-width="50" data-expected-height="40">i1</div>
+  <div style="grid-column: 20 / 21; grid-row: 1 / 2" data-offset-x="590" data-offset-y="0" data-expected-width="30" data-expected-height="40">i2</div>
+</div>
+</body>

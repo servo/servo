@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<style>
+  .container {
+    font-size: 0;
+    height: 50px;
+    width: 100px;
+  }
+  .fragment,
+  .item,
+  .stack {
+    display: inline-block;
+    vertical-align: top;
+  }
+  .fragment {
+    height: 50px;
+    width: 50px;
+  }
+  .outer-1 { background: #20b2aa; }
+  .outer-2 { background: #87cefa; }
+  .parent-1 { background: #90ee90; }
+  .parent-2 { background: #dda0dd; }
+  .packed-1 { background: #ffd700; }
+  .packed-2 { background: #ff8c00; }
+</style>
+<p>Test passes if the two rectangles are identical.</p>
+<div class="container">
+  <div class="fragment">
+    <div class="stack" style="width: 30px; height: 50px;">
+      <div class="item outer-1" style="width: 30px; height: 25px;"></div>
+      <div class="item packed-1" style="width: 10px; height: 25px;"></div>
+      <div class="item packed-2" style="width: 10px; height: 25px;"></div>
+    </div>
+    <div class="item parent-1" style="width: 20px; height: 50px;"></div>
+  </div>
+  <div class="fragment">
+    <div class="stack" style="width: 30px; height: 50px;">
+      <div class="item packed-1" style="width: 10px; height: 25px;"></div>
+      <div class="item packed-2" style="width: 10px; height: 25px;"></div>
+      <div class="item outer-2" style="width: 30px; height: 25px;"></div>
+    </div>
+    <div class="item parent-2" style="width: 20px; height: 50px;"></div>
+  </div>
+</div>

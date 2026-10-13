@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<title>IndexedDB: SharedArrayBuffer keys</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/support.js"></script>
+<script>
+'use strict';
+
+const key_data = [1, 2, 3, 4];
+
+function create_object_store(t, db) {
+  db.createObjectStore('store');
+}
+
+function create_shared_buffer() {
+  const buffer = new SharedArrayBuffer(key_data.length);
+  const view = new Uint8Array(buffer);
+  view.set(key_data);
+  return {buffer, view};
+}
+
+function put_and_validate_key(t, db, key, view_on_sab, key_copy) {
+  assert_true(
+      self.crossOriginIsolated, 'The page should be cross-origin isolated');
+
+  // Put the SAB-backed key in the store.
+  const tx = db.transaction('store', 'readwrite');
+  const store = tx.objectStore('store');
+  const put_request = store.put('value', key);
+  put_request.onerror = t.unreached_func('put should succeed');
+
+  // Modifying the SAB after put should have no effect.
+  view_on_sab.fill(0);
+
+  // Reading the record back out of the key should work.
+  const get_request = store.get(key_copy);
+  get_request.onerror = t.unreached_func('get should succeed');
+  get_request.onsuccess = t.step_func(() => {
+    assert_equals(get_request.result, 'value');
+  });
+
+  tx.oncomplete = t.step_func_done();
+}
+
+indexeddb_test(
+    create_object_store,
+    (t, db) => {
+      const {buffer, view} = create_shared_buffer();
+      put_and_validate_key(
+          t, db, buffer, view, new Uint8Array(key_data));
+    },
+    'A SharedArrayBuffer can be used as an IndexedDB key');
+
+indexeddb_test(
+    create_object_store,
+    (t, db) => {
+      const {view} = create_shared_buffer();
+      put_and_validate_key(
+          t, db, view, view, new Uint8Array(key_data));
+    },
+    'A SharedArrayBuffer-backed view can be used as an IndexedDB key');
+
+indexeddb_test(
+    create_object_store,
+    (t, db) => {
+      const {buffer, view} = create_shared_buffer();
+      put_and_validate_key(
+          t, db, [buffer], view, [new Uint8Array(key_data)]);
+    },
+    'A SharedArrayBuffer in an array can be used as an IndexedDB key');
+</script>

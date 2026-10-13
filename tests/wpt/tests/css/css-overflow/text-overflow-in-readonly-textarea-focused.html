@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>text-overflow: ellipsis in a focused read-only textarea</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#ellipsis-interaction">
+<link rel="match" href="text-overflow-in-readonly-textarea-focused-ref.html">
+<meta name="flags" content="may">
+<meta name="assert" content="A focused read-only textarea may suppress text-overflow ellipsis even though its contents are not editable.">
+<!-- The specification says the UA "may" treat text-overflow as clip while
+     editing, but Chromium and Gecko do so for <textarea>, and WebKit,
+     which does not support text-overflow on <textarea>, does so for
+     <input>. -->
+<style>
+textarea {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  caret-color: transparent;
+}
+</style>
+<textarea readonly>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</textarea>
+<script>
+const textarea = document.querySelector('textarea');
+textarea.focus();
+textarea.setSelectionRange(0, 0);
+textarea.scrollLeft = 0;
+requestAnimationFrame(() => {
+  document.documentElement.classList.remove('reftest-wait');
+});
+</script>
+</html>

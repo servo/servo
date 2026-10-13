@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<title>Custom Functions: parameter defaults resolve names in the definition scope</title>
+<link rel="help" href="https://drafts.csswg.org/css-mixins-1/#evaluate-a-custom-function">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<style>
+  /* Defined in the outer tree. A <dashed-function> inside these resolves where the
+     function was defined, so it must reach this --scoped() and never the shadow
+     tree's, however the function is called. */
+  @function --scoped() {
+    result: OUTER;
+  }
+  @function --default-calls-scoped(--x: --scoped()) {
+    result: var(--x);
+  }
+  @function --result-calls-scoped() {
+    result: --scoped();
+  }
+  @function --local-calls-scoped() {
+    --local: --scoped();
+    result: var(--local);
+  }
+</style>
+
+<!-- To pass, a test must produce matching computed values for --actual and
+     --expected on the #target inside each shadow root. -->
+
+<div data-name="Parameter default resolves a dashed-function in the definition scope">
+  <template shadowrootmode="open">
+    <style>
+      @function --scoped() { result: SHADOW; }
+      #target {
+        --actual: --default-calls-scoped();
+        --expected: OUTER;
+      }
+    </style>
+    <div id=target></div>
+  </template>
+</div>
+
+<div data-name="result resolves a dashed-function in the definition scope">
+  <template shadowrootmode="open">
+    <style>
+      @function --scoped() { result: SHADOW; }
+      #target {
+        --actual: --result-calls-scoped();
+        --expected: OUTER;
+      }
+    </style>
+    <div id=target></div>
+  </template>
+</div>
+
+<div data-name="A local resolves a dashed-function in the definition scope">
+  <template shadowrootmode="open">
+    <style>
+      @function --scoped() { result: SHADOW; }
+      #target {
+        --actual: --local-calls-scoped();
+        --expected: OUTER;
+      }
+    </style>
+    <div id=target></div>
+  </template>
+</div>
+
+<script>
+  test_all_shadows();
+</script>

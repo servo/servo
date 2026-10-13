@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+// skip-unless CARGO_FEATURE_WEBCRYPTO
+
 // https://w3c.github.io/webcrypto/#cryptokey-interface
 enum KeyType { "public", "private", "secret" };
 

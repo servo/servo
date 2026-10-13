@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Grid Lanes: reading-flow uses CSS order and source order to break ties</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-layout">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/shadow-dom.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+
+<div class="test-case" data-expect="a,c,b,d"
+     data-description="Grid-order uses CSS order and source order for ties">
+  <div style="display: grid-lanes;
+              grid-template-columns: repeat(4, 80px);
+              reading-flow: grid-order">
+    <button id="d" style="grid-column: 1; order: 2">D</button>
+    <button id="a" style="grid-column: 4; order: -1">A</button>
+    <button id="c" style="grid-column: 3">C</button>
+    <button id="b" style="grid-column: 2">B</button>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

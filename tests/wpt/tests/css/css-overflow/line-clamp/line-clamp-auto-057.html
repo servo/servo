@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Overflow: automatic clamp target beats numbered target after reflow</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-auto-057-ref.html">
+<meta name="assert" content="After incremental reflow, line-clamp chooses the earlier automatic target instead of the numbered target.">
+<script src="/common/reftest-wait.js"></script>
+<style>
+.clamp {
+  line-clamp: 2 auto;
+  max-height: 2.5lh;
+  font: 20px / 20px monospace;
+  width: 12ch;
+  background: yellow;
+}
+.line-box-sizer {
+  display: inline-block;
+  width: 1ch;
+  height: 1lh;
+  background: orange;
+}
+.final {
+  height: 2lh;
+}
+</style>
+<div class="clamp">
+  <span class="line-box-sizer"></span>
+  Line 1<br>
+  Line 2<br>
+  Line 3<br>
+  Line 4
+</div>
+<script>
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  document.querySelector(".line-box-sizer").classList.add("final");
+  takeScreenshot();
+}));
+</script>

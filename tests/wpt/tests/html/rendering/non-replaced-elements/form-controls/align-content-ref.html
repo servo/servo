@@ -1,0 +1,49 @@
+<!doctype html>
+<title>Reference for align-content is honored on form controls</title>
+<style>
+body { margin: 0 }
+.column { float: left; margin: 10px }
+.control {
+  display: block;
+  box-sizing: content-box;
+  width: 150px;
+  height: 24px;
+  margin: 0 0 10px;
+  border: 2px solid black;
+  font: 16px/24px monospace;
+  appearance: none;
+}
+/* Each control has 48px of free block space in the test. Distribute it via
+   padding so that the default align-content behavior can't have any effect. */
+.start { padding: 0 0 48px }
+.center { padding: 24px 0 }
+.end { padding: 48px 0 0 }
+</style>
+<div class=column>
+  <input class="control center" type=text value="Text">
+  <input class="control center" type=button value="Input button">
+  <button class="control center">Button</button>
+  <textarea class="control start">Textarea</textarea>
+  <select class="control center"><option>Select</option></select>
+</div>
+<div class=column>
+  <input class="control start" type=text value="Text">
+  <input class="control start" type=button value="Input button">
+  <button class="control start">Button</button>
+  <textarea class="control start">Textarea</textarea>
+  <select class="control start"><option>Select</option></select>
+</div>
+<div class=column>
+  <input class="control center" type=text value="Text">
+  <input class="control center" type=button value="Input button">
+  <button class="control center">Button</button>
+  <textarea class="control center">Textarea</textarea>
+  <select class="control center"><option>Select</option></select>
+</div>
+<div class=column>
+  <input class="control end" type=text value="Text">
+  <input class="control end" type=button value="Input button">
+  <button class="control end">Button</button>
+  <textarea class="control end">Textarea</textarea>
+  <select class="control end"><option>Select</option></select>
+</div>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>An animation attached to the "scroll" range of a view progress timeline responds to changes of the scroll container's scrollable overflow</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#view-timelines-ranges">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<style>
+
+  @keyframes anim {
+    from { opacity: 0 }
+    to { opacity: 1 }
+  }
+
+  #scroller {
+    overflow-y: scroll;
+    width: 100px;
+    height: 200px;
+  }
+
+  #top-padding {
+    height: 300px;
+  }
+
+  #target {
+    height: 100px;
+
+    animation: anim auto linear both;
+    animation-timeline: view();
+    animation-range-start: scroll 0%;
+    animation-range-end: scroll 100%;
+  }
+
+  #bottom-padding {
+    height: 300px;
+  }
+
+</style>
+<body>
+  <div id="scroller">
+    <div id="top-padding"></div>
+    <div id="target"></div>
+    <div id="bottom-padding"></div>
+  </div>
+</body>
+<script>
+
+function waitForFrame() {
+  return new Promise(resolve => requestAnimationFrame(resolve));
+}
+
+promise_test(async t => {
+  const scroller = document.getElementById("scroller");
+  const bottomPadding = document.getElementById("bottom-padding");
+  const target = document.getElementById("target");
+  const opacity = () => parseFloat(getComputedStyle(target).opacity);
+
+  // The animation is attached to the "scroll" range, ie. the full scroll range of
+  // #scroller, so its progress is simply the current scroll offset divided by the
+  // maximum scroll offset of #scroller.
+  scroller.scrollTop = 250;
+  await waitForFrame();
+
+  assert_equals(scroller.scrollHeight - scroller.clientHeight, 500,
+    "maximum scroll offset");
+  // Progress is 250 / 500 = 50%.
+  assert_approx_equals(opacity(), 0.5, 0.001, "progress before resize");
+
+  // Grow the content that follows #target: the offset and size of #target, the size of
+  // #scroller and the current scroll offset are all unchanged, only the maximum scroll
+  // offset - and thus the "scroll" range - changes.
+  bottomPadding.style.height = "800px";
+  await waitForFrame();
+
+  assert_equals(scroller.scrollHeight - scroller.clientHeight, 1000,
+    "maximum scroll offset after resize");
+  assert_equals(scroller.scrollTop, 250, "scroll offset after resize");
+  // Progress is now 250 / 1000 = 25%.
+  assert_approx_equals(opacity(), 0.25, 0.001, "progress after resize");
+}, "Growing the scrollable overflow of a view timeline's scroll container updates an animation attached to the scroll range");
+
+</script>
+</html>

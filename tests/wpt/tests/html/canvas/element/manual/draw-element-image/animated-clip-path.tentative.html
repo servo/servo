@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Canvas.drawElementImage: animated clip-path inside drawable element</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<link rel="match" href="animated-clip-path-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+#child {
+  width: 100px;
+  height: 100px;
+}
+#canvas {
+  background: grey;
+}
+#image {
+  width: 100px;
+  height: 100px;
+  clip-path: inset(0);
+  transition: clip-path 100ms;
+}
+</style>
+<canvas id=canvas width="100px" height="100px" content=drawable>
+  <div drawable id=child>
+     <img id=image src="/images/blue-100x100.png"/>
+  </div>
+</canvas>
+<script>
+onload = async () => {
+  let canvas = document.getElementById("canvas");
+  let ctx = canvas.getContext("2d");
+  let child = document.getElementById("child");
+  let image = document.getElementById("image");
+
+  canvas.onpaint = (evt) => {
+    ctx.clearRect(0, 0, 100, 100);
+    ctx.drawElementImage(child, 0, 0);
+  };
+  await new Promise(requestAnimationFrame);
+  await new Promise(requestAnimationFrame);
+  image.ontransitionend = takeScreenshot;
+  image.style.clipPath = "inset(50%)";
+};
+</script>
+</html>

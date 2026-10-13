@@ -3,13 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
- * http://dev.w3.org/fxtf/geometry/
+ * http://dev.w3.org/csswg/geometry/
  *
  * Copyright © 2012 W3C® (MIT, ERCIM, Keio), All Rights Reserved. W3C
  * liability, trademark and document use rules apply.
  */
 
-// http://dev.w3.org/fxtf/geometry/Overview.html#dompointreadonly
+// http://dev.w3.org/csswg/geometry/Overview.html#dompointreadonly
 [Exposed=(Window,Worker,PaintWorklet),
  Serializable]
 interface DOMPointReadOnly {

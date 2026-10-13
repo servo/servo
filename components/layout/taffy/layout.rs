@@ -4,6 +4,7 @@
 
 use app_units::Au;
 use atomic_refcell::{AtomicRef, AtomicRefCell};
+use style::logical_geometry::LogicalAxis;
 use style::properties::ComputedValues;
 use style::values::computed::CSSPixelLength;
 use style::values::computed::length_percentage::CalcLengthPercentage;
@@ -27,10 +28,11 @@ use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, Physi
 use crate::layout_box_base::IndependentFormattingContextLayoutResult;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::sizing::{
-    ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, LazySize, SizeConstraint,
+    ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, LazySize, Size,
+    SizeConstraint,
 };
-use crate::style_ext::LayoutStyle;
-use crate::{ConstraintSpace, ContainingBlock, ContainingBlockSize};
+use crate::style_ext::{ContentBoxSizesAndPBM, LayoutStyle};
+use crate::{ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock};
 
 const DUMMY_NODE_ID: taffy::NodeId = taffy::NodeId::new(u64::MAX);
 
@@ -142,17 +144,29 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
         let mut child = (*self.source_child_nodes[usize::from(node_id)]).borrow_mut();
         let child = &mut *child;
 
-        with_independent_formatting_context(
+        let output = with_independent_formatting_context(
             &mut child.taffy_level_box,
             |independent_context| -> taffy::LayoutOutput {
                 // TODO: re-evaluate sizing constraint conversions in light of recent layout changes
-                let containing_block = &self.content_box_size_override;
+                let containing_block = self.content_box_size_override;
                 let style = independent_context.style();
 
+                let child_containing_block = IndefiniteContainingBlock {
+                    size: LogicalVec2 {
+                        inline: inputs.parent_size.width.map(Au::from_f32_px),
+                        block: inputs.parent_size.height.map(Au::from_f32_px),
+                    },
+                    style: containing_block.style,
+                };
+
                 // Adjust known_dimensions from border box to content box
-                let pbm = independent_context
+                let ContentBoxSizesAndPBM {
+                    content_box_sizes,
+                    pbm,
+                    ..
+                } = independent_context
                     .layout_style()
-                    .padding_border_margin(containing_block);
+                    .content_box_sizes_and_padding_border_margin(&child_containing_block);
                 let pb_sum = pbm.padding_border_sums.map(|v| v.to_f32_px());
                 let margin_sum = pbm.margin.auto_is(Au::zero).sum().map(|v| v.to_f32_px());
                 let content_box_inset = pb_sum + margin_sum;
@@ -214,8 +228,14 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                 };
 
                 let lazy_block_size = match content_box_known_dimensions.height {
-                    // FIXME: use the correct min/max sizes.
-                    None => LazySize::intrinsic(),
+                    None => LazySize::new(
+                        &content_box_sizes.block,
+                        LogicalAxis::Block,
+                        Size::FitContent,
+                        Au::zero,
+                        None,
+                        independent_context.layout_style().is_table(),
+                    ),
                     Some(height) => Au::from_f32_px(height).into(),
                 };
 
@@ -245,14 +265,22 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
 
                 taffy::LayoutOutput {
                     size,
-                    first_baselines: taffy::Point {
-                        x: None,
-                        y: layout.baselines.first.map(|au| au.to_f32_px()),
+                    baselines: taffy::Baselines {
+                        first: layout.baselines.first.map(|baseline| {
+                            (baseline + pbm.padding.block_start + pbm.border.block_start)
+                                .to_f32_px()
+                        }),
+                        last: layout.baselines.last.map(|baseline| {
+                            (baseline + pbm.padding.block_start + pbm.border.block_start)
+                                .to_f32_px()
+                        }),
                     },
                     ..taffy::LayoutOutput::DEFAULT
                 }
             },
-        )
+        );
+        child.taffy_baselines = output.baselines;
+        output
     }
 }
 
@@ -289,7 +317,7 @@ impl taffy::LayoutGridContainer for TaffyContainerContext<'_> {
     fn set_detailed_grid_info(
         &mut self,
         _node_id: taffy::NodeId,
-        specific_layout_info: taffy::DetailedGridInfo,
+        specific_layout_info: taffy::DetailedGridInfo<Atom>,
     ) {
         self.specific_layout_info = Some(SpecificLayoutInfo::Grid(Box::new(
             SpecificTaffyGridInfo::from_detailed_grid_layout(specific_layout_info),
@@ -311,6 +339,10 @@ impl ComputeInlineContentSizes for TaffyContainer {
             axis: taffy::RequestedAxis::Horizontal,
             vertical_margins_are_collapsible: taffy::Line::FALSE,
 
+            known_dimensions_are_definite: taffy::Size {
+                width: true,
+                height: true,
+            },
             known_dimensions: taffy::Size::NONE,
             parent_size: taffy::Size::NONE,
             available_space: taffy::Size::MAX_CONTENT,
@@ -339,7 +371,7 @@ impl ComputeInlineContentSizes for TaffyContainer {
             child_specific_layout_infos: vec![None; self.children.len()],
         };
 
-        let (max_content_output, min_content_output) = match style.clone_display().inside() {
+        let (max_content_output, min_content_output) = match style.get_display().inside() {
             DisplayInside::Grid => {
                 let max_content_output = taffy::compute_grid_layout(
                     &mut grid_context,
@@ -396,8 +428,8 @@ impl TaffyContainer {
         };
 
         let container_style = &content_box_size_override.style;
-        let align_items = container_style.clone_align_items();
-        let justify_items = container_style.clone_justify_items();
+        let align_items = container_style.get_align_items();
+        let justify_items = container_style.get_justify_items();
         let pbm = self.layout_style().padding_border_margin(containing_block);
 
         let known_dimensions = taffy::Size {
@@ -424,12 +456,16 @@ impl TaffyContainer {
             axis: taffy::RequestedAxis::Vertical,
             vertical_margins_are_collapsible: taffy::Line::FALSE,
 
+            known_dimensions_are_definite: taffy::Size {
+                width: true,
+                height: true,
+            },
             known_dimensions,
             parent_size: taffy_containing_block,
             available_space: taffy_containing_block.map(AvailableSpace::from),
         };
 
-        let output = match container_ctx.style.clone_display().inside() {
+        let output = match container_ctx.style.get_display().inside() {
             DisplayInside::Grid => {
                 taffy::compute_grid_layout(&mut container_ctx, DUMMY_NODE_ID, layout_input)
             },
@@ -514,14 +550,19 @@ impl TaffyContainer {
                             child_specific_layout_info,
                         )
                         .with_baselines(Baselines {
-                            first: output.first_baselines.y.map(Au::from_f32_px),
-                            last: None,
+                            first: child.taffy_baselines.first.map(|baseline| {
+                                Au::from_f32_px(baseline) - padding.top - border.top
+                            }),
+                            last: child.taffy_baselines.last.map(|baseline| {
+                                Au::from_f32_px(baseline) - padding.top - border.top
+                            }),
                         });
 
                         child.positioning_context.layout_collected_children(
                             container_ctx.layout_context,
                             &mut box_fragment,
                         );
+
                         child
                             .positioning_context
                             .adjust_static_position_of_hoisted_fragments_with_offset(
@@ -548,11 +589,11 @@ impl TaffyContainer {
                             content_size,
                             LogicalVec2 {
                                 inline: resolve_alignment(
-                                    child.style.clone_align_self().0,
+                                    child.style.get_align_self().0,
                                     align_items.0,
                                 ),
                                 block: resolve_alignment(
-                                    child.style.clone_justify_self().0,
+                                    child.style.get_justify_self().0,
                                     justify_items.computed.0.0,
                                 ),
                             },
@@ -579,7 +620,14 @@ impl TaffyContainer {
             fragments,
             content_block_size: Au::from_f32_px(output.size.height) - pbm.padding_border_sums.block,
             content_inline_size_for_table: None,
-            baselines: Baselines::default(),
+            baselines: Baselines {
+                first: output.baselines.first.map(|baseline| {
+                    Au::from_f32_px(baseline) - pbm.padding.block_start - pbm.border.block_start
+                }),
+                last: output.baselines.last.map(|baseline| {
+                    Au::from_f32_px(baseline) - pbm.padding.block_start - pbm.border.block_start
+                }),
+            },
 
             // TODO: determine this accurately
             //

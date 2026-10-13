@@ -1,0 +1,59 @@
+<!doctype html>
+<title>Style elements inside shadow roots should have accessible CSSStyleSheet objects</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-cssstylesheet-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- regression test for https://github.com/jsdom/jsdom/issues/3645 -->
+<div id="host"></div>
+<script>
+"use strict";
+
+test(() => {
+  const host = document.getElementById("host");
+  const shadow = host.attachShadow({ mode: "open" });
+  const style = document.createElement("style");
+  shadow.appendChild(style);
+
+  assert_not_equals(style.sheet, null, "style.sheet should not be null");
+  assert_true(style.sheet instanceof CSSStyleSheet, "sheet should be a CSSStyleSheet");
+}, "Style element in shadow root has a CSSStyleSheet");
+
+test(() => {
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  const shadow = host.attachShadow({ mode: "open" });
+  const style = document.createElement("style");
+  shadow.appendChild(style);
+  const { sheet } = style;
+
+  const index = sheet.insertRule(".test { color: red }", 0);
+  assert_equals(index, 0);
+  assert_equals(sheet.cssRules.length, 1);
+  assert_equals(sheet.cssRules[0].selectorText, ".test");
+  assert_equals(sheet.cssRules[0].style.color, "red");
+
+  host.remove();
+}, "insertRule() works on a style element's sheet inside a shadow root");
+
+test(() => {
+  const host = document.createElement("div");
+  document.body.appendChild(host);
+  const shadow = host.attachShadow({ mode: "open" });
+  const style = document.createElement("style");
+  style.textContent = ".a { color: green }";
+  shadow.appendChild(style);
+  const { sheet } = style;
+
+  assert_equals(sheet.cssRules.length, 1);
+  assert_equals(sheet.cssRules[0].selectorText, ".a");
+
+  sheet.insertRule(".b { color: blue }", 1);
+  assert_equals(sheet.cssRules.length, 2);
+
+  sheet.deleteRule(0);
+  assert_equals(sheet.cssRules.length, 1);
+  assert_equals(sheet.cssRules[0].selectorText, ".b");
+
+  host.remove();
+}, "insertRule() and deleteRule() work on a pre-populated shadow root stylesheet");
+</script>

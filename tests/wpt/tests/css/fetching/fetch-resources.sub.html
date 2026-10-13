@@ -16,9 +16,12 @@
     const stylesheet_url = '/css/support/a-green.css'
 
     async function load_image({url, prop, uid}, t) {
+        const echo = get_resource_echo_url(uid, url);
+        const value = `url(${echo})`;
+        assert_true(CSS.supports(`${prop}: ${value}`), `${prop} is supported`);
+
         const element = document.createElement('div');
-        const echo = get_resource_echo_url(uid, url)
-        element.style[prop] = `url(${echo})`
+        element.style[prop] = value;
         document.body.appendChild(element);
         t.add_cleanup(() => element.remove());
         await wait_for_resource(echo);

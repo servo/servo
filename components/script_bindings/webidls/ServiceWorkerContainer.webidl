@@ -19,8 +19,8 @@ interface ServiceWorkerContainer : EventTarget {
   // events
   //attribute EventHandler oncontrollerchange;
   //attribute EventHandler onerror;
-  //attribute EventHandler onmessage; // event.source of message events is ServiceWorker object
-  //attribute EventHandler onmessageerror;
+  attribute EventHandler onmessage;
+  attribute EventHandler onmessageerror;
 };
 
 dictionary RegistrationOptions {

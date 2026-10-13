@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>MutationObserver: records for XML parser insertions</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#queue-a-tree-mutation-record"/>
+<link rel="help" href="https://html.spec.whatwg.org/#parsing-xhtml-documents"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="mutationobservers.js"></script>
+</head>
+<body>
+<div id="log"></div>
+<script id="s1"><![CDATA[
+  const records = [];
+  const observer = new MutationObserver(list => records.push(...list));
+  observer.observe(document, {childList: true, subtree: true});
+]]></script><div id="a"><p id="b"><span id="c">text</span></p></div><script id="s2"><![CDATA[
+  test(() => {
+    records.push(...observer.takeRecords());
+    observer.disconnect();
+    const s1 = document.getElementById("s1");
+    const s2 = document.getElementById("s2");
+    const a = document.getElementById("a");
+    const b = document.getElementById("b");
+    const c = document.getElementById("c");
+    checkRecords(document, records, [
+      {type: "childList", target: document.body, addedNodes: [a],
+       previousSibling: s1},
+      {type: "childList", target: a, addedNodes: [b]},
+      {type: "childList", target: b, addedNodes: [c]},
+      {type: "childList", target: c, addedNodes: [c.firstChild]},
+      {type: "childList", target: document.body, addedNodes: [s2],
+       previousSibling: a},
+      {type: "childList", target: s2, addedNodes: [s2.firstChild]},
+    ]);
+  }, "XML parser queues a mutation record for each inserted node");
+]]></script>
+</body>
+</html>

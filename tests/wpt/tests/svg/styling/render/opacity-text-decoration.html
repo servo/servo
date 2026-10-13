@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>SVG opacity changes preserve text decoration propagation</title>
+<link rel="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
+<link rel="help" href="https://www.w3.org/TR/css-text-decor-3/#line-decoration">
+<link rel="help" href="https://www.w3.org/TR/SVG2/text.html#TextDecorationProperties">
+<link rel="match" href="opacity-text-decoration-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<meta name="flags" content="ahem">
+<meta name="assert" content="Changing opacity must preserve the same text decorations as styling with the final opacity from the start.">
+<script src="/common/reftest-wait.js"></script>
+<script src="/common/rendering-utils.js"></script>
+<style>
+  text {
+    display: inline-block;
+    font: 40px Ahem;
+  }
+</style>
+<svg width="400" height="160">
+  <g text-decoration="underline">
+    <!-- Spaces make an unexpected underline visible between the Ahem glyphs. -->
+    <text id="attribute-target" x="20" y="60" opacity="0.5">XX XX XX</text>
+    <text id="inline-target" x="20" y="140"
+          style="opacity: 0.5">XX XX XX</text>
+  </g>
+</svg>
+<script>
+  waitForAtLeastOneFrame().then(() => document.fonts.ready).then(() => {
+    document.querySelector("svg").getBoundingClientRect();
+    document.getElementById("attribute-target").setAttribute("opacity", "0.75");
+    document.getElementById("inline-target").style.opacity = "0.75";
+    takeScreenshot();
+  });
+</script>
+

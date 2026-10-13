@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<link rel=help href="https://drafts.csswg.org/selectors/#the-hover-pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<style>
+select, ::picker(select) {
+  appearance: base-select;
+}
+#sibling {
+  width: 100px;
+  height: 40px;
+}
+</style>
+
+<select>
+  <option class=one>one</option>
+  <option class=two>two</option>
+</select>
+
+<div id=sibling>sibling</div>
+
+<script>
+promise_test(async () => {
+  const select = document.querySelector('select');
+  const optionTwo = select.querySelector('.two');
+  const sibling = document.getElementById('sibling');
+  assert_equals(getComputedStyle(select).appearance, 'base-select',
+    'appearance:base-select must be supported in order to run this test.');
+
+  await test_driver.click(select);
+  await new Promise(requestAnimationFrame);
+  assert_true(select.matches(':open'), 'The picker should be open after clicking the select.');
+
+  await test_driver.click(optionTwo);
+  await new Promise(requestAnimationFrame);
+  assert_false(select.matches(':open'), 'Picking an option should close the picker.');
+
+  await (new test_driver.Actions()
+    .pointerMove(2, 2, {origin: sibling}))
+    .send();
+  await new Promise(requestAnimationFrame);
+
+  assert_true(sibling.matches(':hover'),
+    'The element under the pointer should match :hover.');
+  assert_true(document.body.matches(':hover'),
+    'An ancestor of the element under the pointer should match :hover.');
+}, 'Hover still applies after picking an option hides the picker.');
+</script>

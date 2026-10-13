@@ -8,11 +8,9 @@ description: >
 includes: [testTypedArray.js]
 features: [ArrayBuffer, Atomics, TypedArray]
 ---*/
-testWithAtomicsFriendlyTypedArrayConstructors(TA => {
-  const view = new TA(
-    new ArrayBuffer(TA.BYTES_PER_ELEMENT * 4)
-  );
+testWithAtomicsFriendlyTypedArrayConstructors((TA, makeCtorArg) => {
+  const view = new TA(makeCtorArg(4));
 
   assert.sameValue(Atomics.and(view, 0, 1), 0, 'Atomics.and(view, 0, 1) returns 0');
   assert.sameValue(Atomics.load(view, 0), 0, 'Atomics.load(view, 0) returns 0');
-}, null, ["passthrough"]);
+}, ["arraybuffer"], ["immutable"]);

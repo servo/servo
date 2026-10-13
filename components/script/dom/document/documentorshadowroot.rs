@@ -10,6 +10,7 @@ use embedder_traits::UntrustedNodeAddress;
 use js::context::JSContext;
 use js::conversions::FromJSValConvertible;
 use js::rust::HandleValue;
+use layout_api::HitTestFlags;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
@@ -23,6 +24,7 @@ use style::stylesheets::scope_rule::ImplicitScopeRoot;
 use style::stylesheets::{Stylesheet, StylesheetContents};
 use webrender_api::units::LayoutPoint;
 
+use crate::css::stylesheet_set::StylesheetSetRef;
 use crate::dom::Document;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
@@ -36,7 +38,6 @@ use crate::dom::element::Element;
 use crate::dom::node::{self, Node};
 use crate::dom::types::{CSSStyleSheet, EventTarget, ShadowRoot};
 use crate::dom::window::Window;
-use crate::stylesheet_set::StylesheetSetRef;
 
 /// Stylesheet could be constructed by a CSSOM object CSSStylesheet or parsed
 /// from HTML element such as `<style>` or `<link>`.
@@ -188,10 +189,11 @@ impl DocumentOrShadowRoot {
             return None;
         }
 
-        let results = self
+        let flags = HitTestFlags::empty();
+        let result = self
             .window
-            .elements_from_point_query(LayoutPoint::new(x, y));
-        let Some(result) = results.first() else {
+            .elements_from_point_query(flags, LayoutPoint::new(x, y));
+        let Some(result) = result.items.first() else {
             return document_element;
         };
 
@@ -231,11 +233,13 @@ impl DocumentOrShadowRoot {
         // box, that would be a target for hit testing at coordinates x,y even if nothing
         // would be overlapping it, when applying the transforms that apply to the
         // descendants of the viewport, append the associated element to sequence.
-        let nodes = self
+        let flags = HitTestFlags::empty();
+        let result = self
             .window
-            .elements_from_point_query(LayoutPoint::new(x, y));
+            .elements_from_point_query(flags, LayoutPoint::new(x, y));
 
-        let mut elements: Vec<_> = nodes
+        let mut elements: Vec<_> = result
+            .items
             .iter()
             .flat_map(|result| {
                 // SAFETY: This is safe because `Self::query_elements_from_point` has ensured that
@@ -352,10 +356,10 @@ impl DocumentOrShadowRoot {
 
         match insertion_point {
             Some(ip) => {
-                stylesheets.insert_stylesheet_before(None, sheet, ip, &guard);
+                stylesheets.insert_stylesheet_before(sheet, ip, &guard);
             },
             None => {
-                stylesheets.append_stylesheet(None, sheet, &guard);
+                stylesheets.append_stylesheet(sheet, &guard);
             },
         }
     }
@@ -390,7 +394,10 @@ impl DocumentOrShadowRoot {
             // > If value’s constructed flag is not set, or its constructor document is not equal
             // > to this DocumentOrShadowRoot’s node document, throw a "NotAllowedError" DOMException.
             if !sheet.constructor_document_matches(owner_doc) {
-                return Err(Error::NotAllowed(None));
+                return Err(Error::NotAllowed(Some(
+                    "Stylesheet is not constructed or its constructor document does not match"
+                        .into(),
+                )));
             }
         }
 
@@ -447,9 +454,8 @@ impl DocumentOrShadowRoot {
         incoming_value: HandleValue,
         owner: &StyleSheetListOwner,
     ) -> ErrorResult {
-        let maybe_stylesheets =
-            Vec::<DomRoot<CSSStyleSheet>>::safe_from_jsval(cx, incoming_value, ())
-                .map_err(|_| Error::JSFailed)?;
+        let maybe_stylesheets = Vec::<DomRoot<CSSStyleSheet>>::from_jsval(cx, incoming_value, ())
+            .map_err(|_| Error::JSFailed)?;
 
         match maybe_stylesheets {
             ConversionResult::Success(stylesheets) => {

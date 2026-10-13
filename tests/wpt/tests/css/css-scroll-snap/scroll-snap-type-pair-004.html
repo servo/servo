@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<title>CSS Scroll Snap: Search alternative cross-axis tie-breaker under scroll-snap-type: pair</title>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#snap-axis"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .scroller {
+    width: 200px;
+    height: 200px;
+    overflow: scroll;
+    position: relative;
+    scroll-snap-type: pair mandatory;
+    scrollbar-width: none;
+    background: #fafafa;
+    border: 2px solid #333;
+  }
+  .space {
+    width: 3000px;
+    height: 3000px;
+    position: absolute;
+  }
+  .target {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    border-radius: 4px;
+    scroll-snap-align: start start;
+  }
+  #origin {
+    left: 100px;
+    top: 100px;
+    background: #6c757d;
+    border: 2px solid #545b62;
+  }
+  /* Both Tie A and Tie B share X = 1000px */
+  #tie-a {
+    left: 1000px;
+    top: 100px;
+    background: #ffc107;
+    border: 2px solid #d39e00;
+  }
+  #tie-b {
+    left: 1000px;
+    top: 1200px;
+    background: #28a745;
+    border: 2px solid #1e7e34;
+  }
+</style>
+
+<div id="scroller" class="scroller">
+  <div class="space"></div>
+  <div id="origin" class="target"></div>
+  <div id="tie-a" class="target"></div>
+  <div id="tie-b" class="target"></div>
+</div>
+
+<script>
+test(t => {
+  const scroller = document.getElementById("scroller");
+  scroller.scrollTo(100, 100);
+
+  // Scroll towards (1000, 1100).
+  // X search ties on X=1000 between tie-a and tie-b.
+  // Cross-axis alternative matching Y=1200 must resolve the X tie to tie-b.
+  scroller.scrollTo(1000, 1100);
+
+  assert_equals(scroller.scrollLeft, 1000, "scrollLeft should snap to tie-b");
+  assert_equals(scroller.scrollTop, 1200, "scrollTop should snap to tie-b");
+}, "Resolves X-axis tie between candidates to the area matching the Y-axis snap selection");
+</script>

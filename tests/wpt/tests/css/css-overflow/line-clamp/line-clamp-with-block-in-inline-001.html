@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp with a block child nested in an inline box</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/webkit-line-clamp-009-ref.html">
+<meta name="assert" content="line-clamp should count the lines of a same-BFC block child whether or not that child is nested in an inline box.">
+<style>
+.clamp {
+  line-clamp: 3;
+  font: 16px / 32px serif;
+  white-space: pre;
+  padding: 0 4px;
+  background-color: yellow;
+}
+.child {
+  font: 24px / 48px serif;
+  color: blue;
+}
+</style>
+<div class="clamp">Line 1
+Line 2<span><div class="child">Line 3
+Line 4</div></span></div>

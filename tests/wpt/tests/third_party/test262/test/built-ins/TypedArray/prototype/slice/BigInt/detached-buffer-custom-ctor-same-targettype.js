@@ -31,15 +31,15 @@ includes: [testTypedArray.js, detachArrayBuffer.js]
 features: [align-detached-buffer-semantics-with-web-reality, BigInt, Symbol.species, TypedArray]
 ---*/
 
-testWithBigIntTypedArrayConstructors(function(TA) {
+testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
   let counter = 0;
-  let sample = new TA(1);
+  let sample = new TA(makeCtorArg(1));
 
   sample.constructor = {};
   sample.constructor[Symbol.species] = function(count) {
-    counter++;
     $DETACHBUFFER(sample.buffer);
-    return new TA(count);
+    counter++;
+    return new TA(makeCtorArg(count));
   };
 
   assert.throws(TypeError, function() {
@@ -48,4 +48,4 @@ testWithBigIntTypedArrayConstructors(function(TA) {
   }, '`sample.slice()` throws TypeError');
 
   assert.sameValue(counter, 2, 'The value of `counter` is 2');
-}, null, ["passthrough"]);
+}, null, null, ["immutable"]);

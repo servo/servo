@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>Chrome Crash 533050757</title>
+<link rel="help" href="https://crbug.com/533050757">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  body { margin: 0; }
+  #scroller {
+    overflow: hidden;
+    scroll-marker-group: after;
+    height: 100px;
+    width: 100px;
+  }
+  .item {
+    display: inline-block;
+    width: 100px;
+    height: 100px;
+  }
+  .item::scroll-marker {
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    font-size: 30px;
+    content: 'X';
+  }
+</style>
+<div id="scroller">
+  <div class="item" id="i1">1</div>
+  <div class="item">2</div>
+</div>
+<script>
+  i1.addEventListener("click", () => {
+    requestAnimationFrame(() => {
+      i1.remove();
+      document.documentElement.className = "";
+    });
+  });
+
+  new test_driver.Actions()
+      .pointerMove(8, 108)
+      .pointerDown()
+      .pointerUp()
+      .send();
+
+</script>

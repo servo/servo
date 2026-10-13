@@ -25,6 +25,7 @@ addEventListener("load", () => {
     "pointerdown",
     "pointermove",
     "pointerup",
+    "pointercancel",
     "click",
   ];
   let events = [];
@@ -69,6 +70,11 @@ addEventListener("load", () => {
    * removed from the DOM tree, following touch events should be fired on it.
    * However, following pointer events should be fired at the event targets
    * under the pointer.
+   *
+   * The gestures below never move the touch point.  A user agent may suppress
+   * `touchmove` within an implementation-defined slop region, and beyond that
+   * region the gesture is no longer a tap so no `click` is fired; no
+   * displacement lets one gesture check both, and these check `click`.
    */
 
   for (const removerType of ["pointerdown", "touchstart"]) {
@@ -95,15 +101,12 @@ addEventListener("load", () => {
           .setPointer("touchPointer")
           .pointerMove(pointerDownTargetRect.left + 10, pointerDownTargetRect.top + 10)
           .pointerDown()
-          .pointerMove(pointerDownTargetRect.left + 12, pointerDownTargetRect.top + 12)
           .pointerUp()
           .send();
 
         const expectedEvents = [
           { type: "pointerdown", target: pointerDownTarget },
           { type: "touchstart", target: pointerDownTarget },
-          { type: "pointermove", target: pointerDownTargetParent },
-          { type: "touchmove", target: pointerDownTarget },
           { type: "pointerup", target: pointerDownTargetParent },
           { type: "touchend", target: pointerDownTarget },
           { type: "click", target: pointerDownTargetParent },
@@ -111,8 +114,8 @@ addEventListener("load", () => {
         test(
           () => {
             assert_equals(
-              stringifyEvents(ignoreEvents(events, ["click", "touchmove"])),
-              stringifyEvents(ignoreEvents(expectedEvents, ["click", "touchmove"]))
+              stringifyEvents(ignoreEvents(events, ["click"])),
+              stringifyEvents(ignoreEvents(expectedEvents, ["click"]))
             )
           },
           `${
@@ -122,20 +125,11 @@ addEventListener("load", () => {
         test(
           () => {
             assert_equals(
-              stringifyEvents(ignoreEvents(events, ["touchmove"])),
-              stringifyEvents(ignoreEvents(expectedEvents, ["touchmove"]))
+              stringifyEvents(events),
+              stringifyEvents(expectedEvents)
             )
           },
           `${t.name}, click event should be fired on the pointerdown target parent`
-        );
-        test(
-          () => {
-            assert_equals(
-              stringifyEvents(ignoreEvents(events, ["click"])),
-              stringifyEvents(ignoreEvents(expectedEvents, ["click"]))
-            )
-          },
-          `${t.name}, touchmove event should be fired on the pointerdown target`
         );
         document.body.innerHTML = "";
       },
@@ -162,15 +156,12 @@ addEventListener("load", () => {
           .setPointer("touchPointer")
           .pointerMove(pointerDownTargetRect.left + 10, pointerDownTargetRect.top + 10)
           .pointerDown()
-          .pointerMove(pointerDownTargetRect.left + 12, pointerDownTargetRect.top + 12)
           .pointerUp()
           .send();
 
         const expectedEvents = [
           { type: "pointerdown", target: pointerDownTarget },
           { type: "touchstart", target: pointerDownTarget },
-          { type: "pointermove", target: pointerDownTarget },
-          { type: "touchmove", target: pointerDownTarget },
           { type: "pointerup", target: pointerDownTarget },
           { type: "touchend", target: pointerDownTarget },
           { type: "click", target: pointerDownTarget },
@@ -179,8 +170,8 @@ addEventListener("load", () => {
         test(
           () => {
             assert_equals(
-              stringifyEvents(ignoreEvents(events, ["click", "touchmove"])),
-              stringifyEvents(ignoreEvents(events, ["click", "touchmove"])),
+              stringifyEvents(ignoreEvents(events, ["click"])),
+              stringifyEvents(ignoreEvents(expectedEvents, ["click"]))
             )
           },
           `${t.name}, touch events and pointer events should be fired on the pointerdown target`
@@ -188,20 +179,11 @@ addEventListener("load", () => {
         test(
           () => {
             assert_equals(
-              stringifyEvents(ignoreEvents(events, ["touchmove"])),
-              stringifyEvents(ignoreEvents(events, ["touchmove"])),
+              stringifyEvents(events),
+              stringifyEvents(expectedEvents)
             )
           },
           `${t.name}, click event should be fired on the pointerdown target`
-        );
-        test(
-          () => {
-            assert_equals(
-              stringifyEvents(ignoreEvents(events, ["click"])),
-              stringifyEvents(ignoreEvents(events, ["click"])),
-            )
-          },
-          `${t.name}, touchmove event should be fired on the pointerdown target`
         );
         document.body.innerHTML = "";
       },
@@ -228,15 +210,12 @@ addEventListener("load", () => {
           .setPointer("touchPointer")
           .pointerMove(pointerDownTargetRect.left + 10, pointerDownTargetRect.top + 10)
           .pointerDown()
-          .pointerMove(pointerDownTargetRect.left + 12, pointerDownTargetRect.top + 12)
           .pointerUp()
           .send();
 
         const expectedEvents = [
           { type: "pointerdown", target: pointerDownTarget },
           { type: "touchstart", target: pointerDownTarget },
-          { type: "pointermove", target: pointerDownTargetParent },
-          { type: "touchmove", target: pointerDownTarget },
           { type: "pointerup", target: pointerDownTargetParent },
           { type: "touchend", target: pointerDownTarget },
           { type: "click", target: pointerDownTargetParent },
@@ -244,8 +223,8 @@ addEventListener("load", () => {
         test(
           () => {
             assert_equals(
-              stringifyEvents(ignoreEvents(events, ["click", "touchmove"])),
-              stringifyEvents(ignoreEvents(expectedEvents, ["click", "touchmove"]))
+              stringifyEvents(ignoreEvents(events, ["click"])),
+              stringifyEvents(ignoreEvents(expectedEvents, ["click"]))
             )
           },
           `${
@@ -255,20 +234,11 @@ addEventListener("load", () => {
         test(
           () => {
             assert_equals(
-              stringifyEvents(ignoreEvents(events, ["touchmove"])),
-              stringifyEvents(ignoreEvents(expectedEvents, ["touchmove"]))
+              stringifyEvents(events),
+              stringifyEvents(expectedEvents)
             )
           },
           `${t.name}, click event should be fired on the pointerdown target parent`
-        );
-        test(
-          () => {
-            assert_equals(
-              stringifyEvents(ignoreEvents(events, ["click"])),
-              stringifyEvents(ignoreEvents(expectedEvents, ["click"]))
-            )
-          },
-          `${t.name}, touchmove event should be fired on the pointerdown target parent`
         );
         document.body.innerHTML = "";
       },

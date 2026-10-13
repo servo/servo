@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width">
+<title>Pointer events of all touches after preventDefault() on pointerdown</title>
+<link rel="help" href="https://w3c.github.io/pointerevents/#the-pointerdown-event">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>
+  #target {
+    width: 300px;
+    height: 300px;
+    touch-action: none;
+  }
+</style>
+<div id="target"></div>
+<script>
+"use strict";
+
+const target = document.getElementById("target");
+
+function recordPointerEvents(t) {
+  const events = new Map();
+  const listener = e => {
+    if (e.pointerType != "touch") {
+      return;
+    }
+    if (!events.has(e.pointerId)) {
+      events.set(e.pointerId, []);
+    }
+    events.get(e.pointerId).push(e.type);
+    if (e.type == "pointerdown") {
+      e.preventDefault();
+    }
+  };
+  const types = ["pointerdown", "pointermove", "pointerup", "pointercancel"];
+  for (const type of types) {
+    target.addEventListener(type, listener);
+  }
+  t.add_cleanup(() => {
+    for (const type of types) {
+      target.removeEventListener(type, listener);
+    }
+  });
+  return events;
+}
+
+function checkPointerEvents(events) {
+  assert_equals(events.size, 2, "Events should be fired for both pointers");
+  for (const [pointerId, types] of events) {
+    assert_equals(types[0], "pointerdown",
+                  `The first event of pointer ${pointerId}`);
+    assert_true(types.includes("pointermove"),
+                `pointer ${pointerId} should get pointermove`);
+    assert_equals(types[types.length - 1], "pointerup",
+                  `The last event of pointer ${pointerId}`);
+  }
+}
+
+function addMoves(actions) {
+  for (let y = 60; y <= 240; y += 30) {
+    actions.pointerMove(50, y, {origin: "viewport", sourceName: "touch1"})
+           .pointerMove(250, y, {origin: "viewport", sourceName: "touch2"})
+           .addTick();
+  }
+  return actions;
+}
+
+promise_test(async t => {
+  const events = recordPointerEvents(t);
+  const actions = new test_driver.Actions()
+    .addPointer("touch1", "touch")
+    .addPointer("touch2", "touch")
+    .pointerMove(50, 30, {origin: "viewport", sourceName: "touch1"})
+    .pointerDown({sourceName: "touch1"})
+    .addTick()
+    .pointerMove(250, 30, {origin: "viewport", sourceName: "touch2"})
+    .pointerDown({sourceName: "touch2"})
+    .addTick();
+  await addMoves(actions)
+    .pointerUp({sourceName: "touch1"})
+    .pointerUp({sourceName: "touch2"})
+    .send();
+  checkPointerEvents(events);
+}, "Two touches which start one after the other and move together");
+
+promise_test(async t => {
+  const events = recordPointerEvents(t);
+  const actions = new test_driver.Actions()
+    .addPointer("touch1", "touch")
+    .addPointer("touch2", "touch")
+    .pointerMove(50, 30, {origin: "viewport", sourceName: "touch1"})
+    .pointerMove(250, 30, {origin: "viewport", sourceName: "touch2"})
+    .addTick()
+    .pointerDown({sourceName: "touch1"})
+    .pointerDown({sourceName: "touch2"})
+    .addTick();
+  await addMoves(actions)
+    .pointerUp({sourceName: "touch1"})
+    .pointerUp({sourceName: "touch2"})
+    .send();
+  checkPointerEvents(events);
+}, "Two touches which start at the same time and move together");
+</script>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>PNG Third Edition: Decoder error recovery, incorrect IDAT CRC</title>
+<link rel="help" href="https://www.w3.org/TR/png-3/#13Decoders.Errors">
+<meta name="assert" content="A CRC mismatch in an IDAT chunk may be regarded as a
+fatal error, but a decoder that fails gracefully continues to display the image
+data it already decoded, so the image is still usable.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async () => {
+  const img = new Image();
+  const loaded = new Promise((resolve, reject) => {
+    img.onload = resolve;
+    img.onerror = () => reject(new Error("the error event fired"));
+  });
+  img.src = "support/bad-idat-crc.png";
+  await loaded;
+  await img.decode();
+  assert_equals(img.naturalWidth, 32, "naturalWidth");
+  assert_equals(img.naturalHeight, 32, "naturalHeight");
+}, "A PNG whose IDAT chunk has an incorrect CRC is still decoded");
+</script>
+</body>
+</html>

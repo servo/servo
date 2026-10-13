@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<title>CSS Scroll Snap: Dual-axis snapped events and state under scroll-snap-type: pair</title>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-2/#snapchanged-and-snapchanging"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .scroller {
+    width: 200px;
+    height: 200px;
+    overflow: scroll;
+    position: relative;
+    scroll-snap-type: pair mandatory;
+    scrollbar-width: none;
+    background: #fafafa;
+    border: 2px solid #333;
+  }
+  .space {
+    width: 2000px;
+    height: 2000px;
+    position: absolute;
+  }
+  .target {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    border-radius: 4px;
+    scroll-snap-align: start start;
+  }
+  #target-1 {
+    left: 100px;
+    top: 100px;
+    background: #6c757d;
+    border: 2px solid #545b62;
+  }
+  #target-2 {
+    left: 800px;
+    top: 800px;
+    background: #28a745;
+    border: 2px solid #1e7e34;
+  }
+</style>
+
+<div id="scroller" class="scroller">
+  <div class="space"></div>
+  <div id="target-1" class="target"></div>
+  <div id="target-2" class="target"></div>
+</div>
+
+<script>
+promise_test(async t => {
+  const scroller = document.getElementById("scroller");
+  const target1 = document.getElementById("target-1");
+  const target2 = document.getElementById("target-2");
+
+  // 1. Await initial page-load scrollsnapchange event for target-1.
+  const initialSnapPromise = new Promise(resolve => {
+    scroller.addEventListener("scrollsnapchange", evt => {
+      resolve(evt);
+    }, { once: true });
+  });
+  const evt1 = await initialSnapPromise;
+  assert_equals(evt1.snapTargetBlock, target1, "Initial snapTargetBlock should be target-1");
+  assert_equals(evt1.snapTargetInline, target1, "Initial snapTargetInline should be target-1");
+
+  // 2. Await scrollsnapchange event after scrolling to target-2.
+  const secondSnapPromise = new Promise(resolve => {
+    scroller.addEventListener("scrollsnapchange", evt => {
+      resolve(evt);
+    }, { once: true });
+  });
+  scroller.scrollTo({ left: 800, top: 800, behavior: "instant" });
+  const evt2 = await secondSnapPromise;
+  assert_equals(evt2.snapTargetBlock, target2, "Second snapTargetBlock should be target-2");
+  assert_equals(evt2.snapTargetInline, target2, "Second snapTargetInline should be target-2");
+}, "Dispatches scrollsnapchange with the single dual-axis target under scroll-snap-type: pair");
+</script>

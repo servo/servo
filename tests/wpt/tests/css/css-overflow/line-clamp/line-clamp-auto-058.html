@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Overflow: `line-clamp: auto` root should prioritise max-height over height if max-height &lt; height</title>
+<link rel="author" title="Seva Alipov" href="mailto:salipov@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2066625">
+<link rel="match" href="reference/line-clamp-auto-058-ref.html">
+<style>
+.clamp-auto-3lh {
+  line-clamp: auto;
+  max-height: 3lh;
+  height: 4lh;
+  font: 16px / 32px serif;
+  background-color: yellow;
+}
+</style>
+
+<div class=clamp-auto-3lh>
+  Line 1<br>
+  Line 2<br>
+  Line 3<br>
+  Line 4<br>
+  Line 5<br>
+</div>

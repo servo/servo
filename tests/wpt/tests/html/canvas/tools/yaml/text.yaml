@@ -108,6 +108,10 @@
     ctx.font = '1em serif; background: green; margin: 10px';
     @assert ctx.font === '20px serif';
 
+    ctx.font = '20px serif';
+    ctx.font = 'if(supports(list-style-type: disc): 13px MyFont)';
+    @assert ctx.font === '20px serif';
+
 - name: 2d.text.font.default
   code: |
     @assert ctx.font === '10px sans-serif';
@@ -2362,8 +2366,6 @@
   reference: |
     ctx.font = '50px sans-serif';
     const text = 'Hello ♦️ World!';
-    let tm = ctx.measureText(text);
-    const clusters = tm.getTextClusters();
 
     const x = 100;
     const y = 100;
@@ -2390,8 +2392,6 @@
   reference: |
     ctx.font = '50px sans-serif';
     const text = 'Hello ♦️ World!';
-    let tm = ctx.measureText(text);
-    const clusters = tm.getTextClusters();
 
     const x = 100;
     const y = 100;

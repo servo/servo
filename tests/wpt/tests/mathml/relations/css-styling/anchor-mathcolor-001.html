@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>mathcolor on a</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#the-a-element">
+<link rel="help" href="https://w3c.github.io/mathml-core/#legacy-mathml-style-attributes">
+<link rel="help" href="https://w3c.github.io/mathml-core/#text-mtext">
+<link rel="match" href="anchor-mathcolor-001-ref.html"/>
+<meta name="assert" content="mathcolor on an a element has a visual effect, including when the a element is a link.">
+<math xmlns="http://www.w3.org/1998/Math/MathML">
+  <a mathcolor="red">
+    <mtext>□■□■□■□</mtext>
+  </a>
+</math>
+<math xmlns="http://www.w3.org/1998/Math/MathML">
+  <a href="about:blank" mathcolor="red">
+    <mtext>□■□■□■□</mtext>
+  </a>
+</math>

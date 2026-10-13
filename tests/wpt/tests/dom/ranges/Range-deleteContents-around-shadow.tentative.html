@@ -1,0 +1,82 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Range.deleteContents() should work as in a range in the DOM rather than in the flat tree</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  const container = document.getElementById("container");
+  test(t => {
+    container.innerHTML = "<p>abcdef</p><div><span>UnassignedText</span></div>";
+    const p = container.querySelector("p");
+    const host = container.querySelector("div");
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = "<span>InnerText</span>";
+    getSelection().setBaseAndExtent(
+      p.firstChild, "abc".length,
+      shadowRoot.firstChild.firstChild, "Inner".length
+    );
+    const range = getSelection().getRangeAt(0);
+    try {
+      range.deleteContents();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: range.deleteContents() shouldn't throw exception`
+      );
+    }
+    test(() => {
+      assert_equals(
+        host.shadowRoot.innerHTML,
+        "<span>InnerText</span>",
+      );
+    }, `${t.name}: range.deleteContents() shouldn't delete the content in the shadow`);
+    test(() => {
+      assert_equals(
+        container.innerHTML,
+        "<p>abcdef</p><div><span>UnassignedText</span></div>",
+      );
+    }, `${t.name}: range.deleteContents() shouldn't delete the content in the parent DOM`);
+  }, 'Range.deleteContents() when "<p>abc[def</p><div><shadow-root><span>Inner]Text</span></shadow-root><span>UnassignedText</span></div>"');
+
+  test(t => {
+    container.innerHTML = "<div><span>UnassignedText</span></div><p>abcdef</p>";
+    const p = container.querySelector("p");
+    const host = container.querySelector("div");
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = "<span>InnerText</span>";
+    getSelection().setBaseAndExtent(
+      shadowRoot.firstChild.firstChild, "Inner".length,
+      p.firstChild, "abc".length
+    );
+    const range = getSelection().getRangeAt(0);
+    try {
+      range.deleteContents();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: range.deleteContents() shouldn't throw exception`
+      );
+    }
+    test(() => {
+      assert_equals(
+        host.shadowRoot.innerHTML,
+        "<span>InnerText</span>",
+      );
+    }, `${t.name}: range.deleteContents() shouldn't delete the content in the shadow`);
+    test(() => {
+      assert_equals(
+        container.innerHTML,
+        "<div><span>UnassignedText</span></div><p>abcdef</p>",
+      );
+    }, `${t.name}: range.deleteContents() shouldn't delete the content in the parent DOM`);
+  }, 'Range.deleteContents() when "<div><shadow-root><span>Inner[Text</span></shadow-root><span>UnassignedText</span></div><p>abc]def</p>"');
+}, {once: true});
+</script>
+</head>
+<body><div id="container"></div></body>
+</html>

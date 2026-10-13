@@ -36,6 +36,13 @@ test_computed_value_combinations("content", `counters(counter-name, ".", counter
 test_computed_value_combinations("content", `counters(counter-name, ".", dECiMaL)`, `counters(counter-name, ".")`);
 test_computed_value_combinations("content", `counters(counter-name, ".", DECIMAL)`, `counters(counter-name, ".")`);
 
+// symbols() as the <counter-style> in counter()/counters() (css-counter-styles-3).
+test_computed_value_combinations("content", `counter(counter-name, symbols("a"))`);
+test_computed_value_combinations("content", `counter(counter-name, symbols(cyclic "a"))`);
+test_computed_value_combinations("content", `counter(counter-name, symbols(numeric "a" "b"))`);
+test_computed_value_combinations("content", `counter(counter-name, symbols(symbolic "a"))`, `counter(counter-name, symbols("a"))`);
+test_computed_value_combinations("content", `counters(counter-name, ".", symbols(fixed "a"))`);
+
 test_computed_value_combinations("content", `url("https://www.example.com/picture.svg")`);
 
 test_computed_value_combinations("content", `"hello"`);

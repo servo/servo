@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>View timeline cover range preserves subpixel sticky adjustments</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#view-timelines-ranges">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+
+.scroller {
+  height: 500px;
+  overflow-y: scroll;
+}
+.space {
+  height: 550px;
+}
+.containing-block {
+  height: 550px;
+}
+.sticky {
+  position: sticky;
+  height: 200px;
+  background: yellow;
+}
+.subject {
+  position: relative;
+  top: 50px;
+  height: 100px;
+  background: orange;
+}
+
+/* 200.5px of room below the sticky box: 550.5px - (150px + 200px). */
+#containing-block-1 {
+  height: 550.5px;
+}
+#sticky-1 {
+  top: 400px;
+}
+#leading-space-1 {
+  height: 150px;
+}
+
+/* 150.5px of room above the sticky box. */
+#sticky-2 {
+  bottom: -100px;
+}
+#leading-space-2 {
+  height: 150.5px;
+}
+
+</style>
+</head>
+<body>
+<div class="scroller" id="scroller-1">
+  <div class="space"></div>
+  <div class="containing-block" id="containing-block-1">
+    <div id="leading-space-1"></div>
+    <div class="sticky" id="sticky-1">
+      <div class="subject" id="subject-1"></div>
+    </div>
+  </div>
+  <div class="space"></div>
+</div>
+<div class="scroller" id="scroller-2">
+  <div class="space"></div>
+  <div class="containing-block" id="containing-block-2">
+    <div id="leading-space-2"></div>
+    <div class="sticky" id="sticky-2">
+      <div class="subject" id="subject-2"></div>
+    </div>
+  </div>
+  <div class="space"></div>
+</div>
+<script type="text/javascript">
+
+// Sticky room ending in a half pixel must survive into the cover range.
+
+const EPSILON = 0.05;
+
+// Solves the linear scroll-offset-to-progress map for the cover range
+// boundaries, in px. The middle sample checks that linearity, which holds only
+// if sticky offsets are ignored when locating the subject.
+async function measureCoverRange(t, scroller, subject, samples) {
+  assert_equals(scroller.clientHeight, 500, 'scrollport height');
+  assert_greater_than(scroller.scrollHeight, scroller.clientHeight,
+                      'scroller overflows');
+
+  const timeline = new ViewTimeline({ subject: subject, axis: 'block' });
+  // Keeps the timeline sampled every frame.
+  const animation = subject.animate({ opacity: [0.3, 0.7] },
+                                    { timeline: timeline, fill: 'both' });
+  t.add_cleanup(() => animation.cancel());
+  await animation.ready;
+
+  const progressAt = async scrollOffset => {
+    scroller.scrollTop = scrollOffset;
+    await waitForNextFrame();
+    assert_equals(scroller.scrollTop, scrollOffset,
+                  `scrolled to ${scrollOffset}`);
+    const currentTime = timeline.currentTime;
+    assert_not_equals(currentTime, null, 'timeline is active');
+    assert_equals(currentTime.unit, 'percent', 'progress is a percentage');
+    return currentTime.value / 100;
+  };
+
+  const progress1 = await progressAt(samples[0]);
+  const progressMiddle = await progressAt(samples[1]);
+  const progress2 = await progressAt(samples[2]);
+
+  const length = (samples[2] - samples[0]) / (progress2 - progress1);
+  const start = samples[0] - progress1 * length;
+  assert_approx_equals(start + progressMiddle * length, samples[1], EPSILON,
+                       'progress is linear in the scroll offset');
+  return { start: start, end: start + length };
+}
+
+promise_test(async t => {
+  const range = await measureCoverRange(t, document.getElementById('scroller-1'),
+                                        document.getElementById('subject-1'),
+                                        [400, 600, 800]);
+  // Static range [250, 850]; top-stuck during entry pushes the end out by the
+  // 200.5px of room below.
+  assert_approx_equals(range.start, 250, EPSILON, 'cover range start');
+  assert_approx_equals(range.end, 1050.5, EPSILON, 'cover range end');
+}, 'Subpixel sticky room is preserved at the end of the cover range.');
+
+promise_test(async t => {
+  const range = await measureCoverRange(t, document.getElementById('scroller-2'),
+                                        document.getElementById('subject-2'),
+                                        [300, 500, 700]);
+  // Static range [250.5, 850.5]; bottom-stuck during entry pulls the start in
+  // by the 150.5px of room above.
+  assert_approx_equals(range.start, 100, EPSILON, 'cover range start');
+  assert_approx_equals(range.end, 850.5, EPSILON, 'cover range end');
+}, 'Subpixel sticky room is preserved at the start of the cover range.');
+
+</script>
+</body>
+</html>

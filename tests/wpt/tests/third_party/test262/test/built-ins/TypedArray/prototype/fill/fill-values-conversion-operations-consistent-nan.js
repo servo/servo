@@ -98,4 +98,4 @@ testWithTypedArrayConstructors(function(FA, makeCtorArg) {
       );
     }
   }
-}, floatArrayConstructors);
+}, floatArrayConstructors, null, ["immutable"]);

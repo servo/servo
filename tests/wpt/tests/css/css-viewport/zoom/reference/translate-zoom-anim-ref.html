@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Zoom property on elements with a translation with mixed length/percentage values and animation used</title>
+<link rel="author" href="mailto:salipov@mozilla.com" title="Seva Alipov">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2045846">
+
+
+<style>
+.container {
+  width: 200px;
+  height: 200px;
+  border: 1px solid;
+}
+
+#foo {
+  width: 100px;
+  height: 100px;
+  background: purple;
+  transform: translate(100px, 100px);
+}
+</style>
+
+<div class="container">
+  <div id="foo"></div>
+</div>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>calc() percentages are validated at the math function's syntactic position</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-type-checking">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#percentages">
+<link rel="help" href="https://drafts.csswg.org/filter-effects-1/#funcdef-filter-opacity">
+<link rel="help" href="https://drafts.csswg.org/css-transforms-2/#propdef-scale">
+<link rel="help" href="https://drafts.csswg.org/fill-stroke-3/#propdef-fill-opacity">
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#propdef-box-shadow">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#propdef-grid-template-columns">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- css-tree matches any calc() as &lt;length&gt; without inspecting units.
+     Percentages must be accepted only where the grammar at that position
+     allows them, not via a property-level "Percentages: N/A" gate. -->
+
+<div id="target"></div>
+<script>
+"use strict";
+
+const el = document.getElementById("target");
+
+function assertKeeps(property, value) {
+  el.style[property] = "";
+  el.style[property] = value;
+  assert_equals(el.style[property], value);
+}
+
+function assertRejects(property, value) {
+  el.style[property] = "";
+  el.style[property] = value;
+  assert_equals(el.style[property], "");
+}
+
+test(() => {
+  assertKeeps("filter", "opacity(calc(50%))");
+}, "filter opacity() accepts calc() percentages");
+
+test(() => {
+  assertKeeps("scale", "calc(50%)");
+}, "scale accepts calc() percentages");
+
+test(() => {
+  assertKeeps("fillOpacity", "calc(50%)");
+}, "fill-opacity accepts calc() percentages");
+
+test(() => {
+  assertKeeps("font", "calc(50%) serif");
+}, "font accepts a calc() percentage in its font-size position");
+
+test(() => {
+  assertRejects("font", "calc(50%) 16px serif");
+}, "font rejects a calc() percentage outside its font-size position");
+
+test(() => {
+  assertRejects("boxShadow", "1px calc(2px + 2%)");
+}, "box-shadow rejects mixed length + percentage calc() at a <length> offset");
+
+test(() => {
+  assertKeeps("boxShadow", "1px 2px");
+}, "box-shadow still accepts a bare length pair");
+
+test(() => {
+  assertKeeps("gridTemplateColumns", "100px calc(100% - 100px)");
+}, "grid-template-columns keeps mixed length + calc()");
+</script>

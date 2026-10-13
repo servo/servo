@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>CSS Text: 'hyphenate-limit-lines' limits the number of successive hyphenated lines</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#propdef-hyphenate-limit-lines">
+<link rel="match" href="reference/hyphenate-limit-lines-001-ref.html">
+<meta name="assert" content="hyphenate-limit-lines caps the number of consecutive lines that may end with a hyphenation break; once the limit is reached, hyphenation is suspended until a line breaks without hyphenating.">
+<style>
+#container > div {
+  border: black solid 1px;
+  font-family: monospace;
+  font-size: 32px;
+  line-height: 1;
+  width: 6ch;
+  margin-bottom: 1em;
+  hyphens: auto;
+  hyphenate-character: '-';
+}
+</style>
+<body lang="en">
+  <div id="container">
+    <div style="hyphenate-limit-lines: no-limit">implementation</div>
+    <div style="hyphenate-limit-lines: 2">implementation</div>
+    <div style="hyphenate-limit-lines: 1">implementation</div>
+    <div style="hyphenate-limit-lines: 0">implementation</div>
+  </div>
+</body>

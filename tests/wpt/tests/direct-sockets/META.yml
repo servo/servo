@@ -1,3 +1,4 @@
 spec: https://github.com/WICG/direct-sockets/blob/main/docs/explainer.md
 suggested_reviewers:
   - greengrape
+  - vkrot-cell

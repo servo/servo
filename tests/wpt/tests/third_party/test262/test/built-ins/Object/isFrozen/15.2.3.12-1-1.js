@@ -8,4 +8,4 @@ description: >
     is undefined
 ---*/
 
-Object.isFrozen(undefined);
+assert.sameValue(Object.isFrozen(undefined), true);

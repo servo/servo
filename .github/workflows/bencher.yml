@@ -34,6 +34,10 @@ on:
         required: false
         default: false
         type: boolean
+      perf-analysis:
+        required: false
+        default: false
+        type: boolean
       force-github-hosted-runner:
         required: false
         type: boolean
@@ -58,7 +62,7 @@ jobs:
     steps:
       - name: Runner select
         id: select
-        uses: servo/ci-runners/actions/runner-select@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+        uses: servo/ci-runners/actions/runner-select@b42c96524cdd72126255602c69c4ad649c750ebf
         with:
           GITHUB_TOKEN: ${{ github.token }}
           github-hosted-runner-label: ubuntu-22.04
@@ -77,7 +81,7 @@ jobs:
     name: Bencher (${{ inputs.target }}) [${{ needs.runner-select.outputs.unique-id }}]
     runs-on: ${{ needs.runner-select.outputs.selected-runner-label }}
     steps:
-      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+      - uses: servo/ci-runners/actions/checkout@b42c96524cdd72126255602c69c4ad649c750ebf
       - uses: actions/download-artifact@v8
         with:
           name: ${{ inputs.profile }}-binary-${{ inputs.target }}
@@ -100,7 +104,6 @@ jobs:
         timeout-minutes: 30
         run: |
           sudo apt update
-          sudo apt install -qy --no-install-recommends mesa-vulkan-drivers
           ./mach bootstrap --yes --skip-lints --skip-nextest
       - uses: bencherdev/bencher@main
       - name: File size
@@ -166,3 +169,14 @@ jobs:
           bencher run --adapter json --file b.json \
             --project ${{ env.BENCHER_PROJECT }} --token ${{ secrets.BENCHER_API_TOKEN }} --testbed "$testbed" \
             $RUN_BENCHER_OPTIONS
+
+  # Runs the page-load benchmark using servo/perf-analysis-tools.
+  perf-analysis:
+    if: ${{ inputs.perf-analysis }}
+    name: Perf analysis
+    uses: ./.github/workflows/perf-analysis.yml
+    secrets: inherit
+    with:
+      profile: ${{ inputs.profile }}
+      # Reuse the servoshell built with `tracing-perfetto` instead of building again.
+      servo-binary-artifact: ${{ inputs.profile }}-binary-linux-tracing

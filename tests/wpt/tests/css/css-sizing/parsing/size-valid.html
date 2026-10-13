@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<link rel="author" title="Andrew Martinez" href="https://github.com/AndrewJMart">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#sizing-properties">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  // size is a property and descriptor. test_valid_value() specifies
+  // property values on an element, which should yield as valid.
+  test_valid_value("size", "initial");
+  test_valid_value("size", "inherit");
+  test_valid_value("size", "revert");
+  test_valid_value("size", "revert-layer");
+  test_valid_value("size", "unset");
+  test_valid_value("size", "640px 480px");
+  test_valid_value("size", "8.5in 11in");
+  test_valid_value("size", "3in 10in");
+  test_valid_value("size", "auto");
+  // Identical dimensions serialize as a single value.
+  test_valid_value("size", "100px 100px", "100px");
+</script>

@@ -1493,12 +1493,10 @@ fn test_if_auth_creds_not_in_url_but_in_cache_it_sets_it() {
         password: "test".to_owned(),
     };
 
-    context
-        .state
-        .auth_cache
-        .write()
-        .entries
-        .insert(url.origin().clone().ascii_serialization(), auth_entry);
+    context.state.auth_cache.write().entries.insert(
+        url.origin().clone().ascii_serialization().into_owned(),
+        auth_entry,
+    );
 
     let response = fetch_with_context(request, &mut context);
 
@@ -1608,7 +1606,7 @@ fn test_fetch_compressed_response_update_count() {
     impl FetchTaskTarget for FetchResponseCollector {
         fn process_request_body(&mut self, _: &Request) {}
         fn process_response(&mut self, _: &Request, _: &Response) {}
-        fn process_response_chunk(&mut self, _: &Request, _: Vec<u8>) {
+        fn process_response_chunk(&mut self, _: &Request, _: bytes::Bytes) {
             self.update_count += 1;
         }
         /// Fired when the response is fully fetched
@@ -1625,7 +1623,7 @@ fn test_fetch_compressed_response_update_count() {
         sender: Some(sender),
         update_count: 0,
     };
-    let response_update_count = spawn_blocking_task::<_, Response>(async move {
+    let response_update_count = spawn_blocking_task(async move {
         methods::fetch(request, &mut target, &mut new_fetch_context(None, None)).await;
         receiver.await.unwrap()
     });
@@ -1643,7 +1641,7 @@ fn test_origin_serialization_compatibility() {
         let url = Url::parse(url_string).unwrap();
         let origin = ImmutableOrigin::new(&url);
         let serialized = format!("{}", serialize_origin(&origin));
-        assert_eq!(serialized, origin.ascii_serialization());
+        assert_eq!(serialized, origin.ascii_serialization().as_ref());
     };
 
     ensure_serialiations_match("https://example.com");
@@ -2056,8 +2054,8 @@ fn test_security_info_for_https_connection() {
 
     let protocol = tls_info.protocol_version.as_ref().unwrap();
     assert!(
-        protocol.starts_with("TLS"),
-        "Expected TLS protocol version, got: {}",
+        format!("{:?}", protocol).starts_with("TLS"),
+        "Expected TLS protocol version, got: {:?}",
         protocol
     );
 

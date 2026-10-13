@@ -41,9 +41,12 @@ def test_axapi(axapi, session, inline, test_html):
 #     # Role: ROLE_SYSTEM_PUSHBUTTON
 #     # Role: IA2_ROLE_TOGGLE_BUTTON
 
-# @pytest.mark.parametrize("test_html", TEST_HTML.values(), ids=TEST_HTML.keys())
-# def test_uia(uia, session, inline, test_html):
-#     session.url = inline(test_html)
-#
-#     # Spec:
-#     # Control Type: Button
+@pytest.mark.parametrize("test_html", TEST_HTML.values(), ids=TEST_HTML.keys())
+def test_uia(uia, session, inline, test_html):
+    session.url = inline(test_html)
+
+    # Spec:
+    # Control Type: Button
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.Button

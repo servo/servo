@@ -19,6 +19,13 @@ test_invalid_value("color", "alpha()");
 test_invalid_value("color", "alpha(from / 0.5)");
 test_invalid_value("color", "alpha(from)");
 
+// Missing alpha.
+test_invalid_value("color", "alpha(from red)");
+test_invalid_value("color", "alpha(from currentcolor)");
+test_invalid_value("color", "alpha(from rgba(255, 0, 0, 0.3))");
+test_invalid_value("color", "alpha(from alpha(from currentcolor / 0.5))");
+test_invalid_value("color", "alpha(from alpha(from currentcolor) / 0.5)");
+
 // Extra tokens.
 test_invalid_value("color", "alpha(from red / 0.5 0.5)");
 test_invalid_value("color", "alpha(from red 0.5)");

@@ -1,0 +1,23 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>subframe with cross-origin image in ::before on the body</title>
+  <style>
+    body::before {
+      content: url("https://{{hosts[alt][www]}}:{{ports[https][0]}}/images/red-100x100.png");
+      width: 100px;
+      height: 100px;
+      background-color: green;
+      display: block;
+    }
+    div {
+      width: 100px;
+      height: 100px;
+      background: transparent;
+    }
+  </style>
+</head>
+<body>
+  <div></div>
+</body>
+</html>

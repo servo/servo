@@ -28,7 +28,7 @@ pub(crate) fn execute_delete_command(
     selection: &Selection,
 ) -> bool {
     let active_range = selection
-        .active_range()
+        .active_range(cx)
         .expect("Must always have an active range");
     // Step 1. If the active range is not collapsed, delete the selection and return true.
     if !active_range.collapsed() {
@@ -128,9 +128,9 @@ pub(crate) fn execute_delete_command(
                 }))
     {
         // Step 5.1. Call collapse(node, offset) on the context object's selection.
-        selection.collapse_current_range(&node, offset);
+        let _ = selection.Collapse(cx, Some(&node), offset);
         // Step 5.2. Call extend(node, offset − 1) on the context object's selection.
-        selection.extend_current_range(&node, offset - 1);
+        let _ = selection.Extend(cx, &node, offset - 1);
         // Step 5.3. Delete the selection.
         selection.delete_the_selection(
             cx,
@@ -173,7 +173,7 @@ pub(crate) fn execute_delete_command(
         // set the tag name of node to the default single-line container name
         // and let node be the result.
         if node_matches_local_name!(node, local_name!("dd") | local_name!("dt")) &&
-            node.is_no_allowed_child_in_same_editing_host()
+            node.is_no_allowed_child_in_same_editing_host(cx.no_gc())
         {
             node = node
                 .downcast::<Element>()
@@ -241,10 +241,11 @@ pub(crate) fn execute_delete_command(
     }
 
     // Step 12. If start node has a child with index start offset − 1, and that child is a table:
-    if start_node
-        .children_unrooted(cx.no_gc())
-        .nth((start_offset - 1) as usize)
-        .is_some_and(|child| child.is::<HTMLTableElement>())
+    if start_offset > 0 &&
+        start_node
+            .children_unrooted(cx.no_gc())
+            .nth((start_offset - 1) as usize)
+            .is_some_and(|child| child.is::<HTMLTableElement>())
     {
         // Step 12.1. Call collapse(start node, start offset − 1) on the context object's selection.
         let _ = selection.Collapse(cx, Some(&start_node), start_offset - 1);
@@ -272,9 +273,9 @@ pub(crate) fn execute_delete_command(
                 }))
     {
         // Step 13.1. Call collapse(start node, start offset − 1) on the context object's selection.
-        selection.collapse_current_range(&start_node, start_offset - 1);
+        let _ = selection.Collapse(cx, Some(&start_node), start_offset - 1);
         // Step 13.2. Call extend(start node, start offset) on the context object's selection.
-        selection.extend_current_range(&start_node, start_offset);
+        let _ = selection.Extend(cx, &start_node, start_offset);
         // Step 13.3. Delete the selection.
         selection.delete_the_selection(
             cx,
@@ -284,7 +285,7 @@ pub(crate) fn execute_delete_command(
             Default::default(),
         );
         // Step 13.4. Call collapse(node, offset) on the selection.
-        selection.collapse_current_range(&node, offset);
+        let _ = selection.Collapse(cx, Some(&node), offset);
         // Step 13.5. Return true.
         return true;
     }
@@ -323,10 +324,10 @@ pub(crate) fn execute_delete_command(
     }
 
     // Step 17. Call collapse(start node, start offset) on the context object's selection.
-    selection.collapse_current_range(&start_node, start_offset);
+    let _ = selection.Collapse(cx, Some(&start_node), start_offset);
 
     // Step 18. Call extend(node, offset) on the context object's selection.
-    selection.extend_current_range(&node, offset);
+    let _ = selection.Extend(cx, &node, offset);
 
     // Step 19. Delete the selection, with direction "backward".
     selection.delete_the_selection(

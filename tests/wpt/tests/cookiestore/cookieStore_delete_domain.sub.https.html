@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Cookie Store API: cookieStore.delete() domain scoping</title>
+<link rel="help" href="https://cookiestore.spec.whatwg.org/#delete-a-cookie">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>iframe { display: none; }</style>
+<body>
+<script>
+'use strict';
+
+// The subtest needs a host whose parent domain is not a public suffix, which
+// the default WPT host does not have, so it runs in a frame on a subdomain.
+promise_test(async t => {
+  const childUrl = 'https://{{domains[www]}}:{{ports[https][0]}}' +
+                   '/cookiestore/resources/delete_domain-child.sub.https.html';
+
+  const iframe = document.createElement('iframe');
+  const loaded = new Promise(resolve => { iframe.onload = resolve; });
+  iframe.src = childUrl;
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+
+  await loaded;
+  await fetch_tests_from_window(iframe.contentWindow);
+}, 'cookieStore.delete() domain scoping');
+</script>
+</body>

@@ -340,3 +340,103 @@ test((t) => {
   assert_equals(getComputedStyle(second).zIndex, '1');
 }, '@scope with cousin style sharing, with child relative implicit scope selector');
 </script>
+
+<template id=test_14>
+  <style>
+    @scope (.root[scope]) {
+      .foo {
+        z-index: 1;
+      }
+    }
+  </style>
+  <div class="root" scope>
+    <div id="first" class="foo"></div>
+  </div>
+  <div class="root">
+    <div id="second" class="foo"></div>
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_14.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(first).zIndex, '1');
+  assert_equals(getComputedStyle(second).zIndex, 'auto');
+}, '@scope with cousin style sharing, first sibling enters scope trivial attribute selector');
+</script>
+
+<template id=test_15>
+  <style>
+    @scope (.root[scope]) {
+      .foo {
+        z-index: 1;
+      }
+    }
+  </style>
+  <div class="root">
+    <div id="first" class="foo"></div>
+  </div>
+  <div class="root" scope>
+    <div id="second" class="foo"></div>
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_15.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(first).zIndex, 'auto');
+  assert_equals(getComputedStyle(second).zIndex, '1');
+}, '@scope with cousin style sharing, second sibling enters scope trivial attribute selector');
+</script>
+
+<template id=test_16>
+  <style>
+    @scope (.root[scope-order="first"]) {
+      .foo {
+        z-index: 1;
+      }
+    }
+  </style>
+  <div class="root" scope-order="first">
+    <div id="first" class="foo"></div>
+  </div>
+  <div class="root" scope-order="second">
+    <div id="second" class="foo"></div>
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_16.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(first).zIndex, '1');
+  assert_equals(getComputedStyle(second).zIndex, 'auto');
+}, '@scope with cousin style sharing, first sibling enters scope attribute selector');
+</script>
+
+<template id=test_17>
+  <style>
+    @scope (.root[scope-order="second"]) {
+      .foo {
+        z-index: 1;
+      }
+    }
+  </style>
+  <div class="root" scope-order="first">
+    <div id="first" class="foo"></div>
+  </div>
+  <div class="root" scope-order="second">
+    <div id="second" class="foo"></div>
+  </div>
+</template>
+<script>
+test((t) => {
+  t.add_cleanup(() => main.replaceChildren());
+  main.append(test_17.content.cloneNode(true));
+
+  assert_equals(getComputedStyle(first).zIndex, 'auto');
+  assert_equals(getComputedStyle(second).zIndex, '1');
+}, '@scope with cousin style sharing, second sibling enters scope attribute selector');
+</script>

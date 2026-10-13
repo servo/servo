@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<title>Multi-lane column grid-lanes fragmentation with simultaneously fragmenting densely packed spanners</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="match" href="column-multi-lane-fragmentation-018-ref.html">
+<style>
+  .multicol {
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0;
+    height: 60px;
+    width: 180px;
+  }
+  .grid-lanes {
+    display: grid-lanes;
+    flow-tolerance: 0;
+    grid-auto-flow: dense;
+    grid-lanes-pack: dense;
+    grid-template-columns: repeat(6, 15px);
+    width: 90px;
+  }
+  .outer-left {
+    background: #20b2aa;
+    grid-column: 1;
+    height: 100px;
+  }
+  .outer-right {
+    background: #87cefa;
+    grid-column: 6;
+    height: 100px;
+  }
+  .parent-left {
+    background: #90ee90;
+    grid-column: 1 / span 2;
+    height: 20px;
+  }
+  .parent-right {
+    background: #dda0dd;
+    grid-column: 5 / span 2;
+    height: 20px;
+  }
+  .packed-left {
+    background: #ffd700;
+    grid-column: 2 / span 2;
+    height: 100px;
+  }
+  .packed-right {
+    background: #ff8c00;
+    grid-column: 4 / span 2;
+    height: 100px;
+  }
+</style>
+<p>Test passes if the two rectangles are identical.</p>
+<div class="multicol">
+  <div class="grid-lanes">
+    <div class="outer-left"></div>
+    <div class="outer-right"></div>
+    <div class="parent-left"></div>
+    <div class="parent-right"></div>
+    <div class="packed-right"></div>
+    <div class="packed-left"></div>
+  </div>
+</div>

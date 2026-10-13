@@ -30,8 +30,8 @@
   }
 </style>
 
-<canvas id=canvas width="200" height="200" layoutsubtree>
-  <div id=anchor></div>
+<canvas id=canvas width="200" height="200" content=drawable>
+  <div drawable id=anchor></div>
 </canvas>
 <div id=anchored></div>
 
@@ -39,8 +39,7 @@
 onload = async () => {
   await waitForCanvasPaint(canvas);
   var context = canvas.getContext('2d');
-  let matrix = context.drawElementImage(anchor, 50, 50);
-  anchor.style.transform = matrix.toString();
+  context.drawElementImage(anchor, 50, 50);
   takeScreenshot();
 };
 </script>

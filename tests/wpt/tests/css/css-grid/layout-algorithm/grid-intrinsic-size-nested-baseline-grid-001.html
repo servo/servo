@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#intrinsic-sizes">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#row-align">
+<link rel="match" href="grid-intrinsic-size-nested-baseline-grid-001-ref.html">
+<meta name="assert" content="Text in a baseline-aligned grid nested in a flex item of an outer grid wraps to the flex item's max-width, as it does without the outer grid.">
+<html>
+<body>
+<div style="display: grid;">
+    <div style="background: purple; max-width: 200px; padding: 20px; display: flex;">
+        <div style="background: yellowgreen; display: grid; align-items: baseline;">
+            <span>Very long example text for testing line break which will not happen due to the bug</span>
+        </div>
+    </div>
+</div>
+</body>
+</html>

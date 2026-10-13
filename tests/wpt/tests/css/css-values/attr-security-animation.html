@@ -10,6 +10,17 @@
     inherits: false;
     initial-value: "x";
   }
+  @property --n {
+    syntax: "<number>";
+    inherits: false;
+    initial-value: 0;
+  }
+  @property --p {
+    syntax: "<length>";
+    inherits: false;
+    initial-value: 0px;
+  }
+
   #attr {
     --s: attr(href);
     animation: 1s anim linear;
@@ -24,28 +35,139 @@
       --s: attr(href);
     }
   }
+
+  #attr-neutral-keyframe {
+    --n: attr(data-foo type(<number>));
+    animation: hold-number 1000s linear paused;
+    background-image: if(style(--n >= 40): url(https://does-not-exist.test/404.png); else: none);
+  }
+  @keyframes hold-number {
+    to {
+      --n: 0;
+    }
+  }
+
+  #attr-neutral-end {
+    --n: attr(data-foo type(<number>));
+    animation: hold-number-end 1000s linear paused;
+    background-image: if(style(--n: 42): url(https://does-not-exist.test/404.png); else: none);
+  }
+  @keyframes hold-number-end {
+    from {
+      --n: 0;
+    }
+  }
+
+  #attr-keyframe-number {
+    animation: anim-number 1000s linear paused;
+    background-image: if(style(--n >= 40): url(https://does-not-exist.test/404.png); else: none);
+  }
+  @keyframes anim-number {
+    from {
+      --n: attr(data-foo type(<number>));
+    }
+    to {
+      --n: 100;
+    }
+  }
+
+  #attr-composition-add {
+    --n: attr(data-foo type(<number>));
+    animation: add-number 1000s linear paused;
+    animation-composition: add;
+    background-image: if(style(--n >= 40): url(https://does-not-exist.test/404.png); else: none);
+  }
+  @keyframes add-number {
+    from {
+      --n: 0;
+    }
+    to {
+      --n: 0;
+    }
+  }
+
+  #attr-length-neutral {
+    --p: attr(data-foo type(<length>));
+    animation: hold-length 1000s linear paused;
+    background-image: if(style(--p >= 40px): url(https://does-not-exist.test/404.png); else: none);
+  }
+  @keyframes hold-length {
+    to {
+      --p: 0px;
+    }
+  }
 </style>
 
 <html>
   <body>
     <div id="attr" href="https://does-not-exist.test/404.png">div</div>
+    <div id="attr-neutral-keyframe" data-foo="42">div</div>
+    <div id="attr-neutral-end" data-foo="42">div</div>
+    <div id="attr-keyframe-number" data-foo="42">div</div>
+    <div id="attr-composition-add" data-foo="42">div</div>
+    <div id="attr-length-neutral" data-foo="42px">div</div>
   </body>
 </html>
 
 <script>
   test(() => {
+    const elem = document.getElementById("attr");
+
     // during animation
-    document.getAnimations().forEach(anim => {
+    elem.getAnimations().forEach(anim => {
       anim.currentTime = 600;
     });
-    var elem = document.getElementById("attr");
-    assert_equals(window.getComputedStyle(elem).getPropertyValue("background-image"), 'none');
+    assert_equals(
+        window.getComputedStyle(elem).getPropertyValue("background-image"),
+        "none");
 
     // after animation
-    document.getAnimations().forEach(anim => {
+    elem.getAnimations().forEach(anim => {
       anim.currentTime = 3000;
     });
-    var elem = document.getElementById("attr");
-    assert_equals(window.getComputedStyle(elem).getPropertyValue("background-image"), 'none');
-  });
+    assert_equals(
+        window.getComputedStyle(elem).getPropertyValue("background-image"),
+        "none");
+  }, "Non-interpolable string animation preserves attr taint");
+
+  test(() => {
+    var elem = document.getElementById("attr-neutral-keyframe");
+    assert_equals(window.getComputedStyle(elem).getPropertyValue("--n"), '42');
+    assert_equals(
+        window.getComputedStyle(elem).getPropertyValue("background-image"),
+        "none");
+  }, "Neutral start keyframe on registered <number> preserves attr taint");
+
+  test(() => {
+    var elem = document.getElementById("attr-neutral-end");
+    assert_equals(
+        window.getComputedStyle(elem).getPropertyValue("background-image"),
+        "none");
+  }, "Neutral end keyframe on registered <number> preserves attr taint");
+
+  test(() => {
+    var elem = document.getElementById("attr-keyframe-number");
+    assert_equals(window.getComputedStyle(elem).getPropertyValue("--n"), '42');
+    assert_equals(
+        window.getComputedStyle(elem).getPropertyValue("background-image"),
+        "none");
+  }, "Keyframe value with attr() on registered <number> preserves attr taint");
+
+  test(() => {
+    var elem = document.getElementById("attr-composition-add");
+    assert_equals(window.getComputedStyle(elem).getPropertyValue("--n"), '42');
+    assert_equals(
+        window.getComputedStyle(elem).getPropertyValue("background-image"),
+        "none");
+  }, "Additive animation composition on registered <number> preserves attr " +
+     "taint");
+
+  test(() => {
+    var elem = document.getElementById("attr-length-neutral");
+    assert_equals(window.getComputedStyle(elem).getPropertyValue("--p"),
+                  '42px');
+    assert_equals(
+      window.getComputedStyle(elem).getPropertyValue("background-image"),
+      "none");
+  }, "Neutral keyframe on registered <length> preserves attr taint");
 </script>

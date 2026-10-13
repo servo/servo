@@ -126,6 +126,15 @@
       'timeline-trigger-active-range-start': 'auto',
       'timeline-trigger-active-range-end': 'auto',
     });
+  test_shorthand_value('timeline-trigger', '--my-trigger none',
+    {
+      'timeline-trigger-name': '--my-trigger',
+      'timeline-trigger-source': 'none',
+      'timeline-trigger-activation-range-start': 'normal',
+      'timeline-trigger-activation-range-end': 'normal',
+      'timeline-trigger-active-range-start': 'auto',
+      'timeline-trigger-active-range-end': 'auto',
+    });
 
   test_shorthand_value('timeline-trigger', '--my-trigger1, --my-trigger2',
     {
@@ -235,12 +244,18 @@
   test_computed_value('timeline-trigger',
       '--my-trigger --my-timeline',
       '--my-trigger --my-timeline');
+  test_computed_value('timeline-trigger',
+      '--my-trigger none',
+      '--my-trigger none');
 
   test_computed_value('timeline-trigger', '--trigger1, --trigger2');
 
   test_computed_value('timeline-trigger',
       '--trigger1 view(), --trigger2 scroll()',
       '--trigger1 view(), --trigger2 scroll()');
+  test_computed_value('timeline-trigger',
+      '--trigger1 none, --trigger2 view()',
+      '--trigger1 none, --trigger2 view()');
   test_computed_value('timeline-trigger',
       '--my-trigger --my-timeline normal / contain',
       '--my-trigger --my-timeline / contain');
@@ -263,12 +278,16 @@
       '--my-trigger view() contain');
   test_valid_value('timeline-trigger', 'view()');
   test_valid_value('timeline-trigger', '--my-trigger --my-timeline');
+  test_valid_value('timeline-trigger', '--my-trigger none');
 
   test_valid_value('timeline-trigger', '--trigger1, --trigger2');
 
   test_valid_value('timeline-trigger',
       '--trigger1 view(), --trigger2 scroll()',
       '--trigger1 view(), --trigger2 scroll()');
+  test_valid_value('timeline-trigger',
+      '--trigger1 none, --trigger2 view()',
+      '--trigger1 none, --trigger2 view()');
 
   test_valid_value('timeline-trigger',
     '--my-trigger view() normal normal / auto auto',

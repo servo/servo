@@ -32,8 +32,9 @@ promise_test(async t => {
     answer.sdp = answer.sdp.replace('a=simulcast:recv 0;1;2', asimulcast);
     return answer;
   };
-  await pc1.setRemoteDescription(await negotiateSfuAnswer('a=simulcast:recv foo;1;2'));
-  await pc1.setRemoteDescription(await negotiateSfuAnswer('a=simulcast:recv foo;bar;2'));
+
+  await pc1.setRemoteDescription(await negotiateSfuAnswer('a=simulcast:recv 1;2'));
+  await pc1.setRemoteDescription(await negotiateSfuAnswer('a=simulcast:recv 0;2'));
 }, 'Remote reanswer altering rids does not throw an exception.');
 
 </script>

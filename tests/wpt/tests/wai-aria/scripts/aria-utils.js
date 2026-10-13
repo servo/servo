@@ -225,7 +225,7 @@ const AriaUtils = {
       promise_test(async t => {
         const actual = await test_driver.get_accessibility_properties_for_element(el);
         for (const key in expected) {
-          assert_equals(actual[key], expected[key], `${key}: ${el.outerHTML}`);
+          assert_equals(String(actual[key]), expected[key], `${key}: ${el.outerHTML}`);
         }
       }, testName);
     }

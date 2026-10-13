@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>CSS Test: document.activeElement for ::scroll-marker is scroller</title>
+<title>CSS Test: document.activeElement for ::scroll-marker in links and tabs modes</title>
 <link rel="help"
   href="https://github.com/flackr/carousel/tree/main/scroll-marker#what-is-the-documentactiveelement-of-a-focused-pseudo-element">
 <script src="/resources/testharness.js"></script>
@@ -56,12 +56,25 @@
 </div>
 <script>
   promise_test(async t => {
+    // 1. Links mode (default)
+    let actions_promise = new test_driver.Actions()
+      .pointerMove(15, 15)
+      .pointerDown()
+      .pointerUp()
+      .send();
+    await actions_promise;
+    assert_equals(document.activeElement, document.body, "document.activeElement for ::scroll-marker is document.body in links mode");
+
+    // 2. Tabs mode
+    document.activeElement.blur();
+    scroller.style.setProperty("scroll-marker-group", "before tabs");
+
     actions_promise = new test_driver.Actions()
       .pointerMove(15, 15)
       .pointerDown()
       .pointerUp()
       .send();
     await actions_promise;
-    assert_equals(document.activeElement, scroller, "document.activeElement for ::scroll-marker is scroller");
-  });
+    assert_equals(document.activeElement, scroller, "document.activeElement for ::scroll-marker is scroller in tabs mode");
+  }, "document.activeElement for ::scroll-marker is document.body in links mode, and scroller in tabs mode");
 </script>

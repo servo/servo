@@ -1,0 +1,104 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Customized built-in elements with sanitized is attribute in streamHTML variants</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates">
+<link rel="help" href="https://github.com/WICG/sanitizer-api">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="container"></div>
+<script>
+  let ctor_count = 0;
+  let connected_count = 0;
+
+  class XButton extends HTMLButtonElement {
+    constructor() {
+      super();
+      ctor_count++;
+    }
+    connectedCallback() {
+      connected_count++;
+    }
+  }
+  customElements.define("x-button", XButton, { extends: "button" });
+
+  const methods = [
+    { name: "streamHTML", type: "element" },
+    { name: "streamAppendHTML", type: "element" },
+    { name: "streamPrependHTML", type: "element" },
+    { name: "streamBeforeHTML", type: "child" },
+    { name: "streamAfterHTML", type: "child" },
+    { name: "streamReplaceWithHTML", type: "child" },
+    { name: "streamHTMLUnsafe", type: "element" },
+    { name: "streamAppendHTMLUnsafe", type: "element" },
+    { name: "streamPrependHTMLUnsafe", type: "element" },
+    { name: "streamBeforeHTMLUnsafe", type: "child" },
+    { name: "streamAfterHTMLUnsafe", type: "child" },
+    { name: "streamReplaceWithHTMLUnsafe", type: "child" }
+  ];
+
+  function setupTarget(container, type, t) {
+    const wrapper = document.createElement("div");
+    container.appendChild(wrapper);
+    t.add_cleanup(() => wrapper.remove());
+    if (type === "child") {
+      const target = document.createElement("div");
+      wrapper.appendChild(target);
+      return { target, holder: wrapper };
+    }
+    return { target: wrapper, holder: wrapper };
+  }
+
+  // 1. Sanitizer removes "is" attribute: constructor & connectedCallback must NOT run
+  for (const m of methods) {
+    const isUnsafe = m.name.includes("Unsafe");
+    const configs = [
+      { name: "removeAttributes is", options: { sanitizer: { removeAttributes: ["is"], elements: ["button"] } } },
+      { name: "attributes without is", options: { sanitizer: { elements: ["button"], attributes: ["id"] } } }
+    ];
+
+    for (const config of configs) {
+      promise_test(async (t) => {
+        ctor_count = 0;
+        connected_count = 0;
+        const container = document.getElementById("container");
+        const { target, holder } = setupTarget(container, m.type, t);
+
+        const writer = target[m.name](config.options).getWriter();
+        await writer.write('<button is="x-button">Click</button>');
+        await writer.close();
+
+        assert_equals(ctor_count, 0, "Customized built-in constructor must NOT be called when is attribute is sanitized");
+        assert_equals(connected_count, 0, "connectedCallback must NOT be called when is attribute is sanitized");
+
+        const btn = holder.querySelector("button");
+        assert_not_equals(btn, null, "Standard <button> element is created");
+        assert_false(btn instanceof XButton, "Element is HTMLButtonElement, not XButton");
+        assert_equals(btn.getAttribute("is"), null, "is attribute was stripped");
+      }, `${m.name} prevents customized built-in construction when is is sanitized (${config.name})`);
+    }
+  }
+
+  // 2. Control test: unsafe stream without sanitizer DOES construct customized built-in
+  const unsafeMethods = methods.filter(m => m.name.includes("Unsafe"));
+  for (const m of unsafeMethods) {
+    promise_test(async (t) => {
+      ctor_count = 0;
+      connected_count = 0;
+      const container = document.getElementById("container");
+      const { target, holder } = setupTarget(container, m.type, t);
+
+      const writer = target[m.name]({}).getWriter();
+      await writer.write('<button is="x-button">Click</button>');
+      await writer.close();
+
+      assert_equals(ctor_count, 1, "Constructor SHOULD be called in control case");
+      assert_equals(connected_count, 1, "connectedCallback SHOULD be called in control case");
+
+      const btn = holder.querySelector("button");
+      assert_not_equals(btn, null, "<button> is created");
+      assert_true(btn instanceof XButton, "Element is instance of XButton in control case");
+    }, `Control: ${m.name} invokes customized built-in constructor when is attribute is preserved`);
+  }
+</script>
+</body>

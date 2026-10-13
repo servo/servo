@@ -61,6 +61,7 @@ impl StereoPannerNode {
             1, /* outputs */
         )?;
         let node_id = source_node.node().node_id();
+        // <https://webaudio.github.io/web-audio-api/#dom-stereopannernode-pan>
         let pan = AudioParam::new(
             cx,
             window,

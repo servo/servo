@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html><head>
+    <title>Geometry Interfaces: transforming a point with w != 1 by a translation matrix</title>
+    <link href="https://drafts.fxtf.org/geometry-1/#dom-dompointreadonly-matrixtransform" rel="help">
+    <link href="https://drafts.fxtf.org/geometry-1/#dom-dommatrixreadonly-transformpoint" rel="help">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <div id="log"></div>
+    <script>
+        function checkDOMPoint(p, exp) {
+            assert_equals(p.x, exp.x, "x is not matched");
+            assert_equals(p.y, exp.y, "y is not matched");
+            assert_equals(p.z, exp.z, "z is not matched");
+            assert_equals(p.w, exp.w, "w is not matched");
+        }
+
+        test(function() {
+            var matrix = new DOMMatrix().translate(10, 20, 30);
+            var result = new DOMPoint(1, 2, 3, 2).matrixTransform(matrix);
+            checkDOMPoint(result, {x: 21, y: 42, z: 63, w: 2});
+        }, 'DOMPoint.matrixTransform by a translation matrix scales the translation by w');
+
+        test(function() {
+            var matrix = new DOMMatrix().translate(10, 20, 30);
+            var result = matrix.transformPoint({x: 1, y: 2, z: 3, w: 2});
+            checkDOMPoint(result, {x: 21, y: 42, z: 63, w: 2});
+        }, 'DOMMatrix.transformPoint by a translation matrix scales the translation by w');
+
+        test(function() {
+            var matrix = new DOMMatrix().translate(10, 20, 30);
+            var result = matrix.transformPoint({x: 1, y: 2, z: 3, w: 0});
+            checkDOMPoint(result, {x: 1, y: 2, z: 3, w: 0});
+        }, 'DOMMatrix.transformPoint by a translation matrix leaves a w=0 point untranslated');
+
+        test(function() {
+            var matrix = new DOMMatrix();
+            var result = matrix.transformPoint({x: 1, y: 2, z: 3, w: 5});
+            checkDOMPoint(result, {x: 1, y: 2, z: 3, w: 5});
+        }, 'DOMMatrix.transformPoint by the identity matrix preserves the point');
+    </script>
+</body></html>

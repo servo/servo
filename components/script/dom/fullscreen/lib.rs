@@ -2,14 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use embedder_traits::EmbedderMsg;
 use html5ever::{local_name, ns};
 use js::context::JSContext;
 use js::realm::CurrentRealm;
 use servo_config::pref;
 
+use crate::dom::RootedPromise;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootMethods;
@@ -27,16 +26,20 @@ use crate::dom::event::eventtarget::EventTarget;
 use crate::dom::node::NodeTraits;
 use crate::dom::node::node::Node;
 use crate::dom::promise::Promise;
-use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::shadowroot::ShadowRoot;
 use crate::dom::types::HTMLDialogElement;
 use crate::messaging::{CommonScriptMsg, MainThreadScriptMsg};
-use crate::script_runtime::ScriptThreadEventCategory;
-use crate::task::TaskOnce;
-use crate::task_source::TaskSourceName;
+use crate::runtime::script_runtime::ScriptThreadEventCategory;
+use crate::tasks::task::TaskOnce;
+use crate::tasks::task_source::TaskSourceName;
 
 impl Document {
     /// <https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen>
-    pub(crate) fn enter_fullscreen(&self, cx: &mut CurrentRealm, pending: &Element) -> Rc<Promise> {
+    pub(crate) fn enter_fullscreen(
+        &self,
+        cx: &mut CurrentRealm,
+        pending: &Element,
+    ) -> RootedPromise {
         // Step 1
         // > Let pendingDoc be this’s node document.
         // `Self` is the pending document.
@@ -62,12 +65,12 @@ impl Document {
             // > - This’s namespace is the HTML namespace or this is an SVG svg or MathML math element. [SVG] [MATHML]
             match *pending.namespace() {
                 ns!(mathml) => {
-                    if pending.local_name().as_ref() != "math" {
+                    if *pending.local_name() != local_name!("math") {
                         error = true;
                     }
                 },
                 ns!(svg) => {
-                    if pending.local_name().as_ref() != "svg" {
+                    if *pending.local_name() != local_name!("svg") {
                         error = true;
                     }
                 },
@@ -129,7 +132,7 @@ impl Document {
 
         let trusted_pending = Trusted::new(pending);
         let trusted_pending_doc = Trusted::new(self);
-        let trusted_promise = TrustedPromise::new(promise.clone());
+        let trusted_promise = TrustedPromise::from(&promise);
         let handler = ElementPerformFullscreenEnter::new(
             trusted_pending,
             trusted_pending_doc,
@@ -149,7 +152,7 @@ impl Document {
     }
 
     /// <https://fullscreen.spec.whatwg.org/#exit-fullscreen>
-    pub(crate) fn exit_fullscreen(&self, cx: &mut JSContext) -> Rc<Promise> {
+    pub(crate) fn exit_fullscreen(&self, cx: &mut JSContext) -> RootedPromise {
         let global = self.global();
 
         // Step 1
@@ -183,7 +186,7 @@ impl Document {
         // Step 8
         // > Return promise, and run the remaining steps in parallel.
         let trusted_element = Trusted::new(&*element);
-        let trusted_promise = TrustedPromise::new(promise.clone());
+        let trusted_promise = TrustedPromise::from(&promise);
         let handler = ElementPerformFullscreenExit::new(trusted_element, trusted_promise);
         let pipeline_id = Some(global.pipeline_id());
         let script_msg = CommonScriptMsg::Task(
@@ -290,7 +293,7 @@ impl TaskOnce for ElementPerformFullscreenEnter {
     /// Step 9-14 of <https://fullscreen.spec.whatwg.org/#dom-element-requestfullscreen>
     fn run_once(self, cx: &mut js::context::JSContext) {
         let element = self.element.root();
-        let promise = self.promise.root();
+        let promise = self.promise.root(cx);
         let document = element.owner_document();
 
         // Step 9
@@ -368,6 +371,6 @@ impl TaskOnce for ElementPerformFullscreenExit {
 
         // Step 16
         // > Resolve promise with undefined.
-        self.promise.root().resolve_native(cx, &());
+        self.promise.root(cx).resolve_native(cx, &());
     }
 }

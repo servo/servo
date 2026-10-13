@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Links should not fetch with no browsing context</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#fetching-and-processing-a-resource-from-a-link-element">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+async_test(t => {
+  const doc = document.implementation.createHTMLDocument();
+
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = "https://fonts.googleapis.com/css?family=Raleway:300,400,700,900|Work+Sans:300,400,700,900";
+
+  link.onload = t.unreached_func("load event must not be fired");
+  link.onerror = t.unreached_func("error event must not be fired");
+
+  doc.head.appendChild(link);
+
+  t.step_timeout(() => t.done(), 200);
+}, "no load or error events");
+</script>

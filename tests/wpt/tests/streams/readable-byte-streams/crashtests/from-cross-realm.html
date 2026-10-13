@@ -1,0 +1,16 @@
+<!doctype html>
+<html class="test-wait">
+<meta charset="utf-8">
+<script type="module">
+  const w = window.open();
+  w.rs = new w.ReadableStream({
+    type: "bytes",
+    pull(controller) {
+      // This matters as it creates a new object
+      controller.byobRequest;
+      document.documentElement.classList.remove("test-wait");
+    }
+  });
+  const reader = new ReadableStreamBYOBReader(w.rs);
+  await reader.read(new Uint8Array(4096));
+</script>

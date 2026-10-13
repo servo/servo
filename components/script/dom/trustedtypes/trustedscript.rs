@@ -7,7 +7,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsapi::CompilationType;
 use js::rust::HandleValue;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::TrustedScriptBinding::TrustedScriptMethods;
 use crate::dom::bindings::codegen::UnionTypes::TrustedScriptOrString;
@@ -37,7 +37,7 @@ impl TrustedScript {
     }
 
     pub(crate) fn new(cx: &mut JSContext, data: DOMString, global: &GlobalScope) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(Box::new(Self::new_inherited(data)), global, cx)
+        reflect_dom_object(cx, Box::new(Self::new_inherited(data)), global)
     }
 
     pub(crate) fn get_trusted_type_compliant_string(

@@ -27,7 +27,7 @@ function trackLoaded(event) {
     var video = track.parentNode;
     var cues = video.textTracks[0].cues;
     {
-assert_equals(cues.length, 22);
+assert_equals(cues.length, 25);
 
 var valid_positions = [
     [1, 'auto'],
@@ -47,7 +47,7 @@ valid_positions.forEach(function(pair, index) {
     assert_equals(cues[index].positionAlign, positionAlign, 'Failed with cue ' + index);
 });
 
-for (var i = 0; i < 14; i++) {
+for (var i = 0; i < 17; i++) {
     var index = valid_positions.length + i;
 
     assert_equals(cues[index].position, 'auto', 'Failed with cue ' + index);

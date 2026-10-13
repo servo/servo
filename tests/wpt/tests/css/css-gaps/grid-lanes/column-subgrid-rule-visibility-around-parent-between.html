@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: column subgrid around visibility inside grid-lanes
+  with between visibility
+</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match"
+    href="column-subgrid-rule-visibility-around-parent-between-ref.html">
+<style>
+  body {
+    margin: 0;
+  }
+  .scene {
+    height: 260px;
+    position: relative;
+    width: 330px;
+  }
+  .lanes {
+    background: #dce6f0;
+    column-rule: 6px solid #243c9c;
+    column-rule-visibility-items: between;
+    display: grid-lanes;
+    gap: 20px;
+    grid-template-columns: repeat(5, 50px);
+    height: 260px;
+    width: 330px;
+  }
+  .before,
+  .after,
+  .side {
+    background: #52677d;
+  }
+  .before,
+  .after {
+    height: 30px;
+  }
+  .track-two {
+    grid-column: 2;
+  }
+  .track-three {
+    grid-column: 3;
+  }
+  .track-four {
+    grid-column: 4;
+  }
+  .side {
+    grid-column: 1;
+    height: 260px;
+  }
+  .subgrid {
+    background: #ffe0a3;
+    column-rule: 6px solid #b83b00;
+    column-rule-visibility-items: around;
+    display: grid;
+    grid-column: 2 / span 3;
+    grid-template-columns: subgrid;
+    grid-template-rows: repeat(3, 40px);
+    row-gap: 20px;
+  }
+  .cell {
+    background: #087f75;
+  }
+  .first-cell {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .second-cell {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .third-cell {
+    grid-column: 1;
+    grid-row: 2;
+  }
+</style>
+<div class="scene">
+  <div class="lanes">
+    <div class="before track-two"></div>
+    <div class="before track-three"></div>
+    <div class="before track-four"></div>
+    <div class="side"></div>
+    <div class="subgrid">
+      <div class="cell first-cell"></div>
+      <div class="cell second-cell"></div>
+      <div class="cell third-cell"></div>
+    </div>
+    <div class="after track-two"></div>
+    <div class="after track-three"></div>
+    <div class="after track-four"></div>
+  </div>
+</div>

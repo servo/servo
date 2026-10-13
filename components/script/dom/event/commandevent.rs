@@ -7,7 +7,7 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
 use script_bindings::inheritance::Castable;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::CommandEventBinding;
@@ -40,7 +40,7 @@ impl CommandEvent {
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn new_with_proto(
         cx: &mut JSContext,
         window: &Window,
@@ -52,7 +52,7 @@ impl CommandEvent {
         command: DOMString,
     ) -> DomRoot<CommandEvent> {
         let event = Box::new(CommandEvent::new_inherited(source, command));
-        let event = reflect_dom_object_with_proto_and_cx(event, window, proto, cx);
+        let event = reflect_dom_object_with_proto(cx, event, window, proto);
         {
             let event = event.upcast::<Event>();
             event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
@@ -60,7 +60,6 @@ impl CommandEvent {
         event
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         cx: &mut JSContext,
         window: &Window,

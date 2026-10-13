@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<title>@navigation</title>
+<link rel="help" href="https://drafts.csswg.org/css-navigation-1/#at-navigation">
+<style>
+  @location --foo {
+    pathname: "/target/foo/*";
+  }
+  @location --bar {
+    pathname: "/target/bar/*";
+  }
+  @navigation (at: --foo) {
+    #elm {
+      --at-foo: matched;
+    }
+  }
+  @navigation (from: --foo) {
+    #elm {
+      --from-foo: matched;
+    }
+  }
+  @navigation (to: --foo) {
+    #elm {
+      --to-foo: matched;
+    }
+  }
+  @navigation (at: --bar) {
+    #elm {
+      --at-bar: matched;
+    }
+  }
+  @navigation (from: --bar) {
+    #elm {
+      --from-bar: matched;
+    }
+  }
+  @navigation (to: --bar) {
+    #elm {
+      --to-bar: matched;
+    }
+  }
+</style>
+<span id="elm"></span>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-navigation.js"></script>
+<script>
+  promise_test(async (t) => {
+    await new Promise(r => window.onload = () => t.step_timeout(r, 0));
+
+    const match_params = [
+      [elm, "--at-foo"],
+      [elm, "--from-foo"],
+      [elm, "--to-foo"],
+      [elm, "--at-bar"],
+      [elm, "--from-bar"],
+      [elm, "--to-bar"],
+    ];
+
+    //                                                                                onnavigate         committed
+    //                                                                                --foo   -bar       -foo    --bar
+    //                                                                                A F T   A F T      A F T   A F T
+    await test_navigation(t, "nav1", ()=> { navigation.navigate("/target/foo/1"); }, [0,0,1,  0,0,0],   [1,0,1,  0,0,0], match_params);
+    await test_navigation(t, "nav2", ()=> { navigation.navigate("/target/bar/1"); }, [1,1,0,  0,0,1],   [0,1,0,  1,0,1], match_params);
+    await test_navigation(t, "nav3", ()=> { navigation.navigate("/target/bar/2"); }, [0,0,0,  1,1,1],   [0,0,0,  1,1,1], match_params);
+    await test_navigation(t, "nav4", ()=> { navigation.back(); },                    [0,0,0,  1,1,1],   [0,0,0,  1,1,1], match_params);
+    await test_navigation(t, "nav4", ()=> { navigation.back(); },                    [0,0,1,  1,1,0],   [1,0,1,  0,1,0], match_params);
+  }, "Navigate between URLs");
+</script>

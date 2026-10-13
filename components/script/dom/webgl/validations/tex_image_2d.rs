@@ -318,10 +318,9 @@ impl WebGLValidator for TexImage2DValidator<'_> {
 
         // GL_INVALID_ENUM is generated if format or data_type is not an
         // accepted value.
-        let data_type = match TexDataType::from_gl_constant(self.data_type) {
-            Some(data_type) if data_type.required_webgl_version() <= context.webgl_version() => {
-                data_type
-            },
+        let version = context.webgl_version();
+        let data_type = match TexDataType::from_webgl_constant(self.data_type, version) {
+            Some(data_type) if data_type.required_webgl_version() <= version => data_type,
             _ => {
                 context.webgl_error(InvalidEnum);
                 return Err(TexImageValidationError::InvalidDataType);

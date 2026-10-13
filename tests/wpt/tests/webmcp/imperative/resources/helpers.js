@@ -20,8 +20,11 @@ function toolsAreEqual(actual, expected) {
   if (actual.description !== expected.description) {
     return `descriptions are unequal: ${actual.description} !== ${expected.description}`;
   }
-  if (actual.inputSchema !== expected.inputSchema) {
-    return `inputSchemas are unequal: ${actual.inputSchemas} !== ${expected.inputSchemas}`;
+  if (JSON.stringify(actual.inputSchema) !==
+      JSON.stringify(expected.inputSchema)) {
+    return `inputSchemas are unequal: ${
+        JSON.stringify(
+            actual.inputSchema)} !== ${JSON.stringify(expected.inputSchema)}`;
   }
   if (actual.origin !== expected.origin) {
     return `origins are unequal: ${actual.origin} !== ${expected.origin}`;
@@ -32,6 +35,27 @@ function toolsAreEqual(actual, expected) {
   if (actual.annotations?.untrustedContentHint !== expected.annotations?.untrustedContentHint) {
     return `untrustedContentHints are unequal: ${actual.annotations?.untrustedContentHint} !== ${expected.annotations?.untrustedContentHint}`;
   }
+  if (actual.annotations?.consequentialHint !== expected.annotations?.consequentialHint) {
+    return `consequentialHints are unequal: ${actual.annotations?.consequentialHint} !== ${expected.annotations?.consequentialHint}`;
+  }
+  if (actual.annotations?.debugging !== expected.annotations?.debugging) {
+    return `debuggings are unequal: ${actual.annotations?.debugging} !== ${
+        expected.annotations?.debugging}`;
+  }
 
   return true;
+}
+
+// Helper to wait for a `toolcancel` event on `document.modelContext` for a
+// specific `toolName`.
+function waitForToolCancel(toolName) {
+  return new Promise(resolve => {
+    const listener = e => {
+      if (e.toolName === toolName) {
+        document.modelContext.removeEventListener('toolcancel', listener);
+        resolve(e);
+      }
+    };
+    document.modelContext.addEventListener('toolcancel', listener);
+  });
 }

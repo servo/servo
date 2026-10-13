@@ -13,9 +13,9 @@ includes: [testTypedArray.js, detachArrayBuffer.js]
 features: [TypedArray]
 ---*/
 
-testWithTypedArrayConstructors(function(TA) {
-  var buffer = new ArrayBuffer(8);
+testWithTypedArrayConstructors(function(TA, makeCtorArg) {
+  var buffer = makeCtorArg(8);
   var sample = new TA(buffer, 0, 1);
   $DETACHBUFFER(sample.buffer);
   assert.sameValue(sample.buffer, buffer);
-}, null, ["passthrough"]);
+}, null, ["arraybuffer"], ["immutable"]);

@@ -9,27 +9,25 @@ import android.content.Context
 import android.util.Size
 import android.view.Surface
 
-/**
- * Maps /ports/servoshell API
- */
+/** Maps /ports/servoshell API */
 internal class JNIServo {
     init {
         System.loadLibrary("c++_shared")
         System.loadLibrary("servoshell")
     }
 
-    external fun version(): String
-
     external fun init(
         context: Context,
         args: String?,
         url: String?,
-        size: Size,
-        density: Float,
         logStr: String?,
-        enableLogs: Boolean,
         experimentalMode: Boolean,
         callbacks: Callbacks,
+    )
+
+    external fun addPlatformWindow(
+        size: Size,
+        density: Float,
         surface: Surface,
     )
 
@@ -47,8 +45,6 @@ internal class JNIServo {
 
     external fun loadUri(uri: String)
 
-    external fun scroll(dx: Int, dy: Int, x: Int, y: Int)
-
     external fun keydown(keycode: Int, unicode: Int)
 
     external fun keyup(keycode: Int, unicode: Int)
@@ -60,14 +56,6 @@ internal class JNIServo {
     external fun touchUp(x: Float, y: Float, pointer_id: Int)
 
     external fun touchCancel(x: Float, y: Float, pointer_id: Int)
-
-    external fun pinchZoomStart(factor: Float, x: Float, y: Float)
-
-    external fun pinchZoom(factor: Float, x: Float, y: Float)
-
-    external fun pinchZoomEnd(factor: Float, x: Float, y: Float)
-
-    external fun click(x: Float, y: Float)
 
     external fun pausePainting()
 

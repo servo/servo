@@ -47,27 +47,14 @@ pub fn set(preferences: Preferences) {
     }
 
     // Map between Stylo preference names and Servo preference names as the This should be
-    // kept in sync with components/script/dom/bindings/codegen/run.py which generates the
+    // kept in sync with components/script_bindings/codegen/run.py which generates the
     // DOM CSS style accessors.
     stylo_static_prefs::set_pref!("layout.unimplemented", preferences.layout_unimplemented);
     stylo_static_prefs::set_pref!("layout.threads", preferences.layout_threads as i32);
     stylo_static_prefs::set_pref!("layout.columns.enabled", preferences.layout_columns_enabled);
-    stylo_static_prefs::set_pref!("layout.grid.enabled", preferences.layout_grid_enabled);
-    stylo_static_prefs::set_pref!(
-        "layout.css.alpha-color-function.enabled",
-        preferences.layout_css_alpha_color_function_enabled
-    );
-    stylo_static_prefs::set_pref!(
-        "layout.css.attr.enabled",
-        preferences.layout_css_attr_enabled
-    );
     stylo_static_prefs::set_pref!(
         "layout.css.ellipse-corners.enabled",
         preferences.layout_css_ellipse_corners_enabled
-    );
-    stylo_static_prefs::set_pref!(
-        "layout.css.progress-function.enabled",
-        preferences.layout_css_progress_function_enabled
     );
     stylo_static_prefs::set_pref!(
         "layout.writing-mode.enabled",
@@ -128,8 +115,6 @@ pub struct Preferences {
     pub dom_webgpu_enabled: bool,
     /// List of comma-separated backends to be used by wgpu.
     pub dom_webgpu_wgpu_backend: String,
-    // feature: AbortController | #34866 | Web/API/AbortController
-    pub dom_abort_controller_enabled: bool,
     // feature: Adopted Stylesheet | #38132 | Web/API/Document/adoptedStyleSheets
     pub dom_adoptedstylesheet_enabled: bool,
     pub dom_allow_preloading_module_descendants: bool,
@@ -154,7 +139,6 @@ pub struct Preferences {
     ///
     /// See <https://github.com/servo/servo/pull/45301> for measurements.
     pub dom_canvas_msg_buffer_size: u64,
-    pub dom_clipboardevent_enabled: bool,
     pub dom_composition_event_enabled: bool,
     // feature: CookieStore | #37674 | Web/API/CookieStore
     pub dom_cookiestore_enabled: bool,
@@ -182,9 +166,6 @@ pub struct Preferences {
     // feature: IntersectionObserver | #35767 | Web/API/Intersection_Observer_API
     pub dom_intersection_observer_enabled: bool,
     pub dom_microdata_testing_enabled: bool,
-    pub dom_uievent_which_enabled: bool,
-    // feature: MutationObserver | #6633 | Web/API/MutationObserver
-    pub dom_mutation_observer_enabled: bool,
     // feature: Navigator.registerProtocolHandler() | #40615 | Web/API/Navigator/registerProtocolHandler
     pub dom_navigator_protocol_handlers_enabled: bool,
     // feature: Notification API | #34841 | Web/API/Notifications_API
@@ -297,7 +278,9 @@ pub struct Preferences {
     pub js_mem_gc_incremental_enabled: bool,
     pub js_mem_gc_incremental_slice_ms: i64,
     pub js_mem_gc_low_frequency_heap_growth: i64,
+    pub js_mem_gc_malloc_threshold_base_mb: i64,
     pub js_mem_gc_per_zone_enabled: bool,
+    pub js_mem_gc_urgent_threshold_mb: i64,
     pub js_mem_gc_zeal_frequency: i64,
     pub js_mem_gc_zeal_level: i64,
     pub js_mem_max: i64,
@@ -307,16 +290,15 @@ pub struct Preferences {
     pub js_wasm_baseline_enabled: bool,
     pub js_wasm_enabled: bool,
     pub js_wasm_ion_enabled: bool,
+    // feature: Container Timing| #48490 | Web/API/ContainerTiming
+    pub container_timing_enabled: bool,
     // feature: Largest Contentful Paint | #42000 | Web/API/LargestContentfulPaint
     pub largest_contentful_paint_enabled: bool,
     pub layout_animations_test_enabled: bool,
     // feature: CSS Multicol | #22397 | Web/CSS/Guides/Multicol_layout
     pub layout_columns_enabled: bool,
-    // feature: CSS Grid | #34479 | Web/CSS/Guides/Grid_layout
-    pub layout_grid_enabled: bool,
+    pub layout_flexbox_balance: bool,
     pub layout_container_queries_enabled: bool,
-    pub layout_css_alpha_color_function_enabled: bool,
-    pub layout_css_attr_enabled: bool,
     pub layout_css_ellipse_corners_enabled: bool,
     pub layout_css_progress_function_enabled: bool,
 
@@ -377,6 +359,10 @@ pub struct Preferences {
     pub network_enforce_tls_localhost: bool,
     pub network_enforce_tls_onion: bool,
     pub network_http_cache_disabled: bool,
+    /// The path to a disk cache file. Empty string disables the disk cache.
+    pub network_http_disk_cache: String,
+    /// Maximum size of the disk cache file in bytes.
+    pub network_http_disk_cache_size: u64,
     /// A url for a http proxy. We treat an empty string as no proxy.
     pub network_http_proxy_uri: String,
     /// A url for a https proxy. We treat an empty string as no proxy.
@@ -395,6 +381,10 @@ pub struct Preferences {
     pub network_use_webpki_roots: bool,
     /// The maximum content size we will forward for preallocation, defaults to 5MB
     pub network_max_content_length: u64,
+    /// Experimental option. If enabled servo will attempt to optimize thread placement
+    /// and/or priority of critical servo threads to optimize performance.
+    #[doc(hidden)]
+    pub perf_thread_boost_enabled: bool,
     /// The length of the session history, in navigations, for each `WebView. Back-forward
     /// cache entries that are more than `session_history_max_length` steps in the future or
     /// `session_history_max_length` steps in the past will be discarded. Navigating forward
@@ -410,6 +400,12 @@ pub struct Preferences {
     pub thread_pool_fallback_workers: u64,
     /// Maximum number of workers for the asynchronous networking runtime thread pool
     pub thread_pool_async_runtime_workers_max: u64,
+    /// Number of worker threads used to rasterize a canvas.
+    /// This preference currently only affects the vello_cpu backend.
+    /// Setting this pref to `0` uses the single-threaded backend and
+    /// avoids creating a threadpool.
+    /// For small canvas sizes this pref is ignored and no threadpool is created.
+    pub thread_pool_canvas_workers: u64,
     /// Maximum number of workers for WebRender
     pub thread_pool_webrender_workers_max: u64,
     /// The user-agent to use for Servo. This can also be set via [`UserAgentPlatform`] in
@@ -435,7 +431,6 @@ impl Preferences {
             editing_caret_blink_time: 600,
             devtools_server_enabled: false,
             devtools_server_listen_address: String::new(),
-            dom_abort_controller_enabled: true,
             dom_adoptedstylesheet_enabled: false,
             dom_allow_preloading_module_descendants: false,
             dom_allow_scripts_to_close_windows: false,
@@ -446,7 +441,6 @@ impl Preferences {
             dom_canvas_text_enabled: true,
             dom_canvas_backend: String::new(),
             dom_canvas_msg_buffer_size: 16,
-            dom_clipboardevent_enabled: true,
             dom_composition_event_enabled: false,
             dom_cookiestore_enabled: false,
             dom_credential_management_enabled: false,
@@ -463,8 +457,6 @@ impl Preferences {
             dom_indexeddb_enabled: false,
             dom_intersection_observer_enabled: false,
             dom_microdata_testing_enabled: false,
-            dom_uievent_which_enabled: true,
-            dom_mutation_observer_enabled: true,
             dom_navigator_protocol_handlers_enabled: false,
             dom_notification_enabled: false,
             dom_parallel_css_parsing_enabled: true,
@@ -495,8 +487,8 @@ impl Preferences {
             dom_testutils_enabled: false,
             // Following Firefox and Chrome, we are enabling the touch events legacy APIs for android.
             // Additionally, enabling it in ohos for compatibility as well.
-            dom_touch_events_legacy_apis_enabled: cfg!(target_os = "android") |
-                cfg!(target_env = "ohos"),
+            dom_touch_events_legacy_apis_enabled: cfg!(target_os = "android")
+                | cfg!(target_env = "ohos"),
             dom_transient_activation_duration_ms: 5000,
             dom_web_animations_enabled: false,
             dom_webgl2_enabled: false,
@@ -544,7 +536,9 @@ impl Preferences {
             js_disable_jit: false,
             js_ion_enabled: true,
             js_ion_unsafe_eager_compilation_enabled: false,
-            js_mem_gc_compacting_enabled: true,
+            // The layout system currently does not work with compacting GC, so it is disabled by default.
+            // See https://github.com/servo/servo/issues/47577
+            js_mem_gc_compacting_enabled: false,
             js_mem_gc_empty_chunk_count_min: 1,
             js_mem_gc_high_frequency_heap_growth_max: 300,
             js_mem_gc_high_frequency_heap_growth_min: 150,
@@ -554,7 +548,9 @@ impl Preferences {
             js_mem_gc_incremental_enabled: false,
             js_mem_gc_incremental_slice_ms: 10,
             js_mem_gc_low_frequency_heap_growth: 150,
+            js_mem_gc_malloc_threshold_base_mb: 38,
             js_mem_gc_per_zone_enabled: false,
+            js_mem_gc_urgent_threshold_mb: 16,
             js_mem_gc_zeal_frequency: 100,
             js_mem_gc_zeal_level: 0,
             js_mem_max: -1,
@@ -564,16 +560,15 @@ impl Preferences {
             js_wasm_baseline_enabled: true,
             js_wasm_enabled: true,
             js_wasm_ion_enabled: true,
+            container_timing_enabled: false,
             largest_contentful_paint_enabled: false,
             layout_animations_test_enabled: false,
             layout_columns_enabled: false,
             layout_container_queries_enabled: false,
-            layout_css_alpha_color_function_enabled: false,
-            layout_css_attr_enabled: false,
             layout_css_ellipse_corners_enabled: false,
             layout_css_progress_function_enabled: false,
+            layout_flexbox_balance: false,
             layout_display_list_capture_enabled: false,
-            layout_grid_enabled: false,
             layout_style_sharing_cache_enabled: true,
             layout_text_painting_enabled: true,
             // TODO(mrobinson): This should likely be based on the number of processors.
@@ -590,6 +585,8 @@ impl Preferences {
             network_enforce_tls_localhost: false,
             network_enforce_tls_onion: false,
             network_http_cache_disabled: false,
+            network_http_disk_cache: String::new(),
+            network_http_disk_cache_size: 1024 * 1024 * 100, // Roughtly 100MB
             network_http_proxy_uri: String::new(),
             network_https_proxy_uri: String::new(),
             network_http_no_proxy: String::new(),
@@ -597,12 +594,16 @@ impl Preferences {
             network_local_directory_listing_enabled: true,
             network_use_webpki_roots: false,
             network_max_content_length: 5 * 1024 * 1024,
+            perf_thread_boost_enabled: true,
             session_history_max_length: 20,
             shell_background_color_rgba: [1.0, 1.0, 1.0, 1.0],
             log_filter: String::new(),
             thread_pool_workers_max: 4,
             thread_pool_async_runtime_workers_max: 6,
             thread_pool_fallback_workers: 3,
+            // <https://github.com/linebender/vello/blob/c95b228e1cf73bf96338e8c8ae0d145553f8f99c/sparse_strips/vello_cpu/examples/basic.rs#L51>
+            // According to this example 2-4 give the best results.
+            thread_pool_canvas_workers: 3,
             thread_pool_webrender_workers_max: 4,
             webgl_testing_context_creation_error: false,
             user_agent: String::new(),
@@ -676,29 +677,29 @@ impl UserAgentPlatform {
                 if cfg!(all(target_os = "windows", target_arch = "x86_64")) =>
             {
                 format!(
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; {ARCH}rv:140.0) Servo/{SERVO_VERSION} Firefox/140.0"
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; {ARCH}; rv:153.0) Servo/{SERVO_VERSION} Firefox/153.0"
                 )
             },
             UserAgentPlatform::Desktop if cfg!(target_os = "macos") => {
                 format!(
-                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:140.0) Servo/{SERVO_VERSION} Firefox/140.0"
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:153.0) Servo/{SERVO_VERSION} Firefox/153.0"
                 )
             },
             UserAgentPlatform::Desktop => {
                 format!(
-                    "Mozilla/5.0 (X11; Linux {ARCH}; rv:140.0) Servo/{SERVO_VERSION} Firefox/140.0"
+                    "Mozilla/5.0 (X11; Linux {ARCH}; rv:153.0) Servo/{SERVO_VERSION} Firefox/153.0"
                 )
             },
             UserAgentPlatform::Android => {
                 format!(
-                    "Mozilla/5.0 (Android 10; Mobile; rv:140.0) Servo/{SERVO_VERSION} Firefox/140.0"
+                    "Mozilla/5.0 (Android 10; Mobile; rv:153.0) Servo/{SERVO_VERSION} Firefox/153.0"
                 )
             },
             UserAgentPlatform::OpenHarmony => format!(
-                "Mozilla/5.0 (OpenHarmony; Mobile; rv:140.0) Servo/{SERVO_VERSION} Firefox/140.0"
+                "Mozilla/5.0 (OpenHarmony; Mobile; rv:153.0) Servo/{SERVO_VERSION} Firefox/153.0"
             ),
             UserAgentPlatform::Ios => format!(
-                "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X; rv:140.0) Servo/{SERVO_VERSION} Firefox/140.0"
+                "Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X; rv:153.0) Servo/{SERVO_VERSION} Firefox/153.0"
             ),
         }
     }

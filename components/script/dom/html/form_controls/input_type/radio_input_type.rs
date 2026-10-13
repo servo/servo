@@ -14,14 +14,15 @@ use crate::dom::bindings::codegen::Bindings::NodeBinding::GetRootNodeOptions;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::element::AttributeMutation;
 use crate::dom::element::attributes::storage::AttrRef;
-use crate::dom::event::{Event, EventBubbles, EventCancelable, EventComposed};
+use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::form_controls::htmlinputelement::{HTMLInputElement, InputActivationState};
 use crate::dom::html::form_controls::input_type::text_value_widget::TextValueWidget;
 use crate::dom::html::form_controls::input_type::{
-    InputType, SpecificInputActivationType, SpecificInputType,
+    InputType, SpecificInputActivationType, SpecificInputType, ValueChangeEvents,
 };
 use crate::dom::htmlformelement::{FormControl, HTMLFormElement};
+use crate::dom::input_type::text_input_widget::TextInputWidget;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::{BindContext, Node, UnbindContext};
 use crate::dom::validation::Validatable;
@@ -37,6 +38,10 @@ pub(crate) struct RadioInputType {
 pub(crate) struct RadioInputActivation;
 
 impl SpecificInputType for RadioInputType {
+    fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>> {
+        None
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#radio-button-state-(type=radio):suffering-from-being-missing>
     fn suffers_from_being_missing(&self, input: &HTMLInputElement, _value: &DOMString) -> bool {
         if input.radio_group_name().is_none() {
@@ -166,6 +171,10 @@ impl SpecificInputType for RadioInputType {
                 .perform_validation_and_update(cx, ValidationFlags::all());
         }
     }
+
+    fn form_owner_changed(&self, cx: &mut JSContext, input: &HTMLInputElement) {
+        radio_group_updated(cx, input, input.radio_group_name().as_ref());
+    }
 }
 
 impl SpecificInputActivationType for RadioInputActivation {
@@ -182,25 +191,19 @@ impl SpecificInputActivationType for RadioInputActivation {
             return;
         }
 
-        let target = input.upcast::<EventTarget>();
-
         // Step 2: Fire an event named input at the element with the bubbles and composed
         // attributes initialized to true.
-        target.fire_event_with_params(
-            cx,
-            atom!("input"),
-            EventBubbles::Bubbles,
-            EventCancelable::NotCancelable,
-            EventComposed::Composed,
-        );
-
         // Step 3: Fire an event named change at the element with the bubbles attribute
         // initialized to true.
-        target.fire_bubbling_event(cx, atom!("change"));
+        input.fire_value_change_events(cx, ValueChangeEvents::Input | ValueChangeEvents::Change);
     }
 }
 
-fn radio_group_updated(cx: &mut JSContext, input: &HTMLInputElement, group: Option<&Atom>) {
+pub(crate) fn radio_group_updated(
+    cx: &mut JSContext,
+    input: &HTMLInputElement,
+    group: Option<&Atom>,
+) {
     if input.Checked() {
         broadcast_radio_checked(cx, input, group);
     }

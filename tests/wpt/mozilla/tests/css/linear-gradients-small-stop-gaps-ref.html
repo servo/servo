@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+<!-- Tests that linear gradient with small color stop gaps work. -->
+<style>
+section {
+    display: block;
+    width: 100px;
+    height: 500px;
+    border: solid black 1px;
+    background-clip: content-box;
+    background-image: linear-gradient(
+        black, black 1px,
+        white 1px, white 3px,
+        black 3px, black 6px,
+        white 6px, white 10px,
+        black 10px, black 12px,
+        white 12px, white 15px
+    );
+}
+</style>
+</head>
+<body>
+<section></section>
+</body>
+</html>
+

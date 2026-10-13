@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: Choose browsing context - the given name contains an unpaired surrogate</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/document-sequences.html#the-rules-for-choosing-a-navigable">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+test(t => {
+  // Set from script because the parser replaces surrogate character references
+  // with U+FFFD.
+  const name = "\uD800frame";
+
+  const frame = document.createElement("iframe");
+  frame.name = name;
+  document.body.appendChild(frame);
+  t.add_cleanup(() => frame.remove());
+
+  const win = window.open("", name);
+  t.add_cleanup(() => {
+    if (win && win !== frame.contentWindow) {
+      win.close();
+    }
+  });
+
+  assert_equals(win, frame.contentWindow);
+}, "An existing browsing context must be chosen when the given name contains an unpaired surrogate");
+</script>

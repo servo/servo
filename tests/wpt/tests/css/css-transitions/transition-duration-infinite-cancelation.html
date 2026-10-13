@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Canceling a transition with transition-duration set to infinite value</title>
+<link rel="author" title="Antoine Quint" href="mailto:graouts@webkit.org">
+<link rel="help" href="https://bugs.webkit.org/show_bug.cgi?id=321274">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/helper.js"></script>
+<style>
+
+#target {
+  width: 100px;
+  height: 100px;
+  background-color: black;
+
+  transition: background-color calc(infinity * 1s) ease;
+}
+
+#target.transition {
+  background-color: blue;
+  transition-duration: .2s;
+}
+
+</style>
+</head>
+<body>
+<div id="target"></div>
+<script>
+promise_test(async t => {
+  const div = document.querySelector("div");
+
+  // Start the transition.
+  await new Promise(requestAnimationFrame);
+  div.classList.toggle("transition");
+
+  // End the transition.
+  await new Promise(requestAnimationFrame);
+  div.classList.toggle("transition");
+
+  // Ensure we wait a frame to make sure the page is responsive.
+  await new Promise(requestAnimationFrame);
+}, 'Canceling a transition with transition-duration set to infinite value');
+</script>
+</body>
+</html>

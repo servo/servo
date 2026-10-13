@@ -1,0 +1,371 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Selection.deleteFromDocument() should work as in a range in the DOM rather than in the flat tree</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  const container = document.getElementById("container");
+  test(t => {
+    container.innerHTML = "<p>abcdef</p><div><span>UnassignedText</span></div>";
+    const p = container.querySelector("p");
+    const host = container.querySelector("div");
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = "<span>InnerText</span>";
+    getSelection().setBaseAndExtent(
+      p.firstChild, "abc".length,
+      host, 1
+    );
+    try {
+      getSelection().deleteFromDocument();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: getSelection().deleteFromDocument() shouldn't throw exception`
+      );
+    }
+    test(() => {
+      assert_equals(
+        host.shadowRoot.innerHTML,
+        "<span>InnerText</span>",
+      );
+    }, `${t.name}: getSelection().deleteFromDocument() shouldn't delete the content in the shadow`);
+    test(() => {
+      assert_equals(
+        container.innerHTML,
+        "<p>abc</p><div></div>",
+      );
+    }, `${t.name}: getSelection().deleteFromDocument() should delete a part of the text and the unassigned <span>`);
+  }, 'Selection.deleteFromDocument() when "<p>abc[def</p><div><shadow-root><span>InnerText</span></shadow-root><span>UnassignedText</span>}</div>"');
+
+  test(t => {
+    container.innerHTML = "<p>abcdef</p><div><span>UnassignedText</span></div>";
+    const p = container.querySelector("p");
+    const host = container.querySelector("div");
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = "<span>InnerText</span>";
+    getSelection().setBaseAndExtent(
+      p.firstChild, "abc".length,
+      host.firstChild.firstChild, "Unassigned".length
+    );
+    try {
+      getSelection().deleteFromDocument();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: getSelection().deleteFromDocument() shouldn't throw exception`
+      );
+    }
+    test(() => {
+      assert_equals(
+        host.shadowRoot.innerHTML,
+        "<span>InnerText</span>",
+      );
+    }, `${t.name}: getSelection().deleteFromDocument() shouldn't delete the content in the shadow`);
+    test(() => {
+      assert_equals(
+        container.innerHTML,
+        "<p>abc</p><div><span>Text</span></div>",
+      );
+    }, `${t.name}: getSelection().deleteFromDocument() should delete a part of the text and a part of the unassigned text`);
+  }, 'Selection.deleteFromDocument() when "<p>abc[def</p><div><shadow-root><span>InnerText</span></shadow-root><span>Unassigned]Text</span></div>"');
+
+  test(t => {
+    container.innerHTML = "<div><span>UnassignedText</span></div>";
+    const p = container.querySelector("p");
+    const host = container.querySelector("div");
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = "<span>InnerText</span>";
+    getSelection().setBaseAndExtent(
+      host.firstChild, 0,
+      host.firstChild, 1
+    );
+    try {
+      getSelection().deleteFromDocument();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: getSelection().deleteFromDocument() shouldn't throw exception`
+      );
+    }
+    test(() => {
+      assert_equals(
+        host.shadowRoot.innerHTML,
+        "<span>InnerText</span>",
+      );
+    }, `${t.name}: getSelection().deleteFromDocument() shouldn't delete the content in the shadow`);
+    test(() => {
+      assert_equals(
+        container.innerHTML,
+        "<div><span></span></div>",
+      );
+    }, `${t.name}: getSelection().deleteFromDocument() should delete the unassigned text`);
+  }, 'Selection.deleteFromDocument() when "<div><shadow-root><span>InnerText</span></shadow-root><span>{UnassignedText}</span></div>"');
+
+  test(t => {
+    container.innerHTML = "<div><span>UnassignedText</span></div><p>abcdef</p>";
+    const p = container.querySelector("p");
+    const host = container.querySelector("div");
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = "<span>InnerText</span>";
+    getSelection().setBaseAndExtent(
+      host, 0,
+      p.firstChild, "abc".length
+    );
+    try {
+      getSelection().deleteFromDocument();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: getSelection().deleteFromDocument() shouldn't throw exception`
+      );
+    }
+    test(() => {
+      assert_equals(
+        host.shadowRoot.innerHTML,
+        "<span>InnerText</span>",
+      );
+    }, `${t.name}: getSelection().deleteFromDocument() shouldn't delete the content in the shadow`);
+    test(() => {
+      assert_equals(
+        container.innerHTML,
+        "<div></div><p>def</p>",
+      );
+    }, `${t.name}: getSelection().deleteFromDocument() should delete the unassigned text and a part of the text`);
+  }, 'Selection.deleteFromDocument() when "<div><shadow-root><span>InnerText</span></shadow-root>{<span>UnassignedText</span></div><p>abc]def</p>"');
+
+  test(t => {
+    container.innerHTML = "<div><span>UnassignedText</span></div><p>abcdef</p>";
+    const p = container.querySelector("p");
+    const host = container.querySelector("div");
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = "<span>InnerText</span>";
+    getSelection().setBaseAndExtent(
+      host.firstChild.firstChild, "Unassigned".length,
+      p.firstChild, "abc".length
+    );
+    try {
+      getSelection().deleteFromDocument();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: getSelection().deleteFromDocument() shouldn't throw exception`
+      );
+    }
+    test(() => {
+      assert_equals(
+        host.shadowRoot.innerHTML,
+        "<span>InnerText</span>",
+      );
+    }, `${t.name}: getSelection().deleteFromDocument() shouldn't delete the content in the shadow`);
+    test(() => {
+      assert_equals(
+        container.innerHTML,
+        "<div><span>Unassigned</span></div><p>def</p>",
+      );
+    }, `${t.name}: getSelection().deleteFromDocument() should delete a part of the unassigned text and a part of the text`);
+  }, 'Selection.deleteFromDocument() when "<div><shadow-root><span>InnerText</span></shadow-root><span>Unassigned[Text</span></div><p>abc]def</p>"');
+
+  test(t => {
+    container.innerHTML = "<p>abcdef</p><div><span>AssignedText</span></div>";
+    const p = container.querySelector("p");
+    const host = container.querySelector("div");
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = "<slot></slot><span>InnerText</span>";
+    getSelection().setBaseAndExtent(
+      p.firstChild, "abc".length,
+      host.firstChild.firstChild, "Assigned".length
+    );
+    try {
+      getSelection().deleteFromDocument();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: getSelection().deleteFromDocument() shouldn't throw exception`
+      );
+    }
+    test(() => {
+      assert_equals(
+        host.shadowRoot.innerHTML,
+        "<slot></slot><span>InnerText</span>",
+      );
+    }, `${t.name}: getSelection().deleteFromDocument() shouldn't delete the content in the shadow`);
+    test(() => {
+      assert_equals(
+        container.innerHTML,
+        "<p>abc</p><div><span>Text</span></div>",
+      );
+    }, `${t.name}: getSelection().deleteFromDocument() should delete a part of the text and a part of the assigned text`);
+  }, 'Selection.deleteFromDocument() when "<p>abc[def</p><div><shadow-root></slot><span>InnerText</span></shadow-root><slot><span>Assigned]Text</span></div>"');
+
+  test(t => {
+    container.innerHTML = "<p>abcdef</p><div><span>AssignedText</span></div>";
+    const p = container.querySelector("p");
+    const host = container.querySelector("div");
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = "<span>InnerText</span><slot></slot>";
+    getSelection().setBaseAndExtent(
+      p.firstChild, "abc".length,
+      host.firstChild.firstChild, "Assigned".length
+    );
+    try {
+      getSelection().deleteFromDocument();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: getSelection().deleteFromDocument() shouldn't throw exception`
+      );
+    }
+    test(() => {
+      assert_equals(
+        host.shadowRoot.innerHTML,
+        "<span>InnerText</span><slot></slot>",
+      );
+    }, `${t.name}: getSelection().deleteFromDocument() shouldn't delete the content in the shadow`);
+    test(() => {
+      assert_equals(
+        container.innerHTML,
+        "<p>abc</p><div><span>Text</span></div>",
+      );
+    }, `${t.name}: getSelection().deleteFromDocument() should delete a part of the text and a part of the assigned text`);
+  }, 'Selection.deleteFromDocument() when "<p>abc[def</p><div><shadow-root><span>InnerText</span><slot></slot></shadow-root><span>Assigned]Text</span></div>"');
+
+  test(t => {
+    container.innerHTML = `<p>abcdef</p><div><span slot="assigned">AssignedText</span><span>UnassignedText</span></div>`;
+    const p = container.querySelector("p");
+    const host = container.querySelector("div");
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = `<span>InnerText</span><slot name="assigned"></slot>`;
+    getSelection().setBaseAndExtent(
+      p.firstChild, "abc".length,
+      host.querySelector("span[slot]").firstChild, "Assigned".length
+    );
+    try {
+      getSelection().deleteFromDocument();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: getSelection().deleteFromDocument() shouldn't throw exception`
+      );
+    }
+    test(() => {
+      assert_equals(
+        host.shadowRoot.innerHTML,
+        `<span>InnerText</span><slot name="assigned"></slot>`,
+      );
+    }, `${t.name}: getSelection().deleteFromDocument() shouldn't delete the content in the shadow`);
+    test(() => {
+      assert_equals(
+        container.innerHTML,
+        `<p>abc</p><div><span slot="assigned">Text</span><span>UnassignedText</span></div>`,
+      );
+    }, `${t.name}: getSelection().deleteFromDocument() should delete a part of the text and a part of the assigned text`);
+  }, 'Selection.deleteFromDocument() when "<p>abc[def</p><div><shadow-root><span>InnerText</span><slot name="assigned"></slot></shadow-root><span>Assigned]Text</span><span>UnassignedText</span></div>"');
+
+  test(t => {
+    container.innerHTML = `<p>abcdef</p><div><span>UnassignedText</span><span slot="assigned">AssignedText</span></div>`;
+    const p = container.querySelector("p");
+    const host = container.querySelector("div");
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = `<span>InnerText</span><slot name="assigned"></slot>`;
+    getSelection().setBaseAndExtent(
+      p.firstChild, "abc".length,
+      host.querySelector("span[slot]").firstChild, "Assigned".length
+    );
+    try {
+      getSelection().deleteFromDocument();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: getSelection().deleteFromDocument() shouldn't throw exception`
+      );
+    }
+    test(() => {
+      assert_equals(
+        host.shadowRoot.innerHTML,
+        `<span>InnerText</span><slot name="assigned"></slot>`,
+      );
+    }, `${t.name}: getSelection().deleteFromDocument() shouldn't delete the content in the shadow`);
+    test(() => {
+      assert_equals(
+        container.innerHTML,
+        `<p>abc</p><div><span slot="assigned">Text</span></div>`,
+      );
+    }, `${t.name}: getSelection().deleteFromDocument() should delete a part of the text, the unassigned <span> and a part of the assigned text`);
+  }, 'Selection.deleteFromDocument() when "<p>abc[def</p><div><shadow-root><span>InnerText</span><slot name="assigned"></slot></shadow-root><span>UnassignedText</span><span>Assigned]Text</span></div>"');
+
+  // Crossing shadow DOM boundary selection range cases.
+  test(t => {
+    container.innerHTML = "<p>abcdef</p><div><span>UnassignedText</span></div>";
+    const p = container.querySelector("p");
+    const host = container.querySelector("div");
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = "<span>InnerText</span>";
+    getSelection().setBaseAndExtent(
+      p.firstChild, "abc".length,
+      shadowRoot.firstChild.firstChild, "Inner".length
+    );
+    const range = getSelection().getRangeAt(0);
+    try {
+      getSelection().deleteFromDocument();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: getSelection().deleteFromDocument() shouldn't throw exception`
+      );
+    }
+    test(() => {
+      assert_equals(
+        host.shadowRoot.innerHTML,
+        "<span>InnerText</span>",
+      );
+    }, `${t.name}: getSelection().deleteFromDocument() shouldn't delete the content in the shadow`);
+    test(() => {
+      assert_equals(
+        container.innerHTML,
+        "<p>abcdef</p><div><span>UnassignedText</span></div>",
+      );
+    }, `${t.name}: getSelection().deleteFromDocument() shouldn't delete the content in the parent DOM`);
+  }, 'Selection.deleteFromDocument() when "<p>abc[def</p><div><shadow-root><span>Inner]Text</span></shadow-root><span>UnassignedText</span></div>"');
+
+  test(t => {
+    container.innerHTML = "<div><span>UnassignedText</span></div><p>abcdef</p>";
+    const p = container.querySelector("p");
+    const host = container.querySelector("div");
+    const shadowRoot = host.attachShadow({mode: "open"});
+    shadowRoot.innerHTML = "<span>InnerText</span>";
+    getSelection().setBaseAndExtent(
+      shadowRoot.firstChild.firstChild, "Inner".length,
+      p.firstChild, "abc".length
+    );
+    const range = getSelection().getRangeAt(0);
+    try {
+      getSelection().deleteFromDocument();
+    } catch (e) {
+      assert_true(
+        false,
+        `${t.name}: getSelection().deleteFromDocument() shouldn't throw exception`
+      );
+    }
+    test(() => {
+      assert_equals(
+        host.shadowRoot.innerHTML,
+        "<span>InnerText</span>",
+      );
+    }, `${t.name}: getSelection().deleteFromDocument() shouldn't delete the content in the shadow`);
+    test(() => {
+      assert_equals(
+        container.innerHTML,
+        "<div><span>UnassignedText</span></div><p>abcdef</p>",
+      );
+    }, `${t.name}: getSelection().deleteFromDocument() shouldn't delete the content in the parent DOM`);
+  }, 'Selection.deleteFromDocument() when "<div><shadow-root><span>Inner[Text</span></shadow-root><span>UnassignedText</span></div><p>abc]def</p>"');
+}, {once: true});
+</script>
+</head>
+<body><div id="container"></div></body>
+</html>

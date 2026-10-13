@@ -42,12 +42,12 @@ Number.prototype.toLocaleString = function() {
 var arr = [42, 0];
 var expected = ["hacks1", "hacks2"].join(separator);
 
-testWithTypedArrayConstructors(function(TA) {
-  var sample = new TA(arr);
+testWithTypedArrayConstructors(function(TA, makeCtorArg) {
+  var sample = new TA(makeCtorArg(arr));
   calls = [];
   assert.sameValue(sample.toLocaleString(), expected, "returns expected value");
   assert(
     compareArray(new TA(calls), sample),
     "toLocaleString called for each item"
   );
-}, null, ["passthrough"]);
+});

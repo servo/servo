@@ -1,0 +1,20 @@
+<svg width="400" height="140" xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>pathLength of zero pushes a positive startOffset past the end of the path</title>
+  <metadata>
+    <html:link rel="author" title="Karl Dubost" href="mailto:k_dubost@apple.com"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/paths.html#PathLengthAttribute"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementStartOffsetAttribute"/>
+    <html:link rel="match" href="textpath-pathlength-zero-offset-positive-ref.svg"/>
+    <html:meta name="assert" content="A pathLength of zero is a scaling factor of infinity, so a non-percentage startOffset greater than zero becomes +Infinity. Every glyph then falls beyond the end of the path and none of them are rendered. The first text below must therefore draw nothing. The second text is on a path with no pathLength and must draw normally: it is there so that a document which fails to render at all, for a parse error or a missing font, cannot match the reference by accident. Measured on 2026-09-14: Safari 26.4 and Firefox 158 draw nothing for the first text, while Chrome 155 draws about one glyph near the origin, so this test is expected to fail in Chrome."/>
+  </metadata>
+  <defs>
+    <path id="scaled" d="M 10 50 L 390 50" pathLength="0"/>
+    <path id="plain" d="M 10 100 L 390 100"/>
+  </defs>
+  <text>
+    <textPath href="#scaled" startOffset="60">Pushed past the end</textPath>
+  </text>
+  <text>
+    <textPath href="#plain" startOffset="0">This line must render</textPath>
+  </text>
+</svg>

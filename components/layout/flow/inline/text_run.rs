@@ -4,22 +4,18 @@
 
 use std::mem;
 use std::ops::Range;
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 
 use app_units::Au;
 use atomic_refcell::AtomicRefCell;
 use fonts::font_feature_values::ResolvedFontVariantAlternates;
-use fonts::{
-    ByteIndex, FontContext, FontRef, ShapedText, ShapedTextSlice, ShapingFlags, ShapingOptions,
-    TextByteRange,
-};
-use icu_locid::subtags::Language;
-use icu_properties::{self, LineBreak};
-use layout_api::ScriptSelection;
+use fonts::{FontContext, FontRef, ShapedText, ShapedTextSlice, ShapingFlags, ShapingOptions};
+use icu_locale_core::subtags::Language;
+use icu_properties::props::{EnumeratedProperty, LineBreak};
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use servo_arc::Arc as ServoArc;
-use servo_base::text::{Utf32CodeUnits, is_bidi_control};
+use servo_base::text::{RangeAny, Utf8CodeUnits, Utf32CodeUnits, is_bidi_control};
 use smallvec::SmallVec;
 use style::Zero;
 use style::computed_values::font_kerning::T as FontKerning;
@@ -38,10 +34,11 @@ use super::{InlineFormattingContextLayout, SharedInlineStyles};
 use crate::ArcRefCell;
 use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
-use crate::flow::inline::line::TextRunOffsets;
-use crate::flow::inline::shaping_queue::ShapingQueueEntry;
+use crate::flow::inline::shaping_queue::{ShapingQueueEntry, breaks_for_break_spaces};
+use crate::flow::inline::text_transform::OffsetMap;
 use crate::flow::inline::{BidiLevels, LineBlockSizes, LineItem, SegmentContentFlags};
 use crate::fragment_tree::BaseFragmentInfo;
+use crate::style_ext::ComputedValuesExt;
 
 // There are two reasons why we might want to break at the start:
 //
@@ -120,7 +117,7 @@ impl FontInfo {
         Self {
             font,
             bidi_level: Level::ltr(),
-            language: Language::UND,
+            language: Language::UNKNOWN,
             letter_spacing: None,
             word_spacing: None,
             text_rendering: TextRendering::Auto,
@@ -153,6 +150,8 @@ impl From<&FontAndScriptInfo> for ShapingOptions {
         if letter_spacing.is_some() {
             ligatures = FontVariantLigatures::NONE;
         };
+        let letter_spacing = letter_spacing.unwrap_or(Au::zero());
+        let word_spacing = info.font_info.word_spacing.unwrap_or(Au::zero());
         if info.font_info.text_rendering == TextRendering::Optimizespeed {
             ligatures = FontVariantLigatures::NONE;
             flags.insert(ShapingFlags::DISABLE_KERNING_SHAPING_FLAG)
@@ -165,7 +164,7 @@ impl From<&FontAndScriptInfo> for ShapingOptions {
 
         Self {
             letter_spacing,
-            word_spacing: info.font_info.word_spacing,
+            word_spacing,
             script: info.script,
             language: info.font_info.language,
             ligatures,
@@ -186,10 +185,10 @@ pub(crate) struct TextRunSegment {
     pub info: FontAndScriptInfo,
 
     /// The range of bytes in the parent [`super::InlineFormattingContext`]'s text content.
-    pub byte_range: Range<usize>,
+    pub byte_range: Range<Utf8CodeUnits>,
 
     /// The range of characters in the parent [`super::InlineFormattingContext`]'s text content.
-    pub character_range: Range<usize>,
+    pub character_range: Range<Utf32CodeUnits>,
 
     /// Whether or not the linebreaker said that we should allow a line break at the start of this
     /// segment.
@@ -208,8 +207,8 @@ pub(crate) struct TextRunSegment {
 impl TextRunSegment {
     fn new(
         info: FontAndScriptInfo,
-        byte_range: Range<usize>,
-        character_range: Range<usize>,
+        byte_range: Range<Utf8CodeUnits>,
+        character_range: Range<Utf32CodeUnits>,
     ) -> Self {
         Self {
             info,
@@ -239,14 +238,19 @@ impl TextRunSegment {
             return false;
         }
 
-        !script_is_specific(self.info.script) ||
-            !script_is_specific(new_script) ||
-            self.info.script == new_script
+        !script_is_specific(self.info.script)
+            || !script_is_specific(new_script)
+            || self.info.script == new_script
     }
 
     /// Update this segment to end at the given byte and character index. The update will only ever
     /// make the Script specific and will not change it otherwise.
-    fn update(&mut self, next_byte_index: usize, next_character_index: usize, new_script: Script) {
+    fn update(
+        &mut self,
+        next_byte_index: Utf8CodeUnits,
+        next_character_index: Utf32CodeUnits,
+        new_script: Script,
+    ) {
         if !script_is_specific(self.info.script) && script_is_specific(new_script) {
             self.info = FontAndScriptInfo {
                 script: new_script,
@@ -273,42 +277,26 @@ impl TextRunSegment {
         let segment_text = ifc
             .layout_context
             .capture_display_list
-            .then(|| &ifc.ifc.text_content[self.byte_range.clone()]);
+            .then(|| {
+                ifc.ifc.text_content.get().map(|text| {
+                    &text[self.byte_range.start.0 as usize..self.byte_range.end.0 as usize]
+                })
+            })
+            .flatten();
         let mut byte_offset_in_segment = 0usize;
 
         let mut character_range_start = self.character_range.start;
         for (run_index, run) in self.runs.iter().enumerate() {
-            let character_count = run.character_count();
-            let new_character_range_end = character_range_start + character_count;
-            let offsets = ifc
-                .ifc
-                .shared_selection
-                .clone()
-                .or_else(|| {
-                    if text_run.document_selection.is_empty() {
-                        None
-                    } else {
-                        Some(Arc::new(AtomicRefCell::new(ScriptSelection {
-                            range: TextByteRange::new(ByteIndex::zero(), ByteIndex::zero()),
-                            character_range: text_run.document_selection.start.0..
-                                text_run.document_selection.end.0,
-                            enabled: true,
-                        })))
-                    }
-                })
-                .map(|shared_selection| TextRunOffsets {
-                    shared_selection,
-                    character_range: character_range_start..new_character_range_end,
-                });
+            let new_character_range_end = character_range_start + run.character_count();
 
             // Compute the byte range of this run within the IFC text content.
             let display_list_byte_range = segment_text.map(|text| {
                 let run_byte_len: usize = text[byte_offset_in_segment..]
                     .chars()
-                    .take(character_count)
+                    .take(run.character_count().0 as usize)
                     .map(char::len_utf8)
                     .sum();
-                let start = self.byte_range.start + byte_offset_in_segment;
+                let start = self.byte_range.start.0 as usize + byte_offset_in_segment;
                 byte_offset_in_segment += run_byte_len;
                 start..start + run_byte_len
             });
@@ -319,12 +307,13 @@ impl TextRunSegment {
                 ifc.process_soft_wrap_opportunity();
             }
 
-            ifc.push_glyph_store_to_unbreakable_segment(
+            let run_start = text_run.run_data.character_range_in_ifc_text.start;
+            ifc.push_shaped_text_slice_to_unbreakable_segment(
                 run.clone(),
                 text_run,
                 &self.info,
-                offsets,
                 display_list_byte_range,
+                character_range_start - run_start..new_character_range_end - run_start,
             );
             character_range_start = new_character_range_end;
         }
@@ -335,16 +324,98 @@ impl TextRunSegment {
     }
 }
 
+#[derive(Clone, Debug, MallocSizeOf)]
+pub(crate) struct CaretPlaceholder {
+    /// The [`TextFragmentRunData`] of the [`TextRun`] that contains this caret placeholder.
+    #[conditional_malloc_size_of]
+    pub run_data: Arc<SharedTextRunData>,
+    /// The `BaseFragmentInfo` of the originating text node that this caret placeholder is in.
+    pub base_fragment_info: BaseFragmentInfo,
+    /// Character index of the preserved newline in the IFC's transformed text, relative
+    /// to the start of the DOM node.
+    pub character_index: Utf32CodeUnits,
+}
+
 /// A single item in a [`TextRun`].
 #[derive(Debug, MallocSizeOf)]
 pub(crate) enum TextRunItem {
     /// A hard line break i.e. a "\n" as other types line breaks are normalized to "\n".
-    LineBreak { character_index: usize },
+    LineBreak(Option<CaretPlaceholder>),
     /// A preserved tab character that should advance the line to a tab stop.
-    Tab { bidi_level: Level },
+    Tab {
+        bidi_level: Level,
+        break_at_start: bool,
+    },
     /// Any other text for which a font can be matched. We store a `Box` here as [`TextRunSegment`]
     /// is quite a bit larger than the other enum variants.
     TextSegment(Box<TextRunSegment>),
+}
+
+/// A data structure that holds per-`TextRun` data used on `TextFragment`s.
+/// This ensures that the data is not duplicated between fragments.
+#[derive(Debug, MallocSizeOf)]
+pub(crate) struct SharedTextRunData {
+    /// The text content of the [`InlineFormattingContext`] that contains this `TextRun`.
+    #[conditional_malloc_size_of]
+    pub text_content: Arc<OnceLock<String>>,
+    /// The [`crate::SharedStyle`] from this `TextRun`'s parent element. This is
+    /// shared so that incremental layout can simply update the parent element and
+    /// this [`TextRun`] will be updated automatically.
+    pub inline_styles: SharedInlineStyles,
+    /// The range of characters in this text in `InlineFormattingContext::text_content`
+    /// of the `InlineFormattingContext` that owns this `TextRun`. These are counting
+    /// `char`s, *not* UTF-8 offsets.
+    pub character_range_in_ifc_text: Range<Utf32CodeUnits>,
+    /// The original offset of this `TextRun` in the `InlineFormattingContext`'s input
+    /// text (untransformed by white space collapse and `text-transform`).
+    pub original_offset: Utf32CodeUnits,
+    /// The selected text in this `TextRun`. This may either be document selection or form control
+    /// selection.
+    // TODO: make this more compact with a pair of `AtomicUsize`?
+    pub selection: AtomicRefCell<Option<RangeAny<Utf32CodeUnits>>>,
+    /// Whether a caret should be painted when the selection is an empty range (start == end)
+    pub paints_caret: bool,
+    /// Whether a caret placeholder should be added for empty text runs or for empty
+    /// lines after a forced line break.
+    pub needs_caret_placeholder: bool,
+    /// The [`OffsetMap`] used when creating this `TextRun`'s `InlineFormattingContext`. This
+    /// is used for mapping between DOM text offsets and layout text offsets (and vice-versa).
+    pub offset_map: ArcRefCell<OffsetMap>,
+}
+
+impl SharedTextRunData {
+    /// Map a range in the originating `TextRun`'s DOM node text into the range in the
+    /// `TextRun`'s layout transformed (by white space collapse and `text-transform`)
+    /// text.
+    pub(crate) fn map_dom_range_to_transformed_range(
+        &self,
+        dom_range: RangeAny<Utf32CodeUnits>,
+    ) -> Range<Utf32CodeUnits> {
+        let offset_map = self.offset_map.borrow();
+        let offset_in_ifc_text = self.character_range_in_ifc_text.start;
+        let start = if let Some(dom_start) = dom_range.start() {
+            offset_map.map(dom_start + self.original_offset) - offset_in_ifc_text
+        } else {
+            Utf32CodeUnits(0)
+        };
+        let end = if let Some(dom_end) = dom_range.end() {
+            offset_map.map(dom_end + self.original_offset) - offset_in_ifc_text
+        } else {
+            self.character_range_in_ifc_text.end - self.character_range_in_ifc_text.start
+        };
+        start..end
+    }
+
+    /// Map an offset in the originating `TextRun`s DOM node's transformed text (by white
+    /// space collapse and `text-transform`) to untransformed text for use by the DOM.
+    pub(crate) fn map_transformed_offset_to_dom_offset(
+        &self,
+        offset: Utf32CodeUnits,
+    ) -> Utf32CodeUnits {
+        let offset_map = self.offset_map.borrow();
+        let offset_in_ifc_text = self.character_range_in_ifc_text.start;
+        offset_map.reverse_map(offset + offset_in_ifc_text) - self.original_offset
+    }
 }
 
 /// A single [`TextRun`] for the box tree. These are all descendants of
@@ -359,26 +430,18 @@ pub(crate) struct TextRun {
     /// original text node in the DOM for the text.
     pub base_fragment_info: BaseFragmentInfo,
 
+    /// Data to be used by all [`TextFragment`]s spawned by this [`TextRun`] to avoid
+    /// having to clone the data into each fragment.
+    #[conditional_malloc_size_of]
+    pub run_data: Arc<SharedTextRunData>,
+
     /// A weak reference to the parent of this layout box. This becomes valid as soon
     /// as the *parent* of this box is added to the tree.
     pub parent_box: Option<WeakLayoutBox>,
 
-    /// The [`crate::SharedStyle`] from this [`TextRun`]s parent element. This is
-    /// shared so that incremental layout can simply update the parent element and
-    /// this [`TextRun`] will be updated automatically.
-    pub inline_styles: SharedInlineStyles,
-
     /// The range of text in [`super::InlineFormattingContext::text_content`] of the
     /// [`super::InlineFormattingContext`] that owns this [`TextRun`]. These are UTF-8 offsets.
-    pub text_range: Range<usize>,
-
-    /// The range of characters in this text in [`super::InlineFormattingContext::text_content`]
-    /// of the [`super::InlineFormattingContext`] that owns this [`TextRun`].
-    /// These are counting `char`s, *not* UTF-8 offsets.
-    pub character_range: Range<usize>,
-
-    /// The range of `char` characters in this `TextRun` that overlap the Document’s selection
-    pub document_selection: Range<Utf32CodeUnits>,
+    pub text_range: Range<Utf8CodeUnits>,
 
     /// The [`TextRunItem`]s of this text run. This is produced by segmenting the incoming text
     /// by things such as font and script as well as separating out hard line breaks.
@@ -389,10 +452,8 @@ pub(crate) struct TextRun {
 impl TextRun {
     pub(crate) fn new(
         base_fragment_info: BaseFragmentInfo,
-        inline_styles: SharedInlineStyles,
-        text_range: Range<usize>,
-        character_range: Range<usize>,
-        document_selection: Range<Utf32CodeUnits>,
+        run_data: Arc<SharedTextRunData>,
+        text_range: Range<Utf8CodeUnits>,
         old_text_run: Option<ArcRefCell<TextRun>>,
     ) -> Self {
         // If there was a previous box tree layout of this text run, try to preserve the old shaped text.
@@ -401,13 +462,15 @@ impl TextRun {
             .unwrap_or_default();
         Self {
             base_fragment_info,
+            run_data,
             parent_box: None,
-            inline_styles,
             text_range,
-            character_range,
-            document_selection,
             items,
         }
+    }
+
+    pub(super) fn inline_styles(&self) -> &SharedInlineStyles {
+        &self.run_data.inline_styles
     }
 
     pub(super) fn segment(
@@ -417,7 +480,7 @@ impl TextRun {
         layout_context: &LayoutContext,
         bidi_levels: &BidiLevels,
     ) -> SmallVec<[ShapingQueueEntry; 1]> {
-        let parent_style = self.inline_styles.style.borrow().clone();
+        let parent_style = self.inline_styles().style.borrow().clone();
         let items = self.segment_text_by_font(
             layout_context,
             formatting_context_text,
@@ -455,7 +518,7 @@ impl TextRun {
         parent_style: &ServoArc<ComputedValues>,
     ) -> Vec<TextRunItem> {
         let font_style = parent_style.clone_font();
-        let language = font_style._x_lang.0.parse().unwrap_or(Language::UND);
+        let language = font_style._x_lang.0.parse().unwrap_or(Language::UNKNOWN);
         let language_for_shaping = Some(font_style.font_language_override)
             .filter(|language_override| *language_override != FontLanguageOverride::normal())
             .and_then(|language_override| {
@@ -467,7 +530,7 @@ impl TextRun {
                 // https://www.w3.org/TR/css-fonts-4/#font-language-override-string-value
                 //
                 // For now we need to truncate the language tag ):
-                Language::try_from_bytes(&language_override.0.to_be_bytes()[..3]).ok()
+                Language::try_from_utf8(&language_override.0.to_be_bytes()[..3]).ok()
             })
             .unwrap_or(language);
         let font_size = font_style.font_size.computed_size().into();
@@ -502,35 +565,60 @@ impl TextRun {
                 }
             };
 
-        let text_run_text = &formatting_context_text[self.text_range.clone()];
+        let text_run_text =
+            &formatting_context_text[Utf8CodeUnits::to_usize_range(&self.text_range)];
         let char_iterator = TwoCharsAtATimeIterator::new(text_run_text.chars());
+
         // The next bytes index of the character within the entire inline formatting context's text.
         let mut next_byte_index = self.text_range.start;
         for (relative_character_index, (character, next_character)) in char_iterator.enumerate() {
             // The current character index within the entire inline formatting context's text.
-            let current_character_index = self.character_range.start + relative_character_index;
+            let current_character_index = self.run_data.character_range_in_ifc_text.start
+                + Utf32CodeUnits(relative_character_index as u32);
 
             let current_byte_index = next_byte_index;
-            next_byte_index += character.len_utf8();
+            next_byte_index += Utf8CodeUnits::length_of_char(character);
 
             if character == '\n' {
                 finish_current_segment(&mut current, &mut results);
-                results.push(TextRunItem::LineBreak {
-                    character_index: current_character_index,
-                });
+                let needs_caret_placeholder = self.run_data.needs_caret_placeholder;
+                results.push(TextRunItem::LineBreak(needs_caret_placeholder.then(|| {
+                    CaretPlaceholder {
+                        run_data: self.run_data.clone(),
+                        base_fragment_info: self.base_fragment_info,
+                        // The placeholder that is placed after a newline is for the index after that newline.
+                        // The newline itself is at the end of the previous line.
+                        character_index: Utf32CodeUnits((relative_character_index + 1) as u32),
+                    }
+                })));
                 continue;
             }
 
             if character == '\t' {
                 finish_current_segment(&mut current, &mut results);
+
+                // There is a soft wrap opportunity between a preceding space and a tab
+                // under `break-spaces`.
+                let break_at_start = *parent_style.get_white_space_collapse()
+                    == WhiteSpaceCollapse::BreakSpaces
+                    && formatting_context_text[0..current_byte_index.0 as usize]
+                        .chars()
+                        .next_back()
+                        .is_some_and(breaks_for_break_spaces);
+
                 results.push(TextRunItem::Tab {
-                    bidi_level: bidi_levels.level(current_byte_index),
+                    bidi_level: bidi_levels.level(current_byte_index.into()),
+                    break_at_start,
                 });
                 continue;
             }
 
             let (font, script, bidi_level) = if character_cannot_change_font(character) {
-                (None, Script::Common, bidi_levels.level(current_byte_index))
+                (
+                    None,
+                    Script::Common,
+                    bidi_levels.level(current_byte_index.into()),
+                )
             } else {
                 (
                     font_group.find_by_codepoint(
@@ -540,15 +628,19 @@ impl TextRun {
                         language,
                     ),
                     Script::from(character),
-                    bidi_levels.level(current_byte_index),
+                    bidi_levels.level(current_byte_index.into()),
                 )
             };
 
             // If the existing segment is compatible with the character, just merge the character into it.
-            if let Some(current) = current.as_mut() &&
-                current.is_compatible(&font, script, bidi_level)
+            if let Some(current) = current.as_mut()
+                && current.is_compatible(&font, script, bidi_level)
             {
-                current.update(next_byte_index, current_character_index + 1, script);
+                current.update(
+                    next_byte_index,
+                    current_character_index + Utf32CodeUnits(1),
+                    script,
+                );
                 continue;
             }
 
@@ -588,7 +680,7 @@ impl TextRun {
             current = Some(TextRunSegment::new(
                 info,
                 current_byte_index..next_byte_index,
-                current_character_index..current_character_index + 1,
+                current_character_index..current_character_index + Utf32CodeUnits(1),
             ));
         }
 
@@ -598,6 +690,13 @@ impl TextRun {
 
     pub(super) fn layout_into_line_items(&self, ifc: &mut InlineFormattingContextLayout) {
         if self.text_range.is_empty() {
+            if self.run_data.needs_caret_placeholder {
+                ifc.current_line.caret_placeholder = Some(CaretPlaceholder {
+                    run_data: self.run_data.clone(),
+                    base_fragment_info: self.base_fragment_info,
+                    character_index: Utf32CodeUnits(0),
+                });
+            }
             return;
         }
 
@@ -618,10 +717,13 @@ impl TextRun {
                 // If this whitespace forces a line break, queue up a hard line break the next time we
                 // see any content. We don't line break immediately, because we'd like to finish processing
                 // any ongoing inline boxes before ending the line.
-                TextRunItem::LineBreak { character_index } => {
-                    ifc.defer_forced_line_break_at_character_offset(*character_index);
+                TextRunItem::LineBreak(caret_placeholder) => {
+                    ifc.defer_forced_line_break_at_character_offset(caret_placeholder);
                 },
-                TextRunItem::Tab { bidi_level } => self.process_preserved_tab(ifc, *bidi_level),
+                TextRunItem::Tab {
+                    bidi_level,
+                    break_at_start,
+                } => self.process_preserved_tab(ifc, *bidi_level, *break_at_start),
                 TextRunItem::TextSegment(segment) => {
                     segment.layout_into_line_items(self, soft_wrap_policy, ifc)
                 },
@@ -634,32 +736,52 @@ impl TextRun {
         &self,
         ifc_layout: &mut InlineFormattingContextLayout,
         bidi_level: Level,
+        break_at_start: bool,
     ) {
-        let advance = ifc_layout.ifc.next_tab_stop_after_inline_advance(
-            &self.inline_styles.style.borrow(),
-            ifc_layout.potential_line_size().inline,
-        );
+        if break_at_start {
+            ifc_layout.process_soft_wrap_opportunity();
+        }
+
+        let position_after_current_segment =
+            ifc_layout.current_line.inline_position + ifc_layout.current_line_segment.inline_size;
+        let style = self.inline_styles().style.borrow();
+        let advance = ifc_layout
+            .ifc
+            .next_tab_stop_after_inline_advance(&style, position_after_current_segment);
         if advance.is_zero() {
             return;
         }
 
+        let conditionally_hangs = style.white_space_may_hang_conditionally();
+        let (flags, hanging_advance) = if conditionally_hangs {
+            (SegmentContentFlags::Contentful, advance)
+        } else {
+            (
+                SegmentContentFlags::Contentful
+                    | SegmentContentFlags::IncorporateTrailingWhiteSpace,
+                Au::zero(),
+            )
+        };
+
         ifc_layout.update_unbreakable_segment_for_new_content(
             &LineBlockSizes::zero(),
             advance,
-            SegmentContentFlags::empty(),
+            hanging_advance,
+            Au::zero(),
+            flags,
         );
         ifc_layout.push_line_item_to_unbreakable_segment(LineItem::Tab {
             inline_box_identifier: ifc_layout.current_inline_box_identifier(),
             advance,
             bidi_level,
+            conditionally_hangs,
         });
 
-        if ifc_layout
+        if *ifc_layout
             .current_inline_container_state()
             .style
-            .get_inherited_text()
-            .white_space_collapse ==
-            WhiteSpaceCollapse::BreakSpaces
+            .get_white_space_collapse()
+            == WhiteSpaceCollapse::BreakSpaces
         {
             ifc_layout.process_soft_wrap_opportunity();
         }
@@ -673,13 +795,13 @@ impl TextRun {
 fn is_cursive_script(script: Script) -> bool {
     matches!(
         script,
-        Script::Arabic |
-            Script::Hanifi_Rohingya |
-            Script::Mandaic |
-            Script::Mongolian |
-            Script::Nko |
-            Script::Phags_Pa |
-            Script::Syriac
+        Script::Arabic
+            | Script::Hanifi_Rohingya
+            | Script::Mandaic
+            | Script::Mongolian
+            | Script::Nko
+            | Script::Phags_Pa
+            | Script::Syriac
     )
 }
 
@@ -698,12 +820,12 @@ fn character_cannot_change_font(character: char) -> bool {
     }
 
     matches!(
-        icu_properties::maps::line_break().get(character),
-        LineBreak::CombiningMark |
-            LineBreak::Glue |
-            LineBreak::ZWSpace |
-            LineBreak::WordJoiner |
-            LineBreak::ZWJ
+        LineBreak::for_char(character),
+        LineBreak::CombiningMark
+            | LineBreak::Glue
+            | LineBreak::ZWSpace
+            | LineBreak::WordJoiner
+            | LineBreak::ZWJ
     )
 }
 

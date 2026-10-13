@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>XML xmlns="" Namespace Undeclaration Attribute Retention</title>
+<link rel="help" href="https://www.w3.org/TR/xml-names/#defaulting">
+<meta name="assert" content="The XML parser MUST retain an xmlns='' attribute (default namespace undeclaration) on elements even when no default namespace was in scope.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+test(() => {
+  const xml = '<soap:Envelope xmlns:soap="urn:soap">' +
+                '<soap:Body>' +
+                  '<req xmlns=""><id>42</id></req>' +
+                '</soap:Body>' +
+              '</soap:Envelope>';
+
+  const doc = new DOMParser().parseFromString(xml, 'text/xml');
+  const req = doc.getElementsByTagName('req')[0];
+
+  assert_true(req.hasAttribute('xmlns'));
+  assert_equals(req.getAttribute('xmlns'), '');
+}, 'xmlns="" attribute is retained when only prefixed namespaces are in scope');
+
+test(() => {
+  const xml = '<root xmlns=""><child/></root>';
+  const doc = new DOMParser().parseFromString(xml, 'text/xml');
+  const root = doc.documentElement;
+
+  assert_true(root.hasAttribute('xmlns'));
+  assert_equals(root.getAttribute('xmlns'), '');
+}, 'xmlns="" attribute is retained on root element');
+
+test(() => {
+  const xml = '<root><child xmlns=""/></root>';
+  const doc = new DOMParser().parseFromString(xml, 'text/xml');
+  const child = doc.getElementsByTagName('child')[0];
+
+  assert_true(child.hasAttribute('xmlns'));
+  assert_equals(child.getAttribute('xmlns'), '');
+}, 'xmlns="" attribute is retained when no namespaces are in scope');
+
+test(() => {
+  const xml = '<root xmlns="urn:default"><child xmlns=""/></root>';
+  const doc = new DOMParser().parseFromString(xml, 'text/xml');
+  const child = doc.getElementsByTagName('child')[0];
+
+  assert_true(child.hasAttribute('xmlns'));
+  assert_equals(child.getAttribute('xmlns'), '');
+}, 'xmlns="" attribute is retained when undeclaring a default namespace');
+</script>

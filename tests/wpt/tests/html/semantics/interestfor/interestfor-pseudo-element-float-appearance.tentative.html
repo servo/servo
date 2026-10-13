@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<link rel="match" href="interestfor-pseudo-element-float-appearance-ref.html">
+
+<div class="container">
+  <button class="float-right" interestfor="target">Button 1</button>
+</div>
+
+<div class="container">
+  <button class="float-left" interestfor="target">Button 2</button>
+</div>
+
+<div class="container">
+  <a href="#" class="float-right" interestfor="target">Link 1</a>
+</div>
+
+<div class="container">
+  <a href="#" class="float-left" interestfor="target">Link 2</a>
+</div>
+
+<div id="target"></div>
+
+<style>
+  .container {
+    width: 300px;
+    height: 40px;
+    border: 1px solid gray;
+    margin-bottom: 10px;
+  }
+  .float-right {
+    float: right;
+  }
+  .float-left {
+    float: left;
+  }
+  button, a {
+    font: inherit;
+    color: inherit;
+  }
+  [interestfor]::interest-button {
+    content: '\24D8' / '';
+  }
+</style>

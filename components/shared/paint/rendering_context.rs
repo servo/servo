@@ -22,8 +22,7 @@ pub use surfman::Error;
 use surfman::chains::{PreserveBuffer, SwapChain};
 use surfman::{
     Adapter, Connection, Context, ContextAttributeFlags, ContextAttributes, Device, GLApi,
-    GLVersion, NativeContext, NativeWidget, Surface, SurfaceAccess, SurfaceInfo, SurfaceTexture,
-    SurfaceType,
+    GLVersion, NativeWidget, Surface, SurfaceAccess, SurfaceInfo, SurfaceTexture, SurfaceType,
 };
 use webrender_api::units::{DeviceIntRect, DevicePixel};
 
@@ -130,11 +129,18 @@ impl SurfmanRenderingContext {
         let context_descriptor =
             device.create_context_descriptor(&ContextAttributes { flags, version })?;
 
-        let context = device
+        let mut context = device
             .create_context(&context_descriptor, None)
             .inspect_err(|_| {
                 print_diagnostics_information_on_context_creation_failure(&device, gl_api, version)
             })?;
+
+        // `glow::Context::from_loader_function` immediately queries `GL_VERSION`, so the
+        // context must be current.
+        if let Err(error) = device.make_context_current(&context) {
+            let _ = device.destroy_context(&mut context);
+            return Err(error);
+        }
 
         #[expect(unsafe_code)]
         let gleam_gl = {
@@ -204,13 +210,6 @@ impl SurfmanRenderingContext {
         self.device
             .borrow()
             .present_bound_surface(&mut self.context.borrow_mut())
-    }
-
-    #[expect(dead_code)]
-    fn native_context(&self) -> NativeContext {
-        let device = &self.device.borrow();
-        let context = &self.context.borrow();
-        device.native_context(context)
     }
 
     fn framebuffer(&self) -> Option<NativeFramebuffer> {

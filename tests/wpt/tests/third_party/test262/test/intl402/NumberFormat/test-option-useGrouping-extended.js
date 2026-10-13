@@ -4,7 +4,7 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-esid: sec-initializenumberformat
+esid: sec-intl.numberformat
 description: Tests that the option useGrouping is processed correctly.
 info: |
   The "Intl.NumberFormat v3" proposal contradicts the behavior required by the

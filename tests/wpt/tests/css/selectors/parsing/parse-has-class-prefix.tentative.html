@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors: class prefix selector inside :has()</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/selectors-5/#class-prefix">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  // The various :has() relative-selector combinator forms.
+  test_valid_selector(':has(.foo-*)');
+  test_valid_selector(':has(> .foo-*)');
+  test_valid_selector(':has(+ .foo-*)');
+  test_valid_selector(':has(~ .foo-*)');
+  test_valid_selector(':has(~ .bar > .foo-*)');
+  test_valid_selector(':has(~ .bar .foo-*)');
+
+  // A class prefix selector may also be on the outer compound, on either side of :has(),
+  // and in non-subject (ancestor/parent) position relative to the :has() bearer.
+  test_valid_selector('.a:has(.foo-*)');
+  test_valid_selector('.foo-*:has(.a)');
+  test_valid_selector(':has(.foo-*) .a');
+  test_valid_selector(':has(> .foo-*) > .a');
+
+  // Combines with logical combinators and multiple :has() arguments/pseudo-classes.
+  test_valid_selector(':not(:has(.foo-*))');
+  test_valid_selector(':has(.foo-*, .bar-*)');
+  test_valid_selector(':has(.foo-*):has(.bar-*)');
+
+  // :has() is unforgiving: an invalid class prefix selector anywhere in its
+  // argument list invalidates the whole selector.
+  test_invalid_selector(':has(.foo*)');
+  test_invalid_selector(':has(.foo-*, .bar*)');
+</script>

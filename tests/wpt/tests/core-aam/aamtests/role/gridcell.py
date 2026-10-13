@@ -27,13 +27,23 @@ def test_atspi(atspi, session, inline):
 #     # Role: ROLE_SYSTEM_CELL
 #     # Interface: IAccessibleTableCell
 
-# def test_uia(uia, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # Control Type: DataItem
-#     # Localized Control Type: item
-#     # Control Pattern: SelectionItem
-#     # Control Pattern: GridItem
-#     # Control Pattern: TableItem
-#     # SelectionItem.SelectionContainer: grid
+def test_uia(uia, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Control Type: DataItem
+    # Localized Control Type: item
+    # Control Pattern: GridItem
+    # Control Pattern: TableItem
+    # Control Pattern: SelectionItem
+    # SelectionItem.SelectionContainer: grid
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.DataItem
+    assert node.CurrentLocalizedControlType == "item"
+    assert node.GetCurrentPropertyValue(uia.PropertyId.IsGridItemPatternAvailable)
+    assert node.GetCurrentPropertyValue(uia.PropertyId.IsTableItemPatternAvailable)
+
+    assert node.GetCurrentPropertyValue(uia.PropertyId.IsSelectionPatternAvailable)
+    selection_container = node.GetCurrentPattern(uia.PatternId.SelectionItem).CurrentSelectionContainer
+    assert selection_container.CurrentControlType == uia.ControlType.DataGrid

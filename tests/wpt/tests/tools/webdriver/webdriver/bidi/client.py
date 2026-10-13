@@ -251,4 +251,10 @@ class BidiSession:
         """
         self.event_listeners[name].append(fn)
 
-        return lambda: self.event_listeners[name].remove(fn)
+        def remove_listener():
+            try:
+                self.event_listeners[name].remove(fn)
+            except ValueError:
+                pass
+
+        return remove_listener

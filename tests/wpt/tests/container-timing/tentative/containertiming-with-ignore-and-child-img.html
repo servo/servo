@@ -1,6 +1,6 @@
 <!DOCTYPE HTML>
 <meta charset=utf-8>
-<title>Container Timing: observe with a node with containertiming and containertiming-ignore, and an image child</title>
+<title>Container Timing: observe with a node with containertiming and containertimingignore, and an image child</title>
 <body>
 <style>
 body {
@@ -26,11 +26,11 @@ body {
     observer.observe({entryTypes: ['container']});
 
     // Add a div that is the container timing root
-    // and containertiming-ignore, that should be ignored as
+    // and containertimingignore, that should be ignored as
     // containertiming takes precedence.
     const div = document.createElement('div');
     div.setAttribute('containertiming', 'div_ct');
-    div.setAttribute('containertiming-ignore', '');
+    div.setAttribute('containertimingignore', '');
     document.body.appendChild(div);
     // Add image of width equal to 100 and height equal to 100.
     const img = document.createElement('img');

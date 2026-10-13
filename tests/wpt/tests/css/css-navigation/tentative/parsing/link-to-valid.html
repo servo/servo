@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<title>:link-to() rules</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-navigation-1/#link-to-pseudo-class">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test(()=> {
+    const canonical = ":link-to(--loc) { }";
+    test_valid_rule(canonical);
+    test_valid_rule(":link-To( --loc ){} ", canonical);
+  }, "navigation-location");
+
+  test(()=> {
+    const canonical = `:link-to(url-pattern("/:foo/*")) { }`;
+    test_valid_rule(canonical);
+    test_valid_rule(`:link-to( url-Pattern( '/:foo/*' ) ){} `, canonical);
+  }, "url-pattern()");
+
+  test(()=> {
+    const canonical = `:link-to(url("/foo/")) { }`;
+    test_valid_rule(canonical);
+    test_valid_rule(`:link-To( Url( /foo/ ) ) { }`, canonical);
+  }, "url()");
+</script>

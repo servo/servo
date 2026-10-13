@@ -2,14 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use cssparser::match_ignore_ascii_case;
 use js::context::JSContext;
 use script_bindings::inheritance::Castable;
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLElementBinding::HTMLElementMethods;
+use crate::dom::bindings::codegen::Bindings::NodeBinding::NodeMethods;
 use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::dom::comment::Comment;
 use crate::dom::document::Document;
 use crate::dom::event::Event;
 use crate::dom::event::inputevent::InputEvent;
@@ -17,6 +20,7 @@ use crate::dom::execcommand::basecommand::CommandName;
 use crate::dom::execcommand::commands::fontsize::maybe_normalize_pixels;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::Node;
+use crate::dom::processinginstruction::ProcessingInstruction;
 use crate::dom::selection::Selection;
 
 /// <https://w3c.github.io/editing/docs/execCommand/#miscellaneous-commands>
@@ -30,6 +34,34 @@ fn is_command_listed_in_miscellaneous_section(command_name: CommandName) -> bool
             CommandName::Undo |
             CommandName::Usecss
     )
+}
+
+fn bump_selection_out_of_invalid_node(cx: &mut JSContext, selection: &Selection) -> Result<(), ()> {
+    // Note: Here we make sure that if the selection range starts or ends inside of an HTML
+    //       comment or PI, we get it out of there before trying to edit things. Trying to
+    //       perform text editing inside of these nodes doesn't make any sense anyways and
+    //       some commands aren't prepared to handle that. Picking the boundary point right
+    //       before the problematic node is vaguely consistent with other browsers.
+    let active_range = selection
+        .active_range(cx)
+        .expect("Must always have an active range");
+    if let start_container = active_range.start_container() &&
+        (start_container.is::<Comment>() || start_container.is::<ProcessingInstruction>())
+    {
+        let Some(parent) = start_container.GetParentNode() else {
+            return Err(());
+        };
+        let _ = active_range.SetStart(cx.no_gc(), &parent, start_container.index());
+    }
+    if let end_container = active_range.end_container() &&
+        (end_container.is::<Comment>() || end_container.is::<ProcessingInstruction>())
+    {
+        let Some(parent) = end_container.GetParentNode() else {
+            return Err(());
+        };
+        let _ = active_range.SetEnd(cx.no_gc(), &parent, end_container.index());
+    }
+    Ok(())
 }
 
 /// <https://w3c.github.io/editing/docs/execCommand/#dfn-map-an-edit-command-to-input-type-value>
@@ -88,7 +120,7 @@ impl Document {
             return Some(selection);
         }
         // > The other commands defined here are enabled if the active range is not null,
-        let range = selection.active_range()?;
+        let range = selection.active_range(cx)?;
         // > its start node is either editable or an editing host,
         let start_container_editing_host = range.start_container().editing_host_of()?;
         // > the editing host of its start node is not an EditContext editing host,
@@ -119,7 +151,7 @@ impl Document {
     fn command_if_command_is_supported(&self, command_id: &DOMString) -> Option<CommandName> {
         // https://w3c.github.io/editing/docs/execCommand/#methods-to-query-and-execute-commands
         // > All of these methods must treat their command argument ASCII case-insensitively.
-        Some(match &*command_id.str().to_lowercase() {
+        Some(match_ignore_ascii_case! { &command_id.str(),
             "backcolor" => CommandName::BackColor,
             "bold" => CommandName::Bold,
             "createlink" => CommandName::CreateLink,
@@ -130,8 +162,10 @@ impl Document {
             "forecolor" => CommandName::ForeColor,
             "forwarddelete" => CommandName::ForwardDelete,
             "hilitecolor" => CommandName::HiliteColor,
+            "indent" => CommandName::Indent,
             "inserthorizontalrule" => CommandName::InsertHorizontalRule,
             "insertimage" => CommandName::InsertImage,
+            "insertlinebreak" => CommandName::InsertLineBreak,
             "insertparagraph" => CommandName::InsertParagraph,
             "inserttext" => CommandName::InsertText,
             "italic" => CommandName::Italic,
@@ -247,7 +281,7 @@ impl DocumentExecCommandSupport for Document {
             // of the active range's start node and end node, and is not the ancestor of any editing host
             // that is an inclusive ancestor of the active range's start node and end node.
             let Some(affected_editing_host) = selection
-                .active_range()
+                .active_range(cx)
                 .expect("Must always have an active range")
                 .CommonAncestorContainer()
                 .editing_host_of()
@@ -268,7 +302,7 @@ impl DocumentExecCommandSupport for Document {
                 0,
                 None,
                 false,
-                "".into(),
+                mapped_value_of_command(command),
             );
             let event = event.upcast::<Event>();
             // Step 4.3. If the value returned by the previous step is false, return false.
@@ -286,13 +320,19 @@ impl DocumentExecCommandSupport for Document {
             // of the active range's start node and end node, and is not the ancestor of any editing host
             // that is an inclusive ancestor of the active range's start node and end node.
             selection
-                .active_range()
+                .active_range(cx)
                 .expect("Must always have an active range")
                 .CommonAncestorContainer()
                 .editing_host_of()
         } else {
             None
         };
+
+        if affected_editing_host.is_some() &&
+            bump_selection_out_of_invalid_node(cx, &selection).is_err()
+        {
+            return false;
+        }
 
         // Step 5. Take the action for command, passing value to the instructions as an argument.
         let result = command.execute(cx, self, &selection, value);

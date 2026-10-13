@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration Test: Wavy underline continues across element boundaries</title>
+<link rel="author" title="Helmut Januschka" href="mailto:helmut@januschka.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#decorating-box">
+<link rel="help" href="https://crbug.com/41287729">
+<meta name="assert" content="Checks that the wavy underline of a decorating box keeps a continuous wave phase across descendant element boundaries.">
+<link rel="match" href="reference/text-decoration-wavy-phase-across-elements-001-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+  #decoration {
+    font: 40px/3 Ahem;
+    color: transparent;
+    text-decoration: underline wavy green;
+    text-decoration-skip-ink: none;
+  }
+</style>
+<p>The test passes if you see a single uninterrupted green wavy line.</p>
+<div id="decoration">XX<span>XX</span>XX</div>

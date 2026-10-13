@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Font-relative units on non-font-size properties resolve against the element's own font-size</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#font-relative-lengths">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!--
+  Per CSS Values 4 §6.1.1: "the font-relative lengths refer to the font metrics
+  of the element on which they are used. The exception is when they occur in
+  the value of the font-size property itself, in which case they refer to the
+  font metrics of the parent element."
+
+  So for `em` on `width`, `padding`, etc., the unit must resolve against
+  the element's own computed font-size, not its parent's.
+-->
+
+<div id="own-px"      style="font-size: 20px; width: 1em"></div>
+<div id="own-px-pad"  style="font-size: 32px; padding: 1em"></div>
+<div id="own-px-calc" style="font-size: 20px; width: calc(1em + 5px)"></div>
+
+<div style="font-size: 30px">
+  <div id="own-overrides-parent" style="font-size: 50px; width: 2em"></div>
+</div>
+
+<div style="font-size: 30px">
+  <div id="inherits-from-parent" style="width: 2em"></div>
+</div>
+
+<script>
+"use strict";
+
+test(() => {
+  const el = document.getElementById("own-px");
+  assert_equals(getComputedStyle(el).width, "20px");
+}, "width: 1em uses the element's own font-size, not the parent's");
+
+test(() => {
+  const el = document.getElementById("own-px-pad");
+  assert_equals(getComputedStyle(el).paddingTop, "32px");
+}, "padding: 1em uses the element's own font-size");
+
+test(() => {
+  const el = document.getElementById("own-px-calc");
+  assert_equals(getComputedStyle(el).width, "25px");
+}, "calc(1em + 5px) uses the element's own font-size");
+
+test(() => {
+  const el = document.getElementById("own-overrides-parent");
+  // own font-size 50px overrides parent 30px; 2em = 100px, not 60px
+  assert_equals(getComputedStyle(el).width, "100px");
+}, "Own font-size override takes precedence over parent's for em");
+
+test(() => {
+  const el = document.getElementById("inherits-from-parent");
+  // No own font-size, inherits 30px from parent; 2em = 60px
+  assert_equals(getComputedStyle(el).width, "60px");
+}, "When element has no own font-size, em resolves against inherited value");
+</script>

@@ -32,14 +32,6 @@ promise_test(async t => {
   assert_true(done);
 }, 'Summarizer.summarizeStreaming() returns a ReadableStream without any chunk on an empty input');
 
-promise_test(async () => {
-  const summarizer = await createSummarizer();
-  await Promise.all([
-    summarizer.summarizeStreaming(kTestPrompt),
-    summarizer.summarizeStreaming(kTestPrompt)
-  ]);
-}, 'Multiple Summarizer.summarizeStreaming() calls are resolved successfully');
-
 promise_test(async t => {
   const summarizer = await createSummarizer();
   const streamingResponse = summarizer.summarizeStreaming(kTestPrompt);

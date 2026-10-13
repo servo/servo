@@ -1,0 +1,9 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+test(() => {
+  assert_true(Object.isFrozen(new IntersectionObserver(() => {}).thresholds));
+}, "Check thresholds is FrozenArray.");
+</script>

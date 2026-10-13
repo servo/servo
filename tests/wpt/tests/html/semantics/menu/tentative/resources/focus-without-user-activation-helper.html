@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<style>
+  body { margin: 0; padding: 0; }
+</style>
+<body>
+<script>
+const params = new URLSearchParams(location.search);
+const target = params.get("target") || "button";
+
+let trigger;
+let menulist;
+let firstItem;
+
+if (target === "button") {
+  document.body.innerHTML = `
+    <button id="trigger" commandfor="menulist" command="show-popover">Trigger</button>
+    <menulist id="menulist">
+      <menuitem id="first-item">First Item</menuitem>
+      <menuitem id="second-item">Second Item</menuitem>
+    </menulist>
+  `;
+} else {
+  document.body.innerHTML = `
+    <menubar>
+      <submenu>
+        <menuitem id="trigger">Trigger</menuitem>
+        <menulist id="menulist">
+          <menuitem id="first-item">First Item</menuitem>
+          <menuitem id="second-item">Second Item</menuitem>
+        </menulist>
+      </submenu>
+    </menubar>
+  `;
+}
+
+trigger = document.getElementById("trigger");
+menulist = document.getElementById("menulist");
+firstItem = document.getElementById("first-item");
+
+firstItem.addEventListener("focus", () => {
+  window.parent.postMessage({
+    action: "item-focused",
+    activeElementId: document.activeElement ? document.activeElement.id : null,
+    isPopoverOpen: menulist.matches(":popover-open")
+  }, "*");
+});
+
+trigger.addEventListener("keydown", (e) => {
+  if (e.key === "Shift") {
+    const parentInput = window.parent.document.getElementById("top-input");
+    if (parentInput) {
+      parentInput.focus();
+    }
+    trigger.click();
+    window.parent.postMessage({
+      action: "shift-click-complete",
+      activeElementId: document.activeElement ? document.activeElement.id : null,
+      isPopoverOpen: menulist.matches(":popover-open")
+    }, "*");
+  }
+});
+
+window.addEventListener("load", () => {
+  window.parent.postMessage({ action: "ready" }, "*");
+});
+</script>
+</body>

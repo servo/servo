@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: A visible descendant of a hidden element renders when it has non-visible overflow</title>
+<link rel="author" title="Karl Dubost" href="mailto:karlcow@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css2/#valdef-visibility-hidden">
+<link rel="match" href="visibility-descendants-002-ref.html">
+<meta name="assert" content="A descendant of a hidden element with 'visibility' set to 'visible' is visible even when it establishes its own overflow clip and the hidden ancestor is positioned.">
+<style>
+#div1
+{
+    border: 1px solid blue;
+}
+#div2
+{
+    color: red;
+    position: relative;
+    visibility: hidden;
+}
+#div3
+{
+    color: green;
+    overflow: hidden;
+    visibility: visible;
+}
+</style>
+<p>Test passes if the content "Filler Text" is contained within the blue box and there is no red visible on the page.</p>
+<div id="div1">
+    <div id="div2">
+        This test fails if this text is visible on the page.
+        <div id="div3">Filler Text</div>
+    </div>
+</div>

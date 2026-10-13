@@ -1,0 +1,4 @@
+rules:
+- positional-*: [html-setters]
+- "*stream*": [html-streaming-setters]
+- move-head-during-prepend-before-close-crash.html: [html-streaming-setters]

@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>Focus on area inside content-visibility:hidden does not crash during image paint</title>
+<link rel="help" href="https://crbug.com/570743446">
+<script src="/common/rendering-utils.js"></script>
+
+<img usemap="#m" width="1" height="1">
+
+<div style="content-visibility: hidden">
+  <map name="m">
+    <area id="area" href="#">
+  </map>
+</div>
+
+<script>
+onload = async () => {
+  area.focus();
+  area.style.color = 'red';
+
+  await waitForAtLeastOneFrame();
+  document.documentElement.classList.remove('test-wait');
+};
+</script>
+</html>

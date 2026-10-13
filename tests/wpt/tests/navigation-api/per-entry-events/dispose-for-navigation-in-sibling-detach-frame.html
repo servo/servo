@@ -1,0 +1,69 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Navigation API: removing a frame from its own dispose handler while another frame's push truncates the joint session history must not crash</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<!--
+  A push navigation in one frame truncates the joint session history, which
+  disposes forward entries in *every other* frame in the tree. Those dispose
+  events run author script, which is free to detach a frame the truncation walk
+  has not finished with yet -- including the very frame whose entry is being
+  disposed. The walk must survive that.
+
+  Frame layout: two same-origin sibling iframes under the main frame.
+    frameA: performs the truncating push navigation.
+    frameB: holds a forward entry that the push truncates, and is removed from
+            that entry's dispose handler.
+  The main frame cannot play frameB's part: it cannot be detached.
+-->
+<iframe id="frameA" src="/common/blank.html"></iframe>
+<iframe id="frameB" src="/common/blank.html"></iframe>
+<script>
+promise_test(async t => {
+  // Wait for after the load event so that the navigations below are pushes
+  // rather than being converted into replaces.
+  await new Promise(r => window.onload = () => t.step_timeout(r, 0));
+
+  // Hold the elements in variables: named access via id stops resolving once
+  // frameB is removed from the document.
+  const frameA = document.getElementById("frameA");
+  const frameB = document.getElementById("frameB");
+  const navA = frameA.contentWindow.navigation;
+  const navB = frameB.contentWindow.navigation;
+
+  // frameB pushes an entry and then traverses back to where it started, so that
+  // the pushed entry becomes a forward entry of the joint session history.
+  // Counts are start-relative and the traversal targets a recorded key, because
+  // how many entries an iframe starts with is not interoperable.
+  const startEntryB = navB.currentEntry;
+  const startIndexB = startEntryB.index;
+  await navB.navigate("#b1").finished;
+  assert_equals(navB.currentEntry.index, startIndexB + 1, "frameB pushed an entry");
+  const forwardEntry = navB.currentEntry;
+  await navB.traverseTo(startEntryB.key).finished;
+  assert_equals(navB.currentEntry, startEntryB, "frameB traversed back to where it started");
+  assert_equals(navB.entries()[startIndexB + 1], forwardEntry, "frameB keeps its forward entry");
+
+  const disposed = new Promise(resolve => {
+    forwardEntry.ondispose = () => {
+      // Detach the frame this entry belongs to, from inside its own dispose
+      // dispatch, while the truncation walk is still in progress.
+      frameB.remove();
+      resolve();
+    };
+  });
+
+  // A push in frameA truncates the joint session history, which must dispose
+  // frameB's forward entry even though frameB is not the frame that navigated.
+  const startIndexA = navA.currentEntry.index;
+  navA.navigate("#a1");
+  await disposed;
+  await new Promise(r => t.step_timeout(r, 0));
+
+  assert_equals(frameB.contentWindow, null, "frameB is detached");
+  // Reaching here at all is the point: the truncation walk must not have crashed.
+  assert_equals(frameA.contentWindow.location.hash, "#a1", "frameA's push completed");
+  assert_equals(navA.currentEntry.index, startIndexA + 1, "frameA pushed an entry");
+}, "Detaching a frame from its own dispose handler during another frame's truncating push must not crash");
+</script>

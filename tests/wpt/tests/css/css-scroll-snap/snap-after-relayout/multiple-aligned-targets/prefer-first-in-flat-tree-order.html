@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Scroll Snap: snap targets selected in flat tree order with shadow DOM slots</title>
+    <link rel="help" href="https://drafts.csswg.org/css-scroll-snap/#scroll-snap-align"/>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <style>
+      #scroller {
+        width: 200px;
+        height: 300px;
+        overflow-y: scroll;
+        scroll-snap-type: y mandatory;
+        position: relative;
+        scrollbar-width: none;
+      }
+      div[slot] {
+        display: block;
+        scroll-snap-align: start;
+        position: absolute;
+        top: 0px;
+      }
+    </style>
+    <!--
+      #scroller is the shadow host. Its shadow root lists slot "second-in-DOM"
+      before slot "first-in-DOM", so the flat tree order is the opposite of the
+      DOM order:
+
+        DOM order:       first-in-DOM, second-in-DOM
+        Flat tree order: second-in-DOM, first-in-DOM
+
+      Both snap targets start at top: 0 and overlap visually, so flat tree
+      order is the only tiebreaker. The test verifies that the scroller tracks
+      the element that is first in flat tree order (second-in-DOM) when its
+      position changes, not the element that is first in DOM order.
+    -->
+    <div id="scroller">
+      <template shadowrootmode="open">
+         <slot name="second-in-DOM"></slot>
+         <slot name="first-in-DOM"></slot>
+         <div style="height: 100vh;"></div>
+      </template>
+      <div slot="first-in-DOM">First in DOM tree</div>
+      <div slot="second-in-DOM">Second in DOM tree</div>
+    </div>
+
+    <script>
+      const scroller = document.getElementById("scroller");
+      const targets = document.querySelectorAll("div[slot]");
+      const firstInDOM = targets[0];
+      const secondInDOM = targets[1];
+
+      promise_test(async () => {
+        assert_equals(scroller.scrollTop, 0);
+        assert_equals(scroller.scrollLeft, 0);
+
+        const scrollendPromise = new Promise(resolve => {
+          scroller.addEventListener("scrollend", resolve, { once: true });
+        });
+        secondInDOM.style.top = "10px";
+        await scrollendPromise;
+
+        assert_equals(scroller.scrollTop, 10,
+          "scroller followed the first item in flat tree");
+      }, "scroller follows the element that is first in flat tree order, not DOM order");
+    </script>
+  </body>
+</html>

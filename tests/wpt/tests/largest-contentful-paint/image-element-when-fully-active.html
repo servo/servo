@@ -1,0 +1,20 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Largest Contentful Paint: element is null after iframe removal.</title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<iframe src="resources/iframe-stores-image-entry.html" id="ifr"></iframe>
+<link rel="author" title="Shubham Gupta" href="mailto:shubhamg13.work@gmail.com">
+<script>
+  setup({"hide_test_state": true});
+  let t = async_test('Element is null after iframe with LCP image is removed');
+  window.triggerTest = t.step_func_done(entry => {
+    assert_not_equals(entry.element, null);
+    const iframe = document.getElementById('ifr');
+    iframe.remove();
+    assert_equals(entry.element, null);
+  });
+</script>
+</body>
+</html>

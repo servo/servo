@@ -31,5 +31,3 @@ testWithBigIntTypedArrayConstructors(function(TA) {
     'Atomics.isLockFree(TA.BYTES_PER_ELEMENT) returns the value of `observed` (Atomics.isLockFree(TA.BYTES_PER_ELEMENT))'
   );
 }, null, ["passthrough"]);
-
-

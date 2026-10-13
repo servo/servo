@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>The window load event is dispatched when a readystatechange handler starts a new load</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/parsing.html#the-end">
+<link rel=help href="https://html.spec.whatwg.org/multipage/#resource-metadata-management">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+// The readystatechange event for "complete" is dispatched synchronously while the document
+// is being marked as completely loaded, so a handler for it runs before the load event.
+// Starting a new load from that handler must not stop the load event from being dispatched.
+//
+// Engines differ on whether the new load delays the load event, so no ordering between the
+// two is asserted here.
+var loadEventTest = async_test("The window load event is dispatched when a readystatechange handler starts a new load");
+
+function startLoadFromReadyStateChangeHandler() {
+    // A dynamically inserted script with a src is async. Its contents are irrelevant; what
+    // matters is that appending it starts a load.
+    var scriptURL = URL.createObjectURL(new Blob([], { type: "text/javascript" }));
+
+    var script = document.createElement("script");
+    script.src = scriptURL;
+    script.onload = function() { URL.revokeObjectURL(scriptURL); };
+    script.onerror = loadEventTest.unreached_func("the script started from readystatechange failed to load");
+    document.body.appendChild(script);
+}
+
+document.addEventListener("readystatechange", function() {
+    if (document.readyState === "complete")
+        startLoadFromReadyStateChangeHandler();
+});
+
+// If the load event is never dispatched, this test times out and fails.
+window.addEventListener("load", loadEventTest.step_func_done(function() {
+    assert_equals(document.readyState, "complete");
+}));
+</script>

@@ -14,3 +14,4 @@ rules:
 - overflow-*: [overflow-shorthand]
 - column-*: [column-pseudo]
 - text-overflow-*: [text-overflow]
+- text-overflow-string-*: [custom-ellipses, text-overflow]

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Images Test: Invalidate viewport units in a gradient color stop on viewport resize</title>
+<link rel="help" href="https://drafts.csswg.org/css-images/#gradients">
+<link rel="help" href="https://drafts.csswg.org/css-values/#viewport-relative-lengths">
+<link rel="match" href="linear-gradient-viewport-units-invalidation-ref.html">
+<meta name="assert" content="A gradient color stop using viewport units is re-resolved when the viewport is resized, even when the painted element keeps its own size.">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  iframe {
+    display: block;
+    width: 200px;
+    height: 100px;
+    border: none;
+  }
+</style>
+<p>Test passes if there is a filled green square and no red.</p>
+<iframe src="support/linear-gradient-viewport-units-iframe.html"></iframe>
+<script>
+  const iframe = document.querySelector("iframe");
+  iframe.addEventListener("load", () => {
+    // Grow only the frame's viewport. The box inside keeps its 100x100 size,
+    // so nothing but the resolved value of the 40vh color stop changes.
+    iframe.style.height = "400px";
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+  });
+</script>
+</html>

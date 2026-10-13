@@ -12,6 +12,6 @@ interface HTMLHtmlElement : HTMLElement {
 
 // https://html.spec.whatwg.org/multipage/#HTMLHtmlElement-partial
 partial interface HTMLHtmlElement {
-  // [CEReactions]
-  //         attribute DOMString version;
+  [CEReactions]
+          attribute DOMString version;
 };

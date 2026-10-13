@@ -11,3 +11,7 @@ validateInputFromAnotherBuilder('hardSwish');
 
 const label = 'hard_swish';
 validateSingleInputOperation('hardSwish', label);
+
+validateOperandRank('hardSwish', 'input', (builder, input) => {
+  return builder.hardSwish(input);
+});

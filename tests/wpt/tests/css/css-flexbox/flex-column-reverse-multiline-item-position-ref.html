@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox: multi-line column-reverse item positions</title>
+<style>
+#target {
+    position: relative;
+    width: 200px;
+    height: 80px;
+}
+#target > div {
+    position: absolute;
+    width: 50px;
+    background: green;
+}
+.short { left: 0; top: 40px; height: 40px; }
+.tall { left: 50px; top: 0; height: 80px; }
+</style>
+<p>Test passes if there is a green step shape (a short block at the lower left, a taller block to its right) and no red.</p>
+<div id="target">
+    <div class="short"></div>
+    <div class="tall"></div>
+</div>

@@ -4,7 +4,6 @@
 
 use app_units::Au;
 use style::color::AbsoluteColor;
-use style::computed_values::background_blend_mode::SingleComputedValue as BackgroundBlendMode;
 use style::computed_values::image_rendering::T as ComputedImageRendering;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::text_decoration_style::T as ComputedTextDecorationStyle;
@@ -132,7 +131,7 @@ impl ToWebRender for ComputedTextDecorationStyle {
             ComputedTextDecorationStyle::Dotted => LineStyle::Dotted,
             ComputedTextDecorationStyle::Dashed => LineStyle::Dashed,
             ComputedTextDecorationStyle::Wavy => LineStyle::Wavy,
-            ComputedTextDecorationStyle::MozNone => {
+            ComputedTextDecorationStyle::None => {
                 unreachable!("Should never try to draw a moz-none text decoration")
             },
         }
@@ -160,30 +159,6 @@ impl ToWebRender for ComputedImageRendering {
             ComputedImageRendering::Auto => ImageRendering::Auto,
             ComputedImageRendering::CrispEdges => ImageRendering::CrispEdges,
             ComputedImageRendering::Pixelated => ImageRendering::Pixelated,
-        }
-    }
-}
-
-impl ToWebRender for BackgroundBlendMode {
-    type Type = MixBlendMode;
-    fn to_webrender(&self) -> Self::Type {
-        match *self {
-            Self::Normal => MixBlendMode::Normal,
-            Self::Multiply => MixBlendMode::Multiply,
-            Self::Screen => MixBlendMode::Screen,
-            Self::Overlay => MixBlendMode::Overlay,
-            Self::Darken => MixBlendMode::Darken,
-            Self::Lighten => MixBlendMode::Lighten,
-            Self::ColorDodge => MixBlendMode::ColorDodge,
-            Self::ColorBurn => MixBlendMode::ColorBurn,
-            Self::HardLight => MixBlendMode::HardLight,
-            Self::SoftLight => MixBlendMode::SoftLight,
-            Self::Difference => MixBlendMode::Difference,
-            Self::Exclusion => MixBlendMode::Exclusion,
-            Self::Hue => MixBlendMode::Hue,
-            Self::Saturation => MixBlendMode::Saturation,
-            Self::Color => MixBlendMode::Color,
-            Self::Luminosity => MixBlendMode::Luminosity,
         }
     }
 }

@@ -1,0 +1,42 @@
+<!DOCTYPE html PUBLIC><!-- quirks mode -->
+<title>CSS Overflow: scroll-axis-lock on body in quirks mode</title>
+<link rel="help"
+      href="https://drafts.csswg.org/css-overflow-5/#scroll-axis-locking">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<script src="./support/scroll-axis-lock.js"></script>
+
+<style>
+  .scroll_axis_lock_none { scroll-axis-lock: none; }
+  body {
+    width: 500vw;
+    height: 500vh;
+  }
+</style>
+
+<body>
+<script>
+  ['touch', 'wheel'].forEach(input_source => {
+    promise_test(async t => {
+      // Scroll is not axis-locked for this input source, so there is no way to
+      // distinguish between 'auto' and 'none' values.
+      if (!(await scroll_is_axis_locked(input_source)))
+        return;
+
+      // Some sanity check to ensure the test below actually makes sense.
+      assert_equals(document.scrollingElement, document.body, 'scrollingElement is body in quirks mode');
+
+      // Check that viewport scroll is axis-locked when scroll-axis-lock: none
+      // is set on body.
+      const className = 'scroll_axis_lock_none';
+      document.body.classList.add(className);
+      t.add_cleanup(_ => document.body.classList.remove(className));
+      await check_scroll_axis_lock(t, {doc: document, input_source, expects_scroll_axis_lock: true, dominant_axis: 'Y', delta_dominant_axis_sign: 1, delta_minor_axis_sign: 1});
+    }, `scroll-axis-lock: none on body does not propagate to viewport (${input_source} scroll)`);
+  });
+</script>
+</body>

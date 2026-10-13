@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>View timeline treats a sticky inline ancestor like a sticky block ancestor</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#view-timelines-ranges">
+<meta name="assert" content="A sticky box between the subject and the scroller keeps the subject in view for as long as it can travel, whether that box is a block or an inline box.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+.scroller { overflow-y: scroll; height: 100px; width: 200px; }
+.spacer { height: 300px; }
+.wrapper { position: sticky; top: 40px; }
+.subject { height: 50px; view-timeline-name: --subject; animation: grow 1s linear both; animation-timeline: --subject; }
+@keyframes grow { from { width: 0px } to { width: 100px } }
+</style>
+<div class="scroller" id="sticky-block">
+  <div class="spacer"></div><div class="wrapper"><div class="subject"></div></div><div class="spacer"></div>
+</div>
+<div class="scroller" id="sticky-inline">
+  <div class="spacer"></div><span class="wrapper"><div class="subject"></div></span><div class="spacer"></div>
+</div>
+<script>
+const scrollers = ["sticky-block", "sticky-inline"].map(id => document.getElementById(id));
+const progress = scroller => scroller.querySelector(".subject").getAnimations()[0].currentTime;
+
+for (const scrollTop of [280, 300, 320]) {
+  promise_test(async () => {
+    for (const scroller of scrollers)
+      scroller.scrollTop = scrollTop;
+    await waitForNextFrame();
+    assert_equals(String(progress(scrollers[1])), String(progress(scrollers[0])));
+  }, `A sticky inline ancestor adjusts the timeline like a sticky block ancestor at scrollTop ${scrollTop}`);
+}
+</script>

@@ -399,12 +399,9 @@ PHASE_TO_EVENT_MAP = {
 
 expires_a_day_from_now = datetime.now(timezone.utc) + timedelta(days=1)
 expires_a_day_from_now_timestamp = int(expires_a_day_from_now.timestamp())
-# Bug 1916221, the parsed expiry can have a slightly different value than the
-# computed timestamp as Firefox tries to accommodate for the difference between
-# the server clock and the system clock.
 expires_interval = int_interval(
-    expires_a_day_from_now_timestamp - 1,
-    expires_a_day_from_now_timestamp + 1,
+    expires_a_day_from_now_timestamp - 5,
+    expires_a_day_from_now_timestamp + 5,
 )
 
 # Common parameters for Set-Cookie headers tests used for network interception

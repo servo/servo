@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#item-margins">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#logical-to-physical">
+<link rel="match" href="grid-item-paddings-and-writing-modes-001-ref.html">
+<meta name="assert" content="Grid items are placed inside the grid container's padding box in every combination of writing-mode and direction.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<html>
+<link href="/css/support/grid.css" rel="stylesheet">
+<style>
+.grid {
+    grid-template-columns: 80px;
+}
+
+.block {
+    background-color: grey;
+    width: 80px;
+    height: 80px;
+    position: relative;
+    padding: 4px 8px 12px 16px;
+    margin-bottom: 4px;
+}
+
+.item {
+    font: 15px/1 Ahem;
+    background-color: green;
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+    width: 40px;
+    height: 20px;
+}
+</style>
+
+<body>
+    <div class="grid block">
+        <div class="item">X</div>
+    </div>
+    <div class="grid block verticalRL">
+        <div class="item">X</div>
+    </div>
+    <div class="grid block verticalLR">
+        <div class="item">X</div>
+    </div>
+    <div class="grid block directionRTL">
+        <div class="item">X</div>
+    </div>
+    <div class="grid block directionRTL verticalRL">
+        <div class="item">X</div>
+    </div>
+    <div class="grid block directionRTL verticalLR">
+        <div class="item">X</div>
+    </div>
+</body>
+
+</body>
+</html>

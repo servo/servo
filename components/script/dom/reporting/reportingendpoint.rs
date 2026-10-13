@@ -4,6 +4,7 @@
 
 use std::collections::HashMap;
 
+use bytes::Bytes;
 use headers::{ContentType, HeaderMapExt};
 use http::HeaderMap;
 use hyper_serde::Serde;
@@ -26,8 +27,10 @@ use crate::dom::csp::Violation;
 use crate::dom::csppolicyviolationreport::serialize_disposition;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
-use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
-use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
+use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
+use crate::fetch::network_listener::{
+    FetchResponseListener, ResourceTimingListener, submit_timing,
+};
 
 /// <https://w3c.github.io/reporting/#endpoint>
 #[derive(Clone, Eq, Hash, MallocSizeOf, PartialEq)]
@@ -125,8 +128,6 @@ impl SendReportsToEndpoints for GlobalScope {
         endpoints: Vec<ReportingEndpoint>,
     ) {
         // Step 1. Let endpoint map be an empty map of endpoint objects to lists of report objects.
-        #[expect(clippy::mutable_key_type)]
-        // See `impl Hash for DOMString`.
         let mut endpoint_map: HashMap<&ReportingEndpoint, Vec<Report>> = HashMap::new();
         // Step 2. For each report in reports:
         reports.retain(|report| {
@@ -241,7 +242,7 @@ impl SendReportsToEndpoints for GlobalScope {
                 age: 0,
                 type_: r.type_.to_string(),
                 url: r.url.to_string(),
-                user_agent: "".to_owned(),
+                user_agent: String::new(),
                 body: r.body.clone().map(|b| b.into()),
             })
             // Step 2.2. Increment report’s attempts.
@@ -326,7 +327,7 @@ impl FetchResponseListener for CSPReportEndpointFetchListener {
         &mut self,
         _: &mut js::context::JSContext,
         _: RequestId,
-        chunk: Vec<u8>,
+        chunk: Bytes,
     ) {
         _ = chunk;
     }

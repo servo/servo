@@ -3,6 +3,8 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 #![deny(unsafe_code)]
+#![deny(clippy::unwrap_used)]
+#![deny(clippy::panic)]
 
 use std::cell::Cell;
 use std::rc::Rc;
@@ -19,7 +21,6 @@ pub use crate::paint::{Paint, WebRenderDebugOption};
 #[macro_use]
 mod tracing;
 
-mod largest_contentful_paint_calculator;
 mod paint;
 mod painter;
 mod pinch_zoom;
@@ -29,6 +30,7 @@ mod render_notifier;
 mod screenshot;
 mod touch;
 mod web_content_animation;
+#[cfg(feature = "webgl")]
 mod webrender_external_images;
 mod webview_renderer;
 

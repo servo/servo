@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test: flex base size that depends on cross size, with aspect-ratio</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#algo-main-item">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#definite-sizes">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-size-transfers">
+<meta name="assert" content="A stretched flex item of a single-line flex
+  container with a definite cross size has a definite cross size too, so a
+  descendant with a percentage block-size and a preferred aspect ratio can
+  transfer it to the inline axis when the item's max-content flex base size is
+  computed.">
+
+<style>
+.row {
+  display: flex;
+  height: 50px;
+}
+.item {
+  min-width: 0;
+}
+.ar {
+  height: 100%;
+  aspect-ratio: 2 / 1;
+  background: green;
+}
+</style>
+
+<!-- The .ar block resolves its percentage height against the item's definite
+     stretched cross size (50px), and transfers it through its aspect ratio. -->
+<div class="row">
+  <div class="item" style="display: flex; flex-direction: column"
+       data-expected-width="100">
+    <div class="ar"></div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="item" style="display: flex; flex-direction: row"
+       data-expected-width="100">
+    <div class="ar"></div>
+  </div>
+</div>
+
+<div class="row">
+  <div class="item" style="display: block" data-expected-width="100">
+    <div class="ar"></div>
+  </div>
+</div>
+
+<!-- The item is not stretched, so its cross size is not definite. -->
+<div class="row">
+  <div class="item" style="display: flex; flex-direction: column;
+                           align-self: flex-start" data-expected-width="0">
+    <div class="ar"></div>
+  </div>
+</div>
+
+<!-- The flex container has no definite cross size. -->
+<div class="row" style="height: auto">
+  <div class="item" style="display: flex; flex-direction: column"
+       data-expected-width="0">
+    <div class="ar"></div>
+  </div>
+</div>
+
+<!-- The flex container is not single-line. -->
+<div class="row" style="flex-wrap: wrap">
+  <div class="item" style="display: flex; flex-direction: column"
+       data-expected-width="0">
+    <div class="ar"></div>
+  </div>
+</div>
+
+<div style="display: flex; flex-direction: column; width: 100px">
+  <div class="item" style="display: flex; flex: 1 1 0%; flex-direction: row; background: red;"
+       data-expected-width="100" data-expected-height="100">
+    <div class="item" style="flex: 1 1 0%; aspect-ratio: 1 / 1; background: red; position: relative;"
+                      data-expected-width="100" data-expected-height="100">
+      <div class="item" style="position: absolute; inset: 0; background:
+                  green"></div>
+    </div>
+  </div>
+</div>
+
+<div id="log"></div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script>
+checkLayout(".item");
+</script>

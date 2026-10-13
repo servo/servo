@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: toolcancel is not dispatched when an imperative tool detaches its document on abort</title>
+<link rel="author" href="mailto:beaufort.francois@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+async function createSameOriginIframe(t) {
+  const iframe = document.createElement('iframe');
+  iframe.src = '/common/blank.html';
+  const loadPromise = new Promise(resolve => iframe.onload = resolve);
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await loadPromise;
+  return iframe;
+}
+
+promise_test(async t => {
+  const iframe = await createSameOriginIframe(t);
+  const iframeModelContext = iframe.contentDocument.modelContext;
+
+  // The `execute` callback lives in this (parent) realm, which stays alive
+  // after the iframe is detached.
+  await iframeModelContext.registerTool({
+    name: 'detaching_tool',
+    description: 'Tool that detaches its own document when aborted',
+    execute: (input, { signal }) => {
+      signal.addEventListener('abort', () => iframe.remove());
+      return new Promise(() => {});
+    },
+  });
+
+  // The listener is also from this (parent) realm, so it could still be
+  // invoked if the event were dispatched at the detached document.
+  const events = [];
+  iframeModelContext.addEventListener('toolcancel', e => events.push(e));
+
+  const tools = await document.modelContext.getTools();
+  const tool = tools.find(tool => tool.name === 'detaching_tool');
+  assert_true(!!tool, '"detaching_tool" is visible to the parent document');
+
+  const controller = new AbortController();
+  const execPromise = document.modelContext.executeTool(
+      tool, {}, { signal: controller.signal });
+  const rejectPromise = promise_rejects_dom(t, 'AbortError', execPromise);
+  controller.abort();
+  await rejectPromise;
+
+  await t.step_wait(() => !iframe.isConnected, 'the iframe is detached');
+  assert_array_equals(events, [],
+      'toolcancel is not dispatched at the detached document ModelContext');
+}, 'toolcancel is not dispatched when a tool abort handler from another ' +
+   'realm detaches the tool document');
+
+promise_test(async t => {
+  const iframe = await createSameOriginIframe(t);
+  const iframeWindow = iframe.contentWindow;
+  const iframeModelContext = iframe.contentDocument.modelContext;
+
+  // The `execute` callback lives in the iframe realm, and detaches its own
+  // frame when aborted.
+  await iframeModelContext.registerTool({
+    name: 'self_detaching_tool',
+    description: 'Tool that detaches its own document from its own realm ' +
+                 'when aborted',
+    execute: new iframeWindow.Function('input', 'options', `
+        options.signal.addEventListener('abort',
+            () => window.frameElement.remove());
+        return new Promise(() => {});`),
+  });
+
+  // One listener from this (parent) realm and one from the iframe realm.
+  const events = [];
+  iframeModelContext.addEventListener('toolcancel', e => events.push(e));
+  iframeWindow.toolCancelEvents = [];
+  iframeModelContext.addEventListener('toolcancel',
+      new iframeWindow.Function('e', 'window.toolCancelEvents.push(e);'));
+
+  const tools = await document.modelContext.getTools();
+  const tool = tools.find(tool => tool.name === 'self_detaching_tool');
+  assert_true(!!tool, '"self_detaching_tool" is visible to the parent document');
+
+  const controller = new AbortController();
+  const execPromise = document.modelContext.executeTool(
+      tool, {}, { signal: controller.signal });
+  const rejectPromise = promise_rejects_dom(t, 'AbortError', execPromise);
+  controller.abort();
+  await rejectPromise;
+
+  await t.step_wait(() => !iframe.isConnected, 'the iframe is detached');
+  assert_array_equals(events, [],
+      'toolcancel is not dispatched to listeners from the parent realm');
+  assert_array_equals(iframeWindow.toolCancelEvents, [],
+      'toolcancel is not dispatched to listeners from the iframe realm');
+}, 'toolcancel is not dispatched when a tool abort handler detaches its own ' +
+   'document');
+</script>

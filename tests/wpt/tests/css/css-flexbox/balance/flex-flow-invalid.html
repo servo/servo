@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-2/#flex-wrap-property">
+<meta name="assert" content="flex-flow rejects balance when the flex-wrap keywords are not contiguous or are otherwise invalid.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<body>
+<script>
+test_invalid_value("flex-flow", "wrap row balance");
+test_invalid_value("flex-flow", "balance column wrap");
+test_invalid_value("flex-flow", "balance balance");
+test_invalid_value("flex-flow", "nowrap balance");
+test_invalid_value("flex-flow", "balance nowrap");
+test_invalid_value("flex-flow", "row balance column");
+</script>
+</body>

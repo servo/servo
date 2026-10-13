@@ -1,0 +1,19 @@
+<!doctype html>
+<title>@scope with :: inside attribute selector values is valid</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scoped-styles">
+
+<style id="scope-attr-colons">
+  @scope ([data-x="::"]) { .a { color: red } }
+</style>
+
+<script>
+"use strict";
+
+test(() => {
+  const { sheet } = document.getElementById("scope-attr-colons");
+  assert_equals(sheet.cssRules.length, 1, "The @scope rule should not be dropped");
+  assert_equals(sheet.cssRules[0].constructor.name, "CSSScopeRule");
+}, "@scope with :: in attribute value is not rejected as a pseudo-element");
+</script>

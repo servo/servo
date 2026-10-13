@@ -31,7 +31,7 @@ const load = {
 
   // Returns a promise that settles once the given path has been fetched as an
   // image resource.
-  image_cors: path => load.image_with_attrs(path, {crossOrigin: "anonymous"}),
+  image_cors: path => load.image_with_attrs(path, {crossOrigin: 'anonymous'}),
 
   // Returns a promise that settles once the given path has been fetched as a
   // font resource.
@@ -78,7 +78,8 @@ const load = {
     return load.stylesheet_with_attrs(path, undefined);
   },
 
-  iframe_with_attrs: async (path, attribute_map, validator, skip_wait_for_navigation) => {
+  iframe_with_attrs: async (path, attribute_map, validator,
+                            skip_wait_for_navigation) => {
     const frame = document.createElement("iframe");
     if (attribute_map instanceof Object) {
       for (const [key, value] of Object.entries(attribute_map)) {
@@ -170,5 +171,17 @@ const load = {
     return new Promise(resolve => {
       xhr.onload = xhr.onerror = resolve;
     });
+  },
+
+  image_object: async path => {
+    return load.object(path, 'image/png');
+  },
+
+  frame_object: async path => {
+    return load.object(path, 'text/html');
+  },
+
+  null_object: async path => {
+    return load.object(path, null);
   }
 };

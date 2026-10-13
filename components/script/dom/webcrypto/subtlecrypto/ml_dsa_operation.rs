@@ -17,36 +17,44 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, K
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cryptokey::{CryptoKey, Handle};
+use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    SubtleAlgorithm, SubtleContextParams, SubtleKeyAlgorithm,
+    Algorithm, ContextParams, CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField,
+    KeyAlgorithm, KeyAlgorithmAndDerivatives,
 };
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#ml-dsa-operations-sign>
 pub(crate) fn sign(
-    normalized_algorithm: &SubtleContextParams,
+    normalized_algorithm: &ContextParams,
     key: &CryptoKey,
     message: &[u8],
 ) -> Result<Vec<u8>, Error> {
-    // Step 1. If the [[type]] internal slot of key is not "private", then throw an
-    // InvalidAccessError.
-    if key.Type() != KeyType::Private {
-        return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of key is not \"private\"".into(),
+    // Step 1. If the context member of normalizedAlgorithm is present and has a length greater than
+    // 255 bytes, then throw an OperationError.
+    if normalized_algorithm
+        .context
+        .as_ref()
+        .is_some_and(|context| context.len() > 255)
+    {
+        return Err(Error::Operation(Some(
+            "The context is present and has a length greater than 255 bytes".into(),
         )));
     }
 
-    // Step 2. Let context be the context member of normalizedAlgorithm or the empty octet string
+    // Step 2. If the [[type]] internal slot of key is not "private", then throw an
+    // InvalidAccessError.
+    key.ensure_type(KeyType::Private)?;
+
+    // Step 3. Let context be the context member of normalizedAlgorithm or the empty octet string
     // if the context member of normalizedAlgorithm is not present.
     let context = normalized_algorithm.context.as_deref().unwrap_or_default();
 
-    // Step 3. Let result be the result of performing the ML-DSA.Sign signing algorithm, as
+    // Step 4. Let result be the result of performing the ML-DSA.Sign signing algorithm, as
     // specified in Section 5.2 of [FIPS-204], with the parameter set indicated by the name member
     // of normalizedAlgorithm, using the ML-DSA private key associated with key as sk, message as M
     // and context as ctx.
-    // Step 4. If the ML-DSA.Sign algorithm returned an error, return an OperationError.
+    // Step 5. If the ML-DSA.Sign algorithm returned an error, return an OperationError.
     let result = match normalized_algorithm.name {
         CryptoAlgorithm::MlDsa44 => {
             let Handle::MlDsa44PrivateKey(private_key) = key.handle() else {
@@ -92,34 +100,42 @@ pub(crate) fn sign(
         },
     };
 
-    // Step 5. Return result.
+    // Step 6. Return result.
     Ok(result)
 }
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#ml-dsa-operations-verify>
 pub(crate) fn verify(
-    normalized_algorithm: &SubtleContextParams,
+    normalized_algorithm: &ContextParams,
     key: &CryptoKey,
     message: &[u8],
     signature: &[u8],
 ) -> Result<bool, Error> {
-    // Step 1. If the [[type]] internal slot of key is not "public", then throw an
-    // InvalidAccessError.
-    if key.Type() != KeyType::Public {
-        return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of key is not \"public\"".into(),
+    // Step 1. If the context member of normalizedAlgorithm is present and has a length greater than
+    // 255 bytes, then throw an OperationError.
+    if normalized_algorithm
+        .context
+        .as_ref()
+        .is_some_and(|context| context.len() > 255)
+    {
+        return Err(Error::Operation(Some(
+            "The context is present and has a length greater than 255 bytes".into(),
         )));
     }
 
-    // Step 2. Let context be the context member of normalizedAlgorithm or the empty octet string
+    // Step 2. If the [[type]] internal slot of key is not "public", then throw an
+    // InvalidAccessError.
+    key.ensure_type(KeyType::Public)?;
+
+    // Step 3. Let context be the context member of normalizedAlgorithm or the empty octet string
     // if the context member of normalizedAlgorithm is not present.
     let context = normalized_algorithm.context.as_deref().unwrap_or_default();
 
-    // Step 3. Let result be the result of performing the ML-DSA.Verify verification algorithm, as
+    // Step 4. Let result be the result of performing the ML-DSA.Verify verification algorithm, as
     // specified in Section 5.3 of [FIPS-204], with the parameter set indicated by the name member
     // of normalizedAlgorithm, using the ML-DSA public key associated with key as pk, message as M,
     // signature as σ and context as ctx.
-    // Step 4. If the ML-DSA.Verify algorithm returned an error, return an OperationError.
+    // Step 5. If the ML-DSA.Verify algorithm returned an error, return an OperationError.
     let result = match normalized_algorithm.name {
         CryptoAlgorithm::MlDsa44 => {
             let Handle::MlDsa44PublicKey(public_key) = key.handle() else {
@@ -162,7 +178,7 @@ pub(crate) fn verify(
         },
     };
 
-    // Step 5. Return result.
+    // Step 6. Return result.
     Ok(result)
 }
 
@@ -170,20 +186,13 @@ pub(crate) fn verify(
 pub(crate) fn generate_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleAlgorithm,
+    normalized_algorithm: &Algorithm,
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<CryptoKeyPair, Error> {
     // Step 1. If usages contains a value which is not one of "sign" or "verify", then throw a
     // SyntaxError.
-    if usages
-        .iter()
-        .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify))
-    {
-        return Err(Error::Syntax(Some(
-            "Usages contains an entry which is not one of \"sign\" or \"verify\"".into(),
-        )));
-    }
+    usages.ensure_only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
 
     // Step 2. Generate an ML-DSA key pair, as described in Section 5.1 of [FIPS-204], with the
     // parameter set indicated by the name member of normalizedAlgorithm.
@@ -223,7 +232,7 @@ pub(crate) fn generate_key(
 
     // Step 4. Let algorithm be a new KeyAlgorithm object.
     // Step 5. Set the name attribute of algorithm to the name attribute of normalizedAlgorithm.
-    let algorithm = SubtleKeyAlgorithm {
+    let algorithm = KeyAlgorithm {
         name: normalized_algorithm.name,
     };
 
@@ -240,11 +249,7 @@ pub(crate) fn generate_key(
         KeyType::Public,
         true,
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm.clone()),
-        usages
-            .iter()
-            .filter(|usage| **usage == KeyUsage::Verify)
-            .cloned()
-            .collect(),
+        usages.usage_intersection(&[KeyUsage::Verify]),
         public_key_handle,
     );
 
@@ -261,11 +266,7 @@ pub(crate) fn generate_key(
         KeyType::Private,
         extractable,
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-        usages
-            .iter()
-            .filter(|usage| **usage == KeyUsage::Sign)
-            .cloned()
-            .collect(),
+        usages.usage_intersection(&[KeyUsage::Sign]),
         private_key_handle,
     );
 
@@ -285,7 +286,7 @@ pub(crate) fn generate_key(
 pub(crate) fn import_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleAlgorithm,
+    normalized_algorithm: &Algorithm,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
@@ -298,11 +299,7 @@ pub(crate) fn import_key(
         // If format is "spki":
         KeyFormat::Spki => {
             // Step 2.1. If usages contains a value which is not "verify" then throw a SyntaxError.
-            if usages.iter().any(|usage| *usage != KeyUsage::Verify) {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not \"verify\"".into(),
-                )));
-            }
+            usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?;
 
             // Step 2.2. Let spki be the result of running the parse a subjectPublicKeyInfo
             // algorithm over keyData.
@@ -359,7 +356,7 @@ pub(crate) fn import_key(
             // Step 2.11. Set the name attribute of algorithm to the name attribute of
             // normalizedAlgorithm.
             // Step 2.12. Set the [[algorithm]] internal slot of key to algorithm.
-            let algorithm = SubtleKeyAlgorithm {
+            let algorithm = KeyAlgorithm {
                 name: normalized_algorithm.name,
             };
             CryptoKey::new(
@@ -368,18 +365,14 @@ pub(crate) fn import_key(
                 KeyType::Public,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 public_key,
             )
         },
         // If format is "pkcs8":
         KeyFormat::Pkcs8 => {
             // Step 2.1. If usages contains a value which is not "sign" then throw a SyntaxError.
-            if usages.iter().any(|usage| *usage != KeyUsage::Sign) {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not \"sign\"".into(),
-                )));
-            }
+            usages.ensure_only_contain_entries_from(&[KeyUsage::Sign])?;
 
             // Step 2.2. Let privateKeyInfo be the result of running the parse a privateKeyInfo
             // algorithm over keyData.
@@ -450,7 +443,7 @@ pub(crate) fn import_key(
             // Step 2.14. Set the name attribute of algorithm to the name attribute of
             // normalizedAlgorithm.
             // Step 2.15. Set the [[algorithm]] internal slot of key to algorithm.
-            let algorithm = SubtleKeyAlgorithm {
+            let algorithm = KeyAlgorithm {
                 name: normalized_algorithm.name,
             };
             CryptoKey::new(
@@ -459,18 +452,14 @@ pub(crate) fn import_key(
                 KeyType::Private,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 ml_dsa_private_key,
             )
         },
         // If format is "raw-public":
         KeyFormat::Raw_public => {
             // Step 2.1. If usages contains a value which is not "verify" then throw a SyntaxError.
-            if usages.iter().any(|usage| *usage != KeyUsage::Verify) {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not \"verify\"".into(),
-                )));
-            }
+            usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?;
 
             // Step 2.2. Let algorithm be a new KeyAlgorithm object.
             // Step 2.3. Set the name attribute of algorithm to the name attribute of
@@ -510,7 +499,7 @@ pub(crate) fn import_key(
                     ))));
                 },
             };
-            let algorithm = SubtleKeyAlgorithm {
+            let algorithm = KeyAlgorithm {
                 name: normalized_algorithm.name,
             };
             CryptoKey::new(
@@ -519,18 +508,14 @@ pub(crate) fn import_key(
                 KeyType::Public,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 public_key,
             )
         },
         // If format is "raw-seed":
         KeyFormat::Raw_seed => {
             // Step 2.1. If usages contains an entry which is not "sign" then throw a SyntaxError.
-            if usages.iter().any(|usage| *usage != KeyUsage::Sign) {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not \"sign\"".into(),
-                )));
-            }
+            usages.ensure_only_contain_entries_from(&[KeyUsage::Sign])?;
 
             // Step 2.2. Let data be keyData.
             // Step 2.3. If the length in bits of data is not 256 then throw a DataError.
@@ -577,7 +562,7 @@ pub(crate) fn import_key(
             // Step 2.8. Set the name attribute of algorithm to the name attribute of
             // normalizedAlgorithm.
             // Step 2.9. Set the [[algorithm]] internal slot of key to algorithm.
-            let algorithm = SubtleKeyAlgorithm {
+            let algorithm = KeyAlgorithm {
                 name: normalized_algorithm.name,
             };
             CryptoKey::new(
@@ -586,7 +571,7 @@ pub(crate) fn import_key(
                 KeyType::Private,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 private_key,
             )
         },
@@ -602,18 +587,9 @@ pub(crate) fn import_key(
             // Step 2.2. If the priv field is present and usages contains a value which is not
             // "sign", or, if the priv field is not present and usages contains a value which is
             // not "verify" then throw a SyntaxError.
-            if jwk.priv_.is_some() && usages.iter().any(|usage| *usage != KeyUsage::Sign) {
-                return Err(Error::Syntax(Some(
-                    "The priv field is present and usages contains a value which is not \"sign\""
-                        .into(),
-                )));
-            }
-            if jwk.priv_.is_none() && usages.iter().any(|usage| *usage != KeyUsage::Verify) {
-                return Err(Error::Syntax(Some(
-                    "The priv field is not present and usages contains a value which is not \
-                        \"verify\""
-                        .into(),
-                )));
+            match jwk.priv_.as_ref() {
+                Some(_) => usages.ensure_only_contain_entries_from(&[KeyUsage::Sign])?,
+                None => usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?,
             }
 
             // Step 2.3. If the kty field of jwk is not "AKP", then throw a DataError.
@@ -815,7 +791,7 @@ pub(crate) fn import_key(
             // Step 2.10. Set the name attribute of algorithm to the name member of
             // normalizedAlgorithm.
             // Step 2.11. Set the [[algorithm]] internal slot of key to algorithm.
-            let algorithm = SubtleKeyAlgorithm {
+            let algorithm = KeyAlgorithm {
                 name: normalized_algorithm.name,
             };
             CryptoKey::new(
@@ -824,7 +800,7 @@ pub(crate) fn import_key(
                 key_type,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 key_handle,
             )
         },
@@ -853,11 +829,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         KeyFormat::Spki => {
             // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Public {
-                return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"public\"".into(),
-                )));
-            }
+            key.ensure_type(KeyType::Public)?;
 
             // Step 3.2. Let keyAlgorithm be the [[algorithm]] internal slot of key.
             let KeyAlgorithmAndDerivatives::KeyAlgorithm(key_algorithm) = key.algorithm() else {
@@ -924,11 +896,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         KeyFormat::Pkcs8 => {
             // Step 3.1. If the [[type]] internal slot of key is not "private", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Private {
-                return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"private\"".into(),
-                )));
-            }
+            key.ensure_type(KeyType::Private)?;
 
             // Step 3.2. Let keyAlgorithm be the [[algorithm]] internal slot of key.
             let KeyAlgorithmAndDerivatives::KeyAlgorithm(key_algorithm) = key.algorithm() else {
@@ -1022,11 +990,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         KeyFormat::Raw_public => {
             // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Public {
-                return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"public\"".into(),
-                )));
-            }
+            key.ensure_type(KeyType::Public)?;
 
             // Step 3.2. Let data be a byte sequence containing the ML-DSA public key represented
             // by the [[handle]] internal slot of key.
@@ -1048,11 +1012,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         KeyFormat::Raw_seed => {
             // Step 3.1. If the [[type]] internal slot of key is not "private", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Private {
-                return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"private\"".into(),
-                )));
-            }
+            key.ensure_type(KeyType::Private)?;
 
             // Step 3.2. Let data be a byte sequence containing the ξ seed variable of the key
             // represented by the [[handle]] internal slot of key.
@@ -1083,7 +1043,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             };
 
             // Step 3.3. Set the kty attribute of jwk to "AKP".
-            jwk.kty = Some(DOMString::from("AKP"));
+            jwk.kty = Some(DOMString::from_static("AKP"));
 
             // Step 3.4. Set the alg attribute of jwk to the name member of normalizedAlgorithm.
             jwk.alg = Some(DOMString::from(key_algorithm.name.as_str()));
@@ -1161,7 +1121,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             }
 
             // Step 3.7. Set the key_ops attribute of jwk to the usages attribute of key.
-            jwk.set_key_ops(&key.usages());
+            jwk.set_key_ops(key.usages());
 
             // Step 3.8. Set the ext attribute of jwk to the [[extractable]] internal slot of key.
             jwk.ext = Some(key.Extractable());
@@ -1195,11 +1155,7 @@ pub(crate) fn get_public_key(
     // identified by algorithm, then throw a SyntaxError.
     //
     // NOTE: See "importKey" operation for supported usages
-    if usages.iter().any(|usage| *usage != KeyUsage::Verify) {
-        return Err(Error::Syntax(Some(
-            "Usages contains an entry which is not \"verify\"".into(),
-        )));
-    }
+    usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?;
 
     // Step 10. Let publicKey be a new CryptoKey representing the public key corresponding to the
     // private key represented by the [[handle]] internal slot of key.

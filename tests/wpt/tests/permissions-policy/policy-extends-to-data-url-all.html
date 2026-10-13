@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Permissions Policy with wildcard '*' extends to data: URL iframe with opaque origin</title>
+<link rel="help" href="https://w3c.github.io/webappsec-permissions-policy/#allowlist">
+<link rel="help" href="https://crbug.com/565859110">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+"use strict";
+
+async_test(t => {
+  let frame = document.createElement('iframe');
+  frame.allow = "fullscreen *";
+  frame.src = "data:text/html,<script>window.parent.postMessage({allowed: document.permissionsPolicy.allowsFeature('fullscreen')}, '*');<\/script>";
+
+  var handle_message = t.step_func(evt => {
+    if (evt.source === frame.contentWindow) {
+      assert_equals(evt.data.allowed, true,
+        "Wildcard '*' in allow attribute must match opaque origin of data: URL iframe.");
+      document.body.removeChild(frame);
+      window.removeEventListener('message', handle_message);
+      t.done();
+    }
+  });
+  window.addEventListener('message', handle_message);
+  document.body.appendChild(frame);
+}, "Permissions Policy with wildcard '*' extends to data: URL iframe with opaque origin");
+</script>
+</body>

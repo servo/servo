@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox: multi-line column-reverse item positions</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#main-alignment">
+<link rel="match" href="flex-column-reverse-multiline-item-position-ref.html">
+<style>
+#target {
+    display: flex;
+    flex-flow: column-reverse wrap;
+    align-content: flex-start;
+    align-items: flex-start;
+    width: 200px;
+    max-height: 100px;
+    margin: 0;
+    border: 0;
+    padding: 0;
+}
+#target > div {
+    width: 50px;
+    background: green;
+}
+.short { height: 40px; }
+.tall { height: 80px; }
+</style>
+<p>Test passes if there is a green step shape (a short block at the lower left, a taller block to its right) and no red.</p>
+<!-- max-height forces a wrap: the 40px item fills line 1, the 80px item wraps to line 2, and the container's
+     auto height resolves to the taller line (80px). Each column-reverse line packs at the main-start (bottom)
+     against that finalized height, so the short line is bottom-aligned. -->
+<div id="target">
+    <div class="short"></div>
+    <div class="tall"></div>
+</div>

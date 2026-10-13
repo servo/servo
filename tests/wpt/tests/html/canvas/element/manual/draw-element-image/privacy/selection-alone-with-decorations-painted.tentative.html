@@ -4,7 +4,7 @@
 <title>drawElementImage draws selection</title>
 <link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/">
 <link rel="match" href="selection-alone-with-decorations-painted-ref.html">
-<meta name="assert" value="When preserving privacy for readback, draw selection when it has decorations and shadows.">
+<meta name="assert" value="During read-back allowed rendering, draw selection when it has decorations and shadows.">
 <script src="/common/reftest-wait.js"></script>
 <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
 <style>
@@ -26,8 +26,8 @@
     text-shadow: pink 2px 5px;
   }
 </style>
-<canvas id=canvas width="200" height="200" layoutsubtree>
-  <div id="child">
+<canvas id=canvas width="200" height="200" content=drawable>
+  <div drawable id="child">
     <div id="editable" contenteditable="true">Many things can happen.</div>
   </div>
 </canvas>

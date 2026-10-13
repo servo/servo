@@ -11,8 +11,8 @@ use profile_traits::generic_callback::GenericCallback;
 use profile_traits::generic_channel::channel;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericUnionTypes::StringOrStringSequence;
-use script_bindings::reflector::reflect_dom_object_with_cx;
-use servo_base::generic_channel::{GenericSend, GenericSender};
+use script_bindings::reflector::reflect_dom_object;
+use servo_base::generic_channel::{GenericSend, GenericSender, SendError};
 use servo_base::id::ScriptEventLoopId;
 use storage_traits::indexeddb::{
     BackendError, IndexedDBIndex, IndexedDBThreadMsg, IndexedDBTxnMode, KeyPath, SyncOperation,
@@ -42,7 +42,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::indexeddb::idbdatabase::IDBDatabase;
 use crate::dom::indexeddb::idbobjectstore::{IDBObjectStore, IDBObjectStoreAbortState};
 use crate::dom::indexeddb::idbrequest::IDBRequest;
-use crate::indexeddb::map_backend_error_to_dom_error;
+use crate::dom::indexeddb::key::map_backend_error_to_dom_error;
 
 #[dom_struct]
 pub struct IDBTransaction {
@@ -158,7 +158,8 @@ impl IDBTransaction {
         scope: &DOMStringList,
         serial_number: u64,
     ) -> DomRoot<IDBTransaction> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(IDBTransaction::new_inherited(
                 connection,
                 mode,
@@ -167,7 +168,6 @@ impl IDBTransaction {
                 serial_number,
             )),
             global,
-            cx,
         )
     }
 
@@ -316,30 +316,27 @@ impl IDBTransaction {
 
         // TODO: Reuse a shared transaction callback path (similar to IDBFactory
         // connection callbacks) instead of creating one per transaction operation.
-        let callback = GenericCallback::new(
-            global.time_profiler_chan().clone(),
-            move |message: Result<TxnCompleteMsg, ipc_channel::IpcError>| {
-                let this = this.clone();
-                let task_source = task_source.clone();
-                task_source.queue(task!(handle_commit_result: move |cx| {
-                    let this = this.root();
-                    let message = message.expect("Could not unwrap message");
-                    match message.result {
-                        Ok(()) => {
-                            this.finalize_commit();
-                        }
-                        Err(_err) => {
-                             // TODO: Map backend commit/rollback failure to an appropriate DOMException
-                            this.initiate_abort(cx, Error::Operation(None));
-
-                            this.finalize_abort();
-                        }
+        let callback = GenericCallback::new(move |message: Result<TxnCompleteMsg, SendError>| {
+            let this = this.clone();
+            let task_source = task_source.clone();
+            task_source.queue(task!(handle_commit_result: move |cx| {
+                let this = this.root();
+                let message = message.expect("Could not unwrap message");
+                match message.result {
+                    Ok(()) => {
+                        this.finalize_commit();
                     }
-                    // TODO: https://w3c.github.io/IndexedDB/#commit-a-transaction
-                    // Backend commit/rollback is not yet atomic.
-                }));
-            },
-        )
+                    Err(_err) => {
+                         // TODO: Map backend commit/rollback failure to an appropriate DOMException
+                        this.initiate_abort(cx, Error::Operation(None));
+
+                        this.finalize_abort();
+                    }
+                }
+                // TODO: https://w3c.github.io/IndexedDB/#commit-a-transaction
+                // Backend commit/rollback is not yet atomic.
+            }));
+        })
         .expect("Could not create callback");
 
         let commit_operation = SyncOperation::Commit(
@@ -520,18 +517,15 @@ impl IDBTransaction {
             .task_manager()
             .dom_manipulation_task_source()
             .to_sendable();
-        let callback = GenericCallback::new(
-            global.time_profiler_chan().clone(),
-            move |message: Result<TxnCompleteMsg, ipc_channel::IpcError>| {
-                let this = this.clone();
-                let task_source = task_source.clone();
-                task_source.queue(task!(handle_abort_result: move || {
-                    let this = this.root();
-                    let _ = message.expect("Could not unwrap message");
-                    this.finalize_abort();
-                }));
-            },
-        )
+        let callback = GenericCallback::new(move |message: Result<TxnCompleteMsg, SendError>| {
+            let this = this.clone();
+            let task_source = task_source.clone();
+            task_source.queue(task!(handle_abort_result: move || {
+                let this = this.root();
+                let _ = message.expect("Could not unwrap message");
+                this.finalize_abort();
+            }));
+        })
         .expect("Could not create callback");
         let operation = SyncOperation::Abort(
             callback,
@@ -731,20 +725,17 @@ impl IDBTransaction {
             .task_manager()
             .storage_task_source()
             .to_sendable();
-        GenericCallback::new(
-            self.global().time_profiler_chan().clone(),
-            move |error: Result<BackendError, ipc_channel::IpcError>| {
-                let Ok(error) = error else {
-                    return;
-                };
-                let trusted_transaction = trusted_transaction.clone();
-                task_source.queue(task!(delete_failed: move |cx| {
-                    let transaction = trusted_transaction.root();
-                    transaction.initiate_abort(cx, map_backend_error_to_dom_error(error));
-                    transaction.request_backend_abort();
-                }));
-            },
-        )
+        GenericCallback::new(move |error: Result<BackendError, SendError>| {
+            let Ok(error) = error else {
+                return;
+            };
+            let trusted_transaction = trusted_transaction.clone();
+            task_source.queue(task!(delete_failed: move |cx| {
+                let transaction = trusted_transaction.root();
+                transaction.initiate_abort(cx, map_backend_error_to_dom_error(error));
+                transaction.request_backend_abort();
+            }));
+        })
         .expect("Could not create GenericCallback")
     }
 }

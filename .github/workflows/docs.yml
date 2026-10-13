@@ -27,8 +27,13 @@ jobs:
         run: |
           sudo apt update
           ./mach bootstrap --yes --skip-lints --skip-nextest
-      - name: Set LIBCLANG_PATH # This is needed for bindgen in mozangle.
-        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "20.1"
+          directory: ${{ runner.temp }}/llvm
+      - name: Set LIBCLANG_PATH env
+        run: echo "LIBCLANG_PATH=${LLVM_PATH}/lib" >> $GITHUB_ENV
       - name: Compile docs
         run: ./mach doc
         env:

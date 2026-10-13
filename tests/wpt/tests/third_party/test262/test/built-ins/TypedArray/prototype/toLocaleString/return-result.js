@@ -35,8 +35,8 @@ var separator = ["", ""].toLocaleString();
 
 var arr = [42, 0, 43];
 
-testWithTypedArrayConstructors(function(TA) {
-  var sample = new TA(arr);
+testWithTypedArrayConstructors(function(TA, makeCtorArg) {
+  var sample = new TA(makeCtorArg(arr));
   var expected =
     sample[0].toLocaleString().toString() +
     separator +
@@ -44,4 +44,4 @@ testWithTypedArrayConstructors(function(TA) {
     separator +
     sample[2].toLocaleString().toString();
   assert.sameValue(sample.toLocaleString(), expected);
-}, null, ["passthrough"]);
+});

@@ -166,8 +166,8 @@ function waitForAnimationFramesWithDelay(minDelay) {
 
 function runAndWaitForFrameUpdate(callback) {
   return new Promise(resolve => {
-    window.requestAnimationFrame(() => {
-      callback();
+    window.requestAnimationFrame(async () => {
+      await callback();
       window.requestAnimationFrame(resolve);
     });
   });

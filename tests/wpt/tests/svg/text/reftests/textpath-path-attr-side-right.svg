@@ -1,0 +1,13 @@
+<svg width="400" height="200" xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>textPath `side` applies to inline path data as it does to a referenced path</title>
+  <metadata>
+    <html:link rel="author" title="Karl Dubost" href="mailto:k_dubost@apple.com"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementPathAttribute"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementSideAttribute"/>
+    <html:link rel="match" href="textpath-path-attr-side-right-ref.svg"/>
+    <html:meta name="assert" content="side reverses the path, and SVG 2 says nothing that would make that depend on where the path came from. Whatever an engine does with side, it must do the same for inline path data as for the same geometry reached through href."/>
+  </metadata>
+  <text>
+    <textPath path="M 10 50 Q 100 10 200 50 T 390 50" side="right">Text along a quadratic curve</textPath>
+  </text>
+</svg>

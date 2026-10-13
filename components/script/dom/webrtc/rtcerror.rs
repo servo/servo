@@ -29,7 +29,10 @@ pub(crate) struct RTCError {
 impl RTCError {
     fn new_inherited(init: &RTCErrorInit, message: DOMString) -> RTCError {
         RTCError {
-            exception: DOMException::new_inherited(message, "OperationError".into()),
+            exception: DOMException::new_inherited(
+                message,
+                DOMString::from_static("OperationError"),
+            ),
             error_detail: init.errorDetail,
             sdp_line_number: init.sdpLineNumber,
             http_request_status_code: init.httpRequestStatusCode,

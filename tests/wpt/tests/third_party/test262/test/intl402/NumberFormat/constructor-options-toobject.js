@@ -2,14 +2,10 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-esid: sec-initializenumberformat
+esid: sec-intl.numberformat
 description: >
-  Tests that Intl.NumberFormat contructor converts the options argument
-  to an object using `ToObject` (7.1.13).
-info: |
-  11.1.2 InitializeNumberFormat
-
-  3.a. Let options be ? ToObject(options).
+  Tests that Intl.NumberFormat constructor converts the options argument to an
+  object.
 ---*/
 
 const toObjectResults = [

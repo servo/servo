@@ -15,9 +15,8 @@ select, select::picker(select) {
 <select multiple></select>
 
 <script>
-  promise_test(async () => {
-    step_timeout(() => {
-        document.querySelector('select').removeAttribute('multiple');
-    }, 10);
+  promise_test(async t => {
+    await new Promise(resolve => t.step_timeout(resolve, 10));
+    document.querySelector('select').removeAttribute('multiple');
   }, 'Removing the multiple attribute should not crash.');
 </script>

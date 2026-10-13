@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>MathMLAnchorElement: Rel attribute policy (opener, noopener and noreferrer)</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#dfn-rel">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<math>
+  <!-- Basic functionality -->
+  <a id="m1" href="support/a-rel-target.html?channel=m1" rel="noopener" target="_blank">
+    <mtext>Link</mtext>
+  </a>
+  <a id="m2" href="support/a-rel-target.html?channel=m2" rel="opener" target="_blank">
+    <mtext>Link</mtext>
+  </a>
+
+  <!-- Implicit default behavior (noopener, referrer)-->
+  <a id="m3" href="support/a-rel-target.html?channel=m3" target="_blank">
+    <mtext>Link</mtext>
+  </a>
+
+  <!-- Conflict resolution (noopener takes precedence) -->
+  <!-- See https://html.spec.whatwg.org/multipage/links.html#get-an-element%27s-noopener -->
+  <a id="m4" href="support/a-rel-target.html?channel=m4" rel="opener noopener" target="_blank">
+    <mtext>Link</mtext>
+  </a>
+  <a id="m5" href="support/a-rel-target.html?channel=m5" rel="noopener opener" target="_blank">
+    <mtext>Link</mtext>
+  </a>
+
+  <!-- noreferrer implies noopener -->
+  <a id="m6" href="support/a-rel-target.html?channel=m6" rel="noreferrer" target="_blank">
+    <mtext>Link</mtext>
+  </a>
+  <a id="m7" href="support/a-rel-target.html?channel=m7" rel="opener noreferrer" target="_blank">
+    <mtext>Link</mtext>
+  </a>
+  <a id="m8" href="support/a-rel-target.html?channel=m8" rel="noopener opener noreferrer" target="_blank">
+    <mtext>Link</mtext>
+  </a>
+</math>
+
+<script>
+  const currentOrigin = window.location.href;
+
+  const testCases = [
+    { id: "m1", expectedHasOpener: false, expectedReferrer: currentOrigin, name: "MathML anchor target=_blank with rel=noopener" },
+    { id: "m2", expectedHasOpener: true, expectedReferrer: currentOrigin, name: "MathML anchor target=_blank with rel=opener" },
+    { id: "m3", expectedHasOpener: false, expectedReferrer: currentOrigin, name: "MathML anchor target=_blank with implicit rel=noopener" },
+    { id: "m4", expectedHasOpener: false, expectedReferrer: currentOrigin, name: "MathML anchor target=_blank with rel='opener noopener'" },
+    { id: "m5", expectedHasOpener: false, expectedReferrer: currentOrigin, name: "MathML anchor target=_blank with rel='noopener opener'" },
+    { id: "m6", expectedHasOpener: false, expectedReferrer: "", name: "MathML anchor target=_blank with rel=noreferrer" },
+    { id: "m7", expectedHasOpener: false, expectedReferrer: "", name: "MathML anchor target=_blank with rel='opener noreferrer'" },
+    { id: "m8", expectedHasOpener: false, expectedReferrer: "", name: "MathML anchor target=_blank with rel='noopener opener noreferrer'" },
+  ];
+
+  for (const tc of testCases) {
+    promise_test(async t => {
+      const channelPromise = new Promise(resolve => {
+        const bc = new BroadcastChannel(tc.id);
+        t.add_cleanup(() => bc.close());
+        bc.onmessage = event => resolve(event.data);
+      });
+
+      const element = document.getElementById(tc.id);
+      element.dispatchEvent(new MouseEvent('click', { view: window, bubbles: true, cancelable: true }));
+
+      const { hasOpener, referrer } = await channelPromise;
+      assert_equals(hasOpener, tc.expectedHasOpener, `opener state for id=${tc.id}`);
+      assert_equals(referrer, tc.expectedReferrer, `referrer for id=${tc.id}`);
+    }, tc.name);
+  }
+</script>

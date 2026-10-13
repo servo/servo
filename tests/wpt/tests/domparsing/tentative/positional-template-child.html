@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>
+  HTML partial updates - template child
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    for (const safe of [true, false]) {
+      for (const method of [
+        "afterHTML",
+        "beforeHTML",
+        "replaceWithHTML",
+        "streamAfterHTML",
+        "streamBeforeHTML",
+        "streamReplaceWithHTML",
+      ]) {
+        const method_name = `${method}${safe ? "" : "Unsafe"}`;
+        test(() => {
+          const template = document.createElement("template");
+          const child = document.createElement("div");
+          template.appendChild(child);
+          assert_throws_dom("HierarchyRequestError", () => {
+            if (method.startsWith("stream")) {
+              child[method_name]();
+            } else {
+              child[method_name]('<span></span>');
+            }
+          });
+        }, `${method_name} on a direct child of a template element throws HierarchyRequestError`);
+      }
+    }
+  </script>
+</body>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Test: shape-outside image with a shape-margin above 65535px</title>
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#shape-margin-property">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#shapes-from-image">
+<meta name="assert" content="A very large shape-margin around an image shape expands the float area to the whole margin box.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body {
+    margin: 0;
+}
+.container {
+    position: relative;
+    width: 50000px;
+    font-size: 0;
+}
+.float {
+    float: left;
+    /* One dimension must be large enough that the margin isn't clamped below 65536px. */
+    width: 46400px;
+    height: 30px;
+    /* Only the left 10px of the image is opaque. */
+    shape-outside: linear-gradient(to right, black 10px, transparent 10px);
+}
+.probe {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+}
+</style>
+</head>
+<body>
+<!--
+    The shape-margin around the 10px opaque strip is far larger than the float, so the float area
+    should cover the whole 46400px margin box and the probe on the middle line should sit at x=46400.
+-->
+<div class="container"><div class="float" style="shape-margin: 60000px"></div><span class="probe"></span><br><span class="probe" data-margin="60000"></span><br><span class="probe"></span></div>
+<div class="container"><div class="float" style="shape-margin: 65535px"></div><span class="probe"></span><br><span class="probe" data-margin="65535"></span><br><span class="probe"></span></div>
+<div class="container"><div class="float" style="shape-margin: 65536px"></div><span class="probe"></span><br><span class="probe" data-margin="65536"></span><br><span class="probe"></span></div>
+<div class="container"><div class="float" style="shape-margin: 65537px"></div><span class="probe"></span><br><span class="probe" data-margin="65537"></span><br><span class="probe"></span></div>
+<div class="container"><div class="float" style="shape-margin: 70000px"></div><span class="probe"></span><br><span class="probe" data-margin="70000"></span><br><span class="probe"></span></div>
+<script>
+for (const probe of document.querySelectorAll(".probe[data-margin]")) {
+    test(() => {
+        const left = probe.getBoundingClientRect().left - probe.parentElement.getBoundingClientRect().left;
+        assert_equals(left, 46400);
+    }, `shape-margin: ${probe.dataset.margin}px covers the whole float margin box`);
+}
+</script>
+</body>
+</html>

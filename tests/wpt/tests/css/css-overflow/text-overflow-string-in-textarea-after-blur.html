@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>text-overflow: &lt;string&gt; in textarea is restored after blur</title>
+<link rel="author" title="Minseong Kim" href="jja08111@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#ellipsis-interaction">
+<link rel="mismatch" href="text-overflow-in-textarea-notref.html">
+<meta name="flags" content="may">
+<meta name="assert" content="The text-overflow string is hidden while the textarea is focused, and is shown again once the textarea loses focus.">
+<!-- The specification says the UA "may" treat text-overflow as clip while
+     editing, but Chromium and Gecko do so for <textarea>, and WebKit,
+     which does not support text-overflow on <textarea>, does so for
+     <input>. -->
+<style>
+textarea {
+  white-space: nowrap;
+  text-overflow: "[...]";
+}
+</style>
+<textarea>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</textarea>
+<script>
+const textarea = document.querySelector('textarea');
+textarea.focus();
+requestAnimationFrame(() => {
+  textarea.blur();
+  requestAnimationFrame(() => {
+    document.documentElement.classList.remove('reftest-wait');
+  });
+});
+</script>
+</html>

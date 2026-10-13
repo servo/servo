@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: a column subgrid rule breaks around its own spanning item</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="column-subgrid-spanning-item-decorations-ref.html">
+<style>
+  body {
+    margin: 0;
+  }
+  .scene {
+    height: 130px;
+    width: 140px;
+  }
+  .lanes {
+    background: lightgray;
+    column-gap: 20px;
+    display: grid-lanes;
+    grid-template-columns: repeat(2, 60px);
+    height: 130px;
+    width: 140px;
+  }
+  .subgrid {
+    column-rule: 6px solid blue;
+    column-rule-break: normal;
+    display: grid;
+    grid-column: 1 / span 2;
+    grid-template-columns: subgrid;
+    grid-template-rows: repeat(3, 30px);
+    row-gap: 20px;
+  }
+  .cell {
+    background: teal;
+  }
+  .top-left {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .top-right {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .spanning-item {
+    background: rgb(255 165 0 / 50%);
+    grid-column: 1 / span 2;
+    grid-row: 2;
+  }
+  .bottom-left {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  .bottom-right {
+    grid-column: 2;
+    grid-row: 3;
+  }
+</style>
+<div class="scene">
+  <div class="lanes">
+    <div class="subgrid">
+      <div class="cell top-left"></div>
+      <div class="cell top-right"></div>
+      <div class="spanning-item"></div>
+      <div class="cell bottom-left"></div>
+      <div class="cell bottom-right"></div>
+    </div>
+  </div>
+</div>

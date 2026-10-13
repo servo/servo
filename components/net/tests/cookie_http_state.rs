@@ -23,7 +23,7 @@ fn run(set_location: &str, set_cookies: &[&str], final_location: &str) -> String
     let url = ServoUrl::parse(final_location).unwrap();
     storage
         .cookies_for_url(&url, source)
-        .unwrap_or("".to_string())
+        .unwrap_or(String::new())
 }
 
 // Following are all tests extracted from https://github.com/abarth/http-state.git

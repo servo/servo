@@ -38,11 +38,17 @@ def test_atspi(atspi, session, inline):
 #     # Method: IAccessible::accSelect()
 #     # Method: IAccessible::get_accSelection()
 
-# def test_uia(uia, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # Control Type: DataGrid
-#     # Control Pattern: Grid
-#     # Control Pattern: Table
-#     # Control Pattern: Selection
+def test_uia(uia, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Control Type: DataGrid
+    # Control Pattern: Grid
+    # Control Pattern: Table
+    # Control Pattern: Selection
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.DataGrid
+    assert node.GetCurrentPropertyValue(uia.PropertyId.IsGridItemPatternAvailable)
+    assert node.GetCurrentPropertyValue(uia.PropertyId.IsTableItemPatternAvailable)
+    assert node.GetCurrentPropertyValue(uia.PropertyId.IsSelectionPatternAvailable)

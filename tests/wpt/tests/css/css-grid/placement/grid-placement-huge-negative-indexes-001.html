@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#line-placement">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#implicit-grids">
+<meta name="assert" content="Items placed with negative line numbers far outside the explicit grid (before its start, after its end, or both) create implicit tracks and are sized to the resulting grid area.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/css/support/alignment.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.negativeStartBeforePositionIndexes {
+    grid-row: -10 / 1;
+    grid-column: -28 / 1;
+}
+.negativeEndAfterPositionIndexes {
+    grid-row: 1 / -17;
+    grid-column: 1 / -80;
+}
+.negativePositionIndexes {
+    grid-row: -50 / -3;
+    grid-column: -8 / -54;
+}
+</style>
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+<div>This test checks that grid items with large negative line numbers are placed and sized correctly.</div>
+
+<div class="unconstrainedContainer">
+    <div class="grid justifyContentStart">
+        <div class="sizedToGridArea negativeStartBeforePositionIndexes" data-expected-width="120" data-expected-height="10">XXXXX XXXXXX</div>
+    </div>
+</div>
+
+<div class="unconstrainedContainer">
+    <div class="grid justifyContentStart">
+        <div class="sizedToGridArea negativeEndAfterPositionIndexes" data-expected-width="120" data-expected-height="10">XXXXX XXXXXX</div>
+    </div>
+</div>
+
+<div class="unconstrainedContainer">
+    <div class="grid justifyContentStart">
+        <div class="sizedToGridArea negativePositionIndexes" data-expected-width="120" data-expected-height="10">XXXXX XXXXXX</div>
+    </div>
+</div>
+
+</body>

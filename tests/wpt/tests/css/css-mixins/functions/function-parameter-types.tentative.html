@@ -126,6 +126,29 @@
   </style>
 </template>
 
+<!-- Tentative: "only the custom property registrations in registrations are visible" implies
+     a local is untyped where a registration of the same name exists, but does not say so.
+     https://drafts.csswg.org/css-mixins-1/#resolve-function-styles -->
+
+<template data-name="A local is untyped even where a registration of the same name exists">
+  <style>
+    @property --untyped-local {
+      syntax: "<integer>";
+      inherits: true;
+      initial-value: 0;
+    }
+    @function --f() {
+      --untyped-local: red;
+      result: var(--untyped-local);
+    }
+    #target {
+      --untyped-local: 0;
+      --actual: --f();
+      --expected: red;
+    }
+  </style>
+</template>
+
 <script>
   test_all_templates();
 </script>

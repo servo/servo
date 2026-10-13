@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<head>
+<meta charset="utf-8" />
+<meta name="timeout" content="long">
+<title>This test validates the response status of resources for Same-Origin Redirects.</title>
+<link rel="help" href="https://www.w3.org/TR/resource-timing-2/#sec-performanceresourcetiming"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/entry-invariants.js"></script>
+<script src="resources/resource-loaders.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+</head>
+<body>
+<script>
+const SAME_ORIGIN = location.origin;
+const status_codes = [
+  200, 203,
+  400, 401, 403, 404,
+  500, 501, 502, 503,
+];
+
+// Response status for iframes is exposed for same origin redirects
+for(const loader of [
+  load.iframe,
+  load.frame_object,
+  load.null_object
+]) {
+  for(const status of status_codes) {
+    const destUrl = `${SAME_ORIGIN}/resource-timing/resources/redirect-cors.py`
+      + `?location=${SAME_ORIGIN}/resource-timing/resources/empty.js`
+      + `?pipe=status(${status})`;
+    attribute_test(
+      loader, new URL(destUrl),
+      entry => {
+        assert_equals(entry.responseStatus, status,
+          `response status should be exposed for iframes having only same`
+          + ` origin redirects`);
+      }
+    );
+  }
+}
+</script>
+</body>
+</html>

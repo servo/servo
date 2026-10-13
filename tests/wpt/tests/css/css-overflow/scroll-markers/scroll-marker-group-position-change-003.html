@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>CSS Overflow Test: Changing scroll-marker-group from before to after while restyling a child</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-property">
+<link rel="match" href="scroll-marker-group-position-change-001-ref.html">
+<!-- Restyling #item in the same update must not leave a second
+     ::scroll-marker-group behind. -->
+<style>
+  #scroller {
+    scroll-marker-group: before;
+    overflow: hidden;
+    width: 50px;
+    height: 50px;
+    background: blue;
+  }
+
+  #item::scroll-marker {
+    content: "";
+    display: block;
+    margin-left: 50px;
+    width: 50px;
+    height: 50px;
+    background: red;
+  }
+
+  #item.moved::scroll-marker {
+    background: green;
+  }
+</style>
+<p>Test passes if there is a blue square with a green square below and to the right of it.</p>
+<div id="scroller"><div id="item"></div></div>
+<script>
+  scroller.offsetTop;
+  scroller.style.scrollMarkerGroup = "after";
+  item.className = "moved";
+</script>

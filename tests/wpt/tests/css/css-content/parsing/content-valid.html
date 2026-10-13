@@ -37,6 +37,17 @@ test_valid_value_combinations("content", `counters(counter-name, ".", counter-st
 test_valid_value_combinations("content", `counters(counter-name, ".", dECiMaL)`, `counters(counter-name, ".")`);
 test_valid_value_combinations("content", `counters(counter-name, ".", DECIMAL)`, `counters(counter-name, ".")`);
 
+// symbols() as the <counter-style> in counter()/counters() (css-counter-styles-3).
+test_valid_value_combinations("content", `counter(counter-name, symbols("a"))`);
+test_valid_value_combinations("content", `counter(counter-name, symbols(cyclic "a"))`);
+test_valid_value_combinations("content", `counter(counter-name, symbols(fixed "a"))`);
+test_valid_value_combinations("content", `counter(counter-name, symbols(numeric "a" "b"))`);
+test_valid_value_combinations("content", `counter(counter-name, symbols(alphabetic "a" "b"))`);
+test_valid_value_combinations("content", `counter(counter-name, symbols(symbolic "a"))`, `counter(counter-name, symbols("a"))`);
+test_valid_value_combinations("content", `counters(counter-name, ".", symbols("a"))`);
+test_valid_value_combinations("content", `counters(counter-name, ".", symbols(cyclic "a" "b"))`);
+test_valid_value_combinations("content", `counters(counter-name, ".", symbols(numeric "a" "b"))`);
+
 test_valid_value_combinations("content", `url("picture.svg")`);
 
 test_valid_value_combinations("content", `"hello"`);

@@ -1,0 +1,18 @@
+<svg width="400" height="200" xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Whitespace-only `path` attribute falls back to `href`</title>
+  <metadata>
+    <html:link rel="author" title="Karl Dubost" href="mailto:k_dubost@apple.com"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementPathAttribute"/>
+    <html:link rel="help" href="https://github.com/w3c/svgwg/issues/393"/>
+    <html:link rel="match" href="textpath-path-attr-ref.svg"/>
+    <html:meta name="assert" content="A `path` value made only of white space produces no valid path segments, so the geometry comes from `href`. The existing empty-string test covers the zero-length case; this covers a value that is present and non-empty but still yields nothing."/>
+  </metadata>
+  <defs>
+    <path id="curve" d="M 10 50 Q 100 10 200 50 T 390 50"/>
+  </defs>
+  <text>
+    <textPath href="#curve" path="   ">
+      Text along a quadratic curve
+    </textPath>
+  </text>
+</svg>

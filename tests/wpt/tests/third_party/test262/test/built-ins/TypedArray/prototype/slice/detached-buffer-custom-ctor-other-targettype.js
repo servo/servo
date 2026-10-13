@@ -17,15 +17,15 @@ includes: [testTypedArray.js, detachArrayBuffer.js]
 features: [align-detached-buffer-semantics-with-web-reality, Symbol.species, TypedArray]
 ---*/
 
-testWithTypedArrayConstructors(function(TA) {
+testWithTypedArrayConstructors(function(TA, makeCtorArg) {
   let counter = 0;
-  var sample = new TA(1);
+  var sample = new TA(makeCtorArg(1));
 
   sample.constructor = {};
   sample.constructor[Symbol.species] = function(count) {
     var other = TA === Int8Array ? Int16Array : Int8Array;
-    counter++;
     $DETACHBUFFER(sample.buffer);
+    counter++;
     return new other(count);
   };
 
@@ -35,4 +35,4 @@ testWithTypedArrayConstructors(function(TA) {
   }, '`sample.slice()` throws TypeError');
 
   assert.sameValue(counter, 2, 'The value of `counter` is 2');
-}, null, ["passthrough"]);
+}, null, null, ["immutable"]);

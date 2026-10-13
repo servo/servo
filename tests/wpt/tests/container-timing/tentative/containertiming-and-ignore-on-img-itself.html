@@ -1,6 +1,6 @@
 <!DOCTYPE HTML>
 <meta charset=utf-8>
-<title>Container Timing: observe an image with both containertiming and containertiming-ignore</title>
+<title>Container Timing: observe an image with both containertiming and containertimingignore</title>
 <body>
 <style>
 body {
@@ -26,18 +26,18 @@ body {
     observer.observe({entryTypes: ['container']});
 
     // Add an image that is itself a container timing root AND has
-    // containertiming-ignore set. containertiming-ignore only blocks upward
+    // containertimingignore set. containertimingignore only blocks upward
     // propagation to ancestor roots; the element's own paint still reports
     // under its own root.
     const img = document.createElement('img');
     img.src = '/container-timing/resources/square100.png';
     img.setAttribute('containertiming', 'image_ct');
-    img.setAttribute('containertiming-ignore', '');
+    img.setAttribute('containertimingignore', '');
     img.setAttribute('id', 'my_id');
     document.body.appendChild(img);
 
     beforeRender = performance.now();
-  }, 'Image with both containertiming and containertiming-ignore reports its own paint.');
+  }, 'Image with both containertiming and containertimingignore reports its own paint.');
 </script>
 
 </body>

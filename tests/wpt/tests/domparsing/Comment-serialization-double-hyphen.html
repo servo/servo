@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>Serialization of comments containing '--'</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/243 -->
+
+<script>
+"use strict";
+
+test(() => {
+  const p = document.createElement("p");
+  const comment = document.createComment("abc--def");
+  p.appendChild(comment);
+  assert_equals(p.innerHTML, "<!--abc--def-->");
+}, "Serializing a comment containing '--' via innerHTML");
+
+// Test case based on the original report's example
+test(() => {
+  const p = document.createElement("p");
+  const comment = document.createComment("abc-->def<!--ghj");
+  p.appendChild(comment);
+  assert_equals(p.innerHTML, "<!--abc-->def<!--ghj-->");
+}, "Serializing a comment containing '-->' via innerHTML");
+
+// Test case based on the comment discussion
+test(() => {
+  const p = document.createElement("p");
+  const comment = document.createComment("--");
+  p.appendChild(comment);
+  assert_equals(p.innerHTML, "<!------>");
+}, "Serializing a comment containing only '--' via innerHTML");
+
+</script>

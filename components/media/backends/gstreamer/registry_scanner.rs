@@ -32,7 +32,12 @@ impl GStreamerRegistryScanner {
     }
 
     fn is_codec_supported(&self, codec: &str) -> bool {
-        self.supported_codecs.contains(codec)
+        self.supported_codecs
+            .iter()
+            .any(|entry| match entry.strip_suffix('*') {
+                Some(prefix) => codec.starts_with(prefix),
+                None => codec == *entry,
+            })
     }
 
     pub fn are_all_codecs_supported(&self, codecs: &Vec<&str>) -> bool {
@@ -254,7 +259,7 @@ fn has_element_for_media_type(
     match gstreamer::caps::Caps::from_str(media_type) {
         Ok(caps) => {
             for factory in factories {
-                if factory.can_sink_all_caps(&caps) {
+                if factory.can_sink_any_caps(&caps) {
                     return true;
                 }
             }

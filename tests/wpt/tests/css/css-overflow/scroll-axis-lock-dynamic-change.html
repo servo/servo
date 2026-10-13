@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>CSS Overflow: scroll-axis-lock (dynamic change)</title>
+<link rel="help"
+      href="https://drafts.csswg.org/css-overflow-5/#scroll-axis-locking">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/dom/events/scrolling/scroll_support.js"></script>
+<script src="./support/scroll-axis-lock.js"></script>
+<link rel="stylesheet" href="./support/scroll-axis-lock.css">
+
+<div id="scroller" class="scrollbox">
+  <div class="content"></div>
+</div>
+
+<script>
+["touch", "wheel"].forEach(input_source => {
+  promise_test(async t => {
+    // Scroll axis lock is not implemented for this input source, so there is
+    // no way to distinguish between 'auto' and 'none' values.
+    if (!(await scroll_is_axis_locked(input_source)))
+      return;
+
+    t.add_cleanup(_ => scroller.removeAttribute("style"));
+
+    scroller.style.scrollAxisLock = 'none';
+    await check_scroll_axis_lock(t, {scroller, input_source, expects_scroll_axis_lock: false, dominant_axis: 'X', delta_dominant_axis_sign: 1, delta_minor_axis_sign: 1});
+
+    scroller.style.scrollAxisLock = 'auto';
+    await check_scroll_axis_lock(t, {scroller, input_source, expects_scroll_axis_lock: true, dominant_axis: 'X', delta_dominant_axis_sign: 1, delta_minor_axis_sign: 1});
+  }, `Dynamically setting to scroll-axis-lock between none and auto values works for ${input_source} scroll.`);
+});
+</script>

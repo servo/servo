@@ -25,8 +25,11 @@ def test_atspi(atspi, session, inline):
 #     # Role: ROLE_SYSTEM_DOCUMENT
 #     # State: STATE_SYSTEM_READONLY
 
-# def test_uia(uia, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # Control Type: Document
+def test_uia(uia, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Control Type: Document
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.Document

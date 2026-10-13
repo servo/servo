@@ -7,5 +7,4 @@ rules:
 - outline-color-*: [outlines]
 - outline-offset-*: [outlines]
 - cursor-*: [cursor]
-- text-overflow-*: [text-overflow]
 - box-sizing-*: [box-sizing]

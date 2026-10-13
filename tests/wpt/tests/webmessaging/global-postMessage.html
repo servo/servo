@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Using the global postMessage() to post a message to oneself</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3755 -->
+
+<script>
+"use strict";
+async_test(t => {
+  onmessage = t.step_func_done(e => {
+    assert_equals(e.data, "Hello");
+  });
+
+  postMessage("Hello", "*");
+});
+</script>

@@ -1,0 +1,98 @@
+<!doctype html>
+<title>MediaList parsing and normalization</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-medialist-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  @media screen { }
+</style>
+<script>
+"use strict";
+
+const sheet = document.styleSheets[0];
+const rule = sheet.cssRules[0];
+
+test(() => {
+  assert_equals(rule.media.mediaText, "screen");
+  assert_equals(rule.media.length, 1);
+  assert_equals(rule.media.item(0), "screen");
+}, "Initial media from stylesheet is normalized");
+
+test(() => {
+  rule.media.mediaText = "SCREEN";
+  assert_equals(rule.media.item(0), "screen");
+}, "mediaText setter lowercases media types");
+
+test(() => {
+  rule.media.mediaText = "  screen  ,  print  ";
+  assert_equals(rule.media.mediaText, "screen, print");
+  assert_equals(rule.media.length, 2);
+  assert_equals(rule.media.item(0), "screen");
+  assert_equals(rule.media.item(1), "print");
+}, "mediaText setter trims and normalizes whitespace");
+
+test(() => {
+  rule.media.mediaText = "NOT  PRINT";
+  assert_equals(rule.media.item(0), "not print");
+}, "mediaText setter collapses internal whitespace and lowercases");
+
+test(() => {
+  rule.media.mediaText = "";
+  assert_equals(rule.media.length, 0);
+  assert_equals(rule.media.mediaText, "");
+}, "Setting mediaText to empty string empties the list");
+
+test(() => {
+  rule.media.mediaText = "screen, bad$, print";
+  assert_equals(rule.media.length, 3);
+  assert_equals(rule.media.item(0), "screen");
+  assert_equals(rule.media.item(1), "not all");
+  assert_equals(rule.media.item(2), "print");
+}, "Invalid queries in a list become \"not all\"");
+
+test(() => {
+  rule.media.mediaText = "bad$";
+  assert_equals(rule.media.length, 1);
+  assert_equals(rule.media.item(0), "not all");
+}, "A single invalid query becomes \"not all\"");
+
+test(() => {
+  rule.media.mediaText = "screen";
+  rule.media.appendMedium("print");
+  assert_equals(rule.media.mediaText, "screen, print");
+}, "appendMedium adds a new medium");
+
+test(() => {
+  rule.media.mediaText = "screen";
+  rule.media.appendMedium("SCREEN");
+  assert_equals(rule.media.mediaText, "screen");
+  assert_equals(rule.media.length, 1);
+}, "appendMedium deduplicates by normalized form");
+
+test(() => {
+  rule.media.mediaText = "screen";
+  rule.media.appendMedium("bad$");
+  assert_equals(rule.media.mediaText, "screen, not all");
+  assert_equals(rule.media.length, 2);
+}, "appendMedium with invalid input appends \"not all\"");
+
+test(() => {
+  rule.media.mediaText = "screen, print";
+  rule.media.deleteMedium("SCREEN");
+  assert_equals(rule.media.mediaText, "print");
+}, "deleteMedium matches by normalized form");
+
+test(() => {
+  rule.media.mediaText = "screen";
+  assert_throws_dom("NotFoundError", () => {
+    rule.media.deleteMedium("print");
+  });
+}, "deleteMedium throws NotFoundError for non-existent medium");
+
+test(() => {
+  rule.media.mediaText = "screen";
+  assert_throws_dom("NotFoundError", () => {
+    rule.media.deleteMedium("bad$");
+  });
+}, "deleteMedium throws NotFoundError when no \"not all\" entry exists");
+</script>

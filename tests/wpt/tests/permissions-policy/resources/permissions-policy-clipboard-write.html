@@ -12,9 +12,9 @@
     await test_driver.set_permission({ name: 'clipboard-write' }, 'granted');
     await navigator.clipboard.writeText('test text');
 
-    window.parent.postMessage({ enabled: true }, "*");
+    window.parent.postMessage({ type: 'availability-result', enabled: true }, "*");
   } catch (e) {
-    window.parent.postMessage({ enabled: false }, "*");
+    window.parent.postMessage({ type: 'availability-result', enabled: false }, "*");
   }
 })();
 </script>

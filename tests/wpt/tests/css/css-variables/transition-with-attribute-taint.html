@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="help" href="https://drafts.csswg.org/css-values-5/#attr-security">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/web-animations/testcommon.js"></script>
+  <title>attr()-taint in CSS transition</title>
+</head>
+<style>
+  @property --src {
+    syntax: "<number>";
+    inherits: true;
+    initial-value: 0;
+  }
+  @property --n {
+    syntax: "<number>";
+    inherits: false;
+    initial-value: 0;
+  }
+
+  @keyframes mask {
+    from { --src: 0; }
+    to   { --src: 0; }
+  }
+
+  #target {
+    background-color: rebeccapurple;
+    width: 200px;
+    height: 200px;
+    transition: --n 1000s steps(1, end);
+  }
+
+  #target.stage1 {
+    --src: attr(data-secret type(<number>));
+    --n: var(--src);
+    animation: mask 1000s linear;
+  }
+
+  #target.stage2 {
+    animation: none;
+    --n: -1;
+    background-image:
+      /* transition start value is attr()-tainted. Ensure it is not leaked. */
+      if(style(--n: 7193): url("/leaked/secret.html"); else: none);
+  }
+
+</style>
+<body>
+  <div id="target"  data-secret="7193" class="stage1"></div>
+</body>
+<script>
+  promise_test(async () => {
+    const target  = document.getElementById('target');
+    getComputedStyle(target).getPropertyValue('--n');
+    await runAndWaitForFrameUpdate(() => {
+      target.classList.remove('stage1');
+      target.classList.add('stage2');
+    });
+    const bg  = getComputedStyle(target).getPropertyValue('background-image');
+    assert_equals(bg, 'none');
+  }, 'Attribute tainted value blocked');
+</script>
+</html>

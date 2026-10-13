@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Event dispatch with a modified Window constructor property</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-event-dispatch">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+"use strict";
+
+test(t => {
+  const eventType = "window-constructor-test";
+  let targetSeenByWindowListener;
+  function listener(event) {
+    targetSeenByWindowListener = event.target;
+  }
+  function NotWindow() {}
+  window.addEventListener(eventType, listener);
+  t.add_cleanup(() => window.removeEventListener(eventType, listener));
+
+  const ownConstructorDescriptor = Object.getOwnPropertyDescriptor(window, "constructor");
+  try {
+    Object.defineProperty(window, "constructor", {
+      configurable: true,
+      writable: true,
+      value: NotWindow
+    });
+    document.body.dispatchEvent(new Event(eventType, { bubbles: true }));
+  } finally {
+    if (ownConstructorDescriptor === undefined) {
+      delete window.constructor;
+    } else {
+      Object.defineProperty(window, "constructor", ownConstructorDescriptor);
+    }
+  }
+
+  assert_equals(targetSeenByWindowListener, document.body);
+}, "Modifying window.constructor does not affect event dispatch");
+</script>

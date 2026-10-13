@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>getComputedStyle() inherits visibility across shadow boundaries</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- regression test for https://github.com/jsdom/jsdom/issues/3941 -->
+
+<div id="shadow-root" style="visibility:visible;"></div>
+
+<script>
+"use strict";
+
+const shadowRoot =
+  document.querySelector("#shadow-root").attachShadow({ mode: "open" });
+
+test(() => {
+  shadowRoot.innerHTML = `
+    <div class="container">
+      <span class="shadow-element-with-inline-style" style="visibility:inherit;"></span>
+    </div>
+  `;
+
+  const innerEl = document.querySelector("#shadow-root").shadowRoot
+    .querySelector(".shadow-element-with-inline-style");
+  assert_equals(window.getComputedStyle(innerEl).visibility, "visible", "initial value");
+
+  shadowRoot.innerHTML = `
+    <div class="container" style="visibility:hidden;">
+      <span class="shadow-element-with-inline-style" style="visibility:inherit;"></span>
+    </div>
+  `;
+
+  const innerEl2 = document.querySelector("#shadow-root").shadowRoot
+    .querySelector(".shadow-element-with-inline-style");
+  assert_equals(window.getComputedStyle(innerEl2).visibility, "hidden", "updated value");
+}, "Sanity check");
+
+test(() => {
+  shadowRoot.innerHTML = `
+    <div class="container">
+      <span class="shadow-element-with-inline-style" style="visibility:inherit;"></span>
+    </div>
+  `;
+
+  const innerEl = document.querySelector("#shadow-root").shadowRoot
+    .querySelector(".shadow-element-with-inline-style");
+  assert_equals(window.getComputedStyle(innerEl).visibility, "visible", "initial value");
+
+  shadowRoot.host.style.visibility = "hidden";
+  assert_equals(window.getComputedStyle(innerEl).visibility, "hidden", "updated value");
+}, "toggle shadowRoot.host visibility");
+
+</script>

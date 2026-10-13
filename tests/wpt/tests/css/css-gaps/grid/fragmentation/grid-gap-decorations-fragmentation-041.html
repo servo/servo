@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: a column rule starts below block-start padding that is itself fragmented.</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="match" href="grid-gap-decorations-fragmentation-041-ref.html">
+<link rel="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
+<style>
+  body {
+    margin: 0;
+  }
+  .multi-col {
+    columns: 3;
+    column-fill: auto;
+    column-gap: 10px;
+    width: 320px;
+    height: 100px;
+    background: lightgray;
+  }
+  .spacer {
+    height: 90px;
+  }
+  .grid-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 80px);
+    column-gap: 10px;
+    column-rule: 6px solid blue;
+    padding-block-start: 20px;
+  }
+  .grid-item {
+    background: skyblue;
+  }
+</style>
+<div class="multi-col">
+  <div class="spacer"></div>
+  <div class="grid-container">
+    <div class="grid-item"></div>
+    <div class="grid-item"></div>
+    <div class="grid-item"></div>
+    <div class="grid-item"></div>
+  </div>
+</div>

@@ -8,4 +8,4 @@ description: >
     not Object
 ---*/
 
-Object.freeze(0);
+assert.sameValue(Object.freeze(0), 0);

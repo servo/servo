@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<title>moveBefore() in a disconnected tree leaves the document's id and name maps alone</title>
+<link rel=help href="https://dom.spec.whatwg.org/#move">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+  <div id="shared" data-document></div>
+  <img name="shared-name" data-document>
+</body>
+
+<script>
+  test(t => {
+      const documentElement = document.querySelector("div[data-document]");
+      assert_equals(document.getElementById("shared"), documentElement);
+
+      const root = document.createElement("div");
+      const element = document.createElement("div");
+      element.id = "shared";
+      const newParent = document.createElement("div");
+      root.append(element, newParent);
+
+      newParent.moveBefore(element, null);
+
+      assert_equals(document.getElementById("shared"), documentElement);
+
+      document.body.appendChild(root);
+      t.add_cleanup(() => root.remove());
+      assert_equals(document.getElementById("shared"), documentElement);
+
+      documentElement.remove();
+      t.add_cleanup(() => document.body.prepend(documentElement));
+      assert_equals(document.getElementById("shared"), element);
+  }, "moveBefore() of an element with an id in a disconnected tree leaves the document's id map alone");
+
+  test(t => {
+      const documentImage = document.querySelector("img[data-document]");
+      assert_equals(window["shared-name"], documentImage);
+
+      const root = document.createElement("div");
+      const image = document.createElement("img");
+      image.name = "shared-name";
+      const newParent = document.createElement("div");
+      root.append(image, newParent);
+
+      newParent.moveBefore(image, null);
+
+      assert_equals(window["shared-name"], documentImage);
+  }, "moveBefore() of an element with a name in a disconnected tree leaves the document's name maps alone");
+
+  test(() => {
+      const documentElement = document.querySelector("div[data-document]");
+
+      const root = document.createElement("div");
+      const host = document.createElement("div");
+      const element = document.createElement("div");
+      element.id = "shared";
+      root.append(host, element);
+      const shadowRoot = host.attachShadow({mode: "open"});
+
+      shadowRoot.moveBefore(element, null);
+
+      assert_equals(shadowRoot.getElementById("shared"), element);
+      assert_equals(document.getElementById("shared"), documentElement);
+
+      element.remove();
+
+      assert_equals(shadowRoot.getElementById("shared"), null);
+  }, "moveBefore() into a shadow tree inside a disconnected tree adds the element to the shadow root's id map");
+
+  test(() => {
+      const documentElement = document.querySelector("div[data-document]");
+
+      const root = document.createElement("div");
+      const host = document.createElement("div");
+      root.append(host);
+      const shadowRoot = host.attachShadow({mode: "open"});
+      const element = document.createElement("div");
+      element.id = "shared";
+      shadowRoot.append(element);
+
+      assert_equals(shadowRoot.getElementById("shared"), element);
+
+      root.moveBefore(element, null);
+
+      assert_equals(shadowRoot.getElementById("shared"), null);
+      assert_equals(document.getElementById("shared"), documentElement);
+
+      element.remove();
+
+      assert_equals(document.getElementById("shared"), documentElement);
+  }, "moveBefore() out of a shadow tree inside a disconnected tree removes the element from the shadow root's id map");
+</script>

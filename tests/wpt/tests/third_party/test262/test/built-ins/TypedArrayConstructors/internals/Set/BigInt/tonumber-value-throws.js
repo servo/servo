@@ -57,4 +57,4 @@ testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
   assert.throws(Test262Error, function() {
     sample['2'] = obj;
   }, '`sample["2"] = obj` throws Test262Error');
-});
+}, null, null, ["immutable"]);

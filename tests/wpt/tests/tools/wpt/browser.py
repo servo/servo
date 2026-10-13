@@ -19,10 +19,9 @@ import html5lib
 import requests
 from packaging.specifiers import SpecifierSet
 
+from .httputils import get, get_download_to_descriptor
 from .utils import (
     call,
-    get,
-    get_download_to_descriptor,
     rmtree,
     sha256sum,
     untar,
@@ -85,7 +84,7 @@ def get_taskcluster_artifact(index, path):
 
 
 def get_file_github(repo: str, ref: str, path: str) -> bytes:
-    data: bytes = get(f"https://raw.githubusercontent.com/{repo}/{ref}/{path}").content  # type: ignore
+    data: bytes = get(f"https://raw.githubusercontent.com/{repo}/{ref}/{path}").content
     return data
 
 
@@ -352,7 +351,7 @@ class FirefoxVcsResources:
                     try:
                         commit_data: Dict[str, Any] = get(
                             f"https://hg-edge.mozilla.org/integration/autoland/json-rev/{commit}"
-                        ).json()  # type: ignore
+                        ).json()
                         rev = commit_data.get("git_commit")
                     except Exception:
                         pass
@@ -379,7 +378,7 @@ class FirefoxVcsResources:
         tags = []
         for tag_data in get(
                 f"https://api.github.com/repos/mozilla-firefox/firefox/git/matching-refs/tags/{ref_prefix}"
-        ).json():  # type: ignore
+        ).json():
             tag = tag_data["ref"].rsplit("/", 1)[1]
             tags.append(tag)
         return tags

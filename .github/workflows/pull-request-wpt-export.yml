@@ -8,6 +8,10 @@ concurrency:
   group: ${{ github.head_ref }}
   cancel-in-progress: false
 
+permissions:
+  # Required by actions/checkout
+  contents: read
+
 jobs:
   upstream:
     # Run job only on servo/servo
@@ -45,5 +49,5 @@ jobs:
          source .venv/bin/activate
          servo/python/wpt/export.py
         env:
-          GITHUB_CONTEXT: ${{ toJson(github) }}
+          GITHUB_EVENT: ${{ toJson(github.event) }}
           WPT_SYNC_TOKEN: ${{ secrets.WPT_SYNC_TOKEN }}

@@ -11,3 +11,7 @@ validateInputFromAnotherBuilder('softplus');
 
 const label = 'softplus_xxx';
 validateSingleInputOperation('softplus', label);
+
+validateOperandRank('softplus', 'input', (builder, input) => {
+  return builder.softplus(input);
+});

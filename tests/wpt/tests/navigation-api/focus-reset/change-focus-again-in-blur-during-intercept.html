@@ -1,6 +1,8 @@
 <!doctype html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
 <body>
 <script>
 promise_test(async t => {
@@ -18,6 +20,8 @@ promise_test(async t => {
     button2.remove();
   });
 
+  await test_driver.click(document.documentElement);
+  assert_true(document.hasFocus(), "Document has focus");
   assert_equals(document.activeElement, document.body, "Start on body");
   button.focus();
   assert_equals(document.activeElement, button, "focus() worked");

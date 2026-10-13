@@ -6,7 +6,7 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::RTCRtpTransceiverBinding::{
     RTCRtpTransceiverDirection, RTCRtpTransceiverMethods,
@@ -23,16 +23,11 @@ pub(crate) struct RTCRtpTransceiver {
 }
 
 impl RTCRtpTransceiver {
-    fn new_inherited(
-        cx: &mut JSContext,
-        global: &GlobalScope,
-        direction: RTCRtpTransceiverDirection,
-    ) -> Self {
-        let sender = RTCRtpSender::new(cx, global);
+    fn new_inherited(direction: RTCRtpTransceiverDirection, sender: &RTCRtpSender) -> Self {
         Self {
             reflector_: Reflector::new(),
             direction: Cell::new(direction),
-            sender: Dom::from_ref(&*sender),
+            sender: Dom::from_ref(sender),
         }
     }
 
@@ -41,10 +36,11 @@ impl RTCRtpTransceiver {
         global: &GlobalScope,
         direction: RTCRtpTransceiverDirection,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
-            Box::new(Self::new_inherited(cx, global, direction)),
-            global,
+        let sender = RTCRtpSender::new(cx, global);
+        reflect_dom_object(
             cx,
+            Box::new(Self::new_inherited(direction, &sender)),
+            global,
         )
     }
 }

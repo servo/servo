@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#gap-decorations">
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/#lists-repeat">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14156">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+    .section {
+        position: relative;
+    }
+    .flex {
+        display: flex;
+        gap: 10px;
+        width: 350px;
+    }
+    .flex > * {
+        background: lightgray;
+        width: 50px;
+        height: 50px;
+    }
+    .col-rule {
+        position: absolute;
+        width: 10px;
+        height: 50px;
+        top: 0px;
+    }
+</style>
+<div class="section">
+    <div class="col-rule" style="left: 50px; background: purple;"></div>
+    <div class="col-rule" style="left: 110px; background: orange;"></div>
+    <div class="col-rule" style="left: 170px; background: blue;"></div>
+    <div class="col-rule" style="left: 230px; background: green;"></div>
+    <div class="col-rule" style="left: 290px; background: red;"></div>
+    <div class="flex">
+        <div></div><div></div><div></div><div></div><div></div><div></div>
+    </div>
+</div>

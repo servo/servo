@@ -46,6 +46,17 @@ test_interpolation({
   {at: 1.5, expect: (av + (10 - av) * 1.5) + "px " + (av + (-20 - av) * 1.5) + "px" },
 ]);
 
+// Check that interpolation works as expected for percentages.
+test_interpolation({
+  property: 'text-decoration-inset',
+  from: '10%',
+  to: 'auto',
+}, [
+  {at: 0, expect: '10%'},
+  {at: 0.5, expect: `calc(5% + ${av / 2}px)`},
+  {at: 1, expect: `calc(0% + ${av}px)`},
+]);
+
 // Check that interpolation works as expected for actual lengths
 test_interpolation({
   property: 'text-decoration-inset',
@@ -73,4 +84,117 @@ test_interpolation({
   {at: 1, expect: 'auto'},
   {at: 1.5, expect: 'auto'},
 ]);
+
+test(t => {
+  const target = document.createElement('div');
+  document.body.appendChild(target);
+  t.add_cleanup(() => target.remove());
+  target.style.textDecorationInset = 'auto';
+
+  const animation = target.animate({
+    textDecorationInset: ['10px', '10px'],
+    composite: 'add',
+  }, 100);
+  animation.currentTime = 50;
+
+  const result = getComputedStyle(target).textDecorationInset;
+  assert_not_equals(result, 'auto');
+  assert_approx_equals(parseFloat(result), av + 10, 0.01);
+}, 'Additive composition of auto and a length produces a length');
+
+test(t => {
+  const target = document.createElement('div');
+  document.body.appendChild(target);
+  t.add_cleanup(() => target.remove());
+  target.style.textDecorationInset = 'auto';
+
+  const animation = target.animate({
+    textDecorationInset: ['auto', 'auto'],
+    composite: 'add',
+  }, 100);
+  animation.currentTime = 50;
+
+  assert_equals(getComputedStyle(target).textDecorationInset, 'auto');
+}, 'Additive composition of auto and auto remains auto');
+
+test(t => {
+  const target = document.createElement('div');
+  document.body.appendChild(target);
+  t.add_cleanup(() => target.remove());
+  target.style.cssText = `
+    font-size: 10px;
+    text-decoration-inset: auto;
+    transition: text-decoration-inset 100s linear;
+  `;
+  getComputedStyle(target).textDecorationInset;
+
+  target.style.textDecorationInset = '10px';
+  const transition = target.getAnimations()[0];
+  transition.pause();
+  transition.currentTime = 50000;
+  assert_approx_equals(
+      parseFloat(getComputedStyle(target).textDecorationInset), 5.5, 0.01);
+
+  target.style.fontSize = '40px';
+  transition.currentTime = 50000;
+  assert_approx_equals(
+      parseFloat(getComputedStyle(target).textDecorationInset), 6, 0.01);
+}, 'A transition re-resolves the auto endpoint');
+
+test(t => {
+  const target = document.createElement('div');
+  document.body.appendChild(target);
+  t.add_cleanup(() => target.remove());
+  target.style.cssText = `
+    font-size: 10px;
+    text-decoration-inset: auto;
+    transition: text-decoration-inset 100s linear;
+  `;
+  getComputedStyle(target).textDecorationInset;
+
+  target.style.textDecorationInset = '10px';
+  const transition = target.getAnimations()[0];
+  transition.pause();
+  transition.currentTime = 50000;
+
+  target.style.fontSize = '40px';
+  transition.currentTime = 50000;
+  assert_approx_equals(
+      parseFloat(getComputedStyle(target).textDecorationInset), 6, 0.01);
+
+  target.style.textDecorationInset = '20px';
+  getComputedStyle(target).textDecorationInset;
+  const retargetedTransition = target.getAnimations()[0];
+  assert_not_equals(retargetedTransition, transition);
+  retargetedTransition.pause();
+  retargetedTransition.currentTime = 0;
+  const retargetedStart =
+      parseFloat(getComputedStyle(target).textDecorationInset);
+  assert_approx_equals(retargetedStart, 6, 0.01);
+
+  target.style.fontSize = '80px';
+  retargetedTransition.currentTime = 0;
+  assert_approx_equals(
+      parseFloat(getComputedStyle(target).textDecorationInset),
+      retargetedStart, 0.01);
+}, 'A retargeted transition drops the auto contribution');
+
+test(t => {
+  const target = document.createElement('div');
+  document.body.appendChild(target);
+  t.add_cleanup(() => target.remove());
+  target.style.fontSize = '10px';
+
+  const animation = target.animate({
+    textDecorationInset: ['auto', '10px'],
+  }, 100);
+  animation.currentTime = 50;
+  assert_approx_equals(
+      parseFloat(getComputedStyle(target).textDecorationInset), 5.5, 0.01);
+
+  target.style.fontSize = '40px';
+  animation.currentTime = 50;
+  assert_approx_equals(
+      parseFloat(getComputedStyle(target).textDecorationInset), 6, 0.01);
+}, 'A keyframed animation re-resolves the auto endpoint');
 </script>

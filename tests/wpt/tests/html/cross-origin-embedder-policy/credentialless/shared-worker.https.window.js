@@ -33,7 +33,7 @@ const window_coep = variants.get('window_coep') == 'none'
 const worker_coep = variants.get('worker_coep') == 'none'
   ? coep_none
   : coep_credentialless;
-const request_origin = variants.get('request_origin') == 'same-origin'
+const request_origin = variants.get('request_origin') == 'same_origin'
   ? same_origin
   : cross_origin;
 

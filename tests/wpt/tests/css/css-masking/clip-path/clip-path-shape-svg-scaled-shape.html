@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Masking: clip-path basic shape lengths on a scaled SVG shape</title>
+<link rel="author" title="Ahmad Saleem" href="mailto:ahmad.saleem792+github@gmail.com">
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-clip-path">
+<link rel="match" href="clip-path-shape-svg-scaled-shape-ref.html">
+<meta name="assert" content="An absolute length in a basic shape resolves in the shape's own user space, so inset() on a scale(2) shape trims 100 user units rather than 100 units of the parent's space.">
+<svg width="400" height="400">
+  <rect x="50" y="50" width="200" height="100" transform="scale(2)" style="clip-path: inset(0 100px 0 0)" fill="green"/>
+</svg>

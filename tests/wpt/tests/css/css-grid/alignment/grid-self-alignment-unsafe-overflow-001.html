@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<link rel="help" href="https://www.w3.org/TR/css-align-3/#overflow-values">
+<link rel="help" href="https://www.w3.org/TR/css-grid-1/#alignment">
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<meta name="assert" content="Unsafe alignment, which is the default overflow alignment, lets a grid item larger than its grid area overflow the area's start edge.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  /* Every item uses explicit grid-area placement (with explicit end lines). */
+  .grid { display: grid; }
+  .single        { grid-template: 50px / 50px; }
+  .three-columns { grid-template: 50px / 50px 50px 50px; }
+  .three-rows    { grid-template: 50px 50px 50px / 50px; }
+
+  .item { background: green; }
+  .wide { width: 100px; height: 50px; }
+  .tall { width: 50px; height: 100px; }
+
+  .cell    { grid-area: 1 / 1 / 2 / 2; }
+  .column2 { grid-area: 1 / 2 / 2 / 3; }
+  .row2    { grid-area: 2 / 1 / 3 / 2; }
+</style>
+<body>
+<div id="log"></div>
+
+<!-- An item larger than a single grid area: the free space is negative, so
+     unsafe alignment distributes it and the item overflows the area's start
+     edge. This is the companion of grid-self-alignment-safe-overflow.html,
+     where the same cases are clamped to the start edge instead. -->
+<div class="grid single"><div class="item wide cell" id="justify-center"        style="justify-self: center"></div></div>
+<div class="grid single"><div class="item wide cell" id="justify-end"           style="justify-self: end"></div></div>
+<div class="grid single"><div class="item wide cell" id="justify-unsafe-center" style="justify-self: unsafe center"></div></div>
+<div class="grid single"><div class="item tall cell" id="align-center"          style="align-self: center"></div></div>
+<div class="grid single"><div class="item tall cell" id="align-end"             style="align-self: end"></div></div>
+<div class="grid single"><div class="item tall cell" id="align-unsafe-center"   style="align-self: unsafe center"></div></div>
+
+<!-- An item placed in the second track, larger than that track: unsafe
+     alignment lets it overflow toward the first track. -->
+<div class="grid three-columns"><div class="item wide column2" id="justify-center-second-column" style="justify-self: center"></div></div>
+<div class="grid three-columns"><div class="item wide column2" id="justify-end-second-column"    style="justify-self: end"></div></div>
+<div class="grid three-rows"><div class="item tall row2" id="align-center-second-row" style="align-self: center"></div></div>
+<div class="grid three-rows"><div class="item tall row2" id="align-end-second-row"    style="align-self: end"></div></div>
+
+<script>
+function startEdgeOffset(id) {
+    const item = document.getElementById(id);
+    const gridRect = item.parentElement.getBoundingClientRect();
+    const itemRect = item.getBoundingClientRect();
+    return { left: itemRect.left - gridRect.left, top: itemRect.top - gridRect.top };
+}
+
+test(() => {
+    assert_equals(startEdgeOffset("justify-center").left, -25);
+}, "justify-self: center on an item wider than its grid area overflows the start edge");
+
+test(() => {
+    assert_equals(startEdgeOffset("justify-end").left, -50);
+}, "justify-self: end on an item wider than its grid area overflows the start edge");
+
+test(() => {
+    assert_equals(startEdgeOffset("justify-unsafe-center").left, -25);
+}, "justify-self: unsafe center on an item wider than its grid area overflows the start edge");
+
+test(() => {
+    assert_equals(startEdgeOffset("align-center").top, -25);
+}, "align-self: center on an item taller than its grid area overflows the start edge");
+
+test(() => {
+    assert_equals(startEdgeOffset("align-end").top, -50);
+}, "align-self: end on an item taller than its grid area overflows the start edge");
+
+test(() => {
+    assert_equals(startEdgeOffset("align-unsafe-center").top, -25);
+}, "align-self: unsafe center on an item taller than its grid area overflows the start edge");
+
+test(() => {
+    assert_equals(startEdgeOffset("justify-center-second-column").left, 25);
+}, "justify-self: center on an item overflowing the second column overflows toward the first column");
+
+test(() => {
+    assert_equals(startEdgeOffset("justify-end-second-column").left, 0);
+}, "justify-self: end on an item overflowing the second column overflows toward the first column");
+
+test(() => {
+    assert_equals(startEdgeOffset("align-center-second-row").top, 25);
+}, "align-self: center on an item overflowing the second row overflows toward the first row");
+
+test(() => {
+    assert_equals(startEdgeOffset("align-end-second-row").top, 0);
+}, "align-self: end on an item overflowing the second row overflows toward the first row");
+</script>
+</body>

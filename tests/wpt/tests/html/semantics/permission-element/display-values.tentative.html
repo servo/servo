@@ -12,10 +12,8 @@
   </head>
   <body>
     <script>
-      function createUsermediaElementWithStyle(displayValue, type) {
-        const element = document.createElement("usermedia");
-
-        element.setAttribute("type", type);
+      function createGeolocationElementWithStyle(displayValue) {
+        const element = document.createElement("geolocation");
         element.style.display = displayValue;
         document.body.appendChild(element);
         return element;
@@ -43,34 +41,29 @@
         ["table-row-group", "style_invalid"],
       ];
 
-      const usermediaTypes = ["camera", "microphone", "camera microphone"];
+      for (const [displayValue, expectedInvalidReason] of testCases) {
+        promise_test(async (t) => {
+          const element = createGeolocationElementWithStyle(displayValue);
+          t.add_cleanup(() => element.remove());
 
-      testCases.forEach((testCase, index) =>
-        testCase.push(usermediaTypes[index % usermediaTypes.length]),
-      );
-      async_test((t) => {
-        let completedTests = 0;
-
-        testCases.forEach(([displayValue, expectedInvalidReason, type]) => {
-          const element = createUsermediaElementWithStyle(displayValue, type);
-          element.onvalidationstatuschange = t.step_func(() => {
-            // These two invalid reasons are expected when the usermedia element was just created.
-            if (
-              element.invalidReason == "unsuccessful_registration" ||
-              element.invalidReason == "intersection_changed"
-            ) {
-              return;
-            }
-            assert_equals(
-              element.invalidReason,
-              expectedInvalidReason,
-              `display: ${displayValue} should be ${expectedInvalidReason === "" ? "valid" : "invalid"}`,
-            );
-            element.remove();
-            if (++completedTests === testCases.length) t.done();
+          await new Promise((resolve) => {
+            element.onvalidationstatuschange = t.step_func(() => {
+              if (
+                element.invalidReason == "unsuccessful_registration" ||
+                element.invalidReason == "intersection_changed"
+              ) {
+                return;
+              }
+              assert_equals(
+                element.invalidReason,
+                expectedInvalidReason,
+                `display: ${displayValue} should be ${expectedInvalidReason === "" ? "valid" : "invalid"}`,
+              );
+              resolve();
+            });
           });
-        });
-      }, "Usermedia element display style validation");
+        }, `display: ${displayValue}`);
+      }
     </script>
   </body>
 </html>

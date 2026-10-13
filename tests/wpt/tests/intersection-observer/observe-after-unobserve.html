@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./resources/intersection-observer-test-utils.js"></script>
+<link rel="help" href="https://w3c.github.io/IntersectionObserver/#observe-target-element">
+<link rel="help" href="https://w3c.github.io/IntersectionObserver/#unobserve-target-element">
+<meta name="author" title="Shubham Gupta" href="mailto:shubhamg13.work@gmail.com">
+
+<style>
+pre, #log {
+  position: absolute;
+  top: 0;
+  left: 200px;
+}
+</style>
+
+<div id="target">Hello, world!</div>
+
+<script>
+promise_test(async function(t) {
+  let entries = [];
+  let target = document.getElementById("target");
+  let observer = new IntersectionObserver(function(changes) {
+    entries = entries.concat(changes);
+  });
+  observer.observe(target);
+  await waitForNotification();
+  assert_equals(entries.length, 1, "Initial notification.");
+  assert_true(entries[0].isIntersecting, "Target is intersecting.");
+
+  // unobserve() removes the observer's only target. observe() must then
+  // behave the same as observing a target for the first time, and deliver
+  // a new initial notification.
+  observer.unobserve(target);
+  observer.observe(target);
+  await waitForNotification();
+  assert_equals(entries.length, 2, "Re-observing delivers a new initial notification.");
+  assert_true(entries[1].isIntersecting, "Target is intersecting after re-observe.");
+}, "Re-observing a target after unobserve() delivers a new initial notification.");
+</script>

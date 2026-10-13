@@ -8,6 +8,8 @@ set -eu
 #
 # Optional jxl-rs fixtures are sourced from:
 #   ${JXL_RS_TESTDATA:-$HOME/jxl-rs/jxl/resources/test}
+# and conformance suite reference images from:
+#   ${JXL_CONFORMANCE_TESTCASES:-$HOME/conformance/testcases}
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 JXL_RS_CLI="${JXL_RS_CLI:-$HOME/jxl-rs/target/release/jxl_cli}"
@@ -118,6 +120,16 @@ djxl 3x3_jpeg_recompression.jxl 3x3_jpeg_recompression.png
 # Cleanup temporary file
 rm -f temp.jxl 3x3.png 3x3a.png 3x3.jpg 3x3_recovered.jpg
 
+# A flat BT.2100 PQ patch of 588 cd/m2 (code value 177/255), encoded twice with
+# a different intensity_target. The pair differs only in the peak luminance that
+# the codestream states, and both state a peak at or above the content's.
+convert -size 8x8 "xc:rgb(177,177,177)" -depth 8 pq_flat.ppm
+for nits in 600 10000; do
+  cjxl pq_flat.ppm "pq_intensity_target_${nits}.jxl" -d 0 \
+    -x color_space=RGB_D65_202_Rel_PeQ "--intensity_target=${nits}"
+done
+rm -f pq_flat.ppm
+
 # --- Part 2: Optional jxl-rs fixtures ---
 
 JXL_RS_TESTDATA="${JXL_RS_TESTDATA:-$HOME/jxl-rs/jxl/resources/test}"
@@ -155,6 +167,16 @@ copy_if_exists "$JXL_RS_CONF/animation_spline.jxl" \
   "$SCRIPT_DIR/conformance_animation_spline.jxl"
 copy_if_exists "$JXL_RS_CONF/patches.jxl" \
   "$SCRIPT_DIR/conformance_patches.jxl"
+copy_if_exists "$JXL_RS_CONF/alpha_premultiplied.jxl" \
+  "$SCRIPT_DIR/conformance_alpha_premultiplied.jxl"
+
+# For premultiplied alpha images djxl writes the premultiplied color values to
+# the PNG as-is, but PNG alpha is never premultiplied, so a djxl reference would
+# show the colors premultiplied twice. Use the conformance suite's reference
+# image (https://github.com/libjxl/conformance) instead.
+JXL_CONFORMANCE_TESTCASES="${JXL_CONFORMANCE_TESTCASES:-$HOME/conformance/testcases}"
+copy_if_exists "$JXL_CONFORMANCE_TESTCASES/alpha_premultiplied/ref.png" \
+  "$SCRIPT_DIR/conformance_alpha_premultiplied.png"
 
 # PNG references used by reftests.
 decode_png_ref_if_exists \

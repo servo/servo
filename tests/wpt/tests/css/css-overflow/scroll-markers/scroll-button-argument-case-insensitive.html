@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow Test: ::scroll-button() arguments are ASCII case-insensitive</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#keywords">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .scroller {
+    width: 100px;
+    height: 100px;
+    overflow: auto;
+  }
+
+  .scroller::scroll-button(*) {
+    content: "*";
+  }
+
+  /* Uppercase arguments in selectors. */
+  #physical::scroll-button(UP) {
+    content: "up";
+  }
+
+  #logical::scroll-button(Inline-End) {
+    content: "inline-end";
+  }
+
+  /* Lowercase arguments in selectors, so that the getComputedStyle() test only
+     depends on how the getComputedStyle() argument is handled. */
+  #lowercase::scroll-button(up) {
+    content: "up";
+  }
+
+  #lowercase::scroll-button(inline-end) {
+    content: "inline-end";
+  }
+</style>
+<div id="physical" class="scroller">
+  <div style="width: 500px; height: 500px"></div>
+</div>
+<div id="logical" class="scroller">
+  <div style="width: 500px; height: 500px"></div>
+</div>
+<div id="lowercase" class="scroller">
+  <div style="width: 500px; height: 500px"></div>
+</div>
+<script>
+  function scrollButtonContent(id, direction) {
+    const scroller = document.getElementById(id);
+    return getComputedStyle(scroller, `::scroll-button(${direction})`).content;
+  }
+
+  test(() => {
+    assert_equals(scrollButtonContent("physical", "up"), '"up"', "up");
+    for (const direction of ["down", "left", "right"]) {
+      assert_equals(scrollButtonContent("physical", direction), '"*"',
+                    direction);
+    }
+  }, "::scroll-button(UP) only matches the up scroll button");
+
+  test(() => {
+    assert_equals(scrollButtonContent("logical", "inline-end"), '"inline-end"',
+                  "inline-end");
+    for (const direction of ["block-start", "inline-start", "block-end"]) {
+      assert_equals(scrollButtonContent("logical", direction), '"*"',
+                    direction);
+    }
+  }, "::scroll-button(Inline-End) only matches the inline-end scroll button");
+
+  test(() => {
+    assert_equals(scrollButtonContent("lowercase", "UP"), '"up"', "UP");
+    assert_equals(scrollButtonContent("lowercase", "Block-Start"), '"up"',
+                  "Block-Start");
+    assert_equals(scrollButtonContent("lowercase", "INLINE-END"),
+                  '"inline-end"', "INLINE-END");
+    assert_equals(scrollButtonContent("lowercase", "Right"), '"inline-end"',
+                  "Right");
+    assert_equals(scrollButtonContent("lowercase", "Down"), '"*"', "Down");
+  }, "getComputedStyle() is ASCII case-insensitive for ::scroll-button() arguments");
+</script>

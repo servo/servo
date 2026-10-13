@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>element.querySelectorAll() with the context element in the selector</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/4227 -->
+
+<div id="test-container">
+  <div class="root" id="root">
+    <table>
+      <tbody>
+        <tr id="row"></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+const root = document.getElementById("root");
+const target = document.getElementById("row");
+
+test(() => {
+  const queryFromDocument = document.querySelectorAll(".root table tbody tr");
+  assert_array_equals(queryFromDocument, [target]);
+}, "Query from document");
+
+test(() => {
+  const queryWithoutRootClass = root.querySelectorAll("table tbody tr");
+  assert_array_equals(queryWithoutRootClass, [target]);
+}, "Query without root class");
+
+test(() => {
+  const queryWithRootClass = root.querySelectorAll(".root table tbody tr");
+  assert_array_equals(queryWithRootClass, [target]);
+}, "Query with root class");
+</script>

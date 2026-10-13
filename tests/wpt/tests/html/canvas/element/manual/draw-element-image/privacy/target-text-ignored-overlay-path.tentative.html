@@ -5,7 +5,7 @@
 <link rel="help" href="https://github.com/WICG/html-in-canvas">
 <link rel="author" href="mailto:schenney@chromium.org">
 <link rel="match" href="target-text-ignored-overlay-path-ref.html">
-<meta name="assert" value="When preserving privacy for readback, do not draw target text markers when mixed with custom highlights.">
+<meta name="assert" value="During read-back allowed rendering, do not draw target text markers when mixed with custom highlights.">
 <script src="/common/reftest-wait.js"></script>
 <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
 <style>
@@ -26,8 +26,8 @@
     background-color: green;
   }
 </style>
-<canvas id=canvas width="200" height="200" layoutsubtree>
-  <div id="child">
+<canvas id=canvas width="200" height="200" content=drawable>
+  <div drawable id="child">
     <div>Match with more</div>
   </div>
 </canvas>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>
+  Row grid-lanes fragmentation with center-aligned OOF.
+</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#abspos">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    background: red;
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0;
+    height: 100px;
+    width: 100px;
+  }
+  .grid-lanes {
+    background: green;
+    display: grid-lanes;
+    grid-template-rows: 200px;
+    position: relative;
+    width: 50px;
+    align-items: center;
+  }
+  .grid-lanes > div {
+    height: 100px;
+    width: 50px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div class="grid-lanes">
+    <div style="position: absolute; background: green;"></div>
+    <div style="background: red;"></div>
+  </div>
+</div>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<head>
+<title>CSS Borders and Box Decorations 4: 'box-shadow' spread with an elliptical concave 'corner-shape' — reference</title>
+<style>
+    body { margin: 0; }
+    .canvas { position: absolute; left: 0; top: 0; width: 160px; height: 160px; }
+    .canvas > div { position: absolute; inset: 0; }
+    .spread {
+        background: green;
+        clip-path: path("\
+            M 135.000 25.000 L 135.000 135.000 L \
+            25.000 135.000 L 25.000 85.405 L 27.574 \
+            81.599 C 28.031 81.599 29.943 77.656 32.139 \
+            65.138 C 34.335 52.620 35.026 41.723 35.026 \
+            39.114 L 35.861 25.000 Z");
+    }
+    .box {
+        background: red;
+        clip-path: path("\
+            M 120.000 40.000 L 120.000 120.000 L \
+            40.000 120.000 L 40.000 90.000 C 40.614 \
+            90.000 43.179 85.360 46.125 70.627 C 49.072 \
+            55.895 50.000 43.070 50.000 40.000 Z");
+    }
+</style>
+</head>
+<div class=canvas><div class=spread></div><div class=box></div></div>

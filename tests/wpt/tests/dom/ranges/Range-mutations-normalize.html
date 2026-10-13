@@ -1,0 +1,87 @@
+<!doctype html>
+<title>Range mutation tests - normalize</title>
+ <link rel="help" href="https://dom.spec.whatwg.org/#dom-node-normalize">;
+<link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+<div id=log></div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+    function createTestNode(t) {
+        // Create a node with adjacent 4 text children.
+        const parentNode = document.createElement("div");
+        parentNode.append(document.createElement("span"), "A", "BB", "CCC", "DDDD", document.createElement("span"));
+        document.body.append(parentNode);
+        t.add_cleanup(() => parentNode.remove());
+        return parentNode;
+    }
+
+    function normalizeTestNode(testNode) {
+        testNode.normalize();
+        assert_equals(testNode.childNodes.length, 3);
+        assert_equals(testNode.childNodes[1].data, "ABBCCCDDDD");
+    }
+
+    test(t => {
+        let testNode = createTestNode(t);
+        let range = document.createRange();
+        range.setStart(testNode.childNodes[1], 0);
+        range.setEnd(testNode.childNodes[4], 4);
+        normalizeTestNode(testNode);
+        assert_equals(range.startContainer, testNode.childNodes[1]);
+        assert_equals(range.startOffset, 0);
+        assert_equals(range.endContainer, testNode.childNodes[1]);
+        assert_equals(range.endOffset, 10);
+    }, "Live range updates properly when its boundaries span multiple merged text nodes");
+
+    test(t => {
+        let testNode = createTestNode(t);
+        let range = document.createRange();
+        range.setStart(testNode.childNodes[3], 2);
+        range.setEnd(testNode.childNodes[3], 2);
+
+        normalizeTestNode(testNode);
+
+        assert_equals(range.startContainer, testNode.childNodes[1]);
+        assert_equals(range.startOffset, 5);
+        assert_equals(range.endContainer, testNode.childNodes[1]);
+        assert_equals(range.endOffset, 5);
+    }, "Live range updates properly when collapsed into single merged text node in range of multiple")
+
+    test(t => {
+        let testNode = createTestNode(t);
+        let range = document.createRange();
+        range.setStart(testNode, 3);
+        range.setEnd(testNode, 4);
+
+        normalizeTestNode(testNode);
+
+        assert_equals(range.startContainer, testNode.childNodes[1]);
+        assert_equals(range.startOffset, 3);
+        assert_equals(range.endContainer, testNode.childNodes[1]);
+        assert_equals(range.endOffset, 6);
+    }, "Live range updates properly when its boundaries are initially indices to merged nodes")
+
+    test(t => {
+        let testNode = createTestNode(t);
+        let range1 = document.createRange();
+        let range2 = document.createRange();
+
+        range1.setStart(testNode, 0);
+        range1.setEnd(testNode, 0);
+        range2.setStart(testNode, 5);
+        range2.setEnd(testNode, 5);
+
+        normalizeTestNode(testNode);
+
+        assert_equals(range1.startContainer, testNode);
+        assert_equals(range1.startOffset, 0);
+        assert_equals(range1.endContainer, testNode);
+        assert_equals(range1.endOffset, 0);
+
+        assert_equals(range2.startContainer, testNode);
+        assert_equals(range2.startOffset, 2);
+        assert_equals(range2.endContainer, testNode);
+        assert_equals(range2.endOffset, 2);
+    }, "Live range updates properly when text nodes merged before and after them")
+</script>

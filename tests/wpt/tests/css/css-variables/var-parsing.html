@@ -12,10 +12,34 @@ test_valid_value('width', 'var(--x)');
 test_valid_value('width', 'var(--x,)');
 test_valid_value('width', 'var(--x, )');
 
-test_invalid_value('width', 'var(--x ())');
-test_invalid_value('width', 'var(--x () )');
-test_invalid_value('width', 'var(--x() )');
-test_invalid_value('width', 'var(--x (),)');
-test_invalid_value('width', 'var(--x(),)');
+// var()'s name argument is a <declaration-value> that is substituted and only then parsed as a
+// <custom-property-name>, so these are valid at parse time and round-trip as pending-substitution
+// values. They become invalid at computed-value time when the name fails to parse.
+// https://drafts.csswg.org/css-variables-2/#funcdef-var
+test_valid_value('width', 'var(--x ())');
+test_valid_value('width', 'var(--x () )');
+test_valid_value('width', 'var(--x() )');
+test_valid_value('width', 'var(--x (),)');
+test_valid_value('width', 'var(--x(),)');
+
+// The name argument is a free-form production, so it may be {}-wrapped: the braces are syntactic and
+// the argument is the block's contents.
+// https://drafts.csswg.org/css-values-5/#component-function-commas
+test_valid_value('width', 'var({--x})');
+test_valid_value('width', 'var({--x}, 10px)');
+test_valid_value('width', 'var({--x, --y})');
+
+// A free-form production that does not start with "{" matches neither top-level commas nor {} blocks,
+// so a {} block may not be mixed with other values in the name argument.
+test_invalid_value('width', 'var(--x {--y})');
+test_invalid_value('width', 'var({--x} --y)');
+test_invalid_value('width', 'var(--x {--y}, 10px)');
+
+// <declaration-value> is one or more tokens, so an empty name argument is invalid whether or not it
+// is {}-wrapped.
+test_invalid_value('width', 'var()');
+test_invalid_value('width', 'var({})');
+test_invalid_value('width', 'var({}, 10px)');
+test_invalid_value('width', 'var(, 10px)');
 
 </script>

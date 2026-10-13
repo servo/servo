@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<style>
+  #host::first-letter { float: left; font-size: 200% }
+  .scope { contain: style }
+  .q::before { content: open-quote }
+  .active .old, .active .a { display: none !important }
+</style>
+<div id="host"><span class="old">First</span><span id="a" class="a scope" style="display:contents">Second</span></div>
+<div id="b" class="scope"><span id="before" class="q"></span></div>
+<script>
+function flush() { document.body.offsetHeight; }
+onload = () => {
+  flush();
+  host.classList.add("active");
+  flush();
+  a.className = "q";
+  a.style.display = "inline";
+  b.append(a);
+  flush();
+  a.remove();
+  flush();
+  before.remove();
+  flush();
+};
+</script>

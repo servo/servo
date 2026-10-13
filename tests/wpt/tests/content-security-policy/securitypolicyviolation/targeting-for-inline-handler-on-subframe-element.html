@@ -1,0 +1,42 @@
+<!doctype html>
+<meta http-equiv="Content-Security-Policy" content="script-src 'nonce-abc'; style-src 'self'">
+<script nonce="abc" src="/resources/testharness.js"></script>
+<script nonce="abc" src="/resources/testharnessreport.js"></script>
+
+<iframe id="subframe"></iframe>
+<script nonce="abc">
+  promise_test(async t => {
+    var subframe = document.getElementById('subframe');
+    var d = subframe.contentDocument.createElement("div");
+    d.setAttribute("onclick", "void(0);");
+    subframe.contentDocument.body.appendChild(d);
+    document.onsecuritypolicyviolation =
+        t.unreached_func("Should not be dispatched on the main document");
+
+    const timeout_promise = () => new Promise((_, reject) => t.step_timeout(
+        () => reject(new Error('Timed out waiting for securitypolicyviolation')), 1000));
+    const get_failed_watchers = (results) => results.flatMap(
+        (r, i) => r.status !== "fulfilled" ? [ `#${i}: ${r.reason}` ] : []);
+
+    await Promise.allSettled([
+      Promise.race([new EventWatcher(t, d, ["securitypolicyviolation"])
+                        .wait_for("securitypolicyviolation").then(e => {
+                          test(() => assert_equals(e.blockedURI, "inline"));
+                          test(() => assert_equals(e.lineNumber, 11));
+                          test(() => assert_in_array(e.columnNumber, [7, 19]));
+                          test(() => assert_equals(e.target, d));
+                        }),
+                    timeout_promise()]),
+      Promise.race([new EventWatcher(t, subframe.contentDocument, ["securitypolicyviolation"])
+                        .wait_for("securitypolicyviolation").then(e => {
+                          test(() => assert_equals(e.blockedURI, "inline"));
+                          test(() => assert_equals(e.lineNumber, 11));
+                          test(() => assert_in_array(e.columnNumber, [7, 19]));
+                          test(() => assert_equals(e.target, d));
+                        }),
+                    timeout_promise()]),
+    ]).then(t.step_func(results => {
+      assert_array_equals(get_failed_watchers(results), []);
+    }));
+  });
+</script>

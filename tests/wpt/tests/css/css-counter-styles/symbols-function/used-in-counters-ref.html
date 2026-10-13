@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>CSS Reference: symbols function, used in counters()</title>
+<link rel="author" title="Xidorn Quan" href="https://www.upsuper.org/">
+<link rel="stylesheet" href="../counter-style-at-rule/support/test-common.css">
+<style>
+  @counter-style counters {
+    system: numeric;
+    symbols: '0' '1';
+  }
+  .counters {
+    list-style-type: none;
+    counter-reset: a;
+  }
+  .counters li {
+    counter-increment: a;
+    padding-right: .5em;
+  }
+  .counters .counters li::after {
+    content: counters(a, '.', counters);
+  }
+</style>
+<ol class="counters">
+  <li><ol class="counters"><li><li><li><li><li></ol></li>
+  <li><ol class="counters"><li><li><li><li><li></ol></li>
+</ol>

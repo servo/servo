@@ -390,6 +390,26 @@ def test_pointer_action_move_coordinate_invalid_type(session, coordinate, value)
     assert_error(response, "invalid argument")
 
 
+@pytest.mark.parametrize("value", [-1, MAX_INT + 1])
+def test_pointer_action_move_duration_invalid_value(session, value):
+    actions = [
+        {
+            "type": "pointer",
+            "id": "foo",
+            "actions": [
+                {
+                    "type": "pointerMove",
+                    "x": 0,
+                    "y": 0,
+                    "duration": value,
+                }
+            ],
+        }
+    ]
+    response = perform_actions(session, actions)
+    assert_error(response, "invalid argument")
+
+
 @pytest.mark.parametrize("value", [None, True, 42, [], {}])
 def test_pointer_action_move_origin_invalid_type(session, value):
     actions = [
@@ -714,6 +734,28 @@ def test_wheel_action_scroll_delta_invalid_value(session, delta, value):
                     "type": "scroll",
                     "deltaX": value if delta == "x" else 0,
                     "deltaY": value if delta == "y" else 0,
+                }
+            ],
+        }
+    ]
+    response = perform_actions(session, actions)
+    assert_error(response, "invalid argument")
+
+
+@pytest.mark.parametrize("value", [-1, MAX_INT + 1])
+def test_wheel_action_scroll_duration_invalid_value(session, value):
+    actions = [
+        {
+            "type": "wheel",
+            "id": "foo",
+            "actions": [
+                {
+                    "type": "scroll",
+                    "x": 0,
+                    "y": 0,
+                    "deltaX": 0,
+                    "deltaY": 0,
+                    "duration": value,
                 }
             ],
         }

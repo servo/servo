@@ -8,7 +8,7 @@
 'use strict';
 
 idl_test(
-  ['webusb'],
+  ['usb'],
   ['permissions', 'html', 'dom'],
   async idl_array => {
     if (self.GLOBAL.isWindow()) {

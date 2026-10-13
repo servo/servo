@@ -6,14 +6,14 @@ use std::slice::Iter;
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::serializable::Serializable;
+use script_bindings::structuredclone::StructuredData;
 use servo_base::id::{FileListId, FileListIndex};
 use servo_constellation_traits::SerializableFileList;
 
 use crate::dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
 use crate::dom::bindings::root::{Dom, DomRoot};
-use crate::dom::bindings::serializable::Serializable;
-use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::file::File;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
@@ -39,12 +39,12 @@ impl FileList {
         window: &Window,
         files: Vec<DomRoot<File>>,
     ) -> DomRoot<FileList> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(FileList::new_inherited(
                 files.iter().map(|r| Dom::from_ref(&**r)).collect(),
             )),
             window,
-            cx,
         )
     }
 
@@ -53,12 +53,12 @@ impl FileList {
         global: &GlobalScope,
         files: Vec<DomRoot<File>>,
     ) -> DomRoot<FileList> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(FileList::new_inherited(
                 files.iter().map(|r| Dom::from_ref(&**r)).collect(),
             )),
             global,
-            cx,
         )
     }
 
@@ -67,7 +67,7 @@ impl FileList {
     }
 }
 
-impl Serializable for FileList {
+impl Serializable<crate::DomTypeHolder> for FileList {
     type Index = FileListIndex;
     type Data = SerializableFileList;
 

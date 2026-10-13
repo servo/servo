@@ -1,0 +1,13 @@
+<svg width="400" height="200" xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Inline textPath path data with several subpaths</title>
+  <metadata>
+    <html:link rel="author" title="Karl Dubost" href="mailto:k_dubost@apple.com"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementPathAttribute"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextpathLayoutRules"/>
+    <html:link rel="match" href="textpath-path-attr-multiple-subpaths-ref.svg"/>
+    <html:meta name="assert" content="A value with more than one subpath is ordinary path data. The string long enough to cross the gap must be distributed over the subpaths the same way it is when the same data is reached through href."/>
+  </metadata>
+  <text>
+    <textPath path="M 10 60 L 180 60 M 220 140 L 390 140">Text crossing a subpath boundary</textPath>
+  </text>
+</svg>

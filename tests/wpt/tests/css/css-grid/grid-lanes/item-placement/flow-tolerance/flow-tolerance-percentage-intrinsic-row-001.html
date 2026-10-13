@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes: Intrinsic row flow-tolerance percentage basis</title>
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#propdef-flow-tolerance">
+  <link rel="match" href="flow-tolerance-percentage-intrinsic-row-001-ref.html">
+  <meta name="assert" content="Flow-tolerance percentages use the intrinsically sized grid-axis content box.">
+  <style>
+    .grid-lanes {
+      background: gray;
+      display: grid-lanes;
+      flow-tolerance: 10%;
+      /* The intrinsic grid-axis size is 400px, so flow-tolerance resolves to
+         40px. */
+      grid-lanes-direction: row;
+      grid-template-rows: repeat(2, 200px);
+      inline-size: 150px;
+    }
+
+    .item-one {
+      background: lightcoral;
+      inline-size: 60px;
+    }
+
+    .item-two {
+      background: lightgreen;
+      inline-size: 30px;
+    }
+
+    .item-three {
+      background: lightskyblue;
+      inline-size: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-lanes">
+    <div class="item-one"></div>
+    <div class="item-two"></div>
+    <div class="item-three"></div>
+  </div>
+</body>
+</html>

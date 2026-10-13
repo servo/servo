@@ -20,6 +20,9 @@ use crate::interfaces::DomHelpers;
 pub struct ServoJSPrincipals(NonNull<JSPrincipals>);
 
 impl ServoJSPrincipals {
+    /// Crate a new [`ServoJSPrincipals`] with the given [`MutableOrigin`]. Note that the
+    /// resulting value will hold a **shared** mutable reference to `origin`, so any changes to
+    /// `origin`'s `host` will be reflected in the return value's internal state.
     pub fn new<D: DomTypes>(origin: &MutableOrigin) -> Self {
         unsafe {
             let private: Box<MutableOrigin> = Box::new(origin.clone());
@@ -40,7 +43,7 @@ impl ServoJSPrincipals {
     /// `raw` must point to a valid JSPrincipals value.
     #[inline]
     pub unsafe fn from_raw_nonnull(raw: NonNull<JSPrincipals>) -> Self {
-        JS_HoldPrincipals(raw.as_ptr());
+        unsafe { JS_HoldPrincipals(raw.as_ptr()) };
         Self(raw)
     }
 
@@ -107,7 +110,7 @@ impl ServoJSPrincipalsRef<'_> {
     /// [`Self::from_raw_nonnull`].
     #[inline]
     pub unsafe fn from_raw_unchecked(raw: *mut JSPrincipals) -> Self {
-        Self::from_raw_nonnull(NonNull::new_unchecked(raw))
+        unsafe { Self::from_raw_nonnull(NonNull::new_unchecked(raw)) }
     }
 }
 

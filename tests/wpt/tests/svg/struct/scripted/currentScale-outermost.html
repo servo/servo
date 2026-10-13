@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVGSVGElement.currentScale on outermost vs non-outermost svg</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/struct.html#__svg__SVGSVGElement__currentScale">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- An <svg> whose parent is not in the SVG namespace is an outermost svg element
+     (SVG 2, "Definitions": the terms "SVG document fragment" / "outermost svg element"). currentScale must
+     round-trip on such elements even when they are not the document root. -->
+<svg id="bodyChild"><rect width="50" height="50" fill="green"/></svg>
+
+<svg id="outer">
+  <foreignObject width="100" height="100">
+    <div xmlns="http://www.w3.org/1999/xhtml">
+      <svg id="foInner"><rect width="50" height="50" fill="green"/></svg>
+    </div>
+  </foreignObject>
+</svg>
+
+<!-- An <svg> nested directly inside another <svg> is NOT an outermost svg element. -->
+<svg id="container"><svg id="nested"><rect width="50" height="50" fill="green"/></svg></svg>
+
+<script>
+test(() => {
+  const svg = document.getElementById("bodyChild");
+  svg.currentScale = 2;
+  assert_equals(svg.currentScale, 2);
+}, "currentScale round-trips on an HTML-body-child outermost svg element");
+
+test(() => {
+  const svg = document.getElementById("foInner");
+  svg.currentScale = 3;
+  assert_equals(svg.currentScale, 3);
+}, "currentScale round-trips on an outermost svg element inside a foreignObject");
+
+test(() => {
+  const svg = document.getElementById("nested");
+  assert_equals(svg.currentScale, 1, "getter returns 1 on a non-outermost svg element");
+  svg.currentScale = 5;
+  assert_equals(svg.currentScale, 1, "setter is a no-op on a non-outermost svg element");
+}, "currentScale is inert on a non-outermost (nested) svg element");
+</script>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>:scope nested in :not should work</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3924 -->
+
+<div id="fixture">
+  <div data-main>
+    <div data-item>
+      <div data-side>
+        <div data-main>
+          <div data-item>
+            <div data-side></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+test(() => {
+  const mainAttribute = "data-main";
+  const itemAttribute = "data-item";
+  const sideAttribute = "data-side";
+
+  const result = [];
+  const foundElements = document.querySelectorAll(`[${mainAttribute}]`);
+  for (const element of foundElements) {
+    result.push(element);
+  }
+
+  for (const element of result) {
+    const selector = `:scope [${sideAttribute}]:not(:scope [${itemAttribute}] [${itemAttribute}] [${sideAttribute}])`;
+    const results = element.querySelectorAll(selector);
+    assert_equals(results.length, 1);
+  }
+}, ":scope nested in :not should select one element per [data-main] scope");
+</script>

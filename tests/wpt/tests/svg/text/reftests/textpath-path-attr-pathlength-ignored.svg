@@ -1,0 +1,17 @@
+<svg width="400" height="200" xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>pathLength on an href target overridden by `path` does not scale startOffset</title>
+  <metadata>
+    <html:link rel="author" title="Karl Dubost" href="mailto:k_dubost@apple.com"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementPathAttribute"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementStartOffsetAttribute"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/paths.html#PathLengthAttribute"/>
+    <html:link rel="match" href="textpath-path-attr-pathlength-ignored-ref.svg"/>
+    <html:meta name="assert" content="pathLength restates the length of the referenced element in the author's own units, and startOffset is then measured in those units. When `path` wins, the referenced element is not used for anything, so its pathLength cannot scale startOffset: 60 stays 60 user units along the inline path. An implementation that reads pathLength from the href target regardless places the text far off the end of the path, or nowhere."/>
+  </metadata>
+  <defs>
+    <path id="short" d="M 10 150 L 110 150" pathLength="10"/>
+  </defs>
+  <text>
+    <textPath href="#short" path="M 10 50 L 390 50" startOffset="60">Offset along a straight line</textPath>
+  </text>
+</svg>

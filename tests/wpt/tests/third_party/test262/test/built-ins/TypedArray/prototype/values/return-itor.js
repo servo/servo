@@ -14,8 +14,8 @@ features: [TypedArray]
 
 var sample = [0, 42, 64];
 
-testWithTypedArrayConstructors(function(TA) {
-  var typedArray = new TA(sample);
+testWithTypedArrayConstructors(function(TA, makeCtorArg) {
+  var typedArray = new TA(makeCtorArg(sample));
   var itor = typedArray.values();
 
   var next = itor.next();
@@ -33,4 +33,4 @@ testWithTypedArrayConstructors(function(TA) {
   next = itor.next();
   assert.sameValue(next.value, undefined);
   assert.sameValue(next.done, true);
-}, null, ["passthrough"]);
+});

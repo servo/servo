@@ -2,7 +2,7 @@
 // - src/dstr-assignment/obj-rest-not-last-element-invalid.case
 // - src/dstr-assignment/syntax/for-of.template
 /*---
-description: Object rest element needs to be the last AssignmenProperty in ObjectAssignmentPattern. (For..of statement)
+description: Object rest element needs to be the last AssignmentProperty in ObjectAssignmentPattern. (For..of statement)
 esid: sec-for-in-and-for-of-statements-runtime-semantics-labelledevaluation
 features: [object-rest, destructuring-binding]
 flags: [generated]

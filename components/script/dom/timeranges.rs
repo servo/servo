@@ -6,7 +6,7 @@ use std::fmt;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::TimeRangesBinding::TimeRangesMethods;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -145,7 +145,7 @@ impl TimeRanges {
         window: &Window,
         ranges: TimeRangesContainer,
     ) -> DomRoot<TimeRanges> {
-        reflect_dom_object_with_cx(Box::new(TimeRanges::new_inherited(ranges)), window, cx)
+        reflect_dom_object(cx, Box::new(TimeRanges::new_inherited(ranges)), window)
     }
 }
 

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reference: A visible descendant of a hidden element renders</title>
+<link rel="author" title="Karl Dubost" href="mailto:karlcow@apple.com">
+<!-- The test without the overflow clip. Nothing overflows, so it renders the same. -->
+<style>
+#div1
+{
+    border: 1px solid blue;
+}
+#div2
+{
+    color: red;
+    position: relative;
+    visibility: hidden;
+}
+#div3
+{
+    color: green;
+    visibility: visible;
+}
+</style>
+<p>Test passes if the content "Filler Text" is contained within the blue box and there is no red visible on the page.</p>
+<div id="div1">
+    <div id="div2">
+        This test fails if this text is visible on the page.
+        <div id="div3">Filler Text</div>
+    </div>
+</div>

@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use net_traits::{ResourceFetchTiming, ResourceTimingType};
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 
 use super::performanceresourcetiming::{InitiatorType, PerformanceResourceTiming};
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
@@ -49,10 +49,10 @@ impl PerformanceNavigationTiming {
         global: &GlobalScope,
         document: &Document,
     ) -> DomRoot<PerformanceNavigationTiming> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(PerformanceNavigationTiming::new_inherited(document)),
             global,
-            cx,
         )
     }
 }

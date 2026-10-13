@@ -309,6 +309,28 @@ impl Snapshot {
         }
     }
 
+    /// Convert into a shared snapshot, reusing owned storage in single-process mode.
+    pub fn into_shared(self) -> SharedSnapshot {
+        let (data, byte_range) = match self.data {
+            SnapshotData::SharedMemory(data, byte_range) => (data, byte_range),
+            SnapshotData::SharedVec(data, byte_range) => (
+                Arc::new(GenericSharedMemory::from_arc_vec(data)),
+                byte_range,
+            ),
+            SnapshotData::Owned(data) => {
+                let byte_range = 0..data.len();
+                (Arc::new(GenericSharedMemory::from_vec(data)), byte_range)
+            },
+        };
+        SharedSnapshot {
+            size: self.size,
+            data,
+            byte_range,
+            format: self.format,
+            alpha_mode: self.alpha_mode,
+        }
+    }
+
     pub fn encode_for_mime_type<W: std::io::Write>(
         &mut self,
         image_type: &EncodedImageType,

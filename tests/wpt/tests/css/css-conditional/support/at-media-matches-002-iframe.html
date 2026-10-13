@@ -1,0 +1,13 @@
+<style id="sheet">
+  @media (max-height: 100px) { }
+</style>
+
+<script>
+  onload = () => window.top.postMessage("ready");
+
+  window.addEventListener("message", event => {
+    if (event.data === "getMediaMatches") {
+      window.top.postMessage(sheet.sheet.cssRules[0].matches);
+    }
+  });
+</script>

@@ -46,7 +46,7 @@ test(() => {
   );
   const expectedMatrix = new DOMMatrixReadOnly(
         [1, Math.tan(beta), 0, 0, Math.tan(alpha), 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]);
-  assert_matrix_approx_equals(component.toMatrix(), expectedMatrix, gEpsilon);
+  assert_matrix_approx_equals(component.toMatrix(), expectedMatrix, 1e-5);
 }, 'CSSSkew.toMatrix() returns correct matrix');
 
 test(() => {

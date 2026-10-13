@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Adoption agency algorithm with circular DOM mutation</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/parsing.html#adoption-agency-algorithm">
+<div id="common-ancestor">
+  <b id="formatting-element">
+    <p id="furthest-block">
+      <iframe id="trap-frame"></iframe>
+      <script>
+        let frame = document.getElementById('trap-frame');
+        frame.contentWindow.onpagehide = () => {
+          const ca = document.getElementById('common-ancestor');
+          const fb = document.getElementById('furthest-block');
+          fb.remove();
+          fb.appendChild(ca);
+        };
+      </script>
+    </b>
+    </p>
+</div>

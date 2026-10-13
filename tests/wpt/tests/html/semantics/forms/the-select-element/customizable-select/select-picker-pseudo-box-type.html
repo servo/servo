@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<link rel=help href="https://html.spec.whatwg.org/multipage/rendering.html#the-select-element-2">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+select::picker(select) {
+  background-color: rgb(1, 2, 3);
+}
+</style>
+
+<select id=dropdown><option>one</option></select>
+<select id=sized size=4><option>one</option></select>
+<select id=multiple multiple><option>one</option></select>
+
+<script>
+function pickerBackgroundColor(select) {
+  return getComputedStyle(select, '::picker(select)').backgroundColor;
+}
+
+// A select popover, and so a ::picker(select), is only expected for a select rendering as a
+// dropdown box. Unlike the appearance, which cannot change the shadow tree because it is
+// determined by computing style, the box type follows the size and multiple attributes.
+
+test(() => {
+  assert_equals(pickerBackgroundColor(dropdown), 'rgb(1, 2, 3)');
+}, 'A select rendering as a dropdown box has a ::picker(select).');
+
+test(() => {
+  assert_not_equals(pickerBackgroundColor(sized), 'rgb(1, 2, 3)');
+}, 'A select rendering as a list box because of size has no ::picker(select).');
+
+test(() => {
+  assert_not_equals(pickerBackgroundColor(multiple), 'rgb(1, 2, 3)');
+}, 'A select rendering as a list box because of multiple has no ::picker(select).');
+</script>

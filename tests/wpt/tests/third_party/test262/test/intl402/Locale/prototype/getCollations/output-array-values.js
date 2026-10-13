@@ -3,23 +3,27 @@
 
 /*---
 esid: sec-intl.locale.prototype.collations
-description: >
-    Checks that the return value of Intl.Locale.prototype.collations is an Array
-    that does not contain invalid values.
+description: The return value does not contain invalid values
 info: |
-  CollationsOfLocale ( loc )
-  ...
-  4. Let list be a List of 1 or more unique collation identifiers, which must
-  be lower case String values conforming to the type sequence from UTS 35
-  Unicode Locale Identifier, section 3.2, sorted in descending preference of
-  those in common use for string comparison in locale. The values "standard"
-  and "search" must be excluded from list.
+  10.2.3 Internal Slots
+  - The values *"standard"* and *"search"* must not be used as elements in any
+    [[SortLocaleData]].[[<locale>]].[[co]] and
+    [[SearchLocaleData]].[[<locale>]].[[co]] List.
 features: [Intl.Locale, Intl.Locale-info, Array.prototype.includes]
+locale: [ar, de, en, ja, ko, sv, tr, zh]
 ---*/
 
-const output = new Intl.Locale('en').getCollations();
-assert(output.length > 0, 'array has at least one element');
-output.forEach(c => {
-  if(['standard', 'search'].includes(c))
-    throw new Test262Error();
-});
+var tags = ["ar", "de", "en", "ja", "ko", "sv", "tr", "zh"];
+
+for (var i = 0; i < tags.length; i++) {
+  var tag = tags[i];
+  var collations = new Intl.Locale(tag).getCollations();
+  assert.notSameValue(collations.length, 0,
+    "getCollations() for " + tag + " has at least one element");
+  for (var j = 0; j < collations.length; j++) {
+    assert.notSameValue(collations[j], "standard",
+      "getCollations() for " + tag + " must not contain 'standard'");
+    assert.notSameValue(collations[j], "search",
+      "getCollations() for " + tag + " must not contain 'search'");
+  }
+}

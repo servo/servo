@@ -4,6 +4,7 @@
 
 use html5ever::local_name;
 use js::context::JSContext;
+use script_bindings::codegen::GenericBindings::RangeBinding::RangeMethods;
 use script_bindings::inheritance::Castable;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::properties::{LonghandId, PropertyDeclarationId, ShorthandId};
@@ -190,7 +191,7 @@ impl HTMLElement {
         // case, we should maintain the selection as it were, by not creating
         // a new range.
         if selection
-            .active_range()
+            .active_range(cx)
             .is_some_and(|active| active == range)
         {
             return;
@@ -261,8 +262,8 @@ impl HTMLElement {
             }
             previous_node = child;
         }
-        range.set_start(&selected_node, selected_offset);
-        range.set_end(&selected_node, selected_offset);
-        selection.AddRange(&range);
+        let _ = range.SetStart(cx.no_gc(), &selected_node, selected_offset);
+        let _ = range.SetEnd(cx.no_gc(), &selected_node, selected_offset);
+        selection.AddRange(cx.no_gc(), &range);
     }
 }

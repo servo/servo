@@ -13,3 +13,4 @@ pub(crate) mod idbopendbrequest;
 pub(crate) mod idbrequest;
 pub(crate) mod idbtransaction;
 pub(crate) mod idbversionchangeevent;
+mod key;

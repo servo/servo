@@ -1,0 +1,49 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Paste command detaching its iframe during the paste event</title>
+<link rel='help' href='https://w3c.github.io/clipboard-apis/'>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../resources/user-activation.js"></script>
+<body>
+<iframe id="iframe"></iframe>
+<script>
+'use strict';
+
+promise_test(async t => {
+  await tryGrantReadPermission();
+  await waitForUserActivation();
+
+  const iframe = document.getElementById('iframe');
+  await new Promise(resolve => {
+    iframe.onload = resolve;
+    iframe.srcdoc =
+        "<body contenteditable='true'>[focus here and paste]</body>";
+  });
+
+  const iframeWindow = iframe.contentWindow;
+  const pasteHandled = new Promise(resolve => {
+    iframeWindow.document.addEventListener('paste', () => {
+      iframeWindow.navigator.clipboard.readText().catch(() => {});
+
+      // Synchronously detach the iframe while the paste command is still
+      // running.
+      iframe.remove();
+      resolve();
+    });
+  });
+
+  // Focus the editable body inside the iframe so the paste keyboard shortcut is
+  // routed to the child frame.
+  iframeWindow.document.body.focus();
+
+  await sendPasteShortcutKey();
+  await pasteHandled;
+
+  assert_false(iframe.isConnected, 'iframe should have been detached');
+}, 'Detaching an iframe during its paste event must not crash');
+</script>
+</body>

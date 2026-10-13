@@ -129,10 +129,7 @@
 #data
 <?import namespace="foo" implementation="#bar">
 #errors
-(1,1): expected-tag-name-but-got-question-mark
 (1,47): expected-doctype-but-got-eof
-#new-errors
-(1:2) unexpected-question-mark-instead-of-tag-name
 #document
 | <?import namespace="foo" implementation="#bar"?>
 | <html>

@@ -55,7 +55,42 @@ function sizeFitsLevel(width, height, fps, level) {
                          levelTable[level].mbs, 'macroblocks/second');
 }
 
-// Constant for now, may be variable later.
+// Measures the real encoded framerate over aDurationMs from the RTP
+// timestamps (90 kHz) of the frames presented by the receiving video element.
+// A level's macroblocks/second cap can be satisfied by an implementation
+// reducing resolution, framerate, or both, so this must measure what the
+// encoder actually produces rather than assume a fixed framerate. RTP
+// timestamps reflect when each frame was captured and encoded, so unlike a
+// wall-clock frame count this is unaffected by jitter in when the samples
+// are taken.
+async function measureEncodedFps(t, video, aDurationMs) {
+  let first, last, count = 0, done = false;
+  const onFrame = (now, metadata) => {
+    if (done) {
+      return;
+    }
+    if (count++ == 0) {
+      first = metadata.rtpTimestamp;
+    }
+    last = metadata.rtpTimestamp;
+    video.requestVideoFrameCallback(onFrame);
+  };
+  video.requestVideoFrameCallback(onFrame);
+  await new Promise(resolve => t.step_timeout(resolve, aDurationMs));
+  done = true;
+  assert_greater_than(count, 2, 'presented frames');
+  assert_implements(first !== undefined,
+                    'VideoFrameCallbackMetadata.rtpTimestamp not supported');
+  // An implementation that caps the framerate by dropping frames from a
+  // faster source produces a periodic cadence, and the measured span need
+  // not align with it, so the span can hold up to one frame more than the
+  // long-run rate implies. Leave that frame out to get a lower bound.
+  // Unsigned 32-bit RTP timestamps may wrap during the measurement.
+  return (count - 2) * 90000 / ((last - first) >>> 0);
+}
+
+// Requested capture framerate; not necessarily the framerate that ends up
+// being encoded and sent, which is measured separately.
 const framesPerSecond = 30;
 
 for (let level of Object.keys(levelTable)) {
@@ -115,7 +150,8 @@ for (let level of Object.keys(levelTable)) {
     // TODO(hta): This will not catch situations where the initial size is
     // within the permitted bounds, but resolution or framerate changes to
     // outside the permitted bounds after a while. Should be addressed.
-    sizeFitsLevel(v.videoWidth, v.videoHeight, framesPerSecond, level);
+    const measuredFps = await measureEncodedFps(t, v, 2000);
+    sizeFitsLevel(v.videoWidth, v.videoHeight, measuredFps, level);
   }, 'Level ' + level + ' H264 video is appropriately constrained');
 
 }

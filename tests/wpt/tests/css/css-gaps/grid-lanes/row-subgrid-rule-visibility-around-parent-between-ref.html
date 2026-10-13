@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<style>
+  body {
+    margin: 0;
+  }
+  .scene {
+    height: 330px;
+    position: relative;
+    width: 260px;
+  }
+  .lanes {
+    background: #dce6f0;
+    display: grid-lanes;
+    gap: 20px;
+    grid-template-rows: repeat(5, 50px);
+    height: 330px;
+    width: 260px;
+  }
+  .before,
+  .after,
+  .side {
+    background: #52677d;
+  }
+  .before,
+  .after {
+    width: 30px;
+  }
+  .track-two {
+    grid-row: 2;
+  }
+  .track-three {
+    grid-row: 3;
+  }
+  .track-four {
+    grid-row: 4;
+  }
+  .side {
+    grid-row: 1;
+    width: 260px;
+  }
+  .subgrid {
+    background: #ffe0a3;
+    column-gap: 20px;
+    display: grid;
+    grid-row: 2 / span 3;
+    grid-template-columns: repeat(3, 40px);
+    grid-template-rows: subgrid;
+    width: 160px;
+  }
+  .cell {
+    background: #087f75;
+  }
+  .first-cell {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .second-cell {
+    grid-column: 1;
+    grid-row: 2;
+  }
+  .third-cell {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .rule {
+    height: 6px;
+    position: absolute;
+  }
+  .parent-rule {
+    background: #243c9c;
+  }
+  .parent-first {
+    left: 0;
+    top: 57px;
+    width: 260px;
+  }
+  .parent-before {
+    left: 0;
+    width: 30px;
+  }
+  .parent-after {
+    left: 230px;
+    width: 30px;
+  }
+  .parent-second {
+    top: 127px;
+  }
+  .parent-third {
+    top: 197px;
+  }
+  .child-rule {
+    background: #b83b00;
+    left: 50px;
+  }
+  .child-first {
+    top: 127px;
+    width: 100px;
+  }
+  .child-second {
+    top: 197px;
+    width: 40px;
+  }
+</style>
+<div class="scene">
+  <div class="lanes">
+    <div class="before track-two"></div>
+    <div class="before track-three"></div>
+    <div class="before track-four"></div>
+    <div class="side"></div>
+    <div class="subgrid">
+      <div class="cell first-cell"></div>
+      <div class="cell second-cell"></div>
+      <div class="cell third-cell"></div>
+    </div>
+    <div class="after track-two"></div>
+    <div class="after track-three"></div>
+    <div class="after track-four"></div>
+  </div>
+  <div class="rule parent-rule parent-first"></div>
+  <div class="rule parent-rule parent-second parent-before"></div>
+  <div class="rule parent-rule parent-second parent-after"></div>
+  <div class="rule parent-rule parent-third parent-before"></div>
+  <div class="rule parent-rule parent-third parent-after"></div>
+  <div class="rule child-rule child-first"></div>
+  <div class="rule child-rule child-second"></div>
+</div>

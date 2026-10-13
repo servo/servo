@@ -1,0 +1,55 @@
+<!doctype html>
+<title>align-content is honored on form controls</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14190">
+<link rel="help" href="https://html.spec.whatwg.org/#button-layout">
+<link rel="help" href="https://drafts.csswg.org/css-align/#align-block">
+<link rel="match" href="align-content-ref.html">
+<style>
+body { margin: 0 }
+.column { float: left; margin: 10px }
+.control {
+  display: block;
+  box-sizing: content-box;
+  width: 150px;
+  height: 72px;
+  margin: 0 0 10px;
+  padding: 0;
+  border: 2px solid black;
+  font: 16px/24px monospace;
+  appearance: none;
+}
+.normal { align-content: normal }
+.start { align-content: start }
+.center { align-content: center }
+.end { align-content: end }
+</style>
+<div class=column>
+  <input class="control normal" type=text value="Text">
+  <input class="control normal" type=button value="Input button">
+  <button class="control normal">Button</button>
+  <textarea class="control normal">Textarea</textarea>
+  <select class="control normal"><option>Select</option></select>
+</div>
+<div class=column>
+  <input class="control start" type=text value="Text">
+  <input class="control start" type=button value="Input button">
+  <button class="control start">Button</button>
+  <textarea class="control start">Textarea</textarea>
+  <select class="control start"><option>Select</option></select>
+</div>
+<div class=column>
+  <input class="control center" type=text value="Text">
+  <input class="control center" type=button value="Input button">
+  <button class="control center">Button</button>
+  <textarea class="control center">Textarea</textarea>
+  <select class="control center"><option>Select</option></select>
+</div>
+<div class=column>
+  <input class="control end" type=text value="Text">
+  <input class="control end" type=button value="Input button">
+  <button class="control end">Button</button>
+  <textarea class="control end">Textarea</textarea>
+  <select class="control end"><option>Select</option></select>
+</div>

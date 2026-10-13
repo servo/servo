@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#z-order">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#item-margins">
+<link rel="match" href="grid-item-margin-box-overflowing-grid-area-paint-001-ref.html">
+<meta name="assert" content="A grid item whose margin box overflows its grid area is painted at the right position, in both ltr and rtl.">
+
+<p>Test PASS if you see two adjacent iframes with a 50x50 green square.</p>
+
+<iframe height="120px" width="300px" srcdoc="
+     <style>
+     .grid {
+         display: grid;
+         grid: 50px / 100px 50px 150px 100px;
+     }
+     </style>
+
+     <div class='grid'>
+         <div style='background: red; grid-column: 2;'></div>
+         <div style='background: green;  grid-column: 4; width: 50px; margin-left: -200px;'></div>
+     </div>
+     ">
+</iframe>
+
+<iframe height="120px" width="300px" srcdoc="
+     <style>
+     .grid {
+         display: grid;
+         grid: 50px / 100px 50px 150px 100px;
+         direction: rtl;
+     }
+     </style>
+
+     <div class='grid'>
+         <div style='background: red; grid-column: 2;'></div>
+         <div style='background: green;  grid-column: 4; width: 50px; margin-right: -200px;'></div>
+     </div>
+     ">
+</iframe>
+

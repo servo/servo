@@ -29,27 +29,27 @@ promise_test(async () => {
   checkGetTargetRangesKeepReturningSameValue(gInput[0], "even after its propagation");
 }, "Check consistency of getTargetRanges() result between during propagation and after propagation");
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>abc</p>");
   let textNode = gEditor.firstChild.firstChild;
   gSelection.collapse(textNode, 2);
-  gEditor.addEventListener("beforeinput", (event) => {
+  gEditor.addEventListener("beforeinput", t.step_func((event) => {
     assert_false(typeof event.cachedRanges === "undefined", "The beforeinput event should have cache of getTargetRanges()");
     gSelection.collapse(textNode, 3);
     checkGetTargetRangesKeepReturningSameValue(event, "even after changing selection");
-  }, {once: true});
+  }), {once: true});
   await sendBackspaceKey();
   assert_equals(gEditor.innerHTML, "<p>ab</p>", 'Should "c" be deleted');
 }, "Check consistency of getTargetRanges() result between before and after changing selection in an event listener");
 
-promise_test(async () => {
+promise_test(async (t) => {
   initializeTest("<p>abc</p>");
   let textNode = gEditor.firstChild.firstChild;
   gSelection.collapse(textNode, 2);
-  window.addEventListener("beforeinput", (event) => {
+  window.addEventListener("beforeinput", t.step_func((event) => {
     assert_true(typeof event.cachedRanges === "undefined", "The beforeinput event shouldn't have cached ranges yet");
     gSelection.collapse(textNode, 3);
-  }, {once: true, capture: true});
+  }), {once: true, capture: true});
   await sendBackspaceKey();
   assert_equals(gEditor.innerHTML, "<p>ab</p>", 'Should "c" be deleted');
   checkGetTargetRangesOfBeforeinputOnDeleteSomething({

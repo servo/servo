@@ -101,4 +101,4 @@ testWithTypedArrayConstructors(function(TA, makeCtorArg) {
     compareArray(new TA(makeCtorArg([0, 0])).fill(1, 0, 1.5), [1, 0]),
     'end as a float number coerced'
   );
-});
+}, null, null, ["immutable"]);

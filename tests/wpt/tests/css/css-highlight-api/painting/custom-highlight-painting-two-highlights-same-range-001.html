@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="UTF-8">
+<title>CSS Highlight API Test: highlight registered after a rendering update over an already-highlighted range</title>
+<link rel="help" href="https://drafts.csswg.org/css-highlight-api-1/#painting">
+<link rel="match" href="custom-highlight-painting-two-highlights-same-range-001-ref.html">
+<meta name="assert" value="A highlight registered after a rendering update is painted even when its range is already used by a previously registered highlight.">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  ::highlight(highlight-a) {
+    background-color: red;
+  }
+  ::highlight(highlight-b) {
+    background-color: lime;
+    text-decoration-line: underline;
+  }
+</style>
+<body><p id="text">This text is highlighted by two CSS Highlights.</p>
+<script>
+  /*
+    highlight-b is registered after a rendering update has already resolved the
+    positions of highlight-a, which shares its range. highlight-b has to be
+    painted over highlight-a, so no red may be visible.
+  */
+
+  const range = new Range();
+  range.selectNodeContents(document.getElementById("text"));
+
+  const highlightA = new Highlight(range);
+  const highlightB = new Highlight(range);
+
+  CSS.highlights.set("highlight-a", highlightA);
+
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    CSS.highlights.set("highlight-b", highlightB);
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+  }));
+</script>
+</html>

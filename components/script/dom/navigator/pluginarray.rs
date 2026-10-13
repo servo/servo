@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::PluginArrayBinding::PluginArrayMethods;
 use crate::dom::bindings::root::DomRoot;
@@ -25,7 +25,7 @@ impl PluginArray {
     }
 
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<PluginArray> {
-        reflect_dom_object_with_cx(Box::new(PluginArray::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(PluginArray::new_inherited()), global)
     }
 }
 

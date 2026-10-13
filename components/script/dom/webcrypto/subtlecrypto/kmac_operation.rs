@@ -16,16 +16,16 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, K
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cryptokey::{CryptoKey, Handle};
+use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    SubtleKmacImportParams, SubtleKmacKeyAlgorithm, SubtleKmacKeyGenParams, SubtleKmacParams,
+    KmacImportParams, KmacKeyAlgorithm, KmacKeyGenParams, KmacParams,
 };
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#kmac-operations-sign>
 pub(crate) fn sign(
-    normalized_algorithm: &SubtleKmacParams,
+    normalized_algorithm: &KmacParams,
     key: &CryptoKey,
     message: &[u8],
 ) -> Result<Vec<u8>, Error> {
@@ -86,7 +86,7 @@ pub(crate) fn sign(
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#kmac-operations-verify>
 pub(crate) fn verify(
-    normalized_algorithm: &SubtleKmacParams,
+    normalized_algorithm: &KmacParams,
     key: &CryptoKey,
     message: &[u8],
     signature: &[u8],
@@ -152,20 +152,13 @@ pub(crate) fn verify(
 pub(crate) fn generate_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleKmacKeyGenParams,
+    normalized_algorithm: &KmacKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. If usages contains an entry which is not "sign" or "verify", then throw a
     // SyntaxError.
-    if usages
-        .iter()
-        .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify))
-    {
-        return Err(Error::Syntax(Some(
-            "Usages contains an entry which is not \"sign\" or \"verify\"".into(),
-        )));
-    }
+    usages.ensure_only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
 
     // Step 2.
     // If the length member of normalizedAlgorithm is present:
@@ -212,8 +205,8 @@ pub(crate) fn generate_key(
     // Step 9. Set the length attribute of algorithm to length.
     // Step 10. Set the [[algorithm]] internal slot of key to algorithm.
     // Step 11. Set the [[extractable]] internal slot of key to be extractable.
-    // Step 12. Set the [[usages]] internal slot of key to be usages.
-    let algorithm = SubtleKmacKeyAlgorithm {
+    // Step 12. Set the [[usages]] internal slot of key to be the normalized value of usages.
+    let algorithm = KmacKeyAlgorithm {
         name: normalized_algorithm.name,
         length,
     };
@@ -223,7 +216,7 @@ pub(crate) fn generate_key(
         KeyType::Secret,
         extractable,
         KeyAlgorithmAndDerivatives::KmacKeyAlgorithm(algorithm),
-        usages,
+        usages.normalized_value(),
         Handle::KmacKey(bits.into()),
     );
 
@@ -235,7 +228,7 @@ pub(crate) fn generate_key(
 pub(crate) fn import_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleKmacImportParams,
+    normalized_algorithm: &KmacImportParams,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
@@ -246,14 +239,7 @@ pub(crate) fn import_key(
 
     // Step 2. If usages contains an entry which is not "sign" or "verify", then throw a
     // SyntaxError.
-    if usages
-        .iter()
-        .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify))
-    {
-        return Err(Error::Syntax(Some(
-            "Usages contains an entry which is not \"sign\" or \"verify\"".into(),
-        )));
-    }
+    usages.ensure_only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
 
     // Step 3.
     let mut data: Zeroizing<Vec<u8>>;
@@ -378,7 +364,7 @@ pub(crate) fn import_key(
             *last_byte &= mask;
         }
     }
-    let algorithm = SubtleKmacKeyAlgorithm {
+    let algorithm = KmacKeyAlgorithm {
         name: normalized_algorithm.name,
         length,
     };
@@ -388,7 +374,7 @@ pub(crate) fn import_key(
         KeyType::Secret,
         extractable,
         KeyAlgorithmAndDerivatives::KmacKeyAlgorithm(algorithm),
-        usages,
+        usages.normalized_value(),
         Handle::KmacKey(data),
     );
 
@@ -425,7 +411,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             let mut jwk = JsonWebKey::default();
 
             // Step 4.2. Set the kty attribute of jwk to the string "oct".
-            jwk.kty = Some(DOMString::from("oct"));
+            jwk.kty = Some(DOMString::from_static("oct"));
 
             // Step 4.3. Set the k attribute of jwk to be a string containing data, encoded
             // according to Section 6.4 of JSON Web Algorithms [JWA].
@@ -443,14 +429,14 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             // If the name member of keyAlgorithm is "KMAC256":
             //     Set the alg attribute of jwk to the string "K256".
             if key_algorithm.name == CryptoAlgorithm::Kmac128 {
-                jwk.alg = Some(DOMString::from("K128"));
+                jwk.alg = Some(DOMString::from_static("K128"));
             }
             if key_algorithm.name == CryptoAlgorithm::Kmac256 {
-                jwk.alg = Some(DOMString::from("K256"));
+                jwk.alg = Some(DOMString::from_static("K256"));
             }
 
             // Step 4.6. Set the key_ops attribute of jwk to equal the usages attribute of key.
-            jwk.set_key_ops(&key.usages());
+            jwk.set_key_ops(key.usages());
 
             // Step 4.7. Set the ext attribute of jwk to equal the [[extractable]] internal slot of
             // key.
@@ -473,7 +459,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#kmac-operations-get-key-length>
 pub(crate) fn get_key_length(
-    normalized_algorithm: &SubtleKmacImportParams,
+    normalized_algorithm: &KmacImportParams,
 ) -> Result<Option<u32>, Error> {
     // Step 1.
     // If the length member of normalizedAlgorithm is present:

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Updating the document must invalidate the style cache and change the results of getComputedStyle</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+
+<style>
+  .my-link {
+    font-size: 17px;
+  }
+
+  .my-link[href] {
+    font-size: 18px;
+  }
+
+  .my-link[href="#a"] {
+    font-size: 19px;
+  }
+
+  .my-link[href="#b"] {
+    font-size: 20px;
+  }
+
+  .my-box ~ .my-link {
+    font-size: 21px;
+  }
+
+  .my-box.bigger ~ .my-link {
+    font-size: 22px;
+  }
+
+  .my-link:empty {
+    font-size: 23px;
+  }
+</style>
+
+<a class="my-link">Hello world</a>
+<script>
+"use strict";
+const link = document.querySelector(".my-link");
+
+test(() => {
+  assert_equals(getComputedStyle(link).fontSize, "17px");
+}, "Initial style value");
+
+test(() => {
+  link.href = "#x"; // appendAttribute
+
+  assert_equals(getComputedStyle(link).fontSize, "18px");
+}, "Assigning to attribute updates the computed style");
+
+test(() => {
+  link.setAttribute("href", "#a"); // changeAttribute
+
+  assert_equals(getComputedStyle(link).fontSize, "19px");
+}, "Setting an attribute updates the computed style");
+
+test(() => {
+  const attr = document.createAttribute("href");
+  attr.value = "#b";
+  link.attributes.setNamedItem(attr); // replaceAttribute
+
+  assert_equals(getComputedStyle(link).fontSize, "20px");
+}, "Replacing an attribute updates the computed style");
+
+test(() => {
+  link.removeAttribute("href"); // removeAttribute
+
+  assert_equals(getComputedStyle(link).fontSize, "17px");
+}, "Removing an attribute updates the computed style");
+
+test(() => {
+  const box = document.createElement("div");
+  box.className = "my-box";
+  link.before(box);
+
+  assert_equals(getComputedStyle(link).fontSize, "21px");
+}, "Inserting an element updates the computed style");
+
+test(() => {
+  const biggerBox = document.createElement("div");
+  biggerBox.className = "my-box bigger";
+  document.querySelector(".my-box").replaceWith(biggerBox);
+
+  assert_equals(getComputedStyle(link).fontSize, "22px");
+}, "Replacing an element updates the computed style");
+
+test(() => {
+  const box = document.querySelector(".my-box");
+  document.body.removeChild(box);
+
+  assert_equals(getComputedStyle(link).fontSize, "17px");
+}, "Removing an element updates the computed style");
+
+test(() => {
+  link.textContent = "";
+  assert_equals(getComputedStyle(link).fontSize, "23px");
+}, "Emptying an element updates the computed style");
+</script>

@@ -206,8 +206,8 @@
      * resolves when the action is complete. This is required for WebDriver
      * Classic actions, as they require a specific context.
      * @param name: The name of the action to create.
-     * @param context: The context in which to run the action. `null` for the
-     * current window.
+     * @param context: The context in which to run the action: a `WindowProxy`,
+     * a WebDriver window handle, or `null` for the current window.
      * @param params: The properties to pass to the action.
      * @return {Promise<any>}: A promise that resolves with the action result
      * when the action is complete.
@@ -215,7 +215,10 @@
     const create_context_action = function (name, context, params) {
         const context_params = {...params};
         if (context) {
-            context_params.context = get_window_id(context);
+            // A string context is already a WebDriver window handle,
+            // only WindowProxy needs converting to an id.
+            context_params.context = typeof context === "string" ?
+                context : get_window_id(context);
         }
         if (context === null && !is_test_context()) {
             context_params.context = get_window_id(window);
@@ -462,6 +465,16 @@
                 });
         }
 
+    window.test_driver_internal.bidi.emulation.set_viewport_meta_override =
+        function (params) {
+            return create_action(
+                "bidi.emulation.set_viewport_meta_override", {
+                    // Default to the current window.
+                    contexts: [window],
+                    ...(params ?? {})
+                });
+        }
+
     window.test_driver_internal.bidi.log.entry_added.subscribe =
         function (params) {
             return subscribe({
@@ -542,6 +555,14 @@
         return create_context_action("get_named_cookie", context, {name});
     };
 
+    window.test_driver_internal.create_window = function(type=null, context=null) {
+        return create_context_action("create_window", context, {type});
+    };
+
+    window.test_driver_internal.navigate = function(url, context=null) {
+        return create_context_action("navigate", context, {url});
+    };
+
     window.test_driver_internal.minimize_window = function(context=null) {
         return create_context_action("minimize_window", context, {});
     };
@@ -613,6 +634,10 @@
 
     window.test_driver_internal.set_user_verified = function(authenticator_id, uv, context=null) {
         return create_context_action("set_user_verified", context, {authenticator_id, uv});
+    };
+
+    window.test_driver_internal.set_credential_properties = function(authenticator_id, credential_id, props, context=null) {
+        return create_context_action("set_credential_properties", context, {authenticator_id, credential_id, props});
     };
 
     window.test_driver_internal.set_spc_transaction_mode = function(mode, context = null) {

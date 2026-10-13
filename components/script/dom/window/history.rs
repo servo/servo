@@ -12,11 +12,12 @@ use js::jsval::{JSVal, NullValue, UndefinedValue};
 use js::rust::{HandleValue, MutableHandleValue};
 use net_traits::CoreResourceMsg;
 use profile_traits::generic_channel;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel::GenericSend;
 use servo_base::id::HistoryStateId;
 use servo_constellation_traits::{
-    ScriptToConstellationMessage, StructuredSerializedData, TraversalDirection,
+    HistoryTraversalSource, ScriptToConstellationMessage, SessionHistoryTraversalRequest,
+    StructuredSerializedData, TraversalDirection,
 };
 use servo_url::ServoUrl;
 
@@ -62,8 +63,7 @@ impl History {
     }
 
     pub(crate) fn new(cx: &mut JSContext, window: &Window) -> DomRoot<History> {
-        let dom_root =
-            reflect_dom_object_with_cx(Box::new(History::new_inherited(window)), window, cx);
+        let dom_root = reflect_dom_object(cx, Box::new(History::new_inherited(window)), window);
         dom_root.state.set(NullValue());
         dom_root
     }
@@ -74,12 +74,17 @@ impl History {
         if !self.window.Document().is_fully_active() {
             return Err(Error::Security(None));
         }
-        let msg = ScriptToConstellationMessage::TraverseHistory(direction);
         let _ = self
             .window
             .as_global_scope()
             .script_to_constellation_chan()
-            .send(msg);
+            .send(ScriptToConstellationMessage::TraverseHistory(
+                SessionHistoryTraversalRequest::new(
+                    self.window.webview_id(),
+                    direction,
+                    HistoryTraversalSource::Script,
+                ),
+            ));
         Ok(())
     }
 

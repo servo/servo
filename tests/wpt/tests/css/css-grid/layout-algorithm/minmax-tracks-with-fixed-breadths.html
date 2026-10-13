@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<title>CSS Grid Layout Test: minmax() tracks with fixed and intrinsic breadths</title>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#algo-single-span-items">
+<meta name="assert" content="Sizing tracks to fit non-spanning items only sizes the intrinsic breadths of a minmax() track from the items in it. A fixed minimum keeps the base size, and a fixed maximum keeps the growth limit, that Initialize Track Sizes resolved, so the track can still grow to its maximum and cannot shrink below its minimum. A track with no intrinsic breadth is not considered by this step at all.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: 50px;
+    height: 300px;
+  }
+
+  /* Shorter than the minimum of the track, so that the minimum is what sizes the
+     track. A taller container would leave free space for the stretch auto tracks
+     step to fill the track with, hiding the minimum. */
+  .shorterThanMinimum {
+    height: 20px;
+  }
+
+  .indefiniteHeight {
+    height: auto;
+  }
+
+  .content {
+    height: 10px;
+  }
+</style>
+
+<!-- An intrinsic minimum with a fixed maximum: the track grows to its maximum. -->
+<div class="grid" id="autoMinFixedMax" style="grid-auto-rows: minmax(auto, 40px)">
+  <div><div class="content"></div></div>
+</div>
+
+<div class="grid" id="minContentMinFixedMax" style="grid-auto-rows: minmax(min-content, 40px)">
+  <div><div class="content"></div></div>
+</div>
+
+<div class="grid" id="maxContentMinFixedMax" style="grid-auto-rows: minmax(max-content, 40px)">
+  <div><div class="content"></div></div>
+</div>
+
+<div class="grid" id="autoMinPercentageMax" style="grid-auto-rows: minmax(auto, 20%)">
+  <div><div class="content"></div></div>
+</div>
+
+<div class="grid" id="minContentMinPercentageMax" style="grid-auto-rows: minmax(min-content, 20%)">
+  <div><div class="content"></div></div>
+</div>
+
+<div class="grid" id="maxContentMinPercentageMax" style="grid-auto-rows: minmax(max-content, 20%)">
+  <div><div class="content"></div></div>
+</div>
+
+<div class="grid" id="autoMinCalculatedMax" style="grid-auto-rows: minmax(auto, calc(10% + 10px))">
+  <div><div class="content"></div></div>
+</div>
+
+<div class="grid" id="minContentMinCalculatedMax" style="grid-auto-rows: minmax(min-content, calc(10% + 10px))">
+  <div><div class="content"></div></div>
+</div>
+
+<div class="grid" id="maxContentMinCalculatedMax" style="grid-auto-rows: minmax(max-content, calc(10% + 10px))">
+  <div><div class="content"></div></div>
+</div>
+
+<!-- A fixed minimum with an intrinsic maximum: the track keeps its minimum. -->
+<div class="grid" id="fixedMinMinContentMax" style="grid-auto-rows: minmax(30px, min-content)">
+  <div><div class="content"></div></div>
+</div>
+
+<div class="grid" id="fixedMinMaxContentMax" style="grid-auto-rows: minmax(30px, max-content)">
+  <div><div class="content"></div></div>
+</div>
+
+<div class="grid shorterThanMinimum" id="fixedMinAutoMax" style="grid-auto-rows: minmax(30px, auto)">
+  <div><div class="content"></div></div>
+</div>
+
+<div class="grid" id="percentageMinMinContentMax" style="grid-auto-rows: minmax(10%, min-content)">
+  <div><div class="content"></div></div>
+</div>
+
+<div class="grid" id="percentageMinMaxContentMax" style="grid-auto-rows: minmax(10%, max-content)">
+  <div><div class="content"></div></div>
+</div>
+
+<div class="grid shorterThanMinimum" id="percentageMinAutoMax" style="grid-auto-rows: minmax(150%, auto)">
+  <div><div class="content"></div></div>
+</div>
+
+<div class="grid" id="calculatedMinMinContentMax" style="grid-auto-rows: minmax(calc(5% + 15px), min-content)">
+  <div><div class="content"></div></div>
+</div>
+
+<div class="grid" id="calculatedMinMaxContentMax" style="grid-auto-rows: minmax(calc(5% + 15px), max-content)">
+  <div><div class="content"></div></div>
+</div>
+
+<div class="grid shorterThanMinimum" id="calculatedMinAutoMax" style="grid-auto-rows: minmax(calc(50% + 20px), auto)">
+  <div><div class="content"></div></div>
+</div>
+
+<!-- Several tracks, and an indefinite grid container height. -->
+<div class="grid" id="autoMinFixedMaxTwoRows" style="grid-auto-rows: minmax(auto, 50px)">
+  <div><div class="content"></div></div>
+  <div><div class="content"></div></div>
+</div>
+
+<div class="grid indefiniteHeight" id="autoMinFixedMaxIndefiniteHeight" style="grid-auto-rows: minmax(auto, 40px)">
+  <div><div class="content"></div></div>
+</div>
+
+<div class="grid indefiniteHeight" id="fixedMinAutoMaxIndefiniteHeight" style="grid-auto-rows: minmax(30px, auto)">
+  <div><div class="content"></div></div>
+</div>
+
+<!-- Neither breadth is intrinsic, so this step does not consider the track at all. -->
+<div class="grid" id="bothBreadthsFixed" style="grid-auto-rows: minmax(20px, 40px)">
+  <div><div class="content"></div></div>
+</div>
+
+<script>
+function usedRowSizes(gridContainer) {
+  return getComputedStyle(gridContainer).gridTemplateRows;
+}
+
+test(() => {
+  assert_equals(usedRowSizes(autoMinFixedMax), "40px");
+}, "A track with an automatic minimum grows to its fixed maximum");
+
+test(() => {
+  assert_equals(usedRowSizes(minContentMinFixedMax), "40px");
+}, "A track with a min-content minimum grows to its fixed maximum");
+
+test(() => {
+  assert_equals(usedRowSizes(maxContentMinFixedMax), "40px");
+}, "A track with a max-content minimum grows to its fixed maximum");
+
+test(() => {
+  assert_equals(usedRowSizes(autoMinPercentageMax), "60px");
+}, "A track with an automatic minimum grows to its percentage maximum");
+
+test(() => {
+  assert_equals(usedRowSizes(minContentMinPercentageMax), "60px");
+}, "A track with a min-content minimum grows to its percentage maximum");
+
+test(() => {
+  assert_equals(usedRowSizes(maxContentMinPercentageMax), "60px");
+}, "A track with a max-content minimum grows to its percentage maximum");
+
+test(() => {
+  assert_equals(usedRowSizes(autoMinCalculatedMax), "40px");
+}, "A track with an automatic minimum grows to its calculated maximum");
+
+test(() => {
+  assert_equals(usedRowSizes(minContentMinCalculatedMax), "40px");
+}, "A track with a min-content minimum grows to its calculated maximum");
+
+test(() => {
+  assert_equals(usedRowSizes(maxContentMinCalculatedMax), "40px");
+}, "A track with a max-content minimum grows to its calculated maximum");
+
+test(() => {
+  assert_equals(usedRowSizes(fixedMinMinContentMax), "30px");
+}, "A track with a min-content maximum keeps its fixed minimum");
+
+test(() => {
+  assert_equals(usedRowSizes(fixedMinMaxContentMax), "30px");
+}, "A track with a max-content maximum keeps its fixed minimum");
+
+test(() => {
+  assert_equals(usedRowSizes(fixedMinAutoMax), "30px");
+}, "A track with an automatic maximum keeps its fixed minimum");
+
+test(() => {
+  assert_equals(usedRowSizes(percentageMinMinContentMax), "30px");
+}, "A track with a min-content maximum keeps its percentage minimum");
+
+test(() => {
+  assert_equals(usedRowSizes(percentageMinMaxContentMax), "30px");
+}, "A track with a max-content maximum keeps its percentage minimum");
+
+test(() => {
+  assert_equals(usedRowSizes(percentageMinAutoMax), "30px");
+}, "A track with an automatic maximum keeps its percentage minimum");
+
+test(() => {
+  assert_equals(usedRowSizes(calculatedMinMinContentMax), "30px");
+}, "A track with a min-content maximum keeps its calculated minimum");
+
+test(() => {
+  assert_equals(usedRowSizes(calculatedMinMaxContentMax), "30px");
+}, "A track with a max-content maximum keeps its calculated minimum");
+
+test(() => {
+  assert_equals(usedRowSizes(calculatedMinAutoMax), "30px");
+}, "A track with an automatic maximum keeps its calculated minimum");
+
+test(() => {
+  assert_equals(usedRowSizes(autoMinFixedMaxTwoRows), "50px 50px");
+}, "Every track with an automatic minimum grows to its fixed maximum");
+
+test(() => {
+  assert_equals(usedRowSizes(autoMinFixedMaxIndefiniteHeight), "40px");
+}, "A track with an automatic minimum grows to its fixed maximum when the grid container height is indefinite");
+
+test(() => {
+  assert_equals(usedRowSizes(fixedMinAutoMaxIndefiniteHeight), "30px");
+}, "A track with an automatic maximum keeps its fixed minimum when the grid container height is indefinite");
+
+test(() => {
+  assert_equals(usedRowSizes(bothBreadthsFixed), "40px");
+}, "A track whose minimum and maximum are both fixed grows to its maximum");
+</script>

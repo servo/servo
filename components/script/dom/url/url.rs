@@ -105,7 +105,7 @@ impl URL {
         // Step 6. If serialized is "null", set it to an implementation-defined value.
         // Step 7. Append serialized to result.
         // N.B. We leave it as "null" right now.
-        result.push_str(&origin.ascii_serialization());
+        result.push_str(origin.ascii_serialization().as_ref());
 
         // Step 8. Append U+0024 SOLIDUS (/) to result.
         result.push('/');
@@ -211,7 +211,7 @@ impl URLMethods<crate::DomTypeHolder> for URL {
 
         if let Ok(url) = ServoUrl::parse(&url.str()) &&
             url.fragment().is_none() &&
-            let Ok((id, _)) = parse_blob_url(&url)
+            let Ok(id) = parse_blob_url(&url)
         {
             let resource_threads = global.resource_threads();
             let (tx, rx) = generic_channel::channel(global.time_profiler_chan().clone()).unwrap();

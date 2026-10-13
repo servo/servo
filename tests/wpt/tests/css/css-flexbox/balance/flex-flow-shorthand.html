@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-2/#flex-wrap-property">
+<meta name="assert" content="flex-flow sets flex-direction and flex-wrap when flex-wrap includes balance.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/shorthand-testcommon.js"></script>
+<body>
+<script>
+test_shorthand_value("flex-flow", "balance", {
+  "flex-direction": "row",
+  "flex-wrap": "balance"
+});
+test_shorthand_value("flex-flow", "column wrap balance", {
+  "flex-direction": "column",
+  "flex-wrap": "balance"
+});
+test_shorthand_value("flex-flow", "wrap-reverse balance row-reverse", {
+  "flex-direction": "row-reverse",
+  "flex-wrap": "wrap-reverse balance"
+});
+</script>
+</body>

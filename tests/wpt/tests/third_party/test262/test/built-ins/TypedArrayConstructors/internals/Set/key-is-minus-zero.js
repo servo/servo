@@ -24,4 +24,4 @@ testWithTypedArrayConstructors(function(TA, makeCtorArg) {
 
   assert.sameValue(Reflect.set(sample, "-0", 1), true, 'Reflect.set(sample, "-0", 1) must return true');
   assert.sameValue(sample.hasOwnProperty("-0"), false, 'sample.hasOwnProperty("-0") must return false');
-});
+}, null, null, ["immutable"]);

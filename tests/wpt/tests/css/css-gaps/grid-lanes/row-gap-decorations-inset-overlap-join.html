@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: overlap-join extends a grid-axis rule through the crossing rule width in row grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#inset">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="row-gap-decorations-inset-overlap-join-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-rows: repeat(2, 80px);
+    grid-lanes-direction: row;
+    gap: 20px;
+    width: max-content;
+    background: #cdd5e0;
+    row-rule: 8px solid blue;
+    column-rule: 12px solid gold;
+    row-rule-break: intersection;
+    row-rule-inset-junction-end: overlap-join;
+    column-rule-inset-junction-start: overlap-join;
+    column-rule-inset-junction-end: overlap-join;
+    rule-overlap: row-over-column;
+  }
+  .lanes > div { background: #5b8def; }
+  .a { grid-row: 1; width: 60px; }
+  .b { grid-row: 2; width: 60px; }
+  .span { grid-row: 1 / -1; width: 60px; background: #8a6df0; }
+</style>
+<div class="lanes">
+  <div class="a"></div>
+  <div class="b"></div>
+  <div class="span"></div>
+</div>

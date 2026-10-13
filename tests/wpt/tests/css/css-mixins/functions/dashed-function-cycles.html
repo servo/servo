@@ -403,6 +403,69 @@
   </style>
 </template>
 
+<!-- Arguments are substituted before the function is evaluated, so an argument calling the
+     same function is not a cycle. https://drafts.csswg.org/css-mixins-1/#replace-a-dashed-function -->
+
+<template data-name="Argument calling the same function is not a cycle">
+  <style>
+    @function --bump(--v) returns <integer> { result: calc(var(--v) + 1); }
+    #target {
+      --early: --bump(1);
+      --late: --bump(var(--early));
+      --actual: var(--late);
+      --expected: 3;
+    }
+  </style>
+</template>
+
+<template data-name="Argument calling the same function does not invalidate the inner call">
+  <style>
+    @function --bump(--v) returns <integer> { result: calc(var(--v) + 1); }
+    #target {
+      --early: --bump(1);
+      --late: --bump(var(--early));
+      --actual: var(--early);
+      --expected: 2;
+    }
+  </style>
+</template>
+
+<template data-name="Argument calling the same function is not a cycle, dependency declared last">
+  <style>
+    @function --bump(--v) returns <integer> { result: calc(var(--v) + 1); }
+    #target {
+      --late: --bump(var(--early));
+      --early: --bump(1);
+      --actual: var(--late);
+      --expected: 3;
+    }
+  </style>
+</template>
+
+<template data-name="Argument calling the same function is not a cycle, chained three deep">
+  <style>
+    @function --bump(--v) returns <integer> { result: calc(var(--v) + 1); }
+    #target {
+      --a: --bump(1);
+      --b: --bump(var(--a));
+      --c: --bump(var(--b));
+      --actual: var(--c);
+      --expected: 4;
+    }
+  </style>
+</template>
+
+<template data-name="Argument reading the property being declared is still a cycle">
+  <style>
+    @function --bump(--v) returns <integer> { result: calc(var(--v) + 1); }
+    #target {
+      --cyclic: --bump(var(--cyclic));
+      --actual: var(--cyclic);
+      /* --expected: <guaranteed-invalid> */
+    }
+  </style>
+</template>
+
 <script>
   test_all_templates();
 </script>

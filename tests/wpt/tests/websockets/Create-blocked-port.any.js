@@ -1,3 +1,4 @@
+// META: timeout=long
 // META: script=constants.sub.js
 // META: variant=?default
 // META: variant=?wss

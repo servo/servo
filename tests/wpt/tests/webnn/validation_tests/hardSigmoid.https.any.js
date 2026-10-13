@@ -35,3 +35,7 @@ promise_test(async t => {
   const input = builder.input('input', {dataType: 'float32', shape: [1]});
   assert_throws_js(TypeError, () => builder.hardSigmoid(input, options));
 }, '[hardSigmoid] Throw if options.alpha is Infinity');
+
+validateOperandRank('hardSigmoid', 'input', (builder, input) => {
+  return builder.hardSigmoid(input);
+});

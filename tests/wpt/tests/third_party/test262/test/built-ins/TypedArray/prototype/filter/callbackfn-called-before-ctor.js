@@ -17,9 +17,9 @@ includes: [testTypedArray.js]
 features: [Symbol.species, TypedArray]
 ---*/
 
-testWithTypedArrayConstructors(function(TA) {
+testWithTypedArrayConstructors(function(TA, makeCtorArg) {
   var length = 42;
-  var sample = new TA(length);
+  var sample = new TA(makeCtorArg(length));
   var calls = 0;
   var before = false;
 

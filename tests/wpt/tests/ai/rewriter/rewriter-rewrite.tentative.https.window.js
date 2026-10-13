@@ -42,9 +42,3 @@ promise_test(async () => {
   const result = await rewriter.rewrite(kTestPrompt, {context: kTestContext});
   assert_equals(typeof result, 'string');
 }, 'Simple Rewriter.rewrite() call');
-
-promise_test(async () => {
-  const rewriter = await createRewriter();
-  await Promise.all(
-      [rewriter.rewrite(kTestPrompt), rewriter.rewrite(kTestPrompt)]);
-}, 'Multiple Rewriter.rewrite() calls are resolved successfully');

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: positive insets shorten column-rule segments at intersections in a subgrid of grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="column-subgrid-rule-break-intersection-inset-ref.html">
+<style>
+  body {
+    margin: 0;
+  }
+  .scene {
+    height: 130px;
+    width: 140px;
+  }
+  .lanes {
+    background: lightgray;
+    column-gap: 20px;
+    display: grid-lanes;
+    grid-template-columns: repeat(2, 60px);
+    height: 130px;
+    width: 140px;
+  }
+  .subgrid {
+    column-rule: 6px solid blue;
+    column-rule-break: intersection;
+    column-rule-inset-cap-end: 6px;
+    column-rule-inset-cap-start: 6px;
+    column-rule-inset-junction-end: 6px;
+    column-rule-inset-junction-start: 6px;
+    display: grid;
+    grid-column: 1 / span 2;
+    grid-template-columns: subgrid;
+    grid-template-rows: repeat(3, 30px);
+    row-gap: 20px;
+  }
+  .cell {
+    background: teal;
+  }
+</style>
+<div class="scene">
+  <div class="lanes">
+    <div class="subgrid">
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+    </div>
+  </div>
+</div>

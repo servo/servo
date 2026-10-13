@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: column-reverse assigns fragmented flex row-rule values
+  using global per-line indices and counts.
+</title>
+<meta name="assert" content="In a fragmented column flex container with column-reverse, row-rule values are reversed within each uneven flex-line group using the complete unfragmented group count; gaps suppressed at fragment breaks still consume their values.">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#assigning">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#fragmentation">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#flex-direction-property">
+<link rel="match" href="flex-gap-decorations-fragmentation-032-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+  body {
+    margin: 0;
+  }
+  .multi-column {
+    columns: 3;
+    column-width: 170px;
+    column-gap: 10px;
+    height: 181px;
+    width: 530px;
+    background: lightgray;
+    column-fill: auto;
+  }
+  #flexbox {
+    display: flex;
+    flex-direction: column-reverse;
+    flex-wrap: wrap;
+    border: 1px solid black;
+    width: 170px;
+    height: 360px;
+    row-gap: 10px;
+    column-gap: 10px;
+    row-rule-style: solid;
+    row-rule-width: 10px;
+    row-rule-color:
+      red, lime, blue, yellow, magenta, cyan, orange, purple, brown, pink, black;
+    column-rule-style: solid;
+    column-rule-width: 10px;
+    column-rule-color: gray;
+  }
+  .items {
+    background-color: cornflowerblue;
+    width: 50px;
+  }
+</style>
+<div class="multi-column">
+  <div id="flexbox">
+    <div class="items" style="height: 55px;"></div>
+    <div class="items" style="height: 50px;"></div>
+    <div class="items" style="height: 70px;"></div>
+    <div class="items" style="height: 30px;"></div>
+    <div class="items" style="height: 60px;"></div>
+    <div class="items" style="height: 50px;"></div>
+    <div class="items" style="height: 55px;"></div>
+    <div class="items" style="height: 80px;"></div>
+    <div class="items" style="height: 100px;"></div>
+    <div class="items" style="height: 60px;"></div>
+    <div class="items" style="height: 45px;"></div>
+    <div class="items" style="height: 65px;"></div>
+    <div class="items" style="height: 35px;"></div>
+    <div class="items" style="height: 50px;"></div>
+  </div>
+</div>

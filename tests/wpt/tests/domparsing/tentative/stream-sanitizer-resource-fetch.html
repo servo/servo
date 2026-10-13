@@ -1,0 +1,100 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Resource fetch prevention when src is sanitized in streamHTML variants</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates">
+<link rel="help" href="https://github.com/WICG/sanitizer-api">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<body>
+<div id="container"></div>
+<script>
+  const stashPath = "/html/semantics/embedded-content/the-img-element/resources/image-and-stash.py";
+
+  const methods = [
+    { name: "streamHTML", type: "element" },
+    { name: "streamAppendHTML", type: "element" },
+    { name: "streamPrependHTML", type: "element" },
+    { name: "streamBeforeHTML", type: "child" },
+    { name: "streamAfterHTML", type: "child" },
+    { name: "streamReplaceWithHTML", type: "child" },
+    { name: "streamHTMLUnsafe", type: "element" },
+    { name: "streamAppendHTMLUnsafe", type: "element" },
+    { name: "streamPrependHTMLUnsafe", type: "element" },
+    { name: "streamBeforeHTMLUnsafe", type: "child" },
+    { name: "streamAfterHTMLUnsafe", type: "child" },
+    { name: "streamReplaceWithHTMLUnsafe", type: "child" }
+  ];
+
+  function setupTarget(container, type, t) {
+    const wrapper = document.createElement("div");
+    container.appendChild(wrapper);
+    t.add_cleanup(() => wrapper.remove());
+    if (type === "child") {
+      const target = document.createElement("div");
+      wrapper.appendChild(target);
+      return { target, holder: wrapper };
+    }
+    return { target: wrapper, holder: wrapper };
+  }
+
+  // 1. Sanitizer removing src attribute must prevent network request
+  for (const m of methods) {
+    promise_test(async (t) => {
+      const uuid = token();
+      const container = document.getElementById("container");
+      const { target, holder } = setupTarget(container, m.type, t);
+
+      const imageUrl = `${stashPath}?increment=${uuid}`;
+      const writer = target[m.name]({ sanitizer: { removeAttributes: ["src"] } }).getWriter();
+      await writer.write(`<img src="${imageUrl}">`);
+      await writer.close();
+
+      // Give any potential speculative request time to trigger
+      await new Promise(resolve => t.step_timeout(resolve, 200));
+
+      const response = await fetch(`${stashPath}?read=${uuid}`);
+      const requestCount = await response.text();
+
+      assert_equals(requestCount, "0", "Server should not observe any request when src is sanitized");
+
+      const img = holder.querySelector("img");
+      assert_not_equals(img, null, "<img> element is present in DOM");
+      assert_equals(img.getAttribute("src"), null, "src attribute is removed");
+    }, `${m.name} prevents server-observable resource fetch when src attribute is sanitized`);
+  }
+
+  // 2. Control case: unsafe streaming without sanitizer makes the network request
+  const unsafeMethods = methods.filter(m => m.name.includes("Unsafe"));
+  for (const m of unsafeMethods) {
+    promise_test(async (t) => {
+      const uuid = token();
+      const container = document.getElementById("container");
+      const { target, holder } = setupTarget(container, m.type, t);
+
+      const imageUrl = `${stashPath}?increment=${uuid}`;
+      const writer = target[m.name]({}).getWriter();
+      await writer.write(`<img src="${imageUrl}">`);
+      await writer.close();
+
+      const img = holder.querySelector("img");
+      assert_not_equals(img, null, "<img> element is present in DOM");
+
+      await new Promise(resolve => {
+        if (img.complete) {
+          resolve();
+        } else {
+          img.addEventListener("load", resolve, { once: true });
+          img.addEventListener("error", resolve, { once: true });
+          t.step_timeout(resolve, 1000);
+        }
+      });
+
+      const response = await fetch(`${stashPath}?read=${uuid}`);
+      const requestCount = await response.text();
+
+      assert_equals(requestCount, "1", "Server SHOULD observe request in control case");
+    }, `Control: ${m.name} initiates resource fetch when src is preserved`);
+  }
+</script>
+</body>

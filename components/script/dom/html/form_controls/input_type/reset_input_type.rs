@@ -11,6 +11,7 @@ use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::form_controls::input_type::text_value_widget::TextValueWidget;
 use crate::dom::html::form_controls::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::htmlformelement::{FormControl, ResetFrom};
+use crate::dom::input_type::text_input_widget::TextInputWidget;
 use crate::dom::node::NodeTraits;
 
 const DEFAULT_RESET_VALUE: &str = "Reset";
@@ -25,6 +26,10 @@ pub(crate) struct ResetInputType {
 pub(crate) struct ResetInputActivation;
 
 impl SpecificInputType for ResetInputType {
+    fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>> {
+        None
+    }
+
     fn value_for_shadow_dom(&self, _input: &HTMLInputElement) -> DOMString {
         DEFAULT_RESET_VALUE.into()
     }

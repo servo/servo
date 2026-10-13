@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html id="top">
+<head>
+<meta charset="utf-8">
+<title>View timeline with a sticky element stuck only in the orthogonal axis</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#viewtimeline-interface">
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#view-timelines-ranges">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/scroll-animations/scroll-timelines/testcommon.js"></script>
+<script src="/scroll-animations/view-timelines/testcommon.js"></script>
+<style>
+
+#container {
+  width: 500px;
+  height: 500px;
+  overflow: auto;
+}
+.space {
+  height: 550px;
+}
+
+/* Sticky only in the inline axis - orthogonal to the block axis the timeline
+   is on: `top` and `bottom` are auto, so the element is permanently displaced
+   20px to the right and never moves in the block axis. */
+.stickycase {
+  background: yellow;
+  position: sticky;
+  left: 20px;
+  width: 200px;
+  height: 200px;
+}
+
+#target {
+  position: relative;
+  top: 50px;
+  background: orange;
+  height: 100px;
+}
+
+</style>
+</head>
+<body>
+<div id="container">
+  <div class="space"></div>
+  <div class="space">
+    <div style="height: 150px"></div>
+    <div id="sticky" class="stickycase">
+      <div id="target">Subject</div>
+    </div>
+  </div>
+  <div class="space"></div>
+</div>
+<script type="text/javascript">
+
+// The block axis ranges must be exactly the ones the plain (non-sticky)
+// geometry produces, because the sticky element cannot move in the block axis.
+//
+// STATIC_START = scroll distance to second spacer (50px)
+//              + position of sticky element within its container (150px)
+//              + position of target within sticky element (50px)
+// STATIC_END = STATIC_START
+//            + viewport height (500px)
+//            + target height (100px)
+const STATIC_START = 250;
+const STATIC_END = 850;
+
+const TARGET_HEIGHT = 100;
+const VIEWPORT_HEIGHT = 500;
+
+promise_test(async t => {
+  await runTimelineRangeTest(t, {
+    rangeStart: { rangeName: 'cover', offset: CSS.percent(0) },
+    rangeEnd: { rangeName: 'cover', offset: CSS.percent(100) },
+    startOffset: STATIC_START,
+    endOffset: STATIC_END,
+    axis: 'block'
+  });
+  await runTimelineRangeTest(t, {
+    rangeStart: { rangeName: 'contain', offset: CSS.percent(0) },
+    rangeEnd: { rangeName: 'contain', offset: CSS.percent(100) },
+    startOffset: STATIC_START + TARGET_HEIGHT,
+    endOffset: STATIC_END - TARGET_HEIGHT,
+    axis: 'block'
+  });
+  await runTimelineRangeTest(t, {
+    rangeStart: { rangeName: 'entry', offset: CSS.percent(0) },
+    rangeEnd: { rangeName: 'entry', offset: CSS.percent(100) },
+    startOffset: STATIC_START,
+    endOffset: STATIC_START + TARGET_HEIGHT,
+    axis: 'block'
+  });
+  await runTimelineRangeTest(t, {
+    rangeStart: { rangeName: 'entry-crossing', offset: CSS.percent(0) },
+    rangeEnd: { rangeName: 'entry-crossing', offset: CSS.percent(100) },
+    startOffset: STATIC_START,
+    endOffset: STATIC_START + TARGET_HEIGHT,
+    axis: 'block'
+  });
+  await runTimelineRangeTest(t, {
+    rangeStart: { rangeName: 'exit', offset: CSS.percent(0) },
+    rangeEnd: { rangeName: 'exit', offset: CSS.percent(100) },
+    startOffset: STATIC_END - TARGET_HEIGHT,
+    endOffset: STATIC_END,
+    axis: 'block'
+  });
+  await runTimelineRangeTest(t, {
+    rangeStart: { rangeName: 'exit-crossing', offset: CSS.percent(0) },
+    rangeEnd: { rangeName: 'exit-crossing', offset: CSS.percent(100) },
+    startOffset: STATIC_END - TARGET_HEIGHT,
+    endOffset: STATIC_END,
+    axis: 'block'
+  });
+}, 'Block-axis view timeline with a sticky element stuck only in the ' +
+   '(orthogonal) inline axis.');
+
+</script>
+</body>
+</html>

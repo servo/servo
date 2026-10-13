@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+
+<script>
+  let has_window_loaded = false;
+
+  function in_viewport_iframe_onload() {
+    parent.postMessage({ info: "nested-in-viewport-loaded",
+                         hasWindowLoaded: has_window_loaded }, "*");
+  }
+
+  window.addEventListener("load", () => {
+    has_window_loaded = true;
+    document.getElementById("below_viewport").scrollIntoView();
+  });
+
+  window.addEventListener("message", event => {
+    parent.postMessage({ info: "nested-below-viewport-loaded",
+                         hasWindowLoaded: has_window_loaded,
+                         nestedSubframeSrc: event.data,
+                         subframeSrc: location.href }, "*");
+  });
+
+</script>
+
+<body>
+  <iframe id="in_viewport"
+          src="https://{{hosts[alt][]}}:{{ports[https][0]}}/html/semantics/embedded-content/the-iframe-element/resources/subframe.html?in-viewport"
+          loading="lazy" width="200px" height="100px"
+          onload="in_viewport_iframe_onload();"></iframe>
+
+
+ <div style="height:2000vh;"></div>
+  <iframe id="below_viewport"
+          src="https://{{hosts[alt][]}}:{{ports[https][0]}}/html/semantics/embedded-content/the-iframe-element/cross-site/resources/subframe-post-msg.html?below-viewport"
+          loading="lazy" width="200px" height="100px"></iframe>
+
+
+  <!-- This async script loads very slowly in order to ensure that, if the
+       below_viewport* elements have started loading, it has a chance to finish
+       loading before window load event fires, so that the test will dependably
+       fail in that case instead of potentially passing depending on how long
+       different resource fetches take. -->
+  <script async src="/common/slow.py"></script>
+</body>

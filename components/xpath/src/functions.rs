@@ -2,33 +2,56 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use markup5ever::{LocalName, Prefix};
+
 use crate::ast::CoreFunction;
 use crate::context::EvaluationCtx;
 use crate::eval::try_extract_nodeset;
 use crate::value::{NodeSet, parse_number_from_string};
-use crate::{Document, Dom, Element, Error, Node, Value};
+use crate::{Attribute, Document, Dom, Element, Error, Node, Value};
+
+struct NodeNameParts {
+    prefix: Option<Prefix>,
+    local_name: LocalName,
+}
+
+fn name_parts<N: Node>(node: &N) -> Option<NodeNameParts> {
+    match (node.as_element(), node.as_attribute()) {
+        (Some(element), _) => Some(NodeNameParts {
+            prefix: element.prefix(),
+            local_name: element.local_name(),
+        }),
+        (_, Some(attribute)) => Some(NodeNameParts {
+            prefix: attribute.prefix(),
+            local_name: attribute.local_name(),
+        }),
+        _ => None,
+    }
+}
 
 /// Returns e.g. "rect" for `<svg:rect>`
 fn local_name<N: Node>(node: &N) -> Option<String> {
-    node.as_element()
-        .map(|element| element.local_name().to_string())
+    name_parts(node).map(|node_name_parts| node_name_parts.local_name.to_string())
 }
 
 /// Returns e.g. "svg:rect" for `<svg:rect>`
 fn name<N: Node>(node: &N) -> Option<String> {
-    node.as_element().map(|element| {
-        if let Some(prefix) = element.prefix().as_ref() {
-            format!("{}:{}", prefix, element.local_name())
-        } else {
-            element.local_name().to_string()
-        }
-    })
+    let NodeNameParts { prefix, local_name } = name_parts(node)?;
+
+    if let Some(prefix) = prefix {
+        Some(format!("{}:{}", prefix, local_name))
+    } else {
+        Some(local_name.to_string())
+    }
 }
 
 /// Returns e.g. the SVG namespace URI for `<svg:rect>`
 fn namespace_uri<N: Node>(node: &N) -> Option<String> {
-    node.as_element()
-        .map(|element| element.namespace().to_string())
+    match (node.as_element(), node.as_attribute()) {
+        (Some(element), _) => Some(element.namespace().to_string()),
+        (_, Some(attribute)) => Some(attribute.namespace().to_string()),
+        _ => None,
+    }
 }
 
 /// If s2 is found inside s1, return everything *before* s2. Return all of s1 otherwise.
@@ -149,14 +172,14 @@ impl CoreFunction {
             },
             CoreFunction::String(expr_opt) => match expr_opt {
                 Some(expr) => Ok(Value::String(
-                    expr.evaluate(cx, context)?.convert_to_string(),
+                    expr.evaluate(cx, context)?.convert_to_string(cx),
                 )),
                 None => Ok(Value::String(context.context_node.text_content())),
             },
             CoreFunction::Concat(exprs) => {
                 let strings: Result<Vec<_>, _> = exprs
                     .iter()
-                    .map(|e| Ok(e.evaluate(cx, context)?.convert_to_string()))
+                    .map(|e| Ok(e.evaluate(cx, context)?.convert_to_string(cx)))
                     .collect();
                 Ok(Value::String(strings?.join("")))
             },
@@ -183,10 +206,11 @@ impl CoreFunction {
                         extend_result_with_matching_nodes(cx, &node.text_content())
                     }
                 } else {
-                    extend_result_with_matching_nodes(cx, &argument.convert_to_string())
+                    let conversion_to_string = argument.convert_to_string(cx);
+                    extend_result_with_matching_nodes(cx, &conversion_to_string)
                 }
 
-                result.sort();
+                result.sort(cx);
                 Ok(Value::NodeSet(result))
             },
             CoreFunction::LocalName(expr_opt) => {
@@ -194,7 +218,7 @@ impl CoreFunction {
                     Some(expr) => expr
                         .evaluate(cx, context)
                         .and_then(try_extract_nodeset)?
-                        .first(),
+                        .first(cx),
                     None => Some(context.context_node.clone()),
                 };
                 let name = node.and_then(|n| local_name(&n)).unwrap_or_default();
@@ -205,7 +229,7 @@ impl CoreFunction {
                     Some(expr) => expr
                         .evaluate(cx, context)
                         .and_then(try_extract_nodeset)?
-                        .first(),
+                        .first(cx),
                     None => Some(context.context_node.clone()),
                 };
                 let ns = node.and_then(|n| namespace_uri(&n)).unwrap_or_default();
@@ -216,40 +240,42 @@ impl CoreFunction {
                     Some(expr) => expr
                         .evaluate(cx, context)
                         .and_then(try_extract_nodeset)?
-                        .first(),
+                        .first(cx),
                     None => Some(context.context_node.clone()),
                 };
                 let name = node.and_then(|n| name(&n)).unwrap_or_default();
                 Ok(Value::String(name))
             },
             CoreFunction::StartsWith(str1, str2) => {
-                let s1 = str1.evaluate(cx, context)?.convert_to_string();
-                let s2 = str2.evaluate(cx, context)?.convert_to_string();
+                let s1 = str1.evaluate(cx, context)?.convert_to_string(cx);
+                let s2 = str2.evaluate(cx, context)?.convert_to_string(cx);
                 Ok(Value::Boolean(s1.starts_with(&s2)))
             },
             CoreFunction::Contains(str1, str2) => {
-                let s1 = str1.evaluate(cx, context)?.convert_to_string();
-                let s2 = str2.evaluate(cx, context)?.convert_to_string();
+                let s1 = str1.evaluate(cx, context)?.convert_to_string(cx);
+                let s2 = str2.evaluate(cx, context)?.convert_to_string(cx);
                 Ok(Value::Boolean(s1.contains(&s2)))
             },
             CoreFunction::SubstringBefore(str1, str2) => {
-                let s1 = str1.evaluate(cx, context)?.convert_to_string();
-                let s2 = str2.evaluate(cx, context)?.convert_to_string();
+                let s1 = str1.evaluate(cx, context)?.convert_to_string(cx);
+                let s2 = str2.evaluate(cx, context)?.convert_to_string(cx);
                 Ok(Value::String(substring_before(&s1, &s2)))
             },
             CoreFunction::SubstringAfter(str1, str2) => {
-                let s1 = str1.evaluate(cx, context)?.convert_to_string();
-                let s2 = str2.evaluate(cx, context)?.convert_to_string();
+                let s1 = str1.evaluate(cx, context)?.convert_to_string(cx);
+                let s2 = str2.evaluate(cx, context)?.convert_to_string(cx);
                 Ok(Value::String(substring_after(&s1, &s2)))
             },
             CoreFunction::Substring(source_expression, start, length) => {
-                let source = source_expression.evaluate(cx, context)?.convert_to_string();
+                let source = source_expression
+                    .evaluate(cx, context)?
+                    .convert_to_string(cx);
                 let start_idx =
-                    start.evaluate(cx, context)?.convert_to_number().round() as isize - 1;
+                    start.evaluate(cx, context)?.convert_to_number(cx).round() as isize - 1;
                 let result = if let Some(length_expression) = length {
                     let length = length_expression
                         .evaluate(cx, context)?
-                        .convert_to_number()
+                        .convert_to_number(cx)
                         .round() as isize;
                     substring(&source, start_idx, Some(length))
                 } else {
@@ -259,23 +285,23 @@ impl CoreFunction {
             },
             CoreFunction::StringLength(expr_opt) => {
                 let string = match expr_opt {
-                    Some(expr) => expr.evaluate(cx, context)?.convert_to_string(),
+                    Some(expr) => expr.evaluate(cx, context)?.convert_to_string(cx),
                     None => context.context_node.text_content(),
                 };
                 Ok(Value::Number(string.chars().count() as f64))
             },
             CoreFunction::NormalizeSpace(expr_opt) => {
                 let string = match expr_opt {
-                    Some(expr) => expr.evaluate(cx, context)?.convert_to_string(),
+                    Some(expr) => expr.evaluate(cx, context)?.convert_to_string(cx),
                     None => context.context_node.text_content(),
                 };
 
                 Ok(Value::String(normalize_space(&string)))
             },
             CoreFunction::Translate(str1, str2, str3) => {
-                let string = str1.evaluate(cx, context)?.convert_to_string();
-                let from = str2.evaluate(cx, context)?.convert_to_string();
-                let to = str3.evaluate(cx, context)?.convert_to_string();
+                let string = str1.evaluate(cx, context)?.convert_to_string(cx);
+                let from = str2.evaluate(cx, context)?.convert_to_string(cx);
+                let to = str3.evaluate(cx, context)?.convert_to_string(cx);
                 Ok(Value::String(translate(&string, &from, &to)))
             },
             CoreFunction::Number(expr_opt) => {
@@ -283,7 +309,7 @@ impl CoreFunction {
                     Some(expr) => expr.evaluate(cx, context)?,
                     None => Value::String(context.context_node.text_content()),
                 };
-                Ok(Value::Number(val.convert_to_number()))
+                Ok(Value::Number(val.convert_to_number(cx)))
             },
             CoreFunction::Sum(expr) => {
                 let nodes = expr.evaluate(cx, context).and_then(try_extract_nodeset)?;
@@ -294,15 +320,15 @@ impl CoreFunction {
                 Ok(Value::Number(sum))
             },
             CoreFunction::Floor(expr) => {
-                let num = expr.evaluate(cx, context)?.convert_to_number();
+                let num = expr.evaluate(cx, context)?.convert_to_number(cx);
                 Ok(Value::Number(num.floor()))
             },
             CoreFunction::Ceiling(expr) => {
-                let num = expr.evaluate(cx, context)?.convert_to_number();
+                let num = expr.evaluate(cx, context)?.convert_to_number(cx);
                 Ok(Value::Number(num.ceil()))
             },
             CoreFunction::Round(expr) => {
-                let num = expr.evaluate(cx, context)?.convert_to_number();
+                let num = expr.evaluate(cx, context)?.convert_to_number(cx);
                 Ok(Value::Number(num.round()))
             },
             CoreFunction::Boolean(expr) => Ok(Value::Boolean(
@@ -315,7 +341,7 @@ impl CoreFunction {
             CoreFunction::False => Ok(Value::Boolean(false)),
             CoreFunction::Lang(expr) => {
                 let context_lang = context.context_node.language();
-                let lang = expr.evaluate(cx, context)?.convert_to_string();
+                let lang = expr.evaluate(cx, context)?.convert_to_string(cx);
                 Ok(Value::Boolean(lang_matches(context_lang.as_deref(), &lang)))
             },
         }

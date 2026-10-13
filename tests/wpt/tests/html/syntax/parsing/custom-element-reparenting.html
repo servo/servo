@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Parser element insertion when a custom element reaction reparents nodes</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/parsing.html#insert-an-element-at-the-adjusted-insertion-location">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/adoption-agency-reparenting.js"></script>
+<body>
+<script>
+// The custom element constructor, and attributeChangedCallback for the token's
+// attributes, both run before the element is inserted. These are the cases
+// where the resulting tree stays well-formed; the cycle-inducing variants live
+// in custom-element-reparenting-*-cycle.html.
+
+promise_test(async t => {
+  const iframe = await parseInIframe(t, `<script>customElements.define('x-a', class extends HTMLElement {})<\/script><body><x-a><p>y</p></x-a>`);
+  assert_equals(tree(iframe.contentDocument.body), `<x-a>[<p>["y"]]`);
+}, "Baseline: a custom element that does not reparent anything");
+
+promise_test(async t => {
+  const iframe = await parseInIframe(t, `<script>customElements.define('x-a', class extends HTMLElement { static get observedAttributes() { return ['x'] } attributeChangedCallback() { if (window.el) return; window.el = this; document.head.appendChild(this) } })<\/script><body><x-a x=1><p>y</p></x-a>`);
+  const w = iframe.contentWindow, d = iframe.contentDocument;
+  assert_equals(w.el.parentNode, d.head, "the custom element stayed where the callback put it");
+  assert_equals(tree(d.body), ``, "the custom element was not also inserted into body");
+  assert_equals(tree(w.el), `<p>["y"]`, "following content went into the custom element");
+}, "attributeChangedCallback gives the element a parent before it is inserted");
+
+promise_test(async t => {
+  const iframe = await parseInIframe(t, `<script>customElements.define('x-a', class extends HTMLElement { static get observedAttributes() { return ['x'] } attributeChangedCallback() { if (window.el) return; window.el = this; window.b = document.body; window.b.remove() } })<\/script><body><x-a x=1><p>y</p></x-a>`);
+  const w = iframe.contentWindow, d = iframe.contentDocument;
+  assert_equals(d.body, null, "the html element no longer has a body child");
+  assert_equals(w.b.parentNode, null, "body stayed detached");
+  assert_equals(tree(w.b), `<x-a>[<p>["y"]]`, "the element was inserted into the detached body");
+}, "attributeChangedCallback detaches the intended parent before the element is inserted");
+
+// A shadow root that does not contain the intended parent must not prevent the
+// insertion; this is what an over-broad cycle guard would break.
+promise_test(async t => {
+  const iframe = await parseInIframe(t, `<script>customElements.define('x-a', class extends HTMLElement { constructor() { super(); window.el = this; window.root = this.attachShadow({mode: 'open'}); window.root.appendChild(document.createElement('span')) } })<\/script><body><x-a><p>y</p></x-a>`);
+  const w = iframe.contentWindow, d = iframe.contentDocument;
+  assert_equals(tree(d.body), `<x-a>[<p>["y"]]`, "the element was inserted normally");
+  assert_equals(w.root.firstChild.localName, "span", "its shadow root is untouched");
+}, "Custom element constructor attaches an unrelated shadow root");
+</script>

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>input.stepUp/Down work when starting from a value not aligned with value step</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<input type=number id=inputNumber>
+
+<script>
+"use strict";
+
+const inputNumber = document.getElementById("inputNumber");
+
+test(() => {
+  inputNumber.min = 0;
+  inputNumber.step = 2;
+  inputNumber.value = 5;
+  assert_equals(inputNumber.value, "5");
+
+  inputNumber.stepUp();
+  assert_equals(inputNumber.value, "6");
+
+  inputNumber.stepUp();
+  assert_equals(inputNumber.value, "8");
+
+  inputNumber.step = 3;
+  inputNumber.stepDown();
+  assert_equals(inputNumber.value, "6");
+});
+</script>

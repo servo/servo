@@ -129,26 +129,23 @@ function reportload() {
             iframe.contentWindow.history.pushState('','','#test3');
             assert_equals( iframe.contentWindow.location.hash.replace(/^#/,''), 'test3' );
         }, 'pushState must be able to set location.hash');
-        //begin setup for "remove any tasks queued by the history traversal task source"
         iframe.contentWindow.location.hash = '#test4';
-        iframe.contentWindow.history.go(-1); //must be queued
+        iframe.contentWindow.history.go(-1);
         try {
-            //must remove the queued navigation in the same browsing context
+            // Queued a go to test3, the pushState is inserted after test3
             iframe.contentWindow.history.pushState('','');
         } catch(unsuperr) {}
-        //allow the browser to mistakenly run the .go if it is going to
-        //do not put two .go commands in the same thread, in case the browser mistakenly calculates the history position when
-        //calling .go instead of when executing the traversal task - that could give a false PASS in the next test otherwise
         setTimeout(tests7,50);
     }
     function tests7() {
-        iframe.contentWindow.history.go(-1); //must be queued, but should not be removed this time
+        // Standing at test3, go(-1) should take us to 'test'
+        iframe.contentWindow.history.go(-1);
         iframe.contentWindow.addEventListener("popstate", tests8, {once: true});
     }
     function tests8() {
         test(function () {
-            assert_equals( iframe.contentWindow.location.hash.replace(/^#/,''), 'test4' );
-        }, 'pushState must remove any tasks queued by the history traversal task source');
+            assert_equals( iframe.contentWindow.location.hash.replace(/^#/,''), 'test' );
+        }, 'pushState must not remove tasks queued by the history traversal task source');
         //end "remove any tasks queued by the history traversal task source"
         window.addEventListener('hashchange',function () { hashchng = true; },false);
         try {

@@ -1,0 +1,30 @@
+<!doctype html>
+<meta charset="utf-8">
+<button type="button">Focus target</button>
+<input id="parking">
+<input id="target">
+<script>
+"use strict";
+
+function focusElement(element) {
+  element.focus();
+}
+
+function clickElement(element) {
+  element.click();
+}
+
+function installFocusHandler(button, target) {
+  const result = {calls: 0};
+  button.onclick = event => {
+    result.calls++;
+    result.isTrusted = event.isTrusted;
+    result.hadActivation = navigator.userActivation.isActive;
+    result.hadFocus = document.hasFocus();
+    target.focus();
+  };
+  return result;
+}
+
+window.focusTestReady = true;
+</script>

@@ -17,6 +17,7 @@ use webgpu_traits::ShaderCompilationInfo;
 use crate::JSTraceable;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::gpucompilationmessage::GPUCompilationMessage;
+use crate::traits::Equivalence;
 
 #[dom_struct]
 pub struct GPUCompilationInfo<D: DomTypes> {
@@ -25,13 +26,7 @@ pub struct GPUCompilationInfo<D: DomTypes> {
     msg: Vec<Dom<GPUCompilationMessage<D>>>,
 }
 
-impl<D> GPUCompilationInfo<D>
-where
-    D: DomTypes<
-            GPUCompilationInfo = GPUCompilationInfo<D>,
-            GPUCompilationMessage = GPUCompilationMessage<D>,
-        >,
-{
+impl<D: Equivalence> GPUCompilationInfo<D> {
     pub(crate) fn new_inherited(msg: Vec<DomRoot<GPUCompilationMessage<D>>>) -> Self {
         Self {
             reflector_: Reflector::new(),
@@ -45,10 +40,10 @@ where
         msg: Vec<DomRoot<GPUCompilationMessage<D>>>,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_proto_and_wrap::<D, _, _>(
+            cx,
             Box::new(Self::new_inherited(msg)),
             global,
             None,
-            cx,
             GPUCompilationInfoWrap::<D>,
         )
     }

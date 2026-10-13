@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-buttons">
+<link rel="match" href="scroll-buttons-counter-appearance-ref.html">
+
+<div class="container counter-reset">
+  <div class="item count-me">Item 1</div>
+  <div class="item count-me">Item 2</div>
+  <div class="item count-me">Item 3</div>
+</div>
+
+<div class="container">
+  <div class="item custom-val reset-val-10">Item A</div>
+  <div class="item custom-val reset-val-20">Item B</div>
+</div>
+
+<div class="container counter-reset">
+  <div class="item step-count">Step 1</div>
+  <div class="item step-count">Step 2</div>
+</div>
+
+<!-- The scroll button's counter must resolve in the scope of its originating
+     element, so it sees the element's own counter-reset rather than the
+     ancestor's. -->
+<div class="container outer-reset">
+  <div class="item inner-reset">Nested</div>
+</div>
+
+<style>
+  .container {
+    font-family: monospace;
+    font-size: 14px;
+    margin-bottom: 10px;
+    border: 1px solid gray;
+    padding: 5px;
+  }
+  .counter-reset {
+    counter-reset: item-count;
+  }
+  .item {
+    display: inline-block;
+  }
+  .item::scroll-button(inline-end) {
+    appearance: none;
+    border: none;
+    background: transparent;
+    font: unset;
+    color: unset;
+    padding: 0;
+    margin: 0;
+    content: "#" counter(item-count);
+  }
+  .count-me {
+    counter-increment: item-count;
+  }
+  .step-count {
+    counter-increment: item-count 5;
+  }
+  .custom-val::scroll-button(inline-end) {
+    content: "#" counter(custom-val);
+  }
+  .reset-val-10 {
+    counter-reset: custom-val 10;
+  }
+  .reset-val-20 {
+    counter-reset: custom-val 20;
+  }
+  .outer-reset {
+    counter-reset: nested-val 100;
+  }
+  .inner-reset {
+    counter-reset: nested-val 7;
+  }
+  .inner-reset::scroll-button(inline-end) {
+    content: "#" counter(nested-val);
+  }
+</style>

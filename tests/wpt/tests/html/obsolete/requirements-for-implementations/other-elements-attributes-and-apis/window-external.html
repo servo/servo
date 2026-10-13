@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>window.external</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/obsolete.html#dom-external">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+test(() => {
+  assert_own_property(window, "external");
+}, "window.external exists");
+
+test(() => {
+  assert_equals(window.external.AddSearchProvider(), undefined);
+  assert_equals(window.external.IsSearchProviderInstalled(), undefined);
+}, "window.external SearchProvider methods are no-ops");
+
+</script>

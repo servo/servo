@@ -175,10 +175,39 @@
             replaceWithChildrenElements: ["template"],
           },
         }).getWriter();
-        await writer.write("<template><span allowed=a>A</span></template>");
+        await writer.write(
+          "<b>before</b><template><span id=inner>A</span><template><i>nested</i></template></template><b>after</b>",
+        );
         await writer.close();
         assert_equals(parent.querySelector("template"), null);
+        // A <template> has no children in the light tree, so replacing it
+        // with its children drops its contents rather than hoisting them.
+        assert_equals(parent.querySelector("#inner"), null);
+        assert_equals(parent.querySelector("span, i"), null);
+        assert_html_equals(parent, placeholder, "<b>before</b><b>after</b>");
       }, `element.${method}: sanitizer shouldn't allow escaping template`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = document.createElement("div");
+        parent.appendChild(placeholder);
+        const writer = placeholder[method]({
+          sanitizer: {
+            replaceWithChildrenElements: ["template"],
+          },
+        }).getWriter();
+        await writer.write(
+          "<table><template><span id=inner>A</span></template><td>cell</td></table>",
+        );
+        await writer.close();
+        assert_equals(parent.querySelector("template"), null);
+        assert_equals(parent.querySelector("#inner"), null);
+        assert_html_equals(
+          parent,
+          placeholder,
+          "<table><tbody><tr><td>cell</td></tr></tbody></table>",
+        );
+      }, `element.${method}: replaced <template> inside a table drops its contents`);
 
       promise_test(async (t) => {
         const parent = document.createElement("div");
@@ -278,11 +307,117 @@
       promise_test(async (t) => {
         const parent = document.createElement("div");
         const placeholder = document.createElement("div");
+        const existingChild = document.createElement("span");
+        existingChild.textContent = "keep";
+        placeholder.appendChild(existingChild);
         parent.appendChild(placeholder);
         assert_throws_js(TypeError, _ => {
           placeholder[method]({sanitizer: {elements: ["div"], removeElements: ["div"]}});
         });
-      }, `element.${method}: passing an invalid sanitizer config should not create the stream`);
+        assert_equals(placeholder.parentNode, parent, "Target element must not be removed when sanitizer config throws");
+        assert_equals(placeholder.firstChild, existingChild, "Existing children must not be removed when sanitizer config throws");
+        assert_equals(placeholder.textContent, "keep");
+      }, `element.${method}: passing an invalid sanitizer config should not create the stream or mutate the DOM`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = document.createElement("div");
+        parent.appendChild(placeholder);
+        const writer = placeholder[method]({
+          sanitizer: {
+            removeAttributes: ["onclick"],
+          },
+        }).getWriter();
+        // The sanitizer behaves as if it ran after parsing: the Noah's Ark
+        // clause compares the attributes from the start tag tokens, so these
+        // four <b> elements are all distinct and all four are reconstructed,
+        // even though the sanitizer strips the attribute that tells them apart.
+        await writer.write('<p><b onclick="1"><b onclick="2"><b onclick="3"><b onclick="4"></p>X');
+        await writer.close();
+        assert_html_equals(
+          parent,
+          placeholder,
+          "<p><b><b><b><b></b></b></b></b></p><b><b><b><b>X</b></b></b></b>",
+        );
+      }, `element.${method}: Noah's Ark clause compares attributes before sanitization`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = document.createElement("div");
+        parent.appendChild(placeholder);
+        const writer = placeholder[method]({
+          sanitizer: {
+            removeAttributes: ["onclick"],
+          },
+        }).getWriter();
+        // Control: with identical attributes, the Noah's Ark clause caps the
+        // reconstructed formatting elements at three.
+        await writer.write('<p><b onclick="1"><b onclick="1"><b onclick="1"><b onclick="1"></p>X');
+        await writer.close();
+        assert_html_equals(
+          parent,
+          placeholder,
+          "<p><b><b><b><b></b></b></b></b></p><b><b><b>X</b></b></b>",
+        );
+      }, `element.${method}: Noah's Ark clause still applies to identical sanitized attributes`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = document.createElement("div");
+        parent.appendChild(placeholder);
+        const writer = placeholder[method]({
+          sanitizer: {
+            replaceWithChildrenElements: ["div"],
+          },
+        }).getWriter();
+        await writer.write("<div><table><tr>foster<td>cell</td></tr></table></div>");
+        await writer.close();
+        assert_html_equals(
+          parent,
+          placeholder,
+          "foster<table><tbody><tr><td>cell</td></tr></tbody></table>",
+        );
+      }, `element.${method}: foster parenting when table's parent in stack is in replaceWithChildrenElements`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = document.createElement("div");
+        parent.appendChild(placeholder);
+        const writer = placeholder[method]({
+          sanitizer: {
+            replaceWithChildrenElements: ["div"],
+          },
+        }).getWriter();
+        await writer.write("<table><div><span>Content</span></div><td>cell</td></table>");
+        await writer.close();
+        assert_html_equals(
+          parent,
+          placeholder,
+          "<span>Content</span><table><tbody><tr><td>cell</td></tr></tbody></table>",
+        );
+      }, `element.${method}: foster-parented replaceWithChildrenElements element unwraps before table`);
+
+      promise_test(async (t) => {
+        const parent = document.createElement("div");
+        const placeholder = document.createElement("div");
+        parent.appendChild(placeholder);
+        const writer = placeholder[method]({
+          sanitizer: {
+            replaceWithChildrenElements: ["div"],
+          },
+        }).getWriter();
+        await writer.write('<div><span id="child">text</span><template shadowrootmode="open"><p>dsd</p></template></div>');
+        await writer.close();
+        const span = parent.querySelector("#child");
+        assert_not_equals(span, null);
+        assert_equals(span.ownerDocument, document, "Child of replaced element has target ownerDocument");
+        assert_equals(placeholder.shadowRoot, null, "DSD inside replaced element must not attach to placeholder");
+        assert_equals(parent.shadowRoot, null, "DSD inside replaced element must not attach to parent");
+        if (!safe) {
+          const tpl = parent.querySelector("template");
+          assert_not_equals(tpl, null, "DSD template inside replaced element remains a plain <template>");
+        }
+      }, `element.${method}: replaceWithChildrenElements preserves ownerDocument and does not attach inner declarative shadow root`);
     }
   }
 </script>

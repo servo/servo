@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<title>CSS Overflow: Scrollable overflow from the contents of a grid container</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollable">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#grid-model">
+<meta name="assert" content="A grid container whose own overflow is visible propagates the scrollable overflow of its grid items, of their descendants, and of the out-of-flow boxes it is the containing block for, to an ancestor scroller. Fixed positioned boxes do not scroll with the content and so do not contribute.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .scroller {
+    overflow: scroll;
+    width: 120px;
+    height: 60px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: 100px;
+  }
+</style>
+
+<div class="scroller" id="wideItem">
+  <div class="grid">
+    <div style="width: 400px; height: 20px"></div>
+  </div>
+</div>
+
+<div class="scroller" id="tallItem" style="width: 200px; height: 40px">
+  <div class="grid" style="grid-template-rows: 30px">
+    <div style="height: 300px"></div>
+  </div>
+</div>
+
+<div class="scroller" id="wideDescendant">
+  <div class="grid">
+    <div style="height: 20px">
+      <div style="width: 400px; height: 15px"></div>
+    </div>
+  </div>
+</div>
+
+<div class="scroller" id="relativePositionedItem">
+  <div class="grid">
+    <div style="position: relative; left: 200px; width: 50px; height: 20px"></div>
+  </div>
+</div>
+
+<div class="scroller" id="absolutePositionedDescendant">
+  <div class="grid" style="position: relative">
+    <div style="height: 20px">
+      <div style="position: absolute; left: 300px; top: 100px; width: 40px; height: 40px"></div>
+    </div>
+  </div>
+</div>
+
+<div class="scroller" id="fixedPositionedDescendant">
+  <div class="grid" style="position: relative">
+    <div style="height: 20px">
+      <div style="position: fixed; left: 300px; top: 400px; width: 40px; height: 40px"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+test(() => {
+  assert_equals(wideItem.scrollWidth, 400);
+}, "A grid item wider than its column contributes to the inline scrollable overflow");
+
+test(() => {
+  assert_equals(tallItem.scrollHeight, 300);
+}, "A grid item taller than its row contributes to the block scrollable overflow");
+
+test(() => {
+  assert_equals(wideDescendant.scrollWidth, 400);
+}, "A descendant of a grid item contributes to the inline scrollable overflow");
+
+test(() => {
+  assert_equals(relativePositionedItem.scrollWidth, 250);
+}, "A relatively positioned grid item contributes its offset position");
+
+test(() => {
+  assert_equals(absolutePositionedDescendant.scrollWidth, 340);
+}, "An absolutely positioned box whose containing block is the grid container contributes to the scrollable overflow");
+
+test(() => {
+  // Compared against clientWidth because the scroller's client width depends on the
+  // user agent's scrollbar width.
+  assert_equals(fixedPositionedDescendant.scrollWidth, fixedPositionedDescendant.clientWidth);
+}, "A fixed positioned box does not contribute to the scrollable overflow");
+</script>

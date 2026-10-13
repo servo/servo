@@ -10,15 +10,15 @@ use script_bindings::codegen::GenericBindings::QuotaExceededErrorBinding::{
     QuotaExceededErrorMethods, QuotaExceededErrorOptions,
 };
 use script_bindings::num::Finite;
-use script_bindings::reflector::{reflect_dom_object_with_cx, reflect_dom_object_with_proto};
+use script_bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 use script_bindings::root::DomRoot;
+use script_bindings::serializable::Serializable;
 use script_bindings::str::DOMString;
+use script_bindings::structuredclone::StructuredData;
 use servo_base::id::{QuotaExceededErrorId, QuotaExceededErrorIndex};
 use servo_constellation_traits::SerializableQuotaExceededError;
 
 use crate::dom::bindings::error::Error;
-use crate::dom::bindings::serializable::Serializable;
-use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::types::{DOMException, GlobalScope};
 
 /// <https://webidl.spec.whatwg.org/#quotaexceedederror>
@@ -39,7 +39,10 @@ impl QuotaExceededError {
         requested: Option<Finite<f64>>,
     ) -> Self {
         Self {
-            dom_exception: DOMException::new_inherited(message, "QuotaExceededError".into()),
+            dom_exception: DOMException::new_inherited(
+                message,
+                DOMString::from_static("QuotaExceededError"),
+            ),
             quota,
             requested,
         }
@@ -52,10 +55,10 @@ impl QuotaExceededError {
         quota: Option<Finite<f64>>,
         requested: Option<Finite<f64>>,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(Self::new_inherited(message, quota, requested)),
             global,
-            cx,
         )
     }
 }
@@ -119,7 +122,7 @@ impl QuotaExceededErrorMethods<crate::DomTypeHolder> for QuotaExceededError {
     }
 }
 
-impl Serializable for QuotaExceededError {
+impl Serializable<crate::DomTypeHolder> for QuotaExceededError {
     type Index = QuotaExceededErrorIndex;
     type Data = SerializableQuotaExceededError;
 

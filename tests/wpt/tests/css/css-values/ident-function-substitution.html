@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<title>CSS Values: ident() as an arbitrary substitution function</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-5/#ident">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14213">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="target" data-name="myname" data-suffix="-suffix"></div>
+<div id="siblings"><div></div><div></div><div id="third-child"></div></div>
+<script>
+    "use strict";
+
+    // ident() is substituted at computed-value time, so its argument may contain other substitution
+    // functions and the identifier it produces may itself name a custom property.
+
+    const target = document.getElementById("target");
+
+    function computed(declaration, property) {
+        target.setAttribute("style", declaration);
+        const value = getComputedStyle(target).getPropertyValue(property);
+        target.removeAttribute("style");
+        return value;
+    }
+
+    test(() => {
+        assert_equals(computed('--part: "name"; --result: ident("my" var(--part));', "--result"), "myname");
+    }, "var() in the ident() argument");
+
+    test(() => {
+        assert_equals(computed('--result: ident("my" attr(data-name type(*)));', "--result"), "mymyname");
+    }, "attr() in the ident() argument");
+
+    test(() => {
+        assert_equals(computed('--result: ident(ident("my") ident("name"));', "--result"), "myname");
+    }, "ident() in the ident() argument");
+
+    test(() => {
+        assert_equals(computed('--myname: PASS; --result: var(ident("--" attr(data-name type(*))));', "--result"), "PASS");
+    }, "ident() building the var() name argument from an attribute");
+
+    // <integer> parts include math functions, and the tree-counting ones resolve against the element
+    // the value is being computed for.
+    test(() => {
+        const third = document.getElementById("third-child");
+        third.style.viewTransitionName = 'ident("vtl-" sibling-index())';
+        assert_equals(getComputedStyle(third).viewTransitionName, "vtl-3");
+        third.removeAttribute("style");
+    }, "sibling-index() in the ident() argument");
+
+    test(() => {
+        const third = document.getElementById("third-child");
+        third.style.viewTransitionName = 'ident("vtl-" calc(sibling-index() * 2))';
+        assert_equals(getComputedStyle(third).viewTransitionName, "vtl-6");
+        third.removeAttribute("style");
+    }, "a math function over sibling-index() in the ident() argument");
+
+    test(() => {
+        assert_equals(computed('--result: ident(var(--missing));', "--result"), "");
+    }, "an unresolvable argument makes ident() invalid at computed-value time");
+
+    test(() => {
+        assert_equals(computed('--result: ident(5px);', "--result"), "");
+    }, "an argument that is not <ident-arg>+ makes ident() invalid at computed-value time");
+
+    // A cycle through the argument leaves the property guaranteed-invalid, it does not hang.
+    test(() => {
+        assert_equals(computed('--result: ident("x" var(--result));', "--result"), "");
+    }, "a cycle through the ident() argument");
+
+    // https://drafts.csswg.org/css-values-5/#attr-security
+    // An identifier built from an attribute taints the value it substitutes into, so picking which
+    // property to substitute cannot smuggle out a URL the attribute never contained.
+    const url = "https://does-not-exist.test/404.png";
+
+    test(() => {
+        assert_equals(computed(`--myname: url("${url}"); background-image: var(ident("--" attr(data-name type(*))));`,
+                              "background-image"), "none");
+    }, "an ident() built from an attribute taints the property it names");
+
+    test(() => {
+        assert_equals(computed(`--myname: url("${url}"); --n: ident("--" attr(data-name type(*))); background-image: var(var(--n));`,
+                              "background-image"), "none");
+    }, "the taint survives the ident() being held in a custom property");
+
+    test(() => {
+        assert_equals(computed(`--myname: url("${url}"); background-image: var(ident("--" "myname"));`,
+                              "background-image"), `url("${url}")`);
+    }, "an ident() with no attr() involved does not taint the property it names");
+
+    // A value the property cannot accept is invalid at computed-value time, which behaves as unset
+    // rather than falling back to the earlier declaration.
+    test(() => {
+        assert_equals(computed('width: 10px; width: ident("wid" "th");', "width"),
+                      computed('width: 10px; width: unset;', "width"));
+    }, "ident() substituting a value the property does not accept");
+
+</script>

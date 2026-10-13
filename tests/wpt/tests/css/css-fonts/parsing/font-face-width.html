@@ -1,0 +1,63 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Fonts: parsing the @font-face font-width descriptor</title>
+<link rel="help" href="https://drafts.csswg.org/css-fonts-4/#font-prop-desc">
+<meta name="assert" content="The font-width descriptor is an alias for font-stretch and accepts the @font-face width descriptor grammar.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style id="test-style"></style>
+<script>
+const sheet = document.getElementById("test-style").sheet;
+
+const validValues = [
+  "auto",
+  "normal",
+  "condensed",
+  "125%",
+  "75% 125%",
+];
+
+const invalidValues = [
+  "-1%",
+  "125",
+  "condensed expanded normal",
+  "normal, expanded",
+];
+
+for (const descriptor of ["font-width", "font-stretch"]) {
+  for (const value of validValues) {
+    test(() => {
+      sheet.insertRule(`@font-face { ${descriptor}: ${value}; }`);
+      try {
+        assert_equals(sheet.cssRules[0].style.getPropertyValue("font-stretch"), value);
+      } finally {
+        sheet.deleteRule(0);
+      }
+    }, `${descriptor}: ${value} is valid`);
+  }
+
+  for (const value of invalidValues) {
+    test(() => {
+      sheet.insertRule(`@font-face { ${descriptor}: ${value}; }`);
+      try {
+        assert_equals(sheet.cssRules[0].style.getPropertyValue("font-stretch"), "");
+      } finally {
+        sheet.deleteRule(0);
+      }
+    }, `${descriptor}: ${value} is invalid`);
+  }
+}
+
+test(() => {
+  sheet.insertRule(`@font-face {
+    font-stretch: condensed;
+    font-width: expanded;
+  }`);
+  try {
+    const descriptors = sheet.cssRules[0].style;
+    assert_equals(descriptors.getPropertyValue("font-stretch"), "expanded");
+  } finally {
+    sheet.deleteRule(0);
+  }
+}, "font-width and font-stretch address the same descriptor");
+</script>

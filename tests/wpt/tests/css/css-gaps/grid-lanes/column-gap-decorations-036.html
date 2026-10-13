@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: a spanner's preceding row rule takes independent per-lane values assigned from placement start in grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="column-gap-decorations-036-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(2, 60px);
+    gap: 10px;
+    background: #cdd5e0;
+    width: max-content;
+    row-rule-width: 4px;
+    row-rule-style: solid;
+    row-rule-color: red, blue;
+  }
+  .lanes > div {
+    background: #5b8def;
+    color: #fff;
+    font: 600 12px/1 sans-serif;
+  }
+  .lanes > div.a { grid-column: 1; height: 30px; }
+  .lanes > div.c { grid-column: 2; height: 50px; }
+  .lanes > div.b { grid-column: 1; height: 30px; }
+  .lanes > div.d { grid-column: 1; height: 30px; }
+  .lanes > div.s {
+    grid-column: 1 / span 2;
+    height: 30px;
+    background: #8a6df0;
+  }
+</style>
+<div class="lanes">
+  <div class="a">1</div>
+  <div class="c">2</div>
+  <div class="b">3</div>
+  <div class="d">4</div>
+  <div class="s">5 (span 2)</div>
+</div>

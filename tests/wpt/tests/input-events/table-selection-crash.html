@@ -1,0 +1,44 @@
+<!doctype html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Listener script that removes a table while a cell is being selected does not crash the process.</title>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2029784">
+
+<div id="host" contenteditable="true">
+<table id="tbl">
+<tbody><tr><td id="c00">aaaa</td></tr>
+<tr><td id="c10">bbbb</td></tr>
+</tbody></table>
+</div>
+<script>
+let n = 0;
+window.onload = () => {
+  document.body.offsetHeight;
+  let sel = getSelection();
+  host.focus();
+  sel.collapse(c00.firstChild, 0);
+  sel.modify("move", "forward", "character");
+  sel.modify("extend", "forward", "line");
+};
+window.onmousedown = () => {
+  requestAnimationFrame(()=>getSelection().modify("extend","forward","line"));
+}
+
+document.addEventListener("selectstart", (e) => {
+  n++;
+  e.preventDefault();
+  if (n == 3) {
+    tbl.style.display = "none";
+    document.body.offsetHeight;
+  }
+});
+new test_driver.Actions()
+    .pointerMove(0, 0, { origin: c00 })
+    .pointerDown()
+    .send();
+document.documentElement.removeAttribute('class');
+</script>
+</html>

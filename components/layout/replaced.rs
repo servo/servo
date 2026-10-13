@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use app_units::{Au, MAX_AU};
 use data_url::DataUrl;
@@ -14,6 +15,7 @@ use net_traits::image_cache::{Image, ImageOrMetadataAvailable, VectorImage};
 use net_traits::request::InternalRequest;
 use script::layout_dom::ServoLayoutNode;
 use servo_arc::Arc as ServoArc;
+use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::id::{BrowsingContextId, PipelineId};
 use servo_url::ServoUrl;
 use style::Zero;
@@ -21,7 +23,7 @@ use style::attr::AttrValue;
 use style::computed_values::object_fit::T as ObjectFit;
 use style::context::TreeCountingCaches;
 use style::dom::DummyElementContext;
-use style::logical_geometry::{Direction, WritingMode};
+use style::logical_geometry::{LogicalAxis, WritingMode};
 use style::properties::{ComputedValues, StyleBuilder};
 use style::rule_cache::RuleCacheConditions;
 use style::rule_tree::RuleCascadeFlags;
@@ -46,16 +48,22 @@ use crate::sizing::{
     ComputeInlineContentSizes, InlineContentSizesResult, LazySize, SizeConstraint,
 };
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, LayoutStyle};
-use crate::{ConstraintSpace, ContainingBlock};
+use crate::{ConstraintSpace, ContainingBlock, SharedStyle};
 
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct ReplacedContents {
+    base_fragment_info: BaseFragmentInfo,
     pub kind: ReplacedContentKind,
     /// Whether or not this [`ReplacedContents`] is due to content replacement, i.e.
     /// `content: <image>` in style.
     pub is_content_replacement: bool,
+    /// Whether or not this replaced element is selected by the document selection.
+    #[conditional_malloc_size_of]
+    pub selected: Arc<AtomicBool>,
+    /// The style to use for selection overlays on top of this replaced content.
+    pub selected_style: SharedStyle,
+    /// The natural size of this replaced content.
     natural_size: NaturalSizes,
-    base_fragment_info: BaseFragmentInfo,
 }
 
 /// The natural dimensions of a replaced element, including a height, width, and
@@ -135,11 +143,13 @@ pub(crate) struct ImageInfo {
     pub image: Option<Image>,
     pub showing_broken_image_icon: bool,
     pub url: Option<ServoUrl>,
+    pub load_time: Option<CrossProcessInstant>,
 }
 
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct VideoInfo {
     pub image_key: Option<ImageKey>,
+    pub poster_url: Option<ServoUrl>,
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -218,10 +228,12 @@ impl ReplacedContents {
         }
 
         Some(Self {
+            base_fragment_info: node.into(),
             kind,
             is_content_replacement: false,
+            selected: Arc::new(AtomicBool::new(node.replaced_is_selected())),
+            selected_style: SharedStyle::new(node.selected_style(&context.style_context)),
             natural_size,
-            base_fragment_info: node.into(),
         })
     }
 
@@ -330,12 +342,12 @@ impl ReplacedContents {
         // If the `content` property is a single image URL, non-replaced boxes
         // and images get replaced with the given image.
         if let Content::Items(GenericContentItems { items, .. }) =
-            node.style(&context.style_context).clone_content() &&
+            node.style(&context.style_context).get_content() &&
             let [GenericContentItem::Image(image)] = items.as_slice()
         {
             // Invalid images are treated as zero-sized.
             let mut replaced_contents = Self::from_image(node, context, image)
-                .unwrap_or_else(|| Self::zero_sized_invalid_image(node));
+                .unwrap_or_else(|| Self::zero_sized_invalid_image(node, context));
 
             replaced_contents.is_content_replacement = true;
             node.clear_fragments_and_dirty_fragment_caches_of_descendants();
@@ -375,14 +387,17 @@ impl ReplacedContents {
             LayoutImageCacheResult::Pending | LayoutImageCacheResult::LoadError => return None,
         };
         Some(Self {
+            base_fragment_info: node.into(),
             kind: ReplacedContentKind::Image(ImageInfo {
+                load_time: image.as_ref().and_then(|image| image.load_time()),
                 image,
                 showing_broken_image_icon: false,
                 url: Some(image_url.clone().into()),
             }),
             is_content_replacement: false,
+            selected: Arc::new(AtomicBool::new(node.replaced_is_selected())),
+            selected_style: SharedStyle::new(node.selected_style(&context.style_context)),
             natural_size: NaturalSizes::from_width_and_height(width, height),
-            base_fragment_info: node.into(),
         })
     }
 
@@ -397,16 +412,22 @@ impl ReplacedContents {
         }
     }
 
-    pub(crate) fn zero_sized_invalid_image(node: ServoLayoutNode<'_>) -> Self {
+    pub(crate) fn zero_sized_invalid_image(
+        node: ServoLayoutNode<'_>,
+        context: &LayoutContext,
+    ) -> Self {
         Self {
+            base_fragment_info: node.into(),
             kind: ReplacedContentKind::Image(ImageInfo {
                 image: None,
                 showing_broken_image_icon: false,
                 url: None,
+                load_time: None,
             }),
             is_content_replacement: false,
+            selected: Default::default(),
+            selected_style: SharedStyle::new(node.selected_style(&context.style_context)),
             natural_size: NaturalSizes::from_width_and_height(0., 0.),
-            base_fragment_info: node.into(),
         }
     }
 
@@ -418,7 +439,7 @@ impl ReplacedContents {
     #[inline]
     fn content_size(
         &self,
-        axis: Direction,
+        axis: LogicalAxis,
         preferred_aspect_ratio: Option<AspectRatio>,
         get_size_in_opposite_axis: &dyn Fn() -> SizeConstraint,
         get_fallback_size: &dyn Fn() -> Au,
@@ -442,7 +463,7 @@ impl ReplacedContents {
         if let ReplacedContentKind::Image(ImageInfo {
             image: Some(Image::Raster(image)),
             showing_broken_image_icon: true,
-            url: _,
+            ..
         }) = &self.kind
         {
             let size = Size2D::new(
@@ -471,7 +492,7 @@ impl ReplacedContents {
                     PhysicalSize::new(size.width, candidate_height)
                 };
 
-            match style.clone_object_fit() {
+            match style.get_object_fit() {
                 ObjectFit::Fill => size,
                 ObjectFit::Contain => preserve_aspect_ratio_with_comparison(size, PartialOrd::le),
                 ObjectFit::Cover => preserve_aspect_ratio_with_comparison(size, PartialOrd::ge),
@@ -482,7 +503,7 @@ impl ReplacedContents {
             }
         });
 
-        let object_position = style.clone_object_position();
+        let object_position = style.get_object_position();
         let horizontal_position = object_position
             .horizontal
             .to_used_value(size.width - object_fit_size.width);
@@ -506,37 +527,36 @@ impl ReplacedContents {
         let (object_fit_size, rect) = self.calculate_fragment_rect(style, size);
         let clip = PhysicalRect::new(PhysicalPoint::origin(), size);
 
-        let base = BaseFragment::new(self.base_fragment_info, style.clone().into(), rect);
+        let base = BaseFragment::new(self.base_fragment_info, rect);
         match &self.kind {
             ReplacedContentKind::Image(image_info) => image_info
                 .image
                 .as_ref()
-                .and_then(|image| match image {
-                    Image::Raster(raster_image) => raster_image.id,
-                    Image::Vector(vector_image) => {
-                        let scale = layout_context.style_context.device_pixel_ratio();
-                        let width = object_fit_size.width.scale_by(scale.0).to_px();
-                        let height = object_fit_size.height.scale_by(scale.0).to_px();
-                        let size = Size2D::new(width, height);
-                        let tag = self.base_fragment_info.tag?;
-                        layout_context
-                            .image_resolver
-                            .rasterize_vector_image(
-                                vector_image.id,
-                                size,
-                                tag.node,
-                                vector_image.svg_id,
-                            )
-                            .and_then(|i| i.id)
-                    },
+                .and_then(|image| {
+                    let scale = layout_context.style_context.device_pixel_ratio();
+                    let size = Size2D::new(
+                        object_fit_size.width.scale_by(scale.0).to_px(),
+                        object_fit_size.height.scale_by(scale.0).to_px(),
+                    );
+                    layout_context.image_resolver.image_key_from_cached_image(
+                        image,
+                        size,
+                        self.base_fragment_info.tag.map(|tag| tag.node),
+                    )
                 })
                 .map(|image_key| {
                     Fragment::Image(Arc::new(ImageFragment {
                         base,
+                        style: style.clone().into(),
+                        selected_style: self.selected_style.clone(),
                         clip,
                         image_key: Some(image_key),
                         showing_broken_image_icon: image_info.showing_broken_image_icon,
                         url: image_info.url.clone(),
+                        load_time: image_info.load_time,
+                        natural_width: self.natural_size.width,
+                        natural_height: self.natural_size.height,
+                        selected: self.selected.clone(),
                     }))
                 })
                 .into_iter()
@@ -544,10 +564,16 @@ impl ReplacedContents {
             ReplacedContentKind::Video(video_info) => {
                 vec![Fragment::Image(Arc::new(ImageFragment {
                     base,
+                    style: style.clone().into(),
+                    selected_style: self.selected_style.clone(),
                     clip,
                     image_key: video_info.image_key,
                     showing_broken_image_icon: false,
-                    url: None,
+                    url: video_info.poster_url.clone(),
+                    load_time: None,
+                    natural_width: self.natural_size.width,
+                    natural_height: self.natural_size.height,
+                    selected: self.selected.clone(),
                 }))]
             },
             ReplacedContentKind::IFrame(iframe) => {
@@ -568,6 +594,7 @@ impl ReplacedContents {
                 );
                 vec![Fragment::IFrame(Arc::new(IFrameFragment {
                     base,
+                    style: style.clone().into(),
                     pipeline_id: iframe.pipeline_id,
                 }))]
             },
@@ -584,10 +611,16 @@ impl ReplacedContents {
 
                 vec![Fragment::Image(Arc::new(ImageFragment {
                     base,
+                    style: style.clone().into(),
+                    selected_style: self.selected_style.clone(),
                     clip,
                     image_key: Some(image_key),
                     showing_broken_image_icon: false,
                     url: None,
+                    load_time: None,
+                    natural_width: self.natural_size.width,
+                    natural_height: self.natural_size.height,
+                    selected: self.selected.clone(),
                 }))]
             },
             ReplacedContentKind::SVGElement {
@@ -636,10 +669,16 @@ impl ReplacedContents {
                     .map(|image_key| {
                         Fragment::Image(Arc::new(ImageFragment {
                             base,
+                            style: style.clone().into(),
+                            selected_style: self.selected_style.clone(),
                             clip,
                             image_key: Some(image_key),
                             showing_broken_image_icon: false,
                             url: None,
+                            load_time: None,
+                            natural_width: self.natural_size.width,
+                            natural_height: self.natural_size.height,
+                            selected: self.selected.clone(),
                         }))
                     })
                     .into_iter()
@@ -730,7 +769,7 @@ impl ReplacedContents {
         let writing_mode = base.style.writing_mode;
         let inline_size = containing_block_for_children.size.inline;
         let content_block_size = self.content_size(
-            Direction::Block,
+            LogicalAxis::Block,
             preferred_aspect_ratio,
             &|| SizeConstraint::Definite(inline_size),
             &|| self.fallback_block_size(writing_mode),
@@ -752,6 +791,18 @@ impl ReplacedContents {
             specific_layout_info: None,
         }
     }
+
+    /// Set whether or not this [`ReplacedContents`] is selected. Returns `true` if anything
+    /// changed.
+    pub(crate) fn set_selection(&self, selected: bool) -> bool {
+        // Only build a display list if the value changed and if this isn't an `<iframe>`
+        // or `<audio>` element as they do not paint a selection tint.
+        self.selected.swap(selected, Ordering::Relaxed) != selected &&
+            !matches!(
+                self.kind,
+                ReplacedContentKind::Audio | ReplacedContentKind::IFrame(..)
+            )
+    }
 }
 
 impl ComputeInlineContentSizes for ReplacedContents {
@@ -761,7 +812,7 @@ impl ComputeInlineContentSizes for ReplacedContents {
         constraint_space: &ConstraintSpace,
     ) -> InlineContentSizesResult {
         let inline_content_size = self.content_size(
-            Direction::Inline,
+            LogicalAxis::Inline,
             constraint_space.preferred_aspect_ratio,
             &|| constraint_space.block_size,
             &|| self.fallback_inline_size(constraint_space.style.writing_mode),

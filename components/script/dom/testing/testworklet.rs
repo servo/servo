@@ -5,24 +5,25 @@
 // check-tidy: no specs after this line
 use std::rc::Rc;
 
+use crossbeam_channel::unbounded;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
 use js::rust::HandleObject;
+use script_bindings::inheritance::Castable;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::TestWorkletBinding::TestWorkletMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::Worklet_Binding::WorkletMethods;
 use crate::dom::bindings::codegen::Bindings::WorkletBinding::WorkletOptions;
 use crate::dom::bindings::error::Fallible;
-use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::{DOMString, USVString};
-use crate::dom::promise::Promise;
+use crate::dom::types::{TestWorkletGlobalScope, WorkletGlobalScope};
 use crate::dom::window::Window;
 use crate::dom::worklet::Worklet;
 use crate::dom::workletglobalscope::WorkletGlobalScopeType;
-use crate::script_thread::ScriptThread;
+use crate::dom::{RootedPromise, StatelessWorkletThreadPool};
 
 #[dom_struct]
 pub(crate) struct TestWorklet {
@@ -43,7 +44,13 @@ impl TestWorklet {
         window: &Window,
         proto: Option<HandleObject>,
     ) -> DomRoot<TestWorklet> {
-        let worklet = Worklet::new(cx, window, WorkletGlobalScopeType::Test);
+        let worklet_global_scope_init = window.into();
+        let worklet = Worklet::new(
+            cx,
+            window,
+            WorkletGlobalScopeType::Test,
+            Box::new(|| Rc::new(StatelessWorkletThreadPool::spawn(worklet_global_scope_init))),
+        );
         reflect_dom_object_with_proto(
             cx,
             Box::new(TestWorklet::new_inherited(&worklet)),
@@ -67,14 +74,34 @@ impl TestWorkletMethods<crate::DomTypeHolder> for TestWorklet {
         realm: &mut CurrentRealm,
         module_url: USVString,
         options: &WorkletOptions,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         self.worklet.AddModule(realm, module_url, options)
     }
 
     fn Lookup(&self, key: DOMString) -> Option<DOMString> {
         let id = self.worklet.worklet_id();
-        let pool = ScriptThread::worklet_thread_pool(self.global().image_cache());
-        pool.test_worklet_lookup(id, String::from(key))
-            .map(DOMString::from)
+
+        let (sender, receiver) = unbounded();
+        let key = String::from(key);
+
+        let lookup_task = move |_cx: &mut JSContext, global_scope: &WorkletGlobalScope| {
+            let test_worklet_global_scope = global_scope
+                .downcast::<TestWorkletGlobalScope>()
+                .expect("TestWorklet's task should be run only on TestWorkletGlobalScope.");
+            let value = test_worklet_global_scope.lookup_value(&key);
+            let _ = sender.send(value);
+        };
+
+        self.worklet
+            .worklet_thread_pool()
+            .perform_a_worklet_task(id, Box::new(lookup_task));
+
+        match receiver.recv() {
+            Ok(value) => value.map(DOMString::from),
+            Err(err) => {
+                error!("Test Worklet died? {}", err);
+                None
+            },
+        }
     }
 }

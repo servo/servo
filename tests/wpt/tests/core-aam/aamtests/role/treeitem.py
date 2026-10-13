@@ -26,9 +26,12 @@ def test_atspi(atspi, session, inline):
 #     # Role: ROLE_SYSTEM_OUTLINEITEM
 #     # See also: aria-checked in the State and Property Mapping Tables
 
-# def test_uia(uia, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # Control Type: TreeItem
-#     # See also: aria-checked in the State and Property Mapping Tables
+def test_uia(uia, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Control Type: TreeItem
+    # See also: aria-checked in the State and Property Mapping Tables
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.TreeItem

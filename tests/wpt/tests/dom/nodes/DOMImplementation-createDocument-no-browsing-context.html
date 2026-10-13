@@ -1,0 +1,53 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>DOMImplementation.createDocument: documents without a browsing context</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-domimplementation-createdocument">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/window-object.html#dom-document-defaultview">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+test(() => {
+  assert_throws_js(TypeError, () => new DOMImplementation());
+}, "new DOMImplementation() throws");
+
+test(() => {
+  const doc = document.implementation.createDocument(null, null, null);
+  assert_equals(doc.defaultView, null);
+}, "createDocument: defaultView is null");
+
+test(() => {
+  const doc = document.implementation.createHTMLDocument();
+  assert_equals(doc.defaultView, null);
+}, "createHTMLDocument: defaultView is null");
+
+test(() => {
+  const doc = document.implementation.createHTMLDocument();
+
+  const proxiedEventHandlers = [
+    "onafterprint", "onbeforeprint", "onbeforeunload", "onblur", "onerror", "onfocus",
+    "onhashchange", "onload", "onmessage", "onoffline", "ononline", "onpagehide", "onpageshow",
+    "onpopstate", "onresize", "onscroll", "onstorage", "onunload"
+  ];
+
+  for (const name of proxiedEventHandlers) {
+    doc.body[name] = "1 + 2";
+    assert_equals(doc.body[name], null, name + " should be null because there is no window");
+  }
+}, "createHTMLDocument: proxied event handlers on body are null without a window");
+
+test(() => {
+  const doc = document.implementation.createHTMLDocument();
+
+  const iframe = doc.createElement("iframe");
+  iframe.setAttribute("name", "foobar");
+  doc.body.appendChild(iframe);
+  assert_equals(iframe.contentWindow, null, "contentWindow should be null before setting src");
+  assert_equals(iframe.contentDocument, null, "contentDocument should be null before setting src");
+
+  iframe.src = "http://example.com/";
+  assert_equals(iframe.contentWindow, null, "contentWindow should be null after setting src");
+  assert_equals(iframe.contentDocument, null, "contentDocument should be null after setting src");
+}, "createHTMLDocument: iframe should not load in a document without a browsing context");
+</script>

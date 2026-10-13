@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<title>CSS Masking: Test clip-path property when the page is zoomed</title>
+<link rel="help" href="https://drafts.csswg.org/css-shapes-2/#funcdef-path">
+<link rel="match" href="reference/clip-path-path-with-zoom-002-ref.html">
+<meta name="assert" content="The path gets zoomed together with the content">
+<svg style="zoom: 2" width="200" height="200">
+  <rect x="51" y="51" width="48" height="48" fill="red"/>
+  <rect x="50" y="50" width="100" height="100" fill="green"
+        clip-path="path('M0,0h50v50h-50z')"/>
+</svg>

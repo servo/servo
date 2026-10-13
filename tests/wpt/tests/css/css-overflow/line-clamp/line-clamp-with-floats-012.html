@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp clips floats at the block-end only</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp-containers">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<meta name="assert" content="Within a line-clamp container, floats which have not been made into invisible boxes must be visually clipped to the block-end content edge of the line-clamp container. Overflow in other directions is not clipped.">
+<style>
+div {
+    font: 20px/20px Ahem, monospace;
+}
+.test {
+    margin-left: 1ch;
+    padding-top: 1lh;
+    width: 3ch;
+    line-clamp: 4;
+    color: green;
+}
+aside {
+    width: 2ch;
+}
+.ne, .se {
+    float: right;
+    margin-right: -1ch;
+}
+.ne, .nw {
+    margin-top: -2lh;
+}
+.nw, .sw {
+    float: left;
+    margin-left: -1ch;
+}
+a.se { display: none; }
+span.red {
+    color: red;
+}
+div.backdrop {
+    color: green;
+    background: red;
+    position: absolute;
+    z-index: -1;
+    width: 5ch;
+    height: 5lh;
+}
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div class=backdrop>..X</div>
+<div class=test>
+    AAA
+    <aside class=nw>BB CC DD</aside>X<aside class=ne>EE FF GG</aside>
+    <aside class=sw>HH II <span class=red>JJ</span></aside>K<aside class=se>LL MM <span class=red>NN</span></aside>
+    OOO
+    <span class=red>P</span>
+</div>
+

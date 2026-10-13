@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Scroll snap area of a transformed box fragmented in multicol</title>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-area">
+<link rel="help" href="https://drafts.csswg.org/css-break-3/#transforms">
+<meta name="assert" content="A rotation applied to a fragmented snap target rotates each fragment around its own transform origin, and the scroll snap area is the bounding box of the rotated fragments.">
+<div id="scrollable" style="overflow:hidden; scroll-snap-type:x mandatory; columns:3; column-gap:0; column-fill:auto; width:300px; height:100px;">
+  <div style="height:300px; background:blue;"></div>
+  <div id="target" style="scroll-snap-align:start; height:200px; transform:rotate(90deg); background:cyan;"></div>
+  <div style="height:300px; background:gray;"></div>
+</div>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  // The columns are 100px wide and 100px tall, so the blue block occupies the
+  // first three columns, #target is fragmented across the fourth and the fifth
+  // column, and the gray block occupies the sixth to the eighth column. Both
+  // fragments of #target are 100px wide and 100px tall: the first one at
+  // left:300px, top:0px, the second one at left:400px, top:0px.
+  //
+  // rotate(90deg) is applied to each fragment around its own transform origin,
+  // that is the center of the fragment, so each fragment is rotated onto itself
+  // and the scroll snap area is left:300px, top:0px, width:200px, height:100px.
+  //
+  // Rotating the bounding box of the fragments as a whole instead would give a
+  // 100px wide and 200px tall area at left:300px, top:0px, which snaps to
+  // different positions for the end and center alignments below.
+  test(()=> {
+    assert_equals(scrollable.scrollLeft, 300);
+  }, "scroll-snap-align: start");
+
+  test(()=> {
+    target.style.scrollSnapAlign = "end";
+    assert_equals(scrollable.scrollLeft, 200);
+  }, "scroll-snap-align: end");
+
+  test(()=> {
+    target.style.scrollSnapAlign = "center";
+    assert_equals(scrollable.scrollLeft, 250);
+  }, "scroll-snap-align: center");
+</script>

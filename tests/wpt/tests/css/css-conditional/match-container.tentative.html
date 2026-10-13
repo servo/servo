@@ -13,6 +13,7 @@
   }
 </style>
 <div id="root"></div>
+<iframe id="frame" srcdoc="<body></body>"></iframe>
 <script>
 function createTestElement(html) {
   document.getElementById("root").innerHTML = html;
@@ -110,6 +111,60 @@ test(() => {
 }, "Element.matchContainer .matches updates when the target is removed from and re-inserted into the dom tree.");
 
 test(() => {
+  let wrapper = createTestElement(`
+    <div>
+      <div class="size-container" style="width: 200px">
+        <div id="hidden" style="display: none">
+          <div id="middle">
+            <div id="target"></div>
+          </div>
+        </div>
+      </div>
+      <div id="narrow" class="size-container" style="width: 50px"></div>
+    </div>
+  `);
+  let hidden = wrapper.querySelector("#hidden");
+  let middle = wrapper.querySelector("#middle");
+  let target = wrapper.querySelector("#target");
+  let narrow = wrapper.querySelector("#narrow");
+  // Forces computed styles on #target and its hidden ancestors.
+  getComputedStyle(target).width;
+  let q = target.matchContainer("(width > 100px)");
+  assert_true(q.matches, "Resolves to the 200px container while hidden.");
+  // Changes an ancestor's style inside the hidden subtree.
+  middle.style.color = "red";
+  // Updates style before the move.
+  document.body.offsetWidth;
+  // Re-parenting
+  narrow.appendChild(hidden);
+  // Forces computed styles again in the new location.
+  getComputedStyle(target).width;
+  assert_false(q.matches,
+    "Resolves to the 50px container after the hidden subtree is moved.");
+}, "Element.matchContainer .matches follows a hidden subtree with a forced computed style when it is moved to another container.");
+
+test(() => {
+  let wrapper = createTestElement(`
+    <div>
+      <div class="size-container" style="width: 200px">
+        <div id="mv">
+          <div id="target"></div>
+        </div>
+      </div>
+      <div id="narrow" class="size-container" style="width: 50px"></div>
+    </div>
+  `);
+  let mv = wrapper.querySelector("#mv");
+  let target = wrapper.querySelector("#target");
+  let narrow = wrapper.querySelector("#narrow");
+  let q = target.matchContainer("(width > 100px)");
+  assert_true(q.matches, "Initially resolves to the 200px container.");
+  narrow.moveBefore(mv, null);
+  assert_false(q.matches,
+    "Resolves to the 50px container after moveBefore().");
+}, "Element.matchContainer .matches updates when an ancestor is moved with moveBefore().");
+
+test(() => {
   let container = createTestElement(`
     <div class="style-container" style="--my-prop: foo">
       <div id="target"></div>
@@ -138,4 +193,102 @@ test(() => {
   container.style.setProperty("--my-prop", "foo");
   assert_true(q.matches, "Should flip back to true after restoring value.");
 }, "Element.matchContainer .matches reflects custom property changes on the style container dynamically.");
+
+test(() => {
+  let container = createTestElement(`
+    <div class="size-container" style="width: 200px">
+      <div id="target"></div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  assert_true(target.matchContainer("(width > 100px), (width < 50px)").matches,
+    "Matches when the first query in the list matches.");
+  assert_true(target.matchContainer("(width < 50px), (width > 100px)").matches,
+    "Matches when the second query in the list matches.");
+  assert_true(target.matchContainer("(width > 100px), (width: 200px)").matches,
+    "Matches when both queries in the list match.");
+  assert_false(target.matchContainer("(width < 50px), (width < 60px)").matches,
+    "Does not match when no query in the list matches.");
+}, "Element.matchContainer matches a comma-separated list if any query matches.");
+
+const serializationCases = [
+  ["(width > 100px)", "(width > 100px)"],
+  ["(width < 300px)", "(width < 300px)"],
+  ["(min-width: 300px)", "(min-width: 300px)"],
+  ["(not (max-width: 500px))", "(not (max-width: 500px))"],
+  ["((max-width: 500px) and (max-height: 500px))",
+   "((max-width: 500px) and (max-height: 500px))"],
+  ["((max-width: 500px) or (max-height: 500px))",
+   "((max-width: 500px) or (max-height: 500px))"],
+  ["(width) and (height)", "(width) and (height)"],
+  ["(width) or (height)", "(width) or (height)"],
+  ["somename not (width)", "somename not (width)"],
+  ["test_name (width) or (height)", "test_name (width) or (height)"],
+  ["style(--my-prop: foo)", "style(--my-prop: foo)"],
+  ["(min-width:300px)", "(min-width: 300px)"],
+  ["(min-width:  300px)", "(min-width: 300px)"],
+  ["(MIN-WIDTH: 300px)", "(min-width: 300px)"],
+  ["(width<300px)", "(width < 300px)"],
+  ["(width > 100px), (width < 50px)", "(width > 100px), (width < 50px)"],
+  ["(width < 300px),(min-width: 300px)", "(width < 300px), (min-width: 300px)"],
+];
+for (const [input, expected] of serializationCases) {
+  test(() => {
+    let container = createTestElement(`
+      <div class="size-container" style="width: 200px">
+        <div id="target"></div>
+      </div>
+    `);
+    let target = container.querySelector("#target");
+    assert_equals(target.matchContainer(input).query, expected);
+  }, `Element.matchContainer .query serializes ${JSON.stringify(input)}`);
+}
+
+test(() => {
+  let container = createTestElement(`
+    <div class="size-container" style="width: 200px">
+      <div id="target"></div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  assert_equals(target.matchContainer("???").query, "",
+    "query is empty for a syntax error.");
+  assert_equals(target.matchContainer("").query, "",
+    "query is empty for an empty query.");
+  assert_equals(target.matchContainer("(width > 100px),").query, "",
+    "query is empty for a trailing comma in the list.");
+  assert_equals(target.matchContainer(",(width > 100px)").query, "",
+    "query is empty for a leading comma in the list.");
+}, "Element.matchContainer .query is empty for invalid queries.");
+
+promise_test(async () => {
+  let frame = document.getElementById("frame");
+  if (!frame.contentDocument || !frame.contentDocument.body) {
+    await new Promise(resolve => frame.onload = resolve);
+  }
+  let docB = frame.contentDocument;
+  let container = createTestElement(`
+    <div class="size-container" style="width: 200px">
+      <div id="target"></div>
+    </div>
+  `);
+  let target = container.querySelector("#target");
+  let q = target.matchContainer("(width > 100px)");
+  assert_true(q.matches, "Matches the 200px container in the original document.");
+
+  docB.body.appendChild(target);
+  assert_false(q.matches, "No container in the new document after adoption.");
+
+  let containerB = docB.createElement("div");
+  containerB.style.containerType = "inline-size";
+  containerB.style.width = "400px";
+  docB.body.appendChild(containerB);
+  containerB.appendChild(target);
+  assert_true(q.matches,
+    "Resolves to the 400px container after a second move inside the new document.");
+
+  containerB.style.width = "50px";
+  assert_false(q.matches,
+    "Reflects a size change of the container in the new document.");
+}, "Element.matchContainer .matches stays correct after the target is adopted into another document and moved again there.");
 </script>

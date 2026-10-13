@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declarative Fragment: template src does not block parsing</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="container">
+  <?start name="target">Old<?end>
+</div>
+
+<!-- Async template fetch: should not block main parser -->
+<template for="target" src="../resources/chunked-html.py?delay=300&chunk1=%3Cscript%3Ewindow.c1Ran=true;window.mainScriptRanAfterC1=window.mainScriptRan;%3C/script%3E&chunk2=%3Cscript%3Ewindow.c2Ran=true;window.mainScriptRanAfterC2=window.mainScriptRan;%3C/script%3E" id="tpl"></template>
+
+<script>
+window.mainScriptRan = true;
+
+promise_test(async () => {
+  // Wait for chunk 1 and 2 scripts to execute
+  await new Promise(resolve => {
+    const check = () => {
+      if (window.c1Ran && window.c2Ran) {
+        resolve();
+      } else {
+        step_timeout(check, 10);
+      }
+    };
+    check();
+  });
+
+  assert_true(window.c1Ran, "Chunk 1 script should have executed");
+  assert_true(window.c2Ran, "Chunk 2 script should have executed");
+  assert_true(window.mainScriptRanAfterC1, "Main script should have run before chunk 1 (async)");
+  assert_true(window.mainScriptRanAfterC2, "Main script should have run before chunk 2 (async)");
+}, "template src fetches and executes scripts asynchronously without blocking the parser");
+</script>
+</body>

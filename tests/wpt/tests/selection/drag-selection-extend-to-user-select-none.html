@@ -7,7 +7,7 @@
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
-<script src='/resources/testdriver-vendor.js'></script>
+<script src="/resources/testdriver-vendor.js"></script>
 
 <style>
 #container {
@@ -46,6 +46,7 @@ promise_test(async (t) => {
   const selection = window.getSelection();
   assert_equals(selection.anchorNode, target.firstChild, "Anchor node: ");
   assert_equals(selection.focusNode, target.firstChild, "Focus node: ");
+  assert_false(selection.isCollapsed, "Selection is not collapsed because it selects user-select:text content.");
 }, 'Text with user-select:text is selectable even if it is inside a user-select:none element.');
 
 promise_test(async (t) => {
@@ -62,7 +63,24 @@ promise_test(async (t) => {
   const selection = window.getSelection();
   assert_equals(selection.anchorNode, target.firstChild, "Anchor node: ");
   assert_equals(selection.focusNode, target.firstChild, "Focus node: ");
+  assert_false(selection.isCollapsed, "Selection is not collapsed because it selects user-select:text content.");
 }, 'Select user-select:text content and then extend selection to user-select:none content.');
+
+promise_test(async (t) => {
+  t.add_cleanup(clearSelection);
+  const rect = target.getBoundingClientRect();
+  let actions = new test_driver.Actions();
+  await actions.pointerMove(rect.left + 5, rect.top + 5)
+      .pointerDown()
+      .pointerMove(rect.left + rect.width - 5, rect.top + 50)
+      .pointerUp()
+      .send();
+
+  const selection = window.getSelection();
+  assert_equals(selection.anchorNode, target.firstChild, "Anchor node: ");
+  assert_equals(selection.focusNode, target.firstChild, "Focus node: ");
+  assert_true(selection.isCollapsed, "Selection should be collapsed because it extends to user-select:none content before selecting any text.");
+}, 'Selection starts with user-select:text content and then extends selection to user-select:none content.');
 
 promise_test(async (t) => {
   t.add_cleanup(clearSelection);
@@ -79,6 +97,7 @@ promise_test(async (t) => {
   const selection = window.getSelection();
   assert_equals(selection.anchorNode, target.firstChild, "Anchor node: ");
   assert_equals(selection.focusNode, second.firstChild, "Focus node: ");
+  assert_false(selection.isCollapsed, "Selection should extend (not stay collapsed) when dragging from user-select:text into user-select:none and then into another user-select:text element.");
 }, 'Select user-select:text content and then extend selection to the next user-select:text element by crossing the user-select:none element.');
 </script>
 

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>Selecting a subtree after collapsing into a descendant of the previous closest common inclusive ancestor</title>
+<link rel="match" href="collapse-common-ancestor-ref.html">
+<meta name="assert" content="Collapsing into a descendant of the node the selection was registered on must not leave stale marks that keep the subtree from being selected again.">
+<div id="outer">before<div id="inner"><span>AAA</span><span>BBB</span></div>after</div>
+
+<script>
+  // Make |outer| the closest common inclusive ancestor.
+  getSelection().setBaseAndExtent(outer.firstChild, 0, outer.lastChild,
+                                  outer.lastChild.length);
+  document.body.offsetWidth;
+  // Collapse into |inner|, a descendant of |outer|.
+  getSelection().collapse(inner, 1);
+  document.body.offsetWidth;
+  getSelection().setBaseAndExtent(outer.firstChild, 0, outer.lastChild,
+                                  outer.lastChild.length);
+</script>

@@ -1,0 +1,48 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>drawElementImage does not reveal image map area visited colors</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    area {
+      outline: auto 10px;
+      outline-color: green;
+    }
+    area:visited {
+      outline-color: red;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="100" height="100" content="drawable">
+    <div drawable id="child">
+      <img usemap="#map" src="/images/blue.png" width="100" height="100">
+    </div>
+  </canvas>
+  <map name="map">
+    <area id="area" href="" shape="rect" coords="10,10,90,90">
+  </map>
+
+  <script>
+    promise_test(async () => {
+      area.focus();
+      await waitForCanvasPaint(canvas);
+
+      const context = canvas.getContext("2d");
+      context.drawElementImage(child, 0, 0);
+
+      const ringPixel = context.getImageData(10, 50, 1, 1).data;
+      assert_array_equals(
+          ringPixel, [0, 128, 0, 255],
+          "The focus ring should use the area's unvisited outline color.");
+
+      const imagePixel = context.getImageData(50, 50, 1, 1).data;
+      assert_array_equals(
+          imagePixel, [0, 0, 255, 255],
+          "The image should be distinct from the focus ring.");
+    });
+  </script>
+</body>
+</html>

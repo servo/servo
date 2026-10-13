@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#min-size-auto">
+<link rel="match" href="grid-item-min-size-auto-overflow-001-ref.html">
+<meta name="assert" content="The automatic minimum size of a grid item only applies when its overflow is visible.">
+<style>
+.grid {
+  display: inline-grid;
+  border: thick solid;
+  height: 50px;
+  width: 50px;
+  margin: 50px;
+}
+
+.i1 {
+  color: cyan;
+  background: magenta;
+  font-size: 100px;
+}
+
+.auto { overflow: auto; }
+.hidden { overflow: hidden; }
+</style>
+
+<p>This test checks that implied minimum size of grid items is only applied if overflow is visible.</p>
+<p>The test passes if in the first grid the item overflows, in the second one it has scrollbars,
+and in the third one the item doesn't overflow but it doesn't have scrollbars.</p>
+
+<div class="grid">
+  <div class="i1">X</div>
+</div>
+
+<div class="grid">
+  <div class="i1 auto">X</div>
+</div>
+
+<div class="grid">
+  <div class="i1 hidden">X</div>
+</div>

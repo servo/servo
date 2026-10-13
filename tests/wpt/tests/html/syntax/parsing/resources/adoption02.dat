@@ -54,3 +54,19 @@
 |       <marquee>
 |       <table>
 |     <nobr>
+
+#data
+<a><table><marquee></table><a>
+#errors
+(1,3): expected-doctype-but-got-start-tag
+(1,19): unexpected-start-tag-implies-table-voodoo
+(1,27): end-tag-too-early-named
+(1,30): expected-closing-tag-but-got-eof
+#document
+| <html>
+|   <head>
+|   <body>
+|     <a>
+|       <marquee>
+|       <table>
+|       <a>

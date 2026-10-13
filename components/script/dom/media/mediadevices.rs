@@ -2,12 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_media::ServoMedia;
 use servo_media::streams::MediaStreamType;
 use servo_media::streams::capture::{Constrain, ConstrainRange, MediaTrackConstraintSet};
@@ -27,7 +25,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::media::mediadeviceinfo::MediaDeviceInfo;
 use crate::dom::media::mediastream::MediaStream;
 use crate::dom::media::mediastreamtrack::MediaStreamTrack;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise};
 
 #[dom_struct]
 pub(crate) struct MediaDevices {
@@ -42,7 +40,7 @@ impl MediaDevices {
     }
 
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<MediaDevices> {
-        reflect_dom_object_with_cx(Box::new(MediaDevices::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(MediaDevices::new_inherited()), global)
     }
 }
 
@@ -52,7 +50,7 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
         &self,
         cx: &mut CurrentRealm,
         constraints: &MediaStreamConstraints,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         let p = Promise::new_in_realm(cx);
         let media = ServoMedia::get();
         let stream = MediaStream::new(cx, &self.global());
@@ -74,7 +72,7 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
     }
 
     /// <https://w3c.github.io/mediacapture-main/#dom-mediadevices-enumeratedevices>
-    fn EnumerateDevices(&self, cx: &mut JSContext) -> Rc<Promise> {
+    fn EnumerateDevices(&self, cx: &mut JSContext) -> RootedPromise {
         // Step 1.
         let mut realm = CurrentRealm::assert(cx);
         let p = Promise::new_in_realm(&mut realm);

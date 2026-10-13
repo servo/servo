@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#z-order">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#overflow">
+<link rel="match" href="grid-item-border-overflow-paint-001-ref.html">
+<meta name="assert" content="A grid item's border that overflows the grid container is painted, including after scrolling.">
+<html>
+<head>
+<link href="/css/support/width-keyword-classes.css" rel="stylesheet">
+<link href="/css/support/grid.css" rel="stylesheet">
+<style>
+    .grid {
+        display: grid;
+        grid-template-rows: repeat(2, 100px);
+        grid-template-columns: 100px;
+        background-color: purple;
+    }
+
+    .gridItem {
+        height: 100%;
+        width: 100%;
+        background-color: orange;
+    }
+</style>
+<script>
+    function onloadScrollTop() {
+        // Scroll until we see the grid item's border but not the grid item
+        window.scrollBy(0,-150);
+    }
+</script>
+</head>
+<body style="height: 1000px" onload="onloadScrollTop()">
+
+<div class="grid fit-content">
+  <div class="gridItem" style="grid-column: 1; grid-row: 1; border-bottom: 100px green solid;"></div>
+</div>
+
+<div>There should be a 100px wide green box (grid item's border) above</div>
+
+</body>
+<script>
+    window.scrollTo(0,300);
+</script>
+</html>

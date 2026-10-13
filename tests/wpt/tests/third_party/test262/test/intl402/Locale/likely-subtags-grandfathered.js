@@ -89,16 +89,16 @@ const regularGrandfathered = [
 
 for (const {tag, canonical, maximized = canonical, minimized = canonical} of regularGrandfathered) {
     const loc = new Intl.Locale(tag);
-    assert.sameValue(loc.toString(), canonical);
+    assert.sameValue(loc.toString(), canonical, "canonical");
 
-    assert.sameValue(loc.maximize().toString(), maximized);
-    assert.sameValue(loc.maximize().maximize().toString(), maximized);
+    assert.sameValue(loc.maximize().toString(), maximized, "maximized once");
+    assert.sameValue(loc.maximize().maximize().toString(), maximized, "maximized twice");
 
-    assert.sameValue(loc.minimize().toString(), minimized);
-    assert.sameValue(loc.minimize().minimize().toString(), minimized);
+    assert.sameValue(loc.minimize().toString(), minimized, "minimized once");
+    assert.sameValue(loc.minimize().minimize().toString(), minimized, "minimized twice");
 
-    assert.sameValue(loc.maximize().minimize().toString(), minimized);
-    assert.sameValue(loc.minimize().maximize().toString(), maximized);
+    assert.sameValue(loc.maximize().minimize().toString(), minimized, "maximized then minimized");
+    assert.sameValue(loc.minimize().maximize().toString(), maximized, "minimized then maximized");
 }
 
 const regularGrandfatheredWithExtLang = [

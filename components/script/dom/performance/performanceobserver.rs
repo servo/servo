@@ -3,12 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, RefMut};
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::{HandleObject, MutableHandleValue};
-use script_bindings::callback::OwnerWindow;
+use script_bindings::callback::{OwnerWindow, RootedCallback, TracedCallback};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
@@ -34,17 +33,16 @@ enum ObserverType {
 #[dom_struct]
 pub(crate) struct PerformanceObserver {
     reflector_: Reflector,
-    #[conditional_malloc_size_of]
-    callback: Rc<PerformanceObserverCallback>,
+    callback: TracedCallback<PerformanceObserverCallback>,
     entries: DomRefCell<Vec<Dom<PerformanceEntry>>>,
     observer_type: Cell<ObserverType>,
 }
 
 impl PerformanceObserver {
-    fn new_inherited(callback: Rc<PerformanceObserverCallback>) -> PerformanceObserver {
+    fn new_inherited(callback: RootedCallback<PerformanceObserverCallback>) -> PerformanceObserver {
         PerformanceObserver {
             reflector_: Reflector::new(),
-            callback,
+            callback: callback.to_traced(),
             entries: Default::default(),
             observer_type: Cell::new(ObserverType::Undefined),
         }
@@ -54,7 +52,7 @@ impl PerformanceObserver {
         cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        callback: Rc<PerformanceObserverCallback>,
+        callback: RootedCallback<PerformanceObserverCallback>,
     ) -> DomRoot<PerformanceObserver> {
         reflect_dom_object_with_proto(
             cx,
@@ -103,7 +101,7 @@ impl PerformanceObserverMethods<crate::DomTypeHolder> for PerformanceObserver {
         cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
-        callback: Rc<PerformanceObserverCallback>,
+        callback: RootedCallback<PerformanceObserverCallback>,
     ) -> Fallible<DomRoot<PerformanceObserver>> {
         Ok(PerformanceObserver::new_with_proto(
             cx, global, proto, callback,

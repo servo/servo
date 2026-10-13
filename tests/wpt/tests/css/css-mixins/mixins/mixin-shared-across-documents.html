@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>CSS Mixins: shared stylesheet across documents</title>
+    <link rel="help" href="https://drafts.csswg.org/css-mixins-1/#using-mixins">
+    <link rel="help" href="https://drafts.csswg.org/css-shadow-1/#css-tree-scoped-name">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      function loadFrame(color) {
+        return new Promise(resolve => {
+          const frame = document.createElement("iframe");
+          frame.src =
+              `support/mixin-shared-across-documents-frame.html?color=${color}`;
+          frame.onload = () => resolve(frame);
+          document.body.append(frame);
+        });
+      }
+
+      function targetColor(frame) {
+        return getComputedStyle(
+            frame.contentDocument.getElementById("target")).color;
+      }
+
+      promise_test(async () => {
+        const warmupFrame = await loadFrame("gray");
+        const greenFrame = await loadFrame("green");
+        const blueFrame = await loadFrame("blue");
+
+        assert_equals(targetColor(greenFrame), "rgb(0, 128, 0)",
+            "First document should apply its own green mixin");
+        assert_equals(targetColor(blueFrame), "rgb(0, 0, 255)",
+            "Second document should apply its own blue mixin");
+      }, "A shared stylesheet's @apply resolves to each document's own mixin");
+    </script>
+  </body>
+</html>

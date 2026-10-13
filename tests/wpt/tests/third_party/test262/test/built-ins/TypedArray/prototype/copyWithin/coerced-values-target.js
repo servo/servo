@@ -97,4 +97,4 @@ testWithTypedArrayConstructors(function(TA, makeCtorArg) {
     ),
     'object value coerced to integer 0'
   );
-});
+}, null, null, ["immutable"]);

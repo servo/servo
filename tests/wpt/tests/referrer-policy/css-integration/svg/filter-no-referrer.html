@@ -1,0 +1,6 @@
+<!DOCTYPE html>
+<title>referrerpolicy=no-referrer should not leak referrer across stylesheet into svg resource fetch</title>
+<link rel="match" href="/css/reference/ref-filled-green-100px-square-only.html">
+<link rel="stylesheet" href="filter.css?pipe=sub" referrerpolicy="no-referrer">
+<p>Test passes if there is a filled green square.</p>
+<div id="target" style="width:100px;height:100px;background-color:red"></div>

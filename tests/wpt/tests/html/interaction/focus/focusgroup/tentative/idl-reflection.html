@@ -116,7 +116,9 @@ test(() => {
   const supported = [
     "toolbar", "tablist", "radiogroup", "listbox",
     "menu", "menubar", "wrap", "nowrap",
-    "inline", "block", "nomemory", "none"
+    "inline", "block", "nomemory", "none", "feed", "grid",
+    "itemcontrols", "noitemcontrols", "manual",
+    "rowwrap", "colwrap", "flow", "rowflow", "colflow"
   ];
   for (const token of supported) {
     assert_true(el.focusGroup.supports(token),
@@ -129,6 +131,10 @@ test(() => {
   assert_false(el.focusGroup.supports("invalid"));
   assert_false(el.focusGroup.supports("horizontal"));
   assert_false(el.focusGroup.supports("vertical"));
+  assert_false(el.focusGroup.supports("row-wrap"));
+  assert_false(el.focusGroup.supports("col-wrap"));
+  assert_false(el.focusGroup.supports("row-flow"));
+  assert_false(el.focusGroup.supports("col-flow"));
 }, "focusGroup.supports() returns false for unrecognized tokens");
 </script>
 

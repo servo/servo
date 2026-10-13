@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Parser insertions into a Document that script left non-empty</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/parsing.html#the-initial-insertion-mode">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/parsing.html#the-before-html-insertion-mode">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+function openedDocument(t) {
+  const iframe = document.createElement("iframe");
+  document.body.appendChild(iframe);
+  t.add_cleanup(() => iframe.remove());
+  const doc = iframe.contentDocument;
+  doc.open();
+  return doc;
+}
+
+test(t => {
+  const doc = openedDocument(t);
+  doc.write("<!DOCTYPE html>");
+  assert_equals(doc.doctype?.name, "html", "the parser's doctype was appended");
+  assert_array_equals([...doc.childNodes], [doc.doctype],
+    "it is the Document's only child");
+}, "Baseline: a DOCTYPE token appends a doctype to an empty Document");
+
+test(t => {
+  const doc = openedDocument(t);
+  const doctype = doc.appendChild(doc.implementation.createDocumentType("x", "", ""));
+  doc.write("<!DOCTYPE html>");
+  assert_array_equals([...doc.childNodes], [doctype],
+    "a Document cannot have two doctype children");
+}, "A DOCTYPE token is dropped when the Document already has a doctype child");
+
+test(t => {
+  const doc = openedDocument(t);
+  const element = doc.appendChild(doc.createElement("x"));
+  doc.write("<!DOCTYPE html>");
+  assert_array_equals([...doc.childNodes], [element],
+    "a doctype cannot follow an element child");
+}, "A DOCTYPE token is dropped when the Document already has an element child");
+
+test(t => {
+  const doc = openedDocument(t);
+  const element = doc.appendChild(doc.createElement("x"));
+  doc.write("<html><body>text");
+  assert_array_equals([...doc.childNodes], [element],
+    "a Document cannot have two element children");
+  assert_equals(doc.documentElement, element, "the document element is unchanged");
+  assert_equals(doc.body, null, "the parsed body is not in the Document");
+}, "An html start tag is dropped when the Document already has an element child");
+</script>

@@ -293,9 +293,18 @@ impl From<&TlsSecurityInfo> for SecurityInfo {
         Self {
             state: info.state.to_string(),
             weakness_reasons: info.weakness_reasons.clone(),
-            protocol_version: info.protocol_version.clone(),
-            cipher_suite: info.cipher_suite.clone(),
-            kea_group_name: info.kea_group_name.clone(),
+            protocol_version: info
+                .protocol_version
+                .as_ref()
+                .map(|protocol_version| format!("{protocol_version:?}")),
+            cipher_suite: info
+                .cipher_suite
+                .as_ref()
+                .map(|cipher_suite| format!("{cipher_suite:?}")),
+            kea_group_name: info
+                .kea_group_name
+                .as_ref()
+                .map(|group_name| format!("{group_name:?}")),
             signature_scheme_name: info.signature_scheme_name.clone(),
             alpn_protocol: info.alpn_protocol.clone(),
             certificate_transparency: info
@@ -402,7 +411,7 @@ impl Actor for NetworkEventActor {
 
                 let msg = GetRequestPostDataReply {
                     from: self.name().into(),
-                    post_data: request.request.body.as_ref().map(|b| b.0.clone()),
+                    post_data: request.request.body.as_ref().map(|b| b.to_vec()),
                     post_data_discarded: request.request.body.is_none(),
                 };
                 client_request.reply_final(&msg)?
@@ -472,14 +481,14 @@ impl Actor for NetworkEventActor {
                         let value = long_string_actor.long_string_obj();
                         (None, serde_json::to_value(value).unwrap())
                     } else {
-                        let b64 = STANDARD.encode(&body.0);
+                        let b64 = STANDARD.encode(body);
                         (Some("base64".into()), serde_json::to_value(b64).unwrap())
                     };
                     let is_content_encoded = encoding.is_some();
 
                     ResponseContent {
                         body_size: body.len(),
-                        content_charset: "".into(),
+                        content_charset: String::new(),
                         decoded_body_size: body.len(),
                         encoding,
                         headers_size: raw_headers.len(),
@@ -701,7 +710,7 @@ impl ActorEncode<NetworkEventMsg> for NetworkEventActor {
                 .unwrap_or_default()
                 .as_millis() as i64,
         ) {
-            LocalResult::None => "".to_owned(),
+            LocalResult::None => String::new(),
             LocalResult::Single(date_time) => date_time.to_rfc3339(),
             LocalResult::Ambiguous(date_time, _) => date_time.to_rfc3339(),
         };

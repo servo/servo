@@ -1,0 +1,2 @@
+rules:
+- "**": [interaction-contentful-paint]

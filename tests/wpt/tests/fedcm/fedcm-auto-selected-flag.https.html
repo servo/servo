@@ -10,6 +10,7 @@
 import {request_options_with_mediation_optional,
         fedcm_test,
         select_manifest,
+        fedcm_expect_auto_reauthn,
         fedcm_get_and_select_first_account} from './support/fedcm-helper.sub.js';
 
 fedcm_test(async t => {
@@ -22,7 +23,7 @@ fedcm_test(async t => {
   test_options = request_options_with_mediation_optional("manifest_with_auto_selected_flag.json");
   await select_manifest(t, test_options);
 
-  cred = await navigator.credentials.get(test_options);
+  cred = await fedcm_expect_auto_reauthn(t, navigator.credentials.get(test_options));
   assert_equals(cred.token, "is_auto_selected=true");
   assert_equals(cred.isAutoSelected, true);
 }, "Test that the is_auto_selected bit is properly sent.");

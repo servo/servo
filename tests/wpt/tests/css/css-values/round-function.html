@@ -219,6 +219,22 @@ test_nan("round(infinity, infinity)");
 test_nan("round(infinity, -infinity)");
 test_nan("round(-infinity, infinity)");
 test_nan("round(-infinity, -infinity)");
+// NaN is infectious.
+// https://drafts.csswg.org/css-values-4/#calc-ieee
+test_nan("round(NaN, 5)");
+test_nan("round(NaN, -5)");
+test_nan("round(NaN, 0)");
+test_nan("round(NaN, infinity)");
+test_nan("round(NaN, -infinity)");
+test_nan("round(5, NaN)");
+test_nan("round(-5, NaN)");
+test_nan("round(0, NaN)");
+test_nan("round(infinity, NaN)");
+test_nan("round(NaN, NaN)");
+test_nan("round(nearest, NaN, 5)");
+test_nan("round(up, NaN, 5)");
+test_nan("round(down, NaN, 5)");
+test_nan("round(to-zero, NaN, 5)");
 
 // infinite value with finite step is the same infinity
 test_plus_infinity("round(infinity, 5)");

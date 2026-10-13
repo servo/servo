@@ -22,7 +22,7 @@ test_valid_value("align-self", "last baseline");
 
 // <overflow-position>? <self-position>
 // <overflow-position> = unsafe | safe
-// <self-position> = center | start | end | self-start | self-end | flex-start | flex-end
+// <self-position> = center | start | end | self-start | self-end | flex-start | flex-end | flow-start | flow-end
 test_valid_value("align-self", "center");
 test_valid_value("align-self", "start");
 test_valid_value("align-self", "end");
@@ -30,6 +30,10 @@ test_valid_value("align-self", "self-start");
 test_valid_value("align-self", "self-end");
 test_valid_value("align-self", "flex-start");
 test_valid_value("align-self", "flex-end");
+test_valid_value("align-self", "flow-start");
+test_valid_value("align-self", "flow-end");
+test_valid_value("align-self", "safe flow-start");
+test_valid_value("align-self", "unsafe flow-end");
 test_valid_value("align-self", "unsafe center");
 test_valid_value("align-self", "safe self-end");
 </script>

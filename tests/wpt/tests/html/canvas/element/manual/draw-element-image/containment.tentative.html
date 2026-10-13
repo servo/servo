@@ -10,30 +10,50 @@
     position: absolute !important;
   }
 </style>
-<canvas id=canvas width="200" height="200" layoutsubtree>
+<canvas id=canvas width="200" height="200" content=drawable>
   <div id=child1>
     <div id=grandchild1></div>
+    <div id=grandchild_drawable drawable></div>
   </div>
   <div id=child2>
     <div id=grandchild2></div>
   </div>
+  <div id=child_drawable drawable></div>
 </canvas>
 <script>
 promise_test(async () => {
   child_asserts = {
-    contain: 'paint',
+    contain: 'none',
+    isolation: 'auto',
+    position: 'static'};
+  child_drawable_asserts = {
+    contain: 'none',
+    isolation: 'isolate',
     position: 'static'};
   grandchild_asserts = {
     contain: 'none',
+    isolation: 'auto',
+    position: 'absolute'};
+  grandchild_drawable_asserts = {
+    contain: 'none',
+    isolation: 'isolate',
     position: 'absolute'};
 
   for (a in child_asserts) {
     assert_equals(getComputedStyle(child1)[a], child_asserts[a]);
     assert_equals(getComputedStyle(child2)[a], child_asserts[a]);
   }
+  for (a in child_drawable_asserts) {
+    assert_equals(getComputedStyle(child_drawable)[a],
+                  child_drawable_asserts[a]);
+  }
   for (a in grandchild_asserts) {
     assert_equals(getComputedStyle(grandchild1)[a], grandchild_asserts[a]);
     assert_equals(getComputedStyle(grandchild2)[a], grandchild_asserts[a]);
+  }
+  for (a in grandchild_drawable_asserts) {
+    assert_equals(getComputedStyle(grandchild_drawable)[a],
+                  grandchild_drawable_asserts[a]);
   }
 }, 'canvas child containment');
 </script>

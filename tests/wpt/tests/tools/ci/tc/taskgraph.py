@@ -3,7 +3,6 @@
 import json
 import os
 import re
-from collections import OrderedDict
 from copy import deepcopy
 
 import yaml
@@ -142,7 +141,7 @@ def expand_maps(task):
 
 
 def load_tasks(tasks_data):
-    map_resolved_tasks = OrderedDict()
+    map_resolved_tasks = {}
     tasks = []
 
     for task in tasks_data["tasks"]:
@@ -164,7 +163,7 @@ def load_tasks(tasks_data):
         tasks.extend(resolve_chunks(task))
 
     tasks = [substitute_variables(task_data) for task_data in tasks]
-    return OrderedDict([(t["name"], t) for t in tasks])
+    return {t["name"]: t for t in tasks}
 
 
 def load_tasks_from_path(path):

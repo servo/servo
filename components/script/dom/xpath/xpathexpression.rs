@@ -87,8 +87,8 @@ impl XPathExpression {
         // Cast the result to the type we wanted
         let result_value: Value = match result_type {
             XPathResultType::Boolean => result_value.convert_to_boolean().into(),
-            XPathResultType::Number => result_value.convert_to_number().into(),
-            XPathResultType::String => result_value.convert_to_string().into(),
+            XPathResultType::Number => result_value.convert_to_number(cx).into(),
+            XPathResultType::String => result_value.convert_to_string(cx).into(),
             _ => result_value,
         };
 

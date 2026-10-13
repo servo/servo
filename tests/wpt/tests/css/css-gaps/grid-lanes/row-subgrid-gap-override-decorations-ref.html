@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<style>
+  body {
+    margin: 0;
+  }
+  .scene {
+    height: 140px;
+    position: relative;
+    width: 180px;
+  }
+  .lanes {
+    background: lightgray;
+    column-gap: 20px;
+    display: grid-lanes;
+    grid-template-rows: repeat(2, 60px);
+    height: 140px;
+    row-gap: 20px;
+    width: 180px;
+  }
+  .parent-item {
+    background: purple;
+    width: 30px;
+  }
+  .first {
+    grid-row: 1;
+  }
+  .second {
+    grid-row: 2;
+  }
+  .subgrid {
+    background: transparent;
+    column-gap: 20px;
+    display: grid;
+    grid-row: 1 / span 2;
+    grid-template-columns: repeat(2, 30px);
+    grid-template-rows: subgrid;
+    row-gap: 8px;
+  }
+  .cell {
+    background: teal;
+  }
+  .parent-rule,
+  .child-rule {
+    position: absolute;
+  }
+  .parent-rule {
+    background: red;
+    height: 8px;
+    top: 66px;
+    width: 30px;
+  }
+  .parent-before {
+    left: 0;
+  }
+  .parent-after {
+    left: 150px;
+  }
+  .child-rule {
+    background: lime;
+    height: 2px;
+    left: 50px;
+    top: 69px;
+    width: 80px;
+  }
+</style>
+<div class="scene">
+  <div class="lanes">
+    <div class="parent-item first"></div>
+    <div class="parent-item second"></div>
+    <div class="subgrid">
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+    </div>
+    <div class="parent-item first"></div>
+    <div class="parent-item second"></div>
+  </div>
+  <div class="parent-rule parent-before"></div>
+  <div class="parent-rule parent-after"></div>
+  <div class="child-rule"></div>
+</div>

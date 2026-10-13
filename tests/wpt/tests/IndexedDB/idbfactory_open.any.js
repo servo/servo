@@ -192,7 +192,7 @@ should_throw({
 
 function should_work(val, expected_version) {
     let name = format_value(val);
-    let dbname = 'test-db-does-not-exist';
+    let dbname = 'test-db-does-not-exist-' + name;
     async_test(function (t) {
         indexedDB.deleteDatabase(dbname);
         let rq = indexedDB.open(dbname, val);

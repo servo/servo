@@ -113,7 +113,7 @@ impl TrackEventMethods<crate::DomTypeHolder> for TrackEvent {
         ))
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-trackevent-track
+    /// <https://html.spec.whatwg.org/multipage/#dom-trackevent-track>
     #[expect(non_snake_case)]
     fn GetTrack(&self) -> Option<VideoTrackOrAudioTrackOrTextTrack> {
         match &self.track {

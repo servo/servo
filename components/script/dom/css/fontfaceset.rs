@@ -2,11 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
-use std::rc::Rc;
-
+use cssparser::{Parser, UnicodeRange};
 use dom_struct::dom_struct;
-use fonts::FontFaceRuleWithOrigin;
+use fonts::FontFaceRuleInfo;
 use js::context::JSContext;
 use js::gc::Handle;
 use js::jsapi::Value;
@@ -19,7 +17,15 @@ use script_bindings::codegen::GenericBindings::FontFaceBinding::{
 };
 use script_bindings::like::Setlike;
 use script_bindings::reflector::reflect_dom_object_with_proto;
+use servo_arc::Arc as ServoArc;
+use style::font_face::FamilyName;
+use style::properties::shorthands::font;
+use style::stylesheets::CssRuleType;
+use style::values::computed::font::{FontFamilyList, SingleFontFamily};
+use style::values::specified::font as specified_font;
+use style_traits::ParsingMode;
 
+use crate::css::css::parser_context_for_document;
 use crate::dom::bindings::codegen::Bindings::FontFaceSetBinding::FontFaceSetMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, Fallible};
@@ -27,10 +33,11 @@ use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::document::Document;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::fontface::FontFace;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
 use crate::dom::promisenativehandler::Callback;
 use crate::dom::types::PromiseNativeHandler;
 use crate::dom::window::Window;
@@ -42,17 +49,16 @@ pub(crate) struct FontFaceSet {
     target: EventTarget,
 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-readypromise-slot>
-    #[conditional_malloc_size_of]
-    promise: RefCell<Rc<Promise>>,
+    promise: DomRefCell<TracedPromise>,
 
     set_entries: DomRefCell<Vec<Dom<FontFace>>>,
 }
 
 impl FontFaceSet {
-    fn new_inherited(promise: Rc<Promise>) -> Self {
+    fn new_inherited(promise: &RootedPromise) -> Self {
         FontFaceSet {
             target: EventTarget::new_inherited(),
-            promise: promise.into(),
+            promise: DomRefCell::new(promise.to_traced()),
             set_entries: Default::default(),
         }
     }
@@ -65,7 +71,7 @@ impl FontFaceSet {
         let promise = Promise::new(cx, global);
         reflect_dom_object_with_proto(
             cx,
-            Box::new(FontFaceSet::new_inherited(promise)),
+            Box::new(FontFaceSet::new_inherited(&promise)),
             global,
             proto,
         )
@@ -95,7 +101,7 @@ impl FontFaceSet {
 
     /// Fulfill the font ready promise, returning true if it was not already fulfilled beforehand.
     pub(crate) fn fulfill_ready_promise_if_needed(&self, cx: &mut JSContext) -> bool {
-        let promise = self.promise.borrow().clone();
+        let promise = self.promise.borrow();
         if promise.is_fulfilled() {
             return false;
         }
@@ -135,7 +141,8 @@ impl FontFaceSet {
         // Step 3. If font face set’s [[ReadyPromise]] slot currently holds a fulfilled
         // promise, replace it with a fresh pending promise.
         if self.promise.borrow().is_fulfilled() {
-            *self.promise.borrow_mut() = Promise::new(cx, &self.global());
+            let promise = Promise::new(cx, &self.global());
+            *self.promise.borrow_mut() = promise.to_traced()
         }
 
         // Step 4. Queue a task to fire a font load event named loading at font face set.
@@ -162,7 +169,7 @@ impl FontFaceSet {
     /// [css-connected]: https://drafts.csswg.org/css-font-loading/#css-connected
     pub(crate) fn notify_font_face_rules_removed(
         &self,
-        removed_font_face_rules: &[FontFaceRuleWithOrigin],
+        removed_font_face_rules: &[ServoArc<FontFaceRuleInfo>],
     ) {
         let entries = self.set_entries.borrow_mut();
         for removed_font_face_rule in removed_font_face_rules {
@@ -183,17 +190,98 @@ impl FontFaceSet {
             matching_font_face_object.disconnect_from_css();
         }
     }
+
+    /// Uses the font matching rules to select font faces within `self` that can be used to
+    /// render the provided text.
+    ///
+    /// This is used to implement Step 6 of
+    /// <https://drafts.csswg.org/css-font-loading/#find-the-matching-font-faces>.
+    fn query_fonts(&self, target_family: &FamilyName, sample_text: &str) -> Vec<DomRoot<FontFace>> {
+        let mut matching_fonts = Vec::default();
+        for font in self.set_entries.borrow().iter() {
+            let font_face_rule = font.css_font_face_rule();
+            let Some(font_face_rule) = font_face_rule.as_ref() else {
+                // FIXME: Don't ignore font faces that are not css-connected here.
+                continue;
+            };
+
+            if font_face_rule
+                .descriptors
+                .font_family
+                .as_ref()
+                .is_none_or(|family| family != target_family)
+            {
+                continue;
+            }
+
+            if font_face_rule
+                .descriptors
+                .unicode_range
+                .as_ref()
+                .is_some_and(|ranges| !any_character_in_any_unicode_range(sample_text, ranges))
+            {
+                continue;
+            }
+
+            // FIXME: Check other fields (weight, style, ...) here too. We need to investigate what other
+            // browsers are doing, because at this point the font isn't actually loaded yet,
+            // so the full descriptor is not available.
+            matching_fonts.push(font.as_rooted());
+        }
+
+        matching_fonts
+    }
+
+    /// <https://drafts.csswg.org/css-font-loading/#find-the-matching-font-faces>
+    fn find_the_matching_font_faces(
+        &self,
+        document: &Document,
+        font: &str,
+        sample_text: &str,
+    ) -> Result<Vec<DomRoot<FontFace>>, FontQuerySyntaxError> {
+        // Step 1. (Parse "font") and Step 2. (Unpack font shorthand) are implemented
+        // in FontQueryParameters::parse.
+        let parameters = FontQueryParameters::parse(document, font)?;
+
+        // Step 2. If text was not explicitly provided, let it be a string containing a
+        // single space character (U+0020 SPACE).
+        // Note: "text" is not optional in our implementation yet.
+
+        // Step 4. Let available font faces be the available font faces within source.
+        // If the allow system fonts flag is specified, add all system fonts to available font faces.
+
+        // Step 5. Let matched font faces initially be an empty list.
+        let mut matched_faces = vec![];
+
+        // Step 6. For each family in font family list, use the font matching rules to select the font faces
+        // from available font faces that match the font style, and add them to matched font faces.
+        // The use of the unicodeRange attribute means that this may be more than just a single font face.
+        // Step 7. If matched font faces is empty, set the found faces flag to false. Otherwise, set it to true.
+        // Note We don't need this yet.
+        // Step 8. For each font face in matched font faces, if its defined unicode-range does not include the
+        // codepoint of at least one character in text, remove it from the list.
+        for family in parameters.families.list.iter() {
+            let SingleFontFamily::FamilyName(target_family) = family else {
+                continue; // Skip generic font faces
+            };
+
+            matched_faces.extend_from_slice(&self.query_fonts(target_family, sample_text));
+        }
+
+        // Step 9. Return matched font faces and the found faces flag.
+        Ok(matched_faces)
+    }
 }
 
 impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-ready>
-    fn Ready(&self, cx: &mut JSContext) -> Rc<Promise> {
+    fn Ready(&self, cx: &mut JSContext) -> RootedPromise {
         if self.promise.borrow().is_fulfilled() {
             // There may be pending style changes that cause new web fonts to start loading,
             // re-initializing document.fonts.ready.
             self.flush_author_font_set(cx);
         }
-        self.promise.borrow().clone()
+        self.promise.borrow().root(cx)
     }
 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-add>
@@ -253,39 +341,60 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
     }
 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-load>
-    fn Load(&self, cx: &mut JSContext, _font: DOMString, _text: DOMString) -> Rc<Promise> {
+    fn Load(&self, cx: &mut JSContext, font: DOMString, text: DOMString) -> RootedPromise {
         // Step 1. Let font face set be the FontFaceSet object this method was called on. Let
         // promise be a newly-created promise object.
         let load_promise = Promise::new(cx, &self.global());
 
-        // Step 3. Find the matching font faces from font face set using the font and text
-        // arguments passed to the function, and let font face list be the return value (ignoring
-        // the found faces flag). If a syntax error was returned, reject promise with a SyntaxError
-        // exception and terminate these steps.
-        //
-        // TODO: Implement this.
-
+        // Step 2. Return promise. Complete the rest of these steps asynchronously.
         #[derive(MallocSizeOf, JSTraceable)]
+        #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
         struct LoadPromiseFulfillmentHandler {
-            #[conditional_malloc_size_of]
-            load_promise: Rc<Promise>,
+            /// The font faces that this should wait on.
+            ///
+            /// (Our current implementation waits for `document.fonts.ready` instead)
+            font_face_objects: Vec<Dom<FontFace>>,
+
+            load_promise: TracedPromise,
         }
         impl Callback for LoadPromiseFulfillmentHandler {
             fn callback(&self, cx: &mut CurrentRealm, _: Handle<Value>) {
-                self.load_promise
-                    .resolve_native(cx, &Vec::<&FontFace>::new());
+                let font_face_objects: Vec<DomRoot<FontFace>> = self
+                    .font_face_objects
+                    .iter()
+                    .map(|font_face| font_face.as_rooted())
+                    .collect();
+                self.load_promise.resolve_native(cx, &font_face_objects);
             }
         }
 
         // Step 4. Queue a task to run the following steps synchronously:
         let trusted_this = Trusted::new(self);
-        let trusted_load_promise = TrustedPromise::new(load_promise.clone());
+        let trusted_load_promise = TrustedPromise::from(&load_promise);
+        let font = font.to_string();
+        let text = text.to_string();
         self.global()
             .task_manager()
             .font_loading_task_source()
             .queue(task!(resolve_font_face_set_load_task: move |cx| {
-                let load_promise = trusted_load_promise.root();
+                let load_promise = trusted_load_promise.root(cx);
                 let this = trusted_this.root();
+
+                // This will need adjustments once FontFaceSet is exposed to workers.
+                let Some(window) = DomRoot::downcast::<Window>(this.global()) else {
+                    log::error!("FontFaceSet should not be exposed to non-window globals");
+                    return;
+                };
+                let document = window.Document();
+
+                // Step 3. Find the matching font faces from font face set using the font and text
+                // arguments passed to the function, and let font face list be the return value (ignoring
+                // the found faces flag). If a syntax error was returned, reject promise with a SyntaxError
+                // exception and terminate these steps.
+                let Ok(font_face_objects) = this.find_the_matching_font_faces(&document, &font, &text) else {
+                    load_promise.reject_error(cx, Error::Syntax(Some("Failed to parse font query".into())));
+                    return;
+                };
 
                 // Step 4.1. For all of the font faces in the font face list, call their load()
                 // method.
@@ -303,7 +412,8 @@ impl FontFaceSetMethods<crate::DomTypeHolder> for FontFaceSet {
                     cx,
                     &global,
                     Some(Box::new(LoadPromiseFulfillmentHandler {
-                        load_promise,
+                        font_face_objects: font_face_objects.into_iter().map(|font_face| font_face.as_traced()).collect(),
+                        load_promise: load_promise.to_traced(),
                     })),
                     None,
                 );
@@ -363,4 +473,65 @@ impl Setlike for FontFaceSet {
         self.flush_author_font_set(cx);
         self.delete_face(&to_delete)
     }
+}
+
+/// Represents a parsed query for [`FontFaceSet::load`] and [`FontFaceSet::check`].
+///
+/// [`FontFaceSet::load`]: https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-load
+/// [`FontFaceSet::check`]: https://drafts.csswg.org/css-font-loading/#dom-fontfaceset-check
+struct FontQueryParameters {
+    families: FontFamilyList,
+    // TODO: Store a font descriptor here once we actually use that for matching.
+}
+
+/// Returned from <https://drafts.csswg.org/css-font-loading/#find-the-matching-font-faces> to indicate failure.
+struct FontQuerySyntaxError;
+
+impl FontQueryParameters {
+    /// Implements Steps 1 and 3 of <https://drafts.csswg.org/css-font-loading/#find-the-matching-font-faces>.
+    fn parse(document: &Document, font: &str) -> Result<Self, FontQuerySyntaxError> {
+        // Step 1. Parse font using the CSS value syntax of the font property.
+        // If a syntax error occurs, return a syntax error.
+        // If the parsed value is a CSS-wide keyword, return a syntax error.
+        // Absolutize all relative lengths against the initial values of the corresponding properties.
+        // (For example, a relative font weight like bolder is evaluated against the initial value normal.)
+        // Step 3. Let font family list be the list of font families parsed from font,
+        // and font style be the other font style attributes parsed from font.
+        let font_family;
+
+        let urlextradata = document.url().into_url().into();
+        let parser_context = parser_context_for_document(
+            document,
+            CssRuleType::FontFace,
+            ParsingMode::DEFAULT,
+            &urlextradata,
+        );
+
+        let mut parser = Parser::new(font);
+        let Ok(font_shorthand) =
+            parser.parse_entirely(|parser| font::parse_value(&parser_context, parser))
+        else {
+            return Err(FontQuerySyntaxError);
+        };
+
+        match font_shorthand.font_family {
+            specified_font::FontFamily::Values(family_list) => font_family = family_list,
+            specified_font::FontFamily::System(_) => return Err(FontQuerySyntaxError),
+        }
+
+        Ok(Self {
+            families: font_family,
+        })
+    }
+}
+
+fn any_character_in_any_unicode_range(text: &str, unicode_ranges: &[UnicodeRange]) -> bool {
+    for character in text.chars() {
+        for unicode_range in unicode_ranges {
+            if (unicode_range.start..=unicode_range.end).contains(&(character as u32)) {
+                return true;
+            }
+        }
+    }
+    false
 }

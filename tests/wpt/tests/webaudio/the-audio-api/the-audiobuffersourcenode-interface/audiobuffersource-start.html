@@ -133,7 +133,7 @@
 
         const buffer = createTestBuffer(context, bufferFrameLength);
 
-        // Schedule each scenario at a unique, non‑overlapping time offset.
+        // Schedule each scenario at a unique, non-overlapping time offset.
         tests.forEach((test, index) => {
           const source = new AudioBufferSourceNode(context);
           source.buffer = buffer;
@@ -157,7 +157,7 @@
         const rendered = await context.startRendering();
         const renderedData = rendered.getChannelData(0);
 
-        // Validate every scenario’s rendered segment.
+        // Validate every scenario's rendered segment.
         tests.forEach((test, index) => {
           const begin = index * testSpacingFrames;
           const end   = begin + test.renderFrames;
@@ -166,9 +166,9 @@
           assert_array_equals(
             actual,
             test.expected,
-            `${test.description} – rendered output matches expectation`);
+            `${test.description} - rendered output matches expectation`);
         });
-      }, 'AudioBufferSourceNode start() – sub‑sample scheduling semantics');
+      }, 'AudioBufferSourceNode start() - sub-sample scheduling semantics');
     </script>
   </body>
 </html>

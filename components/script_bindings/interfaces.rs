@@ -3,13 +3,19 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::RefCell;
+use std::ops::Deref;
 use std::thread::LocalKey;
 
 use js::context::JSContext;
+use js::conversions::{FromJSValConvertible, ToJSValConvertible};
+use js::gc::Traceable;
 use js::glue::JSPrincipalsCallbacks;
 use js::jsapi::{CallArgs, JSObject};
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject, MutableHandleObject};
+use malloc_size_of::MallocSizeOf;
+use servo_base::id::PipelineId;
+use servo_constellation_traits::ScriptToConstellationChan;
 use servo_url::{MutableOrigin, ServoUrl};
 
 use crate::DomTypes;
@@ -53,7 +59,7 @@ pub trait DomHelpers<D: DomTypes> {
     fn push_new_element_queue();
     fn pop_current_element_queue(cx: &mut JSContext);
 
-    fn reflect_dom_object_with_cx<T, U>(cx: &mut JSContext, obj: Box<T>, global: &U) -> DomRoot<T>
+    fn reflect_dom_object<T, U>(cx: &mut JSContext, obj: Box<T>, global: &U) -> DomRoot<T>
     where
         T: DomObject + DomObjectWrap<D>,
         U: DerivedFrom<D::GlobalScope>;
@@ -63,7 +69,7 @@ pub trait DomHelpers<D: DomTypes> {
 
 /// Operations that must be invoked from the generated bindings.
 #[expect(unsafe_code)]
-pub trait GlobalScopeHelpers<D: DomTypes> {
+pub trait GlobalScopeHelpers<D: DomTypes>: DomObject + Sized {
     fn from_current_realm(realm: &'_ mut CurrentRealm) -> DomRoot<D::GlobalScope>;
 
     /// # Safety
@@ -80,6 +86,40 @@ pub trait GlobalScopeHelpers<D: DomTypes> {
     fn get_url(&self) -> ServoUrl;
 
     fn is_secure_context(&self) -> bool;
+
+    fn pipeline_id(&self) -> PipelineId;
+
+    fn script_to_constellation_chan(&self) -> ScriptToConstellationChan;
+    fn entry() -> DomRoot<Self>;
+}
+
+pub trait HeapTracedPromiseHelpers<D: DomTypes> {
+    type StackRoot;
+    fn root(&self, cx: &JSContext) -> Self::StackRoot;
+}
+
+pub trait StackRootPromiseHelpers<D: DomTypes> {
+    type HeapTraced;
+    fn to_traced(&self) -> Self::HeapTraced;
+}
+
+pub trait PromiseHelpers<D: DomTypes> {
+    type StackRoot: FromJSValConvertible<Config = ()>
+        + ToJSValConvertible
+        + Deref<Target = D::Promise>
+        + StackRootPromiseHelpers<D, HeapTraced = Self::HeapTraced>;
+    type HeapTraced: Traceable
+        + MallocSizeOf
+        + Deref<Target = D::Promise>
+        + HeapTracedPromiseHelpers<D, StackRoot = Self::StackRoot>;
+    fn new_in_realm(cx: &mut CurrentRealm) -> Self::StackRoot;
+    fn new(cx: &mut JSContext, global: &D::GlobalScope) -> Self::StackRoot;
+    fn reject_error(&self, cx: &mut JSContext, error: Error);
+    fn is_rejected(&self) -> bool;
+    fn is_pending(&self) -> bool;
+    fn is_fulfilled(&self) -> bool;
+    fn resolve_native<T: ToJSValConvertible>(&self, cx: &mut JSContext, val: &T);
+    fn reject_native<T: ToJSValConvertible>(&self, cx: &mut JSContext, val: &T);
 }
 
 pub trait DocumentHelpers {
@@ -109,4 +149,12 @@ pub trait WindowHelpers {
 
 pub trait HasOrigin {
     fn origin(&self) -> MutableOrigin;
+}
+
+/// Helper trait to allow script_webcrypto access SubtleCrypto in script crate. Temporarily used
+/// until SubtleCrypto is moved from script crate to script_webcrypto crate.
+#[cfg(feature = "webcrypto")]
+#[allow(clippy::new_ret_no_self)]
+pub trait SubtleCryptoHelpers<D: DomTypes> {
+    fn new(cx: &mut JSContext, global: &D::GlobalScope) -> DomRoot<D::SubtleCrypto>;
 }

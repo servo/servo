@@ -38,6 +38,18 @@ class FormatOptions(Dict[str, Any]):
             self["quality"] = quality
 
 
+class ImageSizeOptions(Dict[str, Any]):
+    def __init__(
+        self,
+        max_height: Optional[int] = None,
+        max_width: Optional[int] = None,
+    ):
+        if max_height is not None:
+            self["maxHeight"] = max_height
+        if max_width is not None:
+            self["maxWidth"] = max_width
+
+
 class VideoOptions(Dict[str, Any]):
     def __init__(
         self,
@@ -65,6 +77,7 @@ class BrowsingContext(BidiModule):
         clip: Optional[ClipOptions] = None,
         origin: Optional[OriginOptions] = None,
         format: Optional[FormatOptions] = None,
+        image_size: Optional[ImageSizeOptions] = None,
     ) -> Mapping[str, Any]:
         params: MutableMapping[str, Any] = {"context": context}
 
@@ -74,6 +87,8 @@ class BrowsingContext(BidiModule):
             params["clip"] = clip
         if origin is not None:
             params["origin"] = origin
+        if image_size is not None:
+            params["imageSize"] = image_size
 
         return params
 
@@ -179,7 +194,7 @@ class BrowsingContext(BidiModule):
         for node in result["nodes"]:
             self._assert_node_remote_value(node)
 
-        return result
+        return result["nodes"]
 
     @command
     def navigate(self,
@@ -274,11 +289,14 @@ class BrowsingContext(BidiModule):
     @command
     def start_screencast(self,
                          context: str,
+                         destination_folder: Optional[str] = None,
                          video: Optional[VideoOptions] = None,
                          audio: Optional[bool] = None,
                          mime_type: Optional[str] = None) -> Mapping[str, Any]:
         params: MutableMapping[str, Any] = {"context": context}
 
+        if destination_folder is not None:
+            params["destinationFolder"] = destination_folder
         if video is not None:
             params["video"] = video
         if audio is not None:

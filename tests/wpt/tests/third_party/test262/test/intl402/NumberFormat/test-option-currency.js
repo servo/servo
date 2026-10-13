@@ -5,12 +5,13 @@
 es5id: 11.1.1_17
 description: Tests that the option currency is processed correctly.
 author: Norbert Lindenberg
+includes: [testIntl.js]
 ---*/
 
 var validValues = ["CNY", "USD", "EUR", "IDR", "jpy", {toString: function () {return "INR";}}];
 var invalidValues = ["$", "SFr.", "US$", "ßP", {toString: function () {return;}}];
 
-var defaultLocale = new Intl.NumberFormat().resolvedOptions().locale;
+var defaultLocale = getLocaleBaseName(new Intl.NumberFormat().resolvedOptions().locale);
 
 validValues.forEach(function (value) {
     var format, actual, expected;

@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>DataTransferItem kind and type in the disabled mode</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dnd.html#the-datatransferitem-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+// The kind attribute must return the empty string if the DataTransferItem object
+// is in the disabled mode, which it is once the item it represents has been
+// removed from the drag data store item list.
+test(() => {
+  const dt = new DataTransfer();
+  const item = dt.items.add("data", "text/plain");
+  assert_equals(item.kind, "string", "kind before removal");
+  assert_equals(item.type, "text/plain", "type before removal");
+
+  dt.items.remove(0);
+
+  assert_equals(item.kind, "", "kind after removal");
+  assert_equals(item.type, "", "type after removal");
+}, "remove() puts a string item into the disabled mode");
+
+test(() => {
+  const dt = new DataTransfer();
+  const item = dt.items.add(new File(["abc"], "test.txt", { type: "text/plain" }));
+  assert_equals(item.kind, "file", "kind before removal");
+  assert_equals(item.type, "text/plain", "type before removal");
+
+  dt.items.remove(0);
+
+  assert_equals(item.kind, "", "kind after removal");
+  assert_equals(item.type, "", "type after removal");
+  assert_equals(item.getAsFile(), null, "getAsFile() after removal");
+}, "remove() puts a File item into the disabled mode");
+
+test(() => {
+  const dt = new DataTransfer();
+  const stringItem = dt.items.add("data", "text/plain");
+  const fileItem = dt.items.add(new File(["abc"], "test.txt", { type: "image/png" }));
+
+  dt.items.clear();
+
+  assert_equals(stringItem.kind, "", "kind of the cleared string item");
+  assert_equals(stringItem.type, "", "type of the cleared string item");
+  assert_equals(fileItem.kind, "", "kind of the cleared File item");
+  assert_equals(fileItem.type, "", "type of the cleared File item");
+}, "clear() puts every item into the disabled mode");
+
+test(() => {
+  const dt = new DataTransfer();
+  const item = dt.items.add("data", "text/plain");
+
+  dt.clearData("text/plain");
+
+  assert_equals(item.kind, "", "kind after clearData()");
+  assert_equals(item.type, "", "type after clearData()");
+}, "clearData() puts the removed string item into the disabled mode");
+
+// setData() removes the item whose type string matches before adding the new
+// one, so the DataTransferItem representing the old item ends up disabled.
+test(() => {
+  const dt = new DataTransfer();
+  const oldItem = dt.items.add("data", "text/plain");
+
+  dt.setData("text/plain", "other data");
+
+  assert_equals(oldItem.kind, "", "kind of the replaced item");
+  assert_equals(oldItem.type, "", "type of the replaced item");
+
+  assert_equals(dt.items.length, 1);
+  assert_equals(dt.items[0].kind, "string", "kind of the replacement item");
+  assert_equals(dt.items[0].type, "text/plain", "type of the replacement item");
+}, "setData() puts the replaced string item into the disabled mode");
+</script>

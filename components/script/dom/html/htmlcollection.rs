@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, QualName, local_name, namespace_url, ns};
 use js::context::{JSContext, NoGC};
 use script_bindings::dom::UnrootedDom;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use style::str::split_html_space_chars;
 use stylo_atoms::Atom;
 
@@ -141,7 +141,7 @@ impl HTMLCollection {
         root: &Node,
         filter: Box<dyn CollectionFilter + 'static>,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(Box::new(Self::new_inherited(root, filter)), window, cx)
+        reflect_dom_object(cx, Box::new(Self::new_inherited(root, filter)), window)
     }
 
     /// Create a new  [`HTMLCollection`] that just filters element using a static function.
@@ -188,10 +188,10 @@ impl HTMLCollection {
         root: &Node,
         source: Box<dyn CollectionSource + 'static>,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(Self::new_inherited_with_source(root, source)),
             window,
-            cx,
         )
     }
 

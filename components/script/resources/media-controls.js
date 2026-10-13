@@ -28,7 +28,11 @@
     },
     pause: {
       buffering: PAUSED,
-      playing: PAUSED
+      playing: PAUSED,
+      // https://html.spec.whatwg.org/multipage/#playing-the-media-resource
+      // > It is possible for a media element to have both ended playback
+      // > and paused for user interaction at the same time.
+      ended: ENDED,
     },
     play: {
       buffering: PLAYING,

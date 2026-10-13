@@ -6,6 +6,7 @@
 
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
 
 <script src="/resources/testdriver.js"></script>
 <script src="/resources/testdriver-actions.js"></script>
@@ -23,9 +24,9 @@ div {
 }
 </style>
 
-<canvas id=canvas width="200" height="200" layoutsubtree>
-  <div id=target></div>
-  <div id=negative></div>
+<canvas id=canvas width="200" height="200" content=drawable>
+  <div drawable id=target></div>
+  <div drawable id=negative></div>
 </canvas>
 
 <script>
@@ -46,12 +47,8 @@ async function cleanup(controller) {
   controller.abort();
   const target = canvas.querySelector("#target");
   target.style.pointerEvents = '';
-  target.style.transformOrigin = '';
-  target.style.transform = '';
   const negative = canvas.querySelector("#negative");
   negative.style.pointerEvents = '';
-  negative.style.transformOrigin = '';
-  negative.style.transform = '';
 }
 
 promise_test((t) => {
@@ -60,15 +57,15 @@ promise_test((t) => {
     t.add_cleanup(() => cleanup(controller));
 
     const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext('2d');
     const canvasRect = canvas.getBoundingClientRect();
 
+    await waitForCanvasPaint(canvas);
     const target = canvas.querySelector("#target");
-    target.style.transformOrigin = "0 0";
-    target.style.transform = "translate(15px, 35px) scale(0.01)";
-
-    // Do not hit test #negative for this test.
-    const negative = canvas.querySelector("#negative");
-    negative.style.pointerEvents = "none";
+    ctx.translate(15, 35);
+    ctx.scale(0.01, 0.01);
+    ctx.drawElementImage(target, 0, 0);
+    ctx.resetTransform();
 
     target.addEventListener("pointerenter", resolve, { signal: controller.signal });
     await movePointer(canvasRect.x + 15, canvasRect.y + 35);
@@ -82,15 +79,17 @@ promise_test((t) => {
     t.add_cleanup(() => cleanup(controller));
 
     const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext('2d');
     const canvasRect = canvas.getBoundingClientRect();
 
+    await waitForCanvasPaint(canvas);
     const target = canvas.querySelector("#target");
-    target.style.transformOrigin = "0 0";
-    target.style.transform = "translate(15px, 35px) scale(0.01)";
-
+    ctx.translate(15, 35);
+    ctx.scale(0.01, 0.01);
+    ctx.drawElementImage(target, 0, 0);
     const negative = canvas.querySelector("#negative");
-    negative.style.transformOrigin = "0 0";
-    negative.style.transform = "translate(15px, 35px) scale(0.01)";
+    ctx.drawElementImage(negative, 0, 0);
+    ctx.resetTransform();
 
     target.addEventListener("pointerenter", reject, { signal: controller.signal });
     negative.addEventListener("pointerenter", resolve, { signal: controller.signal });
@@ -105,13 +104,21 @@ promise_test((t) => {
     t.add_cleanup(() => cleanup(controller));
 
     const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext('2d');
     const canvasRect = canvas.getBoundingClientRect();
 
-    const negative = canvas.querySelector("#negative");
-    negative.style.transformOrigin = "0 0";
-    negative.style.transform = "translate(15px, 35px) scale(0.01)";
+    // Do not hit test #target for this test.
+    const target = canvas.querySelector("#target");
+    target.style.pointerEvents = "none";
 
-    negative.addEventListener("pointerenter", reject, { signal: controller.signal });
+    await waitForCanvasPaint(canvas);
+    const negative = canvas.querySelector("#negative");
+    ctx.translate(15, 35);
+    ctx.scale(0.01, 0.01);
+    ctx.drawElementImage(negative, 0, 0);
+    ctx.resetTransform();
+
+    negative.addEventListener("pointerenter", evt => reject([evt.clientX - canvasRect.x, evt.clientY - canvasRect.y]), { signal: controller.signal });
     await movePointer(canvasRect.x + 14, canvasRect.y + 35);
     await movePointer(canvasRect.x + 16, canvasRect.y + 35);
     await movePointer(canvasRect.x + 15, canvasRect.y + 34);
@@ -119,28 +126,5 @@ promise_test((t) => {
     requestAnimationFrame(resolve);
   });
 }, "single target miss");
-
-promise_test((t) => {
-  return new Promise(async (resolve, reject) => {
-    const controller = new AbortController();
-    t.add_cleanup(() => cleanup(controller));
-
-    const canvas = document.getElementById("canvas");
-    const canvasRect = canvas.getBoundingClientRect();
-
-    const target = canvas.querySelector("#target");
-    target.style.transformOrigin = "0 0";
-    target.style.transform = "translate(15px, 35px) scale(0.01)";
-
-    // Do not hit test #negative for this test.
-    const negative = canvas.querySelector("#negative");
-    negative.style.pointerEvents = "none";
-
-    target.addEventListener("pointerenter", resolve, { signal: controller.signal });
-    await movePointer(canvasRect.x + 15, canvasRect.y + 35);
-    requestAnimationFrame(() => noHit(reject, controller.signal));
-  });
-}, "single target and point");
-
 </script>
 </html>

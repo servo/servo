@@ -1,0 +1,23 @@
+<!doctype html>
+<title>Inline handlers returning non-boolean values</title>
+<link rel="author" title="Dave Methvin" href="mailto:dave@methvin.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/webappapis.html#event-handler-attributes">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+"use strict";
+
+test(() => {
+  const div = document.createElement("div");
+  document.body.appendChild(div);
+  const e = new MouseEvent("click", { bubbles: true, cancelable: true });
+
+  assert_equals(e.defaultPrevented, false);
+  div.onclick = () => undefined;
+  div.dispatchEvent(e);
+  assert_equals(e.defaultPrevented, false);
+
+}, "returning undefined from a click inline event handler does nothing");
+
+</script>

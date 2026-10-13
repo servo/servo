@@ -1,7 +1,7 @@
 // GENERATED CONTENT - DO NOT EDIT
 // Content was automatically extracted by Reffy into webref
 // (https://github.com/w3c/webref)
-// Source: Web Serial API (https://wicg.github.io/serial/)
+// Source: Web Serial API (https://serial.spec.whatwg.org/)
 
 [Exposed=Window, SecureContext]
 partial interface Navigator {

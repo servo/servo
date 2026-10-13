@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<body>
+<template id=iframe_content>
+  <style>
+  @keyframes kf {
+    from { background-color: red; }
+    to { background-color: blue; }
+  }
+  .s {
+    overflow: scroll;
+    width: 80px;
+    height: 80px;
+    scroll-timeline-name: --a;
+  }
+  .tall {
+    height: 2000px;
+  }
+  .b {
+    width: 10px;
+    height: 10px;
+    animation: kf auto linear both;
+    animation-timeline: --a;
+  }
+  </style>
+  <div class="s" id="sA">
+    <div class="tall">
+      <div class="b" id="tA"></div>
+    </div>
+  </div>
+  <script>
+  let armed = false;
+  let fired = false;
+
+  Object.defineProperty(Animation.prototype, "then", {
+    get() {
+      if (!armed || fired) return undefined;
+      fired = true;
+      window.frameElement.remove();
+      return undefined;
+    },
+    configurable: true,
+  });
+
+  function drAF() {
+    return new Promise(resolve => requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        resolve();
+      })
+    }));
+  }
+
+  onload = async () => {
+    const sA = document.getElementById("sA");
+    sA.scrollTop = 500;
+
+    await drAF();
+    const animA = document.getElementById("tA").getAnimations()[0];
+    animA.pause();
+    const animAReady = animA.ready;
+    sA.style.scrollTimelineName = "none";
+    document.body.offsetTop;
+    animA.effect = new KeyframeEffect(animA.effect.target, [
+      { backgroundColor: 'purple' },
+      { backgroundColor: 'pink' },
+    ]);
+    animA.effect.pseudoElement = "::marker";
+    armed = true;
+  };
+  </script>
+</template>
+<script>
+const f = document.createElement("iframe");
+f.srcdoc = iframe_content.innerHTML;
+document.body.appendChild(f);
+</script>
+</body>

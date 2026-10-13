@@ -11,25 +11,25 @@
 </div>
 <script>
   test_computed_value("position-visibility", "always");
-  test_computed_value("position-visibility", "anchors-valid");
-  test_computed_value("position-visibility", "anchors-visible");
+  test_computed_value("position-visibility", "anchor-valid");
+  test_computed_value("position-visibility", "anchor-visible");
   test_computed_value("position-visibility", "no-overflow");
 
-  test_computed_value("position-visibility", "initial", "anchors-visible");
+  test_computed_value("position-visibility", "initial", "anchor-visible");
 
-  test_computed_value("position-visibility", "anchors-valid anchors-visible");
-  test_computed_value("position-visibility", "anchors-valid no-overflow");
-  test_computed_value("position-visibility", "anchors-visible anchors-valid", "anchors-valid anchors-visible");
-  test_computed_value("position-visibility", "anchors-visible no-overflow");
-  test_computed_value("position-visibility", "no-overflow anchors-valid", "anchors-valid no-overflow");
-  test_computed_value("position-visibility", "no-overflow anchors-visible", "anchors-visible no-overflow");
+  test_computed_value("position-visibility", "anchor-valid anchor-visible");
+  test_computed_value("position-visibility", "anchor-valid no-overflow");
+  test_computed_value("position-visibility", "anchor-visible anchor-valid", "anchor-valid anchor-visible");
+  test_computed_value("position-visibility", "anchor-visible no-overflow");
+  test_computed_value("position-visibility", "no-overflow anchor-valid", "anchor-valid no-overflow");
+  test_computed_value("position-visibility", "no-overflow anchor-visible", "anchor-visible no-overflow");
 
-  test_computed_value("position-visibility", "anchors-valid anchors-visible no-overflow");
-  test_computed_value("position-visibility", "anchors-valid no-overflow anchors-visible", "anchors-valid anchors-visible no-overflow");
-  test_computed_value("position-visibility", "anchors-visible anchors-valid no-overflow", "anchors-valid anchors-visible no-overflow");
-  test_computed_value("position-visibility", "anchors-visible no-overflow anchors-valid", "anchors-valid anchors-visible no-overflow");
-  test_computed_value("position-visibility", "no-overflow anchors-valid anchors-visible", "anchors-valid anchors-visible no-overflow");
-  test_computed_value("position-visibility", "no-overflow anchors-visible anchors-valid", "anchors-valid anchors-visible no-overflow");
+  test_computed_value("position-visibility", "anchor-valid anchor-visible no-overflow");
+  test_computed_value("position-visibility", "anchor-valid no-overflow anchor-visible", "anchor-valid anchor-visible no-overflow");
+  test_computed_value("position-visibility", "anchor-visible anchor-valid no-overflow", "anchor-valid anchor-visible no-overflow");
+  test_computed_value("position-visibility", "anchor-visible no-overflow anchor-valid", "anchor-valid anchor-visible no-overflow");
+  test_computed_value("position-visibility", "no-overflow anchor-valid anchor-visible", "anchor-valid anchor-visible no-overflow");
+  test_computed_value("position-visibility", "no-overflow anchor-visible anchor-valid", "anchor-valid anchor-visible no-overflow");
 
-  assert_not_inherited("position-visibility", "anchors-visible", "no-overflow");
+  assert_not_inherited("position-visibility", "anchor-visible", "no-overflow");
 </script>

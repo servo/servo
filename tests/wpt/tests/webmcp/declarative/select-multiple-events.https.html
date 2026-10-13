@@ -37,10 +37,10 @@ promise_test(async t => {
     changeEventCount++;
   });
 
-  let inputArgs = JSON.stringify({ fruits: ['apple', 'banana'] });
+  let inputObject = { fruits: ['apple', 'banana'] };
 
   // This should dispatch events.
-  await document.modelContext.executeTool(tool, inputArgs);
+  await document.modelContext.executeTool(tool, inputObject);
 
   assert_true(fruits.options[0].selected);
   assert_false(fruits.options[1].selected);
@@ -50,7 +50,7 @@ promise_test(async t => {
   assert_equals(changeEventCount, 1);
 
   // Executing with the same arguments again does not trigger events.
-  await document.modelContext.executeTool(tool, inputArgs);
+  await document.modelContext.executeTool(tool, inputObject);
 
   assert_equals(inputEventCount, 1);
   assert_equals(changeEventCount, 1);

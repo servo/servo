@@ -1,0 +1,10 @@
+<svg width="300" height="300" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(25,25)">
+    <defs>
+      <path id="path1" transform="scale(2)" d="M0,10 L40,20 80,10" fill="none"/>
+    </defs>
+  </g>
+  <text transform="rotate(45)">
+    <textPath href="#path1">Text on a path</textPath>
+  </text>
+</svg>

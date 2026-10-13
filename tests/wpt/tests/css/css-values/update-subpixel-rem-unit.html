@@ -13,9 +13,12 @@
   <script>
     test(() => {
       assert_equals(getComputedStyle(remElement).width, "160px");
-      document.documentElement.style.fontSize = "16.125px";
-      assert_equals(getComputedStyle(remElement).width, "161.25px");
-    }, "Check that a 0.125px change in root font-size affect rem units.");
+      // Using a fractional-pixel value that can be exactly represented in terms
+      // of units of either 1/64 or 1/60 pixel, to avoid rounding issues for
+      // engines that use either of these as an "app unit" internally.
+      document.documentElement.style.fontSize = "16.25px";
+      assert_equals(getComputedStyle(remElement).width, "162.5px");
+    }, "Check that a 0.25px change in root font-size affect rem units.");
   </script>
 <body>
 </html>

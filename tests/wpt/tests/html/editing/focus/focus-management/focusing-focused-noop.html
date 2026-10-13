@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Focus events fire at correct targets in correct order in simple case</title>
+  <link rel="help" href="https://html.spec.whatwg.org/#focusing-steps">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div id="container"></div>
+  <script>
+"use strict";
+promise_test(async t => {
+  // cleanup
+  const container = document.getElementById("container");
+  container.innerHTML = "";
+  // Wait for the test window to gain focus before counting synchronous events.
+  const sentinel = document.createElement("button");
+  container.appendChild(sentinel);
+  t.add_cleanup(() => {
+    container.innerHTML = "";
+  });
+  await new Promise(resolve => {
+    sentinel.addEventListener("focus", resolve, { once: true });
+    sentinel.focus();
+  });
+  sentinel.blur();
+
+  const input = document.createElement("button");
+  let handleFocusCallCount = 0;
+  input.addEventListener("focus", () => {
+    handleFocusCallCount += 1;
+  });
+  let handleBlurCallCount = 0;
+  input.addEventListener("blur", () => {
+    handleBlurCallCount += 1;
+  });
+  let handleFocusInCallCount = 0;
+  input.addEventListener("focusin", () => {
+    handleFocusInCallCount += 1;
+  });
+  let handleFocusOutCallCount = 0;
+  input.addEventListener("focusout", () => {
+    handleFocusOutCallCount += 1;
+  });
+
+  container.appendChild(input);
+
+  input.focus();
+  document.activeElement.focus();
+
+  assert_equals(handleBlurCallCount, 0);
+  assert_equals(handleFocusOutCallCount, 0);
+  assert_equals(handleFocusCallCount, 1);
+  assert_equals(handleFocusInCallCount, 1);
+}, "focusing a focused element does not dispatch focus events");
+  </script>
+</body>
+</html>

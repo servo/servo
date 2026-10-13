@@ -10,8 +10,8 @@ import * as js from "./resources/wasm-js-cycle.js";
 
 js.mutateBindings();
 
-assert_true(wasm.wasmGlob instanceof WebAssembly.Global);
-assert_equals(wasm.wasmGlob.valueOf(), 24);
+assert_false(wasm.wasmGlob instanceof WebAssembly.Global);
+assert_equals(wasm.wasmGlob, 24);
 
 assert_true(wasm.wasmFunc instanceof Function);
 assert_equals(wasm.wasmFunc(), 43);

@@ -33,4 +33,4 @@ info: |
 
 ---*/
 
-Object.seal(undefined);
+assert.sameValue(Object.seal(undefined), undefined);

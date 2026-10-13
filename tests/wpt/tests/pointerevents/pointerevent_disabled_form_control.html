@@ -46,7 +46,9 @@
                     });
                 });
                 on_event(target, "click", function (event) {
-                    assert_unreached("click should not fire on disabled element");
+                    test_pointerEvent.step(function () {
+                        assert_unreached("click should not fire on disabled element");
+                    });
                 });
 
                 // Inject inputs.

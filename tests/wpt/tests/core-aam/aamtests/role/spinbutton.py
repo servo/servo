@@ -28,9 +28,13 @@ def test_atspi(atspi, session, inline):
 #     # Role: ROLE_SYSTEM_SPINBUTTON
 #     # Interface: IAccessibleValue
 
-# def test_uia(uia, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # Control Type: Spinner
-#     # Control Pattern: RangeValue
+def test_uia(uia, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Control Type: Spinner
+    # Control Pattern: RangeValue
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.Spinner
+    assert node.GetCurrentPropertyValue(uia.PropertyId.IsRangeValuePatternAvailable)

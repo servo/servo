@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<script>
+"use strict";
+
+addEventListener("load", () => {
+  const section = document.createElement("section");
+  const range = document.createRange();
+  range.setEnd(section.attachShadow({mode: "open"}), 0);
+  range.surroundContents(document.querySelector("h2"));
+  range.deleteContents();
+}, {once: true});
+</script>
+</head>
+<body>
+  <h2></h2>
+</body>
+</html>

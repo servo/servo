@@ -26,13 +26,13 @@ promise_test(async t => {
     const eventNames = ['touchstart', 'touchmove', 'touchend'];
 
     for (eventName of eventNames) {
-      parent.addEventListener(eventName, event => {
+      parent.addEventListener(eventName, t.step_func(event => {
         eventLogRecorder.push(`${event.type}-${event.target.nodeName}`);
         if (event.type === 'touchend') {
           assert_array_equals(eventLogRecorder, expectedEventLog);
           r();
         }
-      });
+      }));
     }
     let actions = new test_driver.Actions();
     actions

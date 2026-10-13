@@ -169,7 +169,7 @@ fn test_repeated_local_obtain_reuses_same_logical_rows() {
     let shelf_count: i64 = registry
         .query_row(
             "SELECT COUNT(*) FROM shelves WHERE origin = ?1;",
-            [origin.ascii_serialization()],
+            [origin.ascii_serialization().into_owned()],
             |row| row.get(0),
         )
         .unwrap();
@@ -225,7 +225,7 @@ fn test_repeated_session_obtain_reuses_same_logical_rows() {
     let shelf_count: i64 = registry
         .query_row(
             "SELECT COUNT(*) FROM shelves WHERE origin = ?1;",
-            [origin.ascii_serialization()],
+            [origin.ascii_serialization().into_owned()],
             |row| row.get(0),
         )
         .unwrap();

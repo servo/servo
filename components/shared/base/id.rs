@@ -338,14 +338,6 @@ namespace_id! {BrowsingContextId, BrowsingContextIndex, "BrowsingContext"}
 size_of_test!(BrowsingContextId, 8);
 size_of_test!(Option<BrowsingContextId>, 8);
 
-#[derive(Clone, Copy, Debug, Default, Eq, Hash, PartialEq)]
-pub struct BrowsingContextGroupId(pub u32);
-impl fmt::Display for BrowsingContextGroupId {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "BrowsingContextGroup{:?}", self)
-    }
-}
-
 impl BrowsingContextId {
     pub fn from_string(str: &str) -> Option<BrowsingContextId> {
         let re = Regex::new(r"^BrowsingContext\((\d+),(\d+)\)$").ok()?;
@@ -419,6 +411,24 @@ namespace_id! {BroadcastChannelRouterId, BroadcastChannelRouterIndex, "Broadcast
 namespace_id! {ServiceWorkerId, ServiceWorkerIndex, "ServiceWorker"}
 
 namespace_id! {ServiceWorkerRegistrationId, ServiceWorkerRegistrationIndex, "ServiceWorkerRegistration"}
+
+/// Identifies a worker instance.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub struct WorkerId(pub Uuid);
+
+impl fmt::Display for WorkerId {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl std::str::FromStr for WorkerId {
+    type Err = uuid::Error;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Ok(Self(s.parse()?))
+    }
+}
 
 namespace_id! {BlobId, BlobIndex, "Blob"}
 
@@ -587,3 +597,20 @@ impl fmt::Display for ScriptEventLoopId {
         write!(f, "{}", self.0)
     }
 }
+
+/// A unique identifier for a largest-contentful-paint candidate, generated at
+/// layout time.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub struct LCPCandidateID(pub u64);
+
+/// A unique identifier for a single container timing report, generated at layout time.
+///
+/// Unlike [`LCPCandidateID`], which identifies a candidate, this identifies one *update*
+/// to a container: a container that grows repeatedly produces a new ID each time, since
+/// each update becomes its own `PerformanceContainerTiming` entry with its own paint
+/// time. Use [`ContainerTimingRecord::root_element`] to correlate updates belonging to
+/// the same container.
+///
+/// [`ContainerTimingRecord::root_element`]: ../../layout_api/struct.ContainerTimingRecord.html
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
+pub struct ContainerTimingID(pub u64);

@@ -28,4 +28,4 @@ testWithTypedArrayConstructors((TA, makeCtorArg) => {
 
   assert.compareArray(arr.with(1, value), [3, 4, 2]);
   assert.compareArray(arr, [3, 1, 2]);
-});
+}, null, null, ["immutable"]);

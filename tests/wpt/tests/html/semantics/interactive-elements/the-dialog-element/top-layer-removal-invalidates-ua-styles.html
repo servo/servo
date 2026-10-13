@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Removing a dialog from the top layer invalidates the top layer UA styles</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#flow-content-3">
+<link rel="help" href="https://www.w3.org/TR/css-position-4/#top-styling">
+<link rel="author" href="mailto:mhochk@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<dialog style="display:block"></dialog>
+<script>
+test(() => {
+  const dialog = document.querySelector('dialog');
+  const computedStyle = getComputedStyle(dialog);
+
+  assert_equals(computedStyle.position, 'absolute',
+                'position before entering the top layer');
+  assert_equals(computedStyle.overflow, 'visible',
+                'overflow before entering the top layer');
+
+  dialog.showModal();
+
+  assert_equals(computedStyle.position, 'fixed',
+                'position while in the top layer');
+  assert_equals(computedStyle.overflow, 'auto',
+                'overflow while in the top layer');
+
+  dialog.close();
+  assert_equals(computedStyle.position, 'absolute',
+                'position after leaving the top layer');
+  assert_equals(computedStyle.overflow, 'visible',
+                'overflow after leaving the top layer');
+}, 'Top layer UA styles stop applying once a dialog leaves the top layer');
+</script>

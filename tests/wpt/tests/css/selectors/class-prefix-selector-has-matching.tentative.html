@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors: class prefix selector matching inside :has()</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/selectors-5/#class-prefix">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="descendant-match"><div class="foo-x"></div></div>
+<div id="descendant-match-deep"><div><div class="foo-x"></div></div></div>
+<div id="descendant-no-match"><div class="foobar"></div></div>
+
+<div id="child-match"><div class="foo-x"></div></div>
+<div id="child-no-match-but-descendant"><div><div class="foo-x"></div></div></div>
+
+<div id="sibling-container-1">
+  <div id="sc1-a"></div>
+  <div id="sc1-b" class="foo-x"></div>
+</div>
+
+<div id="sibling-container-2">
+  <div id="sc2-a"></div>
+  <div id="sc2-b"></div>
+  <div id="sc2-c" class="foo-x"></div>
+</div>
+
+<div id="sibling-child-container">
+  <div id="scc-a"></div>
+  <div class="bar"><div class="foo-x"></div></div>
+</div>
+
+<div id="sibling-descendant-container">
+  <div id="sdc-a"></div>
+  <div class="bar"><div><div class="foo-x"></div></div></div>
+</div>
+
+<div id="not-container"><div class="foo-x"></div></div>
+<div id="not-container-empty"></div>
+
+<div id="compound-container" class="foo-x"><div class="bar"></div></div>
+
+<script>
+test(() => {
+  assert_true(document.getElementById('descendant-match').matches(':has(.foo-*)'));
+  assert_true(document.getElementById('descendant-match-deep').matches(':has(.foo-*)'));
+  assert_false(document.getElementById('descendant-no-match').matches(':has(.foo-*)'));
+}, ':has(.foo-*) matches an element with a descendant, at any depth, whose class matches the prefix');
+
+test(() => {
+  assert_true(document.getElementById('child-match').matches(':has(> .foo-*)'));
+  assert_false(document.getElementById('child-no-match-but-descendant').matches(':has(> .foo-*)'));
+  assert_true(document.getElementById('child-no-match-but-descendant').matches(':has(.foo-*)'));
+}, ':has(> .foo-*) only matches a direct child, unlike the plain descendant form');
+
+test(() => {
+  const a = document.getElementById('sc1-a');
+  const b = document.getElementById('sc1-b');
+  assert_true(a.matches(':has(+ .foo-*)'));
+  assert_true(a.matches(':has(~ .foo-*)'));
+  assert_false(b.matches(':has(+ .foo-*)'));
+  assert_false(b.matches(':has(~ .foo-*)'));
+}, ':has(+ .foo-*) matches when the immediately following sibling matches the prefix');
+
+test(() => {
+  const a = document.getElementById('sc2-a');
+  const b = document.getElementById('sc2-b');
+  assert_false(a.matches(':has(+ .foo-*)'), 'the immediately following sibling does not match');
+  assert_true(a.matches(':has(~ .foo-*)'), 'a later sibling matches');
+  assert_true(b.matches(':has(+ .foo-*)'), 'sc2-b\'s immediately following sibling (sc2-c) does match');
+  assert_true(b.matches(':has(~ .foo-*)'));
+}, ':has(~ .foo-*) matches a later sibling that is not the immediately following one');
+
+test(() => {
+  assert_true(document.getElementById('scc-a').matches(':has(~ .bar > .foo-*)'));
+}, ':has(~ .bar > .foo-*) matches when a later sibling has a matching direct child');
+
+test(() => {
+  const a = document.getElementById('sdc-a');
+  assert_false(a.matches(':has(~ .bar > .foo-*)'), 'the match is a grandchild, not a direct child, of the "bar" sibling');
+  assert_true(a.matches(':has(~ .bar .foo-*)'), 'the descendant form still matches at any depth');
+}, ':has(~ .bar .foo-*) matches at any depth under a later sibling, unlike the direct-child form');
+
+test(() => {
+  assert_false(document.getElementById('not-container').matches(':not(:has(.foo-*))'));
+  assert_true(document.getElementById('not-container-empty').matches(':not(:has(.foo-*))'));
+}, 'class prefix selector works inside :has() used as a :not() argument');
+
+test(() => {
+  assert_true(document.getElementById('compound-container').matches('.foo-*:has(.bar)'));
+  assert_false(document.getElementById('compound-container').matches('.baz-*:has(.bar)'));
+}, 'a class prefix selector on the same compound as :has() still matches normally');
+</script>

@@ -22,7 +22,7 @@ ENV RUSTUP_HOME=/usr/local/rustup \
     CARGO_HOME=/usr/local/cargo \
     PATH=/usr/local/cargo/bin:$PATH \
     UV_TOOL_BIN_DIR=/usr/local/bin \
-    RUST_VERSION=1.95.0
+    RUST_VERSION=1.97.1
 
 # Keep the list of components in sync with `rust-toolchain.toml` file.
 RUN curl https://sh.rustup.rs -sSf \
@@ -57,7 +57,7 @@ FROM linux AS android
 ARG JAVA_VERSION=21
 ARG ANDROID_SDK_VERSION=34
 ARG ANDROID_BUILD_TOOLS_VERSION=34.0.0
-ARG ANDROID_NDK_VERSION=28.2.13676358
+ARG ANDROID_NDK_VERSION=29.0.14206865
 ENV ANDROID_SDK_ROOT=/opt/android-sdk
 ENV ANDROID_NDK_ROOT=${ANDROID_SDK_ROOT}/ndk/${ANDROID_NDK_VERSION}/
 RUN apt-get update \

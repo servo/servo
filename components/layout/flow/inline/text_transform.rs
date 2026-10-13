@@ -11,8 +11,12 @@
 //! IFC text and vice-versa.
 
 use arrayvec::ArrayVec;
+use icu_properties::props::{EnumeratedProperty, GeneralCategory, GeneralCategoryGroup};
 use icu_segmenter::WordSegmenter;
+use icu_segmenter::options::WordBreakInvariantOptions;
 use malloc_size_of_derive::MallocSizeOf;
+#[cfg(test)]
+use servo_base::text::AssumeUnder4GB;
 use servo_base::text::Utf32CodeUnits;
 use style::computed_values::_webkit_text_security::T as WebKitTextSecurity;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
@@ -58,9 +62,9 @@ impl CharacterTransformIteration {
         }
     }
 
-    fn collapse(amount_collapsed: usize, character: Option<char>) -> Self {
+    fn collapse(amount_collapsed: Utf32CodeUnits, character: Option<char>) -> Self {
         Self {
-            consumed: Utf32CodeUnits(amount_collapsed),
+            consumed: amount_collapsed,
             characters: character.into_iter().collect(),
         }
     }
@@ -114,7 +118,7 @@ impl<InputIterator: Iterator<Item = char>> WhitespaceCollapse<InputIterator> {
     /// other cases, the white space is simply removed. This method handles that.
     fn iteration_for_collapsed_whitespace(
         &self,
-        collapsed_whitespace: usize,
+        collapsed_whitespace: Utf32CodeUnits,
     ) -> CharacterTransformIteration {
         if !self.following_newline && !self.trimming_leading_white_space {
             CharacterTransformIteration::collapse(collapsed_whitespace, Some(' '))
@@ -125,9 +129,9 @@ impl<InputIterator: Iterator<Item = char>> WhitespaceCollapse<InputIterator> {
 
     fn iteration_for_collected_white_space(
         &self,
-        collected_whitespace: usize,
+        collected_whitespace: Utf32CodeUnits,
     ) -> Option<CharacterTransformIteration> {
-        (collected_whitespace != 0)
+        (collected_whitespace.0 != 0)
             .then(|| self.iteration_for_collapsed_whitespace(collected_whitespace))
     }
 }
@@ -165,7 +169,7 @@ impl<InputIterator: Iterator<Item = char>> Iterator for WhitespaceCollapse<Input
         // a single white space character as soon as we encounter a non-white space
         // character. When that happens we queue up the non-white space character for the
         // next iterator call.
-        let mut collected_whitespace = 0;
+        let mut collected_whitespace = Utf32CodeUnits(0);
 
         while let Some(character) = self.input_iterator.next() {
             // Don't push non-newline whitespace immediately. Instead wait to push it until we
@@ -174,7 +178,7 @@ impl<InputIterator: Iterator<Item = char>> Iterator for WhitespaceCollapse<Input
             if InlineFormattingContextBuilder::is_document_white_space(character) &&
                 character != '\n'
             {
-                collected_whitespace += 1;
+                collected_whitespace += Utf32CodeUnits(1);
                 continue;
             }
 
@@ -193,9 +197,14 @@ impl<InputIterator: Iterator<Item = char>> Iterator for WhitespaceCollapse<Input
                 // > 2. Then any remaining segment break is either transformed into a space (U+0020)
                 // >    or removed depending on the context before and after the break.
                 let iteration = if self.white_space_collapse != WhiteSpaceCollapse::Collapse {
-                    CharacterTransformIteration::collapse(collected_whitespace + 1, Some('\n'))
+                    CharacterTransformIteration::collapse(
+                        collected_whitespace + Utf32CodeUnits(1),
+                        Some('\n'),
+                    )
                 } else {
-                    self.iteration_for_collapsed_whitespace(collected_whitespace + 1)
+                    self.iteration_for_collapsed_whitespace(
+                        collected_whitespace + Utf32CodeUnits(1),
+                    )
                 };
 
                 self.following_newline = true;
@@ -228,30 +237,63 @@ impl<InputIterator: Iterator<Item = char>> Iterator for WhitespaceCollapse<Input
     }
 }
 
-pub(crate) struct TextTransformationIterator<'a>(
-    Box<dyn Iterator<Item = CharacterTransformIteration> + 'a>,
-);
+pub(crate) struct TextTransformationIterator<'a> {
+    case_map_iterator: Box<dyn Iterator<Item = CharacterTransformIteration> + 'a>,
+    full_width: bool,
+    full_size_kana: bool,
+}
 
 impl<'a> TextTransformationIterator<'a> {
     pub(crate) fn new(
-        text: &'a str,
-        style: &ComputedValues,
+        mut text: &'a str,
+        style: &'a ComputedValues,
         trim_leading_white_space: bool,
         on_word_boundary: bool,
     ) -> Self {
-        let text_security = style.clone__webkit_text_security();
+        let text_security = style.get__webkit_text_security();
+
+        // <https://drafts.csswg.org/css-text-4/#text-transform-property>
+        let text_transform = style.get_text_transform();
+
+        if text_transform.intersects(TextTransform::MATH_AUTO) {
+            // `math-auto` only does anything “on text nodes containing a single character” per
+            // https://w3c.github.io/mathml-core/#math-auto-transform
+            //
+            // TODO: should this be single character after whitespace collapsing?
+            // TODO: does `::first-letter` mess with this check?
+            let mut char_iter = text.chars();
+            if let Some(first_char) = char_iter.next() &&
+                let None = char_iter.next() &&
+                let Some(&mapping) = super::mathml_italics::ITALICS_MAPPINGS.get(&first_char)
+            {
+                text = mapping
+            }
+        }
+
         let chars = text
             .chars()
             .map(move |character| map_character_for_webkit_text_security(text_security, character));
-        let white_space_collapse = style.clone_white_space_collapse();
+        let white_space_collapse = style.slow_clone_white_space_collapse();
         let iterator =
             WhitespaceCollapse::new(chars, white_space_collapse, trim_leading_white_space);
 
-        // TODO: Not all text transforms are about case, this logic should stop ignoring
-        // TextTransform::FULL_WIDTH and TextTransform::FULL_SIZE_KANA.
-        let text_transform = style.clone_text_transform();
-        let iterator = match text_transform.case() {
-            TextTransformCase::None => {
+        // https://drafts.csswg.org/css-text-4/#text-transform-order
+        // > When multiple transformations need to be applied,
+        // > they are applied in the following order:
+        // >
+        // > * `word-space-transform`
+        // > * `capitalize`, `uppercase`, and `lowercase`
+        // > * `full-width`
+        // > * `full-size-kana`
+        // >
+        // > Word space transformation and text transformation happen after
+        // > § 4.3.1 Phase I: Collapsing and Transformation but before
+        // > § 4.3.2 Phase II: Trimming and Positioning. This means for instance that full-width
+        // > only transforms spaces (U+0020) to U+3000 IDEOGRAPHIC SPACE within
+        // > preserved white space.
+
+        let case_map_iterator = match text_transform.case() {
+            TextTransformCase::None | TextTransformCase::MathAuto => {
                 Box::new(iterator) as Box<dyn Iterator<Item = CharacterTransformIteration>>
             },
             TextTransformCase::Lowercase => {
@@ -269,23 +311,40 @@ impl<'a> TextTransformationIterator<'a> {
                 text.len(),
                 on_word_boundary,
             )),
-            // TODO: implement `math-auto` and enable it in Stylo
         };
-        if text_transform.intersects(TextTransform::FULL_WIDTH) {
-            // TODO: implement `full-width`
-        }
-        if text_transform.intersects(TextTransform::FULL_SIZE_KANA) {
-            // TODO: implement `full-size-kana`
-        }
 
-        Self(iterator)
+        Self {
+            case_map_iterator,
+            full_width: text_transform.intersects(TextTransform::FULL_WIDTH),
+            full_size_kana: text_transform.intersects(TextTransform::FULL_SIZE_KANA),
+        }
     }
 }
 
 impl Iterator for TextTransformationIterator<'_> {
     type Item = CharacterTransformIteration;
+
     fn next(&mut self) -> Option<Self::Item> {
-        self.0.next()
+        // https://drafts.csswg.org/css-text-4/#text-transform-order
+        // > When multiple transformations need to be applied,
+        // > they are applied in the following order:
+        // >
+        // > * `word-space-transform`
+        // > * `capitalize`, `uppercase`, and `lowercase`
+        // > * `full-width`
+        // > * `full-size-kana`
+        let mut iteration = self.case_map_iterator.next()?;
+        map_characters_with_phf(
+            self.full_width,
+            &mut iteration.characters,
+            &super::full_width::FULL_WIDTH_MAPPINGS,
+        );
+        map_characters_with_phf(
+            self.full_size_kana,
+            &mut iteration.characters,
+            &super::small_kana::SMALL_KANA_MAPPINGS,
+        );
+        Some(iteration)
     }
 }
 
@@ -300,6 +359,17 @@ fn simple_case_transform_iterator(
             iteration
         }
     })
+}
+
+/// From <https://drafts.csswg.org/css-text-4/#typographic-letter-unit>:
+/// > A typographic letter unit (or letter for the purpose of this specification) is a
+/// > typographic character unit belonging to one of the Letter or Number general categories. See
+/// > Appendix E: Characters and Properties for how to determine the Unicode properties of a
+/// > typographic character unit.
+fn is_typographic_letter_unit(character: char) -> bool {
+    let category = GeneralCategory::for_char(character);
+    GeneralCategoryGroup::Letter.contains(category) ||
+        GeneralCategoryGroup::Number.contains(category)
 }
 
 /// Given an input iterator, a size hint for the number items in the iterator,
@@ -317,10 +387,10 @@ pub(crate) fn capitalization_iterator(
         string.extend(iteration.characters());
     }
 
-    let word_segmenter = WordSegmenter::new_auto();
+    let word_segmenter = WordSegmenter::new_auto(WordBreakInvariantOptions::default());
     let mut bounds = word_segmenter.segment_str(&string).peekable();
-
     let mut current_byte_index = 0;
+    let mut pending_word_start = false;
     for iteration in iterations.iter_mut() {
         let bytes_to_advance: usize = iteration
             .characters()
@@ -331,24 +401,28 @@ pub(crate) fn capitalization_iterator(
             continue;
         }
 
-        let at_word_start = bounds.peek() == Some(&current_byte_index);
-        if at_word_start {
+        if bounds.peek() == Some(&current_byte_index) {
+            pending_word_start = current_byte_index != 0 || allow_word_at_start;
             bounds.next();
         }
 
-        // TODO: currently we titlecase the first `char` of each word,
-        // instead it should be the first typographic letter unit:
-        // https://drafts.csswg.org/css-text-4/#typographic-letter-unit
-        // WPT /css/css-text/text-transform/text-transform-capitalize-026.html
+        // From <https://drafts.csswg.org/css-text-4/#text-transform-property>:
+        // > Puts the first typographic letter unit of each word, if lowercase, in titlecase;
+        // > other characters are unaffected.
         if iteration.is_one_to_one() &&
-            at_word_start &&
-            (current_byte_index != 0 || allow_word_at_start)
+            pending_word_start &&
+            is_typographic_letter_unit(iteration.characters[0])
         {
-            // TODO: Replace this with a call to `character.to_titlecase()` when available:
-            // See: https://github.com/rust-lang/rust/issues/153892
-            // See: https://doc.rust-lang.org/stable/std/primitive.char.html#difference-from-uppercase
-            *iteration =
-                CharacterTransformIteration::case_mapped(iteration.characters[0].to_uppercase());
+            if iteration.characters[0].is_lowercase() {
+                // TODO: Replace this with a call to `character.to_titlecase()` when available:
+                // See: https://github.com/rust-lang/rust/issues/153892
+                // See: https://doc.rust-lang.org/stable/std/primitive.char.html#difference-from-uppercase
+                *iteration = CharacterTransformIteration::case_mapped(
+                    iteration.characters[0].to_uppercase(),
+                );
+            }
+
+            pending_word_start = false;
         }
 
         current_byte_index += bytes_to_advance;
@@ -362,17 +436,13 @@ pub(crate) fn capitalization_iterator(
 /// Note: The behavior of `-webkit-text-security` isn't specified, so we have some
 /// flexibility in the implementation. We just need to maintain a rough compatibility with
 /// other browsers.
-fn map_character_for_webkit_text_security(mode: WebKitTextSecurity, character: char) -> char {
+fn map_character_for_webkit_text_security(mode: &WebKitTextSecurity, character: char) -> char {
     if let WebKitTextSecurity::None = mode {
         return character;
     }
 
     // TODO: When MSRV is 1.95+ use std::hint::cold_path().
     match character {
-        // This is not ideal, but zero width space is used for some special reasons in
-        // `<input>` fields, so these remain untransformed, otherwise they would show up
-        // in empty text fields.
-        '\u{200B}' => '\u{200B}',
         // Newlines are preserved, so that `<br>` keeps working as expected.
         '\n' => '\n',
         _ => match mode {
@@ -381,6 +451,18 @@ fn map_character_for_webkit_text_security(mode: WebKitTextSecurity, character: c
             WebKitTextSecurity::Disc => '●',
             WebKitTextSecurity::Square => '■',
         },
+    }
+}
+
+fn map_characters_with_phf(enabled: bool, characters: &mut [char], map: &phf::Map<char, char>) {
+    if enabled {
+        // TODO: When MSRV is 1.95+ use std::hint::cold_path().
+
+        for character in characters {
+            if let Some(mapping) = map.get(character) {
+                *character = *mapping
+            }
+        }
     }
 }
 
@@ -452,7 +534,7 @@ impl OffsetMap {
     pub(crate) fn push_iteration(&mut self, iteration: &CharacterTransformIteration) {
         self.push_range(
             iteration.consumed,
-            Utf32CodeUnits(iteration.characters.len()),
+            Utf32CodeUnits(iteration.characters.len() as u32),
         );
     }
 
@@ -545,14 +627,18 @@ fn test_offsetmap_basic_expansion() {
     assert_eq!(offset_map.map(Utf32CodeUnits(5)).0, 7);
     assert_eq!(offset_map.map(Utf32CodeUnits(100)).0, 7);
 
-    let map_substring = |offset: usize, length: usize| {
-        let start = offset_map
-            .map(Utf32CodeUnits(offset))
-            .to_utf8_code_units_in(final_string);
-        let end = offset_map
-            .map(Utf32CodeUnits(offset + length))
-            .to_utf8_code_units_in(final_string);
-        &final_string[start.0..end.0]
+    let map_substring = |offset: u32, length: u32| {
+        let start = usize::from(
+            offset_map
+                .map(Utf32CodeUnits(offset))
+                .to_utf8_code_units_in(AssumeUnder4GB, final_string),
+        );
+        let end = usize::from(
+            offset_map
+                .map(Utf32CodeUnits(offset + length))
+                .to_utf8_code_units_in(AssumeUnder4GB, final_string),
+        );
+        &final_string[start..end]
     };
     assert_eq!(map_substring(0, 1), "A");
     assert_eq!(map_substring(0, 2), "ASS");
@@ -567,7 +653,10 @@ fn test_offsetmap_basic_collapse() {
     let final_string = "aaa b\nc";
 
     let mut offset_map = OffsetMap::default();
-    offset_map.push_iteration(&CharacterTransformIteration::collapse(2, None));
+    offset_map.push_iteration(&CharacterTransformIteration::collapse(
+        Utf32CodeUnits(2),
+        None,
+    ));
     offset_map.push_iteration(&CharacterTransformIteration::one_to_one('a'));
     offset_map.push_iteration(&CharacterTransformIteration::one_to_one('a'));
     offset_map.push_iteration(&CharacterTransformIteration::one_to_one('a'));
@@ -577,9 +666,15 @@ fn test_offsetmap_basic_collapse() {
         "Consecutive one-to-one mappings are merged"
     );
 
-    offset_map.push_iteration(&CharacterTransformIteration::collapse(2, Some(' ')));
+    offset_map.push_iteration(&CharacterTransformIteration::collapse(
+        Utf32CodeUnits(2),
+        Some(' '),
+    ));
     offset_map.push_iteration(&CharacterTransformIteration::one_to_one('b'));
-    offset_map.push_iteration(&CharacterTransformIteration::collapse(2, Some('\n')));
+    offset_map.push_iteration(&CharacterTransformIteration::collapse(
+        Utf32CodeUnits(2),
+        Some('\n'),
+    ));
     offset_map.push_iteration(&CharacterTransformIteration::one_to_one('c'));
 
     assert_eq!(offset_map.map(Utf32CodeUnits(0)).0, 0);
@@ -602,9 +697,9 @@ fn test_offsetmap_basic_collapse() {
     assert_eq!(offset_map.map(Utf32CodeUnits(12)).0, 7);
     assert_eq!(offset_map.map(Utf32CodeUnits(100)).0, 7);
 
-    let map_substring = |offset: usize, length: usize| {
-        let start = offset_map.map(Utf32CodeUnits(offset)).0;
-        let end = offset_map.map(Utf32CodeUnits(offset + length)).0;
+    let map_substring = |offset: u32, length: u32| {
+        let start = usize::from(offset_map.map(Utf32CodeUnits(offset)));
+        let end = usize::from(offset_map.map(Utf32CodeUnits(offset + length)));
         &final_string[start..end]
     };
     assert_eq!(map_substring(0, 1), "");

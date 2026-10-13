@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-grid/">
+<link rel="help" href="https://drafts.csswg.org/css-overflow/#scrollable">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="An off screen grid item's overflowing context is still painted in the overflow hidden container.">
+<p>Test passes if there is a filled green square.</p>
+<div style="width: 100px; height: 100px; overflow: hidden;">
+  <div style="display: grid; grid-template-columns: 100px; grid-template-rows: 50px; margin-left: -150px; margin-top: -100px;">
+    <div style="grid-column: 1 / 2; grid-row: 1 / 2;">
+      <div style="width: 250px; height: 200px; background: green;"></div>
+    </div>
+  </div>
+</div>

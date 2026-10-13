@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#assigning">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-rows: 60px 60px;
+    grid-lanes-direction: row fill-reverse;
+    direction: rtl;
+    writing-mode: horizontal-tb;
+    gap: 10px;
+    width: 150px;
+    height: 130px;
+    background: #cdd5e0;
+  }
+  .lanes > div {
+    width: 30px;
+    background: #5b8def;
+  }
+  .r1 { grid-row: 1; }
+  .r2 { grid-row: 2; }
+  .rule {
+    position: absolute;
+    width: 4px;
+    height: 60px;
+  }
+</style>
+<div class="lanes">
+  <div class="r1"></div>
+  <div class="r1"></div>
+  <div class="r1"></div>
+  <div class="r2"></div>
+  <div class="r2"></div>
+  <div class="r2"></div>
+  <div class="r2"></div>
+</div>
+<div class="rule" style="top: 0; left: 33px; background: blue;"></div>
+<div class="rule" style="top: 0; left: 73px; background: gold;"></div>
+<div class="rule" style="top: 70px; left: 33px; background: blue;"></div>
+<div class="rule" style="top: 70px; left: 73px; background: gold;"></div>
+<div class="rule" style="top: 70px; left: 113px; background: purple;"></div>

@@ -286,6 +286,19 @@ cache_test(function(cache, test) {
   }, 'Cache.addAll called with the same Request object specified twice');
 
 cache_test(async function(cache, test) {
+    const url = './resources/simple.txt';
+    let requests = [
+      new Request(url + '#one'),
+      new Request(url + '#two'),
+    ];
+    await promise_rejects_dom(
+      test,
+      'InvalidStateError',
+      cache.addAll(requests),
+      'Cache.addAll() should reject when entries differ only by fragment');
+  }, 'Cache.addAll should reject when entries differ only by fragment');
+
+cache_test(async function(cache, test) {
     const url = './resources/vary.py?vary=x-shape';
     let requests = [
       new Request(url, { headers: { 'x-shape': 'circle' }}),

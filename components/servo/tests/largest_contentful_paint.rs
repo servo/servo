@@ -6,9 +6,11 @@
 mod common;
 
 use std::rc::Rc;
+use std::thread::sleep;
+use std::time::Duration;
 
 use euclid::Point2D;
-use servo::{InputEvent, JSValue, MouseMoveEvent, WebViewBuilder};
+use servo::{InputEvent, JSValue, MouseButton, MouseMoveEvent, WebView, WebViewBuilder};
 use servo_config::prefs::Preferences;
 use url::Url;
 use webrender_api::units::DevicePoint;
@@ -22,6 +24,41 @@ use crate::common::{
 static DATA_URL_FOR_PAGE_WITH_SINGLE_RED_SQUARE: &str = "data:text/html,<!DOCTYPE html>\
 <div><img src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAEklEQVQIW2P8z8AARAwMjDAGACwBA/+8RVWvAAAAAElFTkSuQmCC'\
 style='width: 50px; height: 50px;'></div>";
+
+// Observer script that buffers all largest-contentful-paint entries
+// into `window.lcpEntries`.
+static OBSERVER_SCRIPT: &str = "
+    window.lcpEntries = [];
+    new PerformanceObserver(list => {
+        window.lcpEntries.push(...list.getEntries());
+    }).observe({type: 'largest-contentful-paint', buffered: true});
+";
+
+// Script that appends a 100x100 image and sets `window.image2Done` once it has
+// been loaded and painted.
+static APPEND_LARGER_IMAGE_SCRIPT: &str = r#"
+    window.image2Done = false;
+    (async () => {
+        const img = document.createElement('img');
+        img.id = 'image2';
+        img.style.width = '100px';
+        img.style.height = '100px';
+        img.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFElEQVR4nGP4z8DwnxjMMKqQvgoBksPHOas6/LEAAAAASUVORK5CYII=';
+        document.body.appendChild(img);
+        await new Promise(resolve => { img.addEventListener('load', resolve); });
+        await new Promise(resolve => requestAnimationFrame(() => resolve()));
+        window.image2Done = true;
+    })();
+"#;
+
+fn lcp_entry_count(servo_test: &ServoTest, webview: &WebView) -> usize {
+    match evaluate_javascript(&servo_test, webview.clone(), "window.lcpEntries.length;")
+        .expect("Should always be able to get LCP count")
+    {
+        JSValue::Number(number) => return number as usize,
+        value => unreachable!("Got an unexpected lcpEntries value: {value:?}"),
+    }
+}
 
 #[test]
 fn test_largest_contentful_paint_js_api() {
@@ -40,35 +77,58 @@ fn test_largest_contentful_paint_js_api() {
     // Wait for the page to load and render before evaluating the LCP to ensure we don't miss LCP candidate.
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
 
-    let lcp_script = "(async () => {
-        window.lcp = await new Promise(resolve => {
-            (new PerformanceObserver(entryList => {
-                resolve(entryList.getEntries()[0]);
-            }))
-            .observe({type: 'largest-contentful-paint', buffered: true});
-        })
-    })();";
-
-    if let Err(err) = evaluate_javascript(&servo_test, webview.clone(), lcp_script) {
-        panic!("Failed to evaluate LCP setup script: {:?}", err);
+    if let Err(err) = evaluate_javascript(&servo_test, webview.clone(), OBSERVER_SCRIPT) {
+        panic!("Failed to evaluate LCP observer script: {:?}", err);
     }
 
-    // Read from a global variable used to store the result since evaluate_javascript doesn't handle Promises
-    let lcp = evaluate_javascript(&servo_test, webview.clone(), "window.lcp.toJSON();");
+    // The single image should produce exactly one LCP entry.
+    while lcp_entry_count(&servo_test, &webview) == 0 {
+        sleep(Duration::from_millis(1));
+    }
+    assert_eq!(lcp_entry_count(&servo_test, &webview), 1);
 
+    // Check the entry's fields.
+    let lcp = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "window.lcpEntries[0].toJSON();",
+    );
     if let Ok(JSValue::Object(obj)) = lcp {
-        assert_eq!(obj.get("name"), Some(JSValue::String("".into())).as_ref());
+        assert_eq!(
+            obj.get("name"),
+            Some(JSValue::String(String::new())).as_ref()
+        );
         assert_eq!(obj.get("duration"), Some(JSValue::Number(0.0)).as_ref());
         assert_eq!(
             obj.get("entryType"),
             Some(JSValue::String("largest-contentful-paint".into())).as_ref()
         );
-        assert_eq!(obj.get("size"), Some(JSValue::Number(2500.0)).as_ref());
+        assert_eq!(obj.get("size"), Some(JSValue::Number(4.0)).as_ref());
         assert!(obj.get("renderTime").is_some());
         assert!(obj.get("loadTime").is_some());
+        // The entry's element should be present while the image is attached.
+        assert!(obj.get("element") != Some(JSValue::Null).as_ref());
     } else {
         panic!("No entries for Largest Contentful Paint were recorded.");
     }
+
+    // Removing the image detaches it from the DOM, so the entry's element
+    // should become null and its id should become the empty string.
+    if let Err(err) = evaluate_javascript(
+        &servo_test,
+        webview.clone(),
+        "document.querySelector('img').remove();",
+    ) {
+        panic!("Failed to remove the image: {:?}", err);
+    }
+    assert_eq!(
+        evaluate_javascript(
+            &servo_test,
+            webview.clone(),
+            "window.lcpEntries[0].element === null;"
+        ),
+        Ok(JSValue::Boolean(true))
+    );
 }
 
 #[test]
@@ -85,29 +145,44 @@ fn test_largest_contentful_paint_js_api_with_mouse_move() {
         .url(Url::parse(DATA_URL_FOR_PAGE_WITH_SINGLE_RED_SQUARE).unwrap())
         .build();
 
-    // Simulate a mouse move movement before loading the page aka before spinning the event loop.
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+
+    if let Err(err) = evaluate_javascript(&servo_test, webview.clone(), OBSERVER_SCRIPT) {
+        panic!("Failed to evaluate LCP observer script: {:?}", err);
+    }
+
+    // The initial image should produce exactly one LCP entry.
+    while lcp_entry_count(&servo_test, &webview) == 0 {
+        sleep(Duration::from_millis(1));
+    }
+    assert_eq!(lcp_entry_count(&servo_test, &webview), 1);
+
+    // A mouse move is not an activation-triggering input event, so it should not
+    // halt LCP calculation.
     webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
         DevicePoint::new(10., 10.).into(),
     )));
 
-    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
-
-    let lcp_script = "(async () => {
-        window.lcp = await new Promise(resolve => {
-            (new PerformanceObserver(entryList => {
-                resolve(entryList.getEntries()[0]);
-            }))
-            .observe({type: 'largest-contentful-paint', buffered: true});
-        })
-    })();";
-
-    if let Err(err) = evaluate_javascript(&servo_test, webview.clone(), lcp_script) {
-        panic!("Failed to evaluate LCP setup script: {:?}", err);
+    // Append a larger image
+    if let Err(err) = evaluate_javascript(&servo_test, webview.clone(), APPEND_LARGER_IMAGE_SCRIPT)
+    {
+        panic!("Failed to evaluate append image script: {:?}", err);
     }
 
-    // Read from a global variable used to store the result since evaluate_javascript doesn't handle Promises
-    let lcp = evaluate_javascript(&servo_test, webview.clone(), "window.lcp;");
-    assert_eq!(lcp, Ok(JSValue::Object(std::collections::HashMap::new())));
+    // Wait for the larger image to load and a rendering update to happen.
+    loop {
+        if evaluate_javascript(&servo_test, webview.clone(), "window.image2Done === true;") ==
+            Ok(JSValue::Boolean(true))
+        {
+            break;
+        }
+    }
+
+    // Wait for the larger image's LCP entry to be reported.
+    while lcp_entry_count(&servo_test, &webview) == 1 {
+        sleep(Duration::from_millis(1));
+    }
+    assert_eq!(lcp_entry_count(&servo_test, &webview), 2);
 }
 
 #[test]
@@ -124,37 +199,52 @@ fn test_largest_contentful_paint_js_api_with_mouse_click_and_reload() {
         .url(Url::parse(DATA_URL_FOR_PAGE_WITH_SINGLE_RED_SQUARE).unwrap())
         .build();
 
-    // Simulate a user interaction before loading i.e before spinning event loop to disable LCP calculation for the WebView.
-    click_at_point(&webview, Point2D::new(1., 1.));
-
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
 
-    let lcp_script = "(async () => {
-        window.lcp = await new Promise(resolve => {
-            (new PerformanceObserver(entryList => {
-                resolve(entryList.getEntries()[0]);
-            }))
-            .observe({type: 'largest-contentful-paint', buffered: true});
-        })
-    })();";
-
-    if let Err(err) = evaluate_javascript(&servo_test, webview.clone(), lcp_script) {
-        panic!("Failed to evaluate LCP setup script: {:?}", err);
+    // Observe all largest-contentful-paint entries (buffered).
+    if let Err(err) = evaluate_javascript(&servo_test, webview.clone(), OBSERVER_SCRIPT) {
+        panic!("Failed to evaluate LCP observer script: {:?}", err);
     }
 
-    // Read from a global variable used to store the result since evaluate_javascript doesn't handle Promises
-    let lcp = evaluate_javascript(&servo_test, webview.clone(), "window.lcp;");
-    assert_eq!(lcp, Ok(JSValue::Undefined));
+    // The initial image should produce exactly one LCP entry.
+    while lcp_entry_count(&servo_test, &webview) == 0 {
+        sleep(Duration::from_millis(1));
+    }
+    assert_eq!(lcp_entry_count(&servo_test, &webview), 1);
 
-    // Reloading the WebView should re-enable LCP calculation.
+    // Simulate a click, which should halt LCP calculation.
+    click_at_point(&webview, Point2D::new(1., 1.), MouseButton::Primary);
+
+    // Append a larger image; it should not be reported because LCP is halted.
+    if let Err(err) = evaluate_javascript(&servo_test, webview.clone(), APPEND_LARGER_IMAGE_SCRIPT)
+    {
+        panic!("Failed to evaluate append image script: {:?}", err);
+    }
+
+    // Wait for the larger image to load and a rendering update to happen.
+    loop {
+        if evaluate_javascript(&servo_test, webview.clone(), "window.image2Done === true;") ==
+            Ok(JSValue::Boolean(true))
+        {
+            break;
+        }
+    }
+
+    // The LCP entry count should still be 1: the larger image was not reported.
+    // TODO: This check can miss late-added LCP entries.
+    assert_eq!(lcp_entry_count(&servo_test, &webview), 1);
+
+    // Reloading the WebView should re-enable LCP reporting.
     webview.reload();
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
 
-    if let Err(err) = evaluate_javascript(&servo_test, webview.clone(), lcp_script) {
-        panic!("Failed to evaluate LCP setup script: {:?}", err);
+    if let Err(err) = evaluate_javascript(&servo_test, webview.clone(), OBSERVER_SCRIPT) {
+        panic!("Failed to evaluate LCP observer script: {:?}", err);
     }
 
-    // Read from a global variable used to store the result since evaluate_javascript doesn't handle Promises
-    let lcp = evaluate_javascript(&servo_test, webview.clone(), "window.lcp;");
-    assert_eq!(lcp, Ok(JSValue::Object(std::collections::HashMap::new())));
+    // After reload, it should produce exactly one LCP entry.
+    while lcp_entry_count(&servo_test, &webview) == 0 {
+        sleep(Duration::from_millis(1));
+    }
+    assert_eq!(lcp_entry_count(&servo_test, &webview), 1);
 }

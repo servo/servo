@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="UTF-8">
+  <link rel="author" title="Psychpsyo" href="mailto:psychpsyo@gmail.com">
+  <script src=/resources/testharness.js></script>
+  <script src=/resources/testharnessreport.js></script>
+</head>
+<body>
+  <div contenteditable="true" id="editable"></div>
+  <script>
+    test(() => {
+      document.getSelection().selectAllChildren(editable);
+      document.execCommand("inserttext", false, "🏆");
+      assert_equals(editable.textContent, "🏆", "Surrogate pair should survive insertText");
+    }, "Surrogate pair should survive insertText");
+  </script>
+</body>

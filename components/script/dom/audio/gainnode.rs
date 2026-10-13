@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::f32;
-
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
@@ -52,6 +50,7 @@ impl GainNode {
             1, // inputs
             1, // outputs
         )?;
+        // <https://webaudio.github.io/web-audio-api/#dom-gainnode-gain>
         let gain = AudioParam::new(
             cx,
             window,

@@ -63,22 +63,23 @@ impl<N: Node> NodeSet<N> {
     }
 
     /// Assume that this set is sorted, without actually sorting it.
-    pub(crate) fn assume_sorted(&mut self) {
+    pub(crate) fn assume_sorted(&mut self, cx: &mut N::Context) {
         debug_assert!(
             self.nodes
-                .is_sorted_by(|a, b| a.compare_tree_order(b).is_le())
+                .is_sorted_by(|a, b| a.compare_tree_order(cx, b).is_le())
         );
         self.is_sorted = true;
     }
 
-    pub(crate) fn sort(&mut self) {
+    pub(crate) fn sort(&mut self, cx: &mut N::Context) {
         if self.is_sorted() {
             return;
         }
 
         // Using sort_unstable_by here is fine because duplicates won't appear in the final
         // result anyways.
-        self.nodes.sort_unstable_by(|a, b| a.compare_tree_order(b));
+        self.nodes
+            .sort_unstable_by(|a, b| a.compare_tree_order(cx, b));
     }
 
     pub(crate) fn iter(&self) -> impl Iterator<Item = &N> {
@@ -88,12 +89,14 @@ impl<N: Node> NodeSet<N> {
     /// Return the first node in tree order that appears within this set.
     ///
     /// This method will not sort the set itself.
-    pub(crate) fn first(&self) -> Option<N> {
+    pub(crate) fn first(&self, cx: &mut N::Context) -> Option<N> {
         if self.is_sorted() {
             return self.nodes.first().cloned();
         }
 
-        self.iter().min_by(|a, b| a.compare_tree_order(b)).cloned()
+        self.iter()
+            .min_by(|a, b| a.compare_tree_order(cx, b))
+            .cloned()
     }
 
     pub(crate) fn deduplicate(&mut self) {
@@ -162,8 +165,8 @@ fn num_vals<N: Node>(nodes: &NodeSet<N>) -> Vec<f64> {
         .collect()
 }
 
-impl<N: Node> PartialEq<Value<N>> for Value<N> {
-    fn eq(&self, other: &Value<N>) -> bool {
+impl<N: Node> Value<N> {
+    pub(crate) fn partial_eq(&self, cx: &mut N::Context, other: &Self) -> bool {
         match (self, other) {
             (Value::NodeSet(left_nodes), Value::NodeSet(right_nodes)) => {
                 let left_strings: HashSet<String> =
@@ -186,14 +189,12 @@ impl<N: Node> PartialEq<Value<N>> for Value<N> {
                 self.convert_to_boolean() == other.convert_to_boolean()
             },
             (&Value::Number(_), _) | (_, &Value::Number(_)) => {
-                self.convert_to_number() == other.convert_to_number()
+                self.convert_to_number(cx) == other.convert_to_number(cx)
             },
-            _ => self.convert_to_string() == other.convert_to_string(),
+            _ => self.convert_to_string(cx) == other.convert_to_string(cx),
         }
     }
-}
 
-impl<N: Node> Value<N> {
     /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#function-boolean>
     pub fn convert_to_boolean(&self) -> bool {
         match self {
@@ -205,7 +206,7 @@ impl<N: Node> Value<N> {
     }
 
     /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#function-number>
-    pub fn convert_to_number(&self) -> f64 {
+    pub fn convert_to_number(&self, cx: &mut N::Context) -> f64 {
         match self {
             Value::Boolean(boolean) => {
                 if *boolean {
@@ -216,12 +217,12 @@ impl<N: Node> Value<N> {
             },
             Value::Number(number) => *number,
             Value::String(string) => parse_number_from_string(string),
-            Value::NodeSet(_) => parse_number_from_string(&self.convert_to_string()),
+            Value::NodeSet(_) => parse_number_from_string(&self.convert_to_string(cx)),
         }
     }
 
     /// <https://www.w3.org/TR/1999/REC-xpath-19991116/#function-string>
-    pub fn convert_to_string(&self) -> String {
+    pub fn convert_to_string(&self, cx: &mut N::Context) -> String {
         match self {
             Value::Boolean(value) => value.to_string(),
             Value::Number(number) => {
@@ -240,7 +241,7 @@ impl<N: Node> Value<N> {
             },
             Value::String(string) => string.to_owned(),
             Value::NodeSet(nodes) => nodes
-                .first()
+                .first(cx)
                 .as_ref()
                 .map(Node::text_content)
                 .unwrap_or_default(),
@@ -304,41 +305,47 @@ mod tests {
 
     #[test]
     fn string_value_to_number() {
-        assert_eq!(Value::String("42.123".into()).convert_to_number(), 42.123);
-        assert_eq!(Value::String(" 42\n".into()).convert_to_number(), 42.);
+        let cx = &mut ();
+        assert_eq!(Value::String("42.123".into()).convert_to_number(cx), 42.123);
+        assert_eq!(Value::String(" 42\n".into()).convert_to_number(cx), 42.);
         assert!(
             Value::String("totally-invalid".into())
-                .convert_to_number()
+                .convert_to_number(cx)
                 .is_nan()
         );
 
         // U+2004 is non-ascii whitespace, which should be rejected
         assert!(
             Value::String("\u{2004}42".into())
-                .convert_to_number()
+                .convert_to_number(cx)
                 .is_nan()
         );
     }
 
     #[test]
     fn number_value_to_string() {
-        assert_eq!(Value::Number(f64::NAN).convert_to_string(), "NaN");
-        assert_eq!(Value::Number(0.).convert_to_string(), "0");
-        assert_eq!(Value::Number(-0.).convert_to_string(), "0");
-        assert_eq!(Value::Number(f64::INFINITY).convert_to_string(), "Infinity");
+        let cx = &mut ();
+        assert_eq!(Value::Number(f64::NAN).convert_to_string(cx), "NaN");
+        assert_eq!(Value::Number(0.).convert_to_string(cx), "0");
+        assert_eq!(Value::Number(-0.).convert_to_string(cx), "0");
         assert_eq!(
-            Value::Number(f64::NEG_INFINITY).convert_to_string(),
+            Value::Number(f64::INFINITY).convert_to_string(cx),
+            "Infinity"
+        );
+        assert_eq!(
+            Value::Number(f64::NEG_INFINITY).convert_to_string(cx),
             "-Infinity"
         );
-        assert_eq!(Value::Number(42.0).convert_to_string(), "42");
-        assert_eq!(Value::Number(-42.0).convert_to_string(), "-42");
-        assert_eq!(Value::Number(0.75).convert_to_string(), "0.75");
-        assert_eq!(Value::Number(-0.75).convert_to_string(), "-0.75");
+        assert_eq!(Value::Number(42.0).convert_to_string(cx), "42");
+        assert_eq!(Value::Number(-42.0).convert_to_string(cx), "-42");
+        assert_eq!(Value::Number(0.75).convert_to_string(cx), "0.75");
+        assert_eq!(Value::Number(-0.75).convert_to_string(cx), "-0.75");
     }
 
     #[test]
     fn boolean_value_to_string() {
-        assert_eq!(Value::Boolean(false).convert_to_string(), "false");
-        assert_eq!(Value::Boolean(true).convert_to_string(), "true");
+        let cx = &mut ();
+        assert_eq!(Value::Boolean(false).convert_to_string(cx), "false");
+        assert_eq!(Value::Boolean(true).convert_to_string(cx), "true");
     }
 }

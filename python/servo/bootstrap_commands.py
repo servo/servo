@@ -36,11 +36,12 @@ from servo.util import delete, download_bytes
 @CommandProvider
 class MachCommands(CommandBase):
     @Command("bootstrap", description="Install required packages for building.", category="bootstrap")
-    @CommandArgument("--force", "-f", action="store_true", help="Boostrap without confirmation")
+    @CommandArgument("--force", "-f", action="store_true", help="Bootstrap without confirmation")
     @CommandArgument("--yes", "-y", action="store_true", help="Answer yes to all installation prompts")
     @CommandArgument("--skip-platform", action="store_true", help="Skip platform bootstrapping.")
     @CommandArgument("--skip-lints", action="store_true", help="Skip tool necessary for linting.")
     @CommandArgument("--skip-nextest", action="store_true", help="Skip tool for running Rust tests.")
+    @CommandArgument("--ohos", action="store_true", help="Run bootstrap for cross-compiling to ohos.")
     def bootstrap(
         self,
         force: bool = False,
@@ -48,12 +49,10 @@ class MachCommands(CommandBase):
         skip_platform: bool = False,
         skip_lints: bool = False,
         skip_nextest: bool = False,
+        ohos: bool = False,
     ) -> int:
-        # Note: This entry point isn't actually invoked by ./mach bootstrap.
-        # ./mach bootstrap calls mach_bootstrap.bootstrap_command_only so that
-        # it can install dependencies without needing mach's dependencies
         try:
-            servo.platform.get().bootstrap(force, yes, skip_platform, skip_lints, skip_nextest)
+            servo.platform.get().bootstrap(force, yes, skip_platform, skip_lints, skip_nextest, ohos)
         except NotImplementedError as exception:
             print(exception)
             return 1
@@ -64,7 +63,7 @@ class MachCommands(CommandBase):
         description="Set up a local copy of the gstreamer libraries (linux only).",
         category="bootstrap",
     )
-    @CommandArgument("--force", "-f", action="store_true", help="Boostrap without confirmation")
+    @CommandArgument("--force", "-f", action="store_true", help="Bootstrap without confirmation")
     def bootstrap_gstreamer(self, force: bool = False, yes: bool = False) -> int:
         try:
             servo.platform.get().bootstrap_gstreamer(force, yes)

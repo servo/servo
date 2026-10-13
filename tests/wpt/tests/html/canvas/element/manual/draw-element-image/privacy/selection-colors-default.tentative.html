@@ -4,7 +4,7 @@
 <title>drawElementImage draws selection using default colors</title>
 <link rel="help" href="https://github.com/WICG/html-in-canvas">
 <link rel="match" href="selection-colors-default-ref.html">
-<meta name="assert" value="When preserving privacy for readback, use the CSS System Highlight colors.">
+<meta name="assert" value="During read-back allowed rendering, use the CSS System Highlight colors.">
 <script src="/common/reftest-wait.js"></script>
 <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
 <style>
@@ -21,8 +21,8 @@
   }
 </style>
 
-<canvas id=canvas width="200" height="200" layoutsubtree>
-  <div id="child">
+<canvas id=canvas width="200" height="200" content=drawable>
+  <div drawable id="child">
     <div id="editable" contenteditable="true">Many things can happen.</div>
   </div>
 </canvas>

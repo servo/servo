@@ -1,0 +1,72 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>NonDocumentTypeChildNode: previousElementSibling and nextElementSibling</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#interface-nondocumenttypechildnode">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="container">
+  <!-- comment 1 -->
+  <div id="1">1</div>
+  <!-- comment 2 -->
+  <div id="2">2</div>
+  <!-- comment 3 -->
+  <div id="3">3</div>
+  <!-- comment 4 -->
+</div>
+
+<script>
+"use strict";
+
+test(() => {
+  const container = document.getElementById("container");
+  const element2 = document.getElementById("2");
+  const text = document.createTextNode("Text");
+  const comment = document.createComment("comment");
+  container.insertBefore(text, element2);
+  container.insertBefore(comment, element2);
+  assert_equals(text.nextElementSibling, element2);
+}, "Text node's nextElementSibling skips non-element siblings");
+
+test(() => {
+  const container = document.getElementById("container");
+  const text = document.createTextNode("Text");
+  const comment = document.createComment("comment");
+  container.appendChild(comment);
+  container.appendChild(text);
+  assert_equals(text.previousElementSibling, document.getElementById("3"));
+}, "Text node's previousElementSibling skips non-element siblings");
+
+test(() => {
+  const container = document.getElementById("container");
+  const element1 = document.getElementById("1");
+  const comment1 = document.createComment("comment");
+  const comment2 = document.createComment("comment");
+  container.insertBefore(comment1, element1);
+  container.insertBefore(comment2, element1);
+  assert_equals(comment1.nextElementSibling, element1);
+}, "Comment node's nextElementSibling skips non-element siblings");
+
+test(() => {
+  const container = document.getElementById("container");
+  const comment1 = document.createComment("comment");
+  const comment2 = document.createComment("comment");
+  container.appendChild(comment1);
+  container.appendChild(comment2);
+  assert_equals(comment2.previousElementSibling, document.getElementById("3"));
+}, "Comment node's previousElementSibling skips non-element siblings");
+
+test(() => {
+  const element1 = document.getElementById("1");
+  assert_equals(element1.nextElementSibling, document.getElementById("2"));
+  assert_equals(element1.nextElementSibling.nextElementSibling, document.getElementById("3"));
+  assert_equals(element1.nextElementSibling.nextElementSibling.nextElementSibling, null);
+}, "Element's nextElementSibling chains correctly and ends with null");
+
+test(() => {
+  const element3 = document.getElementById("3");
+  assert_equals(element3.previousElementSibling, document.getElementById("2"));
+  assert_equals(element3.previousElementSibling.previousElementSibling, document.getElementById("1"));
+  assert_equals(element3.previousElementSibling.previousElementSibling.previousElementSibling, null);
+}, "Element's previousElementSibling chains correctly and ends with null");
+</script>

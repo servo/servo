@@ -17,4 +17,4 @@ testWithTypedArrayConstructors(function(TA, makeCtorArg) {
   var sample2 = new TA(makeCtorArg(42));
   var result2 = sample2.fill(7);
   assert.sameValue(result2, sample2);
-});
+}, null, null, ["immutable"]);

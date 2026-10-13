@@ -64,8 +64,8 @@ dialog {
   margin: auto;
   border: solid;
   padding: 1em;
-  background-color: white; /* FIXME: should be Canvas */
-  color: black; /* FIXME: should be CanvasText */
+  background-color: Canvas;
+  color: CanvasText;
 }
 dialog:modal {
   position: fixed;
@@ -97,7 +97,7 @@ rt { display: ruby-text; }
  * disables style sharing, so we want to apply pseudo-class selectors to as few elements as
  * possible.
  */
-a:link, area:link, link:link { color: #0000EE; }
+a:link, area:link, link:link { color: LinkText; }
 a:visited, area:visited, link:visited { color: #551A8B; }
 a:link, a:visited,
 area:link, area:visited,
@@ -131,7 +131,6 @@ q::after { content: close-quote; }
 br::before { content: "\A"; white-space: pre }
 
 nobr { white-space: nowrap; }
-wbr { display-outside: break-opportunity; } /* this also has bidi implications */
 nobr wbr { white-space: normal; }
 
 
@@ -420,4 +419,12 @@ marquee {
   inline-size: stretch;
   vertical-align: text-bottom;
   white-space: nowrap;
+}
+
+/* https://drafts.csswg.org/css-ui-4/#content-selection */
+button, meter, progress, select,
+/* https://github.com/w3c/csswg-drafts/issues/9709#issuecomment-2041439088 */
+input:is([type=color], [type=range], [type=reset], [type=button], [type=submit])
+{
+  user-select: none;
 }

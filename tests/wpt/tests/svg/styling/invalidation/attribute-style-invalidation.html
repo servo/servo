@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG attribute changes invalidate selectors and attr() values</title>
+<link rel="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
+<link rel="help" href="https://www.w3.org/TR/SVG2/types.html#InterfaceSVGLength">
+<link rel="help" href="https://www.w3.org/TR/selectors-3/#attribute-selectors">
+<link rel="help" href="https://www.w3.org/TR/2019/WD-css-values-4-20190131/#attr-notation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #selector-target[x="30"] {
+    fill: green;
+  }
+  #attr-target {
+    stroke-width: attr(data-width px);
+  }
+  #geometry-attr-target {
+    y: attr(x px);
+  }
+  #fallback-attr-target {
+    y: attr(data-y px, 5px);
+  }
+  #inherited-attr-target {
+    font-size: attr(data-size px);
+  }
+</style>
+<svg>
+  <rect id="selector-target" x="10" width="20" height="20" fill="red"></rect>
+  <rect id="attr-target" data-width="10" width="20" height="20"
+        style="opacity: 0.5"></rect>
+  <rect id="geometry-attr-target" x="10" style="opacity: 0.5"></rect>
+  <rect id="fallback-attr-target" x="10" data-y="20"></rect>
+  <g id="inherited-attr-target" opacity="0.5" data-size="10">
+    <rect id="inherited-attr-child" x="2em"></rect>
+  </g>
+</svg>
+<script>
+  test(() => {
+    const target = document.getElementById("selector-target");
+    target.getBoundingClientRect();
+    assert_equals(getComputedStyle(target).fill, "rgb(255, 0, 0)");
+
+    target.x.baseVal.value = 30;
+
+    assert_equals(getComputedStyle(target).fill, "rgb(0, 128, 0)");
+  }, "Changing an SVG length through baseVal updates attribute selector matching");
+
+  test(() => {
+    const target = document.getElementById("attr-target");
+    target.getBoundingClientRect();
+    assert_equals(getComputedStyle(target).strokeWidth, "10px");
+
+    // Keep both mutations pending until the next style read.
+    target.style.opacity = "0.75";
+    target.setAttribute("data-width", "30");
+
+    assert_equals(getComputedStyle(target).strokeWidth, "30px");
+    assert_equals(getComputedStyle(target).opacity, "0.75");
+  }, "An attribute change updates attr() after a pending inline style change");
+
+  test(() => {
+    const target = document.getElementById("geometry-attr-target");
+    assert_equals(getComputedStyle(target).y, "10px");
+
+    target.style.opacity = "0.75";
+    target.x.baseVal.value = 30;
+
+    assert_equals(getComputedStyle(target).x, "30px");
+    assert_equals(getComputedStyle(target).y, "30px");
+    assert_equals(getComputedStyle(target).opacity, "0.75");
+  }, "SVG attr() is invalidated by baseVal after an inline style change");
+
+  test(() => {
+    const target = document.getElementById("fallback-attr-target");
+    assert_equals(getComputedStyle(target).y, "20px");
+
+    target.setAttribute("x", "30");
+    target.removeAttribute("data-y");
+    assert_equals(getComputedStyle(target).y, "5px",
+                  "Removing the attribute must select the fallback");
+
+    target.setAttribute("x", "40");
+    target.setAttribute("data-y", "50");
+    assert_equals(getComputedStyle(target).y, "50px",
+                  "The fallback must retain the attribute dependency");
+  }, "SVG attr() tracks attribute removal and addition after geometry changes");
+
+  test(() => {
+    const target = document.getElementById("inherited-attr-target");
+    const child = document.getElementById("inherited-attr-child");
+    assert_equals(getComputedStyle(child).x, "20px");
+
+    target.setAttribute("opacity", "0.75");
+    target.setAttribute("data-size", "20");
+    assert_equals(getComputedStyle(target).fontSize, "20px");
+    assert_equals(getComputedStyle(child).x, "40px",
+                  "Inherited attr() changes must update font-relative geometry");
+  }, "SVG attr() invalidation propagates inherited changes to descendants");
+</script>

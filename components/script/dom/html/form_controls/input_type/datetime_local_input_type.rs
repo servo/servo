@@ -17,6 +17,10 @@ pub(crate) struct DatetimeLocalInputType {
 }
 
 impl SpecificInputType for DatetimeLocalInputType {
+    fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>> {
+        Some(&self.text_input_widget)
+    }
+
     fn sanitize_value(&self, _input: &HTMLInputElement, value: &mut DOMString) {
         let time = value
             .str()

@@ -28,7 +28,7 @@ pub trait Dom {
 }
 
 /// A handle to a DOM node exposing all functionality needed by xpath.
-pub trait Node: Eq + Clone + fmt::Debug {
+pub trait Node: Clone + fmt::Debug {
     type Context;
 
     type ProcessingInstruction: ProcessingInstruction;
@@ -46,7 +46,7 @@ pub trait Node: Eq + Clone + fmt::Debug {
     fn parent(&self) -> Option<Self>;
     fn children(&self) -> impl Iterator<Item = Self>;
     /// <https://dom.spec.whatwg.org/#concept-tree-order>
-    fn compare_tree_order(&self, other: &Self) -> std::cmp::Ordering;
+    fn compare_tree_order(&self, cx: &mut Self::Context, other: &Self) -> std::cmp::Ordering;
     /// A non-shadow-including preorder traversal.
     fn traverse_preorder(&self) -> impl Iterator<Item = Self>;
     fn inclusive_ancestors(&self) -> impl Iterator<Item = Self>;
@@ -127,7 +127,7 @@ pub fn evaluate_parsed_xpath<D: Dom>(
         Ok(mut value) => {
             if let Value::NodeSet(node_set) = &mut value {
                 node_set.deduplicate();
-                node_set.sort();
+                node_set.sort(cx);
             }
 
             log::debug!("Evaluated XPath: {value:?}");
@@ -232,7 +232,7 @@ mod dummy_implementation {
         fn children(&self) -> impl Iterator<Item = Self> {
             iter::empty()
         }
-        fn compare_tree_order(&self, _: &Self) -> cmp::Ordering {
+        fn compare_tree_order(&self, _: &mut Self::Context, _: &Self) -> cmp::Ordering {
             cmp::Ordering::Greater
         }
         fn traverse_preorder(&self) -> impl Iterator<Item = Self> {

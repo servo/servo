@@ -1,0 +1,29 @@
+<!doctype html>
+<html class="test-wait">
+<title>Chrome 565742178 crash bug</title>
+<link rel="help" href="https://crbug.com/565742178">
+<!-- 1. <use> clones <g pseudo="-webkit-poc" a b c d> (5 attributes) and its child <image> into the
+        <use> element's user-agent shadow root. The cloned <image> cannot decode its data and fires
+        "error"; evt.target is that clone, so E below is the cloned <g> inside the shadow root.
+     2. E.style.fill = 'red' gives E its own attribute vector (exactly full: 5 entries) plus a dirty,
+        not yet serialized "style" attribute.
+     3. getComputedStyle(E).fill recalculates E's style: ElementRuleCollector::CollectMatchingRulesInternal
+        keeps `const AtomicString& pseudo_id` pointing into that vector; matching sheet 1's
+        @scope ([style]) prelude serializes E's style attribute and appends it, which reallocates the
+        vector; the ::-webkit-poc lookup for sheet 2 then reads pseudo_id from the freed buffer. -->
+<style>@scope ([style]) { ::-webkit-poc { fill: blue; } }</style>
+<style>::-webkit-poc { stroke: blue; }</style>
+<script>
+  function crash(image) {
+    const g = image.parentNode;
+    if (g.getRootNode() === document) {
+      // ignore the original <image>; only the <use> instance matters
+      return;
+    }
+    g.style.fill = 'red';
+    getComputedStyle(g).fill;
+    document.documentElement.className = "";
+  }
+</script>
+<svg><defs><g id="t"><g pseudo="-webkit-poc" a="1" b="2" c="3" d="4">
+<image href="data:image/png;base64,AAAA" onerror="crash(evt.target)"/></g></g></defs><use href="#t"/></svg>

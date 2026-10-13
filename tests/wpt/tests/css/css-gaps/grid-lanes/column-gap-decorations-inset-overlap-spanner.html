@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: normal column rules stop outside an overlap window containing a spanner</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#segments-algorithms">
+<link rel="match" href="column-gap-decorations-inset-overlap-spanner-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: 80px 80px;
+    gap: 40px;
+    background: #cdd5e0;
+    width: 200px;
+    column-rule: 4px solid blue;
+    column-rule-break: normal;
+    column-rule-inset: 25%;
+  }
+  .lanes > div { background: #5b8def; }
+  .a { grid-column: 1; height: 40px; }
+  .b { grid-column: 2; height: 45px; }
+  .p { grid-column: 1; height: 20px; margin-bottom: -40px; }
+  .lanes > div.s {
+    grid-column: 1 / 3;
+    height: 20px;
+    margin-bottom: -40px;
+    background: purple;
+    color: white;
+    font: 12px/20px sans-serif;
+    text-align: center;
+  }
+  .c { grid-column: 1; height: 40px; }
+  .d { grid-column: 2; height: 40px; }
+</style>
+<div class="lanes">
+  <div class="a"></div>
+  <div class="b"></div>
+  <div class="p"></div>
+  <div class="s">Spans both lanes</div>
+  <div class="c"></div>
+  <div class="d"></div>
+</div>

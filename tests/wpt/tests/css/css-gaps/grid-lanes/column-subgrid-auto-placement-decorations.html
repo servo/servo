@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: an auto-placed column subgrid paints rules using its final grid-lanes tracks and position</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="column-subgrid-auto-placement-decorations-ref.html">
+<style>
+  body {
+    margin: 0;
+  }
+  .scene {
+    height: 122px;
+    width: 310px;
+  }
+  .lanes {
+    background: lightgray;
+    column-gap: 20px;
+    display: grid-lanes;
+    flow-tolerance: 0px;
+    grid-template-columns: 40px 70px 50px 90px;
+    height: 122px;
+    row-gap: 20px;
+    width: 310px;
+  }
+  .blocker {
+    background: purple;
+  }
+  .blocker-one {
+    grid-column: 1;
+    height: 120px;
+  }
+  .blocker-two {
+    grid-column: 2;
+    height: 100px;
+  }
+  .blocker-three {
+    grid-column: 3;
+    height: 30px;
+  }
+  .blocker-four {
+    grid-column: 4;
+    height: 30px;
+  }
+  .subgrid {
+    column-rule: 6px solid blue;
+    display: grid;
+    grid-column: span 2;
+    grid-template-columns: subgrid;
+    grid-template-rows: repeat(2, 30px);
+    row-gap: 12px;
+    row-rule: 4px solid gold;
+  }
+  .cell {
+    background: teal;
+  }
+</style>
+<div class="scene">
+  <div class="lanes">
+    <div class="blocker blocker-one"></div>
+    <div class="blocker blocker-two"></div>
+    <div class="blocker blocker-three"></div>
+    <div class="blocker blocker-four"></div>
+    <div class="subgrid">
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+    </div>
+  </div>
+</div>

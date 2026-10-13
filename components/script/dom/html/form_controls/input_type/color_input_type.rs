@@ -3,11 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 use std::cell::Ref;
 
-use cssparser::{Parser, ParserInput};
+use cssparser::Parser;
 use embedder_traits::{EmbedderControlRequest, RgbColor};
-use html5ever::{local_name, ns};
+use html5ever::local_name;
 use js::context::JSContext;
-use markup5ever::QualName;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLInputElementBinding::HTMLInputElementMethods;
 use script_bindings::root::{Dom, DomRoot};
@@ -16,20 +15,23 @@ use style::selector_parser::PseudoElement;
 use style::stylesheets::CssRuleType;
 use style::values::specified::Color;
 use style_traits::{ParsingMode, ToCss};
-use url::Url;
 
-use crate::css::parser_context_for_anonymous_content;
+use crate::css::css::{ANONYMOUS_CONTENT_URL_DATA, parser_context_for_anonymous_content};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::{DOMString, FromInputValueString};
 use crate::dom::document_embedder_controls::ControlElement;
 use crate::dom::element::attributes::storage::AttrRef;
-use crate::dom::element::{AttributeMutation, CustomElementCreationMode, Element, ElementCreator};
+use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::form_controls::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::htmlformelement::HTMLFormElement;
+use crate::dom::input_type::text_input_widget::TextInputWidget;
 use crate::dom::node::{Node, NodeTraits, UnbindContext};
+use crate::dom::shadowroot::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::ua_shadowroot::{SpecificShadowTree, UAShadowRoot};
+use crate::dom::text_control::TextControlElement;
 
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -58,30 +60,6 @@ impl ColorInputType {
         let _ = input.SetValue(cx, formatted_color.into());
     }
 
-    /// Get the shadow tree for this [`HTMLInputElement`], if it is created and valid, otherwise
-    /// recreate the shadow tree and return it.
-    fn get_or_create_shadow_tree(
-        &self,
-        cx: &mut JSContext,
-        input: &HTMLInputElement,
-    ) -> Ref<'_, ColorInputShadowTree> {
-        {
-            if let Ok(shadow_tree) = Ref::filter_map(self.shadow_tree.borrow(), |shadow_tree| {
-                shadow_tree.as_ref()
-            }) {
-                return shadow_tree;
-            }
-        }
-
-        let element = input.upcast::<Element>();
-        let shadow_root = element
-            .shadow_root()
-            .unwrap_or_else(|| element.attach_ua_shadow_root(cx, true));
-        let shadow_root = shadow_root.upcast();
-        *self.shadow_tree.borrow_mut() = Some(ColorInputShadowTree::new(cx, shadow_root));
-        self.get_or_create_shadow_tree(cx, input)
-    }
-
     /// <https://html.spec.whatwg.org/multipage/#update-a-color-well-control-color>
     pub(crate) fn update_a_color_well_control_color(
         input: &HTMLInputElement,
@@ -97,10 +75,7 @@ impl ColorInputType {
 
         // Step 3. Let color be the result of parsing value.
         // Step 4. If color is failure, then set color to opaque black.
-        let color = parse_color_value(
-            &value.str(),
-            input.owner_document().url().as_url().to_owned(),
-        );
+        let color = parse_color_value(&value.str());
 
         // Step 5. Set element's value to the result of serializing a color well control color
         // given element and color.
@@ -185,6 +160,10 @@ impl ColorInputType {
 }
 
 impl SpecificInputType for ColorInputType {
+    fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>> {
+        None
+    }
+
     fn sanitize_value(&self, input: &HTMLInputElement, value: &mut DOMString) {
         // > The value sanitization algorithm is as follows:
         // > Run update a color well control color for the element.
@@ -199,11 +178,8 @@ impl SpecificInputType for ColorInputType {
     fn show_the_picker_if_applicable(&self, input: &HTMLInputElement) {
         let document = input.owner_document();
         let current_value = input.Value();
-        let current_color = parse_color_value(
-            &current_value.str(),
-            input.owner_document().url().as_url().to_owned(),
-        )
-        .to_color_space(ColorSpace::Srgb);
+        let current_color =
+            parse_color_value(&current_value.str()).to_color_space(ColorSpace::Srgb);
         let current_color = RgbColor {
             red: (current_color.components.0 * 255.0).round() as u8,
             green: (current_color.components.1 * 255.0).round() as u8,
@@ -217,7 +193,8 @@ impl SpecificInputType for ColorInputType {
     }
 
     fn update_shadow_tree(&self, cx: &mut JSContext, input: &HTMLInputElement) {
-        self.get_or_create_shadow_tree(cx, input).update(cx, input)
+        self.ensure_shadow_tree(cx, input.upcast())
+            .update(cx, self, input)
     }
 
     fn attribute_mutated(
@@ -232,10 +209,10 @@ impl SpecificInputType for ColorInputType {
                 // https://html.spec.whatwg.org/multipage/#attr-input-colorspace
                 // > Whenever the element's alpha or colorspace attributes are changed,
                 // the user agent must run update a color well control color given the element.
-                let mut textinput = input.textinput_mut();
-                let mut value = textinput.get_content();
+                let mut text_input = input.text_input_mut();
+                let mut value = text_input.get_content();
                 Self::update_a_color_well_control_color(input, &mut value);
-                textinput.set_content(value);
+                text_input.set_content(value);
             },
             _ => {},
         }
@@ -268,17 +245,16 @@ impl SpecificInputActivationType for ColorInputActivation {
     }
 }
 
-fn parse_color_value(value: &str, url: Url) -> AbsoluteColor {
-    // TODO: Use a dummy url here, like gecko
-    // https://searchfox.org/firefox-main/rev/3eaf7e2acf8186eb7aa579561eaa1312cb89132b/servo/ports/geckolib/glue.rs#8931
-    let urlextradata = url.into();
+fn parse_color_value(value: &str) -> AbsoluteColor {
+    // Color-parsing does not use a URL, but ParserContext requires it as a parameter.
+    // We pass ANONYMOUS_CONTENT_URL_DATA since that's cheap and it will be ignored anyway.
+    let urlextradata = &ANONYMOUS_CONTENT_URL_DATA;
     let context = parser_context_for_anonymous_content(
         CssRuleType::Style,
         ParsingMode::DEFAULT,
-        &urlextradata,
+        urlextradata,
     );
-    let mut input = ParserInput::new(value);
-    let mut input = Parser::new(&mut input);
+    let mut input = Parser::new(value);
     Color::parse_and_compute(&context, &mut input, None)
         .map(|computed_color| computed_color.resolve_to_absolute(&AbsoluteColor::BLACK))
         .unwrap_or(AbsoluteColor::BLACK)
@@ -296,14 +272,10 @@ pub(crate) struct ColorInputShadowTree {
 
 impl ColorInputShadowTree {
     pub(crate) fn new(cx: &mut JSContext, shadow_root: &Node) -> Self {
-        let color_value = Element::create(
+        let color_value = Self::create_element_in_ua_shadowroot(
             cx,
-            QualName::new(None, ns!(html), local_name!("div")),
-            None,
             &shadow_root.owner_document(),
-            ElementCreator::ScriptCreated,
-            CustomElementCreationMode::Asynchronous,
-            None,
+            local_name!("div"),
         );
 
         Node::replace_all(cx, Some(color_value.upcast()), shadow_root.upcast());
@@ -315,11 +287,23 @@ impl ColorInputShadowTree {
             color_value: color_value.as_traced(),
         }
     }
+}
 
-    pub(crate) fn update(&self, cx: &mut JSContext, input_element: &HTMLInputElement) {
+impl SpecificShadowTree<HTMLInputElement, ColorInputType> for ColorInputShadowTree {
+    fn update(&self, cx: &mut JSContext, _: &ColorInputType, input_element: &HTMLInputElement) {
         let value = input_element.Value();
         let style = format!("background-color: {value}");
         self.color_value
             .set_string_attribute(cx, &local_name!("style"), style.into());
+    }
+}
+
+impl UAShadowRoot<ColorInputShadowTree> for ColorInputType {
+    fn store_for_shadow_tree(&self, cx: &mut JSContext, shadow_root: DomRoot<ShadowRoot>) {
+        *self.shadow_tree.borrow_mut() = Some(ColorInputShadowTree::new(cx, shadow_root.upcast()));
+    }
+
+    fn borrow_for_shadow_tree(&self) -> Ref<'_, Option<ColorInputShadowTree>> {
+        self.shadow_tree.borrow()
     }
 }

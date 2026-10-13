@@ -66,11 +66,11 @@ def assert_browsing_context(
     assert info["originalOpener"] == original_opener
 
 
-async def assert_document_status(bidi_session, context, visible, focused):
+async def assert_document_status(bidi_session, context, get_document_focus, visible, focused):
     state = "visible" if visible else "hidden"
 
     assert await get_visibility_state(bidi_session, context) == state
-    assert await get_document_focus(bidi_session, context) is focused
+    assert await get_document_focus(context) is focused
 
 
 def assert_navigation_info(event, expected_navigation_info):
@@ -101,16 +101,6 @@ def assert_navigation_info(event, expected_navigation_info):
     # https://github.com/w3c/webdriver-bidi/issues/1071 is resolved.
     if "userContext" in expected_navigation_info and "userContext" in event:
         assert event["userContext"] == expected_navigation_info["userContext"]
-
-
-async def get_document_focus(bidi_session, context: Mapping[str, Any]) -> str:
-    result = await bidi_session.script.call_function(
-        function_declaration="""() => {
-        return document.hasFocus();
-    }""",
-        target=ContextTarget(context["context"]),
-        await_promise=False)
-    return result["value"]
 
 
 async def get_visibility_state(bidi_session, context: Mapping[str, Any]) -> str:

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: declarative form tool execution with flexible input argument types</title>
+<link rel="author" href="mailto:beaufort.francois@gmail.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/helpers.js"></script>
+
+<form toolautosubmit toolname="flexible_tool" tooldescription="Flexible types tool" action="about:blank" target="flex_iframe">
+  <input id="text" name="text" type="text">
+  <input id="number" name="number" type="number">
+  <input id="check1" name="check1" type="checkbox">
+  <select id="select" name="select">
+    <option value="1">One</option>
+    <option value="2">Two</option>
+    <option value="3">Three</option>
+  </select>
+</form>
+<iframe name="flex_iframe" style="display:none"></iframe>
+
+<script>
+promise_test(async t => {
+  const form = document.querySelector('form');
+  const textInput = document.querySelector('#text');
+  const numberInput = document.querySelector('#number');
+  const checkboxInput = document.querySelector('#check1');
+  const selectElement = document.querySelector('#select');
+
+  let textVal, numberVal, checkVal, selectVal;
+
+  form.addEventListener('submit', e => {
+    textVal = textInput.value;
+    numberVal = numberInput.value;
+    checkVal = checkboxInput.checked;
+    selectVal = selectElement.value;
+    e.preventDefault();
+    e.respondWith(Promise.resolve('done'));
+  });
+
+  const tool = await waitForTool('flexible_tool');
+
+  // Test with numeric value for text, string for number, numeric 1 for checkbox, and number for select.
+  await document.modelContext.executeTool(tool, {
+    text: 123,
+    number: "456",
+    check1: 1,
+    select: 2,
+  });
+
+  assert_equals(textVal, '123', 'Number should be coerced to string for text input');
+  assert_equals(numberVal, '456', 'String should populate number input');
+  assert_true(checkVal, '1 should check checkbox');
+  assert_equals(selectVal, '2', 'Number 2 should select option with value "2"');
+
+  // Test with boolean string for checkbox and numeric string for select.
+  await document.modelContext.executeTool(tool, {
+    check1: 'false',
+    select: '3',
+  });
+
+  assert_false(checkVal, '"false" should uncheck checkbox');
+  assert_equals(selectVal, '3', 'String "3" should select option with value "3"');
+}, 'Declarative form tool coerces flexible input types appropriately');
+</script>

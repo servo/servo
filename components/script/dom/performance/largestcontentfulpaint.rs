@@ -4,9 +4,10 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use layout_api::LCPCandidate;
+use paint_api::display_list::PaintTimingInfo;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::cross_process_instant::CrossProcessInstant;
-use servo_url::ServoUrl;
 use time::Duration;
 
 use super::performanceentry::{EntryType, PerformanceEntry};
@@ -25,55 +26,66 @@ use crate::dom::node::Node;
 pub(crate) struct LargestContentfulPaint {
     entry: PerformanceEntry,
     #[no_trace]
-    load_time: CrossProcessInstant,
+    load_time: Option<CrossProcessInstant>,
     #[no_trace]
     render_time: CrossProcessInstant,
     size: usize,
     url: DOMString,
     element: Option<Dom<Element>>,
+    /// <https://www.w3.org/TR/paint-timing/#paint-timing-info>
+    #[no_trace]
+    paint_timing_info: PaintTimingInfo,
 }
 
 impl LargestContentfulPaint {
     pub(crate) fn new_inherited(
-        render_time: CrossProcessInstant,
-        size: usize,
-        url: Option<ServoUrl>,
+        candidate: &LCPCandidate,
         element: Option<&Element>,
+        load_time: Option<CrossProcessInstant>,
+        paint_timing_info: PaintTimingInfo,
     ) -> LargestContentfulPaint {
+        // From: <https://www.w3.org/TR/largest-contentful-paint/#sec-largest-contentful-paint-interface>
+        //
+        // The renderTime attribute must return the default paint timestamp
+        // given this’s paint timing info.
+        let render_time = paint_timing_info.default_paint_timestamp();
         LargestContentfulPaint {
             entry: PerformanceEntry::new_inherited(
-                DOMString::from(""),
+                DOMString::new(),
                 EntryType::LargestContentfulPaint,
                 Some(render_time),
                 Duration::ZERO,
             ),
-            load_time: CrossProcessInstant::epoch(),
+            load_time,
             render_time,
-            size,
-            url: url.map(|u| DOMString::from(u.as_str())).unwrap_or_default(),
-            element: Some(Dom::from_ref(
-                element.expect("Element for LCP entry should be non-null"),
-            )),
+            size: candidate.area,
+            url: candidate
+                .url
+                .as_ref()
+                .map(|url| DOMString::from(url.as_str()))
+                .unwrap_or_default(),
+            element: element.map(Dom::from_ref),
+            paint_timing_info,
         }
     }
 
     pub(crate) fn new(
         cx: &mut JSContext,
         global: &GlobalScope,
-        render_time: CrossProcessInstant,
-        size: usize,
-        url: Option<ServoUrl>,
+        candidate: &LCPCandidate,
         element: Option<&Element>,
+        load_time: Option<CrossProcessInstant>,
+        paint_timing_info: PaintTimingInfo,
     ) -> DomRoot<LargestContentfulPaint> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(LargestContentfulPaint::new_inherited(
-                render_time,
-                size,
-                url,
+                candidate,
                 element,
+                load_time,
+                paint_timing_info,
             )),
             global,
-            cx,
         )
     }
 }
@@ -83,7 +95,7 @@ impl LargestContentfulPaintMethods<crate::DomTypeHolder> for LargestContentfulPa
     fn LoadTime(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
         self.global()
             .performance(cx)
-            .to_dom_high_res_time_stamp(self.load_time)
+            .maybe_to_dom_high_res_time_stamp(self.load_time)
     }
 
     /// <https://www.w3.org/TR/largest-contentful-paint/#dom-largestcontentfulpaint-rendertime>
@@ -120,5 +132,21 @@ impl LargestContentfulPaintMethods<crate::DomTypeHolder> for LargestContentfulPa
                     .is_connected_with_browsing_context()
             })
             .map(|element| element.as_rooted())
+    }
+
+    /// <https://www.w3.org/TR/paint-timing/#dom-painttimingmixin-painttime>
+    fn PaintTime(&self, cx: &mut JSContext) -> DOMHighResTimeStamp {
+        self.global()
+            .performance(cx)
+            .to_dom_high_res_time_stamp(self.paint_timing_info.paint_time())
+    }
+
+    /// <https://www.w3.org/TR/paint-timing/#dom-painttimingmixin-presentationtime>
+    fn GetPresentationTime(&self, cx: &mut JSContext) -> Option<DOMHighResTimeStamp> {
+        Some(
+            self.global()
+                .performance(cx)
+                .maybe_to_dom_high_res_time_stamp(self.paint_timing_info.presentation_time()),
+        )
     }
 }

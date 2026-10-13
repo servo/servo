@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>text-overflow: &lt;string&gt; in a textarea with field-sizing: content and max-width</title>
+<link rel="author" title="Minseong Kim" href="jja08111@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#text-overflow">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#field-sizing">
+<link rel="mismatch" href="text-overflow-string-in-textarea-field-sizing-content-notref.html">
+<meta name="assert" content="A textarea sized by field-sizing: content whose intrinsic width is clamped by max-width truncates the overflowing line with the text-overflow string.">
+<style>
+textarea {
+  field-sizing: content;
+  max-width: 100px;
+  white-space: nowrap;
+  text-overflow: "[...]";
+}
+</style>
+<textarea>aaaaaaaaaaaaaaaa</textarea>

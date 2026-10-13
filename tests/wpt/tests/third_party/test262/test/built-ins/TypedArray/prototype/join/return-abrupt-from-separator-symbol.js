@@ -23,10 +23,10 @@ features: [Symbol, TypedArray]
 
 var s = Symbol("");
 
-testWithTypedArrayConstructors(function(TA) {
-  var sample = new TA();
+testWithTypedArrayConstructors(function(TA, makeCtorArg) {
+  var sample = new TA(makeCtorArg(0));
 
   assert.throws(TypeError, function() {
     sample.join(s);
   });
-}, null, ["passthrough"]);
+});

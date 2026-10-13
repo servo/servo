@@ -18,10 +18,10 @@ pub(crate) fn execute_unlink_command(cx: &mut JSContext, selection: &Selection) 
     // Step 1. Let hyperlinks be a list of every a element that has an href attribute
     // and is contained in the active range or is an ancestor of one of its boundary points.
     let active_range = selection
-        .active_range()
+        .active_range(cx)
         .expect("Must always have an active range");
     let mut hyperlinks = vec![];
-    active_range.for_each_effectively_contained_child(|node| {
+    active_range.for_each_effectively_contained_child(cx, |_cx, node| {
         if let Some(anchor) = node.downcast::<HTMLAnchorElement>() &&
             anchor
                 .upcast::<Element>()

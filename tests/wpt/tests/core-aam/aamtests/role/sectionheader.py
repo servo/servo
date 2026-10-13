@@ -26,9 +26,13 @@ def test_atspi(atspi, session, inline):
 #     # Role: ROLE_SYSTEM_GROUPING
 #     # Object Attribute: xml-roles:sectionheader
 
-# def test_uia(uia, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # Control Type: Group
-#     # Localized Control Type: section header
+def test_uia(uia, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Control Type: Group
+    # Localized Control Type: section header
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.Group
+    assert node.CurrentLocalizedControlType == "section header"

@@ -4,7 +4,7 @@
 /*---
 esid: sec-createdatetimeformat
 description: >
-  Tests that Intl.DateTimeFormat contructor converts the options argument
+  Tests that Intl.DateTimeFormat constructor converts the options argument
   to an object using `ToObject` (7.1.13).
 
 ---*/

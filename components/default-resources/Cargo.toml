@@ -14,3 +14,6 @@ path = "lib.rs"
 
 [dependencies]
 embedder_traits = { workspace = true }
+
+[lints]
+workspace = true

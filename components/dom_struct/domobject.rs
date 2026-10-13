@@ -6,21 +6,14 @@ use quote::{TokenStreamExt, quote};
 
 /// First field of DomObject must be either reflector or another dom_struct,
 /// all other fields must not implement DomObject
-pub(crate) fn expand_dom_object(
-    input: syn::ItemStruct,
-    associated_memory: bool,
-) -> proc_macro2::TokenStream {
+pub(crate) fn expand_dom_object(input: syn::ItemStruct) -> proc_macro2::TokenStream {
     let fields = input.fields.iter().collect::<Vec<&syn::Field>>();
     let (first_field, fields) = fields
         .split_first()
         .expect("#[dom_struct] should not be applied on empty structs");
 
     let first_field_name = first_field.ident.as_ref().unwrap();
-    let reflector_type = if associated_memory {
-        quote! { crate::AssociatedMemory }
-    } else {
-        quote! { () }
-    };
+    let first_field_ty = &first_field.ty;
     let mut field_types_and_cfgs = vec![];
     for field in fields {
         if field_types_and_cfgs.contains(&(&field.ty, vec![])) {
@@ -38,14 +31,14 @@ pub(crate) fn expand_dom_object(
     let (impl_generics, ty_generics, where_clause) = input.generics.split_for_impl();
     let items = quote! {
         impl #impl_generics ::js::conversions::ToJSValConvertible for #name #ty_generics #where_clause {
-            fn safe_to_jsval(&self, cx: &mut js::context::JSContext, rval: js::rust::MutableHandleValue) {
+            fn to_jsval(&self, cx: &mut js::context::JSContext, rval: js::rust::MutableHandleValue) {
                 let object = crate::DomObject::reflector(self).get_jsobject();
-                object.safe_to_jsval(cx, rval);
+                object.to_jsval(cx, rval);
             }
         }
 
         impl #impl_generics crate::DomObject for #name #ty_generics #where_clause {
-            type ReflectorType = #reflector_type;
+            type ReflectorType = <#first_field_ty as crate::DomObject>::ReflectorType;
 
             #[inline]
             fn reflector(&self) -> &crate::Reflector<Self::ReflectorType> {

@@ -6,5 +6,8 @@
 
 ::-webkit-scrollbar-track {
     background-color: #eee;
-    border-radius: 8px;
+}
+
+html {
+  scrollbar-color: #eee #eee;
 }

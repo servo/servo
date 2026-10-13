@@ -26,11 +26,12 @@
 
     function waitForMessageAsync(expected_frame_id, expected_command) {
       return new Promise((resolve) => {
-        window.addEventListener('message', (event) => {
-          assert_equals(event.data.command, expected_command);
-          assert_equals(event.data.frame_id, expected_frame_id);
-          resolve(event.data.scrollTop);
-        }, { once: true });
+        window.addEventListener('message', (event) => resolve(event.data),
+                               { once: true });
+      }).then((data) => {
+        assert_equals(data.command, expected_command);
+        assert_equals(data.frame_id, expected_frame_id);
+        return data.scrollTop;
       });
     }
 

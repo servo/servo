@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Reference</title>
+<style>
+.clamp {
+  line-clamp: 2 auto;
+  max-height: 2.5lh;
+  font: 20px / 20px monospace;
+  width: 12ch;
+  background: yellow;
+}
+.line-box-sizer {
+  display: inline-block;
+  width: 1ch;
+  height: 2lh;
+  background: orange;
+}
+</style>
+<div class="clamp">
+  <span class="line-box-sizer"></span>
+  Line 1<br>
+  Line 2<br>
+  Line 3<br>
+  Line 4
+</div>

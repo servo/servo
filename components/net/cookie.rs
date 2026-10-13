@@ -11,11 +11,12 @@ use std::time::SystemTime;
 
 use cookie::Cookie;
 use log::{Level, debug, log_enabled};
-use net_traits::CookieSource;
+use malloc_size_of_derive::MallocSizeOf;
 use net_traits::pub_domains::is_pub_domain;
+use net_traits::{CookieSource, ends_with_ignore_ascii_case};
 use nom::branch::alt;
 use nom::bytes::complete::{tag, tag_no_case, take, take_while_m_n};
-use nom::combinator::{opt, recognize};
+use nom::combinator::{opt, recognize, value};
 use nom::multi::{many0, many1, separated_list1};
 use nom::sequence::{delimited, preceded, terminated};
 use nom::{IResult, Parser};
@@ -26,7 +27,7 @@ use time::{Date, Duration, Month, OffsetDateTime, Time};
 /// A stored cookie that wraps the definition in cookie-rs. This is used to implement
 /// various behaviours defined in the spec that rely on an associated request URL,
 /// which cookie-rs and hyper's header parsing do not support.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub struct ServoCookie {
     #[serde(
         deserialize_with = "hyper_serde::deserialize",
@@ -249,7 +250,6 @@ impl ServoCookie {
 
             // 3. The cookie-attribute-list contains an attribute with an attribute-name of "Path",
             // and the cookie's path is /.
-            #[allow(clippy::nonminimal_bool)]
             if !has_path_specified || !cookie.path().is_some_and(|path| path == "/") {
                 return None;
             }
@@ -326,11 +326,8 @@ impl ServoCookie {
 
     /// <http://tools.ietf.org/html/rfc6265#section-5.1.3>
     pub fn domain_match(string: &str, domain_string: &str) -> bool {
-        let string = &string.to_lowercase();
-        let domain_string = &domain_string.to_lowercase();
-
-        string == domain_string ||
-            (string.ends_with(domain_string) &&
+        string.eq_ignore_ascii_case(domain_string) ||
+            (ends_with_ignore_ascii_case(string, domain_string) &&
                 string.as_bytes()[string.len() - domain_string.len() - 1] == b'.' &&
                 string.parse::<Ipv4Addr>().is_err() &&
                 string.parse::<Ipv6Addr>().is_err())
@@ -464,18 +461,18 @@ impl ServoCookie {
         let month = |input| {
             terminated(
                 alt((
-                    tag_no_case("jan"),
-                    tag_no_case("feb"),
-                    tag_no_case("mar"),
-                    tag_no_case("apr"),
-                    tag_no_case("may"),
-                    tag_no_case("jun"),
-                    tag_no_case("jul"),
-                    tag_no_case("aug"),
-                    tag_no_case("sep"),
-                    tag_no_case("oct"),
-                    tag_no_case("nov"),
-                    tag_no_case("dec"),
+                    value(Month::January, tag_no_case("jan")),
+                    value(Month::February, tag_no_case("feb")),
+                    value(Month::March, tag_no_case("mar")),
+                    value(Month::April, tag_no_case("apr")),
+                    value(Month::May, tag_no_case("may")),
+                    value(Month::June, tag_no_case("jun")),
+                    value(Month::July, tag_no_case("jul")),
+                    value(Month::August, tag_no_case("aug")),
+                    value(Month::September, tag_no_case("sep")),
+                    value(Month::October, tag_no_case("oct")),
+                    value(Month::November, tag_no_case("nov")),
+                    value(Month::December, tag_no_case("dec")),
                 )),
                 any_octets,
             )
@@ -540,25 +537,7 @@ impl ServoCookie {
                 let Ok((_, result)) = month(date_token)
             {
                 // set the found-month flag and set the month-value to the month denoted by the date-token.
-                month_value = match std::str::from_utf8(result)
-                    .unwrap()
-                    .to_ascii_lowercase()
-                    .as_str()
-                {
-                    "jan" => Some(Month::January),
-                    "feb" => Some(Month::February),
-                    "mar" => Some(Month::March),
-                    "apr" => Some(Month::April),
-                    "may" => Some(Month::May),
-                    "jun" => Some(Month::June),
-                    "jul" => Some(Month::July),
-                    "aug" => Some(Month::August),
-                    "sep" => Some(Month::September),
-                    "oct" => Some(Month::October),
-                    "nov" => Some(Month::November),
-                    "dec" => Some(Month::December),
-                    _ => None,
-                };
+                month_value = Some(result);
                 // Skip the remaining sub-steps and continue to the next date-token.
                 continue;
             }

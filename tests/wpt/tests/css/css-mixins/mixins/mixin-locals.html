@@ -136,5 +136,46 @@
     }, 'Locals after @result are seen');
   </script>
 
+
+  <style>
+    @mixin --m6() {
+      --my-color: green;
+      --my-color: red !important;
+      @result {
+        color: var(--my-color);
+      }
+    }
+    #e6 {
+      @apply --m6;
+    }
+  </style>
+  <div><div id="e6">This text should be green.</div></div>
+  <script>
+    test(() => {
+      let e6 = document.getElementById('e6');
+      assert_equals(getComputedStyle(e6).color, 'rgb(0, 128, 0)');
+    }, '!important invalidates a mixin local declaration');
+  </script>
+
+
+  <style>
+    @mixin --m7() {
+      --my-color: red !important;
+      @result {
+        color: var(--my-color, green);
+      }
+    }
+    #e7 {
+      @apply --m7;
+    }
+  </style>
+  <div><div id="e7">This text should be green.</div></div>
+  <script>
+    test(() => {
+      let e7 = document.getElementById('e7');
+      assert_equals(getComputedStyle(e7).color, 'rgb(0, 128, 0)');
+    }, 'An invalid !important local does not define the variable');
+  </script>
+
   </body>
 </html>

@@ -14,8 +14,6 @@ interface HTMLInputElement : HTMLElement {
            attribute DOMString alt;
   // [CEReactions]
   //         attribute DOMString autocomplete;
-  // [CEReactions]
-  //         attribute boolean autofocus;
   [CEReactions]
            attribute boolean defaultChecked;
            attribute boolean checked;

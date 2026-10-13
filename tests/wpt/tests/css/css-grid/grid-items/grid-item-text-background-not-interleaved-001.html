@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#z-order">
+<link rel="match" href="grid-item-text-background-not-interleaved-001-ref.html">
+<meta name="assert" content="Grid items paint atomically like inline blocks, so a later item's background paints over an earlier item's text.">
+<link href="/css/support/grid.css" rel="stylesheet">
+<style>
+.grid {
+    grid-template-columns: 50px 50px;
+}
+.firstRowFirstColumnSpanning2 {
+    background: lime;
+    grid-column: 1 / span 2;
+    grid-row: 1;
+}
+</style>
+
+<p>This test checks that grid items text and background are not interleaved.</p>
+<p>The test passes if you see only "PASS" text and not "FAIL".</p>
+<div class="grid">
+    <div class="firstRowSecondColumn">FAIL</div>
+    <div class="firstRowFirstColumnSpanning2">PASS</div>
+</div>

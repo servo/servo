@@ -170,6 +170,21 @@ test(function() {
 }, 'ToggleEvent doesn\'t expose relatedTarget property.');
 
 test(function() {
+  const host =
+      document.documentElement.appendChild(document.createElement('div'));
+  const root = host.attachShadow({mode: 'open'});
+  const source = document.createElement('button');
+  const target = document.createElement('div');
+  root.append(source, target);
+  const event = new ToggleEvent('toggle', {source});
+
+  target.dispatchEvent(event);
+
+  assert_equals(event.source, host);
+  host.remove();
+}, 'source retains legacy retargeting after dispatch in a shadow tree');
+
+test(function() {
   var event = new ToggleEvent("test", {newState: "sample"});
   assert_equals(event.newState, "sample");
 }, "newState set to 'sample'");

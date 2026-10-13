@@ -29,8 +29,11 @@
 /components/shared/canvas @sagudev
 
 # Reviewers for WebGPU related code
+/components/shared/webgpu @sagudev
 /components/webgpu @sagudev
+/components/script_webgpu @sagudev
 /components/script/dom/webgpu @sagudev
+/tests/wpt/webgpu @sagudev
 
 # Reviewers for WebDriver related code
 /components/webdriver_server @yezhizhen

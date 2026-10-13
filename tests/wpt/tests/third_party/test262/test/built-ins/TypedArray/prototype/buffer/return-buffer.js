@@ -14,9 +14,9 @@ includes: [testTypedArray.js]
 features: [TypedArray]
 ---*/
 
-testWithTypedArrayConstructors(function(TA) {
-  var buffer = new ArrayBuffer(TA.BYTES_PER_ELEMENT);
+testWithTypedArrayConstructors(function(TA, makeCtorArg) {
+  var buffer = makeCtorArg(1);
   var ta = new TA(buffer);
 
   assert.sameValue(ta.buffer, buffer);
-}, null, ["passthrough"]);
+}, null, ["arraybuffer"]);

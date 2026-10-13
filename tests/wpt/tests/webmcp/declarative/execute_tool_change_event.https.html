@@ -37,16 +37,16 @@ promise_test(async t => {
     }
   }
 
-  let inputArgs = JSON.stringify({
+  let inputObject = {
     text: "regular text",
     number: 42,
     checkbox: true,
     radio: "radio2",
     textarea: "some text area content",
     select: "opt2"
-  });
+  };
 
-  await document.modelContext.executeTool(tool, inputArgs);
+  await document.modelContext.executeTool(tool, inputObject);
 
   assert_equals(document.getElementById('myinput').value, 'regular text');
   assert_true(events['myinput'].inputFired, 'text input event should fire');

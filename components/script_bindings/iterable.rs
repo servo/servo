@@ -25,7 +25,7 @@ use crate::error::Fallible;
 use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
 use crate::reflector::{DomGlobalGeneric, DomObjectIteratorWrap, DomObjectWrap, Reflector};
 use crate::root::{Dom, DomRoot, Root};
-use crate::trace::{NoTrace, RootedTraceableBox};
+use crate::trace::NoTrace;
 use crate::utils::DOMClass;
 use crate::{DomTypes, JSTraceable};
 
@@ -89,6 +89,8 @@ impl<
     fn derives(class: &'static DOMClass) -> bool {
         <T as IteratorDerives>::derives(class)
     }
+
+    const PROTO_ID: crate::codegen::PrototypeList::ID = crate::codegen::PrototypeList::ID::Last;
 }
 
 impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlobalGeneric<D>>
@@ -108,7 +110,7 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
             _marker: NoTrace(PhantomData),
         });
         let global = D::GlobalScope::from_current_realm(realm);
-        <D as DomHelpers<D>>::reflect_dom_object_with_cx(realm, iterator, &*global)
+        <D as DomHelpers<D>>::reflect_dom_object(realm, iterator, &*global)
     }
 
     /// Return the next value from the iterable object.
@@ -123,23 +125,23 @@ impl<D: DomTypes, T: DomObjectIteratorWrap<D> + JSTraceable + Iterable + DomGlob
                 IteratorType::Keys => {
                     self.iterable
                         .get_key_at_index(cx, index)
-                        .safe_to_jsval(cx, value.handle_mut());
+                        .to_jsval(cx, value.handle_mut());
                     dict_return(cx, return_value, false, value.handle())
                 },
                 IteratorType::Values => {
                     self.iterable
                         .get_value_at_index(cx, index)
-                        .safe_to_jsval(cx, value.handle_mut());
+                        .to_jsval(cx, value.handle_mut());
                     dict_return(cx, return_value, false, value.handle())
                 },
                 IteratorType::Entries => {
                     rooted!(&in(cx) let mut key = UndefinedValue());
                     self.iterable
                         .get_key_at_index(cx, index)
-                        .safe_to_jsval(cx, key.handle_mut());
+                        .to_jsval(cx, key.handle_mut());
                     self.iterable
                         .get_value_at_index(cx, index)
-                        .safe_to_jsval(cx, value.handle_mut());
+                        .to_jsval(cx, value.handle_mut());
                     key_and_value_return(cx, return_value, key.handle(), value.handle())
                 },
             }
@@ -186,7 +188,7 @@ fn key_and_value_return(
     dict.value = Some(
         vec![key, value]
             .into_iter()
-            .map(|handle| RootedTraceableBox::from_box(Heap::boxed(handle.get())))
+            .map(|handle| Heap::boxed(handle.get()))
             .collect(),
     );
 

@@ -12,13 +12,14 @@ use encoding_rs::{Encoding, UTF_8};
 use js::jsapi::{Heap, JSObject};
 use js::jsval::{self, JSVal};
 use js::rust::HandleObject;
-use js::typedarray::{ArrayBuffer, CreateWith};
+use js::typedarray::ArrayBufferU8;
 use mime::{self, Mime};
 use script_bindings::cell::DomRefCell;
 use script_bindings::num::Finite;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
+use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::BlobBinding::BlobMethods;
 use crate::dom::bindings::codegen::Bindings::FileReaderBinding::{
     FileReaderConstants, FileReaderMethods,
@@ -38,7 +39,7 @@ use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::progressevent::ProgressEvent;
 use crate::realms::enter_auto_realm;
-use crate::task::TaskOnce;
+use crate::tasks::task::TaskOnce;
 
 pub(crate) enum FileReadingTask {
     ProcessRead(TrustedFileReader, GenerationId),
@@ -211,7 +212,7 @@ impl FileReader {
         reflect_dom_object_with_proto(cx, Box::new(FileReader::new_inherited()), global, proto)
     }
 
-    // https://w3c.github.io/FileAPI/#dfn-error-steps
+    /// <https://w3c.github.io/FileAPI/#dfn-error-steps>
     pub(crate) fn process_read_error(
         cx: &mut js::context::JSContext,
         filereader: TrustedFileReader,
@@ -245,7 +246,7 @@ impl FileReader {
         fr.terminate_ongoing_reading();
     }
 
-    // https://w3c.github.io/FileAPI/#dfn-readAsText
+    /// <https://w3c.github.io/FileAPI/#dfn-readAsText>
     pub(crate) fn process_read_data(
         cx: &mut js::context::JSContext,
         filereader: TrustedFileReader,
@@ -265,7 +266,7 @@ impl FileReader {
         fr.dispatch_progress_event(cx, atom!("progress"), 0, None);
     }
 
-    // https://w3c.github.io/FileAPI/#dfn-readAsText
+    /// <https://w3c.github.io/FileAPI/#dfn-readAsText>
     pub(crate) fn process_read(
         cx: &mut js::context::JSContext,
         filereader: TrustedFileReader,
@@ -285,7 +286,7 @@ impl FileReader {
         fr.dispatch_progress_event(cx, atom!("loadstart"), 0, None);
     }
 
-    // https://w3c.github.io/FileAPI/#readOperation
+    /// <https://w3c.github.io/FileAPI/#readOperation>
     pub(crate) fn process_read_eof(
         cx: &mut js::context::JSContext,
         filereader: TrustedFileReader,
@@ -375,30 +376,21 @@ impl FileReader {
 
     /// <https://w3c.github.io/FileAPI/#packaging-data>
     /// > Return a new ArrayBuffer whose contents are bytes.
-    #[expect(unsafe_code)]
     fn perform_readasarraybuffer(
         cx: &mut js::context::JSContext,
         result: &DomRefCell<Option<FileReaderResult>>,
         bytes: &[u8],
     ) {
-        unsafe {
-            rooted!(&in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
-            assert!(
-                ArrayBuffer::create(
-                    cx.raw_cx(),
-                    CreateWith::Slice(bytes),
-                    array_buffer.handle_mut()
-                )
-                .is_ok()
-            );
+        rooted!(&in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
+        assert!(
+            create_buffer_source::<ArrayBufferU8>(cx, bytes, array_buffer.handle_mut()).is_ok()
+        );
 
-            *result.borrow_mut() =
-                Some(FileReaderResult::ArrayBuffer(RootedTraceableBox::default()));
+        *result.borrow_mut() = Some(FileReaderResult::ArrayBuffer(RootedTraceableBox::default()));
 
-            if let Some(FileReaderResult::ArrayBuffer(ref mut heap)) = *result.borrow_mut() {
-                heap.set(jsval::ObjectValue(array_buffer.get()));
-            };
-        }
+        if let Some(FileReaderResult::ArrayBuffer(ref mut heap)) = *result.borrow_mut() {
+            heap.set(jsval::ObjectValue(array_buffer.get()));
+        };
     }
 }
 
@@ -486,16 +478,13 @@ impl FileReaderMethods<crate::DomTypeHolder> for FileReader {
         self.error.get()
     }
 
-    #[expect(unsafe_code)]
     /// <https://w3c.github.io/FileAPI/#dfn-result>
     fn GetResult(&self) -> Option<StringOrObject> {
         self.result.borrow().as_ref().map(|r| match *r {
             FileReaderResult::String(ref string) => StringOrObject::String(string.clone()),
             FileReaderResult::ArrayBuffer(ref arr_buffer) => {
                 let result = RootedTraceableBox::new(Heap::default());
-                unsafe {
-                    result.set((*arr_buffer.ptr.get()).to_object());
-                }
+                result.set(arr_buffer.handle().to_object());
                 StringOrObject::Object(result)
             },
         })

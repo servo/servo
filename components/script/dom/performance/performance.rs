@@ -15,7 +15,7 @@ use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMa
 use script_bindings::codegen::GenericBindings::PerformanceMarkBinding::PerformanceMarkMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::codegen::GenericUnionTypes::StringOrPerformanceMeasureOptions;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use time::Duration;
 
@@ -23,7 +23,6 @@ use super::performanceentry::{EntryType, PerformanceEntry};
 use super::performancemark::PerformanceMark;
 use super::performancemeasure::PerformanceMeasure;
 use super::performancenavigation::PerformanceNavigation;
-use super::performancenavigationtiming::PerformanceNavigationTiming;
 use super::performanceobserver::PerformanceObserver as DOMPerformanceObserver;
 use crate::dom::PERFORMANCE_TIMING_ATTRIBUTES;
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::{
@@ -35,12 +34,12 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::bindings::root::{AsHandleValue, Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::structuredclone;
-use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
+use crate::dom::performance::performancetiming::PerformanceTiming;
 use crate::dom::window::Window;
 
 /// Implementation of a list of PerformanceEntry items shared by the
@@ -138,10 +137,16 @@ pub(crate) struct Performance {
     resource_timing_buffer_pending_full_event: Cell<bool>,
     /// <https://w3c.github.io/resource-timing/#performance-resource-timing-secondary-buffer>
     resource_timing_secondary_entries: DomRefCell<VecDeque<Dom<PerformanceEntry>>>,
+    timing: Dom<PerformanceTiming>,
+    navigation: Dom<PerformanceNavigation>,
 }
 
 impl Performance {
-    fn new_inherited(time_origin: CrossProcessInstant) -> Performance {
+    fn new_inherited(
+        time_origin: CrossProcessInstant,
+        timing: &PerformanceTiming,
+        navigation: &PerformanceNavigation,
+    ) -> Performance {
         Performance {
             eventtarget: EventTarget::new_inherited(),
             buffer: DomRefCell::new(PerformanceEntryList::new(Vec::new())),
@@ -152,6 +157,8 @@ impl Performance {
             resource_timing_buffer_current_size: Cell::new(0),
             resource_timing_buffer_pending_full_event: Cell::new(false),
             resource_timing_secondary_entries: DomRefCell::new(VecDeque::new()),
+            timing: Dom::from_ref(timing),
+            navigation: Dom::from_ref(navigation),
         }
     }
 
@@ -160,10 +167,16 @@ impl Performance {
         global: &GlobalScope,
         navigation_start: CrossProcessInstant,
     ) -> DomRoot<Performance> {
-        reflect_dom_object_with_cx(
-            Box::new(Performance::new_inherited(navigation_start)),
-            global,
+        let timing = PerformanceTiming::new(cx, global);
+        let navigation = PerformanceNavigation::new(cx, global);
+        reflect_dom_object(
             cx,
+            Box::new(Performance::new_inherited(
+                navigation_start,
+                &timing,
+                &navigation,
+            )),
+            global,
         )
     }
 
@@ -520,21 +533,13 @@ impl Performance {
 
 impl PerformanceMethods<crate::DomTypeHolder> for Performance {
     /// <https://w3c.github.io/navigation-timing/#dom-performance-timing>
-    fn Timing(&self) -> DomRoot<PerformanceNavigationTiming> {
-        let entries = self.GetEntriesByType(DOMString::from("navigation"));
-        if !entries.is_empty() {
-            return DomRoot::from_ref(
-                entries[0]
-                    .downcast::<PerformanceNavigationTiming>()
-                    .unwrap(),
-            );
-        }
-        unreachable!("Are we trying to expose Performance.timing in workers?");
+    fn Timing(&self) -> DomRoot<PerformanceTiming> {
+        DomRoot::from_ref(&*self.timing)
     }
 
     /// <https://w3c.github.io/navigation-timing/#dom-performance-navigation>
-    fn Navigation(&self, cx: &mut JSContext) -> DomRoot<PerformanceNavigation> {
-        PerformanceNavigation::new(cx, &self.global())
+    fn Navigation(&self) -> DomRoot<PerformanceNavigation> {
+        DomRoot::from_ref(&*self.navigation)
     }
 
     /// <https://w3c.github.io/hr-time/#dom-performance-now>
@@ -591,7 +596,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
         &self,
         cx: &mut JSContext,
         mark_name: DOMString,
-        mark_options: RootedTraceableBox<PerformanceMarkOptions>,
+        mark_options: &PerformanceMarkOptions,
     ) -> Fallible<DomRoot<PerformanceMark>> {
         // Step 1. Run the PerformanceMark constructor and let entry be the newly created object.
         let entry =
@@ -756,7 +761,7 @@ impl PerformanceMethods<crate::DomTypeHolder> for Performance {
             !options.detail.get().is_null_or_undefined()
         {
             // Step 9.1.1. Let record be the result of calling the StructuredSerialize algorithm on startOrMeasureOptions’s detail.
-            let record = structuredclone::write(cx, options.detail.handle(), None)?;
+            let record = structuredclone::write(cx, options.detail.as_handle_value(), None)?;
 
             // Step 9.1.2. Set entry’s detail to the result of calling the StructuredDeserialize algorithm on record and the current realm.
             structuredclone::read(cx, &self.global(), record, detail.handle_mut())?;

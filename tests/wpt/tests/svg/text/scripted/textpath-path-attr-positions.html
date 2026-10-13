@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<title>textPath `path` attribute: DOM positions match the same geometry supplied by href</title>
+<link rel="author" title="Karl Dubost" href="mailto:k_dubost@apple.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementPathAttribute">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#__svg__SVGTextContentElement__getStartPositionOfChar">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg width="400" height="300">
+  <defs>
+    <path id="curve" d="M 20 40 Q 120 10 220 40 T 380 40"/>
+  </defs>
+  <text><textPath id="from-path" path="M 20 40 Q 120 10 220 40 T 380 40">ABCDEF</textPath></text>
+  <text><textPath id="from-href" href="#curve">ABCDEF</textPath></text>
+  <text><textPath id="elsewhere" path="M 20 200 L 380 200">ABCDEF</textPath></text>
+</svg>
+
+<script>
+const fromPath = document.getElementById('from-path');
+const fromHref = document.getElementById('from-href');
+const elsewhere = document.getElementById('elsewhere');
+const EPSILON = 1e-4;
+
+// Controls first. Without them a stub that answers 0 for every query, or one that
+// lays nothing out at all, would satisfy every equality below.
+test(() => {
+  assert_equals(fromHref.getNumberOfChars(), 6, 'the reference string is laid out');
+  const first = fromHref.getStartPositionOfChar(0);
+  const last = fromHref.getStartPositionOfChar(5);
+  assert_not_equals(first.x, last.x, 'characters advance along the path');
+  assert_not_equals(first.y, last.y, 'the path curves, so y varies too');
+}, 'control: the href reference is really laid out on the curve');
+
+test(() => {
+  assert_equals(elsewhere.getNumberOfChars(), 6, 'the third string is laid out');
+  assert_not_equals(elsewhere.getStartPositionOfChar(0).y,
+                    fromHref.getStartPositionOfChar(0).y,
+                    'different path data puts the text somewhere else');
+}, 'control: different inline path data gives different positions');
+
+test(() => {
+  assert_equals(fromPath.getNumberOfChars(), fromHref.getNumberOfChars());
+}, 'getNumberOfChars');
+
+test(() => {
+  for (let i = 0; i < fromHref.getNumberOfChars(); i++) {
+    const a = fromPath.getStartPositionOfChar(i);
+    const b = fromHref.getStartPositionOfChar(i);
+    assert_approx_equals(a.x, b.x, EPSILON, `x of character ${i}`);
+    assert_approx_equals(a.y, b.y, EPSILON, `y of character ${i}`);
+  }
+}, 'getStartPositionOfChar');
+
+test(() => {
+  for (let i = 0; i < fromHref.getNumberOfChars(); i++) {
+    const a = fromPath.getEndPositionOfChar(i);
+    const b = fromHref.getEndPositionOfChar(i);
+    assert_approx_equals(a.x, b.x, EPSILON, `x of character ${i}`);
+    assert_approx_equals(a.y, b.y, EPSILON, `y of character ${i}`);
+  }
+}, 'getEndPositionOfChar');
+
+test(() => {
+  for (let i = 0; i < fromHref.getNumberOfChars(); i++) {
+    assert_approx_equals(fromPath.getRotationOfChar(i), fromHref.getRotationOfChar(i),
+                         EPSILON, `rotation of character ${i}`);
+  }
+}, 'getRotationOfChar');
+
+test(() => {
+  assert_approx_equals(fromPath.getComputedTextLength(),
+                       fromHref.getComputedTextLength(), EPSILON);
+}, 'getComputedTextLength');
+</script>

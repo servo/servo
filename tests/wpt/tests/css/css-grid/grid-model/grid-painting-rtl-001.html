@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#z-order">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-containers">
+<link rel="match" href="grid-painting-rtl-001-ref.html">
+<meta name="assert" content="Grid items are painted in the correct positions in a grid container with direction: rtl.">
+
+<p>This test verifies grid layout painting using RTL direction.</p>
+<p>This test passes if it matches the reference. You should see green and blue boxes but not red.</p>
+
+<iframe height="120px" width="300px" srcdoc="
+    <style>
+    .grid {
+        display: grid;
+        grid: 50px / 200px 100px 50px;
+        width: 500px;
+        direction: rtl;
+    }
+    </style>
+
+    <div class='grid'>
+        <div style='background: red;'></div>
+        <div style='background: blue;'></div>
+        <div style='background: green;'></div>
+    </div>
+">
+</iframe>
+
+<iframe height="120px" width="300px" srcdoc="
+    <style>
+    .grid {
+        display: grid;
+        grid: 50px / 200px 100px 50px;
+        width: 500px;
+        border: 5px solid;
+        direction: rtl;
+    }
+    </style>
+
+    <div class='grid'>
+        <div style='background: red;'></div>
+        <div style='background: blue;'></div>
+        <div style='background: green;'></div>
+    </div>
+">
+</iframe>
+
+<iframe height="120px" width="300px" srcdoc="
+    <style>
+    .grid {
+        display: grid;
+        grid: 50px / 200px 100px 50px;
+        width: 500px;
+        border: 5px solid;
+        padding: 10px;
+        direction: rtl;
+    }
+    </style>
+
+    <div class='grid'>
+        <div style='background: red;'></div>
+        <div style='background: blue;'></div>
+        <div style='background: green;'></div>
+    </div>
+">
+</iframe>
+
+<iframe height="120px" width="300px" srcdoc="
+    <style>
+    .grid {
+        display: grid;
+        grid: 50px / 200px 100px 50px;
+        width: 500px;
+        border: 5px solid;
+        border-right: 100px solid;
+        padding: 10px;
+        padding-right: 200px;
+        direction: rtl;
+    }
+    </style>
+
+    <div class='grid'>
+        <div style='background: red;'></div>
+        <div style='background: blue;'></div>
+        <div style='background: green;'></div>
+    </div>
+">
+</iframe>

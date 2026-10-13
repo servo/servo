@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<title>Changing classList updates result of Element.matches()</title>
+<link rel="help" href="https://drafts.csswg.org/selectors/#class-html">
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<!-- regression test for https://github.com/jsdom/jsdom/issues/3948 -->
+
+<script>
+"use strict";
+
+test(() => {
+  const div = document.createElement("div");
+  assert_equals(div.matches(".foo"), false, "initial");
+  div.classList.add("foo");
+  assert_equals(div.matches(".foo"), true, "class added");
+  div.classList.remove("foo");
+  assert_equals(div.matches(".foo"), false, "class removed");
+}, "toggle class sync");
+
+</script>

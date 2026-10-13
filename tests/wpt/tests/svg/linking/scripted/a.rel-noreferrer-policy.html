@@ -4,19 +4,17 @@
 <link rel="author" title="Divyansh Mangal" href="mailto:dmangal@microsoft.com">
 <link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/linking.html#InterfaceSVGAElement">
 <title> Rel attribute with noreferrer value </title>
-<svg>
-  <a id="test" href="resources/a.rel-noreferrer-policy-target.html" rel="noreferrer"></a>
-  <script>
-    var anchorElement = document.getElementById('test');
+<body>
+<script>
+// The link is in an iframe, because a test must not navigate its own top level
+// browsing context.
+async_test(t => {
+  window.addEventListener("message", t.step_func_done(event => {
+    assert_equals(event.data, "");
+  }));
 
-    // Simulate a click event
-    var event = new MouseEvent('click', {
-      view: window,
-      bubbles: true,
-      cancelable: true
-    });
-
-    // Dispatch the event to the anchor element
-    anchorElement.dispatchEvent(event);
-  </script>
-</svg>
+  const iframe = document.createElement("iframe");
+  iframe.src = "resources/a.rel-noreferrer-policy-frame.html";
+  document.body.appendChild(iframe);
+}, "No Referrer policy attribute on svg anchor element is applied");
+</script>

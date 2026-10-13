@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<link rel=help href="https://html.spec.whatwg.org/multipage/semantics-other.html#selector-open">
+<link rel=help href="https://dom.spec.whatwg.org/#dom-parentnode-movebefore">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+select, select::picker(select) {
+  appearance: base-select;
+}
+div:has(> select:open) {
+  color: rgb(0, 128, 0);
+}
+</style>
+
+<div id=moveSource>
+  <select id=moved>
+    <option id=movedOption>one</option>
+    <option>two</option>
+  </select>
+</div>
+<div id=moveDestination></div>
+
+<div id=removalParent>
+  <select id=removed>
+    <option id=removedOption>one</option>
+    <option>two</option>
+  </select>
+</div>
+
+<script>
+const green = 'rgb(0, 128, 0)';
+
+promise_test(async t => {
+  const select = moved;
+  t.add_cleanup(() => select.remove());
+  await test_driver.click(select);
+  assert_true(select.matches(':open'), 'Select should be open after clicking it.');
+
+  moveDestination.moveBefore(select, null);
+  assert_true(select.matches(':open'), 'Select should still be open after moving it.');
+
+  await new Promise(requestAnimationFrame);
+  assert_true(select.matches(':open'), 'Select should still be open a frame after moving it.');
+  assert_true(movedOption.checkVisibility(), 'The picker should still be showing.');
+
+  await test_driver.click(select);
+  assert_false(select.matches(':open'), 'Select should be closed after clicking it again.');
+}, 'A select moved with moveBefore() while its picker is open keeps matching :open.');
+
+promise_test(async t => {
+  const select = removed;
+  t.add_cleanup(() => select.remove());
+  await test_driver.click(select);
+  assert_true(select.matches(':open'), 'Select should be open after clicking it.');
+
+  select.remove();
+  assert_false(select.matches(':open'), 'Select should be closed once removed.');
+
+  removalParent.append(select);
+  assert_false(select.matches(':open'), 'Select should still be closed once reinserted.');
+
+  await new Promise(requestAnimationFrame);
+  assert_false(removedOption.checkVisibility(), 'The picker should not be showing.');
+  assert_not_equals(getComputedStyle(removalParent).color, green,
+    'The parent should not match :has(> select:open).');
+
+  await test_driver.click(select);
+  assert_true(select.matches(':open'), 'Select should open again after clicking it.');
+  await test_driver.click(select);
+  assert_false(select.matches(':open'), 'Select should be closed after clicking it again.');
+}, 'Removing a select while its picker is open closes the picker.');
+</script>

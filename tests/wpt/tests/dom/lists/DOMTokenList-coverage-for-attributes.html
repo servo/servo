@@ -29,7 +29,8 @@ var elements = ["a", "area", "link", "iframe", "output", "td", "th"];
 function testAttr(pair, new_el){
   return (pair.attr === "classList" ||
           (pair.attr === "relList" && new_el.localName === "a" &&
-           new_el.namespaceURI === "http://www.w3.org/2000/svg") ||
+           (new_el.namespaceURI === "http://www.w3.org/2000/svg" ||
+            new_el.namespaceURI === "http://www.w3.org/1998/Math/MathML")) ||
           (new_el.namespaceURI === "http://www.w3.org/1999/xhtml" &&
            pair.sup.indexOf(new_el.localName) != -1));
 }

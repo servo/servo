@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="stylesheet" href="/fonts/ahem.css">
+
+<style>
+.outerGrid {
+    width: 200px;
+    height: 50px;
+    border: 5px solid;
+    background: magenta;
+    margin-bottom: 10px;
+}
+
+.innerGrid {
+    background: gray;
+}
+
+.gridItem {
+    background: cyan;
+    font: 10px/1 Ahem;
+}
+
+ .floatLeft {
+     float: left;
+     width: 250px;
+ }
+</style>
+
+<p>This test checks that percentage rows are properly resolved for a grid container that is a grid item.</p>
+
+<div class="floatLeft">
+
+<div class="outerGrid">
+    <div class="innerGrid" style="height: 100%">
+        <div class="gridItem" style="height: 50%"></div>
+    </div>
+</div>
+
+<div class="outerGrid">
+    <div class="innerGrid">
+        <div class="gridItem">X X<br>XX</div>
+    </div>
+</div>
+
+<div class="outerGrid">
+    <div class="innerGrid" style="height: calc(100% * (2/3))">
+        <div class="gridItem" style="height: 50%"></div>
+    </div>
+</div>
+
+<div class="outerGrid">
+    <div class="innerGrid">
+        <div class="gridItem">X X<br>XX</div>
+    </div>
+</div>
+
+</div>
+
+<div class="floatLeft">
+
+<div class="outerGrid">
+    <div class="innerGrid" style="height: 75%">
+        <div class="gridItem" style="height: 75%"></div>
+    </div>
+</div>
+
+<div class="outerGrid">
+    <div class="innerGrid" style="height: calc(20px * (4/3))">
+        <div class="gridItem" style="height: 20px">X X<br>XX</div>
+    </div>
+</div>
+
+<div class="outerGrid">
+    <div class="innerGrid" style="height: 100%;">
+        <div class="gridItem" style="height: 25%"></div>
+    </div>
+</div>
+
+<div class="outerGrid">
+    <div class="innerGrid" style="height: 20px;">
+        <div class="gridItem" style="height: 7.5px;">X X<br>XX</div>
+    </div>
+</div>
+
+</div>

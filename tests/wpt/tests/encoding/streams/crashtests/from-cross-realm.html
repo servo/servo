@@ -1,0 +1,7 @@
+<!doctype html>
+<script>
+const encoder = new TextEncoderStream();
+encoder.readable.getReader().read();
+const w = window.open();
+new w.WritableStreamDefaultWriter(encoder.writable).write({});
+</script>

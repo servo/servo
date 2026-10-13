@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Scroll Snap Test: scroll-snap-type with axis type 'pair'</title>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#propdef-scroll-snap-type">
+<meta name="assert" content="scroll-snap-type supports axis type 'pair'.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+test_valid_value("scroll-snap-type", "pair");
+test_valid_value("scroll-snap-type", "pair mandatory");
+test_valid_value("scroll-snap-type", "pair proximity", "pair");
+</script>
+</body>
+</html>

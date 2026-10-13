@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<style>
+  body {
+    margin: 0;
+  }
+  .scene {
+    height: 310px;
+    position: relative;
+    width: 122px;
+  }
+  .lanes {
+    background: lightgray;
+    column-gap: 20px;
+    display: grid-lanes;
+    flow-tolerance: 0px;
+    grid-template-rows: 40px 70px 50px 90px;
+    height: 310px;
+    row-gap: 20px;
+    width: 122px;
+  }
+  .blocker {
+    background: purple;
+  }
+  .blocker-one {
+    grid-row: 1;
+    width: 120px;
+  }
+  .blocker-two {
+    grid-row: 2;
+    width: 100px;
+  }
+  .blocker-three {
+    grid-row: 3;
+    width: 30px;
+  }
+  .blocker-four {
+    grid-row: 4;
+    width: 30px;
+  }
+  .subgrid {
+    column-gap: 12px;
+    display: grid;
+    grid-row: span 2;
+    grid-template-columns: repeat(2, 30px);
+    grid-template-rows: subgrid;
+  }
+  .cell {
+    background: teal;
+  }
+  .column-rule {
+    background: blue;
+    height: 160px;
+    left: 84px;
+    position: absolute;
+    top: 150px;
+    width: 4px;
+  }
+  .row-rule {
+    background: gold;
+    height: 6px;
+    left: 50px;
+    position: absolute;
+    top: 207px;
+    width: 72px;
+  }
+</style>
+<div class="scene">
+  <div class="lanes">
+    <div class="blocker blocker-one"></div>
+    <div class="blocker blocker-two"></div>
+    <div class="blocker blocker-three"></div>
+    <div class="blocker blocker-four"></div>
+    <div class="subgrid">
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+    </div>
+  </div>
+  <div class="column-rule"></div>
+  <div class="row-rule"></div>
+</div>

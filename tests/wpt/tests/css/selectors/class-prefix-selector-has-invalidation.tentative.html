@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors: class prefix selector inside :has() invalidates style correctly</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/selectors-5/#class-prefix">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #child-subject:has(> .foo-*) { color: rgb(1, 2, 3); }
+  #descendant-subject:has(.foo-*) { color: rgb(4, 5, 6); }
+  #direct-sibling-subject:has(+ .foo-*) { color: rgb(7, 8, 9); }
+  #indirect-sibling-subject:has(~ .foo-*) { color: rgb(10, 11, 12); }
+  #sibling-child-subject:has(~ .bar > .foo-*) { color: rgb(13, 14, 15); }
+  #sibling-descendant-subject:has(~ .bar .foo-*) { color: rgb(16, 17, 18); }
+  #ancestor-has:has(.foo-*) #ancestor-subject { color: rgb(19, 20, 21); }
+  #parent-has:has(> .foo-*) > #parent-subject { color: rgb(22, 23, 24); }
+</style>
+
+<div id="child-container">
+  <div id="child-subject"><div id="child-trigger"></div></div>
+</div>
+
+<div id="descendant-container">
+  <div id="descendant-subject"><div><div id="descendant-trigger"></div></div></div>
+</div>
+
+<div id="direct-sibling-container">
+  <div id="direct-sibling-subject"></div>
+  <div id="direct-sibling-trigger"></div>
+</div>
+
+<div id="indirect-sibling-container">
+  <div id="indirect-sibling-subject"></div>
+  <div id="indirect-sibling-buffer"></div>
+  <div id="indirect-sibling-trigger"></div>
+</div>
+
+<div id="sibling-child-container">
+  <div id="sibling-child-subject"></div>
+  <div class="bar"><div id="sibling-child-trigger"></div></div>
+</div>
+
+<div id="sibling-descendant-container">
+  <div id="sibling-descendant-subject"></div>
+  <div class="bar"><div><div id="sibling-descendant-trigger"></div></div></div>
+</div>
+
+<div id="ancestor-container">
+  <div id="ancestor-has">
+    <div id="ancestor-trigger"></div>
+    <div><div id="ancestor-subject"></div></div>
+  </div>
+</div>
+
+<div id="parent-container">
+  <div id="parent-has">
+    <div id="parent-trigger"></div>
+    <div id="parent-subject"></div>
+  </div>
+</div>
+
+<script>
+function color(id) {
+  return getComputedStyle(document.getElementById(id)).color;
+}
+
+test(() => {
+  assert_equals(color('child-subject'), 'rgb(0, 0, 0)');
+  document.getElementById('child-trigger').classList.add('foo-x');
+  assert_equals(color('child-subject'), 'rgb(1, 2, 3)');
+  document.getElementById('child-trigger').classList.remove('foo-x');
+  assert_equals(color('child-subject'), 'rgb(0, 0, 0)');
+}, ':has(> .foo-*) invalidates the :has() subject when a direct child gains/loses a matching class');
+
+test(() => {
+  assert_equals(color('descendant-subject'), 'rgb(0, 0, 0)');
+  document.getElementById('descendant-trigger').classList.add('foo-x');
+  assert_equals(color('descendant-subject'), 'rgb(4, 5, 6)');
+  document.getElementById('descendant-trigger').classList.remove('foo-x');
+  assert_equals(color('descendant-subject'), 'rgb(0, 0, 0)');
+}, ':has(.foo-*) invalidates the :has() subject when a descendant at any depth gains/loses a matching class');
+
+test(() => {
+  assert_equals(color('direct-sibling-subject'), 'rgb(0, 0, 0)');
+  document.getElementById('direct-sibling-trigger').classList.add('foo-x');
+  assert_equals(color('direct-sibling-subject'), 'rgb(7, 8, 9)');
+  document.getElementById('direct-sibling-trigger').classList.remove('foo-x');
+  assert_equals(color('direct-sibling-subject'), 'rgb(0, 0, 0)');
+}, ':has(+ .foo-*) invalidates the :has() subject when its immediately following sibling gains/loses a matching class');
+
+test(() => {
+  assert_equals(color('indirect-sibling-subject'), 'rgb(0, 0, 0)');
+  document.getElementById('indirect-sibling-trigger').classList.add('foo-x');
+  assert_equals(color('indirect-sibling-subject'), 'rgb(10, 11, 12)');
+  document.getElementById('indirect-sibling-trigger').classList.remove('foo-x');
+  assert_equals(color('indirect-sibling-subject'), 'rgb(0, 0, 0)');
+}, ':has(~ .foo-*) invalidates the :has() subject when a later (non-adjacent) sibling gains/loses a matching class');
+
+test(() => {
+  assert_equals(color('sibling-child-subject'), 'rgb(0, 0, 0)');
+  document.getElementById('sibling-child-trigger').classList.add('foo-x');
+  assert_equals(color('sibling-child-subject'), 'rgb(13, 14, 15)');
+  document.getElementById('sibling-child-trigger').classList.remove('foo-x');
+  assert_equals(color('sibling-child-subject'), 'rgb(0, 0, 0)');
+}, ':has(~ .bar > .foo-*) invalidates the :has() subject when a direct child of a later ".bar" sibling gains/loses a matching class');
+
+test(() => {
+  assert_equals(color('sibling-descendant-subject'), 'rgb(0, 0, 0)');
+  document.getElementById('sibling-descendant-trigger').classList.add('foo-x');
+  assert_equals(color('sibling-descendant-subject'), 'rgb(16, 17, 18)');
+  document.getElementById('sibling-descendant-trigger').classList.remove('foo-x');
+  assert_equals(color('sibling-descendant-subject'), 'rgb(0, 0, 0)');
+}, ':has(~ .bar .foo-*) invalidates the :has() subject when a descendant, at any depth, of a later ".bar" sibling gains/loses a matching class');
+
+test(() => {
+  assert_equals(color('ancestor-subject'), 'rgb(0, 0, 0)');
+  document.getElementById('ancestor-trigger').classList.add('foo-x');
+  assert_equals(color('ancestor-subject'), 'rgb(19, 20, 21)');
+  document.getElementById('ancestor-trigger').classList.remove('foo-x');
+  assert_equals(color('ancestor-subject'), 'rgb(0, 0, 0)');
+}, ':has(.foo-*) in non-subject (ancestor) position invalidates a separate descendant of the :has() bearer');
+
+test(() => {
+  assert_equals(color('parent-subject'), 'rgb(0, 0, 0)');
+  document.getElementById('parent-trigger').classList.add('foo-x');
+  assert_equals(color('parent-subject'), 'rgb(22, 23, 24)');
+  document.getElementById('parent-trigger').classList.remove('foo-x');
+  assert_equals(color('parent-subject'), 'rgb(0, 0, 0)');
+}, ':has(> .foo-*) in non-subject (parent) position invalidates a sibling child of the :has() bearer');
+</script>

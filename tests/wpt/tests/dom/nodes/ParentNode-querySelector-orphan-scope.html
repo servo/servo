@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>querySelectorAll scoping on orphaned elements</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-parentnode-queryselectorall">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+test(() => {
+  const parent = document.createElement("div");
+  parent.id = "fuz";
+  const child = document.createElement("span");
+  child.id = "buz";
+  parent.appendChild(child);
+
+  assert_equals(
+    parent.querySelectorAll("#fuz").length,
+    0,
+    "should not return the base element itself"
+  );
+}, "querySelectorAll on orphaned element does not return the element itself");
+
+test(() => {
+  const parent = document.createElement("div");
+  parent.id = "fuz";
+  const child = document.createElement("span");
+  child.id = "buz";
+  parent.appendChild(child);
+
+  const results = parent.querySelectorAll("#fuz #buz");
+  assert_equals(results.length, 1);
+  assert_equals(results[0], child);
+}, "querySelectorAll descendant selector works on orphaned elements");
+</script>

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<title>CSS Text: hyphenate-limit-lines with computed values</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#propdef-hyphenate-limit-lines">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+<div id="target"></div>
+<script>
+test_computed_value("hyphenate-limit-lines", "no-limit");
+test_computed_value("hyphenate-limit-lines", "0");
+test_computed_value("hyphenate-limit-lines", "4");
+test_computed_value("hyphenate-limit-lines", "calc(2 + 2)", "4");
+test_computed_value("hyphenate-limit-lines", "calc(4.1)", "4");
+</script>

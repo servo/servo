@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>text-overflow: &lt;string&gt; in a scrolled textarea</title>
+<style>
+textarea {
+  white-space: nowrap;
+  /* text-overflow: clip; is default */
+}
+</style>
+<textarea>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</textarea>
+<script>
+const textarea = document.querySelector('textarea');
+textarea.scrollLeft = textarea.scrollWidth;
+requestAnimationFrame(() => {
+  document.documentElement.classList.remove('reftest-wait');
+});
+</script>
+</html>

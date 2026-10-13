@@ -9,5 +9,5 @@
 promise_test(async (t) => {
   await ensureLanguageModel();
   const model = await createLanguageModel();
-  assert_regexp_match(await model.prompt(null), /null/);
+  assert_equals(typeof await model.prompt(null), 'string');
 }, 'LanguageModel.prompt() allows null input');

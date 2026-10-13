@@ -22,6 +22,9 @@ async function didRemotePcClose(t, closeRemotePc) {
   let dc1 = pc1.createDataChannel("");
   const haveOpened = new Promise(r => dc1.onopen = r);
   let closed = false;
+  // Spec says having a "close" event handler prevents GC, and if the
+  // datachannel is immune to GC, it should prevent the peerconnection from
+  // being GCed too.
   const haveClosed = new Promise(r => dc1.onclose = () => r(closed = true));
   dc1 = null;
   await pc1.setLocalDescription();
@@ -30,7 +33,7 @@ async function didRemotePcClose(t, closeRemotePc) {
   await pc1.setRemoteDescription(pc2.localDescription);
   await haveOpened;
   if (closeRemotePc) pc2.close();
-  pc1 = pc2 = null;
+  pc1 = null;
   await garbageCollect();
   await Promise.race([haveClosed, new Promise(r => t.step_timeout(r, 10000))]);
   return closed;
@@ -42,7 +45,7 @@ promise_test(async t => {
 
 promise_test(async t => {
   assert_false(await didRemotePcClose(t, false));
-}, "While remote PC remains open, its datachannel should not be collected");
+}, "Having a 'close' event handler registered should prevent a datachannel from being GCed");
 </script>
 </body>
 </html>

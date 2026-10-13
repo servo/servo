@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="match" href="max-width-container-with-scrollable-descendant-vertical-rl-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollbar-sizing">
+<style>
+.container {
+  writing-mode: vertical-rl;
+  background-color: green;
+  inline-size: max-content;
+}
+.parent {
+  block-size: 79px;
+  overflow: auto;
+}
+.content {
+  inline-size: 10px;
+  block-size: 80px;
+}
+</style>
+</head>
+<body>
+<div class=container>
+  <div class=parent>
+    <div class=content></div>
+  </div>
+</div>
+</body>
+</html>

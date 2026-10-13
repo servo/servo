@@ -68,12 +68,12 @@
 
         // Thresholds were experimentally determined.
         assert_array_equal_within_eps(
-            iirMag, trueMag, 2.8611e-6, '1‑pole IIR magnitude response ' +
+            iirMag, trueMag, 2.8611e-6, '1-pole IIR magnitude response ' +
                 'should be closed to calculated magnitude response');
         assert_array_equal_within_eps(
-            iirPhase, truePhase, 1.7882e-7, '1‑pole IIR phase response ' +
+            iirPhase, truePhase, 1.7882e-7, '1-pole IIR phase response ' +
                 ' should be closed to calculated phase response');
-      }, '1‑pole IIR getFrequencyResponse() matches analytic response');
+      }, '1-pole IIR getFrequencyResponse() matches analytic response');
 
       test(t => {
         // Create an IIR filter equivalent to the biquad filter. Compute the
@@ -131,7 +131,7 @@
               Number.isNaN(phase[k]),
               `Phase response at f=${freq[k]} should be NaN`);
         }
-      }, 'Out‑of‑range frequency values yield NaN responses');
+      }, 'Out-of-range frequency values yield NaN responses');
     </script>
   </body>
 </html>

@@ -12,7 +12,7 @@ jobs:
     if: github.repository == 'web-platform-tests/wpt'
     steps:
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v7
       with:
         python-version: '3.12'
     - name: Checkout wpt

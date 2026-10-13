@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Grid Lanes: grid-rows reads each row fully before the next</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-layout">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/shadow-dom.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+
+<style>
+.lanes {
+  display: grid-lanes;
+  grid-template-rows: repeat(3, 40px);
+  flow-tolerance: 0;
+  reading-flow: grid-rows;
+  column-gap: 20px;
+}
+.lanes > button {
+  box-sizing: border-box;
+  width: 40px;
+}
+</style>
+
+<div class="test-case" data-expect="a,b,c,d,e,f,g,h,i"
+     data-description="Grid-rows reads each row completely before the next">
+  <div class="lanes">
+    <button id="a">A</button>
+    <button id="d">D</button>
+    <button id="g">G</button>
+    <button id="b">B</button>
+    <button id="e">E</button>
+    <button id="h">H</button>
+    <button id="c">C</button>
+    <button id="f">F</button>
+    <button id="i">I</button>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

@@ -41,5 +41,4 @@ testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
     return 0n;
   });
   assert.sameValue(loop, 4, "accessor descriptor");
-}, null, ["passthrough"]);
-
+});

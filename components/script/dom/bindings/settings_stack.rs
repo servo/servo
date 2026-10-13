@@ -29,19 +29,25 @@ pub(crate) fn is_execution_stack_empty() -> bool {
 }
 
 /// Returns the ["entry"] global object.
+/// Panics if there is no valid entry object on the stack.
 ///
 /// ["entry"]: https://html.spec.whatwg.org/multipage/#entry
 pub(crate) fn entry_global() -> DomRoot<GlobalScope> {
-    STACK
-        .with(|stack| {
-            stack
-                .borrow()
-                .iter()
-                .rev()
-                .find(|entry| entry.kind == StackEntryKind::Entry)
-                .map(|entry| DomRoot::from_ref(&*entry.global))
-        })
-        .unwrap()
+    maybe_entry_global().unwrap()
+}
+
+/// Returns the ["entry"] global object, if it exists.
+///
+/// ["entry"]: https://html.spec.whatwg.org/multipage/#entry
+pub(crate) fn maybe_entry_global() -> Option<DomRoot<GlobalScope>> {
+    STACK.with(|stack| {
+        stack
+            .borrow()
+            .iter()
+            .rev()
+            .find(|entry| entry.kind == StackEntryKind::Entry)
+            .map(|entry| DomRoot::from_ref(&*entry.global))
+    })
 }
 
 /// Returns the ["incumbent"] global object.

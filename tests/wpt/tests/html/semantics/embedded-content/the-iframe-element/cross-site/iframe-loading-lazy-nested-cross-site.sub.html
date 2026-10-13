@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<head>
+  <title>Nested cross-site iframes with loading='lazy' load when in the viewport</title>
+  <meta name="timeout" content="long">
+  <link rel="help" href="https://github.com/whatwg/html/pull/5579">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<script>
+  const t_in_viewport =
+    async_test('In-viewport iframes load eagerly');
+  const t_below_viewport =
+    async_test('Below-viewport iframes load lazily');
+  const t_nested_in_viewport =
+    async_test('In-viewport iframe nested in a cross-site frame loads eagerly');
+  const t_nested_below_viewport =
+    async_test('Below-viewport iframe nested in a cross-site frame loads lazily');
+
+  const expected_subframe_url = "http://{{hosts[alt][]}}:{{ports[http][0]}}/html/semantics/embedded-content/the-iframe-element/cross-site/resources/iframe-loading-lazy-nested-subframe.sub.html?below-viewport";
+  const expected_nested_subframe_url = "https://{{hosts[alt][]}}:{{ports[https][0]}}/html/semantics/embedded-content/the-iframe-element/cross-site/resources/subframe-post-msg.html?below-viewport";
+
+  let has_window_loaded = false;
+
+  const in_viewport_iframe_onload = t_in_viewport.step_func_done(() => {
+    assert_false(has_window_loaded,
+      "The outer in_viewport iframe should not block the load event");
+  });
+
+  window.addEventListener("load", () => {
+    has_window_loaded = true;
+    document.getElementById("below_viewport").scrollIntoView();
+  });
+
+  const below_viewport_iframe_onload = t_below_viewport.step_func_done(() => {
+    assert_true(has_window_loaded,
+                "The outer window load event should have fired before the outer below-viewport iframe loads");
+  });
+
+  window.addEventListener("message", event => {
+    if (event.data?.info === "nested-in-viewport-loaded") {
+      t_nested_in_viewport.step_func_done(() => {
+        assert_false(event.data.hasWindowLoaded,
+                     "The nested in-viewport iframe should not block its own load event");
+      })();
+    } else if (event.data?.info === "nested-below-viewport-loaded") {
+      t_nested_below_viewport.step_func_done(() => {
+        assert_equals(event.data.subframeSrc, expected_subframe_url,
+                      "The below-viewport iframe should have loaded its cross-site document");
+        assert_equals(event.data.nestedSubframeSrc, expected_nested_subframe_url,
+                      "The nested below-viewport iframe should have loaded its cross-site document");
+        assert_true(event.data.hasWindowLoaded,
+                    "The nested window load event should have fired before the nested below-viewport iframe loads");
+      })();
+    }
+  });
+
+</script>
+
+<body>
+  <iframe id="in_viewport"
+          src="http://{{hosts[alt][]}}:{{ports[http][0]}}/html/semantics/embedded-content/the-iframe-element/resources/subframe.html?in-viewport"
+          loading="lazy" width="200px" height="100px"
+          onload="in_viewport_iframe_onload();"></iframe>
+
+
+ <div style="height:2000vh;"></div>
+  <iframe id="below_viewport"
+          src="http://{{hosts[alt][]}}:{{ports[http][0]}}/html/semantics/embedded-content/the-iframe-element/cross-site/resources/iframe-loading-lazy-nested-subframe.sub.html?below-viewport"
+          loading="lazy" width="200px" height="100px"
+          onload="below_viewport_iframe_onload();"></iframe>
+
+
+  <!-- This async script loads very slowly in order to ensure that, if the
+       below_viewport* elements have started loading, it has a chance to finish
+       loading before window load event fires, so that the test will dependably
+       fail in that case instead of potentially passing depending on how long
+       different resource fetches take. -->
+  <script async src="/common/slow.py"></script>
+</body>

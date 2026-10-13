@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: `flow-start`/`flow-end` indicate the placement start and end when `track-reverse` is applied</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
+  <link rel="match" href="column-track-reverse-justify-items-001-ref.html">
+  <style>
+    html, body {
+      font: 16px/1 monospace;
+      background: white;
+    }
+
+    .label {
+      font: 16px/1 monospace;
+    }
+
+    .grid-lanes {
+      display: grid-lanes;
+      grid-lanes-direction: column track-reverse;
+      grid-template-columns: repeat(2, 80px);
+      gap: 4px;
+      width: 200px;
+      height: 80px;
+      border: 1px solid;
+      margin-bottom: 4px;
+    }
+
+    item {
+      display: block;
+      width: 40px;
+      height: 26px;
+      color: white;
+      background: #2ca02c;
+    }
+
+    .wide {
+      width: 100px;
+      color: black;
+      background: yellow;
+    }
+  </style>
+</head>
+<body>
+  <div class="label">justify-items: flow-start</div>
+  <div class="grid-lanes" style="justify-items: flow-start;">
+    <item>1</item>
+    <item>2</item>
+    <item>3</item>
+    <item class="wide">4</item>
+  </div>
+
+  <div class="label">justify-items: flow-end</div>
+  <div class="grid-lanes" style="justify-items: flow-end;">
+    <item>1</item>
+    <item>2</item>
+    <item>3</item>
+    <item class="wide">4</item>
+  </div>
+
+  <div class="label">justify-self: flow-start (item 4)</div>
+  <div class="grid-lanes">
+    <item>1</item>
+    <item>2</item>
+    <item>3</item>
+    <item class="wide" style="justify-self: flow-start;">4</item>
+  </div>
+
+  <div class="label">justify-self: flow-end (item 4)</div>
+  <div class="grid-lanes">
+    <item>1</item>
+    <item>2</item>
+    <item>3</item>
+    <item class="wide" style="justify-self: flow-end;">4</item>
+  </div>
+</body>
+</html>

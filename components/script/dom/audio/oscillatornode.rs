@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::f32;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
+use script_bindings::codegen::GenericBindings::BaseAudioContextBinding::BaseAudioContextMethods;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::audio_node::{AudioNodeInit, AudioNodeMessage, AudioNodeType};
 use servo_media::audio::oscillator_node::{
@@ -15,6 +15,7 @@ use servo_media::audio::oscillator_node::{
     OscillatorType as ServoMediaOscillatorType,
 };
 use servo_media::audio::param::ParamType;
+use servo_media::audio::periodic_wave::PeriodicWave as ServoMediaPeriodicWave;
 
 use crate::conversions::Convert;
 use crate::dom::audio::audionode::AudioNodeOptionsHelper;
@@ -30,6 +31,7 @@ use crate::dom::bindings::codegen::Bindings::OscillatorNodeBinding::{
 };
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::root::{Dom, DomRoot};
+use crate::dom::types::PeriodicWave;
 use crate::dom::window::Window;
 
 #[dom_struct]
@@ -48,19 +50,44 @@ impl OscillatorNode {
         context: &BaseAudioContext,
         options: &OscillatorOptions,
     ) -> Fallible<OscillatorNode> {
+        if matches!(options.type_, OscillatorType::Custom) && options.periodicWave.is_none() {
+            return Err(Error::InvalidState(Some(String::from(
+                "Can not set oscillator type to custom without providing a periodic wave",
+            ))));
+        }
+
+        let oscillator_type = if options.periodicWave.is_some() {
+            OscillatorType::Custom
+        } else {
+            options.type_
+        };
+
         let node_options =
             options
                 .parent
                 .unwrap_or(2, ChannelCountMode::Max, ChannelInterpretation::Speakers);
+
+        let maybe_periodic_wave = options
+            .periodicWave
+            .as_ref()
+            .map(|x| (*x.as_traced()).convert());
+
+        let options = ServoMediaOscillatorOptions {
+            oscillator_type: convert_oscillator_options(oscillator_type, maybe_periodic_wave)?,
+            freq: *options.frequency,
+            detune: *options.detune,
+        };
         let source_node = AudioScheduledSourceNode::new_inherited(
             cx,
-            AudioNodeInit::OscillatorNode(options.convert()),
+            AudioNodeInit::OscillatorNode(options),
             context,
             node_options,
             0, /* inputs */
             1, /* outputs */
         )?;
         let node_id = source_node.node().node_id();
+        let nyquist = (*context.SampleRate()) / 2.;
+        // <https://webaudio.github.io/web-audio-api/#dom-oscillatornode-frequency>
         let frequency = AudioParam::new(
             cx,
             window,
@@ -70,9 +97,11 @@ impl OscillatorNode {
             ParamType::Frequency,
             AutomationRate::A_rate,
             440.,
-            f32::MIN,
-            f32::MAX,
+            -nyquist,
+            nyquist,
         );
+        // <https://webaudio.github.io/web-audio-api/#dom-oscillatornode-detune>
+        let detune_max = 1200. * f32::MAX.log2();
         let detune = AudioParam::new(
             cx,
             window,
@@ -82,12 +111,12 @@ impl OscillatorNode {
             ParamType::Detune,
             AutomationRate::A_rate,
             0.,
-            -440. / 2.,
-            440. / 2.,
+            -detune_max,
+            detune_max,
         );
         Ok(OscillatorNode {
             source_node,
-            oscillator_type: Cell::new(options.type_),
+            oscillator_type: Cell::new(oscillator_type),
             frequency: Dom::from_ref(&frequency),
             detune: Dom::from_ref(&detune),
         })
@@ -132,6 +161,17 @@ impl OscillatorNodeMethods<crate::DomTypeHolder> for OscillatorNode {
         OscillatorNode::new_with_proto(cx, window, proto, context, options)
     }
 
+    /// <https://webaudio.github.io/web-audio-api/#dom-oscillatornode-setperiodicwave>
+    fn SetPeriodicWave(&self, periodic_wave: &PeriodicWave) -> ErrorResult {
+        self.oscillator_type.set(OscillatorType::Custom);
+        self.source_node
+            .node()
+            .message(AudioNodeMessage::OscillatorNode(
+                OscillatorNodeMessage::SetPeriodicWave(periodic_wave.convert()),
+            ));
+        Ok(())
+    }
+
     /// <https://webaudio.github.io/web-audio-api/#dom-oscillatornode-frequency>
     fn Frequency(&self) -> DomRoot<AudioParam> {
         DomRoot::from_ref(&self.frequency)
@@ -156,31 +196,29 @@ impl OscillatorNodeMethods<crate::DomTypeHolder> for OscillatorNode {
         self.source_node
             .node()
             .message(AudioNodeMessage::OscillatorNode(
-                OscillatorNodeMessage::SetOscillatorType(type_.convert()),
+                OscillatorNodeMessage::SetOscillatorType(convert_oscillator_options(type_, None)?),
             ));
         Ok(())
     }
 }
 
-impl Convert<ServoMediaOscillatorOptions> for &OscillatorOptions {
-    fn convert(self) -> ServoMediaOscillatorOptions {
-        ServoMediaOscillatorOptions {
-            oscillator_type: self.type_.convert(),
-            freq: *self.frequency,
-            detune: *self.detune,
-            periodic_wave_options: None, // XXX
-        }
-    }
-}
-
-impl Convert<ServoMediaOscillatorType> for OscillatorType {
-    fn convert(self) -> ServoMediaOscillatorType {
-        match self {
-            OscillatorType::Sine => ServoMediaOscillatorType::Sine,
-            OscillatorType::Square => ServoMediaOscillatorType::Square,
-            OscillatorType::Sawtooth => ServoMediaOscillatorType::Sawtooth,
-            OscillatorType::Triangle => ServoMediaOscillatorType::Triangle,
-            OscillatorType::Custom => ServoMediaOscillatorType::Custom,
-        }
+// Helper function because Convert trait is not sufficient to handle Custom variant
+fn convert_oscillator_options(
+    oscillator_type: OscillatorType,
+    maybe_periodic_wave: Option<ServoMediaPeriodicWave>,
+) -> Fallible<ServoMediaOscillatorType> {
+    match oscillator_type {
+        OscillatorType::Sine => Ok(ServoMediaOscillatorType::Sine),
+        OscillatorType::Square => Ok(ServoMediaOscillatorType::Square),
+        OscillatorType::Sawtooth => Ok(ServoMediaOscillatorType::Sawtooth),
+        OscillatorType::Triangle => Ok(ServoMediaOscillatorType::Triangle),
+        OscillatorType::Custom => {
+            let Some(periodic_wave) = maybe_periodic_wave else {
+                return Err(Error::InvalidState(Some(String::from(
+                    "Can not have oscillator type custom without a periodic wave",
+                ))));
+            };
+            Ok(ServoMediaOscillatorType::Custom(periodic_wave))
+        },
     }
 }

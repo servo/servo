@@ -93,7 +93,7 @@ promise_test(async () => {
 }, `Fetch with range header will be sent with Accept-Encoding: identity`);
 
 promise_test(async () => {
-  const wavURL = new URL(get_host_info().HTTP_REMOTE_ORIGIN + '/fetch/range/resources/long-wav.py');
+  const wavURL = new URL(get_host_info().REMOTE_ORIGIN + '/fetch/range/resources/long-wav.py');
   const stashTakeURL = new URL('resources/stash-take.py', location);
 
   function changeToken() {
@@ -115,7 +115,7 @@ promise_test(async () => {
 }, `Cross Origin Fetch with non safe range header`);
 
 promise_test(async () => {
-  const wavURL = new URL(get_host_info().HTTP_REMOTE_ORIGIN + '/fetch/range/resources/long-wav.py');
+  const wavURL = new URL(get_host_info().REMOTE_ORIGIN + '/fetch/range/resources/long-wav.py');
   const stashTakeURL = new URL('resources/stash-take.py', location);
 
   function changeToken() {

@@ -2,7 +2,7 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-esid: sec-initializenumberformat
+esid: sec-intl.numberformat
 description: >
   Tests that passing a string value to the Intl.NumberFormat constructor is
   equivalent to passing an Array containing the same string value.

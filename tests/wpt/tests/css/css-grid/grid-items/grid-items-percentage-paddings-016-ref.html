@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+/* Reference: draw each grid item as an absolutely positioned box so the layout
+   never touches grid track sizing. The padding is the percentage resolved
+   against the 150px grid area inline size (2% == 3px), hardcoded here in px.
+   box-sizing: border-box keeps the padding inside the 150px cell, matching a
+   stretched grid item, so content lands at (paddingLeft, paddingTop). */
+.grid {
+    position: relative;
+    width: 300px;
+    height: 300px;
+    background-color: green;
+}
+.item {
+    position: absolute;
+    box-sizing: border-box;
+    width: 150px;
+    height: 150px;
+    background-color: blue;
+}
+.topLeft {
+    left: 0;
+    top: 0;
+    padding: 3px 6px 9px 12px;
+}
+.topRight {
+    left: 150px;
+    top: 0;
+    padding: 12px 9px 6px 3px;
+}
+.bottomLeft {
+    left: 0;
+    top: 150px;
+    padding: 15px 6px 15px 6px;
+}
+.bottomRight {
+    left: 150px;
+    top: 150px;
+    padding: 9px;
+}
+.topLeftContent {
+    width: 20px;
+    height: 20px;
+    background-color: yellow;
+}
+.topRightContent {
+    width: 20px;
+    height: 40px;
+    background-color: yellow;
+}
+.bottomLeftContent {
+    width: 40px;
+    height: 20px;
+    background-color: yellow;
+}
+.bottomRightContent {
+    width: 40px;
+    height: 40px;
+    background-color: yellow;
+}
+</style>
+</head>
+<body>
+<div class="grid">
+    <div class="item topLeft"><div class="topLeftContent"></div></div>
+    <div class="item topRight"><div class="topRightContent"></div></div>
+    <div class="item bottomLeft"><div class="bottomLeftContent"></div></div>
+    <div class="item bottomRight"><div class="bottomRightContent"></div></div>
+</div>
+</body>
+</html>

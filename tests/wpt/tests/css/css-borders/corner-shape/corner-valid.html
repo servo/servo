@@ -18,4 +18,7 @@ test_valid_value("corner", "4px 2% round");
 test_valid_value("corner", "4px 2% round / bevel 1em / normal", "4px 2% round / 1em bevel / normal");
 test_valid_value("corner", "normal / 1px round / normal / 3% squircle");
 test_valid_value("corner", "normal / superellipse(-0.5) 30% 10px / 10px 1rem notch", "normal / 30% 10px superellipse(-0.5) / 10px 1rem notch");
+test_valid_value("corner", "0px notch");
+test_valid_value("corner", "0px superellipse(1)", "normal");
+test_valid_value("corner", "0px round", "normal");
 </script>

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<meta name="assert" content="position-visibility: anchors-visible should consider the visibility of the anchor relative the containing scroller, ignoring visibility in other scrollers." />
-<title>CSS Anchor Positioning Test: position-visibility: anchors-visible</title>
+<meta name="assert" content="position-visibility: anchor-visible should consider the visibility of the anchor relative the containing scroller, ignoring visibility in other scrollers." />
+<title>CSS Anchor Positioning Test: position-visibility: anchor-visible</title>
 <link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-visibility">
 <link rel="match" href="position-visibility-anchors-visible-non-intervening-container-ref.html">
 <style>
@@ -35,7 +35,7 @@
 
   #target {
     position-anchor: --a1;
-    position-visibility: anchors-visible;
+    position-visibility: anchor-visible;
     position-area: right;
     width: 100px;
     height: 100px;
@@ -51,7 +51,7 @@
     <div id="scroll-container">
       <!-- The anchor is not visible to the screen, but it is visible in the -->
       <!-- containing block of anchor1 and target1, so the target should not -->
-      <!-- be hidden due to position-visibility: anchors-visible. -->
+      <!-- be hidden due to position-visibility: anchor-visible. -->
       <div id="anchor">anchor</div>
       <div id="spacer"></div>
       <div id="target">target</div>

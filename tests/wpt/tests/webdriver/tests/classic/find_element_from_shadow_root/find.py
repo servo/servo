@@ -1,3 +1,7 @@
+# META: timeout=long
+
+# Longer timeout required due to a large number of element lookup and DOM inspection subtests.
+
 import pytest
 from webdriver.client import WebElement, ShadowRoot
 from webdriver.transport import Response

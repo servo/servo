@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Element.matches with various selector types</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-element-matches">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="main">
+  <p class="foo">Foo</p>
+  <p>Bar</p>
+</div>
+
+<script>
+"use strict";
+
+test(() => {
+  const el = document.querySelector("#main .foo");
+  assert_true(el.matches("#main p"));
+}, "matches with ancestor ID and descendant type selector");
+
+test(() => {
+  const el = document.querySelector("#main .foo");
+  assert_false(el.matches("#nonexistent"));
+}, "matches returns false for non-matching ID selector");
+
+test(() => {
+  const el = document.querySelector("#main p:not(.foo)");
+  assert_true(el.matches("#main p:not(.foo)"));
+}, "matches with :not() pseudo-class");
+
+test(() => {
+  const el = document.querySelector("#main .foo");
+  assert_true(el.matches("p"));
+}, "matches with simple type selector");
+</script>

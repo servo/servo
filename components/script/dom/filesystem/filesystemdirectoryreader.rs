@@ -3,16 +3,19 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::cell::DomRefCell;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
+use crate::dom::bindings::callback::{ExceptionHandling, RootedCallback, TracedCallback};
 use crate::dom::bindings::codegen::Bindings::FileSystemDirectoryReaderBinding::{
     FileSystemDirectoryReaderMethods, FileSystemEntriesCallback,
 };
 use crate::dom::bindings::codegen::Bindings::FileSystemEntryBinding::ErrorCallback;
+use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::filesystemdirectoryentry::FileSystemDirectoryEntry;
 use crate::dom::globalscope::GlobalScope;
@@ -24,6 +27,15 @@ pub(crate) struct FileSystemDirectoryReader {
     idx: Cell<usize>,
     reading_flag: Cell<bool>,
     done_flag: Cell<bool>,
+    pending_callbacks: DomRefCell<Vec<PendingEntriesCallback>>,
+    next_callback: Cell<usize>,
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+struct PendingEntriesCallback {
+    id: usize,
+    callback: TracedCallback<FileSystemEntriesCallback>,
 }
 
 impl FileSystemDirectoryReader {
@@ -34,6 +46,8 @@ impl FileSystemDirectoryReader {
             idx: Cell::new(0),
             reading_flag: Cell::new(false),
             done_flag: Cell::new(false),
+            pending_callbacks: Default::default(),
+            next_callback: Cell::new(0),
         }
     }
 
@@ -42,10 +56,10 @@ impl FileSystemDirectoryReader {
         global: &GlobalScope,
         dir: &FileSystemDirectoryEntry,
     ) -> DomRoot<FileSystemDirectoryReader> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(FileSystemDirectoryReader::new_inherited(dir)),
             global,
-            cx,
         )
     }
 }
@@ -54,9 +68,47 @@ impl FileSystemDirectoryReaderMethods<crate::DomTypeHolder> for FileSystemDirect
     /// <https://wicg.github.io/entries-api/#dom-filesystemdirectoryreader-readentries>
     fn ReadEntries(
         &self,
-        _success_callback: Rc<FileSystemEntriesCallback>,
-        _error_callback: Option<Rc<ErrorCallback>>,
+        success_callback: RootedCallback<FileSystemEntriesCallback>,
+        _error_callback: Option<RootedCallback<ErrorCallback>>,
     ) {
-        // TODO: Implement per spec 7.3. Need to hook embedder.
+        // Per spec §7.3: queue a task to invoke successCallback with the
+        // directory's children that have not yet been produced. The first
+        // call returns all children; subsequent calls return an empty list
+        // (done flag set).
+        let id = self.next_callback.get();
+        self.pending_callbacks
+            .borrow_mut()
+            .push(PendingEntriesCallback {
+                id,
+                callback: success_callback.to_traced(),
+            });
+        self.next_callback.set(id + 1);
+
+        let this = Trusted::new(self);
+        self.global()
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task!(invoke_read_entries: move |cx| {
+                let this = this.root();
+                let maybe_index = this
+                    .pending_callbacks
+                    .borrow()
+                    .iter()
+                    .position(|val| val.id == id);
+                if let Some(index) = maybe_index {
+                    rooted!(&in(cx) let callback = this
+                        .pending_callbacks
+                        .borrow_mut()
+                        .swap_remove(index)
+                        .callback);
+                    let entries = if this.done_flag.get() {
+                        Vec::new()
+                    } else {
+                        this.done_flag.set(true);
+                        this.dir.children()
+                    };
+                    let _ = callback.Call__(cx, entries, ExceptionHandling::Report);
+                }
+            }));
     }
 }

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>CSS Masking: objectBoundingBox &lt;clipPath> with a transform is hit-tested with zoom</title>
+<link rel="author" title="Sampath Samaraweera" href="mailto:sampath.samaraweera@codimite.com">
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-clip-path">
+<link rel="help" href="https://drafts.csswg.org/css-viewport/#zoom-property">
+<meta name="assert" content="Hit-testing agrees with painting: the transform on
+                             an objectBoundingBox <clipPath> is scaled by zoom,
+                             so the clipped region starts halfway across the
+                             zoomed element rather than a quarter of the way.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body { margin: 0; }
+  /* 100x100 CSS px, so 200x200 after zoom. translate(50, 0) shifts the
+     half-width rect by 50 user units, which is 100 device px once zoomed, so
+     the clip is the right half: x in [100, 200]. */
+  #target {
+    width: 100px;
+    height: 100px;
+    background: green;
+    clip-path: url(#c);
+    zoom: 2;
+  }
+</style>
+<svg width="0" height="0" style="position: absolute">
+  <clipPath id="c" clipPathUnits="objectBoundingBox" transform="translate(50, 0)">
+    <rect width="0.5" height="1"/>
+  </clipPath>
+</svg>
+<div id="target"></div>
+<script>
+test(() => {
+  assert_equals(document.elementFromPoint(160, 10).id, 'target',
+                'inside the clip, near its top right');
+  assert_equals(document.elementFromPoint(190, 190).id, 'target',
+                'inside the clip, near its bottom right');
+  assert_equals(document.elementFromPoint(60, 100).tagName, 'BODY',
+                'left of the clip, inside the unclipped element');
+  assert_equals(document.elementFromPoint(20, 20).tagName, 'BODY',
+                'far left of the clip');
+}, 'objectBoundingBox <clipPath> transform is hit-tested with zoom applied');
+</script>

@@ -115,27 +115,27 @@ fn test_report_error_stylesheet() {
     error_reporter.assert_messages_contain(&[
         (
             3,
-            18,
+            9,
             "Unsupported property declaration: 'display: invalid;'",
         ),
-        (
-            4,
-            43,
-            "Unsupported property declaration: 'background-image:",
-        ), // FIXME: column should be around 56
-        (5, 17, "Unsupported property declaration: 'invalid: true;'"),
-        (7, 28, "Invalid media rule"),
+        (4, 9, "Unsupported property declaration: 'background-image:"), // FIXME: column should be around 56
+        (5, 9, "Unsupported property declaration: 'invalid'"),
+        (7, 12, "Invalid media rule"),
         // When @counter-style is supported, this should be replaced with two errors
-        (9, 19, "Invalid rule: '@counter-style "),
-        (10, 42, "Unsupported rule: '@foo ', @ rule invalid"),
-        (10, 61, "Unsupported property declaration: 'foo: 1 invalid 2 ', found unexpected identifier invalid"),
-        (11, 13, "Invalid rule: '@invalid'"),
-        (12, 29, "Invalid rule: '@invalid'"),
-        (13, 34, "Invalid rule: '@supports "),
-        (14, 26, "Invalid keyframe rule: 'from invalid '"),
+        (9, 5, "Invalid rule: '@counter-style "),
+        (10, 38, "Unsupported rule: '@foo ', @ rule invalid"),
+        (
+            10,
+            55,
+            "Unsupported property declaration: 'foo: 1 invalid 2 ', found unexpected token",
+        ),
+        (11, 5, "Invalid rule: '@invalid'"),
+        (12, 21, "Invalid rule: '@invalid'"),
+        (13, 5, "Invalid rule: '@supports "),
+        (14, 22, "Invalid keyframe rule: 'from invalid '"),
         (
             14,
-            52,
+            43,
             "Unsupported property declaration: 'margin: 0 invalid 0;'",
         ),
     ]);
@@ -171,8 +171,8 @@ fn test_no_report_unrecognized_vendor_properties() {
 
     error_reporter.assert_messages_contain(&[(
         4,
-        31,
-        "Unsupported property declaration: '-moz-background-color: red;'",
+        9,
+        "Unsupported property declaration: '-moz-background-color'",
     )]);
 }
 

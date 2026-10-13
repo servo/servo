@@ -1,0 +1,65 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>
+  Credential Management: a top-level sandboxed page with allow-same-origin is
+  not treated as opaque
+</title>
+<link
+  rel="help"
+  href="https://w3c.github.io/webappsec-credential-management/#algorithm-request"
+/>
+<link
+  rel="help"
+  href="https://w3c.github.io/webappsec-credential-management/#algorithm-create"
+/>
+<link
+  rel="help"
+  href="https://w3c.github.io/webappsec-credential-management/#algorithm-store"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    // Served with `Content-Security-Policy: sandbox allow-scripts allow-same-origin`
+    // (see the .headers file): sandboxed, but the page keeps its real origin, so it
+    // is not opaque and the opaque-origin check must not fire.
+    const data = { id: "id", password: "pencil" };
+
+    function assertSupported() {
+      assert_implements_optional(
+        navigator.credentials,
+        "navigator.credentials is not supported"
+      );
+      assert_implements_optional(
+        self.PasswordCredential,
+        "PasswordCredential is not supported"
+      );
+    }
+
+    async function settle(operation) {
+      try {
+        await operation();
+        return "resolved";
+      } catch (error) {
+        return error.name;
+      }
+    }
+
+    const OPERATIONS = {
+      get: () => navigator.credentials.get({ password: true }),
+      create: () => navigator.credentials.create({ password: data }),
+      store: () => navigator.credentials.store(new PasswordCredential(data)),
+    };
+
+    for (const [name, operation] of Object.entries(OPERATIONS)) {
+      promise_test(async () => {
+        assertSupported();
+        assert_not_equals(
+          await settle(operation),
+          "SecurityError",
+          "a sandboxed top-level page that keeps its origin must not be rejected as opaque"
+        );
+      }, `${name}() from a top-level sandboxed page with allow-same-origin is not rejected as opaque`);
+    }
+  </script>
+</body>

@@ -134,9 +134,17 @@ class MachCommands(CommandBase):
         env = self.build_env()
         env["RUSTC"] = "rustc"
 
-        # arguments to be passed through to clippy (as opposed to the cargo clippy wrapper)
-        # These should mainly be `--allow`, `--warn`, `--deny`, `--forbid`
-        # Note that some lints can additionally be configured by `.clippy.toml` at the repository root.
+        # Arguments to be passed through to clippy (as opposed to the cargo clippy wrapper)
+        # Prefer to specify these in the `lints.clippy` section in `/Cargo.toml`. Note that
+        # to enable linter warnings in a specific package, the `[lints]` section must inherit
+        # from the workspace. Example `components/X/Cargo.toml`:
+        #
+        # ```
+        # [lints]
+        # workspace = true
+        # ```
+        #
+        # TODO(47512): Move these to `workspace.lints.clippy` once all `Cargo.toml` specify lints
         clippy_args = ["--deny=clippy::disallowed_types", "--warn=clippy::redundant-clone"]
 
         if self.target.is_cross_build():

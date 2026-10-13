@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 /*
  * The origin of this IDL file is
- * https://drafts.fxtf.org/geometry-1/#DOMMatrix
+ * https://drafts.csswg.org/geometry-1/#DOMMatrix
  *
  * Copyright:
  * To the extent possible under law, the editors have waived all copyright and

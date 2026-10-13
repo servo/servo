@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>view and target of focus events fired at an element and at a Window</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#fire-a-focus-event">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#focus-update-steps">
+<link rel="help" href="https://github.com/whatwg/html/issues/12866">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<input id="outer">
+<iframe srcdoc="<input id=inner>"></iframe>
+
+<script>
+const outer = document.getElementById("outer");
+const iframe = document.querySelector("iframe");
+
+const iframeLoaded = new Promise(resolve => {
+  iframe.addEventListener("load", resolve, { once: true });
+});
+
+// The focus update steps fire an event at a Window object rather than at an element
+// for each Document in the focus chain, which only happens when focus moves between
+// documents.
+function firstEventFiredAt(target) {
+  return new Promise(resolve => {
+    for (const type of ["focus", "blur"]) {
+      target.addEventListener(type, e => resolve(e));
+    }
+  });
+}
+
+// Without system focus the focus update steps never run, and the Window would
+// instead observe the events fired when the browser window loses system focus.
+test(() => {
+  assert_true(document.hasFocus(), "the test window must have system focus");
+}, "precondition: the test window has system focus");
+
+promise_test(async t => {
+  const eventPromise = firstEventFiredAt(outer);
+  outer.focus();
+  const event = await eventPromise;
+
+  assert_equals(event.type, "focus", "type");
+  assert_equals(event.target, outer, "target");
+  assert_equals(event.view, window, "view");
+}, "focus event fired at an element has the element's node document's Window as view");
+
+promise_test(async t => {
+  outer.focus();
+  const eventPromise = firstEventFiredAt(outer);
+  outer.blur();
+  const event = await eventPromise;
+
+  assert_equals(event.type, "blur", "type");
+  assert_equals(event.target, outer, "target");
+  assert_equals(event.view, window, "view");
+}, "blur event fired at an element has the element's node document's Window as view");
+
+promise_test(async t => {
+  await iframeLoaded;
+  outer.focus();
+
+  const eventPromise = firstEventFiredAt(iframe.contentWindow);
+  iframe.contentDocument.getElementById("inner").focus();
+  const event = await eventPromise;
+
+  assert_equals(event.type, "focus", "type");
+  assert_equals(event.target, iframe.contentWindow, "target");
+  assert_true(event instanceof iframe.contentWindow.FocusEvent, "is a FocusEvent");
+  assert_equals(event.view, iframe.contentWindow, "view");
+  assert_true(event.composed, "composed");
+}, "focus event fired at a Window has that Window as target and as view");
+
+promise_test(async t => {
+  await iframeLoaded;
+  iframe.contentDocument.getElementById("inner").focus();
+
+  const eventPromise = firstEventFiredAt(iframe.contentWindow);
+  outer.focus();
+  const event = await eventPromise;
+
+  assert_equals(event.type, "blur", "type");
+  assert_equals(event.target, iframe.contentWindow, "target");
+  assert_true(event instanceof iframe.contentWindow.FocusEvent, "is a FocusEvent");
+  assert_equals(event.view, iframe.contentWindow, "view");
+  assert_true(event.composed, "composed");
+}, "blur event fired at a Window has that Window as target and as view");
+</script>

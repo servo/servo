@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="container">
+  <button id="btn" interestfor="target">Button</button>
+</div>
+<div id="target">Target</div>
+
+<style>
+  [interestfor]::interest-button {
+    content: "pseudo";
+    width: 50px;
+    height: 30px;
+  }
+  #container {
+    width: 200px;
+  }
+  #btn {
+    display: block;
+    width: 100%;
+    height: 40px;
+  }
+</style>
+
+<script>
+test(() => {
+  const btn = document.getElementById('btn');
+  const btnRect = btn.getBoundingClientRect();
+
+  // Hit test right below the block button where the inline-block sibling pseudo-element is pushed.
+  // The pseudo-element should start on the line below the block button.
+  const pointX = btnRect.left + 10;
+  const pointY = btnRect.bottom + 10;
+  const elementAtPoint = document.elementFromPoint(pointX, pointY);
+
+  // When clicking or hit-testing the pseudo-element, elementFromPoint returns its originating element.
+  assert_equals(elementAtPoint, btn, "The pseudo-element should be rendered below the block-level button");
+
+  // Since btn is display: block with width: 100% in a 200px container, to its right (outside container) should not hit btn.
+  const rightPoint = document.elementFromPoint(btnRect.right + 20, btnRect.top + 10);
+  assert_not_equals(rightPoint, btn, "No pseudo-element to the right of the block button");
+}, "::interest-button on a display:block button is pushed to the next line");
+</script>

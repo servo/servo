@@ -9,8 +9,9 @@ use std::collections::HashSet;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::{DomRefCell, Ref};
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use script_bindings::weakref::WeakRef;
+use servo_base::text::Utf8CodeUnits;
 use servo_canvas_traits::webgl::{
     ActiveAttribInfo, ActiveUniformBlockInfo, ActiveUniformInfo, WebGLCommand, WebGLError,
     WebGLProgramId, WebGLResult, webgl_channel,
@@ -172,7 +173,7 @@ impl Drop for DroppableWebGLProgram {
     }
 }
 
-#[dom_struct(associated_memory)]
+#[dom_struct]
 pub(crate) struct WebGLProgram {
     webgl_object: WebGLObject,
     link_called: Cell<bool>,
@@ -226,10 +227,10 @@ impl WebGLProgram {
         context: &WebGLRenderingContext,
         id: WebGLProgramId,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(WebGLProgram::new_inherited(context, id)),
             &*context.global(),
-            cx,
         )
     }
 }
@@ -574,7 +575,10 @@ impl WebGLProgram {
             name.into(),
             sender,
         ));
-        let location = receiver.recv().unwrap();
+        // Members of a named uniform block have no location.
+        let Some(location) = receiver.recv().unwrap() else {
+            return Ok(None);
+        };
         let context_id = self.upcast().context_id();
 
         Ok(Some(WebGLUniformLocation::new(
@@ -800,7 +804,7 @@ fn validate_glsl_name(name: &DOMString) -> WebGLResult<bool> {
     if name.is_empty() {
         return Ok(false);
     }
-    if name.len() > MAX_UNIFORM_AND_ATTRIBUTE_LEN {
+    if name.len_utf8() > MAX_UNIFORM_AND_ATTRIBUTE_LEN {
         return Err(WebGLError::InvalidValue);
     }
     for c in name.str().chars() {
@@ -864,4 +868,9 @@ fn parse_uniform_name(name: &DOMString) -> Option<(String, Option<i32>)> {
     Some((String::from(&name[..bracket_pos]), Some(index)))
 }
 
-pub(crate) const MAX_UNIFORM_AND_ATTRIBUTE_LEN: usize = 256;
+/// <https://registry.khronos.org/webgl/specs/latest/1.0/#6.20>
+/// > WebGL requires support of tokens up to 256 characters in length.
+/// > Shaders containing tokens longer than 256 characters must fail to compile.
+///
+/// FIXME: how is "character" defined here? Should this be `Utf32CodeUnits` instead?
+pub(crate) const MAX_UNIFORM_AND_ATTRIBUTE_LEN: Utf8CodeUnits = Utf8CodeUnits(256);

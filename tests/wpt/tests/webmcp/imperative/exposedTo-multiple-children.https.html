@@ -69,7 +69,7 @@ promise_test(async t => {
   assert_true(toolsAreEqual(tool, {
     name: 'tool_b_to_c',
     description: 'Tool B exposed to C',
-    inputSchema: JSON.stringify({ type: 'object', properties: { query: { type: 'string' } } }),
+    inputSchema: { type: 'object', properties: { query: { type: 'string' } } },
     origin: origin_b
   }), 'Tool details should match');
 

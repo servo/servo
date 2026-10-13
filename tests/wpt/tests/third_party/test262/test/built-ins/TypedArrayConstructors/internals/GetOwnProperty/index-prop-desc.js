@@ -35,4 +35,4 @@ testWithTypedArrayConstructors(function(TA, makeCtorArg) {
   assert.sameValue(descriptor1.configurable, true);
   assert.sameValue(descriptor1.enumerable, true);
   assert.sameValue(descriptor1.writable, true);
-});
+}, null, null, ["immutable"]);

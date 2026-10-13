@@ -22,4 +22,4 @@ testWithTypedArrayConstructors(function(TA, makeCtorArg) {
 
   result = sample.sort(function() { return 0; });
   assert.sameValue(sample, result, "with comparefn");
-});
+}, null, null, ["immutable"]);

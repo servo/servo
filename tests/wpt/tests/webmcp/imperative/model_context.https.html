@@ -15,6 +15,60 @@ test(() => {
 test(() => {
   assert_equals(document.modelContext, document.modelContext);
 }, 'document.modelContext SameObject');
+
+for (const activeFirst of [true, false]) {
+  const order = activeFirst ? 'active document first' : 'inactive document first';
+  promise_test(async t => {
+    // Each order needs a document whose modelContext has not been accessed yet.
+    const iframe = document.createElement('iframe');
+    iframe.src = '/common/blank.html';
+    const {promise: loadedPromise, resolve: resolveLoaded} =
+        Promise.withResolvers();
+    iframe.onload = resolveLoaded;
+    t.add_cleanup(() => iframe.remove());
+    document.body.append(iframe);
+    await loadedPromise;
+
+    const activeDocument = iframe.contentDocument;
+    const inactiveDocument =
+        activeDocument.implementation.createHTMLDocument();
+    const iDOMException = iframe.contentWindow.DOMException;
+    let activeContext;
+    let inactiveContext;
+    if (activeFirst) {
+      activeContext = activeDocument.modelContext;
+      inactiveContext = inactiveDocument.modelContext;
+    } else {
+      inactiveContext = inactiveDocument.modelContext;
+      activeContext = activeDocument.modelContext;
+    }
+
+    assert_equals(activeDocument.modelContext, activeContext);
+    assert_equals(inactiveDocument.modelContext, inactiveContext);
+    assert_not_equals(activeContext, inactiveContext);
+
+    const name = activeFirst ? 'active_first_tool' : 'inactive_first_tool';
+    await activeContext.registerTool({
+      name,
+      description: 'Tool in the active document',
+      execute: async () => 'ok',
+    });
+    const tool = (await activeContext.getTools()).find(tool => tool.name === name);
+    assert_true(!!tool, 'The active document can still register and discover tools');
+    assert_equals(await activeContext.executeTool(tool, {}), 'ok');
+
+    await promise_rejects_dom(t, 'InvalidStateError', iDOMException,
+        inactiveContext.getTools());
+    await promise_rejects_dom(t, 'InvalidStateError', iDOMException,
+        inactiveContext.registerTool({
+          name: 'inactive_tool',
+          description: 'Tool in the inactive document',
+          execute: async () => 'unexpected',
+        }));
+    await promise_rejects_dom(t, 'InvalidStateError', iDOMException,
+        inactiveContext.executeTool(tool, {}));
+  }, `createHTMLDocument().modelContext rejects tool operations with InvalidStateError, with ${order}`);
+}
 </script>
 </body>
 </html>

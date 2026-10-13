@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml" class="reftest-wait"
+     width="200" height="200">
+  <title>SVG use: mutating 'href' on the referenced 'image' element updates the instance</title>
+  <h:link rel="help" href="https://svgwg.org/svg2-draft/struct.html#UseElement"/>
+  <h:link rel="match" href="reference/use-image-href-mutating-ref.svg"/>
+
+  <!-- The 'image' is inside 'defs', so it is never rendered directly: the use-element shadow tree
+       holds the only rendered copy of it. -->
+  <defs>
+    <image id="target" width="100" height="50"/>
+  </defs>
+
+  <use x="25" y="25" href="#target"/>
+
+  <script>
+    const image = document.getElementById("target");
+
+    // Flush layout so that the use-element shadow tree is generated before the href is set below,
+    // and the test therefore exercises an update of an existing instance.
+    document.documentElement.getBoundingClientRect();
+
+    image.addEventListener("load", () => {
+      // The instance has its own request for the image, which is only started once the shadow tree
+      // is regenerated, so it is not complete when the event above fires. Wait for a rendering
+      // update before comparing against the reference.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => document.documentElement.classList.remove("reftest-wait"));
+      });
+    });
+    image.setAttribute("href", "/images/green-100x50.png");
+  </script>
+</svg>

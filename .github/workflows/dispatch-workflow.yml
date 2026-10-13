@@ -129,6 +129,15 @@ jobs:
     # Note: The lint workflow does not need access to any secrets.
     uses: ./.github/workflows/lint.yml
 
+  perf-analysis:
+    if: ${{ inputs.workflow == 'perf-analysis' }}
+    name: Perf analysis
+    uses: ./.github/workflows/perf-analysis.yml
+    secrets: inherit
+    with:
+      profile: ${{ inputs.profile }}
+      build-args: ${{ inputs.build-args }}
+
   android:
     if: ${{ inputs.workflow == 'android' }}
     name: Android

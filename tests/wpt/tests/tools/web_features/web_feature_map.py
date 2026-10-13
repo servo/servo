@@ -1,6 +1,5 @@
 import itertools
 
-from collections import OrderedDict
 from os.path import basename
 from typing import Dict, List, Optional, Set, Union
 
@@ -16,9 +15,9 @@ class WebFeaturesMap:
 
     def __init__(self) -> None:
         """
-        Initializes the WebFeaturesMap with an OrderedDict to maintain feature order.
+        Initializes the WebFeaturesMap with a dict that maintains feature order.
         """
-        self._feature_tests_map_: OrderedDict[Union[str, None], Set[str]] = OrderedDict()
+        self._feature_tests_map_: Dict[Union[str, None], Set[str]] = {}
         self._classified_urls: Set[str] = set()
 
 

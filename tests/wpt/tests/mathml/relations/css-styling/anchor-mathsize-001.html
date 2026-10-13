@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>mathsize on a</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#the-a-element">
+<link rel="help" href="https://w3c.github.io/mathml-core/#legacy-mathml-style-attributes">
+<link rel="help" href="https://w3c.github.io/mathml-core/#fractions-mfrac">
+<link rel="match" href="anchor-mathsize-001-ref.html"/>
+<meta name="assert" content="mathsize on an a element has a visual effect, including when the a element is a link.">
+<math xmlns="http://www.w3.org/1998/Math/MathML">
+  <a mathsize="200%">
+    <mfrac>
+      <mi>x</mi>
+      <mi>y</mi>
+    </mfrac>
+  </a>
+</math>
+<math xmlns="http://www.w3.org/1998/Math/MathML">
+  <a href="about:blank" mathsize="200%">
+    <mfrac>
+      <mi>x</mi>
+      <mi>y</mi>
+    </mfrac>
+  </a>
+</math>

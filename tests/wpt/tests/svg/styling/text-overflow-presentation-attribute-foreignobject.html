@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG Test: text-overflow presentation attribute ellipsizes an overflowing foreignObject line</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/styling.html#PresentationAttributes">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#text-overflow">
+<link rel="match" href="text-overflow-presentation-attribute-foreignobject-ref.html">
+<style>
+  /* foreignObject gets overflow: hidden from the SVG user agent style sheet, which is
+     the precondition text-overflow needs. The single long word supplies the overflowing
+     line without requiring white-space: nowrap. */
+  foreignObject { font: 20px/1.2 monospace; }
+</style>
+<p>Test passes if the text below is truncated with an ellipsis, and matches the reference.</p>
+<svg width="300" height="30" xmlns="http://www.w3.org/2000/svg">
+  <foreignObject width="100" height="24" text-overflow="ellipsis">overflowingwordoverflowingword</foreignObject>
+</svg>

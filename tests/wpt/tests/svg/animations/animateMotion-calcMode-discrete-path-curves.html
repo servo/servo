@@ -41,8 +41,8 @@ const rect1 = document.querySelector("#rect1");
 const rect2 = document.querySelector("#rect2");
 
 function assert_position(element, x, y, description) {
-    assert_equals(element.getCTM().e, x, description + " (x)");
-    assert_equals(element.getCTM().f, y, description + " (y)");
+    assert_approx_equals(element.getCTM().e, x, 0.01, description + " (x)");
+    assert_approx_equals(element.getCTM().f, y, 0.01, description + " (y)");
 }
 
 smil_async_test((t) => {

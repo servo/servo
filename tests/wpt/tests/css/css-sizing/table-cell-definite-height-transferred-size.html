@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Sizing: a table cell's definite height transfers through a replaced element's aspect ratio</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<meta name="assert" content="When a replaced element with an intrinsic aspect ratio is sized with a percentage width and a percentage height inside a table cell that has a definite height, the max-content contribution is the resolved height transferred through the ratio. This is the same rule that applies in any other definite-height containing block; a table cell is not special here.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+table { border-collapse: collapse }
+td { padding: 0; border: 0 }
+/* 2:1 images. "sized" has an intrinsic size as well as a ratio; "ratio" has only
+   a viewBox, so it has a ratio but no intrinsic size. */
+img { display: block }
+</style>
+
+<!-- The tables are width:max-content inside a wide wrapper so each column width is
+     exactly the cell's max-content contribution, with no available-space clamping in
+     the way. (width:min-content would not work: the min-content contribution of a
+     percentage-width box is zero by definition.) -->
+<div style="width: 1000px">
+<table style="width: max-content"><tr>
+  <td id="pct-width-sized" style="height: 100px"><img class="sized" alt="" style="width: 100%; height: 100%"></td>
+</tr></table>
+
+<table style="width: max-content"><tr>
+  <td id="pct-width-ratio-only" style="height: 100px"><img class="ratio" alt="" style="width: 100%; height: 100%"></td>
+</tr></table>
+
+<table style="width: max-content"><tr>
+  <td id="half-height" style="height: 100px"><img class="ratio" alt="" style="width: 100%; height: 50%"></td>
+</tr></table>
+
+<!-- Auto width takes a different code path; it is included so a regression that
+     only moves one of the two branches is still caught. -->
+<table style="width: max-content"><tr>
+  <td id="auto-width" style="height: 100px"><img class="ratio" alt="" style="height: 100%"></td>
+</tr></table>
+
+</div>
+
+<!-- Control: the identical image in an ordinary definite-height shrink-to-fit
+     box, where every engine already transfers. -->
+<span id="control" style="display: inline-block; height: 100px"><img class="ratio" alt="" style="width: 100%; height: 100%"></span>
+
+<script>
+setup({ explicit_done: true });
+
+// 40x20 => 2:1 with an intrinsic size.
+const SIZED = "data:image/svg+xml," + encodeURIComponent(
+  "<svg xmlns='http://www.w3.org/2000/svg' width='40' height='20' viewBox='0 0 40 20'><rect fill='green' width='40' height='20'/></svg>");
+// viewBox only => 2:1 with no intrinsic size.
+const RATIO = "data:image/svg+xml," + encodeURIComponent(
+  "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect fill='green' width='40' height='20'/></svg>");
+
+let pending = 0;
+function load(img, src) {
+  pending++;
+  img.addEventListener("load", () => { if (!--pending) run(); }, { once: true });
+  img.src = src;
+}
+for (const img of document.querySelectorAll("img.sized"))
+  load(img, SIZED);
+for (const img of document.querySelectorAll("img.ratio"))
+  load(img, RATIO);
+
+function check(id, expected, description) {
+  test(function() {
+    assert_approx_equals(document.getElementById(id).getBoundingClientRect().width,
+      expected, 0.5, id + " width");
+  }, description);
+}
+
+function run() {
+  // The cell's content height is 100px, so a 2:1 ratio transfers to 200px and a
+  // 50% height (50px) transfers to 100px.
+  check("pct-width-sized", 200,
+    "Percentage width and height on an intrinsically-sized image in a definite-height table cell transfer the cell height");
+  check("pct-width-ratio-only", 200,
+    "Percentage width and height on a ratio-only image in a definite-height table cell transfer the cell height");
+  check("half-height", 100,
+    "A 50% height in a definite-height table cell transfers half the cell height");
+  check("auto-width", 200,
+    "An auto-width ratio-only image with a percentage height in a table cell transfers the cell height");
+  check("control", 200,
+    "The same image in a definite-height inline-block transfers the height (control)");
+  done();
+}
+</script>

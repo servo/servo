@@ -15,6 +15,8 @@ test(function() {
   assert_equals(CSS.escape(true), 'true');
   assert_equals(CSS.escape(false), 'false');
   assert_equals(CSS.escape(null), 'null');
+  assert_equals(CSS.escape(undefined), 'undefined');
+  assert_equals(CSS.escape(123), '\\31 23');
   assert_equals(CSS.escape(''), '');
 }, "String conversion");
 

@@ -11,6 +11,7 @@ use std::cell::Cell;
 use std::collections::hash_map::Entry;
 use std::io::Write;
 use std::os::raw::c_void;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{LazyLock, Mutex};
 
 use rustc_hash::FxHashMap;
@@ -61,11 +62,23 @@ static ALLOCATION_SITES: LazyLock<Mutex<FxHashMap<usize, AllocSite>>> =
 #[derive(Default)]
 pub struct AccountingAlloc<A = System> {
     allocator: A,
+    enabled: AtomicBool,
 }
 
 impl<A> AccountingAlloc<A> {
     pub const fn with_allocator(allocator: A) -> Self {
-        Self { allocator }
+        Self {
+            allocator,
+            enabled: AtomicBool::new(true),
+        }
+    }
+
+    pub(crate) fn disable(&self) {
+        self.enabled.store(false, Ordering::SeqCst);
+    }
+
+    fn enabled(&self) -> bool {
+        self.enabled.load(Ordering::SeqCst)
     }
 
     #[expect(clippy::absurd_extreme_comparisons)]
@@ -199,25 +212,36 @@ impl<A> AccountingAlloc<A> {
 unsafe impl<A: GlobalAlloc> GlobalAlloc for AccountingAlloc<A> {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
         let ptr = unsafe { self.allocator.alloc(layout) };
-        self.record_allocation(ptr, layout.size());
+        if self.enabled() {
+            self.record_allocation(ptr, layout.size());
+        }
         ptr
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         unsafe { self.allocator.dealloc(ptr, layout) };
-        self.remove_allocation(ptr.cast(), layout.size());
+        if self.enabled() {
+            self.remove_allocation(ptr.cast(), layout.size());
+        }
     }
 
     unsafe fn alloc_zeroed(&self, layout: Layout) -> *mut u8 {
         let ptr = unsafe { self.allocator.alloc_zeroed(layout) };
-        self.record_allocation(ptr, layout.size());
+        if self.enabled() {
+            self.record_allocation(ptr, layout.size());
+        }
         ptr
     }
 
     unsafe fn realloc(&self, ptr: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
-        self.remove_allocation(ptr.cast(), layout.size());
+        let enabled = self.enabled();
+        if enabled {
+            self.remove_allocation(ptr.cast(), layout.size());
+        }
         let ptr = unsafe { self.allocator.realloc(ptr, layout, new_size) };
-        self.record_allocation(ptr, new_size);
+        if enabled {
+            self.record_allocation(ptr, new_size);
+        }
         ptr
     }
 }

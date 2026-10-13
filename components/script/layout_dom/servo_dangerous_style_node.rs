@@ -52,7 +52,9 @@ impl<'dom> ServoDangerousStyleNode<'dom> {
 
         // Step 2. If selector is failure, then throw a "SyntaxError" DOMException.
         let Ok(selector_list) = selector_or_error else {
-            return Err(Error::Syntax(None));
+            return Err(Error::Syntax(Some(format!(
+                "'{selector}' is an invalid selector"
+            ))));
         };
 
         // Step 3. Return the result of match a selector against a tree with selector

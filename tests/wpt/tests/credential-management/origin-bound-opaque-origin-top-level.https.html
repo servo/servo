@@ -1,0 +1,72 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>
+  Credential Management: PasswordCredential from a top-level opaque origin
+</title>
+<link
+  rel="help"
+  href="https://w3c.github.io/webappsec-credential-management/#algorithm-request"
+/>
+<link
+  rel="help"
+  href="https://w3c.github.io/webappsec-credential-management/#algorithm-create"
+/>
+<link
+  rel="help"
+  href="https://w3c.github.io/webappsec-credential-management/#algorithm-store"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script>
+    // Served with `Content-Security-Policy: sandbox allow-scripts` (see the
+    // accompanying .headers file), so this top-level document has an opaque
+    // origin while remaining a secure context.
+    //
+    // A top-level document has no ancestors, so any same-origin-with-ancestors
+    // requirement is vacuously satisfied here. The opaque-origin check is the
+    // only thing that can reject these calls, which the framed cases in
+    // origin-bound-opaque-origin.https.html cannot establish on their own.
+
+    function assertSupported() {
+      assert_implements_optional(
+        navigator.credentials,
+        "navigator.credentials is not supported"
+      );
+      assert_implements_optional(
+        self.PasswordCredential,
+        "PasswordCredential is not supported"
+      );
+    }
+
+    const data = { id: "id", password: "pencil" };
+
+    promise_test((t) => {
+      assertSupported();
+      return promise_rejects_dom(
+        t,
+        "SecurityError",
+        navigator.credentials.get({ password: true })
+      );
+    }, "get() with a PasswordCredential from a top-level opaque origin rejects with SecurityError");
+
+    promise_test((t) => {
+      assertSupported();
+      return promise_rejects_dom(
+        t,
+        "SecurityError",
+        navigator.credentials.create({ password: data })
+      );
+    }, "create() with a PasswordCredential from a top-level opaque origin rejects with SecurityError");
+
+    promise_test((t) => {
+      assertSupported();
+      const credential = new PasswordCredential(data);
+      return promise_rejects_dom(
+        t,
+        "SecurityError",
+        navigator.credentials.store(credential)
+      );
+    }, "store() with a PasswordCredential from a top-level opaque origin rejects with SecurityError");
+  </script>
+</body>

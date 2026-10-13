@@ -64,11 +64,11 @@
           COVER_START_OFFSET + CSS_TRIGGER_END_PX,
           scroller);
 
-      const reset = () => {
+      const reset = async () => {
         const animation = target.getAnimations()[0];
         animation.pause();
         animation.currentTime = 0;
-        scroller.scrollTop = 0;
+        return setScrollTop(scroller, 0);
       }
 
       promise_test(async (test) => {
@@ -96,7 +96,7 @@
       }, "replay behavior restarts a paused animation");
 
       promise_test(async (test) => {
-        reset();
+        await reset();
         const animation = target.getAnimations()[0];
         assert_equals(animation.playState, "paused");
 

@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html class=reftest-wait>
 <meta charset="utf-8">
-<meta name="assert" content="Removing position-visibility: anchors-visible from an invisible anchored element should cause it to become visible." />
-<title>CSS Anchor Positioning Test: position-visibility: anchors-visible</title>
+<meta name="assert" content="Removing position-visibility: anchor-visible from an invisible anchored element should cause it to become visible." />
+<title>CSS Anchor Positioning Test: position-visibility: anchor-visible</title>
 <link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-visibility">
 <link rel="match" href="position-visibility-remove-anchors-visible-ref.html">
 <script src="/common/reftest-wait.js"></script>
@@ -30,7 +30,7 @@
 
   #target {
     position-anchor: --a1;
-    position-visibility: anchors-visible;
+    position-visibility: anchor-visible;
     position-area: bottom;
     width: 100px;
     height: 100px;
@@ -56,7 +56,7 @@
   scroller.scrollTop = 100;
 
   waitForAtLeastOneFrame().then(() => {
-    // Remove position-visibility: anchors-visible. #target should become
+    // Remove position-visibility: anchor-visible. #target should become
     // visible again.
     target.style.positionVisibility = 'always';
     takeScreenshot();

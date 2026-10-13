@@ -1,0 +1,97 @@
+<!doctype html>
+<title>Test AudioWorkletProcessor with malformed or late-bound process</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+
+const modulePath = 'audioworkletprocessor-malformed-process.js';
+const sampleRate = 48000;
+// Render several quanta so the silence assertion also covers the quanta
+// after the error, not just the quantum in which it occurred.
+const renderLength = 128 * 4;
+
+// Verifies that an AudioWorkletProcessor with a non-callable or throwing
+// process property fires processorerror (ErrorEvent) and outputs silence.
+// https://webaudio.github.io/web-audio-api/#rendering-loop
+async function runProcessorErrorTest(processorName) {
+  const context = new OfflineAudioContext(1, renderLength, sampleRate);
+  await context.audioWorklet.addModule(modulePath);
+
+  const node = new AudioWorkletNode(context, processorName);
+  node.connect(context.destination);
+
+  const errorPromise = new Promise((resolve) => {
+    node.onprocessorerror = resolve;
+  });
+
+  const [error, renderedBuffer] = await Promise.all([
+    errorPromise,
+    context.startRendering(),
+  ]);
+
+  assert_true(
+      error instanceof ErrorEvent,
+      'onprocessorerror argument should be an ErrorEvent');
+  // Per HTML § 8.1.7.3.1, the exact ErrorEvent.message text is
+  // implementation-defined; only verify that a non-empty string is populated.
+  assert_equals(
+      typeof error.message, 'string', 'ErrorEvent.message should be a string');
+  assert_not_equals(
+      error.message, '', 'ErrorEvent.message should not be empty');
+
+  const outputData = renderedBuffer.getChannelData(0);
+  assert_array_equals(
+      outputData, new Float32Array(outputData.length),
+      'Rendered output should be silent');
+
+  return error;
+}
+
+promise_test(async () => {
+  await runProcessorErrorTest('missing-process');
+}, 'Test an AudioWorkletProcessor with undefined process function.');
+
+promise_test(async () => {
+  await runProcessorErrorTest('non-callable-data-process');
+}, 'Test an AudioWorkletProcessor with a non-callable process data property.');
+
+promise_test(async () => {
+  await runProcessorErrorTest('non-callable-getter-process');
+}, 'Test an AudioWorkletProcessor with a process getter returning a ' +
+    'non-callable value.');
+
+promise_test(async () => {
+  const error = await runProcessorErrorTest('throwing-getter-process');
+  assert_greater_than(error.lineno, 0, 'Error line number should be set');
+  assert_greater_than(error.colno, 0, 'Error column number should be set');
+  assert_true(
+      error.filename.endsWith(modulePath),
+      'Error filename should end with ' + modulePath);
+}, 'Test an AudioWorkletProcessor with a process getter throwing an Error.');
+
+// process is read in the rendering loop, not at registration or construction,
+// so a process assigned after construction must be used without error.
+promise_test(async () => {
+  const context = new OfflineAudioContext(1, renderLength, sampleRate);
+  await context.audioWorklet.addModule(modulePath);
+
+  const node = new AudioWorkletNode(context, 'late-bound-process');
+  node.connect(context.destination);
+
+  let errorCount = 0;
+  node.onprocessorerror = () => ++errorCount;
+
+  await new Promise((resolve) => {
+    node.port.onmessage = resolve;
+    node.port.postMessage('bind');
+  });
+
+  const renderedBuffer = await context.startRendering();
+  assert_equals(errorCount, 0, 'processorerror should not fire');
+  assert_array_equals(
+      renderedBuffer.getChannelData(0), new Float32Array(renderLength).fill(1),
+      'Rendered output should come from the late-bound process');
+}, 'Test an AudioWorkletProcessor whose process is assigned after ' +
+    'construction.');
+
+</script>

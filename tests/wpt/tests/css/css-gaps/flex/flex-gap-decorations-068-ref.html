@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#lists-repeat">
+<style>
+    body {
+        margin: 0px;
+    }
+    .flex-container {
+        display: flex;
+        gap: 20px;
+        width: 340px;
+        height: 100px;
+    }
+    .flex-item {
+        background: gray;
+        opacity: 0.5;
+        width: 100px;
+    }
+    .col-gap {
+        position: absolute;
+        top: 0px;
+        width: 0px;
+        height: 100px;
+        border-left: solid 10px;
+    }
+    .col-gap1 {
+        left: 105px;
+        border-left-color: blue;
+    }
+    .col-gap2 {
+        left: 225px;
+        border-left-color: green;
+    }
+</style>
+<div class="flex-container">
+    <div class="flex-item"></div>
+    <div class="flex-item"></div>
+    <div class="flex-item"></div>
+</div>
+<div class="col-gap col-gap1"> </div>
+<div class="col-gap col-gap2"> </div>

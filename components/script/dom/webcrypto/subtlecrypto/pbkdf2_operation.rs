@@ -11,16 +11,15 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{KeyType, KeyUsag
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyFormat;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::cryptokey::{CryptoKey, Handle};
+use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    CryptoAlgorithm, KeyAlgorithmAndDerivatives, NormalizedAlgorithm, SubtleKeyAlgorithm,
-    SubtlePbkdf2Params,
+    CryptoAlgorithm, KeyAlgorithm, KeyAlgorithmAndDerivatives, NormalizedAlgorithm, Pbkdf2Params,
 };
 
 /// <https://w3c.github.io/webcrypto/#pbkdf2-operations-derive-bits>
 pub(crate) fn derive_bits(
-    normalized_algorithm: &SubtlePbkdf2Params,
+    normalized_algorithm: &Pbkdf2Params,
     key: &CryptoKey,
     length: Option<u32>,
 ) -> Result<Vec<u8>, Error> {
@@ -98,15 +97,7 @@ pub(crate) fn import_key(
     }
 
     // Step 2. If usages contains a value that is not "deriveKey" or "deriveBits", then throw a SyntaxError.
-    if usages
-        .iter()
-        .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits)) ||
-        usages.is_empty()
-    {
-        return Err(Error::Syntax(Some(
-            "Usages is empty or contains a value that is not a 'deriveKey' or 'deriveBits'".into(),
-        )));
-    }
+    usages.ensure_only_contain_entries_from(&[KeyUsage::DeriveKey, KeyUsage::DeriveBits])?;
 
     // Step 3. If extractable is not false, then throw a SyntaxError.
     if extractable {
@@ -118,7 +109,7 @@ pub(crate) fn import_key(
     // Step 6. Let algorithm be a new KeyAlgorithm object.
     // Step 7. Set the name attribute of algorithm to "PBKDF2".
     // Step 8. Set the [[algorithm]] internal slot of key to algorithm.
-    let algorithm = SubtleKeyAlgorithm {
+    let algorithm = KeyAlgorithm {
         name: CryptoAlgorithm::Pbkdf2,
     };
     let key = CryptoKey::new(
@@ -127,7 +118,7 @@ pub(crate) fn import_key(
         KeyType::Secret,
         extractable,
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-        usages,
+        usages.normalized_value(),
         Handle::Pbkdf2(key_data.to_vec().into()),
     );
 

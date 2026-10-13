@@ -10,16 +10,16 @@
 
 <meta http-equiv="Content-Security-Policy" content="script-src 'nonce-abc123' blob:; style-src 'nonce-abc123' blob:;">
 
+<style id="target" nonce="abc123" type="module" specifier="foo">
+    #test {color:blue}
+</style>
 <script nonce="abc123">
   const t1 = async_test("Test securitypolicyviolation event doesn't fire when nonce satisfies both CSPs");
   document.documentElement.addEventListener("securitypolicyviolation", t1.unreached_func("securitypolicyviolation error fired."));
 
   const t2 = async_test("Test error event doesn't fire when nonce satisfies both CSPs");
+  document.getElementById("target").onerror = t2.unreached_func('onerror fired');
 </script>
-
-<style nonce="abc123" type="module" specifier="foo" onerror="t2.unreached_func('onerror fired');">
-    #test {color:blue}
-</style>
 
 </head>
 <body>

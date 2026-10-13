@@ -165,8 +165,8 @@ fn test_fetch_blob() {
     impl FetchTaskTarget for FetchResponseCollector {
         fn process_request_body(&mut self, _: &Request) {}
         fn process_response(&mut self, _: &Request, _: &Response) {}
-        fn process_response_chunk(&mut self, _: &Request, chunk: Vec<u8>) {
-            self.buffer.extend_from_slice(chunk.as_slice());
+        fn process_response_chunk(&mut self, _: &Request, chunk: bytes::Bytes) {
+            self.buffer.extend_from_slice(&chunk);
         }
         /// Fired when the response is fully fetched
         fn process_response_eof(&mut self, _: &Request, response: &Response) {
@@ -213,7 +213,7 @@ fn test_fetch_blob() {
         expected: bytes.to_vec(),
     };
 
-    spawn_blocking_task::<_, Response>(methods::fetch(request, &mut target, &context));
+    spawn_blocking_task(methods::fetch(request, &mut target, &context));
 
     let fetch_response = receiver.recv().unwrap();
     assert!(!fetch_response.is_network_error());
@@ -757,8 +757,8 @@ fn test_fetch_with_local_urls_only() {
 // NOTE(emilio): If this test starts failing:
 //
 // openssl req -x509 -nodes -days 3650 -newkey rsa:2048 \
-//   -keyout resources/privatekey_for_testing.key       \
-//   -out resources/self_signed_certificate_for_testing.crt
+//   -keyout components/net/tests/privatekey_for_testing.key         \
+//   -out components/net/tests/self_signed_certificate_for_testing.crt
 //
 // And make sure to specify `localhost` as the server name.
 #[test]
@@ -1060,6 +1060,8 @@ fn test_fetch_blocked_nosniff() {
         (Destination::Script, mime::TEXT_JAVASCRIPT, false),
         (Destination::Script, mime::TEXT_CSS, true),
         (Destination::Style, mime::TEXT_CSS, false),
+        (Destination::Style, mime::TEXT_HTML, true),
+        (Destination::Style, mime::TEXT_PLAIN, true),
     ];
 
     for test in tests {
@@ -1536,7 +1538,7 @@ fn test_fetch_request_intercepted() {
                     HeaderValue::from_static(HEADERVALUE),
                 );
                 let response =
-                    embedder_traits::WebResourceResponse::new(web_resource_request.url.clone())
+                    embedder_traits::WebResourceResponse::new(web_resource_request.url.into_url())
                         .headers(headers)
                         .status_code(StatusCode::FOUND)
                         .status_message(STATUS_MESSAGE.to_vec());

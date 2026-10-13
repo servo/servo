@@ -7,6 +7,7 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::create_dir_all;
 use std::rc::Rc;
+#[cfg(feature = "webgl")]
 use std::thread::JoinHandle;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -32,14 +33,19 @@ use profile_traits::path;
 use profile_traits::time::{self as profile_time};
 use servo_base::generic_channel::{self, GenericSender, RoutedReceiver};
 use servo_base::id::{PainterId, PipelineId, WebViewId};
+#[cfg(feature = "webgl")]
 use servo_canvas_traits::webgl::{WebGLContextId, WebGLThreads};
 use servo_config::pref;
 use servo_constellation_traits::EmbedderToConstellationMessage;
 use servo_geometry::DeviceIndependentPixel;
 use style_traits::CSSPixel;
+#[cfg(feature = "webgl")]
 use surfman::Device;
+#[cfg(feature = "webgl")]
 use surfman::chains::SwapChains;
+#[cfg(feature = "webgl")]
 use webgl::WebGLComm;
+#[cfg(feature = "webgl")]
 use webgl::webgl_thread::WebGLContextBusyMap;
 #[cfg(feature = "webgpu")]
 use webgpu::canvas_context::WebGpuExternalImageMap;
@@ -59,6 +65,36 @@ pub enum WebRenderDebugOption {
     Profiler,
     TextureCacheDebug,
     RenderTargetDebug,
+}
+
+/// Keeps track of all webgl related elements
+#[cfg(feature = "webgl")]
+pub struct WebGLPaint {
+    /// A [`HashMap`] of `WebGLContextId` to a usage count. This count indicates when
+    /// WebRender is still rendering the context. This is used to ensure properly clean
+    /// up of all Surfman `Surface`s.
+    pub(crate) busy_webgl_contexts_map: WebGLContextBusyMap,
+
+    /// The [`WebGLThreads`] for this renderer.
+    webgl_threads: WebGLThreads,
+
+    /// A [`JoinHandle`] for joining the WebGL thread once the exit message is sent.
+    webgl_join_handle: Cell<Option<JoinHandle<()>>>,
+
+    /// The shared [`SwapChains`] used by [`WebGLThreads`] for this renderer.
+    pub(crate) swap_chains: SwapChains<WebGLContextId, Device>,
+}
+
+#[cfg(feature = "webgl")]
+impl WebGLPaint {
+    fn shutdown(&self) {
+        self.webgl_threads.exit();
+        if let Some(webgl_join_handle) = self.webgl_join_handle.take() &&
+            webgl_join_handle.join().is_err()
+        {
+            warn!("Could not join WebGLThread.");
+        }
+    }
 }
 
 /// [`Paint`] is Servo's rendering subsystem. It has a few responsibilities:
@@ -112,19 +148,9 @@ pub struct Paint {
     /// are specific to a particular [`Painter`].
     pub(crate) painter_surfman_details_map: PainterSurfmanDetailsMap,
 
-    /// A [`HashMap`] of `WebGLContextId` to a usage count. This count indicates when
-    /// WebRender is still rendering the context. This is used to ensure properly clean
-    /// up of all Surfman `Surface`s.
-    pub(crate) busy_webgl_contexts_map: WebGLContextBusyMap,
-
-    /// The [`WebGLThreads`] for this renderer.
-    webgl_threads: WebGLThreads,
-
-    /// A [`JoinHandle`] for joining the WebGL thread once the exit message is sent.
-    webgl_join_handle: Cell<Option<JoinHandle<()>>>,
-
-    /// The shared [`SwapChains`] used by [`WebGLThreads`] for this renderer.
-    pub(crate) swap_chains: SwapChains<WebGLContextId, Device>,
+    #[cfg(feature = "webgl")]
+    /// Keeps track of all webgl related elements.
+    pub(crate) webgl_paint: WebGLPaint,
 
     /// The channel on which messages can be sent to the time profiler.
     time_profiler_chan: profile_time::ProfilerChan,
@@ -173,6 +199,7 @@ impl Paint {
 
         let webrender_external_image_id_manager = WebRenderExternalImageIdManager::default();
         let painter_surfman_details_map = PainterSurfmanDetailsMap::default();
+        #[cfg(feature = "webgl")]
         let WebGLComm {
             webgl_threads,
             swap_chains,
@@ -186,7 +213,7 @@ impl Paint {
             painter_surfman_details_map.clone(),
         );
 
-        // Create the WebXR main thread
+        // Create the WebXR main thread.
         #[cfg(feature = "webxr")]
         let webxr_main_thread = webxr::MainThreadRegistry::new(
             state.event_loop_waker.clone(),
@@ -194,6 +221,13 @@ impl Paint {
         )
         .expect("Failed to create WebXR device registry");
 
+        #[cfg(feature = "webgl")]
+        let webgl_paint = WebGLPaint {
+            busy_webgl_contexts_map: busy_webgl_context_map,
+            webgl_threads,
+            webgl_join_handle: Cell::new(Some(webgl_join_handle)),
+            swap_chains,
+        };
         Rc::new(RefCell::new(Paint {
             painters: Default::default(),
             paint_proxy: state.paint_proxy,
@@ -202,13 +236,11 @@ impl Paint {
             paint_receiver: state.receiver,
             embedder_to_constellation_sender: state.embedder_to_constellation_sender.clone(),
             webrender_external_image_id_manager,
-            webgl_threads,
-            webgl_join_handle: Cell::new(Some(webgl_join_handle)),
-            swap_chains,
+            #[cfg(feature = "webgl")]
+            webgl_paint,
             time_profiler_chan: state.time_profiler_chan,
             _mem_profiler_registration: registration,
             painter_surfman_details_map,
-            busy_webgl_contexts_map: busy_webgl_context_map,
             #[cfg(feature = "webxr")]
             webxr_main_thread: RefCell::new(webxr_main_thread),
             #[cfg(feature = "webgpu")]
@@ -238,22 +270,29 @@ impl Paint {
         }
 
         let painter = Painter::new(rendering_context.clone(), self);
-        let connection = rendering_context
-            .connection()
-            .expect("Failed to get connection");
-        let adapter = connection
-            .create_adapter()
-            .expect("Failed to create adapter");
-
-        let painter_surfman_details = PainterSurfmanDetails {
-            connection,
-            adapter,
-        };
-        self.painter_surfman_details_map
-            .insert(painter.painter_id, painter_surfman_details);
-
         let painter_id = painter.painter_id;
         self.painters.push(Rc::new(RefCell::new(painter)));
+
+        // These are only used to serve WebGL external images, which handles their
+        // absence from the map
+        let Some(connection) = rendering_context.connection() else {
+            warn!("The rendering context has no surfman connection, WebGL will be unavailable");
+            return painter_id;
+        };
+        let Ok(adapter) = connection.create_adapter().inspect_err(|error| {
+            warn!("Could not create a surfman adapter, WebGL will be unavailable: {error:?}")
+        }) else {
+            return painter_id;
+        };
+
+        self.painter_surfman_details_map.insert(
+            painter_id,
+            PainterSurfmanDetails {
+                connection,
+                adapter,
+            },
+        );
+
         painter_id
     }
 
@@ -262,7 +301,12 @@ impl Paint {
         // devices after `clear_painter_resources` is called.
         self.painter_surfman_details_map.remove(painter_id);
 
-        if !self.webgl_threads.clear_painter_resources(painter_id) {
+        #[cfg(feature = "webgl")]
+        if !self
+            .webgl_paint
+            .webgl_threads
+            .clear_painter_resources(painter_id)
+        {
             warn!("Could not clear {painter_id:?} resources in WebGLThread");
         }
 
@@ -306,8 +350,9 @@ impl Paint {
         self.painter(painter_id).rendering_context.size2d()
     }
 
+    #[cfg(feature = "webgl")]
     pub fn webgl_threads(&self) -> WebGLThreads {
-        self.webgl_threads.clone()
+        self.webgl_paint.webgl_threads.clone()
     }
 
     pub fn webrender_external_image_id_manager(&self) -> WebRenderExternalImageIdManager {
@@ -347,12 +392,8 @@ impl Paint {
         // another thread from finishing (i.e. SetFrameTree).
         while self.paint_receiver.try_recv().is_ok() {}
 
-        self.webgl_threads.exit();
-        if let Some(webgl_join_handle) = self.webgl_join_handle.take() &&
-            webgl_join_handle.join().is_err()
-        {
-            warn!("Could not join WebGLThread.");
-        }
+        #[cfg(feature = "webgl")]
+        self.webgl_paint.shutdown();
 
         // Tell the profiler, memory profiler, and scrolling timer to shut down.
         if let Some((sender, receiver)) = generic_channel::channel() {
@@ -509,13 +550,21 @@ impl Paint {
                 font_key,
                 size,
                 flags,
+                platform_options,
                 variations,
             ) => {
                 debug_assert!(painter_id == font_key.into());
                 debug_assert!(painter_id == font_instance_key.into());
 
                 if let Some(mut painter) = self.maybe_painter_mut(painter_id) {
-                    painter.add_font_instance(font_instance_key, font_key, size, flags, variations);
+                    painter.add_font_instance(
+                        font_instance_key,
+                        font_key,
+                        size,
+                        flags,
+                        platform_options,
+                        variations,
+                    );
                 }
             },
             PaintMessage::RemoveFonts(painter_id, keys, instance_keys) => {
@@ -544,16 +593,6 @@ impl Paint {
             PaintMessage::ScreenshotReadinessReponse(webview_id, pipelines_and_epochs) => {
                 if let Some(painter) = self.maybe_painter(webview_id.into()) {
                     painter.handle_screenshot_readiness_reply(webview_id, pipelines_and_epochs);
-                }
-            },
-            PaintMessage::SendLCPCandidate(lcp_candidate, webview_id, pipeline_id, epoch) => {
-                if let Some(mut painter) = self.maybe_painter_mut(webview_id.into()) {
-                    painter.append_lcp_candidate(lcp_candidate, webview_id, pipeline_id, epoch);
-                }
-            },
-            PaintMessage::EnableLCPCalculation(webview_id) => {
-                if let Some(mut painter) = self.maybe_painter_mut(webview_id.into()) {
-                    painter.enable_lcp_calculation(&webview_id);
                 }
             },
         }

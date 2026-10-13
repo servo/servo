@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>DataTransferItemList.clear() in the read/write mode removes all items</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dnd.html#dom-datatransferitemlist-clear">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+test(t => {
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add('hello', 'text/plain');
+    dataTransfer.items.add('<b>hello</b>', 'text/html');
+    assert_equals(dataTransfer.items.length, 2, 'two string items were added');
+
+    dataTransfer.items.clear();
+
+    assert_equals(dataTransfer.items.length, 0, 'clear() removed every item');
+    assert_equals(dataTransfer.types.length, 0, 'clear() removed every type');
+    assert_equals(dataTransfer.getData('text/plain'), '', 'the text/plain data is gone');
+}, 'clear() removes string items from a read/write drag data store');
+
+test(t => {
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add('hello', 'text/plain');
+    dataTransfer.items.add(new File(['contents'], 'file.txt', { type: 'text/plain' }));
+    assert_equals(dataTransfer.items.length, 2, 'one string item and one file item were added');
+    assert_equals(dataTransfer.files.length, 1, 'the file item is exposed through files');
+
+    dataTransfer.items.clear();
+
+    assert_equals(dataTransfer.items.length, 0, 'clear() removed every item');
+    assert_equals(dataTransfer.files.length, 0, 'clear() emptied the file list');
+}, 'clear() removes file items from a read/write drag data store');
+</script>

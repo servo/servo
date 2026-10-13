@@ -25,9 +25,13 @@ def test_atspi(atspi, session, inline):
 #     # Role: IA2_ROLE_HEADING
 #     # Object Attribute: xml-roles:heading
 
-# def test_uia(uia, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # Control Type: Text
-#     # Localized Control Type: heading
+def test_uia(uia, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Control Type: Text
+    # Localized Control Type: heading
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.Text
+    assert node.CurrentLocalizedControlType == "heading"

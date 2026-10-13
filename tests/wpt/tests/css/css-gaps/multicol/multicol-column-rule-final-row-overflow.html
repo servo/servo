@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: column rules cover overflowing content in the final wrapped row</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#segment-endpoints">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#propdef-column-wrap">
+<link rel="match" href="multicol-column-rule-final-row-overflow-ref.html">
+<style>
+  body {
+    margin: 0;
+  }
+
+  .container {
+    width: 200px;
+    height: 100px;
+    border: 2px solid black;
+    columns: 3 60px;
+    column-fill: auto;
+    column-height: 60px;
+    column-wrap: wrap;
+    gap: 10px;
+    column-rule: 4px solid blue;
+  }
+
+  .item {
+    height: 60px;
+    background: orange;
+  }
+</style>
+<div class="container">
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+  <div class="item"></div>
+</div>

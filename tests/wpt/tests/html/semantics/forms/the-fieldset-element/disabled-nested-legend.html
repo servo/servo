@@ -1,0 +1,34 @@
+<!doctype html>
+<title>Disabled fieldset with nested fieldsets and legends</title>
+<link rel="help" href="https://html.spec.whatwg.org/#concept-fe-disabled">
+<link rel="help" href="https://html.spec.whatwg.org/#dom-fieldset-elements">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<fieldset disabled id="a"><fieldset id="b"><legend><input id="i1"></legend><input id="i2"></fieldset></fieldset>
+<fieldset disabled id="c"><legend><fieldset id="d"><input id="i3"></fieldset></legend><legend><input id="i4"></legend></fieldset>
+<fieldset disabled id="e"><legend><input id="i5"></legend></fieldset>
+<script>
+const $ = id => document.getElementById(id);
+const disabled = id => $(id).matches(":disabled");
+test(() => {
+  assert_true(disabled("b"), "b");
+  assert_true(disabled("i1"), "i1: inside inner legend, but outer fieldset is disabled");
+  assert_true(disabled("i2"), "i2");
+}, "Inner fieldset's legend doesn't shield from an outer disabled fieldset");
+test(() => {
+  assert_false(disabled("d"), "d");
+  assert_false(disabled("i3"), "i3: inside first legend of disabled fieldset");
+  assert_true(disabled("i4"), "i4: inside second legend");
+  assert_false(disabled("i5"), "i5");
+}, "Descendants of the first legend aren't disabled");
+test(() => {
+  assert_equals($("e").elements.length, 1, "e.elements includes controls in the legend");
+  assert_equals($("a").elements.length, 3, "a.elements includes nested controls");
+}, "fieldset.elements includes controls inside legend");
+test(() => {
+  $("c").prepend(document.createElement("legend"));
+  assert_true(disabled("d"), "d after legend change");
+  assert_true(disabled("i3"), "i3 after legend change");
+  assert_true(disabled("i4"), "i4 after legend change");
+}, "Changing the first legend updates the disabled state");
+</script>

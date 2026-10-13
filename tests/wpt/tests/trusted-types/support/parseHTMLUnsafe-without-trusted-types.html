@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Helper frame that does not enforce Trusted Types</title>
+<!-- Navigated to rather than a srcdoc document, which would inherit the
+     parent's CSP. See https://w3c.github.io/webappsec-csp/#security-inherit-csp -->
+<script>
+  // Running from a message handler keeps the entry and incumbent global objects
+  // set to this frame's window, which does not enforce Trusted Types.
+  window.addEventListener("message", event => {
+    let result;
+    try {
+      const doc = parent.Document.parseHTMLUnsafe(event.data);
+      result = {threw: false, textContent: doc.body.textContent};
+    } catch (e) {
+      // Only the name, since which realm the exception belongs to is not
+      // interoperable. See https://github.com/web-platform-tests/wpt/issues/45405
+      result = {threw: true, name: e.name};
+    }
+    event.source.postMessage(result, "*");
+  });
+</script>

@@ -1,0 +1,16 @@
+<svg width="400" height="100" xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>pathLength of zero does not affect a percentage startOffset</title>
+  <metadata>
+    <html:link rel="author" title="Karl Dubost" href="mailto:k_dubost@apple.com"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/paths.html#PathLengthAttribute"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementStartOffsetAttribute"/>
+    <html:link rel="match" href="textpath-pathlength-zero-offset-percentage-ref.svg"/>
+    <html:meta name="assert" content="pathLength has no effect on percentage distance-along-a-path calculations, and the rule that a pathLength of zero scales values to infinity is written to apply only to non-percentage values. So a startOffset of 50% still resolves against the length the user agent measured and the text starts halfway along the path, exactly as it would with no pathLength at all. The reference is the same markup without pathLength. Measured on 2026-09-14: Safari 26.4 renders halfway, while Chrome 155 and Firefox 158 both render at the start of the path, so this test is expected to fail in those two."/>
+  </metadata>
+  <defs>
+    <path id="line" d="M 10 50 L 390 50" pathLength="0"/>
+  </defs>
+  <text>
+    <textPath href="#line" startOffset="50%">Percentage is not scaled</textPath>
+  </text>
+</svg>

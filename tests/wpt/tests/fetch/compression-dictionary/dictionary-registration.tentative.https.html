@@ -178,6 +178,81 @@ compression_dictionary_promise_test(async (t) => {
   assert_false("available-dictionary" in headers);
 }, 'Dictionary with max-age=0 is not registered');
 
+// RFC 9842 section 2.2.1: "To be considered as a match, the dictionary resource
+// MUST be either fresh or allowed to be served stale." The following tests
+// check how the usual Cache-Control directives interact with that rule.
+
+compression_dictionary_promise_test(async (t) => {
+  // RFC 5861: stale-while-revalidate allows a stale response to be served for
+  // the duration of the window.
+  const cache_control =
+      encodeURIComponent('max-age=0, stale-while-revalidate=3600');
+  await fetch(`${kRegisterDictionaryPath}?cache-control=${cache_control}`);
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}),
+      kDefaultDictionaryHashBase64);
+}, 'Stale dictionary within its stale-while-revalidate window is used');
+
+compression_dictionary_promise_test(async (t) => {
+  const pattern = encodeURIComponent(
+      '/fetch/compression-dictionary/resources/echo-headers.py');
+  const cache_control =
+      encodeURIComponent('max-age=0, stale-while-revalidate=5');
+  await fetch(
+      `${kRegisterDictionaryPath}?id=id1&age=10&cache-control=${cache_control}&match=${pattern}`);
+  await registerAltDictionaryAndWait(t, `alt_${token()}`);
+  const headers = await (await fetch('./resources/echo-headers.py')).json();
+  assert_false("available-dictionary" in headers);
+}, 'Dictionary past its stale-while-revalidate window is not used');
+
+compression_dictionary_promise_test(async (t) => {
+  // must-revalidate only restricts the use of a stale response, so it does not
+  // affect a dictionary that is still fresh.
+  const cache_control = encodeURIComponent('max-age=3600, must-revalidate');
+  await fetch(`${kRegisterDictionaryPath}?cache-control=${cache_control}`);
+  assert_equals(
+      await waitUntilAvailableDictionaryHeader(t, {}),
+      kDefaultDictionaryHashBase64);
+}, 'Fresh dictionary with must-revalidate is used');
+
+compression_dictionary_promise_test(async (t) => {
+  // RFC 9111 section 5.2.2.2: must-revalidate forbids serving the response
+  // stale, which overrides stale-while-revalidate.
+  const pattern = encodeURIComponent(
+      '/fetch/compression-dictionary/resources/echo-headers.py');
+  const cache_control = encodeURIComponent(
+      'max-age=0, must-revalidate, stale-while-revalidate=3600');
+  await fetch(
+      `${kRegisterDictionaryPath}?id=id1&cache-control=${cache_control}&match=${pattern}`);
+  await registerAltDictionaryAndWait(t, `alt_${token()}`);
+  const headers = await (await fetch('./resources/echo-headers.py')).json();
+  assert_false("available-dictionary" in headers);
+}, 'Stale dictionary with must-revalidate is not used');
+
+compression_dictionary_promise_test(async (t) => {
+  // RFC 9111 section 5.2.2.4: a no-cache response cannot be reused without
+  // successful validation.
+  const pattern = encodeURIComponent(
+      '/fetch/compression-dictionary/resources/echo-headers.py');
+  const cache_control = encodeURIComponent('max-age=3600, no-cache');
+  await fetch(
+      `${kRegisterDictionaryPath}?id=id1&cache-control=${cache_control}&match=${pattern}`);
+  await registerAltDictionaryAndWait(t, `alt_${token()}`);
+  const headers = await (await fetch('./resources/echo-headers.py')).json();
+  assert_false("available-dictionary" in headers);
+}, 'Dictionary with no-cache is not used');
+
+compression_dictionary_promise_test(async (t) => {
+  const pattern = encodeURIComponent(
+      '/fetch/compression-dictionary/resources/echo-headers.py');
+  const cache_control = encodeURIComponent('max-age=3600, no-store');
+  await fetch(
+      `${kRegisterDictionaryPath}?id=id1&cache-control=${cache_control}&match=${pattern}`);
+  await registerAltDictionaryAndWait(t, `alt_${token()}`);
+  const headers = await (await fetch('./resources/echo-headers.py')).json();
+  assert_false("available-dictionary" in headers);
+}, 'Dictionary with no-store is not registered');
+
 compression_dictionary_promise_test(async (t) => {
   // https://www.rfc-editor.org/info/rfc9651/#name-parsing-a-string
   // double quotes and backslash are escaped in headers per RFC9651.

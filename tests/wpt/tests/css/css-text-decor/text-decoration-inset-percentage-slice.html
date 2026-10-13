@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="fuzzy" content="maxDifference=0-40; totalPixels=0-8">
+<title>CSS Text Decoration 4: percentage text-decoration-inset resolves against the whole decorated run with box-decoration-break: slice</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-inset-property">
+<link rel="author" title="Helmut Januschka" href="mailto:helmut@januschka.com">
+<link rel="match" href="reference/text-decoration-inset-percentage-slice-ref.html">
+<style>
+  u {
+    font: 48px/2 monospace;
+    text-decoration-line: underline;
+    text-decoration-color: black;
+    text-decoration-thickness: 4px;
+    text-decoration-inset: 25%;
+    box-decoration-break: slice;
+  }
+</style>
+<!-- The decorated run is split into four text fragments. With
+     box-decoration-break: slice, the 25% inset must resolve against the
+     size of the whole run and only trim its outer edges, rendering
+     identically to the unfragmented reference. -->
+<div><u>A<span>B</span><span>C</span>D</u></div>

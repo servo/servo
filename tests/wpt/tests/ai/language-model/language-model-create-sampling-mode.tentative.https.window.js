@@ -7,18 +7,42 @@
 'use strict';
 
 promise_test(async t => {
-  const modes = ['most-predictable', 'predictable', 'balanced', 'creative', 'most-creative'];
+  const modes = [
+    'most-predictable',
+    'predictable',
+    'slightly-predictable',
+    'balanced',
+    'slightly-creative',
+    'creative',
+    'most-creative',
+  ];
 
   for (const mode of modes) {
     const session = await createLanguageModel({ samplingMode: mode });
     assert_true(session !== null, `Session created with ${mode} mode`);
+    assert_equals(session.samplingMode, mode);
+    const cloned = await session.clone();
+    assert_equals(cloned.samplingMode, mode);
+    cloned.destroy();
     session.destroy();
   }
-}, 'LanguageModel.create() accepts all valid sampling modes');
+}, 'LanguageModel.create() accepts all valid sampling modes and preserves samplingMode on clone()');
+
+promise_test(async t => {
+  const session = await createLanguageModel();
+  assert_equals(session.samplingMode, 'balanced');
+  session.destroy();
+}, 'LanguageModel.create() defaults samplingMode to balanced when omitted');
 
 const legacyParamsEnabled = ('params' in LanguageModel);
 
 if (legacyParamsEnabled) {
+  promise_test(async t => {
+    const session = await createLanguageModel({temperature: 0.8, topK: 10});
+    assert_equals(session.samplingMode, null);
+    session.destroy();
+  }, 'LanguageModel.create() sets samplingMode to null when legacy parameters are provided');
+
   promise_test(async t => {
     await promise_rejects_js(
       t,

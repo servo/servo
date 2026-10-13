@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<title>Email Verification Token (EVT): Happy Path</title>
+<meta name="timeout" content="long">
+<link rel="help" href="https://github.com/dickhardt/email-verification-protocol">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+<div id="form-container"></div>
+
+<script type="module">
+import {evt_test,
+        setup_evt_endpoints,
+        assert_evt_success,
+        assert_evt_failure,
+        validate_evt_token} from '../support/fedcm-helper.sub.js';
+
+function reset_form() {
+  const container = document.getElementById('form-container');
+  container.innerHTML = `
+    <form id="evt-login-form">
+      <input type="email" id="email" autocomplete="email" value="john_doe@idp.example">
+      <input type="hidden" id="token" autocomplete="email-verification-token" nonce="test_nonce_12345">
+      <button type="submit" id="submit_button">Login</button>
+    </form>
+  `;
+}
+
+// Positive test case: Happy path where the token is returned, populated, and valid.
+evt_test(async t => {
+  reset_form();
+  await setup_evt_endpoints();
+
+  const token = await assert_evt_success(t, {
+    email: "john_doe@idp.example",
+    nonce: "test_nonce_12345"
+  });
+
+  // Verify that the token is present and valid according to the EVT SD-JWT specification.
+  const payload = validate_evt_token(token, {
+    email: "john_doe@idp.example"
+  });
+  assert_equals(payload.email, "john_doe@idp.example", "Token email claim must match");
+  assert_true(payload.email_verified, "Token email_verified claim must be true");
+}, "Positive: Successfully authenticate EVT happy path and obtain a valid verification token.");
+
+// Negative test case: Network/issuance failure where the token must NOT be populated and remains empty.
+evt_test(async t => {
+  reset_form();
+  await setup_evt_endpoints();
+
+  const token = await assert_evt_failure(t, {
+    email: "john_doe@idp.example",
+    nonce: "test_nonce_12345",
+    endpoint: "/fedcm/support/delegation-issuance.py?error=500"
+  });
+
+  assert_equals(token, "", "Token field must remain empty when issuance endpoint fails");
+}, "Negative: Token field remains empty when issuance endpoint returns an error.");
+
+
+</script>
+</body>
+</html>

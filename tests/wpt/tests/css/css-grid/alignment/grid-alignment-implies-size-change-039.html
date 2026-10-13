@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-item-sizing">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#propdef-justify-items">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#valdef-justify-self-stretch">
+<meta name="assert" content="Changing the grid's justify-items value from 'end' to 'stretch' updates both the width and the position of non-replaced grid items.">
+<style>
+.grid {
+  position: relative;
+  display: grid;
+  grid-template-rows: 100px 100px;
+  grid-template-columns: 150px;
+  width: 150px;
+  justify-items: end;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<script src="support/style-change.js"></script>
+<script>
+setup({ explicit_done: true });
+function runTest() {
+  evaluateStyleChangeMultiple("before", {
+    item1: { "data-expected-width": 50, "data-offset-x": 100 },
+    item2: { "data-expected-width": 100, "data-offset-x": 50 }
+  });
+  grid.style.justifyItems = "stretch";
+  evaluateStyleChangeMultiple("after", {
+    item1: { "data-expected-width": 150, "data-offset-x": 0 },
+    item2: { "data-expected-width": 150, "data-offset-x": 0 }
+  });
+  done();
+}
+</script>
+<body onload="runTest()">
+<div class="grid" id="grid">
+  <div id="item1" style="height: 50px; grid-area: 1 / 1;">
+    <div style="width: 50px;"></div>
+  </div>
+  <div id="item2" style="height: 50px; grid-area: 2 / 1;">
+    <div style="width: 100px;"></div>
+  </div>
+</div>
+</body>

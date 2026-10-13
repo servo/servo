@@ -471,6 +471,15 @@ impl Player for OhosAvPlayer {
         Ok(())
     }
 
+    fn set_download_buffering_enabled(
+        &self,
+        enabled: bool,
+    ) -> Result<(), servo_media::player::PlayerError> {
+        debug!("SetDownloadBufferingEnabled: {}", enabled);
+
+        Ok(())
+    }
+
     fn set_playback_rate(
         &self,
         playback_rate: f64,
@@ -524,7 +533,8 @@ impl Player for OhosAvPlayer {
     }
 
     fn can_resume(&self) -> bool {
-        todo!()
+        warn!("OhosAvPlayer: can_resume not fully supported");
+        true
     }
 
     fn paused(&self) -> bool {

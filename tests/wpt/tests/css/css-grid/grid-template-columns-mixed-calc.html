@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid: mixed bare length and top-level calc() in grid-template-columns</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#propdef-grid-template-columns">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-notation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/4141 -->
+
+<div id="target"></div>
+<script>
+"use strict";
+
+const el = document.getElementById("target");
+
+const values = [
+  ["100px 1fr", "100px 1fr"],
+  ["100px calc(100% - 100px)", "100px calc(100% - 100px)"],
+  ["calc(100px) calc(100% - 100px)", "calc(100px) calc(100% - 100px)"],
+  ["6.25rem calc((100% - 6.25rem) / 1)", "6.25rem calc(100% - 6.25rem)"],
+  [
+    "6.25rem 60% calc((40% - 6.25rem) / 2) calc((40% - 6.25rem) / 2)",
+    "6.25rem 60% calc(20% - 3.125rem) calc(20% - 3.125rem)"
+  ]
+];
+
+for (const [value, expected] of values) {
+  test(() => {
+    el.style.gridTemplateColumns = "";
+    el.style.gridTemplateColumns = value;
+    assert_not_equals(el.style.gridTemplateColumns, "", "The declaration is retained");
+  }, `grid-template-columns accepts ${JSON.stringify(value)}`);
+
+  test(() => {
+    el.style.gridTemplateColumns = "";
+    el.style.gridTemplateColumns = value;
+    assert_equals(el.style.gridTemplateColumns, expected);
+  }, `grid-template-columns serializes ${JSON.stringify(value)}`);
+}
+
+test(() => {
+  el.style.gridTemplateRows = "";
+  el.style.gridTemplateRows = "100px calc(100% - 100px)";
+  assert_equals(el.style.gridTemplateRows, "100px calc(100% - 100px)");
+}, "grid-template-rows keeps mixed length + calc()");
+</script>

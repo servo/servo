@@ -3,7 +3,6 @@
 from configparser import ConfigParser
 import os
 import sys
-from collections import OrderedDict
 from typing import Dict, Mapping, Optional, List
 
 here = os.path.dirname(__file__)
@@ -38,7 +37,7 @@ def read(config_path: str) -> Mapping[str, ConfigDict]:
 
     subns = {"pwd": os.path.abspath(os.path.curdir)}
 
-    rv = OrderedDict()
+    rv = {}
     for section in parser.sections():
         rv[section] = ConfigDict(config_root)
         for key in parser.options(section):

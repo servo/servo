@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox: an empty editable flex container reserves a line's block size in a vertical writing mode</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#flex-containers">
+<link rel="match" href="flex-container-line-if-empty-vertical-writing-mode-ref.html">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+#target {
+    display: flex;
+    writing-mode: vertical-rl;
+    height: 100px;
+    font: 20px/1 Ahem;
+    margin: 0;
+    border: 0;
+    padding: 0;
+    outline: 0;
+    background: green;
+}
+</style>
+<p>Test passes if there is a filled green rectangle below and no red.</p>
+<!-- An editable flex container "has a line if empty", so with no in-flow items it must still reserve one
+     line along its block axis. In vertical-rl the block axis is horizontal, so the box must be one line
+     (20px) wide. -->
+<div id="target" contenteditable></div>

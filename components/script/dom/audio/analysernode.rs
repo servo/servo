@@ -9,7 +9,7 @@ use js::context::{JSContext, NoGC};
 use js::rust::{CustomAutoRooterGuard, HandleObject};
 use js::typedarray::{Float32Array, Uint8Array};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_base::generic_channel::GenericCallback;
 use servo_media::audio::analyser_node::AnalysisEngine;
 use servo_media::audio::audio_node::AudioNodeInit;
@@ -107,7 +107,7 @@ impl AnalyserNode {
         let callback_oncelock = Arc::new(OnceLock::new());
         let node =
             AnalyserNode::new_inherited(cx, window, context, options, callback_oncelock.clone())?;
-        let object = reflect_dom_object_with_proto_and_cx(Box::new(node), window, proto, cx);
+        let object = reflect_dom_object_with_proto(cx, Box::new(node), window, proto);
         let task_source = window
             .as_global_scope()
             .task_manager()

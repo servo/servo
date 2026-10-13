@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>window.onerror: throwing null in event listeners</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+  "use strict";
+
+  setup({ allow_uncaught_exception: true });
+
+  test(() => {
+    let errorEvents = 0;
+    let errorEvent;
+    window.addEventListener("error", event => {
+      errorEvent = event;
+      ++errorEvents;
+    });
+
+    const element = document.createElement("div");
+
+    element.addEventListener("click", () => {
+      throw null; // eslint-disable-line no-throw-literal
+    });
+
+    element.dispatchEvent(new Event("click"));
+
+    assert_equals(errorEvents, 1);
+    assert_equals(typeof errorEvent.message, "string");
+    assert_equals(errorEvent.error, null);
+  }, "Throwing null in event listener");
+</script>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras"
+      href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#repeat-auto-fit">
+<style>
+  body { margin: 0; }
+  .stage {
+    position: relative;
+    width: 90px;
+    height: 350px;
+  }
+  .lanes {
+    display: grid-lanes;
+    grid-lanes-direction: row;
+    grid-template-rows: repeat(auto-fit, 50px);
+    gap: 10px;
+    width: max-content;
+    height: 350px;
+    background: #cdd5e0;
+  }
+  .lanes > div {
+    width: 40px;
+    background: #5b8def;
+  }
+  .t3 { grid-row: 3; }
+  .t4 { grid-row: 4; }
+  .t5 { grid-row: 5; }
+  .t6 { grid-row: 6; }
+  .col-rule {
+    position: absolute;
+    left: 43px;
+    width: 0;
+    height: 50px;
+    border-left: 4px solid gold;
+  }
+  .row-rule {
+    position: absolute;
+    left: 0;
+    width: 90px;
+    height: 0;
+    border-top-width: 4px;
+    border-top-style: solid;
+  }
+</style>
+<div class="stage">
+  <div class="lanes">
+    <div class="t3"></div>
+    <div class="t3"></div>
+    <div class="t4"></div>
+    <div class="t4"></div>
+    <div class="t5"></div>
+    <div class="t5"></div>
+    <div class="t6"></div>
+    <div class="t6"></div>
+  </div>
+  <div class="col-rule" style="top: 0;"></div>
+  <div class="col-rule" style="top: 60px;"></div>
+  <div class="col-rule" style="top: 120px;"></div>
+  <div class="col-rule" style="top: 180px;"></div>
+  <div class="row-rule"
+       style="top: 53px; border-top-color: red;"></div>
+  <div class="row-rule"
+       style="top: 113px; border-top-color: blue;"></div>
+  <div class="row-rule"
+       style="top: 173px; border-top-color: green;"></div>
+</div>

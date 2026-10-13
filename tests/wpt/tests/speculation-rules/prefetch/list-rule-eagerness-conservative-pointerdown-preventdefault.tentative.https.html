@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<title>Speculation rules: conservative eagerness list rule prefetches on pointer down even when the pointerdown event is canceled</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="../resources/utils.js"></script>
+<script src="resources/utils.sub.js"></script>
+
+<body>
+<script>
+  setup(() => assertSpeculationRulesIsSupported());
+
+  // Presses the primary pointer on |link| and releases it away from the link
+  // so that no click navigates.
+  async function pressAndReleaseAway(link) {
+    await new test_driver.Actions()
+        .addPointer('mouse')
+        .pointerMove(0, 0, { origin: link })
+        .pointerDown()
+        .pointerMove(0, 0)
+        .pointerUp()
+        .send();
+  }
+
+  promise_test(async t => {
+    const url = getPrefetchUrl();
+    const link = addLink(url);
+    link.textContent = 'press me';
+
+    let event = null;
+    link.addEventListener('pointerdown', e => {
+      event = e;
+      e.preventDefault();
+    });
+
+    insertSpeculationRules({
+      prefetch: [{ source: 'list', urls: [url], eagerness: 'conservative' }]
+    });
+    await new Promise(resolve => t.step_timeout(resolve, 1000));
+    assert_equals(await isUrlPrefetched(url), 0,
+        'conservative candidate must not be prefetched before any interaction');
+
+    await pressAndReleaseAway(link);
+
+    assert_not_equals(event, null, 'pointerdown listener on the link must run');
+    assert_true(event.defaultPrevented, 'pointerdown must have been canceled');
+    assert_equals(await waitUntilPrefetched(t, url, 2000), 1,
+        'conservative candidate must be prefetched even though pointerdown was canceled by the link');
+  }, 'preventDefault() in a pointerdown listener on the link does not suppress the prefetch');
+
+  promise_test(async t => {
+    const url = getPrefetchUrl();
+    const link = addLink(url);
+    link.textContent = 'press me too';
+
+    let event = null;
+    const listener = e => {
+      if (e.target !== link) {
+        return;
+      }
+      event = e;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    };
+    window.addEventListener('pointerdown', listener, { capture: true });
+    t.add_cleanup(() => {
+      window.removeEventListener('pointerdown', listener, { capture: true });
+    });
+
+    insertSpeculationRules({
+      prefetch: [{ source: 'list', urls: [url], eagerness: 'conservative' }]
+    });
+    await new Promise(resolve => t.step_timeout(resolve, 1000));
+    assert_equals(await isUrlPrefetched(url), 0,
+        'conservative candidate must not be prefetched before any interaction');
+
+    await pressAndReleaseAway(link);
+
+    assert_not_equals(event, null, 'capturing pointerdown listener on window must run');
+    assert_true(event.defaultPrevented, 'pointerdown must have been canceled');
+    assert_equals(await waitUntilPrefetched(t, url, 2000), 1,
+        'conservative candidate must be prefetched even though pointerdown was canceled and stopped at the window capture phase');
+  }, 'preventDefault() and stopImmediatePropagation() in a capturing window listener do not suppress the prefetch');
+</script>
+</body>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Anchor Positioning Module Level 1: anchor-name from higher tree can be referenced in shadow tree</title>
+  <link rel="author" title="Jack Holden" href="mailto:jack@holdhelm.com">
+  <link rel="help" href="https://www.w3.org/TR/css-anchor-position-1/#name">
+  <meta name="assert" content="A positioned element inside a shadow tree can reference an anchor-name defined in a higher tree.">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+
+  <style>
+    #host {
+      anchor-name: --higher-anchor;
+      background: lightgray;
+      block-size: 100px;
+      inline-size: 200px;
+      margin: 50px;
+    }
+  </style>
+</head>
+<body>
+  <div id="host">
+    <template shadowrootmode="open">
+      <style>
+        #anchored {
+          background: green;
+          block-size: 50px;
+          inline-size: 50px;
+          inset-block-start: anchor(--higher-anchor start, 37px);
+          inset-inline-start: anchor(--higher-anchor end, 37px);
+          position: absolute;
+        }
+      </style>
+      <div id="anchored"></div>
+    </template>
+  </div>
+
+  <script>
+    test(() => {
+      const host = document.getElementById("host");
+      const anchored = host.shadowRoot.getElementById("anchored");
+
+      const hostRect = host.getBoundingClientRect();
+      const anchoredRect = anchored.getBoundingClientRect();
+
+      // Should be able to reference the higher-tree anchor-name.
+      assert_equals(anchoredRect.left, hostRect.right,
+        "positioned element inside shadow tree should resolve anchor-name from higher tree");
+    }, "anchor() inside a shadow tree can reference an anchor-name defined in a higher tree");
+  </script>
+</body>
+</html>

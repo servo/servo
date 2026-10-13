@@ -5,16 +5,16 @@
 <script src="/resources/testharnessreport.js"></script>
 
 <canvas id="canvas" width="100" height="100">
-  <div id="child"></div>
+  <div id="child" drawable></div>
 </canvas>
 
 <script>
   'use strict';
 
   promise_test(async t => {
-    // Add `layoutsubtree` and assert that `drawElementImage` throws when used
+    // Add `content=drawable` and assert that `drawElementImage` throws when used
     // prior to `onpaint` firing.
-    canvas.setAttribute('layoutsubtree', 'true');
+    canvas.setAttribute('content', 'drawable');
     let ctx = canvas.getContext('2d');
     assert_throws_dom(
       'InvalidStateError',

@@ -5,7 +5,7 @@
 <link rel="help" href="https://github.com/WICG/html-in-canvas">
 <link rel="author" href="mailto:schenney@chromium.org">
 <link rel="match" href="selection-painted-overlay-path-ref.html">
-<meta name="assert" value="When preserving privacy for readback, do draw selection when using the highlight overlay painting path (triggered by the custom highlight).">
+<meta name="assert" value="During read-back allowed rendering, do draw selection when using the highlight overlay painting path (triggered by the custom highlight).">
 <script src="/common/reftest-wait.js"></script>
 <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
 <style>
@@ -31,8 +31,8 @@
     text-shadow: pink 2px 5px;
   }
 </style>
-<canvas id=canvas width="200" height="200" layoutsubtree>
-  <div id="child">
+<canvas id=canvas width="200" height="200" content=drawable>
+  <div drawable id="child">
     <div id="editable" contenteditable="true">Many things can happen.</div>
   </div>
 </canvas>

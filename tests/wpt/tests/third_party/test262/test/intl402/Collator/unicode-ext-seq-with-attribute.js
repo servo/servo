@@ -2,18 +2,15 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-esid: sec-initializecollator
+esid: sec-intl.collator
 description: >
   Attributes in Unicode extension subtags should be ignored.
 info: |
-  10.1.1 InitializeCollator ( collator, locales, options )
-    ...
-    15. For each element key of relevantExtensionKeys in List order, do
-      a. If key is "co", then
-          i. Let value be r.[[co]].
-         ii. If value is null, let value be "default".
-        iii. Set collator.[[Collation]] to value.
-    ...
+  Intl.Collator ( [ locales [ , options ] ] )
+
+  1. If _r_.[[co]] is *null*, let _collation_ be *"default"*. Otherwise, let
+     _collation_ be _r_.[[co]].
+  1. Set _collator_.[[Collation]] to _collation_.
 
   10.3.5 Intl.Collator.prototype.resolvedOptions ()
     The function returns a new object whose properties and attributes are set as if constructed

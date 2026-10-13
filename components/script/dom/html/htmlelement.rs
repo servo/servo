@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::default::Default;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, QualName, local_name, ns};
@@ -11,6 +10,7 @@ use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use layout_api::{QueryMsg, ScrollContainerQueryFlags, ScrollContainerResponse};
 use rustc_hash::FxHashSet;
+use script_bindings::callback::RootedCallback;
 use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::ElementBinding::ScrollLogicalPosition;
 use script_bindings::codegen::GenericBindings::WindowBinding::ScrollBehavior;
@@ -50,7 +50,6 @@ use crate::dom::element::{
     AttributeMutation, CustomElementCreationMode, Element, ElementCreator,
     is_element_affected_by_legacy_background_presentational_hint,
 };
-use crate::dom::elementinternals::ElementInternals;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
@@ -62,17 +61,20 @@ use crate::dom::html::htmlframesetelement::HTMLFrameSetElement;
 use crate::dom::html::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::html::htmllabelelement::HTMLLabelElement;
 use crate::dom::html::htmltextareaelement::HTMLTextAreaElement;
+use crate::dom::html::internals::elementinternals::ElementInternals;
 use crate::dom::htmlformelement::FormControlElementHelpers;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::medialist::MediaList;
+use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
-    BindContext, MoveContext, Node, NodeTraits, UnbindContext, from_untrusted_node_address,
+    BindContext, MoveContext, Node, NodeDamage, NodeTraits, UnbindContext,
+    from_untrusted_node_address,
 };
-use crate::dom::scrolling_box::{ScrollAxisState, ScrollRequirement};
-use crate::dom::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::shadowroot::ShadowRoot;
 use crate::dom::text::Text;
-use crate::script_thread::ScriptThread;
+use crate::dom::window::scrolling_box::{ScrollAxisState, ScrollRequirement};
+use crate::event_loop::script_thread::ScriptThread;
 
 #[dom_struct]
 pub(crate) struct HTMLElement {
@@ -169,8 +171,11 @@ impl HTMLElement {
         // a string consisting of only ASCII whitespace, or is a media query list that
         // matches the user's environment according to the definitions given in Media Queries. [MQ]
         self.element
-            .get_attribute_string_value(&local_name!("media"))
-            .is_none_or(|media| MediaList::matches_environment(&self.owner_document(), &media))
+            .get_attribute_string_ref(&local_name!("media"))
+            .is_none_or(|media| {
+                let media = media.as_attr_ref();
+                MediaList::matches_environment(&self.owner_document(), &media.value())
+            })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#editing-host>
@@ -181,18 +186,29 @@ impl HTMLElement {
         // TODO
     }
 
-    pub(crate) fn previously_focused_element(&self) -> Option<DomRoot<Element>> {
+    pub(crate) fn previously_focused_element(&self, no_gc: &NoGC) -> Option<DomRoot<Element>> {
         self.upcast::<Element>()
-            .ensure_rare_data()
+            .ensure_rare_data(no_gc)
             .previously_focused_element
             .get()
     }
 
-    pub(crate) fn set_previously_focused_element(&self, element: Option<&Element>) {
+    pub(crate) fn set_previously_focused_element(&self, element: Option<&Element>, no_gc: &NoGC) {
         self.upcast::<Element>()
-            .ensure_rare_data()
+            .ensure_rare_data(no_gc)
             .previously_focused_element
             .set(element);
+    }
+
+    pub(crate) fn ensure_element_internals(&self, cx: &mut JSContext) -> DomRoot<ElementInternals> {
+        let element = self.upcast::<Element>();
+        let Some(element_internals) = element.get_element_internals() else {
+            let internals = ElementInternals::new(cx, self);
+            element.ensure_rare_data(cx.no_gc()).element_internals =
+                Some(Dom::from_ref(&*internals));
+            return internals;
+        };
+        element_internals
     }
 }
 
@@ -247,7 +263,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onerror>
-    fn GetOnerror(&self, cx: &mut JSContext) -> Option<Rc<OnErrorEventHandlerNonNull>> {
+    fn GetOnerror(&self, cx: &mut JSContext) -> Option<RootedCallback<OnErrorEventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
             if document.has_browsing_context() {
@@ -262,7 +278,11 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onerror>
-    fn SetOnerror(&self, cx: &mut JSContext, listener: Option<Rc<OnErrorEventHandlerNonNull>>) {
+    fn SetOnerror(
+        &self,
+        cx: &mut JSContext,
+        listener: Option<RootedCallback<OnErrorEventHandlerNonNull>>,
+    ) {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
             if document.has_browsing_context() {
@@ -276,7 +296,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onload>
-    fn GetOnload(&self, cx: &mut JSContext) -> Option<Rc<EventHandlerNonNull>> {
+    fn GetOnload(&self, cx: &mut JSContext) -> Option<RootedCallback<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
             if document.has_browsing_context() {
@@ -291,7 +311,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onload>
-    fn SetOnload(&self, cx: &mut JSContext, listener: Option<Rc<EventHandlerNonNull>>) {
+    fn SetOnload(&self, cx: &mut JSContext, listener: Option<RootedCallback<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
             if document.has_browsing_context() {
@@ -304,7 +324,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onblur>
-    fn GetOnblur(&self, cx: &mut JSContext) -> Option<Rc<EventHandlerNonNull>> {
+    fn GetOnblur(&self, cx: &mut JSContext) -> Option<RootedCallback<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
             if document.has_browsing_context() {
@@ -319,7 +339,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onblur>
-    fn SetOnblur(&self, cx: &mut JSContext, listener: Option<Rc<EventHandlerNonNull>>) {
+    fn SetOnblur(&self, cx: &mut JSContext, listener: Option<RootedCallback<EventHandlerNonNull>>) {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
             if document.has_browsing_context() {
@@ -332,7 +352,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onfocus>
-    fn GetOnfocus(&self, cx: &mut JSContext) -> Option<Rc<EventHandlerNonNull>> {
+    fn GetOnfocus(&self, cx: &mut JSContext) -> Option<RootedCallback<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
             if document.has_browsing_context() {
@@ -347,7 +367,11 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onfocus>
-    fn SetOnfocus(&self, cx: &mut JSContext, listener: Option<Rc<EventHandlerNonNull>>) {
+    fn SetOnfocus(
+        &self,
+        cx: &mut JSContext,
+        listener: Option<RootedCallback<EventHandlerNonNull>>,
+    ) {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
             if document.has_browsing_context() {
@@ -360,7 +384,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onresize>
-    fn GetOnresize(&self, cx: &mut JSContext) -> Option<Rc<EventHandlerNonNull>> {
+    fn GetOnresize(&self, cx: &mut JSContext) -> Option<RootedCallback<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
             if document.has_browsing_context() {
@@ -375,7 +399,11 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onresize>
-    fn SetOnresize(&self, cx: &mut JSContext, listener: Option<Rc<EventHandlerNonNull>>) {
+    fn SetOnresize(
+        &self,
+        cx: &mut JSContext,
+        listener: Option<RootedCallback<EventHandlerNonNull>>,
+    ) {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
             if document.has_browsing_context() {
@@ -388,7 +416,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onscroll>
-    fn GetOnscroll(&self, cx: &mut JSContext) -> Option<Rc<EventHandlerNonNull>> {
+    fn GetOnscroll(&self, cx: &mut JSContext) -> Option<RootedCallback<EventHandlerNonNull>> {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
             if document.has_browsing_context() {
@@ -403,7 +431,11 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#handler-onscroll>
-    fn SetOnscroll(&self, cx: &mut JSContext, listener: Option<Rc<EventHandlerNonNull>>) {
+    fn SetOnscroll(
+        &self,
+        cx: &mut JSContext,
+        listener: Option<RootedCallback<EventHandlerNonNull>>,
+    ) {
         if self.is_body_or_frameset() {
             let document = self.owner_document();
             if document.has_browsing_context() {
@@ -479,7 +511,10 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // TODO: Implement this.
 
         // 2. Run the focusing steps for this.
-        if !self.upcast::<Node>().run_the_focusing_steps(cx, None) {
+        if !self
+            .upcast::<Node>()
+            .run_the_focusing_steps(cx, None, FocusTrigger::Other)
+        {
             // The specification seems to imply we should scroll into view even if this element
             // is not a focusable area. No browser does this, so we return early in that case.
             // See https://github.com/whatwg/html/issues/12231.
@@ -614,7 +649,9 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     fn SetOuterText(&self, cx: &mut JSContext, input: DOMString) -> Fallible<()> {
         // Step 1: If this's parent is null, then throw a "NoModificationAllowedError" DOMException.
         let Some(parent) = self.upcast::<Node>().GetParentNode() else {
-            return Err(Error::NoModificationAllowed(None));
+            return Err(Error::NoModificationAllowed(Some(
+                "Cannot modify HTML element as its parent element is null".into(),
+            )));
         };
 
         let node = self.upcast::<Node>();
@@ -633,7 +670,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // Step 5: If fragment has no children, then append a new Text node whose data is the empty
         // string and node document is this's node document to fragment.
         if fragment.upcast::<Node>().children_count() == 0 {
-            let text_node = Text::new(cx, DOMString::from("".to_owned()), &document);
+            let text_node = Text::new(cx, DOMString::new(), &document);
 
             fragment
                 .upcast::<Node>()
@@ -670,8 +707,8 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             cx,
             &html5ever::local_name!("translate"),
             match yesno {
-                true => DOMString::from("yes"),
-                false => DOMString::from("no"),
+                true => DOMString::from_static("yes"),
+                false => DOMString::from_static("no"),
             },
         );
     }
@@ -688,22 +725,25 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-contenteditable>
     fn SetContentEditable(&self, cx: &mut JSContext, value: DOMString) -> ErrorResult {
-        let lower_value = value.to_ascii_lowercase();
         let attr_name = &local_name!("contenteditable");
-        match lower_value.as_ref() {
+        if value.eq_ignore_ascii_case("inherit") {
             // > On setting, if the new value is an ASCII case-insensitive match for the string "inherit", then the content attribute must be removed,
-            "inherit" => {
-                self.element.remove_attribute_by_name(cx, attr_name);
-            },
+            self.element.remove_attribute_by_name(cx, attr_name);
+        } else if value.eq_ignore_ascii_case("true") ||
+            value.eq_ignore_ascii_case("false") ||
+            value.eq_ignore_ascii_case("plaintext-only")
+        {
             // > if the new value is an ASCII case-insensitive match for the string "true", then the content attribute must be set to the string "true",
             // > if the new value is an ASCII case-insensitive match for the string "plaintext-only", then the content attribute must be set to the string "plaintext-only",
             // > if the new value is an ASCII case-insensitive match for the string "false", then the content attribute must be set to the string "false",
-            "true" | "false" | "plaintext-only" => {
-                self.element
-                    .set_attribute(cx, attr_name, AttrValue::String(lower_value));
-            },
+            let lower_value = value.to_ascii_lowercase();
+            self.element
+                .set_attribute(cx, attr_name, AttrValue::String(lower_value));
+        } else {
             // > and otherwise the attribute setter must throw a "SyntaxError" DOMException.
-            _ => return Err(Error::Syntax(None)),
+            return Err(Error::Syntax(Some(
+                "Invalid attribute for HTML element".into(),
+            )));
         };
         Ok(())
     }
@@ -718,7 +758,9 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     fn AttachInternals(&self, cx: &mut JSContext) -> Fallible<DomRoot<ElementInternals>> {
         // Step 1: If this's is value is not null, then throw a "NotSupportedError" DOMException
         if self.element.get_is().is_some() {
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(
+                "Local name of HTML element must not be set".into(),
+            )));
         }
 
         // Step 2: Let definition be the result of looking up a custom element definition
@@ -745,18 +787,27 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // Step 3: If definition is null, then throw an "NotSupportedError" DOMException
         let definition = match definition {
             Some(definition) => definition,
-            None => return Err(Error::NotSupported(None)),
+            None => {
+                return Err(Error::NotSupported(Some(
+                    "Custom element definition is missing".into(),
+                )));
+            },
         };
 
         // Step 4: If definition's disable internals is true, then throw a "NotSupportedError" DOMException
         if definition.disable_internals {
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(
+                "Custom element definition's `disabledFeatures` must not include \"internals\""
+                    .into(),
+            )));
         }
 
         // Step 5: If this's attached internals is non-null, then throw an "NotSupportedError" DOMException
-        let internals = self.element.ensure_element_internals(cx);
+        let internals = self.ensure_element_internals(cx);
         if internals.attached() {
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(
+                "HTML element's internals are already attached".into(),
+            )));
         }
 
         // Step 6: If this's custom element state is not "precustomized" or "custom",
@@ -765,7 +816,9 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             self.element.get_custom_element_state(),
             CustomElementState::Precustomized | CustomElementState::Custom
         ) {
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(
+                "HTML element is not yet upgraded".into(),
+            )));
         }
 
         if self.is_form_associated_custom_element() {
@@ -783,9 +836,9 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce>
-    fn SetNonce(&self, _cx: &mut JSContext, value: DOMString) {
+    fn SetNonce(&self, cx: &mut JSContext, value: DOMString) {
         self.as_element()
-            .update_nonce_internal_slot(String::from(value))
+            .update_nonce_internal_slot(String::from(value), cx.no_gc())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-fe-autofocus>
@@ -946,9 +999,9 @@ impl HTMLElement {
         let root_element = element.root_element();
         let root_node = root_element.upcast::<Node>();
         root_node
-            .traverse_preorder_non_rooting(no_gc, ShadowIncluding::No)
+            .traverse_preorder_unrooted(no_gc, ShadowIncluding::No)
             .filter_map(UnrootedDom::downcast::<HTMLLabelElement>)
-            .filter(|elem| match elem.GetControl() {
+            .filter(|elem| match elem.GetControl(no_gc) {
                 Some(control) => &*control == self,
                 _ => false,
             })
@@ -958,15 +1011,15 @@ impl HTMLElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-lfe-labels
     // This counts the labels of the element, to support NodeList::Length
-    pub(crate) fn labels_count(&self) -> u32 {
+    pub(crate) fn labels_count(&self, no_gc: &NoGC) -> u32 {
         // see label_at comments about performance
         let element = self.as_element();
         let root_element = element.root_element();
         let root_node = root_element.upcast::<Node>();
         root_node
-            .traverse_preorder(ShadowIncluding::No)
-            .filter_map(DomRoot::downcast::<HTMLLabelElement>)
-            .filter(|elem| match elem.GetControl() {
+            .traverse_preorder_unrooted(no_gc, ShadowIncluding::No)
+            .filter_map(UnrootedDom::downcast::<HTMLLabelElement>)
+            .filter(|elem| match elem.GetControl(no_gc) {
                 Some(control) => &*control == self,
                 _ => false,
             })
@@ -1015,7 +1068,7 @@ impl HTMLElement {
         None
     }
 
-    // https://html.spec.whatwg.org/multipage/#the-summary-element:activation-behaviour
+    /// <https://html.spec.whatwg.org/multipage/#the-summary-element:activation-behaviour>
     pub(crate) fn summary_activation_behavior(&self, cx: &mut js::context::JSContext) {
         debug_assert!(self.as_element().local_name() == &local_name!("summary"));
 
@@ -1252,7 +1305,7 @@ impl VirtualMethods for HTMLElement {
                 self.form_attribute_mutated(cx, mutation);
             },
             // Adding a "disabled" attribute disables an enabled form element.
-            (&local_name!("disabled"), AttributeMutation::Set(..))
+            (&local_name!("disabled"), AttributeMutation::Set(_))
                 if self.is_form_associated_custom_element() && element.enabled_state() =>
             {
                 element.set_disabled_state(true);
@@ -1271,7 +1324,7 @@ impl VirtualMethods for HTMLElement {
             {
                 element.set_disabled_state(false);
                 element.set_enabled_state(true);
-                element.check_ancestors_disabled_state_for_form_control();
+                element.check_ancestors_disabled_state_for_form_control(cx.no_gc());
                 if element.enabled_state() {
                     ScriptThread::enqueue_callback_reaction(
                         cx,
@@ -1283,7 +1336,7 @@ impl VirtualMethods for HTMLElement {
             },
             (&local_name!("readonly"), mutation) if self.is_form_associated_custom_element() => {
                 match mutation {
-                    AttributeMutation::Set(..) => {
+                    AttributeMutation::Set(_) => {
                         element.set_read_write_state(true);
                     },
                     AttributeMutation::Removed => {
@@ -1292,13 +1345,19 @@ impl VirtualMethods for HTMLElement {
                 }
             },
             (&local_name!("nonce"), mutation) => match mutation {
-                AttributeMutation::Set(..) => {
+                AttributeMutation::Set(_) => {
                     let nonce = &**attr.value();
-                    element.update_nonce_internal_slot(nonce.to_owned());
+                    element.update_nonce_internal_slot(nonce.to_owned(), cx.no_gc());
                 },
                 AttributeMutation::Removed => {
-                    element.update_nonce_internal_slot("".to_owned());
+                    element.update_nonce_internal_slot(String::new(), cx.no_gc());
                 },
+            },
+            // containertiming is not in html5ever, so for now we check manually
+            // Layout records these attributes as fragment flags when it builds this element's
+            // boxes, so the boxes have to be rebuilt when they change.
+            (name, _) if &**name == "containertiming" || &**name == "containertimingignore" => {
+                self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
             },
             _ => {},
         }
@@ -1313,7 +1372,7 @@ impl VirtualMethods for HTMLElement {
         // ancestors is a fieldset.
         let element = self.as_element();
         if self.is_form_associated_custom_element() && element.enabled_state() {
-            element.check_ancestors_disabled_state_for_form_control();
+            element.check_ancestors_disabled_state_for_form_control(cx.no_gc());
             if element.disabled_state() {
                 ScriptThread::enqueue_callback_reaction(
                     cx,
@@ -1377,7 +1436,7 @@ impl VirtualMethods for HTMLElement {
         // TODO: This should likely just call reset on form owner.
         if self.is_form_associated_custom_element() && element.disabled_state() {
             element.check_disabled_attribute();
-            element.check_ancestors_disabled_state_for_form_control();
+            element.check_ancestors_disabled_state_for_form_control(cx.no_gc());
             if element.enabled_state() {
                 ScriptThread::enqueue_callback_reaction(
                     cx,
@@ -1484,9 +1543,7 @@ impl FormControl for HTMLElement {
 
     fn set_form_owner(&self, cx: &mut JSContext, form: Option<&HTMLFormElement>) {
         debug_assert!(self.is_form_associated_custom_element());
-        self.element
-            .ensure_element_internals(cx)
-            .set_form_owner(form);
+        self.ensure_element_internals(cx).set_form_owner(form);
     }
 
     fn to_html_element(&self) -> &HTMLElement {

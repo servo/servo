@@ -917,15 +917,19 @@ IdlArray.prototype.are_duplicate_members = function(m1, m2) {
 
 IdlArray.prototype.assert_type_is = function(value, type)
 {
-    if (type.idlType in this.members
-    && this.members[type.idlType] instanceof IdlTypedef) {
-        this.assert_type_is(value, this.members[type.idlType].idlType);
-        return;
-    }
-
+    // Must run before typedef substitution below: `type.nullable` reflects
+    // the "?" at this reference (e.g. `DOMHighResTimeStamp?`), not on the
+    // typedef's own declaration, so it would otherwise be lost when we
+    // recurse into `this.members[type.idlType].idlType`.
     if (type.nullable && value === null)
     {
         // This is fine
+        return;
+    }
+
+    if (type.idlType in this.members
+    && this.members[type.idlType] instanceof IdlTypedef) {
+        this.assert_type_is(value, this.members[type.idlType].idlType);
         return;
     }
 

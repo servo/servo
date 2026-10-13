@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Computed and resolved value of border-width for a border that is not drawn</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#the-border-width">
+<link rel="help" href="https://drafts.csswg.org/cssom/#resolved-value">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- The line-width keywords themselves are covered by
+     css/css-backgrounds/border-width-cssom.html. -->
+
+<div id="div"></div>
+<div id="parent"><div id="child"></div></div>
+
+<script>
+"use strict";
+
+const div = document.getElementById("div");
+const parentDiv = document.getElementById("parent");
+const childDiv = document.getElementById("child");
+
+function computedBorderTopWidth(element, cssText) {
+  element.style.cssText = cssText;
+
+  return window.getComputedStyle(element).getPropertyValue("border-top-width");
+}
+
+test(() => {
+  assert_equals(computedBorderTopWidth(div, ""), "0px", "no border at all");
+  assert_equals(computedBorderTopWidth(div, "border-style: none; border-width: medium"), "0px", "none, keyword width");
+  assert_equals(computedBorderTopWidth(div, "border-style: none; border-width: 5px"), "0px", "none, length width");
+  assert_equals(computedBorderTopWidth(div, "border-style: hidden; border-width: 5px"), "0px", "hidden, length width");
+}, "A border whose style is none or hidden resolves to zero width");
+
+test(() => {
+  assert_equals(computedBorderTopWidth(parentDiv, "border-top: 5px none"), "0px", "parent");
+  assert_equals(
+    computedBorderTopWidth(childDiv, "border-top-style: solid; border-top-width: inherit"),
+    "5px",
+    "child"
+  );
+}, "The zero width is not what a child inherits: the computed value stays the length");
+
+test(() => {
+  assert_equals(computedBorderTopWidth(parentDiv, "border-top: thick hidden"), "0px", "parent");
+  assert_equals(
+    computedBorderTopWidth(childDiv, "border-top-style: solid; border-top-width: inherit"),
+    "5px",
+    "child"
+  );
+}, "A child inherits a line-width keyword as the absolute length it computes to");
+
+test(() => {
+  assert_equals(computedBorderTopWidth(parentDiv, "border-top: 5px none"), "0px", "parent");
+  assert_equals(computedBorderTopWidth(childDiv, "border-top-width: inherit"), "0px", "child");
+}, "A child with its own border style none resolves the inherited width to zero");
+
+test(() => {
+  assert_equals(
+    computedBorderTopWidth(div, "font-size: 20px; border-style: solid; border-width: 1em"),
+    "20px"
+  );
+}, "A border-width in em computes against the element's own font size");
+
+test(() => {
+  div.style.cssText = "font-size: medium";
+
+  assert_equals(window.getComputedStyle(div).getPropertyValue("font-size"), "16px");
+}, "The font-size keyword sharing a name with a line-width keyword is unaffected");
+</script>

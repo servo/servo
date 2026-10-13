@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title> CSS Values and Units Test: Attribute references (percent length type) invalidation </title>
+<link rel="help" href="http://www.w3.org/TR/css3-values/#attr-notation">
+<link rel="author" title="Suraj Thanugundla" href="mailto:contact@surajt.com">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<style>
+    #container {
+        height: 100px;
+        width: 100px;
+        background: red;
+    }
+
+    #inner {
+        width: 100%;
+        height: attr(data %);
+        background: green;
+    }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="container">
+    <div id="inner" data="0"></div>
+</div>
+<script>
+    const element = document.getElementById("inner");
+    element.getBoundingClientRect();
+    element.setAttribute("data", "100");
+</script>

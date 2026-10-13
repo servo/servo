@@ -60,6 +60,10 @@ fn test_paint_timing_js_api() {
         );
         assert!(obj.get("startTime").is_some());
         assert_eq!(obj.get("duration"), Some(JSValue::Number(0.0)).as_ref());
+        assert!(matches!(obj.get("paintTime"), Some(JSValue::Number(value)) if *value >= 0.0));
+        assert!(
+            matches!(obj.get("presentationTime"), Some(JSValue::Number(value)) if *value >= 0.0)
+        );
     } else {
         panic!("first-paint entry is not an object");
     }
@@ -81,6 +85,10 @@ fn test_paint_timing_js_api() {
         );
         assert!(obj.get("startTime").is_some());
         assert_eq!(obj.get("duration"), Some(JSValue::Number(0.0)).as_ref());
+        assert!(matches!(obj.get("paintTime"), Some(JSValue::Number(value)) if *value >= 0.0));
+        assert!(
+            matches!(obj.get("presentationTime"), Some(JSValue::Number(value)) if *value >= 0.0)
+        );
     } else {
         panic!("first-contentful-paint entry is not an object");
     }
@@ -94,11 +102,51 @@ fn verify_first_paint(servo_test: &ServoTest, data_url: &str, expected_fp: i32) 
         .url(Url::parse(data_url).unwrap())
         .build();
 
-    let _ = evaluate_javascript(
+    let store_result = evaluate_javascript(
         &servo_test,
         webview.clone(),
-        "await new Promise(requestAnimationFrame);",
+        "paintEntries = false;
+         finishedCallbacks = false;
+         const observer = new PerformanceObserver((list) => {
+           paintEntries = true;
+         });
+         observer.observe({ type: 'paint', buffered: true });",
     );
+    assert_eq!(store_result, Ok(JSValue::Undefined));
+
+    if expected_fp == 0 {
+        let frame_store_result = evaluate_javascript(
+            &servo_test,
+            webview.clone(),
+            "frameCallbacks = 0;
+             maxFrameCallbacks = 10;
+             function frame() {
+               requestAnimationFrame(() => {
+                 frameCallbacks++;
+                 if (frameCallbacks < maxFrameCallbacks) {
+                   frame();
+                 } else {
+                    finishedCallbacks = true;
+                 }
+               });
+             }
+             frame();",
+        );
+        assert_eq!(frame_store_result, Ok(JSValue::Undefined));
+    }
+
+    loop {
+        let entries_available = evaluate_javascript(
+            &servo_test,
+            webview.clone(),
+            "paintEntries || finishedCallbacks;",
+        )
+        .expect("error evaluating JS");
+
+        if entries_available == JSValue::Boolean(true) {
+            break;
+        }
+    }
 
     let paint_entries = evaluate_javascript(
         &servo_test,

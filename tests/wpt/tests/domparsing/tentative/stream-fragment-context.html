@@ -1,0 +1,210 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Fragment parser context handling for streamHTML variants</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="container"></div>
+<script>
+  const methods = [
+    "streamHTML", "streamAppendHTML", "streamPrependHTML",
+    "streamHTMLUnsafe", "streamAppendHTMLUnsafe", "streamPrependHTMLUnsafe"
+  ];
+
+  const positionalMethods = [
+    "streamBeforeHTML", "streamAfterHTML", "streamReplaceWithHTML",
+    "streamBeforeHTMLUnsafe", "streamAfterHTMLUnsafe", "streamReplaceWithHTMLUnsafe"
+  ];
+
+  // 1. Table family context elements
+  for (const method of methods) {
+    promise_test(async (t) => {
+      const container = document.getElementById("container");
+      t.add_cleanup(() => container.replaceChildren());
+
+      const table = document.createElement("table");
+      container.appendChild(table);
+
+      const writer = table[method]().getWriter();
+      await writer.write("<tr><td>Row 1</td></tr><tr><td>Row 2</td></tr>");
+      await writer.close();
+
+      const tbody = table.querySelector("tbody");
+      assert_not_equals(tbody, null, "<table> fragment context automatically creates <tbody> for <tr>");
+      assert_equals(tbody.querySelectorAll("tr").length, 2, "Both rows present in tbody");
+      assert_equals(table.rows.length, 2);
+    }, `${method} on <table> creates <tbody> and rows`);
+
+    promise_test(async (t) => {
+      const container = document.getElementById("container");
+      t.add_cleanup(() => container.replaceChildren());
+
+      const table = document.createElement("table");
+      const tbody = document.createElement("tbody");
+      table.appendChild(tbody);
+      container.appendChild(table);
+
+      const writer = tbody[method]().getWriter();
+      await writer.write("<tr><td>Cell A</td><td>Cell B</td></tr>");
+      await writer.close();
+
+      assert_equals(tbody.children.length, 1, "tbody contains direct <tr> child");
+      assert_equals(tbody.firstElementChild.tagName, "TR");
+      assert_equals(tbody.firstElementChild.children.length, 2);
+    }, `${method} on <tbody> parses <tr> children directly`);
+
+    promise_test(async (t) => {
+      const container = document.getElementById("container");
+      t.add_cleanup(() => container.replaceChildren());
+
+      const table = document.createElement("table");
+      const tbody = document.createElement("tbody");
+      const tr = document.createElement("tr");
+      tbody.appendChild(tr);
+      table.appendChild(tbody);
+      container.appendChild(table);
+
+      const writer = tr[method]().getWriter();
+      await writer.write("<td>Data 1</td><th>Header 2</th>");
+      await writer.close();
+
+      assert_equals(tr.children.length, 2, "tr contains <td> and <th> directly");
+      assert_equals(tr.children[0].tagName, "TD");
+      assert_equals(tr.children[1].tagName, "TH");
+    }, `${method} on <tr> parses <td> and <th> children directly`);
+  }
+
+  // 2. Select family context elements
+  for (const method of methods) {
+    const isUnsafe = method.includes("Unsafe");
+    const options = isUnsafe ? {} : { sanitizer: { elements: ["option", "optgroup", "hr"] } };
+
+    promise_test(async (t) => {
+      const container = document.getElementById("container");
+      t.add_cleanup(() => container.replaceChildren());
+
+      const select = document.createElement("select");
+      container.appendChild(select);
+
+      const writer = select[method](options).getWriter();
+      await writer.write('<option value="1">One</option><optgroup label="G"><option value="2">Two</option></optgroup>');
+      await writer.close();
+
+      assert_equals(select.options.length, 2, "select contains two options");
+      assert_not_equals(select.querySelector("optgroup"), null, "select contains optgroup");
+      assert_equals(select.querySelector("optgroup").label, "G");
+    }, `${method} on <select> parses <option> and <optgroup>`);
+
+    promise_test(async (t) => {
+      const container = document.getElementById("container");
+      t.add_cleanup(() => container.replaceChildren());
+
+      const option = document.createElement("option");
+      container.appendChild(option);
+
+      const writer = option[method]().getWriter();
+      await writer.write("Option Text &amp; &lt;Label&gt;");
+      await writer.close();
+
+      assert_equals(option.textContent, "Option Text & <Label>", "option parses text and expands character references");
+    }, `${method} on <option> parses text and character references`);
+  }
+
+  // 3. SVG foreign content context
+  for (const method of methods) {
+    promise_test(async (t) => {
+      const container = document.getElementById("container");
+      t.add_cleanup(() => container.replaceChildren());
+
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      container.appendChild(svg);
+
+      const writer = svg[method]().getWriter();
+      await writer.write('<rect x="10" y="20" width="100" height="50"/><circle cx="30" cy="30" r="20"/><foreignObject width="100" height="100"><div>HTML Content</div></foreignObject>');
+      await writer.close();
+
+      const rect = svg.querySelector("rect");
+      assert_not_equals(rect, null, "<rect> created in <svg>");
+      assert_equals(rect.namespaceURI, "http://www.w3.org/2000/svg", "<rect> is in SVG namespace");
+
+      const circle = svg.querySelector("circle");
+      assert_not_equals(circle, null, "<circle> created in <svg>");
+      assert_equals(circle.namespaceURI, "http://www.w3.org/2000/svg", "<circle> is in SVG namespace");
+
+      const foreignObject = svg.querySelector("foreignObject");
+      assert_not_equals(foreignObject, null, "<foreignObject> created in <svg>");
+      assert_equals(foreignObject.namespaceURI, "http://www.w3.org/2000/svg", "<foreignObject> is in SVG namespace");
+
+      const div = foreignObject.querySelector("div");
+      assert_not_equals(div, null, "<div> created inside <foreignObject>");
+      assert_equals(div.namespaceURI, "http://www.w3.org/1999/xhtml", "<div> inside foreignObject is in HTML namespace");
+    }, `${method} on <svg> parses foreign content with correct SVG/HTML namespaces`);
+  }
+
+  // 4. MathML foreign content context
+  for (const method of methods) {
+    promise_test(async (t) => {
+      const container = document.getElementById("container");
+      t.add_cleanup(() => container.replaceChildren());
+
+      const math = document.createElementNS("http://www.w3.org/1998/Math/MathML", "math");
+      container.appendChild(math);
+
+      const writer = math[method]().getWriter();
+      await writer.write("<mi>x</mi><mo>+</mo><mn>1</mn>");
+      await writer.close();
+
+      const mi = math.querySelector("mi");
+      assert_not_equals(mi, null, "<mi> created in <math>");
+      assert_equals(mi.namespaceURI, "http://www.w3.org/1998/Math/MathML", "<mi> is in MathML namespace");
+
+      const mo = math.querySelector("mo");
+      assert_not_equals(mo, null, "<mo> created in <math>");
+      assert_equals(mo.namespaceURI, "http://www.w3.org/1998/Math/MathML", "<mo> is in MathML namespace");
+    }, `${method} on <math> parses MathML content with MathML namespace`);
+  }
+
+  // 5. Positional methods on child nodes in special contexts
+  for (const method of positionalMethods) {
+    promise_test(async (t) => {
+      const container = document.getElementById("container");
+      t.add_cleanup(() => container.replaceChildren());
+
+      const table = document.createElement("table");
+      const tbody = document.createElement("tbody");
+      const tr = document.createElement("tr");
+      const initialTd = document.createElement("td");
+      initialTd.textContent = "Initial";
+      tr.appendChild(initialTd);
+      tbody.appendChild(tr);
+      table.appendChild(tbody);
+      container.appendChild(table);
+
+      const writer = initialTd[method]().getWriter();
+      await writer.write("<td>NewCell</td>");
+      await writer.close();
+
+      assert_true(tr.querySelectorAll("td").length >= 1, "Positional update in <tr> succeeds");
+    }, `${method} targeting child in <tr> context`);
+
+    promise_test(async (t) => {
+      const container = document.getElementById("container");
+      t.add_cleanup(() => container.replaceChildren());
+
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      const initialRect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      svg.appendChild(initialRect);
+      container.appendChild(svg);
+
+      const writer = initialRect[method]().getWriter();
+      await writer.write('<circle cx="10" cy="10" r="5"/>');
+      await writer.close();
+
+      const circle = svg.querySelector("circle");
+      assert_not_equals(circle, null, "<circle> inserted by positional method in <svg>");
+      assert_equals(circle.namespaceURI, "http://www.w3.org/2000/svg", "Inserted element has SVG namespace");
+    }, `${method} targeting child in <svg> context`);
+  }
+</script>
+</body>

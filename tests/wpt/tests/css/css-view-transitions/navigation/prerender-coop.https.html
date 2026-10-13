@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<title>View transitions: cross-document navigation to a prerender with COOP</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/speculation-rules/resources/utils.js"></script>
+<script src="/speculation-rules/prerender/resources/utils.js"></script>
+<script>
+setup(() => assertSpeculationRulesIsSupported('prerender'));
+
+promise_test(async t => {
+  const uid = token();
+  const result = await new Promise(resolve => {
+    const channel = new PrerenderChannel('result', uid);
+    channel.addEventListener('message', e => resolve(e.data), {once: true});
+
+    const url = `resources/prerender-coop.html?mode=runner&uid=${uid}`;
+    window.open(url, '_blank', 'noopener');
+  });
+  assert_equals(result, "pass");
+}, 'View transitions work for cross-document navigation to a prerender with COOP');
+</script>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>border shorthand containing var()</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-elementcssinlinestyle-mixin">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- regression test for https://github.com/jsdom/cssstyle/issues/247 -->
+
+<script>
+"use strict";
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.border = "0.1rem solid var(--my-color-value)";
+  assert_equals(div.style.border, "0.1rem solid var(--my-color-value)", "initial border");
+  assert_equals(div.style.borderWidth, "", "initial border-width");
+
+  div.style.borderWidth = "0.2rem";
+  assert_equals(div.style.border, "", "border");
+  assert_equals(div.style.borderWidth, "0.2rem", "border-width");
+});
+</script>

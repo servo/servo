@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#segment-endpoints">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#fragmentation">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#ch">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#column-gaps-and-rules">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#propdef-column-wrap">
+<style>
+  body {
+    margin: 0;
+  }
+
+  .outer {
+    position: relative;
+    width: 448px;
+    height: 100px;
+    background: lightgray;
+  }
+
+  .inner {
+    position: absolute;
+    top: 38px;
+    left: 0;
+    width: 200px;
+    height: 10px;
+    border: 2px solid black;
+  }
+
+  .item {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    background: orange;
+  }
+
+  .rule {
+    position: absolute;
+    width: 4px;
+    height: 60px;
+    background: blue;
+  }
+</style>
+<div class="outer">
+  <div class="inner"></div>
+
+  <div class="rule" style="left: 65px; top: 40px;"></div>
+  <div class="rule" style="left: 135px; top: 40px;"></div>
+  <div class="rule" style="left: 309px; top: 0;"></div>
+  <div class="rule" style="left: 379px; top: 0;"></div>
+
+  <div class="item" style="left: 2px; top: 40px;"></div>
+  <div class="item" style="left: 72px; top: 40px;"></div>
+  <div class="item" style="left: 142px; top: 40px;"></div>
+  <div class="item" style="left: 246px; top: 0;"></div>
+  <div class="item" style="left: 316px; top: 0;"></div>
+  <div class="item" style="left: 386px; top: 0;"></div>
+</div>

@@ -1,0 +1,22 @@
+<!doctype html>
+<title>Inserted @import rule's styleSheet.parentStyleSheet</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssimportrule-stylesheet">
+<script>
+"use strict";
+
+test(() => {
+  const style = document.createElement("style");
+  document.head.appendChild(style);
+  const { sheet } = style;
+  sheet.insertRule('@import "data:text/css,"', 0);
+  const rule = sheet.cssRules[0];
+  assert_equals(
+    rule.styleSheet.parentStyleSheet,
+    sheet,
+    "The imported stylesheet's parentStyleSheet should be the sheet it was inserted into"
+  );
+  style.remove();
+}, "insertRule @import produces a styleSheet whose parentStyleSheet is the containing sheet");
+</script>

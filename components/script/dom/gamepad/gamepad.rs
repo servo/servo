@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use embedder_traits::{GamepadSupportedHapticEffects, GamepadUpdateType};
 use js::context::JSContext;
 use js::rust::MutableHandleValue;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use super::gamepadbutton::GamepadButton;
 use super::gamepadhapticactuator::GamepadHapticActuator;
@@ -122,7 +122,8 @@ impl Gamepad {
         let vibration_actuator =
             GamepadHapticActuator::new(cx, window, gamepad_id, supported_haptic_effects);
         let index = if xr { -1 } else { 0 };
-        let gamepad = reflect_dom_object_with_cx(
+        let gamepad = reflect_dom_object(
+            cx,
             Box::new(Gamepad::new_inherited(
                 gamepad_id,
                 id,
@@ -138,7 +139,6 @@ impl Gamepad {
                 &vibration_actuator,
             )),
             window,
-            cx,
         );
         gamepad.init_axes();
         gamepad

@@ -20,11 +20,11 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, K
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cryptokey::{CryptoKey, Handle};
+use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    SubtleEd448Params, SubtleKeyAlgorithm,
+    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithm,
+    KeyAlgorithmAndDerivatives, SubtleEd448Params,
 };
 
 /// `id-Ed448` object identifier defined in [RFC8410]
@@ -38,11 +38,7 @@ pub(crate) fn sign(
 ) -> Result<Vec<u8>, Error> {
     // Step 1. If the [[type]] internal slot of key is not "private", then throw an
     // InvalidAccessError.
-    if key.Type() != KeyType::Private {
-        return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of key is not \"private\"".into(),
-        )));
-    }
+    key.ensure_type(KeyType::Private)?;
 
     // Step 2. Let context be the contents of the context member of normalizedAlgorithm or the empty
     // octet string if the context member of normalizedAlgorithm is not present.
@@ -84,11 +80,7 @@ pub(crate) fn verify(
 ) -> Result<bool, Error> {
     // Step 1. If the [[type]] internal slot of key is not "public", then throw an
     // InvalidAccessError.
-    if key.Type() != KeyType::Public {
-        return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of key is not \"public\"".into(),
-        )));
-    }
+    key.ensure_type(KeyType::Public)?;
 
     // Step 2. Let context be the contents of the context member of normalizedAlgorithm or the empty
     // octet string if the context member of normalizedAlgorithm is not present.
@@ -145,14 +137,7 @@ pub(crate) fn generate_key(
 ) -> Result<CryptoKeyPair, Error> {
     // Step 1. If usages contains a value which is not one of "sign" or "verify", then throw a
     // SyntaxError.
-    if usages
-        .iter()
-        .any(|usage| !matches!(usage, KeyUsage::Sign | KeyUsage::Verify))
-    {
-        return Err(Error::Syntax(Some(
-            "Usages contains an entry which is not \"sign\" or \"verify\"".into(),
-        )));
-    }
+    usages.ensure_only_contain_entries_from(&[KeyUsage::Sign, KeyUsage::Verify])?;
 
     // Step 2. Generate an Ed448 key pair, as defined in [RFC8032], section 5.1.5.
     let private_key = SigningKey::try_generate()
@@ -161,7 +146,7 @@ pub(crate) fn generate_key(
 
     // Step 3. Let algorithm be a new KeyAlgorithm object.
     // Step 4. Set the name attribute of algorithm to "Ed448".
-    let algorithm = SubtleKeyAlgorithm {
+    let algorithm = KeyAlgorithm {
         name: CryptoAlgorithm::Ed448,
     };
 
@@ -178,11 +163,7 @@ pub(crate) fn generate_key(
         KeyType::Public,
         true,
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm.clone()),
-        usages
-            .iter()
-            .filter(|&usage| *usage == KeyUsage::Verify)
-            .cloned()
-            .collect(),
+        usages.usage_intersection(&[KeyUsage::Verify]),
         Handle::Ed448PublicKey(public_key),
     );
 
@@ -199,11 +180,7 @@ pub(crate) fn generate_key(
         KeyType::Private,
         extractable,
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-        usages
-            .iter()
-            .filter(|&usage| *usage == KeyUsage::Sign)
-            .cloned()
-            .collect(),
+        usages.usage_intersection(&[KeyUsage::Sign]),
         Handle::Ed448PrivateKey(private_key),
     );
 
@@ -237,11 +214,7 @@ pub(crate) fn import_key(
         // If format is "spki":
         KeyFormat::Spki => {
             // Step 2.1. If usages contains a value which is not "verify" then throw a SyntaxError.
-            if usages.iter().any(|usage| *usage != KeyUsage::Verify) {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not \"verify\"".into(),
-                )));
-            }
+            usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?;
 
             // Step 2.2. Let spki be the result of running the parse a subjectPublicKeyInfo
             // algorithm over keyData.
@@ -265,7 +238,7 @@ pub(crate) fn import_key(
             // Step 2.9. Let algorithm be a new KeyAlgorithm.
             // Step 2.10. Set the name attribute of algorithm to "Ed448".
             // Step 2.11. Set the [[algorithm]] internal slot of key to algorithm.
-            let algorithm = SubtleKeyAlgorithm {
+            let algorithm = KeyAlgorithm {
                 name: CryptoAlgorithm::Ed448,
             };
             CryptoKey::new(
@@ -274,18 +247,14 @@ pub(crate) fn import_key(
                 KeyType::Public,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 Handle::Ed448PublicKey(public_key),
             )
         },
         // If format is "pkcs8":
         KeyFormat::Pkcs8 => {
             // Step 2.1. If usages contains a value which is not "sign" then throw a SyntaxError.
-            if usages.iter().any(|usage| *usage != KeyUsage::Sign) {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not \"sign\"".into(),
-                )));
-            }
+            usages.ensure_only_contain_entries_from(&[KeyUsage::Sign])?;
 
             // Step 2.2. Let privateKeyInfo be the result of running the parse a privateKeyInfo
             // algorithm over keyData.
@@ -313,7 +282,7 @@ pub(crate) fn import_key(
             // Step 2.10. Let algorithm be a new KeyAlgorithm.
             // Step 2.11. Set the name attribute of algorithm to "Ed448".
             // Step 2.12. Set the [[algorithm]] internal slot of key to algorithm.
-            let algorithm = SubtleKeyAlgorithm {
+            let algorithm = KeyAlgorithm {
                 name: CryptoAlgorithm::Ed448,
             };
             CryptoKey::new(
@@ -322,7 +291,7 @@ pub(crate) fn import_key(
                 KeyType::Private,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 Handle::Ed448PrivateKey(curve_private_key),
             )
         },
@@ -338,19 +307,9 @@ pub(crate) fn import_key(
             // Step 2.2. If the d field is present and usages contains a value which is not "sign",
             // or, if the d field is not present and usages contains a value which is not "verify"
             // then throw a SyntaxError.
-            if jwk.d.is_some() && usages.iter().any(|usage| *usage != KeyUsage::Sign) {
-                return Err(Error::Syntax(Some(
-                    "The d field is present and if usages contains an entry which is not \
-                        \"sign\""
-                        .into(),
-                )));
-            }
-            if jwk.d.is_none() && usages.iter().any(|usage| *usage != KeyUsage::Verify) {
-                return Err(Error::Syntax(Some(
-                    "The d field is not present and if usages contains a value which is not \
-                        \"verify\""
-                        .into(),
-                )));
+            match jwk.d.as_ref() {
+                Some(_) => usages.ensure_only_contain_entries_from(&[KeyUsage::Sign])?,
+                None => usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?,
             }
 
             // Step 2.3. If the kty field of jwk is not "OKP", then throw a DataError.
@@ -463,7 +422,7 @@ pub(crate) fn import_key(
             // Step 2.10. Let algorithm be a new instance of a KeyAlgorithm object.
             // Step 2.11. Set the name attribute of algorithm to "Ed448".
             // Step 2.12. Set the [[algorithm]] internal slot of key to algorithm.
-            let algorithm = SubtleKeyAlgorithm {
+            let algorithm = KeyAlgorithm {
                 name: CryptoAlgorithm::Ed448,
             };
             CryptoKey::new(
@@ -472,18 +431,14 @@ pub(crate) fn import_key(
                 key_type,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 handle,
             )
         },
         // If format is "raw":
         KeyFormat::Raw | KeyFormat::Raw_public => {
             // Step 2.1. If usages contains a value which is not "verify" then throw a SyntaxError.
-            if usages.iter().any(|usage| *usage != KeyUsage::Verify) {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not one of \"verify\"".into(),
-                )));
-            }
+            usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?;
 
             // Step 2.2. Let data be keyData.
             let data = key_data;
@@ -497,7 +452,7 @@ pub(crate) fn import_key(
 
             // Step 2.4. Let algorithm be a new KeyAlgorithm object.
             // Step 2.5. Set the name attribute of algorithm to "Ed448".
-            let algorithm = SubtleKeyAlgorithm {
+            let algorithm = KeyAlgorithm {
                 name: CryptoAlgorithm::Ed448,
             };
 
@@ -518,7 +473,7 @@ pub(crate) fn import_key(
                 KeyType::Public,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 Handle::Ed448PublicKey(public_key),
             )
         },
@@ -549,11 +504,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         KeyFormat::Spki => {
             // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Public {
-                return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"public\"".into(),
-                )));
-            }
+            key.ensure_type(KeyType::Public)?;
 
             // Step 3.2. Let data be an instance of the subjectPublicKeyInfo ASN.1 structure defined
             // in [RFC5280] with the following properties:
@@ -583,11 +534,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         KeyFormat::Pkcs8 => {
             // Step 3.1. If the [[type]] internal slot of key is not "private", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Private {
-                return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"private\"".into(),
-                )));
-            }
+            key.ensure_type(KeyType::Private)?;
 
             // Step 3.2. Let data be an instance of the privateKeyInfo ASN.1 structure defined in
             // [RFC5208] with the following properties:
@@ -652,13 +599,13 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             let mut jwk = JsonWebKey::default();
 
             // Step 3.2. Set the kty attribute of jwk to "OKP".
-            jwk.kty = Some(DOMString::from("OKP"));
+            jwk.kty = Some(DOMString::from_static("OKP"));
 
             // Step 3.3. Set the alg attribute of jwk to "Ed448".
-            jwk.alg = Some(DOMString::from("Ed448"));
+            jwk.alg = Some(DOMString::from_static("Ed448"));
 
             // Step 3.4. Set the crv attribute of jwk to "Ed448".
-            jwk.crv = Some(DOMString::from("Ed448"));
+            jwk.crv = Some(DOMString::from_static("Ed448"));
 
             // Step 3.5. Set the x attribute of jwk according to the definition in Section 2 of
             // [RFC8037].
@@ -691,7 +638,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             }
 
             // Step 3.7. Set the key_ops attribute of jwk to the usages attribute of key.
-            jwk.set_key_ops(&key.usages());
+            jwk.set_key_ops(key.usages());
 
             // Step 3.8. Set the ext attribute of jwk to the [[extractable]] internal slot of key.
             jwk.ext = Some(key.Extractable());
@@ -705,11 +652,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         KeyFormat::Raw | KeyFormat::Raw_public => {
             // Step 3.1. If the [[type]] internal slot of key is not "public", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Public {
-                return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"public\"".into(),
-                )));
-            }
+            key.ensure_type(KeyType::Public)?;
 
             // Step 3.2. Let data be an octet string representing the Ed448 public key represented
             // by the [[handle]] internal slot of key.
@@ -751,11 +694,7 @@ pub(crate) fn get_public_key(
     // identified by algorithm, then throw a SyntaxError.
     //
     // NOTE: See "importKey" operation for supported usages
-    if usages.iter().any(|usage| *usage != KeyUsage::Verify) {
-        return Err(Error::Syntax(Some(
-            "Usages contains an entry which is not \"verify\"".into(),
-        )));
-    }
+    usages.ensure_only_contain_entries_from(&[KeyUsage::Verify])?;
 
     // Step 10. Let publicKey be a new CryptoKey representing the public key corresponding to the
     // private key represented by the [[handle]] internal slot of key.

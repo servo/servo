@@ -18,22 +18,16 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::aes_common::AesAlgorithm;
 use crate::dom::subtlecrypto::{
-    ExportedKey, SubtleAesDerivedKeyParams, SubtleAesGcmParams, SubtleAesKeyGenParams, aes_common,
+    AesDerivedKeyParams, AesGcmParams, AesKeyGenParams, ExportedKey, aes_common,
 };
 
 /// <https://w3c.github.io/webcrypto/#aes-gcm-operations-encrypt>
 pub(crate) fn encrypt(
-    normalized_algorithm: &SubtleAesGcmParams,
+    normalized_algorithm: &AesGcmParams,
     key: &CryptoKey,
     plaintext: &[u8],
 ) -> Result<Vec<u8>, Error> {
-    // Step 1. If plaintext has a length greater than 2^39 - 256 bytes, then throw an
-    // OperationError.
-    if plaintext.len() as u64 > (1 << 39) - 256 {
-        return Err(Error::Operation(Some("The plaintext is too long".into())));
-    }
-
-    // Step 2. If the iv member of normalizedAlgorithm has a length greater than 2^64 - 1 bytes,
+    // Step 1. If the iv member of normalizedAlgorithm has a length greater than 2^64 - 1 bytes,
     // then throw an OperationError.
     if normalized_algorithm.iv.len() > u64::MAX as usize {
         return Err(Error::Operation(Some(
@@ -41,7 +35,7 @@ pub(crate) fn encrypt(
         )));
     }
 
-    // Step 3. If the additionalData member of normalizedAlgorithm is present and has a length
+    // Step 2. If the additionalData member of normalizedAlgorithm is present and has a length
     // greater than 2^64 - 1 bytes, then throw an OperationError.
     if normalized_algorithm
         .additional_data
@@ -51,6 +45,12 @@ pub(crate) fn encrypt(
         return Err(Error::Operation(Some(
             "The additional authentication data is too long".into(),
         )));
+    }
+
+    // Step 3. If plaintext has a length greater than 2^39 - 256 bytes, then throw an
+    // OperationError.
+    if plaintext.len() as u64 > (1 << 39) - 256 {
+        return Err(Error::Operation(Some("The plaintext is too long".into())));
     }
 
     // Step 4.
@@ -236,7 +236,7 @@ where
 
 /// <https://w3c.github.io/webcrypto/#aes-gcm-operations-decrypt>
 pub(crate) fn decrypt(
-    normalized_algorithm: &SubtleAesGcmParams,
+    normalized_algorithm: &AesGcmParams,
     key: &CryptoKey,
     ciphertext: &[u8],
 ) -> Result<Vec<u8>, Error> {
@@ -261,14 +261,6 @@ pub(crate) fn decrypt(
         },
     };
 
-    // Step 2. If ciphertext has a length in bits less than tagLength, then throw an
-    // OperationError.
-    if ciphertext.len() * 8 < tag_length as usize {
-        return Err(Error::Operation(Some(
-            "The ciphertext is shorter than the tag".into(),
-        )));
-    }
-
     // Step 2. If the iv member of normalizedAlgorithm has a length greater than 2^64 - 1 bytes,
     // then throw an OperationError.
     if normalized_algorithm.iv.len() > u64::MAX as usize {
@@ -286,6 +278,14 @@ pub(crate) fn decrypt(
     {
         return Err(Error::Operation(Some(
             "The additional authentication data is too long".into(),
+        )));
+    }
+
+    // Step 4. If ciphertext has a length in bits less than tagLength, then throw an
+    // OperationError.
+    if ciphertext.len() * 8 < tag_length as usize {
+        return Err(Error::Operation(Some(
+            "The ciphertext is shorter than the tag".into(),
         )));
     }
 
@@ -463,14 +463,14 @@ where
 pub(crate) fn generate_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleAesKeyGenParams,
+    normalized_algorithm: &AesKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     aes_common::generate_key(
-        AesAlgorithm::AesGcm,
         cx,
         global,
+        AesAlgorithm::AesGcm,
         normalized_algorithm,
         extractable,
         usages,
@@ -487,9 +487,9 @@ pub(crate) fn import_key(
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     aes_common::import_key(
-        AesAlgorithm::AesGcm,
         cx,
         global,
+        AesAlgorithm::AesGcm,
         format,
         key_data,
         extractable,
@@ -504,7 +504,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
 
 /// <https://w3c.github.io/webcrypto/#aes-gcm-operations-get-key-length>
 pub(crate) fn get_key_length(
-    normalized_derived_key_algorithm: &SubtleAesDerivedKeyParams,
+    normalized_derived_key_algorithm: &AesDerivedKeyParams,
 ) -> Result<Option<u32>, Error> {
     aes_common::get_key_length(normalized_derived_key_algorithm)
 }

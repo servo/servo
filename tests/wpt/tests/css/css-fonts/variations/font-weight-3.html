@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS test: synthetic bold for a variable font whose font-weight descriptor is normal</title>
+<link rel="author" title="Vitor Roriz" href="https://github.com/vitorroriz"/>
+<link rel="help" href="https://drafts.csswg.org/css-fonts/#font-weight-prop"/>
+<link rel="match" href="font-weight-3-ref.html"/>
+<meta name="assert" content="A variable font with a 'wght' axis but a font-weight:normal descriptor must use synthetic bold for bold requests, since the descriptor restricts the face to normal weight.">
+<!-- Based on font-slant-3.html (the 'slnt' axis variant) by Jonathan Kew. -->
+<style>
+@font-face {
+  font-family: test;
+  /* The font resource includes a 'wght' axis, but our font-weight descriptor
+     should prevent it being used to render bold styles. */
+  src: url(resources/Inter.var.subset.ttf);
+  font-style: normal;
+  font-weight: normal;
+  font-stretch: normal;
+}
+.test {
+  font-synthesis: weight;
+  font: 32px/1.5 test;
+}
+</style>
+<body>
+<p>Test passes if the first line is normal weight and the following two lines are displayed with synthetic bold.</p>
+<div class="test" style="font-weight: normal">nt</div>
+<div class="test" style="font-weight: bold">nt</div>
+<div class="test" style="font-weight: 900">nt</div>

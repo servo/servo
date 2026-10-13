@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>Serialization of url-pattern()</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-navigation-1/#funcdef-url-pattern">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test(()=> {
+    const canonical = "@navigation (at: url-pattern(\"/foo/\")) {\n}";
+    test_valid_rule(canonical);
+    test_valid_rule("@Navigation  ( At:url-Pattern( '/foo/' )){ \n}", canonical);
+  }, "<navigation-location-test>");
+</script>

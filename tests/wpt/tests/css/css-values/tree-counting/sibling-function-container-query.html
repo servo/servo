@@ -22,6 +22,8 @@
   span {
     --match-100: no;
     --match-400: no;
+    --range-100: no;
+    --range-400: no;
   }
   @container (width = calc(100px * sibling-index())) {
     span { background-color: green; }
@@ -34,6 +36,12 @@
   }
   @container style(--length: calc(200px * sibling-count())) {
     span { --match-400: yes; }
+  }
+  @container style(--length = calc(100px * sibling-index())) {
+    span { --range-100: yes; }
+  }
+  @container style(--length = calc(200px * sibling-count())) {
+    span { --range-400: yes; }
   }
 </style>
 <div style="color:black">
@@ -64,4 +72,14 @@
     assert_equals(getComputedStyle(t2).getPropertyValue("--match-100"), "no");
     assert_equals(getComputedStyle(t2).getPropertyValue("--match-400"), "yes");
   }, "sibling-count() in @container style() query");
+
+  test(() => {
+    assert_equals(getComputedStyle(t1).getPropertyValue("--range-100"), "yes");
+    assert_equals(getComputedStyle(t1).getPropertyValue("--range-400"), "no");
+  }, "sibling-index() in @container style() query range");
+
+  test(() => {
+    assert_equals(getComputedStyle(t2).getPropertyValue("--range-100"), "no");
+    assert_equals(getComputedStyle(t2).getPropertyValue("--range-400"), "yes");
+  }, "sibling-count() in @container style() query range");
 </script>

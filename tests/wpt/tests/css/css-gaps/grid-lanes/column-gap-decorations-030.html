@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: row rules where every item is a spanner in grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="column-gap-decorations-030-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(4, 60px);
+    gap: 10px;
+    background: #cdd5e0;
+    width: max-content;
+    row-rule: 4px solid gold;
+  }
+  .lanes > div {
+    grid-column: 2 / span 2;
+    height: 44px;
+    background: #5b8def;
+    color: #fff;
+    font: 600 12px/1 sans-serif;
+  }
+  .lanes > div.full { grid-column: 1 / -1; }
+</style>
+<div class="lanes">
+  <div class="full">1 (span 4)</div>
+  <div>2 (span 2)</div>
+  <div class="full">3 (span 4)</div>
+</div>

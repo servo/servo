@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_url::{ImmutableOrigin, ServoUrl};
 
 use crate::dom::bindings::codegen::Bindings::WorkerLocationBinding::WorkerLocationMethods;
@@ -13,7 +13,7 @@ use crate::dom::bindings::str::USVString;
 use crate::dom::urlhelper::UrlHelper;
 use crate::dom::workerglobalscope::WorkerGlobalScope;
 
-// https://html.spec.whatwg.org/multipage/#worker-locations
+/// <https://html.spec.whatwg.org/multipage/#worker-locations>
 #[dom_struct]
 pub(crate) struct WorkerLocation {
     reflector_: Reflector,
@@ -34,10 +34,10 @@ impl WorkerLocation {
         global: &WorkerGlobalScope,
         url: ServoUrl,
     ) -> DomRoot<WorkerLocation> {
-        reflect_dom_object_with_cx(Box::new(WorkerLocation::new_inherited(url)), global, cx)
+        reflect_dom_object(cx, Box::new(WorkerLocation::new_inherited(url)), global)
     }
 
-    // https://html.spec.whatwg.org/multipage/#dom-workerlocation-origin
+    /// <https://html.spec.whatwg.org/multipage/#dom-workerlocation-origin>
     #[expect(dead_code)]
     pub(crate) fn origin(&self) -> ImmutableOrigin {
         self.url.origin()

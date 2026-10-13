@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Serialization of palette-mix() function in specified style</title>
+<link rel="help" href="https://www.w3.org/TR/css-fonts-4/#propdef-font-palette">
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<meta name="assert" content="Check serialization of palette-mix() value in a specified style">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<script>
+  test_valid_value(`font-palette`, `palette-mix(          light 30%, dark)`,   `palette-mix(light 30%, dark 70%)`);
+  test_valid_value(`font-palette`, `palette-mix(in oklab, light 30%, dark)`,   `palette-mix(light 30%, dark 70%)`);
+  test_valid_value(`font-palette`, `palette-mix(in oklab, 30% light, dark)`,   `palette-mix(light 30%, dark 70%)`);
+  test_valid_value(`font-palette`, `palette-mix(in oklab, light 30%, light)`,  `palette-mix(light 30%, light 70%)`);
+  test_valid_value(`font-palette`, `palette-mix(in oklab, light 30%, normal)`, `palette-mix(light 30%, normal 70%)`);
+  test_valid_value(`font-palette`, `palette-mix(in oklab, --foo 30%, normal)`, `palette-mix(--foo 30%, normal 70%)`);
+  test_valid_value(`font-palette`, `palette-mix(in oklab, 30% --foo, normal)`, `palette-mix(--foo 30%, normal 70%)`);
+
+  // Non-default color spaces
+  for (const rectangularColorSpace of [ "srgb", "srgb-linear", "display-p3", "display-p3-linear", "a98-rgb", "prophoto-rgb", "rec2020", "lab", "xyz", "xyz-d50", "xyz-d65" ]) {
+    const resultRectangularColorSpace = rectangularColorSpace == "xyz" ? "xyz-d65" : rectangularColorSpace;
+    test_valid_value(`font-palette`, `palette-mix(in ${rectangularColorSpace}, light 10%, dark)`, `palette-mix(in ${resultRectangularColorSpace}, light 10%, dark 90%)`);
+  }
+  for (const polarColorSpace of [ "hsl", "hwb", "lch", "oklch" ]) {
+    test_valid_value(`font-palette`, `palette-mix(in ${polarColorSpace}, light 10%, dark)`, `palette-mix(in ${polarColorSpace}, light 10%, dark 90%)`);
+
+    for (const hue of [ "shorter", "longer", "increasing", "decreasing" ]) {
+      if (hue == "shorter") {
+        test_valid_value(`font-palette`, `palette-mix(in ${polarColorSpace} ${hue} hue, light 10%, dark)`, `palette-mix(in ${polarColorSpace}, light 10%, dark 90%)`);
+      } else {
+        test_valid_value(`font-palette`, `palette-mix(in ${polarColorSpace} ${hue} hue, light 10%, dark)`, `palette-mix(in ${polarColorSpace} ${hue} hue, light 10%, dark 90%)`);
+      }
+    }
+  }
+
+  // Nested
+  test_valid_value(`font-palette`, `palette-mix(palette-mix(in srgb, light 30%, normal) 20%, dark)`, `palette-mix(palette-mix(in srgb, light 30%, normal 70%) 20%, dark 80%)`);
+  test_valid_value(`font-palette`, `palette-mix(palette-mix(in srgb, light 30%, normal) 30%, palette-mix(in srgb, --foo 30%, dark))`, `palette-mix(palette-mix(in srgb, light 30%, normal 70%) 30%, palette-mix(in srgb, --foo 30%, dark 70%) 70%)`);
+
+  // Normalization
+  test_valid_value(`font-palette`, `palette-mix(in srgb, light 50%,       dark 50%)`,              `palette-mix(in srgb, light, dark)`)                     // both 50%
+  test_valid_value(`font-palette`, `palette-mix(in srgb, light 10%,       dark 90%)`,              `palette-mix(in srgb, light 10%, dark 90%)`)             // sum to 100%
+  test_valid_value(`font-palette`, `palette-mix(in srgb, light 50%,       dark 40%)`,              `palette-mix(in srgb, light 50%, dark 40%)`)             // only one is 50% (p1)
+  test_valid_value(`font-palette`, `palette-mix(in srgb, light 40%,       dark 50%)`,              `palette-mix(in srgb, light 40%, dark 50%)`)             // only one is 50% (p2)
+  test_valid_value(`font-palette`, `palette-mix(in srgb, light 30%,       dark 40%)`,              `palette-mix(in srgb, light 30%, dark 40%)`)             // sum to less than 100%
+  test_valid_value(`font-palette`, `palette-mix(in srgb, light 75%,       dark 75%)`,              `palette-mix(in srgb, light 75%, dark 75%)`)             // sum to more than 100%
+  test_valid_value(`font-palette`, `palette-mix(in srgb, light 0% ,       dark 0%)`,               `palette-mix(in srgb, light 0%, dark 0%)`)               // sum to 0%
+  test_valid_value(`font-palette`, `palette-mix(in srgb, light calc(10%), dark 50%)`,              `palette-mix(in srgb, light calc(10%), dark 50%)`)       // one is `calc()` (p1)
+  test_valid_value(`font-palette`, `palette-mix(in srgb, light 50%,       dark calc(10%))`,        `palette-mix(in srgb, light 50%, dark calc(10%))`)       // one is `calc()` (p2)
+  test_valid_value(`font-palette`, `palette-mix(in srgb, light calc(10%), dark calc(90%))`,        `palette-mix(in srgb, light calc(10%), dark calc(90%))`) // both are `calc()`
+  test_valid_value(`font-palette`, `palette-mix(in srgb, light 50%,       dark)`,                  `palette-mix(in srgb, light, dark)`)                     // only p1 specified, is 50%
+  test_valid_value(`font-palette`, `palette-mix(in srgb, light 10%,       dark)`,                  `palette-mix(in srgb, light 10%, dark 90%)`)             // only p1 specified
+  test_valid_value(`font-palette`, `palette-mix(in srgb, light calc(50%), dark)`,                  `palette-mix(in srgb, light calc(50%), dark)`)           // only p1 specified, is `calc()`
+  test_valid_value(`font-palette`, `palette-mix(in srgb, light,           dark 50%)`,              `palette-mix(in srgb, light, dark)`)                     // only p2 specified, is 50%
+  test_valid_value(`font-palette`, `palette-mix(in srgb, light,           dark 90%)`,              `palette-mix(in srgb, light 10%, dark 90%)`)             // only p2 specified
+  test_valid_value(`font-palette`, `palette-mix(in srgb, light,           dark calc(50%))`,        `palette-mix(in srgb, light, dark calc(50%))`)           // only p2 specified, is `calc()`
+  test_valid_value(`font-palette`, `palette-mix(in srgb, light,           dark)`,                  `palette-mix(in srgb, light, dark)`)                     // neither is specified
+
+  // 1 or more components
+  test_valid_value(`font-palette`, `palette-mix(in srgb,  dark)`,                                  `palette-mix(in srgb, dark)`);
+  test_valid_value(`font-palette`, `palette-mix(in srgb,  dark 100%)`,                             `palette-mix(in srgb, dark)`);
+  test_valid_value(`font-palette`, `palette-mix(in srgb,  dark 50%)`,                              `palette-mix(in srgb, dark 50%)`);
+  test_valid_value(`font-palette`, `palette-mix(in srgb,  dark,     light,     --foo)`,            `palette-mix(in srgb, dark, light, --foo)`);
+  test_valid_value(`font-palette`, `palette-mix(in oklab, dark,     light,     --foo)`,            `palette-mix(dark, light, --foo)`);
+  test_valid_value(`font-palette`, `palette-mix(in srgb,  dark 50%, light 30%, --foo 20%)`,        `palette-mix(in srgb, dark 50%, light 30%, --foo 20%)`);
+  test_valid_value(`font-palette`, `palette-mix(in srgb,  dark 30%, light 60%, --foo 90%)`,        `palette-mix(in srgb, dark 30%, light 60%, --foo 90%)`);
+  test_valid_value(`font-palette`, `palette-mix(in srgb,  dark 50%, light,     --foo)`,            `palette-mix(in srgb, dark 50%, light 25%, --foo 25%)`);
+  test_valid_value(`font-palette`, `palette-mix(in srgb,  dark,     light 25%, --foo 25%)`,        `palette-mix(in srgb, dark 50%, light 25%, --foo 25%)`);
+  test_valid_value(`font-palette`, `palette-mix(in srgb,  dark,     light,     --foo,     --bar)`, `palette-mix(in srgb, dark, light, --foo, --bar)`);
+  test_valid_value(`font-palette`, `palette-mix(in srgb,  dark  0%)`,                              `palette-mix(in srgb, dark 0%)`);
+  test_valid_value(`font-palette`, `palette-mix(in srgb,  dark  0%, light  0%, --foo 0%)`,         `palette-mix(in srgb, dark 0%, light 0%, --foo 0%)`);
+</script>
+</body>
+</html>

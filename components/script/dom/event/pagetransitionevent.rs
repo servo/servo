@@ -20,7 +20,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::event::Event;
 use crate::dom::window::Window;
 
-// https://html.spec.whatwg.org/multipage/#pagetransitionevent
+/// <https://html.spec.whatwg.org/multipage/#pagetransitionevent>
 #[dom_struct]
 pub(crate) struct PageTransitionEvent {
     event: Event,

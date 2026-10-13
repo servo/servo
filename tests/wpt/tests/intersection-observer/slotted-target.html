@@ -1,0 +1,23 @@
+<!doctype html>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://www.w3.org/TR/intersection-observer/#calculate-intersection-rect-algo">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#flow-content-3">
+<style>
+  #target { width: 100px; height: 100px; background: green; }
+</style>
+<div id="host"><div id="target"></div></div>
+<script>
+// The UA stylesheet gives slot { display: contents }, so the flat tree parent of
+// slotted content generates no box. This needs no author style to reproduce.
+document.querySelector("#host")
+        .attachShadow({ mode: "open" })
+        .innerHTML = "<div><slot></slot></div>";
+
+let t = async_test("A slotted target is observed, though its flat tree parent is a slot");
+new IntersectionObserver(t.step_func_done(function(entries) {
+  assert_equals(entries.length, 1);
+  assert_true(entries[0].isIntersecting);
+})).observe(document.querySelector("#target"));
+</script>

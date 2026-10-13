@@ -11,8 +11,6 @@ interface HTMLButtonElement : HTMLElement {
   attribute DOMString command;
   // [CEReactions]
   // attribute Element? commandForElement;
-  // [CEReactions]
-  //         attribute boolean autofocus;
   [CEReactions]
            attribute boolean disabled;
   readonly attribute HTMLFormElement? form;

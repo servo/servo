@@ -5,7 +5,6 @@
 use std::cell::{Cell, RefCell};
 use std::collections::VecDeque;
 use std::ptr;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
@@ -16,10 +15,10 @@ use js::realm::CurrentRealm;
 use js::rust::wrappers2::JS_GetPendingException;
 use js::rust::{HandleObject, HandleValue as SafeHandleValue, HandleValue, MutableHandleValue};
 use js::typedarray::Uint8;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
-use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::callback::{ExceptionHandling, RootedCallback, TracedCallback};
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::QueuingStrategySize;
 use crate::dom::bindings::codegen::Bindings::ReadableStreamDefaultControllerBinding::ReadableStreamDefaultControllerMethods;
 use crate::dom::bindings::codegen::UnionTypes::ReadableStreamDefaultControllerOrReadableByteStreamController as Controller;
@@ -28,7 +27,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::stream::readablestream::ReadableStream;
 use crate::dom::stream::readablestreamdefaultreader::ReadRequest;
@@ -157,9 +156,9 @@ impl EnqueuedValue {
                 rooted!(&in(cx) let mut array_buffer_ptr = ptr::null_mut::<JSObject>());
                 create_buffer_source::<Uint8>(cx, chunk, array_buffer_ptr.handle_mut())
                     .expect("failed to create buffer source for native chunk.");
-                array_buffer_ptr.safe_to_jsval(cx, rval);
+                array_buffer_ptr.to_jsval(cx, rval);
             },
-            EnqueuedValue::Js(value_with_size) => value_with_size.value.safe_to_jsval(cx, rval),
+            EnqueuedValue::Js(value_with_size) => value_with_size.value.to_jsval(cx, rval),
             EnqueuedValue::CloseSentinel => {
                 unreachable!("The close sentinel is never made available as a js val.")
             },
@@ -314,7 +313,7 @@ pub(crate) struct ReadableStreamDefaultController {
 
     /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-strategysizealgorithm>
     #[ignore_malloc_size_of = "mozjs"]
-    strategy_size: RefCell<Option<Rc<QueuingStrategySize>>>,
+    strategy_size: RefCell<Option<TracedCallback<QueuingStrategySize>>>,
 
     /// <https://streams.spec.whatwg.org/#readablestreamdefaultcontroller-closerequested>
     close_requested: Cell<bool>,
@@ -332,7 +331,7 @@ pub(crate) struct ReadableStreamDefaultController {
 impl ReadableStreamDefaultController {
     fn new_inherited(
         strategy_hwm: f64,
-        strategy_size: Rc<QueuingStrategySize>,
+        strategy_size: RootedCallback<QueuingStrategySize>,
         underlying_source: &UnderlyingSourceContainer,
     ) -> ReadableStreamDefaultController {
         ReadableStreamDefaultController {
@@ -341,7 +340,7 @@ impl ReadableStreamDefaultController {
             stream: MutNullableDom::new(None),
             underlying_source: MutNullableDom::new(Some(underlying_source)),
             strategy_hwm,
-            strategy_size: RefCell::new(Some(strategy_size)),
+            strategy_size: RefCell::new(Some(strategy_size.to_traced())),
             close_requested: Default::default(),
             started: Default::default(),
             pulling: Default::default(),
@@ -354,17 +353,17 @@ impl ReadableStreamDefaultController {
         global: &GlobalScope,
         underlying_source: UnderlyingSourceType,
         strategy_hwm: f64,
-        strategy_size: Rc<QueuingStrategySize>,
+        strategy_size: RootedCallback<QueuingStrategySize>,
     ) -> DomRoot<ReadableStreamDefaultController> {
         let underlying_source = UnderlyingSourceContainer::new(cx, global, underlying_source);
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(ReadableStreamDefaultController::new_inherited(
                 strategy_hwm,
                 strategy_size,
                 &underlying_source,
             )),
             global,
-            cx,
         )
     }
 
@@ -540,7 +539,7 @@ impl ReadableStreamDefaultController {
         cx: &mut JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
-    ) -> Rc<Promise> {
+    ) -> RootedPromise {
         // Perform ! ResetQueue(this).
         self.queue.reset();
 
@@ -638,11 +637,11 @@ impl ReadableStreamDefaultController {
             // Let result be the result of performing controller.[[strategySizeAlgorithm]],
             // passing in chunk, and interpreting the result as a completion record.
             // Note: the clone is necessary to prevent potential re-borrow panics.
-            let strategy_size = {
+            rooted!(&in(cx) let rooted_strategy_size = {
                 let reference = self.strategy_size.borrow();
                 reference.clone()
-            };
-            let size = if let Some(strategy_size) = strategy_size {
+            });
+            let size = if let Some(ref strategy_size) = *rooted_strategy_size {
                 // Note: the Rethrow exception handling is necessary,
                 // otherwise returning JSFailed will panic because no exception is pending.
                 let result = strategy_size.Call__(cx, chunk, ExceptionHandling::Rethrow);

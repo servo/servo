@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<style>
+  body {
+    margin: 0;
+  }
+  .scene {
+    height: 400px;
+    position: relative;
+    width: 320px;
+  }
+  .lanes {
+    background: #dce6f0;
+    display: grid-lanes;
+    gap: 20px;
+    grid-template-rows: repeat(6, 50px);
+    height: 400px;
+    padding: 0 20px;
+    width: 280px;
+  }
+  .subgrid {
+    background: #ffe0a3;
+    column-gap: 20px;
+    display: grid;
+    grid-row: 2 / span 4;
+    grid-template-columns: 30px 180px 30px;
+    grid-template-rows: subgrid;
+    width: 280px;
+  }
+  .inner-subgrid {
+    background: #c8e8cf;
+    column-gap: 20px;
+    display: grid;
+    grid-column: 2;
+    grid-row: 2 / span 3;
+    grid-template-columns: repeat(2, 80px);
+    grid-template-rows: subgrid;
+    width: 180px;
+  }
+  .cell {
+    background: #087f75;
+  }
+  .first-cell {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .second-cell {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .rule {
+    position: absolute;
+  }
+  .column-rule {
+    width: 6px;
+  }
+  .row-rule {
+    height: 6px;
+  }
+  .parent-rule {
+    background: #243c9c;
+    left: 20px;
+    width: 280px;
+  }
+  .parent-first {
+    top: 57px;
+  }
+  .parent-last {
+    top: 337px;
+  }
+  .outer-column {
+    background: #b83b00;
+    height: 260px;
+    top: 70px;
+  }
+  .outer-column-first {
+    left: 57px;
+  }
+  .outer-column-last {
+    left: 257px;
+  }
+  .outer-row {
+    background: #9c1755;
+  }
+  .outer-first {
+    left: 20px;
+    top: 127px;
+    width: 280px;
+  }
+  .outer-before {
+    left: 20px;
+    width: 30px;
+  }
+  .outer-after {
+    left: 270px;
+    width: 30px;
+  }
+  .gap-three {
+    top: 197px;
+  }
+  .gap-four {
+    top: 267px;
+  }
+  .inner-column {
+    background: #00613c;
+    height: 190px;
+    left: 157px;
+    top: 140px;
+  }
+  .inner-row {
+    background: #005a73;
+    left: 70px;
+    width: 180px;
+  }
+</style>
+<div class="scene">
+  <div class="lanes">
+    <div class="subgrid">
+      <div class="inner-subgrid">
+        <div class="cell first-cell"></div>
+        <div class="cell second-cell"></div>
+      </div>
+    </div>
+  </div>
+  <div class="rule row-rule parent-rule parent-first"></div>
+  <div class="rule row-rule parent-rule parent-last"></div>
+  <div class="rule column-rule outer-column outer-column-first"></div>
+  <div class="rule column-rule outer-column outer-column-last"></div>
+  <div class="rule row-rule outer-row outer-first"></div>
+  <div class="rule row-rule outer-row gap-three outer-before"></div>
+  <div class="rule row-rule outer-row gap-three outer-after"></div>
+  <div class="rule row-rule outer-row gap-four outer-before"></div>
+  <div class="rule row-rule outer-row gap-four outer-after"></div>
+  <div class="rule column-rule inner-column"></div>
+  <div class="rule row-rule inner-row gap-three"></div>
+  <div class="rule row-rule inner-row gap-four"></div>
+</div>

@@ -2,41 +2,32 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-esid: sec-initializepluralrules
-description: Checks the order of option read.
+esid: sec-intl.pluralrules
+description: Checks the order of options read.
 features: [Intl.NumberFormat-v3]
-includes: [compareArray.js]
+includes: [compareArray.js, temporalHelpers.js]
 ---*/
 
 let optionKeys = [
-    // Inside InitializePluralRules
-    "localeMatcher",
-    "type",
-    "notation",
+    // Inside new PluralRules()
+    "get options.localeMatcher",
+    "get options.type",
+    "get options.notation",
+    "get options.compactDisplay",
     // Inside SetNumberFormatDigitOptions
-        "minimumIntegerDigits",
-        "minimumFractionDigits",
-        "maximumFractionDigits",
-        "minimumSignificantDigits",
-        "maximumSignificantDigits",
-        "roundingIncrement",
-        "roundingMode",
-        "roundingPriority",
-        "trailingZeroDisplay",
+        "get options.minimumIntegerDigits",
+        "get options.minimumFractionDigits",
+        "get options.maximumFractionDigits",
+        "get options.minimumSignificantDigits",
+        "get options.maximumSignificantDigits",
+        "get options.roundingIncrement",
+        "get options.roundingMode",
+        "get options.roundingPriority",
+        "get options.trailingZeroDisplay",
     // End of SetNumberFormatDigitOptions
 ];
 
-// Use getters to track the order of reading known properties.
-// TODO: Should we use a Proxy to detect *unexpected* property reads?
-let reads = new Array();
-let options = {};
-optionKeys.forEach((key) => {
-    Object.defineProperty(options, key, {
-        get() {
-            reads.push(key);
-            return undefined;
-        },
-    });
-});
+const reads = [];
+const options = TemporalHelpers.propertyBagObserver(reads, {}, "options");
 new Intl.PluralRules(undefined, options);
 assert.compareArray(reads, optionKeys, "Intl.PluralRules options read order");

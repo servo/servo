@@ -1,0 +1,88 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Accname computation tests for element: &lt;input type="submit"&gt; and &lt;input type="reset"&gt;</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+  <script src="/html-aam/scripts/html-aam-accname-utils.js"></script>
+</head>
+
+<body>
+  <script>
+    let testConfig = {
+      urlSpec: 'https://www.w3.org/TR/html-aam-1.0/#input-type-button-input-type-submit-and-input-type-reset-accessible-name-computation',
+      elements: {
+        'input[type="button"]': {}
+      },
+      nameSources: [
+        'from 2 aria-labelledby refs',
+        'from 1 aria-labelledby ref',
+        'from aria-label',
+        'from 2 labels',
+        'from 1 label',
+        'from encapsulating label',
+        'from value',
+        'from title',
+        'to be empty'
+      ]
+    }
+    HtmlAamAccnameUtils.buildNameComputationTests(testConfig);
+
+    testConfig = {
+      title: document.title,
+      urlSpec: 'https://www.w3.org/TR/html-aam-1.0/#input-type-button-input-type-submit-and-input-type-reset-accessible-name-computation',
+      elements: {
+        'input[type="submit"]': {},
+        'input[type="reset"]': {}
+      },
+      nameSources: [
+        'from 2 aria-labelledby refs',
+        'from 1 aria-labelledby ref',
+        'from aria-label',
+        'from 2 labels',
+        'from 1 label',
+        'from encapsulating label',
+        'from value',
+        // 'from browser default',
+        // 'from title',
+        // 'to be empty'
+      ]
+    }
+
+    /*
+      PR #44965 TODO: Are browser default names testable?
+      As of April 2024, default names for <input type="submit"> are:
+
+      - Chrome: "Submit"
+      - Safari: "Submit"
+      - Firefox: "Submit Query"
+
+      As of April 2024, default names for <input type="reset"> are:
+
+      - Chrome: "Reset"
+      - Safari: "Reset"
+      - Firefox: "Reset"
+    */
+
+    /*
+      PR #44965 TODO: Are null/empty browser names testable?
+      The remaining accname steps are:
+
+      5. Otherwise, if the control still has no accessible name use title
+         attribute.
+      6. If none of the above yield a usable text string there is no
+         accessible name.
+    */
+
+    HtmlAamAccnameUtils.buildNameComputationTests(testConfig);
+    AriaUtils.verifyLabelsBySelector(".ex-label");
+  </script>
+</body>
+
+</html>

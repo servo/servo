@@ -48,4 +48,4 @@ testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
     compareArray(new TA(makeCtorArg([0n, 0n, 0n])).fill(8n, -5), [8n, 8n, 8n]),
     "start position is 0 when (len + relativeStart) < 0"
   );
-});
+}, null, null, ["immutable"]);

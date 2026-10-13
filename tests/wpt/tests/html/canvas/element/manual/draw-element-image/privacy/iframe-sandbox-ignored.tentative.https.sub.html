@@ -25,8 +25,8 @@
   </style>
 </head>
 <body>
-  <canvas id=canvas width="100" height="200" layoutsubtree>
-    <div id=child>
+  <canvas id=canvas width="100" height="200" content=drawable>
+    <div drawable id=child>
       <iframe id=sameOrigin width=100 height=100 src="https://{{location[host]}}/html/canvas/element/manual/draw-element-image/privacy/support/iframe-blue.html"></iframe>
       <iframe id=sandboxedSameOrigin width=100 height=100 src="https://{{location[host]}}/html/canvas/element/manual/draw-element-image/privacy/support/sandboxed-iframe-red.html"></iframe>
     </div>

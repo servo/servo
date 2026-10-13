@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<title>Single-axis scroll containers split scroll snap axes for column pseudo elements</title>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-type">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#snap-scope">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#column-pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.outer {
+  width: 200px;
+  height: 200px;
+  overflow: auto;
+  scroll-snap-type: both mandatory;
+  scrollbar-width: none;
+}
+
+.column-scroller {
+  columns: 3;
+  column-fill: auto;
+  gap: 0;
+  orphans: 1;
+  widows: 1;
+  line-height: 20px;
+  scrollbar-width: none;
+  background-color: red;
+}
+
+.column-scroller::column {
+  scroll-snap-align: center start;
+}
+
+#inner {
+  width: 420px;
+  height: 100px;
+  overflow: auto clip;
+  scroll-snap-type: x mandatory;
+  position: relative;
+  top: 150px;
+}
+
+.space {
+  width: 1000px;
+  height: 1000px;
+  background-color: blue;
+}
+</style>
+
+<div class="outer" id="outer">
+  <div id="inner" class="column-scroller">
+    First column<br><br><br><br><br>
+    Second column<br><br><br><br><br>
+    Third column<br><br><br><br><br>
+    Fourth column<br><br><br><br><br>
+    Fifth column<br>
+  </div>
+  <div class="space"></div>
+</div>
+
+<script>
+test(() => {
+  const outer = document.getElementById("outer");
+  const inner = document.getElementById("inner");
+
+  // Verify vertical snapping on outer to column pseudo element
+  assert_equals(outer.scrollTop, 100, "outer should snap to column pseudo element vertically");
+
+  // Verify horizontal snapping on inner to column pseudo element
+  inner.scrollLeft = 71;
+  assert_equals(inner.scrollLeft, 140, "inner should snap to second column pseudo element horizontally");
+}, "Single-axis scroll container with overflow-y: clip propagates column pseudo element vertical snap area to outer scroller");
+</script>

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html class="reftest-wait">
 <meta charset=utf-8>
 <body>
   <div>
@@ -40,22 +40,26 @@
     }
   </style>
 
-  <div><usermedia id="id1" type="camera microphone"></usermedia></div>
-  <div><usermedia id="id2" type="camera"></usermedia></div>
-  <div><usermedia id="id3" type="microphone"></usermedia></div>
+  <div><usermedia id="id1"></usermedia></div>
+  <div><geolocation id="id2"></geolocation></div>
+  <div><geolocation id="id3"></geolocation></div>
 
 <script>
-  let el = document.getElementById("id1");
-  el.style.width = getComputedStyle(el).minWidth;
+  requestAnimationFrame(() => {
+    let el = document.getElementById("id1");
+    el.style.width = getComputedStyle(el).minWidth;
 
-  el = document.getElementById("id2");
-  el.style.width = getComputedStyle(el).maxWidth;
+    el = document.getElementById("id2");
+    el.style.width = getComputedStyle(el).maxWidth;
 
-  el = document.getElementById("id3");
-  let w = getComputedStyle(el).width;
-  let h = getComputedStyle(el).height;
-  el.style.width = `calc(${w} + 100px)`; // 100px is 2 * 5em;
-  el.style.height = `calc(${h} + 10px)`; // 10px is 2 * 5px; (the padding set in the test)
+    el = document.getElementById("id3");
+    let w = getComputedStyle(el).width;
+    let h = getComputedStyle(el).height;
+    el.style.width = `calc(${w} + 100px)`; // 100px is 2 * 5em;
+    el.style.height = `calc(${h} + 10px)`; // 10px is 2 * 5px; (the padding set in the test)
+
+    document.documentElement.classList.remove('reftest-wait');
+  });
 </script>
 </body>
 </html>

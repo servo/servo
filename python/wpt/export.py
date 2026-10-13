@@ -21,7 +21,7 @@ from exporter import WPTSync
 
 
 def main() -> int:
-    context = json.loads(os.environ["GITHUB_CONTEXT"])
+    github_event = json.loads(os.environ["GITHUB_EVENT"])
     logging.getLogger().level = logging.INFO
 
     success = WPTSync(
@@ -35,7 +35,7 @@ def main() -> int:
         github_username="servo-wpt-sync",
         github_email="ghbot+wpt-sync@servo.org",
         github_name="Servo WPT Sync",
-    ).run(context["event"])
+    ).run(github_event)
     return 0 if success else 1
 
 

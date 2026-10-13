@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>link-parameters: a typed currentcolor parameter value resolves against the linking element</title>
+<link rel="help" href="https://drafts.csswg.org/css-link-params/#param">
+<link rel="match" href="link-parameters-currentcolor-typed-ref.html">
+<style>
+  body { margin: 0; }
+  img { display: block; width: 100px; height: 100px; }
+  #target { color: #0a5c2e; link-parameters: param(--bg <color>, currentcolor); }
+</style>
+<img id="target" src="resources/solid-with-color.svg">

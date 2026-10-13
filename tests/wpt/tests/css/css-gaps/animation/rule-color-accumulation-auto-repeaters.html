@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>CSS Gaps: rule-color accumulation with auto repeaters</title>
+    <link rel="help" href="https://drafts.csswg.org/css-gaps-1/#column-row-rule-color">
+    <meta name="assert" content="Gap decoration rule-color auto repeaters correctly composite with differing inner value counts.">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+  </head>
+  <body>
+    <script>
+      function createTarget(t) {
+        const target = document.createElement('div');
+        document.body.appendChild(target);
+        t.add_cleanup(() => target.remove());
+        return target;
+      }
+
+      test((t) => {
+        const target = createTarget(t);
+        target.style.columnCount = '2';
+        target.style.columnRuleStyle = 'solid';
+        target.style.columnRuleColor = 'repeat(auto, rgb(100, 0, 0), rgb(0, 100, 0))';
+        const animation = target.animate(
+          [{columnRuleColor: 'repeat(auto, rgb(50, 50, 50))'},
+           {columnRuleColor: 'repeat(auto, rgb(50, 50, 50))'}],
+          {composite: 'accumulate', duration: 1000, fill: 'forwards'});
+        animation.pause();
+        animation.currentTime = 500;
+        assert_equals(getComputedStyle(target).columnRuleColor,
+                      'repeat(auto, rgb(150, 50, 50), rgb(50, 150, 50))');
+      }, 'column-rule-color auto repeater with fewer animation values composites without crash (underlying: 2, animation: 1)');
+
+      test((t) => {
+        const target = createTarget(t);
+        target.style.columnCount = '2';
+        target.style.columnRuleStyle = 'solid';
+        target.style.columnRuleColor = 'repeat(auto, rgb(50, 50, 50))';
+        const animation = target.animate(
+          [{columnRuleColor: 'repeat(auto, rgb(100, 0, 0), rgb(0, 100, 0))'},
+           {columnRuleColor: 'repeat(auto, rgb(100, 0, 0), rgb(0, 100, 0))'}],
+          {composite: 'accumulate', duration: 1000, fill: 'forwards'});
+        animation.pause();
+        animation.currentTime = 500;
+        assert_equals(getComputedStyle(target).columnRuleColor,
+                      'repeat(auto, rgb(150, 50, 50), rgb(50, 150, 50))');
+      }, 'column-rule-color auto repeater with more animation values expands underlying (underlying: 1, animation: 2)');
+
+      test((t) => {
+        const target = createTarget(t);
+        target.style.columnCount = '2';
+        target.style.columnRuleStyle = 'solid';
+        target.style.columnRuleColor = 'repeat(auto, rgb(100, 0, 0), rgb(0, 100, 0))';
+        const animation = target.animate(
+          [{columnRuleColor: 'repeat(auto, rgb(50, 50, 50))'},
+           {columnRuleColor: 'repeat(auto, rgb(50, 50, 50))'}],
+          {composite: 'add', duration: 1000, fill: 'forwards'});
+        animation.pause();
+        animation.currentTime = 500;
+        assert_equals(getComputedStyle(target).columnRuleColor,
+                      'repeat(auto, rgb(150, 50, 50), rgb(50, 150, 50))');
+      }, 'column-rule-color auto repeater with composite: add');
+
+      test((t) => {
+        const target = createTarget(t);
+        target.style.rowGap = '20px';
+        target.style.rowRuleStyle = 'solid';
+        target.style.rowRuleColor = 'repeat(auto, rgb(100, 0, 0), rgb(0, 100, 0))';
+        const animation = target.animate(
+          [{rowRuleColor: 'repeat(auto, rgb(50, 50, 50))'},
+           {rowRuleColor: 'repeat(auto, rgb(50, 50, 50))'}],
+          {composite: 'accumulate', duration: 1000, fill: 'forwards'});
+        animation.pause();
+        animation.currentTime = 500;
+        assert_equals(getComputedStyle(target).rowRuleColor,
+                      'repeat(auto, rgb(150, 50, 50), rgb(50, 150, 50))');
+      }, 'row-rule-color auto repeater with fewer animation values composites without crash');
+    </script>
+  </body>
+</html>

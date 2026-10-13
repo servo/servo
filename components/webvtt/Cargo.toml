@@ -19,3 +19,6 @@ regex = { workspace = true }
 
 [dev-dependencies]
 servo-webvtt = { path = ".", features = ["test-util"] }
+
+[lints]
+workspace = true

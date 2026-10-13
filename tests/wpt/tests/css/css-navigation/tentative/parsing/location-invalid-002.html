@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>Invalid @location rule declarations</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-navigation-1/#at-location">
+<style>
+  @location incorrect {}
+  .parseme {}
+  @location (incorrect) {}
+  .parseme {}
+  @location (--loc) incorrect {}
+  .parseme {}
+  @location (--loc) (--loc) {}
+  .parseme {}
+  @location (--loc --loc) incorrect {}
+  .parseme {}
+  @location (at: --loc) incorrect {}
+  .parseme {}
+  @location (at: --loc --loc) incorrect {}
+  .parseme {}
+  @location (at: from:) incorrect {}
+  .parseme {}
+  @location (at: from: whatever) incorrect {}
+  .parseme {}
+  @location incorrect (--loc) {}
+  .parseme {}
+  @location incorrect (at: --loc) incorrect {}
+  .parseme {}
+  @location (over:) incorrect {}
+  .parseme {}
+  @location (over: rainbow) incorrect {}
+  .parseme {}
+  @location incorrect (over: rainbow) incorrect {}
+  .parseme {}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  test(()=> {
+    assert_equals(document.styleSheets.length, 1);
+    let stylesheet = document.styleSheets[0];
+    assert_equals(stylesheet.cssRules.length, 14);
+    for (let i = 0; i < stylesheet.cssRules.length; i++) {
+      let rule = stylesheet.cssRules[i];
+      assert_true(rule instanceof CSSStyleRule);
+      assert_equals(rule.selectorText, ".parseme");
+    }
+  }, "Invalid @location");
+</script>

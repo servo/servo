@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Event handlers and event listeners in documents without a browsing context</title>
+<link rel="help" href="https://html.spec.whatwg.org/#the-event-handler-processing-algorithm">
+<link rel="help" href="https://html.spec.whatwg.org/#getting-the-current-value-of-the-event-handler">
+<link rel="help" href="https://html.spec.whatwg.org/#concept-n-noscript">
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-event-listener-inner-invoke">
+<link rel="help" href="https://github.com/whatwg/dom/issues/1084">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+"use strict";
+
+// "Scripting is disabled" for a node whose node document has no browsing
+// context, which prevents compiling an event handler content attribute. It
+// does not prevent invoking an event handler whose value is already a
+// function, or an event listener: such documents are still created in, and
+// scripted from, a fully active global.
+//
+// These tests check that event handler IDL attributes behave the same as event
+// listeners, and that it is only *compiling* an event handler content
+// attribute that is blocked.
+
+function createElementIn(kind) {
+  switch (kind) {
+    case "createHTMLDocument": {
+      const doc = document.implementation.createHTMLDocument("");
+      const element = doc.createElement("div");
+      doc.body.append(element);
+      return element;
+    }
+    case "DOMParser": {
+      const doc = new DOMParser().parseFromString("<div></div>", "text/html");
+      return doc.querySelector("div");
+    }
+    case "template contents": {
+      const template = document.createElement("template");
+      template.innerHTML = "<div></div>";
+      return template.content.firstElementChild;
+    }
+  }
+}
+
+for (const kind of ["createHTMLDocument", "DOMParser", "template contents"]) {
+  test(() => {
+    const element = createElementIn(kind);
+    assert_equals(element.ownerDocument.defaultView, null,
+                  "sanity check: the node document has no browsing context");
+
+    let count = 0;
+    element.addEventListener("click", () => count++);
+    element.dispatchEvent(new Event("click"));
+    assert_equals(count, 1);
+  }, `addEventListener() listener runs on an element in a ${kind} document`);
+
+  test(() => {
+    const element = createElementIn(kind);
+
+    let count = 0;
+    element.onclick = () => count++;
+    assert_equals(typeof element.onclick, "function", "the handler is set");
+    element.dispatchEvent(new Event("click"));
+    assert_equals(count, 1);
+  }, `Event handler IDL attribute runs on an element in a ${kind} document`);
+
+  test(t => {
+    const element = createElementIn(kind);
+    t.add_cleanup(() => { delete window.contentAttributeHandlerRan; });
+
+    element.setAttribute("onclick", "window.contentAttributeHandlerRan = true;");
+    element.dispatchEvent(new Event("click"));
+    assert_equals(window.contentAttributeHandlerRan, undefined);
+  }, `Event handler content attribute does not run on an element in a ${kind} document`);
+
+  test(() => {
+    const element = createElementIn(kind);
+    element.setAttribute("onclick", "window.contentAttributeHandlerRan = true;");
+    assert_equals(element.onclick, null);
+  }, `Event handler content attribute is not compiled on an element in a ${kind} document`);
+}
+</script>

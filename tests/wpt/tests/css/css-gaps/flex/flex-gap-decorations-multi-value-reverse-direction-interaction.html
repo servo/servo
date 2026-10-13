@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>
+    CSS Gap Decorations: Flex gap decoration colors with multiple values
+    track placement direction independently of writing direction, so a
+    reversed flex-direction combined with rtl composes correctly.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#gap-decorations">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14156">
+<link rel="match" href="flex-gap-decorations-multi-value-reverse-direction-interaction-ref.html">
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+    body {
+        margin: 0px;
+    }
+    .flex {
+        display: flex;
+        gap: 10px;
+        width: 230px;
+        column-rule-color: red, green, blue;
+        column-rule-style: solid;
+        column-rule-width: 10px;
+        margin-bottom: 20px;
+    }
+    .flex > * {
+        background: lightgray;
+        width: 50px;
+        height: 50px;
+    }
+</style>
+<div class="flex" style="flex-direction: row; direction: ltr;">
+    <div></div><div></div><div></div><div></div>
+</div>
+<div class="flex" style="flex-direction: row; direction: rtl;">
+    <div></div><div></div><div></div><div></div>
+</div>
+<div class="flex" style="flex-direction: row-reverse; direction: rtl;">
+    <div></div><div></div><div></div><div></div>
+</div>

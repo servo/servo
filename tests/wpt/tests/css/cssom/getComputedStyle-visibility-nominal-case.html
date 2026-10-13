@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Computed visibility in nominal case</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+
+<!-- Test for https://github.com/jsdom/jsdom/issues/3182 -->
+
+<style>
+  #hiddenDiv {
+    visibility: hidden;
+  }
+
+  /* This rule is important because add rule on the div */
+  * {
+            margin-bottom: 10px;
+  }
+</style>
+
+<body>
+  <div id="hiddenDiv">Hello, Ronron!</div>
+</body>
+
+<script>
+"use strict";
+
+
+test(() => {
+  const element = document.querySelector("body");
+  assert_equals(getComputedStyle(element).visibility, "visible");
+}, "Sanity check: getComputedStyle returns apparent visibility");
+
+test(() => {
+  const element = document.querySelector("#hiddenDiv");
+  assert_equals(getComputedStyle(element).visibility, "hidden");
+}, "Real check: getComputedStyle returns hidden visibility");
+
+</script>

@@ -17,9 +17,23 @@ crate-type = ["rlib"]
 
 [features]
 # Note: Servoshell does not use the default features of servo, so you also
-# need to add features that should be default to ports/servoshell/Cargo.toml
-default = ["baked-in-resources", "bundled_freetype", "clipboard", "js_jit"]
+# need to add feature-groups that should be default to ports/servoshell/Cargo.toml
+default = ["bundled", "clipboard", "default_tooling", "js_jit", "multiprocess"]
+## Convenience feature groups, to select multiple related features for a sensible
+#  configuration with `--no-default-features` build
+#
+# A convenience feature to enable all default web features servo has.
+default_web_features = ["brotli-compression-stream", "clipboard", "webcrypto", "webgpu", "webgl", "webxr"]
+default_tooling = ["devtools"]
+# Bundle required resources in the binary.
+bundled = ["baked-in-resources", "bundled_freetype"]
+
+# Individual features below this line.
 background_hang_monitor = ["servo-background-hang-monitor/sampler"]
+
+# Allow brotli to be used for compression and decompression in TransportStream JavaScript API
+brotli-compression-stream = ["script/brotli-compression-stream"]
+
 # This is slightly magical, but this will also work on ohos, where `servo-default-resource` is not added,
 # which makes `baked-in-resources a no-op (as intended) on ohos (and perhaps other platforms in the future).
 baked-in-resources = ["dep:servo-default-resources"]
@@ -32,9 +46,16 @@ bluetooth = [
     "script_traits/bluetooth",
 ]
 bundled_freetype = ["fonts/bundled_freetype"]
-clipboard = ["dep:arboard"]
+clipboard = ["dep:arboard", "dep:ohos-pasteboard"]
 crown = ["script/crown"]
 debugmozjs = ["script/debugmozjs"]
+devtools = [
+    "dep:devtools",
+    "dep:devtools_traits",
+    "net/devtools",
+    "script/devtools",
+    "servo-constellation/devtools",
+]
 dynamic_freetype = ["webrender/dynamic_freetype"]
 gamepad = [
     "script/gamepad",
@@ -45,8 +66,12 @@ jitspew = ["script/jitspew"]
 js_backtrace = ["script/js_backtrace"]
 js_jit = ["script/js_jit"]
 media-gstreamer = ["servo-media-gstreamer", "gstreamer"]
+
+# Allows multiprocess and ipc mode. If enabled this still needs the correct preference flags to use multi process mode.
+multiprocess = ["servo-base/multiprocess", "servo-constellation/multiprocess"]
+
 native-bluetooth = ["servo-bluetooth/native-bluetooth"]
-no-wgl = ["mozangle/egl", "mozangle/build_dlls", "surfman/sm-angle-default", "paint_api/no-wgl"]
+no-wgl = ["dep:mozangle", "mozangle/egl", "mozangle/build_dlls", "surfman/sm-angle-default", "paint_api/no-wgl"]
 profilemozjs = ["script/profilemozjs"]
 testbinding = ["script/testbinding"]
 tracing = [
@@ -61,10 +86,21 @@ tracing = [
     "net/tracing",
 ]
 vello = ["servo-constellation/vello"]
+
+# Enable WebCrypto Web Platform Features
+webcrypto = ["servo-constellation-traits/webcrypto", "script/webcrypto"]
 webgl_backtrace = [
     "script/webgl_backtrace",
     "webgl/webgl_backtrace",
     "servo-canvas-traits/webgl_backtrace",
+]
+webgl = [
+    "dep:webgl",
+    "paint/webgl",
+    "script/webgl",
+    "script_traits/webgl",
+    "servo-constellation/webgl",
+    "servo-constellation-traits/webgl",
 ]
 webgpu = [
     "dep:webgpu",
@@ -74,6 +110,8 @@ webgpu = [
     "servo-constellation-traits/webgpu",
 ]
 webxr = [
+    "webgl",
+    "gamepad",
     "dep:webxr",
     "dep:webxr-api",
     "paint/webxr",
@@ -86,8 +124,8 @@ accesskit = { workspace = true }
 bitflags = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
-devtools = { workspace = true }
-devtools_traits = { workspace = true }
+devtools = { workspace = true, optional = true }
+devtools_traits = { workspace = true, optional = true }
 dpi = { workspace = true }
 embedder_traits = { workspace = true }
 env_logger = { workspace = true }
@@ -102,7 +140,7 @@ layout = { workspace = true }
 layout_api = { workspace = true }
 log = { workspace = true }
 media = { workspace = true }
-mozangle = { workspace = true }
+mozangle = { workspace = true, optional = true }
 net = { workspace = true }
 net_traits = { workspace = true }
 paint = { workspace = true }
@@ -137,7 +175,7 @@ surfman = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }
 tracing = { workspace = true, optional = true }
 url = { workspace = true }
-webgl = { workspace = true, default-features = false }
+webgl = { workspace = true, default-features = false, optional = true }
 webgpu = { workspace = true, optional = true }
 webrender = { workspace = true }
 webrender_api = { workspace = true }
@@ -164,10 +202,13 @@ webxr = { workspace = true, optional = true, features = ["glwindow", "headless",
 
 [target.'cfg(target_env = "ohos")'.dependencies]
 servo-media-ohos = { workspace = true }
+ohos-pasteboard = { workspace = true, optional = true }
 
 [dev-dependencies]
 accesskit_consumer = { workspace = true }
 content-security-policy = { workspace = true }
+gleam = { workspace = true }
+glow = { workspace = true }
 http = { workspace = true }
 http-body-util = { workspace = true }
 hyper = { workspace = true }
@@ -179,6 +220,9 @@ rustls = { workspace = true, default-features = false }
 servo = { path = ".", features = ["testbinding", "tracing"] }
 tracing = { workspace = true }
 winit = { workspace = true }
+
+[lints]
+workspace = true
 
 [[test]]
 name = "multiprocess"

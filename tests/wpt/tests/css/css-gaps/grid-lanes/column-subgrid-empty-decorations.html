@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: a completely empty column subgrid of grid-lanes
+  paints rules in both axes
+</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<link rel="match" href="column-subgrid-empty-decorations-ref.html">
+<style>
+  body {
+    margin: 0;
+  }
+  .scene {
+    height: 220px;
+    position: relative;
+    width: 330px;
+  }
+  .lanes {
+    background: #dce6f0;
+    column-rule: 6px solid #243c9c;
+    display: grid-lanes;
+    gap: 20px;
+    grid-template-columns: repeat(5, 50px);
+    height: 220px;
+    width: 330px;
+  }
+  .before,
+  .after,
+  .side {
+    background: #52677d;
+  }
+  .before,
+  .after {
+    height: 30px;
+  }
+  .track-two {
+    grid-column: 2;
+  }
+  .track-three {
+    grid-column: 3;
+  }
+  .track-four {
+    grid-column: 4;
+  }
+  .side {
+    grid-column: 1;
+    height: 220px;
+  }
+  .subgrid {
+    background: #ffe0a3;
+    column-rule: 6px solid #b83b00;
+    display: grid;
+    grid-column: 2 / span 3;
+    grid-template-columns: subgrid;
+    grid-template-rows: repeat(2, 50px);
+    height: 120px;
+    row-gap: 20px;
+    row-rule: 6px solid #9c1755;
+  }
+</style>
+<div class="scene">
+  <div class="lanes">
+    <div class="before track-two"></div>
+    <div class="before track-three"></div>
+    <div class="before track-four"></div>
+    <div class="side"></div>
+    <div class="subgrid"></div>
+    <div class="after track-two"></div>
+    <div class="after track-three"></div>
+    <div class="after track-four"></div>
+  </div>
+</div>

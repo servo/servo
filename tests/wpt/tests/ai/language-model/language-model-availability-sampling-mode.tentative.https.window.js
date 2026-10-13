@@ -7,7 +7,15 @@
 'use strict';
 
 promise_test(async t => {
-  const modes = ['most-predictable', 'predictable', 'balanced', 'creative', 'most-creative'];
+  const modes = [
+    'most-predictable',
+    'predictable',
+    'slightly-predictable',
+    'balanced',
+    'slightly-creative',
+    'creative',
+    'most-creative',
+  ];
 
   for (const mode of modes) {
     const result = await LanguageModel.availability({ samplingMode: mode });

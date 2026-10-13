@@ -90,6 +90,19 @@ def test_format_and_dimensions(session, inline):
     assert png_dimensions(screenshot) == element_dimensions(session, element)
 
 
+@pytest.mark.parametrize(
+    "width,height", [(0, 100), (100, 0), (0, 0)], ids=["x", "y", "x_y"]
+)
+def test_zero_dimensions(session, inline, width, height):
+    session.url = inline(
+        f'<div style="width:{width}px;height:{height}px"></div>'
+    )
+    element = session.find.css("div", all=False)
+
+    response = take_element_screenshot(session, element.id)
+    assert_error(response, "unable to capture screen")
+
+
 def test_clip_huge_element_to_viewport(session, inline):
     width = "32768px"
     height = "32768px"

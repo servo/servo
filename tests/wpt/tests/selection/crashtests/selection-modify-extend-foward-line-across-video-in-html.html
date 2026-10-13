@@ -16,15 +16,12 @@ addEventListener("DOMContentLoaded", async () => {
   document.documentElement.appendChild(main1);
   const selection = getSelection();
   selection.selectAllChildren(main1);
-  let count = 10;
-  let id = setInterval(async () => {
+  for (let count = 0; count < 10; count++) {
+    await new Promise(requestAnimationFrame);
     selection.collapseToStart();
     selection.modify("extend", "forward", "line");
-    if (count-- == 0) {
-      clearInterval(id);
-      document.documentElement.removeAttribute("class");
-    }
-  }, 0);
+  }
+  document.documentElement.removeAttribute("class");
 });
 </script>
 </head>

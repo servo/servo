@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#segments-algorithms">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: 80px 80px;
+    gap: 40px;
+    background-color: #cdd5e0;
+    background-image: linear-gradient(blue, blue), linear-gradient(blue, blue);
+    background-repeat: no-repeat;
+    background-position: 98px 0, 98px 140px;
+    background-size: 4px 20px, 4px 20px;
+    width: 200px;
+  }
+  .lanes > div { background: #5b8def; }
+  .a { grid-column: 1; height: 40px; }
+  .b { grid-column: 2; height: 45px; }
+  .p { grid-column: 1; height: 20px; margin-bottom: -40px; }
+  .lanes > div.s {
+    grid-column: 1 / 3;
+    height: 20px;
+    margin-bottom: -40px;
+    background: purple;
+    color: white;
+    font: 12px/20px sans-serif;
+    text-align: center;
+  }
+  .c { grid-column: 1; height: 40px; }
+  .d { grid-column: 2; height: 40px; }
+</style>
+<div class="lanes">
+  <div class="a"></div>
+  <div class="b"></div>
+  <div class="p"></div>
+  <div class="s">Spans both lanes</div>
+  <div class="c"></div>
+  <div class="d"></div>
+</div>

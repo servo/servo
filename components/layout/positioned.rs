@@ -7,13 +7,14 @@ use std::ops::Range;
 use std::sync::Arc;
 
 use app_units::Au;
+use atomic_refcell::AtomicRef;
 use malloc_size_of_derive::MallocSizeOf;
 use rayon::iter::IntoParallelRefMutIterator;
 use rayon::prelude::{IndexedParallelIterator, ParallelIterator};
 use servo_arc::Arc as ServoArc;
 use style::Zero;
 use style::computed_values::position::T as Position;
-use style::logical_geometry::{Direction, WritingMode};
+use style::logical_geometry::{LogicalAxis, WritingMode};
 use style::properties::ComputedValues;
 use style::values::specified::align::AlignFlags;
 
@@ -23,6 +24,7 @@ use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::formatting_contexts::IndependentFormattingContext;
 use crate::fragment_tree::{
     BoxFragment, Fragment, FragmentFlags, HoistedSharedFragment, LayoutRootFragment,
+    SpecificLayoutInfo,
 };
 use crate::geom::{
     AuOrAuto, LogicalRect, LogicalSides, LogicalSides1D, LogicalVec2, PhysicalPoint, PhysicalRect,
@@ -31,6 +33,7 @@ use crate::geom::{
 use crate::layout_box_base::{IndependentFormattingContextLayoutResult, LayoutBoxBase};
 use crate::sizing::{LazySize, Size, SizeConstraint, Sizes};
 use crate::style_ext::{Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, DisplayInside};
+use crate::taffy::SpecificTaffyGridInfo;
 use crate::{
     ConstraintSpace, ContainingBlock, ContainingBlockSize, DefiniteContainingBlock,
     PropagatedBoxTreeData,
@@ -214,7 +217,7 @@ impl PositioningContext {
         new_context.layout_collected_children(layout_context, &mut new_fragment);
         self.append(new_context);
 
-        if base.style.clone_position() == Position::Relative {
+        if base.style.get_box().position == Position::Relative {
             new_fragment.base.translate_rect(
                 relative_adjustement(&base.style, containing_block)
                     .to_physical_vector(containing_block.style.writing_mode)
@@ -298,6 +301,20 @@ impl PositioningContext {
             style: &style,
         };
 
+        let rare_data = new_fragment
+            .rare_data
+            .get()
+            .map(|ref_cell| ref_cell.borrow());
+
+        let grid_info = rare_data.and_then(|rare_data| {
+            AtomicRef::filter_map(rare_data, |rare_data| {
+                match rare_data.specific_layout_info.as_ref() {
+                    Some(SpecificLayoutInfo::Grid(grid_info)) => Some(&**grid_info),
+                    _ => None,
+                }
+            })
+        });
+
         let mut fixed_position_boxes_to_hoist = Vec::new();
         let mut boxes_to_layout = Vec::new();
         self.take_boxes_for_fragment(
@@ -317,8 +334,10 @@ impl PositioningContext {
                 std::mem::take(&mut boxes_to_layout),
                 &mut new_fragment.children,
                 &mut self.absolutes,
+                grid_info.as_deref(),
                 &containing_block,
                 new_fragment.padding,
+                new_fragment.border,
             );
 
             self.take_boxes_for_fragment(
@@ -366,7 +385,9 @@ impl PositioningContext {
                 mem::take(&mut self.absolutes),
                 fragments,
                 &mut self.absolutes,
+                None,
                 initial_containing_block,
+                Default::default(),
                 Default::default(),
             )
         }
@@ -406,18 +427,22 @@ impl HoistedAbsolutelyPositionedBox {
             .borrow()
             .context
             .style()
-            .clone_position();
+            .get_box()
+            .position;
         assert!(position.is_absolutely_positioned());
         position
     }
 
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn layout_many(
         layout_context: &LayoutContext,
         mut boxes: Vec<Self>,
         fragments: &mut Vec<Fragment>,
         for_nearest_containing_block_for_all_descendants: &mut Vec<HoistedAbsolutelyPositionedBox>,
+        grid_info: Option<&SpecificTaffyGridInfo>,
         containing_block: &DefiniteContainingBlock,
         containing_block_padding: PhysicalSides<Au>,
+        containing_block_border: PhysicalSides<Au>,
     ) {
         let job_sizes = boxes.iter().map(|hoisted_box| {
             hoisted_box
@@ -437,8 +462,10 @@ impl HoistedAbsolutelyPositionedBox {
                     let new_fragment = hoisted_box.layout(
                         layout_context,
                         &mut new_hoisted_boxes,
+                        grid_info,
                         containing_block,
                         containing_block_padding,
+                        containing_block_border,
                     );
                     (new_fragment, new_hoisted_boxes)
                 })
@@ -452,8 +479,10 @@ impl HoistedAbsolutelyPositionedBox {
                 hoisted_box.layout(
                     layout_context,
                     for_nearest_containing_block_for_all_descendants,
+                    grid_info,
                     containing_block,
                     containing_block_padding,
+                    containing_block_border,
                 )
             }))
         }
@@ -463,28 +492,61 @@ impl HoistedAbsolutelyPositionedBox {
         &mut self,
         layout_context: &LayoutContext,
         hoisted_absolutes_from_children: &mut Vec<HoistedAbsolutelyPositionedBox>,
+        grid_info: Option<&SpecificTaffyGridInfo>,
         containing_block: &DefiniteContainingBlock,
         containing_block_padding: PhysicalSides<Au>,
+        containing_block_border: PhysicalSides<Au>,
     ) -> Fragment {
-        // The static position rect was calculated assuming that the containing block would be
-        // established by the content box of some ancestor, but the actual containing block is
-        // established by the padding box. So we need to translate the rect by the padding of
-        // that ancestor.
-        let mut static_position_rect = self.static_position_rect().translate(PhysicalVec::new(
-            containing_block_padding.left,
-            containing_block_padding.top,
-        ));
-        static_position_rect.size = static_position_rect.size.max(PhysicalSize::zero());
-        let fully_adjusted_static_position_rect =
-            static_position_rect.to_logical(&containing_block.into());
-
         let absolutely_positioned_box = self.absolutely_positioned_box.borrow();
         let independent_formatting_context = &absolutely_positioned_box.context;
+        let writing_mode = containing_block.style.writing_mode;
+
+        // If the container laying out the hoisted nodes is a grid container, then resolve the hoisted
+        // node's grid area (as a concrete rect in Au units) using its own grid position styles.
+        let grid_area = grid_info.map(|grid_info| {
+            grid_info.resolve_grid_area(
+                independent_formatting_context.style(),
+                containing_block,
+                containing_block_border,
+            )
+        });
+
+        // Compute a containing_block_origin relative to the padding-box. This is either the origin of the
+        // grid area relative to the padding-box, or simply (0, 0) for non-grid containers.
+        let containing_block_origin = grid_area
+            .as_ref()
+            .map(|grid_area| grid_area.origin.to_vector())
+            .unwrap_or_default();
+
+        // Override the size of the containing block the grid area computed above in the case of a grid container.
+        let containing_block = DefiniteContainingBlock {
+            size: grid_area
+                .as_ref()
+                .map(|grid_area| grid_area.size.to_logical(writing_mode))
+                .unwrap_or(containing_block.size),
+            style: containing_block.style,
+        };
+
+        // Static position adjustment: content box -> containing block
+        //
+        // The static position rect is in coordinates relative to the content box of some ancestor. Convert it into
+        // coordinates relative to it's containing block. For grid containers, we resolve the node's grid area.
+        // For all other containers, the containing block is just the padding box.
+        let fully_adjusted_static_position_rect = {
+            let mut static_position_rect = self.static_position_rect().translate(
+                PhysicalVec::new(containing_block_padding.left, containing_block_padding.top) -
+                    containing_block_origin,
+            );
+            static_position_rect.size = static_position_rect.size.max(PhysicalSize::zero());
+            static_position_rect.to_logical(&(&containing_block).into())
+        };
+
         let (box_fragment, mut positioning_context) = independent_formatting_context
             .layout_as_absolute(
                 layout_context,
                 &fully_adjusted_static_position_rect,
-                containing_block,
+                &containing_block,
+                containing_block_origin,
                 self.resolved_alignment,
                 self.original_parent_writing_mode,
             );
@@ -528,6 +590,7 @@ impl HoistedAbsolutelyPositionedBox {
                 resolved_alignment: self.resolved_alignment,
                 containing_block_size: containing_block.size,
                 containing_block_style: containing_block.style.clone(),
+                containing_block_origin,
                 original_parent_writing_mode: self.original_parent_writing_mode,
             })
         });
@@ -551,6 +614,7 @@ impl IndependentFormattingContext {
         layout_context: &LayoutContext,
         static_position_rect: &LogicalRect<Au>,
         containing_block: &DefiniteContainingBlock,
+        containing_block_origin: PhysicalVec<Au>,
         resolved_alignment: LogicalVec2<AlignFlags>,
         original_parent_writing_mode: WritingMode,
     ) -> (Arc<BoxFragment>, PositioningContext) {
@@ -574,12 +638,12 @@ impl IndependentFormattingContext {
         // in the inline axis.
         let inline_box_offsets = box_offset.inline_sides().percentages_relative_to(cbis);
         let inline_alignment = match inline_box_offsets.either_specified() {
-            true => style.clone_justify_self().0,
+            true => style.get_justify_self().0,
             false => resolved_alignment.inline,
         };
 
         let inline_axis_solver = AbsoluteAxisSolver {
-            axis: Direction::Inline,
+            axis: LogicalAxis::Inline,
             containing_size: cbis,
             padding_border_sum: pbm.padding_border_sums.inline,
             computed_margin_start: pbm.margin.inline_start,
@@ -587,7 +651,7 @@ impl IndependentFormattingContext {
             computed_sizes: content_box_sizes.inline,
             avoid_negative_margin_start: true,
             box_offsets: inline_box_offsets,
-            static_position_rect_axis: static_position_rect.get_axis(Direction::Inline),
+            static_position_rect_axis: static_position_rect.get_axis(LogicalAxis::Inline),
             alignment: inline_alignment,
             flip_anchor: original_parent_writing_mode.is_bidi_ltr() !=
                 containing_block_writing_mode.is_bidi_ltr(),
@@ -598,11 +662,11 @@ impl IndependentFormattingContext {
         // against this containing block.
         let block_box_offsets = box_offset.block_sides().percentages_relative_to(cbbs);
         let block_alignment = match block_box_offsets.either_specified() {
-            true => style.clone_align_self().0,
+            true => style.get_align_self().0,
             false => resolved_alignment.block,
         };
         let block_axis_solver = AbsoluteAxisSolver {
-            axis: Direction::Block,
+            axis: LogicalAxis::Block,
             containing_size: cbbs,
             padding_border_sum: pbm.padding_border_sums.block,
             computed_margin_start: pbm.margin.block_start,
@@ -610,7 +674,7 @@ impl IndependentFormattingContext {
             computed_sizes: content_box_sizes.block,
             avoid_negative_margin_start: false,
             box_offsets: block_box_offsets,
-            static_position_rect_axis: static_position_rect.get_axis(Direction::Block),
+            static_position_rect_axis: static_position_rect.get_axis(LogicalAxis::Block),
             alignment: block_alignment,
             flip_anchor: false,
             is_table_or_replaced,
@@ -625,7 +689,7 @@ impl IndependentFormattingContext {
             self.tentative_block_content_size(preferred_aspect_ratio, inline_stretch_size);
         let tentative_block_size = if let Some(block_content_size) = tentative_block_content_size {
             SizeConstraint::Definite(block_axis_solver.computed_sizes.resolve(
-                Direction::Block,
+                LogicalAxis::Block,
                 block_automatic_size,
                 Au::zero,
                 block_stretch_size,
@@ -649,7 +713,7 @@ impl IndependentFormattingContext {
                 .sizes
         };
         let inline_size = inline_axis_solver.computed_sizes.resolve(
-            Direction::Inline,
+            LogicalAxis::Inline,
             inline_axis_solver.automatic_size(),
             Au::zero,
             Some(inline_stretch_size),
@@ -674,7 +738,7 @@ impl IndependentFormattingContext {
         let mut positioning_context = PositioningContext::default();
         let lazy_block_size = LazySize::new(
             &block_axis_solver.computed_sizes,
-            Direction::Block,
+            LogicalAxis::Block,
             block_automatic_size,
             Au::zero,
             block_stretch_size,
@@ -736,7 +800,8 @@ impl IndependentFormattingContext {
             },
             size: content_size,
         }
-        .as_physical(Some(containing_block));
+        .as_physical(Some(containing_block))
+        .translate(containing_block_origin);
 
         if is_cached &&
             let Some(old_fragment) = self.base.fragments().first() &&
@@ -777,13 +842,13 @@ struct RectAxis {
 }
 
 impl LogicalRect<Au> {
-    fn get_axis(&self, axis: Direction) -> RectAxis {
+    fn get_axis(&self, axis: LogicalAxis) -> RectAxis {
         match axis {
-            Direction::Block => RectAxis {
+            LogicalAxis::Block => RectAxis {
                 origin: self.start_corner.block,
                 length: self.size.block,
             },
-            Direction::Inline => RectAxis {
+            LogicalAxis::Inline => RectAxis {
                 origin: self.start_corner.inline,
                 length: self.size.inline,
             },
@@ -792,7 +857,7 @@ impl LogicalRect<Au> {
 }
 
 struct AbsoluteAxisSolver {
-    axis: Direction,
+    axis: LogicalAxis,
     containing_size: Au,
     padding_border_sum: Au,
     computed_margin_start: AuOrAuto,
@@ -937,7 +1002,7 @@ impl AbsoluteAxisSolver {
             "Mixed horizontal and vertical writing modes are not supported yet"
         );
         let self_value_matches_container = || {
-            self.axis == Direction::Block ||
+            self.axis == LogicalAxis::Block ||
                 self_writing_mode.is_bidi_ltr() == alignment_container_writing_mode.is_bidi_ltr()
         };
 
@@ -1065,6 +1130,10 @@ pub(crate) struct LayoutRootLayoutInputs {
     /// This is the containing block size of the absolute's containing block. This is
     /// stored here because it's easier to access than the parent box.
     containing_block_size: LogicalVec2<Au>,
+    /// This is the containing block origin of the absolute's containing block (relative to the
+    /// containing block element's padding box). This is stored here because it's easier to access
+    /// than the parent box.
+    containing_block_origin: PhysicalVec<Au>,
     /// This is the style of the containing block. This is stored here because it's easier
     /// to access than the parent box.
     #[conditional_malloc_size_of]
@@ -1098,6 +1167,7 @@ impl LayoutRootLayoutInputs {
             layout_context,
             &self.fully_adjusted_static_position_rect,
             &containing_block,
+            self.containing_block_origin,
             self.resolved_alignment,
             self.original_parent_writing_mode,
         );

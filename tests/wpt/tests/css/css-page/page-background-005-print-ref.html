@@ -1,5 +1,14 @@
 <!DOCTYPE html>
+<html class="reftest-wait">
 <link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<script src="/common/reftest-wait.js"></script>
+
+<!--
+  Wait for the preloaded image before taking the reftest snapshot, since the
+  image is otherwise only referenced via CSS background-image.
+-->
+<link rel="preload" as="image" href="support/cat.png" onload="takeScreenshot()">
+
 <style>
   @page {
     size: 600px 300px;

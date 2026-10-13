@@ -2,16 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::error::throw_type_error;
-use js::gc::{HandleValue, MutableHandleValue};
 use js::jsapi::CallArgs;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::HandleObject;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::callback::RootedCallback;
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::FunctionBinding::Function;
 use crate::dom::bindings::codegen::Bindings::QueuingStrategyBinding::{
@@ -44,7 +42,7 @@ impl ByteLengthQueuingStrategy {
         proto: Option<HandleObject>,
         init: f64,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_proto_and_cx(Box::new(Self::new_inherited(init)), global, proto, cx)
+        reflect_dom_object_with_proto(cx, Box::new(Self::new_inherited(init)), global, proto)
     }
 }
 
@@ -64,11 +62,11 @@ impl ByteLengthQueuingStrategyMethods<crate::DomTypeHolder> for ByteLengthQueuin
     }
 
     /// <https://streams.spec.whatwg.org/#blqs-size>
-    fn GetSize(&self, cx: &mut js::context::JSContext) -> Fallible<Rc<Function>> {
+    fn GetSize(&self, cx: &mut js::context::JSContext) -> Fallible<RootedCallback<Function>> {
         let global = self.global();
         // Return this's relevant global object's byte length queuing strategy
         // size function.
-        if let Some(fun) = global.get_byte_length_queuing_strategy_size() {
+        if let Some(fun) = global.get_byte_length_queuing_strategy_size(cx) {
             return Ok(fun);
         }
 
@@ -87,21 +85,18 @@ impl ByteLengthQueuingStrategyMethods<crate::DomTypeHolder> for ByteLengthQueuin
 }
 
 /// <https://streams.spec.whatwg.org/#byte-length-queuing-strategy-size-function>
-#[expect(unsafe_code)]
 fn byte_length_queuing_strategy_size(cx: &mut js::context::JSContext, args: CallArgs) -> bool {
     // Step 1. Let steps be the following steps, given chunk:
     // Step 1.1. Return ? GetV(chunk, "byteLength").
-    let chunk = unsafe { HandleValue::from_raw(args.get(0)) };
+    rooted!(&in(cx) let chunk = args.get(0).get());
 
     // https://tc39.es/ecma262/#sec-getv
     // Let O be ? ToObject(V).
     if chunk.is_undefined() || chunk.is_null() {
-        unsafe {
-            throw_type_error(
-                cx.raw_cx(),
-                c"ByteLengthQueuingStrategy size called with undefined or nulll",
-            )
-        };
+        throw_type_error(
+            cx,
+            c"ByteLengthQueuingStrategy size called with undefined or nulll",
+        );
         return false;
     }
 
@@ -115,8 +110,11 @@ fn byte_length_queuing_strategy_size(cx: &mut js::context::JSContext, args: Call
     rooted!(&in(cx) let object = chunk.to_object());
 
     // Return ? O.[[Get]](P, V).
-    get_property_jsval(cx, object.handle(), c"byteLength", unsafe {
-        MutableHandleValue::from_raw(args.rval())
-    })
-    .is_ok()
+    rooted!(&in(cx) let mut byte_length = UndefinedValue());
+    if get_property_jsval(cx, object.handle(), c"byteLength", byte_length.handle_mut()).is_err() {
+        return false;
+    }
+
+    args.rval().set(byte_length.get());
+    true
 }

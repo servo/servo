@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp preserves DOM content</title>
+<link rel="author" title="John Jansen" href="mailto:johnjansen@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<meta name="assert" content="line-clamp affects rendering without removing clamped text or elements from the DOM.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#clamped {
+  line-clamp: 1;
+}
+</style>
+<div id="clamped"><span>Visible line.</span><br><span id="beyond-clamp">Clamped line.</span></div>
+<script>
+test(() => {
+  const clamped = document.querySelector("#clamped");
+  assert_equals(clamped.textContent, "Visible line.Clamped line.");
+}, "line-clamp preserves the complete textContent");
+
+test(() => {
+  const clamped = document.querySelector("#clamped");
+  const beyondClamp = clamped.querySelector("#beyond-clamp");
+  assert_not_equals(beyondClamp, null);
+  assert_equals(beyondClamp.parentNode, clamped);
+  assert_equals(beyondClamp.textContent, "Clamped line.");
+}, "line-clamp preserves elements beyond the clamp boundary");
+</script>

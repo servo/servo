@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Block children follow a padding change even when another style change is resolved before layout</title>
+<link rel="help" href="https://www.w3.org/TR/CSS22/visudet.html#blockwidth">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="When a block's padding changes but its border box keeps its width, its children are laid out again at the new content box width, even if another style change on the block is resolved before the next layout.">
+<style>
+.wrapper {
+  position: relative;
+  width: 200px;
+}
+.child {
+  height: 100px;
+  background-color: red;
+}
+.cover {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100px;
+  height: 100px;
+  background-color: green;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class="wrapper"><div id="container"><div class="child"></div></div><div class="cover"></div></div>
+<script>
+document.body.offsetTop;
+container.style.paddingRight = "100px";
+getComputedStyle(container).color;
+container.style.color = "blue";
+</script>

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+// The test creates:
+// 2 bound sockets that subscribe to the same group for reading
+// 1 bound socket that sends data to the group.
+// Test is finished when all messages are received by all subscribers.
+
+// parameters:
+// multicastAllowAddressSharing = true. to have 2 subscribers on the same machine.
+// multicastTimeToLive = 0. To not try to send data outside of this machine.
+// multicastLoopback = true. To get the packet back.
+
+// It is fine to reuse the same address, because
+// the port will be generated unique on this machine.
+// multicast addresses are in range 224.0.0.0 to 239.255.255.255.
+const multicastGroupAddress = '237.132.100.17';
+const kRequiredDatagrams = 35;
+const kRequiredBytes =
+  kRequiredDatagrams * (kRequiredDatagrams + 1) / 2;
+
+class MulticastReader {
+  constructor(multicastPort) {
+    this.socket = new UDPSocket({
+      localAddress: '0.0.0.0',
+      localPort: multicastPort,
+      multicastAllowAddressSharing: true
+    });
+  }
+
+  async create() {
+    const { readable, multicastController, localPort } = await this.socket.opened;
+    await multicastController.joinGroup(multicastGroupAddress);
+
+    this.readable = readable;
+    this.localPort = localPort;
+  }
+
+  async read() {
+    const reader = this.readable.getReader();
+
+    let bytesRead = 0;
+    while (bytesRead < kRequiredBytes) {
+      const { value: { data }, done } = await reader.read();
+      assert_false(done);
+      for (let index = 0; index < data.length; index++) {
+        assert_equals(data[index], bytesRead % 256);
+        bytesRead++;
+      }
+    }
+    assert_equals(bytesRead, kRequiredBytes);
+
+    reader.releaseLock();
+    await this.socket.close();
+  }
+}
+
+promise_test(async () => {
+  const senderSocket = new UDPSocket({
+    localAddress: '0.0.0.0',
+    multicastTimeToLive: 0,
+    multicastLoopback: true
+  });
+  const { writable } = await senderSocket.opened;
+
+  // Pass undefined as multicastPort, so it will be allocated.
+  const multicastReader1 = new MulticastReader(undefined);
+  await multicastReader1.create();
+  const multicastPort = multicastReader1.localPort;
+
+  const multicastReader2 = new MulticastReader(multicastPort);
+  await multicastReader2.create();
+
+  const readLoop1 = multicastReader1.read();
+  const readLoop2 = multicastReader2.read();
+
+  const sendLoop = (async () => {
+    let bytesWritten = 0;
+    let chunkLength = 0;
+    const writer = writable.getWriter();
+
+    while (bytesWritten < kRequiredBytes) {
+      chunkLength = Math.min(chunkLength + 1, kRequiredBytes - bytesWritten);
+      let chunk = new Uint8Array(chunkLength);
+      for (let index = 0; index < chunkLength; index++) {
+        chunk[index] = bytesWritten % 256;
+        bytesWritten++;
+      }
+      await writer.ready;
+      await writer.write({
+        data: chunk,
+        remoteAddress: multicastGroupAddress,
+        remotePort: multicastPort
+      });
+    }
+    assert_equals(bytesWritten, kRequiredBytes);
+    writer.releaseLock();
+    await senderSocket.close();
+  })();
+
+  await Promise.all([sendLoop, readLoop1, readLoop2]);
+
+}, "UDPSocket sends messages to a multicast group that has 2 subscribers");
+</script>

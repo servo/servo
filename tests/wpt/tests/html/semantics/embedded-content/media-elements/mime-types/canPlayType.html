@@ -118,7 +118,7 @@ function type_codecs_test(type, audioCodecs, videoCodecs) {
   }, type + ' with and without codecs');
 }
 
-type_codecs_test('audio/mp4', ['mp4a.40.2'], []);
+type_codecs_test('audio/mp4', ['mp4a.40.2', 'iamf.001.001.Opus'], []);
 type_codecs_test('audio/ogg', ['opus', 'vorbis'], []);
 type_codecs_test('audio/wav', ['1'], []);
 type_codecs_test('audio/webm', ['opus', 'vorbis'], []);

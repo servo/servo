@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
+
 use std::ptr;
 
 use html5ever::interface::QualName;
@@ -173,10 +175,10 @@ fn html_constructor(
             // Step 7.2-7.5 are performed in the generated caller code.
 
             // Step 7.6 Set element's custom element state to "custom".
-            element.set_custom_element_state(CustomElementState::Custom);
+            element.set_custom_element_state(CustomElementState::Custom, cx.no_gc());
 
             // Step 7.7 Set element's custom element definition to definition.
-            element.set_custom_element_definition(definition);
+            element.set_custom_element_definition(definition, cx.no_gc());
 
             // Step 7.8 Set element's is value to isValue.
             if let Some(is_value) = is_value {
@@ -231,7 +233,7 @@ fn html_constructor(
             return Err(());
         }
 
-        result.safe_to_jsval(cx, MutableHandleValue::from_raw(call_args.rval()));
+        result.to_jsval(cx, MutableHandleValue::from_raw(call_args.rval()));
     }
     Ok(())
 }

@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:annevk@annevk.nl">
+<link rel=help href="https://html.spec.whatwg.org/multipage/form-elements.html#concept-select-pick">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+select, select::picker(select) {
+  appearance: base-select;
+}
+</style>
+
+<select id=alreadySelected>
+  <option>one</option>
+  <option id=two selected>two</option>
+</select>
+
+<select id=notSelected>
+  <option selected>three</option>
+  <option id=four>four</option>
+</select>
+
+<script>
+async function pick(select, option) {
+  assert_false(select.matches(':open'),
+    'Select should be closed at the start of the test.');
+  await test_driver.click(select);
+  assert_true(select.matches(':open'),
+    'Select should be open after clicking it.');
+  await test_driver.click(option);
+  assert_false(select.matches(':open'),
+    'Select should be closed after picking an option.');
+}
+
+promise_test(async () => {
+  await pick(alreadySelected, two);
+
+  // Dirtiness makes the selected content attribute stop controlling selectedness.
+  two.removeAttribute('selected');
+  assert_equals(alreadySelected.value, 'two');
+}, 'Picking an option that is already selected sets its dirtiness.');
+
+promise_test(async () => {
+  await pick(notSelected, four);
+
+  four.setAttribute('selected', '');
+  four.removeAttribute('selected');
+  assert_equals(notSelected.value, 'four');
+}, 'Picking an option that is not selected sets its dirtiness.');
+</script>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Anchor Positioning: 'position-anchor: match-parent'</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#valdef-position-anchor-match-parent">
+<link rel="author" href="mailto:jeroen.zwartepoorte@gmail.com">
+<link rel="match" href="position-anchor-match-parent-rendering-ref.html">
+<style>
+.cases {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 642px;
+}
+
+.case {
+  position: relative;
+  box-sizing: border-box;
+  width: 122px;
+  height: 102px;
+  border: 1px solid silver;
+}
+
+.anchor {
+  position: absolute;
+  anchor-name: --a;
+  left: 20px;
+  top: 20px;
+  width: 50px;
+  height: 20px;
+  background: silver;
+}
+
+.parent {
+  position: fixed;
+  inset: 0;
+}
+
+.probe, .pseudo-parent::before {
+  position: fixed;
+  position-anchor: match-parent;
+  left: anchor(right, 20px);
+  top: anchor(bottom, 70px);
+  width: 20px;
+  height: 20px;
+  background: green;
+}
+
+.pseudo-parent::before {
+  content: "";
+}
+</style>
+
+<div class="cases">
+  <!-- Parent has a default anchor element. -->
+  <div class="case">
+    <div class="anchor"></div>
+    <div class="parent" style="position-anchor: --a">
+      <div class="probe"></div>
+    </div>
+  </div>
+
+  <!-- Parent has 'position-anchor: none'. -->
+  <div class="case">
+    <div class="anchor"></div>
+    <div class="parent" style="position-anchor: none">
+      <div class="probe"></div>
+    </div>
+  </div>
+
+  <!-- Parent's 'position-anchor' selects no anchor element. -->
+  <div class="case">
+    <div class="anchor"></div>
+    <div class="parent" style="position-anchor: --nonexistent">
+      <div class="probe"></div>
+    </div>
+  </div>
+
+  <!-- Parent is not positioned. -->
+  <div class="case">
+    <div class="anchor"></div>
+    <div class="parent" style="position: static; position-anchor: --a">
+      <div class="probe"></div>
+    </div>
+  </div>
+
+  <!-- Parent is relatively positioned, so 'position-anchor' does not apply. -->
+  <div class="case">
+    <div class="anchor"></div>
+    <div class="parent" style="position: relative; position-anchor: --a">
+      <div class="probe"></div>
+    </div>
+  </div>
+
+  <!-- Parent also uses 'match-parent'. -->
+  <div class="case">
+    <div class="anchor"></div>
+    <div class="parent" style="position-anchor: --a">
+      <div class="parent" style="position-anchor: match-parent">
+        <div class="probe"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chain of 'match-parent' parents, several levels deep. -->
+  <div class="case">
+    <div class="anchor"></div>
+    <div class="parent" style="position-anchor: --a">
+      <div class="parent" style="position-anchor: match-parent">
+        <div class="parent" style="position-anchor: match-parent">
+          <div class="parent" style="position-anchor: match-parent">
+            <div class="probe"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Parent's 'match-parent' resolved to no anchor element. -->
+  <div class="case">
+    <div class="anchor"></div>
+    <div class="parent" style="position-anchor: none">
+      <div class="parent" style="position-anchor: match-parent">
+        <div class="probe"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Only the grandparent has a default anchor element. -->
+  <div class="case">
+    <div class="anchor"></div>
+    <div class="parent" style="position-anchor: --a">
+      <div class="parent">
+        <div class="probe"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Anchored ancestor, with plain wrappers in between. -->
+  <div class="case">
+    <div class="anchor"></div>
+    <div class="parent" style="position-anchor: --a">
+      <div>
+        <div>
+          <div class="probe"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Intermediate 'match-parent' is not absolutely positioned. -->
+  <div class="case">
+    <div class="anchor"></div>
+    <div class="parent" style="position-anchor: --a">
+      <!-- 'position-anchor' does not apply to the wrapper, so it has no
+           default anchor element for the probe to match. -->
+      <div style="position-anchor: match-parent">
+        <div class="probe"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Parent's default anchor element is not acceptable for the probe. -->
+  <div class="case">
+    <div class="anchor"></div>
+    <div class="parent" style="position-anchor: --a">
+      <!-- The containing block of an absolutely positioned probe is the parent
+           itself, which the anchor element is not a descendant of. -->
+      <div class="probe" style="position: absolute"></div>
+    </div>
+  </div>
+
+  <!-- Originating element of a '::before' has a default anchor element. -->
+  <div class="case">
+    <div class="anchor"></div>
+    <div class="parent pseudo-parent" style="position-anchor: --a"></div>
+  </div>
+
+  <!-- Originating element of a '::before' has no default anchor element. -->
+  <div class="case">
+    <div class="anchor"></div>
+    <div class="parent pseudo-parent" style="position-anchor: none"></div>
+  </div>
+</div>

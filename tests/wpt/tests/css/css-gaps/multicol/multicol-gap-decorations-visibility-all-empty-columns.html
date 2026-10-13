@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: column-rule-visibility-items: all with content only in
+  the first column
+</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#visibility">
+<link rel="match"
+    href="multicol-gap-decorations-visibility-all-empty-columns-ref.html">
+<style>
+  .multicol {
+    width: 320px;
+    height: 100px;
+    columns: 3;
+    column-fill: auto;
+    column-gap: 20px;
+    column-rule: 6px solid blue;
+    column-rule-visibility-items: all;
+    border: 2px solid black;
+  }
+
+  .item {
+    height: 80px;
+    background: lightcyan;
+  }
+</style>
+<div class="multicol">
+  <div class="item">Only the first column has content</div>
+</div>

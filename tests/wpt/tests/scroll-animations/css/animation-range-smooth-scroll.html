@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <title>animation-range is applied when scrolling with smooth behavior</title>
+  <link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#animation-range">
+  <link rel="match" href="animation-range-smooth-scroll-ref.html">
+  <script src="/web-animations/testcommon.js"></script>
+  <script src="/common/reftest-wait.js"></script>
+  <style>
+    @keyframes anim {
+      from { translate: 0px; }
+      to { translate: 100px; }
+    }
+    main {
+      timeline-scope: --t1;
+    }
+    #scroller {
+      width: 100px;
+      height: 100px;
+      overflow-y: scroll;
+      overflow-x: hidden;
+      scroll-timeline-name: --t1;
+      will-change: translate;
+      /* Prevent the scroller from appearing in the screenshot. */
+      opacity: 0;
+    }
+    #scroller > div {
+      height: 300px;
+    }
+    #target {
+      animation: anim auto linear;
+      animation-timeline: --t1;
+      /* The scroll range is 200px, so this is 50px to 150px. */
+      animation-range: 25% 75%;
+      width: 50px;
+      height: 50px;
+      will-change: translate;
+      background-color: green;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div id=target></div>
+    <div id=scroller>
+      <div></div>
+    </div>
+  </main>
+  <script>
+    (async () => {
+      await waitForCompositorReady();
+      let scrollPromise = new Promise((resolve) => {
+        scroller.addEventListener('scrollend', resolve);
+      });
+      // 75px is 25% of the [50px, 150px] animation range, so the expected
+      // translate is 25px. (Without the range it would be 37.5% of the
+      // timeline, i.e. 37.5px.)
+      scroller.scrollTo({top: 75, behavior: "smooth"});
+      await scrollPromise;
+      await waitForNextFrame();
+      takeScreenshot();
+    })();
+  </script>
+</body>
+</html>

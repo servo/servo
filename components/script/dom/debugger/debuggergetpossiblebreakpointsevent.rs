@@ -6,7 +6,7 @@ use std::fmt::Debug;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 
 use crate::dom::bindings::codegen::Bindings::DebuggerGetPossibleBreakpointsEventBinding::DebuggerGetPossibleBreakpointsEventMethods;
 use crate::dom::bindings::codegen::Bindings::EventBinding::Event_Binding::EventMethods;
@@ -31,7 +31,7 @@ impl DebuggerGetPossibleBreakpointsEvent {
             event: Event::new_inherited(),
             spidermonkey_id,
         });
-        let result = reflect_dom_object_with_cx(result, debugger_global, cx);
+        let result = reflect_dom_object(cx, result, debugger_global);
         result
             .event
             .init_event("getPossibleBreakpoints".into(), false, false);

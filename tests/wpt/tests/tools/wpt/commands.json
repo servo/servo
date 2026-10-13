@@ -7,7 +7,8 @@
     "virtualenv": true,
     "requirements": [
       "../manifest/requirements.txt",
-      "../wptrunner/requirements.txt"
+      "../wptrunner/requirements.txt",
+      "../serve/requirements.txt"
     ],
     "conditional_requirements": {
       "commandline_flag": {
@@ -75,7 +76,7 @@
     "path": "android.py",
     "script": "run_install",
     "parser": "get_parser_install",
-    "help": "Setup the x86 android emulator",
+    "help": "Setup the Android emulator",
     "virtualenv": true,
     "requirements": [
       "requirements.txt",
@@ -86,7 +87,7 @@
     "path": "android.py",
     "script": "run_start",
     "parser": "get_parser_start",
-    "help": "Start the x86 android emulator",
+    "help": "Start the Android emulator",
     "virtualenv": true,
     "requirements": [
       "requirements.txt",

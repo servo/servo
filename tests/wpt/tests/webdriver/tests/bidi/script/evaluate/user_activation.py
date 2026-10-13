@@ -31,6 +31,10 @@ async def test_userActivation_copy(bidi_session, top_context, user_activation):
                                            top_context["context"]),
                                        await_promise=False)
 
+    # Clipboard writes require document focus independently of user activation.
+    await bidi_session.browsing_context.activate(
+        context=top_context["context"])
+
     result = await bidi_session.script.evaluate(
         expression=
         "document.body.appendChild(document.createTextNode('test')) && document.execCommand('selectAll') && document.execCommand('copy')",

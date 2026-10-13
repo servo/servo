@@ -19,12 +19,8 @@ info: |
 
 esid: sec-nativeerror
 features: [error-cause]
-includes: [propertyHelper.js]
+includes: [propertyHelper.js, nativeErrors.js]
 ---*/
-
-var nativeErrors = [
-  EvalError, RangeError, ReferenceError, SyntaxError, TypeError, URIError
-];
 
 for (var i = 0; i < nativeErrors.length; ++i) {
   var nativeError = nativeErrors[i];

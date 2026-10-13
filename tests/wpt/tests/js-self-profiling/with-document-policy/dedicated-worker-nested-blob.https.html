@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <script>
+    // A nested blob: worker (a blob: worker created by another blob: worker)
+    // should inherit Document-Policy transitively from the creator document.
+    promise_test(async t => {
+      const innerScript = `
+        try {
+          new Profiler({ sampleInterval: 10, maxBufferSize: Number.MAX_SAFE_INTEGER });
+          self.postMessage({ success: true, message: 'Profiler created in inner worker' });
+        } catch (e) {
+          self.postMessage({ success: false, error: e.name, message: e.message });
+        }
+      `;
+      // The outer worker creates the inner blob: worker and relays its result.
+      const outerScript = `
+        const innerSource = ${JSON.stringify(innerScript)};
+        const innerBlob = new Blob([innerSource], { type: 'text/javascript' });
+        const innerUrl = URL.createObjectURL(innerBlob);
+        const inner = new Worker(innerUrl);
+        inner.onmessage = e => {
+          self.postMessage(e.data);
+          inner.terminate();
+          URL.revokeObjectURL(innerUrl);
+        };
+        inner.onerror = e => {
+          self.postMessage({ success: false, error: 'InnerWorkerError', message: e.message });
+        };
+      `;
+      const outerBlob = new Blob([outerScript], { type: 'text/javascript' });
+      const outerUrl = URL.createObjectURL(outerBlob);
+      const outer = new Worker(outerUrl);
+      const result = await new Promise((resolve, reject) => {
+        outer.onmessage = e => resolve(e.data);
+        outer.onerror = e => reject(new Error(e.message));
+      });
+      assert_true(result.success,
+                  'profiling should succeed in nested blob: dedicated worker with transitively inherited document policy');
+      outer.terminate();
+      URL.revokeObjectURL(outerUrl);
+    }, 'nested blob: dedicated worker should inherit js-profiling policy transitively from creator document');
+  </script>
+</body>
+</html>

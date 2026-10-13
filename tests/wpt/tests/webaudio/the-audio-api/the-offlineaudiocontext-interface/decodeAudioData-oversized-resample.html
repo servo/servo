@@ -1,0 +1,36 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>
+  decodeAudioData rejects when the resampled length would exceed AudioBuffer.length
+</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/webaudio/resources/flac-builder.js"></script>
+<body>
+<script>
+// Decoding into an OfflineAudioContext whose rate is far above the source rate
+// must reject: the fully-resampled result is longer than an AudioBuffer can
+// represent. The Web Audio spec defines no truncation for this case, so
+// decodeAudioData must reject with EncodingError.
+
+const SRC_RATE = 8000;
+const DEST_RATE = 768000;
+const BLOCK = 65535;
+const NFRAMES = 683;  // Chosen so the upsampled length is not representable.
+const sampleCount = NFRAMES * BLOCK;
+
+promise_test(t => {
+  const flac = buildFlac({
+    sampleRate: SRC_RATE,
+    blockSize: BLOCK,
+    frameCount: NFRAMES,
+    totalSamples: sampleCount,
+    channels: 1,
+  });
+  const ctx = new OfflineAudioContext(1, 128, DEST_RATE);
+  return promise_rejects_dom(
+    t, "EncodingError", ctx.decodeAudioData(flac),
+    "decodeAudioData must reject when the resampled length exceeds AudioBuffer.length");
+}, "decodeAudioData rejects when the resampled length exceeds AudioBuffer.length");
+</script>
+</body>

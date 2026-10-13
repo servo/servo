@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::MutableHandleValue;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::ResizeObserverEntryBinding::ResizeObserverEntryMethods;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -74,7 +74,7 @@ impl ResizeObserverEntry {
             content_box_size,
             device_pixel_content_box_size,
         ));
-        reflect_dom_object_with_proto_and_cx(entry, window, None, cx)
+        reflect_dom_object_with_proto(cx, entry, window, None)
     }
 }
 

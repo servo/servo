@@ -1,0 +1,21 @@
+<html class="reftest-wait">
+<title>JPEG XL CSS ::before content</title>
+<link rel="help" href="https://github.com/web-platform-tests/interop-jpegxl">
+<link rel="match" href="css-before-content-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<style>
+  #content::before {
+    content: url(resources/3x3_srgb_lossless.jxl);
+    display: block;
+  }
+</style>
+<div id="content"></div>
+<script>
+  new Promise(r => {
+    const img = new Image();
+    img.onload = r;
+    img.onerror = r;
+    img.src = "resources/3x3_srgb_lossless.jxl";
+  }).then(takeScreenshot);
+</script>
+</html>

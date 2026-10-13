@@ -2,11 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
+
 use std::cell::RefCell;
 
 use devtools_traits::{
     BlackboxCoverage, DebuggerValue, DevtoolScriptControlMsg, EvaluateJSReply,
-    GetEnvironmentRequest, ScriptToDevtoolsControlMsg, SourceInfo, WorkerId,
+    GetEnvironmentRequest, ScriptToDevtoolsControlMsg, SourceInfo,
 };
 use dom_struct::dom_struct;
 use embedder_traits::ScriptToEmbedderChan;
@@ -18,7 +20,7 @@ use profile_traits::{mem, time};
 use script_bindings::interfaces::HasOrigin;
 use script_bindings::reflector::DomObject;
 use servo_base::generic_channel::{GenericCallback, GenericSender, channel};
-use servo_base::id::{Index, PipelineId, PipelineNamespaceId};
+use servo_base::id::{Index, PipelineId, PipelineNamespaceId, WorkerId};
 use servo_constellation_traits::ScriptToConstellationSender;
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
@@ -51,9 +53,9 @@ use crate::dom::types::{
 };
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
+use crate::event_loop::script_thread::with_script_thread;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::IntroductionType;
-use crate::script_thread::with_script_thread;
+use crate::runtime::script_runtime::IntroductionType;
 
 #[dom_struct]
 /// Global scope for interacting with the devtools Debugger API.
@@ -116,7 +118,6 @@ impl DebuggerGlobalScope {
                 gpu_id_hub,
                 None,
                 false,
-                None, // font_context
             ),
             devtools_to_script_sender,
             get_possible_breakpoints_result_sender: RefCell::new(None),
@@ -185,6 +186,7 @@ impl DebuggerGlobalScope {
         );
     }
 
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn fire_eval(
         &self,
         cx: &mut JSContext,
@@ -192,6 +194,7 @@ impl DebuggerGlobalScope {
         debuggee_pipeline_id: PipelineId,
         debuggee_worker_id: Option<WorkerId>,
         frame_actor_id: Option<String>,
+        eager: bool,
         result_sender: GenericSender<EvaluateJSReply>,
     ) {
         assert!(
@@ -210,6 +213,7 @@ impl DebuggerGlobalScope {
             &debuggee_pipeline_id,
             debuggee_worker_id.map(|id| id.to_string().into()),
             frame_actor_id.map(|id| id.into()),
+            eager,
         ));
         assert!(
             event.fire(cx, self.upcast()),

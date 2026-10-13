@@ -18,7 +18,11 @@ const non_retry_path = '/storage-access-api/resources/handle-headers-non-retry.p
 async function areCrossSiteCookiesAllowedByDefault() {
   const url = `${cross_site}/storage-access-api/resources/script-with-cookie-header.py?script=${responder_script}`;
   const frame = await CreateFrame(url);
-  return FrameHasStorageAccess(frame);
+  try {
+    return await FrameHasStorageAccess(frame);
+  } finally {
+    frame.remove();
+  }
 }
 
 function makeURL(key, domain, path, params) {
@@ -87,7 +91,7 @@ function redirectedKey(key) {
     return key + 'redirected';
 }
 
-(async function() {
+promise_setup(async () => {
     promise_test(async (t) => {
         const key = '{{uuid()}}';
         addCommonCleanupCallback(t);
@@ -107,6 +111,7 @@ function redirectedKey(key) {
                                         non_retry_path,
                                         [['load', ''],
                                             ['script', responder_script]]));
+        t.add_cleanup(() => load_header_iframe.remove());
         assert_true(await FrameHasStorageAccess(load_header_iframe),
                     "frame should have storage access because of the `load` header");
     }, "Activate-Storage-Access `load` header grants storage access to frame.");
@@ -121,6 +126,7 @@ function redirectedKey(key) {
         t.add_cleanup(async () => {
             await SetPermissionInFrame(iframe,
                 [{ name: 'storage-access' }, 'prompt']);
+            iframe.remove();
         });
         await SetPermissionInFrame(iframe,
                     [{ name: 'storage-access' }, 'granted']);
@@ -294,6 +300,7 @@ function redirectedKey(key) {
                                         non_retry_path,
                                         [['load', ''],
                                             ['script', responder_script]]));
+        t.add_cleanup(() => load_header_iframe.remove());
         assert_false(await FrameHasStorageAccess(load_header_iframe),
                     "frame should not have received storage access.");
     }, "Activate-Storage-Access `load` header is a no-op for requests without storage access.");
@@ -306,6 +313,7 @@ function redirectedKey(key) {
                                                     'embedded_responder.js']]);
         const iframe = await CreateFrame(cross_site + nested_path + '?' +
                                         iframe_params.toString());
+        t.add_cleanup(() => iframe.remove());
 
         // Create a cross-site request within the iframe
         const nested_url_params = new URLSearchParams([['key', key]]);
@@ -327,6 +335,7 @@ function redirectedKey(key) {
                                                     'embedded_responder.js']]);
         const iframe = await CreateFrame(cross_site + nested_path + '?' +
                                         iframe_params.toString());
+        t.add_cleanup(() => iframe.remove());
 
         const nested_url_params = new URLSearchParams([
                                         ['key', key],
@@ -499,4 +508,4 @@ function redirectedKey(key) {
             'cookie': ['cookie=unpartitioned']
         });
     }, "Activate-Storage-Access retry is handled before any redirects are followed.");
-})();
+});

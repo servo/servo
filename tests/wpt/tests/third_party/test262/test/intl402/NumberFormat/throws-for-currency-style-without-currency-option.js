@@ -7,9 +7,10 @@ description: >
     Tests that the currency style can not be used without a specified
     currency.
 author: Norbert Lindenberg
+includes: [testIntl.js]
 ---*/
 
-var defaultLocale = new Intl.NumberFormat().resolvedOptions().locale;
+var defaultLocale = getLocaleBaseName(new Intl.NumberFormat().resolvedOptions().locale);
 
 assert.throws(TypeError, function () {
         return new Intl.NumberFormat([defaultLocale], {style: "currency"});

@@ -8,7 +8,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::MutableHandleValue;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use webxr_api::SubImages;
 
 use crate::dom::bindings::codegen::Bindings::XRRenderStateBinding::XRRenderStateMethods;
@@ -58,7 +58,8 @@ impl XRRenderState {
         layer: Option<&XRWebGLLayer>,
         layers: Vec<&XRLayer>,
     ) -> DomRoot<XRRenderState> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(XRRenderState::new_inherited(
                 depth_near,
                 depth_far,
@@ -67,7 +68,6 @@ impl XRRenderState {
                 layers,
             )),
             window,
-            cx,
         )
     }
 

@@ -2,44 +2,80 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
+use std::cell::{Cell, LazyCell};
 use std::cmp::Ordering;
 
+use bitflags::bitflags;
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
+use layout_api::QueryMsg;
+use rustc_hash::{FxHashMap, FxHashSet};
+use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::dom::UnrootedDom;
+use script_bindings::reflector::{Reflector, reflect_dom_object};
+use servo_base::text::{
+    AssumeUnder4GB, RangeAny, Utf16CodeUnits, Utf32CodeUnits, Utf32CodeUnitsOrNodeOffset,
+};
 
 use crate::dom::abstractrange::bp_position;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
-use crate::dom::bindings::codegen::Bindings::SelectionBinding::SelectionMethods;
+use crate::dom::bindings::codegen::Bindings::SelectionBinding::{
+    GetComposedRangesOptions, SelectionMethods,
+};
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayoutOptional};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::comparator::compare_dom_positions;
 use crate::dom::document::Document;
 use crate::dom::eventtarget::EventTarget;
-use crate::dom::iterators::PrePostIteration;
+use crate::dom::iterators::{PrePostIteration, UnrootedFollowingFlatTreeNodesTraversal};
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::range::Range;
+use crate::dom::selection_range::{RootedSelectionBoundary, SelectionBoundary, SelectionRange};
+use crate::dom::staticrange::StaticRange;
+use crate::dom::traversal::FlatTreeForSelectionNoGcTraversal;
 use crate::dom::types::ShadowRoot;
-use crate::dom::{CharacterData, FlatTreeParent, NodeDamage, NodeFlags};
+use crate::dom::{CharacterData, FlatTreeParent, NodeDamage, NodeFlags, StartOrEnd};
+
+/// Used value of [`user-select`](https://drafts.csswg.org/css-ui-4/#propdef-user-select):
+/// like the computed value but excludes `auto`.
+#[derive(Copy, Clone, PartialEq)]
+pub(crate) enum UsedUserSelect {
+    Text,
+    None,
+    Contain,
+    All,
+}
 
 #[derive(Clone, Copy, JSTraceable, MallocSizeOf)]
-enum Direction {
+pub(crate) enum Direction {
     Forwards,
     Backwards,
     Directionless,
 }
 
+/// <https://w3c.github.io/selection-api/#dfn-selection>
 #[dom_struct]
 pub(crate) struct Selection {
     reflector_: Reflector,
     document: Dom<Document>,
-    range: MutNullableDom<Range>,
+    /// A range that holds the start and end of this selection, which may potentially
+    /// cross shadow roots.
+    range: DomRefCell<Option<SelectionRange>>,
+    /// The live range version of this selection, which will never cross shadow roots.
+    live_range: MutNullableDom<Range>,
+    /// This is like [`Range`], but in the flat tree, which means that:
+    ///
+    /// * It is `None` if the selection is unrenderable.
+    /// * Boundaries are in flat tree order.
+    visible_range: DomRefCell<Option<SelectionRange>>,
+    /// The [`Direction`] of this [`Selection`] which determines which endpoint of
+    /// [`Self::range`] is the anchor and which is the focus.
     direction: Cell<Direction>,
     /// <https://w3c.github.io/selection-api/#dfn-has-scheduled-selectionchange-event>
     has_scheduled_selectionchange_event: Cell<bool>,
@@ -53,7 +89,9 @@ impl Selection {
         Selection {
             reflector_: Reflector::new(),
             document: Dom::from_ref(document),
-            range: MutNullableDom::new(None),
+            range: Default::default(),
+            live_range: MutNullableDom::new(None),
+            visible_range: Default::default(),
             direction: Cell::new(Direction::Directionless),
             has_scheduled_selectionchange_event: Cell::new(false),
             visible_selection_dirty: Cell::new(false),
@@ -61,152 +99,257 @@ impl Selection {
     }
 
     pub(crate) fn new(cx: &mut JSContext, document: &Document) -> DomRoot<Selection> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(Selection::new_inherited(document)),
             &*document.global(),
-            cx,
         )
     }
 
-    fn set_range(&self, new_range: Option<&Range>) {
-        // If we are setting to literally the same Range object and not just the same
-        // positions, then there's nothing changing and no task to queue.
-        if new_range == self.range.get().as_deref() {
+    pub(crate) fn visible_selection_dirty(&self) -> bool {
+        self.visible_selection_dirty.get()
+    }
+
+    pub(crate) fn collapsed(&self) -> bool {
+        self.range
+            .borrow()
+            .as_ref()
+            .is_none_or(|range| range.collapsed())
+    }
+
+    fn clear_cached_live_range(&self) {
+        if let Some(old_range) = self.live_range.take() {
+            old_range.disassociate_selection(self);
+        }
+    }
+
+    /// Clear this entire [`Selection`] if the [`Document`] of its live range has changed
+    /// or its boundaries are no longer connected. Returns true if the selection was
+    /// cleared or false otherwise.
+    pub(crate) fn clear_selection_if_live_range_document_changed(
+        &self,
+        no_gc: &NoGC,
+        range: &Range,
+    ) -> bool {
+        // The live range might be in an intermediate state where its boundaries
+        // are in different documents, so this must check both ends.
+        let range_start_container = range.start_container();
+        let range_end_container = range.end_container();
+        if self.is_in_composed_tree_of_document_and_is_not_ua_widget(&range_start_container) &&
+            self.is_in_composed_tree_of_document_and_is_not_ua_widget(&range_end_container)
+        {
+            return false;
+        }
+
+        self.set_range(no_gc, None);
+        true
+    }
+
+    /// Update the start of end boundary of this [`Selection`] based on a change to the
+    /// given associated [`Range`]. While the behavior here isn't totally specified yet,
+    /// it follows other browsers. If the change would change the direction of the
+    /// [`Selection`] it is collapsed at the newly-set boundary.
+    pub(crate) fn set_start_or_end_from_live_range(
+        &self,
+        no_gc: &NoGC,
+        start_or_end: StartOrEnd,
+        live_range: &Range,
+    ) -> bool {
+        let mut range = self.range.borrow_mut();
+        let range = range
+            .as_mut()
+            .expect("A live range implies a selection range");
+
+        let (container, offset) = match start_or_end {
+            StartOrEnd::Start if range.start != *live_range.start() => {
+                (live_range.start_container(), live_range.start_offset())
+            },
+            StartOrEnd::End if range.end != *live_range.end() => {
+                (live_range.end_container(), live_range.end_offset())
+            },
+            _ => return false,
+        };
+
+        let would_invert = match start_or_end {
+            StartOrEnd::Start => {
+                compare_shadow_including_dom_positions(
+                    no_gc,
+                    &container,
+                    offset,
+                    &range.end.container,
+                    range.end.offset,
+                ) == Ordering::Greater
+            },
+            StartOrEnd::End => {
+                compare_shadow_including_dom_positions(
+                    no_gc,
+                    &range.start.container,
+                    range.start.offset,
+                    &container,
+                    offset,
+                ) == Ordering::Greater
+            },
+        };
+
+        if would_invert {
+            *range = SelectionRange::collapsed_at(SelectionBoundary::new(&container, offset));
+        } else {
+            match start_or_end {
+                StartOrEnd::Start => range.start = SelectionBoundary::new(&container, offset),
+                StartOrEnd::End => range.end = SelectionBoundary::new(&container, offset),
+            }
+        }
+        true
+    }
+
+    pub(crate) fn update_from_live_range(
+        &self,
+        no_gc: &NoGC,
+        live_range: &Range,
+        notification: SelectionLiveRangeNotification,
+    ) {
+        debug_assert!(Some(live_range) == self.live_range.get().as_deref());
+        let start_changed = notification.contains(SelectionLiveRangeNotification::Start) &&
+            self.set_start_or_end_from_live_range(no_gc, StartOrEnd::Start, live_range);
+        let end_changed = notification.contains(SelectionLiveRangeNotification::End) &&
+            self.set_start_or_end_from_live_range(no_gc, StartOrEnd::End, live_range);
+        if start_changed || end_changed {
+            self.selection_boundaries_changed();
+        }
+    }
+
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    fn set_range(&self, _no_gc: &NoGC, new_range: Option<SelectionRange>) -> bool {
+        let changed;
+        {
+            let mut range = self.range.borrow_mut();
+            changed = *range != new_range;
+            *range = new_range;
+
+            if range.is_none() {
+                self.direction.set(Direction::Directionless);
+            }
+        }
+
+        // Any changes must unconditionally install a new live range.
+        self.clear_cached_live_range();
+
+        if changed {
+            self.selection_boundaries_changed();
+            #[cfg(debug_assertions)]
+            self.assert_valid_selection(_no_gc);
+        }
+
+        changed
+    }
+
+    pub(crate) fn set_live_range(&self, no_gc: &NoGC, new_range: Option<&Range>) {
+        if new_range == self.live_range.get().as_deref() {
             return;
         }
 
-        if let Some(old_range) = self.range.take() {
+        let boundaries_changed = self.set_range(no_gc, new_range.map(|new_range| new_range.into()));
+
+        // It's possible that `set_range` was a no-op, but still in that case we need to
+        // replace the live range per-specification.
+        if let Some(old_range) = self.live_range.take() {
             old_range.disassociate_selection(self);
         }
-
         if let Some(new_range) = new_range {
-            self.range.set(Some(new_range));
+            self.live_range.set(Some(new_range));
             new_range.associate_selection(self);
         }
 
+        // From <https://w3c.github.io/selection-api/#selectionchange-event>:
+        // > When the selection is dissociated with its range, associated with a new
+        // > range, or the associated range's boundary point is mutated either by the user
+        // > or the content script, the user agent must schedule a selectionchange event on
+        // > document.
+        //
+        // This means we should fire the event even if the boundaries themselves did not change. A
+        // change to the range object is enough. Normally, this happens in `set_range`, but
+        // only when the boundaries changed. In this case the call to `set_range` above did
+        // not queue the task.
+        if !boundaries_changed {
+            self.queue_selectionchange_task();
+        }
+    }
+
+    fn selection_boundaries_changed(&self) {
         self.set_visible_selection_dirty();
         self.queue_selectionchange_task();
-    }
 
-    fn unset_flags_for_visible_selection(&self, no_gc: &NoGC) {
-        let mut traversal = self
-            .document
-            .upcast::<Node>()
-            .following_flat_tree_nodes_unrooted(no_gc);
-        let mut next = traversal.next();
-        while let Some(node) = next.take() {
-            match node {
-                PrePostIteration::Enter(node) => {
-                    if node.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) {
-                        node.set_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION, false);
-
-                        // Currently only `CharacterData` nodes show visible selection.
-                        if node.is::<CharacterData>() {
-                            node.dirty(no_gc, NodeDamage::ContentOrHeritage);
-                        }
-
-                        next = traversal.next();
-                    } else {
-                        next = traversal.next_skipping_subtree();
-                    }
-                },
-                PrePostIteration::Leave(_) => {},
-            }
-        }
-    }
-
-    pub(crate) fn set_flags_for_visible_selection(&self, no_gc: &NoGC) {
-        if !self.visible_selection_dirty.take() {
-            return;
-        }
-
-        self.unset_flags_for_visible_selection(no_gc);
-        let Some(range) = self.range.get() else {
-            return;
-        };
-
-        let start_position = position_in_flat_tree_for_selection(
-            range.start_container(),
-            range.start_offset() as usize,
-        );
-        let end_position =
-            position_in_flat_tree_for_selection(range.end_container(), range.end_offset() as usize);
-        let start_node = start_position.node();
-        let end_node = end_position.node();
-
-        // In case the range hasn't changed, but the offsets within the start/end end node
-        // have changed, always dirty the start and end nodes, if they paint selection.
-        // TODO(mrobinson): We should handle changes only to the offsets within a single
-        // boundary node explicitly and not be unsetting and setting flags on the whole
-        // range.
-        if start_node.is::<CharacterData>() {
-            start_node.dirty(no_gc, NodeDamage::ContentOrHeritage);
-        }
-        if end_node.is::<CharacterData>() {
-            end_node.dirty(no_gc, NodeDamage::ContentOrHeritage);
-        }
-
-        let add_selection_flag = |node: &Node| {
-            if !node.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) {
-                node.set_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION, true);
-
-                // Currently only `CharacterData` nodes show visible selection.
-                if node.is::<CharacterData>() {
-                    node.dirty(no_gc, NodeDamage::ContentOrHeritage);
-                }
-            }
-        };
-
-        // We mark the ancestors of the start node as containing a selection. Two notes:
-        // - The traversal itself will take care of marking ancestors of all other nodes,
-        //   as the in-order tree walk will be guaranteed to walk them.
-        // - We do not need to mark these nodes as dirty as they are guaranteed to not be
-        //   leaves (the only nodes that show visible selection).
-        let mut maybe_parent = start_node.parent_in_flat_tree();
-        while let FlatTreeParent::Parent(parent) = maybe_parent {
-            add_selection_flag(&parent);
-            maybe_parent = parent.parent_in_flat_tree();
-        }
-
-        let mut traversal = start_node.following_flat_tree_nodes_unrooted(no_gc);
-
-        // If the selection starts after the first node, skip that node and all descendants
-        // before setting flags in the selection range.
-        if matches!(start_position, FlatTreeNodePosition::After(_)) {
-            let leaving_start = traversal.next_skipping_subtree();
-            debug_assert!(
-                matches!(leaving_start, Some(PrePostIteration::Leave(node)) if node == *start_node)
-            );
-        }
-
-        for iteration in traversal {
-            match &iteration {
-                PrePostIteration::Enter(node) => {
-                    if node == end_node && matches!(end_position, FlatTreeNodePosition::Before(_)) {
-                        break;
-                    }
-                    add_selection_flag(node);
-                },
-                PrePostIteration::Leave(node) => {
-                    add_selection_flag(node);
-                    if node == end_node {
-                        break;
-                    }
-                },
-            }
-        }
-    }
-
-    /// <https://w3c.github.io/selection-api/#dfn-schedule-a-selectionchange-event>
-    pub(crate) fn queue_selectionchange_task(&self) {
-        // https://w3c.github.io/editing/docs/execCommand/#state-override
-        // https://w3c.github.io/editing/docs/execCommand/#value-override
+        // See:
+        //  - <https://w3c.github.io/editing/docs/execCommand/#state-override> and
+        //  - <https://w3c.github.io/editing/docs/execCommand/#value-override>
+        //
         // > Whenever the number of ranges in the selection changes to something
         // > different, and whenever a boundary point of the range at a given index in the
         // > selection changes to something different, the state override and value
         // > override must be unset for every command.
         self.document.clear_command_overrides();
+    }
 
+    fn iter_nodes_with_overlaps_document_selection_flag<'no_gc>(
+        &self,
+        no_gc: &'no_gc NoGC,
+    ) -> impl Iterator<Item = UnrootedDom<'no_gc, Node>> {
+        let mut traversal = self
+            .document
+            .upcast::<Node>()
+            .following_flat_tree_nodes_unrooted(no_gc);
+        let mut next = traversal.next();
+        std::iter::from_fn(move || {
+            while let Some(node) = next.take() {
+                match node {
+                    PrePostIteration::Enter(node) => {
+                        if node.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) {
+                            next = traversal.next();
+                            return Some(node);
+                        } else {
+                            // This relies on flags being set consistently: this node
+                            // with the flag unset claims that no part of it overlaps selection,
+                            // which implies that none of its descendant either have any part
+                            // of them overlapping selection, meaning none of them have the flag
+                            next = traversal.next_skipping_subtree();
+                        }
+                    },
+                    PrePostIteration::Leave(_) => next = traversal.next(),
+                }
+            }
+            None
+        })
+    }
+
+    fn set_visible_range(&self, flat_tree_selection: Option<FlatTreeSelection>) {
+        *self.visible_range.borrow_mut() = flat_tree_selection.map(|selection| {
+            SelectionRange::new(
+                SelectionBoundary::new(&selection.start.container, selection.start.offset),
+                SelectionBoundary::new(&selection.end.container, selection.end.offset),
+            )
+        });
+    }
+
+    pub(crate) fn update_overlaps_document_selection_flags(&self, no_gc: &NoGC) {
+        if !self.visible_selection_dirty.take() {
+            return;
+        }
+
+        let previously_flagged_nodes = self
+            .iter_nodes_with_overlaps_document_selection_flag(no_gc)
+            .collect();
+        let flat_tree_selection = FlatTreeSelection::from_selection_if_renderable(no_gc, self);
+        VisibleSelectionFlagUpdate::run(
+            no_gc,
+            previously_flagged_nodes,
+            flat_tree_selection.as_ref(),
+            &self.document,
+        );
+        self.set_visible_range(flat_tree_selection);
+    }
+
+    /// <https://w3c.github.io/selection-api/#dfn-schedule-a-selectionchange-event>
+    pub(crate) fn queue_selectionchange_task(&self) {
         // Step 1. If target's has scheduled selectionchange event is true, abort these steps.
         if self.has_scheduled_selectionchange_event.get() {
             return;
@@ -239,152 +382,452 @@ impl Selection {
             );
     }
 
-    fn is_in_document_of_range(&self, node: &Node) -> bool {
-        // TODO(mrobinson): This should eventually allow nodes in the same composed tree (and
-        // not just the same tree), but this requires more work to allow `Selection` to cross
-        // shadow tree boundaries.
-        &*node.GetRootNode(&GetRootNodeOptions { composed: false }) ==
-            self.document.upcast::<Node>()
+    fn is_in_composed_tree_of_document_and_is_not_ua_widget(&self, node: &Node) -> bool {
+        &*node.GetRootNode(&GetRootNodeOptions { composed: true }) == self.document.upcast::<Node>() &&
+            !node.is_in_ua_widget()
+    }
+
+    pub(crate) fn start_boundary(&self, cx: &mut JSContext) -> (DomRoot<Node>, u32) {
+        let range = self.expect_active_range(cx);
+        (range.start_container(), range.start_offset())
+    }
+
+    pub(crate) fn end_boundary(&self, cx: &mut JSContext) -> (DomRoot<Node>, u32) {
+        let range = self.expect_active_range(cx);
+        (range.end_container(), range.end_offset())
+    }
+
+    #[cfg(debug_assertions)]
+    fn assert_valid_selection(&self, no_gc: &NoGC) {
+        let range_borrow = self.range.borrow();
+        let Some(range) = range_borrow.as_ref() else {
+            return;
+        };
+        debug_assert_eq!(
+            range
+                .start
+                .container
+                .GetRootNode(&GetRootNodeOptions { composed: true }),
+            range
+                .end
+                .container
+                .GetRootNode(&GetRootNodeOptions { composed: true })
+        );
+        debug_assert!(
+            compare_shadow_including_dom_positions(
+                no_gc,
+                &range.start.container,
+                range.start.offset,
+                &range.end.container,
+                range.end.offset
+            ) != Ordering::Greater
+        );
+    }
+
+    #[cfg(debug_assertions)]
+    fn assert_valid_selection_and_live_range(&self, no_gc: &NoGC) {
+        self.assert_valid_selection(no_gc);
+
+        let Some(active_range) = self.live_range.get() else {
+            return;
+        };
+        debug_assert!(
+            bp_position(
+                no_gc,
+                &active_range.start_container(),
+                active_range.start_offset(),
+                &active_range.end_container(),
+                active_range.end_offset()
+            ) != Ordering::Greater
+        );
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#active-range>
-    pub(crate) fn active_range(&self) -> Option<DomRoot<Range>> {
-        // > The active range is the range of the selection given by calling
-        // > getSelection() on the context object. (Thus the active range may be null.)
-        self.range.get()
-    }
+    ///
+    /// > The active range is the range of the selection given by calling
+    /// > getSelection() on the context object. (Thus the active range may be null.)
+    pub(crate) fn active_range(&self, cx: &mut JSContext) -> Option<DomRoot<Range>> {
+        #[cfg(debug_assertions)]
+        self.assert_valid_selection_and_live_range(cx.no_gc());
 
-    pub(crate) fn collapse_current_range(&self, node: &Node, offset: u32) {
-        let range = self.range.get().expect("Must always have a range");
-        range.set_start(node, offset);
-        range.set_end(node, offset);
-
-        self.set_visible_selection_dirty();
-    }
-
-    pub(crate) fn extend_current_range(&self, node: &Node, offset: u32) {
-        let range = self.range.get().expect("Must always have a range");
-        assert!(range.collapsed(), "Must only extend after collapsing");
-
-        let anchor_node = range.start_container();
-        if (*anchor_node == *node && range.start_offset() < offset) || anchor_node.is_before(node) {
-            range.set_end(node, offset);
-            self.direction.set(Direction::Forwards);
-        } else {
-            range.set_start(node, offset);
-            self.direction.set(Direction::Backwards);
+        if let Some(active_range) = self.live_range.get() {
+            return Some(active_range);
         }
 
-        self.set_visible_selection_dirty();
+        let live_range = {
+            let range = self.range.borrow();
+            let range = range.as_ref()?;
+            let live_range = Range::new(
+                cx,
+                &self.document,
+                &range.start.container,
+                range.start.offset,
+                &range.start.container,
+                range.start.offset,
+            );
+            live_range
+                .SetEnd(cx.no_gc(), &range.end.container, range.end.offset)
+                .expect("New end boundary should always be valid");
+            live_range
+        };
+
+        self.live_range.set(Some(&live_range));
+        live_range.associate_selection(self);
+        Some(live_range)
+    }
+
+    pub(crate) fn expect_active_range(&self, cx: &mut JSContext) -> DomRoot<Range> {
+        self.active_range(cx)
+            .expect("Should always have an active range")
     }
 
     pub(crate) fn set_visible_selection_dirty(&self) {
         self.visible_selection_dirty.set(true);
     }
 
-    /// <https://w3c.github.io/selection-api/#dfn-anchor>
-    pub(crate) fn anchor_node(&self) -> Option<DomRoot<Node>> {
-        self.range.get().map(|range| match self.direction.get() {
-            Direction::Forwards => range.start_container(),
-            _ => range.end_container(),
-        })
+    pub(crate) fn composed_anchor_position(&self) -> Option<RootedSelectionBoundary> {
+        let range = self.range.borrow();
+        let range = range.as_ref()?;
+        let (container, offset) = match self.direction.get() {
+            Direction::Forwards => (range.start.container.as_rooted(), range.start.offset),
+            _ => (range.end.container.as_rooted(), range.end.offset),
+        };
+        Some(RootedSelectionBoundary::new_with_utf16_offset(
+            container, offset,
+        ))
     }
 
     /// <https://w3c.github.io/selection-api/#dfn-anchor>
-    pub(crate) fn anchor_offset(&self) -> u32 {
-        self.range
-            .get()
+    fn live_anchor_node(&self, cx: &mut JSContext) -> Option<DomRoot<Node>> {
+        self.active_range(cx)
             .map(|range| match self.direction.get() {
+                Direction::Forwards => range.start_container(),
+                _ => range.end_container(),
+            })
+    }
+
+    /// <https://w3c.github.io/selection-api/#dfn-anchor>
+    fn live_anchor_offset(&self, cx: &mut JSContext) -> u32 {
+        self.active_range(cx)
+            .map_or(0, |range| match self.direction.get() {
                 Direction::Forwards => range.start_offset(),
                 _ => range.end_offset(),
             })
-            .unwrap_or(0)
     }
 
     /// <https://w3c.github.io/selection-api/#dfn-focus>
-    pub(crate) fn focus_node(&self) -> Option<DomRoot<Node>> {
-        self.range.get().map(|range| match self.direction.get() {
-            Direction::Forwards => range.end_container(),
-            _ => range.start_container(),
-        })
-    }
-
-    /// <https://w3c.github.io/selection-api/#dfn-focus>
-    pub(crate) fn focus_offset(&self) -> u32 {
-        self.range
-            .get()
+    fn live_focus_node(&self, cx: &mut JSContext) -> Option<DomRoot<Node>> {
+        self.active_range(cx)
             .map(|range| match self.direction.get() {
+                Direction::Forwards => range.end_container(),
+                _ => range.start_container(),
+            })
+    }
+
+    /// <https://w3c.github.io/selection-api/#dfn-focus>
+    fn live_focus_offset(&self, cx: &mut JSContext) -> u32 {
+        self.active_range(cx)
+            .map_or(0, |range| match self.direction.get() {
                 Direction::Forwards => range.end_offset(),
                 _ => range.start_offset(),
             })
-            .unwrap_or(0)
+    }
+
+    /// <https://dom.spec.whatwg.org/#concept-node-insert> steps 5.1-5.2
+    /// and
+    /// <https://dom.spec.whatwg.org/#move> steps 17.1-17.2
+    /// adapted for selections.
+    pub(crate) fn insert_steps(&self, parent: &Node, child: &Node, count: u32) {
+        let mut range_borrow = self.range.borrow_mut();
+        let Some(range) = &mut *range_borrow else {
+            return;
+        };
+        let child_index = LazyCell::new(|| child.index());
+        // Step 5.1: For each live range whose start node is parent and start offset is
+        // greater than child’s index: increase its start offset by count.
+        if range.start.container == parent && range.start.offset > *child_index {
+            range.start.offset += count;
+            self.selection_boundaries_changed();
+        }
+        // Step 5.2: For each live range whose end node is parent and end offset is
+        // greater than child’s index: increase its end offset by count.
+        if range.end.container == parent && range.end.offset > *child_index {
+            range.end.offset += count;
+            self.selection_boundaries_changed();
+        }
+    }
+
+    /// <https://dom.spec.whatwg.org/#live-range-pre-remove-steps> steps 4-7
+    /// adapted for selections.
+    pub(crate) fn pre_remove_steps(
+        &self,
+        removed_node: &Node,           // "node" in the specification
+        parent_of_removed_node: &Node, // "parent" in the specification
+        index_of_removed_node: &mut dyn FnMut() -> u32, // "index" in the specification
+    ) {
+        let mut range_borrow = self.range.borrow_mut();
+        let Some(range) = &mut *range_borrow else {
+            return;
+        };
+
+        // Step 4: For each live range whose start node is an inclusive descendant of
+        // node, set its start to (parent, index).
+        if removed_node.is_shadow_including_inclusive_ancestor_of(&range.start.container) {
+            range.start = SelectionBoundary::new(parent_of_removed_node, index_of_removed_node());
+            self.selection_boundaries_changed();
+        }
+        // Step 5: For each live range whose end node is an inclusive descendant of node,
+        // set its end to (parent, index).
+        if removed_node.is_shadow_including_inclusive_ancestor_of(&range.end.container) {
+            range.end = SelectionBoundary::new(parent_of_removed_node, index_of_removed_node());
+            self.selection_boundaries_changed();
+        }
+        // Step 6: For each live range whose start node is parent and start offset is
+        // greater than index, decrease its start offset by 1.
+        if range.start.container == parent_of_removed_node &&
+            range.start.offset > index_of_removed_node()
+        {
+            range.start.offset -= 1;
+            self.selection_boundaries_changed();
+        }
+        // Step 7: For each live range whose end node is parent and end offset is greater than
+        // index, decrease its end offset by 1.
+        if range.end.container == parent_of_removed_node &&
+            range.end.offset > index_of_removed_node()
+        {
+            range.end.offset -= 1;
+            self.selection_boundaries_changed();
+        }
+    }
+
+    /// <https://dom.spec.whatwg.org/#dom-node-normalize> Steps 6.1-6.4 adapted for selections.
+    ///
+    /// - `parent`: The parent of both other node arguments.
+    /// - `node`: The node that text is being merged into.
+    /// - `current_node`: The node which has text being merged into `node` and will be
+    ///   removed from the DOM.
+    /// - `length`: The length of the text content that was merged into `node` from
+    ///   siblings before `current_node`.
+    pub(crate) fn normalization_steps(
+        &self,
+        parent: &Node,
+        node: &Node,
+        current_node: &Node,
+        current_node_index: &dyn Fn() -> u32,
+        length: u32,
+    ) {
+        let mut range_borrow = self.range.borrow_mut();
+        let Some(range) = &mut *range_borrow else {
+            return;
+        };
+        // Step 6.1: For each live range whose start node is currentNode: add length to its start
+        // offset and set its start node to node.
+        if range.start.container == current_node {
+            range.start.offset += length;
+            range.start.container = Dom::from_ref(node);
+            self.selection_boundaries_changed();
+        }
+        // Step 6.2 For each live range whose end node is currentNode: add length to its end offset
+        // and set its end node to node.
+        if range.end.container == current_node {
+            range.end.offset += length;
+            range.end.container = Dom::from_ref(node);
+            self.selection_boundaries_changed();
+        }
+        // Step 6.3: For each live range whose start node is currentNode’s parent and start
+        // offset is currentNode’s index: set its start node to node and its start offset
+        // to length.
+        if range.start.container == parent && range.start.offset == current_node_index() {
+            range.start.container = Dom::from_ref(node);
+            range.start.offset = length;
+            self.selection_boundaries_changed();
+        }
+        // Step 6.4: For each live range whose end node is currentNode’s parent and end offset is
+        // currentNode’s index: set its end node to node and its end offset to length.
+        if range.end.container == parent && range.end.offset == current_node_index() {
+            range.end.container = Dom::from_ref(node);
+            range.end.offset = length;
+            self.selection_boundaries_changed();
+        }
+    }
+
+    /// <https://dom.spec.whatwg.org/#concept-cd-replace> steps 8-11
+    /// adapted for selections.
+    pub(crate) fn replace_data_steps(
+        &self,
+        node: &Node,
+        offset: u32,
+        removed_code_units: u32,
+        added_code_units: &mut dyn FnMut() -> u32,
+    ) {
+        let mut range_borrow = self.range.borrow_mut();
+        let Some(range) = &mut *range_borrow else {
+            return;
+        };
+        // Step 8: For each live range whose start node is node and start offset is
+        // greater than offset but less than or equal to offset + count: set its start
+        // offset to offset.
+        let start_container = &range.start.container;
+        let start_offset = range.start.offset;
+        if &**start_container == node &&
+            start_offset > offset &&
+            start_offset <= offset + removed_code_units
+        {
+            range.start.offset = offset;
+            self.selection_boundaries_changed();
+        }
+        // Step 9: For each live range whose end node is node and end offset is
+        // greater than offset but less than or equal to offset + count: set its end
+        // offset to offset.
+        let end_container = &range.end.container;
+        let end_offset = range.end.offset;
+        if &**end_container == node &&
+            end_offset > offset &&
+            end_offset <= offset + removed_code_units
+        {
+            range.end.offset = offset;
+            self.selection_boundaries_changed();
+        }
+        // Step 10: For each live range whose start node is node and start offset is
+        // greater than offset + count: increase its start offset by data’s length and
+        // decrease it by count.
+        if &**start_container == node && start_offset > offset + removed_code_units {
+            range.start.offset = start_offset + added_code_units() - removed_code_units;
+            self.selection_boundaries_changed();
+        }
+        // Step 11: For each live range whose end node is node and end offset is
+        // greater than offset + count: increase its end offset by data’s length and
+        // decrease it by count.
+        if &**end_container == node && end_offset > offset + removed_code_units {
+            range.end.offset = end_offset + added_code_units() - removed_code_units;
+            self.selection_boundaries_changed();
+        }
+    }
+
+    /// <https://dom.spec.whatwg.org/#concept-text-split> steps 7.2-7.3
+    /// adapted for selections.
+    pub(crate) fn text_split_steps(
+        &self,
+        node: &Node,
+        offset: u32,
+        parent_node: &Node,
+        new_node: &Node,
+    ) {
+        let mut range_borrow = self.range.borrow_mut();
+        let Some(range) = &mut *range_borrow else {
+            return;
+        };
+        // Step 7.2: For each live range whose start node is node and start offset is
+        // greater than offset, set its start node to newNode and decrease its start
+        // offset by offset.
+        if range.start.container == node && range.start.offset > offset {
+            range.start.container = Dom::from_ref(new_node);
+            range.start.offset -= offset;
+            self.selection_boundaries_changed();
+        }
+        // Step 7.3: For each live range whose end node is node and end offset is greater
+        // than offset, set its end node to newNode and decrease its end offset by offset.
+        if range.end.container == node && range.end.offset > offset {
+            range.end.container = Dom::from_ref(new_node);
+            range.end.offset -= offset;
+            self.selection_boundaries_changed();
+        }
+        // Step 7.4: For each live range whose start node is parent and start offset is
+        // equal to the index of node plus 1, increase its start offset by 1.
+        let node_index = LazyCell::new(|| node.index());
+        if range.start.container == parent_node && range.start.offset == *node_index + 1 {
+            range.start.offset += 1;
+            self.selection_boundaries_changed();
+        }
+        // Step 7.5: For each live range whose end node is parent and end offset is equal
+        // to the index of node plus 1, increase its end offset by 1.
+        if range.end.container == parent_node && range.end.offset == *node_index + 1 {
+            range.end.offset += 1;
+            self.selection_boundaries_changed();
+        }
+    }
+
+    pub(crate) fn collapse_to_dom_position(
+        &self,
+        cx: &mut JSContext,
+        boundary: &RootedSelectionBoundary,
+    ) {
+        let _ = self.Collapse(cx, Some(&boundary.container), boundary.offset);
+    }
+
+    pub(crate) fn collapse_or_extend_to_dom_position(
+        &self,
+        cx: &mut JSContext,
+        boundary: &RootedSelectionBoundary,
+    ) {
+        let is_anchor = self
+            .composed_anchor_position()
+            .is_some_and(|anchor| anchor == *boundary);
+
+        if self.range.borrow().is_none() || is_anchor {
+            let _ = self.Collapse(cx, Some(&boundary.container), boundary.offset);
+        } else {
+            let _ = self.Extend(cx, &boundary.container, boundary.offset);
+        }
     }
 }
 
 impl SelectionMethods<crate::DomTypeHolder> for Selection {
     /// <https://w3c.github.io/selection-api/#dom-selection-anchornode>
-    fn GetAnchorNode(&self) -> Option<DomRoot<Node>> {
+    fn GetAnchorNode(&self, cx: &mut JSContext) -> Option<DomRoot<Node>> {
         // > The attribute must return the anchor node of this, or null if the anchor is
         // > null or anchor is not in the document tree.
-        let anchor_node = self.anchor_node()?;
-        if !anchor_node.is_in_a_document_tree() {
-            return None;
-        }
-        Some(anchor_node)
+        //
+        // See <https://github.com/w3c/selection-api/issues/361> for why we don't
+        // do the document tree check (other browsers don't either).
+        self.live_anchor_node(cx)
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-anchoroffset>
-    fn AnchorOffset(&self) -> u32 {
+    fn AnchorOffset(&self, cx: &mut JSContext) -> u32 {
         // > The attribute must return the anchor offset of this, or 0 if the anchor is null
         // > or anchor is not in the document tree.
-        if self
-            .anchor_node()
-            .is_none_or(|anchor_node| !anchor_node.is_in_a_document_tree())
-        {
-            return 0;
-        }
-        self.anchor_offset()
+        //
+        // See <https://github.com/w3c/selection-api/issues/361> for why we don't
+        // do the document tree check (other browsers don't either).
+        self.live_anchor_offset(cx)
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-focusnode>
-    fn GetFocusNode(&self) -> Option<DomRoot<Node>> {
+    fn GetFocusNode(&self, cx: &mut JSContext) -> Option<DomRoot<Node>> {
         // > The attribute must return the focus node of this, or null if the focus is
         // > null or focus is not in the document tree.
-        let focus_node = self.focus_node()?;
-        if !focus_node.is_in_a_document_tree() {
-            return None;
-        }
-        Some(focus_node)
+        //
+        // See <https://github.com/w3c/selection-api/issues/361> for why we don't
+        // do the document tree check (other browsers don't either).
+        self.live_focus_node(cx)
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-focusoffset>
-    fn FocusOffset(&self) -> u32 {
+    fn FocusOffset(&self, cx: &mut JSContext) -> u32 {
         // > The attribute must return the focus offset of this, or 0 if the focus is null
         // > or focus is not in the document tree.
-        if self
-            .focus_node()
-            .is_none_or(|focus_node| !focus_node.is_in_a_document_tree())
-        {
-            return 0;
-        }
-        self.focus_offset()
+        //
+        // See <https://github.com/w3c/selection-api/issues/361> for why we don't
+        // do the document tree check (other browsers don't either).
+        self.live_focus_offset(cx)
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-iscollapsed>
-    fn IsCollapsed(&self) -> bool {
+    fn IsCollapsed(&self, cx: &mut JSContext) -> bool {
         // > The attribute must return true if and only if the anchor and focus are the
         // > same (including if both are null). Otherwise it must return false.
-        self.range.get().is_none_or(|range| range.collapsed())
+        self.active_range(cx).is_none_or(|range| range.collapsed())
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-rangecount>
     fn RangeCount(&self) -> u32 {
         // > The attribute must return 0 if this is empty or either focus or anchor is not
         // > in the document tree, and must return 1 otherwise.
-        let Some(range) = self.range.get() else {
-            return 0;
-        };
-        if !range.start_and_end_are_in_document_tree() {
+        //
+        // See <https://github.com/w3c/selection-api/issues/361> for why we don't
+        // do the document tree check (other browsers don't either).
+        if self.range.borrow().is_none() {
             return 0;
         }
         1
@@ -395,45 +838,56 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // > The attribute must return "None" if this is empty or either focus or anchor
         // > is not in the document tree, "Caret" if this's range is collapsed, and "Range"
         // > otherwise.
-        let Some(range) = self.range.get() else {
-            return DOMString::from("None");
+        //
+        // See <https://github.com/w3c/selection-api/issues/361> for why we don't
+        // do the document tree check (other browsers don't either).
+        let range = self.range.borrow();
+        let Some(range) = range.as_ref() else {
+            return DOMString::from_static("None");
         };
-        if !range.start_and_end_are_in_document_tree() {
-            return DOMString::from("None");
-        }
-
         if range.collapsed() {
-            DOMString::from("Caret")
+            DOMString::from_static("Caret")
         } else {
-            DOMString::from("Range")
+            DOMString::from_static("Range")
+        }
+    }
+
+    /// <https://w3c.github.io/selection-api/#dom-selection-direction>
+    fn Direction(&self) -> DOMString {
+        // > The attribute must return "none" if this is empty or this selection is
+        // > directionless. "forward" if this selection's direction is forwards and
+        // > "backward" if this selection's direction is backwards.
+        match self.direction.get() {
+            Direction::Directionless => DOMString::from_static("none"),
+            Direction::Forwards => DOMString::from_static("forward"),
+            Direction::Backwards => DOMString::from_static("backward"),
         }
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-getrangeat>
-    fn GetRangeAt(&self, index: u32) -> Fallible<DomRoot<Range>> {
+    fn GetRangeAt(&self, cx: &mut JSContext, index: u32) -> Fallible<DomRoot<Range>> {
         // > The method must throw an IndexSizeError exception if index is not 0, or if this
         // > is empty or either focus or anchor is not in the document tree. Otherwise, it
         // > must return a reference to (not a copy of) this's range.
+        //
+        // See <https://github.com/w3c/selection-api/issues/361> for why we don't
+        // do the document tree check (other browsers don't either).
         if index != 0 {
-            return Err(Error::IndexSize(None));
+            return Err(Error::IndexSize(Some("Index must be zero".into())));
         }
 
-        let Some(range) = self.range.get() else {
-            return Err(Error::IndexSize(None));
+        let Some(range) = self.active_range(cx) else {
+            return Err(Error::IndexSize(Some("Selection is empty".into())));
         };
 
-        if !range.start_and_end_are_in_document_tree() {
-            return Err(Error::IndexSize(None));
-        }
-
-        Ok(DomRoot::from_ref(&range))
+        Ok(range)
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-addrange>
-    fn AddRange(&self, range: &Range) {
+    fn AddRange(&self, no_gc: &NoGC, range: &Range) {
         // Step 1. If the root of the range's boundary points are not the document
         // associated with this, abort these steps.
-        if !self.is_in_document_of_range(&range.start_container()) {
+        if !self.is_in_composed_tree_of_document_and_is_not_ua_widget(&range.start_container()) {
             return;
         }
 
@@ -443,36 +897,119 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         }
 
         // Step 3. Set this's range to range by a strong reference (not by making a copy).
-        self.set_range(Some(range));
+        self.set_live_range(no_gc, Some(range));
 
         // Are we supposed to set Direction here? w3c/selection-api#116
         self.direction.set(Direction::Forwards);
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-removerange>
-    fn RemoveRange(&self, range: &Range) -> ErrorResult {
+    fn RemoveRange(&self, no_gc: &NoGC, range: &Range) -> ErrorResult {
         // > The method must make this empty by disassociating its range if this's range
         // > is range. Otherwise, it must throw a NotFoundError.
-        if let Some(own_range) = self.range.get() &&
+        if let Some(own_range) = self.live_range.get() &&
             &*own_range == range
         {
-            self.set_range(None);
+            self.set_range(no_gc, None);
             return Ok(());
         }
         Err(Error::NotFound(None))
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-removeallranges>
-    fn RemoveAllRanges(&self) {
+    fn RemoveAllRanges(&self, no_gc: &NoGC) {
         // > The method must make this empty by disassociating its range if this has an
         // > associated range.
-        self.set_range(None);
+        self.set_range(no_gc, None);
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-empty>
-    fn Empty(&self) {
+    fn Empty(&self, no_gc: &NoGC) {
         // > The method must be an alias, and behave identically, to removeAllRanges().
-        self.set_range(None);
+        self.RemoveAllRanges(no_gc);
+    }
+
+    /// <https://w3c.github.io/selection-api/#dom-selection-getcomposedranges>
+    fn GetComposedRanges(
+        &self,
+        cx: &mut JSContext,
+        options: &GetComposedRangesOptions,
+    ) -> Vec<DomRoot<StaticRange>> {
+        // Step 1. If this is empty, return an empty array.
+        let borrowed_range = self.range.borrow();
+        let Some(range) = borrowed_range.as_ref() else {
+            return Vec::new();
+        };
+
+        // Step 2. Otherwise, let startNode be start node of the range associated with
+        // this, and let startOffset be start offset of the range.
+        let mut start_node = range.start.container.as_rooted();
+        let mut start_offset = range.start.offset;
+
+        let is_ancestor_of_provided_shadow_roots = |shadow_root: &ShadowRoot| {
+            let shadow_root_node = shadow_root.upcast::<Node>();
+            options.shadowRoots.iter().any(|option_shadow_root| {
+                shadow_root_node
+                    .is_shadow_including_inclusive_ancestor_of(option_shadow_root.upcast())
+            })
+        };
+
+        // Step 3. While startNode is a node, startNode's root is a shadow root, and
+        // startNode's root is not a shadow-including inclusive ancestor of any of
+        // options["shadowRoots"], repeat these steps:
+        while let Some(containing_shadow_root) = start_node.containing_shadow_root() &&
+            !is_ancestor_of_provided_shadow_roots(&containing_shadow_root)
+        {
+            // Step 3.1. Set startOffset to index of startNode's root's host.
+            let host = DomRoot::upcast::<Node>(containing_shadow_root.Host());
+            start_offset = host.index();
+
+            // Step 3.2. Set startNode to startNode's root's host's parent.
+            // See <https://github.com/w3c/selection-api/issues/161> for why
+            // we always know that the start_node is a node.
+            let Some(new_start_node) = host.GetParentNode() else {
+                return Vec::new();
+            };
+            start_node = new_start_node;
+        }
+
+        // Step 4. Let endNode be end node of the range associated with this, and let
+        // endOffset be end offset of the range.
+        let mut end_node = range.end.container.as_rooted();
+        let mut end_offset = range.end.offset;
+
+        // Step 5. While endNode is a node, endNode's root is a shadow root, and endNode's
+        // root is not a shadow-including inclusive ancestor of any of
+        // options["shadowRoots"], repeat these steps:
+        while let Some(containing_shadow_root) = end_node.containing_shadow_root() &&
+            !is_ancestor_of_provided_shadow_roots(&containing_shadow_root)
+        {
+            // Step 5.1. Set endOffset to index of endNode's root's host plus 1.
+            let host = DomRoot::upcast::<Node>(containing_shadow_root.Host());
+            end_offset = host.index() + 1;
+
+            // Step 5.2. Set endNode to endNode's root's host's parent.
+            // See <https://github.com/w3c/selection-api/issues/161> for why
+            // we always know that the end_node is a node.
+            let Some(new_end_node) = host.GetParentNode() else {
+                return Vec::new();
+            };
+            end_node = new_end_node;
+        }
+
+        drop(borrowed_range);
+
+        // Step 6. Return an array consisting of new StaticRange whose start node is
+        // startNode, start offset is startOffset, end node is endNode, and end offset is
+        // endOffset.
+        vec![DomRoot::from_ref(&StaticRange::new(
+            cx,
+            &self.document,
+            &start_node,
+            start_offset,
+            &end_node,
+            end_offset,
+        ))]
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-collapse>
@@ -480,7 +1017,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // Step 1. If node is null, this method must behave identically as
         // removeAllRanges() and abort these steps.
         let Some(node) = node else {
-            self.set_range(None);
+            self.set_range(cx.no_gc(), None);
             return Ok(());
         };
 
@@ -498,22 +1035,19 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 
         // Step 4. If document associated with this is not a shadow-including inclusive
         // ancestor of node, abort these steps.
-        //
-        // TODO(mrobinson): This should eventually allow nodes in the same composed tree (and
-        // not just the same tree), but this requires more work to allow `Selection` to cross
-        // shadow tree boundaries.
-        if &*node.GetRootNode(&GetRootNodeOptions { composed: false }) !=
-            self.document.upcast::<Node>()
-        {
+        if !self.is_in_composed_tree_of_document_and_is_not_ua_widget(node) {
             return Ok(());
         }
 
         // Step 5. Otherwise, let newRange be a new range.
         // Step 6. Set the start the start and the end of newRange to (node, offset).
-        let new_range = Range::new(cx, &self.document, node, offset, node, offset);
-
         // Step 7. Set this's range to newRange.
-        self.set_range(Some(&new_range));
+        self.set_range(
+            cx.no_gc(),
+            Some(SelectionRange::collapsed_at(SelectionBoundary::new(
+                node, offset,
+            ))),
+        );
 
         // Are we supposed to set Direction here? w3c/selection-api#116
         self.direction.set(Direction::Forwards);
@@ -533,11 +1067,15 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // > Otherwise, it must create a new range, set the start both its start and end to
         // > the start of this's range, and then set this's range to the newly-created
         // > range.
-        if let Some(range) = self.range.get() {
-            self.Collapse(cx, Some(&*range.start_container()), range.start_offset())
-        } else {
-            Err(Error::InvalidState(None))
-        }
+        let Some((start_container, start_offset)) = self
+            .range
+            .borrow()
+            .as_ref()
+            .map(|range| (range.start.container.as_rooted(), range.start.offset))
+        else {
+            return Err(Error::InvalidState(None));
+        };
+        self.Collapse(cx, Some(&*start_container), start_offset)
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-collapsetoend>
@@ -545,29 +1083,28 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // > The method must throw InvalidStateError exception if the this is empty.
         // > Otherwise, it must create a new range, set the start both its start and end to
         // > the end of this's range, and then set this's range to the newly-created range.
-        if let Some(range) = self.range.get() {
-            self.Collapse(cx, Some(&*range.end_container()), range.end_offset())
-        } else {
-            Err(Error::InvalidState(None))
-        }
+        let Some((end_container, end_offset)) = self
+            .range
+            .borrow()
+            .as_ref()
+            .map(|range| (range.end.container.as_rooted(), range.end.offset))
+        else {
+            return Err(Error::InvalidState(None));
+        };
+        self.Collapse(cx, Some(&*end_container), end_offset)
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-extend>
     fn Extend(&self, cx: &mut JSContext, node: &Node, offset: u32) -> ErrorResult {
         // Step 1. If the document associated with this is not a shadow-including
         // inclusive ancestor of node, abort these steps.
-        //
-        // TODO(mrobinson): This should eventually allow nodes in the same composed tree (and
-        // not just the same tree), but this requires more work to allow `Selection` to cross
-        // shadow tree boundaries.
-        if &*node.GetRootNode(&GetRootNodeOptions { composed: false }) !=
-            self.document.upcast::<Node>()
-        {
+        if !self.is_in_composed_tree_of_document_and_is_not_ua_widget(node) {
             return Ok(());
         }
 
         // Step 2. If this is empty, throw an InvalidStateError exception and abort these steps.
-        let Some(range) = self.range.get() else {
+        let range_borrow = self.range.borrow();
+        let Some(range) = range_borrow.as_ref() else {
             return Err(Error::InvalidState(None));
         };
 
@@ -587,54 +1124,65 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // newFocus be the boundary point (node, offset).
         //
         // Note: oldFocus is unused, so we do not set it here.
-        let old_anchor_node = &*self
-            .anchor_node()
+        let old_anchor = self
+            .composed_anchor_position()
             .expect("has range, therefore has anchor node");
-        let old_anchor_offset = self.anchor_offset();
 
         // Step 4. Let newRange be a new range.
-        let new_range;
+        // Note: Set directly to satisfy crown.
         let direction;
 
         // Step 5. If node's root is not the same as the this's range's root, set the
         // start newRange's start and end to newFocus.
-        if !self.is_in_document_of_range(&range.start_container()) {
-            new_range = Range::new(cx, &self.document, node, offset, node, offset);
+        let in_different_roots = !nodes_have_same_shadow_root(&range.start.container, node);
+        drop(range_borrow);
+
+        if in_different_roots {
+            self.set_range(
+                cx.no_gc(),
+                Some(SelectionRange::collapsed_at(SelectionBoundary::new(
+                    node, offset,
+                ))),
+            );
             direction = Direction::Forwards;
         } else {
             let is_old_anchor_before_or_equal = matches!(
-                bp_position(old_anchor_node, old_anchor_offset, node, offset),
+                compare_shadow_including_dom_positions(
+                    cx.no_gc(),
+                    &old_anchor.container,
+                    old_anchor.offset,
+                    node,
+                    offset
+                ),
                 Ordering::Less | Ordering::Equal
             );
             if is_old_anchor_before_or_equal {
                 // Step 6. Otherwise, if oldAnchor is before or equal to newFocus, set the start
                 // newRange's start to oldAnchor, then set its end to newFocus.
-                new_range = Range::new(
-                    cx,
-                    &self.document,
-                    old_anchor_node,
-                    old_anchor_offset,
-                    node,
-                    offset,
+                self.set_range(
+                    cx.no_gc(),
+                    Some(SelectionRange::new(
+                        SelectionBoundary::new(&old_anchor.container, old_anchor.offset),
+                        SelectionBoundary::new(node, offset),
+                    )),
                 );
                 direction = Direction::Forwards;
             } else {
                 // Step 7. Otherwise, set the start newRange's start to newFocus, then set
                 // its end to oldAnchor.
-                new_range = Range::new(
-                    cx,
-                    &self.document,
-                    node,
-                    offset,
-                    old_anchor_node,
-                    old_anchor_offset,
+                self.set_range(
+                    cx.no_gc(),
+                    Some(SelectionRange::new(
+                        SelectionBoundary::new(node, offset),
+                        SelectionBoundary::new(&old_anchor.container, old_anchor.offset),
+                    )),
                 );
                 direction = Direction::Backwards;
             }
         }
 
         // Step 8. Set this's range to newRange.
-        self.set_range(Some(&new_range));
+        // Note: Done above to satisfy crown.
 
         // Step 9. If newFocus is before oldAnchor, set this's direction to backwards.
         // Otherwise, set it to forwards.
@@ -667,17 +1215,8 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 
         // Step 2. If document associated with this is not a shadow-including inclusive
         // ancestor of anchorNode or focusNode, abort these steps.
-        //
-        // TODO(mrobinson): This should eventually allow nodes in the same composed tree (and
-        // not just the same tree), but this requires more work to allow `Selection` to cross
-        // shadow tree boundaries.
-        if &*anchor_node.GetRootNode(&GetRootNodeOptions { composed: false }) !=
-            self.document.upcast::<Node>()
-        {
-            return Ok(());
-        }
-        if &*focus_node.GetRootNode(&GetRootNodeOptions { composed: false }) !=
-            self.document.upcast::<Node>()
+        if !self.is_in_composed_tree_of_document_and_is_not_ua_widget(anchor_node) ||
+            !self.is_in_composed_tree_of_document_and_is_not_ua_widget(focus_node)
         {
             return Ok(());
         }
@@ -688,42 +1227,46 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // Note: We do not model the boundary point in this way.
 
         // Step 4. Let newRange be a new range.
-        let new_range;
-        let direction;
+        // Note: We set the range directly to satisfy crown.
 
         // Step 5. If anchor is before focus, set the start the newRange's start to anchor
         // and its end to focus. Otherwise, set the start them to focus and anchor
         // respectively.
-        let is_anchor_before_focus =
-            bp_position(anchor_node, anchor_offset, focus_node, focus_offset) == Ordering::Less;
-        if is_anchor_before_focus {
-            new_range = Range::new(
-                cx,
-                &self.document,
-                anchor_node,
-                anchor_offset,
-                focus_node,
-                focus_offset,
+        let ordering = compare_shadow_including_dom_positions(
+            cx.no_gc(),
+            anchor_node,
+            anchor_offset,
+            focus_node,
+            focus_offset,
+        );
+        if ordering == Ordering::Less {
+            self.set_range(
+                cx.no_gc(),
+                Some(SelectionRange::new(
+                    SelectionBoundary::new(anchor_node, anchor_offset),
+                    SelectionBoundary::new(focus_node, focus_offset),
+                )),
             );
-            direction = Direction::Forwards;
         } else {
-            new_range = Range::new(
-                cx,
-                &self.document,
-                focus_node,
-                focus_offset,
-                anchor_node,
-                anchor_offset,
+            self.set_range(
+                cx.no_gc(),
+                Some(SelectionRange::new(
+                    SelectionBoundary::new(focus_node, focus_offset),
+                    SelectionBoundary::new(anchor_node, anchor_offset),
+                )),
             );
-            direction = Direction::Backwards;
-        }
+        };
 
         // Step 6. Set this's range to newRange.
-        self.set_range(Some(&new_range));
+        // Note: Done above to satisfy crown.
 
         // Step 7. If focus is before anchor, set this's direction to backwards.
         // Otherwise, set it to forwards
-        self.direction.set(direction);
+        if ordering == Ordering::Greater {
+            self.direction.set(Direction::Backwards);
+        } else {
+            self.direction.set(Direction::Forwards);
+        }
 
         Ok(())
     }
@@ -738,7 +1281,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 
         // Step 2. If node's root is not the document associated with this, abort these
         // steps.
-        if !self.is_in_document_of_range(node) {
+        if !self.is_in_composed_tree_of_document_and_is_not_ua_widget(node) {
             return Ok(());
         }
 
@@ -747,10 +1290,14 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 
         // Step 4. Set newRange's start to (node, 0).
         // Step 5. Set newRange's end to (node, childCount).
-        let new_range = Range::new(cx, &self.document, node, 0, node, child_count);
-
         // Step 6. Set this's range to newRange.
-        self.set_range(Some(&new_range));
+        self.set_range(
+            cx.no_gc(),
+            Some(SelectionRange::new(
+                SelectionBoundary::new(node, 0),
+                SelectionBoundary::new(node, child_count),
+            )),
+        );
 
         // Step 7. Set this's direction to forwards.
         self.direction.set(Direction::Forwards);
@@ -763,18 +1310,18 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // > The method must invoke deleteContents() on this's range if this is not empty
         // > and both focus and anchor are in the document tree. Otherwise the method must
         // > do nothing.
-        let Some(range) = self.range.get() else {
+        let Some(active_range) = self
+            .active_range(cx)
+            .filter(|range| range.start_and_end_are_in_document_tree())
+        else {
             return Ok(());
         };
-        if !range.start_and_end_are_in_document_tree() {
-            return Ok(());
-        }
 
-        range.DeleteContents(cx)
+        active_range.DeleteContents(cx)
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-containsnode>
-    fn ContainsNode(&self, node: &Node, allow_partial_containment: bool) -> bool {
+    fn ContainsNode(&self, no_gc: &NoGC, node: &Node, allow_partial_containment: bool) -> bool {
         // > The method must return false if this is empty or if node's root is not the document
         // > associated with this.
         // >
@@ -787,18 +1334,18 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // > its range is before or visually equivalent to the last boundary point in the node *and*
         // > end of its range is after or visually equivalent to the first boundary point in the
         // > node.
-
-        if !self.is_in_document_of_range(node) {
+        if !self.is_in_composed_tree_of_document_and_is_not_ua_widget(node) {
             return false;
         }
-        let Some(range) = self.range.get() else {
+        let range = self.range.borrow();
+        let Some(range) = range.as_ref() else {
             return false;
         };
-        let start_node = &*range.start_container();
-        if !self.is_in_document_of_range(start_node) {
+        let start_node = &*range.start.container;
+        if !self.is_in_composed_tree_of_document_and_is_not_ua_widget(start_node) {
             return false;
         }
-        let end_node = &*range.end_container();
+        let end_node = &*range.end.container;
 
         let first_offset = 0;
         let last_offset = node.len();
@@ -810,39 +1357,75 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 
         // TODO: find out what "visually equivalent" means for boundary points and implement it.
         // https://github.com/w3c/selection-api/issues/6
-        // For now it is simplified to "position is equal".
+        //
+        // For now it is simplified to "node is in the flat tree" and "position is equal".
+        if !node.is_in_flat_tree(no_gc) {
+            return false;
+        }
+
         matches!(
-            bp_position(start_node, range.start_offset(), node, compare_start_to),
+            compare_shadow_including_dom_positions(
+                no_gc,
+                start_node,
+                range.start.offset,
+                node,
+                compare_start_to
+            ),
             Ordering::Less | Ordering::Equal
         ) && matches!(
-            bp_position(end_node, range.end_offset(), node, compare_end_to),
+            compare_shadow_including_dom_positions(
+                no_gc,
+                end_node,
+                range.end.offset,
+                node,
+                compare_end_to
+            ),
             Ordering::Greater | Ordering::Equal
         )
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-stringifier>
-    fn Stringifier(&self, no_gc: &NoGC) -> DOMString {
+    fn Stringifier(&self, cx: &mut JSContext) -> DOMString {
         // > The stringification must return the string, which is the concatenation of the
         // > rendered text if there is a range associated with this.
         // >
         // > If the selection is within a textarea or input element, it must return the
         // > selected substring in its value.
-        //
-        // TODO: This implementation should be examined in depth. Does rendered text take
-        // into account `display: none`. The case for textarea and input elements is
-        // completely unhandled here.
-        if let Some(range) = self.range.get() {
-            range.Stringifier(no_gc)
-        } else {
-            DOMString::from("")
+        let Some(visible_selection) =
+            FlatTreeSelection::from_selection_if_renderable(cx.no_gc(), self)
+        else {
+            return DOMString::new();
+        };
+
+        // Flush all layout before stringifying so that rendered text is up-to-date.
+        self.document.window().layout_reflow(QueryMsg::StyleQuery);
+
+        let mut user_select_cache = Default::default();
+        let mut string = DOMString::new();
+        for node in visible_selection.traversal() {
+            let Some(character_data) = node.downcast::<CharacterData>() else {
+                continue;
+            };
+
+            if node.used_user_select(cx.no_gc(), &mut user_select_cache) == UsedUserSelect::None {
+                continue;
+            }
+
+            let range = visible_selection.range_for_character_data(character_data);
+            let Some(text) = character_data.rendered_text(range) else {
+                continue;
+            };
+            string.push_str(&text);
         }
+
+        string
     }
 }
 
 impl<'dom> LayoutDom<'dom, Selection> {
     #[expect(unsafe_code)]
-    pub(crate) fn range_for_layout(&self) -> Option<LayoutDom<'dom, Range>> {
-        unsafe { self.unsafe_get().range.to_layout() }
+    pub(crate) fn range_for_layout(&self) -> &Option<SelectionRange> {
+        unsafe { self.unsafe_get().visible_range.borrow_for_layout() }
     }
 }
 
@@ -866,31 +1449,381 @@ impl FlatTreeNodePosition {
 /// boundaries. This projects the given position onto the flat tree, accounting for origin
 /// nodes that may not actually be in the flat tree at all.
 fn position_in_flat_tree_for_selection(
-    container: DomRoot<Node>,
-    offset: usize,
+    no_gc: &NoGC,
+    boundary: &FlatTreeBoundary,
 ) -> FlatTreeNodePosition {
-    if container.is::<CharacterData>() {
-        return FlatTreeNodePosition::Inside(container);
+    if boundary.container.is::<CharacterData>() {
+        return FlatTreeNodePosition::Inside(boundary.container.as_rooted());
     }
 
     let shadow_host_or_node = |node: &Node| {
-        container
+        boundary
+            .container
             .downcast::<ShadowRoot>()
             .map(|shadow_root| DomRoot::upcast(shadow_root.Host()))
             .unwrap_or(DomRoot::from_ref(node))
     };
 
-    if let Some(child) = container.children().nth(offset) {
-        if let FlatTreeParent::Parent(_) = child.parent_in_flat_tree() {
+    if let Some(child) = boundary.container.children().nth(boundary.offset as usize) {
+        if let FlatTreeParent::Parent(_) = child.parent_in_flat_tree(no_gc) {
             return FlatTreeNodePosition::Before(child);
         }
-    } else if let Some(last_child) = container.GetLastChild() &&
-        let FlatTreeParent::Parent(_) = last_child.parent_in_flat_tree()
+    } else if let Some(last_child) = boundary.container.GetLastChild() &&
+        let FlatTreeParent::Parent(_) = last_child.parent_in_flat_tree(no_gc)
     {
-        return FlatTreeNodePosition::After(shadow_host_or_node(&container));
+        return FlatTreeNodePosition::After(shadow_host_or_node(&boundary.container.as_rooted()));
     }
 
     // The container has no child in the flat tree or the child indicated by the index
     // isn't in the flat tree, so just return a position inside that container.
-    FlatTreeNodePosition::Inside(shadow_host_or_node(&container))
+    FlatTreeNodePosition::Inside(shadow_host_or_node(&boundary.container.as_rooted()))
+}
+
+impl Node {
+    /// Get the `Utf16CodeUnits` offset for the given offset if `self` is a
+    /// `CharacterData` or else return the offset in the child list.
+    pub(crate) fn to_sibling_or_utf16_offset(&self, offset: Utf32CodeUnitsOrNodeOffset) -> u32 {
+        if let Some(character_data) = self.downcast::<CharacterData>() {
+            // TODO: ensure that each `CharacterData` holds no more than 4 GiB?
+            offset
+                .to_utf16_code_units_in(AssumeUnder4GB, &character_data.data())
+                .0
+        } else {
+            offset.0
+        }
+    }
+
+    /// Get the `Utf32CodeUnitsOrNodeOffset` for `self` and the given UTF-16 offset if
+    /// `self` is `CharacterData` or else return the offset in the child list.
+    pub(crate) fn to_sibling_or_utf32_offset(&self, offset: u32) -> Utf32CodeUnitsOrNodeOffset {
+        Utf32CodeUnitsOrNodeOffset(
+            if let Some(character_data) = self.downcast::<CharacterData>() {
+                // TODO: ensure that each `CharacterData` holds no more than 4 GiB?
+                Utf16CodeUnits(offset)
+                    .to_utf32_code_units_in(&character_data.data())
+                    .0
+            } else {
+                offset
+            },
+        )
+    }
+}
+
+bitflags! {
+    #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+    pub(crate) struct SelectionLiveRangeNotification: u8 {
+        const Start = 1 << 0;
+        const End = 1 << 1;
+    }
+}
+
+fn nodes_have_same_shadow_root(a: &Node, b: &Node) -> bool {
+    a.is_connected() && b.is_connected() && a.containing_shadow_root() == b.containing_shadow_root()
+}
+
+/// Project the position given by `container_a` and `offset_a` into a root that also
+/// contains `target`. If `target` is not supplied then project the position into the
+/// `Document` root.
+///
+/// This does something very similar to GetComposedRanges, but doesn't have special
+/// handling for start and end nodes.
+fn project_into_shared_tree<'a>(
+    no_gc: &'a NoGC,
+    container_a: &Node,
+    mut offset_a: u32,
+    target: Option<&Node>,
+) -> (UnrootedDom<'a, Node>, u32) {
+    let mut start_node = UnrootedDom::from_ref(container_a, no_gc);
+    while let Some(containing_shadow_root) = start_node.containing_shadow_root_unrooted(no_gc) &&
+        target.is_none_or(|target| {
+            !containing_shadow_root
+                .upcast::<Node>()
+                .is_shadow_including_inclusive_ancestor_of(target)
+        })
+    {
+        let host = DomRoot::upcast::<Node>(containing_shadow_root.Host());
+        offset_a = host.index();
+        start_node = host
+            .get_parent_node_unrooted(no_gc)
+            .expect("Should only be called on nodes in the same tree");
+    }
+
+    (start_node, offset_a)
+}
+
+/// Compare two shadow-including DOM positions by first projecting them into
+/// a shared root and then comparing the two positions. This function assumes
+/// that the two positions share a [`Document`].
+fn compare_shadow_including_dom_positions(
+    no_gc: &NoGC,
+    container_a: &Node,
+    offset_a: u32,
+    container_b: &Node,
+    offset_b: u32,
+) -> Ordering {
+    let (projected_container_a, projected_offset_a) =
+        project_into_shared_tree(no_gc, container_a, offset_a, Some(container_b));
+    let (projected_container_b, projected_offset_b) =
+        project_into_shared_tree(no_gc, container_b, offset_b, Some(container_a));
+
+    let a_was_projected = &**projected_container_a != container_a;
+    let b_was_projected = &**projected_container_b != container_b;
+
+    match bp_position(
+        no_gc,
+        &projected_container_a,
+        projected_offset_a,
+        &projected_container_b,
+        projected_offset_b,
+    ) {
+        Ordering::Equal if a_was_projected && !b_was_projected => Ordering::Greater,
+        Ordering::Equal if !a_was_projected && b_was_projected => Ordering::Less,
+        ordering => ordering,
+    }
+}
+
+struct FlatTreeBoundary<'no_gc> {
+    container: UnrootedDom<'no_gc, Node>,
+    offset: u32,
+}
+
+struct FlatTreeSelection<'no_gc> {
+    no_gc: &'no_gc NoGC,
+    start: FlatTreeBoundary<'no_gc>,
+    end: FlatTreeBoundary<'no_gc>,
+}
+
+impl<'no_gc> FlatTreeSelection<'no_gc> {
+    /// Get the [`FlatTreeSelection`] for this [`Selection`], returning `None` if the [`Selection`]
+    /// doesn't have a range or if that flat tree range is unrenderable (for instance, because one
+    /// or both of the endpoints is not in the flat tree).
+    fn from_selection_if_renderable(no_gc: &'no_gc NoGC, selection: &Selection) -> Option<Self> {
+        let range = selection.range.borrow();
+        let range = range.as_ref()?;
+
+        let mut start_container = range.start.container.as_unrooted(no_gc);
+        let mut start_offset = range.start.offset;
+        let mut end_container = range.end.container.as_unrooted(no_gc);
+        let mut end_offset = range.end.offset;
+
+        if !start_container.is_in_flat_tree(no_gc) {
+            return None;
+        }
+        if !end_container.is_in_flat_tree(no_gc) {
+            return None;
+        }
+
+        // Compare the position of the two nodes in the flat tree, considering the
+        // condition when they don't share a common ancestor to be an unrenderable
+        // selection.
+        let ordering = compare_dom_positions::<FlatTreeForSelectionNoGcTraversal>(
+            no_gc,
+            &range.start.container,
+            range.start.offset,
+            &range.end.container,
+            range.end.offset,
+        )
+        .0?;
+
+        // If the visible selection is inverted relative to the composed tree range, swap
+        // the boundaries.
+        if ordering == Ordering::Greater {
+            std::mem::swap(&mut start_container, &mut end_container);
+            std::mem::swap(&mut start_offset, &mut end_offset);
+        }
+
+        Some(FlatTreeSelection {
+            no_gc,
+            start: FlatTreeBoundary {
+                container: start_container,
+                offset: start_offset,
+            },
+            end: FlatTreeBoundary {
+                container: end_container,
+                offset: end_offset,
+            },
+        })
+    }
+
+    fn range_for_character_data(&self, character_data: &CharacterData) -> RangeAny<Utf32CodeUnits> {
+        let text = character_data.data();
+        let node: &Node = character_data.upcast();
+        RangeAny::new(
+            (node == &**self.start.container)
+                .then(|| Utf16CodeUnits(self.start.offset).to_utf32_code_units_in(&text)),
+            (node == &**self.end.container)
+                .then(|| Utf16CodeUnits(self.end.offset).to_utf32_code_units_in(&text)),
+        )
+    }
+
+    fn traversal(&self) -> VisibleSelectionTraversal<'no_gc> {
+        let start_position = position_in_flat_tree_for_selection(self.no_gc, &self.start);
+        let end_position = position_in_flat_tree_for_selection(self.no_gc, &self.end);
+        VisibleSelectionTraversal {
+            following: start_position
+                .node()
+                .following_flat_tree_nodes_unrooted(self.no_gc),
+            start: start_position,
+            end: end_position,
+            finished: false,
+            skip_subtree: false,
+        }
+    }
+}
+
+struct VisibleSelectionTraversal<'no_gc> {
+    following: UnrootedFollowingFlatTreeNodesTraversal<'no_gc>,
+    start: FlatTreeNodePosition,
+    end: FlatTreeNodePosition,
+    finished: bool,
+    skip_subtree: bool,
+}
+
+impl<'no_gc> Iterator for VisibleSelectionTraversal<'no_gc> {
+    type Item = UnrootedDom<'no_gc, Node>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        while !self.finished {
+            let following = if std::mem::take(&mut self.skip_subtree) {
+                self.following.next_skipping_subtree()?
+            } else {
+                self.following.next()?
+            };
+
+            match following {
+                PrePostIteration::Enter(node) => {
+                    // If the traversal ends right before the final node and this is the
+                    // final node, just finish now.
+                    if &**node == self.end.node() &&
+                        matches!(self.end, FlatTreeNodePosition::Before(_))
+                    {
+                        self.finished = true;
+                        break;
+                    }
+                    // If the selection starts after the first node, do not set any flags
+                    // on that nodes descendants.
+                    if &**node == self.start.node() &&
+                        matches!(self.start, FlatTreeNodePosition::After(_))
+                    {
+                        self.skip_subtree = true;
+                    }
+                    return Some(node);
+                },
+                PrePostIteration::Leave(node) => {
+                    self.finished = &**node == self.end.node();
+                },
+            }
+        }
+
+        None
+    }
+}
+
+struct VisibleSelectionFlagUpdate<'no_gc> {
+    no_gc: &'no_gc NoGC,
+    /// The nodes that previously had the OVERLAPS_DOCUMENT_SELECTION set on them before
+    /// this flag update.
+    ///
+    /// Hash keys are pointer addresses which are not directly controlled by web content
+    /// so we don’t need HashDoS resistance and can use a faster hasher than `std`’s default
+    previously_flagged_nodes: FxHashSet<UnrootedDom<'no_gc, Node>>,
+    /// Cache shared between calls to [`Node::used_user_select`]
+    used_user_select_cache: FxHashMap<UnrootedDom<'no_gc, Node>, UsedUserSelect>,
+    /// Whether or not this update requires a display list update.
+    needs_new_display_list: bool,
+}
+
+impl<'no_gc> VisibleSelectionFlagUpdate<'no_gc> {
+    fn run(
+        no_gc: &'no_gc NoGC,
+        previously_flagged_nodes: FxHashSet<UnrootedDom<'no_gc, Node>>,
+        flat_tree_selection: Option<&FlatTreeSelection<'_>>,
+        document: &Document,
+    ) {
+        let mut update = Self {
+            no_gc,
+            previously_flagged_nodes,
+            used_user_select_cache: Default::default(),
+            needs_new_display_list: false,
+        };
+
+        if let Some(flat_tree_selection) = flat_tree_selection {
+            let traversal = flat_tree_selection.traversal();
+            for ancestor in traversal
+                .start
+                .node()
+                .ancestors_in_flat_tree_unrooted(no_gc)
+            {
+                update.set(&ancestor, flat_tree_selection);
+            }
+            for node in traversal {
+                update.set(&node, flat_tree_selection);
+            }
+        }
+
+        update.finish(document);
+    }
+
+    fn set(&mut self, node: &UnrootedDom<'no_gc, Node>, flat_tree_selection: &FlatTreeSelection) {
+        if !node.get_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION) {
+            node.set_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION, true);
+            debug_assert!(!self.previously_flagged_nodes.contains(node));
+        } else {
+            self.previously_flagged_nodes.remove(node);
+        }
+
+        // TODO: We should ensure that the style is up-to-date before reading the
+        // `user-select` property and changes to `user-select` should trigger new visual
+        // selection updates. Not doing this means that the calculations here are one
+        // layout old and are never run again until the selection changes.
+        let user_select = node.used_user_select(self.no_gc, &mut self.used_user_select_cache);
+        let inhibited = user_select == UsedUserSelect::None;
+        node.set_flag(NodeFlags::SELECTION_INHIBITED, inhibited);
+
+        self.set_node_selection(node, (!inhibited).then_some(flat_tree_selection));
+    }
+
+    fn clear(&mut self, node: &Node) {
+        node.set_flag(NodeFlags::OVERLAPS_DOCUMENT_SELECTION, false);
+        node.set_flag(NodeFlags::SELECTION_INHIBITED, false);
+        self.set_node_selection(node, None);
+    }
+
+    fn set_character_data_selection(
+        &mut self,
+        character_data: &CharacterData,
+        range: Option<RangeAny<Utf32CodeUnits>>,
+    ) {
+        if character_data.set_text_run_selection(range) {
+            self.needs_new_display_list = true;
+        } else {
+            // Note: This isn't just necessary when the `CharacterData` doesn't have a
+            // corresponding box tree node, but *also* for properly handling `:first-letter`
+            // at the moment. This cannot be removed until `:first-letter` is represented
+            // properly in the box tree.
+            character_data
+                .upcast::<Node>()
+                .dirty(self.no_gc, NodeDamage::ContentOrHeritage);
+        }
+    }
+
+    fn set_node_selection(&mut self, node: &Node, flat_tree_selection: Option<&FlatTreeSelection>) {
+        if let Some(character_data) = node.downcast::<CharacterData>() {
+            let range = flat_tree_selection.map(|flat_tree_selection| {
+                flat_tree_selection.range_for_character_data(character_data)
+            });
+            self.set_character_data_selection(character_data, range);
+        } else if node.set_element_selection(flat_tree_selection.is_some()) {
+            self.needs_new_display_list = true;
+        }
+    }
+
+    fn finish(mut self, document: &Document) {
+        for node in std::mem::take(&mut self.previously_flagged_nodes) {
+            self.clear(&node);
+        }
+        if self.needs_new_display_list {
+            document.window().layout().set_needs_new_display_list();
+        }
+    }
 }

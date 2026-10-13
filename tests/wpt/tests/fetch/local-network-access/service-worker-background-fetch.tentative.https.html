@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>LNA Service Worker tests </title>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/support.sub.js"></script>
+<script>
+  "use strict";
+
+  promise_test(t => {
+    const sourceUrl = resolveUrl("resources/service-worker.html",
+        sourceResolveOptions({
+            server: Server.HTTPS_PUBLIC,
+            permissionName: 'loopback-network',
+            permissionValue: 'granted'}));
+    sourceUrl.searchParams.append("method", "background-fetch");
+
+    function checkResult(evt) {
+      checkFetchTestResult(evt.data, FetchTestResult.SUCCESS);
+      t.done();
+    }
+
+    const promise = new Promise((resolve) => {
+                      window.addEventListener('message', resolve, {once: true});
+                    }).then(checkResult);
+    const popup = window.open(sourceUrl);
+    t.add_cleanup(() => popup.close());
+
+    return promise;
+  }, 'LNA Service Worker Public to Loopback Background Fetch with permission');
+
+  promise_test(t => {
+    const sourceUrl = resolveUrl("resources/service-worker.html",
+        sourceResolveOptions({
+            server: Server.HTTPS_PUBLIC,
+            permissionName: 'loopback-network',
+            permissionValue: 'denied'}));
+    sourceUrl.searchParams.append("method", "background-fetch");
+
+    function checkResult(evt) {
+      checkFetchTestResult(evt.data, FetchTestResult.FAILURE);
+      t.done();
+    }
+
+    const promise = new Promise((resolve) => {
+                      window.addEventListener('message', resolve, {once: true});
+                    }).then(checkResult);
+    const popup = window.open(sourceUrl);
+    t.add_cleanup(() => popup.close());
+
+    return promise;
+  }, 'LNA Service Worker Public to Loopback Background Fetch without permission');
+
+</script>
+</body>

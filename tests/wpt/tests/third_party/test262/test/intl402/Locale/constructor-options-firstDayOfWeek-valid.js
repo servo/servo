@@ -9,15 +9,15 @@ info: |
     Intl.Locale( tag [, options] )
 
     ...
-    x. Let fw be ? GetOption(options, "firstDayOfWeek", "string", undefined, undefined).
-    x. If fw is not undefined, then
-       x. Set fw to !WeekdayToString(fw).
-       x. If fw does not match the type sequence (from UTS 35 Unicode Locale Identifier, section 3.2), throw a RangeError exception.
-    x. Set opt.[[fw]] to fw.
+    22. Let fw be ? GetOption(options, "firstDayOfWeek", string, empty, undefined).
+    23. If fw is not undefined, then
+       a. Set fw to WeekdayToUValue(fw).
+       b. If fw cannot be matched by the type Unicode locale nonterminal, throw a RangeError exception.
+    24. Set opt.[[fw]] to fw.
     ...
-    x. Let r be ! ApplyUnicodeExtensionToTag(tag, opt, relevantExtensionKeys).
+    35. Let r be MakeLocaleRecord(tag, opt, localeExtensionKeys).
     ...
-    x. Set locale.[[FirstDayOfWeek]] to r.[[fw]].
+    39. Set locale.[[FirstDayOfWeek]] to r.[[fw]].
     ...
 
 features: [Intl.Locale,Intl.Locale-info]
@@ -47,9 +47,25 @@ const validFirstDayOfWeekOptions = [
   [6, "en-u-fw-sat"],
   [7, "en-u-fw-sun"],
   [0, "en-u-fw-sun"],
+  [-0, "en-u-fw-sun"],
+  [100, "en-u-fw-100"],
+  [1000, "en-u-fw-1000"],
+  [1n, "en-u-fw-mon"],
+  [2n, "en-u-fw-tue"],
+  [3n, "en-u-fw-wed"],
+  [4n, "en-u-fw-thu"],
+  [5n, "en-u-fw-fri"],
+  [6n, "en-u-fw-sat"],
+  [7n, "en-u-fw-sun"],
+  [0n, "en-u-fw-sun"],
+  [100n, "en-u-fw-100"],
+  [1000n, "en-u-fw-1000"],
+  [NaN, "en-u-fw-nan"],
+  [Infinity, "en-u-fw-infinity"],
   [true, "en-u-fw"],
   [false, "en-u-fw-false"],
   [null, "en-u-fw-null"],
+  ["yes", "en-u-fw-yes"],
   ["primidi", "en-u-fw-primidi"],
   ["duodi", "en-u-fw-duodi"],
   ["tridi", "en-u-fw-tridi"],
@@ -68,13 +84,20 @@ const validFirstDayOfWeekOptions = [
 ];
 for (const [firstDayOfWeek, expected] of validFirstDayOfWeekOptions) {
   assert.sameValue(
-    new Intl.Locale('en', { firstDayOfWeek }).toString(),
+    new Intl.Locale("en", { firstDayOfWeek }).toString(),
     expected,
     `new Intl.Locale("en", { firstDayOfWeek: ${firstDayOfWeek} }).toString() returns "${expected}"`
   );
   assert.sameValue(
-    new Intl.Locale('en-u-fw-WED', { firstDayOfWeek }).toString(),
+    new Intl.Locale("en-u-fw-WED", { firstDayOfWeek }).toString(),
     expected,
     `new Intl.Locale("en-u-fw-WED", { firstDayOfWeek: ${firstDayOfWeek} }).toString() returns "${expected}"`
+  );
+
+  let upperCase = String(firstDayOfWeek).toUpperCase();
+  assert.sameValue(
+    new Intl.Locale("en", { firstDayOfWeek: upperCase }).toString(),
+    expected,
+    `new Intl.Locale("en", { firstDayOfWeek: ${upperCase} }).toString() returns "${expected}"`
   );
 }

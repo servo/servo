@@ -47,4 +47,9 @@ def main(request, response):
     if b"sec-ch-viewport-width" in request.headers and b"viewport-width" in request.headers:
       result = "MISMATCH"
 
-    response.content = "<script>(window.opener || window.top).postMessage('{0}', '*')</script>".format(result)
+    response.content = (
+        "<script>"
+        "fetch('clear-client-hints.html').finally(() => "
+        "(window.opener || window.top).postMessage('{0}', '*'))"
+        "</script>"
+    ).format(result)

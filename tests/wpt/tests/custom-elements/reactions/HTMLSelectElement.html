@@ -3,7 +3,7 @@
 <head>
 <title>Custom Elements: CEReactions on HTMLSelectElement interface</title>
 <meta name="author" title="Ryosuke Niwa" href="mailto:rniwa@webkit.org">
-<meta name="assert" content="length, add, remove, and the setter of HTMLSelectElement interface must have CEReactions">
+<meta name="assert" content="length, add, remove, the setter, selectedIndex, and value of HTMLSelectElement interface must have CEReactions">
 <meta name="help" content="https://dom.spec.whatwg.org/#node">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
@@ -116,6 +116,30 @@ test_with_window(function (contentWindow) {
     assert_equals(select.options.length, 0);
     assert_array_equals(element.takeLog().types(), ['disconnected']);
 }, 'remove on HTMLSelectElement must enqueue disconnectedCallback when removing a custom element');
+
+test_with_window(function (contentWindow, contentDocument) {
+    const element = define_custom_element_in_window(contentWindow, 'custom-element', []);
+    contentDocument.body.innerHTML = `<select><button><selectedcontent></selectedcontent></button><option>one</option><option><custom-element>two</custom-element></option></select>`;
+    assert_array_equals(element.takeLog().types(), ['constructed', 'connected']);
+
+    const select = contentDocument.querySelector('select');
+    const selectedcontent = contentDocument.querySelector('selectedcontent');
+    select.selectedIndex = 1;
+    assert_equals(selectedcontent.innerHTML, '<custom-element>two</custom-element>');
+    assert_array_equals(element.takeLog().types(), ['constructed', 'connected']);
+}, 'selectedIndex on HTMLSelectElement must enqueue connectedCallback when cloning a custom element into selectedcontent');
+
+test_with_window(function (contentWindow, contentDocument) {
+    const element = define_custom_element_in_window(contentWindow, 'custom-element', []);
+    contentDocument.body.innerHTML = `<select><button><selectedcontent></selectedcontent></button><option>one</option><option><custom-element>two</custom-element></option></select>`;
+    assert_array_equals(element.takeLog().types(), ['constructed', 'connected']);
+
+    const select = contentDocument.querySelector('select');
+    const selectedcontent = contentDocument.querySelector('selectedcontent');
+    select.value = 'two';
+    assert_equals(selectedcontent.innerHTML, '<custom-element>two</custom-element>');
+    assert_array_equals(element.takeLog().types(), ['constructed', 'connected']);
+}, 'value on HTMLSelectElement must enqueue connectedCallback when cloning a custom element into selectedcontent');
 
 </script>
 </body>

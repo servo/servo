@@ -2,43 +2,53 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
+use std::cell::{Cell, Ref};
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::inheritance::Castable;
+use script_bindings::reflector::reflect_dom_object;
 
+use crate::dom::bindings::codegen::Bindings::HTMLTrackElementBinding::HTMLTrackElementMethods;
 use crate::dom::bindings::codegen::Bindings::TextTrackBinding::{
     TextTrackKind, TextTrackMethods, TextTrackMode,
 };
 use crate::dom::bindings::error::{Error, ErrorResult};
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
+use crate::dom::bindings::root::{DomRoot, MutNullableDom, UnrootedDom};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::element::Element;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::htmltrackelement::HTMLTrackElement;
 use crate::dom::texttrackcue::TextTrackCue;
 use crate::dom::texttrackcuelist::TextTrackCueList;
 use crate::dom::texttracklist::TextTrackList;
+use crate::dom::webvtt::rules_for_rendering::RulesForUpdatingTheTextTrackRendering;
 use crate::dom::window::Window;
 
 #[dom_struct]
 pub(crate) struct TextTrack {
     eventtarget: EventTarget,
     /// <https://html.spec.whatwg.org/multipage/#text-track-kind>
-    kind: TextTrackKind,
+    kind: Cell<TextTrackKind>,
     /// <https://html.spec.whatwg.org/multipage/#text-track-label>
-    label: String,
+    label: DomRefCell<DOMString>,
     /// <https://html.spec.whatwg.org/multipage/#text-track-language>
-    language: String,
-    id: String,
+    language: DomRefCell<DOMString>,
+    /// <https://html.spec.whatwg.org/multipage/#text-track-identifier>
+    id: DomRefCell<DOMString>,
     /// <https://html.spec.whatwg.org/multipage/#text-track-mode>
     mode: Cell<TextTrackMode>,
     /// <https://html.spec.whatwg.org/multipage/#text-track-list-of-cues>
     cue_list: MutNullableDom<TextTrackCueList>,
-    track_list: DomRefCell<Option<Dom<TextTrackList>>>,
-    associated_track: DomRefCell<Option<Dom<HTMLTrackElement>>>,
+    /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-activecues>
+    active_cue_list: MutNullableDom<TextTrackCueList>,
+    track_list: MutNullableDom<TextTrackList>,
+    associated_track: MutNullableDom<HTMLTrackElement>,
+    /// <https://html.spec.whatwg.org/multipage/#rules-for-updating-the-text-track-rendering>
+    rules_for_updating_the_text_track_rendering:
+        Cell<Option<RulesForUpdatingTheTextTrackRendering>>,
 }
 
 impl TextTrack {
@@ -52,14 +62,16 @@ impl TextTrack {
     ) -> TextTrack {
         TextTrack {
             eventtarget: EventTarget::new_inherited(),
-            kind,
-            label: label.into(),
-            language: language.into(),
-            id: id.into(),
+            kind: Cell::new(kind),
+            label: DomRefCell::new(label),
+            language: DomRefCell::new(language),
+            id: DomRefCell::new(id),
             mode: Cell::new(mode),
             cue_list: Default::default(),
-            track_list: DomRefCell::new(track_list.map(Dom::from_ref)),
+            active_cue_list: Default::default(),
+            track_list: MutNullableDom::new(track_list),
             associated_track: Default::default(),
+            rules_for_updating_the_text_track_rendering: Default::default(),
         }
     }
 
@@ -74,46 +86,105 @@ impl TextTrack {
         mode: TextTrackMode,
         track_list: Option<&TextTrackList>,
     ) -> DomRoot<TextTrack> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(TextTrack::new_inherited(
                 id, kind, label, language, mode, track_list,
             )),
             window,
-            cx,
         )
     }
 
-    pub(crate) fn get_cues(&self, cx: &mut JSContext) -> DomRoot<TextTrackCueList> {
+    pub(crate) fn cues<'no_gc>(
+        &self,
+        no_gc: &'no_gc NoGC,
+    ) -> Vec<UnrootedDom<'no_gc, TextTrackCue>> {
         self.cue_list
-            .or_init(|| TextTrackCueList::new(cx, self.global().as_window(), &[]))
+            .get_unrooted(no_gc)
+            .map(|list| list.cues(no_gc))
+            .unwrap_or_default()
     }
 
-    pub(crate) fn id(&self) -> &str {
-        &self.id
+    pub(crate) fn text_track_cue_list(&self, cx: &mut JSContext) -> DomRoot<TextTrackCueList> {
+        self.cue_list
+            .or_init(|| TextTrackCueList::new(cx, self, self.global().as_window()))
+    }
+
+    fn active_text_track_cue_list(&self, cx: &mut JSContext) -> DomRoot<TextTrackCueList> {
+        let active_cue_list = self
+            .active_cue_list
+            .or_init(|| TextTrackCueList::new(cx, self, self.global().as_window()));
+        if let Some(cue_list) = self.cue_list.get_unrooted(cx.no_gc()) {
+            active_cue_list.refresh_active_cues(cx.no_gc(), cue_list);
+        }
+        active_cue_list
+    }
+
+    pub(crate) fn id(&self) -> Ref<'_, DOMString> {
+        self.id.borrow()
+    }
+
+    pub(crate) fn track_list(&self) -> Option<DomRoot<TextTrackList>> {
+        self.track_list.get()
     }
 
     pub(crate) fn add_track_list(&self, track_list: &TextTrackList) {
-        *self.track_list.borrow_mut() = Some(Dom::from_ref(track_list));
+        self.track_list.set(Some(track_list));
     }
 
     pub(crate) fn remove_track_list(&self) {
-        *self.track_list.borrow_mut() = None;
+        self.track_list.set(None);
     }
 
     pub(crate) fn associated_track(&self) -> Option<DomRoot<HTMLTrackElement>> {
-        self.associated_track
-            .borrow()
-            .as_ref()
-            .map(|track| DomRoot::from_ref(&**track))
+        self.associated_track.get()
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#sourcing-out-of-band-text-tracks>
     pub(crate) fn set_associated_track(&self, track_element: &HTMLTrackElement) {
-        *self.associated_track.borrow_mut() = Some(Dom::from_ref(track_element));
+        self.associated_track.set(Some(track_element));
+        // > When a track element is created, it must be associated with
+        // > a new text track (with its value set as defined below).
+        self.update_attributes_from_track_element(track_element);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#sourcing-out-of-band-text-tracks>
+    pub(crate) fn update_attributes_from_track_element(&self, track_element: &HTMLTrackElement) {
+        // > The text track kind is determined from the state of the
+        // > element's kind attribute according to the following table;
+        // > for a state given in a cell of the first column,
+        // > the kind is the string given in the second column:
+        self.kind.set(match track_element.Kind().str().as_ref() {
+            "subtitles" => TextTrackKind::Subtitles,
+            "captions" => TextTrackKind::Captions,
+            "descriptions" => TextTrackKind::Descriptions,
+            "chapters" => TextTrackKind::Chapters,
+            "metadata" => TextTrackKind::Metadata,
+            _ => unreachable!("Must always have these specific kind states"),
+        });
+        // > The text track label is the element's track label.
+        *self.label.borrow_mut() = track_element.Label();
+        // > The text track language is the element's track language,
+        // > if any; otherwise the empty string.
+        *self.language.borrow_mut() = track_element.Srclang();
+        // > The text track identifier is the element's id attribute value,
+        // > if any; otherwise the empty string.
+        *self.id.borrow_mut() = track_element
+            .upcast::<Element>()
+            .get_id()
+            .map(|value| DOMString::from(&*value))
+            .unwrap_or_default();
     }
 
     pub(crate) fn empty_cue_list(&self) {
         if let Some(cue_list) = self.cue_list.get() {
             cue_list.empty();
+        }
+    }
+
+    pub(crate) fn sort_cue_list(&self) {
+        if let Some(cue_list) = self.cue_list.get() {
+            cue_list.sort();
         }
     }
 
@@ -124,31 +195,52 @@ impl TextTrack {
         self.mode.set(value);
         // https://html.spec.whatwg.org/multipage/#sourcing-out-of-band-text-tracks:start-the-track-processing-model
         // > The text track has its text track mode changed.
-        if let Some(track_element) = self.associated_track.borrow().as_ref() {
+        if let Some(track_element) = self.associated_track.get() {
             track_element.start_the_track_processing_model(cx);
         }
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#rules-for-updating-the-text-track-rendering>
+    pub(crate) fn rules_for_updating_the_text_track_rendering(
+        &self,
+    ) -> Option<RulesForUpdatingTheTextTrackRendering> {
+        self.rules_for_updating_the_text_track_rendering.get()
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#rules-for-updating-the-text-track-rendering>
+    pub(crate) fn set_rules_for_updating_the_text_track_rendering(
+        &self,
+        rules: RulesForUpdatingTheTextTrackRendering,
+    ) {
+        debug_assert!(
+            self.rules_for_updating_the_text_track_rendering
+                .get()
+                .is_none()
+        );
+        self.rules_for_updating_the_text_track_rendering
+            .set(Some(rules));
     }
 }
 
 impl TextTrackMethods<crate::DomTypeHolder> for TextTrack {
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-kind>
     fn Kind(&self) -> TextTrackKind {
-        self.kind
+        self.kind.get()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-label>
     fn Label(&self) -> DOMString {
-        DOMString::from(self.label.clone())
+        self.label.borrow().clone()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-language>
     fn Language(&self) -> DOMString {
-        DOMString::from(self.language.clone())
+        self.language.borrow().clone()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-id>
     fn Id(&self) -> DOMString {
-        DOMString::from(self.id.clone())
+        self.id.borrow().clone()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-mode>
@@ -165,22 +257,52 @@ impl TextTrackMethods<crate::DomTypeHolder> for TextTrack {
     fn GetCues(&self, cx: &mut JSContext) -> Option<DomRoot<TextTrackCueList>> {
         match self.Mode() {
             TextTrackMode::Disabled => None,
-            _ => Some(self.get_cues(cx)),
+            _ => Some(self.text_track_cue_list(cx)),
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-activecues>
     fn GetActiveCues(&self, cx: &mut JSContext) -> Option<DomRoot<TextTrackCueList>> {
-        // XXX implement active cues logic
-        //      https://github.com/servo/servo/issues/22314
-        Some(TextTrackCueList::new(cx, self.global().as_window(), &[]))
+        // Step 1. If this's mode is the text track disabled mode, then return null.
+        if self.mode.get() == TextTrackMode::Disabled {
+            return None;
+        }
+        // Step 2. Return a live TextTrackCueList object that represents
+        // the subset of this's text track list of cues whose active flag
+        // was set when the script started, in text track cue order.
+        Some(self.active_text_track_cue_list(cx))
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-addcue>
     fn AddCue(&self, cx: &mut JSContext, cue: &TextTrackCue) -> ErrorResult {
-        // FIXME(#22314, dlrobertson) add Step 1 & 2
-        // Step 3
-        if let Some(old_track) = cue.get_track() {
+        // Step 1. Let list be this's text track list of cues.
+        //
+        // We store the rules of rendering in `TextTrack` rather than in `TextTrackCueList`
+
+        if let Some(rules_for_updating_the_text_track_rendering) =
+            self.rules_for_updating_the_text_track_rendering()
+        {
+            // Step 3. If list's associated rules for updating the text track rendering are not
+            // the same rules for updating the text track rendering as appropriate for cue,
+            // then throw an "InvalidStateError" DOMException.
+            if rules_for_updating_the_text_track_rendering !=
+                cue.rules_for_updating_the_text_track_rendering()
+            {
+                return Err(Error::InvalidState(Some(
+                    "Text cue rules of rendering do not match text track rules of rendering".into(),
+                )));
+            }
+        } else {
+            // Step 2. If list does not yet have any associated rules for updating the text track rendering,
+            // then associate list with the rules for updating the text track rendering appropriate to cue.
+            self.set_rules_for_updating_the_text_track_rendering(
+                cue.rules_for_updating_the_text_track_rendering(),
+            );
+        }
+
+        // Step 4. If the given cue is in a text track list of cues,
+        // then remove cue from that text track list of cues.
+        if let Some(old_track) = cue.get_text_track() {
             // gecko calls RemoveCue when the given cue
             // has an associated track, but doesn't return
             // the error from it, so we wont either.
@@ -188,20 +310,22 @@ impl TextTrackMethods<crate::DomTypeHolder> for TextTrack {
                 warn!("Failed to remove cues for the added cue's text track");
             }
         }
-        // Step 4
-        self.get_cues(cx).add(cue);
+        // Step 5. Add cue to list.
+        cue.set_text_track(Some(self));
+        self.text_track_cue_list(cx).add(cx, cue);
         Ok(())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-removecue>
     fn RemoveCue(&self, cx: &mut JSContext, cue: &TextTrackCue) -> ErrorResult {
         // Step 1
-        let cues = self.get_cues(cx);
+        let cues = self.text_track_cue_list(cx);
         let index = match cues.find(cue) {
             Some(i) => Ok(i),
             None => Err(Error::NotFound(None)),
         }?;
         // Step 2
+        cue.set_text_track(None);
         cues.remove(index);
         Ok(())
     }

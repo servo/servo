@@ -41,4 +41,4 @@ testWithTypedArrayConstructors(function(TA, makeCtorArg) {
     compareArray(new TA(makeCtorArg([0, 0, 0])).fill(8), [8, 8, 8]),
     "Default start and end indexes are 0 and this.length"
   );
-});
+}, null, null, ["immutable"]);

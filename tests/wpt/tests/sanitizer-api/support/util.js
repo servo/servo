@@ -276,6 +276,7 @@ function assert_config(config, expected) {
     "replaceWithChildrenElements",
     "comments",
     "dataAttributes",
+    "javascriptURLs",
   ];
 
   // Prevent some typos in the expected config.
@@ -403,5 +404,9 @@ function assert_config(config, expected) {
 
   if ("dataAttributes" in expected) {
     assert_equals(config.dataAttributes, expected.dataAttributes, "dataAttributes should match");
+  }
+
+  if ("javascriptURLs" in expected) {
+    assert_equals(config.javascriptURLs, expected.javascriptURLs, "javascriptURLs should match");
   }
 }

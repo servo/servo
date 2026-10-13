@@ -1,0 +1,57 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>A window created by WebDriver is not script-closable</title>
+<link rel="help" href="https://html.spec.whatwg.org/#script-closable"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/utils.js"></script>
+<div id="log"></div>
+
+<script>
+// Each subtest loads self-close.html in a new window. The page navigates
+// itself once, so the window's session history has more than one entry, then
+// calls window.close() and reports on the channel whether the close happened,
+// along with history.length. The window.open() subtest is a control: the same
+// history growth leaves a window created by web content script-closable.
+function watch_for_result(t, channel_name) {
+    const channel = new BroadcastChannel(channel_name);
+    t.add_cleanup(() => channel.close());
+    return new Promise(resolve => {
+        channel.addEventListener("message", ({data}) => {
+            if (data.name === "close failed" || data.name === "beforeunload") {
+                resolve(data);
+            }
+        });
+    });
+}
+
+function self_close_url(navs, channel_name) {
+    return new URL(`self-close.html?navs=${navs}&channel=${channel_name}`,
+                   location.href).href;
+}
+
+promise_test(async t => {
+    const channel_name = token();
+    const result = watch_for_result(t, channel_name);
+    const handle = await test_driver.create_window();
+    await test_driver.navigate(self_close_url(1, channel_name), handle);
+    const data = await result;
+    assert_greater_than(data.history, 1,
+                        "precondition: the window's session history must have grown");
+    assert_false(data.closed, "window.close() should have been ignored");
+}, "A window created by WebDriver is not script-closable once its session history size is greater than 1");
+
+promise_test(async t => {
+    const channel_name = token();
+    const result = watch_for_result(t, channel_name);
+    const popup = window.open(self_close_url(1, channel_name));
+    assert_not_equals(popup, null, "popup should not be blocked");
+    t.add_cleanup(() => popup.close());
+    const data = await result;
+    assert_greater_than(data.history, 1,
+                        "precondition: the window's session history must have grown");
+    assert_true(data.closed, "window.close() should have been permitted");
+}, "A window created by window.open() stays script-closable once its session history size is greater than 1");
+</script>

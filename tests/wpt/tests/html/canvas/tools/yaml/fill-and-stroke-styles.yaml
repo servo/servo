@@ -215,6 +215,28 @@
     css-color-4-hsl-6: {string: 'hsl(from #ffffff h s l) red'}
     css-color-4-hsl-7: {string: 'hsl(from #ffffff h s l) /'}
 
+# Test that colors requiring style context to be computed (which an
+# OffscreenCanvas doesn't have) are ignored.
+- name: 2d.fillStyle.parse.invalid.no-context
+  desc: Colors depending on a style context are invalid in OffscreenCanvas
+  canvas_types: ['OffscreenCanvas', 'Worker']
+  code: |
+    ctx.fillStyle = '#0f0';
+    ctx.fillStyle = '{{ string }}';
+    @assert ctx.fillStyle === '#00ff00';
+    ctx.fillRect(0, 0, 100, 50);
+    @assert pixel 50,25 == 0,255,0,255;
+  expected: 'green'
+  variants:
+  - random-1: {string: 'rgb(random(0, 255) random(0, 255) random(0, 255))'}
+    random-2: {string: 'rgb(255 0 0 / random(0, 1))'}
+    random-3: {string: 'rgb(from #f00 random(0, 255) g b)'}
+    random-4: {string: 'color(srgb random(0, 1) 0 0)'}
+    em-1: {string: 'rgb(calc(255 * 1em / 1px) 0 0)'}
+    em-2: {string: 'rgb(255 0 0 / calc(1em / 1px))'}
+    em-3: {string: 'rgb(from #f00 calc(r * 1em / 1px) g b)'}
+    em-4: {string: 'color(srgb calc(1em / 1px) 0 0)'}
+
 # Implemented as a negative test because we don't know what color it's meant to
 # be.
 - name: 2d.fillStyle.parse.system

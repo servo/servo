@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<title>:link-to()</title>
+<link rel="help" href="https://drafts.csswg.org/css-navigation-1/#link-to-pseudo-class">
+<style>
+  :link-to(url-pattern("/*/mandatory/:dir/:file")) {
+    --selector: matched;
+  }
+</style>
+<a id="link1" href="/jubajuba/mandatory/any1/any2">link1</a>
+<a id="link2" href="/jubajuba/mismatch/any1/any2">link2</a>
+<a id="link3" href="/jubajuba/mandatory/any1/">link2</a>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  const property = "--selector";
+  function assert_match(elm) {
+    assert_equals(getComputedStyle(elm).getPropertyValue(property), "matched", elm.id);
+  }
+  function assert_no_match(elm) {
+    assert_equals(getComputedStyle(elm).getPropertyValue(property), "", elm.id);
+  }
+
+  test(()=> {
+    assert_match(link1);
+    assert_no_match(link2);
+    assert_no_match(link3);
+  }, "link-to()");
+</script>

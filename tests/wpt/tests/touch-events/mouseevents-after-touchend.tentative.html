@@ -37,7 +37,12 @@ addEventListener("load", t => {
                       "touchend"]) {
     if (type == "touchend") {
       addEventListener(type, event => {
-        events.push({type: type, target: event.target});
+        events.push({
+          type: type,
+          target: event.target,
+          changedTouches: event.changedTouches.length,
+          touches: event.touches.length,
+        });
       }, {capture: true});
     } else {
       addEventListener(type, event => {
@@ -59,6 +64,12 @@ addEventListener("load", t => {
     function stringifyEvent(event) {
       return `{ type: ${event.type}, target: ${
         event.target.id || event.target.nodeName
+      }${
+        event.changedTouches !== undefined
+          ? `, changedTouches: ${event.changedTouches}`
+          : ""
+      }${
+        event.touches !== undefined ? `, touches: ${event.touches}` : ""
       }${
         event.detail !== undefined ? `, detail: ${event.detail}` : ""
       }${
@@ -99,7 +110,7 @@ addEventListener("load", t => {
     assert_equals(
       stringifyEvents(events),
       stringifyEvents([
-        { type: "touchend", target: child },
+        { type: "touchend", target: child, changedTouches: 1, touches: 0 },
         { type: "mousemove", target: child, detail: 0, button: 0, buttons: 0 },
         { type: "mousedown", target: child, detail: 1, button: 0, buttons: 1 },
         { type: "mouseup", target: child, detail: 1, button: 0, buttons: 0 },
@@ -123,7 +134,7 @@ addEventListener("load", t => {
     assert_equals(
       stringifyEvents(events),
       stringifyEvents([
-        { type: "touchend", target: child },
+        { type: "touchend", target: child, changedTouches: 1, touches: 0 },
       ])
     );
   }, "Single tap whose touchstart is consumed should not cause a click");
@@ -143,7 +154,7 @@ addEventListener("load", t => {
     assert_equals(
       stringifyEvents(events),
       stringifyEvents([
-        { type: "touchend", target: child },
+        { type: "touchend", target: child, changedTouches: 1, touches: 0 },
       ])
     );
   }, "Single tap whose touchend is consumed should not cause a click");
@@ -166,24 +177,24 @@ addEventListener("load", t => {
         // double click, therefore, it's fine either single click twice or
         // a set of a double-click.
         stringifyEvents([
-          { type: "touchend", target: child },
+          { type: "touchend", target: child, changedTouches: 1, touches: 0 },
           { type: "mousemove", target: child, detail: 0, button: 0, buttons: 0 },
           { type: "mousedown", target: child, detail: 1, button: 0, buttons: 1 },
           { type: "mouseup", target: child, detail: 1, button: 0, buttons: 0 },
           { type: "click", target: child, detail: 1, button: 0, buttons: 0 },
-          { type: "touchend", target: child },
+          { type: "touchend", target: child, changedTouches: 1, touches: 0 },
           { type: "mousemove", target: child, detail: 0, button: 0, buttons: 0 },
           { type: "mousedown", target: child, detail: 1, button: 0, buttons: 1 },
           { type: "mouseup", target: child, detail: 1, button: 0, buttons: 0 },
           { type: "click", target: child, detail: 1, button: 0, buttons: 0 },
         ]),
         stringifyEvents([
-          { type: "touchend", target: child },
+          { type: "touchend", target: child, changedTouches: 1, touches: 0 },
           { type: "mousemove", target: child, detail: 0, button: 0, buttons: 0 },
           { type: "mousedown", target: child, detail: 1, button: 0, buttons: 1 },
           { type: "mouseup", target: child, detail: 1, button: 0, buttons: 0 },
           { type: "click", target: child, detail: 1, button: 0, buttons: 0 },
-          { type: "touchend", target: child },
+          { type: "touchend", target: child, changedTouches: 1, touches: 0 },
           { type: "mousemove", target: child, detail: 0, button: 0, buttons: 0 },
           { type: "mousedown", target: child, detail: 2, button: 0, buttons: 1 },
           { type: "mouseup", target: child, detail: 2, button: 0, buttons: 0 },
@@ -209,12 +220,12 @@ addEventListener("load", t => {
     assert_equals(
       stringifyEvents(events),
       stringifyEvents([
-        { type: "touchend", target: child },
+        { type: "touchend", target: child, changedTouches: 1, touches: 0 },
         { type: "mousemove", target: child, detail: 0, button: 0, buttons: 0 },
         { type: "mousedown", target: child, detail: 1, button: 0, buttons: 1 },
         { type: "mouseup", target: child, detail: 1, button: 0, buttons: 0 },
         { type: "click", target: child, detail: 1, button: 0, buttons: 0 },
-        { type: "touchend", target: child },
+        { type: "touchend", target: child, changedTouches: 1, touches: 0 },
         { type: "mousemove", target: child, detail: 0, button: 0, buttons: 0 },
         { type: "mousedown", target: child, detail: 1, button: 0, buttons: 1 },
         { type: "mouseup", target: child, detail: 1, button: 0, buttons: 0 },
@@ -238,12 +249,12 @@ addEventListener("load", t => {
     assert_equals(
       stringifyEvents(events),
       stringifyEvents([
-        { type: "touchend", target: child },
+        { type: "touchend", target: child, changedTouches: 1, touches: 0 },
         { type: "mousemove", target: child, detail: 0, button: 0, buttons: 0 },
         { type: "mousedown", target: child, detail: 1, button: 0, buttons: 1 },
         { type: "mouseup", target: child, detail: 1, button: 0, buttons: 0 },
         { type: "click", target: child, detail: 1, button: 0, buttons: 0 },
-        { type: "touchend", target: child },
+        { type: "touchend", target: child, changedTouches: 1, touches: 0 },
         { type: "mousemove", target: child, detail: 0, button: 0, buttons: 0 },
         { type: "mousedown", target: child, detail: 1, button: 0, buttons: 1 },
         { type: "mouseup", target: child, detail: 1, button: 0, buttons: 0 },
@@ -265,11 +276,14 @@ addEventListener("load", t => {
       .pointerUp({sourceName: "touchPointer"})
       .pointerUp({sourceName: "touchPointer2"})
       .send();
+    // Both pointers are released in the same tick, i.e. at the same moment, and
+    // both of them started on #child.  Therefore a single touchend reporting
+    // both removed touch points is expected rather than one touchend per
+    // released pointer.
     assert_equals(
       stringifyEvents(events),
       stringifyEvents([
-        { type: "touchend", target: child },
-        { type: "touchend", target: child },
+        { type: "touchend", target: child, changedTouches: 2, touches: 0 },
       ])
     );
   }, "Multi tap should not cause mouse events");

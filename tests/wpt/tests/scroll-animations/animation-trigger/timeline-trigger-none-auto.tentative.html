@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <link rel="help" src="https://drafts.csswg.org/css-animations-2/#animation-trigger">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/web-animations/testcommon.js"></script>
+</head>
+<body>
+  <style>
+    @keyframes anim {
+      from { width: 100px; }
+      to { width: 200px; }
+    }
+    #target {
+      width: 100px;
+      height: 50px;
+      animation: anim 1s both;
+      timeline-trigger: --trigger none;
+      animation-trigger: --trigger play;
+    }
+  </style>
+  <div id="target"></div>
+  <script>
+    promise_test(async (test) => {
+      const target = document.getElementById("target");
+      const animation = target.getAnimations()[0];
+
+      // A trigger with timeline-trigger-source: none has no timeline and does
+      // not trip, so the attached animation remains paused.
+      assert_equals(animation.playState, "paused",
+                    "animation should be paused when trigger source is none");
+
+      // When changing timeline-trigger-source from 'none' to 'auto', the
+      // trigger receives the document timeline, trips immediately, and the
+      // animation starts running.
+      target.style.timelineTriggerSource = "auto";
+      await waitForNextFrame();
+      assert_equals(animation.playState, "running",
+                    "animation should run when trigger source is changed to auto");
+    }, "timeline-trigger-source: none does not trigger animation; auto does");
+  </script>
+</body>
+</html>

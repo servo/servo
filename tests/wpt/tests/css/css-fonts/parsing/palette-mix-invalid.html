@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Parsing of invalid palette-mix() functions</title>
+<link rel="help" href="https://www.w3.org/TR/css-fonts-4/#propdef-font-palette">
+<link rel="author" title="Sam Weinig" href="mailto:sam@webkit.org">
+<meta name="assert" content="Check that invalid values for palette-mix() don't parse">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+  test_invalid_value(`font-palette`, `palette-mix(in oklab,         dark -10%,   light 40%)`); // Percentages less than 0 are not valid.
+  test_invalid_value(`font-palette`, `palette-mix(in oklab,         dark 150%,   light 40%)`); // Percentages greater than 100 are not valid.
+  test_invalid_value(`font-palette`, `palette-mix(in oklab          dark  60%,   light 40%)`); // Missing comma after interpolation method.
+  test_invalid_value(`font-palette`, `palette-mix(in oklab,         dark  60%    light 40%)`); // Missing comma between components.
+  test_invalid_value(`font-palette`, `palette-mix(   oklab,         dark  60%    light 40%)`); // Missing in keyword.
+  test_invalid_value(`font-palette`, `palette-mix(                  dark  60%,   light 40%, in oklab)`); // Interpolation method not at the beginning.
+  test_invalid_value(`font-palette`, `palette-mix(in oklch hue,     dark  60%,   light 40%)`); // `hue` keyword without a specified method.
+  test_invalid_value(`font-palette`, `palette-mix(in oklch shorter, dark  60%,   light 40%)`); // Specified hue method without trailing `hue` keyword.
+  test_invalid_value(`font-palette`, `palette-mix(in oklch foo,     dark  60%,   light 40%)`); // Trailing identifier after color space that is not a hue method.
+  test_invalid_value(`font-palette`, `palette-mix(in oklab,         dark  60%, , light 40%)`); // Empty component.
+  test_invalid_value(`font-palette`, `palette-mix(in oklab,         dark  60%, , light 40% foo)`); // Garbage after end.
+
+  // 1 or more components
+  test_invalid_value(`font-palette`, `palette-mix(in oklab, dark -10%)`);
+  test_invalid_value(`font-palette`, `palette-mix(in oklab, dark -10%, light 50%, --for)`);
+  test_invalid_value(`font-palette`, `palette-mix(in oklab, dark -10%, light,     --foo)`);
+  test_invalid_value(`font-palette`, `palette-mix(in oklab, dark 150%, light 50%, --foo)`);
+  test_invalid_value(`font-palette`, `palette-mix(in oklab, dark 150%, light,     --foo)`);
+</script>
+</body>
+</html>

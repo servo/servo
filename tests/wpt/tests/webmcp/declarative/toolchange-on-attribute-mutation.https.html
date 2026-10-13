@@ -125,5 +125,51 @@ promise_test(async t => {
     assert_equals(tools.length, 0, "Tool should be unregistered when name is removed");
   }
 }, "Test that mutating or removing form attributes (toolname, tooldescription, tooltitle, toolautosubmit) fires toolchange and updates getTools() correctly");
+
+promise_test(async t => {
+  const form = document.createElement('form');
+  form.setAttribute('toolname', 'attr_test_tool');
+  form.setAttribute('tooldescription', 'desc');
+  const input = document.createElement('input');
+  input.name = 'input_name';
+  form.appendChild(input);
+  document.body.appendChild(form);
+  t.add_cleanup(() => form.remove());
+
+  await waitForTool('attr_test_tool');
+
+  let toolchangeCount = 0;
+  const listener = () => toolchangeCount++;
+  document.modelContext.addEventListener('toolchange', listener);
+  t.add_cleanup(() => document.modelContext.removeEventListener('toolchange', listener));
+
+  input.setAttribute('data-unrelated', 'value');
+  await new Promise(resolve => t.step_timeout(resolve, 50));
+  assert_equals(toolchangeCount, 0, 'toolchange should not fire on unrelated attribute');
+}, "No toolchange event on unrelated attribute mutation");
+
+promise_test(async t => {
+  const form = document.createElement('form');
+  form.setAttribute('toolname', 'redundant_test_tool');
+  form.setAttribute('tooldescription', 'desc');
+  const input = document.createElement('input');
+  input.name = 'input_name';
+  form.appendChild(input);
+  document.body.appendChild(form);
+  t.add_cleanup(() => form.remove());
+
+  await waitForTool('redundant_test_tool');
+
+  let toolchangeCount = 0;
+  const listener = () => toolchangeCount++;
+  document.modelContext.addEventListener('toolchange', listener);
+  t.add_cleanup(() => document.modelContext.removeEventListener('toolchange', listener));
+
+  input.remove();
+  form.appendChild(input);
+  await new Promise(resolve => t.step_timeout(resolve, 50));
+  assert_equals(toolchangeCount, 0, 'toolchange should not fire on redundant schema mutation');
+}, "No toolchange event on redundant schema mutation");
 </script>
 </body>
+

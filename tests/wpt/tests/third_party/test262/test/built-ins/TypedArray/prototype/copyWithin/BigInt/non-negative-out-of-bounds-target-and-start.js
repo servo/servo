@@ -71,4 +71,4 @@ testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
     ),
     '[1, 2, 3, 4, 5].copyWithin(Infinity, Infinity) -> [1, 2, 3, 4, 5]'
   );
-});
+}, null, null, ["immutable"]);

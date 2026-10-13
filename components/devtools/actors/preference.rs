@@ -63,7 +63,7 @@ impl PreferenceActor {
     ) -> Result<(), ActorError> {
         match msg_type {
             "getBoolPref" => self.write_bool(request, false),
-            "getCharPref" => self.write_char(request, "".into()),
+            "getCharPref" => self.write_char(request, String::new()),
             "getIntPref" => self.write_int(request, 0),
             "getFloatPref" => self.write_float(request, 0.),
             _ => Err(ActorError::UnrecognizedPacketType),

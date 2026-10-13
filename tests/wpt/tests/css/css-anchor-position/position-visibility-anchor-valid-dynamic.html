@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-visibility">
+<link rel="match" href="position-visibility-anchor-valid-dynamic-ref.html">
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+.container {
+  position: relative;
+  width: 50px;
+  height: 100px;
+  display: inline-grid;
+  vertical-align: top;
+  margin: 5px;
+}
+.anchor {
+  width: 50px;
+  height: 50px;
+  background: orange;
+}
+.red {
+  background: red;
+}
+.green {
+  background: green;
+}
+.target {
+  position: absolute;
+  position-visibility: anchor-valid;
+  width: 50px;
+  height: 50px;
+}
+</style>
+
+<!-- Case 1: starts invalid (hidden), dynamically becomes valid (visible) -->
+<div class="container red">
+  <div id="anchor1" class="anchor"></div>
+  <div id="target1" class="target green" style="position-anchor: --a1; position-area: bottom; inset: 0;"></div>
+</div>
+
+<!-- Case 2: starts valid (visible), dynamically becomes invalid (hidden) -->
+<div class="container green">
+  <div id="anchor2" class="anchor" style="anchor-name: --a2;"></div>
+  <div id="target2" class="target red" style="position-anchor: --a2; position-area: bottom; inset: 0;"></div>
+</div>
+
+<script>
+requestAnimationFrame(() => {
+  requestAnimationFrame(() => {
+    // 1. Make anchor1 valid -> target1 should appear and cover the red.
+    anchor1.style.anchorName = '--a1';
+
+    // 2. Make anchor2 invalid -> target2 should disappear and reveal the green.
+    anchor2.style.anchorName = 'none';
+
+    takeScreenshot();
+  });
+});
+</script>
+</html>

@@ -8,4 +8,4 @@ description: >
     not Object
 ---*/
 
-Object.isSealed(0);
+assert.sameValue(Object.isSealed(0), true);

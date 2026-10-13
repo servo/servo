@@ -4,6 +4,7 @@
 <html class="reftest-wait">
 <link rel="stylesheet" href="/html/canvas/resources/canvas-grid-reftest.css">
 <link rel="match" href="2d.text.measure.fillTextCluster-drawing-styles-change.tentative-expected.html">
+<script src="/common/reftest-wait.js"></script>
 <title>Canvas test: 2d.text.measure.fillTextCluster-drawing-styles-change.tentative</title>
 <h1>2d.text.measure.fillTextCluster-drawing-styles-change.tentative</h1>
 <p class="desc">Test that fillTextCluster() renders using the drawing styles as they were when `ctx.measureText()` was called, regardless of any changes in the context since.</p>
@@ -17,38 +18,47 @@
   </canvas>
   <script id="myWorker0" type="text/worker">
     self.onmessage = function(e) {
-      const canvas = new OffscreenCanvas(250, 80);
-      const ctx = canvas.getContext('2d');
+      try {
+        const canvas = new OffscreenCanvas(250, 80);
+        const ctx = canvas.getContext('2d');
 
-      ctx.font = '20px serif';
-      const text = 'Test ♦️ find';
+        ctx.font = '20px serif';
+        const text = 'Test ♦️ find';
 
-      ctx.letterSpacing = '2px';
+        ctx.letterSpacing = '2px';
 
-      let tm = ctx.measureText(text);
-      const clusters = tm.getTextClusters();
+        let tm = ctx.measureText(text);
+        const clusters = tm.getTextClusters();
 
-      ctx.letterSpacing = '6px';
+        ctx.letterSpacing = '6px';
 
-      for (const cluster of clusters) {
-          ctx.fillTextCluster(cluster, 10, 25);
+        for (const cluster of clusters) {
+            ctx.fillTextCluster(cluster, 10, 25);
+        }
+
+        ctx.fillText(text, 10, 50);
+
+        const bitmap = canvas.transferToImageBitmap();
+        self.postMessage({ type: 'bitmap', bitmap }, [bitmap]);
+      } catch (error) {
+        self.postMessage({ type: 'error', message: error });
       }
-
-      ctx.fillText(text, 10, 50);
-
-      const bitmap = canvas.transferToImageBitmap();
-      self.postMessage(bitmap, bitmap);
     };
   </script>
   <script type="module">
     const blob = new Blob([document.getElementById('myWorker0').textContent]);
     const worker = new Worker(URL.createObjectURL(blob));
-    worker.addEventListener('message', msg => {
+    worker.onerror = failOnError;
+    worker.onmessage = reftestStep(msg => {
+      if (msg.data.type === 'error') {
+        failOnError(msg.data.message);
+        return;
+      }
       const outputCanvas = document.getElementById('canvas0');
       const outputCtx = outputCanvas.getContext('2d');
-      outputCtx.drawImage(msg.data, 0, 0);
+      outputCtx.drawImage(msg.data.bitmap, 0, 0);
       if (--pending_tests == 0) {
-        document.documentElement.classList.remove('reftest-wait');
+        takeScreenshot();
       }
     });
     worker.postMessage(null);
@@ -62,38 +72,47 @@
   </canvas>
   <script id="myWorker1" type="text/worker">
     self.onmessage = function(e) {
-      const canvas = new OffscreenCanvas(250, 80);
-      const ctx = canvas.getContext('2d');
+      try {
+        const canvas = new OffscreenCanvas(250, 80);
+        const ctx = canvas.getContext('2d');
 
-      ctx.font = '20px serif';
-      const text = 'Test ♦️ find';
+        ctx.font = '20px serif';
+        const text = 'Test ♦️ find';
 
-      ctx.wordSpacing = '2px';
+        ctx.wordSpacing = '2px';
 
-      let tm = ctx.measureText(text);
-      const clusters = tm.getTextClusters();
+        let tm = ctx.measureText(text);
+        const clusters = tm.getTextClusters();
 
-      ctx.wordSpacing = '10px';
+        ctx.wordSpacing = '10px';
 
-      for (const cluster of clusters) {
-          ctx.fillTextCluster(cluster, 10, 25);
+        for (const cluster of clusters) {
+            ctx.fillTextCluster(cluster, 10, 25);
+        }
+
+        ctx.fillText(text, 10, 50);
+
+        const bitmap = canvas.transferToImageBitmap();
+        self.postMessage({ type: 'bitmap', bitmap }, [bitmap]);
+      } catch (error) {
+        self.postMessage({ type: 'error', message: error });
       }
-
-      ctx.fillText(text, 10, 50);
-
-      const bitmap = canvas.transferToImageBitmap();
-      self.postMessage(bitmap, bitmap);
     };
   </script>
   <script type="module">
     const blob = new Blob([document.getElementById('myWorker1').textContent]);
     const worker = new Worker(URL.createObjectURL(blob));
-    worker.addEventListener('message', msg => {
+    worker.onerror = failOnError;
+    worker.onmessage = reftestStep(msg => {
+      if (msg.data.type === 'error') {
+        failOnError(msg.data.message);
+        return;
+      }
       const outputCanvas = document.getElementById('canvas1');
       const outputCtx = outputCanvas.getContext('2d');
-      outputCtx.drawImage(msg.data, 0, 0);
+      outputCtx.drawImage(msg.data.bitmap, 0, 0);
       if (--pending_tests == 0) {
-        document.documentElement.classList.remove('reftest-wait');
+        takeScreenshot();
       }
     });
     worker.postMessage(null);
@@ -107,38 +126,47 @@
   </canvas>
   <script id="myWorker2" type="text/worker">
     self.onmessage = function(e) {
-      const canvas = new OffscreenCanvas(250, 80);
-      const ctx = canvas.getContext('2d');
+      try {
+        const canvas = new OffscreenCanvas(250, 80);
+        const ctx = canvas.getContext('2d');
 
-      ctx.font = '20px serif';
-      const text = 'Test ♦️ find';
+        ctx.font = '20px serif';
+        const text = 'Test ♦️ find';
 
-      ctx.fontKerning = 'none';
+        ctx.fontKerning = 'none';
 
-      let tm = ctx.measureText(text);
-      const clusters = tm.getTextClusters();
+        let tm = ctx.measureText(text);
+        const clusters = tm.getTextClusters();
 
-      ctx.fontKerning = 'normal';
+        ctx.fontKerning = 'normal';
 
-      for (const cluster of clusters) {
-          ctx.fillTextCluster(cluster, 10, 25);
+        for (const cluster of clusters) {
+            ctx.fillTextCluster(cluster, 10, 25);
+        }
+
+        ctx.fillText(text, 10, 50);
+
+        const bitmap = canvas.transferToImageBitmap();
+        self.postMessage({ type: 'bitmap', bitmap }, [bitmap]);
+      } catch (error) {
+        self.postMessage({ type: 'error', message: error });
       }
-
-      ctx.fillText(text, 10, 50);
-
-      const bitmap = canvas.transferToImageBitmap();
-      self.postMessage(bitmap, bitmap);
     };
   </script>
   <script type="module">
     const blob = new Blob([document.getElementById('myWorker2').textContent]);
     const worker = new Worker(URL.createObjectURL(blob));
-    worker.addEventListener('message', msg => {
+    worker.onerror = failOnError;
+    worker.onmessage = reftestStep(msg => {
+      if (msg.data.type === 'error') {
+        failOnError(msg.data.message);
+        return;
+      }
       const outputCanvas = document.getElementById('canvas2');
       const outputCtx = outputCanvas.getContext('2d');
-      outputCtx.drawImage(msg.data, 0, 0);
+      outputCtx.drawImage(msg.data.bitmap, 0, 0);
       if (--pending_tests == 0) {
-        document.documentElement.classList.remove('reftest-wait');
+        takeScreenshot();
       }
     });
     worker.postMessage(null);
@@ -152,38 +180,47 @@
   </canvas>
   <script id="myWorker3" type="text/worker">
     self.onmessage = function(e) {
-      const canvas = new OffscreenCanvas(250, 80);
-      const ctx = canvas.getContext('2d');
+      try {
+        const canvas = new OffscreenCanvas(250, 80);
+        const ctx = canvas.getContext('2d');
 
-      ctx.font = '20px serif';
-      const text = 'Test ♦️ find';
+        ctx.font = '20px serif';
+        const text = 'Test ♦️ find';
 
-      ctx.fontVariantCaps = 'small-caps';
+        ctx.fontVariantCaps = 'small-caps';
 
-      let tm = ctx.measureText(text);
-      const clusters = tm.getTextClusters();
+        let tm = ctx.measureText(text);
+        const clusters = tm.getTextClusters();
 
-      ctx.fontVariantCaps = 'all-small-caps';
+        ctx.fontVariantCaps = 'all-small-caps';
 
-      for (const cluster of clusters) {
-          ctx.fillTextCluster(cluster, 10, 25);
+        for (const cluster of clusters) {
+            ctx.fillTextCluster(cluster, 10, 25);
+        }
+
+        ctx.fillText(text, 10, 50);
+
+        const bitmap = canvas.transferToImageBitmap();
+        self.postMessage({ type: 'bitmap', bitmap }, [bitmap]);
+      } catch (error) {
+        self.postMessage({ type: 'error', message: error });
       }
-
-      ctx.fillText(text, 10, 50);
-
-      const bitmap = canvas.transferToImageBitmap();
-      self.postMessage(bitmap, bitmap);
     };
   </script>
   <script type="module">
     const blob = new Blob([document.getElementById('myWorker3').textContent]);
     const worker = new Worker(URL.createObjectURL(blob));
-    worker.addEventListener('message', msg => {
+    worker.onerror = failOnError;
+    worker.onmessage = reftestStep(msg => {
+      if (msg.data.type === 'error') {
+        failOnError(msg.data.message);
+        return;
+      }
       const outputCanvas = document.getElementById('canvas3');
       const outputCtx = outputCanvas.getContext('2d');
-      outputCtx.drawImage(msg.data, 0, 0);
+      outputCtx.drawImage(msg.data.bitmap, 0, 0);
       if (--pending_tests == 0) {
-        document.documentElement.classList.remove('reftest-wait');
+        takeScreenshot();
       }
     });
     worker.postMessage(null);

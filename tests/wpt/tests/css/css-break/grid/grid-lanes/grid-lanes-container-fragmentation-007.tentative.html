@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>
+  Contenteditable column grid-lanes container fragmentation.
+</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square-only.html">
+<style>
+  .multicol {
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0px;
+    height: 50px;
+    width: 100px;
+  }
+  .grid-lanes {
+    background-color: green;
+    display: grid-lanes;
+    line-height: 80px;
+    padding-bottom: 100px;
+    padding-top: 20px;
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class="multicol">
+  <div class="grid-lanes" contenteditable="true"></div>
+</div>

@@ -103,28 +103,6 @@ def _is_windows() -> bool:
     return sys.platform == "win32"
 
 
-def bootstrap_command_only(topdir: str) -> int:
-    # We cannot import these modules until the virtual environment
-    # is active because they depend on modules installed via the
-    # virtual environment.
-    # pylint: disable=import-outside-toplevel
-    import servo.platform
-    import servo.util
-
-    try:
-        force = "-f" in sys.argv or "--force" in sys.argv
-        yes = "--yes" in sys.argv or "-y" in sys.argv
-        skip_platform = "--skip-platform" in sys.argv
-        skip_lints = "--skip-lints" in sys.argv
-        skip_nextest = "--skip-nextest" in sys.argv
-        servo.platform.get().bootstrap(force, yes, skip_platform, skip_lints, skip_nextest)
-    except NotImplementedError as exception:
-        print(exception)
-        return 1
-
-    return 0
-
-
 def bootstrap(topdir: str) -> "Mach":
     _ensure_case_insensitive_if_windows()
 

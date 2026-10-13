@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>UI Events: editing default action of a WebDriver keyDown action</title>
+<meta name="assert"
+      content="A character-producing WebDriver keyDown action dispatches keydown, then beforeinput and input, and updates the focused text control before the action sequence completes. Canceling keydown suppresses the editing events and value change.">
+<link rel="help" href="https://w3c.github.io/webdriver/#dfn-dispatch-a-keydown-action">
+<link rel="help" href="https://w3c.github.io/uievents/#event-type-keydown">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<body>
+<script>
+const eventTypesToRecord = ["keydown", "beforeinput", "input"];
+
+function setupInput(t, sourceId) {
+  const eventLog = [];
+  const input = document.createElement("input");
+  for (const eventType of eventTypesToRecord) {
+    input.addEventListener(eventType, event => eventLog.push(event.type));
+  }
+  document.body.appendChild(input);
+  input.focus();
+
+  t.add_cleanup(async () => {
+    try {
+      await new test_driver.Actions()
+          .addKeyboard(sourceId)
+          .keyUp("a")
+          .send();
+    } finally {
+      input.remove();
+    }
+  });
+
+  return {input, eventLog};
+}
+
+function sendKeyDown(sourceId) {
+  return new test_driver.Actions()
+      .addKeyboard(sourceId)
+      .keyDown("a")
+      .send();
+}
+
+promise_test(async t => {
+  const sourceId = "character-key";
+  const {input, eventLog} = setupInput(t, sourceId);
+
+  await sendKeyDown(sourceId);
+
+  assert_array_equals(
+      eventLog, ["keydown", "beforeinput", "input"],
+      "keyDown should dispatch keydown, beforeinput, and input in order");
+  assert_equals(
+      input.value, "a",
+      "keyDown should insert the character before completing");
+}, "keyDown performs character insertion before completing");
+
+promise_test(async t => {
+  const sourceId = "canceled-character-key";
+  const {input, eventLog} = setupInput(t, sourceId);
+  input.addEventListener("keydown", event => event.preventDefault());
+
+  await sendKeyDown(sourceId);
+
+  assert_array_equals(
+      eventLog, ["keydown"],
+      "Canceling keydown should suppress the editing events");
+  assert_equals(
+      input.value, "", "Canceling keydown should prevent character insertion");
+}, "Canceling keydown suppresses its editing default action");
+</script>

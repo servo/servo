@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-spanning-items">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#item-margins">
+<link rel="match" href="grid-spanning-item-with-paddings-auto-columns-001-ref.html">
+<meta name="assert" content="The paddings of an item spanning two auto columns contribute to the column sizes, and its vertical paddings to the row size.">
+<html>
+<link href="/css/support/grid.css" rel="stylesheet">
+<!-- A grid item spanning two content-sized columns distributes its size
+     contribution (including its padding) across those columns (CSS Grid
+     Layout 1 §12.5, #algo-spanning-items). With distinct padding on every
+     edge, the left+right padding must feed column sizing and the top+bottom
+     padding must feed the row height. justify-items: normal lets the
+     second-row markers stretch to reveal each computed column width. -->
+<style>
+.grid {
+    /* Sized to the content so there is no free space for the "Stretch auto
+       Tracks" step (§11.8) to distribute; the auto columns then keep their
+       content-based sizes (50px each) instead of stretching. */
+    width: 100px;
+    grid-template-columns: auto auto;
+    justify-items: normal;
+}
+
+.spanner {
+    grid-column: 1 / 3;
+    grid-row: 1 / 2;
+    box-sizing: content-box;
+    width: 40px;
+    height: 20px;
+    padding: 10px 20px 30px 40px;
+}
+
+.leftColumnMarker {
+    grid-column: 1 / 2;
+    grid-row: 2 / 3;
+    height: 20px;
+    background-color: blue;
+}
+
+.rightColumnMarker {
+    grid-column: 2 / 3;
+    grid-row: 2 / 3;
+    height: 20px;
+    background-color: purple;
+}
+</style>
+
+<body>
+    <div class="grid">
+        <div class="spanner"></div>
+        <div class="leftColumnMarker"></div>
+        <div class="rightColumnMarker"></div>
+    </div>
+</body>
+</html>

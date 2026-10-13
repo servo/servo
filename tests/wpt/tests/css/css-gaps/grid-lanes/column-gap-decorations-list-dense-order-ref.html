@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(2, 60px);
+    grid-lanes-pack: dense;
+    gap: 10px;
+    background: #cdd5e0;
+    width: max-content;
+  }
+  .lanes > div {
+    height: 30px;
+    background: #5b8def;
+    color: #fff;
+    font: 600 12px/1 sans-serif;
+  }
+  .lanes > div.tall { grid-column: 1; height: 130px; }
+  .lanes > div.t2 { grid-column: 2; }
+  .lanes > div.s {
+    grid-column: 1 / span 2;
+    background: #8a6df0;
+  }
+  .lanes > div.fill { height: 40px; background: #d17b0f; }
+  .row-rule { position: absolute; height: 0; width: 60px; }
+</style>
+<div class="lanes">
+  <div class="tall">1</div>
+  <div class="t2">2</div>
+  <div class="t2">3</div>
+  <div class="s">4 (span 2)</div>
+  <div class="fill">5</div>
+</div>
+<div class="row-rule" style="top: 133px; left: 0; border-top: 4px solid blue;"></div>
+<div class="row-rule" style="top: 33px; left: 70px; border-top: 4px solid blue;"></div>
+<div class="row-rule" style="top: 73px; left: 70px; border-top: 4px solid gold;"></div>
+<div class="row-rule" style="top: 133px; left: 70px; border-top: 4px solid purple;"></div>

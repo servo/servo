@@ -115,7 +115,7 @@ fn create_http_state(fc: Option<GenericEmbedderProxy<NetToEmbedderMsg>>) -> Http
         cookie_jar: RwLock::new(net::cookie_storage::CookieStorage::new(150)),
         auth_cache: RwLock::new(net::resource_thread::AuthCache::default()),
         history_states: RwLock::new(FxHashMap::default()),
-        http_cache: net::http_cache::HttpCache::default(),
+        http_cache: net::http_cache::HttpCache::new(net::http_cache::HttpCacheAssignment::Public),
         client: create_http_client(create_tls_config(
             net::connector::CACertificates::Default,
             false, /* ignore_certificate_errors */
@@ -152,7 +152,7 @@ fn new_fetch_context(
 impl FetchTaskTarget for FetchResponseCollector {
     fn process_request_body(&mut self, _: &Request) {}
     fn process_response(&mut self, _: &Request, _: &Response) {}
-    fn process_response_chunk(&mut self, _: &Request, _: Vec<u8>) {}
+    fn process_response_chunk(&mut self, _: &Request, _: bytes::Bytes) {}
     /// Fired when the response is fully fetched
     fn process_response_eof(&mut self, _: &Request, response: &Response) {
         let _ = self.sender.take().unwrap().send(response.clone());
@@ -167,7 +167,7 @@ fn fetch_with_context(request: Request, mut context: &mut FetchContext) -> Respo
     let mut target = FetchResponseCollector {
         sender: Some(sender),
     };
-    spawn_blocking_task::<_, Response>(async move {
+    spawn_blocking_task(async move {
         methods::fetch(request, &mut target, &mut context).await;
         receiver.await.unwrap()
     })
@@ -179,7 +179,7 @@ fn fetch_with_cors_cache(request: Request, cache: &mut CorsCache) -> Response {
         sender: Some(sender),
     };
     let mut fetch_context = new_fetch_context(None, None);
-    spawn_blocking_task::<_, Response>(async move {
+    spawn_blocking_task(async move {
         methods::fetch_with_cors_cache(request, cache, &mut target, &mut fetch_context).await;
         receiver.await.unwrap()
     })

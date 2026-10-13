@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Overflow: verify -webkit-line-clamp computed value serialization</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#webkit-line-clamp">
+<meta name="assert" content="Verify -webkit-line-clamp computed value serialization.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+test_computed_value("-webkit-line-clamp", "none");
+test_computed_value("-webkit-line-clamp", "1");
+
+test(() => {
+  ["auto", "discard", "collapse"].forEach(function(value) {
+      if (CSS.supports("continue", value)) {
+        target.style["-webkit-line-clamp"] = '1';
+        assert_equals(getComputedStyle(target)["-webkit-line-clamp"], "1");
+        target.style["continue"] = value;
+        assert_equals(getComputedStyle(target)["-webkit-line-clamp"], "");
+      }
+  });
+}, `Property -webkit-line-clamp serializes to empty when longhand continue is not -webkit-legacy`);
+
+test(() => {
+  ["no-ellipsis", "'foo'"].forEach(function(value) {
+    if (CSS.supports("block-ellipsis", value)) {
+      target.style["-webkit-line-clamp"] = '1';
+      assert_equals(getComputedStyle(target)["-webkit-line-clamp"], "1");
+      target.style["block-ellipsis"] = value;
+      assert_equals(getComputedStyle(target)["-webkit-line-clamp"], "");
+    }
+  });
+}, `Property -webkit-line-clamp serializes to empty when longhand block-ellipsis is not ellipsis`);
+
+test(() => {
+  if (CSS.supports("max-lines",  'auto')) {
+    target.style["-webkit-line-clamp"] = '1';
+    assert_equals(getComputedStyle(target)["-webkit-line-clamp"], "1");
+    target.style["max-lines"] = 'auto';
+    assert_equals(getComputedStyle(target)["-webkit-line-clamp"], "");
+  }
+}, `Property -webkit-line-clamp serializes to empty when longhand max-lines is not an integer`);
+
+</script>
+</body>
+</html>

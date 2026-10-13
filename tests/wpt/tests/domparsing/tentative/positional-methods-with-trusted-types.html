@@ -17,23 +17,35 @@
   <script>
     let createHTML = (html) => html;
     const default_policy = trustedTypes.createPolicy("default", {
-      createHTML: (html) => createHTML(html),
+      createHTML: (html, type, sink) => createHTML(html, type, sink),
     });
 
-    function create_tests(target_type, pos, safe) {
+    function expected_sink_name(target_type, pos, method_name) {
+      if (pos === "append" || pos === "prepend") {
+        const iface = target_type === "ShadowRoot" ? "ShadowRoot" : "Element";
+        return `${iface} ${method_name}`;
+      }
+      return `Node ${method_name}`;
+    }
+
+    function create_tests(target_type, pos, ref_type, safe) {
       const method_name = `${pos}HTML${safe ? "" : "Unsafe"}`;
-      const variant = `${target_type}.${method_name}`;
+      const variant = `${ref_type}.${method_name} (${target_type})`;
       const prepare = (t) => {
         t.add_cleanup(() => {
           createHTML = (html) => html;
         });
-        return prepare_html_partial_update(target_type, "Element", pos, t);
+        return prepare_html_partial_update(target_type, ref_type, pos, t);
       };
 
       test(
         (t) => {
           const { target, ref, object } = prepare(t);
-          createHTML = (html) => {
+          let recorded_type = null;
+          let recorded_sink = null;
+          createHTML = (html, type, sink) => {
+            recorded_type = type;
+            recorded_sink = sink;
             if (safe) {
               return html.replace("html", "forbidden");
             } else {
@@ -44,8 +56,18 @@
             safe ? "<span>html;</span>" : "<span>forbidden;</span>",
           );
           check_position(target, pos, ref);
+          if (safe) {
+            assert_equals(recorded_type, null);
+            assert_equals(recorded_sink, null);
+          } else {
+            assert_equals(recorded_type, "TrustedHTML");
+            assert_equals(
+              recorded_sink,
+              expected_sink_name(target_type, pos, method_name),
+            );
+          }
         },
-        `${variant} ${safe ? "does not go" : "goes"} via createHTML`,
+        `${variant} ${safe ? "does not go" : "goes"} via createHTML with expected sink name`,
       );
     }
   test((t) => {
@@ -67,7 +89,7 @@
     assert_throws_exactly(tt_error, () => {
       div.replaceWithHTMLUnsafe("foo");
     });
-  }, "ChildNode unsafe methods evaluate Trusted Types before checking if parent is null");
+  }, "NonDocumentTypeChildNode unsafe methods evaluate Trusted Types before checking if parent is null");
 
   test((t) => {
     let tt_error = new Error("TT Error");
@@ -88,7 +110,7 @@
     assert_throws_exactly(tt_error, () => {
       document.documentElement.replaceWithHTMLUnsafe("text");
     });
-  }, "ChildNode unsafe methods evaluate Trusted Types before pre-insertion validity checks");
+  }, "NonDocumentTypeChildNode unsafe methods evaluate Trusted Types before pre-insertion validity checks");
 
   test((t) => {
     let target = document.createElement("div");
@@ -174,7 +196,7 @@
     assert_throws_dom("HierarchyRequestError", () => {
       document.documentElement.replaceWithHTMLUnsafe("text");
     });
-  }, "ChildNode unsafe methods throw HierarchyRequestError on pre-insertion validity failure");
+  }, "NonDocumentTypeChildNode unsafe methods throw HierarchyRequestError on pre-insertion validity failure");
 
   test((t) => {
     let target = document.createElement("div");
@@ -200,15 +222,22 @@
   }, "prependHTMLUnsafe evaluates Trusted Types before determining the reference child");
 
     for (const target of ["Element", "ShadowRoot", "template.content"]) {
-      for (const pos of [
-        "before",
-        "after",
-        "replaceWith",
-        "append",
-        "prepend",
-      ]) {
+      for (const pos of ["append", "prepend"]) {
         for (const safe of [true, false]) {
-          create_tests(target, pos, safe);
+          create_tests(target, pos, "Element", safe);
+        }
+      }
+
+      for (const ref of [
+        "Element",
+        "Comment",
+        "Text",
+        "ProcessingInstruction",
+      ]) {
+        for (const pos of ["before", "after", "replaceWith"]) {
+          for (const safe of [true, false]) {
+            create_tests(target, pos, ref, safe);
+          }
         }
       }
     }

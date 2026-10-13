@@ -1,0 +1,8 @@
+<svg width="400" height="200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <path id="two" d="M 10 60 L 180 60 M 220 140 L 390 140"/>
+  </defs>
+  <text>
+    <textPath href="#two">Text crossing a subpath boundary</textPath>
+  </text>
+</svg>

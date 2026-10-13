@@ -41,4 +41,4 @@ testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
     compareArray(new TA(makeCtorArg([0n, 0n, 0n])).fill(8n), [8n, 8n, 8n]),
     "Default start and end indexes are 0 and this.length"
   );
-});
+}, null, null, ["immutable"]);

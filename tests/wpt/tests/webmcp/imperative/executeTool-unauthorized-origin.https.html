@@ -54,7 +54,7 @@ promise_test(async t => {
   };
 
   // Parent attempts to execute the unexposed tool directly. This should reject with UnknownError.
-  const promise = document.modelContext.executeTool(fake_tool, '{}');
+  const promise = document.modelContext.executeTool(fake_tool);
   await promise_rejects_dom(t, 'UnknownError', promise, 'executeTool should reject with UnknownError when parent is not authorized to execute the iframe tool');
 }, 'executeTool() rejects when parent frame attempts unauthorized execution of cross-origin iframe tool');
 </script>

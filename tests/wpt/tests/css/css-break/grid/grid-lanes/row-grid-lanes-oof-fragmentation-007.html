@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>
+  Row grid-lanes fragmentation: OOF static position from an explicit grid-area.
+</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#abspos">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0px;
+    height: 100px;
+    width: 100px;
+    position: relative;
+  }
+  .grid-lanes {
+    display: grid-lanes;
+    grid-template-rows: 100px 100px;
+    height: 200px;
+    width: 50px;
+  }
+  .grid-lanes > div {
+    height: 100px;
+    width: 50px;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div class="grid-lanes">
+    <div style="grid-row-start: 1; width: 50px; height: 100px; background: red;"></div>
+    <div style="grid-row-start: 2; width: 50px; height: 100px; background: green;"></div>
+    <div style="grid-row-start: 1; grid-row-end: 3; position: absolute; width: 50px; height: 100px; background: green;"></div>
+  </div>
+</div>

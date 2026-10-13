@@ -113,11 +113,17 @@
       { at: 1.25, expect: `${expected * 2.5 - 50 * 0.25}px` },
     ]);
 
-    test_no_interpolation({
+    test_interpolation({
       property: 'width',
       from: keyword,
       to: 'calc-size(50px, size)',
-    });
+    }, [
+      { at: -0.25, expect: `${expected * 1.25 - 50 * 0.25}px` },
+      { at: 0, expect: `${expected}px` },
+      { at: 0.75, expect: `${expected * 0.25 + 50 * 0.75}px` },
+      { at: 1, expect: `50px` },
+      { at: 1.25, expect: `${50 * 1.25 - expected * 0.25}px` },
+    ]);
   }
 
   const KEYWORD_PAIRS = [

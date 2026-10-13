@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>CSS Text: changing 'hyphenate-limit-lines' triggers a layout</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#propdef-hyphenate-limit-lines">
+<meta name="assert" content="Changing the computed value of hyphenate-limit-lines must invalidate layout so line breaking is recomputed with the new limit.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#target {
+  border: solid 1px;
+  font: 32px/1 monospace;
+  width: 6ch;
+  hyphens: auto;
+  hyphenate-limit-lines: 0;
+}
+</style>
+<body lang="en">
+<div id="target">implementation</div>
+<script>
+test(() => {
+  const target = document.getElementById("target");
+
+  // With hyphenation suspended from the first line, "implementation" cannot
+  // be hyphenated, so it renders as a single (overflowing) line.
+  const heightBefore = target.offsetHeight;
+
+  target.style.hyphenateLimitLines = "no-limit";
+
+  // With hyphenation now unrestricted, "implementation" wraps (with hyphens)
+  // across 3 lines, so the box must grow taller. If changing
+  // hyphenate-limit-lines failed to invalidate layout, offsetHeight would
+  // incorrectly still report the single-line height.
+  const heightAfter = target.offsetHeight;
+
+  assert_greater_than(heightAfter, heightBefore, "the element should now span 3 lines after style change");
+}, "Changing 'hyphenate-limit-lines' via CSSOM triggers a layout");
+</script>

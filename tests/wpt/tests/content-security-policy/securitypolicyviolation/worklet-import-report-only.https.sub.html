@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  promise_test(t => {
+    let violationCount = 0;
+    document.addEventListener('securitypolicyviolation',
+                              t.step_func(() => violationCount++));
+    return CSS.paintWorklet.addModule(
+        'https://{{domains[www1]}}:{{ports[https][0]}}/worklets/resources/empty-worklet-script-with-cors-header.js')
+        .then(() => {}, () => assert_unreached(
+            'addModule should succeed since the policy is report-only.'))
+        .then(() => new Promise(resolve => t.step_timeout(resolve, 0)))
+        .then(() => assert_equals(violationCount, 1));
+  }, 'A CSP violation under report-only policy for a worklet\'s top-level ' +
+     'module script dispatches one securitypolicyviolation event');
+</script>

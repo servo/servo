@@ -46,7 +46,9 @@ pub enum TerminationReason {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
 pub enum ResponseBody {
     Empty, // XXXManishearth is this necessary, or is Done(vec![]) enough?
+    #[serde(with = "serde_bytes")]
     Receiving(Vec<u8>),
+    #[serde(with = "serde_bytes")]
     Done(Vec<u8>),
 }
 
@@ -257,9 +259,9 @@ impl Response {
             return Response::network_error(e);
         }
 
-        let old_headers = old_response.headers.clone();
-        let exposed_headers = old_response.cors_exposed_header_name_list.clone();
         let mut response = old_response.clone();
+        // This is ok as we always set the `response.headers` in all branches in the following.
+        let old_headers = std::mem::take(&mut response.headers);
         response.internal_response = Some(Box::new(old_response));
         response.response_type = filter_type;
 
@@ -270,10 +272,9 @@ impl Response {
                 let headers = old_headers
                     .iter()
                     .filter(|(name, _)| {
-                        !matches!(
-                            &*name.as_str().to_ascii_lowercase(),
-                            "set-cookie" | "set-cookie2"
-                        )
+                        let name = name.as_str();
+                        !name.eq_ignore_ascii_case("set-cookie") &&
+                            !name.eq_ignore_ascii_case("set-cookie2")
                     })
                     .map(|(n, v)| (n.clone(), v.clone()))
                     .collect();
@@ -283,13 +284,27 @@ impl Response {
             ResponseType::Cors => {
                 let headers = old_headers
                     .iter()
-                    .filter(|(name, _)| match &*name.as_str().to_ascii_lowercase() {
-                        "cache-control" | "content-language" | "content-length" |
-                        "content-type" | "expires" | "last-modified" | "pragma" => true,
-                        "set-cookie" | "set-cookie2" => false,
-                        header => exposed_headers
-                            .iter()
-                            .any(|h| *header == h.as_str().to_ascii_lowercase()),
+                    .filter(|(name, _)| {
+                        let name = name.as_str();
+                        if name.eq_ignore_ascii_case("cache-control") ||
+                            name.eq_ignore_ascii_case("content-language") ||
+                            name.eq_ignore_ascii_case("content-length") ||
+                            name.eq_ignore_ascii_case("content-type") ||
+                            name.eq_ignore_ascii_case("expires") ||
+                            name.eq_ignore_ascii_case("last-modified") ||
+                            name.eq_ignore_ascii_case("pragma")
+                        {
+                            true
+                        } else if name.eq_ignore_ascii_case("set-cookie") ||
+                            name.eq_ignore_ascii_case("set-cookie2")
+                        {
+                            false
+                        } else {
+                            response
+                                .cors_exposed_header_name_list
+                                .iter()
+                                .any(|h| h.as_str().eq_ignore_ascii_case(name))
+                        }
                     })
                     .map(|(n, v)| (n.clone(), v.clone()))
                     .collect();

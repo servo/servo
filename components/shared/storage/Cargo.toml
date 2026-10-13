@@ -21,3 +21,6 @@ serde = { workspace = true }
 servo-base = { workspace = true }
 servo-url = { workspace = true }
 uuid = { workspace = true, features = ["serde"] }
+
+[lints]
+workspace = true

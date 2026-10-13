@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-content">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#item-margins">
+<link rel="match" href="grid-auto-tracks-items-with-borders-001-ref.html">
+<meta name="assert" content="Auto tracks are sized to the border-box of their items, with different borders on each side of each item.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<html>
+<head>
+<style>
+.grid {
+    display: grid;
+    grid-template-columns: auto auto;
+    grid-template-rows: auto auto;
+    font: 20px/1 Ahem;
+}
+/* Four explicitly placed, single-span items, each with a different, asymmetric
+   border so every item and track exercises the content-box -> border-box
+   conversion independently. */
+.topLeft {
+    grid-row: 1 / 2;
+    grid-column: 1 / 2;
+    border-width: 2px 4px 6px 8px;
+    border-style: solid;
+    border-color: green;
+}
+.topRight {
+    grid-row: 1 / 2;
+    grid-column: 2 / 3;
+    border-width: 10px 12px 14px 16px;
+    border-style: solid;
+    border-color: yellow;
+}
+.bottomLeft {
+    grid-row: 2 / 3;
+    grid-column: 1 / 2;
+    border-width: 18px 20px 22px 24px;
+    border-style: solid;
+    border-color: yellow;
+}
+.bottomRight {
+    grid-row: 2 / 3;
+    grid-column: 2 / 3;
+    border-width: 26px 28px 30px 32px;
+    border-style: solid;
+    border-color: green;
+}
+</style>
+</head>
+<body>
+<div class="grid">
+    <div class="topLeft">x</div>
+    <div class="topRight">xx</div>
+    <div class="bottomLeft">xxx</div>
+    <div class="bottomRight">xxxx</div>
+</div>
+</body>
+</html>

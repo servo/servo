@@ -3,6 +3,7 @@
 import asyncio
 import json
 import os
+import pathlib
 import socket
 import threading
 import traceback
@@ -412,6 +413,10 @@ class WebDriverBidiEmulationProtocolPart(BidiEmulationProtocolPart):
         return await self.webdriver.bidi_session.emulation.set_touch_override(
             max_touch_points=max_touch_points, contexts=contexts)
 
+    async def set_viewport_meta_override(self, viewport_meta, contexts):
+        return await self.webdriver.bidi_session.emulation.set_viewport_meta_override(
+            viewport_meta=viewport_meta, contexts=contexts)
+
 
 class WebDriverBidiPermissionsProtocolPart(BidiPermissionsProtocolPart):
     def __init__(self, parent):
@@ -461,7 +466,10 @@ class WebDriverBidiWebExtensionsProtocolPart(WebExtensionsProtocolPart):
 
     def _resolve_path(self, path):
         if self.parent.test_path is not None:
-            return self.parent.test_path.rsplit("/", 1)[0] + path
+            # Handle Windows forward slashes.
+            test_dir = pathlib.Path(self.parent.test_path).parent
+            if test_dir.parts:
+                return f"{test_dir.as_posix()}/{path.lstrip('/')}"
         return path
 
 class WebDriverTestharnessProtocolPart(TestharnessProtocolPart):
@@ -612,6 +620,10 @@ class WebDriverCookiesProtocolPart(CookiesProtocolPart):
 class WebDriverWindowProtocolPart(WindowProtocolPart):
     def setup(self):
         self.webdriver = self.parent.webdriver
+
+    def create(self, type_hint=None):
+        self.logger.debug(f"Creating new {type_hint}")
+        return self.webdriver.new_window(type_hint=type_hint)
 
     def minimize(self):
         self.logger.debug("Minimizing")
@@ -883,6 +895,11 @@ class WebDriverVirtualAuthenticatorProtocolPart(VirtualAuthenticatorProtocolPart
     def set_user_verified(self, authenticator_id, uv):
         return self.webdriver.send_session_command("POST", "webauthn/authenticator/%s/uv" % authenticator_id, uv)
 
+    def set_credential_properties(self, authenticator_id, credential_id, props):
+        return self.webdriver.send_session_command(
+            "POST",
+            "webauthn/authenticator/%s/credentials/%s/props" % (authenticator_id, credential_id), props)
+
 
 class WebDriverSPCTransactionsProtocolPart(SPCTransactionsProtocolPart):
     def setup(self):
@@ -1059,7 +1076,10 @@ class WebDriverWebExtensionsProtocolPart(WebExtensionsProtocolPart):
 
     def _resolve_path(self, path):
         if self.parent.test_path is not None:
-            return self.parent.test_path.rsplit("/", 1)[0] + path
+            # Handle Windows forward slashes.
+            test_dir = pathlib.Path(self.parent.test_path).parent
+            if test_dir.parts:
+                return f"{test_dir.as_posix()}/{path.lstrip('/')}"
         return path
 
 

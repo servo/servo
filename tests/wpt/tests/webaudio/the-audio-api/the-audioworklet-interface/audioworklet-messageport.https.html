@@ -11,67 +11,87 @@
     <script>
       const filePath = 'processors/port-processor.js';
 
-      // Global-to-worklet via shared port test
-      promise_test(async (t) => {
+      function createContext(t) {
         const context = new AudioContext();
         t.add_cleanup(() => context.close());
+        return context;
+      }
+
+      async function createPortProcessorNode(context) {
         await context.audioWorklet.addModule(filePath);
+        return new AudioWorkletNode(context, 'port-processor');
+      }
 
-        const globalOnMessagePromise = new Promise((resolve) => {
-          context.audioWorklet.port.onmessage = (event) => {
-            resolve(event.data);
+      // Waits until `port` receives a message whose payload satisfies
+      // `predicate`, then resolves with that payload.
+      function waitForPortMessage(port, predicate) {
+        return new Promise((resolve) => {
+          const onMessage = (event) => {
+            if (predicate(event.data)) {
+              port.removeEventListener('message', onMessage);
+              resolve(event.data);
+            }
           };
-          context.audioWorklet.port.postMessage('hello world');
+          port.addEventListener('message', onMessage);
+          // addEventListener() path requires an explicit start().
+          port.start();
         });
+      }
 
+      promise_test(async (t) => {
+        const context = createContext(t);
+        assert_true(
+            context.audioWorklet.port instanceof MessagePort,
+            'AudioWorklet.port must exist before addModule()');
+      }, 'AudioWorklet: shared port exists before addModule()');
+
+      promise_test(async (t) => {
+        const context = createContext(t);
+        const globalInitializationPromise = waitForPortMessage(
+            context.audioWorklet.port,
+            (data) => data?.type === 'module-evaluation');
+
+        await context.audioWorklet.addModule(filePath);
         assert_equals(
-            await globalOnMessagePromise,
+            (await globalInitializationPromise).type,
+            'module-evaluation',
+            'AudioWorkletGlobalScope shared port is available during module evaluation');
+
+        const globalEchoPromise = waitForPortMessage(
+            context.audioWorklet.port, (data) => data === 'hello world');
+        context.audioWorklet.port.postMessage('hello world');
+        assert_equals(
+            await globalEchoPromise,
             'hello world',
             'The response from AudioWorkletGlobalScope');
-      }, 'AudioWorkletGlobalScope: message via shared port');
+      }, 'AudioWorkletGlobalScope: shared port is available at module evaluation time and supports message passing');
 
-      // Worklet-to-node (initialization message from Worklet constructor) test
       promise_test(async (t) => {
-        const context = new AudioContext();
-        t.add_cleanup(() => context.close());
-        await context.audioWorklet.addModule(filePath);
+        const context = createContext(t);
+        const node = await createPortProcessorNode(context);
 
-        // Creates an AudioWorkletNode and sets an EventHandler on MessagePort
-        // object. The associated PortProcessor will post a message upon its
-        // construction. Test if the message is received correctly.
-        const nodeCreationOnMessagePromise = new Promise((resolve) => {
-          const node = new AudioWorkletNode(context, 'port-processor');
-          node.port.onmessage = (event) => {
-            resolve(event.data.state);
-          };
-        });
+        // PortProcessor emits a constructor-time "created" message.
+        const nodeCreationOnMessagePromise = waitForPortMessage(
+            node.port, (data) => data?.state === 'created');
 
         assert_equals(
-            await nodeCreationOnMessagePromise,
+            (await nodeCreationOnMessagePromise).state,
             'created',
             'The initial message from PortProcessor');
       }, 'AudioWorkletProcessor: initialization message');
 
-      // Node-to-worklet echo test
       promise_test(async (t) => {
-        const context = new AudioContext();
-        t.add_cleanup(() => context.close());
-        await context.audioWorklet.addModule(filePath);
+        const context = createContext(t);
+        const node = await createPortProcessorNode(context);
 
-        const nodeOnMessagePromise = new Promise((resolve) => {
-          const node = new AudioWorkletNode(context, 'port-processor');
-          node.port.onmessage = (event) => {
-            if (!event.data.state) {
-              // Ignore if the delivered message has |state|. This is already
-              // tested in the previous task.
-              resolve(event.data.message);
-            }
-          };
-          node.port.postMessage('hello');
-        });
+        const nodeOnMessagePromise = waitForPortMessage(
+            node.port,
+            // Ignore constructor-time state message; wait for echo payload.
+            (data) => data?.message === 'hello');
+        node.port.postMessage('hello');
 
         assert_equals(
-            await nodeOnMessagePromise,
+            (await nodeOnMessagePromise).message,
             'hello',
             'The response from PortProcessor');
       }, 'AudioWorkletProcessor: message via instance port');

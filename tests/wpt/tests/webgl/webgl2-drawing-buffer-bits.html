@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>WebGL 2 getParameter reports the drawing buffer bit depths</title>
+<link rel="author" title="mxmgorin" href="mailto:102797145+mxmgorin@users.noreply.github.com">
+<link rel="help" href="https://registry.khronos.org/webgl/specs/latest/1.0/#2.2">
+<link rel="help" href="https://registry.khronos.org/webgl/specs/latest/1.0/#5.2">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+
+function bits(attributes) {
+    var gl = document.createElement("canvas").getContext("webgl2", attributes);
+    var result = {};
+    for (var name of ["RED_BITS", "GREEN_BITS", "BLUE_BITS", "ALPHA_BITS", "DEPTH_BITS", "STENCIL_BITS"]) {
+        result[name] = gl.getParameter(gl[name]);
+    }
+    assert_equals(gl.getError(), gl.NO_ERROR, "getError");
+    return result;
+}
+
+test(function() {
+    var result = bits({ alpha: true, depth: true, stencil: true });
+    assert_greater_than_equal(result.RED_BITS, 8, "RED_BITS");
+    assert_greater_than_equal(result.GREEN_BITS, 8, "GREEN_BITS");
+    assert_greater_than_equal(result.BLUE_BITS, 8, "BLUE_BITS");
+    assert_greater_than_equal(result.ALPHA_BITS, 8, "ALPHA_BITS");
+    assert_greater_than_equal(result.DEPTH_BITS, 16, "DEPTH_BITS");
+    assert_greater_than_equal(result.STENCIL_BITS, 8, "STENCIL_BITS");
+}, "Requested alpha, depth and stencil buffers have their minimum sizes");
+
+test(function() {
+    var result = bits({ alpha: false, depth: false, stencil: false });
+    assert_greater_than_equal(result.RED_BITS, 8, "RED_BITS");
+    assert_greater_than_equal(result.GREEN_BITS, 8, "GREEN_BITS");
+    assert_greater_than_equal(result.BLUE_BITS, 8, "BLUE_BITS");
+    assert_equals(result.ALPHA_BITS, 0, "ALPHA_BITS");
+    assert_equals(result.DEPTH_BITS, 0, "DEPTH_BITS");
+    assert_equals(result.STENCIL_BITS, 0, "STENCIL_BITS");
+}, "Buffers that were not requested report zero bits");
+
+</script>

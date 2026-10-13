@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<title>moveBefore() updates stylesheet cascade order</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-parentnode-movebefore">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="target" class="target">target</div>
+
+<script>
+function createStylesheet(url) {
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  link.href = url;
+  return link;
+}
+
+promise_test(async t => {
+  const purple =
+      createStylesheet("resources/stylesheet-cascade-purple.css");
+  const blue =
+      createStylesheet("resources/stylesheet-cascade-blue.css");
+
+  t.add_cleanup(() => {
+    purple.remove();
+    blue.remove();
+  });
+
+  const purpleEvents = new EventWatcher(t, purple, ["load", "error"]);
+  const blueEvents = new EventWatcher(t, blue, ["load", "error"]);
+  const loaded = Promise.all([
+    purpleEvents.wait_for("load"),
+    blueEvents.wait_for("load"),
+  ]);
+  document.head.append(purple, blue);
+  await loaded;
+
+  const target = document.getElementById("target");
+  assert_equals(getComputedStyle(target).color, "rgb(0, 0, 255)",
+                "the second stylesheet initially wins");
+
+  document.head.moveBefore(blue, purple);
+
+  assert_equals(getComputedStyle(target).color, "rgb(128, 0, 128)",
+                "moving the blue stylesheet first makes purple win");
+
+  purple.remove();
+  assert_equals(getComputedStyle(target).color, "rgb(0, 0, 255)",
+                "removing the purple stylesheet makes blue win again");
+}, "Moving loaded link stylesheets updates their cascade order");
+</script>

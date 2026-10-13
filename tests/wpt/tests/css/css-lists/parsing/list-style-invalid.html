@@ -13,6 +13,10 @@
 <script>
 test_invalid_value('list-style', 'inside disc outside');
 test_invalid_value('list-style', 'square circle');
+
+// Invalid symbols() makes the whole list-style shorthand invalid.
+test_invalid_value('list-style', 'symbols(numeric "a")');
+test_invalid_value('list-style', 'symbols(fixed)');
 </script>
 </body>
 </html>

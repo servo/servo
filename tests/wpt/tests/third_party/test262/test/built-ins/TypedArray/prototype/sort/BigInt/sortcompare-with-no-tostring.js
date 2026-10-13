@@ -28,4 +28,4 @@ testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
   var result = sample.sort();
   assert.sameValue(toStringCalled, false, "BigInt.prototype.toString will not be called");
   assert(compareArray(result, [3n, 20n, 100n]));
-});
+}, null, null, ["immutable"]);

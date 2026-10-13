@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Inserting a source element into a below-viewport loading=lazy video does not delay the window load event</title>
+<link rel="help" href="https://html.spec.whatwg.org/#concept-media-load-algorithm">
+<link rel="help" href="https://github.com/whatwg/html/issues/12971">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<div style="height: 1000vh"></div>
+<video loading="lazy"><source type="video/x-unsupported"></video>
+<script>
+// The parser performs a microtask checkpoint before running this script, so
+// the video's resource selection algorithm has already rejected the source
+// above and is waiting for another source element to be inserted.
+const video = document.querySelector("video");
+const source = document.createElement("source");
+source.src = "/media/A4.webm";
+video.append(source);
+
+const loaded = new Promise(resolve => window.addEventListener("load", resolve));
+
+promise_test(async () => {
+  await loaded;
+  assert_equals(video.readyState, HTMLMediaElement.HAVE_NOTHING,
+                "the video should not have fetched anything");
+}, "Inserting a source element into a below-viewport loading=lazy video does not delay " +
+   "the window load event");
+</script>

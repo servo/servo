@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>background shorthand containing keywords</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#propdef-background">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.cssText = "background: inherit";
+  assert_equals(div.style.background, "inherit", "background");
+  assert_equals(div.style.cssText, "background: inherit;", "cssText");
+}, "background: inherit set via cssText");
+
+test(() => {
+  const div = document.createElement("div");
+  div.style.cssText = "background: inherit; background-color: red";
+  assert_equals(div.style.backgroundColor, "red", "background-color");
+  assert_equals(div.style.background, "", "background");
+}, "background: inherit then background-color override via cssText");
+</script>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-position-4/#top-layer">
+<body>
+<div style="content-visibility: auto">lock</div>
+<div id="host"></div>
+<script>
+  const host = document.getElementById('host');
+  const shadow = host.attachShadow({mode: 'open'});
+  const container = document.createElement('div');
+  shadow.appendChild(container);
+
+  const dialog1 = document.createElement('dialog');
+  container.appendChild(dialog1);
+
+  const slot = document.createElement('slot');
+  container.appendChild(slot);
+
+  const dialog2 = document.createElement('dialog');
+  slot.appendChild(dialog2);
+
+  dialog1.showModal();
+  dialog2.showModal();
+
+  container.remove();
+</script>
+</body>
+</html>

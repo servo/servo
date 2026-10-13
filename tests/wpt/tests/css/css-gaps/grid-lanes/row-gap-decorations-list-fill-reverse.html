@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: stacking-axis rule values are assigned from each lane's placement start with fill-reverse in row grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="row-gap-decorations-list-fill-reverse-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-rows: repeat(2, 60px);
+    grid-lanes-direction: row fill-reverse;
+    gap: 10px;
+    width: 110px;
+    background: #cdd5e0;
+    column-rule-width: 4px;
+    column-rule-style: solid;
+    column-rule-color: blue, gold;
+  }
+  .lanes > div {
+    width: 30px;
+    background: #5b8def;
+  }
+  .r1 { grid-row: 1; }
+  .r2 { grid-row: 2; }
+</style>
+<div class="lanes">
+  <div class="r1"></div>
+  <div class="r1"></div>
+  <div class="r1"></div>
+  <div class="r2"></div>
+  <div class="r2"></div>
+</div>

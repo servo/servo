@@ -228,7 +228,25 @@
     const shadow = element.attachShadow({mode: "open"});
     document.body.append(element);
     const writer = shadow.streamAppendHTML().getWriter();
-    await writer.write("<script id=forbidden<" + "/script>");
+    await writer.write("<script id=forbidden><" + "/script>");
     await writer.close();
     assert_equals(shadow.querySelector("script"), null);
-  }, "streamAppendHTML on ShadowRoot uses safe sanitizer");</script>
+  }, "streamAppendHTML on ShadowRoot uses safe sanitizer");
+  promise_test(async (t) => {
+    const element = document.createElement("div");
+    document.body.append(element);
+    const writer = element.streamAppendHTML().getWriter();
+
+    const badChunk = {
+      toString() { throw new Error("Custom toString error"); }
+    };
+
+    try {
+      await writer.write(badChunk);
+      assert_unreached("writer.write() should have rejected");
+    } catch (e) {
+      assert_equals(e.message, "Custom toString error");
+    }
+  }, "streamAppendHTML with a chunk whose toString throws should reject");
+
+</script>

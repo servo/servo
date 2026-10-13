@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>XMLHttpRequest: responseType json with UTF-8 BOM</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+// Test that XHR handles UTF-8 BOM in JSON responses correctly
+// The server returns JSON prefixed with a UTF-8 BOM (0xEF 0xBB 0xBF)
+
+async_test(t => {
+  const xhr = new XMLHttpRequest();
+  xhr.open("GET", "resources/json-with-bom.py");
+  xhr.responseType = "json";
+  xhr.onload = t.step_func_done(() => {
+    assert_equals(xhr.status, 200, "Status should be 200");
+    assert_not_equals(xhr.response, null, "Response should not be null (BOM should be stripped)");
+    assert_equals(xhr.response.key, "value", "JSON should be parsed correctly after BOM is stripped");
+  });
+  xhr.onerror = t.unreached_func("XHR should not error");
+  xhr.send();
+}, "JSON response with UTF-8 BOM should be parsed correctly");
+</script>

@@ -1,0 +1,51 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSS Overflow: interaction between margin collapsing and max-height in line-clamp auto</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-auto-063-ref.html">
+<meta name="assert" content="When using line-clamp: auto, the height that gets measured against the height constraints is the automatic height after clamping. This test verifies that that holds for the interaction between max-height and collapsing margins.">
+
+<style>
+  #clamp {
+    font: 16px / 32px serif;
+    background-color: yellow;
+    line-clamp: auto;
+    max-height: 4lh;
+  }
+  #max-height {
+    /* the top block margin from #margin will collapse outside of this box, so
+     * it's not counted in this min-height.
+     * the bottom block margin would collapse outside if this box didn't
+     * overflow */
+    max-height: 3lh;
+  }
+  #margin {
+    margin: 1lh;
+  }
+  #fail {
+    font-size: 2em;
+    font-weight: bold;
+    color: red;
+  }
+</style>
+
+<div id="clamp">
+  <div id="max-height">
+    <div id="margin">
+      Line 1 <br>
+      Line 2
+      <div>
+        Line 3 <br>
+        <!--
+          This next line overflows #min-height, which means the bottom border of
+          #margin doesn't collapse outside of #min-height. Therefore, #min-height
+          ends at offset 4lh with no bottom margin, so the "FAIL" line below
+          doesn't fit. And the last line in #min-height gets the ellipsis, even if
+          it overflows #clamp.
+        -->
+        This line overflows the clamp container and ends with an ellipsis
+      </div>
+    </div>
+  </div>
+  <span id="fail">FAIL</span>
+</div>

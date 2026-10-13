@@ -19,6 +19,7 @@ doctest = false
 test-util = []
 
 [dependencies]
+bytes = { workspace = true }
 content-security-policy = { workspace = true }
 cookie = { workspace = true }
 crossbeam-channel = { workspace = true }
@@ -44,11 +45,14 @@ resvg = { workspace = true }
 rustc-hash = { workspace = true }
 rustls-pki-types = { workspace = true }
 serde = { workspace = true }
+serde_bytes = { workspace = true }
+serde_with = { workspace = true }
 servo-base = { workspace = true }
 servo-config = { workspace = true }
 servo-url = { workspace = true }
 servo_arc = { workspace = true }
 sys-locale = { workspace = true }
+rustls = { workspace = true }
 tokio = { workspace = true }
 url = { workspace = true }
 uuid = { workspace = true }
@@ -56,3 +60,6 @@ webrender_api = { workspace = true }
 
 [dev-dependencies]
 servo-default-resources = { workspace = true }
+
+[lints]
+workspace = true

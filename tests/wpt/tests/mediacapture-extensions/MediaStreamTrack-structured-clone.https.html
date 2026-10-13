@@ -1,0 +1,78 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>MediaStreamTrack is transferable but not serializable</title>
+<link rel="help" href="https://w3c.github.io/mediacapture-extensions/#transferable-mediastreamtrack">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/structured-data.html#structuredserializewithtransfer">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=/mediacapture-streams/permission-helper.js></script>
+<script>
+"use strict";
+
+promise_setup(() => setMediaPermission());
+
+async function getTrack(t) {
+  const stream = await navigator.mediaDevices.getUserMedia({video: true});
+  t.add_cleanup(() => stream.getTracks().forEach(track => track.stop()));
+  return stream.getVideoTracks()[0];
+}
+
+promise_test(async t => {
+  const track = await getTrack(t);
+  assert_throws_dom("DataCloneError", () => structuredClone(track));
+  assert_equals(track.readyState, "live");
+}, "Serializing a MediaStreamTrack without transferring it throws");
+
+promise_test(async t => {
+  const track = await getTrack(t);
+  assert_throws_dom("DataCloneError", () => structuredClone({track}));
+  assert_equals(track.readyState, "live");
+}, "Serializing an object holding a MediaStreamTrack without transferring it throws");
+
+promise_test(async t => {
+  const track = await getTrack(t);
+  assert_throws_dom("DataCloneError",
+                    () => structuredClone(track, {transfer: [track, track]}));
+  assert_equals(track.readyState, "live");
+}, "A duplicate transfer list entry throws");
+
+promise_test(async t => {
+  const track = await getTrack(t);
+  const copy = structuredClone(track, {transfer: [track]});
+  t.add_cleanup(() => copy.stop());
+  assert_true(copy instanceof MediaStreamTrack);
+  assert_equals(copy.id, track.id);
+  assert_equals(copy.readyState, "live");
+  assert_equals(track.readyState, "ended", "transferred-from track");
+}, "Transferring a MediaStreamTrack within the same realm yields a live track and detaches the original");
+
+promise_test(async t => {
+  const track = await getTrack(t);
+  assert_throws_dom("DataCloneError", () => structuredClone(track));
+  const copy = structuredClone(track, {transfer: [track]});
+  t.add_cleanup(() => copy.stop());
+  assert_equals(copy.readyState, "live");
+}, "A failed serialization leaves the track transferable");
+
+promise_test(async t => {
+  const track = await getTrack(t);
+  const copy = structuredClone(track, {transfer: [track]});
+  t.add_cleanup(() => copy.stop());
+  assert_throws_dom("DataCloneError",
+                    () => structuredClone(track, {transfer: [track]}));
+  track.stop();
+  assert_throws_dom("DataCloneError",
+                    () => structuredClone(track, {transfer: [track]}),
+                    "after stop()");
+}, "Transferring a detached track throws");
+
+promise_test(async t => {
+  const track = await getTrack(t);
+  structuredClone({}, {transfer: [track]});
+  assert_equals(track.readyState, "ended");
+  assert_throws_dom("DataCloneError",
+                    () => structuredClone(track, {transfer: [track]}));
+}, "A track in the transfer list is detached even if the value does not reference it");
+</script>

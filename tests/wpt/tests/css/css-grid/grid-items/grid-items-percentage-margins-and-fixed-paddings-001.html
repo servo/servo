@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#item-margins">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-item-sizing">
+<link rel="match" href="grid-items-percentage-margins-and-fixed-paddings-001-ref.html">
+<meta name="assert" content="Percentage margins on a stretched grid item with fixed paddings resolve against the inline size of the grid area.">
+<html>
+<head>
+<style>
+.grid {
+    display: grid;
+    width: 200px;
+    grid-template-columns: 100px 100px;
+    grid-template-rows: 100px;
+    background-color: green;
+}
+/* Percentage margins resolve against the 100px grid area inline size. */
+.item {
+    grid-row: 1 / 2;
+    grid-column: 1 / 2;
+    margin: 10%;
+    padding: 5px;
+    background-color: blue;
+}
+.itemContent {
+    width: 20px;
+    height: 20px;
+    background-color: purple;
+}
+</style>
+</head>
+<body>
+<div class="grid">
+    <div class="item"><div class="itemContent"></div></div>
+</div>
+</body>
+</html>

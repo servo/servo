@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<title>Invalid descriptor value in @location body</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-navigation-1/#at-location">
+<style>
+  @location --loc {
+    pathname: "/foo/");
+    pathname:;
+    pathname: --loc;
+    pathname: yellow;
+  }
+</style>

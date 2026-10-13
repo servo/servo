@@ -18,3 +18,6 @@ syn = { workspace = true, features = ["extra-traits", "full", "parsing", "printi
 [lib]
 path = "lib.rs"
 proc-macro = true
+
+[lints]
+workspace = true

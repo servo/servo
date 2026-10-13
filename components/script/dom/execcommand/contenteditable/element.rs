@@ -56,11 +56,11 @@ impl Element {
             CommandName::Subscript | CommandName::Superscript => {
                 // Step 3.1. If element is a sup, return "superscript".
                 if matches!(*self.local_name(), local_name!("sup")) {
-                    return Some("superscript".into());
+                    return Some(DOMString::from_static("superscript"));
                 }
                 // Step 3.2. If element is a sub, return "subscript".
                 if matches!(*self.local_name(), local_name!("sub")) {
-                    return Some("subscript".into());
+                    return Some(DOMString::from_static("subscript"));
                 }
                 // Step 3.3. Return null.
                 return None;
@@ -70,11 +70,13 @@ impl Element {
                 if let Some(value) = CssPropertyName::TextDecorationLine.value_set_for_style(self) {
                     // Step 4.1. If element's style attribute sets "text-decoration" to a value containing "line-through", return "line-through".
                     // Step 4.2. Return null.
-                    return Some("line-through".into()).filter(|_| value.contains("line-through"));
+                    return value
+                        .contains("line-through")
+                        .then_some(DOMString::from_static("line-through"));
                 }
                 // Step 5. If command is "strikethrough" and element is an s or strike element, return "line-through".
                 if matches!(*self.local_name(), local_name!("s") | local_name!("strike")) {
-                    return Some("line-through".into());
+                    return Some(DOMString::from_static("line-through"));
                 }
             },
             CommandName::Underline => {
@@ -82,11 +84,13 @@ impl Element {
                 if let Some(value) = CssPropertyName::TextDecorationLine.value_set_for_style(self) {
                     // Step 6.1. If element's style attribute sets "text-decoration" to a value containing "underline", return "underline".
                     // Step 6.2. Return null.
-                    return Some("underline".into()).filter(|_| value.contains("underline"));
+                    return value
+                        .contains("underline")
+                        .then_some(DOMString::from_static("underline"));
                 }
                 // Step 7. If command is "underline" and element is a u element, return "underline".
                 if *self.local_name() == local_name!("u") {
-                    return Some("underline".into());
+                    return Some(DOMString::from_static("underline"));
                 }
             },
             _ => {},
@@ -122,12 +126,12 @@ impl Element {
             CssPropertyName::FontWeight
                 if element_name == &local_name!("b") || element_name == &local_name!("strong") =>
             {
-                Some("bold".into())
+                Some(DOMString::from_static("bold"))
             },
             CssPropertyName::FontStyle
                 if element_name == &local_name!("i") || element_name == &local_name!("em") =>
             {
-                Some("italic".into())
+                Some(DOMString::from_static("italic"))
             },
             // Step 13. Return null.
             _ => None,
@@ -196,6 +200,31 @@ impl Element {
         }
 
         false
+    }
+
+    // <https://w3c.github.io/editing/docs/execCommand/#indentation-element>
+    pub(crate) fn is_indentation_element(&self) -> bool {
+        // > An indentation element is either a blockquote, or a div
+        if !matches!(
+            *self.local_name(),
+            local_name!("blockquote") | local_name!("div")
+        ) {
+            return false;
+        }
+
+        // > that has a style attribute that sets "margin" or some subproperty of it.
+        let style_attribute = self.style_attribute().borrow();
+        let Some(declarations) = style_attribute.as_ref() else {
+            return false;
+        };
+        let document = self.owner_document();
+        let shared_lock = document.style_shared_author_lock();
+        let read_lock = shared_lock.read();
+        let style = declarations.read_with(&read_lock);
+
+        ShorthandId::Margin
+            .longhands()
+            .any(|longhand| style.contains(PropertyDeclarationId::Longhand(longhand)))
     }
 
     pub(crate) fn has_empty_style_attribute(&self) -> bool {
@@ -379,6 +408,49 @@ impl Element {
         }
 
         false
+    }
+
+    pub(crate) fn is_simple_indentation_element(&self) -> bool {
+        // > A simple indentation element is an indentation element
+        if !self.is_indentation_element() {
+            return false;
+        }
+
+        // > that has no attributes except possibly
+        let attrs = self.attrs().borrow();
+        let mut attrs = attrs.iter();
+        attrs.all(|attr| {
+            // - a style attribute that sets no properties other than "margin", "border", "padding", or subproperties of those; and/or
+            if matches!(*attr.local_name(), local_name!("style")) {
+                let style_attribute = self.style_attribute().borrow();
+                let Some(declarations) = style_attribute.as_ref() else {
+                    return false;
+                };
+                let document = self.owner_document();
+                let shared_lock = document.style_shared_author_lock();
+                let read_lock = shared_lock.read();
+                let style = declarations.read_with(&read_lock);
+
+                let properties: Vec<_> = ShorthandId::Margin
+                    .longhands()
+                    .chain(ShorthandId::Border.longhands())
+                    .chain(ShorthandId::Padding.longhands())
+                    .collect();
+                return style.declarations().iter().all(|declaration| {
+                    declaration
+                        .id()
+                        .as_longhand()
+                        .is_some_and(|longhand| properties.contains(&longhand))
+                });
+            }
+
+            // - a dir attribute
+            if matches!(*attr.local_name(), local_name!("dir")) {
+                return true;
+            }
+
+            false
+        })
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#set-the-tag-name>

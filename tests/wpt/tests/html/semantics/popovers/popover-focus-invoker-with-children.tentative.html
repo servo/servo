@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Focus navigation order when popover invoker has children or shadow root</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/popover.html">
+<link rel="help" href="https://github.com/whatwg/html/issues/12871">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<div tabindex=0 id=source1>source1 <span tabindex=0 id=child>child</span></div>
+<button tabindex=0 id=afterSource1>afterSource1</button>
+
+<div tabindex=0 id=source2><template shadowrootmode=open>source2 <span id=inShadow tabindex=0>inShadow</span></template></div>
+<button tabindex=0 id=afterSource2>afterSource2</button>
+
+<div id=popover popover>
+  <button tabindex=0 id=inPopover>inPopover</button>
+</div>
+
+<script>
+'use strict';
+
+promise_test(async t => {
+  t.add_cleanup(() => popover.hidePopover());
+  popover.showPopover({source: source1})
+  await verifyFocusOrder([source1, inPopover, child, afterSource1], 'Test with children');
+}, "Focus navigation goes to popover contents and then children of popover invoker.");
+
+promise_test(async t => {
+  t.add_cleanup(() => popover.hidePopover());
+  popover.showPopover({source: source2});
+  const inShadow = source2.shadowRoot.getElementById('inShadow');
+  await verifyFocusOrder([source2, inPopover, inShadow, afterSource2], 'Test with shadow root');
+}, "Focus navigation goes to popover contents and then shadow root of popover invoker.");
+</script>

@@ -9,16 +9,15 @@ use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{KeyType, KeyUsag
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyFormat;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::cryptokey::{CryptoKey, Handle};
+use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    CryptoAlgorithm, KeyAlgorithmAndDerivatives, SubtleAlgorithm, SubtleArgon2Params,
-    SubtleKeyAlgorithm,
+    Algorithm, Argon2Params, CryptoAlgorithm, KeyAlgorithm, KeyAlgorithmAndDerivatives,
 };
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#argon2-operations-derive-bits>
 pub(crate) fn derive_bits(
-    normalized_algorithm: &SubtleArgon2Params,
+    normalized_algorithm: &Argon2Params,
     key: &CryptoKey,
     length: Option<u32>,
 ) -> Result<Vec<u8>, Error> {
@@ -131,7 +130,7 @@ pub(crate) fn derive_bits(
 pub(crate) fn import_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleAlgorithm,
+    normalized_algorithm: &Algorithm,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
@@ -148,14 +147,7 @@ pub(crate) fn import_key(
 
     // Step 3. If usages contains a value that is not "deriveKey" or "deriveBits", then throw a
     // SyntaxError.
-    if usages
-        .iter()
-        .any(|usage| !matches!(usage, KeyUsage::DeriveKey | KeyUsage::DeriveBits))
-    {
-        return Err(Error::Syntax(Some(
-            "Usages contains a value that is not \"deriveKey\" or \"deriveBits\"".to_string(),
-        )));
-    }
+    usages.ensure_only_contain_entries_from(&[KeyUsage::DeriveKey, KeyUsage::DeriveBits])?;
 
     // Step 4. If extractable is not false, then throw a SyntaxError.
     if extractable {
@@ -167,7 +159,7 @@ pub(crate) fn import_key(
     // Step 7. Let algorithm be a new KeyAlgorithm object.
     // Step 8. Set the name attribute of algorithm to the name member of normalizedAlgorithm.
     // Step 9. Set the [[algorithm]] internal slot of key to algorithm.
-    let algorithm = SubtleKeyAlgorithm {
+    let algorithm = KeyAlgorithm {
         name: normalized_algorithm.name,
     };
     let key = CryptoKey::new(
@@ -176,7 +168,7 @@ pub(crate) fn import_key(
         KeyType::Secret,
         extractable,
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-        usages,
+        usages.normalized_value(),
         Handle::Argon2Password(key_data.to_vec().into()),
     );
 

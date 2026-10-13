@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use html5ever::LocalName;
 use js::context::{JSContext, NoGC};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::attr::Attr;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
@@ -36,7 +36,7 @@ impl NamedNodeMap {
         window: &Window,
         elem: &Element,
     ) -> DomRoot<NamedNodeMap> {
-        reflect_dom_object_with_cx(Box::new(NamedNodeMap::new_inherited(elem)), window, cx)
+        reflect_dom_object(cx, Box::new(NamedNodeMap::new_inherited(elem)), window)
     }
 }
 

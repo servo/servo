@@ -12,10 +12,10 @@ use js::jsapi::JSObject;
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::CustomAutoRooterGuard;
-use js::typedarray::{ArrayBuffer, ArrayBufferView, CreateWith};
+use js::typedarray::{ArrayBuffer, ArrayBufferU8, ArrayBufferView};
 use script_bindings::cell::DomRefCell;
 use script_bindings::match_domstring_ascii;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use script_bindings::weakref::WeakRef;
 use servo_constellation_traits::BlobImpl;
 use servo_media::webrtc::{
@@ -23,6 +23,7 @@ use servo_media::webrtc::{
 };
 
 use crate::conversions::Convert;
+use crate::dom::bindings::buffer_source::create_buffer_source;
 use crate::dom::bindings::codegen::Bindings::RTCDataChannelBinding::{
     RTCDataChannelInit, RTCDataChannelMethods, RTCDataChannelState,
 };
@@ -114,7 +115,7 @@ impl RTCDataChannel {
             negotiated: options.negotiated,
             id: options.id,
             ready_state: Cell::new(RTCDataChannelState::Connecting),
-            binary_type: DomRefCell::new(DOMString::from("blob")),
+            binary_type: DomRefCell::new(DOMString::from_static("blob")),
             peer_connection: Dom::from_ref(peer_connection),
             droppable: DroppableRTCDataChannel::new(WeakRef::new(peer_connection), servo_media_id),
         }
@@ -128,7 +129,8 @@ impl RTCDataChannel {
         options: &RTCDataChannelInit,
         servo_media_id: Option<DataChannelId>,
     ) -> DomRoot<RTCDataChannel> {
-        let rtc_data_channel = reflect_dom_object_with_cx(
+        let rtc_data_channel = reflect_dom_object(
+            cx,
             Box::new(RTCDataChannel::new_inherited(
                 peer_connection,
                 label,
@@ -136,7 +138,6 @@ impl RTCDataChannel {
                 servo_media_id,
             )),
             global,
-            cx,
         );
 
         peer_connection
@@ -193,14 +194,13 @@ impl RTCDataChannel {
         event.upcast::<Event>().fire(cx, self.upcast());
     }
 
-    #[expect(unsafe_code)]
     pub(crate) fn on_message(&self, cx: &mut CurrentRealm, channel_message: DataChannelMessage) {
         let global = self.global();
         rooted!(&in(cx) let mut message = UndefinedValue());
 
         match channel_message {
             DataChannelMessage::Text(text) => {
-                text.safe_to_jsval(cx, message.handle_mut());
+                text.to_jsval(cx, message.handle_mut());
             },
             DataChannelMessage::Binary(data) => {
                 let binary_type = self.binary_type.borrow();
@@ -209,23 +209,21 @@ impl RTCDataChannel {
                         let blob = Blob::new(
                             cx,
                             &global,
-                            BlobImpl::new_from_bytes(data, "".to_owned()),
+                            BlobImpl::new_from_bytes(data, String::new()),
                         );
-                        blob.safe_to_jsval(cx, message.handle_mut());
+                        blob.to_jsval(cx, message.handle_mut());
                     },
                     "arraybuffer" => {
                         rooted!(&in(cx) let mut array_buffer = ptr::null_mut::<JSObject>());
-                        unsafe {
-                            assert!(
-                                ArrayBuffer::create(
-                                    cx.raw_cx(),
-                                    CreateWith::Slice(&data),
-                                    array_buffer.handle_mut()
-                                )
-                                .is_ok()
+                        assert!(
+                            create_buffer_source::<ArrayBufferU8>(
+                                cx,
+                                &data,
+                                array_buffer.handle_mut()
                             )
-                        };
-                        (*array_buffer).safe_to_jsval(cx, message.handle_mut());
+                            .is_ok()
+                        );
+                        (*array_buffer).to_jsval(cx, message.handle_mut());
                     },
                     _ => unreachable!(),
                 )
@@ -237,7 +235,7 @@ impl RTCDataChannel {
             self.upcast(),
             &global,
             message.handle(),
-            Some(&global.origin().immutable().ascii_serialization()),
+            Some(global.origin().immutable().ascii_serialization().as_ref()),
             None,
             vec![],
         );

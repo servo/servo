@@ -7,7 +7,7 @@ function html_direction(element) {
   return is_ltr ? "ltr" : "rtl";
 }
 
-function setup_tree(light_tree, shadow_tree) {
+function setup_tree(light_tree, shadow_tree, shadowOptions = {}) {
   let body = document.body;
   let old_length = body.childNodes.length;
   body.insertAdjacentHTML("beforeend", light_tree.trim());
@@ -15,10 +15,15 @@ function setup_tree(light_tree, shadow_tree) {
     throw "unexpected markup";
   }
   let result = body.lastChild;
+
+  if (!shadowOptions.mode) {
+    shadowOptions.mode = "open";
+  }
   if (shadow_tree) {
-    let shadow = result.querySelector("#root").attachShadow({mode: "open"});
+    let shadow = result.querySelector("#root").attachShadow(shadowOptions);
     shadow.innerHTML = shadow_tree.trim();
     return [result, shadow];
   }
+
   return result;
 }

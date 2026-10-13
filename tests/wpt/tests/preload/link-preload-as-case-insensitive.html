@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>&lt;link rel=preload&gt;: the as attribute's keywords are matched ASCII case-insensitively</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#attr-link-as">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/common-microsyntaxes.html#enumerated-attribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/preload_helper.js"></script>
+
+<!-- Discovered by the preload scanner while parsing, then processed by the link element. -->
+<link rel="preload" as="image"  href="resources/square.png?case=image-lowercase">
+<link rel="preload" as="IMAGE"  href="resources/square.png?case=image-uppercase">
+<link rel="preload" as="script" href="resources/dummy.js?case=script-lowercase">
+<link rel="preload" as="SCRIPT" href="resources/dummy.js?case=script-uppercase">
+<link rel="preload" as="style"  href="resources/dummy.css?case=style-lowercase">
+<link rel="preload" as="StYlE"  href="resources/dummy.css?case=style-mixedcase">
+
+<!-- U+017F LATIN SMALL LETTER LONG S uppercases to "S" under full Unicode case folding, but the
+     keywords are matched ASCII case-insensitively, so these are not keywords at all. -->
+<link rel="preload" as="&#x17F;cript" href="resources/dummy.js?case=script-long-s">
+<link rel="preload" as="&#x17F;tyle"  href="resources/dummy.css?case=style-long-s">
+
+<script>
+// The listeners below are attached synchronously while parsing, before any load or error event can
+// be dispatched, so no event is missed.
+const settled = new Map();
+for (const link of document.querySelectorAll("link[rel=preload]")) {
+    const key = new URL(link.href).searchParams.get("case");
+    settled.set(key, new Promise(resolve => {
+        link.onload = () => resolve("load");
+        link.onerror = () => resolve("error");
+    }));
+}
+
+setup(verifyPreloadAndRTSupport);
+
+const asciiLowercase = value => value.replace(/[A-Z]/g, character => character.toLowerCase());
+
+const KEYWORDS = [
+    { keyword: "image",  url: "resources/square.png", lowercase: "image-lowercase",  variant: "image-uppercase" },
+    { keyword: "script", url: "resources/dummy.js",   lowercase: "script-lowercase", variant: "script-uppercase" },
+    { keyword: "style",  url: "resources/dummy.css",  lowercase: "style-lowercase",  variant: "style-mixedcase" },
+];
+
+for (const { keyword, url, lowercase, variant } of KEYWORDS) {
+    promise_test(async () => {
+        assert_equals(await settled.get(lowercase), "load", `as="${keyword}" fires load`);
+        assert_equals(await settled.get(variant), "load", "differently cased keyword fires load");
+        verifyNumberOfResourceTimingEntries(`${url}?case=${variant}`, 1);
+    }, `A differently cased as="${keyword}" preloads like as="${keyword}" (${variant})`);
+}
+
+promise_test(async () => {
+    const link = document.createElement("link");
+    link.rel = "preload";
+    link.setAttribute("as", "ImAgE");
+    link.href = "resources/square.png?case=image-created-by-script";
+    const settledLink = new Promise(resolve => {
+        link.onload = () => resolve("load");
+        link.onerror = () => resolve("error");
+    });
+    document.head.appendChild(link);
+    assert_equals(await settledLink, "load", "differently cased keyword fires load");
+    verifyNumberOfResourceTimingEntries("resources/square.png?case=image-created-by-script", 1);
+}, `A differently cased as="image" preloads on a link element created by script`);
+
+// A link element with an invalid `as` value has nothing to load, so it never settles. Wait for
+// every valid preload above to settle and for the document to load instead: an implementation that
+// matched the keywords with full Unicode case folding would have started its fetch while parsing,
+// alongside the ones that do settle.
+const everyValidPreloadSettled = Promise.all([
+    ...KEYWORDS.flatMap(({ lowercase, variant }) => [settled.get(lowercase), settled.get(variant)]),
+    new Promise(resolve => addEventListener("load", resolve)),
+]);
+
+const NON_ASCII_KEYWORDS = [
+    { value: "ſcript", keyword: "script", url: "resources/dummy.js",  case: "script-long-s" },
+    { value: "ſtyle",  keyword: "style",  url: "resources/dummy.css", case: "style-long-s" },
+];
+
+for (const { value, keyword, url, case: variant } of NON_ASCII_KEYWORDS) {
+    promise_test(async () => {
+        await everyValidPreloadSettled;
+        verifyNumberOfResourceTimingEntries(`${url}?case=${variant}`, 0);
+    }, `as="${value}" (U+017F) does not preload like as="${keyword}"`);
+}
+
+test(() => {
+    // The canonical keyword of the state is reflected, not the attribute's value. A value that is
+    // not an ASCII case-insensitive match for a keyword reflects the empty string.
+    const keywords = KEYWORDS.map(({ keyword }) => keyword);
+    for (const link of document.querySelectorAll("link[rel=preload]")) {
+        const attributeValue = link.getAttribute("as");
+        const state = asciiLowercase(attributeValue);
+        assert_equals(link.as, keywords.includes(state) ? state : "", `as="${attributeValue}" reflects`);
+    }
+}, "The as IDL attribute reflects the canonical keyword of the state");
+</script>

@@ -1,0 +1,26 @@
+// GENERATED CONTENT - DO NOT EDIT
+// Content was automatically extracted by Reffy into webref
+// (https://github.com/w3c/webref)
+// Source: Animation Triggers (https://drafts.csswg.org/animation-triggers-1/)
+
+[Exposed=Window]
+interface AnimationTrigger {
+  constructor(optional AnimationTriggerOptions options = {});
+  attribute AnimationTimeline timeline;
+  attribute AnimationTriggerBehavior behavior;
+  attribute any activationRangeStart;
+  attribute any activationRangeEnd;
+  attribute any activeRangeStart;
+  attribute any activeRangeEnd;
+};
+
+dictionary AnimationTriggerOptions {
+  AnimationTimeline? timeline;
+  AnimationTriggerBehavior? behavior = "once";
+  (TimelineRangeOffset or CSSNumericValue or CSSKeywordValue or DOMString) activationRangeStart = "normal";
+  (TimelineRangeOffset or CSSNumericValue or CSSKeywordValue or DOMString) activationRangeEnd = "normal";
+  (TimelineRangeOffset or CSSNumericValue or CSSKeywordValue or DOMString) activeRangeStart = "auto";
+  (TimelineRangeOffset or CSSNumericValue or CSSKeywordValue or DOMString) activeRangeEnd = "auto";
+};
+
+enum AnimationTriggerBehavior { "once", "repeat", "alternate", "state" };

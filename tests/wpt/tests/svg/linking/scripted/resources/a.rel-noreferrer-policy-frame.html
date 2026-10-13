@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<svg>
+  <a id="test" href="a.rel-noreferrer-policy-target.html" rel="noreferrer"></a>
+  <script>
+    document.getElementById("test").dispatchEvent(new MouseEvent("click", {
+      view: window,
+      bubbles: true,
+      cancelable: true
+    }));
+  </script>
+</svg>

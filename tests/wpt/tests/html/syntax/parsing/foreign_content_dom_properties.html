@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG in HTML DOM properties</title>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg xmlns:xlink='http://www.w3.org/1999/xlink'><use xlink:href='#test'></use></svg>
+
+<script>
+"use strict";
+
+const svg = document.querySelector("svg");
+const use = document.querySelector("use");
+
+test(() => {
+
+  assert_equals(svg.namespaceURI, "http://www.w3.org/2000/svg");
+  assert_equals(svg.prefix, null);
+  assert_equals(svg.localName, "svg");
+  assert_equals(svg.tagName, "svg");
+
+}, "<svg> should have the right properties");
+
+test(() => {
+
+  const attr = svg.attributes[0];
+
+  assert_equals(attr.namespaceURI, "http://www.w3.org/2000/xmlns/");
+  assert_equals(attr.prefix, "xmlns");
+  assert_equals(attr.localName, "xlink");
+  assert_equals(attr.name, "xmlns:xlink");
+  assert_equals(attr.value, "http://www.w3.org/1999/xlink");
+
+}, "<svg>'s xmlns:xlink attribute should have the right properties");
+
+test(() => {
+
+  assert_equals(use.namespaceURI, "http://www.w3.org/2000/svg");
+  assert_equals(use.prefix, null);
+  assert_equals(use.localName, "use");
+  assert_equals(use.tagName, "use");
+
+}, "<use> should have the right properties");
+
+test(() => {
+
+  const attr = use.attributes[0];
+
+  assert_equals(attr.namespaceURI, "http://www.w3.org/1999/xlink");
+  assert_equals(attr.prefix, "xlink");
+  assert_equals(attr.localName, "href");
+  assert_equals(attr.name, "xlink:href");
+  assert_equals(attr.value, "#test");
+
+}, "<use>'s xlink:href attribute should have the right properties");
+
+</script>

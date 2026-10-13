@@ -15,6 +15,6 @@ features: [TypedArray]
 includes: [testTypedArray.js]
 ---*/
 
-testWithTypedArrayConstructors(function(ctor) {
+testWithAllTypedArrayConstructors(function(ctor) {
   assert.sameValue(ArrayBuffer.isView(ctor), false);
 }, null, ["passthrough"]);

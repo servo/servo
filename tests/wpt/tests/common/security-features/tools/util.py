@@ -1,5 +1,4 @@
 import os, sys, json, json5, re
-import collections
 
 script_directory = os.path.dirname(os.path.abspath(__file__))
 template_directory = os.path.abspath(
@@ -29,7 +28,7 @@ def load_spec_json(path_to_spec):
     re_error_location = re.compile('line ([0-9]+) column ([0-9]+)')
     with open(path_to_spec, "r") as f:
         try:
-            return json5.load(f, object_pairs_hook=collections.OrderedDict)
+            return json5.load(f)
         except ValueError as ex:
             print(ex.message)
             match = re_error_location.search(ex.message)

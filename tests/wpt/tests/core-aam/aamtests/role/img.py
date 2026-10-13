@@ -27,8 +27,11 @@ def test_atspi(atspi, session, inline):
 #     # Role: ROLE_SYSTEM_GRAPHIC
 #     # Interface: IAccessibleImage
 
-# def test_uia(uia, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # Control Type: Image
+def test_uia(uia, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Control Type: Image
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.Image

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <title>querySelector with multiple attribute selectors in XML</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <!-- Regression test for https://github.com/jsdom/jsdom/issues/2544 -->
+</head>
+<body>
+  <mlt>
+    <tractor id="tractor0">
+      <filter mlt_service="greyscale" track="0" id="targetFilter"/>
+      <filter mlt_service="greyscale" track="1"/>
+      <filter mlt_service="other" track="0"/>
+    </tractor>
+    <tractor id="tractor1">
+      <filter mlt_service="greyscale" track="0"/>
+    </tractor>
+  </mlt>
+
+  <script>
+  //<![CDATA[
+  "use strict";
+
+  test(() => {
+    const selector = 'mlt > tractor[id="tractor0"] > filter[mlt_service="greyscale"][track="0"]';
+    const expectedElement = document.getElementById("targetFilter");
+    assert_equals(document.querySelector(selector), expectedElement);
+  });
+  //]]>
+  </script>
+</body>
+</html>

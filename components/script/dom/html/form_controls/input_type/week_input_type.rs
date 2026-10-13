@@ -17,6 +17,10 @@ pub(crate) struct WeekInputType {
 }
 
 impl SpecificInputType for WeekInputType {
+    fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>> {
+        Some(&self.text_input_widget)
+    }
+
     fn sanitize_value(&self, _input: &HTMLInputElement, value: &mut DOMString) {
         if !value.str().is_valid_week_string() {
             value.clear();

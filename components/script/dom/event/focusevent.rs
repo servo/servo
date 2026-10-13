@@ -26,6 +26,10 @@ pub(crate) enum FocusEventType {
     Focus,
     /// Element lost focus. Doesn't bubble.
     Blur,
+    /// Element gained focus. Bubbles.
+    FocusIn,
+    /// Element lost focus. Bubbles.
+    FocusOut,
 }
 
 #[dom_struct]

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>area element: offsetLeft/offsetTop/offsetParent</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#hidden-elements">
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-htmlelement-offsetparent">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  body { margin: 0 }
+  img { display: block; width: 100px; height: 100px }
+</style>
+
+<div style="height: 100px; padding: 20px 0 0 30px">
+  <img id="img" usemap="#m"
+       src="data:image/gif;base64,R0lGODlhAQABAIAAAP///wAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==">
+</div>
+<map name="m">
+  <area id="area" shape="rect" coords="0,0,100,100" href="#">
+</map>
+
+<script>
+const area = document.getElementById("area");
+const img = document.getElementById("img");
+
+test(() => {
+  assert_equals(getComputedStyle(area).display, "none");
+}, "area is a hidden element and generates no box");
+
+test(() => {
+  // The <map> is not a sibling of the <img>, so if the <area> generated a box
+  // its offsets would describe that box rather than the image map geometry.
+  assert_equals(img.offsetLeft, 30, "image offsetLeft");
+  assert_equals(img.offsetTop, 20, "image offsetTop");
+  assert_equals(area.offsetParent, null, "offsetParent");
+  assert_equals(area.offsetLeft, 0, "offsetLeft");
+  assert_equals(area.offsetTop, 0, "offsetTop");
+  assert_equals(area.offsetWidth, 0, "offsetWidth");
+  assert_equals(area.offsetHeight, 0, "offsetHeight");
+}, "area has no offsets because it has no box");
+
+test(() => {
+  const rect = area.getBoundingClientRect();
+  assert_equals(rect.width, 0, "width");
+  assert_equals(rect.height, 0, "height");
+}, "area has an empty bounding client rect");
+</script>

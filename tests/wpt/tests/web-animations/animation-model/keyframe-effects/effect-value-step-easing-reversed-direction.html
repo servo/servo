@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>The effect value of a keyframe effect: Step easing limit direction
+  with a reversed playback direction</title>
+<link rel="help" href="https://drafts.csswg.org/web-animations/#the-effect-value-of-a-keyframe-animation-effect">
+<link rel="help" href="https://drafts.csswg.org/css-easing/#step-easing-algo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<body>
+<div id="log"></div>
+<script>
+'use strict';
+
+// A step timing function has a discontinuity at each step boundary; which
+// side (limit) is used depends on both the phase (before/after) and the
+// current playback direction, not phase alone.
+
+test(t => {
+  const target = createDiv(t);
+  const anim = target.animate(
+      [ { easing: 'steps(1, start)', opacity: 0 },
+        { opacity: 1 } ],
+      { direction: 'reverse', duration: 1000, fill: 'both' });
+
+  // With direction:reverse the current direction is always backwards, so
+  // the after phase (currentTime > duration) uses the left limit.
+  anim.currentTime = 1001;
+  assert_equals(getComputedStyle(target).opacity, '0');
+}, 'Reversed step-start easing on a keyframe uses the left limit in the ' +
+   'after phase');
+
+test(t => {
+  const target = createDiv(t);
+  const anim = target.animate(
+      [ { easing: 'steps(1, end)', opacity: 0 },
+        { opacity: 1 } ],
+      { direction: 'reverse', duration: 1000, fill: 'both' });
+
+  // Mirror image of the above: the before phase (currentTime < 0) uses the
+  // right limit when reversed.
+  anim.currentTime = -1;
+  assert_equals(getComputedStyle(target).opacity, '1');
+}, 'Reversed step-end easing on a keyframe uses the right limit in the ' +
+   'before phase');
+
+</script>
+</body>

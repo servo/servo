@@ -132,7 +132,7 @@ dictionary TagType {
   required sequence<ValueType> parameters;
 };
 
-[LegacyNamespace=WebAssembly, Exposed=(Window,Worker,Worklet)]
+[LegacyNamespace=WebAssembly, Exposed=*]
 interface Tag {
   constructor(TagType type);
 };
@@ -141,7 +141,7 @@ dictionary ExceptionOptions {
   boolean traceStack = false;
 };
 
-[LegacyNamespace=WebAssembly, Exposed=(Window,Worker,Worklet)]
+[LegacyNamespace=WebAssembly, Exposed=*]
 interface Exception {
   constructor(Tag exceptionTag, sequence<any> payload, optional ExceptionOptions options = {});
   any getArg(Tag exceptionTag, [EnforceRange] unsigned long index);

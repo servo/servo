@@ -1,0 +1,27 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Node.cloneNode: parser-created elements with unusual names</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-node-clonenode">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="colon">KSL.com <http://KSL.com> has not verified the accuracy of the information provided with</div>
+<div id="angle"><p>Blah blah blah<p><Home-Schooling</b><p><p>In talking with parents who home-school</div>
+
+<script>
+"use strict";
+
+test(() => {
+  // "KSL.com <http://KSL.com>" parses to include a <http:> element
+  const container = document.getElementById("colon");
+  const clone = container.cloneNode(true);
+  assert_equals(clone.outerHTML, container.outerHTML);
+}, "cloneNode on elements with names containing colons");
+
+test(() => {
+  // "<Home-Schooling</b>" parses to include a <home-schooling<> element
+  const container = document.getElementById("angle");
+  const clone = container.cloneNode(true);
+  assert_equals(clone.outerHTML, container.outerHTML);
+}, "cloneNode on elements with names containing angle brackets");
+</script>

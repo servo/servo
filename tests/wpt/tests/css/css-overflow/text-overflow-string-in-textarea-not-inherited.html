@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>text-overflow: &lt;string&gt; is not inherited into a textarea</title>
+<link rel="author" title="Minseong Kim" href="jja08111@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#text-overflow">
+<link rel="match" href="text-overflow-string-in-textarea-not-inherited-ref.html">
+<meta name="assert" content="text-overflow is not an inherited property, so a value set on an ancestor does not truncate the lines of a textarea.">
+<style>
+div {
+  text-overflow: "[...]";
+}
+textarea {
+  white-space: nowrap;
+}
+</style>
+<div><textarea>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</textarea></div>

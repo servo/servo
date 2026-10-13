@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Collapsed borders in the block direction restart below a repeated header</title>
+<link rel="help" href="https://drafts.csswg.org/css-tables/#border-collapse-property">
+<link rel="help" href="https://drafts.csswg.org/css-tables/#header-layout">
+<link rel="match" href="collapsed-border-fragmentation-002-print-ref.html">
+<meta name="flags" content="paged">
+<meta name="assert" content="This test checks that a block-direction collapsed border segment starts anew below a header row group repeated on a later page, so that it takes the border of the body cells rather than that of the borderless header cells. Only the last page is compared, so that the fragment under test has no next-in-flow.">
+<meta name="reftest-pages" content="2">
+<style>
+@page {
+  size: 5in 3in;
+  margin: 0.5in;
+}
+
+:root {
+  print-color-adjust: exact;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: white;
+}
+
+p {
+  margin: 0 0 12px;
+  height: 36px;
+  font: 12px/1.5 sans-serif;
+}
+
+table {
+  border-collapse: collapse;
+  margin: 0;
+}
+
+/* Keep the fragmentation deterministic: the header and two rows fit below the
+   description, the remaining three follow the repeated header on the last
+   page, which is the page that is compared. */
+tr {
+  break-inside: avoid;
+}
+
+/* The header cells have no border at all, so a block-direction segment
+   continued across the repeated header would be painted with a zero width.
+   The table must have no collapsed outer border, since a table continuation
+   currently doesn't know about it (bug 1881157). */
+th, td {
+  width: 100px;
+  height: 50px;
+  padding: 0;
+  border: none;
+}
+
+th {
+  height: 30px;
+}
+
+td + td {
+  border-inline-start: 8px solid black;
+}
+</style>
+<p>Test passes if, on the second page, a vertical black line separates the two columns below the repeated header.</p>
+<table>
+  <thead>
+    <tr><th></th><th></th></tr>
+  </thead>
+  <tbody>
+    <tr><td></td><td></td></tr>
+    <tr><td></td><td></td></tr>
+    <tr><td></td><td></td></tr>
+    <tr><td></td><td></td></tr>
+    <tr><td></td><td></td></tr>
+  </tbody>
+</table>

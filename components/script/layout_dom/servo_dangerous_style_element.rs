@@ -480,7 +480,7 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
         // As long as this "unopaqued" element does not escape this function, we're not leaking
         // potentially-mutable elements from opaque elements.
         let host = unsafe {
-            let ptr = opaque_host.as_const_ptr::<JSObject>();
+            let ptr = opaque_host.to_ptr().as_ptr() as *const JSObject;
             let untrusted_address = UntrustedNodeAddress::from_id(ptr as usize);
             let node = Node::from_untrusted_node_address(untrusted_address);
             let trusted_address = node.to_trusted_node_address();
@@ -611,9 +611,7 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
         };
 
         let text_shaping_needs_recollect = || {
-            if old.clone_direction() != new.clone_direction() ||
-                old.clone_unicode_bidi() != new.clone_unicode_bidi()
-            {
+            if !old.direction_equals(new) || !old.unicode_bidi_equals(new) {
                 return true;
             }
 

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#text-spacing-trim-property">
+<link rel="help" href="https://crbug.com/542686223">
+<link rel="match" href="text-spacing-trim-end-span-001-ref.html">
+<style>
+@font-face {
+  font-family: halt-font;
+  src: url('/fonts/noto/cjk/NotoSansCJKjp-Regular-subset-halt.otf');
+}
+#container {
+  font-family: halt-font;
+  font-size: 20px;
+  inline-size: 7.5em;
+}
+</style>
+<div id="container">
+  <div>国国国<span>国</span>国国国）</div>
+</div>

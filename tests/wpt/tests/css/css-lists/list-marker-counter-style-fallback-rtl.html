@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Lists: marker reaching a right-to-left counter style through a fallback</title>
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles-3/#counter-style-fallback">
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#list-style-type-property">
+<link rel="match" href="list-marker-counter-style-fallback-rtl-ref.html">
+<meta name="assert" content="A counter style that cannot represent a value draws its fallback's text, so a marker falling back to a right-to-left counter style is laid out like that counter style rather than in logical order.">
+<style>
+@counter-style ltr-with-rtl-fallback {
+  system: fixed;
+  symbols: "a";
+  fallback: hebrew;
+}
+ol {
+  list-style-position: inside;
+  list-style-type: ltr-with-rtl-fallback;
+  margin: 0;
+  padding: 0;
+  font-size: 40px;
+}
+</style>
+<!-- The fixed system covers value 1 only, so 14 comes from hebrew: yod followed by dalet in logical
+     order, which has to be reordered to paint dalet first. -->
+<ol start="14">
+  <li>text</li>
+</ol>

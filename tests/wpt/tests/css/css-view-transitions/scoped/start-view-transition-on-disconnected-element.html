@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>View Transitions: startViewTransition on a disconnected element</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+promise_test(async t => {
+  const el = document.createElement("div");
+  assert_false(el.isConnected, "element must be disconnected");
+
+  const transition = el.startViewTransition();
+  await promise_rejects_dom(t, "InvalidStateError", transition.ready);
+  await transition.finished;
+}, "startViewTransition without callback on disconnected element immediately skips and rejects ready");
+
+promise_test(async t => {
+  const el = document.createElement("div");
+  assert_false(el.isConnected, "element must be disconnected");
+
+  let callback_ran = false;
+  const transition = el.startViewTransition(() => {
+    callback_ran = true;
+  });
+
+  await promise_rejects_dom(t, "InvalidStateError", transition.ready);
+  await transition.updateCallbackDone;
+  await transition.finished;
+  assert_true(callback_ran, "update callback should still run");
+}, "startViewTransition with callback on disconnected element runs callback, resolves finished, and rejects ready");
+
+promise_test(async t => {
+  const el = document.createElement("div");
+  assert_false(el.isConnected, "element must be disconnected");
+
+  const error = new Error("callback failure");
+  const transition = el.startViewTransition(() => {
+    throw error;
+  });
+
+  await promise_rejects_dom(t, "InvalidStateError", transition.ready);
+  await promise_rejects_exactly(t, error, transition.updateCallbackDone);
+  await promise_rejects_exactly(t, error, transition.finished);
+}, "startViewTransition with failing callback on disconnected element rejects finished with callback error");
+
+promise_test(async t => {
+  const parent = document.createElement("div");
+  const child = document.createElement("div");
+  parent.appendChild(child);
+  assert_false(child.isConnected, "child must be disconnected");
+
+  const transition = child.startViewTransition();
+  await promise_rejects_dom(t, "InvalidStateError", transition.ready);
+  await transition.finished;
+}, "startViewTransition on element in disconnected subtree immediately skips and rejects ready");
+</script>
+</body>
+</html>

@@ -8,14 +8,14 @@ with import (builtins.fetchTarball {
   # NixOS users: if servoshell crashes with an assertion failure in surfman’s x11/connection.rs,
   # eglInitialize() may be failing, or you may be building with an incompatible version of glibc.
   # Use your system nixpkgs here, change `llvmPackages` below if necessary, then do a clean build.
-  url = "https://github.com/NixOS/nixpkgs/archive/d233902339c02a9c334e7e593de68855ad26c4cb.tar.gz";
+  url = "https://github.com/NixOS/nixpkgs/archive/e7439b6b14ad3cc35d05608ebca9bce01a25f5f8.tar.gz";
 }) {
   overlays = [
     (import (builtins.fetchTarball {
       # Bumped the channel in rust-toolchain.toml? Bump this commit too!
       # Use the latest commit hash for the manifest associated with the relevant version number in
       # https://github.com/oxalica/rust-overlay/tree/master/manifests
-      url = "https://github.com/oxalica/rust-overlay/archive/62e3b8aedabc240e5b0cc9fae003bc9edfebbc9b.tar.gz";
+      url = "https://github.com/oxalica/rust-overlay/archive/57a23bfaf4f7017267294b161175db1e32eb1c85.tar.gz";
     }))
   ];
   config = {
@@ -46,7 +46,7 @@ let
       systemImageTypes = [ "google_apis" ];
       abiVersions = [ "x86" "armeabi-v7a" ];
       includeNDK = true;
-      ndkVersion = "28.2.13676358";
+      ndkVersion = "29.0.14206865";
       useGoogleAPIs = false;
       useGoogleTVAddOns = false;
       includeExtras = [

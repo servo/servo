@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/invoker-utils.js"></script>
+<script src="/html/semantics/popovers/resources/popover-utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+
+<button id="button" interestfor="popover">Button</button>
+<iframe popover="hint" id="popover" srcdoc="<a href='#' id='link' tabindex='0'>Link</a>"></iframe>
+<button id="button_crossorigin" interestfor="popover_crossorigin">Button Cross-Origin</button>
+<iframe popover="hint" id="popover_crossorigin"></iframe>
+<button id="button_shadow" interestfor="popover_shadow">Button Shadow</button>
+<iframe popover="hint" id="popover_shadow"></iframe>
+<button id="button_multi" interestfor="popover_multi">Button Multi</button>
+<iframe popover="hint" id="popover_multi" srcdoc="<button id='btn1'>Button 1</button><button id='btn2'>Button 2</button>"></iframe>
+<button id="other">Other</button>
+
+<style>
+  [interestfor] {
+    interest-delay: 0s;
+  }
+</style>
+
+<script>
+window.onload = () => {
+  promise_test(async function (t) {
+    t.add_cleanup(() => other.focus());
+    popover.hidePopover();
+    const link = popover.contentDocument.getElementById('link');
+    assert_true(!!link, 'link in iframe should exist');
+
+    await focusOn(button);
+    const kTab = '\uE004';
+    await test_driver.send_keys(document.activeElement, kTab);
+    await waitForRender();
+    if (popover.contentDocument.activeElement !== link) {
+      await test_driver.send_keys(popover.contentDocument.activeElement || popover.contentDocument.body, kTab);
+      await waitForRender();
+    }
+    assert_equals(popover.contentDocument.activeElement, link, 'link in iframe should be focused');
+    assert_true(popover.matches(':popover-open'), 'popover should remain open when focus moves into iframe');
+
+    await focusOn(other);
+    assert_false(popover.matches(':popover-open'), 'popover should close when focus moves to unrelated element');
+  }, 'Interest is maintained when focus moves into an iframe popover via Tab');
+
+  promise_test(async function (t) {
+    t.add_cleanup(() => other.focus());
+    popover.hidePopover();
+    const link = popover.contentDocument.getElementById('link');
+    assert_true(!!link, 'link in iframe should exist');
+
+    await focusOn(button);
+    assert_true(popover.matches(':popover-open'), 'popover should open on button focus');
+
+    link.focus();
+    await waitForRender();
+    assert_equals(popover.contentDocument.activeElement, link, 'link in iframe should be focused');
+    assert_true(popover.matches(':popover-open'), 'popover should remain open when focus is directly moved into iframe');
+
+    await focusOn(other);
+    assert_false(popover.matches(':popover-open'), 'popover should close when focus moves to unrelated element');
+  }, 'Interest is maintained when focus moves into an iframe popover directly');
+
+  promise_test(async function (t) {
+    t.add_cleanup(() => other.focus());
+    popover_crossorigin.hidePopover();
+    const url = get_host_info().HTTP_REMOTE_ORIGIN + '/common/blank.html';
+    popover_crossorigin.src = url;
+    await new Promise(resolve => popover_crossorigin.addEventListener('load', resolve, {once: true}));
+
+    await focusOn(button_crossorigin);
+    assert_true(popover_crossorigin.matches(':popover-open'), 'popover should open on button focus');
+
+    popover_crossorigin.focus();
+    await waitForRender();
+    assert_true(popover_crossorigin.matches(':popover-open'), 'popover should remain open when focus moves into cross-origin iframe');
+
+    await focusOn(other);
+    assert_false(popover_crossorigin.matches(':popover-open'), 'popover should close when focus moves to unrelated element');
+  }, 'Interest is maintained when focus moves into a cross-origin iframe popover');
+
+  promise_test(async function (t) {
+    t.add_cleanup(() => other.focus());
+    popover_shadow.hidePopover();
+    const doc = popover_shadow.contentDocument;
+    const host = doc.createElement('div');
+    doc.body.appendChild(host);
+    const shadowRoot = host.attachShadow({mode: 'open'});
+    const shadowBtn = doc.createElement('button');
+    shadowBtn.textContent = 'Inside Shadow';
+    shadowRoot.appendChild(shadowBtn);
+
+    await focusOn(button_shadow);
+    assert_true(popover_shadow.matches(':popover-open'), 'popover should open on button focus');
+
+    shadowBtn.focus();
+    await waitForRender();
+    assert_equals(shadowRoot.activeElement, shadowBtn, 'button in shadow root should be focused');
+    assert_true(popover_shadow.matches(':popover-open'), 'popover should remain open when focus is moved into shadow DOM inside iframe');
+
+    await focusOn(other);
+    assert_false(popover_shadow.matches(':popover-open'), 'popover should close when focus moves to unrelated element');
+  }, 'Interest is maintained when focus moves into a shadow root inside an iframe popover');
+
+  promise_test(async function (t) {
+    t.add_cleanup(() => other.focus());
+    popover_multi.hidePopover();
+    const btn1 = popover_multi.contentDocument.getElementById('btn1');
+    const btn2 = popover_multi.contentDocument.getElementById('btn2');
+    assert_true(!!btn1 && !!btn2, 'buttons in iframe should exist');
+
+    await focusOn(button_multi);
+    assert_true(popover_multi.matches(':popover-open'), 'popover should open on button focus');
+
+    btn1.focus();
+    await waitForRender();
+    assert_equals(popover_multi.contentDocument.activeElement, btn1, 'btn1 in iframe should be focused');
+    assert_true(popover_multi.matches(':popover-open'), 'popover should remain open when btn1 is focused');
+
+    btn2.focus();
+    await waitForRender();
+    assert_equals(popover_multi.contentDocument.activeElement, btn2, 'btn2 in iframe should be focused');
+    assert_true(popover_multi.matches(':popover-open'), 'popover should remain open when focus moves to btn2 inside same iframe');
+
+    await focusOn(other);
+    assert_false(popover_multi.matches(':popover-open'), 'popover should close when focus moves to unrelated element');
+  }, 'Moving focus between elements inside the same iframe popover does not close it');
+
+  promise_test(async function (t) {
+    t.add_cleanup(() => other.focus());
+    popover.hidePopover();
+    const link = popover.contentDocument.getElementById('link');
+    assert_true(!!link, 'link in iframe should exist');
+
+    assert_false(popover.matches(':popover-open'), 'popover should start closed');
+
+    // Dispatch synthetic focusin event on link inside iframe
+    link.dispatchEvent(new FocusEvent('focusin', {bubbles: true}));
+    await waitForRender();
+    assert_false(popover.matches(':popover-open'), 'synthetic focusin in iframe should not open popover');
+
+    // Open popover by focusing button
+    await focusOn(button);
+    assert_true(popover.matches(':popover-open'), 'popover should open on button focus');
+
+    // Focus link inside iframe (popover stays open)
+    link.focus();
+    await waitForRender();
+    assert_true(popover.matches(':popover-open'), 'popover should remain open when link is focused');
+
+    // Dispatch synthetic focusout event on link inside iframe
+    link.dispatchEvent(new FocusEvent('focusout', {bubbles: true}));
+    await waitForRender();
+    assert_true(popover.matches(':popover-open'), 'synthetic focusout in iframe should not close popover');
+
+    // Real focus to unrelated element closes popover
+    await focusOn(other);
+    assert_false(popover.matches(':popover-open'), 'popover should close when focus moves to unrelated element');
+  }, 'Untrusted synthetic focus events in child document do not trigger interest actions');
+};
+</script>

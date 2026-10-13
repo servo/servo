@@ -16,6 +16,7 @@ use script_bindings::reflector::{Reflector, reflect_dom_object_with_wrap};
 
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
+use crate::traits::Equivalence;
 
 #[dom_struct]
 pub struct GPUAdapterInfo<D: DomTypes> {
@@ -31,10 +32,7 @@ pub struct GPUAdapterInfo<D: DomTypes> {
     phantom: PhantomData<D>,
 }
 
-impl<D> GPUAdapterInfo<D>
-where
-    D: DomTypes<GPUAdapterInfo = GPUAdapterInfo<D>>,
-{
+impl<D: Equivalence> GPUAdapterInfo<D> {
     fn new_inherited(
         vendor: DOMString,
         architecture: DOMString,
@@ -58,7 +56,7 @@ where
     }
 
     #[expect(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         cx: &mut JSContext,
         global: &D::GlobalScope,
         vendor: DOMString,
@@ -70,6 +68,7 @@ where
         is_fallback_adapter: bool,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
             Box::new(Self::new_inherited(
                 vendor,
                 architecture,
@@ -80,12 +79,11 @@ where
                 is_fallback_adapter,
             )),
             global,
-            cx,
             GPUAdapterInfoWrap::<D>,
         )
     }
 
-    pub fn clone_from(
+    pub(crate) fn clone_from(
         cx: &mut JSContext,
         global: &D::GlobalScope,
         info: &GPUAdapterInfo<D>,

@@ -173,5 +173,21 @@ promise_test(async t => {
                       'The start time of the playing animation should be set');
 }, 'Playing a canceled animation backwards sets the start time');
 
+promise_test(async t => {
+  const main = createDiv(t).animate(null, 100);
+  main.pause();
+  main.currentTime = 50;
+
+  const support = createDiv(t).animate(null, 100);
+  await support.finished;
+
+  await new Promise(setTimeout);
+  main.play();
+  await main.ready;
+
+  assert_equals(main.playState, 'running');
+}, 'Resuming a paused animation after enough time has elapsed'
+  + ' that it would have ended if playing remains running');
+
 </script>
 </body>

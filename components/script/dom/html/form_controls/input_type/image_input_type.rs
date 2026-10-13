@@ -1,31 +1,73 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use std::cell::{Cell, Ref};
+
+use euclid::Point2D;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
+use script_bindings::codegen::GenericBindings::MouseEventBinding::MouseEventMethods;
+use script_bindings::inheritance::Castable;
+use script_bindings::root::Dom;
+use script_bindings::traits::DomEventTrait;
+use style_traits::CSSPixel;
+use xml5ever::{local_name, ns};
 
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
-use crate::dom::html::form_controls::input_type::text_value_widget::TextValueWidget;
 use crate::dom::html::form_controls::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::htmlformelement::{FormControl, FormSubmitterElement, SubmittedFrom};
+use crate::dom::input_type::InputType;
+use crate::dom::input_type::text_input_widget::TextInputWidget;
 use crate::dom::node::NodeTraits;
+use crate::dom::shadowroot::shadowroot::ShadowRoot;
+use crate::dom::shadowroot::ua_shadowroot::{SpecificShadowTree, UAShadowRoot};
+use crate::dom::types::MouseEvent;
+use crate::dom::{Element, Node};
 
 #[derive(Default, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ImageInputType {
-    text_value_widget: DomRefCell<TextValueWidget>,
+    shadow_tree: DomRefCell<Option<ImageInputShadowTree>>,
+    /// <https://html.spec.whatwg.org/multipage/#concept-input-type-image-coordinate>
+    #[no_trace]
+    selected_coordinate: Cell<Point2D<i32, CSSPixel>>,
 }
 
 #[derive(Clone, Copy)]
 pub(crate) struct ImageInputActivation;
 
 impl SpecificInputType for ImageInputType {
+    fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>> {
+        None
+    }
+
     fn update_shadow_tree(&self, cx: &mut JSContext, input: &HTMLInputElement) {
-        self.text_value_widget
-            .borrow()
-            .update_shadow_tree(cx, input)
+        self.ensure_shadow_tree(cx, input.upcast())
+            .update(cx, self, input)
+    }
+}
+
+impl ImageInputType {
+    pub(crate) fn set_selected_coordinate(&self, input: &HTMLInputElement, event: &Event) {
+        if !event.IsTrusted() {
+            return;
+        }
+        let Some(mouse_event) = event.downcast::<MouseEvent>() else {
+            return;
+        };
+        let rect = input.upcast::<Node>().client_rect();
+        self.selected_coordinate.set(Point2D::new(
+            mouse_event.ClientX() - rect.origin.x,
+            mouse_event.ClientY() - rect.origin.y,
+        ));
+    }
+
+    pub(crate) fn selected_coordinate(&self) -> Point2D<i32, CSSPixel> {
+        self.selected_coordinate.get()
     }
 }
 
@@ -35,7 +77,7 @@ impl SpecificInputActivationType for ImageInputActivation {
         &self,
         cx: &mut JSContext,
         input: &HTMLInputElement,
-        _event: &Event,
+        event: &Event,
         _target: &EventTarget,
     ) {
         // Step 1: If the element does not have a form owner, then return.
@@ -47,8 +89,11 @@ impl SpecificInputActivationType for ImageInputActivation {
                 return;
             }
 
-            // TODO Step 3. If the user activated the control while explicitly selecting a coordinate,
+            // Step 3: If the user activated the control while explicitly selecting a coordinate,
             // then set the element's selected coordinate to that coordinate.
+            if let InputType::Image(ref image_input_type) = *input.input_type() {
+                image_input_type.set_selected_coordinate(input, event);
+            }
 
             // Step 4: Submit the element's form owner from the element with userInvolvement
             // set to event's user navigation involvement.
@@ -58,5 +103,50 @@ impl SpecificInputActivationType for ImageInputActivation {
                 FormSubmitterElement::Input(input),
             )
         }
+    }
+}
+
+#[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) struct ImageInputShadowTree {
+    image_element: Dom<Element>,
+}
+
+impl ImageInputShadowTree {
+    pub(crate) fn new(cx: &mut JSContext, shadow_root: &Node) -> Self {
+        let document = shadow_root.owner_document();
+        let img = Self::create_element_in_ua_shadowroot(cx, &document, local_name!("img"));
+        Node::replace_all(cx, Some(img.upcast()), shadow_root);
+        Self {
+            image_element: img.as_traced(),
+        }
+    }
+}
+
+impl SpecificShadowTree<HTMLInputElement, ImageInputType> for ImageInputShadowTree {
+    fn update(&self, cx: &mut JSContext, _: &ImageInputType, input_element: &HTMLInputElement) {
+        let input_element = input_element.upcast::<Element>();
+        for name in [&local_name!("src"), &local_name!("alt")] {
+            let new = input_element.get_attribute_string_value(name);
+            if new == self.image_element.get_attribute_string_value(name) {
+                continue;
+            }
+            match new {
+                Some(value) => self.image_element.set_attribute(cx, name, value.into()),
+                None => {
+                    self.image_element.remove_attribute(cx, &ns!(), name);
+                },
+            }
+        }
+    }
+}
+
+impl UAShadowRoot<ImageInputShadowTree> for ImageInputType {
+    fn store_for_shadow_tree(&self, cx: &mut JSContext, shadow_root: DomRoot<ShadowRoot>) {
+        *self.shadow_tree.borrow_mut() = Some(ImageInputShadowTree::new(cx, shadow_root.upcast()));
+    }
+
+    fn borrow_for_shadow_tree(&self) -> Ref<'_, Option<ImageInputShadowTree>> {
+        self.shadow_tree.borrow()
     }
 }

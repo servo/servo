@@ -1,0 +1,43 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="help" href="https://html.spec.whatwg.org/#event-loop-processing-model">
+<link rel="help" href="https://issues.chromium.org/issues/563399635">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="target">test</div>
+<script>
+promise_test(async function(t) {
+  await new Promise(resolve => window.addEventListener("load", resolve, { once: true }));
+
+  const target = document.getElementById("target");
+  const events = [];
+
+  // Start a short WAAPI animation without any pre-existing requestAnimationFrame
+  // callbacks queued. When the animation finishes in Step 11 ("update animations
+  // and send events"), schedule both a timeout and a requestAnimationFrame
+  // callback. The rAF callback should be serviced in Step 14 of the same "update
+  // the rendering" iteration before the timeout task runs at the end of the
+  // iteration.
+  const anim = target.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 50 });
+  await anim.finished;
+  events.push("finish");
+
+  const timeout_promise = new Promise(resolve => {
+    t.step_timeout(() => {
+      events.push("timeout");
+      resolve();
+    }, 0);
+  });
+
+  const raf_promise = new Promise(resolve => {
+    requestAnimationFrame(() => {
+      events.push("raf");
+      resolve();
+    });
+  });
+
+  await Promise.all([timeout_promise, raf_promise]);
+  assert_array_equals(events, ["finish", "raf", "timeout"]);
+}, "rAF scheduled at animation event is called during the same rendering update");
+</script>

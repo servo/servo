@@ -5,7 +5,7 @@ import traceback
 from http.client import HTTPConnection
 
 from abc import ABCMeta, abstractmethod
-from typing import Any, Awaitable, Callable, ClassVar, Dict, List, Mapping, Optional, \
+from typing import Any, Awaitable, Callable, ClassVar, Dict, List, Literal, Mapping, Optional, \
     Tuple, Type, TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
@@ -667,6 +667,12 @@ class BidiEmulationProtocolPart(ProtocolPart):
             contexts: List[str]) -> None:
         pass
 
+    @abstractmethod
+    async def set_viewport_meta_override(self,
+            viewport_meta: Optional[Literal[True]],
+            contexts: List[str]) -> None:
+        pass
+
 
 class BidiUserAgentClientHintsProtocolPart(ProtocolPart):
     """Protocol part for User Agent Client Hints"""
@@ -748,6 +754,15 @@ class WindowProtocolPart(ProtocolPart):
     __metaclass__ = ABCMeta
 
     name = "window"
+
+    @abstractmethod
+    def create(self, type_hint=None):
+        """Create a new top-level browsing context without switching to it.
+
+        :param type_hint: Optional hint, either "tab" or "window", for the
+                          type of top-level browsing context to create.
+        :returns: A handle string identifying the new top-level browsing context."""
+        pass
 
     @abstractmethod
     def set_rect(self, rect):
@@ -866,9 +881,12 @@ class TestDriverProtocolPart(ProtocolPart):
         pass
 
     def switch_to_window(self, wptrunner_id, initial_window=None):
-        """Switch to a window given a wptrunner window id
+        """Switch to a window given a wptrunner window id or a WebDriver
+        window handle
 
-        :param str wptrunner_id: Testdriver-specific id for the target window
+        :param str wptrunner_id: Testdriver-specific id for the target window,
+                                 or the WebDriver window handle of a top-level
+                                 browsing context
         :param str initial_window: WebDriver window id for the test window"""
         if wptrunner_id is None:
             return
@@ -877,6 +895,14 @@ class TestDriverProtocolPart(ProtocolPart):
             initial_window = self.parent.base.current_window
 
         stack = [str(item) for item in self.parent.base.window_handles()]
+
+        if wptrunner_id in stack:
+            # A WebDriver window handle is a direct identification of
+            # a top-level browsing context, so search is not needed
+            if wptrunner_id != initial_window:
+                self.parent.base.set_window(wptrunner_id)
+            return
+
         first = True
         while stack:
             item = stack.pop()
@@ -1063,6 +1089,15 @@ class VirtualAuthenticatorProtocolPart(ProtocolPart):
 
         :param str authenticator_id: The ID of the authenticator
         :param bool uv: the user verified flag"""
+        pass
+
+    @abstractmethod
+    def set_credential_properties(self, authenticator_id, credential_id, props):
+        """Sets credential properties on an authenticator
+
+        :param str authenticator_id: The ID of the authenticator
+        :param str credential_id: The ID of the credential
+        :param props: The credential properties to set"""
         pass
 
 

@@ -357,6 +357,56 @@ def test_multiple_testharnessreport():
             ]
 
 
+def test_testharnessreport_without_testharness():
+    code = b"""
+<html xmlns="http://www.w3.org/1999/xhtml">
+<script src="/resources/testharnessreport.js"></script>
+</html>
+"""
+    error_map = check_with_files(code)
+
+    for (filename, (errors, kind)) in error_map.items():
+        check_errors(errors)
+
+        if kind in ["web-lax", "web-strict"]:
+            assert errors == [
+                ("TESTHARNESSREPORT-WITHOUT-TESTHARNESS",
+                    "File contains <script src='/resources/testharnessreport.js'> but not `testharness.js`",
+                    filename,
+                    None),
+            ]
+        elif kind == "python":
+            assert errors == [
+                ("PARSE-FAILED", "Unable to parse file", filename, 2),
+            ]
+
+
+def test_multiple_testharnessreport_without_testharness():
+    code = b"""
+<html xmlns="http://www.w3.org/1999/xhtml">
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</html>
+"""
+    error_map = check_with_files(code)
+
+    for (filename, (errors, kind)) in error_map.items():
+        check_errors(errors)
+
+        if kind in ["web-lax", "web-strict"]:
+            assert errors == [
+                ("TESTHARNESSREPORT-WITHOUT-TESTHARNESS",
+                    "File contains <script src='/resources/testharnessreport.js'> but not `testharness.js`",
+                    filename,
+                    None),
+                ("MULTIPLE-TESTHARNESSREPORT", "More than one `<script src='/resources/testharnessreport.js'>`", filename, None),
+            ]
+        elif kind == "python":
+            assert errors == [
+                ("PARSE-FAILED", "Unable to parse file", filename, 2),
+            ]
+
+
 def test_testdriver_in_unsupported():
     code = b"""
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -731,6 +781,60 @@ def test_missing_testdriver_vendor():
             ]
 
 
+def test_testdriver_vendor_without_testdriver():
+    code = b"""
+<html xmlns="http://www.w3.org/1999/xhtml">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</html>
+"""
+    error_map = check_with_files(code)
+
+    for (filename, (errors, kind)) in error_map.items():
+        check_errors(errors)
+
+        if kind in ["web-lax", "web-strict"]:
+            assert errors == [
+                ("TESTDRIVER-VENDOR-WITHOUT-TESTDRIVER",
+                    "File contains `<script src='/resources/testdriver-vendor.js'>` but not `testdriver.js`",
+                    filename,
+                    None),
+            ]
+        elif kind == "python":
+            assert errors == [
+                ("PARSE-FAILED", "Unable to parse file", filename, 2),
+            ]
+
+
+def test_multiple_testdriver_vendor_without_testdriver():
+    code = b"""
+<html xmlns="http://www.w3.org/1999/xhtml">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+</html>
+"""
+    error_map = check_with_files(code)
+
+    for (filename, (errors, kind)) in error_map.items():
+        check_errors(errors)
+
+        if kind in ["web-lax", "web-strict"]:
+            assert errors == [
+                ("TESTDRIVER-VENDOR-WITHOUT-TESTDRIVER",
+                    "File contains `<script src='/resources/testdriver-vendor.js'>` but not `testdriver.js`",
+                    filename,
+                    None),
+                ("MULTIPLE-TESTDRIVER-VENDOR", "More than one `<script src='/resources/testdriver-vendor.js'>`", filename, None),
+            ]
+        elif kind == "python":
+            assert errors == [
+                ("PARSE-FAILED", "Unable to parse file", filename, 2),
+            ]
+
+
 def test_testharness_path():
     code = b"""\
 <html xmlns="http://www.w3.org/1999/xhtml">
@@ -808,6 +912,12 @@ def test_testdriver_path():
             expected.append(("PARSE-FAILED", "Unable to parse file", filename, 1))
         elif kind in ["web-lax", "web-strict"]:
             expected.extend([
+                (
+                    "TESTDRIVER-VENDOR-WITHOUT-TESTDRIVER",
+                    "File contains `<script src='/resources/testdriver-vendor.js'>` but not `testdriver.js`",
+                    filename,
+                    None,
+                ),
                 ("TESTDRIVER-PATH", "testdriver.js script seen with incorrect path", filename, None),
                 ("TESTDRIVER-PATH", "testdriver.js script seen with incorrect path", filename, None),
                 ("TESTDRIVER-PATH", "testdriver.js script seen with incorrect path", filename, None),

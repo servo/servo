@@ -5,7 +5,7 @@ import webdriver.bidi.error as error
 from webdriver.bidi.modules.script import ContextTarget
 
 from .. import assert_navigation_info, navigate_and_assert
-from ... import any_string
+from ... import any_string, remote_mapping_to_dict
 
 pytestmark = pytest.mark.asyncio
 
@@ -109,6 +109,43 @@ async def test_same_document_navigation_in_before_unload(bidi_session, new_tab, 
 
     url_after = url_before.replace("empty.html", "other.html")
     await navigate_and_assert(bidi_session, new_tab, url_after, wait="complete")
+
+
+# https://github.com/whatwg/html/issues/12803
+async def test_same_url_replaces_current_history_entry(bidi_session, inline, new_tab):
+    page = inline("")
+    target = ContextTarget(new_tab["context"])
+
+    await navigate_and_assert(bidi_session, new_tab, page)
+    initial_history_length = (
+        await bidi_session.script.evaluate(
+            expression="history.length",
+            target=target,
+            await_promise=False,
+        )
+    )["value"]
+    await bidi_session.script.evaluate(
+        expression='document.documentElement.setAttribute("data-original-document", "")',
+        target=target,
+        await_promise=False,
+    )
+
+    await navigate_and_assert(bidi_session, new_tab, page)
+
+    result = await bidi_session.script.evaluate(
+        expression="""({
+            historyLength: history.length,
+            isOriginalDocument: document.documentElement.hasAttribute("data-original-document"),
+            navigationType: navigation.activation.navigationType,
+        })""",
+        target=target,
+        await_promise=False,
+    )
+    assert remote_mapping_to_dict(result["value"]) == {
+        "historyLength": initial_history_length,
+        "isOriginalDocument": False,
+        "navigationType": "replace",
+    }
 
 
 @pytest.mark.parametrize(

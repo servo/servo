@@ -31,15 +31,15 @@ xsltProcessor.importStylesheet(xsltDoc);
 test(() => {
   const resultFrag = xsltProcessor.transformToFragment(xmlDoc, document);
   assert_equals(resultFrag.firstChild.localName, "result");
-  assert_true(Array.prototype.every.call(resultFrag.firstChild.children,
-                                         (e) => e.localName == "success"));
+  assert_not_equals(resultFrag.querySelector("success"), null);
+  assert_equals(resultFrag.querySelector("failure"), null);
 }, `xsl:document function disabled in transformToFragment`);
 
 test(() => {
   const resultDoc = xsltProcessor.transformToDocument(xmlDoc);
   assert_equals(resultDoc.documentElement.localName, "result");
-  assert_true(Array.prototype.every.call(resultDoc.documentElement.children,
-                                         (e) => e.localName == "success"));
+  assert_not_equals(resultDoc.querySelector("success"), null);
+  assert_equals(resultDoc.querySelector("failure"), null);
 }, `xsl:document function disabled in transformToDocument`);
 
 test(() => {

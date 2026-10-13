@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>View transitions: an escaped \* selector should not match a differently-named group</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions-2/">
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="match" href="pseudo-with-classes-ref.html">
+<script src="/common/rendering-utils.js"></script>
+<script src="/common/reftest-wait.js"></script>
+
+<style>
+div {
+  width: 100px;
+  height: 100px;
+  position: absolute;
+}
+
+#target {
+  background: green;
+  view-transition-name: target;
+}
+
+::view-transition-group(*),
+::view-transition-image-pair(*),
+::view-transition-old(*),
+::view-transition-new(*) {
+  animation-play-state: paused;
+}
+
+::view-transition-new(*),
+::view-transition-old(*) {
+  left: 100px;
+}
+
+/* "\*" is an escaped <custom-ident> that spells the character "*", an ordinary
+   name. It must not match a group named "target". If it incorrectly collapsed
+   into the universal "*" selector, this would reset the square to left: 0. */
+::view-transition-new(\*),
+::view-transition-old(\*) {
+  left: 0;
+}
+
+</style>
+<div id=target></div>
+
+<script>
+failIfNot(document.startViewTransition, "Missing document.startViewTransition");
+
+window.addEventListener("load", () => {
+  document.startViewTransition().ready.then(takeScreenshot);
+});
+</script>

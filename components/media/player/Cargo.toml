@@ -20,3 +20,6 @@ serde = { workspace = true, features = ["derive"] }
 servo-base = { workspace = true }
 servo-media-streams = { workspace = true }
 servo-media-traits = { workspace = true }
+
+[lints]
+workspace = true

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+  body {
+    margin: 0;
+  }
+  .grid {
+    display: grid;
+    grid: repeat(3, 1fr) / repeat(4, 2fr);
+    width: 335px;
+    height: 190px;
+    gap: 5px;
+    position: relative;
+  }
+  .item {
+    background: lightblue;
+  }
+  .spanning {
+    background: pink;
+    grid-column: span 2;
+  }
+  .column-rule, .row-rule {
+    position: absolute;
+    background: gold;
+  }
+  .column-rule {
+    width: 3px;
+    height: 60px;
+  }
+  .row-rule {
+    width: 335px;
+    height: 3px;
+  }
+</style>
+<div class="grid">
+  <div class="item">1</div>
+  <div class="item">1</div>
+  <div class="item">1</div>
+  <div class="item">1</div>
+  <div class="spanning">Span</div>
+  <div class="spanning">Span</div>
+  <div class="item">1</div>
+  <div class="item">1</div>
+  <div class="item">1</div>
+  <div class="item">1</div>
+  <div class="column-rule" style="left: 81px; top: 0"></div>
+  <div class="column-rule" style="left: 81px; top: 130px"></div>
+  <div class="column-rule" style="left: 166px; top: 0; height: 190px"></div>
+  <div class="column-rule" style="left: 251px; top: 0"></div>
+  <div class="column-rule" style="left: 251px; top: 130px"></div>
+  <div class="row-rule" style="top: 61px; left: 0"></div>
+  <div class="row-rule" style="top: 126px; left: 0"></div>
+</div>

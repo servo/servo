@@ -23,3 +23,7 @@ promise_test(async t => {
     assert_throws_js(
         TypeError, () => builder.cast(input, 'int64'));
   }, '[cast] throw if the output tensor byte length exceeds limit');
+
+validateOperandRank('cast', 'input', (builder, input) => {
+  return builder.cast(input, 'float32');
+});

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>CSSOM: Setting style.width to calc() and viewport units</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/cssom/#the-elementcssinlinestyle-mixin">
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/1332 -->
+
+<div id="test"></div>
+
+<script>
+"use strict";
+
+test(() => {
+  const div = document.getElementById("test");
+
+  const cases = [
+    { input: "20px", expected: "20px" },
+    { input: "100%", expected: "100%" },
+    { input: "100vh", expected: "100vh" },
+    { input: "calc(10px + 20px)", expected: "calc(30px)" },
+    { input: "calc(10px + 20%)", expected: "calc(20% + 10px)" },
+    { input: "calc(10px + 100vh)", expected: "calc(10px + 100vh)" }
+  ];
+
+  for (const { input, expected } of cases) {
+    div.style.width = input;
+    assert_equals(div.style.width, expected, `Setting width to '${input}' should serialize to '${expected}'`);
+  }
+
+}, "Setting style.width using calc() and viewport units (vh, vw) - serialization check");
+
+</script>

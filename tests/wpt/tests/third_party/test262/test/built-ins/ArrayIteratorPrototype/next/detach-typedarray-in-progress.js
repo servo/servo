@@ -13,8 +13,8 @@ includes: [testTypedArray.js, detachArrayBuffer.js]
 features: [TypedArray]
 ---*/
 
-testWithTypedArrayConstructors(TA => {
-  var typedArray = new TA(5);
+testWithAllTypedArrayConstructors((TA, makeCtorArg) => {
+  var typedArray = new TA(makeCtorArg(5));
   var i = 0;
   assert.throws(TypeError, () => {
     for (let key of typedArray.keys()) {
@@ -23,4 +23,4 @@ testWithTypedArrayConstructors(TA => {
     }
   });
   assert.sameValue(i, 1);
-}, null, ["passthrough"]);
+}, null, null, ["immutable"]);

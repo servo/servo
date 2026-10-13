@@ -176,7 +176,7 @@ impl StyleSheetsActor {
                 system: info.system,
                 is_new: false,
                 file_name: None,
-                source_map_url: Some("".to_string()),
+                source_map_url: Some(String::new()),
                 source_map_base_url: Some(info.href.unwrap_or_else(|| url.clone())),
                 style_sheet_index: info.style_sheet_index,
                 constructed: false,

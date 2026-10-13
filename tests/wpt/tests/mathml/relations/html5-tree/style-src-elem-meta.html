@@ -1,0 +1,122 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>MathML CSP: style-src-elem and style-src syntax enforcement</title>
+
+<meta name="variant" content="?1-80">
+<meta name="variant" content="?81-160">
+<meta name="variant" content="?161-240">
+<meta name="variant" content="?241-last">
+
+<link rel="help" href="https://w3c.github.io/webappsec-csp/#directive-style-src-elem">
+<link rel="help" href="https://w3c.github.io/webappsec-csp/#directive-style-src">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/subset-tests.js"></script>
+<script src="/mathml/support/mathml-fragments.js"></script>
+<script src="/mathml/support/csp-test-helper.js"></script>
+
+<body>
+<script>
+  for (const tag in MathMLFragments) {
+    // Group 1: Direct style-src-elem Directives
+    // 1. 'none' -> Block <style> element
+    subsetTest(test, t => {
+      runMathMLStyleCSPTest(t, {
+        tag,
+        policy: "style-src-elem 'none'",
+        shouldApply: false,
+        styleApplication: "styleElement",
+      });
+    }, `style-src-elem 'none' blocks <style> element inside <${tag}>`);
+
+    // 2. Absent / 'unsafe-inline' -> Allow <style> element
+    subsetTest(test, t => {
+      runMathMLStyleCSPTest(t, {
+        tag,
+        policy: null,
+        shouldApply: true,
+        styleApplication: "styleElement",
+      });
+    }, `CSP absent allows <style> element inside <${tag}>`);
+
+    subsetTest(test, t => {
+      runMathMLStyleCSPTest(t, {
+        tag,
+        policy: "style-src-elem 'unsafe-inline'",
+        shouldApply: true,
+        styleApplication: "styleElement",
+      });
+    }, `style-src-elem 'unsafe-inline' allows <style> element inside <${tag}>`);
+
+    // 3. Matching Hash -> Allow <style> element
+    subsetTest(test, t => {
+      runMathMLStyleCSPTest(t, {
+        tag,
+        policy: `style-src-elem '${ELEM_CSS_HASH}'`,
+        shouldApply: true,
+        styleApplication: "styleElement",
+      });
+    }, `style-src-elem matching hash allows <style> element inside <${tag}>`);
+
+    // 4. Mismatching Hash -> Block <style> element
+    subsetTest(test, t => {
+      runMathMLStyleCSPTest(t, {
+        tag,
+        policy: "style-src-elem 'sha256-mismatchingHashValue='",
+        shouldApply: false,
+        styleApplication: "styleElement",
+      });
+    }, `style-src-elem mismatching hash blocks <style> element inside <${tag}>`);
+
+    // Group 2: style-src Directive (Fallback behavior when style-src-elem is absent)
+    // 1. style-src 'none' -> Fallback blocks <style> element
+    subsetTest(test, t => {
+      runMathMLStyleCSPTest(t, {
+        tag,
+        policy: "style-src 'none'",
+        shouldApply: false,
+        styleApplication: "styleElement",
+      });
+    }, `style-src 'none' fallback blocks <style> element inside <${tag}>`);
+
+    // 2. style-src 'unsafe-inline' -> Fallback allows <style> element
+    subsetTest(test, t => {
+      runMathMLStyleCSPTest(t, {
+        tag,
+        policy: "style-src 'unsafe-inline'",
+        shouldApply: true,
+        styleApplication: "styleElement",
+      });
+    }, `style-src 'unsafe-inline' fallback allows <style> element inside <${tag}>`);
+
+    // 3. style-src Matching Hash -> Fallback allows <style> element
+    subsetTest(test, t => {
+      runMathMLStyleCSPTest(t, {
+        tag,
+        policy: `style-src '${ELEM_CSS_HASH}'`,
+        shouldApply: true,
+        styleApplication: "styleElement",
+      });
+    }, `style-src matching hash fallback allows <style> element inside <${tag}>`);
+
+    // Group 3: Precedence (style-src-elem overrides style-src)
+    subsetTest(test, t => {
+      runMathMLStyleCSPTest(t, {
+        tag,
+        policy: "style-src-elem 'unsafe-inline'; style-src 'none'",
+        shouldApply: true,
+        styleApplication: "styleElement",
+      });
+    }, `style-src-elem 'unsafe-inline' overrides style-src 'none' on <${tag}>`);
+
+    subsetTest(test, t => {
+      runMathMLStyleCSPTest(t, {
+        tag,
+        policy: "style-src-elem 'none'; style-src 'unsafe-inline'",
+        shouldApply: false,
+        styleApplication: "styleElement",
+      });
+    }, `style-src-elem 'none' overrides style-src 'unsafe-inline' on <${tag}>`);
+  }
+</script>
+</body>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Selectors: class prefix selector matching updates when the class attribute changes</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/selectors-5/#class-prefix">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #subject.foo-* { color: rgb(1, 2, 3); }
+  #ancestor.foo-* #descendant { color: rgb(4, 5, 6); }
+  #sibling-ref.foo-* ~ #sibling { color: rgb(7, 8, 9); }
+</style>
+<div id="subject"></div>
+<div id="ancestor"><div id="descendant"></div></div>
+<div id="sibling-ref"></div>
+<div id="sibling"></div>
+<script>
+function color(element) {
+  return getComputedStyle(element).color;
+}
+
+test(() => {
+  const subject = document.getElementById('subject');
+  assert_equals(color(subject), 'rgb(0, 0, 0)');
+
+  subject.classList.add('foo-x');
+  assert_equals(color(subject), 'rgb(1, 2, 3)');
+
+  subject.classList.add('foo-y');
+  assert_equals(color(subject), 'rgb(1, 2, 3)');
+
+  subject.classList.remove('foo-x');
+  assert_equals(color(subject), 'rgb(1, 2, 3)', 'still matches via "foo-y"');
+
+  subject.classList.remove('foo-y');
+  assert_equals(color(subject), 'rgb(0, 0, 0)');
+}, 'adding/removing a class that starts matching the prefix invalidates the element itself (subject position)');
+
+test(() => {
+  const ancestor = document.getElementById('ancestor');
+  const descendant = document.getElementById('descendant');
+  assert_equals(color(descendant), 'rgb(0, 0, 0)');
+
+  ancestor.classList.add('foo-x');
+  assert_equals(color(descendant), 'rgb(4, 5, 6)');
+
+  ancestor.classList.remove('foo-x');
+  assert_equals(color(descendant), 'rgb(0, 0, 0)');
+}, 'a class change on an ancestor invalidates descendants selected through the class prefix selector');
+
+test(() => {
+  const siblingRef = document.getElementById('sibling-ref');
+  const sibling = document.getElementById('sibling');
+  assert_equals(color(sibling), 'rgb(0, 0, 0)');
+
+  siblingRef.classList.add('foo-x');
+  assert_equals(color(sibling), 'rgb(7, 8, 9)');
+
+  siblingRef.classList.remove('foo-x');
+  assert_equals(color(sibling), 'rgb(0, 0, 0)');
+}, 'a class change on a preceding sibling invalidates a following sibling selected through the class prefix selector');
+</script>

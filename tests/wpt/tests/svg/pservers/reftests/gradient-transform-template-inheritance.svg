@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:h="http://www.w3.org/1999/xhtml" width="500" height="100">
+  <title>SVG Paint Servers: only a specified gradientTransform stops template inheritance.</title>
+  <metadata>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/pservers.html#PaintServerTemplates"/>
+    <h:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/pservers.html#LinearGradientElementGradientTransformAttribute"/>
+    <h:link rel="match" href="reference/gradient-transform-template-inheritance-ref.svg"/>
+  </metadata>
+  <!-- A template gradient supplies gradientTransform when the referencing gradient
+       does not specify it. gradientTransform is a presentation attribute for the
+       transform property, so "specified" is decided on the property, not on whether
+       the attribute string exists: an empty, whitespace-only or invalid value is an
+       invalid value for a CSS declaration, the declaration is ignored, and transform
+       keeps its initial value of none. Nothing is specified, so the template's value
+       is used.
+
+       The first three squares take rotate(90 0.5 0.5) from linear-base: the empty
+       attribute, the invalid attribute and the absent attribute all leave transform
+       at none. The fourth takes scale(2) from radial-base through a whitespace-only
+       value. The fifth specifies a transform through the SVG DOM, which does resolve
+       to a transform, so it keeps its own translate(0.5 0) instead. -->
+  <defs>
+    <linearGradient id="linear-base" gradientTransform="rotate(90 0.5 0.5)">
+      <stop offset="0" stop-color="green"/>
+      <stop offset="1" stop-color="blue"/>
+    </linearGradient>
+    <linearGradient id="linear-empty" href="#linear-base" gradientTransform=""/>
+    <linearGradient id="linear-invalid" href="#linear-base" gradientTransform="bogus"/>
+    <linearGradient id="linear-absent" href="#linear-base"/>
+    <linearGradient id="linear-svgdom" href="#linear-base"/>
+
+    <radialGradient id="radial-base" gradientTransform="scale(2)">
+      <stop offset="0" stop-color="yellow"/>
+      <stop offset="1" stop-color="red"/>
+    </radialGradient>
+    <radialGradient id="radial-whitespace" href="#radial-base" gradientTransform=" "/>
+  </defs>
+
+  <rect x="10" y="10" width="80" height="80" fill="url(#linear-empty)"/>
+  <rect x="110" y="10" width="80" height="80" fill="url(#linear-invalid)"/>
+  <rect x="210" y="10" width="80" height="80" fill="url(#linear-absent)"/>
+  <rect x="310" y="10" width="80" height="80" fill="url(#radial-whitespace)"/>
+  <rect x="410" y="10" width="80" height="80" fill="url(#linear-svgdom)"/>
+
+  <script><![CDATA[
+    var transform = document.documentElement.createSVGTransform();
+    transform.setTranslate(0.5, 0);
+    document.getElementById("linear-svgdom").gradientTransform.baseVal.appendItem(transform);
+  ]]></script>
+</svg>

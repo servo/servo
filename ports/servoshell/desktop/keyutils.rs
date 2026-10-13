@@ -299,7 +299,7 @@ impl FromWinitKeyEvent for Key {
             WinitNamedKey::SplitScreenToggle => Key::Named(NamedKey::SplitScreenToggle),
             WinitNamedKey::Standby => Key::Named(NamedKey::Standby),
             WinitNamedKey::Subtitle => Key::Named(NamedKey::Subtitle),
-            WinitNamedKey::Super => Key::Named(NamedKey::Super),
+            WinitNamedKey::Super => Key::Named(NamedKey::Meta),
             WinitNamedKey::Symbol => Key::Named(NamedKey::Symbol),
             WinitNamedKey::SymbolLock => Key::Named(NamedKey::SymbolLock),
             WinitNamedKey::TV => Key::Named(NamedKey::TV),

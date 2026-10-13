@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>textPath `path` attribute: combining marks (reference)</title>
+
+<body style="margin:20px">
+
+<!-- Precomposed U+00E9 LATIN SMALL LETTER E WITH ACUTE, same geometry through href. -->
+<svg width="600" height="100">
+  <defs>
+    <path id="hline" d="M 50 50 L 550 50"/>
+  </defs>
+  <text font-size="40px">
+    <textPath href="#hline">caf&#x00e9; expos&#x00e9;</textPath>
+  </text>
+</svg>
+
+</body>
+</html>

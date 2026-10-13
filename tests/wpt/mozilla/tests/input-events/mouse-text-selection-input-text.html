@@ -74,8 +74,8 @@ promise_test(async test => {
       .pointerMove(targetRect.left + (50 * 5), verticalCenterOfLine)
       .pointerUp()
       .send();
-    assert_equals(target.selectionStart, 0);
-    assert_equals(target.selectionEnd, 3);
+    assert_equals(target.selectionStart, 3);
+    assert_equals(target.selectionEnd, 5);
     target.setSelectionRange(0, 0);
 
     // Click somewhere else to avoid double-clicking.
@@ -84,5 +84,5 @@ promise_test(async test => {
       .pointerDown()
       .pointerUp()
       .send();
-}, "Middle button click should cancel ongoing text selection via drag");
+}, "Middle button click should reset the selection origin during ongoing text selection via drag");
 </script>

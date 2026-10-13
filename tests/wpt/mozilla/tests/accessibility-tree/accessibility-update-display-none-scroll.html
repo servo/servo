@@ -1,0 +1,63 @@
+<!doctype html>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body style="margin: 0">
+  <main id="main" style="width: 1000px; height: 100px; overflow: scroll">
+    <article style="width: 1000px; height: 50px"></article>
+    <div style="width: 1000px; height: 2000px"></div>
+    <aside id="aside" style="width: 1000px; height: 50px"></aside>
+  </main>
+</body>
+
+<script>
+  setup({ explicit_done: true });
+  window.onload = () => {
+    test((t) => {
+      ServoTestUtils.ensureAccessibilityActive();
+      let initial = ServoTestUtils.forceAccessibilityUpdate();
+
+      assert_equals(initial.nodesUpdatedFromDom, 20, "nodesUpdatedFromDom");
+      assert_equals(initial.nodesUpdatedFromTree, 20, "nodesUpdatedFromTree");
+      // Bounds are refreshed for every visible node in the tree
+      assert_equals(initial.nodesUpdatedBounds, 13, "nodesUpdatedBounds");
+      assert_equals(initial.nodesInTreeUpdate, 20, "nodesInTreeUpdate");
+
+      aside.style.display = "none";
+      let update = window.ServoTestUtils.forceAccessibilityUpdate();
+
+      // Need to walk all elements to be able to update bounds.
+      assert_equals(update.nodesUpdatedFromDom, 10, "nodesUpdatedFromDom");
+      // Ancestors of <aside> are updated in case their computed text has changed.
+      assert_equals(update.nodesUpdatedFromTree, 4, "nodesUpdatedFromTree");
+      // Bounds are refreshed for every visible node in the tree.
+      assert_equals(update.nodesUpdatedBounds, 12, "nodesUpdatedBounds");
+      // Only the <aside> is actually updated.
+      assert_equals(update.nodesInTreeUpdate, 1, "nodesInTreeUpdate");
+
+      main.scrollTo(0, 500);
+      update = window.ServoTestUtils.forceAccessibilityUpdate();
+
+      // The only updates are scroll offsets for the non-hidden children of <main>
+      assert_equals(update.nodesUpdatedFromDom, 0, "nodesUpdatedFromDom");
+      assert_equals(update.nodesUpdatedFromTree, 0, "nodesUpdatedFromTree");
+      assert_equals(update.nodesUpdatedBounds, 0, "nodesUpdatedBounds");
+      assert_equals(update.nodesInTreeUpdate, 6, "nodesInTreeUpdate");
+
+      aside.style.removeProperty("display");
+      update = window.ServoTestUtils.forceAccessibilityUpdate();
+
+      // Need to walk all elements to be able to update bounds.
+      assert_equals(update.nodesUpdatedFromDom, 10, "nodesUpdatedFromDom");
+      // Ancestors of <aside> are updated in case their computed text has changed.
+      assert_equals(update.nodesUpdatedFromTree, 4, "nodesUpdatedFromTree");
+      // Bounds are refreshed for every visible node in the tree.
+      assert_equals(update.nodesUpdatedBounds, 13, "nodesUpdatedBounds");
+      // Only the <aside> is actually updated.
+      assert_equals(update.nodesInTreeUpdate, 1, "nodesInTreeUpdate");
+    }, "Hidden nodes should not be updated due to scrolling, and should be updated when becoming visible again");
+
+    done();
+  };
+</script>

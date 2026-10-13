@@ -39,4 +39,4 @@ testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
     assert.sameValue(args[1][0], 42n, "x is a listed value");
     assert.sameValue(args[1][0], 42n, "y is a listed value");
   });
-});
+}, null, null, ["immutable"]);

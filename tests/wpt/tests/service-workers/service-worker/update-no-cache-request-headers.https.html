@@ -25,6 +25,10 @@ promise_test(async (t) => {
   await service_worker_unregister(t, scope);
   const registration = await navigator.serviceWorker.register(
       script, {scope, updateViaCache: 'none'});
+  // The scope is broad ('resources/'), so make sure the registration does not
+  // outlive this test and control frames loaded by later tests that run in the
+  // same browser session.
+  t.add_cleanup(() => registration.unregister());
   await wait_for_state(t, registration.installing, 'activated');
 
   // Do an update.

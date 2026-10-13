@@ -12,26 +12,18 @@
 </head>
 <body>
 <script>
-const load_image_object = async path => {
-  return load.object(path, "image/png");
-}
-
-const load_null_object = async path => {
-  return load.object(path, null);
-}
-
 attribute_test(
-  load_null_object, "resources/status-code.py?status=200&type=none",
+  load.null_object, "resources/status-code.py?status=200&type=none",
   invariants.assert_tao_pass_no_redirect_http,
   "Verify that a 200 null-typed object emits an entry.");
 
 attribute_test(
-  load_null_object, "resources/status-code.py?status=404&type=none",
+  load.null_object, "resources/status-code.py?status=404&type=none",
   invariants.assert_tao_pass_no_redirect_http,
   "Verify that a 404 null-typed object emits an entry.");
 
 attribute_test(
-  load_image_object, "resources/status-code.py?status=404&type=img",
+  load.image_object, "resources/status-code.py?status=404&type=img",
   invariants.assert_tao_pass_no_redirect_http,
   "Verify that a 404 img-typed object emits an entry.");
 </script>

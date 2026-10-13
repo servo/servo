@@ -11,7 +11,7 @@ promise_test(async t => {
   await ensureLanguageModel();
   const session = await createLanguageModel();
   const response = await session.prompt(
-      'Derive a rating between -10 and 10 from "Absolutely the best meal ever!"',
+      'Rate the sentiment of "Absolutely the best meal ever!" on a scale from -10 (worst) to 10 (best).',
       {responseConstraint: {type: 'integer', minimum: -10, maximum: 10}});
   const jsonResponse = parse_json_response(response);
   assert_true(Number.isInteger(jsonResponse), 'Response should be an integer');

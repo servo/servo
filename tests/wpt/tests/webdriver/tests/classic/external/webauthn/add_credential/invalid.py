@@ -84,7 +84,7 @@ def test_sign_count_missing(session, authenticator):
     assert_error(response, "invalid argument")
 
 
-@pytest.mark.parametrize("sign_count", [None, "zero", True, [], {}])
+@pytest.mark.parametrize("sign_count", ["zero", True, [], {}])
 def test_sign_count_invalid_type(session, authenticator, sign_count):
     credential = create_credential()
     credential["signCount"] = sign_count
@@ -96,5 +96,12 @@ def test_sign_count_invalid_type(session, authenticator, sign_count):
 def test_user_handle_invalid_type(session, authenticator, user_handle):
     credential = create_credential()
     credential["userHandle"] = user_handle
+    response = add_credential(session, authenticator, credential)
+    assert_error(response, "invalid argument")
+
+
+def test_user_handle_missing_for_resident_credential(session, authenticator):
+    credential = create_credential(is_resident_credential=True)
+    assert "userHandle" not in credential
     response = add_credential(session, authenticator, credential)
     assert_error(response, "invalid argument")

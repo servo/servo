@@ -92,4 +92,4 @@ testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
   sample = new TA(makeCtorArg([1n, 2n]));
   sample.set([42n], { toString: function() {return 1;} });
   assert(compareArray(sample, [1n, 42n]), "toString");
-});
+}, null, null, ["immutable"]);

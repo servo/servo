@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Serialize whitespace</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#serializing-css-values">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3939 -->
+
+<script>
+"use strict";
+
+test(() => {
+  const p = document.createElement("p");
+  const transform = "translate(calc(10%), 10%)";
+  p.style.transform = transform;
+  assert_equals(p.style.transform, transform);
+});
+</script>

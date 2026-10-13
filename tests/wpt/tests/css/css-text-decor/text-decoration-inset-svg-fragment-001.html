@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="fuzzy" content="maxDifference=0-40; totalPixels=0-5">
+<title>CSS Text Decoration 4: text-decoration-inset on SVG text fragments</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#text-decoration-skip-inset-property">
+<link rel="author" title="Helmut Januschka" href="mailto:helmut@januschka.com">
+<link rel="match" href="reference/text-decoration-inset-svg-fragment-001-ref.html">
+<style>
+  text {
+    font: 48px/1 monospace;
+    text-decoration-line: underline;
+    text-decoration-color: black;
+    text-decoration-thickness: 3px;
+    text-decoration-inset: 20px;
+  }
+</style>
+<svg width="420" height="100">
+  <text x="20" y="64"><tspan>AB</tspan><tspan>CD</tspan></text>
+</svg>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://crbug.com/542274292">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/popover.html">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<button id="before" popovertarget="p" popovertargetaction="show">Click me first</button>
+<div id="p" popover>
+  <button id="b" popovertarget="p" tabindex="-1">Close</button>
+  <button id="inside">Click me second, THEN press tab</button>
+</div>
+<button id="after">After</button>
+
+<script>
+promise_test(async () => {
+  p.showPopover({source: b});
+  assert_true(p.matches(':popover-open'), 'popover should be open');
+  before.focus();
+  assert_equals(document.activeElement, before, 'focus starts on before button');
+
+  await clickOn(before);
+  assert_true(p.matches(':popover-open'), 'popover should stay open');
+  assert_equals(document.activeElement, before, 'focus should remain on before button');
+
+  await clickOn(inside);
+  assert_true(p.matches(':popover-open'), 'popover should stay open');
+  assert_equals(document.activeElement, inside, 'focus should move to inside button');
+
+  await sendTab();
+  assert_true(p.matches(':popover-open'), 'popover should stay open');
+  assert_equals(document.activeElement, after, 'focus should move to after button');
+}, "Popover with an internal tabindex=-1 invoker does not cause infinite recursion");
+</script>

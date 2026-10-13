@@ -62,6 +62,9 @@
 
 <p id='n100'><span id="s1">CHAN</span><span id="s2">GED</span></p>
 
+<p id='n110'><span>NO </span><span>CHANGED</span><span>TOO</span></p>
+<p id='n111'><span>text content</span></p>
+
 </section>
 
 <script>
@@ -295,6 +298,29 @@
                     addedNodes: [n53.firstChild]}],
                   function() { n53.replaceChild(n53.firstChild, n53.firstChild); },
                   "childList Node.replaceChild: self internal replacement mutation");
+
+  // replaceChildren() uses the "replace all" algorithm, which (unlike "replace")
+  // does not adopt the argument before removing the existing children. When an
+  // argument is already a child, its silent removal is folded into the single
+  // "replace all" record rather than producing a separate observable removal.
+  // See https://github.com/whatwg/dom/issues/814 and #754.
+  var n110 = document.getElementById('n110');
+  runMutationTest(n110,
+                  {"childList":true},
+                  [{type: "childList",
+                    removedNodes: [n110.childNodes[0], n110.childNodes[1], n110.childNodes[2]],
+                    addedNodes: [n110.childNodes[1]]}],
+                  function() { n110.replaceChildren(n110.childNodes[1]); },
+                  "childList ParentNode.replaceChildren: move an existing child");
+
+  var n111 = document.getElementById('n111');
+  runMutationTest(n111,
+                  {"childList":true},
+                  [{type: "childList",
+                    removedNodes: [n111.firstChild],
+                    addedNodes: [n111.firstChild]}],
+                  function() { n111.replaceChildren(n111.firstChild); },
+                  "childList ParentNode.replaceChildren: self replacement of only child");
 
   var n60 = document.getElementById('n60');
   runMutationTest(n60,

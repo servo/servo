@@ -14,9 +14,9 @@ use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
-use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::callback::{ExceptionHandling, TracedCallback};
 use crate::dom::bindings::codegen::Bindings::TransformStreamDefaultControllerBinding::TransformStreamDefaultControllerMethods;
 use crate::dom::bindings::codegen::Bindings::TransformerBinding::{
     Transformer, TransformerCancelCallback, TransformerFlushCallback, TransformerTransformCallback,
@@ -36,7 +36,7 @@ use crate::dom::encoding::textencoderstream::{
     Encoder, encode_and_enqueue_a_chunk, encode_and_flush,
 };
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
 use crate::dom::promisenativehandler::{Callback, PromiseNativeHandler};
 use crate::dom::types::{DecompressionStream, TransformStream};
 use crate::realms::enter_auto_realm;
@@ -69,16 +69,13 @@ pub(crate) enum TransformerType {
     /// Algorithms provided by Js callbacks
     Js {
         /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-cancelalgorithm>
-        #[conditional_malloc_size_of]
-        cancel: RefCell<Option<Rc<TransformerCancelCallback>>>,
+        cancel: RefCell<Option<TracedCallback<TransformerCancelCallback>>>,
 
         /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-flushalgorithm>
-        #[conditional_malloc_size_of]
-        flush: RefCell<Option<Rc<TransformerFlushCallback>>>,
+        flush: RefCell<Option<TracedCallback<TransformerFlushCallback>>>,
 
         /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-transformalgorithm>
-        #[conditional_malloc_size_of]
-        transform: RefCell<Option<Rc<TransformerTransformCallback>>>,
+        transform: RefCell<Option<TracedCallback<TransformerTransformCallback>>>,
 
         /// The JS object used as `this` when invoking sink algorithms.
         #[ignore_malloc_size_of = "mozjs"]
@@ -126,8 +123,7 @@ pub struct TransformStreamDefaultController {
     stream: MutNullableDom<TransformStream>,
 
     /// <https://streams.spec.whatwg.org/#transformstreamdefaultcontroller-finishpromise>
-    #[conditional_malloc_size_of]
-    finish_promise: DomRefCell<Option<Rc<Promise>>>,
+    finish_promise: DomRefCell<Option<TracedPromise>>,
 }
 
 impl TransformStreamDefaultController {
@@ -147,12 +143,12 @@ impl TransformStreamDefaultController {
         global: &GlobalScope,
         transformer_type: TransformerType,
     ) -> DomRoot<TransformStreamDefaultController> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(TransformStreamDefaultController::new_inherited(
                 transformer_type,
             )),
             global,
-            cx,
         )
     }
 
@@ -171,12 +167,15 @@ impl TransformStreamDefaultController {
         self.stream.set(Some(stream));
     }
 
-    pub(crate) fn get_finish_promise(&self) -> Option<Rc<Promise>> {
-        self.finish_promise.borrow().clone()
+    pub(crate) fn get_finish_promise(&self, cx: &JSContext) -> Option<RootedPromise> {
+        self.finish_promise
+            .borrow()
+            .as_ref()
+            .map(|promise| promise.root(cx))
     }
 
-    pub(crate) fn set_finish_promise(&self, promise: Rc<Promise>) {
-        *self.finish_promise.borrow_mut() = Some(promise);
+    pub(crate) fn set_finish_promise(&self, promise: &RootedPromise) {
+        *self.finish_promise.borrow_mut() = Some(promise.to_traced());
     }
 
     /// <https://streams.spec.whatwg.org/#transform-stream-default-controller-perform-transform>
@@ -185,7 +184,7 @@ impl TransformStreamDefaultController {
         cx: &mut JSContext,
         global: &GlobalScope,
         chunk: SafeHandleValue,
-    ) -> Fallible<Rc<Promise>> {
+    ) -> Fallible<RootedPromise> {
         // Let transformPromise be the result of performing controller.[[transformAlgorithm]], passing chunk.
         let transform_promise = self.perform_transform(cx, global, chunk)?;
 
@@ -212,7 +211,7 @@ impl TransformStreamDefaultController {
         cx: &mut JSContext,
         global: &GlobalScope,
         chunk: SafeHandleValue,
-    ) -> Fallible<Rc<Promise>> {
+    ) -> Fallible<RootedPromise> {
         let result = match &self.transformer_type {
             // <https://streams.spec.whatwg.org/#set-up-transform-stream-default-controller-from-transformer>
             TransformerType::Js {
@@ -225,8 +224,8 @@ impl TransformStreamDefaultController {
                 // chunk and returns the result of invoking
                 // transformerDict["transform"] with argument list « chunk,
                 // controller » and callback this value transformer.
-                let algo = transform.borrow().clone();
-                if let Some(transform) = algo {
+                rooted!(&in(cx) let algo = transform.borrow().clone());
+                if let Some(ref transform) = *algo {
                     rooted!(&in(cx) let this_object = transform_obj.get());
                     transform
                         .Call_(
@@ -360,7 +359,7 @@ impl TransformStreamDefaultController {
         cx: &mut JSContext,
         global: &GlobalScope,
         chunk: SafeHandleValue,
-    ) -> Fallible<Rc<Promise>> {
+    ) -> Fallible<RootedPromise> {
         let result = match &self.transformer_type {
             // <https://streams.spec.whatwg.org/#set-up-transform-stream-default-controller-from-transformer>
             TransformerType::Js {
@@ -373,8 +372,8 @@ impl TransformStreamDefaultController {
                 // reason and returns the result of invoking
                 // transformerDict["cancel"] with argument list « reason » and
                 // callback this value transformer.
-                let algo = cancel.borrow().clone();
-                if let Some(cancel) = algo {
+                rooted!(&in(cx) let algo = cancel.borrow().clone());
+                if let Some(ref cancel) = *algo {
                     rooted!(&in(cx) let this_object = transform_obj.get());
                     cancel
                         .Call_(cx, &this_object.handle(), chunk, ExceptionHandling::Rethrow)
@@ -441,7 +440,7 @@ impl TransformStreamDefaultController {
         &self,
         cx: &mut JSContext,
         global: &GlobalScope,
-    ) -> Fallible<Rc<Promise>> {
+    ) -> Fallible<RootedPromise> {
         let result = match &self.transformer_type {
             // <https://streams.spec.whatwg.org/#set-up-transform-stream-default-controller-from-transformer>
             TransformerType::Js {
@@ -453,8 +452,8 @@ impl TransformStreamDefaultController {
                 // algorithm which returns the result of invoking
                 // transformerDict["flush"] with argument list « controller »
                 // and callback this value transformer.
-                let algo = flush.borrow().clone();
-                if let Some(flush) = algo {
+                rooted!(&in(cx) let algo = flush.borrow().clone());
+                if let Some(ref flush) = *algo {
                     rooted!(&in(cx) let this_object = transform_obj.get());
                     flush
                         .Call_(cx, &this_object.handle(), self, ExceptionHandling::Rethrow)

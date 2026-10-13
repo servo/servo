@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Reference: Textarea scrolled to end</title>
+<style>
+  textarea {
+    width: 100px;
+    white-space: nowrap;
+    /* text-overflow: clip; default */
+    font-family: monospace;
+    font-size: 20px;
+  }
+</style>
+<textarea>01234567890123456789</textarea>
+<script>
+  requestAnimationFrame(() => {
+    const textarea = document.querySelector('textarea');
+    // Scroll to end
+    textarea.scrollLeft = textarea.scrollWidth;
+    document.documentElement.classList.remove('reftest-wait');
+  });
+</script>
+</html>

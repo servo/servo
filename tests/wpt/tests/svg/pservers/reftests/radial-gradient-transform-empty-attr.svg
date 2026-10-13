@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>SVG Paint Servers: Empty gradientTransform attribute should not block inheritance for radialGradient.</title>
+  <metadata>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/pservers.html#RadialGradientElementGradientTransformAttribute"/>
+    <html:link rel="match" href="reference/green-100x100.svg"/>
+    <html:meta name="fuzzy" content="maxDifference=0-1; totalPixels=0-40000"/>
+    <!-- The test paints a gradient whose visible area lands entirely on one
+         stop; the reference paints a solid fill of that stop colour. An
+         interpolated gradient is not bit-identical to a flat fill, so the two
+         agree to within one unit per channel rather than exactly.
+
+         maxDifference is what keeps this honest: if the transform stopped being
+         inherited the rect would show the far stop over much of its area, a
+         difference of hundreds, not of one. totalPixels is deliberately the
+         whole painted area, because how many pixels land on the rounding
+         boundary is a property of the rasterizer and its scale, not of the
+         behaviour under test: 3952 at 1x, 4344 at the 2x an iOS snapshot
+         uses. -->
+  </metadata>
+  <!-- rg1 has gradientTransform="translate(0,-2)" which shifts the gradient center
+       2 bounding-box heights above the rect. All points in the rect lie outside the
+       gradient circle, so they see the last stop (green). -->
+  <radialGradient id="rg1" gradientTransform="translate(0,-2)">
+    <stop offset="0" stop-color="red"/>
+    <stop offset="1" stop-color="green"/>
+  </radialGradient>
+  <!-- rg references rg1 and has gradientTransform="" in markup. An empty attribute
+       should not block inheritance of translate(0,-2) from rg1, so the rect should
+       be solid green. -->
+  <radialGradient id="rg" href="#rg1" gradientTransform=""/>
+  <rect fill="url(#rg)" width="100" height="100"/>
+</svg>

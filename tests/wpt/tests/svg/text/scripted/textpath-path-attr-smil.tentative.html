@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<title>textPath `path` attribute is reachable by SMIL and interpolates</title>
+<link rel="author" title="Karl Dubost" href="mailto:k_dubost@apple.com">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementPathAttribute">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/paths.html#TheDProperty">
+<link rel="help" href="https://w3c.github.io/svgwg/specs/paths/#DAttribute">
+<link rel="help" href="https://github.com/w3c/svgwg/issues/1174">
+<meta name="assert" content="TENTATIVE. SVG 2 marks the path attribute Animatable: yes and says nothing else about it. The two places that do define path-data interpolation both scope themselves to the d attribute of the path element, and they disagree with each other about incompatible values: SVG 2 paths.html falls back to the discrete animation type, while the SVG Paths draft that replaces that chapter calls the animation an error. Neither reaches this attribute. Measured on 2026-09-08, Chrome 155 and Firefox 157 both animate it and both interpolate segment by segment, landing on the exact midpoint halfway through. This file pins that agreement so the spec question, svgwg issue 1174, has something to point at.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<svg id="stage" width="400" height="400">
+  <defs>
+    <path id="fallback" d="M 20 40 L 380 40"/>
+  </defs>
+  <text><textPath id="animated" href="#fallback" path="M 20 100 L 380 100">ABCDEF<animate
+      attributeName="path" dur="10s" fill="freeze"
+      from="M 20 100 L 380 100" to="M 20 300 L 380 300"/></textPath></text>
+  <text><textPath id="still" path="M 20 100 L 380 100">ABCDEF</textPath></text>
+  <text><textPath id="offset" href="#fallback" startOffset="0">ABCDEF<animate
+      attributeName="startOffset" dur="10s" fill="freeze" from="0" to="100"/></textPath></text>
+</svg>
+
+<script>
+const stage = document.getElementById('stage');
+const animated = document.getElementById('animated');
+const still = document.getElementById('still');
+const offset = document.getElementById('offset');
+
+const frame = () => new Promise(resolve => requestAnimationFrame(() => resolve()));
+
+// The clock has to be running before it can be paused and driven. At load the SMIL time
+// container has not begun, and setCurrentTime() on it does nothing at all, so every
+// sample comes back at the pre-animation value and the test would report a false
+// negative. Sampling itself is synchronous once the container is going.
+const ready = (async () => {
+  for (let i = 0; i < 120 && stage.getCurrentTime() === 0; i++)
+    await frame();
+  assert_greater_than(stage.getCurrentTime(), 0, 'the SMIL clock started');
+  stage.pauseAnimations();
+})();
+
+const at = (t, el) => {
+  stage.setCurrentTime(t);
+  return el.getStartPositionOfChar(0);
+};
+
+promise_test(async () => {
+  await ready;
+  assert_approx_equals(at(0, offset).x, 20, 0.5, 't=0');
+  assert_approx_equals(at(5, offset).x, 70, 0.5, 't=5');
+  assert_approx_equals(at(10, offset).x, 120, 0.5, 't=10');
+}, 'control: the SMIL clock samples under setCurrentTime');
+
+promise_test(async () => {
+  await ready;
+  assert_approx_equals(at(0, still).y, 100, 0.5, 't=0');
+  assert_approx_equals(at(5, still).y, 100, 0.5, 't=5');
+  assert_approx_equals(at(10, still).y, 100, 0.5, 't=10');
+}, 'control: an unanimated inline path does not move with the clock');
+
+promise_test(async () => {
+  await ready;
+  assert_approx_equals(at(0, animated).y, 100, 0.5, 'the from value');
+  assert_approx_equals(at(10, animated).y, 300, 0.5, 'the to value, frozen');
+}, 'SMIL reaches the path attribute');
+
+promise_test(async () => {
+  await ready;
+  assert_approx_equals(at(5, animated).y, 200, 0.5,
+                       'halfway between y=100 and y=300');
+}, 'the path attribute interpolates rather than switching');
+</script>

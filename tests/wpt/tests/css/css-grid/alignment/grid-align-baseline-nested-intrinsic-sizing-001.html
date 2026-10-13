@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Test: Baseline alignment in a nested grid whose min-content size is queried after layout</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#algo-track-sizing">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#min-size-auto">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<meta name="assert" content="Resolving the min-content contribution of a grid item that contains a baseline-aligned grid must not change the layout of that grid's items.">
+<style>
+.outer {
+  display: grid;
+}
+/* A definite inline-size with min-inline-size: auto, so that the outer grid
+   still needs to compute this item's min-content contribution. */
+.wrapper {
+  inline-size: 400px;
+}
+.inner {
+  display: grid;
+  grid-template-columns: auto;
+  align-items: baseline;
+}
+.item {
+  min-inline-size: 0;
+  padding-inline: 20px 10px;
+}
+</style>
+<body onload="checkLayout('.inner')">
+<div class="outer">
+  <div class="wrapper">
+    <div class="inner" data-expected-width="400">
+      <div class="item" data-expected-width="400">Baseline aligned item</div>
+    </div>
+  </div>
+</div>
+<div class="outer">
+  <div class="wrapper">
+    <div class="inner" data-expected-width="400">
+      <div class="item" data-expected-width="400" style="block-size: 30px"></div>
+    </div>
+  </div>
+</div>
+<div class="outer">
+  <div class="wrapper">
+    <div class="inner" data-expected-width="400">
+      <input class="item" data-expected-width="400">
+    </div>
+  </div>
+</div>
+</body>

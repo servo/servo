@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use euclid::RigidTransform3D;
 use js::context::JSContext;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use webxr_api::{BaseSpace, Frame, Space};
 
 use crate::dom::bindings::inheritance::Castable;
@@ -56,10 +56,10 @@ impl XRSpace {
         input: &XRInputSource,
         is_grip_space: bool,
     ) -> DomRoot<XRSpace> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(XRSpace::new_inputspace_inner(session, input, is_grip_space)),
             global,
-            cx,
         )
     }
 

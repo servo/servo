@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<title>Fullscreen an element: open auto popovers are hidden; manual popovers stay open</title>
+<link rel="help" href="https://fullscreen.spec.whatwg.org/#fullscreen-an-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../trusted-click.js"></script>
+<div id="log"></div>
+<script>
+// "Fullscreen an element", steps 1-2:
+//   1. Let hideUntil be the result of running "topmost popover ancestor"
+//      given element, null, and false.
+//   2. Run "hide popovers until" given element's node document, hideUntil,
+//      false, and true.
+//
+// "Hide popovers until" only iterates the showing auto popover list and
+// the showing hint popover list; manual popovers are never touched.
+
+promise_test(async t => {
+    const popover = document.createElement("div");
+    popover.setAttribute("popover", "auto");
+    document.body.appendChild(popover);
+    const target = document.createElement("div");
+    document.body.appendChild(target);
+    t.add_cleanup(async () => {
+        if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+        if (popover.matches(":popover-open")) popover.hidePopover();
+        popover.remove();
+        target.remove();
+    });
+
+    popover.showPopover();
+    assert_true(popover.matches(":popover-open"), "popover is showing before fullscreen");
+
+    await trusted_request(target);
+    assert_equals(document.fullscreenElement, target, "fullscreen entered on target element");
+    assert_false(popover.matches(":popover-open"),
+        "the previously-open auto popover was hidden by fullscreen-an-element " +
+        "(target has no popover ancestor, so hideUntil is null and all auto popovers are hidden)");
+}, "fullscreen-an-element: hides open auto popover when fullscreening a non-popover element");
+
+promise_test(async t => {
+    const autoPopover = document.createElement("div");
+    autoPopover.setAttribute("popover", "auto");
+    document.body.appendChild(autoPopover);
+    const manualPopover = document.createElement("div");
+    manualPopover.setAttribute("popover", "manual");
+    document.body.appendChild(manualPopover);
+    const target = document.createElement("div");
+    document.body.appendChild(target);
+    t.add_cleanup(async () => {
+        if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
+        if (autoPopover.matches(":popover-open")) autoPopover.hidePopover();
+        if (manualPopover.matches(":popover-open")) manualPopover.hidePopover();
+        autoPopover.remove();
+        manualPopover.remove();
+        target.remove();
+    });
+
+    autoPopover.showPopover();
+    manualPopover.showPopover();
+    assert_true(autoPopover.matches(":popover-open"), "auto popover is showing before fullscreen");
+    assert_true(manualPopover.matches(":popover-open"), "manual popover is showing before fullscreen");
+
+    await trusted_request(target);
+    assert_false(autoPopover.matches(":popover-open"),
+        "auto popover was hidden by fullscreen-an-element (hide-popovers-until iterates the auto stack)");
+    assert_true(manualPopover.matches(":popover-open"),
+        "manual popover stays open — hide-popovers-until only iterates the auto and hint popover stacks");
+}, "fullscreen-an-element: hides auto popovers but leaves manual popovers open");
+</script>

@@ -1,0 +1,12 @@
+.scrollbox {
+  margin: 200px;
+  width: 200px;
+  height: 200px;
+  overflow: scroll;
+  border: 1px solid black;
+}
+.content {
+  width: 1000px;
+  height: 1000px;
+  background: linear-gradient(45deg, white, black);
+}

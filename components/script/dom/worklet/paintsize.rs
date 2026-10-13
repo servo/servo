@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use euclid::Size2D;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use style_traits::CSSPixel;
 
 use crate::dom::bindings::codegen::Bindings::PaintSizeBinding::PaintSizeMethods;
@@ -34,7 +34,7 @@ impl PaintSize {
         global: &PaintWorkletGlobalScope,
         size: Size2D<f32, CSSPixel>,
     ) -> DomRoot<PaintSize> {
-        reflect_dom_object_with_cx(Box::new(PaintSize::new_inherited(size)), global, cx)
+        reflect_dom_object(cx, Box::new(PaintSize::new_inherited(size)), global)
     }
 }
 

@@ -6,6 +6,10 @@
   <link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1740304">
   <link rel="match" href="fragmented-inline-block-002-print-ref.html">
   <style>
+    body {
+      /* Prevent last-resort break opportunity between body and child. */
+      margin: 0;
+    }
     .tall {
       /* The reference case has a block; we have an inline-block.
          Given that there's no other content on our line, we can expect our

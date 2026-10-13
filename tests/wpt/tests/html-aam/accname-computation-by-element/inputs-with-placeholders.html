@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+
+<head>
+  <meta charset="utf-8">
+  <title>Accname computation tests for input elements that support a placeholder attribute</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+  <script src="/html-aam/scripts/html-aam-accname-utils.js"></script>
+</head>
+
+<body>
+  <script>
+    const testConfig = {
+      urlSpec: 'https://www.w3.org/TR/html-aam-1.0/#input-type-text-input-type-password-input-type-number-input-type-search-input-type-tel-input-type-email-input-type-url-and-textarea-element-accessible-name-computation',
+      elements: {
+        'input[type="email"]': { attrs: ['value'] },
+        'input[type="number"]': { attrs: ['value'] },
+        'input[type="password"]': { attrs: ['value'] },
+        'input[type="search"]': { attrs: ['value'] },
+        'input[type="tel"]': { attrs: ['value'] },
+        'input[type="text"]': { attrs: ['value'] },
+        'input[type="url"]': { attrs: ['value'] },
+        'textarea': { descendants: ['textNode'] }
+      },
+      nameSources: [
+        'from 2 aria-labelledby refs',
+        'from 1 aria-labelledby ref',
+        'from aria-label',
+        'from 2 labels',
+        'from 1 label',
+        'from encapsulating label',
+        'from title',
+        'from placeholder',
+        'from aria-placeholder',
+        'to be empty'
+      ]
+    }
+
+    HtmlAamAccnameUtils.buildNameComputationTests(testConfig);
+    AriaUtils.verifyLabelsBySelector(".ex-label");
+  </script>
+</body>
+
+</html>

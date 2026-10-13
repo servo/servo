@@ -2,15 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-use std::ptr;
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use js::jsapi::{Heap, IsPromiseObject, JSObject};
+use js::jsapi::{Heap, JSObject};
 use js::jsval::{JSVal, UndefinedValue};
-use js::rust::{Handle as SafeHandle, HandleObject, HandleValue as SafeHandleValue, IntoHandle};
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use js::rust::{HandleObject, HandleValue as SafeHandleValue};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
+use script_bindings::root::rooted_heap_handle;
 
 use super::byteteeunderlyingsource::ByteTeeUnderlyingSource;
 use crate::dom::bindings::callback::ExceptionHandling;
@@ -21,7 +19,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageport::MessagePort;
-use crate::dom::promise::Promise;
+use crate::dom::promise::{Promise, RootedPromise, TracedPromise};
 use crate::dom::stream::defaultteeunderlyingsource::DefaultTeeUnderlyingSource;
 use crate::dom::stream::transformstream::TransformStream;
 
@@ -36,7 +34,7 @@ enum UnderlyingSource {
     Js(JsUnderlyingSource, Heap<*mut JSObject>),
     Tee(Dom<DefaultTeeUnderlyingSource>),
     Transfer(Dom<MessagePort>),
-    Transform(Dom<TransformStream>, Rc<Promise>),
+    Transform(Dom<TransformStream>, TracedPromise),
     TeeByte(Dom<ByteTeeUnderlyingSource>),
 }
 
@@ -53,11 +51,13 @@ impl From<UnderlyingSourceType<'_>> for UnderlyingSource {
             UnderlyingSourceType::Memory(size) => UnderlyingSource::Memory(size),
             UnderlyingSourceType::Blob(size) => UnderlyingSource::Blob(size),
             UnderlyingSourceType::FetchResponse => UnderlyingSource::FetchResponse,
-            UnderlyingSourceType::Js(source) => UnderlyingSource::Js(source, Heap::default()),
+            UnderlyingSourceType::Js(source) => {
+                UnderlyingSource::Js(source.clone(), Heap::default())
+            },
             UnderlyingSourceType::Tee(source) => UnderlyingSource::Tee(Dom::from_ref(source)),
             UnderlyingSourceType::Transfer(port) => UnderlyingSource::Transfer(Dom::from_ref(port)),
             UnderlyingSourceType::Transform(stream, promise) => {
-                UnderlyingSource::Transform(Dom::from_ref(stream), promise)
+                UnderlyingSource::Transform(Dom::from_ref(stream), promise.to_traced())
             },
             UnderlyingSourceType::TeeByte(source) => {
                 UnderlyingSource::TeeByte(Dom::from_ref(source))
@@ -80,7 +80,7 @@ pub(crate) enum UnderlyingSourceType<'a> {
     FetchResponse,
     /// A struct representing a JS object as underlying source,
     /// and the actual JS object for use as `thisArg` in callbacks.
-    Js(JsUnderlyingSource),
+    Js(&'a JsUnderlyingSource),
     /// Tee
     Tee(&'a DefaultTeeUnderlyingSource),
     /// Transfer, with the port used in some of the algorithms.
@@ -88,7 +88,7 @@ pub(crate) enum UnderlyingSourceType<'a> {
     /// A struct representing a JS object as underlying source,
     /// and the actual JS object for use as `thisArg` in callbacks.
     /// This is used for the `TransformStream` API.
-    Transform(&'a TransformStream, Rc<Promise>),
+    Transform(&'a TransformStream, &'a RootedPromise),
     /// Tee Byte
     TeeByte(&'a ByteTeeUnderlyingSource),
 }
@@ -130,12 +130,12 @@ impl UnderlyingSourceContainer {
         // TODO: setting the underlying source dict as the prototype of the
         // `UnderlyingSourceContainer`, as it is later used as the "this" in Call_.
         // Is this a good idea?
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(UnderlyingSourceContainer::new_inherited(
                 underlying_source_type,
             )),
             global,
-            cx,
         )
     }
 
@@ -147,24 +147,21 @@ impl UnderlyingSourceContainer {
     }
 
     /// <https://streams.spec.whatwg.org/#dom-underlyingsource-cancel>
-    #[expect(unsafe_code)]
     pub(crate) fn call_cancel_algorithm(
         &self,
         cx: &mut JSContext,
         global: &GlobalScope,
         reason: SafeHandleValue,
-    ) -> Option<Result<Rc<Promise>, Error>> {
+    ) -> Option<Result<RootedPromise, Error>> {
         match &self.underlying_source_type {
             UnderlyingSource::Js(source, this_obj) => {
                 if let Some(algo) = &source.cancel {
-                    let result = unsafe {
-                        algo.Call_(
-                            cx,
-                            &SafeHandle::from_raw(this_obj.handle()),
-                            Some(reason),
-                            ExceptionHandling::Rethrow,
-                        )
-                    };
+                    let result = algo.Call_(
+                        cx,
+                        &rooted_heap_handle(self, |_| this_obj),
+                        Some(reason),
+                        ExceptionHandling::Rethrow,
+                    );
                     return Some(result);
                 }
                 None
@@ -208,23 +205,20 @@ impl UnderlyingSourceContainer {
     }
 
     /// <https://streams.spec.whatwg.org/#dom-underlyingsource-pull>
-    #[expect(unsafe_code)]
     pub(crate) fn call_pull_algorithm(
         &self,
         cx: &mut JSContext,
         controller: Controller,
-    ) -> Option<Result<Rc<Promise>, Error>> {
+    ) -> Option<Result<RootedPromise, Error>> {
         match &self.underlying_source_type {
             UnderlyingSource::Js(source, this_obj) => {
                 if let Some(algo) = &source.pull {
-                    let result = unsafe {
-                        algo.Call_(
-                            cx,
-                            &SafeHandle::from_raw(this_obj.handle()),
-                            controller,
-                            ExceptionHandling::Rethrow,
-                        )
-                    };
+                    let result = algo.Call_(
+                        cx,
+                        &rooted_heap_handle(self, |_| this_obj),
+                        controller,
+                        ExceptionHandling::Rethrow,
+                    );
                     return Some(result);
                 }
                 None
@@ -266,41 +260,26 @@ impl UnderlyingSourceContainer {
     /// and it is also how to spec deals with the situation.
     /// see "Let startPromise be a promise resolved with startResult."
     /// at <https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller>
-    #[expect(unsafe_code)]
     pub(crate) fn call_start_algorithm(
         &self,
         cx: &mut JSContext,
         controller: Controller,
-    ) -> Option<Result<Rc<Promise>, Error>> {
+    ) -> Option<Result<RootedPromise, Error>> {
         match &self.underlying_source_type {
             UnderlyingSource::Js(source, this_obj) => {
                 if let Some(start) = &source.start {
-                    rooted!(&in(cx) let mut result_object = ptr::null_mut::<JSObject>());
                     rooted!(&in(cx) let mut result: JSVal);
-                    unsafe {
-                        if let Err(error) = start.Call_(
-                            cx,
-                            &SafeHandle::from_raw(this_obj.handle()),
-                            controller,
-                            result.handle_mut(),
-                            ExceptionHandling::Rethrow,
-                        ) {
-                            return Some(Err(error));
-                        }
+                    if let Err(error) = start.Call_(
+                        cx,
+                        &rooted_heap_handle(self, |_| this_obj),
+                        controller,
+                        result.handle_mut(),
+                        ExceptionHandling::Rethrow,
+                    ) {
+                        return Some(Err(error));
                     }
-                    let is_promise = unsafe {
-                        if result.is_object() {
-                            result_object.set(result.to_object());
-                            IsPromiseObject(result_object.handle().into_handle())
-                        } else {
-                            false
-                        }
-                    };
-                    let promise = if is_promise {
-                        Promise::new_with_js_promise(cx, result_object.handle())
-                    } else {
-                        Promise::new_resolved(cx, &self.global(), result.get())
-                    };
+                    let promise =
+                        Promise::resolve_or_wrap_promise(cx, result.handle(), &self.global());
                     return Some(Ok(promise));
                 }
                 None
@@ -316,7 +295,7 @@ impl UnderlyingSourceContainer {
             },
             UnderlyingSource::Transform(_, start_promise) => {
                 // Let startAlgorithm be an algorithm that returns startPromise.
-                Some(Ok(start_promise.clone()))
+                Some(Ok(start_promise.root(cx)))
             },
             _ => None,
         }

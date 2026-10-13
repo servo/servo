@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Linked Parameters: dynamic custom property updates</title>
+<link rel="help" href="https://drafts.csswg.org/css-link-params-1/#link-param-prop">
+<meta name="assert" content="link-parameters recomputes when a referenced custom property changes.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="target"></div>
+<script>
+test(() => {
+  const target = document.getElementById("target");
+  target.style.setProperty("--dynamic", "1");
+  target.style.setProperty("link-parameters", "param(--a, var(--dynamic))");
+  assert_equals(getComputedStyle(target).getPropertyValue("link-parameters"),
+                "param(--a, 1)");
+
+  target.style.setProperty("--dynamic", "2");
+  assert_equals(getComputedStyle(target).getPropertyValue("link-parameters"),
+                "param(--a, 2)");
+}, "link-parameters updates when a referenced custom property changes");
+</script>

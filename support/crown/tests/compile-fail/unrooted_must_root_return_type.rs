@@ -12,5 +12,5 @@ fn foo2() -> Foo {
 
 fn main() {
     let foo = foo2();
-    //~^ ERROR: Expression of type Foo must be rooted
+    //~^ ERROR: expression of type Foo must be rooted
 }

@@ -42,7 +42,7 @@ promise_test(async t => {
   return new Promise(resolve => {
     assert_implements(window.LargestContentfulPaint,
                       "LargestContentfulPaint is not implemented");
-    const observer = new PerformanceObserver(entryList => {
+    const observer = new PerformanceObserver(t.step_func(entryList => {
       entryList.getEntries().forEach(entry => {
         // May receive a text entry. Ignore that entry.
         if (!entry.url) {
@@ -51,7 +51,7 @@ promise_test(async t => {
         assert_true(entry.url.includes("lcp-100x50.png"), "Re-visible image has an entry");
         resolve();
       });
-    });
+    }));
     observer.observe({type: 'largest-contentful-paint', buffered: true});
     t.step_timeout(() => {
       assert_unreached("The image should have become visible by now, which should have triggered an LCP entry.");

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG opacity changes preserve baseline-source overridden by vertical-align</title>
+<link rel="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
+<link rel="help" href="https://www.w3.org/TR/SVG2/styling.html#ElementSpecificStyling">
+<link rel="help" href="https://www.w3.org/TR/css-inline-3/#baseline-source">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #baseline-target {
+    vertical-align: baseline !important;
+  }
+</style>
+<svg id="baseline-target" style="baseline-source: first; opacity: 0.5"></svg>
+<script>
+  test(() => {
+    const target = document.getElementById("baseline-target");
+    target.getBoundingClientRect();
+    assert_equals(getComputedStyle(target).baselineSource, "auto");
+
+    target.style.opacity = "0.75";
+
+    assert_equals(getComputedStyle(target).baselineSource, "auto");
+    assert_equals(getComputedStyle(target).opacity, "0.75");
+  }, "An inline opacity change preserves baseline-source overridden by vertical-align");
+</script>
+

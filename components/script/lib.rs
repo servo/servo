@@ -20,66 +20,38 @@ extern crate malloc_size_of_derive;
 #[macro_use]
 extern crate stylo_atoms;
 
-mod animations;
-mod css;
-mod script_window_proxies;
 #[macro_use]
-mod task;
-mod body;
+mod tasks;
+
+#[macro_use]
+extern crate script_bindings;
+
 pub(crate) mod conversions;
-mod devtools;
-pub(crate) mod document_loader;
+mod css;
+mod fetch;
 #[macro_use]
 mod dom;
 pub(crate) use dom::canvas_context;
-pub(crate) mod fetch;
-pub(crate) mod indexeddb;
-mod init;
-mod layout_image;
-mod url;
-
-pub(crate) mod document_collection;
-pub(crate) mod iframe_collection;
-pub(crate) mod image_animation;
+mod drag;
+mod engine;
+mod event_loop;
 pub mod layout_dom;
 pub(crate) mod messaging;
-mod microtask;
 pub(crate) mod mime;
-mod mime_multipart;
-mod module_loading;
 mod navigation;
-mod network_listener;
 mod realms;
 mod routed_promise;
-mod script_module;
-mod script_mutation_observers;
-pub(crate) mod script_runtime;
-#[expect(unsafe_code)]
-pub(crate) mod script_thread;
-pub(crate) mod serviceworker_manager;
-mod stylesheet_loader;
-mod stylesheet_set;
-mod svg_font;
-mod task_manager;
-mod task_queue;
-mod task_source;
+mod runtime;
+mod scripting;
 pub mod test;
-mod timers;
-mod webdriver_handlers;
+mod unminify;
+mod url;
 mod window_named_properties;
 mod xpath;
 
-mod unminify;
-
-mod drag_data_store;
-mod links;
-
-pub use init::init;
+pub use event_loop::script_thread::ScriptThread;
 pub(crate) use script_bindings::DomTypes;
-pub(crate) use script_bindings::reflector::{AssociatedMemory, DomObject, MutDomObject, Reflector};
-pub use script_runtime::JSEngineSetup;
-pub use script_thread::ScriptThread;
-pub use serviceworker_manager::ServiceWorkerManager;
+pub(crate) use script_bindings::reflector::{DomObject, MutDomObject, Reflector};
 
 pub(crate) use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
 // These trait exports are public, because they are used in the DOM bindings.
@@ -87,3 +59,6 @@ pub(crate) use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
 // it is useful that they are accessible at the root of the crate.
 pub(crate) use crate::dom::bindings::inheritance::HasParent;
 pub(crate) use crate::dom::bindings::trace::{CustomTraceable, JSTraceable};
+pub use crate::dom::serviceworker::serviceworker_manager::ServiceWorkerManager;
+pub use crate::engine::handle::JSEngineSetup;
+pub use crate::engine::init::init;

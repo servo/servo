@@ -43,11 +43,14 @@ class SettingsActivity : ComponentActivity() {
                         title = { Text(stringResource(R.string.settings_title)) },
                         navigationIcon = {
                             IconButton(onClick = { finish() }) {
-                                Icon(painterResource(R.drawable.arrow_back), stringResource(R.string.back))
+                                Icon(
+                                    painterResource(R.drawable.arrow_back),
+                                    stringResource(R.string.back),
+                                )
                             }
                         },
                     )
-                },
+                }
             ) { innerPadding ->
                 Column(modifier = Modifier.padding(innerPadding)) {
                     SettingsItem(
@@ -62,16 +65,19 @@ class SettingsActivity : ComponentActivity() {
     }
 
     @Composable
-    private fun SettingsItem(title: String, summary: String, preferences: SharedPreferences, preferenceKey: String) {
+    private fun SettingsItem(
+        title: String,
+        summary: String,
+        preferences: SharedPreferences,
+        preferenceKey: String,
+    ) {
         ListItem(
-            headlineContent = {
-                Text(title)
-            },
-            supportingContent = {
-                Text(summary)
-            },
+            headlineContent = { Text(title) },
+            supportingContent = { Text(summary) },
             trailingContent = {
-                var checked by remember { mutableStateOf(preferences.getBoolean(preferenceKey, false)) }
+                var checked by remember {
+                    mutableStateOf(preferences.getBoolean(preferenceKey, false))
+                }
                 Switch(
                     checked = checked,
                     onCheckedChange = {

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declarative Fragment: template src CSP nonce behavior</title>
+
+<script nonce="correctnonce" src="/resources/testharness.js"></script>
+<script nonce="correctnonce" src="/resources/testharnessreport.js"></script>
+<body>
+
+<div id="container-nonce-ok">
+  <div id="target-nonce-ok">
+    <?start name="marker-nonce-ok">Original Nonce OK<?end>
+  </div>
+  <template for="marker-nonce-ok"
+            nonce="correctnonce"
+            src="/html/dom/partial-updates/tentative/resources/chunked-html.py?chunk1=NONCE_OK"
+            id="tpl-nonce-ok"></template>
+</div>
+
+<div id="container-nonce-fail">
+  <div id="target-nonce-fail">
+    <?start name="marker-nonce-fail">Original Nonce Fail<?end>
+  </div>
+  <template for="marker-nonce-fail"
+            nonce="wrongnonce"
+            src="/html/dom/partial-updates/tentative/resources/chunked-html.py?chunk1=NONCE_FAIL"
+            id="tpl-nonce-fail"></template>
+</div>
+
+<script nonce="correctnonce">
+promise_test(async () => {
+  const container = document.getElementById('target-nonce-ok');
+
+  await new Promise((resolve) => {
+    if (container.textContent.includes("NONCE_OK")) {
+      resolve();
+      return;
+    }
+    const observer = new MutationObserver(() => {
+      if (container.textContent.includes("NONCE_OK")) {
+        observer.disconnect();
+        resolve();
+      }
+    });
+    observer.observe(container, { childList: true, subtree: true, characterData: true });
+  });
+
+  assert_true(container.textContent.includes("NONCE_OK"), "Target should be updated when nonce matches CSP");
+}, "Template src load succeeds when nonce matches CSP policy");
+
+promise_test(async () => {
+  const container = document.getElementById('target-nonce-fail');
+
+  // Wait 200ms to allow fetch to be blocked by CSP
+  await new Promise(resolve => step_timeout(resolve, 200));
+
+  assert_false(container.textContent.includes("NONCE_FAIL"), "Target should NOT be updated when nonce mismatches CSP");
+}, "Template src load fails when nonce mismatches CSP policy");
+</script>
+</body>

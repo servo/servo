@@ -9,7 +9,7 @@ use bitflags::bitflags;
 use embedder_traits::FocusSequenceNumber;
 use js::context::{JSContext, NoGC};
 use js::gc::RootedGuard;
-use keyboard_types::Modifiers;
+use keyboard_types::{KeyboardEvent as KeyboardTypesEvent, Modifiers};
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
@@ -23,10 +23,8 @@ use servo_constellation_traits::{
 
 use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::focusevent::FocusEventType;
-use crate::dom::node::focus::FocusNavigationScopeOwner;
-use crate::dom::types::{
-    Element, EventTarget, FocusEvent, HTMLElement, HTMLIFrameElement, KeyboardEvent, Window,
-};
+use crate::dom::node::focus::{FocusNavigationScopeOwner, FocusTrigger};
+use crate::dom::types::{Element, EventTarget, FocusEvent, HTMLElement, HTMLIFrameElement, Window};
 use crate::dom::{Document, Event, EventBubbles, EventCancelable, Node, NodeTraits};
 use crate::realms::enter_auto_realm;
 
@@ -134,6 +132,19 @@ impl FocusableArea {
             FocusableArea::Viewport => vec![self.clone()],
         }
     }
+
+    /// Step 4.2 from <https://html.spec.whatwg.org/multipage/#focus-update-steps>:
+    /// > - If entry is an element, let focus event target be entry.
+    /// > - If entry is a Document object, let focus event target be that Document
+    /// >   object's relevant global object.
+    /// > - Otherwise, let focus event target be null.
+    pub(crate) fn event_target<'a>(&'a self, window: &'a Window) -> &'a EventTarget {
+        match self {
+            FocusableArea::Node { node, .. } => node.upcast::<EventTarget>(),
+            FocusableArea::IFrameViewport { iframe_element, .. } => iframe_element.upcast(),
+            FocusableArea::Viewport => window.upcast::<EventTarget>(),
+        }
+    }
 }
 
 /// The [`DocumentFocusHandler`] is a structure responsible for handling and storing data related to
@@ -152,8 +163,8 @@ pub(crate) struct DocumentFocusHandler {
     #[no_trace]
     focus_sequence: Cell<FocusSequenceNumber>,
     /// Indicates whether the container is included in the top-level browsing
-    /// context's focus chain (not considering system focus). Permanently `true`
-    /// for a top-level document.
+    /// context's focus chain (not considering system focus). This is independent
+    /// of the whether or not all `Document`s in a `WebView` have system focus.
     has_focus: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#sequential-focus-navigation-starting-point>
     sequential_focus_navigation_starting_point: MutNullableDom<Node>,
@@ -192,6 +203,9 @@ impl DocumentFocusHandler {
         if new_focusable_area == *self.focused_area.borrow() {
             return;
         }
+        self.window
+            .layout()
+            .set_force_accessibility_update_if_active();
 
         // From <https://html.spec.whatwg.org/multipage/#selector-focus>
         // > For the purposes of the CSS :focus pseudo-class, an element has the focus when:
@@ -264,7 +278,13 @@ impl DocumentFocusHandler {
         rooted!(&in(cx) let new_focus_chain = new_focus_target.focus_chain());
         rooted!(&in(cx) let old_focus_chain = self.current_focus_chain());
 
-        self.focus_update_steps(cx, new_focus_chain, old_focus_chain, new_focus_target);
+        self.focus_update_steps(
+            cx,
+            new_focus_chain,
+            old_focus_chain,
+            new_focus_target,
+            false, /* for_system_focus_change */
+        );
 
         // Advertise the change in the focus chain.
         // <https://html.spec.whatwg.org/multipage/#focus-chain>
@@ -310,12 +330,18 @@ impl DocumentFocusHandler {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#focus-update-steps>
+    ///
+    /// When the `for_system_focus_change` argument is true only events are fired,
+    /// but the internal state of the [`DocumentFocusHandler`] is not updated. This
+    /// is so that the focus state is preserved when the `WebView` regains system
+    /// focus.
     pub(crate) fn focus_update_steps(
         &self,
         cx: &mut JSContext,
         mut new_focus_chain: RootedGuard<'_, Vec<FocusableArea>>,
         mut old_focus_chain: RootedGuard<'_, Vec<FocusableArea>>,
         new_focus_target: &FocusableArea,
+        for_system_focus_change: bool,
     ) {
         let new_focus_chain_was_empty = new_focus_chain.is_empty();
 
@@ -347,7 +373,9 @@ impl DocumentFocusHandler {
         // to set it to the viewport before firing the "blur" event.
         //
         // See https://github.com/whatwg/html/issues/1569
-        self.set_focused_area(FocusableArea::Viewport);
+        if !for_system_focus_change {
+            self.set_focused_area(FocusableArea::Viewport);
+        }
 
         // Step 2: For each entry entry in old chain, in order, run these substeps:
         // Note: `old_focus_chain` might be empty!
@@ -370,13 +398,7 @@ impl DocumentFocusHandler {
             //
             // Note: We always send focus and blur events for `<iframe>` elements, but other
             // browsers only seem to do that conditionally. This needs a bit more research.
-            let blur_event_target = match entry {
-                FocusableArea::Node { node, .. } => Some(node.upcast::<EventTarget>()),
-                FocusableArea::IFrameViewport { iframe_element, .. } => {
-                    Some(iframe_element.upcast())
-                },
-                FocusableArea::Viewport => Some(self.window.upcast::<EventTarget>()),
-            };
+            let blur_event_target = entry.event_target(&self.window);
 
             // Step 2.3: If entry is the last entry in old chain, and entry is an Element, and
             // the last entry in new chain is also an Element, then let related blur target be
@@ -397,28 +419,38 @@ impl DocumentFocusHandler {
 
             // Step 2.4: If blur event target is not null, fire a focus event named blur at
             // blur event target, with related blur target as the related target.
-            if let Some(blur_event_target) = blur_event_target {
-                self.fire_focus_event(
-                    cx,
-                    FocusEventType::Blur,
-                    blur_event_target,
-                    related_blur_target,
-                );
+            //
+            // <https://w3c.github.io/uievents/#focusout>
+            // "blur" must be fired before "focusout".
+            self.fire_focus_event(
+                cx,
+                FocusEventType::Blur,
+                blur_event_target,
+                related_blur_target,
+            );
+
+            self.fire_focus_event(
+                cx,
+                FocusEventType::FocusOut,
+                blur_event_target,
+                related_blur_target,
+            );
+        }
+
+        if !for_system_focus_change {
+            // Step 3: Apply any relevant platform-specific conventions for focusing new focus
+            // target. (For example, some platforms select the contents of a text control when that
+            // control is focused.)
+            if &*self.focused_area() != new_focus_target &&
+                let Some(html_element) = new_focus_target
+                    .element()
+                    .and_then(|element| element.downcast::<HTMLElement>())
+            {
+                html_element.handle_focus_state_for_contenteditable(cx);
             }
-        }
 
-        // Step 3: Apply any relevant platform-specific conventions for focusing new focus
-        // target. (For example, some platforms select the contents of a text control when that
-        // control is focused.)
-        if &*self.focused_area() != new_focus_target &&
-            let Some(html_element) = new_focus_target
-                .element()
-                .and_then(|element| element.downcast::<HTMLElement>())
-        {
-            html_element.handle_focus_state_for_contenteditable(cx);
+            self.set_has_focus(!new_focus_chain_was_empty);
         }
-
-        self.set_has_focus(!new_focus_chain_was_empty);
 
         // Step 4: For each entry entry in new chain, in reverse order, run these substeps:
         // Note: `new_focus_chain` might be empty!
@@ -436,7 +468,9 @@ impl DocumentFocusHandler {
                 // TODO: Implement this.
 
                 // Step 4.1.2: Designate entry as the focused area of the document.
-                self.set_focused_area(entry.clone());
+                if !for_system_focus_change {
+                    self.set_focused_area(entry.clone());
+                }
             }
 
             // Step 4.2:
@@ -447,13 +481,7 @@ impl DocumentFocusHandler {
             //
             // Note: We always send focus and blur events for `<iframe>` elements, but other
             // browsers only seem to do that conditionally. This needs a bit more research.
-            let focus_event_target = match entry {
-                FocusableArea::Node { node, .. } => Some(node.upcast::<EventTarget>()),
-                FocusableArea::IFrameViewport { iframe_element, .. } => {
-                    Some(iframe_element.upcast())
-                },
-                FocusableArea::Viewport => Some(self.window.upcast::<EventTarget>()),
-            };
+            let focus_event_target = entry.event_target(&self.window);
 
             // Step 4.3: If entry is the last entry in new chain, and entry is an Element, and
             // the last entry in old chain is also an Element, then let related focus target be
@@ -474,14 +502,22 @@ impl DocumentFocusHandler {
 
             // Step 4.4: If focus event target is not null, fire a focus event named focus at
             // focus event target, with related focus target as the related target.
-            if let Some(focus_event_target) = focus_event_target {
-                self.fire_focus_event(
-                    cx,
-                    FocusEventType::Focus,
-                    focus_event_target,
-                    related_focus_target,
-                );
-            }
+            //
+            // <https://w3c.github.io/uievents/#focusin>
+            // "focus" must be fired before "focusIn".
+            self.fire_focus_event(
+                cx,
+                FocusEventType::Focus,
+                focus_event_target,
+                related_focus_target,
+            );
+
+            self.fire_focus_event(
+                cx,
+                FocusEventType::FocusIn,
+                focus_event_target,
+                related_focus_target,
+            );
         }
     }
 
@@ -496,13 +532,20 @@ impl DocumentFocusHandler {
         let event_name = match focus_event_type {
             FocusEventType::Focus => "focus".into(),
             FocusEventType::Blur => "blur".into(),
+            FocusEventType::FocusIn => "focusin".into(),
+            FocusEventType::FocusOut => "focusout".into(),
+        };
+
+        let event_bubbles = match focus_event_type {
+            FocusEventType::Focus | FocusEventType::Blur => EventBubbles::DoesNotBubble,
+            FocusEventType::FocusIn | FocusEventType::FocusOut => EventBubbles::Bubbles,
         };
 
         let event = FocusEvent::new(
             cx,
             &self.window,
             event_name,
-            EventBubbles::DoesNotBubble,
+            event_bubbles,
             EventCancelable::NotCancelable,
             Some(&self.window),
             0i32,
@@ -510,6 +553,7 @@ impl DocumentFocusHandler {
         );
         let event = event.upcast::<Event>();
         event.set_trusted(true);
+        event.set_composed(true);
         event.fire(cx, event_target);
     }
 
@@ -545,9 +589,9 @@ impl DocumentFocusHandler {
     pub(crate) fn sequential_focus_navigation_via_keyboard_event(
         &self,
         cx: &mut JSContext,
-        event: &KeyboardEvent,
+        event: &KeyboardTypesEvent,
     ) {
-        let direction = if event.modifiers().contains(Modifiers::SHIFT) {
+        let direction = if event.modifiers.contains(Modifiers::SHIFT) {
             SequentialFocusDirection::Backward
         } else {
             SequentialFocusDirection::Forward
@@ -711,7 +755,7 @@ impl DocumentFocusHandler {
         } else {
             iframe_element
                 .upcast::<Node>()
-                .run_the_focusing_steps(cx, None);
+                .run_the_focusing_steps(cx, None, FocusTrigger::Other);
         }
     }
 
@@ -759,14 +803,40 @@ impl DocumentFocusHandler {
             self.window
                 .Document()
                 .iframes()
-                .get(browsing_context_id)
-                .map(|iframe| DomRoot::from_ref(iframe.element.upcast::<Node>()))
+                .element(browsing_context_id)
+                .map(DomRoot::upcast::<Node>)
         });
         self.sequential_focus_navigation_loop(
             cx,
             starting_point,
             direction,
             true, /* allow focusing viewport */
+        );
+    }
+
+    pub(crate) fn gained_or_lost_system_focus(&self, cx: &mut JSContext, gained_focus: bool) {
+        if !self.has_focus() {
+            return;
+        }
+
+        rooted!(&in(cx) let focused_area = self.focused_area().clone());
+        rooted!(&in(cx) let new_focus_chain = if gained_focus {
+            self.current_focus_chain()
+        } else {
+            vec![]
+        });
+        rooted!(&in(cx) let old_focus_chain = if !gained_focus {
+            self.current_focus_chain()
+        } else {
+            vec![]
+        });
+
+        self.focus_update_steps(
+            cx,
+            new_focus_chain,
+            old_focus_chain,
+            &focused_area,
+            true, /* for_system_focus_change */
         );
     }
 }

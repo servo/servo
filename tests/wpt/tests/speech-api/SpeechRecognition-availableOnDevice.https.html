@@ -31,6 +31,23 @@ promise_test(async (t) => {
 }, "SpeechRecognition.available resolves with a string value for on-device.");
 
 promise_test(async (t) => {
+  window.SpeechRecognition = window.SpeechRecognition ||
+    window.webkitSpeechRecognition;
+
+  for (const lang of ["invalid language code", ""]) {
+    await promise_rejects_dom(
+      t,
+      "SyntaxError",
+      window.DOMException,
+      SpeechRecognition.available({ langs: [lang], processLocally: true }),
+      `available must reject with SyntaxError for langs ["${lang}"], which is ` +
+      "not a valid BCP47 language tag."
+    );
+  }
+}, "SpeechRecognition.available rejects with SyntaxError for an invalid " +
+   "language tag.");
+
+promise_test(async (t) => {
   const iframe = document.createElement("iframe");
   document.body.appendChild(iframe);
   const frameWindow = iframe.contentWindow;

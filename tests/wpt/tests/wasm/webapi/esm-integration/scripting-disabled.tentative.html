@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>WebAssembly module script in a document where scripting is disabled</title>
+<meta name="author" title="Mozilla" href="mailto:yhuang@mozilla.com">
+<meta name="help" href="https://html.spec.whatwg.org/#creating-a-webassembly-module-script">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// https://html.spec.whatwg.org/#creating-a-webassembly-module-script
+// Step 1. If scripting is disabled for settings, then set bodyBytes to the byte
+//         sequence 0x00 0x61 0x73 0x6D 0x01 0x00 0x00 0x00.
+promise_test(async t => {
+  const frame = document.createElement("iframe");
+  // A sandbox without "allow-scripts" disables scripting for the frame;
+  // "allow-same-origin" keeps the module script's fetch same-origin.
+  frame.sandbox = "allow-same-origin";
+  frame.src = "resources/scripting-disabled.html";
+  t.add_cleanup(() => frame.remove());
+
+  const loaded = new Promise((resolve, reject) => {
+    frame.addEventListener("load", resolve, { once: true });
+    frame.addEventListener(
+      "error",
+      () => reject(new Error("the frame failed to load")),
+      { once: true }
+    );
+  });
+  document.body.appendChild(frame);
+  await loaded;
+
+  assert_equals(
+    frame.contentDocument.readyState,
+    "complete",
+    "the document holding the module script loaded"
+  );
+}, "An invalid WebAssembly module script does not fail when scripting is disabled");
+</script>

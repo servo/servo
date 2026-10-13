@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: negative insets do not create interior rule segments in an overlap window</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#inset">
+<link rel="match" href="column-gap-decorations-inset-overlap-negative-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: 80px 80px;
+    gap: 40px;
+    background: #cdd5e0;
+    width: 200px;
+    column-rule: 4px solid blue;
+    column-rule-break: intersection;
+    column-rule-inset: -25%;
+  }
+  .lanes > div { background: #5b8def; }
+  .a { grid-column: 1; height: 40px; }
+  .b { grid-column: 2; height: 70px; }
+  .p { grid-column: 1; height: 20px; }
+  .c { grid-column: 1; height: 40px; }
+  .d { grid-column: 2; height: 70px; }
+</style>
+<div class="lanes">
+  <div class="a"></div>
+  <div class="b"></div>
+  <div class="p"></div>
+  <div class="c"></div>
+  <div class="d"></div>
+</div>

@@ -2,17 +2,22 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::borrow::Cow;
+#![cfg_attr(crown, allow(crown::jscontext_first_arg))]
+
+use std::rc::Rc;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use crossbeam_channel::Sender;
+#[cfg(feature = "devtools")]
 use devtools_traits::ScriptToDevtoolsControlMsg;
 use dom_struct::dom_struct;
-use embedder_traits::{JavaScriptEvaluationError, ScriptToEmbedderChan};
+use embedder_traits::ScriptToEmbedderChan;
 use js::context::JSContext;
 use net_traits::ResourceThreads;
 use net_traits::image_cache::ImageCache;
 use profile_traits::{mem, time};
+use script_bindings::cell::DomRefCell;
 use script_traits::Painter;
 use servo_base::generic_channel::GenericCallback;
 use servo_base::id::PipelineId;
@@ -21,20 +26,24 @@ use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
 use stylo_atoms::Atom;
 
+use crate::dom::Window;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::trace::CustomTraceable;
+use crate::dom::bindings::trace::{CustomTraceable, HashMapTracedValues};
 use crate::dom::bindings::utils::define_all_exposed_interfaces;
 use crate::dom::globalscope::GlobalScope;
-use crate::dom::paintworkletglobalscope::{PaintWorkletGlobalScope, PaintWorkletTask};
+use crate::dom::paintworkletglobalscope::PaintWorkletGlobalScope;
 #[cfg(feature = "testbinding")]
-use crate::dom::testworkletglobalscope::{TestWorkletGlobalScope, TestWorkletTask};
+use crate::dom::testworkletglobalscope::TestWorkletGlobalScope;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::worklet::WorkletExecutor;
 use crate::messaging::MainThreadScriptMsg;
 use crate::realms::enter_auto_realm;
-use crate::script_runtime::IntroductionType;
+use crate::runtime::job_queue::job_queue_microtask_checkpoint;
+use crate::scripting::script_module::{ModuleRequest, ModuleStatus};
+use crate::tasks::task::TaskCanceller;
+use crate::tasks::task_manager::TaskManager;
 
 #[dom_struct]
 /// <https://drafts.css-houdini.org/worklets/#workletglobalscope>
@@ -55,10 +64,23 @@ pub(crate) struct WorkletGlobalScope {
 
     #[no_trace]
     origin: MutableOrigin,
+
+    /// The [`TaskManager`] for this [`WorkletGlobalScope`].
+    #[conditional_malloc_size_of]
+    task_manager: Rc<TaskManager>,
+
+    #[conditional_malloc_size_of]
+    closing: Arc<AtomicBool>,
+
+    /// module map is used when importing JavaScript modules
+    /// <https://html.spec.whatwg.org/multipage/#concept-settings-object-module-map>
+    #[ignore_malloc_size_of = "mozjs"]
+    module_map: DomRefCell<HashMapTracedValues<ModuleRequest, ModuleStatus>>,
 }
 
 impl WorkletGlobalScope {
     /// Create a new heap-allocated `WorkletGlobalScope`.
+    #[allow(clippy::too_many_arguments)]
     pub(crate) fn new(
         scope_type: WorkletGlobalScopeType,
         pipeline_id: PipelineId,
@@ -67,6 +89,7 @@ impl WorkletGlobalScope {
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
         cx: &mut JSContext,
+        closing: Arc<AtomicBool>,
     ) -> DomRoot<WorkletGlobalScope> {
         let scope: DomRoot<WorkletGlobalScope> = match scope_type {
             #[cfg(feature = "testbinding")]
@@ -77,14 +100,16 @@ impl WorkletGlobalScope {
                 executor,
                 init,
                 cx,
+                closing,
             )),
             WorkletGlobalScopeType::Paint => DomRoot::upcast(PaintWorkletGlobalScope::new(
+                cx,
                 pipeline_id,
                 base_url,
                 inherited_secure_context,
                 executor,
                 init,
-                cx,
+                closing,
             )),
         };
 
@@ -102,9 +127,13 @@ impl WorkletGlobalScope {
         inherited_secure_context: Option<bool>,
         executor: WorkletExecutor,
         init: &WorkletGlobalScopeInit,
+        closing: Arc<AtomicBool>,
     ) -> Self {
+        let script_event_loop_sender = executor.event_loop_sender();
+
         Self {
             globalscope: GlobalScope::new_inherited(
+                #[cfg(feature = "devtools")]
                 init.devtools_chan.clone(),
                 init.mem_profiler_chan.clone(),
                 init.time_profiler_chan.clone(),
@@ -118,14 +147,28 @@ impl WorkletGlobalScope {
                 init.gpu_id_hub.clone(),
                 inherited_secure_context,
                 false,
-                None, // font_context
             ),
             base_url,
             to_script_thread_sender: init.to_script_thread_sender.clone(),
             executor,
             pipeline_id,
+            task_manager: Rc::new(TaskManager::new(
+                Some(script_event_loop_sender),
+                pipeline_id,
+                Some(TaskCanceller {
+                    cancelled: closing.clone(),
+                }),
+            )),
             origin: MutableOrigin::new(ImmutableOrigin::new_opaque()),
+            closing,
+            module_map: Default::default(),
         }
+    }
+
+    pub(crate) fn module_map(
+        &self,
+    ) -> &DomRefCell<HashMapTracedValues<ModuleRequest, ModuleStatus>> {
+        &self.module_map
     }
 
     pub(crate) fn origin(&self) -> MutableOrigin {
@@ -134,25 +177,6 @@ impl WorkletGlobalScope {
 
     pub(crate) fn pipeline_id(&self) -> PipelineId {
         self.pipeline_id
-    }
-
-    /// Evaluate a JS script in this global.
-    pub(crate) fn evaluate_js(
-        &self,
-        script: Cow<'_, str>,
-        cx: &mut JSContext,
-    ) -> Result<(), JavaScriptEvaluationError> {
-        let mut realm = enter_auto_realm(cx, self);
-        let cx = &mut realm.current_realm();
-
-        debug!("Evaluating Dom in a worklet.");
-        self.globalscope.evaluate_js_on_global(
-            cx,
-            script,
-            "",
-            Some(IntroductionType::WORKLET),
-            None,
-        )
     }
 
     /// Register a paint worklet to the script thread.
@@ -182,18 +206,34 @@ impl WorkletGlobalScope {
         self.executor.clone()
     }
 
-    /// Perform a worklet task
-    pub(crate) fn perform_a_worklet_task(&self, cx: &mut JSContext, task: WorkletTask) {
-        match task {
-            #[cfg(feature = "testbinding")]
-            WorkletTask::Test(task) => match self.downcast::<TestWorkletGlobalScope>() {
-                Some(global) => global.perform_a_worklet_task(task),
-                None => warn!("This is not a test worklet."),
-            },
-            WorkletTask::Paint(task) => match self.downcast::<PaintWorkletGlobalScope>() {
-                Some(global) => global.perform_a_worklet_task(cx, task),
-                None => warn!("This is not a paint worklet."),
-            },
+    pub(crate) fn task_manager(&self) -> Rc<TaskManager> {
+        self.task_manager.clone()
+    }
+
+    pub(crate) fn perform_a_microtask_checkpoint(&self, cx: &mut JSContext) {
+        if !self.closing.load(Ordering::SeqCst) {
+            job_queue_microtask_checkpoint(cx, vec![DomRoot::from_ref(&self.globalscope)]);
+        }
+    }
+}
+
+impl From<&Window> for WorkletGlobalScopeInit {
+    fn from(window: &Window) -> Self {
+        let global_scope = window.as_global_scope();
+
+        WorkletGlobalScopeInit {
+            to_script_thread_sender: window.main_thread_script_chan().clone(),
+            resource_threads: global_scope.resource_threads().clone(),
+            storage_threads: global_scope.storage_threads().clone(),
+            mem_profiler_chan: global_scope.mem_profiler_chan().clone(),
+            time_profiler_chan: global_scope.time_profiler_chan().clone(),
+            #[cfg(feature = "devtools")]
+            devtools_chan: global_scope.devtools_chan().cloned(),
+            script_to_constellation_sender: global_scope.script_to_constellation_chan().sender,
+            to_embedder_sender: global_scope.script_to_embedder_chan().clone(),
+            image_cache: global_scope.image_cache(),
+            #[cfg(feature = "webgpu")]
+            gpu_id_hub: global_scope.wgpu_id_hub(),
         }
     }
 }
@@ -212,6 +252,7 @@ pub(crate) struct WorkletGlobalScopeInit {
     /// Channel to the time profiler
     pub(crate) time_profiler_chan: time::ProfilerChan,
     /// Channel to devtools
+    #[cfg(feature = "devtools")]
     pub(crate) devtools_chan: Option<GenericCallback<ScriptToDevtoolsControlMsg>>,
     /// Messages to send to the Embedder
     pub(crate) to_embedder_sender: ScriptToEmbedderChan,
@@ -231,11 +272,4 @@ pub(crate) enum WorkletGlobalScopeType {
     Test,
     /// A paint worklet
     Paint,
-}
-
-/// A task which can be performed in the context of a worklet global.
-pub(crate) enum WorkletTask {
-    #[cfg(feature = "testbinding")]
-    Test(TestWorkletTask),
-    Paint(PaintWorkletTask),
 }

@@ -30,4 +30,4 @@ testWithTypedArrayConstructors(function(TA, makeCtorArg) {
     [0, 1, 2, 1],
     'underlying arraybuffer should have been updated'
   );
-});
+}, null, null, ["immutable"]);

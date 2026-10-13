@@ -8,6 +8,7 @@ interface OffscreenCanvasRenderingContext2D {
   //void commit();
   readonly attribute OffscreenCanvas canvas;
 };
+OffscreenCanvasRenderingContext2D includes CanvasSettings;
 OffscreenCanvasRenderingContext2D includes CanvasState;
 OffscreenCanvasRenderingContext2D includes CanvasCompositing;
 OffscreenCanvasRenderingContext2D includes CanvasImageSmoothing;
@@ -24,7 +25,6 @@ OffscreenCanvasRenderingContext2D includes CanvasImageData;
 OffscreenCanvasRenderingContext2D includes CanvasPathDrawingStyles;
 OffscreenCanvasRenderingContext2D includes CanvasTextDrawingStyles;
 OffscreenCanvasRenderingContext2D includes CanvasPath;
-
 
 
 

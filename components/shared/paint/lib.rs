@@ -20,10 +20,9 @@ use smallvec::SmallVec;
 use strum::IntoStaticStr;
 use style_traits::CSSPixel;
 use surfman::{Adapter, Connection};
-use webrender_api::{DocumentId, FontVariation};
+use webrender_api::{DocumentId, FontInstancePlatformOptions, FontVariation};
 
 pub mod display_list;
-pub mod largest_contentful_paint_candidate;
 pub mod rendering_context;
 pub mod viewport_description;
 
@@ -36,7 +35,7 @@ use euclid::default::Size2D as UntypedSize2D;
 use profile_traits::mem::{OpaqueSender, ReportsChan};
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{
-    self, GenericCallback, GenericReceiver, GenericSender, GenericSharedMemory,
+    self, GenericCallback, GenericReceiver, GenericSender, GenericSharedMemory, SendError,
 };
 pub use webrender_api::ExternalImageSource;
 use webrender_api::units::{DevicePixel, LayoutVector2D, TexelRect};
@@ -47,13 +46,12 @@ use webrender_api::{
     PipelineId as WebRenderPipelineId,
 };
 
-use crate::largest_contentful_paint_candidate::LCPCandidate;
 use crate::viewport_description::ViewportDescription;
 
 /// Sends messages to `Paint`.
 #[derive(Clone)]
 pub struct PaintProxy {
-    pub sender: Sender<Result<PaintMessage, ipc_channel::IpcError>>,
+    pub sender: Sender<Result<PaintMessage, SendError>>,
     /// Access to [`Self::sender`] that is possible to send across an IPC
     /// channel. These messages are routed via the router thread to
     /// [`Self::sender`].
@@ -76,7 +74,7 @@ impl PaintProxy {
     ///
     /// This method is a temporary solution, and will be removed when migrating
     /// to `GenericChannel`.
-    pub fn route_msg(&self, msg: Result<PaintMessage, ipc_channel::IpcError>) {
+    pub fn route_msg(&self, msg: Result<PaintMessage, SendError>) {
         if let Err(err) = self.sender.send(msg) {
             warn!("Failed to send response ({:?}).", err);
         }
@@ -173,6 +171,7 @@ pub enum PaintMessage {
         FontKey,
         f32,
         FontInstanceFlags,
+        FontInstancePlatformOptions,
         Vec<FontVariation>,
     ),
     /// Remove the given font resources from our WebRender instance.
@@ -185,10 +184,6 @@ pub enum PaintMessage {
     /// Let `Paint` know that the given WebView is ready to have a screenshot taken
     /// after the given pipeline's epochs have been rendered.
     ScreenshotReadinessReponse(WebViewId, FxHashMap<PipelineId, Epoch>),
-    /// The candidate of largest-contentful-paint
-    SendLCPCandidate(LCPCandidate, WebViewId, PipelineId, Epoch),
-    /// Enable LCP calculation for the given WebView.
-    EnableLCPCalculation(WebViewId),
 }
 
 impl Debug for PaintMessage {
@@ -366,24 +361,6 @@ impl CrossProcessPaintApi {
         }
     }
 
-    /// Send the largest contentful paint candidate to `Paint`.
-    pub fn send_lcp_candidate(
-        &self,
-        lcp_candidate: LCPCandidate,
-        webview_id: WebViewId,
-        pipeline_id: PipelineId,
-        epoch: Epoch,
-    ) {
-        if let Err(error) = self.0.send(PaintMessage::SendLCPCandidate(
-            lcp_candidate,
-            webview_id,
-            pipeline_id,
-            epoch,
-        )) {
-            warn!("Error sending LCPCandidate: {error}");
-        }
-    }
-
     /// Ask the Servo renderer to generate a new frame after having new display lists.
     pub fn generate_frame(&self, painter_ids: Vec<PainterId>) {
         if let Err(error) = self.0.send(PaintMessage::GenerateFrame(painter_ids)) {
@@ -475,6 +452,7 @@ impl CrossProcessPaintApi {
         font_key: FontKey,
         size: f32,
         flags: FontInstanceFlags,
+        options: FontInstancePlatformOptions,
         variations: Vec<FontVariation>,
     ) {
         let _x = self.0.send(PaintMessage::AddFontInstance(
@@ -483,6 +461,7 @@ impl CrossProcessPaintApi {
             font_key,
             size,
             flags,
+            options,
             variations,
         ));
     }
@@ -561,8 +540,7 @@ impl PainterSurfmanDetailsMap {
 
     pub fn remove(&self, painter_id: PainterId) {
         let mut map = self.0.lock().expect("poisoned");
-        let details = map.remove(&painter_id);
-        assert!(details.is_some());
+        map.remove(&painter_id);
     }
 }
 
@@ -801,6 +779,10 @@ pub trait WebViewTrait {
     fn id(&self) -> WebViewId;
     fn screen_geometry(&self) -> Option<ScreenGeometry>;
     fn set_animating(&self, new_value: bool);
+    /// Notify the embedding layer that this `WebView`'s viewport geometry changed — its size, page
+    /// or pinch zoom, or HiDPI scale — so it can refresh geometry, such as the accessibility root
+    /// node, that the embedder derives from the viewport rather than from a pipeline update.
+    fn notify_viewport_updated(&self);
 }
 
 /// What entity is reporting that a `Pipeline` has exited. Only when all have

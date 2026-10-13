@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Gradient with a viewport-relative color stop</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+  }
+  #box {
+    width: 100px;
+    height: 100px;
+    /* Green up to 40vh, red from there on. The parent sizes this frame's
+       viewport to 400px tall, making 40vh resolve to 160px, so the 100px-tall
+       box is entirely green. If the stop is left over from the frame's
+       original 100px-tall viewport, 40vh resolves to 40px and red shows. */
+    background-image: linear-gradient(to bottom,
+                                      green 0, green 40vh, red 40vh, red);
+  }
+</style>
+<div id="box"></div>

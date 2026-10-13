@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Touch fling past snap areas snaps to diagonal target</title>
+  <link rel="help" href="https://drafts.csswg.org/css-scroll-snap/"/>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/dom/events/scrolling/scroll_support.js"></script>
+</head>
+<body>
+  <style>
+    body {
+      margin: 0;
+    }
+    .scroller {
+      width: 600px;
+      height: 600px;
+      overflow: scroll;
+      scroll-snap-type: both mandatory;
+    }
+    .space {
+      width: 5000px;
+      height: 5000px;
+      position: relative;
+    }
+    .snap-area {
+      position: absolute;
+      width: 100px;
+      height: 100px;
+      background-color: blue;
+      scroll-snap-align: start;
+    }
+    .area-a {
+      left: 0px;
+      top: 0px;
+    }
+    .area-b {
+      left: 200px;
+      top: 200px;
+    }
+  </style>
+  <div class="scroller" id="scroller">
+    <div class="space">
+      <div class="snap-area area-a"></div>
+      <div class="snap-area area-b"></div>
+    </div>
+  </div>
+  <script>
+    promise_test(async (t) => {
+      await waitForCompositorReady();
+      const scroller = document.getElementById("scroller");
+      assert_equals(scroller.scrollTop, 0, "scroller initially at top");
+      assert_equals(scroller.scrollLeft, 0, "scroller initially at left");
+
+      const scrollend_promise =
+        waitForScrollEndFallbackToDelayWithoutScrollEvent(scroller);
+
+      // Fling diagonally by 250px, past the furthest target B (200, 200).
+      await new test_driver.Actions()
+          .addPointer("pointer1", "touch")
+          .pointerMove(250, 250, {origin: scroller})
+          .pointerDown()
+          .pointerMove(0, 0, {origin: scroller})
+          .pointerUp()
+          .send();
+
+      await scrollend_promise;
+
+      assert_approx_equals(scroller.scrollLeft, 200, 1,
+        "scroller snapped to target B on X axis");
+      assert_approx_equals(scroller.scrollTop, 200, 1,
+        "scroller snapped to target B on Y axis");
+    }, "Touch fling past snap areas snaps to diagonal target");
+  </script>
+</body>
+</html>

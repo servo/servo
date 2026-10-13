@@ -5,6 +5,7 @@
 description: |
   pending
 esid: pending
+features: [Atomics, SharedArrayBuffer]
 ---*/
 
 const otherGlobal = $262.createRealm().global;
@@ -111,4 +112,3 @@ for (let TA of intArrayConstructors) {
   assert.sameValue(val, 3);
   assert.sameValue(ta[0], 2);
 }
-

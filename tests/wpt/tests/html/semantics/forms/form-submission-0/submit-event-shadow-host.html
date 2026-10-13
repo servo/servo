@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>SubmitEvent with a shadow-internal submitter can target its host</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-control-infrastructure.html#the-submitevent-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="host">
+  <template shadowrootmode="open">
+    <button id="submitter" type="submit"></button>
+  </template>
+</div>
+
+<script>
+test(t => {
+  const host = document.getElementById("host");
+  const submitter = host.shadowRoot.getElementById("submitter");
+  const event = new SubmitEvent("submit", {
+    bubbles: true,
+    cancelable: true,
+    composed: true,
+    submitter,
+  });
+
+  let hostEvent = null;
+  let documentEvent = null;
+  host.addEventListener("submit", receivedEvent => {
+    hostEvent = receivedEvent;
+  }, {signal: t.get_signal()});
+  document.addEventListener("submit", receivedEvent => {
+    if (receivedEvent.target === host) {
+      documentEvent = receivedEvent;
+    }
+  }, {capture: true, signal: t.get_signal()});
+
+  host.dispatchEvent(event);
+
+  assert_equals(hostEvent, event, "The host should receive the submit event");
+  assert_equals(event.target, host, "The submit event target");
+  assert_equals(event.submitter, submitter,
+      "The submitter should remain the shadow-internal button");
+  assert_equals(documentEvent, event,
+      "The submit event should reach the document during capture");
+}, "A composed SubmitEvent can target the submitter's own shadow host");
+</script>

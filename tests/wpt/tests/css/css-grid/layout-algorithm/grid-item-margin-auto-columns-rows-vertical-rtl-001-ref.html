@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+<style>
+.grid {
+   display: block;
+   background-color: grey;
+   width: 200px;
+}
+
+.gridLong {
+   height: 120px;
+}
+
+.gridShort {
+   height: 100px;
+}
+
+.firstRowFirstColumn {
+   background-color: blue;
+   position: absolute;
+}
+
+.firstRowSecondColumn {
+   background-color: lime;
+   position: absolute;
+}
+
+.secondRowFirstColumn {
+   background-color: purple;
+   position: absolute;
+}
+
+.secondRowSecondColumn {
+   background-color: orange;
+   position: absolute;
+   left: 20px;
+}
+
+.gridItem {
+    width: 20px;
+    height: 40px;
+}
+
+.testContainer {
+    position: relative;
+    margin-bottom: 20px;
+}
+</style>
+</head>
+<body>
+
+<div>This test checks that the grid's rows and columns 'auto' sizes are updated accordingly to its grid-item's before and start margins.</div>
+
+<div class="testContainer">
+    <div class="grid gridLong">
+        <div class="gridItem firstRowFirstColumn"   style="left: 180px; top: 80px;"></div>
+        <div class="gridItem firstRowSecondColumn"  style="left: 180px; top: 20px;"></div>
+        <div class="gridItem secondRowFirstColumn"  style="left: 160px; top: 80px;"></div>
+        <div class="gridItem secondRowSecondColumn" style="left: 160px; top: 0px;"></div>
+    </div>
+</div>
+
+<div class="testContainer">
+    <div class="grid gridShort">
+        <div class="gridItem firstRowFirstColumn"   style="left: 180px; top: 60px;"></div>
+        <div class="gridItem firstRowSecondColumn"  style="left: 180px; top: 0px;"></div>
+        <div class="gridItem secondRowFirstColumn"  style="left: 160px; top: 40px;"></div>
+        <div class="gridItem secondRowSecondColumn" style="left: 160px; top: 0px;"></div>
+    </div>
+</div>
+
+<div class="testContainer">
+    <div class="grid gridLong">
+        <div class="gridItem firstRowFirstColumn"   style="top: 80px;"></div>
+        <div class="gridItem firstRowSecondColumn"  style="top: 20px;"></div>
+        <div class="gridItem secondRowFirstColumn"  style="left: 20px; top: 80px"></div>
+        <div class="gridItem secondRowSecondColumn" style="left: 20px; top: 0px;"></div>
+    </div>
+</div>
+
+<div class="testContainer">
+    <div class="grid gridShort">
+        <div class="gridItem firstRowFirstColumn"   style="top: 60px;"></div>
+        <div class="gridItem firstRowSecondColumn"  style="top: 0px;"></div>
+        <div class="gridItem secondRowFirstColumn"  style="left: 20px; top: 40px;" ></div>
+        <div class="gridItem secondRowSecondColumn" style="left: 20px; top: 0px;"></div>
+    </div>
+</div>

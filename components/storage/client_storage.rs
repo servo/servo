@@ -281,7 +281,10 @@ fn create_a_storage_shelf(
         "INSERT INTO shelves (shed_id, origin) VALUES (?1, ?2)
          ON CONFLICT(shed_id, origin) DO UPDATE SET origin = excluded.origin
          RETURNING id;",
-        [&shed.to_string(), &origin.ascii_serialization()],
+        [
+            &shed.to_string(),
+            &origin.ascii_serialization().into_owned(),
+        ],
         |row| row.get(0),
     )?;
 

@@ -96,7 +96,7 @@ impl Convert<CSPViolationReportBody> for SecurityPolicyViolationReport {
             // TODO(37328): Why does /content-security-policy/reporting-api/
             // report-to-directive-allowed-in-meta.https.sub.html expect this to be
             // empty, yet the spec expects us to copy referrer from SecurityPolicyViolationReport
-            referrer: Some("".to_owned().into()),
+            referrer: Some(String::new().into()),
             statusCode: self.status_code,
             documentURL: self.document_url.into(),
             sourceFile: source_file,

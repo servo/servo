@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<title>Canvas.drawElementImage: display:contents handling</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+
+<style>
+  #canvas::before,
+  #display_contents::before {
+    content: "";
+    position: absolute;
+  }
+  #display_contents {
+    letter-spacing: 0.5em;
+  }
+  #inner_child {
+    position: absolute;
+    float: left;
+    width: 50px;
+    height: 50px;
+    background: rgb(0, 255, 0);
+  }
+</style>
+
+<canvas id="canvas" width="100" height="100" content=drawable>
+  <div id="display_contents" style="display: contents">
+    Hello
+    <span id="inner_child" drawable></span>
+  </div>
+</canvas>
+
+<script>
+promise_test(async () => {
+  await waitForCanvasPaint(canvas);
+  const ctx = canvas.getContext("2d");
+
+  assert_throws_dom(
+    "InvalidStateError",
+    () => ctx.drawElementImage(display_contents, 0, 0),
+    "Drawing a display:contents element must throw InvalidStateError."
+  );
+
+  ctx.drawElementImage(inner_child, 0, 0);
+  assert_array_equals(ctx.getImageData(25, 25, 1, 1).data, [0, 255, 0, 255]);
+}, "display:contents element throws InvalidStateError while its child element can be drawn");
+
+promise_test(async (t) => {
+  t.add_cleanup(() => { display_contents.style.display = "contents"; });
+
+  display_contents.style.display = "flex";
+  assert_equals(getComputedStyle(inner_child).position, "absolute");
+
+  display_contents.style.display = "contents";
+  assert_equals(getComputedStyle(inner_child).position, "static");
+
+  await waitForCanvasPaint(canvas);
+  const ctx = canvas.getContext("2d");
+  ctx.reset();
+  ctx.drawElementImage(inner_child, 0, 0);
+  assert_array_equals(ctx.getImageData(25, 25, 1, 1).data, [0, 255, 0, 255]);
+
+  display_contents.style.display = "flex";
+  assert_equals(getComputedStyle(inner_child).position, "absolute");
+}, "Dynamic display changes between flex and contents update child styles and draw correctly");
+</script>

@@ -7,6 +7,8 @@ use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use rustc_hash::FxHashMap;
 use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::serializable::Serializable;
+use script_bindings::structuredclone::StructuredData;
 use servo_base::id::{DomPointId, DomPointIndex};
 use servo_constellation_traits::DomPoint;
 
@@ -14,12 +16,10 @@ use crate::dom::bindings::codegen::Bindings::DOMPointBinding::{DOMPointInit, DOM
 use crate::dom::bindings::codegen::Bindings::DOMPointReadOnlyBinding::DOMPointReadOnlyMethods;
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::serializable::Serializable;
-use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::dompointreadonly::{DOMPointReadOnly, DOMPointWriteMethods};
 use crate::dom::globalscope::GlobalScope;
 
-// http://dev.w3.org/fxtf/geometry/Overview.html#dompoint
+// http://dev.w3.org/csswg/geometry/Overview.html#dompoint
 #[dom_struct]
 pub(crate) struct DOMPoint {
     point: DOMPointReadOnly,
@@ -70,7 +70,7 @@ impl DOMPoint {
 }
 
 impl DOMPointMethods<crate::DomTypeHolder> for DOMPoint {
-    /// <https://drafts.fxtf.org/geometry/#dom-dompointreadonly-dompointreadonly>
+    /// <https://drafts.csswg.org/geometry/#dom-dompointreadonly-dompointreadonly>
     fn Constructor(
         cx: &mut JSContext,
         global: &GlobalScope,
@@ -83,53 +83,53 @@ impl DOMPointMethods<crate::DomTypeHolder> for DOMPoint {
         Ok(DOMPoint::new_with_proto(cx, global, proto, x, y, z, w))
     }
 
-    /// <https://drafts.fxtf.org/geometry/#dom-dompoint-frompoint>
+    /// <https://drafts.csswg.org/geometry/#dom-dompoint-frompoint>
     fn FromPoint(cx: &mut JSContext, global: &GlobalScope, init: &DOMPointInit) -> DomRoot<Self> {
         Self::new_from_init(cx, global, init)
     }
 
-    /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-x>
+    /// <https://dev.w3.org/csswg/geometry/Overview.html#dom-dompointreadonly-x>
     fn X(&self) -> f64 {
         self.point.X()
     }
 
-    /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-x>
+    /// <https://dev.w3.org/csswg/geometry/Overview.html#dom-dompointreadonly-x>
     fn SetX(&self, value: f64) {
         self.point.SetX(value);
     }
 
-    /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-y>
+    /// <https://dev.w3.org/csswg/geometry/Overview.html#dom-dompointreadonly-y>
     fn Y(&self) -> f64 {
         self.point.Y()
     }
 
-    /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-y>
+    /// <https://dev.w3.org/csswg/geometry/Overview.html#dom-dompointreadonly-y>
     fn SetY(&self, value: f64) {
         self.point.SetY(value);
     }
 
-    /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-z>
+    /// <https://dev.w3.org/csswg/geometry/Overview.html#dom-dompointreadonly-z>
     fn Z(&self) -> f64 {
         self.point.Z()
     }
 
-    /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-z>
+    /// <https://dev.w3.org/csswg/geometry/Overview.html#dom-dompointreadonly-z>
     fn SetZ(&self, value: f64) {
         self.point.SetZ(value);
     }
 
-    /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-w>
+    /// <https://dev.w3.org/csswg/geometry/Overview.html#dom-dompointreadonly-w>
     fn W(&self) -> f64 {
         self.point.W()
     }
 
-    /// <https://dev.w3.org/fxtf/geometry/Overview.html#dom-dompointreadonly-w>
+    /// <https://dev.w3.org/csswg/geometry/Overview.html#dom-dompointreadonly-w>
     fn SetW(&self, value: f64) {
         self.point.SetW(value);
     }
 }
 
-impl Serializable for DOMPoint {
+impl Serializable<crate::DomTypeHolder> for DOMPoint {
     type Index = DomPointIndex;
     type Data = DomPoint;
 

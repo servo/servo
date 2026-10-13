@@ -7,7 +7,7 @@
 <link rel="help" href="https://drafts.csswg.org/css-align-3/#typedef-self-position" />
 <link rel="help" href="https://drafts.csswg.org/css-align-3/#typedef-baseline-position" />
 <link rel="help" href="https://drafts.csswg.org/css-align-3/#typedef-overflow-position" />
-<meta name="assert" content="Check that the computed value is the specified value and the same than the JS value."/>
+<meta name="assert" content="Check that the computed value is correct; in all cases other than `flex-start` and `flex-end`, the computed value should be equal to the specified value."/>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/css-align/resources/alignment-parsing-utils.js"></script>
@@ -18,6 +18,8 @@
 
     let classes = Object.assign({"Normal":"normal", "Stretch":"stretch"}, selfPositionClasses,
                                 baselineClasses, overflowClasses);
+    let computedClasses = Object.assign({"Normal":"normal", "Stretch":"stretch"}, selfPositionComputedClasses,
+                                baselineClasses, overflowComputedClasses);
 
     for (var key in classes) {
         let specifiedValue = classes[key];
@@ -27,7 +29,9 @@
             if (specifiedValue === "first baseline")
                 checkValues(element, "alignItems", "align-items", "baseline", "baseline");
             else
-                checkValues(element, "alignItems", "align-items",  specifiedValue, specifiedValue);
+                checkValues(element, "alignItems", "align-items",
+                            specifiedValue,
+                            computedClasses[key]);
         }, "Checking align-items: " + specifiedValue);
     }
 </script>

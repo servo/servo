@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use bytes::Bytes;
 use content_security_policy as csp;
 use headers::{ContentType, HeaderMap, HeaderMapExt};
 use js::context::JSContext;
@@ -9,6 +10,7 @@ use net_traits::request::{
     CredentialsMode, Destination, RequestBody, RequestId, create_request_body_with_content,
 };
 use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming};
+use script_bindings::str::DOMString;
 use servo_url::ServoUrl;
 use stylo_atoms::Atom;
 
@@ -26,9 +28,11 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::reporting::reportingobserver::ReportingObserver;
 use crate::dom::securitypolicyviolationevent::SecurityPolicyViolationEvent;
 use crate::dom::types::GlobalScope;
-use crate::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
-use crate::network_listener::{FetchResponseListener, ResourceTimingListener, submit_timing};
-use crate::task::TaskOnce;
+use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
+use crate::fetch::network_listener::{
+    FetchResponseListener, ResourceTimingListener, submit_timing,
+};
+use crate::tasks::task::TaskOnce;
 
 pub(crate) struct CSPViolationReportTask {
     global: Trusted<GlobalScope>,
@@ -163,7 +167,7 @@ impl TaskOnce for CSPViolationReportTask {
             // Step 3.5.3. Generate and queue a report with the following arguments:
             ReportingObserver::generate_and_queue_a_report(
                 &self.global.root(),
-                "csp-violation".into(),
+                DOMString::from_static("csp-violation"),
                 Some(body),
                 report_to_directive.value.join(" ").into(),
             )
@@ -190,7 +194,7 @@ impl FetchResponseListener for CSPReportUriFetchListener {
         _ = fetch_metadata;
     }
 
-    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, chunk: Vec<u8>) {
+    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, chunk: Bytes) {
         _ = chunk;
     }
 

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: grid-axis rule values follow track placement order with track-reverse in row grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://www.w3.org/TR/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="row-gap-decorations-list-track-reverse-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-rows: repeat(4, 60px);
+    grid-lanes-direction: row track-reverse;
+    gap: 10px;
+    width: 40px;
+    background: #cdd5e0;
+    row-rule-width: 4px;
+    row-rule-style: solid;
+    row-rule-color: blue, gold, purple;
+  }
+  .lanes > div {
+    width: 40px;
+    background: #5b8def;
+  }
+  .r1 { grid-row: 1; }
+  .r2 { grid-row: 2; }
+  .r3 { grid-row: 3; }
+  .r4 { grid-row: 4; }
+</style>
+<div class="lanes">
+  <div class="r1"></div>
+  <div class="r2"></div>
+  <div class="r3"></div>
+  <div class="r4"></div>
+</div>

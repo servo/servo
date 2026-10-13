@@ -55,6 +55,22 @@ function init(doc, t) {
     .then(function() { return iframes; });
 }
 
+function assertNoNavigation(subjectIframe, controlIframe, subjectSrc, controlSrc) {
+  var subjectNavigated = false;
+  subjectIframe.contentWindow.addEventListener('beforeunload', function() {
+    subjectNavigated = true;
+  });
+
+  var controlLoaded = when(controlIframe, 'load');
+
+  subjectIframe.src = subjectSrc;
+  controlIframe.src = controlSrc;
+
+  return controlLoaded.then(function() {
+    assert_false(subjectNavigated, 'Subject iframe should not navigate or fire beforeunload');
+  });
+}
+
 // This test verifies that navigation does occur; it is intended to validate
 // the utility functions.
 promise_test(function(t) {
@@ -73,36 +89,14 @@ promise_test(function(t) {
 promise_test(function(t) {
   return init(document, t)
     .then(function(iframes) {
-      var subjectNavigation = when(iframes[0].contentWindow, 'beforeunload');
-      var controlNavigation = when(iframes[1].contentWindow, 'beforeunload');
-
-      iframes[0].src = location.href;
-      iframes[1].src = '/common/blank.html?4';
-
-      return Promise.race([
-        subjectNavigation.then(function() {
-          assert_unreached('Should not navigate');
-        }),
-        controlNavigation
-      ]);
+      return assertNoNavigation(iframes[0], iframes[1], location.href, '/common/blank.html?4');
     });
 }, 'same path name, no document fragment');
 
 promise_test(function(t) {
   return init(document, t)
     .then(function(iframes) {
-      var subjectNavigation = when(iframes[0].contentWindow, 'beforeunload');
-      var controlNavigation = when(iframes[1].contentWindow, 'beforeunload');
-
-      iframes[0].src = location.href + '#something-else';
-      iframes[1].src = '/common/blank.html?5';
-
-      return Promise.race([
-        subjectNavigation.then(function() {
-          assert_unreached('Should not navigate');
-        }),
-        controlNavigation
-      ]);
+      return assertNoNavigation(iframes[0], iframes[1], location.href + '#something-else', '/common/blank.html?5');
     });
 }, 'same path name, different document fragment');
 
@@ -120,18 +114,7 @@ promise_test(function(t) {
 
   return init(intermediate.contentDocument, t)
     .then(function(iframes) {
-      var subjectNavigation = when(iframes[0].contentWindow, 'beforeunload');
-      var controlNavigation = when(iframes[1].contentWindow, 'beforeunload');
-
-      iframes[0].src = location.href;
-      iframes[1].src = '/common/blank.html?6';
-
-      return Promise.race([
-        subjectNavigation.then(function() {
-          assert_unreached('Should not navigate');
-        }),
-        controlNavigation
-      ]);
+      return assertNoNavigation(iframes[0], iframes[1], location.href, '/common/blank.html?6');
     });
 }, 'same path name, no document fragement (intermediary browsing context)');
 </script>

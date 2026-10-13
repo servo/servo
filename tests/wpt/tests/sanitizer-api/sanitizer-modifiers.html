@@ -560,6 +560,51 @@ test(() => {
     assert_config(s.get(), { replaceWithChildrenElements: undefined });
   }
 }, "sanitizer.replaceElementWithChildren() does not allow non-replaceable elements.");
+
+test(() => {
+  let s = new Sanitizer();
+  assert_false(s.setJavascriptURLs(false));
+  assert_config(s.get(), { javascriptURLs: false });
+
+  assert_true(s.setJavascriptURLs(true));
+  assert_config(s.get(), { javascriptURLs: true });
+
+  assert_false(s.setJavascriptURLs(true));
+  assert_config(s.get(), { javascriptURLs: true });
+
+  assert_true(s.setJavascriptURLs(false));
+  assert_config(s.get(), { javascriptURLs: false });
+}, "sanitizer.setJavascriptURLs()");
+
+test(() => {
+  let s = new Sanitizer();
+  assert_false(s.setComments(false));
+  assert_config(s.get(), { comments: false });
+
+  assert_true(s.setComments(true));
+  assert_config(s.get(), { comments: true });
+
+  assert_false(s.setComments(true));
+  assert_config(s.get(), { comments: true });
+
+  assert_true(s.setComments(false));
+  assert_config(s.get(), { comments: false });
+}, "sanitizer.setComments()");
+
+test(() => {
+  let s = new Sanitizer({ attributes: [] });
+  assert_false(s.setDataAttributes(true));
+  assert_config(s.get(), { dataAttributes: true, attributes: [] });
+
+  assert_true(s.setDataAttributes(false));
+  assert_config(s.get(), { dataAttributes: false, attributes: [] });
+
+  assert_false(s.setDataAttributes(false));
+  assert_config(s.get(), { dataAttributes: false, attributes: [] });
+
+  assert_true(s.setDataAttributes(true));
+  assert_config(s.get(), { dataAttributes: true, attributes: [] });
+}, "sanitizer.setDataAttributes()");
 </script>
 </body>
 </html>

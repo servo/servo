@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>event handlers and no browsing context</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+function run_checks(element) {
+  assert_equals(element.onclick, null);
+  let ran = false;
+  // attribute change steps
+  element.setAttribute('onclick', 'window.ran = true;');
+  assert_equals(element.onclick, null);
+  element.dispatchEvent(new Event('click'));
+  assert_false(window.ran);
+  // IDL attribute setter; determining the target of an event handler only
+  // returns null for a body or frameset element, see
+  // event-handler-attributes-windowless-body.html
+  element.onclick = () => ran = true;
+  assert_equals(typeof element.onclick, 'function');
+  element.dispatchEvent(new Event('click'));
+  assert_true(ran);
+}
+
+test(() => {
+  const template = document.createElement('template');
+  template.innerHTML = '<div onclick="assert_unreached();"></div>';
+  run_checks(template.content.firstChild);
+}, 'template contents');
+
+test(() => {
+  const doc = new Document();
+  doc.appendChild(doc.createElementNS('http://www.w3.org/1999/xhtml', 'html'));
+  const div = doc.documentElement.appendChild(doc.createElementNS('http://www.w3.org/1999/xhtml', 'div'));
+  div.setAttribute('onclick', 'assert_unreached();');
+  run_checks(div);
+}, 'new Document()');
+
+test(() => {
+  const p = new DOMParser();
+  const doc = p.parseFromString('<!doctype html><div onclick="assert_unreached();"></div>', 'text/html');
+  run_checks(doc.body.firstChild);
+}, 'DOMParser()');
+</script>

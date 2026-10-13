@@ -1,0 +1,8 @@
+<svg width="400" height="140" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <path id="plain" d="M 10 100 L 390 100"/>
+  </defs>
+  <text>
+    <textPath href="#plain" startOffset="0">This line must render</textPath>
+  </text>
+</svg>

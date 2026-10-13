@@ -5,6 +5,7 @@ def headers_and_content(request):
     headers = []
     headers.append((b"Access-Control-Allow-Origin", b"*"))
     headers.append((b"Content-Type", b"text/plain"))
+    headers.append((b"Vary", b"available-dictionary,accept-encoding"))
 
     if b'cacheable' in request.GET:
         headers.append((b"Cache-Control", b"max-age=3600"))

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<p>This test verifies grid layout painting using RTL direction.</p>
+<p>This test passes if it matches the reference. You should see green and blue boxes but not red.</p>
+
+<iframe height="120px" width="300px" srcdoc="
+    <style>
+    .grid {
+        position: relative;
+        width: 500px;
+        height: 50px;
+    }
+    </style>
+
+    <div class='grid'>
+        <div style='background: green; position: absolute; width: 50px; height: 50px; left: 150px'></div>
+        <div style='background: blue; position: absolute; width: 100px; height: 50px; left: 200px'></div>
+    </div>
+">
+</iframe>
+
+<iframe height="120px" width="300px" srcdoc="
+    <style>
+    .grid {
+        position: relative;
+        width: 500px;
+        height: 50px;
+        border: 5px solid;
+    }
+    </style>
+
+    <div class='grid'>
+        <div style='background: green; position: absolute; width: 50px; height: 50px; left: 150px'></div>
+        <div style='background: blue; position: absolute; width: 100px; height: 50px; left: 200px'></div>
+    </div>
+">
+</iframe>
+
+<iframe height="120px" width="300px" srcdoc="
+    <style>
+    .grid {
+        position: relative;
+        width: 500px;
+        height: 50px;
+        border: 5px solid;
+        padding: 10px;
+    }
+    </style>
+
+    <div class='grid'>
+        <div style='background: green; position: absolute; width: 50px; height: 50px; left: 160px'></div>
+        <div style='background: blue; position: absolute; width: 100px; height: 50px; left: 210px'></div>
+    </div>
+">
+</iframe>
+
+<iframe height="120px" width="300px" srcdoc="
+    <style>
+    .grid {
+        position: relative;
+        width: 500px;
+        height: 50px;
+        border: 5px solid;
+        border-right: 100px solid;
+        padding: 10px;
+        padding-right: 200px;
+    }
+    </style>
+
+    <div class='grid'>
+        <div style='background: green; position: absolute; width: 50px; height: 50px; left: 160px'></div>
+        <div style='background: blue; position: absolute; width: 100px; height: 50px; left: 210px'></div>
+    </div>
+">
+</iframe>

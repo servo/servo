@@ -158,7 +158,47 @@ mod clipboard {
     }
 }
 
-#[cfg(any(not(feature = "clipboard"), target_os = "android", target_env = "ohos"))]
+#[cfg(all(feature = "clipboard", target_env = "ohos"))]
+mod clipboard {
+    use super::StringRequest;
+    use crate::clipboard_delegate::fallback_clipboard;
+
+    pub(super) fn clear() {
+        if let Err(error) = ohos_pasteboard::clear() {
+            log::warn!(
+                "OHOS pasteboard clear failed ({error}); using in-memory fallback_clipboard"
+            );
+            fallback_clipboard::clear();
+        }
+    }
+
+    pub(super) fn get_text(request: StringRequest) {
+        match ohos_pasteboard::get_text() {
+            Ok(text) => request.success(text),
+            Err(ohos_pasteboard::Error::NoText) => request.success(String::new()),
+            Err(error) => {
+                log::warn!(
+                    "OHOS pasteboard get_text failed ({error}); using in-memory fallback_clipboard"
+                );
+                fallback_clipboard::get_text(request);
+            },
+        }
+    }
+
+    pub(super) fn set_text(new_contents: String) {
+        if let Err(error) = ohos_pasteboard::set_text(&new_contents) {
+            log::warn!(
+                "OHOS pasteboard set_text failed ({error}); using in-memory fallback_clipboard"
+            );
+            fallback_clipboard::set_text(new_contents);
+        }
+    }
+}
+
+#[cfg(any(
+    not(feature = "clipboard"),
+    all(feature = "clipboard", target_os = "android")
+))]
 mod clipboard {
     use super::StringRequest;
     use crate::clipboard_delegate::fallback_clipboard;

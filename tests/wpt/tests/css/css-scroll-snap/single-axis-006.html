@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<title>Single-axis scroll containers split scroll snap axes under sideways-rl writing mode with RTL direction</title>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#scroll-snap-type">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#snap-scope">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.outer {
+  width: 200px;
+  height: 200px;
+  overflow: auto;
+  scroll-snap-type: both mandatory;
+  scrollbar-width: none;
+  writing-mode: sideways-rl;
+  direction: rtl;
+}
+
+#inner1 {
+  width: 200px;
+  height: 400px;
+  overflow: auto clip;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+#inner2 {
+  width: 400px;
+  height: 200px;
+  overflow: clip auto;
+  scroll-snap-type: y mandatory;
+  scrollbar-width: none;
+}
+
+.space {
+  width: 400px;
+  height: 400px;
+  background-color: blue;
+}
+
+.target {
+  position: relative;
+  right: 150px;
+  bottom: 150px;
+  width: 100px;
+  height: 100px;
+  background-color: red;
+  scroll-snap-align: start end;
+}
+</style>
+
+<div class="outer" id="outer1">
+  <div id="inner1">
+    <div class="space">
+      <div class="target">
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="outer" id="outer2">
+  <div id="inner2">
+    <div class="space">
+      <div class="target">
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+test(() => {
+  const outer1 = document.getElementById("outer1");
+  const inner1 = document.getElementById("inner1");
+
+  assert_equals(inner1.scrollLeft, -150, "inner1 should snap target block-start horizontally");
+  assert_equals(inner1.scrollTop, 0, "inner1 with overflow-y: clip cannot scroll vertically");
+  assert_equals(outer1.scrollLeft, 0, "outer1 should not snap horizontally as inner1 trapped horizontal snap");
+  assert_equals(outer1.scrollTop, -50, "outer1 should snap target inline-end vertically");
+}, "Single-axis scroll container with overflow-y: clip propagates vertical snap area to outer scroller (sideways-rl RTL)");
+
+test(() => {
+  const outer2 = document.getElementById("outer2");
+  const inner2 = document.getElementById("inner2");
+
+  assert_equals(inner2.scrollTop, -50, "inner2 should snap target inline-end vertically");
+  assert_equals(inner2.scrollLeft, 0, "inner2 with overflow-x: clip cannot scroll horizontally");
+  assert_equals(outer2.scrollTop, 0, "outer2 should not snap vertically as inner2 trapped vertical snap");
+  assert_equals(outer2.scrollLeft, -150, "outer2 should snap target block-start horizontally");
+}, "Single-axis scroll container with overflow-x: clip propagates horizontal snap area to outer scroller (sideways-rl RTL)");
+</script>

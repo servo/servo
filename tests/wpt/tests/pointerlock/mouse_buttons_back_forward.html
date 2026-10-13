@@ -32,7 +32,7 @@
               }
             });
 
-            document.addEventListener("pointerlockchange", function() {
+            document.addEventListener("pointerlockchange", testMouseUp.step_func(function() {
               assert_equals(document.pointerLockElement, document.body);
 
               // Inject mouse input
@@ -43,11 +43,11 @@
                 .pointerDown({button: actions.ButtonType.FORWARD})
                 .pointerUp({button: actions.ButtonType.FORWARD})
                 .send();
-            }, { once: true });
+            }), { once: true });
 
-            document.addEventListener("pointerlockerror", function() {
+            document.addEventListener("pointerlockerror", testMouseUp.step_func(function() {
               assert_unreached("Pointer lock error");
-            });
+            }));
 
             // Inject mouse input
             var actions = new test_driver.Actions();

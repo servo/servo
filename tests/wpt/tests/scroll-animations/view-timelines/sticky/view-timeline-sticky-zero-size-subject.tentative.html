@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html id="top">
+<head>
+<meta charset="utf-8">
+<title>View timeline with a zero-size subject inside a sticky element</title>
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#viewtimeline-interface">
+<link rel="help" href="https://drafts.csswg.org/scroll-animations-1/#view-timelines-ranges">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<script src="/scroll-animations/scroll-timelines/testcommon.js"></script>
+<script src="/scroll-animations/view-timelines/testcommon.js"></script>
+<style>
+
+#container {
+  height: 500px;
+  overflow: auto;
+}
+.space {
+  height: 550px;
+}
+
+/* top-sticky during entry */
+.stickycase {
+  background: yellow;
+  position: sticky;
+  top: 400px;
+  height: 200px;
+}
+
+#target {
+  position: relative;
+  top: 50px;
+  height: 0;
+}
+
+</style>
+</head>
+<body>
+<div id="container">
+  <div class="space"></div>
+  <div class="space">
+    <div style="height: 150px"></div>
+    <div id="sticky" class="stickycase">
+      <div id="target"></div>
+    </div>
+  </div>
+  <div class="space"></div>
+</div>
+<script type="text/javascript">
+
+// A zero-size subject collapses the four edge-coincidence offsets down to two,
+// which makes several of the named ranges degenerate. Whatever the resulting
+// values are, no range may come out inverted.
+const RANGE_NAMES = [
+  'cover', 'contain', 'entry', 'exit', 'entry-crossing', 'exit-crossing'
+];
+
+// Resolves a named range boundary to the animation start time it produces,
+// which is the boundary expressed as a percentage of the timeline (i.e. of
+// the cover range) and so ordered the same way as the underlying scroll
+// offsets. The range end is fixed at the end of the scroll range so that the
+// animation never has a zero or negative active duration.
+async function rangeBoundaryStartTime(rangeName, percent) {
+  const timeline = new ViewTimeline({ subject: target, axis: 'block' });
+  const anim = target.animate({ opacity: [0.3, 0.7] }, {
+    timeline: timeline,
+    rangeStart: { rangeName: rangeName, offset: CSS.percent(percent) },
+    rangeEnd: { rangeName: 'scroll', offset: CSS.percent(100) }
+  });
+  await anim.ready;
+  const startTime = anim.startTime.value;
+  anim.cancel();
+  return startTime;
+}
+
+promise_test(async t => {
+  container.scrollTop = 0;
+  await waitForNextFrame();
+
+  // The loop below measures each boundary as a percentage of the cover range,
+  // so an inverted cover range would flip every comparison (and its own
+  // iteration is trivially ordered). Check it directly.
+  const coverTimeline = new ViewTimeline({ subject: target, axis: 'block' });
+  assert_less_than_equal(coverTimeline.startOffset.value,
+                         coverTimeline.endOffset.value,
+                         "'cover' range is not inverted");
+
+  for (const rangeName of RANGE_NAMES) {
+    const start = await rangeBoundaryStartTime(rangeName, 0);
+    const end = await rangeBoundaryStartTime(rangeName, 100);
+    assert_less_than_equal(start, end,
+                           `'${rangeName}' range is not inverted`);
+  }
+}, 'View timeline ranges are not inverted for a zero-size subject inside a ' +
+   'sticky element.');
+
+</script>
+</body>
+</html>

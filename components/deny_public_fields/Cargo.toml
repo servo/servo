@@ -17,3 +17,6 @@ proc-macro = true
 proc-macro2 = { workspace = true }
 syn = { workspace = true }
 synstructure = { workspace = true }
+
+[lints]
+workspace = true

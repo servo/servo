@@ -32,6 +32,9 @@ async_test(t => {
   const resizeObserver = new ResizeObserver((entries) => {
     for (const entry of entries) {
       assert_equals(entry.target, iframe);
+      if (!heights.length && !entry.contentRect.height) {
+        continue;  // Disregard initial 0. It's sometimes flaky.
+      }
       heights.push(entry.contentRect.height);
       switch (numIframeLoadEvents) {
         case 0:
@@ -57,7 +60,7 @@ async_test(t => {
             } else {
               // Some resizes may be done before capturing start.
               // Check if the last elements match.
-              assert_equals(heights, expect.splice(-heights.length));
+              assert_array_equals(heights, expect.splice(-heights.length));
             }
           } else {
             assert_array_equals(heights, [150, 200, 400]);

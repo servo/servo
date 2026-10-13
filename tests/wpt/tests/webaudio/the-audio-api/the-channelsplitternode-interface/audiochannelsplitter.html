@@ -16,7 +16,7 @@
       const lengthInSampleFrames = 512;
 
       // checkResult() checks that the rendered buffer is stereo and that the
-      // left channel is all –1 and right channel all +1. In other words,
+      // left channel is all -1 and right channel all +1. In other words,
       // we've reversed the order of the two channels.
       function checkResult(buffer) {
         assert_equals(
@@ -80,7 +80,7 @@
             2, lengthInSampleFrames, sampleRate);
 
         // Create a stereo buffer, with all +1 values in left channel, all
-        // –1 in right channel.
+        // -1 in right channel.
         const srcBuffer = createStereoBufferWithDCOffset(
             context, lengthInSampleFrames, sampleRate, 1);
 

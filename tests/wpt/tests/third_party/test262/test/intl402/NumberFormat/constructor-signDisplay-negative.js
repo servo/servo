@@ -1,13 +1,15 @@
 // Copyright 2021 the V8 project authors. All rights reserved.
 // This code is governed by the BSD license found in the LICENSE file.
 /*---
-esid: sec-initializenumberformat
+esid: sec-intl.numberformat
 description: Checks handling of the compactDisplay option to the NumberFormat constructor.
 info: |
-  InitializeNumberFormat ( numberFormat, locales, options )
+  Intl.NumberFormat ( [ locales [ , options ] ] )
 
-  32. Let signDisplay be ? GetOption(options, "signDisplay", "string", « "auto", "never", "always", "exceptZero", "negative" », "auto").
-  33. Set numberFormat.[[SignDisplay]] to signDisplay.
+  1. Let _signDisplay_ be ? GetOption(_options_, *"signDisplay"*, ~string~,
+     « *"auto"*, *"never"*, *"always"*, *"exceptZero"*, *"negative"* »,
+     *"auto"*).
+  1. Set _numberFormat_.[[SignDisplay]] to _signDisplay_.
 includes: [propertyHelper.js]
 features: [Intl.NumberFormat-v3]
 ---*/

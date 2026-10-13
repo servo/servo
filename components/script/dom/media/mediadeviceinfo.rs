@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_media::streams::device_monitor::MediaDeviceKind as ServoMediaDeviceKind;
 
 use crate::conversions::Convert;
@@ -48,12 +48,12 @@ impl MediaDeviceInfo {
         label: &str,
         group_id: &str,
     ) -> DomRoot<MediaDeviceInfo> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(MediaDeviceInfo::new_inherited(
                 device_id, kind, label, group_id,
             )),
             global,
-            cx,
         )
     }
 }

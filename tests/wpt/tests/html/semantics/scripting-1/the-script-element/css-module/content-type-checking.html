@@ -16,24 +16,35 @@ const t2 = async_test("application/css");
 const t3 = async_test("text/html+css");
 const t4 = async_test("text/css;boundary=something");
 const t5 = async_test("text/css;foo=bar");
+const t6 = async_test("application/javascript");
 </script>
+
 <script type="module" onerror="t1.unreached_func()()">
   import styleSheet from "../serve-with-content-type.py?fn=css-module/resources/basic.css&ct=text/css" with { type: "css"};
   check(t1, styleSheet);
 </script>
+
 <script type="module" onerror="t2.step_func_done()()">
   import styleSheet from "../serve-with-content-type.py?fn=css-module/resources/basic.css&ct=application/css" with { type: "css"};
   t2.unreached_func("Should not have loaded with MIME type application/css")();
 </script>
+
 <script type="module" onerror="t3.step_func_done()()">
   import styleSheet from "../serve-with-content-type.py?fn=css-module/resources/basic.css&ct=text/html+css" with { type: "css"};
   t3.unreached_func("Should not have loaded with MIME type text/html+css")();
 </script>
+
 <script type="module" onerror="t4.unreached_func()()">
   import styleSheet from "../serve-with-content-type.py?fn=css-module/resources/basic.css&ct=text/css;boundary=something" with { type: "css"};
   check(t4, styleSheet);
 </script>
+
 <script type="module" onerror="t5.unreached_func()()">
-import styleSheet from "../serve-with-content-type.py?fn=css-module/resources/basic.css&ct=text/css;foo=bar" with { type: "css"};
-check(t5, styleSheet);
+  import styleSheet from "../serve-with-content-type.py?fn=css-module/resources/basic.css&ct=text/css;foo=bar" with { type: "css"};
+  check(t5, styleSheet);
+</script>
+
+<script type="module" onerror="t6.step_func_done()()">
+  import module from "../serve-with-content-type.py?fn=css-module/resources/should-not-be-loaded.js&ct=application/javascript" with { type: "css"};
+  t6.unreached_func("Should not have loaded with MIME type application/javascript")();
 </script>

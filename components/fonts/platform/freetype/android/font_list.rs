@@ -10,7 +10,7 @@ use servo_base::text::{UnicodeBlock, UnicodeBlockMethod, is_cjk};
 use style::Atom;
 use style::values::computed::font::GenericFontFamily;
 use style::values::computed::{
-    FontStretch as StyleFontStretch, FontStyle as StyleFontStyle, FontWeight as StyleFontWeight,
+    FontStyle as StyleFontStyle, FontWeight as StyleFontWeight, FontWidth as StyleFontWidth,
 };
 
 use super::xml::{Attribute, Node};
@@ -415,13 +415,13 @@ impl FontList {
 // Functions used by SystemFontSerivce
 pub(crate) fn for_each_available_family<F>(mut callback: F)
 where
-    F: FnMut(String),
+    F: FnMut(&str),
 {
     for family in &FONT_LIST.families {
-        callback(family.name.clone());
+        callback(&family.name);
     }
     for alias in &FONT_LIST.aliases {
-        callback(alias.from.clone());
+        callback(&alias.from);
     }
 }
 
@@ -435,7 +435,7 @@ where
             face_index: 0,
             named_instance_index: 0,
         };
-        let stretch = StyleFontStretch::NORMAL;
+        let width = StyleFontWidth::NORMAL;
         let weight = font
             .weight
             .map(|w| StyleFontWeight::from_float(w as f32))
@@ -452,7 +452,7 @@ where
             },
             None => StyleFontStyle::NORMAL,
         };
-        let descriptor = FontTemplateDescriptor::new(weight, stretch, style);
+        let descriptor = FontTemplateDescriptor::new(weight, width, style);
         callback(FontTemplate::new(
             FontIdentifier::Local(local_font_identifier),
             descriptor,

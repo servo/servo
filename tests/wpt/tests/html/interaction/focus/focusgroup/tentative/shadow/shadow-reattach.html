@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup - Reattached shadow focusgroup</title>
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/scoped-focusgroup.explainer/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+<script src="../resources/focusgroup-utils.js"></script>
+
+<div id=temporary_container></div>
+<div id=final_container></div>
+
+<script>
+  promise_test(async () => {
+    const host = document.createElement('div');
+    const shadowRoot = host.attachShadow({mode: 'open'});
+    shadowRoot.innerHTML = `
+      <div focusgroup="toolbar inline">
+        <button id=first tabindex=0>First</button>
+        <button id=second tabindex=0>Second</button>
+      </div>`;
+
+    temporary_container.appendChild(host);
+    final_container.appendChild(host);
+
+    const first = shadowRoot.getElementById('first');
+    const second = shadowRoot.getElementById('second');
+    await focusAndWait(first);
+    await sendDirectionalKey(kRight);
+    assert_equals(shadowRoot.activeElement, second);
+  }, 'Moving a shadow host preserves its descendant focusgroup');
+</script>

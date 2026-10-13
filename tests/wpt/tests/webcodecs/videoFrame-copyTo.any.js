@@ -188,18 +188,7 @@ promise_test(async t => {
 }, 'Test I420A stride and offset work.');
 
 promise_test(async t => {
-  const init = {
-    format: 'NV12',
-    timestamp: 0,
-    codedWidth: 4,
-    codedHeight: 2,
-  };
-  const buf = new Uint8Array([
-    1, 2, 3, 4,   // y
-    5, 6, 7, 8,
-    9, 10, 11, 12 // uv
-  ]);
-  const frame = new VideoFrame(buf, init);
+  const frame = makeNV12_4x2();
   const options = {
       layout: [
           {offset: 4, stride: 4},
@@ -365,3 +354,92 @@ promise_test(async t => {
 
   assert_array_equals(copied_data, packed_data, `Copied frame data incorrect.`);
 }, 'copyTo from byte data with non-default visibleRect');
+
+promise_test(async t => {
+  const i420_4x4 = new Uint8Array([
+    1,  2,  3,  4,   // y y y y
+    5,  6,  7,  8,   // y y y y
+    9,  10, 11, 12,  // y y y y
+    13, 14, 15, 16,  // y y y y
+    17, 18,          // u u
+    19, 20,          // u u
+    21, 22,          // v v
+    23, 24,          // v v
+  ]);
+  const frame = new VideoFrame(i420_4x4, {
+    format: 'I420',
+    timestamp: 0,
+    codedWidth: 4,
+    codedHeight: 4,
+  });
+
+  const options = {
+    layout: [
+      {offset: 15, stride: 5},
+      {offset: 1, stride: 3},
+      {offset: 8, stride: 3},
+    ],
+  };
+  const PAD = 0xAA;  // Distinct padding value so we can check for it later
+  const expectedData = new Uint8Array([
+    PAD,                    // unused
+    17,  18, PAD,           // u u
+    19,  20, PAD,           // u u
+    PAD,                    // unused
+    21,  22, PAD,           // v v
+    23,  24, PAD,           // v v
+    PAD,                    // unused
+    1,   2,  3,   4,  PAD,  // y y y y
+    5,   6,  7,   8,  PAD,  // y y y y
+    9,   10, 11,  12, PAD,  // y y y y
+    13,  14, 15,  16, PAD,  // y y y y
+  ]);
+  const size = frame.allocationSize(options);
+  assert_equals(size, expectedData.length, 'allocationSize()');
+  const data = new Uint8Array(size);
+  data.fill(PAD);  // Initialize array with PAD before copying into it
+  const layout = await frame.copyTo(data, options);
+  assert_layout_equals(layout, options.layout);
+  assert_buffer_equals(data, expectedData);
+}, 'Test I420 copyTo does not modify destination stride/offset padding bytes.');
+
+promise_test(async t => {
+  const W = 4;
+  const H = 4;
+  const src = new OffscreenCanvas(W, H);
+  const g = src.getContext('2d');
+  g.fillStyle = '#00ff00';
+  g.fillRect(0, 0, W, H);  // Fill 4x4 source image with all green
+
+  const frame = new VideoFrame(src, {timestamp: 0});
+
+  const offset = 5;
+  const stride = 20;
+  const options = {
+    layout: [
+      {offset, stride},
+    ],
+  };
+  const PAD = 0xAA;  // Distinct padding value so we can check for it later
+
+  const size = frame.allocationSize(options);
+  assert_equals(size, offset + stride * H, 'allocationSize()');
+
+  const expectedData = new Uint8Array(size);
+  expectedData.fill(PAD);
+  for (let y = 0; y < H; ++y) {
+    for (let x = 0; x < W; ++x) {
+      expectedData[offset + y * stride + x * 4 + 0] = 0;    // R
+      expectedData[offset + y * stride + x * 4 + 1] = 255;  // G
+      expectedData[offset + y * stride + x * 4 + 2] = 0;    // B
+      expectedData[offset + y * stride + x * 4 + 3] = 255;  // A
+    }
+  }
+
+  const data = new Uint8Array(size);
+  data.fill(PAD);  // Initialize array with PAD before copying into it
+  const layout = await frame.copyTo(data, options);
+  assert_layout_equals(layout, options.layout);
+  assert_buffer_equals(data, expectedData);
+  frame.close();
+}, 'Test texture-backed RGBA copyTo does not modify destination stride/offset padding bytes.');

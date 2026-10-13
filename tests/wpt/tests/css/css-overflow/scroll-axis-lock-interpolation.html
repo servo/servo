@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<title>CSS Overflow: scroll-axis-lock animation</title>
+<link rel="help"
+      href="https://drafts.csswg.org/css-overflow-5/#scroll-axis-locking">
+<link rel="help"
+      href="https://www.w3.org/TR/web-animations/#discrete">
+<meta name="assert" content="scroll-axis-lock animation type is discrete.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+<div id="target"></div>
+<script>
+  test_no_interpolation({
+    property: 'scroll-axis-lock',
+    from: 'auto',
+    to: 'none'
+  });
+</script>

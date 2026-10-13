@@ -7,13 +7,13 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use fonts_traits::{
-    FontDescriptor, FontIdentifier, FontTemplate, FontTemplateRef, FontTemplateRefMethods,
-    IsOblique, LowercaseFontFamilyName,
+    FontDescriptor, FontFaceRuleInfo, FontIdentifier, FontTemplate, FontTemplateRef,
+    FontTemplateRefMethods, IsOblique, LowercaseFontFamilyName,
 };
 use log::warn;
 use malloc_size_of_derive::MallocSizeOf;
 use parking_lot::RwLock;
-use style::properties::generated::font_face::Descriptors as FontFaceRuleDescriptors;
+use servo_arc::Arc as ServoArc;
 use style::values::computed::{FontStyle, FontWeight};
 
 #[derive(Default, MallocSizeOf)]
@@ -80,7 +80,7 @@ impl SimpleFamily {
         preference.iter().find_map(|template| (*template).clone())
     }
 
-    fn remove_templates_for_font_face_rule(&mut self, font_face_rule: &FontFaceRuleDescriptors) {
+    fn remove_templates_for_font_face_rule(&mut self, font_face_rule: &ServoArc<FontFaceRuleInfo>) {
         let remove_if_template_matches = |template: &mut Option<FontTemplateRef>| {
             if template.as_ref().is_some_and(|template| {
                 template
@@ -210,11 +210,11 @@ impl FontTemplates {
             return;
         };
 
-        // If the stretch between any of these fonts differ, it cannot be a simple family nor if this
+        // If the width between any of these fonts differ, it cannot be a simple family nor if this
         // font is oblique.
-        let stretch = added_template.descriptor().stretch.0;
+        let width = added_template.descriptor().width.0;
         let style = added_template.descriptor().style.0;
-        if first.descriptor().stretch.0 != stretch || style.is_oblique() {
+        if first.descriptor().width.0 != width || style.is_oblique() {
             self.simple_family = None;
             return;
         }
@@ -242,7 +242,7 @@ impl FontTemplates {
     /// Returns true if any templates were removed.
     pub(crate) fn remove_template_for_font_face_rule(
         &mut self,
-        removed_rule: &FontFaceRuleDescriptors,
+        removed_rule: &ServoArc<FontFaceRuleInfo>,
     ) -> bool {
         let old_length = self.templates.len();
         self.templates

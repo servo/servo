@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>RTCCertificate cannot be deserialized in workers</title>
+<link rel="help" href="https://w3c.github.io/webrtc-pc/#dom-rtccertificate">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script>
+const WORKER = 'RTCCertificate-postMessage-to-workers-helper.js';
+const SCOPE = 'RTCCertificate-postMessage-to-workers-scope/';
+
+function postToDedicatedWorker(t, value) {
+  const worker = new Worker(WORKER);
+  t.add_cleanup(() => worker.terminate());
+  const result = new Promise(resolve => worker.onmessage = e => resolve(e.data));
+  worker.postMessage(value);
+  return result;
+}
+
+function postToSharedWorker(t, value) {
+  const worker = new SharedWorker(WORKER, { name: `${t.name}` });
+  const result = new Promise(resolve => worker.port.onmessage = e => resolve(e.data));
+  worker.port.postMessage(value);
+  return result;
+}
+
+async function postToServiceWorker(t, value) {
+  const registration = await service_worker_unregister_and_register(t, WORKER, SCOPE);
+  t.add_cleanup(() => registration.unregister());
+  await wait_for_state(t, registration.installing, 'activated');
+  const result = new Promise(resolve => navigator.serviceWorker.onmessage = e => resolve(e.data));
+  registration.active.postMessage(value);
+  return result;
+}
+
+const workers = [
+  { name: 'dedicated worker', post: postToDedicatedWorker },
+  { name: 'shared worker', post: postToSharedWorker },
+  { name: 'service worker', post: postToServiceWorker },
+];
+
+for (const worker of workers) {
+  promise_test(async t => {
+    assert_equals(await worker.post(t, { value: 1 }), 'message');
+  }, `A plain object can be posted to a ${worker.name}`);
+
+  promise_test(async t => {
+    const certificate = await RTCPeerConnection.generateCertificate({ name: 'ECDSA', namedCurve: 'P-256' });
+    assert_equals(await worker.post(t, certificate), 'messageerror');
+  }, `RTCCertificate cannot be posted to a ${worker.name}`);
+}
+</script>

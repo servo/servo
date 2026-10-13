@@ -129,3 +129,13 @@ promise_test(async t => {
   assert_throws_with_label(
       () => builder.expand(input, newShape, options), regexp);
 }, '[expand] throw if new shape rank exceeds limit');
+
+validateOperandRank('expand', 'input', (builder, input) => {
+  const newShape = Array.from(input.shape);
+  if (newShape.length > 0) {
+    newShape[0] = kExampleDimSize;
+  } else {
+    newShape.push(kExampleDimSize);
+  }
+  return builder.expand(input, newShape);
+}, rank => rank > 0 ? [1, ...Array(rank - 1).fill(kExampleDimSize)] : []);

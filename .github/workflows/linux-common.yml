@@ -69,6 +69,10 @@ on:
         required: false
         default: false
         type: boolean
+      perf-analysis:
+        required: false
+        default: false
+        type: boolean
 
 env:
   RUST_BACKTRACE: 1
@@ -85,7 +89,7 @@ jobs:
     steps:
       - name: Runner select
         id: select
-        uses: servo/ci-runners/actions/runner-select@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+        uses: servo/ci-runners/actions/runner-select@b42c96524cdd72126255602c69c4ad649c750ebf
         with:
           GITHUB_TOKEN: ${{ github.token }}
           github-hosted-runner-label: ${{ inputs.github-runner-label }}
@@ -105,7 +109,7 @@ jobs:
     outputs:
       artifact_ids: ${{ steps.artifact_ids.outputs.artifact_ids }}
     steps:
-      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+      - uses: servo/ci-runners/actions/checkout@b42c96524cdd72126255602c69c4ad649c750ebf
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
         if: ${{ runner.environment != 'self-hosted' }}
@@ -113,9 +117,13 @@ jobs:
           tool-cache: false
           large-packages: false
           swap-storage: false
-      - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
-        if: ${{ runner.environment != 'self-hosted' }}
-        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "20.1"
+          directory: ${{ runner.temp }}/llvm
+      - name: Set LIBCLANG_PATH env
+        run: echo "LIBCLANG_PATH=${LLVM_PATH}/lib" >> $GITHUB_ENV
       - name: Setup Python
         if: ${{ runner.environment != 'self-hosted' }}
         uses: ./.github/actions/setup-python
@@ -135,6 +143,28 @@ jobs:
           echo "wireshark-common wireshark-common/install-setuid boolean true" | sudo debconf-set-selections
           sudo apt install -qy tshark shellcheck
           ./mach bootstrap --yes --skip-lints --skip-nextest
+
+      # Only enable `sccache` on forks. On the main repository we suffer from too much cache-trashing,
+      # and also don't need it for builds running on our self-hosted runners (cached cargo target directory).
+      # On forks expected activity is much lower, so the 10GB cache will be sufficient for the expected
+      # use-case of running `./mach try linux-wpt`.
+      # `sccache` can be turned off by adding a repository-level variable SCCACHE_GHA_ENABLED and
+      # setting the value to `false`. See <https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-variables#creating-configuration-variables-for-a-repository>.
+      - name: Install sccache
+        if: ${{ github.repository != 'servo/servo' && vars.SCCACHE_GHA_ENABLED != 'false' }}
+        uses: mozilla-actions/sccache-action@v0.0.11
+      - name: Enable sccache
+        if: ${{ github.repository != 'servo/servo' && vars.SCCACHE_GHA_ENABLED != 'false' }}
+        run: |
+          {
+            # Set / Increment SCCACHE_GHA_VERSION as a repository level variable in your fork
+            # to purge the cache, if you believe you're encountering issues.
+            echo "SCCACHE_GHA_VERSION=${{ vars.SCCACHE_GHA_VERSION || '1' }}"
+            echo "SCCACHE_GHA_ENABLED=true"
+            echo "RUSTC_WRAPPER=sccache"
+            # sccache cannot cache incremental compilation.
+            echo "CARGO_INCREMENTAL=0"
+          } >> $GITHUB_ENV
 
       # Always install crown, even on self-hosted runners, because it is tightly
       # coupled to the rustc version, and we may have the wrong version if the
@@ -193,6 +223,24 @@ jobs:
           name: ${{ inputs.uploaded-artifact-name }}
           path: target/${{ inputs.profile }}/servo-tech-demo.tar.gz
           if-no-files-found: error
+      # Rebuild with `tracing-perfetto` for perf-analysis. This reuses the cargo
+      # cache from the build above, so only the crates affected by the feature are
+      # recompiled. It is kept separate from the packaged artifact so that the
+      # speedometer/dromaeo benchmarks do not run with tracing compiled in.
+      - name: Build with Perfetto tracing
+        if: ${{ inputs.perf-analysis }}
+        run: |
+          ./mach build --use-crown --locked --profile ${{ inputs.profile }} --features tracing-perfetto
+      - name: Package with Perfetto tracing
+        if: ${{ inputs.perf-analysis }}
+        run: ./mach package --profile ${{ inputs.profile }}
+      - name: Upload Perfetto package for perf-analysis
+        if: ${{ inputs.perf-analysis }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ inputs.profile }}-binary-linux-tracing
+          path: target/${{ inputs.profile }}/servo-tech-demo.tar.gz
+          if-no-files-found: error
       - name: Collect artifact IDs needed by the release workflow
         id: artifact_ids
         shell: bash
@@ -204,7 +252,7 @@ jobs:
     name: Build libservo and MSRV check (${{ inputs.arch }})
     runs-on: ${{ inputs.github-runner-label }}
     steps:
-      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+      - uses: servo/ci-runners/actions/checkout@b42c96524cdd72126255602c69c4ad649c750ebf
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
         if: ${{ runner.environment != 'self-hosted' }}
@@ -212,8 +260,13 @@ jobs:
           tool-cache: false
           large-packages: false
           swap-storage: false
-      - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
-        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "20.1"
+          directory: ${{ runner.temp }}/llvm
+      - name: Set LIBCLANG_PATH env
+        run: echo "LIBCLANG_PATH=${LLVM_PATH}/lib" >> $GITHUB_ENV
       - name: Setup Python
         uses: ./.github/actions/setup-python
       - name: Determine MSRV
@@ -241,15 +294,20 @@ jobs:
     name: Build and test Servo's C API (${{ inputs.arch }})
     runs-on: ${{ inputs.github-runner-label }}
     steps:
-      - uses: servo/ci-runners/actions/checkout@a05e7e830e3f4d4c71bdc5a38f003f052b72668c
+      - uses: servo/ci-runners/actions/checkout@b42c96524cdd72126255602c69c4ad649c750ebf
       - name: Free Disk Space (Ubuntu)
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false
           large-packages: false
           swap-storage: false
-      - name: Set LIBCLANG_PATH env # needed for bindgen in mozangle
-        run: echo "LIBCLANG_PATH=/usr/lib/llvm-14/lib" >> $GITHUB_ENV
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "20.1"
+          directory: ${{ runner.temp }}/llvm
+      - name: Set LIBCLANG_PATH env
+        run: echo "LIBCLANG_PATH=${LLVM_PATH}/lib" >> $GITHUB_ENV
       - name: Setup Python
         uses: ./.github/actions/setup-python
       - name: Change Mirror Priorities

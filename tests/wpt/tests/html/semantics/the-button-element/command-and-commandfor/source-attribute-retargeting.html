@@ -96,7 +96,7 @@ promise_test(async () => {
       `${target.id}: event.source at capture.`);
     assert_equals(targetToBubbleSource.get(target), source,
       `${target.id}: event.source at bubble.`);
-    assert_equals(targetToEvent.get(target).source, null,
+    assert_equals(targetToEvent.get(target).source, host2,
       `${target.id}: event.source after dispatch.`);
   }
 }, 'CommandEvent.source should be retargeted when manually dispatched with composed set to true.');

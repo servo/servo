@@ -1,0 +1,24 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+  <title>subframe with cross-origin background image on the html element</title>
+  <style>
+  html {
+    background-image: url("https://{{hosts[alt][www]}}:{{ports[https][0]}}/images/red-100x100.png");
+    background-repeat: repeat-x repeat-y;
+    background-color: rgb(0 128 0);
+  }
+  div {
+    position: absolute;
+    left: 0px;
+    top: 0px;
+    width: 100px;
+    height: 100px;
+    background: transparent;
+  }
+  </style>
+</head>
+
+<body><div></div></body>
+
+</html>

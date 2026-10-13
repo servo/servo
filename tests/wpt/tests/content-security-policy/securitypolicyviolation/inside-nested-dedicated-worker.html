@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!--
+  This document does not have its own CSP. Instead, the outer worker's script has the CSP that produces the violation in the inner worker.
+  The securitypolicyviolation event should be dispatched on the outer worker's global scope, not on this Document.
+-->
+<script>
+  var w = new Worker("./support/inside-nested-worker-outer.sub.js");
+  fetch_tests_from_worker(w);
+</script>

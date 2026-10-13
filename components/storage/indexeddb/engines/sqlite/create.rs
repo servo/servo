@@ -43,11 +43,11 @@ create table object_store_index (
     primary key autoincrement,
     object_store_id   integer        not null
     references object_store,
-    name              varchar        not null
-    unique,
+    name              varchar        not null,
     key_path          varbinary_blob not null,
     unique_index      boolean        not null,
-    multi_entry_index boolean        not null
+    multi_entry_index boolean        not null,
+    unique(object_store_id, name)
 );"#;
     conn.execute(OBJECT_STORE_INDEX, [])?;
 

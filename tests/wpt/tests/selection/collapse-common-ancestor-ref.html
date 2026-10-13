@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<title>Selecting a subtree around a collapse</title>
+<div id="outer">before<div id="inner"><span>AAA</span><span>BBB</span></div>after</div>
+
+<script>
+  getSelection().setBaseAndExtent(outer.firstChild, 0, outer.lastChild,
+                                  outer.lastChild.length);
+</script>

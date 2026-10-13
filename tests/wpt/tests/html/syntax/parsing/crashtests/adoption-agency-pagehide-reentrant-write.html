@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>Adoption agency algorithm reentrancy via iframe pagehide</title>
+<link rel="help" href="https://issues.chromium.org/issues/558144311">
+<link rel="help" href="https://issues.chromium.org/issues/557729858">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/parsing.html#adoption-agency-algorithm">
+<script>
+// Reparenting the furthest-block element (<div>) during AAA step 4.14 detaches
+// its subtree, synchronously firing onpagehide on <iframe id=ifr>.
+// The re-entrant document.write() appends 14 formatting elements (using unique
+// attributes to bypass Noah's Ark eviction), growing the active formatting
+// elements list from 3 to 17 entries. This exceeds the vector capacity (16),
+// forcing a HeapVector reallocation that invalidates the Bookmark pointer
+// before SwapTo() resumes at step 4.18.
+document.write(
+  "<b><i><marquee><big><code><em><font><s><small><strike><strong><tt><u>" +
+  "</marquee><b><div><iframe id=ifr></iframe><script>" +
+  "document.getElementById('ifr').contentWindow.onpagehide = () => {" +
+  "  document.write(" +
+  "    '<big><code><em><font><s><small><strike><strong><tt><u>' +" +
+  "    '<big a><code a><em a><font a>'" +
+  "  );" +
+  "};" +
+  "<\/script></b>"
+);
+</script>
+</html>

@@ -1,0 +1,75 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection description types across a pranswer</title>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src="RTCPeerConnection-helper.js"></script>
+<script>
+'use strict';
+
+// webrtc-pc, set the session description, steps 5 and 6: a pranswer becomes
+// the pending description with type "pranswer"; the final answer, even with
+// the very same sdp, becomes the current description with type "answer", and
+// moves the offer from pending to current as well.
+
+promise_test(async t => {
+  const offerer = new RTCPeerConnection();
+  const answerer = new RTCPeerConnection();
+  t.add_cleanup(() => {
+    offerer.close();
+    answerer.close();
+  });
+  offerer.addTransceiver('audio');
+  const offer = await offerer.createOffer();
+  await answerer.setRemoteDescription(offer);
+  const {sdp} = await answerer.createAnswer();
+
+  await answerer.setLocalDescription({type: 'pranswer', sdp});
+  assert_equals(answerer.localDescription.type, 'pranswer');
+  assert_equals(answerer.pendingLocalDescription.type, 'pranswer');
+  assert_equals(answerer.currentLocalDescription, null);
+  assert_equals(answerer.remoteDescription.type, 'offer');
+  assert_equals(answerer.pendingRemoteDescription.type, 'offer');
+  assert_equals(answerer.currentRemoteDescription, null);
+
+  await answerer.setLocalDescription({type: 'answer', sdp});
+  assert_equals(answerer.localDescription.type, 'answer');
+  assert_equals(answerer.currentLocalDescription.type, 'answer');
+  assert_equals(answerer.pendingLocalDescription, null);
+  assert_equals(answerer.remoteDescription.type, 'offer');
+  assert_equals(answerer.currentRemoteDescription.type, 'offer');
+  assert_equals(answerer.pendingRemoteDescription, null);
+}, 'Local descriptions change type from "pranswer" to "answer" on the final ' +
+   'answer');
+
+promise_test(async t => {
+  const offerer = new RTCPeerConnection();
+  const answerer = new RTCPeerConnection();
+  t.add_cleanup(() => {
+    offerer.close();
+    answerer.close();
+  });
+  offerer.addTransceiver('audio');
+  await offerer.setLocalDescription();
+  await answerer.setRemoteDescription(offerer.localDescription);
+  const {sdp} = await answerer.createAnswer();
+
+  await offerer.setRemoteDescription({type: 'pranswer', sdp});
+  assert_equals(offerer.remoteDescription.type, 'pranswer');
+  assert_equals(offerer.pendingRemoteDescription.type, 'pranswer');
+  assert_equals(offerer.currentRemoteDescription, null);
+  assert_equals(offerer.localDescription.type, 'offer');
+  assert_equals(offerer.pendingLocalDescription.type, 'offer');
+  assert_equals(offerer.currentLocalDescription, null);
+
+  await offerer.setRemoteDescription({type: 'answer', sdp});
+  assert_equals(offerer.remoteDescription.type, 'answer');
+  assert_equals(offerer.currentRemoteDescription.type, 'answer');
+  assert_equals(offerer.pendingRemoteDescription, null);
+  assert_equals(offerer.localDescription.type, 'offer');
+  assert_equals(offerer.currentLocalDescription.type, 'offer');
+  assert_equals(offerer.pendingLocalDescription, null);
+}, 'Remote descriptions change type from "pranswer" to "answer" on the ' +
+   'final answer');
+
+</script>

@@ -8,8 +8,7 @@ use std::default::Default;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
-use servo_config::pref;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -58,10 +57,10 @@ impl UIEvent {
         window: &Window,
         proto: Option<HandleObject>,
     ) -> DomRoot<UIEvent> {
-        reflect_dom_object_with_proto_and_cx(Box::new(UIEvent::new_inherited()), window, proto, cx)
+        reflect_dom_object_with_proto(cx, Box::new(UIEvent::new_inherited()), window, proto)
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         cx: &mut JSContext,
         window: &Window,
@@ -77,7 +76,7 @@ impl UIEvent {
         )
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn new_with_proto(
         cx: &mut JSContext,
         window: &Window,
@@ -203,10 +202,6 @@ impl UIEventMethods<crate::DomTypeHolder> for UIEvent {
 
     /// <https://w3c.github.io/uievents/#dom-uievent-which>
     fn Which(&self) -> u32 {
-        if pref!(dom_uievent_which_enabled) {
-            self.which.get()
-        } else {
-            0
-        }
+        self.which.get()
     }
 }

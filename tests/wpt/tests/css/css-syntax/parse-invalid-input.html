@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Set style to invalid CSS syntax</title>
+<link rel="help" href="https://drafts.csswg.org/css-syntax-3/#parsing">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- Rewritten from https://github.com/jsdom/jsdom/blob/main/test/to-port-to-wpts/level2/style.js -->
+
+<script>
+"use strict";
+
+const invalidStyles = [
+  ["color: red; }", "red", "color: red;"],
+  ["color: \"red", "", ""],
+  ["color: red;' ", "red", "color: red;"],
+  ["color: red; /*", "red", "color: red;"],
+  ["color: attr(", "", ""],
+  ["color: ", "", ""],
+  ["color: /*red", "", ""],
+  ["color:: red", "", ""]
+];
+
+for (const [input, color, cssText] of invalidStyles) {
+  test(() => {
+    const node = document.createElement("div");
+    node.setAttribute("style", input);
+    assert_equals(node.getAttribute("style"), input);
+    assert_equals(node.style.color, color);
+    assert_equals(node.style.cssText, cssText);
+  }, input);
+}
+</script>

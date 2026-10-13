@@ -5,11 +5,11 @@
 use k12::{CustomRefKt128, CustomRefKt256, ExtendableOutput, Update};
 
 use crate::dom::bindings::error::Error;
-use crate::dom::subtlecrypto::{CryptoAlgorithm, SubtleKangarooTwelveParams};
+use crate::dom::subtlecrypto::{CryptoAlgorithm, KangarooTwelveParams};
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#kangarootwelve-operations-digest>
 pub(crate) fn digest(
-    normalized_algorithm: &SubtleKangarooTwelveParams,
+    normalized_algorithm: &KangarooTwelveParams,
     message: &[u8],
 ) -> Result<Vec<u8>, Error> {
     // Step 1. Let outputLength be the outputLength member of normalizedAlgorithm.

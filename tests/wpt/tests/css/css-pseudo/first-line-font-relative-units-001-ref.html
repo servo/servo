@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Pseudo-Elements Test: font-relative units on inline child in ::first-line</title>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+<style>
+p {
+  font: 100px Ahem;
+}
+p::first-line {
+  font-size: 10px;
+}
+span {
+  border-left: solid 10px green;
+}
+</style>
+<p>A green 10px border on the left of <span>this,<br>
+is a pass.</span></p>

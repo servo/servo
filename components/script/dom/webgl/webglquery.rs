@@ -6,7 +6,7 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::WebGLError::*;
 use servo_canvas_traits::webgl::{WebGLCommand, WebGLQueryId, webgl_channel};
@@ -54,7 +54,7 @@ impl Drop for DroppableWebGLQuery {
     }
 }
 
-#[dom_struct(associated_memory)]
+#[dom_struct]
 pub(crate) struct WebGLQuery {
     webgl_object: WebGLObject,
     gl_target: Cell<Option<u32>>,
@@ -83,10 +83,10 @@ impl WebGLQuery {
         context.send_command(WebGLCommand::GenerateQuery(sender));
         let id = receiver.recv().unwrap();
 
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(Self::new_inherited(context, id)),
             &*context.global(),
-            cx,
         )
     }
 

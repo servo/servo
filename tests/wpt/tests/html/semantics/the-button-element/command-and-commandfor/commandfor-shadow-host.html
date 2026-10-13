@@ -1,0 +1,220 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>commandForElement: a shadow button can address its own host</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-elements.html#the-button-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="custom-host">
+  <template shadowrootmode="open">
+    <button id="custom-button" type="button" command="--custom"></button>
+  </template>
+</div>
+
+<div id="popover-host" popover="auto">
+  <template shadowrootmode="open">
+    <button id="popover-button" type="button" command="toggle-popover"></button>
+  </template>
+</div>
+
+<div id="control-host">
+  <template shadowrootmode="open">
+    <button id="control-button" type="button" command="--custom"></button>
+  </template>
+</div>
+<div id="control-target"></div>
+
+<div id="outer-host">
+  <template shadowrootmode="open">
+    <div id="inner-host">
+      <template shadowrootmode="open">
+        <button id="nested-button" type="button" command="--custom"></button>
+      </template>
+    </div>
+  </template>
+</div>
+
+<div id="ancestor-target-host">
+  <template shadowrootmode="open">
+    <div id="descendant-host">
+      <template shadowrootmode="open">
+        <button id="ancestor-target-button" type="button"
+                command="--custom"></button>
+      </template>
+    </div>
+  </template>
+</div>
+
+<script>
+test(t => {
+  const host = document.getElementById("custom-host");
+  const button = host.shadowRoot.getElementById("custom-button");
+  button.commandForElement = host;
+
+  let hostEvent = null;
+  let documentEvent = null;
+  host.addEventListener("command", event => {
+    hostEvent = event;
+  }, {signal: t.get_signal()});
+  document.addEventListener("command", event => {
+    if (event.target === host) {
+      documentEvent = event;
+    }
+  }, {capture: true, signal: t.get_signal()});
+
+  button.click();
+
+  assert_equals(button.commandForElement, host,
+      "commandForElement should reflect the host");
+  assert_true(hostEvent instanceof CommandEvent,
+      "The host should receive a command event");
+  assert_equals(hostEvent.target, host, "The command event target");
+  assert_equals(hostEvent.source, host,
+      "The shadow button should be retargeted to its host");
+  assert_equals(documentEvent, hostEvent,
+      "The command event should reach the document during capture");
+}, "A custom command can target the button's own shadow host");
+
+test(t => {
+  const host = document.getElementById("popover-host");
+  const button = host.shadowRoot.getElementById("popover-button");
+  button.commandForElement = host;
+  t.add_cleanup(() => {
+    if (host.matches(":popover-open")) {
+      host.hidePopover();
+    }
+  });
+
+  let commandEvent = null;
+  let beforetoggleEvent = null;
+  host.addEventListener("command", event => {
+    commandEvent = event;
+  }, {signal: t.get_signal()});
+  host.addEventListener("beforetoggle", event => {
+    beforetoggleEvent = event;
+  }, {signal: t.get_signal()});
+
+  button.click();
+
+  assert_equals(button.commandForElement, host,
+      "commandForElement should reflect the host");
+  assert_true(commandEvent instanceof CommandEvent,
+      "The host should receive a command event");
+  assert_equals(commandEvent.target, host, "The command event target");
+  assert_equals(commandEvent.source, host,
+      "The command event source should be retargeted to the host");
+  assert_true(beforetoggleEvent instanceof ToggleEvent,
+      "The host should receive a beforetoggle event");
+  assert_equals(beforetoggleEvent.target, host,
+      "The beforetoggle event target");
+  assert_equals(beforetoggleEvent.source, host,
+      "The beforetoggle event source should be retargeted to the host");
+  assert_true(host.matches(":popover-open"),
+      "The toggle-popover command should open the host");
+}, "A built-in command can target the button's own shadow host");
+
+test(t => {
+  const host = document.getElementById("control-host");
+  const button = host.shadowRoot.getElementById("control-button");
+  const target = document.getElementById("control-target");
+  button.commandForElement = target;
+
+  let commandEvent = null;
+  target.addEventListener("command", event => {
+    commandEvent = event;
+  }, {signal: t.get_signal()});
+
+  button.click();
+
+  assert_equals(button.commandForElement, target,
+      "commandForElement should reflect the unrelated target");
+  assert_true(commandEvent instanceof CommandEvent,
+      "The unrelated target should receive a command event");
+  assert_equals(commandEvent.target, target, "The command event target");
+  assert_equals(commandEvent.source, host,
+      "The shadow button should be retargeted to its host");
+}, "A custom command can target an unrelated light-DOM element");
+
+test(t => {
+  const outerHost = document.getElementById("outer-host");
+  const outerRoot = outerHost.shadowRoot;
+  const innerHost = outerRoot.getElementById("inner-host");
+  const button = innerHost.shadowRoot.getElementById("nested-button");
+  button.commandForElement = innerHost;
+
+  let innerHostEvent = null;
+  let innerHostEventTarget = null;
+  let innerHostEventSource = null;
+  let innerHostEventPath = null;
+  let outerRootEvent = null;
+  let outerHostEvent = null;
+  let documentEvent = null;
+  innerHost.addEventListener("command", event => {
+    innerHostEvent = event;
+    innerHostEventTarget = event.target;
+    innerHostEventSource = event.source;
+    innerHostEventPath = event.composedPath();
+  }, {signal: t.get_signal()});
+  outerRoot.addEventListener("command", event => {
+    outerRootEvent = event;
+  }, {capture: true, signal: t.get_signal()});
+  outerHost.addEventListener("command", event => {
+    outerHostEvent = event;
+  }, {capture: true, signal: t.get_signal()});
+  document.addEventListener("command", event => {
+    if (event.target === outerHost) {
+      documentEvent = event;
+    }
+  }, {capture: true, signal: t.get_signal()});
+
+  button.click();
+
+  assert_equals(button.commandForElement, innerHost,
+      "commandForElement should reflect the inner host");
+  assert_true(innerHostEvent instanceof CommandEvent,
+      "The inner host should receive a command event");
+  assert_equals(innerHostEventTarget, innerHost,
+      "The command event target");
+  assert_equals(innerHostEventSource, innerHost,
+      "The shadow button should be retargeted to the inner host");
+  assert_array_equals(innerHostEventPath, [innerHost, outerRoot],
+      "The event path should stop at the outer shadow root");
+  assert_equals(outerRootEvent, innerHostEvent,
+      "The outer shadow root should receive the event during capture");
+  assert_equals(outerHostEvent, null,
+      "The event should not cross the outer shadow boundary");
+  assert_equals(documentEvent, null,
+      "The event should not reach the document");
+}, "A custom command targeting its inner shadow host stops at the outer shadow boundary");
+
+test(t => {
+  const host = document.getElementById("ancestor-target-host");
+  const descendantHost = host.shadowRoot.getElementById("descendant-host");
+  const button =
+      descendantHost.shadowRoot.getElementById("ancestor-target-button");
+  button.commandForElement = host;
+
+  let hostEvent = null;
+  let documentEvent = null;
+  host.addEventListener("command", event => {
+    hostEvent = event;
+  }, {signal: t.get_signal()});
+  document.addEventListener("command", event => {
+    if (event.target === host) {
+      documentEvent = event;
+    }
+  }, {capture: true, signal: t.get_signal()});
+
+  button.click();
+
+  assert_equals(button.commandForElement, host,
+      "commandForElement should reflect the ancestor host");
+  assert_true(hostEvent instanceof CommandEvent,
+      "The ancestor host should receive a command event");
+  assert_equals(hostEvent.target, host, "The command event target");
+  assert_equals(hostEvent.source, host,
+      "The nested shadow button should be retargeted to the ancestor host");
+  assert_equals(documentEvent, hostEvent,
+      "The command event should reach the document during capture");
+}, "A custom command can target a host two shadow levels above its button");
+</script>

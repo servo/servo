@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: rule-visibility-items uses adjacent row occupancy only
+  for grid-axis decorations in row grid lanes
+</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#visibility">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#repeat-auto-fit">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14489">
+<link rel="match" href="row-gap-decorations-auto-fit-visibility-items-ref.html">
+<style>
+  body { margin: 0; }
+  .cases {
+    display: flex;
+    gap: 12px;
+  }
+  .stage {
+    width: 120px;
+    height: 540px;
+  }
+  /* Five auto-fit rows fit; 1, 2, and 4 are occupied; 3 and 5 collapse. */
+  .lanes {
+    display: grid-lanes;
+    grid-lanes-direction: row;
+    grid-template-rows: repeat(auto-fit, 60px) 60px 60px;
+    gap: 20px;
+    width: 120px;
+    height: 540px;
+    background: #cdd5e0;
+    column-rule: 4px solid blue;
+    row-rule: 4px solid gold;
+  }
+  .lanes > div {
+    width: 40px;
+    background: #5b8def;
+  }
+  .lanes > .span {
+    grid-row: 1 / 3;
+    background: #8a6df0;
+  }
+  .t1 { grid-row: 1; }
+  .t2 { grid-row: 2; }
+  .t4 { grid-row: 4; }
+</style>
+<div class="cases">
+  <div class="stage">
+    <div class="lanes" style="rule-visibility-items: all">
+      <div class="span"></div>
+      <div class="t1"></div>
+      <div class="t2"></div>
+      <div class="t4"></div>
+      <div class="t4"></div>
+    </div>
+  </div>
+  <div class="stage">
+    <div class="lanes" style="rule-visibility-items: normal">
+      <div class="span"></div>
+      <div class="t1"></div>
+      <div class="t2"></div>
+      <div class="t4"></div>
+      <div class="t4"></div>
+    </div>
+  </div>
+  <div class="stage">
+    <div class="lanes" style="rule-visibility-items: around">
+      <div class="span"></div>
+      <div class="t1"></div>
+      <div class="t2"></div>
+      <div class="t4"></div>
+      <div class="t4"></div>
+    </div>
+  </div>
+  <div class="stage">
+    <div class="lanes" style="rule-visibility-items: between">
+      <div class="span"></div>
+      <div class="t1"></div>
+      <div class="t2"></div>
+      <div class="t4"></div>
+      <div class="t4"></div>
+    </div>
+  </div>
+</div>

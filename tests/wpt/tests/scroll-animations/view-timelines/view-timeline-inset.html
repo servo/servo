@@ -184,6 +184,13 @@ promise_test(async t => {
   assert_throws_js(TypeError, () => {
     new ViewTimeline({
       subject: target,
+      inset: []
+    });
+  });
+
+  assert_throws_js(TypeError, () => {
+    new ViewTimeline({
+      subject: target,
       inset: [ CSS.rad(1) ]
     });
   });

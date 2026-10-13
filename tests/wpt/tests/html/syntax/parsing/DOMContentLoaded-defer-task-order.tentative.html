@@ -1,0 +1,28 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>The end: DOMContentLoaded and a task queued from a defer script</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/#the-end">
+<link rel=help href="https://github.com/web-platform-tests/wpt/issues/4267">
+<!--
+  Tentative: the order between DOMContentLoaded, which the specification queues
+  on the DOM manipulation task source, and a timer task is not specified.
+  DOMContentLoaded-defer.html asserts the opposite order.
+-->
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<script>
+var order = [];
+document.addEventListener("DOMContentLoaded", () => order.push("DOMContentLoaded"));
+
+var t = async_test(
+    "DOMContentLoaded fires before a task queued from a defer script");
+
+function check() {
+  t.step(() => {
+    assert_array_equals(order, ["defer", "DOMContentLoaded", "timeout"]);
+  });
+  t.done();
+}
+</script>
+<script defer src="data:text/javascript,order.push('defer');t.step_timeout(()=>{order.push('timeout');check()},0)"></script>

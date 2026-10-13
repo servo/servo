@@ -28,6 +28,9 @@ define generate_dcb
 	$(eval in=$(1))
 	$(eval dict=$(2))
 	$(eval out=$(3))
+	# Note: compressed output $(out) is never used as a $(in) dictionary of
+	# another command, but if that happens in the future we need to make
+	# sure headers are properly merged.
 	echo 'Cache-Control: max-age=3600' > $(in).headers
 	echo 'Vary: available-dictionary,accept-encoding' >> $(in).headers
 	echo 'Content-Encoding: dcb' > $(out).headers
@@ -42,6 +45,9 @@ define generate_dcz
 	$(eval in=$(1))
 	$(eval dict=$(2))
 	$(eval out=$(3))
+	# Note: compressed output $(out) is never used as a $(in) dictionary of
+	# another command, but if that happens in the future we need to make
+	# sure headers are properly merged.
 	echo 'Cache-Control: max-age=3600' > $(in).headers
 	echo 'Vary: available-dictionary,accept-encoding' >> $(in).headers
 	echo 'Content-Encoding: dcz' > $(out).headers

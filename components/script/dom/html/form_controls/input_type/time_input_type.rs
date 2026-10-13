@@ -17,6 +17,10 @@ pub(crate) struct TimeInputType {
 }
 
 impl SpecificInputType for TimeInputType {
+    fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>> {
+        Some(&self.text_input_widget)
+    }
+
     fn sanitize_value(&self, _input: &HTMLInputElement, value: &mut DOMString) {
         if !value.str().is_valid_time_string() {
             value.clear();

@@ -14,7 +14,8 @@ use malloc_size_of_derive::MallocSizeOf;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_base::Epoch;
-use servo_base::id::ScrollTreeNodeId;
+use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_base::id::{ContainerTimingID, LCPCandidateID, ScrollTreeNodeId};
 use servo_base::print_tree::PrintTree;
 use servo_geometry::FastLayoutTransform;
 use style::values::specified::Overflow;
@@ -32,11 +33,15 @@ pub struct ScrollType(u8);
 
 bitflags! {
     impl ScrollType: u8 {
-        /// This node can be scrolled by input events or an input event originated this
-        /// scroll.
+        /// This node can be scrolled by mouse wheel or other non-touch input events, or
+        /// such an input event originated this scroll.
         const InputEvents = 1 << 0;
         /// This node can be scrolled by script events or script originated this scroll.
         const Script = 1 << 1;
+        /// This node can be scrolled by touch direct manipulation, or a touch event
+        /// originated this scroll. Distinct from [`Self::InputEvents`] so that `touch-action`
+        /// can restrict touch panning without affecting mouse wheel scrolling.
+        const Touch = 1 << 2;
     }
 }
 
@@ -45,7 +50,9 @@ impl From<Overflow> for ScrollType {
     fn from(overflow: Overflow) -> Self {
         match overflow {
             Overflow::Hidden => ScrollType::Script,
-            Overflow::Scroll | Overflow::Auto => ScrollType::Script | ScrollType::InputEvents,
+            Overflow::Scroll | Overflow::Auto => {
+                ScrollType::Script | ScrollType::InputEvents | ScrollType::Touch
+            },
             Overflow::Visible | Overflow::Clip => ScrollType::empty(),
         }
     }
@@ -56,6 +63,46 @@ impl From<Overflow> for ScrollType {
 pub struct AxesScrollSensitivity {
     pub x: ScrollType,
     pub y: ScrollType,
+}
+
+/// A simplified representation of the CSS `touch-action` property, used by the
+/// compositor to decide how a touch gesture may scroll a given node.
+///
+/// NOTE: Directional variants (`pan-left`/`pan-right`/...) are not supported in Stylo at all.
+/// Firefox also fails the parsing.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, MallocSizeOf, PartialEq, Serialize)]
+pub enum TouchAction {
+    /// `touch-action: auto` (and `manipulation`, `pan-x pan-y`). The compositor
+    /// applies the scroll-chaining axis lock: lock to the dominant axis only
+    /// when the hit node cannot scroll that axis.
+    Auto,
+    /// `touch-action: pan-x`. The vertical axis is excluded from input-event
+    /// scrolling (chains to ancestor); the gesture locks to its dominant axis.
+    PanX,
+    /// `touch-action: pan-y`. The horizontal axis is excluded from input-event
+    /// scrolling (chains to ancestor); the gesture locks to its dominant axis.
+    PanY,
+    /// `touch-action: none` (and `pinch-zoom` alone). No single-finger direct
+    /// manipulation: do not scroll.
+    None,
+}
+
+impl From<style::values::specified::TouchAction> for TouchAction {
+    fn from(stylo: style::values::specified::TouchAction) -> Self {
+        use style::values::specified::TouchAction as T;
+        if stylo.contains(T::NONE) {
+            return TouchAction::None;
+        }
+        if stylo.contains(T::AUTO) || stylo.contains(T::MANIPULATION) {
+            return TouchAction::Auto;
+        }
+        match (stylo.contains(T::PAN_X), stylo.contains(T::PAN_Y)) {
+            (true, true) => TouchAction::Auto,
+            (true, false) => TouchAction::PanX,
+            (false, true) => TouchAction::PanY,
+            (false, false) => TouchAction::None,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -189,6 +236,12 @@ pub struct ScrollableNodeInfo {
 
     /// Whether this `ScrollableNode` is sensitive to input events.
     pub scroll_sensitivity: AxesScrollSensitivity,
+
+    /// The effective `touch-action` value for this node. The sensitivity above
+    /// is already restricted accordingly (e.g. `pan-x` strips `InputEvents`
+    /// from the y axis), so this field is only consulted to decide the axis
+    /// lock policy at pan-start.
+    pub touch_action: TouchAction,
 
     /// The current offset of this scroll node.
     pub offset: LayoutVector2D,
@@ -513,6 +566,25 @@ impl ScrollTree {
             })
     }
 
+    /// Look up the [`TouchAction`] and the structurally scrollable axes
+    /// for the scroll node with the given [`ExternalScrollId`].
+    /// Used by the compositor at pan-start to decide the axis-lock policy.
+    pub fn touch_action_and_scrollable_axes_for(
+        &self,
+        external_id: ExternalScrollId,
+    ) -> Option<(TouchAction, bool, bool)> {
+        let node_id = self.node_with_external_scroll_node_id(external_id)?;
+        let SpatialTreeNodeInfo::Scroll(info) = &self.get_node(node_id).info else {
+            return None;
+        };
+        let scrollable_size = info.scrollable_size();
+        Some((
+            info.touch_action,
+            scrollable_size.width > 0.,
+            scrollable_size.height > 0.,
+        ))
+    }
+
     /// Scroll the scroll node with the given [`ExternalScrollId`] on this scroll tree. If
     /// the node cannot be scrolled, because it's already scrolled to the maximum scroll
     /// extent, try to scroll an ancestor of this node. Returns the node scrolled and the
@@ -557,19 +629,28 @@ impl ScrollTree {
 
     /// Given a set of all scroll offsets coming from the Servo renderer, update all of the offsets
     /// for nodes that actually exist in this tree.
+    ///
+    /// Returns a map of all scroll offsets which were actually set.
     pub fn set_all_scroll_offsets(
         &mut self,
         offsets: &FxHashMap<ExternalScrollId, LayoutVector2D>,
-    ) {
+    ) -> FxHashMap<ExternalScrollId, LayoutVector2D> {
+        let mut result = FxHashMap::default();
         for node in self.nodes.iter_mut() {
             if let SpatialTreeNodeInfo::Scroll(ref mut scroll_info) = node.info &&
-                let Some(offset) = offsets.get(&scroll_info.external_id)
+                let Some(offset) = offsets.get(&scroll_info.external_id) &&
+                let Some(result_offset) =
+                    scroll_info.scroll_to_offset(*offset, ScrollType::Script)
             {
-                scroll_info.scroll_to_offset(*offset, ScrollType::Script);
+                result.insert(scroll_info.external_id, result_offset);
             }
         }
 
-        self.invalidate_cached_transforms();
+        if !result.is_empty() {
+            self.invalidate_cached_transforms();
+        }
+
+        result
     }
 
     /// Set the offsets of all scrolling nodes in this tree to 0.
@@ -645,6 +726,7 @@ impl ScrollTree {
             .cumulative_sticky_offsets
     }
 
+    #[servo_tracing::instrument(name = "ScrollTree::cumulative_node_transform", skip_all)]
     fn cumulative_node_transform(
         &self,
         node_id: ScrollTreeNodeId,
@@ -660,6 +742,7 @@ impl ScrollTree {
     }
 
     /// Traverse a scroll node to its root to calculate the transform.
+    #[servo_tracing::instrument(name = "ScrollTree::cumulative_node_transform_inner", skip_all)]
     fn cumulative_node_transform_inner(
         &self,
         node: &ScrollTreeNode,
@@ -734,6 +817,7 @@ impl ScrollTree {
         }
     }
 
+    #[servo_tracing::instrument(name = "ScrollTree::invalidate_cached_transforms", skip_all)]
     fn invalidate_cached_transforms(&self) {
         let Some(root_node) = self.nodes.first() else {
             return;
@@ -813,6 +897,75 @@ impl ScrollTree {
     }
 }
 
+/// A bitflags set that represents the paint timing report for a display list.
+///
+/// <https://www.w3.org/TR/paint-timing/#set-of-previously-reported-paints>
+/// Note: Analogous to the document's "set of previously reported paints". It
+/// is produced by layout's `mark paint timing` as the report for the current
+/// display list. In the specification this is an ordered set of paint-type
+/// strings (`"first-paint"`,`"first-contentful-paint"`).
+#[derive(Clone, Copy, Debug, Default, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub struct PaintTimingReport(u8);
+
+bitflags! {
+    impl PaintTimingReport: u8 {
+        /// Report first paint (the spec's `"first-paint"`).
+        const FirstPaint = 1 << 0;
+        /// Report first contentful paint (the spec's `"first-contentful-paint"`).
+        const FirstContentfulPaint = 1 << 1;
+    }
+}
+
+/// <https://www.w3.org/TR/paint-timing/#paint-timing-info>
+#[derive(Clone, Copy, Debug, Deserialize, MallocSizeOf, PartialEq, Serialize)]
+pub struct PaintTimingInfo {
+    /// <https://w3c.github.io/paint-timing/#paint-timing-info-rendering-update-end-time>
+    pub rendering_update_end_time: CrossProcessInstant,
+    /// <https://w3c.github.io/paint-timing/#paint-timing-info-implementation-defined-presentation-time>
+    pub implementation_defined_presentation_time: Option<CrossProcessInstant>,
+}
+
+impl PaintTimingInfo {
+    pub fn now() -> Self {
+        Self {
+            rendering_update_end_time: CrossProcessInstant::now(),
+            implementation_defined_presentation_time: None,
+        }
+    }
+
+    /// Return a copy of this [`PaintTimingInfo`] with its implementation-defined
+    /// presentation time set to `presentation_time`.
+    pub fn with_presentation_time(self, presentation_time: CrossProcessInstant) -> Self {
+        Self {
+            implementation_defined_presentation_time: Some(presentation_time),
+            ..self
+        }
+    }
+
+    /// <https://www.w3.org/TR/paint-timing/#dom-painttimingmixin-painttime>
+    pub fn paint_time(&self) -> CrossProcessInstant {
+        // The `paintTime` attribute's getter step is to return this's paint
+        // timing info's rendering update end time.
+        self.rendering_update_end_time
+    }
+
+    /// <https://www.w3.org/TR/paint-timing/#dom-painttimingmixin-presentationtime>
+    pub fn presentation_time(&self) -> Option<CrossProcessInstant> {
+        // The `presentationTime` attribute's getter step, if it exists, is to
+        // return this's paint timing info's implementation-defined
+        // presentation time.
+        self.implementation_defined_presentation_time
+    }
+
+    /// <https://www.w3.org/TR/paint-timing/#default-paint-timestamp>
+    pub fn default_paint_timestamp(&self) -> CrossProcessInstant {
+        // Return paintTimingInfo's implementation-defined presentation time if
+        // it is non-null, otherwise paintTimingInfo's rendering update end time.
+        self.implementation_defined_presentation_time
+            .unwrap_or(self.rendering_update_end_time)
+    }
+}
+
 /// A data structure which stores `Paint`-side information about
 /// display lists sent to `Paint`.
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -842,18 +995,25 @@ pub struct PaintDisplayListInfo {
     /// tree.
     pub root_scroll_node_id: ScrollTreeNodeId,
 
-    /// From <https://www.w3.org/TR/paint-timing/#paintable>:
-    /// Whether the display list contains paintable items.
-    pub is_paintable: bool,
-
-    /// From <https://www.w3.org/TR/paint-timing/#contentful>:
-    /// Contentful paint i.e. whether the display list contains items of type
-    /// text, image, non-white canvas or SVG). Used by metrics.
-    pub is_contentful: bool,
-
     /// Whether the first layout or a subsequent (incremental) layout triggered this
     /// display list creation.
     pub first_reflow: bool,
+
+    /// The paint-timing report for this display list.
+    pub paint_timing_report: PaintTimingReport,
+
+    /// The [`PaintTimingInfo`] for this display list.
+    pub paint_timing_info: PaintTimingInfo,
+
+    /// New largest-contentful-paint candidate in this display list, if any.
+    /// The pair is the candidate's id and its reported area.
+    pub lcp_candidate: Option<(LCPCandidateID, usize)>,
+
+    /// The Container Timing updates produced by this display list, if any. Only the IDs
+    /// travel here: the records themselves go straight from layout to script, and paint's
+    /// sole job is to hand these IDs back once the frame has actually been composited.
+    /// <https://wicg.github.io/container-timing/>
+    pub container_timing_candidates: Vec<ContainerTimingID>,
 
     /// If this display list contains a blinking caret, this value will be filled with its animation
     /// key and original color value so that the painter can animate the caret.
@@ -892,6 +1052,7 @@ impl PaintDisplayListInfo {
                     viewport_details.layout_size(),
                 ),
                 scroll_sensitivity: viewport_scroll_sensitivity,
+                touch_action: TouchAction::Auto,
                 offset: LayoutVector2D::zero(),
                 offset_changed: Cell::new(false),
             }),
@@ -905,9 +1066,11 @@ impl PaintDisplayListInfo {
             scroll_tree,
             root_reference_frame_id,
             root_scroll_node_id,
-            is_paintable: false,
-            is_contentful: false,
             first_reflow,
+            lcp_candidate: None,
+            container_timing_candidates: Vec::new(),
+            paint_timing_report: PaintTimingReport::default(),
+            paint_timing_info: PaintTimingInfo::now(),
             caret_property_binding: Default::default(),
         }
     }

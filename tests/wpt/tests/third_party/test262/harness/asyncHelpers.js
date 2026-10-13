@@ -8,7 +8,7 @@ defines: [asyncTest, assert.throwsAsync]
 
 /**
  * Defines the **sole** asynchronous test of a file.
- * @see {@link ../docs/rfcs/async-helpers.md} for background.
+ * @see {@link ../rfcs/async-helpers.md} for background.
  *
  * @param {Function} testFunc a callback whose returned promise indicates test results
  *   (fulfillment for success, rejection for failure)

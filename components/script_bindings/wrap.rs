@@ -47,21 +47,44 @@ pub(crate) unsafe fn wrap<T: MutDomObject, D: DomTypes>(
     config: WrapConfig,
 ) -> DomRoot<T> {
     unsafe {
-        let scope = scope.reflector().get_jsobject();
+        rooted!(&in(cx) let mut obj = ptr::null_mut::<JSObject>());
+        wrap_object(
+            cx,
+            &scope.reflector().get_jsobject(),
+            given_proto,
+            raw.as_ptr() as *const c_void,
+            &config,
+            obj.handle_mut(),
+        );
+        let root = raw.reflect_with(obj.get());
+        root.reflector().set_proto_id(config.prototype_id as u16);
+        root
+    }
+}
+
+// `wrap` is instantiated many times, so we move most of the code into this non-generic helper.
+unsafe fn wrap_object(
+    cx: &mut JSContext,
+    scope: &HandleObject,
+    given_proto: Option<js::rust::Handle<*mut JSObject>>,
+    raw: *const c_void,
+    config: &WrapConfig,
+    mut rval: MutableHandleObject,
+) {
+    unsafe {
         assert!(!scope.get().is_null());
         assert!(((*get_object_class(scope.get())).flags & JSCLASS_IS_GLOBAL) != 0);
         let _ac = JSAutoRealm::new(cx.raw_cx(), scope.get());
 
         rooted!(&in(cx) let mut canonical_proto = ptr::null_mut::<JSObject>());
-        (config.proto_object_fn)(cx, scope, canonical_proto.handle_mut());
+        (config.proto_object_fn)(cx, *scope, canonical_proto.handle_mut());
         assert!(!canonical_proto.is_null());
 
-        rooted!(&in(cx) let mut obj = ptr::null_mut::<JSObject>());
         if config.is_proxy {
             let handler: *const libc::c_void = config.proxy_handler.unwrap();
 
             if config.is_maybe_cross_origin_object {
-                obj.set(NewProxyObject(
+                rval.set(NewProxyObject(
                     cx,
                     handler,
                     Handle::undefined(),
@@ -70,7 +93,7 @@ pub(crate) unsafe fn wrap<T: MutDomObject, D: DomTypes>(
                     true,
                 ));
             } else {
-                obj.set(NewProxyObject(
+                rval.set(NewProxyObject(
                     cx,
                     handler,
                     Handle::undefined(),
@@ -80,12 +103,8 @@ pub(crate) unsafe fn wrap<T: MutDomObject, D: DomTypes>(
                 ));
             };
 
-            assert!(!obj.is_null());
-            SetProxyReservedSlot(
-                obj.get(),
-                0,
-                &PrivateValue(raw.as_ptr() as *const libc::c_void),
-            );
+            assert!(!rval.is_null());
+            SetProxyReservedSlot(rval.get(), 0, &PrivateValue(raw));
         } else {
             rooted!(&in(cx) let mut proto = ptr::null_mut::<JSObject>());
             if let Some(given) = given_proto {
@@ -96,27 +115,20 @@ pub(crate) unsafe fn wrap<T: MutDomObject, D: DomTypes>(
             } else {
                 proto.set(*canonical_proto);
             }
-            obj.set(JS_NewObjectWithGivenProto(
+            rval.set(JS_NewObjectWithGivenProto(
                 cx,
                 config.class.unwrap(),
                 proto.handle(),
             ));
-            assert!(!obj.is_null());
-            JS_SetReservedSlot(
-                obj.get(),
-                DOM_OBJECT_SLOT,
-                &PrivateValue(raw.as_ptr() as *const libc::c_void),
-            );
+            assert!(!rval.is_null());
+            JS_SetReservedSlot(rval.get(), DOM_OBJECT_SLOT, &PrivateValue(raw));
         };
-
-        let root = raw.reflect_with(obj.get());
-        root.reflector().set_proto_id(config.prototype_id as u16);
 
         // From here on we copy the legacy unforgeable properties to instance which was originally in a different function.
         if config.has_legacy_unforgeable_members {
             rooted!(&in(cx) let mut expando = ptr::null_mut::<JSObject>());
             if config.is_proxy {
-                ensure_expando_object(cx, obj.handle(), expando.handle_mut());
+                ensure_expando_object(cx, rval.handle(), expando.handle_mut());
             }
 
             let copy_fn = JS_InitializePropertiesFromCompatibleNativeObject;
@@ -132,10 +144,8 @@ pub(crate) unsafe fn wrap<T: MutDomObject, D: DomTypes>(
             if config.is_proxy {
                 assert!(copy_fn(cx, expando.handle(), unforgeable_holder.handle()));
             } else {
-                assert!(copy_fn(cx, obj.handle(), unforgeable_holder.handle()));
+                assert!(copy_fn(cx, rval.handle(), unforgeable_holder.handle()));
             }
         }
-
-        DomRoot::from_ref(&*root)
     }
 }

@@ -7,13 +7,13 @@ use js::context::JSContext;
 use js::gc::MutableHandleValue;
 use js::rust::HandleValue;
 use script_bindings::codegen::GenericBindings::IDBKeyRangeBinding::IDBKeyRangeMethods;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::root::DomRoot;
 use storage_traits::indexeddb::IndexedDBKeyRange;
 
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::globalscope::GlobalScope;
-use crate::indexeddb::{convert_value_to_key, key_type_to_jsval};
+use crate::dom::indexeddb::key::{convert_value_to_key, key_type_to_jsval};
 
 #[dom_struct]
 pub struct IDBKeyRange {
@@ -35,7 +35,7 @@ impl IDBKeyRange {
         global: &GlobalScope,
         inner: IndexedDBKeyRange,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(Box::new(IDBKeyRange::new_inherited(inner)), global, cx)
+        reflect_dom_object(cx, Box::new(IDBKeyRange::new_inherited(inner)), global)
     }
 
     pub fn inner(&self) -> &IndexedDBKeyRange {

@@ -8,7 +8,7 @@ use js::gc::HandleObject;
 use script_bindings::codegen::GenericBindings::PasswordCredentialBinding::PasswordCredentialData;
 use script_bindings::error::{Error, Fallible};
 use script_bindings::reflector::reflect_dom_object_with_proto;
-use script_bindings::str::USVString;
+use script_bindings::str::{DOMString, USVString};
 
 use crate::dom::bindings::codegen::Bindings::PasswordCredentialBinding::PasswordCredentialMethods;
 use crate::dom::bindings::codegen::DomTypeHolder::DomTypeHolder;
@@ -28,7 +28,7 @@ pub(crate) struct PasswordCredential {
 impl PasswordCredential {
     fn new_inherited(id: USVString, origin: USVString, password: USVString) -> PasswordCredential {
         PasswordCredential {
-            credential: Credential::new_inherited(id, "password".into()),
+            credential: Credential::new_inherited(id, DOMString::from_static("password")),
             origin,
             password,
         }

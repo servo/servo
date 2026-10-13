@@ -32,6 +32,5 @@ partial interface UIEvent {
       long detailArg
     );
 
-    [Pref="dom_uievent_which_enabled"]
     readonly attribute unsigned long which;
 };

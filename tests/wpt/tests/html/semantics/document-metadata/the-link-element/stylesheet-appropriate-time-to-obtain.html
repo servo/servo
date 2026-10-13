@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test of appropriate times to obtain a resource for a stylesheet link</title>
+<link rel="author" title="Domenic Denicola" href="mailto:d@domenic.me">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics.html#link-type-stylesheet">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- not comprehensive at the moment, but these seem like the critical ones to support -->
+
+<body>
+<script>
+"use strict";
+
+promise_test(t => {
+  const initialColor = window.getComputedStyle(document.body).color;
+  let resolve;
+  const promise = new Promise(r => {
+    resolve = r;
+  });
+
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+
+  link.onload = t.step_func(() => {
+    assert_equals(window.getComputedStyle(document.body).color, "rgb(0, 0, 1)");
+    link.remove();
+    assert_equals(window.getComputedStyle(document.body).color, initialColor, "Removing the link restores the color");
+    resolve();
+  });
+
+  link.href = "stylesheet-appropriate-time-to-obtain-1.css";
+
+  document.body.appendChild(link);
+  t.add_cleanup(() => link.remove());
+
+
+  return promise;
+}, "adding a href attribute before inserting the link into the document causes the stylesheet to load and apply");
+
+promise_test(t => {
+  const initialColor = window.getComputedStyle(document.body).color;
+  let resolve;
+  const promise = new Promise(r => {
+    resolve = r;
+  });
+
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  document.body.appendChild(link);
+  t.add_cleanup(() => link.remove());
+
+  link.onload = t.step_func(() => {
+    assert_equals(window.getComputedStyle(document.body).color, "rgb(0, 0, 2)");
+    link.remove();
+    assert_equals(window.getComputedStyle(document.body).color, initialColor, "Removing the link restores the color");
+    resolve();
+  });
+
+  link.href = "stylesheet-appropriate-time-to-obtain-2.css";
+
+
+  return promise;
+}, "adding a href attribute after inserting the link into the document causes the stylesheet to load and apply");
+
+promise_test(t => {
+  const initialColor = window.getComputedStyle(document.body).color;
+  let resolve;
+  const promise = new Promise(r => {
+    resolve = r;
+  });
+
+  const link = document.createElement("link");
+  link.rel = "stylesheet";
+  document.body.appendChild(link);
+  t.add_cleanup(() => link.remove());
+
+  link.onload = t.step_func(() => {
+    assert_equals(window.getComputedStyle(document.body).color, "rgb(0, 0, 2)");
+
+    link.onload = t.step_func(() => {
+      assert_equals(window.getComputedStyle(document.body).color, "rgb(0, 0, 3)");
+      link.remove();
+      assert_equals(window.getComputedStyle(document.body).color, initialColor, "Removing the link restores the color");
+      resolve();
+    });
+
+    link.href = "stylesheet-appropriate-time-to-obtain-3.css";
+  });
+
+  link.href = "stylesheet-appropriate-time-to-obtain-2.css";
+
+
+  return promise;
+}, "changing the href attribute after inserting the link into the document causes the stylesheet to load again");
+</script>

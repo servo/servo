@@ -5,7 +5,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::gc::MutableHandleValue;
 use script_bindings::domstring::DOMString;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::ServoTestUtilsBinding::LayoutResultMethods;
 use crate::dom::bindings::root::DomRoot;
@@ -45,7 +45,8 @@ impl LayoutResult {
         restyle_fragment_count: u32,
         only_descendants_changed_count: u32,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(Self::new_inherited(
                 phases,
                 rebuilt_fragment_count,
@@ -53,7 +54,6 @@ impl LayoutResult {
                 only_descendants_changed_count,
             )),
             global,
-            cx,
         )
     }
 }

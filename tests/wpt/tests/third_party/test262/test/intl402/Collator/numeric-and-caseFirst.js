@@ -7,6 +7,7 @@ description: >
     Tests that the options numeric and caseFirst can be  set through
     either the locale or the options.
 author: Norbert Lindenberg
+includes: [testIntl.js]
 ---*/
 
 var options = [
@@ -15,7 +16,7 @@ var options = [
 ];
 
 options.forEach(function (option) {
-    var defaultLocale = new Intl.Collator().resolvedOptions().locale;
+    var defaultLocale = getLocaleBaseName(new Intl.Collator().resolvedOptions().locale);
     var collator, opt, result;
     
     // find out which values are supported for a property in the default locale

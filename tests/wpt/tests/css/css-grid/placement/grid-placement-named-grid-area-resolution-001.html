@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-template-areas-property">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#implicit-named-lines">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#line-placement">
+<meta name="assert" content="Items placed with grid-area, grid-row or grid-column referring to named grid areas resolve to the lines implicitly named by grid-template-areas, including when combined with spans and explicitly named lines.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/css/support/alignment.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<head>
+<style>
+.grid {
+    grid-template-rows: [before] 50px [middle] 100px [after] 150px;
+    grid-template-columns: 40px 80px 160px;
+}
+
+.gridWithoutRepeat {
+    grid-template-areas: "first second third"
+                                 "fourth fifth sixth";
+}
+
+.gridWithRepeat {
+    grid-template-areas: "first  second third"
+                                 "fourth fourth third";
+}
+
+.gridItemFirstArea {
+    grid-area: first;
+}
+
+.gridItemSecondArea {
+    grid-area: second;
+}
+
+.gridItemThirdArea {
+    grid-area: third;
+}
+
+.gridItemFourthArea {
+    grid-area: fourth;
+}
+
+.gridItemFifthArea {
+    grid-area: fifth;
+}
+
+.gridItemSixthArea {
+    grid-area: sixth;
+}
+
+.gridItemSpan2ThirdArea {
+    grid-row: fourth;
+    grid-column: span 2 / third;
+}
+
+.gridItemNamedGridLineWithArea {
+    grid-row: third / after;
+    grid-column: 1;
+}
+</style>
+</head>
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+
+<p>This test checks that named grid areas are resolved per the specification.</p>
+
+<div style="position: relative">
+    <div class="grid gridWithoutRepeat">
+        <div class="sizedToGridArea gridItemSixthArea" data-offset-x="120" data-offset-y="50" data-expected-width="160" data-expected-height="100"></div>
+        <div class="sizedToGridArea gridItemFifthArea" data-offset-x="40" data-offset-y="50" data-expected-width="80" data-expected-height="100"></div>
+        <div class="sizedToGridArea gridItemFourthArea" data-offset-x="0" data-offset-y="50" data-expected-width="40" data-expected-height="100"></div>
+        <div class="sizedToGridArea gridItemThirdArea" data-offset-x="120" data-offset-y="0" data-expected-width="160" data-expected-height="50"></div>
+        <div class="sizedToGridArea gridItemSecondArea" data-offset-x="40" data-offset-y="0" data-expected-width="80" data-expected-height="50"></div>
+        <div class="sizedToGridArea gridItemFirstArea" data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="50"></div>
+
+        <div class="sizedToGridArea gridItemSpan2ThirdArea" data-offset-x="40" data-offset-y="50" data-expected-width="240" data-expected-height="100"></div>
+        <div class="sizedToGridArea gridItemNamedGridLineWithArea" data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="150"></div>
+    </div>
+</div>
+
+<div style="position: relative">
+    <div class="grid gridWithRepeat justifyContentStart">
+        <!-- fifth and sixth are invalid named grid areas. -->
+        <div class="sizedToGridArea gridItemSixthArea" data-offset-x="280" data-offset-y="300" data-expected-width="0" data-expected-height="0"></div>
+        <div class="sizedToGridArea gridItemFifthArea" data-offset-x="280" data-offset-y="300" data-expected-width="0" data-expected-height="0"></div>
+
+        <div class="sizedToGridArea gridItemFourthArea" data-offset-x="0" data-offset-y="50" data-expected-width="120" data-expected-height="100"></div>
+        <div class="sizedToGridArea gridItemThirdArea" data-offset-x="120" data-offset-y="0" data-expected-width="160" data-expected-height="150"></div>
+        <div class="sizedToGridArea gridItemSecondArea" data-offset-x="40" data-offset-y="0" data-expected-width="80" data-expected-height="50"></div>
+        <div class="sizedToGridArea gridItemFirstArea" data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="50"></div>
+
+        <div class="sizedToGridArea gridItemSpan2ThirdArea" data-offset-x="40" data-offset-y="50" data-expected-width="240" data-expected-height="100"></div>
+        <div class="sizedToGridArea gridItemNamedGridLineWithArea" data-offset-x="0" data-offset-y="0" data-expected-width="40" data-expected-height="150"></div>
+    </div>
+</div>
+
+</body>

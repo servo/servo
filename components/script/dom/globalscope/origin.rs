@@ -19,7 +19,9 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmlanchorelement::HTMLAnchorElement;
 use crate::dom::html::htmlareaelement::HTMLAreaElement;
-use crate::dom::html::htmlhyperlinkelementutils::{HyperlinkElement, HyperlinkElementTraits};
+use crate::dom::html::links::htmlhyperlinkelementutils::{
+    HyperlinkElement, HyperlinkElementTraits,
+};
 use crate::dom::url::URL;
 use crate::dom::window::Window;
 
@@ -75,7 +77,7 @@ impl Origin {
 
         // <https://html.spec.whatwg.org/multipage/#api-for-a-and-area-elements:extract-an-origin>
         if let Ok(anchor_obj) = root_from_handlevalue::<HTMLAnchorElement>(cx, value) {
-            anchor_obj.reinitialize_url();
+            anchor_obj.reinitialize_url(cx.no_gc());
             if let Some(ref url) = *anchor_obj.get_url().borrow() {
                 return Some(url.origin());
             }
@@ -84,7 +86,7 @@ impl Origin {
 
         // <https://html.spec.whatwg.org/multipage/#api-for-a-and-area-elements:extract-an-origin>
         if let Ok(area_obj) = root_from_handlevalue::<HTMLAreaElement>(cx, value) {
-            area_obj.reinitialize_url();
+            area_obj.reinitialize_url(cx.no_gc());
             if let Some(ref url) = *area_obj.get_url().borrow() {
                 return Some(url.origin());
             }
@@ -120,7 +122,7 @@ impl OriginMethods<crate::DomTypeHolder> for Origin {
 
         // Step 2. If value is a string:
         if value.get().is_string() {
-            let s = match DOMString::safe_from_jsval(cx, value, StringificationBehavior::Default) {
+            let s = match DOMString::from_jsval(cx, value, StringificationBehavior::Default) {
                 Ok(ConversionResult::Success(s)) => s,
                 _ => return Err(Error::Type(c"Failed to convert value to string".to_owned())),
             };

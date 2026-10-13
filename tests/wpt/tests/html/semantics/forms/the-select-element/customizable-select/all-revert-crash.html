@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:jarhar@chromium.org">
+<link rel=help href="https://issues.chromium.org/issues/542646754">
+<style>
+.custom-select, .custom-select::picker(select) {
+  appearance: base-select;
+}
+select {
+  all: revert;
+}
+</style>
+<select class=custom-select></select>

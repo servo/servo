@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>text-overflow: &lt;string&gt; in a focused textarea</title>
+<style>
+textarea {
+  white-space: nowrap;
+  /* text-overflow: clip; is default */
+  caret-color: transparent;
+}
+</style>
+<textarea>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</textarea>
+<script>
+document.querySelector('textarea').focus();
+requestAnimationFrame(() => {
+  document.documentElement.classList.remove('reftest-wait');
+});
+</script>
+</html>

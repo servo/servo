@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSS Test: shape-outside image whose only opaque run starts in the last column</title>
+    <link rel="help" href="https://drafts.csswg.org/css-shapes/#shapes-from-image"/>
+    <link rel="help" href="https://drafts.csswg.org/css-shapes/#shape-outside-property"/>
+    <meta name="assert" content="An above-threshold run of pixels that begins in the last column of a shape image must contribute to the float area."/>
+    <link rel="stylesheet" type="text/css" href="/fonts/ahem.css"/>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <style>
+        .container {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            font: 10px/1 Ahem;
+        }
+        .vertical {
+            writing-mode: vertical-rl;
+        }
+        .float {
+            float: left;
+            width: 100px;
+            height: 20px;
+            shape-image-threshold: 0.5;
+        }
+        .vertical .float {
+            width: 20px;
+            height: 100px;
+        }
+        .one-pixel {
+            width: 1px;
+            shape-outside: linear-gradient(black, black);
+        }
+        .last-column {
+            shape-outside: linear-gradient(to right, transparent calc(100% - 1px), black calc(100% - 1px));
+        }
+        .vertical .last-column {
+            shape-outside: linear-gradient(to bottom, transparent calc(100% - 1px), black calc(100% - 1px));
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="float one-pixel"></div>
+        <span id="one-pixel">x</span>
+    </div>
+    <div class="container">
+        <div class="float last-column"></div>
+        <span id="last-column">x</span>
+    </div>
+    <div class="container vertical">
+        <div class="float last-column"></div>
+        <span id="last-column-vertical">x</span>
+    </div>
+    <script>
+        function offset(id, side) {
+            const element = document.getElementById(id);
+            return element.getBoundingClientRect()[side] - element.parentElement.getBoundingClientRect()[side];
+        }
+
+        test(() => {
+            assert_equals(offset("one-pixel", "left"), 1);
+        }, "A 1px wide opaque shape image excludes its single column");
+
+        test(() => {
+            assert_equals(offset("last-column", "left"), 100);
+        }, "An opaque run starting in the last column is part of the shape");
+
+        test(() => {
+            assert_equals(offset("last-column-vertical", "top"), 100);
+        }, "An opaque run starting in the last logical column is part of the shape in vertical writing mode");
+    </script>
+</body>
+</html>

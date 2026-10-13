@@ -4,10 +4,14 @@
 function validate_rtt_stats(stats) {
   // The assumption below is that the RTT to localhost is under 5 seconds,
   // which is fairly generous.
-  assert_greater_than(stats.minRtt, 0, "minRtt");
-  assert_less_than(stats.minRtt, 5 * 1000, "minRtt");
-  assert_greater_than(stats.smoothedRtt, 0, "smoothedRtt");
-  assert_less_than(stats.smoothedRtt, 5 * 1000, "smoothedRtt");
+  if ("minRtt" in stats) {
+    assert_greater_than(stats.minRtt, 0, "minRtt");
+    assert_less_than(stats.minRtt, 5 * 1000, "minRtt");
+  }
+  if ("smoothedRtt" in stats) {
+    assert_greater_than(stats.smoothedRtt, 0, "smoothedRtt");
+    assert_less_than(stats.smoothedRtt, 5 * 1000, "smoothedRtt");
+  }
 }
 
 promise_test(async t => {
@@ -15,9 +19,15 @@ promise_test(async t => {
   await wt.ready;
   const stats = await wt.getStats();
   validate_rtt_stats(stats);
-  assert_equals(stats.datagrams.expiredOutgoing, 0);
-  assert_equals(stats.datagrams.droppedIncoming, 0);
-  assert_equals(stats.datagrams.lostOutgoing, 0);
+  if ("expiredOutgoing" in stats.datagrams) {
+    assert_equals(stats.datagrams.expiredOutgoing, 0);
+  }
+  if ("droppedIncoming" in stats.datagrams) {
+    assert_equals(stats.datagrams.droppedIncoming, 0);
+  }
+  if ("lostOutgoing" in stats.datagrams) {
+    assert_equals(stats.datagrams.lostOutgoing, 0);
+  }
 }, "WebTransport client should be able to provide stats after connection has been established");
 
 promise_test(async t => {
@@ -95,11 +105,13 @@ promise_test(async t => {
   for (let i = 0; i < maxAttempts; i++) {
     wait(50);
     stats = await wt.getStats();
-    if (stats.datagrams.droppedIncoming > 0) {
+    if ("droppedIncoming" in stats.datagrams && stats.datagrams.droppedIncoming > 0) {
       break;
     }
   }
-  assert_greater_than(stats.datagrams.droppedIncoming, 0);
-  assert_less_than_equal(stats.datagrams.droppedIncoming,
-                         numDatagrams - wt.datagrams.incomingMaxBufferedDatagrams);
+  if ("droppedIncoming" in stats.datagrams) {
+    assert_greater_than(stats.datagrams.droppedIncoming, 0);
+    assert_less_than_equal(stats.datagrams.droppedIncoming,
+                             numDatagrams - wt.datagrams.incomingMaxBufferedDatagrams);
+  }
 }, "WebTransport client should be able to provide droppedIncoming values for datagrams");

@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Masking: clip-path view-box reference box on a rotated SVG shape</title>
+<link rel="author" title="Ahmad Saleem" href="mailto:ahmad.saleem792+github@gmail.com">
+<link rel="help" href="https://drafts.fxtf.org/css-masking-1/#the-clip-path">
+<link rel="match" href="clip-path-shape-svg-view-box-rotated-shape-ref.html">
+<meta name="assert" content="The view-box reference box is sized from the nearest SVG viewport but positioned in the rotated shape's own user space.">
+<svg width="400" height="400">
+  <rect x="0" y="0" width="200" height="100" transform="rotate(90 100 100)" style="clip-path: inset(0 300px 0 0) view-box" fill="green"/>
+</svg>

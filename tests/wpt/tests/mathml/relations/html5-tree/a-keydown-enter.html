@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>MathMLAnchorElement keyboard activation with Enter key</title>
+<link rel="help" href="https://w3c.github.io/mathml-core/#the-a-element">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#activation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<math>
+    <a href="javascript:void(0)">
+        <mtext>Clickable MathML Link</mtext>
+    </a>
+</math>
+
+<script>
+    promise_test(async t => {
+        const a = document.querySelector("math a");
+        let clicked = false;
+
+        a.addEventListener("click", () => {
+            clicked = true;
+        });
+
+        a.focus();
+        assert_equals(document.activeElement, a, "MathML <a> should be focused");
+
+        // \uE007 is the Enter key.
+        await new test_driver.send_keys(a, "\uE007");
+
+        assert_true(clicked, "Pressing Enter on focused MathML <a> should dispatch a simulated click");
+    }, "MathMLAnchorElement should be activated via Enter key when focused");
+</script>

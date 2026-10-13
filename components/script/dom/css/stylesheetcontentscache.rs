@@ -14,9 +14,9 @@ use style::shared_lock::SharedRwLock;
 use style::stylesheets::{AllowImportRules, CssRule, Origin, StylesheetContents, UrlExtraData};
 use stylo_atoms::Atom;
 
+use crate::css::stylesheet_loader::ElementStylesheetLoader;
 use crate::dom::node::NodeTraits;
 use crate::dom::types::HTMLElement;
-use crate::stylesheet_loader::ElementStylesheetLoader;
 
 const MAX_LENGTH_OF_TEXT_INSERTED_INTO_TABLE: usize = 1024;
 const UNIQUE_OWNED: usize = 2;

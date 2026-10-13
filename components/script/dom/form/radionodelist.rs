@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use script_bindings::root::DomRoot;
 use stylo_atoms::Atom;
 
@@ -39,10 +39,10 @@ impl RadioNodeList {
         window: &Window,
         list_type: NodeListType,
     ) -> DomRoot<RadioNodeList> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(RadioNodeList::new_inherited(list_type)),
             window,
-            cx,
         )
     }
 
@@ -80,8 +80,8 @@ impl RadioNodeList {
 impl RadioNodeListMethods<crate::DomTypeHolder> for RadioNodeList {
     // https://dom.spec.whatwg.org/#dom-nodelist-length
     /// <https://github.com/servo/servo/issues/5875>
-    fn Length(&self, _cx: &JSContext) -> u32 {
-        self.node_list.Length()
+    fn Length(&self, cx: &JSContext) -> u32 {
+        self.node_list.Length(cx.no_gc())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-radionodelist-value>
@@ -95,7 +95,7 @@ impl RadioNodeListMethods<crate::DomTypeHolder> for RadioNodeList {
                         // Step 3-4
                         let value = input.Value();
                         Some(if value.is_empty() {
-                            DOMString::from("on")
+                            DOMString::from_static("on")
                         } else {
                             value
                         })
@@ -105,14 +105,14 @@ impl RadioNodeListMethods<crate::DomTypeHolder> for RadioNodeList {
                 })
             })
             // Step 2
-            .unwrap_or(DOMString::from(""))
+            .unwrap_or(DOMString::new())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-radionodelist-value>
     fn SetValue(&self, cx: &mut JSContext, value: DOMString) {
         let node_list = self.upcast::<NodeList>();
         // Inlining `node_list.iter()` so `cx` doesn’t stay borrowed
-        for index in 0..node_list.Length() {
+        for index in 0..node_list.Length(cx.no_gc()) {
             let Some(node) = node_list.Item(cx, index) else {
                 continue;
             };

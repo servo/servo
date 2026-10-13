@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<title>background-repeat with multiple values</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#background-repeat">
+<!-- Regression test for https://github.com/jsdom/cssstyle/issues/209 -->
+
+<div id="test"></div>
+
+<script>
+"use strict";
+
+const div = document.getElementById("test");
+
+test(() => {
+  div.style.backgroundRepeat = null;
+  assert_equals(div.style.backgroundRepeat, "");
+}, "Sanity check");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.backgroundRepeat = null;
+  });
+
+  div.style.backgroundRepeat = "repeat";
+  assert_equals(div.style.backgroundRepeat, "repeat");
+
+  div.style.backgroundRepeat = "no-repeat";
+  assert_equals(div.style.backgroundRepeat, "no-repeat");
+
+  div.style.backgroundRepeat = "repeat-x";
+  assert_equals(div.style.backgroundRepeat, "repeat-x");
+
+  div.style.backgroundRepeat = "repeat-y";
+  assert_equals(div.style.backgroundRepeat, "repeat-y");
+
+  div.style.backgroundRepeat = "space";
+  assert_equals(div.style.backgroundRepeat, "space");
+
+  div.style.backgroundRepeat = "round";
+  assert_equals(div.style.backgroundRepeat, "round");
+
+  div.style.backgroundRepeat = "repeat, no-repeat";
+  assert_equals(div.style.backgroundRepeat, "repeat, no-repeat");
+}, "1 value");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.backgroundRepeat = null;
+  });
+
+  div.style.backgroundRepeat = "repeat repeat";
+  assert_equals(div.style.backgroundRepeat, "repeat");
+
+  div.style.backgroundRepeat = "repeat no-repeat";
+  assert_equals(div.style.backgroundRepeat, "repeat-x");
+
+  div.style.backgroundRepeat = "no-repeat repeat";
+  assert_equals(div.style.backgroundRepeat, "repeat-y");
+
+  div.style.backgroundRepeat = "space space";
+  assert_equals(div.style.backgroundRepeat, "space");
+
+  div.style.backgroundRepeat = "round round";
+  assert_equals(div.style.backgroundRepeat, "round");
+
+  div.style.backgroundRepeat = "repeat space";
+  assert_equals(div.style.backgroundRepeat, "repeat space");
+
+  div.style.backgroundRepeat = null;
+  div.style.backgroundRepeat = "repeat-x repeat-y";
+  assert_equals(div.style.backgroundRepeat, "");
+
+  div.style.backgroundRepeat = "repeat space, no-repeat repeat";
+  assert_equals(div.style.backgroundRepeat, "repeat space, repeat-y");
+}, "2 values");
+</script>

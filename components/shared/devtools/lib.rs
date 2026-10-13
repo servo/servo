@@ -18,26 +18,24 @@
 
 use core::fmt;
 use std::collections::HashMap;
-use std::fmt::Display;
 use std::net::TcpStream;
-use std::str::FromStr;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 pub use embedder_traits::ConsoleLogLevel;
 use embedder_traits::Theme;
 use http::{HeaderMap, Method};
 use malloc_size_of_derive::MallocSizeOf;
+use net_traits::TlsSecurityInfo;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::Destination;
-use net_traits::{DebugVec, TlsSecurityInfo};
 use profile_traits::mem::ReportsChan;
 use serde::de::{Error, Visitor};
 use serde::{Deserialize, Serialize};
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::GenericSender;
+pub use servo_base::id::WorkerId;
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use servo_url::ServoUrl;
-use uuid::Uuid;
 
 // Information would be attached to NewGlobal to be received and show in devtools.
 // Extend these fields if we need more information.
@@ -238,6 +236,8 @@ pub enum DebuggerValue {
         class: String,
         own_property_length: Option<u32>,
         preview: Option<Box<ObjectPreview>>,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        prototype: Option<Box<DebuggerValue>>,
     },
 }
 
@@ -467,7 +467,7 @@ pub enum DevtoolScriptControlMsg {
     /// Gets the list of all allowed CSS rules and possible values.
     GetCssDatabase(GenericSender<HashMap<String, CssDatabaseProperty>>),
     /// Simulates a light or dark color scheme for the given pipeline
-    SimulateColorScheme(PipelineId, Theme),
+    SimulateColorScheme(PipelineId, Option<Theme>),
     /// Highlight the given DOM node
     HighlightDomNode(PipelineId, Option<String>),
 
@@ -475,6 +475,7 @@ pub enum DevtoolScriptControlMsg {
         String,
         PipelineId,
         Option<String>,
+        bool,
         GenericSender<EvaluateJSReply>,
     ),
     GetPossibleBreakpoints(u32, GenericSender<Vec<RecommendedBreakpointLocation>>),
@@ -568,7 +569,7 @@ pub struct HttpRequest {
     pub url: ServoUrl,
     pub method: Method,
     pub headers: HeaderMap,
-    pub body: Option<DebugVec>,
+    pub body: Option<bytes::Bytes>,
     pub pipeline_id: PipelineId,
     pub started_date_time: SystemTime,
     pub time_stamp: i64,
@@ -584,7 +585,7 @@ pub struct HttpResponse {
     #[ignore_malloc_size_of = "Http type"]
     pub headers: Option<HeaderMap>,
     pub status: HttpStatus,
-    pub body: Option<DebugVec>,
+    pub body: Option<bytes::Bytes>,
     pub from_cache: bool,
     pub pipeline_id: PipelineId,
     pub browsing_context_id: BrowsingContextId,
@@ -636,21 +637,6 @@ impl StartedTimelineMarker {
         }
     }
 }
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
-pub struct WorkerId(pub Uuid);
-impl Display for WorkerId {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-impl FromStr for WorkerId {
-    type Err = uuid::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(s.parse()?))
-    }
-}
-
 #[derive(Debug, Deserialize, Serialize, MallocSizeOf)]
 #[serde(rename_all = "camelCase")]
 pub struct CssDatabaseProperty {

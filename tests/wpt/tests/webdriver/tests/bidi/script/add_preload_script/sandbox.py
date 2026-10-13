@@ -2,6 +2,8 @@ import pytest
 
 from webdriver.bidi.modules.script import ContextTarget
 
+from ... import recursive_compare
+
 pytestmark = pytest.mark.asyncio
 
 
@@ -68,3 +70,43 @@ async def test_remove_properties_set_by_preload_script(
         await_promise=True,
     )
     assert result == {"type": "number", "value": 50}
+
+
+async def test_arguments(
+    bidi_session,
+    subscribe_events,
+    wait_for_event,
+    wait_for_future_safe,
+    add_preload_script,
+):
+    await subscribe_events(["script.message"])
+
+    on_script_message = wait_for_event("script.message")
+    await add_preload_script(
+        function_declaration="(channel) => channel('foo')",
+        arguments=[{"type": "channel", "value": {"channel": "channel_name"}}],
+        sandbox="sandbox",
+    )
+
+    new_tab = await bidi_session.browsing_context.create(type_hint="tab")
+    event_data = await wait_for_future_safe(on_script_message)
+
+    result = await bidi_session.script.evaluate(
+        raw_result=True,
+        expression="1",
+        target=ContextTarget(new_tab["context"], "sandbox"),
+        await_promise=True,
+    )
+
+    recursive_compare(
+        {
+            "channel": "channel_name",
+            "data": {"type": "string", "value": "foo"},
+            "source": {
+                "realm": result["realm"],
+                "context": new_tab["context"],
+            },
+        },
+        event_data,
+    )
+

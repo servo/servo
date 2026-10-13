@@ -6,11 +6,11 @@ use cshake::digest::{ExtendableOutput, Update};
 use cshake::{CShake128, CShake256};
 
 use crate::dom::bindings::error::Error;
-use crate::dom::subtlecrypto::{CryptoAlgorithm, SubtleCShakeParams};
+use crate::dom::subtlecrypto::{CShakeParams, CryptoAlgorithm};
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#cshake-operations-digest>
 pub(crate) fn digest(
-    normalized_algorithm: &SubtleCShakeParams,
+    normalized_algorithm: &CShakeParams,
     message: &[u8],
 ) -> Result<Vec<u8>, Error> {
     // Step 1. Let outputLength be the outputLength member of normalizedAlgorithm.

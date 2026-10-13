@@ -1,30 +1,289 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>WebMCP executeTool with AbortSignal</title>
+<title>WebMCP executeTool AbortSignal basic behavior</title>
 <link rel="author" href="mailto:dom@chromium.org">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
 </head>
 <body>
 <script>
 promise_test(async t => {
-  const controller = new AbortController();
+  const regController = new AbortController();
+  t.add_cleanup(() => regController.abort());
 
-  // Register a dummy tool so we have something to execute.
+  let receivedSignal = null;
   await document.modelContext.registerTool({
-    name: 'dummy_tool',
-    description: 'Dummy tool',
-    execute: async () => 'hello'
-  });
+    name: 'default_signal_tool',
+    description: 'Test default signal',
+    execute: async (input, options) => {
+      receivedSignal = options.signal;
+      return 'success';
+    }
+  }, { signal: regController.signal });
 
-  const tools = await document.modelContext.getTools();
-  const tool = tools.find(t => t.name === 'dummy_tool');
-  const promise = document.modelContext.executeTool(tool, '{}', { signal: controller.signal });
+  const [tool] = await document.modelContext.getTools();
+  const result = await document.modelContext.executeTool(tool);
+  assert_equals(result, 'success');
+  assert_true(receivedSignal instanceof AbortSignal, 'options.signal should be an AbortSignal instance');
+  assert_false(receivedSignal.aborted, 'signal should not be aborted');
+}, 'executeTool() provides a non-aborted default AbortSignal when called without options');
 
+promise_test(async t => {
+  const regController = new AbortController();
+  t.add_cleanup(() => regController.abort());
+
+  const events = [];
+
+  const modelContextEvents = [];
+  const {
+    promise: modelContextToolActivatedPromise,
+    resolve: resolveModelContextToolActivated
+  } = Promise.withResolvers();
+  const modelContextHandler = e => {
+    assert_equals(e.toolName, 'abort_propagate_tool');
+    events.push('toolactivated');
+    modelContextEvents.push(e);
+    resolveModelContextToolActivated();
+  };
+  document.modelContext.addEventListener('toolactivated', modelContextHandler);
+  t.add_cleanup(() => document.modelContext.removeEventListener('toolactivated', modelContextHandler));
+
+  const { promise: toolStartedPromise, resolve: resolveToolStarted } = Promise.withResolvers();
+  const { promise: signalAbortPromise, resolve: resolveSignalAbort } = Promise.withResolvers();
+  let targetSignalAbortReason = null;
+
+  await document.modelContext.registerTool({
+    name: 'abort_propagate_tool',
+    description: 'Test abort propagation',
+    execute: (input, options) => new Promise((resolve, reject) => {
+      options.signal.onabort = () => {
+        targetSignalAbortReason = options.signal.reason;
+        events.push('signal_aborted');
+        resolveSignalAbort();
+      };
+      events.push('tool started');
+      resolveToolStarted();
+    })
+  }, { signal: regController.signal });
+
+  const [tool] = await document.modelContext.getTools();
+
+  const controller = new AbortController();
+  const executionPromise = document.modelContext.executeTool(tool, {}, { signal: controller.signal });
+
+  const modelContextCancelEvents = [];
+  const {
+    promise: modelContextToolCancelPromise,
+    resolve: resolveModelContextToolCancel
+  } = Promise.withResolvers();
+  const modelContextCancelHandler = e => {
+    assert_equals(e.toolName, 'abort_propagate_tool');
+    events.push('toolcancel');
+    modelContextCancelEvents.push(e);
+    resolveModelContextToolCancel();
+  };
+  document.modelContext.addEventListener('toolcancel', modelContextCancelHandler);
+  t.add_cleanup(() => document.modelContext.removeEventListener('toolcancel', modelContextCancelHandler));
+
+  await toolStartedPromise;
+  await modelContextToolActivatedPromise;
+
+  assert_equals(modelContextEvents.length, 1);
+  const modelContextEvent = modelContextEvents[0];
+  assert_true(modelContextEvent instanceof ToolActivatedEvent,
+      'toolactivated dispatched at the ModelContext is a ToolActivatedEvent');
+  assert_equals(modelContextEvent.toolName, 'abort_propagate_tool');
+  assert_equals(modelContextEvent.target, document.modelContext);
+
+  controller.abort('custom cancellation reason');
+
+  let executionRejectionValue = null;
+  await Promise.all([
+    executionPromise.catch(e => { events.push('execution_rejected'); executionRejectionValue = e; }),
+    signalAbortPromise,
+    modelContextToolCancelPromise,
+  ]);
+
+  assert_array_equals(events, ['tool started', 'toolactivated', 'execution_rejected', 'signal_aborted', 'toolcancel']);
+  assert_array_equals(modelContextEvents, [modelContextEvent], 'toolactivated is dispatched once per execution');
+
+  assert_equals(modelContextCancelEvents.length, 1, 'toolcancel is dispatched once per execution');
+  const modelContextCancelEvent = modelContextCancelEvents[0];
+  assert_true(modelContextCancelEvent instanceof ToolCancelEvent,
+      'toolcancel dispatched at the ModelContext is a ToolCancelEvent');
+  assert_equals(modelContextCancelEvent.toolName, 'abort_propagate_tool');
+  assert_equals(modelContextCancelEvent.target, document.modelContext);
+
+  assert_equals(executionRejectionValue, 'custom cancellation reason');
+  assert_true(targetSignalAbortReason instanceof DOMException);
+  assert_equals(targetSignalAbortReason.name, 'AbortError');
+}, 'caller abort propagates to tool callback options.signal');
+
+promise_test(async t => {
+  const regController = new AbortController();
+  t.add_cleanup(() => regController.abort());
+
+  await document.modelContext.registerTool({
+    name: 'already_aborted_tool',
+    description: 'Test already aborted signal',
+    execute: t.unreached_func('tool never executes'),
+  }, { signal: regController.signal });
+
+  const [tool] = await document.modelContext.getTools();
+  const signal = AbortSignal.abort('already aborted');
+  let executionRejectionValue = null;
+  document.modelContext.executeTool(tool, {}, { signal }).catch(e => executionRejectionValue = e);
+
+  // Await a Promise that resolved synchronously, so that we guarantee that in
+  // the next microtask, `execute_promise` has already rejected. This asserts
+  // that the timing of the execution rejection is synchronous, and never goes
+  // "in parallel".
+  await Promise.resolve();
+  assert_equals(executionRejectionValue, 'already aborted');
+}, 'executeTool() with already-aborted tool synchronously rejects');
+
+promise_test(async t => {
+  const regController = new AbortController();
+  t.add_cleanup(() => regController.abort());
+
+  const { promise: toolExecutePromise, resolve: resolveToolExecute } = Promise.withResolvers();
+
+  await document.modelContext.registerTool({
+    name: 'async_resolve_after_abort_tool',
+    description: 'Test resolving promise after abort',
+    execute: (input, options) => {
+      options.signal.onabort = () => {
+        resolveToolExecute('late resolved value');
+      };
+      return toolExecutePromise;
+    }
+  }, { signal: regController.signal });
+
+  const [tool] = await document.modelContext.getTools();
+  const controller = new AbortController();
+  const executePromise =
+      document.modelContext.executeTool(tool, {}, { signal: controller.signal });
+
+  // By the time this `abort()` is processed, the tool will have already started
+  // running and the abort handler will have already been registered.
   controller.abort();
-  await promise_rejects_dom(t, 'AbortError', promise, 'Promise should be rejected with AbortError');
-}, 'executeTool() rejects with AbortError when signal is aborted');
+  await promise_rejects_dom(t, 'AbortError', executePromise,
+      'Promise must reject with AbortError even if tool callback resolves');
+
+  // For good measure, just await what happens when the tool tries to resolve a
+  // value *after* it has been aborted, to make sure there are no tricky
+  // lifetime bugs/crashes when tool resolution is happened after abort.
+  const lateResult = await toolExecutePromise;
+  assert_equals(lateResult, 'late resolved value');
+}, 'executeTool() promise remains rejected even if tool callback resolves after abort');
+
+promise_test(async t => {
+  const regController = new AbortController();
+  t.add_cleanup(() => regController.abort());
+
+  const signals = [];
+  const { promise: exec1Started, resolve: resolveExec1Started } = Promise.withResolvers();
+  const { promise: exec2Started, resolve: resolveExec2Started } = Promise.withResolvers();
+  const { promise: signal1Aborted, resolve: resolveSignal1Aborted } = Promise.withResolvers();
+  const { promise: exec2Complete, resolve: resolveExec2Complete } = Promise.withResolvers();
+
+  let execCount = 0;
+  await document.modelContext.registerTool({
+    name: 'concurrent_tool',
+    description: 'Test concurrent executions',
+    execute: (input, options) => {
+      execCount++;
+      signals.push(options.signal);
+      if (execCount === 1) {
+        options.signal.onabort = resolveSignal1Aborted;
+        resolveExec1Started();
+        // The first execution hangs forever, since we abort it mid-execution.
+        return new Promise(() => {});
+      } else {
+        resolveExec2Started();
+        // The second execution resolves without being aborted, later in the
+        // test.
+        return exec2Complete;
+      }
+    }
+  }, { signal: regController.signal });
+
+  const [tool] = await document.modelContext.getTools();
+
+  const c1 = new AbortController();
+  const c2 = new AbortController();
+
+  const execPromise1 = document.modelContext.executeTool(tool, {}, { signal: c1.signal });
+  const execPromise2 = document.modelContext.executeTool(tool, {}, { signal: c2.signal });
+
+  await Promise.all([exec1Started, exec2Started]);
+
+  c1.abort('cancel 1');
+
+  await promise_rejects_exactly(t, 'cancel 1', execPromise1);
+  await signal1Aborted;
+
+  assert_true(signals[0].aborted, 'execution 1 signal should be aborted');
+  assert_false(signals[1].aborted, 'execution 2 signal should not be aborted');
+
+  resolveExec2Complete('exec2 result');
+  assert_equals(await execPromise2, 'exec2 result');
+}, 'concurrent executions of the same tool have independent AbortSignals');
+
+promise_test(async t => {
+  const regController = new AbortController();
+  t.add_cleanup(() => regController.abort());
+
+  const execController = new AbortController();
+  const { promise: signalAbortPromise, resolve: resolveSignalAbort } = Promise.withResolvers();
+  const toolCancelPromise = waitForToolCancel('sync_self_cancel_tool');
+
+  await document.modelContext.registerTool({
+    name: 'sync_self_cancel_tool',
+    description: 'Synchronously aborts caller controller during execute()',
+    execute: (input, options) => {
+      options.signal.addEventListener('abort', resolveSignalAbort);
+      execController.abort('sync self-cancel');
+      return new Promise(() => {});
+    }
+  }, { signal: regController.signal });
+
+  const [tool] = await document.modelContext.getTools();
+  const executePromise = document.modelContext.executeTool(
+      tool, {}, { signal: execController.signal });
+
+  await promise_rejects_exactly(t, 'sync self-cancel', executePromise);
+  await Promise.all([signalAbortPromise, toolCancelPromise]);
+}, 'tool synchronously self-cancelling via caller AbortSignal aborts options.signal and fires toolcancel');
+
+promise_test(async t => {
+  const regController = new AbortController();
+  t.add_cleanup(() => regController.abort());
+
+  const execController = new AbortController();
+  const { promise: signalAbortPromise, resolve: resolveSignalAbort } = Promise.withResolvers();
+  const toolCancelPromise = waitForToolCancel('async_self_cancel_tool');
+
+  await document.modelContext.registerTool({
+    name: 'async_self_cancel_tool',
+    description: 'Asynchronously aborts caller controller during execute()',
+    execute: async (input, options) => {
+      options.signal.addEventListener('abort', resolveSignalAbort);
+      await new Promise(r => t.step_timeout(r, 0));
+      execController.abort('async self-cancel');
+      return new Promise(() => {});
+    }
+  }, { signal: regController.signal });
+
+  const [tool] = await document.modelContext.getTools();
+  const executePromise = document.modelContext.executeTool(
+      tool, {}, { signal: execController.signal });
+
+  await promise_rejects_exactly(t, 'async self-cancel', executePromise);
+  await Promise.all([signalAbortPromise, toolCancelPromise]);
+}, 'tool asynchronously self-cancelling via caller AbortSignal aborts options.signal and fires toolcancel');
 </script>
 </body>
 </html>

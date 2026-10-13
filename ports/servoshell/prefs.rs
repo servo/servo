@@ -45,13 +45,9 @@ pub(crate) static EXPERIMENTAL_PREFS: &[&str] = &[
     "dom_storage_manager_api_enabled",
     "dom_webgl2_enabled",
     "dom_webgpu_enabled",
-    "layout_css_alpha_color_function_enabled",
-    "layout_css_attr_enabled",
     "layout_css_ellipse_corners_enabled",
-    "layout_css_progress_function_enabled",
     "layout_columns_enabled",
     "layout_container_queries_enabled",
-    "layout_grid_enabled",
     "layout_variable_fonts_enabled",
 ];
 
@@ -108,6 +104,9 @@ pub(crate) struct ServoShellPreferences {
     /// Log also to a file
     #[cfg(target_env = "ohos")]
     pub log_to_file: bool,
+    /// Enable memory output if tracing is enabled.
+    #[allow(unused)]
+    pub memory_output: bool,
 }
 
 impl Default for ServoShellPreferences {
@@ -134,6 +133,7 @@ impl Default for ServoShellPreferences {
             #[cfg(target_env = "ohos")]
             log_to_file: false,
             experimental_preferences_enabled: false,
+            memory_output: false,
         }
     }
 }
@@ -397,10 +397,6 @@ struct CmdArgs {
     #[bpaf(argument("~/.config/servo"))]
     config_dir: Option<PathBuf>,
 
-    /// Use temporary storage (data on disk will not persist across restarts).
-    #[bpaf(long)]
-    temporary_storage: bool,
-
     ///
     ///  Run as a content process and connect to the given pipe.
     #[bpaf(argument("servo-ipc-channel.abcdefg"))]
@@ -410,7 +406,7 @@ struct CmdArgs {
     ///  A comma-separated string of debug options. Pass help to show available options.
     #[bpaf(
         short('Z'),
-        argument("layout_grid_enabled=true,dom_async_clipboard_enabled"),
+        argument("layout_flexbox_balance=true,dom_async_clipboard_enabled"),
         long,
         map(map_debug_options),
         fallback(vec![])
@@ -477,6 +473,10 @@ struct CmdArgs {
     #[bpaf(long)]
     log_to_file: bool,
 
+    /// Should we output memory stats after a page load. Only useful if tracing is enabled
+    #[bpaf(long)]
+    memory_output: bool,
+
     /// Run in multiprocess mode.
     #[bpaf(short('M'), long)]
     multiprocess: bool,
@@ -536,6 +536,9 @@ struct CmdArgs {
     #[bpaf(long("simulate-touch-events"))]
     simulate_touch_events: bool,
 
+    /// Use temporary storage (data on disk will not persist across restarts).
+    #[bpaf(long)]
+    temporary_storage: bool,
     /// Define a custom filter for traces. Overrides `SERVO_TRACING` if set.
     #[bpaf(long("tracing-filter"), argument("FILTER"))]
     tracing_filter: Option<String>,
@@ -587,6 +590,7 @@ fn update_preferences_from_command_line_arguments(
     preferences: &mut Preferences,
     cmd_args: &CmdArgs,
 ) {
+    #[cfg(feature = "devtools")]
     if let Some(listen_address) = &cmd_args.devtools {
         preferences.devtools_server_enabled = true;
         preferences.devtools_server_listen_address = listen_address.clone();
@@ -708,6 +712,11 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
             default_window_size.min(screen_size_override)
         });
 
+    #[cfg(not(all(feature = "tracing", feature = "tracing-hitrace")))]
+    if cmd_args.memory_output {
+        log::error!("Memory reporting only works with tracing and tracing-hitrace enabled.");
+    }
+
     let servoshell_preferences = ServoShellPreferences {
         url: Some(cmd_args.url),
         no_native_titlebar: cmd_args.no_native_titlebar,
@@ -730,12 +739,18 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         }),
         #[cfg(target_env = "ohos")]
         log_to_file: cmd_args.log_to_file,
+        memory_output: cmd_args.memory_output,
         ..Default::default()
     };
 
     let Ok(debug_options) = parse_diagnostics_logging(cmd_args.debug) else {
         return ArgumentParsingResult::ErrorParsing;
     };
+
+    #[cfg(not(feature = "multiprocess"))]
+    if cmd_args.multiprocess || cmd_args.force_ipc {
+        log::error!("IPC was disabled at compile time. IPC and multiprocess modes are disabled");
+    }
 
     let opts = Opts {
         debug: debug_options,

@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Captures a video track and transfers it to the parent</title>
+<script>
+"use strict";
+(async () => {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({video: true});
+    const [track] = stream.getVideoTracks();
+    parent.postMessage(track, "*", [track]);
+  } catch (e) {
+    parent.postMessage({error: `${e.name}: ${e.message}`}, "*");
+  }
+})();
+</script>

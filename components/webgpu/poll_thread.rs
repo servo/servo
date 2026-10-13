@@ -11,8 +11,7 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use std::thread::JoinHandle;
 
 use log::warn;
-
-use crate::wgc::global::Global;
+use wgpu_core::global::Global;
 
 /// Polls devices while there is something to poll.
 ///

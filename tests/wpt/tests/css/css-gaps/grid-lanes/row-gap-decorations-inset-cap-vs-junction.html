@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: a stacking-axis rule uses a cap inset at the container edge and a junction inset at the grid-axis gutter in row grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#inset">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="row-gap-decorations-inset-cap-vs-junction-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-rows: repeat(3, 60px);
+    gap: 20px;
+    background: #cdd5e0;
+    width: max-content;
+    column-rule: 4px solid blue;
+    row-rule: 4px solid gold;
+    column-rule-inset-cap-start: 10px;
+    column-rule-inset-cap-end: 4px;
+    column-rule-inset-junction-start: 8px;
+    column-rule-inset-junction-end: 16px;
+  }
+  .lanes > div { background: #5b8def; }
+  .a { grid-row: 1; width: 80px; }
+  .b { grid-row: 1; width: 60px; }
+  .c { grid-row: 2; width: 80px; }
+  .d { grid-row: 3; width: 120px; }
+  .e { grid-row: 3; width: 60px; }
+</style>
+<div class="lanes">
+  <div class="a"></div>
+  <div class="b"></div>
+  <div class="c"></div>
+  <div class="d"></div>
+  <div class="e"></div>
+</div>

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>Container overflowed before child spanner, cloned box decorations.</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://issues.chromium.org/issues/542888016">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="columns:2; width:100px; gap:0; background:red;">
+  <div style="box-decoration-break:clone; border-style:solid; border-color:red; border-width:20px 0; height:0;">
+    <div style="margin-top:-20px; height:80px; background:green;"></div>
+    <div style="column-span:all; height:20px; background:green;"></div>
+    <div style="height:80px; background:green;"></div>
+  </div>
+</div>

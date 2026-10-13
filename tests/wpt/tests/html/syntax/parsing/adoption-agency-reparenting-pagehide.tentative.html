@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Adoption agency: script running mid-algorithm via pagehide</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/parsing.html#adoption-agency-algorithm">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/adoption-agency-reparenting.js"></script>
+<body>
+<script>
+// TENTATIVE: pagehide is not defined to fire here at all. Removing an iframe
+// destroys its document; it does not unload it, and pagehide is only fired when
+// unloading (cross-document navigation, or closing a top-level traversable). This
+// test relies on engines firing it on disconnection instead.
+//
+// The adoption agency moves the furthest block (#fb), disconnecting the <iframe>
+// inside it, and the pagehide handler nests the common ancestor (#ca) inside #fb.
+// So unlike the other cycle tests, the mutation happens *during* the algorithm,
+// making any check performed before the move stale.
+const SRCDOC = `<div id=ca><b><p id=fb><iframe id=trap></iframe><script>
+window.handlerRan = false;
+window.ca = document.getElementById('ca');
+window.fb = document.getElementById('fb');
+document.getElementById('trap').contentWindow.onpagehide = function() {
+  window.handlerRan = true;
+  window.fb.remove();
+  window.fb.appendChild(window.ca);
+};
+<\/script></b></div>`;
+
+// Walk up parentNode, failing on repetition or an implausibly long chain.
+function ancestorChainIsAcyclic(node) {
+  const seen = new Set();
+  for (let n = node; n; n = n.parentNode) {
+    if (seen.has(n) || seen.size > 1000)
+      return false;
+    seen.add(n);
+  }
+  return true;
+}
+
+promise_test(async t => {
+  const iframe = await parseInIframe(t, SRCDOC);
+  const w = iframe.contentWindow;
+
+  assert_true(ancestorChainIsAcyclic(w.fb), "furthest block's ancestor chain is acyclic");
+  assert_true(ancestorChainIsAcyclic(w.ca), "common ancestor's ancestor chain is acyclic");
+  assert_false(w.fb.contains(w.ca) && w.ca.contains(w.fb),
+    "the furthest block and the common ancestor do not contain each other");
+
+  assert_implements_optional(w.handlerRan,
+    "pagehide fired synchronously during the adoption agency algorithm");
+  assert_equals(w.fb.parentNode, null,
+    "furthest block is dropped, not inserted into what became its own descendant");
+}, "Adoption agency where pagehide runs script in the middle of the algorithm");
+</script>

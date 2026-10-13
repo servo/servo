@@ -62,7 +62,7 @@ fn replace_script_with_query_string() {
     }
 
     let mut script = Cow::from("fail");
-    substitute_with_local_script(&format!("{}", dir.path().display()), &mut script, url);
+    substitute_with_local_script(&format!("{}", dir.path().display()), &mut script, &url);
     assert_eq!(script, "pass");
 }
 
@@ -78,6 +78,6 @@ fn replace_script_without_query_string() {
     }
 
     let mut script = Cow::from("fail");
-    substitute_with_local_script(&format!("{}", dir.path().display()), &mut script, url);
+    substitute_with_local_script(&format!("{}", dir.path().display()), &mut script, &url);
     assert_eq!(script, "pass");
 }

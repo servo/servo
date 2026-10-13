@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>CSS Transitions: parsing transition-property with valid values</title>
 <link rel="help" href="https://drafts.csswg.org/css-transitions/#propdef-transition-property">
-<meta name="assert" content="transition-property supports the full grammar 'none | <single-transition-property> #'.">
+<meta name="assert" content="transition-property supports the full grammar 'none | <single-transition-property>#'.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -17,7 +17,10 @@ test_valid_value("transition-property", 'one');
 test_valid_value("transition-property", 'one-two-three');
 test_valid_value("transition-property", 'one, two, three');
 test_valid_value("transition-property", 'width, all');
+test_valid_value("transition-property", 'width, top, width');
+test_valid_value("transition-property", 'all, top, all');
 test_valid_value("transition-property", 'ALL, INVALID, SYNTAX, SRC', 'all, INVALID, SYNTAX, SRC');
+test_valid_value("transition-property", "left, top, right, bottom");
 </script>
 </body>
 </html>

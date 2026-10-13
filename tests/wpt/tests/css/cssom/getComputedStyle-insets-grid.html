@@ -1,5 +1,5 @@
 <!doctype html>
-<title>Position absolute getComputedStyle left (for display: grid)</title>
+<title>Position absolute getComputedStyle insets (for display: grid)</title>
 <link rel="help" href="https://drafts.csswg.org/cssom/#resolved-value">
 <link rel="help" href="https://bugs.chromium.org/p/chromium/issues/detail?id=867616">
 <link rel="author" href="mailto:francois.remy.dev@outlook.com">
@@ -7,19 +7,51 @@
 <script src="/resources/testharnessreport.js"></script>
 <style>
 
-span { display: grid; grid-template-columns: 100px 100px; }
-span { position: absolute; grid-column: 2; }
+.grid {
+  position: absolute;
+  display: grid;
+  grid-template-columns: 100px 100px;
+  grid-template-rows: 100px 100px;
+}
+.grid > .item {
+  position: absolute;
+  grid-column: 2;
+  grid-row: 2;
+  width: 60px;
+  height: 30px;
+}
 
 </style>
 
-<span>abc<span>def</span></span>
+<div class="grid" id="ltr"><span></span><span class="item"></span></div>
+<div class="grid" id="rtl" style="direction: rtl"><span></span><span class="item"></span></div>
+<div class="grid" id="vlr" style="writing-mode: vertical-lr"><span></span><span class="item"></span></div>
+<div class="grid" id="vrl" style="writing-mode: vertical-rl"><span></span><span class="item"></span></div>
+<div class="grid" id="slr" style="writing-mode: sideways-lr"><span></span><span class="item"></span></div>
 
 <script>
-var test_description = document.title;
-promise_test(t => {
-  return new Promise(test => addEventListener('load', e=>test()))
-      .then(test => assert_equals(
-          getComputedStyle(document.querySelector("body > span > span"))['left'], "0px",
-          "Invalid gCS($(\"body > span > span\"))['left'];"));
-}, test_description);
+var loaded = new Promise(resolve => addEventListener('load', resolve));
+
+function checkInsets(id, expected) {
+  promise_test(() => loaded.then(() => {
+    var style = getComputedStyle(document.querySelector('#' + id + ' > .item'));
+    for (var side in expected)
+      assert_equals(style[side], expected[side], id + ' ' + side);
+  }), 'Position absolute getComputedStyle insets for display: grid (' + id + ')');
+}
+
+// The containing block of an out-of-flow grid item is its grid area, so auto insets resolve against the grid area edges.
+checkInsets('ltr', { left: '0px', right: '40px', top: '0px', bottom: '70px' });
+
+// direction: rtl reverses the inline (column) axis, so column 2 is at x:[0,100].
+checkInsets('rtl', { left: '40px', right: '0px', top: '0px', bottom: '70px' });
+
+// writing-mode: vertical-lr keeps the block (row) axis left-to-right, so row 2 is at x:[100,200].
+checkInsets('vlr', { left: '0px', right: '40px', top: '0px', bottom: '70px' });
+
+// writing-mode: vertical-rl reverses the block (row) axis, so row 2 is at x:[0,100].
+checkInsets('vrl', { left: '40px', right: '0px', top: '0px', bottom: '70px' });
+
+// writing-mode: sideways-lr reverses the inline (column) axis, so column 2 is at y:[0,100].
+checkInsets('slr', { left: '0px', right: '40px', top: '70px', bottom: '0px' });
 </script>

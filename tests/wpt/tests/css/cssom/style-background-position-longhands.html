@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>background-position longhands</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-4/#background-position-longhands">
+
+<div id="test"></div>
+
+<script>
+"use strict";
+
+const div = document.getElementById("test");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.cssText = "";
+  });
+
+  div.style.backgroundPosition = "left 10px top 20px";
+
+  assert_equals(div.style.backgroundPosition, "left 10px top 20px", "shorthand");
+  assert_equals(div.style.backgroundPositionX, "left 10px", "x longhand");
+  assert_equals(div.style.backgroundPositionY, "top 20px", "y longhand");
+}, "background-position sets background-position-x and background-position-y");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.cssText = "";
+  });
+
+  div.style.backgroundPositionX = "right 10px";
+  div.style.backgroundPositionY = "bottom 20px";
+
+  assert_equals(div.style.backgroundPosition, "right 10px bottom 20px", "shorthand");
+  assert_equals(div.style.backgroundPositionX, "right 10px", "x longhand");
+  assert_equals(div.style.backgroundPositionY, "bottom 20px", "y longhand");
+}, "background-position-x and background-position-y set background-position");
+
+test(t => {
+  t.add_cleanup(() => {
+    div.style.cssText = "";
+  });
+
+  div.style.background = "url(example.png) 10px 20px / 30px 40px no-repeat";
+
+  assert_equals(div.style.backgroundPosition, "10px 20px", "position shorthand");
+  assert_equals(div.style.backgroundPositionX, "10px", "x longhand");
+  assert_equals(div.style.backgroundPositionY, "20px", "y longhand");
+}, "background sets background-position-x and background-position-y");
+</script>

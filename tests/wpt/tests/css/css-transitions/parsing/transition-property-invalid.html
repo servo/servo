@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>CSS Transitions: parsing transition-property with invalid values</title>
 <link rel="help" href="https://drafts.csswg.org/css-transitions/#propdef-transition-property">
-<meta name="assert" content="transition-property supports only the grammar 'none | <single-transition-property> #'.">
+<meta name="assert" content="transition-property supports only the grammar 'none | <single-transition-property>#'.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -15,18 +15,28 @@ test_invalid_value("transition-property", 'one two three');
 test_invalid_value("transition-property", '1, 2, 3');
 test_invalid_value("transition-property", 'none, one');
 
-test_invalid_value("transition-property", 'initial, top');
-test_invalid_value("transition-property", 'top, initial');
-test_invalid_value("transition-property", 'inherit, top');
-test_invalid_value("transition-property", 'top, inherit');
-test_invalid_value("transition-property", 'unset, top');
-test_invalid_value("transition-property", 'top, unset');
-test_invalid_value("transition-property", 'default, top');
-test_invalid_value("transition-property", 'top, default');
-test_invalid_value("transition-property", 'revert, top');
-test_invalid_value("transition-property", 'top, revert');
-test_invalid_value("transition-property", 'revert-layer, top');
-test_invalid_value("transition-property", 'top, revert-layer');
+let excludedKeywords = [
+  // CSS-wide keywords are excluded from <custom-ident>
+  // https://drafts.csswg.org/css-values-4/#identifier-value
+  "initial",
+  "inherit",
+  "unset",
+  "revert",
+  "revert-layer",
+  "default",
+
+  // `transition-property` additionally excludes the following
+  // from <custom-ident>:
+  "none",
+];
+
+for (let keyword of excludedKeywords) {
+  test_invalid_value("transition-property", `top, ${keyword}`);
+  test_invalid_value("transition-property", `${keyword}, top`);
+  for (let k of excludedKeywords) {
+    test_invalid_value("transition-property", `${keyword}, ${k}`);
+  }
+}
 </script>
 </body>
 </html>

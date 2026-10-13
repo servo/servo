@@ -1,0 +1,33 @@
+<!doctype html>
+<html class="reftest-wait">
+<head>
+<meta charset="utf-8">
+<meta name="variant" content="?splitAt=1"><!-- A | B[CDEFG]HI -->
+<meta name="variant" content="?splitAt=2"><!-- AB[ | CDEFG]HI -->
+<meta name="variant" content="?splitAt=3"><!-- AB[C | DEFG]HI -->
+<meta name="variant" content="?splitAt=6"><!-- AB[CDEF | G]HI -->
+<meta name="variant" content="?splitAt=7"><!-- AB[CDEFG] | HI -->
+<meta name="variant" content="?splitAt=8"><!-- AB[CDEFG]H | I -->
+<link rel="match" href="selection-range-painting-after-splitText-ref.html">
+<title>Selection painting after Text.splitText() call</title>
+<script>
+"use strict";
+
+addEventListener("DOMContentLoaded", async () => {
+  const link = document.querySelector("link[rel=match]");
+  link.href += location.search;
+  const text = document.querySelector("p").firstChild;
+  getSelection().setBaseAndExtent(text, "AB".length, text, "ABCDEFG".length);
+  await new Promise(resolve => {
+    requestAnimationFrame(() => requestAnimationFrame(resolve))
+  });
+  const splitAt = parseInt((new URLSearchParams(location.search)).get("splitAt"));
+  text.splitText(splitAt);
+  document.documentElement.removeAttribute("class");
+}, {once: true});
+</script>
+</head>
+<body>
+  <p>ABCDEFGHI</p>
+</body>
+</html>

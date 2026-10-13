@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel="help" href="https://drafts.csswg.org/css-transitions/#event-transitionevent">
+<style>
+.target {
+    transition: margin-left 10s linear;
+    margin-left: 0px;
+}
+</style>
+</head>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="./support/helper.js"></script>
+<script>
+
+promise_test(async t => {
+    const div = document.createElement('div');
+    div.classList.add('target');
+    document.body.appendChild(div);
+
+    getComputedStyle(div).marginLeft;
+    div.style.marginLeft = '100px';
+
+    const animation = div.getAnimations()[0];
+    await animation.ready;
+
+    // Two rAFs are needed. animation.ready can resolve in the same frame as the first rAF,
+    // so the timeline hasn't advanced yet and elapsedTime would be 0.
+    await waitForAnimationFrames(2);
+
+    const cancelEvent = new Promise(resolve => {
+        div.addEventListener('transitioncancel', resolve, { once: true });
+    });
+
+    div.remove();
+
+    // Force a rendering frame so the pending animation event queue is processed.
+    await new Promise(resolve => requestAnimationFrame(resolve));
+
+    const event = await cancelEvent;
+    assert_greater_than(event.elapsedTime, 0,
+        'elapsedTime should be non-zero when removed mid-transition');
+}, 'transitioncancel elapsedTime is non-zero when element is removed mid-transition');
+
+</script>
+</body>
+</html>

@@ -1,0 +1,86 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Moving a popover to another document while it is being hidden</title>
+<link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+<link
+  rel="help"
+  href="https://html.spec.whatwg.org/multipage/popover.html#hide-popover-algorithm"
+/>
+<link rel="help" href="https://github.com/whatwg/html/pull/13001" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<body>
+  <script>
+    async function setup(t) {
+      const iframe = document.createElement("iframe");
+      document.body.append(iframe);
+      t.add_cleanup(() => iframe.remove());
+      await new Promise((resolve) => {
+        iframe.addEventListener("load", resolve, { once: true });
+        iframe.src = "/common/blank.html";
+      });
+      const createPopover = () => {
+        const popover = document.createElement("div");
+        popover.popover = "auto";
+        document.body.append(popover);
+        t.add_cleanup(() => popover.remove());
+        return popover;
+      };
+      return { otherDoc: iframe.contentDocument, iframe, createPopover };
+    }
+
+    function moveAndShowOnBeforeToggle(listenOn, popover, otherDoc) {
+      listenOn.addEventListener(
+        "beforetoggle",
+        () => {
+          otherDoc.body.append(popover);
+          popover.showPopover();
+        },
+        { once: true },
+      );
+    }
+
+    promise_test(async (t) => {
+      const { otherDoc, createPopover } = await setup(t);
+      const popover = createPopover();
+      popover.showPopover();
+      moveAndShowOnBeforeToggle(popover, popover, otherDoc);
+
+      assert_throws_dom("InvalidStateError", () => popover.hidePopover());
+      assert_equals(popover.ownerDocument, otherDoc);
+      assert_true(popover.matches(":popover-open"));
+    }, "hidePopover() does not hide a popover moved and re-shown by its own beforetoggle");
+
+    promise_test(async (t) => {
+      const { otherDoc, createPopover } = await setup(t);
+      const parent = createPopover();
+      const invoker = parent.appendChild(document.createElement("button"));
+      const child = createPopover();
+      parent.showPopover();
+      child.showPopover({ source: invoker });
+      moveAndShowOnBeforeToggle(child, parent, otherDoc);
+
+      assert_throws_dom("InvalidStateError", () => parent.hidePopover());
+      assert_false(child.matches(":popover-open"), "child");
+      assert_equals(parent.ownerDocument, otherDoc);
+      assert_true(parent.matches(":popover-open"), "parent");
+    }, "hidePopover() does not hide a popover moved and re-shown by its child's beforetoggle");
+
+    promise_test(async (t) => {
+      const { otherDoc, iframe, createPopover } = await setup(t);
+      const popover = createPopover();
+      popover.showPopover();
+      moveAndShowOnBeforeToggle(popover, popover, otherDoc);
+      assert_throws_dom("InvalidStateError", () => popover.hidePopover());
+
+      await waitForRender();
+      await test_driver.send_keys(iframe, "\uE00C");
+      await waitForRender();
+      assert_false(popover.matches(":popover-open"));
+    }, "A popover moved and re-shown in another document closes on Escape there");
+  </script>
+</body>

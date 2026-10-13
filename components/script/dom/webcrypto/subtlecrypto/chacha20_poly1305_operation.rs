@@ -14,16 +14,16 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, K
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cryptokey::{CryptoKey, Handle};
+use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    SubtleAeadParams, SubtleKeyAlgorithm,
+    AeadParams, CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithm,
+    KeyAlgorithmAndDerivatives,
 };
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-operations-encrypt>
 pub(crate) fn encrypt(
-    normalized_algorithm: &SubtleAeadParams,
+    normalized_algorithm: &AeadParams,
     key: &CryptoKey,
     plaintext: &[u8],
 ) -> Result<Vec<u8>, Error> {
@@ -84,7 +84,7 @@ pub(crate) fn encrypt(
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#chacha20-poly1305-operations-decrypt>
 pub(crate) fn decrypt(
-    normalized_algorithm: &SubtleAeadParams,
+    normalized_algorithm: &AeadParams,
     key: &CryptoKey,
     ciphertext: &[u8],
 ) -> Result<Vec<u8>, Error> {
@@ -164,18 +164,12 @@ pub(crate) fn generate_key(
 ) -> Result<DomRoot<CryptoKey>, Error> {
     // Step 1. If usages contains any entry which is not one of "encrypt", "decrypt", "wrapKey" or
     // "unwrapKey", then throw a SyntaxError.
-    if usages.iter().any(|usage| {
-        !matches!(
-            usage,
-            KeyUsage::Encrypt | KeyUsage::Decrypt | KeyUsage::WrapKey | KeyUsage::UnwrapKey
-        )
-    }) {
-        return Err(Error::Syntax(Some(
-            "Usages contains an entry which is not one of \"encrypt\", \"decrypt\", \"wrapKey\" \
-            or \"unwrapKey\""
-                .to_string(),
-        )));
-    }
+    usages.ensure_only_contain_entries_from(&[
+        KeyUsage::Encrypt,
+        KeyUsage::Decrypt,
+        KeyUsage::WrapKey,
+        KeyUsage::UnwrapKey,
+    ])?;
 
     // Step 2. Generate a 256-bit key.
     // Step 3. If the key generation step fails, then throw an OperationError.
@@ -188,8 +182,8 @@ pub(crate) fn generate_key(
     // Step 7. Set the name attribute of algorithm to "ChaCha20-Poly1305".
     // Step 8. Set the [[algorithm]] internal slot of key to algorithm.
     // Step 9. Set the [[extractable]] internal slot of key to be extractable.
-    // Step 10. Set the [[usages]] internal slot of key to be usages.
-    let algorithm = SubtleKeyAlgorithm {
+    // Step 10. Set the [[usages]] internal slot of key to be the normalized value of usages.
+    let algorithm = KeyAlgorithm {
         name: CryptoAlgorithm::ChaCha20Poly1305,
     };
     let key = CryptoKey::new(
@@ -198,7 +192,7 @@ pub(crate) fn generate_key(
         KeyType::Secret,
         extractable,
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-        usages,
+        usages.normalized_value(),
         Handle::ChaCha20Poly1305Key(chacha20poly1305_key),
     );
 
@@ -219,18 +213,12 @@ pub(crate) fn import_key(
 
     // Step 2. If usages contains an entry which is not one of "encrypt", "decrypt", "wrapKey" or
     // "unwrapKey", then throw a SyntaxError.
-    if usages.iter().any(|usage| {
-        !matches!(
-            usage,
-            KeyUsage::Encrypt | KeyUsage::Decrypt | KeyUsage::WrapKey | KeyUsage::UnwrapKey
-        )
-    }) {
-        return Err(Error::Syntax(Some(
-            "Usages contains an entry which is not one of \"encrypt\", \"decrypt\", \"wrapKey\" \
-            or \"unwrapKey\""
-                .to_string(),
-        )));
-    }
+    usages.ensure_only_contain_entries_from(&[
+        KeyUsage::Encrypt,
+        KeyUsage::Decrypt,
+        KeyUsage::WrapKey,
+        KeyUsage::UnwrapKey,
+    ])?;
 
     // Step 3.
     let data: Zeroizing<Vec<u8>>;
@@ -319,7 +307,7 @@ pub(crate) fn import_key(
             "ChaCha20-Poly1305 fails to create key from data".into(),
         ))
     })?);
-    let algorithm = SubtleKeyAlgorithm {
+    let algorithm = KeyAlgorithm {
         name: CryptoAlgorithm::ChaCha20Poly1305,
     };
     let key = CryptoKey::new(
@@ -328,7 +316,7 @@ pub(crate) fn import_key(
         KeyType::Secret,
         extractable,
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-        usages,
+        usages.normalized_value(),
         handle,
     );
 
@@ -365,7 +353,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             let mut jwk = JsonWebKey::default();
 
             // Step 2.2. Set the kty attribute of jwk to the string "oct".
-            jwk.kty = Some(DOMString::from("oct"));
+            jwk.kty = Some(DOMString::from_static("oct"));
 
             // Step 2.3. Set the k attribute of jwk to be a string containing the raw octets of the
             // key represented by [[handle]] internal slot of key, encoded according to Section 6.4
@@ -373,10 +361,10 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             jwk.encode_string_field(JwkStringField::K, chacha20poly1305_key.as_slice());
 
             // Step 2.4. Set the alg attribute of jwk to the string "C20P".
-            jwk.alg = Some(DOMString::from("C20P"));
+            jwk.alg = Some(DOMString::from_static("C20P"));
 
             // Step 2.5. Set the key_ops attribute of jwk to equal the usages attribute of key.
-            jwk.set_key_ops(&key.usages());
+            jwk.set_key_ops(key.usages());
 
             // Step 2.6. Set the ext attribute of jwk to equal the [[extractable]] internal slot of
             // key.

@@ -14,24 +14,28 @@ info: |
     b. Let kValue be ? Get(O, Pk).
     c. Let selected be ToBoolean(? Call(callbackfn, T, « kValue, k, O »)).
   ...
-includes: [detachArrayBuffer.js, testTypedArray.js]
+includes: [detachArrayBuffer.js, testTypedArray.js, compareArray.js]
 features: [BigInt, TypedArray]
 ---*/
 
-testWithBigIntTypedArrayConstructors(function(TA) {
+testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
   var loops = 0;
-  var sample = new TA(2);
+  var sample = new TA(makeCtorArg(2));
 
-  sample.filter(function() {
+  var result = sample.filter(function(value, index) {
     var flag = true;
     if (loops === 0) {
+      assert.sameValue(value, 0n);
       $DETACHBUFFER(sample.buffer);
     } else {
-      flag = false;
+      assert.sameValue(value, undefined,
+        "callback element is undefined for index " + index);
+      flag = false; // returning 0 would throw, which is tested elsehwere
     }
     loops++;
     return flag;
   });
 
   assert.sameValue(loops, 2);
-}, null, ["passthrough"]);
+  assert.compareArray(result, [0n]);
+}, null, null, ["immutable"]);

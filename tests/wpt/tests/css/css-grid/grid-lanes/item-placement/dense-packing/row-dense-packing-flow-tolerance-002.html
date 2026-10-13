@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#placement-tolerance">
+<link rel="match" href="row-dense-packing-flow-tolerance-002-ref.html">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<style>
+.grid-lanes {
+    display: grid-lanes;
+    flow-tolerance: 5px;
+    grid-template-rows: repeat(6, 50px);
+    grid-auto-flow: dense;
+    grid-lanes-pack: dense;
+    grid-lanes-direction: row;
+}
+</style>
+<body>
+  <p>Ensure that row dense-packing honors flow-tolerance for multi-span items. The yellow item should use the preferred opening spanning tracks 1-2 (running position 5px), not the strictly-highest opening spanning tracks 4-5 (running position 0).</p>
+  <div class="grid-lanes">
+    <div style="background: lightskyblue; width: 5px; grid-row: 1 / span 2;">1</div>
+    <div style="background: lightblue; width: 60px; grid-row: 3;">2</div>
+    <div style="background: darkblue; width: 60px; grid-row: 6;">3</div>
+    <div style="background: lightsteelblue; width: 20px; grid-row: span 6;">4</div>
+    <div style="background: yellow; width: 20px; grid-row: span 2;">5</div>
+  </div>
+</body>
+</html>

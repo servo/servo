@@ -16,14 +16,16 @@ path = "lib.rs"
 [features]
 default = []
 bluetooth = ["servo-bluetooth-traits"]
+devtools = ["dep:devtools_traits", "script_traits/devtools"]
 gamepad = ["embedder_traits/gamepad"]
 tracing = ["dep:tracing", "servo-canvas/tracing"]
+multiprocess = []
 vello = ["servo-canvas/vello"]
 webgpu = ["dep:webgpu", "dep:webgpu_traits", "script_traits/webgpu"]
+webgl = []
 
-[lints.clippy]
-unwrap_used = "deny"
-panic = "deny"
+[lints]
+workspace = true
 
 [dependencies]
 accesskit = { workspace = true }
@@ -31,7 +33,7 @@ backtrace = { workspace = true }
 base64 = { workspace = true }
 content-security-policy = { workspace = true }
 crossbeam-channel = { workspace = true }
-devtools_traits = { workspace = true }
+devtools_traits = { workspace = true, optional = true }
 embedder_traits = { workspace = true }
 euclid = { workspace = true }
 fonts = { workspace = true }

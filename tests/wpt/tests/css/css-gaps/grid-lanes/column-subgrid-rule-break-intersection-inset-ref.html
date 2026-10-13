@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+<style>
+  body {
+    margin: 0;
+  }
+  .scene {
+    height: 130px;
+    position: relative;
+    width: 140px;
+  }
+  .lanes {
+    background: lightgray;
+    column-gap: 20px;
+    display: grid-lanes;
+    grid-template-columns: repeat(2, 60px);
+    height: 130px;
+    width: 140px;
+  }
+  .subgrid {
+    display: grid;
+    grid-column: 1 / span 2;
+    grid-template-columns: subgrid;
+    grid-template-rows: repeat(3, 30px);
+    row-gap: 20px;
+  }
+  .cell {
+    background: teal;
+  }
+  .column-rule {
+    background: blue;
+    height: 18px;
+    left: 67px;
+    position: absolute;
+    width: 6px;
+  }
+  .first-rule {
+    top: 6px;
+  }
+  .second-rule {
+    top: 56px;
+  }
+  .third-rule {
+    top: 106px;
+  }
+</style>
+<div class="scene">
+  <div class="lanes">
+    <div class="subgrid">
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+      <div class="cell"></div>
+    </div>
+  </div>
+  <div class="column-rule first-rule"></div>
+  <div class="column-rule second-rule"></div>
+  <div class="column-rule third-rule"></div>
+</div>

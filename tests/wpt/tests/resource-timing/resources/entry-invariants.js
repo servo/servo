@@ -507,6 +507,16 @@ const network_error_entry_test = (originalURL, args, label, loader) => {
       assert_equals(entry.startTime, entry.fetchStart, 'startTime and fetchStart should be equal');
       assert_greater_than_equal(entry.startTime, timeBefore, 'startTime and fetchStart should be greater than the time before fetching');
       assert_greater_than_equal(timeAfter, entry.responseEnd, 'endTime should be less than the time right after returning from the fetch');
+      assert_equals(entry.responseStatus, 0, 'responseStatus should be 0');
+      assert_equals(entry.encodedBodySize, 0, 'encodedBodySize should be 0');
+      assert_equals(entry.decodedBodySize, 0, 'decodedBodySize should be 0');
+      assert_equals(entry.serverTiming.length, 0,
+                    'serverTiming should be empty');
+      assert_equals(entry.contentType, '', 'contentType should be empty');
+      assert_equals(entry.contentEncoding, '',
+                    'contentEncoding should be empty');
+      assert_equals(entry.nextHopProtocol, '',
+                    'nextHopProtocol should be empty');
       invariants.assert_tao_failure_resource(entry);
   }, `A ResourceTiming entry should be created for network error of type ${label}`);
 }

@@ -43,4 +43,4 @@ testWithTypedArrayConstructors(function(TA, makeCtorArg) {
   var ta4 = new TA(makeCtorArg([1]));
   ta4.set(Symbol());
   assert.compareArray(ta4, [1], "symbol");
-});
+}, null, null, ["immutable"]);

@@ -123,3 +123,27 @@ promise_test(async t => {
   assert_equals(
       ids.toString(), "p1-start,p2-start,p2-continuation,p3,p1-continuation");
 }, 'yield() inherits priority in queueMicrotask()');
+
+// Test priority when thenables
+promise_test(async () => {
+  const ids = [];
+  let subtask;
+
+  // When the task resolves its promise with `thenable`, the
+  // `then` method is invoked and we need respect priority.
+  const thenable = {
+    then(resolve) {
+      subtask = scheduler.postTask(() => {
+        ids.push('subtask');
+      }, {priority: 'user-visible'});
+      scheduler.yield().then(() => {
+        ids.push('yield');
+        resolve();
+      });
+    },
+  };
+
+  await scheduler.postTask(() => thenable, {priority: 'background'});
+  await subtask;
+  assert_equals(ids.toString(), 'subtask,yield');
+}, 'yield() inherits priority while dealing with thenable');

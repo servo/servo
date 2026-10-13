@@ -272,6 +272,20 @@
   data-expected-width="188" data-expected-height="47" data-offset-y="146" data-offset-x="109"
   >
 </div>
+<!-- Same as the previous two tests, but with a max-width that is a definite length
+ rather than an intrinsic keyword. webkit.org/b/322612 -->
+<div class="container">
+  <img class="target" style="left:100px;right:100px;max-width:100px" src="data:image/svg+xml,%3Csvg viewBox='0 0 100 10' xmlns='http://www.w3.org/2000/svg' %3E%3Crect width='100%' height='100%' style='fill:rgb(0,255,0);'/%3E%3C/svg%3E"
+  data-expected-width="138" data-expected-height="42" data-offset-y="151" data-offset-x="109"
+  >
+</div>
+<!-- Same, with the max-width as a percentage, resolved against the containing block's
+ 400px. 25% is 100px, below the width the insets alone would give, so it constrains. -->
+<div class="container">
+  <img class="target" style="left:100px;right:100px;max-width:25%" src="data:image/svg+xml,%3Csvg viewBox='0 0 100 10' xmlns='http://www.w3.org/2000/svg' %3E%3Crect width='100%' height='100%' style='fill:rgb(0,255,0);'/%3E%3C/svg%3E"
+  data-expected-width="138" data-expected-height="42" data-offset-y="151" data-offset-x="109"
+  >
+</div>
 <!-- Viewbox + svg width. Has aspect_ratio and width. Height is scaled -->
 <div class="container">
   <img class="target" src="data:image/svg+xml,%3Csvg viewBox='0 0 100 10' width='100px' xmlns='http://www.w3.org/2000/svg' %3E%3Crect width='100%' height='100%' style='fill:rgb(0,255,0);'/%3E%3C/svg%3E"

@@ -1,5 +1,5 @@
 async function getNextMessage(portOrWorker) {
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
     const resolveWithData = event => resolve(event.data);
     const rejectWithData = event => reject(event.data);
     portOrWorker.addEventListener('message', resolveWithData, {once: true});
@@ -7,6 +7,9 @@ async function getNextMessage(portOrWorker) {
   });
 }
 
+async function nextMessageOrTimeout(t, portOrWorker, timeout) {
+  return Promise.race([getNextMessage(portOrWorker), waitFor(t, timeout)]);
+}
 
 async function postMethod(port, method, options) {
   port.postMessage(Object.assign({method}, options));

@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::f32;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
@@ -43,10 +42,8 @@ pub(crate) struct PannerNode {
     orientation_x: Dom<AudioParam>,
     orientation_y: Dom<AudioParam>,
     orientation_z: Dom<AudioParam>,
-    #[ignore_malloc_size_of = "servo_media"]
     #[no_trace]
     panning_model: Cell<PanningModel>,
-    #[ignore_malloc_size_of = "servo_media"]
     #[no_trace]
     distance_model: Cell<DistanceModel>,
     ref_distance: Cell<f64>,
@@ -98,6 +95,7 @@ impl PannerNode {
             1, // outputs
         )?;
         let id = node.node_id();
+        // <https://webaudio.github.io/web-audio-api/#dom-pannernode-positionx>
         let position_x = AudioParam::new(
             cx,
             window,
@@ -110,6 +108,7 @@ impl PannerNode {
             f32::MIN,           // min value
             f32::MAX,           // max value
         );
+        // <https://webaudio.github.io/web-audio-api/#dom-pannernode-positiony>
         let position_y = AudioParam::new(
             cx,
             window,
@@ -122,6 +121,7 @@ impl PannerNode {
             f32::MIN,           // min value
             f32::MAX,           // max value
         );
+        // <https://webaudio.github.io/web-audio-api/#dom-pannernode-positionz>
         let position_z = AudioParam::new(
             cx,
             window,
@@ -134,6 +134,7 @@ impl PannerNode {
             f32::MIN,           // min value
             f32::MAX,           // max value
         );
+        // <https://webaudio.github.io/web-audio-api/#dom-pannernode-orientationx>
         let orientation_x = AudioParam::new(
             cx,
             window,
@@ -146,6 +147,7 @@ impl PannerNode {
             f32::MIN,              // min value
             f32::MAX,              // max value
         );
+        // <https://webaudio.github.io/web-audio-api/#dom-pannernode-orientationy>
         let orientation_y = AudioParam::new(
             cx,
             window,
@@ -158,6 +160,7 @@ impl PannerNode {
             f32::MIN,              // min value
             f32::MAX,              // max value
         );
+        // <https://webaudio.github.io/web-audio-api/#dom-pannernode-orientationz>
         let orientation_z = AudioParam::new(
             cx,
             window,

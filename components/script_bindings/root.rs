@@ -8,6 +8,7 @@ use std::ops::Deref;
 use std::rc::Rc;
 use std::{fmt, mem, ptr};
 
+use js::context::NoGC;
 use js::gc::{Handle, Traceable as JSTraceable};
 use js::jsapi::{Heap, JSObject, JSTracer};
 use js::rust::GCMethods;
@@ -15,8 +16,9 @@ use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 
 use crate::assert::assert_in_script;
 use crate::conversions::DerivedFrom;
+use crate::dom::UnrootedDom;
 use crate::inheritance::Castable;
-use crate::reflector::{DomObject, MutDomObject, Reflector};
+use crate::reflector::{DomObject, MutDomObject};
 use crate::trace::trace_reflector;
 
 /// A rooted value.
@@ -72,20 +74,7 @@ where
     T: DomObject,
 {
     fn stable_trace_object(&self) -> *const dyn JSTraceable {
-        // The JSTraceable impl for Reflector doesn't actually do anything,
-        // so we need this shenanigan to actually trace the reflector of the
-        // T pointer in Dom<T>.
-        #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-        struct ReflectorStackRoot<T>(Reflector<T>);
-        unsafe impl<T> JSTraceable for ReflectorStackRoot<T> {
-            unsafe fn trace(&self, tracer: *mut JSTracer) {
-                unsafe { trace_reflector(tracer, "on stack", &self.0) };
-            }
-        }
-        unsafe {
-            &*(self.reflector() as *const Reflector<T::ReflectorType>
-                as *const ReflectorStackRoot<T::ReflectorType>)
-        }
+        self.reflector()
     }
 }
 
@@ -94,9 +83,12 @@ where
     T: DomObject,
 {
     fn stable_trace_object(&self) -> *const dyn JSTraceable {
-        // The JSTraceable impl for Reflector doesn't actually do anything,
-        // so we need this shenanigan to actually trace the reflector of the
-        // T pointer in Dom<T>.
+        // The trace hook for MaybeUnreflectedDom can be called before the
+        // reflector has been initialized in the contained object. Since we still
+        // want to treat the fields of the object as reachable, we explicitly trace
+        // the object's fields in that case. Otherwise, we only need to trace the
+        // reflector so the object's trace hook will be invoked automatically.
+        #[repr(transparent)]
         struct MaybeUnreflectedStackRoot<T>(T);
         unsafe impl<T> JSTraceable for MaybeUnreflectedStackRoot<T>
         where
@@ -106,7 +98,7 @@ where
                 if self.0.reflector().get_jsobject().is_null() {
                     unsafe { self.0.trace(tracer) };
                 } else {
-                    unsafe { trace_reflector(tracer, "on stack", self.0.reflector()) };
+                    unsafe { self.0.reflector().trace(tracer) }
                 }
             }
         }
@@ -170,12 +162,14 @@ impl<T> MallocSizeOf for Dom<T> {
     }
 }
 
+/// Compare by pointer address
 impl<T> PartialEq for Dom<T> {
     fn eq(&self, other: &Dom<T>) -> bool {
         self.ptr.as_ptr() == other.ptr.as_ptr()
     }
 }
 
+/// Compare by pointer address
 impl<'a, T: DomObject> PartialEq<&'a T> for Dom<T> {
     fn eq(&self, other: &&'a T) -> bool {
         *self == Dom::from_ref(*other)
@@ -184,6 +178,7 @@ impl<'a, T: DomObject> PartialEq<&'a T> for Dom<T> {
 
 impl<T> Eq for Dom<T> {}
 
+/// Hashes the pointer address
 impl<T> Hash for Dom<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.ptr.as_ptr().hash(state)
@@ -210,6 +205,12 @@ impl<T: DomObject> Dom<T> {
     /// Return a rooted version of this DOM object ([`DomRoot<T>`]) suitable for use on the stack.
     pub fn as_rooted(&self) -> DomRoot<T> {
         DomRoot::from_ref(self)
+    }
+
+    /// Return an unrooted version of this DOM object ([`UnrootedDom<T>`]) suitable for use on the
+    /// stack which has the lifetime of the provided [`NoGC`] token.
+    pub fn as_unrooted<'no_gc>(&self, no_gc: &'no_gc NoGC) -> UnrootedDom<'no_gc, T> {
+        UnrootedDom::from_dom(self.clone(), no_gc)
     }
 
     pub fn as_ptr(&self) -> *const T {
@@ -252,20 +253,14 @@ where
     T: DomObject,
 {
     /// Create a new MaybeUnreflectedDom value from the given boxed DOM object.
-    ///
-    /// # Safety
-    /// TODO: unclear why this is marked unsafe.
-    pub unsafe fn from_box(value: Box<T>) -> Self {
+    pub fn from_box(value: Box<T>) -> Self {
         Self {
             ptr: Box::leak(value).into(),
         }
     }
 
     /// Create a new MaybeUnreflectedDom value from the given RCed DOM object.
-    ///
-    /// # Safety
-    /// TODO: unclear why this is marked unsafe.
-    pub unsafe fn from_rc(value: Rc<T>) -> Self {
+    pub fn from_rc(value: Rc<T>) -> Self {
         Self {
             ptr: ptr::NonNull::new(Rc::into_raw(value) as *mut T).unwrap(),
         }
@@ -338,6 +333,12 @@ impl<T: DomObject> DomRoot<T> {
     /// end up as members of other DOM objects.
     pub fn as_traced(&self) -> Dom<T> {
         Dom::from_ref(self)
+    }
+
+    /// Return an unrooted version of this DOM object ([`UnrootedDom<T>`]) suitable for use on the
+    /// stack which has the lifetime of the provided [`NoGC`] token.
+    pub fn as_unrooted<'no_gc>(&self, no_gc: &'no_gc NoGC) -> UnrootedDom<'no_gc, T> {
+        self.value.as_unrooted(no_gc)
     }
 }
 

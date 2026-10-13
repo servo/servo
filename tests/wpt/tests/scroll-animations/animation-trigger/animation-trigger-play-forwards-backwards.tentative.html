@@ -67,17 +67,17 @@
           ACTIVATION_RANGE_START_PX, ACTIVATION_RANGE_END_PX,
           scroller);
 
-      const reset = (target) => {
+      const reset = async (target) => {
         const animation = target.getAnimations()[0];
         animation.pause();
         animation.playbackRate = 1;
         animation.currentTime = 0;
-        scroller.scrollTop = 0;
+        return setScrollTop(scroller, 0);
       }
 
       promise_test(async (test) => {
         const target = document.getElementById("target_forwards");
-        reset(target);
+        await reset(target);
         const animation = target.getAnimations()[0];
         // Setup finished at start (playbackRate = -1, finished -> currentTime = 0).
         animation.playbackRate = -1;
@@ -114,7 +114,7 @@
 
       promise_test(async (test) => {
         const target = document.getElementById("target_backwards");
-        reset(target);
+        await reset(target);
         const animation = target.getAnimations()[0];
         // Manually finish it (finished at end, playbackRate = 1).
         animation.finish();

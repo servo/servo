@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2063759">
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  a.hidden = true;
+  a.style.setProperty("-webkit-line-clamp", "1");
+  document.documentElement.innerHTML = document.documentElement.innerHTML;
+});
+</script>
+<hr id="a">

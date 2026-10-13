@@ -90,3 +90,7 @@ promise_test(async t => {
     }
   }
 }, `[transpose] Test transpose with all of the data types.`);
+
+validateOperandRank('transpose', 'input', (builder, input) => {
+  return builder.transpose(input);
+});

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<style>
+  @location --loc {
+    search: "target";
+  }
+
+  @navigation (to: --loc) {
+    #elm {
+      --matches-to: yes;
+    }
+  }
+
+  @navigation (from: --loc) {
+    #elm {
+      --matches-from: yes;
+    }
+  }
+</style>
+<div id="elm"></div>
+<script>
+  const isTarget = new URLSearchParams(location.search).has('target');
+  const prefix = isTarget ? "target" : "source";
+  postToParent(`${prefix}.start`, elm);
+
+  function getMatchResult(elm) {
+    const style = getComputedStyle(elm);
+    return { from: style.getPropertyValue("--matches-from") == "yes",
+             to: style.getPropertyValue("--matches-to") == "yes"};
+  }
+
+  if (!isTarget) {
+    window.addEventListener("message", (event)=> {
+      if (event.data == "navigate") {
+        requestAnimationFrame(()=> {
+          requestAnimationFrame(()=> {
+            navigation.navigate("?target");
+          });
+        });
+      }
+    });
+  }
+
+  function postToParent(msg, elm) {
+    let data = {msg:msg};
+    if (elm) {
+      data.match = getMatchResult(elm);
+    }
+    window.parent.postMessage(data);
+  }
+
+  window.addEventListener("load", ()=> {
+    postToParent(`${prefix}.load`, elm);
+    requestAnimationFrame(()=> {
+      requestAnimationFrame(()=> {
+        postToParent(`${prefix}.done`, elm);
+      });
+    });
+  });
+
+  window.addEventListener("pagehide", ()=> postToParent(`${prefix}.hide`, elm));
+  window.addEventListener("pagereveal", ()=> postToParent(`${prefix}.reveal`, elm));
+  window.addEventListener("pageswap", ()=> postToParent(`${prefix}.swap`, elm));
+</script>

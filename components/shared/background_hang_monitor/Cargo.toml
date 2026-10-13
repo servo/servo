@@ -18,3 +18,6 @@ doctest = false
 [dependencies]
 serde = { workspace = true }
 servo-base = { workspace = true }
+
+[lints]
+workspace = true

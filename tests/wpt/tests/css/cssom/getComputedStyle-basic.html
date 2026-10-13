@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>window.getComputedStyle() basics</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="div">Test</div>
+
+<script>
+"use strict";
+
+const div = document.getElementById("div");
+const computed = window.getComputedStyle(div);
+
+test(() => {
+  assert_equals(div.style.cssText, "", "Specified CSS text is empty string.");
+  assert_equals(computed.cssText, "", "Computed CSS text is empty string.");
+  assert_equals(div.style.backgroundColor, "", "Specified property value is empty string");
+  assert_equals(computed.backgroundColor, "rgba(0, 0, 0, 0)", "Computed property value is resolved initial value.");
+  assert_not_equals(computed, window.getComputedStyle(div), "getComputedStyle() creates new instance each time.");
+}, "Sanity check");
+
+test(() => {
+  div.style.cssText = "color: green;";
+  assert_equals(
+    div.style.cssText,
+    "color: green;",
+    "CSS text of specified value is not empty."
+  );
+  assert_equals(
+    window.getComputedStyle(div).cssText,
+    "",
+    "CSS text of computed value is always empty string."
+  );
+}, "cssText");
+
+test(() => {
+  assert_throws_dom(
+    "NoModificationAllowedError",
+    () => {
+      computed.setProperty("color", "red");
+    },
+    "Modifying computed value is not allowed."
+  );
+}, "setProperty");
+
+test(() => {
+  assert_throws_dom(
+    "NoModificationAllowedError",
+    () => {
+      computed.removeProperty("color");
+    },
+    "Modifying property is not allowed."
+  );
+}, "removeProperty");
+</script>

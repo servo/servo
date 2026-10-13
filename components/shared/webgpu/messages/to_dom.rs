@@ -4,10 +4,7 @@
 
 //! IPC messages that are sent to WebGPU DOM objects.
 
-use wgpu_core::instance::RequestDeviceError;
-use wgpu_types::DeviceDescriptor;
-
-use crate::{WebGPUDevice, WebGPUQueue};
+use crate::{DeviceDescriptor, RequestDeviceError, WebGPUDevice, WebGPUQueue};
 
 pub type WebGPUDeviceResponse = (
     WebGPUDevice,

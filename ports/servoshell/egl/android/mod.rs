@@ -27,12 +27,12 @@ use raw_window_handle::{
 pub use servo::MediaSessionPlaybackState;
 use servo::{
     self, DevicePixel, EventLoopWaker, InputMethodControl, LoadStatus, MediaSessionActionType,
-    MouseButton, PrefValue, SelectElement, WebViewId,
+    SelectElement, WebViewId,
 };
 
 use super::app::{App, AppInitOptions};
 use super::host_trait::HostTrait;
-use crate::prefs::{ArgumentParsingResult, EXPERIMENTAL_PREFS, parse_command_line_arguments};
+use crate::prefs::{ArgumentParsingResult, parse_command_line_arguments};
 
 thread_local! {
     pub static APP: RefCell<Option<Rc<App>>> = const { RefCell::new(None) };
@@ -71,16 +71,6 @@ where
     });
 }
 
-#[unsafe(no_mangle)]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_version<'local>(
-    mut env: EnvUnowned<'local>,
-    _class: JClass<'local>,
-) -> JString<'local> {
-    let version = crate::VERSION;
-    env.with_env(|env| -> jni::errors::Result<_> { env.new_string(version) })
-        .resolve::<ThrowRuntimeExAndDefault>()
-}
-
 /// Initialize Servo. At that point, we need a valid GL context. In the future, this will
 /// be done in multiple steps.
 #[unsafe(no_mangle)]
@@ -90,20 +80,14 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
     context: JObject<'local>,
     args: JString<'local>,
     url: JString<'local>,
-    size: JObject<'local>,
-    density: jfloat,
     logStr: JString<'local>,
-    log: jboolean,
     experimental_mode: jboolean,
     callbacks_obj: JObject<'local>,
-    surface: JObject<'local>,
 ) {
     env.with_env(|env| -> jni::errors::Result<_> {
         let args = JString::cast_local(env, args)?.try_to_string(env).ok();
         let url = JString::cast_local(env, url)?.try_to_string(env).ok();
         let log_str = JString::cast_local(env, logStr)?.try_to_string(env).ok();
-
-        let viewport_rect = jni_coordinate_to_rust_viewport_rect(env, &size)?;
 
         let mut args: Vec<String> = args
             .and_then(|args| {
@@ -121,51 +105,47 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
             args.push("--enable-experimental-web-platform-features".to_owned());
         }
 
-        let (display_handle, window_handle) = display_and_window_handle(env, &surface);
-
-        if log {
-            // Note: Android debug logs are stripped from a release build.
-            // debug!() will only show in a debug build. Use info!() if logs
-            // should show up in adb logcat with a release build.
-            let filters = [
-                "servo",
-                "servoshell",
-                "servoshell::egl:gl_glue",
-                // Show redirected stdout / stderr by default
-                "servoshell::egl::log",
-                // Show JS errors by default.
-                "script::dom::bindings::error",
-                // Show GL errors by default.
-                "servo_canvas::webgl_thread",
-                "paint::paint",
-                "servo_constellation::constellation",
-            ];
-            let mut filter_builder = FilterBuilder::new();
-            for &module in &filters {
+        // Note: Android debug logs are stripped from a release build.
+        // debug!() will only show in a debug build. Use info!() if logs
+        // should show up in adb logcat with a release build.
+        let filters = [
+            "servo",
+            "servoshell",
+            "servoshell::egl:gl_glue",
+            // Show redirected stdout / stderr by default
+            "servoshell::egl::log",
+            // Show JS errors by default.
+            "script::dom::bindings::error",
+            // Show GL errors by default.
+            "servo_canvas::webgl_thread",
+            "paint::paint",
+            "servo_constellation::constellation",
+        ];
+        let mut filter_builder = FilterBuilder::new();
+        for &module in &filters {
+            filter_builder.filter_module(module, log::LevelFilter::Debug);
+        }
+        if let Some(log_str) = log_str {
+            for module in log_str.split(',') {
                 filter_builder.filter_module(module, log::LevelFilter::Debug);
             }
-            if let Some(log_str) = log_str {
-                for module in log_str.split(',') {
-                    filter_builder.filter_module(module, log::LevelFilter::Debug);
-                }
-            }
-
-            android_logger::init_once(
-                Config::default()
-                    .with_max_level(log::LevelFilter::Debug)
-                    .with_filter(filter_builder.build())
-                    .with_tag("servoshell"),
-            );
-
-            // In production mode we don't redirect stdout / stderr, so any
-            // panic messages would be lost without this hook.
-            std::panic::set_hook(Box::new(|info| {
-                let current_thread = std::thread::current();
-                let thread_name = current_thread.name().unwrap_or("<unnamed>");
-                error!("Panic in Rust code (thread: {thread_name}):");
-                error!("{info}");
-            }));
         }
+
+        android_logger::init_once(
+            Config::default()
+                .with_max_level(log::LevelFilter::Debug)
+                .with_filter(filter_builder.build())
+                .with_tag("servoshell"),
+        );
+
+        // In production mode we don't redirect stdout / stderr, so any
+        // panic messages would be lost without this hook.
+        std::panic::set_hook(Box::new(|info| {
+            let current_thread = std::thread::current();
+            let thread_name = current_thread.name().unwrap_or("<unnamed>");
+            error!("Panic in Rust code (thread: {thread_name}):");
+            error!("{info}");
+        }));
 
         info!("init");
 
@@ -211,15 +191,6 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
 
         crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
 
-        let (display_handle, window_handle) = unsafe {
-            (
-                DisplayHandle::borrow_raw(display_handle),
-                WindowHandle::borrow_raw(window_handle),
-            )
-        };
-
-        let hidpi_scale_factor = Scale::new(density);
-
         APP.with(|app| {
             let new_app = App::new(AppInitOptions {
                 host,
@@ -231,14 +202,46 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_init<'local>(
                 #[cfg(feature = "webxr")]
                 xr_discovery: None,
             });
-            new_app.add_platform_window(
+            *app.borrow_mut() = Some(new_app);
+        });
+        Ok(())
+    })
+    .resolve::<ThrowRuntimeExAndDefault>()
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn Java_org_servo_servoview_JNIServo_addPlatformWindow<'local>(
+    mut env: EnvUnowned<'local>,
+    _: JClass<'local>,
+    size: JObject<'local>,
+    density: jfloat,
+    surface: JObject<'local>,
+) {
+    env.with_env(|env| -> jni::errors::Result<_> {
+        let viewport_rect = jni_coordinate_to_rust_viewport_rect(env, &size)?;
+
+        let (display_handle, window_handle) = display_and_window_handle(env, &surface);
+
+        let (display_handle, window_handle) = unsafe {
+            (
+                DisplayHandle::borrow_raw(display_handle),
+                WindowHandle::borrow_raw(window_handle),
+            )
+        };
+
+        call(env, |app| {
+            let hidpi_scale_factor = Scale::new(
+                app.servoshell_preferences()
+                    .device_pixel_ratio_override
+                    .unwrap_or(density),
+            );
+            app.add_platform_window(
                 display_handle,
                 window_handle,
                 viewport_rect,
                 hidpi_scale_factor,
                 None,
-            );
-            *app.borrow_mut() = Some(new_app);
+            )
         });
         Ok(())
     })
@@ -254,9 +257,7 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_setExperimentalMode<'local>(
     debug!("setExperimentalMode {enable}");
     env.with_env(|env| -> jni::errors::Result<_> {
         call(env, |s| {
-            for pref in EXPERIMENTAL_PREFS {
-                s.servo().set_preference(pref, PrefValue::Bool(enable));
-            }
+            s.state.set_experimental_preferences_enabled(enable)
         });
         Ok(())
     })
@@ -352,23 +353,6 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_goForward<'local>(
     env.with_env(|env| -> jni::errors::Result<_> {
         debug!("goForward");
         call(env, |s| s.go_forward());
-        Ok(())
-    })
-    .resolve::<ThrowRuntimeExAndDefault>()
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_scroll<'local>(
-    mut env: EnvUnowned<'local>,
-    _: JClass<'local>,
-    dx: jint,
-    dy: jint,
-    x: jint,
-    y: jint,
-) {
-    env.with_env(|env| -> jni::errors::Result<_> {
-        debug!("scroll");
-        call(env, |s| s.scroll(dx as f32, dy as f32, x as f32, y as f32));
         Ok(())
     })
     .resolve::<ThrowRuntimeExAndDefault>()
@@ -528,72 +512,6 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_touchCancel<'local>(
     env.with_env(|env| -> jni::errors::Result<_> {
         debug!("touchCancel");
         call(env, |s| s.touch_cancel(x, y, pointer_id));
-        Ok(())
-    })
-    .resolve::<ThrowRuntimeExAndDefault>()
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_pinchZoomStart<'local>(
-    mut env: EnvUnowned<'local>,
-    _: JClass<'local>,
-    factor: jfloat,
-    x: jfloat,
-    y: jfloat,
-) {
-    env.with_env(|env| -> jni::errors::Result<_> {
-        debug!("pinchZoomStart");
-        call(env, |s| s.pinchzoom_start(factor, x, y));
-        Ok(())
-    })
-    .resolve::<ThrowRuntimeExAndDefault>()
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_pinchZoom<'local>(
-    mut env: EnvUnowned<'local>,
-    _: JClass<'local>,
-    factor: jfloat,
-    x: jfloat,
-    y: jfloat,
-) {
-    env.with_env(|env| -> jni::errors::Result<_> {
-        debug!("pinchZoom");
-        call(env, |s| s.pinchzoom(factor, x, y));
-        Ok(())
-    })
-    .resolve::<ThrowRuntimeExAndDefault>()
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_pinchZoomEnd<'local>(
-    mut env: EnvUnowned<'local>,
-    _: JClass<'local>,
-    factor: jfloat,
-    x: jfloat,
-    y: jfloat,
-) {
-    env.with_env(|env| -> jni::errors::Result<_> {
-        debug!("pinchZoomEnd");
-        call(env, |s| s.pinchzoom_end(factor, x, y));
-        Ok(())
-    })
-    .resolve::<ThrowRuntimeExAndDefault>()
-}
-
-#[unsafe(no_mangle)]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_click(
-    mut env: EnvUnowned,
-    _: JClass,
-    x: jfloat,
-    y: jfloat,
-) {
-    env.with_env(|env| -> jni::errors::Result<_> {
-        debug!("click");
-        call(env, |s| {
-            s.mouse_down(x, y, MouseButton::Left);
-            s.mouse_up(x, y, MouseButton::Left);
-        });
         Ok(())
     })
     .resolve::<ThrowRuntimeExAndDefault>()

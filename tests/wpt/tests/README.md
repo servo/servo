@@ -115,6 +115,21 @@ The way to contribute is just as usual:
 * Commit locally and push that to your repo.
 * Create a pull request based on the above.
 
+AI Policy
+=========
+
+Use of LLMs to help author tests is generally acceptable, but every
+change must be attributable to a human who understands and can take
+responsibility for the proposed change.
+
+Use of LLMs to participate in discussions is generally not acceptable;
+any LLM-generated content must either be from a bot account or
+contained inside a `<blockquote>` (for short contributions of at most
+one paragraph) or `<details>` element.
+
+For full details see the [Policy for LLM
+Use](https://web-platform-tests.org/writing-tests/ai-policy.html)
+
 Issues with web-platform-tests
 ------------------------------
 

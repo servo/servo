@@ -29,15 +29,16 @@ use crate::dom::document::Document;
 use crate::dom::document::focus::FocusableArea;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
+use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{Node, NodeTraits};
-use crate::dom::scrolling_box::{ScrollAxisState, ScrollRequirement};
 use crate::dom::svg::svgcircleelement::SVGCircleElement;
 use crate::dom::svg::svgellipseelement::SVGEllipseElement;
 use crate::dom::svg::svgimageelement::SVGImageElement;
 use crate::dom::svg::svgpathelement::SVGPathElement;
 use crate::dom::svg::svgrectelement::SVGRectElement;
 use crate::dom::svg::svgsvgelement::SVGSVGElement;
+use crate::dom::window::scrolling_box::{ScrollAxisState, ScrollRequirement};
 
 #[dom_struct]
 pub(crate) struct SVGElement {
@@ -103,12 +104,12 @@ impl VirtualMethods for SVGElement {
         let element = self.as_element();
         if let (&local_name!("nonce"), mutation) = (attr.local_name(), mutation) {
             match mutation {
-                AttributeMutation::Set(..) => {
+                AttributeMutation::Set(_) => {
                     let nonce = &**attr.value();
-                    element.update_nonce_internal_slot(nonce.to_owned());
+                    element.update_nonce_internal_slot(nonce.to_owned(), cx.no_gc());
                 },
                 AttributeMutation::Removed => {
-                    element.update_nonce_internal_slot(String::new());
+                    element.update_nonce_internal_slot(String::new(), cx.no_gc());
                 },
             }
         }
@@ -172,9 +173,9 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-noncedelement-nonce>
-    fn SetNonce(&self, _cx: &mut JSContext, value: DOMString) {
+    fn SetNonce(&self, cx: &mut JSContext, value: DOMString) {
         self.as_element()
-            .update_nonce_internal_slot(String::from(value))
+            .update_nonce_internal_slot(String::from(value), cx.no_gc())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-fe-autofocus>
@@ -194,7 +195,10 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
         // TODO: Implement this.
 
         // 2. Run the focusing steps for this.
-        if !self.upcast::<Node>().run_the_focusing_steps(cx, None) {
+        if !self
+            .upcast::<Node>()
+            .run_the_focusing_steps(cx, None, FocusTrigger::Other)
+        {
             // The specification seems to imply we should scroll into view even if this element
             // is not a focusable area. No browser does this, so we return early in that case.
             // See https://github.com/whatwg/html/issues/12231.
@@ -433,8 +437,7 @@ impl<'dom> LayoutDom<'dom, SVGElement> {
             // Wrap the raw path data in `path("...")` so the CSS parser can handle it.
             if let Some(value) = element.get_attr_val_for_layout(&ns!(), &local_name!("d")) {
                 if value.eq_ignore_ascii_case("none") {
-                    let mut input = cssparser::ParserInput::new(value);
-                    let mut parser = cssparser::Parser::new(&mut input);
+                    let mut parser = cssparser::Parser::new(value);
                     if let Ok(property) =
                         parser.parse_entirely(|i| longhands::d::parse_declared(&parser_context, i))
                     {
@@ -442,8 +445,7 @@ impl<'dom> LayoutDom<'dom, SVGElement> {
                     }
                 } else {
                     let wrapped = format!("path(\"{}\")", value);
-                    let mut input = cssparser::ParserInput::new(&wrapped);
-                    let mut parser = cssparser::Parser::new(&mut input);
+                    let mut parser = cssparser::Parser::new(&wrapped);
                     if let Ok(property) = parser.parse_entirely(|parse_input| {
                         longhands::d::parse_declared(&parser_context, parse_input)
                     }) {
@@ -463,13 +465,12 @@ impl<'dom> LayoutDom<'dom, SVGElement> {
     ) where
         F: for<'i, 't> FnOnce(
             &ParserContext,
-            &mut cssparser::Parser<'i, 't>,
-        ) -> Result<PropertyDeclaration, style_traits::ParseError<'i>>,
+            &mut cssparser::Parser<'i>,
+        ) -> Result<PropertyDeclaration, style_traits::ParseError>,
     {
         let element = self.upcast::<Element>();
         if let Some(value) = element.get_attr_val_for_layout(&ns!(), &LocalName::from(attr_name)) {
-            let mut input = cssparser::ParserInput::new(value);
-            let mut parser = cssparser::Parser::new(&mut input);
+            let mut parser = cssparser::Parser::new(value);
             if let Ok(property) =
                 parser.parse_entirely(|parse_input| parse(parser_context, parse_input))
             {

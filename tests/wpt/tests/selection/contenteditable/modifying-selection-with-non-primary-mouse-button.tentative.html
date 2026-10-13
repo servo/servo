@@ -184,40 +184,40 @@ promise_test(async () => {
     "Selection#isCollapsed should be true");
 }, `Shift + ${button} click in a link shouldn't extend the selection`);
 
-promise_test(async () => {
+promise_test(async (t) => {
   resetEditor();
   editor.focus();
   selection.collapse(span1.firstChild, 2);
-  editor.addEventListener("pointerdown", () => {
+  editor.addEventListener("pointerdown", t.step_func(() => {
     assert_true(selection.isCollapsed,
       "Selection shouldn't be modified before pointerdown event");
     assert_equals(selection.focusNode, span1.firstChild,
       "Selection should stay in the first <span> element when pointerdown event is fired (focusNode)");
     assert_equals(selection.focusOffset, 2,
       "Selection should stay in the first <span> element when pointerdown event is fired (focusOffset)");
-  }, {once: true});
-  editor.addEventListener("mousedown", () => {
+  }), {once: true});
+  editor.addEventListener("mousedown", t.step_func(() => {
     assert_true(selection.isCollapsed,
       "Selection shouldn't be modified before mousedown event");
     assert_equals(selection.focusNode, span1.firstChild,
       "Selection should stay in the first <span> element when mousedown event is fired (focusNode)");
     assert_equals(selection.focusOffset, 2,
       "Selection should stay in the first <span> element when mousedown event is fired (focusOffset)");
-  }, {once: true});
-  editor.addEventListener("pointerup", () => {
+  }), {once: true});
+  editor.addEventListener("pointerup", t.step_func(() => {
     assert_true(selection.isCollapsed,
       "Selection should be collapsed before pointerup event");
     assert_equals(selection.focusNode, span2.firstChild,
       `selection should be collapsed in the second <span> element which was clicked by ${button} button before pointerup event`);
-  }, {once: true});
+  }), {once: true});
   let focusOffsetAtMouseUp;
-  editor.addEventListener("mouseup", () => {
+  editor.addEventListener("mouseup", t.step_func(() => {
     assert_true(selection.isCollapsed,
       "Selection should be collapsed before mouseup event");
     assert_equals(selection.focusNode, span2.firstChild,
       `Selection should be collapsed in the second <span> element which was clicked by ${button} button before mouseup event`);
     focusOffsetAtMouseUp = selection.focusOffset;
-  }, {once: true});
+  }), {once: true});
   let actions = new test_driver.Actions();
   await actions
     .pointerMove(0, 0)

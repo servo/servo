@@ -39,7 +39,7 @@ pub(crate) fn execute_insert_image_command(
 
     // Step 3. Let range be the active range.
     let range = selection
-        .active_range()
+        .active_range(cx)
         .expect("Must always have an active range");
 
     // Step 4. If the active range's start node is neither editable nor an editing host, return true.

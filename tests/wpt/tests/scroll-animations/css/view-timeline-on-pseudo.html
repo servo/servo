@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title></title>
+</head>
+<link rel="help" src="https://drafts.csswg.org/scroll-animations-1/#viewtimeline-interface">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+@keyframes anim {
+  from { background-color: green; }
+  to { background-color: blue; }
+}
+
+.scroller {
+  overflow: scroll;
+  width: 100px;
+  height: 100px;
+}
+
+.spacer {
+  height: 400px;
+}
+
+.foo::after {
+  content: "foo";
+  border: 1px solid;
+  display: block;
+  width: 40px;
+  height: 40px;
+  animation: anim linear;
+  background-color: lightgoldenrodyellow;
+  animation-timeline: view();
+}
+
+</style>
+<div class="scroller">
+  <div class="spacer"></div>
+  <div id="foo" class="foo"></div>
+  <div class="spacer"></div>
+</div>
+<script>
+  promise_test(async t => {
+    const subject = document.getAnimations()[0].timeline.subject;
+    assert_equals(subject.tagName.toUpperCase(), 'DIV');
+    assert_equals(subject.id, "foo");
+  }, 'timeline.subject does not expose pseudo-element');
+</script>
+</html>

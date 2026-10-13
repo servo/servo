@@ -18,6 +18,7 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::datatransfer::DataTransfer;
 use crate::dom::node::Node;
+use crate::dom::selection_range::RootedSelectionBoundary;
 use crate::dom::staticrange::StaticRange;
 use crate::dom::uievent::UIEvent;
 use crate::dom::window::Window;
@@ -125,6 +126,7 @@ impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
 /// `PaintHitTestResult` against our current layout.
 pub(crate) struct HitTestResult {
     pub node: DomRoot<Node>,
+    pub dom_position_for_selection: Option<RootedSelectionBoundary>,
     pub cursor: Cursor,
     pub point_in_node: Point2D<f32, CSSPixel>,
     pub point_in_frame: Point2D<f32, CSSPixel>,

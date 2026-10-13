@@ -2,7 +2,7 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-esid: sec-initializenumberformat
+esid: sec-intl.numberformat
 description: Checks handling of the unit option with the currency style.
 info: |
     SetNumberFormatUnitOptions ( intlObj, options )

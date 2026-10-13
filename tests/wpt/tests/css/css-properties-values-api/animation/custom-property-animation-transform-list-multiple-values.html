@@ -65,4 +65,123 @@ animation_test({
   assert_function: assert_matrix_equals
 }, 'Animating a custom property of type <transform-list> containing multiple values and with mismatching list lengths');
 
+animation_test({
+  syntax: "<transform-list> | none",
+  inherits: false,
+  initialValue: "none"
+}, {
+  composite: "add",
+  keyframes: ["translateX(100px) scale(2)", "translateX(200px) scale(4)"],
+  expected: "translateX(150px) scale(3)"
+}, 'Animating a custom property of type <transform-list> | none with additivity when underlying value is none');
+
+animation_test({
+  syntax: "<transform-list> | none",
+  inherits: false,
+  initialValue: "none"
+}, {
+  composite: "accumulate",
+  keyframes: ["translateX(100px) scale(2)", "translateX(200px) scale(4)"],
+  expected: "translateX(150px) scale(3)"
+}, 'Animating a custom property of type <transform-list> | none with accumulation when underlying value is none');
+
+test(() => {
+  const name = generate_name();
+  CSS.registerProperty({
+    name,
+    syntax: "<transform-list> | none",
+    inherits: false,
+    initialValue: "translateX(100px) scale(2)"
+  });
+
+  target.style.setProperty(name, "none");
+  const animation = target.animate(
+    { [name]: ["translateX(200px) scale(3)", "translateX(300px) scale(4)"] },
+    { duration: 1000, composite: "add" }
+  );
+  animation.pause();
+  animation.currentTime = 500;
+
+  // When the underlying value is none, composition falls back to replace.
+  assert_equals(
+    getComputedStyle(target).getPropertyValue(name),
+    "translateX(250px) scale(3.5)"
+  );
+
+  // Dynamically restoring a valid underlying <transform-list> invalidates the
+  // conversion cache and composites with the new underlying value.
+  target.style.setProperty(name, "translateX(100px) scale(2)");
+  assert_equals(
+    getComputedStyle(target).getPropertyValue(name),
+    "translateX(100px) scale(2) translateX(250px) scale(3.5)"
+  );
+
+  target.style.removeProperty(name);
+  animation.cancel();
+}, 'Additive <transform-list> | none animation with dynamic underlying value update from none');
+
+test(() => {
+  const name = generate_name();
+  CSS.registerProperty({
+    name,
+    syntax: "<transform-list>",
+    inherits: false,
+    initialValue: "translateX(100px) scale(2)"
+  });
+
+  const baseAnim = target.animate(
+    { [name]: ["var(--invalid, invalid)", "var(--invalid, invalid)"] },
+    { duration: 1000 }
+  );
+  baseAnim.pause();
+  baseAnim.currentTime = 500;
+
+  const addAnim = target.animate(
+    { [name]: ["translateX(200px) scale(3)", "translateX(300px) scale(4)"] },
+    { duration: 1000, composite: "add" }
+  );
+  addAnim.pause();
+  addAnim.currentTime = 500;
+
+  assert_equals(
+    getComputedStyle(target).getPropertyValue(name),
+    "translateX(250px) scale(3.5)"
+  );
+
+  addAnim.cancel();
+  baseAnim.cancel();
+}, 'Additive <transform-list> animation stacked on top of a discrete var(--invalid, invalid) animation');
+
+test(() => {
+  const name = generate_name();
+  CSS.registerProperty({
+    name,
+    syntax: "<transform-list> | none",
+    inherits: false,
+    initialValue: "translateX(100px) scale(2)"
+  });
+
+  const baseAnim = target.animate(
+    { [name]: ["none", "none"] },
+    { duration: 1000 }
+  );
+  baseAnim.pause();
+  baseAnim.currentTime = 500;
+
+  const addAnim = target.animate(
+    { [name]: ["translateX(200px) scale(3)", "translateX(300px) scale(4)"] },
+    { duration: 1000, composite: "add" }
+  );
+  addAnim.pause();
+  addAnim.currentTime = 500;
+
+  assert_equals(
+    getComputedStyle(target).getPropertyValue(name),
+    "translateX(250px) scale(3.5)"
+  );
+
+  addAnim.cancel();
+  baseAnim.cancel();
+}, 'Additive <transform-list> animation stacked on top of a discrete none animation');
+
 </script>

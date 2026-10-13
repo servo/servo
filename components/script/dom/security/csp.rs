@@ -17,7 +17,7 @@ use http::header::{HeaderMap, HeaderValue, ValueIter};
 use hyper_serde::Serde;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
-use js::rust::describe_scripted_caller_safe;
+use js::rust::describe_scripted_caller;
 use log::warn;
 use servo_constellation_traits::{LoadData, LoadOrigin};
 use url::Url;
@@ -35,7 +35,7 @@ use crate::dom::reporting::reportingobserver::ReportingObserver;
 use crate::dom::security::cspviolationreporttask::CSPViolationReportTask;
 use crate::dom::trustedtypes::trustedscript::TrustedScript;
 use crate::dom::window::Window;
-use crate::task::TaskOnce;
+use crate::tasks::task::TaskOnce;
 
 pub(crate) trait CspReporting {
     fn is_js_evaluation_allowed(
@@ -153,8 +153,8 @@ impl CspReporting for Option<CspList> {
             redirect_count: 0,
             destination: Destination::None,
             initiator: Initiator::None,
-            nonce: "".to_owned(),
-            integrity_metadata: "".to_owned(),
+            nonce: String::new(),
+            integrity_metadata: String::new(),
             parser_metadata: ParserMetadata::None,
         };
         // TODO: set correct navigation check type for form submission if applicable
@@ -202,10 +202,11 @@ impl CspReporting for Option<CspList> {
             if let Some(container_element) = window_proxy.frame_element() {
                 let container_document = container_element.owner_document();
                 let parent_origin = Url::parse(
-                    &container_document
+                    container_document
                         .origin()
                         .immutable()
-                        .ascii_serialization(),
+                        .ascii_serialization()
+                        .as_ref(),
                 )
                 .expect("Must always be able to parse document origin");
                 parent_navigable_origins.push(parent_origin);
@@ -214,9 +215,12 @@ impl CspReporting for Option<CspList> {
             }
             // Cross-origin parents go via the constellation (slower)
             if let Some(parent_proxy) = window_proxy.parent() {
-                let Some(parent_origin) = parent_proxy.document_origin() else {
+                let Some((parent_origin, _)) =
+                    parent_proxy.document_origin_and_internal_ancestor_origin_objects_list()
+                else {
                     break;
                 };
+                let parent_origin = parent_origin.immutable().ascii_serialization();
                 let parent_origin = Url::parse(&parent_origin)
                     .expect("Must always be able to parse document origin");
                 parent_navigable_origins.push(parent_origin);
@@ -380,7 +384,7 @@ pub(crate) trait GlobalCspReporting {
 }
 
 fn compute_scripted_caller_source_position(cx: &mut JSContext) -> SourcePosition {
-    match describe_scripted_caller_safe(cx) {
+    match describe_scripted_caller(cx) {
         Ok(scripted_caller) => SourcePosition {
             source_file: scripted_caller.filename,
             line_number: scripted_caller.line,

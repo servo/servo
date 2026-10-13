@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>XMLHttpRequest send() data isolation</title>
+<link rel="help" href="https://xhr.spec.whatwg.org/#the-send()-method">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+// These tests verify that `send()` on an XMLHttpRequest correctly copies its input data,
+// so that subsequent modifications to the input do not affect what gets sent.
+
+promise_test(async () => {
+  const input = new Uint8Array([1, 2, 3, 4]);
+
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", "/xhr/resources/content.py", true);
+
+  const loadPromise = new Promise((resolve, reject) => {
+    xhr.onload = () => resolve(xhr);
+    xhr.onerror = () => reject(new Error("XHR failed"));
+  });
+
+  xhr.send(input);
+  input[0] = 99;
+
+  const result = await loadPromise;
+  const responseBytes = new Uint8Array(
+    result.response.split("").map(c => c.charCodeAt(0))
+  );
+  assert_array_equals(
+    responseBytes,
+    [1, 2, 3, 4],
+    "Sent data should not be affected by modifying the input Uint8Array"
+  );
+}, "Modifying a Uint8Array after send() does not affect the sent data");
+
+promise_test(async () => {
+  const input = new Uint8Array([5, 6, 7, 8]);
+  const inputBuffer = input.buffer;
+
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", "/xhr/resources/content.py", true);
+
+  const loadPromise = new Promise((resolve, reject) => {
+    xhr.onload = () => resolve(xhr);
+    xhr.onerror = () => reject(new Error("XHR failed"));
+  });
+
+  xhr.send(inputBuffer);
+  input[0] = 99;
+
+  const result = await loadPromise;
+  const responseBytes = new Uint8Array(
+    result.response.split("").map(c => c.charCodeAt(0))
+  );
+  assert_array_equals(
+    responseBytes,
+    [5, 6, 7, 8],
+    "Sent data should not be affected by modifying the underlying ArrayBuffer"
+  );
+}, "Modifying an ArrayBuffer after send() does not affect the sent data");
+
+promise_test(async () => {
+  // Test with a view into a larger buffer (exercises offset handling)
+  const largerBuffer = new ArrayBuffer(16);
+  const view = new Uint8Array(largerBuffer, 4, 4);
+  view.set([10, 11, 12, 13]);
+
+  const xhr = new XMLHttpRequest();
+  xhr.open("POST", "/xhr/resources/content.py", true);
+
+  const loadPromise = new Promise((resolve, reject) => {
+    xhr.onload = () => resolve(xhr);
+    xhr.onerror = () => reject(new Error("XHR failed"));
+  });
+
+  xhr.send(view);
+  view[0] = 99;
+
+  const result = await loadPromise;
+  const responseBytes = new Uint8Array(
+    result.response.split("").map(c => c.charCodeAt(0))
+  );
+  assert_array_equals(
+    responseBytes,
+    [10, 11, 12, 13],
+    "Sent data should not be affected by modifying a typed array view"
+  );
+}, "Modifying a typed array view after send() does not affect the sent data");
+</script>

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: non-empty custom block ellipsis</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="match" href="reference/block-ellipsis-038-ref.html">
+<meta name="assert" content="A non-empty custom block ellipsis is shown at the clamp point.">
+<style>
+.clamp {
+  font: 20px/1 monospace;
+  width: 20ch;
+  line-clamp: 2 " CUSTOM";
+}
+</style>
+<div class="clamp">First line<br>PASS<br>FAIL</div>

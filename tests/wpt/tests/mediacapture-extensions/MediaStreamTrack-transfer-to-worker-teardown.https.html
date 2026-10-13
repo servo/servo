@@ -1,0 +1,103 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>Tearing down a dedicated worker holding a transferred MediaStreamTrack</title>
+<link rel="help" href="https://w3c.github.io/mediacapture-extensions/#transferable-mediastreamtrack">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=/mediacapture-streams/permission-helper.js></script>
+<script src=support/transfer-helper.js></script>
+<script>
+"use strict";
+
+promise_setup(() => setMediaPermission());
+
+const TEARDOWN_WORKER_SCRIPT = TRACK_WORKER_SCRIPT + `
+  handlers.cloneAndStop = () => {
+    self.clone = self.track.clone();
+    self.track.stop();
+    return describeTrack(self.clone);
+  };
+  handlers.close = () => {
+    self.close();
+    return "closed";
+  };
+`;
+
+// Plays track in a video element and waits for a frame to be presented, which
+// shows that the source is still producing data for it.
+async function waitForFrame(t, track) {
+  const video = document.createElement("video");
+  video.srcObject = new MediaStream([track]);
+  document.body.appendChild(video);
+  t.add_cleanup(() => {
+    video.srcObject = null;
+    video.remove();
+  });
+  await video.play();
+  await new Promise(r => video.requestVideoFrameCallback(r));
+}
+
+promise_test(async t => {
+  const worker = await createWorker(t, TRACK_WORKER_SCRIPT);
+  const track = await getTrack(t, "video");
+  const clone = track.clone();
+  await callWorker(worker, {type: "receive", track: clone}, [clone]);
+
+  worker.terminate();
+  assert_equals(track.readyState, "live");
+  await waitForFrame(t, track);
+  assert_equals(track.readyState, "live");
+}, "Terminating a worker holding a transferred track leaves the source's other tracks live");
+
+promise_test(async t => {
+  const worker = await createWorker(t, TRACK_WORKER_SCRIPT);
+  const track = await getTrack(t, "video");
+  const clone = track.clone();
+  worker.postMessage({type: "receive", track: clone}, [clone]);
+
+  worker.terminate();
+  assert_equals(clone.readyState, "ended", "transferred clone is detached");
+  await waitForFrame(t, track);
+  assert_equals(track.readyState, "live");
+}, "Terminating a worker while a track is in transfer to it leaves the source's other tracks live");
+
+promise_test(async t => {
+  const worker = await createWorker(t, TEARDOWN_WORKER_SCRIPT);
+  const track = await getTrack(t, "video");
+  const clone = track.clone();
+  await callWorker(worker, {type: "receive", track: clone}, [clone]);
+  const workerClone = await callWorker(worker, {type: "cloneAndStop"});
+  assert_equals(workerClone.readyState, "live");
+
+  worker.terminate();
+  await waitForFrame(t, track);
+  assert_equals(track.readyState, "live");
+}, "Terminating a worker holding a clone made in the worker leaves the source's other tracks live");
+
+promise_test(async t => {
+  const worker = await createWorker(t, TEARDOWN_WORKER_SCRIPT);
+  const track = await getTrack(t, "video");
+  const clone = track.clone();
+  await callWorker(worker, {type: "receive", track: clone}, [clone]);
+
+  // The reply is posted after close() has run.
+  assert_equals(await callWorker(worker, {type: "close"}), "closed");
+  await waitForFrame(t, track);
+  assert_equals(track.readyState, "live");
+}, "A worker closing itself while holding a transferred track leaves the source's other tracks live");
+
+promise_test(async t => {
+  const worker = await createWorker(t, TRACK_WORKER_SCRIPT);
+  const track = await getTrack(t, "video");
+  await callWorker(worker, {type: "receive", track}, [track]);
+  assert_equals(track.readyState, "ended", "transferred track is detached");
+
+  // The worker held the only track of the source.
+  worker.terminate();
+  const newTrack = await getTrack(t, "video");
+  await waitForFrame(t, newTrack);
+  assert_equals(newTrack.readyState, "live");
+}, "Terminating a worker holding the only track of a source lets a new capture start");
+</script>

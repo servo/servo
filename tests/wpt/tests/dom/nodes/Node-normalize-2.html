@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>Node.normalize()</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<script>
+  "use strict";
+  test(() => {
+    const df = document.createDocumentFragment();
+    const t1 = document.createTextNode("Hello, world");
+    df.appendChild(t1);
+    t1.splitText(5);
+    const r = document.createRange();
+    r.selectNode(t1);
+    assert_equals(r.toString(), "Hello");
+    df.normalize();
+    assert_equals(r.toString(), "Hello");
+  }, "normalize should move range's end boundary point into t1");
+
+  test(() => {
+    const df = document.createDocumentFragment();
+    const t1 = document.createTextNode("Hello, world");
+    df.appendChild(t1);
+    const t2 = t1.splitText(7);
+    const r = document.createRange();
+    r.selectNode(t2);
+    assert_equals(r.toString(), "world");
+    df.normalize();
+    assert_equals(r.toString(), "world");
+  }, "normalize should move range's start boundary point into t1");
+</script>

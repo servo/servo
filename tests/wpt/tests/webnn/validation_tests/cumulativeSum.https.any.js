@@ -85,3 +85,7 @@ multi_builder_test(async (t, builder, otherBuilder) => {
   assert_throws_js(
       TypeError, () => builder.cumulativeSum(inputFromOtherBuilder, 0));
 }, '[cumulativeSum] throw if input is from another builder');
+
+validateOperandRank('cumulativeSum', 'input', (builder, input) => {
+  return builder.cumulativeSum(input, 0);
+});

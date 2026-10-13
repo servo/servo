@@ -1,6 +1,6 @@
 <!DOCTYPE HTML>
 <meta charset=utf-8>
-<title>Container Timing: an image inside a containertiming-ignore inside a containertiming root</title>
+<title>Container Timing: an image inside a containertimingignore inside a containertiming root</title>
 <body>
 <style>
 body {
@@ -27,7 +27,7 @@ body {
 
     // Intermediate ignore should block paint events
     const div2 = document.createElement('div');
-    div2.setAttribute('containertiming-ignore', '');
+    div2.setAttribute('containertimingignore', '');
     div1.appendChild(div2)
 
     // Add image of width equal to 100 and height equal to 100.

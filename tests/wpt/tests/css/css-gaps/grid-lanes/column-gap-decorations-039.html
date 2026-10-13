@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: column-rule-break: intersection breaks the grid-axis rule at every crossing stacking-axis gutter in column grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#break">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="column-gap-decorations-039-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(2, 60px);
+    column-gap: 20px;
+    row-gap: 20px;
+    background: #cdd5e0;
+    width: max-content;
+    column-rule: 4px solid blue;
+    column-rule-break: intersection;
+    row-rule: 4px solid gold;
+  }
+  .lanes > div {
+    background: #5b8def;
+  }
+  .lanes > div.a { grid-column: 1; height: 40px; }
+  .lanes > div.b { grid-column: 1; height: 40px; }
+  .lanes > div.c { grid-column: 1; height: 100px; }
+  .lanes > div.d { grid-column: 2; height: 40px; }
+  .lanes > div.e { grid-column: 2; height: 100px; }
+  .lanes > div.f { grid-column: 2; height: 40px; }
+</style>
+<div class="lanes">
+  <div class="a"></div>
+  <div class="d"></div>
+  <div class="b"></div>
+  <div class="e"></div>
+  <div class="c"></div>
+  <div class="f"></div>
+</div>

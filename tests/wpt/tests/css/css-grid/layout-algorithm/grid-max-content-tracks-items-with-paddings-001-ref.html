@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+<head>
+<style>
+/* Reference: draw each grid item as an absolutely positioned box so the layout
+   never touches grid track sizing. Each cell's width is the item's content
+   width plus its fixed padding (20+8+4 = 32, 40+16+12 = 68), which is what
+   max-content track sizing must produce. box-sizing: border-box keeps the
+   padding inside the cell so content lands at (paddingLeft, 0). */
+.grid {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    background-color: green;
+}
+.item {
+    position: absolute;
+    box-sizing: border-box;
+    top: 0;
+    height: 100px;
+    background-color: blue;
+}
+.left {
+    left: 0;
+    width: 32px;
+    padding: 0 4px 0 8px;
+}
+.right {
+    left: 32px;
+    width: 68px;
+    padding: 0 12px 0 16px;
+}
+.leftContent {
+    width: 20px;
+    height: 20px;
+    background-color: purple;
+}
+.rightContent {
+    width: 40px;
+    height: 20px;
+    background-color: purple;
+}
+</style>
+</head>
+<body>
+<div class="grid">
+    <div class="item left"><div class="leftContent"></div></div>
+    <div class="item right"><div class="rightContent"></div></div>
+</div>
+</body>
+</html>

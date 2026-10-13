@@ -93,7 +93,7 @@ unsafe extern "C" fn get_own_property_descriptor(
             SymbolId(unsafe { GetWellKnownSymbol(&cx, SymbolCode::toStringTag) }).asBits_
         {
             rooted!(&in(cx) let mut rval = UndefinedValue());
-            "WindowProperties".safe_to_jsval(&mut cx, rval.handle_mut());
+            "WindowProperties".to_jsval(&mut cx, rval.handle_mut());
             set_property_descriptor(
                 unsafe { RustMutableHandle::from_raw(desc) },
                 rval.handle(),
@@ -139,7 +139,7 @@ unsafe extern "C" fn get_own_property_descriptor(
         .expect("global is not a window");
     if let Some(obj) = window.NamedGetter(&mut cx, s.into()) {
         rooted!(&in(cx) let mut rval = UndefinedValue());
-        obj.safe_to_jsval(&mut cx, rval.handle_mut());
+        obj.to_jsval(&mut cx, rval.handle_mut());
         set_property_descriptor(
             unsafe { RustMutableHandle::from_raw(desc) },
             rval.handle(),

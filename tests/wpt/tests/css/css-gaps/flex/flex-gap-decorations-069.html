@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: flex column-rule-color auto-repeater with no trailing values</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#assigning">
+<link rel="match" href="flex-gap-decorations-069-ref.html">
+<style>
+    body {
+        margin: 0px;
+    }
+    .flex-container {
+        display: flex;
+        gap: 20px;
+        width: 340px;
+        height: 100px;
+        column-rule-color: repeat(auto, red);
+        column-rule-style: solid;
+        column-rule-width: 10px;
+    }
+    .flex-item {
+        background: gray;
+        opacity: 0.5;
+        width: 100px;
+    }
+</style>
+<div class="flex-container">
+    <div class="flex-item"></div>
+    <div class="flex-item"></div>
+    <div class="flex-item"></div>
+</div>

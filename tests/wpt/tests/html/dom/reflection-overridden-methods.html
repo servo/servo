@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reflection isn't impacted by overridden (get|set)Attribute(NS) methods</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+test(() => {
+  const div = document.createElement("div");
+  const calls = [];
+
+  div.getAttribute = () => {
+    calls.push("getAttribute");
+  };
+  div.getAttributeNS = () => {
+    calls.push("getAttributeNS");
+  };
+  div.setAttribute = () => {
+    calls.push("setAttribute");
+  };
+  div.setAttributeNS = () => {
+    calls.push("setAttributeNS");
+  };
+
+  // eslint-disable-next-line no-unused-expressions
+  div.title;
+  div.title = "foo";
+
+  assert_array_equals(calls, []);
+});
+</script>

@@ -109,6 +109,25 @@
                   test.done();
               });
           }, 'Test that MediaSource can reattach if closed first');
+
+          mediasource_test(function(test, mediaElement, mediaSource) {
+              assert_equals(mediaSource.readyState, 'open', 'Source open');
+              // Generate two different unique URLs for MediaSource
+              var url1 = URL.createObjectURL(mediaSource);
+              var url2 = URL.createObjectURL(mediaSource);
+              assert_not_equals(url1, url2, 'URLs not unique');
+              // Revoke the first url
+              URL.revokeObjectURL(url1);
+              // And use the second, non-revoked URL to reopen the media source
+              test.expectEvent(mediaSource, 'sourceopen', 'Source reopened');
+              mediaElement.src = url2;
+              assert_equals(mediaSource.readyState, 'closed', 'Source closed');
+              test.waitForExpectedEvents(function()
+              {
+                  assert_equals(mediaSource.readyState, 'open', 'Source opened');
+                  test.done();
+              });
+          }, 'Generate multiple unique URLs via URL.createObjectURL and revoke an URL');
         </script>
     </body>
 </html>

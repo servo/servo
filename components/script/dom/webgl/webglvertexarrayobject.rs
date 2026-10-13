@@ -5,17 +5,19 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::Ref;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_canvas_traits::webgl::{ActiveAttribInfo, WebGLResult, WebGLVertexArrayId};
 
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
-use crate::dom::webgl::vertexarrayobject::{VertexArrayObject, VertexAttribData};
+use crate::dom::webgl::vertexarrayobject::{
+    VertexArrayObject, VertexAttribData, VertexAttribPointerKind,
+};
 use crate::dom::webgl::webglbuffer::WebGLBuffer;
 use crate::dom::webgl::webglobject::WebGLObject;
 use crate::dom::webgl::webglrenderingcontext::{Operation, WebGLRenderingContext};
 
-#[dom_struct(associated_memory)]
+#[dom_struct]
 pub(crate) struct WebGLVertexArrayObject {
     webgl_object_: WebGLObject,
     array_object: VertexArrayObject,
@@ -34,10 +36,10 @@ impl WebGLVertexArrayObject {
         context: &WebGLRenderingContext,
         id: Option<WebGLVertexArrayId>,
     ) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(WebGLVertexArrayObject::new_inherited(context, id)),
             &*context.global(),
-            cx,
         )
     }
 
@@ -78,12 +80,12 @@ impl WebGLVertexArrayObject {
         index: u32,
         size: i32,
         type_: u32,
-        normalized: bool,
         stride: i32,
         offset: i64,
+        kind: VertexAttribPointerKind,
     ) -> WebGLResult<()> {
         self.array_object
-            .vertex_attrib_pointer(index, size, type_, normalized, stride, offset)
+            .vertex_attrib_pointer(index, size, type_, stride, offset, kind)
     }
 
     pub(crate) fn vertex_attrib_divisor(&self, index: u32, value: u32) {

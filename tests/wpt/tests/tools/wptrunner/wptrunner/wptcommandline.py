@@ -3,7 +3,6 @@
 import argparse
 import os
 import sys
-from collections import OrderedDict
 from shutil import which
 from datetime import timedelta
 from typing import Mapping, Optional
@@ -354,6 +353,9 @@ scheme host and port.""")
     gecko_view_group = parser.add_argument_group("GeckoView-specific")
     gecko_view_group.add_argument("--setenv", dest="env", action="append", default=[],
                                   help="Set target environment variable, like FOO=BAR")
+    gecko_view_group.add_argument("--enable-isolated-process", dest="isolated_process",
+                                  action="store_true", default=False,
+                                  help="Enable content service isolated process.")
 
     servo_group = parser.add_argument_group("Servo-specific")
     servo_group.add_argument("--user-stylesheet",
@@ -526,7 +528,7 @@ def get_test_paths(config: Mapping[str, config.ConfigDict],
                    metadata_path_override: Optional[str] = None,
                    manifest_path_override: Optional[str] = None) -> TestPaths:
     # Set up test_paths
-    test_paths = OrderedDict()
+    test_paths = {}
 
     for section in config.keys():
         if section.startswith("manifest:"):

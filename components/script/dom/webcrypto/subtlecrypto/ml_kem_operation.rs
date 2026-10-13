@@ -17,25 +17,21 @@ use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::{JsonWebKey, K
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
-use crate::dom::cryptokey::{CryptoKey, Handle};
+use crate::dom::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::{
-    CryptoAlgorithm, ExportedKey, JsonWebKeyExt, JwkStringField, KeyAlgorithmAndDerivatives,
-    SubtleAlgorithm, SubtleEncapsulatedBits, SubtleKeyAlgorithm,
+    Algorithm, CryptoAlgorithm, EncapsulatedBits, ExportedKey, JsonWebKeyExt, JwkStringField,
+    KeyAlgorithm, KeyAlgorithmAndDerivatives,
 };
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#ml-kem-operations-encapsulate>
 pub(crate) fn encapsulate(
-    normalized_algorithm: &SubtleAlgorithm,
+    normalized_algorithm: &Algorithm,
     key: &CryptoKey,
-) -> Result<SubtleEncapsulatedBits, Error> {
+) -> Result<EncapsulatedBits, Error> {
     // Step 1. If the [[type]] internal slot of key is not "public", then throw an
     // InvalidAccessError.
-    if key.Type() != KeyType::Public {
-        return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of key is not \"public\"".into(),
-        )));
-    }
+    key.ensure_type(KeyType::Public)?;
 
     // Step 2. Perform the encapsulation key check described in Section 7.2 of [FIPS-203] with the
     // parameter set indicated by the name member of algorithm, using the key represented by the
@@ -87,7 +83,7 @@ pub(crate) fn encapsulate(
     // containing sharedKey.
     // Step 8. Set the ciphertext attribute of result to the result of creating an ArrayBuffer
     // containing ciphertext.
-    let result = SubtleEncapsulatedBits {
+    let result = EncapsulatedBits {
         shared_key: Some(shared_key.into()),
         ciphertext: Some(ciphertext),
     };
@@ -98,17 +94,13 @@ pub(crate) fn encapsulate(
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#ml-kem-operations-decapsulate>
 pub(crate) fn decapsulate(
-    normalized_algorithm: &SubtleAlgorithm,
+    normalized_algorithm: &Algorithm,
     key: &CryptoKey,
     ciphertext: &[u8],
 ) -> Result<Vec<u8>, Error> {
     // Step 1. If the [[type]] internal slot of key is not "private", then throw an
     // InvalidAccessError.
-    if key.Type() != KeyType::Private {
-        return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of key is not \"private\"".into(),
-        )));
-    }
+    key.ensure_type(KeyType::Private)?;
 
     // Step 2. Perform the decapsulation input check described in Section 7.3 of [FIPS-203] with
     // the parameter set indicated by the name member of algorithm, using the key represented by
@@ -171,31 +163,28 @@ pub(crate) fn decapsulate(
     Ok(shared_key)
 }
 
+/// <https://wicg.github.io/webcrypto-modern-algos/#ml-kem-operations-get-shared-key-length>
+pub(crate) fn get_shared_key_length() -> u32 {
+    // Step 1. Return 256.
+    256
+}
+
 /// <https://wicg.github.io/webcrypto-modern-algos/#ml-kem-operations-generate-key>
 pub(crate) fn generate_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleAlgorithm,
+    normalized_algorithm: &Algorithm,
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<CryptoKeyPair, Error> {
     // Step 1. If usages contains any entry which is not one of "encapsulateKey",
     // "encapsulateBits", "decapsulateKey" or "decapsulateBits", then throw a SyntaxError.
-    if usages.iter().any(|usage| {
-        !matches!(
-            usage,
-            KeyUsage::EncapsulateKey |
-                KeyUsage::EncapsulateBits |
-                KeyUsage::DecapsulateKey |
-                KeyUsage::DecapsulateBits
-        )
-    }) {
-        return Err(Error::Syntax(Some(
-            "Usages contains any entry which is not one of \"encapsulateKey\", \
-            \"encapsulateBits\", \"decapsulateKey\" or \"decapsulateBits\""
-                .into(),
-        )));
-    }
+    usages.ensure_only_contain_entries_from(&[
+        KeyUsage::EncapsulateKey,
+        KeyUsage::EncapsulateBits,
+        KeyUsage::DecapsulateKey,
+        KeyUsage::DecapsulateBits,
+    ])?;
 
     // Step 2. Generate an ML-KEM key pair, as described in Section 7.1 of [FIPS-203], with the
     // parameter set indicated by the name member of normalizedAlgorithm.
@@ -235,7 +224,7 @@ pub(crate) fn generate_key(
 
     // Step 4. Let algorithm be a new KeyAlgorithm object.
     // Step 5. Set the name attribute of algorithm to the name attribute of normalizedAlgorithm.
-    let algorithm = SubtleKeyAlgorithm {
+    let algorithm = KeyAlgorithm {
         name: normalized_algorithm.name,
     };
 
@@ -252,11 +241,7 @@ pub(crate) fn generate_key(
         KeyType::Public,
         true,
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm.clone()),
-        usages
-            .iter()
-            .filter(|usage| matches!(usage, KeyUsage::EncapsulateKey | KeyUsage::EncapsulateBits))
-            .cloned()
-            .collect(),
+        usages.usage_intersection(&[KeyUsage::EncapsulateKey, KeyUsage::EncapsulateBits]),
         public_key_handle,
     );
 
@@ -273,11 +258,7 @@ pub(crate) fn generate_key(
         KeyType::Private,
         extractable,
         KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-        usages
-            .iter()
-            .filter(|usage| matches!(usage, KeyUsage::DecapsulateKey | KeyUsage::DecapsulateBits))
-            .cloned()
-            .collect(),
+        usages.usage_intersection(&[KeyUsage::DecapsulateKey, KeyUsage::DecapsulateBits]),
         private_key_handle,
     );
 
@@ -297,7 +278,7 @@ pub(crate) fn generate_key(
 pub(crate) fn import_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleAlgorithm,
+    normalized_algorithm: &Algorithm,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
@@ -311,16 +292,10 @@ pub(crate) fn import_key(
         KeyFormat::Spki => {
             // Step 2.1. If usages contains an entry which is not "encapsulateKey" or
             // "encapsulateBits" then throw a SyntaxError.
-            if usages
-                .iter()
-                .any(|usage| !matches!(usage, KeyUsage::EncapsulateKey | KeyUsage::EncapsulateBits))
-            {
-                return Err(Error::Syntax(Some(
-                    "Usages contains an entry which is not \"encapsulateKey\" or \
-                    \"encapsulateBits\""
-                        .into(),
-                )));
-            }
+            usages.ensure_only_contain_entries_from(&[
+                KeyUsage::EncapsulateKey,
+                KeyUsage::EncapsulateBits,
+            ])?;
 
             // Step 2.2. Let spki be the result of running the parse a subjectPublicKeyInfo
             // algorithm over keyData.
@@ -377,7 +352,7 @@ pub(crate) fn import_key(
             // Step 2.11. Set the name attribute of algorithm to the name attribute of
             // normalizedAlgorithm.
             // Step 2.12. Set the [[algorithm]] internal slot of key to algorithm.
-            let algorithm = SubtleKeyAlgorithm {
+            let algorithm = KeyAlgorithm {
                 name: normalized_algorithm.name,
             };
             CryptoKey::new(
@@ -386,7 +361,7 @@ pub(crate) fn import_key(
                 KeyType::Public,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 public_key,
             )
         },
@@ -475,7 +450,7 @@ pub(crate) fn import_key(
             // Step 2.14. Set the name attribute of algorithm to the name attribute of
             // normalizedAlgorithm.
             // Step 2.15. Set the [[algorithm]] internal slot of key to algorithm.
-            let algorithm = SubtleKeyAlgorithm {
+            let algorithm = KeyAlgorithm {
                 name: normalized_algorithm.name,
             };
             CryptoKey::new(
@@ -484,7 +459,7 @@ pub(crate) fn import_key(
                 KeyType::Private,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 ml_kem_private_key,
             )
         },
@@ -546,7 +521,7 @@ pub(crate) fn import_key(
                     ))));
                 },
             };
-            let algorithm = SubtleKeyAlgorithm {
+            let algorithm = KeyAlgorithm {
                 name: normalized_algorithm.name,
             };
             CryptoKey::new(
@@ -555,7 +530,7 @@ pub(crate) fn import_key(
                 KeyType::Public,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 public_key,
             )
         },
@@ -631,7 +606,7 @@ pub(crate) fn import_key(
             // Step 2.8. Set the name attribute of algorithm to the name attribute of
             // normalizedAlgorithm.
             // Step 2.9. Set the [[algorithm]] internal slot of key to algorithm.
-            let algorithm = SubtleKeyAlgorithm {
+            let algorithm = KeyAlgorithm {
                 name: normalized_algorithm.name,
             };
             CryptoKey::new(
@@ -640,7 +615,7 @@ pub(crate) fn import_key(
                 KeyType::Private,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 private_key,
             )
         },
@@ -655,30 +630,17 @@ pub(crate) fn import_key(
 
             // Step 2.2. If the priv field of jwk is present and if usages contains an entry which
             // is not "decapsulateKey" or "decapsulateBits" then throw a SyntaxError.
-            if jwk.priv_.is_some() &&
-                usages.iter().any(|usage| {
-                    !matches!(usage, KeyUsage::DecapsulateKey | KeyUsage::DecapsulateBits)
-                })
-            {
-                return Err(Error::Syntax(Some(
-                    "The priv field of jwk is present and usages contains an entry which is \
-                    not \"decapsulateKey\" or \"decapsulateBits\""
-                        .into(),
-                )));
-            }
-
             // Step 2.3. If the priv field of jwk is not present and if usages contains an entry
             // which is not "encapsulateKey" or "encapsulateBits" then throw a SyntaxError.
-            if jwk.priv_.is_none() &&
-                usages.iter().any(|usage| {
-                    !matches!(usage, KeyUsage::EncapsulateKey | KeyUsage::EncapsulateBits)
-                })
-            {
-                return Err(Error::Syntax(Some(
-                    "The priv field of jwk is not present and usages contains an entry which is \
-                    not \"encapsulateKey\" or \"encapsulateBits\""
-                        .into(),
-                )));
+            match jwk.priv_.as_ref() {
+                Some(_) => usages.ensure_only_contain_entries_from(&[
+                    KeyUsage::DecapsulateKey,
+                    KeyUsage::DecapsulateBits,
+                ])?,
+                None => usages.ensure_only_contain_entries_from(&[
+                    KeyUsage::EncapsulateKey,
+                    KeyUsage::EncapsulateBits,
+                ])?,
             }
 
             // Step 2.4. If the kty field of jwk is not "AKP", then throw a DataError.
@@ -912,7 +874,7 @@ pub(crate) fn import_key(
             // Step 2.11. Set the name attribute of algorithm to the name member of
             // normalizedAlgorithm.
             // Step 2.12. Set the [[algorithm]] internal slot of key to algorithm.
-            let algorithm = SubtleKeyAlgorithm {
+            let algorithm = KeyAlgorithm {
                 name: normalized_algorithm.name,
             };
             CryptoKey::new(
@@ -921,7 +883,7 @@ pub(crate) fn import_key(
                 key_type,
                 extractable,
                 KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
-                usages,
+                usages.normalized_value(),
                 key_handle,
             )
         },
@@ -949,11 +911,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         KeyFormat::Spki => {
             // Step 2.1. If the [[type]] internal slot of key is not "public", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Public {
-                return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"public\"".into(),
-                )));
-            }
+            key.ensure_type(KeyType::Public)?;
 
             // Step 2.2. Let keyAlgorithm be the [[algorithm]] internal slot of key.
             let KeyAlgorithmAndDerivatives::KeyAlgorithm(key_algorithm) = key.algorithm() else {
@@ -1021,11 +979,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         KeyFormat::Pkcs8 => {
             // Step 2.1. If the [[type]] internal slot of key is not "private", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Private {
-                return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"private\"".into(),
-                )));
-            }
+            key.ensure_type(KeyType::Private)?;
 
             // Step 2.2. Let keyAlgorithm be the [[algorithm]] internal slot of key.
             let KeyAlgorithmAndDerivatives::KeyAlgorithm(key_algorithm) = key.algorithm() else {
@@ -1120,11 +1074,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         KeyFormat::Raw_public => {
             // Step 2.1. If the [[type]] internal slot of key is not "public", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Public {
-                return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"public\"".into(),
-                )));
-            }
+            key.ensure_type(KeyType::Public)?;
 
             // Step 2.2. Let data be a byte sequence containing the raw octets of the key
             // represented by the [[handle]] internal slot of key.
@@ -1146,11 +1096,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
         KeyFormat::Raw_seed => {
             // Step 2.1. If the [[type]] internal slot of key is not "private", then throw an
             // InvalidAccessError.
-            if key.Type() != KeyType::Private {
-                return Err(Error::InvalidAccess(Some(
-                    "[[type]] internal slot of key is not \"private\"".into(),
-                )));
-            }
+            key.ensure_type(KeyType::Private)?;
 
             // Step 2.2. Let data be a byte sequence containing the concatenation of the d and z
             // seed variables of the key represented by the [[handle]] internal slot of key.
@@ -1195,7 +1141,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             };
 
             // Step 2.3. Set the kty attribute of jwk to "AKP".
-            jwk.kty = Some(DOMString::from("AKP"));
+            jwk.kty = Some(DOMString::from_static("AKP"));
 
             // Step 2.4. Set the alg attribute of jwk to the alg value corresponding to the name
             // member of normalizedAlgorithm indicated in Section 8 of [draft-ietf-jose-pqc-kem-05]
@@ -1297,7 +1243,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
             }
 
             // Step 2.7. Set the key_ops attribute of jwk to the usages attribute of key.
-            jwk.set_key_ops(&key.usages());
+            jwk.set_key_ops(key.usages());
 
             // Step 2.8. Set the ext attribute of jwk to the [[extractable]] internal slot of key.
             jwk.ext = Some(key.Extractable());
@@ -1331,15 +1277,8 @@ pub(crate) fn get_public_key(
     // identified by algorithm, then throw a SyntaxError.
     //
     // NOTE: See "importKey" operation for supported usages
-    if usages
-        .iter()
-        .any(|usage| !matches!(usage, KeyUsage::EncapsulateKey | KeyUsage::EncapsulateBits))
-    {
-        return Err(Error::Syntax(Some(
-            "Usages contains an entry which is not \"encapsulateKey\" or \"encapsulateBits\""
-                .into(),
-        )));
-    }
+    usages
+        .ensure_only_contain_entries_from(&[KeyUsage::EncapsulateKey, KeyUsage::EncapsulateBits])?;
 
     // Step 10. Let publicKey be a new CryptoKey representing the public key corresponding to the
     // private key represented by the [[handle]] internal slot of key.

@@ -4,12 +4,12 @@
 <script src="/resources/testharnessreport.js"></script>
 <script>
 const TEST_CONFIGS = [
-  // Stress test very low rate & tiny block sizes.
-  {sampleRate: 3000, renderSizeHint: 1, length: 128},
-  // Stress test very high rate & massive block sizes.
-  {sampleRate: 768000, renderSizeHint: 4608000, length: 4608000},
   // Standard baseline verification.
   {sampleRate: 48000, renderSizeHint: 128, length: 128},
+  // Stress test very low rate & tiny block sizes.
+  {sampleRate: 3000, renderSizeHint: 1, length: 128},
+  // Stress test very high rate & larger than default block size.
+  {sampleRate: 768000, renderSizeHint: 256, length: 256},
   // Non-power-of-two block size verification.
   {sampleRate: 48000, renderSizeHint: 100, length: 200}
 ];

@@ -40,7 +40,11 @@ pub(crate) unsafe extern "C" fn write_jsprincipal(
     };
 
     unsafe {
-        if !js::jsapi::JS_WriteUint32Pair(writer, StructuredCloneTags::Principals as u32, len) {
+        if !js::jsapi::JS_WriteUint32PairUnchecked(
+            writer,
+            StructuredCloneTags::Principals as u32,
+            len,
+        ) {
             return false;
         }
         if !js::jsapi::JS_WriteBytes(writer, bytes_of_origin.as_ptr() as _, len as usize) {
@@ -88,10 +92,15 @@ pub(crate) unsafe extern "C" fn read_jsprincipal(
 
 pub(crate) const PRINCIPALS_CALLBACKS: JSPrincipalsCallbacks = JSPrincipalsCallbacks {
     write: Some(write_jsprincipal),
-    isSystemOrAddonPrincipal: Some(principals_is_system_or_addon_principal),
+    isSystemPrincipal: Some(principals_is_system_principal),
+    isAddonPrincipal: Some(principals_is_addon_principal),
 };
 
-unsafe extern "C" fn principals_is_system_or_addon_principal(_: *mut JSPrincipals) -> bool {
+unsafe extern "C" fn principals_is_system_principal(_: *mut JSPrincipals) -> bool {
+    false
+}
+
+unsafe extern "C" fn principals_is_addon_principal(_: *mut JSPrincipals) -> bool {
     false
 }
 

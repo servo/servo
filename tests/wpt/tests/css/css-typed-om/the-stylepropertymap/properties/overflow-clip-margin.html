@@ -17,11 +17,7 @@ runPropertyTests('overflow-clip-margin', [
   { syntax: 'border-box' },
   { syntax: 'content-box' },
   { syntax: 'padding-box' },
-  // FIXME: Add support for testing non-negative lengths
-  {
-    syntax: '<length>',
-    specified: assert_is_equal_with_range_handling,
-  },
+  { syntax: '<length>' },
 ]);
 
 runUnsupportedPropertyTests('overflow-clip-margin', [

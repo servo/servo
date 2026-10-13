@@ -32,7 +32,7 @@ interface HTMLOptionsCollection : HTMLCollection {
   [CEReactions] setter undefined (unsigned long index, HTMLOptionElement? option);
   [CEReactions] undefined add((HTMLOptionElement or HTMLOptGroupElement) element, optional (HTMLElement or long)? before = null);
   [CEReactions] undefined remove(long index);
-  attribute long selectedIndex;
+  [CEReactions] attribute long selectedIndex;
 };
 
 [Exposed=(Window,Worker)]
@@ -970,7 +970,7 @@ interface HTMLButtonElement : HTMLElement {
   [HTMLConstructor] constructor();
 
   [CEReactions, ReflectSetter] attribute DOMString command;
-  [CEReactions, Reflect] attribute Element? commandForElement;
+  [CEReactions, Reflect="commandfor"] attribute Element? commandForElement;
   [CEReactions, Reflect] attribute boolean disabled;
   readonly attribute HTMLFormElement? form;
   [CEReactions, ReflectSetter] attribute USVString formAction;
@@ -1017,8 +1017,8 @@ interface HTMLSelectElement : HTMLElement {
   [CEReactions] setter undefined (unsigned long index, HTMLOptionElement? option);
 
   [SameObject] readonly attribute HTMLCollection selectedOptions;
-  attribute long selectedIndex;
-  attribute DOMString value;
+  [CEReactions] attribute long selectedIndex;
+  [CEReactions] attribute DOMString value;
 
   readonly attribute boolean willValidate;
   readonly attribute ValidityState validity;
@@ -1056,7 +1056,7 @@ interface HTMLOptionElement : HTMLElement {
   readonly attribute HTMLFormElement? form;
   [CEReactions, ReflectSetter] attribute DOMString label;
   [CEReactions, Reflect="selected"] attribute boolean defaultSelected;
-  attribute boolean selected;
+  [CEReactions] attribute boolean selected;
   [CEReactions, ReflectSetter] attribute DOMString value;
 
   [CEReactions] attribute DOMString text;
@@ -1275,11 +1275,12 @@ interface HTMLTemplateElement : HTMLElement {
   [HTMLConstructor] constructor();
 
   readonly attribute DocumentFragment content;
+  [CEReactions, Reflect="for"] attribute DOMString htmlFor;
   [CEReactions] attribute DOMString shadowRootMode;
   [CEReactions, Reflect] attribute boolean shadowRootDelegatesFocus;
+  [CEReactions, Reflect] attribute boolean shadowRootSerializable;
   [CEReactions] attribute DOMString shadowRootSlotAssignment;
   [CEReactions, Reflect] attribute boolean shadowRootClonable;
-  [CEReactions, Reflect] attribute boolean shadowRootSerializable;
   [CEReactions, Reflect] attribute DOMString shadowRootCustomElementRegistry;
 };
 
@@ -1813,7 +1814,7 @@ dictionary DragEventInit : MouseEventInit {
 };
 
 interface mixin PopoverTargetAttributes {
-  [CEReactions, Reflect] attribute Element? popoverTargetElement;
+  [CEReactions, Reflect="popovertarget"] attribute Element? popoverTargetElement;
   [CEReactions] attribute DOMString popoverTargetAction;
 };
 
@@ -2439,6 +2440,7 @@ interface Sanitizer {
   boolean removeAttribute(SanitizerAttribute attribute);
   boolean setComments(boolean allow);
   boolean setDataAttributes(boolean allow);
+  boolean setJavascriptURLs(boolean allow);
 
   // Remove markup that executes script.
   boolean removeUnsafe();
@@ -2482,6 +2484,7 @@ dictionary SanitizerConfig {
 
   boolean comments;
   boolean dataAttributes;
+  boolean javascriptURLs;
 };
 
 [Exposed=Window]
@@ -2696,9 +2699,6 @@ interface MessagePort : EventTarget {
   undefined postMessage(any message, optional StructuredSerializeOptions options = {});
   undefined start();
   undefined close();
-
-  // event handlers
-  attribute EventHandler onclose;
 };
 
 MessagePort includes MessageEventTarget;

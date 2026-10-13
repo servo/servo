@@ -24,12 +24,91 @@ const signedIntegerTypes = ['int32', 'int64', 'int8'];
 
 const unsignedLongType = 'unsigned long';
 
+// Numeric-category orderings used by `findCompatibleType` to widen a
+// declared operand dtype (e.g. int8) to a globally-creatable dtype in the
+// same category (e.g. int32). Mirrored — with the same ordering — from
+// `resources/utils.js` because most validation tests do not load utils.js.
+// A few validation tests (e.g. pooling-and-reduction-keep-dims) do load
+// both scripts, so the declarations are guarded to avoid redeclaring the
+// bindings that utils.js already installed.
+if (typeof kIntTypes === 'undefined') {
+  globalThis.kIntTypes =
+      ['uint4', 'int4', 'uint8', 'int8', 'uint32', 'int32', 'uint64', 'int64'];
+  globalThis.kFloatTypes = ['float16', 'float32'];
+}
+
+/**
+ * Given a target `dataType` (typically an operand's declared dtype, which may
+ * not be creatable as a graph input), find a dtype in `supportedTypes`
+ * (typically the globally-creatable input dtypes) that `MLGraphBuilder.cast()`
+ * can convert into `dataType`. The caller creates the operand with the
+ * returned dtype and casts it to `dataType`, so the returned dtype is the
+ * cast's input and `dataType` is the cast's output.
+ *
+ * Candidates are restricted to the same numeric category as `dataType`
+ * (kIntTypes / kFloatTypes) and to those later in that category's ordering,
+ * i.e. wide enough to hold the values `dataType` can represent.
+ *
+ * Note: `findCompatibleType` in `resources/utils.js` has the cast input and
+ * output checks the other way round; that copy still needs the same fix.
+ *
+ * @param {string} dataType - The dtype the operand must end up with, i.e. the
+ *   cast's output dtype.
+ * @param {string[]} supportedTypes - Candidate dtypes for the cast's input.
+ * @param {object} castOpSupportLimits - `context.opSupportLimits().cast`.
+ * @return {string|null} A dtype from `supportedTypes` that can be cast to
+ *   `dataType`, or `null` if there is none / `dataType` is not supported as a
+ *   cast output.
+ */
+if (typeof findCompatibleType === 'undefined') {
+  globalThis.findCompatibleType = function(dataType, supportedTypes,
+                                           castOpSupportLimits) {
+    if (!castOpSupportLimits.output.dataTypes.includes(dataType)) {
+      return null;
+    }
+    for (let supportedType of supportedTypes) {
+      if (kIntTypes.includes(dataType) &&
+          castOpSupportLimits.input.dataTypes.includes(supportedType) &&
+          kIntTypes.indexOf(supportedType) > kIntTypes.indexOf(dataType)) {
+        return supportedType;
+      }
+      if (kFloatTypes.includes(dataType) &&
+          castOpSupportLimits.input.dataTypes.includes(supportedType) &&
+          kFloatTypes.indexOf(supportedType) > kFloatTypes.indexOf(dataType)) {
+        return supportedType;
+      }
+    }
+    return null;
+  };
+}
+
 const shape0D = [];
 const shape1D = [2];
 const shape2D = [2, 3];
 const shape3D = [2, 3, 4];
 const shape4D = [2, 3, 4, 5];
 const shape5D = [2, 3, 4, 5, 6];
+
+// Placeholder dim size used by rank-validation helpers (and their
+// per-operator `buildFn` callbacks) when synthesising input / companion
+// tensor shapes of arbitrary rank. Chosen as 2: the smallest non-degenerate
+// (> 1) value that keeps total elements small (2^rank; 256 at rank 8) and
+// lets companion tensors indexed by any axis share a uniform
+// [kExampleDimSize] shape.
+const kExampleDimSize = 2;
+
+/**
+ * Default shape builder used by the rank-validation helpers: a uniform
+ * [kExampleDimSize, ...] shape of the requested rank. Operators whose rank
+ * test needs a differently shaped input — e.g. `expand`, which can only
+ * broadcast dimensions of size 1 — pass their own builder to the helpers.
+ *
+ * @param {number} rank
+ * @return {number[]}
+ */
+function buildExampleShape(rank) {
+  return Array(rank).fill(kExampleDimSize);
+}
 
 const adjustOffsetsArray = [
   // Decrease 1
@@ -590,4 +669,324 @@ function multi_builder_test(func, description) {
 
     await func(t, builder, otherBuilder);
   }, description);
+}
+
+/**
+ * Return the global input rank max declared by context.opSupportLimits().
+ * Convenience wrapper used by rank validation helpers and bespoke Cartesian
+ * rank tests. `rankRange` and its `min`/`max` are mandatory, so no fallback
+ * is needed.
+ */
+function getGlobalRankMax() {
+  return context.opSupportLimits().input.rankRange.max;
+}
+
+/**
+ * Pick a data-type info object suitable for materialising an operand of the
+ * given `operandLimits` on the current backend.
+ *
+ * Returns `{sourceDataType, targetDataType}`:
+ *  - `sourceDataType` is the dtype to pass to `MLGraphBuilder.input()` (the
+ *    cast source when a cast is needed).
+ *  - `targetDataType` is the operand's declared dtype — an entry in
+ *    `operandLimits.dataTypes` that the operator will accept (the cast
+ *    target when a cast is needed). Equals `sourceDataType` when the
+ *    declared dtype is directly input-creatable per
+ *    `context.opSupportLimits().input.dataTypes`; otherwise `sourceDataType`
+ *    is a widening-compatible substitute (via `findCompatibleType`) that
+ *    must be cast to `targetDataType` via `MLGraphBuilder.cast()` before
+ *    use.
+ *
+ * Callers should build the operand via `buildInputOperand(builder, name,
+ * dataTypeInfo, shape)`, which handles the optional cast uniformly.
+ *
+ * Returns `undefined` when neither a directly-creatable nor a
+ * widening-compatible dtype is available for any of the declared dtypes.
+ *
+ * @param {object} operandLimits - The operand's entry in
+ *   `context.opSupportLimits()[operatorName][operandKey]`.
+ * @return {{sourceDataType: string, targetDataType: string}|undefined}
+ */
+function pickSupportedDataTypeInfo(operandLimits) {
+  const globalInputDataTypes = context.opSupportLimits().input.dataTypes;
+  const dataType =
+      operandLimits.dataTypes.find(dt => globalInputDataTypes.includes(dt));
+  if (dataType !== undefined) {
+    return {sourceDataType: dataType, targetDataType: dataType};
+  }
+  // Fallback: iterate declared dtypes; return the first that has a
+  // widening-compatible globally-creatable substitute (per
+  // `findCompatibleType`). The substitute becomes `sourceDataType` (for
+  // `builder.input()`) and is cast to the operand's declared
+  // `targetDataType` at use.
+  const castOpSupportLimits = context.opSupportLimits().cast;
+  for (let dt of operandLimits.dataTypes) {
+    const compatibleDataType =
+        findCompatibleType(dt, globalInputDataTypes, castOpSupportLimits);
+    if (compatibleDataType) {
+      return {sourceDataType: compatibleDataType, targetDataType: dt};
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Materialise an operand of `dataTypeInfo.targetDataType` on the given
+ * `builder`. Calls `MLGraphBuilder.input()` with
+ * `dataTypeInfo.sourceDataType`, then casts to `dataTypeInfo.targetDataType`
+ * if the two differ. `dataTypeInfo` is a value returned from
+ * `pickSupportedDataTypeInfo`.
+ *
+ * @param {MLGraphBuilder} builder
+ * @param {string} operandName
+ * @param {{sourceDataType: string, targetDataType: string}} dataTypeInfo
+ * @param {number[]} shape
+ * @return {MLOperand}
+ */
+function buildInputOperand(builder, operandName, dataTypeInfo, shape) {
+  const rawOperand = builder.input(
+      operandName, {dataType: dataTypeInfo.sourceDataType, shape});
+  return dataTypeInfo.targetDataType === dataTypeInfo.sourceDataType ?
+      rawOperand :
+      builder.cast(rawOperand, dataTypeInfo.targetDataType);
+}
+
+/**
+ * Validate that an operator throws TypeError for EVERY rank strictly greater
+ * than the maximum allowed by context.opSupportLimits() for the specified
+ * operand, up to and including the global input rank max.
+ *
+ * Iterating the full over-max range (rankMax+1 .. globalRankMax) — rather
+ * than testing only rankMax+1 — catches operators that partially reject
+ * out-of-range ranks (e.g. reject rankMax+1 but silently accept rankMax+2),
+ * which matters because backends (e.g. XNNPACK with XNN_MAX_TENSOR_DIMS=6)
+ * may have smaller internal rank limits than the WebNN global max of 8, and
+ * every accepted-but-unsupported rank is a potential native crash surface.
+ *
+ * The test is skipped (returns early) when:
+ *  - the operator is absent from opSupportLimits, or
+ *  - the operator's max rank already equals (or exceeds) the global input
+ *    max rank (no rank above max can be created), or
+ *  - none of the operand's supported data types are globally creatable.
+ *
+ * @param {string} operatorName - The operator name (key in opSupportLimits).
+ * @param {string} operandKey - The operand whose rank is under test
+ *   (e.g. 'input', 'a').
+ * @param {function(MLGraphBuilder, MLOperand): void} buildFn - Receives a
+ *   fresh builder and the already-created out-of-range input. Should call the
+ *   operator and return its output (or throw TypeError).
+ * @param {function(number): number[]} buildShape - Returns the shape to
+ *   create the operand with for the rank under test. Defaults to
+ *   `buildExampleShape`.
+ */
+function validateOperandRankTooLarge(operatorName, operandKey, buildFn,
+                                     buildShape = buildExampleShape) {
+  promise_test(
+      async t => {
+        const opLimits = context.opSupportLimits()[operatorName];
+        if (!opLimits)
+          return;
+        const {max: rankMax} = opLimits[operandKey].rankRange;
+        const globalRankMax = getGlobalRankMax();
+        const dataTypeInfo = pickSupportedDataTypeInfo(opLimits[operandKey]);
+        if (!dataTypeInfo)
+          return;
+        // Test every rank in (rankMax, globalRankMax]. Iterating the full range
+        // (rather than only rankMax+1) surfaces any rank the operator wrongly
+        // accepts between its declared max and the global max — such ranks
+        // would otherwise reach the backend and can trigger e.g. XNNPACK
+        // stack-buffer overflows (XNN_MAX_TENSOR_DIMS=6 vs. WebNN global max
+        // 8).
+        for (let rank = rankMax + 1; rank <= globalRankMax; rank++) {
+          const shape = buildShape(rank);
+          const builder = new MLGraphBuilder(context);
+          const input =
+              buildInputOperand(builder, operandKey, dataTypeInfo, shape);
+          // Allow buildFn to signal "cannot construct on this backend" by
+          // returning null (e.g. a companion operand's data type is not
+          // globally creatable). In that case, skip this rank.
+          let result;
+          let thrown;
+          try {
+            result = buildFn(builder, input);
+          } catch (e) {
+            thrown = e;
+          }
+          assert_true(thrown instanceof TypeError,
+                      `${operandKey} rank ${rank} (> max ${
+                          rankMax}) should be rejected`);
+        }
+      },
+      `[${operatorName}] throw if ${
+          operandKey} rank exceeds max rank allowed by opSupportLimits`);
+}
+
+/**
+ * Validate that an operator throws TypeError for EVERY rank strictly less
+ * than the minimum allowed by context.opSupportLimits() for the specified
+ * operand, down to and including rank 0 (scalar).
+ *
+ * Iterating the full under-min range ([0, rankMin)) — rather than testing
+ * only rankMin-1 — mirrors validateOperandRankTooLarge and catches
+ * operators that partially reject out-of-range ranks (e.g. reject rankMin-1
+ * but silently accept rankMin-2). Every accepted-but-unsupported rank is a
+ * potential native crash surface.
+ *
+ * The test is skipped (returns early) when:
+ *  - the operator is absent from opSupportLimits, or
+ *  - none of the operand's supported data types are globally creatable.
+ *
+ * When rankMin is 0 the loop below is empty, so no assertion runs.
+ *
+ * @param {string} operatorName - The operator name (key in opSupportLimits).
+ * @param {string} operandKey - The operand whose rank is under test.
+ * @param {function(MLGraphBuilder, MLOperand): void} buildFn - Receives a
+ *   fresh builder and the already-created out-of-range input. Should call the
+ *   operator and return its output (or throw TypeError).
+ * @param {function(number): number[]} buildShape - Returns the shape to
+ *   create the operand with for the rank under test. Defaults to
+ *   `buildExampleShape`.
+ */
+function validateOperandRankTooSmall(operatorName, operandKey, buildFn,
+                                     buildShape = buildExampleShape) {
+  promise_test(
+      async t => {
+        const opLimits = context.opSupportLimits()[operatorName];
+        if (!opLimits)
+          return;
+        const {min: rankMin} = opLimits[operandKey].rankRange;
+        const dataTypeInfo = pickSupportedDataTypeInfo(opLimits[operandKey]);
+        if (!dataTypeInfo)
+          return;
+        // Test every rank in [0, rankMin). Iterating the full range (rather
+        // than only rankMin-1) surfaces any rank the operator wrongly accepts
+        // between 0 and its declared min — mirroring
+        // validateOperandRankTooLarge.
+        for (let rank = 0; rank < rankMin; rank++) {
+          const shape = buildShape(rank);
+          const builder = new MLGraphBuilder(context);
+          const input =
+              buildInputOperand(builder, operandKey, dataTypeInfo, shape);
+          let thrown;
+          try {
+            buildFn(builder, input);
+          } catch (e) {
+            thrown = e;
+          }
+          assert_true(thrown instanceof TypeError,
+                      `${operandKey} rank ${rank} (< min ${
+                          rankMin}) should be rejected`);
+        }
+      },
+      `[${operatorName}] throw if ${
+          operandKey} rank is below min rank allowed by opSupportLimits`);
+}
+
+/**
+ * Validate that an operator accepts every rank within the inclusive range
+ * [min, max] allowed by context.opSupportLimits() for the specified operand.
+ *
+ * This complements validateOperandRankTooLarge / validateOperandRankTooSmall
+ * by exercising all of the supported ranks in between (and including) the
+ * boundaries, ensuring no valid rank is spuriously rejected.
+ *
+ * The test is skipped (returns early) when:
+ *  - the operator is absent from opSupportLimits, or
+ *  - none of the operand's supported data types are globally creatable, or
+ *  - the operand's max rank exceeds the global input max rank (such a rank
+ *    cannot be created).
+ *
+ * @param {string} operatorName - The operator name (key in opSupportLimits).
+ * @param {string} operandKey - The operand whose rank is under test
+ *   (e.g. 'input', 'a').
+ * @param {function(MLGraphBuilder, MLOperand): MLOperand} buildFn - Receives a
+ *   fresh builder and an in-range input. Should call the operator with valid
+ *   remaining operands and return its output.
+ * @param {function(number): number[]} buildShape - Returns the shape to
+ *   create the operand with for the rank under test. Defaults to
+ *   `buildExampleShape`.
+ */
+function validateOperandRankInRange(operatorName, operandKey, buildFn,
+                                    buildShape = buildExampleShape) {
+  promise_test(
+      async t => {
+        const opLimits = context.opSupportLimits()[operatorName];
+        if (!opLimits)
+          return;
+        const {min: rankMin, max: rankMax} = opLimits[operandKey].rankRange;
+        const dataTypeInfo = pickSupportedDataTypeInfo(opLimits[operandKey]);
+        if (!dataTypeInfo)
+          return;
+        for (let rank = rankMin; rank <= rankMax; rank++) {
+          const shape = buildShape(rank);
+          const builder = new MLGraphBuilder(context);
+          const input =
+              buildInputOperand(builder, operandKey, dataTypeInfo, shape);
+          const output = buildFn(builder, input);
+          assert_true(output instanceof MLOperand,
+                      `${operandKey} rank ${rank} should be accepted`);
+        }
+      },
+      `[${operatorName}] accept all ${
+          operandKey} ranks allowed by opSupportLimits`);
+}
+
+/**
+ * Emit the full trio of rank-validation tests — below-min, in-range, and
+ * above-max — for a single-operand rank check. Prefer this wrapper over
+ * calling `validateOperandRankTooSmall` / `validateOperandRankInRange` /
+ * `validateOperandRankTooLarge` individually: it guarantees all three regions
+ * are covered so a later spec change to `rankRange.min` doesn't silently drop
+ * the below-min check.
+ *
+ * `buildFn` must satisfy the union of the three contracts (see the individual
+ * helpers above). In practice this means:
+ *  - When invoked with an in-range input, it should call the operator and
+ *    return its output (an MLOperand), or return `null` to signal
+ *    "not creatable on this backend".
+ *  - When invoked with an out-of-range input, it should call the operator;
+ *    the operator throws TypeError, which the helpers catch and assert.
+ *
+ * The individual helpers remain available (and are still needed) for
+ * asymmetric multi-operand ops (e.g. `matmul`, `where`) whose different
+ * operands need different rank checks or share a Cartesian in-range test.
+ *
+ * @param {string} operatorName - The operator name (key in opSupportLimits).
+ * @param {string} operandKey - The operand whose rank is under test.
+ * @param {function(MLGraphBuilder, MLOperand): (MLOperand|null)} buildFn -
+ *   Receives a fresh builder and the input at the rank under test.
+ * @param {function(number): number[]} buildShape - Returns the shape to
+ *   create the operand with for the rank under test. Defaults to
+ *   `buildExampleShape`; override it when the uniform [kExampleDimSize, ...]
+ *   shape cannot exercise the operator (e.g. `expand`, which only broadcasts
+ *   dimensions of size 1).
+ */
+function validateOperandRank(operatorName, operandKey, buildFn,
+                             buildShape = buildExampleShape) {
+  validateOperandRankOutOfRange(operatorName, operandKey, buildFn, buildShape);
+  validateOperandRankInRange(operatorName, operandKey, buildFn, buildShape);
+}
+
+/**
+ * Emit both out-of-range rank checks — below-min and above-max — for a
+ * single-operand rank check. Prefer this wrapper over calling
+ * `validateOperandRankTooSmall` / `validateOperandRankTooLarge` individually
+ * for asymmetric multi-operand ops (e.g. `where`, `matmul`) whose in-range
+ * coverage is provided by a separate Cartesian `promise_test` and would be
+ * duplicated by the full `validateOperandRank` wrapper.
+ *
+ * @param {string} operatorName - The operator name (key in opSupportLimits).
+ * @param {string} operandKey - The operand whose rank is under test.
+ * @param {function(MLGraphBuilder, MLOperand): (MLOperand|null)} buildFn -
+ *   Receives a fresh builder and the out-of-range input. Should call the
+ *   operator; the operator throws TypeError, which the helpers catch and
+ *   assert.
+ * @param {function(number): number[]} buildShape - Returns the shape to
+ *   create the operand with for the rank under test. Defaults to
+ *   `buildExampleShape`.
+ */
+function validateOperandRankOutOfRange(operatorName, operandKey, buildFn,
+                                       buildShape = buildExampleShape) {
+  validateOperandRankTooSmall(operatorName, operandKey, buildFn, buildShape);
+  validateOperandRankTooLarge(operatorName, operandKey, buildFn, buildShape);
 }

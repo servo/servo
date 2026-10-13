@@ -50,8 +50,9 @@ promise_test(async t => {
       timeline.currentTime, null,
       'Timeline is inactive when block resolves to the horizontal viewport axis (clipped)');
 
-  document.body.style.contain = 'style';
-  await waitForNextFrame();
+  await runAndWaitForFrameUpdate(() => {
+    document.body.style.contain = 'style';
+  });
 
   assert_equals(timeline.source, document.documentElement);
   assert_percents_equal(

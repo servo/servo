@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-content">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#item-margins">
+<link rel="match" href="grid-max-content-tracks-items-with-paddings-001-ref.html">
+<meta name="assert" content="Fixed paddings on grid items contribute to the size of max-content tracks.">
+<html>
+<head>
+<style>
+.grid {
+    display: grid;
+    /* Sum of the two max-content tracks, so there is zero free space. */
+    width: 100px;
+    grid-template-columns: max-content max-content;
+    grid-template-rows: 100px;
+    background-color: green;
+}
+/* Verify fixed padding contributes to max-content track sizing. */
+.left {
+    grid-row: 1 / 2;
+    grid-column: 1 / 2;
+    width: 20px;
+    padding: 0 4px 0 8px;
+    background-color: blue;
+}
+.right {
+    grid-row: 1 / 2;
+    grid-column: 2 / 3;
+    width: 40px;
+    padding: 0 12px 0 16px;
+    background-color: blue;
+}
+.leftContent {
+    width: 20px;
+    height: 20px;
+    background-color: purple;
+}
+.rightContent {
+    width: 40px;
+    height: 20px;
+    background-color: purple;
+}
+</style>
+</head>
+<body>
+<div class="grid">
+    <div class="left"><div class="leftContent"></div></div>
+    <div class="right"><div class="rightContent"></div></div>
+</div>
+</body>
+</html>

@@ -28,9 +28,13 @@ def test_atspi(atspi, session, inline):
 #     # Role: ROLE_SYSTEM_SLIDER
 #     # Interface: IAccessibleValue
 
-# def test_uia(uia, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # Control Type: Slider
-#     # Control Pattern: RangeValue
+def test_uia(uia, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Control Type: Slider
+    # Control Pattern: RangeValue
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.Slider
+    assert node.GetCurrentPropertyValue(uia.PropertyId.IsRangeValuePatternAvailable)

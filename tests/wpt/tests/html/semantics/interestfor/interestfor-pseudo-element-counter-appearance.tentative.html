@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<link rel="match" href="interestfor-pseudo-element-counter-appearance-ref.html">
+
+<div class="container counter-reset">
+  <button class="count-me" interestfor="target">Button 1</button>
+  <button class="count-me" interestfor="target">Button 2</button>
+  <button class="count-me" interestfor="target">Button 3</button>
+</div>
+
+<div class="container counter-reset">
+  <a href="#" class="count-me" interestfor="target">Link 1</a>
+  <a href="#" class="count-me" interestfor="target">Link 2</a>
+</div>
+
+<div class="container pseudo-counter-reset">
+  <button class="pseudo-count" interestfor="target">Button A</button>
+  <button class="pseudo-count" interestfor="target">Button B</button>
+</div>
+
+<div id="target"></div>
+
+<style>
+  .container {
+    font-family: monospace;
+    font-size: 14px;
+    margin-bottom: 10px;
+    border: 1px solid gray;
+    padding: 5px;
+  }
+  button, a {
+    font: inherit;
+    color: inherit;
+  }
+  .counter-reset {
+    counter-reset: item-count;
+  }
+  .count-me {
+    counter-increment: item-count;
+  }
+  .count-me::interest-button {
+    content: " #" counter(item-count);
+  }
+  .pseudo-counter-reset {
+    counter-reset: pseudo-count;
+  }
+  .pseudo-count::interest-button {
+    counter-increment: pseudo-count;
+    content: "+" counter(pseudo-count);
+  }
+</style>

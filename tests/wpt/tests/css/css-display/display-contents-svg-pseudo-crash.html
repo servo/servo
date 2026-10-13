@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<style>
+g { display: contents; }
+g::before { content: "cap"; display: table-caption; }
+</style>
+<svg id=root width=300 height=300><g id=g></g></svg>
+<script>
+onload = () => {
+  document.documentElement.offsetWidth;
+  let r = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+  r.setAttribute("width", 100);
+  r.setAttribute("height", 100);
+  r.style.filter = "blur(2px)";
+  g.appendChild(r);
+  document.documentElement.offsetWidth;
+  root.style.textShadow = "2px 2px red";
+  document.documentElement.offsetWidth;
+};
+</script>

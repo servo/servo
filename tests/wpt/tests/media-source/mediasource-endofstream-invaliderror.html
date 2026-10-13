@@ -36,6 +36,37 @@
               test.done();
           }, 'Test MediaSource.endOfStream() with invalid empty error string.');
 
+          function endOfStreamWhenEndedTest(erroneousArg)
+          {
+              mediasource_testafterdataloaded(function(test, mediaElement, mediaSource, segmentInfo, sourceBuffer, mediaData)
+              {
+                  assert_equals(mediaSource.readyState, 'open');
+
+                  test.expectEvent(sourceBuffer, 'updateend', 'sourceBuffer');
+                  sourceBuffer.appendBuffer(mediaData);
+
+                  test.waitForExpectedEvents(function()
+                  {
+                      test.expectEvent(mediaSource, 'sourceended', 'mediaSource');
+                      mediaSource.endOfStream();
+
+                      test.waitForExpectedEvents(function()
+                      {
+                          assert_equals(mediaSource.readyState, 'ended');
+                          assert_throws_dom("InvalidStateError",
+                              function() { mediaSource.endOfStream(erroneousArg); },
+                              "endOfStream() threw an exception when in ended state");
+
+                          test.done();
+                      });
+                  });
+              }, 'Test MediaSource.endOfStream(' + (erroneousArg === undefined ? '' : erroneousArg) + ') when readyState is ended.');
+          }
+
+          endOfStreamWhenEndedTest(undefined);
+          endOfStreamWhenEndedTest("decode");
+          endOfStreamWhenEndedTest("network");
+
           mediasource_test(function(test, mediaElement, mediaSource)
           {
               mediaElement.addEventListener('error', test.unreached_func("Unexpected event 'error'"));

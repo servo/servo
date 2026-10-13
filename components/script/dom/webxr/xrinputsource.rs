@@ -9,7 +9,7 @@ use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::MutableHandleValue;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use webxr_api::{Handedness, InputFrame, InputId, InputSource, TargetRayMode};
 
 use crate::dom::bindings::codegen::Bindings::XRInputSourceBinding::{
@@ -63,7 +63,7 @@ impl XRInputSource {
             cx,
             window,
             0,
-            "".into(),
+            String::new(),
             "xr-standard".into(),
             (-1.0, 1.0),
             (0.0, 1.0),
@@ -74,19 +74,16 @@ impl XRInputSource {
             true,
         );
 
-        let source = reflect_dom_object_with_cx(
+        let source = reflect_dom_object(
+            cx,
             Box::new(XRInputSource::new_inherited(session, info, &gamepad)),
             window,
-            cx,
         );
 
         let mut realm = enter_auto_realm(cx, window);
         let cx = &mut realm.current_realm();
         rooted!(&in(cx) let mut profiles = UndefinedValue());
-        source
-            .info
-            .profiles
-            .safe_to_jsval(cx, profiles.handle_mut());
+        source.info.profiles.to_jsval(cx, profiles.handle_mut());
         source.profiles.set(profiles.get());
         source
     }

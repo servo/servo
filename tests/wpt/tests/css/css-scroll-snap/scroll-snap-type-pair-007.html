@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<title>CSS Scroll Snap: DirectionStrategy 2D scrollBy candidate conflict resolution under scroll-snap-type: pair</title>
+<link rel="help" href="https://drafts.csswg.org/css-scroll-snap-1/#snap-axis"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #scroller {
+    width: 300px;
+    height: 300px;
+    overflow: scroll;
+    position: relative;
+    scroll-snap-type: pair mandatory;
+    scrollbar-width: none;
+    background: #fafafa;
+    border: 2px solid #333;
+  }
+  .space {
+    width: 2000px;
+    height: 2000px;
+    position: absolute;
+  }
+  .target {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+    border-radius: 4px;
+    scroll-snap-align: start start;
+  }
+  .origin {
+    left: 100px;
+    top: 100px;
+    background: #6c757d;
+  }
+  /* scrollBy(50, 10) from (100, 100) has an intended end position of
+     (150, 110).
+     Candidate X: farther from the intended end position, but aligned with the
+     scroll direction (wins under cosine similarity). */
+  .candidate-x {
+    left: 350px;
+    top: 100px;
+    background: #28a745;
+  }
+  /* Candidate Y: closer to the intended end position, but against the scroll
+     direction (would win under plain Euclidean distance). */
+  .candidate-y {
+    left: 100px;
+    top: 180px;
+    background: #007bff;
+  }
+</style>
+
+<div id="scroller" class="scroller">
+  <div class="space"></div>
+  <div class="origin target"></div>
+  <div class="candidate-x target"></div>
+  <div class="candidate-y target"></div>
+</div>
+
+<script>
+test(() => {
+  const scroller = document.getElementById("scroller");
+
+  assert_equals(scroller.scrollLeft, 100, "Initial scrollLeft is 100");
+  assert_equals(scroller.scrollTop, 100, "Initial scrollTop is 100");
+
+  // Short 2D scroll biased horizontally. The X axis search selects
+  // candidate-x and the Y axis search selects candidate-y; the conflict is
+  // resolved by cosine similarity to the scroll direction. The step is kept
+  // small so that candidate-y stays visible at the intended x position and
+  // remains a competing candidate.
+  scroller.scrollBy({ left: 50, top: 10, behavior: "instant" });
+
+  assert_equals(scroller.scrollLeft, 350, "scrollLeft should snap to candidate-x");
+  assert_equals(scroller.scrollTop, 100, "scrollTop should snap to candidate-x");
+}, "DirectionStrategy prefers higher cosine similarity candidate during 2D scrollBy");
+</script>

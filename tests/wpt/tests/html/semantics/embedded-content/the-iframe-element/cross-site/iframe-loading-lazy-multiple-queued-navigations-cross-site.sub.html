@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<head>
+  <title>A below-viewport lazy cross-site iframe navigates only to the latest src mutation</title>
+  <link rel="author" title="Dom Farolino" href="mailto:dom@chromium.org">
+  <link rel="help" href="https://html.spec.whatwg.org/multipage/urls-and-fetching.html#lazy-loading-attributes">
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+</head>
+
+<script>
+  const t = async_test('A below-viewport lazy cross-site iframe navigates only to the latest src mutation');
+
+  const new_src = 'http://{{hosts[alt][]}}:{{ports[http][0]}}/html/semantics/embedded-content/the-iframe-element/cross-site/resources/subframe-post-msg.html?new-src';
+
+  let has_below_viewport_loaded = false;
+
+  window.addEventListener("load", t.step_func(() => {
+    assert_false(has_below_viewport_loaded,
+                "The below_viewport element should not have loaded before " +
+                "window.load().");
+
+    // Queue another lazy load navigation on the iframe. This should not result
+    // in multiple internal intersection observers being created for the iframe
+    // element, but instead should result in only one intersection observer
+    // associated with the iframe element, and the resulting navigation should
+    // be for the latest `src` attribute mutation.
+    const target = document.querySelector('#below_viewport');
+    target.src = new_src;
+    target.scrollIntoView();
+  }));
+
+  window.addEventListener("message", t.step_func_done(event => {
+    assert_equals(document.querySelector('#below_viewport').src, new_src,
+      "The iframe's src should reflect the latest `src` mutation");
+    assert_equals(event.data, new_src,
+      'The iframe should be navigated to the resource provided by the latest `src` mutation');
+  }));
+
+
+</script>
+
+<body>
+  <div style="height:3000vh;"></div>
+  <iframe id="below_viewport"
+          src="http://{{hosts[alt][]}}:{{ports[http][0]}}/html/semantics/embedded-content/the-iframe-element/cross-site/resources/subframe-post-msg.html?old-src"
+          loading="lazy" onload="has_below_viewport_loaded = true;"
+          width="200px" height="100px"></iframe>
+</body>

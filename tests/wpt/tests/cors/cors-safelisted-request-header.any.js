@@ -66,6 +66,17 @@ function safelist(headers, expectPreflight = false) {
   ["bytes = 100-200", true],
   [",bytes=100-200", true],
   ["bytes=,100-200", true],
+  ["BYTES=100-200", true],
+  ["Bytes=100-200", true],
+  ["bytes=+0-100", true],
+  ["bytes=0-+100", true],
+  ["bytes=+5-", true],
+  ["bytes=0--1", true],
+  ["bytes\u000C=100-200", true],
+  ["bytes=\u000C100-200", true],
+  ["bytes=100\u000C-200", true],
+  ["bytes=100-\u000C200", true],
+  ["bytes=100-200\u000C", true]
 ].forEach(([value, preflight = false]) => {
   safelist({"range": value}, preflight);
 });

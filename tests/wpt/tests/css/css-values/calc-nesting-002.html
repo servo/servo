@@ -66,7 +66,7 @@
 
     verifySerialization("calc(calc(300px - 1 * (0% - 100px)))", "calc(0% + 400px)", "testing calc(calc(300px - 1 * (0% - 100px)))");
 
-    verifySerialization("calc(0px - 1 * (min(20%, 20px) - 10px))", "calc(10px - min(20%, 20px))", "testing simplification with nested sum");
+    verifySerialization("calc(0px - 1 * (min(20%, 20px) - 10px))", "calc(0px - (1 * (-10px + min(20%, 20px))))", "testing simplification with nested sum");
 
   /*
 

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes: margins should not affect track opening space</title>
+  <link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-dense-packing">
+  <link rel="match" href="column-dense-packing-multi-span-013-ref.html">
+  <style>
+    #preview {
+      display: grid-lanes;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      grid-lanes-pack: dense;
+    }
+
+    .item-1 {
+      background: #fbc4c4;
+      height: 60px;
+    }
+
+    .item-2 {
+      background: #bae0fd;
+      height: 120px;
+    }
+
+    .item-3 {
+      background: #d4b8f0;
+      height: 80px;
+    }
+
+    .item-4 {
+      background: #fde8a0;
+      height: 15px;
+      margin-top: -60px;
+      grid-column: span 2;
+    }
+
+    .item-5 {
+      background: #b5ead7;
+      height: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div id="preview">
+    <div class="item-1">1</div>
+    <div class="item-2">2</div>
+    <div class="item-3">3</div>
+    <div class="item-4">4</div>
+    <div class="item-5">5</div>
+  </div>
+</body>
+</html>

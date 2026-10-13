@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+<head>
+    <style>
+        span { width: 100px; height: 100px; }
+        /* A grid is a block by default. */
+        .grid { display: block; background-color: green; }
+        .inline-grid { display: inline-block; background-color: green; }
+    </style>
+</head>
+<body>
+<p>In this paragraph <span class="grid" style="float:left"></span> there should be <span class="grid" style="float:right"></span>
+two empty grids.  One will float to the left and one will float to the right.  They should both be empty.</p>
+<br clear=all>
+<p>This grid should be positioned to the right. <span class="grid" style="position:absolute;right:8px;"></span></p>
+
+<p style="margin-top:115px">
+<span style="float:left;background-color:orange"></span><span class="inline-grid"></span> The green grid
+should be to the right of the floating orange box.
+</p>

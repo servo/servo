@@ -116,10 +116,10 @@ window.onload = () => {
     reset();
     textInput.select();
     return new Promise(r => {
-      anchor.addEventListener("click", function() {
+      anchor.addEventListener("click", t.step_func(function() {
         assert_equals(window.getSelection().toString().replace(/\r\n/g, "\n"), "");
         r();
-      }, {once : true});
+      }), {once : true});
 
       test_driver.click(anchor);
     });
@@ -143,10 +143,10 @@ window.onload = () => {
     reset();
     textInput.select();
     return new Promise(r => {
-      anchor.addEventListener("click", function() {
+      anchor.addEventListener("click", t.step_func(function() {
         assert_equals(window.getSelection().toString().replace(/\r\n/g, "\n"), "This is a text");
         r();
-      }, {once : true});
+      }), {once : true});
 
       test_driver.click(anchor); // anchor has href now
     });
@@ -157,10 +157,10 @@ window.onload = () => {
     textInput.select();
 
     return new Promise(async r => {
-      anchor.addEventListener("click", function() {
+      anchor.addEventListener("click", t.step_func(function() {
         assert_equals(window.getSelection().toString().replace(/\r\n/g, "\n"), "");
         r();
-      }, {once : true});
+      }), {once : true});
 
       await test_driver.click(text);
       test_driver.click(anchor);
@@ -173,10 +173,10 @@ window.onload = () => {
 
     text.style = "user-select: none";
     return new Promise(async r => {
-      anchor.addEventListener("click", function() {
+      anchor.addEventListener("click", t.step_func(function() {
         assert_equals(window.getSelection().toString().replace(/\r\n/g, "\n"), "This is a text");
         r();
-      }, {once : true});
+      }), {once : true});
 
       await test_driver.click(text);
       test_driver.click(anchor);

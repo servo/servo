@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html>
+<title>Elements should appear in elementsFromPoint when updated with updateElementGeometry</title>
+<link rel="help" href="https://github.com/WICG/html-in-canvas">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+<style>
+  #canvas {
+    width: 200px;
+    height: 200px;
+  }
+  div {
+    width: 100px;
+    height: 100px;
+    background: green;
+  }
+  span {
+    font: 25px/1 Ahem;
+  }
+</style>
+
+<canvas id=canvas width="200" height="200" content=drawable>
+  <div id="a" drawable></div>
+  <div id="b" drawable></div>
+  <div id="pointerEventsNone" drawable style="pointer-events: none;"></div>
+  <div id="inlineContainer" drawable style="padding-left: 100px;">
+    <span id="inlineA">X</span><span id="inlineB" drawable>X</span>
+  </div>
+</canvas>
+
+<script>
+  promise_test(async function () {
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[canvas, body, html]`');
+  }, 'Canvas descendants are not hit-testable before updateElementGeometry.');
+
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    canvas.updateElementGeometry(b);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [b, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[b, canvas, body, html]`');
+  }, 'Canvas descendants are hittable after updateElementGeometry.');
+
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    canvas.updateElementGeometry(a);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [a, b, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[a, b, canvas, body, html]`');
+  }, 'Canvas descendants are hit in reverse update order.');
+
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    canvas.updateElementGeometry(b);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [b, a, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[b, a, canvas, body, html]`');
+  }, 'Re-updating an element moves it to the top of the hit testing list.');
+
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    // b is currently on top. Updating a with preserveHitTestOrder: true keeps b on top.
+    canvas.updateElementGeometry(a, { preserveHitTestOrder: true });
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [b, a, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[b, a, canvas, body, html]`');
+  }, 'preserveHitTestOrder: true preserves existing hit testing order.');
+
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    // Explicit preserveHitTestOrder: false moves a to top.
+    canvas.updateElementGeometry(a, { preserveHitTestOrder: false });
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [a, b, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[a, b, canvas, body, html]`');
+  }, 'preserveHitTestOrder: false moves element to top of the hit testing list.');
+
+  promise_test(async function (t) {
+    canvas.updateElementGeometry(b, {
+      canvasTransform: new DOMMatrix().translate(50, 50)
+    });
+    t.add_cleanup(() => {
+      canvas.updateElementGeometry(b, { canvasTransform: new DOMMatrix() });
+    });
+    assert_array_equals(document.elementsFromPoint(110, 110),
+                        [b, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[b, canvas, body, html]`');
+  }, 'Canvas transform set via updateElementGeometry should be used for hit testing');
+
+  promise_test(async function (t) {
+    canvas.updateElementGeometry(inlineB, {
+      canvasTransform: new DOMMatrix().translate(125, 0)
+    });
+    t.add_cleanup(() => {
+      canvas.clearElementGeometry(inlineB);
+    });
+    assert_array_equals(document.elementsFromPoint(135, 10),
+                        [inlineB, canvas, document.body, document.documentElement],
+                        'Should have returned a sequence with `[inlineB, canvas, body, html]`');
+  }, 'Inline canvas transform set via updateElementGeometry should be used for hit testing');
+
+  promise_test(async function (t) {
+    // Both a and b at (50, 50).
+    canvas.updateElementGeometry(b, {
+      canvasTransform: new DOMMatrix().translate(50, 50)
+    });
+    canvas.updateElementGeometry(a, {
+      canvasTransform: new DOMMatrix().translate(50, 50)
+    });
+    t.add_cleanup(() => {
+      canvas.updateElementGeometry(a, { canvasTransform: new DOMMatrix() });
+      canvas.updateElementGeometry(b, { canvasTransform: new DOMMatrix() });
+    });
+
+    // a was updated last, so a is on top of b at (110, 110).
+    assert_array_equals(document.elementsFromPoint(110, 110),
+                        [a, b, canvas, document.body, document.documentElement],
+                        'a is on top at (110, 110)');
+
+    // Call updateElementGeometry on b with preserveHitTestOrder: true (omitting canvasTransform).
+    // b's transform remains (50, 50), and hit test order is preserved (a stays on top).
+    canvas.updateElementGeometry(b, { preserveHitTestOrder: true });
+    assert_array_equals(document.elementsFromPoint(110, 110),
+                        [a, b, canvas, document.body, document.documentElement],
+                        'b transform is preserved and a remains on top');
+
+    // Call updateElementGeometry on b with preserveHitTestOrder: false (omitting canvasTransform).
+    // b's transform remains (50, 50), but b moves to the top of the hit testing stack.
+    canvas.updateElementGeometry(b, { preserveHitTestOrder: false });
+    assert_array_equals(document.elementsFromPoint(110, 110),
+                        [b, a, canvas, document.body, document.documentElement],
+                        'b transform is preserved and b moves to top');
+
+    // Call updateElementGeometry on a with preserveHitTestOrder: true (omitting canvasTransform).
+    // a's transform remains (50, 50), and b remains on top.
+    canvas.updateElementGeometry(a, { preserveHitTestOrder: true });
+    assert_array_equals(document.elementsFromPoint(110, 110),
+                        [b, a, canvas, document.body, document.documentElement],
+                        'a transform is preserved and b remains on top');
+  }, 'updateElementGeometry preserves canvasTransform when omitted and respects preserveHitTestOrder');
+
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    const ctx = canvas.getContext('2d');
+    ctx.drawElementImage(a, 0, 0);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [a, b, canvas, document.body, document.documentElement],
+                        'a is on top after drawElementImage(a)');
+    canvas.updateElementGeometry(b, { preserveHitTestOrder: true });
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [a, b, canvas, document.body, document.documentElement],
+                        'a remains on top after updateElementGeometry(b, {preserveHitTestOrder: true})');
+    canvas.updateElementGeometry(b, { preserveHitTestOrder: false });
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [b, a, canvas, document.body, document.documentElement],
+                        'b moves to top after updateElementGeometry(b, {preserveHitTestOrder: false})');
+  }, 'updateElementGeometry interoperates with drawElementImage hit testing order');
+
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    canvas.updateElementGeometry(a);
+    canvas.updateElementGeometry(b);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [b, a, canvas, document.body, document.documentElement],
+                        'Initial order should be [b, a, canvas, body, html]');
+    canvas.clearElementGeometry(b);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [a, canvas, document.body, document.documentElement],
+                        'b should be removed from hit test stack after clearElementGeometry(b)');
+    canvas.clearElementGeometry(a);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [canvas, document.body, document.documentElement],
+                        'a should also be removed from hit test stack after clearElementGeometry(a)');
+  }, 'clearElementGeometry removes element from hit testing stack.');
+
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    canvas.updateElementGeometry(b, {
+      canvasTransform: new DOMMatrix().translate(50, 50)
+    });
+    assert_array_equals(document.elementsFromPoint(110, 110),
+                        [b, canvas, document.body, document.documentElement],
+                        'b is hit at (110, 110)');
+    canvas.clearElementGeometry(b);
+    assert_array_equals(document.elementsFromPoint(110, 110),
+                        [canvas, document.body, document.documentElement],
+                        'b is no longer hit at (110, 110) after clearElementGeometry(b)');
+
+    // Re-updating b without canvasTransform should use b without any transform (at (0, 0))
+    canvas.updateElementGeometry(b);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [b, canvas, document.body, document.documentElement],
+                        'b is hit at (60, 60)');
+    assert_array_equals(document.elementsFromPoint(110, 110),
+                        [canvas, document.body, document.documentElement],
+                        'b transform was cleared, so b is not hit at (110, 110)');
+    canvas.clearElementGeometry(b);
+  }, 'clearElementGeometry clears canvasTransform.');
+
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    canvas.clearElementGeometry(a);
+    canvas.clearElementGeometry(b);
+
+    // Add b first so b is at the top of the stack.
+    canvas.updateElementGeometry(b);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [b, canvas, document.body, document.documentElement],
+                        'b is the only hit descendant');
+
+    // a is not currently in the hit testing stack. Calling updateElementGeometry with
+    // preserveHitTestOrder: true places it at the top of the stack.
+    canvas.updateElementGeometry(a, { preserveHitTestOrder: true });
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [a, b, canvas, document.body, document.documentElement],
+                        'a is placed at top of stack when not already present, even with preserveHitTestOrder: true');
+
+    // Now that b is already in the stack, updating b with preserveHitTestOrder: true
+    // preserves its order (a remains on top).
+    canvas.updateElementGeometry(b, { preserveHitTestOrder: true });
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [a, b, canvas, document.body, document.documentElement],
+                        'b is already in stack, so preserveHitTestOrder: true preserves order (a remains on top)');
+    canvas.clearElementGeometry(a);
+    canvas.clearElementGeometry(b);
+  }, 'preserveHitTestOrder: true adds element to hit testing stack if not already present.');
+
+  promise_test(async function (t) {
+    await waitForCanvasPaint(canvas);
+    canvas.clearElementGeometry(a);
+    canvas.clearElementGeometry(b);
+    t.add_cleanup(() => {
+      pointerEventsNone.style.pointerEvents = 'none';
+      canvas.clearElementGeometry(pointerEventsNone);
+    });
+    canvas.updateElementGeometry(pointerEventsNone);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [canvas, document.body, document.documentElement],
+                        'pointerEventsNone should not appear with pointer-events: none');
+    pointerEventsNone.style.pointerEvents = 'auto';
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [pointerEventsNone, canvas, document.body, document.documentElement],
+                        'pointerEventsNone should appear after removing pointer-events: none');
+  }, 'Elements with pointer-events: none are not hit-testable until pointer-events is removed.');
+
+  promise_test(async function () {
+    await waitForCanvasPaint(canvas);
+    canvas.clearElementGeometry(a);
+    canvas.clearElementGeometry(b);
+
+    const imageA = canvas.captureElementImage(a);
+    const imageB = canvas.captureElementImage(b);
+
+    canvas.updateElementGeometry(imageA);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [a, canvas, document.body, document.documentElement],
+                        'a is hit after updateElementGeometry(imageA)');
+
+    canvas.updateElementGeometry(imageB);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [b, a, canvas, document.body, document.documentElement],
+                        'b is on top after updateElementGeometry(imageB)');
+
+    canvas.clearElementGeometry(imageB);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [a, canvas, document.body, document.documentElement],
+                        'b is cleared after clearElementGeometry(imageB)');
+
+    canvas.clearElementGeometry(imageA);
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [canvas, document.body, document.documentElement],
+                        'a is cleared after clearElementGeometry(imageA)');
+  }, 'updateElementGeometry and clearElementGeometry accept ElementImage.');
+
+  promise_test(async function (t) {
+    await waitForCanvasPaint(canvas);
+    canvas.clearElementGeometry(a);
+    canvas.clearElementGeometry(b);
+    t.add_cleanup(() => {
+      canvas.clearElementGeometry(b);
+    });
+
+    // b is 100x100 at (0, 0). Clip to (0, 0, 50, 50).
+    canvas.updateElementGeometry(b, {
+      canvasClip: { x: 0, y: 0, width: 50, height: 50 }
+    });
+
+    // (25, 25) is inside the clip region -> hits b.
+    assert_array_equals(document.elementsFromPoint(25, 25),
+                        [b, canvas, document.body, document.documentElement],
+                        'b should be hit at (25, 25) within clip');
+
+    // (75, 75) is inside b's 100x100 bounds but outside the clip region -> does not hit b.
+    assert_array_equals(document.elementsFromPoint(75, 75),
+                        [canvas, document.body, document.documentElement],
+                        'b should not be hit at (75, 75) outside clip');
+
+    // Omitting clip in subsequent updateElementGeometry preserves the clip.
+    canvas.updateElementGeometry(b, { preserveHitTestOrder: true });
+    assert_array_equals(document.elementsFromPoint(25, 25),
+                        [b, canvas, document.body, document.documentElement],
+                        'b should still be hit at (25, 25) when clip is omitted');
+    assert_array_equals(document.elementsFromPoint(75, 75),
+                        [canvas, document.body, document.documentElement],
+                        'b should still not be hit at (75, 75) when clip is omitted');
+
+    // Negative dimensions in clip are normalized.
+    canvas.updateElementGeometry(b, {
+      canvasClip: { x: 50, y: 50, width: -50, height: -50 }
+    });
+    assert_array_equals(document.elementsFromPoint(25, 25),
+                        [b, canvas, document.body, document.documentElement],
+                        'Negative clip is normalized, hitting (25, 25)');
+    assert_array_equals(document.elementsFromPoint(75, 75),
+                        [canvas, document.body, document.documentElement],
+                        'Negative clip is normalized, missing (75, 75)');
+
+    // Calling clearElementGeometry clears the clip.
+    canvas.clearElementGeometry(b);
+    assert_array_equals(document.elementsFromPoint(25, 25),
+                        [canvas, document.body, document.documentElement],
+                        'b is not hit after clearElementGeometry');
+
+    // Re-updating b without clip restores full 100x100 hit testing.
+    canvas.updateElementGeometry(b);
+    assert_array_equals(document.elementsFromPoint(75, 75),
+                        [b, canvas, document.body, document.documentElement],
+                        'b should be hit at (75, 75) after clip was cleared');
+  }, 'updateElementGeometry clip restricts hit testing and is cleared by clearElementGeometry.');
+
+  promise_test(async function (t) {
+    await waitForCanvasPaint(canvas);
+    canvas.clearElementGeometry(a);
+    canvas.clearElementGeometry(b);
+    t.add_cleanup(() => {
+      b.style.zoom = '';
+      canvas.clearElementGeometry(b);
+    });
+
+    // Both canvasTransform and clip can be set together.
+    // canvasTransform moves b by (50, 50).
+    // clip is evaluated in the coordinate space of canvasTransform.
+    // So clip at (0, 0, 25, 25) restricts hit testing to [50, 50, 25, 25] in canvas coordinates.
+    canvas.updateElementGeometry(b, {
+      canvasTransform: new DOMMatrix().translate(50, 50),
+      canvasClip: { x: 0, y: 0, width: 25, height: 25 }
+    });
+
+    // (60, 60) is inside b's transformed rect [50, 50, 100, 100] and inside clip [0, 0, 25, 25] (canvas [50, 50, 25, 25]).
+    assert_array_equals(document.elementsFromPoint(60, 60),
+                        [b, canvas, document.body, document.documentElement],
+                        'b is hit within transform and clip at (60, 60)');
+
+    // (90, 90) is inside b's transformed rect [50, 50, 100, 100] but outside clip [0, 0, 25, 25] (canvas [50, 50, 25, 25]).
+    assert_array_equals(document.elementsFromPoint(90, 90),
+                        [canvas, document.body, document.documentElement],
+                        'b is not hit outside clip at (90, 90)');
+
+    // With CSS zoom: 2 on b, both canvasTransform and clip are scaled by 2.
+    // The transformed element is at [100, 100, 200, 200] in canvas coordinates
+    // and the clip restricts hit testing to [100, 100, 50, 50] in canvas coordinates.
+    b.style.zoom = 2;
+    assert_array_equals(document.elementsFromPoint(140, 140),
+                        [b, canvas, document.body, document.documentElement],
+                        'b is hit within zoomed transform and clip at (140, 140)');
+    assert_array_equals(document.elementsFromPoint(175, 175),
+                        [canvas, document.body, document.documentElement],
+                        'b is not hit outside zoomed clip at (175, 175)');
+  }, 'updateElementGeometry clip is evaluated in the coordinate space of canvasTransform.');
+
+  promise_test(async function (t) {
+    await waitForCanvasPaint(canvas);
+    canvas.clearElementGeometry(a);
+    canvas.clearElementGeometry(b);
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    t.add_cleanup(() => {
+      canvas.clearElementGeometry(a);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    });
+
+    // Draw the center of element a (25, 25 to 75, 75) to the bottom-right of the canvas (125, 125 to 175, 175).
+    // Without clipping, the translated 100x100 element would occupy (100, 100) to (200, 200).
+    ctx.drawElementImage(a, 25, 25, 50, 50, 125, 125, 50, 50);
+
+    // Hit test points around the drawn location (inside unclipped [100..200, 100..200] bounds, outside [125..175, 125..175] clip).
+    // Note: document.elementsFromPoint uses viewport coordinates. With the default 8px body margin,
+    // canvas rect (125, 125)-(175, 175) maps to viewport (133, 133)-(183, 183), so we use 185 (not 180)
+    // for the bottom point to be outside the 183 bottom edge.
+    assert_array_equals(document.elementsFromPoint(115, 150),
+                        [canvas, document.body, document.documentElement],
+                        'a is not hit left of drawn location at (115, 150)');
+    assert_array_equals(document.elementsFromPoint(150, 115),
+                        [canvas, document.body, document.documentElement],
+                        'a is not hit above drawn location at (150, 115)');
+    assert_array_equals(document.elementsFromPoint(185, 150),
+                        [canvas, document.body, document.documentElement],
+                        'a is not hit right of drawn location at (185, 150)');
+    assert_array_equals(document.elementsFromPoint(150, 185),
+                        [canvas, document.body, document.documentElement],
+                        'a is not hit below drawn location at (150, 185)');
+
+    // Hit test a point inside the drawn location -> hits a.
+    assert_array_equals(document.elementsFromPoint(150, 150),
+                        [a, canvas, document.body, document.documentElement],
+                        'a is hit inside drawn location at (150, 150)');
+
+    // Update geometry manually with updateElementGeometry to the same location as previously drawn.
+    // Drawing (25, 25, 50, 50) at (125, 125, 50, 50) translates element origin (0, 0) to (100, 100),
+    // with a clip rect of (25, 25, 50, 50) in the coordinate space of canvasTransform.
+    canvas.clearElementGeometry(a);
+    canvas.updateElementGeometry(a, {
+      canvasTransform: new DOMMatrix().translate(100, 100),
+      canvasClip: { x: 25, y: 25, width: 50, height: 50 }
+    });
+
+    assert_array_equals(document.elementsFromPoint(115, 150),
+                        [canvas, document.body, document.documentElement],
+                        'a is not hit left of manual clip at (115, 150)');
+    assert_array_equals(document.elementsFromPoint(150, 115),
+                        [canvas, document.body, document.documentElement],
+                        'a is not hit above manual clip at (150, 115)');
+    assert_array_equals(document.elementsFromPoint(185, 150),
+                        [canvas, document.body, document.documentElement],
+                        'a is not hit right of manual clip at (185, 150)');
+    assert_array_equals(document.elementsFromPoint(150, 185),
+                        [canvas, document.body, document.documentElement],
+                        'a is not hit below manual clip at (150, 185)');
+    assert_array_equals(document.elementsFromPoint(150, 150),
+                        [a, canvas, document.body, document.documentElement],
+                        'a is hit inside manual transform and clip at (150, 150)');
+  }, 'drawElementImage with source and destination offsets clips hit-testing identically to manual updateElementGeometry.');
+
+  promise_test(async function (t) {
+    await waitForCanvasPaint(canvas);
+    canvas.clearElementGeometry(a);
+    t.add_cleanup(() => {
+      canvas.clearElementGeometry(a);
+    });
+
+    const imageA = canvas.captureElementImage(a);
+    canvas.updateElementGeometry(imageA, {
+      canvasClip: { x: 0, y: 0, width: 30, height: 30 }
+    });
+
+    assert_array_equals(document.elementsFromPoint(15, 15),
+                        [a, canvas, document.body, document.documentElement],
+                        'a is hit via imageA within clip');
+    assert_array_equals(document.elementsFromPoint(50, 50),
+                        [canvas, document.body, document.documentElement],
+                        'a is not hit via imageA outside clip');
+  }, 'updateElementGeometry supports clip with ElementImage.');
+
+  promise_test(async function (t) {
+    await waitForCanvasPaint(canvas);
+    canvas.clearElementGeometry(a);
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    t.add_cleanup(() => {
+      a.style.backgroundColor = 'green';
+      canvas.clearElementGeometry(a);
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    });
+
+    // Set a clip outside a's local (0, 0, 100, 100) geometry.
+    canvas.updateElementGeometry(a, {
+      canvasTransform: new DOMMatrix().translate(120, 120),
+      canvasClip: { x: 120, y: 120, width: 50, height: 50 }
+    });
+
+    // Mutate style on `a` so it is repainted.
+    a.style.backgroundColor = 'rgb(0, 0, 255)';
+    await waitForCanvasPaint(canvas);
+
+    // Drawing `a` at (0, 0) should render the full unclipped blue element,
+    // not be clipped by the hit-test clip rect.
+    ctx.drawElementImage(a, 0, 0);
+    const pixel = ctx.getImageData(25, 25, 1, 1).data;
+    assert_array_equals(Array.from(pixel), [0, 0, 255, 255],
+                        'Repainted element image should not be clipped by hit-test clip rect');
+  }, 'Hit test clip rect does not clip element rendering in drawElementImage.');
+
+  promise_test(async function (t) {
+    await waitForCanvasPaint(canvas);
+    canvas.clearElementGeometry(a);
+    const ctx = canvas.getContext('2d');
+    t.add_cleanup(() => {
+      canvas.onpaint = null;
+      canvas.clearElementGeometry(a);
+    });
+
+    let paintCount = 0;
+    canvas.onpaint = () => {
+      paintCount++;
+    };
+
+    // Wait two frames to ensure any pending paint events have settled.
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    paintCount = 0;
+
+    // Setting and clearing hit-test clip via drawElementImage slicing and clearElementGeometry
+    // must not trigger a canvas paint event.
+    ctx.drawElementImage(a, 0, 0, 50, 50, 0, 0, 50, 50);
+    canvas.clearElementGeometry(a);
+    canvas.updateElementGeometry(a, { clip: { x: 10, y: 10, width: 30, height: 30 } });
+    canvas.clearElementGeometry(a);
+
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    assert_equals(paintCount, 0, 'Setting or clearing canvas clip should not trigger canvas paint events');
+  }, 'Setting or clearing hit test clip rect does not trigger canvas paint events.');
+</script>
+</html>

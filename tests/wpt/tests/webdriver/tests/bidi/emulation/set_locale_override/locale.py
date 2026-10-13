@@ -1,3 +1,7 @@
+# META: timeout=long
+
+# Longer timeout required due to multiple navigation and emulation verification subtests.
+
 import pytest
 import pytest_asyncio
 from webdriver.bidi.modules.script import ContextTarget

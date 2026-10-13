@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>Serialization of @navigation navigation-location-test and navigation-location-between-test</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-navigation-1/#at-navigation">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script>
+  test(()=> {
+    const canonical = "@navigation (at: --foo) {\n}";
+    test_valid_rule(canonical);
+    test_valid_rule(" @Navigation  (At:--foo ){  \n} ", canonical);
+  }, "navigation-location-test");
+
+  test(()=> {
+    const canonical = "@navigation (at: url-pattern(\"/a/\")) {\n}";
+    test_valid_rule(canonical);
+    test_valid_rule(" @Navigation  ( At:url-pattern( \"/a/\") ){ \n } ", canonical);
+  }, "navigation-location-test with url-pattern()");
+
+  test(()=> {
+    const canonical = "@navigation (between: --a and --b) {\n}";
+    test_valid_rule(canonical);
+    test_valid_rule("@Navigation  ( Between:--a  And  --b ){ \n} ", canonical);
+  }, "navigation-location-between-test");
+
+  test(()=> {
+    const canonical = "@navigation (between: url-pattern(\"/a/\") and url-pattern(\"/b/\")) {\n}";
+    test_valid_rule(canonical);
+    test_valid_rule("@Navigation (Between:url-pattern( \"/a/\" )  And  url-pattern( \"/b/\" )){ \n }", canonical);
+  }, "navigation-location-between-test with url-pattern()");
+
+  test(()=> {
+    const canonical = "@navigation ((from: --a) or (at: --b)) {\n}";
+    test_valid_rule(canonical);
+    test_valid_rule("@Navigation  ( ( From:--a ) Or ( At:--b) ){ \n} ", canonical);
+  }, "complex navigation-location-test");
+
+  test(()=> {
+    const canonical = "@navigation ((between: --a and --b) or (at: --c)) {\n}";
+    test_valid_rule(canonical);
+    test_valid_rule("@Navigation  ( ( Between:--a  And  --b ) Or ( At:--c) ){ \n} ", canonical);
+  }, "complex mixed");
+</script>

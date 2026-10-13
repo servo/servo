@@ -33,7 +33,7 @@ pub(crate) fn decode_and_enqueue_a_chunk(
 ) -> Fallible<()> {
     // Step 1. Let bufferSource be the result of converting chunk to an AllowSharedBufferSource.
     let conversion_result =
-        ArrayBufferViewOrArrayBuffer::safe_from_jsval(cx, chunk, ()).map_err(|_| {
+        ArrayBufferViewOrArrayBuffer::from_jsval(cx, chunk, ()).map_err(|_| {
             Error::Type(c"Unable to convert chunk into ArrayBuffer or ArrayBufferView".to_owned())
         })?;
     let buffer_source = conversion_result.get_success_value().ok_or_else(|| {
@@ -58,7 +58,7 @@ pub(crate) fn decode_and_enqueue_a_chunk(
         return Ok(());
     }
     rooted!(&in(cx) let mut rval = UndefinedValue());
-    output_chunk.safe_to_jsval(cx, rval.handle_mut());
+    output_chunk.to_jsval(cx, rval.handle_mut());
     controller.enqueue(cx, global, rval.handle())
 }
 
@@ -87,7 +87,7 @@ pub(crate) fn flush_and_enqueue(
         return Ok(());
     }
     rooted!(&in(cx) let mut rval = UndefinedValue());
-    output_chunk.safe_to_jsval(cx, rval.handle_mut());
+    output_chunk.to_jsval(cx, rval.handle_mut());
     controller.enqueue(cx, global, rval.handle())
 }
 
@@ -148,7 +148,7 @@ impl TextDecoderStreamMethods<crate::DomTypeHolder> for TextDecoderStream {
         label: DOMString,
         options: &TextDecoderBinding::TextDecoderOptions,
     ) -> Fallible<DomRoot<TextDecoderStream>> {
-        let encoding = match Encoding::for_label_no_replacement(&label.as_bytes()) {
+        let encoding = match Encoding::for_label_no_replacement(&label.as_bytes(cx.no_gc())) {
             Some(enc) => enc,
             None => {
                 return Err(Error::Range(

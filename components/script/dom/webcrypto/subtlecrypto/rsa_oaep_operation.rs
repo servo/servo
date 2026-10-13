@@ -8,9 +8,7 @@ use rsa::traits::{Decryptor, RandomizedEncryptor};
 use sha1::Sha1;
 use sha2::{Sha256, Sha384, Sha512};
 
-use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{
-    CryptoKeyMethods, CryptoKeyPair, KeyType, KeyUsage,
-};
+use crate::dom::bindings::codegen::Bindings::CryptoKeyBinding::{CryptoKeyPair, KeyType, KeyUsage};
 use crate::dom::bindings::codegen::Bindings::SubtleCryptoBinding::KeyFormat;
 use crate::dom::bindings::error::Error;
 use crate::dom::bindings::root::DomRoot;
@@ -19,22 +17,18 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::rsa_common::{self, RsaAlgorithm};
 use crate::dom::subtlecrypto::{
     CryptoAlgorithm, ExportedKey, KeyAlgorithmAndDerivatives, NormalizedAlgorithm,
-    SubtleRsaHashedImportParams, SubtleRsaHashedKeyGenParams, SubtleRsaOaepParams,
+    RsaHashedImportParams, RsaHashedKeyGenParams, RsaOaepParams,
 };
 
 /// <https://w3c.github.io/webcrypto/#rsa-oaep-operations-encrypt>
 pub(crate) fn encrypt(
-    normalized_algorithm: &SubtleRsaOaepParams,
+    normalized_algorithm: &RsaOaepParams,
     key: &CryptoKey,
     plaintext: &[u8],
 ) -> Result<Vec<u8>, Error> {
     // Step 1. If the [[type]] internal slot of key is not "public", then throw an
     // InvalidAccessError.
-    if key.Type() != KeyType::Public {
-        return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of key is not \"public\"".to_string(),
-        )));
-    }
+    key.ensure_type(KeyType::Public)?;
 
     // Step 2. Let label be the label member of normalizedAlgorithm or the empty byte sequence if
     // the label member of normalizedAlgorithm is not present.
@@ -90,17 +84,13 @@ pub(crate) fn encrypt(
 
 /// <https://w3c.github.io/webcrypto/#rsa-oaep-operations-decrypt>
 pub(crate) fn decrypt(
-    normalized_algorithm: &SubtleRsaOaepParams,
+    normalized_algorithm: &RsaOaepParams,
     key: &CryptoKey,
     ciphertext: &[u8],
 ) -> Result<Vec<u8>, Error> {
     // Step 1. If the [[type]] internal slot of key is not "private", then throw an
     // InvalidAccessError.
-    if key.Type() != KeyType::Private {
-        return Err(Error::InvalidAccess(Some(
-            "[[type]] internal slot of key is not \"private\"".to_string(),
-        )));
-    }
+    key.ensure_type(KeyType::Private)?;
 
     // Step 2. Let label be the label member of normalizedAlgorithm or the empty byte sequence if
     // the label member of normalizedAlgorithm is not present.
@@ -160,14 +150,14 @@ pub(crate) fn decrypt(
 pub(crate) fn generate_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleRsaHashedKeyGenParams,
+    normalized_algorithm: &RsaHashedKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<CryptoKeyPair, Error> {
     rsa_common::generate_key(
-        RsaAlgorithm::RsaOaep,
         cx,
         global,
+        RsaAlgorithm::RsaOaep,
         normalized_algorithm,
         extractable,
         usages,
@@ -178,16 +168,16 @@ pub(crate) fn generate_key(
 pub(crate) fn import_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleRsaHashedImportParams,
+    normalized_algorithm: &RsaHashedImportParams,
     format: KeyFormat,
     key_data: &[u8],
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     rsa_common::import_key(
-        RsaAlgorithm::RsaOaep,
         cx,
         global,
+        RsaAlgorithm::RsaOaep,
         normalized_algorithm,
         format,
         key_data,
@@ -210,5 +200,5 @@ pub(crate) fn get_public_key(
     algorithm: &KeyAlgorithmAndDerivatives,
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
-    rsa_common::get_public_key(RsaAlgorithm::RsaOaep, cx, global, key, algorithm, usages)
+    rsa_common::get_public_key(cx, global, RsaAlgorithm::RsaOaep, key, algorithm, usages)
 }

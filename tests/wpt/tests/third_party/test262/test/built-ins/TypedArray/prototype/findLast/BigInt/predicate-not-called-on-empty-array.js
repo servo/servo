@@ -15,8 +15,8 @@ includes: [testTypedArray.js]
 features: [BigInt, TypedArray, array-find-from-last]
 ---*/
 
-testWithBigIntTypedArrayConstructors(function(TA) {
-  var sample = new TA();
+testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
+  var sample = new TA(makeCtorArg(0));
   var called = false;
 
   var result = sample.findLast(function() {
@@ -34,4 +34,4 @@ testWithBigIntTypedArrayConstructors(function(TA) {
     undefined,
     "findLast returns undefined when predicate is not called"
   );
-}, null, ["passthrough"]);
+});

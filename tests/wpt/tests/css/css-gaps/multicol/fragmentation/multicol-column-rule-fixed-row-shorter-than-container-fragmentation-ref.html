@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#segment-endpoints">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#fragmentation">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#ch">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#column-gaps-and-rules">
+<link rel="help" href="https://drafts.csswg.org/css-multicol-2/#propdef-column-wrap">
+<style>
+  body {
+    margin: 0;
+  }
+
+  .outer {
+    position: relative;
+    width: 440px;
+    height: 100px;
+    background: lightgray;
+  }
+
+  .item {
+    position: absolute;
+    width: 60px;
+    background: orange;
+  }
+
+  .rule {
+    position: absolute;
+    width: 4px;
+    background: blue;
+  }
+
+  .first-fragment {
+    top: 40px;
+    height: 60px;
+  }
+
+  .second-fragment {
+    top: 0;
+    height: 60px;
+  }
+
+</style>
+<div class="outer">
+  <div class="rule first-fragment" style="left: 63px;"></div>
+  <div class="rule first-fragment" style="left: 133px;"></div>
+  <div class="rule second-fragment" style="left: 303px;"></div>
+  <div class="rule second-fragment" style="left: 373px;"></div>
+
+  <div class="item first-fragment" style="left: 0;"></div>
+  <div class="item first-fragment" style="left: 70px;"></div>
+  <div class="item first-fragment" style="left: 140px;"></div>
+  <div class="item second-fragment" style="left: 240px;"></div>
+  <div class="item second-fragment" style="left: 310px;"></div>
+  <div class="item second-fragment" style="left: 380px;"></div>
+</div>

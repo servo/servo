@@ -3,10 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::cmp::{Ord, Ordering, PartialEq, PartialOrd};
+use std::cmp::{Ord, Ordering, PartialEq};
 
 use deny_public_fields::DenyPublicFields;
 use dom_struct::dom_struct;
+use js::context::NoGC;
 use script_bindings::reflector::Reflector;
 use servo_base::text::Utf16CodeUnits;
 
@@ -109,11 +110,10 @@ impl BoundaryPoint {
     pub(crate) fn node(&self) -> &MutDom<Node> {
         &self.node
     }
-}
 
-impl PartialOrd for BoundaryPoint {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+    pub(crate) fn partial_cmp(&self, no_gc: &NoGC, other: &Self) -> Option<Ordering> {
         Some(bp_position(
+            no_gc,
             &self.node.get(),
             self.offset.get(),
             &other.node.get(),
@@ -131,7 +131,13 @@ impl PartialEq for BoundaryPoint {
 }
 
 /// <https://dom.spec.whatwg.org/#concept-range-bp-position>
-pub(crate) fn bp_position(a_node: &Node, a_offset: u32, b_node: &Node, b_offset: u32) -> Ordering {
+pub(crate) fn bp_position(
+    no_gc: &NoGC,
+    a_node: &Node,
+    a_offset: u32,
+    b_node: &Node,
+    b_offset: u32,
+) -> Ordering {
     // Step 1: Assert: nodeA and nodeB have the same root.
     debug_assert!(
         a_node.GetRootNode(&Default::default()) == b_node.GetRootNode(&Default::default())
@@ -143,7 +149,7 @@ pub(crate) fn bp_position(a_node: &Node, a_offset: u32, b_node: &Node, b_offset:
         return a_offset.cmp(&b_offset);
     }
 
-    let position = b_node.CompareDocumentPosition(a_node);
+    let position = b_node.CompareDocumentPosition(no_gc, a_node);
     assert!(
         position & NodeConstants::DOCUMENT_POSITION_DISCONNECTED == 0,
         "Nodes should be in the same tree"
@@ -152,7 +158,7 @@ pub(crate) fn bp_position(a_node: &Node, a_offset: u32, b_node: &Node, b_offset:
         // Step 3: If nodeA is following nodeB, then if the position of (nodeB, offsetB)
         // relative to (nodeA, offsetA) is before, return after, and if it is after,
         // return before.
-        return match bp_position(b_node, b_offset, a_node, a_offset) {
+        return match bp_position(no_gc, b_node, b_offset, a_node, a_offset) {
             Ordering::Less => Ordering::Greater,
             Ordering::Greater => Ordering::Less,
             Ordering::Equal => unreachable!("Should be impossible due to Step 2."),

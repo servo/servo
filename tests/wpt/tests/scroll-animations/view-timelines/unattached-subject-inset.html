@@ -42,6 +42,9 @@
     await waitForNextFrame();
     const scroller = document.getElementById('container');
     scroller.appendChild(element);
+    // Timeline source getter is async, so make sure it receives a frame.
+    // https://github.com/w3c/csswg-drafts/issues/13480
+    element.offsetTop;
     assert_equals(timeline.source, scroller, 'Source resolved once attached');
     await waitForNextFrame();
 

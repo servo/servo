@@ -29,7 +29,7 @@ promise_test(async t => {
 
   const [tool] = await windowB.document.modelContext.getTools();
   assert_equals(tool.window, windowB);
-  const execute_promise = document.modelContext.executeTool(tool, '{}');
+  const execute_promise = document.modelContext.executeTool(tool);
 
   await promise_rejects_dom(t, 'UnknownError', execute_promise);
 }, 'executeTool() rejects when the tool is hosted in another frame tree');

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+  <div id=scroller>
+    <div id=target></div>
+  </div>
+</body>
+<script>
+  function test_invalid_range_options(options) {
+    assert_throws_js(TypeError, () => {
+      target.animate({ width: "200px" }, options);
+    });
+  }
+
+  test(t => {
+    test_invalid_range_options({
+      rangeEnd: "contain 10em",
+    });
+  }, "range with font-relative units via string");
+
+  test(t => {
+    test_invalid_range_options({
+      rangeStart: "contain calc(sign(100em - 1px) * 20px)",
+    });
+  }, "range with font-relative units via string in calc");
+
+  test(t => {
+    test_invalid_range_options({
+      rangeEnd: { rangeName: 'exit', offset: CSS.em(20) },
+    });
+  }, "Range with font-relative units via typed CSSOM with range names");
+
+  test(t => {
+    test_invalid_range_options({
+      rangeStart: { rangeName: 'contain', offset: new CSSMathSum(CSS.percent(0), CSS.em(20)) },
+    });
+  }, "Range with font-relative units via typed CSSOM using CSSMathSum with range names");
+
+  test(t => {
+    test_invalid_range_options({
+      rangeEnd: { offset: CSS.em(20) },
+    });
+  }, "Range with font-relative units via typed CSSOM without range names");
+
+  test(t => {
+    test_invalid_range_options({
+      rangeStart: { offset: new CSSMathSum(CSS.percent(0), CSS.em(20)) },
+    });
+  }, "Range with font-relative units via typed CSSOM using CSSMathSum without range names");
+
+  test(t => {
+    test_invalid_range_options({
+      rangeEnd: CSS.em(20),
+    });
+  }, "Range with font-relative units via direct typed CSSOM without range names");
+
+  test(t => {
+    test_invalid_range_options({
+      rangeStart: new CSSMathSum(CSS.percent(0), CSS.em(20)),
+    });
+  }, "Range with font-relative units via direct typed CSSOM using CSSMathSum with range names");
+
+  test(t => {
+    test_invalid_range_options({
+      rangeStart: "none 10px",
+    });
+  }, "Range with invalid range name in string");
+
+  test(t => {
+    test_invalid_range_options({
+      rangeStart: { rangeName: 'none' },
+    });
+  }, "Range with invalid range name via dictionary");
+
+  test(t => {
+    test_invalid_range_options({
+      rangeStart: { rangeName: 'none', offset: CSS.px(20) },
+    });
+  }, "Range with invalid range name with offset");
+</script>

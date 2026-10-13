@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>Blended outline-offset values are snapped as a line width</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#propdef-outline-offset">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#snap-a-length-as-a-border-width">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/12906">
+<meta name="assert" content="A blended outline-offset is snapped to an integer number of device pixels the same way outline-width is, and the inset keyword does not interpolate with a length.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="target"></div>
+<script>
+const target = document.getElementById("target");
+
+// https://drafts.csswg.org/css-values-4/#snap-a-length-as-a-border-width, applied to the
+// magnitude so that the sign of a negative outline-offset is preserved. Expectations are
+// derived from this rather than hard-coded so that they hold at any device scale factor.
+function snap(value) {
+  const devicePixel = 1 / window.devicePixelRatio;
+  const sign = value < 0 ? -1 : 1;
+  const magnitude = Math.abs(value);
+  if (magnitude > 0 && magnitude < devicePixel)
+    return sign * devicePixel;
+  return sign * Math.floor(magnitude * window.devicePixelRatio) / window.devicePixelRatio;
+}
+
+function offsetAt(from, to, progress) {
+  const animation = target.animate({ outlineOffset: [from, to] }, 1000);
+  animation.pause();
+  animation.currentTime = progress * 1000;
+  const offset = getComputedStyle(target).outlineOffset;
+  animation.cancel();
+  return offset;
+}
+
+// [from, to, progress, unsnapped value the progress lands on]
+const tests = [
+  ["0px", "10px", 0.25, 2.5],
+  ["0px", "-10px", 0.25, -2.5],
+  ["10px", "0px", 0.75, 2.5],
+  // A magnitude below 1 device pixel must round away from zero, never to zero.
+  ["0px", "1px", 0.5, 0.5],
+  ["0px", "-1px", 0.5, -0.5],
+  // Zero stays zero.
+  ["0px", "10px", 0, 0],
+];
+
+for (const [from, to, progress, unsnapped] of tests) {
+  test(() => {
+    assert_equals(offsetAt(from, to, progress), `${snap(unsnapped)}px`);
+  }, `outline-offset from ${from} to ${to} at ${progress} is snapped as a line width`);
+}
+
+test(() => {
+  // `inset` is a css-ui-4 addition; skip where it is not supported, since an unsupported
+  // keyframe value is dropped and the animation interpolates the underlying value instead.
+  assert_implements_optional(CSS.supports("outline-offset", "inset"),
+                             "outline-offset: inset is not supported");
+  assert_equals(offsetAt("inset", "10px", 0.25), "inset");
+  assert_equals(offsetAt("inset", "10px", 0.75), "10px");
+}, "outline-offset inset does not interpolate with a length");
+</script>

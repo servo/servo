@@ -8,7 +8,7 @@
 </head>
 <body>
 <script>
-function test_register_tool_schema_error(inputSchema, expectedError, testName) {
+function test_register_tool_schema_error(inputSchema, testName) {
   promise_test((t) => {
     return promise_rejects_js(
       t,
@@ -19,7 +19,7 @@ function test_register_tool_schema_error(inputSchema, expectedError, testName) {
         inputSchema,
         execute: () => {},
       }),
-      `Should throw ${expectedError.name} for invalid schema`,
+      'Should throw TypeError for invalid schema',
     );
   }, testName);
 }

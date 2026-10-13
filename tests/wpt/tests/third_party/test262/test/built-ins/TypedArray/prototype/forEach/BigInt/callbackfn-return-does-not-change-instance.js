@@ -16,9 +16,7 @@ features: [BigInt, TypedArray]
 ---*/
 
 testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
-  var sample1 = new TA(makeCtorArg(3));
-
-  sample1[1] = 1n;
+  var sample1 = new TA(makeCtorArg(["0", "1", "0"]));
 
   sample1.forEach(function() {
     return 42;

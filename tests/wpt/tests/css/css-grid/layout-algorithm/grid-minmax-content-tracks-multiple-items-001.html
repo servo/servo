@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#track-sizing">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-content">
+<meta name="assert" content="minmax() tracks with intrinsic and fixed sizing functions are sized from the contributions of all the grid items in them.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/css/support/alignment.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.gridMinMaxAutoWithColumnMinMaxAuto {
+    grid-template-columns: minmax(50px, 180px) auto;
+    grid-template-rows: auto minmax(50px, 100px);
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="document.fonts.ready.then(() => { checkLayout('.grid'); })">
+
+<p>Test that several different grid items along with several minmax tracks are properly sized.</p>
+
+<div class="unconstrainedContainer" style="position: relative;">
+<div class="grid gridMinMaxAutoWithColumnMinMaxAuto justifyContentStart">
+    <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="180" data-expected-height="10">XXXXX XXXXX</div>
+    <div class="sizedToGridArea firstRowSecondColumn" data-expected-width="170" data-expected-height="10">XXXXX XXXXX XXXXX</div>
+    <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="180" data-expected-height="100">XXXXX XXXXX XXXXX XXXXX</div>
+    <div class="sizedToGridArea secondRowSecondColumn" data-expected-width="170" data-expected-height="100">XXXXX XXXXX</div>
+</div>
+</div>
+
+<div class="constrainedContainer" style="position: relative;">
+<div class="grid gridMinMaxAutoWithColumnMinMaxAuto" style="height: 100%">
+    <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="30">XXXXX XXXXX</div>
+    <div class="sizedToGridArea firstRowSecondColumn" data-expected-width="50" data-expected-height="30">XXXXX XXXXX XXXXX</div>
+    <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="50">XXXXX XXXXX</div>
+    <div class="sizedToGridArea secondRowSecondColumn" data-expected-width="50" data-expected-height="50">XXXXX XXXXX XXXXX XXXXX</div>
+</div>
+</div>
+
+<div class="constrainedContainer" style="position: relative;">
+<div class="grid gridMinMaxAutoWithColumnMinMaxAuto">
+    <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="50" data-expected-height="30">XXXXX XXXXX</div>
+    <div class="sizedToGridArea firstRowSecondColumn" data-expected-width="50" data-expected-height="30">XXXXX XXXXX XXXXX</div>
+    <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="50" data-expected-height="100">XXXXX XXXXX</div>
+    <div class="sizedToGridArea secondRowSecondColumn" data-expected-width="50" data-expected-height="100">XXXXX XXXXX XXXXX XXXXX</div>
+</div>
+</div>
+
+<div style="height: 100px; width: 220px; position: relative;">
+<div class="grid gridMinMaxAutoWithColumnMinMaxAuto">
+    <div class="sizedToGridArea firstRowFirstColumn" data-expected-width="110" data-expected-height="20">XXXXX XXXXX</div>
+    <div class="sizedToGridArea firstRowSecondColumn" data-expected-width="110" data-expected-height="20">XXXXX XXXXX XXXXX</div>
+    <div class="sizedToGridArea secondRowFirstColumn" data-expected-width="110" data-expected-height="100">XXXXX XXXXX</div>
+    <div class="sizedToGridArea secondRowSecondColumn" data-expected-width="110" data-expected-height="100">XXXXX XXXXX XXXXX XXXXX</div>
+</div>
+</div>
+
+</body>

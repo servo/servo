@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<title>querySelectorAll with :not(:has(..))</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3774 -->
+
+<dl>
+  <dt class="a">A:</dt>
+  <dd class="a" id="dd-a">A</dd>
+  <dt class="b">B:</dt>
+  <dd class="b" id="dd-b">
+    B
+    <dl>
+      <dt class="c">C:</dt>
+      <dd class="c" id="dd-c">C</dd>
+      <dt class="d">D:</dt>
+      <dd class="d" id="dd-d">D</dd>
+    </dl>
+  </dd>
+  <dt class="e">E:</dt>
+  <dd class="e" id="dd-e">E</dd>
+</dl>
+
+<script>
+"use strict";
+
+test(() => {
+  const selector1 = "dd:not(:has(dd))";
+  const selector2 = "dd:not(dd:has(dd))";
+  const expectedElements = [
+    document.getElementById("dd-a"),
+    document.getElementById("dd-c"),
+    document.getElementById("dd-d"),
+    document.getElementById("dd-e")
+  ];
+
+  const result1 = document.querySelectorAll(selector1);
+  assert_array_equals(result1, expectedElements, selector1);
+
+  const result2 = document.querySelectorAll(selector2);
+  assert_array_equals(result2, expectedElements, selector2);
+});
+</script>

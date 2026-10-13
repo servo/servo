@@ -20,6 +20,10 @@ test_invalid_value('list-style-type', 'symbols(alphabetic "a")');
 test_invalid_value('list-style-type', 'symbols("s" symbolic)');
 test_invalid_value('list-style-type', 'symbols(fixed url("https://example.com"))');
 
+// A valid symbols() function followed by trailing tokens is invalid.
+test_invalid_value('list-style-type', 'symbols("a") extra');
+test_invalid_value('list-style-type', 'symbols(cyclic "a") disc');
+
 // Example in an early spec.
 test_invalid_value('list-style-type', "symbols(repeating '○' '●')");
 

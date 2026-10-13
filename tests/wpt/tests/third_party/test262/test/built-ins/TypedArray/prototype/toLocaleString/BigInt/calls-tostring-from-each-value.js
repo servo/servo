@@ -50,9 +50,9 @@ BigInt.prototype.toLocaleString = function() {
 var arr = [42n, 0n];
 var expected = ["hacks1", "hacks2"].join(separator);
 
-testWithBigIntTypedArrayConstructors(function(TA) {
-  var sample = new TA(arr);
+testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
+  var sample = new TA(makeCtorArg(arr));
   calls = 0;
   assert.sameValue(sample.toLocaleString(), expected, "returns expected value");
   assert.sameValue(calls, 2, "toString called once for each item");
-}, null, ["passthrough"]);
+});

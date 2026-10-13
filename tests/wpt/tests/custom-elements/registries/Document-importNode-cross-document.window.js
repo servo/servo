@@ -114,3 +114,39 @@ test(t => {
   const clone = contentDocument.importNode(element);
   assert_equals(clone.shadowRoot.customElementRegistry, scoped);
 }, "Cloning including shadow tree with scoped registry (null registry target)");
+
+test(t => {
+  const contentDocument = document.implementation.createHTMLDocument();
+  const scopedDocRegistry = new CustomElementRegistry();
+  scopedDocRegistry.initialize(contentDocument);
+  assert_equals(contentDocument.customElementRegistry, scopedDocRegistry);
+
+  const element = document.createElement("div");
+  const clone = contentDocument.importNode(element);
+  assert_equals(clone.customElementRegistry, null);
+}, "Cloning with global registry (scoped registry target)");
+
+test(t => {
+  const contentDocument = document.implementation.createHTMLDocument();
+  const scopedDocRegistry = new CustomElementRegistry();
+  scopedDocRegistry.initialize(contentDocument);
+  assert_equals(contentDocument.customElementRegistry, scopedDocRegistry);
+
+  const element = document.createElement("div");
+  const elementShadow = element.attachShadow({ mode: "open", clonable: true });
+  const clone = contentDocument.importNode(element);
+  assert_equals(clone.shadowRoot.customElementRegistry, null);
+}, "Cloning including shadow tree with global registry (scoped registry target)");
+
+test(t => {
+  const contentDocument = document.implementation.createHTMLDocument();
+  const scopedDocRegistry = new CustomElementRegistry();
+  scopedDocRegistry.initialize(contentDocument);
+  assert_equals(contentDocument.customElementRegistry, scopedDocRegistry);
+
+  const scoped = new CustomElementRegistry();
+  const element = document.createElement("div");
+  const elementShadow = element.attachShadow({ mode: "open", clonable: true, customElementRegistry: scoped });
+  const clone = contentDocument.importNode(element);
+  assert_equals(clone.shadowRoot.customElementRegistry, scoped);
+}, "Cloning including shadow tree with scoped registry (scoped registry target)");

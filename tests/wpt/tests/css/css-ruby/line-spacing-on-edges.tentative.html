@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Line spacing on block container edges</title>
+<link rel="help" href="https://drafts.csswg.org/css-ruby-1/#line-height">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14405">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body {
+  font: 16px/1 Ahem;
+}
+
+.container-line-height-1 {
+  line-height: 1;
+  margin: 1em;
+}
+
+.container-line-height-1-5 {
+  line-height: 1.5em;
+  margin: 1em;
+}
+.multicol {
+  columns: 2;
+  width: 400px;
+}
+</style>
+
+<div class="container-line-height-1"><ruby>base<rt>annotation</rt></ruby></div>
+
+<div class="container-line-height-1-5">
+  <div id="target2_first">First block</div>
+  <div id="target2_second"><ruby>base<rt>annotation</rt></ruby></div>
+</div>
+
+<div class="container-line-height-1-5 multicol">
+  <div id="target3_first">First block</div>
+  <div id="target3_second"><ruby>base<rt>annotation</rt></ruby></div>
+  <div>Third block</div>
+  <div>Fourth block</div>
+</div>
+<script>
+setup({ explicit_done: true });
+
+document.fonts.load("16px Ahem").then(() => {
+  test(() => {
+    const container = document.querySelector('.container-line-height-1');
+    const rt = container.querySelector('rt');
+    assert_less_than(rt.getBoundingClientRect().top,
+                     container.getBoundingClientRect().top);
+  }, 'Line-over ruby on the first line: <rt> box top is above ' +
+     'the block container top');
+
+  test(() => {
+    const firstBlock = document.getElementById('target2_first');
+    const secondBlock = document.getElementById('target2_second');
+    const rt = secondBlock.querySelector('rt');
+    assert_less_than(rt.getBoundingClientRect().top,
+                     firstBlock.getBoundingClientRect().bottom);
+  }, 'Two IFCs with line-height: 1.5em: second IFC first-line <rt> top ' +
+    'is above first IFC bottom');
+
+  test(() => {
+    const firstBlock = document.getElementById('target3_first');
+    const secondBlock = document.getElementById('target3_second');
+    const rt = secondBlock.querySelector('rt');
+    assert_equals(firstBlock.getBoundingClientRect().left,
+                  secondBlock.getBoundingClientRect().left,
+                  'First and second blocks should be in the same column');
+    assert_less_than(rt.getBoundingClientRect().top,
+                     firstBlock.getBoundingClientRect().bottom);
+  }, 'Two IFCs with line-height: 1.5em in a multicol container: second IFC ' +
+     'first-line <rt> top is above first IFC bottom');
+
+  done();
+});
+</script>

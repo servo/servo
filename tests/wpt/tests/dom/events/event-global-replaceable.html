@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>window.event is [Replaceable]</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<script>
+"use strict";
+
+test(() => {
+  window.event = "foo";
+
+  assert_equals(window.event, "foo");
+}, "Setting window.event replaces it");
+
+test(() => {
+  const target = document.createElement("div");
+  assert_equals(window.event, "foo", "Still set before dispatch");
+
+  const clickEvent = new Event("click");
+  let fired = false;
+  target.addEventListener("click", () => {
+    assert_equals(window.event, "foo", "Still set during dispatch");
+    fired = true;
+  });
+
+  target.dispatchEvent(clickEvent);
+  assert_equals(window.event, "foo", "still set after dispatch");
+  assert_true(fired);
+}, "Dispatching does not affect window.event after it's been replaced");
+</script>

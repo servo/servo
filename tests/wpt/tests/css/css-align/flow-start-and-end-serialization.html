@@ -1,0 +1,83 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>CSS Box Alignment: flow-start and flow-end computed serialization</title>
+<link rel="help" href="https://drafts.csswg.org/css-align-3/">
+<meta name="assert"
+      content="flex-start and flex-end serialize as flow-start and flow-end in computed styles.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<div id="target"></div>
+<script>
+const target = document.getElementById('target');
+
+for (const property of [
+  'align-content',
+  'justify-content',
+  'align-items',
+  'justify-items',
+  'align-self',
+  'justify-self',
+]) {
+  test(() => {
+    target.style.setProperty(property, 'flex-start');
+    assert_equals(target.style.getPropertyValue(property), 'flex-start');
+    assert_equals(
+        getComputedStyle(target).getPropertyValue(property),
+        'flow-start');
+
+    target.style.setProperty(property, 'flex-end');
+    assert_equals(target.style.getPropertyValue(property), 'flex-end');
+    assert_equals(
+        getComputedStyle(target).getPropertyValue(property),
+        'flow-end');
+
+    target.style.setProperty(property, 'safe flex-start');
+    assert_equals(target.style.getPropertyValue(property), 'safe flex-start');
+    assert_equals(
+        getComputedStyle(target).getPropertyValue(property),
+        'safe flow-start');
+
+    target.style.setProperty(property, 'unsafe flex-end');
+    assert_equals(target.style.getPropertyValue(property), 'unsafe flex-end');
+    assert_equals(
+        getComputedStyle(target).getPropertyValue(property),
+        'unsafe flow-end');
+
+    target.style.setProperty(property, 'flow-start');
+    assert_equals(getComputedStyle(target).getPropertyValue(property),
+                  'flow-start');
+
+    target.style.setProperty(property, 'flow-end');
+    assert_equals(getComputedStyle(target).getPropertyValue(property),
+                  'flow-end');
+  }, `${property} uses flow-start and flow-end computed serialization`);
+}
+
+for (const property of ['place-content', 'place-items', 'place-self']) {
+  test(() => {
+    target.style.setProperty(property, 'flex-start flex-end');
+    assert_equals(target.style.getPropertyValue(property),
+                  'flex-start flex-end');
+    assert_equals(
+        getComputedStyle(target).getPropertyValue(property),
+        'flow-start flow-end');
+
+    target.style.setProperty(property, 'safe flex-start unsafe flex-end');
+    assert_equals(target.style.getPropertyValue(property),
+                  'safe flex-start unsafe flex-end');
+    assert_equals(
+        getComputedStyle(target).getPropertyValue(property),
+        'safe flow-start unsafe flow-end');
+
+    target.style.setProperty(property, 'flow-start flow-end');
+    assert_equals(getComputedStyle(target).getPropertyValue(property),
+                  'flow-start flow-end');
+  }, `${property} inherits flow-start and flow-end computed serialization`);
+}
+</script>
+</body>
+</html>

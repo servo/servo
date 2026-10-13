@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::ResizeObserverSizeBinding::ResizeObserverSizeMethods;
 use crate::dom::bindings::root::DomRoot;
@@ -55,7 +55,7 @@ impl ResizeObserverSize {
         size_impl: ResizeObserverSizeImpl,
     ) -> DomRoot<ResizeObserverSize> {
         let observer_size = Box::new(ResizeObserverSize::new_inherited(size_impl));
-        reflect_dom_object_with_proto_and_cx(observer_size, window, None, cx)
+        reflect_dom_object_with_proto(cx, observer_size, window, None)
     }
 }
 

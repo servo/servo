@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<link rel=help href="https://drafts.csswg.org/selectors/#the-hover-pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+
+<!-- This test is optional for the same reason as select-click-drag-option.optional.html: the
+  click and drag behavior itself is not explicitly specified. -->
+
+<style>
+select, ::picker(select) {
+  appearance: base-select;
+}
+</style>
+
+<select>
+  <option class=one>one</option>
+  <option class=two>two</option>
+</select>
+
+<div id=first>first</div>
+<div id=second>second</div>
+
+<script>
+promise_test(async () => {
+  const select = document.querySelector('select');
+  const optionOne = select.querySelector('.one');
+  const optionTwo = select.querySelector('.two');
+  assert_equals(getComputedStyle(select).appearance, 'base-select',
+    'appearance:base-select must be supported in order to run this test.');
+
+  // The pointer is still down for the whole action chain, so record the state from a listener.
+  let hoveredWhileDragging = false;
+  optionTwo.addEventListener('mousemove', () => {
+    hoveredWhileDragging = optionTwo.matches(':hover');
+  });
+
+  await (new test_driver.Actions()
+    .pointerMove(2, 2, {origin: select})
+    .pointerDown()
+    .pointerMove(2, 2, {origin: optionOne})
+    .pointerMove(2, 2, {origin: optionTwo})
+    .pointerMove(2, 2, {origin: select})
+    .pointerUp())
+    .send();
+
+  assert_true(hoveredWhileDragging,
+    'The option under the pointer should match :hover while the pointer is dragged over it.');
+  assert_false(optionTwo.matches(':hover'),
+    'An option should stop matching :hover once the pointer is dragged back out of the picker.');
+}, 'An option matches :hover while the pointer is dragged over it with the button held.');
+
+promise_test(async () => {
+  const select = document.querySelector('select');
+  const optionTwo = select.querySelector('.two');
+  const first = document.getElementById('first');
+  const second = document.getElementById('second');
+  assert_equals(getComputedStyle(select).appearance, 'base-select',
+    'appearance:base-select must be supported in order to run this test.');
+
+  // Drag out of the picker onto content behind it, then on to a second element.
+  await (new test_driver.Actions()
+    .pointerMove(2, 2, {origin: select})
+    .pointerDown()
+    .pointerMove(2, 2, {origin: optionTwo})
+    .pointerMove(2, 2, {origin: first})
+    .pointerMove(2, 2, {origin: second})
+    .pointerUp())
+    .send();
+
+  assert_false(first.matches(':hover'),
+    'An element should not still match :hover once the pointer has moved on to another one.');
+}, 'Dragging out of the picker does not leave an element matching :hover.');
+</script>

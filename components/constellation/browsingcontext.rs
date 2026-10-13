@@ -5,7 +5,7 @@
 use embedder_traits::ViewportDetails;
 use log::warn;
 use rustc_hash::{FxHashMap, FxHashSet};
-use servo_base::id::{BrowsingContextGroupId, BrowsingContextId, PipelineId, WebViewId};
+use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 
 use crate::pipeline::Pipeline;
 
@@ -26,10 +26,6 @@ pub struct NewBrowsingContextInfo {
 
     /// Whether this browsing context inherits a secure context.
     pub inherited_secure_context: Option<bool>,
-
-    /// Whether this browsing context should be throttled, using less resources
-    /// by stopping animations and running timers at a heavily limited rate.
-    pub throttled: bool,
 }
 
 /// The constellation's view of a browsing context.
@@ -39,9 +35,6 @@ pub struct NewBrowsingContextInfo {
 /// sorted reverse chronologically: in particular prev.pop() is the latest
 /// past entry, and next.pop() is the earliest future entry.
 pub struct BrowsingContext {
-    /// The browsing context group id where the top-level of this bc is found.
-    pub bc_group_id: BrowsingContextGroupId,
-
     /// The browsing context id.
     pub id: BrowsingContextId,
 
@@ -56,10 +49,6 @@ pub struct BrowsingContext {
 
     /// Whether this browsing context inherits a secure context.
     pub inherited_secure_context: Option<bool>,
-
-    /// Whether this browsing context should be throttled, using less resources
-    /// by stopping animations and running timers at a heavily limited rate.
-    pub throttled: bool,
 
     /// The pipeline for the current session history entry.
     pub pipeline_id: PipelineId,
@@ -76,9 +65,7 @@ pub struct BrowsingContext {
 impl BrowsingContext {
     /// Create a new browsing context.
     /// Note this just creates the browsing context, it doesn't add it to the constellation's set of browsing contexts.
-    #[expect(clippy::too_many_arguments)]
     pub fn new(
-        bc_group_id: BrowsingContextGroupId,
         id: BrowsingContextId,
         webview_id: WebViewId,
         pipeline_id: PipelineId,
@@ -86,18 +73,15 @@ impl BrowsingContext {
         viewport_details: ViewportDetails,
         is_private: bool,
         inherited_secure_context: Option<bool>,
-        throttled: bool,
     ) -> BrowsingContext {
         let mut pipelines = FxHashSet::default();
         pipelines.insert(pipeline_id);
         BrowsingContext {
-            bc_group_id,
             id,
             webview_id,
             viewport_details,
             is_private,
             inherited_secure_context,
-            throttled,
             pipeline_id,
             parent_pipeline_id,
             pipelines,
@@ -128,6 +112,20 @@ pub struct FullyActiveBrowsingContextsIterator<'a> {
     /// children of a frame, which are the iframes in the currently
     /// active document.
     pub pipelines: &'a FxHashMap<PipelineId, Pipeline>,
+}
+
+impl<'a> FullyActiveBrowsingContextsIterator<'a> {
+    pub(crate) fn new(
+        browsing_context_id: BrowsingContextId,
+        browsing_contexts: &'a FxHashMap<BrowsingContextId, BrowsingContext>,
+        pipelines: &'a FxHashMap<PipelineId, Pipeline>,
+    ) -> Self {
+        FullyActiveBrowsingContextsIterator {
+            stack: vec![browsing_context_id],
+            pipelines,
+            browsing_contexts,
+        }
+    }
 }
 
 impl<'a> Iterator for FullyActiveBrowsingContextsIterator<'a> {

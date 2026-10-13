@@ -31,4 +31,4 @@ testWithTypedArrayConstructors(function(TA, makeCtorArg) {
     false,
     'sample.hasOwnProperty("0.0001") must return false'
   );
-});
+}, null, null, ["immutable"]);

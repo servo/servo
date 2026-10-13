@@ -72,14 +72,16 @@ pub enum UserScalable {
 impl TryFrom<&str> for UserScalable {
     type Error = &'static str;
     fn try_from(value: &str) -> Result<Self, Self::Error> {
-        match value.to_lowercase().as_str() {
-            "yes" => Ok(UserScalable::Yes),
-            "no" => Ok(UserScalable::No),
-            _ => match value.parse::<f32>() {
+        if value.eq_ignore_ascii_case("yes") {
+            Ok(UserScalable::Yes)
+        } else if value.eq_ignore_ascii_case("no") {
+            Ok(UserScalable::No)
+        } else {
+            match value.parse::<f32>() {
                 Ok(1.0) => Ok(UserScalable::Yes),
                 Ok(0.0) => Ok(UserScalable::No),
                 _ => Err("can't convert character to UserScalable"),
-            },
+            }
         }
     }
 }
@@ -134,8 +136,6 @@ impl ViewportDescription {
         value: &str,
     ) -> Option<Scale<f32, CSSPixel, DeviceIndependentPixel>> {
         value
-            .to_lowercase()
-            .as_str()
             .parse::<f32>()
             .ok()
             .filter(|&n| (0.0..=10.0).contains(&n))

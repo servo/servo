@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<link rel="stylesheet" href="resources/interest-button-styles.css">
+
+<div id="container">
+  This is some leading text before the link.
+  <a href="#" id="link">This is a long link text that is designed to wrap across multiple lines.</a><span class="fake-interest-button">ⓘ</span>
+</div>
+<div id="target"></div>
+
+<style>
+  #container {
+    width: 250px;
+    font-family: monospace;
+    font-size: 14px;
+    line-height: 20px;
+    border: 1px solid black;
+    padding: 8px;
+  }
+  #link, .fake-interest-button {
+    color: blue;
+  }
+</style>

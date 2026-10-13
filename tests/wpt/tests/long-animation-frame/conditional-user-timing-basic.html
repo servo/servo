@@ -1,0 +1,236 @@
+<!DOCTYPE HTML>
+<meta charset=utf-8>
+<title>Long Animation Frame Timing: conditional user timing basic</title>
+<meta name="timeout" content="long">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<body>
+<h1>Long Animation Frame: Conditonal Tracing</h1>
+<div id="log"></div>
+<script>
+setup(() =>
+  assert_implements(
+    "userTimingEntries" in PerformanceLongAnimationFrameTiming.prototype,
+    'conditional user timing for LoAF not implemented'));
+
+const segment_duration = very_long_frame_duration / 2;
+
+promise_test(async t => {
+  const loaf_entry = await expect_long_frame(async (t, busy_wait) => {
+    performance.markConditional("mark0");
+    busy_wait(segment_duration);
+    performance.markConditional("mark1");
+    performance.measureConditional("measure0", "mark0", "mark1");
+  }, t);
+
+  assert_not_equals(loaf_entry, "timeout");
+
+  const conditional_mark_entries = Array.from(loaf_entry.userTimingEntries)
+    .filter(entry => entry.entryType === "mark-conditional");
+  assert_equals(conditional_mark_entries.length, 2);
+  assert_equals(conditional_mark_entries[0].name, "mark0");
+  assert_equals(conditional_mark_entries[1].name, "mark1");
+
+  function mark_st(i) {
+    return conditional_mark_entries[i].startTime;
+  }
+
+  assert_true(mark_st(0) <= mark_st(1));
+
+  // The mark time stamp reflects the delay of |segment_duration|.
+  const d1 = mark_st(1) - mark_st(0);
+  assert_true(close_enough(d1, segment_duration));
+
+  const conditional_measure_entries = Array.from(loaf_entry.userTimingEntries)
+    .filter(entry => entry.entryType === "measure-conditional");
+  assert_equals(conditional_measure_entries.length, 1);
+  assert_equals(conditional_measure_entries[0].name, "measure0");
+  // The measure startTime should match the start mark's startTime.
+  assert_approx_equals(conditional_measure_entries[0].startTime, mark_st(0), 1e-6);
+  // The measure duration reflects the delay of |segment_duration|.
+  assert_true(close_enough(conditional_measure_entries[0].duration, segment_duration));
+
+  // Verify userTimingEntries are sorted by startTime.
+  const all_entries = Array.from(loaf_entry.userTimingEntries);
+  for(let i = 0; i < all_entries.length - 1; i++) {
+    assert_true(all_entries[i].startTime <= all_entries[i + 1].startTime);
+  }
+
+}, 'conditional user timing from a long busy wait');
+
+promise_test(async t => {
+  const loaf_entry = await expect_long_frame(async (t, busy_wait) => {
+    await new Promise(resolve => requestAnimationFrame(() => {
+      performance.markConditional("mark0");
+      busy_wait(segment_duration)
+      performance.markConditional("mark1");
+      performance.measureConditional("measure0", "mark0", "mark1");
+      resolve();
+    }));
+  }, t);
+
+  assert_not_equals(loaf_entry, "timeout");
+
+  const conditional_mark_entries = Array.from(loaf_entry.userTimingEntries)
+    .filter(entry => entry.entryType === "mark-conditional");
+  assert_equals(conditional_mark_entries.length, 2);
+  assert_equals(conditional_mark_entries[0].name, "mark0");
+  assert_equals(conditional_mark_entries[1].name, "mark1");
+
+  function mark_st(i) {
+    return conditional_mark_entries[i].startTime;
+  }
+  assert_true(mark_st(0) <= mark_st(1));
+
+  // The mark time stamp reflects the delay of |segment_duration|.
+  const d1 = mark_st(1) - mark_st(0);
+  assert_true(close_enough(d1, segment_duration));
+
+  const conditional_measure_entries = Array.from(loaf_entry.userTimingEntries)
+    .filter(entry => entry.entryType === "measure-conditional");
+  assert_equals(conditional_measure_entries.length, 1);
+  assert_equals(conditional_measure_entries[0].name, "measure0");
+  // The measure startTime should match the start mark's startTime.
+  assert_approx_equals(conditional_measure_entries[0].startTime, mark_st(0), 1e-6);
+  // The measure duration reflects the delay of |segment_duration|.
+  assert_true(close_enough(conditional_measure_entries[0].duration, segment_duration));
+
+  // Verify userTimingEntries are sorted by startTime.
+  const all_entries = Array.from(loaf_entry.userTimingEntries);
+  for(let i = 0; i < all_entries.length - 1; i++) {
+    assert_true(all_entries[i].startTime <= all_entries[i + 1].startTime);
+  }
+
+}, 'conditional user timing from a requestAnimationFrame');
+
+promise_test(async t => {
+  const loaf_entry = await expect_long_frame(async (t, busy_wait) => {
+    performance.markConditional("mark0");
+    busy_wait(segment_duration);
+    performance.markConditional("mark1");
+    performance.measureConditional("measure0", "mark0", "mark1");
+    await new Promise(resolve => requestAnimationFrame(() => {
+      performance.markConditional("mark2");
+      busy_wait(segment_duration)
+      performance.markConditional("mark3");
+      performance.measureConditional("measure1", "mark2", "mark3");
+      resolve();
+    }));
+  }, t);
+
+  assert_not_equals(loaf_entry, "timeout");
+
+  const conditional_mark_entries = Array.from(loaf_entry.userTimingEntries)
+    .filter(entry => entry.entryType === "mark-conditional");
+  assert_equals(conditional_mark_entries.length, 4);
+
+  // Names should be "mark0", "mark1", ...
+  for(let i = 0; i < 4; i++) {
+    assert_equals(conditional_mark_entries[i].name, "mark" + i);
+  }
+
+  function mark_st(i) {
+    return conditional_mark_entries[i].startTime;
+  }
+  // Timestamps should be increasing.
+  for(let i = 0; i < 3; i++){
+    assert_true(mark_st(i) <= mark_st(i + 1));
+  }
+
+  // The mark time stamp reflects the delay of |segment_duration|.
+  for(let i = 0; i < 2; i++) {
+    assert_true(close_enough(mark_st(i * 2 + 1) - mark_st(i * 2), segment_duration));
+  }
+
+  const conditional_measure_entries = Array.from(loaf_entry.userTimingEntries)
+    .filter(entry => entry.entryType === "measure-conditional");
+  assert_equals(conditional_measure_entries.length, 2);
+  for(let i = 0; i < 2; i++) {
+    assert_equals(conditional_measure_entries[i].name, "measure" + i);
+    // The measure startTime should match the start mark's startTime.
+    assert_approx_equals(conditional_measure_entries[i].startTime, mark_st(i * 2), 1e-6);
+    // The measure duration reflects the delay of |segment_duration|.
+    assert_true(close_enough(conditional_measure_entries[i].duration, segment_duration));
+  }
+
+  // Verify userTimingEntries are sorted by startTime.
+  const all_entries = Array.from(loaf_entry.userTimingEntries);
+  for(let i = 0; i < all_entries.length - 1; i++) {
+    assert_true(all_entries[i].startTime <= all_entries[i + 1].startTime);
+  }
+
+}, 'conditional user timing from a task and a requestAnimationFrame');
+
+promise_test(async t => {
+  const loaf_entry = await expect_long_frame(async (t, busy_wait) => {
+
+    const element = document.createElement("div");
+    document.body.appendChild(element);
+    t.add_cleanup(() => element.remove());
+    performance.markConditional("mark0");
+    busy_wait(segment_duration);
+    performance.markConditional("mark1");
+    performance.measureConditional("measure0", "mark0", "mark1");
+    requestAnimationFrame(() => {
+      performance.markConditional("mark2");
+      busy_wait(segment_duration)
+      performance.markConditional("mark3");
+      performance.measureConditional("measure1", "mark2", "mark3");
+    });
+    const observer = new ResizeObserver(() => {
+      observer.disconnect();
+      performance.markConditional("mark4");
+      busy_wait(segment_duration);
+      performance.markConditional("mark5");
+      performance.measureConditional("measure2", "mark4", "mark5");
+    });
+    observer.observe(element);
+
+  }, t);
+
+  assert_not_equals(loaf_entry, "timeout");
+
+  const conditional_mark_entries = Array.from(loaf_entry.userTimingEntries)
+    .filter(entry => entry.entryType === "mark-conditional");
+  assert_equals(conditional_mark_entries.length, 6);
+
+  // Names should be "mark0", "mark1", ...
+  for(let i = 0; i < 6; i++) {
+    assert_equals(conditional_mark_entries[i].name, "mark" + i);
+  }
+
+  function mark_st(i) {
+    return conditional_mark_entries[i].startTime;
+  }
+  // Timestamps should be increasing.
+  for(let i = 0; i < 5; i++){
+    assert_true(mark_st(i) <= mark_st(i + 1));
+  }
+
+  // The mark time stamp reflects the delay of |segment_duration|.
+  for(let i = 0; i < 3; i++) {
+    assert_true(close_enough(mark_st( i * 2 + 1) - mark_st(i * 2), segment_duration));
+  }
+
+  const conditional_measure_entries = Array.from(loaf_entry.userTimingEntries)
+    .filter(entry => entry.entryType === "measure-conditional");
+  assert_equals(conditional_measure_entries.length, 3);
+  for(let i = 0; i < 3; i++) {
+    assert_equals(conditional_measure_entries[i].name, "measure" + i);
+    // The measure startTime should match the start mark's startTime.
+    assert_approx_equals(conditional_measure_entries[i].startTime, mark_st(i * 2), 1e-6);
+    // The measure duration reflects the delay of |segment_duration|.
+    assert_true(close_enough(conditional_measure_entries[i].duration, segment_duration));
+  }
+
+  // Verify userTimingEntries are sorted by startTime.
+  const all_entries = Array.from(loaf_entry.userTimingEntries);
+  for(let i = 0; i < all_entries.length - 1; i++) {
+    assert_true(all_entries[i].startTime <= all_entries[i + 1].startTime);
+  }
+
+}, 'conditional user timing from a task, a requestAnimationFrame, and layout change');
+</script>
+</body>

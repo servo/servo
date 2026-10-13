@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<head>
+<title>CSS Borders and Box Decorations 4: 'outline-offset' with elliptical 'corner-shape: bevel' corners — reference</title>
+<style>
+    body { margin: 0; }
+    .canvas { position: absolute; left: 0; top: 0; width: 160px; height: 160px; }
+    .canvas > div { position: absolute; inset: 0; }
+    .box {
+        background: red;
+        clip-path: path("\
+            M 112.000 40.000 L 120.000 70.000 L \
+            120.000 90.000 L 112.000 120.000 L 48.000 \
+            120.000 L 40.000 90.000 L 40.000 70.000 \
+            L 48.000 40.000 Z");
+    }
+    .outline {
+        background: black;
+        clip-path: path(evenodd, "\
+            M 131.207 15.000 L 136.156 33.558 L \
+            144.156 63.558 L 145.000 66.724 L 145.000 \
+            93.276 L 144.156 96.442 L 136.156 126.442 \
+            L 131.207 145.000 L 28.793 145.000 L \
+            23.844 126.442 L 15.844 96.442 L 15.000 \
+            93.276 L 15.000 66.724 L 15.844 63.558 \
+            L 23.844 33.558 L 28.793 15.000 Z \
+            M 127.366 20.000 L 131.325 34.847 L \
+            139.325 64.847 L 140.000 67.379 L 140.000 \
+            92.621 L 139.325 95.153 L 131.325 125.153 \
+            L 127.366 140.000 L 32.634 140.000 L \
+            28.675 125.153 L 20.675 95.153 L 20.000 \
+            92.621 L 20.000 67.379 L 20.675 64.847 \
+            L 28.675 34.847 L 32.634 20.000 Z");
+    }
+</style>
+</head>
+<div class=canvas><div class=box></div><div class=outline></div></div>

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<body>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// Here's the set-up for this test:
+// Step 1 (window) Opens new iframe to set storage.
+// Step 2 (iframe) Sets storage and sends message back.
+// Step 3 (window) Does no-cors fetch request to clear site data.
+// Step 4 (fetch target) Tries to clear site data.
+// Step 5 (window) Asks second window to find storage after waiting for clear.
+// Step 6 (iframe) Sees if storage is still set.
+async_test(t => {
+    const iframe = document.createElement('iframe');
+
+    window.addEventListener("message", t.step_func(e => {
+        switch(e.data) {
+            case "set":
+                // Step 3
+                fetch(
+                    "https://{{hosts[alt][]}}:{{ports[https][0]}}/clear-site-data/support/no-cors-fetch-clear-site-data.html",
+                    {mode: 'no-cors', credentials: 'include'}
+                ).then((r) => {
+                    // Step 5
+                    setTimeout(() => {
+                        iframe.contentWindow.postMessage("find", "*");
+                    }, 1000);
+                });
+                break;
+            case "found":
+                assert_false("Data should be cleared.");
+                break;
+            case "missing":
+                t.done();
+                break;
+        }
+    }));
+
+    // Step 1
+    iframe.src = "https://{{hosts[alt][]}}:{{ports[https][0]}}/clear-site-data/support/no-cors-fetch-util.html";
+    document.body.appendChild(iframe);
+}, "Clearing site data via no-cors cross-site request should work on partitioned data.");
+</script>
+</body>
+</html>

@@ -3,7 +3,6 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, Ref};
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
@@ -12,10 +11,10 @@ use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::StyleSheetBinding::StyleSheetMethods;
 use script_bindings::inheritance::Castable;
-use script_bindings::reflector::{reflect_dom_object_with_cx, reflect_dom_object_with_proto};
+use script_bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 use script_bindings::root::Dom;
 use servo_arc::Arc;
-use style::media_queries::MediaList as StyleMediaList;
+use servo_url::ServoUrl;
 use style::shared_lock::{SharedRwLock, SharedRwLockReadGuard};
 use style::stylesheets::{
     AllowImportRules, Origin, Stylesheet as StyleStyleSheet, StylesheetContents,
@@ -32,7 +31,7 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::GenericBindings::CSSRuleListBinding::CSSRuleList_Binding::CSSRuleListMethods;
 use crate::dom::bindings::codegen::UnionTypes::MediaListOrString;
 use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
-use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
@@ -41,9 +40,9 @@ use crate::dom::element::Element;
 use crate::dom::html::htmlstyleelement::HTMLStyleElement;
 use crate::dom::medialist::MediaList;
 use crate::dom::node::NodeTraits;
+use crate::dom::promise::RootedPromise;
 use crate::dom::types::Promise;
 use crate::dom::window::Window;
-use crate::test::TrustedPromise;
 
 #[dom_struct]
 pub(crate) struct CSSStyleSheet {
@@ -65,9 +64,6 @@ pub(crate) struct CSSStyleSheet {
     #[no_trace]
     style_shared_lock: SharedRwLock,
 
-    /// <https://drafts.csswg.org/cssom/#concept-css-style-sheet-origin-clean-flag>
-    origin_clean: Cell<bool>,
-
     /// In which [Document] that this stylesheet was constructed.
     ///
     /// <https://drafts.csswg.org/cssom/#concept-css-style-sheet-constructor-document>
@@ -75,6 +71,13 @@ pub(crate) struct CSSStyleSheet {
 
     /// <https://drafts.csswg.org/cssom/#concept-css-style-sheet-disallow-modification-flag>
     disallow_modification: Cell<bool>,
+
+    /// <https://drafts.csswg.org/cssom/#concept-css-style-sheet-origin-clean-flag>
+    origin_clean: Cell<bool>,
+
+    /// <https://drafts.csswg.org/cssom/#concept-css-style-sheet-stylesheet-base-url>
+    #[no_trace]
+    stylesheet_base_url: DomRefCell<Option<ServoUrl>>,
 
     /// Documents or shadow DOMs thats adopt this stylesheet, they will be notified whenever
     /// the stylesheet is modified.
@@ -100,10 +103,11 @@ impl CSSStyleSheet {
             constructor_document: constructor_document.map(Dom::from_ref),
             adopters: Default::default(),
             disallow_modification: Cell::new(false),
+            stylesheet_base_url: Default::default(),
         }
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         cx: &mut JSContext,
         window: &Window,
@@ -114,7 +118,8 @@ impl CSSStyleSheet {
         stylesheet: Arc<StyleStyleSheet>,
         constructor_document: Option<&Document>,
     ) -> DomRoot<CSSStyleSheet> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(CSSStyleSheet::new_inherited(
                 owner,
                 type_,
@@ -124,11 +129,10 @@ impl CSSStyleSheet {
                 constructor_document,
             )),
             window,
-            cx,
         )
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn new_with_proto(
         cx: &mut JSContext,
         window: &Window,
@@ -260,7 +264,7 @@ impl CSSStyleSheet {
         }
     }
 
-    pub(crate) fn will_modify(&self) {
+    pub(crate) fn will_modify(&self, no_gc: &NoGC) {
         let Some(node) = self.owner_node.get() else {
             return;
         };
@@ -269,7 +273,7 @@ impl CSSStyleSheet {
             return;
         };
 
-        node.will_modify_stylesheet();
+        node.will_modify_stylesheet(no_gc);
     }
 
     pub(crate) fn update_style_stylesheet(
@@ -311,13 +315,19 @@ impl CSSStyleSheet {
         let global = self.global();
         let window = global.as_window();
 
-        self.will_modify();
+        self.will_modify(no_gc);
 
         let _span = profile_traits::trace_span!("ParseStylesheet").entered();
         let sheet = self.style_stylesheet();
+        let stylesheet_base_url = self
+            .stylesheet_base_url
+            .borrow()
+            .clone()
+            .unwrap_or(window.get_url());
+
         let new_contents = StylesheetContents::from_str(
             &text,
-            UrlExtraData(window.get_url().get_arc()),
+            UrlExtraData(stylesheet_base_url.get_arc()),
             Origin::Author,
             &self.style_shared_lock,
             None,
@@ -353,12 +363,10 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
         let doc = window.Document();
         let shared_lock = doc.style_shared_author_lock().clone();
         let media = Arc::new(shared_lock.wrap(match &options.media {
-            Some(media) => match media {
-                MediaListOrString::MediaList(media_list) => media_list.clone_media_list(),
-                MediaListOrString::String(str) => MediaList::parse_media_list(&str.str(), window),
-            },
-            None => StyleMediaList::empty(),
+            MediaListOrString::MediaList(media_list) => media_list.clone_media_list(),
+            MediaListOrString::String(str) => MediaList::parse_media_list(&str.str(), window),
         }));
+
         let stylesheet = Arc::new(StyleStyleSheet::from_str(
             "",
             UrlExtraData(window.get_url().get_arc()),
@@ -373,17 +381,30 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
         if options.disabled {
             stylesheet.set_disabled(true);
         }
-        Self::new_with_proto(
+
+        // Step 1. Construct a new CSSStyleSheet object sheet.
+        // Note: Subsequent steps are implicitly handled by the arguments passed down.
+        let sheet = Self::new_with_proto(
             cx,
             window,
             proto,
             None, // owner
-            "text/css".into(),
+            DOMString::from_static("text/css"),
             None, // href
             None, // title
             stylesheet,
             Some(&window.Document()), // constructor_document
-        )
+        );
+
+        let base_url = options
+            .baseURL
+            .as_ref()
+            .and_then(|url| ServoUrl::parse(&url.str()).ok());
+        // Step 3. Set sheet’s stylesheet base URL to the baseURL attribute value from options.
+        *sheet.stylesheet_base_url.safe_borrow_mut(cx) = base_url;
+
+        // Step 14. Return sheet.
+        sheet
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-cssrules>
@@ -478,7 +499,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-cssstylesheet-replace>
-    fn Replace(&self, cx: &mut CurrentRealm, text: USVString) -> Fallible<Rc<Promise>> {
+    fn Replace(&self, cx: &mut CurrentRealm, text: USVString) -> Fallible<RootedPromise> {
         // Step 1. Let promise be a promise.
         let promise = Promise::new_in_realm(cx);
 
@@ -500,7 +521,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
 
         // Step 4. In parallel, do these steps:
         let trusted_sheet = Trusted::new(self);
-        let trusted_promise = TrustedPromise::new(promise.clone());
+        let trusted_promise = TrustedPromise::from(&promise);
 
         self.global()
             .task_manager()
@@ -515,7 +536,7 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
                 sheet.disallow_modification.set(false);
 
                 // Step 4.5. Resolve promise with sheet.
-                trusted_promise.root().resolve_native(cx, &sheet);
+                trusted_promise.root(cx).resolve_native(cx, &sheet);
             }));
 
         Ok(promise)

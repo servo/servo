@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<link rel="stylesheet" href="resources/interest-button-styles.css">
+
+<div class="container custom-quotes">
+  <button interestfor="target">Button 1</button><span class="fake-interest-button">ⓘ</span>
+</div>
+
+<div class="container custom-quotes">
+  <a href="#" interestfor="target">Link 1</a><span class="fake-interest-button">ⓘ</span>
+</div>
+
+<div class="container french-quotes">
+  <button interestfor="target">Button 2</button><span class="fake-interest-button">ⓘ</span>
+</div>
+
+<div id="target"></div>
+
+<style>
+  .container {
+    font-family: monospace;
+    font-size: 14px;
+    margin-bottom: 10px;
+    border: 1px solid gray;
+    padding: 5px;
+  }
+  button, a {
+    appearance: none;
+    font: inherit;
+    color: inherit;
+    border: 1px solid black;
+    padding: 2px 6px;
+    margin: 0;
+    user-select: none;
+  }
+  [interestfor]::interest-button {
+    display: none;
+  }
+  .fake-interest-button {
+    min-inline-size: 0;
+    min-block-size: 0;
+    text-align: left;
+    vertical-align: baseline;
+  }
+  .custom-quotes {
+    quotes: "“" "”";
+  }
+  .french-quotes {
+    quotes: "«" "»";
+  }
+  .fake-interest-button::before {
+    content: " " open-quote;
+  }
+  .fake-interest-button::after {
+    content: close-quote;
+  }
+</style>

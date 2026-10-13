@@ -128,7 +128,7 @@ impl SqliteEngine {
             "INSERT INTO database (name, origin, version) VALUES (?, ?, ?)",
             params![
                 db_info.name.to_owned(),
-                db_info.origin.to_owned().ascii_serialization(),
+                db_info.origin.ascii_serialization().into_owned(),
                 i64::from_ne_bytes(0_u64.to_ne_bytes())
             ],
         )?;
@@ -875,7 +875,6 @@ mod tests {
     use std::sync::Arc;
 
     use profile_traits::generic_callback::GenericCallback;
-    use profile_traits::time::ProfilerChan;
     use serde::{Deserialize, Serialize};
     use servo_base::generic_channel::{self, GenericReceiver, GenericSender};
     use servo_base::id::{PIPELINE_NAMESPACE, PipelineNamespace, PipelineNamespaceId, WebViewId};
@@ -1180,7 +1179,7 @@ mod tests {
         where
             T: for<'de> Deserialize<'de> + Serialize + Send + Sync,
         {
-            GenericCallback::new(ProfilerChan(None), move |r| {
+            GenericCallback::new(move |r| {
                 assert!(chan.send(r.unwrap()).is_ok());
             })
             .expect("Could not construct callback")

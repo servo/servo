@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2072310">
+<link rel="help" href="https://drafts.csswg.org/css-tables/">
+<!-- Really a crashtest but since we can't really have print crashtests, we assert that we print something -->
+<link rel="mismatch" href="/css/reference/blank.html">
+<style>
+  @page { size: 5in 3in; margin: 0 }
+  body { margin: 0 }
+  td { height: 60px }
+</style>
+<div style="height: 150px"></div>
+<div style="break-inside: avoid">
+  <div>
+    <div style="float: left">
+      <table>
+        <tr><td>r0</td></tr>
+        <tr><td>r1</td></tr>
+        <tr><td>r2</td></tr>
+        <tr><td>r3</td></tr>
+      </table>
+    </div>
+    <div style="clear: both"></div>
+  </div>
+</div>

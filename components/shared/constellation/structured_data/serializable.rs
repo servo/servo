@@ -77,6 +77,7 @@ pub enum Serializable {
     /// The `ImageData` interface.
     ImageData,
     /// The `CryptoKey` interface.
+    #[cfg(feature = "webcrypto")]
     CryptoKey,
 }
 
@@ -113,6 +114,7 @@ impl Serializable {
             Serializable::ImageData => {
                 StructuredSerializedData::clone_all_of_type::<SerializableImageData>
             },
+            #[cfg(feature = "webcrypto")]
             Serializable::CryptoKey => {
                 StructuredSerializedData::clone_all_of_type::<SerializableCryptoKey>
             },
@@ -692,6 +694,8 @@ pub enum SerializableCryptoKeyHandle {
     MlKem512PublicKey(Vec<u8>),
     MlKem768PublicKey(Vec<u8>),
     MlKem1024PublicKey(Vec<u8>),
+    MlKem768X25519PrivateKey(Vec<u8>),
+    MlKem768X25519PublicKey(Vec<u8>),
     MlDsa44PrivateKey(Vec<u8>),
     MlDsa65PrivateKey(Vec<u8>),
     MlDsa87PrivateKey(Vec<u8>),

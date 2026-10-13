@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Removing sheets from adoptedStyleSheets through ObservableArray operations</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#extensions-to-the-document-or-shadow-root-interface">
+<link rel="help" href="https://webidl.spec.whatwg.org/#idl-observable-array">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="target"></div>
+<div id="host"></div>
+
+<script>
+const shadowRoot = host.attachShadow({ mode: "open" });
+shadowRoot.innerHTML = `<div id="target"></div>`;
+
+const scopes = [
+  { name: "Document", root: document, target: () => document.getElementById("target") },
+  { name: "ShadowRoot", root: shadowRoot, target: () => shadowRoot.getElementById("target") },
+];
+
+function sheetWithColor(color) {
+  const sheet = new CSSStyleSheet();
+  sheet.replaceSync(`#target { color: ${color}; }`);
+  return sheet;
+}
+
+const initialColor = getComputedStyle(document.documentElement).color;
+
+for (const scope of scopes) {
+  const color = () => getComputedStyle(scope.target()).color;
+
+  test(t => {
+    t.add_cleanup(() => { scope.root.adoptedStyleSheets = []; });
+    scope.root.adoptedStyleSheets = [sheetWithColor("rgb(255, 0, 0)")];
+    assert_equals(color(), "rgb(255, 0, 0)");
+    scope.root.adoptedStyleSheets.length = 0;
+    assert_equals(color(), initialColor);
+  }, `${scope.name}: setting length to 0 removes the adopted styles`);
+
+  test(t => {
+    t.add_cleanup(() => { scope.root.adoptedStyleSheets = []; });
+    const green = sheetWithColor("rgb(0, 128, 0)");
+    scope.root.adoptedStyleSheets = [green, sheetWithColor("rgb(255, 0, 0)")];
+    assert_equals(color(), "rgb(255, 0, 0)");
+    scope.root.adoptedStyleSheets.length = 1;
+    assert_equals(color(), "rgb(0, 128, 0)");
+  }, `${scope.name}: shrinking length removes the truncated styles`);
+
+  test(t => {
+    t.add_cleanup(() => { scope.root.adoptedStyleSheets = []; });
+    const sheet = sheetWithColor("rgb(255, 0, 0)");
+    scope.root.adoptedStyleSheets = [sheet, sheet];
+    assert_equals(color(), "rgb(255, 0, 0)");
+    scope.root.adoptedStyleSheets.pop();
+    assert_equals(color(), "rgb(255, 0, 0)");
+    sheet.replaceSync("#target { color: rgb(0, 128, 0); }");
+    assert_equals(color(), "rgb(0, 128, 0)");
+  }, `${scope.name}: modifying a sheet still applies after popping its duplicate`);
+
+  test(t => {
+    t.add_cleanup(() => { scope.root.adoptedStyleSheets = []; });
+    const sheet = sheetWithColor("rgb(255, 0, 0)");
+    scope.root.adoptedStyleSheets = [sheet, new CSSStyleSheet(), sheet];
+    assert_equals(color(), "rgb(255, 0, 0)");
+    scope.root.adoptedStyleSheets.length = 2;
+    assert_equals(color(), "rgb(255, 0, 0)");
+    sheet.replaceSync("#target { color: rgb(0, 128, 0); }");
+    assert_equals(color(), "rgb(0, 128, 0)");
+  }, `${scope.name}: modifying a sheet still applies after truncating its duplicate`);
+
+  test(t => {
+    t.add_cleanup(() => { scope.root.adoptedStyleSheets = []; });
+    const sheet = sheetWithColor("rgb(255, 0, 0)");
+    scope.root.adoptedStyleSheets = [sheet, sheet];
+    assert_equals(color(), "rgb(255, 0, 0)");
+    scope.root.adoptedStyleSheets[1] = new CSSStyleSheet();
+    assert_equals(color(), "rgb(255, 0, 0)");
+    sheet.replaceSync("#target { color: rgb(0, 128, 0); }");
+    assert_equals(color(), "rgb(0, 128, 0)");
+  }, `${scope.name}: modifying a sheet still applies after overwriting its duplicate`);
+
+  test(t => {
+    t.add_cleanup(() => { scope.root.adoptedStyleSheets = []; });
+    const sheet = sheetWithColor("rgb(255, 0, 0)");
+    scope.root.adoptedStyleSheets = [sheet, sheet];
+    assert_equals(color(), "rgb(255, 0, 0)");
+    scope.root.adoptedStyleSheets = [sheet];
+    sheet.replaceSync("#target { color: rgb(0, 128, 0); }");
+    assert_equals(color(), "rgb(0, 128, 0)");
+  }, `${scope.name}: modifying a sheet still applies after reassigning the array with it`);
+}
+</script>

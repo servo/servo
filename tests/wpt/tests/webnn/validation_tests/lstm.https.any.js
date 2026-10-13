@@ -242,7 +242,16 @@ const tests = [
       initialCellState:
           {dataType: 'float32', shape: [numDirections, batchSize, 1000]}
     }
-  }
+  },
+  {
+    name:
+        '[lstm] TypeError is expected if the full-sequence output tensor is too large',
+    input: {dataType: 'float16', shape: [21474837, 1, 3]},
+    weight: {dataType: 'float16', shape: [1, 4 * 100, 3]},
+    recurrentWeight: {dataType: 'float16', shape: [1, 4 * 100, 100]},
+    steps: 21474837,
+    hiddenSize: 100,
+  },
 ];
 
 tests.forEach(

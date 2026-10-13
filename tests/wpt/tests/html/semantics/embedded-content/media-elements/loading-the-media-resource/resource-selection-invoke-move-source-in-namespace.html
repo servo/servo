@@ -1,0 +1,16 @@
+<!doctype html>
+<title>NOT invoking resource selection by moving &lt;source> in the wrong namespace</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+<video></video>
+<div id=holder hidden></div>
+<script>
+async_test(function(t) {
+  var v = document.querySelector('video');
+  var source = document.getElementById('holder').appendChild(document.createElementNS('bogus', 'source'));
+  v.onloadstart = t.step_func(function() { assert_unreached(); });
+  v.moveBefore(source, undefined);
+  window.onload = t.step_func(function() { t.done(); });
+});
+</script>

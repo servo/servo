@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+
+<title>Clicking in the padding of a &lt;textara&gt; should move the edit point properly</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="input-events.js"></script>
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" />
+
+<!-- The uppercase ß character is transformed into 'SS'. Clicking beyond that
+transformed character should move the cursor to the end of the line (and not
+to the end of the subsequent line). This shows that `text-transform` is taken
+into account when determining edit points via mouse clicks. -->
+<textarea id="target" style="height: 100px; width: 500px; text-transform: uppercase;">
+&#x00DF;
+</textarea>
+
+<br/>
+
+<!-- This is the same test as above, but offset by some introductory characters. -->
+<textarea id="target2" style="height: 100px; width: 500px; text-transform: uppercase; font: 50px/1 Ahem;">
+  &#x00DF;abc
+</textarea>
+
+<script>
+promise_test(async test => {
+    let targetRect = getTextEntryContentRect(target);
+    await (new test_driver.Actions()
+        .pointerMove(targetRect.right - 10, targetRect.top + 10)
+        .pointerDown().pointerUp()
+        .send());
+    assert_equals(target.selectionStart, 1);
+    assert_equals(target.selectionEnd, 1);
+}, "Edit point selection properly takes into account text-transform");
+
+promise_test(async test => {
+    let targetRect = getTextEntryContentRect(target2);
+    let middleOfFirstLine = (50 / 2) + targetRect.top;
+    await (new test_driver.Actions()
+        .pointerMove(targetRect.left  + (50 * 5) + 5, middleOfFirstLine)
+        .pointerDown().pointerUp()
+        .send());
+
+    // The resulting index of the selection is one less than the number of
+    // glyph widths, because one of those glyphs was a single character
+    // expanded into 'SS'.
+    assert_equals(target2.selectionStart, 4);
+    assert_equals(target2.selectionEnd, 4);
+}, "Edit point selection properly takes into account text-transform in the middle of a line");
+</script>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>selectedcontent is only updated when option insertion changes selectedness</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+
+<select id=select1>
+  <button>
+    <selectedcontent></selectedcontent>
+  </button>
+  <option id=option1>one</option>
+</select>
+
+<script>
+// The option post-connection steps update every descendant selectedcontent
+// element of the option's select. Doing that unconditionally means inserting an
+// option that changes nothing still runs "replace all" on the selectedcontent,
+// which is observable through node identity and mutation records.
+test(t => {
+  const select = document.getElementById('select1');
+  const selectedcontent = select.querySelector('selectedcontent');
+
+  assert_equals(selectedcontent.textContent, 'one',
+    'selectedcontent should match the selected option at the start of the test.');
+  const originalChild = selectedcontent.firstChild;
+  assert_not_equals(originalChild, null,
+    'selectedcontent should have a child at the start of the test.');
+
+  const observer = new MutationObserver(() => {});
+  t.add_cleanup(() => observer.disconnect());
+  observer.observe(selectedcontent, {childList: true, subtree: true});
+
+  const newOption = document.createElement('option');
+  newOption.textContent = 'two';
+  select.appendChild(newOption);
+
+  assert_false(newOption.selected,
+    'The inserted option should not be selected.');
+  assert_equals(select.value, 'one',
+    'The selected option should not change.');
+  assert_equals(selectedcontent.textContent, 'one',
+    'selectedcontent should still match the selected option.');
+  assert_equals(selectedcontent.firstChild, originalChild,
+    'selectedcontent children should not be replaced when inserting a non-selected option.');
+  assert_equals(observer.takeRecords().length, 0,
+    'Inserting a non-selected option should not mutate selectedcontent.');
+}, 'Inserting a non-selected option does not replace selectedcontent children.');
+</script>
+
+<select id=select2>
+  <button>
+    <selectedcontent></selectedcontent>
+  </button>
+  <option id=option2>one</option>
+</select>
+
+<script>
+test(t => {
+  const select = document.getElementById('select2');
+  const selectedcontent = select.querySelector('selectedcontent');
+
+  const observer = new MutationObserver(() => {});
+  t.add_cleanup(() => observer.disconnect());
+  observer.observe(selectedcontent, {childList: true, subtree: true});
+
+  for (let i = 0; i < 10; i++) {
+    const newOption = document.createElement('option');
+    newOption.textContent = `extra ${i}`;
+    select.appendChild(newOption);
+  }
+
+  assert_equals(select.value, 'one',
+    'The selected option should not change.');
+  assert_equals(observer.takeRecords().length, 0,
+    'Inserting 10 non-selected options should not mutate selectedcontent.');
+}, 'Inserting many non-selected options does not repeatedly replace selectedcontent children.');
+</script>

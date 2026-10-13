@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 
 use crate::dom::bindings::codegen::Bindings::XRJointPoseBinding::XRJointPoseMethods;
 use crate::dom::bindings::num::Finite;
@@ -35,10 +35,10 @@ impl XRJointPose {
         radius: Option<f32>,
     ) -> DomRoot<XRJointPose> {
         let transform = XRRigidTransform::new(cx, window, pose);
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(XRJointPose::new_inherited(&transform, radius)),
             window,
-            cx,
         )
     }
 }

@@ -1,0 +1,110 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>MediaStreamTrack transferred to a dedicated worker preserves its state</title>
+<link rel="help" href="https://w3c.github.io/mediacapture-extensions/#transferable-mediastreamtrack">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script src=/resources/testdriver.js></script>
+<script src=/resources/testdriver-vendor.js></script>
+<script src=/mediacapture-streams/permission-helper.js></script>
+<script src=support/transfer-helper.js></script>
+<script>
+"use strict";
+
+promise_setup(() => setMediaPermission());
+
+const hints = {audio: "speech", video: "motion"};
+const settingKeys = {
+  audio: ["deviceId", "groupId", "sampleRate", "sampleSize", "echoCancellation",
+          "autoGainControl", "noiseSuppression", "latency", "channelCount"],
+  video: ["deviceId", "groupId", "width", "height", "frameRate", "aspectRatio",
+          "facingMode", "resizeMode"],
+};
+const constraintsFor = {
+  audio: deviceId => ({deviceId: {exact: deviceId}, channelCount: 1,
+                       autoGainControl: {ideal: false},
+                       advanced: [{echoCancellation: false}]}),
+  video: deviceId => ({deviceId: {exact: deviceId}, width: 320,
+                       frameRate: {max: 30}, advanced: [{height: 240}]}),
+};
+const constraintMembers = {
+  audio: {
+    channelCount: c => c.channelCount,
+    "autoGainControl.ideal": c => c.autoGainControl.ideal,
+    advanced: c => JSON.stringify(c.advanced),
+  },
+  video: {
+    width: c => c.width,
+    "frameRate.max": c => c.frameRate.max,
+    advanced: c => JSON.stringify(c.advanced),
+  },
+};
+const transferred = {};
+
+for (const kind of ["audio", "video"]) {
+  promise_test(async t => {
+    const worker = await createWorker(t, TRACK_WORKER_SCRIPT);
+    const track = await getTrack(t, kind);
+    track.enabled = false;
+    track.contentHint = hints[kind];
+    await track.applyConstraints(
+      constraintsFor[kind](track.getSettings().deviceId));
+    const before = describeTrack(track);
+    let endedFired = false;
+    track.onended = () => endedFired = true;
+
+    const reply = callWorker(worker, {type: "receive", track}, [track]);
+    const readyStateAfterPost = track.readyState;
+    const after = await reply;
+    transferred[kind] = {before, after, readyStateAfterPost, endedFired};
+  }, `Transferring a ${kind} track to a worker`);
+
+  const propertyTest = (name, check) => promise_test(async () => {
+    assert_not_equals(transferred[kind], undefined, "transfer succeeded");
+    check(transferred[kind]);
+  }, `${kind}: ${name}`);
+
+  for (const key of ["id", "kind", "label", "readyState", "enabled", "muted"]) {
+    propertyTest(`${key} is preserved`,
+                 ({before, after}) => assert_equals(after[key], before[key]));
+  }
+  propertyTest("contentHint is preserved", ({before, after}) => {
+    assert_equals(before.contentHint, hints[kind], "set before transfer");
+    assert_equals(after.contentHint, hints[kind]);
+  });
+
+  propertyTest("settings have the same keys", ({before, after}) =>
+    assert_array_equals(Object.keys(after.settings),
+                        Object.keys(before.settings)));
+  for (const key of settingKeys[kind]) {
+    propertyTest(`settings.${key} is preserved`, ({before, after}) =>
+      assert_equals(after.settings[key], before.settings[key]));
+  }
+
+  propertyTest("constraints have the same keys", ({before, after}) =>
+    assert_array_equals(Object.keys(after.constraints),
+                        Object.keys(before.constraints)));
+  propertyTest("constraints.deviceId.exact is preserved", ({before, after}) =>
+    assert_equals(after.constraints.deviceId.exact,
+                  before.constraints.deviceId.exact));
+  for (const [name, get] of Object.entries(constraintMembers[kind])) {
+    propertyTest(`constraints.${name} is preserved`, ({before, after}) =>
+      assert_equals(get(after.constraints), get(before.constraints)));
+  }
+
+  propertyTest("transferred-from track is ended synchronously",
+               ({readyStateAfterPost}) =>
+                 assert_equals(readyStateAfterPost, "ended"));
+  propertyTest("no ended event on the transferred-from track",
+               ({endedFired}) => assert_false(endedFired));
+}
+
+promise_test(async t => {
+  const worker = await createWorker(t, TRACK_WORKER_SCRIPT);
+  const track = await getTrack(t, "video");
+  track.stop();
+  const after = await callWorker(worker, {type: "receive", track}, [track]);
+  assert_equals(after.id, track.id);
+  assert_equals(after.readyState, "ended");
+}, "Transferring an ended track to a worker yields an ended track");
+</script>

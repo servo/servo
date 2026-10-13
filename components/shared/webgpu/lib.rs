@@ -2,10 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+pub mod encoders;
 pub mod error;
 pub mod ids;
 pub mod messages;
-pub mod render_commands;
 
 use std::ops::Range;
 
@@ -14,22 +14,67 @@ use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::{GenericOneshotSender, GenericSender, GenericSharedMemory};
 use webrender_api::euclid::default::Size2D;
 use webrender_api::{ImageDescriptor, ImageDescriptorFlags, ImageFormat};
-use wgpu_core::device::HostMap;
-pub use wgpu_core::id::markers::{
-    ComputePassEncoder as ComputePass, RenderPassEncoder as RenderPass,
+pub mod markers {
+    pub use wgpu_core::id::markers::{
+        Adapter, BindGroup, BindGroupLayout, Buffer, CommandBuffer, CommandEncoder,
+        ComputePassEncoder, ComputePipeline, Device, ExternalTexture, PipelineLayout, QuerySet,
+        Queue, RenderBundle, RenderBundleEncoder, RenderPassEncoder, RenderPipeline, Sampler,
+        ShaderModule, Texture, TextureView,
+    };
+}
+pub mod id {
+    pub use wgpu_core::id::{
+        AdapterId, BindGroupId, BindGroupLayoutId, BufferId, CommandBufferId, CommandEncoderId,
+        ComputePassEncoderId, ComputePipelineId, DeviceId, ExternalTextureId, PipelineLayoutId,
+        QuerySetId, QueueId, RenderBundleEncoderId, RenderBundleId, RenderPassEncoderId,
+        RenderPipelineId, SamplerId, ShaderModuleId, TextureId, TextureViewId,
+    };
+}
+pub use wgpu_core::Label;
+pub use wgpu_core::binding_model::{
+    BindGroupDescriptor, BindGroupEntry, BindGroupLayoutDescriptor, BindingResource, BufferBinding,
+    PipelineLayoutDescriptor,
 };
-pub use wgpu_core::id::{
-    ComputePassEncoderId as ComputePassId, RenderPassEncoderId as RenderPassId,
+pub use wgpu_core::command::{
+    ComputePassDescriptor, LoadOp, PassChannel, PassTimestampWrites, RenderBundleDescriptor,
+    RenderBundleEncoderDescriptor, RenderPassColorAttachment, RenderPassDepthStencilAttachment,
+    RenderPassDescriptor, StoreOp, TexelCopyBufferInfo, TexelCopyTextureInfo,
 };
+pub use wgpu_core::device::HostMap;
 use wgpu_core::id::{ComputePipelineId, DeviceId, QueueId, RenderPipelineId};
+pub use wgpu_core::identity::IdentityManager;
+pub use wgpu_core::instance::RequestAdapterOptions;
 use wgpu_core::limits::FailedLimit;
+pub use wgpu_core::naga::front::wgsl::ImplementedLanguageExtension;
 use wgpu_core::pipeline::CreateShaderModuleError;
-use wgpu_types::{AdapterInfo, COPY_BYTES_PER_ROW_ALIGNMENT, DeviceDescriptor, Features, Limits};
+pub use wgpu_core::pipeline::{
+    ComputePipelineDescriptor, FragmentState, ProgrammableStageDescriptor,
+    RenderPipelineDescriptor, ShaderModuleDescriptor, VertexBufferLayout, VertexState,
+};
+pub use wgpu_core::resource::{
+    BufferAccessError, BufferDescriptor, QuerySetDescriptor, SamplerDescriptor, TextureDescriptor,
+    TextureViewDescriptor,
+};
+use wgpu_types::COPY_BYTES_PER_ROW_ALIGNMENT;
+pub use wgpu_types::{
+    AdapterInfo, AddressMode, AstcBlock, AstcChannel, BindGroupLayoutEntry, BindingType,
+    BlendComponent, BlendFactor, BlendOperation, BlendState, BufferAddress, BufferBindingType,
+    BufferSize, BufferUsages, COPY_BUFFER_ALIGNMENT, Color, ColorTargetState, ColorWrites,
+    CommandBufferDescriptor, CommandEncoderDescriptor, CompareFunction, DepthBiasState,
+    DepthStencilState, DeviceDescriptor, DeviceType, ExperimentalFeatures, Extent3d, Face,
+    Features, FilterMode, FrontFace, ImageSubresourceRange, IndexFormat, Limits, MAP_ALIGNMENT,
+    MemoryHints, MipmapFilterMode, MultisampleState, Origin2d, Origin3d, PowerPreference,
+    PredefinedColorSpace, PrimitiveState, PrimitiveTopology, QueryType, RenderBundleDepthStencil,
+    SamplerBindingType, ShaderStages, StencilFaceState, StencilOperation, StencilState,
+    StorageTextureAccess, TexelCopyBufferLayout, TextureAspect, TextureDimension, TextureFormat,
+    TextureSampleType, TextureUsages, TextureViewDimension, Trace, VertexAttribute, VertexFormat,
+    VertexStepMode,
+};
 
+pub use crate::encoders::*;
 pub use crate::error::*;
 pub use crate::ids::*;
 pub use crate::messages::*;
-pub use crate::render_commands::*;
 
 pub const PRESENTATION_BUFFER_COUNT: usize = 10;
 
@@ -181,4 +226,10 @@ impl From<wgpu_core::instance::RequestDeviceError> for RequestDeviceError {
             e => RequestDeviceError::Other(e.to_string()),
         }
     }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum BufferUpdate {
+    Read(GenericSharedMemory),
+    Write(GenericSharedMemory, Range<u64>),
 }

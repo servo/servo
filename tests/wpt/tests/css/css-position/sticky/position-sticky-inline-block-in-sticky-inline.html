@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>A sticky inline-block accounts for its sticky inline ancestor's offset</title>
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#stickypos-insets">
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#the-display-properties">
+<meta name="assert" content="A sticky inline-block includes the translation of
+  its sticky inline ancestor, including when a static inline separates them.">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+.scroller {
+  width: 200px;
+  height: 100px;
+  overflow: auto;
+  border: 5px solid;
+}
+.before {
+  height: 100px;
+}
+.container {
+  height: 300px;
+}
+.outer {
+  display: inline;
+  position: sticky;
+  top: 0;
+}
+.intermediate {
+  display: inline;
+  position: static;
+}
+.inner {
+  display: inline-block;
+  position: sticky;
+  top: 20px;
+  width: 50px;
+  height: 20px;
+}
+</style>
+
+<div id="direct-scroller" class="scroller">
+  <div class="before"></div>
+  <div class="container">
+    <span id="direct-outer" class="outer">
+      <span id="direct-inner" class="inner"></span>
+    </span>
+  </div>
+</div>
+
+<div id="intermediate-scroller" class="scroller">
+  <div class="before"></div>
+  <div class="container">
+    <span id="intermediate-outer" class="outer">
+      <span class="intermediate">
+        <span id="intermediate-inner" class="inner"></span>
+      </span>
+    </span>
+  </div>
+</div>
+
+<script>
+function assertNestedStickyGeometry(scroller, outer, inner) {
+  scroller.scrollTop = 150;
+
+  const scrollportTop =
+      scroller.getBoundingClientRect().top + scroller.clientTop;
+  const outerTop = outer.getBoundingClientRect().top;
+  const innerTop = inner.getBoundingClientRect().top;
+
+  assert_equals(outerTop - scrollportTop, 0,
+                "outer top relative to the scrollport");
+  assert_equals(innerTop - scrollportTop, 20,
+                "inner top relative to the scrollport");
+  assert_equals(innerTop - outerTop, 20,
+                "inner top relative to the outer sticky");
+}
+
+test(() => {
+  assertNestedStickyGeometry(
+      document.getElementById("direct-scroller"),
+      document.getElementById("direct-outer"),
+      document.getElementById("direct-inner"));
+}, "a sticky inline-block accounts for its sticky inline parent's offset");
+
+test(() => {
+  assertNestedStickyGeometry(
+      document.getElementById("intermediate-scroller"),
+      document.getElementById("intermediate-outer"),
+      document.getElementById("intermediate-inner"));
+}, "a sticky inline-block accounts for its sticky inline ancestor's offset when separated by a static inline");
+</script>

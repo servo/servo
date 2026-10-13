@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>border style length</title>
+<link rel="help" href="https://drafts.csswg.org/css-backgrounds-3/#border-shorthands">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/cssstyle/issues/228 -->
+
+<script>
+"use strict";
+
+test(() => {
+  const p = document.createElement("p");
+  p.style.border = "";
+  assert_equals(p.style.length, 0, "length");
+  assert_equals(p.style.border, "", "border");
+  assert_equals(p.style.borderWidth, "", "border-width");
+  assert_equals(p.style.borderStyle, "", "border-style");
+  assert_equals(p.style.borderColor, "", "border-color");
+  assert_equals(p.style.borderImage, "", "border-image");
+  assert_equals(p.style.cssText, "", "cssText");
+  assert_equals(p.outerHTML, "<p></p>", "outerHTML");
+}, "Sanity check");
+
+test(() => {
+  const p = document.createElement("p");
+  p.style.border = "1px solid black";
+  // length varies depending on the number of properties supported,
+  // e.g. Firefox 143 and Chrome 141 both return 17.
+  assert_equals(p.style.length > 0, true, "length");
+  assert_equals(p.style.border, "1px solid black", "border");
+  assert_equals(p.style.borderWidth, "1px", "border-width");
+  assert_equals(p.style.borderStyle, "solid", "border-style");
+  assert_equals(p.style.borderColor, "black", "border-color");
+  assert_equals(p.style.borderImage, "none", "border-image");
+  assert_equals(p.style.cssText, "border: 1px solid black;", "cssText");
+  assert_equals(p.outerHTML, '<p style="border: 1px solid black;"></p>', "outerHTML");
+}, "Set border as 1px solid black");
+</script>

@@ -2,12 +2,12 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-esid: sec-initializenumberformat
+esid: sec-intl.numberformat
 description: >
   Monkey-patching Object.prototype does not change the default
   options for NumberFormat as a null prototype is used.
 info: |
-  InitializeNumberFormat ( numberFormat, locales, options )
+  Intl.NumberFormat ( [ locales [ , options ] ] )
 
     1. If _options_ is *undefined*, then
       1. Let _options_ be ObjectCreate(*null*).

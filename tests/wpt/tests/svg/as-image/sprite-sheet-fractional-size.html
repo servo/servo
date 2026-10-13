@@ -1,0 +1,37 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>SVG as image: a fractional used size must not letterbox the image inside its own rect</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/coords.html#PreserveAspectRatioAttribute">
+<link rel="help" href="https://drafts.csswg.org/css-images-3/#default-sizing">
+<link rel="match" href="sprite-sheet-fractional-size-ref.html">
+<meta name="assert" content="An SVG image whose used size has the same aspect ratio as its viewBox is not letterboxed by preserveAspectRatio, at fractional used sizes too. Each 1/40th of this sprite sheet must line up with its 1/40th of the used width, so a window onto the first frame shows only green.">
+<style>
+  body { margin: 0; background: white; }
+  /* A window onto the middle of the sprite sheet's first frame. The image is
+     larger than the window on every side, so only the placement of the sprite
+     within the image's own rect is under test, not the edges of either box. */
+  .frame {
+    width: 18px;
+    height: 18px;
+    overflow: hidden;
+    float: left;
+    margin: 5px;
+  }
+  .frame > img {
+    display: block;
+    margin: -1px 0 0 -1px;
+  }
+</style>
+<!-- The image is 40 frames wide, so its width is 40x its height, matching the
+     sprite sheet's 800x20 viewBox. The heights are fractional, and their
+     fractional parts differ, so that they cover several device pixel ratios. -->
+<div class="frame"><img src="sprite-sheet-fractional-size-helper.svg" style="width: 804px; height: 20.1px"></div>
+<div class="frame"><img src="sprite-sheet-fractional-size-helper.svg" style="width: 808px; height: 20.2px"></div>
+<div class="frame"><img src="sprite-sheet-fractional-size-helper.svg" style="width: 812px; height: 20.3px"></div>
+<div class="frame"><img src="sprite-sheet-fractional-size-helper.svg" style="width: 816px; height: 20.4px"></div>
+<div class="frame"><img src="sprite-sheet-fractional-size-helper.svg" style="width: 818px; height: 20.45px"></div>
+<div class="frame"><img src="sprite-sheet-fractional-size-helper.svg" style="width: 824px; height: 20.6px"></div>
+<div class="frame"><img src="sprite-sheet-fractional-size-helper.svg" style="width: 830px; height: 20.75px"></div>
+<div class="frame"><img src="sprite-sheet-fractional-size-helper.svg" style="width: 836px; height: 20.9px"></div>
+<div class="frame"><img src="sprite-sheet-fractional-size-helper.svg" style="width: 1056px; height: 26.4px"></div>
+<div class="frame"><img src="sprite-sheet-fractional-size-helper.svg" style="width: 1332px; height: 33.3px"></div>

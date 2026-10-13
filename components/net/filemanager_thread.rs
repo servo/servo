@@ -9,12 +9,12 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::{self, AtomicBool, AtomicUsize, Ordering};
 
+use bytes::Bytes;
 use embedder_traits::{
     EmbedderControlId, EmbedderControlResponse, FilePickerRequest, GenericEmbedderProxy,
     SelectedFile,
 };
 use headers::{ContentLength, ContentRange, ContentType, HeaderMap, HeaderMapExt, Range};
-use ipc_channel::ipc::IpcSender;
 use log::warn;
 use mime::Mime;
 use net_traits::blob_url_store::{BlobBuf, BlobTokenCommunicator, BlobURLStoreError};
@@ -24,6 +24,7 @@ use net_traits::filemanager_thread::{
 };
 use net_traits::response::{Response, ResponseBody};
 use parking_lot::{Mutex, RwLock};
+use profile_traits::generic_callback::GenericCallback;
 use rustc_hash::{FxHashMap, FxHashSet};
 use servo_arc::Arc as ServoArc;
 use servo_base::generic_channel::GenericSender;
@@ -99,7 +100,7 @@ impl FileManager {
 
     fn read_file(
         &self,
-        sender: IpcSender<FileManagerResult<ReadFileProgress>>,
+        sender: GenericCallback<FileManagerResult<ReadFileProgress>>,
         id: Uuid,
         origin: ImmutableOrigin,
     ) {
@@ -185,7 +186,7 @@ impl FileManager {
             FileManagerThreadMsg::ActivateBlobURL(id, sender, origin) => {
                 let _ = sender.send(self.store.set_blob_url_validity(true, &id, &origin));
             },
-            FileManagerThreadMsg::GetTokenForFile(id, _origin, sender) => {
+            FileManagerThreadMsg::GetTokenForFile(id, sender) => {
                 let token = match self.get_token_for_file(&id, false) {
                     FileTokenCheck::Required(token) => Some(token),
                     _ => None,
@@ -221,7 +222,7 @@ impl FileManager {
                     return;
                 }
                 let length = {
-                    let buffer = reader.fill_buf().unwrap().to_vec();
+                    let buffer = reader.fill_buf().unwrap();
                     let mut buffer_len = buffer.len();
                     if let ResponseBody::Receiving(ref mut body) = *res_body.lock() {
                         let offset = usize::min(
@@ -248,7 +249,7 @@ impl FileManager {
                         );
                         let chunk = &buffer[0..offset];
                         body.extend_from_slice(chunk);
-                        let _ = done_sender.send(Data::Payload(chunk.to_vec()));
+                        let _ = done_sender.send(Data::Payload(Bytes::copy_from_slice(chunk)));
                     }
                     buffer_len
                 };
@@ -317,7 +318,7 @@ impl FileManager {
                 let mut bytes = vec![];
                 bytes.extend_from_slice(buf.bytes.index(range));
 
-                let _ = done_sender.send(Data::Payload(bytes));
+                let _ = done_sender.send(Data::Payload(Bytes::copy_from_slice(&bytes)));
                 let _ = done_sender.send(Data::Done);
 
                 Ok(())
@@ -646,7 +647,7 @@ impl FileManagerStore {
         let filename_path = Path::new(file_name);
         let type_string = match mime_guess::from_path(filename_path).first() {
             Some(x) => format!("{}", x),
-            None => "".to_string(),
+            None => String::new(),
         };
 
         Ok(SelectedFile {
@@ -660,7 +661,7 @@ impl FileManagerStore {
 
     async fn get_blob_buf(
         &self,
-        sender: &IpcSender<FileManagerResult<ReadFileProgress>>,
+        sender: &GenericCallback<FileManagerResult<ReadFileProgress>>,
         id: &Uuid,
         file_token: &FileTokenCheck,
         origin_in: &ImmutableOrigin,
@@ -709,7 +710,7 @@ impl FileManagerStore {
                 if seeked_start == (range.start as u64) {
                     let type_string = match mime {
                         Some(x) => format!("{}", x),
-                        None => "".to_string(),
+                        None => String::new(),
                     };
 
                     read_file_in_chunks(sender, file, range.len(), opt_filename, type_string).await;
@@ -736,7 +737,7 @@ impl FileManagerStore {
     // Convenient wrapper over get_blob_buf
     async fn try_read_file(
         &self,
-        sender: &IpcSender<FileManagerResult<ReadFileProgress>>,
+        sender: &GenericCallback<FileManagerResult<ReadFileProgress>>,
         id: Uuid,
         origin_in: ImmutableOrigin,
     ) -> Result<(), BlobURLStoreError> {
@@ -867,7 +868,7 @@ impl FileManagerStore {
 }
 
 async fn read_file_in_chunks(
-    sender: &IpcSender<FileManagerResult<ReadFileProgress>>,
+    sender: &GenericCallback<FileManagerResult<ReadFileProgress>>,
     mut file: tokio::fs::File,
     size: usize,
     opt_filename: Option<String>,

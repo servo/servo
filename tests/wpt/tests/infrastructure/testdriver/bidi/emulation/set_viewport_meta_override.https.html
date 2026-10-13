@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<title>TestDriver bidi.emulation.set_viewport_meta_override method</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+    const CUSTOM_VIEWPORT_WIDTH = 345;
+
+    // Dynamically insert `<meta name="viewport">` with `CUSTOM_VIEWPORT_WIDTH`
+    // into the document. When viewport meta tag parsing is active (or
+    // dynamically toggled via `emulation.setViewportMetaOverride`), the browser
+    // evaluates the viewport `<meta>` tag and resizes the layout viewport to
+    // the specified width, which is reflected by
+    // `document.documentElement.clientWidth`.
+    const meta = document.createElement("meta");
+    meta.name = "viewport";
+    meta.content = `width=${CUSTOM_VIEWPORT_WIDTH}`;
+    document.head.appendChild(meta);
+
+    promise_test(async () => {
+        // Get the initial client width.
+        const initialClientWidth = document.documentElement.clientWidth;
+
+        // Enable the viewport meta override.
+        await test_driver.bidi.emulation.set_viewport_meta_override({
+            viewportMeta: true
+        });
+        // Assert the client width matches the viewport meta width.
+        assert_equals(document.documentElement.clientWidth, CUSTOM_VIEWPORT_WIDTH);
+
+        // Clear the viewport meta override with null.
+        await test_driver.bidi.emulation.set_viewport_meta_override({
+            viewportMeta: null
+        });
+        // Assert client width is restored to the original value.
+        assert_equals(document.documentElement.clientWidth, initialClientWidth);
+
+        // Enable the viewport meta override again.
+        await test_driver.bidi.emulation.set_viewport_meta_override({
+            viewportMeta: true
+        });
+        assert_equals(document.documentElement.clientWidth, CUSTOM_VIEWPORT_WIDTH);
+
+        // Clear the viewport meta override by omitting viewportMeta.
+        await test_driver.bidi.emulation.set_viewport_meta_override({});
+        // Assert client width is restored to the original value.
+        assert_equals(document.documentElement.clientWidth, initialClientWidth);
+    }, "emulate viewport meta and clear override");
+</script>

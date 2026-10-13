@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>SVG Paint Servers: Clear should cause linearGradient gradientTransform to be ignored.</title>
+  <metadata>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/pservers.html#LinearGradientElementGradientTransformAttribute"/>
+    <html:link rel="match" href="../reftests/reference/green-100x100.svg"/>
+    <html:meta name="fuzzy" content="maxDifference=0-1; totalPixels=0-40000"/>
+    <!-- The test paints a gradient whose visible area lands entirely on one
+         stop; the reference paints a solid fill of that stop colour. An
+         interpolated gradient is not bit-identical to a flat fill, so the two
+         agree to within one unit per channel rather than exactly.
+
+         maxDifference is what keeps this honest: if the transform stopped being
+         inherited the rect would show the far stop over much of its area, a
+         difference of hundreds, not of one. totalPixels is deliberately the
+         whole painted area, because how many pixels land on the rounding
+         boundary is a property of the rasterizer and its scale, not of the
+         behaviour under test: 3952 at 1x, 4344 at the 2x an iOS snapshot
+         uses. -->
+  </metadata>
+  <!-- lg1 has gradientTransform="translate(1,0)" which shifts the gradient one full
+       bounding-box width to the right so the entire rect sees the first stop (green). -->
+  <linearGradient id="lg1" gradientTransform="translate(1,0)">
+    <stop offset="0" stop-color="green"/>
+    <stop offset="1" stop-color="red"/>
+  </linearGradient>
+  <!-- lg references lg1 and has its own gradientTransform. After clear(), lg's
+       gradientTransform list is empty and lg should inherit translate(1,0) from lg1,
+       rendering the rect solid green. -->
+  <linearGradient id="lg" href="#lg1" gradientTransform="translate(0,0)"/>
+  <rect fill="url(#lg)" width="100" height="100"/>
+  <script><![CDATA[
+    document.getElementById("lg").gradientTransform.baseVal.clear();
+  ]]></script>
+</svg>

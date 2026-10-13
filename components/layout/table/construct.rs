@@ -1243,7 +1243,6 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
         contents: Contents,
         box_slot: BoxSlot<'dom>,
     ) {
-        #[allow(clippy::collapsible_match)] //// TODO: Remove once the other cases are handled
         match display {
             DisplayGeneratingBox::LayoutInternal(internal) => match internal {
                 DisplayLayoutInternal::TableCell => {

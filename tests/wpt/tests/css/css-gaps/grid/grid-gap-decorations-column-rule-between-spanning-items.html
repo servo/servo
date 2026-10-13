@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: column rule between adjacent spanning grid items</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#segments">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#break">
+<link rel="match" href="grid-gap-decorations-column-rule-between-spanning-items-ref.html">
+<style>
+  body {
+    margin: 0;
+  }
+  .grid {
+    display: grid;
+    grid: repeat(3, 1fr) / repeat(4, 2fr);
+    width: 335px;
+    height: 190px;
+    rule: 3px solid gold;
+    gap: 5px;
+  }
+  .item {
+    background: lightblue;
+  }
+  .spanning {
+    background: pink;
+    grid-column: span 2;
+  }
+</style>
+<div class="grid">
+  <div class="item">1</div>
+  <div class="item">1</div>
+  <div class="item">1</div>
+  <div class="item">1</div>
+  <div class="spanning">Span</div>
+  <div class="spanning">Span</div>
+  <div class="item">1</div>
+  <div class="item">1</div>
+  <div class="item">1</div>
+  <div class="item">1</div>
+</div>

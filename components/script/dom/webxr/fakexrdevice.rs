@@ -3,14 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use euclid::{Point2D, Point3D, Rect, RigidTransform3D, Rotation3D, Size2D, Transform3D, Vector3D};
 use js::context::JSContext;
 use js::realm::CurrentRealm;
 use profile_traits::generic_callback::GenericCallback as ProfileGenericCallback;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 use servo_base::generic_channel::GenericSender;
 use webxr_api::{
     EntityType, Handedness, InputId, InputSource, MockDeviceMsg, MockInputInit, MockRegion,
@@ -18,6 +17,7 @@ use webxr_api::{
 };
 
 use crate::conversions::Convert;
+use crate::dom::RootedPromise;
 use crate::dom::bindings::codegen::Bindings::DOMPointBinding::DOMPointInit;
 use crate::dom::bindings::codegen::Bindings::FakeXRDeviceBinding::{
     FakeXRBoundsPoint, FakeXRDeviceMethods, FakeXRRegionType, FakeXRRigidTransformInit,
@@ -60,7 +60,7 @@ impl FakeXRDevice {
         global: &GlobalScope,
         sender: GenericSender<MockDeviceMsg>,
     ) -> DomRoot<FakeXRDevice> {
-        reflect_dom_object_with_cx(Box::new(FakeXRDevice::new_inherited(sender)), global, cx)
+        reflect_dom_object(cx, Box::new(FakeXRDevice::new_inherited(sender)), global)
     }
 
     pub(crate) fn disconnect(&self, sender: ProfileGenericCallback<()>) {
@@ -302,23 +302,22 @@ impl FakeXRDeviceMethods<crate::DomTypeHolder> for FakeXRDevice {
     }
 
     /// <https://immersive-web.github.io/webxr-test-api/#dom-fakexrdevice-disconnect>
-    fn Disconnect(&self, cx: &mut CurrentRealm) -> Rc<Promise> {
+    fn Disconnect(&self, cx: &mut CurrentRealm) -> RootedPromise {
         let global = self.global();
         let p = Promise::new_in_realm(cx);
-        let mut trusted = Some(TrustedPromise::new(p.clone()));
+        let mut trusted = Some(TrustedPromise::from(&p));
         let task_source = global
             .task_manager()
             .dom_manipulation_task_source()
             .to_sendable();
 
-        let callback =
-            ProfileGenericCallback::new(global.time_profiler_chan().clone(), move |_| {
-                let trusted = trusted
-                    .take()
-                    .expect("disconnect callback called multiple times");
-                task_source.queue(trusted.resolve_task(()));
-            })
-            .expect("Could not create callback");
+        let callback = ProfileGenericCallback::new(move |_| {
+            let trusted = trusted
+                .take()
+                .expect("disconnect callback called multiple times");
+            task_source.queue(trusted.resolve_task(()));
+        })
+        .expect("Could not create callback");
         self.disconnect(callback);
         p
     }

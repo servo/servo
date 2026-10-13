@@ -1,0 +1,36 @@
+<meta charset="utf-8">
+<title>CSS Selectors: class prefix selector always matches case-sensitively, even in quirks mode</title>
+<link rel="author" title="Tim Nguyen" href="https://github.com/nt1m">
+<link rel="help" href="https://drafts.csswg.org/selectors-5/#class-prefix">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="log"></div>
+<div id="target1" class="foo-bar"></div>
+<div id="target2" class="FOO-bar"></div>
+<div id="target3" class="FOO"></div>
+<script>
+const target1 = document.getElementById('target1');
+const target2 = document.getElementById('target2');
+const target3 = document.getElementById('target3');
+
+test(() => {
+  assert_equals(document.compatMode, 'BackCompat');
+}, 'this test runs in quirks mode');
+
+test(() => {
+  assert_true(target3.matches('.FOO'));
+  assert_true(target3.matches('.foo'));
+}, 'sanity check: a regular class selector matches case-insensitively in quirks mode, regardless of the case used in the selector or the markup');
+
+test(() => {
+  assert_true(target1.matches('.foo-*'));
+}, 'class="foo-bar" matches .foo-* in quirks mode');
+
+test(() => {
+  assert_true(target2.matches('.foo-*'));
+}, 'class="FOO-bar" matches .foo-* in quirks mode (the class attribute value itself is ASCII-lowercased by the quirks mode class-matching quirk)');
+
+test(() => {
+  assert_false(target2.matches('.FOO-*'));
+}, 'class="FOO-bar" does not match .FOO-* in quirks mode: unlike a regular class selector, the class prefix selector itself is never case-folded, so writing it in a different case than the (quirks-mode-lowercased) class attribute never matches');
+</script>

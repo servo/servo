@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>CSS Overflow Test: Moving the scroll container between nested scroll-marker-groups does not crash</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-property">
+<style>
+  #outer, #inner {
+    scroll-marker-group: before;
+  }
+
+  #outer {
+    overflow: auto;
+    position: relative;
+  }
+
+  #item {
+    position: absolute;
+  }
+
+  #item::scroll-marker {
+    content: "";
+  }
+</style>
+<div id="outer"><div id="inner"><div id="item"></div></div></div>
+<script>
+  outer.offsetTop;
+  // Move #item's ::scroll-marker from #outer's group to #inner's group.
+  outer.style.overflow = "visible";
+  inner.style.overflow = "auto";
+  item.style.position = "static";
+</script>

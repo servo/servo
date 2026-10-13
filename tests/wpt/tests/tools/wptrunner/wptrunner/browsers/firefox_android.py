@@ -65,6 +65,8 @@ def browser_kwargs(logger, test_type, run_info_data, config, **kwargs):
                       "chaos_mode_flags": kwargs["chaos_mode_flags"],
                       "config": config,
                       "debug_test": kwargs["debug_test"],
+                      # android only
+                      "isolated_process": kwargs["isolated_process"],
                       }
 
     if test_type == "wdspec":
@@ -141,7 +143,7 @@ def env_options():
             "supports_debugger": True}
 
 
-def get_environ(chaos_mode_flags, env_extras=None):
+def get_environ(chaos_mode_flags, isolated_process=False, env_extras=None):
     env = {}
     if env_extras is not None:
         env.update(env_extras)
@@ -152,6 +154,8 @@ def get_environ(chaos_mode_flags, env_extras=None):
     env["MOZ_DISABLE_NONLOCAL_CONNECTIONS"] = "1"
     if chaos_mode_flags is not None:
         env["MOZ_CHAOSMODE"] = hex(chaos_mode_flags)
+    if isolated_process:
+        env["MOZ_ANDROID_CONTENT_SERVICE_ISOLATED_PROCESS"] = "1"
     return env
 
 
@@ -177,6 +181,11 @@ class ProfileCreator(FirefoxProfileCreator):
         }
 
     def _get_default_prefs(self):
+        """Preferences that are applied to the profile of a test run.
+
+        See the note on the base class implementation: these are not visible to
+        "run_info_extras", so a run info flag does not reflect them.
+        """
         prefs = self.default_prefs()
         prefs.update(
             {
@@ -215,7 +224,8 @@ class ProfileCreator(FirefoxProfileCreator):
                 }
             )
         else:
-            # Except for wdspec dispatch wheel scroll as widget event by default.
+            # Dispatch wheel scroll as widget event by default. It stays
+            # disabled for wdspec until it can be enabled for all input sources.
             prefs["remote.events.async.wheel.enabled"] = True
 
         return prefs
@@ -232,7 +242,7 @@ class FirefoxAndroidBrowser(Browser):
                  binary_args=None, timeout_multiplier=None, leak_check=False, asan=False,
                  chaos_mode_flags=None, config=None, browser_channel="nightly",
                  install_fonts=False, tests_root=None, specialpowers_path=None, adb_binary=None,
-                 debug_test=False, disable_fission=False, env_extras=None, **kwargs):
+                 debug_test=False, disable_fission=False, env_extras=None, isolated_process=False, **kwargs):
 
         super().__init__(logger, **kwargs)
         self.prefs_root = prefs_root
@@ -257,6 +267,7 @@ class FirefoxAndroidBrowser(Browser):
         self.specialpowers_path = specialpowers_path
         self.adb_binary = adb_binary
         self.disable_fission = disable_fission
+        self.isolated_process = isolated_process
 
         self.profile_creator = ProfileCreator(logger,
                                               prefs_root,
@@ -307,13 +318,17 @@ class FirefoxAndroidBrowser(Browser):
         self.leak_report_file = None
 
         args = self.binary_args[:] if self.binary_args else []
-        args += [cmd_arg("marionette"),
-                 cmd_arg("remote-allow-system-access"), "about:blank"]
+        args += [cmd_arg("marionette"), "about:blank"]
 
         debug_args, cmd = browser_command(
             self.package_name, args, self.debug_info)
 
-        env = get_environ(self.chaos_mode_flags, self.env_extras)
+        env = get_environ(self.chaos_mode_flags, self.isolated_process, self.env_extras)
+        # Allow Marionette to execute commands in the chrome scope of the
+        # application. Not set in get_environ() because for wdspec tests the
+        # environment is forwarded to geckodriver via capabilities, which
+        # rejects this variable.
+        env["MOZ_REMOTE_ALLOW_SYSTEM_ACCESS"] = "1"
 
         self.runner = FennecEmulatorRunner(app=self.package_name,
                                            profile=self.profile,
@@ -356,7 +371,10 @@ class FirefoxAndroidBrowser(Browser):
                     self.logger.warning("Failed to remove forwarded or reversed ports: %s" % e)
             # We assume that stopping the runner prompts the
             # browser to shut down.
-            self.runner.cleanup()
+            try:
+                self.runner.cleanup()
+            except Exception as e:
+                self.logger.warning(f"Failed to cleanup runner: {e}")
         self.logger.debug("stopped")
 
     @property
@@ -427,8 +445,8 @@ class FirefoxAndroidWdSpecBrowser(FirefoxPytestBrowser):
             self.logger.warning("Failed to remove forwarded or reversed ports: %s" % e)
         super().stop(force=force)
 
-    def get_env(self, binary, debug_info, headless, gmp_path, chaos_mode_flags, e10s):
-        env = get_environ(chaos_mode_flags)
+    def get_env(self, binary, debug_info, headless, gmp_path, chaos_mode_flags, e10s, isolated_process):
+        env = get_environ(chaos_mode_flags, isolated_process)
         env["RUST_BACKTRACE"] = "1"
         return env
 

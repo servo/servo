@@ -57,10 +57,14 @@ def test_ia2(ia2, session, inline, test_html):
 
     assert ia2.get_hyperlink_interface(node) is not None
 
-# @pytest.mark.parametrize("test_html", TEST_HTML.values(), ids=TEST_HTML.keys())
-# def test_uia(uia, session, inline, test_html):
-#     session.url = inline(test_html)
-#
-#     # Spec:
-#     # Control Type: HyperLink
-#     # Control Pattern: Value
+@pytest.mark.parametrize("test_html", TEST_HTML.values(), ids=TEST_HTML.keys())
+def test_uia(uia, session, inline, test_html):
+    session.url = inline(test_html)
+
+    # Spec:
+    # Control Type: HyperLink
+    # Control Pattern: Value
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.Hyperlink
+    assert node.GetCurrentPropertyValue(uia.PropertyId.IsValuePatternAvailable)

@@ -1,0 +1,15 @@
+<svg width="400" height="250" xmlns="http://www.w3.org/2000/svg" xmlns:html="http://www.w3.org/1999/xhtml">
+  <title>Inline textPath path data under a transformed ancestor takes no extra transform</title>
+  <metadata>
+    <html:link rel="author" title="Karl Dubost" href="mailto:k_dubost@apple.com"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElementPathAttribute"/>
+    <html:link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/text.html#TextPathElement"/>
+    <html:link rel="match" href="textpath-path-attr-ancestor-transform-ref.svg"/>
+    <html:meta name="assert" content="The supplemental-transform rule belongs to the referenced element, which lives in a coordinate system of its own. Inline path data has no referenced element, so an ancestor transform applies to it exactly once, through the text element, the same way it applies to an untransformed referenced path. An implementation that routes inline data through the referenced-element code path applies a transform twice and misplaces the text."/>
+  </metadata>
+  <g transform="translate(40,30) rotate(15)">
+    <text>
+      <textPath path="M 10 50 L 350 50">Text along a straight line</textPath>
+    </text>
+  </g>
+</svg>

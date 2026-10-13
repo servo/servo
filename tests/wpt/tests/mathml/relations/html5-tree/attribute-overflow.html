@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>MathML mpadded and layout attributes numerical overflow tests</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2067526">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  div.container {
+    font-size: 100px;
+    width: 500px;
+  }
+</style>
+<body>
+<div id="log"></div>
+
+<!-- Proof 1: LTR lspace extreme positive overflow -->
+<div class="container" id="c-lspace">
+  <math display="block">
+    <mpadded id="mpadded-lspace" lspace="+50000000%width">
+      <mi id="child-lspace">X</mi>
+    </mpadded>
+  </math>
+</div>
+
+<!-- Proof 2: Positive voffset (upward movement) saturation truncation -->
+<div class="container" id="c-voffset">
+  <math display="block">
+    <mpadded id="mpadded-voffset" voffset="+50000000%height">
+      <mi id="child-voffset">Y</mi>
+    </mpadded>
+  </math>
+</div>
+
+<!-- Proof 3: Clamping consistency check across container sizes -->
+<div class="container" id="c-200" style="width: 200px;">
+  <math display="block">
+    <mpadded lspace="+50000000%width">
+      <mi id="child-200px">A</mi>
+    </mpadded>
+  </math>
+</div>
+<div class="container" id="c-800" style="width: 800px;">
+  <math display="block">
+    <mpadded lspace="+50000000%width">
+      <mi id="child-800px">B</mi>
+    </mpadded>
+  </math>
+</div>
+
+<script>
+// Helper to calculate relative offset against container origin
+function getRelBox(childId, containerId) {
+  const c = document.getElementById(childId).getBoundingClientRect();
+  const p = document.getElementById(containerId).getBoundingClientRect();
+  return {
+    x: c.x - p.x,
+    y: c.y - p.y,
+    width: c.width,
+    height: c.height
+  };
+}
+
+test(() => {
+  const rel = getRelBox("child-lspace", "c-lspace");
+  // Positive LTR lspace must offset content to the right (positive X direction).
+  assert_greater_than_equal(
+    rel.x, 0,
+    "Positive LTR lspace must maintain rightward displacement and not invert sign to negative X."
+  );
+}, "mpadded lspace positive overflow maintains rightward displacement (LTR)");
+
+test(() => {
+  const rel = getRelBox("child-voffset", "c-voffset");
+  // Positive voffset moves child upward (childY = ascent - voffset <= 0 relative to origin).
+  assert_less_than_equal(
+    rel.y, 0,
+    "Positive voffset must maintain upward displacement and not roll over to positive Y."
+  );
+}, "mpadded voffset positive overflow maintains upward displacement");
+
+test(() => {
+  const rel200 = getRelBox("child-200px", "c-200");
+  const rel800 = getRelBox("child-800px", "c-800");
+
+  assert_greater_than_equal(rel200.x, 0, "200px container child X must maintain rightward direction");
+  assert_greater_than_equal(rel800.x, 0, "800px container child X must maintain rightward direction");
+  // Overflow handling must preserve monotonic displacement with respect to container scale.
+  assert_greater_than_equal(
+    rel800.x, rel200.x,
+    "Larger container width must produce greater or equal rightward displacement without roll-over."
+  );
+}, "Monotonic rightward displacement of lspace across different container widths");
+</script>
+</body>

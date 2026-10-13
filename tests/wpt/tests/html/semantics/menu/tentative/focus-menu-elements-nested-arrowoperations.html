@@ -52,6 +52,8 @@ menulist {
 
 <script>
 
+const Enter = '\uE007';
+const Esc = '\uE00C';
 const ArrowLeft = '\uE012';
 const ArrowUp = '\uE013';
 const ArrowRight = '\uE014';
@@ -109,5 +111,39 @@ promise_test(async (t) => {
   a.focus();
   await navigateMenus();
 }, 'Should use arrow keys to move between menuitems: Hide popover on beforetoggle should still work.');
+
+promise_test(async (t) => {
+  b.focus();
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(document.activeElement, e);
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(document.activeElement, f);
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(document.activeElement, g);
+  await test_driver.send_keys(document.activeElement, ArrowRight);
+  assert_equals(document.activeElement, h);
+  assert_true(menulist3.matches(':popover-open'), "nested menulist should be open");
+
+  await test_driver.send_keys(document.activeElement, Esc);
+  assert_false(menulist3.matches(':popover-open'), "nested menulist should be closed");
+  assert_equals(document.activeElement, g, "focus should return to invoking menuitem");
+}, 'Should return focus to invoking menuitem when closing nested submenu with Escape (opened via ArrowRight).');
+
+promise_test(async (t) => {
+  b.focus();
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(document.activeElement, e);
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(document.activeElement, f);
+  await test_driver.send_keys(document.activeElement, ArrowDown);
+  assert_equals(document.activeElement, g);
+  await test_driver.send_keys(document.activeElement, Enter);
+  assert_equals(document.activeElement, h);
+  assert_true(menulist3.matches(':popover-open'), "nested menulist should be open");
+
+  await test_driver.send_keys(document.activeElement, Esc);
+  assert_false(menulist3.matches(':popover-open'), "nested menulist should be closed");
+  assert_equals(document.activeElement, g, "focus should return to invoking menuitem");
+}, 'Should return focus to invoking menuitem when closing nested submenu with Escape (opened via Enter).');
 
 </script>

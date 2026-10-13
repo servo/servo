@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<title>@navigation within @function navigation transitions</title>
+<link rel="author" title="Morten Stenshorne" href="mailto:mstensho@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-navigation-1/#at-navigation">
+<link rel="help" href="https://drafts.csswg.org/css-mixins-1/#conditional-rules">
+<style>
+  @location --foo {
+    pathname: "/target/foo/*";
+  }
+  @location --bar {
+    pathname: "/target/bar/*";
+  }
+
+  @function --at-foo() {
+    result: nomatch;
+    @navigation (at: --foo) {
+      result: matched;
+    }
+  }
+  @function --from-foo() {
+    result: nomatch;
+    @navigation (from: --foo) {
+      result: matched;
+    }
+  }
+  @function --to-foo() {
+    result: nomatch;
+    @navigation (to: --foo) {
+      result: matched;
+    }
+  }
+  @function --at-bar() {
+    result: nomatch;
+    @navigation (at: --bar) {
+      result: matched;
+    }
+  }
+  @function --from-bar() {
+    result: nomatch;
+    @navigation (from: --bar) {
+      result: matched;
+    }
+  }
+  @function --to-bar() {
+    result: nomatch;
+    @navigation (to: --bar) {
+      result: matched;
+    }
+  }
+  @function --between-foo-bar() {
+    result: nomatch;
+    @navigation (between: --foo and --bar) {
+      result: matched;
+    }
+  }
+
+  #elm {
+    --at-foo: --at-foo();
+    --from-foo: --from-foo();
+    --to-foo: --to-foo();
+    --at-bar: --at-bar();
+    --from-bar: --from-bar();
+    --to-bar: --to-bar();
+    --between-foo-bar: --between-foo-bar();
+  }
+</style>
+<span id="elm"></span>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/test-navigation.js"></script>
+<script>
+  promise_test(async (t) => {
+    await new Promise(r => window.onload = () => t.step_timeout(r, 0));
+
+    const match_params = [
+      [elm, "--at-foo"],
+      [elm, "--from-foo"],
+      [elm, "--to-foo"],
+      [elm, "--at-bar"],
+      [elm, "--from-bar"],
+      [elm, "--to-bar"],
+      [elm, "--between-foo-bar"],
+    ];
+
+    //                                                                                onnavigate            committed
+    //                                                                                --foo   -bar          --foo   --bar
+    //                                                                                A F T   A F T  B      A F T   A F T  B
+    await test_navigation(t, "nav1", ()=> { navigation.navigate("/target/foo/1"); }, [0,0,1,  0,0,0, 0],   [1,0,1,  0,0,0, 0], match_params);
+    await test_navigation(t, "nav2", ()=> { navigation.navigate("/target/bar/1"); }, [1,1,0,  0,0,1, 1],   [0,1,0,  1,0,1, 1], match_params);
+    await test_navigation(t, "nav3", ()=> { navigation.navigate("/target/bar/2"); }, [0,0,0,  1,1,1, 0],   [0,0,0,  1,1,1, 0], match_params);
+    await test_navigation(t, "nav4", ()=> { navigation.back(); },                    [0,0,0,  1,1,1, 0],   [0,0,0,  1,1,1, 0], match_params);
+    await test_navigation(t, "nav5", ()=> { navigation.back(); },                    [0,0,1,  1,1,0, 1],   [1,0,1,  0,1,0, 1], match_params);
+  }, "Navigate between URLs using @navigation inside @function");
+</script>

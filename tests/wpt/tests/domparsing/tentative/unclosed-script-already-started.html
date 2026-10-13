@@ -1,0 +1,61 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Unclosed &lt;script&gt; at the end of a fragment parse is marked "already started"</title>
+<link rel="help" href="https://html.spec.whatwg.org/C/#parsing-main-incdata" />
+<link rel="help" href="https://html.spec.whatwg.org/C/#html-fragment-parsing-algorithm" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <div id="container"></div>
+  <script>
+    // "An end-of-file token: Parse error. If the current node is a script
+    // element, then set its already started to true." This applies to fragment
+    // parsing too, so an unclosed <script> produced by a fragment parser must
+    // never execute, even once it is connected or its text changes.
+
+    function assert_never_runs(script, description) {
+      assert_not_equals(script, null, `${description}: script element exists`);
+      assert_false(window.unclosed_ran, `${description}: must not run on insertion`);
+      script.appendChild(document.createTextNode("window.unclosed_ran = true;"));
+      assert_false(window.unclosed_ran, `${description}: must not run when its text changes`);
+      const clone = script.cloneNode(true);
+      container.appendChild(clone);
+      // A clone copies the already started flag.
+      assert_false(window.unclosed_ran, `${description}: clone must not run`);
+    }
+
+    test((t) => {
+      window.unclosed_ran = false;
+      t.add_cleanup(() => { delete window.unclosed_ran; container.replaceChildren(); });
+      const range = document.createRange();
+      range.selectNodeContents(container);
+      const fragment = range.createContextualFragment("<script id=ccf>window.unclosed_ran = true;");
+      container.appendChild(fragment);
+      assert_never_runs(container.querySelector("#ccf"), "createContextualFragment");
+    }, "Unclosed <script> from createContextualFragment() never runs");
+
+    test((t) => {
+      window.unclosed_ran = false;
+      t.add_cleanup(() => { delete window.unclosed_ran; container.replaceChildren(); });
+      container.setHTMLUnsafe("<script id=shu>window.unclosed_ran = true;", { runScripts: true });
+      assert_never_runs(container.querySelector("#shu"), "setHTMLUnsafe({runScripts: true})");
+    }, "Unclosed <script> from setHTMLUnsafe({runScripts: true}) never runs");
+
+    test((t) => {
+      window.unclosed_ran = false;
+      t.add_cleanup(() => { delete window.unclosed_ran; container.replaceChildren(); });
+      const outer = document.createElement("div");
+      outer.innerHTML = "<script id=ih>window.unclosed_ran = true;";
+      container.appendChild(outer);
+      assert_never_runs(container.querySelector("#ih"), "innerHTML then insert");
+    }, "Unclosed <script> from innerHTML never runs once connected");
+
+    test((t) => {
+      // Control: a closed script from setHTMLUnsafe({runScripts: true}) runs.
+      window.unclosed_ran = false;
+      t.add_cleanup(() => { delete window.unclosed_ran; container.replaceChildren(); });
+      container.setHTMLUnsafe("<script>window.unclosed_ran = true;<" + "/script>", { runScripts: true });
+      assert_true(window.unclosed_ran);
+    }, "Control: closed <script> from setHTMLUnsafe({runScripts: true}) runs");
+  </script>
+</body>

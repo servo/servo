@@ -28,4 +28,4 @@ testWithTypedArrayConstructors(function(TA, makeCtorArg) {
       v, 42, "method does not cache values before callbackfn calls"
     );
   });
-});
+}, null, null, ["immutable"]);

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<title>Custom Functions: font-relative units in parameters, locals and result</title>
+<link rel="help" href="https://drafts.csswg.org/css-mixins-1/#evaluate-a-custom-function">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#font-relative-lengths">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/utils.js"></script>
+
+<style>
+  /* Registering both sides as <length> makes each comparison exact without
+     depending on what 1em, 1rem or 1ex actually resolve to. The initial value is
+     nonzero so that a guaranteed-invalid result is distinguishable from a length
+     that wrongly resolved against a zero font size. */
+  @property --actual {
+    syntax: "<length>";
+    inherits: false;
+    initial-value: -1px;
+  }
+  @property --expected {
+    syntax: "<length>";
+    inherits: false;
+    initial-value: -1px;
+  }
+  /* #parent and #target have different font sizes, so a font-relative unit that
+     resolves against the wrong element is caught too, not just one that resolves
+     against no element at all. */
+  #parent {
+    font-size: 10px;
+  }
+  #target {
+    font-size: 20px;
+  }
+</style>
+
+<div id=parent>
+  <div id=target></div>
+</div>
+<div id=main></div>
+
+<!-- To pass, a test must produce matching computed values for --actual and
+     --expected on #target.
+
+     Every case below places the <dashed-function> in a custom property rather
+     than in 'font-size', so a font-relative unit resolves against the calling
+     element whichever context it is evaluated in. -->
+
+<!-- Typed parameters -->
+
+<template data-name="em in a typed parameter">
+  <style>
+    @function --f(--x <length>) returns <length> {
+      result: var(--x);
+    }
+    #target {
+      --actual: --f(1em);
+      --expected: 1em;
+    }
+  </style>
+</template>
+
+<template data-name="rem in a typed parameter">
+  <style>
+    @function --f(--x <length>) returns <length> {
+      result: var(--x);
+    }
+    #target {
+      --actual: --f(1rem);
+      --expected: 1rem;
+    }
+  </style>
+</template>
+
+<template data-name="em within calc() in a typed parameter">
+  <style>
+    @function --f(--x <length>) returns <length> {
+      result: var(--x);
+    }
+    #target {
+      --actual: --f(calc(1em + 5px));
+      --expected: calc(1em + 5px);
+    }
+  </style>
+</template>
+
+<template data-name="em in a typed parameter, untyped return">
+  <style>
+    @function --f(--x <length>) {
+      result: var(--x);
+    }
+    #target {
+      --actual: --f(1em);
+      --expected: 1em;
+    }
+  </style>
+</template>
+
+<template data-name="em in a typed parameter default">
+  <style>
+    @function --f(--x <length>: 1em) returns <length> {
+      result: var(--x);
+    }
+    #target {
+      --actual: --f();
+      --expected: 1em;
+    }
+  </style>
+</template>
+
+<template data-name="em in a typed parameter of a nested function">
+  <style>
+    @function --inner(--y <length>) returns <length> {
+      result: var(--y);
+    }
+    @function --outer(--x <length>) returns <length> {
+      result: --inner(var(--x));
+    }
+    #target {
+      --actual: --outer(1em);
+      --expected: 1em;
+    }
+  </style>
+</template>
+
+<!-- Typed result -->
+
+<template data-name="em in a typed result">
+  <style>
+    @function --f() returns <length> {
+      result: 1em;
+    }
+    #target {
+      --actual: --f();
+      --expected: 1em;
+    }
+  </style>
+</template>
+
+<template data-name="em within calc() in a typed result">
+  <style>
+    @function --f() returns <length> {
+      result: calc(1em * 2);
+    }
+    #target {
+      --actual: --f();
+      --expected: calc(1em * 2);
+    }
+  </style>
+</template>
+
+<template data-name="em in an untyped local substituted into a typed result">
+  <style>
+    @function --f() returns <length> {
+      --local: 1em;
+      result: var(--local);
+    }
+    #target {
+      --actual: --f();
+      --expected: 1em;
+    }
+  </style>
+</template>
+
+<!-- Controls: with nothing typed, the unit is resolved as part of the calling
+     declaration, so these pass even where the cases above do not. -->
+
+<template data-name="em in an untyped parameter">
+  <style>
+    @function --f(--x) {
+      result: var(--x);
+    }
+    #target {
+      --actual: --f(1em);
+      --expected: 1em;
+    }
+  </style>
+</template>
+
+<template data-name="em in an untyped result">
+  <style>
+    @function --f() {
+      result: 1em;
+    }
+    #target {
+      --actual: --f();
+      --expected: 1em;
+    }
+  </style>
+</template>
+
+<script>
+  test_all_templates();
+</script>

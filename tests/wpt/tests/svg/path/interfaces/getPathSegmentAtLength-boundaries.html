@@ -1,0 +1,30 @@
+<!doctype html>
+<title>SVGPathElement.getPathSegmentAtLength() segment boundaries</title>
+<link rel="help" href="https://svgwg.org/specs/paths/#InterfaceSVGPathData">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/getPathData-helpers.js"></script>
+
+<script>
+// d: M(0,0) L(100,0) [0..100] L(100,100) [100..200].
+const D = "M 0 0 L 100 0 L 100 100";
+
+test(() => {
+  const path = createPath(D);
+  assert_path_segment_equals(
+      path.getPathSegmentAtLength(0), { type: "M", values: [0, 0] });
+}, "distance 0 returns the leading MoveTo");
+
+test(() => {
+  const path = createPath(D);
+  assert_path_segment_equals(
+      path.getPathSegmentAtLength(100), { type: "L", values: [100, 0] });
+}, "an exact segment boundary returns the prior segment");
+
+test(() => {
+  // A lone MoveTo has no following segment, so it is returned itself.
+  const path = createPath("M 30 40");
+  assert_path_segment_equals(
+      path.getPathSegmentAtLength(0), { type: "M", values: [30, 40] });
+}, "distance 0 on a MoveTo-only path returns the MoveTo");
+</script>

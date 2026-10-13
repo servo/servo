@@ -6,6 +6,7 @@ includes: [detachArrayBuffer.js]
 description: |
   pending
 esid: pending
+features: [Atomics]
 ---*/
 
 const intArrayConstructors = [
@@ -97,4 +98,3 @@ for (let TA of intArrayConstructors) {
   assert.throws(TypeError, () => Atomics.xor(ta, badValue(ta), 0));
   assert.throws(TypeError, () => Atomics.xor(ta, 0, badValue(ta)));
 }
-

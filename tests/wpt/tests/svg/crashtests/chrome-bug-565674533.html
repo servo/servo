@@ -1,0 +1,20 @@
+<!doctype html>
+<title>Dynamic &lt;pattern> cycle</title>
+<link rel="help" href="https://issues.chromium.org/565674533">
+<svg>
+  <pattern id="p2" width="1" height="1">
+    <line id="l" y2="1" x2="2" stroke="url(#p1) green"/>
+  </pattern>
+  <pattern id="p1" width="1" height="1"/>
+  <polygon id="r" points="0,0 200,0 200,200 0,200" fill="url(#p1) lime"/>
+</svg>
+<script>
+  r.getBBox();
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    p1.setAttribute('width', '2');
+    l.setAttribute('x2', '1');
+    r.setAttribute('points', '0,0 100,0 100,100 0,100');
+    r.getBBox();
+    p1.setAttribute('href', '#p2');
+  }));
+</script>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Linked Parameters: a &lt;css-type&gt; in param()</title>
+<link rel="help" href="https://drafts.csswg.org/css-link-params/#funcdef-param">
+<link rel="help" href="https://drafts.csswg.org/css-mixins-1/#typedef-css-type">
+<meta name="assert" content="param() accepts an optional <css-type> after the <dashed-ident>.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<script src="/css/support/computed-testcommon.js"></script>
+
+<div id="target"></div>
+
+<script>
+test_valid_value("link-parameters", "param(--a <color>, orange)");
+test_valid_value("link-parameters", "param(--a <length>, 10px)");
+test_valid_value("link-parameters", "param(--a <color>, currentcolor)");
+
+// <css-type> = <syntax-component> | <type()>, and a single component serializes bare.
+test_valid_value("link-parameters", "param(--a type(<color>), orange)", "param(--a <color>, orange)");
+
+// <type()> is required when the syntax has more than one component.
+test_valid_value("link-parameters", "param(--a type(<color> | <length>), orange)");
+
+// A type applies to the parameter it follows, not to the whole list.
+test_valid_value("link-parameters", "param(--a <color>, orange), param(--b, blue)");
+
+// <param-spec> also accepts the color and accent-color keywords.
+test_valid_value("link-parameters", "param(color, blue)");
+test_valid_value("link-parameters", "param(accent-color, blue)");
+
+test_invalid_value("link-parameters", "param(--a <notatype>, orange)");
+test_invalid_value("link-parameters", "param(--a <color> <length>, orange)");
+test_invalid_value("link-parameters", "param(<color>, orange)");
+test_invalid_value("link-parameters", "param(--a, orange) <color>");
+
+test_computed_value("link-parameters", "param(--a <color>, orange)");
+test_computed_value("link-parameters", "param(--a <color>, currentcolor)");
+test_computed_value("link-parameters", "param(--a <color>, orange), param(--b, blue)");
+</script>

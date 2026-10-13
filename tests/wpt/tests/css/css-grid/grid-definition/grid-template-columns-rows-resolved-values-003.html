@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: 'grid-template-columns' resolved values for an empty auto-fill grid account for gaps</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#resolved-track-list">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#valdef-repeat-auto-fill">
+<meta name="assert" content="The resolved value of grid-template-columns for a grid container using repeat(auto-fill, minmax(..., 1fr)) resolves the flexible tracks against the free space left after subtracting the column gaps, whether or not the grid has any items.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    width: 430px;
+    height: 50px;
+  }
+  .gap10 { gap: 10px; }
+  .gap5 { gap: 5px; }
+  .gap0 { gap: 0px; }
+</style>
+<div id="log"></div>
+
+<!-- Each grid fits 4 columns. -->
+<div class="grid gap10" id="empty10"></div>
+<div class="grid gap10" id="nonEmpty10"><div></div></div>
+
+<div class="grid gap5" id="empty5"></div>
+<div class="grid gap5" id="nonEmpty5"><div></div></div>
+
+<div class="grid gap0" id="empty0"></div>
+<div class="grid gap0" id="nonEmpty0"><div></div></div>
+
+<script>
+function columnsFor(id) {
+  return getComputedStyle(document.getElementById(id)).gridTemplateColumns;
+}
+
+// gap 10px: free space is 430px - 3*10px = 400px, 400px / 4 = 100px.
+test(() => {
+  assert_equals(columnsFor("empty10"), "100px 100px 100px 100px");
+}, "Empty grid resolves flexible auto-fill columns against free space minus 10px gaps");
+
+test(() => {
+  assert_equals(columnsFor("nonEmpty10"), "100px 100px 100px 100px");
+}, "Non-empty grid resolves flexible auto-fill columns against free space minus 10px gaps");
+
+// gap 5px: free space is 430px - 3*5px = 415px, 415px / 4 = 103.75px.
+test(() => {
+  assert_equals(columnsFor("empty5"), "103.75px 103.75px 103.75px 103.75px");
+}, "Empty grid resolves flexible auto-fill columns against free space minus 5px gaps");
+
+test(() => {
+  assert_equals(columnsFor("nonEmpty5"), "103.75px 103.75px 103.75px 103.75px");
+}, "Non-empty grid resolves flexible auto-fill columns against free space minus 5px gaps");
+
+// gap 0px: free space is 430px, 430px / 4 = 107.5px.
+test(() => {
+  assert_equals(columnsFor("empty0"), "107.5px 107.5px 107.5px 107.5px");
+}, "Empty grid resolves flexible auto-fill columns against free space with no gaps");
+
+test(() => {
+  assert_equals(columnsFor("nonEmpty0"), "107.5px 107.5px 107.5px 107.5px");
+}, "Non-empty grid resolves flexible auto-fill columns against free space with no gaps");
+</script>

@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Table border and bordercolor attributes: computed borders, including when they change</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#tables-2">
+<link rel="author" title="Karl Dubost" href="mailto:karlcow@apple.com">
+<link rel="author" title="Apple" href="https://www.apple.com/">
+<meta name="assert" content="A border colour on its own never creates a visible border; the border attribute creates an outset border on the table and inset borders on the cells; adding bordercolor does not change which borders exist.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!--
+  Two things are checked here, in one table that is mutated step by step so that
+  the effect of each attribute is isolated.
+
+  1. A colour alone must not produce a border. Neither the bordercolor content
+     attribute nor the border-color CSS property sets a border style or width, and
+     the initial border style is none, so there is nothing to paint. There is
+     already a reftest for the rendering of this (table-bordercolor-001.html);
+     this test pins the computed values, and pins that adding bordercolor to a
+     table that already has borders does not alter which borders exist.
+
+  2. The border attribute:
+
+       table[border] { border-style: outset; }        /* only if not zero */
+       table[border] > tbody > tr > td, ... {
+         border-width: 1px;
+         border-style: inset;
+       }
+
+     and then what happens when rules is added on top of it, which replaces the
+     cells' inset border.
+
+  border="1" is used rather than border="" throughout: the UA stylesheet entry is
+  annotated "only if border is not equivalent to zero", and whether the empty
+  string counts as zero is not something this test takes a position on.
+
+  The table and the cell each carry their own inline border-color so that the
+  colour assertions test the presentational hints rather than inheritance.
+-->
+
+<div id="log"></div>
+<div id="container"></div>
+
+<script>
+const YELLOW = "rgb(255, 255, 0)";
+const RED = "rgb(255, 0, 0)";
+
+const table = document.createElement("table");
+table.setAttribute("style", "border-color: yellow");
+const row = table.insertRow(-1);
+const cell = row.insertCell(-1);
+cell.setAttribute("style", "border-color: red");
+document.getElementById("container").append(table);
+
+const SIDES = ["top", "right", "bottom", "left"];
+
+function assertUniformBorder(element, width, style, label) {
+  const computed = getComputedStyle(element);
+  for (const side of SIDES) {
+    assert_equals(computed.getPropertyValue(`border-${side}-width`), width,
+                  `${label}: border-${side}-width`);
+    assert_equals(computed.getPropertyValue(`border-${side}-style`), style,
+                  `${label}: border-${side}-style`);
+  }
+}
+
+function assertBorderColor(element, color, label) {
+  const computed = getComputedStyle(element);
+  for (const side of SIDES) {
+    assert_equals(computed.getPropertyValue(`border-${side}-color`), color,
+                  `${label}: border-${side}-color`);
+  }
+}
+
+// A colour with no style and no width paints nothing.
+test(() => {
+  assertUniformBorder(table, "0px", "none", "table with only border-color");
+  assertBorderColor(table, YELLOW, "table");
+}, "border-color on its own gives the table no border");
+
+test(() => {
+  assertUniformBorder(cell, "0px", "none", "cell with only border-color");
+  assertBorderColor(cell, RED, "cell");
+}, "border-color on its own gives the cell no border");
+
+// The border attribute is what actually creates the borders.
+test(() => {
+  table.setAttribute("border", "1");
+  assertUniformBorder(table, "1px", "outset", "table with border=1");
+  assertBorderColor(table, YELLOW, "table");
+}, "the border attribute gives the table an outset border");
+
+test(() => {
+  assertUniformBorder(cell, "1px", "inset", "cell of a table with border=1");
+  assertBorderColor(cell, RED, "cell");
+}, "the border attribute gives the cells an inset border");
+
+// Adding a colour must not change which borders exist.
+test(() => {
+  table.setAttribute("bordercolor", "green");
+  assertUniformBorder(table, "1px", "outset", "table with border=1 and bordercolor");
+  assertUniformBorder(cell, "1px", "inset", "cell with border=1 and bordercolor");
+}, "adding bordercolor does not change which borders exist");
+
+// rules replaces the cells' inset border. Under rules=cols the rule belongs to
+// the cells' inline edges; the block edges get nothing.
+test(() => {
+  table.rules = "cols";
+  const computed = getComputedStyle(cell);
+  assert_equals(computed.borderInlineStartStyle, "solid", "cell border-inline-start-style");
+  assert_equals(computed.borderInlineEndStyle, "solid", "cell border-inline-end-style");
+  assert_equals(computed.borderInlineStartWidth, "1px", "cell border-inline-start-width");
+  assert_equals(computed.borderInlineEndWidth, "1px", "cell border-inline-end-width");
+  assert_equals(computed.borderBlockStartStyle, "none", "cell border-block-start-style");
+  assert_equals(computed.borderBlockEndStyle, "none", "cell border-block-end-style");
+  assert_equals(computed.borderBlockStartWidth, "0px", "cell border-block-start-width");
+  assert_equals(computed.borderBlockEndWidth, "0px", "cell border-block-end-width");
+}, "setting rules=cols replaces the cells' inset border with a rule on their inline edges");
+
+// Under rules=rows the rule moves off the cells entirely and onto the row, even
+// though the border attribute is still present.
+test(() => {
+  table.rules = "rows";
+  assertUniformBorder(cell, "0px", "none", "cell of a table with rules=rows");
+  assertBorderColor(cell, RED, "cell");
+}, "setting rules=rows leaves the cells with no border");
+
+test(() => {
+  const computed = getComputedStyle(row);
+  assert_equals(computed.borderBlockStartStyle, "solid", "row border-block-start-style");
+  assert_equals(computed.borderBlockEndStyle, "solid", "row border-block-end-style");
+  assert_equals(computed.borderBlockStartWidth, "1px", "row border-block-start-width");
+  assert_equals(computed.borderBlockEndWidth, "1px", "row border-block-end-width");
+  assert_equals(computed.borderInlineStartStyle, "none", "row border-inline-start-style");
+  assert_equals(computed.borderInlineEndStyle, "none", "row border-inline-end-style");
+}, "setting rules=rows puts the rule on the row");
+
+// With rules still set and the border attribute gone, the table's own border
+// becomes hidden so that it wins over any border set on the cells.
+test(() => {
+  table.removeAttribute("border");
+  assertUniformBorder(table, "0px", "hidden", "table with rules=rows and no border attribute");
+  assertBorderColor(table, YELLOW, "table");
+}, "removing the border attribute while rules is set hides the table's own border");
+</script>

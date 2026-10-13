@@ -69,3 +69,15 @@ invalid20
 
 00:00:00.000 --> 00:00:01.000 position:101%,line-right
 invalid21
+
+Compound keyword must not match as "line-left" followed by "center"
+00:00:00.000 --> 00:00:01.000 position:1%,line-leftcenter
+invalid22
+
+Compound keyword must not match as "line-left" followed by "auto"
+00:00:00.000 --> 00:00:01.000 position:1%,line-leftauto
+invalid23
+
+The colalign keywords are only line-left, center and line-right; "auto" voids the setting
+00:00:00.000 --> 00:00:01.000 position:1%,auto
+invalid24

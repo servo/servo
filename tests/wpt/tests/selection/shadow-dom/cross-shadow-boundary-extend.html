@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=1982627">
+<title>Test that extending Selection collapses it if crossing a shadow DOM boundary</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../selection-test-utils.js"></script>
+<body>
+
+<p id="before">Before shadow root</p>
+<div>
+  <template shadowrootmode="open">
+    <p id="inside">Inside shadow root</p>
+  </template>
+</div>
+<p id="after">After shadow root</p>
+
+<script>
+const before = document.getElementById('before');
+const shadowRoot = document.querySelector('div').shadowRoot;
+const inside = shadowRoot.querySelector('p');
+const after = document.getElementById('after');
+
+test(() => {
+  const selection = getSelection();
+  selection.collapse(before);
+  selection.extend(inside);
+  assert_equals(selection.rangeCount, 1, 'Selection should have exactly 1 range after extend().');
+  const range = selection.getRangeAt(0);
+  assert_equals(SelectionTestUtils.getRangeDescription(range), '(<p id="inside">, 0)',
+    'Selection should be collapsed inside the shadow DOM after extending into shadow DOM.');
+  range.setEnd(after, 0);
+  assert_equals(SelectionTestUtils.getRangeDescription(range), '(<p id="after">, 0)',
+    'Selection should be collapsed outside of the shadow DOM after setting endpoint outside of shadow DOM.');
+});
+
+</script>
+</body>
+</html>

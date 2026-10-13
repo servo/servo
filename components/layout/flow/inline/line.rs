@@ -3,17 +3,16 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::ops::Range;
+use std::rc::Rc;
 use std::sync::Arc;
 
 use app_units::Au;
 use bitflags::bitflags;
-use fonts::ShapedTextSlice;
+use fonts::{ShapedTextSlice, TrailingWhiteSpace};
 use itertools::Either;
-use layout_api::SharedSelection;
-use malloc_size_of_derive::MallocSizeOf;
+use servo_base::text::Utf32CodeUnits;
 use style::Zero;
 use style::computed_values::position::T as Position;
-use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::values::computed::BaselineShift;
 use style::values::generics::box_::BaselineShiftKeyword;
 use style::values::specified::align::AlignFlags;
@@ -21,10 +20,12 @@ use style::values::specified::box_::DisplayOutside;
 use unicode_bidi::{BidiInfo, Level};
 
 use super::inline_box::{InlineBoxContainerState, InlineBoxIdentifier, InlineBoxTreePathToken};
-use super::{InlineFormattingContextLayout, LineBlockSizes, SharedInlineStyles, line_height};
+use super::{InlineFormattingContextLayout, LineBlockSizes, line_height};
 use crate::cell::ArcRefCell;
-use crate::flow::inline::text_run::FontAndScriptInfo;
-use crate::fragment_tree::{BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, TextFragment};
+use crate::flow::inline::text_run::{FontAndScriptInfo, SharedTextRunData};
+use crate::fragment_tree::{
+    BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, FragmentFlags, TextFragment,
+};
 use crate::geom::{
     LogicalRect, LogicalSides, LogicalVec2, PhysicalRect, PhysicalSize, ToLogical,
     ToLogicalWithContainingBlock,
@@ -504,8 +505,8 @@ impl LineItemLayout<'_, '_> {
                 .flags
                 .contains(LineLayoutInlineContainerFlags::HAD_INLINE_END_PBM);
 
-            if containing_block_writing_mode.is_bidi_ltr() !=
-                inline_box.base.style.writing_mode.is_bidi_ltr()
+            if containing_block_writing_mode.is_bidi_ltr()
+                != inline_box.base.style.writing_mode.is_bidi_ltr()
             {
                 std::mem::swap(&mut had_start, &mut had_end)
             }
@@ -579,6 +580,9 @@ impl LineItemLayout<'_, '_> {
             margin.to_physical(containing_block_writing_mode),
             None, /* specific_layout_info */
         );
+        if self.for_block_level {
+            fragment.base.flags.insert(FragmentFlags::DO_NOT_PAINT);
+        }
 
         let offset_from_parent_ifc = LogicalVec2 {
             inline: pbm_sums.inline_start + self.current_state.inline_advance,
@@ -633,7 +637,7 @@ impl LineItemLayout<'_, '_> {
 
         // The baseline offset that we have in `Self::baseline_offset` is relative to the line
         // baseline, so we need to make it relative to the line block start.
-        match inline_box_state.base.style.clone_baseline_shift() {
+        match inline_box_state.base.style.get_baseline_shift() {
             BaselineShift::Keyword(BaselineShiftKeyword::Top) => {
                 let line_height = line_height(style, font_metrics, &inline_box_state.base.flags);
                 (line_height - line_gap).scale_by(0.5)
@@ -647,8 +651,8 @@ impl LineItemLayout<'_, '_> {
                 self.line_metrics.block_size - line_height + half_leading
             },
             _ => {
-                self.line_metrics.baseline_block_offset + inline_box_state.base.baseline_offset -
-                    space_above_baseline
+                self.line_metrics.baseline_block_offset + inline_box_state.base.baseline_offset
+                    - space_above_baseline
             },
         }
     }
@@ -677,12 +681,12 @@ impl LineItemLayout<'_, '_> {
         // The block start of the TextRun is often zero (meaning it has the same font metrics as the
         // inline box's strut), but for children of the inline formatting context root or for
         // fallback fonts that use baseline relative alignment, it might be different.
-        let font_metrics = &text_item.info.font_info.font.metrics;
+        let font_metrics = text_item.info.font_info.font.metrics();
         let start_corner = LogicalVec2 {
             inline: self.current_state.inline_advance,
-            block: self.current_state.baseline_offset -
-                font_metrics.ascent -
-                self.current_state.parent_offset.block,
+            block: self.current_state.baseline_offset
+                - font_metrics.ascent
+                - self.current_state.parent_offset.block,
         };
         let content_rect = LogicalRect {
             start_corner,
@@ -709,6 +713,7 @@ impl LineItemLayout<'_, '_> {
                     .layout
                     .ifc
                     .text_content
+                    .get()?
                     .get(range.clone())?
                     .trim_matches(|character: char| character.is_ascii_whitespace());
                 (!text.is_empty()).then(|| text.into())
@@ -719,17 +724,13 @@ impl LineItemLayout<'_, '_> {
             .fragments_and_data
             .push(FragmentAndData::new(
                 Fragment::Text(Arc::new(TextFragment {
-                    base: BaseFragment::new(
-                        text_item.base_fragment_info,
-                        text_item.inline_styles.style.clone(),
-                        PhysicalRect::zero(),
-                    ),
-                    selected_style: text_item.inline_styles.selected.clone(),
+                    base: BaseFragment::new(text_item.base_fragment_info, PhysicalRect::zero()),
+                    run_data: text_item.text_fragment_run_data,
                     font_metrics: font_metrics.clone(),
                     font_key,
                     glyphs: text_item.text,
                     justification_adjustment: self.justification_adjustment,
-                    offsets: text_item.offsets,
+                    character_range_in_dom_node: text_item.character_range_in_dom_node,
                     is_empty_for_text_cursor: text_item.is_empty_for_text_cursor,
                     text_for_display_list,
                 })),
@@ -752,10 +753,10 @@ impl LineItemLayout<'_, '_> {
                 .to_logical(ifc_writing_mode);
 
             let mut atomic_offset = LogicalVec2 {
-                inline: self.current_state.inline_advance +
-                    padding_border_margin_sides.inline_start,
-                block: block_start - self.current_state.parent_offset.block +
-                    padding_border_margin_sides.block_start,
+                inline: self.current_state.inline_advance
+                    + padding_border_margin_sides.inline_start,
+                block: block_start - self.current_state.parent_offset.block
+                    + padding_border_margin_sides.block_start,
             };
 
             let style = atomic_fragment.style();
@@ -811,8 +812,8 @@ impl LineItemLayout<'_, '_> {
         // absolutely positioned element. If it's `inline` it would be placed inline
         // at the top of the line, but if it's block it would be placed in a new
         // block position after the linebox established by this line.
-        let block_position = self.layout.placement_state.current_margin.solve() -
-            self.current_state.parent_offset.block;
+        let block_position = self.layout.placement_state.current_margin.solve()
+            - self.current_state.parent_offset.block;
         let initial_start_corner =
             if style.get_box().original_display.outside() == DisplayOutside::Inline {
                 // Top of the line at the current inline position.
@@ -917,8 +918,8 @@ impl LineItemLayout<'_, '_> {
 }
 
 pub(super) enum LineItem {
-    InlineStartBoxPaddingBorderMargin(InlineBoxIdentifier),
-    InlineEndBoxPaddingBorderMargin(InlineBoxIdentifier),
+    InlineStartBoxPaddingBorderMargin(Rc<InlineBoxContainerState>),
+    InlineEndBoxPaddingBorderMargin(Rc<InlineBoxContainerState>),
     TextRun(Option<InlineBoxIdentifier>, TextRunLineItem),
     Atomic(Option<InlineBoxIdentifier>, AtomicLineItem),
     AbsolutelyPositioned(Option<InlineBoxIdentifier>, AbsolutelyPositionedLineItem),
@@ -928,6 +929,7 @@ pub(super) enum LineItem {
         inline_box_identifier: Option<InlineBoxIdentifier>,
         advance: Au,
         bidi_level: Level,
+        conditionally_hangs: bool,
     },
 }
 
@@ -941,8 +943,8 @@ impl LineItem {
 
     fn inline_box_identifier(&self) -> Option<InlineBoxIdentifier> {
         match self {
-            LineItem::InlineStartBoxPaddingBorderMargin(identifier) => Some(*identifier),
-            LineItem::InlineEndBoxPaddingBorderMargin(identifier) => Some(*identifier),
+            LineItem::InlineStartBoxPaddingBorderMargin(state) => Some(state.identifier),
+            LineItem::InlineEndBoxPaddingBorderMargin(state) => Some(state.identifier),
             LineItem::TextRun(identifier, _) => *identifier,
             LineItem::Atomic(identifier, _) => *identifier,
             LineItem::AbsolutelyPositioned(identifier, _) => *identifier,
@@ -952,19 +954,6 @@ impl LineItem {
                 inline_box_identifier,
                 ..
             } => *inline_box_identifier,
-        }
-    }
-
-    pub(super) fn trim_whitespace_at_end(&mut self, whitespace_trimmed: &mut Au) -> bool {
-        match self {
-            LineItem::InlineStartBoxPaddingBorderMargin(_) => true,
-            LineItem::InlineEndBoxPaddingBorderMargin(_) => true,
-            LineItem::TextRun(_, item) => item.trim_whitespace_at_end(whitespace_trimmed),
-            LineItem::Atomic(..) => false,
-            LineItem::AbsolutelyPositioned(..) => true,
-            LineItem::Float(..) => true,
-            LineItem::BlockLevel(..) => true,
-            LineItem::Tab { .. } => false,
         }
     }
 
@@ -982,24 +971,14 @@ impl LineItem {
     }
 }
 
-#[derive(Debug, MallocSizeOf)]
-pub(crate) struct TextRunOffsets {
-    /// The selection range of the containing inline formatting context.
-    #[ignore_malloc_size_of = "This is stored primarily in the DOM"]
-    pub shared_selection: SharedSelection,
-    /// The range of characters this [`TextRun`] represents within the entire text of its
-    /// inline formatting context.
-    pub character_range: Range<usize>,
-}
-
 pub(super) struct TextRunLineItem {
+    pub text_fragment_run_data: Arc<SharedTextRunData>,
     pub info: FontAndScriptInfo,
     pub base_fragment_info: BaseFragmentInfo,
-    pub inline_styles: SharedInlineStyles,
     pub text: Vec<Arc<ShapedTextSlice>>,
-    /// When necessary, this field store the [`TextRunOffsets`] for a particular
-    /// [`TextRunLineItem`]. This is currently only used inside of text inputs.
-    pub offsets: Option<Box<TextRunOffsets>>,
+    /// The range of characters this [`TextRunLineItem`] represents within the text of its
+    /// original DOM node (modified by text transformation).
+    pub character_range_in_dom_node: Range<Utf32CodeUnits>,
     /// Whether or not this [`TextFragment`] is an empty fragment added for the
     /// benefit of placing a text cursor on an otherwise empty editable line.
     pub is_empty_for_text_cursor: bool,
@@ -1009,52 +988,23 @@ pub(super) struct TextRunLineItem {
 }
 
 impl TextRunLineItem {
-    fn trim_whitespace_at_end(&mut self, whitespace_trimmed: &mut Au) -> bool {
-        if matches!(
-            self.inline_styles
-                .style
-                .borrow()
-                .get_inherited_text()
-                .white_space_collapse,
-            WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces
-        ) {
-            return false;
+    /// Trim the removable white space at the end of this [`TextRunLineItem`].
+    pub(crate) fn trim_removable_white_space_at_end(&mut self) {
+        while let Some(last) = self.text.last_mut() {
+            if last.all_removable() {
+                self.text.pop();
+                continue;
+            }
+            *last = last.without_removable_white_space();
+            break;
         }
-
-        let index_of_last_non_whitespace = self
-            .text
-            .iter()
-            .rev()
-            .position(|glyph| !glyph.is_whitespace())
-            .map(|offset_from_end| self.text.len() - offset_from_end);
-
-        let first_whitespace_index = index_of_last_non_whitespace.unwrap_or(0);
-        *whitespace_trimmed += self
-            .text
-            .drain(first_whitespace_index..)
-            .map(|glyph| glyph.total_advance())
-            .sum();
-
-        // Only keep going if we only encountered whitespace.
-        index_of_last_non_whitespace.is_none()
     }
 
     fn trim_whitespace_at_start(&mut self, whitespace_trimmed: &mut Au) -> bool {
-        if matches!(
-            self.inline_styles
-                .style
-                .borrow()
-                .get_inherited_text()
-                .white_space_collapse,
-            WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces
-        ) {
-            return false;
-        }
-
         let index_of_first_non_whitespace = self
             .text
             .iter()
-            .position(|glyph| !glyph.is_whitespace())
+            .position(|slice| !slice.all_removable())
             .unwrap_or(self.text.len());
 
         *whitespace_trimmed += self
@@ -1065,6 +1015,37 @@ impl TextRunLineItem {
 
         // Only keep going if we only encountered whitespace.
         self.text.is_empty()
+    }
+
+    /// Returns a [`TrailingWhiteSpace`] with the measurement of hanging
+    /// and removable white space and boolean saying whether or not there
+    /// was preceding content.
+    pub(crate) fn trailing_white_space(&self) -> (TrailingWhiteSpace<Au>, bool) {
+        let mut hangable = Au::zero();
+        let mut removable = Au::zero();
+        let mut preceded_by_content = false;
+
+        for slice in self.text.iter().rev() {
+            if hangable.is_zero() {
+                removable += slice.removable_advance();
+            } else {
+                hangable += slice.removable_advance();
+            }
+            hangable += slice.hangable_advance();
+
+            if slice.has_non_hangable_non_removable_content() {
+                preceded_by_content = true;
+                break;
+            }
+        }
+
+        (
+            TrailingWhiteSpace {
+                hangable,
+                removable,
+            },
+            preceded_by_content,
+        )
     }
 }
 
@@ -1089,7 +1070,7 @@ impl AtomicLineItem {
     /// Given the metrics for a line, our vertical alignment, and our block size, find a block start
     /// position relative to the top of the line.
     fn calculate_block_start(&self, line_metrics: &LineMetrics) -> Au {
-        match self.fragment.style().clone_baseline_shift() {
+        match self.fragment.style().get_baseline_shift() {
             BaselineShift::Keyword(BaselineShiftKeyword::Top) => Au::zero(),
             BaselineShift::Keyword(BaselineShiftKeyword::Center) => {
                 (line_metrics.block_size - self.size.block).scale_by(0.5)

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test that newline is still visible after deleting contents of last line of pre plaintext-only editor.</title>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<style>pre { border: 2px solid black; }</style>
+<pre contenteditable="plaintext-only">a
+b
+<br></pre>
+<script>
+const editor = document.querySelector('pre');
+editor.focus();
+getSelection().selectAllChildren(editor);
+getSelection().collapseToEnd();
+</script>

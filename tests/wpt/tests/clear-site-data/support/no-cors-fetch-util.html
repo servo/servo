@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<header>
+<script>
+const randomStr = Math.random().toString();
+window.addEventListener("message", (event) => {
+    switch (event.data) {
+        case "find":
+            // Step 6 (clear-site-data/no-cors-fetch-*.html)
+            const did_find = localStorage.getItem(randomStr) != null;
+            (window.opener || window.top).postMessage(did_find ? "found" : "missing", "*");
+            break;
+    }
+});
+// Step 2 (clear-site-data/no-cors-fetch-*.html)
+window.localStorage.setItem(randomStr, randomStr);
+(window.opener || window.top).postMessage("set", "*");
+</script>
+</header>
+</html>

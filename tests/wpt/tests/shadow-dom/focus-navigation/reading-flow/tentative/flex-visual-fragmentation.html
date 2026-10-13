@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Display: reading-flow flex-visual across block fragmentation</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src='../../resources/shadow-dom.js'></script>
+<script src="../../resources/focus-utils.js"></script>
+
+<style>
+  .multicol {
+    columns: 3;
+    column-fill: auto;
+    height: 80px;
+    width: 300px;
+  }
+  .flex {
+    display: flex;
+    flex-direction: column;
+    reading-flow: flex-visual;
+  }
+  .flex > button {
+    height: 40px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-sizing: border-box;
+  }
+</style>
+
+<div class="test-case" data-expect="A,B,C,D,E,F"
+     data-description="Reading-flow flex items fragmented across 3 columns are all reachable in flex-visual order">
+  <div class="multicol">
+    <div class="flex">
+      <button id="A">A</button>
+      <button id="B">B</button>
+      <button id="C">C</button>
+      <button id="D">D</button>
+      <button id="E">E</button>
+      <button id="F">F</button>
+    </div>
+  </div>
+</div>
+
+<div class="test-case" data-expect="F2,E2,D2,C2,B2,A2"
+     data-description="CSS order is honored across fragments: flex-visual reading order follows visual placement, not source order">
+  <div class="multicol">
+    <div class="flex">
+      <button id="A2" style="order: 6">A</button>
+      <button id="B2" style="order: 5">B</button>
+      <button id="C2" style="order: 4">C</button>
+      <button id="D2" style="order: 3">D</button>
+      <button id="E2" style="order: 2">E</button>
+      <button id="F2" style="order: 1">F</button>
+    </div>
+  </div>
+</div>
+
+<div class="test-case" data-expect="G,H,I,J,K,L"
+     data-description="Nested reading-flow flex that itself fragments across 3 columns keeps all items in reading order">
+  <div class="multicol">
+    <div class="flex">
+      <div class="flex">
+        <button id="G">G</button>
+        <button id="H">H</button>
+        <button id="I">I</button>
+        <button id="J">J</button>
+        <button id="K">K</button>
+        <button id="L">L</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-parentnode-movebefore">
+<p>Passes if no crash</p>
+<!--
+  A child that switches between in-flow and out-of-flow has its layout object
+  removed and re-inserted during style recalc, before its next sibling. Here
+  that sibling was moved in with moveBefore() in the same frame, and has not
+  been re-attached yet.
+-->
+<div id="block"><div id="block_child">child</div></div>
+<div id="flex" style="display: flex"><div id="flex_child">child</div></div>
+<div id="grid" style="display: grid"><div id="grid_child">child</div></div>
+<div id="float"><div id="float_child">child</div></div>
+<div id="fixed"><div id="fixed_child">child</div></div>
+<div id="source">
+  <div id="moved_block">moved</div>
+  <div id="moved_flex">moved</div>
+  <div id="moved_grid">moved</div>
+  <div id="moved_float">moved</div>
+  <div id="moved_fixed">moved</div>
+</div>
+<script>
+  document.body.offsetTop;
+  block_child.style.position = "absolute";
+  block.moveBefore(moved_block, null);
+  document.body.offsetTop;
+  flex_child.style.position = "absolute";
+  flex.moveBefore(moved_flex, null);
+  document.body.offsetTop;
+  grid_child.style.position = "absolute";
+  grid.moveBefore(moved_grid, null);
+  document.body.offsetTop;
+  float_child.style.float = "left";
+  float.moveBefore(moved_float, null);
+  document.body.offsetTop;
+  fixed_child.style.position = "fixed";
+  fixed.moveBefore(moved_fixed, null);
+  document.body.offsetTop;
+</script>

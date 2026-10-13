@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="help" href="https://www.w3.org/TR/css-animations-1/">
+  <link rel="match" href="animate-bg-color-with-change-during-delay-ref.html">
+  <title>Background color animation with a change during start delay</title>
+</head>
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  @keyframes colorize {
+    from { background-color: green; }
+    to { background-color:  blue; }
+  }
+  .block {
+    background-color: red;
+    height: 100px;
+    width: 100px;
+    display: inline-block;
+    animation: colorize 10s 5s steps(2, jump-none);
+  }
+  .block.update {
+    background-color: lime;
+  }
+</style>
+<body>
+  <div id="target1" class="block"></div>
+  <div id="target2" class="block"></div>
+  <div id="target3" class="block"></div>
+</body>
+<script>
+  window.onload = async () => {
+    const anims = document.getAnimations();
+    await Promise.all(anims.map(a => a.ready));
+    await runAndWaitForFrameUpdate(() => {
+      document.querySelectorAll('.block').forEach((el) => {
+        el.classList.add('update');
+      });
+      // Jump to the before/active phase boundary. Ensure the animation is
+      // in effect.
+      anims[1].currentTime = 5000;
+      // Jump to the midpoint of the animation. The animation timing function
+      // makes the animation behave discretely, and it will match the end
+      // keyframe.
+      anims[2].currentTime = 10000;
+      requestAnimationFrame(() => {
+        takeScreenshot();
+      });
+    });
+  };
+</script>
+</html>

@@ -1,0 +1,54 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSOM: getComputedStyle gets invalidated inside shadow trees of a display: none host</title>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#slotHost, #nestedHost {
+  display: none;
+  color: red;
+}
+</style>
+<div id="slotHost"><div id="slotted"></div></div>
+<div id="nestedHost"></div>
+<script>
+  test(function() {
+    slotHost.attachShadow({ mode: 'open' }).innerHTML = `
+      <div><slot></slot></div>
+    `;
+
+    // Read before mutating so there is a cached computed style that can go stale.
+    let slotted_style = getComputedStyle(slotted);
+    assert_equals(slotted_style.color, "rgb(255, 0, 0)");
+
+    slotHost.style.color = "green";
+    // Force a style update: a stale cache is only observable once the host itself has been
+    // re-resolved, which is what drops the invalidation flag the lookup would otherwise use.
+    document.body.offsetHeight;
+    assert_equals(slotted_style.color, "rgb(0, 128, 0)");
+    assert_equals(getComputedStyle(slotted).color, "rgb(0, 128, 0)");
+  }, "getComputedStyle gets invalidated for slotted content of a display: none shadow host");
+
+  test(function() {
+    nestedHost.attachShadow({ mode: 'open' }).innerHTML = `
+      <div id="inner"></div>
+    `;
+    let inner = nestedHost.shadowRoot.getElementById("inner");
+    inner.attachShadow({ mode: 'open' }).innerHTML = `
+      <div></div>
+    `;
+    let innermost = inner.shadowRoot.firstElementChild;
+
+    let inner_style = getComputedStyle(inner);
+    let innermost_style = getComputedStyle(innermost);
+    assert_equals(inner_style.color, "rgb(255, 0, 0)");
+    assert_equals(innermost_style.color, "rgb(255, 0, 0)");
+
+    nestedHost.style.color = "green";
+    document.body.offsetHeight;
+    assert_equals(inner_style.color, "rgb(0, 128, 0)");
+    assert_equals(innermost_style.color, "rgb(0, 128, 0)");
+    assert_equals(getComputedStyle(innermost).color, "rgb(0, 128, 0)");
+  }, "getComputedStyle gets invalidated in nested shadow trees of a display: none shadow host");
+</script>

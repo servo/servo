@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CTRL-A selects all nodes in the document even without a body</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<body>
+    <script>
+    document.body.after("This is selected in Chrome.");
+    document.head.before("This is selected in Chrome.");
+
+    promise_test(async () => {
+        document.body.remove();
+
+        let modifier_key = "\uE009";
+        if (navigator.platform.includes("Mac")) {
+            modifier_key = "\uE03D";
+        }
+
+        let actions = new test_driver.Actions();
+        actions.keyDown(modifier_key).keyDown("a").keyUp("a").keyUp(modifier_key);
+        await actions.send()
+
+        const selection = getSelection();
+        assert_equals(selection.rangeCount, 1);
+
+        const range = selection.getRangeAt(0);
+        assert_equals(range.startContainer, document.documentElement);
+        assert_equals(range.startOffset, 0);
+        assert_equals(range.endOffset, document.documentElement.childNodes.length);
+    })
+    </script>
+</body>

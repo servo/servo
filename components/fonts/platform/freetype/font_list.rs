@@ -19,13 +19,13 @@ use fontconfig_sys::{
     FcPatternDestroy, FcPatternGetInteger, FcPatternGetString, FcResultMatch, FcSetSystem,
 };
 use fonts_traits::{FontTemplate, FontTemplateDescriptor, LocalFontIdentifier};
-use icu_locid::subtags::language;
+use icu_locale_core::subtags::language;
 use libc::{c_char, c_int};
 use log::debug;
 use servo_base::text::{UnicodeBlock, UnicodeBlockMethod};
 use style::Atom;
 use style::values::computed::font::GenericFontFamily;
-use style::values::computed::{FontStretch, FontStyle, FontWeight};
+use style::values::computed::{FontStyle, FontWeight, FontWidth};
 use unicode_script::Script;
 
 use crate::font::map_platform_values_to_style_values;
@@ -37,7 +37,7 @@ use crate::{
 
 pub(crate) fn for_each_available_family<F>(mut callback: F)
 where
-    F: FnMut(String),
+    F: FnMut(&str),
 {
     unsafe {
         let config = FcConfigGetCurrent();
@@ -71,7 +71,7 @@ where
                         continue;
                     },
                 };
-                callback(family_name.to_owned());
+                callback(family_name);
                 v += 1;
             }
         }
@@ -138,7 +138,7 @@ where
             let Some(weight) = font_weight_from_fontconfig_pattern(*font) else {
                 continue;
             };
-            let Some(stretch) = font_stretch_from_fontconfig_pattern(*font) else {
+            let Some(width) = font_width_from_fontconfig_pattern(*font) else {
                 continue;
             };
             let Some(style) = font_style_from_fontconfig_pattern(*font) else {
@@ -159,7 +159,7 @@ where
                 face_index: (index & 0xFFFF) as u16,
                 named_instance_index: (index >> 16) as u16,
             };
-            let descriptor = FontTemplateDescriptor::new(weight, stretch, style);
+            let descriptor = FontTemplateDescriptor::new(weight, width, style);
 
             callback(FontTemplate::new(
                 FontIdentifier::Local(local_font_identifier),
@@ -289,7 +289,7 @@ fn font_style_from_fontconfig_pattern(pattern: *mut FcPattern) -> Option<FontSty
     })
 }
 
-fn font_stretch_from_fontconfig_pattern(pattern: *mut FcPattern) -> Option<FontStretch> {
+fn font_width_from_fontconfig_pattern(pattern: *mut FcPattern) -> Option<FontWidth> {
     let mut width: c_int = 0;
     unsafe {
         if FcResultMatch != FcPatternGetInteger(pattern, FC_WIDTH.as_ptr(), 0, &mut width) {
@@ -309,7 +309,7 @@ fn font_stretch_from_fontconfig_pattern(pattern: *mut FcPattern) -> Option<FontS
     ];
 
     let mapped_width = map_platform_values_to_style_values(&mapping, width as f64);
-    Some(FontStretch::from_percentage(mapped_width as f32))
+    Some(FontWidth::from_percentage(mapped_width as f32))
 }
 
 fn font_weight_from_fontconfig_pattern(pattern: *mut FcPattern) -> Option<FontWeight> {

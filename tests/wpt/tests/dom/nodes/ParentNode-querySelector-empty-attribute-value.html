@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>querySelectorAll with empty string attribute value selector</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/1163 -->
+
+<div id="container">
+  <div></div>
+  <div title="">has empty title</div>
+  <div title="yes">has non-empty title</div>
+</div>
+
+<script>
+"use strict";
+
+test(() => {
+  const container = document.getElementById("container");
+  assert_equals(container.querySelectorAll("div[title='']").length, 1);
+}, "[title=''] matches element with empty title attribute");
+
+test(() => {
+  const container = document.getElementById("container");
+  assert_equals(container.querySelectorAll("div[title][title='']").length, 1);
+}, "Compound [title][title=''] matches element with empty title attribute");
+</script>

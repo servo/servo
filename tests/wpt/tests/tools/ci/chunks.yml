@@ -1,0 +1,18 @@
+defaults:
+  timeout: 120
+
+test_types:
+  testharness:
+    chunks: 16
+  reftest:
+    chunks: 6
+  print-reftest:
+    chunks: 0
+  wdspec:
+    chunks: 2
+  crashtest:
+    chunks: 1
+  test262:
+    chunks: 8
+  aamtest:
+    chunks: 0

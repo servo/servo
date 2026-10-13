@@ -6,6 +6,7 @@ use std::cell::RefCell;
 use std::mem;
 use std::panic::Location;
 
+use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 
 use super::{GenericSender, SendResult};
@@ -18,12 +19,14 @@ use super::{GenericSender, SendResult};
 /// [`send_immediate`](GenericBufferedSender::send_immediate)
 /// combines the current buffer contents with the new message into a single
 /// packed message, ensuring ordering without an extra flush step.
+#[derive(MallocSizeOf)]
 pub struct GenericBufferedSender<T, U>
 where
     T: Serialize,
 {
     sender: GenericSender<T>,
     buffer: RefCell<Vec<U>>,
+    #[ignore_malloc_size_of = "dyn are difficult to measure"]
     buffering: Box<dyn Fn(Vec<U>) -> T>,
     max_buffer: usize,
 }

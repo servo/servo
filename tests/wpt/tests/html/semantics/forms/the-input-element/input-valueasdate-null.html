@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Assigning null to valueAsDate clears the value</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/input.html#dom-input-valueasdate">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+"use strict";
+
+for (const [type, value] of [["date", "2019-12-10"], ["month", "2019-12"], ["week", "2019-W50"], ["time", "12:00"]]) {
+  test(() => {
+    const input = document.createElement("input");
+    input.type = type;
+    input.value = value;
+    input.valueAsDate = null;
+    assert_equals(input.value, "");
+    assert_equals(input.valueAsDate, null);
+  }, `Assigning null to valueAsDate clears an input of type ${type}`);
+}
+</script>

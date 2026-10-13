@@ -9,7 +9,7 @@ use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
 use js::jsval::NullValue;
 use js::rust::HandleValue;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::conversions::Convert;
 use crate::dom::bindings::codegen::Bindings::TrustedTypePolicyFactoryBinding::{
@@ -69,7 +69,7 @@ impl TrustedTypePolicyFactory {
     }
 
     pub(crate) fn new(cx: &mut JSContext, global: &GlobalScope) -> DomRoot<Self> {
-        reflect_dom_object_with_cx(Box::new(Self::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(Self::new_inherited()), global)
     }
 
     /// <https://www.w3.org/TR/trusted-types/#create-trusted-type-policy-algorithm>
@@ -199,8 +199,7 @@ impl TrustedTypePolicyFactory {
         global: &GlobalScope,
     ) -> Fallible<DOMString> {
         // Step 1. If attributeNs is the empty string, set attributeNs to null.
-        let attribute_namespace =
-            attribute_namespace.and_then(|a| if *a == ns!() { None } else { Some(a) });
+        let attribute_namespace = attribute_namespace.filter(|a| **a != ns!());
         // Step 2. Set attributeData to the result of Get Trusted Type data for attribute algorithm,
         // with the following arguments:
         let Some(attribute_data) = Self::get_trusted_type_data_for_attribute(
@@ -261,10 +260,10 @@ impl TrustedTypePolicyFactory {
         rooted!(&in(cx) let mut trusted_type_name_value = NullValue());
         expected_type
             .as_ref()
-            .safe_to_jsval(cx, trusted_type_name_value.handle_mut());
+            .to_jsval(cx, trusted_type_name_value.handle_mut());
 
         rooted!(&in(cx) let mut sink_value = NullValue());
-        sink.safe_to_jsval(cx, sink_value.handle_mut());
+        sink.to_jsval(cx, sink_value.handle_mut());
 
         let arguments = vec![trusted_type_name_value.handle(), sink_value.handle()];
         let policy_value = default_policy.get_trusted_type_policy_value(
@@ -274,6 +273,7 @@ impl TrustedTypePolicyFactory {
             arguments,
             false,
         );
+        #[expect(clippy::question_mark, reason = "better match the spec")]
         let data_string = match policy_value {
             // Step 3: If the algorithm threw an error, rethrow the error and abort the following steps.
             Err(error) => return Err(error),
@@ -450,31 +450,31 @@ impl TrustedTypePolicyFactoryMethods<crate::DomTypeHolder> for TrustedTypePolicy
             interface.local == local_name!("iframe") &&
             property == "srcdoc"
         {
-            expected_type = Some(DOMString::from("TrustedHTML"))
+            expected_type = Some(DOMString::from_static("TrustedHTML"))
         } else if interface.ns == ns!(html) &&
             interface.local == local_name!("script") &&
             property == "innerText"
         {
-            expected_type = Some(DOMString::from("TrustedScript"))
+            expected_type = Some(DOMString::from_static("TrustedScript"))
         } else if interface.ns == ns!(html) &&
             interface.local == local_name!("script") &&
             property == "src"
         {
-            expected_type = Some(DOMString::from("TrustedScriptURL"))
+            expected_type = Some(DOMString::from_static("TrustedScriptURL"))
         } else if interface.ns == ns!(html) &&
             interface.local == local_name!("script") &&
             property == "text"
         {
-            expected_type = Some(DOMString::from("TrustedScript"))
+            expected_type = Some(DOMString::from_static("TrustedScript"))
         } else if interface.ns == ns!(html) &&
             interface.local == local_name!("script") &&
             property == "textContent"
         {
-            expected_type = Some(DOMString::from("TrustedScript"))
+            expected_type = Some(DOMString::from_static("TrustedScript"))
         } else if property == "innerHTML" {
-            expected_type = Some(DOMString::from("TrustedHTML"))
+            expected_type = Some(DOMString::from_static("TrustedHTML"))
         } else if property == "outerHTML" {
-            expected_type = Some(DOMString::from("TrustedHTML"))
+            expected_type = Some(DOMString::from_static("TrustedHTML"))
         }
         // Step 6: Return expectedType.
         expected_type

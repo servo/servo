@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>Non-serializable timeline-trigger shorthand</title>
+<link rel="help" href="https://drafts.csswg.org/css-animations-2/#timeline-trigger">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="elm"></div>
+<script>
+  function setLonghands(longhands) {
+    elm.style = "";
+    for (let t of longhands) {
+      [prop, val] = t;
+      elm.style.setProperty(prop, val);
+    }
+  }
+
+  test(() => {
+    setLonghands([
+      ["timeline-trigger-name", "--t"],
+      ["timeline-trigger-source", "view()"],
+      ["timeline-trigger-activation-range-start", "contain 0%"],
+      ["timeline-trigger-activation-range-end", "normal"],
+      ["timeline-trigger-active-range-start", "contain 0%"],
+      ["timeline-trigger-active-range-end", "normal"],
+    ]);
+    assert_not_equals(elm.style.getPropertyValue("timeline-trigger"), "");
+  }, "timeline-trigger shorthand initially serialized for single value lists");
+
+  test(() => {
+    elm.style.setProperty("timeline-trigger-activation-range-end", "normal, 50%");
+    assert_equals(elm.style.getPropertyValue("timeline-trigger"), "");
+  }, "timeline-trigger shorthand serializes as an empty string when list lengths no longer match");
+
+</script>

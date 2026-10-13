@@ -11,6 +11,7 @@ use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::form_controls::input_type::text_value_widget::TextValueWidget;
 use crate::dom::html::form_controls::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::htmlformelement::{FormControl, FormSubmitterElement, SubmittedFrom};
+use crate::dom::input_type::text_input_widget::TextInputWidget;
 use crate::dom::node::NodeTraits;
 
 const DEFAULT_SUBMIT_VALUE: &str = "Submit";
@@ -25,6 +26,10 @@ pub(crate) struct SubmitInputType {
 pub(crate) struct SubmitInputActivation;
 
 impl SpecificInputType for SubmitInputType {
+    fn text_input_widget(&self) -> Option<&DomRefCell<TextInputWidget>> {
+        None
+    }
+
     fn value_for_shadow_dom(&self, _input: &HTMLInputElement) -> DOMString {
         DEFAULT_SUBMIT_VALUE.into()
     }

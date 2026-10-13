@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<style>
+  body {
+    margin: 0;
+  }
+  .multi-column {
+    position: relative;
+    columns: 3;
+    column-width: 170px;
+    column-gap: 10px;
+    height: 181px;
+    width: 530px;
+    background: lightgray;
+    column-fill: auto;
+  }
+  #flexbox {
+    display: flex;
+    flex-direction: column-reverse;
+    flex-wrap: wrap;
+    border: 1px solid black;
+    width: 170px;
+    height: 360px;
+    row-gap: 10px;
+    column-gap: 10px;
+  }
+  .items {
+    background-color: cornflowerblue;
+    width: 50px;
+  }
+  .row-rule {
+    position: absolute;
+    width: 50px;
+    height: 10px;
+  }
+  .col-rule {
+    position: absolute;
+    width: 10px;
+    background: gray;
+  }
+</style>
+<div class="multi-column">
+  <div class="row-rule" style="top: 116px; left: 1px; background: yellow;"></div>
+  <div class="row-rule" style="top: 156px; left: 1px; background: blue;"></div>
+  <div class="row-rule" style="top: 146px; left: 61px; background: orange;"></div>
+  <div class="row-rule" style="top: 116px; left: 121px; background: black;"></div>
+  <div class="row-rule" style="top: 161px; left: 121px; background: pink;"></div>
+  <div class="col-rule" style="top: 1px; left: 51px; height: 180px;"></div>
+  <div class="col-rule" style="top: 1px; left: 111px; height: 180px;"></div>
+
+  <div class="row-rule" style="top: 55px; left: 181px; background: lime;"></div>
+  <div class="row-rule" style="top: 115px; left: 181px; background: red;"></div>
+  <div class="row-rule" style="top: 55px; left: 241px; background: cyan;"></div>
+  <div class="row-rule" style="top: 120px; left: 241px; background: magenta;"></div>
+  <div class="row-rule" style="top: 55px; left: 301px; background: brown;"></div>
+  <div class="row-rule" style="top: 110px; left: 301px; background: purple;"></div>
+  <div class="col-rule" style="top: 0; left: 231px; height: 180px;"></div>
+  <div class="col-rule" style="top: 0; left: 291px; height: 180px;"></div>
+
+  <div id="flexbox">
+    <div class="items" style="height: 55px;"></div>
+    <div class="items" style="height: 50px;"></div>
+    <div class="items" style="height: 70px;"></div>
+    <div class="items" style="height: 30px;"></div>
+    <div class="items" style="height: 60px;"></div>
+    <div class="items" style="height: 50px;"></div>
+    <div class="items" style="height: 55px;"></div>
+    <div class="items" style="height: 80px;"></div>
+    <div class="items" style="height: 100px;"></div>
+    <div class="items" style="height: 60px;"></div>
+    <div class="items" style="height: 45px;"></div>
+    <div class="items" style="height: 65px;"></div>
+    <div class="items" style="height: 35px;"></div>
+    <div class="items" style="height: 50px;"></div>
+  </div>
+</div>

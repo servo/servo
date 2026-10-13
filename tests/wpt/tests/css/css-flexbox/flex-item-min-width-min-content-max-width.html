@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Flexbox: min-width:min-content on a flex item wins over a smaller max-width</title>
+<link rel="help" href="https://drafts.csswg.org/css2/visudet.html#min-max-widths">
+<link rel="match" href="flex-item-min-width-min-content-max-width-ref.html">
+<meta name="assert" content="A flex item with min-width:min-content is sized to its 100px min-content, not clamped down to a smaller max-width (min-width wins over max-width).">
+<style>
+.flex-container {
+    display: flex;
+    width: 200px;
+    height: 100px;
+}
+.flex-item {
+    min-width: min-content;
+    max-width: 50px;
+    background: green;
+}
+.min-content-source {
+    width: 100px;
+}
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div class="flex-container">
+    <div class="flex-item">
+        <div class="min-content-source"></div>
+    </div>
+</div>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<head>
+<title>CSS Borders and Box Decorations 4: 'box-shadow' spread with an elliptical concave 'corner-shape'</title>
+<link rel="help" href="https://drafts.csswg.org/css-borders-4/#corner-shaping">
+<link rel="match" href="corner-shape-box-shadow-spread-elliptical-ref.html">
+<meta name="fuzzy" content="maxDifference=0-89; totalPixels=0-119">
+<style>
+    body { margin: 0; }
+    .target {
+        position: absolute;
+        left: 40px;
+        top: 40px;
+        width: 80px;
+        height: 80px;
+        background: red;
+        box-shadow: 0 0 0 15px green;
+        border-top-left-radius: 10px 50px;
+        corner-top-left-shape: superellipse(-0.5);
+    }
+</style>
+</head>
+<div class=target></div>

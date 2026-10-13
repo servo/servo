@@ -157,3 +157,7 @@ promise_test(async t => {
   }
   assert_throws_js(TypeError, () => builder.concat(inputs));
 }, '[concat] throw if the number of inputs exceeds limit');
+
+validateOperandRank('concat', 'inputs', (builder, input) => {
+  return builder.concat([input, input, input], 0);
+});

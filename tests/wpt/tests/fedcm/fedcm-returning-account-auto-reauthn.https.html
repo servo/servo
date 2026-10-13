@@ -10,6 +10,7 @@
 import {request_options_with_mediation_optional,
         fedcm_test,
         select_manifest,
+        fedcm_expect_auto_reauthn,
         fedcm_get_and_select_first_account} from './support/fedcm-helper.sub.js';
 
 fedcm_test(async t => {
@@ -27,7 +28,7 @@ fedcm_test(async t => {
   // auto re-authn, the first account "Jane" would be selected and an token
   // would be issued to that account. However, since "John" is returning and
   // "Jane" is a new user, the second account "John" will be selected.
-  cred = await navigator.credentials.get(test_options);
+  cred = await fedcm_expect_auto_reauthn(t, navigator.credentials.get(test_options));
   assert_equals(cred.token, "account_id=john_doe");
   assert_equals(cred.isAutoSelected, true);
 }, "Test that the returning account from the two accounts will be auto re-authenticated.");

@@ -70,11 +70,11 @@ impl Actor for TargetConfigurationActor {
                     .ok_or(ActorError::MissingParameter)?
                     .as_object()
                     .ok_or(ActorError::BadParameterType)?;
-                if let Some(scheme) = config.get("colorSchemeSimulation").and_then(|v| v.as_str()) {
-                    let theme = match scheme {
-                        "dark" => Theme::Dark,
-                        "light" => Theme::Light,
-                        _ => Theme::Light,
+                if let Some(scheme_value) = config.get("colorSchemeSimulation") {
+                    let theme = match scheme_value.as_str() {
+                        Some("dark") => Some(Theme::Dark),
+                        Some("light") => Some(Theme::Light),
+                        _ => None,
                     };
                     let root_actor = registry.find::<RootActor>("root");
                     if let Some(tab_name) = root_actor.active_tab() {

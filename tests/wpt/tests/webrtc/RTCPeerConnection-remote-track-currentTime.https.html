@@ -22,7 +22,7 @@
 
 async function setupPeerConnectionAndWaitForTrack(t, kind) {
   const pc1 = createPeerConnectionWithCleanup(t);
-  pc1.addTrack(... await createTrackAndStreamWithCleanup(t, "video"));
+  pc1.addTrack(... await createTrackAndStreamWithCleanup(t, kind));
   const pc2 = createPeerConnectionWithCleanup(t);
   exchangeIceCandidates(pc1, pc2);
 

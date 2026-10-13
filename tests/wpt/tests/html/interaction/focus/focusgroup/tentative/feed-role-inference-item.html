@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML Test: focusgroup feed item AX role inference</title>
+<meta name="assert" content="Eligible generic feed items get an implied article role; explicit and native roles and resolved-owner precedence are preserved.">
+<link rel="author" title="Microsoft" href="http://www.microsoft.com/">
+<link rel="help" href="https://open-ui.org/components/focusgroup-v2.explainer/#feed-focusgroups">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<div focusgroup=feed>
+  <div id=genericItem tabindex=0>Generic item</div>
+  <div id=explicitItem role=heading tabindex=0>Explicit item</div>
+  <button id=nativeItem>Native item</button>
+  <div role=list focusgroup=feed>
+    <div id=mismatchedOwnerItem tabindex=0>Item</div>
+  </div>
+  <div focusgroup=feed>
+    <div id=nestedItem tabindex=0>Nested item</div>
+  </div>
+</div>
+
+<script>
+promise_test(async () => {
+  assert_equals(await test_driver.get_computed_role(genericItem), "article");
+}, "Generic feed item gets an implied article role");
+
+promise_test(async () => {
+  assert_equals(await test_driver.get_computed_role(explicitItem), "heading");
+}, "Explicit item role is preserved over implied article role");
+
+promise_test(async () => {
+  assert_equals(await test_driver.get_computed_role(nativeItem), "button");
+}, "Native item semantics are preserved over implied article role");
+
+promise_test(async () => {
+  assert_equals(
+      await test_driver.get_computed_role(mismatchedOwnerItem), "generic");
+}, "Item role is not inferred when the resolved owner has a mismatched role");
+
+promise_test(async () => {
+  assert_equals(await test_driver.get_computed_role(nestedItem), "article");
+}, "Item role inference uses the nearest nested feed owner");
+</script>

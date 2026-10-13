@@ -1,0 +1,68 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Aborting a streamHTMLUnsafe() writer unblocks rendering on its pending parser-blocking script</title>
+<link rel="help" href="https://html.spec.whatwg.org/C/#abort-a-parser" />
+<link rel="help" href="https://html.spec.whatwg.org/C/#render-blocking-mechanism" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  // This test must run from <head>, while the document is still loading and
+  // has no <body>, so that a streamed parser-inserted <script> is implicitly
+  // potentially render-blocking. "Abort a parser" (the fragment case) must
+  // unblock rendering on the pending parser-blocking script; otherwise
+  // rendering - and requestAnimationFrame() - would be held until the slow
+  // script finishes loading.
+  setup({ allow_uncaught_exception: true });
+  assert_true(!document.body, "must run from <head>");
+
+  window.events = [];
+
+  const scriptInserted = new Promise((resolve) => {
+    new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node.localName === "script") {
+            resolve(node);
+          }
+        }
+      }
+    }).observe(document.head, { childList: true });
+  });
+
+  const streamed = (async () => {
+    const writer = document.head
+      .streamAppendHTMLUnsafe({ runScripts: true })
+      .getWriter();
+    await writer.write(
+      "<script blocking='render' src='resources/slow.js?pipe=trickle(d3)&render_blocking_abort=1'><" +
+        "/script>"
+    );
+    const script = await scriptInserted;
+    const loaded = new Promise((resolve) => {
+      script.addEventListener("load", () => resolve("load"));
+      script.addEventListener("error", () => resolve("error"));
+    });
+    const abortTime = performance.now();
+    await writer.abort();
+    return { script, loaded, abortTime };
+  })();
+
+  promise_test(async (t) => {
+    const { script, loaded, abortTime } = await streamed;
+    // Rendering must be unblocked promptly, long before the 3s slow script
+    // would have finished loading.
+    const frameTime = await new Promise((resolve) =>
+      requestAnimationFrame(resolve)
+    );
+    assert_less_than(
+      frameTime - abortTime,
+      2000,
+      "requestAnimationFrame() should fire well before the aborted slow script finishes loading"
+    );
+    assert_array_equals(window.events, [], "the aborted script must not run");
+    // Whether the fetch continues or is cancelled is not observable here.
+    loaded.then(() => {});
+  }, "abort() unblocks rendering on a streamed render-blocking parser-blocking script");
+</script>
+<body>
+</body>

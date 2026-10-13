@@ -280,7 +280,7 @@ impl TreeOrderedIndexMap {
         entry: &mut TreeOrderedIndexMapEntry,
         index_type: IndexType,
     ) {
-        for node in scope.traverse_preorder_non_rooting(no_gc, ShadowIncluding::No) {
+        for node in scope.traverse_preorder_unrooted(no_gc, ShadowIncluding::No) {
             let Some(element) = node.downcast::<Element>() else {
                 continue;
             };
@@ -311,7 +311,7 @@ impl TreeOrderedIndexMap {
             .filter(|(_, entry)| entry.needs_resolution())
             .collect();
 
-        for node in scope.traverse_preorder_non_rooting(no_gc, ShadowIncluding::No) {
+        for node in scope.traverse_preorder_unrooted(no_gc, ShadowIncluding::No) {
             let Some(element) = node.downcast::<Element>() else {
                 continue;
             };

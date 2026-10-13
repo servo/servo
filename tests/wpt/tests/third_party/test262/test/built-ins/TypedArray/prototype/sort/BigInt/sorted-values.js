@@ -25,7 +25,7 @@ testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
 
   sample = new TA(makeCtorArg([3n, 4n, 3n, 1n, 0n, 1n, 2n])).sort();
   assert(compareArray(sample, [0n, 1n, 1n, 2n, 3n, 3n, 4n]), "repeating numbers");
-});
+}, null, null, ["immutable"]);
 
 var sample = new BigInt64Array([-4n, 3n, 4n, -3n, 2n, -2n, 1n, 0n]).sort();
 assert(compareArray(sample, [-4n, -3n, -2n, 0n, 1n, 2n, 3n, 4n]), "negative values");

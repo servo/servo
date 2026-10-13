@@ -2,19 +2,27 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::{Cell, RefCell};
+use std::collections::{HashMap, VecDeque};
+use std::rc::Rc;
+
 use embedder_traits::user_contents::UserContentManagerId;
-use embedder_traits::{InputEvent, MouseLeftViewportEvent, Theme};
-use euclid::Point2D;
-use log::warn;
-use rustc_hash::FxHashMap;
-use script_traits::{ConstellationInputEvent, ScriptThreadMessage};
+use embedder_traits::{InputEvent, MouseLeftViewportEvent, Theme, ViewportDetails};
+use euclid::{Point2D, Size2D};
+use log::{debug, warn};
+use paint_api::{PaintMessage, PaintProxy};
+use rustc_hash::{FxHashMap, FxHashSet};
+use script_traits::{ConstellationInputEvent, ScriptThreadMessage, WebViewState};
 use servo_base::Epoch;
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
+use servo_constellation_traits::{ScreenshotReadinessResponse, SessionHistoryTraversalRequest};
 use style_traits::CSSPixel;
 
-use crate::browsingcontext::BrowsingContext;
+use crate::browsingcontext::{BrowsingContext, FullyActiveBrowsingContextsIterator};
+use crate::constellation::BrowsingContextGroup;
 use crate::pipeline::Pipeline;
-use crate::session_history::JointSessionHistory;
+use crate::screenshot_readiness_request::{ScreenshotReadinessRequest, ScreenshotRequestState};
+use crate::session_history::{JointSessionHistory, SessionHistoryChange};
 
 /// The `Constellation`'s view of a `WebView` in the embedding layer. This tracks all of the
 /// `Constellation` state for this `WebView`.
@@ -24,8 +32,21 @@ pub(crate) struct ConstellationWebView {
 
     /// The [`PipelineId`] of the currently active pipeline at the top level of this WebView.
     pub active_top_level_pipeline_id: Option<PipelineId>,
+
     /// A counter for changes to [`Self::active_top_level_pipeline_id`].
     pub active_top_level_pipeline_epoch: Epoch,
+
+    /// When a navigation is performed, we do not immediately update
+    /// the session history, instead we ask the event loop to begin loading
+    /// the new document, and do not update the browsing context until the
+    /// document is active. Between starting the load and it activating,
+    /// we store a `SessionHistoryChange` object for the navigation in progress.
+    pub pending_changes: Vec<SessionHistoryChange>,
+
+    /// The [`BrowsingContextGroup`] associated with this [`ConstellationWebView`]. Every
+    /// `WebView` has a single [`BrowsingContextGroup`], but that group may be shared amongst
+    /// multiple `WebView`s in the case of `window.open()`.
+    browsing_context_group: Rc<RefCell<BrowsingContextGroup>>,
 
     /// The currently focused browsing context in this webview for key events.
     /// The focused pipeline is the current entry of the focused browsing
@@ -43,6 +64,20 @@ pub(crate) struct ConstellationWebView {
     /// The joint session history for this webview.
     pub session_history: JointSessionHistory,
 
+    /// <https://html.spec.whatwg.org/multipage/#tn-session-history-traversal-queue>
+    ///
+    /// A queue of traversals that should be applied sequentially. The next item from
+    /// the queue is applied once [`Self::ongoing_history_traversal_request`] has finished.
+    pub session_history_traversal_request_queue: VecDeque<SessionHistoryTraversalRequest>,
+
+    /// The currently running session history traversal. This will be completed once all
+    /// `Pipeline`s in a traversal become active or their load fails for some other reason.
+    pub ongoing_history_traversal_request: Option<OngoingHistoryTraversalRequest>,
+
+    /// Pending viewport changes for browsing contexts that are not
+    /// yet known to the constellation.
+    pending_viewport_details: HashMap<BrowsingContextId, ViewportDetails>,
+
     /// The [`UserContentManagerId`] for all pipelines in this `WebView`. This is `Some`
     /// if the embedder has set a `UserContentManager` using the WebViewBuilder API and
     /// it is `None` otherwise.
@@ -52,6 +87,15 @@ pub(crate) struct ConstellationWebView {
     /// `ScriptThread`s so that they know how to render the contents of a particular `WebView.
     theme: Theme,
 
+    /// Whether or not this entire [`ConstellationWebView`] is hidden. `WebView`s that
+    /// are hidden will be throttled.
+    hidden: bool,
+
+    /// Whether or not this [`ConstellationWebView`] has system focus. This is
+    /// a distinct piece of state from [`Self::focused_browsing_context_id`] which
+    /// tracks the frame with focus regardless of system focus state.
+    has_system_focus: bool,
+
     /// Whether accessibility is active for this webview.
     ///
     /// Set by [`crate::Constellation::set_accessibility_active()`], and forwarded to the
@@ -59,11 +103,17 @@ pub(crate) struct ConstellationWebView {
     /// via [`ScriptThreadMessage::SetAccessibilityActive`] in `set_accessibility_active()`
     /// and [`crate::Constellation::set_frame_tree_for_webview()`].
     pub accessibility_active: bool,
+
+    /// Pending screenshot readiness requests. These are collected until the screenshot is
+    /// ready to take place, at which point the Constellation informs the renderer that it
+    /// can start the process of taking the screenshot.
+    screenshot_readiness_requests: Vec<ScreenshotReadinessRequest>,
 }
 
 impl ConstellationWebView {
     pub(crate) fn new(
         webview_id: WebViewId,
+        browsing_context_group: Rc<RefCell<BrowsingContextGroup>>,
         focused_browsing_context_id: BrowsingContextId,
         user_content_manager_id: Option<UserContentManagerId>,
     ) -> Self {
@@ -72,13 +122,25 @@ impl ConstellationWebView {
             user_content_manager_id,
             active_top_level_pipeline_id: None,
             active_top_level_pipeline_epoch: Epoch::default(),
+            pending_changes: Default::default(),
+            browsing_context_group,
             focused_browsing_context_id,
             hovered_browsing_context_id: None,
             last_mouse_move_point: Default::default(),
             session_history: JointSessionHistory::new(),
+            session_history_traversal_request_queue: Default::default(),
+            ongoing_history_traversal_request: None,
+            pending_viewport_details: Default::default(),
             theme: Theme::Light,
+            hidden: false,
+            has_system_focus: true,
             accessibility_active: false,
+            screenshot_readiness_requests: Default::default(),
         }
+    }
+
+    pub(crate) fn browsing_context_group(&self) -> Rc<RefCell<BrowsingContextGroup>> {
+        self.browsing_context_group.clone()
     }
 
     /// Set the [`Theme`] on this [`ConstellationWebView`] returning true if the theme changed.
@@ -90,6 +152,35 @@ impl ConstellationWebView {
     /// Get the [`Theme`] of this [`ConstellationWebView`].
     pub(crate) fn theme(&self) -> Theme {
         self.theme
+    }
+
+    /// Whether or not the [`ConstellationWebView`] is hidden.
+    pub(crate) fn hidden(&self) -> bool {
+        self.hidden
+    }
+
+    /// Create a [`WebViewState`] for this [`ConstellationWebView`] to pass during pipeline
+    /// creation.
+    pub(crate) fn state(&self) -> WebViewState {
+        WebViewState {
+            id: self.webview_id,
+            theme: Cell::new(self.theme),
+            has_system_focus: Cell::new(self.has_system_focus),
+        }
+    }
+
+    /// Set whether or not this [`ConstellationWebView`] is hidden, returning true if the
+    /// value changed.
+    pub(crate) fn set_hidden(&mut self, hidden: bool) -> bool {
+        let old_hidden = std::mem::replace(&mut self.hidden, hidden);
+        old_hidden != self.hidden
+    }
+
+    /// Set whether or not this [`ConstellationWebView`] has system focus, returning true
+    /// if the value changed.
+    pub(crate) fn set_has_system_focus(&mut self, has_system_focus: bool) -> bool {
+        let old_has_system_focus = std::mem::replace(&mut self.has_system_focus, has_system_focus);
+        old_has_system_focus != self.has_system_focus
     }
 
     fn target_pipeline_id_for_input_event(
@@ -188,4 +279,219 @@ impl ConstellationWebView {
             ));
         true
     }
+
+    pub(crate) fn close_browsing_context(&mut self, browsing_context_id: BrowsingContextId) {
+        self.take_pending_viewport_details(&browsing_context_id);
+        self.session_history
+            .remove_entries_for_browsing_context(browsing_context_id);
+    }
+
+    /// If there is an ongoing history traversal request that is waiting on documents to
+    /// reload, check to see if none of its pipelines are awaiting activation. If that's the
+    /// case unset the ongoing request and return it.
+    pub(crate) fn maybe_finish_ongoing_session_history_traversal_request(
+        &mut self,
+    ) -> Option<SessionHistoryTraversalRequest> {
+        let ongoing_history_traversal_request = self.ongoing_history_traversal_request.as_mut()?;
+
+        let pipelines_with_pending_changes = self
+            .pending_changes
+            .iter()
+            .map(|change| change.new_pipeline_id)
+            .collect::<FxHashSet<_>>();
+        ongoing_history_traversal_request
+            .pipelines_awaiting_activation
+            .retain(|pipeline_id| pipelines_with_pending_changes.contains(pipeline_id));
+
+        if !ongoing_history_traversal_request
+            .pipelines_awaiting_activation
+            .is_empty()
+        {
+            return None;
+        }
+        Some(
+            self.ongoing_history_traversal_request
+                .take()
+                .expect("Guaranteed above")
+                .traversal_request,
+        )
+    }
+
+    pub(crate) fn has_pending_change(&self) -> bool {
+        !self.pending_changes.is_empty()
+    }
+
+    pub(crate) fn pipeline_is_pending(&self, pipeline_id: PipelineId) -> bool {
+        self.pending_changes
+            .iter()
+            .any(|pending_change| pending_change.new_pipeline_id == pipeline_id)
+    }
+
+    pub(crate) fn add_pending_change(&mut self, change: SessionHistoryChange) {
+        debug!(
+            "adding pending session history change with {}",
+            if change.replace.is_some() {
+                "replacement"
+            } else {
+                "no replacement"
+            },
+        );
+        self.pending_changes.push(change);
+    }
+
+    pub(crate) fn remove_pending_change_for_pipeline(
+        &mut self,
+        pipeline_id: PipelineId,
+    ) -> Option<SessionHistoryChange> {
+        let pending_index = self
+            .pending_changes
+            .iter()
+            .rposition(|change| change.new_pipeline_id == pipeline_id)?;
+        Some(self.pending_changes.swap_remove(pending_index))
+    }
+
+    #[servo_tracing::instrument(skip_all)]
+    pub(crate) fn handle_screenshot_readiness_request(
+        &mut self,
+        browsing_contexts: &FxHashMap<BrowsingContextId, BrowsingContext>,
+        pipelines: &FxHashMap<PipelineId, Pipeline>,
+    ) {
+        self.screenshot_readiness_requests
+            .push(ScreenshotReadinessRequest {
+                pipeline_states: Default::default(),
+                state: Default::default(),
+            });
+        self.send_screenshot_readiness_requests_to_pipelines(browsing_contexts, pipelines);
+    }
+
+    pub(crate) fn send_screenshot_readiness_requests_to_pipelines(
+        &mut self,
+        browsing_contexts: &FxHashMap<BrowsingContextId, BrowsingContext>,
+        pipelines: &FxHashMap<PipelineId, Pipeline>,
+    ) {
+        // If there are pending loads, wait for those to complete.
+        if self.has_pending_change() {
+            return;
+        }
+
+        for screenshot_request in self.screenshot_readiness_requests.iter_mut() {
+            // Ignore this request if it is not pending.
+            if screenshot_request.state != ScreenshotRequestState::Pending {
+                continue;
+            }
+
+            screenshot_request.pipeline_states = FullyActiveBrowsingContextsIterator::new(
+                self.webview_id.into(),
+                browsing_contexts,
+                pipelines,
+            )
+            .filter_map(|browsing_context| {
+                let pipeline_id = browsing_context.pipeline_id;
+                let Some(pipeline) = pipelines.get(&pipeline_id) else {
+                    // This can happen while Servo is shutting down, so just ignore it for now.
+                    return None;
+                };
+                // If the rectangle for this BrowsingContext is zero, it will never be
+                // painted. In this case, don't query screenshot readiness as it won't
+                // contribute to the final output image.
+                if browsing_context.viewport_details.size == Size2D::zero() {
+                    return None;
+                }
+                let _ = pipeline
+                    .event_loop
+                    .send(ScriptThreadMessage::RequestScreenshotReadiness(
+                        pipeline.webview_id,
+                        pipeline_id,
+                    ));
+                Some((pipeline_id, None))
+            })
+            .collect();
+            screenshot_request.state = ScreenshotRequestState::WaitingOnScript;
+        }
+    }
+
+    #[servo_tracing::instrument(skip_all)]
+    pub(crate) fn handle_screenshot_readiness_response(
+        &mut self,
+        updated_pipeline_id: PipelineId,
+        response: ScreenshotReadinessResponse,
+        paint_proxy: &PaintProxy,
+    ) {
+        if self.screenshot_readiness_requests.is_empty() {
+            return;
+        }
+
+        self.screenshot_readiness_requests
+            .retain_mut(|screenshot_request| {
+                if screenshot_request.state != ScreenshotRequestState::WaitingOnScript {
+                    return true;
+                }
+
+                let mut has_pending_pipeline = false;
+                screenshot_request
+                    .pipeline_states
+                    .retain(|pipeline_id, state| {
+                        if *pipeline_id != updated_pipeline_id {
+                            has_pending_pipeline |= state.is_none();
+                            return true;
+                        }
+                        match response {
+                            ScreenshotReadinessResponse::Ready(epoch) => {
+                                *state = Some(epoch);
+                                true
+                            },
+                            ScreenshotReadinessResponse::NoLongerActive => false,
+                        }
+                    });
+
+                if has_pending_pipeline {
+                    return true;
+                }
+
+                let pipelines_and_epochs = screenshot_request
+                    .pipeline_states
+                    .iter()
+                    .map(|(pipeline_id, epoch)| {
+                        (
+                            *pipeline_id,
+                            epoch.expect("Should have an epoch when pipeline is ready."),
+                        )
+                    })
+                    .collect();
+                paint_proxy.send(PaintMessage::ScreenshotReadinessReponse(
+                    self.webview_id,
+                    pipelines_and_epochs,
+                ));
+
+                false
+            });
+    }
+
+    pub(crate) fn add_viewport_details(
+        &mut self,
+        browsing_context_id: BrowsingContextId,
+        viewport_details: ViewportDetails,
+    ) {
+        self.pending_viewport_details
+            .insert(browsing_context_id, viewport_details);
+    }
+
+    pub(crate) fn take_pending_viewport_details(
+        &mut self,
+        browsing_context_id: &BrowsingContextId,
+    ) -> Option<ViewportDetails> {
+        self.pending_viewport_details.remove(browsing_context_id)
+    }
+}
+
+/// A [`HistoryTraversalRequest`] that is in progress because it is waiting
+/// for documents that need reloading.
+pub(crate) struct OngoingHistoryTraversalRequest {
+    /// The [`HistoryTraversalRequest`] that spawned this series of navigations.
+    pub traversal_request: SessionHistoryTraversalRequest,
+    /// The ids of all the `Pipeline`s that needed reloading for this traversal.
+    /// Multiple pipelines can be traversed if the top-level document contained
+    /// `<iframe>`s / browsing contexts. The traversal is only done when all of
+    /// the pipelines are ready or have failed to load.
+    pub pipelines_awaiting_activation: FxHashSet<PipelineId>,
 }

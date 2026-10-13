@@ -14,6 +14,7 @@ use script_bindings::str::DOMString;
 use servo_canvas_traits::canvas::Path;
 
 use crate::dom::bindings::codegen::Bindings::CanvasRenderingContext2DBinding::Path2DMethods;
+use crate::dom::bindings::codegen::UnionTypes::UnrestrictedDoubleOrDOMPointInitOrUnrestrictedDoubleOrDOMPointInitSequence;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::dommatrixreadonly::dommatrix2dinit_to_matrix;
@@ -145,6 +146,22 @@ impl Path2DMethods<crate::DomTypeHolder> for Path2D {
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-rect>
     fn Rect(&self, x: f64, y: f64, w: f64, h: f64) {
         self.path.borrow_mut().rect(x, y, w, h);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-roundrect>
+    fn RoundRect(
+        &self,
+        x: f64,
+        y: f64,
+        w: f64,
+        h: f64,
+        radii: UnrestrictedDoubleOrDOMPointInitOrUnrestrictedDoubleOrDOMPointInitSequence,
+    ) -> Fallible<()> {
+        let radii = super::canvas_state::round_rect_radii(&radii);
+        self.path
+            .borrow_mut()
+            .round_rect(x, y, w, h, &radii)
+            .map_err(super::canvas_state::round_rect_error)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-context-2d-arc>

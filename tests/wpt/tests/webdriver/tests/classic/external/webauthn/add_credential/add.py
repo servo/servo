@@ -36,6 +36,8 @@ def test_add_resident_credential(session, authenticator):
 def test_add_credential_with_large_blob(session, authenticator):
     credential = create_credential(
         credential_id="bGFyZ2VibG9i",
+        is_resident_credential=True,
+        user_handle="dXNlcjE",
         large_blob="c29tZSBibG9i",
     )
 
@@ -58,6 +60,19 @@ def test_add_credential_with_sign_count(session, authenticator):
     assert len(credentials) == 1
     assert credentials[0]["credentialId"] == "c2lnbmNvdW50"
     assert credentials[0]["signCount"] == 42
+
+
+def test_add_credential_with_null_sign_count(session, authenticator):
+    # A null signCount indicates the credential has no signature counter.
+    credential = create_credential(credential_id="bnVsbGNvdW50", sign_count=None)
+
+    response = add_credential(session, authenticator, credential)
+    assert_success(response)
+
+    credentials = session.web_authn.get_credentials(authenticator)
+    assert len(credentials) == 1
+    assert credentials[0]["credentialId"] == "bnVsbGNvdW50"
+    assert credentials[0]["signCount"] is None
 
 
 def test_add_multiple_credentials(session, authenticator):

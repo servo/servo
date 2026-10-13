@@ -549,6 +549,67 @@ const tests = [
       label: label,
     },
   },
+  {
+    name: '[conv2d] Throw if a stride is larger than the padded input height.',
+    input: {dataType: 'float32', shape: [1, 1, 5, 5]},
+    filter: {dataType: 'float32', shape: [1, 1, 1, 1]},
+    options: {
+      strides: [kMaxUnsignedLong, 1],
+      label: label,
+    },
+  },
+  {
+    name: '[conv2d] Throw if a stride is larger than the padded input width.',
+    input: {dataType: 'float32', shape: [1, 1, 5, 5]},
+    filter: {dataType: 'float32', shape: [1, 1, 1, 1]},
+    options: {
+      strides: [1, kMaxUnsignedLong],
+      label: label,
+    },
+  },
+  {
+    name:
+        '[conv2d] Throw if a dilation is larger than the padded input height.',
+    input: {dataType: 'float32', shape: [1, 1, 5, 5]},
+    filter: {dataType: 'float32', shape: [1, 1, 1, 1]},
+    options: {
+      dilations: [kMaxUnsignedLong, 1],
+      label: label,
+    },
+  },
+  {
+    name: '[conv2d] Throw if a dilation is larger than the padded input width.',
+    input: {dataType: 'float32', shape: [1, 1, 5, 5]},
+    filter: {dataType: 'float32', shape: [1, 1, 1, 1]},
+    options: {
+      dilations: [1, kMaxUnsignedLong],
+      label: label,
+    },
+  },
+  {
+    name: '[conv2d] Throw if the dilated effective filter height is larger ' +
+        'than the padded input height.',
+    input: {dataType: 'float32', shape: [1, 1, 5, 5]},
+    filter: {dataType: 'float32', shape: [1, 1, 3, 1]},
+    // Effective filter height = (3 - 1) * 3 + 1 = 7 > padded height 5, while
+    // the dilation itself (3) is not larger than the padded input.
+    options: {
+      dilations: [3, 1],
+      label: label,
+    },
+  },
+  {
+    name: '[conv2d] Throw if the dilated effective filter width is larger ' +
+        'than the padded input width.',
+    input: {dataType: 'float32', shape: [1, 1, 5, 5]},
+    filter: {dataType: 'float32', shape: [1, 1, 1, 3]},
+    // Effective filter width = (3 - 1) * 3 + 1 = 7 > padded width 5, while the
+    // dilation itself (3) is not larger than the padded input.
+    options: {
+      dilations: [1, 3],
+      label: label,
+    },
+  },
 ];
 
 tests.forEach(

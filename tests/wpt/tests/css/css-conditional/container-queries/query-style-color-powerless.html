@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Container Queries Test: powerless components in registered color style queries</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#style-container">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#comparing-color-values">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#powerless-color-component">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  @property --c {
+    syntax: "<color>";
+    inherits: false;
+    initial-value: transparent;
+  }
+
+  /* Step 1 of CSS Color 4 § 12 converts powerless components to missing
+     components before anything is compared. A hue is powerless when the color
+     is achromatic, by the epsilon each color space defines for it, and § 4.4.1
+     makes that test inclusive: powerless when the colorfulness is less than or
+     equal to the epsilon. Two colors that differ only in a powerless hue are
+     therefore equivalent colors.
+
+     c1 and c2 isolate step 1: both colors of each pair are in the same
+     <color-space>, so neither the sRGB grouping nor the conversion to oklab in
+     step 4 can produce the result. c4 and c5 are reachable by step 1 or by the
+     sRGB grouping, since hsl() and hwb() are considered to be in srgb.
+
+     c7 and c9 sit exactly on the lch() and oklch() epsilon, where the inclusive
+     comparison decides the answer, and c8 is one step outside the lch() epsilon,
+     pinning it from the other side. There are deliberately no epsilon-boundary
+     cases for hsl() and hwb(): those resolve to sRGB colors, and at the boundary
+     the residual hue leaves the two sRGB values exactly 1e-5 apart, which the
+     implementation-defined epsilon of step 2 may or may not treat as equal. */
+
+  #c1 { --c: oklch(50% 0 40); }
+  #c2 { --c: lch(50% 0.001 30); }
+  #c3 { --c: lch(50% 0.002 30); }
+  #c4 { --c: hsl(0 0% 50%); }
+  #c5 { --c: hwb(30 60% 40%); }
+  #c6 { --c: oklch(50% 0.2 40); }
+  #c7 { --c: lch(50% 0.0015 30); }
+  #c8 { --c: lch(50% 0.0016 30); }
+  #c9 { --c: oklch(50% 0.000004 40); }
+
+  @container style(--c: oklch(50% 0 200)) { #t1 { color: green; } }
+  @container style(--c: lch(50% 0.001 200)) { #t2 { color: green; } }
+  @container style(--c: lch(50% 0.002 200)) { #t3 { color: green; } }
+  @container style(--c: hsl(200 0% 50%)) { #t4 { color: green; } }
+  @container style(--c: hwb(200 60% 40%)) { #t5 { color: green; } }
+  @container style(--c: oklch(50% 0.2 200)) { #t6 { color: green; } }
+  @container style(--c: lch(50% 0.0015 200)) { #t7 { color: green; } }
+  @container style(--c: lch(50% 0.0016 200)) { #t8 { color: green; } }
+  @container style(--c: oklch(50% 0.000004 200)) { #t9 { color: green; } }
+</style>
+<div id="c1"><div id="t1"></div></div>
+<div id="c2"><div id="t2"></div></div>
+<div id="c3"><div id="t3"></div></div>
+<div id="c4"><div id="t4"></div></div>
+<div id="c5"><div id="t5"></div></div>
+<div id="c6"><div id="t6"></div></div>
+<div id="c7"><div id="t7"></div></div>
+<div id="c8"><div id="t8"></div></div>
+<div id="c9"><div id="t9"></div></div>
+<script>
+  setup(() => assert_implements_style_container_queries());
+
+  const green = "rgb(0, 128, 0)";
+  const black = "rgb(0, 0, 0)";
+
+  test(() => {
+    assert_equals(getComputedStyle(t1).color, green);
+  }, "oklch() hues are powerless when the chroma is zero");
+
+  test(() => {
+    assert_equals(getComputedStyle(t2).color, green);
+  }, "lch() hues are powerless when the chroma is within the epsilon of 0.0015");
+
+  test(() => {
+    assert_equals(getComputedStyle(t3).color, black);
+  }, "lch() hues are not powerless when the chroma is above the epsilon of 0.0015");
+
+  test(() => {
+    assert_equals(getComputedStyle(t4).color, green);
+  }, "hsl() hues are powerless when the saturation is zero");
+
+  test(() => {
+    assert_equals(getComputedStyle(t5).color, green);
+  }, "hwb() hues are powerless when whiteness and blackness sum to 100");
+
+  test(() => {
+    assert_equals(getComputedStyle(t6).color, black);
+  }, "oklch() hues are not powerless when the chroma is large");
+
+  test(() => {
+    assert_equals(getComputedStyle(t7).color, green);
+  }, "lch() hues are powerless when the chroma is exactly the epsilon of 0.0015");
+
+  test(() => {
+    assert_equals(getComputedStyle(t8).color, black);
+  }, "lch() hues are not powerless when the chroma is just above the epsilon of 0.0015");
+
+  test(() => {
+    assert_equals(getComputedStyle(t9).color, green);
+  }, "oklch() hues are powerless when the chroma is exactly the epsilon of 0.000004");
+</script>

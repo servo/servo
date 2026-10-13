@@ -21,12 +21,12 @@ canvas {
 }
 </style>
 
-<canvas id="canvas1" width="200" height="200" layoutsubtree>
-  <div id="child1" class="display-none">
+<canvas id="canvas1" width="200" height="200" content=drawable>
+  <div drawable id="child1" class="display-none">
   </div>
 </canvas>
-<canvas id="canvas2" class="display-none" width="200" height="200" layoutsubtree>
-  <div id="child2">
+<canvas id="canvas2" class="display-none" width="200" height="200" content=drawable>
+  <div drawable id="child2">
   </div>
 </canvas>
 
@@ -41,8 +41,16 @@ onload = () => {
       "Can't draw a display: none child.");
     assert_throws_dom(
       "InvalidStateError",
+      () => canvas1.getElementImageDefaultSize(child1),
+      "Can't get default size of a display: none child.");
+    assert_throws_dom(
+      "InvalidStateError",
       () => canvas2.getContext("2d").drawElementImage(child2, 20, 30),
       "Can't draw into a display-none <canvas>.");
-  }, "Canvas drawElementImage() should throw when drawn child is not laid out.");
+    assert_throws_dom(
+      "InvalidStateError",
+      () => canvas2.getElementImageDefaultSize(child2),
+      "Can't get default size from a display-none <canvas>.");
+  }, "Canvas drawElementImage() and getElementImageDefaultSize() should throw when drawn child is not laid out.");
 };
 </script>

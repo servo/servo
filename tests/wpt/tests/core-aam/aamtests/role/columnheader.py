@@ -27,11 +27,17 @@ def test_atspi(atspi, session, inline):
 #     # Role: ROLE_SYSTEM_COLUMNHEADER
 #     # Interface: IAccessibleTableCell
 
-# def test_uia(uia, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # Control Type: DataItem
-#     # Localized Control Type: column header
-#     # Control Pattern: GridItem
-#     # Control Pattern: TableItem
+def test_uia(uia, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Control Type: DataItem
+    # Localized Control Type: column header
+    # Control Pattern: GridItem
+    # Control Pattern: TableItem
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.DataItem
+    assert node.CurrentLocalizedControlType == "column header"
+    assert node.GetCurrentPropertyValue(uia.PropertyId.IsGridItemPatternAvailable)
+    assert node.GetCurrentPropertyValue(uia.PropertyId.IsTableItemPatternAvailable)

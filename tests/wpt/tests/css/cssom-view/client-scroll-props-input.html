@@ -1,0 +1,67 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>CSSOM View: client* and scroll* of an input exclude its inline padding</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-element-clientwidth">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/13502">
+<link rel="author" title="Free Debreuil" href="mailto:freedebreuil@google.com">
+<meta name="assert" content="An input clips its text at the content box in the inline axis, so client* and scroll* leave the inline padding out.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+/* 100px content box, 5px border, 20px inline padding, 10px block padding. */
+input {
+  appearance: none;
+  box-sizing: content-box;
+  width: 100px;
+  height: 100px;
+  border: 5px solid;
+  padding-inline: 20px;
+  padding-block: 10px;
+  font: 10px/1 Ahem;
+}
+#vertical {
+  writing-mode: vertical-rl;
+}
+</style>
+
+<input id="horizontal">
+<input id="vertical">
+
+<script>
+// 30 Ahem glyphs, 300px of text.
+const text = "X".repeat(30);
+
+promise_test(async () => {
+  await document.fonts.ready;
+  const input = document.getElementById("horizontal");
+  input.value = text;
+
+  assert_equals(input.clientLeft, 25, "clientLeft is the border plus the inline padding");
+  assert_equals(input.clientTop, 5, "clientTop is the border");
+  assert_equals(input.clientWidth, 100, "clientWidth is the content box");
+  assert_equals(input.clientHeight, 120, "clientHeight is the padding box");
+  assert_equals(input.scrollWidth, 300, "scrollWidth is the text");
+  assert_equals(input.scrollHeight, 120, "scrollHeight is the padding box");
+
+  input.scrollLeft = 1000;
+  assert_equals(input.scrollLeft, 200, "scrollLeft reaches the end of the text (300 - 100)");
+}, "horizontal writing mode");
+
+promise_test(async () => {
+  await document.fonts.ready;
+  const input = document.getElementById("vertical");
+  input.value = text;
+
+  assert_equals(input.clientLeft, 5, "clientLeft is the border");
+  assert_equals(input.clientTop, 25, "clientTop is the border plus the inline padding");
+  assert_equals(input.clientWidth, 120, "clientWidth is the padding box");
+  assert_equals(input.clientHeight, 100, "clientHeight is the content box");
+  assert_equals(input.scrollWidth, 120, "scrollWidth is the padding box");
+  assert_equals(input.scrollHeight, 300, "scrollHeight is the text");
+
+  input.scrollTop = 1000;
+  assert_equals(input.scrollTop, 200, "scrollTop reaches the end of the text (300 - 100)");
+}, "vertical writing mode");
+</script>

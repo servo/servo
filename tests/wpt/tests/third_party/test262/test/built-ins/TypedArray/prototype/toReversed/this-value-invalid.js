@@ -34,11 +34,11 @@ Object.entries(invalidValues).forEach(value => {
   }, `${value[0]} is not a valid TypedArray`);
 });
 
-testWithTypedArrayConstructors(function(TA) {
-  let buffer = new ArrayBuffer(8);
+testWithTypedArrayConstructors(function(TA, makeCtorArg) {
+  let buffer = makeCtorArg(8);
   let sample = new TA(buffer, 0, 1);
   $DETACHBUFFER(sample.buffer);
   assert.throws(TypeError, () => {
     sample.toReversed();
   }, `array has a detached buffer`);
-}, null, ["passthrough"]);
+}, null, ["arraybuffer"], ["immutable"]);

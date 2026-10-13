@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSSOM: :root selector parsed in getComputedStyle()</title>
+<link rel="help" href="https://drafts.csswg.org/selectors/#root-pseudo">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-window-getcomputedstyle">
+
+<style>
+  :root {
+      --a: red;
+  }
+</style>
+
+<script>
+"use strict";
+
+test(() => {
+  const a = getComputedStyle(document.documentElement).getPropertyValue("--a");
+  assert_equals(a, "red");
+
+}, "Accessing variables in :root pseudo-selector");
+
+</script>

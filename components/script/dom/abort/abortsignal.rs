@@ -14,6 +14,7 @@ use js::jsval::{JSVal, UndefinedValue};
 use js::realm::CurrentRealm;
 use js::rust::wrappers2::JS_SetPendingException;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
+use script_bindings::callback::TracedCallback;
 use script_bindings::cell::DomRefCell;
 use script_bindings::inheritance::Castable;
 use script_bindings::reflector::reflect_weak_referenceable_dom_object_with_proto;
@@ -30,7 +31,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::readablestream::PipeTo;
-use crate::fetch::{DeferredFetchRecordId, FetchContext};
+use crate::fetch::fetch::{DeferredFetchRecordId, FetchContext};
 use crate::realms::enter_auto_realm;
 
 impl js::gc::Rootable for AbortAlgorithm {}
@@ -60,8 +61,7 @@ pub(crate) enum AbortAlgorithm {
 pub(crate) struct RemovableDomEventListener {
     pub(crate) event_target: Dom<EventTarget>,
     pub(crate) ty: DOMString,
-    #[conditional_malloc_size_of]
-    pub(crate) listener: Option<Rc<EventListener>>,
+    pub(crate) listener: Option<TracedCallback<EventListener>>,
     pub(crate) options: EventListenerOptions,
 }
 
@@ -199,13 +199,14 @@ impl AbortSignal {
             },
             AbortAlgorithm::FetchLater(deferred_fetch_record_id) => {
                 global
+                    .fetch_group()
                     .deferred_fetch_record_for_id(deferred_fetch_record_id)
                     .abort();
             },
             AbortAlgorithm::DomEventListener(removable_listener) => {
                 removable_listener.event_target.remove_event_listener(
                     removable_listener.ty.clone(),
-                    &removable_listener.listener,
+                    removable_listener.listener.as_deref(),
                     &removable_listener.options,
                 );
             },
@@ -384,7 +385,7 @@ impl AbortSignalMethods<crate::DomTypeHolder> for AbortSignal {
 
         // Step 3. Run steps after a timeout given global, "AbortSignal-timeout", milliseconds, and the following step:
         global.run_steps_after_a_timeout(
-            DOMString::from("AbortSignal-timeout"),
+            DOMString::from_static("AbortSignal-timeout"),
             ms_i64,
             move |_cx, global| {
                 let task_source = global.task_manager().timer_task_source().to_sendable();

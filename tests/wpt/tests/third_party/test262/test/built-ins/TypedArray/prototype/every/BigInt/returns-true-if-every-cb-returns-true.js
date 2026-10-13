@@ -20,7 +20,7 @@ includes: [testTypedArray.js]
 features: [BigInt, Symbol, TypedArray]
 ---*/
 
-testWithBigIntTypedArrayConstructors(function(TA) {
+testWithBigIntTypedArrayConstructors(function(TA, makeCtorArg) {
   var called = 0;
   var values = [
     true,
@@ -35,7 +35,7 @@ testWithBigIntTypedArrayConstructors(function(TA) {
     0.1,
     -0.1
   ];
-  var sample = new TA(values.length);
+  var sample = new TA(makeCtorArg(values.length));
   var result = sample.every(function() {
     called++;
     return values.unshift();
@@ -43,4 +43,4 @@ testWithBigIntTypedArrayConstructors(function(TA) {
 
   assert.sameValue(called, sample.length, "callbackfn called for each index");
   assert.sameValue(result, true, "return is true");
-}, null, ["passthrough"]);
+});

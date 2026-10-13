@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<head>
+<title>Test OfflineAudioContext incremental rendering data integrity</title>
+</head>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+"use strict";
+
+const SAMPLE_RATE = 44100;
+const TOTAL_FRAMES = 2048;
+const NUM_CHANNELS = 2;
+const CHUNK_SIZE = 410;
+
+function setupContext() {
+  const context = new OfflineAudioContext({
+    numberOfChannels: NUM_CHANNELS,
+    sampleRate: SAMPLE_RATE,
+    length: TOTAL_FRAMES,
+  });
+  const oscillator = new OscillatorNode(context);
+  oscillator.connect(context.destination);
+  oscillator.start(0);
+  return context;
+}
+
+promise_test(async () => {
+  const oneshotContext = setupContext();
+  const oneshotBuffer = await oneshotContext.startRendering();
+
+  const incrementalContext = setupContext();
+  const chunkBuffers = [];
+  while (incrementalContext.state !== 'closed') {
+    const buffer = await incrementalContext.startRendering(CHUNK_SIZE);
+    chunkBuffers.push(buffer);
+  }
+
+  const totalIncrementalFrames = chunkBuffers.reduce(
+      (sum, buffer) => sum + buffer.length, 0);
+  assert_equals(totalIncrementalFrames, TOTAL_FRAMES,
+      'Total incremental frames should equal the context length');
+  assert_equals(totalIncrementalFrames, oneshotBuffer.length,
+      'Total incremental frames should equal one-shot buffer length');
+
+  for (let channel = 0; channel < NUM_CHANNELS; channel++) {
+    const oneshotData = oneshotBuffer.getChannelData(channel);
+    const incrementalData = new Float32Array(TOTAL_FRAMES);
+    let offset = 0;
+    for (const chunk of chunkBuffers) {
+      incrementalData.set(chunk.getChannelData(channel), offset);
+      offset += chunk.length;
+    }
+
+    assert_array_equals(
+        incrementalData, oneshotData,
+        `Channel ${channel} data should match one-shot rendering`);
+  }
+}, 'Incremental rendering produces identical data to one-shot rendering');
+
+</script>
+</html>

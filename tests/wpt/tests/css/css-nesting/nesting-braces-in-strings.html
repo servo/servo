@@ -1,0 +1,122 @@
+<!doctype html>
+<title>Nested rules with brace characters inside string values</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://drafts.csswg.org/css-nesting-1/">
+<script>
+"use strict";
+
+function getParentRule(t, cssText) {
+  const style = document.createElement("style");
+  style.textContent = cssText;
+  document.head.append(style);
+  t.add_cleanup(() => {
+    style.remove();
+  });
+  return style.sheet.cssRules[0];
+}
+
+// } inside a string, no trailing declarations in parent
+test(t => {
+  const parent = getParentRule(
+    t,
+    ".parent { div:hover { content: \"}\"; background-color: red } }"
+  );
+  assert_true(parent.cssRules.length >= 1, "Should have at least one nested rule");
+  assert_equals(
+    parent.cssRules[0].style.getPropertyValue("background-color"),
+    "red",
+    "Closing brace inside string should not truncate the rule block"
+  );
+}, "Nested rule with } in string value preserves declarations");
+
+// } inside a string, with trailing declarations in parent
+test(t => {
+  const parent = getParentRule(
+    t,
+    ".parent { div:hover { content: \"}\"; background-color: red } --x: 1 }"
+  );
+  assert_true(parent.cssRules.length >= 1, "Should have at least one nested rule");
+  assert_equals(
+    parent.cssRules[0].style.getPropertyValue("background-color"),
+    "red",
+    "Closing brace inside string should not truncate the rule block"
+  );
+}, "Nested rule with } in string followed by more declarations in parent");
+
+// { inside a string, no trailing declarations in parent
+test(t => {
+  const parent = getParentRule(
+    t,
+    ".parent { div:hover { content: \"{\"; color: green } }"
+  );
+  assert_true(parent.cssRules.length >= 1, "Should have at least one nested rule");
+  assert_equals(
+    parent.cssRules[0].style.getPropertyValue("color"),
+    "green",
+    "Opening brace inside string should not affect block parsing"
+  );
+}, "Nested rule with { in string value preserves declarations");
+
+// { inside a string, with trailing declarations in parent
+test(t => {
+  const parent = getParentRule(
+    t,
+    ".parent { div:hover { content: \"{\"; color: green } --x: 1 }"
+  );
+  assert_true(parent.cssRules.length >= 1, "Should have at least one nested rule");
+  assert_equals(
+    parent.cssRules[0].style.getPropertyValue("color"),
+    "green",
+    "Opening brace inside string should not affect block parsing"
+  );
+}, "Nested rule with { in string followed by more declarations in parent");
+
+// Both { and } inside a string
+test(t => {
+  const parent = getParentRule(
+    t,
+    ".parent { div:hover { content: \"{}\"; color: green } }"
+  );
+  assert_true(parent.cssRules.length >= 1, "Should have at least one nested rule");
+  assert_equals(
+    parent.cssRules[0].style.getPropertyValue("color"),
+    "green",
+    "Braces inside string should not affect block parsing"
+  );
+}, "Nested rule with {} pair in string value preserves declarations");
+
+// Multiple declarations after the string with }
+test(t => {
+  const parent = getParentRule(
+    t,
+    ".parent { div:hover { content: \"}\"; color: green; background-color: red } }"
+  );
+  assert_true(parent.cssRules.length >= 1, "Should have at least one nested rule");
+  assert_equals(parent.cssRules[0].style.getPropertyValue("color"), "green");
+  assert_equals(parent.cssRules[0].style.getPropertyValue("background-color"), "red");
+}, "Multiple declarations after string containing } are all preserved");
+
+// } in string with trailing declarations parsed as remaining
+test(t => {
+  const parent = getParentRule(
+    t,
+    ".parent { div:hover { content: \"}\"; color: green } --y: 2; --z: 3 }"
+  );
+  assert_true(parent.cssRules.length >= 1, "Should have at least one nested rule");
+  assert_equals(parent.cssRules[0].style.getPropertyValue("color"), "green");
+}, "Nested rule with } in string: trailing custom properties do not corrupt the rule");
+
+// Nested rule is the only child (no preceding declarations on parent)
+test(t => {
+  const parent = getParentRule(
+    t,
+    ".parent { span:first-child { content: \"}\"; color: green } }"
+  );
+  assert_true(parent.cssRules.length >= 1, "Should have at least one nested rule");
+  assert_equals(
+    parent.cssRules[0].style.getPropertyValue("color"),
+    "green"
+  );
+}, "Nested rule with } in string as only child of parent rule");
+</script>

@@ -1,0 +1,145 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use std::cell::Ref;
+
+use html5ever::{LocalName, QualName, ns};
+use js::context::JSContext;
+
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::{
+    ShadowRootMode, SlotAssignmentMode,
+};
+use crate::dom::bindings::conversions::DerivedFrom;
+use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::DomRoot;
+use crate::dom::document::Document;
+use crate::dom::element::element::Element;
+use crate::dom::element::{CustomElementCreationMode, ElementCreator};
+use crate::dom::node::{Node, NodeTraits};
+use crate::dom::shadowroot::shadowroot::{IsUserAgentWidget, ShadowRoot};
+
+pub(crate) trait UAShadowRoot<ShadowTree> {
+    fn store_for_shadow_tree(&self, cx: &mut JSContext, shadow_root: DomRoot<ShadowRoot>);
+
+    fn borrow_for_shadow_tree(&self) -> Ref<'_, Option<ShadowTree>>;
+
+    fn ensure_shadow_tree(&self, cx: &mut JSContext, element: &Element) -> Ref<'_, ShadowTree> {
+        if self.borrow_for_shadow_tree().is_none() {
+            self.create_shadow_tree(cx, element);
+        }
+
+        Ref::filter_map(self.borrow_for_shadow_tree(), Option::as_ref)
+            .ok()
+            .expect("UA shadow tree was not created")
+    }
+
+    /// TODO: Remove this method and fix the media element controls to properly be clickable
+    fn should_mark_as_ua_widget(&self) -> bool {
+        true
+    }
+}
+
+pub(crate) trait CreateUAShadowRootForSelf<ShadowTree>:
+    NodeTraits + DerivedFrom<Node>
+{
+    fn create_element_in_ua_shadowroot(
+        &self,
+        cx: &mut JSContext,
+        local_name: LocalName,
+    ) -> DomRoot<Element> {
+        let document = self.owner_document();
+        Element::create(
+            cx,
+            QualName::new(None, ns!(html), local_name),
+            None,
+            &document,
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
+            None,
+        )
+    }
+
+    fn shadow_tree(&self, cx: &mut JSContext) -> Ref<'_, ShadowTree>;
+}
+
+impl<ShadowTree, E: UAShadowRoot<ShadowTree> + Castable + DerivedFrom<Element> + DerivedFrom<Node>>
+    CreateUAShadowRootForSelf<ShadowTree> for E
+{
+    fn shadow_tree(&self, cx: &mut JSContext) -> Ref<'_, ShadowTree> {
+        self.ensure_shadow_tree(cx, self.upcast())
+    }
+}
+
+pub(crate) trait SpecificShadowTree<ElementType, ShadowTreeHolder> {
+    fn update(&self, cx: &mut JSContext, holder: &ShadowTreeHolder, element: &ElementType);
+
+    fn create_element_in_ua_shadowroot(
+        cx: &mut JSContext,
+        document: &Document,
+        local_name: LocalName,
+    ) -> DomRoot<Element> {
+        Element::create(
+            cx,
+            QualName::new(None, ns!(html), local_name),
+            None,
+            document,
+            ElementCreator::ScriptCreated,
+            CustomElementCreationMode::Asynchronous,
+            None,
+        )
+    }
+}
+
+trait UAShadowRootHelpers<ShadowTree>: UAShadowRoot<ShadowTree> {
+    fn attach_ua_shadow_root(&self, cx: &mut JSContext, element: &Element) -> DomRoot<ShadowRoot>;
+    fn create_shadow_tree(&self, cx: &mut JSContext, element: &Element);
+}
+
+impl<T: ?Sized + UAShadowRoot<ShadowTree>, ShadowTree> UAShadowRootHelpers<ShadowTree> for T {
+    /// Attach a UA widget shadow root with its default parameters.
+    /// Additionally mark ShadowRoot to use styling configuration for a UA widget.
+    ///
+    /// The general trait of these elements is that it would hide the implementation.
+    /// Thus, we would make it inaccessible (i.e., closed mode, not cloneable, and
+    /// not serializable).
+    ///
+    /// With UA shadow root element being assumed as one element, any focus should
+    /// be delegated to its host.
+    ///
+    // TODO: Ideally, all of the UA shadow root should use UA widget styling, but
+    //       some of the UA widget implemented prior to the implementation of Gecko's
+    //       UA widget matching might need some tweaking.
+    // FIXME: We are yet to implement more complex focusing with that is necessary
+    //        for delegate focus, and we are using workarounds for that right now.
+    fn attach_ua_shadow_root(&self, cx: &mut JSContext, element: &Element) -> DomRoot<ShadowRoot> {
+        let root = element
+            .attach_shadow(
+                cx,
+                IsUserAgentWidget::Yes,
+                ShadowRootMode::Closed,
+                false,
+                false,
+                false,
+                SlotAssignmentMode::Manual,
+            )
+            .expect("Attaching UA shadow root failed");
+
+        if self.should_mark_as_ua_widget() {
+            root.upcast::<Node>().mark_in_ua_widget();
+        }
+        root
+    }
+
+    fn create_shadow_tree(&self, cx: &mut JSContext, element: &Element) {
+        let root = element
+            .shadow_root()
+            .unwrap_or_else(|| self.attach_ua_shadow_root(cx, element));
+
+        self.store_for_shadow_tree(cx, root);
+
+        element
+            .upcast::<Node>()
+            .dirty(cx.no_gc(), crate::dom::node::NodeDamage::Other);
+    }
+}

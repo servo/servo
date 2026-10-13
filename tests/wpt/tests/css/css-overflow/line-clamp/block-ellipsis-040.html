@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: Room for block-ellipsis not by clearance</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#block-ellipsis">
+<link rel="match" href="/css/reference/ref-filled-green-100px-square.xht">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<meta name="assert" content="The ua must not make room for the block ellipsis by means other than displacing content at the end of the line. Moving the line down to clear a float is not OK.">
+<style>
+.test {
+    font-family: Ahem;
+    line-height: 1;
+    font-size: 25px;
+    background: green;
+    color: transparent;
+    width: 4ch;
+    min-height: 4ch;
+    line-clamp: 3;
+}
+aside {
+    float: left;
+    width: 3ch;
+}
+.red { color: red; }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.
+
+<div class=test>
+    <aside>ABC ABC ABC</aside>
+    1
+    2
+    <span class=red>3</span>
+    <span class=red>4</span>
+    <span class=red>5</span>
+</div>
+

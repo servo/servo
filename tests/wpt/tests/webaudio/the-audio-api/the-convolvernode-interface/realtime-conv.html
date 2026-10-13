@@ -24,13 +24,13 @@
       // this value significantly. See: https://crbug.com/1339291
       const minRequiredSNR = 68.40;
 
-      // To test the real‑time convolver, we convolve two square pulses
+      // To test the real-time convolver, we convolve two square pulses
       // together to produce a triangular pulse. To verify the result
       // is correct we compare it against a ConstantSourceNode
       // configured to generate the expected ramp.
       promise_test(t => new Promise(resolve => {
-        // Use a power of two for the sample‑rate to eliminate
-        // round‑off in computing times from frames.
+        // Use a power of two for the sample-rate to eliminate
+        // round-off in computing times from frames.
         const context = new AudioContext({sampleRate: 16384});
 
         // Square pulse for the ConvolverNode impulse response.
@@ -84,7 +84,7 @@
         const spn = context.createScriptProcessor(0, 2, 1);
         spn.onaudioprocess = event => {
           // Sum the values on the first channel when the second channel is
-          // not zero.  When the second channel goes from non‑zero to 0,
+          // not zero.  When the second channel goes from non-zero to 0,
           // dump the value out and terminate the test.
           const c0 = event.inputBuffer.getChannelData(0);
           const c1 = event.inputBuffer.getChannelData(1);
@@ -103,7 +103,7 @@
                 context.close().then(resolve);
               }
             } else {
-              // Signal is non‑zero so sum up the values.
+              // Signal is non-zero so sum up the values.
               doSum = true;
               errorSum += c0[k];
               signalSum += c1[k] * c1[k];
@@ -138,7 +138,7 @@
         // Start the ramps!
         srcRamp.start();
         srcSquare.start();
-      }), 'Test convolver with real‑time context');
+      }), 'Test convolver with real-time context');
     </script>
   </body>
 </html>

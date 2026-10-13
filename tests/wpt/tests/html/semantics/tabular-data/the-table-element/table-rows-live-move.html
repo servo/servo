@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>HTMLCollection (table.rows) liveness after moving rows</title>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/742 -->
+
+<table id="testTable">
+  <tbody>
+    <tr><td>Cell 1</td></tr>
+    <tr><td>Cell 2</td></tr>
+  </tbody>
+</table>
+
+<script>
+"use strict";
+
+test(() => {
+  const table = document.getElementById("testTable");
+  const tbody = table.tBodies[0];
+  const { rows } = table;
+
+  assert_equals(rows[0].cells[0].textContent, "Cell 1");
+
+  const row1 = rows[0];
+  tbody.removeChild(row1);
+  tbody.appendChild(row1);
+
+  assert_equals(rows[0].cells[0].textContent, "Cell 2");
+
+  const len = rows.length;
+  assert_equals(len, 2);
+
+  assert_equals(rows[0].cells[0].textContent, "Cell 2");
+
+}, "table.rows should reflect row moves immediately");
+
+</script>

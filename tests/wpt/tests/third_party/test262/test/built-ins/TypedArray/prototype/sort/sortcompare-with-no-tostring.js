@@ -28,4 +28,4 @@ testWithTypedArrayConstructors(function(TA, makeCtorArg) {
   var result = sample.sort();
   assert.sameValue(toStringCalled, false, "Number.prototype.toString will not be called");
   assert(compareArray(result, [3, 20, 100]), "Default sorting by value");
-});
+}, null, null, ["immutable"]);

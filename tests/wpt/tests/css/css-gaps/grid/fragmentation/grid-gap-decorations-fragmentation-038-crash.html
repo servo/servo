@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<title>
+  CSS Gap Decorations: a block-fragmented grid with an extremely large row gap
+  should not crash.
+</title>
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://issues.chromium.org/issues/542066231">
+<ins><style>
+body { columns: 0px; }
+.grid-container { display: grid; row-gap: 1.05e+10px; padding: 260px 260px 100px; line-height: 3.40282e+38px; height: 260px; }
+</style>
+<div class="grid-container">
+  <div><b>A</div>

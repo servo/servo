@@ -8,6 +8,7 @@
 <body>
 <div id="tag"></div>
 <div id="elem" style="color-scheme: bar/*comment*/var(--foo)"></div>
+<div id="customEscaped" style="--a\,fail: pass; --unparsed:var(--a\,fail)"></div>
 <script>
 'use strict';
 
@@ -47,5 +48,12 @@ test(() => {
       elem.attributeStyleMap.get("color-scheme").toString(),
       'bar/**/var(--foo)');
 }, 'attributeStyleMap round-trips correctly, though the comment is gone');
+
+test(() => {
+  let specified = customEscaped.attributeStyleMap.get("--unparsed");
+  assert_equals(getComputedStyle(customEscaped).getPropertyValue("--unparsed"), "pass");
+  customEscaped.style.setProperty("--unparsed", specified.toString());
+  assert_equals(getComputedStyle(customEscaped).getPropertyValue("--unparsed"), "pass");
+}, 'String serialization of CSSUnparsedValue should roundtrip');
 
 </script>

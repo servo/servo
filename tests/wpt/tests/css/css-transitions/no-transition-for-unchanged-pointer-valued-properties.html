@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Transitions: no transition when a restyle leaves these values unchanged</title>
+<link rel="help" href="https://drafts.csswg.org/css-transitions-1/#starting">
+<link rel="help" href="https://crbug.com/558028324">
+<meta name="assert" content="A restyle that changes no computed value starts no transition.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #target {
+    transition: 100s allow-discrete;
+    transition-property: scrollbar-color, quotes, list-style-type,
+                         font-feature-settings, font-variant-alternates;
+    scrollbar-color: red blue;
+    quotes: "<" ">";
+    list-style-type: square;
+    font-feature-settings: "liga" 0;
+    font-variant-alternates: historical-forms;
+  }
+</style>
+<div id="target">x</div>
+<script>
+test(() => {
+  const target = document.getElementById('target');
+  assert_array_equals(target.getAnimations(), []);
+
+  target.style = '--unused: 1';
+  getComputedStyle(target).scrollbarColor;
+  assert_array_equals(target.getAnimations(), []);
+}, 'Restyling without changing computed values starts no transitions');
+</script>

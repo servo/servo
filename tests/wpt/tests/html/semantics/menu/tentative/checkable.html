@@ -377,4 +377,146 @@ test(() => {
       ":default matches again, following the default checkedness, even " +
       "though the checkedness is dirty");
 }, "Default checkedness and checkedness dirtying are wired up correctly");
+
+promise_test(async (t) => {
+  const menulist = document.createElement('menulist');
+  document.body.appendChild(menulist);
+  const fieldset = menulist.appendChild(document.createElement('fieldset'));
+  fieldset.setAttribute('checkable', 'single');
+  const item1 = fieldset.appendChild(document.createElement('menuitem'));
+  const item2 = fieldset.appendChild(document.createElement('menuitem'));
+
+  // 1. Verify that setting checked via IDL attribute does not fire checked
+  // event.
+  let item1CheckedEvents = 0;
+  item1.addEventListener('checked', () => {
+    item1CheckedEvents++;
+  });
+  item1.checked = true;
+  assert_equals(item1CheckedEvents, 0,
+      "setting .checked to true via IDL should not fire checked event");
+  item1.checked = false;
+  assert_equals(item1CheckedEvents, 0,
+      "setting .checked to false via IDL should not fire checked event");
+
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+  assert_equals(item1CheckedEvents, 0,
+      "no checked event should be queued when setting .checked via IDL");
+
+  // 2. Verify that activation (click) queues a checked event on checkable menuitem.
+  let eventReceived = null;
+  const item1EventPromise = new Promise(resolve => {
+    item1.addEventListener('checked', (e) => {
+      eventReceived = e;
+      resolve();
+    }, { once: true });
+  });
+
+  item1.click();
+  // Checked event should be queued asynchronously on user interaction task source,
+  // so it does not fire synchronously during click().
+  assert_equals(eventReceived, null,
+      "checked event should not fire synchronously during click()");
+  assert_true(item1.checked,
+      "item should be checked synchronously after activation");
+
+  await item1EventPromise;
+  assert_not_equals(eventReceived, null,
+      "checked event should fire asynchronously after activation");
+  assert_equals(eventReceived.type, "checked",
+      "event type should be 'checked'");
+  assert_false(eventReceived.bubbles, "checked event should not bubble");
+  assert_false(eventReceived.cancelable, "checked event should not be cancelable");
+  assert_true(item1.checked,
+      "item should be checked after checked event fires");
+  assert_true(item1.matches(':checked'),
+      "item should match :checked after checked event fires");
+
+  // 3. Verify event timing with exclusivity update, and exclusivity update does not fire checked event.
+  let item2EventReceived = false;
+  let item1EventsDuringItem2Click = 0;
+
+  item1.addEventListener('checked', () => {
+    item1EventsDuringItem2Click++;
+  });
+  const item2EventPromise = new Promise(resolve => {
+    item2.addEventListener('checked', () => {
+      item2EventReceived = true;
+      resolve();
+    }, { once: true });
+  });
+
+  item2.click();
+  assert_false(item2EventReceived,
+      "item2 checked event should not fire synchronously");
+  assert_true(item2.checked,
+      "item2 should be checked synchronously after click");
+  assert_false(item1.checked,
+      "item1 should be unchecked synchronously after click due to exclusivity");
+
+  await item2EventPromise;
+  assert_true(item2EventReceived,
+      "checked event should fire on item2 activation");
+  assert_true(item2.checked,
+      "item2 should be checked after item2's checked event");
+  assert_false(item1.checked,
+      "item1 should be unchecked after item2's checked event");
+  assert_equals(item1EventsDuringItem2Click, 0,
+      "unchecking item1 due to exclusivity should not fire checked event on item1");
+
+  menulist.remove();
+}, "checked event fires asynchronously on checkable menuitem activation, but not from IDL attribute setter or exclusivity updates");
+
+promise_test(async () => {
+  const menulist = document.createElement('menulist');
+  document.body.appendChild(menulist);
+  const fieldset = menulist.appendChild(document.createElement('fieldset'));
+  fieldset.setAttribute('checkable', 'multiple');
+  const item = fieldset.appendChild(document.createElement('menuitem'));
+
+  item.checked = true;
+
+  let eventFired = false;
+  const eventPromise = new Promise(resolve => {
+    item.addEventListener('checked', () => {
+      eventFired = true;
+      resolve();
+    }, { once: true });
+  });
+
+  item.click();
+  assert_false(eventFired,
+      "checked event should not fire synchronously on uncheck");
+  assert_false(item.checked,
+      "item should be unchecked synchronously after click");
+
+  await eventPromise;
+  assert_true(eventFired,
+      "checked event should fire asynchronously when toggling from checked to unchecked");
+  assert_false(item.checked,
+      "item should be unchecked after event promise resolves");
+
+  menulist.remove();
+}, "checked event fires asynchronously when toggling a checkable menuitem to unchecked");
+
+promise_test(async (t) => {
+  const menulist = document.createElement('menulist');
+  document.body.appendChild(menulist);
+  const item = menulist.appendChild(document.createElement('menuitem'));
+
+  let eventFired = false;
+  item.addEventListener('checked', () => {
+    eventFired = true;
+  });
+
+  item.click();
+  assert_false(eventFired,
+      "checked event should not fire synchronously on non-checkable menuitem activation");
+
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+  assert_false(eventFired,
+      "checked event should not fire asynchronously on non-checkable menuitem activation");
+
+  menulist.remove();
+}, "checked event does not fire on non-checkable menuitem activation");
 </script>

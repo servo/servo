@@ -1,16 +1,18 @@
 <!DOCTYPE html>
+<html class="reftest-wait">
 <title>Test print result of background-image not displayed on screen</title>
 
 <link rel="help" href="https://drafts.csswg.org/css-backgrounds/#background-image">
 <link rel="help" href="https://crbug.com/40262871">
 
 <link rel="match" href="background-image-only-for-print-ref.html">
+<script src="/common/reftest-wait.js"></script>
 
 <!--
-  Preload the image while in screen media so it is ready when we switch
-  to print media for the reftest snapshot.
+  Wait for the preloaded image before taking the reftest snapshot, since the
+  image is otherwise only referenced via CSS background-image.
 -->
-<link rel="preload" as="image" href="/images/green.png">
+<link rel="preload" as="image" href="/images/green.png" onload="takeScreenshot()">
 
 <style>
   @media not print {

@@ -31,6 +31,24 @@
 <object name=test10a></object>
 
 <object name=test11a id=test11b></object>
+
+<div id=nested1>
+  <object name=test12>
+    <object name=test12></object>
+  </object>
+</div>
+
+<div id=nested2>
+  <object id=test13>
+    <object id=test13></object>
+  </object>
+</div>
+
+<div id=nested3>
+  <object name=test14>
+    <embed name=test14>
+  </object>
+</div>
 </div>
 <script>
 test(function() {
@@ -209,4 +227,37 @@ test(function() {
   assert_equals(document["test11b"], undefined);
   assert_equals(document.test11b, undefined);
 }, "object elements that is removed, should not be accessible.");
+
+test(function() {
+  var objects = document.querySelectorAll("#nested1 object");
+  assert_equals(objects.length, 2);
+  assert_equals(objects[1].parentNode, objects[0]);
+
+  assert_true("test12" in document, '"test12" in document should be true');
+  var collection = document.test12;
+  assert_class_string(collection, "HTMLCollection", "collection should be an HTMLCollection");
+  assert_array_equals(collection, [objects[0], objects[1]]);
+}, "If an object is nested inside an object with the same name, a collection should be returned. (name)");
+
+test(function() {
+  var objects = document.querySelectorAll("#nested2 object");
+  assert_equals(objects.length, 2);
+  assert_equals(objects[1].parentNode, objects[0]);
+
+  assert_true("test13" in document, '"test13" in document should be true');
+  var collection = document.test13;
+  assert_class_string(collection, "HTMLCollection", "collection should be an HTMLCollection");
+  assert_array_equals(collection, [objects[0], objects[1]]);
+}, "If an object is nested inside an object with the same id, a collection should be returned. (id)");
+
+test(function() {
+  var object = document.querySelector("#nested3 object");
+  var embed = document.querySelector("#nested3 embed");
+  assert_equals(embed.parentNode, object);
+
+  assert_true("test14" in document, '"test14" in document should be true');
+  var collection = document.test14;
+  assert_class_string(collection, "HTMLCollection", "collection should be an HTMLCollection");
+  assert_array_equals(collection, [object, embed]);
+}, "If an embed is nested inside an object with the same name, a collection should be returned. (name)");
 </script>

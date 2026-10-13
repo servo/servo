@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras"
+      href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#repeat-auto-fit">
+<style>
+  body { margin: 0; }
+  .stage {
+    position: relative;
+    width: 70px;
+    height: 490px;
+  }
+  .lanes {
+    display: grid-lanes;
+    grid-lanes-direction: row;
+    grid-template-rows: repeat(auto-fit, 40px);
+    gap: 10px;
+    width: max-content;
+    height: 490px;
+    background: #cdd5e0;
+  }
+  .lanes > div {
+    width: 30px;
+    background: #5b8def;
+  }
+  .t1 { grid-row: 1; }
+  .t4 { grid-row: 4; }
+  .t5 { grid-row: 5; }
+  .t8 { grid-row: 8; }
+  .t9 { grid-row: 9; }
+  .t10 { grid-row: 10; }
+  .col-rule {
+    position: absolute;
+    left: 33px;
+    width: 0;
+    height: 40px;
+    border-left: 4px solid gold;
+  }
+  .row-rule {
+    position: absolute;
+    left: 0;
+    width: 70px;
+    height: 0;
+    border-top-width: 4px;
+    border-top-style: solid;
+  }
+</style>
+<div class="stage">
+  <div class="lanes">
+    <div class="t1"></div>
+    <div class="t1"></div>
+    <div class="t4"></div>
+    <div class="t4"></div>
+    <div class="t5"></div>
+    <div class="t5"></div>
+    <div class="t8"></div>
+    <div class="t8"></div>
+    <div class="t9"></div>
+    <div class="t9"></div>
+    <div class="t10"></div>
+    <div class="t10"></div>
+  </div>
+  <div class="col-rule" style="top: 0;"></div>
+  <div class="col-rule" style="top: 50px;"></div>
+  <div class="col-rule" style="top: 100px;"></div>
+  <div class="col-rule" style="top: 150px;"></div>
+  <div class="col-rule" style="top: 200px;"></div>
+  <div class="col-rule" style="top: 250px;"></div>
+  <div class="row-rule"
+       style="top: 43px; border-top-color: blue;"></div>
+  <div class="row-rule"
+       style="top: 93px; border-top-color: purple;"></div>
+  <div class="row-rule"
+       style="top: 143px; border-top-color: blue;"></div>
+  <div class="row-rule"
+       style="top: 193px; border-top-color: purple;"></div>
+  <div class="row-rule"
+       style="top: 243px; border-top-color: blue;"></div>
+</div>

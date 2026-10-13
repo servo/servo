@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-item-sizing">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#auto-margins">
+<link rel="help" href="https://drafts.csswg.org/css-align-3/#align-grid">
+<meta name="assert" content="Changing a stretched grid item's height or width to a fixed length, or its margins to 'auto', stops it stretching in that axis, and the reverse changes make it stretch again, with both fixed and content-sized tracks.">
+<link rel="stylesheet" href="/css/support/width-keyword-classes.css">
+<link rel="stylesheet" href="/css/support/grid.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<style>
+.grid {
+    position: relative;
+}
+.content {
+    width: 200px;
+    height: 200px;
+}
+#fromFixedWidth { width: 150px; }
+#fromFixedHeight { height: 100px; }
+#fromMarginAuto { margin: auto; }
+</style>
+<p>The grids below had initially 'stretched' items, but we have changed 'height', 'width' and 'margin' to values which don't allow stretch. This test verifies that the items are no longer stretched after such changes, and that items whose 'height', 'width' or 'margin' changed back to 'auto' or '0' are stretched again.</p>
+<div class="grid fit-content" style="grid-template: 200px 200px / 200px 200px;">
+    <div id="toFixedHeight" class="firstRowFirstColumn" data-expected-width="200" data-expected-height="100"></div>
+    <div class="firstRowSecondColumn" data-expected-width="200" data-expected-height="200"></div>
+    <div class="secondRowFirstColumn" data-expected-width="200" data-expected-height="200"></div>
+    <div id="fromFixedHeight" class="secondRowSecondColumn" data-expected-width="200" data-expected-height="200"></div>
+</div>
+<div class="grid fit-content" style="grid-template: 200px 200px / 200px 200px;">
+    <div id="toFixedWidth" class="firstRowFirstColumn" data-expected-width="150" data-expected-height="200"></div>
+    <div class="firstRowSecondColumn" data-expected-width="200" data-expected-height="200"></div>
+    <div class="secondRowFirstColumn" data-expected-width="200" data-expected-height="200"></div>
+    <div id="fromFixedWidth" class="secondRowSecondColumn" data-expected-width="200" data-expected-height="200"></div>
+</div>
+<div class="grid fit-content" style="grid-template: 200px 200px / 200px 200px;">
+    <div id="toMarginAuto" class="firstRowFirstColumn" data-expected-width="150" data-expected-height="100">
+        <div style="width: 150px; height: 100px"></div>
+    </div>
+    <div class="firstRowSecondColumn" data-expected-width="200" data-expected-height="200"></div>
+    <div class="secondRowFirstColumn" data-expected-width="200" data-expected-height="200"></div>
+    <div id="fromMarginAuto" class="secondRowSecondColumn" data-expected-width="200" data-expected-height="200">
+        <div style="width: 150px; height: 100px"></div>
+    </div>
+</div>
+<div class="grid fit-content">
+    <div id="contentSized-toFixedHeight" class="firstRowFirstColumn" data-expected-width="200" data-expected-height="100"></div>
+    <div class="firstRowSecondColumn" data-expected-width="200" data-expected-height="200"><div class="content"></div></div>
+    <div class="secondRowFirstColumn" data-expected-width="200" data-expected-height="200"><div class="content"></div></div>
+    <div id="contentSized-fromFixedHeight" class="secondRowSecondColumn" data-expected-width="200" data-expected-height="200"></div>
+</div>
+<div class="grid fit-content">
+    <div id="contentSized-toFixedWidth" class="firstRowFirstColumn" data-expected-width="150" data-expected-height="200"></div>
+    <div class="firstRowSecondColumn" data-expected-width="200" data-expected-height="200"><div class="content"></div></div>
+    <div class="secondRowFirstColumn" data-expected-width="200" data-expected-height="200"><div class="content"></div></div>
+    <div id="contentSized-fromFixedWidth" class="secondRowSecondColumn" data-expected-width="200" data-expected-height="200"></div>
+</div>
+<div class="grid fit-content">
+    <div id="contentSized-toMarginAuto" class="firstRowFirstColumn" data-expected-width="150" data-expected-height="100">
+        <div style="width: 150px; height: 100px"></div>
+    </div>
+    <div class="firstRowSecondColumn" data-expected-width="200" data-expected-height="200"><div class="content"></div></div>
+    <div class="secondRowFirstColumn" data-expected-width="200" data-expected-height="200"><div class="content"></div></div>
+    <div id="contentSized-fromMarginAuto" class="secondRowSecondColumn" data-expected-width="200" data-expected-height="200">
+        <div style="width: 150px; height: 100px"></div>
+    </div>
+</div>
+<script>
+document.body.offsetLeft;
+document.getElementById("fromFixedHeight").style.height = "auto";
+document.getElementById("toFixedHeight").style.height = "100px";
+document.getElementById("fromFixedWidth").style.width = "auto";
+document.getElementById("toFixedWidth").style.width = "150px";
+document.getElementById("fromMarginAuto").style.margin = "0";
+document.getElementById("toMarginAuto").style.margin = "auto";
+document.getElementById("contentSized-fromFixedHeight").style.height = "auto";
+document.getElementById("contentSized-toFixedHeight").style.height = "100px";
+document.getElementById("contentSized-fromFixedWidth").style.width = "auto";
+document.getElementById("contentSized-toFixedWidth").style.width = "150px";
+document.getElementById("contentSized-fromMarginAuto").style.margin = "0";
+document.getElementById("contentSized-toMarginAuto").style.margin = "auto";
+checkLayout(".grid");
+</script>

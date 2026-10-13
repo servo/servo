@@ -7,7 +7,7 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
-use script_bindings::reflector::reflect_dom_object_with_proto_and_cx;
+use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
@@ -43,7 +43,7 @@ impl MediaQueryListEvent {
             media,
             matches: Cell::new(matches),
         });
-        reflect_dom_object_with_proto_and_cx(ev, global, proto, cx)
+        reflect_dom_object_with_proto(cx, ev, global, proto)
     }
 
     pub(crate) fn new(

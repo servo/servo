@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#track-sizing">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-content">
+<meta name="assert" content="An 'auto' column track is sized from the min-content and max-content contributions of its grid item, and grows up to the available width.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<link rel="stylesheet" href="/css/support/alignment.css">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.gridAutoContent {
+    grid-template-columns: auto;
+    grid-template-rows: 50px;
+}
+
+.firstRowFirstColumn {
+    font: 10px/1 Ahem;
+    /* Make us fit our grid area. */
+    width: 100%;
+    height: 100%;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="document.fonts.ready.then(() => { checkLayout('.gridAutoContent'); })">
+
+<p>Test that resolving auto tracks on grid items works properly.</p>
+
+<div class="constrainedContainer">
+    <div class="grid gridAutoContent justifyContentStart">
+        <div class="firstRowFirstColumn" data-expected-width="30" data-expected-height="50">XXX XXX XXX</div>
+    </div>
+</div>
+
+<!-- Allow the extra logical space distribution to occur. -->
+<div style="width: 40px; height: 10px">
+    <div class="grid gridAutoContent justifyContentStart">
+        <div class="firstRowFirstColumn" data-expected-width="40" data-expected-height="50">XX XX XX XX XX XX</div>
+    </div>
+</div>
+
+<div style="width: 100px; height: 10px;">
+    <div class="grid gridAutoContent justifyContentStart">
+        <div class="firstRowFirstColumn" data-expected-width="50" data-expected-height="50">XXXXX</div>
+    </div>
+</div>
+
+</body>

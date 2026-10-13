@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>MathML a element target attribute navigation and base element fallback</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/links.html#get-an-element's-target">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<base target="frame_base_target">
+
+<iframe name="frame_base_target" id="frame_base_target"></iframe>
+
+<math>
+  <!-- Link with target="" (empty string); Empty target falls back to <base target> -->
+  <a id="link_empty_target" href="/common/blank.html?target=empty_fallback" target="">
+    <mtext>Link Empty Target</mtext>
+  </a>
+</math>
+
+<script>
+  function waitForFrameLoad(iframe) {
+    return new Promise(resolve => {
+      function checkAndResolve() {
+        const currentUrl = iframe.contentWindow.location.href;
+        if (currentUrl && currentUrl !== "about:blank") {
+          iframe.removeEventListener('load', checkAndResolve);
+          resolve(currentUrl);
+        }
+      }
+      iframe.addEventListener('load', checkAndResolve);
+    });
+  }
+
+  // Target attribute set to empty string ("") falls back to <base target> in engines
+  promise_test(async () => {
+    const frameBase = document.getElementById("frame_base_target");
+    const link = document.getElementById("link_empty_target");
+
+    const navigationLoaded = waitForFrameLoad(frameBase);
+
+    await test_driver.click(link);
+
+    const url = await navigationLoaded;
+    assert_true(
+      url.includes("target=empty_fallback"),
+      "Link with target='' falls back to <base target> when <base> is present"
+    );
+
+  }, "MathML <a> with target='' falls back to <base target>");
+</script>

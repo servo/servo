@@ -55,8 +55,7 @@
             const trusted_options = withScripts.createParserOptions({
               runScripts: true,
             });
-            assert_true(trusted_options instanceof TrustedParserOptions);
-            assert_true(trusted_options.runScripts);
+            assert_true(trusted_options instanceof TrustedHTMLParserOptions);
             const writer = d[method](trusted_options).getWriter();
             window.did_run = false;
             await writer.write("<script>window.did_run = true;<" + "/script>");
@@ -64,7 +63,7 @@
             assert_equals(container.querySelectorAll("script").length, 1);
             assert_equals(window.did_run, true);
           },
-          `A given TrustedParserOptions can override default policy's runScript/safety for ${method}`,
+          `A given TrustedHTMLParserOptions can override default policy's runScript/safety for ${method}`,
         );
       }
 
@@ -81,7 +80,7 @@
           const trusted_options = withScripts.createParserOptions({
             sanitizer: { removeElements: ["span"] },
           });
-          assert_true(trusted_options instanceof TrustedParserOptions);
+          assert_true(trusted_options instanceof TrustedHTMLParserOptions);
           const writer = d[method](trusted_options).getWriter();
           window.did_run = false;
           await writer.write(
@@ -98,7 +97,7 @@
             null,
             "div should be present",
           );
-        }, `A given TrustedParserOptions can override default policy's sanitizer for ${method}`);
+        }, `A given TrustedHTMLParserOptions can override default policy's sanitizer for ${method}`);
       }
     </script>
   </body>

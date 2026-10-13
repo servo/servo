@@ -6,6 +6,13 @@ from tests.bidi import get_invalid_cases
 pytestmark = pytest.mark.asyncio
 
 
+async def test_params_download_behavior_allowed_destination_folder_missing(
+        bidi_session):
+    with pytest.raises(error.InvalidArgumentException):
+        await bidi_session.browser.set_download_behavior(
+            download_behavior={"type": "allowed"})
+
+
 @pytest.mark.parametrize("value", get_invalid_cases("dict", nullable=True))
 async def test_params_download_behavior_invalid_type(bidi_session, value):
     with pytest.raises(error.InvalidArgumentException):

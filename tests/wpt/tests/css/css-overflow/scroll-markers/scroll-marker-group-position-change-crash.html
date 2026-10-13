@@ -1,0 +1,18 @@
+<!doctype html>
+<title>CSS Test: Changing scroll-marker-group position does not crash</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group">
+<style>
+  #scroller {
+    overflow: auto;
+    scroll-marker-group: before;
+  }
+  #item::scroll-marker {
+    content: "";
+  }
+</style>
+<div id="scroller"><div id="item" tabindex="0"></div></div>
+<script>
+  item.focus();
+  scroller.style.scrollMarkerGroup = "after";
+  item.blur();
+</script>

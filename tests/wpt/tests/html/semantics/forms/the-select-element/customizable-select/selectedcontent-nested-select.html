@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>selectedcontent inside a nested select is disabled</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id=log></div>
+
+<select id=outer>
+  <button>
+    <selectedcontent id=outerSelectedcontent></selectedcontent>
+  </button>
+  <option id=outerOne>one</option>
+  <option id=outerTwo>two</option>
+</select>
+
+<script>
+// "update a select's descendant selectedcontent elements" collects every
+// descendant selectedcontent element whose disabled is false, without checking
+// which select is nearest. That is safe because "recalculate a selectedcontent
+// element's disabledness" sets disabled to true when there is more than one
+// ancestor select element.
+promise_test(async () => {
+  const outer = document.getElementById('outer');
+  const outerOne = document.getElementById('outerOne');
+  const outerTwo = document.getElementById('outerTwo');
+  const outerSelectedcontent = document.getElementById('outerSelectedcontent');
+
+  assert_equals(outerSelectedcontent.innerHTML, 'one',
+    'The outer selectedcontent should match the outer selected option.');
+
+  const innerSelect = document.createElement('select');
+  const innerButton = document.createElement('button');
+  const innerSelectedcontent = document.createElement('selectedcontent');
+  innerSelectedcontent.textContent = 'untouched';
+  innerButton.appendChild(innerSelectedcontent);
+  innerSelect.appendChild(innerButton);
+  const innerOption = document.createElement('option');
+  innerOption.textContent = 'inner';
+  innerSelect.appendChild(innerOption);
+
+  outer.appendChild(innerSelect);
+
+  assert_true(innerOption.selected,
+    'The inner option should be selected by the inner select.');
+  assert_equals(innerSelect.value, 'inner',
+    'The inner select should have its own value.');
+  assert_equals(outer.value, 'one',
+    'The inner option should not join the outer select\'s list of options.');
+  assert_equals(innerSelectedcontent.innerHTML, 'untouched',
+    'The inner selectedcontent should not be updated when inserted into a nested select.');
+  assert_equals(outerSelectedcontent.innerHTML, 'one',
+    'The outer selectedcontent should not be updated when inserting a nested select.');
+
+  // Updating the outer select must not reach the inner selectedcontent, even
+  // though it is a descendant of the outer select.
+  outerTwo.selected = true;
+
+  assert_false(outerOne.selected,
+    'The first outer option should be deselected.');
+  assert_equals(outerSelectedcontent.innerHTML, 'two',
+    'The outer selectedcontent should be updated.');
+  assert_equals(innerSelectedcontent.innerHTML, 'untouched',
+    'The inner selectedcontent should not be updated by the outer select.');
+
+  // Updating the inner select must not reach it either, because it is disabled.
+  const innerOptionTwo = document.createElement('option');
+  innerOptionTwo.textContent = 'inner two';
+  innerSelect.appendChild(innerOptionTwo);
+  innerOptionTwo.selected = true;
+
+  assert_equals(innerSelect.value, 'inner two',
+    'The inner select value should reflect the newly selected inner option.');
+  assert_equals(innerSelectedcontent.innerHTML, 'untouched',
+    'The inner selectedcontent should not be updated by the inner select.');
+
+  await new Promise(queueMicrotask);
+  assert_equals(innerSelectedcontent.innerHTML, 'untouched',
+    'The inner selectedcontent should not be updated by a microtask.');
+  assert_equals(outerSelectedcontent.innerHTML, 'two',
+    'The outer selectedcontent should still match the outer selected option.');
+}, 'A selectedcontent element inside a nested select is disabled and never updated.');
+</script>

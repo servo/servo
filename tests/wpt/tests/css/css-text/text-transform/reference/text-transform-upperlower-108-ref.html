@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>CSS3 Text, text transform in textarea element: German sharp S, uppercase and selection</title>
+<link rel='author' title='Martin Robinson' href='mailto:mrobinson@igalia.com'>
+<link rel='help' href='https://drafts.csswg.org/css-text-3/#text-transform'>
+</head>
+
+<body>
+    <p class="instructions">Test passes if both characters below are selected.</p>
+    <textarea id="textarea">SS</textarea>
+    <script>
+        textarea.focus();
+        textarea.setSelectionRange(0, 2);
+    </script>
+</body>
+</html>

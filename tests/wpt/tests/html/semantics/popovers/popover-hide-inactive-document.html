@@ -1,0 +1,66 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Hiding a showing popover whose document is not fully active</title>
+<link rel="author" href="mailto:wpt@keithcirkel.co.uk" />
+<link
+  rel="help"
+  href="https://html.spec.whatwg.org/multipage/popover.html#check-popover-validity"
+/>
+<link rel="help" href="https://github.com/whatwg/html/pull/13001" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+  <script>
+    function loadIframe(iframe, src) {
+      return new Promise((resolve) => {
+        iframe.addEventListener("load", resolve, { once: true });
+        iframe.src = src;
+      });
+    }
+
+    async function popoverInIframe(t, type) {
+      const iframe = document.createElement("iframe");
+      document.body.append(iframe);
+      t.add_cleanup(() => iframe.remove());
+      await loadIframe(iframe, "/common/blank.html");
+      const popover = iframe.contentDocument.createElement("div");
+      popover.popover = type;
+      iframe.contentDocument.body.append(popover);
+      return { iframe, popover };
+    }
+
+    const deactivations = {
+      "its iframe is removed": async (iframe) => iframe.remove(),
+      "its iframe navigates away": (iframe) =>
+        loadIframe(iframe, "/common/blank.html?navigated"),
+    };
+
+    for (const type of ["auto", "manual"]) {
+      for (const [description, deactivate] of Object.entries(deactivations)) {
+        promise_test(async (t) => {
+          const { iframe, popover } = await popoverInIframe(t, type);
+          popover.showPopover();
+          await deactivate(iframe);
+
+          const events = [];
+          popover.addEventListener("beforetoggle", (e) =>
+            events.push(e.newState),
+          );
+          popover.hidePopover();
+          assert_false(popover.matches(":popover-open"));
+          assert_array_equals(events, ["closed"]);
+        }, `hidePopover() hides a showing popover=${type} once ${description}`);
+
+        promise_test(async (t) => {
+          const { iframe, popover } = await popoverInIframe(t, type);
+          popover.showPopover();
+          await deactivate(iframe);
+
+          assert_false(popover.togglePopover());
+          assert_false(popover.matches(":popover-open"));
+        }, `togglePopover() hides a showing popover=${type} once ${description}`);
+      }
+    }
+  </script>
+</body>

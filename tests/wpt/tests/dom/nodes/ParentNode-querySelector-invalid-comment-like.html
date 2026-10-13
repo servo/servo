@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>querySelector with invalid comment-like selector throws SyntaxError</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/1214 -->
+<body>
+<script>
+"use strict";
+
+const selector = " //MAIN MENU - (used to keep mobile menu options hidden) // " +
+  "#tncms-region-nav-main-nav-right-nav";
+
+test(() => {
+  assert_throws_dom("SyntaxError", () => document.querySelector(selector));
+}, "querySelector throws SyntaxError for comment-like selector");
+
+test(() => {
+  assert_throws_dom("SyntaxError", () => document.querySelectorAll(selector));
+}, "querySelectorAll throws SyntaxError for comment-like selector");
+
+test(() => {
+  assert_throws_dom("SyntaxError", () => document.body.matches(selector));
+}, "matches throws SyntaxError for comment-like selector");
+</script>

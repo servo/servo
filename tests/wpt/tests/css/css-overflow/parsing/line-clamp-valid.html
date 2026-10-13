@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <title>CSS Overflow: parsing line-clamp with valid values</title>
 <link rel="help" href="https://drafts.csswg.org/css-overflow-4/#propdef-line-clamp">
-<meta name="assert" content="line-clamp supports the full grammar 'none | [<integer [1,∞]> || <‘block-ellipsis’>] -webkit-legacy?'.">
+<meta name="assert" content="line-clamp supports the full grammar 'none | [<integer [1,∞]> || auto || <‘block-ellipsis’>] -webkit-legacy?'.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -30,11 +30,14 @@ test_valid_value("line-clamp", 'auto 11', '11 auto');
 test_valid_value("line-clamp", 'ellipsis 11', '11');
 test_valid_value("line-clamp", '" etc., etc. " 12', '12 " etc., etc. "');
 
+test_valid_value("line-clamp", '3 ellipsis auto');
+
 test_valid_value("line-clamp", '1 -webkit-legacy');
 test_valid_value("line-clamp", 'auto -webkit-legacy');
 test_valid_value("line-clamp", 'no-ellipsis -webkit-legacy',
                  'auto no-ellipsis -webkit-legacy');
 test_valid_value("line-clamp", '3 auto -webkit-legacy');
+test_valid_value("line-clamp", '3 ellipsis auto -webkit-legacy');
 </script>
 </body>
 </html>

@@ -39,7 +39,7 @@ def main(request, response):
             return headers, content
 
         elif action_str == "beacon":
-            if request.method != b"HEAD" and request.method != "HEAD":
+            if request.method != b"GET" and request.method != "GET":
                 state["error"] = f"Method not allowed: {request.method}"
                 request.server.stash.put(key, state)
                 return 405, [(b"Content-Type", b"text/plain")

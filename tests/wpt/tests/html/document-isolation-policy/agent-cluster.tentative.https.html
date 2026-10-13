@@ -1,0 +1,315 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Document-Isolation-Policy: same-origin documents with a different policy are in different agent clusters</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="./resources/common.js"></script>
+<body>
+<script>
+"use strict";
+
+const origin = get_host_info().HTTPS_ORIGIN;
+const noCorpURL = get_host_info().HTTPS_REMOTE_ORIGIN + "/html/document-isolation-policy/resources/nothing-no-corp.js";
+// The smallest valid WebAssembly module.
+const emptyModuleBytes = new Uint8Array([0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00]);
+
+function executorURL(policy, uuid) {
+  return origin + executor_path + policy + `&uuid=${uuid}`;
+}
+
+function createFrame(t, url) {
+  const frame = document.createElement("iframe");
+  t.add_cleanup(() => frame.remove());
+  const loaded = new Promise(resolve => frame.onload = resolve);
+  frame.src = url;
+  document.body.append(frame);
+  return loaded.then(() => frame);
+}
+
+// Runs the body of an async function in the context identified by uuid and returns its result.
+async function runInContext(uuid, body) {
+  const reply = token();
+  send(uuid, `
+    (async () => {
+      let result;
+      try {
+        result = await (async () => { ${body} })();
+      } catch (e) {
+        result = e.name;
+      }
+      send("${reply}", JSON.stringify(result));
+    })();
+  `);
+  return JSON.parse(await receive(reply));
+}
+
+promise_test(async t => {
+  const uuid = token();
+  const frame = await createFrame(t, executorURL(dip_require_corp, uuid));
+  assert_equals(frame.contentDocument, null, "contentDocument");
+  assert_throws_dom("SecurityError", () => frame.contentWindow.document);
+  assert_equals(await runInContext(uuid, "return parent.document.URL;"), "SecurityError");
+}, "A document without a policy and a same-origin frame with one cannot access each other");
+
+promise_test(async t => {
+  const uuid = token();
+  await createFrame(t, executorURL(dip_require_corp, uuid));
+  const result = await runInContext(uuid, `
+    const child = document.createElement("iframe");
+    const loaded = new Promise(resolve => child.onload = resolve);
+    child.src = ${JSON.stringify(executorURL(dip_none, token()))};
+    document.body.append(child);
+    await loaded;
+    let access;
+    try {
+      access = typeof child.contentWindow.document;
+    } catch (e) {
+      access = e.name;
+    }
+    return { contentDocument: child.contentDocument === null ? "null" : "document", access };
+  `);
+  assert_object_equals(result, { contentDocument: "null", access: "SecurityError" });
+}, "A document with a policy cannot access a same-origin frame without one");
+
+promise_test(async t => {
+  const uuid = token();
+  await createFrame(t, executorURL(dip_require_corp, uuid));
+  const result = await runInContext(uuid, `
+    const child = document.createElement("iframe");
+    const loaded = new Promise(resolve => child.onload = resolve);
+    child.src = ${JSON.stringify(executorURL(dip_require_corp, token()))};
+    document.body.append(child);
+    await loaded;
+    return { contentDocument: child.contentDocument === null ? "null" : "document", access: typeof child.contentWindow.document };
+  `);
+  assert_object_equals(result, { contentDocument: "document", access: "object" });
+}, "Same-origin documents with the same policy can access each other");
+
+promise_test(async t => {
+  const uuid = token();
+  await createFrame(t, executorURL(dip_require_corp, uuid));
+  const result = await runInContext(uuid, `
+    const child = document.createElement("iframe");
+    document.body.append(child);
+    const accessible = child.contentDocument !== null;
+    let fetchResult;
+    try {
+      await child.contentWindow.fetch(${JSON.stringify(noCorpURL)}, { mode: "no-cors" });
+      fetchResult = "allowed";
+    } catch (e) {
+      fetchResult = "blocked";
+    }
+    return { accessible, fetchResult };
+  `);
+  assert_object_equals(result, { accessible: true, fetchResult: "blocked" });
+}, "An about:blank frame created by a document with a policy inherits it and can be accessed");
+
+[
+  { policy: dip_none, expected: "number", description: "without a policy reuses" },
+  { policy: dip_require_corp, expected: "undefined", description: "with a policy does not reuse" },
+].forEach(({ policy, expected, description }) => {
+  promise_test(async t => {
+    const uuid = token();
+    const popup = window.open(executorURL(policy, uuid));
+    t.add_cleanup(() => popup.close());
+    popup.expando = 1;
+    assert_equals(await runInContext(uuid, "return typeof window.expando;"), expected);
+  }, `Navigating the initial about:blank document of a popup to a same-origin document ${description} its Window`);
+});
+
+promise_test(async t => {
+  const uuid = token();
+  const popup = window.open(executorURL(dip_require_corp, uuid));
+  t.add_cleanup(() => popup.close());
+  assert_equals(await runInContext(uuid, "return opener.document.URL;"), "SecurityError");
+  assert_throws_dom("SecurityError", () => popup.document);
+}, "A document without a policy and a same-origin popup with one cannot access each other");
+
+promise_test(async t => {
+  const uuid = token();
+  await createFrame(t, executorURL(dip_require_corp, uuid));
+  assert_equals(await runInContext(uuid, "return originAgentCluster;"), true);
+}, "A document with a policy is in an origin-keyed agent cluster");
+
+promise_test(async t => {
+  const uuid = token();
+  const frame = await createFrame(t, executorURL(dip_require_corp, uuid));
+  frame.contentWindow.location = "javascript:void(window.ranViaLocation = true)";
+  frame.src = "javascript:void(window.ranViaSrc = true)";
+  await new Promise(resolve => t.step_timeout(resolve, 500));
+  assert_object_equals(await runInContext(uuid, "return { location: window.ranViaLocation === true, src: window.ranViaSrc === true };"), { location: false, src: false });
+}, "A document without a policy cannot run a javascript: URL in a same-origin frame with one");
+
+promise_test(async t => {
+  const uuid = token();
+  await createFrame(t, executorURL(dip_require_corp, uuid));
+  await runInContext(uuid, `
+    ${appendFrameScript(executorURL(dip_require_corp, token()))}
+    window.child = child;
+    child.contentWindow.location = "javascript:void(window.ranViaLocation = true)";
+    return "navigated";
+  `);
+  await new Promise(resolve => t.step_timeout(resolve, 500));
+  assert_true(await runInContext(uuid, "return child.contentWindow.ranViaLocation === true;"));
+}, "A document with a policy can run a javascript: URL in a same-origin frame with one");
+
+// Clicks a link in the context identified by uuid that navigates the frame named targetName to targetURL.
+function clickLinkScript(targetName, targetURL) {
+  return `
+    const link = document.createElement("a");
+    link.target = ${JSON.stringify(targetName)};
+    link.href = ${JSON.stringify(targetURL)};
+    document.body.append(link);
+    link.click();
+    return "clicked";
+  `;
+}
+
+async function createNamedFrameWithNavigateListener(t, name) {
+  const uuid = token();
+  const frame = document.createElement("iframe");
+  frame.name = name;
+  t.add_cleanup(() => frame.remove());
+  const loaded = new Promise(resolve => frame.onload = resolve);
+  frame.src = executorURL(dip_none, uuid);
+  document.body.append(frame);
+  await loaded;
+  const reply = token();
+  await runInContext(uuid, `
+    navigation.onnavigate = event => send("${reply}", event.sourceElement ? "element" : "null");
+    return "ready";
+  `);
+  return { url: frame.src, reply };
+}
+
+promise_test(async t => {
+  const name = token();
+  const { url, reply } = await createNamedFrameWithNavigateListener(t, name);
+  const uuid = token();
+  await createFrame(t, executorURL(dip_require_corp, uuid));
+  await runInContext(uuid, clickLinkScript(name, url + "#fragment"));
+  assert_equals(await receive(reply), "null");
+}, "A navigate event in a same-origin frame without a policy does not expose a link of a document with one as its sourceElement");
+
+promise_test(async t => {
+  const name = token();
+  const { url, reply } = await createNamedFrameWithNavigateListener(t, name);
+  const link = document.createElement("a");
+  link.target = name;
+  link.href = url + "#fragment";
+  document.body.append(link);
+  t.add_cleanup(() => link.remove());
+  link.click();
+  assert_equals(await receive(reply), "element");
+}, "A navigate event in a same-origin frame without a policy exposes a link of a document without one as its sourceElement");
+
+promise_test(async t => {
+  const uuid = token();
+  // The body arrives two seconds after the headers, so the fragment navigation happens while the reload is waiting for it.
+  const frame = await createFrame(t, origin + executor_path + dip_require_corp + "|trickle(d2)" + `&uuid=${uuid}`);
+  const reloaded = new Promise(resolve => frame.onload = resolve);
+  await runInContext(uuid, `
+    location.reload();
+    // The body of this response arrives after a second, while the reload is still waiting for its own.
+    fetch("/common/blank.html?pipe=trickle(d1)").then(response => response.text()).then(() => navigation.navigate("#fragment"));
+    return "reloading";
+  `);
+  await reloaded;
+  assert_equals(frame.contentDocument, null, "contentDocument");
+  assert_throws_dom("SecurityError", () => frame.contentWindow.document);
+}, "A fragment navigation during a reload of a same-origin frame with a policy does not move the reloaded document into another agent cluster");
+
+[
+  { policy: dip_none, expected: "message", description: "without a policy succeeds" },
+  { policy: dip_require_corp, expected: "messageerror", description: "with a policy fails" },
+].forEach(({ policy, expected, description }) => {
+  promise_test(async t => {
+    const uuid = token();
+    const frame = await createFrame(t, executorURL(policy, uuid));
+    await runInContext(uuid, `
+      window.received = new Promise(resolve => {
+        onmessage = () => resolve("message");
+        onmessageerror = () => resolve("messageerror");
+      });
+      return "ready";
+    `);
+    frame.contentWindow.postMessage(new WebAssembly.Module(emptyModuleBytes), "*");
+    assert_equals(await runInContext(uuid, "return window.received;"), expected);
+  }, `Posting a WebAssembly.Module to a same-origin frame ${description}`);
+});
+
+const remoteOrigin = get_host_info().HTTPS_REMOTE_ORIGIN;
+const coopSameOrigin = "|header(Cross-Origin-Opener-Policy,same-origin)";
+const coepRequireCorp = "|header(Cross-Origin-Embedder-Policy,require-corp)";
+
+// Opens a cross-origin isolated popup and returns its uuid.
+function openCrossOriginIsolatedPopup(t) {
+  const uuid = token();
+  window.open(origin + executor_path + coopSameOrigin + coepRequireCorp + `&uuid=${uuid}`);
+  t.add_cleanup(() => send(uuid, "window.close();"));
+  return uuid;
+}
+
+function appendFrameScript(url) {
+  return `
+    const child = document.createElement("iframe");
+    const loaded = new Promise(resolve => child.onload = resolve);
+    child.src = ${JSON.stringify(url)};
+    document.body.append(child);
+    await loaded;
+  `;
+}
+
+promise_test(async t => {
+  const topUUID = openCrossOriginIsolatedPopup(t);
+  const childUUID = token();
+  const result = await runInContext(topUUID, `
+    ${appendFrameScript(origin + executor_path + coepRequireCorp + dip_require_corp + `&uuid=${childUUID}`)}
+    window.child = child;
+    let access;
+    try {
+      access = typeof child.contentWindow.document;
+    } catch (e) {
+      access = e.name;
+    }
+    return { crossOriginIsolated, access };
+  `);
+  assert_object_equals(result, { crossOriginIsolated: true, access: "object" });
+
+  await runInContext(childUUID, `
+    window.received = new Promise(resolve => {
+      onmessage = () => resolve("message");
+      onmessageerror = () => resolve("messageerror");
+    });
+    return "ready";
+  `);
+  await runInContext(topUUID, `
+    child.contentWindow.postMessage(new WebAssembly.Module(new Uint8Array([${emptyModuleBytes}])), "*");
+    return "posted";
+  `);
+  assert_equals(await runInContext(childUUID, "return window.received;"), "message");
+}, "A frame with a policy that is same origin with a cross-origin isolated top-level document is in its agent cluster");
+
+promise_test(async t => {
+  const topUUID = openCrossOriginIsolatedPopup(t);
+  const frameUUID = token();
+  await runInContext(topUUID, `
+    ${appendFrameScript(remoteOrigin + executor_path + coepRequireCorp + corp_cross_origin + dip_require_corp + `&uuid=${frameUUID}`)}
+    return "loaded";
+  `);
+  const accessChild = policy => `
+    ${appendFrameScript(remoteOrigin + executor_path + coepRequireCorp + policy + `&uuid=${token()}`)}
+    try {
+      return typeof child.contentWindow.document;
+    } catch (e) {
+      return e.name;
+    }
+  `;
+  assert_equals(await runInContext(frameUUID, accessChild(dip_none)), "SecurityError", "same-origin child without a policy");
+  assert_equals(await runInContext(frameUUID, accessChild(dip_require_corp)), "object", "same-origin child with a policy");
+}, "A frame with a policy that is cross origin with a cross-origin isolated top-level document is not in the agent cluster of same-origin documents without one");
+</script>

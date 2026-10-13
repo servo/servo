@@ -86,24 +86,17 @@ function popupOpeningScript(popup_via, popup_url, popup_origin, headers,
   assert_unreached('Unrecognized popup opening method.');
 }
 
-function promise_test_parallel(promise, description) {
-  async_test(test => {
-    promise(test)
-        .then(() => test.done())
-        .catch(test.step_func(error => { throw error; }));
-  }, description);
-};
-
 // Verifies that a popup with origin `popup_origin` and headers `headers` has
 // the expected `opener_state` after being opened from an iframe with origin
 // `iframe_origin`.
 function iframe_test(description, iframe_origin, popup_origin, headers,
     expected_opener_state) {
   for (const popup_via of ['window_open', 'anchor','form']) {
-    promise_test_parallel(async t => {
+    promise_test(async t => {
       const iframe_token = token();
       const popup_token = token();
-      const reply_token = token();
+      const iframe_reply_token = token();
+      const popup_reply_token = token();
 
       const frame = document.createElement("iframe");
       const iframe_url = getExecutorPath(
@@ -113,9 +106,12 @@ function iframe_test(description, iframe_origin, popup_origin, headers,
 
       frame.src = iframe_url;
       document.body.append(frame);
+      t.add_cleanup(() => {
+        frame.remove();
+      });
 
-      send(iframe_token, `send('${reply_token}', 'Iframe loaded');`);
-      assert_equals(await receive(reply_token), 'Iframe loaded');
+      send(iframe_token, `send('${iframe_reply_token}', 'Iframe loaded');`);
+      assert_equals(await receive(iframe_reply_token), 'Iframe loaded');
 
       const popup_url = getExecutorPath(
         popup_token,
@@ -125,19 +121,25 @@ function iframe_test(description, iframe_origin, popup_origin, headers,
       // We open popup and then ping it, it will respond after loading.
       send(iframe_token, popupOpeningScript(popup_via, popup_url, popup_origin,
                                             headers, popup_token));
-      send(popup_token, `send('${reply_token}', 'Popup loaded');`);
-      assert_equals(await receive(reply_token), 'Popup loaded');
+      send(popup_token, `send('${popup_reply_token}', 'Popup loaded');`);
+      assert_equals(await receive(popup_reply_token), 'Popup loaded');
 
-      // Make sure the popup and the iframe are removed once the test has run,
-      // keeping a clean state.
-      add_completion_callback(() => {
-        frame.remove();
-        send(popup_token, `close()`);
+      // Make sure the popup is closed once the subtest has run, keeping a
+      // clean state and stopping its executor polling loop before the next
+      // subtest starts.
+      t.add_cleanup(async () => {
+        const close_token = token();
+        send(popup_token, `await send('${close_token}', 'closed'); close();`);
+        await receive(close_token);
       });
 
-      // Give some time for things to settle across processes etc. before
-      // proceeding with verifications.
-      await new Promise(resolve => { t.step_timeout(resolve, 500); });
+      if (popup_via === 'window_open' &&
+          (expected_opener_state === 'preserved' ||
+           expected_opener_state === 'restricted')) {
+        // Give some time for things to settle across processes etc. before
+        // proceeding with verifications.
+        await new Promise(resolve => { t.step_timeout(resolve, 500); });
+      }
 
       // Verify that the opener is in the state we expect it to be in.
       switch (expected_opener_state) {
@@ -210,6 +212,12 @@ function iframe_test(description, iframe_origin, popup_origin, headers,
             assert_equals(
               await evaluate(iframe_token, 'popup != null'), "true",
               'Popup handle is non-null in iframe?');
+            for (let i = 0; i < 50; ++i) {
+              if (await evaluate(iframe_token, 'popup.closed') === "true") {
+                break;
+              }
+              await new Promise(resolve => t.step_timeout(resolve, 50));
+            }
             assert_equals(
               await evaluate(iframe_token, 'popup.closed'), "true",
               'Popup appears closed from iframe?');

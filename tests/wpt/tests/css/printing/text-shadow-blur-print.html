@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>A blurred text-shadow must not print as a flat rectangle</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-3/#text-shadow-property">
+<link rel="match" href="/css/reference/blank.html">
+<!--
+  The blur radius here spreads the shadow's alpha well below one 8-bit step, so
+  the shadow should not be visible at all. A print backend that drops the blur
+  mask instead fills the shadow's bounds with the undiluted shadow color, which
+  paints a large flat rectangle.
+-->
+<div style="color: transparent; text-shadow: 0 0 300px rgba(0, 0, 0, 0.35)">A</div>

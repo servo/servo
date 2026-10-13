@@ -8,9 +8,9 @@ use std::rc::Rc;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
-use crate::dom::bindings::callback::ExceptionHandling;
+use crate::dom::bindings::callback::{ExceptionHandling, RootedCallback, TracedCallback};
 use crate::dom::bindings::codegen::Bindings::DataTransferItemBinding::{
     DataTransferItemMethods, FunctionStringCallback,
 };
@@ -26,7 +26,7 @@ use crate::dom::filesystemdirectoryentry::FileSystemDirectoryEntry;
 use crate::dom::filesystementry::FileSystemEntry;
 use crate::dom::filesystemfileentry::FileSystemFileEntry;
 use crate::dom::globalscope::GlobalScope;
-use crate::drag_data_store::{DragDataStore, Kind, Mode};
+use crate::drag::drag_data_store::{DragDataStore, Kind, Mode};
 
 #[dom_struct]
 pub(crate) struct DataTransferItem {
@@ -40,10 +40,10 @@ pub(crate) struct DataTransferItem {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct PendingStringCallback {
     id: usize,
-    #[conditional_malloc_size_of]
-    callback: Rc<FunctionStringCallback>,
+    callback: TracedCallback<FunctionStringCallback>,
 }
 
 impl DataTransferItem {
@@ -63,10 +63,10 @@ impl DataTransferItem {
         data_store: Rc<RefCell<Option<DragDataStore>>>,
         id: u16,
     ) -> DomRoot<DataTransferItem> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(DataTransferItem::new_inherited(data_store, id)),
             global,
-            cx,
         )
     }
 
@@ -92,8 +92,8 @@ impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
     fn Kind(&self) -> DOMString {
         self.item_kind()
             .map_or(DOMString::new(), |item| match *item {
-                Kind::Text { .. } => DOMString::from("string"),
-                Kind::File { .. } => DOMString::from("file"),
+                Kind::Text { .. } => DOMString::from_static("string"),
+                Kind::File { .. } => DOMString::from_static("file"),
             })
     }
 
@@ -104,7 +104,7 @@ impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransferitem-getasstring>
-    fn GetAsString(&self, callback: Option<Rc<FunctionStringCallback>>) {
+    fn GetAsString(&self, callback: Option<RootedCallback<FunctionStringCallback>>) {
         // Step 1 If the callback is null, return.
         let Some(callback) = callback else {
             return;
@@ -118,8 +118,12 @@ impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
         // Step 3 If the drag data item kind is not text, then return.
         if let Some(string) = self.item_kind().and_then(|item| item.as_string()) {
             let id = self.next_callback.get();
-            let pending_callback = PendingStringCallback { id, callback };
-            self.pending_callbacks.borrow_mut().push(pending_callback);
+            self.pending_callbacks
+                .borrow_mut()
+                .push(PendingStringCallback {
+                    id,
+                    callback: callback.to_traced(),
+                });
 
             self.next_callback.set(id + 1);
             let this = Trusted::new(self);
@@ -133,7 +137,11 @@ impl DataTransferItemMethods<crate::DomTypeHolder> for DataTransferItem {
                     let this = this.root();
                     let maybe_index = this.pending_callbacks.borrow().iter().position(|val| val.id == id);
                     if let Some(index) = maybe_index {
-                        let callback = this.pending_callbacks.safe_borrow_mut(cx.no_gc()).swap_remove(index).callback;
+                        rooted!(&in(cx) let callback = this
+                            .pending_callbacks
+                            .safe_borrow_mut(cx.no_gc())
+                            .swap_remove(index)
+                            .callback);
                         let _ = callback.Call__(cx, DOMString::from(string), ExceptionHandling::Report);
                     }
                 }));

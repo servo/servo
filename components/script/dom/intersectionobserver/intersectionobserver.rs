@@ -3,15 +3,15 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, RefCell};
-use std::rc::Rc;
 use std::time::Duration;
 
 use app_units::Au;
-use cssparser::{Parser, ParserInput};
+use cssparser::Parser;
 use dom_struct::dom_struct;
 use euclid::{Rect, SideOffsets2D, Size2D, Vector2D};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::{HandleObject, MutableHandleValue};
+use script_bindings::callback::{RootedCallback, TracedCallback};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use servo_base::cross_process_instant::CrossProcessInstant;
@@ -21,9 +21,8 @@ use style::stylesheets::CssRuleType;
 use style::values::computed::Overflow;
 use style::values::specified::intersection_observer::IntersectionObserverMargin;
 use style_traits::{CSSPixel, ParsingMode, ToCss};
-use url::Url;
 
-use crate::css::parser_context_for_anonymous_content;
+use crate::css::css::{ANONYMOUS_CONTENT_URL_DATA, parser_context_for_anonymous_content};
 use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::IntersectionObserverBinding::{
     IntersectionObserverCallback, IntersectionObserverInit, IntersectionObserverMethods,
@@ -105,8 +104,7 @@ pub(crate) struct IntersectionObserver {
     /// > with the intersection root, as per the processing model.
     ///
     /// <https://w3c.github.io/IntersectionObserver/#intersection-observer-callback>
-    #[conditional_malloc_size_of]
-    callback: Rc<IntersectionObserverCallback>,
+    callback: TracedCallback<IntersectionObserverCallback>,
 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-queuedentries-slot>
     queued_entries: DomRefCell<Vec<Dom<IntersectionObserverEntry>>>,
@@ -140,7 +138,7 @@ pub(crate) struct IntersectionObserver {
 impl IntersectionObserver {
     fn new_inherited(
         window: &Window,
-        callback: Rc<IntersectionObserverCallback>,
+        callback: RootedCallback<IntersectionObserverCallback>,
         root: &Option<ElementOrDocument>,
         root_margin: IntersectionObserverMargin,
         scroll_margin: IntersectionObserverMargin,
@@ -149,7 +147,7 @@ impl IntersectionObserver {
             reflector_: Reflector::new(),
             owner_doc: window.Document().as_traced(),
             root: root.as_ref().map(|root| root.into()),
-            callback,
+            callback: callback.to_traced(),
             queued_entries: Default::default(),
             observation_targets: Default::default(),
             root_margin: RefCell::new(root_margin),
@@ -166,7 +164,7 @@ impl IntersectionObserver {
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        callback: Rc<IntersectionObserverCallback>,
+        callback: RootedCallback<IntersectionObserverCallback>,
         init: &IntersectionObserverInit,
     ) -> Fallible<DomRoot<Self>> {
         // Step 3.
@@ -279,7 +277,7 @@ impl IntersectionObserver {
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#observe-target-element>
-    fn observe_target_element(&self, target: &Element) {
+    fn observe_target_element(&self, target: &Element, no_gc: &NoGC) {
         // Step 1
         // > If target is in observer’s internal [[ObservationTargets]] slot, return.
         let is_present = self
@@ -297,7 +295,7 @@ impl IntersectionObserver {
         // > a previousIsIntersecting property set to false, and a previousIsVisible property set to false.
         // Step 3
         // > Append intersectionObserverRegistration to target’s internal [[RegisteredIntersectionObservers]] slot.
-        target.add_initial_intersection_observer_registration(self);
+        target.add_initial_intersection_observer_registration(self, no_gc);
 
         if self.observation_targets.borrow().is_empty() {
             self.connect_to_owner();
@@ -306,7 +304,7 @@ impl IntersectionObserver {
         // Step 4
         // > Add target to observer’s internal [[ObservationTargets]] slot.
         self.observation_targets
-            .borrow_mut()
+            .safe_borrow_mut(no_gc)
             .push(Dom::from_ref(target));
 
         target
@@ -318,18 +316,18 @@ impl IntersectionObserver {
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#unobserve-target-element>
-    fn unobserve_target_element(&self, target: &Element) {
+    fn unobserve_target_element(&self, target: &Element, no_gc: &NoGC) {
         // Step 1
         // > Remove the IntersectionObserverRegistration record whose observer property is equal to
         // > this from target’s internal [[RegisteredIntersectionObservers]] slot, if present.
         target
-            .registered_intersection_observers_mut()
+            .registered_intersection_observers_mut(no_gc)
             .retain(|registration| &*registration.observer != self);
 
         // Step 2
         // > Remove target from this’s internal [[ObservationTargets]] slot, if present
         self.observation_targets
-            .borrow_mut()
+            .safe_borrow_mut(no_gc)
             .retain(|element| &**element != target);
 
         // Should disconnect from owner if it is not observing anything.
@@ -390,7 +388,9 @@ impl IntersectionObserver {
         );
 
         // Step 2. Append it to observer's internal [[QueuedEntries]] slot.
-        self.queued_entries.borrow_mut().push(entry.as_traced());
+        self.queued_entries
+            .safe_borrow_mut(cx.no_gc())
+            .push(entry.as_traced());
 
         // Step 3. Queue an intersection observer task for document.
         document.queue_an_intersection_observer_task();
@@ -433,6 +433,7 @@ impl IntersectionObserver {
     fn disconnect_from_owner(&self) {
         if self.connected_to_document.get() {
             self.owner_doc.remove_intersection_observer(self);
+            self.connected_to_document.set(false);
         }
     }
 
@@ -796,27 +797,27 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
     /// > Run the observe a target Element algorithm, providing this and target.
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-observe>
-    fn Observe(&self, target: &Element) {
-        self.observe_target_element(target);
+    fn Observe(&self, no_gc: &NoGC, target: &Element) {
+        self.observe_target_element(target, no_gc);
     }
 
     /// > Run the unobserve a target Element algorithm, providing this and target.
     ///
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-unobserve>
-    fn Unobserve(&self, target: &Element) {
-        self.unobserve_target_element(target);
+    fn Unobserve(&self, no_gc: &NoGC, target: &Element) {
+        self.unobserve_target_element(target, no_gc);
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-disconnect>
-    fn Disconnect(&self) {
+    fn Disconnect(&self, no_gc: &NoGC) {
         // > For each target in this’s internal [[ObservationTargets]] slot:
         self.observation_targets.borrow().iter().for_each(|target| {
             // > 1. Remove the IntersectionObserverRegistration record whose observer property is equal to
             // >    this from target’s internal [[RegisteredIntersectionObservers]] slot.
-            target.remove_intersection_observer(self);
+            target.remove_intersection_observer(self, no_gc);
         });
         // > 2. Remove target from this’s internal [[ObservationTargets]] slot.
-        self.observation_targets.borrow_mut().clear();
+        self.observation_targets.safe_borrow_mut(no_gc).clear();
 
         // We should remove this observer from the event loop.
         self.disconnect_from_owner();
@@ -837,7 +838,7 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        callback: Rc<IntersectionObserverCallback>,
+        callback: RootedCallback<IntersectionObserverCallback>,
         init: &IntersectionObserverInit,
     ) -> Fallible<DomRoot<IntersectionObserver>> {
         Self::new(cx, window, proto, callback, init)
@@ -890,12 +891,13 @@ fn parse_a_margin(value: Option<&DOMString>) -> Result<IntersectionObserverMargi
     };
 
     // Create necessary style ParserContext and utilize stylo's IntersectionObserverMargin
-    let mut input = ParserInput::new(value);
-    let mut parser = Parser::new(&mut input);
+    let mut parser = Parser::new(value);
 
-    let url = Url::parse("about:blank").unwrap().into();
-    let context =
-        parser_context_for_anonymous_content(CssRuleType::Style, ParsingMode::DEFAULT, &url);
+    let context = parser_context_for_anonymous_content(
+        CssRuleType::Style,
+        ParsingMode::DEFAULT,
+        &ANONYMOUS_CONTENT_URL_DATA,
+    );
 
     parser
         .parse_entirely(|p| IntersectionObserverMargin::parse(&context, p))
@@ -956,11 +958,7 @@ fn compute_the_intersection(
                         containing_document.window().viewport_details().size,
                     ));
 
-                    if let Some(rect) = intersect_rectangle(&intersection_rect, &viewport_rect) {
-                        intersection_rect = rect;
-                    } else {
-                        return None;
-                    }
+                    intersection_rect = intersect_rectangle(&intersection_rect, &viewport_rect)?;
 
                     let current_offset = frame_container
                         .upcast::<Node>()
@@ -1009,11 +1007,7 @@ fn compute_the_intersection(
                     container_padding_box
                 };
 
-            if let Some(rect) = intersect_rectangle(&intersection_rect, &container_padding_box) {
-                intersection_rect = rect;
-            } else {
-                return None;
-            }
+            intersection_rect = intersect_rectangle(&intersection_rect, &container_padding_box)?;
         }
 
         // > 3.5. If container is the root element of a browsing context, update container to be the

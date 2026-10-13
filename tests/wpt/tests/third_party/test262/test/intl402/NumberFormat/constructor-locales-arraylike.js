@@ -2,7 +2,7 @@
 // This code is governed by the BSD license found in the LICENSE file.
 
 /*---
-esid: sec-initializenumberformat
+esid: sec-intl.numberformat
 description: >
   Tests that the Intl.NumberFormat constructor accepts Array-like values for the
   locales argument and treats them well.

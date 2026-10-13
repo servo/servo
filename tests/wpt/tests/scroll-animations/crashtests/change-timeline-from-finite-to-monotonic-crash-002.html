@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2047032">
+<div id=target>
+  <div id=dut></div>
+</div>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const rect = dut;
+  target.remove();
+  const st = new ScrollTimeline({});
+  const ani = rect.animate([{}], {timeline: st});
+  ani.timeline = document.timeline;
+})
+</script>

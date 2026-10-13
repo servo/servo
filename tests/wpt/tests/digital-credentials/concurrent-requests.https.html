@@ -83,4 +83,44 @@
     abortController.abort();
     await promise_rejects_dom(t, "AbortError", firstRequest);
   }, "A concurrent get() rejection is queued on the DOM manipulation task source, not settled synchronously.");
+
+  promise_test(async (t) => {
+    // A pending request whose document is destroyed must return the coordinator
+    // to the idle interaction state. If it does not, every later request on this
+    // page rejects with NotAllowedError for the lifetime of the page.
+    await test_driver.set_virtual_wallet_behavior("wait");
+    t.add_cleanup(() => test_driver.set_virtual_wallet_behavior("clear"));
+
+    const iframe = document.createElement("iframe");
+    await new Promise((resolve) => {
+      iframe.addEventListener("load", resolve, { once: true });
+      iframe.src = "about:blank";
+      document.body.appendChild(iframe);
+    });
+
+    await test_driver.bless(
+      "user activation for subframe request",
+      null,
+      iframe.contentWindow,
+    );
+    const subframeRequest =
+      iframe.contentWindow.navigator.credentials.get(makeGetOptions());
+    subframeRequest.catch(() => {});
+    iframe.remove();
+
+    const responseData = "served-after-teardown";
+    await test_driver.set_virtual_wallet_behavior("respond", "org-iso-mdoc", {
+      value: responseData,
+    });
+    await test_driver.bless("user activation for top-level request");
+    const credential = await navigator.credentials.get(
+      makeGetOptions({ protocol: "org-iso-mdoc" }),
+    );
+
+    assert_equals(
+      credential.data.value,
+      responseData,
+      "A request made after the previous requester's document was destroyed must be served, not rejected as concurrent.",
+    );
+  }, "Destroying the requesting document returns the coordinator to the idle interaction state.");
 </script>

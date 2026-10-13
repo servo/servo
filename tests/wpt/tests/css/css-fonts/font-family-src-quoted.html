@@ -53,6 +53,21 @@
     font-family: "B";
     src: local("C\\D");
 }
+/* 9 */
+@font-face {
+    font-family: "I";
+    src: local(ident);
+}
+/* 10 */
+@font-face {
+    font-family: "J";
+    src: local(two idents);
+}
+/* 11 */
+@font-face {
+    font-family: "K";
+    src: url(/path/to/font.ttf);
+}
 </style>
 </head>
 <body>
@@ -68,6 +83,10 @@ test(function(t) {
     assert_not_equals(rules[6].cssText.indexOf('local(\"W\\\"X\")'), -1);
     assert_not_equals(rules[7].cssText.indexOf('local(\"Z\\a A\")'), -1);
     assert_not_equals(rules[8].cssText.indexOf('local(\"C\\\\D\")'), -1);
+    // serialization is quoted even if source was unquoted:
+    assert_not_equals(rules[9].cssText.indexOf('local(\"ident\")'), -1);
+    assert_not_equals(rules[10].cssText.indexOf('local(\"two idents\")'), -1);
+    assert_not_equals(rules[11].cssText.indexOf('url(\"/path/to/font.ttf\")'), -1);
 });
 </script>
 </body>

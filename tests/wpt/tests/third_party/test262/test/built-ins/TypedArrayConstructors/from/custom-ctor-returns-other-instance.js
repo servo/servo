@@ -47,4 +47,4 @@ testWithTypedArrayConstructors(function(TA, makeCtorArg) {
 
   result = TypedArray.from.call(ctor, sourceObj);
   assert.sameValue(result, custom, "not using iterator, higher length");
-});
+}, null, null, ["immutable"]);

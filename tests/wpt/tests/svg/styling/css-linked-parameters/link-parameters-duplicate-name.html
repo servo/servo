@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>link-parameters: the last parameter with a given name is the one used</title>
+<link rel="help" href="https://drafts.csswg.org/css-link-params/#css-link-parameter">
+<link rel="match" href="link-parameters-duplicate-name-ref.html">
+<style>
+  body { margin: 0; }
+  img { display: block; width: 100px; height: 100px; }
+  #target { link-parameters: param(--bg, #0a5c2e), param(--bg, #1d4f8c); }
+</style>
+<img id="target" src="resources/solid.svg">

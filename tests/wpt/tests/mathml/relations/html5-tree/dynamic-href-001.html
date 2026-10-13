@@ -5,8 +5,10 @@
   <link rel="help" href="https://w3c.github.io/mathml-core/#dom-and-javascript">
   <link rel="help" href="https://github.com/w3c/mathml-core/issues/142">
   <link rel="match" href="dynamic-href-001-ref.html"/>
+  <script src="/mathml/support/fonts.js"></script>
   <script>
-    document.documentElement.addEventListener("TestRendered", () => {
+    document.documentElement.addEventListener("TestRendered", async () => {
+      await loadAllFonts();
       // Attach the href attribute to the link element.
       document.getElementById("link").setAttribute("href", "about:blank");
       document.documentElement.removeAttribute("class");

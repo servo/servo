@@ -19,6 +19,7 @@ use webgpu_traits::{WebGPU, WebGPUDevice, WebGPURenderBundle, WebGPURequest};
 
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::USVString;
+use crate::traits::Equivalence;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPURenderBundle {
@@ -54,10 +55,7 @@ pub struct GPURenderBundle<D: DomTypes> {
     phantom: PhantomData<D>,
 }
 
-impl<D> GPURenderBundle<D>
-where
-    D: DomTypes<GPURenderBundle = GPURenderBundle<D>>,
-{
+impl<D: Equivalence> GPURenderBundle<D> {
     fn new_inherited(
         render_bundle: WebGPURenderBundle,
         device: WebGPUDevice,
@@ -76,7 +74,7 @@ where
         }
     }
 
-    pub fn new(
+    pub(crate) fn new(
         cx: &mut JSContext,
         global: &D::GlobalScope,
         render_bundle: WebGPURenderBundle,
@@ -85,6 +83,7 @@ where
         label: USVString,
     ) -> DomRoot<Self> {
         reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
             Box::new(GPURenderBundle::new_inherited(
                 render_bundle,
                 device,
@@ -92,14 +91,13 @@ where
                 label,
             )),
             global,
-            cx,
             GPURenderBundleWrap::<D>,
         )
     }
 }
 
 impl<D: DomTypes> GPURenderBundle<D> {
-    pub fn id(&self) -> WebGPURenderBundle {
+    pub(crate) fn id(&self) -> WebGPURenderBundle {
         self.droppable.render_bundle
     }
 }

@@ -20,3 +20,9 @@ const label = 'elementwise_unary_op';
 kElementwiseUnaryOperators.forEach((operatorName) => {
   validateSingleInputOperation(operatorName, label);
 });
+
+kElementwiseUnaryOperators.forEach((operatorName) => {
+  validateOperandRank(operatorName, 'input', (builder, input) => {
+    return builder[operatorName](input);
+  });
+});

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#break">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-rows: repeat(2, 60px);
+    row-gap: 20px;
+    column-gap: 20px;
+    background: #cdd5e0;
+    width: max-content;
+  }
+  .lanes > div {
+    background: #5b8def;
+  }
+  .lanes > div.a { grid-row: 1; width: 60px; }
+  .lanes > div.b { grid-row: 2; width: 60px; }
+  .lanes > div.s { grid-row: 1 / span 2; width: 40px; background: transparent; }
+  .lanes > div.c { grid-row: 1; width: 60px; }
+  .lanes > div.d { grid-row: 2; width: 60px; }
+  .lanes > div.e { grid-row: 1; width: 60px; }
+  .lanes > div.f { grid-row: 2; width: 60px; }
+  .row-rule { position: absolute; height: 0; border-top: 4px solid gold; }
+  .col-rule { position: absolute; width: 0; border-left: 4px solid blue; }
+  .spanner-fill { position: absolute; background: rgb(138 109 240 / 0.35); }
+</style>
+<div class="lanes">
+  <div class="a"></div>
+  <div class="b"></div>
+  <div class="s"></div>
+  <div class="c"></div>
+  <div class="d"></div>
+  <div class="e"></div>
+  <div class="f"></div>
+</div>
+<div class="row-rule" style="top: 68px; left: 0; width: 60px;"></div>
+<div class="row-rule" style="top: 68px; left: 140px; width: 60px;"></div>
+<div class="row-rule" style="top: 68px; left: 220px; width: 60px;"></div>
+<div class="col-rule" style="left: 68px; top: 0; height: 60px;"></div>
+<div class="col-rule" style="left: 128px; top: 0; height: 60px;"></div>
+<div class="col-rule" style="left: 208px; top: 0; height: 60px;"></div>
+<div class="col-rule" style="left: 68px; top: 80px; height: 60px;"></div>
+<div class="col-rule" style="left: 128px; top: 80px; height: 60px;"></div>
+<div class="col-rule" style="left: 208px; top: 80px; height: 60px;"></div>
+<div class="spanner-fill" style="left: 80px; top: 0; width: 40px; height: 140px;"></div>

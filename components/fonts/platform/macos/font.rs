@@ -23,7 +23,7 @@ use objc2_core_text::{
     kCTFontSlantTrait, kCTFontSymbolicTrait, kCTFontWeightTrait, kCTFontWidthTrait,
 };
 use skrifa::Tag;
-use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
+use style::values::computed::font::{FontStyle, FontWeight, FontWidth};
 use webrender_api::{FontInstanceFlags, FontVariation};
 
 use super::core_text_font_cache::CoreTextFontCache;
@@ -63,7 +63,7 @@ pub struct PlatformFont {
     pub(crate) ctfont: CFRetained<CTFont>,
     variations: Vec<FontVariation>,
     h_kern_subtable: Option<CachedKernTable>,
-    synthetic_bold: bool,
+    pub(crate) synthetic_bold: bool,
 }
 
 // From https://developer.apple.com/documentation/coretext:
@@ -110,20 +110,15 @@ impl PlatformFont {
         font_identifier: FontIdentifier,
         data: Option<&FontData>,
         requested_size: Option<Au>,
-        variations: &[FontVariation],
         synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         let size = match requested_size {
             Some(s) => s.to_f64_px(),
             None => 0.0,
         };
-        let Some(mut platform_font) = CoreTextFontCache::core_text_font(
-            font_identifier,
-            data,
-            size,
-            variations,
-            synthetic_bold,
-        ) else {
+        let Some(mut platform_font) =
+            CoreTextFontCache::core_text_font(font_identifier, data, size, synthetic_bold)
+        else {
             return Err("Could not generate CTFont for FontTemplateData");
         };
 
@@ -252,31 +247,38 @@ impl PlatformFontMethods for PlatformFont {
         font_identifier: FontIdentifier,
         data: &FontData,
         requested_size: Option<Au>,
-        variations: &[FontVariation],
         synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
-        Self::new(
-            font_identifier,
-            Some(data),
-            requested_size,
-            variations,
-            synthetic_bold,
-        )
+        Self::new(font_identifier, Some(data), requested_size, synthetic_bold)
     }
 
     fn new_from_local_font_identifier(
         font_identifier: LocalFontIdentifier,
         requested_size: Option<Au>,
-        variations: &[FontVariation],
         synthetic_bold: bool,
     ) -> Result<PlatformFont, &'static str> {
         Self::new(
             FontIdentifier::Local(font_identifier),
             None,
             requested_size,
-            variations,
             synthetic_bold,
         )
+    }
+
+    /// Create a platform font with the given variations from a existing font.
+    ///
+    /// `self` is consumed to work around platform differences. On some platforms, changing the
+    /// variations requires creating an entirely new font face, whereas on others the returned
+    /// font is `self`.
+    fn copy_with_variations(
+        self,
+        font_identifier: &FontIdentifier,
+        variations: &[FontVariation],
+    ) -> Result<Self, &'static str> {
+        let mut platform_font =
+            CoreTextFontCache::add_variations_to_font(self, font_identifier, variations);
+        platform_font.load_h_kern_subtable();
+        Ok(platform_font)
     }
 
     fn descriptor(&self) -> FontTemplateDescriptor {
@@ -473,7 +475,7 @@ impl Font {
         // the value stored in the HTML lang attribute is a BCP 47 language tag. These two
         // formats are generally compatible, but we may need to make refinements here in
         // the future.
-        let language = if !options.language.is_empty() {
+        let language = if !options.language.is_unknown() {
             Some(&*CFString::from_str(options.language.as_str()))
         } else {
             None
@@ -544,8 +546,8 @@ pub(crate) fn font_template_descriptor_from_ctfont_attributes(
     // > The value returned is a CFNumberRef object representing a float between -1.0
     // > and 1.0. The value of 0.0 corresponds to regular glyph spacing, and negative
     // > values represent condensed glyph spacing.
-    let font_stretch = get_f64_trait(unsafe { kCTFontWidthTrait }).unwrap_or(0.);
-    let stretch = FontStretch::from_percentage(font_stretch as f32 + 1.0);
+    let font_width = get_f64_trait(unsafe { kCTFontWidthTrait }).unwrap_or(0.);
+    let width = FontWidth::from_percentage(font_width as f32 + 1.0);
 
-    FontTemplateDescriptor::new(weight, stretch, style)
+    FontTemplateDescriptor::new(weight, width, style)
 }

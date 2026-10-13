@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::TouchListBinding::TouchListMethods;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -30,7 +30,7 @@ impl TouchList {
         window: &Window,
         touches: &[&Touch],
     ) -> DomRoot<TouchList> {
-        reflect_dom_object_with_cx(Box::new(TouchList::new_inherited(touches)), window, cx)
+        reflect_dom_object(cx, Box::new(TouchList::new_inherited(touches)), window)
     }
 }
 

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>An absolutely positioned box is still relaid out after a scrollable descendant gains a scrollbar, in vertical-lr</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-3/#scrollbar-sizing">
+<style>
+/* Avoid auto scrollbars on the viewport, because that might trigger re-layout
+   (and thus hide bugs). */
+body { overflow: hidden; }
+
+/* Always-on scrollbars, so that the scrollbar below really does consume space and
+   change #scroller's content box. */
+#scroller::-webkit-scrollbar { width: 15px; height: 15px; }
+
+/* Same structure as abspos-relayout-with-scrollable-descendant.html, but in
+   vertical-lr, so the axes swap: it is a vertical scrollbar that consumes the flex
+   container's block-axis space, and the flex container's block size is its width.
+
+   The wrapper needs a definite block size of its own. It is orthogonal to the body,
+   so with an indefinite one it would be sized from its contents and would absorb the
+   scrollbar change before #flexContainer could. */
+#wrapper { writing-mode: vertical-lr; height: 800px; }
+
+#positionedInline { position: relative; }
+
+#inlineBlock { display: inline-block; height: 600px; vertical-align: top; }
+
+#flexContainer { display: flex; height: 500px; }
+
+#flexItem { flex: 0 0 auto; height: 100px; width: 30px; }
+
+#positionedFlexItem { position: relative; flex: 1 1 auto; }
+
+#scroller { position: absolute; top: 0; left: 0; height: 100%; width: 60px; overflow-y: auto; overflow-x: hidden; }
+#overflowingContent { height: 300px; width: 20px; }
+
+#targetContainingBlock { display: inline-block; position: relative; height: 300px; width: 120px; vertical-align: top; }
+#target { position: absolute; top: 0; left: 0; height: 100px; width: 20px; }
+</style>
+
+<div id="wrapper"><span id="positionedInline"><span id="inlineBlock"><div id="flexContainer"><div id="flexItem"></div><div id="positionedFlexItem"><div id="scroller"><div id="overflowingContent"></div></div></div></div></span><span id="targetContainingBlock"><div id="target"></div></span></span></div>
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+// #positionedFlexItem is 400px along the flex axis to begin with, so #scroller is
+// 400px and its 300px of content does not overflow.
+document.body.offsetHeight;
+
+// Growing #flexItem shrinks #positionedFlexItem, and therefore #scroller, to 50px.
+// The 300px of content now overflows, so a vertical scrollbar appears while
+// #flexContainer is being laid out.
+flexItem.style.height = "450px";
+document.body.offsetHeight;
+
+test(() => {
+    assert_greater_than(scroller.offsetWidth - scroller.clientWidth, 0,
+        "a vertical scrollbar should consume block-axis space in vertical-lr");
+}, "A vertical scrollbar appears inside the flex container during its layout");
+
+test(() => {
+    target.style.width = "80px";
+    assert_equals(target.offsetWidth, 80);
+}, "An out-of-flow box under the same positioned inline is relaid out after the scrollbar change");
+</script>

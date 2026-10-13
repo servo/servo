@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Natural dimensions of an SVG image with a height of 0</title>
+<link rel="help" href="https://drafts.csswg.org/css-images/#natural-dimensions">
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/6286#issuecomment-866986544">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#container { width: 740px; }
+#container img { display: block; }
+</style>
+<div id="container"></div>
+<div id="log"></div>
+<script>
+// A height of 0 is a natural height of 0 rather than an absent natural height,
+// so the natural width is derived from it and the natural aspect ratio. When the
+// image has a natural width of its own, that width and the ratio give the
+// natural height instead, superseding the 0.
+const cases = [
+  { attrs: "height='0' viewBox='0 0 600 200'", size: [0, 0] },
+  { attrs: "width='20' height='0' viewBox='0 0 50 100'", size: [20, 40] },
+];
+
+const container = document.getElementById("container");
+
+for (const { attrs, size } of cases) {
+  promise_test(async () => {
+    const src = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' ${attrs}></svg>`;
+    // Load the image first, so that it is already available when the img element
+    // is attached and a single layout has to get the size right.
+    await new Promise(resolve => {
+      const preload = new Image();
+      preload.addEventListener("load", resolve, { once: true });
+      preload.addEventListener("error", resolve, { once: true });
+      preload.src = src;
+    });
+
+    const img = document.createElement("img");
+    img.src = src;
+    container.appendChild(img);
+
+    assert_array_equals([img.offsetWidth, img.offsetHeight], size);
+  }, `<svg ${attrs}>`);
+}
+</script>

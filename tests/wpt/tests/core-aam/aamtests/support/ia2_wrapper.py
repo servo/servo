@@ -87,30 +87,11 @@ def to_ia2(node: IAccessiblePtr) -> IAccessible2Ptr:
     return service.QueryService(IAccessible._iid_, IAccessible2_2)
 
 
-class Ia2Wrapper(ApiWrapper[IAccessible2Ptr]):
+class Ia2Wrapper(ApiWrapper[IAccessible2Ptr, Any]):
 
     @property
     def api_name(self) -> str:
         return "IA2"
-
-    def find_node(self, dom_id: str, url: str) -> IAccessible2Ptr:
-        """
-        :param dom_id: The dom id of the node to test.
-        :param url: The url of the test.
-        """
-        if self.test_url != url or not self.document:
-            self.test_url = url
-            self.document = self._poll_for(
-                self._find_tab,
-                f"Timeout looking for url: {self.test_url}",
-            )
-
-        test_node = self._poll_for(
-            lambda: self._find_node_by_id(self.document, dom_id),
-            f"Timeout looking for node with id {dom_id} in accessibility API IA2.",
-        )
-
-        return test_node
 
     def get_hyperlink_interface(self, node: IAccessible2Ptr) -> IAccessibleHyperlinkPtr:
         service = node.QueryInterface(IServiceProvider)

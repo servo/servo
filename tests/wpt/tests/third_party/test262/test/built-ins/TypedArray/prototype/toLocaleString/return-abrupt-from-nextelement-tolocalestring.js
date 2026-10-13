@@ -36,11 +36,11 @@ Number.prototype.toLocaleString = function() {
 
 var arr = [42, 0];
 
-testWithTypedArrayConstructors(function(TA) {
+testWithTypedArrayConstructors(function(TA, makeCtorArg) {
   calls = 0;
-  var sample = new TA(arr);
+  var sample = new TA(makeCtorArg(arr));
   assert.throws(Test262Error, function() {
     sample.toLocaleString();
   });
   assert.sameValue(calls, 2, "abrupt from a next element");
-}, null, ["passthrough"]);
+});

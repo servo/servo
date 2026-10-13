@@ -8,21 +8,24 @@
   <script src="/resources/testdriver.js"></script>
   <script src="/resources/testdriver-actions.js"></script>
   <script src="/resources/testdriver-vendor.js"></script>
+  <script src="support/touch.js"></script>
 
   <script>
-    setup({explicit_done: true});
-
     function onEvent(target, eventName, validator) {
-      return new Promise((resolve) => {
+      return new Promise((resolve, reject) => {
         const listener = (event) => {
-          validator(event);
-          resolve();
+          try {
+            validator(event);
+            resolve();
+          } catch (e) {
+            reject(e);
+          }
         };
         target.addEventListener(eventName, listener, { once: true });
       });
     }
 
-    async function run() {
+    function run() {
       promise_test(async () => {
         const touchstart_promise = onEvent(document.documentElement,
                                            "touchstart", (event) => {
@@ -40,6 +43,12 @@
             "click clientY coordinates are correct in vertical-rl");
         });
 
+        // Wait until after the touchstart listener is registered so that the
+        // compositor commit both clears paint-holding input suppression and
+        // syncs the touch listener presence to the compositor thread before
+        // the tap is injected.
+        await waitTillReadyForTouchInput();
+
         const actions = new test_driver.Actions()
           .addPointer("touchPointer1", "touch")
           .pointerMove(10, 20)
@@ -48,7 +57,6 @@
 
         const actions_promise = actions.send();
         await Promise.all([actions_promise, click_promise, touchstart_promise]);
-        done();
       }, "touch & click events in vertical-rl mode have correct coordinates");
     }
   </script>

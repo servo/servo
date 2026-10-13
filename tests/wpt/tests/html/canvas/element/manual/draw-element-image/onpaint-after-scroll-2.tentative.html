@@ -22,8 +22,8 @@
   }
 </style>
 
-<canvas id="canvas" width="200" height="200" layoutsubtree>
-  <div id="scroller">
+<canvas id="canvas" width="200" height="200" content=drawable>
+  <div drawable id="scroller">
     <div id="scrolled"></div>
   </div>
 </canvas>
@@ -44,6 +44,7 @@
     canvas.onpaint = (event) => {
       onPaintCount++;
       lastChanged = event.changedElements;
+      ctx.drawElementImage(scroller, 0, 0);
     };
 
     // Request an initial paint.

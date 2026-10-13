@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG Test Reference</title>
+<style>
+  foreignObject { font: 20px/1.2 monospace; text-overflow: ellipsis; }
+</style>
+<p>Test passes if the text below is truncated with an ellipsis, and matches the reference.</p>
+<svg width="300" height="30" xmlns="http://www.w3.org/2000/svg">
+  <foreignObject width="100" height="24">overflowingwordoverflowingword</foreignObject>
+</svg>

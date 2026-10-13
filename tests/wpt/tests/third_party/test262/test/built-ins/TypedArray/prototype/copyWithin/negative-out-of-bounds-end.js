@@ -108,4 +108,4 @@ testWithTypedArrayConstructors(function(TA, makeCtorArg) {
     ),
     '[1, 2, 3, 4, 5].copyWithin(-7, -8, -Infinity) -> [1, 2, 3, 4, 5]'
   );
-});
+}, null, null, ["immutable"]);

@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use euclid::RigidTransform3D;
 use js::context::JSContext;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use webxr_api::{BaseSpace, Frame, InputId, Joint, JointFrame, Space};
 
 use crate::dom::bindings::codegen::Bindings::XRHandBinding::XRHandJoint;
@@ -49,10 +49,10 @@ impl XRJointSpace {
         joint: Joint,
         hand_joint: XRHandJoint,
     ) -> DomRoot<XRJointSpace> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(Self::new_inherited(session, input, joint, hand_joint)),
             global,
-            cx,
         )
     }
 

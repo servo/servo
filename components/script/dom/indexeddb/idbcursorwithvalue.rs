@@ -5,7 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::MutableHandleValue;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use storage_traits::indexeddb::IndexedDBKeyRange;
 
 use crate::dom::bindings::codegen::Bindings::IDBCursorBinding::IDBCursorDirection;
@@ -54,7 +54,8 @@ impl IDBCursorWithValue {
         range: IndexedDBKeyRange,
         key_only: bool,
     ) -> DomRoot<IDBCursorWithValue> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(IDBCursorWithValue::new_inherited(
                 transaction,
                 direction,
@@ -64,7 +65,6 @@ impl IDBCursorWithValue {
                 key_only,
             )),
             global,
-            cx,
         )
     }
 }

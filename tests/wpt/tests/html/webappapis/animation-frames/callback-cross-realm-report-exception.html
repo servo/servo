@@ -20,10 +20,12 @@ async_test(t => {
     frames[0].requestAnimationFrame(new frames[1].Function(`throw new parent.frames[2].Error("PASS");`));
     document.querySelector("iframe").height = 200;
 
-    t.step_timeout(() => {
-      assert_array_equals(onerrorCalls, ["frame1"]);
-      t.done();
-    }, 100);
+    t.step_wait_func(() => onerrorCalls.length > 0, () => {
+      t.step_timeout(() => {
+        assert_array_equals(onerrorCalls, ["frame1"]);
+        t.done();
+      }, 100);
+    });
   });
 });
 </script>

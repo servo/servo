@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<html>
+<head>
+<script>
+    function onloadScrollTop() {
+        // Scroll until we see the grid item's border but not the grid item
+        window.scrollBy(0, -150);
+    }
+</script>
+</head>
+<body style="height: 1000px" onload="onloadScrollTop()">
+
+<div style="height: 200px; width: 100px; background-color:purple">
+  <div style="height: 100px; width: 100px; background-color: orange"></div>
+  <div style="height: 100px; width: 100px; background-color: green"></div>
+</div>
+
+<div>There should be a 100px wide green box (grid item's border) above</div>
+
+<script>
+    window.scrollTo(0,300);
+</script>
+</body>
+</html>

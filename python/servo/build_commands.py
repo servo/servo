@@ -301,9 +301,17 @@ class MachCommands(CommandBase):
             env["TARGET_CFLAGS"] += " -fsanitize=address"
             env["TARGET_CXXFLAGS"] += " -fsanitize=address"
 
-            # asan replaces system allocator with asan allocator
-            # we need to make sure that we do not replace it with jemalloc
-            self.features.append("servo-allocator/use-system-allocator")
+            # Servoshell enables a statically linked `jemalloc` by default, but we want to use libc malloc with ASAN,
+            # hence we use the default configuration without the custom allocator.
+            if "--no-default-features" not in opts:
+                opts += ["--no-default-features"]
+                self.features.append("default_without_allocator")
+            else:
+                print(
+                    "Info: Explicit `--no-default-features` passed in an ASAN build."
+                    " Skipping `mach` override of default features. If you are not sure what"
+                    " you are doing, consider removing `--no-default-features` from your invocation."
+                )
         elif sanitizer.is_tsan():
             if target_triple not in SUPPORTED_TSAN_TARGETS:
                 print(

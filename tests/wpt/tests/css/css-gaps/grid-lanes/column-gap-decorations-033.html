@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<title>CSS Gap Decorations: stacking-axis rules before a spanning item are generated per track in column grid-lanes</title>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/">
+<link rel="match" href="column-gap-decorations-033-ref.html">
+<style>
+  body { margin: 0; }
+  .lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(2, 60px);
+    gap: 10px;
+    background: #cdd5e0;
+    width: max-content;
+    column-rule: 4px solid blue;
+    row-rule: 4px solid gold;
+  }
+  .lanes > div {
+    height: 40px;
+    background: #5b8def;
+    color: #fff;
+    font: 600 12px/1 sans-serif;
+  }
+  .first { grid-column: 1; }
+  .spanner { grid-column: 1 / -1; }
+</style>
+<div class="lanes">
+  <div class="first">A</div>
+  <div class="spanner">X (span 2)</div>
+</div>

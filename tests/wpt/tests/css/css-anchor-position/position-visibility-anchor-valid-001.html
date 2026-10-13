@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" href="mailto:masonf@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#position-visibility">
+<link rel="match" href="position-visibility-anchor-valid-001-ref.html">
+
+<style>
+.container {
+  position: relative;
+  width: 50px;
+  height: 100px;
+  display: inline-grid;
+  vertical-align: top;
+  margin: 5px;
+}
+.anchor {
+  width: 50px;
+  height: 50px;
+  background: orange;
+}
+.red {
+  background: red;
+}
+.green {
+  background: green;
+}
+.target {
+  position: absolute;
+  position-visibility: anchor-valid;
+  width: 50px;
+  height: 50px;
+}
+</style>
+
+<!-- Case 1: anchor() with valid default anchor -->
+<div class="container red">
+  <div class="anchor" style="anchor-name: --a1;"></div>
+  <div class="target green" style="position-anchor: --a1; top: anchor(bottom); left: 0;"></div>
+</div>
+
+<!-- Case 2: anchor() with invalid default anchor -->
+<div class="container green">
+  <div class="anchor"></div>
+  <div class="target red" style="position-anchor: --missing; top: anchor(bottom, 50px); left: 0;"></div>
+</div>
+
+<!-- Case 3: anchor-size() with valid default anchor -->
+<div class="container red">
+  <div class="anchor" style="anchor-name: --a3;"></div>
+  <div class="target green" style="position-anchor: --a3; top: 50px; left: 0; width: anchor-size(width); height: 50px;"></div>
+</div>
+
+<!-- Case 4: anchor-size() with invalid default anchor -->
+<div class="container green">
+  <div class="anchor"></div>
+  <div class="target red" style="position-anchor: --missing; top: 50px; left: 0; width: anchor-size(width, 50px); height: 50px;"></div>
+</div>
+
+<!-- Case 5: justify-self: anchor-center with valid default anchor -->
+<div class="container red">
+  <div class="anchor" style="anchor-name: --a5;"></div>
+  <div class="target green" style="position-anchor: --a5; top: 50px; left: 0; right: 0; justify-self: anchor-center;"></div>
+</div>
+
+<!-- Case 6: justify-self: anchor-center with invalid default anchor -->
+<div class="container green">
+  <div class="anchor"></div>
+  <div class="target red" style="position-anchor: --missing; top: 50px; left: 0; right: 0; justify-self: anchor-center;"></div>
+</div>
+
+<!-- Case 7: anchor(--explicit) with invalid default anchor (default anchor not referenced) -->
+<div class="container red">
+  <div class="anchor" style="anchor-name: --explicit;"></div>
+  <div class="target green" style="position-anchor: --missing; top: anchor(--explicit bottom); left: 0;"></div>
+</div>
+
+<!-- Case 8: no anchor reference with invalid default anchor -->
+<div class="container red">
+  <div class="anchor"></div>
+  <div class="target green" style="position-anchor: --missing; top: 50px; left: 0;"></div>
+</div>
+
+<!-- Case 9: position-area with valid default anchor -->
+<div class="container red">
+  <div class="anchor" style="anchor-name: --a9;"></div>
+  <div class="target green" style="position-anchor: --a9; position-area: bottom; inset: 0;"></div>
+</div>
+
+<!-- Case 10: position-area with invalid default anchor -->
+<div class="container green">
+  <div class="anchor"></div>
+  <div class="target red" style="position-anchor: --missing; position-area: bottom; inset: 0;"></div>
+</div>
+
+<!-- Case 11: anchor-size(--explicit) with invalid default anchor (default anchor not referenced) -->
+<div class="container red">
+  <div class="anchor" style="anchor-name: --explicit11;"></div>
+  <div class="target green" style="position-anchor: --missing; top: 50px; left: 0; width: anchor-size(--explicit11 width); height: 50px;"></div>
+</div>
+
+<!-- Case 12: anchor() with valid default anchor, plus anchor(--missing) that doesn't resolve -->
+<div class="container red">
+  <div class="anchor" style="anchor-name: --a12;"></div>
+  <div class="target green" style="position-anchor: --a12; top: anchor(--missing bottom, 50px); left: anchor(left);"></div>
+</div>
+
+<!-- Case 13: anchor-size() with valid default anchor, plus anchor-size(--missing) that doesn't resolve -->
+<div class="container red">
+  <div class="anchor" style="anchor-name: --a13;"></div>
+  <div class="target green" style="position-anchor: --a13; top: 50px; left: 0; width: anchor-size(--missing width, 50px); height: anchor-size(height);"></div>
+</div>

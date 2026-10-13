@@ -33,13 +33,3 @@ async def release_actions(bidi_session, top_context):
 async def setup_key_test(load_static_test_page, get_focused_key_input):
     await load_static_test_page(page="test_actions.html")
     await get_focused_key_input()
-
-
-@pytest_asyncio.fixture
-async def setup_wheel_test(bidi_session, top_context, load_static_test_page):
-    await load_static_test_page(page="test_actions_scroll.html")
-    await bidi_session.script.evaluate(
-        expression="document.scrollingElement.scrollTop = 0",
-        target=ContextTarget(top_context["context"]),
-        await_promise=False,
-    )

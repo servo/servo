@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8">
+<title>SVG fragment identifier: transform() inside svgView()</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/linking.html#SVGFragmentIdentifiersDefinitions">
+<link rel="match" href="svgview-terracotta-100x100-ref.html">
+<meta name="assert" content="TransformParams in an svgView() specification are the parameter values of the transform property. scale(2) doubles the view, so with the authored viewBox of 0 0 200 200 only the top-left quadrant remains inside the viewport and fills it.">
+
+<!--
+support/squares.svg is 200x200 with four solid quadrants:
+
+        #d46847 terracotta | #2a9d8f teal
+        #264653 indigo     | #e9c46a sand
+
+  No viewBox() in the fragment, so the root viewBox of 0 0 200 200 still applies and
+  scale(2) is the only change. The terracotta quadrant occupies 0,0 to 100,100, which
+  after doubling covers the whole viewport. A four-colour rendering means transform()
+  was ignored.
+-->
+
+<style>
+  body { margin: 0; }
+  img { display: block; border: none; }
+</style>
+
+<img src="support/squares.svg#svgView(transform(scale(2)))" width="100" height="100" alt="">

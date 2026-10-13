@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<title>Path data error handling: geometry of the rendered prefix</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/paths.html#PathDataErrorHandling">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg id="svg" width="200" height="200"></svg>
+<script>
+// Error handling in path data is normative and long-standing: render up to (but not
+// including) the path command containing the first error, and for a command with an
+// incorrect set of parameters, up to and including the last correctly defined segment.
+//
+// svg/path/error-handling/render-until-error.svg covers the rendering with a reftest
+// and bounding.svg covers the container's bounding box. Neither checks getTotalLength(),
+// which is the observable showing the DOM geometry reports the same prefix that is
+// drawn rather than an empty or initial value.
+//
+// Every case is asserted against an explicitly truncated path rather than against
+// hardcoded coordinates, so the test states "the erroring path is the truncated path"
+// without depending on how the implementation rounds lengths.
+
+const svg = document.getElementById("svg");
+
+function path(d) {
+    const element = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    if (d !== null)
+        element.setAttribute("d", d);
+    element.setAttribute("fill", "none");
+    svg.append(element);
+    return element;
+}
+
+function assertSameGeometry(actual, expected, description) {
+    assert_equals(actual.getTotalLength(), expected.getTotalLength(),
+        description + ": getTotalLength");
+    const a = actual.getBBox();
+    const b = expected.getBBox();
+    assert_equals(a.x, b.x, description + ": bbox x");
+    assert_equals(a.y, b.y, description + ": bbox y");
+    assert_equals(a.width, b.width, description + ": bbox width");
+    assert_equals(a.height, b.height, description + ": bbox height");
+}
+
+test(function() {
+    const errored = path("M10,10 L70,10 L40,50 BOGUS L20,40");
+    const truncated = path("M10,10 L70,10 L40,50");
+
+    // Guard against both being empty, which would make the comparison vacuous.
+    assert_greater_than(truncated.getTotalLength(), 0, "the truncated path has length");
+
+    assertSameGeometry(errored, truncated, "unrecognized content after a complete segment");
+}, "Path data with an error renders up to the command containing it");
+
+test(function() {
+    // The example given in the specification: "there is an odd number of parameters
+    // for the L command, which requires an even number of parameters. The user agent
+    // is required to draw the line from (10,10) to (20,20)".
+    const errored = path("M10,10 L20,20,30");
+    const truncated = path("M10,10 L20,20");
+
+    assert_greater_than(truncated.getTotalLength(), 0, "the truncated path has length");
+
+    assertSameGeometry(errored, truncated, "incorrect set of parameters");
+}, "A path data command with an incorrect set of parameters renders up to the last correctly defined segment");
+
+test(function() {
+    const errored = path("BOGUS M10,10 L70,10 L40,50");
+
+    assert_equals(errored.getTotalLength(), 0, "getTotalLength");
+    const bbox = errored.getBBox();
+    assert_equals(bbox.width, 0, "bbox width");
+    assert_equals(bbox.height, 0, "bbox height");
+}, "Path data whose first command is in error renders nothing");
+
+test(function() {
+    for (const d of ["", "none", "# invalid"]) {
+        const element = path(d);
+        assert_equals(element.getTotalLength(), 0, "getTotalLength for d=" + JSON.stringify(d));
+        const bbox = element.getBBox();
+        assert_equals(bbox.width, 0, "bbox width for d=" + JSON.stringify(d));
+        assert_equals(bbox.height, 0, "bbox height for d=" + JSON.stringify(d));
+    }
+}, "Path data that is empty or wholly invalid renders nothing");
+
+test(function() {
+    const element = path(null);
+
+    assert_equals(element.getAttribute("d"), null, "the attribute is absent");
+    assert_equals(element.getTotalLength(), 0, "getTotalLength");
+    const bbox = element.getBBox();
+    assert_equals(bbox.width, 0, "bbox width");
+    assert_equals(bbox.height, 0, "bbox height");
+}, "A path with no d attribute renders nothing");
+
+test(function() {
+    const d = "M10,10 L70,10 L40,50 BOGUS L20,40";
+    const element = path(d);
+
+    assert_equals(element.getAttribute("d"), d,
+        "the content attribute keeps what was specified");
+}, "Path data in error does not rewrite the content attribute");
+</script>

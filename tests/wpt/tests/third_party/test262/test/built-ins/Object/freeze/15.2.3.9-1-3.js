@@ -8,5 +8,5 @@ description: >
     boolean primitive
 ---*/
 
-Object.freeze(false);
-Object.freeze(true);
+assert.sameValue(Object.freeze(false), false);
+assert.sameValue(Object.freeze(true), true);

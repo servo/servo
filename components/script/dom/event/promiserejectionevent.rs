@@ -2,8 +2,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::rc::Rc;
-
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsapi::{Heap, JSObject};
@@ -13,13 +11,13 @@ use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::EventBinding::EventMethods;
-use crate::dom::bindings::codegen::Bindings::PromiseRejectionEventBinding;
-use crate::dom::bindings::codegen::Bindings::PromiseRejectionEventBinding::PromiseRejectionEventMethods;
+use crate::dom::bindings::codegen::Bindings::PromiseRejectionEventBinding::{
+    PromiseRejectionEventInit, PromiseRejectionEventMethods,
+};
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{AsHandleValue, DomRoot};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::bindings::trace::RootedTraceableBox;
 use crate::dom::event::{Event, EventBubbles, EventCancelable};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
@@ -48,7 +46,7 @@ impl PromiseRejectionEvent {
         type_: Atom,
         bubbles: EventBubbles,
         cancelable: EventCancelable,
-        promise: Rc<Promise>,
+        promise: &Promise,
         reason: HandleValue,
     ) -> DomRoot<Self> {
         Self::new_with_proto(
@@ -63,7 +61,7 @@ impl PromiseRejectionEvent {
         )
     }
 
-    #[allow(clippy::too_many_arguments)]
+    #[expect(clippy::too_many_arguments)]
     fn new_with_proto(
         cx: &mut JSContext,
         global: &GlobalScope,
@@ -94,14 +92,14 @@ impl PromiseRejectionEvent {
 
 impl PromiseRejectionEventMethods<crate::DomTypeHolder> for PromiseRejectionEvent {
     /// <https://html.spec.whatwg.org/multipage/#promiserejectionevent>
+    #[expect(unsafe_code)]
     fn Constructor(
         cx: &mut JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         type_: DOMString,
-        init: RootedTraceableBox<PromiseRejectionEventBinding::PromiseRejectionEventInit>,
+        init: &PromiseRejectionEventInit,
     ) -> Fallible<DomRoot<Self>> {
-        let reason = init.reason.handle();
         let bubbles = EventBubbles::from(init.parent.bubbles);
         let cancelable = EventCancelable::from(init.parent.cancelable);
 
@@ -112,8 +110,8 @@ impl PromiseRejectionEventMethods<crate::DomTypeHolder> for PromiseRejectionEven
             Atom::from(type_),
             bubbles,
             cancelable,
-            init.promise.handle(),
-            reason,
+            unsafe { HandleObject::from_raw(init.promise.handle()) },
+            init.reason.as_handle_value(),
         );
         Ok(event)
     }

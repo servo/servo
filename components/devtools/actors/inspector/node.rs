@@ -392,7 +392,7 @@ impl From<EventListenerInfo> for DevtoolsEventListenerInfo {
             handler: "todo".to_owned(),
             capturing: event_listener_info.capturing,
             origin: "todo".to_owned(),
-            tags: "".to_owned(),
+            tags: String::new(),
             hide: Value::Object(Default::default()),
             native: false,
             source_actor: "todo".to_owned(),

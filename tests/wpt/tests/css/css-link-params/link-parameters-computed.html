@@ -1,6 +1,4 @@
 <!DOCTYPE html>
-<html>
-<head>
 <meta charset="utf-8">
 <title>CSS Linked Parameters Module Level 1: getComputedStyle().linkParameters</title>
 <link rel="author" title="Tyler Thrailkill" href="mailto:tyler@programming.dev">
@@ -9,7 +7,13 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/computed-testcommon.js"></script>
-</head>
+<style>
+:root {
+  --custom: 1;
+  --one: var(--two);
+  --two: var(--one);
+}
+</style>
 <body>
 <div id="target"></div>
 <script>
@@ -17,9 +21,15 @@
 
     test_computed_value("link-parameters", "param(--a, orange)");
     test_computed_value("link-parameters", "param(--a, orange), param(--b, blue)");
+    test_computed_value("link-parameters", "param(--b, 1), param(--a, 2), param(--b, 3)");
+    test_computed_value("link-parameters", 'param(ident("--a"), orange)', "param(--a, orange)");
 
     test_computed_value("link-parameters", "param(--a, )");
     test_computed_value("link-parameters", "param(--a, ), param(--b, )");
+
+    test_computed_value("link-parameters", "param(--a, var(--custom))", "param(--a, 1)");
+    test_computed_value("link-parameters", "param(--a, var(--missing))", "none");
+    test_computed_value("link-parameters", "param(--a, var(--missing, blue))", "param(--a, blue)");
+    test_computed_value("link-parameters", "param(--a, var(--one))", "none");
+    test_computed_value("link-parameters", "param(var(--one), orange)", "none");
 </script>
-</body>
-</html>

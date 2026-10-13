@@ -11,7 +11,7 @@ CHANNEL="$2"
 
 run_infra_test() {
     echo "### Running Infrastructure Tests for $1 ###"
-    ./tools/ci/taskcluster-run.py "$1" "$2" -- --log-tbpl=- --log-wptreport="../artifacts/wptreport-$1.json" --logcat-dir="../artifacts/" --metadata=infrastructure/metadata/ --include=infrastructure/
+    ./tools/ci/taskcluster-run.py "$1" "$2" -- --log-tbpl=- --log-wptreport=../artifacts/wpt_report.json --logcat-dir="../artifacts/" --metadata=infrastructure/metadata/ --include=infrastructure/
 }
 
 main() {

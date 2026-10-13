@@ -33,4 +33,6 @@ test_computed_value("corner", "4px 2% squircle / round 2px", "4px 2% superellips
 test_computed_value("corner", "4px bevel / superellipse(-3) 1em / 2px notch", "4px superellipse(0) / 16px superellipse(-3) / 2px superellipse(-infinity)");
 test_computed_value("corner", "4px bevel / superellipse(-3) 1em / 2px notch / normal", "4px superellipse(0) / 16px superellipse(-3) / 2px superellipse(-infinity) / normal");
 test_computed_value("corner", "4px superellipse(5) / notch 1em / 2px 13% round / bevel 10px", "4px superellipse(5) / 16px superellipse(-infinity) / 2px 13% superellipse(1) / 10px superellipse(0)");
+test_computed_value("corner", "0px notch", "0px superellipse(-infinity)");
+test_computed_value("corner", "0px superellipse(1)", "normal");
 </script>

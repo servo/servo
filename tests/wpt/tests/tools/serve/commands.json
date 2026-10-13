@@ -5,6 +5,7 @@
     "parser": "get_parser",
     "help": "Run wptserve server",
     "virtualenv": true,
+    "requirements": ["requirements.txt"],
     "conditional_requirements": {
       "commandline_flag": {
         "webtransport_h3": [
@@ -22,6 +23,6 @@
     "parser": "get_parser",
     "help": "Run wptserve server for WAVE",
     "virtualenv": true,
-    "requirements": ["../wave/requirements.txt"]
+    "requirements": ["requirements.txt", "../wave/requirements.txt"]
   }
 }

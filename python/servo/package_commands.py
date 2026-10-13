@@ -257,9 +257,15 @@ class PackageCommands(CommandBase):
             ohos_libs_dir = path.join(ohos_target_dir, "entry", "libs", abi_string)
             os.makedirs(ohos_libs_dir)
             # The libservoshell.so binary that was built needs to be copied
-            # into the app folder heirarchy where hvigor expects it.
+            # into the app folder hierarchy where hvigor expects it.
             print(f"Copying {binary_path} to {ohos_libs_dir}")
             shutil.copy(binary_path, ohos_libs_dir)
+            # This includes `libc++` and in the future also potentially sanitizer libraries
+            # and maybe could also include shared library dependencies from our build, if
+            # we support building some dependencies as shared libraries in the future.
+            for runtime_library in self.target.runtime_libraries():
+                print(f"Copying {runtime_library} to {ohos_libs_dir}")
+                shutil.copy(runtime_library, ohos_libs_dir)
             try:
                 with cd(ohos_target_dir):
                     print("Calling", hvigor_command)

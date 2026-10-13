@@ -22,12 +22,12 @@ use crate::dom::cryptokey::{CryptoKey, Handle};
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::subtlecrypto::aes_common::AesAlgorithm;
 use crate::dom::subtlecrypto::{
-    ExportedKey, SubtleAeadParams, SubtleAesDerivedKeyParams, SubtleAesKeyGenParams, aes_common,
+    AeadParams, AesDerivedKeyParams, AesKeyGenParams, ExportedKey, aes_common,
 };
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-encrypt>
 pub(crate) fn encrypt(
-    normalized_algorithm: &SubtleAeadParams,
+    normalized_algorithm: &AeadParams,
     key: &CryptoKey,
     plaintext: &[u8],
 ) -> Result<Vec<u8>, Error> {
@@ -244,7 +244,7 @@ where
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-decrypt>
 pub(crate) fn decrypt(
-    normalized_algorithm: &SubtleAeadParams,
+    normalized_algorithm: &AeadParams,
     key: &CryptoKey,
     ciphertext: &[u8],
 ) -> Result<Vec<u8>, Error> {
@@ -475,14 +475,14 @@ where
 pub(crate) fn generate_key(
     cx: &mut JSContext,
     global: &GlobalScope,
-    normalized_algorithm: &SubtleAesKeyGenParams,
+    normalized_algorithm: &AesKeyGenParams,
     extractable: bool,
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     aes_common::generate_key(
-        AesAlgorithm::AesOcb,
         cx,
         global,
+        AesAlgorithm::AesOcb,
         normalized_algorithm,
         extractable,
         usages,
@@ -499,9 +499,9 @@ pub(crate) fn import_key(
     usages: Vec<KeyUsage>,
 ) -> Result<DomRoot<CryptoKey>, Error> {
     aes_common::import_key(
-        AesAlgorithm::AesOcb,
         cx,
         global,
+        AesAlgorithm::AesOcb,
         format,
         key_data,
         extractable,
@@ -516,7 +516,7 @@ pub(crate) fn export_key(format: KeyFormat, key: &CryptoKey) -> Result<ExportedK
 
 /// <https://wicg.github.io/webcrypto-modern-algos/#aes-ocb-operations-get-key-length>
 pub(crate) fn get_key_length(
-    normalized_derived_key_algorithm: &SubtleAesDerivedKeyParams,
+    normalized_derived_key_algorithm: &AesDerivedKeyParams,
 ) -> Result<Option<u32>, Error> {
     aes_common::get_key_length(normalized_derived_key_algorithm)
 }

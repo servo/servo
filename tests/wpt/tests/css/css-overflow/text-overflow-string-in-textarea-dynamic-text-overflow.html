@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>text-overflow: &lt;string&gt; set on a textarea after layout</title>
+<link rel="author" title="Minseong Kim" href="jja08111@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#text-overflow">
+<link rel="mismatch" href="text-overflow-in-textarea-notref.html">
+<meta name="assert" content="Changing text-overflow on a textarea after it has been laid out renders the text-overflow string.">
+<style>
+textarea {
+  white-space: nowrap;
+  /* text-overflow: clip; is default */
+}
+</style>
+<textarea>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</textarea>
+<script>
+const textarea = document.querySelector('textarea');
+requestAnimationFrame(() => {
+  textarea.style.textOverflow = '"[...]"';
+  requestAnimationFrame(() => {
+    document.documentElement.classList.remove('reftest-wait');
+  });
+});
+</script>
+</html>

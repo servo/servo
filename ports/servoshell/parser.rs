@@ -43,7 +43,7 @@ pub fn get_default_url(
                 new_url = cmdline_url;
             },
             (scheme, None, Err(_)) if is_localhost(scheme) || is_domain_like(scheme) => {
-                new_url = ServoUrl::parse(&format!("http://{}:{}", scheme, &url.path())).ok();
+                new_url = ServoUrl::parse(&format!("http://{}:{}", scheme, url.path())).ok();
             },
             _ => {},
         }
@@ -75,7 +75,7 @@ pub(crate) fn location_bar_input_to_url(request: &str, searchpage: &str) -> Opti
     if let Some(url) = input_url {
         match (url.scheme(), url.host(), url.to_file_path()) {
             (scheme, None, Err(_)) if is_localhost(scheme) || is_domain_like(scheme) => {
-                ServoUrl::parse(&format!("http://{}:{}", scheme, &url.path())).ok()
+                ServoUrl::parse(&format!("http://{}:{}", scheme, url.path())).ok()
             },
             _ => Some(url),
         }

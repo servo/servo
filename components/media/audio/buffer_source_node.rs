@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::Arc;
+
 use malloc_size_of_derive::MallocSizeOf;
 
 use crate::audio_node::{
@@ -15,7 +17,7 @@ use crate::param::{Param, ParamType};
 #[derive(Debug, Clone, MallocSizeOf)]
 pub enum AudioBufferSourceNodeMessage {
     /// Set the data block holding the audio sample data to be played.
-    SetBuffer(Option<AudioBuffer>),
+    SetBuffer(#[conditional_malloc_size_of] Option<Arc<AudioBuffer>>),
     /// Set loop parameter.
     SetLoopEnabled(bool),
     /// Set loop parameter.
@@ -63,7 +65,7 @@ impl Default for AudioBufferSourceNodeOptions {
 pub(crate) struct AudioBufferSourceNode {
     channel_info: ChannelInfo,
     /// A data block holding the audio sample data to be played.
-    buffer: Option<AudioBuffer>,
+    buffer: Option<Arc<AudioBuffer>>,
     /// How many more buffer-frames to output. See buffer_pos for clarification.
     buffer_duration: f64,
     /// "Index" of the next buffer frame to play. "Index" is in quotes because
@@ -107,7 +109,7 @@ impl AudioBufferSourceNode {
     pub fn new(options: AudioBufferSourceNodeOptions, channel_info: ChannelInfo) -> Self {
         Self {
             channel_info,
-            buffer: options.buffer,
+            buffer: options.buffer.map(Arc::new),
             buffer_pos: 0.,
             detune: Param::new_krate(options.detune),
             initialized_pos: false,

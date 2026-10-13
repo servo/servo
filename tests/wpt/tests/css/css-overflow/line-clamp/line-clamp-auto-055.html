@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp auto after clamped content changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-auto-055-ref.html">
+<meta name="assert" content="Changing content after the current automatic clamp target does not leave stale clamp state.">
+<script src="/common/reftest-wait.js"></script>
+<style>
+.clamp {
+  line-clamp: auto;
+  max-height: 3lh;
+  font: 20px / 20px monospace;
+  width: 10ch;
+  background: yellow;
+}
+.hidden-change {
+  font-size: 20px;
+}
+.final {
+  font-size: 40px;
+}
+</style>
+<div class="clamp">
+  Line 1<br>
+  Line 2<br>
+  Line 3<br>
+  <span class="hidden-change">Line four wraps</span><br>
+  Line 5
+</div>
+<script>
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  document.querySelector(".hidden-change").classList.add("final");
+  takeScreenshot();
+}));
+</script>

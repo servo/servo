@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#grid-item-sizing">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="match" href="grid-item-aspect-ratio-percent-width-001-ref.html">
+<meta name="assert" content="A grid container with a percentage width and aspect-ratio: 1 gets a square size, and place-items: center centers its content in both axes.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+.container {
+  width: 200px;
+  border: solid;
+}
+
+.grid {
+  display: grid;
+  place-items: center;
+
+  width: 100%;
+  aspect-ratio: 1;
+
+  background-color: cyan;
+
+  font-family: Ahem;
+  font-size: 20px;
+}
+</style>
+<!-- PASS if the text content is centered both horizontally and vertically -->
+<div class=container><div class=grid>centered</div></div>

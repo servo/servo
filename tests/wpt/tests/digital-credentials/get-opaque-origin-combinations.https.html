@@ -97,6 +97,18 @@
           <\/script>`;
         },
       ],
+      [
+        "plain iframe nested inside a Content-Security-Policy: sandbox document (CSP-derived flags propagate)",
+        (frame, id) => {
+          frame.src = SUPPORT + "dc-nest-csp-sandbox.html?id=" + id;
+        },
+      ],
+      [
+        "allow-same-origin iframe nested inside a Content-Security-Policy: sandbox document (cannot escape)",
+        (frame, id) => {
+          frame.src = SUPPORT + "dc-nest-csp-sandbox.html?id=" + id + "&child=aso";
+        },
+      ],
     ];
     OPAQUE.forEach(([label, configure], index) => {
       promise_test(

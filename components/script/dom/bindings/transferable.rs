@@ -9,12 +9,11 @@ use std::hash::Hash;
 
 use rustc_hash::FxHashMap;
 use script_bindings::reflector::DomObject;
-use script_bindings::structuredclone::MarkedAsTransferableInIdl;
+use script_bindings::structuredclone::{MarkedAsTransferableInIdl, StructuredData};
 use servo_base::id::NamespaceIndex;
 
 use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
-use crate::dom::bindings::structuredclone::StructuredData;
 use crate::dom::globalscope::GlobalScope;
 
 pub(crate) trait Transferable: DomObject + MarkedAsTransferableInIdl

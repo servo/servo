@@ -27,10 +27,15 @@ def test_atspi(atspi, session, inline):
 #     # Role: IA2_ROLE_LEVEL_BAR
 #     # Interface: IAccessibleValue
 
-# def test_uia(uia, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # Control Type: ProgressBar
-#     # Localized Control Type: meter
-#     # Control Pattern: RangeValue
+def test_uia(uia, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Control Type: ProgressBar
+    # Localized Control Type: meter
+    # Control Pattern: RangeValue
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.ProgressBar
+    assert node.CurrentLocalizedControlType == "meter"
+    assert node.GetCurrentPropertyValue(uia.PropertyId.IsRangeValuePatternAvailable)

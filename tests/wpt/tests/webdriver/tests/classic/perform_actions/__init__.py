@@ -1,3 +1,23 @@
+import pytest
+
+from tests.support.sync import Poll
+
+
+def assert_scroll_position(session, element, delta_x, delta_y):
+    def check(_):
+        scroll_left = element.property("scrollLeft")
+        scroll_top = element.property("scrollTop")
+        assert scroll_left == pytest.approx(delta_x, abs=1.0), (
+            f"scrollLeft: expected {delta_x}, got {scroll_left}"
+        )
+        assert scroll_top == pytest.approx(delta_y, abs=1.0), (
+            f"scrollTop: expected {delta_y}, got {scroll_top}"
+        )
+
+    wait = Poll(session, timeout=2)
+    wait.until(check)
+
+
 def perform_actions(session, actions):
     return session.transport.send(
         "POST",

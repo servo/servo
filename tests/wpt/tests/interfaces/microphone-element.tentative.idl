@@ -1,0 +1,12 @@
+[Exposed=Window]
+interface HTMLMicrophoneElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
+  readonly attribute MediaStreamTrack? track;
+  readonly attribute DOMException? error;
+
+  attribute EventHandler ontrack;
+  attribute EventHandler oncancel;
+  attribute EventHandler onerror;
+};
+

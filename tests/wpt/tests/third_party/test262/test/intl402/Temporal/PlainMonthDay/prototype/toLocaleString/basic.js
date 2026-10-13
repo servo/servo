@@ -28,6 +28,7 @@ info: |
            d. Perform ! CreateDataPropertyOrThrow(result, ! ToString(𝔽(n)), O).
            e. Increment n by 1.
     5. Return result.
+features: [Temporal]
 locale: [en-US, de-AT]
 ---*/
 

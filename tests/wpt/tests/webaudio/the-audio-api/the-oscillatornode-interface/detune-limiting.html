@@ -42,7 +42,7 @@
         assert_greater_than_equal(
             refOsc.frequency.value,
             context.sampleRate / 2,
-            'Reference oscillator frequency should be ≥ Nyquist'
+            'Reference oscillator frequency should be >= Nyquist'
         );
         assert_constant_value(
             expected,

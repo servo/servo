@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="L. David Baron" href="https://dbaron.org/">
+<link rel="author" title="Google" href="http://www.google.com/">
+<link rel="help" href="https://open-ui.org/components/interest-invokers.explainer">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  .container {
+    margin: 50px;
+  }
+  ::interest-button {
+    content: "";
+    display: inline-block;
+    width: 60px;
+    height: 40px;
+  }
+</style>
+
+<div class="container">
+  <menubar>
+    <submenu>
+      <menuitem id="implicit-menuitem">Implicit Submenu Trigger</menuitem>
+      <menulist id="implicit-submenu">
+        <menuitem>Item</menuitem>
+      </menulist>
+    </submenu>
+  </menubar>
+</div>
+
+<div id="target" popover>Popover</div>
+
+<div class="container">
+  <menubar>
+    <submenu>
+      <menuitem id="explicit-menuitem" interestfor="target">Explicit MenuItem Trigger</menuitem>
+      <menulist id="explicit-submenu">
+        <menuitem>Item</menuitem>
+      </menulist>
+    </submenu>
+  </menubar>
+</div>
+
+<script>
+test(() => {
+  const implicitMenuItem = document.getElementById("implicit-menuitem");
+  const rect = implicitMenuItem.getBoundingClientRect();
+  const hit = document.elementFromPoint(rect.right + 10, rect.top + 10);
+
+  assert_not_equals(hit, implicitMenuItem, "implicit menuitem should not generate ::interest-button");
+}, "menuitem without interestfor attribute does not support ::interest-button pseudo-element");
+
+test(() => {
+  const explicitMenuItem = document.getElementById("explicit-menuitem");
+  const rect = explicitMenuItem.getBoundingClientRect();
+  const hit = document.elementFromPoint(rect.right + 10, rect.top + 10);
+
+  assert_equals(hit, explicitMenuItem, "explicit menuitem should generate ::interest-button");
+}, "menuitem with explicit interestfor attribute supports ::interest-button pseudo-element");
+</script>

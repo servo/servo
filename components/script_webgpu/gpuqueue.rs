@@ -1,0 +1,438 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use dom_struct::dom_struct;
+use js::context::{JSContext, NoGC};
+use log::warn;
+use malloc_size_of_derive::MallocSizeOf;
+use pixels::{SnapshotAlphaMode, SnapshotPixelFormat};
+use script_bindings::DomTypes;
+use script_bindings::buffer_source::get_buffer_source_slice;
+use script_bindings::cell::DomRefCell;
+use script_bindings::codegen::GenericBindings::CanvasRenderingContext2DBinding::ImageDataMethods;
+use script_bindings::codegen::GenericBindings::HTMLCanvasElementBinding::HTMLCanvasElementMethods;
+use script_bindings::codegen::GenericBindings::HTMLImageElementBinding::HTMLImageElementMethods;
+use script_bindings::codegen::GenericBindings::HTMLVideoElementBinding::HTMLVideoElementMethods;
+use script_bindings::codegen::GenericBindings::ImageBitmapBinding::ImageBitmapMethods;
+use script_bindings::codegen::GenericBindings::OffscreenCanvasBinding::OffscreenCanvasMethods;
+use script_bindings::codegen::GenericBindings::WebGPUBinding::{
+    GPUCopyExternalImageDestInfo, GPUCopyExternalImageSourceInfo, GPUQueueMethods, GPUQueueWrap,
+    GPUSize64, GPUTexelCopyBufferLayout, GPUTexelCopyTextureInfo,
+};
+use script_bindings::codegen::GenericUnionTypes::{
+    ArrayBufferViewOrArrayBuffer as BufferSource,
+    ImageBitmapOrImageDataOrHTMLImageElementOrHTMLVideoElementOrHTMLCanvasElementOrOffscreenCanvas as GPUCopyExternalImageSource,
+    RangeEnforcedUnsignedLongSequenceOrGPUExtent3DDict as GPUExtent3D,
+};
+use script_bindings::dom::MutNullableDom;
+use script_bindings::error::{Error, Fallible};
+use script_bindings::interfaces::{GlobalScopeHelpers, PromiseHelpers};
+use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
+use script_bindings::root::DomRoot;
+use script_bindings::routed_promise::RoutedPromiseListener;
+use servo_base::generic_channel::GenericSharedMemory;
+use webgpu_traits::{COPY_BUFFER_ALIGNMENT, TextureFormat, WebGPU, WebGPUQueue, WebGPURequest};
+
+use crate::JSTraceable;
+use crate::dom::bindings::str::USVString;
+use crate::gpubuffer::GPUBuffer;
+use crate::gpucommandbuffer::GPUCommandBuffer;
+use crate::gpuconvert::{WebGPUConvert, WebGPUTryConvert};
+use crate::gpudevice::GPUDevice;
+use crate::traits::{
+    Equivalence, HtmlCanvasElementTrait, HtmlImageElementTrait, ImageBitmapTrait, ImageDataTrait,
+    OffscreenCanvasTrait, OriginIsCleanTrait, WebGPUHTMLVideoTrait, WebGPUPromise,
+    WebGPUPromiseCallbackTrait,
+};
+
+#[dom_struct]
+pub struct GPUQueue<D: DomTypes> {
+    reflector_: Reflector,
+    #[ignore_malloc_size_of = "defined in webgpu"]
+    #[no_trace]
+    channel: WebGPU,
+    device: MutNullableDom<GPUDevice<D>>,
+    label: DomRefCell<USVString>,
+    #[no_trace]
+    queue: WebGPUQueue,
+}
+
+impl<D: Equivalence> GPUQueue<D> {
+    fn new_inherited(channel: WebGPU, queue: WebGPUQueue) -> Self {
+        GPUQueue {
+            channel,
+            reflector_: Reflector::new(),
+            device: MutNullableDom::new(None),
+            label: DomRefCell::new(USVString::default()),
+            queue,
+        }
+    }
+
+    pub(crate) fn new(
+        cx: &mut JSContext,
+        global: &D::GlobalScope,
+        channel: WebGPU,
+        queue: WebGPUQueue,
+    ) -> DomRoot<Self> {
+        reflect_dom_object_with_wrap::<D, _, _>(
+            cx,
+            Box::new(GPUQueue::new_inherited(channel, queue)),
+            global,
+            GPUQueueWrap::<D>,
+        )
+    }
+}
+
+impl<D: Equivalence> GPUQueue<D> {
+    pub(crate) fn set_device(&self, device: &GPUDevice<D>) {
+        self.device.set(Some(device));
+    }
+
+    pub(crate) fn id(&self) -> WebGPUQueue {
+        self.queue
+    }
+}
+
+impl<D> GPUQueueMethods<D> for GPUQueue<D>
+where
+    D: Equivalence,
+    <D::Promise as PromiseHelpers<D>>::StackRoot: WebGPUPromise<D>,
+    D::HTMLImageElement: HtmlImageElementTrait,
+    D::HTMLVideoElement: WebGPUHTMLVideoTrait<D>,
+    D::OffscreenCanvas: OffscreenCanvasTrait,
+    D::ImageBitmap: ImageBitmapTrait,
+    D::HTMLCanvasElement: HtmlCanvasElementTrait,
+    D::ImageData: ImageDataTrait,
+{
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
+    fn Label(&self) -> USVString {
+        self.label.borrow().clone()
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuobjectbase-label>
+    fn SetLabel(&self, no_gc: &NoGC, value: USVString) {
+        *self.label.safe_borrow_mut(no_gc) = value;
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-submit>
+    fn Submit(&self, command_buffers: Vec<DomRoot<GPUCommandBuffer<D>>>) {
+        let command_buffers = command_buffers.iter().map(|cb| cb.id().0).collect();
+        self.channel
+            .0
+            .send(WebGPURequest::Submit {
+                device_id: self.device.get().unwrap().id().0,
+                queue_id: self.queue.0,
+                command_buffers,
+            })
+            .unwrap();
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-writebuffer>
+    fn WriteBuffer(
+        &self,
+        cx: &mut JSContext,
+        buffer: &GPUBuffer<D>,
+        buffer_offset: GPUSize64,
+        data: BufferSource,
+        data_offset: GPUSize64,
+        size: Option<GPUSize64>,
+    ) -> Fallible<()> {
+        // Step 1
+        let (sizeof_element, data_len): (usize, usize) = match &data {
+            BufferSource::ArrayBufferView(d) => {
+                (d.get_array_type().byte_size().unwrap_or(1), d.len())
+            },
+            BufferSource::ArrayBuffer(d) => (1, d.len()),
+        };
+        // Step 2
+        let data_size: usize = data_len / sizeof_element;
+        debug_assert_eq!(data_len % sizeof_element, 0);
+        // Step 3
+        let content_size = if let Some(s) = size {
+            s
+        } else {
+            (data_size as GPUSize64)
+                .checked_sub(data_offset)
+                .ok_or(Error::Operation(Some(
+                    "Overflow occured when calculating `contentsSize`".into(),
+                )))?
+        };
+
+        // Step 4
+        if !(data_offset + content_size <= data_size as u64) {
+            return Err(Error::Operation(Some(
+                "`dataOffset` + `contentsSize` is greater than `dataSize`".into(),
+            )));
+        }
+
+        if !((content_size * sizeof_element as u64).is_multiple_of(COPY_BUFFER_ALIGNMENT)) {
+            return Err(Error::Operation(Some(
+                "`contentSize` as bytes is not a multiple of 4 bytes".into(),
+            )));
+        }
+
+        // Step 5&6
+        let byte_start = (data_offset as usize) * sizeof_element;
+        let byte_end = ((data_offset + content_size) as usize) * sizeof_element;
+        let contents = GenericSharedMemory::from_bytes(
+            &get_buffer_source_slice(&data, cx.no_gc())[byte_start..byte_end],
+        );
+        if let Err(e) = self.channel.0.send(WebGPURequest::WriteBuffer {
+            device_id: self.device.get().unwrap().id().0,
+            queue_id: self.queue.0,
+            buffer_id: buffer.id().0,
+            buffer_offset,
+            data: contents,
+        }) {
+            warn!("Failed to send WriteBuffer({:?}) ({})", buffer.id(), e);
+            return Err(Error::Operation(Some(
+                "Failed to write buffer to GPU".into(),
+            )));
+        }
+
+        Ok(())
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-writetexture>
+    fn WriteTexture(
+        &self,
+        cx: &mut JSContext,
+        destination: &GPUTexelCopyTextureInfo<D>,
+        data: BufferSource,
+        data_layout: &GPUTexelCopyBufferLayout,
+        size: GPUExtent3D,
+    ) -> Fallible<()> {
+        let bytes = get_buffer_source_slice(&data, cx.no_gc());
+        let len = bytes.len() as u64;
+
+        if !(data_layout.offset <= len) {
+            return Err(Error::Operation(Some(
+                "`dataLayout`'s offset is greater than texture buffer length".into(),
+            )));
+        }
+
+        let texture_cv = destination.try_convert()?;
+        let texture_layout = data_layout.convert();
+        let write_size = (&size).try_convert()?;
+        let final_data = GenericSharedMemory::from_bytes(bytes);
+
+        if let Err(e) = self.channel.0.send(WebGPURequest::WriteTexture {
+            device_id: self.device.get().unwrap().id().0,
+            queue_id: self.queue.0,
+            texture_cv,
+            data_layout: texture_layout,
+            size: write_size,
+            data: final_data,
+        }) {
+            warn!(
+                "Failed to send WriteTexture({:?}) ({})",
+                destination.texture.id().0,
+                e
+            );
+            return Err(Error::Operation(Some(
+                "Failed to write to GPUTexture".into(),
+            )));
+        }
+
+        Ok(())
+    }
+
+    #[expect(
+        clippy::nonminimal_bool,
+        reason = "Following the spec steps more closely"
+    )]
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-copyexternalimagetotexture>
+    fn CopyExternalImageToTexture(
+        &self,
+        cx: &mut JSContext,
+        source: &GPUCopyExternalImageSourceInfo<D>,
+        destination: &GPUCopyExternalImageDestInfo<D>,
+        copy_size: GPUExtent3D,
+    ) -> Fallible<()> {
+        // 1. ? validate GPUOrigin2D shape(source.origin).
+        let source_origin = source.origin.try_convert()?;
+        // 2. ? validate GPUOrigin3D shape(destination.origin).
+        let destination_tex_info = destination.parent.try_convert()?;
+        // 3. ? validate GPUExtent3D shape(copySize).
+        let copy_size = copy_size.try_convert()?;
+        // 4. Let sourceImage be source.source.
+        let source_image = &source.source;
+        // 5. If sourceImage is not origin-clean, throw a SecurityError and return.
+        let is_origin_clean = match source_image {
+            GPUCopyExternalImageSource::ImageBitmap(inner) => inner.origin_is_clean(),
+            GPUCopyExternalImageSource::ImageData(_) => true,
+            GPUCopyExternalImageSource::HTMLImageElement(inner) => {
+                inner.same_origin(&D::GlobalScope::entry().origin())
+            },
+            GPUCopyExternalImageSource::HTMLVideoElement(inner) => inner.origin_is_clean(),
+            GPUCopyExternalImageSource::HTMLCanvasElement(inner) => inner.origin_is_clean(),
+            GPUCopyExternalImageSource::OffscreenCanvas(inner) => inner.origin_is_clean(),
+        };
+        if !is_origin_clean {
+            return Err(Error::Security(Some(
+                "Image source is not origin clean!".to_string(),
+            )));
+        }
+        // 6. If any of the following requirements are unmet, throw an OperationError and return.
+        let (source_image_width, source_image_height) = match source_image {
+            GPUCopyExternalImageSource::ImageBitmap(inner) => (inner.Width(), inner.Height()),
+            GPUCopyExternalImageSource::ImageData(inner) => (inner.Width(), inner.Height()),
+            GPUCopyExternalImageSource::HTMLImageElement(inner) => (inner.Width(), inner.Height()),
+            GPUCopyExternalImageSource::HTMLVideoElement(inner) => (inner.Width(), inner.Height()),
+            GPUCopyExternalImageSource::HTMLCanvasElement(inner) => (inner.Width(), inner.Height()),
+            GPUCopyExternalImageSource::OffscreenCanvas(inner) => {
+                (inner.Width() as u32, inner.Height() as u32)
+            },
+        };
+        // source.origin.x + copySize.width must be ≤ the width of sourceImage.
+        if !(source_origin.x + copy_size.width <= source_image_width) {
+            return Err(Error::Operation(Some(
+                "Source origin x + copy width exceeds source image width".to_string(),
+            )));
+        }
+        // source.origin.y + copySize.height must be ≤ the height of sourceImage.
+        if !(source_origin.y + copy_size.height <= source_image_height) {
+            return Err(Error::Operation(Some(
+                "Source origin y + copy height exceeds source image height".to_string(),
+            )));
+        }
+        // copySize.depthOrArrayLayers must be ≤ 1.
+        if !(copy_size.depth_or_array_layers <= 1) {
+            return Err(Error::Operation(Some(
+                "Copy depth or array layers must be less than or equal to 1".to_string(),
+            )));
+        }
+        // 7. Let usability be ? check the usability of the image argument(source).
+        // with usable variant we also send the snapshot
+        let usable_snapshot = match source_image {
+            GPUCopyExternalImageSource::ImageBitmap(bitmap) => {
+                // If image's [[Detached]] internal slot value is set to true, then throw an "InvalidStateError" DOMException.
+                Some(bitmap.bitmap_data().clone().ok_or_else(|| {
+                    Error::InvalidState(Some("ImageBitmap is detached".to_string()))
+                })?)
+            },
+            GPUCopyExternalImageSource::ImageData(data) => {
+                // If image's [[Detached]] internal slot value is set to true, then throw an "InvalidStateError" DOMException.
+                if data.is_detached(cx) {
+                    return Err(Error::InvalidState(Some(
+                        "ImageData is detached".to_string(),
+                    )));
+                }
+                Some(data.get_snapshot(cx.no_gc()))
+            },
+            GPUCopyExternalImageSource::HTMLImageElement(inner) => {
+                if inner.is_usable()? {
+                    inner.get_raster_image_data()
+                } else {
+                    None
+                }
+            },
+            GPUCopyExternalImageSource::HTMLVideoElement(inner) => {
+                if inner.is_usable() {
+                    inner.get_current_frame_data()
+                } else {
+                    None
+                }
+            },
+            GPUCopyExternalImageSource::HTMLCanvasElement(inner) => {
+                // If image has either a horizontal dimension or a vertical dimension equal to zero, then throw an "InvalidStateError" DOMException.
+                if inner.is_valid() {
+                    inner.get_image_data()
+                } else {
+                    return Err(Error::InvalidState(Some(
+                        "Canvas has zero area".to_string(),
+                    )));
+                }
+            },
+            GPUCopyExternalImageSource::OffscreenCanvas(inner) => {
+                // If image has either a horizontal dimension or a vertical dimension equal to zero, then throw an "InvalidStateError" DOMException.
+                if inner.Width() == 0 || inner.Height() == 0 {
+                    return Err(Error::InvalidState(Some(
+                        "Canvas has zero area".to_string(),
+                    )));
+                } else {
+                    inner.get_image_data()
+                }
+            },
+        };
+        // this is out ouf spec, but we currently do not support more
+        let texture_descriptor = destination.parent.texture.wgpu_texture_descriptor();
+        let target_snapshot_format = match texture_descriptor.format {
+            TextureFormat::Bgra8Unorm | TextureFormat::Bgra8UnormSrgb => SnapshotPixelFormat::BGRA,
+            TextureFormat::Rgba8Unorm | TextureFormat::Rgba8UnormSrgb => SnapshotPixelFormat::RGBA,
+            _ => {
+                return Err(Error::Operation(Some(
+                    "Unsupported texture format for copy".to_string(),
+                )));
+            },
+        };
+        let usable_snapshot = usable_snapshot.map(|mut snapshot| {
+            if source.flipY {
+                pixels::flip_y_rgba8_image_inplace(snapshot.size(), snapshot.as_raw_bytes_mut());
+            }
+            snapshot.transform(
+                SnapshotAlphaMode::Transparent {
+                    premultiplied: destination.premultipliedAlpha,
+                },
+                target_snapshot_format,
+            );
+            snapshot.into_shared()
+        });
+        // 8. Issue the subsequent steps on the Device timeline of this.
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::CopyExternalImageToTexture {
+                device_id: self.device.get().unwrap().id().0,
+                queue_id: self.queue.0,
+                usable_source: usable_snapshot,
+                destination: destination_tex_info,
+                dest_tex_descriptor: texture_descriptor,
+                copy_size,
+            })
+        {
+            warn!(
+                "Failed to send CopyExternalImageToTexture({:?}) ({e})",
+                destination.parent.texture.id().0
+            );
+            return Err(Error::Operation(Some(
+                "Failed to copy external image to texture".into(),
+            )));
+        }
+        Ok(())
+    }
+
+    /// <https://gpuweb.github.io/gpuweb/#dom-gpuqueue-onsubmittedworkdone>
+    fn OnSubmittedWorkDone(
+        &self,
+        cx: &mut JSContext,
+    ) -> <D::Promise as PromiseHelpers<D>>::StackRoot {
+        let global = self.global_from_reflector();
+        let promise = D::Promise::new(cx, &global);
+        let callback = promise.callback_promise_dom_manipulation_task_source(self);
+
+        if let Err(e) = self
+            .channel
+            .0
+            .send(WebGPURequest::QueueOnSubmittedWorkDone {
+                sender: callback,
+                queue_id: self.queue.0,
+            })
+        {
+            warn!("QueueOnSubmittedWorkDone failed with {e}")
+        }
+        promise
+    }
+}
+
+impl<D: Equivalence> RoutedPromiseListener<D, ()> for GPUQueue<D> {
+    fn handle_response(
+        &self,
+        cx: &mut js::context::JSContext,
+        _response: (),
+        promise: &<D::Promise as PromiseHelpers<D>>::StackRoot,
+    ) {
+        promise.resolve_native(cx, &());
+    }
+}

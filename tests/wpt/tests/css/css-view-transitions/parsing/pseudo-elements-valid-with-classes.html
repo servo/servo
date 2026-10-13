@@ -24,8 +24,11 @@ function test_valid_selector_combinations(pseudo) {
 test_valid_selector_combinations("::view-transition");
 
 for (const functionName of functionPseudoElements) {
+    // "\*" is an escaped <custom-ident> that spells the character "*". It must stay
+    // distinct from the literal, unescaped universal selector "*" instead of
+    // collapsing into it.
     for (const validArgument of
-        ["*.class", "*.class.class", "dashed-ident.someclass", "dash-id.dash-id", "foo.bar.baz"]) {
+        ["*.class", "\\*.class", "*.class.class", "\\*.class.class", "dashed-ident.someclass", "dash-id.dash-id", "foo.bar.baz"]) {
         test_valid_selector_combinations(`${functionName}(${validArgument})`);
         test_valid_selector_combinations(`${functionName}(${validArgument}):only-child`);
     }

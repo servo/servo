@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>getComputedStyle should respect !important priority</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#importance">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/2485 -->
+<!-- Regression test for https://github.com/jsdom/jsdom/issues/3532 -->
+
+<style>
+  #testElement { display: none !important; }
+</style>
+<style>
+  #testElement2 { display: none !important; }
+</style>
+<style>
+  #testElement2 { display: inline-block; }
+</style>
+<div id="testElement" style="display: block;"></div>
+<div id="testElement2"></div>
+
+<script>
+"use strict";
+
+test(() => {
+  const element = document.getElementById("testElement");
+  const style = window.getComputedStyle(element);
+  assert_equals(style.display, "none");
+}, "getComputedStyle should return !important stylesheet value over inline style");
+
+test(() => {
+  const element = document.getElementById("testElement2");
+  const style = window.getComputedStyle(element);
+  assert_equals(style.display, "none");
+}, "getComputedStyle should return !important stylesheet value rather than the subsequent stylesheet value");
+</script>

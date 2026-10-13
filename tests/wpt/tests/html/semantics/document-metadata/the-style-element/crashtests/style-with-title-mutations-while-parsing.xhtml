@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml" class="test-wait">
+<head>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2061299"/>
+<meta name="assert" content="No crash when a titled stylesheet finishes loading while the parser appends more style elements from a mutation observer."/>
+<script>
+let done = false;
+window.mo = new MutationObserver(function() {
+  if (done) return;
+  done = true;
+  for (var i = 0; i &lt; 64; i++) {
+    var s = document.createElement("style");
+    s.textContent = ".c" + i + " { color: rgb(" + (i % 255) + ", 1, 2); }";
+    document.head.appendChild(s);
+  }
+  requestAnimationFrame(function() {
+    document.documentElement.classList.remove("test-wait");
+  });
+});
+window.mo.observe(document, {childList: true, subtree: true, characterData: true});
+</script>
+</head>
+<body>
+<p>first paragraph</p>
+<style title="uniquetitle5">body { color: rgb(19,20,21); background-color: rgb(22,23,24); }</style>
+<p>after</p>
+</body>
+</html>

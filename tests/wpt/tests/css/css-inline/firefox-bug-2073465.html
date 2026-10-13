@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2073465">
+<link rel="match" href="firefox-bug-2073465-ref.html">
+
+<style>
+body { font-size: 16px; }
+div { position: absolute; font-size: 0.9em; width: 8em; }
+.test { background: red; }
+.mask { background: green; }
+span { display: inline-block; font-weight: bold; width: 4em; }
+</style>
+
+<p>There should be no red:<p>
+
+<div class=test><span>foo</span><span>bar</span></div>
+<div class=mask><span>foo</span></div>

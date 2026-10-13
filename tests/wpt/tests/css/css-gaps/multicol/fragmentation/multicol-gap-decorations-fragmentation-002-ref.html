@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<link rel="author" title="Javier Contreras" href="mailto:javiercon@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-gaps-1/#assigning">
+<style>
+  body {
+    margin: 0px;
+  }
+  .outer {
+    position: relative;
+    width: 240px;
+    height: 160px;
+    background: lightgray;
+  }
+  .row {
+    position: absolute;
+    width: 100px;
+    height: 40px;
+    background: rgba(0, 0, 0, 0.15);
+  }
+  .rule {
+    position: absolute;
+    width: 100px;
+    height: 10px;
+  }
+</style>
+<div class="outer">
+  <div class="row" style="left: 0px; top: 0px;"></div>
+  <div class="rule" style="left: 0px; top: 45px; background: red;"></div>
+  <div class="row" style="left: 0px; top: 60px;"></div>
+  <div class="rule" style="left: 0px; top: 105px; background: green;"></div>
+  <div class="row" style="left: 0px; top: 120px;"></div>
+
+  <div class="row" style="left: 140px; top: 0px;"></div>
+  <div class="rule" style="left: 140px; top: 45px; background: green;"></div>
+  <div class="row" style="left: 140px; top: 60px;"></div>
+  <div class="rule" style="left: 140px; top: 105px; background: blue;"></div>
+  <div class="row" style="left: 140px; top: 120px;"></div>
+</div>

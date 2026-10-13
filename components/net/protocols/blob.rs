@@ -43,7 +43,7 @@ impl ProtocolHandler for BlobProtocolHander {
             (token.file_id, token.origin.clone())
         } else {
             // FIXME: This should never happen, we should have acquired a token beforehand
-            let Ok((id, _)) = parse_blob_url(&url_and_blob_claim.url()) else {
+            let Ok(id) = parse_blob_url(&url_and_blob_claim.url()) else {
                 return Box::pin(ready(Response::network_error(
                     NetworkError::ResourceLoadError("Invalid blob URL".into()),
                 )));

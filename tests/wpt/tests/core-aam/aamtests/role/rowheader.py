@@ -27,8 +27,11 @@ def test_atspi(atspi, session, inline):
 #     # Role: ROLE_SYSTEM_ROWHEADER
 #     # Interface: IAccessibleTableCell
 
-# def test_uia(uia, session, inline):
-#     session.url = inline(TEST_HTML)
-#
-#     # Spec:
-#     # Control Type: HeaderItem
+def test_uia(uia, session, inline):
+    session.url = inline(TEST_HTML)
+
+    # Spec:
+    # Control Type: HeaderItem
+
+    node = uia.find_node("test", session.url)
+    assert node.CurrentControlType == uia.ControlType.HeaderItem

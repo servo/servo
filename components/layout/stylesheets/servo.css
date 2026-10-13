@@ -1,13 +1,17 @@
+html {
+  color: CanvasText;
+}
+
 input[type="hidden"] {
   display: none !important;
 }
 
 /* Textual inputs */
-input:not([type="file"]),
+input:not([type="file"], [type="image"]),
 textarea {
-  background: white;
+  background-color: Field;
   border: solid grey 1px;
-  color: black;
+  color: FieldText;
 }
 
 input[type="radio"] {
@@ -18,7 +22,7 @@ textarea {
     padding: 2px;
 }
 
-input {
+input:not([type="image"]) {
     padding: 1px 2px;
 }
 
@@ -118,7 +122,15 @@ input[type="file"]::file-selector-button {
   border-radius: 2px;
   border: 1px solid ButtonBorder;
   padding: 4px;
-  color: black;
+  color: ButtonText;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="date"],
+input[type="password"],
+input[type="number"] {
+  color: FieldText;
 }
 
 button,
@@ -255,9 +267,9 @@ input[type="range"]::slider-thumb {
   border-radius: 50%;
   background: #007aff;
 
-  /* Vertically centered, adjust inline direction by width so thumb
-     is centered on range value. */
-  transform: translate(-8px, -50%);
+  /* The thumb is placed by setting `inset-inline-start` to the value's position within the
+     input's padding box. Adjust inline direction by width so thumb is centered on range value. */
+  margin-inline-start: -8px;
 }
 
 input[type="range"]:disabled::slider-fill,
@@ -538,8 +550,8 @@ progress {
   border-radius: 3px;
   border: 1px solid rgba(0, 0, 0, 0.5);
 }
-/* FIXME: This should use ::-moz-progress-bar */
-progress #-servo-progress-bar {
+
+progress::-moz-progress-bar {
   display: block;
   height: 100%;
   background-color: #7a3;

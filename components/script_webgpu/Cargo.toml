@@ -14,17 +14,27 @@ description.workspace = true
 name = "script_webgpu"
 path = "lib.rs"
 
-[lints.rust]
-unexpected_cfgs = { level = "warn", check-cfg = ['cfg(crown)'] }
+[lints]
+workspace = true
 
 [dependencies]
+stylo_atoms = { workspace = true }
+arrayvec = { workspace = true }
+euclid = { workspace = true }
+servo-constellation-traits = { workspace = true }
 deny_public_fields = { workspace = true }
 dom_struct = { workspace = true }
+indexmap = { workspace = true }
 js = { workspace = true }
-log = { workspace = true }
 jstraceable_derive = { workspace = true }
-script_bindings = { workspace = true }
+log = { workspace = true }
+script_bindings = { workspace = true, features = ["webgpu"] }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
+num-traits = { workspace = true }
+pixels = { workspace = true }
+serde_core = { workspace = true }
+servo-url = { workspace = true }
+servo-base = { workspace = true }
+trait-set = { workspace = true }
 webgpu_traits = { workspace = true }
-wgpu-core = { workspace = true }

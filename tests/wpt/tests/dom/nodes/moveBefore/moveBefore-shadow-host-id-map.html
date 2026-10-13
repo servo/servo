@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<title>moveBefore() of a shadow host leaves the id and name maps of its shadow tree alone</title>
+<link rel=help href="https://dom.spec.whatwg.org/#move">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+  <div id="old-parent"></div>
+  <div id="new-parent"></div>
+  <div id="shared" data-document></div>
+  <img name="shared-name" data-document>
+</body>
+
+<script>
+  const oldParent = document.getElementById("old-parent");
+  const newParent = document.getElementById("new-parent");
+  const documentElement = document.querySelector("div[data-document]");
+  const documentImage = document.querySelector("img[data-document]");
+
+  test(t => {
+      const host = document.createElement("div");
+      oldParent.appendChild(host);
+      t.add_cleanup(() => host.remove());
+      const shadowRoot = host.attachShadow({mode: "open"});
+      const inner = document.createElement("div");
+      inner.id = "shared";
+      shadowRoot.appendChild(inner);
+
+      assert_equals(document.getElementById("shared"), documentElement);
+      assert_equals(shadowRoot.getElementById("shared"), inner);
+
+      newParent.moveBefore(host, null);
+
+      assert_equals(document.getElementById("shared"), documentElement);
+      assert_equals(shadowRoot.getElementById("shared"), inner);
+  }, "moveBefore() of a shadow host leaves the id map of its shadow tree alone");
+
+  test(t => {
+      const wrapper = document.createElement("div");
+      const host = document.createElement("div");
+      wrapper.appendChild(host);
+      oldParent.appendChild(wrapper);
+      t.add_cleanup(() => wrapper.remove());
+      const shadowRoot = host.attachShadow({mode: "open"});
+      const inner = document.createElement("div");
+      inner.id = "shared";
+      shadowRoot.appendChild(inner);
+
+      newParent.moveBefore(wrapper, null);
+
+      assert_equals(document.getElementById("shared"), documentElement);
+      assert_equals(shadowRoot.getElementById("shared"), inner);
+  }, "moveBefore() of an ancestor of a shadow host leaves the id map of its shadow tree alone");
+
+  for (const localName of ["select", "details"]) {
+      test(t => {
+          const element = document.createElement(localName);
+          oldParent.appendChild(element);
+          t.add_cleanup(() => element.remove());
+
+          assert_equals(window["shared-name"], documentImage);
+
+          newParent.moveBefore(element, null);
+
+          assert_equals(element.parentNode, newParent);
+          assert_equals(window["shared-name"], documentImage);
+          assert_equals(document.getElementById("shared"), documentElement);
+      }, `moveBefore() of a <${localName}> element leaves the document's id and name maps alone`);
+  }
+</script>

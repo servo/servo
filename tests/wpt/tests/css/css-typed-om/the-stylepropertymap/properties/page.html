@@ -18,6 +18,16 @@ runPropertyTests('page', [
   // FIXME: This should be <custom-ident>, but the test harness doesn't
   // currently support it.
   { syntax: 'custom-ident' },
+  // 'row' is a keyword of other properties, but page has no such keyword, so
+  // here it is an ordinary <custom-ident>: <custom-ident> excludes only the
+  // CSS-wide keywords and 'default'. ('auto', tested above, is page's own
+  // keyword and so is excluded as a page name.)
+  { syntax: 'row' },
+]);
+
+// 'default' is excluded from every <custom-ident>.
+runInvalidKeywordTests('page', [
+  'default',
 ]);
 
 </script>

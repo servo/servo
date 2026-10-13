@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-2/#flex-wrap-property">
+<meta name="assert" content="flex-flow accepts the balance value of flex-wrap and serializes it in shortest form.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/parsing-testcommon.js"></script>
+<body>
+<script>
+test_valid_value("flex-flow", "balance");
+test_valid_value("flex-flow", "row balance", "balance");
+test_valid_value("flex-flow", "row wrap balance", "balance");
+test_valid_value("flex-flow", "balance wrap row", "balance");
+test_valid_value("flex-flow", "column balance");
+test_valid_value("flex-flow", "balance column", "column balance");
+test_valid_value("flex-flow", "wrap-reverse balance");
+test_valid_value("flex-flow", "column wrap-reverse balance");
+test_valid_value("flex-flow", "balance wrap-reverse row-reverse", "row-reverse wrap-reverse balance");
+</script>
+</body>
