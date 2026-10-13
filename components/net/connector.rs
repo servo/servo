@@ -5,6 +5,7 @@
 use std::cell::RefCell;
 use std::collections::hash_map::HashMap;
 use std::convert::TryFrom;
+use std::error::Error;
 use std::sync::{Arc, LazyLock};
 use std::time::Duration;
 use std::{fmt, io};
@@ -88,7 +89,7 @@ impl Service<Destination> for ServoHttpConnector {
         Box::pin(
             self.inner
                 .call(new_dest)
-                .map_err(|e| ConnectionError::HttpError(format!("{e}"))),
+                .map_err(|error| ConnectionError::HttpError(BoxError::from(error))),
         )
     }
 
@@ -577,9 +578,9 @@ pub type BoxedBody = BoxBody<Bytes, hyper::Error>;
 #[derive(Debug)]
 /// The error type for the MaybeProxyConnector
 pub enum ConnectionError {
-    HttpError(String),
+    HttpError(BoxError),
     // It looks like currently the type is not exported.
-    ProxyError(String),
+    ProxyError(BoxError),
 }
 
 impl std::fmt::Display for ConnectionError {
@@ -588,7 +589,14 @@ impl std::fmt::Display for ConnectionError {
     }
 }
 
-impl std::error::Error for ConnectionError {}
+impl std::error::Error for ConnectionError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            ConnectionError::HttpError(error) => error.source(),
+            ConnectionError::ProxyError(error) => error.source(),
+        }
+    }
+}
 
 #[derive(Clone)]
 /// A proxy connector. This will automatically open a proxy connection if the uri matches the proxy uri.
@@ -623,7 +631,7 @@ impl Service<Destination> for ProxyConnector {
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         self.client
             .poll_ready(cx)
-            .map_err(|e| ConnectionError::ProxyError(format!("{e}")))
+            .map_err(|error| ConnectionError::ProxyError(BoxError::from(error)))
     }
 
     fn call(&mut self, req: Destination) -> Self::Future {
@@ -636,13 +644,13 @@ impl Service<Destination> for ProxyConnector {
                     tunnel
                 }
                 .call(req)
-                .map_err(|e| ConnectionError::ProxyError(format!("{e}")));
+                .map_err(|error| ConnectionError::ProxyError(BoxError::from(error)));
                 Box::pin(final_tunnel)
             },
             None => Box::pin(
                 self.client
                     .call(req)
-                    .map_err(|e| ConnectionError::ProxyError(format!("{e}"))),
+                    .map_err(|error| ConnectionError::ProxyError(BoxError::from(error))),
             ),
         }
     }
