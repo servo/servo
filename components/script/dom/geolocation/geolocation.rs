@@ -66,7 +66,7 @@ impl Geolocation {
                 let position_error = GeolocationPositionError::permission_denied(
                     cx,
                     &self.global(),
-                    DOMString::from("User denied Geolocation".to_string()),
+                    DOMString::from_static("User denied Geolocation"),
                 );
                 let _ = error_callback.Call_(cx, self, &position_error, ExceptionHandling::Report);
             }
@@ -84,7 +84,7 @@ impl Geolocation {
                 let position_error = GeolocationPositionError::permission_denied(
                     cx,
                     &self.global(),
-                    DOMString::from("Insecure context for Geolocation".to_string()),
+                    DOMString::from_static("Insecure context for Geolocation"),
                 );
                 let _ = error_callback.Call_(cx, self, &position_error, ExceptionHandling::Report);
             }
@@ -113,7 +113,7 @@ impl GeolocationMethods<DomTypeHolder> for Geolocation {
                 let position_error = GeolocationPositionError::position_unavailable(
                     cx,
                     &self.global(),
-                    DOMString::from("Document is not fully active".to_string()),
+                    DOMString::from_static("Document is not fully active"),
                 );
                 let _ = error_callback.Call_(cx, self, &position_error, ExceptionHandling::Report);
             }
@@ -139,7 +139,7 @@ impl GeolocationMethods<DomTypeHolder> for Geolocation {
                 let position_error = GeolocationPositionError::position_unavailable(
                     cx,
                     &self.global(),
-                    DOMString::from("Document is not fully active".to_string()),
+                    DOMString::from_static("Document is not fully active"),
                 );
                 let _ = error_callback.Call_(cx, self, &position_error, ExceptionHandling::Report);
             }

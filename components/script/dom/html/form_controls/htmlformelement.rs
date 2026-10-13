@@ -1546,10 +1546,10 @@ pub(crate) struct FormDatum {
 }
 
 impl FormDatum {
-    pub(crate) fn replace_value(&self) -> &DOMString {
+    pub(crate) fn replace_value(&self) -> DOMString {
         match self.value {
-            FormDatumValue::File(ref f) => f.name(),
-            FormDatumValue::String(ref s) => s,
+            FormDatumValue::File(ref f) => f.name().clone().root(),
+            FormDatumValue::String(ref s) => s.clone(),
         }
     }
 }

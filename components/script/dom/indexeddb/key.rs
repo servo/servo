@@ -556,7 +556,10 @@ pub(crate) fn evaluate_key_path_on_value(
                     let Ok(file) = root_from_handlevalue::<File>(cx, current_value.handle())
                 {
                     // Let value be a String equal to value’s name.
-                    file.name().to_jsval(cx, current_value.handle_mut());
+                    file.name()
+                        .clone()
+                        .root()
+                        .to_jsval(cx, current_value.handle_mut());
 
                     continue;
                 }

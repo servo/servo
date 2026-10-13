@@ -132,7 +132,7 @@ impl SpecificInputType for FileInputType {
             }
             return DEFAULT_FILE_INPUT_VALUE.into();
         };
-        first_item.name().clone()
+        first_item.name().clone().root()
     }
 
     fn show_the_picker_if_applicable(&self, input: &HTMLInputElement) {
