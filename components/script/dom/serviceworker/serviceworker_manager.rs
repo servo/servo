@@ -633,26 +633,47 @@ impl ServiceWorkerManager {
         // Step 4: For each settingsObject of settingsObjects, queue a task on settingsObject’s responsible event loop.
         // Note: task will be queued to all pipelines for the script origin by the constellation.
         let origin = worker.script_url.origin();
-        self.constellation_sender
+        if self
+            .constellation_sender
             .send(ServiceWorkerManagerMsg::UpdateWorkerState {
                 worker_id: worker.id,
                 state,
                 origin,
-            });
+            })
+            .is_err()
+        {
+            error!("Failed to send UpdateWorkerState message to constellation.");
+        }
     }
 
     /// <https://www.w3.org/TR/service-workers/#install>
-    fn install(&mut self, job: Job, new_worker: ServiceWorker) {
-        let Some(registration) = self.registrations.get_mut(&job.scope_url) else {
-            error!("Registration should exist when installing a worker.");
-            return;
-        };
+    fn install(&mut self, job: Job, mut new_worker: ServiceWorker) {
+        // Step 5: Run the Update Worker State algorithm
+        // passing registration’s installing worker and "installing" as the arguments.
+        // Note: running now so that the worker passed to the registration below is in the right state.
+        self.update_worker_state(&mut new_worker, ServiceWorkerState::Installing);
 
-        // Step 4: Run the Update Registration State algorithm passing registration, "installing" and worker as the arguments.
-        registration.update_registration_state(
-            RegistrationUpdateTarget::Installing,
-            Some(new_worker.clone()),
-        );
+        let (registration_id, installing_worker_id, waiting_worker_id, active_worker_id) = {
+            let Some(registration) = self.registrations.get_mut(&job.scope_url) else {
+                error!("Registration should exist when installing a worker.");
+                return;
+            };
+
+            // Step 4: Run the Update Registration State algorithm passing registration, "installing" and worker as the arguments.
+            registration.update_registration_state(
+                RegistrationUpdateTarget::Installing,
+                Some(new_worker.clone()),
+            );
+            (
+                registration.id,
+                registration
+                    .installing_worker
+                    .as_ref()
+                    .map(|worker| worker.id),
+                registration.waiting_worker.as_ref().map(|worker| worker.id),
+                registration.active_worker.as_ref().map(|worker| worker.id),
+            )
+        };
 
         // Step 7: Invoke Resolve Job Promise with job and registration
         let client = job.client.clone();
@@ -663,16 +684,10 @@ impl ServiceWorkerManager {
                         scope_url: job.scope_url.clone(),
                         storage_key: job.storage_key.clone(),
                         script_url: job.script_url.clone(),
-                        id: registration.id,
-                        installing_worker: registration
-                            .installing_worker
-                            .as_ref()
-                            .map(|worker| worker.id),
-                        waiting_worker: registration
-                            .waiting_worker
-                            .as_ref()
-                            .map(|worker| worker.id),
-                        active_worker: registration.active_worker.as_ref().map(|worker| worker.id),
+                        id: registration_id,
+                        installing_worker: installing_worker_id,
+                        waiting_worker: waiting_worker_id,
+                        active_worker: active_worker_id,
                     },
                 )),
             ))
@@ -680,6 +695,16 @@ impl ServiceWorkerManager {
         {
             warn!("Failed to send resolve job promise result to script.");
         }
+
+        // Step 19: Run the Update Worker State algorithm
+        // passing registration’s waiting worker and "installed" as the arguments.
+        // Note: running here so the worker passed to the registration below is in the right state.
+        self.update_worker_state(&mut new_worker, ServiceWorkerState::Installed);
+
+        let Some(registration) = self.registrations.get_mut(&job.scope_url) else {
+            error!("Registration should exist when installing a worker.");
+            return;
+        };
 
         // Step 17: Run the Update Registration State algorithm passing registration,
         // "waiting" and registration’s installing worker as the arguments.
@@ -691,7 +716,11 @@ impl ServiceWorkerManager {
         // probably because we are still lacking functionality elsewhere.
 
         // Step 21: Wait for all the tasks queued by Update Worker State invoked in this algorithm to have executed.
-        // TODO: queue tasks above and wait for them to execute.
+        // TODO: wait for the tasks queued to fire the "statechange" events
+        // to return control to the engine and for script to message back here.
+
+        // Step 22: Invoke Try Activate with registration.
+        // TODO.
     }
 
     /// <https://w3c.github.io/ServiceWorker/#update>
