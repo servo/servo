@@ -53,18 +53,23 @@ impl TextInputWidget {
             .update_placeholder(cx, element);
     }
 
-    /// Returns whether `new_range` was successfully set on an existing text run
+    /// Returns whether `new_range` was successfully set on an existing text run.
     pub(crate) fn set_text_run_selection(
         &self,
         new_range: Option<RangeAny<Utf32CodeUnits>>,
     ) -> bool {
-        if let Some(shadow_tree) = &*self.shadow_tree.borrow() &&
-            let Some(character_data) = shadow_tree.value_character_data()
-        {
-            character_data.set_text_run_selection(new_range)
-        } else {
-            false
+        let Some(shadow_tree) = &*self.shadow_tree.borrow() else {
+            return false;
+        };
+
+        let mut updated = false;
+        if let Some(character_data) = shadow_tree.value_character_data() {
+            updated |= character_data.set_text_run_selection(new_range);
         }
+        if let Some(character_data) = shadow_tree.placeholder_character_data_if_exists() {
+            updated |= character_data.set_text_run_selection(new_range);
+        }
+        updated
     }
 }
 
@@ -156,6 +161,14 @@ impl TextInputWidgetShadowTree {
         self.placeholder_container
             .set(Some(&*placeholder_container));
         Some(placeholder_container)
+    }
+
+    fn placeholder_character_data_if_exists(&self) -> Option<DomRoot<CharacterData>> {
+        let node = self
+            .placeholder_container
+            .get()
+            .and_then(|container| container.upcast::<Node>().GetFirstChild())?;
+        DomRoot::downcast(node)
     }
 
     fn placeholder_character_data(
