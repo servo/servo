@@ -362,7 +362,6 @@ impl DOMString {
     /// Creates the string from js. If the string can be encoded in latin1, just take the reference
     /// to the JSString. Otherwise do the conversion to utf8 now.
     /// <https://webidl.spec.whatwg.org/#js-DOMString>
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub fn from_js_string(
         cx: &mut JSContext,
         value: HandleValue,
@@ -387,6 +386,7 @@ impl DOMString {
     /// # Safety
     ///
     /// *mut JSString needs to point to a valid JSString.
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub unsafe fn from_raw_js_string(
         cx: &JSContext,
         string_ptr: *mut JSString,
