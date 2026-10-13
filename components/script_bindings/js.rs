@@ -23,13 +23,6 @@ bitflags! {
 }
 
 impl PropertyFlags {
-    #[allow(non_upper_case_globals)]
-    pub const Enumerable: Self = Self::ENUMERABLE;
-    #[allow(non_upper_case_globals)]
-    pub const Writable: Self = Self::WRITABLE;
-    #[allow(non_upper_case_globals)]
-    pub const Configurable: Self = Self::CONFIGURABLE;
-
     /// Convert the flags to the underlying SpiderMonkey `JSPROP_*` attributes.
     pub fn as_jsprop_flags(&self) -> u32 {
         let mut attrs: u32 = 0;
@@ -90,10 +83,5 @@ mod tests {
         // -> 0
         let method = PropertyFlags::WRITABLE | PropertyFlags::CONFIGURABLE;
         assert_eq!(method.as_jsprop_flags(), 0);
-
-        // PascalCase aliases match SCREAMING_SNAKE_CASE
-        assert_eq!(PropertyFlags::Enumerable, PropertyFlags::ENUMERABLE);
-        assert_eq!(PropertyFlags::Writable, PropertyFlags::WRITABLE);
-        assert_eq!(PropertyFlags::Configurable, PropertyFlags::CONFIGURABLE);
     }
 }
