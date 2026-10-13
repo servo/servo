@@ -27,11 +27,12 @@ malloc_size_of::malloc_size_of_is_0!(AccessibilityDamage);
 
 /// A safe-list of ARIA role attribute values which we map to AccessKit roles.
 ///
-/// This is currently just the roles that don't have any [supported][1] or [required][2] properties
-/// and also don't require an [accessible name][3].
-/// [1]: https://w3c.github.io/aria/#supportedState
-/// [2]: https://w3c.github.io/aria/#requiredState
-/// [3]: https://w3c.github.io/aria/#namefromauthor
+/// This is currently just the roles that don't have any [supported] or [required] properties
+/// and also don't require an [accessible name].
+///
+/// [supported]: https://w3c.github.io/aria/#supportedState
+/// [required]: https://w3c.github.io/aria/#requiredState
+/// [accessible name]: https://w3c.github.io/aria/#namefromauthor
 pub static SUPPORTED_ARIA_ROLES: LazyLock<FxHashSet<Atom>> = LazyLock::new(|| {
     [
         Atom::from("alert"),
@@ -74,7 +75,7 @@ pub static SUPPORTED_ARIA_ROLES: LazyLock<FxHashSet<Atom>> = LazyLock::new(|| {
     .collect()
 });
 
-/// A map ARIA role name to the corresponding [`Role`] in AccessKit.
+/// A map from ARIA role name to the corresponding [`Role`] in AccessKit.
 pub static ARIA_ROLE_TO_ACCESSKIT_ROLE: LazyLock<FxHashMap<Atom, Role>> = LazyLock::new(|| {
     [
         (Atom::from("alert"), Role::Alert),
