@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
@@ -26,7 +27,7 @@ use crate::dom::window::Window;
 pub(crate) struct BluetoothAdvertisingEvent {
     event: Event,
     device: Dom<BluetoothDevice>,
-    name: Option<DOMString>,
+    name: Option<TracedDOMString>,
     appearance: Option<u16>,
     tx_power: Option<i8>,
     rssi: Option<i8>,
@@ -44,7 +45,7 @@ impl BluetoothAdvertisingEvent {
         BluetoothAdvertisingEvent {
             event: Event::new_inherited(),
             device: Dom::from_ref(device),
-            name,
+            name: name.map(|domstring| domstring.traced()),
             appearance,
             tx_power,
             rssi,
@@ -119,7 +120,7 @@ impl BluetoothAdvertisingEventMethods<crate::DomTypeHolder> for BluetoothAdverti
 
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothadvertisingevent-name>
     fn GetName(&self) -> Option<DOMString> {
-        self.name.clone()
+        self.name.clone().map(|domstring| domstring.root())
     }
 
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothadvertisingevent-appearance>

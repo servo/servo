@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::reflect_dom_object;
 use servo_bluetooth_traits::{BluetoothResponse, GATTType};
 
@@ -25,7 +26,7 @@ use crate::dom::promise::RootedPromise;
 pub(crate) struct BluetoothRemoteGATTService {
     eventtarget: EventTarget,
     device: Dom<BluetoothDevice>,
-    uuid: DOMString,
+    uuid: TracedDOMString,
     is_primary: bool,
     instance_id: String,
 }
@@ -40,7 +41,7 @@ impl BluetoothRemoteGATTService {
         BluetoothRemoteGATTService {
             eventtarget: EventTarget::new_inherited(),
             device: Dom::from_ref(device),
-            uuid,
+            uuid: uuid.traced(),
             is_primary,
             instance_id,
         }
@@ -82,7 +83,7 @@ impl BluetoothRemoteGATTServiceMethods<crate::DomTypeHolder> for BluetoothRemote
 
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-uuid>
     fn Uuid(&self) -> DOMString {
-        self.uuid.clone()
+        self.uuid.clone().root()
     }
 
     /// <https://webbluetoothcg.github.io/web-bluetooth/#dom-bluetoothremotegattservice-getcharacteristic>
