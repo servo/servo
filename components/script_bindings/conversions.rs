@@ -384,8 +384,13 @@ where
 pub fn jsid_to_string(cx: &js::context::JSContext, id: HandleId) -> Option<DOMString> {
     let id_raw = *id;
     if id_raw.is_string() {
-        let jsstr = ptr::NonNull::new(id_raw.to_string()).unwrap();
-        return Some(unsafe { jsstr_to_string(cx, jsstr) }.into());
+        let jsstr = id_raw.to_string();
+        return Some(unsafe {
+            // Safe as `to_string` should always point to a valid JSString.
+            DOMString::from_raw_jsstring(cx, jsstr).expect(
+                "Should always be able to convert a property id that is a string to a DOMString",
+            )
+        });
     }
 
     if id_raw.is_int() {
