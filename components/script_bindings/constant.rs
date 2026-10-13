@@ -7,11 +7,11 @@
 use std::ffi::CStr;
 
 use js::context::JSContext;
-use js::jsapi::{JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY};
 use js::jsval::{BooleanValue, DoubleValue, Int32Value, JSVal, NullValue, UInt32Value};
 use js::rooted;
 use js::rust::HandleObject;
-use js::rust::wrappers2::JS_DefineProperty;
+
+use crate::js::{JS_DefineProperty, PropertyFlags};
 
 /// Representation of an IDL constant.
 #[derive(Clone)]
@@ -56,14 +56,12 @@ impl ConstantSpec {
 pub fn define_constants(cx: &mut JSContext, obj: HandleObject, constants: &[ConstantSpec]) {
     for spec in constants {
         rooted!(&in(cx) let value = spec.get_value());
-        unsafe {
-            assert!(JS_DefineProperty(
-                cx,
-                obj,
-                spec.name.as_ptr(),
-                value.handle(),
-                (JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT) as u32
-            ));
-        }
+        assert!(JS_DefineProperty(
+            cx,
+            obj,
+            spec.name,
+            value.handle(),
+            PropertyFlags::ENUMERABLE,
+        ));
     }
 }

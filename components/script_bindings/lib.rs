@@ -7,7 +7,7 @@
 #![cfg_attr(crown, register_tool(crown))]
 
 #[macro_use]
-extern crate js;
+extern crate js as mozjs;
 #[macro_use]
 extern crate jstraceable_derive;
 #[macro_use]
@@ -33,6 +33,7 @@ mod init;
 pub mod interface;
 pub mod interfaces;
 pub mod iterable;
+pub mod js;
 pub mod like;
 mod lock;
 mod mem;
@@ -102,7 +103,7 @@ pub mod codegen {
 // These trait exports are public, because they are used in the DOM bindings.
 // Since they are used in derive macros,
 // it is useful that they are accessible at the root of the crate.
-pub(crate) use js::gc::Traceable as JSTraceable;
+pub(crate) use ::js::gc::Traceable as JSTraceable;
 
 pub use crate::codegen::DomTypes::DomTypes;
 pub(crate) use crate::reflector::{DomObject, MutDomObject, Reflector};

@@ -5,6 +5,7 @@
 use std::ffi::CStr;
 use std::ptr;
 
+use ::js::rust::GCMethods;
 use js::gc::{MutableHandle, RootedGuard};
 use js::jsapi::{CallArgs, JSClass, JSFunctionSpec, JSObject, JSPropertySpec};
 use js::rooted;
@@ -21,7 +22,6 @@ use crate::guard::Guard;
 use crate::interface::{
     create_callback_interface_object, create_interface_prototype_object, get_desired_proto,
 };
-use crate::js::rust::GCMethods;
 use crate::namespace::{NamespaceObjectClass, create_namespace_object};
 use crate::utils::ProtoOrIfaceArray;
 

@@ -15,17 +15,17 @@ use js::jsapi::{
     CallArgs, CheckedUnwrapStatic, Compartment, CompartmentSpecifier, GetNonCCWObjectGlobal,
     GetRealmGlobalOrNull, HandleObject as RawHandleObject, IsSharableCompartment,
     IsSystemCompartment, JS_GetFunctionObject, JS_NewObject, JS_NewStringCopyN, JS_SetReservedSlot,
-    JSClass, JSClassOps, JSContext, JSFUN_CONSTRUCTOR, JSFunctionSpec, JSObject, JSPROP_ENUMERATE,
-    JSPROP_PERMANENT, JSPROP_READONLY, JSPROP_RESOLVING, JSPropertySpec, JSString, JSTracer,
-    ObjectOps, OnNewGlobalHookOption, SymbolCode, TrueHandleValue, Value, jsid,
+    JSClass, JSClassOps, JSContext, JSFUN_CONSTRUCTOR, JSFunctionSpec, JSObject, JSPROP_PERMANENT,
+    JSPROP_READONLY, JSPROP_RESOLVING, JSPropertySpec, JSString, JSTracer, ObjectOps,
+    OnNewGlobalHookOption, SymbolCode, TrueHandleValue, Value, jsid,
 };
 use js::jsval::{JSVal, NullValue, PrivateValue};
 use js::realm::AutoRealm;
 use js::rust::wrappers2::{
-    GetWellKnownSymbol, JS_AtomizeAndPinString, JS_DefineProperty, JS_DefineProperty3,
-    JS_DefineProperty4, JS_DefineProperty5, JS_DefinePropertyById5, JS_FireOnNewGlobalObject,
-    JS_IterateCompartments, JS_LinkConstructorAndPrototype, JS_NewFunction, JS_NewGlobalObject,
-    JS_NewObjectWithGivenProto, JS_SetTrustedPrincipals, RUST_SYMBOL_TO_JSID,
+    GetWellKnownSymbol, JS_AtomizeAndPinString, JS_DefineProperty3, JS_DefineProperty4,
+    JS_DefineProperty5, JS_DefinePropertyById5, JS_FireOnNewGlobalObject, JS_IterateCompartments,
+    JS_LinkConstructorAndPrototype, JS_NewFunction, JS_NewGlobalObject, JS_NewObjectWithGivenProto,
+    JS_SetTrustedPrincipals, RUST_SYMBOL_TO_JSID,
 };
 use js::rust::{
     HandleObject, HandleValue, MutableHandleObject, RealmOptions, define_methods,
@@ -39,6 +39,7 @@ use crate::codegen::PrototypeList;
 use crate::constant::{ConstantSpec, define_constants};
 use crate::conversions::{DOM_OBJECT_SLOT, get_dom_class};
 use crate::guard::Guard;
+use crate::js::{JS_DefineProperty, PropertyFlags};
 use crate::principals::ServoJSPrincipals;
 use crate::utils::{
     DOM_PROTOTYPE_SLOT, DOMJSClass, JSCLASS_DOM_GLOBAL, ProtoOrIfaceArray, get_proto_or_iface_array,
@@ -512,9 +513,9 @@ fn create_unscopable_object(
             assert!(JS_DefineProperty(
                 cx,
                 rval.handle(),
-                name.as_ptr(),
+                name,
                 HandleValue::from_raw(TrueHandleValue),
-                JSPROP_ENUMERATE as u32,
+                PropertyFlags::ENUMERABLE | PropertyFlags::WRITABLE | PropertyFlags::CONFIGURABLE,
             ));
         }
     }
