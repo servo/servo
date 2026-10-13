@@ -2,12 +2,17 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::cell::RefCell;
+
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use js::rust::Trace;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::inheritance::Castable;
 use script_bindings::num::Finite;
 use script_bindings::reflector::Reflector;
 use servo_base::cross_process_instant::CrossProcessInstant;
+use servo_url::ServoUrl;
 use strum::VariantArray;
 use time::Duration;
 
@@ -65,13 +70,43 @@ impl<'a> TryFrom<&'a str> for EntryType {
     }
 }
 
+#[derive(MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) enum NameOrUrl {
+    Url(ServoUrl),
+    Name(TracedDOMString),
+}
+
+#[expect(unsafe_code)]
+unsafe impl Trace for NameOrUrl {
+    unsafe fn trace(&self, trc: *mut js::jsapi::JSTracer) {
+        match self {
+            NameOrUrl::Url(_) => {},
+            NameOrUrl::Name(traced_domstring) => unsafe { traced_domstring.trace(trc) },
+        }
+    }
+}
+
+impl From<ServoUrl> for NameOrUrl {
+    fn from(value: ServoUrl) -> Self {
+        NameOrUrl::Url(value)
+    }
+}
+
+impl From<DOMString> for NameOrUrl {
+    fn from(value: DOMString) -> Self {
+        NameOrUrl::Name(value.traced())
+    }
+}
+
 /// <https://www.w3.org/TR/performance-timeline/#dom-performanceentry>
 #[dom_struct]
 pub(crate) struct PerformanceEntry {
     reflector_: Reflector,
 
     /// <https://www.w3.org/TR/performance-timeline/#dom-performanceentry-name>
-    name: DOMString,
+    /// We perform a small optimization here by not converting the url to a string unless it is requested at least once.
+    name: RefCell<NameOrUrl>,
 
     /// <https://www.w3.org/TR/performance-timeline/#dom-performanceentry-entrytype>
     entry_type: EntryType,
@@ -90,15 +125,22 @@ pub(crate) struct PerformanceEntry {
 }
 
 impl PerformanceEntry {
+    #[cfg_attr(
+        crown,
+        expect(
+            crown::unrooted_must_root,
+            reason = "Not rooting this value is fine, we do not have a `&mut JSContext`, hence, no GC can happen"
+        )
+    )]
     pub(crate) fn new_inherited(
-        name: DOMString,
+        name_or_url: NameOrUrl,
         entry_type: EntryType,
         start_time: Option<CrossProcessInstant>,
         duration: Duration,
     ) -> PerformanceEntry {
         PerformanceEntry {
             reflector_: Reflector::new(),
-            name,
+            name: name_or_url.into(),
             entry_type,
             start_time,
             duration,
@@ -110,11 +152,6 @@ impl PerformanceEntry {
         self.entry_type
     }
 
-    /// <https://www.w3.org/TR/performance-timeline/#dom-performanceentry-entrytype>
-    pub(crate) fn name(&self) -> &DOMString {
-        &self.name
-    }
-
     /// <https://www.w3.org/TR/performance-timeline/#dom-performanceentry-starttime>
     pub(crate) fn start_time(&self) -> Option<CrossProcessInstant> {
         self.start_time
@@ -124,7 +161,17 @@ impl PerformanceEntry {
 impl PerformanceEntryMethods<crate::DomTypeHolder> for PerformanceEntry {
     /// <https://w3c.github.io/performance-timeline/#dom-performanceentry-name>
     fn Name(&self) -> DOMString {
-        self.name.clone()
+        {
+            if let NameOrUrl::Name(name) = &*self.name.borrow() {
+                return name.clone().root();
+            }
+            let mut name = self.name.borrow_mut();
+
+            if let NameOrUrl::Url(url) = &*name {
+                *name = NameOrUrl::Name(url.to_string().into());
+            }
+        }
+        self.Name()
     }
 
     /// <https://w3c.github.io/performance-timeline/#dom-performanceentry-entrytype>

@@ -33,7 +33,7 @@ impl PerformanceMeasure {
     ) -> PerformanceMeasure {
         PerformanceMeasure {
             entry: PerformanceEntry::new_inherited(
-                name,
+                name.into(),
                 EntryType::Measure,
                 Some(start_time),
                 duration,

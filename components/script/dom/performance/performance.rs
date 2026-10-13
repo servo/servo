@@ -12,6 +12,7 @@ use js::jsval::NullValue;
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use script_bindings::codegen::GenericBindings::PerformanceBinding::PerformanceMarkOptions;
+use script_bindings::codegen::GenericBindings::PerformanceEntryBinding::PerformanceEntryMethods;
 use script_bindings::codegen::GenericBindings::PerformanceMarkBinding::PerformanceMarkMethods;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
 use script_bindings::codegen::GenericUnionTypes::StringOrPerformanceMeasureOptions;
@@ -68,7 +69,7 @@ impl PerformanceEntryList {
             .entries
             .iter()
             .filter(|e| {
-                name.as_ref().is_none_or(|name_| *e.name() == *name_) &&
+                name.as_ref().is_none_or(|name_| e.Name() == *name_) &&
                     entry_type
                         .as_ref()
                         .is_none_or(|type_| e.entry_type() == *type_)
@@ -93,7 +94,7 @@ impl PerformanceEntryList {
         entry_type: EntryType,
     ) {
         self.entries.retain(|e| {
-            e.entry_type() != entry_type || name.as_ref().is_some_and(|name_| e.name() != name_)
+            e.entry_type() != entry_type || name.as_ref().is_some_and(|name_| e.Name() != *name_)
         });
     }
 
@@ -105,7 +106,7 @@ impl PerformanceEntryList {
         self.entries
             .iter()
             .rev()
-            .find(|e| e.entry_type() == entry_type && *e.name() == name)
+            .find(|e| e.entry_type() == entry_type && e.Name() == name)
             .and_then(|entry| entry.start_time())
     }
 }
