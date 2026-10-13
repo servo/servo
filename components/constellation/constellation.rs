@@ -342,6 +342,8 @@ pub struct Constellation<STF, SWF> {
     sw_manager_receiver: RoutedReceiver<ServiceWorkerManagerMsg>,
 
     /// Sender of messages from the service worker manager.
+    /// Necessary for algorithms like <https://w3c.github.io/ServiceWorker/#update-state-algorithm>,
+    /// which broadcast messages to multiple pipelines.
     sw_manager_sender: GenericSender<ServiceWorkerManagerMsg>,
 
     /// A factory for creating layouts. This allows customizing the kind
@@ -1271,7 +1273,8 @@ where
                 state,
                 origin,
             } => {
-                // Send a message to all pipelines for the origin.
+                // Continuation of <https://w3c.github.io/ServiceWorker/#update-state-algorithm>
+                // Step 4: For each settingsObject of settingsObjects, queue a task on settingsObject’s responsible event loop
                 self.pipelines
                     .values()
                     .filter(|pipeline| pipeline.url.origin() == origin)
