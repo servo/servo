@@ -227,8 +227,10 @@ jobs:
       # cache from the build above, so only the crates affected by the feature are
       # recompiled. It is kept separate from the packaged artifact so that the
       # speedometer/dromaeo benchmarks do not run with tracing compiled in.
-      - name: Build with Perfetto tracing
+      - name: Build with Perfetto tracing (${{ inputs.profile }})
         if: ${{ inputs.perf-analysis }}
+        env:
+          RUSTFLAGS: ${{ inputs.profile == 'checked-release' && '-D warnings' || '' }}
         run: |
           ./mach build --use-crown --locked --profile ${{ inputs.profile }} ${{ inputs.build-args }} --features tracing-perfetto
       - name: Package with Perfetto tracing
