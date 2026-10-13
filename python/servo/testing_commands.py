@@ -1001,7 +1001,7 @@ class MachCommands(CommandBase):
 
         Try strings:
 
-          Platforms (combine with modifiers, e.g. linux-wpt, defualt: linux):
+          Platforms (combine with modifiers, e.g. linux-wpt, default: linux):
             linux
             mac/macos
             mac-arm/macos-arm64
