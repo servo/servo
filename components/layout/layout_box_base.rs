@@ -148,7 +148,6 @@ impl LayoutBoxBase {
         }
     }
 
-    #[expect(unused)]
     pub(crate) fn parent_box(&self) -> Option<LayoutBox> {
         self.parent_box.as_ref().and_then(WeakLayoutBox::upgrade)
     }

@@ -13,6 +13,7 @@ use crate::dom::bindings::root::Dom;
 use crate::dom::comparator::compare_dom_positions;
 use crate::dom::node::Node;
 use crate::dom::range::Range;
+use crate::dom::selection::compare_shadow_including_dom_positions;
 use crate::dom::traversal::FlatTreeForSelectionNoGcTraversal;
 
 /// A rooted selection boundary. This is similar to `SelectionBoundary`, but is rooted.
@@ -64,6 +65,23 @@ impl RootedSelectionBoundary {
         )
         .0
     }
+
+    fn traced(&self) -> SelectionBoundary {
+        SelectionBoundary {
+            container: self.container.as_traced(),
+            offset: self.offset,
+        }
+    }
+
+    pub(crate) fn cmp(&self, no_gc: &NoGC, other: &Self) -> Ordering {
+        compare_shadow_including_dom_positions(
+            no_gc,
+            &self.container,
+            self.offset,
+            &other.container,
+            other.offset,
+        )
+    }
 }
 
 /// A selection boundary. This is similar to `BoundaryPoint`, but supports
@@ -80,6 +98,13 @@ impl SelectionBoundary {
         Self {
             container: Dom::from_ref(container),
             offset,
+        }
+    }
+
+    pub(crate) fn rooted(&self) -> RootedSelectionBoundary {
+        RootedSelectionBoundary {
+            container: self.container.as_rooted(),
+            offset: self.offset,
         }
     }
 }
@@ -101,6 +126,16 @@ impl SelectionRange {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new(start: SelectionBoundary, end: SelectionBoundary) -> Self {
         Self { start, end }
+    }
+
+    pub(crate) fn new_from_rooted(
+        start: RootedSelectionBoundary,
+        end: RootedSelectionBoundary,
+    ) -> Self {
+        Self {
+            start: start.traced(),
+            end: end.traced(),
+        }
     }
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
