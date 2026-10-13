@@ -260,6 +260,21 @@ impl Promise {
     }
 
     #[expect(unsafe_code)]
+    fn new_with_settled_value(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        value: impl ToJSValConvertible,
+        settle_fn: unsafe fn(&mut JSContext, HandleValue) -> *mut JSObject,
+    ) -> RootedPromise {
+        let mut realm = enter_auto_realm(cx, global);
+        let cx = &mut realm.current_realm();
+        rooted!(&in(cx) let mut rval = UndefinedValue());
+        value.to_jsval(cx, rval.handle_mut());
+        rooted!(&in(cx) let p = unsafe { settle_fn(cx, rval.handle()) });
+        assert!(!p.handle().is_null());
+        Promise::new_with_js_promise(cx, p.handle())
+    }
+
     /// Create a new [RootedPromise] associated with the provided global,
     /// resolved with the provided value.
     pub(crate) fn new_resolved(
@@ -267,16 +282,9 @@ impl Promise {
         global: &GlobalScope,
         value: impl ToJSValConvertible,
     ) -> RootedPromise {
-        let mut realm = enter_auto_realm(cx, global);
-        let cx = &mut realm.current_realm();
-        rooted!(&in(cx) let mut rval = UndefinedValue());
-        value.to_jsval(cx, rval.handle_mut());
-        rooted!(&in(cx) let p = unsafe { CallOriginalPromiseResolve(cx, rval.handle()) });
-        assert!(!p.handle().is_null());
-        Promise::new_with_js_promise(cx, p.handle())
+        Promise::new_with_settled_value(cx, global, value, CallOriginalPromiseResolve)
     }
 
-    #[expect(unsafe_code)]
     /// Create a new [RootedPromise] associated with the provided global,
     /// rejected with the provided value.
     pub(crate) fn new_rejected(
@@ -284,13 +292,7 @@ impl Promise {
         global: &GlobalScope,
         value: impl ToJSValConvertible,
     ) -> RootedPromise {
-        let mut realm = enter_auto_realm(cx, global);
-        let cx = &mut realm.current_realm();
-        rooted!(&in(cx) let mut rval = UndefinedValue());
-        value.to_jsval(cx, rval.handle_mut());
-        rooted!(&in(cx) let p = unsafe { CallOriginalPromiseReject(cx, rval.handle()) });
-        assert!(!p.handle().is_null());
-        Promise::new_with_js_promise(cx, p.handle())
+        Promise::new_with_settled_value(cx, global, value, CallOriginalPromiseReject)
     }
 
     pub(crate) fn resolve_native<T>(&self, cx: &mut JSContext, val: &T)
