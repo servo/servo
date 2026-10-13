@@ -378,15 +378,16 @@ impl DOMString {
         // code units as the one the JavaScript String value x represents.
         // Note: this implementation does not preserve the same sequence of code units.
         rooted!(&in(cx) let string_ptr = unsafe { js::rust::ToString(cx, value) });
-        unsafe { DOMString::from_raw_jsstring(cx, *string_ptr) }
+        unsafe { DOMString::from_raw_js_string(cx, *string_ptr) } 
     }
 
     /// Takes a raw `*mut JSString` and creates a [`DOMString`] out of it. Prefer [`DOMString::from_js_string`] if you have a `HandleValue`.
+    /// Seee [`DOMString::from_js_string`] for more detail.
     ///
     /// # Safety
     ///
     /// *mut JSString needs to point to a valid JSString.
-    pub unsafe fn from_raw_jsstring(
+    pub unsafe fn from_raw_js_string(
         cx: &JSContext,
         string_ptr: *mut JSString,
     ) -> Result<DOMString, DOMStringErrorType> {
