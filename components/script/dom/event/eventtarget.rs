@@ -513,7 +513,7 @@ impl EventTarget {
     pub(crate) fn remove_all_listeners(&self, cx: &JSContext) {
         // Take the whole map out first, so the listener-removed notifications
         // below run without holding a borrow on `handlers`.
-        rooted!(&in(cx) let handlers = self.handlers.borrow_mut().take());
+        rooted!(&in(cx) let handlers = self.handlers.safe_borrow_mut(cx.no_gc()).take());
         let Some(ref handlers) = *handlers else {
             return;
         };
