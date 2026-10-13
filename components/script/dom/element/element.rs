@@ -27,8 +27,8 @@ use js::jsval::JSVal;
 use js::realm::CurrentRealm;
 use js::rust::HandleObject;
 use layout_api::{
-    AccessibilityDamage, LayoutDamage, QueryMsg, ScrollContainerQueryFlags, StyleData,
-    with_layout_state,
+    ACCESSKIT_ROLE_TO_ARIA_ROLE, AccessibilityDamage, LayoutDamage, QueryMsg,
+    ScrollContainerQueryFlags, StyleData, with_layout_state,
 };
 use net_traits::ReferrerPolicy;
 use net_traits::request::{CorsSettings, CredentialsMode};
@@ -5351,10 +5351,8 @@ impl Element {
         let accesskit_node = self
             .owner_window()
             .accesskit_node_query(self.upcast::<Node>().to_trusted_node_address())?;
-        let role = accesskit_node.role();
-        // TODO(#43734): Eventually will need mapping table that maps accesskit roles to aria roles
-        let role_string = format!("{role:?}");
-        Some(DOMString::from(role_string.to_lowercase()))
+        let aria_role = ACCESSKIT_ROLE_TO_ARIA_ROLE.get(&accesskit_node.role())?;
+        Some(DOMString::from(aria_role.as_str()))
     }
 }
 
