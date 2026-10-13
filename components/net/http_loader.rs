@@ -73,6 +73,7 @@ use tokio::sync::mpsc::{
 use tokio_stream::wrappers::ReceiverStream;
 #[cfg(feature = "tracing")]
 use tracing::Instrument;
+use uuid::Uuid;
 
 use crate::async_runtime::spawn_task;
 use crate::connector::{
@@ -532,7 +533,7 @@ async fn obtain_response(
     body_sender: Option<StdArc<Mutex<Option<IpcSender<BodyChunkRequest>>>>>,
     source_is_null: bool,
     pipeline_id: &Option<PipelineId>,
-    request_id: Option<&str>,
+    request_id: Option<&Uuid>,
     destination: Destination,
     is_xhr: bool,
     context: &FetchContext,
@@ -2161,7 +2162,7 @@ async fn http_network_fetch(
     // given request.
 
     let url = request.current_url();
-    let request_id = request.id.0.to_string();
+    let request_id = request.id.0;
     if log_enabled!(log::Level::Info) {
         info!("{:?} request for {}", request.method, url);
         for header in request.headers.iter() {
