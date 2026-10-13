@@ -13,9 +13,11 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, SystemTime};
 
 use headers::{
-    CacheControl, ContentRange, Expires, HeaderMapExt, LastModified, Pragma, Range, Vary,
+    CacheControl, ContentRange, ContentType, Expires, HeaderMapExt, LastModified, Pragma, Range,
+    Vary,
 };
 use http::{HeaderMap, Method, StatusCode, header};
+use hyper_serde::Serde;
 use log::{debug, error, info};
 use malloc_size_of::{MallocSizeOf, MallocSizeOfOps};
 use malloc_size_of_derive::MallocSizeOf;
@@ -197,7 +199,7 @@ struct CachedMetadata {
     /// Final URL after redirects.
     pub final_url: ServoUrl,
     /// MIME type / subtype.
-    pub content_type: Option<String>,
+    pub content_type: Option<Serde<ContentType>>,
     /// Character set.
     pub charset: Option<String>,
     /// HTTP Status
@@ -1205,7 +1207,7 @@ impl<'a> CachedResourcesOrGuard<'a> {
         let cacheable_metadata = CachedMetadata {
             headers: Arc::new(ParkingLotMutex::new(response.headers.clone().into())),
             final_url: metadata.final_url,
-            content_type: metadata.content_type.map(|v| v.0.to_string()),
+            content_type: metadata.content_type,
             charset: metadata.charset,
             status: metadata.status,
         };
