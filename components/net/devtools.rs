@@ -59,12 +59,13 @@ mod enabled {
     use net_traits::response::{CacheState, Response};
     use servo_base::id::{BrowsingContextId, PipelineId};
     use servo_url::ServoUrl;
+    use uuid::Uuid;
 
     use crate::fetch::methods::FetchContext;
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn prepare_devtools_request(
-        request_id: String,
+        request_id: Uuid,
         url: ServoUrl,
         method: Method,
         headers: HeaderMap,
@@ -159,10 +160,7 @@ mod enabled {
             };
             let net_event_response = NetworkEvent::HttpResponse(devtoolsresponse);
 
-            let msg = ChromeToDevtoolsControlMsg::NetworkEvent(
-                request.id.0.to_string(),
-                net_event_response,
-            );
+            let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request.id.0, net_event_response);
 
             let _ = devtools_chan.send(DevtoolsControlMsg::FromChrome(msg));
         }
@@ -188,7 +186,7 @@ mod enabled {
                 security_info: Some(security_info),
             });
 
-            let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request.id.0.to_string(), update);
+            let msg = ChromeToDevtoolsControlMsg::NetworkEvent(request.id.0, update);
 
             let _ = devtools_chan.send(DevtoolsControlMsg::FromChrome(msg));
         }
@@ -221,7 +219,7 @@ mod enabled {
             };
 
             let msg = ChromeToDevtoolsControlMsg::NetworkEvent(
-                request.id.0.to_string(),
+                request.id.0,
                 NetworkEvent::HttpRequest(devtools_request),
             );
 

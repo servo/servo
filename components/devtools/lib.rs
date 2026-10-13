@@ -39,6 +39,7 @@ use serde_json::{Map, Number, Value};
 use servo_base::generic_channel::{self, GenericSender};
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use servo_config::pref;
+use uuid::Uuid;
 
 use crate::actor::{Actor, ActorEncode, ActorError, ActorRegistry, new_actor_name};
 use crate::actors::browsing_context::BrowsingContextActor;
@@ -165,7 +166,7 @@ struct DevtoolsInstance {
     receiver: Receiver<DevtoolsControlMsg>,
     pipelines: FxHashMap<PipelineId, BrowsingContextId>,
     actor_workers: FxHashMap<WorkerId, String>,
-    actor_requests: HashMap<String, String>,
+    actor_requests: HashMap<Uuid, String>,
     /// A map of active TCP connections to devtools clients.
     ///
     /// Client threads remove their connection from here once they exit.
@@ -683,7 +684,7 @@ impl DevtoolsInstance {
     fn handle_network_event(
         &mut self,
         connections: Vec<DevtoolsConnection>,
-        request_id: String,
+        request_id: Uuid,
         network_event: NetworkEvent,
     ) {
         let browsing_context_id = match &network_event {
@@ -713,7 +714,7 @@ impl DevtoolsInstance {
     /// Create a new NetworkEventActor for a given request ID and browsing context name.
     fn create_network_event_actor(
         &mut self,
-        request_id: String,
+        request_id: Uuid,
         browsing_context_name: String,
     ) -> String {
         let resource_id = self.next_resource_id;
