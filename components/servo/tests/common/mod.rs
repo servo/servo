@@ -106,7 +106,9 @@ impl WebViewDelegateImpl {
         self.url_changed.set(false);
         self.cursor_changed.set(false);
         self.new_frame_ready.set(false);
+        self.load_status_changed.set(false);
         self.controls_shown.borrow_mut().clear();
+        *self.active_dialog.borrow_mut() = None;
         self.number_of_controls_shown.set(0);
         self.number_of_controls_hidden.set(0);
         self.last_accesskit_tree_updates.borrow_mut().clear();
