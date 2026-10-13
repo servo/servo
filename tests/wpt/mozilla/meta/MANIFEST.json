@@ -300,6 +300,34 @@
       {}
      ]
     ],
+    "input-text-placeholder-caret-after-edit.html": [
+     "5bf36f52fbfaa45c43f7f37f7cc95e244cabb980",
+     [
+      null,
+      [
+       [
+        "/_mozilla/appearance/input-text-placeholder-caret-ref.html",
+        "=="
+       ]
+      ],
+      {
+       "testdriver": true
+      }
+     ]
+    ],
+    "input-text-placeholder-caret-focus.html": [
+     "c05fb6606097b4dd9869535b1945c41248ba2f3b",
+     [
+      null,
+      [
+       [
+        "/_mozilla/appearance/input-text-placeholder-caret-ref.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
     "input-textual-definite-width.html": [
      "59f1797fab3d1889bbcb7863178c6c5ef9e54f19",
      [
@@ -420,7 +448,7 @@
     "progress-determinate.html": [
      "0e98f4da0e53feedc972b3a75596fb2c60fd14c5",
      [
-      "appearance/progress-determinate.html",
+      null,
       [
        [
         "/_mozilla/appearance/progress-determinate-ref.html",
@@ -4363,7 +4391,7 @@
     "linear-gradients-small-stop-gaps.html": [
      "38542d78b9077de41cee1a41676611ca1dc3df16",
      [
-      "css/linear-gradients-small-stop-gaps.html",
+      null,
       [
        [
         "/_mozilla/css/linear-gradients-small-stop-gaps-ref.html",
@@ -8538,6 +8566,10 @@
      "ff0b91f2a8857fdefa4a8a3d7d75e06e53e699cf",
      []
     ],
+    "input-text-placeholder-caret-ref.html": [
+     "20e885777fa67bab3e86a086824d1264c33db32f",
+     []
+    ],
     "input-textual-definite-width-ref.html": [
      "418f5c0e6b36b9b5d2097d47af2c893e030c8f32",
      []
@@ -10997,7 +11029,7 @@
      []
     ],
     "input-events.js": [
-     "d5c471f80064d5d848283d833c49cfe36f2475e2",
+     "7719729157c8b92c0d6a37c4431100f1b8383639",
      []
     ]
    },
@@ -13476,8 +13508,26 @@
       }
      ]
     ],
+    "double-and-triple-click-in-document.html": [
+     "f4493be4224f601466bef3807276a6b82b97f28d",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
     "double-and-triple-click-in-text-input.html": [
      "d54e4abc508dfeb1ec2fe24710f9611708b7ad38",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
+    "double-and-triple-click-then-drag-in-document.html": [
+     "815e0209f2b69e06f157281c722dd6d713320100",
      [
       null,
       {

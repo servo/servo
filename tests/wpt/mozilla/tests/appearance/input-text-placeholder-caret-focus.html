@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+
+<html class="reftest-wait">
+
+<style>
+    input { caret-animation: manual;}
+</style>
+<link rel="match" href="input-text-placeholder-caret-ref.html">
+
+<body>
+    <input id="input" placeholder="placeholder">
+</body>
+
+<script>
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+        input.focus();
+        requestAnimationFrame(() => document.documentElement.classList.remove("reftest-wait"));
+    }));
+</script>
+
+</html>

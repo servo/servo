@@ -943,39 +943,41 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
                 wr::ColorF::WHITE,
             );
 
-            self.paint_timing_handler
-                .check_if_paintable(rect, style.slow_clone_opacity());
+            if self
+                .paint_timing_handler
+                .check_if_paintable(rect, style.slow_clone_opacity())
+            {
+                // From <https://www.w3.org/TR/paint-timing/#contentful>:
+                // An element target is contentful when one or more of the following apply:
+                // > target is a replaced element representing an available image.
+                // From: <https://html.spec.whatwg.org/multipage/#img-available>
+                // When an image request's state is either partially available or completely available,
+                // the image request is said to be available.
+                // Hence, Skip Broken Images.
+                if !fragment.showing_broken_image_icon {
+                    self.mark_is_contentful();
 
-            // From <https://www.w3.org/TR/paint-timing/#contentful>:
-            // An element target is contentful when one or more of the following apply:
-            // > target is a replaced element representing an available image.
-            // From: <https://html.spec.whatwg.org/multipage/#img-available>
-            // When an image request's state is either partially available or completely available,
-            // the image request is said to be available.
-            // Hence, Skip Broken Images.
-            if !fragment.showing_broken_image_icon {
-                self.mark_is_contentful();
+                    self.collect_image_record(
+                        state,
+                        rect,
+                        common.clip_rect,
+                        fragment.base.tag,
+                        fragment.url.clone(),
+                        fragment.natural_width,
+                        fragment.natural_height,
+                        fragment.load_time,
+                    );
 
-                self.collect_image_record(
-                    state,
-                    rect,
-                    common.clip_rect,
-                    fragment.base.tag,
-                    fragment.url.clone(),
-                    fragment.natural_width,
-                    fragment.natural_height,
-                    fragment.load_time,
-                );
-
-                self.collect_container_timing_record(
-                    state,
-                    &state.container_timing_roots,
-                    state.containing_element_tag,
-                    rect,
-                    common.clip_rect,
-                    fragment.natural_width,
-                    fragment.natural_height,
-                );
+                    self.collect_container_timing_record(
+                        state,
+                        &state.container_timing_roots,
+                        state.containing_element_tag,
+                        rect,
+                        common.clip_rect,
+                        fragment.natural_width,
+                        fragment.natural_height,
+                    );
+                }
             }
         }
 
@@ -1278,16 +1280,15 @@ impl Fragment {
             None,
         );
 
-        if !entirely_white_space {
-            builder
-                .paint_timing_handler
-                .check_if_paintable(glyph_bounds, parent_style.slow_clone_opacity());
-
+        if builder
+            .paint_timing_handler
+            .check_if_paintable(glyph_bounds, parent_style.slow_clone_opacity())
+        {
             // From <https://www.w3.org/TR/paint-timing/#contentful>:
             // An element target is contentful when one or more of the following apply:
             // > target has a text node child, representing non-empty text, and the node’s
             // > used opacity is greater than zero.
-            if *parent_style.get_opacity() > 0. {
+            if !entirely_white_space && *parent_style.get_opacity() > 0. {
                 builder.mark_is_contentful();
 
                 builder.collect_container_timing_record(
@@ -2024,38 +2025,39 @@ impl<'a> BuilderForBoxFragment<'a> {
                             builder.wr().pop_stacking_context();
                         }
 
-                        builder
+                        if builder
                             .paint_timing_handler
-                            .check_if_paintable(layer.bounds, style.slow_clone_opacity());
+                            .check_if_paintable(layer.bounds, style.slow_clone_opacity())
+                        {
+                            // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
+                            // An element target is contentful when one or more of the following apply:
+                            // > target has a background-image which is a contentful image, and its used
+                            // > background-size has non-zero width and height values.
+                            builder.mark_is_contentful();
 
-                        // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
-                        // An element target is contentful when one or more of the following apply:
-                        // > target has a background-image which is a contentful image, and its used
-                        // > background-size has non-zero width and height values.
-                        builder.mark_is_contentful();
+                            let natural_width = Some(Au::from_f32_px(size.width / dppx));
+                            let natural_height = Some(Au::from_f32_px(size.height / dppx));
+                            builder.collect_image_record(
+                                state,
+                                layer.bounds,
+                                layer.common.clip_rect,
+                                self.fragment.base.tag,
+                                Some(url),
+                                natural_width,
+                                natural_height,
+                                image.load_time(),
+                            );
 
-                        let natural_width = Some(Au::from_f32_px(size.width / dppx));
-                        let natural_height = Some(Au::from_f32_px(size.height / dppx));
-                        builder.collect_image_record(
-                            state,
-                            layer.bounds,
-                            layer.common.clip_rect,
-                            self.fragment.base.tag,
-                            Some(url),
-                            natural_width,
-                            natural_height,
-                            image.load_time(),
-                        );
-
-                        builder.collect_container_timing_record(
-                            state,
-                            &state.container_timing_roots_including(self.fragment),
-                            self.fragment.base.tag.or(state.containing_element_tag),
-                            layer.bounds,
-                            layer.common.clip_rect,
-                            natural_width,
-                            natural_height,
-                        );
+                            builder.collect_container_timing_record(
+                                state,
+                                &state.container_timing_roots_including(self.fragment),
+                                self.fragment.base.tag.or(state.containing_element_tag),
+                                layer.bounds,
+                                layer.common.clip_rect,
+                                natural_width,
+                                natural_height,
+                            );
+                        }
                     }
                 },
             }
@@ -2242,16 +2244,16 @@ impl<'a> BuilderForBoxFragment<'a> {
                     return false;
                 };
 
-                builder.paint_timing_handler.check_if_paintable(
+                if builder.paint_timing_handler.check_if_paintable(
                     Box2D::from_size(size.cast_unit()),
                     style.slow_clone_opacity(),
-                );
-
-                // From <https://www.w3.org/TR/paint-timing/#contentful>:
-                // An element target is contentful when one or more of the following apply:
-                // > target has a background-image which is a contentful image,
-                // > and its used background-size has non-zero width and height values.
-                builder.mark_is_contentful();
+                ) {
+                    // From <https://www.w3.org/TR/paint-timing/#contentful>:
+                    // An element target is contentful when one or more of the following apply:
+                    // > target has a background-image which is a contentful image,
+                    // > and its used background-size has non-zero width and height values.
+                    builder.mark_is_contentful();
+                }
 
                 width = size.width;
                 height = size.height;

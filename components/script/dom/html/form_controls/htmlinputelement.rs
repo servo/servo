@@ -51,9 +51,7 @@ use crate::dom::event::Event;
 use crate::dom::event::event::{EventBubbles, EventCancelable, EventComposed};
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::filelist::FileList;
-use crate::dom::html::form_controls::input_type::radio_input_type::{
-    broadcast_radio_checked, perform_radio_group_validation,
-};
+use crate::dom::html::form_controls::input_type::radio_input_type::perform_radio_group_validation;
 use crate::dom::html::form_controls::input_type::{
     InputActivationType, InputType, ValueChangeEvents,
 };
@@ -65,6 +63,7 @@ use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{
     FormControl, FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement, SubmittedFrom,
 };
+use crate::dom::input_type::radio_input_type::radio_group_iter;
 use crate::dom::iterators::ShadowIncluding;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{
@@ -117,6 +116,12 @@ pub(crate) struct HTMLInputElement {
     checkedness: Cell<bool>,
     /// <https://html.spec.whatwg.org/multipage/#concept-input-checked-dirty-flag>
     checked_changed: Cell<bool>,
+    /// <https://html.spec.whatwg.org/multipage/#concept-input-indeterminate>
+    /// The indeterminateness of an input is independent of its indeterminate element state.
+    /// Every input type can be indeterminate, but this adds the :indeterminate pseudo class only to
+    /// checkboxes. At the same time, radio boxes are matched by :indeterminate when no button in the
+    /// groupo is checked, which is fully independent of the interminateness of the input element.
+    indeterminateness: Cell<bool>,
     #[no_trace]
     text_input: DomRefCell<TextInput<EmbedderClipboardProvider>>,
     form_owner: MutNullableDom<HTMLFormElement>,
@@ -169,6 +174,7 @@ impl HTMLInputElement {
             placeholder: DomRefCell::new(DOMString::new()),
             checkedness: Cell::new(false),
             checked_changed: Cell::new(false),
+            indeterminateness: Cell::new(false),
             maxlength: Cell::new(DEFAULT_MAX_LENGTH),
             minlength: Cell::new(DEFAULT_MIN_LENGTH),
             size: Cell::new(DEFAULT_INPUT_SIZE),
@@ -1019,16 +1025,14 @@ impl TextControlElement for HTMLInputElement {
             selection
         };
 
-        if let Some(text_input_widget) = self.input_type.borrow().as_specific().text_input_widget()
+        // If an already laid out text run exists, we only need to repaint. If it doesn't
+        // exist (or the layout box is for different element type), it indicates that
+        // layout is not up-to-date and layout will get the selection value from the DOM
+        // when it rebuilds the box tree.
+        if let Some(text_input_widget) = self.input_type.borrow().as_specific().text_input_widget() &&
+            text_input_widget.borrow().set_text_run_selection(selection)
         {
-            if text_input_widget.borrow().set_text_run_selection(selection) {
-                // Found an already laid out text run to update, so we only need to repaint:
-                self.owner_window().layout().set_needs_new_display_list();
-            } else {
-                // If there isn’t a text run, layout is pending to create it anyway
-            }
-        } else {
-            // Non-text input type. Would this be even called?
+            self.owner_window().layout().set_needs_new_display_list();
         }
     }
 
@@ -1064,6 +1068,7 @@ impl TextControlElement for HTMLInputElement {
                 self.value_dirty.set(true);
                 self.update_placeholder_shown_state();
                 self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
+                self.maybe_update_shared_selection();
             },
             KeyReaction::RedrawSelection => {
                 self.maybe_update_shared_selection();
@@ -1469,15 +1474,13 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-input-indeterminate>
     fn Indeterminate(&self) -> bool {
-        self.upcast::<Element>()
-            .state()
-            .contains(ElementState::INDETERMINATE)
+        self.indeterminateness.get()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-input-indeterminate>
     fn SetIndeterminate(&self, _cx: &mut JSContext, val: bool) {
-        self.upcast::<Element>()
-            .set_state(ElementState::INDETERMINATE, val)
+        self.indeterminateness.set(val);
+        self.update_indeterminate_state();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-lfe-labels>
@@ -1774,16 +1777,16 @@ impl HTMLInputElement {
     }
 
     fn update_checkedness(&self, cx: &mut JSContext, checked: bool, dirty: bool) {
-        self.checkedness.set(checked);
+        let previously_checked = self.checkedness.replace(checked);
         self.update_checked_state();
 
         if dirty {
             self.checked_changed.set(true);
         }
 
-        if matches!(*self.input_type(), InputType::Radio(_)) && checked {
-            broadcast_radio_checked(cx, self, self.radio_group_name().as_ref());
-        }
+        self.input_type()
+            .as_specific()
+            .update_checkedness(cx, self, checked, previously_checked);
 
         self.upcast::<Node>().dirty(cx.no_gc(), NodeDamage::Other);
     }
@@ -1798,6 +1801,31 @@ impl HTMLInputElement {
         ) && self.Checked();
         self.upcast::<Element>()
             .set_state(ElementState::CHECKED, should_checked_state_apply);
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#selector-indeterminate>
+    pub(crate) fn update_indeterminate_state(&self) {
+        // > The :indeterminate pseudo-class must match any element falling into one of the following categories:
+        // > - input elements whose type attribute is in the Checkbox state and whose indeterminateness is true
+        // > - input elements whose type attribute is in the Radio Button state and whose radio button
+        // >   group contains no input elements whose checkedness state is true.
+        let should_indeterminate_state_apply = match *self.input_type() {
+            InputType::Checkbox(_) => self.Indeterminate(),
+            InputType::Radio(_) => {
+                let group = self.radio_group_name();
+                let form = self.form_owner();
+                let root = self
+                    .upcast::<Node>()
+                    .GetRootNode(&GetRootNodeOptions::empty());
+                radio_group_iter(self, group.as_ref(), form.as_deref(), &root)
+                    .all(|elem| !elem.Checked())
+            },
+            _ => false,
+        };
+        self.upcast::<Element>().set_state(
+            ElementState::INDETERMINATE,
+            should_indeterminate_state_apply,
+        );
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-fe-mutable>
@@ -2262,6 +2290,7 @@ impl VirtualMethods for HTMLInputElement {
                     .update_placeholder_contents(cx, self);
 
                 self.update_checked_state();
+                self.update_indeterminate_state();
             },
             local_name!("value") if !self.value_dirty.get() => {
                 // This is only run when the `value` or `defaultValue` attribute is set. It
@@ -2446,8 +2475,7 @@ impl VirtualMethods for HTMLInputElement {
         elem.checked_changed.set(self.checked_changed.get());
         // The spec does not mention cloning the indeterminate state, but other browsers
         // do it and there are WPT tests expecting cloned nodes to preserve this attribute.
-        elem.upcast::<Element>()
-            .set_state(ElementState::INDETERMINATE, self.Indeterminate());
+        elem.SetIndeterminate(cx, self.Indeterminate());
         elem.text_input
             .borrow_mut()
             .set_content(self.text_input.borrow().get_content());

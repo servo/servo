@@ -13,7 +13,7 @@ updates:
     timezone: Europe/Berlin
   cooldown:
     default-days: 7
-    include: "*"
+    include: ["*"]
   open-pull-requests-limit: 10
   allow:
   - dependency-type: direct

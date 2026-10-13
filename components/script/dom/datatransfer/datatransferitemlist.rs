@@ -156,7 +156,7 @@ impl DataTransferItemListMethods<crate::DomTypeHolder> for DataTransferItemList 
             let mut type_ = data.file_type();
             type_.make_ascii_lowercase();
             let bytes = data.file_bytes().unwrap_or_default();
-            let name = data.name().clone();
+            let name = data.name().clone().root();
             data_store.add(Kind::File { bytes, name, type_ })
         };
         index.map(|id| {

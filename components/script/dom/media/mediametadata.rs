@@ -6,6 +6,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::MediaMetadataBinding::{
@@ -21,9 +22,9 @@ use crate::dom::window::Window;
 pub(crate) struct MediaMetadata {
     reflector_: Reflector,
     session: MutNullableDom<MediaSession>,
-    title: DomRefCell<DOMString>,
-    artist: DomRefCell<DOMString>,
-    album: DomRefCell<DOMString>,
+    title: DomRefCell<TracedDOMString>,
+    artist: DomRefCell<TracedDOMString>,
+    album: DomRefCell<TracedDOMString>,
 }
 
 impl MediaMetadata {
@@ -31,9 +32,9 @@ impl MediaMetadata {
         MediaMetadata {
             reflector_: Reflector::new(),
             session: Default::default(),
-            title: DomRefCell::new(init.title.clone()),
-            artist: DomRefCell::new(init.artist.clone()),
-            album: DomRefCell::new(init.album.clone()),
+            title: DomRefCell::new(init.title.clone().traced()),
+            artist: DomRefCell::new(init.artist.clone().traced()),
+            album: DomRefCell::new(init.album.clone().traced()),
         }
     }
 
@@ -81,34 +82,34 @@ impl MediaMetadataMethods<crate::DomTypeHolder> for MediaMetadata {
 
     /// <https://w3c.github.io/mediasession/#dom-mediametadata-title>
     fn Title(&self) -> DOMString {
-        self.title.borrow().clone()
+        self.title.borrow().clone().root()
     }
 
     /// <https://w3c.github.io/mediasession/#dom-mediametadata-title>
     fn SetTitle(&self, value: DOMString) {
-        *self.title.borrow_mut() = value;
+        *self.title.borrow_mut() = value.traced();
         self.queue_update_metadata_algorithm();
     }
 
     /// <https://w3c.github.io/mediasession/#dom-mediametadata-artist>
     fn Artist(&self) -> DOMString {
-        self.artist.borrow().clone()
+        self.artist.borrow().clone().root()
     }
 
     /// <https://w3c.github.io/mediasession/#dom-mediametadata-artist>
     fn SetArtist(&self, value: DOMString) {
-        *self.artist.borrow_mut() = value;
+        *self.artist.borrow_mut() = value.traced();
         self.queue_update_metadata_algorithm();
     }
 
     /// <https://w3c.github.io/mediasession/#dom-mediametadata-album>
     fn Album(&self) -> DOMString {
-        self.album.borrow().clone()
+        self.album.borrow().clone().root()
     }
 
     /// <https://w3c.github.io/mediasession/#dom-mediametadata-album>
     fn SetAlbum(&self, value: DOMString) {
-        *self.album.borrow_mut() = value;
+        *self.album.borrow_mut() = value.traced();
         self.queue_update_metadata_algorithm();
     }
 }

@@ -6,6 +6,7 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::audio::audiotracklist::AudioTrackList;
@@ -17,10 +18,10 @@ use crate::dom::window::Window;
 #[dom_struct]
 pub(crate) struct AudioTrack {
     reflector_: Reflector,
-    id: DOMString,
-    kind: DOMString,
-    label: DOMString,
-    language: DOMString,
+    id: TracedDOMString,
+    kind: TracedDOMString,
+    label: TracedDOMString,
+    language: TracedDOMString,
     enabled: Cell<bool>,
     track_list: MutNullableDom<AudioTrackList>,
 }
@@ -35,10 +36,10 @@ impl AudioTrack {
     ) -> AudioTrack {
         AudioTrack {
             reflector_: Reflector::new(),
-            id,
-            kind,
-            label,
-            language,
+            id: id.traced(),
+            kind: kind.traced(),
+            label: label.traced(),
+            language: language.traced(),
             enabled: Cell::new(false),
             track_list: MutNullableDom::new(track_list),
         }
@@ -63,11 +64,11 @@ impl AudioTrack {
     }
 
     pub(crate) fn id(&self) -> DOMString {
-        self.id.clone()
+        self.id.clone().root()
     }
 
     pub(crate) fn kind(&self) -> DOMString {
-        self.kind.clone()
+        self.kind.clone().root()
     }
 
     pub(crate) fn enabled(&self) -> bool {
@@ -100,12 +101,12 @@ impl AudioTrackMethods<crate::DomTypeHolder> for AudioTrack {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-audiotrack-label>
     fn Label(&self) -> DOMString {
-        self.label.clone()
+        self.label.clone().root()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-audiotrack-language>
     fn Language(&self) -> DOMString {
-        self.language.clone()
+        self.language.clone().root()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-audiotrack-enabled>

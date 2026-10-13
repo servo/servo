@@ -1212,6 +1212,17 @@ impl MallocSizeOf for data_url::mime::Mime {
     }
 }
 
+impl<T> MallocSizeOf for hyper_serde::Serde<T>
+where
+    T: MallocSizeOf,
+    for<'a> hyper_serde::Ser<'a, T>: serde_core::Serialize,
+    for<'de> hyper_serde::De<T>: serde_core::Deserialize<'de>,
+{
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.0.size_of(ops)
+    }
+}
+
 malloc_size_of_hash_map!(indexmap::IndexMap<K, V, S>);
 malloc_size_of_hash_set!(indexmap::IndexSet<T, S>);
 
@@ -1230,6 +1241,7 @@ malloc_size_of_is_0!(http::Method);
 malloc_size_of_is_0!(icu_locale_core::subtags::Language);
 malloc_size_of_is_0!(keyboard_types::Code);
 malloc_size_of_is_0!(keyboard_types::Modifiers);
+malloc_size_of_is_0!(headers::ContentType); // ContentType stores a mime type which is most likely an interned string
 malloc_size_of_is_0!(mime::Mime);
 malloc_size_of_is_0!(resvg::usvg::fontdb::ID);
 malloc_size_of_is_0!(resvg::usvg::fontdb::Style);

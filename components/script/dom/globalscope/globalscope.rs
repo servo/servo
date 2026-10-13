@@ -52,6 +52,7 @@ use profile_traits::{
 use rustc_hash::{FxBuildHasher, FxHashMap};
 use script_bindings::callback::{OwnerWindow, RootedCallback, TracedCallback};
 use script_bindings::cell::{DomRefCell, RefMut};
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::interfaces::GlobalScopeHelpers;
 use script_bindings::reflector::DomObject;
 use script_bindings::settings_stack::run_a_script;
@@ -200,7 +201,7 @@ pub(crate) struct GlobalScope {
     worker_map: DomRefCell<HashMapTracedValues<ServiceWorkerId, Dom<ServiceWorker>, FxBuildHasher>>,
 
     /// Timers (milliseconds) used by the Console API.
-    console_timers: DomRefCell<HashMap<DOMString, Instant>>,
+    console_timers: DomRefCell<HashMap<TracedDOMString, Instant>>,
 
     /// For providing instructions to an optional devtools server.
     #[no_trace]
@@ -297,12 +298,12 @@ pub(crate) struct GlobalScope {
     frozen_supported_performance_entry_types: CachedFrozenArray,
 
     /// The stack of active group labels for the Console APIs.
-    console_group_stack: DomRefCell<Vec<DOMString>>,
+    console_group_stack: DomRefCell<Vec<TracedDOMString>>,
 
     /// The count map for the Console APIs.
     ///
     /// <https://console.spec.whatwg.org/#count>
-    console_count_map: DomRefCell<HashMap<DOMString, usize>>,
+    console_count_map: DomRefCell<HashMap<TracedDOMString, usize>>,
 
     /// Is considered in a secure context
     inherited_secure_context: Option<bool>,
@@ -1337,16 +1338,18 @@ impl GlobalScope {
         }
 
         if let BroadcastChannelState::Managed(router_id, channels) = &mut *current_state {
-            let entry = channels.entry(dom_channel.Name()).or_insert_with(|| {
-                let _ = self.script_to_constellation_chan().send(
-                    ScriptToConstellationMessage::NewBroadcastChannelNameInRouter(
-                        *router_id,
-                        String::from(dom_channel.Name()),
-                        self.origin().immutable().clone(),
-                    ),
-                );
-                VecDeque::new()
-            });
+            let entry = channels
+                .entry(dom_channel.Name().traced())
+                .or_insert_with(|| {
+                    let _ = self.script_to_constellation_chan().send(
+                        ScriptToConstellationMessage::NewBroadcastChannelNameInRouter(
+                            *router_id,
+                            String::from(dom_channel.Name()),
+                            self.origin().immutable().clone(),
+                        ),
+                    );
+                    VecDeque::new()
+                });
             entry.push_back(Dom::from_ref(dom_channel));
         } else {
             panic!("track_broadcast_channel should have first switched the state to managed.");
@@ -2066,7 +2069,7 @@ impl GlobalScope {
         if timers.len() >= 10000 {
             return Err(());
         }
-        match timers.entry(label) {
+        match timers.entry(label.traced()) {
             Entry::Vacant(entry) => {
                 entry.insert(Instant::now());
                 Ok(())
@@ -2964,7 +2967,7 @@ impl GlobalScope {
     }
 
     pub(crate) fn push_console_group(&self, group: DOMString) {
-        self.console_group_stack.borrow_mut().push(group);
+        self.console_group_stack.borrow_mut().push(group.traced());
     }
 
     pub(crate) fn pop_console_group(&self) {
@@ -2975,7 +2978,7 @@ impl GlobalScope {
         *self
             .console_count_map
             .borrow_mut()
-            .entry(label.clone())
+            .entry(label.clone().traced())
             .and_modify(|e| *e += 1)
             .or_insert(1)
     }

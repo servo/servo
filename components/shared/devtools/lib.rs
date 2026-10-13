@@ -36,6 +36,7 @@ use servo_base::generic_channel::GenericSender;
 pub use servo_base::id::WorkerId;
 use servo_base::id::{BrowsingContextId, PipelineId, WebViewId};
 use servo_url::ServoUrl;
+use uuid::Uuid;
 
 // Information would be attached to NewGlobal to be received and show in devtools.
 // Extend these fields if we need more information.
@@ -78,7 +79,7 @@ pub enum ChromeToDevtoolsControlMsg {
     ServerExitMsg,
     /// A network event occurred (request, reply, etc.). The actor with the
     /// provided name should be notified.
-    NetworkEvent(String, NetworkEvent),
+    NetworkEvent(Uuid, NetworkEvent),
     /// Perform a memory report.
     CollectMemoryReport(ReportsChan),
 }

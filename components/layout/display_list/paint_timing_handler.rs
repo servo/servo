@@ -284,10 +284,12 @@ impl PaintTimingHandler {
     /// Marks wether the document is having paintable element
     ///
     /// <https://www.w3.org/TR/paint-timing/#paintable>
-    pub(crate) fn check_if_paintable(&mut self, bounds: LayoutRect, opacity: f32) {
+    pub(crate) fn check_if_paintable(&mut self, bounds: LayoutRect, opacity: f32) -> bool {
         if self.paintable(bounds, opacity) {
             self.mark_document_is_paintable();
+            return true;
         }
+        false
     }
 
     /// <https://www.w3.org/TR/largest-contentful-paint/#sec-effective-visual-size>
