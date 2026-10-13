@@ -23,7 +23,7 @@ default = ["bundled", "clipboard", "default_tooling", "js_jit", "multiprocess"]
 #  configuration with `--no-default-features` build
 #
 # A convenience feature to enable all default web features servo has.
-default_web_features = ["brotli-compression-stream", "clipboard", "webcrypto", "webgpu", "webgl", "webxr"]
+default_web_features = ["brotli-compression-stream", "clipboard", "icu-casemap", "webcrypto", "webgpu", "webgl", "webxr"]
 default_tooling = ["devtools"]
 # Bundle required resources in the binary.
 bundled = ["baked-in-resources", "bundled_freetype"]
@@ -62,6 +62,10 @@ gamepad = [
     "servo-constellation/gamepad",
     "embedder_traits/gamepad",
 ]
+## Enables Spec compliant titlecase support in servo (e.g `ß` -> `Ss`).
+## Disabling this feature reduces the binary size slightly, and uppercase
+## is used instead (`ß` -> `SS` in the example above).
+icu-casemap = ["layout/icu-casemap"]
 jitspew = ["script/jitspew"]
 js_backtrace = ["script/js_backtrace"]
 js_jit = ["script/js_jit"]

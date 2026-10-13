@@ -11,6 +11,7 @@
 //! IFC text and vice-versa.
 
 use arrayvec::ArrayVec;
+use icu_locale_core::LanguageIdentifier;
 use icu_properties::props::{EnumeratedProperty, GeneralCategory, GeneralCategoryGroup};
 use icu_segmenter::WordSegmenter;
 use icu_segmenter::options::WordBreakInvariantOptions;
@@ -310,6 +311,12 @@ impl<'a> TextTransformationIterator<'a> {
                 iterator,
                 text.len(),
                 on_word_boundary,
+                style
+                    .get_font()
+                    ._x_lang
+                    .0
+                    .parse()
+                    .unwrap_or(LanguageIdentifier::UNKNOWN),
             )),
         };
 
@@ -372,14 +379,32 @@ fn is_typographic_letter_unit(character: char) -> bool {
         GeneralCategoryGroup::Number.contains(category)
 }
 
+#[cfg(feature = "icu-casemap")]
+fn title_case(character: char, language: &LanguageIdentifier) -> CharacterTransformIteration {
+    let mut buffer = [0; 4];
+    let titlecase = icu_casemap::CaseMapper::new().titlecase_segment_with_only_case_data_to_string(
+        character.encode_utf8(&mut buffer),
+        language,
+        icu_casemap::options::TitlecaseOptions::default(),
+    );
+    let characters: ArrayVec<char, MAX_CASE_MAPPING_LENGTH> = titlecase.chars().collect();
+    CharacterTransformIteration::case_mapped(characters.into_iter())
+}
+
+#[cfg(not(feature = "icu-casemap"))]
+fn title_case(character: char, _language: &LanguageIdentifier) -> CharacterTransformIteration {
+    CharacterTransformIteration::case_mapped(character.to_uppercase())
+}
+
 /// Given an input iterator, a size hint for the number items in the iterator,
-/// and a boolean determining whether the start of the input represents a word
-/// boundary, return an iterator that capitalizes one-to-one mapped characters
+/// a boolean determining whether the start of the input represents a word
+/// boundary and the language, return an iterator that capitalizes one-to-one mapped characters
 /// from the input iterator.
 pub(crate) fn capitalization_iterator(
     input_iterator: impl Iterator<Item = CharacterTransformIteration>,
     size_hint: usize,
     allow_word_at_start: bool,
+    language: LanguageIdentifier,
 ) -> impl Iterator<Item = CharacterTransformIteration> {
     let mut iterations: Vec<_> = input_iterator.collect();
     let mut string = String::with_capacity(size_hint);
@@ -413,13 +438,9 @@ pub(crate) fn capitalization_iterator(
             pending_word_start &&
             is_typographic_letter_unit(iteration.characters[0])
         {
+            // TODO: text-transform-capitalize-007.html disagrees with the is_lowercase condition.
             if iteration.characters[0].is_lowercase() {
-                // TODO: Replace this with a call to `character.to_titlecase()` when available:
-                // See: https://github.com/rust-lang/rust/issues/153892
-                // See: https://doc.rust-lang.org/stable/std/primitive.char.html#difference-from-uppercase
-                *iteration = CharacterTransformIteration::case_mapped(
-                    iteration.characters[0].to_uppercase(),
-                );
+                *iteration = title_case(iteration.characters[0], &language);
             }
 
             pending_word_start = false;

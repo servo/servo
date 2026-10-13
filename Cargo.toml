@@ -131,6 +131,7 @@ httparse = "1.9"
 hyper = "1.10"
 hyper-rustls = { version = "0.27", default-features = false, features = ["http1", "http2", "logging", "tls12", "webpki-tokio"] }
 hyper-util = { version = "0.1", features = ["client-legacy", "client-proxy", "http2", "tokio"] }
+icu_casemap = "2.1.0"
 icu_locale_core = "2.1.0"
 icu_properties = "2.1.0"
 icu_segmenter = "2.1.0"

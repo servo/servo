@@ -8687,6 +8687,7 @@ dependencies = [
  "bitflags 2.13.2",
  "data-url",
  "euclid",
+ "icu_casemap",
  "icu_locale_core",
  "icu_properties",
  "icu_segmenter",
