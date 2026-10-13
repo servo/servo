@@ -126,7 +126,7 @@ pub(crate) trait TextControlElement {
             None,
             atom!("beforeinput"),
             true,
-            true,
+            input_type.is_beforeinput_cancelable(),
             Some(window),
             0,
             data.map(DOMString::from),
