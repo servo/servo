@@ -12,7 +12,7 @@ use std::thread;
 use log::debug;
 use profile_traits::mem::{
     MemoryReport, MemoryReportResult, ProfilerChan, ProfilerMsg, Report, Reporter, ReporterRequest,
-    ReportsChan,
+    ReportsChan, set_memory_profiler,
 };
 use servo_base::generic_channel::{self, GenericCallback, GenericReceiver};
 
@@ -48,6 +48,10 @@ impl Profiler {
             .expect("Thread spawning failed");
 
         let mem_profiler_chan = ProfilerChan(chan);
+
+        // Publish the channel so that threads in other crates (like media) can
+        // register their own memory reporters.
+        set_memory_profiler(mem_profiler_chan.clone());
 
         // Register the system memory reporter, which will run on its own thread. It never needs to
         // be unregistered, because as long as the memory profiler is running the system memory
@@ -147,6 +151,7 @@ impl Profiler {
                     .append(&mut reports.reports);
             }
         }
+
         result
     }
 }
