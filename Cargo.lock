@@ -6288,9 +6288,9 @@ dependencies = [
 
 [[package]]
 name = "ohos-media-sys"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ffb75eb3dc3eefa0e4c9d641369b609091d77e395f1f56c9eaddead6e9330b6"
+checksum = "9679c0e43cbdab8a67180faaffceaa6afdf8d514ce114279a047a4687fa084cf"
 dependencies = [
  "ohos-sys-opaque-types",
 ]
