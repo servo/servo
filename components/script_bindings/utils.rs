@@ -19,17 +19,16 @@ use js::jsapi::{
     HandleObject as RawHandleObject, Heap, JS_DeprecatedStringHasLatin1Chars,
     JS_GetLatin1StringCharsAndLength, JS_IsGlobalObject, JS_MayResolveStandardClass,
     JS_NewEnumerateStandardClasses, JS_ResolveStandardClass, JSAtom, JSAtomState, JSJitInfo,
-    JSObject, JSPROP_ENUMERATE, JSTracer, MutableHandleIdVector as RawMutableHandleIdVector,
+    JSObject, JSTracer, MutableHandleIdVector as RawMutableHandleIdVector,
     MutableHandleValue as RawMutableHandleValue, PropertyKey, StringIsArrayIndex, jsid,
 };
 use js::jsid::StringId;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers2::{
     AppendToIdVector, CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, CallOriginalPromiseReject,
-    JS_AtomizeStringN, JS_ClearPendingException, JS_DefineProperty, JS_ForwardGetPropertyTo,
-    JS_FreezeObject, JS_GetPendingException, JS_GetProperty, JS_GetPrototype, JS_HasOwnProperty,
-    JS_HasProperty, JS_HasPropertyById, JS_IsExceptionPending, JS_SetPendingException,
-    JS_SetProperty,
+    JS_AtomizeStringN, JS_ClearPendingException, JS_ForwardGetPropertyTo, JS_FreezeObject,
+    JS_GetPendingException, JS_GetProperty, JS_GetPrototype, JS_HasOwnProperty, JS_HasProperty,
+    JS_HasPropertyById, JS_IsExceptionPending, JS_SetPendingException, JS_SetProperty,
 };
 use js::rust::{
     HandleId, HandleObject, HandleValue, MutableHandleValue, Runtime, ToString, get_object_class,
@@ -44,6 +43,7 @@ use crate::codegen::PrototypeList::{self, MAX_PROTO_CHAIN_LENGTH, PROTO_OR_IFACE
 use crate::conversions::{PrototypeCheck, private_from_proto_check};
 use crate::error::throw_invalid_this;
 use crate::interfaces::DomHelpers;
+use crate::js::{JS_DefineProperty, PropertyFlags};
 use crate::proxyhandler::{
     is_cross_origin_object, is_platform_object_same_origin, report_cross_origin_denial,
 };
@@ -296,15 +296,13 @@ pub fn define_dictionary_property(
         return Err(());
     }
 
-    if unsafe {
-        !JS_DefineProperty(
-            cx,
-            object,
-            property.as_ptr(),
-            value,
-            JSPROP_ENUMERATE as u32,
-        )
-    } {
+    if !JS_DefineProperty(
+        cx,
+        object,
+        property,
+        value,
+        PropertyFlags::ENUMERABLE | PropertyFlags::WRITABLE | PropertyFlags::CONFIGURABLE,
+    ) {
         return Err(());
     }
 

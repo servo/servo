@@ -38,12 +38,11 @@ use js::context::{JSContext, NoGC};
 use js::conversions::ToJSValConvertible;
 use js::glue::DumpJSStack;
 use js::jsapi::{
-    GCReason, GetObjectRealmOrNull, Heap, JSContext as RawJSContext, JSObject, JSPROP_ENUMERATE,
-    SetRealmPrincipals,
+    GCReason, GetObjectRealmOrNull, Heap, JSContext as RawJSContext, JSObject, SetRealmPrincipals,
 };
 use js::jsval::{NullValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
-use js::rust::wrappers2::{JS_DefineProperty, JS_GC};
+use js::rust::wrappers2::JS_GC;
 use js::rust::{
     CustomAutoRooterGuard, HandleObject, HandleValue, MutableHandleObject, MutableHandleValue,
 };
@@ -72,6 +71,7 @@ use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::dom::UnrootedDom;
 use script_bindings::interfaces::{HasOrigin, WindowHelpers};
+use script_bindings::js::{JS_DefineProperty, PropertyFlags};
 use script_bindings::like::Setlike;
 use script_bindings::principals::ServoJSPrincipals;
 use script_bindings::reflector::DomObject;
@@ -1434,7 +1434,6 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         Ok(())
     }
 
-    #[expect(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#dom-opener>
     fn SetOpener(&self, cx: &mut JSContext, value: HandleValue) -> ErrorResult {
         // Step 1.
@@ -1447,9 +1446,13 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
         // Step 2.
         let obj = self.reflector().get_jsobject();
-        let result = unsafe {
-            JS_DefineProperty(cx, obj, c"opener".as_ptr(), value, JSPROP_ENUMERATE as u32)
-        };
+        let result = JS_DefineProperty(
+            cx,
+            obj,
+            c"opener",
+            value,
+            PropertyFlags::ENUMERABLE | PropertyFlags::WRITABLE | PropertyFlags::CONFIGURABLE,
+        );
 
         if result { Ok(()) } else { Err(Error::JSFailed) }
     }

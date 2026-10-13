@@ -3804,12 +3804,12 @@ let global = incumbent_global.reflector().get_jsobject();\n"""
                       if !get_${name}::<D>(cx.raw_cx(), obj, this, JSJitGetterCallArgs { _base: temp.handle_mut().into() }) {
                         return false;
                       }
-                      if !JS_DefineProperty(cx, result, ${nameAsArray}, temp.handle(), JSPROP_ENUMERATE as u32) {
+                      if !JS_DefineProperty(cx, result, ${nameAsArray}, temp.handle(), PropertyFlags::ENUMERABLE | PropertyFlags::WRITABLE | PropertyFlags::CONFIGURABLE) {
                         return false;
                       }
                     }
                     """,
-                    name=name, nameAsArray=str_to_cstr_ptr(name), conditions=ret_conditions)
+                    name=name, nameAsArray=str_to_cstr(name), conditions=ret_conditions)
         ret += 'true\n'
         return CGGeneric(ret)
 
@@ -3993,16 +3993,16 @@ assert!((*cache)[PrototypeList::Constructor::{properties['id']} as usize].is_nul
                                                    symbolJSID=symbolJSID))
                     defineFn = "JS_DefinePropertyById2"
                     prop = "iteratorId.handle()"
-                    enumFlags = "0"  # Not enumerable, per spec.
+                    enumFlags = "0 as u32"  # Not enumerable, per spec.
                 elif alias.startswith("@@"):
                     raise TypeError("Can't handle any well-known Symbol other than @@iterator")
                 else:
                     getSymbolJSID = None
                     defineFn = "JS_DefineProperty"
-                    prop = f'"{alias}"'
-                    enumFlags = "JSPROP_ENUMERATE"
-                if enumFlags != "0":
-                    enumFlags = f"{enumFlags} as u32"
+                    prop = str_to_cstr(alias)
+                    enumFlags = (
+                        "PropertyFlags::ENUMERABLE | PropertyFlags::WRITABLE | PropertyFlags::CONFIGURABLE"
+                    )
                 return CGList([
                     getSymbolJSID,
                     # XXX If we ever create non-enumerable properties that can
@@ -4965,13 +4965,13 @@ class CGSpecializedReplaceableSetter(CGSpecializedSetter):
 
     def definition_body(self) -> CGThing:
         assert self.attr.readonly
-        name = str_to_cstr_ptr(self.attr.identifier.name)
+        name = str_to_cstr(self.attr.identifier.name)
         # JS_DefineProperty can only deal with ASCII.
         assert all(ord(c) < 128 for c in name)
         return CGGeneric(f"""
 let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
 let cx = &mut cx;
-JS_DefineProperty(cx, HandleObject::from_raw(obj), {name}, HandleValue::from_raw(args.get(0)), JSPROP_ENUMERATE as u32)
+JS_DefineProperty(cx, HandleObject::from_raw(obj), {name}, HandleValue::from_raw(args.get(0)), PropertyFlags::ENUMERABLE | PropertyFlags::WRITABLE | PropertyFlags::CONFIGURABLE)
 """)
 
 
