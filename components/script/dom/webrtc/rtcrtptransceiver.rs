@@ -74,7 +74,7 @@ impl RTCRtpTransceiver {
 
 impl RTCRtpTransceiverMethods<crate::DomTypeHolder> for RTCRtpTransceiver {
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcrtptransceiver-mid>
-    fn Mid(&self) -> Option<DOMString> {
+    fn GetMid(&self) -> Option<DOMString> {
         self.mid.get().map(|s| DOMString::from(s))
     }
 
@@ -99,7 +99,7 @@ impl RTCRtpTransceiverMethods<crate::DomTypeHolder> for RTCRtpTransceiver {
     }
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcrtptransceiver-currentdirection>
-    fn CurrentDirection(&self) -> Option<RTCRtpTransceiverDirection> {
+    fn GetCurrentDirection(&self) -> Option<RTCRtpTransceiverDirection> {
         self.current_direction.get()
     }
 

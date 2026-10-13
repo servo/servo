@@ -48,7 +48,7 @@ impl RTCRtpSender {
 
 impl RTCRtpSenderMethods<crate::DomTypeHolder> for RTCRtpSender {
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcrtpsender-track>
-    fn Track(&self) -> Option<DomRoot<MediaStreamTrack>> {
+    fn GetTrack(&self) -> Option<DomRoot<MediaStreamTrack>> {
         self.track.borrow().as_ref().map(|t| DomRoot::from_ref(&**t))
     }
 
@@ -90,7 +90,7 @@ impl RTCRtpSenderMethods<crate::DomTypeHolder> for RTCRtpSender {
     }
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcrtpsender-setstreams>
-    fn SetStreams(&self, _streams: Vec<DomRoot<MediaStream>>) {
+    fn SetStreams(&self, _streams: &[&MediaStream]) {
         // TODO: Implement setStreams
     }
 }
