@@ -7,6 +7,7 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
@@ -26,7 +27,7 @@ use crate::dom::window::Window;
 #[dom_struct]
 pub(crate) struct MediaQueryListEvent {
     event: Event,
-    media: DOMString,
+    media: TracedDOMString,
     matches: Cell<bool>,
 }
 
@@ -40,7 +41,7 @@ impl MediaQueryListEvent {
     ) -> DomRoot<MediaQueryListEvent> {
         let ev = Box::new(MediaQueryListEvent {
             event: Event::new_inherited(),
-            media,
+            media: media.traced(),
             matches: Cell::new(matches),
         });
         reflect_dom_object_with_proto(cx, ev, global, proto)
@@ -101,7 +102,7 @@ impl MediaQueryListEventMethods<crate::DomTypeHolder> for MediaQueryListEvent {
 
     /// <https://drafts.csswg.org/cssom-view/#dom-mediaquerylistevent-media>
     fn Media(&self) -> DOMString {
-        self.media.clone()
+        self.media.clone().root()
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-mediaquerylistevent-matches>
