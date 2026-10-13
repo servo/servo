@@ -101,7 +101,7 @@ futures-intrusive = "0.5"
 futures-util = { version = "0.3", default-features = false }
 gaol = "0.2.1"
 gilrs = "0.11.1"
-gleam = "0.15"
+gleam = "0.16"
 glib = "0.22"
 glib-sys = "0.22"
 glow = "0.17.0"
