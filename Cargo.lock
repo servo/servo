@@ -8784,6 +8784,7 @@ dependencies = [
  "data-url",
  "encoding_rs",
  "euclid",
+ "headers",
  "http",
  "icu_locale_core",
  "indexmap 2.14.2",

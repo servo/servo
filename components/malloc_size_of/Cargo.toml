@@ -22,6 +22,7 @@ crossbeam-channel = { workspace = true }
 data-url = { workspace = true }
 encoding_rs = { workspace = true }
 euclid = { workspace = true }
+headers = { workspace = true }
 http = { workspace = true }
 hyper_serde = { workspace = true }
 icu_locale_core = { workspace = true }

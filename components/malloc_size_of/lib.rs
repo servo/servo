@@ -1223,6 +1223,13 @@ where
     }
 }
 
+impl MallocSizeOf for headers::ContentType {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        // ContentType stores a mime type which is most likely an interned string
+        0
+    }
+}
+
 malloc_size_of_hash_map!(indexmap::IndexMap<K, V, S>);
 malloc_size_of_hash_set!(indexmap::IndexSet<T, S>);
 
