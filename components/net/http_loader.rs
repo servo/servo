@@ -1855,7 +1855,6 @@ async fn block_for_cache_ready<'a>(
             let stored_response = construct_response(http_request, done_chan, cached_resources);
             // Step 8.25.2 If storedResponse is non-null, then:
             if let Some(response_from_cache) = stored_response {
-                let response_headers = response_from_cache.response.headers.clone();
                 let validation_status = &response_from_cache.validation_status;
                 let revalidation_guard = &response_from_cache.revalidation_guard;
 
@@ -1880,6 +1879,10 @@ async fn block_for_cache_ready<'a>(
 
                 if needs_synchronous_revalidation {
                     *revalidating_flag = true;
+                    let response_headers = &cached_response
+                        .as_ref()
+                        .expect("needs_synchronous_revalidation implies a cached response")
+                        .headers;
                     // Substep 5
                     if let Some(http_date) = response_headers.typed_get::<LastModified>() {
                         let http_date: SystemTime = http_date.into();
