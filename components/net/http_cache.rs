@@ -199,7 +199,6 @@ struct CachedMetadata {
     /// Final URL after redirects.
     pub final_url: ServoUrl,
     /// MIME type / subtype.
-    #[ignore_malloc_size_of = "Serde<> Attribute currently not supported"]
     pub content_type: Option<Serde<ContentType>>,
     /// Character set.
     pub charset: Option<String>,
