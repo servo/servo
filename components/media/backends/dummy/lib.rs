@@ -30,9 +30,9 @@ use servo_media_streams::registry::{MediaStreamId, register_stream, unregister_s
 use servo_media_streams::{MediaOutput, MediaSocket, MediaStream, MediaStreamType};
 use servo_media_traits::{ClientContextId, MediaInstance};
 use servo_media_webrtc::{
-    BundlePolicy, DataChannelId, DataChannelInit, DataChannelMessage, IceCandidate,
-    SessionDescription, WebRtcBackend, WebRtcController, WebRtcControllerBackend,
-    WebRtcDataChannelResult, WebRtcResult, WebRtcSignaller, thread,
+    BundlePolicy, DataChannelId, DataChannelInit, DataChannelMessage, IceCandidate, IceServer,
+    IceTransportPolicy, RtcpMuxPolicy, SessionDescription, WebRtcBackend, WebRtcController,
+    WebRtcControllerBackend, WebRtcDataChannelResult, WebRtcResult, WebRtcSignaller, thread,
 };
 
 pub struct DummyBackend;

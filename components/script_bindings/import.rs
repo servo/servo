@@ -97,10 +97,9 @@ pub(crate) mod module {
         CallbackInit, InitType, InterfaceInit, NamespaceInit, call_default_constructor,
         create_callback_interface_objects, create_interface, create_namespace_interface_objects,
     };
-    #[cfg(feature = "testbinding")]
-    pub(crate) use crate::conversions::native_from_handlevalue;
     pub(crate) use crate::conversions::{
-        StringificationBehavior, is_array_like, jsid_to_string, native_from_object_static,
+        StringificationBehavior, is_array_like, jsid_to_string, native_from_handlevalue,
+        native_from_object_static,
     };
     pub(crate) use crate::error::{Error, ErrorResult};
     pub(crate) use crate::finalize::{
@@ -119,8 +118,9 @@ pub(crate) mod module {
     pub(crate) use crate::mem::malloc_size_of_including_raw_self;
     pub(crate) use crate::namespace::NamespaceObjectClass;
     pub(crate) use crate::proxyhandler::{get_expando_object, set_property_descriptor};
+    pub(crate) use crate::root::Dom;
     #[cfg(feature = "testbinding")]
-    pub(crate) use crate::root::{Dom, DomSlice};
+    pub(crate) use crate::root::DomSlice;
     pub(crate) use crate::root::{MaybeUnreflectedDom, Root};
     pub(crate) use crate::utils::{
         DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, DOMClass, DOMJSClass, JSCLASS_DOM_GLOBAL,
