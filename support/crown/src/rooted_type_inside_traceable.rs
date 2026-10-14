@@ -21,22 +21,22 @@ declare_tool_lint! {
 pub fn register(lint_store: &mut LintStore) {
     let symbols = Symbols::new();
     lint_store.register_lints(&[DOMROOT_INSIDE_DOM_STRUCT]);
-    lint_store.register_late_pass(move |_| Box::new(NoDomRootPass::new(symbols.clone())));
+    lint_store.register_late_pass(move |_| Box::new(NoRootInTraceablePass::new(symbols.clone())));
 }
 
-pub(crate) struct NoDomRootPass {
+pub(crate) struct NoRootInTraceablePass {
     symbols: Symbols,
 }
 
-impl NoDomRootPass {
+impl NoRootInTraceablePass {
     pub(crate) fn new(symbols: Symbols) -> Self {
         Self { symbols }
     }
 }
 
-impl LintPass for NoDomRootPass {
+impl LintPass for NoRootInTraceablePass {
     fn name(&self) -> &'static str {
-        "ServoNoDomRootPass"
+        "ServoNoRootInRootablePass"
     }
 
     fn get_lints(&self) -> Vec<&'static Lint> {
@@ -95,7 +95,7 @@ fn is_dom_root_ty<'tcx>(sym: &'_ Symbols, cx: &LateContext<'tcx>, ty: ty::Ty<'tc
     false
 }
 
-impl<'tcx> LateLintPass<'tcx> for NoDomRootPass {
+impl<'tcx> LateLintPass<'tcx> for NoRootInRootablePass {
     fn check_item(&mut self, cx: &LateContext<'tcx>, item: &'tcx Item) {
         let variants = match &item.kind {
             ItemKind::Struct(_, _, variant_data) => vec![variant_data],
