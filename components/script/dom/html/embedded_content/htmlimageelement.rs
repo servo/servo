@@ -288,7 +288,7 @@ impl HTMLImageElement {
 
         let cache_result = window.image_cache().get_cached_image_status(
             img_url.clone(),
-            window.origin().immutable().clone(),
+            window.origin().immutable(),
             cors_setting_for_element(self.upcast()),
         );
 
@@ -1040,7 +1040,7 @@ impl HTMLImageElement {
         let window = self.owner_window();
         let cache_result = window.image_cache().get_cached_image_status(
             image_url.clone(),
-            window.origin().immutable().clone(),
+            window.origin().immutable(),
             cors_setting_for_element(self.upcast()),
         );
 

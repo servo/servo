@@ -166,7 +166,7 @@ impl ImageResolver {
         // Check for available image or start tracking.
         let cache_result =
             self.image_cache
-                .get_cached_image_status(url.clone(), self.origin.clone(), None);
+                .get_cached_image_status(url.clone(), &self.origin, None);
 
         match cache_result {
             ImageCacheResult::Available(img_or_meta) => {

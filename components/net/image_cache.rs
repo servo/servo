@@ -193,7 +193,7 @@ impl AllPendingLoads {
     fn get_cached(
         &mut self,
         url: ServoUrl,
-        origin: ImmutableOrigin,
+        origin: &ImmutableOrigin,
         cors_status: Option<CorsSettings>,
     ) -> CacheResult<'_> {
         match self
@@ -208,7 +208,7 @@ impl AllPendingLoads {
                 let load_key = self.keygen.next();
                 url_entry.insert(load_key);
 
-                let pending_load = PendingLoad::new(url, origin, cors_status);
+                let pending_load = PendingLoad::new(url, origin.clone(), cors_status);
                 match self.loads.entry(load_key) {
                     Occupied(_) => unreachable!(),
                     Vacant(load_entry) => {
@@ -966,7 +966,7 @@ impl ImageCache for ImageCacheImpl {
     fn get_cached_image_status(
         &self,
         url: ServoUrl,
-        origin: ImmutableOrigin,
+        origin: &ImmutableOrigin,
         cors_setting: Option<CorsSettings>,
     ) -> ImageCacheResult {
         let mut store = self.store.lock();
