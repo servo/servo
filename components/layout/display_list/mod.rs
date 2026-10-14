@@ -901,9 +901,10 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
             true,
         );
         // From <https://www.w3.org/TR/paint-timing/#mark-paint-timing>:
-        // > A parent frame should not be aware of the paint events from its child iframes, and
-        // > vice versa. This means that a frame that contains just iframes will have first paint
-        // > (due to the enclosing boxes of the iframes) but no first contentful paint.
+        // > A parent frame should not be aware of the paint events from its
+        // > child iframes, and vice versa. This means that a frame that
+        // > contains just iframes will have first paint (due to the enclosing
+        // > boxes of the paintable iframes) but no first contentful paint.
         self.paint_timing_handler
             .check_if_paintable(rect.to_webrender(), state.accumulated_opacity);
     }
