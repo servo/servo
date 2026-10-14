@@ -182,7 +182,7 @@ fn html_constructor(
 
             // Step 7.8 Set element's is value to isValue.
             if let Some(is_value) = is_value {
-                element.set_is(is_value);
+                element.set_is(is_value, cx.no_gc());
             }
 
             if !check_type(&element) {

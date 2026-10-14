@@ -85,6 +85,7 @@ flate2 = { workspace = true }
 fonts = { workspace = true }
 fonts_traits = { workspace = true }
 glow = { workspace = true }
+hashlink = { workspace = true }
 headers = { workspace = true }
 html5ever = { workspace = true }
 http = { workspace = true }

@@ -9330,6 +9330,7 @@ dependencies = [
  "euclid",
  "flate2",
  "glow",
+ "hashlink",
  "headers",
  "html5ever",
  "http",
