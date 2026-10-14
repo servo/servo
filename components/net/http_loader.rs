@@ -10,6 +10,8 @@ use std::time::{Duration, SystemTime};
 
 use async_recursion::async_recursion;
 use content_security_policy::percent_encoding::{AsciiSet, CONTROLS, utf8_percent_encode};
+#[cfg(feature = "devtools")]
+use devtools_traits::HttpResponseBody as DevtoolsHttpResponseBody;
 use embedder_traits::{AuthenticationResponse, GenericEmbedderProxy};
 use futures::{TryFutureExt, TryStreamExt, future};
 use headers::authorization::Basic;
@@ -83,7 +85,8 @@ use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
 #[cfg(feature = "devtools")]
 use crate::devtools::{
-    prepare_devtools_request, send_request_to_devtools, send_response_values_to_devtools,
+    body_for_devtools, prepare_devtools_request, send_request_to_devtools,
+    send_response_values_to_devtools,
 };
 use crate::embedder::NetToEmbedderMsg;
 use crate::fetch::cors_cache::CorsCache;
@@ -2413,8 +2416,15 @@ async fn http_network_fetch(
                 // If devtools is disabled avoid cloning, since the result would
                 // be unused anyway.
                 #[cfg(feature = "devtools")]
-                let devtools_response_body =
-                    devtools_chan.is_some().then(|| completed_body.clone());
+                let devtools_response_body = if devtools_chan.is_some() {
+                    let (data, truncated) = body_for_devtools(&completed_body);
+                    Some(DevtoolsHttpResponseBody {
+                        data: data.into(),
+                        truncated,
+                    })
+                } else {
+                    None
+                };
                 *body = ResponseBody::Done(completed_body);
                 #[cfg(feature = "devtools")]
                 send_response_values_to_devtools(
