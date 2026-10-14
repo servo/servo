@@ -22,7 +22,7 @@ include = [
     "ServoProxyConfig", "ServoCookieFilter", "ServoCertificateError", "ServoCertErrorCode", "ServoError",
     "ServoProtocolHandler", "ServoWebResourceRequest", "ServoWebResourceResponse", "ServoProtocolHandlerCallback",
     "ServoUserContentManager", "ServoMessageCallback", "ServoPreferences",
-    "ServoContextMenuItem", "ServoContextMenuParams", "ServoContextMenuCallback", "ServoContextMenuAction",
+    "ServoContextMenuItem", "ServoContextMenuParams", "ServoContextMenuCallback",
     "SERVO_CAPI_VERSION_MAJOR", "SERVO_CAPI_VERSION_MINOR", "SERVO_CAPI_VERSION_PATCH",
     "SERVO_DOWNLOAD_CANCELLED", "SERVO_DOWNLOAD_COMPLETE", "SERVO_DOWNLOAD_IN_PROGRESS", "SERVO_DOWNLOAD_INTERRUPTED",
     "SERVO_KEY_EVENT_DOWN", "SERVO_KEY_EVENT_UP", "SERVO_MOUSE_EVENT_DOWN", "SERVO_MOUSE_EVENT_UP", "SERVO_MOUSE_EVENT_MOVE", "SERVO_MOUSE_EVENT_LEAVE",
