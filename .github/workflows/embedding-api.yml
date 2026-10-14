@@ -104,9 +104,8 @@ jobs:
           sudo apt update
           sudo apt install -y libegl1-mesa-dev libegl-dev
 
-      # Cache the cargo registry only. Build artifacts are intentionally not
-      # cached: cargo-c manages its own target directory and sccache is not
-      # compatible with it.
+      # Cache dependency downloads shared by the outer and nested Cargo
+      # invocations.
       - name: Cache cargo registry
         uses: actions/cache@v5
         with:
@@ -116,6 +115,16 @@ jobs:
           key: ${{ runner.os }}-cargo-registry-${{ hashFiles('Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-registry-
+
+      # cargo-c uses this separate target directory (see tests/capi/build.rs).
+      # It cannot use sccache, so persist its compiled build output instead.
+      - name: Cache cargo-c build
+        uses: actions/cache@v5
+        with:
+          path: target/cinstall
+          key: ${{ runner.os }}-cargo-cinstall-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-cinstall-
 
       # `cargo-c` provides the `cargo cinstall` command invoked by
       # tests/capi/build.rs to build and install `servo-capi`.
