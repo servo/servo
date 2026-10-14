@@ -208,7 +208,7 @@ impl Shaper {
                 Shaper::float_to_fixed(pt_size) as c_int,
             );
 
-            if servo_config::pref!(layout_variable_fonts_enabled) {
+            if servo_config::pref!(layout_css_font_variations_enabled) {
                 let variations = &font.variations();
                 if !variations.is_empty() {
                     let variations: Vec<_> = variations
