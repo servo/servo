@@ -50,7 +50,7 @@ impl ResolvedSlotAndLocation<'_> {
     }
 }
 
-pub(crate) struct AnonymousElementContent<'dom> {
+pub(crate) struct AnonymousTableContentElement<'dom> {
     pub(crate) info: NodeAndStyleInfo<'dom>,
     pub(crate) display: DisplayGeneratingBox,
     pub(crate) contents: Contents,
@@ -61,7 +61,7 @@ pub(crate) enum AnonymousTableContent<'dom> {
     Text(NodeAndStyleInfo<'dom>, BoxTreeString<'dom>),
     EnterDisplayContents(SharedInlineStyles),
     LeaveDisplayContents,
-    Element(Box<AnonymousElementContent<'dom>>),
+    Element(Box<AnonymousTableContentElement<'dom>>),
 }
 
 impl AnonymousTableContent<'_> {
@@ -950,7 +950,7 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
                 DisplayLayoutInternal::TableCell => {
                     self.current_anonymous_row_content
                         .push(AnonymousTableContent::Element(Box::new(
-                            AnonymousElementContent {
+                            AnonymousTableContentElement {
                                 info: info.clone(),
                                 display,
                                 contents,
@@ -962,7 +962,7 @@ impl<'dom> TraversalHandler<'dom> for TableBuilderTraversal<'_, 'dom> {
             _ => {
                 self.current_anonymous_row_content
                     .push(AnonymousTableContent::Element(Box::new(
-                        AnonymousElementContent {
+                        AnonymousTableContentElement {
                             info: info.clone(),
                             display,
                             contents,
@@ -1117,7 +1117,7 @@ impl<'dom> TraversalHandler<'dom> for TableRowGroupBuilder<'_, '_, 'dom, '_> {
             _ => {
                 self.current_anonymous_row_content
                     .push(AnonymousTableContent::Element(Box::new(
-                        AnonymousElementContent {
+                        AnonymousTableContentElement {
                             info: info.clone(),
                             display,
                             contents,
@@ -1311,7 +1311,7 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
                     //// TODO: Properly handle other table-like elements in the middle of a row.
                     self.current_anonymous_cell_content
                         .push(AnonymousTableContent::Element(Box::new(
-                            AnonymousElementContent {
+                            AnonymousTableContentElement {
                                 info: info.clone(),
                                 display,
                                 contents,
@@ -1323,7 +1323,7 @@ impl<'dom> TraversalHandler<'dom> for TableRowBuilder<'_, '_, 'dom, '_> {
             _ => {
                 self.current_anonymous_cell_content
                     .push(AnonymousTableContent::Element(Box::new(
-                        AnonymousElementContent {
+                        AnonymousTableContentElement {
                             info: info.clone(),
                             display,
                             contents,
