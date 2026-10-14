@@ -32,8 +32,8 @@ use js::jsval::{JSVal, ObjectValue, PrivateValue, UndefinedValue};
 use js::realm::CurrentRealm;
 use js::rust::wrappers2::{
     CompileJsonModule1, CompileModule1, CreateDefaultExportSyntheticModule,
-    DefineFunctionWithReserved, GetModuleRequestSpecifier, JS_ClearPendingException,
-    JS_DefineProperty4, JS_GetModulePrivate, JS_GetPendingException, JS_NewStringCopyN,
+    DefineFunctionWithReserved, GetModuleRequestSpecifier, JS_DefineProperty4, JS_GetModulePrivate,
+    JS_GetPendingException, JS_NewStringCopyN,
 };
 use js::rust::{Handle, HandleValue, ToString, transform_str_to_source_text};
 use mime::Mime;
@@ -47,6 +47,7 @@ use net_traits::request::{
 };
 use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use script_bindings::cell::DomRefCell;
+use script_bindings::js::JS_ClearPendingException;
 use script_bindings::reflector::DomObject;
 use script_bindings::trace::CustomTraceable;
 use servo_config::pref;
@@ -109,7 +110,7 @@ impl RethrowError {
     pub(crate) fn from_pending_exception(cx: &mut JSContext) -> Self {
         rooted!(&in(cx) let mut exception = UndefinedValue());
         assert!(unsafe { JS_GetPendingException(cx, exception.handle_mut()) });
-        unsafe { JS_ClearPendingException(cx) };
+        JS_ClearPendingException(cx);
 
         Self::new(Heap::boxed(exception.get()))
     }

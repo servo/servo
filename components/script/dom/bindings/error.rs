@@ -21,14 +21,15 @@ use js::jsapi::StackFormat as JSStackFormat;
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::wrappers2::{
-    JS_ClearPendingException, JS_ErrorFromException, JS_GetPendingException, JS_GetProperty,
-    JS_IsExceptionPending,
+    JS_ErrorFromException, JS_GetPendingException, JS_GetProperty, JS_IsExceptionPending,
+   
 };
 use js::rust::{describe_scripted_caller, error_info_from_exception_stack};
 use libc::c_uint;
 #[cfg(feature = "js_backtrace")]
 use script_bindings::cell::DomRefCell;
 pub(crate) use script_bindings::error::*;
+use script_bindings::js::JS_ClearPendingException;
 use script_bindings::js::JS_SetPendingException;
 use script_bindings::root::DomRoot;
 use script_bindings::str::DOMString;

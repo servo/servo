@@ -13,14 +13,15 @@ use js::context::{JSContext, NoGC};
 use js::jsapi::{ClippedTime, JSObject, RegExpFlag_UnicodeSets, RegExpFlags};
 use js::jsval::UndefinedValue;
 use js::rust::wrappers2::{
-    CheckRegExpSyntax, DateGetMsecSinceEpoch, ExecuteRegExpNoStatics, JS_ClearPendingException,
-    NewDateObject, NewUCRegExpObject, ObjectIsDate, ObjectIsRegExp,
+    CheckRegExpSyntax, DateGetMsecSinceEpoch, ExecuteRegExpNoStatics, NewDateObject,
+    NewUCRegExpObject, ObjectIsDate, ObjectIsRegExp,
 };
 use js::rust::{HandleObject, MutableHandleObject};
 use num_traits::ToPrimitive;
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::codegen::GenericBindings::SelectionBinding::SelectionMethods;
 use script_bindings::domstring::parse_floating_point_number;
+use script_bindings::js::JS_ClearPendingException;
 use servo_base::generic_channel::GenericSender;
 use servo_base::text::{RangeAny, Utf16CodeUnits, Utf32CodeUnits};
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
@@ -2714,7 +2715,7 @@ fn check_js_regex_syntax(cx: &mut JSContext, pattern: &str) -> bool {
     };
 
     if !valid {
-        unsafe { JS_ClearPendingException(cx) };
+        JS_ClearPendingException(cx);
         return false;
     }
 
@@ -2734,7 +2735,7 @@ fn new_js_regex(
     out_regex.set(unsafe { NewUCRegExpObject(cx, pattern.as_ptr(), pattern.len(), flags) });
 
     if out_regex.is_null() {
-        unsafe { JS_ClearPendingException(cx) };
+        JS_ClearPendingException(cx);
         return false;
     }
     true
@@ -2766,7 +2767,7 @@ fn matches_js_regex(cx: &mut JSContext, regex_obj: HandleObject, value: &str) ->
     if ok {
         Ok(!rval.is_null())
     } else {
-        unsafe { JS_ClearPendingException(cx) };
+        JS_ClearPendingException(cx);
         Err(())
     }
 }

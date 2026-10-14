@@ -16,15 +16,14 @@ use js::context::JSContext;
 use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor, JSObject, Value};
 use js::jsval::{JSVal, ObjectValue, UndefinedValue};
 use js::realm::AutoRealm;
-use js::rust::wrappers2::{
-    Call, Construct1, JS_ClearPendingException, JS_IsExceptionPending, NewArrayObject,
-};
+use js::rust::wrappers2::{Call, Construct1, JS_IsExceptionPending, NewArrayObject};
 use js::rust::{HandleValue, MutableHandle};
 use net_traits::image_cache::ImageCache;
 use pixels::PixelFormat;
 use script_bindings::callback::{HasCallbackHolder, RootedCallback};
 use script_bindings::cell::DomRefCell;
 use script_bindings::interfaces::HasOrigin;
+use script_bindings::js::JS_ClearPendingException;
 use script_bindings::reflector::DomObject;
 use script_traits::{DrawAPaintImageResult, PaintWorkletError, Painter};
 use servo_base::id::PipelineId;
@@ -222,9 +221,7 @@ impl PaintWorkletGlobalScope {
         paint_instance.set(ObjectValue(result.get()));
         if unsafe { JS_IsExceptionPending(cx) } {
             debug!("Paint constructor threw an exception {}.", name);
-            unsafe {
-                JS_ClearPendingException(cx);
-            }
+            JS_ClearPendingException(cx);
             self.paint_definitions
                 .safe_borrow_mut(cx)
                 .get_mut(&name)
@@ -349,9 +346,7 @@ impl PaintWorkletGlobalScope {
         // Step 13.
         if unsafe { JS_IsExceptionPending(cx) } {
             debug!("Paint function threw an exception {}.", name);
-            unsafe {
-                JS_ClearPendingException(cx);
-            }
+            JS_ClearPendingException(cx);
             return self.invalid_image(size_in_dpx, missing_image_urls);
         }
 
