@@ -32,13 +32,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
             outlines: Vec::new(),
             floats: Vec::new(),
         }
-        .traverse_stacking_context(
-            &TraversalState {
-                accumulated_opacity: 1.0,
-                ..Default::default()
-            },
-            root_stacking_context,
-        );
+        .traverse_stacking_context(&TraversalState::default(), root_stacking_context);
     }
 
     /// <https://drafts.csswg.org/css-position-4/#paint-a-stacking-context>
@@ -554,7 +548,7 @@ pub(crate) trait PaintTraversalHandler {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub(crate) struct TraversalState {
     pub spatial_id: ScrollTreeNodeId,
     pub clip_id: ClipId,
@@ -570,6 +564,20 @@ pub(crate) struct TraversalState {
     /// Note that this does not include the box currently being visited, see
     /// [`Self::container_timing_roots_including`].
     pub container_timing_roots: ContainerTimingRoots,
+}
+
+impl Default for TraversalState {
+    fn default() -> Self {
+        Self {
+            spatial_id: Default::default(),
+            clip_id: Default::default(),
+            origin: Default::default(),
+            text_decorations: Default::default(),
+            accumulated_opacity: 1.0,
+            containing_element_tag: Default::default(),
+            container_timing_roots: Default::default(),
+        }
+    }
 }
 
 impl TraversalState {
