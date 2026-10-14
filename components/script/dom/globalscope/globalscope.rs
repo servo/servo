@@ -24,7 +24,6 @@ use embedder_traits::{
     ConsoleLogLevel, EmbedderMsg, JavaScriptEvaluationError, ScriptToEmbedderChan,
 };
 use fonts::FontContext;
-use indexmap::IndexSet;
 use js::context::{JSContext, NoGC};
 use js::jsapi::{GetNonCCWObjectGlobal, HandleObject, Heap, JSObject};
 use js::jsval::UndefinedValue;
@@ -49,7 +48,7 @@ use profile_traits::{
     generic_callback as profile_generic_callback, generic_channel as profile_generic_channel,
     mem as profile_mem, time as profile_time,
 };
-use rustc_hash::{FxBuildHasher, FxHashMap};
+use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use script_bindings::callback::{OwnerWindow, RootedCallback, TracedCallback};
 use script_bindings::cell::{DomRefCell, RefMut};
 use script_bindings::domstring::TracedDOMString;
@@ -256,7 +255,7 @@ pub(crate) struct GlobalScope {
 
     /// Dependent AbortSignals that must be kept alive per
     /// <https://dom.spec.whatwg.org/#abort-signal-garbage-collection?
-    abort_signal_dependents: DomRefCell<IndexSet<Dom<AbortSignal>>>,
+    abort_signal_dependents: DomRefCell<FxHashSet<Dom<AbortSignal>>>,
 
     /// Storage for watching rejected promises waiting for some client to
     /// consume their rejection.
