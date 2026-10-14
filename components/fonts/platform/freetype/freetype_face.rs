@@ -216,7 +216,7 @@ impl FreeTypeFace {
     ) -> Result<Vec<FontVariation>, &'static str> {
         if !unsafe { FT_HAS_MULTIPLE_MASTERS(self.as_ptr()) } ||
             variations.is_empty() ||
-            !servo_config::pref!(layout_variable_fonts_enabled)
+            !servo_config::pref!(layout_css_font_variations_enabled)
         {
             // Nothing to do
             return Ok(vec![]);

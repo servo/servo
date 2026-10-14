@@ -996,9 +996,9 @@ fn test_preferences_change() {
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
 
     assert_eq!(
-        // The backdrop-filter style is feature flagged by the layout.unimplemented feature,
-        // so when layout.unimplemented feature is disabled, the backdrop-filter style specified
-        // in the stylesheet won't parse and the computed value undefined
+        // The backdrop-filter style is feature flagged by the layout_css_backdrop_filter_enabled
+        // preference, so when it is disabled, the backdrop-filter style specified in the
+        // stylesheet won't parse and the computed value undefined
         Ok(JSValue::Array(vec![
             JSValue::String(String::new()),
             JSValue::String(String::new())
@@ -1015,13 +1015,13 @@ fn test_preferences_change() {
 
     servo_test
         .servo()
-        .set_preference("layout_unimplemented", PrefValue::Bool(true));
+        .set_preference("layout_css_backdrop_filter_enabled", PrefValue::Bool(true));
 
     webview.reload();
 
     assert_eq!(
-        // When layout.unimplemented feature is enabled, the backdrop-filter style specified in
-        // the stylesheet will parse and the computed value will be that value
+        // When layout_css_backdrop_filter_enabled is enabled, the backdrop-filter style specified
+        // in the stylesheet will parse and the computed value will be that value
         Ok(JSValue::Array(vec![
             JSValue::String("sepia(1)".to_string()),
             JSValue::String("opacity(0.5)".to_string())
