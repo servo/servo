@@ -69,21 +69,18 @@ impl ServoDownloadItem {
 
     /// Cancel the download.
     pub fn cancel(&self) -> ServoError {
-        // For now, just return Ok. The actual cancellation would be handled
-        // by the network layer, which we don't have direct access to from here.
-        // The embedder can track cancellation state themselves.
-        ServoError::Ok
+        // The full cancellation API requires coordination with the network
+        // layer; document as unsupported until implemented.
+        ServoError::Unsupported
     }
 
     /// Pause the download.
     pub fn pause(&self) -> ServoError {
-        // Pause is not yet implemented in the network layer
         ServoError::Unsupported
     }
 
     /// Resume the download.
     pub fn resume(&self) -> ServoError {
-        // Resume is not yet implemented in the network layer
         ServoError::Unsupported
     }
 }
