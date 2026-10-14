@@ -119,7 +119,6 @@ pub(crate) mod module {
     pub(crate) use crate::namespace::NamespaceObjectClass;
     pub(crate) use crate::proxyhandler::{get_expando_object, set_property_descriptor};
     pub(crate) use crate::root::Dom;
-    #[cfg(feature = "testbinding")]
     pub(crate) use crate::root::DomSlice;
     pub(crate) use crate::root::{MaybeUnreflectedDom, Root};
     pub(crate) use crate::utils::{
