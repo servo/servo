@@ -12,7 +12,7 @@ use servo_api::{Servo, WebView, WebViewBuilder};
 
 use embedder_traits::{MediaSessionActionType, Scroll, WebViewPoint, WebViewVector};
 use embedder_traits::input_events::{
-    ImeEvent, InputEvent, InputEventId, KeyboardEvent, MouseButton, MouseButtonAction, MouseButtonEvent,
+    ImeEvent, InputEvent, KeyboardEvent, MouseButton, MouseButtonAction, MouseButtonEvent,
     MouseMoveEvent, TouchEvent, TouchEventType, TouchId, TouchPointerType, WheelDelta, WheelEvent,
     WheelMode,
 };

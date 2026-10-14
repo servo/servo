@@ -28,7 +28,7 @@ use std::ffi::c_char;
 use std::rc::Rc;
 
 use options::ServoOptions;
-use preferences::ServoPreferences;
+pub use preferences::ServoPreferences;
 use servo_api::protocol_handler::ProtocolRegistry;
 use servo_delegate::{ServoDelegate, make_servo_delegate};
 
@@ -157,7 +157,7 @@ pub use multiprocess::{servo_create_sandbox, servo_run_content_process};
 
 // Re-export preferences types and helpers
 pub use preferences::{
-    ServoPreferences, servo_preferences_create, servo_preferences_free,
+    servo_preferences_create, servo_preferences_free,
     servo_preferences_get_bool, servo_preferences_get_devtools_server_enabled,
     servo_preferences_get_devtools_server_port, servo_preferences_get_i64,
     servo_preferences_get_string, servo_preferences_get_u64, servo_preferences_set_bool,

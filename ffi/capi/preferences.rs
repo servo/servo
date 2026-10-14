@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ffi::{CStr, c_char, c_void};
+use std::ffi::{CStr, c_char};
 use std::ptr;
 
 use servo::{PrefValue, Preferences};
@@ -615,4 +615,3 @@ pub unsafe extern "C" fn servo_preferences_get_devtools_server_port(
         .and_then(|(_, p)| p.parse::<u16>().ok())
         .unwrap_or(7000)
 }
-

@@ -5,7 +5,7 @@
 use std::rc::Rc;
 
 use raw_window_handle::{DisplayHandle, RawDisplayHandle, RawWindowHandle, WindowHandle};
-use servo_api::{OffscreenRenderingContext, SoftwareRenderingContext, WindowRenderingContext};
+use servo_api::{SoftwareRenderingContext, WindowRenderingContext};
 
 use crate::ServoError;
 

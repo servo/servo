@@ -6,8 +6,7 @@ use std::ffi::{CStr, CString, c_char, c_int, c_void};
 use std::path::PathBuf;
 
 use embedder_traits::{
-    ConsoleLogLevel, ContextMenuAction, ContextMenuElementInformation, ContextMenuItem, Cursor,
-    PermissionFeature,
+    ConsoleLogLevel, ContextMenuAction, ContextMenuItem, Cursor, PermissionFeature,
 };
 
 use crate::download::{ServoDownloadContinueCallback, ServoDownloadItem};
@@ -15,6 +14,7 @@ use crate::find::ServoFindResult;
 use crate::protocol_handler::{ServoWebResourceRequest, ServoWebResourceResponse};
 pub use servo_api::LoadStatus;
 use servo_api::{WebView, WebViewDelegate};
+use url::Url;
 
 /// Cursor types matching `embedder_traits::Cursor`.
 #[repr(i32)]

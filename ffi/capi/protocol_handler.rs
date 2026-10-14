@@ -5,8 +5,6 @@
 use std::ffi::{c_char, c_void};
 use std::future::Future;
 use std::pin::Pin;
-use std::sync::{Arc, Mutex};
-
 use embedder_traits::WebResourceResponse;
 use embedder_traits::WebResourceRequest;
 use http::{HeaderMap, HeaderName, HeaderValue, Method, StatusCode};
