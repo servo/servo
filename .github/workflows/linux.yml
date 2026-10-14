@@ -134,7 +134,7 @@ jobs:
       bencher: ${{ inputs.bencher }}
       coverage: ${{ inputs.coverage }}
       capi: ${{ inputs.capi }}
-      perf-analysis: ${{ inputs.bencher }}
+      perf-analysis: ${{ inputs.bencher && inputs.profile == 'checked-release' && github.event_name != 'workflow_dispatch' && github.event_name != 'merge_group' }}
 
   wpt-2020:
     if: ${{ inputs.wpt }}
