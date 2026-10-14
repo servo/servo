@@ -537,10 +537,10 @@ impl GlobalScope {
         worker_id: ServiceWorkerId,
     ) {
         // Step 4.1: Let objectMap be settingsObject’s service worker object map.
-        let mut object_map = self.worker_map.borrow_mut();
+        let object_map = self.worker_map.borrow();
 
         // Step 4.3: Let workerObj be objectMap[worker].
-        let Some(worker) = object_map.get_mut(&worker_id) else {
+        let Some(worker) = object_map.get(&worker_id) else {
             // Step 4.2: If objectMap[worker] does not exist, then abort these steps.
             return;
         };

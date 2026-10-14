@@ -85,7 +85,7 @@ pub enum LoadOrigin {
 }
 
 /// Messages sent from the service worker manager to the constellation.
-#[derive(Debug, Deserialize, IntoStaticStr, Serialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub enum ServiceWorkerManagerMsg {
     /// <https://w3c.github.io/ServiceWorker/#update-worker-state>
     UpdateWorkerState {
@@ -100,7 +100,7 @@ pub enum ServiceWorkerManagerMsg {
 
 /// <https://w3c.github.io/ServiceWorker/#dfn-state>
 /// A service worker has an associated state, which is one of:
-#[derive(Clone, Debug, Deserialize, IntoStaticStr, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum ServiceWorkerState {
     /// "parsed".
     /// It is initially "parsed".
