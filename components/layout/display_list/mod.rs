@@ -905,7 +905,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
         // > vice versa. This means that a frame that contains just iframes will have first paint
         // > (due to the enclosing boxes of the iframes) but no first contentful paint.
         self.paint_timing_handler
-            .check_if_paintable(rect.to_webrender(), style.slow_clone_opacity());
+            .check_if_paintable(rect.to_webrender(), state.accumulated_opacity);
     }
 
     fn visit_image(
@@ -945,7 +945,7 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
 
             if self
                 .paint_timing_handler
-                .check_if_paintable(rect, style.slow_clone_opacity())
+                .check_if_paintable(rect, state.accumulated_opacity)
             {
                 // From <https://www.w3.org/TR/paint-timing/#contentful>:
                 // An element target is contentful when one or more of the following apply:
@@ -1282,7 +1282,7 @@ impl Fragment {
 
         if builder
             .paint_timing_handler
-            .check_if_paintable(glyph_bounds, parent_style.slow_clone_opacity())
+            .check_if_paintable(glyph_bounds, state.accumulated_opacity)
         {
             // From <https://www.w3.org/TR/paint-timing/#contentful>:
             // An element target is contentful when one or more of the following apply:
@@ -1964,7 +1964,7 @@ impl<'a> BuilderForBoxFragment<'a> {
 
                     builder
                         .paint_timing_handler
-                        .check_if_paintable(layer.bounds, style.slow_clone_opacity());
+                        .check_if_paintable(layer.bounds, state.accumulated_opacity);
                 },
                 ResolvedImage::Image { image, size, url } => {
                     // FIXME: https://drafts.csswg.org/css-images-4/#the-image-resolution
@@ -2027,7 +2027,7 @@ impl<'a> BuilderForBoxFragment<'a> {
 
                         if builder
                             .paint_timing_handler
-                            .check_if_paintable(layer.bounds, style.slow_clone_opacity())
+                            .check_if_paintable(layer.bounds, state.accumulated_opacity)
                         {
                             // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
                             // An element target is contentful when one or more of the following apply:
@@ -2246,7 +2246,7 @@ impl<'a> BuilderForBoxFragment<'a> {
 
                 if builder.paint_timing_handler.check_if_paintable(
                     Box2D::from_size(size.cast_unit()),
-                    style.slow_clone_opacity(),
+                    state.accumulated_opacity,
                 ) {
                     // From <https://www.w3.org/TR/paint-timing/#contentful>:
                     // An element target is contentful when one or more of the following apply:

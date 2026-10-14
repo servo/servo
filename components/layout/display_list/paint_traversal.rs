@@ -32,7 +32,13 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
             outlines: Vec::new(),
             floats: Vec::new(),
         }
-        .traverse_stacking_context(&TraversalState::default(), root_stacking_context);
+        .traverse_stacking_context(
+            &TraversalState {
+                accumulated_opacity: 1.0,
+                ..Default::default()
+            },
+            root_stacking_context,
+        );
     }
 
     /// <https://drafts.csswg.org/css-position-4/#paint-a-stacking-context>
@@ -554,6 +560,8 @@ pub(crate) struct TraversalState {
     pub clip_id: ClipId,
     pub origin: PhysicalPoint<Au>,
     pub text_decorations: Rc<Vec<FragmentTextDecoration>>,
+    /// The product of the used opacity of the fragments visited.
+    pub accumulated_opacity: f32,
     /// The tag of the nearest ancestor box fragment that has a tag.
     /// Used for text LCP candidate grouping — all text fragments within
     /// a single element are unioned before computing effective visual size.
@@ -607,6 +615,7 @@ impl TraversalState {
                 .unwrap_or(self.spatial_id),
             clip_id: box_fragment.generated_clip_id().unwrap_or(self.clip_id),
             text_decorations,
+            accumulated_opacity: self.accumulated_opacity * style.slow_clone_opacity(),
             containing_element_tag: box_fragment.base.tag.or(self.containing_element_tag),
             container_timing_roots: self.container_timing_roots_including(box_fragment),
         }
@@ -638,6 +647,8 @@ impl TraversalState {
             spatial_id: self.spatial_id,
             clip_id: self.clip_id,
             text_decorations: self.text_decorations.clone(),
+            accumulated_opacity: self.accumulated_opacity *
+                positioning_fragment.style.borrow().slow_clone_opacity(),
             containing_element_tag: self.containing_element_tag,
             container_timing_roots: self.container_timing_roots.clone(),
         }
@@ -649,6 +660,10 @@ impl TraversalState {
             spatial_id: stacking_context.scroll_tree_node_id,
             clip_id: stacking_context.clip_id,
             text_decorations: stacking_context.text_decorations.clone(),
+            accumulated_opacity: self.accumulated_opacity *
+                stacking_context
+                    .fragment()
+                    .map_or(1.0, |fragment| fragment.style().slow_clone_opacity()),
             containing_element_tag: self.containing_element_tag,
             container_timing_roots: stacking_context.container_timing_roots.clone(),
         }
