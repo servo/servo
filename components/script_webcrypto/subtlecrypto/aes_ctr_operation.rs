@@ -1,0 +1,197 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use aes::{Aes128, Aes192, Aes256};
+use ctr::Ctr128BE;
+use ctr::cipher::StreamCipher;
+use ctr::cipher::common::KeyIvInit;
+use js::context::JSContext;
+use script_bindings::codegen::GenericBindings::CryptoKeyBinding::KeyUsage;
+use script_bindings::codegen::GenericBindings::SubtleCryptoBinding::KeyFormat;
+use script_bindings::error::Error;
+use script_bindings::root::DomRoot;
+
+use crate::cryptokey::{CryptoKey, Handle};
+use crate::subtlecrypto::aes_common::AesAlgorithm;
+use crate::subtlecrypto::{
+    AesCtrParams, AesDerivedKeyParams, AesKeyGenParams, ExportedKey, aes_common,
+};
+use crate::traits::Equivalence;
+
+/// Use aes::Ctr128BE by default. According to the WebCrypto API specification, the counter MUST be
+/// 16 bytes (the AES block size), and the counter bits are interpreted as a big-endian integer.
+type Ctr<T> = Ctr128BE<T>;
+
+/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-encrypt>
+pub(crate) fn encrypt<D: Equivalence>(
+    normalized_algorithm: &AesCtrParams,
+    key: &CryptoKey<D>,
+    plaintext: &[u8],
+) -> Result<Vec<u8>, Error> {
+    // Step 1. If the counter member of normalizedAlgorithm does not have a length of 16 bytes,
+    // then throw an OperationError.
+    if normalized_algorithm.counter.len() != 16 {
+        return Err(Error::Operation(Some(
+            "The initial counter block length is not 16 bytes".into(),
+        )));
+    }
+
+    // Step 2. If the length member of normalizedAlgorithm is zero or is greater than 128, then
+    // throw an OperationError.
+    if normalized_algorithm.length == 0 {
+        return Err(Error::Operation(Some("The counter length is zero".into())));
+    }
+    if normalized_algorithm.length > 128 {
+        return Err(Error::Operation(Some(
+            "The counter length is greater than 128".into(),
+        )));
+    }
+
+    // Step 3. Let ciphertext be the result of performing the CTR Encryption operation described in
+    // Section 6.5 of [NIST-SP800-38A] using AES as the block cipher, the counter member of
+    // normalizedAlgorithm as the initial value of the counter block, the length member of
+    // normalizedAlgorithm as the input parameter m to the standard counter block incrementing
+    // function defined in Appendix B.1 of [NIST-SP800-38A] and plaintext as the input plaintext.
+    let iv = normalized_algorithm
+        .counter
+        .as_slice()
+        .try_into()
+        .map_err(|_| Error::Operation(Some("Invalid AES-CTR counter".into())))?;
+    let mut ciphertext = plaintext.to_vec();
+    match key.handle() {
+        Handle::Aes128Key(key) => {
+            let mut cipher = Ctr::<Aes128>::new(key, iv);
+            cipher.apply_keystream(&mut ciphertext);
+        },
+        Handle::Aes192Key(key) => {
+            let mut cipher = Ctr::<Aes192>::new(key, iv);
+            cipher.apply_keystream(&mut ciphertext);
+        },
+        Handle::Aes256Key(key) => {
+            let mut cipher = Ctr::<Aes256>::new(key, iv);
+            cipher.apply_keystream(&mut ciphertext);
+        },
+        _ => {
+            return Err(Error::Operation(Some(
+                "The key handle is not representing an AES key".to_string(),
+            )));
+        },
+    };
+
+    // Step 4. Return ciphertext.
+    Ok(ciphertext)
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-decrypt>
+pub(crate) fn decrypt<D: Equivalence>(
+    normalized_algorithm: &AesCtrParams,
+    key: &CryptoKey<D>,
+    ciphertext: &[u8],
+) -> Result<Vec<u8>, Error> {
+    // Step 1. If the counter member of normalizedAlgorithm does not have a length of 16 bytes,
+    // then throw an OperationError.
+    if normalized_algorithm.counter.len() != 16 {
+        return Err(Error::Operation(Some(
+            "The initial counter block length is not 16 bytes".into(),
+        )));
+    }
+
+    // Step 2. If the length member of normalizedAlgorithm is zero or is greater than 128, then
+    // throw an OperationError.
+    if normalized_algorithm.length == 0 {
+        return Err(Error::Operation(Some("The counter length is zero".into())));
+    }
+    if normalized_algorithm.length > 128 {
+        return Err(Error::Operation(Some(
+            "The counter length is greater than 128".into(),
+        )));
+    }
+
+    // Step 3. Let plaintext be the result of performing the CTR Decryption operation described in
+    // Section 6.5 of [NIST-SP800-38A] using AES as the block cipher, the counter member of
+    // normalizedAlgorithm as the initial value of the counter block, the length member of
+    // normalizedAlgorithm as the input parameter m to the standard counter block incrementing
+    // function defined in Appendix B.1 of [NIST-SP800-38A] and ciphertext as the input ciphertext.
+    let iv = normalized_algorithm
+        .counter
+        .as_slice()
+        .try_into()
+        .map_err(|_| Error::Operation(Some("Invalid AES-CTR counter".into())))?;
+    let mut plaintext = ciphertext.to_vec();
+    match key.handle() {
+        Handle::Aes128Key(key) => {
+            let mut cipher = Ctr::<Aes128>::new(key, &iv);
+            cipher.apply_keystream(&mut plaintext);
+        },
+        Handle::Aes192Key(key) => {
+            let mut cipher = Ctr::<Aes192>::new(key, &iv);
+            cipher.apply_keystream(&mut plaintext);
+        },
+        Handle::Aes256Key(key) => {
+            let mut cipher = Ctr::<Aes256>::new(key, &iv);
+            cipher.apply_keystream(&mut plaintext);
+        },
+        _ => {
+            return Err(Error::Operation(Some(
+                "The key handle is not representing an AES key".to_string(),
+            )));
+        },
+    };
+
+    // Step 4. Return plaintext.
+    Ok(plaintext)
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-generate-key>
+pub(crate) fn generate_key<D: Equivalence>(
+    cx: &mut JSContext,
+    global: &D::GlobalScope,
+    normalized_algorithm: &AesKeyGenParams,
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
+    aes_common::generate_key(
+        cx,
+        global,
+        AesAlgorithm::AesCtr,
+        normalized_algorithm,
+        extractable,
+        usages,
+    )
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-import-key>
+pub(crate) fn import_key<D: Equivalence>(
+    cx: &mut JSContext,
+    global: &D::GlobalScope,
+    format: KeyFormat,
+    key_data: &[u8],
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
+    aes_common::import_key(
+        cx,
+        global,
+        AesAlgorithm::AesCtr,
+        format,
+        key_data,
+        extractable,
+        usages,
+    )
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-export-key>
+pub(crate) fn export_key<D: Equivalence>(
+    format: KeyFormat,
+    key: &CryptoKey<D>,
+) -> Result<ExportedKey, Error> {
+    aes_common::export_key(AesAlgorithm::AesCtr, format, key)
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-ctr-operations-get-key-length>
+pub(crate) fn get_key_length(
+    normalized_derived_key_algorithm: &AesDerivedKeyParams,
+) -> Result<Option<u32>, Error> {
+    aes_common::get_key_length(normalized_derived_key_algorithm)
+}
