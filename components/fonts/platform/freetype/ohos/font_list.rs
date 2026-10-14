@@ -309,7 +309,7 @@ fn get_family_name_and_generate_font_struct(
 
 impl FontList {
     fn new() -> FontList {
-        if !font_file_cached_on_disk() {
+        let mut font_list = if !font_file_cached_on_disk() {
             let font_list = FontList {
                 families: Self::detect_installed_font_families(),
                 aliases: Self::fallback_font_aliases(),
@@ -317,18 +317,32 @@ impl FontList {
 
             let font_list_clone = font_list.clone();
             thread::spawn(move || serialize_and_write_to_disk_wrapper(font_list_clone));
-            return font_list;
-        }
+            font_list
+        } else {
+            read_from_disk().unwrap_or_else(|e| {
+                error!("Servo failed to read cached FontList from disk: {:?}", e);
 
-        read_from_disk().unwrap_or_else(|e| {
-            error!("Servo failed to read cached FontList from disk: {:?}", e);
+                // Since reading from disk failed, we have no choice but to generate the FontList...
+                FontList {
+                    families: Self::detect_installed_font_families(),
+                    aliases: Self::fallback_font_aliases(),
+                }
+            })
+        };
 
-            // Since reading from disk failed, we have no choice but to generate the FontList...
-            FontList {
-                families: Self::detect_installed_font_families(),
-                aliases: Self::fallback_font_aliases(),
-            }
-        })
+        // Pre-sort families by priority so that `fallback_font_families` does not need
+        // to call `sort_by_key` + `name.contains()` on every invocation.
+        // Priority families (name contains "HarmonyOS" or "HMOS") come first, then
+        // remaining families sorted alphabetically by name.
+        font_list.families.sort_by(|a, b| {
+            let a_priority = a.name.contains("HarmonyOS") || a.name.contains("HMOS");
+            let b_priority = b.name.contains("HarmonyOS") || b.name.contains("HMOS");
+            b_priority
+                .cmp(&a_priority)
+                .then_with(|| a.name.cmp(&b.name))
+        });
+
+        font_list
     }
 
     /// Detect available fonts or fallback to a hardcoded list
@@ -481,10 +495,12 @@ where
     }
 }
 
-/// Generate a list of candidate fonts and returns the list after sorting them: prioritize fonts whose family name contains `HarmonyOS` or `HMOS`.
+/// Generate a list of candidate fallback fonts.
 ///
-/// The reason this is done is optimization: because the ordering returned by `fontations` (and therefore the generated FONT_LIST) is random,
-/// we want to prioritize `HarmonyOS` fonts during checks.
+/// The families in `FONT_LIST` are pre-sorted at initialization time so that
+/// priority fonts (whose family name contains `HarmonyOS` or `HMOS`) come first.
+/// This avoids the need for a runtime `sort_by_key` + `name.contains()` call on
+/// every invocation.
 ///
 /// TODO: in the future, consider other factors such as language. And use multithreading to improve performance.
 pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
@@ -514,10 +530,6 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
         },
     }
 
-    families.sort_by_key(|name| {
-        let is_priority = name.contains("HarmonyOS") || name.contains("HMOS");
-        (!is_priority, *name)
-    });
     families
 }
 
