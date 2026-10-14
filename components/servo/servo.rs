@@ -926,6 +926,7 @@ impl Drop for ServoInner {
         while self.spin_event_loop() {
             std::thread::sleep(Duration::from_micros(500));
         }
+        PipelineNamespace::uninstall();
     }
 }
 
@@ -975,6 +976,9 @@ impl Servo {
         }
 
         // Reserving a namespace to create WebViewId.
+        if PipelineNamespace::is_installed() {
+            PipelineNamespace::uninstall();
+        }
         PipelineNamespace::install(EMBEDDER_PIPELINE_NAMESPACE_ID);
 
         // Get both endpoints of a special channel for communication between

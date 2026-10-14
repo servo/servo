@@ -212,6 +212,18 @@ impl PipelineNamespace {
         });
     }
 
+    /// Check whether a pipeline namespace is installed on the current thread.
+    pub fn is_installed() -> bool {
+        PIPELINE_NAMESPACE.with(|tls| tls.get().is_some())
+    }
+
+    /// Uninstall the namespace for the current thread.
+    pub fn uninstall() {
+        PIPELINE_NAMESPACE.with(|tls| {
+            tls.set(None);
+        });
+    }
+
     /// Setup the pipeline-namespace-installer, by providing it with a sender to the constellation.
     /// Idempotent in single-process mode.
     pub fn set_installer_sender(sender: GenericSender<PipelineNamespaceRequest>) {

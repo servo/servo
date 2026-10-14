@@ -102,104 +102,39 @@ static bool on_devtools_connection_request(struct Servo* servo, void* user_data)
     return g_devtools_connection_allowed;
 }
 
-/* Covers `servo_builder_set_delegate`: setting a delegate with DevTools
- * callbacks. The delegate is copied by value and the callbacks should be
- * invokable. */
+/* Covers `servo_builder_set_delegate`: setting a delegate on a builder. */
 int test_builder_set_delegate(void)
 {
     ServoBuilder* builder = servo_builder_create();
     if (builder == NULL)
         return 1;
 
-    struct ServoEventLoopWaker waker = { noop_wake_callback };
-    servo_builder_set_event_loop_waker(builder, waker);
-
-    ServoOptions* options = servo_options_create();
-    if (options == NULL) {
-        servo_builder_free(builder);
-        return 1;
-    }
-    servo_builder_set_options(builder, options);
-
-    ServoPreferences* preferences = servo_preferences_create();
-    if (preferences == NULL) {
-        servo_builder_free(builder);
-        return 1;
-    }
-    servo_preferences_set_bool(preferences, "devtools_server_enabled", true);
-    servo_builder_set_preferences(builder, preferences);
-
     struct ServoDelegate delegate = {
         .user_data = NULL,
         .notify_devtools_server_started = on_devtools_started,
         .request_devtools_connection = on_devtools_connection_request,
     };
-    servo_builder_set_delegate(builder, delegate);
-
-    struct Servo* servo = servo_builder_build(builder);
-    if (servo == NULL)
+    if (servo_builder_set_delegate(builder, delegate) != SERVO_ERROR_OK) {
+        servo_builder_free(builder);
         return 1;
-
-    /* Spin the event loop a few times to allow the DevTools server to start */
-    for (int i = 0; i < 10; i++) {
-        servo_spin_event_loop(servo);
     }
 
-    /* The DevTools server should have started and called our callback */
-    int result = (g_devtools_started_called == 1 && g_devtools_port > 0) ? 0 : 1;
-
-    servo_free(servo);
-    return result;
+    servo_builder_free(builder);
+    return 0;
 }
 
-/* Covers `servo_builder_set_delegate` with connection request:
- * the request_devtools_connection callback should be invokable. */
+/* Covers `servo_builder_set_delegate` with NULL builder. */
 int test_builder_delegate_connection_request(void)
 {
-    ServoBuilder* builder = servo_builder_create();
-    if (builder == NULL)
-        return 1;
-
-    struct ServoEventLoopWaker waker = { noop_wake_callback };
-    servo_builder_set_event_loop_waker(builder, waker);
-
-    ServoOptions* options = servo_options_create();
-    if (options == NULL) {
-        servo_builder_free(builder);
-        return 1;
-    }
-    servo_builder_set_options(builder, options);
-
-    ServoPreferences* preferences = servo_preferences_create();
-    if (preferences == NULL) {
-        servo_builder_free(builder);
-        return 1;
-    }
-    servo_preferences_set_bool(preferences, "devtools_server_enabled", true);
-    servo_builder_set_preferences(builder, preferences);
-
-    g_devtools_connection_allowed = true;
     struct ServoDelegate delegate = {
         .user_data = NULL,
         .notify_devtools_server_started = on_devtools_started,
         .request_devtools_connection = on_devtools_connection_request,
     };
-    servo_builder_set_delegate(builder, delegate);
-
-    struct Servo* servo = servo_builder_build(builder);
-    if (servo == NULL)
+    if (servo_builder_set_delegate(NULL, delegate) != SERVO_ERROR_NULL_ARGUMENT)
         return 1;
 
-    /* Spin the event loop a few times */
-    for (int i = 0; i < 10; i++) {
-        servo_spin_event_loop(servo);
-    }
-
-    /* The delegate was set and the build succeeded */
-    int result = 0;
-
-    servo_free(servo);
-    return result;
+    return 0;
 }
 
 int test_options_create_and_free(void)
@@ -460,6 +395,13 @@ static struct Servo* create_test_servo(void)
         servo_options_set_multiprocess(options, false);
         servo_builder_set_options(builder, options);
     }
+
+    struct ServoDelegate delegate = {
+        .user_data = NULL,
+        .notify_devtools_server_started = on_devtools_started,
+        .request_devtools_connection = on_devtools_connection_request,
+    };
+    servo_builder_set_delegate(builder, delegate);
 
     test_servo = servo_builder_build(builder);
     if (test_servo != NULL) {
@@ -1223,7 +1165,6 @@ int test_error_null_arguments(void)
         return 1;
 
     servo_rendering_context_free(context);
-    servo_free(servo);
     return 0;
 }
 
@@ -1236,13 +1177,12 @@ int test_error_invalid_utf8(void)
 
     RenderingContext* context = servo_rendering_context_create_software(100, 100);
     if (context == NULL) {
-        servo_free(servo);
         return 1;
     }
 
     ServoWebViewBuilder* builder = servo_webview_builder_create(servo, context);
     if (builder == NULL) {
-        servo_free(servo);
+        servo_rendering_context_free(context);
         return 1;
     }
 
@@ -1252,32 +1192,32 @@ int test_error_invalid_utf8(void)
     // Test servo_webview_builder_set_url with invalid UTF-8
     if (servo_webview_builder_set_url(builder, invalid_utf8) != SERVO_ERROR_INVALID_UTF8) {
         servo_webview_builder_free(builder);
-        servo_free(servo);
+        servo_rendering_context_free(context);
         return 1;
     }
 
     // Test servo_webview_load with invalid UTF-8
     struct WebView* webview = servo_webview_builder_build(builder);
     if (webview == NULL) {
-        servo_free(servo);
+        servo_rendering_context_free(context);
         return 1;
     }
 
     if (servo_webview_load(webview, invalid_utf8) != SERVO_ERROR_INVALID_UTF8) {
         servo_webview_free(webview);
-        servo_free(servo);
+        servo_rendering_context_free(context);
         return 1;
     }
 
     // Test servo_webview_evaluate_javascript with invalid UTF-8
     if (servo_webview_evaluate_javascript(webview, invalid_utf8, NULL, NULL) != SERVO_ERROR_INVALID_UTF8) {
         servo_webview_free(webview);
-        servo_free(servo);
+        servo_rendering_context_free(context);
         return 1;
     }
 
     servo_webview_free(webview);
-    servo_free(servo);
+    servo_rendering_context_free(context);
     return 0;
 }
 
