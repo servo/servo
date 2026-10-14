@@ -316,23 +316,20 @@ impl From<ContextMenuAction> for ServoContextMenuAction {
     }
 }
 
-impl TryFrom<i32> for ContextMenuAction {
-    type Error = ();
-    fn try_from(value: i32) -> Result<Self, Self::Error> {
-        match value {
-            0 => Ok(ContextMenuAction::GoBack),
-            1 => Ok(ContextMenuAction::GoForward),
-            2 => Ok(ContextMenuAction::Reload),
-            3 => Ok(ContextMenuAction::CopyLink),
-            4 => Ok(ContextMenuAction::OpenLinkInNewWebView),
-            5 => Ok(ContextMenuAction::CopyImageLink),
-            6 => Ok(ContextMenuAction::OpenImageInNewView),
-            7 => Ok(ContextMenuAction::Cut),
-            8 => Ok(ContextMenuAction::Copy),
-            9 => Ok(ContextMenuAction::Paste),
-            10 => Ok(ContextMenuAction::SelectAll),
-            _ => Err(()),
-        }
+fn context_menu_action_from_i32(value: i32) -> Option<ContextMenuAction> {
+    match value {
+        0 => Some(ContextMenuAction::GoBack),
+        1 => Some(ContextMenuAction::GoForward),
+        2 => Some(ContextMenuAction::Reload),
+        3 => Some(ContextMenuAction::CopyLink),
+        4 => Some(ContextMenuAction::OpenLinkInNewWebView),
+        5 => Some(ContextMenuAction::CopyImageLink),
+        6 => Some(ContextMenuAction::OpenImageInNewView),
+        7 => Some(ContextMenuAction::Cut),
+        8 => Some(ContextMenuAction::Copy),
+        9 => Some(ContextMenuAction::Paste),
+        10 => Some(ContextMenuAction::SelectAll),
+        _ => None,
     }
 }
 
@@ -1298,7 +1295,7 @@ impl WebViewDelegate for ServoWebViewDelegate {
                 };
 
                 let responder: Box<dyn FnOnce(i32)> = Box::new(move |action_val| {
-                    if let Ok(action) = ContextMenuAction::try_from(action_val) {
+                    if let Some(action) = context_menu_action_from_i32(action_val) {
                         context_menu.select(action);
                     } else {
                         context_menu.dismiss();
