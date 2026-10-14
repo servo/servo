@@ -300,7 +300,6 @@ pub(crate) struct Window {
     #[ignore_malloc_size_of = "TODO: Add MallocSizeOf support to layout"]
     layout: RefCell<Box<dyn Layout>>,
     navigator: MutNullableDom<Navigator>,
-    #[cfg(feature = "webcrypto")]
     crypto: MutNullableDom<crate::dom::crypto::Crypto>,
     #[no_trace]
     image_cache_sender: Sender<ImageCacheResponseMessage>,
@@ -1607,7 +1606,6 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
     }
 
     /// <https://dvcs.w3.org/hg/webcrypto-api/raw-file/tip/spec/Overview.html#dfn-GlobalCrypto>
-    #[cfg(feature = "webcrypto")]
     fn Crypto(&self, cx: &mut JSContext) -> DomRoot<crate::dom::crypto::Crypto> {
         self.crypto
             .or_init(|| crate::dom::crypto::Crypto::new(cx, self.as_global_scope()))
@@ -4063,7 +4061,6 @@ impl Window {
             layout: RefCell::new(layout),
             image_cache_sender,
             navigator: Default::default(),
-            #[cfg(feature = "webcrypto")]
             crypto: Default::default(),
             location: Default::default(),
             window_proxy: Default::default(),
