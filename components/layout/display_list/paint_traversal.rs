@@ -548,12 +548,14 @@ pub(crate) trait PaintTraversalHandler {
     }
 }
 
-#[derive(Clone, Debug, Default)]
+#[derive(Clone, Debug)]
 pub(crate) struct TraversalState {
     pub spatial_id: ScrollTreeNodeId,
     pub clip_id: ClipId,
     pub origin: PhysicalPoint<Au>,
     pub text_decorations: Rc<Vec<FragmentTextDecoration>>,
+    /// The product of the used opacity of the fragments visited.
+    pub accumulated_opacity: f32,
     /// The tag of the nearest ancestor box fragment that has a tag.
     /// Used for text LCP candidate grouping — all text fragments within
     /// a single element are unioned before computing effective visual size.
@@ -562,6 +564,20 @@ pub(crate) struct TraversalState {
     /// Note that this does not include the box currently being visited, see
     /// [`Self::container_timing_roots_including`].
     pub container_timing_roots: ContainerTimingRoots,
+}
+
+impl Default for TraversalState {
+    fn default() -> Self {
+        Self {
+            spatial_id: Default::default(),
+            clip_id: Default::default(),
+            origin: Default::default(),
+            text_decorations: Default::default(),
+            accumulated_opacity: 1.0,
+            containing_element_tag: Default::default(),
+            container_timing_roots: Default::default(),
+        }
+    }
 }
 
 impl TraversalState {
@@ -607,6 +623,7 @@ impl TraversalState {
                 .unwrap_or(self.spatial_id),
             clip_id: box_fragment.generated_clip_id().unwrap_or(self.clip_id),
             text_decorations,
+            accumulated_opacity: self.accumulated_opacity * style.slow_clone_opacity(),
             containing_element_tag: box_fragment.base.tag.or(self.containing_element_tag),
             container_timing_roots: self.container_timing_roots_including(box_fragment),
         }
@@ -638,6 +655,8 @@ impl TraversalState {
             spatial_id: self.spatial_id,
             clip_id: self.clip_id,
             text_decorations: self.text_decorations.clone(),
+            accumulated_opacity: self.accumulated_opacity *
+                positioning_fragment.style.borrow().slow_clone_opacity(),
             containing_element_tag: self.containing_element_tag,
             container_timing_roots: self.container_timing_roots.clone(),
         }
@@ -649,6 +668,10 @@ impl TraversalState {
             spatial_id: stacking_context.scroll_tree_node_id,
             clip_id: stacking_context.clip_id,
             text_decorations: stacking_context.text_decorations.clone(),
+            accumulated_opacity: self.accumulated_opacity *
+                stacking_context
+                    .fragment()
+                    .map_or(1.0, |fragment| fragment.style().slow_clone_opacity()),
             containing_element_tag: self.containing_element_tag,
             container_timing_roots: stacking_context.container_timing_roots.clone(),
         }
