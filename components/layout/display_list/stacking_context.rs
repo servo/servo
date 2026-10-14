@@ -392,6 +392,7 @@ pub struct StackingContext {
     /// The Container Timing roots that enclose this [`StackingContext`] in tree order,
     /// not including its own root fragment. Stacking contexts are painted out of tree
     /// order, so these are captured while building the stacking context tree.
+    #[ignore_malloc_size_of = "Option<Rc<>> custom type are difficult"]
     pub(crate) container_timing_roots: ContainerTimingRoots,
 
     /// If this [`StackingContext`] also created a WebRender reference frame, this field

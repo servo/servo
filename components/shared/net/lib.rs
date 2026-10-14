@@ -113,7 +113,7 @@ impl CustomResponse {
     }
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub struct CustomResponseMediator {
     pub response_chan: GenericCallback<Option<CustomResponse>>,
     pub load_url: ServoUrl,

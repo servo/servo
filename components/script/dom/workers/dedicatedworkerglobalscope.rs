@@ -115,6 +115,7 @@ pub(crate) enum DedicatedWorkerControlMsg {
     AnimationFrameProviderUnsupported,
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) enum DedicatedWorkerScriptMsg {
     /// Standard message from a worker.
     CommonWorker(TrustedWorkerAddress, WorkerScriptMsg),

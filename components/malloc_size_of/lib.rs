@@ -1239,6 +1239,41 @@ impl MallocSizeOf for keyboard_types::KeyboardEvent {
     }
 }
 
+impl MallocSizeOf for content_security_policy::Violation {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.directive.size_of(ops) + self.policy.size_of(ops) + self.resource.size_of(ops)
+    }
+}
+
+impl MallocSizeOf for content_security_policy::Directive {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.name.size_of(ops) + self.value.size_of(ops)
+    }
+}
+
+impl MallocSizeOf for content_security_policy::ViolationResource {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        match self {
+            content_security_policy::ViolationResource::Url(url) => url.size_of(ops),
+            content_security_policy::ViolationResource::Inline { sample } => sample.size_of(ops),
+            content_security_policy::ViolationResource::TrustedTypePolicy { sample } => {
+                sample.size_of(ops)
+            },
+            content_security_policy::ViolationResource::TrustedTypeSink { sample } => {
+                sample.size_of(ops)
+            },
+            content_security_policy::ViolationResource::Eval { sample } => sample.size_of(ops),
+            content_security_policy::ViolationResource::WasmEval => 0,
+        }
+    }
+}
+
+impl MallocSizeOf for content_security_policy::Policy {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.directive_set.size_of(ops) + self.disposition.size_of(ops) + self.source.size_of(ops)
+    }
+}
+
 malloc_size_of_hash_map!(indexmap::IndexMap<K, V, S>);
 malloc_size_of_hash_set!(indexmap::IndexSet<T, S>);
 
@@ -1250,11 +1285,12 @@ malloc_size_of_is_0!(u8, u16, u32, u64, u128, usize);
 malloc_size_of_is_0!(uuid::Uuid);
 malloc_size_of_is_0!(app_units::Au);
 malloc_size_of_is_0!(content_security_policy::Destination);
+malloc_size_of_is_0!(content_security_policy::PolicyDisposition);
+malloc_size_of_is_0!(content_security_policy::PolicySource);
 malloc_size_of_is_0!(content_security_policy::sandboxing_directive::SandboxingFlagSet);
 malloc_size_of_is_0!(encoding_rs::Decoder);
 malloc_size_of_is_0!(http::StatusCode);
 malloc_size_of_is_0!(http::Method);
-malloc_size_of_is_0!(headers::ContentType); // Inside ContentType is a mime type which uses atoms for most cases.
 malloc_size_of_is_0!(icu_locale_core::subtags::Language);
 malloc_size_of_is_0!(keyboard_types::Code);
 malloc_size_of_is_0!(keyboard_types::Modifiers);

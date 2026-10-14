@@ -581,6 +581,7 @@ struct Action {
     icon_url: Option<USVString>,
     /// <https://notifications.spec.whatwg.org/#action-icon-resource>
     #[no_trace]
+    #[conditional_malloc_size_of]
     icon_resource: DomRefCell<Option<Arc<RasterImage>>>,
 }
 

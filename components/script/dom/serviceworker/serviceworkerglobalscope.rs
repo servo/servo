@@ -73,6 +73,7 @@ use crate::tasks::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::tasks::task_source::TaskSourceName;
 
 /// Messages used to control service worker event loop
+#[derive(MallocSizeOf)]
 pub(crate) enum ServiceWorkerScriptMsg {
     /// Message common to all workers
     CommonWorker(WorkerScriptMsg),

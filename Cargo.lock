@@ -9041,6 +9041,8 @@ name = "servo-media-webrtc"
 version = "0.7.0"
 dependencies = [
  "log",
+ "malloc_size_of_derive",
+ "servo-malloc-size-of",
  "servo-media-streams",
  "uuid",
 ]

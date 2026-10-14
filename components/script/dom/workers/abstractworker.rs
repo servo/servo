@@ -11,6 +11,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::messaging::CommonScriptMsg;
 
 /// Messages used to control the worker event loops
+#[derive(MallocSizeOf)]
 pub(crate) enum WorkerScriptMsg {
     /// Common variants associated with the script messages
     Common(CommonScriptMsg),
