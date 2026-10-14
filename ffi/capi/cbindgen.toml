@@ -21,7 +21,7 @@ include = [
     "DiagnosticsLoggingOption", "LoadStatus", "ScreenshotCaptureError", "ServoCookie", "ServoFindResult", "ServoSiteDataManager", "ServoDelegate", "ServoDownloadItem", "ServoEventLoopWaker", "ServoWebViewDelegate",
     "ServoProxyConfig", "ServoCookieFilter", "ServoCertificateError", "ServoCertErrorCode", "ServoError",
     "ServoProtocolHandler", "ServoWebResourceRequest", "ServoWebResourceResponse", "ServoProtocolHandlerCallback",
-    "ServoUserContentManager", "ServoMessageCallback",
+    "ServoUserContentManager", "ServoMessageCallback", "ServoPreferences",
     "ServoContextMenuItem", "ServoContextMenuParams", "ServoContextMenuCallback", "ServoContextMenuAction",
     "SERVO_CAPI_VERSION_MAJOR", "SERVO_CAPI_VERSION_MINOR", "SERVO_CAPI_VERSION_PATCH",
     "SERVO_DOWNLOAD_CANCELLED", "SERVO_DOWNLOAD_COMPLETE", "SERVO_DOWNLOAD_IN_PROGRESS", "SERVO_DOWNLOAD_INTERRUPTED",
