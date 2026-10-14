@@ -105,8 +105,7 @@ pub trait HeapTracedPromiseHelpers<D: DomTypes> {
 
 pub trait StackRootPromiseHelpers<D: DomTypes> {
     type HeapTraced;
-    type ThreadTrusted: Send
-        + ThreadTrustedPromiseHelpers<D, StackRoot = Self>;
+    type ThreadTrusted: Send + ThreadTrustedPromiseHelpers<D, StackRoot = Self>;
     fn to_traced(&self) -> Self::HeapTraced;
     fn to_trusted(&self) -> Self::ThreadTrusted;
 }
