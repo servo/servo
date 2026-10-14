@@ -7,7 +7,6 @@
 //! script_bindings::refcounted
 
 use std::cell::RefCell;
-use std::ops::Deref;
 use std::thread::{self, ThreadId};
 
 use js::context::JSContext;
@@ -126,15 +125,6 @@ impl TrustedPromise {
             debug!("Resolving promise.");
             this.root(cx).resolve_native(cx, &value);
         })
-    }
-}
-
-impl Deref for TrustedPromise {
-    type Target = Promise;
-
-    #[expect(unsafe_code)]
-    fn deref(&self) -> &Self::Target {
-        unsafe { &*self.dom_object.0 }
     }
 }
 
