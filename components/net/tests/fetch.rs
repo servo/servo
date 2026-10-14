@@ -12,7 +12,10 @@ use std::time::{Duration, SystemTime};
 
 use content_security_policy as csp;
 use crossbeam_channel::{Sender, unbounded};
-use devtools_traits::{HttpRequest as DevtoolsHttpRequest, HttpResponse as DevtoolsHttpResponse};
+use devtools_traits::{
+    HttpRequest as DevtoolsHttpRequest, HttpResponse as DevtoolsHttpResponse,
+    HttpResponseBody as DevtoolsHttpResponseBody,
+};
 use headers::{
     AccessControlAllowCredentials, AccessControlAllowHeaders, AccessControlAllowMethods,
     AccessControlAllowOrigin, AccessControlMaxAge, CacheControl, ContentLength, ContentType, ETag,
@@ -1503,7 +1506,10 @@ fn test_fetch_with_devtools() {
     let httpresponse = DevtoolsHttpResponse {
         headers: Some(response_headers),
         status: HttpStatus::default(),
-        body: Some(content.as_bytes().to_vec().into()),
+        body: Some(DevtoolsHttpResponseBody {
+            data: content.as_bytes().to_vec().into(),
+            truncated: false,
+        }),
         from_cache: false,
         pipeline_id: TEST_PIPELINE_ID,
         browsing_context_id: TEST_WEBVIEW_ID.into(),

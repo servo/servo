@@ -142,12 +142,17 @@ struct RequestFields {
 struct ResponseFields {
     #[serde(flatten)]
     cache_details: CacheDetails,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    content_size: Option<usize>,
     response_content_available: bool,
     response_cookies_available: bool,
     response_headers_available: bool,
     response_start_available: bool,
     status: String,
     status_text: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    transferred_size: Option<u64>,
+    truncated: bool,
 }
 
 #[derive(Clone, Serialize)]
@@ -187,6 +192,7 @@ struct ResponseContent {
     text: Value,
     #[serde(skip_serializing_if = "Option::is_none")]
     transferred_size: Option<u64>,
+    truncated: bool,
 }
 
 #[derive(Clone, Serialize, MallocSizeOf)]
@@ -476,27 +482,40 @@ impl Actor for NetworkEventActor {
                 let content = response.response.body.as_ref().map(|body| {
                     let (encoding, text) = if mime_type.is_some() {
                         // Queue a LongStringActor for this body
-                        let body_string = String::from_utf8_lossy(body).to_string();
+                        let body_string = String::from_utf8_lossy(&body.data).to_string();
                         let long_string_actor = LongStringActor::register(registry, body_string);
                         let value = long_string_actor.long_string_obj();
                         (None, serde_json::to_value(value).unwrap())
                     } else {
-                        let b64 = STANDARD.encode(body);
+                        let b64 = STANDARD.encode(&body.data);
                         (Some("base64".into()), serde_json::to_value(b64).unwrap())
                     };
                     let is_content_encoded = encoding.is_some();
 
+                    // When the body was truncated, report the true content size from the
+                    // Content-Length header (i.e., the full original size) so that Firefox's
+                    // ResponsePanel can compare `content.size >= limit` and display the
+                    // "Response has been truncated" message, exactly as Firefox does.
+                    let reported_size = if body.truncated {
+                        transferred_size
+                            .map(|s| s as usize)
+                            .unwrap_or(body.data.len())
+                    } else {
+                        body.data.len()
+                    };
+
                     ResponseContent {
-                        body_size: body.len(),
+                        body_size: body.data.len(),
                         content_charset: String::new(),
-                        decoded_body_size: body.len(),
+                        decoded_body_size: reported_size,
                         encoding,
                         headers_size: raw_headers.len(),
                         is_content_encoded,
                         mime_type,
-                        size: body.len(),
+                        size: reported_size,
                         text,
                         transferred_size,
+                        truncated: body.truncated,
                     }
                 });
 
@@ -613,18 +632,38 @@ impl NetworkEventActor {
         let cookies = headers.map(|headers| get_cookies_from_headers(headers, &url));
         let status = &response.response.status;
 
+        let transferred_size = headers
+            .and_then(|header| header.typed_get::<ContentLength>())
+            .map(|content_length_header| content_length_header.0);
+        let content_size = response.response.body.as_ref().map(|body| {
+            if body.truncated {
+                transferred_size
+                    .map(|s| s as usize)
+                    .unwrap_or(body.data.len())
+            } else {
+                body.data.len()
+            }
+        });
+
         Some(ResponseFields {
             cache_details: response.cache_details.clone(),
+            content_size,
             response_content_available: response
                 .response
                 .body
                 .as_ref()
-                .is_some_and(|body| !body.is_empty()),
+                .is_some_and(|body| !body.data.is_empty()),
             response_cookies_available: cookies.is_some(),
             response_headers_available: headers.is_some(),
             response_start_available: true,
             status: status.code().to_string(),
             status_text: String::from_utf8_lossy(status.message()).to_string(),
+            transferred_size,
+            truncated: response
+                .response
+                .body
+                .as_ref()
+                .is_some_and(|body| body.truncated),
         })
     }
 

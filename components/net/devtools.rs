@@ -8,8 +8,9 @@ pub(crate) use disabled::{
 };
 #[cfg(feature = "devtools")]
 pub(crate) use enabled::{
-    prepare_devtools_request, send_early_httprequest_to_devtools, send_request_to_devtools,
-    send_response_to_devtools, send_response_values_to_devtools, send_security_info_to_devtools,
+    DevtoolsBodyBuffer, body_for_devtools, prepare_devtools_request,
+    send_early_httprequest_to_devtools, send_request_to_devtools, send_response_to_devtools,
+    send_response_values_to_devtools, send_security_info_to_devtools,
 };
 
 #[cfg(not(feature = "devtools"))]
@@ -23,11 +24,11 @@ mod disabled {
     pub(crate) fn send_early_httprequest_to_devtools(_request: &Request, _context: &FetchContext) {}
 
     #[inline]
-    pub(crate) fn send_response_to_devtools(
+    pub(crate) fn send_response_to_devtools<T>(
         _request: &Request,
         _context: &FetchContext,
         _response: &Response,
-        _body_data: Option<Vec<u8>>,
+        _body: Option<T>,
     ) {
     }
 
@@ -48,7 +49,8 @@ mod enabled {
     use crossbeam_channel::Sender;
     use devtools_traits::{
         ChromeToDevtoolsControlMsg, DevtoolsControlMsg, HttpRequest as DevtoolsHttpRequest,
-        HttpResponse as DevtoolsHttpResponse, NetworkEvent, SecurityInfoUpdate,
+        HttpResponse as DevtoolsHttpResponse, HttpResponseBody as DevtoolsHttpResponseBody,
+        NetworkEvent, SecurityInfoUpdate,
     };
     use http::{HeaderMap, Method};
     use hyper_serde::Serde;
@@ -58,9 +60,47 @@ mod enabled {
     use net_traits::request::{Destination, Request};
     use net_traits::response::{CacheState, Response};
     use servo_base::id::{BrowsingContextId, PipelineId};
+    use servo_config::pref;
     use servo_url::ServoUrl;
 
     use crate::fetch::methods::FetchContext;
+
+    #[derive(Default)]
+    pub(crate) struct DevtoolsBodyBuffer {
+        data: Vec<u8>,
+        truncated: bool,
+    }
+
+    impl DevtoolsBodyBuffer {
+        pub(crate) fn append_chunk(&mut self, chunk: &[u8]) {
+            let limit = pref!(devtools_network_response_body_limit);
+            if limit < 0 {
+                self.data.extend_from_slice(chunk);
+                return;
+            }
+            let remaining = (limit as usize).saturating_sub(self.data.len());
+            if chunk.len() > remaining {
+                self.truncated = true;
+            }
+            self.data
+                .extend_from_slice(&chunk[..chunk.len().min(remaining)]);
+        }
+
+        pub(crate) fn into_response_body(self) -> DevtoolsHttpResponseBody {
+            DevtoolsHttpResponseBody {
+                data: Bytes::from(self.data),
+                truncated: self.truncated,
+            }
+        }
+    }
+
+    pub(crate) fn body_for_devtools(body: &[u8]) -> (Vec<u8>, bool) {
+        let limit = pref!(devtools_network_response_body_limit);
+        if limit < 0 || body.len() <= limit as usize {
+            return (body.to_vec(), false);
+        }
+        (body[..limit as usize].to_vec(), true)
+    }
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn prepare_devtools_request(
@@ -116,7 +156,7 @@ mod enabled {
         request: &Request,
         context: &FetchContext,
         response: &Response,
-        body_data: Option<Vec<u8>>,
+        body: Option<DevtoolsHttpResponseBody>,
     ) {
         let Ok(metadata): Result<Metadata, _> = response.metadata().map(Into::into) else {
             log::warn!("No metadata available, skipping devtools response.");
@@ -125,18 +165,17 @@ mod enabled {
         send_response_values_to_devtools(
             metadata.headers.map(Serde::into_inner),
             metadata.status,
-            body_data,
+            body,
             response.cache_state,
             request,
             context.devtools_chan.clone(),
         );
     }
 
-    #[allow(clippy::too_many_arguments)]
     pub(crate) fn send_response_values_to_devtools(
         headers: Option<HeaderMap>,
         status: HttpStatus,
-        body: Option<Vec<u8>>,
+        body: Option<DevtoolsHttpResponseBody>,
         cache_state: CacheState,
         request: &Request,
         devtools_chan: Option<Sender<DevtoolsControlMsg>>,
@@ -152,7 +191,7 @@ mod enabled {
             let devtoolsresponse = DevtoolsHttpResponse {
                 headers,
                 status,
-                body: body.map(Bytes::from),
+                body,
                 from_cache,
                 pipeline_id,
                 browsing_context_id,

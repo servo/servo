@@ -581,11 +581,17 @@ pub struct HttpRequest {
 }
 
 #[derive(Debug, PartialEq, MallocSizeOf)]
+pub struct HttpResponseBody {
+    pub data: bytes::Bytes,
+    pub truncated: bool,
+}
+
+#[derive(Debug, PartialEq, MallocSizeOf)]
 pub struct HttpResponse {
     #[ignore_malloc_size_of = "Http type"]
     pub headers: Option<HeaderMap>,
     pub status: HttpStatus,
-    pub body: Option<bytes::Bytes>,
+    pub body: Option<HttpResponseBody>,
     pub from_cache: bool,
     pub pipeline_id: PipelineId,
     pub browsing_context_id: BrowsingContextId,
