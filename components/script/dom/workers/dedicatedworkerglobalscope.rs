@@ -629,7 +629,10 @@ impl DedicatedWorkerGlobalScope {
                                 credentials,
                                 Some(IntroductionType::WORKER),
                                 move |cx, module_tree| {
-                                    worker_scope.on_complete(cx, module_tree.map(Script::Module));
+                                    let module_script = module_tree
+                                        .as_deref()
+                                        .map(|module| Script::Module(module.into()));
+                                    worker_scope.on_complete(cx, module_script);
                                 },
                             );
                         },

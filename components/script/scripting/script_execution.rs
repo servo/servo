@@ -13,7 +13,7 @@ use js::gc::Handle;
 use js::jsapi::{
     ExceptionStackBehavior, Heap, JSObject, JSScript, ModuleErrorBehaviour, SetScriptPrivate,
 };
-use js::jsval::{PrivateValue, UndefinedValue};
+use js::jsval::{JSVal, PrivateValue, UndefinedValue};
 use js::panic::maybe_resume_unwind;
 use js::rust::wrappers2::{
     Compile1, JS_ClearPendingException, JS_ExecuteScript, JS_GetScriptPrivate,
@@ -55,18 +55,102 @@ bitflags! {
 
 /// <https://html.spec.whatwg.org/multipage/#classic-script>
 #[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ClassicScript {
-    /// On script parsing success this will be <https://html.spec.whatwg.org/multipage/#concept-script-record>
-    /// On failure <https://html.spec.whatwg.org/multipage/#concept-script-error-to-rethrow>
     #[ignore_malloc_size_of = "mozjs"]
-    pub record: Result<RootedTraceableBox<Heap<*mut JSScript>>, RethrowError>,
+    /// <https://html.spec.whatwg.org/multipage/#concept-script-record>
+    record: Option<Heap<*mut JSScript>>,
+    #[ignore_malloc_size_of = "mozjs"]
+    /// <https://html.spec.whatwg.org/multipage/#concept-script-error-to-rethrow>
+    /// For classic scripts the error to rethrow is always the parse error
+    error_to_rethrow: Option<Heap<JSVal>>,
     /// The options that were used when compiling this script.
     options: ScriptOptions,
+}
+
+impl ClassicScript {
+    #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+    #[expect(unsafe_code)]
+    fn record<'a>(&'a self) -> Option<Handle<'a, *mut JSScript>> {
+        self.record
+            .as_ref()
+            .map(|value| unsafe { Handle::from_raw(value.handle()) })
+    }
+
+    #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+    #[expect(unsafe_code)]
+    fn error_to_rethrow<'a>(&'a self) -> Option<HandleValue<'a>> {
+        self.error_to_rethrow
+            .as_ref()
+            .map(|value| unsafe { Handle::from_raw(value.handle()) })
+    }
+
+    pub(crate) fn has_rethrow_error(&self) -> bool {
+        self.error_to_rethrow.is_some()
+    }
 }
 
 pub(crate) enum RethrowErrors {
     Yes,
     No,
+}
+
+/// A read-only variant of `ModuleTree`
+#[derive(Default, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+pub(crate) struct ModuleScript {
+    #[ignore_malloc_size_of = "mozjs"]
+    record: Option<Heap<*mut JSObject>>,
+    #[ignore_malloc_size_of = "mozjs"]
+    error_to_rethrow: Option<Heap<JSVal>>,
+}
+
+impl ModuleScript {
+    #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+    #[expect(unsafe_code)]
+    fn record<'a>(&'a self) -> Option<Handle<'a, *mut JSObject>> {
+        self.record
+            .as_ref()
+            .map(|value| unsafe { Handle::from_raw(value.handle()) })
+    }
+
+    #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+    #[expect(unsafe_code)]
+    fn error_to_rethrow<'a>(&'a self) -> Option<HandleValue<'a>> {
+        self.error_to_rethrow
+            .as_ref()
+            .map(|value| unsafe { Handle::from_raw(value.handle()) })
+    }
+
+    pub(crate) fn has_rethrow_error(&self) -> bool {
+        self.error_to_rethrow.is_some()
+    }
+}
+
+impl From<&ModuleTree> for RootedTraceableBox<ModuleScript> {
+    fn from(module_tree: &ModuleTree) -> Self {
+        let mut module_script = RootedTraceableBox::new(ModuleScript::default());
+
+        if let Some(record) = module_tree.record() {
+            module_script.record = Some(Heap::default());
+            module_script
+                .record
+                .as_ref()
+                .unwrap()
+                .set(record.handle().get())
+        }
+
+        if let Some(error) = module_tree.rethrow_error() {
+            module_script.error_to_rethrow = Some(Heap::default());
+            module_script
+                .error_to_rethrow
+                .as_ref()
+                .unwrap()
+                .set(error.handle().get())
+        }
+
+        module_script
+    }
 }
 
 impl GlobalScope {
@@ -82,7 +166,7 @@ impl GlobalScope {
         fetch_options: ScriptFetchOptions,
         introduction_type: Option<&'static CStr>,
         line_number: u32,
-    ) -> ClassicScript {
+    ) -> RootedTraceableBox<ClassicScript> {
         let mut script_source = ScriptSource {
             source,
             external: options.contains(ScriptOptions::External),
@@ -97,6 +181,15 @@ impl GlobalScope {
 
         // TODO Step 2. If scripting is disabled for settings, then set source to the empty string.
 
+        // Step 3. Let script be a new classic script that this algorithm will subsequently initialize.
+        // Step 7. Set script's muted errors to mutedErrors.
+        // Step 8. Set script's parse error and error to rethrow to null.
+        let mut script = RootedTraceableBox::new(ClassicScript {
+            record: None,
+            error_to_rethrow: None,
+            options,
+        });
+
         // TODO Step 4. Set script's settings object to settings.
 
         // TODO Step 9. Record classic script creation time given script and sourceURLForWindowScripts.
@@ -105,28 +198,34 @@ impl GlobalScope {
             fill_compile_options(cx, url.as_str(), options, introduction_type, line_number);
 
         // Step 10. Let result be ParseScript(source, settings's realm, script).
-        rooted!(&in(cx) let compiled_script = unsafe { Compile1(cx, compilation_options.ptr, &mut source) });
+        rooted!(&in(cx) let result = unsafe { Compile1(cx, compilation_options.ptr, &mut source) });
 
         // Step 11. If result is a list of errors, then:
-        let record = if compiled_script.get().is_null() {
+        if result.is_null() {
+            let error = RethrowError::from_pending_exception(cx);
+
             // Step 11.1. Set script's parse error and its error to rethrow to result[0].
+            script.error_to_rethrow = Some(Heap::default());
+            script
+                .error_to_rethrow
+                .as_ref()
+                .unwrap()
+                .set(error.handle().get());
+
             // Step 11.2. Return script.
-            Err(RethrowError::from_pending_exception(cx))
-        } else {
-            // Step 5. Set script's base URL to baseURL.
-            // Step 6. Set script's fetch options to options.
-            maybe_associate_with_script(cx, compiled_script.handle(), url, fetch_options);
+            return script;
+        }
 
-            Ok(RootedTraceableBox::from_box(Heap::boxed(
-                compiled_script.get(),
-            )))
-        };
+        // Step 5. Set script's base URL to baseURL.
+        // Step 6. Set script's fetch options to options.
+        maybe_associate_with_script(cx, result.handle(), url, fetch_options);
 
-        // Step 3. Let script be a new classic script that this algorithm will subsequently initialize.
-        // Step 7. Set script's muted errors to mutedErrors.
         // Step 12. Set script's record to result.
+        script.record = Some(Heap::default());
+        script.record.as_ref().unwrap().set(result.get());
+
         // Step 13. Return script.
-        ClassicScript { record, options }
+        script
     }
 
     /// <https://html.spec.whatwg.org/multipage/#run-a-classic-script>
@@ -134,7 +233,7 @@ impl GlobalScope {
     pub(crate) fn run_a_classic_script(
         &self,
         cx: &mut JSContext,
-        script: ClassicScript,
+        script: RootedTraceableBox<ClassicScript>,
         rethrow_errors: RethrowErrors,
         return_value: Option<MutableHandleValue>,
     ) -> ErrorResult {
@@ -163,22 +262,15 @@ impl GlobalScope {
             // Step 5. Let evaluationStatus be null.
             let mut result = false;
 
-            match script.record {
-                // Step 6. If script's error to rethrow is not null, then set evaluationStatus
-                // to ThrowCompletion(script's error to rethrow).
-                Err(error_to_rethrow) => unsafe {
-                    JS_SetPendingException(
-                        cx,
-                        error_to_rethrow.handle(),
-                        ExceptionStackBehavior::Capture,
-                    )
-                },
+            // Step 6. If script's error to rethrow is not null, then set evaluationStatus
+            // to ThrowCompletion(script's error to rethrow).
+            if let Some(error) = script.error_to_rethrow() {
+                unsafe { JS_SetPendingException(cx, error, ExceptionStackBehavior::Capture) };
+            } else if let Some(record) = script.record() {
                 // Step 7. Otherwise, set evaluationStatus to ScriptEvaluation(script's record).
-                Ok(record) => {
-                    rooted!(&in(cx) let mut fallback_value = UndefinedValue());
-                    let return_value = return_value.unwrap_or_else(|| fallback_value.handle_mut());
-                    result = unsafe { JS_ExecuteScript(cx, record.handle(), return_value) };
-                },
+                rooted!(&in(cx) let mut fallback_value = UndefinedValue());
+                let return_value = return_value.unwrap_or_else(|| fallback_value.handle_mut());
+                result = unsafe { JS_ExecuteScript(cx, record, return_value) };
             }
 
             // Step 8. If evaluationStatus is an abrupt completion, then:
@@ -243,7 +335,7 @@ impl GlobalScope {
     pub(crate) fn run_a_module_script(
         &self,
         cx: &mut JSContext,
-        module_tree: Rc<ModuleTree>,
+        script: RootedTraceableBox<ModuleScript>,
         _rethrow_errors: bool,
     ) {
         // Step 1. Let settings be the settings object of script.
@@ -265,27 +357,18 @@ impl GlobalScope {
         run_a_script::<DomTypeHolder, _, _>(cx, self, |cx| {
             // Step 6. If script's error to rethrow is not null, then set evaluationPromise to a
             // promise rejected with script's error to rethrow.
-            {
-                let module_error = module_tree.get_rethrow_error().borrow();
-                if let Some(exception) = &*module_error {
-                    unsafe {
-                        JS_SetPendingException(
-                            cx,
-                            exception.handle(),
-                            ExceptionStackBehavior::Capture,
-                        );
-                    }
-                    report_pending_exception(cx);
-                    return;
-                }
+            if let Some(error) = script.error_to_rethrow() {
+                unsafe { JS_SetPendingException(cx, error, ExceptionStackBehavior::Capture) };
+                report_pending_exception(cx);
+                return;
             }
 
             // Step 7.1. Otherwise: Let record be script's record.
-            let record = module_tree.get_record().unwrap();
+            let record = script.record().unwrap();
 
             // Step 7.2. Set evaluationPromise to record.Evaluate().
             rooted!(&in(cx) let mut rval = UndefinedValue());
-            let ok = unsafe { ModuleEvaluate(cx, record.handle(), rval.handle_mut()) };
+            let ok = unsafe { ModuleEvaluate(cx, record, rval.handle_mut()) };
             assert!(ok, "module evaluation failed");
 
             rooted!(&in(cx) let mut evaluation_promise = std::ptr::null_mut::<JSObject>());
