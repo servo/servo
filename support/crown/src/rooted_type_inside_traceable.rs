@@ -13,36 +13,36 @@ use crate::common::{is_jstraceable, match_def_path};
 use crate::symbols;
 
 declare_tool_lint! {
-    pub crown::DOMROOT_INSIDE_DOM_STRUCT,
+    pub crown::ROOTED_INSIDE_ROOTABLE,
     Warn,
     "Warn about usage of `Root` inside Traceable types"
 }
 
 pub fn register(lint_store: &mut LintStore) {
     let symbols = Symbols::new();
-    lint_store.register_lints(&[DOMROOT_INSIDE_DOM_STRUCT]);
+    lint_store.register_lints(&[ROOTED_INSIDE_ROOTABLE]);
     lint_store.register_late_lint_pass(Box::new(move |_| {
-        Box::new(NoDomRootPass::new(symbols.clone()))
+        Box::new(NoRootInRootablePass::new(symbols.clone()))
     }));
 }
 
-pub(crate) struct NoDomRootPass {
+pub(crate) struct NoRootInRootablePass {
     symbols: Symbols,
 }
 
-impl NoDomRootPass {
+impl NoRootInRootablePass {
     pub(crate) fn new(symbols: Symbols) -> Self {
         Self { symbols }
     }
 }
 
-impl LintPass for NoDomRootPass {
+impl LintPass for NoRootInRootablePass {
     fn name(&self) -> &'static str {
-        "ServoNoDomRootPass"
+        "ServoNoRootInRootablePass"
     }
 
     fn get_lints(&self) -> Vec<&'static Lint> {
-        vec![DOMROOT_INSIDE_DOM_STRUCT]
+        vec![ROOTED_INSIDE_ROOTABLE]
     }
 }
 
@@ -97,7 +97,7 @@ fn is_dom_root_ty<'tcx>(sym: &'_ Symbols, cx: &LateContext<'tcx>, ty: ty::Ty<'tc
     false
 }
 
-impl<'tcx> LateLintPass<'tcx> for NoDomRootPass {
+impl<'tcx> LateLintPass<'tcx> for NoRootInRootablePass {
     fn check_item(&mut self, cx: &LateContext<'tcx>, item: &'tcx Item) {
         let variants = match &item.kind {
             ItemKind::Struct(_, _, variant_data) => vec![variant_data],
@@ -118,7 +118,7 @@ impl<'tcx> LateLintPass<'tcx> for NoDomRootPass {
                 let field_type = cx.tcx.type_of(field.def_id);
                 if is_dom_root_ty(&self.symbols, cx, field_type.skip_binder()) {
                     cx.emit_span_lint(
-                        DOMROOT_INSIDE_DOM_STRUCT,
+                        ROOTED_INSIDE_ROOTABLE,
                         field.span,
                         TraceableTypeShouldNotContainRootedTypeDiagnostic,
                     );

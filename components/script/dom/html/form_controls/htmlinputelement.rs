@@ -138,7 +138,7 @@ pub(crate) struct HTMLInputElement {
 
 #[derive(JSTraceable)]
 // This is safe because it's a stack-only value used by traits `Activatable` and `SpecificInputType`
-#[cfg_attr(crown, allow(crown::domroot_inside_dom_struct))]
+#[cfg_attr(crown, allow(crown::rooted_inside_rootable))]
 pub(crate) struct InputActivationState {
     pub(crate) indeterminate: bool,
     pub(crate) checked: bool,

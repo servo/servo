@@ -6,7 +6,7 @@
 // Needed to mimic the path type `script_bindings::root::Root`
 #![crate_name = "script_bindings"]
 #![expect(dead_code)]
-#![deny(crown::domroot_inside_dom_struct)]
+#![deny(crown::rooted_inside_rootable)]
 
 use root::Root;
 

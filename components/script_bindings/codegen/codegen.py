@@ -5964,7 +5964,7 @@ impl{self.generic} Clone for {self.type}{self.genericSuffix} {{
 
         allowRootedInTraceable = ""
         if containsDomInterface(self.type):
-            allowRootedInTraceable = "#[cfg_attr(crown, allow(crown::domroot_inside_dom_struct))]\n"
+            allowRootedInTraceable = "#[cfg_attr(crown, allow(crown::rooted_inside_rootable))]\n"
 
         templateVars = [(getUnionTypeTemplateVars(t, self.descriptorProvider),
                          getTypeWrapper(t)) for t in self.type.flatMemberTypes]
@@ -8080,7 +8080,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
 
         allowRootedInTraceable = ""
         if containsDomInterface(self.dictionary):
-            allowRootedInTraceable = "#[cfg_attr(crown, allow(crown::domroot_inside_dom_struct))]\n"
+            allowRootedInTraceable = "#[cfg_attr(crown, allow(crown::rooted_inside_rootable))]\n"
 
         derive = ["JSTraceable"] + self.derives
         default = ""

@@ -23,7 +23,7 @@ use crate::maplike;
 
 /// maplike<DOMString, TestBinding>
 #[dom_struct]
-#[cfg_attr(crown, allow(crown::domroot_inside_dom_struct))]
+#[cfg_attr(crown, allow(crown::rooted_inside_rootable))]
 pub(crate) struct TestBindingMaplikeWithInterface {
     reflector: Reflector,
     #[custom_trace]

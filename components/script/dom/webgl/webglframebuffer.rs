@@ -86,7 +86,7 @@ impl WebGLFramebufferAttachment {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 // This type must only live on the stack.
 // For values that resides on the heap use `WebGLFramebufferAttachment`.
-#[cfg_attr(crown, allow(crown::domroot_inside_dom_struct))]
+#[cfg_attr(crown, allow(crown::rooted_inside_rootable))]
 pub(crate) enum WebGLFramebufferAttachmentRoot {
     Renderbuffer(DomRoot<WebGLRenderbuffer>),
     Texture(DomRoot<WebGLTexture>),

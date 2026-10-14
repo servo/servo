@@ -1535,7 +1535,7 @@ impl From<FormDatum> for FormDatumUnrooted {
 #[derive(JSTraceable, MallocSizeOf)]
 // This type must only live on the stack.
 // For values that resides on the heap use `FormDatumValueUnrooted`.
-#[cfg_attr(crown, allow(crown::domroot_inside_dom_struct))]
+#[cfg_attr(crown, allow(crown::rooted_inside_rootable))]
 pub(crate) enum FormDatumValue {
     File(DomRoot<File>),
     String(DOMString),
