@@ -300,7 +300,7 @@ fn test_notify_pending_response_complete() {
     assert!(image.unwrap().as_raster_image().is_some());
 }
 
-/// Tests if we
+/// Checks that decoding retains and uses the shared cached response body.
 #[test]
 fn test_encoded_image_decodes_from_cached_response_body() {
     let body = servo_arc::Arc::new(parking_lot::Mutex::new(ResponseBody::Done(
@@ -313,6 +313,7 @@ fn test_encoded_image_decodes_from_cached_response_body() {
             height: 427,
         },
         cors_status: CorsStatus::Safe,
+        load_time: None,
         bytes: EncodedImageBytes::NetResponseBody(body.clone()),
     };
 
