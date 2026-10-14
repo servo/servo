@@ -29,6 +29,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
+use crate::dom::closewatcher::InternalCloseWatcher;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::readablestream::PipeTo;
@@ -55,6 +56,8 @@ pub(crate) enum AbortAlgorithm {
     ),
     /// <https://fetch.spec.whatwg.org/#dom-window-fetchlater>
     FetchLater(#[no_trace] DeferredFetchRecordId),
+    /// <https://html.spec.whatwg.org/multipage/#dom-closewatcher>
+    CloseWatcher(#[conditional_malloc_size_of] Rc<InternalCloseWatcher>),
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
@@ -210,6 +213,9 @@ impl AbortSignal {
                     removable_listener.listener.as_deref(),
                     &removable_listener.options,
                 );
+            },
+            AbortAlgorithm::CloseWatcher(close_watcher) => {
+                close_watcher.destroy();
             },
         }
     }
