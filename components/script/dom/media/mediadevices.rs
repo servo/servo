@@ -58,16 +58,16 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
         let global = self.global();
 
         // Check if we need camera permission
-        let needs_camera = constraints.video.as_ref().is_some_and(|v| match v {
-            BooleanOrMediaTrackConstraints::Boolean(false) => false,
-            _ => true,
-        });
+        let needs_camera = !matches!(
+            &constraints.video,
+            &BooleanOrMediaTrackConstraints::Boolean(false)
+        );
 
         // Check if we need microphone permission
-        let needs_microphone = constraints.audio.as_ref().is_some_and(|a| match a {
-            BooleanOrMediaTrackConstraints::Boolean(false) => false,
-            _ => true,
-        });
+        let needs_microphone = !matches!(
+            &constraints.audio,
+            &BooleanOrMediaTrackConstraints::Boolean(false)
+        );
 
         if !needs_camera && !needs_microphone {
             p.reject_error(
@@ -106,8 +106,7 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
         let stream = MediaStream::new(cx, &global);
 
         if camera_granted && needs_camera {
-            if let Some(ref video_constraints) = constraints.video &&
-                let Some(c) = convert_constraints(video_constraints) &&
+            if let Some(c) = convert_constraints(&constraints.video) &&
                 let Some(video) = media.create_videoinput_stream(c)
             {
                 let track = MediaStreamTrack::new(cx, &global, video, MediaStreamType::Video);
@@ -116,8 +115,7 @@ impl MediaDevicesMethods<crate::DomTypeHolder> for MediaDevices {
         }
 
         if microphone_granted && needs_microphone {
-            if let Some(ref audio_constraints) = constraints.audio &&
-                let Some(c) = convert_constraints(audio_constraints) &&
+            if let Some(c) = convert_constraints(&constraints.audio) &&
                 let Some(audio) = media.create_audioinput_stream(c)
             {
                 let track = MediaStreamTrack::new(cx, &global, audio, MediaStreamType::Audio);

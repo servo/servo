@@ -951,7 +951,6 @@ impl CanvasState {
                         },
                     }
                 },
-                _ => return Err(Error::InvalidState(None)),
             }
         } else {
             self.send_canvas_command(CanvasCommand::DrawEmptyImage(

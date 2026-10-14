@@ -6,6 +6,7 @@ use std::cell::Cell;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::RTCRtpTransceiverBinding::{
@@ -24,7 +25,7 @@ pub(crate) struct RTCRtpTransceiver {
     receiver: Dom<RTCRtpReceiver>,
     direction: Cell<RTCRtpTransceiverDirection>,
     current_direction: Cell<Option<RTCRtpTransceiverDirection>>,
-    mid: Cell<Option<String>>,
+    mid: DomRefCell<Option<String>>,
     stopped: Cell<bool>,
 }
 
@@ -40,7 +41,7 @@ impl RTCRtpTransceiver {
             current_direction: Cell::new(Some(direction)),
             sender: Dom::from_ref(sender),
             receiver: Dom::from_ref(receiver),
-            mid: Cell::new(None),
+            mid: DomRefCell::new(None),
             stopped: Cell::new(false),
         }
     }
@@ -60,7 +61,7 @@ impl RTCRtpTransceiver {
     }
 
     pub(crate) fn set_mid(&self, mid: Option<String>) {
-        self.mid.set(mid);
+        *self.mid.borrow_mut() = mid;
     }
 
     pub(crate) fn set_current_direction(&self, direction: Option<RTCRtpTransceiverDirection>) {
@@ -75,7 +76,10 @@ impl RTCRtpTransceiver {
 impl RTCRtpTransceiverMethods<crate::DomTypeHolder> for RTCRtpTransceiver {
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcrtptransceiver-mid>
     fn GetMid(&self) -> Option<DOMString> {
-        self.mid.get().map(|s| DOMString::from(s))
+        self.mid
+            .borrow()
+            .as_ref()
+            .map(|s| DOMString::from(s.clone()))
     }
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcrtptransceiver-sender>

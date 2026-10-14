@@ -29,6 +29,8 @@ use crate::dom::bindings::codegen::Bindings::RTCPeerConnectionBinding::{
     RTCIceGatheringState, RTCOfferOptions, RTCPeerConnectionMethods, RTCRtpTransceiverInit,
     RTCSignalingState,
 };
+use crate::dom::bindings::codegen::Bindings::RTCRtpSenderBinding::RTCRtpSenderMethods;
+use crate::dom::bindings::codegen::Bindings::RTCRtpTransceiverBinding::RTCRtpTransceiverMethods;
 use crate::dom::bindings::codegen::Bindings::RTCSessionDescriptionBinding::{
     RTCSdpType, RTCSessionDescriptionInit,
 };
@@ -856,9 +858,9 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         }
 
         for sender in self.senders.borrow().iter() {
-            if let Some(existing_track) = sender.Track() {
+            if let Some(existing_track) = sender.GetTrack() {
                 if existing_track.id() == track.id() {
-                    return Err(Error::InvalidAccess);
+                    return Err(Error::InvalidAccess(None));
                 }
             }
         }
@@ -892,7 +894,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
         }
         let found = self.senders.borrow().iter().any(|s| std::ptr::eq(&**s, sender));
         if !found {
-            return Err(Error::InvalidAccess);
+            return Err(Error::InvalidAccess(None));
         }
         sender.set_track(None);
         Ok(())
@@ -929,7 +931,7 @@ impl RTCPeerConnectionMethods<crate::DomTypeHolder> for RTCPeerConnection {
                     ServoMedia::get().create_videoinput_stream(Default::default())
                 },
             }
-            .unwrap_or_else(servo_media_streams::registry::MediaStreamId::new);
+            .unwrap_or_else(MediaStreamId::new);
             MediaStreamTrack::new(cx, &self.global(), dummy_id, kind)
         };
         let receiver = RTCRtpReceiver::new(cx, &self.global(), &receiver_track);

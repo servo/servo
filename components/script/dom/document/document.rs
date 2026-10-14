@@ -2503,7 +2503,7 @@ impl Document {
     }
 
     /// Step 9 of <https://html.spec.whatwg.org/multipage/#the-end>
-    fn queue_document_completion(&self, cx: &mut JSContext) {
+    fn queue_document_completion(&self, _cx: &mut JSContext) {
         // The initial about:blank document passes through
         // https://html.spec.whatwg.org/multipage/#creating-a-new-browsing-context
         // instead of the steps used by other documents.
