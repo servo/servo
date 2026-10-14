@@ -10,7 +10,7 @@ use std::ptr::{self, NonNull};
 use std::slice;
 
 use js::context::{JSContext, RawJSContext};
-use js::conversions::{ToJSValConvertible, jsstr_to_string};
+use js::conversions::ToJSValConvertible;
 use js::gc::Handle;
 use js::glue::{JS_GetReservedSlot, RUST_FUNCTION_VALUE_TO_JITINFO};
 use js::jsapi::{
@@ -31,7 +31,7 @@ use js::rust::wrappers2::{
     JS_HasPropertyById, JS_IsExceptionPending, JS_SetPendingException, JS_SetProperty,
 };
 use js::rust::{
-    HandleId, HandleObject, HandleValue, MutableHandleValue, Runtime, ToString, get_object_class,
+    HandleId, HandleObject, HandleValue, MutableHandleValue, Runtime, get_object_class,
 };
 use js::{JS_CALLEE, rooted};
 use malloc_size_of::MallocSizeOfOps;
@@ -217,18 +217,14 @@ pub(crate) fn find_enum_value<'a, T>(
     v: HandleValue,
     pairs: &'a [(&'static str, T)],
 ) -> Result<(Option<&'a T>, DOMString), ()> {
-    match NonNull::new(unsafe { ToString(cx, v) }) {
-        Some(jsstr) => {
-            let search = unsafe { jsstr_to_string(cx, jsstr) }.into();
-            Ok((
-                pairs
-                    .iter()
-                    .find(|&&(key, _)| search == key)
-                    .map(|(_, ev)| ev),
-                search,
-            ))
-        },
-        None => Err(()),
+    if let Ok(search) = DOMString::from_js_string(cx, v) {
+        let result = pairs
+            .iter()
+            .find(|(key, _)| search == *key)
+            .map(|(_, ev)| ev);
+        Ok((result, search))
+    } else {
+        Err(())
     }
 }
 

@@ -362,7 +362,6 @@ impl DOMString {
     /// Creates the string from js. If the string can be encoded in latin1, just take the reference
     /// to the JSString. Otherwise do the conversion to utf8 now.
     /// <https://webidl.spec.whatwg.org/#js-DOMString>
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub fn from_js_string(
         cx: &mut JSContext,
         value: HandleValue,
@@ -378,18 +377,32 @@ impl DOMString {
         // code units as the one the JavaScript String value x represents.
         // Note: this implementation does not preserve the same sequence of code units.
         rooted!(&in(cx) let string_ptr = unsafe { js::rust::ToString(cx, value) });
+        unsafe { DOMString::from_raw_js_string(cx, *string_ptr) }
+    }
+
+    /// Takes a raw `*mut JSString` and creates a [`DOMString`] out of it. Prefer [`DOMString::from_js_string`] if you have a `HandleValue`.
+    /// Seee [`DOMString::from_js_string`] for more detail.
+    ///
+    /// # Safety
+    ///
+    /// *mut JSString needs to point to a valid JSString.
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    pub unsafe fn from_raw_js_string(
+        cx: &JSContext,
+        string_ptr: *mut JSString,
+    ) -> Result<DOMString, DOMStringErrorType> {
         if string_ptr.is_null() {
             debug!("ToString failed");
             Err(DOMStringErrorType::JSConversionError)
         } else {
-            let latin1 = unsafe { js::jsapi::JS_DeprecatedStringHasLatin1Chars(*string_ptr) };
+            let latin1 = unsafe { js::jsapi::JS_DeprecatedStringHasLatin1Chars(string_ptr) };
             let inner = if latin1 {
-                let h = Heap::boxed(*string_ptr);
+                let h = Heap::boxed(string_ptr);
                 DOMStringType::JSString(h)
             } else {
                 // We need to convert the string anyway as it is not just latin1
                 DOMStringType::Rust(unsafe {
-                    jsstr_to_string(cx, NonNull::new(*string_ptr).unwrap())
+                    jsstr_to_string(cx, NonNull::new(string_ptr).unwrap())
                 })
             };
             Ok(TracedDOMString(RefCell::new(inner)).root())
@@ -410,6 +423,7 @@ impl DOMString {
     }
 }
 
+#[derive(Debug)]
 pub enum DOMStringErrorType {
     JSConversionError,
 }
