@@ -83,7 +83,8 @@ use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
 #[cfg(feature = "devtools")]
 use crate::devtools::{
-    prepare_devtools_request, send_request_to_devtools, send_response_values_to_devtools,
+    body_for_devtools, prepare_devtools_request, send_request_to_devtools,
+    send_response_values_to_devtools,
 };
 use crate::embedder::NetToEmbedderMsg;
 use crate::fetch::cors_cache::CorsCache;
@@ -2413,14 +2414,19 @@ async fn http_network_fetch(
                 // If devtools is disabled avoid cloning, since the result would
                 // be unused anyway.
                 #[cfg(feature = "devtools")]
-                let devtools_response_body =
-                    devtools_chan.is_some().then(|| completed_body.clone());
+                let (devtools_response_body, devtools_body_truncated) = if devtools_chan.is_some() {
+                    let (body, truncated) = body_for_devtools(&completed_body);
+                    (Some(body), truncated)
+                } else {
+                    (None, false)
+                };
                 *body = ResponseBody::Done(completed_body);
                 #[cfg(feature = "devtools")]
                 send_response_values_to_devtools(
                     Some(headers),
                     status,
                     devtools_response_body,
+                    devtools_body_truncated,
                     CacheState::None,
                     &devtools_request,
                     devtools_chan,

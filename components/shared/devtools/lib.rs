@@ -586,6 +586,7 @@ pub struct HttpResponse {
     pub headers: Option<HeaderMap>,
     pub status: HttpStatus,
     pub body: Option<bytes::Bytes>,
+    pub body_truncated: bool,
     pub from_cache: bool,
     pub pipeline_id: PipelineId,
     pub browsing_context_id: BrowsingContextId,

@@ -8,6 +8,7 @@ pub(crate) use disabled::{
 };
 #[cfg(feature = "devtools")]
 pub(crate) use enabled::{
+    append_body_chunk_for_devtools, body_for_devtools, capped_body_for_devtools,
     prepare_devtools_request, send_early_httprequest_to_devtools, send_request_to_devtools,
     send_response_to_devtools, send_response_values_to_devtools, send_security_info_to_devtools,
 };
@@ -58,9 +59,36 @@ mod enabled {
     use net_traits::request::{Destination, Request};
     use net_traits::response::{CacheState, Response};
     use servo_base::id::{BrowsingContextId, PipelineId};
+    use servo_config::pref;
     use servo_url::ServoUrl;
 
     use crate::fetch::methods::FetchContext;
+
+    pub(crate) fn body_for_devtools(body: &[u8]) -> (Vec<u8>, bool) {
+        let limit = pref!(devtools_network_response_body_limit);
+        if limit < 0 || body.len() <= limit as usize {
+            return (body.to_vec(), false);
+        }
+        (body[..limit as usize].to_vec(), true)
+    }
+
+    pub(crate) fn append_body_chunk_for_devtools(body: &mut Vec<u8>, chunk: &[u8]) {
+        let limit = pref!(devtools_network_response_body_limit);
+        if limit < 0 {
+            body.extend_from_slice(chunk);
+            return;
+        }
+        let remaining = (limit as usize)
+            .saturating_add(1)
+            .saturating_sub(body.len());
+        body.extend_from_slice(&chunk[..chunk.len().min(remaining)]);
+    }
+
+    pub(crate) fn capped_body_for_devtools(full_body: &[u8]) -> Vec<u8> {
+        let mut body = Vec::new();
+        append_body_chunk_for_devtools(&mut body, full_body);
+        body
+    }
 
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn prepare_devtools_request(
@@ -122,10 +150,18 @@ mod enabled {
             log::warn!("No metadata available, skipping devtools response.");
             return;
         };
+        let (body_data, body_truncated) = match body_data {
+            Some(body) => {
+                let (body, truncated) = body_for_devtools(&body);
+                (Some(body), truncated)
+            },
+            None => (None, false),
+        };
         send_response_values_to_devtools(
             metadata.headers.map(Serde::into_inner),
             metadata.status,
             body_data,
+            body_truncated,
             response.cache_state,
             request,
             context.devtools_chan.clone(),
@@ -137,6 +173,7 @@ mod enabled {
         headers: Option<HeaderMap>,
         status: HttpStatus,
         body: Option<Vec<u8>>,
+        body_truncated: bool,
         cache_state: CacheState,
         request: &Request,
         devtools_chan: Option<Sender<DevtoolsControlMsg>>,
@@ -153,6 +190,7 @@ mod enabled {
                 headers,
                 status,
                 body: body.map(Bytes::from),
+                body_truncated,
                 from_cache,
                 pipeline_id,
                 browsing_context_id,

@@ -420,6 +420,7 @@ fn test_request_and_response_data_with_network_messages() {
         headers: Some(response_headers),
         status: HttpStatus::default(),
         body: Some(content.as_bytes().to_vec().into()),
+        body_truncated: false,
         from_cache: false,
         pipeline_id: TEST_PIPELINE_ID,
         browsing_context_id: TEST_WEBVIEW_ID.into(),
@@ -427,6 +428,52 @@ fn test_request_and_response_data_with_network_messages() {
 
     assert_eq!(devhttprequests.1, httprequest);
     assert_eq!(devhttpresponse, httpresponse);
+}
+
+#[test]
+fn test_devtools_response_body_truncated_over_default_limit() {
+    let limit =
+        servo_config::prefs::Preferences::default().devtools_network_response_body_limit as usize;
+    let content: Vec<u8> = (0..limit + 100).map(|i| (i % 251) as u8).collect();
+
+    let content_for_handler = content.clone();
+    let handler =
+        move |_: HyperRequest<Incoming>,
+              response: &mut HyperResponse<BoxBody<Bytes, hyper::Error>>| {
+            *response.body_mut() = make_body(content_for_handler.clone());
+        };
+    let (server, url) = make_server(handler);
+
+    let request = RequestBuilder::new(Some(TEST_WEBVIEW_ID), url.clone(), Referrer::NoReferrer)
+        .method(Method::GET)
+        .body(None)
+        .destination(Destination::Document)
+        .origin(mock_origin())
+        .pipeline_id(Some(TEST_PIPELINE_ID))
+        .policy_container(Default::default())
+        .build();
+
+    let (devtools_chan, devtools_port) = unbounded();
+    let response = fetch(request, Some(devtools_chan));
+    assert!(
+        response
+            .internal_response
+            .unwrap()
+            .status
+            .code()
+            .is_success()
+    );
+    let _ = server.close();
+
+    let _ = expect_devtools_http_request(&devtools_port);
+    let devhttpresponse = devtools_response_with_body(&devtools_port);
+
+    assert!(devhttpresponse.body_truncated);
+    let body = devhttpresponse
+        .body
+        .expect("devtools should receive a body");
+    assert_eq!(body.len(), limit);
+    assert_eq!(&body[..], &content[..limit]);
 }
 
 #[test]
