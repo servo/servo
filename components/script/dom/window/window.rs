@@ -70,6 +70,7 @@ use profile_traits::time::ProfilerChan as TimeProfilerChan;
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::dom::UnrootedDom;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::interfaces::{HasOrigin, WindowHelpers};
 use script_bindings::js::{JS_DefineProperty, PropertyFlags};
 use script_bindings::like::Setlike;
@@ -315,7 +316,7 @@ pub(crate) struct Window {
     local_storage: MutNullableDom<Storage>,
     /// <https://cookiestore.spec.whatwg.org/#globals>
     cookie_store: MutNullableDom<CookieStore>,
-    status: DomRefCell<DOMString>,
+    status: DomRefCell<TracedDOMString>,
     trusted_types: MutNullableDom<TrustedTypePolicyFactory>,
 
     /// The start of something resembling
@@ -2224,12 +2225,12 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-status>
     fn Status(&self) -> DOMString {
-        self.status.borrow().clone()
+        self.status.borrow().clone().root()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-window-status>
     fn SetStatus(&self, status: DOMString) {
-        *self.status.borrow_mut() = status
+        *self.status.borrow_mut() = status.traced()
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-window-matchmedia>
@@ -4074,7 +4075,7 @@ impl Window {
             session_storage: Default::default(),
             local_storage: Default::default(),
             cookie_store: Default::default(),
-            status: DomRefCell::new(DOMString::new()),
+            status: DomRefCell::new(DOMString::new().traced()),
             parent_info,
             dom_static: GlobalStaticData::new(),
             js_runtime: DomRefCell::new(Some(runtime)),

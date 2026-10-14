@@ -5,6 +5,7 @@
 use std::fmt;
 
 use dom_struct::dom_struct;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::TrustedScriptURLBinding::TrustedScriptURLMethods;
@@ -22,14 +23,14 @@ use crate::dom::trustedtypes::trustedtypepolicyfactory::{
 pub struct TrustedScriptURL {
     reflector_: Reflector,
 
-    data: DOMString,
+    data: TracedDOMString,
 }
 
 impl TrustedScriptURL {
     fn new_inherited(data: DOMString) -> Self {
         Self {
             reflector_: Reflector::new(),
-            data,
+            data: data.traced(),
         }
     }
 
@@ -59,12 +60,12 @@ impl TrustedScriptURL {
                 )
             },
             TrustedScriptURLOrUSVString::TrustedScriptURL(trusted_script_url) => {
-                Ok(trusted_script_url.data.clone())
+                Ok(trusted_script_url.data.clone().root())
             },
         }
     }
 
-    pub(crate) fn data(&self) -> &DOMString {
+    pub(crate) fn data(&self) -> &TracedDOMString {
         &self.data
     }
 }
@@ -79,11 +80,11 @@ impl fmt::Display for TrustedScriptURL {
 impl TrustedScriptURLMethods<crate::DomTypeHolder> for TrustedScriptURL {
     /// <https://www.w3.org/TR/trusted-types/#trustedscripturl-stringification-behavior>
     fn Stringifier(&self) -> DOMString {
-        self.data.clone()
+        self.data.clone().root()
     }
 
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedscripturl-tojson>
     fn ToJSON(&self) -> DOMString {
-        self.data.clone()
+        self.data.clone().root()
     }
 }

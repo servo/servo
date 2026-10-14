@@ -25,6 +25,7 @@ use net_traits::{FetchMetadata, FetchResponseMsg, Metadata, NetworkError, Resour
 use pixels::RasterImage;
 use rustc_hash::FxHashSet;
 use script_bindings::cell::DomRefCell;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use uuid::Uuid;
@@ -66,9 +67,9 @@ pub(crate) struct Notification {
     /// <https://notifications.spec.whatwg.org/#service-worker-registration>
     serviceworker_registration: Option<Dom<ServiceWorkerRegistration>>,
     /// <https://notifications.spec.whatwg.org/#concept-title>
-    title: DOMString,
+    title: TracedDOMString,
     /// <https://notifications.spec.whatwg.org/#body>
-    body: DOMString,
+    body: TracedDOMString,
     /// <https://notifications.spec.whatwg.org/#data>
     #[ignore_malloc_size_of = "mozjs"]
     data: Heap<JSVal>,
@@ -81,11 +82,11 @@ pub(crate) struct Notification {
     /// <https://notifications.spec.whatwg.org/#badge-url>
     badge: Option<USVString>,
     /// <https://notifications.spec.whatwg.org/#concept-language>
-    lang: DOMString,
+    lang: TracedDOMString,
     /// <https://notifications.spec.whatwg.org/#silent-preference-flag>
     silent: Option<bool>,
     /// <https://notifications.spec.whatwg.org/#tag>
-    tag: DOMString,
+    tag: TracedDOMString,
     /// <https://notifications.spec.whatwg.org/#concept-origin>
     #[no_trace] // ImmutableOrigin is not traceable
     origin: ImmutableOrigin,
@@ -222,20 +223,20 @@ impl Notification {
             eventtarget: EventTarget::new_inherited(),
             // A non-persistent notification is a notification whose service worker registration is null.
             serviceworker_registration: None,
-            title,
-            body,
+            title: title.traced(),
+            body: body.traced(),
             data: Heap::default(),
             dir,
             image,
             icon,
             badge,
-            lang,
+            lang: lang.traced(),
             silent,
             origin,
             vibration_pattern,
             timestamp,
             renotify,
-            tag,
+            tag: tag.traced(),
             require_interaction,
             actions,
             pending_request_ids: DomRefCell::new(Default::default()),
@@ -455,7 +456,7 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
 
     /// <https://notifications.spec.whatwg.org/#dom-notification-title>
     fn Title(&self) -> DOMString {
-        self.title.clone()
+        self.title.clone().root()
     }
 
     /// <https://notifications.spec.whatwg.org/#dom-notification-dir>
@@ -465,17 +466,17 @@ impl NotificationMethods<crate::DomTypeHolder> for Notification {
 
     /// <https://notifications.spec.whatwg.org/#dom-notification-lang>
     fn Lang(&self) -> DOMString {
-        self.lang.clone()
+        self.lang.clone().root()
     }
 
     /// <https://notifications.spec.whatwg.org/#dom-notification-body>
     fn Body(&self) -> DOMString {
-        self.body.clone()
+        self.body.clone().root()
     }
 
     /// <https://notifications.spec.whatwg.org/#dom-notification-tag>
     fn Tag(&self) -> DOMString {
-        self.tag.clone()
+        self.tag.clone().root()
     }
 
     /// <https://notifications.spec.whatwg.org/#dom-notification-image>

@@ -14,6 +14,7 @@ use js::realm::CurrentRealm;
 use js::rust::CustomAutoRooterGuard;
 use js::typedarray::{ArrayBuffer, ArrayBufferU8, ArrayBufferView};
 use script_bindings::cell::DomRefCell;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::match_domstring_ascii;
 use script_bindings::reflector::reflect_dom_object;
 use script_bindings::weakref::WeakRef;
@@ -81,7 +82,7 @@ pub(crate) struct RTCDataChannel {
     negotiated: bool,
     id: Option<u16>,
     ready_state: Cell<RTCDataChannelState>,
-    binary_type: DomRefCell<DOMString>,
+    binary_type: DomRefCell<TracedDOMString>,
     peer_connection: Dom<RTCPeerConnection>,
     droppable: DroppableRTCDataChannel,
 }
@@ -115,7 +116,7 @@ impl RTCDataChannel {
             negotiated: options.negotiated,
             id: options.id,
             ready_state: Cell::new(RTCDataChannelState::Connecting),
-            binary_type: DomRefCell::new(DOMString::from_static("blob")),
+            binary_type: DomRefCell::new(DOMString::from_static("blob").traced()),
             peer_connection: Dom::from_ref(peer_connection),
             droppable: DroppableRTCDataChannel::new(WeakRef::new(peer_connection), servo_media_id),
         }
@@ -365,7 +366,7 @@ impl RTCDataChannelMethods<crate::DomTypeHolder> for RTCDataChannel {
 
     /// <https://www.w3.org/TR/webrtc/#dom-datachannel-binarytype>
     fn BinaryType(&self) -> DOMString {
-        self.binary_type.borrow().clone()
+        self.binary_type.borrow().clone().root()
     }
 
     /// <https://www.w3.org/TR/webrtc/#dom-datachannel-binarytype>
@@ -373,7 +374,7 @@ impl RTCDataChannelMethods<crate::DomTypeHolder> for RTCDataChannel {
         if value != "blob" || value != "arraybuffer" {
             return Err(Error::Syntax(None));
         }
-        *self.binary_type.borrow_mut() = value;
+        *self.binary_type.borrow_mut() = value.traced();
         Ok(())
     }
 

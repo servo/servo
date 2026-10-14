@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
@@ -22,7 +23,7 @@ use crate::dom::window::Window;
 #[dom_struct]
 pub(crate) struct WebGLContextEvent {
     event: Event,
-    status_message: DOMString,
+    status_message: TracedDOMString,
 }
 
 impl WebGLContextEventMethods<crate::DomTypeHolder> for WebGLContextEvent {
@@ -56,7 +57,7 @@ impl WebGLContextEventMethods<crate::DomTypeHolder> for WebGLContextEvent {
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.15>
     fn StatusMessage(&self) -> DOMString {
-        self.status_message.clone()
+        self.status_message.clone().root()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
@@ -69,7 +70,7 @@ impl WebGLContextEvent {
     fn new_inherited(status_message: DOMString) -> WebGLContextEvent {
         WebGLContextEvent {
             event: Event::new_inherited(),
-            status_message,
+            status_message: status_message.traced(),
         }
     }
 

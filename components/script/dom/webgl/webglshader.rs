@@ -12,6 +12,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use mozangle::shaders::{BuiltInResources, CompileOptions, Output, ShaderValidator};
 use script_bindings::cell::DomRefCell;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::reflect_weak_referenceable_dom_object;
 use script_bindings::weakref::WeakRef;
 use servo_canvas_traits::webgl::{
@@ -77,8 +78,8 @@ impl Drop for DroppableWebGLShader {
 pub(crate) struct WebGLShader {
     webgl_object: WebGLObject,
     gl_type: u32,
-    source: DomRefCell<DOMString>,
-    info_log: DomRefCell<DOMString>,
+    source: DomRefCell<TracedDOMString>,
+    info_log: DomRefCell<TracedDOMString>,
     attached_counter: Cell<u32>,
     compilation_status: Cell<ShaderCompilationStatus>,
     droppable: DroppableWebGLShader,
@@ -300,17 +301,17 @@ impl WebGLShader {
 
     /// glGetShaderInfoLog
     pub(crate) fn info_log(&self) -> DOMString {
-        self.info_log.borrow().clone()
+        self.info_log.borrow().clone().root()
     }
 
     /// Get the shader source
     pub(crate) fn source(&self) -> DOMString {
-        self.source.borrow().clone()
+        self.source.borrow().clone().root()
     }
 
     /// glShaderSource
     pub(crate) fn set_source(&self, source: DOMString) {
-        *self.source.borrow_mut() = source;
+        *self.source.borrow_mut() = source.traced();
     }
 
     pub(crate) fn successfully_compiled(&self) -> bool {

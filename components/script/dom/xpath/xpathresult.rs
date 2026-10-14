@@ -8,6 +8,7 @@ use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::XPathResultBinding::{
@@ -62,7 +63,7 @@ enum XPathResultValue {
     Boolean(bool),
     /// A IEEE-754 double-precision floating point number
     Number(f64),
-    String(DOMString),
+    String(TracedDOMString),
     /// A collection of unique nodes
     Nodeset(Vec<Dom<Node>>),
 }
@@ -174,7 +175,7 @@ impl XPathResultMethods<crate::DomTypeHolder> for XPathResult {
     /// <https://dom.spec.whatwg.org/#dom-xpathresult-stringvalue>
     fn GetStringValue(&self) -> Fallible<DOMString> {
         match (&*self.value.borrow(), self.result_type.get()) {
-            (XPathResultValue::String(s), XPathResultType::String) => Ok(s.clone()),
+            (XPathResultValue::String(s), XPathResultType::String) => Ok(s.clone().root()),
             _ => Err(Error::Type(
                 c"Can't get string value for non-string XPathResult".to_owned(),
             )),

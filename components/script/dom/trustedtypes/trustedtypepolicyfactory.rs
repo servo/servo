@@ -49,10 +49,12 @@ pub(crate) static DEFAULT_SCRIPT_SINK_GROUP: &str = "'script'";
 impl Convert<DOMString> for TrustedTypeOrString {
     fn convert(self) -> DOMString {
         match self {
-            TrustedTypeOrString::TrustedHTML(trusted_html) => trusted_html.data().clone(),
-            TrustedTypeOrString::TrustedScript(trusted_script) => trusted_script.data().clone(),
+            TrustedTypeOrString::TrustedHTML(trusted_html) => trusted_html.data().clone().root(),
+            TrustedTypeOrString::TrustedScript(trusted_script) => {
+                trusted_script.data().clone().root()
+            },
             TrustedTypeOrString::TrustedScriptURL(trusted_script_url) => {
-                trusted_script_url.data().clone()
+                trusted_script_url.data().clone().root()
             },
             TrustedTypeOrString::String(str_) => str_,
         }

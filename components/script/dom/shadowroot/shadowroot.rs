@@ -12,6 +12,7 @@ use js::context::{JSContext, NoGC};
 use js::rust::{HandleValue, MutableHandleValue};
 use script_bindings::cell::{DomRefCell, RefMut};
 use script_bindings::dom::UnrootedDom;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::error::{ErrorResult, Fallible};
 use script_bindings::reflector::reflect_dom_object;
 use servo_arc::Arc;
@@ -95,7 +96,7 @@ pub(crate) struct ShadowRoot {
     /// <https://dom.spec.whatwg.org/#shadowroot-available-to-element-internals>
     available_to_element_internals: Cell<bool>,
 
-    slots: DomRefCell<HashMap<DOMString, Vec<Dom<HTMLSlotElement>>>>,
+    slots: DomRefCell<HashMap<TracedDOMString, Vec<Dom<HTMLSlotElement>>>>,
 
     is_user_agent_widget: bool,
 
@@ -303,7 +304,7 @@ impl ShadowRoot {
 
         let mut slots = self.slots.borrow_mut();
 
-        let slots_with_the_same_name = slots.entry(slot.Name()).or_default();
+        let slots_with_the_same_name = slots.entry(slot.Name().traced()).or_default();
 
         // Insert the slot before the first element that comes after it in tree order
         slots_with_the_same_name.insert_pre_order(slot, self.upcast::<Node>());
@@ -313,7 +314,7 @@ impl ShadowRoot {
         debug!("Unregistering slot with name={:?}", name.str());
 
         let mut slots = self.slots.borrow_mut();
-        let Entry::Occupied(mut entry) = slots.entry(name) else {
+        let Entry::Occupied(mut entry) = slots.entry(name.traced()) else {
             panic!("slot is not registered");
         };
         entry.get_mut().retain(|s| slot != &**s);
