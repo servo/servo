@@ -861,8 +861,9 @@ impl From<RootedLifecycleCallbacks> for LifecycleCallbacks {
 }
 
 #[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum ConstructionStackEntry {
-    Element(DomRoot<Element>),
+    Element(Dom<Element>),
     AlreadyConstructedMarker,
 }
 
@@ -1067,7 +1068,7 @@ pub(crate) fn upgrade_element(
     definition
         .construction_stack
         .borrow_mut()
-        .push(ConstructionStackEntry::Element(DomRoot::from_ref(element)));
+        .push(ConstructionStackEntry::Element(Dom::from_ref(element)));
 
     // Steps 7-8, successful case
     let result = run_upgrade_constructor(cx, &definition, element);
