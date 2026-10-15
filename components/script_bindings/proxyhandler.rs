@@ -33,10 +33,9 @@ use js::rust::wrappers2::{
     AppendToIdVector, Call, GetObjectProto, GetPropertyKeys, GetRealmKeyObject, GetWeakMapEntry,
     GetWellKnownSymbol, JS_AlreadyHasOwnPropertyById, JS_AtomizeAndPinString, JS_DefineFunctions,
     JS_DefineProperties, JS_DefinePropertyById, JS_DeletePropertyById,
-    JS_GetOwnPropertyDescriptorById, JS_IdToValue, JS_IsExceptionPending,
-    JS_NewObjectWithGivenProto, JS_ValueToSource, JS_WrapObject, JS_WrapValue, NewWeakMapObject,
-    RUST_INTERNED_STRING_TO_JSID, RUST_JSID_IS_VOID, SetDataPropertyDescriptor,
-    SetPropertyIgnoringNamedGetter, SetWeakMapEntry, int_to_jsid,
+    JS_GetOwnPropertyDescriptorById, JS_IdToValue, JS_NewObjectWithGivenProto, JS_ValueToSource,
+    JS_WrapObject, JS_WrapValue, NewWeakMapObject, RUST_INTERNED_STRING_TO_JSID, RUST_JSID_IS_VOID,
+    SetDataPropertyDescriptor, SetPropertyIgnoringNamedGetter, SetWeakMapEntry, int_to_jsid,
 };
 use js::rust::{
     Handle, HandleId, HandleObject, HandleValue, IntoHandle, MutableHandle, MutableHandleObject,
@@ -47,6 +46,7 @@ use crate::DomTypes;
 use crate::conversions::{is_dom_proxy, jsid_to_string, native_from_object};
 use crate::error::Error;
 use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
+use crate::js::JS_IsExceptionPending;
 use crate::principals::ServoJSPrincipalsRef;
 use crate::reflector::DomObject;
 use crate::str::DOMString;
@@ -697,12 +697,10 @@ pub fn report_cross_origin_denial<D: DomTypes>(
     } else {
         debug!("permission denied to {} on cross-origin object", access);
     }
-    unsafe {
-        if !JS_IsExceptionPending(cx) {
-            let global = D::GlobalScope::from_current_realm(cx);
-            // TODO: include `id` and `access` in the exception message
-            <D as DomHelpers<D>>::throw_dom_exception(cx, &global, Error::Security(None));
-        }
+    if !JS_IsExceptionPending(cx) {
+        let global = D::GlobalScope::from_current_realm(cx);
+        // TODO: include `id` and `access` in the exception message
+        <D as DomHelpers<D>>::throw_dom_exception(cx, &global, Error::Security(None));
     }
     false
 }

@@ -23,12 +23,13 @@ use js::jsapi::{
 };
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
-use js::rust::wrappers2::{JS_IsExceptionPending, JS_ReadStructuredClone, JS_WriteStructuredClone};
+use js::rust::wrappers2::{JS_ReadStructuredClone, JS_WriteStructuredClone};
 use js::rust::{
     CustomAutoRooterGuard, HandleValue, JSAutoStructuredCloneBufferWrapper, MutableHandleValue,
 };
 use rustc_hash::FxHashMap;
 use script_bindings::conversions::IDLInterface;
+use script_bindings::js::JS_IsExceptionPending;
 use script_bindings::serializable::Serializable;
 use script_bindings::structuredclone::{
     StructuredData, StructuredDataReader, StructuredDataWriter,

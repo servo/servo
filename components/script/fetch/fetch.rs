@@ -14,7 +14,6 @@ use js::jsapi::ExceptionStackBehavior;
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::HandleValue;
-use js::rust::wrappers2::JS_IsExceptionPending;
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::fetch::fetch_controller::FetchController;
 use net_traits::request::{
@@ -27,7 +26,7 @@ use net_traits::{
 };
 use rustc_hash::FxHashMap;
 use script_bindings::cformat;
-use script_bindings::js::JS_SetPendingException;
+use script_bindings::js::{JS_IsExceptionPending, JS_SetPendingException};
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::GenericCallback;
 use servo_base::id::WebViewId;
@@ -446,7 +445,7 @@ fn queue_deferred_fetch(
 }
 
 /// <https://fetch.spec.whatwg.org/#dom-window-fetchlater>
-#[expect(non_snake_case, unsafe_code)]
+#[expect(non_snake_case)]
 pub(crate) fn FetchLater(
     cx: &mut JSContext,
     window: &Window,
@@ -463,10 +462,8 @@ pub(crate) fn FetchLater(
     if signal.aborted() {
         rooted!(&in(cx) let mut abort_reason = UndefinedValue());
         signal.Reason(abort_reason.handle_mut());
-        unsafe {
-            assert!(!JS_IsExceptionPending(cx));
-            JS_SetPendingException(cx, abort_reason.handle(), ExceptionStackBehavior::Capture)
-        };
+        assert!(!JS_IsExceptionPending(cx));
+        JS_SetPendingException(cx, abort_reason.handle(), ExceptionStackBehavior::Capture);
         return Err(Error::JSFailed);
     }
     // Step 3. Let request be requestObject’s request.
