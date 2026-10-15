@@ -1297,6 +1297,16 @@ int test_webview_setters_null(void)
     return 0;
 }
 
+static bool test_protocol_handler_callback(const struct ServoWebResourceRequest* request,
+                                           struct ServoWebResourceResponse* response,
+                                           void* user_data)
+{
+    (void)request;
+    (void)response;
+    (void)user_data;
+    return false;
+}
+
 /* Covers `servo_builder_register_protocol_handler`: registering a custom
  * protocol handler should succeed for valid schemes and fail for forbidden
  * schemes. */
@@ -1311,30 +1321,33 @@ int test_builder_register_protocol_handler(void)
     if (servo_builder == NULL)
         return 1;
 
+    // Test that NULL callback returns error
+    if (servo_builder_register_protocol_handler(servo_builder, "myapp", NULL, NULL) != SERVO_ERROR_NULL_ARGUMENT) {
+        servo_builder_free(servo_builder);
+        return 1;
+    }
+
     // Test registering a valid custom scheme
-    bool (*callback)(const struct ServoWebResourceRequest*,
-                     struct ServoWebResourceResponse*,
-                     void*) = NULL;
-    int result = servo_builder_register_protocol_handler(servo_builder, "myapp", callback, NULL);
+    int result = servo_builder_register_protocol_handler(servo_builder, "myapp", test_protocol_handler_callback, NULL);
     if (result != SERVO_ERROR_OK) {
         servo_builder_free(servo_builder);
         return 1;
     }
 
     // Test registering a forbidden scheme (http) should fail
-    result = servo_builder_register_protocol_handler(servo_builder, "http", callback, NULL);
+    result = servo_builder_register_protocol_handler(servo_builder, "http", test_protocol_handler_callback, NULL);
     if (result != SERVO_ERROR_INVALID_STATE) {
         servo_builder_free(servo_builder);
         return 1;
     }
 
     // Test registering the same scheme twice should fail
-    result = servo_builder_register_protocol_handler(servo_builder, "myapp2", callback, NULL);
+    result = servo_builder_register_protocol_handler(servo_builder, "myapp2", test_protocol_handler_callback, NULL);
     if (result != SERVO_ERROR_OK) {
         servo_builder_free(servo_builder);
         return 1;
     }
-    result = servo_builder_register_protocol_handler(servo_builder, "myapp2", callback, NULL);
+    result = servo_builder_register_protocol_handler(servo_builder, "myapp2", test_protocol_handler_callback, NULL);
     if (result != SERVO_ERROR_INVALID_STATE) {
         servo_builder_free(servo_builder);
         return 1;

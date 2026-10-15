@@ -109,6 +109,13 @@ pub unsafe extern "C" fn servo_webview_evaluate_javascript(
             return ServoError::NullArgument;
         }
 
+        // SAFETY: The caller is assumed to uphold the safety requirements for
+        // `script` documented above.
+        let script = match unsafe { CStr::from_ptr(script) }.to_str() {
+            Ok(s) => s.to_string(),
+            Err(_) => return ServoError::InvalidUtf8,
+        };
+
         let Some(callback) = callback else {
             return ServoError::Ok;
         };
@@ -116,13 +123,6 @@ pub unsafe extern "C" fn servo_webview_evaluate_javascript(
         // SAFETY: The caller is assumed to uphold the safety requirements for
         // `webview` documented above.
         let webview = unsafe { &*webview };
-
-        // SAFETY: The caller is assumed to uphold the safety requirements for
-        // `script` documented above.
-        let script = match unsafe { CStr::from_ptr(script) }.to_str() {
-            Ok(s) => s.to_string(),
-            Err(_) => return ServoError::InvalidUtf8,
-        };
 
         let callback = move |result: Result<JSValue, servo_api::JavaScriptEvaluationError>| {
             match result {
@@ -198,6 +198,13 @@ pub unsafe extern "C" fn servo_webview_evaluate_javascript_v2(
             return ServoError::NullArgument;
         }
 
+        // SAFETY: The caller is assumed to uphold the safety requirements for
+        // `script` documented above.
+        let script = match unsafe { CStr::from_ptr(script) }.to_str() {
+            Ok(s) => s.to_string(),
+            Err(_) => return ServoError::InvalidUtf8,
+        };
+
         let Some(callback) = callback else {
             return ServoError::Ok;
         };
@@ -205,13 +212,6 @@ pub unsafe extern "C" fn servo_webview_evaluate_javascript_v2(
         // SAFETY: The caller is assumed to uphold the safety requirements for
         // `webview` documented above.
         let webview = unsafe { &*webview };
-
-        // SAFETY: The caller is assumed to uphold the safety requirements for
-        // `script` documented above.
-        let script = match unsafe { CStr::from_ptr(script) }.to_str() {
-            Ok(s) => s.to_string(),
-            Err(_) => return ServoError::InvalidUtf8,
-        };
 
         let callback = move |result: Result<JSValue, servo_api::JavaScriptEvaluationError>| {
             match result {
