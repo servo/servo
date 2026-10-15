@@ -313,37 +313,18 @@ static void on_screenshot(const uint8_t* data, uint32_t width, uint32_t height,
 }
 
 /* Integration test that
- *  1. Creates a Servo instance
- *  2. Opens a WebView
- *  3. Load a simple page with `data:html` protocol
- *  4. Waits for rendering to complete
- *  5. Takes a screenshot and verifies the image has the expected pixel color.
+ *  1. Opens a WebView on the shared Servo instance
+ *  2. Loads a simple page with the `data:html` protocol
+ *  3. Waits for rendering to complete
+ *  4. Takes a screenshot and verifies the image has the expected pixel color.
  */
-int test_webview_load_and_screenshot(void)
+int test_webview_load_and_screenshot(struct Servo* servo)
 {
     log("running test_webview_load_and_screenshot\n");
     int result = 1; // default to fail
-    struct Servo* servo = NULL;
     struct WebView* webview = NULL;
     test_state_t state;
     memset(&state, 0, sizeof(state));
-
-    ServoBuilder* builder = servo_builder_create();
-
-    struct ServoEventLoopWaker waker = { wake_callback };
-    servo_builder_set_event_loop_waker(builder, waker);
-
-    ServoOptions* options = servo_options_create();
-    servo_options_set_multiprocess(options, false);
-    servo_builder_set_options(builder, options);
-
-    servo = servo_builder_build(builder);
-    if (!servo) {
-        log("  FAIL: servo_builder_build returned NULL\n");
-        goto cleanup;
-    }
-
-    servo_setup_logging(servo);
 
     // Create the WebView
     state.expected_width = 100;
@@ -545,45 +526,23 @@ cleanup:
     if (webview) {
         servo_webview_free(webview);
     }
-    if (servo) {
-        servo_free(servo);
-    }
     return result;
 }
 
 /* Integration test that
- *  1. Creates a Servo instance
- *  2. Opens a WebView
- *  3. Loads a simple page
- *  4. Calls servo_webview_close
- *  5. Waits for notify_closed to fire
- *  6. Calls servo_webview_free to verify it still works after close
+ *  1. Opens a WebView on the shared Servo instance
+ *  2. Loads a simple page
+ *  3. Calls servo_webview_close
+ *  4. Waits for notify_closed to fire
+ *  5. Calls servo_webview_free to verify it still works after close
  */
-int test_webview_close(void)
+int test_webview_close(struct Servo* servo)
 {
     log("running test_webview_close\n");
     int result = 1; // default to fail
-    struct Servo* servo = NULL;
     struct WebView* webview = NULL;
     test_state_t state;
     memset(&state, 0, sizeof(state));
-
-    ServoBuilder* builder = servo_builder_create();
-
-    struct ServoEventLoopWaker waker = { wake_callback };
-    servo_builder_set_event_loop_waker(builder, waker);
-
-    ServoOptions* options = servo_options_create();
-    servo_options_set_multiprocess(options, false);
-    servo_builder_set_options(builder, options);
-
-    servo = servo_builder_build(builder);
-    if (!servo) {
-        log("  FAIL: servo_builder_build returned NULL\n");
-        goto cleanup;
-    }
-
-    servo_setup_logging(servo);
 
     // Create the WebView
     state.expected_width = 100;
@@ -690,21 +649,45 @@ cleanup:
     if (webview) {
         servo_webview_free(webview);
     }
-    if (servo) {
-        servo_free(servo);
-    }
     return result;
 }
 
 // Entry point for the integration test. This is called from the Rust-side test
 // runner.
+//
+// A single `Servo` instance is created and shared by all of the scenarios
+// below. Servo's embedding runtime relies on process-global, one-shot
+// initialization (the JavaScript engine, the async runtime, the logger and the
+// configuration options), so only one `Servo` instance may exist per process.
 int run_c_integration_tests(void)
 {
-    int result = test_webview_load_and_screenshot();
-    if (result != 0) {
-        return result;
+    int result = 1; // default to fail
+    struct Servo* servo = NULL;
+
+    ServoBuilder* builder = servo_builder_create();
+
+    struct ServoEventLoopWaker waker = { wake_callback };
+    servo_builder_set_event_loop_waker(builder, waker);
+
+    ServoOptions* options = servo_options_create();
+    servo_options_set_multiprocess(options, false);
+    servo_builder_set_options(builder, options);
+
+    servo = servo_builder_build(builder);
+    if (!servo) {
+        log("  FAIL: servo_builder_build returned NULL\n");
+        return 1;
     }
-    result = test_webview_close();
+
+    servo_setup_logging(servo);
+
+    result = test_webview_load_and_screenshot(servo);
+    if (result == 0) {
+        result = test_webview_close(servo);
+    }
+
     log("%s\n", result == 0 ? "PASS" : "FAIL");
+
+    servo_free(servo);
     return result;
 }
