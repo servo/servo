@@ -2995,6 +2995,15 @@ impl HTMLMediaElement {
         current_frame
     }
 
+    pub(crate) fn show_poster(&self) -> bool {
+        self.show_poster.get()
+    }
+
+    #[expect(unsafe_code)]
+    pub(crate) unsafe fn current_src_url(&self) -> Option<ServoUrl> {
+        ServoUrl::parse(unsafe { self.current_src.borrow_for_layout() }).ok()
+    }
+
     /// By default the audio is rendered through the audio sink automatically
     /// selected by the servo-media Player instance. However, in some cases, like
     /// the WebAudio MediaElementAudioSourceNode, we need to set a custom audio
