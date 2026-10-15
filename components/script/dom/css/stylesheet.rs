@@ -5,8 +5,10 @@
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use script_bindings::reflector::Reflector;
+use xml5ever::local_name;
 
 use super::cssstylesheet::CSSStyleSheet;
+use crate::dom::Node;
 use crate::dom::bindings::codegen::Bindings::StyleSheetBinding::StyleSheetMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
@@ -19,20 +21,14 @@ pub(crate) struct StyleSheet {
     reflector_: Reflector,
     type_: DOMString,
     href: Option<DOMString>,
-    title: Option<DOMString>,
 }
 
 impl StyleSheet {
-    pub(crate) fn new_inherited(
-        type_: DOMString,
-        href: Option<DOMString>,
-        title: Option<DOMString>,
-    ) -> StyleSheet {
+    pub(crate) fn new_inherited(type_: DOMString, href: Option<DOMString>) -> StyleSheet {
         StyleSheet {
             reflector_: Reflector::new(),
             type_,
             href,
-            title,
         }
     }
 }
@@ -61,7 +57,17 @@ impl StyleSheetMethods<crate::DomTypeHolder> for StyleSheet {
 
     /// <https://drafts.csswg.org/cssom/#dom-stylesheet-title>
     fn GetTitle(&self) -> Option<DOMString> {
-        self.title.clone()
+        let css_style_sheet = self.downcast::<CSSStyleSheet>()?;
+        let owner_element = css_style_sheet.owner_node()?;
+        if !owner_element.upcast::<Node>().is_in_a_document_tree() {
+            return None;
+        }
+
+        let title_string = owner_element.get_attribute_string_value(&local_name!("title"))?;
+        if title_string.is_empty() {
+            return None;
+        }
+        Some(title_string.into())
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-stylesheet-disabled>
