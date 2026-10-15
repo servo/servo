@@ -16,13 +16,18 @@ A platform is "supported" only when CI builds `servo-capi` with `cargo cinstall`
 runs the C integration tests in `tests/capi`, and passes the symbol allowlist check
 (see [`ABI_STABILITY.md`](ABI_STABILITY.md) §7.1).
 
-| OS | Architecture | CI job | Notes |
-| --- | --- | --- | --- |
-| Linux | x86_64 | `linux.yml` → `linux-common.yml` (`capi`), `embedding-api.yml` | Reference platform; sandbox available with `multiprocess`. |
-| Linux | arm64 | `linux-arm64.yml` → `linux-common.yml` (`capi`) | Runs, but **no sandbox** (AArch64). |
-| macOS | x86_64 (Intel) | `mac.yml` (`capi`) | Sandbox available with `multiprocess`. |
-| macOS | arm64 (Apple Silicon) | `mac-arm64.yml` (`capi`), `embedding-api.yml` | Runs, but **no sandbox** (AArch64). |
-| Windows | x86_64 | `windows.yml` (`capi`), `embedding-api.yml` | Runs, but **no sandbox**. |
+The always-on check is `.github/workflows/embedding-api.yml`, which runs on every
+push/PR that touches `ffi/capi/**`, `tests/capi/**`, or `docs/embedding/**`:
+
+| OS | Architecture | How it is verified |
+| --- | --- | --- |
+| Linux | x86_64 | `embedding-api.yml` (always on). |
+| macOS | arm64 (Apple Silicon) | `embedding-api.yml` (always on). |
+| Windows | x86_64 | `embedding-api.yml` (always on). |
+| Linux | arm64 | `linux-arm64.yml` `capi` job (run on dispatch/release, `capi: true`). |
+| macOS | x86_64 (Intel) | `mac.yml` `capi` job (run on dispatch/release, `capi: true`). |
+
+Sandbox availability below follows from the target, not from which workflow built it.
 
 Other targets (`android`, `ios`, `ohos`, 32-bit ARM, RISC-V) are named by
 `servo_capi_platform_name()` so a build can exist, but they are **not** built or
