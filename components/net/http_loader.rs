@@ -1638,8 +1638,15 @@ async fn http_network_or_cache_fetch(
                     response = refresh(http_request, forward_response.clone(), done_chan, guard);
                 }
 
-                if let Some(response) = &mut response {
-                    response.cache_state = CacheState::Validated;
+                match &mut response {
+                    Some(response) => {
+                        response.cache_state = CacheState::Validated;
+                    },
+                    // The validated entry was no longer in the cache when we expected it to be.
+                    None => {
+                        *done_chan = None;
+                        return Response::network_error(NetworkError::CacheError);
+                    },
                 }
             }
 

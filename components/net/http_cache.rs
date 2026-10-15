@@ -158,6 +158,72 @@ impl CachedResource {
     pub(crate) fn is_done(&self) -> bool {
         self.body.lock().is_done()
     }
+
+    /// Whether this [`CachedResource`] can be used to answer the given `Request`. This
+    /// is true if:
+    ///
+    /// 1. The resource is not for an aborted load.
+    /// 2. The fields named in the `Vary` header match those of the `Request`.
+    /// 3. It is not a partial (206) response or the request has a `Range` header. When the request
+    ///    has a `Range` header the caller is expected to decide which part of the resource to use.
+    fn can_be_used_to_answer(&self, request: &Request) -> bool {
+        if self.aborted.load(Ordering::Acquire) {
+            return false;
+        }
+        if !self.vary_header_matches(&request.headers) {
+            return false;
+        }
+        if request.headers.typed_get::<Range>().is_some() {
+            return true;
+        }
+
+        // From <https://httpwg.org/specs/rfc9111.html#incomplete.responses>
+        // > A cache MAY complete a stored incomplete response by making a subsequent range
+        // > request (Section 14.2 of [HTTP]) and combining the successful response with the
+        // > stored response, as defined in Section 3.4. A cache MUST NOT use an incomplete
+        // > response to answer requests unless the response has been made complete, or the
+        // > request is partial and specifies a range wholly within the incomplete response.
+        // > A cache MUST NOT send a partial response to a client without explicitly marking
+        // > it using the 206 (Partial Content) status code.
+        //
+        // TODO: Combining partial content to fulfill a non-Range request
+        // See <https://httpwg.org/specs/rfc9111.html#combining.responses>.
+        self.status
+            .try_code()
+            .is_some_and(|code| code != StatusCode::PARTIAL_CONTENT)
+    }
+
+    /// Whether the given request headers match the cached resource's request headers
+    /// on every field named in the `Vary` header according to the rules specified in
+    /// <https://httpwg.org/specs/rfc9111.html#caching.negotiated.responses>.
+    ///
+    /// > When a cache receives a request that can be satisfied by a stored response and
+    /// > that stored response contains a Vary header field (Section 12.5.5 of [HTTP]), the
+    /// > cache MUST NOT use that stored response without revalidation unless all the
+    /// > presented request header fields nominated by that Vary field value match those
+    /// > fields in the original request (i.e., the request that caused the cached response
+    /// > to be stored).
+    fn vary_header_matches(&self, request_headers: &HeaderMap) -> bool {
+        let cached_headers = self.metadata.headers.lock();
+        let original_request_headers = self.request_headers.lock();
+        let Some(vary_value) = cached_headers.typed_get::<Vary>() else {
+            return true;
+        };
+
+        if vary_value.is_any() {
+            return false;
+        }
+
+        for vary_header_field in vary_value.iter_strs() {
+            if request_headers.get(vary_header_field) !=
+                original_request_headers.get(vary_header_field)
+            {
+                return false;
+            }
+        }
+
+        true
+    }
 }
 
 #[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
@@ -355,11 +421,25 @@ fn is_cacheable_by_default(status_code: StatusCode) -> bool {
 /// Determine if a given response is cacheable.
 /// Based on <https://tools.ietf.org/html/rfc7234#section-3>
 fn response_is_cacheable(metadata: &Metadata) -> bool {
+    // This kind of response does not have a body. It just freshens existing cached resources.
+    if metadata.status == StatusCode::NOT_MODIFIED {
+        return false;
+    }
+
+    // Resources with `Vary: '*'` can never be returned as cache results, so
+    // do not store them in the cache.
+    let headers = metadata.headers.as_ref().unwrap();
+    if headers
+        .typed_get::<Vary>()
+        .is_some_and(|vary| vary.is_any())
+    {
+        return false;
+    }
+
     // TODO: if we determine that this cache should be considered shared:
     // 1. check for absence of private response directive <https://tools.ietf.org/html/rfc7234#section-5.2.2.6>
     // 2. check for absence of the Authorization header field.
     let mut is_cacheable = false;
-    let headers = metadata.headers.as_ref().unwrap();
     if headers.contains_key(header::EXPIRES) ||
         headers.contains_key(header::LAST_MODIFIED) ||
         headers.contains_key(header::ETAG)
@@ -384,6 +464,7 @@ fn response_is_cacheable(metadata: &Metadata) -> bool {
     {
         return false;
     }
+
     is_cacheable
 }
 
@@ -838,81 +919,17 @@ pub(crate) fn construct_response(
         return None;
     }
 
-    let resources = cache_result
+    let mut candidates: Vec<_> = cache_result
         .iter()
-        .filter(|r| !r.aborted.load(Ordering::Relaxed));
-    let mut candidates = vec![];
-    for cached_resource in resources {
-        let mut can_be_constructed = true;
-        let cached_headers = cached_resource.metadata.headers.lock();
-        let original_request_headers = cached_resource.request_headers.lock();
-        if let Some(vary_value) = cached_headers.typed_get::<Vary>() {
-            if vary_value.is_any() {
-                debug!("vary value is any, not caching");
-                can_be_constructed = false
-            } else {
-                // For every header name found in the Vary header of the stored response.
-                // Calculating Secondary Keys with Vary <https://tools.ietf.org/html/rfc7234#section-4.1>
-                for vary_val in vary_value.iter_strs() {
-                    match request.headers.get(vary_val) {
-                        Some(header_data) => {
-                            // If the header is present in the request.
-                            if let Some(original_header_data) =
-                                original_request_headers.get(vary_val)
-                            {
-                                // Check that the value of the nominated header field,
-                                // in the original request, matches the value in the current request.
-                                if original_header_data != header_data {
-                                    debug!("headers don't match, not caching");
-                                    can_be_constructed = false;
-                                    break;
-                                }
-                            }
-                        },
-                        None => {
-                            // If a header field is absent from a request,
-                            // it can only match a stored response if those headers,
-                            // were also absent in the original request.
-                            can_be_constructed = original_request_headers.get(vary_val).is_none();
-                            if !can_be_constructed {
-                                debug!("vary header present, not caching");
-                            }
-                        },
-                    }
-                    if !can_be_constructed {
-                        break;
-                    }
-                }
-            }
-        }
-        if can_be_constructed {
-            candidates.push(cached_resource);
-        }
-    }
+        .filter(|resource| resource.can_be_used_to_answer(request))
+        .collect();
+
     // Support for range requests
     if let Some(range_spec) = request.headers.typed_get::<Range>() {
         return handle_range_request(request, candidates.as_slice(), &range_spec, done_chan);
     }
+
     while let Some(cached_resource) = candidates.pop() {
-        // Not a Range request.
-        // Do not allow 206 responses to be constructed.
-        //
-        // See https://tools.ietf.org/html/rfc7234#section-3.1
-        //
-        // A cache MUST NOT use an incomplete response to answer requests unless the
-        // response has been made complete or the request is partial and
-        // specifies a range that is wholly within the incomplete response.
-        //
-        // TODO: Combining partial content to fulfill a non-Range request
-        // see https://tools.ietf.org/html/rfc7234#section-3.3
-        match cached_resource.status.try_code() {
-            Some(ref code) => {
-                if *code == StatusCode::PARTIAL_CONTENT {
-                    continue;
-                }
-            },
-            None => continue,
-        }
         // Returning a response that can be constructed
         // TODO: select the most appropriate one, using a known mechanism from a selecting header field,
         // or using the Date header to return the most recent one.
@@ -929,7 +946,7 @@ pub(crate) fn construct_response(
 }
 
 /// Freshening Stored Responses upon Validation.
-/// <https://tools.ietf.org/html/rfc7234#section-4.3.4>
+/// <https://httpwg.org/specs/rfc9111.html#freshening.responses>
 pub fn refresh(
     request: &Request,
     response: Response,
@@ -938,16 +955,26 @@ pub fn refresh(
 ) -> Option<Response> {
     assert_eq!(response.status, StatusCode::NOT_MODIFIED);
 
-    let cached_resource = cached_resources.iter_mut().next()?;
+    // Refresh the last cached resource that can be used to answer the request.
+    // TODO: This should follow the rules specified in
+    // <https://httpwg.org/specs/rfc9111.html#freshening.responses> more closely.
+    let cached_resource_index = cached_resources
+        .iter()
+        .rposition(|resource| resource.can_be_used_to_answer(request))?;
 
     let mut constructed_response = if let Some(range_spec) = request.headers.typed_get::<Range>() {
-        handle_range_request(request, &[cached_resource], &range_spec, done_chan)
+        let cached_resources: Vec<_> = cached_resources
+            .iter()
+            .filter(|resource| resource.can_be_used_to_answer(request))
+            .collect();
+        handle_range_request(request, &cached_resources, &range_spec, done_chan)
             .map(|cached_response| cached_response.response)
     } else {
         // done_chan will have been set to Some(..) by http_network_fetch.
         // If the body is not receiving data, set the done_chan back to None.
         // Otherwise, create a new dedicated channel to update the consumer.
         // The response constructed here will replace the 304 one from the network.
+        let cached_resource = &mut cached_resources[cached_resource_index];
         let in_progress_channel = match &*cached_resource.body.lock() {
             ResponseBody::Receiving(..) => Some(unbounded()),
             ResponseBody::Empty | ResponseBody::Done(..) => None,
@@ -984,6 +1011,8 @@ pub fn refresh(
 
     // Update cached Resource with response and constructed response.
     if let Some(constructed_response) = constructed_response.as_mut() {
+        let cached_resource = &mut cached_resources[cached_resource_index];
+
         // Bracket is to minimize lock duration.
         {
             let mut stored_headers = cached_resource.metadata.headers.lock();
@@ -1227,8 +1256,19 @@ impl<'a> CachedResourcesOrGuard<'a> {
         };
 
         match self {
-            CachedResourcesOrGuard::Value(mut owned_rw_lock_write_guard) => {
-                owned_rw_lock_write_guard.push(entry_resource);
+            CachedResourcesOrGuard::Value(mut cached_resources) => {
+                // Ensure that any existing complete response is replaced by the new
+                // complete response if the two responses match according to the fields
+                // named in the `Vary` header.
+                if response.status == StatusCode::OK {
+                    cached_resources.retain(|cached_resource| {
+                        cached_resource.status != StatusCode::OK ||
+                            !cached_resource.is_done() ||
+                            !cached_resource.vary_header_matches(&request.headers)
+                    });
+                }
+
+                cached_resources.push(entry_resource);
             },
             CachedResourcesOrGuard::Guard(placeholder_guard) => {
                 if placeholder_guard
