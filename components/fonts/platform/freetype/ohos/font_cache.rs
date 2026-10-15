@@ -17,7 +17,7 @@ const TMP_FILE_SUFFIX: &str = "tmp";
 
 /// If there is any change in the fields of `FontList`, this value should be updated.
 /// Currently, the convention is to set it to current date in DDMMYYYY format.
-const CACHE_REVISION: &str = "_28092026";
+const CACHE_REVISION: &str = "_15102026";
 
 /// Checks if the font file has been cached on the disk. If no such file is found,
 /// or for whatever reason Servo fails to parse the file path, return false.
