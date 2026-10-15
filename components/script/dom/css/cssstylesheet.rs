@@ -89,12 +89,11 @@ impl CSSStyleSheet {
         owner: Option<&Element>,
         type_: DOMString,
         href: Option<DOMString>,
-        title: Option<DOMString>,
         stylesheet: Arc<StyleStyleSheet>,
         constructor_document: Option<&Document>,
     ) -> CSSStyleSheet {
         CSSStyleSheet {
-            stylesheet: StyleSheet::new_inherited(type_, href, title),
+            stylesheet: StyleSheet::new_inherited(type_, href),
             owner_node: MutNullableDom::new(owner),
             rule_list: MutNullableDom::new(None),
             style_shared_lock: stylesheet.shared_lock.clone(),
@@ -107,14 +106,12 @@ impl CSSStyleSheet {
         }
     }
 
-    #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
         cx: &mut JSContext,
         window: &Window,
         owner: Option<&Element>,
         type_: DOMString,
         href: Option<DOMString>,
-        title: Option<DOMString>,
         stylesheet: Arc<StyleStyleSheet>,
         constructor_document: Option<&Document>,
     ) -> DomRoot<CSSStyleSheet> {
@@ -124,7 +121,6 @@ impl CSSStyleSheet {
                 owner,
                 type_,
                 href,
-                title,
                 stylesheet,
                 constructor_document,
             )),
@@ -140,7 +136,6 @@ impl CSSStyleSheet {
         owner: Option<&Element>,
         type_: DOMString,
         href: Option<DOMString>,
-        title: Option<DOMString>,
         stylesheet: Arc<StyleStyleSheet>,
         constructor_document: Option<&Document>,
     ) -> DomRoot<CSSStyleSheet> {
@@ -150,7 +145,6 @@ impl CSSStyleSheet {
                 owner,
                 type_,
                 href,
-                title,
                 stylesheet,
                 constructor_document,
             )),
@@ -391,7 +385,6 @@ impl CSSStyleSheetMethods<crate::DomTypeHolder> for CSSStyleSheet {
             None, // owner
             DOMString::from_static("text/css"),
             None, // href
-            None, // title
             stylesheet,
             Some(&window.Document()), // constructor_document
         );

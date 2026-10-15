@@ -248,15 +248,15 @@ impl HTMLStyleElement {
         &self,
         cx: &mut JSContext,
     ) -> Option<DomRoot<CSSStyleSheet>> {
+        let element = self.upcast::<Element>();
         self.get_stylesheet().map(|sheet| {
             self.cssom_stylesheet.or_init(|| {
                 CSSStyleSheet::new(
                     cx,
                     &self.owner_window(),
-                    Some(self.upcast::<Element>()),
+                    Some(element),
                     DOMString::from_static("text/css"),
-                    None, // todo handle location
-                    None, // todo handle title
+                    None,
                     sheet,
                     None, // constructor_document
                 )

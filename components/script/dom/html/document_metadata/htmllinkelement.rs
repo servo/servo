@@ -215,7 +215,6 @@ impl HTMLLinkElement {
                     Some(self.upcast::<Element>()),
                     DOMString::from_static("text/css"),
                     Some(self.Href().into()),
-                    None, // todo handle title
                     sheet,
                     None, // constructor_document
                 )
