@@ -2896,6 +2896,13 @@ impl GlobalScope {
         None
     }
 
+    pub(crate) fn online(&self) -> bool {
+        if let Some(worker_global_scope) = self.downcast::<WorkerGlobalScope>() {
+            return worker_global_scope.online();
+        }
+        ScriptThread::online()
+    }
+
     #[cfg(feature = "webgpu")]
     pub(crate) fn wgpu_id_hub(&self) -> Arc<IdentityHub> {
         self.gpu_id_hub.clone()
@@ -3176,6 +3183,14 @@ impl GlobalScope {
 
         // Step 5. Return timerKey.
         timer_key
+    }
+
+    pub(crate) fn set_network_online_state_on_dedicated_workers(&self, online: bool) {
+        for worker in &*self.list_auto_close_worker.borrow() {
+            _ = worker
+                .control_sender
+                .send(DedicatedWorkerControlMsg::SetNetworkOnlineState(online));
+        }
     }
 }
 

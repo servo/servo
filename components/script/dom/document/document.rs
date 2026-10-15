@@ -5483,6 +5483,31 @@ impl Document {
         self.CreateElement(cx, name.into(), element_options)
             .expect("Must always be able to create element")
     }
+
+    /// Queue `online` or `offline` events on this `Document`'s `Window` and on its
+    /// dedicated workers.
+    pub(crate) fn queue_online_offline_events(&self, online: bool) {
+        let event_name = Atom::from(if online { "online" } else { "offline" });
+        let window = self.window();
+        let global_scope = window.as_global_scope();
+
+        // From <https://html.spec.whatwg.org/multipage/#dom-navigator-online>:
+        // > When the value that would be returned by the navigator.onLine attribute of a
+        // > Window or WorkerGlobalScope global changes from true to false, the user agent
+        // > must queue a global task on the networking task source given global to fire an
+        // > event named offline at global.
+        // >
+        // > On the other hand, when the value that would be returned by the
+        // > navigator.onLine attribute of a Window or WorkerGlobalScope global changes from
+        // > false to true, the user agent must queue a global task on the networking task
+        // > source given global to fire an event named online at the Window or
+        // > WorkerGlobalScope object.
+        global_scope
+            .task_manager()
+            .networking_task_source()
+            .queue_simple_event(window.upcast::<EventTarget>(), event_name);
+        global_scope.set_network_online_state_on_dedicated_workers(online);
+    }
 }
 
 impl DocumentMethods<crate::DomTypeHolder> for Document {

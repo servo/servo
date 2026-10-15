@@ -522,6 +522,9 @@ pub struct Constellation<STF, SWF> {
     /// to the `UserContents` need to be forwared to all the `ScriptThread`s that host
     /// the relevant `WebView`.
     pub(crate) user_contents_for_manager_id: FxHashMap<UserContentManagerId, UserContents>,
+
+    /// Whether Servo is online or not. This is controlled by the embedder.
+    online: bool,
 }
 
 /// State needed to construct a constellation.
@@ -745,11 +748,18 @@ where
                         broken_image_icon_data,
                     )),
                     user_contents_for_manager_id: Default::default(),
+                    // Servo is online by default.
+                    online: true,
                 };
 
                 constellation.run();
             })
             .expect("Thread spawning failed");
+    }
+
+    /// Whether or not the embedder has put Servo in online mode or offline mode.
+    pub(crate) fn online(&self) -> bool {
+        self.online
     }
 
     fn event_loops(&self) -> Vec<Rc<EventLoop>> {
@@ -1411,6 +1421,9 @@ where
             },
             EmbedderToConstellationMessage::ClearSessionHistory(webview_id) => {
                 self.handle_clear_session_history(webview_id);
+            },
+            EmbedderToConstellationMessage::SetNetworkOnlineState(online) => {
+                self.handle_set_network_online_state(online);
             },
         }
     }
@@ -6306,5 +6319,27 @@ where
                 })
             })
             .clone()
+    }
+
+    fn handle_set_network_online_state(&mut self, online: bool) {
+        let previously_online = std::mem::replace(&mut self.online, online);
+        if previously_online == online {
+            return;
+        }
+
+        for event_loop in self.event_loops() {
+            if let Err(error) = event_loop.send(ScriptThreadMessage::SetNetworkOnlineState(online))
+            {
+                error!("Could not send network online state to event loop: {error}");
+            }
+        }
+
+        for service_worker_manager in self.sw_managers.values() {
+            if let Err(error) =
+                service_worker_manager.send(ServiceWorkerMsg::SetNetworkOnlineState(online))
+            {
+                error!("Could not send network online state to service worker: {error}");
+            }
+        }
     }
 }

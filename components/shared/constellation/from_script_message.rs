@@ -283,6 +283,7 @@ pub enum ServiceWorkerMsg {
     },
     /// <https://w3c.github.io/ServiceWorker/#algorithms>
     HandleAlgorithm(ServiceWorkerAlgorithm),
+    SetNetworkOnlineState(bool),
     /// Exit the service worker manager
     Exit,
 }
@@ -545,6 +546,8 @@ pub struct WorkerGlobalScopeInit {
     /// Handle for communicating messages to the WebGL thread, if available.
     #[cfg(feature = "webgl")]
     pub webgl_chan: Option<WebGLChan>,
+    /// Whether or not Servo is online.
+    pub online: bool,
 }
 
 /// Message delivered to a worker event loop to run animation frame callbacks.

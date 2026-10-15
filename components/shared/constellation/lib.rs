@@ -123,6 +123,9 @@ pub enum EmbedderToConstellationMessage {
     /// Clears the session history for the `WebView` with the given `WebViewId`, leaving
     /// the `WebView` with only the current URL in its session history.
     ClearSessionHistory(WebViewId),
+    /// Inform the `Constellation` that the embedder has changed the network
+    /// online state.
+    SetNetworkOnlineState(bool),
 }
 
 pub enum UserContentManagerAction {

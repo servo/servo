@@ -343,6 +343,9 @@ pub enum ScriptThreadMessage {
     ForwardAccessibilityAction(PipelineId, ActionRequest),
     /// Force a garbage collection in this script thread.
     TriggerGarbageCollection,
+    /// Inform the `ScriptThread` that the embedder has indicated that the network has gone
+    /// online or offline.
+    SetNetworkOnlineState(bool),
 }
 
 impl fmt::Debug for ScriptThreadMessage {
@@ -501,6 +504,8 @@ pub struct InitialScriptState {
     pub privileged_urls: Vec<ServoUrl>,
     /// A copy of constellation's `UserContentManagerId` to `UserContents` map.
     pub user_contents_for_manager_id: FxHashMap<UserContentManagerId, UserContents>,
+    /// Whether or not the embedder has indicated that networking is online.
+    pub online: bool,
 }
 
 /// Errors from executing a paint worklet

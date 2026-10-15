@@ -140,6 +140,7 @@ use crate::dom::node::{Node, NodeTraits};
 use crate::dom::servoparser::{ParserContext, ServoParser};
 #[cfg(feature = "devtools")]
 use crate::dom::types::DebuggerGlobalScope;
+use crate::dom::types::SharedWorker;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::Window;
@@ -428,6 +429,9 @@ pub struct ScriptThread {
 
     #[cfg(feature = "devtools")]
     devtools_state: DevtoolsState,
+
+    /// Whether the network is considered to be online as reported by the embedder.
+    online: Cell<bool>,
 }
 
 struct BHMExitSignal {
@@ -1007,6 +1011,7 @@ impl ScriptThread {
                     this: weak_script_thread.clone(),
                     #[cfg(feature = "devtools")]
                     devtools_state: Default::default(),
+                    online: state.online.into(),
                 }
             }),
             cx,
@@ -1971,6 +1976,9 @@ impl ScriptThread {
             },
             ScriptThreadMessage::TriggerGarbageCollection => unsafe {
                 JS_GC(cx, GCReason::API);
+            },
+            ScriptThreadMessage::SetNetworkOnlineState(online) => {
+                self.handle_set_network_online_state(online);
             },
         }
     }
@@ -4505,6 +4513,19 @@ impl ScriptThread {
         };
     }
 
+    fn handle_set_network_online_state(&self, online: bool) {
+        let previous = self.online.replace(online);
+        if previous == online {
+            return;
+        }
+
+        for (_, document) in self.documents.borrow().iter() {
+            document.queue_online_offline_events(online);
+        }
+
+        SharedWorker::set_network_online_state(online);
+    }
+
     pub(crate) fn enqueue_microtask(cx: &js::context::JSContext, job: Box<dyn MicrotaskRunnable>) {
         crate::runtime::job_queue::enqueue(cx, job);
     }
@@ -4636,6 +4657,10 @@ impl ScriptThread {
                 .devtools_state
                 .wants_updates_for_node(pipeline, node)
         })
+    }
+
+    pub(crate) fn online() -> bool {
+        with_script_thread(|script_thread| script_thread.online.get())
     }
 }
 
