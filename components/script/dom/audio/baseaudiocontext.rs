@@ -15,6 +15,7 @@ use js::typedarray::{ArrayBuffer, ArrayBufferU8};
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use script_bindings::codegen::GenericBindings::DelayNodeBinding::{DelayNodeMethods, DelayOptions};
+use script_bindings::codegen::GenericBindings::GainNodeBinding::GainNodeMethods;
 use script_bindings::codegen::GenericBindings::PeriodicWaveBinding::PeriodicWaveMethods;
 use servo_base::id::PipelineId;
 use servo_media::audio::context::{
@@ -363,7 +364,13 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-creategain>
     fn CreateGain(&self, cx: &mut JSContext) -> Fallible<DomRoot<GainNode>> {
-        GainNode::new(cx, self.global().as_window(), self, &GainOptions::empty())
+        GainNode::Constructor(
+            cx,
+            self.global().as_window(),
+            None,
+            self,
+            &GainOptions::empty(),
+        )
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createdelay>
