@@ -64,6 +64,13 @@ pub fn JS_SetPendingException(
     unsafe { js::rust::wrappers2::JS_SetPendingException(cx, value, behavior) }
 }
 
+/// Safe wrapper around [`js::rust::wrappers2::JS_IsExceptionPending`].
+#[allow(non_snake_case)]
+#[inline]
+pub fn JS_IsExceptionPending(cx: &mut JSContext) -> bool {
+    unsafe { js::rust::wrappers2::JS_IsExceptionPending(cx) }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
