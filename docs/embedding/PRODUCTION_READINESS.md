@@ -220,7 +220,7 @@ Ordered by value-per-unit-risk for *this* repository:
 
 ## 10. What changed in this pass
 
-Two contained, low-risk improvements to the C API were made alongside this
+Three contained, low-risk improvements to the C API were made alongside this
 document. They are hardening, **not** a step toward Blink-class production
 readiness, and are presented as such:
 
@@ -236,8 +236,16 @@ readiness, and are presented as such:
    chances for one to drift and introduce a bug. It now lives once, in
    `ffi/capi/lib.rs`, and the safety contract is upheld in a single place.
    Behavior is unchanged.
+3. **Added a runtime capability query** (`ffi/capi/lib.rs`):
+   `servo_capi_platform_name()`, `servo_capi_is_multiprocess_enabled()`, and
+   `servo_capi_is_sandboxing_supported()`. This addresses §9 item 3 directly:
+   an embedder can now *ask* whether sandboxing exists on the running platform
+   instead of assuming it does. The predicate mirrors the `cfg` gates on
+   `servo::create_sandbox`, which excludes Windows, iOS, Android, OpenHarmony
+   **and all ARM/AArch64 and RISC-V targets** — including Apple-Silicon macOS
+   and ARM64 Linux. Covered by a new C test (`test_capi_capabilities`).
 
-Neither change alters the public ABI.
+None of these changes alters the public ABI.
 
 ---
 

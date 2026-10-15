@@ -569,6 +569,32 @@ int test_capi_version(void)
     return 0;
 }
 
+/* Covers the runtime capability query. These functions must be safe to call
+ * before any Servo instance exists, must return a documented non-empty platform
+ * name, and must stay internally consistent: sandboxed rendering requires
+ * multi-process support and can never be reported without it. */
+int test_capi_capabilities(void)
+{
+    const char* platform = servo_capi_platform_name();
+    if (platform == NULL || platform[0] == '\0')
+        return 1;
+
+    if (strcmp(platform, "linux") != 0 && strcmp(platform, "macos") != 0 &&
+        strcmp(platform, "windows") != 0 && strcmp(platform, "android") != 0 &&
+        strcmp(platform, "ios") != 0 && strcmp(platform, "ohos") != 0 &&
+        strcmp(platform, "unknown") != 0)
+        return 1;
+
+    bool multiprocess = servo_capi_is_multiprocess_enabled();
+    bool sandboxing = servo_capi_is_sandboxing_supported();
+
+    /* Sandboxing can never be available without multi-process support. */
+    if (sandboxing && !multiprocess)
+        return 1;
+
+    return 0;
+}
+
 /* Exercises the two-call buffer query pattern used by the string getters:
  * query the required length with a NULL buffer, allocate it, query again, and
  * check that a NUL terminated string of the same length was written. */
@@ -2022,6 +2048,7 @@ int run_c_api_tests(void)
     RUN_TEST(test_webview_builder_set_url_invalid);
     RUN_TEST(test_webview_builder_build);
     RUN_TEST(test_capi_version);
+    RUN_TEST(test_capi_capabilities);
     RUN_TEST(test_webview_get_url);
     RUN_TEST(test_webview_get_title);
     RUN_TEST(test_webview_get_status_text);

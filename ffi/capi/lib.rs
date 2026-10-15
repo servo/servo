@@ -295,6 +295,72 @@ pub extern "C" fn servo_capi_version() -> *const c_char {
     c"0.1.0".as_ptr()
 }
 
+/// Returns the name of the platform this build targets.
+///
+/// The returned pointer refers to static memory and must not be freed or
+/// modified by the caller. Possible values are `"linux"`, `"macos"`,
+/// `"windows"`, `"android"`, `"ios"`, `"ohos"`, or `"unknown"`.
+///
+/// Part of the runtime capability query: an embedder should not assume that a
+/// platform-specific capability (see [`servo_capi_is_sandboxing_supported`]) is
+/// present just because the build succeeds.
+#[unsafe(no_mangle)]
+pub extern "C" fn servo_capi_platform_name() -> *const c_char {
+    #[cfg(target_os = "windows")]
+    return c"windows".as_ptr();
+    #[cfg(target_os = "macos")]
+    return c"macos".as_ptr();
+    #[cfg(target_os = "linux")]
+    return c"linux".as_ptr();
+    #[cfg(target_os = "android")]
+    return c"android".as_ptr();
+    #[cfg(target_os = "ios")]
+    return c"ios".as_ptr();
+    #[cfg(target_env = "ohos")]
+    return c"ohos".as_ptr();
+
+    // Fallback for targets not enumerated above. On the targets handled above
+    // this line is unreachable, hence the allow.
+    #[allow(unreachable_code)]
+    c"unknown".as_ptr()
+}
+
+/// Returns whether this build was compiled with multi-process support.
+///
+/// Multi-process is a build-time `multiprocess` feature and is independent of
+/// whether the content-process sandbox can actually be activated on this
+/// platform at runtime (see [`servo_capi_is_sandboxing_supported`]).
+#[unsafe(no_mangle)]
+pub extern "C" fn servo_capi_is_multiprocess_enabled() -> bool {
+    cfg!(feature = "multiprocess")
+}
+
+/// Returns whether the content-process sandbox can be created on this platform
+/// and build.
+///
+/// Returns `false` unless the crate was built with the `multiprocess` feature
+/// **and** the target supports sandboxing. As of this writing sandboxing is not
+/// available on Windows, iOS, Android, OpenHarmony, or any ARM/AArch64 or
+/// RISC-V target (which includes Apple-Silicon macOS and ARM64 Linux). An
+/// embedder on those platforms runs without renderer sandboxing and must not
+/// assume otherwise — this is a real security property, not a formality.
+///
+/// This predicate mirrors the `cfg` gates on `servo::create_sandbox`.
+#[unsafe(no_mangle)]
+pub extern "C" fn servo_capi_is_sandboxing_supported() -> bool {
+    cfg!(feature = "multiprocess")
+        && cfg!(not(any(
+            target_os = "windows",
+            target_os = "ios",
+            target_os = "android",
+            target_arch = "arm",
+            target_arch = "aarch64",
+            target_arch = "riscv32",
+            target_arch = "riscv64",
+            target_env = "ohos",
+        )))
+}
+
 /// An opaque struct representing builder for a `Servo` instance.
 /// Refer to the documentation of the corresponding
 /// [servo::ServoBuilder] struct in Rust API for more information.
