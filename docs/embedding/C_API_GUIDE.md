@@ -108,10 +108,15 @@ a plain handle pointer does **not** take ownership of it.
 ```c
 /* (new) Static string "major.minor.patch"; never free or modify. */
 const char* servo_capi_version(void);
+
+/* (new) Packed integer (MAJOR << 16) | (MINOR << 8) | PATCH. */
+uint32_t servo_capi_get_version(void);
 ```
 
 The generated header also defines `SERVO_CAPI_VERSION_MAJOR`,
-`SERVO_CAPI_VERSION_MINOR` and `SERVO_CAPI_VERSION_PATCH`.
+`SERVO_CAPI_VERSION_MINOR`, `SERVO_CAPI_VERSION_PATCH`, and the packed
+`SERVO_CAPI_VERSION`. Compare `servo_capi_get_version()` against
+`SERVO_CAPI_VERSION` at startup to detect a header/library version skew.
 
 ### Builder and waker
 
@@ -130,10 +135,14 @@ struct Servo* servo_builder_build(ServoBuilder*);                     /* consume
 void servo_builder_free(ServoBuilder*);
 
 struct ServoEventLoopWaker {
+    uint32_t struct_size;   /* set to sizeof(struct ServoEventLoopWaker) */
+    uint32_t _reserved;     /* 0 */
     void (*wake_callback)(void);
 };
 
 struct ServoDelegate {
+    uint32_t struct_size;   /* set to sizeof(struct ServoDelegate) */
+    uint32_t _reserved;     /* 0 */
     void* user_data;
     void (*notify_devtools_server_started)(struct Servo*, uint16_t port, const char* token, void* user_data);
     bool (*request_devtools_connection)(struct Servo*, void* user_data);
@@ -298,6 +307,8 @@ void servo_webview_close(struct WebView*);                                      
 void servo_webview_free(struct WebView*);
 
 struct ServoWebViewDelegate {
+    uint32_t struct_size;   /* set to sizeof(ServoWebViewDelegate) */
+    uint32_t _reserved;     /* 0 */
     void* user_data;
     void (*notify_load_status_changed)(struct WebView*, int32_t load_status, void* user_data);
     void (*notify_url_changed)(struct WebView*, const char* url, void* user_data);            /* (new) */
@@ -628,6 +639,13 @@ void servo_site_data_clear_session_cookies(struct ServoSiteDataManager* manager)
 initializers** (`.field = value`) when constructing it, as shown in the example.
 The `url` and `title` arguments are only valid for the duration of the callback.
 
+> **Required:** set `.struct_size = sizeof(ServoWebViewDelegate)` (and likewise
+> `sizeof(struct ServoDelegate)` / `sizeof(struct ServoEventLoopWaker)`) when
+> constructing a delegate or waker. Servo rejects a struct whose `struct_size` is
+> smaller than the size it was compiled with, returning `SERVO_ERROR_INVALID_ARGUMENT`.
+> This turns header/library version skew into a clean error instead of undefined
+> behavior.
+
 **Load category** (new):
 - `notify_load_started`: Fired when a load begins (corresponds to `SERVO_LOAD_STATUS_STARTED`).
 - `notify_load_ended`: Fired when a load completes (corresponds to `SERVO_LOAD_STATUS_COMPLETE`).
@@ -669,6 +687,7 @@ static void on_closed(struct WebView* webview, void* user_data)
 
 /* In the delegate setup: */
 ServoWebViewDelegate delegate = {
+    .struct_size = sizeof(ServoWebViewDelegate),
     .user_data = &app,
     .notify_load_status_changed = on_load_status_changed,
     .notify_url_changed = on_url_changed,
@@ -855,7 +874,10 @@ int main(void)
     ServoBuilder* builder = servo_builder_create();
     if (builder == NULL)
         return 1;
-    struct ServoEventLoopWaker waker = { .wake_callback = on_wake };
+    struct ServoEventLoopWaker waker = {
+        .struct_size = sizeof(struct ServoEventLoopWaker),
+        .wake_callback = on_wake,
+    };
     servo_builder_set_event_loop_waker(builder, waker);
     servo_builder_set_options(builder, options);         /* builder owns options now */
     servo_builder_set_preferences(builder, preferences); /* builder owns preferences now */
@@ -962,6 +984,7 @@ int main(void)
     }
 
     ServoWebViewDelegate delegate = {
+        .struct_size = sizeof(ServoWebViewDelegate),
         .user_data = &app,
         .notify_load_status_changed = on_load_status_changed,
         .notify_url_changed = on_url_changed,
@@ -1272,6 +1295,7 @@ static bool on_devtools_connection_request(struct Servo* servo, void* user_data)
 }
 
 ServoDelegate servo_delegate = {
+    .struct_size = sizeof(ServoDelegate),
     .user_data = &app,
     .notify_devtools_server_started = on_devtools_started,
     .request_devtools_connection = on_devtools_connection_request,
@@ -1409,9 +1433,11 @@ typedef enum ServoError {
 - **Ignoring the second return of a buffer-query getter.** The required size can
   change between calls; re-check it against your buffer length before using the
   string.
-- **Positional delegate initializers.** `ServoWebViewDelegate` gained fields in
-  this release. Prefer designated initializers so adding fields does not silently
-  reorder your callbacks.
+- **Positional delegate initializers.** `ServoWebViewDelegate` gained leading
+  `struct_size`/`_reserved` fields. Always use designated initializers and set
+  `.struct_size = sizeof(...)` on `ServoWebViewDelegate`, `ServoDelegate`, and
+  `ServoEventLoopWaker`; Servo rejects a too-small `struct_size` with
+  `SERVO_ERROR_INVALID_ARGUMENT`.
 
 ## Multi-process support (multiprocess feature)
 
@@ -1549,7 +1575,10 @@ int main(void) {
     servo_preferences_set_string(prefs, "user_agent", "MultiProcessServo/1.0");
 
     ServoBuilder* builder = servo_builder_create();
-    struct ServoEventLoopWaker waker = { .wake_callback = on_wake };
+    struct ServoEventLoopWaker waker = {
+        .struct_size = sizeof(struct ServoEventLoopWaker),
+        .wake_callback = on_wake,
+    };
     servo_builder_set_event_loop_waker(builder, waker);
     servo_builder_set_options(builder, options);
     servo_builder_set_preferences(builder, prefs);
