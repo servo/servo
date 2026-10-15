@@ -304,6 +304,7 @@ pub extern "C" fn servo_capi_version() -> *const c_char {
 /// Part of the runtime capability query: an embedder should not assume that a
 /// platform-specific capability (see [`servo_capi_is_sandboxing_supported`]) is
 /// present just because the build succeeds.
+#[allow(unreachable_code)]
 #[unsafe(no_mangle)]
 pub extern "C" fn servo_capi_platform_name() -> *const c_char {
     #[cfg(target_os = "windows")]
@@ -320,8 +321,7 @@ pub extern "C" fn servo_capi_platform_name() -> *const c_char {
     return c"ohos".as_ptr();
 
     // Fallback for targets not enumerated above. On the targets handled above
-    // this line is unreachable, hence the allow.
-    #[allow(unreachable_code)]
+    // this line is unreachable, hence the `allow` on the function.
     c"unknown".as_ptr()
 }
 
