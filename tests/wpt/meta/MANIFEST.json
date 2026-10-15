@@ -1312225,6 +1312225,13 @@
         {}
        ]
       ],
+      "unicode-bidi-ua-rules-iso-8859-8.html": [
+       "ad9bbb5bbd0d1925e0e4a74b15d85fa5bce8741a",
+       [
+        null,
+        {}
+       ]
+      ],
       "unicode-bidi-ua-rules.html": [
        "00f4c9631736b1395d02cf1e19264c52c34aee97",
        [
@@ -1444104,6 +1444111,13 @@
     ],
     "uniformMatrixNfv.html": [
      "f75cbcb99724219224c63d0dc595b1c001298500",
+     [
+      null,
+      {}
+     ]
+    ],
+    "vertexAttrib-keeps-array-type.html": [
+     "17ddcdf6ce953e2bc97d9728b912eee8d46c174a",
      [
       null,
       {}

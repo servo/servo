@@ -92,10 +92,6 @@ impl VertexArrayObject {
         .ok()
     }
 
-    pub(crate) fn set_vertex_attrib_type(&self, index: u32, type_: u32) {
-        self.vertex_attribs.borrow_mut()[index as usize].type_ = type_;
-    }
-
     pub(crate) fn vertex_attrib_pointer(
         &self,
         index: u32,
