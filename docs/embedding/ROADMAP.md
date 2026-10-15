@@ -370,10 +370,17 @@ Servo.
 
 - ABI versioning and enforcement (per `ABI_STABILITY.md`):
   - `SERVO_CAPI_VERSION_MAJOR/MINOR/PATCH` macros and a runtime
-    `servo_capi_get_version()`.
+    `servo_capi_get_version()`. *Done on this branch:* `SERVO_CAPI_VERSION` constant and
+    `servo_capi_get_version()` (packed `MAJOR<<16 | MINOR<<8 | PATCH`).
   - `struct_size`-versioned structs and append-only enums with unknown-value handling.
+    *Done on this branch:* `struct_size`/`_reserved` header fields plus validation on
+    `ServoWebViewDelegate`, `ServoDelegate`, and `ServoEventLoopWaker`; callers must set
+    `struct_size = sizeof(...)` and smaller/zero values are rejected with
+    `SERVO_ERROR_INVALID_ARGUMENT`. The Servo-filled `ServoScreenGeometry` output struct
+    also carries a `struct_size` set by Servo.
   - A symbol-export allowlist / link check in CI so accidental exports or renames fail
-    the build.
+    the build. *Done on this branch:* `ffi/capi/symbols.txt` allowlist (218 symbols)
+    checked against the cbindgen-generated header in `embedding-api.yml`.
 - Reference-counted, thread-safe handles (or explicitly documented "main-thread only"
   handles) to support hosts that manage objects across threads. Today `Servo`/`WebView`
   are `Rc`-based and thread-affine; a `Send` handle requires engine changes.

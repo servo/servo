@@ -246,6 +246,12 @@ pub unsafe extern "C" fn servo_webview_builder_set_url(
 ///
 /// Servo copies the delegate's function pointers — they must remain
 /// valid for the lifetime of the `WebView` (or until a new delegate is set).
+///
+/// # Errors
+///
+/// Returns `ServoError::NullArgument` if `builder` is null, or
+/// `ServoError::InvalidArgument` if `delegate.struct_size` is smaller than the
+/// size of `ServoWebViewDelegate` compiled into this library.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_webview_builder_set_delegate(
     builder: *mut ServoWebViewBuilder,
@@ -254,6 +260,12 @@ pub unsafe extern "C" fn servo_webview_builder_set_delegate(
     ServoError::catch_ffi(|| {
         if builder.is_null() {
             return ServoError::NullArgument;
+        }
+        if !crate::is_compatible_struct_size(
+            delegate.struct_size,
+            std::mem::size_of::<ServoWebViewDelegate>(),
+        ) {
+            return ServoError::InvalidArgument;
         }
         let builder = unsafe { &mut *builder };
         builder.delegate = Some(delegate);

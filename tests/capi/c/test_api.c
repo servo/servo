@@ -74,7 +74,10 @@ int test_builder_set_event_loop_waker(void)
     if (builder == NULL)
         return 1;
 
-    struct ServoEventLoopWaker waker = { noop_wake_callback };
+    struct ServoEventLoopWaker waker = {
+        .struct_size = sizeof(struct ServoEventLoopWaker),
+        .wake_callback = noop_wake_callback,
+    };
     servo_builder_set_event_loop_waker(builder, waker);
     servo_builder_free(builder);
     return 0;
@@ -110,6 +113,7 @@ int test_builder_set_delegate(void)
         return 1;
 
     struct ServoDelegate delegate = {
+        .struct_size = sizeof(struct ServoDelegate),
         .user_data = NULL,
         .notify_devtools_server_started = on_devtools_started,
         .request_devtools_connection = on_devtools_connection_request,
@@ -127,6 +131,7 @@ int test_builder_set_delegate(void)
 int test_builder_delegate_connection_request(void)
 {
     struct ServoDelegate delegate = {
+        .struct_size = sizeof(struct ServoDelegate),
         .user_data = NULL,
         .notify_devtools_server_started = on_devtools_started,
         .request_devtools_connection = on_devtools_connection_request,
@@ -387,7 +392,10 @@ static struct Servo* create_test_servo(void)
     if (builder == NULL)
         return NULL;
 
-    struct ServoEventLoopWaker waker = { noop_wake_callback };
+    struct ServoEventLoopWaker waker = {
+        .struct_size = sizeof(struct ServoEventLoopWaker),
+        .wake_callback = noop_wake_callback,
+    };
     servo_builder_set_event_loop_waker(builder, waker);
 
     ServoOptions* options = servo_options_create();
@@ -397,6 +405,7 @@ static struct Servo* create_test_servo(void)
     }
 
     struct ServoDelegate delegate = {
+        .struct_size = sizeof(struct ServoDelegate),
         .user_data = NULL,
         .notify_devtools_server_started = on_devtools_started,
         .request_devtools_connection = on_devtools_connection_request,
@@ -556,7 +565,8 @@ static struct WebView* get_test_webview(void)
 }
 
 /* Covers `servo_capi_version()`: the version string must be non-NULL,
- * non-empty, and start with the "0." prefix of the current 0.x API. */
+ * non-empty, and start with the "0." prefix of the current 0.x API. Also
+ * covers the packed integer query and the `SERVO_CAPI_VERSION` macros. */
 int test_capi_version(void)
 {
     const char* version = servo_capi_version();
@@ -566,6 +576,18 @@ int test_capi_version(void)
         return 1;
     if (version[0] != '0' || version[1] != '.')
         return 1;
+
+    /* The packed integer query must agree with the constant compiled into the
+     * header (a mismatch means a header/library version skew). */
+    if (servo_capi_get_version() != SERVO_CAPI_VERSION)
+        return 1;
+
+    /* The packed constant must match its MAJOR/MINOR/PATCH components. */
+    if (SERVO_CAPI_VERSION != ((SERVO_CAPI_VERSION_MAJOR << 16) |
+                               (SERVO_CAPI_VERSION_MINOR << 8) |
+                               SERVO_CAPI_VERSION_PATCH))
+        return 1;
+
     return 0;
 }
 
@@ -1417,6 +1439,7 @@ int test_webview_delegate_intercept_request(void)
     bool intercepted = false;
 
     ServoWebViewDelegate delegate = {
+        .struct_size = sizeof(ServoWebViewDelegate),
         .user_data = &intercepted,
         .notify_load_status_changed = NULL,
         .notify_url_changed = NULL,
@@ -1595,6 +1618,7 @@ int test_download_delegate_callbacks(void)
     bool before_download_called = false;
 
     ServoWebViewDelegate delegate = {
+        .struct_size = sizeof(ServoWebViewDelegate),
         .user_data = &before_download_called,
         .notify_load_status_changed = NULL,
         .notify_url_changed = NULL,
@@ -1652,6 +1676,7 @@ int test_webview_window_geometry_delegate_callbacks(void)
         return 1;
 
     ServoWebViewDelegate delegate = {
+        .struct_size = sizeof(ServoWebViewDelegate),
         .user_data = NULL,
         .screen_geometry = on_screen_geometry,
         .request_move_to = on_request_move_to,
@@ -1692,6 +1717,7 @@ int test_webview_popup_delegate_callback(void)
         return 1;
 
     ServoWebViewDelegate delegate = {
+        .struct_size = sizeof(ServoWebViewDelegate),
         .user_data = NULL,
         .request_create_new = on_request_create_new,
     };
@@ -1704,6 +1730,66 @@ int test_webview_popup_delegate_callback(void)
     /* The callback is only invoked when page content calls window.open(); here
      * we verify the delegate is accepted and the WebView is created. */
     servo_webview_free(webview);
+    return 0;
+}
+
+/* Test that a delegate whose `struct_size` is smaller than the struct compiled
+ * into the library is rejected with SERVO_ERROR_INVALID_ARGUMENT. This is the
+ * by-value `struct_size` guard described in ABI_STABILITY.md section 3.3. */
+int test_delegate_struct_size_validation(void)
+{
+    /* NULL builder still reports NullArgument regardless of struct_size. */
+    ServoWebViewDelegate webview_delegate = {0};
+    if (servo_webview_builder_set_delegate(NULL, webview_delegate) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    RenderingContext* context = servo_rendering_context_create_software(100, 100);
+    if (context == NULL)
+        return 1;
+
+    ServoWebViewBuilder* builder = servo_webview_builder_create(servo, context);
+    if (builder == NULL)
+        return 1;
+
+    /* Too small: rejected. */
+    webview_delegate.struct_size = (uint32_t)sizeof(ServoWebViewDelegate) - 1;
+    if (servo_webview_builder_set_delegate(builder, webview_delegate) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 1;
+
+    /* Zero (caller forgot to set it): rejected. */
+    webview_delegate.struct_size = 0;
+    if (servo_webview_builder_set_delegate(builder, webview_delegate) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 1;
+
+    /* Exact size: accepted. */
+    webview_delegate.struct_size = sizeof(ServoWebViewDelegate);
+    if (servo_webview_builder_set_delegate(builder, webview_delegate) != SERVO_ERROR_OK)
+        return 1;
+
+    servo_webview_builder_free(builder);
+
+    /* The same guard applies to ServoDelegate on the ServoBuilder. */
+    ServoBuilder* servo_builder = servo_builder_create();
+    if (servo_builder == NULL)
+        return 1;
+
+    struct ServoDelegate servo_delegate = {0};
+    if (servo_builder_set_delegate(servo_builder, servo_delegate) != SERVO_ERROR_INVALID_ARGUMENT) {
+        servo_builder_free(servo_builder);
+        return 1;
+    }
+
+    servo_delegate.struct_size = sizeof(struct ServoDelegate);
+    if (servo_builder_set_delegate(servo_builder, servo_delegate) != SERVO_ERROR_OK) {
+        servo_builder_free(servo_builder);
+        return 1;
+    }
+
+    servo_builder_free(servo_builder);
     return 0;
 }
 
@@ -1899,6 +1985,7 @@ int test_find_delegate_callback(void)
     bool find_result_called = false;
 
     ServoWebViewDelegate delegate = {
+        .struct_size = sizeof(ServoWebViewDelegate),
         .user_data = &find_result_called,
         .notify_load_status_changed = NULL,
         .notify_url_changed = NULL,
@@ -2351,6 +2438,7 @@ int run_c_api_tests(void)
     RUN_TEST(test_download_delegate_callbacks);
     RUN_TEST(test_webview_window_geometry_delegate_callbacks);
     RUN_TEST(test_webview_popup_delegate_callback);
+    RUN_TEST(test_delegate_struct_size_validation);
     RUN_TEST(test_find_null_arguments);
     RUN_TEST(test_find_valid_arguments);
     RUN_TEST(test_find_result_getters);

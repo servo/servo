@@ -281,6 +281,21 @@ impl ServoError {
     }
 }
 
+/// Returns `true` when the `struct_size` field supplied by an embedder is
+/// compatible with the size of the corresponding Rust type.
+///
+/// The delegate-like input structs in this API are passed **by value**. A
+/// caller built against an older header would pass a smaller struct, which the
+/// by-value ABI would read out of bounds. Requiring `struct_size` to be at
+/// least the compiled-in size turns that undefined behavior into a clean
+/// `ServoError::InvalidArgument`. A larger `struct_size` (a caller built
+/// against a *newer* header) is accepted, since Servo only reads the fields it
+/// knows about. See `ABI_STABILITY.md` §3.3.
+#[inline]
+pub(crate) fn is_compatible_struct_size(struct_size: u32, rust_size: usize) -> bool {
+    (struct_size as usize) >= rust_size
+}
+
 /// Major version of the Servo C API.
 ///
 /// The C API follows semantic versioning independently of the Rust `servo`
@@ -431,6 +446,19 @@ pub struct ServoBuilder {
 #[repr(C)]
 #[derive(Clone, Copy)]
 pub struct ServoEventLoopWaker {
+    /// Size of this struct in bytes, as seen by the caller.
+    ///
+    /// The caller must set this to `sizeof(ServoEventLoopWaker)` (C) or
+    /// `std::mem::size_of::<ServoEventLoopWaker>()` (Rust). Servo rejects
+    /// wakers whose `struct_size` is smaller than the size it was compiled
+    /// with, which catches callers built against an older header instead of
+    /// letting the by-value ABI read out of bounds. See `ABI_STABILITY.md` §3.3.
+    pub struct_size: u32,
+
+    /// Reserved for future use; must be `0`.
+    pub _reserved: u32,
+
+    /// Called when Servo wants the embedder's event loop to wake up.
     pub wake_callback: extern "C" fn(),
 }
 
@@ -441,6 +469,8 @@ pub extern "C" fn default_event_loop_waker_wake_callback() {}
 impl Default for ServoEventLoopWaker {
     fn default() -> Self {
         Self {
+            struct_size: std::mem::size_of::<ServoEventLoopWaker>() as u32,
+            _reserved: 0,
             wake_callback: default_event_loop_waker_wake_callback,
         }
     }
@@ -583,7 +613,9 @@ pub unsafe extern "C" fn servo_builder_set_options(
 ///
 /// # Errors
 ///
-/// Returns `ServoError::NullArgument` if `builder` is null.
+/// Returns `ServoError::NullArgument` if `builder` is null, or
+/// `ServoError::InvalidArgument` if `event_loop_waker.struct_size` is smaller
+/// than the size of `ServoEventLoopWaker` compiled into this library.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_builder_set_event_loop_waker(
     builder: *mut ServoBuilder,
@@ -592,6 +624,13 @@ pub unsafe extern "C" fn servo_builder_set_event_loop_waker(
     ServoError::catch_ffi(|| {
         if builder.is_null() {
             return ServoError::NullArgument;
+        }
+
+        if !is_compatible_struct_size(
+            event_loop_waker.struct_size,
+            std::mem::size_of::<ServoEventLoopWaker>(),
+        ) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements
@@ -628,7 +667,9 @@ pub unsafe extern "C" fn servo_builder_set_event_loop_waker(
 ///
 /// # Errors
 ///
-/// Returns `ServoError::NullArgument` if `builder` is null.
+/// Returns `ServoError::NullArgument` if `builder` is null, or
+/// `ServoError::InvalidArgument` if `delegate.struct_size` is smaller than the
+/// size of `ServoDelegate` compiled into this library.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_builder_set_delegate(
     builder: *mut ServoBuilder,
@@ -637,6 +678,10 @@ pub unsafe extern "C" fn servo_builder_set_delegate(
     ServoError::catch_ffi(|| {
         if builder.is_null() {
             return ServoError::NullArgument;
+        }
+
+        if !is_compatible_struct_size(delegate.struct_size, std::mem::size_of::<ServoDelegate>()) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements

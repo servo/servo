@@ -416,6 +416,14 @@ pub type ServoCertErrorCallback = Option<unsafe extern "C" fn(allow: bool, user_
 #[repr(C)]
 #[derive(Clone, Copy, Debug, Default)]
 pub struct ServoScreenGeometry {
+    /// Size of this struct in bytes, filled in by Servo before invoking the
+    /// `screen_geometry` callback. Embedders may use it to learn how many
+    /// fields this build provides.
+    pub struct_size: u32,
+
+    /// Reserved for future use; Servo sets this to `0`.
+    pub _reserved: u32,
+
     /// The size of the screen in device pixels.
     pub size_width: i32,
     pub size_height: i32,
@@ -470,6 +478,17 @@ pub struct ServoScreenGeometry {
 #[repr(C)]
 #[derive(Clone)]
 pub struct ServoWebViewDelegate {
+    /// Size of this struct in bytes, as seen by the caller.
+    ///
+    /// The caller must set this to `sizeof(ServoWebViewDelegate)`. Servo
+    /// rejects delegates whose `struct_size` is smaller than the size it was
+    /// compiled with, returning `ServoError::InvalidArgument`. See
+    /// `ABI_STABILITY.md` §3.3.
+    pub struct_size: u32,
+
+    /// Reserved for future use; must be `0`.
+    pub _reserved: u32,
+
     /// An opaque pointer passed to all delegate callbacks. May be `NULL`.
     pub user_data: *mut c_void,
 
@@ -1801,7 +1820,10 @@ impl WebViewDelegate for ServoWebViewDelegate {
 
     fn screen_geometry(&self, mut webview: WebView) -> Option<ScreenGeometry> {
         let callback = self.screen_geometry?;
-        let mut geometry = ServoScreenGeometry::default();
+        let mut geometry = ServoScreenGeometry {
+            struct_size: std::mem::size_of::<ServoScreenGeometry>() as u32,
+            ..ServoScreenGeometry::default()
+        };
         // SAFETY: The embedder is assumed to uphold the safety requirements of
         // the `ServoWebViewDelegate` struct. The `webview` raw pointer is
         // derived from a valid `webview` handle.

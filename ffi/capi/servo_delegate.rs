@@ -45,6 +45,17 @@ use servo_api::{AllowOrDenyRequest, Servo, ServoDelegate as RustServoDelegate};
 ///   function that takes ownership of the `Servo`.
 #[repr(C)]
 pub struct ServoDelegate {
+    /// Size of this struct in bytes, as seen by the caller.
+    ///
+    /// The caller must set this to `sizeof(ServoDelegate)`. Servo rejects
+    /// delegates whose `struct_size` is smaller than the size it was compiled
+    /// with, returning `ServoError::InvalidArgument`. See `ABI_STABILITY.md`
+    /// §3.3.
+    pub struct_size: u32,
+
+    /// Reserved for future use; must be `0`.
+    pub _reserved: u32,
+
     /// An opaque pointer passed to all delegate callbacks. May be `NULL`.
     pub user_data: *mut c_void,
 

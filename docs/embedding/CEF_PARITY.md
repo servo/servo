@@ -153,9 +153,14 @@ and readiness) and [`ROADMAP.md`](ROADMAP.md) (sequencing).
 
 1. **ABI/versioning policy** — no SemVer statement, no version query, no
    deprecation path. *Progress on this branch:* a version query
-   (`servo_capi_version()`) and `SERVO_CAPI_VERSION_*` macros now exist, and
-   `ABI_STABILITY.md` defines the policy; structured `ServoError` returns and a
-   deprecation path (§7) are still outstanding.
+   (`servo_capi_version()` plus the packed integer `servo_capi_get_version()` /
+   `SERVO_CAPI_VERSION`) and `SERVO_CAPI_VERSION_*` macros now exist;
+   `ABI_STABILITY.md` defines the policy; `struct_size`/`_reserved` versioning is
+   implemented for the delegate structs (`ServoWebViewDelegate`, `ServoDelegate`,
+   `ServoEventLoopWaker`) and the Servo-filled `ServoScreenGeometry` output
+   struct; and a symbol-export allowlist (`ffi/capi/symbols.txt`) is enforced in
+   CI. Structured `ServoError` returns and a deprecation path (§7) are still
+   outstanding.
 2. **Panic-free FFI boundary** — replace `assert!`/`unwrap` with structured error
    returns across `ffi/capi` (currently dozens of `assert!` call sites and
    `.to_str().unwrap()`).

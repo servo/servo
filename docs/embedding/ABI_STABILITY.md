@@ -49,15 +49,16 @@ Today the query returns the release version string:
 const char* servo_capi_version(void);
 ```
 
-A future enhancement may add a packed integer query:
+A packed integer query is also provided for cheap runtime comparisons:
 
 ```c
 /* Returns the SERVO_CAPI_VERSION the loaded library was built with. */
 uint32_t servo_capi_get_version(void);
 ```
 
-until then embedders compare `strcmp(servo_capi_version(), "0.1.0")` against the
-macros (adding the integer query later is a MINOR change under §2.2).
+`servo_capi_get_version()` returns `(MAJOR << 16) | (MINOR << 8) | PATCH`, matching the
+`SERVO_CAPI_VERSION` constant (`ffi/capi/lib.rs`). Embedders that need the string can
+still compare `servo_capi_version()` against the macros.
 
 The Rust side obtains the values from `env!("CARGO_PKG_VERSION")` / build metadata so the
 header and library cannot drift silently.
@@ -152,13 +153,25 @@ typedef struct ServoWebViewDelegate {
 } ServoWebViewDelegate;
 ```
 
-Rust entry points read `struct_size` and must:
+Rust entry points read `struct_size` and reject a value smaller than the size of the
+compiled-in Rust type with `SERVO_ERROR_INVALID_ARGUMENT`.
 
-- Reject a struct smaller than the minimum historically-supported size with
-  `SERVO_ERROR_INVALID_ARGUMENT`.
-- Read only fields within `struct_size` (use `std::ptr::read_unaligned` into a local
-  fallback, or a `#[repr(C)]` "prefix" struct).
-- Treat all fields beyond `struct_size` as null/zero (i.e. "not provided").
+The delegate-like inputs in this API are passed **by value**, so the ABI copies exactly
+`sizeof(callee's type)` bytes; a caller built against an older, smaller header cannot be
+read "within `struct_size`" safely. Requiring `struct_size >= size_of::<T>()` converts
+that out-of-bounds read into a clean error, while still accepting a larger `struct_size`
+(a caller built against a newer header), since Servo only reads the fields it was
+compiled with. This is implemented by `is_compatible_struct_size()` (`ffi/capi/lib.rs`)
+and enforced in `servo_webview_builder_set_delegate`, `servo_builder_set_delegate`, and
+`servo_builder_set_event_loop_waker`.
+
+Callers must initialize `struct_size` to `sizeof(...)`; a zero-initialized delegate is
+rejected. When a field is appended in a later MINOR release, existing callers must
+recompile and will then pass the new size automatically.
+
+For structs passed **by pointer** (introduced later), read only the fields within
+`struct_size` using `std::ptr::read_unaligned` into a prefix/fallback so older callers
+keep working without recompiling.
 
 For Rust-owned output structs that grow over time, use reserved fields instead:
 

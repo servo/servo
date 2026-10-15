@@ -343,6 +343,7 @@ int test_webview_load_and_screenshot(struct Servo* servo)
     }
 
     ServoWebViewDelegate delegate = {
+        .struct_size = sizeof(ServoWebViewDelegate),
         .user_data = &state,
         .notify_load_status_changed = on_load_status_changed,
         .notify_url_changed = on_url_changed,
@@ -561,6 +562,7 @@ int test_webview_close(struct Servo* servo)
     }
 
     ServoWebViewDelegate delegate = {
+        .struct_size = sizeof(ServoWebViewDelegate),
         .user_data = &state,
         .notify_load_status_changed = on_load_status_changed,
         .notify_url_changed = on_url_changed,
@@ -666,7 +668,10 @@ int run_c_integration_tests(void)
 
     ServoBuilder* builder = servo_builder_create();
 
-    struct ServoEventLoopWaker waker = { wake_callback };
+    struct ServoEventLoopWaker waker = {
+        .struct_size = sizeof(struct ServoEventLoopWaker),
+        .wake_callback = wake_callback,
+    };
     servo_builder_set_event_loop_waker(builder, waker);
 
     ServoOptions* options = servo_options_create();
