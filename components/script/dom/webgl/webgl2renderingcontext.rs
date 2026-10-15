@@ -3408,8 +3408,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
             return Ok(());
         }
 
-        // TODO: Apply the unpack layout to pixel unpack buffer uploads; until then a
-        // non-default one is rejected.
+        // TODO: Apply the unpack layout to pixel unpack buffer uploads.
         let mut layout = self.base.texture_unpack_layout();
         layout.image_height = 0;
         layout.skip_images = 0;
