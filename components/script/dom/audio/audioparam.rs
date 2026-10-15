@@ -117,10 +117,6 @@ impl AudioParam {
     pub(crate) fn param_type(&self) -> ParamType {
         self.param
     }
-
-    pub(crate) fn set_node_id(&mut self, node_id: Option<NodeId>) {
-        self.node = node_id;
-    }
 }
 
 impl AudioParamMethods<crate::DomTypeHolder> for AudioParam {
