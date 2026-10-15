@@ -39,6 +39,8 @@ bitflags! {
         /// is sent while Servo is shutting down or when it is in an intermediate state.
         /// Typically these events should be considered to be consumed.
         const DispatchFailed = 1 << 2;
+        /// Swap the axis of wheel scroll event
+        const ScrollSwapAxis = 1 << 3;
     }
 }
 
