@@ -6,6 +6,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::codegen::GenericBindings::NodeBinding::NodeMethods;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::inheritance::Castable;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
@@ -28,7 +29,7 @@ pub(crate) struct CommandEvent {
     /// <https://html.spec.whatwg.org/multipage/#dom-commandevent-source>
     source: Option<Dom<Element>>,
     /// <https://html.spec.whatwg.org/multipage/#dom-commandevent-command>
-    command: DOMString,
+    command: TracedDOMString,
 }
 
 impl CommandEvent {
@@ -36,7 +37,7 @@ impl CommandEvent {
         CommandEvent {
             event: Event::new_inherited(),
             source: source.map(Dom::from_ref),
-            command,
+            command: command.traced(),
         }
     }
 
@@ -106,7 +107,7 @@ impl CommandEventMethods<crate::DomTypeHolder> for CommandEvent {
     /// <https://html.spec.whatwg.org/multipage/#dom-commandevent-command>
     fn Command(&self) -> DOMString {
         // The command attribute must return the value it was initialized to.
-        self.command.clone()
+        self.command.clone().root()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-commandevent-source>

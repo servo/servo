@@ -11,6 +11,7 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use keyboard_types::Modifiers;
 use script_bindings::cell::DomRefCell;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_traits::MouseButtons;
 use style::Atom;
@@ -48,7 +49,7 @@ pub(crate) struct PointerEvent {
     twist: Cell<i32>,
     altitude_angle: Cell<f64>,
     azimuth_angle: Cell<f64>,
-    pointer_type: DomRefCell<DOMString>,
+    pointer_type: DomRefCell<TracedDOMString>,
     is_primary: Cell<bool>,
     coalesced_events: DomRefCell<Vec<Dom<PointerEvent>>>,
     predicted_events: DomRefCell<Vec<Dom<PointerEvent>>>,
@@ -68,7 +69,7 @@ impl PointerEvent {
             twist: Cell::new(0),
             altitude_angle: Cell::new(0.),
             azimuth_angle: Cell::new(0.),
-            pointer_type: DomRefCell::new(DOMString::new()),
+            pointer_type: DomRefCell::new(DOMString::new().traced()),
             is_primary: Cell::new(false),
             coalesced_events: DomRefCell::new(Vec::new()),
             predicted_events: DomRefCell::new(Vec::new()),
@@ -208,7 +209,7 @@ impl PointerEvent {
         ev.twist.set(twist);
         ev.altitude_angle.set(altitude_angle);
         ev.azimuth_angle.set(azimuth_angle);
-        *ev.pointer_type.borrow_mut() = pointer_type;
+        *ev.pointer_type.borrow_mut() = pointer_type.traced();
         ev.is_primary.set(is_primary);
         *ev.coalesced_events.borrow_mut() = coalesced_events
             .into_iter()
@@ -324,7 +325,7 @@ impl PointerEventMethods<crate::DomTypeHolder> for PointerEvent {
 
     /// <https://w3c.github.io/pointerevents/#dom-pointerevent-pointertype>
     fn PointerType(&self) -> DOMString {
-        self.pointer_type.borrow().clone()
+        self.pointer_type.borrow().clone().root()
     }
 
     /// <https://w3c.github.io/pointerevents/#dom-pointerevent-isprimary>

@@ -6,6 +6,7 @@ use std::fmt::Debug;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::reflect_dom_object;
 use script_bindings::str::DOMString;
 
@@ -19,8 +20,8 @@ use crate::dom::types::GlobalScope;
 /// Event for Rust → JS calls in [`crate::dom::debugger::DebuggerGlobalScope`].
 pub(crate) struct DebuggerResumeEvent {
     event: Event,
-    resume_limit_type: Option<DOMString>,
-    frame_actor_id: Option<DOMString>,
+    resume_limit_type: Option<TracedDOMString>,
+    frame_actor_id: Option<TracedDOMString>,
 }
 
 impl DebuggerResumeEvent {
@@ -32,8 +33,8 @@ impl DebuggerResumeEvent {
     ) -> DomRoot<Self> {
         let result = Box::new(Self {
             event: Event::new_inherited(),
-            resume_limit_type,
-            frame_actor_id,
+            resume_limit_type: resume_limit_type.map(|domstring| domstring.traced()),
+            frame_actor_id: frame_actor_id.map(|domstring| domstring.traced()),
         });
         let result = reflect_dom_object(cx, result, debugger_global);
         result.event.init_event("resume".into(), false, false);
@@ -49,11 +50,15 @@ impl DebuggerResumeEventMethods<crate::DomTypeHolder> for DebuggerResumeEvent {
     }
 
     fn GetResumeLimitType(&self) -> Option<DOMString> {
-        self.resume_limit_type.clone()
+        self.resume_limit_type
+            .clone()
+            .map(|domstring| domstring.root())
     }
 
     fn GetFrameActorID(&self) -> Option<DOMString> {
-        self.frame_actor_id.clone()
+        self.frame_actor_id
+            .clone()
+            .map(|domstring| domstring.root())
     }
 }
 
