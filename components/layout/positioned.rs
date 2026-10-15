@@ -1029,7 +1029,7 @@ impl AbsoluteAxisSolver {
             //   physical edge. `left` is the block-start edge in `vertical-lr`
             //   and the block-end edge in `vertical-rl`; `right` is the reverse.
             // https://drafts.csswg.org/css-align/#valdef-justify-content-left
-            AlignFlags::LEFT if self.axis == Direction::Block => {
+            AlignFlags::LEFT if self.axis == LogicalAxis::Block => {
                 if alignment_container_writing_mode.is_horizontal() ||
                     alignment_container_writing_mode.block_start_physical_side() ==
                         PhysicalSide::Left
@@ -1040,7 +1040,7 @@ impl AbsoluteAxisSolver {
                 }
             },
             // https://drafts.csswg.org/css-align/#valdef-justify-content-right
-            AlignFlags::RIGHT if self.axis == Direction::Block => {
+            AlignFlags::RIGHT if self.axis == LogicalAxis::Block => {
                 if alignment_container_writing_mode.is_horizontal() ||
                     alignment_container_writing_mode.block_start_physical_side() ==
                         PhysicalSide::Right
