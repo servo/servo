@@ -487,7 +487,7 @@ int test_webview_builder_set_url_invalid(void)
     ServoWebViewBuilder* webview_builder = servo_webview_builder_create(servo, context);
     int result = servo_webview_builder_set_url(webview_builder, "not a valid url !!!");
     servo_webview_builder_free(webview_builder);
-    return (result == -1) ? 0 : 1;
+    return (result == SERVO_ERROR_INVALID_STATE) ? 0 : 1;
 }
 
 int test_webview_builder_build(void)
@@ -1192,32 +1192,27 @@ int test_error_invalid_utf8(void)
     // Test servo_webview_builder_set_url with invalid UTF-8
     if (servo_webview_builder_set_url(builder, invalid_utf8) != SERVO_ERROR_INVALID_UTF8) {
         servo_webview_builder_free(builder);
-        servo_rendering_context_free(context);
         return 1;
     }
 
     // Test servo_webview_load with invalid UTF-8
     struct WebView* webview = servo_webview_builder_build(builder);
     if (webview == NULL) {
-        servo_rendering_context_free(context);
         return 1;
     }
 
     if (servo_webview_load(webview, invalid_utf8) != SERVO_ERROR_INVALID_UTF8) {
         servo_webview_free(webview);
-        servo_rendering_context_free(context);
         return 1;
     }
 
     // Test servo_webview_evaluate_javascript with invalid UTF-8
     if (servo_webview_evaluate_javascript(webview, invalid_utf8, NULL, NULL) != SERVO_ERROR_INVALID_UTF8) {
         servo_webview_free(webview);
-        servo_rendering_context_free(context);
         return 1;
     }
 
     servo_webview_free(webview);
-    servo_rendering_context_free(context);
     return 0;
 }
 

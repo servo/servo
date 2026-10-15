@@ -15,7 +15,7 @@ use crate::WebViewPoint;
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub struct InputEventId(pub usize);
 
-static INPUT_EVENT_ID: AtomicUsize = AtomicUsize::new(0);
+static INPUT_EVENT_ID: AtomicUsize = AtomicUsize::new(1);
 
 impl InputEventId {
     pub fn new() -> Self {

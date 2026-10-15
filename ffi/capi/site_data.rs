@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ffi::c_char;
+use std::ffi::{c_char, CString};
 use std::os::raw::c_int;
 
 use cookie::Cookie;
@@ -55,10 +55,10 @@ pub struct ServoCookie {
 /// Internal storage for cookie strings returned to C.
 /// We store owned strings here and return pointers to them.
 struct CookieStringStorage {
-    names: Vec<String>,
-    values: Vec<String>,
-    domains: Vec<String>,
-    paths: Vec<String>,
+    names: Vec<CString>,
+    values: Vec<CString>,
+    domains: Vec<CString>,
+    paths: Vec<CString>,
 }
 
 impl CookieStringStorage {
@@ -79,11 +79,11 @@ impl CookieStringStorage {
     }
 
     fn store(&mut self, cookie: &Cookie<'static>) -> ServoCookie {
-        // Store all strings and get their stable pointers
-        self.names.push(cookie.name().to_string());
-        self.values.push(cookie.value().to_string());
-        self.domains.push(cookie.domain().unwrap_or("").to_string());
-        self.paths.push(cookie.path().unwrap_or("/").to_string());
+        // Store all strings as null-terminated CStrings and get their stable pointers
+        self.names.push(CString::new(cookie.name()).unwrap_or_default());
+        self.values.push(CString::new(cookie.value()).unwrap_or_default());
+        self.domains.push(CString::new(cookie.domain().unwrap_or("")).unwrap_or_default());
+        self.paths.push(CString::new(cookie.path().unwrap_or("/")).unwrap_or_default());
 
         let idx = self.names.len() - 1;
 
@@ -102,10 +102,10 @@ impl CookieStringStorage {
         };
 
         ServoCookie {
-            name: self.names[idx].as_ptr() as *const c_char,
-            value: self.values[idx].as_ptr() as *const c_char,
-            domain: self.domains[idx].as_ptr() as *const c_char,
-            path: self.paths[idx].as_ptr() as *const c_char,
+            name: self.names[idx].as_ptr(),
+            value: self.values[idx].as_ptr(),
+            domain: self.domains[idx].as_ptr(),
+            path: self.paths[idx].as_ptr(),
             expires,
             secure: cookie.secure().unwrap_or(false),
             http_only: cookie.http_only().unwrap_or(false),
