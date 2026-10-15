@@ -6,7 +6,7 @@ use std::ffi::CStr;
 
 use bitflags::bitflags;
 use js::context::JSContext;
-use js::jsapi::{JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY};
+use js::jsapi::{ExceptionStackBehavior, JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY};
 use js::rust::{HandleObject, HandleValue};
 
 bitflags! {
@@ -51,6 +51,17 @@ pub fn JS_DefineProperty(
 ) -> bool {
     let attrs = flags.as_jsprop_flags();
     unsafe { js::rust::wrappers2::JS_DefineProperty(cx, obj, name.as_ptr(), value, attrs) }
+}
+
+/// Safe wrapper around [`js::rust::wrappers2::JS_SetPendingException`].
+#[allow(non_snake_case)]
+#[inline]
+pub fn JS_SetPendingException(
+    cx: &mut JSContext,
+    value: HandleValue,
+    behavior: ExceptionStackBehavior,
+) {
+    unsafe { js::rust::wrappers2::JS_SetPendingException(cx, value, behavior) }
 }
 
 #[cfg(test)]

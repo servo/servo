@@ -14,7 +14,7 @@ use js::jsapi::ExceptionStackBehavior;
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::HandleValue;
-use js::rust::wrappers2::{JS_IsExceptionPending, JS_SetPendingException};
+use js::rust::wrappers2::JS_IsExceptionPending;
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::fetch::fetch_controller::FetchController;
 use net_traits::request::{
@@ -27,6 +27,7 @@ use net_traits::{
 };
 use rustc_hash::FxHashMap;
 use script_bindings::cformat;
+use script_bindings::js::JS_SetPendingException;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::GenericCallback;
 use servo_base::id::WebViewId;
