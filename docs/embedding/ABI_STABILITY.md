@@ -184,6 +184,12 @@ typedef struct ServoLoadInfo {
 } ServoLoadInfo;
 ```
 
+`ServoScreenGeometry` (`ffi/capi/webview_delegate.rs`) follows this pattern: Servo fills
+in `struct_size` before invoking the `screen_geometry` callback, so embedders can learn
+how many fields the loaded library provides. Because it is passed **by pointer**, an
+embedder built against an older header safely writes only the fields it knows about; the
+remaining fields keep their zeroed defaults.
+
 ### 3.4 Enum extensibility
 
 - Exported enums use fixed-width underlying types (`#[repr(i32)]`, e.g.
@@ -411,17 +417,25 @@ and `windows.yml`. `ROADMAP.md` Phase 0 adds a dedicated
 ### 7.2 What CI must verify on every change
 
 1. **Build + tests** on Linux, macOS (x86_64/arm64), Windows via `servo-capi-tests`.
-2. **Header is up to date**: regenerate with cbindgen and fail if `servo/servo_capi.h`
-   differs from the committed/generated output.
+   *Implemented:* the `Embedding API (C API)` workflow (`.github/workflows/embedding-api.yml`)
+   builds `servo-capi` with `cargo cinstall` and runs `servo-capi-tests` on all three hosts.
+2. **Header is generated and valid**: the header is produced by cbindgen at build time and
+   is **not** committed (source of truth is `ffi/capi/*.rs` + `cbindgen.toml`); CI
+   regenerates it and fails if generation errors or the result is empty.
 3. **Symbol surface**: compare exported symbols against the allowlist; fail on additions
-   not in a reviewed list or on removals.
+   not in a reviewed list or on removals. *Implemented:* `ffi/capi/symbols.txt` is diffed
+   against the cbindgen-generated header in `embedding-api.yml`.
 4. **Version consistency**: header macros match `servo_capi_get_version()` and the crate
-   version.
+   version. *Implemented:* `test_capi_version` asserts
+   `servo_capi_get_version() == SERVO_CAPI_VERSION` and
+   `SERVO_CAPI_VERSION == (MAJOR << 16) | (MINOR << 8) | PATCH`.
 5. **Panic-safety tests** (Phase 1+): call representative functions with null, invalid
    UTF-8, out-of-range values, and unknown enum values; assert an error code is returned
    and the process does not abort.
 6. **ABI-struct tests** (Phase 1+): pass a delegate/result struct with the current
    `struct_size` and with an older, smaller `struct_size`; assert graceful behavior.
+   *Implemented:* `test_delegate_struct_size_validation` passes the current, a smaller,
+   and a zero `struct_size` and asserts `SERVO_ERROR_OK` vs `SERVO_ERROR_INVALID_ARGUMENT`.
 
 ### 7.3 Compatibility statement
 
@@ -429,8 +443,13 @@ and `windows.yml`. `ROADMAP.md` Phase 0 adds a dedicated
   `major(X) == major(Y)` and `minor(Y) >= minor(X)` (forward-compatible additions). Do
   not promise backward compatibility across majors.
 - Within a major version, a host compiled against an older header must continue to work
-  with a newer library: unknown enum values are ignored, absent struct fields are treated
-  as defaults, and unknown symbols are simply not referenced.
+  with a newer library: unknown enum values are ignored, unknown symbols are simply not
+  referenced, and for structs passed **by pointer** absent trailing fields are treated as
+  defaults.
+- Exception: the delegate-like structs passed **by value** must be recompiled against the
+  newer header. Their `struct_size` is validated (§3.3), so a caller that passes a struct
+  smaller than the compiled-in size gets `SERVO_ERROR_INVALID_ARGUMENT` instead of reading
+  out of bounds.
 - The policy applies per platform and per supported feature configuration. Functions that
   depend on an optional feature (e.g. gamepad) must return `SERVO_ERROR_UNSUPPORTED` when
   built without it, rather than being absent in a way that breaks the link, wherever that
