@@ -1,6 +1,16 @@
 header = """/* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */"""
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+/* Marks a declaration as deprecated. Use the replacement named in the message.
+ * See docs/embedding/ABI_STABILITY.md section 6 for the deprecation policy. */
+#if defined(__GNUC__) || defined(__clang__)
+#  define SERVO_DEPRECATED(msg) __attribute__((deprecated(msg)))
+#elif defined(_MSC_VER)
+#  define SERVO_DEPRECATED(msg) __declspec(deprecated(msg))
+#else
+#  define SERVO_DEPRECATED(msg)
+#endif"""
 autogen_warning = """/* DO NOT MODIFY THIS MANUALLY! This file was generated using cbindgen. */"""
 language = "C"
 

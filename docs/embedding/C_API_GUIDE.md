@@ -337,7 +337,10 @@ struct ServoWebViewDelegate {
                               struct ServoWebResourceResponse*,
                               void* user_data);
 
-    } __attribute__((deprecated("Use on_download_updated instead")));
+    // Download category (new)
+    void (*on_before_download)(struct WebView*, struct ServoDownloadItem*,
+                               void (*continue_callback)(bool, void*), void* user_data);
+    void (*on_download_updated)(struct WebView*, struct ServoDownloadItem*, void* user_data);
 
     // Find category (new)
     void (*on_find_result)(struct WebView*, int32_t identifier, int32_t count,

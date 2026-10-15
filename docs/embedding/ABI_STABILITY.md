@@ -391,6 +391,10 @@ Templates by function shape:
 #endif
 ```
 
+This macro is emitted in the generated header preamble (via `cbindgen.toml`'s `header`),
+so it is available to embedders and to future deprecated declarations without a
+hand-written preamble.
+
 Header must:
 
 - Include the version macros (`servo/version.h` or inline) and a deprecation macro.

@@ -391,6 +391,10 @@ Servo.
 - Packaging: versioned tarballs/MSIs, checksums, and a documented release process.
 - Documentation and samples: a complete C sample app, an integration guide, and a
   compatibility matrix (which functions are present on which platforms/features).
+  *Partly done on this branch:* [`C_API_GUIDE.md`](../embedding/C_API_GUIDE.md) is the
+  integration guide (with a complete C11 example), and
+  [`COMPATIBILITY.md`](../embedding/COMPATIBILITY.md) is the platform/feature/symbol
+  matrix. A standalone sample-app project is still outstanding.
 - Observability/perf: track cdylib size, startup time, and basic rendering throughput in CI
   to catch regressions.
 
