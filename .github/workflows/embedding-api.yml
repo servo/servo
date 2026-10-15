@@ -169,36 +169,24 @@ jobs:
           mkdir -p target
           cbindgen --config ffi/capi/cbindgen.toml --output target/servo_capi.h ffi/capi
           test -s target/servo_capi.h
-          # Verify exported symbols match the allowlist.
-          python -c "
-# Python inline check
-pass
-" 2>&1 | tail -1; echo 'check-placeholder'
-          # Verify exported symbols match the allowlist using a Python script approach
-          python << 'PY'
-import re, sys
-path='target/servo_capi.h'
-try:
-    with open(path,encoding='utf-8') as f:
-        h=f.read()
-except Exception as e:
-    sys.exit('failed to read header: %s'%e)
-nc=re.sub(r'/\*.*?\*/','',h,flags=re.S)
-sym=set(n[:-1].strip() for n in re.findall(r'\\b(servo_[a-z0-9_]+)\\s*\\(', nc))
-try:
-    with open('ffi/capi/symbols.txt',encoding='utf-8') as f:
-        allow=set(x.strip() for x in f if x.strip() and not x.strip().startswith('#'))
-except Exception as e:
-    sys.exit('failed to read allowlist: %s'%e)
-extra=sym-allow
-missing=allow-sym
-if extra or missing:
-    print('SYMBOL ALLOWLIST MISMATCH')
-    if extra:
-        print('extra:', sorted(extra))
-    if missing:
-        print('missing:', sorted(missing))
-    sys.exit(1)
-print('symbols match (%d)'%len(sym))
-PY
-          test $? -eq 0
+
+      # Fail if the set of exported `servo_*` symbols changed without updating
+      # the checked-in allowlist at ffi/capi/symbols.txt. This catches
+      # accidental exports, renames, or removals of public C symbols.
+      - name: Check exported C API symbols
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Collect the `servo_*` function names declared in the header. Only
+          # prototype lines are considered (they start in column 0); doc
+          # comments are indented and therefore ignored.
+          grep -E '^[A-Za-z_].*servo_[a-z0-9_]+\(' target/servo_capi.h \
+            | grep -oE 'servo_[a-z0-9_]+\(' \
+            | sed 's/($//' \
+            | LC_ALL=C sort -u > target/exported_symbols.txt
+          if ! diff -u ffi/capi/symbols.txt target/exported_symbols.txt; then
+            echo "::error::Exported C API symbols differ from ffi/capi/symbols.txt"
+            echo "If the change is intentional, update ffi/capi/symbols.txt."
+            exit 1
+          fi
+          echo "Exported C API symbols match the allowlist ($(wc -l < ffi/capi/symbols.txt) symbols)."
