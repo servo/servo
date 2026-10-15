@@ -203,7 +203,10 @@ clipboard, and both on-screen and offscreen rendering.
     *Done on this branch:* `ServoScreenGeometry` fill-struct + `screen_geometry` callback.
   - `request_move_to` / `request_resize_to` *Done on this branch:* exposed as
     `ServoWebViewDelegate` callbacks (device-pixel point/size).
-  - `request_create_new` (popups) using the existing `CreateNewWebViewRequest`
+  - `request_create_new` (popups) *Done on this branch:* `request_create_new` callback
+    plus an opaque `ServoCreateNewWebViewRequest` handle. The embedder builds the
+    auxiliary `WebView` with `servo_create_new_webview_builder_create` or denies the
+    request with `servo_create_new_webview_request_free`.
 - Rendering contexts (`ffi/capi/rendering_context.rs`):
   - `servo_rendering_context_create_window(display_handle, window_handle, width, height)`
     backed by `WindowRenderingContext` (`components/shared/paint/rendering_context.rs`).

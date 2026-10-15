@@ -12,6 +12,7 @@ use embedder_traits::{
 use crate::download::{ServoDownloadContinueCallback, ServoDownloadItem};
 use crate::find::ServoFindResult;
 use crate::protocol_handler::{ServoWebResourceRequest, ServoWebResourceResponse};
+use crate::webview::ServoCreateNewWebViewRequest;
 pub use servo_api::LoadStatus;
 use servo_api::{
     DeviceIntPoint, DeviceIntRect, DeviceIntSize, ScreenGeometry, WebView, WebViewDelegate,
@@ -968,6 +969,25 @@ pub struct ServoWebViewDelegate {
             user_data: *mut c_void,
         ),
     >,
+
+    // Popup category
+    /// Called when page content requests that a new auxiliary `WebView` be
+    /// opened (for example via `window.open()`).
+    ///
+    /// `request` is an opaque handle to the request. To open the new `WebView`,
+    /// pass `request` to `servo_create_new_webview_builder_create`, which
+    /// consumes it and returns a `ServoWebViewBuilder`. To deny the request,
+    /// pass `request` to `servo_create_new_webview_request_free`.
+    ///
+    /// Return `true` if the callback consumed or freed `request`. Return `false`
+    /// to have Servo free `request` and deny the popup.
+    pub request_create_new: Option<
+        unsafe extern "C" fn(
+            parent_webview: *mut WebView,
+            request: *mut ServoCreateNewWebViewRequest,
+            user_data: *mut c_void,
+        ) -> bool,
+    >,
 }
 
 /// Inherent methods for `ServoWebViewDelegate`.
@@ -1833,6 +1853,38 @@ impl WebViewDelegate for ServoWebViewDelegate {
                 self.user_data,
             )
         };
+    }
+
+    fn request_create_new(
+        &self,
+        mut parent_webview: WebView,
+        request: servo_api::CreateNewWebViewRequest,
+    ) {
+        let Some(callback) = self.request_create_new else {
+            // Without a callback the request is dropped, denying the popup.
+            return;
+        };
+        let handle = Box::into_raw(Box::new(ServoCreateNewWebViewRequest {
+            inner: Some(request),
+        }));
+        // SAFETY: The embedder is assumed to uphold the safety requirements of
+        // the `ServoWebViewDelegate` struct, including the requirement that it
+        // consumes or frees `request` and returns `true` when it does so.
+        let consumed = unsafe {
+            callback(
+                &mut parent_webview as *mut WebView,
+                handle,
+                self.user_data,
+            )
+        };
+        if !consumed {
+            // The embedder declined to take ownership. Free the handle, which
+            // drops the request and denies the popup.
+            // SAFETY: `handle` was created above and has not been freed since.
+            unsafe {
+                let _ = Box::from_raw(handle);
+            }
+        }
     }
 }
 

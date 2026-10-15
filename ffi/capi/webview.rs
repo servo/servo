@@ -97,13 +97,14 @@ use crate::webview_delegate::ServoWebViewDelegate;
 /// instance passed to `servo_webview_builder_create``.
 // cbindgen:opaque
 pub struct ServoWebViewBuilder {
-    servo: Servo,
+    servo: Option<Servo>,
     rendering_context: Rc<dyn servo_api::RenderingContext>,
     url: Option<url::Url>,
     delegate: Option<ServoWebViewDelegate>,
     pub(crate) user_content_manager: Option<Rc<servo_api::UserContentManager>>,
     pub(crate) request_context: Option<servo_api::RequestContext>,
     hidpi_scale_factor: Option<f32>,
+    create_new_request: Option<servo_api::CreateNewWebViewRequest>,
 }
 
 /// Creates a handle to a new `WebViewBuilder` object for the given
@@ -156,13 +157,14 @@ pub unsafe extern "C" fn servo_webview_builder_create(
         let boxed_c_context = unsafe { Box::from_raw(context) };
 
         Box::into_raw(Box::new(ServoWebViewBuilder {
-            servo: servo.clone(),
+            servo: Some(servo.clone()),
             rendering_context: boxed_c_context.inner,
             url: None,
             delegate: None,
             user_content_manager: None,
             request_context: None,
             hidpi_scale_factor: None,
+            create_new_request: None,
         }))
     })
 }
@@ -315,25 +317,47 @@ pub unsafe extern "C" fn servo_webview_builder_build(
         // for `builder` documented above. We take ownership here.
         let builder = unsafe { Box::from_raw(builder) };
 
-        let mut webview_builder = WebViewBuilder::new(&builder.servo, builder.rendering_context);
+        let ServoWebViewBuilder {
+            servo,
+            rendering_context,
+            url,
+            delegate,
+            user_content_manager,
+            request_context,
+            hidpi_scale_factor,
+            create_new_request,
+        } = *builder;
 
-        if let Some(url) = builder.url {
+        // A builder either creates a toplevel `WebView` (from a `Servo`
+        // instance) or an auxiliary `WebView` in response to a `window.open()`
+        // request (from a `CreateNewWebViewRequest`).
+        let mut webview_builder = match create_new_request {
+            Some(request) => request.builder(rendering_context),
+            None => WebViewBuilder::new(
+                servo
+                    .as_ref()
+                    .expect("A builder without a create request must have a Servo"),
+                rendering_context,
+            ),
+        };
+
+        if let Some(url) = url {
             webview_builder = webview_builder.url(url);
         }
 
-        if let Some(delegate) = builder.delegate {
+        if let Some(delegate) = delegate {
             webview_builder = webview_builder.delegate(std::rc::Rc::new(delegate));
         }
 
-        if let Some(user_content_manager) = builder.user_content_manager {
+        if let Some(user_content_manager) = user_content_manager {
             webview_builder = webview_builder.user_content_manager(user_content_manager);
         }
 
-        if let Some(request_context) = builder.request_context {
+        if let Some(request_context) = request_context {
             webview_builder = webview_builder.request_context(request_context);
         }
 
-        if let Some(scale) = builder.hidpi_scale_factor {
+        if let Some(scale) = hidpi_scale_factor {
             webview_builder = webview_builder.hidpi_scale_factor(euclid::Scale::new(scale));
         }
 
@@ -367,6 +391,116 @@ pub unsafe extern "C" fn servo_webview_builder_free(
         // for `builder` documented above.
         unsafe {
             let _ = Box::from_raw(builder);
+        }
+
+        ServoError::Ok
+    })
+}
+
+/// An opaque handle to a request from page content to open a new auxiliary
+/// `WebView`, typically triggered by DOM APIs such as `window.open()`.
+///
+/// A handle is delivered to the `request_create_new` callback of
+/// [`ServoWebViewDelegate`]. The callback must consume the handle by either:
+///
+/// - passing it to [`servo_create_new_webview_builder_create`] to build the new
+///   `WebView` (the handle is consumed), or
+/// - passing it to [`servo_create_new_webview_request_free`] to deny the
+///   request.
+///
+/// If the callback returns `false` without consuming or freeing the handle, the
+/// request is denied and the handle is freed automatically.
+// cbindgen:opaque
+pub struct ServoCreateNewWebViewRequest {
+    pub(crate) inner: Option<servo_api::CreateNewWebViewRequest>,
+}
+
+/// Consumes `request` and returns a [`ServoWebViewBuilder`] for the new
+/// auxiliary `WebView`.
+///
+/// `request` is a handle passed to a `request_create_new` delegate callback.
+/// The ownership of `request` is transferred to the function. The caller must
+/// not use or free `request` again.
+///
+/// `context` is a handle to a `RenderingContext` object. The ownership of
+/// `context` is transferred to the function. The caller must not use or free
+/// `context` again.
+///
+/// Returns a newly allocated `ServoWebViewBuilder` handle. The ownership of the
+/// returned handle is transferred to the caller, who must free it with
+/// [`servo_webview_builder_free`] or consume it by passing it to
+/// [`servo_webview_builder_build`]. Returns `NULL` on failure.
+///
+/// # Safety
+///
+/// The caller must ensure that:
+///
+/// - `request` is a non-null pointer passed to a `request_create_new` delegate
+///   callback and has not yet been freed nor passed to another API that takes
+///   ownership of it.
+/// - `context` is a non-null pointer to a `RenderingContext` previously returned
+///   by one of the `servo_rendering_context_create_*` functions and has not yet
+///   been freed nor passed to another API that takes ownership of it.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_create_new_webview_builder_create(
+    request: *mut ServoCreateNewWebViewRequest,
+    context: *mut RenderingContext,
+) -> *mut ServoWebViewBuilder {
+    ServoError::catch_ffi_ptr(|| {
+        if request.is_null() || context.is_null() {
+            return std::ptr::null_mut();
+        }
+
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `context` documented above. We take ownership here.
+        let boxed_c_context = unsafe { Box::from_raw(context) };
+
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `request` documented above. We take ownership here.
+        let mut request = unsafe { Box::from_raw(request) };
+        let Some(inner) = request.inner.take() else {
+            return std::ptr::null_mut();
+        };
+
+        Box::into_raw(Box::new(ServoWebViewBuilder {
+            servo: None,
+            rendering_context: boxed_c_context.inner,
+            url: None,
+            delegate: None,
+            user_content_manager: None,
+            request_context: None,
+            hidpi_scale_factor: None,
+            create_new_request: Some(inner),
+        }))
+    })
+}
+
+/// Destroys `request` without creating a new `WebView`, denying the request.
+///
+/// `request` is a handle passed to a `request_create_new` delegate callback.
+/// The ownership of `request` is transferred to the function. The caller must
+/// not use or free `request` again.
+///
+/// # Safety
+///
+/// The caller must ensure that:
+///
+/// - `request` is a non-null pointer passed to a `request_create_new` delegate
+///   callback and has not yet been freed nor passed to another API that takes
+///   ownership of it.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_create_new_webview_request_free(
+    request: *mut ServoCreateNewWebViewRequest,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if request.is_null() {
+            return ServoError::NullArgument;
+        }
+
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `request` documented above.
+        unsafe {
+            let _ = Box::from_raw(request);
         }
 
         ServoError::Ok

@@ -1565,6 +1565,18 @@ static void on_request_resize_to(struct WebView* webview,
     (void)user_data;
 }
 
+static bool on_request_create_new(struct WebView* parent_webview,
+                                  struct ServoCreateNewWebViewRequest* request,
+                                  void* user_data)
+{
+    (void)parent_webview;
+    (void)user_data;
+    if (request == NULL)
+        return false;
+    /* Deny the popup but take ownership of the request handle. */
+    return servo_create_new_webview_request_free(request) == SERVO_ERROR_OK;
+}
+
 /* Test that delegate callbacks can be set in ServoWebViewDelegate. */
 int test_download_delegate_callbacks(void)
 {
@@ -1654,6 +1666,43 @@ int test_webview_window_geometry_delegate_callbacks(void)
     /* The callbacks are invoked by Servo internals (for example when page
      * script calls window.moveTo); here we only verify the delegate is
      * accepted and the WebView is created. */
+    servo_webview_free(webview);
+    return 0;
+}
+
+/* Test that the popup delegate callback can be set, and that the
+ * create-new-webview-request functions handle NULL arguments. */
+int test_webview_popup_delegate_callback(void)
+{
+    if (servo_create_new_webview_builder_create(NULL, NULL) != NULL)
+        return 1;
+    if (servo_create_new_webview_request_free(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    RenderingContext* context = servo_rendering_context_create_software(100, 100);
+    if (context == NULL)
+        return 1;
+
+    ServoWebViewBuilder* builder = servo_webview_builder_create(servo, context);
+    if (builder == NULL)
+        return 1;
+
+    ServoWebViewDelegate delegate = {
+        .user_data = NULL,
+        .request_create_new = on_request_create_new,
+    };
+    servo_webview_builder_set_delegate(builder, delegate);
+
+    struct WebView* webview = servo_webview_builder_build(builder);
+    if (webview == NULL)
+        return 1;
+
+    /* The callback is only invoked when page content calls window.open(); here
+     * we verify the delegate is accepted and the WebView is created. */
     servo_webview_free(webview);
     return 0;
 }
@@ -2301,6 +2350,7 @@ int run_c_api_tests(void)
     RUN_TEST(test_download_item_getters);
     RUN_TEST(test_download_delegate_callbacks);
     RUN_TEST(test_webview_window_geometry_delegate_callbacks);
+    RUN_TEST(test_webview_popup_delegate_callback);
     RUN_TEST(test_find_null_arguments);
     RUN_TEST(test_find_valid_arguments);
     RUN_TEST(test_find_result_getters);
