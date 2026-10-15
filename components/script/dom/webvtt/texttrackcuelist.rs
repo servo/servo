@@ -70,7 +70,7 @@ impl TextTrackCueList {
         // Only add a cue if it does not exist in the list
         if self.find(cue).is_none() {
             {
-                let mut dom_cues = self.dom_cues.borrow_mut();
+                let mut dom_cues = self.dom_cues.safe_borrow_mut(cx.no_gc());
                 dom_cues.push(Dom::from_ref(cue));
                 cue.set_initial_index_in_list(dom_cues.len());
             }
