@@ -6,6 +6,7 @@ use std::fs::File;
 use std::future::{Future, ready};
 use std::io::{BufReader, Seek, SeekFrom};
 use std::pin::Pin;
+use std::sync::Arc;
 
 use headers::{ContentLength, ContentRange, ContentType, HeaderMapExt, Range};
 use http::Method;
@@ -73,25 +74,26 @@ impl ProtocolHandler for FileProtocolHander {
                     partial_content(&mut response);
                 }
 
+                let headers = &mut Arc::get_mut(&mut response.headers)
+                    .expect("Just created response")
+                    .0;
                 // Set Content-Length and Content-Range headers when end is determinable.
                 let end_byte = range.end.map(|e| e as u64).or(file_size);
                 if let Some(end_byte) = end_byte {
                     let start_byte = range.start as u64;
 
-                    response
-                        .headers
-                        .typed_insert(ContentLength(end_byte - start_byte));
+                    headers.typed_insert(ContentLength(end_byte - start_byte));
                     if is_range_request &&
                         let Ok(content_range) =
                             ContentRange::bytes(start_byte..end_byte, file_size)
                     {
-                        response.headers.typed_insert(content_range);
+                        headers.typed_insert(content_range);
                     }
                 }
 
                 // Set Content-Type header.
                 let mime = mime_guess::from_path(file_path).first_or_octet_stream();
-                response.headers.typed_insert(ContentType::from(mime));
+                headers.typed_insert(ContentType::from(mime));
 
                 // Setup channel to receive cross-thread messages about the file fetch
                 // operation.
