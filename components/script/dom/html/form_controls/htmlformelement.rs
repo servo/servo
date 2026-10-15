@@ -469,7 +469,7 @@ impl HTMLFormElementMethods<crate::DomTypeHolder> for HTMLFormElement {
             candidates_length = candidates.Length(cx);
         }
 
-        let mut past_names_map = self.past_names_map.borrow_mut();
+        let mut past_names_map = self.past_names_map.safe_borrow_mut(cx.no_gc());
 
         // Step 3
         if candidates_length == 0 {
@@ -1411,7 +1411,7 @@ impl HTMLFormElement {
         {
             let root = self.upcast::<Element>().root_element();
             let root = root.upcast::<Node>();
-            let mut controls = self.controls.borrow_mut();
+            let mut controls = self.controls.safe_borrow_mut(cx.no_gc());
 
             // https://html.spec.whatwg.org/multipage/#create-an-element-for-the-token
             // associates form control elements with a form before they are bound to the tree.
@@ -1431,7 +1431,7 @@ impl HTMLFormElement {
     fn remove_control<T: ?Sized + FormControl>(&self, cx: &mut JSContext, control: &T) {
         {
             let control = control.to_element();
-            let mut controls = self.controls.borrow_mut();
+            let mut controls = self.controls.safe_borrow_mut(cx.no_gc());
             controls
                 .iter()
                 .position(|c| &**c == control)
@@ -1441,7 +1441,7 @@ impl HTMLFormElement {
             // "If an element listed in a form element's past names map
             // changes form owner, then its entries must be removed
             // from that map."
-            let mut past_names_map = self.past_names_map.borrow_mut();
+            let mut past_names_map = self.past_names_map.safe_borrow_mut(cx.no_gc());
             past_names_map.0.retain(|_k, v| v.0 != control);
         }
         self.update_validity(cx);
