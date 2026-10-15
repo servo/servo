@@ -7,7 +7,7 @@
 #![cfg_attr(crown, allow(crown::jscontext_first_arg))]
 
 use std::borrow::Cow;
-use std::cell::{Cell, LazyCell};
+use std::cell::{Cell, LazyCell, RefCell};
 use std::default::Default;
 use std::rc::Rc;
 use std::str::FromStr;
@@ -18,6 +18,7 @@ use app_units::Au;
 use cssparser::match_ignore_ascii_case;
 use dom_struct::dom_struct;
 use euclid::Rect;
+use hashlink::LruCache;
 use html5ever::serialize::TraversalScope;
 use html5ever::serialize::TraversalScope::{ChildrenOnly, IncludeNode};
 use html5ever::{LocalName, Namespace, Prefix, QualName, local_name, namespace_prefix, ns};
@@ -32,6 +33,7 @@ use layout_api::{
 };
 use net_traits::ReferrerPolicy;
 use net_traits::request::{CorsSettings, CredentialsMode};
+use rustc_hash::FxBuildHasher;
 use script_bindings::callback::RootedCallback;
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::codegen::GenericBindings::AnimationBinding::AnimationMethods;
@@ -199,7 +201,6 @@ pub struct Element {
     node: Node,
     #[no_trace]
     local_name: LocalName,
-    tag_name: TagName,
     #[no_trace]
     namespace: Namespace,
     #[no_trace]
@@ -207,9 +208,6 @@ pub struct Element {
     attrs: AttributeStorage,
     #[no_trace]
     id_attribute: DomRefCell<Option<Atom>>,
-    /// <https://dom.spec.whatwg.org/#concept-element-is-value>
-    #[no_trace]
-    is: DomRefCell<Option<LocalName>>,
     #[conditional_malloc_size_of]
     #[no_trace]
     style_attribute: DomRefCell<Option<ServoArc<Locked<PropertyDeclarationBlock>>>>,
@@ -326,12 +324,10 @@ impl Element {
         Element {
             node: Node::new_inherited(document),
             local_name,
-            tag_name: TagName::new(),
             namespace,
             prefix: DomRefCell::new(prefix),
             attrs: Default::default(),
             id_attribute: DomRefCell::new(None),
-            is: DomRefCell::new(None),
             style_attribute: DomRefCell::new(None),
             attr_list: Default::default(),
             class_list: Default::default(),
@@ -421,13 +417,13 @@ impl Element {
             .note_dirty_element(no_gc, self);
     }
 
-    pub(crate) fn set_is(&self, is: LocalName) {
-        *self.is.borrow_mut() = Some(is);
+    pub(crate) fn set_is(&self, is: LocalName, no_gc: &NoGC) {
+        self.ensure_rare_data(no_gc).is_value = Some(is);
     }
 
     /// <https://dom.spec.whatwg.org/#concept-element-is-value>
     pub(crate) fn get_is(&self) -> Option<LocalName> {
-        self.is.borrow().clone()
+        self.rare_data().as_ref()?.is_value.clone()
     }
 
     /// This is a performance optimization. `Element::create` can simply call
@@ -3000,17 +2996,28 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // The tagName getter steps are to return this's HTML-uppercased qualified name.
         //
         // An element's HTML-uppercased qualified name is the return value of these steps:
-        let name = self.tag_name.or_init(|| {
+        let key = TagNameKey {
+            prefix: self.prefix.borrow().clone(),
+            local_name: self.local_name.clone(),
+            html_element_in_html_document: self.html_element_in_html_document(),
+        };
+        let name = TAG_NAME_CACHE.with(|cache| {
+            // Looking a name up makes it the most recently used one.
+            if let Some(name) = cache.borrow_mut().get(&key).cloned() {
+                return name;
+            }
             // 1. Let qualifiedName be this's qualified name.
             let qualified_name = self.qualified_name();
             // 2. If this is in the HTML namespace and its node document is an HTML document,
             //    then return qualifiedName in ASCII uppercase.
             // 3. Return qualifiedName.
-            if self.html_element_in_html_document() {
+            let name = if key.html_element_in_html_document {
                 LocalName::from(qualified_name.to_ascii_uppercase())
             } else {
-                LocalName::from(qualified_name)
-            }
+                LocalName::from(&*qualified_name)
+            };
+            cache.borrow_mut().insert(key, name.clone());
+            name
         });
         DOMString::from(&*name)
     }
@@ -5026,10 +5033,6 @@ impl VirtualMethods for Element {
 
     fn adopting_steps(&self, cx: &mut JSContext, old_doc: &Document) {
         self.super_type().unwrap().adopting_steps(cx, old_doc);
-
-        if self.owner_document().is_html_document() != old_doc.is_html_document() {
-            self.tag_name.clear();
-        }
     }
 
     fn post_connection_steps(&self, cx: &mut JSContext) {
@@ -5452,43 +5455,28 @@ impl AttributeMutation<'_> {
     }
 }
 
-/// A holder for an element's "tag name", which will be lazily
-/// resolved and cached. Should be reset when the document
-/// owner changes.
-#[derive(JSTraceable, MallocSizeOf)]
-struct TagName {
-    #[no_trace]
-    ptr: DomRefCell<Option<LocalName>>,
+/// The inputs that fully determine an element's HTML-uppercased qualified name.
+///
+/// See [`TAG_NAME_CACHE`].
+#[derive(Eq, Hash, PartialEq)]
+struct TagNameKey {
+    prefix: Option<Prefix>,
+    local_name: LocalName,
+    html_element_in_html_document: bool,
 }
 
-impl TagName {
-    fn new() -> TagName {
-        TagName {
-            ptr: DomRefCell::new(None),
-        }
-    }
+/// The maximum number of names in [`TAG_NAME_CACHE`].
+const TAG_NAME_CACHE_CAPACITY: usize = 128;
 
-    /// Retrieve a copy of the current inner value. If it is `None`, it is
-    /// initialized with the result of `cb` first.
-    fn or_init<F>(&self, cb: F) -> LocalName
-    where
-        F: FnOnce() -> LocalName,
-    {
-        match &mut *self.ptr.borrow_mut() {
-            &mut Some(ref name) => name.clone(),
-            ptr => {
-                let name = cb();
-                *ptr = Some(name.clone());
-                name
-            },
-        }
-    }
-
-    /// Clear the cached tag name, so that it will be re-calculated the
-    /// next time that `or_init()` is called.
-    fn clear(&self) {
-        *self.ptr.borrow_mut() = None;
-    }
+thread_local! {
+    /// Memoized HTML-uppercased qualified names, shared by every element on the
+    /// thread. When it's full, the least recently used name is evicted.
+    ///
+    /// An element's `tagName` is a pure function of its prefix, its local name,
+    /// and whether it is an HTML element in an HTML document, so there is no
+    /// reason to cache it per element.
+    static TAG_NAME_CACHE: RefCell<LruCache<TagNameKey, LocalName, FxBuildHasher>> =
+        RefCell::new(LruCache::with_hasher(TAG_NAME_CACHE_CAPACITY, FxBuildHasher));
 }
 
 /// <https://html.spec.whatwg.org/multipage/#cors-settings-attribute>
