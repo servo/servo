@@ -268,6 +268,9 @@ Servo.
   - `SiteDataManager` (`components/servo/site_data_manager.rs`): list/clear cookies and
     localStorage/sessionStorage, sync and async variants.
   - `NetworkManager` (`components/servo/network_manager.rs`): list/clear HTTP cache.
+    *Done on this branch:* `servo_get_network_manager` plus
+    `servo_network_manager_get_cache_entries` (JSON array of keys, buffer-query pattern)
+    and `servo_network_manager_clear_cache`.
   - `servo_site_data_*` and `servo_network_*` functions plus async callback plumbing.
 - Settings/preferences already exist; extend where needed (e.g. user agent, proxy).
 - Tests: a C integration test that serves a custom scheme and intercepts an HTTP request,
@@ -315,6 +318,10 @@ Servo.
 - Script injection APIs over `UserContentManager`
   (`components/servo/user_content_manager.rs`): add/remove user scripts and stylesheets,
   with `UserScript` construction exposed in C (`embedder_traits::user_contents`).
+  *Done on this branch:* `servo_user_script_create`/`_free`,
+  `servo_user_style_sheet_create`/`_free`, and
+  `servo_user_content_manager_add_script`/`_remove_script` /
+  `_add_style_sheet`/`_remove_style_sheet`.
 - JavaScript evaluation extensions: promises/await support and richer value mapping on top
   of the Phase 1 `evaluate_javascript`.
 - DevTools / remote debugging exposure:

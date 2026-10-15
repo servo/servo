@@ -183,7 +183,11 @@ and readiness) and [`ROADMAP.md`](ROADMAP.md) (sequencing).
 8. **Native↔JS message router** (`CefMessageRouter` analogue).
 9. **Resource interception + custom schemes in C** —
    `WebResourceLoad::intercept` and `protocol_registry`. *(done on this branch)*
-10. **Cookies and site data in C** — `SiteDataManager`.
+10. **Cookies and site data in C** — *done on this branch:* `servo_get_site_data_manager`
+    plus the `servo_site_data_*` cookie APIs, HTTP-cache list/clear via
+    `servo_get_network_manager` + `servo_network_manager_get_cache_entries`/`_clear_cache`,
+    and user script/stylesheet injection via `servo_user_content_manager_add_script`/
+    `_remove_script`/`_add_style_sheet`/`_remove_style_sheet`.
 11. **Dialogs, context menus, permissions, authentication** in C —
     `show_embedder_control`, `request_permission`, `request_authentication`.
 12. **Keyboard/focus in C** — `notify_input_event`, `set_focused`. **Done on this branch:** `servo_webview_notify_key_event`, `servo_webview_notify_mouse_button_event`, `servo_webview_notify_mouse_move_event`, `servo_webview_notify_mouse_leave_event`, `servo_webview_notify_touch_event`, `servo_webview_notify_wheel_event`, `servo_webview_notify_input_event_handled`, and focus delegate callbacks `notify_focus_changed`, `notify_got_focus`.
