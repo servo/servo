@@ -16,12 +16,13 @@ use js::jsapi::{Heap, JSObject, Value as JSValue};
 use js::jsval::{JSVal, UndefinedValue};
 use js::realm::CurrentRealm;
 use js::rust::HandleValue;
-use js::rust::wrappers2::{JS_ClearPendingException, JS_GetPendingException, JS_ParseJSON};
+use js::rust::wrappers2::{JS_GetPendingException, JS_ParseJSON};
 use js::typedarray::{ArrayBufferU8, Uint8};
 use mime::{self, Mime};
 use net_traits::request::{
     BodyChunkRequest, BodyChunkResponse, BodySource as NetBodySource, RequestBody,
 };
+use script_bindings::js::JS_ClearPendingException;
 use script_bindings::reflector::DomObject;
 use servo_base::generic_channel::GenericSharedMemory;
 use servo_constellation_traits::BlobImpl;

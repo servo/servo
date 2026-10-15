@@ -16,13 +16,12 @@ use js::jsapi::{
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::wrappers2::{
     ArrayBufferClone, ArrayBufferCopyData, DetachArrayBuffer, HasDefinedArrayBufferDetachKey,
-    JS_ClearPendingException, JS_GetArrayBufferViewBuffer, JS_GetPendingException,
-    JS_NewBigInt64ArrayWithBuffer, JS_NewBigUint64ArrayWithBuffer, JS_NewDataView,
-    JS_NewFloat16ArrayWithBuffer, JS_NewFloat32ArrayWithBuffer, JS_NewFloat64ArrayWithBuffer,
-    JS_NewInt8ArrayWithBuffer, JS_NewInt16ArrayWithBuffer, JS_NewInt32ArrayWithBuffer,
-    JS_NewUint8ArrayWithBuffer, JS_NewUint8ClampedArrayWithBuffer, JS_NewUint16ArrayWithBuffer,
-    JS_NewUint32ArrayWithBuffer, NewArrayBuffer, NewArrayBufferWithContents,
-    StealArrayBufferContents,
+    JS_GetArrayBufferViewBuffer, JS_GetPendingException, JS_NewBigInt64ArrayWithBuffer,
+    JS_NewBigUint64ArrayWithBuffer, JS_NewDataView, JS_NewFloat16ArrayWithBuffer,
+    JS_NewFloat32ArrayWithBuffer, JS_NewFloat64ArrayWithBuffer, JS_NewInt8ArrayWithBuffer,
+    JS_NewInt16ArrayWithBuffer, JS_NewInt32ArrayWithBuffer, JS_NewUint8ArrayWithBuffer,
+    JS_NewUint8ClampedArrayWithBuffer, JS_NewUint16ArrayWithBuffer, JS_NewUint32ArrayWithBuffer,
+    NewArrayBuffer, NewArrayBufferWithContents, StealArrayBufferContents,
 };
 use js::rust::{
     CustomAutoRooterGuard, Handle, MutableHandleObject,
@@ -35,6 +34,7 @@ use js::typedarray::{
 
 use crate::codegen::GenericUnionTypes::ArrayBufferViewOrArrayBuffer;
 use crate::error::{Error, Fallible};
+use crate::js::JS_ClearPendingException;
 use crate::trace::RootedTraceableBox;
 
 pub(crate) type RootedTypedArray<T> = RootedTraceableBox<TypedArray<T, Box<Heap<*mut JSObject>>>>;

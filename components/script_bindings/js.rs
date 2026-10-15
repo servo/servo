@@ -71,6 +71,13 @@ pub fn JS_IsExceptionPending(cx: &mut JSContext) -> bool {
     unsafe { js::rust::wrappers2::JS_IsExceptionPending(cx) }
 }
 
+/// Safe wrapper around [`js::rust::wrappers2::JS_ClearPendingException`].
+#[allow(non_snake_case)]
+#[inline]
+pub fn JS_ClearPendingException(cx: &mut JSContext) {
+    unsafe { js::rust::wrappers2::JS_ClearPendingException(cx) }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

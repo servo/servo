@@ -25,7 +25,7 @@ use js::context::{JSContext, NoGC};
 use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsval::{JSVal, NullValue};
-use js::rust::wrappers2::{JS_ClearPendingException, JS_ParseJSON};
+use js::rust::wrappers2::JS_ParseJSON;
 use js::rust::{HandleObject, MutableHandleValue};
 use js::typedarray::{ArrayBufferU8, HeapArrayBuffer};
 use net_traits::blob_url_store::UrlWithBlobClaim;
@@ -38,6 +38,7 @@ use net_traits::{
     trim_http_whitespace,
 };
 use script_bindings::cell::DomRefCell;
+use script_bindings::js::JS_ClearPendingException;
 use script_bindings::num::Finite;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_bindings::trace::RootedTraceableBox;

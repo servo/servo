@@ -28,14 +28,15 @@ use js::jsval::{Int32Value, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::realm::CurrentRealm;
 use js::rust::wrappers2::{
     AddPromiseReactions, CallOriginalPromiseReject, CallOriginalPromiseResolve,
-    GetPromiseIsHandled, GetPromiseState, IsPromiseObject, JS_ClearPendingException,
-    JS_NewFunction, NewFunctionWithReserved, NewPromiseObject, RejectPromise, ResolvePromise,
-    SetAnyPromiseIsHandled, SetPromiseUserInputEventHandlingState,
+    GetPromiseIsHandled, GetPromiseState, IsPromiseObject, JS_NewFunction, NewFunctionWithReserved,
+    NewPromiseObject, RejectPromise, ResolvePromise, SetAnyPromiseIsHandled,
+    SetPromiseUserInputEventHandlingState,
 };
 use js::rust::{HandleObject, HandleValue, MutableHandleObject};
 use script_bindings::interfaces::{
     HeapTracedPromiseHelpers, PromiseHelpers, StackRootPromiseHelpers,
 };
+use script_bindings::js::JS_ClearPendingException;
 use script_bindings::permanent_root::PermanentRoot;
 use script_bindings::reflector::{DomObject, MutDomObject, Reflector};
 use script_bindings::settings_stack::run_a_script;
