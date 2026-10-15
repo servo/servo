@@ -33,7 +33,7 @@ use crate::fragment_tree::FragmentFlags;
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::AbsolutelyPositionedBox;
 use crate::style_ext::{ComputedValuesExt, DisplayGeneratingBox, DisplayInside, DisplayOutside};
-use crate::table::{AnonymousTableContent, Table};
+use crate::table::{AnonymousTableContent, AnonymousTableContentElement, Table};
 
 impl BlockFormattingContext {
     pub(crate) fn construct(
@@ -425,12 +425,14 @@ impl<'dom> TraversalHandler<'dom> for BlockContainerBuilder<'dom, '_> {
             },
             DisplayGeneratingBox::LayoutInternal(_) => {
                 self.anonymous_table_content
-                    .push(AnonymousTableContent::Element {
-                        info: info.clone(),
-                        display,
-                        contents,
-                        box_slot,
-                    });
+                    .push(AnonymousTableContent::Element(Box::new(
+                        AnonymousTableContentElement {
+                            info: info.clone(),
+                            display,
+                            contents,
+                            box_slot,
+                        },
+                    )));
             },
         }
     }
