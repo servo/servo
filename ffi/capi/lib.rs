@@ -32,6 +32,36 @@ pub use preferences::ServoPreferences;
 use servo_api::protocol_handler::ProtocolRegistry;
 use servo_delegate::{ServoDelegate, make_servo_delegate};
 
+/// Writes `value` into a caller-provided NUL-terminated UTF-8 buffer using the
+/// buffer-query pattern shared by the C API's string getters.
+///
+/// Returns the number of bytes required to store `value` including the trailing
+/// NUL terminator, so an embedder can first query the required length by
+/// passing `NULL` (or a too-small buffer) and then call again with a big enough
+/// buffer. Nothing is written when `buffer` is `NULL` or `buffer_len` is smaller
+/// than the required size.
+///
+/// # Safety
+///
+/// If `buffer` is non-`NULL`, it must point to at least `buffer_len` writable
+/// bytes. This is the single implementation behind every string getter in this
+/// crate, so the safety contract only has to be upheld in one place.
+pub(crate) unsafe fn write_c_string(value: &str, buffer: *mut c_char, buffer_len: usize) -> usize {
+    let required = value.len() + 1;
+    if buffer.is_null() || buffer_len < required {
+        return required;
+    }
+
+    // SAFETY: The caller guarantees that `buffer` is valid for writes of at
+    // least `buffer_len >= required` bytes.
+    unsafe {
+        std::ptr::copy_nonoverlapping(value.as_ptr(), buffer.cast::<u8>(), value.len());
+        *buffer.add(value.len()) = 0;
+    }
+
+    required
+}
+
 // Re-export cursor and console constants from webview_delegate
 pub use webview_delegate::{
     SERVO_CONSOLE_LOG_LEVEL_DEBUG, SERVO_CONSOLE_LOG_LEVEL_ERROR, SERVO_CONSOLE_LOG_LEVEL_INFO,

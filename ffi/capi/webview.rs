@@ -17,7 +17,7 @@ use embedder_traits::input_events::{
     WheelMode,
 };
 
-use crate::ServoError;
+use crate::{ServoError, write_c_string};
 
 /// Corresponds to [`servo_api::Theme::Light`].
 pub const SERVO_THEME_LIGHT: c_int = 0;
@@ -81,33 +81,6 @@ pub const SERVO_MEDIA_SESSION_ACTION_PREVIOUS_TRACK: c_int = 4;
 pub const SERVO_MEDIA_SESSION_ACTION_NEXT_TRACK: c_int = 5;
 pub const SERVO_MEDIA_SESSION_ACTION_SKIP_AD: c_int = 6;
 pub const SERVO_MEDIA_SESSION_ACTION_STOP: c_int = 7;
-
-/// Writes `value` into a caller-provided NUL terminated UTF-8 buffer.
-///
-/// Returns the number of bytes required to store `value` including the
-/// trailing NUL terminator. This allows the embedder to first query the
-/// required length by passing `NULL` (or a too-small buffer) and then call
-/// again with a large enough buffer.
-///
-/// # Safety
-///
-/// If `buffer` is non-`NULL`, it must point to at least `buffer_len` writable
-/// bytes.
-unsafe fn write_c_string(value: &str, buffer: *mut c_char, buffer_len: usize) -> usize {
-    let required = value.len() + 1;
-    if buffer.is_null() || buffer_len < required {
-        return required;
-    }
-
-    // SAFETY: The caller guarantees that `buffer` is valid for writes of at
-    // least `buffer_len >= required` bytes.
-    unsafe {
-        std::ptr::copy_nonoverlapping(value.as_ptr(), buffer.cast::<u8>(), value.len());
-        *buffer.add(value.len()) = 0;
-    }
-
-    required
-}
 
 use crate::rendering_context::RenderingContext;
 use crate::webview_delegate::ServoWebViewDelegate;

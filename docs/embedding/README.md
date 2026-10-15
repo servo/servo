@@ -33,6 +33,7 @@ below.
 | [CEF_PARITY.md](CEF_PARITY.md) | Mapping between the Servo C API and the CEF (Chromium Embedded Framework) API, and the gaps between them. |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | How `servo-capi`, libservo, `servoshell` and the event-loop model fit together. |
 | [ROADMAP.md](ROADMAP.md) | Planned work to grow the embedding API toward feature parity. |
+| [PRODUCTION_READINESS.md](PRODUCTION_READINESS.md) | Honest assessment of whether Servo is production ready / Blink-CEF-class, platform and security posture, and the realistic path forward. |
 | [ABI_STABILITY.md](ABI_STABILITY.md) | Versioning and source/ABI compatibility guarantees for `servo-capi`. |
 | [C_API_GUIDE.md](C_API_GUIDE.md) | Practical, task-oriented guide for C/C++ embedders, including a complete example. |
 | [CONTRIBUTING_EMBEDDING.md](CONTRIBUTING_EMBEDDING.md) | How to add or change C API functions safely and get them reviewed and tested. |

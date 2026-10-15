@@ -11,7 +11,7 @@ use std::ffi::{CStr, c_char};
 use base64::Engine;
 use servo_api::JSValue;
 
-use crate::ServoError;
+use crate::{ServoError, write_c_string};
 
 /// Value type constants matching CEF's CefValueType.
 #[repr(i32)]
@@ -586,7 +586,16 @@ pub unsafe extern "C" fn servo_value_set_binary(
         if data.is_null() && len > 0 {
             return ServoError::NullArgument;
         }
-        let vec = unsafe { std::slice::from_raw_parts(data, len).to_vec() };
+        // `std::slice::from_raw_parts` requires a non-null, aligned pointer even
+        // when `len` is zero, so a `NULL` `data` with `len == 0` is handled
+        // separately instead of being passed to it (which would be UB).
+        let vec = if data.is_null() {
+            Vec::new()
+        } else {
+            // SAFETY: `data` is non-null (checked above) and, per this function's
+            // contract, points to at least `len` readable bytes.
+            unsafe { std::slice::from_raw_parts(data, len).to_vec() }
+        };
         let value = unsafe { &mut *value };
         value.set_binary(vec);
         ServoError::Ok
@@ -894,27 +903,4 @@ pub unsafe extern "C" fn servo_value_to_json(
     let value = unsafe { &*value };
     let json = value.to_json_string();
     unsafe { write_c_string(&json, buffer, buffer_len) }
-}
-
-/// Writes `value` into a caller-provided NUL terminated UTF-8 buffer.
-///
-/// Returns the number of bytes required to store `value` including the
-/// trailing NUL terminator. This allows the embedder to first query the
-/// required length by passing `NULL` (or a too-small buffer) and then call
-/// again with a large enough buffer.
-///
-/// # Safety
-///
-/// If `buffer` is non-`NULL`, it must point to at least `buffer_len` writable
-/// bytes.
-unsafe fn write_c_string(value: &str, buffer: *mut c_char, buffer_len: usize) -> usize {
-    let required = value.len() + 1;
-    if buffer.is_null() || buffer_len < required {
-        return required;
-    }
-    unsafe {
-        std::ptr::copy_nonoverlapping(value.as_ptr(), buffer.cast::<u8>(), value.len());
-        *buffer.add(value.len()) = 0;
-    }
-    required
 }

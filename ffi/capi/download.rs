@@ -7,7 +7,7 @@ use std::ffi::{c_char, c_void};
 use servo_api::{DownloadItem, DownloadState};
 use url::Url;
 
-use crate::ServoError;
+use crate::{ServoError, write_c_string};
 
 /// C-compatible constants for download states.
 pub const SERVO_DOWNLOAD_IN_PROGRESS: i32 = 0;
@@ -105,25 +105,6 @@ pub type ServoDownloadContinueCallback =
 /// `user_data` is the user data from the delegate.
 pub type ServoDownloadUpdatedCallback =
     Option<unsafe extern "C" fn(download: *mut ServoDownloadItem, user_data: *mut c_void)>;
-
-/// Writes a C string into a buffer using the buffer-query pattern.
-///
-/// Returns the number of bytes required (including NUL terminator).
-/// If `buffer` is NULL or `buffer_len` is too small, nothing is written
-/// and the required size is returned.
-unsafe fn write_c_string(value: &str, buffer: *mut c_char, buffer_len: usize) -> usize {
-    let required = value.len() + 1;
-    if buffer.is_null() || buffer_len < required {
-        return required;
-    }
-    // SAFETY: The caller guarantees that `buffer` is valid for writes of at
-    // least `buffer_len >= required` bytes.
-    unsafe {
-        std::ptr::copy_nonoverlapping(value.as_ptr(), buffer.cast::<u8>(), value.len());
-        *buffer.add(value.len()) = 0;
-    }
-    required
-}
 
 /// Gets the URL of the download item.
 ///
