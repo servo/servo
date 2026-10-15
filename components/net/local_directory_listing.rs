@@ -4,6 +4,7 @@
 
 use std::fs::Metadata;
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use chrono::{DateTime, Local};
 use embedder_traits::resources::{Resource, read_string};
@@ -41,7 +42,8 @@ pub(crate) async fn fetch(request: &mut Request, url: ServoUrl, path_buf: PathBu
     let output = build_html_directory_listing(url.as_url(), path_buf, directory_contents).await;
 
     let mut response = Response::new(url, ResourceFetchTiming::new(request.timing_type()));
-    response.headers.typed_insert(ContentType::html());
+    let headers = &mut Arc::get_mut(&mut response.headers).expect("Just created").0;
+    headers.typed_insert(ContentType::html());
     *response.body.lock() = ResponseBody::Done(output.into_bytes());
 
     response

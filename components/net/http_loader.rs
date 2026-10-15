@@ -31,6 +31,7 @@ use hyper::Response as HyperResponse;
 use hyper::body::{Bytes, Frame};
 use hyper::ext::ReasonPhrase;
 use hyper::header::{HeaderName, TRANSFER_ENCODING};
+use hyper_serde::Serde;
 use ipc_channel::IpcError;
 use ipc_channel::ipc::{self, IpcSender};
 use ipc_channel::router::ROUTER;
@@ -2326,7 +2327,7 @@ async fn http_network_fetch(
         response_stream.status(),
         request.url()
     );
-    response.headers = response_stream.headers().clone();
+    response.headers = StdArc::new(Serde(response_stream.headers().clone()));
     response.referrer = request.referrer.to_url().cloned();
     response.referrer_policy = request.referrer_policy;
 
@@ -2422,7 +2423,7 @@ async fn http_network_fetch(
                 *body = ResponseBody::Done(completed_body);
                 #[cfg(feature = "devtools")]
                 send_response_values_to_devtools(
-                    Some(headers),
+                    Some(StdArc::unwrap_or_clone(headers).0),
                     status,
                     devtools_response_body,
                     CacheState::None,
