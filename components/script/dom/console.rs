@@ -28,13 +28,14 @@ use js::rust::wrappers2::{
     JS_ValueToFunction, MapEntries, MapSize,
 };
 use js::rust::wrappers2::{
-    GetBuiltinClass, GetPropertyKeys, JS_ClearPendingException, JS_GetOwnPropertyDescriptorById,
-    JS_GetPropertyById, JS_GetPrototype, JS_IdToValue, JS_Stringify, JS_ValueToSource,
+    GetBuiltinClass, GetPropertyKeys, JS_GetOwnPropertyDescriptorById, JS_GetPropertyById,
+    JS_GetPrototype, JS_IdToValue, JS_Stringify, JS_ValueToSource,
 };
 #[cfg(feature = "devtools")]
 use js::rust::{CapturedJSStack, describe_scripted_caller, for_of};
 use js::rust::{HandleObject, HandleValue, IdVector, ToNumber, ToString};
 use script_bindings::conversions::get_dom_class;
+use script_bindings::js::JS_ClearPendingException;
 
 use crate::dom::bindings::codegen::Bindings::ConsoleBinding::consoleMethods;
 #[cfg(feature = "devtools")]
@@ -766,7 +767,7 @@ fn apply_sprintf_substitutions(cx: &mut JSContext, messages: &[HandleValue]) -> 
                 if arg_index < messages.len() {
                     let num = unsafe { ToNumber(cx, messages[arg_index]) };
                     if num.is_err() {
-                        unsafe { JS_ClearPendingException(cx) };
+                        JS_ClearPendingException(cx);
                     }
                     arg_index += 1;
                     format_integer_substitution(&mut result, num);
@@ -780,7 +781,7 @@ fn apply_sprintf_substitutions(cx: &mut JSContext, messages: &[HandleValue]) -> 
                 if arg_index < messages.len() {
                     let num = unsafe { ToNumber(cx, messages[arg_index]) };
                     if num.is_err() {
-                        unsafe { JS_ClearPendingException(cx) };
+                        JS_ClearPendingException(cx);
                     }
                     arg_index += 1;
                     format_float_substitution(&mut result, num);

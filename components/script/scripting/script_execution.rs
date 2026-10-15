@@ -16,13 +16,14 @@ use js::jsapi::{
 use js::jsval::{PrivateValue, UndefinedValue};
 use js::panic::maybe_resume_unwind;
 use js::rust::wrappers2::{
-    Compile1, JS_ClearPendingException, JS_ExecuteScript, JS_GetScriptPrivate,
-    JS_IsExceptionPending, ModuleEvaluate, ThrowOnModuleEvaluationFailure,
+    Compile1, JS_ExecuteScript, JS_GetScriptPrivate, JS_IsExceptionPending,
+    ModuleEvaluate, ThrowOnModuleEvaluationFailure,
 };
 use js::rust::{
     CompileOptionsWrapper, HandleValue, MutableHandleValue, transform_str_to_source_text,
 };
 use script_bindings::cformat;
+use script_bindings::js::JS_ClearPendingException;
 use script_bindings::js::JS_SetPendingException;
 use script_bindings::settings_stack::run_a_script;
 use script_bindings::trace::RootedTraceableBox;
@@ -195,7 +196,7 @@ impl GlobalScope {
                     },
                     (RethrowErrors::Yes, true) => {
                         // Step 8.2. If rethrow errors is true and script's muted errors is true, then:
-                        unsafe { JS_ClearPendingException(cx) };
+                        JS_ClearPendingException(cx);
                         // Throw a "NetworkError" DOMException.
                         return Err(Error::Network(None));
                     },
@@ -207,7 +208,7 @@ impl GlobalScope {
                         return Err(Error::JSFailed);
                     },
                     (RethrowErrors::No, true) => {
-                        unsafe { JS_ClearPendingException(cx) };
+                        JS_ClearPendingException(cx);
                         self.report_an_error(
                             cx,
                             ErrorInfo {

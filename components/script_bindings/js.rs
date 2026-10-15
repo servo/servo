@@ -53,6 +53,13 @@ pub fn JS_DefineProperty(
     unsafe { js::rust::wrappers2::JS_DefineProperty(cx, obj, name.as_ptr(), value, attrs) }
 }
 
+/// Safe wrapper around [`js::rust::wrappers2::JS_ClearPendingException`].
+#[allow(non_snake_case)]
+#[inline]
+pub fn JS_ClearPendingException(cx: &JSContext) {
+    unsafe { js::rust::wrappers2::JS_ClearPendingException(cx) }
+}
+
 /// Safe wrapper around [`js::rust::wrappers2::JS_SetPendingException`].
 #[allow(non_snake_case)]
 #[inline]
