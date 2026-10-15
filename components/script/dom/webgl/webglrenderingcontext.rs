@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::borrow::Cow;
 use std::cell::Cell;
 use std::rc::Rc;
 use std::{cmp, ptr};
@@ -134,6 +135,16 @@ bitflags! {
     }
 }
 
+/// WebGL 2 `UNPACK_*` pixel store state that selects a block of client memory.
+#[derive(Clone, Copy, Default, JSTraceable, MallocSizeOf, PartialEq)]
+pub(crate) struct UnpackLayout {
+    pub(crate) row_length: u32,
+    pub(crate) image_height: u32,
+    pub(crate) skip_pixels: u32,
+    pub(crate) skip_rows: u32,
+    pub(crate) skip_images: u32,
+}
+
 #[derive(Clone, Copy, Debug, JSTraceable, MallocSizeOf)]
 pub(crate) enum VertexAttrib {
     Float(f32, f32, f32, f32),
@@ -177,6 +188,7 @@ pub(crate) struct WebGLRenderingContext {
     texture_unpacking_settings: Cell<TextureUnpacking>,
     // TODO(nox): Should be Cell<u8>.
     texture_unpacking_alignment: Cell<u32>,
+    texture_unpack_layout: Cell<UnpackLayout>,
     bound_draw_framebuffer: MutNullableDom<WebGLFramebuffer>,
     // TODO(mmatyas): This was introduced in WebGL2, but listed here because it's used by
     // Textures and Renderbuffers, but such WebGLObjects have access only to the GL1 context.
@@ -246,6 +258,7 @@ impl WebGLRenderingContext {
                 texture_packing_alignment: Cell::new(4),
                 texture_unpacking_settings: Cell::new(TextureUnpacking::CONVERT_COLORSPACE),
                 texture_unpacking_alignment: Cell::new(4),
+                texture_unpack_layout: Cell::default(),
                 bound_draw_framebuffer: MutNullableDom::new(None),
                 bound_read_framebuffer: MutNullableDom::new(None),
                 bound_buffer_array: MutNullableDom::new(None),
@@ -361,6 +374,104 @@ impl WebGLRenderingContext {
 
     pub(crate) fn texture_unpacking_alignment(&self) -> u32 {
         self.texture_unpacking_alignment.get()
+    }
+
+    pub(crate) fn texture_unpack_layout(&self) -> UnpackLayout {
+        self.texture_unpack_layout.get()
+    }
+
+    pub(crate) fn set_texture_unpack_layout(&self, layout: UnpackLayout) {
+        self.texture_unpack_layout.set(layout);
+    }
+
+    /// Copies a `width` x `height` x `depth` block of `cpp`-byte pixels out of `data` under the
+    /// unpack layout, as rows padded to the unpack alignment; `None` depth is a 2D upload.
+    /// Generates `INVALID_OPERATION` when the block does not fit.
+    pub(crate) fn unpack_block<'a>(
+        &self,
+        data: &'a [u8],
+        width: u32,
+        height: u32,
+        depth: Option<u32>,
+        cpp: u32,
+    ) -> Result<Cow<'a, [u8]>, ()> {
+        let mut layout = self.texture_unpack_layout.get();
+        if depth.is_none() {
+            layout.image_height = 0;
+            layout.skip_images = 0;
+        }
+        if layout == UnpackLayout::default() {
+            return Ok(Cow::Borrowed(data));
+        }
+        // <https://registry.khronos.org/webgl/specs/latest/2.0/#PIXEL_STORE_PARAM_CONSTRAINTS>
+        let data_store_width = if layout.row_length > 0 {
+            layout.row_length
+        } else {
+            width
+        };
+        let data_store_height = if layout.image_height > 0 {
+            layout.image_height
+        } else {
+            height
+        };
+        if layout.skip_pixels + width > data_store_width ||
+            (depth.is_some() && layout.skip_rows + height > data_store_height)
+        {
+            self.webgl_error(InvalidOperation);
+            return Err(());
+        }
+        let depth = depth.unwrap_or(1);
+        if width == 0 || height == 0 || depth == 0 {
+            return Ok(Cow::Borrowed(&[]));
+        }
+
+        let alignment = self.texture_unpacking_alignment.get() as usize;
+        let align = |bytes: usize| bytes.div_ceil(alignment).checked_mul(alignment);
+        let (width, height, depth, cpp) = (
+            width as usize,
+            height as usize,
+            depth as usize,
+            cpp as usize,
+        );
+        let row_pixels = if layout.row_length > 0 {
+            layout.row_length as usize
+        } else {
+            width
+        };
+        let image_rows = if layout.image_height > 0 {
+            layout.image_height as usize
+        } else {
+            height
+        };
+        let row_bytes = width * cpp;
+        // The layout values are bounded only by `i32::MAX`, so the source offsets can overflow.
+        let source = (|| {
+            let src_stride = align(row_pixels.checked_mul(cpp)?)?;
+            let src_image = src_stride.checked_mul(image_rows)?;
+            let start = (layout.skip_images as usize)
+                .checked_mul(src_image)?
+                .checked_add((layout.skip_rows as usize).checked_mul(src_stride)?)?
+                .checked_add((layout.skip_pixels as usize).checked_mul(cpp)?)?;
+            let required = start
+                .checked_add((depth - 1).checked_mul(src_image)?)?
+                .checked_add((height - 1).checked_mul(src_stride)?)?
+                .checked_add(row_bytes)?;
+            (required <= data.len()).then_some((src_stride, src_image, start, align(row_bytes)?))
+        })();
+        let Some((src_stride, src_image, start, dst_stride)) = source else {
+            self.webgl_error(InvalidOperation);
+            return Err(());
+        };
+
+        let mut block = vec![0; dst_stride * height * depth];
+        for image in 0..depth {
+            for row in 0..height {
+                let src = start + image * src_image + row * src_stride;
+                let dst = (image * height + row) * dst_stride;
+                block[dst..dst + row_bytes].copy_from_slice(&data[src..src + row_bytes]);
+            }
+        }
+        Ok(Cow::Owned(block))
     }
 
     pub(crate) fn bound_draw_framebuffer(&self) -> Option<DomRoot<WebGLFramebuffer>> {
@@ -4605,7 +4716,17 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         let buff = match *pixels {
             None => GenericSharedMemory::from_byte(0, expected_byte_length as usize),
             Some(ref data) => {
-                GenericSharedMemory::from_bytes(data.as_slice_safe(no_gc).unwrap_or_default())
+                let block = match self.unpack_block(
+                    data.as_slice_safe(no_gc).unwrap_or_default(),
+                    width,
+                    height,
+                    None,
+                    bytes_per_pixel(format, data_type),
+                ) {
+                    Ok(block) => block,
+                    Err(()) => return Ok(()),
+                };
+                GenericSharedMemory::from_bytes(&block)
             },
         };
 
@@ -4796,14 +4917,25 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             Err(()) => return Ok(()),
         };
 
-        let buff = handle_potential_webgl_error!(
+        let data = handle_potential_webgl_error!(
             self,
             pixels
                 .as_ref()
-                .map(|p| GenericSharedMemory::from_bytes(p.as_slice_safe(no_gc).unwrap_or(&[])))
+                .map(|p| p.as_slice_safe(no_gc).unwrap_or(&[]))
                 .ok_or(InvalidValue),
             return Ok(())
         );
+        let block = match self.unpack_block(
+            data,
+            width,
+            height,
+            None,
+            bytes_per_pixel(format, data_type),
+        ) {
+            Ok(block) => block,
+            Err(()) => return Ok(()),
+        };
+        let buff = GenericSharedMemory::from_bytes(&block);
 
         // From the WebGL spec:
         //
@@ -5227,6 +5359,37 @@ impl TexPixels {
     pub(crate) fn into_shared_memory(self) -> GenericSharedMemory {
         self.data
     }
+
+    /// The `size` block at `origin`, or `None` if it does not fit. `origin` is counted in the
+    /// image as uploaded, so from the bottom when the rows are flipped.
+    pub(crate) fn sub_rect(self, origin: Point2D<u32>, size: Size2D<u32>) -> Option<Self> {
+        if origin.x.checked_add(size.width)? > self.size.width ||
+            origin.y.checked_add(size.height)? > self.size.height
+        {
+            return None;
+        }
+        if origin == Point2D::zero() && size == self.size {
+            return Some(self);
+        }
+        let image_width = self.size.width as usize;
+        let pixel_count = image_width * self.size.height as usize;
+        let bytes_per_pixel = self.data.len().checked_div(pixel_count).unwrap_or_default();
+        let top = match self.y_axis_treatment {
+            YAxisTreatment::AsIs => origin.y,
+            YAxisTreatment::Flipped => self.size.height - origin.y - size.height,
+        } as usize;
+        let row_bytes = size.width as usize * bytes_per_pixel;
+        let mut block = Vec::with_capacity(row_bytes * size.height as usize);
+        for row in top..top + size.height as usize {
+            let start = (row * image_width + origin.x as usize) * bytes_per_pixel;
+            block.extend_from_slice(&self.data[start..start + row_bytes]);
+        }
+        Some(Self {
+            data: GenericSharedMemory::from_vec(block),
+            size,
+            ..self
+        })
+    }
 }
 
 pub(crate) enum TexSource {
@@ -5251,4 +5414,9 @@ fn array_buffer_type_to_sized_type(type_: Type) -> Option<SizedDataType> {
         Type::Int64 |
         Type::Simd128 => None,
     }
+}
+
+/// The bytes one pixel of `format` and `data_type` takes in client memory.
+pub(crate) fn bytes_per_pixel(format: TexFormat, data_type: TexDataType) -> u32 {
+    data_type.element_size() * format.components() / data_type.components_per_element()
 }
