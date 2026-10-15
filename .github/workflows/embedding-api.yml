@@ -170,7 +170,7 @@ jobs:
           cbindgen --config ffi/capi/cbindgen.toml --output target/servo_capi.h ffi/capi
           test -s target/servo_capi.h
           # Verify exported symbols match the allowlist.
-          python3 -c "
+          python -c "
 import re, sys
 path='target/servo_capi.h'
 try:
