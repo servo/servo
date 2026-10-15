@@ -175,7 +175,7 @@ jobs:
 pass
 " 2>&1 | tail -1; echo 'check-placeholder'
           # Verify exported symbols match the allowlist using a Python script approach
-          cat > /tmp/check.py << 'PY'
+          python << 'PY'
 import re, sys
 path='target/servo_capi.h'
 try:
@@ -201,5 +201,4 @@ if extra or missing:
     sys.exit(1)
 print('symbols match (%d)'%len(sym))
 PY
-          python /tmp/check.py
           test $? -eq 0
