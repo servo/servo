@@ -1795,7 +1795,10 @@ impl WebViewDelegate for ServoWebViewDelegate {
             available_size: DeviceIntSize::new(geometry.available_width, geometry.available_height),
             window_rect: DeviceIntRect::new(
                 DeviceIntPoint::new(geometry.window_x, geometry.window_y),
-                DeviceIntSize::new(geometry.window_width, geometry.window_height),
+                DeviceIntPoint::new(
+                    geometry.window_x + geometry.window_width,
+                    geometry.window_y + geometry.window_height,
+                ),
             ),
         })
     }
