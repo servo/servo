@@ -61,6 +61,7 @@ use js::rust::wrappers2::{JS_AddInterruptCallback, JS_GC, SetWindowProxyClass};
 use layout_api::{LayoutConfig, LayoutFactory, RestyleReason, ScriptThreadFactory};
 use media::WindowGLContext;
 use metrics::MAX_TASK_NS;
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::fetch::fetch_controller::FetchController;
 use net_traits::image_cache::{ImageCacheFactory, ImageCacheResponseMessage};
 use net_traits::pub_domains::is_same_site;
@@ -4315,7 +4316,9 @@ impl ScriptThread {
 
         // Update the `url_list` of the incomplete load to track all redirects. This will be reflected
         // in the new `RequestBuilder` as well.
-        incomplete_load.url_list.push(metadata.final_url.clone());
+        incomplete_load.url_list.push(
+            UrlWithBlobClaim::from_url_without_having_claimed_blob(metadata.final_url.clone()),
+        );
 
         let mut request_builder = incomplete_load.request_builder();
         request_builder.referrer = metadata
