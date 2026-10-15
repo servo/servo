@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::OnceLock;
+
 use js::jsapi::JSObject;
 use script_bindings::proxyhandler;
 use servo_config::pref;
@@ -172,8 +174,17 @@ pub fn init() -> JSEngineSetup {
 
     // Create the global vtables used by the (generated) DOM
     // bindings to implement JS proxies.
-    RegisterBindings::RegisterProxyHandlers::<crate::DomTypeHolder>();
-    RegisterBindings::InitAllStatics::<crate::DomTypeHolder>();
+    //
+    // This initializes process-global static data that is independent of the
+    // JS engine, and that can therefore only be initialized once. The JS
+    // engine (and the `Servo` instance) is torn down and recreated whenever
+    // the embedder builds a new `Servo`, so multiple `script::init()` calls
+    // are possible in a single process.
+    static BINDINGS_INITIALIZED: OnceLock<()> = OnceLock::new();
+    BINDINGS_INITIALIZED.get_or_init(|| {
+        RegisterBindings::RegisterProxyHandlers::<crate::DomTypeHolder>();
+        RegisterBindings::InitAllStatics::<crate::DomTypeHolder>();
+    });
 
     unsafe {
         js::glue::InitializeMemoryReporter(Some(is_dom_object));
