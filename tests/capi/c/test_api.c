@@ -2016,6 +2016,148 @@ int test_webview_media_session(void)
     return 0;
 }
 
+/* Covers the user script APIs: creating scripts, adding/removing them from a
+ * `UserContentManager`, and using a script that has a source file. */
+int test_user_content_manager_scripts(void)
+{
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    struct ServoUserContentManager* manager = servo_user_content_manager_create(servo);
+    if (manager == NULL)
+        return 1;
+
+    struct ServoUserScript* script = servo_user_script_create("console.log('hi');", NULL);
+    if (script == NULL) {
+        servo_user_content_manager_free(manager);
+        return 1;
+    }
+
+    int ok = servo_user_content_manager_add_script(manager, script) == SERVO_ERROR_OK &&
+        servo_user_content_manager_remove_script(manager, script) == SERVO_ERROR_OK;
+
+    // A script with an associated source file.
+    struct ServoUserScript* script_file = servo_user_script_create("window.x = 1;", "test.js");
+    if (script_file == NULL) {
+        servo_user_script_free(script);
+        servo_user_content_manager_free(manager);
+        return 1;
+    }
+    ok = ok && servo_user_content_manager_add_script(manager, script_file) == SERVO_ERROR_OK;
+
+    servo_user_script_free(script_file);
+    servo_user_script_free(script);
+    servo_user_content_manager_free(manager);
+    return ok ? 0 : 1;
+}
+
+/* Covers the user stylesheet APIs: creating stylesheets and adding/removing
+ * them from a `UserContentManager`. */
+int test_user_content_manager_style_sheets(void)
+{
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    struct ServoUserContentManager* manager = servo_user_content_manager_create(servo);
+    if (manager == NULL)
+        return 1;
+
+    struct ServoUserStyleSheet* sheet =
+        servo_user_style_sheet_create("body { color: red; }", "about:blank");
+    if (sheet == NULL) {
+        servo_user_content_manager_free(manager);
+        return 1;
+    }
+
+    int ok = servo_user_content_manager_add_style_sheet(manager, sheet) == SERVO_ERROR_OK &&
+        servo_user_content_manager_remove_style_sheet(manager, sheet) == SERVO_ERROR_OK;
+
+    servo_user_style_sheet_free(sheet);
+    servo_user_content_manager_free(manager);
+    return ok ? 0 : 1;
+}
+
+/* Covers the null/invalid-argument error paths of the user content APIs. */
+int test_user_content_manager_null_arguments(void)
+{
+    if (servo_user_script_create(NULL, NULL) != NULL)
+        return 1;
+    if (servo_user_style_sheet_create(NULL, NULL) != NULL)
+        return 1;
+    if (servo_user_style_sheet_create("body {}", NULL) != NULL)
+        return 1;
+    if (servo_user_style_sheet_create("body {}", "not a valid url") != NULL)
+        return 1;
+
+    if (servo_user_script_free(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_user_style_sheet_free(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+
+    if (servo_user_content_manager_add_script(NULL, NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_user_content_manager_remove_script(NULL, NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_user_content_manager_add_style_sheet(NULL, NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_user_content_manager_remove_style_sheet(NULL, NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    return 0;
+}
+
+/* Covers the NetworkManager cache API using the buffer-query pattern:
+ * query the required length, allocate, then read the JSON array of keys. */
+int test_network_manager_cache(void)
+{
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    struct ServoNetworkManager* manager = servo_get_network_manager(servo);
+    if (manager == NULL)
+        return 1;
+
+    size_t required = servo_network_manager_get_cache_entries(manager, NULL, 0);
+    if (required < 2) {
+        servo_network_manager_free(manager);
+        return 1;
+    }
+
+    char* buffer = (char*)malloc(required);
+    if (buffer == NULL) {
+        servo_network_manager_free(manager);
+        return 1;
+    }
+
+    size_t written = servo_network_manager_get_cache_entries(manager, buffer, required);
+    int ok = written == required && buffer[0] == '[' && buffer[written - 2] == ']';
+    free(buffer);
+
+    // Clearing the cache must succeed and be safe to call repeatedly.
+    ok = ok &&
+        servo_network_manager_clear_cache(manager) == SERVO_ERROR_OK &&
+        servo_network_manager_clear_cache(manager) == SERVO_ERROR_OK;
+
+    servo_network_manager_free(manager);
+    return ok ? 0 : 1;
+}
+
+/* Covers the null-argument error paths of the NetworkManager API. */
+int test_network_manager_null_arguments(void)
+{
+    if (servo_get_network_manager(NULL) != NULL)
+        return 1;
+    if (servo_network_manager_free(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_network_manager_clear_cache(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_network_manager_get_cache_entries(NULL, NULL, 0) != 0)
+        return 1;
+    return 0;
+}
+
 int run_c_api_tests(void)
 {
     tests_run = 0;
@@ -2097,6 +2239,12 @@ int run_c_api_tests(void)
     RUN_TEST(test_webview_scroll);
     RUN_TEST(test_webview_ime);
     RUN_TEST(test_webview_media_session);
+
+    RUN_TEST(test_user_content_manager_scripts);
+    RUN_TEST(test_user_content_manager_style_sheets);
+    RUN_TEST(test_user_content_manager_null_arguments);
+    RUN_TEST(test_network_manager_cache);
+    RUN_TEST(test_network_manager_null_arguments);
 
     free_test_servo();
 

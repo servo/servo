@@ -302,7 +302,7 @@ impl ServoListValue {
     }
 }
 
-fn write_json_string(value: &str, output: &mut String) {
+pub(crate) fn write_json_string(value: &str, output: &mut String) {
     output.push('"');
     for character in value.chars() {
         match character {

@@ -9,6 +9,7 @@ mod find;
 mod javascript;
 mod message_router;
 mod multiprocess;
+mod network_manager;
 mod options;
 mod preferences;
 mod protocol_handler;
@@ -159,9 +160,12 @@ pub use javascript::{
 
 // Re-export user content manager types
 pub use user_content_manager::{
-    ServoUserContentManager, servo_user_content_manager_create,
-    servo_user_content_manager_enable_message_router,
-    servo_user_content_manager_free,
+    ServoUserContentManager, ServoUserScript, ServoUserStyleSheet,
+    servo_user_content_manager_add_script, servo_user_content_manager_add_style_sheet,
+    servo_user_content_manager_create, servo_user_content_manager_enable_message_router,
+    servo_user_content_manager_free, servo_user_content_manager_remove_script,
+    servo_user_content_manager_remove_style_sheet, servo_user_script_create,
+    servo_user_script_free, servo_user_style_sheet_create, servo_user_style_sheet_free,
     servo_webview_builder_set_user_content_manager,
 };
 
@@ -184,6 +188,12 @@ pub use protocol_handler::{
 
 // Re-export multiprocess functions
 pub use multiprocess::{servo_create_sandbox, servo_run_content_process};
+
+// Re-export network manager types and helpers
+pub use network_manager::{
+    ServoNetworkManager, servo_get_network_manager, servo_network_manager_clear_cache,
+    servo_network_manager_free, servo_network_manager_get_cache_entries,
+};
 
 // Re-export preferences types and helpers
 pub use preferences::{
