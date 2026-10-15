@@ -331,12 +331,17 @@ impl FontList {
         })
     }
 
-    /// Detect available fonts or fallback to a hardcoded list
+    /// Detect available fonts or fallback to a hardcoded list and sort the resulting list in a way
+    /// that allows `HarmonyOS` & `HMOS` font families to be placed at the front of the list.
+    /// The reason is optimization: the ordering of the list returned by `Fontations` is random,
+    /// so we pre-sort the list since we want to prioritize the use of HarmonyOS fonts.
     fn detect_installed_font_families() -> Vec<FontFamily> {
-        enumerate_font_files()
+        let mut families = enumerate_font_files()
             .inspect_err(|e| error!("Failed to enumerate font files due to `{e:?}`"))
             .map(get_system_font_families)
-            .unwrap_or_else(|_| FontList::fallback_font_families())
+            .unwrap_or_else(|_| FontList::fallback_font_families());
+        families.sort_by(|a, b| a.name.cmp(&b.name));
+        families
     }
 
     fn fallback_font_families() -> Vec<FontFamily> {
@@ -481,10 +486,7 @@ where
     }
 }
 
-/// Generate a list of candidate fonts and returns the list after sorting them: prioritize fonts whose family name contains `HarmonyOS` or `HMOS`.
-///
-/// The reason this is done is optimization: because the ordering returned by `fontations` (and therefore the generated FONT_LIST) is random,
-/// we want to prioritize `HarmonyOS` fonts during checks.
+/// Generate a list of candidate fallback fonts.
 ///
 /// TODO: in the future, consider other factors such as language. And use multithreading to improve performance.
 pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'static str> {
@@ -514,10 +516,6 @@ pub fn fallback_font_families(options: FallbackFontSelectionOptions) -> Vec<&'st
         },
     }
 
-    families.sort_by_key(|name| {
-        let is_priority = name.contains("HarmonyOS") || name.contains("HMOS");
-        (!is_priority, *name)
-    });
     families
 }
 

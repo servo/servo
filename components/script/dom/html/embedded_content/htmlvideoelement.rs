@@ -254,7 +254,7 @@ impl HTMLVideoElement {
         let image_cache = window.image_cache();
         let cache_result = image_cache.get_cached_image_status(
             poster_url.url(),
-            window.origin().immutable().clone(),
+            window.origin().immutable(),
             None,
         );
 

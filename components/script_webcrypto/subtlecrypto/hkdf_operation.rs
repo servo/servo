@@ -1,0 +1,163 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use hkdf::Hkdf;
+use js::context::JSContext;
+use script_bindings::codegen::GenericBindings::CryptoKeyBinding::{KeyType, KeyUsage};
+use script_bindings::codegen::GenericBindings::SubtleCryptoBinding::KeyFormat;
+use script_bindings::error::Error;
+use script_bindings::root::DomRoot;
+use sha1::Sha1;
+use sha2::{Sha256, Sha384, Sha512};
+
+use crate::cryptokey::{CryptoKey, Handle, KeyUsageSliceHelper};
+use crate::subtlecrypto::{
+    CryptoAlgorithm, HkdfParams, KeyAlgorithm, KeyAlgorithmAndDerivatives, NormalizedAlgorithm,
+};
+use crate::traits::Equivalence;
+
+/// <https://w3c.github.io/webcrypto/#hkdf-operations-derive-bits>
+pub(crate) fn derive_bits<D: Equivalence>(
+    normalized_algorithm: &HkdfParams,
+    key: &CryptoKey<D>,
+    length: Option<u32>,
+) -> Result<Vec<u8>, Error> {
+    // Step 1. If length is null or is not a multiple of 8, then throw an OperationError.
+    let Some(length) = length else {
+        return Err(Error::Operation(Some("length is null".into())));
+    };
+    if length % 8 != 0 {
+        return Err(Error::Operation(Some(
+            "length is not a multiple of 8".into(),
+        )));
+    };
+
+    // Step 2. Let hashLength be the length in bits of the output of the hash function identified by
+    // the hash member of normalizedAlgorithm.
+    let hash_length = match normalized_algorithm.hash.name() {
+        CryptoAlgorithm::Sha1 => 160,
+        CryptoAlgorithm::Sha256 => 256,
+        CryptoAlgorithm::Sha384 => 384,
+        CryptoAlgorithm::Sha512 => 512,
+        algorithm_name => {
+            return Err(Error::Operation(Some(format!(
+                "Invalid hash algorithm: {}",
+                algorithm_name.as_str()
+            ))));
+        },
+    };
+
+    // Step 3. If length is greater than 255 * hashLength, then throw an OperationError.
+    if length > 255 * hash_length {
+        return Err(Error::Operation(Some(
+            "length is greater than 255 * hashLength".into(),
+        )));
+    }
+
+    // Step 4. Let keyDerivationKey be the secret represented by the [[handle]] internal slot of key.
+    let Handle::HkdfSecret(key_derivation_key) = key.handle() else {
+        return Err(Error::Operation(Some(
+            "The [[handle]] internal slot is not from an HKDF key".into(),
+        )));
+    };
+
+    // Step 5. Let result be the result of performing the HKDF extract and then the HKDF expand
+    // step described in Section 2 of [RFC5869] using:
+    //     * the hash member of normalizedAlgorithm as Hash,
+    //     * keyDerivationKey as the input keying material, IKM,
+    //     * the salt member of normalizedAlgorithm as salt,
+    //     * the info member of normalizedAlgorithm as info,
+    //     * length divided by 8 as the value of L,
+    // Step 6. If the key derivation operation fails, then throw an OperationError.
+    let mut result = vec![0u8; length as usize / 8];
+    match normalized_algorithm.hash.name() {
+        CryptoAlgorithm::Sha1 => {
+            Hkdf::<Sha1>::new(Some(&normalized_algorithm.salt), key_derivation_key)
+                .expand(&normalized_algorithm.info, &mut result)
+                .map_err(|error| Error::Operation(Some(error.to_string())))?
+        },
+        CryptoAlgorithm::Sha256 => {
+            Hkdf::<Sha256>::new(Some(&normalized_algorithm.salt), key_derivation_key)
+                .expand(&normalized_algorithm.info, &mut result)
+                .map_err(|error| Error::Operation(Some(error.to_string())))?
+        },
+        CryptoAlgorithm::Sha384 => {
+            Hkdf::<Sha384>::new(Some(&normalized_algorithm.salt), key_derivation_key)
+                .expand(&normalized_algorithm.info, &mut result)
+                .map_err(|error| Error::Operation(Some(error.to_string())))?
+        },
+        CryptoAlgorithm::Sha512 => {
+            Hkdf::<Sha512>::new(Some(&normalized_algorithm.salt), key_derivation_key)
+                .expand(&normalized_algorithm.info, &mut result)
+                .map_err(|error| Error::Operation(Some(error.to_string())))?
+        },
+        algorithm_name => {
+            return Err(Error::Operation(Some(format!(
+                "Invalid hash algorithm: {}",
+                algorithm_name.as_str()
+            ))));
+        },
+    }
+
+    // Step 7. Return result.
+    Ok(result)
+}
+
+/// <https://w3c.github.io/webcrypto/#hkdf-operations-import-key>
+pub(crate) fn import_key<D: Equivalence>(
+    cx: &mut JSContext,
+    global: &D::GlobalScope,
+    format: KeyFormat,
+    key_data: &[u8],
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
+    // Step 1. Let keyData be the key data to be imported.
+
+    // Step 2. If format is "raw":
+    if matches!(format, KeyFormat::Raw | KeyFormat::Raw_secret) {
+        // Step 2.1. If usages contains a value that is not "deriveKey" or "deriveBits", then throw
+        // a SyntaxError.
+        usages.ensure_only_contain_entries_from(&[KeyUsage::DeriveKey, KeyUsage::DeriveBits])?;
+
+        // Step 2.2. If extractable is not false, then throw a SyntaxError.
+        if extractable {
+            return Err(Error::Syntax(Some("'extractable' is not false".into())));
+        }
+
+        // Step 2.3. Let key be a new CryptoKey representing the key data provided in keyData.
+        // Step 2.4. Set the [[type]] internal slot of key to "secret".
+        // Step 2.5. Let algorithm be a new KeyAlgorithm object.
+        // Step 2.6. Set the name attribute of algorithm to "HKDF".
+        // Step 2.7. Set the [[algorithm]] internal slot of key to algorithm.
+        let algorithm = KeyAlgorithm {
+            name: CryptoAlgorithm::Hkdf,
+        };
+        let key = CryptoKey::new(
+            cx,
+            global,
+            KeyType::Secret,
+            extractable,
+            KeyAlgorithmAndDerivatives::KeyAlgorithm(algorithm),
+            usages.normalized_value(),
+            Handle::HkdfSecret(key_data.to_vec().into()),
+        );
+
+        // Step 2.8. Return key.
+        Ok(key)
+    }
+    // Otherwise:
+    else {
+        // throw a NotSupportedError.
+        Err(Error::NotSupported(Some(
+            "Formats different than \"raw\" are unsupported".into(),
+        )))
+    }
+}
+
+/// <https://w3c.github.io/webcrypto/#hkdf-operations-get-key-length>
+pub(crate) fn get_key_length() -> Result<Option<u32>, Error> {
+    // Step 1. Return null.
+    Ok(None)
+}

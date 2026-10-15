@@ -14,20 +14,20 @@ use script_bindings::buffer_source::HeapBufferSource;
 use script_bindings::codegen::GenericBindings::CryptoBinding::{CryptoMethods, Wrap as CryptoWrap};
 use script_bindings::dom::MutNullableDom;
 use script_bindings::error::{Error, Fallible};
-use script_bindings::interfaces::SubtleCryptoHelpers;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use script_bindings::root::DomRoot;
 use script_bindings::str::DOMString;
 use script_bindings::trace::RootedTraceableBox;
 use uuid::Uuid;
 
+use crate::subtlecrypto::SubtleCrypto;
 use crate::traits::Equivalence;
 
 /// <https://w3c.github.io/webcrypto/#crypto-interface>
 #[dom_struct]
 pub struct Crypto<D: DomTypes> {
     reflector_: Reflector,
-    subtle: MutNullableDom<D::SubtleCrypto>,
+    subtle: MutNullableDom<SubtleCrypto<D>>,
 }
 
 impl<D> Crypto<D>
@@ -53,13 +53,13 @@ where
 
 impl<D> CryptoMethods<D> for Crypto<D>
 where
-    D: DomTypes,
+    D: Equivalence,
     Self: DomGlobalGeneric<D>,
 {
     /// <https://w3c.github.io/webcrypto/#dfn-Crypto-attribute-subtle>
-    fn Subtle(&self, cx: &mut JSContext) -> DomRoot<D::SubtleCrypto> {
+    fn Subtle(&self, cx: &mut JSContext) -> DomRoot<SubtleCrypto<D>> {
         self.subtle
-            .or_init(|| D::SubtleCrypto::new(cx, &*self.global_from_reflector()))
+            .or_init(|| SubtleCrypto::new(cx, &*self.global_from_reflector()))
     }
 
     /// <https://w3c.github.io/webcrypto/#Crypto-method-getRandomValues>

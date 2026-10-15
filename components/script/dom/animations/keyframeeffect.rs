@@ -14,9 +14,9 @@ use js::conversions::{
     ConversionResult, FromJSValConvertible, ToJSValConvertible, jsstr_to_string,
 };
 use js::gc::{HandleValue, RootedVec};
-use js::jsapi::{HandleId, Heap, JS_GetPropertyById, JSITER_OWNONLY, JSObject, JSPROP_ENUMERATE};
+use js::jsapi::{HandleId, Heap, JS_GetPropertyById, JSITER_OWNONLY, JSObject};
 use js::jsval::{ObjectValue, UndefinedValue};
-use js::rust::wrappers2::{GetPropertyKeys, JS_DefineProperty, JS_IdToValue, JS_NewObject};
+use js::rust::wrappers2::{GetPropertyKeys, JS_IdToValue, JS_NewObject};
 use js::rust::{
     ForOfIterationFailure, HandleObject, IdVector, IntoHandle, IntoMutableHandle, for_of,
 };
@@ -30,6 +30,7 @@ use script_bindings::codegen::GenericUnionTypes::UnrestrictedDoubleOrKeyframeEff
 use script_bindings::conversions::StringificationBehavior;
 use script_bindings::error::{Error, Fallible};
 use script_bindings::inheritance::Castable;
+use script_bindings::js::{JS_DefineProperty, PropertyFlags};
 use script_bindings::num::Finite;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_bindings::root::DomRoot;
@@ -210,15 +211,15 @@ impl KeyframeEffectMethods<crate::DomTypeHolder> for KeyframeEffect {
                     continue;
                 };
 
-                let success = unsafe {
-                    JS_DefineProperty(
-                        cx,
-                        output_keyframe.handle(),
-                        property_name.as_ptr(),
-                        value.handle(),
-                        JSPROP_ENUMERATE as u32,
-                    )
-                };
+                let success = JS_DefineProperty(
+                    cx,
+                    output_keyframe.handle(),
+                    &property_name,
+                    value.handle(),
+                    PropertyFlags::ENUMERABLE |
+                        PropertyFlags::WRITABLE |
+                        PropertyFlags::CONFIGURABLE,
+                );
                 if !success {
                     if cfg!(debug_assertions) {
                         unreachable!("Setting a property on output_keyframe should never fail");

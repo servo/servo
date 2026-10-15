@@ -1,0 +1,183 @@
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
+
+use aes::{Aes128, Aes192, Aes256};
+use cbc::cipher::block_padding::Pkcs7;
+use cbc::cipher::{BlockModeDecrypt, BlockModeEncrypt, KeyIvInit};
+use cbc::{Decryptor, Encryptor};
+use js::context::JSContext;
+use script_bindings::codegen::GenericBindings::CryptoKeyBinding::KeyUsage;
+use script_bindings::codegen::GenericBindings::SubtleCryptoBinding::KeyFormat;
+use script_bindings::error::Error;
+use script_bindings::root::DomRoot;
+
+use crate::cryptokey::{CryptoKey, Handle};
+use crate::subtlecrypto::aes_common::AesAlgorithm;
+use crate::subtlecrypto::{
+    AesCbcParams, AesDerivedKeyParams, AesKeyGenParams, ExportedKey, aes_common,
+};
+use crate::traits::Equivalence;
+
+/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-encrypt>
+pub(crate) fn encrypt<D: Equivalence>(
+    normalized_algorithm: &AesCbcParams,
+    key: &CryptoKey<D>,
+    plaintext: &[u8],
+) -> Result<Vec<u8>, Error> {
+    // Step 1. If the iv member of normalizedAlgorithm does not have a length of 16 bytes, then
+    // throw an OperationError.
+    if normalized_algorithm.iv.len() != 16 {
+        return Err(Error::Operation(Some(
+            "The initialization vector length is not 16 bytes".into(),
+        )));
+    }
+
+    // Step 2. Let paddedPlaintext be the result of adding padding octets to plaintext according to
+    // the procedure defined in Section 10.3 of [RFC2315], step 2, with a value of k of 16.
+    // Step 3. Let ciphertext be the result of performing the CBC Encryption operation described in
+    // Section 6.2 of [NIST-SP800-38A] using AES as the block cipher, the iv member of
+    // normalizedAlgorithm as the IV input parameter and paddedPlaintext as the input plaintext.
+    let iv = normalized_algorithm
+        .iv
+        .as_slice()
+        .try_into()
+        .map_err(|_| Error::Operation(Some("Invalid AES-CBC IV".into())))?;
+    let ciphertext = match key.handle() {
+        Handle::Aes128Key(key) => {
+            let encryptor = Encryptor::<Aes128>::new(key, &iv);
+            encryptor.encrypt_padded_vec::<Pkcs7>(plaintext)
+        },
+        Handle::Aes192Key(key) => {
+            let encryptor = Encryptor::<Aes192>::new(key, &iv);
+            encryptor.encrypt_padded_vec::<Pkcs7>(plaintext)
+        },
+        Handle::Aes256Key(key) => {
+            let encryptor = Encryptor::<Aes256>::new(key, &iv);
+            encryptor.encrypt_padded_vec::<Pkcs7>(plaintext)
+        },
+        _ => {
+            return Err(Error::Operation(Some(
+                "The key handle is not representing an AES key".to_string(),
+            )));
+        },
+    };
+
+    // Step 4. Return ciphertext.
+    Ok(ciphertext)
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-decrypt>
+pub(crate) fn decrypt<D: Equivalence>(
+    normalized_algorithm: &AesCbcParams,
+    key: &CryptoKey<D>,
+    ciphertext: &[u8],
+) -> Result<Vec<u8>, Error> {
+    // Step 1. If the iv member of normalizedAlgorithm does not have a length of 16 bytes, then
+    // throw an OperationError.
+    if normalized_algorithm.iv.len() != 16 {
+        return Err(Error::Operation(Some(
+            "The initialization vector length is not 16 bytes".into(),
+        )));
+    }
+
+    // Step 2. If the length of ciphertext is zero or is not a multiple of 16 bytes, then throw an
+    // OperationError.
+    if ciphertext.is_empty() {
+        return Err(Error::Operation(Some("The ciphertext is empty".into())));
+    }
+    if !ciphertext.len().is_multiple_of(16) {
+        return Err(Error::Operation(Some(
+            "The ciphertext length is not a multiple of 16 bytes".into(),
+        )));
+    }
+
+    // Step 3. Let paddedPlaintext be the result of performing the CBC Decryption operation
+    // described in Section 6.2 of [NIST-SP800-38A] using AES as the block cipher, the iv member of
+    // normalizedAlgorithm as the IV input parameter and ciphertext as the input ciphertext.
+    // Step 4. Let p be the value of the last octet of paddedPlaintext.
+    // Step 5. If p is zero or greater than 16, or if any of the last p octets of paddedPlaintext
+    // have a value which is not p, then throw an OperationError.
+    // Step 6. Let plaintext be the result of removing p octets from the end of paddedPlaintext.
+    let iv = normalized_algorithm
+        .iv
+        .as_slice()
+        .try_into()
+        .map_err(|_| Error::Operation(Some("Invalid AES-CBC IV".into())))?;
+    let plaintext = match key.handle() {
+        Handle::Aes128Key(key) => {
+            let decryptor = Decryptor::<Aes128>::new(key, &iv);
+            decryptor.decrypt_padded_vec::<Pkcs7>(ciphertext)
+        },
+        Handle::Aes192Key(key) => {
+            let decryptor = Decryptor::<Aes192>::new(key, &iv);
+            decryptor.decrypt_padded_vec::<Pkcs7>(ciphertext)
+        },
+        Handle::Aes256Key(key) => {
+            let decryptor = Decryptor::<Aes256>::new(key, &iv);
+            decryptor.decrypt_padded_vec::<Pkcs7>(ciphertext)
+        },
+        _ => {
+            return Err(Error::Operation(Some(
+                "The key handle is not representing an AES key".to_string(),
+            )));
+        },
+    }
+    .map_err(|_| Error::Operation(Some("Failed to perform AES-CBC decryption".into())))?;
+
+    // Step 7. Return plaintext.
+    Ok(plaintext)
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-generate-key>
+pub(crate) fn generate_key<D: Equivalence>(
+    cx: &mut JSContext,
+    global: &D::GlobalScope,
+    normalized_algorithm: &AesKeyGenParams,
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
+    aes_common::generate_key(
+        cx,
+        global,
+        AesAlgorithm::AesCbc,
+        normalized_algorithm,
+        extractable,
+        usages,
+    )
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-import-key>
+pub(crate) fn import_key<D: Equivalence>(
+    cx: &mut JSContext,
+    global: &D::GlobalScope,
+    format: KeyFormat,
+    key_data: &[u8],
+    extractable: bool,
+    usages: Vec<KeyUsage>,
+) -> Result<DomRoot<CryptoKey<D>>, Error> {
+    aes_common::import_key(
+        cx,
+        global,
+        AesAlgorithm::AesCbc,
+        format,
+        key_data,
+        extractable,
+        usages,
+    )
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-export-key>
+pub(crate) fn export_key<D: Equivalence>(
+    format: KeyFormat,
+    key: &CryptoKey<D>,
+) -> Result<ExportedKey, Error> {
+    aes_common::export_key(AesAlgorithm::AesCbc, format, key)
+}
+
+/// <https://w3c.github.io/webcrypto/#aes-cbc-operations-get-key-length>
+pub(crate) fn get_key_length(
+    normalized_derived_key_algorithm: &AesDerivedKeyParams,
+) -> Result<Option<u32>, Error> {
+    aes_common::get_key_length(normalized_derived_key_algorithm)
+}

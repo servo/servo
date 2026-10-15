@@ -894,7 +894,7 @@ impl Notification {
 
         let cache_result = global.image_cache().get_cached_image_status(
             request.url.url(),
-            global.origin().immutable().clone(),
+            global.origin().immutable(),
             None, // TODO: check which CORS should be used
         );
         match cache_result {

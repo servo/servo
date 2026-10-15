@@ -370,7 +370,7 @@ impl Font {
         let variation_axes = VariationAxes::from_platform_font(&handle);
 
         // Compute and apply the OpenType variations
-        let handle = if servo_config::pref!(layout_variable_fonts_enabled) &&
+        let handle = if servo_config::pref!(layout_css_font_variations_enabled) &&
             variation_axes.contains(VariationAxes::IS_VARIABLE)
         {
             let used_variations = compute_variations(&descriptor, &template, variation_axes);

@@ -66,7 +66,7 @@ impl HTMLOutputElement {
 
     pub(crate) fn reset(&self, cx: &mut JSContext) {
         Node::string_replace_all(cx, self.DefaultValue(), self.upcast::<Node>());
-        *self.default_value_override.borrow_mut() = None;
+        *self.default_value_override.safe_borrow_mut(cx.no_gc()) = None;
     }
 }
 
@@ -96,7 +96,7 @@ impl HTMLOutputElementMethods<crate::DomTypeHolder> for HTMLOutputElement {
             Node::string_replace_all(cx, value, self.upcast::<Node>());
         } else {
             // Step 2, if not returned from step 1
-            *self.default_value_override.borrow_mut() = Some(value);
+            *self.default_value_override.safe_borrow_mut(cx.no_gc()) = Some(value);
         }
     }
 
@@ -107,7 +107,7 @@ impl HTMLOutputElementMethods<crate::DomTypeHolder> for HTMLOutputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-output-value>
     fn SetValue(&self, cx: &mut JSContext, value: DOMString) {
-        *self.default_value_override.borrow_mut() = Some(self.DefaultValue());
+        *self.default_value_override.safe_borrow_mut(cx.no_gc()) = Some(self.DefaultValue());
         Node::string_replace_all(cx, value, self.upcast::<Node>());
     }
 

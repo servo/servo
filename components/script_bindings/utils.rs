@@ -10,7 +10,7 @@ use std::ptr::{self, NonNull};
 use std::slice;
 
 use js::context::{JSContext, RawJSContext};
-use js::conversions::{ToJSValConvertible, jsstr_to_string};
+use js::conversions::ToJSValConvertible;
 use js::gc::Handle;
 use js::glue::{JS_GetReservedSlot, RUST_FUNCTION_VALUE_TO_JITINFO};
 use js::jsapi::{
@@ -19,20 +19,19 @@ use js::jsapi::{
     HandleObject as RawHandleObject, Heap, JS_DeprecatedStringHasLatin1Chars,
     JS_GetLatin1StringCharsAndLength, JS_IsGlobalObject, JS_MayResolveStandardClass,
     JS_NewEnumerateStandardClasses, JS_ResolveStandardClass, JSAtom, JSAtomState, JSJitInfo,
-    JSObject, JSPROP_ENUMERATE, JSTracer, MutableHandleIdVector as RawMutableHandleIdVector,
+    JSObject, JSTracer, MutableHandleIdVector as RawMutableHandleIdVector,
     MutableHandleValue as RawMutableHandleValue, PropertyKey, StringIsArrayIndex, jsid,
 };
 use js::jsid::StringId;
 use js::jsval::{JSVal, UndefinedValue};
 use js::rust::wrappers2::{
     AppendToIdVector, CallJitGetterOp, CallJitMethodOp, CallJitSetterOp, CallOriginalPromiseReject,
-    JS_AtomizeStringN, JS_ClearPendingException, JS_DefineProperty, JS_ForwardGetPropertyTo,
-    JS_FreezeObject, JS_GetPendingException, JS_GetProperty, JS_GetPrototype, JS_HasOwnProperty,
-    JS_HasProperty, JS_HasPropertyById, JS_IsExceptionPending, JS_SetPendingException,
-    JS_SetProperty,
+    JS_AtomizeStringN, JS_ClearPendingException, JS_ForwardGetPropertyTo, JS_FreezeObject,
+    JS_GetPendingException, JS_GetProperty, JS_GetPrototype, JS_HasOwnProperty, JS_HasProperty,
+    JS_HasPropertyById, JS_IsExceptionPending, JS_SetProperty,
 };
 use js::rust::{
-    HandleId, HandleObject, HandleValue, MutableHandleValue, Runtime, ToString, get_object_class,
+    HandleId, HandleObject, HandleValue, MutableHandleValue, Runtime, get_object_class,
 };
 use js::{JS_CALLEE, rooted};
 use malloc_size_of::MallocSizeOfOps;
@@ -44,6 +43,7 @@ use crate::codegen::PrototypeList::{self, MAX_PROTO_CHAIN_LENGTH, PROTO_OR_IFACE
 use crate::conversions::{PrototypeCheck, private_from_proto_check};
 use crate::error::throw_invalid_this;
 use crate::interfaces::DomHelpers;
+use crate::js::{JS_DefineProperty, JS_SetPendingException, PropertyFlags};
 use crate::proxyhandler::{
     is_cross_origin_object, is_platform_object_same_origin, report_cross_origin_denial,
 };
@@ -217,18 +217,14 @@ pub(crate) fn find_enum_value<'a, T>(
     v: HandleValue,
     pairs: &'a [(&'static str, T)],
 ) -> Result<(Option<&'a T>, DOMString), ()> {
-    match NonNull::new(unsafe { ToString(cx, v) }) {
-        Some(jsstr) => {
-            let search = unsafe { jsstr_to_string(cx, jsstr) }.into();
-            Ok((
-                pairs
-                    .iter()
-                    .find(|&&(key, _)| search == key)
-                    .map(|(_, ev)| ev),
-                search,
-            ))
-        },
-        None => Err(()),
+    if let Ok(search) = DOMString::from_js_string(cx, v) {
+        let result = pairs
+            .iter()
+            .find(|(key, _)| search == *key)
+            .map(|(_, ev)| ev);
+        Ok((result, search))
+    } else {
+        Err(())
     }
 }
 
@@ -296,15 +292,13 @@ pub fn define_dictionary_property(
         return Err(());
     }
 
-    if unsafe {
-        !JS_DefineProperty(
-            cx,
-            object,
-            property.as_ptr(),
-            value,
-            JSPROP_ENUMERATE as u32,
-        )
-    } {
+    if !JS_DefineProperty(
+        cx,
+        object,
+        property,
+        value,
+        PropertyFlags::ENUMERABLE | PropertyFlags::WRITABLE | PropertyFlags::CONFIGURABLE,
+    ) {
         return Err(());
     }
 

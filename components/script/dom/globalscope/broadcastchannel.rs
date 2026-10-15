@@ -7,6 +7,7 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::{HandleObject, HandleValue};
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_constellation_traits::BroadcastChannelMsg;
 use uuid::Uuid;
@@ -23,7 +24,7 @@ use crate::dom::globalscope::GlobalScope;
 #[dom_struct]
 pub(crate) struct BroadcastChannel {
     eventtarget: EventTarget,
-    name: DOMString,
+    name: TracedDOMString,
     closed: Cell<bool>,
     #[no_trace]
     id: Uuid,
@@ -49,7 +50,7 @@ impl BroadcastChannel {
     pub(crate) fn new_inherited(name: DOMString) -> BroadcastChannel {
         BroadcastChannel {
             eventtarget: EventTarget::new_inherited(),
-            name,
+            name: name.traced(),
             closed: Default::default(),
             id: Uuid::new_v4(),
         }
@@ -104,7 +105,7 @@ impl BroadcastChannelMethods<crate::DomTypeHolder> for BroadcastChannel {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-broadcastchannel-name>
     fn Name(&self) -> DOMString {
-        self.name.clone()
+        self.name.clone().root()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-broadcastchannel-close>

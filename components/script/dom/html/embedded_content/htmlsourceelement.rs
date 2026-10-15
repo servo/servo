@@ -180,7 +180,6 @@ impl VirtualMethods for HTMLSourceElement {
         // Step 1. If oldParent is a picture element, then for each child of oldParent's children,
         // if child is an img element, then count this as a relevant mutation for child.
         if context.parent.is::<HTMLPictureElement>() &&
-            !self.upcast::<Node>().has_parent() &&
             let Some(next_sibling) = context.next_sibling
         {
             let next_sibling_iterator = next_sibling.inclusively_following_siblings();

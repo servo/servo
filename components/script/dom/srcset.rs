@@ -137,15 +137,23 @@ impl SourceSet {
     /// <https://html.spec.whatwg.org/multipage/#update-the-source-set>
     pub fn update_source_set(&mut self, no_gc: &NoGC, el: &Element) {
         // Step 1. Set el's source set to an empty source set.
-        // Step 2. Let elements be « el ».
-        // Step 3. If el is an img element whose parent node is a picture element, then replace the
-        // contents of elements with el's parent node's child elements, retaining relative order.
-        // Step 4. Let img be el if el is an img element, otherwise null.
+        // Step 3. Let img be null.
+        // Step 4.1. Set img to el.
         let img = el.downcast::<HTMLImageElement>();
+        // Step 4. If el is an img element:
+        if let Some(image) = img {
+            // Step 4.2. Set el's dimension attribute source to el.
+            image.set_dimension_attribute_source(no_gc, Some(el));
+        }
         let parent = el.upcast::<Node>().GetParentElement();
+        // Step 2. Let elements be « el ».
         let elements = match parent.as_ref() {
             Some(p) => {
+                // Step 4.3. If el's parent node is a picture element:
                 if p.is::<HTMLPictureElement>() {
+                    debug_assert!(img.is_some());
+                    // Step 4.3.1. Replace the contents of elements with el's parent
+                    // node's child elements, retaining relative order.
                     p.upcast::<Node>()
                         .children_unrooted(no_gc)
                         .filter_map(UnrootedDom::downcast::<Element>)
@@ -259,16 +267,13 @@ impl SourceSet {
                 continue;
             }
 
-            // Step 5.9. If child has width or height attributes, set el's dimension attribute
-            // source to child. Otherwise, set el's dimension attribute source to el.
-            if let Some(image) = img {
-                if child.has_attribute(&local_name!("width")) ||
-                    child.has_attribute(&local_name!("height"))
-                {
-                    image.set_dimension_attribute_source(Some(child));
-                } else {
-                    image.set_dimension_attribute_source(Some(el));
-                }
+            // Step 5.9. If child has width or height attributes,
+            // set el's dimension attribute source to child.
+            if let Some(image) = img &&
+                (child.has_attribute(&local_name!("width")) ||
+                    child.has_attribute(&local_name!("height")))
+            {
+                image.set_dimension_attribute_source(no_gc, Some(child));
             }
 
             let mut source_set = SourceSet {

@@ -787,7 +787,7 @@ impl HTMLLinkElement {
 
         let cache_result = window.image_cache().get_cached_image_status(
             href,
-            window.origin().immutable().clone(),
+            window.origin().immutable(),
             cors_setting_for_element(self.upcast()),
         );
 

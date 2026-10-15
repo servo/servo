@@ -3804,12 +3804,12 @@ let global = incumbent_global.reflector().get_jsobject();\n"""
                       if !get_${name}::<D>(cx.raw_cx(), obj, this, JSJitGetterCallArgs { _base: temp.handle_mut().into() }) {
                         return false;
                       }
-                      if !JS_DefineProperty(cx, result, ${nameAsArray}, temp.handle(), JSPROP_ENUMERATE as u32) {
+                      if !JS_DefineProperty(cx, result, ${nameAsArray}, temp.handle(), PropertyFlags::ENUMERABLE | PropertyFlags::WRITABLE | PropertyFlags::CONFIGURABLE) {
                         return false;
                       }
                     }
                     """,
-                    name=name, nameAsArray=str_to_cstr_ptr(name), conditions=ret_conditions)
+                    name=name, nameAsArray=str_to_cstr(name), conditions=ret_conditions)
         ret += 'true\n'
         return CGGeneric(ret)
 
@@ -3993,16 +3993,16 @@ assert!((*cache)[PrototypeList::Constructor::{properties['id']} as usize].is_nul
                                                    symbolJSID=symbolJSID))
                     defineFn = "JS_DefinePropertyById2"
                     prop = "iteratorId.handle()"
-                    enumFlags = "0"  # Not enumerable, per spec.
+                    enumFlags = "0 as u32"  # Not enumerable, per spec.
                 elif alias.startswith("@@"):
                     raise TypeError("Can't handle any well-known Symbol other than @@iterator")
                 else:
                     getSymbolJSID = None
                     defineFn = "JS_DefineProperty"
-                    prop = f'"{alias}"'
-                    enumFlags = "JSPROP_ENUMERATE"
-                if enumFlags != "0":
-                    enumFlags = f"{enumFlags} as u32"
+                    prop = str_to_cstr(alias)
+                    enumFlags = (
+                        "PropertyFlags::ENUMERABLE | PropertyFlags::WRITABLE | PropertyFlags::CONFIGURABLE"
+                    )
                 return CGList([
                     getSymbolJSID,
                     # XXX If we ever create non-enumerable properties that can
@@ -4965,13 +4965,13 @@ class CGSpecializedReplaceableSetter(CGSpecializedSetter):
 
     def definition_body(self) -> CGThing:
         assert self.attr.readonly
-        name = str_to_cstr_ptr(self.attr.identifier.name)
+        name = str_to_cstr(self.attr.identifier.name)
         # JS_DefineProperty can only deal with ASCII.
         assert all(ord(c) < 128 for c in name)
         return CGGeneric(f"""
 let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
 let cx = &mut cx;
-JS_DefineProperty(cx, HandleObject::from_raw(obj), {name}, HandleValue::from_raw(args.get(0)), JSPROP_ENUMERATE as u32)
+JS_DefineProperty(cx, HandleObject::from_raw(obj), {name}, HandleValue::from_raw(args.get(0)), PropertyFlags::ENUMERABLE | PropertyFlags::WRITABLE | PropertyFlags::CONFIGURABLE)
 """)
 
 
@@ -8059,19 +8059,25 @@ class CGStructuredCloneMarker(CGThing):
     """
     Generate a type assertion for inheritance
     """
-    def __init__(self, descriptor: Descriptor, marker: str) -> None:
+    def __init__(self, descriptor: Descriptor, marker: str, generic: bool = False) -> None:
         CGThing.__init__(self)
         self.descriptor = descriptor
         self.marker = marker
         self.marker_lower = marker.lower()
+        self.generic = generic
 
     def define(self) -> str:
         ifaceName = self.descriptor.interface.identifier.name
+        (generics, suffix) = ("<D: Equivalence>", "<D>") if self.generic else ("", "")
+        if self.generic:
+            functionCall = f"script_bindings::{self.marker_lower}::assert_{self.marker_lower}::<Self, D>;"
+        else:
+            functionCall = f"crate::dom::bindings::{self.marker_lower}::assert_{self.marker_lower}::<Self>;"
         return f"""
-impl script_bindings::structuredclone::MarkedAs{self.marker}InIdl for {ifaceName} {{
+impl{generics} script_bindings::structuredclone::MarkedAs{self.marker}InIdl for {ifaceName}{suffix} {{
     #[allow(path_statements)]
     fn assert_{self.marker_lower}() {{
-        crate::dom::bindings::{self.marker_lower}::assert_{self.marker_lower}::<Self>;
+        {functionCall}
     }}
 }}
 """
@@ -8137,7 +8143,7 @@ class CGConcreteBindingRoot(CGThing):
                 f"{originalBinding}::{c.identifier.name}<crate::DomTypeHolder>;"
             ) for c in mainCallbacks]
 
-        cgthings += [CGGeneric(f"pub(crate) use {originalBinding} as GenericBindings;")]
+            cgthings += [CGGeneric(f"pub(crate) use {originalBinding} as GenericBindings;")]
 
 
         for d in descriptors:
@@ -8166,7 +8172,7 @@ class CGConcreteBindingRoot(CGThing):
             # These are all things that will be generated in the subcrates
             for marker in ["Serializable", "Transferable"]:
                 if d.interface.getExtendedAttribute(marker):
-                    cgthings += [CGStructuredCloneMarker(d, marker)]
+                    cgthings += [CGStructuredCloneMarker(d, marker, generic = generic)]
 
             if d.concrete:
                 if not d.interface.isIteratorInterface():

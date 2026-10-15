@@ -288,7 +288,7 @@ impl HTMLImageElement {
 
         let cache_result = window.image_cache().get_cached_image_status(
             img_url.clone(),
-            window.origin().immutable().clone(),
+            window.origin().immutable(),
             cors_setting_for_element(self.upcast()),
         );
 
@@ -836,6 +836,12 @@ impl HTMLImageElement {
             // TODO Step 1.4. Queue a microtask to continue this algorithm.
         }
 
+        // TODO(https://github.com/whatwg/html/issues/8207): Add spec step once spec is aligned
+        // with implementations
+        self.source_set
+            .borrow_mut()
+            .update_source_set(cx.no_gc(), self.upcast::<Element>());
+
         // Step 2. If the user agent cannot support images, or its support for images has been
         // disabled, then abort the image request for the current request and the pending request,
         // set the current request's state to unavailable, set the pending request to null, and
@@ -946,12 +952,6 @@ impl HTMLImageElement {
             }
         }
 
-        // TODO(https://github.com/whatwg/html/issues/8207): Add spec step once spec is aligned
-        // with implementations
-        self.source_set
-            .borrow_mut()
-            .update_source_set(cx.no_gc(), self.upcast::<Element>());
-
         // Step 8. Queue a microtask to perform the rest of this algorithm, allowing the task that
         // invoked this algorithm to continue.
         let task = ImageElementMicrotask::UpdateImageData {
@@ -1040,7 +1040,7 @@ impl HTMLImageElement {
         let window = self.owner_window();
         let cache_result = window.image_cache().get_cached_image_status(
             image_url.clone(),
-            window.origin().immutable().clone(),
+            window.origin().immutable(),
             cors_setting_for_element(self.upcast()),
         );
 
@@ -1362,8 +1362,9 @@ impl HTMLImageElement {
             .ok()
     }
 
-    pub(crate) fn set_dimension_attribute_source(&self, value: Option<&Element>) {
-        self.dimension_attribute_source.set(value)
+    pub(crate) fn set_dimension_attribute_source(&self, no_gc: &NoGC, value: Option<&Element>) {
+        self.dimension_attribute_source.set(value);
+        self.upcast::<Node>().dirty(no_gc, NodeDamage::Other);
     }
 }
 

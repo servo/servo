@@ -6,6 +6,7 @@ use std::collections::{HashMap, VecDeque};
 
 use net_traits::filemanager_thread::{FileManagerResult, ReadFileProgress};
 use rustc_hash::{FxBuildHasher, FxHashMap};
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::refcounted::Trusted;
 use script_bindings::root::Dom;
 use servo_base::id::{BroadcastChannelRouterId, MessagePortId, MessagePortRouterId};
@@ -16,8 +17,8 @@ use uuid::Uuid;
 
 use crate::dom::GlobalScope;
 use crate::dom::bindings::error::{Error, Fallible};
+use crate::dom::bindings::refcounted::TrustedPromise;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::str::DOMString;
 use crate::dom::bindings::trace::HashMapTracedValues;
 use crate::dom::bindings::weakref::WeakRef;
 use crate::dom::blob::Blob;
@@ -29,7 +30,6 @@ use crate::dom::readablestream::ReadableStream;
 use crate::dom::transformstream::CrossRealmTransform;
 use crate::realms::enter_auto_realm;
 use crate::tasks::task_source::SendableTaskSource;
-use crate::test::TrustedPromise;
 
 /// A wrapper for glue-code between the ipc router and the event-loop.
 pub(super) struct MessageListener {
@@ -130,7 +130,7 @@ pub(super) enum BroadcastChannelState {
     Managed(
         #[no_trace] BroadcastChannelRouterId,
         /// The map of channel-name to queue of channels, in order of creation.
-        HashMap<DOMString, VecDeque<Dom<BroadcastChannel>>>,
+        HashMap<TracedDOMString, VecDeque<Dom<BroadcastChannel>>>,
     ),
     /// This global is not managing any broadcast channels at this time.
     UnManaged,

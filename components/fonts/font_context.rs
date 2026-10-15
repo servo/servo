@@ -488,7 +488,7 @@ impl FontContext {
                 return true;
             }
 
-            return pref!(layout_variable_fonts_enabled) &&
+            return pref!(layout_css_font_variations_enabled) &&
                 (string == "truetype-variations" ||
                     string == "opentype-variations" ||
                     string == "woff-variations" ||

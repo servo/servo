@@ -9,6 +9,7 @@ use dom_struct::dom_struct;
 use embedder_traits::SelectedFile;
 use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::reflect_weak_referenceable_dom_object_with_proto;
 use script_bindings::serializable::Serializable;
 use script_bindings::structuredclone::StructuredData;
@@ -30,7 +31,7 @@ use crate::dom::window::Window;
 #[dom_struct]
 pub(crate) struct File {
     blob: Blob,
-    name: DOMString,
+    name: TracedDOMString,
     modified: SystemTime,
     // TODO: This depends on the `webkitdirectory` from `HTMLInputElement`.
     // Then need to change `SelectedFile` in embedder,
@@ -47,7 +48,7 @@ impl File {
     ) -> File {
         File {
             blob: Blob::new_inherited(blob_impl),
-            name,
+            name: name.traced(),
             // https://w3c.github.io/FileAPI/#dfn-lastModified
             modified: modified.unwrap_or_else(SystemTime::now),
             webkit_relative_path,
@@ -127,7 +128,7 @@ impl File {
         self.blob.get_bytes()
     }
 
-    pub(crate) fn name(&self) -> &DOMString {
+    pub(crate) fn name(&self) -> &TracedDOMString {
         &self.name
     }
 
@@ -224,7 +225,7 @@ impl FileMethods<crate::DomTypeHolder> for File {
 
     /// <https://w3c.github.io/FileAPI/#dfn-name>
     fn Name(&self) -> DOMString {
-        self.name.clone()
+        self.name.clone().root()
     }
 
     /// <https://wicg.github.io/entries-api/#dom-file-webkitrelativepath>

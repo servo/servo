@@ -22,7 +22,9 @@ crossbeam-channel = { workspace = true }
 data-url = { workspace = true }
 encoding_rs = { workspace = true }
 euclid = { workspace = true }
+headers = { workspace = true }
 http = { workspace = true }
+hyper_serde = { workspace = true }
 icu_locale_core = { workspace = true }
 indexmap = { workspace = true }
 ipc-channel = { workspace = true }
@@ -33,6 +35,7 @@ memmap2 = { workspace = true }
 once_cell = { workspace = true }
 parking_lot = { workspace = true }
 resvg = { workspace = true }
+serde_core = { workspace = true }
 servo-allocator = { workspace = true }
 servo_arc = { workspace = true }
 smallvec = { workspace = true }

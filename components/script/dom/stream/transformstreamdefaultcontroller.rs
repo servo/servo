@@ -7,13 +7,12 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use js::jsapi::{
-    ExceptionStackBehavior, Heap, JS_IsExceptionPending, JS_SetPendingException, JSObject,
-};
+use js::jsapi::{ExceptionStackBehavior, Heap, JS_IsExceptionPending, JSObject};
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::{HandleObject as SafeHandleObject, HandleValue as SafeHandleValue};
 use script_bindings::cell::DomRefCell;
+use script_bindings::js::JS_SetPendingException;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::callback::{ExceptionHandling, TracedCallback};
@@ -609,8 +608,8 @@ impl TransformStreamDefaultController {
                     readable.get_stored_error(stored_error.handle_mut());
 
                     JS_SetPendingException(
-                        cx.raw_cx(),
-                        stored_error.handle().into(),
+                        cx,
+                        stored_error.handle(),
                         ExceptionStackBehavior::Capture,
                     );
                 }

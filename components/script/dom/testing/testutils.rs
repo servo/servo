@@ -9,9 +9,9 @@ use script_bindings::reflector::Reflector;
 
 use crate::dom::RootedPromise;
 use crate::dom::bindings::codegen::Bindings::TestUtilsBinding::TestUtilsMethods;
+use crate::dom::bindings::refcounted::TrustedPromise;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::Promise;
-use crate::test::TrustedPromise;
 
 #[dom_struct]
 pub(crate) struct TestUtils {

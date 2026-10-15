@@ -744,7 +744,7 @@ pub async fn main_fetch(
 
         // Step 15. Let internalResponse be response, if response is a network error;
         // otherwise response’s internal response.
-        let response_type = response.response_type.clone(); // Needed later after the mutable borrow
+        let response_is_opaque = response.response_type == ResponseType::Opaque;
         let internal_response = if let Some(error_response) = network_error_response.as_mut() {
             error_response
         } else {
@@ -801,7 +801,7 @@ pub async fn main_fetch(
         // Also checking if internal response is a network error to prevent crash from attemtping to
         // read status of a network error if we blocked the request above.
         let internal_response = if !internal_response.is_network_error() &&
-            response_type == ResponseType::Opaque &&
+            response_is_opaque &&
             internal_response.status.is_a_range_status() &&
             internal_response.range_requested &&
             !request.headers.contains_key(RANGE)

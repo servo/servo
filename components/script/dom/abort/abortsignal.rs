@@ -12,12 +12,12 @@ use js::context::JSContext;
 use js::jsapi::{ExceptionStackBehavior, Heap};
 use js::jsval::{JSVal, UndefinedValue};
 use js::realm::CurrentRealm;
-use js::rust::wrappers2::JS_SetPendingException;
 use js::rust::{HandleObject, HandleValue, MutableHandleValue};
 use script_bindings::callback::TracedCallback;
 use script_bindings::cell::DomRefCell;
 use script_bindings::domstring::TracedDOMString;
 use script_bindings::inheritance::Castable;
+use script_bindings::js::JS_SetPendingException;
 use script_bindings::reflector::reflect_weak_referenceable_dom_object_with_proto;
 use script_bindings::weakref::WeakRef;
 
@@ -442,13 +442,8 @@ impl AbortSignalMethods<crate::DomTypeHolder> for AbortSignal {
     fn ThrowIfAborted(&self, cx: &mut JSContext) -> Fallible<()> {
         // The throwIfAborted() method steps are to throw this’s abort reason, if this is aborted.
         if self.aborted() {
-            unsafe {
-                JS_SetPendingException(
-                    cx,
-                    HandleValue::from_raw(self.abort_reason.handle()),
-                    ExceptionStackBehavior::Capture,
-                )
-            };
+            let reason = unsafe { HandleValue::from_raw(self.abort_reason.handle()) };
+            JS_SetPendingException(cx, reason, ExceptionStackBehavior::Capture);
             return Err(Error::JSFailed);
         }
         Ok(())
