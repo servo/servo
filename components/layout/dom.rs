@@ -602,7 +602,7 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
         Some((
             VideoInfo {
                 image_key: data.current_frame.map(|frame| frame.image_key),
-                poster_url: data.poster_url,
+                poster_or_src_url: data.poster_or_src_url,
             },
             natural_size,
         ))

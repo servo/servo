@@ -257,7 +257,7 @@ pub struct MediaMetadata {
 pub struct HTMLMediaData {
     pub current_frame: Option<MediaFrame>,
     pub metadata: Option<MediaMetadata>,
-    pub poster_url: Option<ServoUrl>,
+    pub poster_or_src_url: Option<ServoUrl>,
 }
 
 #[derive(Debug)]
