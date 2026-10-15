@@ -122,7 +122,7 @@ impl ServoCookie {
             expiry_time = None;
         }
 
-        let url_host = request.host_str().unwrap_or("").to_owned();
+        let url_host = request.host_str().unwrap_or("");
 
         // Step 7. If the cookie-attribute-list contains an attribute with an attribute-name of "Domain":
         let mut domain = if let Some(domain) = cookie.domain() {
@@ -160,7 +160,7 @@ impl ServoCookie {
         let host_only;
         if !domain.is_empty() {
             // 1. If the canonicalized request-host does not domain-match the domain-attribute:
-            if !ServoCookie::domain_match(&url_host, &domain) {
+            if !ServoCookie::domain_match(url_host, &domain) {
                 // 1. Abort these steps and ignore the cookie entirely.
                 return None;
             } else {
@@ -177,7 +177,7 @@ impl ServoCookie {
             host_only = true;
 
             // 2. Set the cookie's domain to the canonicalized request-host.
-            cookie.set_domain(url_host);
+            cookie.set_domain(url_host.to_owned());
         };
 
         // Step 11. If the cookie-attribute-list contains an attribute with an attribute-name of "Path",

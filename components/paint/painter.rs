@@ -1220,7 +1220,7 @@ impl Painter {
         platform_options: FontInstancePlatformOptions,
         variations: Vec<FontVariation>,
     ) {
-        let variations = if pref!(layout_variable_fonts_enabled) {
+        let variations = if pref!(layout_css_font_variations_enabled) {
             variations
         } else {
             vec![]

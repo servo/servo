@@ -17,12 +17,13 @@ use js::jsval::{PrivateValue, UndefinedValue};
 use js::panic::maybe_resume_unwind;
 use js::rust::wrappers2::{
     Compile1, JS_ClearPendingException, JS_ExecuteScript, JS_GetScriptPrivate,
-    JS_IsExceptionPending, JS_SetPendingException, ModuleEvaluate, ThrowOnModuleEvaluationFailure,
+    JS_IsExceptionPending, ModuleEvaluate, ThrowOnModuleEvaluationFailure,
 };
 use js::rust::{
     CompileOptionsWrapper, HandleValue, MutableHandleValue, transform_str_to_source_text,
 };
 use script_bindings::cformat;
+use script_bindings::js::JS_SetPendingException;
 use script_bindings::settings_stack::run_a_script;
 use script_bindings::trace::RootedTraceableBox;
 use servo_url::ServoUrl;
@@ -166,13 +167,11 @@ impl GlobalScope {
             match script.record {
                 // Step 6. If script's error to rethrow is not null, then set evaluationStatus
                 // to ThrowCompletion(script's error to rethrow).
-                Err(error_to_rethrow) => unsafe {
-                    JS_SetPendingException(
-                        cx,
-                        error_to_rethrow.handle(),
-                        ExceptionStackBehavior::Capture,
-                    )
-                },
+                Err(error_to_rethrow) => JS_SetPendingException(
+                    cx,
+                    error_to_rethrow.handle(),
+                    ExceptionStackBehavior::Capture,
+                ),
                 // Step 7. Otherwise, set evaluationStatus to ScriptEvaluation(script's record).
                 Ok(record) => {
                     rooted!(&in(cx) let mut fallback_value = UndefinedValue());
@@ -268,13 +267,7 @@ impl GlobalScope {
             {
                 let module_error = module_tree.get_rethrow_error().borrow();
                 if let Some(exception) = &*module_error {
-                    unsafe {
-                        JS_SetPendingException(
-                            cx,
-                            exception.handle(),
-                            ExceptionStackBehavior::Capture,
-                        );
-                    }
+                    JS_SetPendingException(cx, exception.handle(), ExceptionStackBehavior::Capture);
                     report_pending_exception(cx);
                     return;
                 }

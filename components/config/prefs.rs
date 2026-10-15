@@ -47,24 +47,30 @@ pub fn set(preferences: Preferences) {
     }
 
     // Map between Stylo preference names and Servo preference names.
-    stylo_static_prefs::set_pref!("layout.unimplemented", preferences.layout_unimplemented);
     stylo_static_prefs::set_pref!("layout.threads", preferences.layout_threads as i32);
-    stylo_static_prefs::set_pref!("layout.columns.enabled", preferences.layout_columns_enabled);
+    stylo_static_prefs::set_pref!(
+        "layout.css.backdrop-filter.enabled",
+        preferences.layout_css_backdrop_filter_enabled
+    );
+    stylo_static_prefs::set_pref!(
+        "layout.css.columns.enabled",
+        preferences.layout_css_columns_enabled
+    );
+    stylo_static_prefs::set_pref!(
+        "layout.css.container-queries.enabled",
+        preferences.layout_css_container_queries_enabled
+    );
     stylo_static_prefs::set_pref!(
         "layout.css.ellipse-corners.enabled",
         preferences.layout_css_ellipse_corners_enabled
     );
     stylo_static_prefs::set_pref!(
-        "layout.writing-mode.enabled",
-        preferences.layout_writing_mode_enabled
+        "layout.css.font-variations.enabled",
+        preferences.layout_css_font_variations_enabled
     );
     stylo_static_prefs::set_pref!(
-        "layout.container-queries.enabled",
-        preferences.layout_container_queries_enabled
-    );
-    stylo_static_prefs::set_pref!(
-        "layout.variable_fonts.enabled",
-        preferences.layout_variable_fonts_enabled
+        "layout.css.writing-mode.enabled",
+        preferences.layout_css_writing_mode_enabled
     );
 
     *PREFERENCES.write().unwrap() = preferences;
@@ -293,11 +299,15 @@ pub struct Preferences {
     // feature: Largest Contentful Paint | #42000 | Web/API/LargestContentfulPaint
     pub largest_contentful_paint_enabled: bool,
     pub layout_animations_test_enabled: bool,
+    pub layout_css_backdrop_filter_enabled: bool,
     // feature: CSS Multicol | #22397 | Web/CSS/Guides/Multicol_layout
-    pub layout_columns_enabled: bool,
-    pub layout_flexbox_balance: bool,
-    pub layout_container_queries_enabled: bool,
+    pub layout_css_columns_enabled: bool,
+    pub layout_css_container_queries_enabled: bool,
     pub layout_css_ellipse_corners_enabled: bool,
+    // feature: Variable fonts | #38800 | Web/CSS/Guides/Fonts/Variable_fonts
+    pub layout_css_font_variations_enabled: bool,
+    // feature: CSS writing modes | #2560 | Web/CSS/Guides/Writing_modes
+    pub layout_css_writing_mode_enabled: bool,
     pub layout_style_sharing_cache_enabled: bool,
     pub layout_threads: i64,
     /// The minimum number of parallelizable jobs required before turning on parallelism
@@ -323,11 +333,6 @@ pub struct Preferences {
     /// The goal of these two values is to allow tuning Servo's parallelism for both wide
     /// and deep trees.
     pub layout_parallelism_job_size_minimum: u64,
-    pub layout_unimplemented: bool,
-    // feature: Variable fonts | #38800 | Web/CSS/Guides/Fonts/Variable_fonts
-    pub layout_variable_fonts_enabled: bool,
-    // feature: CSS writing modes | #2560 | Web/CSS/Guides/Writing_modes
-    pub layout_writing_mode_enabled: bool,
     /// Enable hardware acceleration for video playback.
     pub media_glvideo_enabled: bool,
     /// Enable a non-standard event handler for verifying behavior of media elements during tests.
@@ -545,18 +550,17 @@ impl Preferences {
             container_timing_enabled: false,
             largest_contentful_paint_enabled: false,
             layout_animations_test_enabled: false,
-            layout_columns_enabled: false,
-            layout_container_queries_enabled: false,
+            layout_css_backdrop_filter_enabled: false,
+            layout_css_columns_enabled: false,
+            layout_css_container_queries_enabled: false,
             layout_css_ellipse_corners_enabled: false,
-            layout_flexbox_balance: false,
+            layout_css_font_variations_enabled: false,
+            layout_css_writing_mode_enabled: false,
             layout_style_sharing_cache_enabled: true,
             // TODO(mrobinson): This should likely be based on the number of processors.
             layout_threads: 3,
             layout_parallelism_job_count_minimum: 4,
             layout_parallelism_job_size_minimum: 16,
-            layout_unimplemented: false,
-            layout_variable_fonts_enabled: false,
-            layout_writing_mode_enabled: false,
             media_glvideo_enabled: false,
             media_testing_enabled: false,
             network_connection_timeout: 15,

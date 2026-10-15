@@ -45,10 +45,10 @@ pub(crate) static EXPERIMENTAL_PREFS: &[&str] = &[
     "dom_storage_manager_api_enabled",
     "dom_webgl2_enabled",
     "dom_webgpu_enabled",
+    "layout_css_columns_enabled",
+    "layout_css_container_queries_enabled",
     "layout_css_ellipse_corners_enabled",
-    "layout_columns_enabled",
-    "layout_container_queries_enabled",
-    "layout_variable_fonts_enabled",
+    "layout_css_font_variations_enabled",
 ];
 
 #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
@@ -406,7 +406,7 @@ struct CmdArgs {
     ///  A comma-separated string of debug options. Pass help to show available options.
     #[bpaf(
         short('Z'),
-        argument("layout_flexbox_balance=true,dom_async_clipboard_enabled"),
+        argument("style-tree,flow-tree"),
         long,
         map(map_debug_options),
         fallback(vec![])
@@ -873,7 +873,7 @@ fn test_invalid_prefs_from_command_line_panics() {
 #[test]
 fn test_create_prefs_map() {
     let json_str = "{
-        \"layout.writing-mode.enabled\": true,
+        \"layout.css.writing-mode.enabled\": true,
         \"network.mime.sniff\": false,
         \"shell.homepage\": \"https://servo.org\"
     }";
