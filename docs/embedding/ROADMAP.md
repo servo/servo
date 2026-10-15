@@ -200,7 +200,9 @@ clipboard, and both on-screen and offscreen rendering.
   - `notify_history_changed` (entries + current index)
   - `notify_animating_changed`
   - `screen_geometry` callback (so `window.screen*` and windowed contexts work)
-  - `request_move_to` / `request_resize_to`
+    *Done on this branch:* `ServoScreenGeometry` fill-struct + `screen_geometry` callback.
+  - `request_move_to` / `request_resize_to` *Done on this branch:* exposed as
+    `ServoWebViewDelegate` callbacks (device-pixel point/size).
   - `request_create_new` (popups) using the existing `CreateNewWebViewRequest`
 - Rendering contexts (`ffi/capi/rendering_context.rs`):
   - `servo_rendering_context_create_window(display_handle, window_handle, width, height)`

@@ -1527,6 +1527,44 @@ static void on_download_updated(struct WebView* webview,
     }
 }
 
+static bool on_screen_geometry(struct WebView* webview,
+                               struct ServoScreenGeometry* out_geometry,
+                               void* user_data)
+{
+    (void)webview;
+    (void)user_data;
+    if (out_geometry == NULL)
+        return false;
+    out_geometry->size_width = 1920;
+    out_geometry->size_height = 1080;
+    out_geometry->available_width = 1920;
+    out_geometry->available_height = 1040;
+    out_geometry->window_x = 0;
+    out_geometry->window_y = 0;
+    out_geometry->window_width = 800;
+    out_geometry->window_height = 600;
+    return true;
+}
+
+static void on_request_move_to(struct WebView* webview, int32_t x, int32_t y, void* user_data)
+{
+    (void)webview;
+    (void)x;
+    (void)y;
+    (void)user_data;
+}
+
+static void on_request_resize_to(struct WebView* webview,
+                                 int32_t width,
+                                 int32_t height,
+                                 void* user_data)
+{
+    (void)webview;
+    (void)width;
+    (void)height;
+    (void)user_data;
+}
+
 /* Test that delegate callbacks can be set in ServoWebViewDelegate. */
 int test_download_delegate_callbacks(void)
 {
@@ -1581,6 +1619,41 @@ int test_download_delegate_callbacks(void)
 
     /* The delegate is set; we can't easily trigger a download to test the callback
      * without a full integration test. Just verify the WebView was created. */
+    servo_webview_free(webview);
+    return 0;
+}
+
+/* Test that the window geometry delegate callbacks (screen_geometry,
+ * request_move_to, request_resize_to) can be set in ServoWebViewDelegate. */
+int test_webview_window_geometry_delegate_callbacks(void)
+{
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    RenderingContext* context = servo_rendering_context_create_software(100, 100);
+    if (context == NULL)
+        return 1;
+
+    ServoWebViewBuilder* builder = servo_webview_builder_create(servo, context);
+    if (builder == NULL)
+        return 1;
+
+    ServoWebViewDelegate delegate = {
+        .user_data = NULL,
+        .screen_geometry = on_screen_geometry,
+        .request_move_to = on_request_move_to,
+        .request_resize_to = on_request_resize_to,
+    };
+    servo_webview_builder_set_delegate(builder, delegate);
+
+    struct WebView* webview = servo_webview_builder_build(builder);
+    if (webview == NULL)
+        return 1;
+
+    /* The callbacks are invoked by Servo internals (for example when page
+     * script calls window.moveTo); here we only verify the delegate is
+     * accepted and the WebView is created. */
     servo_webview_free(webview);
     return 0;
 }
@@ -2227,6 +2300,7 @@ int run_c_api_tests(void)
     RUN_TEST(test_download_item_null_handling);
     RUN_TEST(test_download_item_getters);
     RUN_TEST(test_download_delegate_callbacks);
+    RUN_TEST(test_webview_window_geometry_delegate_callbacks);
     RUN_TEST(test_find_null_arguments);
     RUN_TEST(test_find_valid_arguments);
     RUN_TEST(test_find_result_getters);

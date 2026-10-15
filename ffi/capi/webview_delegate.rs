@@ -13,7 +13,9 @@ use crate::download::{ServoDownloadContinueCallback, ServoDownloadItem};
 use crate::find::ServoFindResult;
 use crate::protocol_handler::{ServoWebResourceRequest, ServoWebResourceResponse};
 pub use servo_api::LoadStatus;
-use servo_api::{WebView, WebViewDelegate};
+use servo_api::{
+    DeviceIntPoint, DeviceIntRect, DeviceIntSize, ScreenGeometry, WebView, WebViewDelegate,
+};
 use url::Url;
 
 /// Cursor types matching `embedder_traits::Cursor`.
@@ -404,6 +406,29 @@ pub type ServoUnloadCallback = Option<unsafe extern "C" fn(proceed: bool, user_d
 /// (the certificate will be added to the override list), `false` to cancel the request.
 pub type ServoCertErrorCallback = Option<unsafe extern "C" fn(allow: bool, user_data: *mut c_void)>;
 
+/// Screen geometry reported by the `ServoWebViewDelegate::screen_geometry`
+/// callback.
+///
+/// All values are in device pixels. Servo converts them to CSS pixels using the
+/// `WebView`'s pixel scaling before exposing them to page content via the
+/// `window.screen*` / `window.outer*` CSSOM APIs.
+#[repr(C)]
+#[derive(Clone, Copy, Debug, Default)]
+pub struct ServoScreenGeometry {
+    /// The size of the screen in device pixels.
+    pub size_width: i32,
+    pub size_height: i32,
+    /// The size of the screen available for web content in device pixels
+    /// (i.e. `size` minus system toolbars, docks and similar).
+    pub available_width: i32,
+    pub available_height: i32,
+    /// The rectangle of the `WebView`'s containing window, including OS
+    /// decorations, in device pixels.
+    pub window_x: i32,
+    pub window_y: i32,
+    pub window_width: i32,
+    pub window_height: i32,
+}
 
 /// The delegate that receives notifications about `WebView` events.
 ///
@@ -904,6 +929,42 @@ pub struct ServoWebViewDelegate {
             webview: *mut WebView,
             params: *const ServoContextMenuParams,
             callback: ServoContextMenuCallback,
+            user_data: *mut c_void,
+        ),
+    >,
+
+    // Window geometry category
+    /// Called when Servo needs the geometry of the screen for the associated
+    /// `WebView` (used for `window.screen*`, `window.outerWidth`/`outerHeight`,
+    /// etc.). The embedder should fill `out_geometry` and return `true` if the
+    /// geometry is available, or return `false` to leave it unspecified.
+    pub screen_geometry: Option<
+        unsafe extern "C" fn(
+            webview: *mut WebView,
+            out_geometry: *mut ServoScreenGeometry,
+            user_data: *mut c_void,
+        ) -> bool,
+    >,
+
+    /// Called when the web page requests that its containing window be moved to
+    /// the given position in device pixels (for example via `window.moveTo`).
+    pub request_move_to: Option<
+        unsafe extern "C" fn(
+            webview: *mut WebView,
+            x: i32,
+            y: i32,
+            user_data: *mut c_void,
+        ),
+    >,
+
+    /// Called when the web page requests that its containing window be resized
+    /// to the given outer size in device pixels (for example via
+    /// `window.resizeTo`).
+    pub request_resize_to: Option<
+        unsafe extern "C" fn(
+            webview: *mut WebView,
+            width: i32,
+            height: i32,
             user_data: *mut c_void,
         ),
     >,
@@ -1716,6 +1777,59 @@ impl WebViewDelegate for ServoWebViewDelegate {
                 callback(&mut webview as *mut WebView, self.user_data);
             }
         }
+    }
+
+    fn screen_geometry(&self, mut webview: WebView) -> Option<ScreenGeometry> {
+        let callback = self.screen_geometry?;
+        let mut geometry = ServoScreenGeometry::default();
+        // SAFETY: The embedder is assumed to uphold the safety requirements of
+        // the `ServoWebViewDelegate` struct. The `webview` raw pointer is
+        // derived from a valid `webview` handle.
+        let available =
+            unsafe { callback(&mut webview as *mut WebView, &mut geometry, self.user_data) };
+        if !available {
+            return None;
+        }
+        Some(ScreenGeometry {
+            size: DeviceIntSize::new(geometry.size_width, geometry.size_height),
+            available_size: DeviceIntSize::new(geometry.available_width, geometry.available_height),
+            window_rect: DeviceIntRect::new(
+                DeviceIntPoint::new(geometry.window_x, geometry.window_y),
+                DeviceIntSize::new(geometry.window_width, geometry.window_height),
+            ),
+        })
+    }
+
+    fn request_move_to(&self, mut webview: WebView, point: DeviceIntPoint) {
+        let Some(callback) = self.request_move_to else {
+            return;
+        };
+        // SAFETY: The embedder is assumed to uphold the safety requirements of
+        // the `ServoWebViewDelegate` struct.
+        unsafe {
+            callback(
+                &mut webview as *mut WebView,
+                point.x,
+                point.y,
+                self.user_data,
+            )
+        };
+    }
+
+    fn request_resize_to(&self, mut webview: WebView, requested_outer_size: DeviceIntSize) {
+        let Some(callback) = self.request_resize_to else {
+            return;
+        };
+        // SAFETY: The embedder is assumed to uphold the safety requirements of
+        // the `ServoWebViewDelegate` struct.
+        unsafe {
+            callback(
+                &mut webview as *mut WebView,
+                requested_outer_size.width,
+                requested_outer_size.height,
+                self.user_data,
+            )
+        };
     }
 }
 
