@@ -210,6 +210,7 @@ impl MediaFrameRenderer {
                 image_key,
                 width: image.metadata.width as i32,
                 height: image.metadata.height as i32,
+                load_time: image.load_time,
             })
         });
     }
@@ -329,6 +330,7 @@ impl VideoFrameRenderer for MediaFrameRenderer {
                     image_key,
                     width: frame.get_width(),
                     height: frame.get_height(),
+                    load_time: None,
                 });
 
                 let image_data = self
