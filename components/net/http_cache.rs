@@ -261,7 +261,7 @@ impl From<HeaderMap> for SerializeableHeaderMap {
 struct CachedMetadata {
     /// Headers
     #[conditional_malloc_size_of]
-    pub headers: Arc<ParkingLotMutex<SerializeableHeaderMap>>,
+    pub headers: StdArc<Serde<HeaderMap>>,
     /// Final URL after redirects.
     pub final_url: ServoUrl,
     /// MIME type / subtype.
@@ -656,7 +656,7 @@ fn create_cached_response(
     }
     let resource_timing = ResourceFetchTiming::new(request.timing_type());
     let mut response = Response::new(cached_resource.metadata.final_url.clone(), resource_timing);
-    response.headers = cached_headers.clone();
+    response.headers = StdArc::new(Serde(cached_headers.clone()));
     response.body = cached_resource.body.clone();
     if let ResponseBody::Receiving(_) = *cached_resource.body.lock() {
         debug!("existing body is in progress");
@@ -775,7 +775,7 @@ fn handle_range_request(
                     if let Some(bytes) = requested {
                         let new_resource =
                             create_resource_with_bytes_from_resource(bytes, complete_resource);
-                        let cached_headers = new_resource.metadata.headers.lock();
+                        let cached_headers = new_resource.metadata.headers.as_ref();
                         let cached_response = create_cached_response(
                             request,
                             &new_resource,
@@ -795,7 +795,7 @@ fn handle_range_request(
                     if let Some(bytes) = requested {
                         let new_resource =
                             create_resource_with_bytes_from_resource(bytes, complete_resource);
-                        let cached_headers = new_resource.metadata.headers.lock();
+                        let cached_headers = new_resource.metadata.headers.as_ref();
                         let cached_response = create_cached_response(
                             request,
                             &new_resource,
@@ -812,7 +812,7 @@ fn handle_range_request(
         }
     } else {
         for partial_resource in partial_cached_resources {
-            let headers = partial_resource.metadata.headers.lock();
+            let headers = partial_resource.metadata.headers.as_ref();
             let content_range = headers.typed_get::<ContentRange>();
 
             let Some(body_len) = content_range.as_ref().and_then(|range| range.bytes_len()) else {
@@ -933,7 +933,7 @@ pub(crate) fn construct_response(
         // Returning a response that can be constructed
         // TODO: select the most appropriate one, using a known mechanism from a selecting header field,
         // or using the Date header to return the most recent one.
-        let cached_headers = cached_resource.metadata.headers.lock();
+        let cached_headers = cached_resource.metadata.headers.as_ref();
         let cached_response =
             create_cached_response(request, cached_resource, &cached_headers, done_chan);
         if let Some(cached_response) = cached_response {
@@ -1015,9 +1015,15 @@ pub fn refresh(
 
         // Bracket is to minimize lock duration.
         {
-            let mut stored_headers = cached_resource.metadata.headers.lock();
-            stored_headers.extend(response.headers);
-            constructed_response.headers = stored_headers.clone();
+            let mut stored_headers =
+                StdArc::unwrap_or_clone(cached_resource.metadata.headers.clone()).0;
+            stored_headers.extend(
+                response
+                    .headers
+                    .iter()
+                    .map(|(value1, value2)| (value1.clone(), value2.clone())),
+            );
+            constructed_response.headers = StdArc::new(Serde(stored_headers));
         }
         cached_resource.expires = get_response_expiry(constructed_response);
         cached_resource.stale_while_revalidate =
@@ -1234,7 +1240,7 @@ impl<'a> CachedResourcesOrGuard<'a> {
         let expiry = get_response_expiry(response);
         let stale_while_revalidate = get_stale_while_revalidate(&response.headers);
         let cacheable_metadata = CachedMetadata {
-            headers: Arc::new(ParkingLotMutex::new(response.headers.clone().into())),
+            headers: response.headers.clone(),
             final_url: metadata.final_url,
             content_type: metadata.content_type,
             charset: metadata.charset,

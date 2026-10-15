@@ -4,6 +4,7 @@
 
 use std::future::Future;
 use std::pin::Pin;
+use std::sync::Arc;
 
 use data_url::DataUrl;
 use http::HeaderValue;
@@ -38,8 +39,9 @@ impl ProtocolHandler for DataProtocolHander {
                     *response.body.lock() = ResponseBody::Done(bytes);
 
                     if let Ok(content_type_header_value) = HeaderValue::from_str(&content_type) {
-                        response
-                            .headers
+                        Arc::get_mut(&mut response.headers)
+                            .expect("Just created")
+                            .0
                             .insert(http::header::CONTENT_TYPE, content_type_header_value);
                     }
 
