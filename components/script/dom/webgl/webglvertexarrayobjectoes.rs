@@ -71,10 +71,6 @@ impl WebGLVertexArrayObjectOES {
         self.array_object.get_vertex_attrib(index)
     }
 
-    pub(crate) fn set_vertex_attrib_type(&self, index: u32, type_: u32) {
-        self.array_object.set_vertex_attrib_type(index, type_);
-    }
-
     pub(crate) fn vertex_attrib_pointer(
         &self,
         index: u32,
