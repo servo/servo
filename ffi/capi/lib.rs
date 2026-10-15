@@ -293,6 +293,13 @@ pub const SERVO_CAPI_VERSION_MINOR: u32 = 1;
 /// Patch version of the Servo C API.
 pub const SERVO_CAPI_VERSION_PATCH: u32 = 0;
 
+/// The Servo C API version packed into a single integer.
+///
+/// The value is `(MAJOR << 16) | (MINOR << 8) | PATCH` and matches the
+/// `SERVO_CAPI_VERSION` macro in the generated header.
+pub const SERVO_CAPI_VERSION: u32 =
+    (SERVO_CAPI_VERSION_MAJOR << 16) | (SERVO_CAPI_VERSION_MINOR << 8) | SERVO_CAPI_VERSION_PATCH;
+
 /// Returns the version of the Servo C API as a NUL terminated UTF-8 string.
 ///
 /// The returned pointer refers to static memory and must not be freed or
@@ -303,6 +310,17 @@ pub const SERVO_CAPI_VERSION_PATCH: u32 = 0;
 #[unsafe(no_mangle)]
 pub extern "C" fn servo_capi_version() -> *const c_char {
     c"0.1.0".as_ptr()
+}
+
+/// Returns the version of the Servo C API as a packed integer.
+///
+/// The value is `(MAJOR << 16) | (MINOR << 8) | PATCH`, matching the
+/// `SERVO_CAPI_VERSION` macro. Embedders can use this to detect a mismatched
+/// library at load time without parsing the version string, for example
+/// `servo_capi_get_version() != SERVO_CAPI_VERSION`.
+#[unsafe(no_mangle)]
+pub extern "C" fn servo_capi_get_version() -> u32 {
+    SERVO_CAPI_VERSION
 }
 
 /// Returns the name of the platform this build targets.

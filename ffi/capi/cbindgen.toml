@@ -18,7 +18,7 @@ allow_constexpr = true
 
 [export]
 include = [
-    "DiagnosticsLoggingOption", "LoadStatus", "ScreenshotCaptureError", "ServoCookie", "ServoFindResult", "ServoSiteDataManager", "ServoDelegate", "ServoDownloadItem", "ServoEventLoopWaker", "ServoWebViewDelegate", "ServoScreenGeometry", "ServoCreateNewWebViewRequest",
+    "DiagnosticsLoggingOption", "LoadStatus", "ScreenshotCaptureError", "ServoCookie", "ServoFindResult", "ServoSiteDataManager", "ServoDelegate", "ServoDownloadItem", "ServoEventLoopWaker", "ServoWebViewDelegate", "ServoScreenGeometry", "ServoCreateNewWebViewRequest", "SERVO_CAPI_VERSION",
     "ServoProxyConfig", "ServoCookieFilter", "ServoCertificateError", "ServoCertErrorCode", "ServoError",
     "ServoProtocolHandler", "ServoWebResourceRequest", "ServoWebResourceResponse", "ServoProtocolHandlerCallback",
     "ServoUserContentManager", "ServoUserScript", "ServoUserStyleSheet", "ServoMessageCallback", "ServoPreferences", "ServoNetworkManager",

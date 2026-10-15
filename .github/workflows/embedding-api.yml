@@ -169,3 +169,31 @@ jobs:
           mkdir -p target
           cbindgen --config ffi/capi/cbindgen.toml --output target/servo_capi.h ffi/capi
           test -s target/servo_capi.h
+          # Verify exported symbols match the allowlist.
+          python3 -c "
+import re, sys
+path='target/servo_capi.h'
+try:
+    with open(path,encoding='utf-8') as f:
+        h=f.read()
+except Exception as e:
+    sys.exit('failed to read header: %s'%e)
+nc=re.sub(r'/\*.*?\*/','',h,flags=re.S)
+sym=set(n[:-1].strip() for n in re.findall(r'\\b(servo_[a-z0-9_]+)\\s*\\(', nc))
+try:
+    with open('ffi/capi/symbols.txt',encoding='utf-8') as f:
+        allow=set(x.strip() for x in f if x.strip())
+except Exception as e:
+    sys.exit('failed to read allowlist: %s'%e)
+extra=sym-allow
+missing=allow-sym
+if extra or missing:
+    print('SYMBOL ALLOWLIST MISMATCH')
+    if extra:
+        print('extra:', sorted(extra))
+    if missing:
+        print('missing:', sorted(missing))
+    sys.exit(1)
+print('symbols match (%d)'%len(sym))
+"
+          test $? -eq 0
