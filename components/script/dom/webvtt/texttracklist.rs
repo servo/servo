@@ -71,7 +71,9 @@ impl TextTrackList {
         // element for <track> elements. Otherwise, we would be double
         // counting.
         if track.associated_track().is_none() {
-            self.dom_tracks.borrow_mut().push(Dom::from_ref(track));
+            self.dom_tracks
+                .safe_borrow_mut(cx.no_gc())
+                .push(Dom::from_ref(track));
         }
 
         track.add_track_list(self);
