@@ -184,7 +184,7 @@ impl WebView {
             grafted_accesskit_tree_epoch: None,
             accessibility_viewport_changed: Cell::new(false),
             hidpi_scale_factor: builder.hidpi_scale_factor,
-            load_status: LoadStatus::Started,
+            load_status: LoadStatus::Complete,
             status_text: None,
             page_title: None,
             favicon: None,
