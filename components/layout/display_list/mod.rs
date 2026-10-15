@@ -1242,18 +1242,30 @@ impl Fragment {
         Self::build_display_list_for_text_selection(fragment, builder, state, line_box_rect);
 
         for text_decoration in state.text_decorations.iter() {
-            if text_decoration.line.contains(TextDecorationLine::UNDERLINE) {
-                let mut rect = rect;
-                rect.origin.y += font_metrics.ascent - font_metrics.underline_offset;
-                rect.size.height = resolve_thickness(&text_decoration.thickness);
-                Self::build_display_list_for_text_decoration(
-                    state,
-                    &parent_style,
-                    builder,
-                    &rect,
-                    text_decoration,
-                    TextDecorationLine::UNDERLINE,
-                );
+            for bit in [
+                TextDecorationLine::UNDERLINE,
+                TextDecorationLine::SPELLING_ERROR,
+                TextDecorationLine::GRAMMAR_ERROR,
+            ] {
+                if text_decoration.line.contains(bit) {
+                    let mut rect = rect;
+                    rect.origin.y += font_metrics.ascent - font_metrics.underline_offset;
+                    // `spelling-error`/`grammar-error` must disregard the specified thickness.
+                    // https://drafts.csswg.org/css-text-decor-4/#ref-for-valdef-text-decoration-line-grammar-error
+                    rect.size.height = resolve_thickness(if bit == TextDecorationLine::UNDERLINE {
+                        &text_decoration.thickness
+                    } else {
+                        &TextDecorationThickness::Auto
+                    });
+                    Self::build_display_list_for_text_decoration(
+                        state,
+                        &parent_style,
+                        builder,
+                        &rect,
+                        text_decoration,
+                        bit,
+                    );
+                }
             }
         }
 
@@ -1352,13 +1364,30 @@ impl Fragment {
         text_decoration: &FragmentTextDecoration,
         line: TextDecorationLine,
     ) {
-        if text_decoration.style == ComputedTextDecorationStyle::None {
+        // `spelling-error` / `grammar-error` must disregard the other
+        // text-decoration sub-properties (color, style, thickness).
+        // https://drafts.csswg.org/css-text-decor-4/#ref-for-valdef-text-decoration-line-grammar-error
+        let (color, style) = match line {
+            TextDecorationLine::SPELLING_ERROR => (
+                // It is often rendered as a red wavy underline.
+                AbsoluteColor::srgb_legacy(255, 0, 0, 1.0),
+                ComputedTextDecorationStyle::Wavy,
+            ),
+            TextDecorationLine::GRAMMAR_ERROR => (
+                // It is often rendered as a green wavy underline.
+                AbsoluteColor::srgb_legacy(0, 128, 0, 1.0),
+                ComputedTextDecorationStyle::Wavy,
+            ),
+            _ => (text_decoration.color, text_decoration.style),
+        };
+
+        if style == ComputedTextDecorationStyle::None {
             return;
         }
 
         let mut rect = rect.to_webrender();
         let wavy_line_thickness = rect.height().ceil();
-        if text_decoration.style == ComputedTextDecorationStyle::Wavy {
+        if style == ComputedTextDecorationStyle::Wavy {
             rect = rect.inflate(0.0, wavy_line_thickness);
         }
 
@@ -1370,7 +1399,7 @@ impl Fragment {
         // the original rectangle.
         let expand_rect_for_text_decoration = |mut rect: Box2D<f32, LayoutPixel>| {
             if matches!(
-                text_decoration.style,
+                style,
                 ComputedTextDecorationStyle::Dotted |
                     ComputedTextDecorationStyle::Dashed |
                     ComputedTextDecorationStyle::Wavy,
@@ -1386,11 +1415,11 @@ impl Fragment {
             &expand_rect_for_text_decoration(rect),
             wavy_line_thickness,
             wr::LineOrientation::Horizontal,
-            &rgba(text_decoration.color),
-            text_decoration.style.to_webrender(),
+            &rgba(color),
+            style.to_webrender(),
         );
 
-        if text_decoration.style == TextDecorationStyle::Double {
+        if style == TextDecorationStyle::Double {
             let half_height = (rect.height() / 2.0).floor().max(1.0);
             let y_offset = match line {
                 TextDecorationLine::OVERLINE => -rect.height() - half_height,

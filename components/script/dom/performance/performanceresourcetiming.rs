@@ -85,16 +85,12 @@ impl PerformanceResourceTiming {
         } else {
             (EntryType::Resource, resource_timing.start_time)
         };
-        let duration = match (resource_timing.start_time, resource_timing.response_end) {
-            (Some(start_time), Some(end_time)) => end_time - start_time,
-            _ => Duration::ZERO,
-        };
         PerformanceResourceTiming {
             entry: PerformanceEntry::new_inherited(
                 DOMString::from(url.into_string()),
                 entry_type,
                 start_time,
-                duration,
+                Duration::ZERO, // duration is calculated dynamically in PerformanceEntry::Duration
             ),
             initiator_type,
             next_hop: None,

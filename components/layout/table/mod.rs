@@ -72,8 +72,8 @@ use std::ops::Range;
 
 use app_units::Au;
 use atomic_refcell::AtomicRef;
-pub(crate) use construct::AnonymousTableContent;
 pub use construct::TableBuilder;
+pub(crate) use construct::{AnonymousTableContent, AnonymousTableContentElement};
 use euclid::{Point2D, Size2D, UnknownUnit, Vector2D};
 use malloc_size_of_derive::MallocSizeOf;
 use script::layout_dom::{ServoDangerousStyleElement, ServoLayoutNode};

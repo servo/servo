@@ -308,6 +308,24 @@ var tests = [
         expected_type: "not_cached"
       }
     ]
+  },
+  {
+    name: "HTTP cache doesn't use Vary response when request contains a variant header",
+    requests: [
+      {
+        response_headers: [
+          ["Expires", 5000],
+          ["Last-Modified", -3000],
+          ["Vary", "Foo"]
+        ]
+      },
+      {
+        request_headers: [
+          ["Foo", "1"],
+        ],
+        expected_type: "not_cached"
+      }
+    ]
   }
 ];
 run_tests(tests);

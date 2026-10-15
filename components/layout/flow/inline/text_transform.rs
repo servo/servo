@@ -387,7 +387,10 @@ pub(crate) fn capitalization_iterator(
         string.extend(iteration.characters());
     }
 
-    let word_segmenter = WordSegmenter::new_auto(WordBreakInvariantOptions::default());
+    // For the purpose of capitalization, the additional segmentation rules of the complex scripts
+    // are not needed, since none of these scripts have uppercase / lowercase.
+    let word_segmenter =
+        WordSegmenter::new_for_non_complex_scripts(WordBreakInvariantOptions::default());
     let mut bounds = word_segmenter.segment_str(&string).peekable();
     let mut current_byte_index = 0;
     let mut pending_word_start = false;

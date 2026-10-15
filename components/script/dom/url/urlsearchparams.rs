@@ -85,12 +85,12 @@ impl URLSearchParamsMethods<crate::DomTypeHolder> for URLSearchParams {
                 }
 
                 // Step 2-2.
-                *query.list.borrow_mut() =
+                *query.list.safe_borrow_mut(cx.no_gc()) =
                     init.iter().map(|pair| (pair[0].to_string(), pair[1].to_string())).collect::<Vec<_>>();
             },
             USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString::USVStringUSVStringRecord(init) => {
                 // Step 3.
-                *query.list.borrow_mut() =
+                *query.list.safe_borrow_mut(cx.no_gc()) =
                     (*init).iter().map(|(name, value)| (name.to_string(), value.to_string())).collect::<Vec<_>>();
             },
             USVStringSequenceSequenceOrUSVStringUSVStringRecordOrUSVString::USVString(init) => {
@@ -104,7 +104,7 @@ impl URLSearchParamsMethods<crate::DomTypeHolder> for URLSearchParams {
                     _ => init.0.as_bytes(),
                 };
 
-                *query.list.borrow_mut() =
+                *query.list.safe_borrow_mut(cx.no_gc()) =
                     form_urlencoded::parse(init_bytes).into_owned().collect();
             }
         }

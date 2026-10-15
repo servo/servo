@@ -149,7 +149,7 @@ pub(crate) struct ImageInfo {
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct VideoInfo {
     pub image_key: Option<ImageKey>,
-    pub poster_url: Option<ServoUrl>,
+    pub poster_or_src_url: Option<ServoUrl>,
 }
 
 #[derive(Debug, MallocSizeOf)]
@@ -569,7 +569,7 @@ impl ReplacedContents {
                     clip,
                     image_key: video_info.image_key,
                     showing_broken_image_icon: false,
-                    url: video_info.poster_url.clone(),
+                    url: video_info.poster_or_src_url.clone(),
                     load_time: None,
                     natural_width: self.natural_size.width,
                     natural_height: self.natural_size.height,

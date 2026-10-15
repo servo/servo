@@ -99,6 +99,24 @@ impl AudioBuffer {
         )
     }
 
+    /// Initialize a buffer by taking ownership of already rendered channel data.
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
+    pub(crate) fn new_with_channel_data(
+        cx: &mut JSContext,
+        global: &Window,
+        length: u32,
+        sample_rate: f32,
+        channels: Vec<Vec<f32>>,
+    ) -> DomRoot<AudioBuffer> {
+        let buffer = AudioBuffer::new_inherited(channels.len() as u32, length, sample_rate);
+        let buffer = reflect_dom_object_with_proto(cx, Box::new(buffer), global, None);
+        *buffer.shared_channels.borrow_mut() = Some(Arc::new(ServoMediaAudioBuffer::from_buffers(
+            channels,
+            sample_rate,
+        )));
+        buffer
+    }
+
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_with_proto(
         cx: &mut JSContext,
