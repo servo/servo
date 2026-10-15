@@ -208,13 +208,13 @@ impl PointerEvent {
         ev.twist.set(twist);
         ev.altitude_angle.set(altitude_angle);
         ev.azimuth_angle.set(azimuth_angle);
-        *ev.pointer_type.borrow_mut() = pointer_type;
+        *ev.pointer_type.safe_borrow_mut(cx.no_gc()) = pointer_type;
         ev.is_primary.set(is_primary);
-        *ev.coalesced_events.borrow_mut() = coalesced_events
+        *ev.coalesced_events.safe_borrow_mut(cx.no_gc()) = coalesced_events
             .into_iter()
             .map(|event| event.as_traced())
             .collect();
-        *ev.predicted_events.borrow_mut() = predicted_events
+        *ev.predicted_events.safe_borrow_mut(cx.no_gc()) = predicted_events
             .into_iter()
             .map(|event| event.as_traced())
             .collect();
