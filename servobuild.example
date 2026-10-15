@@ -31,6 +31,7 @@ webgl-backtrace = false
 dom-backtrace = false
 
 # Pick a media stack based on the target. Other values are "gstreamer" and "dummy"
+# Note that the "gstreamer" setting is currently ignored on Android and OHOS.
 media-stack = "auto"
 
 # Set to the path to your ccache binary to enable caching of compiler outputs
