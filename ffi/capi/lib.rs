@@ -258,8 +258,11 @@ impl ServoError {
     /// and `ServoError::InternalPanic` is returned.
     #[inline]
     pub fn catch_ffi<F: FnOnce() -> ServoError>(f: F) -> ServoError {
-        debug_checks::assert_main_thread();
-        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).unwrap_or(ServoError::InternalPanic)
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            debug_checks::assert_main_thread();
+            f()
+        }))
+        .unwrap_or(ServoError::InternalPanic)
     }
 
     /// Creates a `catch_unwind` boundary for FFI functions that return a raw
@@ -267,35 +270,42 @@ impl ServoError {
     /// `ServoError::InternalPanic` as an `i32`.
     #[inline]
     pub fn catch_ffi_i32<F: FnOnce() -> i32>(f: F) -> i32 {
-        debug_checks::assert_main_thread();
-        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).unwrap_or(ServoError::InternalPanic as i32)
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            debug_checks::assert_main_thread();
+            f()
+        }))
+        .unwrap_or(ServoError::InternalPanic as i32)
     }
 
     /// Creates a `catch_unwind` boundary for FFI functions that return a raw pointer.
     /// Panics are caught and `NULL` (`null_mut()`) is returned.
     #[inline]
     pub fn catch_ffi_ptr<T, F: FnOnce() -> *mut T>(f: F) -> *mut T {
-        debug_checks::assert_main_thread();
-        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).unwrap_or(std::ptr::null_mut())
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            debug_checks::assert_main_thread();
+            f()
+        }))
+        .unwrap_or(std::ptr::null_mut())
     }
 
     /// Creates a `catch_unwind` boundary for FFI functions that return a const pointer.
     /// Panics are caught and `NULL` (`null()`) is returned.
     #[inline]
     pub fn catch_ffi_const_ptr<T, F: FnOnce() -> *const T>(f: F) -> *const T {
-        debug_checks::assert_main_thread();
-        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).unwrap_or(std::ptr::null())
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            debug_checks::assert_main_thread();
+            f()
+        }))
+        .unwrap_or(std::ptr::null())
     }
 }
 
 #[cfg(debug_assertions)]
 pub(crate) mod debug_checks {
-    use std::collections::HashSet;
     use std::sync::Mutex;
     use std::thread::ThreadId;
     use log::warn;
 
-    static REGISTERED_HANDLES: Mutex<Option<HashSet<usize>>> = Mutex::new(None);
     static MAIN_THREAD: Mutex<Option<ThreadId>> = Mutex::new(None);
 
     /// Asserts that the current thread is the main FFI thread.
@@ -304,7 +314,9 @@ pub(crate) mod debug_checks {
     /// was created.
     pub fn assert_main_thread() {
         let current = std::thread::current().id();
-        let mut lock = MAIN_THREAD.lock().unwrap();
+        let Ok(mut lock) = MAIN_THREAD.lock() else {
+            return;
+        };
         if let Some(main_id) = *lock {
             if current != main_id {
                 warn!("Thread affinity warning: Servo C API entry invoked from non-main thread!");
@@ -313,61 +325,12 @@ pub(crate) mod debug_checks {
             *lock = Some(current);
         }
     }
-
-    /// Registers a newly created raw handle.
-    pub fn register_handle(ptr: *const ()) {
-        if ptr.is_null() {
-            return;
-        }
-        let mut lock = REGISTERED_HANDLES.lock().unwrap();
-        let set = lock.get_or_insert_with(HashSet::new);
-        set.insert(ptr as usize);
-    }
-
-    /// Validates that a handle is currently registered.
-    pub fn validate_handle(ptr: *const ()) -> bool {
-        if ptr.is_null() {
-            return false;
-        }
-        let lock = REGISTERED_HANDLES.lock().unwrap();
-        if let Some(ref set) = *lock {
-            set.contains(&(ptr as usize))
-        } else {
-            false
-        }
-    }
-
-    /// Unregisters a handle upon destruction. Detects double-free.
-    pub fn unregister_handle(ptr: *const ()) -> bool {
-        if ptr.is_null() {
-            return false;
-        }
-        let mut lock = REGISTERED_HANDLES.lock().unwrap();
-        if let Some(ref mut set) = *lock {
-            set.remove(&(ptr as usize))
-        } else {
-            false
-        }
-    }
 }
 
 #[cfg(not(debug_assertions))]
 pub(crate) mod debug_checks {
     #[inline(always)]
     pub fn assert_main_thread() {}
-
-    #[inline(always)]
-    pub fn register_handle(_ptr: *const ()) {}
-
-    #[inline(always)]
-    pub fn validate_handle(_ptr: *const ()) -> bool {
-        true
-    }
-
-    #[inline(always)]
-    pub fn unregister_handle(_ptr: *const ()) -> bool {
-        true
-    }
 }
 
 /// Returns `true` when the `struct_size` field supplied by an embedder is

@@ -614,6 +614,26 @@ int test_capi_capabilities(void)
     if (sandboxing && !multiprocess)
         return 1;
 
+#if defined(_WIN32)
+    /* Windows implements process mitigations, not an OS sandbox; sandboxing must be false. */
+    if (sandboxing)
+        return 1;
+#endif
+
+    return 0;
+}
+
+/* Test that main thread FFI calls execute cleanly and verify assert_main_thread behavior. */
+int test_debug_thread_checks(void)
+{
+    /* C API functions wrapped in catch_ffi execute assert_main_thread internally.
+     * Verify that invoking queries on the calling thread succeeds without error or panic. */
+    const char* platform = servo_capi_platform_name();
+    if (platform == NULL || platform[0] == '\0')
+        return 1;
+
+    bool multiprocess = servo_capi_is_multiprocess_enabled();
+    (void)multiprocess;
     return 0;
 }
 
@@ -2400,6 +2420,7 @@ int run_c_api_tests(void)
     RUN_TEST(test_webview_builder_build);
     RUN_TEST(test_capi_version);
     RUN_TEST(test_capi_capabilities);
+    RUN_TEST(test_debug_thread_checks);
     RUN_TEST(test_webview_get_url);
     RUN_TEST(test_webview_get_title);
     RUN_TEST(test_webview_get_status_text);
