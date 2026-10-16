@@ -82,9 +82,22 @@ pub unsafe extern "C" fn servo_create_sandbox() -> bool {
     {
         // SAFETY: The caller guarantees this is called from the main thread
         // before other threads are spawned.
-        // Use catch_unwind to handle platforms where sandboxing panics.
-        let result = std::panic::catch_unwind(|| unsafe { create_sandbox() });
-        result.is_ok()
+        // On Windows, in-process mitigation policies are applied via create_sandbox(),
+        // but mitigations are not a true OS sandbox, so we report false.
+        #[cfg(target_os = "windows")]
+        {
+            let _ = std::panic::catch_unwind(|| unsafe { create_sandbox() });
+            return false;
+        }
+
+        #[cfg(not(target_os = "windows"))]
+        {
+            if !crate::servo_capi_is_sandboxing_supported() {
+                return false;
+            }
+            let result = std::panic::catch_unwind(|| unsafe { create_sandbox() });
+            result.is_ok()
+        }
     }
 
     #[cfg(not(feature = "multiprocess"))]

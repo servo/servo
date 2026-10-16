@@ -51,9 +51,12 @@ data from other origins, or crash the browser process. Relevant surfaces:
   construction. This is Servo's main structural advantage. It does not remove
   logic/sanitisation bugs or the C FFI boundary from scope.
 - **Process isolation and sandboxing.** A content-process sandbox exists on
-  Linux and macOS (x86-64/arm64) and Windows (mitigation policies PoC: DEP, ASLR,
-  strict handle checking, extension point disabling); see
-  `components/servo/servo.rs` (`create_sandbox`) and `docs/embedding/WINDOWS_SANDBOX_DESIGN.md`.
+  Linux and macOS (x86_64) but is **not supported on Windows, iOS, Android,
+  OpenHarmony, or any ARM/ARM64 or RISC-V target**; see
+  `components/servo/servo.rs` (`create_sandbox`). On Windows, in-process mitigation
+  policies (DEP, ASLR, strict handle checking, extension point disabling) are
+  applied when `--sandbox` is enabled, but mitigations are not an OS sandbox (no
+  broker, token restriction, or AppContainer; see `docs/embedding/WINDOWS_SANDBOX_DESIGN.md`).
   Multiprocess mode and the sandbox are **off by default** (`components/config/opts.rs`).
 - **Web-platform isolation.** CSP, CORS, HSTS, referrer policy,
   X-Frame-Options, Mixed Content, SRI, and Trusted Types are implemented with
@@ -69,10 +72,12 @@ data from other origins, or crash the browser process. Relevant surfaces:
 
 ## Known security limitations
 
-1. **Sandboxing coverage.** Windows sandbox operates in in-process mitigation
-   policy mode; full broker AppContainer/Job-object isolation is in development.
-   On OpenHarmony and RISC-V, content runs unsandboxed; query
-   `servo_capi_is_sandboxing_supported()`.
+1. **Sandboxing coverage.** Sandboxing is available only on Linux x86_64 and
+   macOS x86_64. Windows applies in-process mitigation policies (Phase 1) but
+   lacks an OS sandbox (no broker/token lockdown). Android, iOS, OpenHarmony,
+   and all ARM/RISC-V targets do not have renderer sandboxing. Query
+   `servo_capi_is_sandboxing_supported()` at runtime (returns false on those
+   platforms).
 2. **Site vs Origin isolation.** Constellation currently pools event loops by
    registrable domain (eTLD+1). Full origin-keyed isolation and out-of-process
    iframes (OOPIF) are detailed in `docs/embedding/SITE_ISOLATION_DESIGN.md`.

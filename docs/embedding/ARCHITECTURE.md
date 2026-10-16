@@ -549,11 +549,12 @@ for content-process bootstrap (guarded by `#[cfg(feature = "multiprocess")]`):
 
 | Platform | Sandbox | Notes |
 | --- | --- | --- |
-| Linux (x86_64/arm64) | `gaol` / seccomp-bpf + namespaces | Requires `multiprocess` feature; `servo_create_sandbox()` returns `true`. |
-| macOS (x86_64/arm64) | `sandbox-exec` (Seatbelt) | Requires `multiprocess` feature; `servo_create_sandbox()` returns `true`. |
-| Windows (x86_64) | Mitigation policies (DEP, ASLR, strict handle) | Requires `multiprocess` feature; `servo_create_sandbox()` returns `true` (see `WINDOWS_SANDBOX_DESIGN.md`). |
-| Android | Isolated process + SELinux container | Enforced by OS container runtime; `servo_create_sandbox()` returns `true`. |
-| iOS | App container sandbox | Enforced by OS container runtime; `servo_create_sandbox()` returns `true`. |
+| Linux (x86_64) | `gaol` (seccomp-bpf + namespaces) | Requires `multiprocess` feature; `servo_create_sandbox()` returns `true`. |
+| macOS (x86_64) | `sandbox-exec` (Seatbelt) | Requires `multiprocess` feature; `servo_create_sandbox()` returns `true`. |
+| Linux / macOS arm64 | None | Planned; `servo_create_sandbox()` returns `false`. |
+| Windows (x86_64) | None (in-process mitigations only) | In-process mitigation policies (DEP, ASLR, strict handle) applied, but not a sandbox; `servo_create_sandbox()` returns `false` (see `WINDOWS_SANDBOX_DESIGN.md`). |
+| Android | None (OS process model) | OS isolated process model — not a sandbox; `servo_create_sandbox()` returns `false`. |
+| iOS | None (OS app container) | OS application container — not a sandbox; `servo_create_sandbox()` returns `false`. |
 | OpenHarmony / RISC-V | None | Single-process / unsupported; `servo_create_sandbox()` returns `false`. |
 
 The embedder is responsible for process lifecycle management (crash detection,

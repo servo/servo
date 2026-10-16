@@ -79,19 +79,19 @@ the *loaded* library can do:
 ## 5. Sandboxing availability
 
 `servo_capi_is_sandboxing_supported()` returns `true` only when the library was built
-with `multiprocess` **and** the target supports sandboxing. Sandboxing architecture is
-detailed in [`WINDOWS_SANDBOX_DESIGN.md`](WINDOWS_SANDBOX_DESIGN.md) and
-[`MULTI_PLATFORM_SANDBOX_DESIGN.md`](MULTI_PLATFORM_SANDBOX_DESIGN.md).
+with `multiprocess` **and** the target supports sandboxing. On platforms marked "no"
+below, content runs without renderer sandboxing — this is a real security property,
+not a formality. Design your threat model accordingly.
 
 | Platform / arch | `multiprocess` off | `multiprocess` on |
 | --- | --- | --- |
 | Linux x86_64 | no | **yes** (Production namespaces + seccomp-bpf) |
 | macOS x86_64 | no | **yes** (Production Seatbelt sandbox) |
-| Linux arm64 | no | **yes** (PoC namespaces / seccomp-bpf) |
-| macOS arm64 (Apple Silicon) | no | **yes** (Seatbelt sandbox profile) |
-| Windows x86_64 | no | **yes** (PoC mitigation policies: DEP, ASLR, strict handle) |
-| Android | no | **yes** (OS isolated process + SELinux container) |
-| iOS | no | **yes** (OS containerized sandbox) |
+| Linux arm64 | no | no (planned; see [`MULTI_PLATFORM_SANDBOX_DESIGN.md`](MULTI_PLATFORM_SANDBOX_DESIGN.md)) |
+| macOS arm64 | no | no (planned; see [`MULTI_PLATFORM_SANDBOX_DESIGN.md`](MULTI_PLATFORM_SANDBOX_DESIGN.md)) |
+| Windows x86_64 | no | no (in-process mitigation policies only — not a sandbox; see [`WINDOWS_SANDBOX_DESIGN.md`](WINDOWS_SANDBOX_DESIGN.md)) |
+| Android | no | no (OS process model / container — not a sandbox) |
+| iOS | no | no (OS application container — not a sandbox) |
 | OpenHarmony / RISC-V | no | no |
 
 ## 6. Rendering contexts

@@ -1557,12 +1557,15 @@ allows only:
 - Reading system fonts and framework libraries
 - Reading Servo's baked-in resources (fonts, shaders, etc.)
 
-On Windows, content processes enter in-process mitigation policies (DEP, ASLR HighEntropy,
-strict handle check, extension-point disable). On macOS and Linux, content processes enter
-the `sandbox-exec` / `gaol` profile. On Android and iOS, execution is containerized by the
-underlying OS runtime. On unsupported platforms (OHOS, RISC-V architectures),
-`servo_create_sandbox()` returns `false` and content processes run unsandboxed.
-The embedder should query `servo_capi_is_sandboxing_supported()` at runtime.
+On Linux (with `gaol`) and macOS (with `sandbox-exec`), content processes enter
+the sandbox profile. On Windows, content processes apply in-process mitigation
+policies (DEP, ASLR HighEntropy, strict handle check, extension-point disable) —
+but mitigations are not a sandbox (no token lockdown or AppContainer). On Android
+and iOS, execution relies on the OS process model or application container — not an
+engine sandbox. On those platforms and on ARM architectures, `servo_create_sandbox()`
+and `servo_capi_is_sandboxing_supported()` return `false`, and content processes run
+without renderer sandboxing. The embedder should query `servo_capi_is_sandboxing_supported()`
+at runtime.
 
 ### API summary
 

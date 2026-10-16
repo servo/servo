@@ -50,9 +50,9 @@ This document describes the unified multi-platform sandboxing strategy to achiev
 | Platform / Architecture | Sandbox Mechanism | Status | Opt-in Flag |
 | :--- | :--- | :--- | :--- |
 | **Linux x86_64** | `gaol` (Namespaces + seccomp-bpf) | Production | `--sandbox` / `opts.sandbox` |
-| **Linux arm64** | Namespaces + arm64 seccomp-bpf | In Progress (PoC) | `--sandbox` / `opts.sandbox` |
+| **Linux arm64** | Namespaces + arm64 seccomp-bpf | Planned (not a sandbox today) | `--sandbox` / `opts.sandbox` |
 | **macOS x86_64** | Seatbelt (`sandbox_init`) | Production | `--sandbox` / `opts.sandbox` |
-| **macOS arm64 (Apple Silicon)** | Seatbelt (`sandbox_init`) | Landed / Unified | `--sandbox` / `opts.sandbox` |
-| **Windows x86_64** | Job Object + Token + Mitigations | Landed (PoC) | `--sandbox` / `opts.sandbox` |
-| **Android** | Android Isolated Process + SELinux | Landed (OS Enforced) | `--sandbox` / `opts.sandbox` |
-| **iOS** | iOS App Container Sandbox | Landed (OS Enforced) | `--sandbox` / `opts.sandbox` |
+| **macOS arm64 (Apple Silicon)** | Seatbelt (`sandbox_init`) | Planned (not a sandbox today) | `--sandbox` / `opts.sandbox` |
+| **Windows x86_64** | In-process mitigations (Phase 1) | Mitigations only — not a sandbox | `--sandbox` / `opts.sandbox` |
+| **Android** | Android Isolated Process | OS process model — not a sandbox | `--sandbox` / `opts.sandbox` |
+| **iOS** | iOS App Container | OS application container — not a sandbox | `--sandbox` / `opts.sandbox` |

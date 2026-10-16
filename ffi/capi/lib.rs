@@ -471,21 +471,30 @@ pub extern "C" fn servo_capi_is_multiprocess_enabled() -> bool {
 /// and build.
 ///
 /// Returns `false` unless the crate was built with the `multiprocess` feature
-/// **and** the target supports sandboxing. Sandboxing is supported via native
-/// profiles or mitigation PoCs on Linux (x86_64, aarch64), macOS (x86_64, aarch64),
-/// Windows (mitigation policies), Android (isolated process), and iOS (app container).
-/// On unsupported targets (OpenHarmony, RISC-V), content runs without renderer
-/// sandboxing.
+/// **and** the target supports sandboxing. As of this writing sandboxing is not
+/// available on Windows, iOS, Android, OpenHarmony, or any ARM/AArch64 or
+/// RISC-V target (which includes Apple-Silicon macOS and ARM64 Linux). An
+/// embedder on those platforms runs without renderer sandboxing and must not
+/// assume otherwise — this is a real security property, not a formality.
 ///
-/// This predicate mirrors the support status of `servo::create_sandbox`.
+/// Note: On Windows, in-process mitigation policies (DEP, ASLR, strict handles)
+/// are applied when `--sandbox` is enabled, but mitigations are not an OS sandbox
+/// (no broker, token restriction, or AppContainer).
+///
+/// This predicate mirrors the platforms where a true sandbox profile is activated.
 #[unsafe(no_mangle)]
 pub extern "C" fn servo_capi_is_sandboxing_supported() -> bool {
     cfg!(feature = "multiprocess")
-        && !cfg!(any(
+        && cfg!(not(any(
+            target_os = "windows",
+            target_os = "ios",
+            target_os = "android",
+            target_arch = "arm",
+            target_arch = "aarch64",
             target_arch = "riscv32",
             target_arch = "riscv64",
-            target_env = "ohos"
-        ))
+            target_env = "ohos",
+        )))
 }
 
 /// An opaque struct representing builder for a `Servo` instance.
