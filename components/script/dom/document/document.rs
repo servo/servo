@@ -2400,7 +2400,7 @@ impl Document {
                 !window_proxy.is_auxiliary() ||
                     window_proxy.is_disowned()
             }) &&
-            self.iframes.is_empty();
+            self.iframes.iter().all(|iframe| iframe.GetContentDocument().is_none());
 
         // Step 7. Increase eventLoop's termination nesting level by 1.
         ScriptThread::increase_termination_nesting_level();
