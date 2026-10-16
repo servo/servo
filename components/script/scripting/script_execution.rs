@@ -364,14 +364,7 @@ pub(crate) fn maybe_associate_with_script(
     // When `ScriptPrivate` for the compiled script is undefined,
     // we need to set it so that it can be used in dynamic import context.
     if script_private.is_undefined() {
-        let module_script_data = Rc::new(BaseScript::new(
-            url,
-            fetch_options,
-            // We can't initialize an module owner here because
-            // the executing context of script might be different
-            // from the dynamic import script's executing context.
-            None,
-        ));
+        let module_script_data = Rc::new(BaseScript::new(url, fetch_options));
 
         unsafe {
             SetScriptPrivate(

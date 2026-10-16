@@ -11,8 +11,8 @@ use std::rc::Rc;
 use js::context::{JSContext, RawJSContext};
 use js::error::throw_type_error;
 use js::jsapi::{
-    CallArgs, GetFunctionNativeReserved, Heap, JS_GetFunctionObject, JSObject, JSScript,
-    ModuleType, SetFunctionNativeReserved,
+    CallArgs, GetFunctionNativeReserved, Heap, JS_GetFunctionObject, JS_GetGlobalFromScript,
+    JSObject, JSScript, ModuleType, SetFunctionNativeReserved,
 };
 use js::jsval::{JSVal, ObjectValue, PrivateValue, UndefinedValue};
 use js::realm::CurrentRealm;
@@ -40,7 +40,7 @@ use crate::dom::window::Window;
 use crate::realms::enter_auto_realm;
 use crate::runtime::script_runtime::IntroductionType;
 use crate::scripting::fetching_options::ScriptFetchOptions;
-use crate::scripting::import_map::ImportMap;
+use crate::scripting::import_map::{ImportMap, ReferringScript};
 use crate::scripting::script_module::{
     ModuleHandler, ModuleObject, ModuleTree, RethrowError, fetch_a_single_module_script,
     module_script_from_reference_private,
@@ -393,35 +393,36 @@ pub(crate) fn host_load_imported_module(
     // Step 3. Let referencingScript be null.
     rooted!(&in(cx) let mut script_private = UndefinedValue());
 
-    // Step 6.1. Set referencingScript to referrer.[[HostDefined]].
-    unsafe { JS_GetScriptPrivate(*referrer.as_ref(cx), script_private.handle_mut()) };
-    let referencing_script =
-        unsafe { module_script_from_reference_private(script_private.handle()) };
+    // Step 4. Let originalFetchOptions be the default script fetch options.
+    let mut original_fetch_options = ScriptFetchOptions::default_classic_script();
+
+    // Step 5. Let fetchReferrer be "client".
+    let mut fetch_referrer = global_scope.get_referrer();
 
     // Step 6. If referrer is a Script Record or a Cyclic Module Record, then:
-    let (original_fetch_options, fetch_referrer) = match referencing_script {
-        Some(module) => (
-            // Step 6.4. Set originalFetchOptions to referencingScript's fetch options.
-            module.options.clone(),
-            // Step 6.3. Set fetchReferrer to referencingScript's base URL.
-            Referrer::ReferrerUrl(module.base_url.clone()),
-        ),
-        None => (
-            // Step 4. Let originalFetchOptions be the default script fetch options.
-            ScriptFetchOptions::default_classic_script(),
-            // Step 5. Let fetchReferrer be "client".
-            global_scope.get_referrer(),
-        ),
-    };
 
-    let script_owner = referencing_script.and_then(|script| script.owner.clone());
-
-    // Step 6.2. Set settingsObject to referencingScript's settings object.
-    if let Some(ref owner) = script_owner {
-        global_scope = owner.root();
+    // Step 6.1. Set referencingScript to referrer.[[HostDefined]].
+    unsafe { JS_GetScriptPrivate(*referrer.as_ref(cx), script_private.handle_mut()) };
+    let referencing_script = unsafe {
+        module_script_from_reference_private(script_private.handle())
+    }
+    .map(|script| ReferringScript {
+        script,
+        settings_object: unsafe {
+            GlobalScope::from_object(JS_GetGlobalFromScript(referrer.get()))
+        },
+    });
+    if let Some(referencing_script) = &referencing_script {
+        // Step 6.2. Set settingsObject to referencingScript's settings object.
+        global_scope = referencing_script.settings_object.clone();
+        // Step 6.3. Set fetchReferrer to referencingScript's base URL.
+        fetch_referrer = Referrer::ReferrerUrl(referencing_script.script.base_url.clone());
+        // Step 6.4. Set originalFetchOptions to referencingScript's fetch options.
+        original_fetch_options = referencing_script.script.options.clone();
     }
 
-    // Step 7. If referrer is a Cyclic Module Record and moduleRequest is equal to the first element of referrer.[[RequestedModules]], then:
+    // Step 7. If referrer is a Cyclic Module Record and moduleRequest is equal to the first element
+    // of referrer.[[RequestedModules]], then:
     // Note: Spidermonkey removed the API for iterating through a module's requested modules,
     // preventing upfront validation.
     // Additionally, we skip step 7.1.1 (handled internally by Spidermonkey in `InnerModuleLoading`),
@@ -448,7 +449,8 @@ pub(crate) fn host_load_imported_module(
 
     // Step 8. Let url be the result of resolving a module specifier given referencingScript and moduleRequest.[[Specifier]],
     // catching any exceptions. If they throw an exception, let resolutionError be the thrown exception.
-    let url = ImportMap::resolve_module_specifier(&global_scope, referencing_script, specifier);
+    let url =
+        ImportMap::resolve_module_specifier(&global_scope, referencing_script.as_ref(), specifier);
 
     // Step 9. If the previous step threw an exception, then:
     if let Err(resolution_error) = url {
