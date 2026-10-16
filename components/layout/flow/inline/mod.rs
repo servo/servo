@@ -2169,6 +2169,8 @@ impl InlineFormattingContext {
         });
         options.word_option = Some(match word_break {
             WordBreak::Normal | WordBreak::KeepAll => LineBreakWordOption::Normal,
+            // TODO: also apply `overflow-wrap: anywhere` for `break-word` once overflow-wrap is supported
+            WordBreak::BreakWord => LineBreakWordOption::Normal,
             WordBreak::BreakAll => LineBreakWordOption::BreakAll,
         });
 
