@@ -5,13 +5,13 @@
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
-use net::cookie::ServoCookie;
-use url::Url;
+use net::cookie::{CookieSource, ServoCookie};
+use servo_url::ServoUrl;
 
 fuzz_target!(|data: &[u8]| {
     if let Ok(cookie_str) = std::str::from_utf8(data) {
-        if let Ok(url) = Url::parse("https://example.com/test") {
-            let _ = ServoCookie::from_cookie_string(cookie_str.to_string(), &url);
+        if let Ok(url) = ServoUrl::parse("https://example.com/test") {
+            let _ = ServoCookie::from_cookie_string(cookie_str, &url, CookieSource::HTTP);
         }
     }
 });

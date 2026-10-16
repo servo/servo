@@ -1,3 +1,5 @@
+[workspace]
+
 [package]
 name = "servo-fuzz"
 version = "0.0.1"
@@ -9,11 +11,13 @@ cargo-fuzz = true
 
 [dependencies]
 libfuzzer-sys = "0.4"
-url = "2.5"
 
 [dependencies.net]
 package = "servo-net"
 path = "../components/net"
+
+[dependencies.servo_url]
+path = "../components/servo_url"
 
 [[bin]]
 name = "fuzz_cookie_parser"
