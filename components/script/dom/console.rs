@@ -29,13 +29,13 @@ use js::rust::wrappers2::{
 };
 use js::rust::wrappers2::{
     GetBuiltinClass, GetPropertyKeys, JS_ClearPendingException, JS_GetOwnPropertyDescriptorById,
-    JS_GetPropertyById, JS_GetPrototype, JS_Stringify, JS_ValueToSource,
+    JS_GetPrototype, JS_Stringify, JS_ValueToSource,
 };
 #[cfg(feature = "devtools")]
 use js::rust::{CapturedJSStack, describe_scripted_caller, for_of};
 use js::rust::{HandleObject, HandleValue, IdVector, ToNumber, ToString};
 use script_bindings::conversions::get_dom_class;
-use script_bindings::js::JS_IdToValue;
+use script_bindings::js::{JS_GetPropertyById, JS_IdToValue};
 
 use crate::dom::bindings::codegen::Bindings::ConsoleBinding::consoleMethods;
 #[cfg(feature = "devtools")]
@@ -607,8 +607,7 @@ pub(crate) fn stringify_handle_value(cx: &mut JSContext, message: HandleValue) -
             }
 
             rooted!(&in(cx) let mut property = UndefinedValue());
-            if !unsafe { JS_GetPropertyById(cx, obj.handle(), id.handle(), property.handle_mut()) }
-            {
+            if !JS_GetPropertyById(cx, obj.handle(), id.handle(), property.handle_mut()) {
                 return DOMString::from_static("/* invalid */");
             }
 

@@ -21,7 +21,7 @@ use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::wrappers2::{
     GetPropertyKeys, IsArgumentsObject, JS_CallFunctionName, JS_GetOwnPropertyDescriptorById,
-    JS_GetProperty, JS_GetPropertyById, JS_HasOwnProperty, JS_TypeOfValue,
+    JS_GetProperty, JS_HasOwnProperty, JS_TypeOfValue,
 };
 use js::rust::{HandleObject, HandleValue, IdVector};
 use net_traits::CookieSource::{HTTP, NonHTTP};
@@ -31,7 +31,7 @@ use script_bindings::codegen::GenericBindings::PermissionStatusBinding::{
 };
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::conversions::is_array_like;
-use script_bindings::js::JS_IsExceptionPending;
+use script_bindings::js::{JS_GetPropertyById, JS_IsExceptionPending};
 use script_bindings::num::Finite;
 use script_bindings::reflector::DomObject;
 use script_bindings::settings_stack::run_a_script;
@@ -589,9 +589,8 @@ fn clone_an_object(
             }
 
             rooted!(&in(cx) let mut property = UndefinedValue());
-            let succeeded = unsafe {
-                JS_GetPropertyById(cx, object_handle, id.handle(), property.handle_mut())
-            };
+            let succeeded =
+                JS_GetPropertyById(cx, object_handle, id.handle(), property.handle_mut());
             if !succeeded {
                 return Err(JavaScriptEvaluationError::SerializationError(
                     JavaScriptEvaluationResultSerializationError::OtherJavaScriptError,

@@ -9,7 +9,7 @@ use js::context::JSContext;
 use js::jsapi::{
     ExceptionStackBehavior, JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY, jsid,
 };
-use js::rust::{HandleObject, HandleValue, MutableHandleValue};
+use js::rust::{HandleId, HandleObject, HandleValue, MutableHandleValue};
 
 bitflags! {
     /// Flags for property definitions in JavaScript.
@@ -78,6 +78,18 @@ pub fn JS_IsExceptionPending(cx: &mut JSContext) -> bool {
 #[inline]
 pub fn JS_IdToValue(cx: &mut JSContext, id: jsid, vp: MutableHandleValue) -> bool {
     unsafe { js::rust::wrappers2::JS_IdToValue(cx, id, vp) }
+}
+
+/// Safe wrapper around [`js::rust::wrappers2::JS_GetPropertyById`].
+#[allow(non_snake_case)]
+#[inline]
+pub fn JS_GetPropertyById(
+    cx: &mut JSContext,
+    obj: HandleObject,
+    id: HandleId,
+    vp: MutableHandleValue,
+) -> bool {
+    unsafe { js::rust::wrappers2::JS_GetPropertyById(cx, obj, id, vp) }
 }
 
 #[cfg(test)]
