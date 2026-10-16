@@ -184,7 +184,6 @@ pub enum InputEventType {
     DeleteByCut,
     DeleteContentBackward,
     DeleteContentForward,
-    Nothing,
 }
 
 impl InputEventType {
@@ -197,7 +196,6 @@ impl InputEventType {
             Self::DeleteByCut => "deleteByCut",
             Self::DeleteContentBackward => "deleteContentBackward",
             Self::DeleteContentForward => "deleteContentForward",
-            Self::Nothing => "",
         }
     }
 
