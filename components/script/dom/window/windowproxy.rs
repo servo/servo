@@ -962,6 +962,8 @@ impl WindowProxy {
         unsafe {
             debug!("Setting window of {:p}.", self);
 
+            self.discarded.set(false);
+
             let window_jsobject = window.reflector().get_jsobject();
             let old_js_proxy = self.reflector.get_jsobject();
             assert!(!window_jsobject.get().is_null());
