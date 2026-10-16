@@ -17,13 +17,12 @@ use js::jsapi::{
 };
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::wrappers2::{
-    GetPropertyKeys, JS_DefineUCProperty2, JS_GetOwnPropertyDescriptorById, JS_GetPropertyById,
-    JS_NewPlainObject,
+    GetPropertyKeys, JS_DefineUCProperty2, JS_GetOwnPropertyDescriptorById, JS_NewPlainObject,
 };
 use js::rust::{HandleId, HandleValue, IdVector, MutableHandleValue};
 
 use crate::conversions::jsid_to_string;
-use crate::js::JS_IdToValue;
+use crate::js::{JS_GetPropertyById, JS_IdToValue};
 use crate::str::{ByteString, DOMString, USVString};
 
 pub trait RecordKey: Eq + Hash + Sized {
@@ -165,9 +164,7 @@ where
             };
 
             rooted!(&in(cx) let mut property = UndefinedValue());
-            if unsafe {
-                !JS_GetPropertyById(cx, object.handle(), id.handle(), property.handle_mut())
-            } {
+            if !JS_GetPropertyById(cx, object.handle(), id.handle(), property.handle_mut()) {
                 return Err(());
             }
 
