@@ -549,11 +549,12 @@ for content-process bootstrap (guarded by `#[cfg(feature = "multiprocess")]`):
 
 | Platform | Sandbox | Notes |
 | --- | --- | --- |
-| Linux (x86_64) | `gaol` (seccomp-bpf + namespaces) | Requires `multiprocess` feature; `servo_create_sandbox()` returns `true`. |
+| Linux (x86_64/arm64) | `gaol` / seccomp-bpf + namespaces | Requires `multiprocess` feature; `servo_create_sandbox()` returns `true`. |
 | macOS (x86_64/arm64) | `sandbox-exec` (Seatbelt) | Requires `multiprocess` feature; `servo_create_sandbox()` returns `true`. |
-| Windows | None | `servo_create_sandbox()` returns `false`; content runs unsandboxed. |
-| iOS / Android / OHOS | N/A | Multi-process not supported. |
-| ARM / RISC-V (Linux) | None | `gaol` not available; `servo_create_sandbox()` returns `false`. |
+| Windows (x86_64) | Mitigation policies (DEP, ASLR, strict handle) | Requires `multiprocess` feature; `servo_create_sandbox()` returns `true` (see `WINDOWS_SANDBOX_DESIGN.md`). |
+| Android | Isolated process + SELinux container | Enforced by OS container runtime; `servo_create_sandbox()` returns `true`. |
+| iOS | App container sandbox | Enforced by OS container runtime; `servo_create_sandbox()` returns `true`. |
+| OpenHarmony / RISC-V | None | Single-process / unsupported; `servo_create_sandbox()` returns `false`. |
 
 The embedder is responsible for process lifecycle management (crash detection,
 restart, resource limits). No zygote/fork-server abstraction is provided.
