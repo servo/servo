@@ -11,7 +11,9 @@ use js::rust::{CustomAutoRooterGuard, HandleValue};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::reflect_dom_object;
 use servo_base::id::ServiceWorkerId;
-use servo_constellation_traits::{DOMMessage, ScriptToConstellationMessage};
+use servo_constellation_traits::{
+    DOMMessage, ScriptToConstellationMessage, ServiceWorkerState as ConstellationServiceWorkerState,
+};
 use servo_url::ServoUrl;
 
 use crate::dom::abstractworker::SimpleWorkerErrorHandler;
@@ -84,6 +86,29 @@ impl ServiceWorker {
 
     pub(crate) fn get_script_url(&self) -> ServoUrl {
         ServoUrl::parse(&self.script_url.borrow().clone()).unwrap()
+    }
+
+    pub(crate) fn set_state(&self, state: ConstellationServiceWorkerState) {
+        match state {
+            ConstellationServiceWorkerState::Parsed => {
+                debug_assert!(false, "An update is never for the parsed state.")
+            },
+            ConstellationServiceWorkerState::Installing => {
+                self.state.set(ServiceWorkerState::Installing);
+            },
+            ConstellationServiceWorkerState::Installed => {
+                self.state.set(ServiceWorkerState::Installed);
+            },
+            ConstellationServiceWorkerState::Activating => {
+                self.state.set(ServiceWorkerState::Activating);
+            },
+            ConstellationServiceWorkerState::Activated => {
+                self.state.set(ServiceWorkerState::Activated);
+            },
+            ConstellationServiceWorkerState::Redundant => {
+                self.state.set(ServiceWorkerState::Redundant);
+            },
+        }
     }
 
     /// <https://w3c.github.io/ServiceWorker/#service-worker-postmessage>
