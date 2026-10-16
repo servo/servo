@@ -28,8 +28,8 @@ use super::geom::{FlexAxis, FlexRelativeRect, FlexRelativeSides, FlexRelativeVec
 use super::{FlexContainer, FlexContainerConfig, FlexItemBox, FlexLevelBox};
 use crate::cell::ArcRefCell;
 use crate::containing_block::{
-    ConstraintSpace, ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize,
-    IndefiniteContainingBlock,
+    ConstraintSpace, ContainingBlock, ContainingBlockSize, ContainingBlockSizeTrait,
+    HasQuirkyBlockSize, IndefiniteContainingBlock,
 };
 use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
