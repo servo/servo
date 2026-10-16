@@ -18,6 +18,7 @@ use style::properties::ComputedValues;
 use style::values::specified::align::AlignFlags;
 use style_traits::CSSPixel;
 
+use crate::containing_block::{ConstraintSpace, ContainingBlock, ContainingBlockSize};
 use crate::context::LayoutContext;
 use crate::dom::{LayoutBox, WeakLayoutBox};
 use crate::flow::CollapsibleWithParentStartMargin;
@@ -30,7 +31,6 @@ use crate::geom::LogicalSides1D;
 use crate::positioned::{PositioningContext, relative_adjustement};
 use crate::sizing::{ComputeInlineContentSizes, InlineContentSizesResult, SizeConstraint};
 use crate::traversal::ElementDamageSet;
-use crate::{ConstraintSpace, ContainingBlock, ContainingBlockSize};
 
 /// A box tree node that handles containing information about style and the original DOM
 /// node or pseudo-element that it is based on. This also handles caching of layout values

@@ -12,7 +12,9 @@ use script::layout_dom::ServoLayoutNode;
 use style::values::computed::Overflow;
 use style_traits::CSSPixel;
 
+use crate::PropagatedBoxTreeData;
 use crate::cell::ArcRefCell;
+use crate::containing_block::DefiniteContainingBlock;
 use crate::context::LayoutContext;
 use crate::dom::{LayoutBox, NodeExt};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
@@ -23,7 +25,6 @@ use crate::fragment_tree::{FragmentFlags, FragmentTree};
 use crate::geom::{LogicalVec2, PhysicalSize};
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
 use crate::style_ext::Display;
-use crate::{DefiniteContainingBlock, PropagatedBoxTreeData};
 
 #[derive(MallocSizeOf)]
 pub struct BoxTree {

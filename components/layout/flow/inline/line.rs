@@ -22,6 +22,7 @@ use unicode_bidi::{BidiInfo, Level};
 use super::inline_box::{InlineBoxContainerState, InlineBoxIdentifier, InlineBoxTreePathToken};
 use super::{InlineFormattingContextLayout, LineBlockSizes, line_height};
 use crate::cell::ArcRefCell;
+use crate::containing_block::{ContainingBlock, ContainingBlockSize};
 use crate::flow::inline::text_run::{FontAndScriptInfo, SharedTextRunData};
 use crate::fragment_tree::{
     BaseFragment, BaseFragmentInfo, BoxFragment, Fragment, FragmentFlags, TextFragment,
@@ -33,7 +34,6 @@ use crate::geom::{
 use crate::positioned::{
     AbsolutelyPositionedBox, PositioningContext, PositioningContextLength, relative_adjustement,
 };
-use crate::{ContainingBlock, ContainingBlockSize};
 
 pub(super) struct LineMetrics {
     /// The block offset of the line start in the containing

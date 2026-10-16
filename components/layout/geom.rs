@@ -16,7 +16,7 @@ use style::values::computed::{CSSPixelLength, LengthPercentage};
 use style::values::generics::length::GenericLengthPercentageOrAuto as AutoOr;
 use style_traits::CSSPixel;
 
-use crate::ContainingBlock;
+use crate::containing_block::ContainingBlock;
 use crate::sizing::Size;
 
 pub type PhysicalPoint<U> = euclid::Point2D<U, CSSPixel>;

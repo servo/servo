@@ -36,6 +36,7 @@ use unicode_bidi::Level;
 use webrender_api as wr;
 use webrender_api::units::LayoutTransform;
 
+use crate::containing_block::{ContainingBlock, IndefiniteContainingBlock};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::fragment_tree::FragmentFlags;
 use crate::geom::{
@@ -44,7 +45,6 @@ use crate::geom::{
 };
 use crate::sizing::{Size, Sizes};
 use crate::table::TableLayoutStyle;
-use crate::{ContainingBlock, IndefiniteContainingBlock};
 
 #[derive(Clone, Copy, Eq, PartialEq)]
 pub(crate) enum Display {
