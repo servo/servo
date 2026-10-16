@@ -486,7 +486,7 @@ impl WebGL2RenderingContext {
         dst: &mut ArrayBufferView,
         dst_elem_offset: u32,
     ) {
-        handle_potential_webgl_error!(self.base, self.base.validate_framebuffer(), return);
+        handle_potential_webgl_error!(self.base, self.base.validate_read_framebuffer(), return);
 
         if self.bound_pixel_pack_buffer.get().is_some() {
             return self.base.webgl_error(InvalidOperation);
@@ -2291,7 +2291,7 @@ impl WebGL2RenderingContextMethods<crate::DomTypeHolder> for WebGL2RenderingCont
         pixel_type: u32,
         dst_byte_offset: i64,
     ) {
-        handle_potential_webgl_error!(self.base, self.base.validate_framebuffer(), return);
+        handle_potential_webgl_error!(self.base, self.base.validate_read_framebuffer(), return);
 
         let dst = match self.bound_pixel_pack_buffer.get() {
             Some(buffer) => buffer,

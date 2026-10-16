@@ -1444017,6 +1444017,13 @@
       {}
      ]
     ],
+    "framebuffer-without-color-attachment.html": [
+     "e917406750ada2ddd1926c10a0ae562bee9604b1",
+     [
+      null,
+      {}
+     ]
+    ],
     "getParameter-stencil-masks.html": [
      "d4c9a16c01decfb53004a8874616ac3af5603f05",
      [
