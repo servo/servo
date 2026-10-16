@@ -10,34 +10,11 @@ description, affected revision/commit, the platform, and (where possible) a
 minimal reproduction. We will acknowledge reports through the private advisory
 and coordinate disclosure once a fix is available.
 
-## Vulnerability Handling & Response Process
-
-1. **Intake SLA:** Security reports submitted through GitHub Security Advisories are
-   acknowledged by maintainers within **48 hours**.
-2. **Triage & Severity Assessment:** Maintainers assess vulnerabilities using
-   **CVSS v3.1** scoring:
-   - **Critical (9.0–10.0):** Remote code execution or memory corruption reachable
-     from web content. Immediate patch branch opened; targeted advisory release
-     within 7 days.
-   - **High (7.0–8.9):** Sandbox escape, cross-origin data exposure, or bypass of
-     Same-Origin Policy. Target remediation within 14 days.
-   - **Medium (4.0–6.9):** Denial of service (process crash), cookie isolation bypass,
-     or local spoofing. Target remediation within 30 days.
-   - **Low (0.1–3.9):** Minor information disclosure or non-critical specification divergence.
-3. **Coordinated Disclosure:** We adhere to a standard **90-day** disclosure window.
-   If active exploitation in the wild is demonstrated, the window is accelerated to
-   **7 days**. Coordinated advisories are published with CVE assignment.
-4. **Supply Chain & Dependency Auditing:**
-   - `cargo-deny` runs on every pull request to enforce license compliance and block
-     crates with known security advisories (`deny.toml`).
-   - Automated dependency vulnerability scans run weekly via GitHub Actions.
-   - Security-critical dependencies (`rustls`, `spidermonkey`/`mozjs`, `webrender`)
-     are audited on a quarterly cadence.
-
 ## Supported versions
 
-Servo is under active development on the `main` branch and active embedding branches.
-Security patches are backported to active embedding branches.
+Servo is a prototype engine under active development on `main` and active
+embedding branches. Security fixes are applied to active development branches;
+there are no maintained long-term-support (LTS) releases.
 
 ## Threat model
 
