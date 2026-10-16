@@ -137,15 +137,14 @@ impl CharacterDataMethods<crate::DomTypeHolder> for CharacterData {
     fn SetData(&self, cx: &mut JSContext, data: DOMString) {
         self.queue_mutation_record(cx);
         let old_length = self.Length();
-        *self.data.safe_borrow_mut(cx.no_gc()) = String::from(data.str());
+        let data_string: String = data.into();
+        let data_length = Utf16CodeUnits::length_of(AssumeUnder4GB, &data_string);
+        *self.data.safe_borrow_mut(cx.no_gc()) = data_string;
         self.content_changed(cx);
 
         let mut utf16_length = None;
         // TODO: ensure that DOMString’s are under 4 GiB?
-        let mut lazy_length = move || {
-            *utf16_length
-                .get_or_insert_with(|| Utf16CodeUnits::length_of(AssumeUnder4GB, &data.str()).0)
-        };
+        let mut lazy_length = move || *utf16_length.get_or_insert(data_length.0);
 
         let node: &Node = self.upcast();
         let document = node.owner_doc_unrooted(cx.no_gc());
