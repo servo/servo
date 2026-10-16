@@ -371,15 +371,33 @@ Templates by function shape:
   set by the caller before the call.
   ```
 
-## 6. Deprecation policy and header version macros
+### 6.1 ABI Support Window and Deprecation Cadence
 
-- **Announce then wait.** A symbol is deprecated in a MINOR release by:
-  1. Adding `SERVO_DEPRECATED` to its declaration (below).
-  2. Documenting the replacement and the release in which removal will occur (at least
-     one MINOR release later, and never in a PATCH).
-  3. Emitting a one-time runtime warning (e.g. `log::warn!`) from the deprecated function.
-- **Removal happens only in a MAJOR release.**
-- **Never reuse a name** that has been deprecated/removed for a different purpose.
+- **Support Window:** A deprecated symbol or struct field remains fully supported and
+  exported for a minimum of **two MINOR releases** or **six months** (whichever is longer)
+  prior to removal.
+- **Deprecation Lifecycle:**
+  1. *Deprecation Announced:* In MINOR release `0.X.0`, the symbol is annotated with
+     `SERVO_DEPRECATED("Use servo_replacement instead")`. A runtime diagnostic warning is
+     logged on first invocation.
+  2. *Deprecation Active:* In subsequent MINOR releases (`0.(X+1).0`), the symbol remains
+     fully functional and tested in `tests/capi`.
+  3. *Removal:* Removal occurs exclusively in a MAJOR release bump (`1.0.0`), with advance
+     notice in release notes.
+- **Never reuse a name** that has been deprecated or removed for a different purpose.
+
+### 6.2 Release Signing and Distribution Verification
+
+To guarantee binary integrity and satisfy platform security mandates:
+- **macOS Notarization:** Binaries (`libservo_capi.dylib`) and packages must be signed with
+  an Apple Developer ID Application certificate with hardened runtime enabled (`--options runtime`).
+  Artifacts are submitted to Apple Notary Service via `xcrun notarytool submit` and stapled
+  (`xcrun stapler staple`).
+- **Windows Authenticode:** Dynamic libraries (`servo_capi.dll`) and import libraries are
+  digitally signed using `signtool.exe` with an EV Code Signing Certificate and RFC 3161
+  timestamp authority.
+- **Linux & Checksums:** Release tarballs are accompanied by `SHA256SUMS` and detached GPG
+  signatures (`SHA256SUMS.asc`) signed by the Servo release key.
 
 ```c
 #if defined(__GNUC__) || defined(__clang__)
