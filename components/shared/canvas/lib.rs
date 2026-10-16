@@ -9,6 +9,7 @@
 use crossbeam_channel::Sender;
 use euclid::default::Size2D;
 use profile_traits::mem::ReportsChan;
+use servo_base::id::WebViewId;
 
 use crate::canvas::CanvasId;
 
@@ -23,4 +24,5 @@ pub enum ConstellationCanvasMsg {
     },
     CollectMemoryReport(ReportsChan),
     Exit(Sender<()>),
+    ClearResources(WebViewId),
 }

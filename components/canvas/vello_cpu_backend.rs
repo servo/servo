@@ -14,6 +14,7 @@ use paint_api::SerializableImageData;
 use pixels::{Snapshot, SnapshotAlphaMode, SnapshotPixelFormat};
 use profile_traits::mem::ReportKind;
 use servo_base::generic_channel::GenericSharedMemory;
+use servo_base::id::WebViewId;
 use servo_canvas_traits::canvas::{
     CompositionOptions, CompositionOrBlending, CompositionStyle, FillOrStrokeStyle, FillRule,
     LineOptions, Path, ShadowOptions, TextRun,
@@ -28,6 +29,14 @@ use crate::canvas_data::Filter;
 thread_local! {
     /// The shared font cache used by all canvases that render on a thread.
     static SHARED_FONT_CACHE: RefCell<HashMap<FontIdentifier, peniko::FontData>> = RefCell::default();
+}
+
+/// Clears the font cache.
+// TODO: Only clear fonts associated with a webviewid
+pub(crate) fn clear_shared_font_cache(_webview_id: WebViewId) {
+    SHARED_FONT_CACHE.with(|font_cache| {
+        font_cache.borrow_mut().clear();
+    })
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
