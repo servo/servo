@@ -31,8 +31,8 @@ use crate::style_ext::{AspectRatio, Display, DisplayInside, LayoutStyle};
 use crate::table::Table;
 use crate::taffy::TaffyContainer;
 use crate::{
-    ArcRefCell, ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock,
-    LogicalVec2, PropagatedBoxTreeData,
+    ArcRefCell, ConstraintSpace, ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize,
+    IndefiniteContainingBlock, LogicalVec2, PropagatedBoxTreeData,
 };
 
 /// <https://drafts.csswg.org/css-display/#independent-formatting-context>
@@ -467,6 +467,7 @@ impl IndependentFormattingContext {
                     size: ContainingBlockSize {
                         inline: containing_block_for_children.size.inline,
                         block: SizeConstraint::Definite(resolved_block_size),
+                        has_quirky_block_size: HasQuirkyBlockSize(false),
                     },
                     style: &self.base.style,
                 };
@@ -598,6 +599,7 @@ impl IndependentFormattingContext {
                 size: ContainingBlockSize {
                     inline: inline_size,
                     block: SizeConstraint::default(),
+                    has_quirky_block_size: HasQuirkyBlockSize(false),
                 },
                 style: self.style(),
             },

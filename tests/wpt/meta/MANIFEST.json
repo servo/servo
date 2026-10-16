@@ -435415,6 +435415,58 @@
       {}
      ]
     ],
+    "percentage-height-quirk-min-height-001.html": [
+     "fd4099c00b61464da38e06cd370a7d17e5a0e81e",
+     [
+      null,
+      [
+       [
+        "/css/reference/ref-filled-green-200px-square.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
+    "percentage-height-quirk-min-height-002.html": [
+     "4bac9c1e9dcc4c30854afacff3a243872c3d7771",
+     [
+      null,
+      [
+       [
+        "/css/reference/ref-filled-green-200px-square.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
+    "percentage-height-quirk-min-height-003.html": [
+     "60937d6b735059e0960aaa9be531774c552a85c2",
+     [
+      null,
+      [
+       [
+        "/css/reference/ref-filled-green-200px-square.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
+    "percentage-height-quirk-relpos-percent.html": [
+     "1e3fd1c7c77de34d8fdcd63ee29ad9ff6e31c85b",
+     [
+      null,
+      [
+       [
+        "/css/reference/ref-filled-green-200px-square.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
     "reference": {
      "percentage-height-quirk-excludes-flex-grid-002-ref.html": [
       "c63bc0efa85f59eb496875072970016cf77d3c9d",

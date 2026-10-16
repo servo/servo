@@ -59,10 +59,18 @@ use crate::style_ext::AspectRatio;
 /// used when necessary.
 pub(crate) type SharedStyle = ArcRefCell<ServoArc<ComputedValues>>;
 
+/// Whether the block size of a containing block was affected by the percentage quirk.
+/// If true, it means the actual block size is indefinite, but it has been overriden
+/// with a definite amount, in order to resolve percentages in quirks mode.
+/// <https://quirks.spec.whatwg.org/#the-percentage-height-calculation-quirk>
+#[derive(Clone, Copy, Debug, Default, MallocSizeOf, PartialEq)]
+pub(crate) struct HasQuirkyBlockSize(bool);
+
 /// Represents the set of constraints that we use when computing the min-content
 /// and max-content inline sizes of an element.
 pub(crate) struct ConstraintSpace<'a> {
     pub block_size: SizeConstraint,
+    pub has_quirky_block_size: HasQuirkyBlockSize,
     pub style: &'a ComputedValues,
     pub preferred_aspect_ratio: Option<AspectRatio>,
 }
@@ -70,11 +78,13 @@ pub(crate) struct ConstraintSpace<'a> {
 impl<'a> ConstraintSpace<'a> {
     fn new(
         block_size: SizeConstraint,
+        has_quirky_block_size: HasQuirkyBlockSize,
         style: &'a ComputedValues,
         preferred_aspect_ratio: Option<AspectRatio>,
     ) -> Self {
         Self {
             block_size,
+            has_quirky_block_size,
             style,
             preferred_aspect_ratio,
         }
@@ -82,31 +92,83 @@ impl<'a> ConstraintSpace<'a> {
 }
 
 #[inline]
-fn stretch_size(size: Option<Au>, pbm_sum: Au) -> Option<Au> {
-    size.map(|size| Au(0).max(size - pbm_sum))
+fn inline_stretch_size(inline_size: Option<Au>, inline_pbm_sum: Au) -> Option<Au> {
+    inline_size.map(|size| Au(0).max(size - inline_pbm_sum))
+}
+
+#[inline]
+fn block_stretch_size(
+    block_size: Option<Au>,
+    has_quirky_block_size: HasQuirkyBlockSize,
+    block_pbm_sum: Au,
+) -> Option<Au> {
+    if has_quirky_block_size.0 {
+        // The actual block size of the containing block is indefinite,
+        // but the value was overridden in order to resolve percentages.
+        // However, now we are resolving `stretch` instead of a percentage.
+        return None;
+    }
+    block_size.map(|size| Au(0).max(size - block_pbm_sum))
+}
+
+#[derive(Default)]
+pub(crate) struct IndefiniteContainingBlockSize {
+    inline: Option<Au>,
+    block: Option<Au>,
+    has_quirky_block_size: HasQuirkyBlockSize,
+}
+
+impl IndefiniteContainingBlockSize {
+    #[inline]
+    fn as_logical_vec2(&self) -> LogicalVec2<Option<Au>> {
+        LogicalVec2 {
+            inline: self.inline,
+            block: self.block,
+        }
+    }
 }
 
 /// A variant of [`ContainingBlock`] that allows an indefinite inline size.
 /// Useful for code that is shared for both layout (where we know the inline size
 /// of the containing block) and intrinsic sizing (where we don't know it).
 pub(crate) struct IndefiniteContainingBlock<'a> {
-    pub size: LogicalVec2<Option<Au>>,
+    pub size: IndefiniteContainingBlockSize,
     pub style: &'a ComputedValues,
 }
 
 impl IndefiniteContainingBlock<'_> {
     #[inline]
     fn block_stretch_size(&self, block_pbm_sum: Au) -> Option<Au> {
-        stretch_size(self.size.block, block_pbm_sum)
+        block_stretch_size(
+            self.size.block,
+            self.size.has_quirky_block_size,
+            block_pbm_sum,
+        )
+    }
+
+    #[inline]
+    fn has_quirky_block_size(&self) -> bool {
+        self.size.has_quirky_block_size.0
+    }
+}
+
+impl From<&ContainingBlockSize> for IndefiniteContainingBlockSize {
+    fn from(size: &ContainingBlockSize) -> Self {
+        Self {
+            inline: Some(size.inline),
+            block: size.block.to_definite(),
+            has_quirky_block_size: size.has_quirky_block_size,
+        }
     }
 }
 
 impl<'a> From<&ConstraintSpace<'a>> for IndefiniteContainingBlock<'a> {
     fn from(constraint_space: &ConstraintSpace<'a>) -> Self {
         Self {
-            size: LogicalVec2 {
+            size: IndefiniteContainingBlockSize {
                 inline: None,
                 block: constraint_space.block_size.to_definite(),
+                has_quirky_block_size: constraint_space.has_quirky_block_size,
             },
             style: constraint_space.style,
         }
@@ -116,10 +178,7 @@ impl<'a> From<&ConstraintSpace<'a>> for IndefiniteContainingBlock<'a> {
 impl<'a> From<&'_ ContainingBlock<'a>> for IndefiniteContainingBlock<'a> {
     fn from(containing_block: &ContainingBlock<'a>) -> Self {
         Self {
-            size: LogicalVec2 {
-                inline: Some(containing_block.size.inline),
-                block: containing_block.size.block.to_definite(),
-            },
+            size: (&containing_block.size).into(),
             style: containing_block.style,
         }
     }
@@ -128,7 +187,11 @@ impl<'a> From<&'_ ContainingBlock<'a>> for IndefiniteContainingBlock<'a> {
 impl<'a> From<&'_ DefiniteContainingBlock<'a>> for IndefiniteContainingBlock<'a> {
     fn from(containing_block: &DefiniteContainingBlock<'a>) -> Self {
         Self {
-            size: containing_block.size.map(|v| Some(*v)),
+            size: IndefiniteContainingBlockSize {
+                inline: Some(containing_block.size.inline),
+                block: Some(containing_block.size.block),
+                has_quirky_block_size: HasQuirkyBlockSize(false),
+            },
             style: containing_block.style,
         }
     }
@@ -138,6 +201,7 @@ impl<'a> From<&'_ DefiniteContainingBlock<'a>> for IndefiniteContainingBlock<'a>
 pub(crate) struct ContainingBlockSize {
     inline: Au,
     block: SizeConstraint,
+    has_quirky_block_size: HasQuirkyBlockSize,
 }
 
 pub(crate) struct ContainingBlock<'a> {
@@ -148,12 +212,21 @@ pub(crate) struct ContainingBlock<'a> {
 impl ContainingBlock<'_> {
     #[inline]
     fn inline_stretch_size(&self, inline_pbm_sum: Au) -> Option<Au> {
-        stretch_size(Some(self.size.inline), inline_pbm_sum)
+        inline_stretch_size(Some(self.size.inline), inline_pbm_sum)
     }
 
     #[inline]
     fn block_stretch_size(&self, block_pbm_sum: Au) -> Option<Au> {
-        stretch_size(self.size.block.to_definite(), block_pbm_sum)
+        block_stretch_size(
+            self.size.block.to_definite(),
+            self.size.has_quirky_block_size,
+            block_pbm_sum,
+        )
+    }
+
+    #[inline]
+    fn has_quirky_block_size(&self) -> bool {
+        self.size.has_quirky_block_size.0
     }
 }
 
@@ -168,6 +241,7 @@ impl<'a> From<&'_ DefiniteContainingBlock<'a>> for ContainingBlock<'a> {
             size: ContainingBlockSize {
                 inline: definite.size.inline,
                 block: SizeConstraint::Definite(definite.size.block),
+                has_quirky_block_size: HasQuirkyBlockSize(false),
             },
             style: definite.style,
         }
