@@ -14,9 +14,9 @@ use js::conversions::{
     ConversionResult, FromJSValConvertible, ToJSValConvertible, jsstr_to_string,
 };
 use js::gc::{HandleValue, RootedVec};
-use js::jsapi::{HandleId, Heap, JS_GetPropertyById, JSITER_OWNONLY, JSObject};
+use js::jsapi::{Heap, JS_GetPropertyById, JSITER_OWNONLY, JSObject};
 use js::jsval::{ObjectValue, UndefinedValue};
-use js::rust::wrappers2::{GetPropertyKeys, JS_IdToValue, JS_NewObject};
+use js::rust::wrappers2::{GetPropertyKeys, JS_NewObject};
 use js::rust::{
     ForOfIterationFailure, HandleObject, IdVector, IntoHandle, IntoMutableHandle, for_of,
 };
@@ -30,7 +30,7 @@ use script_bindings::codegen::GenericUnionTypes::UnrestrictedDoubleOrKeyframeEff
 use script_bindings::conversions::StringificationBehavior;
 use script_bindings::error::{Error, Fallible};
 use script_bindings::inheritance::Castable;
-use script_bindings::js::{JS_DefineProperty, PropertyFlags};
+use script_bindings::js::{JS_DefineProperty, JS_IdToValue, PropertyFlags};
 use script_bindings::num::Finite;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_bindings::root::DomRoot;
@@ -415,8 +415,7 @@ fn get_property_declarations(
             continue;
         }
         rooted!(&in(cx) let mut key_value = UndefinedValue());
-        let raw_id: HandleId = id.handle().into();
-        if !unsafe { JS_IdToValue(cx, *raw_id.ptr, key_value.handle_mut()) } {
+        if !JS_IdToValue(cx, id.handle().get(), key_value.handle_mut()) {
             continue;
         }
         rooted!(&in(cx) let js_string = key_value.to_string());
