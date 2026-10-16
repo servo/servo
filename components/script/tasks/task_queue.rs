@@ -132,16 +132,7 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
 
         // 4. Filter tasks from non-priority task-sources.
         // We set the taken_task_count to be the number of values not being a `PerformanceTimeline`.
-        self.taken_task_counter.set(
-            incoming
-                .iter()
-                .filter(|task| {
-                    task.task_source_name().is_some_and(|task_source| {
-                        !matches!(task_source, TaskSourceName::PerformanceTimeline)
-                    })
-                })
-                .count() as u64,
-        );
+        let previous_number_of_tasks = incoming.len();
         let to_be_throttled: Vec<_> = incoming
             .extract_if(.., |task| {
                 task.task_source_name().is_some_and(|task_source| {
@@ -149,6 +140,8 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
                 })
             })
             .collect();
+        self.taken_task_counter
+            .set((previous_number_of_tasks - to_be_throttled.len()) as u64);
 
         for msg in incoming {
             // Always run "update the rendering" tasks,
