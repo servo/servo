@@ -2395,7 +2395,11 @@ impl Document {
         // > keep alive in the same way (including due to their lack of salvageability).
         let intend_to_keep_in_bfcache = self.salvageable.get() &&
             self.window.is_top_level() &&
-            !self.window.window_proxy().is_auxiliary() &&
+            ({
+                let window_proxy = self.window.window_proxy();
+                !window_proxy.is_auxiliary() ||
+                    window_proxy.is_disowned()
+            }) &&
             self.iframes.is_empty();
 
         // Step 7. Increase eventLoop's termination nesting level by 1.

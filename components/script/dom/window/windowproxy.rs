@@ -455,6 +455,10 @@ impl WindowProxy {
         self.disowned.set(true);
     }
 
+    pub(crate) fn is_disowned(&self) -> bool {
+        self.disowned.get()
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#dom-window-close>
     /// Step 3.1, set BCs `is_closing` to true.
     pub(crate) fn close(&self) {
