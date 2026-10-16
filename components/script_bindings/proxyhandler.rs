@@ -33,8 +33,8 @@ use js::rust::wrappers2::{
     AppendToIdVector, Call, GetObjectProto, GetPropertyKeys, GetRealmKeyObject, GetWeakMapEntry,
     GetWellKnownSymbol, JS_AlreadyHasOwnPropertyById, JS_AtomizeAndPinString, JS_DefineFunctions,
     JS_DefineProperties, JS_DefinePropertyById, JS_DeletePropertyById,
-    JS_GetOwnPropertyDescriptorById, JS_IdToValue, JS_NewObjectWithGivenProto, JS_ValueToSource,
-    JS_WrapObject, JS_WrapValue, NewWeakMapObject, RUST_INTERNED_STRING_TO_JSID, RUST_JSID_IS_VOID,
+    JS_GetOwnPropertyDescriptorById, JS_NewObjectWithGivenProto, JS_ValueToSource, JS_WrapObject,
+    JS_WrapValue, NewWeakMapObject, RUST_INTERNED_STRING_TO_JSID, RUST_JSID_IS_VOID,
     SetDataPropertyDescriptor, SetPropertyIgnoringNamedGetter, SetWeakMapEntry, int_to_jsid,
 };
 use js::rust::{
@@ -46,7 +46,7 @@ use crate::DomTypes;
 use crate::conversions::{is_dom_proxy, jsid_to_string, native_from_object};
 use crate::error::Error;
 use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
-use crate::js::JS_IsExceptionPending;
+use crate::js::{JS_IdToValue, JS_IsExceptionPending};
 use crate::principals::ServoJSPrincipalsRef;
 use crate::reflector::DomObject;
 use crate::str::DOMString;
