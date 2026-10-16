@@ -158,10 +158,7 @@ pub(crate) fn outer_inline(
     let content_size = LazyCell::new(|| {
         depends_on_contents.set(true);
         let constraint_space = if establishes_containing_block {
-            let available_block_size = containing_block
-                .size
-                .block
-                .map(|v| Au::zero().max(v - pbm_sums.block));
+            let block_stretch_size = containing_block.block_stretch_size(pbm_sums.block);
             let automatic_size = if preferred_size_computes_to_auto.block &&
                 auto_block_size_stretches_to_containing_block
             {
@@ -177,7 +174,7 @@ pub(crate) fn outer_inline(
                         LogicalAxis::Block,
                         automatic_size,
                         || auto_minimum.block,
-                        available_block_size,
+                        block_stretch_size,
                         || block_content_size,
                         is_table,
                     ))
@@ -185,7 +182,7 @@ pub(crate) fn outer_inline(
                     content_box_sizes.block.resolve_extrinsic(
                         automatic_size,
                         auto_minimum.block,
-                        available_block_size,
+                        block_stretch_size,
                     )
                 };
             if skippable_for_block_percentage_quirk {

@@ -253,17 +253,15 @@ impl BlockLevelBox {
             return false;
         }
 
-        let available_inline_size = Au::zero().max(
-            containing_block.size.inline - pbm.padding_border_sums.inline - margin.inline_sum(),
-        );
-        let available_block_size = containing_block.size.block.to_definite().map(|block_size| {
-            Au::zero().max(block_size - pbm.padding_border_sums.block - margin.block_sum())
-        });
+        let inline_stretch_size = containing_block
+            .inline_stretch_size(pbm.padding_border_sums.inline + margin.inline_sum());
+        let block_stretch_size =
+            containing_block.block_stretch_size(pbm.padding_border_sums.block + margin.block_sum());
 
         let mut tentative_block_size = content_box_sizes.block.resolve_extrinsic(
             automatic_block_size(layout_context, &same_formatting_context_block.base),
             Au::zero(),
-            available_block_size,
+            block_stretch_size,
         );
         if skippable_for_block_percentage_quirk(
             layout_context,
@@ -286,7 +284,7 @@ impl BlockLevelBox {
             LogicalAxis::Inline,
             Size::Stretch,
             Au::zero,
-            Some(available_inline_size),
+            inline_stretch_size,
             get_inline_content_sizes,
             false, /* is_table */
         );
@@ -1101,7 +1099,7 @@ impl IndependentFormattingContext {
             pbm,
             block_sizes,
             depends_on_block_constraints,
-            available_block_size,
+            block_stretch_size,
             justify_self,
             preferred_aspect_ratio,
             automatic_block_size,
@@ -1121,7 +1119,7 @@ impl IndependentFormattingContext {
             LogicalAxis::Block,
             automatic_block_size,
             Au::zero,
-            available_block_size,
+            block_stretch_size,
             layout_style.is_table(),
         );
 
@@ -1236,11 +1234,7 @@ impl IndependentFormattingContext {
 
         // Then compute a tentative block size.
         let pbm_sums = pbm.sums_auto_is_zero(ignore_block_margins_for_stretch);
-        let available_block_size = containing_block
-            .size
-            .block
-            .to_definite()
-            .map(|block_size| Au::zero().max(block_size - pbm_sums.block));
+        let block_stretch_size = containing_block.block_stretch_size(pbm_sums.block);
         let automatic_block_size = automatic_block_size(layout_context, &self.base);
         let is_table = self.is_table();
         let preferred_aspect_ratio = self.preferred_aspect_ratio(&pbm.padding_border_sums);
@@ -1268,7 +1262,7 @@ impl IndependentFormattingContext {
                     let (preferred, min, max) = content_box_sizes.block.resolve_each(
                         automatic_block_size,
                         Au::zero,
-                        available_block_size,
+                        block_stretch_size,
                         || block_content_size,
                         is_table,
                     );
@@ -1277,7 +1271,7 @@ impl IndependentFormattingContext {
                     let (preferred, min, max) = content_box_sizes.block.resolve_each_extrinsic(
                         automatic_block_size,
                         Au::zero(),
-                        available_block_size,
+                        block_stretch_size,
                     );
                     (preferred, min, max, false)
                 };
@@ -1304,6 +1298,7 @@ impl IndependentFormattingContext {
         let justify_self = resolve_justify_self(style, containing_block.style, has_inline_parent);
         let automatic_inline_size = automatic_inline_size(justify_self, Some(self));
         let compute_inline_size = |cache: &mut Cache, stretch_size| {
+            let stretch_size = Some(stretch_size);
             if cache.depends_on_stretch_size {
                 update_cache(cache, stretch_size);
             }
@@ -1311,7 +1306,7 @@ impl IndependentFormattingContext {
                 LogicalAxis::Inline,
                 automatic_inline_size,
                 Au::zero,
-                Some(stretch_size),
+                stretch_size,
                 || get_inline_content_sizes(cache),
                 is_table,
             )
@@ -1323,7 +1318,7 @@ impl IndependentFormattingContext {
                 LogicalAxis::Block,
                 automatic_block_size,
                 Au::zero,
-                available_block_size,
+                block_stretch_size,
                 is_table,
             )
         };
@@ -1415,9 +1410,9 @@ impl IndependentFormattingContext {
                 // PlacementAmongFloats should guarantee that the inline size of the placement rect
                 // is big enough, but that may fail when dealing with huge sizes that need to be
                 // saturated to MAX_AU. So floor by zero, see #49235.
-                let available_inline_size =
+                let inline_stretch_size =
                     Au::zero().max(placement_rect.size.inline - pbm.padding_border_sums.inline);
-                let proposed_inline_size = compute_inline_size(&mut cache, available_inline_size);
+                let proposed_inline_size = compute_inline_size(&mut cache, inline_stretch_size);
 
                 // Now lay out the block using the inline size we calculated from the placement.
                 // Later we'll check to see if the resulting block size is compatible with the
@@ -1551,7 +1546,7 @@ struct ContainingBlockPaddingAndBorder<'a> {
     pbm: PaddingBorderMargin,
     block_sizes: Sizes,
     depends_on_block_constraints: bool,
-    available_block_size: Option<Au>,
+    block_stretch_size: Option<Au>,
     justify_self: AlignFlags,
     preferred_aspect_ratio: Option<AspectRatio>,
     automatic_block_size: Size<Au>,
@@ -1592,10 +1587,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         // > Anonymous block boxes are ignored when resolving percentage values that would
         // > refer to it: the closest non-anonymous ancestor box is used instead.
         let containing_block_for_children = ContainingBlock {
-            size: ContainingBlockSize {
-                inline: containing_block.size.inline,
-                block: containing_block.size.block,
-            },
+            size: containing_block.size.clone(),
             style,
         };
         // <https://drafts.csswg.org/css2/#anonymous-block-level>
@@ -1605,9 +1597,9 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
             pbm: PaddingBorderMargin::zero(),
             block_sizes: Sizes::default(),
             depends_on_block_constraints: false,
-            // The available block size may actually be definite, but it should be irrelevant
+            // The block stretch size may actually be definite, but it should be irrelevant
             // since the sizing properties are set to their initial value.
-            available_block_size: None,
+            block_stretch_size: None,
             // The initial `justify-self` is `auto`, but use `normal` (behaving as `stretch`).
             // This is being discussed in <https://github.com/w3c/csswg-drafts/issues/11461>.
             justify_self: AlignFlags::NORMAL,
@@ -1624,12 +1616,8 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     } = layout_style.content_box_sizes_and_padding_border_margin(&containing_block.into());
 
     let pbm_sums = pbm.sums_auto_is_zero(ignore_block_margins_for_stretch);
-    let available_inline_size = Au::zero().max(containing_block.size.inline - pbm_sums.inline);
-    let available_block_size = containing_block
-        .size
-        .block
-        .to_definite()
-        .map(|block_size| Au::zero().max(block_size - pbm_sums.block));
+    let inline_stretch_size = containing_block.inline_stretch_size(pbm_sums.inline);
+    let block_stretch_size = containing_block.block_stretch_size(pbm_sums.block);
     let automatic_block_size = automatic_block_size(layout_context, base);
 
     // TODO: support preferred aspect ratios on boxes that don't establish an independent
@@ -1641,14 +1629,14 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     // https://drafts.csswg.org/css2/#the-height-property
     // https://drafts.csswg.org/css2/visudet.html#min-max-heights
     let tentative_block_content_size = context.and_then(|context| {
-        context.tentative_block_content_size(preferred_aspect_ratio, available_inline_size)
+        context.tentative_block_content_size(preferred_aspect_ratio, inline_stretch_size)
     });
     let mut tentative_block_size = if let Some(block_content_size) = tentative_block_content_size {
         SizeConstraint::Definite(content_box_sizes.block.resolve(
             LogicalAxis::Block,
             automatic_block_size,
             Au::zero,
-            available_block_size,
+            block_stretch_size,
             || block_content_size,
             is_table,
         ))
@@ -1656,7 +1644,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         content_box_sizes.block.resolve_extrinsic(
             automatic_block_size,
             Au::zero(),
-            available_block_size,
+            block_stretch_size,
         )
     };
     if skippable_for_block_percentage_quirk(layout_context, base, context) {
@@ -1677,7 +1665,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         LogicalAxis::Inline,
         automatic_inline_size(justify_self, context),
         Au::zero,
-        Some(available_inline_size),
+        inline_stretch_size,
         get_inline_content_sizes,
         is_table,
     );
@@ -1703,7 +1691,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         pbm,
         block_sizes: content_box_sizes.block,
         depends_on_block_constraints,
-        available_block_size,
+        block_stretch_size,
         justify_self,
         preferred_aspect_ratio,
         automatic_block_size,
@@ -2223,24 +2211,19 @@ impl IndependentFormattingContext {
         let preferred_aspect_ratio = self.preferred_aspect_ratio(&pbm.padding_border_sums);
         let is_table = self.is_table();
 
-        let available_inline_size =
-            Au::zero().max(containing_block.size.inline - pbm_sums.inline_sum());
-        let available_block_size = containing_block
-            .size
-            .block
-            .to_definite()
-            .map(|block_size| Au::zero().max(block_size - pbm_sums.block_sum()));
+        let inline_stretch_size = containing_block.inline_stretch_size(pbm_sums.inline_sum());
+        let block_stretch_size = containing_block.block_stretch_size(pbm_sums.block_sum());
 
         let automatic_block_size = Size::FitContent;
         let tentative_block_content_size =
-            self.tentative_block_content_size(preferred_aspect_ratio, available_inline_size);
+            self.tentative_block_content_size(preferred_aspect_ratio, inline_stretch_size);
         let mut tentative_block_size =
             if let Some(block_content_size) = tentative_block_content_size {
                 SizeConstraint::Definite(content_box_sizes_and_pbm.content_box_sizes.block.resolve(
                     LogicalAxis::Block,
                     automatic_block_size,
                     Au::zero,
-                    available_block_size,
+                    block_stretch_size,
                     || block_content_size,
                     is_table,
                 ))
@@ -2248,7 +2231,7 @@ impl IndependentFormattingContext {
                 content_box_sizes_and_pbm
                     .content_box_sizes
                     .block
-                    .resolve_extrinsic(automatic_block_size, Au::zero(), available_block_size)
+                    .resolve_extrinsic(automatic_block_size, Au::zero(), block_stretch_size)
             };
         if skippable_for_block_percentage_quirk(layout_context, &self.base, Some(self)) {
             tentative_block_size.replace_if_indefinite_with(containing_block.size.block);
@@ -2265,7 +2248,7 @@ impl IndependentFormattingContext {
             LogicalAxis::Inline,
             automatic_block_size,
             Au::zero,
-            Some(available_inline_size),
+            inline_stretch_size,
             get_content_size,
             is_table,
         );
@@ -2288,7 +2271,7 @@ impl IndependentFormattingContext {
             LogicalAxis::Block,
             automatic_block_size,
             Au::zero,
-            available_block_size,
+            block_stretch_size,
             is_table,
         );
 

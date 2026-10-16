@@ -176,7 +176,7 @@ impl SameFormattingContextBlock {
             pbm,
             block_sizes,
             depends_on_block_constraints,
-            available_block_size,
+            block_stretch_size,
             justify_self,
             automatic_block_size,
             ..
@@ -353,7 +353,7 @@ impl SameFormattingContextBlock {
             LogicalAxis::Block,
             automatic_block_size,
             Au::zero,
-            available_block_size,
+            block_stretch_size,
             || content_block_size.into(),
             false, /* is_table */
         );
