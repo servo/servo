@@ -70,7 +70,6 @@ use crate::runtime::script_runtime::{IntroductionType, Runtime, ThreadSafeJSCont
 use crate::scripting::fetching_options::ScriptFetchOptions;
 use crate::scripting::script_execution::{RethrowErrors, ScriptOptions};
 use crate::tasks::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
-use crate::tasks::task_source::TaskSourceName;
 
 /// Messages used to control service worker event loop
 pub(crate) enum ServiceWorkerScriptMsg {
@@ -85,19 +84,6 @@ pub(crate) enum ServiceWorkerScriptMsg {
 }
 
 impl QueuedTaskConversion for ServiceWorkerScriptMsg {
-    fn task_source_name(&self) -> Option<&TaskSourceName> {
-        let script_msg = match self {
-            ServiceWorkerScriptMsg::CommonWorker(WorkerScriptMsg::Common(script_msg)) => script_msg,
-            _ => return None,
-        };
-        match script_msg {
-            CommonScriptMsg::Task(_category, _boxed, _pipeline_id, task_source) => {
-                Some(task_source)
-            },
-            _ => None,
-        }
-    }
-
     fn pipeline_id(&self) -> Option<PipelineId> {
         // Workers always return None, since the pipeline_id is only used to check for document activity,
         // and this check does not apply to worker event-loops.
@@ -275,7 +261,7 @@ impl ServiceWorkerGlobalScope {
                 font_context,
                 Some(ScriptEventLoopSender::ServiceWorker(own_sender.clone())),
             ),
-            task_queue: TaskQueue::new(receiver, own_sender.clone()),
+            task_queue: TaskQueue::new(receiver),
             own_sender,
             time_out_port,
             swmanager_sender,

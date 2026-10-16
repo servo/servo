@@ -311,19 +311,6 @@ impl ScriptEventLoopReceiver {
 }
 
 impl QueuedTaskConversion for MainThreadScriptMsg {
-    fn task_source_name(&self) -> Option<&TaskSourceName> {
-        let script_msg = match self {
-            MainThreadScriptMsg::Common(script_msg) => script_msg,
-            _ => return None,
-        };
-        match script_msg {
-            CommonScriptMsg::Task(_category, _boxed, _pipeline_id, task_source) => {
-                Some(task_source)
-            },
-            _ => None,
-        }
-    }
-
     fn pipeline_id(&self) -> Option<PipelineId> {
         let script_msg = match self {
             MainThreadScriptMsg::Common(script_msg) => script_msg,

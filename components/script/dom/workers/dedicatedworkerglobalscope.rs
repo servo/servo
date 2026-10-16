@@ -133,23 +133,6 @@ pub(crate) enum MixedMessage {
 }
 
 impl QueuedTaskConversion for DedicatedWorkerScriptMsg {
-    fn task_source_name(&self) -> Option<&TaskSourceName> {
-        let common_worker_msg = match self {
-            DedicatedWorkerScriptMsg::CommonWorker(_, common_worker_msg) => common_worker_msg,
-            _ => return None,
-        };
-        let script_msg = match common_worker_msg {
-            WorkerScriptMsg::Common(script_msg) => script_msg,
-            _ => return None,
-        };
-        match script_msg {
-            CommonScriptMsg::Task(_category, _boxed, _pipeline_id, source_name) => {
-                Some(source_name)
-            },
-            _ => None,
-        }
-    }
-
     fn pipeline_id(&self) -> Option<PipelineId> {
         // Workers always return None, since the pipeline_id is only used to check for document activity,
         // and this check does not apply to worker event-loops.
@@ -350,7 +333,7 @@ impl DedicatedWorkerGlobalScope {
                 None,
             ),
             webview_id,
-            task_queue: TaskQueue::new(receiver, own_sender.clone()),
+            task_queue: TaskQueue::new(receiver),
             own_sender,
             parent_event_loop_sender,
             worker: DomRefCell::new(None),
