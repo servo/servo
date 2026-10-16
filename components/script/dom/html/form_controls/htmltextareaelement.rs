@@ -455,7 +455,9 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
         let old_api_value = self.Value();
 
         // Step 2:  Set this element's raw value to the new value.
-        self.text_input.borrow_mut().set_content(value);
+        self.text_input
+            .safe_borrow_mut(cx.no_gc())
+            .set_content(value);
 
         // Step 3: Set this element's dirty value flag to true.
         self.value_dirty.set(true);
@@ -465,7 +467,9 @@ impl HTMLTextAreaElementMethods<crate::DomTypeHolder> for HTMLTextAreaElement {
         // unselecting any selected text and resetting the selection direction to
         // "none".
         if old_api_value != self.Value() {
-            self.text_input.borrow_mut().clear_selection_to_end();
+            self.text_input
+                .safe_borrow_mut(cx.no_gc())
+                .clear_selection_to_end();
             self.handle_text_content_changed(cx);
         }
     }
@@ -590,7 +594,7 @@ impl HTMLTextAreaElement {
         // https://html.spec.whatwg.org/multipage/#the-textarea-element:concept-form-reset-control
         self.value_dirty.set(false);
         self.text_input
-            .borrow_mut()
+            .safe_borrow_mut(cx.no_gc())
             .set_content(self.DefaultValue());
         self.handle_text_content_changed(cx);
     }
@@ -633,7 +637,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             },
             local_name!("maxlength") => match *attr.value() {
                 AttrValue::Int(_, value) => {
-                    let mut text_input = self.text_input.borrow_mut();
+                    let mut text_input = self.text_input.safe_borrow_mut(cx.no_gc());
 
                     if value < 0 {
                         text_input.set_max_length(None);
@@ -645,7 +649,7 @@ impl VirtualMethods for HTMLTextAreaElement {
             },
             local_name!("minlength") => match *attr.value() {
                 AttrValue::Int(_, value) => {
-                    let mut text_input = self.text_input.borrow_mut();
+                    let mut text_input = self.text_input.safe_borrow_mut(cx.no_gc());
 
                     if value < 0 {
                         text_input.set_min_length(None);
@@ -757,7 +761,7 @@ impl VirtualMethods for HTMLTextAreaElement {
         let el = copy.downcast::<HTMLTextAreaElement>().unwrap();
         el.value_dirty.set(self.value_dirty.get());
         {
-            let mut text_input = el.text_input.borrow_mut();
+            let mut text_input = el.text_input.safe_borrow_mut(cx.no_gc());
             text_input.set_content(self.text_input.borrow().get_content());
         }
         el.validity_state(cx)

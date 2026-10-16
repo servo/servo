@@ -1222,7 +1222,7 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
                     // attribute's current state defines one.
                     self.sanitize_value(&mut value);
 
-                    let mut text_input = self.text_input.borrow_mut();
+                    let mut text_input = self.text_input.safe_borrow_mut(cx.no_gc());
 
                     // Step 5. If the element's value (after applying the value sanitization algorithm)
                     // is different from oldValue, and the element has a text entry cursor position,
@@ -1850,7 +1850,9 @@ impl HTMLInputElement {
         // We set the value and sanitize all in one go.
         let mut value = self.DefaultValue();
         self.sanitize_value(&mut value);
-        self.text_input.borrow_mut().set_content(value);
+        self.text_input
+            .safe_borrow_mut(cx.no_gc())
+            .set_content(value);
 
         let input_type = &*self.input_type();
         if matches!(input_type, InputType::Radio(_) | InputType::Checkbox(_)) {
@@ -1874,7 +1876,9 @@ impl HTMLInputElement {
         self.value_dirty.set(false);
         self.checked_changed.set(false);
         // Step 2. Set value to empty string.
-        self.text_input.borrow_mut().set_content(DOMString::new());
+        self.text_input
+            .safe_borrow_mut(cx.no_gc())
+            .set_content(DOMString::new());
         // Step 3. Set checkedness based on presence of content attribute.
         self.update_checkedness(cx, self.DefaultChecked(), false);
         // Step 4. Empty selected files
@@ -1887,7 +1891,7 @@ impl HTMLInputElement {
         // Step 5. Invoke the value sanitization algorithm iff the type attribute's
         // current state defines one.
         {
-            let mut text_input = self.text_input.borrow_mut();
+            let mut text_input = self.text_input.safe_borrow_mut(cx.no_gc());
             let mut value = text_input.get_content();
             self.sanitize_value(&mut value);
             text_input.set_content(value);
@@ -2199,7 +2203,7 @@ impl VirtualMethods for HTMLInputElement {
                         let (old_value_mode, old_idl_value) = (self.value_mode(), self.Value());
                         let previously_selectable = self.selection_api_applies();
 
-                        *self.input_type.borrow_mut() =
+                        *self.input_type.safe_borrow_mut(cx.no_gc()) =
                             InputType::new_from_atom(attr.value().as_atom());
                         self.is_textual_or_password
                             .set(self.input_type().is_textual_or_password());
@@ -2250,7 +2254,7 @@ impl VirtualMethods for HTMLInputElement {
                         self.input_type().as_specific().signal_type_change(cx, self);
 
                         // Step 6
-                        let mut text_input = self.text_input.borrow_mut();
+                        let mut text_input = self.text_input.safe_borrow_mut(cx.no_gc());
                         let mut value = text_input.get_content();
                         self.sanitize_value(&mut value);
                         text_input.set_content(value);
@@ -2274,7 +2278,7 @@ impl VirtualMethods for HTMLInputElement {
                     },
                     AttributeMutation::Removed => {
                         self.input_type().as_specific().signal_type_change(cx, self);
-                        *self.input_type.borrow_mut() = InputType::new_text();
+                        *self.input_type.safe_borrow_mut(cx.no_gc()) = InputType::new_text();
                         self.is_textual_or_password
                             .set(self.input_type().is_textual_or_password());
 
@@ -2300,12 +2304,14 @@ impl VirtualMethods for HTMLInputElement {
                 let mut value = value.map_or(DOMString::new(), DOMString::from);
 
                 self.sanitize_value(&mut value);
-                self.text_input.borrow_mut().set_content(value);
+                self.text_input
+                    .safe_borrow_mut(cx.no_gc())
+                    .set_content(value);
                 self.update_placeholder_shown_state();
             },
             local_name!("maxlength") if self.does_minmaxlength_apply() => match *attr.value() {
                 AttrValue::Int(_, value) => {
-                    let mut text_input = self.text_input.borrow_mut();
+                    let mut text_input = self.text_input.safe_borrow_mut(cx.no_gc());
 
                     if value < 0 {
                         text_input.set_max_length(None);
@@ -2317,7 +2323,7 @@ impl VirtualMethods for HTMLInputElement {
             },
             local_name!("minlength") if self.does_minmaxlength_apply() => match *attr.value() {
                 AttrValue::Int(_, value) => {
-                    let mut text_input = self.text_input.borrow_mut();
+                    let mut text_input = self.text_input.safe_borrow_mut(cx.no_gc());
 
                     if value < 0 {
                         text_input.set_min_length(None);
@@ -2329,7 +2335,7 @@ impl VirtualMethods for HTMLInputElement {
             },
             local_name!("placeholder") => {
                 {
-                    let mut placeholder = self.placeholder.borrow_mut();
+                    let mut placeholder = self.placeholder.safe_borrow_mut(cx.no_gc());
                     placeholder.clear();
                     if let AttributeMutation::Set(_) = mutation {
                         placeholder
@@ -2477,7 +2483,7 @@ impl VirtualMethods for HTMLInputElement {
         // do it and there are WPT tests expecting cloned nodes to preserve this attribute.
         elem.SetIndeterminate(cx, self.Indeterminate());
         elem.text_input
-            .borrow_mut()
+            .safe_borrow_mut(cx.no_gc())
             .set_content(self.text_input.borrow().get_content());
         self.value_changed(cx);
     }

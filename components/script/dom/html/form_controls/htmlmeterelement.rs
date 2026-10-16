@@ -51,9 +51,12 @@ impl UAShadowRoot<ShadowTree> for HTMLMeterElement {
             .AppendChild(cx, container.upcast::<Node>())
             .expect("Must always be able to append to shadow root");
 
-        let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
-            meter_value: container.as_traced(),
-        });
+        let _ = self
+            .shadow_tree
+            .safe_borrow_mut(cx.no_gc())
+            .insert(ShadowTree {
+                meter_value: container.as_traced(),
+            });
     }
 
     fn borrow_for_shadow_tree(&self) -> Ref<'_, Option<ShadowTree>> {

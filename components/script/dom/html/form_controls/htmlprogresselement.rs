@@ -53,9 +53,12 @@ impl UAShadowRoot<ShadowTree> for HTMLProgressElement {
             .upcast::<Node>()
             .set_implemented_pseudo_element(PseudoElement::MozProgressBar);
 
-        let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
-            progress_bar: progress_bar.as_traced(),
-        });
+        let _ = self
+            .shadow_tree
+            .safe_borrow_mut(cx.no_gc())
+            .insert(ShadowTree {
+                progress_bar: progress_bar.as_traced(),
+            });
     }
 
     fn borrow_for_shadow_tree(&self) -> Ref<'_, Option<ShadowTree>> {
