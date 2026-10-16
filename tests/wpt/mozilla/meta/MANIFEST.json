@@ -13833,6 +13833,15 @@
      ]
     ]
    },
+   "memory": {
+    "fetch-does-not-leak-document.html": [
+     "6cc5505d10648d62cc3224bec15bf6ea7954944c",
+     [
+      null,
+      {}
+     ]
+    ]
+   },
    "mozilla": {
     "Channel-postMessage-with-second-transfer-in-timeout-with-delay.window.js": [
      "939995678895c07047709f6e265d0f6b7b705eb5",

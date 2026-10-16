@@ -7,6 +7,7 @@
 //! script_bindings::refcounted
 
 use std::cell::RefCell;
+use std::sync::{Arc, Weak};
 use std::thread::{self, ThreadId};
 
 use js::context::JSContext;
@@ -35,16 +36,29 @@ struct PromiseKey(*const Promise);
 /// PromiseKey is only ever used for comparisons between keys.
 /// Its value is never read.
 unsafe impl Send for PromiseKey {}
+unsafe impl Sync for PromiseKey {}
 
 /// The set of live, pinned DOM objects that are currently prevented
 /// from being garbage collected due to outstanding references.
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct LivePromiseReferences {
-    // keyed on pointer to Rust DOM object
-    promise_table: RefCell<FxHashMap<PromiseKey, TracedPromise>>,
+    // The table of promises and weak keys keyed on the address of the `Rc<Promise>` owned by each
+    // entry. The weak key tracks whether there are any live references to this entry remaining.
+    promise_table: RefCell<FxHashMap<PromiseKey, (TracedPromise, Weak<PromiseKey>)>>,
 }
 
 impl LivePromiseReferences {
+    /// Prune all `TrustedPromise` entries that no longer have live references. Since this walks
+    /// through every promise, it should not be called from hot code.
+    pub(crate) fn expensive_prune_dropped_promises() {
+        LIVE_PROMISE_REFERENCES.with(|live_promise_references| {
+            live_promise_references
+                .promise_table
+                .borrow_mut()
+                .retain(|_, (_, key)| key.strong_count() > 0);
+        })
+    }
+
     pub(crate) fn destruct() {
         LIVE_PROMISE_REFERENCES.with(|live_references| {
             let _ = live_references.promise_table.take();
@@ -52,19 +66,38 @@ impl LivePromiseReferences {
     }
 
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    fn store_promise(&self, promise: &RootedPromise) -> PromiseKey {
+    fn store(&self, promise: &RootedPromise) -> TrustedPromise {
         // Since converting a RootedPromise to a TracedPromise allocates a new
         // underlying Rc<Promise>, we are guaranteed that there is no prior entry
         // in the hashtable for this particular promise object.
         let traced_promise = promise.to_traced();
-        let key = PromiseKey(&raw const *traced_promise);
-        let _exists = self
-            .promise_table
-            .borrow_mut()
-            .insert(key, traced_promise)
+
+        let mut promise_table = self.promise_table.borrow_mut();
+
+        // Prune any promises that have been dropped on other threads. This is
+        // done here so that they can be dropped on the right thread. This prunes
+        // using the same heuristic as `Trusted<...>`.
+        if promise_table.len() == promise_table.capacity() {
+            promise_table.retain(|_, (_, key)| key.strong_count() > 0);
+        }
+
+        let key = Arc::new(PromiseKey(&raw const *traced_promise));
+        let _exists = promise_table
+            .insert(*key, (traced_promise, Arc::downgrade(&key)))
             .is_some();
         debug_assert!(!_exists);
-        key
+
+        TrustedPromise {
+            key,
+            owner_thread: thread::current().id(),
+        }
+    }
+
+    fn remove(&self, key: &PromiseKey) -> Option<TracedPromise> {
+        self.promise_table
+            .borrow_mut()
+            .remove(key)
+            .map(|(promise, _)| promise)
     }
 }
 
@@ -73,7 +106,7 @@ impl LivePromiseReferences {
 /// as long as the last outstanding `TrustedPromise` instance. These values cannot be cloned,
 /// only created from existing `Rc<Promise>` values.
 pub(crate) struct TrustedPromise {
-    dom_object: PromiseKey,
+    key: Arc<PromiseKey>,
     owner_thread: ThreadId,
 }
 
@@ -82,13 +115,8 @@ impl TrustedPromise {
     /// be prevented from being GCed for the duration of the resulting `TrustedPromise` object's
     /// lifetime.
     pub(crate) fn new(promise: &RootedPromise) -> TrustedPromise {
-        LIVE_PROMISE_REFERENCES.with(|live_references| {
-            let ptr = live_references.store_promise(promise);
-            TrustedPromise {
-                dom_object: ptr,
-                owner_thread: thread::current().id(),
-            }
-        })
+        LIVE_PROMISE_REFERENCES
+            .with(|live_promise_references| live_promise_references.store(promise))
     }
 
     /// Obtain a usable DOM Promise from a pinned `TrustedPromise` value. Fails if used on
@@ -99,9 +127,10 @@ impl TrustedPromise {
             debug_assert_eq!(self.owner_thread, thread::current().id());
             live_references
                 .promise_table
-                .borrow_mut()
-                .remove(&self.dom_object)
+                .borrow()
+                .get(&self.key)
                 .expect("Must always have an entry matching a TrustedPromise")
+                .0
                 .root(cx)
         })
     }
@@ -128,6 +157,18 @@ impl TrustedPromise {
     }
 }
 
+impl Drop for TrustedPromise {
+    fn drop(&mut self) {
+        // When dropped on a different thread, removal happens lazily.
+        if self.owner_thread != thread::current().id() {
+            return;
+        }
+        // This needs `try_with` because it can be called during teardown.
+        let _ = LIVE_PROMISE_REFERENCES
+            .try_with(|live_promise_references| live_promise_references.remove(&self.key));
+    }
+}
+
 impl ThreadTrustedPromiseHelpers<crate::DomTypeHolder> for TrustedPromise {
     type StackRoot = RootedPromise;
 
@@ -140,8 +181,8 @@ impl ThreadTrustedPromiseHelpers<crate::DomTypeHolder> for TrustedPromise {
 pub(crate) unsafe fn trace_refcounted_objects(tracer: *mut JSTracer) {
     trace!("tracing live refcounted promise references");
     LIVE_PROMISE_REFERENCES.with(|live_references| {
-        let table = live_references.promise_table.borrow_mut();
-        for promise in table.values() {
+        let table = live_references.promise_table.borrow();
+        for (promise, _) in table.values() {
             unsafe {
                 promise.reflector().trace(tracer);
             }

@@ -124,7 +124,7 @@ use crate::dom::bindings::conversions::{
     ConversionResult, FromJSValConvertible, StringificationBehavior,
 };
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
+use crate::dom::bindings::refcounted::{LivePromiseReferences, Trusted};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::{CspReporting, GlobalCspReporting, Violation};
@@ -3321,6 +3321,10 @@ impl ScriptThread {
         #[cfg(feature = "devtools")]
         self.devtools_state.notify_pipeline_exited(pipeline_id);
         self.pipeline_to_node_ids.borrow_mut().remove(&pipeline_id);
+
+        // This prunes any promises that are now no longer active due to this pipeline going away
+        // or that have been dropped on other threads.
+        LivePromiseReferences::expensive_prune_dropped_promises();
 
         debug!("{pipeline_id}: Finished pipeline exit");
     }
