@@ -143,7 +143,8 @@ impl SpecificShadowTree<HTMLInputElement, ImageInputType> for ImageInputShadowTr
 
 impl UAShadowRoot<ImageInputShadowTree> for ImageInputType {
     fn store_for_shadow_tree(&self, cx: &mut JSContext, shadow_root: DomRoot<ShadowRoot>) {
-        *self.shadow_tree.borrow_mut() = Some(ImageInputShadowTree::new(cx, shadow_root.upcast()));
+        *self.shadow_tree.safe_borrow_mut(cx.no_gc()) =
+            Some(ImageInputShadowTree::new(cx, shadow_root.upcast()));
     }
 
     fn borrow_for_shadow_tree(&self) -> Ref<'_, Option<ImageInputShadowTree>> {

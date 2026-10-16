@@ -273,7 +273,7 @@ impl<Element: TextControlElement> SpecificShadowTree<Element, TextInputWidget>
 
 impl UAShadowRoot<TextInputWidgetShadowTree> for TextInputWidget {
     fn store_for_shadow_tree(&self, cx: &mut JSContext, shadow_root: DomRoot<ShadowRoot>) {
-        *self.shadow_tree.borrow_mut() =
+        *self.shadow_tree.safe_borrow_mut(cx.no_gc()) =
             Some(TextInputWidgetShadowTree::new(cx, shadow_root.upcast()));
     }
 
