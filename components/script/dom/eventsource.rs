@@ -22,6 +22,7 @@ use mime::{self, Mime};
 use net_traits::fetch::fetch_controller::FetchController;
 use net_traits::request::{CacheMode, CorsSettings, Destination, RequestBuilder, RequestId};
 use net_traits::{FetchMetadata, Metadata, NetworkError, ResourceFetchTiming};
+use pixels::CorsStatus;
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::reflect_weak_referenceable_dom_object_with_proto;
 use servo_url::ServoUrl;
@@ -398,7 +399,7 @@ impl FetchResponseListener for EventSourceContext {
     ) {
         match metadata {
             Ok(fetch_metadata) => {
-                if fetch_metadata.is_cors_cross_origin() {
+                if fetch_metadata.cors_status() == CorsStatus::Unsafe {
                     return self.fail_the_connection();
                 }
                 let metadata: Metadata = fetch_metadata.into();
