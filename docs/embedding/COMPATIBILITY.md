@@ -31,7 +31,7 @@ Sandbox availability below follows from the target, not from which workflow buil
 
 Other targets (`android`, `ios`, `ohos`, 32-bit ARM, RISC-V) are named by
 `servo_capi_platform_name()` so a build can exist, but they are **not** built or
-tested by the embedding CI and are **not** supported. Do not assume a capability is
+tested by the embedding CI and are **not** supported. In particular, **iOS is explicitly unsupported**: there is no iOS port, no Xcode project, no iOS CI, sandboxing panics by design, and JIT/UIKit/Metal embedding are not implemented (see [`IOS_PORT_SPIKE.md`](IOS_PORT_SPIKE.md) for details). Do not assume a capability is
 present because the build succeeded — query it (below).
 
 ## 2. Symbol surface
@@ -136,7 +136,8 @@ hidden behaviours:
 - Thread-safe (`Send`) handles.
 - Windows and AArch64 renderer sandboxing.
 - A deprecation carried through a release (the policy and the `SERVO_DEPRECATED`
-  macro exist, but no symbol is deprecated yet).
+  macro exist; `servo_webview_evaluate_javascript` is now deprecated in favor of
+  `servo_webview_evaluate_javascript_v2`).
 
 Until the binary/package items land, embedders build `servo-capi` from source with
 `cargo cinstall` (see [`C_API_GUIDE.md`](C_API_GUIDE.md) "Building and linking").

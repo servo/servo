@@ -153,6 +153,9 @@ pub use value::{
 };
 
 // Re-export JavaScript evaluation types
+// `servo_webview_evaluate_javascript` is deprecated (see its docs); it is still
+// re-exported so cbindgen keeps emitting the symbol for ABI compatibility.
+#[allow(deprecated)]
 pub use javascript::{
     ServoJavaScriptCallback, ServoJavaScriptCallbackV2, servo_webview_evaluate_javascript,
     servo_webview_evaluate_javascript_v2,

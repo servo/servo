@@ -29,6 +29,7 @@ below.
 
 | Document | What it covers |
 | --- | --- |
+| [PRODUCTION_REPORT.md](../../PRODUCTION_REPORT.md) | Top-level report: the production-readiness verdict with measured evidence, and the complete prioritised work list across conformance, security, platforms and distribution. |
 | [AUDIT.md](AUDIT.md) | Audit of the current C API surface versus what embedders need. |
 | [CEF_PARITY.md](CEF_PARITY.md) | Mapping between the Servo C API and the CEF (Chromium Embedded Framework) API, and the gaps between them. |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | How `servo-capi`, libservo, `servoshell` and the event-loop model fit together. |
@@ -37,6 +38,9 @@ below.
 | [ABI_STABILITY.md](ABI_STABILITY.md) | Versioning and source/ABI compatibility guarantees for `servo-capi`. |
 | [COMPATIBILITY.md](COMPATIBILITY.md) | Honest platform/feature/symbol matrix: what works on which platform and feature configuration. |
 | [C_API_GUIDE.md](C_API_GUIDE.md) | Practical, task-oriented guide for C/C++ embedders, including a complete example. |
+| [SECURITY_AUDIT.md](SECURITY_AUDIT.md) | Security & robustness audit of the engine and the embedding boundary, with file/line evidence and priorities. |
+| [HARDENING_PLAN.md](HARDENING_PLAN.md) | Concrete, bounded designs for the stability work (hang monitor, reachable panics, fuzzing) and FFI-boundary hardening. |
+| [IOS_PORT_SPIKE.md](IOS_PORT_SPIKE.md) | Feasibility spike and deliberate decision on an iOS port: what is missing and what the go/no-go experiment is. |
 | [CONTRIBUTING_EMBEDDING.md](CONTRIBUTING_EMBEDDING.md) | How to add or change C API functions safely and get them reviewed and tested. |
 
 ## Start here
@@ -64,6 +68,12 @@ your time with:
 - `servo_webview_load` / `servo_webview_paint` /
   `servo_webview_take_screenshot` / `servo_webview_free`
 - `servo_spin_event_loop`, `servo_setup_logging`, `servo_free`
+
+A **runnable, source-tree-independent** version of that example lives in
+[`examples/c-embedder/`](../../examples/c-embedder) (CMake + `cc` + README). It
+links only against an installed `servo-capi` sysroot — the way a real third-party
+embedder does — and is built by the prebuilt-artifact workflow
+`.github/workflows/capi-artifacts.yml`.
 
 ### Rust embedders
 

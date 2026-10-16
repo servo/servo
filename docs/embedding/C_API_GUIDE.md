@@ -570,6 +570,9 @@ and leaves it unchanged rather than aborting. These do not take ownership of the
 ### JavaScript evaluation
 
 ```c
+/* Deprecated: prefer servo_webview_evaluate_javascript_v2, which returns a
+ * ServoValue instead of a serialized JSON string. The symbol remains available
+ * and functional for at least one minor version (see ABI_STABILITY.md §6). */
 typedef void (*ServoJavaScriptCallback)(const char* result_json,
                                         const char* error_message,
                                         void* user_data); /* (new) */
@@ -577,7 +580,7 @@ typedef void (*ServoJavaScriptCallback)(const char* result_json,
 void servo_webview_evaluate_javascript(struct WebView* webview,
                                        const char* script,
                                        ServoJavaScriptCallback callback,
-                                       void* user_data); /* (new) */
+                                       void* user_data); /* (new, deprecated) */
 ```
 
 ### Message router (native↔JS messaging)

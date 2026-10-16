@@ -35,6 +35,18 @@ on:
         required: false
         default: false
         type: boolean
+      wpt:
+        required: false
+        default: false
+        type: boolean
+      wpt-args:
+        default: ""
+        required: false
+        type: string
+      number-of-wpt-chunks:
+        default: 5
+        required: false
+        type: number
     outputs:
       artifact_ids:
         value: ${{ jobs.build.outputs.release_artifact_ids }}
@@ -67,6 +79,18 @@ on:
         required: false
         default: false
         type: boolean
+      wpt:
+        required: false
+        default: false
+        type: boolean
+      wpt-args:
+        default: ""
+        required: false
+        type: string
+      number-of-wpt-chunks:
+        default: 5
+        required: false
+        type: number
 
 env:
   RUST_BACKTRACE: 1
@@ -248,7 +272,7 @@ jobs:
       - name: Upload artifact for mach package (zip)
         uses: actions/upload-artifact@v7
         id: upload-zip
-        if: ${{ inputs.upload_zip }}
+        if: ${{ inputs.upload_zip || inputs.wpt }}
         with:
           name: ${{ inputs.profile }}-binary-windows-zip
           path: C:\\a\\servo\\servo\\target\\${{ inputs.profile }}\\msi\\ServoShell.zip
@@ -262,6 +286,16 @@ jobs:
             ARTIFACT_IDS="${ARTIFACT_IDS},${{steps.upload-zip.outputs.artifact-id}}"
           fi
           echo "release_artifact_ids=${ARTIFACT_IDS}" >> $GITHUB_OUTPUT
+
+  wpt:
+    if: ${{ inputs.wpt }}
+    needs: ["build"]
+    uses: ./.github/workflows/windows-wpt.yml
+    with:
+      profile: ${{ inputs.profile }}
+      wpt-args: ${{ inputs.wpt-args }}
+      number-of-wpt-chunks: ${{ inputs.number-of-wpt-chunks }}
+    secrets: inherit
 
   bencher:
     needs: ["build"]

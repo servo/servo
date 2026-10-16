@@ -54,6 +54,9 @@ jobs:
       build-args: ${{ inputs.build-args }}
       unit-tests: ${{ inputs.unit-tests }}
       build-libservo: ${{ inputs.build-libservo }}
+      wpt: ${{ inputs.wpt }}
+      wpt-args: ${{ inputs.wpt-args }}
+      number-of-wpt-chunks: ${{ inputs.number-of-wpt-chunks }}
       bencher: ${{ inputs.bencher }}
       capi: ${{ inputs.capi }}
 

@@ -75,8 +75,11 @@ pub struct ServoWebResourceResponse {
 /// - `builder` is a non-null pointer to a `ServoBuilder` previously returned by `servo_builder_create`.
 /// - `scheme` is a valid NUL-terminated UTF-8 string.
 /// - `callback` is a valid function pointer matching `ServoProtocolHandlerCallback`.
+/// - `callback` and `user_data` must be thread-safe (`Send` + `Sync`) as protocol handlers
+///   may be called concurrently from network or worker threads.
 /// - `user_data` is a pointer that remains valid for the lifetime of the `Servo` instance.
 /// - The callback does not unwind across the FFI boundary.
+/// - The callback must not retain pointers to `request` or `response` past the invocation.
 ///
 /// # Errors
 ///

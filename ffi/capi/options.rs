@@ -301,6 +301,40 @@ pub unsafe extern "C" fn servo_options_set_background_hang_monitor(
     })
 }
 
+/// Enables or disables automatic termination of permanently hung scripts
+/// detected by the background hang monitor.
+///
+/// `options` is a handle to a `ServoOptions` object.
+/// The ownership of `options` remains with the caller after the call.
+///
+/// # Safety
+///
+/// The caller must ensure that `options` is a non-null pointer to a
+/// `ServoOptions` previously returned by `servo_options_create` and has
+/// not yet been freed nor passed to another API that takes ownership of
+/// it.
+///
+/// # Errors
+///
+/// Returns `ServoError::NullArgument` if `options` is null.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_options_set_hang_monitor_kill_script(
+    options: *mut ServoOptions,
+    hang_monitor_kill_script: bool,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if options.is_null() {
+            return ServoError::NullArgument;
+        }
+
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `options` documented above.
+        unsafe { &mut *options }.hang_monitor_kill_script = hang_monitor_kill_script;
+
+        ServoError::Ok
+    })
+}
+
 /// Enables or disables Servo's sandbox.
 ///
 /// `options` is a handle to a `ServoOptions` object.

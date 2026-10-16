@@ -57,9 +57,7 @@ pub fn init_async_runtime() -> Box<dyn AsyncRuntime> {
         .expect("Unable to build tokio-runtime runtime");
 
     // Make the runtime available to users inside this crate.
-    ASYNC_RUNTIME_HANDLE
-        .set(runtime.handle().clone())
-        .expect("Runtime handle should be initialized once on start-up");
+    let _ = ASYNC_RUNTIME_HANDLE.set(runtime.handle().clone());
 
     // Return an async runtime for use in shutdown.
     Box::new(AsyncRuntimeHolder::new(runtime))

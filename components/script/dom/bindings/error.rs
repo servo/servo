@@ -335,8 +335,20 @@ impl ErrorInfo {
                     column: scripted_caller.col + 1,
                 }
             },
+            // `USVString::from_jsval` fails when the conversion throws, which
+            // happens for an object with a throwing `toString`. Web content can
+            // trigger that path (this runs while reporting an uncaught
+            // exception), so report a stable message instead of panicking:
+            // crashing the engine on attacker-controlled input is a
+            // denial-of-service vector.
             _ => {
-                panic!("uncaught exception: failed to stringify primitive");
+                let scripted_caller = describe_scripted_caller(cx).unwrap_or_default();
+                ErrorInfo {
+                    message: "uncaught exception: failed to stringify primitive".to_owned(),
+                    filename: scripted_caller.filename,
+                    lineno: scripted_caller.line,
+                    column: scripted_caller.col + 1,
+                }
             },
         }
     }

@@ -48,6 +48,9 @@ pub struct Opts {
     /// Whether we want background hang monitor enabled or not
     pub background_hang_monitor: bool,
 
+    /// Whether to automatically terminate permanently hung scripts detected by the background hang monitor.
+    pub hang_monitor_kill_script: bool,
+
     /// Whether we're running inside the sandbox.
     pub sandbox: bool,
 
@@ -249,6 +252,7 @@ impl Default for Opts {
             multiprocess: false,
             force_ipc: false,
             background_hang_monitor: false,
+            hang_monitor_kill_script: false,
             random_pipeline_closure_probability: None,
             random_pipeline_closure_seed: None,
             sandbox: false,

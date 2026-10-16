@@ -1,0 +1,154 @@
+# Build prebuilt `servo-capi` artifacts (the generated C header and the shared
+# library) on each supported desktop platform and upload them.
+#
+# This is the first step toward C7 ("Distribution") in
+# docs/embedding/PRODUCTION_READINESS.md §2: it turns "builds from source" into
+# "download a sysroot and link against it". It is intentionally separate from
+# .github/workflows/embedding-api.yml, which builds and *tests* the C API on
+# every relevant PR and does not upload anything.
+#
+# The build is heavy (it compiles the whole engine), so it runs only on demand
+# or for `capi-v*` tags, never on pull requests.
+name: C API prebuilt artifacts
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'capi-v*'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  RUST_BACKTRACE: 1
+  SHELL: /bin/bash
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  artifacts:
+    name: servo-capi (${{ matrix.name }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x86_64
+            runner: ubuntu-22.04
+          - name: macos-aarch64
+            runner: macos-15
+          - name: windows-x86_64
+            runner: windows-2022
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Rust toolchain
+        run: rustup show
+
+      - name: Free Disk Space (Ubuntu)
+        if: runner.os == 'Linux'
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: false
+          large-packages: false
+          swap-storage: false
+
+      - name: Setup Python
+        if: runner.os == 'Windows'
+        uses: ./.github/actions/setup-python
+
+      - name: Install LLVM and Clang
+        if: runner.os != 'macOS'
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "20.1"
+          directory: ${{ runner.temp }}/llvm
+
+      - name: Set LIBCLANG_PATH env (Linux)
+        if: runner.os == 'Linux'
+        run: echo "LIBCLANG_PATH=${LLVM_PATH}/lib" >> $GITHUB_ENV
+
+      - name: Set LIBCLANG_PATH env (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $llvm_bin = Join-Path $env:LLVM_PATH "bin"
+          echo "LIBCLANG_PATH=$llvm_bin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Change Mirror Priorities
+        if: runner.os == 'Linux'
+        uses: ./.github/actions/apt-mirrors
+
+      - name: Install EGL library and headers
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt update
+          sudo apt install -y libegl1-mesa-dev libegl-dev
+
+      - name: Cache cargo registry
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-registry-
+
+      # cargo-c cannot use sccache, so persist its compiled output instead.
+      # The build is directed at target/cinstall via --target-dir below, which is
+      # what this cache restores.
+      - name: Cache cargo-c build
+        uses: actions/cache@v5
+        with:
+          path: target/cinstall
+          key: ${{ runner.os }}-cargo-cinstall-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-cinstall-
+
+      - name: Install cargo-c
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-c@0.10.23
+
+      # Windows needs the moztools that `servo` links against.
+      - name: Passive bootstrap (Windows)
+        if: runner.os == 'Windows'
+        run: .\mach fetch
+
+      - name: Configure Windows C compiler
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          "CC=clang-cl.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "CXX=clang-cl.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "MOZTOOLS_PATH=${{ github.workspace }}\target\dependencies\moztools\4.0" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      # Build the cdylib and install the header + library under target/artifacts.
+      # `shell: bash` so the `\` line continuations work on the Windows runner
+      # (whose default run shell is PowerShell).
+      - name: Build servo-capi (release)
+        shell: bash
+        env:
+          # cargo-c does not work with sccache, so explicitly disable it.
+          RUSTC_WRAPPER: ""
+          SCCACHE_GHA_ENABLED: "false"
+        run: |
+          cargo cinstall -p servo-capi \
+            --library-type cdylib \
+            --release \
+            --target-dir target/cinstall \
+            --destdir target/artifacts \
+            --prefix / \
+            --locked
+
+      - name: Upload servo-capi artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: servo-capi-${{ matrix.name }}
+          path: target/artifacts
+          if-no-files-found: error

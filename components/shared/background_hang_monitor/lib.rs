@@ -190,4 +190,6 @@ pub trait BackgroundHangMonitorExitSignal: Send {
 pub enum BackgroundHangMonitorControlMsg {
     /// Propagate exit signal to monitored components, and shutdown when they have.
     Exit,
+    /// Propagate exit signal to a specific monitored component.
+    SignalComponentExit(MonitoredComponentId),
 }

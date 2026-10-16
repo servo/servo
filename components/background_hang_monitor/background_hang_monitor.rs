@@ -214,6 +214,7 @@ impl BackgroundHangMonitorWorker {
         enum BhmMessage {
             ComponentMessage((MonitoredComponentId, MonitoredComponentMsg)),
             Exit,
+            SignalComponentExit(MonitoredComponentId),
             ControlError(String),
             ControlDisconnected,
             Tick,
@@ -231,6 +232,9 @@ impl BackgroundHangMonitorWorker {
                 recv(control_port) -> event => {
                     match event {
                         Ok(Ok(BackgroundHangMonitorControlMsg::Exit)) => BhmMessage::Exit,
+                        Ok(Ok(BackgroundHangMonitorControlMsg::SignalComponentExit(id))) => {
+                            BhmMessage::SignalComponentExit(id)
+                        },
                         Ok(Err(e)) => BhmMessage::ControlError(format!("{e:?}")),
                         Err(_) => BhmMessage::ControlDisconnected,
                     }
@@ -266,6 +270,14 @@ impl BackgroundHangMonitorWorker {
                 // even to components that have yet to register themselves,
                 // from this point on.
                 self.shutting_down = true;
+            },
+            BhmMessage::SignalComponentExit(id) => {
+                if let Some(component) = self.monitored_components.get_mut(&id) {
+                    warn!("Signaling hung component {id:?} to exit");
+                    component.exit_signal.signal_to_exit();
+                } else {
+                    warn!("Received SignalComponentExit for unmonitored component {id:?}");
+                }
             },
             BhmMessage::ControlError(e) => {
                 warn!("BackgroundHangMonitorWorker control message deserialization error: {e}");

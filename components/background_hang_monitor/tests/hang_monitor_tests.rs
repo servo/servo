@@ -282,3 +282,83 @@ fn test_hang_monitoring_exit_signal_inner(op_order: fn(&mut dyn FnMut(), &mut dy
         .join()
         .expect("Failed to join on the BHM worker thread");
 }
+
+#[test]
+fn test_hang_monitoring_signal_component_exit() {
+    let _lock = SERIAL.lock().unwrap();
+
+    let (background_hang_monitor_ipc_sender, _background_hang_monitor_receiver) =
+        generic_channel::channel().expect("ipc channel failure");
+    let (control_sender, control_receiver) =
+        generic_channel::channel().expect("ipc channel failure");
+
+    struct BHMExitSignal {
+        closing: Arc<AtomicBool>,
+    }
+
+    impl BackgroundHangMonitorExitSignal for BHMExitSignal {
+        fn signal_to_exit(&self) {
+            self.closing.store(true, Ordering::SeqCst);
+        }
+    }
+
+    let closing1 = Arc::new(AtomicBool::new(false));
+    let closing2 = Arc::new(AtomicBool::new(false));
+
+    let (background_hang_monitor_register, join_handle) =
+        HangMonitorRegister::init(background_hang_monitor_ipc_sender, control_receiver, false);
+
+    let id1 = MonitoredComponentId(TEST_SCRIPT_EVENT_LOOP_ID, MonitoredComponentType::Script);
+    let id2 = MonitoredComponentId(
+        servo_base::id::ScriptEventLoopId::new(),
+        MonitoredComponentType::Script,
+    );
+
+    let monitor1 = background_hang_monitor_register.register_component(
+        id1.clone(),
+        Duration::from_millis(10),
+        Duration::from_millis(1000),
+        Box::new(BHMExitSignal {
+            closing: closing1.clone(),
+        }),
+    );
+
+    let monitor2 = background_hang_monitor_register.register_component(
+        id2,
+        Duration::from_millis(10),
+        Duration::from_millis(1000),
+        Box::new(BHMExitSignal {
+            closing: closing2.clone(),
+        }),
+    );
+
+    // Send signal specifically for component 1
+    control_sender
+        .send(BackgroundHangMonitorControlMsg::SignalComponentExit(id1))
+        .unwrap();
+
+    // Component 1 must receive the exit signal
+    while !closing1.load(Ordering::SeqCst) {
+        thread::sleep(Duration::from_millis(10));
+    }
+
+    // Component 2 must NOT have received an exit signal
+    assert!(!closing2.load(Ordering::SeqCst));
+
+    // Cleanup by sending Exit to all components
+    control_sender
+        .send(BackgroundHangMonitorControlMsg::Exit)
+        .unwrap();
+
+    while !closing2.load(Ordering::SeqCst) {
+        thread::sleep(Duration::from_millis(10));
+    }
+
+    drop(monitor1);
+    drop(monitor2);
+    drop(background_hang_monitor_register);
+    join_handle
+        .join()
+        .expect("Failed to join on the BHM worker thread");
+}
+

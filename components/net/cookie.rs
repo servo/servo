@@ -9,7 +9,7 @@ use std::borrow::ToOwned;
 use std::net::{Ipv4Addr, Ipv6Addr};
 use std::time::SystemTime;
 
-use cookie::Cookie;
+use cookie::{Cookie, SameSite};
 use log::{Level, debug, log_enabled};
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::pub_domains::is_pub_domain;
@@ -39,6 +39,30 @@ pub struct ServoCookie {
     pub creation_time: SystemTime,
     pub last_access: SystemTime,
     pub expiry_time: Option<SystemTime>,
+}
+
+/// The request-level context needed to enforce the `SameSite` cookie attribute
+/// when selecting cookies to send. See
+/// <https://www.ietf.org/archive/id/draft-ietf-httpbis-rfc6265bis-20.html#section-5.4>.
+#[derive(Clone, Copy, Debug)]
+pub struct SameSiteContext {
+    /// Whether the request is cross-site with respect to its initiator (its
+    /// "site for cookies").
+    pub cross_site: bool,
+    /// Whether the request is a top-level navigation.
+    pub top_level_navigation: bool,
+    /// Whether the request uses a "safe" HTTP method (GET, HEAD, OPTIONS, TRACE).
+    pub safe_method: bool,
+}
+
+impl SameSiteContext {
+    /// A same-site context, used when no cross-site information is available.
+    /// This preserves the historical behavior of sending every matching cookie.
+    pub const SAME_SITE: SameSiteContext = SameSiteContext {
+        cross_site: false,
+        top_level_navigation: false,
+        safe_method: true,
+    };
 }
 
 impl ServoCookie {
@@ -335,6 +359,17 @@ impl ServoCookie {
 
     /// <http://tools.ietf.org/html/rfc6265#section-5.4> step 1
     pub fn appropriate_for_url(&self, url: &ServoUrl, source: CookieSource) -> bool {
+        self.appropriate_for_url_with_context(url, source, SameSiteContext::SAME_SITE)
+    }
+
+    /// Like [`ServoCookie::appropriate_for_url`], but also enforces the
+    /// `SameSite` attribute using the request context.
+    pub fn appropriate_for_url_with_context(
+        &self,
+        url: &ServoUrl,
+        source: CookieSource,
+        context: SameSiteContext,
+    ) -> bool {
         if log_enabled!(Level::Debug) {
             debug!(
                 " === SENT COOKIE : {} {} {:?} {:?}",
@@ -376,8 +411,30 @@ impl ServoCookie {
         if self.cookie.http_only().unwrap_or(false) && source == CookieSource::NonHTTP {
             return false;
         }
-        // TODO: Apply same site checks
-        // TOOD: Apply Partitioning checks
+
+        // Apply the `SameSite` attribute. An absent attribute is treated as
+        // `Lax`, matching modern browsers.
+        if context.cross_site {
+            match self.cookie.same_site() {
+                // `Strict` cookies are never sent on cross-site requests.
+                Some(SameSite::Strict) => return false,
+                // `Lax` (and the default when the attribute is absent) cookies
+                // are only sent on a cross-site top-level navigation that uses
+                // a safe method.
+                Some(SameSite::Lax) | None => {
+                    if !context.top_level_navigation || !context.safe_method {
+                        return false;
+                    }
+                },
+                // `SameSite=None` cookies are sent in any cross-site request
+                // (the `Secure` requirement is enforced when the cookie is set).
+                Some(SameSite::None) => {},
+            }
+        }
+
+        // TODO: Apply Partitioning (CHIPS) checks. This requires storing a
+        // partition key alongside each cookie, which the storage model does not
+        // yet do; see docs/embedding/SECURITY_AUDIT.md.
 
         true
     }

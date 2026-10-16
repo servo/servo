@@ -89,3 +89,8 @@ For more detailed build instructions, see the Servo Book under [Getting the Code
   - `SERVO_OHOS_SIGNING_CONFIG`: Path to json file containing a valid signing configuration for the demo app.
 - Review the detailed instructions at [Building for OpenHarmony].
 - The target distribution can be modified by passing `--flavor=<default|harmonyos>` to `mach <build|package|install>`.
+
+### iOS
+
+- **iOS is currently unsupported.** There is no iOS port, no Xcode project, and no iOS CI. Running Servo on iOS requires dedicated architectural work (JIT entitlement constraints, sandbox model, UIKit/Metal embedding, and AVFoundation media backend). See [`docs/embedding/IOS_PORT_SPIKE.md`](docs/embedding/IOS_PORT_SPIKE.md) for the feasibility analysis.
+

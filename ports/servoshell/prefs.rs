@@ -383,6 +383,10 @@ struct CmdArgs {
     #[bpaf(short('B'), long("bhm"))]
     background_hang_monitor: bool,
 
+    /// Automatically terminate permanently hung scripts detected by the Background Hang Monitor.
+    #[bpaf(long("bhm-kill-hung-scripts"))]
+    hang_monitor_kill_script: bool,
+
     ///
     ///  Path to find SSL certificates.
     #[bpaf(argument("/home/servo/resources/certs"))]
@@ -760,6 +764,7 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         hard_fail: cmd_args.hard_fail,
         multiprocess: cmd_args.multiprocess,
         background_hang_monitor: cmd_args.background_hang_monitor,
+        hang_monitor_kill_script: cmd_args.hang_monitor_kill_script,
         sandbox: cmd_args.sandbox,
         random_pipeline_closure_probability: cmd_args.random_pipeline_closure_probability,
         random_pipeline_closure_seed: cmd_args.random_pipeline_closure_seed,

@@ -256,3 +256,7 @@ None of these changes alters the public ABI.
 - [`ROADMAP.md`](ROADMAP.md) — phased plan to a usable embedding API.
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) — how the embedding layer is built.
 - [`ABI_STABILITY.md`](ABI_STABILITY.md) — compatibility policy.
+- [`HARDENING_PLAN.md`](HARDENING_PLAN.md) — concrete designs for stability (hang
+  monitor, panics) and FFI hardening.
+- [`IOS_PORT_SPIKE.md`](IOS_PORT_SPIKE.md) — the deliberate iOS feasibility
+  decision (§9 item 4).

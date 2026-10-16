@@ -1223,9 +1223,15 @@ where
 
     #[servo_tracing::instrument(skip_all)]
     fn handle_request_from_background_hang_monitor(&self, message: HangAlert) {
-        // TODO: In case of a permanent hang being reported, add a "kill script" workflow,
-        // via the embedder?
         warn!("Component hang alert: {:?}", message);
+        if let HangAlert::Permanent(ref component_id, _, _) = message {
+            if opts::get().hang_monitor_kill_script {
+                warn!("Terminating permanently hung component {component_id:?}");
+                self.send_message_to_all_background_hang_monitors(
+                    BackgroundHangMonitorControlMsg::SignalComponentExit(component_id.clone()),
+                );
+            }
+        }
     }
 
     #[servo_tracing::instrument(skip_all)]

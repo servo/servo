@@ -66,6 +66,12 @@ pub type ServoJavaScriptCallbackV2 = Option<
 /// Asynchronously evaluates `script` in the context of the document currently
 /// loaded in `webview`.
 ///
+/// **Deprecated.** Prefer [`servo_webview_evaluate_javascript_v2`], which
+/// delivers the result as a `ServoValue` (matching CEF's value-returning
+/// `ExecuteJavaScript`) instead of a serialized JSON string. This function is
+/// kept for ABI compatibility: the symbol is not removed, but new embedders
+/// should use the `_v2` form.
+///
 /// `script` is a NUL terminated UTF-8 string. The ownership of `script`
 /// remains with the caller after the call.
 ///
@@ -94,6 +100,7 @@ pub type ServoJavaScriptCallbackV2 = Option<
 ///
 /// Returns `ServoError::NullArgument` if `webview` or `script` is null.
 /// Returns `ServoError::InvalidUtf8` if `script` is not valid UTF-8.
+#[deprecated(note = "use servo_webview_evaluate_javascript_v2, which returns a ServoValue")]
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_webview_evaluate_javascript(
     webview: *mut WebView,

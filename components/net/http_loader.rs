@@ -79,7 +79,7 @@ use crate::async_runtime::spawn_task;
 use crate::connector::{
     CertificateErrorOverrideManager, ServoClient, TlsHandshakeInfo, create_tls_config,
 };
-use crate::cookie::ServoCookie;
+use crate::cookie::{SameSiteContext, ServoCookie};
 use crate::cookie_storage::CookieStorage;
 use crate::decoder::Decoder;
 use crate::devtools::{
@@ -430,14 +430,38 @@ pub fn determine_requests_referrer(
     }
 }
 
+/// Computes the [`SameSiteContext`] used when selecting cookies to send, per
+/// <https://www.ietf.org/archive/id/draft-ietf-httpbis-rfc6265bis-20.html#section-5.4>.
+fn same_site_context_for_request(request: &Request) -> SameSiteContext {
+    // The request's "site for cookies" is its initiator origin. When the origin
+    // is "client" (for example a user-initiated navigation), there is no
+    // cross-site initiator, so cookies are sent normally.
+    let cross_site = match &request.origin {
+        Origin::Origin(request_origin) => {
+            !is_same_site(request_origin, &request.current_url().origin())
+        },
+        Origin::Client => false,
+    };
+
+    SameSiteContext {
+        cross_site,
+        // Only a main-frame (top-level) navigation may use the `Lax` exception;
+        // cross-site iframe navigations must not receive `Lax` cookies.
+        top_level_navigation: matches!(request.destination, Destination::Document),
+        safe_method: matches!(request.method, Method::GET | Method::HEAD),
+    }
+}
+
 fn set_request_cookies(
     url: &ServoUrl,
     headers: &mut HeaderMap,
     cookie_jar: &RwLock<CookieStorage>,
+    context: SameSiteContext,
 ) {
     let mut cookie_jar = cookie_jar.write();
     cookie_jar.remove_expired_cookies_for_url(url);
-    if let Some(cookie_list) = cookie_jar.cookies_for_url(url, CookieSource::HTTP) &&
+    if let Some(cookie_list) =
+        cookie_jar.cookies_for_url_with_context(url, CookieSource::HTTP, context) &&
         let Ok(cookie_list_header_value) = HeaderValue::from_bytes(cookie_list.as_bytes())
     {
         headers.insert(header::COOKIE, cookie_list_header_value);
@@ -1608,10 +1632,12 @@ async fn http_network_or_cache_fetch(
         // Substep 1
         // TODO http://mxr.mozilla.org/servo/source/components/net/http_loader.rs#504
         // XXXManishearth http_loader has block_cookies: support content blocking here too
+        let same_site_context = same_site_context_for_request(http_request);
         set_request_cookies(
             &current_url,
             &mut http_request.headers,
             &context.state.cookie_jar,
+            same_site_context,
         );
         // Substep 2
         if !http_request.headers.contains_key(header::AUTHORIZATION) {

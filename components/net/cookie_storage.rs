@@ -20,7 +20,7 @@ use net_traits::{CookieSource, SiteDescriptor};
 use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 
-use crate::cookie::ServoCookie;
+use crate::cookie::{SameSiteContext, ServoCookie};
 
 #[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub struct CookieStorage {
@@ -219,8 +219,19 @@ impl CookieStorage {
 
     // http://tools.ietf.org/html/rfc6265#section-5.4
     pub fn cookies_for_url(&mut self, url: &ServoUrl, source: CookieSource) -> Option<String> {
+        self.cookies_for_url_with_context(url, source, SameSiteContext::SAME_SITE)
+    }
+
+    /// Like [`CookieStorage::cookies_for_url`], but also enforces the
+    /// `SameSite` attribute using the given request context.
+    pub fn cookies_for_url_with_context(
+        &mut self,
+        url: &ServoUrl,
+        source: CookieSource,
+        context: SameSiteContext,
+    ) -> Option<String> {
         // Let cookie-list be the set of cookies from the cookie store
-        let cookie_list = self.cookies_data_for_url(url, source);
+        let cookie_list = self.cookies_data_for_url_with_context(url, source, context);
 
         let reducer = |acc: String, cookie: Cookie<'static>| -> String {
             // Serialize the cookie-list into a cookie-string by processing each cookie in the cookie-list in order:
@@ -273,12 +284,23 @@ impl CookieStorage {
         url: &'a ServoUrl,
         source: CookieSource,
     ) -> impl Iterator<Item = cookie::Cookie<'static>> + 'a {
+        self.cookies_data_for_url_with_context(url, source, SameSiteContext::SAME_SITE)
+    }
+
+    /// Like [`CookieStorage::cookies_data_for_url`], but also enforces the
+    /// `SameSite` attribute using the given request context.
+    pub fn cookies_data_for_url_with_context<'a>(
+        &'a mut self,
+        url: &'a ServoUrl,
+        source: CookieSource,
+        context: SameSiteContext,
+    ) -> impl Iterator<Item = cookie::Cookie<'static>> + 'a {
         let domain = reg_host(url.host_str().unwrap_or(""));
         let cookies = self.cookies_map.entry(domain).or_default();
 
         cookies
             .iter_mut()
-            .filter(move |c| c.appropriate_for_url(url, source))
+            .filter(move |c| c.appropriate_for_url_with_context(url, source, context))
             .sorted_by(|a: &&mut ServoCookie, b: &&mut ServoCookie| {
                 // The user agent SHOULD sort the cookie-list
                 CookieStorage::cookie_comparator(a, b)

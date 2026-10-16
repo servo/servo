@@ -29,6 +29,13 @@ prefix_with_name = true
 allow_static_const = true
 allow_constexpr = true
 
+[fn]
+# Emit SERVO_DEPRECATED for #[deprecated] items. The note from
+# #[deprecated(note="...")] is passed to the macro. Requires the `SERVO_DEPRECATED`
+# macro to be defined in `header` (see `header` preamble above).
+deprecated = "SERVO_DEPRECATED(\"deprecated\")"
+deprecated_with_note = "SERVO_DEPRECATED({})"
+
 [export]
 include = [
     "DiagnosticsLoggingOption", "LoadStatus", "ScreenshotCaptureError", "ServoCookie", "ServoFindResult", "ServoSiteDataManager", "ServoDelegate", "ServoDownloadItem", "ServoEventLoopWaker", "ServoWebViewDelegate", "ServoScreenGeometry", "ServoCreateNewWebViewRequest", "SERVO_CAPI_VERSION",
