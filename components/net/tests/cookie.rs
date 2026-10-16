@@ -638,6 +638,7 @@ fn test_same_site_cookie_matching() {
         cross_site: true,
         top_level_navigation: true,
         safe_method: true,
+        partition_key: None,
     };
     // A cross-site request that is not a top-level safe navigation (e.g. a
     // cross-site fetch/XHR or subresource).
@@ -645,6 +646,7 @@ fn test_same_site_cookie_matching() {
         cross_site: true,
         top_level_navigation: false,
         safe_method: false,
+        partition_key: None,
     };
 
     // `SameSite=Strict` is never sent on cross-site requests.
@@ -695,6 +697,7 @@ fn test_same_site_cookie_storage_filtering() {
         cross_site: true,
         top_level_navigation: false,
         safe_method: false,
+        partition_key: None,
     };
     let sent = storage
         .cookies_for_url_with_context(&url, source, cross_site)

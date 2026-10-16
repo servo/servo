@@ -449,6 +449,7 @@ fn same_site_context_for_request(request: &Request) -> SameSiteContext {
         // cross-site iframe navigations must not receive `Lax` cookies.
         top_level_navigation: matches!(request.destination, Destination::Document),
         safe_method: matches!(request.method, Method::GET | Method::HEAD),
+        partition_key: None,
     }
 }
 
