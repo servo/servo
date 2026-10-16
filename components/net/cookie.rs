@@ -84,8 +84,8 @@ impl ServoCookie {
             .split(';')
             .any(|part| part.trim().eq_ignore_ascii_case("partitioned"));
 
-        // Per draft-ietf-httpbis-rfc6265bis, Partitioned cookies MUST be Secure.
-        if is_partitioned && !cookie.secure().unwrap_or(false) && !request.is_secure_scheme() {
+        // Per draft-ietf-httpbis-rfc6265bis, Partitioned cookies MUST have the Secure attribute.
+        if is_partitioned && (!cookie.secure().unwrap_or(false) || !request.is_secure_scheme()) {
             return None;
         }
 

@@ -52,3 +52,7 @@
 | `resource-timing` | FAIL: 814, NOTRUN: 90, TIMEOUT: 31, ERROR: 11, CRASH: 1 |
 | `pointerevents` | FAIL: 750, PRECONDITION_FAILED: 78, TIMEOUT: 39, NOTRUN: 27, ERROR: 18 |
 | `webaudio` | FAIL: 832, NOTRUN: 32, ERROR: 17, TIMEOUT: 15 |
+
+## Cookie Partitioning (CHIPS) Status Note
+
+Partitioned (`Partitioned`) cookie parsing and storage keying are implemented (`components/net/cookie.rs`), but `SameSiteContext.partition_key` is not currently populated with the top-level site on send. Partitioned cookies are currently stored but never sent.

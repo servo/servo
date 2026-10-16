@@ -63,8 +63,10 @@ data from other origins, or crash the browser process. Relevant surfaces:
   WPT coverage. Origin isolation architecture is documented in
   `docs/embedding/SITE_ISOLATION_DESIGN.md`.
 - **Cookie & Storage Isolation.** Cookie selection enforces `SameSite=Strict`/`Lax`/`None`
-  on transmission, and CHIPS (`Partitioned`) cookies are isolated by top-level partition
-  key (`components/net/cookie.rs`, `components/net/cookie_storage.rs`).
+  on transmission (`components/net/cookie.rs`, `components/net/http_loader.rs`).
+  CHIPS (`Partitioned`) cookies are parsed and stored with a partition key, but
+  because `SameSiteContext.partition_key` is not yet populated from top-level
+  browsing context, partitioned cookies are currently stored but never sent (fail-closed).
 - **Embedding FFI (C ABI).** Every `extern "C"` entry point is wrapped in a
   `catch_unwind` boundary and returns an error code (`ffi/capi/lib.rs`).
   Handles are opaque and thread-affine, validated in debug builds via
@@ -81,7 +83,11 @@ data from other origins, or crash the browser process. Relevant surfaces:
 2. **Site vs Origin isolation.** Constellation currently pools event loops by
    registrable domain (eTLD+1). Full origin-keyed isolation and out-of-process
    iframes (OOPIF) are detailed in `docs/embedding/SITE_ISOLATION_DESIGN.md`.
-3. **Certificate-error bypasses.** `servo_options_set_ignore_certificate_errors`
+3. **Partitioned (CHIPS) cookies stored but not sent.** Partitioned cookies
+   are parsed with a `Secure` requirement and stored with a partition key, but
+   because `SameSiteContext.partition_key` is not yet populated on request contexts,
+   partitioned cookies are not currently returned on transmission.
+4. **Certificate-error bypasses.** `servo_options_set_ignore_certificate_errors`
    disables TLS verification globally if explicitly enabled by embedders.
    Off by default.
 4. **Fuzzing & Telemetry.** Initial in-tree fuzz targets are established under
