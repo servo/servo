@@ -4316,9 +4316,11 @@ impl ScriptThread {
 
         // Update the `url_list` of the incomplete load to track all redirects. This will be reflected
         // in the new `RequestBuilder` as well.
-        incomplete_load.url_list.push(
-            UrlWithBlobClaim::from_url_without_having_claimed_blob(metadata.final_url.clone()),
-        );
+        incomplete_load
+            .url_list
+            .push(UrlWithBlobClaim::from_url_without_having_claimed_blob(
+                metadata.final_url.clone(),
+            ));
 
         let mut request_builder = incomplete_load.request_builder();
         request_builder.referrer = metadata
