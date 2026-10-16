@@ -3,11 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::ffi::CStr;
+use std::ptr;
 
 use bitflags::bitflags;
 use js::context::JSContext;
 use js::jsapi::{
-    ExceptionStackBehavior, JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY, jsid,
+    ExceptionStackBehavior, JSClass, JSObject, JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY,
+    jsid,
 };
 use js::rust::{HandleId, HandleObject, HandleValue, MutableHandleValue};
 
@@ -90,6 +92,19 @@ pub fn JS_GetPropertyById(
     vp: MutableHandleValue,
 ) -> bool {
     unsafe { js::rust::wrappers2::JS_GetPropertyById(cx, obj, id, vp) }
+}
+
+/// Safe wrapper around [`js::rust::wrappers2::JS_NewObjectWithGivenProto`].
+/// Passing `None` for `clasp` creates a plain object.
+#[allow(non_snake_case)]
+#[inline]
+pub fn JS_NewObjectWithGivenProto(
+    cx: &mut JSContext,
+    clasp: Option<&'static JSClass>,
+    proto: HandleObject,
+) -> *mut JSObject {
+    let clasp = clasp.map_or(ptr::null(), |clasp| clasp as *const JSClass);
+    unsafe { js::rust::wrappers2::JS_NewObjectWithGivenProto(cx, clasp, proto) }
 }
 
 #[cfg(test)]

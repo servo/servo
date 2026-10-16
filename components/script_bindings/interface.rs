@@ -24,8 +24,8 @@ use js::realm::AutoRealm;
 use js::rust::wrappers2::{
     GetWellKnownSymbol, JS_AtomizeAndPinString, JS_DefineProperty3, JS_DefineProperty4,
     JS_DefineProperty5, JS_DefinePropertyById5, JS_FireOnNewGlobalObject, JS_IterateCompartments,
-    JS_LinkConstructorAndPrototype, JS_NewFunction, JS_NewGlobalObject, JS_NewObjectWithGivenProto,
-    JS_SetTrustedPrincipals, RUST_SYMBOL_TO_JSID,
+    JS_LinkConstructorAndPrototype, JS_NewFunction, JS_NewGlobalObject, JS_SetTrustedPrincipals,
+    RUST_SYMBOL_TO_JSID,
 };
 use js::rust::{
     HandleObject, HandleValue, MutableHandleObject, RealmOptions, define_methods,
@@ -39,7 +39,7 @@ use crate::codegen::PrototypeList;
 use crate::constant::{ConstantSpec, define_constants};
 use crate::conversions::{DOM_OBJECT_SLOT, get_dom_class};
 use crate::guard::Guard;
-use crate::js::{JS_DefineProperty, PropertyFlags};
+use crate::js::{JS_DefineProperty, JS_NewObjectWithGivenProto, PropertyFlags};
 use crate::principals::ServoJSPrincipals;
 use crate::utils::{
     DOM_PROTOTYPE_SLOT, DOMJSClass, JSCLASS_DOM_GLOBAL, ProtoOrIfaceArray, get_proto_or_iface_array,
@@ -383,9 +383,7 @@ pub(crate) fn create_object<D: DomTypes>(
     constants: &[Guard<&[ConstantSpec]>],
     mut rval: MutableHandleObject,
 ) {
-    unsafe {
-        rval.set(JS_NewObjectWithGivenProto(cx, class, proto));
-    }
+    rval.set(JS_NewObjectWithGivenProto(cx, Some(class), proto));
     assert!(!rval.is_null());
     define_guarded_methods::<D>(cx, rval.handle(), methods, global);
     define_guarded_properties::<D>(cx, rval.handle(), properties, global);
@@ -503,11 +501,7 @@ fn create_unscopable_object(
     assert!(!names.is_empty());
     assert!(rval.is_null());
     unsafe {
-        rval.set(JS_NewObjectWithGivenProto(
-            cx,
-            ptr::null(),
-            HandleObject::null(),
-        ));
+        rval.set(JS_NewObjectWithGivenProto(cx, None, HandleObject::null()));
         assert!(!rval.is_null());
         for &name in names {
             assert!(JS_DefineProperty(
