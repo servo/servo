@@ -363,7 +363,9 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
             })
             .unwrap();
 
-        self.object_store_names.borrow_mut().push(name);
+        self.object_store_names
+            .safe_borrow_mut(cx.no_gc())
+            .push(name);
         transaction.register_object_store_handle(&object_store.get_name(), &object_store);
 
         // Step 10. Return a new object store handle associated with store and transaction.

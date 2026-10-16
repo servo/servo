@@ -95,7 +95,7 @@ impl IDBFactory {
         // We implement the HTML-triggered deactivation effect by tracking script-created
         // transactions on the global and deactivating them at the microtask checkpoint.
         let snapshot: Vec<DomRoot<IDBTransaction>> = {
-            let mut map = self.indexeddb_transactions.borrow_mut();
+            let mut map = self.indexeddb_transactions.safe_borrow_mut(cx.no_gc());
 
             // Transactions are normally unregistered when they finish (commit/abort),
             // but unregister can occur in a queued task (e.g. finalize_abort), so we can
@@ -143,7 +143,7 @@ impl IDBFactory {
         }
 
         // Prune finished transactions again after maybe_commit() progress.
-        let mut map = self.indexeddb_transactions.borrow_mut();
+        let mut map = self.indexeddb_transactions.safe_borrow_mut(cx.no_gc());
         let keys: Vec<DBName> = map.iter().map(|(k, _)| k.clone()).collect();
         for key in keys {
             if let Some(bucket) = map.get_mut(&key) {
@@ -405,7 +405,7 @@ impl IDBFactory {
 
         // Step 5.3.1: If result is an error, then:
         let request = {
-            let mut pending = self.connections.borrow_mut();
+            let mut pending = self.connections.safe_borrow_mut(cx.no_gc());
             let Some(entry) = pending.get_mut(&name) else {
                 return debug_assert!(false, "There should be a pending connection for {:?}", name);
             };

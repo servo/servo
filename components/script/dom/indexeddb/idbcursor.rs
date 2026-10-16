@@ -250,7 +250,7 @@ impl IDBCursorMethods<crate::DomTypeHolder> for IDBCursor {
             None => value.set(UndefinedValue()),
         }
 
-        *self.cached_key.borrow_mut() = Some(Heap::default());
+        *self.cached_key.safe_borrow_mut(cx.no_gc()) = Some(Heap::default());
         self.cached_key.borrow().as_ref().unwrap().set(value.get());
     }
 
@@ -271,7 +271,7 @@ impl IDBCursorMethods<crate::DomTypeHolder> for IDBCursor {
             None => value.set(UndefinedValue()),
         }
 
-        *self.cached_primary_key.borrow_mut() = Some(Heap::default());
+        *self.cached_primary_key.safe_borrow_mut(cx.no_gc()) = Some(Heap::default());
         self.cached_primary_key
             .borrow()
             .as_ref()
