@@ -451,6 +451,9 @@ impl InlineFormattingContextBuilder {
                             Self::is_document_white_space(character) && character != '\n'
                         },
                         WhiteSpaceCollapse::Preserve | WhiteSpaceCollapse::BreakSpaces => false,
+                        // preserve-spaces is pref-gated (layout.css.white-space-collapse.preserve-spaces.enabled)
+                        // which Servo does not enable, so it is never parsed.
+                        WhiteSpaceCollapse::PreserveSpaces => unreachable!(),
                     };
 
                 new_text.push(character)
