@@ -126,8 +126,10 @@ pub enum EditingAction {
     InsertParagraph,
     InsertText(String),
     MoveCursor(EditingDirection, EditingMotion, ModifySelection),
+    Redo,
     SelectAll,
     StartComposition,
+    Undo,
 }
 
 impl InputEvent {

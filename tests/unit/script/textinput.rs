@@ -10,7 +10,7 @@
 use embedder_traits::{EditingAction, EditingMotion, ModifySelection};
 use script::test::DOMString;
 use script::test::text_input::{
-    ClipboardProvider, EditingDirection, Lines, SelectionDirection, TextInput,
+    ClipboardProvider, EditingDirection, History, Lines, SelectionDirection, TextInput,
 };
 use servo_base::text::{Utf8CodeUnits, Utf16CodeUnits};
 use servo_base::{RopeIndex, RopeMovement};
@@ -70,7 +70,7 @@ fn test_text_input_when_inserting_multiple_lines_over_a_selection_respects_max_l
     //                    ------
     //                   world"
     //                   ----
-    text_input.insert("cruel\nterrible\nbad");
+    text_input.insert("cruel\nterrible\nbad", History::Nothing);
     assert_eq!(text_input.get_content(), "hcruel\nterrible\nd");
 }
 
@@ -84,7 +84,7 @@ fn test_text_input_when_inserting_multiple_lines_still_respects_max_length() {
 
     text_input.set_max_length(Some(Utf16CodeUnits(17)));
     text_input.modify_edit_point(1, RopeMovement::Line);
-    text_input.insert("cruel\nterrible");
+    text_input.insert("cruel\nterrible", History::Nothing);
     assert_eq!(text_input.get_content(), "hello\ncruel\nworld");
 }
 
@@ -98,7 +98,7 @@ fn test_text_input_when_content_is_already_longer_than_max_length_and_theres_no_
     );
 
     text_input.set_max_length(Some(Utf16CodeUnits(1)));
-    text_input.insert('a');
+    text_input.insert('a', History::Nothing);
     assert_eq!(text_input.get_content(), "abc");
 }
 
@@ -112,7 +112,7 @@ fn test_multi_line_text_input_with_maxlength_doesnt_allow_appending_characters_w
     );
 
     text_input.set_max_length(Some(Utf16CodeUnits(5)));
-    text_input.insert('a');
+    text_input.insert('a', History::Nothing);
     assert_eq!(text_input.get_content(), "abc\nd");
 }
 
@@ -132,7 +132,7 @@ fn test_single_line_text_input_with_max_length_doesnt_allow_appending_characters
     // Selection is now "abcde"
     //                    ---
 
-    text_input.replace_selection(&DOMString::from("too long"));
+    text_input.replace_selection(&DOMString::from("too long"), History::Nothing);
 
     assert_eq!(text_input.get_content(), "atooe");
 }
@@ -152,7 +152,10 @@ fn test_single_line_text_input_with_max_length_allows_deletion_when_replacing_a_
     // Selection is now "abcde"
     //                    --
 
-    text_input.replace_selection(&DOMString::from("only deletion should be applied"));
+    text_input.replace_selection(
+        &DOMString::from("only deletion should be applied"),
+        History::Nothing,
+    );
 
     assert_eq!(text_input.get_content(), "ade");
 }
@@ -166,11 +169,11 @@ fn test_single_line_text_input_with_max_length_multibyte() {
     );
 
     text_input.set_max_length(Some(Utf16CodeUnits(2)));
-    text_input.insert('á');
+    text_input.insert('á', History::Nothing);
     assert_eq!(text_input.get_content(), "á");
-    text_input.insert('é');
+    text_input.insert('é', History::Nothing);
     assert_eq!(text_input.get_content(), "áé");
-    text_input.insert('i');
+    text_input.insert('i', History::Nothing);
     assert_eq!(text_input.get_content(), "áé");
 }
 
@@ -183,13 +186,13 @@ fn test_single_line_text_input_with_max_length_multi_code_unit() {
     );
 
     text_input.set_max_length(Some(Utf16CodeUnits(3)));
-    text_input.insert('\u{10437}');
+    text_input.insert('\u{10437}', History::Nothing);
     assert_eq!(text_input.get_content(), "\u{10437}");
-    text_input.insert('\u{10437}');
+    text_input.insert('\u{10437}', History::Nothing);
     assert_eq!(text_input.get_content(), "\u{10437}");
-    text_input.insert('x');
+    text_input.insert('x', History::Nothing);
     assert_eq!(text_input.get_content(), "\u{10437}x");
-    text_input.insert('x');
+    text_input.insert('x', History::Nothing);
     assert_eq!(text_input.get_content(), "\u{10437}x");
 }
 
@@ -202,7 +205,7 @@ fn test_single_line_text_input_with_max_length_inside_char() {
     );
 
     text_input.set_max_length(Some(Utf16CodeUnits(1)));
-    text_input.insert('x');
+    text_input.insert('x', History::Nothing);
     assert_eq!(text_input.get_content(), "\u{10437}");
 }
 
@@ -216,7 +219,7 @@ fn test_single_line_text_input_with_max_length_doesnt_allow_appending_characters
     );
 
     text_input.set_max_length(Some(Utf16CodeUnits(1)));
-    text_input.insert('b');
+    text_input.insert('b', History::Nothing);
     assert_eq!(text_input.get_content(), "a");
 }
 
@@ -224,20 +227,36 @@ fn test_single_line_text_input_with_max_length_doesnt_allow_appending_characters
 fn test_text_input_delete_char() {
     let mut text_input = make_text_input(Lines::Single, "abcdefg");
     text_input.modify_edit_point(2, RopeMovement::Grapheme);
-    text_input.delete_unit_or_selection(RopeMovement::Grapheme, EditingDirection::Backward);
+    text_input.delete_unit_or_selection(
+        RopeMovement::Grapheme,
+        EditingDirection::Backward,
+        History::Nothing,
+    );
     assert_eq!(text_input.get_content(), "acdefg");
 
-    text_input.delete_unit_or_selection(RopeMovement::Grapheme, EditingDirection::Forward);
+    text_input.delete_unit_or_selection(
+        RopeMovement::Grapheme,
+        EditingDirection::Forward,
+        History::Nothing,
+    );
     assert_eq!(text_input.get_content(), "adefg");
 
     text_input.modify_selection(2, RopeMovement::Grapheme);
-    text_input.delete_unit_or_selection(RopeMovement::Grapheme, EditingDirection::Forward);
+    text_input.delete_unit_or_selection(
+        RopeMovement::Grapheme,
+        EditingDirection::Forward,
+        History::Nothing,
+    );
     assert_eq!(text_input.get_content(), "afg");
 
     let mut text_input = make_text_input(Lines::Single, "a🌠b");
     // Same as "Right" key
     text_input.modify_edit_point(1, RopeMovement::Grapheme);
-    text_input.delete_unit_or_selection(RopeMovement::Grapheme, EditingDirection::Forward);
+    text_input.delete_unit_or_selection(
+        RopeMovement::Grapheme,
+        EditingDirection::Forward,
+        History::Nothing,
+    );
     // Not splitting surrogate pairs.
     assert_eq!(text_input.get_content(), "ab");
 
@@ -247,7 +266,11 @@ fn test_text_input_delete_char() {
         Utf8CodeUnits(2),
         SelectionDirection::None,
     );
-    text_input.delete_unit_or_selection(RopeMovement::Grapheme, EditingDirection::Backward);
+    text_input.delete_unit_or_selection(
+        RopeMovement::Grapheme,
+        EditingDirection::Backward,
+        History::Nothing,
+    );
     assert_eq!(text_input.get_content(), "acdefg");
 }
 
@@ -255,22 +278,22 @@ fn test_text_input_delete_char() {
 fn test_text_input_insert() {
     let mut text_input = make_text_input(Lines::Single, "abcdefg");
     text_input.modify_edit_point(2, RopeMovement::Grapheme);
-    text_input.insert('a');
+    text_input.insert('a', History::Nothing);
     assert_eq!(text_input.get_content(), "abacdefg");
 
     text_input.modify_selection(2, RopeMovement::Grapheme);
-    text_input.insert('b');
+    text_input.insert('b', History::Nothing);
     assert_eq!(text_input.get_content(), "ababefg");
 
     let mut text_input = make_text_input(Lines::Single, "a🌠c");
     // Same as "Right" key
     text_input.modify_edit_point(2, RopeMovement::Grapheme);
-    text_input.insert('b');
+    text_input.insert('b', History::Nothing);
     // Not splitting surrogate pairs.
     assert_eq!(text_input.get_content(), "a🌠bc");
 
     text_input.modify_edit_point(3, RopeMovement::Grapheme);
-    text_input.insert("\n1\n2\n3");
+    text_input.insert("\n1\n2\n3", History::Nothing);
     assert_eq!(
         text_input.get_content(),
         "a🌠bc 1 2 3",
@@ -297,11 +320,11 @@ fn test_text_input_replace_selection() {
     let mut text_input = make_text_input(Lines::Single, "abcdefg");
     text_input.modify_edit_point(2, RopeMovement::Grapheme);
     text_input.modify_selection(2, RopeMovement::Grapheme);
-    text_input.replace_selection(&DOMString::from("xyz"));
+    text_input.replace_selection(&DOMString::from("xyz"), History::Nothing);
     assert_eq!(text_input.get_content(), "abxyzefg");
 
     text_input.modify_selection(-3, RopeMovement::Grapheme);
-    text_input.replace_selection(&DOMString::from("\n1\n2\r3\r\n4\n"));
+    text_input.replace_selection(&DOMString::from("\n1\n2\r3\r\n4\n"), History::Nothing);
     assert_eq!(
         text_input.get_content(),
         "ab 1 2 3 4 efg",
@@ -311,7 +334,7 @@ fn test_text_input_replace_selection() {
     let mut text_input = make_text_input(Lines::Single, "abcdefg");
     text_input.modify_edit_point(2, RopeMovement::Grapheme);
     text_input.modify_selection(0, RopeMovement::Grapheme);
-    text_input.replace_selection(&DOMString::from("1\n\n\n\n\n2"));
+    text_input.replace_selection(&DOMString::from("1\n\n\n\n\n2"), History::Nothing);
     assert_eq!(
         text_input.get_content(),
         "ab1     2cdefg",
@@ -323,7 +346,7 @@ fn test_text_input_replace_selection() {
 fn test_text_input_replace_selection_multibyte_char() {
     let mut text_input = make_text_input(Lines::Single, "é");
     text_input.modify_selection(1, RopeMovement::Grapheme);
-    text_input.replace_selection(&DOMString::from("e"));
+    text_input.replace_selection(&DOMString::from("e"), History::Nothing);
     assert_eq!(text_input.get_content(), "e");
 }
 
@@ -691,4 +714,184 @@ fn test_backspace_in_textarea_at_beginning_of_line() {
     ));
     text_input.perform_editing_action(EditingAction::Backspace(EditingMotion::Grapheme));
     assert_eq!(text_input.get_content(), DOMString::from("first line"));
+}
+
+#[test]
+fn test_insert_undo_redo() {
+    let mut text_input = make_text_input(Lines::Single, "abc");
+
+    // Insert single character
+    text_input.insert('d', History::Push);
+    assert_eq!(text_input.get_content(), DOMString::from("dabc"));
+    assert!(text_input.undo());
+    assert_eq!(text_input.get_content(), DOMString::from("abc"));
+    assert!(text_input.redo());
+    assert_eq!(text_input.get_content(), DOMString::from("dabc"));
+
+    // Insertion with edit point moving way from modified text
+    text_input.modify_edit_point(1, RopeMovement::Grapheme);
+    text_input.insert('0', History::Push);
+    assert_eq!(text_input.get_content(), DOMString::from("da0bc"));
+    text_input.modify_edit_point(1, RopeMovement::Word);
+    assert!(text_input.undo());
+    assert_eq!(text_input.get_content(), DOMString::from("dabc"));
+    assert_eq!(
+        RopeIndex::new(0, 2),
+        text_input.selection_origin_or_edit_point()
+    );
+
+    // Reset back to start
+    assert!(text_input.undo());
+    assert_eq!(text_input.get_content(), DOMString::from("abc"));
+    // Shouldn't be able to undo any more
+    assert!(!text_input.undo());
+
+    // Insert multi-character string
+    text_input.insert("ggg", History::Push);
+    assert!(text_input.undo());
+    assert_eq!(text_input.get_content(), DOMString::from("abc"));
+    assert!(!text_input.undo());
+    assert!(text_input.redo());
+    // Shouldn't be able to redo any more
+    assert!(!text_input.redo());
+    assert_eq!(text_input.get_content(), DOMString::from("gggabc"));
+
+    // Insertion with replacement
+    text_input.modify_selection(1, RopeMovement::Grapheme);
+    text_input.insert("new stuff", History::Push);
+    assert!(text_input.undo());
+    assert_eq!(text_input.get_content(), DOMString::from("gggabc"));
+    assert!(text_input.redo());
+    assert!(!text_input.redo());
+    assert_eq!(text_input.get_content(), DOMString::from("gggnew stuffbc"));
+}
+
+#[test]
+fn test_insert_undo_redo_with_merging() {
+    let mut text_input = make_text_input(Lines::Single, "");
+
+    // Basic merging
+    text_input.insert('a', History::Push);
+    text_input.insert('b', History::Push);
+    text_input.insert("cd", History::Push);
+    assert!(text_input.undo());
+    assert!(!text_input.undo(), "Shouldn't be able to undo any ore");
+    assert!(
+        text_input.get_content().is_empty(),
+        "All edits should be undone"
+    );
+    assert!(text_input.redo());
+    assert!(!text_input.redo(), "Shouldn't be able to redo any more");
+    assert_eq!(text_input.get_content(), DOMString::from("abcd"));
+
+    // Non-contiguous edits should block merging
+    text_input.modify_edit_point(-2, RopeMovement::Grapheme);
+    text_input.insert('x', History::Push);
+    text_input.insert('y', History::Push);
+    assert!(text_input.undo());
+    assert_eq!(
+        text_input.get_content(),
+        DOMString::from("abcd"),
+        "Non-contiguous insertion should block merge"
+    );
+    assert!(text_input.redo());
+    assert!(!text_input.redo(), "Shouldn't be able to redo any more");
+    assert_eq!(text_input.get_content(), DOMString::from("abxycd"));
+
+    // Reset
+    assert!(text_input.undo());
+    assert!(text_input.undo());
+    assert!(!text_input.undo());
+    assert!(text_input.get_content().is_empty());
+}
+
+#[test]
+fn test_delete_undo_redo() {
+    let mut text_input = make_text_input(Lines::Single, "abcd");
+
+    // Single character deletion
+    text_input.modify_edit_point(1, RopeMovement::Word);
+    assert!(text_input.delete_unit_or_selection(
+        RopeMovement::Grapheme,
+        EditingDirection::Backward,
+        History::Push
+    ));
+    assert!(text_input.undo());
+    assert!(!text_input.undo(), "Shouldn't be able to undo any more");
+    assert_eq!(text_input.get_content(), DOMString::from("abcd"));
+    assert!(text_input.redo());
+    assert!(!text_input.redo(), "Shouldn't be able to redo any more");
+    assert_eq!(text_input.get_content(), DOMString::from("abc"));
+
+    // Delete three times and merge
+    assert!(text_input.delete_unit_or_selection(
+        RopeMovement::Grapheme,
+        EditingDirection::Backward,
+        History::Push
+    ));
+    assert!(text_input.delete_unit_or_selection(
+        RopeMovement::Grapheme,
+        EditingDirection::Backward,
+        History::Push
+    ));
+    assert!(text_input.delete_unit_or_selection(
+        RopeMovement::Grapheme,
+        EditingDirection::Backward,
+        History::Push
+    ));
+    assert!(text_input.undo());
+    assert!(!text_input.undo(), "Shouldn't be able to undo any more");
+    assert_eq!(
+        text_input.get_content(),
+        DOMString::from("abcd"),
+        "Edits should be merged"
+    );
+
+    // Delete selection
+    text_input.modify_selection(-3, RopeMovement::Grapheme);
+    assert!(text_input.delete_unit_or_selection(
+        RopeMovement::Grapheme,
+        EditingDirection::Backward,
+        History::Push
+    ));
+    assert!(text_input.undo());
+    assert_eq!(text_input.get_content(), DOMString::from("abcd"));
+    assert_eq!(
+        text_input.selection_start(),
+        RopeIndex::new(0, 1),
+        "Undoing a deletion of a selection should re-make that selection"
+    );
+    assert_eq!(
+        text_input.selection_end(),
+        RopeIndex::new(0, 4),
+        "Undoing a deletion of a selection should re-make that selection"
+    );
+    text_input.clear_selection();
+    assert!(text_input.redo());
+    // Delete one more character
+    assert!(text_input.delete_unit_or_selection(
+        RopeMovement::Grapheme,
+        EditingDirection::Backward,
+        History::Push
+    ));
+    assert!(
+        text_input.undo(),
+        "Should be able to undo the selection deletion"
+    );
+    assert!(
+        text_input.undo(),
+        "Selection deletion should block merge, so we should have one more undo"
+    );
+    assert!(!text_input.undo());
+    assert_eq!(text_input.get_content(), DOMString::from("abcd"));
+    text_input.modify_selection(-1, RopeMovement::Word);
+
+    // Forward deletion
+    assert!(text_input.delete_unit_or_selection(
+        RopeMovement::Grapheme,
+        EditingDirection::Forward,
+        History::Push
+    ));
+    assert!(text_input.undo());
+    assert_eq!(text_input.get_content(), DOMString::from("abcd"));
 }

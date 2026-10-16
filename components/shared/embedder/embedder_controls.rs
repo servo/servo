@@ -104,6 +104,9 @@ pub enum ContextMenuAction {
     Copy,
     Paste,
     SelectAll,
+
+    Undo,
+    Redo,
 }
 
 bitflags! {
