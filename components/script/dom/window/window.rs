@@ -904,7 +904,9 @@ impl Window {
         // - increment the `ongoing_navigation`(preventing planned form navigations).
         // - Send a `AbortLoadUrl` message(in case the navigation
         // already started at the constellation).
-        self.set_ongoing_navigation();
+        if !doc.is_prompting_or_unloading() {
+            self.set_ongoing_navigation();
+        }
 
         // 3. Abort a document and its descendants given document.
         doc.abort_a_document_and_its_descendants(cx, AbortReason::StopLoading);
