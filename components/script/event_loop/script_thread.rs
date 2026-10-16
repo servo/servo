@@ -3306,9 +3306,12 @@ impl ScriptThread {
                 // to avoid running layout on detached iframes.
                 let window = document.window();
                 if discard_browsing_context == DiscardBrowsingContext::Yes {
-                    let browsing_context_id = window.window_proxy().browsing_context_id();
-                    window.discard_browsing_context();
-                    self.window_proxies.remove(browsing_context_id);
+                    let window_proxy = window.window_proxy();
+                    if window_proxy.currently_active() == Some(pipeline_id) {
+                        let browsing_context_id = window_proxy.browsing_context_id();
+                        window.discard_browsing_context();
+                        self.window_proxies.remove(browsing_context_id);
+                    }
                 }
 
                 // Clear the image cache now, instead of waiting for the Window to be

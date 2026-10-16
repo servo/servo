@@ -2969,7 +2969,9 @@ impl Document {
             .cancel_all_tasks_and_ignore_future_tasks();
 
         // Step 8. Set document's browsing context to null.
-        exited_window.discard_browsing_context();
+        if !self.window_detached() {
+            exited_window.discard_browsing_context();
+        }
 
         // Step 9. Set document's node navigable's active session history entry's
         // document state's document to null.
@@ -2977,9 +2979,11 @@ impl Document {
 
         // Step 10. Remove document from the owner set of each WorkerGlobalScope
         // object whose set contains document.
-        exited_window
-            .as_global_scope()
-            .disable_owned_worker_animation_frame_providers();
+        if !self.window_detached() {
+            exited_window
+                .as_global_scope()
+                .disable_owned_worker_animation_frame_providers();
+        }
 
         // Step 11. For each workletGlobalScope in document's worklet global scopes,
         // terminate workletGlobalScope.

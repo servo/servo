@@ -587,7 +587,9 @@ impl Window {
             .window_proxy
             .get()
             .expect("Discarding a BC from a window that has none");
-        proxy.discard_browsing_context();
+        if proxy.currently_active() == Some(self.pipeline_id()) {
+            proxy.discard_browsing_context();
+        }
 
         // Step 4 of https://html.spec.whatwg.org/multipage/#discard-a-document
         // Other steps performed when the `PipelineExit` message
