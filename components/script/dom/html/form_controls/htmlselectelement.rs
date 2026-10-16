@@ -180,9 +180,12 @@ impl UAShadowRoot<ShadowTree> for HTMLSelectElement {
             .AppendChild(cx, chevron_container.upcast::<Node>())
             .unwrap();
 
-        let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
-            selected_option: text.as_traced(),
-        });
+        let _ = self
+            .shadow_tree
+            .safe_borrow_mut(cx.no_gc())
+            .insert(ShadowTree {
+                selected_option: text.as_traced(),
+            });
     }
 
     fn borrow_for_shadow_tree(&self) -> Ref<'_, Option<ShadowTree>> {
