@@ -11037,6 +11037,18 @@
     "314a9e5b44443be1a4e28dd3c5047a5082a7ccab",
     []
    ],
+   "memory": {
+    "resources": {
+     "leak-helpers.js": [
+      "d780efd2629760c1eeef158e8db22f2fae129b2b",
+      []
+     ],
+     "set-global-module.js": [
+      "7be2eede887cff37f4e66a0a70ccda70fbccf7fa",
+      []
+     ]
+    }
+   },
    "mozilla": {
     "2x2.png": [
      "276791c4348ada7e1da71041f2ccd383305e209c",
@@ -13835,7 +13847,14 @@
    },
    "memory": {
     "fetch-does-not-leak-document.html": [
-     "6cc5505d10648d62cc3224bec15bf6ea7954944c",
+     "9eba4fcd4194aa006b7fd02e908a8eee2cf30c98",
+     [
+      null,
+      {}
+     ]
+    ],
+    "modules-do-not-leak-document.html": [
+     "57b6a70381b4475c5622f118ba18563eb1a43839",
      [
       null,
       {}
