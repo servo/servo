@@ -194,7 +194,11 @@ bitflags! {
         /// this element.
         const CLICK_IN_PROGRESS = 1 << 2;
 
-        // There are three free bits here.
+        /// Whether this node has ever taken part in a CSS animation/transition or has been an
+        /// animating image. This flag is never cleared once it is set.
+        const HAS_EVER_ANIMATED = 1 << 3;
+
+        // There are two free bits here.
 
         /// Specifies whether the parser has set an associated form owner for
         /// this element. Only applicable for form-associatable elements.
