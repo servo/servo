@@ -24,6 +24,8 @@ use serde::{Deserialize, Serialize};
 use servo_url::ServoUrl;
 use time::{Date, Duration, Month, OffsetDateTime, Time};
 
+use crate::cookie_storage::reg_host;
+
 /// A stored cookie that wraps the definition in cookie-rs. This is used to implement
 /// various behaviours defined in the spec that rely on an associated request URL,
 /// which cookie-rs and hyper's header parsing do not support.
@@ -39,12 +41,14 @@ pub struct ServoCookie {
     pub creation_time: SystemTime,
     pub last_access: SystemTime,
     pub expiry_time: Option<SystemTime>,
+    /// Partition key for CHIPS (RFC 6265bis). If None, the cookie is unpartitioned.
+    pub partition_key: Option<String>,
 }
 
-/// The request-level context needed to enforce the `SameSite` cookie attribute
-/// when selecting cookies to send. See
+/// The request-level context needed to enforce the `SameSite` and partitioned (CHIPS) cookie
+/// attributes when selecting cookies to send. See
 /// <https://www.ietf.org/archive/id/draft-ietf-httpbis-rfc6265bis-20.html#section-5.4>.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SameSiteContext {
     /// Whether the request is cross-site with respect to its initiator (its
     /// "site for cookies").
@@ -53,6 +57,8 @@ pub struct SameSiteContext {
     pub top_level_navigation: bool,
     /// Whether the request uses a "safe" HTTP method (GET, HEAD, OPTIONS, TRACE).
     pub safe_method: bool,
+    /// The top-level partition key for CHIPS isolation.
+    pub partition_key: Option<String>,
 }
 
 impl SameSiteContext {
@@ -62,6 +68,7 @@ impl SameSiteContext {
         cross_site: false,
         top_level_navigation: false,
         safe_method: true,
+        partition_key: None,
     };
 }
 
@@ -72,6 +79,21 @@ impl ServoCookie {
         source: CookieSource,
     ) -> Option<ServoCookie> {
         let mut cookie = Cookie::parse(cookie_str.to_owned()).ok()?;
+
+        let is_partitioned = cookie_str
+            .split(';')
+            .any(|part| part.trim().eq_ignore_ascii_case("partitioned"));
+
+        // Per draft-ietf-httpbis-rfc6265bis, Partitioned cookies MUST be Secure.
+        if is_partitioned && !cookie.secure().unwrap_or(false) && !request.is_secure_scheme() {
+            return None;
+        }
+
+        let partition_key = if is_partitioned {
+            Some(reg_host(request.host_str().unwrap_or("")))
+        } else {
+            None
+        };
 
         // Cookie::parse uses RFC 2616 <http://tools.ietf.org/html/rfc2616#section-3.3.1> to parse
         // cookie expiry date. If it fails to parse the expiry date, try to parse again with
@@ -92,14 +114,23 @@ impl ServoCookie {
             }
         }
 
-        ServoCookie::new_wrapped(cookie, request, source)
+        ServoCookie::new_wrapped_with_partition(cookie, request, source, partition_key)
+    }
+
+    pub fn new_wrapped(
+        cookie: Cookie<'static>,
+        request: &ServoUrl,
+        source: CookieSource,
+    ) -> Option<ServoCookie> {
+        ServoCookie::new_wrapped_with_partition(cookie, request, source, None)
     }
 
     /// Steps 6-22 from <https://www.ietf.org/archive/id/draft-ietf-httpbis-rfc6265bis-15.html#name-storage-model>
-    pub fn new_wrapped(
+    pub fn new_wrapped_with_partition(
         mut cookie: Cookie<'static>,
         request: &ServoUrl,
         source: CookieSource,
+        partition_key: Option<String>,
     ) -> Option<ServoCookie> {
         let persistent;
         let expiry_time;
@@ -300,6 +331,7 @@ impl ServoCookie {
             creation_time: SystemTime::now(),
             last_access: SystemTime::now(),
             expiry_time,
+            partition_key,
         })
     }
 
@@ -432,9 +464,17 @@ impl ServoCookie {
             }
         }
 
-        // TODO: Apply Partitioning (CHIPS) checks. This requires storing a
-        // partition key alongside each cookie, which the storage model does not
-        // yet do; see docs/embedding/SECURITY_AUDIT.md.
+        // Apply Partitioning (CHIPS) checks per draft-ietf-httpbis-rfc6265bis.
+        if let Some(ref cookie_partition) = self.partition_key {
+            match &context.partition_key {
+                Some(request_partition) => {
+                    if !cookie_partition.eq_ignore_ascii_case(request_partition) {
+                        return false;
+                    }
+                },
+                None => return false,
+            }
+        }
 
         true
     }

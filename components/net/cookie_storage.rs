@@ -79,7 +79,8 @@ impl CookieStorage {
         let position = cookies.iter().position(|c| {
             c.cookie.domain() == cookie.cookie.domain() &&
                 c.cookie.path() == cookie.cookie.path() &&
-                c.cookie.name() == cookie.cookie.name()
+                c.cookie.name() == cookie.cookie.name() &&
+                c.partition_key == cookie.partition_key
         });
 
         if let Some(ind) = position {
@@ -336,7 +337,7 @@ impl CookieStorage {
     }
 }
 
-fn reg_host(url: &str) -> String {
+pub fn reg_host(url: &str) -> String {
     let host_for_ip_parse = url
         .strip_prefix('[')
         .and_then(|url| url.strip_suffix(']'))
