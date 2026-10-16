@@ -17,6 +17,7 @@ use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     WGSLLanguageFeaturesMethods, WGSLLanguageFeaturesWrap,
 };
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::like::Setlike;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_wrap};
 use webgpu_traits::ImplementedLanguageExtension;
@@ -30,7 +31,7 @@ pub struct WGSLLanguageFeatures<D: DomTypes> {
     reflector: Reflector,
     // internal storage for features
     #[custom_trace]
-    internal: DomRefCell<IndexSet<DOMString>>,
+    internal: DomRefCell<IndexSet<TracedDOMString>>,
     #[no_trace = "PhantomData does not exist"]
     phantom: PhantomData<D>,
 }
@@ -41,15 +42,16 @@ impl<D: Equivalence> WGSLLanguageFeatures<D> {
         global: &D::GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<Self> {
-        let set = ImplementedLanguageExtension::all()
-            .iter()
-            .map(|le| le.to_ident().into())
-            .collect();
         reflect_dom_object_with_proto_and_wrap::<D, _, _>(
             cx,
             Box::new(Self {
                 reflector: Reflector::new(),
-                internal: DomRefCell::new(set),
+                internal: DomRefCell::new(
+                    ImplementedLanguageExtension::all()
+                        .iter()
+                        .map(|le| DOMString::from_static(le.to_ident()).traced())
+                        .collect(),
+                ),
                 phantom: PhantomData,
             }),
             global,
@@ -70,7 +72,9 @@ impl<D: DomTypes> Setlike for WGSLLanguageFeatures<D> {
 
     #[inline(always)]
     fn get_index(&self, cx: &mut JSContext, index: u32) -> Option<Self::Key> {
-        self.internal.get_index(cx, index)
+        self.internal
+            .get_index(cx, index)
+            .map(|domstring| domstring.root())
     }
     #[inline(always)]
     fn size(&self, cx: &mut JSContext) -> u32 {
@@ -82,7 +86,7 @@ impl<D: DomTypes> Setlike for WGSLLanguageFeatures<D> {
     }
     #[inline(always)]
     fn has(&self, cx: &mut JSContext, key: Self::Key) -> bool {
-        self.internal.has(cx, key)
+        self.internal.has(cx, key.traced())
     }
     #[inline(always)]
     fn clear(&self, _cx: &mut JSContext) {
