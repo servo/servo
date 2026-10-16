@@ -431661,6 +431661,58 @@
       {}
      ]
     ],
+    "percentage-height-quirk-min-height-001.html": [
+     "dede9178565f018d00c4298427c79774914489c5",
+     [
+      null,
+      [
+       [
+        "/css/reference/ref-filled-green-200px-square.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
+    "percentage-height-quirk-min-height-002.html": [
+     "bdb1a8085ae7db04d06f7c1f401f735b6f0667c5",
+     [
+      null,
+      [
+       [
+        "/css/reference/ref-filled-green-200px-square.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
+    "percentage-height-quirk-min-height-003.html": [
+     "6d68f75b2790c9cc46d86a4e4f834ff4e8a693de",
+     [
+      null,
+      [
+       [
+        "/css/reference/ref-filled-green-200px-square.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
+    "percentage-height-quirk-relpos-percent.html": [
+     "44e3e64a0bddd44d489d21a9dc6782200d8e0f2f",
+     [
+      null,
+      [
+       [
+        "/css/reference/ref-filled-green-200px-square.html",
+        "=="
+       ]
+      ],
+      {}
+     ]
+    ],
     "reference": {
      "percentage-height-quirk-excludes-flex-grid-002-ref.html": [
       "c63bc0efa85f59eb496875072970016cf77d3c9d",

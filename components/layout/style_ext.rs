@@ -1172,18 +1172,7 @@ impl LayoutStyle<'_> {
         &self,
         containing_block: &IndefiniteContainingBlock,
     ) -> ContentBoxSizesAndPBM {
-        // <https://drafts.csswg.org/css-sizing-3/#cyclic-percentage-contribution>
-        // If max size properties or preferred size properties are set to a value containing
-        // indefinite percentages, we treat the entire value as the initial value of the property.
-        // However, for min size properties, as well as for margins and paddings,
-        // we instead resolve indefinite percentages against zero.
-        let containing_block_size_or_zero =
-            containing_block.size.map(|value| value.unwrap_or_default());
         let writing_mode = containing_block.style.writing_mode;
-        let pbm = self.padding_border_margin_with_writing_mode_and_containing_block_inline_size(
-            writing_mode,
-            containing_block_size_or_zero.inline,
-        );
         let style = self.style();
         let box_size = style.box_size(writing_mode);
         let min_size = style.min_box_size(writing_mode);
@@ -1209,13 +1198,45 @@ impl LayoutStyle<'_> {
             depends_on_block_constraints(&max_size.block) ||
             style.depends_on_block_constraints_due_to_relative_positioning(writing_mode);
 
-        let box_size = box_size.map_with(&containing_block.size, |size, basis| {
+        // If the containing block has a quirky block size, it means that the actual block size
+        // was indefinite, but it was overridden in order to be able to resolve percentages here.
+        // However, the spec says to only apply the quirk if `height` is set to a `<percentage>`.
+        // TODO: What to do in a vertical writing mode? Blink and WebKit still apply the quirk
+        // to the block axis. Gecko doesn't. See <https://github.com/whatwg/quirks/issues/62>.
+        // TODO: Blink and WebKit only require a percentage on the preferred sizing property
+        // for replaced elements. Non-replaced elements always have the quirk.
+        // TODO: Blink and WebKit consider that a `calc()` that contains a percentage fulfills
+        // the percentage requirement. See <https://github.com/whatwg/quirks/issues/48>.
+        let containing_block_size = LogicalVec2 {
+            inline: containing_block.size.inline,
+            block: if containing_block.has_quirky_block_size() &&
+                box_size.block.to_percentage().is_none()
+            {
+                None
+            } else {
+                containing_block.size.block
+            },
+        };
+
+        // <https://drafts.csswg.org/css-sizing-3/#cyclic-percentage-contribution>
+        // If max size properties or preferred size properties are set to a value containing
+        // indefinite percentages, we treat the entire value as the initial value of the property.
+        // However, for min size properties, as well as for margins and paddings,
+        // we instead resolve indefinite percentages against zero.
+        let containing_block_size_or_zero =
+            containing_block_size.map(|value| value.unwrap_or_default());
+        let pbm = self.padding_border_margin_with_writing_mode_and_containing_block_inline_size(
+            writing_mode,
+            containing_block_size_or_zero.inline,
+        );
+
+        let box_size = box_size.map_with(&containing_block_size, |size, basis| {
             size.resolve_percentages_for_preferred(*basis)
         });
         let content_box_size = style.content_box_size_for_box_size(box_size, &pbm);
         let min_size = min_size.percentages_relative_to_basis(&containing_block_size_or_zero);
         let content_min_box_size = style.content_min_box_size_for_min_size(min_size, &pbm);
-        let max_size = max_size.map_with(&containing_block.size, |size, basis| {
+        let max_size = max_size.map_with(&containing_block_size, |size, basis| {
             size.resolve_percentages_for_max(*basis)
         });
         let content_max_box_size = style.content_max_box_size_for_max_size(max_size, &pbm);

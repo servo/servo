@@ -42,7 +42,10 @@ use crate::sizing::{
     SizeConstraint, Sizes,
 };
 use crate::style_ext::{AspectRatio, ContentBoxSizesAndPBM, LayoutStyle, PaddingBorderMargin};
-use crate::{ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock};
+use crate::{
+    ConstraintSpace, ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize,
+    IndefiniteContainingBlock,
+};
 
 mod construct;
 pub mod float;
@@ -263,17 +266,20 @@ impl BlockLevelBox {
             Au::zero(),
             block_stretch_size,
         );
+        let mut has_quirky_block_size = HasQuirkyBlockSize(false);
         if skippable_for_block_percentage_quirk(
             layout_context,
             &same_formatting_context_block.base,
             None,
         ) {
+            has_quirky_block_size.0 = !tentative_block_size.is_definite();
             tentative_block_size.replace_if_indefinite_with(containing_block.size.block);
         }
 
         let get_inline_content_sizes = || {
             let constraint_space = ConstraintSpace::new(
                 tentative_block_size,
+                has_quirky_block_size,
                 style,
                 None, /* TODO: support preferred aspect ratios on non-replaced boxes */
             );
@@ -293,6 +299,7 @@ impl BlockLevelBox {
             size: ContainingBlockSize {
                 inline: inline_size,
                 block: tentative_block_size,
+                has_quirky_block_size,
             },
             style,
         };
@@ -344,8 +351,13 @@ impl OutsideMarker {
     ) -> Fragment {
         let style = &self.context.base.style;
         let preferred_aspect_ratio = self.context.preferred_aspect_ratio(&LogicalVec2::zero());
-        let constraint_space =
-            ConstraintSpace::new(SizeConstraint::default(), style, preferred_aspect_ratio);
+        let has_quirky_block_size = HasQuirkyBlockSize(false);
+        let constraint_space = ConstraintSpace::new(
+            SizeConstraint::default(),
+            has_quirky_block_size,
+            style,
+            preferred_aspect_ratio,
+        );
         let content_sizes = self
             .context
             .inline_content_sizes(layout_context, &constraint_space);
@@ -353,6 +365,7 @@ impl OutsideMarker {
             size: ContainingBlockSize {
                 inline: content_sizes.sizes.max_content,
                 block: SizeConstraint::default(),
+                has_quirky_block_size,
             },
             style,
         };
@@ -1250,6 +1263,7 @@ impl IndependentFormattingContext {
             min_block_size: Au,
             max_block_size: Option<Au>,
             tentative_block_size: SizeConstraint,
+            has_quirky_block_size: HasQuirkyBlockSize,
             depends_on_stretch_size: bool,
         }
         let mut cache = Cache {
@@ -1283,7 +1297,9 @@ impl IndependentFormattingContext {
             cache.max_block_size = max_block_size;
             cache.tentative_block_size =
                 SizeConstraint::new(preferred_block_size, min_block_size, max_block_size);
+            cache.has_quirky_block_size.0 = false;
             if skippable_for_block_percentage_quirk {
+                cache.has_quirky_block_size.0 = !cache.tentative_block_size.is_definite();
                 cache
                     .tentative_block_size
                     .replace_if_indefinite_with(containing_block.size.block);
@@ -1293,8 +1309,12 @@ impl IndependentFormattingContext {
 
         // With the tentative block size we can compute the inline min/max-content sizes.
         let get_inline_content_sizes = |cache: &Cache| {
-            let constraint_space =
-                ConstraintSpace::new(cache.tentative_block_size, style, preferred_aspect_ratio);
+            let constraint_space = ConstraintSpace::new(
+                cache.tentative_block_size,
+                cache.has_quirky_block_size,
+                style,
+                preferred_aspect_ratio,
+            );
             self.inline_content_sizes(layout_context, &constraint_space)
                 .sizes
         };
@@ -1353,6 +1373,7 @@ impl IndependentFormattingContext {
                         // for replaced elements, whose layout doesn't use the block size of the
                         // containing block for children.
                         block: cache.tentative_block_size,
+                        has_quirky_block_size: cache.has_quirky_block_size,
                     },
                     style,
                 },
@@ -1430,6 +1451,7 @@ impl IndependentFormattingContext {
                         size: ContainingBlockSize {
                             inline: proposed_inline_size,
                             block: cache.tentative_block_size,
+                            has_quirky_block_size: cache.has_quirky_block_size,
                         },
                         style,
                     },
@@ -1651,7 +1673,9 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
             block_stretch_size,
         )
     };
+    let mut has_quirky_block_size = HasQuirkyBlockSize(false);
     if skippable_for_block_percentage_quirk(layout_context, base, context) {
+        has_quirky_block_size.0 = !tentative_block_size.is_definite();
         tentative_block_size.replace_if_indefinite_with(containing_block.size.block);
     }
 
@@ -1660,6 +1684,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     let get_inline_content_sizes = || {
         get_inline_content_sizes(&ConstraintSpace::new(
             tentative_block_size,
+            has_quirky_block_size,
             style,
             preferred_aspect_ratio,
         ))
@@ -1678,6 +1703,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         size: ContainingBlockSize {
             inline: inline_size,
             block: tentative_block_size,
+            has_quirky_block_size,
         },
         style,
     };
@@ -2229,13 +2255,19 @@ impl IndependentFormattingContext {
                     .block
                     .resolve_extrinsic(automatic_block_size, Au::zero(), block_stretch_size)
             };
+        let mut has_quirky_block_size = HasQuirkyBlockSize(false);
         if skippable_for_block_percentage_quirk(layout_context, &self.base, Some(self)) {
+            has_quirky_block_size.0 = !tentative_block_size.is_definite();
             tentative_block_size.replace_if_indefinite_with(containing_block.size.block);
         }
 
         let get_content_size = || {
-            let constraint_space =
-                ConstraintSpace::new(tentative_block_size, style, preferred_aspect_ratio);
+            let constraint_space = ConstraintSpace::new(
+                tentative_block_size,
+                has_quirky_block_size,
+                style,
+                preferred_aspect_ratio,
+            );
             self.inline_content_sizes(layout_context, &constraint_space)
                 .sizes
         };
@@ -2253,6 +2285,7 @@ impl IndependentFormattingContext {
             size: ContainingBlockSize {
                 inline: inline_size,
                 block: tentative_block_size,
+                has_quirky_block_size,
             },
             style,
         };

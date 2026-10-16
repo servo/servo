@@ -1,0 +1,25 @@
+<!-- quirks -->
+<title>Percentage height quirk is just for sizing purposes</title>
+<link rel="author" title="Oriol Brufau" href="obrufau@igalia.com">
+<link rel="help" href="https://quirks.spec.whatwg.org/#the-percentage-height-calculation-quirk">
+<link rel="help" href="https://github.com/whatwg/quirks/issues/94">
+<link rel="match" href="../css/reference/ref-filled-green-200px-square.html">
+<meta name="assert" content="
+  Due to the quirk, #target resolves `height: 100%` against #grandparent.
+  However, this is just 'for the purpose of calculating the height',
+  so `top: 100%` resolves against #parent, and thus behaves as `auto`
+  (see https://github.com/w3c/csswg-drafts/issues/9353).
+">
+
+<style>
+#grandparent { height: 200px; width: 200px }
+#parent { background: red }
+#target { position: relative; height: 100%; top: 100%; background: green }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="grandparent">
+  <div id="parent">
+    <div id="target"></div>
+  </div>
+</div>

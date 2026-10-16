@@ -43,7 +43,10 @@ use crate::sizing::{
     LazySize, Size, SizeConstraint, Sizes,
 };
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, LayoutStyle};
-use crate::{ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock};
+use crate::{
+    ConstraintSpace, ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize,
+    IndefiniteContainingBlock,
+};
 
 /// Layout parameters and intermediate results about a flex container,
 /// grouped to avoid passing around many parameters
@@ -622,6 +625,7 @@ impl FlexContainer {
         containing_block: &ContainingBlock,
         lazy_block_size: &LazySize,
     ) -> IndependentFormattingContextLayoutResult {
+        debug_assert!(!containing_block.has_quirky_block_size());
         let mut flex_context = FlexContext {
             config: self.config.clone(),
             layout_context,
@@ -1881,6 +1885,7 @@ impl FlexItem<'_> {
             size: ContainingBlockSize {
                 inline: inline_size,
                 block: block_size,
+                has_quirky_block_size: HasQuirkyBlockSize(false),
             },
             style: item_style,
         };
@@ -2300,7 +2305,9 @@ impl FlexItemBox {
         } else {
             Size::FitContent
         };
-        let containing_block_size = flex_axis.vec2_to_flex_relative(containing_block.size);
+        debug_assert!(!containing_block.has_quirky_block_size());
+        let containing_block_size =
+            flex_axis.vec2_to_flex_relative(containing_block.size.as_logical_vec2());
         let stretch_size = FlexRelativeVec2 {
             main: containing_block_size
                 .main
@@ -2374,8 +2381,12 @@ impl FlexItemBox {
             if cross_axis_is_item_block_axis {
                 // The main axis is the inline axis, so we can get the content size from the normal
                 // preferred widths calculation.
-                let constraint_space =
-                    ConstraintSpace::new(cross_size, style, preferred_aspect_ratio);
+                let constraint_space = ConstraintSpace::new(
+                    cross_size,
+                    HasQuirkyBlockSize(false),
+                    style,
+                    preferred_aspect_ratio,
+                );
                 let content_sizes = flex_item
                     .inline_content_sizes(layout_context, &constraint_space)
                     .sizes;
@@ -2738,6 +2749,7 @@ impl FlexItemBox {
                     flex_context.containing_block,
                     preferred_aspect_ratio,
                     &LazySize::intrinsic(),
+                    HasQuirkyBlockSize(false),
                 )
         };
         match intrinsic_sizing_mode {
@@ -2772,7 +2784,12 @@ impl FlexItemBox {
         preferred_aspect_ratio: Option<AspectRatio>,
     ) -> ContentSizes {
         let style = self.independent_formatting_context.style();
-        let constraint_space = ConstraintSpace::new(block_size, style, preferred_aspect_ratio);
+        let constraint_space = ConstraintSpace::new(
+            block_size,
+            HasQuirkyBlockSize(false),
+            style,
+            preferred_aspect_ratio,
+        );
         self.independent_formatting_context
             .inline_content_sizes(flex_context.layout_context, &constraint_space)
             .sizes

@@ -30,7 +30,7 @@ use crate::geom::LogicalSides1D;
 use crate::positioned::{PositioningContext, relative_adjustement};
 use crate::sizing::{ComputeInlineContentSizes, InlineContentSizesResult, SizeConstraint};
 use crate::traversal::ElementDamageSet;
-use crate::{ConstraintSpace, ContainingBlock, ContainingBlockSize};
+use crate::{ConstraintSpace, ContainingBlock, ContainingBlockSize, HasQuirkyBlockSize};
 
 /// A box tree node that handles containing information about style and the original DOM
 /// node or pseudo-element that it is based on. This also handles caching of layout values
@@ -240,7 +240,10 @@ impl LayoutBoxBase {
         if !cache.applicable_for_inline_size(containing_block_for_children.size.inline) {
             return Err(None);
         }
-        if !cache.applicable_for_block_size(containing_block_for_children.size.block) {
+        if !cache.applicable_for_block_size(
+            containing_block_for_children.size.block,
+            containing_block_for_children.size.has_quirky_block_size,
+        ) {
             return Err(cache.content_block_size_under_default_constraint);
         }
 
@@ -264,7 +267,10 @@ impl LayoutBoxBase {
             content_block_size_under_default_constraint,
         };
         if content_block_size_under_default_constraint.is_none() &&
-            result_and_inputs.applicable_for_block_size(SizeConstraint::default())
+            result_and_inputs.applicable_for_block_size(
+                SizeConstraint::default(),
+                HasQuirkyBlockSize::default(),
+            )
         {
             result_and_inputs.content_block_size_under_default_constraint =
                 Some(result.content_block_size);
@@ -443,9 +449,16 @@ impl IndependentFormattingContextLayoutResultAndInputs {
     }
 
     #[inline]
-    fn applicable_for_block_size(&self, block_size: SizeConstraint) -> bool {
+    fn applicable_for_block_size(
+        &self,
+        block_size: SizeConstraint,
+        has_quirky_block_size: HasQuirkyBlockSize,
+    ) -> bool {
         !self.result.depends_on_block_constraints ||
-            self.containing_block_for_children_size.block == block_size
+            (self.containing_block_for_children_size.block == block_size &&
+                self.containing_block_for_children_size
+                    .has_quirky_block_size ==
+                    has_quirky_block_size)
     }
 }
 
