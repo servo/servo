@@ -46,12 +46,13 @@ impl<'dom> TryFrom<ServoLayoutNode<'dom>> for LayoutRoot<'dom> {
         }
 
         // Only accept previously known layout roots without fragmentation as compatible layout roots.
-        let mut is_layout_root = false;
-        node.with_layout_box_base(|base| {
-            let fragments = base.fragments();
-            is_layout_root =
-                fragments.len() == 1 && matches!(fragments.first(), Some(Fragment::LayoutRoot(..)));
-        });
+        let is_layout_root = node
+            .with_layout_box_base(|base| {
+                let fragments = base.fragments();
+                fragments.len() == 1 && matches!(fragments.first(), Some(Fragment::LayoutRoot(..)))
+            })
+            .unwrap_or(false);
+
         if !is_layout_root {
             return Err(());
         }

@@ -43,7 +43,7 @@ use crate::display_list::{
     BuilderForBoxFragment, ContainerTimingRootChain, ContainerTimingRoots, offset_radii,
 };
 use crate::fragment_tree::{
-    BoxFragment, BoxFragmentWithStyle, ContainingBlockCalculation, ContainingBlockManager,
+    BoxFragment, BoxFragmentWithStyle, ContainingBlockManager, CumulativeContentRectCalculation,
     Fragment, FragmentFlags, FragmentTree, PositioningFragment,
 };
 use crate::geom::{
@@ -314,7 +314,7 @@ impl StackingContextTree {
             .map(Au::from_f32_px);
         let fragment_origin = fragment
             .cumulative_content_box_rect(
-                ContainingBlockCalculation::AlreadyDoneWithStackingContextTree,
+                CumulativeContentRectCalculation::AlreadyDoneWithStackingContextTree,
             )
             .origin -
             reference_frame_origin.cast_unit();
@@ -508,7 +508,7 @@ impl Fragment {
         let cumulative_containing_block = containing_block
             .rect
             .translate(containing_block.accumulated_reference_frame_offset);
-        self.set_containing_block(&cumulative_containing_block);
+        self.set_cumulative_content_rect(&cumulative_containing_block);
 
         if self
             .base()
@@ -680,7 +680,7 @@ impl BoxFragment {
         let style = self.style();
         let frame_origin_for_query = self
             .cumulative_border_box_rect(
-                ContainingBlockCalculation::AlreadyDoneWithStackingContextTree,
+                CumulativeContentRectCalculation::AlreadyDoneWithStackingContextTree,
             )
             .origin
             .to_webrender();
@@ -900,22 +900,10 @@ impl BoxFragmentWithStyle<'_> {
             }
         }
 
-        let padding_rect = self
-            .padding_rect()
-            .translate(containing_block.rect.origin.to_vector());
         let content_rect = self
             .content_rect()
             .translate(containing_block.rect.origin.to_vector());
-
-        let for_absolute_descendants = ContainingBlock::new(
-            padding_rect,
-            new_scroll_node_id,
-            new_scroll_frame_size,
-            new_clip_id,
-            containing_block.accumulated_reference_frame_offset,
-            established_scroll_frame,
-        );
-        let for_non_absolute_descendants = ContainingBlock::new(
+        let containing_block_for_descendants = ContainingBlock::new(
             content_rect,
             new_scroll_node_id,
             new_scroll_frame_size,
@@ -928,17 +916,13 @@ impl BoxFragmentWithStyle<'_> {
         // whether or not this fragment establishes a containing block for
         // absolute and fixed descendants.
         let new_containing_block_info = if establishes_containing_block_for_all_descendants {
-            containing_block_info.new_for_absolute_and_fixed_descendants(
-                &for_non_absolute_descendants,
-                &for_absolute_descendants,
-            )
+            containing_block_info
+                .new_for_absolute_and_fixed_descendants(&containing_block_for_descendants)
         } else if establishes_containing_block_for_absolute_descendants {
-            containing_block_info.new_for_absolute_descendants(
-                &for_non_absolute_descendants,
-                &for_absolute_descendants,
-            )
+            containing_block_info.new_for_absolute_descendants(&containing_block_for_descendants)
         } else {
-            containing_block_info.new_for_non_absolute_descendants(&for_non_absolute_descendants)
+            containing_block_info
+                .new_for_non_absolute_descendants(&containing_block_for_descendants)
         };
 
         // Text decorations are not propagated to atomic inline-level descendants.

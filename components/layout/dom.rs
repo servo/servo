@@ -106,10 +106,11 @@ impl InnerDOMLayoutData {
         }
     }
 
-    fn with_layout_box_base(&self, callback: impl FnOnce(&LayoutBoxBase)) {
-        if let Some(data) = self.self_box.borrow().as_ref() {
-            data.with_base(callback);
-        }
+    fn with_layout_box_base<T>(&self, callback: impl FnOnce(&LayoutBoxBase) -> T) -> Option<T> {
+        self.self_box
+            .borrow()
+            .as_ref()
+            .and_then(|data| data.with_base(callback))
     }
 
     fn with_layout_box_base_including_pseudos(&self, mut callback: impl FnMut(&LayoutBoxBase)) {
@@ -522,7 +523,9 @@ pub(crate) trait NodeExt<'dom> {
 
     /// Run `callback` on the fragments without cloning them. Returns `None` if the node has no box.
     fn with_fragments<T>(&self, callback: impl FnOnce(&[Fragment]) -> T) -> Option<T>;
-    fn with_layout_box_base(&self, callback: impl FnMut(&LayoutBoxBase));
+    /// Run `callback` on the `LayoutBoxBase` of this node's box or the box of its pseudo-element.
+    /// Returns `None` if there is no such box.
+    fn with_layout_box_base<T>(&self, callback: impl FnOnce(&LayoutBoxBase) -> T) -> Option<T>;
     fn with_layout_box_base_including_pseudos(&self, callback: impl FnMut(&LayoutBoxBase));
 
     fn repair_style(&self, context: &SharedStyleContext);
@@ -748,10 +751,24 @@ impl<'dom> NodeExt<'dom> for ServoLayoutNode<'dom> {
         }
     }
 
-    fn with_layout_box_base(&self, callback: impl FnMut(&LayoutBoxBase)) {
-        if let Some(inner_layout_data) = self.inner_layout_data() {
-            inner_layout_data.with_layout_box_base(callback);
-        }
+    fn with_layout_box_base<T>(&self, callback: impl FnOnce(&LayoutBoxBase) -> T) -> Option<T> {
+        let pseudo_element_chain = self.pseudo_element_chain();
+        let inner_layout_data = self.inner_layout_data()?;
+        let Some(primary) = pseudo_element_chain.primary else {
+            return inner_layout_data.with_layout_box_base(callback);
+        };
+
+        let primary_data = inner_layout_data.pseudo_layout_data(primary)?;
+        drop(inner_layout_data);
+        let Some(secondary) = pseudo_element_chain.secondary else {
+            return primary_data.borrow().with_layout_box_base(callback);
+        };
+
+        primary_data
+            .borrow()
+            .pseudo_layout_data(secondary)?
+            .borrow()
+            .with_layout_box_base(callback)
     }
 
     fn with_layout_box_base_including_pseudos(&self, callback: impl FnMut(&LayoutBoxBase)) {

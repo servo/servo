@@ -80,8 +80,7 @@ pub trait LayoutNode<'dom>: Copy + Debug + NodeInfo + Send + Sync {
     unsafe fn dangerous_dom_parent(self) -> Option<Self>;
 
     /// Returns access to the flat tree parent node of this node. This takes
-    /// into account shadow tree children and slottables. For that use
-    /// [`Self::dangerous_flat_tree_parent`].
+    /// into account shadow tree children and slottables.
     ///
     /// # Safety
     ///
@@ -89,6 +88,17 @@ pub trait LayoutNode<'dom>: Copy + Debug + NodeInfo + Send + Sync {
     /// okay to explicitly access the parent node while any layout worker threads
     /// are running.
     unsafe fn dangerous_flat_tree_parent(self) -> Option<Self>;
+
+    /// Returns access to the flat tree parent node of this node considering pseudo
+    /// elements. The parent of a pseudo-element is found by removing the innermost
+    /// pseudo-element from its pseudo-element chain.
+    ///
+    /// # Safety
+    ///
+    /// This should only ever be called from the main script thread. It is never
+    /// okay to explicitly access the parent node while any layout worker threads
+    /// are running.
+    unsafe fn dangerous_flat_tree_parent_considering_pseudos(self) -> Option<Self>;
 
     /// Get the layout data of this node, attempting to downcast it to the desired type.
     /// Returns None if there is no layout data or it isn't of the desired type.

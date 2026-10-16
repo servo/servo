@@ -394,7 +394,7 @@ impl Layout for LayoutThread {
 
     /// Return the resolved values of this node's padding rect.
     #[servo_tracing::instrument(skip_all)]
-    fn query_padding(&self, node: TrustedNodeAddress) -> Option<PhysicalSides> {
+    fn query_padding(&self, node: TrustedNodeAddress) -> Option<PhysicalSides<Au>> {
         with_layout_state(|| {
             // If we have not built a fragment tree yet, there is no way we have layout information for
             // this query, which can be run without forcing a layout (for IntersectionObserver).
@@ -539,7 +539,18 @@ impl Layout for LayoutThread {
                 TraversalFlags::empty(),
             );
 
-            process_resolved_style_request(self, &shared_style_context, node, &pseudo, &property_id)
+            let fragment_tree = self.fragment_tree.borrow();
+            let initial_containing_block = fragment_tree
+                .as_ref()
+                .map(|fragment_tree| &fragment_tree.initial_containing_block);
+
+            process_resolved_style_request(
+                &shared_style_context,
+                initial_containing_block,
+                node,
+                &pseudo,
+                &property_id,
+            )
         })
     }
 
@@ -1778,8 +1789,8 @@ impl LayoutThread {
         }
         let fragment_tree = self.fragment_tree.borrow();
         fragment_tree.as_ref().expect("missing fragment tree").find(
-            |fragment, _level, containing_block| {
-                fragment.set_containing_block(containing_block);
+            |fragment, _level, content_rect| {
+                fragment.set_cumulative_content_rect(content_rect);
                 None::<()>
             },
         );

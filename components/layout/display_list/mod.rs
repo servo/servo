@@ -62,9 +62,9 @@ use crate::display_list::conversions::FilterToWebRender;
 pub(crate) use crate::display_list::conversions::ToWebRender;
 use crate::display_list::paint_traversal::{PaintTraversal, PaintTraversalHandler, TraversalState};
 use crate::fragment_tree::{
-    BackgroundMode, BaseFragment, BoxFragment, BoxFragmentWithStyle, ContainingBlockCalculation,
-    Fragment, FragmentFlags, FragmentStatus, FragmentTree, IFrameFragment, ImageFragment,
-    PositioningFragment, SpecificLayoutInfo, Tag, TextFragment,
+    BackgroundMode, BaseFragment, BoxFragment, BoxFragmentWithStyle,
+    CumulativeContentRectCalculation, Fragment, FragmentFlags, FragmentStatus, FragmentTree,
+    IFrameFragment, ImageFragment, PositioningFragment, SpecificLayoutInfo, Tag, TextFragment,
 };
 use crate::geom::{
     LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize,
@@ -657,9 +657,9 @@ impl DisplayListBuilder<'_> {
                     }
 
                     let bounds = box_fragment
-                        .offset_by_containing_block(
+                        .offset_by_cumulative_content_offset(
                             &fragment_relative_bounds,
-                            ContainingBlockCalculation::AlreadyDoneWithStackingContextTree,
+                            CumulativeContentRectCalculation::AlreadyDoneWithStackingContextTree,
                         )
                         .to_webrender();
 

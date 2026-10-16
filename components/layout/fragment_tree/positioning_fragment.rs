@@ -13,7 +13,7 @@ use style::properties::ComputedValues;
 
 use super::{BaseFragment, BaseFragmentInfo, Fragment};
 use crate::SharedStyle;
-use crate::fragment_tree::ContainingBlockCalculation;
+use crate::fragment_tree::CumulativeContentRectCalculation;
 use crate::geom::{PhysicalRect, SyncPhysicalRectAu};
 
 /// Can contain child fragments with relative coordinates, but does not contribute to painting
@@ -32,9 +32,10 @@ pub(crate) struct PositioningFragment {
     scrollable_overflow: SyncPhysicalRectAu,
     scrollable_overflow_is_up_to_date: AtomicBool,
 
-    /// This [`PositioningFragment`]'s containing block rectangle in coordinates relative to
-    /// the initial containing block, but not taking into account any transforms.
-    pub cumulative_containing_block_rect: SyncPhysicalRectAu,
+    /// The cumulative content rect of this [`PositioningFragment`]'s parent in
+    /// coordinates relative to the initial containing block, but not taking into account
+    /// any transforms.
+    pub cumulative_parent_content_rect: SyncPhysicalRectAu,
 
     /// Whether or not this [`PositioningFragment`] is a line box.
     is_line_box: bool,
@@ -77,23 +78,23 @@ impl PositioningFragment {
             children,
             scrollable_overflow: Default::default(),
             scrollable_overflow_is_up_to_date: AtomicBool::new(false),
-            cumulative_containing_block_rect: Default::default(),
+            cumulative_parent_content_rect: Default::default(),
             is_line_box,
         })
     }
 
     #[inline]
-    pub(crate) fn set_containing_block(&self, containing_block: &PhysicalRect<Au>) {
-        self.cumulative_containing_block_rect.set(*containing_block);
+    pub(crate) fn set_cumulative_content_rect(&self, content_rect: &PhysicalRect<Au>) {
+        self.cumulative_parent_content_rect.set(*content_rect);
     }
 
     pub fn offset_by_containing_block(
         &self,
         rect: &PhysicalRect<Au>,
-        containing_block_computation: ContainingBlockCalculation<'_>,
+        cumulative_content_rect_calculation: CumulativeContentRectCalculation<'_>,
     ) -> PhysicalRect<Au> {
-        containing_block_computation.ensure();
-        rect.translate(self.cumulative_containing_block_rect.origin().to_vector())
+        cumulative_content_rect_calculation.ensure();
+        rect.translate(self.cumulative_parent_content_rect.origin().to_vector())
     }
 
     /// Get the scrollable overflow for this [`PositioningFragment`] relative to its

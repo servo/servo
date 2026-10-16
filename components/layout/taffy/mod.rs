@@ -15,17 +15,17 @@ use style::properties::ComputedValues;
 pub(crate) use stylo_taffy::TaffyStyloStyle;
 use taffy::GridItemStyle;
 
+use crate::PropagatedBoxTreeData;
 use crate::cell::ArcRefCell;
 use crate::construct_modern::{ModernContainerBuilder, ModernItemKind};
 use crate::context::LayoutContext;
 use crate::dom::{LayoutBox, WeakLayoutBox};
 use crate::dom_traversal::{NodeAndStyleInfo, NonReplacedContents};
 use crate::formatting_contexts::IndependentFormattingContext;
-use crate::fragment_tree::Fragment;
-use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize};
+use crate::fragment_tree::{BoxFragment, Fragment};
+use crate::geom::{PhysicalPoint, PhysicalRect, PhysicalSize};
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext};
-use crate::{DefiniteContainingBlock, PropagatedBoxTreeData};
 
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct TaffyContainer {
@@ -202,32 +202,33 @@ impl SpecificTaffyGridInfo {
         Self { info: grid_info }
     }
 
+    /// Resolve the grid area of an absolutely positioned grid item, returning a rectangle
+    /// relative to the grid container's content box.
     pub(crate) fn resolve_grid_area(
         &self,
+        containing_block_fragment: &BoxFragment,
         item_style: &ComputedValues,
-        containing_block: &DefiniteContainingBlock,
-        containing_block_border: PhysicalSides<Au>,
     ) -> PhysicalRect<Au> {
         let item_style = TaffyStyloStyle::new(item_style, false);
-        let writing_mode = containing_block.style.writing_mode;
-        let physical_containing_block_size = containing_block.size.to_physical_size(writing_mode);
 
         // Convert direction to Taffy type
-        let direction = if writing_mode.is_bidi_ltr() {
+        let direction = if containing_block_fragment.style().writing_mode.is_bidi_ltr() {
             taffy::Direction::Ltr
         } else {
             taffy::Direction::Rtl
         };
 
         // Convert padding box to Taffy type
+        let containing_block_border = containing_block_fragment.border;
         let border_left = containing_block_border.left.to_f32_px();
         let border_top = containing_block_border.top.to_f32_px();
 
+        let containing_block_padding_rect = containing_block_fragment.padding_rect();
         let padding_box = taffy::Rect {
             left: border_left,
-            right: border_left + physical_containing_block_size.width.to_f32_px(),
+            right: border_left + containing_block_padding_rect.width().to_f32_px(),
             top: border_top,
-            bottom: border_top + physical_containing_block_size.height.to_f32_px(),
+            bottom: border_top + containing_block_padding_rect.height().to_f32_px(),
         };
 
         // Call into Taffy to resolve grid area
@@ -238,11 +239,14 @@ impl SpecificTaffyGridInfo {
             padding_box,
         );
 
-        // Convert grid area into a PhysicalRect, and adjust it to be relative to the padding box
+        // Convert grid area into a PhysicalRect, and adjust it to be relative to the content box.
+        let containing_block_padding = containing_block_fragment.padding;
         PhysicalRect::new(
             PhysicalPoint::new(
-                Au::from_f32_px(area.left) - containing_block_border.left,
-                Au::from_f32_px(area.top) - containing_block_border.top,
+                Au::from_f32_px(area.left) -
+                    (containing_block_border.left + containing_block_padding.left),
+                Au::from_f32_px(area.top) -
+                    (containing_block_border.top + containing_block_padding.top),
             ),
             PhysicalSize::new(
                 Au::from_f32_px(area.right - area.left),

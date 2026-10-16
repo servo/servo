@@ -1135,7 +1135,7 @@ impl Node {
             .containing_block_node_query_without_reflow(self)
     }
 
-    pub(crate) fn padding(&self) -> Option<PhysicalSides> {
+    pub(crate) fn padding(&self) -> Option<PhysicalSides<Au>> {
         self.owner_window().padding_query_without_reflow(self)
     }
 

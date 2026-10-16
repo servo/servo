@@ -381,7 +381,7 @@ pub trait Layout {
         root: TrustedNodeAddress,
         possible_descendant: TrustedNodeAddress,
     ) -> bool;
-    fn query_padding(&self, node: TrustedNodeAddress) -> Option<PhysicalSides>;
+    fn query_padding(&self, node: TrustedNodeAddress) -> Option<PhysicalSides<Au>>;
     fn query_box_area(
         &self,
         node: TrustedNodeAddress,
@@ -518,13 +518,7 @@ pub enum NodeRenderingType {
     NotRendered,
 }
 
-#[derive(Default)]
-pub struct PhysicalSides {
-    pub left: Au,
-    pub top: Au,
-    pub right: Au,
-    pub bottom: Au,
-}
+pub type PhysicalSides<U> = euclid::SideOffsets2D<U, CSSPixel>;
 
 #[derive(Clone, Default)]
 pub struct OffsetParentResponse {
