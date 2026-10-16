@@ -146,6 +146,89 @@ jobs:
             --prefix / \
             --locked
 
+      - name: Install CMake package config and pkg-config files
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p target/artifacts/lib/cmake/Servo
+          cp support/cmake/ServoConfig.cmake target/artifacts/lib/cmake/Servo/
+          cp support/cmake/ServoConfigVersion.cmake target/artifacts/lib/cmake/Servo/
+          mkdir -p target/artifacts/lib/pkgconfig
+          cp support/pkgconfig/servo_capi.pc target/artifacts/lib/pkgconfig/
+
+      - name: Verify C embedder compiles and links against sysroot
+        shell: bash
+        run: |
+          set -euo pipefail
+          SYSROOT="$(pwd)/target/artifacts"
+
+          # 1. Verify sysroot structure
+          test -f "$SYSROOT/include/servo/servo_capi.h"
+          test -f "$SYSROOT/lib/cmake/Servo/ServoConfig.cmake"
+          test -f "$SYSROOT/lib/pkgconfig/servo_capi.pc"
+
+          # 2. Compile and link examples/c-embedder using CMake (using find_package)
+          echo "=== Building examples/c-embedder with CMake (find_package) ==="
+          mkdir -p build-cmake
+          CMAKE_ARGS=()
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            if [ -f "C:/msys64/mingw64/bin/gcc.exe" ]; then
+              export PATH="C:/msys64/mingw64/bin:$PATH"
+              CMAKE_ARGS+=(
+                -G "MinGW Makefiles"
+                -DCMAKE_C_COMPILER="C:/msys64/mingw64/bin/gcc.exe"
+                -DCMAKE_MAKE_PROGRAM="C:/msys64/mingw64/bin/mingw32-make.exe"
+              )
+            fi
+          elif [ "${{ runner.os }}" = "Linux" ]; then
+            CMAKE_ARGS+=(-DCMAKE_C_COMPILER=gcc)
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            CMAKE_ARGS+=(-DCMAKE_C_COMPILER=gcc)
+          fi
+
+          cmake -S examples/c-embedder -B build-cmake \
+            -DCMAKE_PREFIX_PATH="$SYSROOT" \
+            "${CMAKE_ARGS[@]}"
+          cmake --build build-cmake --verbose
+
+          # 3. Direct compilation and linking with gcc against sysroot
+          echo "=== Compiling examples/c-embedder/main.c directly with gcc ==="
+          mkdir -p build-direct
+
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            if [ -f "C:/msys64/mingw64/bin/gcc.exe" ]; then
+              export PATH="C:/msys64/mingw64/bin:$PATH"
+            fi
+            GCC="gcc"
+            command -v "$GCC" >/dev/null 2>&1 || GCC="C:/msys64/mingw64/bin/gcc.exe"
+
+            "$GCC" -std=c11 -Wall -Wextra \
+              -I"$SYSROOT/include" \
+              examples/c-embedder/main.c \
+              -L"$SYSROOT/lib" \
+              -lservo_capi \
+              -o build-direct/servo_embed.exe
+            test -f build-direct/servo_embed.exe
+          elif [ "${{ runner.os }}" = "macOS" ]; then
+            gcc -std=c11 -Wall -Wextra \
+              -I"$SYSROOT/include" \
+              examples/c-embedder/main.c \
+              -L"$SYSROOT/lib" \
+              -lservo_capi \
+              -o build-direct/servo_embed
+            test -f build-direct/servo_embed
+          else
+            gcc -std=c11 -Wall -Wextra \
+              -I"$SYSROOT/include" \
+              examples/c-embedder/main.c \
+              -L"$SYSROOT/lib" \
+              -lservo_capi \
+              -o build-direct/servo_embed
+            test -f build-direct/servo_embed
+          fi
+
+          echo "=== C embedder verification passed on ${{ matrix.name }} ==="
+
       - name: Upload servo-capi artifacts
         uses: actions/upload-artifact@v7
         with:
