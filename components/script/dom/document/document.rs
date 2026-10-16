@@ -556,8 +556,8 @@ pub(crate) struct Document {
     preloaded_resources: DomRefCell<PreloadedResources>,
     /// <https://html.spec.whatwg.org/multipage/#ignore-destructive-writes-counter>
     ignore_destructive_writes_counter: Cell<u32>,
-    /// <https://html.spec.whatwg.org/multipage/#ignore-opens-during-unload-counter>
-    ignore_opens_during_unload_counter: Cell<u32>,
+    /// <https://html.spec.whatwg.org/multipage/#unload-counter>
+    unload_counter: Cell<u32>,
     /// The number of spurious `requestAnimationFrame()` requests we've received.
     ///
     /// A rAF request is considered spurious if nothing was actually reflowed.
@@ -2318,15 +2318,20 @@ impl Document {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#checking-if-unloading-is-canceled>
+    /// <https://html.spec.whatwg.org/multipage/#steps-to-fire-beforeunload>
     pub(crate) fn check_if_unloading_is_cancelled(
         &self,
         cx: &mut JSContext,
         recursive_flag: bool,
     ) -> bool {
-        // TODO: Step 1, increase the event loop's termination nesting level by 1.
-        // Step 2
-        self.incr_ignore_opens_during_unload_counter();
-        // Step 3-5.
+        // Step 2. Increase the document's unload counter by 1.
+        self.unload_counter.set(self.unload_counter.get() + 1);
+
+        // TODO: Step 3, increase the event loop's termination nesting level by 1.
+
+        // Step 4. Let eventFiringResult be the result of firing an event named beforeunload
+        //   at document's relevant global object, using BeforeUnloadEvent, with the
+        //   cancelable attribute initialized to true.
         let beforeunload_event = BeforeUnloadEvent::new(
             cx,
             &self.window,
@@ -2339,7 +2344,7 @@ impl Document {
         let event_target = self.window.upcast::<EventTarget>();
         let has_listeners = event_target.has_listeners_for(&atom!("beforeunload"));
         self.window.dispatch_event_with_target_override(cx, event);
-        // TODO: Step 6, decrease the event loop's termination nesting level by 1.
+        // TODO: Step 5, decrease the event loop's termination nesting level by 1.
         // Step 7
         if has_listeners {
             self.salvageable.set(false);
@@ -2375,8 +2380,8 @@ impl Document {
                 }
             }
         }
-        // Step 10
-        self.decr_ignore_opens_during_unload_counter();
+        // Step 7. Decrease document's unload counter by 1.
+        self.unload_counter.set(self.unload_counter.get() - 1);
         can_unload
     }
 
@@ -2386,14 +2391,16 @@ impl Document {
             return;
         }
 
-        // TODO: Step 1, increase the event loop's termination nesting level by 1.
-        // Step 2
-        self.incr_ignore_opens_during_unload_counter();
-        // Step 3-6 If oldDocument's page showing is true:
+        // TODO: Step 7. Increase eventLoop's termination nesting level by 1.
+
+        // Step 8. Increase oldDocument's unload counter by 1.
+        self.unload_counter.set(self.unload_counter.get() + 1);
+
+        // Step 10. If oldDocument's page showing is true:
         if self.page_showing.get() {
-            // Set oldDocument's page showing to false.
+            // Step 10.1. Set oldDocument's page showing to false.
             self.page_showing.set(false);
-            // Fire a page transition event named pagehide at oldDocument's relevant global object with oldDocument's
+            // Step 10.2. Fire a page transition event named pagehide at oldDocument's relevant global object with oldDocument's
             // salvageable state.
             let event = PageTransitionEvent::new(
                 cx,
@@ -2406,10 +2413,10 @@ impl Document {
             let event = event.upcast::<Event>();
             event.set_trusted(true);
             self.window.dispatch_event_with_target_override(cx, event);
-            // Step 6 Update the visibility state of oldDocument to "hidden".
+            // Step 10.3. Update the visibility state of oldDocument to "hidden".
             self.update_visibility_state(cx, DocumentVisibilityState::Hidden);
         }
-        // Step 7
+        // Step ???
         if !self.fired_unload.get() {
             let event = Event::new(
                 cx,
@@ -2451,11 +2458,11 @@ impl Document {
         // https://w3c.github.io/FileAPI/#lifeTime
         self.window.as_global_scope().clean_up_all_file_resources();
 
-        // Step 15, End
-        self.decr_ignore_opens_during_unload_counter();
-
         // Step 20. If oldDocument's salvageable state is false, then destroy oldDocument.
         // TODO
+
+        // Step 21. Decrease oldDocument's unload counter by 1.
+        self.unload_counter.set(self.unload_counter.get() - 1);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#completely-finish-loading>
@@ -4236,7 +4243,7 @@ impl Document {
             policy_container: DomRefCell::new(StdArc::new(PolicyContainer::default())),
             preloaded_resources: Default::default(),
             ignore_destructive_writes_counter: Default::default(),
-            ignore_opens_during_unload_counter: Default::default(),
+            unload_counter: Default::default(),
             spurious_animation_frames: Cell::new(0),
             fullscreen_element: MutNullableDom::new(None),
             form_id_listener_map: Default::default(),
@@ -4828,17 +4835,7 @@ impl Document {
     }
 
     pub(crate) fn is_prompting_or_unloading(&self) -> bool {
-        self.ignore_opens_during_unload_counter.get() > 0
-    }
-
-    fn incr_ignore_opens_during_unload_counter(&self) {
-        self.ignore_opens_during_unload_counter
-            .set(self.ignore_opens_during_unload_counter.get() + 1);
-    }
-
-    fn decr_ignore_opens_during_unload_counter(&self) {
-        self.ignore_opens_during_unload_counter
-            .set(self.ignore_opens_during_unload_counter.get() - 1);
+        self.unload_counter.get() > 0
     }
 
     pub(crate) fn set_fullscreen_element(&self, element: Option<&Element>) {
