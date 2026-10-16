@@ -42,15 +42,16 @@ impl<D: Equivalence> WGSLLanguageFeatures<D> {
         global: &D::GlobalScope,
         proto: Option<HandleObject>,
     ) -> DomRoot<Self> {
-        let set = ImplementedLanguageExtension::all()
-            .iter()
-            .map(|le| DOMString::from_static(le.to_ident()).traced())
-            .collect();
         reflect_dom_object_with_proto_and_wrap::<D, _, _>(
             cx,
             Box::new(Self {
                 reflector: Reflector::new(),
-                internal: DomRefCell::new(set),
+                internal: DomRefCell::new(
+                    ImplementedLanguageExtension::all()
+                        .iter()
+                        .map(|le| DOMString::from_static(le.to_ident()).traced())
+                        .collect(),
+                ),
                 phantom: PhantomData,
             }),
             global,
