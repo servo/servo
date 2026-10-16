@@ -244,4 +244,8 @@ impl IFrameCollection {
             item
         })
     }
+
+    pub(crate) fn is_empty(&self) -> bool {
+        self.iframes.borrow().is_empty()
+    }
 }

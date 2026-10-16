@@ -2386,11 +2386,25 @@ impl Document {
             return;
         }
 
+        // Step 5. Let intendToKeepInBfcache be true if the user agent intends to keep
+        //   oldDocument alive in a session history entry, such that it can later
+        //   be used for history traversal.
+        //
+        // > This must be false if oldDocument is not salvageable, or if there are
+        // > any descendants of oldDocument which the user agent does not intend to
+        // > keep alive in the same way (including due to their lack of salvageability).
+        let intend_to_keep_in_bfcache = self.salvageable.get() && self.window.is_top_level() && self.iframes.is_empty();
+
         // Step 7. Increase eventLoop's termination nesting level by 1.
         ScriptThread::increase_termination_nesting_level();
 
         // Step 8. Increase oldDocument's unload counter by 1.
         self.unload_counter.set(self.unload_counter.get() + 1);
+
+        // Step 9. If intendToKeepInBfcache is false, then set oldDocument's salvageable state to false.
+        if !intend_to_keep_in_bfcache {
+            self.salvageable.set(false);
+        }
 
         // Step 10. If oldDocument's page showing is true:
         if self.page_showing.get() {
