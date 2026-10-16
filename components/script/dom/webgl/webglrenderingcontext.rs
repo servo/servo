@@ -563,9 +563,20 @@ impl WebGLRenderingContext {
             Some(fb) => match fb.check_status_for_rendering() {
                 CompleteForRendering::Complete => Ok(()),
                 CompleteForRendering::Incomplete => Err(InvalidFramebufferOperation),
-                CompleteForRendering::MissingColorAttachment => Err(InvalidOperation),
             },
             None => Ok(()),
+        }
+    }
+
+    /// Validates the bound framebuffer for an operation that reads its color; returns
+    /// `INVALID_OPERATION` when the framebuffer has no color attachment.
+    ///
+    /// <https://registry.khronos.org/webgl/specs/latest/1.0/#READING_FROM_MISSING_ATTACHMENT>
+    pub(crate) fn validate_read_framebuffer(&self) -> WebGLResult<()> {
+        self.validate_framebuffer()?;
+        match self.bound_draw_framebuffer.get() {
+            Some(framebuffer) if !framebuffer.has_color_attachment() => Err(InvalidOperation),
+            _ => Ok(()),
         }
     }
 
@@ -2165,7 +2176,7 @@ impl CanvasContext for WebGLRenderingContext {
     //
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#2.2>
     fn get_image_data(&self) -> Option<Snapshot> {
-        handle_potential_webgl_error!(self, self.validate_framebuffer(), return None);
+        handle_potential_webgl_error!(self, self.validate_read_framebuffer(), return None);
         let mut size = self.size().cast();
 
         let (fb_width, fb_height) = handle_potential_webgl_error!(
@@ -2363,14 +2374,14 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
             // GL_OES_read_format support (assuming an underlying GLES
             // driver. Desktop is happy to format convert for us).
             constants::IMPLEMENTATION_COLOR_READ_FORMAT => {
-                if self.validate_framebuffer().is_err() {
+                if self.validate_read_framebuffer().is_err() {
                     self.webgl_error(InvalidOperation);
                     return retval.set(NullValue());
                 }
                 return retval.set(Int32Value(constants::RGBA as i32));
             },
             constants::IMPLEMENTATION_COLOR_READ_TYPE => {
-                if self.validate_framebuffer().is_err() {
+                if self.validate_read_framebuffer().is_err() {
                     self.webgl_error(InvalidOperation);
                     return retval.set(NullValue());
                 }
@@ -2930,7 +2941,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         height: i32,
         border: i32,
     ) {
-        handle_potential_webgl_error!(self, self.validate_framebuffer(), return);
+        handle_potential_webgl_error!(self, self.validate_read_framebuffer(), return);
 
         let validator = CommonTexImage2DValidator::new(
             self,
@@ -3035,7 +3046,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         width: i32,
         height: i32,
     ) {
-        handle_potential_webgl_error!(self, self.validate_framebuffer(), return);
+        handle_potential_webgl_error!(self, self.validate_read_framebuffer(), return);
 
         // NB: We use a dummy (valid) format and border in order to reuse the
         // common validations, but this should have its own validator.
@@ -3994,7 +4005,7 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         pixel_type: u32,
         mut pixels: CustomAutoRooterGuard<Option<ArrayBufferView>>,
     ) {
-        handle_potential_webgl_error!(self, self.validate_framebuffer(), return);
+        handle_potential_webgl_error!(self, self.validate_read_framebuffer(), return);
 
         let pixels =
             handle_potential_webgl_error!(self, pixels.as_mut().ok_or(InvalidValue), return);

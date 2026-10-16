@@ -35,7 +35,6 @@ use crate::dom::xrsession::XRSession;
 pub(crate) enum CompleteForRendering {
     Complete,
     Incomplete,
-    MissingColorAttachment,
 }
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -544,6 +543,12 @@ impl WebGLFramebuffer {
         // https://github.com/immersive-web/layers/issues/196
     }
 
+    pub(crate) fn has_color_attachment(&self) -> bool {
+        self.colors
+            .iter()
+            .any(|attachment| attachment.borrow().is_some())
+    }
+
     pub(crate) fn check_status_for_rendering(&self) -> CompleteForRendering {
         let result = self.check_status();
         if result != constants::FRAMEBUFFER_COMPLETE {
@@ -555,10 +560,6 @@ impl WebGLFramebuffer {
         #[cfg(feature = "webxr")]
         if self.xr_session.get().is_some() {
             return CompleteForRendering::Complete;
-        }
-
-        if self.colors.iter().all(|att| att.borrow().is_none()) {
-            return CompleteForRendering::MissingColorAttachment;
         }
 
         if !self.is_initialized.get() {
