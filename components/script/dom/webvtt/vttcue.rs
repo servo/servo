@@ -10,6 +10,7 @@ use html5ever::local_name;
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_webvtt::cue::settings::{
     WebVttCue, WebVttCueSize, WebVttLineAlignment, WebVttLineAndPositionSetting,
@@ -54,7 +55,7 @@ pub(crate) struct VTTCue {
     position_align: Cell<PositionAlignSetting>,
     size: Cell<f64>,
     align: Cell<AlignSetting>,
-    text: DomRefCell<DOMString>,
+    text: DomRefCell<TracedDOMString>,
 }
 
 impl VTTCue {
@@ -82,7 +83,7 @@ impl VTTCue {
                 track,
                 RulesForUpdatingTheTextTrackRendering::WebVTT,
             ),
-            text: DomRefCell::new(text),
+            text: DomRefCell::new(text.traced()),
             region: MutNullableDom::new(None),
             vertical: Cell::new(vertical),
             snap_to_lines: Cell::new(snap_to_lines),
@@ -437,12 +438,12 @@ impl VTTCueMethods<crate::DomTypeHolder> for VTTCue {
 
     /// <https://w3c.github.io/webvtt/#dom-vttcue-text>
     fn Text(&self) -> DOMString {
-        self.text.borrow().clone()
+        self.text.borrow().clone().root()
     }
 
     /// <https://w3c.github.io/webvtt/#dom-vttcue-text>
     fn SetText(&self, value: DOMString) {
-        *self.text.borrow_mut() = value;
+        *self.text.borrow_mut() = value.traced();
     }
 
     /// <https://w3c.github.io/webvtt/#dom-vttcue-getcueashtml>

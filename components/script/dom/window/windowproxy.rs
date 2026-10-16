@@ -48,6 +48,7 @@ use script_bindings::codegen::GenericBindings::WindowBinding::{
     self, GetProtoObject, WindowMethods,
 };
 use script_bindings::conversions::jsid_to_string;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::proxyhandler::{
     self, CROSS_ORIGIN_PROPERTY_HOLDER_WEAK_MAP_SLOT, CrossOriginProperties,
     cross_origin_get_own_property_helper, cross_origin_own_property_keys,
@@ -119,7 +120,7 @@ pub(crate) struct WindowProxy {
 
     /// The name of the browsing context (sometimes, but not always,
     /// equal to the name of a container element)
-    name: DomRefCell<DOMString>,
+    name: DomRefCell<TracedDOMString>,
     /// The pipeline id of the currently active document.
     /// May be None, when the currently active document is in another script thread.
     /// We do not try to keep the pipeline id for documents in other threads,
@@ -178,7 +179,7 @@ impl WindowProxy {
             reflector: Reflector::new(),
             browsing_context_id,
             webview_id,
-            name: DomRefCell::new(name),
+            name: DomRefCell::new(name.traced()),
             currently_active: Cell::new(currently_active),
             discarded: Cell::new(false),
             disowned: Cell::new(false),
@@ -1046,11 +1047,11 @@ impl WindowProxy {
     }
 
     pub(crate) fn get_name(&self) -> DOMString {
-        self.name.borrow().clone()
+        self.name.borrow().clone().root()
     }
 
     pub(crate) fn set_name(&self, name: DOMString) {
-        *self.name.borrow_mut() = name;
+        *self.name.borrow_mut() = name.traced();
     }
 }
 

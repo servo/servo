@@ -7147,7 +7147,9 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
             )?
         } else {
             match value {
-                TrustedHTMLOrString::TrustedHTML(trusted_html) => trusted_html.data().clone(),
+                TrustedHTMLOrString::TrustedHTML(trusted_html) => {
+                    trusted_html.data().clone().root()
+                },
                 TrustedHTMLOrString::String(value) => value,
             }
         };

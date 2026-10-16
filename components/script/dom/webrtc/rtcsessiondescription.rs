@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::RTCSessionDescriptionBinding::{
@@ -19,7 +20,7 @@ use crate::dom::window::Window;
 pub(crate) struct RTCSessionDescription {
     reflector: Reflector,
     ty: RTCSdpType,
-    sdp: DOMString,
+    sdp: TracedDOMString,
 }
 
 impl RTCSessionDescription {
@@ -27,7 +28,7 @@ impl RTCSessionDescription {
         RTCSessionDescription {
             reflector: Reflector::new(),
             ty,
-            sdp,
+            sdp: sdp.traced(),
         }
     }
 
@@ -71,6 +72,6 @@ impl RTCSessionDescriptionMethods<crate::DomTypeHolder> for RTCSessionDescriptio
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcsessiondescription-sdp>
     fn Sdp(&self) -> DOMString {
-        self.sdp.clone()
+        self.sdp.clone().root()
     }
 }

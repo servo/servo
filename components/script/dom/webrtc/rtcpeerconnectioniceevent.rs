@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
@@ -24,7 +25,7 @@ use crate::dom::window::Window;
 pub(crate) struct RTCPeerConnectionIceEvent {
     event: Event,
     candidate: Option<Dom<RTCIceCandidate>>,
-    url: Option<DOMString>,
+    url: Option<TracedDOMString>,
 }
 
 impl RTCPeerConnectionIceEvent {
@@ -35,7 +36,7 @@ impl RTCPeerConnectionIceEvent {
         RTCPeerConnectionIceEvent {
             event: Event::new_inherited(),
             candidate: candidate.map(Dom::from_ref),
-            url,
+            url: url.map(|domstring| domstring.traced()),
         }
     }
 
@@ -102,7 +103,7 @@ impl RTCPeerConnectionIceEventMethods<crate::DomTypeHolder> for RTCPeerConnectio
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcpeerconnectioniceevent-url>
     fn GetUrl(&self) -> Option<DOMString> {
-        self.url.clone()
+        self.url.clone().map(|domstring| domstring.root())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>

@@ -7,6 +7,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::jsapi::CompilationType;
 use js::rust::HandleValue;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::TrustedScriptBinding::TrustedScriptMethods;
@@ -25,14 +26,14 @@ use crate::dom::trustedtypes::trustedtypepolicyfactory::{
 pub struct TrustedScript {
     reflector_: Reflector,
 
-    data: DOMString,
+    data: TracedDOMString,
 }
 
 impl TrustedScript {
     fn new_inherited(data: DOMString) -> Self {
         Self {
             reflector_: Reflector::new(),
-            data,
+            data: data.traced(),
         }
     }
 
@@ -58,11 +59,13 @@ impl TrustedScript {
                 )
             },
 
-            TrustedScriptOrString::TrustedScript(trusted_script) => Ok(trusted_script.data.clone()),
+            TrustedScriptOrString::TrustedScript(trusted_script) => {
+                Ok(trusted_script.data.clone().root())
+            },
         }
     }
 
-    pub(crate) fn data(&self) -> &DOMString {
+    pub(crate) fn data(&self) -> &TracedDOMString {
         &self.data
     }
 
@@ -91,7 +94,7 @@ impl TrustedScript {
             // Step 2.3. If isTrusted is true then:
             Ok(trusted_script) => {
                 // Step 2.3.1. If bodyString is not equal to bodyArg’s data, set isTrusted to false.
-                body_string == trusted_script.data
+                *body_string == trusted_script.data
             },
             _ => false,
         };
@@ -107,7 +110,7 @@ impl TrustedScript {
                     TrustedScriptOrString::TrustedScript(trusted_script) => {
                         // Step 2.4.2.2.1. if parameterStrings[index] is not equal to arg’s data,
                         // set isTrusted to false.
-                        if parameter_strings[index] != *trusted_script.data() {
+                        if *parameter_strings[index] != *trusted_script.data() {
                             is_trusted = false;
                         }
                     },
@@ -164,11 +167,11 @@ impl fmt::Display for TrustedScript {
 impl TrustedScriptMethods<crate::DomTypeHolder> for TrustedScript {
     /// <https://www.w3.org/TR/trusted-types/#trustedscript-stringification-behavior>
     fn Stringifier(&self) -> DOMString {
-        self.data.clone()
+        self.data.clone().root()
     }
 
     /// <https://www.w3.org/TR/trusted-types/#dom-trustedscript-tojson>
     fn ToJSON(&self) -> DOMString {
-        self.data.clone()
+        self.data.clone().root()
     }
 }

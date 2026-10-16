@@ -36,6 +36,7 @@ use profile_traits::mem::{ProcessReports, perform_memory_report};
 use script_bindings::callback::RootedCallback;
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::conversions::root_from_handlevalue;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::DomObject;
 use script_bindings::root::rooted_heap_handle;
 use script_bindings::trace::CustomTraceable;
@@ -315,7 +316,7 @@ impl ResourceTimingListener for ScriptFetchContext {
 pub(crate) struct WorkerGlobalScope {
     globalscope: GlobalScope,
 
-    worker_name: DOMString,
+    worker_name: TracedDOMString,
     worker_type: WorkerType,
 
     #[no_trace]
@@ -450,7 +451,7 @@ impl WorkerGlobalScope {
             ),
             caches: Default::default(),
             worker_id: init.worker_id,
-            worker_name,
+            worker_name: worker_name.traced(),
             worker_type,
             worker_url: DomRefCell::new(worker_url),
             closing: closing.clone(),
@@ -564,7 +565,7 @@ impl WorkerGlobalScope {
     }
 
     pub(crate) fn worker_name(&self) -> DOMString {
-        self.worker_name.clone()
+        self.worker_name.clone().root()
     }
 
     pub(crate) fn worker_id(&self) -> WorkerId {
