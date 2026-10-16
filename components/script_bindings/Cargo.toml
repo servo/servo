@@ -80,6 +80,7 @@ tracing = ["dep:tracing"]
 webcrypto = []
 webgpu = []
 webgl = []
+webnn = []
 webxr = ["gamepad", "webgl", "webxr-api"]
 
 [lints]
