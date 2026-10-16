@@ -2459,7 +2459,9 @@ impl Document {
         self.window.as_global_scope().clean_up_all_file_resources();
 
         // Step 20. If oldDocument's salvageable state is false, then destroy oldDocument.
-        // TODO
+        if !self.salvageable.get() {
+            self.destroy(cx);
+        }
 
         // Step 21. Decrease oldDocument's unload counter by 1.
         self.unload_counter.set(self.unload_counter.get() - 1);
