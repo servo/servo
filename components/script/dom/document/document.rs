@@ -2341,14 +2341,8 @@ impl Document {
         );
         let event = beforeunload_event.upcast::<Event>();
         event.set_trusted(true);
-        let event_target = self.window.upcast::<EventTarget>();
-        let has_listeners = event_target.has_listeners_for(&atom!("beforeunload"));
         self.window.dispatch_event_with_target_override(cx, event);
         // TODO: Step 5, decrease the event loop's termination nesting level by 1.
-        // Step 7
-        if has_listeners {
-            self.salvageable.set(false);
-        }
         let mut can_unload = true;
         // TODO: Step 8, also check sandboxing modals flag.
         let default_prevented = event.DefaultPrevented();
@@ -2426,14 +2420,8 @@ impl Document {
                 EventCancelable::Cancelable,
             );
             event.set_trusted(true);
-            let event_target = self.window.upcast::<EventTarget>();
-            let has_listeners = event_target.has_listeners_for(&atom!("unload"));
             self.window.dispatch_event_with_target_override(cx, &event);
             self.fired_unload.set(true);
-            // Step 9
-            if has_listeners {
-                self.salvageable.set(false);
-            }
         }
         // TODO: Step 8, decrease the event loop's termination nesting level by 1.
 
