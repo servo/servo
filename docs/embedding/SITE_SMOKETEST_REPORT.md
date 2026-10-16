@@ -34,3 +34,15 @@
 - **URL:** `https://httpbin.org/get`
 - **Category:** Network / Headers / HTTPS
 - **Root Cause:** Awaiting binary build on runner
+
+## Execution Instructions
+
+Run this suite using `etc/ci/site_smoketest.py` against a built `servoshell` binary:
+
+```bash
+# Execute smoke test across target sites (requires compiled servoshell):
+python etc/ci/site_smoketest.py --binary target/release/servoshell --output-markdown docs/embedding/SITE_SMOKETEST_REPORT.md --output-json docs/embedding/site_smoketest.json
+
+# Generate placeholder planned status without running:
+python etc/ci/site_smoketest.py --dry-run --output-markdown docs/embedding/SITE_SMOKETEST_REPORT.md
+```

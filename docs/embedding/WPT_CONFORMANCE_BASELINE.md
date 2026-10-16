@@ -61,3 +61,15 @@
 ## Cookie Partitioning (CHIPS) Status Note
 
 Partitioned (`Partitioned`) cookie parsing and storage keying are implemented (`components/net/cookie.rs`), but `SameSiteContext.partition_key` is not currently populated with the top-level site on send. Partitioned cookies are currently stored but never sent.
+
+## Execution & Regeneration
+
+This baseline and future live execution reports are calculated with `etc/ci/wpt_pass_rate.py`:
+
+```bash
+# Static recount of meta expectations (current tree):
+python etc/ci/wpt_pass_rate.py --meta-dir tests/wpt/meta --output-markdown docs/embedding/WPT_CONFORMANCE_BASELINE.md --output-json docs/embedding/wpt_meta_baseline.json
+
+# Live pass-rate calculation from test run logs (once executed):
+python etc/ci/wpt_pass_rate.py --logs-dir <path-to-wpt-logs> --output-markdown docs/embedding/WPT_LIVE_PASS_RATE.md --output-json docs/embedding/wpt_live_baseline.json
+```
