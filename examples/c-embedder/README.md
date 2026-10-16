@@ -21,47 +21,90 @@ which is the contract a third-party embedder actually uses.
 6. queries the final URL and title with the buffer-query pattern;
 7. tears everything down in reverse order.
 
-## 1. Install the C API
+## 1. Install the C API into a sysroot
+
+Build and install `servo-capi` using `cargo-c`:
 
 ```sh
 cargo install cargo-c            # CI pins cargo-c@0.10.23
 cargo cinstall -p servo-capi \
     --library-type cdylib \
-    --prefix /path/to/servo-sysroot
+    --release \
+    --destdir /path/to/servo-sysroot \
+    --prefix /
 ```
 
-This installs `<prefix>/include/servo/servo_capi.h` and the shared library under
-`<prefix>/lib`.
-
-## 2. Build the example
-
-With CMake:
+Copy the CMake and pkg-config integration files into the sysroot:
 
 ```sh
-cmake -S examples/c-embedder -B build -DSERVO_SYSROOT=/path/to/servo-sysroot
+# CMake package configuration
+mkdir -p /path/to/servo-sysroot/lib/cmake/Servo
+cp support/cmake/ServoConfig.cmake /path/to/servo-sysroot/lib/cmake/Servo/
+cp support/cmake/ServoConfigVersion.cmake /path/to/servo-sysroot/lib/cmake/Servo/
+
+# pkg-config definition
+mkdir -p /path/to/servo-sysroot/lib/pkgconfig
+cp support/pkgconfig/servo_capi.pc /path/to/servo-sysroot/lib/pkgconfig/
+```
+
+This populates:
+- `<sysroot>/include/servo/servo_capi.h`
+- `<sysroot>/lib/` (shared libraries: `.so` on Linux, `.dylib` on macOS, `.dll.a` and `bin/*.dll` on Windows)
+- `<sysroot>/lib/cmake/Servo/ServoConfig.cmake`
+- `<sysroot>/lib/pkgconfig/servo_capi.pc`
+
+## 2. Build the example locally
+
+### Option A: CMake (Recommended — uses `find_package(Servo CONFIG)`)
+
+```sh
+cmake -S examples/c-embedder -B build -DCMAKE_PREFIX_PATH=/path/to/servo-sysroot
 cmake --build build
 ```
 
-Or directly with a C compiler:
-
+On Windows with MinGW Makefiles:
 ```sh
-cc -std=c11 -Wall -Wextra examples/c-embedder/main.c \
-   -I/path/to/servo-sysroot/include \
-   -L/path/to/servo-sysroot/lib \
-   -lservo_capi -o servo_embed
+cmake -S examples/c-embedder -B build -G "MinGW Makefiles" \
+    -DCMAKE_PREFIX_PATH=/path/to/servo-sysroot \
+    -DCMAKE_C_COMPILER=gcc
+cmake --build build
 ```
 
-On Windows with MSVC add `/experimental:c11atomics` (the example uses
-`<stdatomic.h>`); clang-cl and MinGW need no extra flag.
+### Option B: Direct compilation with `pkg-config`
+
+```sh
+export PKG_CONFIG_PATH=/path/to/servo-sysroot/lib/pkgconfig:${PKG_CONFIG_PATH:-}
+gcc -std=c11 -Wall -Wextra examples/c-embedder/main.c \
+    $(pkg-config --cflags servo_capi) \
+    $(pkg-config --libs servo_capi) \
+    -o servo_embed
+```
+
+### Option C: Direct compiler invocation
+
+**GCC / Clang (Linux, macOS, MinGW on Windows):**
+```sh
+gcc -std=c11 -Wall -Wextra examples/c-embedder/main.c \
+    -I/path/to/servo-sysroot/include \
+    -L/path/to/servo-sysroot/lib \
+    -lservo_capi -o servo_embed
+```
+
+**MSVC on Windows:**
+```cmd
+cl /std:c11 /experimental:c11atomics /W4 examples\c-embedder\main.c ^
+   /I /path/to/servo-sysroot\include ^
+   /link /LIBPATH:/path/to/servo-sysroot\lib servo_capi.lib /out:servo_embed.exe
+copy \path\to\servo-sysroot\bin\servo_capi.dll .
+```
 
 ## 3. Run it
 
-At runtime the loader must find the shared library:
+At runtime the loader must locate the shared library:
 
-- Linux: `LD_LIBRARY_PATH=/path/to/servo-sysroot/lib ./servo_embed`
-- macOS: `DYLD_LIBRARY_PATH=/path/to/servo-sysroot/lib ./servo_embed`
-- Windows: keep `servo_capi.dll` (and the ANGLE `libEGL.dll` / `libGLESv2.dll`)
-  next to `servo_embed.exe`. The CMake build copies the DLLs for you.
+- **Linux:** `LD_LIBRARY_PATH=/path/to/servo-sysroot/lib ./build/servo_embed`
+- **macOS:** `DYLD_LIBRARY_PATH=/path/to/servo-sysroot/lib ./build/servo_embed`
+- **Windows:** keep `servo_capi.dll` next to `servo_embed.exe` (CMake copies it automatically during build).
 
 ```sh
 ./servo_embed                       # loads the built-in data: URL
