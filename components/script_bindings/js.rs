@@ -11,7 +11,7 @@ use js::jsapi::{
     ExceptionStackBehavior, JSClass, JSObject, JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY,
     jsid,
 };
-use js::rust::{HandleId, HandleObject, HandleValue, MutableHandleValue};
+use js::rust::{HandleId, HandleObject, HandleValue, MutableHandleObject, MutableHandleValue};
 
 bitflags! {
     /// Flags for property definitions in JavaScript.
@@ -117,6 +117,13 @@ pub fn JS_GetProperty(
     vp: MutableHandleValue,
 ) -> bool {
     unsafe { js::rust::wrappers2::JS_GetProperty(cx, obj, name.as_ptr(), vp) }
+}
+
+/// Safe wrapper around [`js::rust::wrappers2::JS_GetPrototype`].
+#[allow(non_snake_case)]
+#[inline]
+pub fn JS_GetPrototype(cx: &mut JSContext, obj: HandleObject, result: MutableHandleObject) -> bool {
+    unsafe { js::rust::wrappers2::JS_GetPrototype(cx, obj, result) }
 }
 
 #[cfg(test)]

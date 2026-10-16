@@ -29,13 +29,13 @@ use js::rust::wrappers2::{
 };
 use js::rust::wrappers2::{
     GetBuiltinClass, GetPropertyKeys, JS_ClearPendingException, JS_GetOwnPropertyDescriptorById,
-    JS_GetPrototype, JS_Stringify, JS_ValueToSource,
+    JS_Stringify, JS_ValueToSource,
 };
 #[cfg(feature = "devtools")]
 use js::rust::{CapturedJSStack, describe_scripted_caller, for_of};
 use js::rust::{HandleObject, HandleValue, IdVector, ToNumber, ToString};
 use script_bindings::conversions::get_dom_class;
-use script_bindings::js::{JS_GetPropertyById, JS_IdToValue};
+use script_bindings::js::{JS_GetPropertyById, JS_GetPrototype, JS_IdToValue};
 
 use crate::dom::bindings::codegen::Bindings::ConsoleBinding::consoleMethods;
 #[cfg(feature = "devtools")]
@@ -285,14 +285,13 @@ mod devtools {
     }
 
     #[cfg(feature = "devtools")]
-    #[expect(unsafe_code)]
     fn object_prototype_debugger_value(
         cx: &mut JSContext,
         object: HandleObject,
         seen: &mut Vec<u64>,
     ) -> Result<Option<Box<DebuggerValue>>, ()> {
         rooted!(&in(cx) let mut prototype = ptr::null_mut::<jsapi::JSObject>());
-        if unsafe { !JS_GetPrototype(cx, object, prototype.handle_mut()) } {
+        if !JS_GetPrototype(cx, object, prototype.handle_mut()) {
             return Err(());
         }
         if prototype.is_null() {
