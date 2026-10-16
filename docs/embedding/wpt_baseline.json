@@ -1,0 +1,139 @@
+{
+  "source": "meta_expectations",
+  "timestamp": "2026-10-16T14:50:22.419614+00:00",
+  "total_meta_files": 18753,
+  "total_expectation_entries": 154583,
+  "counts": {
+    "FAIL": 146721,
+    "ERROR": 2591,
+    "NOTRUN": 2473,
+    "TIMEOUT": 2386,
+    "": 226,
+    "PRECONDITION_FAILED": 122,
+    "CRASH": 31,
+    "[FAIL, PASS]": 20,
+    "[PASS, FAIL]": 5,
+    "[PASS, TIMEOUT]": 2,
+    "[FAIL, TIMEOUT, PASS]": 1,
+    "[TIMEOUT, OK]": 1,
+    "[FAIL, TIMEOUT]": 1,
+    "[TIMEOUT, FAIL]": 1,
+    "[FAIL, PASS, TIMEOUT]": 1,
+    "PASS": 1
+  },
+  "top_suites": {
+    "css": {
+      "FAIL": 52342,
+      "TIMEOUT": 248,
+      "NOTRUN": 209,
+      "ERROR": 141,
+      "[FAIL, PASS]": 11
+    },
+    "html": {
+      "FAIL": 27255,
+      "TIMEOUT": 1027,
+      "NOTRUN": 570,
+      "": 223,
+      "ERROR": 158
+    },
+    "editing": {
+      "FAIL": 23781,
+      "ERROR": 6,
+      "TIMEOUT": 5,
+      "NOTRUN": 5
+    },
+    "svg": {
+      "FAIL": 8537,
+      "ERROR": 247,
+      "TIMEOUT": 86,
+      "NOTRUN": 35
+    },
+    "input-events": {
+      "FAIL": 2974,
+      "TIMEOUT": 6,
+      "NOTRUN": 4
+    },
+    "webnn": {
+      "FAIL": 2906,
+      "ERROR": 3,
+      "NOTRUN": 3
+    },
+    "service-workers": {
+      "FAIL": 2083,
+      "NOTRUN": 161,
+      "TIMEOUT": 72,
+      "ERROR": 21,
+      "CRASH": 1
+    },
+    "WebCryptoAPI": {
+      "FAIL": 2036,
+      "ERROR": 2
+    },
+    "mimesniff": {
+      "FAIL": 1928
+    },
+    "fetch": {
+      "FAIL": 1415,
+      "NOTRUN": 272,
+      "ERROR": 138,
+      "TIMEOUT": 82,
+      "[FAIL, PASS]": 9
+    },
+    "url": {
+      "FAIL": 1820,
+      "CRASH": 2,
+      "ERROR": 1
+    },
+    "domparsing": {
+      "FAIL": 1609
+    },
+    "IndexedDB": {
+      "FAIL": 1270,
+      "ERROR": 187,
+      "TIMEOUT": 17
+    },
+    "webgl": {
+      "FAIL": 1325
+    },
+    "dom": {
+      "FAIL": 1239,
+      "ERROR": 27,
+      "TIMEOUT": 25,
+      "NOTRUN": 7,
+      "PRECONDITION_FAILED": 6
+    },
+    "wasm": {
+      "NOTRUN": 423,
+      "ERROR": 395,
+      "FAIL": 377,
+      "TIMEOUT": 102
+    },
+    "content-security-policy": {
+      "FAIL": 767,
+      "TIMEOUT": 104,
+      "NOTRUN": 62,
+      "ERROR": 19,
+      "CRASH": 1
+    },
+    "resource-timing": {
+      "FAIL": 814,
+      "NOTRUN": 90,
+      "TIMEOUT": 31,
+      "ERROR": 11,
+      "CRASH": 1
+    },
+    "pointerevents": {
+      "FAIL": 750,
+      "PRECONDITION_FAILED": 78,
+      "TIMEOUT": 39,
+      "NOTRUN": 27,
+      "ERROR": 18
+    },
+    "webaudio": {
+      "FAIL": 832,
+      "NOTRUN": 32,
+      "ERROR": 17,
+      "TIMEOUT": 15
+    }
+  }
+}
