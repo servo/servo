@@ -9,6 +9,7 @@ use embedder_traits::Cursor;
 use euclid::{Box2D, Point2D, Vector2D};
 use kurbo::{Ellipse, Shape};
 use layout_api::{HitTestFlags, HitTestResult, HitTestResultItem};
+use paint_api::display_list::ScrollTree;
 use rustc_hash::FxHashMap;
 use servo_base::id::ScrollTreeNodeId;
 use servo_base::text::{Utf32CodeUnits, Utf32CodeUnitsOrNodeOffset};
@@ -179,6 +180,10 @@ impl<'a> HitTest<'a> {
 impl PaintTraversalHandler for HitTest<'_> {
     /// `true` if we pushed a reference frame clip and `false` otherwise.
     type StackingContextState = bool;
+
+    fn scroll_tree(&self) -> &ScrollTree {
+        &self.stacking_context_tree.paint_info.scroll_tree
+    }
 
     fn visit_stacking_context(
         &mut self,
