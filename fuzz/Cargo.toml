@@ -1,0 +1,22 @@
+[package]
+name = "servo-fuzz"
+version = "0.0.1"
+publish = false
+edition = "2024"
+
+[package.metadata]
+cargo-fuzz = true
+
+[dependencies]
+libfuzzer-sys = "0.4"
+url = "2.5"
+
+[dependencies.net]
+package = "servo-net"
+path = "../components/net"
+
+[[bin]]
+name = "fuzz_cookie_parser"
+path = "fuzz_targets/fuzz_cookie_parser.rs"
+test = false
+doc = false

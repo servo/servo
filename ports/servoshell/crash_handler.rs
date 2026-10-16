@@ -2,8 +2,47 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-#[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "android")))]
+#[cfg(not(any(target_os = "macos", target_os = "linux", target_os = "android", target_os = "windows")))]
 pub fn install() {}
+
+#[cfg(target_os = "windows")]
+pub fn install() {
+    use std::io::Write;
+    use std::sync::atomic;
+    use std::thread;
+
+    unsafe extern "system" fn unhandled_exception_filter(
+        _info: *mut std::ffi::c_void,
+    ) -> i32 {
+        static BEEN_HERE: atomic::AtomicBool = atomic::AtomicBool::new(false);
+        if !BEEN_HERE.swap(true, atomic::Ordering::SeqCst) {
+            let stderr = std::io::stderr();
+            let mut stderr = stderr.lock();
+            let _ = write!(
+                &mut stderr,
+                "Windows Unhandled Exception in process {}",
+                std::process::id()
+            );
+            if let Some(name) = thread::current().name() {
+                let _ = write!(&mut stderr, " in thread \"{}\"", name);
+            }
+            let _ = writeln!(&mut stderr);
+            let _ = crate::backtrace::print(&mut stderr);
+        }
+        // EXCEPTION_CONTINUE_SEARCH (0)
+        0
+    }
+
+    unsafe extern "system" {
+        fn SetUnhandledExceptionFilter(
+            filter: unsafe extern "system" fn(*mut std::ffi::c_void) -> i32,
+        ) -> *mut std::ffi::c_void;
+    }
+
+    unsafe {
+        SetUnhandledExceptionFilter(unhandled_exception_filter);
+    }
+}
 
 #[cfg(any(target_os = "macos", target_os = "linux"))]
 pub fn install() {
