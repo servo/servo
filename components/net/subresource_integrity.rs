@@ -48,11 +48,11 @@ pub struct SriEntry<'a> {
     // TODO : Current version of spec does not define any option.
     // Can be refactored into appropriate datastructure when future
     // spec has more details.
-    pub opt: Option<String>,
+    pub opt: Option<&'a str>,
 }
 
 impl<'a> SriEntry<'a> {
-    pub fn new(algorithm: Algorithm, val: &'a str, opt: Option<String>) -> SriEntry<'a> {
+    pub fn new(algorithm: Algorithm, val: &'a str, opt: Option<&'a str>) -> SriEntry<'a> {
         SriEntry {
             algorithm,
             val,
@@ -87,7 +87,7 @@ fn parse_token<'a>(token: &'a str) -> Option<SriEntry<'a>> {
         // check if digest follows the base64 grammar defined by CSP spec
         .filter(|value| BASE64_GRAMMAR.is_match(value))?;
 
-    let opt = expression_and_option.next().map(|opt| (*opt).to_owned());
+    let opt = expression_and_option.next();
     Some(SriEntry::new(algorithm, digest, opt))
 }
 
