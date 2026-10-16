@@ -131,29 +131,24 @@ impl<T: QueuedTaskConversion> TaskQueue<T> {
         }
 
         // 4. Filter tasks from non-priority task-sources.
-        // TODO: This can use `extract_if` once that is stabilized.
-        let mut to_be_throttled = Vec::new();
-        let mut index = 0;
-        while index != incoming.len() {
-            index += 1; // By default we go to the next index of the vector.
-
-            let task_source = match incoming[index - 1].task_source_name() {
-                Some(task_source) => task_source,
-                None => continue,
-            };
-
-            match task_source {
-                TaskSourceName::PerformanceTimeline => {
-                    to_be_throttled.push(incoming.remove(index - 1));
-                    index -= 1; // We've removed an element, so the next has the same index.
-                },
-                _ => {
-                    // A task that will not be throttled, start counting "business"
-                    self.taken_task_counter
-                        .set(self.taken_task_counter.get() + 1);
-                },
-            }
-        }
+        // We set the taken_task_count to be the number of values not being a `PerformanceTimeline`.
+        self.taken_task_counter.set(
+            incoming
+                .iter()
+                .filter(|task| {
+                    task.task_source_name().is_some_and(|task_source| {
+                        !matches!(task_source, TaskSourceName::PerformanceTimeline)
+                    })
+                })
+                .count() as u64,
+        );
+        let to_be_throttled: Vec<_> = incoming
+            .extract_if(.., |task| {
+                task.task_source_name().is_some_and(|task_source| {
+                    matches!(task_source, TaskSourceName::PerformanceTimeline)
+                })
+            })
+            .collect();
 
         for msg in incoming {
             // Always run "update the rendering" tasks,
