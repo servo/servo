@@ -43,10 +43,6 @@ on:
         default: ""
         required: false
         type: string
-      number-of-wpt-chunks:
-        default: 5
-        required: false
-        type: number
     outputs:
       artifact_ids:
         value: ${{ jobs.build.outputs.release_artifact_ids }}
@@ -87,10 +83,6 @@ on:
         default: ""
         required: false
         type: string
-      number-of-wpt-chunks:
-        default: 5
-        required: false
-        type: number
 
 env:
   RUST_BACKTRACE: 1
@@ -294,7 +286,6 @@ jobs:
     with:
       profile: ${{ inputs.profile }}
       wpt-args: ${{ inputs.wpt-args }}
-      number-of-wpt-chunks: ${{ inputs.number-of-wpt-chunks }}
     secrets: inherit
 
   bencher:

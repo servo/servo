@@ -10,10 +10,6 @@ on:
       profile:
         required: true
         type: string
-      number-of-wpt-chunks:
-        default: 5
-        required: false
-        type: number
   workflow_dispatch:
     inputs:
       wpt-args:
@@ -24,10 +20,6 @@ on:
         required: true
         default: "checked-release"
         type: string
-      number-of-wpt-chunks:
-        default: 5
-        required: false
-        type: number
 
 env:
   RUST_BACKTRACE: 1
@@ -37,6 +29,8 @@ jobs:
   windows-wpt:
     name: WPT
     runs-on: windows-2022
+    env:
+      max_chunk_id: 5
     strategy:
       fail-fast: false
       matrix:
@@ -63,7 +57,7 @@ jobs:
           mkdir -p wpt-full-logs/${{ env.NAME }}
           ./mach test-wpt \
             --profile ${{ inputs.profile }} --processes 4 --timeout-multiplier 8 \
-            --total-chunks ${{ inputs.number-of-wpt-chunks || 5 }} --this-chunk ${{ matrix.chunk_id }} \
+            --total-chunks ${{ env.max_chunk_id }} --this-chunk ${{ matrix.chunk_id }} \
             --log-raw wpt-full-logs/${{ env.NAME }}/${{ matrix.chunk_id }}.log \
             --log-raw-stable-unexpected wpt-filtered-logs/${{ env.NAME }}/${{ matrix.chunk_id }}.log \
             --filter-intermittents wpt-filtered-logs/${{ env.NAME }}/${{ matrix.chunk_id }}.json \
@@ -101,10 +95,13 @@ jobs:
           name: wpt-full-logs-${{ env.NAME }}
           pattern: wpt-full-logs-${{ env.NAME }}-*
           delete-merged: true
-      - uses: actions/checkout@v6
+      - uses: servo/ci-runners/actions/checkout@b42c96524cdd72126255602c69c4ad649c750ebf
+        if: ${{ !cancelled() }}
+      - uses: actions/download-artifact@v8
         if: ${{ !cancelled() }}
         with:
-          fetch-depth: 2
+          name: wpt-filtered-logs-${{ env.NAME }}
+          path: results
       - name: Aggregate results
         if: ${{ !cancelled() }}
         run: |
@@ -114,6 +111,6 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
-          name: wpt-aggregated-results-${{ env.NAME }}
+          name: stable-unexpected-results-${{ env.NAME }}
           path: stable-unexpected-results.log
-          if-no-files-found: ignore
+          if-no-files-found: error

@@ -37,7 +37,25 @@ impl AsyncRuntime for AsyncRuntimeHolder {
 /// to be initialized on start-up.
 static ASYNC_RUNTIME_HANDLE: OnceLock<Handle> = OnceLock::new();
 
+struct ExistingRuntimeHolder;
+impl AsyncRuntime for ExistingRuntimeHolder {
+    fn shutdown(&mut self) {
+        // Do not shut down the shared runtime if this was a secondary holder.
+    }
+}
+
+/// Initialize the tokio async runtime for `servo-net`.
+///
+/// In production, this is called once during startup by `resource_thread`.
+/// During unit testing, multiple tests or test helper threads within the same process
+/// may invoke initialization. The first runtime initialization succeeds and installs
+/// its handle into `ASYNC_RUNTIME_HANDLE` for the lifetime of the process. Subsequent
+/// calls reuse the existing runtime handle without reallocating a new thread pool.
 pub fn init_async_runtime() -> Box<dyn AsyncRuntime> {
+    if ASYNC_RUNTIME_HANDLE.get().is_some() {
+        return Box::new(ExistingRuntimeHolder);
+    }
+
     // Initialize a tokio runtime.
     let runtime = Builder::new_multi_thread()
         .thread_name_fn(|| {
@@ -57,7 +75,10 @@ pub fn init_async_runtime() -> Box<dyn AsyncRuntime> {
         .expect("Unable to build tokio-runtime runtime");
 
     // Make the runtime available to users inside this crate.
-    let _ = ASYNC_RUNTIME_HANDLE.set(runtime.handle().clone());
+    if ASYNC_RUNTIME_HANDLE.set(runtime.handle().clone()).is_err() {
+        // Another thread won the initialization race; use the winning runtime.
+        return Box::new(ExistingRuntimeHolder);
+    }
 
     // Return an async runtime for use in shutdown.
     Box::new(AsyncRuntimeHolder::new(runtime))

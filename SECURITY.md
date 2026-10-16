@@ -35,8 +35,8 @@ data from other origins, or crash the browser process. Relevant surfaces:
 - **Web-platform isolation.** CSP, CORS, HSTS, referrer policy,
   X-Frame-Options, Mixed Content, SRI, and Trusted Types are implemented with
   WPT coverage. There is currently **no site isolation** (processes are keyed
-  by site, not origin) and SameSite/partitioned cookie rules are not yet
-  enforced when selecting cookies to send (see "Known limitations").
+  by site, not origin). Cookie `SameSite` enforcement on send is implemented,
+  while partitioned (CHIPS) cookies are not yet isolated (see "Known limitations").
 - **Embedding FFI (C ABI).** Every `extern "C"` entry point is wrapped in a
   `catch_unwind` boundary and returns an error code (`ffi/capi/lib.rs`).
   Handles are opaque and thread-affine. Pointer validity, aliasing, and
