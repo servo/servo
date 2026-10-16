@@ -8831,6 +8831,7 @@ dependencies = [
  "servo-media-streams",
  "servo-media-traits",
  "servo-media-webrtc",
+ "servo-profile-traits",
 ]
 
 [[package]]
@@ -8854,6 +8855,7 @@ dependencies = [
  "servo-media-player",
  "servo-media-streams",
  "servo-media-traits",
+ "servo-profile-traits",
  "smallvec",
  "speexdsp-resampler",
 ]
@@ -8920,6 +8922,7 @@ dependencies = [
  "gstreamer-webrtc",
  "log",
  "servo-base",
+ "servo-malloc-size-of",
  "servo-media",
  "servo-media-audio",
  "servo-media-gstreamer-render",
@@ -8929,6 +8932,7 @@ dependencies = [
  "servo-media-streams",
  "servo-media-traits",
  "servo-media-webrtc",
+ "servo-profile-traits",
  "url",
 ]
 
@@ -9286,6 +9290,7 @@ dependencies = [
  "servo-allocator",
  "servo-base",
  "servo-config",
+ "servo-media",
  "servo-profile-traits",
  "time",
 ]
