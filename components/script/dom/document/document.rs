@@ -2397,10 +2397,11 @@ impl Document {
             self.window.is_top_level() &&
             ({
                 let window_proxy = self.window.window_proxy();
-                !window_proxy.is_auxiliary() ||
-                    window_proxy.is_disowned()
+                !window_proxy.is_auxiliary() || window_proxy.is_disowned()
             }) &&
-            self.iframes.iter().all(|iframe| iframe.GetContentDocument().is_none());
+            self.iframes
+                .iter()
+                .all(|iframe| iframe.GetContentDocument().is_none());
 
         // Step 7. Increase eventLoop's termination nesting level by 1.
         ScriptThread::increase_termination_nesting_level();
