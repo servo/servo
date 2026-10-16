@@ -95,11 +95,11 @@ and readiness) and [`ROADMAP.md`](ROADMAP.md) (sequencing).
 
 | CEF concept | CEF API | Servo Rust equivalent | Servo C API status | Notes / work needed |
 | --- | --- | --- | --- | --- |
-| Windowed rendering | `CefBrowserHost::CreateBrowser` (windowed) + `CefWindowInfo` | `WindowRenderingContext::new(display_handle, window_handle, size)` (`components/shared/paint/rendering_context.rs`) | Missing | Rust supports it via `raw-window-handle`; C exposes no windowed context. |
-| Windowless / OSR | `CefRenderHandler` + `SetWindowlessFrameRate` | `OffscreenRenderingContext` (FBO composition), `SoftwareRenderingContext` | Partial | Rust has offscreen contexts; C only exposes `servo_rendering_context_create_software`. |
+| Windowed rendering | `CefBrowserHost::CreateBrowser` (windowed) + `CefWindowInfo` | `WindowRenderingContext::new(display_handle, window_handle, size)` (`components/shared/paint/rendering_context.rs`) | **Exposed** | *(done on this branch)* C: `servo_rendering_context_create_window` accepting raw display and window handles. |
+| Windowless / OSR | `CefRenderHandler` + `SetWindowlessFrameRate` | `OffscreenRenderingContext` (FBO composition), `SoftwareRenderingContext` | **Exposed** | *(done on this branch)* C: `servo_rendering_context_create_software` and `servo_rendering_context_create_offscreen`. |
 | Shared / accelerated textures | `OnAcceleratedPaint`, `CefSharedTexture` | `RenderingContext::{create_texture, destroy_texture, connection}` | Missing | GPU texture sharing hooks exist in Rust but are not surfaced to C. |
-| View rect / size | `CefRenderHandler::GetViewRect` | `RenderingContext::{size, size2d, resize}`; `WebView::{size, resize}` | Partial | C context size is fixed at creation; *(done on this branch)* `servo_webview_get_size` / `servo_webview_resize` cover the webview-size half. No view-rect callback. |
-| Cursor | `CefRenderHandler::OnCursorChange`, `CefDisplayHandler::OnCursorChange` | `WebView::cursor()`, `WebViewDelegate::notify_cursor_changed` | Partial | Rust-only; not in C. |
+| View rect / size | `CefRenderHandler::GetViewRect` | `RenderingContext::{size, size2d, resize}`; `WebView::{size, resize}` | **Exposed** | *(done on this branch)* `servo_webview_get_size` / `servo_webview_resize` cover size management. |
+| Cursor | `CefRenderHandler::OnCursorChange`, `CefDisplayHandler::OnCursorChange` | `WebView::cursor()`, `WebViewDelegate::notify_cursor_changed` | **Exposed** | *(done on this branch)* C: `ServoWebViewDelegate::notify_cursor_changed` with `SERVO_CURSOR_*` constants. |
 
 ---
 
