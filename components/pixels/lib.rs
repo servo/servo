@@ -539,6 +539,36 @@ pub struct ImageMetadata {
     pub height: u32,
 }
 
+impl ImageMetadata {
+    /// Calculate new dimensions so that the smallest axis matched required aspect ratio
+    /// also checks to not exceed source dimensions of the image
+    pub fn fit_decode_size(self, target: Self) -> Self {
+        if self.width == 0 || self.height == 0 {
+            return self;
+        }
+        if target.width >= self.width || target.height >= self.height {
+            return self;
+        }
+        if u64::from(target.width) * u64::from(self.height) >=
+            u64::from(target.height) * u64::from(self.width)
+        {
+            let width = target.width.max(1);
+            Self {
+                width,
+                height: (u64::from(self.height) * u64::from(width)).div_ceil(u64::from(self.width))
+                    as u32,
+            }
+        } else {
+            let height = target.height.max(1);
+            Self {
+                width: (u64::from(self.width) * u64::from(height)).div_ceil(u64::from(self.height))
+                    as u32,
+                height,
+            }
+        }
+    }
+}
+
 // FIXME: Images must not be copied every frame. Instead we should atomically
 // reference count them.
 
@@ -754,35 +784,5 @@ mod test {
         assert!(detect_image_format(&bmp).is_ok());
         assert!(detect_image_format(&ico).is_ok());
         assert!(detect_image_format(&junk_format).is_err());
-    }
-}
-
-impl ImageMetadata {
-    /// Calculate new dimentions so that the smallest axis matched required aspect ratio
-    /// also checks to not exceed source diminetions of the image
-    pub fn fit_decode_size(self, target: Self) -> Self {
-        if self.width == 0 || self.height == 0 {
-            return self;
-        }
-        if target.width >= self.width || target.height >= self.height {
-            return self;
-        }
-        if u64::from(target.width) * u64::from(self.height) >=
-            u64::from(target.height) * u64::from(self.width)
-        {
-            let width = target.width.max(1);
-            Self {
-                width,
-                height: (u64::from(self.height) * u64::from(width)).div_ceil(u64::from(self.width))
-                    as u32,
-            }
-        } else {
-            let height = target.height.max(1);
-            Self {
-                width: (u64::from(self.width) * u64::from(height)).div_ceil(u64::from(self.height))
-                    as u32,
-                height,
-            }
-        }
     }
 }

@@ -524,7 +524,7 @@ struct DemandDrivenRasterEntry {
 /// source's dominant dimension to avoid aspect-ratio rounding noise: shrink
 /// below half size, grow above 120%, and otherwise reuse the current decode.
 /// All candidate sizes have already been fitted to the source aspect ratio.
-/// This histerysis design may be non optimal and is open for discussion
+/// This histerysis design may not be optimal.
 fn determine_demand_decode_target(
     natural: ImageMetadata,
     current: Option<ImageMetadata>,
@@ -1708,7 +1708,7 @@ impl ImageCacheStore {
         // since we could forget to explicitly clear).
         self.completed_loads = Default::default();
         self.vector_images = Default::default();
-        self.encoded_raster_images.clear();
+        self.encoded_raster_images = Default::default();
         self.prune_stale_demand_decode_pending_keys();
         self.raster_decode_callback = None;
         self.cache_clear_count += 1;
