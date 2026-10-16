@@ -47,6 +47,10 @@ allowlist at [`ffi/capi/symbols.txt`](../../ffi/capi/symbols.txt). Adding, remov
 or renaming a public symbol fails the build until the allowlist is updated in the
 same change.
 
+The header is generated with `cpp_compat = true`, so the same header can be
+`#include`d from both C and C++ (see
+[`C_API_GUIDE.md`](C_API_GUIDE.md) "Using the API from C++").
+
 ## 3. Feature flags
 
 `servo-capi` currently exposes one behaviour-changing Cargo feature:
@@ -125,7 +129,10 @@ hidden behaviours:
 
 - Prebuilt binaries and `pkg-config`/CMake packages per platform.
 - Versioned release tarballs/installers, checksums, and a documented release process.
-- A C++ RAII wrapper over the C API, and community language bindings.
+- Community language bindings (Python/Rust/etc.). A header-only C++ RAII wrapper is
+  available in the source tree (`ffi/capi/servo_capi.hpp`, see
+  [`C_API_GUIDE.md`](C_API_GUIDE.md) "Using the API from C++"), but it is not yet
+  installed by `cargo cinstall`.
 - Thread-safe (`Send`) handles.
 - Windows and AArch64 renderer sandboxing.
 - A deprecation carried through a release (the policy and the `SERVO_DEPRECATED`

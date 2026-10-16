@@ -402,6 +402,10 @@ Header must:
 - Be entirely cbindgen-generated (optionally with a hand-written preamble via
   `cbindgen.toml`'s `header`/`autogen_warning`) so it cannot drift from the Rust source.
 - Guard against C++ name mangling with `extern "C"` when compiled as C++.
+  *Done on this branch:* `ffi/capi/cbindgen.toml` sets `cpp_compat = true`, so the
+  generated header wraps its declarations in `#ifdef __cplusplus extern "C" { ... }`
+  and skips the C-only `typedef int32_t <Enum>;` shims under C++. The
+  `servo-capi-tests` C++ test compiles the header as C++ on every platform.
 
 ## 7. Testing and compatibility guarantees
 

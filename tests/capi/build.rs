@@ -178,4 +178,15 @@ fn main() {
         .flag_if_supported("/experimental:c11atomics")
         .include(&include_dir)
         .compile("c_integration_tests");
+
+    // Compile the C++ tests against the generated header and the header-only
+    // RAII helpers in `ffi/capi/servo_capi.hpp`. This is what keeps the public
+    // header usable from C++ (see `cpp_compat` in ffi/capi/cbindgen.toml).
+    cc::Build::new()
+        .cpp(true)
+        .file(crate_dir.join("cpp").join("test_cpp_api.cpp"))
+        .std("c++17")
+        .include(&include_dir)
+        .include(root.join("ffi").join("capi"))
+        .compile("cpp_api_tests");
 }

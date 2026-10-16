@@ -5,6 +5,7 @@
 unsafe extern "C" {
     fn run_c_api_tests() -> i32;
     fn run_c_integration_tests() -> i32;
+    fn run_cpp_api_tests() -> i32;
 }
 
 pub fn c_api_tests() {
@@ -15,4 +16,9 @@ pub fn c_api_tests() {
 pub fn c_integration_tests() {
     let result = unsafe { run_c_integration_tests() };
     assert_eq!(result, 0, "C integration tests failed");
+}
+
+pub fn cpp_api_tests() {
+    let result = unsafe { run_cpp_api_tests() };
+    assert_eq!(result, 0, "C++ API tests failed");
 }

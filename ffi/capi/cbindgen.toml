@@ -13,6 +13,9 @@ header = """/* This Source Code Form is subject to the terms of the Mozilla Publ
 #endif"""
 autogen_warning = """/* DO NOT MODIFY THIS MANUALLY! This file was generated using cbindgen. */"""
 language = "C"
+# Wrap the declarations in `extern "C"` guards so the generated C header can be
+# included directly from C++ (see docs/embedding/C_API_GUIDE.md).
+cpp_compat = true
 
 [parse]
 parse_deps = true

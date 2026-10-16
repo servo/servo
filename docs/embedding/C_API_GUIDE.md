@@ -86,6 +86,42 @@ At runtime the loader must find the shared library. On Linux set
 `servo_capi.dll` next to your executable (the C tests' `build.rs` does exactly
 this).
 
+### Using the API from C++
+
+The generated header is C++-safe: `cbindgen.toml` enables `cpp_compat`, so its
+declarations are wrapped in `#ifdef __cplusplus extern "C" { ... }` and the C-only
+enum shims are omitted. Include it from C++ like any other header; the calls
+resolve to the same unmangled C symbols as from C:
+
+```cpp
+#include <servo/servo_capi.h>
+
+uint32_t version = servo_capi_get_version();
+```
+
+For convenience, the source tree also ships a header-only RAII wrapper at
+`ffi/capi/servo_capi.hpp` (C++17). It turns every owned handle into a move-only
+`std::unique_ptr` that calls the matching `servo_*_free` on destruction, so a
+handle cannot be leaked or freed twice. Pass the raw pointer with `.get()`; call
+`.release()` when a function transfers ownership to Servo:
+
+```cpp
+#include <servo/servo_capi.h>
+#include "servo_capi.hpp"
+
+servo::ServoOptions options(servo_options_create());
+servo::ServoBuilder builder(servo_builder_create());
+if (builder && options) {
+    // `servo_builder_set_options` takes ownership of `options`.
+    servo_builder_set_options(builder.get(), options.release());
+}
+```
+
+Compile with `-I<pfx>/include` (for `servo/servo_capi.h`) and add
+`ffi/capi` to the include path (for `servo_capi.hpp`). The wrapper is compiled
+and exercised on Linux, macOS, and Windows by the C++ test in
+`tests/capi/cpp/test_cpp_api.cpp`; it is not yet installed by `cargo cinstall`.
+
 **Where CI builds and tests the artifact.** The C API is built as part of the
 `servo-capi-tests` crate. `tests/capi/build.rs` runs
 `cargo cinstall -p servo-capi --library-type cdylib --destdir $OUT_DIR --prefix /`

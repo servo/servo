@@ -381,6 +381,9 @@ Servo.
   - A symbol-export allowlist / link check in CI so accidental exports or renames fail
     the build. *Done on this branch:* `ffi/capi/symbols.txt` allowlist (218 symbols)
     checked against the cbindgen-generated header in `embedding-api.yml`.
+  - A header that both C and C++ can include. *Done on this branch:* `cbindgen.toml`
+    sets `cpp_compat = true`, and the C++ test (`tests/capi/cpp/test_cpp_api.cpp`)
+    compiles the header as C++ on every supported platform.
 - Reference-counted, thread-safe handles (or explicitly documented "main-thread only"
   handles) to support hosts that manage objects across threads. Today `Servo`/`WebView`
   are `Rc`-based and thread-affine; a `Send` handle requires engine changes.
