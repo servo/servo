@@ -21,6 +21,7 @@ use net_traits::request::ParserMetadata;
 use rustc_hash::FxHashMap;
 use script_bindings::callback::{RootedCallback, TracedCallback};
 use script_bindings::cell::DomRefCell;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::trace::RootedTraceableBox;
 use serde::{Deserialize, Serialize};
 use servo_base::id::PipelineId;
@@ -144,7 +145,10 @@ impl OneshotTimer {
                 OneshotTimerOrJsCallback::Js(task) => {
                     let callback = match task.callback {
                         InternalTimerCallback::StringTimerCallback(string, fetch_info) => {
-                            RootedInternalTimerCallback::StringTimerCallback(string, fetch_info)
+                            RootedInternalTimerCallback::StringTimerCallback(
+                                string.root(),
+                                fetch_info,
+                            )
                         },
                         InternalTimerCallback::FunctionTimerCallback(callback, args) => {
                             RootedInternalTimerCallback::FunctionTimerCallback(
@@ -753,7 +757,7 @@ pub(crate) enum TimerCallback {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 enum InternalTimerCallback {
-    StringTimerCallback(DOMString, InitiatingScriptFetchInfo),
+    StringTimerCallback(TracedDOMString, InitiatingScriptFetchInfo),
     FunctionTimerCallback(
         TracedCallback<Function>,
         #[ignore_malloc_size_of = "mozjs"] Rc<Box<[Heap<JSVal>]>>,
@@ -772,7 +776,7 @@ impl RootedInternalTimerCallback {
     fn into_traced(self) -> InternalTimerCallback {
         match self {
             Self::StringTimerCallback(string, fetch_info) => {
-                InternalTimerCallback::StringTimerCallback(string, fetch_info)
+                InternalTimerCallback::StringTimerCallback(string.traced(), fetch_info)
             },
             Self::FunctionTimerCallback(callback, args) => {
                 InternalTimerCallback::FunctionTimerCallback(callback.to_traced(), *args.into_box())
