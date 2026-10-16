@@ -1262,10 +1262,7 @@ impl<'a> IframeContext<'a> {
 
 impl<'a> ResourceTimingListener for IframeContext<'a> {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
-        (
-            InitiatorType::LocalName("iframe".to_string()),
-            self.url.clone(),
-        )
+        (InitiatorType::LocalName("iframe".into()), self.url.clone())
     }
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {

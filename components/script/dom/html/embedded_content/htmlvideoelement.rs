@@ -562,13 +562,8 @@ impl FetchResponseListener for PosterFrameFetchContext {
 
 impl ResourceTimingListener for PosterFrameFetchContext {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
-        let initiator_type = InitiatorType::LocalName(
-            self.elem
-                .root()
-                .upcast::<Element>()
-                .local_name()
-                .to_string(),
-        );
+        let initiator_type =
+            InitiatorType::LocalName(self.elem.root().upcast::<Element>().local_name().clone());
         (initiator_type, self.url.clone())
     }
 

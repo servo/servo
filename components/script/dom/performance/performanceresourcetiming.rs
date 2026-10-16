@@ -4,11 +4,13 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use js::rust::Trace;
 use net_traits::ResourceFetchTiming;
 use script_bindings::reflector::reflect_dom_object;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_url::ServoUrl;
 use time::Duration;
+use xml5ever::LocalName;
 
 use super::performanceentry::{EntryType, PerformanceEntry};
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
@@ -25,16 +27,21 @@ use crate::dom::globalscope::GlobalScope;
 // https://w3c.github.io/resource-timing/#sec-cross-origin-resources
 
 // TODO CSS
-#[derive(Debug, JSTraceable, MallocSizeOf, PartialEq)]
+#[derive(Debug, MallocSizeOf, PartialEq)]
 pub(crate) enum InitiatorType {
     Beacon,
     Css,
-    LocalName(String),
+    LocalName(LocalName),
     Navigation,
     XMLHttpRequest,
     Fetch,
     Track,
     Other,
+}
+
+#[expect(unsafe_code)]
+unsafe impl Trace for InitiatorType {
+    unsafe fn trace(&self, _trc: *mut js::jsapi::JSTracer) {}
 }
 
 #[dom_struct]
@@ -151,7 +158,7 @@ impl PerformanceResourceTimingMethods<crate::DomTypeHolder> for PerformanceResou
         match self.initiator_type {
             InitiatorType::Beacon => DOMString::from_static("beacon"),
             InitiatorType::Css => DOMString::from_static("css"),
-            InitiatorType::LocalName(ref n) => DOMString::from(n.clone()),
+            InitiatorType::LocalName(ref n) => n.as_str().into(),
             InitiatorType::Navigation => DOMString::from_static("navigation"),
             InitiatorType::XMLHttpRequest => DOMString::from_static("xmlhttprequest"),
             InitiatorType::Fetch => DOMString::from_static("fetch"),

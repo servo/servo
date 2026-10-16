@@ -453,7 +453,7 @@ pub(crate) enum LinkFetchContextType {
 impl From<LinkFetchContextType> for InitiatorType {
     fn from(other: LinkFetchContextType) -> Self {
         let name: &'static str = other.into();
-        InitiatorType::LocalName(name.to_owned())
+        InitiatorType::LocalName(name.into())
     }
 }
 

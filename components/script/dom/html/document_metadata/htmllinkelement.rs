@@ -1369,10 +1369,7 @@ impl FetchResponseListener for FaviconFetchContext {
 
 impl ResourceTimingListener for FaviconFetchContext {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
-        (
-            InitiatorType::LocalName("link".to_string()),
-            self.url.clone(),
-        )
+        (InitiatorType::LocalName("link".into()), self.url.clone())
     }
 
     fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
