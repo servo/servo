@@ -1592,6 +1592,7 @@ pub fn create_sandbox() {
     not(target_os = "windows"),
     not(target_os = "ios"),
     not(target_os = "android"),
+    not(target_env = "ohos"),
     any(target_arch = "arm", target_arch = "aarch64")
 ))]
 pub fn create_sandbox() {
