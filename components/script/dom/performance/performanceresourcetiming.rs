@@ -9,6 +9,7 @@ use script_bindings::reflector::reflect_dom_object;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_url::ServoUrl;
 use time::Duration;
+use xml5ever::LocalName;
 
 use super::performanceentry::{EntryType, PerformanceEntry};
 use crate::dom::bindings::codegen::Bindings::PerformanceBinding::DOMHighResTimeStamp;
@@ -29,7 +30,7 @@ use crate::dom::globalscope::GlobalScope;
 pub(crate) enum InitiatorType {
     Beacon,
     Css,
-    LocalName(String),
+    LocalName(#[no_trace] LocalName),
     Navigation,
     XMLHttpRequest,
     Fetch,
@@ -151,7 +152,7 @@ impl PerformanceResourceTimingMethods<crate::DomTypeHolder> for PerformanceResou
         match self.initiator_type {
             InitiatorType::Beacon => DOMString::from_static("beacon"),
             InitiatorType::Css => DOMString::from_static("css"),
-            InitiatorType::LocalName(ref n) => DOMString::from(n.clone()),
+            InitiatorType::LocalName(ref n) => n.as_str().into(),
             InitiatorType::Navigation => DOMString::from_static("navigation"),
             InitiatorType::XMLHttpRequest => DOMString::from_static("xmlhttprequest"),
             InitiatorType::Fetch => DOMString::from_static("fetch"),
