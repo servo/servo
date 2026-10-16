@@ -264,6 +264,13 @@ impl BlockLevelBox {
             Au::zero(),
             available_block_size,
         );
+        let tentative_block_size = adjust_block_size_for_percentage_quirk(
+            layout_context,
+            tentative_block_size,
+            containing_block,
+            &same_formatting_context_block.base,
+            None,
+        );
 
         let get_inline_content_sizes = || {
             let constraint_space = ConstraintSpace::new(
@@ -1072,6 +1079,7 @@ impl IndependentFormattingContext {
                 sequential_layout_state,
                 ignore_block_margins_for_stretch,
                 has_inline_parent,
+                self,
             );
         }
 
@@ -1167,6 +1175,7 @@ impl IndependentFormattingContext {
     /// Lay out a normal in flow non-replaced block that establishes an independent
     /// formatting context in its containing formatting context but handling sequential
     /// layout concerns, such clearing and placing the content next to floats.
+    #[expect(clippy::too_many_arguments)]
     fn layout_in_flow_block_level_sequentially(
         &self,
         layout_context: &LayoutContext<'_>,
@@ -1175,6 +1184,7 @@ impl IndependentFormattingContext {
         sequential_layout_state: &mut SequentialLayoutState,
         ignore_block_margins_for_stretch: LogicalSides1D<bool>,
         has_inline_parent: bool,
+        context: &IndependentFormattingContext,
     ) -> BoxFragment {
         let style = &self.base.style;
         let containing_block_writing_mode = containing_block.style.writing_mode;
@@ -1263,8 +1273,13 @@ impl IndependentFormattingContext {
                 };
             cache.min_block_size = min_block_size;
             cache.max_block_size = max_block_size;
-            cache.tentative_block_size =
-                SizeConstraint::new(preferred_block_size, min_block_size, max_block_size);
+            cache.tentative_block_size = adjust_block_size_for_percentage_quirk(
+                layout_context,
+                SizeConstraint::new(preferred_block_size, min_block_size, max_block_size),
+                containing_block,
+                &context.base,
+                Some(context),
+            );
             cache.depends_on_stretch_size = depends_on_stretch_size;
         };
 
@@ -1630,6 +1645,13 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
             available_block_size,
         )
     };
+    let tentative_block_size = adjust_block_size_for_percentage_quirk(
+        layout_context,
+        tentative_block_size,
+        containing_block,
+        base,
+        context,
+    );
 
     // https://drafts.csswg.org/css2/#the-width-property
     // https://drafts.csswg.org/css2/visudet.html#min-max-widths
@@ -2217,6 +2239,13 @@ impl IndependentFormattingContext {
                 .block
                 .resolve_extrinsic(automatic_block_size, Au::zero(), available_block_size)
         };
+        let tentative_block_size = adjust_block_size_for_percentage_quirk(
+            layout_context,
+            tentative_block_size,
+            containing_block,
+            &self.base,
+            Some(self),
+        );
 
         let get_content_size = || {
             let constraint_space =
@@ -2305,5 +2334,29 @@ impl IndependentFormattingContext {
             baselines,
             pbm_sums,
         }
+    }
+}
+
+// <https://quirks.spec.whatwg.org/#the-percentage-height-calculation-quirk>
+fn adjust_block_size_for_percentage_quirk(
+    layout_context: &LayoutContext,
+    tentative_block_size: SizeConstraint,
+    containing_block: &ContainingBlock,
+    base: &LayoutBoxBase,
+    context: Option<&IndependentFormattingContext>,
+) -> SizeConstraint {
+    // This logic doesn't match the algorithm in the spec, but it should be roughly
+    // equivalent to the desired behavior. The spec is written with a CSS2 mindset
+    // that ignores modern features, and browsers aren't fully interoperable.
+    if layout_context.style_context.quirks_mode() != QuirksMode::Quirks ||
+        tentative_block_size.is_definite() ||
+        base.base_fragment_info
+            .flags
+            .contains(FragmentFlags::IS_WIDGET) ||
+        context.is_some_and(|context| !context.is_block_container())
+    {
+        tentative_block_size
+    } else {
+        containing_block.size.block
     }
 }
