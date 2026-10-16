@@ -585,8 +585,6 @@ pub(crate) struct Document {
     salvageable: Cell<bool>,
     /// Whether the document was aborted with an active parser
     active_parser_was_aborted: Cell<bool>,
-    /// Whether the unload event has already been fired.
-    fired_unload: Cell<bool>,
     /// List of responsive images
     responsive_images: DomRefCell<Vec<Dom<HTMLImageElement>>>,
 
@@ -2410,8 +2408,10 @@ impl Document {
             // Step 10.3. Update the visibility state of oldDocument to "hidden".
             self.update_visibility_state(cx, DocumentVisibilityState::Hidden);
         }
-        // Step ???
-        if !self.fired_unload.get() {
+        // Step 12. If oldDocument's salvageable state is false, then fire an event
+        //   named unload at oldDocument's relevant global object, with legacy target
+        //   override flag set.
+        if !self.salvageable.get() {
             let event = Event::new(
                 cx,
                 self.window.upcast(),
@@ -2421,7 +2421,6 @@ impl Document {
             );
             event.set_trusted(true);
             self.window.dispatch_event_with_target_override(cx, &event);
-            self.fired_unload.set(true);
         }
         // TODO: Step 8, decrease the event loop's termination nesting level by 1.
 
@@ -4243,7 +4242,6 @@ impl Document {
             page_showing: Cell::new(false),
             salvageable: Cell::new(true),
             active_parser_was_aborted: Cell::new(false),
-            fired_unload: Cell::new(false),
             responsive_images: Default::default(),
             navigation_timing: Default::default(),
             resource_fetch_timing: RefCell::new(None),
