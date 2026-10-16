@@ -956,9 +956,9 @@ impl Extend<char> for TracedDOMString {
     }
 }
 
-impl ToJSValConvertible for DOMString {
+impl ToJSValConvertible for TracedDOMString {
     fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
-        let val = self.0.0.borrow();
+        let val = self.0.borrow();
         match *val {
             DOMStringType::Rust(ref s) => s.to_jsval(cx, rval),
             DOMStringType::JSString(ref rooted_traceable_box) => unsafe {
@@ -977,6 +977,12 @@ impl ToJSValConvertible for DOMString {
             },
             DOMStringType::RustStatic(s) => s.to_jsval(cx, rval),
         };
+    }
+}
+
+impl ToJSValConvertible for DOMString {
+    fn to_jsval(&self, cx: &mut JSContext, rval: MutableHandleValue) {
+        self.0.to_jsval(cx, rval);
     }
 }
 

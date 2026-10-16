@@ -13,6 +13,7 @@ use script_bindings::codegen::GenericBindings::EventHandlerBinding::EventHandler
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUAdapterMethods, GPUAdapterWrap, GPUDeviceDescriptor, GPUDeviceLostReason,
 };
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::interfaces::{GlobalScopeHelpers, PromiseHelpers};
 use script_bindings::like::Setlike;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
@@ -58,7 +59,7 @@ impl Drop for DroppableGPUAdapter {
 #[dom_struct]
 pub struct GPUAdapter<D: DomTypes> {
     reflector_: Reflector,
-    name: DOMString,
+    name: TracedDOMString,
     #[ignore_malloc_size_of = "mozjs"]
     extensions: Heap<*mut JSObject>,
     features: Dom<GPUSupportedFeatures<D>>,
@@ -81,7 +82,7 @@ where
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
-            name,
+            name: name.traced(),
             extensions: Heap::default(),
             features: Dom::from_ref(features),
             limits: Dom::from_ref(limits),

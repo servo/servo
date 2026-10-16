@@ -12,6 +12,7 @@ use script_bindings::DomTypes;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUAdapterInfoMethods, GPUAdapterInfoWrap,
 };
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_wrap};
 
 use crate::dom::bindings::root::DomRoot;
@@ -21,10 +22,10 @@ use crate::traits::Equivalence;
 #[dom_struct]
 pub struct GPUAdapterInfo<D: DomTypes> {
     reflector_: Reflector,
-    vendor: DOMString,
-    architecture: DOMString,
-    device: DOMString,
-    description: DOMString,
+    vendor: TracedDOMString,
+    architecture: TracedDOMString,
+    device: TracedDOMString,
+    description: TracedDOMString,
     subgroup_min_size: u32,
     subgroup_max_size: u32,
     is_fallback_adapter: bool,
@@ -44,10 +45,10 @@ impl<D: Equivalence> GPUAdapterInfo<D> {
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
-            vendor,
-            architecture,
-            device,
-            description,
+            vendor: vendor.traced(),
+            architecture: architecture.traced(),
+            device: device.traced(),
+            description: description.traced(),
             subgroup_min_size,
             subgroup_max_size,
             is_fallback_adapter,
@@ -91,10 +92,10 @@ impl<D: Equivalence> GPUAdapterInfo<D> {
         Self::new(
             cx,
             global,
-            info.vendor.clone(),
-            info.architecture.clone(),
-            info.device.clone(),
-            info.description.clone(),
+            info.vendor.clone().root(),
+            info.architecture.clone().root(),
+            info.device.clone().root(),
+            info.description.clone().root(),
             info.subgroup_min_size,
             info.subgroup_max_size,
             info.is_fallback_adapter,
@@ -105,22 +106,22 @@ impl<D: Equivalence> GPUAdapterInfo<D> {
 impl<D: DomTypes> GPUAdapterInfoMethods<D> for GPUAdapterInfo<D> {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-vendor>
     fn Vendor(&self) -> DOMString {
-        self.vendor.clone()
+        self.vendor.clone().root()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-architecture>
     fn Architecture(&self) -> DOMString {
-        self.architecture.clone()
+        self.architecture.clone().root()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-device>
     fn Device(&self) -> DOMString {
-        self.device.clone()
+        self.device.clone().root()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-description>
     fn Description(&self) -> DOMString {
-        self.description.clone()
+        self.description.clone().root()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuadapterinfo-subgroupminsize>

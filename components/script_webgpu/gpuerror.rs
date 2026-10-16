@@ -12,6 +12,7 @@ use script_bindings::DomTypes;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUErrorFilter, GPUErrorMethods, GPUErrorWrap,
 };
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto_and_wrap};
 use webgpu_traits::{Error, ErrorFilter};
 
@@ -27,7 +28,7 @@ use crate::traits::Equivalence;
 #[dom_struct]
 pub struct GPUError<D: DomTypes> {
     reflector_: Reflector,
-    message: DOMString,
+    message: TracedDOMString,
     #[no_trace = "PhantomData does not exist"]
     phantom: PhantomData<D>,
 }
@@ -39,7 +40,7 @@ where
     pub(crate) fn new_inherited(message: DOMString) -> Self {
         Self {
             reflector_: Reflector::new(),
-            message,
+            message: message.traced(),
             phantom: PhantomData,
         }
     }
@@ -95,7 +96,7 @@ where
 impl<D: Equivalence> GPUErrorMethods<D> for GPUError<D> {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpuerror-message>
     fn Message(&self) -> DOMString {
-        self.message.clone()
+        self.message.clone().root()
     }
 }
 

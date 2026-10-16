@@ -11,6 +11,7 @@ use script_bindings::DomTypes;
 use script_bindings::codegen::GenericBindings::WebGPUBinding::{
     GPUCompilationMessageMethods, GPUCompilationMessageType, GPUCompilationMessageWrap,
 };
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_wrap};
 use webgpu_traits::ShaderCompilationInfo;
 
@@ -22,7 +23,7 @@ use crate::traits::Equivalence;
 #[dom_struct]
 pub struct GPUCompilationMessage<D: DomTypes> {
     reflector_: Reflector,
-    message: DOMString,
+    message: TracedDOMString,
     mtype: GPUCompilationMessageType,
     line_num: u64,
     line_pos: u64,
@@ -43,7 +44,7 @@ impl<D: Equivalence> GPUCompilationMessage<D> {
     ) -> Self {
         Self {
             reflector_: Reflector::new(),
-            message,
+            message: message.traced(),
             mtype,
             line_num,
             line_pos,
@@ -95,7 +96,7 @@ impl<D: Equivalence> GPUCompilationMessage<D> {
 impl<D: DomTypes> GPUCompilationMessageMethods<D> for GPUCompilationMessage<D> {
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucompilationmessage-message>
     fn Message(&self) -> DOMString {
-        self.message.to_owned()
+        self.message.to_owned().root()
     }
 
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucompilationmessage-type>
