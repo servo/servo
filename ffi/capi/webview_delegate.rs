@@ -1007,6 +1007,21 @@ pub struct ServoWebViewDelegate {
             user_data: *mut c_void,
         ) -> bool,
     >,
+
+    // Script message category (new)
+    /// Called when JavaScript calls `window.servo.postMessage(handler, message)`.
+    ///
+    /// `handler_name` is the handler identifier (NUL-terminated UTF-8 string).
+    /// `message_json` is the message payload serialized as JSON (NUL-terminated UTF-8 string).
+    /// Both strings are valid only for the duration of the callback.
+    pub on_script_message: Option<
+        unsafe extern "C" fn(
+            webview: *mut WebView,
+            handler_name: *const c_char,
+            message_json: *const c_char,
+            user_data: *mut c_void,
+        ),
+    >,
 }
 
 /// Inherent methods for `ServoWebViewDelegate`.
@@ -1906,6 +1921,22 @@ impl WebViewDelegate for ServoWebViewDelegate {
             unsafe {
                 let _ = Box::from_raw(handle);
             }
+        }
+    }
+
+    fn notify_script_message(&self, mut webview: WebView, handler_name: &str, message_json: &str) {
+        let Some(callback) = self.on_script_message else {
+            return;
+        };
+        let handler_c = std::ffi::CString::new(handler_name).unwrap_or_default();
+        let message_c = std::ffi::CString::new(message_json).unwrap_or_default();
+        unsafe {
+            callback(
+                &mut webview as *mut WebView,
+                handler_c.as_ptr(),
+                message_c.as_ptr(),
+                self.user_data,
+            );
         }
     }
 }

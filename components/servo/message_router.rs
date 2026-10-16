@@ -110,7 +110,7 @@ impl MessageRouter {
         }
     }
 
-    /// The JavaScript bootstrap that creates `window.servoMessageRouter`.
+    /// The JavaScript bootstrap that creates `window.servo` (and alias `window.servoMessageRouter`).
     ///
     /// This must be injected into every page (see
     /// [`crate::UserContentManager::inject_message_router`]) before messages
@@ -120,31 +120,58 @@ impl MessageRouter {
 (function() {
     'use strict';
 
-    if (window.servoMessageRouter) {
+    if (window.servo) {
         return;
     }
 
-    var servoMessageRouter = {
+    var servo = {
         _listeners: {},
+        _messageListeners: [],
         _outgoingQueue: [],
         _messageId: 0,
 
-        // Send a message from JavaScript to native code.
-        postMessage: function(name, data) {
-            this._outgoingQueue.push({ name: String(name), data: data, id: ++this._messageId });
+        // Send a message from JavaScript to native host.
+        // Supports:
+        //   window.servo.postMessage("handler", { key: "value" });
+        //   window.servo.postMessage({ key: "value" });
+        postMessage: function(handler, data) {
+            var handlerName = "";
+            var messageData = null;
+            if (arguments.length >= 2) {
+                handlerName = String(handler);
+                messageData = data;
+            } else if (arguments.length === 1) {
+                handlerName = "";
+                messageData = handler;
+            }
+            this._outgoingQueue.push({
+                name: handlerName,
+                data: messageData,
+                id: ++this._messageId
+            });
         },
 
-        // Register a listener for messages from native code.
-        addEventListener: function(name, handler) {
-            if (!this._listeners[name]) {
-                this._listeners[name] = [];
+        // Register event listener (e.g. window.servo.addEventListener("message", fn))
+        addEventListener: function(type, handler) {
+            if (typeof handler !== 'function') return;
+            if (type === "message") {
+                this._messageListeners.push(handler);
             }
-            this._listeners[name].push(handler);
+            if (!this._listeners[type]) {
+                this._listeners[type] = [];
+            }
+            this._listeners[type].push(handler);
         },
 
         // Remove a previously registered listener.
-        removeEventListener: function(name, handler) {
-            var listeners = this._listeners[name];
+        removeEventListener: function(type, handler) {
+            if (type === "message") {
+                var idx = this._messageListeners.indexOf(handler);
+                if (idx !== -1) {
+                    this._messageListeners.splice(idx, 1);
+                }
+            }
+            var listeners = this._listeners[type];
             if (listeners) {
                 var index = listeners.indexOf(handler);
                 if (index !== -1) {
@@ -155,13 +182,25 @@ impl MessageRouter {
 
         // Internal: dispatch a message from native code to JS listeners.
         _dispatch: function(name, data) {
-            var listeners = this._listeners[name];
-            if (listeners) {
-                listeners.forEach(function(handler) {
+            var event = {
+                type: "message",
+                data: data,
+                origin: (window.location && window.location.origin) ? window.location.origin : ""
+            };
+            this._messageListeners.forEach(function(handler) {
+                try {
+                    handler(event);
+                } catch (e) {
+                    console.error('window.servo message listener error:', e);
+                }
+            });
+            var namedListeners = this._listeners[name];
+            if (namedListeners) {
+                namedListeners.forEach(function(handler) {
                     try {
                         handler(data);
                     } catch (e) {
-                        console.error('servoMessageRouter handler error:', e);
+                        console.error('window.servo listener error:', e);
                     }
                 });
             }
@@ -175,7 +214,9 @@ impl MessageRouter {
         }
     };
 
-    window.servoMessageRouter = servoMessageRouter;
+    window.servo = servo;
+    // Backwards-compatibility alias
+    window.servoMessageRouter = servo;
 })();
 "#
         .to_string()
@@ -183,15 +224,18 @@ impl MessageRouter {
 
     /// The JavaScript expression used to poll for JS → native messages.
     pub fn poll_script() -> String {
-        "window.servoMessageRouter ? window.servoMessageRouter._getOutgoingMessages() : []".to_string()
+        "window.servo ? window.servo._getOutgoingMessages() : (window.servoMessageRouter ? window.servoMessageRouter._getOutgoingMessages() : [])".to_string()
     }
 
     /// Build a JavaScript snippet that dispatches a native → JS message.
     pub fn message_to_javascript(name: &str, data_json: &str) -> String {
         format!(
             r#"(function() {{
-                if (!window.servoMessageRouter) {{ return; }}
-                window.servoMessageRouter._dispatch({name}, {data});
+                if (window.servo) {{
+                    window.servo._dispatch({name}, {data});
+                }} else if (window.servoMessageRouter) {{
+                    window.servoMessageRouter._dispatch({name}, {data});
+                }}
             }})();"#,
             name = json_string(name),
             data = data_json

@@ -174,9 +174,10 @@ pub use user_content_manager::{
 
 // Re-export message router types
 pub use message_router::{
-    ServoMessageCallback, servo_webview_add_message_handler,
-    servo_webview_poll_js_messages, servo_webview_post_message,
-    servo_webview_remove_message_handler,
+    ServoMessageCallback, ServoScriptMessageCallback, servo_webview_add_message_handler,
+    servo_webview_add_script_message_handler, servo_webview_poll_js_messages,
+    servo_webview_post_message, servo_webview_remove_message_handler,
+    servo_webview_remove_script_message_handler,
 };
 
 // Re-export protocol handler types

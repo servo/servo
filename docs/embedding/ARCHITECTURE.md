@@ -391,13 +391,25 @@ matched to the pending callback by `JavaScriptEvaluationId`. The result is
 The planned C API adds a callback that serializes `JSValue` to JSON (with an error code on
 failure), backed by a new `ffi/capi/javascript.rs` module. See `ROADMAP.md` Phase 1.
 
-### 5.4 Native <-> JS messaging (missing)
+### 5.4 Native <-> JS messaging
 
-There is **no** native-to-JS / JS-to-native message router in either the Rust API or the C
-API today. There is no `window.postMessage`-style bridge or `ScriptMessageHandler`
-equivalent. `UserContentManager` (`components/servo/user_content_manager.rs`) can inject
-user scripts and stylesheets, and `UserScript` is re-exported by `servo`, but that is
-injection, not bidirectional messaging. A message router is Phase 4 work.
+Servo provides bidirectional native <-> JS messaging across script threads, constellation,
+and the embedder API:
+
+- **Script side:** `window.servo.postMessage(handler_name, data)` posts a message to a named
+  host handler. `window.servo.addEventListener("message", handler)` / `removeEventListener`
+  receives messages sent from native code via `servo-message` events. The legacy
+  `window.servoMessageRouter` is maintained as a backward-compatible alias.
+- **Engine routing:** `MessageRouter` (`components/servo/message_router.rs`) injects the
+  bootstrap script into pages when the message router is enabled on `UserContentManager`.
+  `EmbedderMsg::OnScriptMessage(webview_id, handler_name, data_json)` routes messages from the
+  engine to the embedder, while `EmbedderToConstellationMessage::PostMessageToScript` routes
+  native messages through the constellation to script pipelines.
+- **Embedder & C API:** Embedders can register named callbacks via
+  `servo_webview_add_script_message_handler` / `servo_webview_remove_script_message_handler`
+  (or `servo_webview_add_message_handler`), post messages via `servo_webview_post_message`,
+  poll messages via `servo_webview_poll_js_messages`, or handle messages via the
+  `ServoWebViewDelegate.on_script_message` callback.
 
 ## 6. Navigation, history, permissions, dialogs, and controls
 

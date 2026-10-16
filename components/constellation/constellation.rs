@@ -1422,6 +1422,9 @@ where
             EmbedderToConstellationMessage::ClearFind(webview_id) => {
                 self.handle_clear_find(webview_id);
             },
+            EmbedderToConstellationMessage::PostMessageToScript(webview_id, name, data_json) => {
+                self.handle_post_message_to_script(webview_id, name, data_json);
+            },
         }
     }
 
@@ -3257,6 +3260,41 @@ where
         // TODO: Implement clear find
         // Nothing to do for now
         let _ = webview_id;
+    }
+
+    fn handle_post_message_to_script(
+        &mut self,
+        webview_id: WebViewId,
+        name: String,
+        data_json: String,
+    ) {
+        let browsing_context_id = BrowsingContextId::from(webview_id);
+        let Some(pipeline) = self
+            .browsing_contexts
+            .get(&browsing_context_id)
+            .and_then(|browsing_context| self.pipelines.get(&browsing_context.pipeline_id))
+        else {
+            return;
+        };
+
+        let script = format!(
+            r#"(function() {{
+                if (window.servo) {{
+                    window.servo._dispatch({name}, {data});
+                }} else if (window.servoMessageRouter) {{
+                    window.servoMessageRouter._dispatch({name}, {data});
+                }}
+            }})();"#,
+            name = serde_json::to_string(&name).unwrap_or_else(|_| "\"\"".into()),
+            data = if data_json.is_empty() { "null" } else { &data_json }
+        );
+
+        let _ = pipeline.event_loop.send(ScriptThreadMessage::EvaluateJavaScript(
+            webview_id,
+            pipeline.id,
+            JavaScriptEvaluationId::new(),
+            script,
+        ));
     }
 
     fn forward_input_event(

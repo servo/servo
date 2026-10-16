@@ -28,6 +28,30 @@ pub type ServoMessageCallback = Option<
     unsafe extern "C" fn(name: *const c_char, data_json: *const c_char, user_data: *mut c_void),
 >;
 
+/// A callback invoked when a script message is received from JavaScript.
+///
+/// `webview` is the handle to the `WebView` that received the message.
+/// `handler_name` is the message handler name (NUL-terminated UTF-8 string).
+/// `message_json` is the message data as a JSON string (NUL-terminated UTF-8 string).
+/// `user_data` is the opaque pointer passed to `servo_webview_add_script_message_handler`.
+///
+/// The strings are owned by Servo and are only valid for the duration of the
+/// callback. The embedder must copy any data it needs to retain.
+///
+/// # Safety
+///
+/// If non-`NULL`, `callback` must be a valid C ABI function matching this
+/// signature, must remain valid until the handler is removed or the `WebView`
+/// is freed, and must not unwind across the FFI boundary.
+pub type ServoScriptMessageCallback = Option<
+    unsafe extern "C" fn(
+        webview: *mut WebView,
+        handler_name: *const c_char,
+        message_json: *const c_char,
+        user_data: *mut c_void,
+    ),
+>;
+
 /// Register a handler for messages from JavaScript (JS→native).
 ///
 /// When JavaScript calls `window.servoMessageRouter.postMessage(name, data)`,
@@ -265,6 +289,105 @@ pub unsafe extern "C" fn servo_webview_poll_js_messages(webview: *mut WebView) -
         let webview = unsafe { &*webview };
 
         webview.poll_js_messages();
+
+        ServoError::Ok
+    })
+}
+
+/// Register a named script message handler on a `WebView`.
+///
+/// When JavaScript calls `window.servo.postMessage(handler_name, message)` or
+/// `window.servoMessageRouter.postMessage(handler_name, message)`, `callback`
+/// is invoked with the `WebView` handle, the handler identifier, and the message
+/// payload serialized as JSON.
+///
+/// `webview` is a handle to a `WebView` object.
+/// `handler_name` is a NUL-terminated UTF-8 string identifying the message handler.
+/// `callback` is the callback function to invoke. If `NULL`, the call is a no-op.
+/// `user_data` is an opaque pointer passed to `callback`.
+///
+/// # Safety
+///
+/// The caller must ensure that:
+/// - `webview` is a non-null, valid pointer to a `WebView`.
+/// - `handler_name` is a non-null, valid pointer to a UTF-8 C string.
+/// - `callback`, if non-null, is a valid function pointer that does not unwind across FFI.
+/// - The call is made on the thread that created the `WebView`.
+///
+/// # Errors
+///
+/// Returns `ServoError::NullArgument` if `webview` or `handler_name` is NULL.
+/// Returns `ServoError::InvalidUtf8` if `handler_name` is not valid UTF-8.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_webview_add_script_message_handler(
+    webview: *mut WebView,
+    handler_name: *const c_char,
+    callback: ServoScriptMessageCallback,
+    user_data: *mut c_void,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if webview.is_null() || handler_name.is_null() {
+            return ServoError::NullArgument;
+        }
+
+        let Some(callback) = callback else {
+            return ServoError::Ok;
+        };
+
+        let webview_ref = unsafe { &*webview };
+        let name = match unsafe { CStr::from_ptr(handler_name) }.to_str() {
+            Ok(s) => s.to_string(),
+            Err(_) => return ServoError::InvalidUtf8,
+        };
+
+        let raw_webview = webview;
+        webview_ref
+            .message_router()
+            .add_message_handler(name, move |msg_name, data_json| {
+                unsafe {
+                    let name_c = std::ffi::CString::new(msg_name).unwrap_or_default();
+                    let data_c = std::ffi::CString::new(data_json).unwrap_or_default();
+                    callback(raw_webview, name_c.as_ptr(), data_c.as_ptr(), user_data);
+                }
+            });
+
+        ServoError::Ok
+    })
+}
+
+/// Remove a previously registered script message handler.
+///
+/// `webview` is a handle to a `WebView` object.
+/// `handler_name` is a NUL-terminated UTF-8 string identifying the message handler.
+///
+/// # Safety
+///
+/// The caller must ensure that:
+/// - `webview` is a non-null, valid pointer to a `WebView`.
+/// - `handler_name` is a non-null, valid pointer to a UTF-8 C string.
+/// - The call is made on the thread that created the `WebView`.
+///
+/// # Errors
+///
+/// Returns `ServoError::NullArgument` if `webview` or `handler_name` is NULL.
+/// Returns `ServoError::InvalidUtf8` if `handler_name` is not valid UTF-8.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_webview_remove_script_message_handler(
+    webview: *mut WebView,
+    handler_name: *const c_char,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if webview.is_null() || handler_name.is_null() {
+            return ServoError::NullArgument;
+        }
+
+        let webview_ref = unsafe { &*webview };
+        let name = match unsafe { CStr::from_ptr(handler_name) }.to_str() {
+            Ok(s) => s,
+            Err(_) => return ServoError::InvalidUtf8,
+        };
+
+        webview_ref.remove_message_handler(name);
 
         ServoError::Ok
     })

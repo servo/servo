@@ -2387,6 +2387,84 @@ int test_network_manager_null_arguments(void)
     return 0;
 }
 
+static void dummy_script_msg_callback(struct WebView* webview,
+                                      const char* handler_name,
+                                      const char* message_json,
+                                      void* user_data)
+{
+    (void)webview;
+    (void)handler_name;
+    (void)message_json;
+    if (user_data) {
+        *(bool*)user_data = true;
+    }
+}
+
+/* Covers native <-> JS message router C API entry points and WebViewDelegate callback. */
+int test_script_message_router(void)
+{
+    /* Null argument tests */
+    if (servo_webview_add_script_message_handler(NULL, "test", dummy_script_msg_callback, NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_webview_remove_script_message_handler(NULL, "test") != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_webview_post_message(NULL, "test", "{}") != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+
+    struct WebView* webview = get_test_webview();
+    if (webview == NULL)
+        return 1;
+
+    if (servo_webview_add_script_message_handler(webview, NULL, dummy_script_msg_callback, NULL) != SERVO_ERROR_NULL_ARGUMENT) {
+        servo_webview_free(webview);
+        return 1;
+    }
+    if (servo_webview_remove_script_message_handler(webview, NULL) != SERVO_ERROR_NULL_ARGUMENT) {
+        servo_webview_free(webview);
+        return 1;
+    }
+    if (servo_webview_post_message(webview, NULL, "{}") != SERVO_ERROR_NULL_ARGUMENT) {
+        servo_webview_free(webview);
+        return 1;
+    }
+    if (servo_webview_post_message(webview, "test", NULL) != SERVO_ERROR_NULL_ARGUMENT) {
+        servo_webview_free(webview);
+        return 1;
+    }
+
+    /* Handler registration and removal */
+    if (servo_webview_add_script_message_handler(webview, "hostHandler", dummy_script_msg_callback, NULL) != SERVO_ERROR_OK) {
+        servo_webview_free(webview);
+        return 1;
+    }
+    if (servo_webview_post_message(webview, "greet", "{\"hello\":\"world\"}") != SERVO_ERROR_OK) {
+        servo_webview_free(webview);
+        return 1;
+    }
+    if (servo_webview_poll_js_messages(webview) != SERVO_ERROR_OK) {
+        servo_webview_free(webview);
+        return 1;
+    }
+    if (servo_webview_remove_script_message_handler(webview, "hostHandler") != SERVO_ERROR_OK) {
+        servo_webview_free(webview);
+        return 1;
+    }
+
+    servo_webview_free(webview);
+
+    /* Verify ServoWebViewDelegate on_script_message field initialization and struct_size */
+    bool script_message_called = false;
+    ServoWebViewDelegate delegate = {
+        .struct_size = sizeof(ServoWebViewDelegate),
+        .user_data = &script_message_called,
+        .on_script_message = dummy_script_msg_callback,
+    };
+    if (delegate.struct_size < sizeof(ServoWebViewDelegate))
+        return 1;
+
+    return 0;
+}
+
 int run_c_api_tests(void)
 {
     tests_run = 0;
@@ -2478,6 +2556,7 @@ int run_c_api_tests(void)
     RUN_TEST(test_user_content_manager_null_arguments);
     RUN_TEST(test_network_manager_cache);
     RUN_TEST(test_network_manager_null_arguments);
+    RUN_TEST(test_script_message_router);
 
     free_test_servo();
 

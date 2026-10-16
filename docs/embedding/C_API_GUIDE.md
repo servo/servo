@@ -381,6 +381,12 @@ struct ServoWebViewDelegate {
     // Find category (new)
     void (*on_find_result)(struct WebView*, int32_t identifier, int32_t count,
                            const struct ServoFindResult* result, void* user_data);
+
+    // Script message category (new)
+    void (*on_script_message)(struct WebView* webview,
+                              const char* handler_name,
+                              const char* message_json,
+                              void* user_data);
 };
 ```
 
@@ -591,15 +597,31 @@ typedef void (*ServoMessageCallback)(const char* name,
                                      const char* data_json,
                                      void* user_data); /* (new) */
 
+/* Callback for script messages providing webview handle. */
+typedef void (*ServoScriptMessageCallback)(struct WebView* webview,
+                                           const char* handler_name,
+                                           const char* message_json,
+                                           void* user_data); /* (new) */
+
 /* Register a handler for messages from JavaScript. */
 void servo_webview_add_message_handler(struct WebView* webview,
                                        const char* name,
                                        ServoMessageCallback callback,
                                        void* user_data); /* (new) */
 
+/* Register a script message handler with WebView context. */
+ServoError servo_webview_add_script_message_handler(struct WebView* webview,
+                                                    const char* handler_name,
+                                                    ServoScriptMessageCallback callback,
+                                                    void* user_data); /* (new) */
+
 /* Remove all handlers for a message name. */
 void servo_webview_remove_message_handler(struct WebView* webview,
                                           const char* name); /* (new) */
+
+/* Remove a script message handler. */
+ServoError servo_webview_remove_script_message_handler(struct WebView* webview,
+                                                       const char* handler_name); /* (new) */
 
 /* Send a message from native to JavaScript. */
 void servo_webview_post_message(struct WebView* webview,
@@ -1217,6 +1239,12 @@ This dispatches a `CustomEvent` named `servo-message` on `window` with
 ### Receiving messages from native in JS
 
 ```javascript
+// Preferred API (window.servo):
+window.servo.addEventListener("message", function(event) {
+    console.log("Received from native:", event.detail); // { name: "my-message", data: { value: 42 } }
+});
+
+// Or using message-router alias:
 window.servoMessageRouter.addEventListener("my-message", function(data) {
     console.log("Received from native:", data); // { value: 42 }
 });
@@ -1225,36 +1253,42 @@ window.servoMessageRouter.addEventListener("my-message", function(data) {
 ### Sending messages from JS to native (JS→native)
 
 ```javascript
+// Preferred API (window.servo):
+window.servo.postMessage("js-message", { fromJS: true });
+
+// Or using message-router alias:
 window.servoMessageRouter.postMessage("js-message", { fromJS: true });
 ```
 
 ### Receiving messages from JS in native
 
 ```c
-static void on_js_message(const char* name, const char* data_json, void* user_data) {
-    if (strcmp(name, "js-message") == 0) {
-        printf("Received from JS: %s\n", data_json); // {"fromJS":true}
-    }
+// Method 1: Named callback via servo_webview_add_script_message_handler:
+static void on_script_message(struct WebView* webview, const char* name, const char* data_json, void* user_data) {
+    printf("Received message '%s' from JS: %s\n", name, data_json);
 }
 
-servo_webview_add_message_handler(webview, "js-message", on_js_message, &app);
+servo_webview_add_script_message_handler(webview, "js-message", on_script_message, &app);
+
+// Method 2: Via ServoWebViewDelegate:
+delegate.on_script_message = on_script_message;
 ```
 
 ### Removing a message handler
 
 ```c
-servo_webview_remove_message_handler(webview, "js-message");
+servo_webview_remove_script_message_handler(webview, "js-message");
 ```
 
 ### JS API reference
 
-The injected `window.servoMessageRouter` object provides:
+The injected `window.servo` object (and backward-compatible `window.servoMessageRouter` alias) provides:
 
-- `postMessage(name, data)` — Send a message to native. `data` can be any
-  JSON-serializable value.
-- `addEventListener(name, handler)` — Register a handler for messages from
-  native. `handler` receives the `data` argument (not the full event).
-- `removeEventListener(name, handler)` — Unregister a handler.
+- `postMessage(handler_name, data)` — Send a message to native. `data` can be any
+  JSON-serializable value or primitive.
+- `addEventListener("message", handler)` — Register a listener for messages from
+  native host.
+- `removeEventListener("message", handler)` — Unregister a message listener.
 
 ### Complete example
 

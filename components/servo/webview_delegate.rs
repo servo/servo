@@ -1230,6 +1230,15 @@ pub trait WebViewDelegate {
     ///
     /// `download` contains the updated download information.
     fn on_download_updated(&self, _webview: WebView, _download: DownloadItem) {}
+
+    /// A message was received from JavaScript via `window.servo.postMessage`.
+    /// `handler_name` is the message identifier, and `message_json` is the JSON payload.
+    fn notify_script_message(
+        &self,
+        _webview: WebView,
+        _handler_name: &str,
+        _message_json: &str,
+    ) {}
 }
 
 /// A download item representing an in-progress or completed download.

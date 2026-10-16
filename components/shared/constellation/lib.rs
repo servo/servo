@@ -165,6 +165,9 @@ pub enum EmbedderToConstellationMessage {
     FindNext(WebViewId, FindNextRequest),
     /// Request to clear find results.
     ClearFind(WebViewId),
+    /// Post a native message to in-page JavaScript on the given `WebView`.
+    /// The message is delivered to listeners registered on `window.servo`.
+    PostMessageToScript(WebViewId, String, String),
 }
 
 pub enum UserContentManagerAction {

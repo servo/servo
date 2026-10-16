@@ -86,6 +86,7 @@ mod from_embedder {
                 Self::Find(..) => target!("Find"),
                 Self::FindNext(..) => target!("FindNext"),
                 Self::ClearFind(..) => target!("ClearFind"),
+                Self::PostMessageToScript(..) => target!("PostMessageToScript"),
             }
         }
     }

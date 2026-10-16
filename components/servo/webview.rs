@@ -902,12 +902,23 @@ impl WebView {
         self.evaluate_javascript(script, |_| {});
     }
 
+    /// Post a native message to in-page JavaScript via the Constellation.
+    pub fn post_message_to_script(&self, name: &str, data_json: &str) {
+        self.send_to_constellation(EmbedderToConstellationMessage::PostMessageToScript(
+            self.id(),
+            name.to_string(),
+            data_json.to_string(),
+        ));
+    }
+
     /// Poll for pending messages sent from JavaScript (JS → native) and dispatch
-    /// them to the registered handlers.
+    /// them to the registered handlers and the delegate.
     ///
     /// This should be called periodically while spinning the event loop.
     pub fn poll_js_messages(&self) {
         let router = self.message_router();
+        let delegate = self.delegate();
+        let this = self.clone();
         self.evaluate_javascript(MessageRouter::poll_script(), move |result| {
             let Ok(JSValue::Array(messages)) = result else {
                 return;
@@ -920,7 +931,9 @@ impl WebView {
                     continue;
                 };
                 let data = object.get("data").cloned().unwrap_or(JSValue::Null);
-                router.handle_js_message(name.clone(), crate::message_router::jsvalue_to_json_string(&data));
+                let data_json = crate::message_router::jsvalue_to_json_string(&data);
+                delegate.notify_script_message(this.clone(), &name, &data_json);
+                router.handle_js_message(name.clone(), data_json);
             }
         });
     }
