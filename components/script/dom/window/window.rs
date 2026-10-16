@@ -1408,7 +1408,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         target: DOMString,
         features: DOMString,
     ) -> Fallible<Option<DomRoot<WindowProxy>>> {
-        self.window_proxy().open(cx, url, target, features)
+        let result = self.window_proxy().open(cx, url, target, features);
+        if let Ok(Some(_)) = result {
+            self.Document().make_document_unsalvageable();
+        }
+        result
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-opener>

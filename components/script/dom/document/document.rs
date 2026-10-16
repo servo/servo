@@ -2393,7 +2393,10 @@ impl Document {
         // > This must be false if oldDocument is not salvageable, or if there are
         // > any descendants of oldDocument which the user agent does not intend to
         // > keep alive in the same way (including due to their lack of salvageability).
-        let intend_to_keep_in_bfcache = self.salvageable.get() && self.window.is_top_level() && self.iframes.is_empty();
+        let intend_to_keep_in_bfcache = self.salvageable.get() &&
+            self.window.is_top_level() &&
+            !self.window.window_proxy().is_auxiliary() &&
+            self.iframes.is_empty();
 
         // Step 7. Increase eventLoop's termination nesting level by 1.
         ScriptThread::increase_termination_nesting_level();
