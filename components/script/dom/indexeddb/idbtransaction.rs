@@ -601,7 +601,7 @@ impl IDBTransaction {
                 // Step 6: When a transaction is committed or aborted, its state is set to finished.
                 this.finished.set(true);
                 this.version_change_old_version.set(None);
-                this.version_change_old_object_store_names.borrow_mut().take();
+                this.version_change_old_object_store_names.safe_borrow_mut(cx.no_gc()).take();
                 this.notify_backend_transaction_finished();
                 if this.registered_in_global.get() {
                     this.global().ensure_indexeddb_factory(cx).unregister_indexeddb_transaction(&this);
@@ -626,7 +626,7 @@ impl IDBTransaction {
                 this.commit_started.set(false);
                 this.version_change_old_version.set(None);
                 this.version_change_old_object_store_names
-                    .borrow_mut()
+                    .safe_borrow_mut(cx.no_gc())
                     .take();
                 if this.mode == IDBTransactionMode::Versionchange {
                     // https://w3c.github.io/IndexedDB/#commit-transaction

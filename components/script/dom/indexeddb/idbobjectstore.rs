@@ -199,12 +199,12 @@ impl IDBObjectStore {
         if !abort_state.newly_created_during_transaction &&
             let Some(name) = abort_state.rollback_name
         {
-            *self.name.borrow_mut() = name;
+            *self.name.safe_borrow_mut(cx.no_gc()) = name;
         }
 
         // Step 5.2. Set handle’s index set to the set of indexes that reference
         // its object store.
-        self.index_set.borrow_mut().clear();
+        self.index_set.safe_borrow_mut(cx.no_gc()).clear();
         for index in abort_state.rollback_indexes {
             self.add_index(
                 cx,
@@ -595,7 +595,7 @@ impl IDBObjectStore {
             key_path,
         );
         self.index_set
-            .borrow_mut()
+            .safe_borrow_mut(cx.no_gc())
             .insert(name, Dom::from_ref(&index));
         index
     }
