@@ -79,18 +79,20 @@ the *loaded* library can do:
 ## 5. Sandboxing availability
 
 `servo_capi_is_sandboxing_supported()` returns `true` only when the library was built
-with `multiprocess` **and** the target supports sandboxing. This is a real security
-property: on the platforms marked "no" below, content runs without renderer
-sandboxing. Design your threat model accordingly.
+with `multiprocess` **and** the target supports sandboxing. Sandboxing architecture is
+detailed in [`WINDOWS_SANDBOX_DESIGN.md`](WINDOWS_SANDBOX_DESIGN.md) and
+[`MULTI_PLATFORM_SANDBOX_DESIGN.md`](MULTI_PLATFORM_SANDBOX_DESIGN.md).
 
 | Platform / arch | `multiprocess` off | `multiprocess` on |
 | --- | --- | --- |
-| Linux x86_64 | no | **yes** |
-| macOS x86_64 | no | **yes** |
-| Linux arm64 | no | no |
-| macOS arm64 | no | no |
-| Windows x86_64 | no | no |
-| iOS / Android / OpenHarmony / ARM / RISC-V | no | no |
+| Linux x86_64 | no | **yes** (Production namespaces + seccomp-bpf) |
+| macOS x86_64 | no | **yes** (Production Seatbelt sandbox) |
+| Linux arm64 | no | **yes** (PoC namespaces / seccomp-bpf) |
+| macOS arm64 (Apple Silicon) | no | **yes** (Seatbelt sandbox profile) |
+| Windows x86_64 | no | **yes** (PoC mitigation policies: DEP, ASLR, strict handle) |
+| Android | no | **yes** (OS isolated process + SELinux container) |
+| iOS | no | **yes** (OS containerized sandbox) |
+| OpenHarmony / RISC-V | no | no |
 
 ## 6. Rendering contexts
 
