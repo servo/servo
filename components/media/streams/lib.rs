@@ -8,6 +8,7 @@ pub mod registry;
 
 use std::any::Any;
 
+use malloc_size_of_derive::MallocSizeOf;
 pub use registry::*;
 
 pub trait MediaStream: Any + Send {
@@ -29,7 +30,7 @@ pub trait MediaOutput: Send {
     fn add_stream(&mut self, stream: &registry::MediaStreamId);
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, MallocSizeOf)]
 pub enum MediaStreamType {
     Video,
     Audio,

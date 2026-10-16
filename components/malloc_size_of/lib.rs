@@ -127,6 +127,12 @@ impl<T: MallocConditionalSizeOf> MallocConditionalSizeOf for [T] {
     }
 }
 
+impl<T: MallocSizeOf, const N: usize> MallocSizeOf for Box<[T; N]> {
+    fn size_of(&self, _ops: &mut MallocSizeOfOps) -> usize {
+        N * size_of::<T>()
+    }
+}
+
 /// For use on types where size_of() returns 0.
 #[macro_export]
 macro_rules! malloc_size_of_is_0(
@@ -1223,6 +1229,51 @@ where
     }
 }
 
+impl MallocSizeOf for keyboard_types::KeyboardEvent {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        // All other fields are not necessary
+        match &self.key {
+            keyboard_types::Key::Character(s) => s.size_of(ops),
+            keyboard_types::Key::Named(_) => 0,
+        }
+    }
+}
+
+impl MallocSizeOf for content_security_policy::Violation {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.directive.size_of(ops) + self.policy.size_of(ops) + self.resource.size_of(ops)
+    }
+}
+
+impl MallocSizeOf for content_security_policy::Directive {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.name.size_of(ops) + self.value.size_of(ops)
+    }
+}
+
+impl MallocSizeOf for content_security_policy::ViolationResource {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        match self {
+            content_security_policy::ViolationResource::Url(url) => url.size_of(ops),
+            content_security_policy::ViolationResource::Inline { sample } => sample.size_of(ops),
+            content_security_policy::ViolationResource::TrustedTypePolicy { sample } => {
+                sample.size_of(ops)
+            },
+            content_security_policy::ViolationResource::TrustedTypeSink { sample } => {
+                sample.size_of(ops)
+            },
+            content_security_policy::ViolationResource::Eval { sample } => sample.size_of(ops),
+            content_security_policy::ViolationResource::WasmEval => 0,
+        }
+    }
+}
+
+impl MallocSizeOf for content_security_policy::Policy {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        self.directive_set.size_of(ops) + self.disposition.size_of(ops) + self.source.size_of(ops)
+    }
+}
+
 malloc_size_of_hash_map!(indexmap::IndexMap<K, V, S>);
 malloc_size_of_hash_set!(indexmap::IndexSet<T, S>);
 
@@ -1234,6 +1285,8 @@ malloc_size_of_is_0!(u8, u16, u32, u64, u128, usize);
 malloc_size_of_is_0!(uuid::Uuid);
 malloc_size_of_is_0!(app_units::Au);
 malloc_size_of_is_0!(content_security_policy::Destination);
+malloc_size_of_is_0!(content_security_policy::PolicyDisposition);
+malloc_size_of_is_0!(content_security_policy::PolicySource);
 malloc_size_of_is_0!(content_security_policy::sandboxing_directive::SandboxingFlagSet);
 malloc_size_of_is_0!(encoding_rs::Decoder);
 malloc_size_of_is_0!(http::StatusCode);

@@ -17,10 +17,8 @@ use crate::dom::globalscope::GlobalScope;
 #[dom_struct]
 pub(crate) struct MediaStreamTrack {
     eventtarget: EventTarget,
-    #[ignore_malloc_size_of = "defined in servo-media"]
     #[no_trace]
     id: MediaStreamId,
-    #[ignore_malloc_size_of = "defined in servo-media"]
     #[no_trace]
     ty: MediaStreamType,
 }

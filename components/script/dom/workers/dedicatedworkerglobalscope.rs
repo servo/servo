@@ -116,6 +116,7 @@ pub(crate) enum DedicatedWorkerControlMsg {
     SetNetworkOnlineState(bool),
 }
 
+#[derive(MallocSizeOf)]
 pub(crate) enum DedicatedWorkerScriptMsg {
     /// Standard message from a worker.
     CommonWorker(TrustedWorkerAddress, WorkerScriptMsg),
@@ -218,7 +219,6 @@ pub(crate) struct DedicatedWorkerGlobalScope {
     /// The [`WebViewId`] of the `WebView` that this worker is associated with.
     #[no_trace]
     webview_id: WebViewId,
-    #[ignore_malloc_size_of = "Defined in std"]
     task_queue: TaskQueue<DedicatedWorkerScriptMsg>,
     own_sender: Sender<DedicatedWorkerScriptMsg>,
     worker: DomRefCell<Option<TrustedWorkerAddress>>,
@@ -246,11 +246,9 @@ pub(crate) struct DedicatedWorkerGlobalScope {
     animation_frame_callbacks_active: Cell<bool>,
     /// A sender for animation frame ticks.
     #[no_trace]
-    #[ignore_malloc_size_of = "channels are hard"]
     animation_frame_tick_sender: Option<GenericSender<WorkerAnimationFrameTick>>,
     /// A receiver for animation frame ticks.
     #[no_trace]
-    #[ignore_malloc_size_of = "channels are hard"]
     animation_frame_tick_receiver: Option<RoutedReceiver<WorkerAnimationFrameTick>>,
     /// A receiver of control messages.
     #[no_trace]

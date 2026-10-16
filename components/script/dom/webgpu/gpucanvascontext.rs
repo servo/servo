@@ -109,7 +109,6 @@ pub(crate) struct GPUCanvasContext {
     reflector_: Reflector,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-canvas>
     canvas: HTMLCanvasElementOrOffscreenCanvas,
-    #[ignore_malloc_size_of = "manual writing is hard"]
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-configuration-slot>
     configuration: RefCell<Option<GPUCanvasConfiguration>>,
     /// <https://gpuweb.github.io/gpuweb/#dom-gpucanvascontext-texturedescriptor-slot>

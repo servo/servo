@@ -35,7 +35,6 @@ pub(crate) struct Cache {
     name: TracedDOMString,
 
     #[no_trace]
-    #[ignore_malloc_size_of = "GenericCallback"]
     callback: RefCell<Option<GenericCallback<CacheStorageThreadResponse>>>,
 
     // Dequeue of pending promises for backend operations.

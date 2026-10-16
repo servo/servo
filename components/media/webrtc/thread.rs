@@ -6,6 +6,7 @@ use std::sync::mpsc::{Sender, channel};
 use std::thread;
 
 use log::error;
+use malloc_size_of_derive::MallocSizeOf;
 use servo_media_streams::MediaStreamType;
 
 use crate::datachannel::{DataChannelEvent, DataChannelId, DataChannelInit, DataChannelMessage};
@@ -14,7 +15,7 @@ use crate::{
     WebRtcBackend, WebRtcControllerBackend, WebRtcSignaller,
 };
 
-#[derive(Clone)]
+#[derive(Clone, MallocSizeOf)]
 /// Entry point for all client webrtc interactions.
 pub struct WebRtcController {
     sender: Sender<RtcThreadEvent>,

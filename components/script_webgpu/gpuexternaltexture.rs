@@ -36,7 +36,6 @@ use crate::traits::{Equivalence, WebGPUGlobalTrait, WebGPUHTMLVideoTrait, WebGPU
 /// Backing of GPUExternalTexture
 #[derive(JSTraceable, MallocSizeOf)]
 pub struct PlanarTexture<D: DomTypes> {
-    #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
     channel: WebGPU,
     #[no_trace]
@@ -139,7 +138,6 @@ impl<D: DomTypes> Drop for PlanarTexture<D> {
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUExternalTexture {
-    #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
     channel: WebGPU,
     #[no_trace]

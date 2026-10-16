@@ -6,13 +6,14 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 
 use bitflags::bitflags;
 use keyboard_types::{Code, CompositionEvent, Key, KeyState, Location, Modifiers};
+use malloc_size_of::MallocSizeOf;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::{Deserialize, Serialize};
 
 use crate::WebViewPoint;
 
 /// An opaque id for an [`InputEvent`].
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize, MallocSizeOf)]
 pub struct InputEventId(usize);
 
 static INPUT_EVENT_ID: AtomicUsize = AtomicUsize::new(0);
@@ -49,7 +50,7 @@ pub struct InputEventOutcome {
 }
 
 /// An input event that is sent from the embedder to Servo.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub enum InputEvent {
     EditingAction(ClipboardAction),
     #[cfg(feature = "gamepad")]
@@ -63,7 +64,7 @@ pub enum InputEvent {
     Wheel(WheelEvent),
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub struct InputEventAndId {
     pub event: InputEvent,
     pub id: InputEventId,
@@ -105,7 +106,7 @@ pub enum ModifySelection {
 }
 
 /// Which type of clipboard operation should be performed for an [`EditingAction::Clipboard`].
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize, MallocSizeOf)]
 pub enum ClipboardAction {
     Copy,
     Cut,
@@ -147,7 +148,7 @@ impl InputEvent {
     }
 }
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, MallocSizeOf)]
 pub struct KeyboardEvent {
     pub event: ::keyboard_types::KeyboardEvent,
 }
@@ -188,7 +189,7 @@ impl KeyboardEvent {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub struct MouseButtonEvent {
     pub action: MouseButtonAction,
     pub button: MouseButton,
@@ -277,7 +278,7 @@ pub enum MouseButtonAction {
     Up,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub struct MouseMoveEvent {
     pub point: WebViewPoint,
     #[doc(hidden)]
@@ -303,13 +304,13 @@ impl MouseMoveEvent {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Deserialize, Serialize, MallocSizeOf)]
 pub struct MouseLeftViewportEvent {
     pub focus_moving_to_another_iframe: bool,
 }
 
 /// The type of input represented by a multi-touch event.
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub enum TouchEventType {
     /// A new touch point came in contact with the screen.
     Down,
@@ -324,19 +325,19 @@ pub enum TouchEventType {
 /// An opaque identifier for a touch point.
 ///
 /// <http://w3c.github.io/touch-events/#widl-Touch-identifier>
-#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize, MallocSizeOf)]
 pub struct TouchId(pub i32);
 
 /// Distinguishes the kind of physical input that produced a [`TouchEvent`].
 /// Servo routes both pen and finger-touch input through the touch event path,
 /// but the originating subtype determines the `pointerType` reported to script.
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, MallocSizeOf)]
 pub enum TouchPointerType {
     Pen,
     Touch,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub struct TouchEvent {
     pub event_type: TouchEventType,
     pub touch_id: TouchId,
@@ -377,7 +378,7 @@ impl TouchEvent {
 }
 
 /// Unit of a [`WheelDelta`].
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize, MallocSizeOf)]
 pub enum WheelMode {
     /// Delta values are specified in pixels.
     DeltaPixel = 0x00,
@@ -388,7 +389,7 @@ pub enum WheelMode {
 }
 
 /// The wheel event deltas for every direction.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize, MallocSizeOf)]
 pub struct WheelDelta {
     /// Delta in the left/right direction. A positive value means that the view scrolls left,
     /// revealing more content to the left of the current viewport.
@@ -402,7 +403,7 @@ pub struct WheelDelta {
     pub mode: WheelMode,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, MallocSizeOf)]
 pub struct WheelEvent {
     pub delta: WheelDelta,
     pub point: WebViewPoint,
@@ -421,6 +422,15 @@ pub enum ImeEvent {
     Dismissed,
 }
 
+impl MallocSizeOf for ImeEvent {
+    fn size_of(&self, ops: &mut malloc_size_of::MallocSizeOfOps) -> usize {
+        match self {
+            ImeEvent::Composition(composition_event) => composition_event.data.size_of(ops),
+            ImeEvent::Dismissed => 0,
+        }
+    }
+}
+
 #[cfg(feature = "gamepad")]
 #[derive(
     Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, Ord, PartialEq, PartialOrd, Serialize,
@@ -429,7 +439,7 @@ pub enum ImeEvent {
 pub struct GamepadIndex(pub usize);
 
 #[cfg(feature = "gamepad")]
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 /// The minimum and maximum values that can be reported for axis or button input from this gamepad.
 pub struct GamepadInputBounds {
     /// Minimum and maximum axis values.
@@ -439,7 +449,7 @@ pub struct GamepadInputBounds {
 }
 
 #[cfg(feature = "gamepad")]
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 /// The haptic effects supported by this gamepad.
 pub struct GamepadSupportedHapticEffects {
     /// Whether gamepad has support for dual rumble effects.
@@ -449,7 +459,7 @@ pub struct GamepadSupportedHapticEffects {
 }
 
 #[cfg(feature = "gamepad")]
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 /// The types of Gamepad event.
 pub enum GamepadEvent {
     /// A new gamepad has been connected.
@@ -472,7 +482,7 @@ pub enum GamepadEvent {
 }
 
 #[cfg(feature = "gamepad")]
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, MallocSizeOf)]
 /// The type of Gamepad input being updated.
 pub enum GamepadUpdateType {
     /// Axis index and input value.

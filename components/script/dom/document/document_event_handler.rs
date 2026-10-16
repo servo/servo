@@ -153,13 +153,11 @@ pub(crate) struct DocumentEventHandler {
     window: Dom<Window>,
     /// Pending input events, to be handled at the next rendering opportunity.
     #[no_trace]
-    #[ignore_malloc_size_of = "InputEvent contains data from outside crates"]
     pending_input_events: DomRefCell<Vec<ConstellationInputEvent>>,
     /// The index of the last mouse move event in the pending input events queue.
     mouse_move_event_index: DomRefCell<Option<usize>>,
     /// The [`InputEventId`]s of mousemove events that have been coalesced.
     #[no_trace]
-    #[ignore_malloc_size_of = "InputEventId contains data from outside crates"]
     coalesced_mouse_move_event_ids: DomRefCell<Vec<InputEventId>>,
     /// The index of the last wheel event in the pending input events queue.
     /// This is non-standard behaviour.
@@ -168,7 +166,6 @@ pub(crate) struct DocumentEventHandler {
     wheel_event_index: DomRefCell<Option<usize>>,
     /// The [`InputEventId`]s of wheel events that have been coalesced.
     #[no_trace]
-    #[ignore_malloc_size_of = "InputEventId contains data from outside crates"]
     coalesced_wheel_event_ids: DomRefCell<Vec<InputEventId>>,
     /// <https://w3c.github.io/uievents/#event-type-dblclick>
     click_counting_info: DomRefCell<ClickCountingInfo>,

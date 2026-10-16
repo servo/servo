@@ -49,7 +49,6 @@ use crate::traits::{
 #[dom_struct]
 pub struct GPUQueue<D: DomTypes> {
     reflector_: Reflector,
-    #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
     channel: WebGPU,
     device: MutNullableDom<GPUDevice<D>>,

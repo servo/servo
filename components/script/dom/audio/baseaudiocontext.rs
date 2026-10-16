@@ -97,8 +97,8 @@ type BoxedSliceOfPromises = Box<[TracedPromise]>;
 #[dom_struct]
 pub(crate) struct BaseAudioContext {
     eventtarget: EventTarget,
-    #[ignore_malloc_size_of = "servo_media"]
     #[no_trace]
+    #[conditional_malloc_size_of]
     audio_context_impl: Arc<Mutex<AudioContext>>,
     /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-destination>
     destination: MutNullableDom<AudioDestinationNode>,

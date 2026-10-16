@@ -264,7 +264,6 @@ pub(crate) struct HTMLMediaElement {
     /// <https://html.spec.whatwg.org/multipage/#list-of-text-tracks>
     text_tracks_list: MutNullableDom<TextTrackList>,
     /// Time of last timeupdate notification.
-    #[ignore_malloc_size_of = "Defined in std::time"]
     next_timeupdate_event: Cell<Instant>,
     /// Latest fetch request context.
     current_fetch_context: RefCell<Option<HTMLMediaElementFetchContext>>,
