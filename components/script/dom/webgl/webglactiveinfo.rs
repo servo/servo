@@ -5,6 +5,7 @@
 // https://www.khronos.org/registry/webgl/specs/latest/1.0/webgl.idl
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::WebGLActiveInfoBinding::WebGLActiveInfoMethods;
@@ -18,7 +19,7 @@ pub(crate) struct WebGLActiveInfo {
     size: i32,
     // NOTE: `ty` stands for `type`, which is a reserved keyword
     ty: u32,
-    name: DOMString,
+    name: TracedDOMString,
 }
 
 impl WebGLActiveInfo {
@@ -27,7 +28,7 @@ impl WebGLActiveInfo {
             reflector_: Reflector::new(),
             size,
             ty,
-            name,
+            name: name.traced(),
         }
     }
 
@@ -59,6 +60,6 @@ impl WebGLActiveInfoMethods<crate::DomTypeHolder> for WebGLActiveInfo {
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.11.1>
     fn Name(&self) -> DOMString {
-        self.name.clone()
+        self.name.clone().root()
     }
 }

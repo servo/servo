@@ -17,12 +17,12 @@ use js::jsapi::{
 };
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::rust::wrappers2::{
-    GetPropertyKeys, JS_DefineUCProperty2, JS_GetOwnPropertyDescriptorById, JS_GetPropertyById,
-    JS_IdToValue, JS_NewPlainObject,
+    GetPropertyKeys, JS_DefineUCProperty2, JS_GetOwnPropertyDescriptorById, JS_NewPlainObject,
 };
 use js::rust::{HandleId, HandleValue, IdVector, MutableHandleValue};
 
 use crate::conversions::jsid_to_string;
+use crate::js::{JS_GetPropertyById, JS_IdToValue};
 use crate::str::{ByteString, DOMString, USVString};
 
 pub trait RecordKey: Eq + Hash + Sized {
@@ -53,7 +53,7 @@ impl RecordKey for USVString {
 
     fn from_id(cx: &mut JSContext, id: HandleId) -> Result<ConversionResult<Self>, ()> {
         rooted!(&in(cx) let mut jsid_value = UndefinedValue());
-        unsafe { JS_IdToValue(cx, *id.as_ref(cx), jsid_value.handle_mut()) };
+        JS_IdToValue(cx, *id.as_ref(cx), jsid_value.handle_mut());
 
         USVString::from_jsval(cx, jsid_value.handle(), ())
     }
@@ -66,7 +66,7 @@ impl RecordKey for ByteString {
 
     fn from_id(cx: &mut JSContext, id: HandleId) -> Result<ConversionResult<Self>, ()> {
         rooted!(&in(cx) let mut jsid_value = UndefinedValue());
-        unsafe { JS_IdToValue(cx, *id.as_ref(cx), jsid_value.handle_mut()) };
+        JS_IdToValue(cx, *id.as_ref(cx), jsid_value.handle_mut());
 
         ByteString::from_jsval(cx, jsid_value.handle(), ())
     }
@@ -164,9 +164,7 @@ where
             };
 
             rooted!(&in(cx) let mut property = UndefinedValue());
-            if unsafe {
-                !JS_GetPropertyById(cx, object.handle(), id.handle(), property.handle_mut())
-            } {
+            if !JS_GetPropertyById(cx, object.handle(), id.handle(), property.handle_mut()) {
                 return Err(());
             }
 

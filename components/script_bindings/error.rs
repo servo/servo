@@ -6,9 +6,9 @@ use std::ffi::CString;
 
 use js::context::JSContext;
 use js::error::throw_type_error;
-use js::rust::wrappers2::JS_IsExceptionPending;
 
 use crate::codegen::PrototypeList::proto_id_to_name;
+use crate::js::JS_IsExceptionPending;
 use crate::num::Finite;
 
 /// DOM exceptions that can be thrown by a native DOM method.
@@ -98,7 +98,7 @@ pub type ErrorResult = Fallible<()>;
 /// Throw an exception to signal that a `JSObject` can not be converted to a
 /// given DOM type.
 pub fn throw_invalid_this(cx: &mut JSContext, proto_id: u16) {
-    debug_assert!(unsafe { !JS_IsExceptionPending(cx) });
+    debug_assert!(!JS_IsExceptionPending(cx));
     let mut vec = "\"this\" object does not implement interface "
         .as_bytes()
         .to_vec();
@@ -108,7 +108,7 @@ pub fn throw_invalid_this(cx: &mut JSContext, proto_id: u16) {
 }
 
 pub fn throw_constructor_without_new(cx: &mut JSContext, name: &str) {
-    debug_assert!(unsafe { !JS_IsExceptionPending(cx) });
+    debug_assert!(!JS_IsExceptionPending(cx));
     let mut error = name.as_bytes().to_vec();
     error.extend_from_slice(b" constructor: 'new' is required");
     let error = CString::new(error).expect("WebIDL name should not contain nul byte");

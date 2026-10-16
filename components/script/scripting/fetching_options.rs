@@ -4,7 +4,6 @@
 
 use net_traits::ReferrerPolicy;
 use net_traits::request::{CredentialsMode, ParserMetadata};
-use script_bindings::refcounted::Trusted;
 use servo_url::ServoUrl;
 
 use crate::dom::globalscope::GlobalScope;
@@ -61,19 +60,10 @@ impl ScriptFetchOptions {
 pub(crate) struct BaseScript {
     pub(crate) base_url: ServoUrl,
     pub(crate) options: ScriptFetchOptions,
-    pub(crate) owner: Option<Trusted<GlobalScope>>,
 }
 
 impl BaseScript {
-    pub(crate) fn new(
-        base_url: ServoUrl,
-        options: ScriptFetchOptions,
-        owner: Option<Trusted<GlobalScope>>,
-    ) -> Self {
-        BaseScript {
-            base_url,
-            options,
-            owner,
-        }
+    pub(crate) fn new(base_url: ServoUrl, options: ScriptFetchOptions) -> Self {
+        BaseScript { base_url, options }
     }
 }

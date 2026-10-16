@@ -7,6 +7,7 @@ use std::cmp::Ordering;
 
 use dom_struct::dom_struct;
 use script_bindings::cell::DomRefCell;
+use script_bindings::domstring::TracedDOMString;
 
 use crate::dom::bindings::codegen::Bindings::TextTrackCueBinding::TextTrackCueMethods;
 use crate::dom::bindings::num::Finite;
@@ -20,7 +21,7 @@ use crate::dom::webvtt::rules_for_rendering::RulesForUpdatingTheTextTrackRenderi
 pub(crate) struct TextTrackCue {
     eventtarget: EventTarget,
     /// <https://html.spec.whatwg.org/multipage/#text-track-cue-identifier>
-    id: DomRefCell<DOMString>,
+    id: DomRefCell<TracedDOMString>,
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrackcue-track>
     text_track: MutNullableDom<TextTrack>,
     /// <https://html.spec.whatwg.org/multipage/#text-track-cue-start-time>
@@ -49,7 +50,7 @@ impl TextTrackCue {
     ) -> TextTrackCue {
         TextTrackCue {
             eventtarget: EventTarget::new_inherited(),
-            id: DomRefCell::new(id),
+            id: DomRefCell::new(id.traced()),
             text_track: MutNullableDom::new(text_track),
             start_time: Cell::new(start_time),
             end_time: Cell::new(end_time),
@@ -61,7 +62,7 @@ impl TextTrackCue {
     }
 
     pub(crate) fn id(&self) -> DOMString {
-        self.id.borrow().clone()
+        self.id.borrow().clone().root()
     }
 
     pub(crate) fn get_text_track(&self) -> Option<DomRoot<TextTrack>> {
@@ -113,7 +114,7 @@ impl TextTrackCueMethods<crate::DomTypeHolder> for TextTrackCue {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrackcue-id>
     fn SetId(&self, value: DOMString) {
-        *self.id.borrow_mut() = value;
+        *self.id.borrow_mut() = value.traced();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrackcue-track>

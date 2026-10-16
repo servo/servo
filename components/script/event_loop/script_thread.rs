@@ -85,8 +85,8 @@ use servo_arc::Arc as ServoArc;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::GenericSender;
 use servo_base::id::{
-    BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, ScriptEventLoopId, WebViewId,
-    WorkerId,
+    BrowsingContextId, HistoryStateId, PipelineId, PipelineNamespace, ScriptEventLoopId,
+    ServiceWorkerId, WebViewId, WorkerId,
 };
 use servo_base::threadboost::{BoostAffinity, ThreadPriority};
 use servo_base::{Epoch, generic_channel};
@@ -97,8 +97,9 @@ use servo_config::{pref, prefs};
 use servo_constellation_traits::{
     HistoryTraversalSource, LoadData, LoadOrigin, NavigationHistoryBehavior, PaintMetricEvent,
     RemoteFocusOperation, ScreenshotReadinessResponse, ScriptToConstellationChan,
-    ScriptToConstellationMessage, ScrollStateUpdate, SessionHistoryTraversalRequest,
-    StructuredSerializedData, TargetSnapshotParams, TraversalDirection, WindowSizeType,
+    ScriptToConstellationMessage, ScrollStateUpdate, ServiceWorkerState,
+    SessionHistoryTraversalRequest, StructuredSerializedData, TargetSnapshotParams,
+    TraversalDirection, WindowSizeType,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, OriginSnapshot, ServoUrl};
 use smallvec::SmallVec;
@@ -123,6 +124,7 @@ use crate::dom::bindings::conversions::{
     ConversionResult, FromJSValConvertible, StringificationBehavior,
 };
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::{CspReporting, GlobalCspReporting, Violation};
@@ -140,6 +142,7 @@ use crate::dom::node::{Node, NodeTraits};
 use crate::dom::servoparser::{ParserContext, ServoParser};
 #[cfg(feature = "devtools")]
 use crate::dom::types::DebuggerGlobalScope;
+use crate::dom::types::SharedWorker;
 #[cfg(feature = "webgpu")]
 use crate::dom::webgpu::identityhub::IdentityHub;
 use crate::dom::window::Window;
@@ -428,6 +431,9 @@ pub struct ScriptThread {
 
     #[cfg(feature = "devtools")]
     devtools_state: DevtoolsState,
+
+    /// Whether the network is considered to be online as reported by the embedder.
+    online: Cell<bool>,
 }
 
 struct BHMExitSignal {
@@ -1007,6 +1013,7 @@ impl ScriptThread {
                     this: weak_script_thread.clone(),
                     #[cfg(feature = "devtools")]
                     devtools_state: Default::default(),
+                    online: state.online.into(),
                 }
             }),
             cx,
@@ -1745,8 +1752,43 @@ impl ScriptThread {
         value
     }
 
+    /// <https://w3c.github.io/ServiceWorker/#update-state-algorithm>
+    fn handle_update_service_worker_state(
+        &self,
+        pipeline_id: PipelineId,
+        state: ServiceWorkerState,
+        worker_id: ServiceWorkerId,
+    ) {
+        let Some(global) = self.documents.borrow().find_global(pipeline_id) else {
+            log::warn!(
+                "Received update sw worker state for unknown pipeline: {:?}",
+                pipeline_id
+            );
+            return;
+        };
+
+        let trusted_global = Trusted::new(&*global);
+
+        // Step 4: For each settingsObject of settingsObjects queue a task on settingsObject’s responsible event loop
+        // in the DOM manipulation task source to run the following steps.
+        let task = task!(update_sw_state: move |cx| {
+            trusted_global.root().update_service_worker_state(cx, state, worker_id);
+        });
+        global
+            .task_manager()
+            .dom_manipulation_task_source()
+            .queue(task);
+    }
+
     fn handle_msg_from_constellation(&self, cx: &mut JSContext, msg: ScriptThreadMessage) {
         match msg {
+            ScriptThreadMessage::UpdateServiceWorkerState {
+                pipeline_id,
+                state,
+                worker_id,
+            } => {
+                self.handle_update_service_worker_state(pipeline_id, state, worker_id);
+            },
             ScriptThreadMessage::StopDelayingLoadEventsMode(pipeline_id) => {
                 self.handle_stop_delaying_load_events_mode(pipeline_id)
             },
@@ -1971,6 +2013,9 @@ impl ScriptThread {
             },
             ScriptThreadMessage::TriggerGarbageCollection => unsafe {
                 JS_GC(cx, GCReason::API);
+            },
+            ScriptThreadMessage::SetNetworkOnlineState(online) => {
+                self.handle_set_network_online_state(online);
             },
         }
     }
@@ -4505,6 +4550,19 @@ impl ScriptThread {
         };
     }
 
+    fn handle_set_network_online_state(&self, online: bool) {
+        let previous = self.online.replace(online);
+        if previous == online {
+            return;
+        }
+
+        for (_, document) in self.documents.borrow().iter() {
+            document.queue_online_offline_events(online);
+        }
+
+        SharedWorker::set_network_online_state(online);
+    }
+
     pub(crate) fn enqueue_microtask(cx: &js::context::JSContext, job: Box<dyn MicrotaskRunnable>) {
         crate::runtime::job_queue::enqueue(cx, job);
     }
@@ -4636,6 +4694,10 @@ impl ScriptThread {
                 .devtools_state
                 .wants_updates_for_node(pipeline, node)
         })
+    }
+
+    pub(crate) fn online() -> bool {
+        with_script_thread(|script_thread| script_thread.online.get())
     }
 }
 

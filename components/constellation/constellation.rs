@@ -163,7 +163,7 @@ use servo_constellation_traits::{
     IFrameSizeMsg, LoadData, LogEntry, MessagePortMsg, NavigationHistoryBehavior, PaintMetricEvent,
     PortMessageTask, PortTransferInfo, RemoteFocusOperation, SWManagerSenders,
     ScreenshotReadinessResponse, ScriptToConstellationMessage, ScrollStateUpdate,
-    ServiceWorkerAlgorithm, ServiceWorkerManagerFactory, ServiceWorkerMsg,
+    ServiceWorkerAlgorithm, ServiceWorkerManagerFactory, ServiceWorkerManagerMsg, ServiceWorkerMsg,
     SessionHistoryTraversalRequest, StructuredSerializedData, TargetSnapshotParams,
     TraversalDirection, UserContentManagerAction, WindowSizeType, WorkerAnimationFrameTick,
 };
@@ -337,6 +337,14 @@ pub struct Constellation<STF, SWF> {
     /// A channel for the constellation to receiver messages
     /// from the background hang monitor.
     background_hang_monitor_receiver: RoutedReceiver<HangAlert>,
+
+    /// Receiver of messages from the service worker manager.
+    sw_manager_receiver: RoutedReceiver<ServiceWorkerManagerMsg>,
+
+    /// Sender of messages from the service worker manager.
+    /// Necessary for algorithms like <https://w3c.github.io/ServiceWorker/#update-state-algorithm>,
+    /// which broadcast messages to multiple pipelines.
+    sw_manager_sender: GenericSender<ServiceWorkerManagerMsg>,
 
     /// A factory for creating layouts. This allows customizing the kind
     /// of layout created for a [`Constellation`] and prevents a circular crate
@@ -522,6 +530,9 @@ pub struct Constellation<STF, SWF> {
     /// to the `UserContents` need to be forwared to all the `ScriptThread`s that host
     /// the relevant `WebView`.
     pub(crate) user_contents_for_manager_id: FxHashMap<UserContentManagerId, UserContents>,
+
+    /// Whether Servo is online or not. This is controlled by the embedder.
+    online: bool,
 }
 
 /// State needed to construct a constellation.
@@ -634,6 +645,10 @@ where
                 let background_hang_monitor_receiver =
                     background_hang_monitor_ipc_receiver.route_preserving_errors();
 
+                let (sw_manager_sender, sw_manager_ipc_receiver) =
+                    generic_channel::channel().expect("ipc channel failure");
+                let sw_manager_receiver = sw_manager_ipc_receiver.route_preserving_errors();
+
                 // If we are in multiprocess mode,
                 // a dedicated per-process hang monitor will be initialized later inside the content process.
                 // See run_content_process in servo/lib.rs
@@ -673,6 +688,8 @@ where
 
                 let mut constellation: Constellation<STF, SWF> = Constellation {
                     event_loops: Default::default(),
+                    sw_manager_sender,
+                    sw_manager_receiver,
                     namespace_receiver,
                     namespace_ipc_sender,
                     script_sender: script_ipc_sender,
@@ -745,11 +762,18 @@ where
                         broken_image_icon_data,
                     )),
                     user_contents_for_manager_id: Default::default(),
+                    // Servo is online by default.
+                    online: true,
                 };
 
                 constellation.run();
             })
             .expect("Thread spawning failed");
+    }
+
+    /// Whether or not the embedder has put Servo in online mode or offline mode.
+    pub(crate) fn online(&self) -> bool {
+        self.online
     }
 
     fn event_loops(&self) -> Vec<Rc<EventLoop>> {
@@ -1136,6 +1160,7 @@ where
         #[expect(clippy::large_enum_variant)]
         #[derive(Debug)]
         enum Request {
+            ServiceWorkerManager(ServiceWorkerManagerMsg),
             PipelineNamespace(PipelineNamespaceRequest),
             Script((WebViewId, PipelineId, ScriptToConstellationMessage)),
             BackgroundHangMonitor(HangAlert),
@@ -1155,6 +1180,7 @@ where
         // being called. If this happens, there's not much we can do
         // other than panic.
         let mut sel = Select::new();
+        sel.recv(&self.sw_manager_receiver);
         sel.recv(&self.namespace_receiver);
         sel.recv(&self.script_receiver);
         sel.recv(&self.background_hang_monitor_receiver);
@@ -1172,24 +1198,28 @@ where
 
             match index {
                 0 => oper
+                    .recv(&self.sw_manager_receiver)
+                    .expect("Unexpected service worker manager channel panic in constellation")
+                    .map(Request::ServiceWorkerManager),
+                1 => oper
                     .recv(&self.namespace_receiver)
                     .expect("Unexpected script channel panic in constellation")
                     .map(Request::PipelineNamespace),
-                1 => oper
+                2 => oper
                     .recv(&self.script_receiver)
                     .expect("Unexpected script channel panic in constellation")
                     .map(Request::Script),
-                2 => oper
+                3 => oper
                     .recv(&self.background_hang_monitor_receiver)
                     .expect("Unexpected BHM channel panic in constellation")
                     .map(Request::BackgroundHangMonitor),
-                3 => Ok(Request::Embedder(
+                4 => Ok(Request::Embedder(
                     oper.recv(&self.embedder_to_constellation_receiver)
                         .expect("Unexpected embedder channel panic in constellation"),
                 )),
                 _ => {
                     // This can only be a error reading on a closed lifeline receiver.
-                    let process_index = index - 4;
+                    let process_index = index - 5;
                     #[cfg(feature = "multiprocess")]
                     let _ = oper.recv(self.process_manager.receiver_at(process_index));
                     Ok(Request::RemoveProcess(process_index))
@@ -1203,6 +1233,9 @@ where
         };
 
         match request {
+            Request::ServiceWorkerManager(message) => {
+                self.handle_request_from_service_worker_manager(message);
+            },
             Request::PipelineNamespace(message) => {
                 self.handle_request_for_pipeline_namespace(message)
             },
@@ -1231,6 +1264,38 @@ where
         // TODO: In case of a permanent hang being reported, add a "kill script" workflow,
         // via the embedder?
         warn!("Component hang alert: {:?}", message);
+    }
+
+    fn handle_request_from_service_worker_manager(&mut self, message: ServiceWorkerManagerMsg) {
+        match message {
+            ServiceWorkerManagerMsg::UpdateWorkerState {
+                worker_id,
+                state,
+                origin,
+            } => {
+                // Continuation of <https://w3c.github.io/ServiceWorker/#update-state-algorithm>
+                // Step 4: For each settingsObject of settingsObjects, queue a task on settingsObject’s responsible event loop
+                self.pipelines
+                    .values()
+                    .filter(|pipeline| pipeline.url.origin() == origin)
+                    .for_each(|pipeline| {
+                        if pipeline
+                            .event_loop
+                            .send(ScriptThreadMessage::UpdateServiceWorkerState {
+                                pipeline_id: pipeline.id,
+                                worker_id,
+                                state: state.clone(),
+                            })
+                            .is_err()
+                        {
+                            error!(
+                                "Failed to send UpdateServiceWorkerState to pipeline {}",
+                                pipeline.id
+                            );
+                        }
+                    });
+            },
+        }
     }
 
     #[servo_tracing::instrument(skip_all)]
@@ -1411,6 +1476,9 @@ where
             },
             EmbedderToConstellationMessage::ClearSessionHistory(webview_id) => {
                 self.handle_clear_session_history(webview_id);
+            },
+            EmbedderToConstellationMessage::SetNetworkOnlineState(online) => {
+                self.handle_set_network_online_state(online);
             },
         }
     }
@@ -2481,6 +2549,7 @@ where
                     generic_channel::channel().expect("Failed to create IPC channel!");
 
                 let sw_senders = SWManagerSenders {
+                    constellation_sender: self.sw_manager_sender.clone(),
                     resource_threads: self.public_resource_threads.clone(),
                     own_sender: own_sender.clone(),
                     receiver,
@@ -6306,5 +6375,27 @@ where
                 })
             })
             .clone()
+    }
+
+    fn handle_set_network_online_state(&mut self, online: bool) {
+        let previously_online = std::mem::replace(&mut self.online, online);
+        if previously_online == online {
+            return;
+        }
+
+        for event_loop in self.event_loops() {
+            if let Err(error) = event_loop.send(ScriptThreadMessage::SetNetworkOnlineState(online))
+            {
+                error!("Could not send network online state to event loop: {error}");
+            }
+        }
+
+        for service_worker_manager in self.sw_managers.values() {
+            if let Err(error) =
+                service_worker_manager.send(ServiceWorkerMsg::SetNetworkOnlineState(online))
+            {
+                error!("Could not send network online state to service worker: {error}");
+            }
+        }
     }
 }

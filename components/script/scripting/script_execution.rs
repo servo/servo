@@ -16,14 +16,14 @@ use js::jsapi::{
 use js::jsval::{PrivateValue, UndefinedValue};
 use js::panic::maybe_resume_unwind;
 use js::rust::wrappers2::{
-    Compile1, JS_ClearPendingException, JS_ExecuteScript, JS_GetScriptPrivate,
-    JS_IsExceptionPending, ModuleEvaluate, ThrowOnModuleEvaluationFailure,
+    Compile1, JS_ClearPendingException, JS_ExecuteScript, JS_GetScriptPrivate, ModuleEvaluate,
+    ThrowOnModuleEvaluationFailure,
 };
 use js::rust::{
     CompileOptionsWrapper, HandleValue, MutableHandleValue, transform_str_to_source_text,
 };
 use script_bindings::cformat;
-use script_bindings::js::JS_SetPendingException;
+use script_bindings::js::{JS_IsExceptionPending, JS_SetPendingException};
 use script_bindings::settings_stack::run_a_script;
 use script_bindings::trace::RootedTraceableBox;
 use servo_url::ServoUrl;
@@ -181,7 +181,7 @@ impl GlobalScope {
             }
 
             // Step 8. If evaluationStatus is an abrupt completion, then:
-            if unsafe { JS_IsExceptionPending(cx) } {
+            if JS_IsExceptionPending(cx) {
                 warn!("Error evaluating script");
 
                 match (
@@ -364,14 +364,7 @@ pub(crate) fn maybe_associate_with_script(
     // When `ScriptPrivate` for the compiled script is undefined,
     // we need to set it so that it can be used in dynamic import context.
     if script_private.is_undefined() {
-        let module_script_data = Rc::new(BaseScript::new(
-            url,
-            fetch_options,
-            // We can't initialize an module owner here because
-            // the executing context of script might be different
-            // from the dynamic import script's executing context.
-            None,
-        ));
+        let module_script_data = Rc::new(BaseScript::new(url, fetch_options));
 
         unsafe {
             SetScriptPrivate(

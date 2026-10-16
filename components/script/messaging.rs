@@ -59,6 +59,9 @@ impl MixedMessage {
     pub(crate) fn pipeline_id(&self) -> Option<PipelineId> {
         match self {
             MixedMessage::FromConstellation(inner_msg) => match inner_msg {
+                ScriptThreadMessage::UpdateServiceWorkerState { pipeline_id, .. } => {
+                    Some(*pipeline_id)
+                },
                 ScriptThreadMessage::StopDelayingLoadEventsMode(id) => Some(*id),
                 ScriptThreadMessage::SpawnPipeline(new_pipeline_info) => new_pipeline_info
                     .parent_info
@@ -116,6 +119,7 @@ impl MixedMessage {
                 ScriptThreadMessage::SetAccessibilityActive(..) => None,
                 ScriptThreadMessage::ForwardAccessibilityAction(id, _) => Some(*id),
                 ScriptThreadMessage::TriggerGarbageCollection => None,
+                ScriptThreadMessage::SetNetworkOnlineState(_) => None,
             },
             MixedMessage::FromScript(inner_msg) => match inner_msg {
                 MainThreadScriptMsg::Common(CommonScriptMsg::Task(_, _, pipeline_id, _)) => {

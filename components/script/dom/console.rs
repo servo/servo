@@ -29,12 +29,13 @@ use js::rust::wrappers2::{
 };
 use js::rust::wrappers2::{
     GetBuiltinClass, GetPropertyKeys, JS_ClearPendingException, JS_GetOwnPropertyDescriptorById,
-    JS_GetPropertyById, JS_GetPrototype, JS_IdToValue, JS_Stringify, JS_ValueToSource,
+    JS_GetPrototype, JS_Stringify, JS_ValueToSource,
 };
 #[cfg(feature = "devtools")]
 use js::rust::{CapturedJSStack, describe_scripted_caller, for_of};
 use js::rust::{HandleObject, HandleValue, IdVector, ToNumber, ToString};
 use script_bindings::conversions::get_dom_class;
+use script_bindings::js::{JS_GetPropertyById, JS_IdToValue};
 
 use crate::dom::bindings::codegen::Bindings::ConsoleBinding::consoleMethods;
 #[cfg(feature = "devtools")]
@@ -451,7 +452,7 @@ mod devtools {
 
             let key = if id.is_string() {
                 rooted!(&in(cx) let mut key_value = UndefinedValue());
-                if !unsafe { JS_IdToValue(cx, id.handle().get(), key_value.handle_mut()) } {
+                if !JS_IdToValue(cx, id.handle().get(), key_value.handle_mut()) {
                     continue;
                 }
                 rooted!(&in(cx) let js_string = key_value.to_string());
@@ -461,7 +462,7 @@ mod devtools {
                 unsafe { jsstr_to_string(cx, js_string) }
             } else if id.is_symbol() || id.is_int() {
                 rooted!(&in(cx) let mut key_value = UndefinedValue());
-                if !unsafe { JS_IdToValue(cx, id.handle().get(), key_value.handle_mut()) } {
+                if !JS_IdToValue(cx, id.handle().get(), key_value.handle_mut()) {
                     continue;
                 }
                 handle_value_to_string(cx, key_value.handle()).to_string()
@@ -606,8 +607,7 @@ pub(crate) fn stringify_handle_value(cx: &mut JSContext, message: HandleValue) -
             }
 
             rooted!(&in(cx) let mut property = UndefinedValue());
-            if !unsafe { JS_GetPropertyById(cx, obj.handle(), id.handle(), property.handle_mut()) }
-            {
+            if !JS_GetPropertyById(cx, obj.handle(), id.handle(), property.handle_mut()) {
                 return DOMString::from_static("/* invalid */");
             }
 
@@ -626,7 +626,7 @@ pub(crate) fn stringify_handle_value(cx: &mut JSContext, message: HandleValue) -
             if explicit_keys {
                 let key = if id.is_string() || id.is_symbol() || id.is_int() {
                     rooted!(&in(cx) let mut key_value = UndefinedValue());
-                    if !unsafe { JS_IdToValue(cx, id.handle().get(), key_value.handle_mut()) } {
+                    if !JS_IdToValue(cx, id.handle().get(), key_value.handle_mut()) {
                         return DOMString::from_static("/* invalid */");
                     }
                     handle_value_to_string(cx, key_value.handle())

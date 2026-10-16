@@ -394,6 +394,23 @@ impl SharedWorker {
         // Enable outside port's port message queue.
         global.start_message_port(cx, worker.port.message_port_id());
     }
+
+    /// Set online status for all living shared workers.
+    pub(crate) fn set_network_online_state(online: bool) {
+        let (workers, _ready) = &*SHARED_WORKERS;
+        let workers = workers.lock().expect("SharedWorker registry poisoned");
+        for entry in workers.iter() {
+            let SharedWorkerRegistryState::Created(registration) = &entry.state else {
+                continue;
+            };
+            if registration.closing.load(Ordering::SeqCst) {
+                continue;
+            }
+            let _ = registration
+                ._control_sender
+                .send(SharedWorkerControlMsg::SetNetworkOnlineState(online));
+        }
+    }
 }
 
 impl SharedWorkerMethods<crate::DomTypeHolder> for SharedWorker {

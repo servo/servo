@@ -300,7 +300,8 @@ impl SpecificShadowTree<HTMLInputElement, ColorInputType> for ColorInputShadowTr
 
 impl UAShadowRoot<ColorInputShadowTree> for ColorInputType {
     fn store_for_shadow_tree(&self, cx: &mut JSContext, shadow_root: DomRoot<ShadowRoot>) {
-        *self.shadow_tree.borrow_mut() = Some(ColorInputShadowTree::new(cx, shadow_root.upcast()));
+        *self.shadow_tree.safe_borrow_mut(cx.no_gc()) =
+            Some(ColorInputShadowTree::new(cx, shadow_root.upcast()));
     }
 
     fn borrow_for_shadow_tree(&self) -> Ref<'_, Option<ColorInputShadowTree>> {

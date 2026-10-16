@@ -7,6 +7,7 @@ use std::cell::{Cell, Ref};
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use script_bindings::cell::DomRefCell;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::inheritance::Castable;
 use script_bindings::reflector::reflect_dom_object;
 
@@ -33,11 +34,11 @@ pub(crate) struct TextTrack {
     /// <https://html.spec.whatwg.org/multipage/#text-track-kind>
     kind: Cell<TextTrackKind>,
     /// <https://html.spec.whatwg.org/multipage/#text-track-label>
-    label: DomRefCell<DOMString>,
+    label: DomRefCell<TracedDOMString>,
     /// <https://html.spec.whatwg.org/multipage/#text-track-language>
-    language: DomRefCell<DOMString>,
+    language: DomRefCell<TracedDOMString>,
     /// <https://html.spec.whatwg.org/multipage/#text-track-identifier>
-    id: DomRefCell<DOMString>,
+    id: DomRefCell<TracedDOMString>,
     /// <https://html.spec.whatwg.org/multipage/#text-track-mode>
     mode: Cell<TextTrackMode>,
     /// <https://html.spec.whatwg.org/multipage/#text-track-list-of-cues>
@@ -63,9 +64,9 @@ impl TextTrack {
         TextTrack {
             eventtarget: EventTarget::new_inherited(),
             kind: Cell::new(kind),
-            label: DomRefCell::new(label),
-            language: DomRefCell::new(language),
-            id: DomRefCell::new(id),
+            label: DomRefCell::new(label.traced()),
+            language: DomRefCell::new(language.traced()),
+            id: DomRefCell::new(id.traced()),
             mode: Cell::new(mode),
             cue_list: Default::default(),
             active_cue_list: Default::default(),
@@ -120,7 +121,7 @@ impl TextTrack {
         active_cue_list
     }
 
-    pub(crate) fn id(&self) -> Ref<'_, DOMString> {
+    pub(crate) fn id(&self) -> Ref<'_, TracedDOMString> {
         self.id.borrow()
     }
 
@@ -163,17 +164,18 @@ impl TextTrack {
             _ => unreachable!("Must always have these specific kind states"),
         });
         // > The text track label is the element's track label.
-        *self.label.borrow_mut() = track_element.Label();
+        *self.label.borrow_mut() = track_element.Label().traced();
         // > The text track language is the element's track language,
         // > if any; otherwise the empty string.
-        *self.language.borrow_mut() = track_element.Srclang();
+        *self.language.borrow_mut() = track_element.Srclang().traced();
         // > The text track identifier is the element's id attribute value,
         // > if any; otherwise the empty string.
         *self.id.borrow_mut() = track_element
             .upcast::<Element>()
             .get_id()
             .map(|value| DOMString::from(&*value))
-            .unwrap_or_default();
+            .unwrap_or_default()
+            .traced();
     }
 
     pub(crate) fn empty_cue_list(&self) {
@@ -230,17 +232,17 @@ impl TextTrackMethods<crate::DomTypeHolder> for TextTrack {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-label>
     fn Label(&self) -> DOMString {
-        self.label.borrow().clone()
+        self.label.borrow().clone().root()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-language>
     fn Language(&self) -> DOMString {
-        self.language.borrow().clone()
+        self.language.borrow().clone().root()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-id>
     fn Id(&self) -> DOMString {
-        self.id.borrow().clone()
+        self.id.borrow().clone().root()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-texttrack-mode>

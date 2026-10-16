@@ -10,6 +10,7 @@ use servo_url::ServoUrl;
 
 use crate::dom::bindings::error::{Error, report_pending_exception, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
+use crate::dom::bindings::root::DomRoot;
 use crate::dom::console::Console;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::window::Window;
@@ -30,6 +31,12 @@ pub(crate) struct ImportMap {
     integrity: ModuleIntegrityMap,
 }
 
+/// The 'referringScript' argument for the purposes of `resolve_module_specifier`.
+pub(crate) struct ReferringScript<'a> {
+    pub(crate) script: &'a BaseScript,
+    pub(crate) settings_object: DomRoot<GlobalScope>,
+}
+
 impl ImportMap {
     /// <https://html.spec.whatwg.org/multipage/#resolving-a-module-integrity-metadata>
     pub(crate) fn resolve_a_module_integrity_metadata(&self, url: &ServoUrl) -> String {
@@ -42,29 +49,33 @@ impl ImportMap {
 
     /// <https://html.spec.whatwg.org/multipage/#resolve-a-module-specifier>
     pub(crate) fn resolve_module_specifier(
-        global: &GlobalScope,
-        script: Option<&BaseScript>,
+        current_settings_object: &GlobalScope,
+        referring_script: Option<&ReferringScript>,
         specifier: String,
     ) -> Fallible<ServoUrl> {
-        // Step 1~3 to get settingsObject and baseURL
-        let script_global = script.and_then(|s| s.owner.as_ref().map(|o| o.root()));
         // Step 1. Let settingsObject and baseURL be null.
-        let (global, base_url): (&GlobalScope, &ServoUrl) = match script {
+        let (settings_object, base_url) = match referring_script {
             // Step 2. If referringScript is not null, then:
             // Set settingsObject to referringScript's settings object.
             // Set baseURL to referringScript's base URL.
-            Some(s) => (script_global.as_ref().map_or(global, |g| g), &s.base_url),
+            Some(referring_script) => (
+                &*referring_script.settings_object,
+                &referring_script.script.base_url,
+            ),
             // Step 3. Otherwise:
             // Set settingsObject to the current settings object.
             // Set baseURL to settingsObject's API base URL.
-            None => (global, &global.api_base_url()),
+            None => (
+                current_settings_object,
+                &current_settings_object.api_base_url(),
+            ),
         };
 
         // Step 4. Let importMap be an empty import map.
         // Step 5. If settingsObject's global object implements Window, then set importMap to settingsObject's
         // global object's import map.
-        let import_map = if global.is::<Window>() {
-            Some(global.import_map())
+        let import_map = if settings_object.is::<Window>() {
+            Some(settings_object.import_map())
         } else {
             None
         };
@@ -122,7 +133,7 @@ impl ImportMap {
             Some(result) => {
                 // Step 13.1 Add module to resolved module set given settingsObject, serializedBaseURL,
                 // normalizedSpecifier, and asURL.
-                global.add_module_to_resolved_module_set(
+                settings_object.add_module_to_resolved_module_set(
                     serialized_base_url,
                     normalized_specifier,
                     as_url.clone(),

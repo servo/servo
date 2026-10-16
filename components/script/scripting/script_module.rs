@@ -76,7 +76,7 @@ use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTiming
 use crate::realms::enter_auto_realm;
 use crate::runtime::script_runtime::IntroductionType;
 use crate::scripting::fetching_options::{BaseScript, ScriptFetchOptions};
-use crate::scripting::import_map::ImportMap;
+use crate::scripting::import_map::{ImportMap, ReferringScript};
 use crate::scripting::module_loading::{
     LoadState, host_load_imported_module, load_requested_modules,
 };
@@ -182,8 +182,6 @@ impl ModuleTree {
         line_number: u32,
         introduction_type: Option<&'static CStr>,
     ) -> Self {
-        let owner = Trusted::new(global);
-
         // Step 2. Let script be a new module script that this algorithm will subsequently initialize.
         // Step 6. Set script's parse error and error to rethrow to null.
         let module = ModuleTree::default();
@@ -224,9 +222,11 @@ impl ModuleTree {
             }
 
             // Step 3. Set script's settings object to settings.
+            // Note: In order to avoid a cyclic root, the settings object is not stored. It is
+            // fetched when necessary via the SpiderMonkey API.
             // Step 4. Set script's base URL to baseURL.
             // Step 5. Set script's fetch options to options.
-            let module_script_data = Rc::new(BaseScript::new(url.clone(), options, Some(owner)));
+            let module_script_data = Rc::new(BaseScript::new(url.clone(), options));
 
             SetModulePrivate(
                 module_script.get(),
@@ -819,7 +819,12 @@ unsafe extern "C" fn import_meta_resolve(cx: *mut RawJSContext, argc: u32, vp: *
     };
 
     // Step 4.2. Let url be the result of resolving a module specifier given moduleScript and specifier.
-    let url = ImportMap::resolve_module_specifier(&global_scope, module_data, specifier);
+    let referring_script = module_data.map(|script| ReferringScript {
+        script,
+        settings_object: unsafe { GlobalScope::from_object(module_record.get()) },
+    });
+    let url =
+        ImportMap::resolve_module_specifier(&global_scope, referring_script.as_ref(), specifier);
 
     match url {
         Ok(url) => {

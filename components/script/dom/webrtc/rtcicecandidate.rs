@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::RTCIceCandidateBinding::{
@@ -18,10 +19,10 @@ use crate::dom::window::Window;
 #[dom_struct]
 pub(crate) struct RTCIceCandidate {
     reflector: Reflector,
-    candidate: DOMString,
-    sdp_m_id: Option<DOMString>,
+    candidate: TracedDOMString,
+    sdp_m_id: Option<TracedDOMString>,
     sdp_m_line_index: Option<u16>,
-    username_fragment: Option<DOMString>,
+    username_fragment: Option<TracedDOMString>,
 }
 
 impl RTCIceCandidate {
@@ -33,10 +34,10 @@ impl RTCIceCandidate {
     ) -> RTCIceCandidate {
         RTCIceCandidate {
             reflector: Reflector::new(),
-            candidate,
-            sdp_m_id,
+            candidate: candidate.traced(),
+            sdp_m_id: sdp_m_id.map(|domstring| domstring.traced()),
             sdp_m_line_index,
-            username_fragment,
+            username_fragment: username_fragment.map(|domstring| domstring.traced()),
         }
     }
 
@@ -108,12 +109,12 @@ impl RTCIceCandidateMethods<crate::DomTypeHolder> for RTCIceCandidate {
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcicecandidate-candidate>
     fn Candidate(&self) -> DOMString {
-        self.candidate.clone()
+        self.candidate.clone().root()
     }
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcicecandidate-sdpmid>
     fn GetSdpMid(&self) -> Option<DOMString> {
-        self.sdp_m_id.clone()
+        self.sdp_m_id.clone().map(|domstring| domstring.root())
     }
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcicecandidate-sdpmlineindex>
@@ -123,16 +124,21 @@ impl RTCIceCandidateMethods<crate::DomTypeHolder> for RTCIceCandidate {
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcicecandidate-usernamefragment>
     fn GetUsernameFragment(&self) -> Option<DOMString> {
-        self.username_fragment.clone()
+        self.username_fragment
+            .clone()
+            .map(|domstring| domstring.root())
     }
 
     /// <https://w3c.github.io/webrtc-pc/#dom-rtcicecandidate-tojson>
     fn ToJSON(&self) -> RTCIceCandidateInit {
         RTCIceCandidateInit {
-            candidate: self.candidate.clone(),
-            sdpMid: self.sdp_m_id.clone(),
+            candidate: self.candidate.clone().root(),
+            sdpMid: self.sdp_m_id.clone().map(|domstring| domstring.root()),
             sdpMLineIndex: self.sdp_m_line_index,
-            usernameFragment: self.username_fragment.clone(),
+            usernameFragment: self
+                .username_fragment
+                .clone()
+                .map(|domstring| domstring.root()),
         }
     }
 }

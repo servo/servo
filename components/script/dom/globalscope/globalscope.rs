@@ -65,7 +65,7 @@ use servo_config::pref;
 use servo_constellation_traits::{
     BlobData, BlobImpl, BroadcastChannelMsg, ConstellationInterest, FileBlob, MessagePortImpl,
     PortMessageTask, ScriptToConstellationChan, ScriptToConstellationMessage,
-    ScriptToConstellationSender,
+    ScriptToConstellationSender, ServiceWorkerState,
 };
 use servo_url::{ImmutableOrigin, MutableOrigin, ServoUrl};
 use storage_traits::StorageThreads;
@@ -527,6 +527,29 @@ impl GlobalScope {
 
         // Step 3
         new_registration
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#update-state-algorithm>
+    pub(crate) fn update_service_worker_state(
+        &self,
+        cx: &mut js::context::JSContext,
+        state: ServiceWorkerState,
+        worker_id: ServiceWorkerId,
+    ) {
+        // Step 4.1: Let objectMap be settingsObject’s service worker object map.
+        let object_map = self.worker_map.borrow();
+
+        // Step 4.3: Let workerObj be objectMap[worker].
+        let Some(worker) = object_map.get(&worker_id) else {
+            // Step 4.2: If objectMap[worker] does not exist, then abort these steps.
+            return;
+        };
+
+        // Step 4.4: Set workerObj’s state to state.
+        worker.set_state(state);
+
+        // Step 4.5: Fire an event named statechange at workerObj.
+        worker.upcast().fire_event(cx, atom!("statechange"));
     }
 
     /// <https://w3c.github.io/ServiceWorker/#get-the-service-worker-object>
@@ -2896,6 +2919,13 @@ impl GlobalScope {
         None
     }
 
+    pub(crate) fn online(&self) -> bool {
+        if let Some(worker_global_scope) = self.downcast::<WorkerGlobalScope>() {
+            return worker_global_scope.online();
+        }
+        ScriptThread::online()
+    }
+
     #[cfg(feature = "webgpu")]
     pub(crate) fn wgpu_id_hub(&self) -> Arc<IdentityHub> {
         self.gpu_id_hub.clone()
@@ -3176,6 +3206,14 @@ impl GlobalScope {
 
         // Step 5. Return timerKey.
         timer_key
+    }
+
+    pub(crate) fn set_network_online_state_on_dedicated_workers(&self, online: bool) {
+        for worker in &*self.list_auto_close_worker.borrow() {
+            _ = worker
+                .control_sender
+                .send(DedicatedWorkerControlMsg::SetNetworkOnlineState(online));
+        }
     }
 }
 

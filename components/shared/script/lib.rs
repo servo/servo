@@ -41,7 +41,7 @@ use servo_base::generic_channel::GenericCallback;
 use servo_base::generic_channel::{GenericReceiver, GenericSender};
 use servo_base::id::{
     BrowsingContextId, HistoryStateId, LCPCandidateID, PipelineId, PipelineNamespaceId,
-    PipelineNamespaceRequest, ScriptEventLoopId, WebViewId,
+    PipelineNamespaceRequest, ScriptEventLoopId, ServiceWorkerId, WebViewId,
 };
 #[cfg(feature = "bluetooth")]
 use servo_bluetooth_traits::BluetoothRequest;
@@ -50,8 +50,8 @@ use servo_canvas_traits::webgl::WebGLPipeline;
 use servo_config::prefs::PrefValue;
 use servo_constellation_traits::{
     KeyboardScroll, LoadData, NavigationHistoryBehavior, PaintMetricEvent, RemoteFocusOperation,
-    ScriptToConstellationSender, ScrollStateUpdate, StructuredSerializedData, TargetSnapshotParams,
-    WindowSizeType,
+    ScriptToConstellationSender, ScrollStateUpdate, ServiceWorkerState, StructuredSerializedData,
+    TargetSnapshotParams, WindowSizeType,
 };
 use servo_url::{ImmutableOrigin, OriginSnapshot, ServoUrl};
 use storage_traits::StorageThreads;
@@ -158,6 +158,15 @@ pub enum UpdatePipelineIdReason {
 /// now) `Layout`.
 #[derive(Deserialize, IntoStaticStr, Serialize)]
 pub enum ScriptThreadMessage {
+    /// Update the state of a service worker.
+    UpdateServiceWorkerState {
+        /// The identity of the service worker.
+        worker_id: ServiceWorkerId,
+        /// The new state of the service worker.
+        state: ServiceWorkerState,
+        /// The pipeline.
+        pipeline_id: PipelineId,
+    },
     /// Span a new `Pipeline` in this `ScriptThread` and start fetching the contents
     /// according to the provided `LoadData`. This will ultimately create a `Window`
     /// and all associated data structures such as `Layout` in the `ScriptThread`.
@@ -343,6 +352,9 @@ pub enum ScriptThreadMessage {
     ForwardAccessibilityAction(PipelineId, ActionRequest),
     /// Force a garbage collection in this script thread.
     TriggerGarbageCollection,
+    /// Inform the `ScriptThread` that the embedder has indicated that the network has gone
+    /// online or offline.
+    SetNetworkOnlineState(bool),
 }
 
 impl fmt::Debug for ScriptThreadMessage {
@@ -501,6 +513,8 @@ pub struct InitialScriptState {
     pub privileged_urls: Vec<ServoUrl>,
     /// A copy of constellation's `UserContentManagerId` to `UserContents` map.
     pub user_contents_for_manager_id: FxHashMap<UserContentManagerId, UserContents>,
+    /// Whether or not the embedder has indicated that networking is online.
+    pub online: bool,
 }
 
 /// Errors from executing a paint worklet

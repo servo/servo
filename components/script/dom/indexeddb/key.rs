@@ -19,6 +19,7 @@ use js::rust::wrappers2::{
 };
 use js::rust::{HandleValue, MutableHandleValue};
 use js::typedarray::{ArrayBuffer, ArrayBufferU8, ArrayBufferView};
+use script_bindings::js::JS_GetPropertyById;
 use storage_traits::indexeddb::{BackendError, IndexedDBKeyRange, IndexedDBKeyType};
 
 use crate::dom::bindings::buffer_source::create_buffer_source;
@@ -350,12 +351,7 @@ pub fn convert_value_to_key(
                     }
                     // 3.5.3. Let entry be ? Get(input, index).
                     rooted!(&in(cx) let mut entry = UndefinedValue());
-                    if !js::rust::wrappers2::JS_GetPropertyById(
-                        cx,
-                        object.handle(),
-                        id.handle(),
-                        entry.handle_mut(),
-                    ) {
+                    if !JS_GetPropertyById(cx, object.handle(), id.handle(), entry.handle_mut()) {
                         return Err(Error::JSFailed);
                     }
 

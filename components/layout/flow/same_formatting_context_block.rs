@@ -28,7 +28,7 @@ use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, CollapsedMargin, 
 use crate::geom::{LogicalRect, LogicalSides1D, LogicalVec2};
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::PositioningContext;
-use crate::sizing::{InlineContentSizesResult, Size};
+use crate::sizing::InlineContentSizesResult;
 use crate::style_ext::LayoutStyle;
 use crate::{ConstraintSpace, ContainingBlock};
 
@@ -178,12 +178,15 @@ impl SameFormattingContextBlock {
             depends_on_block_constraints,
             available_block_size,
             justify_self,
+            automatic_block_size,
             ..
         } = solve_containing_block_padding_and_border_for_in_flow_box(
+            layout_context,
             containing_block,
             &layout_style,
             get_inline_content_sizes,
             ignore_block_margins_for_stretch,
+            &self.base,
             None,
             has_inline_parent,
         );
@@ -348,7 +351,7 @@ impl SameFormattingContextBlock {
 
         let block_size = block_sizes.resolve(
             LogicalAxis::Block,
-            Size::FitContent,
+            automatic_block_size,
             Au::zero,
             available_block_size,
             || content_block_size.into(),

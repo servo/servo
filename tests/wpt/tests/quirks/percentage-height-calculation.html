@@ -46,6 +46,16 @@
             });
         });
 
+        function imagesLoaded() {
+            const promises = [];
+            for (const testWindow of [q, a, s]) {
+                for (const img of testWindow.document.images) {
+                    promises.push(new Promise(resolve => img.addEventListener("load", resolve, {once: true})));
+                }
+            }
+            return Promise.all(promises);
+        }
+
         var tests = [
         {style:'#test { height:100% }', body:'<div id=test></div>', q:184, s:0},
         {style:'#test { height:50% }', body:'<div id=test></div>', q:92, s:0},
@@ -94,7 +104,7 @@
         ];
 
         tests.forEach(function(t) {
-            test(function() {
+            promise_test(async function() {
                 // Hide scrollbars in all subdocuments so that a horizontal
                 // scrollbar doesn't appear and upset our calculations.
                 var style = t.style.replace(/\{png\}/g, png) + " html { overflow:hidden; }";
@@ -105,6 +115,7 @@
                 q.document.body.innerHTML = body;
                 a.document.body.innerHTML = body;
                 s.document.body.innerHTML = body;
+                await imagesLoaded();
 
                 assert_equals(q.getComputedStyle(q.test).height,
                               t.q + 'px',
@@ -133,13 +144,14 @@
         var parser = new DOMParser();
 
         xml_tests.forEach(function(t) {
-            test(function() {
+            promise_test(async function() {
                 var input = t.input.replace(/\{html\}/g, 'http://www.w3.org/1999/xhtml')
                                    .replace(/\{png\}/g, png);
                 var root = parser.parseFromString(input, 'text/xml').documentElement;
                 q.document.replaceChild(root.cloneNode(true), q.document.documentElement);
                 a.document.replaceChild(root.cloneNode(true), a.document.documentElement);
                 s.document.replaceChild(root, s.document.documentElement);
+                await imagesLoaded();
                 assert_equals(q.getComputedStyle(q.test).height,
                               t.q + 'px',
                               'quirks mode');
