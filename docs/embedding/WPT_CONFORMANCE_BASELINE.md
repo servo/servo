@@ -1,6 +1,11 @@
-# WPT Conformance Pass-Rate Baseline Report
+# WPT Meta-Expectation Recount Baseline Report
 
-**Generated:** 2026-10-16T14:50:22.419614+00:00 | **Source:** `meta_expectations`
+> [!IMPORTANT]
+> This document is a **static recount of non-default expectations** in `tests/wpt/meta`.
+> It is **not** a live WPT pass-rate measurement. No WPT test execution run has produced
+> this report yet; it reflects metadata recorded in the repository tree.
+
+**Generated:** 2026-10-16T14:50:22.419614+00:00 | **Source:** `meta_expectations` (static tree recount)
 
 ## Expectations Baseline (Static tree analysis)
 
