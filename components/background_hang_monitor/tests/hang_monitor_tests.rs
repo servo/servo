@@ -332,6 +332,9 @@ fn test_hang_monitoring_signal_component_exit() {
         }),
     );
 
+    // Give worker thread a moment to process registration
+    thread::sleep(Duration::from_millis(50));
+
     // Send signal specifically for component 1
     control_sender
         .send(BackgroundHangMonitorControlMsg::SignalComponentExit(id1))
