@@ -1051,9 +1051,13 @@ impl AbsoluteAxisSolver {
                 }
             },
             // On the inline axis these keywords are line-left / line-right.
-            AlignFlags::LEFT if alignment_container_writing_mode.is_bidi_ltr() => AlignFlags::START,
+            AlignFlags::LEFT if alignment_container_writing_mode.line_left_is_inline_start() => {
+                AlignFlags::START
+            },
             AlignFlags::LEFT => AlignFlags::END,
-            AlignFlags::RIGHT if alignment_container_writing_mode.is_bidi_ltr() => AlignFlags::END,
+            AlignFlags::RIGHT if alignment_container_writing_mode.line_left_is_inline_start() => {
+                AlignFlags::END
+            },
             AlignFlags::RIGHT => AlignFlags::START,
             // https://drafts.csswg.org/css-align/#valdef-self-position-end
             // https://drafts.csswg.org/css-align/#valdef-self-position-flex-end
