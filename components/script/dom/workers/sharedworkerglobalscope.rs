@@ -100,19 +100,6 @@ impl Drop for SharedWorkerRegistrationCleanup {
 }
 
 impl QueuedTaskConversion for SharedWorkerScriptMsg {
-    fn task_source_name(&self) -> Option<&TaskSourceName> {
-        let script_msg = match self {
-            SharedWorkerScriptMsg::CommonWorker(WorkerScriptMsg::Common(script_msg)) => script_msg,
-            _ => return None,
-        };
-        match script_msg {
-            CommonScriptMsg::Task(_category, _boxed, _pipeline_id, task_source) => {
-                Some(task_source)
-            },
-            _ => None,
-        }
-    }
-
     fn pipeline_id(&self) -> Option<servo_base::id::PipelineId> {
         None
     }
@@ -286,7 +273,7 @@ impl SharedWorkerGlobalScope {
                 Some(ScriptEventLoopSender::SharedWorker(own_sender.clone())),
             ),
             webview_id,
-            task_queue: TaskQueue::new(receiver, own_sender.clone()),
+            task_queue: TaskQueue::new(receiver),
             own_sender,
             worker: DomRefCell::new(Some(worker)),
             parent_event_loop_sender,

@@ -881,7 +881,7 @@ impl ScriptThread {
             )
         };
 
-        let task_queue = TaskQueue::new(self_receiver, self_sender.clone());
+        let task_queue = TaskQueue::new(self_receiver);
 
         let closing = Arc::new(AtomicBool::new(false));
         let background_hang_monitor_exit_signal = BHMExitSignal {

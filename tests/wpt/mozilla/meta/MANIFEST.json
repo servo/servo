@@ -15343,31 +15343,6 @@
       {}
      ]
     ],
-    "task-queue-throttling.any.js": [
-     "bbf464f384d55a44db6948d6cc7ab5f54509b800",
-     [
-      "mozilla/task-queue-throttling.any.html",
-      {
-       "script_metadata": [
-        [
-         "title",
-         "Throttling the performance timeline task queue."
-        ]
-       ]
-      }
-     ],
-     [
-      "mozilla/task-queue-throttling.any.worker.html",
-      {
-       "script_metadata": [
-        [
-         "title",
-         "Throttling the performance timeline task queue."
-        ]
-       ]
-      }
-     ]
-    ],
     "textarea-select-focus.html": [
      "7f6bfe3c4f07d1fdd4fa260967d1756d918947a1",
      [
