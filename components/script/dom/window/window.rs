@@ -955,24 +955,19 @@ impl Window {
             return true;
         }
 
-        // Step 2: If window's relevant settings object's origin and window's relevant settings
-        // object's top-level origin are not same origin-domain, then return true.
-        //
-        // TODO: This check doesn't work currently because it seems that comparing two
-        // opaque domains doesn't work between GlobalScope::top_level_creation_url and
-        // Document::origin().
-
-        // Step 3: If window's relevant agent's event loop's termination nesting level is nonzero,
+        // // Step 2: If window's relevant agent's event loop's termination nesting level is nonzero,
         // then optionally return true.
-        // TODO: This is unsupported currently.
+        if ScriptThread::termination_nesting_level_is_nonzero() {
+            return true;
+        }
 
-        // Step 4: Optionally, return true. (For example, the user agent might give the
+        // Step 3: Optionally, return true. (For example, the user agent might give the
         // user the option to ignore all modal dialogs, and would thus abort at this step
         // whenever the method was invoked.)
         // TODO: The embedder currently cannot block an alert before it is sent to the embedder. This
         // requires changes to the API.
 
-        // Step 5: Return false.
+        // Step 4: Return false.
         false
     }
 

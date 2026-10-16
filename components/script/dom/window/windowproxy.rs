@@ -525,6 +525,12 @@ impl WindowProxy {
         if self.discarded.get() {
             return Ok(None);
         }
+
+        // Step 1. If the event loop's termination nesting level is nonzero, then return null.
+        if ScriptThread::termination_nesting_level_is_nonzero() {
+            return Ok(None);
+        }
+
         // Step 2. Let sourceDocument be the entry global object's associated Document.
         //
         // It's possible to end up in a situation where JS code is executing but

@@ -2325,7 +2325,8 @@ impl Document {
         // Step 2. Increase the document's unload counter by 1.
         self.unload_counter.set(self.unload_counter.get() + 1);
 
-        // TODO: Step 3, increase the event loop's termination nesting level by 1.
+        // Step 3. Increase document's relevant agent's event loop's termination nesting level by 1.
+        ScriptThread::increase_termination_nesting_level();
 
         // Step 4. Let eventFiringResult be the result of firing an event named beforeunload
         //   at document's relevant global object, using BeforeUnloadEvent, with the
@@ -2340,7 +2341,9 @@ impl Document {
         let event = beforeunload_event.upcast::<Event>();
         event.set_trusted(true);
         self.window.dispatch_event_with_target_override(cx, event);
-        // TODO: Step 5, decrease the event loop's termination nesting level by 1.
+        // Step 5. Decrease document's relevant agent's event loop's termination nesting level by 1.
+        ScriptThread::decrease_termination_nesting_level();
+
         let mut can_unload = true;
         // TODO: Step 8, also check sandboxing modals flag.
         let default_prevented = event.DefaultPrevented();
@@ -2383,7 +2386,8 @@ impl Document {
             return;
         }
 
-        // TODO: Step 7. Increase eventLoop's termination nesting level by 1.
+        // Step 7. Increase eventLoop's termination nesting level by 1.
+        ScriptThread::increase_termination_nesting_level();
 
         // Step 8. Increase oldDocument's unload counter by 1.
         self.unload_counter.set(self.unload_counter.get() + 1);
@@ -2422,7 +2426,9 @@ impl Document {
             event.set_trusted(true);
             self.window.dispatch_event_with_target_override(cx, &event);
         }
-        // TODO: Step 8, decrease the event loop's termination nesting level by 1.
+
+        // Step 14. Decrease eventLoop's termination nesting level by 1.
+        ScriptThread::decrease_termination_nesting_level();
 
         // Step 13
         if !recursive_flag {
