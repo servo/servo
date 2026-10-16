@@ -1,0 +1,24 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at https://mozilla.org/MPL/2.0/.
+
+set(PACKAGE_VERSION "0.1.0")
+
+if(PACKAGE_FIND_VERSION_RANGE)
+    if(PACKAGE_FIND_VERSION_RANGE_MAX STREQUAL "INCLUDE" AND PACKAGE_VERSION VERSION_LESS_EQUAL PACKAGE_FIND_VERSION_RANGE_MAX)
+        set(PACKAGE_VERSION_COMPATIBLE TRUE)
+    elseif(PACKAGE_FIND_VERSION_RANGE_MAX STREQUAL "EXCLUDE" AND PACKAGE_VERSION VERSION_LESS PACKAGE_FIND_VERSION_RANGE_MAX)
+        set(PACKAGE_VERSION_COMPATIBLE TRUE)
+    else()
+        set(PACKAGE_VERSION_COMPATIBLE FALSE)
+    endif()
+else()
+    if(PACKAGE_VERSION VERSION_LESS PACKAGE_FIND_VERSION)
+        set(PACKAGE_VERSION_COMPATIBLE FALSE)
+    else()
+        set(PACKAGE_VERSION_COMPATIBLE TRUE)
+        if(PACKAGE_FIND_VERSION STREQUAL PACKAGE_VERSION)
+            set(PACKAGE_VERSION_EXACT TRUE)
+        endif()
+    endif()
+endif()
