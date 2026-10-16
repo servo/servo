@@ -11,14 +11,14 @@ use js::glue::SetProxyReservedSlot;
 use js::jsapi::{JS_SetReservedSlot, JSAutoRealm, JSClass, JSObject};
 use js::jsval::{PrivateValue, UndefinedValue};
 use js::rust::wrappers2::{
-    JS_InitializePropertiesFromCompatibleNativeObject, JS_NewObjectWithGivenProto, JS_WrapObject,
-    NewProxyObject,
+    JS_InitializePropertiesFromCompatibleNativeObject, JS_WrapObject, NewProxyObject,
 };
 use js::rust::{Handle, get_context_realm, get_object_class, get_object_realm};
 
 use crate::codegen::PrototypeList;
 use crate::conversions::DOM_OBJECT_SLOT;
 use crate::import::module::JS_GetReservedSlot;
+use crate::js::JS_NewObjectWithGivenProto;
 use crate::proxyhandler::ensure_expando_object;
 use crate::root::{DomRoot, MaybeUnreflectedDom, Root};
 use crate::utils::DOM_PROTO_UNFORGEABLE_HOLDER_SLOT;
@@ -117,7 +117,7 @@ unsafe fn wrap_object(
             }
             rval.set(JS_NewObjectWithGivenProto(
                 cx,
-                config.class.unwrap(),
+                Some(config.class.unwrap()),
                 proto.handle(),
             ));
             assert!(!rval.is_null());
