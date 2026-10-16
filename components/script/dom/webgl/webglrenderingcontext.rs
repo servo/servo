@@ -525,12 +525,14 @@ impl WebGLRenderingContext {
         self.send_with_fallibility(command, Operation::Fallible);
     }
 
+    #[track_caller]
     pub(crate) fn webgl_error(&self, err: WebGLError) {
         // TODO(emilio): Add useful debug messages to this
         warn!(
-            "WebGL error: {:?}, previous error was {:?}",
+            "WebGL error: {:?}, previous error was {:?}, caller: {}",
             err,
-            self.last_error.get()
+            self.last_error.get(),
+            std::panic::Location::caller()
         );
 
         // If an error has been detected no further errors must be
