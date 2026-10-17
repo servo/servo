@@ -97,10 +97,10 @@ pub(crate) fn normalize_sublists(cx: &mut JSContext, item: DomRoot<Node>) {
 
     // Step 1. If item is not an li or it is not editable or its parent is not editable, abort these steps.
     if !item.is::<HTMLLIElement>() ||
-        !item.is_editable() ||
+        !item.is_editable(cx.no_gc()) ||
         !item
             .GetParentElement()
-            .is_some_and(|parent| parent.upcast::<Node>().is_editable())
+            .is_some_and(|parent| parent.upcast::<Node>().is_editable(cx.no_gc()))
     {
         return;
     }
@@ -198,7 +198,7 @@ pub(crate) fn execute_indent_command(
     //         and if the last member of node list (if any) is not an ancestor of node,
     //         append node to node list.
     for node in new_range.contained_nodes(cx.no_gc()) {
-        if node.is_editable() &&
+        if node.is_editable(cx.no_gc()) &&
             (is_allowed_child(
                 NodeOrString::Node(node.clone()),
                 NodeOrString::String("div".to_owned()),

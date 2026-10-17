@@ -242,6 +242,7 @@ impl Fragment {
                 let is_root_element = fragment_flags.contains(FragmentFlags::IS_ROOT_ELEMENT);
 
                 if !is_root_element {
+                    // FIXME: Handle inert elements here instead of the document event handlers
                     if style.get_inherited_ui().pointer_events == PointerEvents::None {
                         return false;
                     }

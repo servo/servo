@@ -27,9 +27,13 @@ impl Element {
     /// both "Is this element a focusable area?" and "Is this element click (or sequentially)
     /// focusable."
     pub(crate) fn focusable_area_kind(&self, no_gc: &NoGC) -> FocusableAreaKind {
-        // Do not allow unrendered, disconnected, or disabled nodes to be focusable areas ever.
+        // Do not allow unrendered, disconnected, disabled or inert nodes to be focusable areas ever.
         let node: &Node = self.upcast();
-        if !node.is_connected() || !self.has_css_layout_box() || self.is_actually_disabled() {
+        if !node.is_connected() ||
+            !self.has_css_layout_box() ||
+            self.is_actually_disabled() ||
+            node.is_inert(no_gc)
+        {
             return Default::default();
         }
 
@@ -57,7 +61,6 @@ impl Element {
         // > the element is not actually disabled;
         // Note: Checked above
         // > the element is not inert;
-        // TODO: Handle this.
         // > the element is either being rendered, delegating its rendering to its children, or
         // > being used as relevant canvas fallback content.
         // Note: Checked above
@@ -121,8 +124,6 @@ impl Element {
         // > The scrollable regions of elements that are being rendered and are not inert.
         //
         // Note that these kind of focusable areas are only focusable via the keyboard.
-        //
-        // TODO: Handle inert.
         if self
             .upcast::<Node>()
             .effective_overflow()

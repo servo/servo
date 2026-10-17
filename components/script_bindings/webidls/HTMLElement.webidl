@@ -21,7 +21,7 @@ interface HTMLElement : Element {
 
   // user interaction
   [CEReactions] attribute boolean hidden;
-  // [CEReactions, Reflect] attribute boolean inert;
+  [CEReactions] attribute boolean inert;
   undefined click();
   [CEReactions] attribute DOMString accessKey;
   readonly attribute DOMString accessKeyLabel;
