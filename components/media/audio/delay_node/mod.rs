@@ -2,13 +2,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::any::Any;
 use std::collections::VecDeque;
 use std::sync::Arc;
 
 use f32;
 use log::error;
 use malloc_size_of_derive::MallocSizeOf;
-use parking_lot::RwLock;
+use parking_lot::{Mutex, RwLock};
 
 use crate::audio_node::{
     AudioNodeEngine, AudioNodeType, BlockInfo, ChannelInfo, ChannelInterpretation,
@@ -24,6 +25,7 @@ pub(crate) use delay_writer::DelayWriter;
 // Share with internal nodes. Use Arc because AudioNodeEngine requires Send
 type DelayBuffer = Arc<RwLock<VecDeque<Block>>>;
 type CachedUpmixedBlock = Arc<RwLock<Option<UpmixedBlock>>>;
+type AccessLock = Arc<Mutex<bool>>;
 
 #[derive(Copy, Clone, Debug, MallocSizeOf)]
 pub struct DelayNodeOptions {
@@ -84,20 +86,45 @@ impl DelayNode {
     pub fn new(options: DelayNodeOptions, channel_info: ChannelInfo) -> Self {
         let delay_line = Arc::new(RwLock::new(VecDeque::with_capacity(0)));
         let upmixed_block = Arc::new(RwLock::new(None));
+        let accessed_first = Arc::new(Mutex::new(false));
         DelayNode {
             channel_info,
             delay_writer: Some(Box::new(DelayWriter::new(
+                accessed_first.clone(),
                 delay_line.clone(),
                 upmixed_block.clone(),
                 channel_info,
                 options.max_delay_time,
             ))),
             delay_reader: Some(Box::new(DelayReader::new(
+                accessed_first,
                 delay_line,
                 upmixed_block,
                 Param::new(options.delay_time as f32),
                 channel_info,
             ))),
+        }
+    }
+
+    pub fn take_delay_reader(&mut self) -> Option<Box<DelayReader>> {
+        self.delay_reader.take()
+    }
+
+    pub fn take_delay_writer(&mut self) -> Option<Box<DelayWriter>> {
+        self.delay_writer.take()
+    }
+
+    pub fn set_delay_reader(&mut self, reader: Option<Box<DelayReader>>) {
+        self.delay_reader = reader;
+    }
+
+    pub fn set_delay_writer(&mut self, writer: Option<Box<DelayWriter>>) {
+        self.delay_writer = writer;
+    }
+
+    pub fn set_cycle_breaker_status(&mut self, status: bool) {
+        if let Some(reader) = self.delay_reader.as_mut() {
+            reader.set_cycle_breaker_status(status);
         }
     }
 }
@@ -132,5 +159,9 @@ impl AudioNodeEngine for DelayNode {
             .as_mut()
             .expect("Tried to get delay_time Param without an owned DelayReader.")
             .get_param(id)
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
