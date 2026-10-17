@@ -180,8 +180,7 @@ impl HstsList {
     }
 
     pub fn push(&mut self, entry: HstsEntry) {
-        let host = entry.host.clone();
-        let base_domain = reg_suffix(&host);
+        let base_domain = reg_suffix(&entry.host);
         let have_domain = self.has_domain(&entry.host, base_domain);
         let have_subdomain = self.has_subdomain(&entry.host, base_domain);
 
