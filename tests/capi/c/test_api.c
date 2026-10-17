@@ -2465,6 +2465,139 @@ int test_script_message_router(void)
     return 0;
 }
 
+static bool dummy_site_visitor(const struct ServoSiteData* site,
+                               uintptr_t count,
+                               uintptr_t total,
+                               void* user_data)
+{
+    (void)site;
+    (void)count;
+    (void)total;
+    if (user_data) {
+        *(bool*)user_data = true;
+    }
+    return true;
+}
+
+int test_site_data_visit_sites(void)
+{
+    /* NULL manager */
+    if (servo_site_data_visit_sites(NULL, SERVO_STORAGE_TYPE_ALL, dummy_site_visitor, NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    struct ServoSiteDataManager* manager = servo_get_site_data_manager(servo);
+    if (manager == NULL)
+        return 1;
+
+    /* NULL visitor */
+    if (servo_site_data_visit_sites(manager, SERVO_STORAGE_TYPE_ALL, NULL, NULL) != SERVO_ERROR_NULL_ARGUMENT) {
+        servo_site_data_manager_free(manager);
+        return 1;
+    }
+
+    /* Valid call */
+    bool called = false;
+    if (servo_site_data_visit_sites(manager, SERVO_STORAGE_TYPE_ALL, dummy_site_visitor, &called) != SERVO_ERROR_OK) {
+        servo_site_data_manager_free(manager);
+        return 1;
+    }
+
+    servo_site_data_manager_free(manager);
+    return 0;
+}
+
+int test_site_data_clear_site_data(void)
+{
+    const char* sites[] = { "example.com", "test.org" };
+
+    /* NULL manager */
+    if (servo_site_data_clear_site_data(NULL, sites, 2, SERVO_STORAGE_TYPE_ALL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    struct ServoSiteDataManager* manager = servo_get_site_data_manager(servo);
+    if (manager == NULL)
+        return 1;
+
+    /* NULL sites array with count > 0 */
+    if (servo_site_data_clear_site_data(manager, NULL, 1, SERVO_STORAGE_TYPE_ALL) != SERVO_ERROR_NULL_ARGUMENT) {
+        servo_site_data_manager_free(manager);
+        return 1;
+    }
+
+    /* count = 0 is safe */
+    if (servo_site_data_clear_site_data(manager, NULL, 0, SERVO_STORAGE_TYPE_ALL) != SERVO_ERROR_OK) {
+        servo_site_data_manager_free(manager);
+        return 1;
+    }
+
+    /* Valid call with specific sites */
+    if (servo_site_data_clear_site_data(manager, sites, 2, SERVO_STORAGE_TYPE_LOCAL | SERVO_STORAGE_TYPE_SESSION) != SERVO_ERROR_OK) {
+        servo_site_data_manager_free(manager);
+        return 1;
+    }
+
+    servo_site_data_manager_free(manager);
+    return 0;
+}
+
+int test_web_resource_load_null_handling(void)
+{
+    if (servo_web_resource_load_get_request(NULL) != NULL)
+        return 1;
+    if (servo_web_resource_load_intercept(NULL, NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_web_resource_load_send_body_data(NULL, NULL, 0) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_web_resource_load_finish(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_web_resource_load_cancel(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_web_resource_load_free(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+
+    return 0;
+}
+
+static bool dummy_streaming_cb(struct WebView* webview,
+                               const struct ServoWebResourceRequest* request,
+                               struct ServoWebResourceResponse* response,
+                               struct ServoWebResourceLoad* load,
+                               void* user_data)
+{
+    (void)webview;
+    (void)request;
+    (void)response;
+    (void)load;
+    if (user_data) {
+        *(bool*)user_data = true;
+    }
+    return false;
+}
+
+int test_webview_delegate_intercept_request_streaming(void)
+{
+    bool called = false;
+    ServoWebViewDelegate delegate = {
+        .struct_size = sizeof(ServoWebViewDelegate),
+        .user_data = &called,
+        .intercept_request_streaming = dummy_streaming_cb,
+    };
+    if (delegate.struct_size < sizeof(ServoWebViewDelegate))
+        return 1;
+    if (delegate.intercept_request_streaming != dummy_streaming_cb)
+        return 1;
+
+    return 0;
+}
+
 int run_c_api_tests(void)
 {
     tests_run = 0;
@@ -2524,6 +2657,8 @@ int run_c_api_tests(void)
     RUN_TEST(test_site_data_cookies_for_url);
     RUN_TEST(test_site_data_set_cookie);
     RUN_TEST(test_site_data_clear_cookies);
+    RUN_TEST(test_site_data_visit_sites);
+    RUN_TEST(test_site_data_clear_site_data);
 
     RUN_TEST(test_error_null_arguments);
     RUN_TEST(test_error_invalid_utf8);
@@ -2532,6 +2667,8 @@ int run_c_api_tests(void)
     RUN_TEST(test_webview_setters_null);
     RUN_TEST(test_builder_register_protocol_handler);
     RUN_TEST(test_webview_delegate_intercept_request);
+    RUN_TEST(test_webview_delegate_intercept_request_streaming);
+    RUN_TEST(test_web_resource_load_null_handling);
     RUN_TEST(test_download_item_null_handling);
     RUN_TEST(test_download_item_getters);
     RUN_TEST(test_download_delegate_callbacks);

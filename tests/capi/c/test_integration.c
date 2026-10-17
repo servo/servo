@@ -654,6 +654,510 @@ cleanup:
     return result;
 }
 
+static bool on_custom_protocol_handler(const struct ServoWebResourceRequest* request,
+                                       struct ServoWebResourceResponse* response,
+                                       void* user_data)
+{
+    (void)user_data;
+    char url[256] = {0};
+    servo_web_resource_request_get_url(request, url, sizeof(url));
+    log("  [custom_protocol] intercepted request for '%s'\n", url);
+
+    const char* html = "<!DOCTYPE html><html><head><title>Custom Scheme Page</title></head>"
+                       "<body>Custom Scheme Body</body></html>";
+    servo_web_resource_response_set_status(response, 200, "OK");
+    servo_web_resource_response_set_header(response, "Content-Type", "text/html; charset=utf-8");
+    servo_web_resource_response_set_body(response, (const uint8_t*)html, strlen(html));
+    return true;
+}
+
+static int test_webview_custom_scheme(struct Servo* servo)
+{
+    log("running test_webview_custom_scheme\n");
+    int result = 1;
+    struct WebView* webview = NULL;
+    test_state_t state;
+    memset(&state, 0, sizeof(state));
+
+    state.expected_width = 100;
+    state.expected_height = 100;
+    RenderingContext* context = servo_rendering_context_create_software(
+        state.expected_width, state.expected_height);
+    if (!context) {
+        log("  FAIL: servo_rendering_context_create_software returned NULL\n");
+        goto cleanup;
+    }
+
+    ServoWebViewBuilder* webview_builder = servo_webview_builder_create(servo, context);
+    if (!webview_builder) {
+        log("  FAIL: servo_webview_builder_create returned NULL\n");
+        goto cleanup;
+    }
+
+    ServoWebViewDelegate delegate = {
+        .struct_size = sizeof(ServoWebViewDelegate),
+        .user_data = &state,
+        .notify_load_status_changed = on_load_status_changed,
+        .notify_url_changed = on_url_changed,
+        .notify_page_title_changed = on_page_title_changed,
+        .notify_load_started = on_load_started,
+        .notify_load_ended = on_load_ended,
+        .notify_load_error = on_load_error,
+    };
+    servo_webview_builder_set_delegate(webview_builder, delegate);
+
+    const char* url = "custom://test-app/index.html";
+    if (servo_webview_builder_set_url(webview_builder, url) != 0) {
+        log("  FAIL: servo_webview_builder_set_url failed for url '%s'\n", url);
+        servo_webview_builder_free(webview_builder);
+        goto cleanup;
+    }
+
+    webview = servo_webview_builder_build(webview_builder);
+    if (!webview) {
+        log("  FAIL: servo_webview_builder_build returned NULL\n");
+        goto cleanup;
+    }
+
+    log("  Spinning event loop until custom scheme load completes... (timeout 15s)\n");
+    {
+        int elapsed_ms = 0;
+        int poll_ms = 15;
+        while (elapsed_ms < 15000) {
+            servo_spin_event_loop(servo);
+            if (state.step >= TEST_STEP_LOAD_COMPLETE) {
+                break;
+            }
+            sleep_ms(poll_ms);
+            elapsed_ms += poll_ms;
+        }
+    }
+
+    if (state.step < TEST_STEP_LOAD_COMPLETE) {
+        log("  FAIL: custom scheme page load did not complete in time\n");
+        goto cleanup;
+    }
+
+    if (!state.title_changed_fired || strstr(state.last_title, "Custom Scheme Page") == NULL) {
+        log("  FAIL: expected title 'Custom Scheme Page', got '%s'\n", state.last_title);
+        goto cleanup;
+    }
+
+    result = 0;
+    log("  PASS: custom scheme test completed successfully\n");
+
+cleanup:
+    if (webview) {
+        servo_webview_free(webview);
+    }
+    return result;
+}
+
+static bool on_http_intercept(struct WebView* webview,
+                              const struct ServoWebResourceRequest* request,
+                              struct ServoWebResourceResponse* response,
+                              void* user_data)
+{
+    (void)webview;
+    (void)user_data;
+    char url[256] = {0};
+    servo_web_resource_request_get_url(request, url, sizeof(url));
+    log("  [http_intercept] request url: %s\n", url);
+
+    if (strstr(url, "intercept-me.test") != NULL) {
+        const char* html = "<!DOCTYPE html><html><head><title>Intercepted Page</title></head>"
+                           "<body>Intercepted Whole Body</body></html>";
+        servo_web_resource_response_set_status(response, 200, "OK");
+        servo_web_resource_response_set_header(response, "Content-Type", "text/html; charset=utf-8");
+        servo_web_resource_response_set_header(response, "X-Intercepted", "True");
+        servo_web_resource_response_set_body(response, (const uint8_t*)html, strlen(html));
+        return true;
+    }
+    return false;
+}
+
+static int test_webview_http_interception(struct Servo* servo)
+{
+    log("running test_webview_http_interception\n");
+    int result = 1;
+    struct WebView* webview = NULL;
+    test_state_t state;
+    memset(&state, 0, sizeof(state));
+
+    state.expected_width = 100;
+    state.expected_height = 100;
+    RenderingContext* context = servo_rendering_context_create_software(
+        state.expected_width, state.expected_height);
+    if (!context) {
+        log("  FAIL: servo_rendering_context_create_software returned NULL\n");
+        goto cleanup;
+    }
+
+    ServoWebViewBuilder* webview_builder = servo_webview_builder_create(servo, context);
+    if (!webview_builder) {
+        log("  FAIL: servo_webview_builder_create returned NULL\n");
+        goto cleanup;
+    }
+
+    ServoWebViewDelegate delegate = {
+        .struct_size = sizeof(ServoWebViewDelegate),
+        .user_data = &state,
+        .notify_load_status_changed = on_load_status_changed,
+        .notify_url_changed = on_url_changed,
+        .notify_page_title_changed = on_page_title_changed,
+        .notify_load_started = on_load_started,
+        .notify_load_ended = on_load_ended,
+        .notify_load_error = on_load_error,
+        .intercept_request = on_http_intercept,
+    };
+    servo_webview_builder_set_delegate(webview_builder, delegate);
+
+    const char* url = "http://intercept-me.test/page.html";
+    if (servo_webview_builder_set_url(webview_builder, url) != 0) {
+        log("  FAIL: servo_webview_builder_set_url failed for url '%s'\n", url);
+        servo_webview_builder_free(webview_builder);
+        goto cleanup;
+    }
+
+    webview = servo_webview_builder_build(webview_builder);
+    if (!webview) {
+        log("  FAIL: servo_webview_builder_build returned NULL\n");
+        goto cleanup;
+    }
+
+    log("  Spinning event loop until intercepted load completes... (timeout 15s)\n");
+    {
+        int elapsed_ms = 0;
+        int poll_ms = 15;
+        while (elapsed_ms < 15000) {
+            servo_spin_event_loop(servo);
+            if (state.step >= TEST_STEP_LOAD_COMPLETE) {
+                break;
+            }
+            sleep_ms(poll_ms);
+            elapsed_ms += poll_ms;
+        }
+    }
+
+    if (state.step < TEST_STEP_LOAD_COMPLETE) {
+        log("  FAIL: intercepted load did not complete in time\n");
+        goto cleanup;
+    }
+
+    if (!state.title_changed_fired || strstr(state.last_title, "Intercepted Page") == NULL) {
+        log("  FAIL: expected title 'Intercepted Page', got '%s'\n", state.last_title);
+        goto cleanup;
+    }
+
+    result = 0;
+    log("  PASS: http interception test completed successfully\n");
+
+cleanup:
+    if (webview) {
+        servo_webview_free(webview);
+    }
+    return result;
+}
+
+static bool on_http_stream_intercept(struct WebView* webview,
+                                    const struct ServoWebResourceRequest* request,
+                                    struct ServoWebResourceResponse* response,
+                                    struct ServoWebResourceLoad* load,
+                                    void* user_data)
+{
+    (void)webview;
+    (void)user_data;
+    char url[256] = {0};
+    servo_web_resource_request_get_url(request, url, sizeof(url));
+    log("  [http_stream_intercept] request url: %s\n", url);
+
+    if (strstr(url, "stream-me.test") != NULL) {
+        servo_web_resource_response_set_status(response, 200, "OK");
+        servo_web_resource_response_set_header(response, "Content-Type", "text/html; charset=utf-8");
+        servo_web_resource_response_set_header(response, "X-Streamed", "True");
+        servo_web_resource_load_intercept(load, response);
+
+        const char* chunk1 = "<!DOCTYPE html><html><head><title>Streamed Page</title></head>";
+        const char* chunk2 = "<body>Streamed Body Chunk</body></html>";
+        servo_web_resource_load_send_body_data(load, (const uint8_t*)chunk1, strlen(chunk1));
+        servo_web_resource_load_send_body_data(load, (const uint8_t*)chunk2, strlen(chunk2));
+        servo_web_resource_load_finish(load);
+        return true;
+    }
+    return false;
+}
+
+static int test_webview_streaming_interception(struct Servo* servo)
+{
+    log("running test_webview_streaming_interception\n");
+    int result = 1;
+    struct WebView* webview = NULL;
+    test_state_t state;
+    memset(&state, 0, sizeof(state));
+
+    state.expected_width = 100;
+    state.expected_height = 100;
+    RenderingContext* context = servo_rendering_context_create_software(
+        state.expected_width, state.expected_height);
+    if (!context) {
+        log("  FAIL: servo_rendering_context_create_software returned NULL\n");
+        goto cleanup;
+    }
+
+    ServoWebViewBuilder* webview_builder = servo_webview_builder_create(servo, context);
+    if (!webview_builder) {
+        log("  FAIL: servo_webview_builder_create returned NULL\n");
+        goto cleanup;
+    }
+
+    ServoWebViewDelegate delegate = {
+        .struct_size = sizeof(ServoWebViewDelegate),
+        .user_data = &state,
+        .notify_load_status_changed = on_load_status_changed,
+        .notify_url_changed = on_url_changed,
+        .notify_page_title_changed = on_page_title_changed,
+        .notify_load_started = on_load_started,
+        .notify_load_ended = on_load_ended,
+        .notify_load_error = on_load_error,
+        .intercept_request_streaming = on_http_stream_intercept,
+    };
+    servo_webview_builder_set_delegate(webview_builder, delegate);
+
+    const char* url = "http://stream-me.test/page.html";
+    if (servo_webview_builder_set_url(webview_builder, url) != 0) {
+        log("  FAIL: servo_webview_builder_set_url failed for url '%s'\n", url);
+        servo_webview_builder_free(webview_builder);
+        goto cleanup;
+    }
+
+    webview = servo_webview_builder_build(webview_builder);
+    if (!webview) {
+        log("  FAIL: servo_webview_builder_build returned NULL\n");
+        goto cleanup;
+    }
+
+    log("  Spinning event loop until streaming load completes... (timeout 15s)\n");
+    {
+        int elapsed_ms = 0;
+        int poll_ms = 15;
+        while (elapsed_ms < 15000) {
+            servo_spin_event_loop(servo);
+            if (state.step >= TEST_STEP_LOAD_COMPLETE) {
+                break;
+            }
+            sleep_ms(poll_ms);
+            elapsed_ms += poll_ms;
+        }
+    }
+
+    if (state.step < TEST_STEP_LOAD_COMPLETE) {
+        log("  FAIL: streaming intercepted load did not complete in time\n");
+        goto cleanup;
+    }
+
+    if (!state.title_changed_fired || strstr(state.last_title, "Streamed Page") == NULL) {
+        log("  FAIL: expected title 'Streamed Page', got '%s'\n", state.last_title);
+        goto cleanup;
+    }
+
+    result = 0;
+    log("  PASS: streaming interception test completed successfully\n");
+
+cleanup:
+    if (webview) {
+        servo_webview_free(webview);
+    }
+    return result;
+}
+
+typedef struct {
+    int count;
+    char names[8][64];
+    char values[8][64];
+} test_cookie_visitor_state_t;
+
+static bool on_test_cookie_visit(const struct ServoCookie* cookie,
+                                uintptr_t count,
+                                uintptr_t total,
+                                void* user_data)
+{
+    (void)count;
+    (void)total;
+    test_cookie_visitor_state_t* s = (test_cookie_visitor_state_t*)user_data;
+    if (s->count < 8 && cookie && cookie->name && cookie->value) {
+        strncpy(s->names[s->count], cookie->name, sizeof(s->names[0]) - 1);
+        strncpy(s->values[s->count], cookie->value, sizeof(s->values[0]) - 1);
+        s->count++;
+    }
+    return true;
+}
+
+static int test_cookies_round_trip(struct Servo* servo)
+{
+    log("running test_cookies_round_trip\n");
+    struct ServoSiteDataManager* manager = servo_get_site_data_manager(servo);
+    if (!manager) {
+        log("  FAIL: servo_get_site_data_manager returned NULL\n");
+        return 1;
+    }
+
+    // Clear any leftover cookies first
+    servo_site_data_clear_cookies(manager);
+
+    // 1. Set cookie A
+    struct ServoCookie cookieA = {
+        .name = "token",
+        .value = "secret123",
+        .domain = "example.com",
+        .path = "/",
+        .expires = 0,
+        .secure = false,
+        .http_only = true,
+        .same_site = SERVO_COOKIE_SAME_SITE_LAX,
+    };
+    if (servo_site_data_set_cookie(manager, "https://example.com/", &cookieA) != 0) {
+        log("  FAIL: servo_site_data_set_cookie failed for cookieA\n");
+        servo_site_data_manager_free(manager);
+        return 1;
+    }
+
+    // 2. Set cookie B
+    struct ServoCookie cookieB = {
+        .name = "theme",
+        .value = "dark",
+        .domain = "example.com",
+        .path = "/",
+        .expires = 0,
+        .secure = false,
+        .http_only = false,
+        .same_site = SERVO_COOKIE_SAME_SITE_LAX,
+    };
+    if (servo_site_data_set_cookie(manager, "https://example.com/", &cookieB) != 0) {
+        log("  FAIL: servo_site_data_set_cookie failed for cookieB\n");
+        servo_site_data_manager_free(manager);
+        return 1;
+    }
+
+    // 3. Query cookies for URL
+    struct ServoCookie cookies[4];
+    size_t count = servo_site_data_cookies_for_url(manager, "https://example.com/", cookies, 4);
+    if (count < 2) {
+        log("  FAIL: expected at least 2 cookies for URL, got %zu\n", count);
+        servo_site_data_manager_free(manager);
+        return 1;
+    }
+
+    // 4. Visit cookies with visitor
+    test_cookie_visitor_state_t visitor_state;
+    memset(&visitor_state, 0, sizeof(visitor_state));
+    if (servo_site_data_visit_cookies_for_url(manager, "https://example.com/", on_test_cookie_visit, &visitor_state) != SERVO_ERROR_OK) {
+        log("  FAIL: servo_site_data_visit_cookies_for_url returned error\n");
+        servo_site_data_manager_free(manager);
+        return 1;
+    }
+    if (visitor_state.count < 2) {
+        log("  FAIL: visitor saw %d cookies, expected at least 2\n", visitor_state.count);
+        servo_site_data_manager_free(manager);
+        return 1;
+    }
+
+    // 5. Delete specific cookie (token)
+    if (servo_site_data_delete_cookie(manager, "https://example.com/", "token", NULL, NULL) != SERVO_ERROR_OK) {
+        log("  FAIL: servo_site_data_delete_cookie returned error\n");
+        servo_site_data_manager_free(manager);
+        return 1;
+    }
+
+    // Verify token is deleted and only theme remains
+    count = servo_site_data_cookies_for_url(manager, "https://example.com/", cookies, 4);
+    if (count != 1 || strcmp(cookies[0].name, "theme") != 0) {
+        log("  FAIL: expected 1 cookie ('theme') after deleting 'token', got %zu\n", count);
+        servo_site_data_manager_free(manager);
+        return 1;
+    }
+
+    // 6. Delete all remaining cookies
+    if (servo_site_data_delete_all_cookies(manager, NULL, NULL, NULL) != SERVO_ERROR_OK) {
+        log("  FAIL: servo_site_data_delete_all_cookies returned error\n");
+        servo_site_data_manager_free(manager);
+        return 1;
+    }
+
+    count = servo_site_data_cookies_for_url(manager, "https://example.com/", cookies, 4);
+    if (count != 0) {
+        log("  FAIL: expected 0 cookies after delete_all, got %zu\n", count);
+        servo_site_data_manager_free(manager);
+        return 1;
+    }
+
+    servo_site_data_manager_free(manager);
+    log("  PASS: test_cookies_round_trip completed successfully\n");
+    return 0;
+}
+
+typedef struct {
+    int count;
+    char sites[8][128];
+    uint32_t storage_types[8];
+} test_site_visitor_state_t;
+
+static bool on_test_site_visit(const struct ServoSiteData* site,
+                               uintptr_t count,
+                               uintptr_t total,
+                               void* user_data)
+{
+    (void)count;
+    (void)total;
+    test_site_visitor_state_t* s = (test_site_visitor_state_t*)user_data;
+    if (s->count < 8 && site && site->site) {
+        strncpy(s->sites[s->count], site->site, sizeof(s->sites[0]) - 1);
+        s->storage_types[s->count] = site->storage_types;
+        s->count++;
+    }
+    return true;
+}
+
+static int test_site_storage(struct Servo* servo)
+{
+    log("running test_site_storage\n");
+    struct ServoSiteDataManager* manager = servo_get_site_data_manager(servo);
+    if (!manager) {
+        log("  FAIL: servo_get_site_data_manager returned NULL\n");
+        return 1;
+    }
+
+    // 1. Visit sites with SERVO_STORAGE_TYPE_ALL
+    test_site_visitor_state_t vstate;
+    memset(&vstate, 0, sizeof(vstate));
+    ServoError err = servo_site_data_visit_sites(manager, SERVO_STORAGE_TYPE_ALL, on_test_site_visit, &vstate);
+    if (err != SERVO_ERROR_OK) {
+        log("  FAIL: servo_site_data_visit_sites returned %d\n", err);
+        servo_site_data_manager_free(manager);
+        return 1;
+    }
+
+    // 2. Clear site data for specific sites with Local & Session storage flags
+    const char* sites[] = { "example.com", "other.org" };
+    err = servo_site_data_clear_site_data(manager, sites, 2, SERVO_STORAGE_TYPE_LOCAL | SERVO_STORAGE_TYPE_SESSION);
+    if (err != SERVO_ERROR_OK) {
+        log("  FAIL: servo_site_data_clear_site_data returned %d\n", err);
+        servo_site_data_manager_free(manager);
+        return 1;
+    }
+
+    // 3. Clear site data for all storage types
+    err = servo_site_data_clear_site_data(manager, sites, 1, SERVO_STORAGE_TYPE_ALL);
+    if (err != SERVO_ERROR_OK) {
+        log("  FAIL: servo_site_data_clear_site_data with ALL returned %d\n", err);
+        servo_site_data_manager_free(manager);
+        return 1;
+    }
+
+    servo_site_data_manager_free(manager);
+    log("  PASS: test_site_storage completed successfully\n");
+    return 0;
+}
+
 // Entry point for the integration test. This is called from the Rust-side test
 // runner.
 //
@@ -678,6 +1182,9 @@ int run_c_integration_tests(void)
     servo_options_set_multiprocess(options, false);
     servo_builder_set_options(builder, options);
 
+    // Register custom scheme protocol handler
+    servo_builder_register_protocol_handler(builder, "custom", on_custom_protocol_handler, NULL);
+
     servo = servo_builder_build(builder);
     if (!servo) {
         log("  FAIL: servo_builder_build returned NULL\n");
@@ -687,6 +1194,21 @@ int run_c_integration_tests(void)
     servo_setup_logging(servo);
 
     result = test_webview_load_and_screenshot(servo);
+    if (result == 0) {
+        result = test_webview_custom_scheme(servo);
+    }
+    if (result == 0) {
+        result = test_webview_http_interception(servo);
+    }
+    if (result == 0) {
+        result = test_webview_streaming_interception(servo);
+    }
+    if (result == 0) {
+        result = test_cookies_round_trip(servo);
+    }
+    if (result == 0) {
+        result = test_site_storage(servo);
+    }
     if (result == 0) {
         result = test_webview_close(servo);
     }
