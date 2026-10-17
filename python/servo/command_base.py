@@ -737,10 +737,6 @@ class CommandBase(object):
             if self.config["build"]["media-stack"] != "auto":
                 media_stack = self.config["build"]["media-stack"]
                 assert media_stack
-            elif not self.target.is_cross_build():
-                media_stack = "gstreamer"
-            else:
-                media_stack = "dummy"
 
         # This is a workaround for Ubuntu 20.04, which doesn't support a new enough GStreamer.
         # Once we drop support for this platform (it's currently needed for wpt.fyi runners),
@@ -764,6 +760,7 @@ class CommandBase(object):
         capture_output: bool = False,
         target_override: Optional[str] = None,
         subcommand: str | None = None,
+        sanitizer: SanitizerKind = SanitizerKind.NONE,
         **_kwargs: Any,
     ) -> CompletedProcess[bytes] | int:
         env = cast(dict[str, str], env or self.build_env())
@@ -771,7 +768,7 @@ class CommandBase(object):
         # NB: On non-Linux platforms we cannot check whether GStreamer is installed until
         # environment variables are set via `self.build_env()`.
         platform = servo.platform.get()
-        if self.enable_media and not platform.is_gstreamer_installed(self.target):
+        if not self.target.is_cross_build() and self.enable_media and not platform.is_gstreamer_installed(self.target):
             raise FileNotFoundError(
                 "GStreamer libraries not found (>= version 1.18).Please see installation instructions in README.md"
             )
@@ -814,8 +811,22 @@ class CommandBase(object):
 
         if "-p" not in cargo_args:  # We're building specific package, that may not have features
             features += list(self.features)
-            if self.enable_media:
-                features.append("media-gstreamer")
+
+            if not self.enable_media or sanitizer.is_asan():
+                if "--no-default-features" not in cargo_args:
+                    cargo_args.append("--no-default-features")
+                    features.append("default_base")
+                    if self.enable_media:
+                        features.append("media-gstreamer")
+                    if not sanitizer.is_asan():
+                        features.append("jemalloc")
+                else:
+                    print(
+                        "Info: Explicit `--no-default-features` passed in an ASAN or `--media-stack dummy` build."
+                        " Skipping `mach` override of default features. If you are not sure what"
+                        " you are doing, consider removing `--no-default-features` from your invocation."
+                    )
+
             if self.config["build"]["debug-mozjs"] or debug_mozjs:
                 features.append("debugmozjs")
 

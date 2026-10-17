@@ -19,12 +19,14 @@ crate-type = ["rlib"]
 # Note: Servoshell does not use the default features of servo, so you also
 # need to add feature-groups that should be default to ports/servoshell/Cargo.toml
 default = ["bundled", "clipboard", "default_tooling", "js_jit", "multiprocess"]
+
 ## Convenience feature groups, to select multiple related features for a sensible
 #  configuration with `--no-default-features` build
 #
 # A convenience feature to enable all default web features servo has.
 default_web_features = ["brotli-compression-stream", "clipboard", "webcrypto", "webgpu", "webgl", "webxr"]
 default_tooling = ["devtools"]
+
 # Bundle required resources in the binary.
 bundled = ["baked-in-resources", "bundled_freetype"]
 
@@ -65,7 +67,9 @@ gamepad = [
 jitspew = ["script/jitspew"]
 js_backtrace = ["script/js_backtrace"]
 js_jit = ["script/js_jit"]
-media-gstreamer = ["servo-media-gstreamer", "gstreamer"]
+# The `dep:` prefixes here mean that these do nothing on Android and OHOS, where these
+# dependencies aren't declared.
+media-gstreamer = ["dep:servo-media-gstreamer", "dep:gstreamer"]
 
 # Allows multiprocess and ipc mode. If enabled this still needs the correct preference flags to use multi process mode.
 multiprocess = ["servo-base/multiprocess", "servo-constellation/multiprocess"]
@@ -131,7 +135,6 @@ embedder_traits = { workspace = true }
 env_logger = { workspace = true }
 euclid = { workspace = true }
 fonts = { workspace = true }
-gstreamer = { workspace = true, optional = true }
 http = { workspace = true }
 image = { workspace = true }
 ipc-channel = { workspace = true }
@@ -163,7 +166,6 @@ servo-constellation-traits = { workspace = true }
 servo-geometry = { workspace = true }
 servo-media = { workspace = true }
 servo-media-dummy = { workspace = true }
-servo-media-gstreamer = { workspace = true, optional = true }
 servo-tracing = { workspace = true }
 servo-url = { workspace = true }
 servo-wakelock = { workspace = true }
@@ -192,6 +194,8 @@ webxr = { workspace = true, optional = true }
 
 [target.'cfg(not(any(target_os = "android", target_env = "ohos")))'.dependencies]
 arboard = { workspace = true, optional = true }
+gstreamer = { workspace = true, optional = true }
+servo-media-gstreamer = { workspace = true, optional = true }
 webxr = { workspace = true, optional = true, features = ["glwindow", "headless"] }
 
 [target.'cfg(all(not(target_os = "windows"), not(target_os = "ios"), not(target_os = "android"), not(target_env = "ohos"), not(target_arch = "arm"), not(target_arch = "aarch64"), not(target_arch="riscv32"), not(target_arch="riscv64")))'.dependencies]
