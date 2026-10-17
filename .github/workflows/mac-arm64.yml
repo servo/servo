@@ -125,7 +125,9 @@ jobs:
         name: Bootstrap
         run: |
           ./mach bootstrap --yes --skip-lints --skip-nextest
-          brew install gnu-tar shellcheck
+          brew install gnu-tar
+      - name: Install Shellcheck
+        run: brew install shellcheck
       - name: Build (${{ inputs.profile }})
         env:
           RUSTFLAGS: ${{ inputs.profile == 'checked-release' && '-D warnings' || '' }}
