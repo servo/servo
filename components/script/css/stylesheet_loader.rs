@@ -46,12 +46,13 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::shadowroot::shadowroot::ShadowRoot;
 use crate::dom::window::CSSErrorReporter;
 use crate::event_loop::document_loader::LoadType;
-use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
+use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request_with_claim};
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::tasks::task_source::SendableTaskSource;
 use crate::unminify::{
     BeautifyFileType, create_output_file, create_temp_files, execute_js_beautify,
 };
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 /// An struct which is used to uniquely identify a [`StylesheetContext`] for
 /// tracking the set of script-blocking stylesheets.
@@ -533,9 +534,10 @@ impl ElementStylesheetLoader<'_> {
 
         // https://html.spec.whatwg.org/multipage/#default-fetch-and-process-the-linked-resource
         let global = element.global();
-        let request = create_a_potential_cors_request(
+        let url_record = ensure_blob_referenced_by_url_is_kept_alive(&global, url.clone());
+        let request = create_a_potential_cors_request_with_claim(
             Some(document.webview_id()),
-            url.clone(),
+            url_record,
             Destination::Style,
             cors_setting,
             None,
