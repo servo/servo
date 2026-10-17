@@ -117,6 +117,19 @@ pub(crate) trait FetchResponseListener: Send + 'static {
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     );
+    fn process_response_eof_with_body(
+        self,
+        cx: &mut JSContext,
+        request_id: RequestId,
+        response: Result<(), NetworkError>,
+        timing: ResourceFetchTiming,
+        body: Option<servo_arc::Arc<parking_lot::Mutex<net_traits::response::ResponseBody>>>,
+    ) where
+        Self: Sized,
+    {
+        let _ = body;
+        self.process_response_eof(cx, request_id, response, timing);
+    }
     fn process_csp_violations(
         &mut self,
         cx: &mut js::context::JSContext,
@@ -180,9 +193,10 @@ impl<Listener: FetchResponseListener> NetworkListener<Listener> {
                     FetchResponseMsg::ProcessResponseChunk(request_id, data) => {
                         fetch_listener.process_response_chunk(cx, request_id, data)
                     },
-                    FetchResponseMsg::ProcessResponseEOF(request_id, result, timing) => {
+                    FetchResponseMsg::ProcessResponseEOF(request_id, result, timing, body) => {
                         if let Some(fetch_listener) = context.take() {
-                            fetch_listener.process_response_eof(cx, request_id, result, timing);
+                            fetch_listener
+                                .process_response_eof_with_body(cx, request_id, result, timing, body);
                         };
                     },
                     FetchResponseMsg::ProcessCspViolations(request_id, violations) => {

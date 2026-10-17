@@ -827,7 +827,7 @@ pub(crate) fn load_whole_resource(
                 })
             },
             FetchResponseMsg::ProcessResponseChunk(_, data) => buf.extend_from_slice(&data),
-            FetchResponseMsg::ProcessResponseEOF(_, Ok(_), _) => {
+            FetchResponseMsg::ProcessResponseEOF(_, Ok(_), _, _) => {
                 let metadata = metadata.unwrap();
                 if let Some(timing) = &metadata.timing {
                     submit_timing_data(cx, global, url, InitiatorType::Other, timing);
@@ -835,7 +835,7 @@ pub(crate) fn load_whole_resource(
                 return Ok((metadata, buf, muted_errors));
             },
             FetchResponseMsg::ProcessResponse(_, Err(e)) |
-            FetchResponseMsg::ProcessResponseEOF(_, Err(e), _) => return Err(e),
+            FetchResponseMsg::ProcessResponseEOF(_, Err(e), _, _) => return Err(e),
             FetchResponseMsg::ProcessCspViolations(_, violations) => {
                 csp_violations_processor.process_csp_violations(cx, violations);
             },
