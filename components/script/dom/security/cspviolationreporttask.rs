@@ -28,11 +28,12 @@ use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::reporting::reportingobserver::ReportingObserver;
 use crate::dom::securitypolicyviolationevent::SecurityPolicyViolationEvent;
 use crate::dom::types::GlobalScope;
-use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
+use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request_with_claim};
 use crate::fetch::network_listener::{
     FetchResponseListener, ResourceTimingListener, submit_timing,
 };
 use crate::tasks::task::TaskOnce;
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 pub(crate) struct CSPViolationReportTask {
     global: Trusted<GlobalScope>,
@@ -110,9 +111,10 @@ impl CSPViolationReportTask {
                 "application/csp-report".parse::<mime::Mime>().unwrap(),
             ));
             let request_body = self.serialize_violation();
-            let request = create_a_potential_cors_request(
+            let url = ensure_blob_referenced_by_url_is_kept_alive(&global, endpoint.clone());
+            let request = create_a_potential_cors_request_with_claim(
                 None,
-                endpoint.clone(),
+                url,
                 Destination::Report,
                 None,
                 None,
