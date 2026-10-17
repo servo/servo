@@ -20,8 +20,7 @@ use js::jsapi::{HandleValueArray, JSITER_OWNONLY, JSType, PropertyDescriptor};
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::wrappers2::{
-    IsArgumentsObject, JS_CallFunctionName, JS_GetOwnPropertyDescriptorById, JS_HasOwnProperty,
-    JS_TypeOfValue,
+    IsArgumentsObject, JS_CallFunctionName, JS_HasOwnProperty, JS_TypeOfValue,
 };
 use js::rust::{HandleObject, HandleValue, IdVector};
 use net_traits::CookieSource::{HTTP, NonHTTP};
@@ -32,7 +31,8 @@ use script_bindings::codegen::GenericBindings::PermissionStatusBinding::{
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::conversions::is_array_like;
 use script_bindings::js::{
-    GetPropertyKeys, JS_GetProperty, JS_GetPropertyById, JS_IsExceptionPending,
+    GetPropertyKeys, JS_GetOwnPropertyDescriptorById, JS_GetProperty, JS_GetPropertyById,
+    JS_IsExceptionPending,
 };
 use script_bindings::num::Finite;
 use script_bindings::reflector::DomObject;
@@ -495,7 +495,6 @@ fn jsval_to_webdriver_inner(
     }
 }
 
-#[expect(unsafe_code)]
 /// <https://w3c.github.io/webdriver/#dfn-clone-an-object>
 fn clone_an_object(
     cx: &mut CurrentRealm,
@@ -574,15 +573,13 @@ fn clone_an_object(
             rooted!(&in(cx) let mut desc = PropertyDescriptor::default());
 
             let mut is_none = false;
-            let succeeded = unsafe {
-                JS_GetOwnPropertyDescriptorById(
-                    cx,
-                    object_handle,
-                    id.handle(),
-                    desc.handle_mut(),
-                    &mut is_none,
-                )
-            };
+            let succeeded = JS_GetOwnPropertyDescriptorById(
+                cx,
+                object_handle,
+                id.handle(),
+                desc.handle_mut(),
+                &mut is_none,
+            );
             if !succeeded {
                 return Err(JavaScriptEvaluationError::SerializationError(
                     JavaScriptEvaluationResultSerializationError::OtherJavaScriptError,

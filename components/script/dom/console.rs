@@ -28,14 +28,16 @@ use js::rust::wrappers2::{
     JS_ValueToFunction, MapEntries, MapSize,
 };
 use js::rust::wrappers2::{
-    GetBuiltinClass, JS_ClearPendingException, JS_GetOwnPropertyDescriptorById, JS_Stringify,
-    JS_ValueToSource,
+    GetBuiltinClass, JS_ClearPendingException, JS_Stringify, JS_ValueToSource,
 };
 #[cfg(feature = "devtools")]
 use js::rust::{CapturedJSStack, describe_scripted_caller, for_of};
 use js::rust::{HandleObject, HandleValue, IdVector, ToNumber, ToString};
 use script_bindings::conversions::get_dom_class;
-use script_bindings::js::{GetPropertyKeys, JS_GetPropertyById, JS_GetPrototype, JS_IdToValue};
+use script_bindings::js::{
+    GetPropertyKeys, JS_GetOwnPropertyDescriptorById, JS_GetPropertyById, JS_GetPrototype,
+    JS_IdToValue,
+};
 
 use crate::dom::bindings::codegen::Bindings::ConsoleBinding::consoleMethods;
 #[cfg(feature = "devtools")]
@@ -415,15 +417,13 @@ mod devtools {
             rooted!(&in(cx) let mut descriptor = PropertyDescriptor::default());
 
             let mut is_none = false;
-            if !unsafe {
-                JS_GetOwnPropertyDescriptorById(
-                    cx,
-                    object.handle(),
-                    id.handle(),
-                    descriptor.handle_mut(),
-                    &mut is_none,
-                )
-            } {
+            if !JS_GetOwnPropertyDescriptorById(
+                cx,
+                object.handle(),
+                id.handle(),
+                descriptor.handle_mut(),
+                &mut is_none,
+            ) {
                 return None;
             }
             if is_none {
@@ -589,15 +589,13 @@ pub(crate) fn stringify_handle_value(cx: &mut JSContext, message: HandleValue) -
             rooted!(&in(cx) let mut desc = PropertyDescriptor::default());
 
             let mut is_none = false;
-            if !unsafe {
-                JS_GetOwnPropertyDescriptorById(
-                    cx,
-                    obj.handle(),
-                    id.handle(),
-                    desc.handle_mut(),
-                    &mut is_none,
-                )
-            } {
+            if !JS_GetOwnPropertyDescriptorById(
+                cx,
+                obj.handle(),
+                id.handle(),
+                desc.handle_mut(),
+                &mut is_none,
+            ) {
                 return DOMString::from_static("/* invalid */");
             }
 

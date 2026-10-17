@@ -30,9 +30,8 @@ use js::jsapi::{
 use js::jsval::{NullValue, PrivateValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers2::{
-    AppendToIdVector, JS_ForwardGetPropertyTo, JS_GetOwnPropertyDescriptorById,
-    JS_HasOwnPropertyById, JS_HasPropertyById, JS_TransplantObject, NewWindowProxy, SetWindowProxy,
-    int_to_jsid,
+    AppendToIdVector, JS_ForwardGetPropertyTo, JS_HasOwnPropertyById, JS_HasPropertyById,
+    JS_TransplantObject, NewWindowProxy, SetWindowProxy, int_to_jsid,
 };
 use js::rust::{Handle, MutableHandle, MutableHandleValue, get_object_class};
 use js::typedarray::JSObjectStorage;
@@ -49,7 +48,7 @@ use script_bindings::codegen::GenericBindings::WindowBinding::{
 };
 use script_bindings::conversions::jsid_to_string;
 use script_bindings::domstring::TracedDOMString;
-use script_bindings::js::GetPropertyKeys;
+use script_bindings::js::{GetPropertyKeys, JS_GetOwnPropertyDescriptorById};
 use script_bindings::proxyhandler::{
     self, CROSS_ORIGIN_PROPERTY_HOLDER_WEAK_MAP_SLOT, CrossOriginProperties,
     cross_origin_get_own_property_helper, cross_origin_own_property_keys,
@@ -1256,9 +1255,13 @@ unsafe extern "C" fn get_own_property_descriptor(
 
     // Step 3. If IsPlatformObjectSameOrigin(W) is true, then return ! OrdinaryGetOwnProperty(W, P).
     if is_platform_object_same_origin(cx, proxy) {
-        return unsafe {
-            JS_GetOwnPropertyDescriptorById(cx, target.handle(), id, property_descriptor, is_none)
-        };
+        return JS_GetOwnPropertyDescriptorById(
+            cx,
+            target.handle(),
+            id,
+            property_descriptor,
+            is_none,
+        );
     }
 
     // Step 4. Let property be CrossOriginGetOwnPropertyHelper(W, P).
