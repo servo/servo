@@ -43,9 +43,10 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::messageevent::MessageEvent;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::event_loop::timers::OneshotTimerCallback;
-use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
+use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request_with_claim};
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 const DEFAULT_RECONNECTION_TIME: Duration = Duration::from_millis(5000);
 
@@ -589,13 +590,16 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
             // Step 4 If urlRecord is failure, then throw a "SyntaxError" DOMException.
             Err(_) => return Err(Error::Syntax(None)),
         };
+
+        let url_record = ensure_blob_referenced_by_url_is_kept_alive(global, url_record);
+
         // Step 1 Let ev be a new EventSource object.
         let event_source = EventSource::new(
             cx,
             global,
             proto,
             // Step 5 Set ev's url to urlRecord.
-            url_record.clone(),
+            url_record.url(),
             event_source_init.withCredentials,
         );
         global.track_event_source(&event_source);
@@ -612,7 +616,7 @@ impl EventSourceMethods<crate::DomTypeHolder> for EventSource {
         // given urlRecord, the empty string, and corsAttributeState.
         // Step 9. Set request's client to the environment settings object and other state;
         // `with_global_scope` supplies client, origin, policy container, etc.
-        let mut request = create_a_potential_cors_request(
+        let mut request = create_a_potential_cors_request_with_claim(
             global.webview_id(),
             url_record,
             Destination::None,
