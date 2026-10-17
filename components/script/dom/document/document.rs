@@ -2455,7 +2455,9 @@ impl Document {
         self.decr_ignore_opens_during_unload_counter();
 
         // Step 20. If oldDocument's salvageable state is false, then destroy oldDocument.
-        // TODO
+        if !self.salvageable.get() {
+            self.destroy(cx);
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#completely-finish-loading>
