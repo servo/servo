@@ -16,13 +16,11 @@ use js::jsapi::{
     JSITER_HIDDEN, JSITER_OWNONLY, JSITER_SYMBOLS, JSPROP_ENUMERATE, PropertyDescriptor,
 };
 use js::jsval::{ObjectValue, UndefinedValue};
-use js::rust::wrappers2::{
-    GetPropertyKeys, JS_DefineUCProperty2, JS_GetOwnPropertyDescriptorById, JS_NewPlainObject,
-};
+use js::rust::wrappers2::{GetPropertyKeys, JS_DefineUCProperty2, JS_NewPlainObject};
 use js::rust::{HandleId, HandleValue, IdVector, MutableHandleValue};
 
 use crate::conversions::jsid_to_string;
-use crate::js::{JS_GetPropertyById, JS_IdToValue};
+use crate::js::{JS_GetOwnPropertyDescriptorById, JS_GetPropertyById, JS_IdToValue};
 use crate::str::{ByteString, DOMString, USVString};
 
 pub trait RecordKey: Eq + Hash + Sized {
@@ -140,15 +138,13 @@ where
             rooted!(&in(cx) let mut desc = PropertyDescriptor::default());
 
             let mut is_none = false;
-            if unsafe {
-                !JS_GetOwnPropertyDescriptorById(
-                    cx,
-                    object.handle(),
-                    id.handle(),
-                    desc.handle_mut(),
-                    &mut is_none,
-                )
-            } {
+            if !JS_GetOwnPropertyDescriptorById(
+                cx,
+                object.handle(),
+                id.handle(),
+                desc.handle_mut(),
+                &mut is_none,
+            ) {
                 return Err(());
             }
 
