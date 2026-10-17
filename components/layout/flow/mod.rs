@@ -259,18 +259,18 @@ impl BlockLevelBox {
             Au::zero().max(block_size - pbm.padding_border_sums.block - margin.block_sum())
         });
 
-        let tentative_block_size = content_box_sizes.block.resolve_extrinsic(
+        let mut tentative_block_size = content_box_sizes.block.resolve_extrinsic(
             automatic_block_size(layout_context, &same_formatting_context_block.base),
             Au::zero(),
             available_block_size,
         );
-        let tentative_block_size = adjust_block_size_for_percentage_quirk(
+        if skippable_for_block_percentage_quirk(
             layout_context,
-            tentative_block_size,
-            containing_block,
             &same_formatting_context_block.base,
             None,
-        );
+        ) {
+            tentative_block_size.replace_if_indefinite_with(containing_block.size.block);
+        }
 
         let get_inline_content_sizes = || {
             let constraint_space = ConstraintSpace::new(
@@ -572,6 +572,7 @@ fn compute_inline_content_sizes_for_block_level_boxes(
                     containing_block,
                     &LogicalVec2::zero(),
                     false, /* auto_block_size_stretches_to_containing_block */
+                    false, /* skippable_for_block_percentage_quirk */
                 );
                 let style = &float_box.contents.style();
                 let container_writing_mode = containing_block.style.writing_mode;
@@ -594,6 +595,7 @@ fn compute_inline_content_sizes_for_block_level_boxes(
                     false,               /* auto_block_size_stretches_to_containing_block */
                     false,               /* is_replaced */
                     !is_anonymous_block, /* establishes_containing_block */
+                    skippable_for_block_percentage_quirk(layout_context, base, None),
                     |_| None, /* TODO: support preferred aspect ratios on non-replaced boxes */
                     |constraint_space| {
                         base.inline_content_sizes(layout_context, constraint_space, contents)
@@ -621,6 +623,11 @@ fn compute_inline_content_sizes_for_block_level_boxes(
                     containing_block,
                     &LogicalVec2::zero(),
                     false, /* auto_block_size_stretches_to_containing_block */
+                    skippable_for_block_percentage_quirk(
+                        layout_context,
+                        &independent.base,
+                        Some(independent),
+                    ),
                 );
                 Some((
                     inline_content_sizes_result,
@@ -1236,6 +1243,8 @@ impl IndependentFormattingContext {
         let automatic_block_size = automatic_block_size(layout_context, &self.base);
         let is_table = self.is_table();
         let preferred_aspect_ratio = self.preferred_aspect_ratio(&pbm.padding_border_sums);
+        let skippable_for_block_percentage_quirk =
+            skippable_for_block_percentage_quirk(layout_context, &context.base, Some(context));
 
         #[derive(Default)]
         struct Cache {
@@ -1273,13 +1282,13 @@ impl IndependentFormattingContext {
                 };
             cache.min_block_size = min_block_size;
             cache.max_block_size = max_block_size;
-            cache.tentative_block_size = adjust_block_size_for_percentage_quirk(
-                layout_context,
-                SizeConstraint::new(preferred_block_size, min_block_size, max_block_size),
-                containing_block,
-                &context.base,
-                Some(context),
-            );
+            cache.tentative_block_size =
+                SizeConstraint::new(preferred_block_size, min_block_size, max_block_size);
+            if skippable_for_block_percentage_quirk {
+                cache
+                    .tentative_block_size
+                    .replace_if_indefinite_with(containing_block.size.block);
+            }
             cache.depends_on_stretch_size = depends_on_stretch_size;
         };
 
@@ -1629,7 +1638,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
     let tentative_block_content_size = context.and_then(|context| {
         context.tentative_block_content_size(preferred_aspect_ratio, available_inline_size)
     });
-    let tentative_block_size = if let Some(block_content_size) = tentative_block_content_size {
+    let mut tentative_block_size = if let Some(block_content_size) = tentative_block_content_size {
         SizeConstraint::Definite(content_box_sizes.block.resolve(
             LogicalAxis::Block,
             automatic_block_size,
@@ -1645,13 +1654,9 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
             available_block_size,
         )
     };
-    let tentative_block_size = adjust_block_size_for_percentage_quirk(
-        layout_context,
-        tentative_block_size,
-        containing_block,
-        base,
-        context,
-    );
+    if skippable_for_block_percentage_quirk(layout_context, base, context) {
+        tentative_block_size.replace_if_indefinite_with(containing_block.size.block);
+    }
 
     // https://drafts.csswg.org/css2/#the-width-property
     // https://drafts.csswg.org/css2/visudet.html#min-max-widths
@@ -2224,28 +2229,25 @@ impl IndependentFormattingContext {
         let automatic_block_size = Size::FitContent;
         let tentative_block_content_size =
             self.tentative_block_content_size(preferred_aspect_ratio, available_inline_size);
-        let tentative_block_size = if let Some(block_content_size) = tentative_block_content_size {
-            SizeConstraint::Definite(content_box_sizes_and_pbm.content_box_sizes.block.resolve(
-                LogicalAxis::Block,
-                automatic_block_size,
-                Au::zero,
-                available_block_size,
-                || block_content_size,
-                is_table,
-            ))
-        } else {
-            content_box_sizes_and_pbm
-                .content_box_sizes
-                .block
-                .resolve_extrinsic(automatic_block_size, Au::zero(), available_block_size)
-        };
-        let tentative_block_size = adjust_block_size_for_percentage_quirk(
-            layout_context,
-            tentative_block_size,
-            containing_block,
-            &self.base,
-            Some(self),
-        );
+        let mut tentative_block_size =
+            if let Some(block_content_size) = tentative_block_content_size {
+                SizeConstraint::Definite(content_box_sizes_and_pbm.content_box_sizes.block.resolve(
+                    LogicalAxis::Block,
+                    automatic_block_size,
+                    Au::zero,
+                    available_block_size,
+                    || block_content_size,
+                    is_table,
+                ))
+            } else {
+                content_box_sizes_and_pbm
+                    .content_box_sizes
+                    .block
+                    .resolve_extrinsic(automatic_block_size, Au::zero(), available_block_size)
+            };
+        if skippable_for_block_percentage_quirk(layout_context, &self.base, Some(self)) {
+            tentative_block_size.replace_if_indefinite_with(containing_block.size.block);
+        }
 
         let get_content_size = || {
             let constraint_space =
@@ -2337,26 +2339,23 @@ impl IndependentFormattingContext {
     }
 }
 
-// <https://quirks.spec.whatwg.org/#the-percentage-height-calculation-quirk>
-fn adjust_block_size_for_percentage_quirk(
+/// Whether a box may be skipped (deferring to its containing block) when resolving percentages
+/// in the block size of a descendant. This is known as "The percentage height calculation quirk".
+/// Note that even if returning true, it won't be skipped if it has a definite size.
+/// <https://quirks.spec.whatwg.org/#the-percentage-height-calculation-quirk>
+#[inline]
+fn skippable_for_block_percentage_quirk(
     layout_context: &LayoutContext,
-    tentative_block_size: SizeConstraint,
-    containing_block: &ContainingBlock,
     base: &LayoutBoxBase,
     context: Option<&IndependentFormattingContext>,
-) -> SizeConstraint {
+) -> bool {
     // This logic doesn't match the algorithm in the spec, but it should be roughly
     // equivalent to the desired behavior. The spec is written with a CSS2 mindset
     // that ignores modern features, and browsers aren't fully interoperable.
-    if layout_context.style_context.quirks_mode() != QuirksMode::Quirks ||
-        tentative_block_size.is_definite() ||
-        base.base_fragment_info
+    layout_context.style_context.quirks_mode() == QuirksMode::Quirks &&
+        !base
+            .base_fragment_info
             .flags
-            .contains(FragmentFlags::IS_WIDGET) ||
-        context.is_some_and(|context| !context.is_block_container())
-    {
-        tentative_block_size
-    } else {
-        containing_block.size.block
-    }
+            .contains(FragmentFlags::IS_WIDGET) &&
+        context.is_none_or(|context| context.is_block_container())
 }

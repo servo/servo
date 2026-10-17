@@ -134,6 +134,7 @@ pub(crate) fn outer_inline(
     auto_block_size_stretches_to_containing_block: bool,
     is_replaced: bool,
     establishes_containing_block: bool,
+    skippable_for_block_percentage_quirk: bool,
     get_preferred_aspect_ratio: impl FnOnce(&LogicalVec2<Au>) -> Option<AspectRatio>,
     get_inline_content_size: impl FnOnce(&ConstraintSpace) -> InlineContentSizesResult,
     get_tentative_block_content_size: impl FnOnce(Option<AspectRatio>) -> Option<ContentSizes>,
@@ -170,7 +171,7 @@ pub(crate) fn outer_inline(
                 Size::FitContent
             };
             let aspect_ratio = get_preferred_aspect_ratio(&pbm.padding_border_sums);
-            let block_size =
+            let mut block_size =
                 if let Some(block_content_size) = get_tentative_block_content_size(aspect_ratio) {
                     SizeConstraint::Definite(content_box_sizes.block.resolve(
                         LogicalAxis::Block,
@@ -187,6 +188,9 @@ pub(crate) fn outer_inline(
                         available_block_size,
                     )
                 };
+            if skippable_for_block_percentage_quirk {
+                block_size.replace_if_indefinite_with(containing_block.size.block.into())
+            }
             ConstraintSpace::new(block_size, style, aspect_ratio)
         } else {
             // Even if the size doesn't directly depend on block constraints, since this box
@@ -646,6 +650,13 @@ impl SizeConstraint {
         match self {
             Self::Definite(size) => size,
             Self::MinMax(min, _) => min,
+        }
+    }
+
+    #[inline]
+    pub(crate) fn replace_if_indefinite_with(&mut self, replacement: Self) {
+        if !self.is_definite() {
+            *self = replacement
         }
     }
 }
