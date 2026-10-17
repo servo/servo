@@ -107,6 +107,18 @@ pub fn JS_NewObjectWithGivenProto(
     unsafe { js::rust::wrappers2::JS_NewObjectWithGivenProto(cx, clasp, proto) }
 }
 
+/// Safe wrapper around [`js::rust::wrappers2::JS_GetProperty`].
+#[allow(non_snake_case)]
+#[inline]
+pub fn JS_GetProperty(
+    cx: &mut JSContext,
+    obj: HandleObject,
+    name: &CStr,
+    vp: MutableHandleValue,
+) -> bool {
+    unsafe { js::rust::wrappers2::JS_GetProperty(cx, obj, name.as_ptr(), vp) }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
