@@ -301,7 +301,7 @@ impl CookieStorage {
 
         cookies
             .iter_mut()
-            .filter(move |c| c.appropriate_for_url_with_context(url, source, context))
+            .filter(move |c| c.appropriate_for_url_with_context(url, source, context.clone()))
             .sorted_by(|a: &&mut ServoCookie, b: &&mut ServoCookie| {
                 // The user agent SHOULD sort the cookie-list
                 CookieStorage::cookie_comparator(a, b)
