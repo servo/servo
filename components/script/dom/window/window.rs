@@ -957,7 +957,7 @@ impl Window {
             return true;
         }
 
-        // // Step 2: If window's relevant agent's event loop's termination nesting level is nonzero,
+        // Step 2: If window's relevant agent's event loop's termination nesting level is nonzero,
         // then optionally return true.
         if ScriptThread::termination_nesting_level_is_nonzero() {
             return true;
