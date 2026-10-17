@@ -80,10 +80,6 @@ impl PlatformWindow for EmbeddedPlatformWindow {
         false
     }
 
-    #[cfg_attr(
-        not(all(feature = "tracing", feature = "tracing-hitrace")),
-        expect(unused_variables)
-    )]
     fn update_user_interface_state(
         &self,
         state: &RunningAppState,
