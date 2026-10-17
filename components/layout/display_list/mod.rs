@@ -1848,6 +1848,18 @@ impl<'a> BuilderForBoxFragment<'a> {
     }
 
     fn build_backdrop_filter(&mut self, builder: &mut DisplayListBuilder, state: &TraversalState) {
+        // https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty
+        // > ... unless the element it applies to is a document root element in
+        // > the current browsing context.
+        if self
+            .fragment
+            .base
+            .flags
+            .contains(FragmentFlags::IS_ROOT_ELEMENT)
+        {
+            return;
+        }
+
         let style = self.fragment.style();
         let effects = style.get_effects();
         if effects.backdrop_filter.0.is_empty() {

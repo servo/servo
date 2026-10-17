@@ -843,7 +843,9 @@ impl ComputedValuesExt for ComputedValues {
         // > context.
         // Note `will-change: backdrop-filter` is handled above by
         // `WillChangeBits::STACKING_CONTEXT_UNCONDITIONAL`.
-        if !effects.backdrop_filter.0.is_empty() {
+        if !effects.backdrop_filter.0.is_empty() &&
+            !fragment_flags.contains(FragmentFlags::IS_ROOT_ELEMENT)
+        {
             return true;
         }
 
