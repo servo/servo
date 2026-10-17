@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<title>Document objects for added and removed iframes using modules are collected</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/leak-helpers.js"></script>
+<body>
+    <script>
+    promise_test(async () => {
+      assert_true(await createAndDestroyIframeWithHTML(
+        "<script type=\"module\">window.moduleLoaded = \"true\";<\/script>"
+      ));
+    }, "An inline module does not leak the document");
+    promise_test(async () => {
+      assert_true(await createAndDestroyIframeWithHTML(
+        "<script type=\"module\">import \"./resources/set-global-module.js\";<\/script>"
+      ));
+    }, "An inline module with an import does not leak the document");
+    promise_test(async () => {
+      assert_true(await createAndDestroyIframeWithHTML(
+        "<script type=\"module\">import(\"./resources/set-global-module.js\");<\/script>"
+      ));
+    }, "An inline module with a dynamic import does not leak the document");
+    promise_test(async () => {
+      assert_true(await createAndDestroyIframeWithHTML(
+        "<script type=\"module\" src=\"resources/set-global-module.js\"><\/script>"
+      ));
+    }, "An external module  does not leak the document");
+    </script>
+</body>

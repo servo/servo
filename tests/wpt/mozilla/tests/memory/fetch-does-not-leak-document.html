@@ -2,36 +2,17 @@
 <title>Document objects for added and removed iframes are collected</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="resources/leak-helpers.js"></script>
 <body>
     <script>
-    // Create an `<iframe>` element with the given script contents and then
-    // return true if `<iframe>`'s document is no longer resident in memory.
-    async function createAndDestroyIframeWithScript(script) {
-      const iframe = document.createElement("iframe");
-      iframe.srcdoc = `<html><script>${script}<\/script><\/html>`;
-      document.body.appendChild(iframe);
-      // Wait for the document to load.
-      await new Promise(resolve => iframe.onload = resolve);
-      // A small timeout to ensure that things move forward enough.
-      await new Promise(resolve => step_timeout(resolve, 100));
-
-      const weakDocument = new WeakRef(iframe.contentDocument);
-      iframe.remove();
-
-      await TestUtils.gc();
-      await TestUtils.gc();
-
-      return weakDocument.deref() === undefined;
-    }
-
     promise_test(async () => {
-      assert_true(await createAndDestroyIframeWithScript("window.simple = \"true\""));
+      assert_true(await createAndDestroyIframeWithHTML("<script>window.simple = \"true\"<\/script>"));
     }, "A simple <iframe> creation does not leak the Document");
     promise_test(async () => {
-      assert_true(await createAndDestroyIframeWithScript("fetch(\"data:text/plain,simple\").then(response => response.text());"));
+      assert_true(await createAndDestroyIframeWithHTML("<script>fetch(\"data:text/plain,simple\").then(response => response.text());<\/script>"));
     }, "An <iframe> that launches a simple fetch does not leak the Document");
     promise_test(async () => {
-      assert_true(await createAndDestroyIframeWithScript("fetch(\"/fetch/api/resources/infinite-slow-response.py\");"));
+      assert_true(await createAndDestroyIframeWithHTML("<script>fetch(\"/fetch/api/resources/infinite-slow-response.py\");<\/script>"));
     }, "An <iframe> with an in-progress fetch does not leak the Document");
     </script>
 </body>
