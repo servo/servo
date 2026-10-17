@@ -45,13 +45,17 @@
     return `
       <div class="controls">
         <button id="play-pause-button"></button>
-        <input id="progress" type="range" value="0" min="0" max="100" step="1"></input>
-        <span id="position-duration-box" class="hidden">
-          <span id="position-text">#1</span>
-          <span id="duration"> / #2</span>
-        </span>
-        <button id="volume-switch"></button>
-        <input id="volume-level" type="range" value="100" min="0" max="100" step="1"></input>
+        <div>
+          <input id="progress" type="range" value="0" min="0" max="100" step="1"></input>
+          <span id="position-duration-box" class="hidden">
+            <span id="position-text">#1</span>
+            <span id="duration"> / #2</span>
+          </span>
+        </div>
+        <div>
+          <button id="volume-switch"></button>
+          <input id="volume-level" type="range" value="100" min="0" max="100" step="1"></input>
+        </div>
         ${isAudioOnly ? "" : '<button id="fullscreen-switch" class="fullscreen"></button>'}
       </div>
     `;
@@ -92,14 +96,19 @@
         for (const mutation of mutations) {
           // Here we handle the `controls` attribute removal.
           if (mutation.type === "attributes") {
-            this.cleanup();
+            if (this.media.hasAttribute('controls')) {
+              this.initializeDom();
+            } else {
+              this.cleanupDom();
+            }
             return;
           }
           // Here we handle element removal from DOM.
           if (mutation.type === "childList") {
             for (const node of mutation.removedNodes) {
               if (node === this.media) {
-                this.cleanup();
+                this.cleanupDom();
+                this.cleanupCompleteControls();
                 return;
               }
             }
@@ -117,11 +126,26 @@
 
       this.isAudioOnly = this.media.localName == "audio";
 
+      // We also render the shadowtree for cues, which means that the
+      // controls scripts run, but we don't want to show anything.
+      // The above mutation observer then ensures that the controls do
+      // render if at a later stage these controls should be shown.
+      if (this.media.hasAttribute('controls')) {
+        this.initializeDom();
+      }
+    }
+
+    initializeDom() {
+      // Do not reinitialize twice
+      if (this.root) {
+        return;
+      }
+
       // Create root element and load markup.
       this.root = document.createElement("div");
-      this.root.classList.add("root");
+      this.root.classList.add("controls-container");
       this.root.innerHTML = generateMarkup(this.isAudioOnly);
-      this.controls.appendChild(this.root);
+      this.controls.firstChild.appendChild(this.root);
 
 
       const elementNames = [
@@ -262,15 +286,20 @@
       this.onStateChange(null);
     }
 
-    cleanup() {
-      this.mutationObserver.disconnect();
-      this.mutationObserver = null;
+    cleanupDom() {
       this.mediaEvents.forEach(event => {
         this.media.removeEventListener(event, this);
       });
       this.controlEvents.forEach(({ el, type }) => {
         el.removeEventListener(type, this);
       });
+      this.root.remove();
+      this.root = null;
+    }
+
+    cleanupCompleteControls() {
+      this.mutationObserver.disconnect();
+      this.mutationObserver = null;
       this.media = null;
       this.controls = null;
     }
