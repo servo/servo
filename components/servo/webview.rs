@@ -909,8 +909,16 @@ impl WebView {
     pub fn poll_js_messages(&self) {
         let router = self.message_router();
         let delegate = self.delegate();
-        let this = self.clone();
+        // Keep only a weak handle to this `WebView` in the callback. A `WebView` holds a
+        // strong reference to its `Servo`, and the `Servo` owns the evaluator that stores
+        // this callback, so capturing a strong `WebView` here forms a reference cycle that
+        // keeps both alive forever whenever the evaluation never completes (e.g. when the
+        // embedder frees the `WebView` before spinning the event loop).
+        let weak_webview = self.weak_handle();
         self.evaluate_javascript(MessageRouter::poll_script(), move |result| {
+            let Some(webview) = weak_webview.upgrade().map(WebView) else {
+                return;
+            };
             let Ok(JSValue::Array(messages)) = result else {
                 return;
             };
@@ -923,7 +931,7 @@ impl WebView {
                 };
                 let data = object.get("data").cloned().unwrap_or(JSValue::Null);
                 let data_json = crate::message_router::jsvalue_to_json_string(&data);
-                delegate.notify_script_message(this.clone(), &name, &data_json);
+                delegate.notify_script_message(webview.clone(), &name, &data_json);
                 router.handle_js_message(name.clone(), data_json);
             }
         });
