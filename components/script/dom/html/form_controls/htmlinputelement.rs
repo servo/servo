@@ -128,7 +128,7 @@ pub(crate) struct HTMLInputElement {
     labels_node_list: MutNullableDom<NodeList>,
     validity_state: MutNullableDom<ValidityState>,
     #[no_trace]
-    pending_webdriver_response: RefCell<Option<PendingWebDriverResponse>>,
+    pending_webdriver_response: RefCell<Option<Box<PendingWebDriverResponse>>>,
     /// <https://html.spec.whatwg.org/multipage/#concept-input-value-dirty-flag>
     value_dirty: Cell<bool>,
 
@@ -1919,17 +1919,17 @@ impl HTMLInputElement {
         let mut stored_sender = self.pending_webdriver_response.borrow_mut();
         assert!(stored_sender.is_none());
 
-        *stored_sender = Some(PendingWebDriverResponse {
+        *stored_sender = Some(Box::new(PendingWebDriverResponse {
             response_sender,
             expected_file_count: test_paths.len(),
-        });
+        }));
 
         self.input_type()
             .as_specific()
             .select_files(self, Some(test_paths));
     }
 
-    pub(crate) fn take_pending_webdriver_response(&self) -> Option<PendingWebDriverResponse> {
+    pub(crate) fn take_pending_webdriver_response(&self) -> Option<Box<PendingWebDriverResponse>> {
         self.pending_webdriver_response.borrow_mut().take()
     }
 
