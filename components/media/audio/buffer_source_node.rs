@@ -437,6 +437,15 @@ impl AudioBuffer {
         }
     }
 
+    pub fn scale(&mut self, scale: f64) {
+        for buffer in self.buffers.as_mut_slice() {
+            *buffer = buffer
+                .iter()
+                .map(|x| (*x as f64 * scale) as f32)
+                .collect::<Vec<_>>();
+        }
+    }
+
     pub fn data_chan_mut(&mut self, chan: u8) -> &mut [f32] {
         &mut self.buffers[chan as usize]
     }
