@@ -40,6 +40,7 @@ deprecated_with_note = "SERVO_DEPRECATED({})"
 include = [
     "DiagnosticsLoggingOption", "LoadStatus", "ScreenshotCaptureError", "ServoCookie", "ServoFindResult", "ServoSiteDataManager", "ServoDelegate", "ServoDownloadItem", "ServoEventLoopWaker", "ServoWebViewDelegate", "ServoScreenGeometry", "ServoCreateNewWebViewRequest", "SERVO_CAPI_VERSION",
     "ServoProxyConfig", "ServoCookieFilter", "ServoCertificateError", "ServoCertErrorCode", "ServoError",
+    "ServoStorageType",
     "ServoProtocolHandler", "ServoWebResourceRequest", "ServoWebResourceResponse", "ServoProtocolHandlerCallback",
     "ServoUserContentManager", "ServoUserScript", "ServoUserStyleSheet", "ServoMessageCallback", "ServoPreferences", "ServoNetworkManager",
     "ServoContextMenuItem", "ServoContextMenuParams", "ServoContextMenuCallback",
