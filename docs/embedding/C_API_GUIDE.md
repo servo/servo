@@ -185,6 +185,8 @@ struct ServoDelegate {
 };
 ```
 
+> **Note on App-Level Interception:** In the internal Rust engine, `ServoDelegate::load_web_resource` allows intercepting requests before a `WebView` exists. App-level interception is not exposed in the C API; request interception in C is configured per-`WebView` through `ServoWebViewDelegate::intercept_request` or `ServoWebViewDelegate::intercept_request_streaming`.
+
 ### Custom protocol handlers (new)
 
 Custom schemes (e.g., `myapp://...`) can be registered at build time via
@@ -230,6 +232,68 @@ int servo_web_resource_response_set_header(ServoWebResourceResponse* response,
 int servo_web_resource_response_set_body(ServoWebResourceResponse* response,
                                          const uint8_t* data, uintptr_t data_len);
 ```
+
+### Web resource interception and streaming (new)
+
+Servo supports intercepting network requests per-`WebView` via `ServoWebViewDelegate`. Embedders can either:
+1. Provide a whole-body response synchronously via `intercept_request`.
+2. Synthesise a streaming response in chunks via `intercept_request_streaming` and `ServoWebResourceLoad`.
+
+#### Streaming functions
+
+```c
+/* Opaque handle for an in-flight resource load. */
+typedef struct ServoWebResourceLoad ServoWebResourceLoad;
+
+/* Get the request details for this load. */
+const ServoWebResourceRequest* servo_web_resource_load_get_request(
+    const ServoWebResourceLoad* load);
+
+/* Begin intercepting the load with the given response status and headers. */
+int servo_web_resource_load_intercept(ServoWebResourceLoad* load,
+                                      const ServoWebResourceResponse* response);
+
+/* Send a chunk of body data to the client. Can be called multiple times. */
+int servo_web_resource_load_send_body_data(ServoWebResourceLoad* load,
+                                           const uint8_t* data,
+                                           uintptr_t data_len);
+
+/* Signal completion of the response. Consumes and frees `load`. */
+int servo_web_resource_load_finish(ServoWebResourceLoad* load);
+
+/* Cancel the load with a network error. Consumes and frees `load`. */
+int servo_web_resource_load_cancel(ServoWebResourceLoad* load);
+
+/* Free the handle without calling finish or cancel. Auto-finishes if intercepted. */
+int servo_web_resource_load_free(ServoWebResourceLoad* load);
+```
+
+#### Ownership and lifecycle rules
+
+- **`ServoWebResourceRequest*`**:
+  - **Ownership:** Owned entirely by Servo. The embedder must **not** free this pointer.
+  - **Validity:** Valid only for the duration of the callback invocation (or for the lifetime of `ServoWebResourceLoad` if accessed via `servo_web_resource_load_get_request`).
+  - **Data Retention:** The embedder must copy strings or body buffers (using the buffer-query getters `servo_web_resource_request_get_*`) if needed beyond the callback scope.
+  - **Thread Safety:** May be called from network or background threads during custom scheme loading; callbacks must not access thread-local data assuming the main thread.
+
+- **`ServoWebResourceResponse*`**:
+  - **Ownership:** Created and owned by Servo. The embedder must **not** free this pointer.
+  - **Validity:** Valid only for the duration of the callback.
+  - **Usage:** In `intercept_request`, the embedder sets the status code, response headers, and full body. In `intercept_request_streaming`, the embedder sets the status code and headers before passing the pointer to `servo_web_resource_load_intercept(load, response)`.
+
+- **Callback return value semantics (`bool`)**:
+  - **`true`:** The embedder intercepts the request. In `intercept_request`, Servo synthesises the response using the status, headers, and body populated on `ServoWebResourceResponse`. In `intercept_request_streaming`, the embedder retains or controls `ServoWebResourceLoad` to stream chunks.
+  - **`false`:** The embedder declines to intercept. Any modifications to `response` are ignored, the `load` handle is automatically freed by Servo, and normal network loading proceeds.
+
+- **Streaming load lifecycle (`ServoWebResourceLoad*`)**:
+  - Delivered to `intercept_request_streaming`.
+  - To stream:
+    1. Populate status code and headers on `response`.
+    2. Call `servo_web_resource_load_intercept(load, response)`.
+    3. Call `servo_web_resource_load_send_body_data(load, bytes, len)` one or more times.
+    4. Call `servo_web_resource_load_finish(load)` upon completion.
+  - **Consumption & Freeing:** `servo_web_resource_load_finish` and `servo_web_resource_load_cancel` **consume and free** the `load` handle. The caller must **not** call `servo_web_resource_load_free` or access the pointer after finish or cancel has been called.
+  - **Fallback `free`:** If the embedder creates or retains a `load` handle but drops it without calling `finish` or `cancel`, calling `servo_web_resource_load_free(load)` mirrors Rust's `Drop` semantics: if the load was intercepted, it auto-finishes; if it was not intercepted, the underlying network load is dropped/canceled.
 
 ### Servo
 
@@ -694,6 +758,39 @@ void servo_site_data_clear_cookies(struct ServoSiteDataManager* manager);
 
 /* Clear only session cookies (those with no expiry). */
 void servo_site_data_clear_session_cookies(struct ServoSiteDataManager* manager);
+
+/* Storage types for site data enumeration and clearing (bitflags). */
+enum ServoStorageType {
+    SERVO_STORAGE_TYPE_COOKIES = (1 << 0),
+    SERVO_STORAGE_TYPE_LOCAL   = (1 << 1),
+    SERVO_STORAGE_TYPE_SESSION = (1 << 2),
+    SERVO_STORAGE_TYPE_ALL     = (((1 << 0) | (1 << 1)) | (1 << 2)),
+};
+
+/* Site data information passed to ServoSitesVisitor. */
+typedef struct ServoSiteData {
+    const char* name;          /* eTLD+1 domain */
+    const char* site;          /* alias to name */
+    uint32_t storage_types;    /* bitmask of ServoStorageType */
+} ServoSiteData;
+
+/* Visitor callback for enumerating sites holding stored data. */
+typedef bool (*ServoSitesVisitor)(const struct ServoSiteData* site,
+                                  uintptr_t count,
+                                  uintptr_t total,
+                                  void* user_data);
+
+/* Enumerate sites with stored data matching storage_types. */
+int servo_site_data_visit_sites(struct ServoSiteDataManager* manager,
+                                uint32_t storage_types,
+                                ServoSitesVisitor visitor,
+                                void* user_data);
+
+/* Clear storage data for the given sites and storage_types. */
+int servo_site_data_clear_site_data(struct ServoSiteDataManager* manager,
+                                    const char* const* sites,
+                                    uintptr_t count,
+                                    uint32_t storage_types);
 ```
 
 ### New delegate callbacks
