@@ -126,7 +126,8 @@ pub use find::{ServoFindResult, ServoFindResultCallback};
 pub use site_data::{
     SERVO_COOKIE_SAME_SITE_LAX, SERVO_COOKIE_SAME_SITE_NONE, SERVO_COOKIE_SAME_SITE_STRICT,
     ServoCookie, ServoCookieFilter, ServoCookieFilterFlags, ServoCookieVisitor,
-    ServoDeleteCookieCallback, ServoFlushStoreCallback, ServoSiteDataManager,
+    ServoDeleteCookieCallback, ServoFlushStoreCallback, ServoSiteData, ServoSiteDataManager,
+    ServoSiteDataVisitor, ServoSitesVisitor, ServoStorageType,
 };
 
 // Re-export request context types and constants

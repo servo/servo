@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::ffi::{c_char, CString};
+use std::ffi::{c_char, c_void, CString};
 use std::os::raw::c_int;
 
 use cookie::Cookie;
@@ -445,6 +445,201 @@ pub unsafe extern "C" fn servo_site_data_clear_session_cookies(manager: *mut Ser
             .site_data_manager()
             .clear_session_cookies(None);
     }));
+}
+
+/// Storage types for site data enumeration and clearing.
+/// Corresponds to `servo_api::StorageType` bitflags.
+#[repr(u32)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ServoStorageType {
+    /// HTTP cookies
+    Cookies = 1 << 0,
+    /// `localStorage` Web API
+    Local = 1 << 1,
+    /// `sessionStorage` Web API
+    Session = 1 << 2,
+    /// All storage types (Cookies | Local | Session)
+    All = (1 << 0) | (1 << 1) | (1 << 2),
+}
+
+/// Represents site data for a single site/domain.
+///
+/// The string pointers (`name`, `site`) point to NUL-terminated strings owned
+/// by Servo and are valid only for the duration of the visitor callback.
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct ServoSiteData {
+    /// The site/domain name (eTLD+1).
+    pub name: *const c_char,
+    /// Alias for `name` pointing to the same NUL-terminated string.
+    pub site: *const c_char,
+    /// Bitmask of `ServoStorageType` flags present for this site.
+    pub storage_types: u32,
+}
+
+/// Visitor callback for site data enumeration.
+///
+/// `site` - The site data entry (valid only for the duration of the callback).
+/// `count` - 0-based index of current entry.
+/// `total` - Total number of sites being enumerated.
+/// `user_data` - Opaque user pointer passed to `servo_site_data_visit_sites`.
+///
+/// Return `true` to continue enumeration, or `false` to stop early.
+pub type ServoSitesVisitor = Option<
+    unsafe extern "C" fn(
+        site: *const ServoSiteData,
+        count: usize,
+        total: usize,
+        user_data: *mut c_void,
+    ) -> bool,
+>;
+
+pub type ServoSiteDataVisitor = ServoSitesVisitor;
+
+/// Enumerate sites and their stored data types.
+///
+/// Calls `visitor` for each site that has stored data matching `storage_types`.
+///
+/// `manager` is a valid `ServoSiteDataManager` handle.
+/// `storage_types` is a bitmask of `ServoStorageType` flags to filter by.
+/// `visitor` is the callback invoked for each matching site.
+/// `user_data` is an opaque pointer forwarded to `visitor`.
+///
+/// Returns `ServoError::Ok` on success, or an error code.
+///
+/// # Safety
+///
+/// The caller must ensure that:
+/// - `manager` is a valid `ServoSiteDataManager` handle from `servo_get_site_data_manager`.
+/// - If `visitor` is not NULL, it must be a valid function pointer.
+/// - The call is made from the same thread that created the `Servo` instance.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_site_data_visit_sites(
+    manager: *mut ServoSiteDataManager,
+    storage_types: u32,
+    visitor: ServoSitesVisitor,
+    user_data: *mut c_void,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if manager.is_null() {
+            return ServoError::NullArgument;
+        }
+        let Some(visitor) = visitor else {
+            return ServoError::NullArgument;
+        };
+
+        let manager = unsafe { &*manager };
+
+        let mut rust_storage_types = servo_api::StorageType::empty();
+        if (storage_types & (ServoStorageType::Cookies as u32)) != 0 {
+            rust_storage_types |= servo_api::StorageType::Cookies;
+        }
+        if (storage_types & (ServoStorageType::Local as u32)) != 0 {
+            rust_storage_types |= servo_api::StorageType::Local;
+        }
+        if (storage_types & (ServoStorageType::Session as u32)) != 0 {
+            rust_storage_types |= servo_api::StorageType::Session;
+        }
+
+        let sites = manager.servo.site_data_manager().site_data(rust_storage_types);
+        let total = sites.len();
+
+        for (count, site_entry) in sites.into_iter().enumerate() {
+            let Ok(c_name) = CString::new(site_entry.name()) else {
+                continue;
+            };
+
+            let mut c_types = 0u32;
+            let st = site_entry.storage_types();
+            if st.contains(servo_api::StorageType::Cookies) {
+                c_types |= ServoStorageType::Cookies as u32;
+            }
+            if st.contains(servo_api::StorageType::Local) {
+                c_types |= ServoStorageType::Local as u32;
+            }
+            if st.contains(servo_api::StorageType::Session) {
+                c_types |= ServoStorageType::Session as u32;
+            }
+
+            let entry = ServoSiteData {
+                name: c_name.as_ptr(),
+                site: c_name.as_ptr(),
+                storage_types: c_types,
+            };
+
+            let continue_visit = unsafe { visitor(&entry, count, total, user_data) };
+            if !continue_visit {
+                break;
+            }
+        }
+
+        ServoError::Ok
+    })
+}
+
+/// Clear site data for the given sites and storage types.
+///
+/// `manager` is a valid `ServoSiteDataManager` handle.
+/// `sites` is an array of NUL-terminated site strings (eTLD+1).
+/// `count` is the number of site strings in `sites`.
+/// `storage_types` is a bitmask of `ServoStorageType` flags specifying which data to clear.
+///
+/// Returns `ServoError::Ok` on success, or an error code.
+///
+/// # Safety
+///
+/// The caller must ensure that:
+/// - `manager` is a valid `ServoSiteDataManager` handle from `servo_get_site_data_manager`.
+/// - If `count > 0`, `sites` points to an array of at least `count` non-null valid C strings.
+/// - The call is made from the same thread that created the `Servo` instance.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_site_data_clear_site_data(
+    manager: *mut ServoSiteDataManager,
+    sites: *const *const c_char,
+    count: usize,
+    storage_types: u32,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if manager.is_null() {
+            return ServoError::NullArgument;
+        }
+        if count > 0 && sites.is_null() {
+            return ServoError::NullArgument;
+        }
+
+        let manager = unsafe { &*manager };
+
+        let mut rust_storage_types = servo_api::StorageType::empty();
+        if (storage_types & (ServoStorageType::Cookies as u32)) != 0 {
+            rust_storage_types |= servo_api::StorageType::Cookies;
+        }
+        if (storage_types & (ServoStorageType::Local as u32)) != 0 {
+            rust_storage_types |= servo_api::StorageType::Local;
+        }
+        if (storage_types & (ServoStorageType::Session as u32)) != 0 {
+            rust_storage_types |= servo_api::StorageType::Session;
+        }
+
+        let mut site_strings = Vec::with_capacity(count);
+        for i in 0..count {
+            let site_ptr = unsafe { *sites.add(i) };
+            if site_ptr.is_null() {
+                return ServoError::NullArgument;
+            }
+            let site_str = match unsafe { std::ffi::CStr::from_ptr(site_ptr) }.to_str() {
+                Ok(s) => s,
+                Err(_) => return ServoError::InvalidUtf8,
+            };
+            site_strings.push(site_str);
+        }
+
+        manager
+            .servo
+            .site_data_manager()
+            .clear_site_data(&site_strings, rust_storage_types);
+
+        ServoError::Ok
+    })
 }
 
 // Re-export cookie manager types and functions
