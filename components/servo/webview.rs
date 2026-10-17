@@ -902,15 +902,6 @@ impl WebView {
         self.evaluate_javascript(script, |_| {});
     }
 
-    /// Post a native message to in-page JavaScript via the Constellation.
-    pub fn post_message_to_script(&self, name: &str, data_json: &str) {
-        self.send_to_constellation(EmbedderToConstellationMessage::PostMessageToScript(
-            self.id(),
-            name.to_string(),
-            data_json.to_string(),
-        ));
-    }
-
     /// Poll for pending messages sent from JavaScript (JS → native) and dispatch
     /// them to the registered handlers and the delegate.
     ///
