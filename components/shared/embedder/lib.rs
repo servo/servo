@@ -546,9 +546,6 @@ pub enum EmbedderMsg {
     InputEventsHandled(WebViewId, Vec<InputEventOutcome>),
     /// Send the embedder an accessibility tree update.
     AccessibilityTreeUpdate(WebViewId, TreeUpdate, Epoch),
-    /// A message sent from in-page JavaScript (`window.servo.postMessage`) to the host.
-    /// Carries `(WebViewId, handler_name, message_json)`.
-    OnScriptMessage(WebViewId, String, String),
 }
 
 impl Debug for EmbedderMsg {

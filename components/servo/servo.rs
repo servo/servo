@@ -815,16 +815,6 @@ impl ServoInner {
                     webview.process_accessibility_tree_update(tree_update, epoch);
                 }
             },
-            EmbedderMsg::OnScriptMessage(webview_id, handler_name, message_json) => {
-                if let Some(webview) = self.get_webview_handle(webview_id) {
-                    webview
-                        .delegate()
-                        .notify_script_message(webview.clone(), &handler_name, &message_json);
-                    webview
-                        .message_router()
-                        .handle_js_message(handler_name, message_json);
-                }
-            },
         }
     }
 
