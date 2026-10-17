@@ -7077,11 +7077,17 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
         target: DOMString,
         features: DOMString,
     ) -> Fallible<Option<DomRoot<WindowProxy>>> {
-        self.browsing_context()
-            .ok_or(Error::InvalidAccess(Some(
+        if self.is_fully_active() {
+            self.browsing_context()
+                .ok_or(Error::InvalidAccess(Some(
+                    "Failed to get browsing context".into(),
+                )))?
+                .open(cx, url, target, features)
+        } else {
+            Err(Error::InvalidAccess(Some(
                 "Document is not fully active".into(),
-            )))?
-            .open(cx, url, target, features)
+            )))
+        }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-document-write>
