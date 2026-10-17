@@ -68,10 +68,11 @@ use crate::dom::window::Window;
 use crate::dom::{RootedPromise, TracedPromise};
 use crate::event_loop::document_loader::{LoadBlocker, LoadType};
 use crate::event_loop::script_thread::ScriptThread;
-use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
+use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request_with_claim};
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
 use crate::runtime::job_queue::MicrotaskRunnable;
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 /// <https://html.spec.whatwg.org/multipage/#img-req-state>
 #[derive(Clone, Copy, Default, JSTraceable, MallocSizeOf)]
@@ -372,9 +373,11 @@ impl HTMLImageElement {
         // https://html.spec.whatwg.org/multipage/#update-the-image-data steps 17-20
         // This function is also used to prefetch an image in `script::dom::servoparser::prefetch`.
         let global = document.global();
-        let mut request = create_a_potential_cors_request(
+
+        let url_record = ensure_blob_referenced_by_url_is_kept_alive(&global, img_url.clone());
+        let mut request = create_a_potential_cors_request_with_claim(
             Some(window.webview_id()),
-            img_url.clone(),
+            url_record,
             Destination::Image,
             cors_setting_for_element(self.upcast()),
             None,
