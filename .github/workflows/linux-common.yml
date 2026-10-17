@@ -141,8 +141,12 @@ jobs:
         run: |
           sudo apt update
           echo "wireshark-common wireshark-common/install-setuid boolean true" | sudo debconf-set-selections
-          sudo apt install -qy tshark shellcheck
+          sudo apt install -qy tshark
           ./mach bootstrap --yes --skip-lints --skip-nextest
+      - name: Install Shellcheck
+        run:  |
+          sudo apt update
+          sudo apt install -y shellcheck
 
       # Only enable `sccache` on forks. On the main repository we suffer from too much cache-trashing,
       # and also don't need it for builds running on our self-hosted runners (cached cargo target directory).
