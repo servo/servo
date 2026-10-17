@@ -2,7 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::path::{Path, PathBuf};
+
 use profile::mem as profile_mem;
+use rusqlite::Connection;
 use servo_base::generic_channel as base_channel;
 use servo_base::generic_channel::GenericSend;
 use servo_base::id::TEST_WEBVIEW_ID;
@@ -432,4 +435,56 @@ fn no_storage_type_conflict() {
     // Get session storage item.
     let result = test.get_item(WebStorageType::Session, &url.origin(), "key".into());
     assert_eq!(result, None);
+}
+
+fn origin_db_path(config_dir: &Path) -> PathBuf {
+    let origin_dir = std::fs::read_dir(config_dir.join("webstorage"))
+        .expect("webstorage directory should exist")
+        .next()
+        .expect("one origin directory should be written")
+        .unwrap()
+        .path();
+    origin_dir.join("webstorage.sqlite")
+}
+
+#[test]
+fn migrates_existing_origin_database() {
+    let mut test = WebStorageTest::new();
+    let url = ServoUrl::parse("https://example.com").unwrap();
+    let origin = url.origin();
+    let _ = test.set_item(WebStorageType::Local, &origin, "key", "value");
+    let db_path = origin_db_path(test.tmp_dir.as_ref().unwrap().path());
+
+    test = test.restart();
+    let connection = Connection::open(&db_path).unwrap();
+    connection
+        .execute_batch(
+            "DROP INDEX idx_data_key;
+            PRAGMA user_version = 0;",
+        )
+        .unwrap();
+    drop(connection);
+
+    assert_eq!(
+        test.get_item(WebStorageType::Local, &origin, "key"),
+        Some("value".into())
+    );
+    assert_eq!(
+        test.set_item(WebStorageType::Local, &origin, "key", "other"),
+        Ok((true, Some("value".into())))
+    );
+    assert_eq!(
+        test.get_item(WebStorageType::Local, &origin, "key"),
+        Some("other".into())
+    );
+
+    let connection = Connection::open(&db_path).unwrap();
+    let version: u32 = connection
+        .pragma_query_value(None, "user_version", |row| row.get(0))
+        .unwrap();
+    assert_eq!(version, 2);
+    let rows: i64 = connection
+        .query_row("SELECT COUNT(*) FROM data;", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(rows, 1);
 }
