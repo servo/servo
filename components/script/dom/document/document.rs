@@ -181,6 +181,7 @@ use crate::dom::html::htmlheadelement::HTMLHeadElement;
 use crate::dom::html::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::html::htmliframeelement::HTMLIFrameElement;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
+use crate::dom::html::htmlmediaelement::HTMLMediaElement;
 use crate::dom::html::htmlscriptelement::{HTMLScriptElement, ScriptResult};
 use crate::dom::html::htmltitleelement::HTMLTitleElement;
 use crate::dom::htmldetailselement::DetailsNameGroups;
@@ -738,6 +739,9 @@ pub(crate) struct Document {
     /// All websockets created that are associated with this document.
     websockets: DOMTracker<WebSocket>,
 
+    /// All media elements created that are associated with this document.
+    media_elements: DOMTracker<HTMLMediaElement>,
+
     /// <https://html.spec.whatwg.org/multipage/#details-name-group>
     details_name_groups: DomRefCell<Option<DetailsNameGroups>>,
 
@@ -876,6 +880,8 @@ impl Document {
             self.salvageable.set(false);
         }
 
+        self.clean_up_media_elements(cx);
+
         // Step 3. For each WebTransport object transport whose relevant global object is window, run the context cleanup steps given transport.
         // TODO
 
@@ -907,6 +913,18 @@ impl Document {
             }
         });
         closed_any_websocket
+    }
+
+    pub(crate) fn track_media_element(&self, element: &HTMLMediaElement) {
+        self.media_elements.track(element);
+    }
+
+    fn clean_up_media_elements(&self, cx: &mut JSContext) {
+        let no_gc = cx.no_gc();
+        self.media_elements
+            .for_each(|element: DomRoot<HTMLMediaElement>| {
+                element.clean_up_on_document_unload(self, no_gc);
+            });
     }
 
     fn document_element_changed(&self) {
@@ -4293,6 +4311,7 @@ impl Document {
             creation_sandboxing_flag_set: Cell::new(creation_sandboxing_flag_set),
             favicon: RefCell::new(None),
             websockets: DOMTracker::new(),
+            media_elements: DOMTracker::new(),
             details_name_groups: Default::default(),
             protocol_handler_automation_mode: Default::default(),
             layout_animations_test_enabled: pref!(layout_animations_test_enabled),
