@@ -5,7 +5,8 @@
 #![no_main]
 
 use libfuzzer_sys::fuzz_target;
-use net::cookie::{CookieSource, ServoCookie};
+use net::cookie::ServoCookie;
+use net_traits::CookieSource;
 use servo_url::ServoUrl;
 
 fuzz_target!(|data: &[u8]| {

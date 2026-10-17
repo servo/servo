@@ -16,8 +16,13 @@ libfuzzer-sys = "0.4"
 package = "servo-net"
 path = "../components/net"
 
+[dependencies.net_traits]
+package = "servo-net-traits"
+path = "../components/shared/net"
+
 [dependencies.servo_url]
-path = "../components/servo_url"
+package = "servo-url"
+path = "../components/url"
 
 [[bin]]
 name = "fuzz_cookie_parser"
