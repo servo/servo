@@ -22,6 +22,7 @@ use hyper::{Request as HyperRequest, Response as HyperResponse};
 use image::RgbaImage;
 use itertools::Itertools;
 use net::test_util::{make_body, make_server, replace_host_table};
+use servo::JSValue::Boolean;
 use servo::profile_traits::mem::MemoryReportResult;
 use servo::{
     CreateNewWebViewRequest, Cursor, EmbedderControl, InputEvent, InputMethodType, JSValue,
@@ -1200,4 +1201,65 @@ fn test_hide_animating_webview() {
 
     webview.hide();
     servo_test.spin(|| webview.animating());
+}
+
+#[test]
+fn test_about_memory_page_loads() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    // Create a test page containing a custom MARKER
+    let test_page = Url::parse(
+        "data:text/html,\
+        <body>\
+        <h1>MARKER</h1>\
+        <script>\
+        let title = document.createElement('title');\
+        title.textContent = 'Success';\
+        document.body.appendChild(title);\
+        </script>",
+    )
+    .expect("Data URL failed to build");
+
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(test_page.clone())
+        .build();
+
+    // Wait for the page to load
+    servo_test.spin(|| webview.load_status() != LoadStatus::Complete);
+
+    let about_memory_page = Url::parse("about:memory").expect("about:memory URL failed to build");
+    let about_memory_webview =
+        WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+            .delegate(delegate.clone())
+            .url(about_memory_page.clone())
+            .build();
+
+    // Wait for about:memory to load
+    servo_test.spin(|| about_memory_webview.load_status() != LoadStatus::Complete);
+
+    // Click the "Measure" button
+    assert!(
+        evaluate_javascript(
+            &servo_test,
+            about_memory_webview.clone(),
+            "document.querySelector('#startButton').click();"
+        )
+        .is_ok()
+    );
+
+    // Spin until you find a report entry that contains the custom MARKER
+    servo_test.spin(|| {
+        match evaluate_javascript(
+            &servo_test,
+            about_memory_webview.clone(),
+            r#"Array.from(document.querySelectorAll('#reports .process h4')).some(heading => heading.textContent.includes('MARKER'))"#
+        )
+        .expect("failed to evaluate javascript")
+        {
+            Boolean(true) => false,
+            Boolean(false) => true,
+            value => panic!("unexpected JSValue: {value:?}"),
+        }
+    });
 }
