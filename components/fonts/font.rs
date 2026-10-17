@@ -632,6 +632,13 @@ impl Font {
         let codepoint = match self.descriptor.variant {
             font_variant_caps::T::SmallCaps => codepoint.to_ascii_uppercase(),
             font_variant_caps::T::Normal => codepoint,
+            // The other values are behind `layout.css.font-variant-caps.all-values.enabled`
+            // which Servo does not enable, so they are never parsed.
+            font_variant_caps::T::AllSmallCaps |
+            font_variant_caps::T::PetiteCaps |
+            font_variant_caps::T::AllPetiteCaps |
+            font_variant_caps::T::Unicase |
+            font_variant_caps::T::TitlingCaps => unreachable!(),
         };
         let glyph_index = self.handle.glyph_index(codepoint);
 
