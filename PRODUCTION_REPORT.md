@@ -20,6 +20,8 @@ prioritised workstreams.
 | [`docs/embedding/ROADMAP.md`](docs/embedding/ROADMAP.md) | Embedding API phases 0–5 |
 | [`docs/embedding/CEF_PARITY.md`](docs/embedding/CEF_PARITY.md) | Concept-by-concept CEF gap list |
 | [`docs/embedding/COMPATIBILITY.md`](docs/embedding/COMPATIBILITY.md) | What works on which platform/feature |
+| [`IMPLEMENTATION_REVIEW.md`](IMPLEMENTATION_REVIEW.md) | Independent verification of the first implementation pass (blockers B1–B7) |
+| [`IMPLEMENTATION_REVIEW_PASS2.md`](IMPLEMENTATION_REVIEW_PASS2.md) | Independent verification of the repair + W5.2 + W4.1 pass (blockers B8–B10, R2 follow-up) |
 
 ---
 
