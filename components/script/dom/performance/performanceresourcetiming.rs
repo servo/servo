@@ -88,7 +88,7 @@ impl PerformanceResourceTiming {
         };
         PerformanceResourceTiming {
             entry: PerformanceEntry::new_inherited(
-                DOMString::from(url.into_string()),
+                url.into(),
                 entry_type,
                 start_time,
                 Duration::ZERO, // duration is calculated dynamically in PerformanceEntry::Duration

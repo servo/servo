@@ -38,7 +38,7 @@ impl PerformanceMark {
     ) -> PerformanceMark {
         PerformanceMark {
             entry: PerformanceEntry::new_inherited(
-                name,
+                name.into(),
                 EntryType::Mark,
                 Some(start_time),
                 duration,

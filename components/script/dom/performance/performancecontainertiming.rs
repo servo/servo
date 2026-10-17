@@ -50,7 +50,7 @@ impl PerformanceContainerTiming {
     ) -> PerformanceContainerTiming {
         PerformanceContainerTiming {
             entry: PerformanceEntry::new_inherited(
-                DOMString::new(),
+                DOMString::new().into(),
                 EntryType::ContainerTiming,
                 Some(paint_time),
                 Duration::ZERO,
