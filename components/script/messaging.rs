@@ -7,8 +7,9 @@ use core::fmt;
 use std::cell::RefCell;
 use std::option::Option;
 use std::result::Result;
+use std::time::Instant;
 
-use crossbeam_channel::{Receiver, Select, SelectedOperation, SendError, Sender};
+use crossbeam_channel::{Receiver, RecvTimeoutError, Select, SelectedOperation, SendError, Sender};
 #[cfg(feature = "devtools")]
 use devtools_traits::{DevtoolScriptControlMsg, ScriptToDevtoolsControlMsg};
 use embedder_traits::{EmbedderControlId, EmbedderControlResponse, ScriptToEmbedderChan};
@@ -304,6 +305,31 @@ impl ScriptEventLoopReceiver {
                 },
                 Ok(_) => panic!("unexpected worker event message!"),
                 Err(_) => Err(()),
+            },
+        }
+    }
+
+    /// Like [`Self::recv`], but gives up once `deadline` has passed without receiving a message.
+    pub(crate) fn recv_deadline(
+        &self,
+        deadline: Instant,
+    ) -> Result<CommonScriptMsg, RecvTimeoutError> {
+        match self {
+            Self::MainThread(receiver) => match receiver.recv_deadline(deadline)? {
+                MainThreadScriptMsg::Common(script_msg) => Ok(script_msg),
+                _ => panic!("unexpected main thread event message!"),
+            },
+            Self::SharedWorker(receiver) => match receiver.recv_deadline(deadline)? {
+                SharedWorkerScriptMsg::CommonWorker(WorkerScriptMsg::Common(message)) => {
+                    Ok(message)
+                },
+                _ => panic!("unexpected shared worker event message!"),
+            },
+            Self::DedicatedWorker(receiver) => match receiver.recv_deadline(deadline)? {
+                DedicatedWorkerScriptMsg::CommonWorker(_, WorkerScriptMsg::Common(message)) => {
+                    Ok(message)
+                },
+                _ => panic!("unexpected worker event message!"),
             },
         }
     }
