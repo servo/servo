@@ -2078,11 +2078,7 @@ impl InlineFormattingContextLayout<'_> {
             .max(&self.current_line_segment.max_block_size);
 
         // Place all floats in this unbreakable segment.
-        let mut segment_items = {
-            // We later put all the items back in the line_items, so we preallocate the vector.
-            let new_line_items = Vec::with_capacity(self.current_line_segment.line_items.len());
-            mem::replace(&mut self.current_line_segment.line_items, new_line_items)
-        };
+        let mut segment_items = mem::take(&mut self.current_line_segment.line_items);
 
         for item in segment_items.iter_mut() {
             if let LineItem::Float(_, float_item) = item {
@@ -2102,7 +2098,13 @@ impl InlineFormattingContextLayout<'_> {
             assert!(!will_break);
         }
 
-        self.current_line.line_items.extend(segment_items);
+        debug_assert!(
+            self.current_line_segment.line_items.is_empty(),
+            "Committing a segment should not add items to it"
+        );
+        // Return the emptied buffer to the segment so that its allocation is reused.
+        self.current_line.line_items.append(&mut segment_items);
+        self.current_line_segment.line_items = segment_items;
         self.current_line.has_content |= self.current_line_segment.has_content;
 
         self.current_line_segment.reset();
