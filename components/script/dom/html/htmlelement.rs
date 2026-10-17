@@ -1393,7 +1393,7 @@ impl VirtualMethods for HTMLElement {
     /// TODO: These are the node removal steps, so this should be done for all Nodes.
     fn unbind_from_tree(&self, cx: &mut js::context::JSContext, context: &UnbindContext) {
         // 1. Let document be removedNode's node document.
-        let document = self.owner_document();
+        let document = self.owner_document_unrooted(cx.no_gc());
 
         // 2. If document's focused area is removedNode, then set document's focused area to
         // document's viewport, and set document's relevant global object's navigation API's focus

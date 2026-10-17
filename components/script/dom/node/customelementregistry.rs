@@ -1223,7 +1223,9 @@ pub(crate) fn try_upgrade_element(cx: &JSContext, element: &Element) {
         {
             registry
         } else {
-            element.owner_document().custom_element_registry()
+            element
+                .owner_document_unrooted(cx.no_gc())
+                .custom_element_registry()
         }
     };
     if let Some(definition) = CustomElementRegistry::lookup_custom_element_definition(

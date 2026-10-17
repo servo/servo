@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use layout_api::LCPCandidate;
 use paint_api::display_list::PaintTimingInfo;
 use script_bindings::reflector::reflect_dom_object;
@@ -116,20 +116,20 @@ impl LargestContentfulPaintMethods<crate::DomTypeHolder> for LargestContentfulPa
     }
 
     /// <https://www.w3.org/TR/largest-contentful-paint/#dom-largestcontentfulpaint-id>
-    fn Id(&self) -> DOMString {
-        self.GetElement()
+    fn Id(&self, no_gc: &NoGC) -> DOMString {
+        self.GetElement(no_gc)
             .map(|element| element.Id())
             .unwrap_or_default()
     }
 
     /// <https://www.w3.org/TR/largest-contentful-paint/#dom-largestcontentfulpaint-element>
-    fn GetElement(&self) -> Option<DomRoot<Element>> {
+    fn GetElement(&self, no_gc: &NoGC) -> Option<DomRoot<Element>> {
         self.element
             .as_ref()
             .filter(|element| {
                 element
                     .upcast::<Node>()
-                    .is_connected_with_browsing_context()
+                    .is_connected_with_browsing_context(no_gc)
             })
             .map(|element| element.as_rooted())
     }

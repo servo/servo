@@ -2573,7 +2573,10 @@ impl Element {
     pub(crate) fn update_nonce_post_connection(&self, cx: &mut JSContext) {
         // Whenever an element including HTMLOrSVGElement becomes browsing-context connected,
         // the user agent must execute the following steps on the element:
-        if !self.upcast::<Node>().is_connected_with_browsing_context() {
+        if !self
+            .upcast::<Node>()
+            .is_connected_with_browsing_context(cx.no_gc())
+        {
             return;
         }
         let global = self.owner_global();
@@ -4892,7 +4895,7 @@ impl VirtualMethods for Element {
             },
             local_name!("role") => {
                 self.upcast::<Node>()
-                    .add_pending_accessibility_damage(AccessibilityDamage::Node);
+                    .add_pending_accessibility_damage(cx.no_gc(), AccessibilityDamage::Node);
             },
             _ => {
                 // FIXME(emilio): This is pretty dubious, and should be done in
@@ -4994,11 +4997,10 @@ impl VirtualMethods for Element {
             return;
         }
 
-        let doc = self.owner_document();
-
-        let fullscreen = doc.fullscreen_element();
+        let document = self.owner_document_unrooted(cx.no_gc());
+        let fullscreen = document.fullscreen_element();
         if fullscreen.as_deref() == Some(self) {
-            doc.exit_fullscreen(cx);
+            self.owner_document().exit_fullscreen(cx);
         }
 
         self.unregister_current_id_and_name_attribute(cx);
