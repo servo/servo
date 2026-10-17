@@ -986,7 +986,7 @@ fn test_preferences_change() {
     let delegate = Rc::new(WebViewDelegateImpl::default());
 
     let test_page =
-        Url::parse("data:text/html,<div id=\"target\" style=\"backdrop-filter: sepia(1)\"></div>")
+        Url::parse("data:text/html,<div id=\"target\" style=\"container-name: dummy;\"></div>")
             .expect("Data URL failed to build");
 
     let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
@@ -996,7 +996,7 @@ fn test_preferences_change() {
     show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
 
     assert_eq!(
-        // The backdrop-filter style is feature flagged by the layout_css_backdrop_filter_enabled
+        // The backdrop-filter style is feature flagged by the layout_css_columns_enabled
         // preference, so when it is disabled, the backdrop-filter style specified in the
         // stylesheet won't parse and the computed value undefined
         Ok(JSValue::Array(vec![
@@ -1006,32 +1006,33 @@ fn test_preferences_change() {
         evaluate_javascript(
             &servo_test,
             webview.clone(),
-            "let old_value = target.style.getPropertyValue('backdrop-filter');
-            target.style.backdropFilter = 'sepia(1)';
-            let new_value = target.style.getPropertyValue('backdrop-filter');
+            "let old_value = target.style.getPropertyValue('container-name');
+            target.style.fontVariationSettings = 'dummy';
+            let new_value = target.style.getPropertyValue('container-name');
             [old_value, new_value]"
         )
     );
 
-    servo_test
-        .servo()
-        .set_preference("layout_css_backdrop_filter_enabled", PrefValue::Bool(true));
+    servo_test.servo().set_preference(
+        "layout_css_container_queries_enabled",
+        PrefValue::Bool(true),
+    );
 
     webview.reload();
 
     assert_eq!(
-        // When layout_css_backdrop_filter_enabled is enabled, the backdrop-filter style specified
+        // When layout_css_container_queries_enabled is enabled, the container-name style specified
         // in the stylesheet will parse and the computed value will be that value
         Ok(JSValue::Array(vec![
-            JSValue::String("sepia(1)".to_string()),
-            JSValue::String("opacity(0.5)".to_string())
+            JSValue::String("dummy".to_string()),
+            JSValue::String("dummy".to_string())
         ])),
         evaluate_javascript(
             &servo_test,
             webview,
-            "let old_value = target.style.getPropertyValue('backdrop-filter');
-            target.style.backdropFilter = 'opacity(0.5)';
-            let new_value = target.style.getPropertyValue('backdrop-filter');
+            "let old_value = target.style.getPropertyValue('container-name');
+            target.style.containerName = 'dummy';
+            let new_value = target.style.getPropertyValue('container-name');
             [old_value, new_value]"
         )
     );

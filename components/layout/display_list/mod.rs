@@ -522,6 +522,7 @@ impl DisplayListBuilder<'_> {
                 // actually need to create a stacking context, just avoid creating one.
                 if !is_blend_container &&
                     effects.filter.0.is_empty() &&
+                    effects.backdrop_filter.0.is_empty() &&
                     effects.opacity == 1.0 &&
                     effects.mix_blend_mode == ComputedMixBlendMode::Normal &&
                     style.get_svg().clip_path == ComputedClipPath::None
@@ -1758,6 +1759,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             return;
         }
 
+        self.build_backdrop_filter(builder, state);
         self.build_background(builder, state);
         self.build_box_shadow(builder, state);
         if !self.fragment.is_table_grid_with_collapsed_borders() {
@@ -1843,6 +1845,40 @@ impl<'a> BuilderForBoxFragment<'a> {
         }
 
         self.build_background_image(builder, state, painter);
+    }
+
+    fn build_backdrop_filter(&mut self, builder: &mut DisplayListBuilder, state: &TraversalState) {
+        // https://drafts.fxtf.org/filter-effects-2/#BackdropFilterProperty
+        // > ... unless the element it applies to is a document root element in
+        // > the current browsing context.
+        if self
+            .fragment
+            .base
+            .flags
+            .contains(FragmentFlags::IS_ROOT_ELEMENT)
+        {
+            return;
+        }
+
+        let style = self.fragment.style();
+        let effects = style.get_effects();
+        if effects.backdrop_filter.0.is_empty() {
+            return;
+        }
+
+        let current_color = style.get_color();
+        let filters: Vec<_> = effects
+            .backdrop_filter
+            .0
+            .iter()
+            .map(|filter| FilterToWebRender::to_webrender(filter, current_color))
+            .collect();
+
+        let mut common = builder.common_properties(state, self.border_rect, style);
+        if let Some(clip_chain_id) = self.border_edge_clip(builder, state, false) {
+            common.clip_chain_id = clip_chain_id;
+        }
+        builder.wr().push_backdrop_filter(&common, &filters, &[]);
     }
 
     fn build_background(&mut self, builder: &mut DisplayListBuilder, state: &TraversalState) {
