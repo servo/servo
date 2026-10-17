@@ -21,7 +21,7 @@ use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::wrappers2::{
     GetPropertyKeys, IsArgumentsObject, JS_CallFunctionName, JS_GetOwnPropertyDescriptorById,
-    JS_GetProperty, JS_HasOwnProperty, JS_TypeOfValue,
+    JS_HasOwnProperty, JS_TypeOfValue,
 };
 use js::rust::{HandleObject, HandleValue, IdVector};
 use net_traits::CookieSource::{HTTP, NonHTTP};
@@ -31,7 +31,7 @@ use script_bindings::codegen::GenericBindings::PermissionStatusBinding::{
 };
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::conversions::is_array_like;
-use script_bindings::js::{JS_GetPropertyById, JS_IsExceptionPending};
+use script_bindings::js::{JS_GetProperty, JS_GetPropertyById, JS_IsExceptionPending};
 use script_bindings::num::Finite;
 use script_bindings::reflector::DomObject;
 use script_bindings::settings_stack::run_a_script;
@@ -345,7 +345,7 @@ fn object_has_to_json_property(
     let mut found = false;
     if unsafe { JS_HasOwnProperty(cx, object, name.as_ptr(), &mut found) } && found {
         rooted!(&in(cx) let mut value = UndefinedValue());
-        let result = unsafe { JS_GetProperty(cx, object, name.as_ptr(), value.handle_mut()) };
+        let result = JS_GetProperty(cx, object, &name, value.handle_mut());
         if !result {
             throw_dom_exception(cx, global_scope, Error::JSFailed);
             false

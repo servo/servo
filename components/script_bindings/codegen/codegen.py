@@ -4023,7 +4023,7 @@ assert!((*cache)[PrototypeList::Constructor::{properties['id']} as usize].is_nul
                         """
                         assert!(JS_GetProperty(cx, prototype.handle(), ${prop}, aliasedVal.handle_mut()));
                         """,
-                        prop=str_to_cstr_ptr(m.identifier.name)))
+                        prop=str_to_cstr(m.identifier.name)))
                 ] + [defineAlias(alias) for alias in sorted(m.aliases)])
 
             defineAliases = CGList([
@@ -4944,7 +4944,7 @@ class CGSpecializedForwardingSetter(CGSpecializedSetter):
 let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
 let cx = &mut cx;
 rooted!(&in(cx) let mut v = UndefinedValue());
-if !JS_GetProperty(cx, HandleObject::from_raw(obj), {str_to_cstr_ptr(attrName)}, v.handle_mut()) {{
+if !JS_GetProperty(cx, HandleObject::from_raw(obj), {str_to_cstr(attrName)}, v.handle_mut()) {{
     return false;
 }}
 if !v.is_object() {{

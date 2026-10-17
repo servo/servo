@@ -15,8 +15,8 @@ use js::glue::{
 use js::jsapi::{Heap, IsWindowProxy, JS_DeprecatedStringHasLatin1Chars, JSObject};
 use js::jsval::{ObjectValue, StringValue, UndefinedValue};
 use js::rust::wrappers2::{
-    IsArrayObject, JS_GetLatin1StringCharsAndLength, JS_GetProperty,
-    JS_GetTwoByteStringCharsAndLength, JS_NewStringCopyN, UnwrapObjectDynamic,
+    IsArrayObject, JS_GetLatin1StringCharsAndLength, JS_GetTwoByteStringCharsAndLength,
+    JS_NewStringCopyN, UnwrapObjectDynamic,
 };
 use js::rust::{
     HandleId, HandleObject, HandleValue, MutableHandleValue, ToString, get_object_class,
@@ -30,6 +30,7 @@ use crate::codegen::GenericBindings::EventModifierInitBinding::EventModifierInit
 use crate::codegen::PrototypeList;
 use crate::error::{Error, Fallible};
 use crate::inheritance::Castable;
+use crate::js::JS_GetProperty;
 use crate::num::Finite;
 use crate::reflector::{DomObject, Reflector};
 use crate::root::DomRoot;
@@ -636,7 +637,7 @@ pub fn get_property_jsval(
     name: &ffi::CStr,
     rval: MutableHandleValue,
 ) -> Fallible<()> {
-    if unsafe { !JS_GetProperty(cx, object, name.as_ptr(), rval) } {
+    if !JS_GetProperty(cx, object, name, rval) {
         return Err(Error::JSFailed);
     }
 

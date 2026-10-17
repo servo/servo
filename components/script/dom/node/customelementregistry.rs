@@ -17,11 +17,12 @@ use js::glue::UnwrapObjectStatic;
 use js::jsapi::{HandleValueArray, Heap, IsCallable, IsConstructor, JSObject};
 use js::jsval::{BooleanValue, JSVal, NullValue, ObjectValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
-use js::rust::wrappers2::{Construct1, JS_GetProperty, SameValue};
+use js::rust::wrappers2::{Construct1, SameValue};
 use js::rust::{HandleObject, MutableHandleValue};
 use rustc_hash::{FxBuildHasher, FxHashSet};
 use script_bindings::callback::HasCallbackHolder;
 use script_bindings::cell::DomRefCell;
+use script_bindings::js::JS_GetProperty;
 use script_bindings::reflector::{DomObject, Reflector, reflect_dom_object_with_proto};
 use script_bindings::settings_stack::{run_a_callback, run_a_script};
 use style::attr::AttrValue;
@@ -221,25 +222,22 @@ impl CustomElementRegistry {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-customelementregistry-define>
     /// Steps 10.1, 10.2
-    #[expect(unsafe_code)]
     fn check_prototype(
         &self,
         cx: &mut JSContext,
         constructor: HandleObject,
         mut prototype: MutableHandleValue,
     ) -> ErrorResult {
-        unsafe {
-            // Step 10.1
-            if !JS_GetProperty(cx, constructor, c"prototype".as_ptr(), prototype.reborrow()) {
-                return Err(Error::JSFailed);
-            }
+        // Step 10.1
+        if !JS_GetProperty(cx, constructor, c"prototype", prototype.reborrow()) {
+            return Err(Error::JSFailed);
+        }
 
-            // Step 10.2
-            if !prototype.is_object() {
-                return Err(Error::Type(
-                    c"constructor.prototype is not an object".to_owned(),
-                ));
-            }
+        // Step 10.2
+        if !prototype.is_object() {
+            return Err(Error::Type(
+                c"constructor.prototype is not an object".to_owned(),
+            ));
         }
         Ok(())
     }
@@ -348,7 +346,7 @@ fn get_callback(
     rooted!(&in(cx) let mut callback = UndefinedValue());
     unsafe {
         // Step 10.4.1
-        if !JS_GetProperty(cx, prototype, name.as_ptr(), callback.handle_mut()) {
+        if !JS_GetProperty(cx, prototype, name, callback.handle_mut()) {
             return Err(Error::JSFailed);
         }
 

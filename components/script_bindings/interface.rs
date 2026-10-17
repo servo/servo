@@ -688,10 +688,10 @@ pub fn get_desired_proto(
         // the fallback prototype we determine the fallback based on the proto id we
         // were handed.
         rooted!(&in(cx) let mut proto_val = NullValue());
-        if !js::rust::wrappers2::JS_GetProperty(
+        if !crate::js::JS_GetProperty(
             cx,
             original_new_target.handle(),
-            c"prototype".as_ptr(),
+            c"prototype",
             proto_val.handle_mut(),
         ) {
             return Err(());

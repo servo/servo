@@ -11,12 +11,13 @@ use std::rc::Rc;
 use js::context::JSContext;
 use js::jsapi::{Heap, IsCallable, JSObject};
 use js::jsval::{JSVal, NullValue, ObjectValue, UndefinedValue};
-use js::rust::wrappers2::{EnterRealm, JS_GetProperty, JS_WrapObject, LeaveRealm};
+use js::rust::wrappers2::{EnterRealm, JS_WrapObject, LeaveRealm};
 use js::rust::{HandleObject, MutableHandleValue};
 
 use crate::codegen::GenericBindings::WindowBinding::Window_Binding::WindowMethods;
 use crate::error::{Error, Fallible};
 use crate::interfaces::{DocumentHelpers, DomHelpers, GlobalScopeHelpers};
+use crate::js::JS_GetProperty;
 use crate::permanent_root::PermanentRoot;
 use crate::realms::enter_auto_realm;
 use crate::reflector::DomObject;
@@ -307,7 +308,7 @@ impl<D: DomTypes> CallbackInterface<D> {
         rooted!(&in(cx) let mut callable = UndefinedValue());
         rooted!(&in(cx) let obj = self.callback_holder().get());
         unsafe {
-            if !JS_GetProperty(cx, obj.handle(), name.as_ptr(), callable.handle_mut()) {
+            if !JS_GetProperty(cx, obj.handle(), name, callable.handle_mut()) {
                 return Err(Error::JSFailed);
             }
 
