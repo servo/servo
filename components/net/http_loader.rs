@@ -2537,13 +2537,7 @@ async fn cors_preflight_fetch(
         },
         RequestPolicyContainer::PolicyContainer(policy_container) => policy_container.clone(),
     })
-    .url_list(
-        request
-            .url_list
-            .iter()
-            .map(|claimed_url| claimed_url.url())
-            .collect(),
-    )
+    .url_list(request.url_list.clone())
     .build();
 
     // Step 2. Append (`Accept`, `*/*`) to preflight’s header list.

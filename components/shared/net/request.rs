@@ -508,7 +508,7 @@ pub struct RequestBuilder {
     pub cryptographic_nonce_metadata: String,
 
     /// <https://fetch.spec.whatwg.org/#concept-request-url-list>
-    pub url_list: Vec<ServoUrl>,
+    pub url_list: Vec<UrlWithBlobClaim>,
 
     /// <https://fetch.spec.whatwg.org/#concept-request-parser-metadata>
     pub parser_metadata: ParserMetadata,
@@ -653,7 +653,7 @@ impl RequestBuilder {
     }
 
     /// <https://fetch.spec.whatwg.org/#concept-request-url-list>
-    pub fn url_list(mut self, url_list: Vec<ServoUrl>) -> RequestBuilder {
+    pub fn url_list(mut self, url_list: Vec<UrlWithBlobClaim>) -> RequestBuilder {
         self.url_list = url_list;
         self
     }
@@ -757,11 +757,7 @@ impl RequestBuilder {
         request.cache_mode = self.cache_mode;
         request.referrer_policy = self.referrer_policy;
         request.redirect_mode = self.redirect_mode;
-        let mut url_list: Vec<_> = self
-            .url_list
-            .into_iter()
-            .map(UrlWithBlobClaim::from_url_without_having_claimed_blob)
-            .collect();
+        let mut url_list = self.url_list;
         if url_list.is_empty() {
             url_list.push(self.url);
         }

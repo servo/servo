@@ -177,7 +177,7 @@ pub(crate) struct InProgressLoad {
     /// A list of URL to keep track of all the redirects that have happened during
     /// this load.
     #[no_trace]
-    pub(crate) url_list: Vec<ServoUrl>,
+    pub(crate) url_list: Vec<UrlWithBlobClaim>,
     #[no_trace]
     /// The [`UserContentManagerId`] associated with this load's `WebView`.
     pub(crate) user_content_manager_id: Option<UserContentManagerId>,
@@ -208,7 +208,7 @@ impl InProgressLoad {
             navigation_start: CrossProcessInstant::now(),
             controller: Default::default(),
             load_data: new_pipeline_info.load_data,
-            url_list: vec![url],
+            url_list: vec![UrlWithBlobClaim::from_url_without_having_claimed_blob(url)],
             user_content_manager_id: new_pipeline_info.user_content_manager_id,
             target_snapshot_params: new_pipeline_info.target_snapshot_params,
             frame_name: new_pipeline_info.frame_name,
