@@ -183,12 +183,16 @@ pub use message_router::{
 
 // Re-export protocol handler types
 pub use protocol_handler::{
-    ServoProtocolHandler, ServoProtocolHandlerCallback, ServoWebResourceRequest,
-    ServoWebResourceResponse, servo_builder_register_protocol_handler,
+    ServoProtocolHandler, ServoProtocolHandlerCallback, ServoWebResourceLoad,
+    ServoWebResourceRequest, ServoWebResourceResponse, servo_builder_register_protocol_handler,
+    servo_web_resource_load_cancel, servo_web_resource_load_finish, servo_web_resource_load_free,
+    servo_web_resource_load_get_request, servo_web_resource_load_intercept,
+    servo_web_resource_load_send_body_data, servo_web_resource_request_free,
     servo_web_resource_request_get_body, servo_web_resource_request_get_header,
     servo_web_resource_request_get_method, servo_web_resource_request_get_url,
-    servo_web_resource_response_set_body, servo_web_resource_response_set_header,
-    servo_web_resource_response_set_status, servo_web_resource_response_set_url,
+    servo_web_resource_response_free, servo_web_resource_response_set_body,
+    servo_web_resource_response_set_header, servo_web_resource_response_set_status,
+    servo_web_resource_response_set_url,
 };
 
 // Re-export multiprocess functions

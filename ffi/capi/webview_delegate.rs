@@ -11,7 +11,9 @@ use embedder_traits::{
 
 use crate::download::{ServoDownloadContinueCallback, ServoDownloadItem};
 use crate::find::ServoFindResult;
-use crate::protocol_handler::{ServoWebResourceRequest, ServoWebResourceResponse};
+use crate::protocol_handler::{
+    ResourceLoadInner, ServoWebResourceLoad, ServoWebResourceRequest, ServoWebResourceResponse,
+};
 use crate::webview::ServoCreateNewWebViewRequest;
 pub use servo_api::LoadStatus;
 use servo_api::{
@@ -1022,6 +1024,31 @@ pub struct ServoWebViewDelegate {
             user_data: *mut c_void,
         ),
     >,
+
+    // Web resource streaming category (new)
+    /// Called when a web resource is about to be loaded, allowing streaming response synthesis.
+    ///
+    /// If non-null, this is preferred over `intercept_request`.
+    /// `load` is an opaque handle to the load. To intercept and stream the response:
+    /// 1. Populate `response` (status code, headers).
+    /// 2. Call `servo_web_resource_load_intercept(load, response)`.
+    /// 3. Call `servo_web_resource_load_send_body_data(load, bytes, len)` for each body chunk.
+    /// 4. Call `servo_web_resource_load_finish(load)` (or `servo_web_resource_load_cancel(load)`)
+    ///    to complete the load. Calling finish or cancel consumes and frees `load`.
+    ///
+    /// The embedder may also retain `load` and stream body chunks asynchronously; in that case,
+    /// the callback returns `true`, and the embedder must eventually call finish or cancel.
+    ///
+    /// Return `true` to intercept, or `false` to let the load proceed normally.
+    pub intercept_request_streaming: Option<
+        unsafe extern "C" fn(
+            webview: *mut WebView,
+            request: *const ServoWebResourceRequest,
+            response: *mut ServoWebResourceResponse,
+            load: *mut ServoWebResourceLoad,
+            user_data: *mut c_void,
+        ) -> bool,
+    >,
 }
 
 /// Inherent methods for `ServoWebViewDelegate`.
@@ -1586,6 +1613,64 @@ impl WebViewDelegate for ServoWebViewDelegate {
     }
 
     fn load_web_resource(&self, mut webview: WebView, load: servo_api::WebResourceLoad) {
+        if let Some(streaming_cb) = self.intercept_request_streaming {
+            let c_request = ServoWebResourceRequest::from_web_resource_request(load.request());
+            let request_url = load.request().url.as_url().clone();
+            let mut c_response = ServoWebResourceResponse::new(request_url);
+
+            let inner = std::sync::Arc::new(parking_lot::Mutex::new(ResourceLoadInner {
+                load: Some(load),
+                intercepted: None,
+                is_finished: false,
+                freed: false,
+            }));
+
+            let c_load = Box::into_raw(Box::new(ServoWebResourceLoad {
+                inner: inner.clone(),
+                request: c_request.clone(),
+            }));
+
+            let intercepted = unsafe {
+                streaming_cb(
+                    &mut webview as *mut WebView,
+                    &c_request as *const _,
+                    &mut c_response as *mut _,
+                    c_load,
+                    self.user_data,
+                )
+            };
+
+            let mut lock = inner.lock();
+            if !intercepted {
+                if !lock.freed {
+                    lock.freed = true;
+                    drop(lock);
+                    unsafe {
+                        let _ = Box::from_raw(c_load);
+                    }
+                }
+            } else if lock.intercepted.is_none() && !lock.is_finished {
+                if let Some(rust_load) = lock.load.take() {
+                    let body = std::mem::take(&mut c_response.body);
+                    let rust_response = c_response.into_web_resource_response();
+                    let mut intercepted_load = rust_load.intercept(rust_response);
+                    if !body.is_empty() {
+                        intercepted_load.send_body_data(body);
+                    }
+                    intercepted_load.finish();
+                    lock.is_finished = true;
+                }
+                if !lock.freed {
+                    lock.freed = true;
+                    drop(lock);
+                    unsafe {
+                        let _ = Box::from_raw(c_load);
+                    }
+                }
+            }
+            return;
+        }
+
         let Some(callback) = self.intercept_request else {
             return; // Default: don't intercept
         };
@@ -1609,8 +1694,13 @@ impl WebViewDelegate for ServoWebViewDelegate {
 
         if intercepted {
             // Intercept the load with the provided response
+            let body = std::mem::take(&mut c_response.body);
             let response = c_response.into_web_resource_response();
-            load.intercept(response);
+            let mut intercepted_load = load.intercept(response);
+            if !body.is_empty() {
+                intercepted_load.send_body_data(body);
+            }
+            intercepted_load.finish();
         }
         // If not intercepted, the load proceeds normally (default behavior)
     }

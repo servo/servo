@@ -47,6 +47,7 @@ pub type ServoProtocolHandlerCallback = unsafe extern "C" fn(
 /// Opaque handle for a web resource request.
 /// Provided to the `intercept_request` delegate callback and protocol handler callback.
 // cbindgen:opaque
+#[derive(Clone)]
 pub struct ServoWebResourceRequest {
     method: Method,
     url: Url,
@@ -56,12 +57,27 @@ pub struct ServoWebResourceRequest {
 /// Opaque handle for a web resource response.
 /// Populated by the embedder in the `intercept_request` delegate callback or protocol handler callback.
 // cbindgen:opaque
+#[derive(Clone)]
 pub struct ServoWebResourceResponse {
     url: Url,
     headers: HeaderMap,
     status_code: StatusCode,
     status_message: Vec<u8>,
     body: Vec<u8>,
+}
+
+pub(crate) struct ResourceLoadInner {
+    pub(crate) load: Option<servo_api::WebResourceLoad>,
+    pub(crate) intercepted: Option<servo_api::InterceptedWebResourceLoad>,
+    pub(crate) is_finished: bool,
+    pub(crate) freed: bool,
+}
+
+/// Opaque handle representing a web resource load, supporting streaming response synthesis.
+// cbindgen:opaque
+pub struct ServoWebResourceLoad {
+    pub(crate) inner: std::sync::Arc<parking_lot::Mutex<ResourceLoadInner>>,
+    pub(crate) request: ServoWebResourceRequest,
 }
 
 /// Register a custom protocol handler for a scheme (e.g., "myapp").
@@ -467,4 +483,197 @@ pub extern "C" fn servo_web_resource_request_free(_request: *mut ServoWebResourc
 #[unsafe(no_mangle)]
 pub extern "C" fn servo_web_resource_response_free(_response: *mut ServoWebResourceResponse) {
     // No-op: the response is typically stack-allocated or owned by the embedder.
+}
+
+/// Get the request associated with this resource load.
+///
+/// Returns a pointer to the `ServoWebResourceRequest` valid for the lifetime of `load`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_web_resource_load_get_request(
+    load: *const ServoWebResourceLoad,
+) -> *const ServoWebResourceRequest {
+    if load.is_null() {
+        return std::ptr::null();
+    }
+    let load = unsafe { &*load };
+    &load.request as *const _
+}
+
+/// Begin intercepting this resource load with the given response headers and status code.
+///
+/// Transitions `load` into the intercepted state. After calling this function, the
+/// embedder can stream response body chunks via `servo_web_resource_load_send_body_data`.
+///
+/// Returns `ServoError::Ok` on success, `ServoError::InvalidState` if already intercepted
+/// or finished, or `ServoError::NullArgument` if pointers are null.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_web_resource_load_intercept(
+    load: *mut ServoWebResourceLoad,
+    response: *mut ServoWebResourceResponse,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if load.is_null() || response.is_null() {
+            return ServoError::NullArgument;
+        }
+
+        let load_ref = unsafe { &*load };
+        let mut lock = load_ref.inner.lock();
+        if lock.is_finished || lock.intercepted.is_some() {
+            return ServoError::InvalidState;
+        }
+
+        let Some(rust_load) = lock.load.take() else {
+            return ServoError::InvalidState;
+        };
+
+        let c_response = unsafe { &mut *response };
+        let body = std::mem::take(&mut c_response.body);
+        let rust_response = c_response.clone().into_web_resource_response();
+
+        let mut intercepted = rust_load.intercept(rust_response);
+        if !body.is_empty() {
+            intercepted.send_body_data(body);
+        }
+        lock.intercepted = Some(intercepted);
+
+        ServoError::Ok
+    })
+}
+
+/// Send a chunk of response body data for an intercepted resource load.
+///
+/// `load` must have already been intercepted via `servo_web_resource_load_intercept`.
+///
+/// Returns `ServoError::Ok` on success, `ServoError::InvalidState` if not yet intercepted
+/// or already finished, or `ServoError::NullArgument` if pointers are null.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_web_resource_load_send_body_data(
+    load: *mut ServoWebResourceLoad,
+    data: *const u8,
+    len: usize,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if load.is_null() {
+            return ServoError::NullArgument;
+        }
+        if len > 0 && data.is_null() {
+            return ServoError::NullArgument;
+        }
+
+        let load_ref = unsafe { &*load };
+        let mut lock = load_ref.inner.lock();
+        if lock.is_finished {
+            return ServoError::InvalidState;
+        }
+
+        let Some(ref mut intercepted) = lock.intercepted else {
+            return ServoError::InvalidState;
+        };
+
+        let chunk = if len > 0 {
+            unsafe { std::slice::from_raw_parts(data, len).to_vec() }
+        } else {
+            Vec::new()
+        };
+
+        intercepted.send_body_data(chunk);
+        ServoError::Ok
+    })
+}
+
+/// Complete the response for this intercepted resource load and free `load`.
+///
+/// Signals completion of the response. This function consumes and frees `load`.
+/// The caller must not use or free `load` after calling this function.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_web_resource_load_finish(
+    load: *mut ServoWebResourceLoad,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if load.is_null() {
+            return ServoError::NullArgument;
+        }
+
+        let load_ref = unsafe { &*load };
+        let mut lock = load_ref.inner.lock();
+        lock.is_finished = true;
+        if let Some(intercepted) = lock.intercepted.take() {
+            intercepted.finish();
+        }
+        let _ = lock.load.take();
+
+        if !lock.freed {
+            lock.freed = true;
+            drop(lock);
+            unsafe {
+                let _ = Box::from_raw(load);
+            }
+        }
+
+        ServoError::Ok
+    })
+}
+
+/// Cancel this intercepted resource load, triggering a network error, and free `load`.
+///
+/// This function consumes and frees `load`. The caller must not use or free `load`
+/// after calling this function.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_web_resource_load_cancel(
+    load: *mut ServoWebResourceLoad,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if load.is_null() {
+            return ServoError::NullArgument;
+        }
+
+        let load_ref = unsafe { &*load };
+        let mut lock = load_ref.inner.lock();
+        lock.is_finished = true;
+        if let Some(intercepted) = lock.intercepted.take() {
+            intercepted.cancel();
+        }
+        let _ = lock.load.take();
+
+        if !lock.freed {
+            lock.freed = true;
+            drop(lock);
+            unsafe {
+                let _ = Box::from_raw(load);
+            }
+        }
+
+        ServoError::Ok
+    })
+}
+
+/// Free a `ServoWebResourceLoad` handle without explicitly calling finish or cancel.
+///
+/// If intercepted, this auto-finishes the load (mirroring Rust's Drop behavior).
+/// If not intercepted, this drops the load (triggering normal network loading).
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_web_resource_load_free(
+    load: *mut ServoWebResourceLoad,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if load.is_null() {
+            return ServoError::NullArgument;
+        }
+
+        let load_ref = unsafe { &*load };
+        let mut lock = load_ref.inner.lock();
+        lock.is_finished = true;
+        drop(lock.intercepted.take());
+        drop(lock.load.take());
+
+        if !lock.freed {
+            lock.freed = true;
+            drop(lock);
+            unsafe {
+                let _ = Box::from_raw(load);
+            }
+        }
+
+        ServoError::Ok
+    })
 }
