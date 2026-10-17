@@ -889,10 +889,10 @@ impl WebView {
 
     /// Send a message from native code to JavaScript (native → JS).
     ///
-    /// This dispatches a `servo-message` [`CustomEvent`] on `window` with
-    /// `detail: { name, data }`. JavaScript listeners registered via
-    /// `window.servoMessageRouter.addEventListener(name, handler)` are invoked
-    /// with `data`.
+    /// This dispatches the message to in-page JavaScript listeners registered via
+    /// `window.servo.addEventListener("message", handler)` (receiving an event object
+    /// `{ type: "message", data, origin }`) or by name via
+    /// `window.servoMessageRouter.addEventListener(name, handler)` (receiving `data`).
     ///
     /// `data_json` must contain a JSON value (for example `"\"hello\""` for the
     /// string `hello`). If it is not valid JSON, the message is ignored by

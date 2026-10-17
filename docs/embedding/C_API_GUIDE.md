@@ -1233,15 +1233,18 @@ Then pass this `UserContentManager` to the `WebViewBuilder` (via
 servo_webview_post_message(webview, "my-message", "{\"value\": 42}");
 ```
 
-This dispatches a `CustomEvent` named `servo-message` on `window` with
-`detail: { name: "my-message", data: { "value": 42 } }`.
+This dispatches the message to registered JavaScript listeners. Listeners registered
+via `window.servo.addEventListener("message", handler)` receive an event object
+`{ type: "message", data: { "value": 42 }, origin }`, while named listeners registered
+via `window.servoMessageRouter.addEventListener(name, handler)` (or
+`window.servo.addEventListener(name, handler)`) receive the payload `data` directly.
 
 ### Receiving messages from native in JS
 
 ```javascript
 // Preferred API (window.servo):
 window.servo.addEventListener("message", function(event) {
-    console.log("Received from native:", event.detail); // { name: "my-message", data: { value: 42 } }
+    console.log("Received from native:", event.data); // { value: 42 }
 });
 
 // Or using message-router alias:

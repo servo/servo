@@ -393,18 +393,20 @@ failure), backed by a new `ffi/capi/javascript.rs` module. See `ROADMAP.md` Phas
 
 ### 5.4 Native <-> JS messaging
 
-Servo provides bidirectional native <-> JS messaging across script threads, constellation,
-and the embedder API:
+Servo provides bidirectional native <-> JS messaging across the engine and embedder API:
 
 - **Script side:** `window.servo.postMessage(handler_name, data)` posts a message to a named
   host handler. `window.servo.addEventListener("message", handler)` / `removeEventListener`
-  receives messages sent from native code via `servo-message` events. The legacy
-  `window.servoMessageRouter` is maintained as a backward-compatible alias.
+  receives messages sent from native code as `{ type: "message", data, origin }` objects,
+  while named listeners registered via `window.servo.addEventListener(name, handler)` receive
+  `data` directly. The legacy `window.servoMessageRouter` is maintained as a
+  backward-compatible alias.
 - **Engine routing:** `MessageRouter` (`components/servo/message_router.rs`) injects the
   bootstrap script into pages when the message router is enabled on `UserContentManager`.
-  `EmbedderMsg::OnScriptMessage(webview_id, handler_name, data_json)` routes messages from the
-  engine to the embedder, while `EmbedderToConstellationMessage::PostMessageToScript` routes
-  native messages through the constellation to script pipelines.
+  Native messages are delivered by evaluating a dispatch script via `WebView::post_message`
+  (`evaluate_javascript`), and JavaScript messages queued in-page are retrieved via
+  `WebView::poll_js_messages` (`servo_webview_poll_js_messages`), which dispatches them to
+  registered `MessageRouter` handlers and the delegate.
 - **Embedder & C API:** Embedders can register named callbacks via
   `servo_webview_add_script_message_handler` / `servo_webview_remove_script_message_handler`
   (or `servo_webview_add_message_handler`), post messages via `servo_webview_post_message`,

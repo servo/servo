@@ -6,9 +6,9 @@
 //! messaging.
 //!
 //! Native code registers handlers for messages sent from JavaScript via
-//! `window.servoMessageRouter.postMessage(name, data)`, and can send messages
-//! to JavaScript via [`crate::WebView::post_message`], which dispatches a
-//! `servo-message` [`CustomEvent`] on `window`.
+//! `window.servoMessageRouter.postMessage(name, data)` (or `window.servo.postMessage`),
+//! and can send messages to JavaScript via [`crate::WebView::post_message`], which
+//! dispatches messages to registered in-page JavaScript listeners.
 
 use std::cell::RefCell;
 use std::collections::HashMap;

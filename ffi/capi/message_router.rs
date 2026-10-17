@@ -191,9 +191,9 @@ pub unsafe extern "C" fn servo_webview_remove_message_handler(
 
 /// Send a message from native to JavaScript (native→JS).
 ///
-/// This dispatches a `CustomEvent` named `servo-message` on `window`
-/// with `detail: { name, data }`. JavaScript code can listen for these
-/// messages via `window.servoMessageRouter.addEventListener(name, handler)`.
+/// This dispatches the message to in-page JavaScript listeners registered via
+/// `window.servo.addEventListener("message", handler)` (receiving `{ type: "message", data, origin }`)
+/// or by name via `window.servoMessageRouter.addEventListener(name, handler)` (receiving `data`).
 ///
 /// `webview` is a handle to a `WebView` object.
 /// The ownership of `webview` remains with the caller after the call.
