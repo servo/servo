@@ -1651,7 +1651,7 @@ impl WebViewDelegate for ServoWebViewDelegate {
                 }
             } else if lock.intercepted.is_none() && !lock.is_finished {
                 if let Some(rust_load) = lock.load.take() {
-                    let body = std::mem::take(&mut c_response.body);
+                    let body = c_response.take_body();
                     let rust_response = c_response.into_web_resource_response();
                     let mut intercepted_load = rust_load.intercept(rust_response);
                     if !body.is_empty() {
@@ -1694,7 +1694,7 @@ impl WebViewDelegate for ServoWebViewDelegate {
 
         if intercepted {
             // Intercept the load with the provided response
-            let body = std::mem::take(&mut c_response.body);
+            let body = c_response.take_body();
             let response = c_response.into_web_resource_response();
             let mut intercepted_load = load.intercept(response);
             if !body.is_empty() {

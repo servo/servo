@@ -123,7 +123,8 @@ pub use crate::webview_delegate::{
     AlertDialog, AllowOrDenyRequest, AuthenticationRequest, BluetoothDeviceSelectionRequest,
     CertificateError, CertificateErrorRequest, CertificateErrorResponse,
     ColorPicker, ConfirmDialog, ContextMenu, CreateNewWebViewRequest, DownloadContinueCallback,
-    DownloadItem, DownloadState, EmbedderControl, FilePicker, InputMethodControl, NavigationRequest,
+    DownloadItem, DownloadState, EmbedderControl, FilePicker, InputMethodControl,
+    InterceptedWebResourceLoad, NavigationRequest,
     PermissionRequest, PromptDialog, ProtocolHandlerRegistration, SelectElement, SimpleDialog,
     WebResourceLoad, WebViewDelegate,
 };

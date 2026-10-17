@@ -142,16 +142,25 @@ static void on_screenshot(const uint8_t* data, uint32_t width, uint32_t height,
     /* `data` is only valid for the duration of this call; copy it to keep it. */
 }
 
-static void on_javascript_result(const char* result_json, const char* error_message,
+static void on_javascript_result(ServoValue* result_value, const char* error_message,
     void* user_data)
 {
     (void)user_data;
     if (error_message != NULL) {
         printf("[js] error: %s\n", error_message);
-    } else {
-        printf("[js] result: %s\n", result_json != NULL ? result_json : "null");
+    } else if (result_value != NULL) {
+        char buf[256];
+        size_t len = servo_value_get_string(result_value, buf, sizeof(buf));
+        if (len > 0) {
+            printf("[js] result: %s\n", buf);
+        } else {
+            int32_t val_type = 0;
+            servo_value_get_type(result_value, &val_type);
+            printf("[js] result (type=%d)\n", (int)val_type);
+        }
+        servo_value_free(result_value);
     }
-    /* Both strings are only valid for the duration of this call. */
+    /* `error_message` is only valid for the duration of this call. */
 }
 
 /* -------------------------------------------------------------------- main */
@@ -257,7 +266,7 @@ int main(int argc, char** argv)
     servo_webview_show(webview);
 
     /* Asynchronous JavaScript evaluation; the result arrives during a spin. */
-    servo_webview_evaluate_javascript(webview, "document.title",
+    servo_webview_evaluate_javascript_v2(webview, "document.title",
         on_javascript_result, &app);
 
     /* 8. Manual spin loop. A real embedder blocks on the waker; this example

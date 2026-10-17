@@ -21,7 +21,6 @@ use crate::ServoError;
 /// Created by `servo_builder_register_protocol_handler`.
 /// The handler is owned by the `ProtocolRegistry` and lives until the `Servo` instance is destroyed.
 // cbindgen:opaque
-#[repr(C)]
 pub struct ServoProtocolHandler {
     _private: (),
 }
@@ -234,6 +233,14 @@ impl ServoWebResourceResponse {
         response.status = HttpStatus::new_raw(self.status_code.as_u16(), self.status_message);
         response.body = servo_arc::Arc::new(parking_lot::Mutex::new(ResponseBody::Done(self.body)));
         response
+    }
+
+    /// Take the response body, leaving it empty.
+    ///
+    /// Used by callers in other modules to stream the body via
+    /// `InterceptedWebResourceLoad::send_body_data`.
+    pub(crate) fn take_body(&mut self) -> Vec<u8> {
+        std::mem::take(&mut self.body)
     }
 
     pub(crate) fn into_web_resource_response(self) -> WebResourceResponse {
@@ -527,7 +534,7 @@ pub unsafe extern "C" fn servo_web_resource_load_intercept(
         };
 
         let c_response = unsafe { &mut *response };
-        let body = std::mem::take(&mut c_response.body);
+        let body = c_response.take_body();
         let rust_response = c_response.clone().into_web_resource_response();
 
         let mut intercepted = rust_load.intercept(rust_response);

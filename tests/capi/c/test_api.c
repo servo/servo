@@ -1255,7 +1255,7 @@ int test_error_invalid_utf8(void)
     }
 
     // Create invalid UTF-8 (0xFF is not valid UTF-8)
-    char invalid_utf8[] = {0xFF, 0xFE, 0x00};
+    const char invalid_utf8[] = "\xFF\xFE";
 
     // Test servo_webview_builder_set_url with invalid UTF-8
     if (servo_webview_builder_set_url(builder, invalid_utf8) != SERVO_ERROR_INVALID_UTF8) {
