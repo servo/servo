@@ -40,6 +40,15 @@ ignore = [
     # This is a dependency of `usvg`, `rustybuzz`, `fontdb`.
     # We will need to wait for upstream actions.
     "RUSTSEC-2026-0192",
+    # The crate `zvariant` is unmaintained. Wait for `atspi-common` to start
+    # using `zbus`.
+    "RUSTSEC-2026-0370",
+    # The crate `zbus_names` is unmaintained. Wait for `atspi-common` to start
+    # using `zbus`.
+    "RUSTSEC-2026-0371",
+    # The crate `zvariant_derive` is unmaintained. Wait for `atspi-common` to start
+    # using `zbus`.
+    "RUSTSEC-2026-0372",
 ]
 
 # This section is considered when running `cargo deny check licenses`
