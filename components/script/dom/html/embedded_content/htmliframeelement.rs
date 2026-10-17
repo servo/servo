@@ -1123,7 +1123,10 @@ impl VirtualMethods for HTMLIFrameElement {
                 // the child browsing context to be created.
 
                 // trigger the processing of iframe attributes whenever "srcdoc" attribute is set, changed or removed
-                if self.upcast::<Node>().is_connected_with_browsing_context() {
+                if self
+                    .upcast::<Node>()
+                    .is_connected_with_browsing_context(cx.no_gc())
+                {
                     debug!("iframe srcdoc modified while in browsing context.");
                     self.process_the_iframe_attributes(cx, ProcessingMode::NotFirstTime);
                 }
@@ -1137,7 +1140,10 @@ impl VirtualMethods for HTMLIFrameElement {
                 // may be in a different script thread. Instead, we check to see if the parent
                 // is in a document tree and has a browsing context, which is what causes
                 // the child browsing context to be created.
-                if self.upcast::<Node>().is_connected_with_browsing_context() {
+                if self
+                    .upcast::<Node>()
+                    .is_connected_with_browsing_context(cx.no_gc())
+                {
                     debug!("iframe src set while in browsing context.");
                     self.process_the_iframe_attributes(cx, ProcessingMode::NotFirstTime);
                 }
@@ -1198,7 +1204,10 @@ impl VirtualMethods for HTMLIFrameElement {
         // This isn't mentioned any longer in the specification, but still seems important. This is
         // likely due to the fact that we have deviated a great deal with it comes to navigables
         // and browsing contexts.
-        if !self.upcast::<Node>().is_connected_with_browsing_context() {
+        if !self
+            .upcast::<Node>()
+            .is_connected_with_browsing_context(cx.no_gc())
+        {
             return;
         }
 
