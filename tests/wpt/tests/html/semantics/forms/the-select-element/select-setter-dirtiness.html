@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Setters that select an option set its dirtiness</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-elements.html#dom-select-selectedindex">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-elements.html#dom-select-value">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-elements.html#dom-option-selected">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-elements.html#concept-option-dirtiness">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+function makeSelect(t) {
+  const select = document.createElement("select");
+  for (const value of ["apple", "banana", "cherry"])
+    select.add(new Option(value, value));
+  document.body.append(select);
+  t.add_cleanup(() => select.remove());
+  return select;
+}
+
+// Without dirtiness, removing the selected attribute would reset the select to its first option.
+function addAndRemoveSelectedAttribute(option) {
+  option.setAttribute("selected", "");
+  option.removeAttribute("selected");
+}
+
+test(t => {
+  const select = makeSelect(t);
+  select.selectedIndex = 1;
+  addAndRemoveSelectedAttribute(select.options[1]);
+  assert_equals(select.value, "banana");
+}, "The selectedIndex setter of a select sets the dirtiness of the option it selects");
+
+test(t => {
+  const select = makeSelect(t);
+  select.options.selectedIndex = 1;
+  addAndRemoveSelectedAttribute(select.options[1]);
+  assert_equals(select.value, "banana");
+}, "The selectedIndex setter of HTMLOptionsCollection sets the dirtiness of the option it selects");
+
+test(t => {
+  const select = makeSelect(t);
+  select.value = "banana";
+  addAndRemoveSelectedAttribute(select.options[1]);
+  assert_equals(select.value, "banana");
+}, "The value setter of a select sets the dirtiness of the option it selects");
+
+test(t => {
+  const select = makeSelect(t);
+  select.options[1].selected = true;
+  addAndRemoveSelectedAttribute(select.options[1]);
+  assert_equals(select.value, "banana");
+}, "The selected setter of an option in a select sets its dirtiness");
+
+// These options are selected by their selected attribute before a setter selects them again.
+
+test(t => {
+  const select = makeSelect(t);
+  select.options[1].setAttribute("selected", "");
+  select.selectedIndex = select.selectedIndex;
+  select.options[1].removeAttribute("selected");
+  assert_equals(select.value, "banana");
+}, "The selectedIndex setter of a select sets the dirtiness of the option it selects when that option is already selected");
+
+test(t => {
+  const select = makeSelect(t);
+  select.options[1].setAttribute("selected", "");
+  select.value = select.value;
+  select.options[1].removeAttribute("selected");
+  assert_equals(select.value, "banana");
+}, "The value setter of a select sets the dirtiness of the option it selects when that option is already selected");
+
+// The HTML standard should probably change for this one: https://github.com/whatwg/html/issues/9682
+test(t => {
+  const select = makeSelect(t);
+  select.options[1].setAttribute("selected", "");
+  select.options[1].selected = true;
+  select.options[1].removeAttribute("selected");
+  assert_equals(select.value, "banana");
+}, "The selected setter of an option in a select sets its dirtiness when the option is already selected");
+</script>

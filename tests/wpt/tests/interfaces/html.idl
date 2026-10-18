@@ -48,7 +48,7 @@ typedef (HTMLScriptElement or SVGScriptElement) HTMLOrSVGScriptElement;
 
 [LegacyOverrideBuiltIns]
 partial interface Document {
-  static Document parseHTMLUnsafe((TrustedHTML or DOMString) html, optional ParseHTMLUnsafeOptions options = {});
+  static Document parseHTMLUnsafe((TrustedHTML or DOMString) html, optional (ParseHTMLUnsafeOptions or TrustedHTMLParserOptions) options = {});
   static Document parseHTML(DOMString html, optional SetHTMLOptions options = {});
 
   // resource metadata management
@@ -1253,7 +1253,7 @@ interface HTMLScriptElement : HTMLElement {
   [HTMLConstructor] constructor();
 
   [CEReactions, Reflect] attribute DOMString type;
-  [CEReactions, ReflectURL] attribute USVString src;
+  [CEReactions] attribute (TrustedScriptURL or USVString) src;
   [CEReactions, Reflect] attribute boolean noModule;
   [CEReactions] attribute boolean async;
   [CEReactions, Reflect] attribute boolean defer;
@@ -1263,7 +1263,10 @@ interface HTMLScriptElement : HTMLElement {
   [CEReactions, Reflect] attribute DOMString integrity;
   [CEReactions] attribute DOMString fetchPriority;
 
-  [CEReactions] attribute DOMString text;
+  // innerText and textContent shadow HTMLElement's and Node's, to add Trusted Types checks
+  [CEReactions] attribute (TrustedScript or [LegacyNullToEmptyString] DOMString) innerText;
+  [CEReactions] attribute (TrustedScript or DOMString)? textContent;
+  [CEReactions] attribute (TrustedScript or DOMString) text;
 
   static boolean supports(DOMString type);
 
@@ -2364,7 +2367,11 @@ WorkerGlobalScope includes WindowOrWorkerGlobalScope;
 
 partial interface Element {
   [CEReactions] undefined setHTML(DOMString html, optional SetHTMLOptions options = {});
-  [CEReactions] undefined setHTMLUnsafe((TrustedHTML or DOMString) html, optional SetHTMLUnsafeOptions options = {});
+  [CEReactions] undefined appendHTML(DOMString html, optional SetHTMLOptions options = {});
+  [CEReactions] undefined prependHTML(DOMString html, optional SetHTMLOptions options = {});
+  [CEReactions] undefined setHTMLUnsafe((TrustedHTML or DOMString) html, optional (SetHTMLUnsafeOptions or TrustedHTMLParserOptions) options = {});
+  [CEReactions] undefined appendHTMLUnsafe((TrustedHTML or DOMString) html, optional (SetHTMLUnsafeOptions or TrustedHTMLParserOptions) options = {});
+  [CEReactions] undefined prependHTMLUnsafe((TrustedHTML or DOMString) html, optional (SetHTMLUnsafeOptions or TrustedHTMLParserOptions) options = {});
   DOMString getHTML(optional GetHTMLOptions options = {});
 
   [CEReactions] attribute (TrustedHTML or [LegacyNullToEmptyString] DOMString) innerHTML;
@@ -2374,10 +2381,23 @@ partial interface Element {
 
 partial interface ShadowRoot {
   [CEReactions] undefined setHTML(DOMString html, optional SetHTMLOptions options = {});
-  [CEReactions] undefined setHTMLUnsafe((TrustedHTML or DOMString) html, optional SetHTMLUnsafeOptions options = {});
+  [CEReactions] undefined appendHTML(DOMString html, optional SetHTMLOptions options = {});
+  [CEReactions] undefined prependHTML(DOMString html, optional SetHTMLOptions options = {});
+  [CEReactions] undefined setHTMLUnsafe((TrustedHTML or DOMString) html, optional (SetHTMLUnsafeOptions or TrustedHTMLParserOptions) options = {});
+  [CEReactions] undefined appendHTMLUnsafe((TrustedHTML or DOMString) html, optional (SetHTMLUnsafeOptions or TrustedHTMLParserOptions) options = {});
+  [CEReactions] undefined prependHTMLUnsafe((TrustedHTML or DOMString) html, optional (SetHTMLUnsafeOptions or TrustedHTMLParserOptions) options = {});
   DOMString getHTML(optional GetHTMLOptions options = {});
 
   [CEReactions] attribute (TrustedHTML or [LegacyNullToEmptyString] DOMString) innerHTML;
+};
+
+partial interface mixin NonDocumentTypeChildNode {
+  [CEReactions] undefined beforeHTML(DOMString html, optional SetHTMLOptions options = {});
+  [CEReactions] undefined afterHTML(DOMString html, optional SetHTMLOptions options = {});
+  [CEReactions] undefined replaceWithHTML(DOMString html, optional SetHTMLOptions options = {});
+  [CEReactions] undefined beforeHTMLUnsafe((TrustedHTML or DOMString) html, optional (SetHTMLUnsafeOptions or TrustedHTMLParserOptions) options = {});
+  [CEReactions] undefined afterHTMLUnsafe((TrustedHTML or DOMString) html, optional (SetHTMLUnsafeOptions or TrustedHTMLParserOptions) options = {});
+  [CEReactions] undefined replaceWithHTMLUnsafe((TrustedHTML or DOMString) html, optional (SetHTMLUnsafeOptions or TrustedHTMLParserOptions) options = {});
 };
 
 enum SanitizerPresets { "default" };
@@ -2385,11 +2405,11 @@ dictionary SetHTMLOptions {
   (Sanitizer or SanitizerConfig or SanitizerPresets) sanitizer = "default";
 };
 dictionary SetHTMLUnsafeOptions {
-  (Sanitizer or SanitizerConfig or SanitizerPresets) sanitizer = {};
+  (Sanitizer or SanitizerConfig or SanitizerPresets) sanitizer;
   boolean runScripts = false;
 };
 dictionary ParseHTMLUnsafeOptions {
-  (Sanitizer or SanitizerConfig or SanitizerPresets) sanitizer = {};
+  (Sanitizer or SanitizerConfig or SanitizerPresets) sanitizer;
 };
 
 dictionary GetHTMLOptions {

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<svg></svg>
+<script>
+  const params = new URLSearchParams(location.search);
+  const link = document.createElementNS("http://www.w3.org/2000/svg", "a");
+  link.setAttribute("href", "a-referrerpolicy-navigation-target.html");
+  for (const name of ["referrerpolicy", "rel"]) {
+    if (params.has(name))
+      link.setAttribute(name, params.get(name));
+  }
+  document.querySelector("svg").appendChild(link);
+  link.dispatchEvent(new MouseEvent("click", {
+    view: window,
+    bubbles: true,
+    cancelable: true
+  }));
+</script>

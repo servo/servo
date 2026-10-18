@@ -2,7 +2,10 @@ import asyncio
 import random
 
 import pytest
-from webdriver.bidi.modules.script import ScriptEvaluateResultException
+from webdriver.bidi.modules.script import (
+    ContextTarget,
+    ScriptEvaluateResultException,
+)
 
 from .. import (
     assert_before_request_sent_event,
@@ -273,3 +276,58 @@ async def test_two_contexts_global_intercept(
     assert_before_request_sent_event(
         event, expected_event={"isBlocked": True, "intercepts": [global_intercept]}
     )
+
+
+@pytest.mark.parametrize("phase", ["beforeRequestSent", "responseStarted"])
+async def test_window_open_global_intercept(
+    bidi_session,
+    url,
+    new_tab,
+    add_intercept,
+    setup_network_test,
+    wait_for_event,
+    wait_for_future_safe,
+    phase,
+):
+    # Subscribe globally to network events so that newly opened contexts are
+    # also monitored.
+    await setup_network_test(
+        events=[
+            BEFORE_REQUEST_SENT_EVENT,
+            RESPONSE_STARTED_EVENT,
+            RESPONSE_COMPLETED_EVENT,
+        ],
+        context=new_tab["context"],
+    )
+
+    text_url = f"{url(PAGE_EMPTY_TEXT)}?nocache={random.random()}"
+    intercept = await add_intercept(
+        phases=[phase],
+        url_patterns=[{"type": "string", "pattern": text_url}],
+    )
+
+    # Initial navigation request of a newly opened window should be blocked by
+    # the global intercept.
+    [event_name, assert_network_event] = PHASE_TO_EVENT_MAP[phase]
+    on_network_event = wait_for_event(event_name)
+    await bidi_session.script.evaluate(
+        expression=f"window.open('{text_url}')",
+        target=ContextTarget(new_tab["context"]),
+        await_promise=False,
+    )
+    event = await wait_for_future_safe(on_network_event)
+
+    contexts = await bidi_session.browsing_context.get_tree()
+    assert len(contexts) == 3
+
+    assert_network_event(
+        event,
+        expected_event={
+            "context": contexts[-1]["context"],
+            "isBlocked": True,
+            "intercepts": [intercept],
+            "request": {"url": text_url},
+        },
+    )
+
+    await bidi_session.network.fail_request(request=event["request"]["request"])

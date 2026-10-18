@@ -36,13 +36,6 @@
     },`ISO-8859-8 UA stylesheet rule for unicode-bidi, for <${tagname}>`);
   }
 
-  test((t) => {
-    const element = document.createElement('span');
-    t.add_cleanup(() => element.remove());
-    document.body.appendChild(element);
-    assert_equals(getUnicodeBidi(element),'bidi-override');
-  },`ISO-8859-8 UA stylesheet rule for unicode-bidi, for elements not listed in the spec`);
-
   const normalInputTypes =
       HTML5_INPUT_TYPES.filter(type => (!['submit','reset','button'].includes(type)));
   for(let type of normalInputTypes) {

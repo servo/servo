@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test that scrolling the anchor element's scroll container doesn't change the outer scroller's scroll height</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#scroll">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2072683">
+<meta name="assert" content="The default scroll shift of a positioned element is applied after layout, so scrolling its anchor's scroll container must not change the scrollHeight of the scroll container the positioned element is in.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
+
+<style>
+#scroller1 {
+  width: 200px;
+  height: 200px;
+  position: relative;
+  overflow: scroll;
+}
+#scroller2 {
+  width: 100px;
+  height: 100px;
+  overflow: scroll;
+}
+#anchor {
+  anchor-name: --a;
+  height: 20px;
+  background: orange;
+}
+#positioned {
+  position: absolute;
+  position-anchor: --a;
+  left: anchor(left);
+  top: anchor(bottom);
+  width: 100px;
+  height: 100px;
+  background: lime;
+}
+</style>
+
+<div id="scroller1">
+  <div style="height: 100px"></div>
+  <div id="scroller2">
+    <div style="height: 230px"></div>
+    <div id="anchor"></div>
+    <div style="height: 230px"></div>
+  </div>
+  <div style="height: 100px"></div>
+  <div id="positioned"></div>
+</div>
+
+<script>
+promise_test(async () => {
+  const scroller1 = document.getElementById("scroller1");
+  const scroller2 = document.getElementById("scroller2");
+
+  scroller2.scrollTop = 50;
+  await waitForAtLeastOneFrame();
+  const expectedScrollHeight = scroller1.scrollHeight;
+
+  for (const y of [100, 150, 200, 250, 150, 50, 0]) {
+    scroller2.scrollTop = y;
+    await waitForAtLeastOneFrame();
+    assert_equals(scroller1.scrollHeight, expectedScrollHeight,
+                  `scroller1.scrollHeight shouldn't change (when scroller2.scrollTop=${y})`);
+  }
+}, "Scrolling the anchor's scroller doesn't change the positioned element's scroller's scrollHeight");
+</script>

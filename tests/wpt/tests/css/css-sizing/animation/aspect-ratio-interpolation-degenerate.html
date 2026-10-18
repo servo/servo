@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>aspect-ratio interpolation with degenerate ratios</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#combine-ratio">
+<meta name="assert" content="Ratios with a zero term (0 / 1, 1 / 0, 0 / 0) are not interpolable, so aspect-ratio animates discretely instead of producing NaN or infinity.">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<div id="target"></div>
+<div id="reference"></div>
+
+<script>
+const target = document.getElementById('target');
+const reference = document.getElementById('reference');
+
+function computedAspectRatio(element, value)
+{
+    element.style.aspectRatio = value;
+    const result = getComputedStyle(element).aspectRatio;
+    element.style.aspectRatio = '';
+    return result;
+}
+
+function testDiscrete(from, to, prefix = '')
+{
+    const fromValue = prefix + from;
+    const toValue = prefix + to;
+    test(() => {
+        const animation = target.animate({ aspectRatio: [fromValue, toValue] }, { duration: 1000, fill: 'both' });
+        animation.pause();
+
+        const expectedFrom = computedAspectRatio(reference, fromValue);
+        const expectedTo = computedAspectRatio(reference, toValue);
+
+        for (const progress of [-0.5, 0, 0.25, 0.4]) {
+            animation.currentTime = progress * 1000;
+            assert_equals(getComputedStyle(target).aspectRatio, expectedFrom, `at ${progress}`);
+        }
+        for (const progress of [0.6, 0.75, 1, 1.5]) {
+            animation.currentTime = progress * 1000;
+            assert_equals(getComputedStyle(target).aspectRatio, expectedTo, `at ${progress}`);
+        }
+        animation.cancel();
+    }, `aspect-ratio animates discretely from [${fromValue}] to [${toValue}]`);
+}
+
+testDiscrete('0 / 1', '2 / 1');
+testDiscrete('1 / 0', '2 / 1');
+testDiscrete('0 / 0', '2 / 1');
+testDiscrete('2 / 1', '0 / 1');
+testDiscrete('2 / 1', '1 / 0');
+testDiscrete('2 / 1', '0 / 0');
+testDiscrete('0 / 1', '1 / 0');
+testDiscrete('0 / 1', '2 / 1', 'auto ');
+testDiscrete('1 / 0', '2 / 1', 'auto ');
+testDiscrete('0 / 0', '2 / 1', 'auto ');
+
+test(() => {
+    const animation = target.animate({ aspectRatio: ['auto 1 / 2', 'auto 2 / 1'] }, { duration: 1000, fill: 'both' });
+    animation.pause();
+    animation.currentTime = 500;
+    assert_equals(getComputedStyle(target).aspectRatio, computedAspectRatio(reference, 'auto 1 / 1'));
+    animation.cancel();
+}, 'aspect-ratio with non-degenerate auto ratios still interpolates');
+
+test(() => {
+    const animation = target.animate({ aspectRatio: ['0 / 1', '2 / 1'] }, { duration: 1000, fill: 'both' });
+    animation.pause();
+    animation.currentTime = 250;
+    assert_not_equals(getComputedStyle(target).aspectRatio, 'NaN / 1');
+    assert_not_equals(getComputedStyle(target).aspectRatio, 'Infinity / 1');
+    animation.cancel();
+}, 'aspect-ratio never computes to NaN or infinity when animating from a degenerate ratio');
+</script>
+</body>

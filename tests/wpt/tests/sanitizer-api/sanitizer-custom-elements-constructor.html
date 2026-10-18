@@ -40,7 +40,7 @@ function assert_removed(method, sanitizer, scoped = false) {
 
   let target = d;
   if (scoped) {
-    target = d.attachShadow({ mode: "open", registry });
+    target = d.attachShadow({ mode: "open", customElementRegistry: registry });
   }
 
   const tag = scoped ? "disallowed-element-scoped" : "disallowed-element";
@@ -61,7 +61,8 @@ function assert_removed(method, sanitizer, scoped = false) {
 for (const method of ["setHTML", "setHTMLUnsafe"]) {
   for (const config of [
     { name: "removeElements", options: { removeElements: ["disallowed-element"] }, scopedOptions: { removeElements: ["disallowed-element-scoped"] } },
-    { name: "allowElements", options: { elements: ["div"] }, scopedOptions: { elements: ["div"] } }
+    { name: "allowElements", options: { elements: ["div"] }, scopedOptions: { elements: ["div"] } },
+    { name: "replaceWithChildrenElements", options: { replaceWithChildrenElements: ["disallowed-element"] }, scopedOptions: { replaceWithChildrenElements: ["disallowed-element-scoped"] } }
   ]) {
     test(t => {
       assert_removed(method, config.options, false);
@@ -71,6 +72,21 @@ for (const method of ["setHTML", "setHTMLUnsafe"]) {
       assert_removed(method, config.scopedOptions, true);
     }, `${method} blocks CE constructor in scoped registry when element is dropped by explicit sanitizer config (${config.name})`);
   }
+}
+
+for (const method of ["setHTML", "setHTMLUnsafe"]) {
+  test(t => {
+    constructor_called = connectedCallback_called = false;
+    const d = document.createElement("div");
+    document.body.append(d);
+    t.add_cleanup(() => d.remove());
+    const shadow = d.attachShadow({ mode: "open", customElementRegistry: registry });
+    shadow[method]("<disallowed-element-scoped></disallowed-element-scoped>",
+      { sanitizer: { elements: ["disallowed-element-scoped"] } });
+    assert_equals(shadow.firstChild.localName, "disallowed-element-scoped");
+    assert_true(constructor_called, "Constructor should be called");
+    assert_true(connectedCallback_called, "ConnectedCallback should be called");
+  }, `${method} constructs an allowed CE from the scoped registry`);
 }
 
 </script>

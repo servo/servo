@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Selecting an option of a select as a user sets the option's dirtiness</title>
+<link rel="author" href="mailto:annevk@annevk.nl">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-elements.html#concept-select-pick">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-elements.html#concept-option-dirtiness">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<select id="listbox" size="3">
+  <option>one</option>
+  <option>two</option>
+  <option>three</option>
+</select>
+
+<select id="listboxSelected" size="3">
+  <option>one</option>
+  <option selected>two</option>
+  <option>three</option>
+</select>
+
+<select id="multiple" multiple size="3">
+  <option>one</option>
+  <option>two</option>
+  <option>three</option>
+</select>
+
+<select id="dropdown">
+  <option>apple</option>
+  <option>banana</option>
+  <option>cherry</option>
+</select>
+
+<script>
+// Dirtiness makes the selected content attribute stop controlling selectedness.
+function addAndRemoveSelectedAttribute(option) {
+  option.setAttribute("selected", "");
+  option.removeAttribute("selected");
+}
+
+function selectedValues(select) {
+  return Array.from(select.selectedOptions, option => option.value);
+}
+
+promise_test(async () => {
+  const select = document.getElementById("listbox");
+  await test_driver.click(select);
+  assert_equals(select.value, "two", "clicking the middle of the list box picks its second option");
+
+  addAndRemoveSelectedAttribute(select.options[1]);
+  assert_equals(select.value, "two");
+}, "Clicking an option in a list box sets its dirtiness");
+
+promise_test(async () => {
+  const select = document.getElementById("listboxSelected");
+  await test_driver.click(select);
+  assert_equals(select.value, "two", "clicking the middle of the list box picks its second option");
+
+  addAndRemoveSelectedAttribute(select.options[1]);
+  assert_equals(select.value, "two");
+}, "Clicking the selected option in a list box sets its dirtiness");
+
+promise_test(async () => {
+  const select = document.getElementById("multiple");
+  await test_driver.click(select);
+  assert_array_equals(selectedValues(select), ["two"], "clicking the middle of the list box selects its second option");
+
+  addAndRemoveSelectedAttribute(select.options[1]);
+  assert_array_equals(selectedValues(select), ["two"]);
+}, "Clicking an option in a select with multiple sets its dirtiness");
+
+promise_test(async () => {
+  const select = document.getElementById("dropdown");
+  await test_driver.send_keys(select, "b");
+  assert_equals(select.value, "banana", "typing selects the option that starts with the typed character");
+
+  addAndRemoveSelectedAttribute(select.options[1]);
+  assert_equals(select.value, "banana");
+}, "Typing to select an option in a dropdown box sets its dirtiness");
+</script>

@@ -1,0 +1,34 @@
+<!DOCTYPE HTML>
+<html><head>
+  <meta charset="utf-8">
+  <title>CSS Grid Lanes Test: row subgrid intrinsic sizing of breakable text</title>
+  <link rel="author" title="Yanling Wang" href="mailto:yanlingwang@microsoft.com">
+  <link rel="help" href="https://drafts.csswg.org/css-grid-3/#subgrids">
+  <link rel="match" href="grid-lanes-subgrid-005a-ref.html">
+  <link rel="stylesheet" href="/fonts/ahem.css">
+  <meta name="assert" content="A row grid-lanes subgrid uses its auto-sized child's inline contribution for both min-content and max-content sizing without wrapping breakable text.">
+  <style>
+    body { margin: 0; font: 10px/1 Ahem; }
+    grid-lanes {
+      display: grid-lanes;
+      grid-template-rows: 100px;
+      margin-bottom: 10px;
+    }
+    subgrid {
+      display: grid-lanes;
+      grid-template-rows: subgrid;
+      grid-row: 1;
+      background: lightblue;
+    }
+    item { color: green; }
+  </style>
+</head>
+<body>
+<grid-lanes style="width: max-content;">
+  <subgrid><item>AAAA BBBB</item></subgrid>
+</grid-lanes>
+<grid-lanes style="width: min-content;">
+  <subgrid><item>AAAA BBBB</item></subgrid>
+</grid-lanes>
+</body>
+</html>

@@ -10,6 +10,7 @@
 #clamp {
   font-family: Ahem;
   display: block;
+  width: 4ch;
   overflow: hidden; /* can be removed once implementations update their old -webkit-line-clamp implementations */
 }
 </style>
@@ -17,6 +18,7 @@
   <div id="clamp">
     AAA<br>
     BBB<br>
-    CCC<span style="visibility: hidden">…</span>
+    <!-- The ellipsis displaces the whole unbreakable CCCCCCCCC, so the line only contains the (hidden) ellipsis. -->
+    <span style="visibility: hidden">…</span>
   </div>
 </div>

@@ -29,6 +29,9 @@ test_invalid_value("background-image", "cross-fade(1px red, green)");
 test_invalid_value("background-image", "cross-fade(calc(1% + 1px) red, green)");
 test_invalid_value("background-image", "cross-fade(-1% red, green)");
 test_invalid_value("background-image", "cross-fade(101% red, green)");
+
+test_invalid_value("background-image", 'light-dark("light.png", "dark.png")');
+test_invalid_value("background-image", 'image-set(light-dark("light.png", "dark.png") 1x)');
 </script>
 </body>
 </html>

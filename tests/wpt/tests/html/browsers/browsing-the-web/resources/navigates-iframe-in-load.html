@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<iframe></iframe>
+<script>
+window.onload = () => {
+  const iframe = document.querySelector("iframe");
+  iframe.onload = () => {
+    window.opener.postMessage({ href: iframe.contentWindow.location.href }, "*");
+  }
+  iframe.src = "/common/blank.html?onload";
+};
+</script>

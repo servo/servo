@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<head>
+  <title>drawElementImage paints CSS backdrop filter in DOM content combined with mix-blend-mode and opacity</title>
+  <link rel="help" href="https://github.com/WICG/html-in-canvas">
+  <link rel="author" href="mailto:schenney@chromium.org">
+  <link rel="match" href="css-backdrop-filter-with-mix-blend-mode-and-opacity-ref.html">
+  <meta name="assert" value="A div with a CSS backdrop-filter and mix-blend-mode and opacity applies all the effects.">
+  <meta name=fuzzy content="0-10;0-6700">
+  <script src="/common/reftest-wait.js"></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+  <style>
+    canvas {
+      width: 200px;
+      height: 150px;
+    }
+    .outer {
+      background-color: gray;
+      position: absolute;
+      width: 200px;
+      height: 150px;
+    }
+    .backdrop {
+      background-color: black;
+      position: absolute;
+      top: 50px;
+      left: 50px;
+      width: 100px;
+      height: 50px;
+    }
+    .foreground {
+      backdrop-filter: blur(20px);
+      background-color: lightgray;
+      mix-blend-mode: multiply;
+      opacity: 0.9;
+      position: absolute;
+      top: 25px;
+      left: 25px;
+      width: 75px;
+      height: 100px;
+    }
+  </style>
+</head>
+<body>
+  <canvas id=canvas width="200" height="150" content=drawable>
+    <div drawable id="outer" class="outer">
+      <div class="backdrop"></div>
+      <div class="foreground"></div>
+    </div>
+  </canvas>
+
+  <script>
+    onload = async () => {
+      await waitForCanvasPaint(canvas);
+      var context = canvas.getContext("2d");
+      context.drawElementImage(outer, 0, 0);
+      takeScreenshot();
+    };
+  </script>
+</body>
+</html>

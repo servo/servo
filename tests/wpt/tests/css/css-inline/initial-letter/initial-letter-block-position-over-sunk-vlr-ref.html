@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<title>Tests initial letter whose size is smaller than its sink in vertical-lr</title>
+<link rel="author" title="ChangSeok Oh" href="mailto:changseok@chromium.org">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" >
+<style>
+.sample {
+    border: solid 1px green;
+    font-family: Ahem;
+    font-size: 20px;
+    height: 230px;
+    line-height: 24px;
+    writing-mode: vertical-lr;
+}
+
+/* Placed as `initial-letter: <size> drop`, and the margin box ends at the
+   end of the sink-th line. */
+.fake-initial-letter {
+    background: lime;
+    float: left;
+}
+
+#size-2 { height: 50px; margin-left: -1px; margin-right: 23px; width: 50px; }
+#size-3 { height: 80px; margin-left: -4px; margin-right: 20px; width: 80px; }
+</style>
+<div class="sample">
+<div class="fake-initial-letter" id="size-2"></div>
+bc<br>def<br>ghi<br>jkl<br>mno<br>
+</div>
+<div class="sample">
+<div class="fake-initial-letter" id="size-3"></div>
+bc<br>def<br>ghi<br>jkl<br>mno<br>
+</div>

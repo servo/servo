@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: removing line-clamp shows the content that was after the clamp point</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-dynamic-removal-ref.html">
+<meta name="assert" content="Once the box is no longer a line-clamp container, the boxes that were after its clamp point are visible again.">
+<style>
+.clamp {
+  line-clamp: 1;
+  font: 16px / 32px serif;
+}
+</style>
+<div class="clamp" id="container"><div>Line 1</div><div>Line 2</div><div>Line 3</div></div>
+<script>
+document.body.offsetHeight;
+container.style.lineClamp = "none";
+</script>

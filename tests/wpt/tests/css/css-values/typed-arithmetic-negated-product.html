@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<title>CSS Values: negating a product of typed values</title>
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-simplification">
+<link rel="help" href="https://drafts.csswg.org/css-values-4/#calc-type-checking">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/numeric-testcommon.js"></script>
+<style>
+#target {
+  font-size: 10px;
+}
+</style>
+<div id="target"></div>
+<script>
+test_math_used("calc((0px * 0px - 2px * 3px) / 1px)", "-6px");
+test_math_used("calc((1px * 1px - 2px * 3px) / 1px)", "-5px");
+test_math_used("calc((0px * 0px - 2em * 3px) / 1px)", "-60px");
+test_math_used("calc((0px * 0px * 0px * 0px - 1px * 2px * 3px * 4px) / 1px / 1px / 1px)", "-24px");
+test_math_used("calc((0px * 0px * 0px - 1px * 2px * 3px) / 1px / 1px)", "-6px");
+test_math_used("calc(0px - 2px * 3px / 1px)", "-6px");
+</script>

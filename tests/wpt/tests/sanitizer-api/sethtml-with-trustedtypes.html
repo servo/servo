@@ -70,6 +70,14 @@
             inner.insertAdjacentHTML(method, html);
             break;
           }
+          case "beforeHTMLUnsafe":
+          case "afterHTMLUnsafe":
+          case "replaceWithHTMLUnsafe": {
+            const inner = document.createElement("div");
+            node.replaceChildren(inner);
+            inner[method](html, options);
+            break;
+          }
           case "createContextualFragment":
             const range = document.createRange();
             range.setStart(node, 0);
@@ -81,9 +89,24 @@
         }
       }
 
+      const unsafe_methods_with_options = [
+        "setHTMLUnsafe",
+        "appendHTMLUnsafe",
+        "prependHTMLUnsafe",
+        "beforeHTMLUnsafe",
+        "afterHTMLUnsafe",
+        "replaceWithHTMLUnsafe",
+        "parseHTMLUnsafe",
+      ];
+
       for (const target of ["ShadowRoot", "Element"]) {
         for (const method of [
           "setHTMLUnsafe",
+          "appendHTMLUnsafe",
+          "prependHTMLUnsafe",
+          "beforeHTMLUnsafe",
+          "afterHTMLUnsafe",
+          "replaceWithHTMLUnsafe",
           "innerHTML",
           "outerHTML",
           "createContextualFragment",
@@ -98,6 +121,11 @@
             (method === "outerHTML" ||
               method === "afterbegin" ||
               method === "beforeend" ||
+              method === "beforebegin" ||
+              method === "afterend" ||
+              method === "beforeHTMLUnsafe" ||
+              method === "afterHTMLUnsafe" ||
+              method === "replaceWithHTMLUnsafe" ||
               method === "createContextualFragment")
           ) {
             continue;
@@ -146,6 +174,8 @@
               ? "Range createContextualFragment"
               : method === "afterbegin" || method === "beforeend" || method === "beforebegin" || method === "afterend"
               ? "Element insertAdjacentHTML"
+              : method === "beforeHTMLUnsafe" || method === "afterHTMLUnsafe" || method === "replaceWithHTMLUnsafe"
+              ? `Node ${method}`
               : `${target} ${method}`;
             assert_equals(capturedType, "TrustedHTMLParserOptions");
             assert_equals(capturedSink, expectedSink);
@@ -166,7 +196,7 @@
             assert_not_equals(root.querySelector("#allowed"), null);
           }, `${target}.${method}: createParserOptions can inject a sanitizer`);
 
-          if (method === "setHTMLUnsafe" || method === "parseHTMLUnsafe") {
+          if (unsafe_methods_with_options.includes(method)) {
             test((t) => {
               const node = createTarget(target, t);
               createParserOptions = (options) => ({
@@ -211,41 +241,84 @@
           }
         }
 
-        test((t) => {
-          const node = createTarget(target, t);
-          window.did_run = false;
-          t.add_cleanup(() => {
-            window.did_run = false;
-          });
-          createParserOptions = (options) => ({
-            runScripts: false,
-          });
-          node.setHTMLUnsafe(
-            "<div id=allowed><script>window.did_run = true;<" +
-              "/script></div>",
-            { runScripts: true },
-          );
-          assert_false(window.did_run, "Default policy can override runScripts from true to false");
-          assert_not_equals(node.querySelector("#allowed"), null);
-        }, `${target}: createParserOptions can override runScripts from true to false`);
+        for (const method of [
+          "setHTMLUnsafe",
+          "appendHTMLUnsafe",
+          "prependHTMLUnsafe",
+          "beforeHTMLUnsafe",
+          "afterHTMLUnsafe",
+          "replaceWithHTMLUnsafe",
+        ]) {
+          if (
+            target === "ShadowRoot" &&
+            ["beforeHTMLUnsafe", "afterHTMLUnsafe", "replaceWithHTMLUnsafe"].includes(method)
+          ) {
+            continue;
+          }
 
-        test((t) => {
-          const node = createTarget(target, t);
-          window.did_run = false;
-          t.add_cleanup(() => {
+          test((t) => {
+            const node = createTarget(target, t);
             window.did_run = false;
-          });
-          createParserOptions = (options) => ({
-            runScripts: true,
-          });
-          node.setHTMLUnsafe(
-            "<div id=allowed><script>window.did_run = true;<" +
-              "/script></div>",
-            { runScripts: false },
-          );
-          assert_true(window.did_run, "Default policy can override runScripts from false to true");
-          assert_not_equals(node.querySelector("#allowed"), null);
-        }, `${target}: createParserOptions can override runScripts from false to true`);
+            t.add_cleanup(() => {
+              window.did_run = false;
+            });
+            createParserOptions = (options) => ({
+              runScripts: false,
+            });
+            run_method(
+              node,
+              method,
+              "<div id=allowed><script>window.did_run = true;<" +
+                "/script></div>",
+              { runScripts: true },
+            );
+            assert_false(window.did_run, "Default policy can override runScripts from true to false");
+            assert_not_equals(node.querySelector("#allowed"), null);
+          }, `${target}.${method}: createParserOptions can override runScripts from true to false`);
+
+          test((t) => {
+            const node = createTarget(target, t);
+            window.did_run = false;
+            t.add_cleanup(() => {
+              window.did_run = false;
+            });
+            createParserOptions = (options) => ({
+              runScripts: true,
+            });
+            run_method(
+              node,
+              method,
+              "<div id=allowed><script>window.did_run = true;<" +
+                "/script></div>",
+              { runScripts: false },
+            );
+            assert_true(window.did_run, "Default policy can override runScripts from false to true");
+            assert_not_equals(node.querySelector("#allowed"), null);
+          }, `${target}.${method}: createParserOptions can override runScripts from false to true`);
+
+          test((t) => {
+            const node = createTarget(target, t);
+            let createHTMLCalled = false;
+            createParserOptions = (options) => ({
+              ...options,
+              sanitizer: new Sanitizer({ removeElements: ["span"] }),
+            });
+            createHTML = (html) => {
+              createHTMLCalled = true;
+              return html.replaceAll("cat", "<span id=forbidden2></span><p>dog</p>");
+            };
+            run_method(
+              node,
+              method,
+              "<div id=allowed><span id=forbidden></span><div>cat</div></div>",
+            );
+            assert_equals(node.querySelector("#forbidden"), null);
+            assert_equals(node.querySelector("#forbidden2"), null);
+            assert_equals(node.textContent, "cat", node.innerHTML);
+            assert_not_equals(node.querySelector("#allowed"), null);
+            assert_false(createHTMLCalled, "createHTML should not be called when createParserOptions provides a sanitizer");
+          }, `${target}.${method}: createParserOptions with sanitizer prevents createHTML from running`);
+        }
 
         for (const method of [
           "innerHTML",
@@ -310,29 +383,13 @@
           }, `${target}: createContextualFragment runs scripts by default`);
         }
 
-        test((t) => {
-          const node = createTarget(target, t);
-          let createHTMLCalled = false;
-          createParserOptions = (options) => ({
-            ...options,
-            sanitizer: new Sanitizer({ removeElements: ["span"] }),
-          });
-          createHTML = (html) => {
-            createHTMLCalled = true;
-            return html.replaceAll("cat", "<span id=forbidden2></span><p>dog</p>");
-          };
-          node.setHTMLUnsafe(
-            "<div id=allowed><span id=forbidden></span><div>cat</div></div>",
-          );
-          assert_equals(node.querySelector("#forbidden"), null);
-          assert_equals(node.querySelector("#forbidden2"), null);
-          assert_equals(node.textContent, "cat", node.innerHTML);
-          assert_not_equals(node.querySelector("#allowed"), null);
-          assert_false(createHTMLCalled, "createHTML should not be called when createParserOptions provides a sanitizer");
-        }, `${target}.setHTMLUnsafe: createParserOptions with sanitizer prevents createHTML from running`);
-
         for (const method of [
           "setHTMLUnsafe",
+          "appendHTMLUnsafe",
+          "prependHTMLUnsafe",
+          "beforeHTMLUnsafe",
+          "afterHTMLUnsafe",
+          "replaceWithHTMLUnsafe",
           "innerHTML",
           "outerHTML",
           "createContextualFragment",
@@ -346,6 +403,11 @@
             (method === "outerHTML" ||
               method === "afterbegin" ||
               method === "beforeend" ||
+              method === "beforebegin" ||
+              method === "afterend" ||
+              method === "beforeHTMLUnsafe" ||
+              method === "afterHTMLUnsafe" ||
+              method === "replaceWithHTMLUnsafe" ||
               method === "createContextualFragment")
           ) {
             continue;

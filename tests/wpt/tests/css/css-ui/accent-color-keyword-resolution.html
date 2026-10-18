@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<title>CSS: AccentColor mirrors the computed accent-color property</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#widget-accent">
+<link rel="help" href="https://www.w3.org/TR/css-color-4/#css-system-colors">
+<meta name="assert" content="The AccentColor system color keyword resolves at computed-value time against the element's own computed accent-color property when it is not auto, mirroring both inherited and own values.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="ancestor">
+  <div id="descendant"></div>
+</div>
+<div id="ownancestor" style="accent-color: rgb(200, 100, 50)">
+  <div id="ownchild"></div>
+</div>
+<div style="accent-color: rgb(12, 34, 56)">
+  <canvas id="canvas" width="3" height="1"></canvas>
+</div>
+
+<script>
+  const ancestor = document.getElementById("ancestor");
+  const descendant = document.getElementById("descendant");
+
+  test(() => {
+    ancestor.style.accentColor = "rgb(1, 2, 3)";
+    descendant.style.backgroundColor = "AccentColor";
+    assert_equals(getComputedStyle(descendant).backgroundColor,
+                  "rgb(1, 2, 3)");
+    ancestor.style.accentColor = "rgb(4, 5, 6)";
+    assert_equals(getComputedStyle(descendant).backgroundColor,
+                  "rgb(4, 5, 6)");
+  }, "AccentColor updates when accent-color changes");
+
+  test(() => {
+    const child = document.getElementById("ownchild");
+    child.style.accentColor = "rgb(11, 22, 33)";
+    child.style.backgroundColor = "AccentColor";
+    assert_equals(getComputedStyle(child).backgroundColor, "rgb(11, 22, 33)");
+  }, "AccentColor resolves against the element's own accent-color");
+
+  test(() => {
+    CSS.registerProperty({
+      name: "--registered-accent",
+      syntax: "<color>",
+      inherits: false,
+      initialValue: "black",
+    });
+    const target = document.createElement("div");
+    target.style.accentColor = "rgb(123, 45, 67)";
+    target.style.setProperty("--registered-accent", "AccentColor");
+    target.style.backgroundColor = "var(--registered-accent)";
+    document.body.appendChild(target);
+    assert_equals(getComputedStyle(target).backgroundColor, "rgb(123, 45, 67)");
+    target.remove();
+  }, "AccentColor resolves in a registered color custom property");
+
+  test(() => {
+    CSS.registerProperty({
+      name: "--registered-mixed-accent",
+      syntax: "<color>",
+      inherits: false,
+      initialValue: "black",
+    });
+    const target = document.createElement("div");
+    target.style.accentColor = "rgb(123, 45, 67)";
+    target.style.setProperty(
+        "--registered-mixed-accent",
+        "color-mix(in srgb, AccentColor 100%, white)");
+    target.style.backgroundColor = "var(--registered-mixed-accent)";
+    document.body.appendChild(target);
+    assert_equals(getComputedStyle(target).backgroundColor,
+                  "color(srgb 0.482353 0.176471 0.262745)");
+    target.remove();
+  }, "AccentColor resolves in a color function in a registered property");
+
+  test(() => {
+    const canvas = document.getElementById("canvas");
+    const context = canvas.getContext("2d");
+    context.fillStyle = "AccentColor";
+    context.fillRect(0, 0, 1, 1);
+    assert_array_equals(
+        context.getImageData(0, 0, 1, 1).data, [12, 34, 56, 255]);
+
+    canvas.style.accentColor = "rgb(78, 90, 123)";
+    context.fillStyle = "AccentColor";
+    context.fillRect(1, 0, 1, 1);
+    assert_array_equals(
+        context.getImageData(1, 0, 1, 1).data, [78, 90, 123, 255]);
+  }, "Canvas AccentColor mirrors inherited and updated accent-color");
+
+  test(() => {
+    const canvas = document.getElementById("canvas");
+    const context = canvas.getContext("2d");
+    canvas.style.accentColor = "rgb(45, 67, 89)";
+    context.fillStyle =
+        "color-mix(in srgb, AccentColor 100%, transparent)";
+    context.fillRect(2, 0, 1, 1);
+    assert_array_equals(
+        context.getImageData(2, 0, 1, 1).data, [45, 67, 89, 255]);
+  }, "Canvas color functions resolve AccentColor against accent-color");
+
+</script>

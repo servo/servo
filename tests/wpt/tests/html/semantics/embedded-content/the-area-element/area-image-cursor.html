@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>An image cursor set on an area from a mouseover handler</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/image-maps.html#image-map-processing-model">
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#cursor">
+<link rel="help" href="https://crbug.com/571666818">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<map name="menu">
+  <area shape="rect" coords="0,0,199,199" href="#">
+</map>
+<img style="width:200px;height:200px" usemap="#menu"
+     src="/images/green-256x256.png">
+<script>
+promise_test(async () => {
+  const image = document.querySelector('img');
+  const area = document.querySelector('area');
+  const cursorURL = new URL('/images/green-16x16.png', location.href).href;
+
+  const mouseover = new Promise(resolve => {
+    area.addEventListener('mouseover', () => {
+      area.style.cursor = `url("${cursorURL}"), pointer`;
+      resolve();
+    }, {once: true});
+  });
+
+  // The <area> generates no box of its own, so aim at the middle of the
+  // image the map is attached to.
+  await new test_driver.Actions().pointerMove(0, 0, {origin: image}).send();
+  await mouseover;
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  await new test_driver.Actions().pointerMove(1, 1, {origin: image}).send();
+
+  assert_equals(getComputedStyle(area).cursor,
+                `url("${cursorURL}"), pointer`);
+}, 'Resolves the image cursor instead of crashing');
+</script>

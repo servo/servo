@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>AudioData and EncodedAudioChunk cannot be deserialized in another agent cluster</title>
+<link rel="help" href="https://github.com/w3c/webcodecs/issues/717">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script>
+const HELPER = '/webcodecs/audio-serialization.crossAgentCluster.helper.html';
+
+function appendIframe(t, origin) {
+  const frame = document.createElement('iframe');
+  t.add_cleanup(() => frame.remove());
+  const loaded = new Promise(resolve => frame.onload = resolve);
+  frame.src = origin + HELPER;
+  document.body.append(frame);
+  return loaded.then(() => frame);
+}
+
+function post(frame, value, transfer = []) {
+  const result = new Promise(resolve => window.addEventListener('message', e => resolve(e.data), { once: true }));
+  frame.contentWindow.postMessage(value, '*', transfer);
+  return result;
+}
+
+function createAudioData() {
+  return new AudioData({ format: 'f32', sampleRate: 8000, numberOfFrames: 4, numberOfChannels: 1, timestamp: 0, data: new Float32Array(4) });
+}
+
+function createEncodedAudioChunk() {
+  return new EncodedAudioChunk({ type: 'key', timestamp: 0, data: new Uint8Array([1, 2, 3]) });
+}
+
+const targets = [
+  { name: 'a same-origin iframe', origin: get_host_info().HTTPS_ORIGIN, expected: 'message' },
+  { name: 'a cross-site iframe', origin: get_host_info().HTTPS_NOTSAMESITE_ORIGIN, expected: 'messageerror' },
+];
+
+promise_test(async t => {
+  const frame = await appendIframe(t, get_host_info().HTTPS_NOTSAMESITE_ORIGIN);
+  assert_equals(await post(frame, { value: 1 }), 'message');
+}, 'A plain object can be posted to a cross-site iframe');
+
+for (const target of targets) {
+  promise_test(async t => {
+    const frame = await appendIframe(t, target.origin);
+    assert_equals(await post(frame, createEncodedAudioChunk()), target.expected);
+  }, `EncodedAudioChunk posted to ${target.name}`);
+
+  promise_test(async t => {
+    const frame = await appendIframe(t, target.origin);
+    const data = createAudioData();
+    t.add_cleanup(() => data.close());
+    assert_equals(await post(frame, data), target.expected);
+  }, `AudioData posted to ${target.name}`);
+
+  promise_test(async t => {
+    const frame = await appendIframe(t, target.origin);
+    const data = createAudioData();
+    t.add_cleanup(() => data.close());
+    assert_equals(await post(frame, data, [data]), target.expected);
+  }, `AudioData transferred to ${target.name}`);
+}
+</script>

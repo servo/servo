@@ -718,4 +718,91 @@
     slot.assign();
     assertLevel(h1, 3, "h1 stays at level 3 after manual slot cleared");
   }, "manual slot assignment of non-HTML elements does not change heading levels");
+
+  test(t => {
+    const container = document.createElement("div");
+    container.headingOffset = 2;
+    const h1 = document.createElement("h1");
+    container.appendChild(h1);
+    document.body.appendChild(container);
+    t.add_cleanup(() => { container.remove(); h1.remove(); });
+
+    assertLevel(h1, 3, "h1 starts at level 3 inside headingoffset=2");
+    h1.remove();
+    assertLevel(h1, 1, "h1 returns to level 1 after being removed");
+  }, "removing a heading from an ancestor with headingoffset updates its level");
+
+  test(t => {
+    const container = document.createElement("div");
+    container.headingOffset = 3;
+    const wrapper = document.createElement("section");
+    const h2 = document.createElement("h2");
+    wrapper.appendChild(h2);
+    container.appendChild(wrapper);
+    document.body.appendChild(container);
+    t.add_cleanup(() => { container.remove(); wrapper.remove(); });
+
+    assertLevel(h2, 5, "h2 starts at level 5 inside headingoffset=3");
+    wrapper.remove();
+    assertLevel(h2, 2, "h2 returns to level 2 after its ancestor subtree is removed");
+  }, "removing a subtree from an ancestor with headingoffset updates descendant heading levels");
+
+  test(t => {
+    const container = document.createElement("div");
+    container.headingOffset = 1;
+    const wrapper = document.createElement("div");
+    wrapper.headingOffset = 2;
+    const h1 = document.createElement("h1");
+    wrapper.appendChild(h1);
+    container.appendChild(wrapper);
+    document.body.appendChild(container);
+    t.add_cleanup(() => { container.remove(); wrapper.remove(); });
+
+    assertLevel(h1, 4, "h1 starts at level 4 (1+2+1)");
+    wrapper.remove();
+    assertLevel(h1, 3, "h1 keeps the removed subtree's own headingoffset (2+1)");
+  }, "removing a subtree keeps headingoffset from within the removed subtree");
+
+  test(t => {
+    const container = document.createElement("div");
+    container.headingOffset = 2;
+    const outer = document.createElement("div");
+    const h1 = document.createElement("h1");
+    outer.appendChild(h1);
+    container.appendChild(outer);
+    t.add_cleanup(() => outer.remove());
+
+    assertLevel(h1, 3, "h1 in disconnected tree starts at level 3");
+    outer.remove();
+    assertLevel(h1, 1, "h1 returns to level 1 after removal from disconnected ancestor");
+  }, "removing a subtree from a disconnected ancestor with headingoffset updates heading levels");
+
+  test(t => {
+    const container = document.createElement("div");
+    container.headingOffset = 2;
+    const host = document.createElement("div");
+    const shadow = host.attachShadow({ mode: "open" });
+    const h1 = document.createElement("h1");
+    shadow.appendChild(h1);
+    container.appendChild(host);
+    document.body.appendChild(container);
+    t.add_cleanup(() => { container.remove(); host.remove(); });
+
+    assertLevel(h1, 3, "h1 in shadow DOM starts at level 3");
+    host.remove();
+    assertLevel(h1, 1, "h1 in shadow DOM returns to level 1 after host removed");
+  }, "removing a shadow host from an ancestor with headingoffset updates shadow heading levels");
+
+  test(t => {
+    const container = document.createElement("div");
+    container.headingOffset = 2;
+    const h1 = document.createElement("h1");
+    container.appendChild(h1);
+    document.body.appendChild(container);
+    t.add_cleanup(() => container.remove());
+
+    assertLevel(h1, 3, "h1 starts at level 3");
+    container.replaceChildren();
+    assertLevel(h1, 1, "h1 returns to level 1 after replaceChildren()");
+  }, "replaceChildren() updates removed heading levels");
 </script>

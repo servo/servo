@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Browser does not crash when `line-clamp: no ellipsis` and `text-overflow: ellipis` apply to the same line</title>
+<link rel="author" title="Seva Alipov" href="mailto:salipov@mozilla.com">
+<style>
+.c {
+  line-clamp: 2 no-ellipsis;
+  width: 8ch;
+  text-overflow: ellipsis;
+  white-space: pre;
+}
+</style>
+<div class="c">Line 1
+Line 2 overflows the line-clamp container by a lot
+Line 3
+Line 4</div>

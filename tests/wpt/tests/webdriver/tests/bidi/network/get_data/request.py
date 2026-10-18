@@ -1,4 +1,6 @@
 import asyncio
+import random
+
 import pytest
 
 from .. import (
@@ -66,3 +68,40 @@ async def test_redirect_race_condition(
 
     assert len(network_events[RESPONSE_STARTED_EVENT]) == 2
     assert len(network_events[RESPONSE_COMPLETED_EVENT]) == 2
+
+
+async def test_revalidated_cached_document(
+    bidi_session,
+    url,
+    wait_for_bidi_events,
+    setup_network_test,
+    top_context,
+    add_data_collector,
+):
+    network_events = await setup_network_test(events=[RESPONSE_COMPLETED_EVENT])
+    events = network_events[RESPONSE_COMPLETED_EVENT]
+
+    await add_data_collector()
+
+    page_url = url(
+        f"/webdriver/tests/support/http_handlers/etag.py?nocache={random.random()}"
+    )
+
+    # The first navigation is a 200, the next ones are 304 revalidations.
+    for i, expected_status in enumerate([200, 304, 304, 304]):
+        await bidi_session.browsing_context.navigate(
+            context=top_context["context"], url=page_url, wait="complete"
+        )
+        await wait_for_bidi_events(events, i + 1, timeout=2)
+
+        event = events[i]
+        assert event["response"]["status"] == expected_status
+
+        data = await asyncio.wait_for(
+            bidi_session.network.get_data(
+                request=event["request"]["request"], data_type="response"
+            ),
+            timeout=2,
+        )
+        assert data["type"] == "string"
+        assert data["value"] == "<html><body>etag HTTP Response</body></html>"

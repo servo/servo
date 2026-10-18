@@ -58,6 +58,36 @@ TypeError
 |     "Hello"
 
 #data
+<!-- a --><html><body>x<!-- b --></body></html><!-- c -->
+#config
+{ "comments": false }
+#document
+| <html>
+|   <head>
+|   <body>
+|     "x"
+
+#data
+<?a b?><html><body>x<?c d?></body></html><?e f?>
+#config
+{ "processingInstructions": [] }
+#document
+| <html>
+|   <head>
+|   <body>
+|     "x"
+
+#data
+x<p>y
+#config
+{ "replaceWithChildrenElements": ["head", "body"] }
+#document
+| <html>
+|   "x"
+|   <p>
+|     "y"
+
+#data
 <noscript><p>x</noscript>y
 #config
 {}
@@ -232,6 +262,38 @@ TypeError
 TypeError
 
 #data
+<div>a<!-- xx -->b
+#document
+| <html>
+|   <head>
+|   <body>
+|     <div>
+|       "a"
+|       <!-- xx -->
+|       "b"
+
+#data
+<!-- 1 --><html><body>x<!-- 2 --></body></html><!-- 3 -->
+#document
+| <!-- 1 -->
+| <html>
+|   <head>
+|   <body>
+|     "x"
+|     <!-- 2 -->
+| <!-- 3 -->
+
+#data
+a<template>x</template>b
+#config
+{ "replaceWithChildrenElements": ["template"] }
+#document
+| <html>
+|   <head>
+|   <body>
+|     "ab"
+
+#data
 <noscript><p>x</noscript>y
 #document
 | <html>
@@ -240,6 +302,56 @@ TypeError
 |   <body>
 |     <p>
 |       "xy"
+
+#data
+<head><meta></head><body>x
+#config
+{ "replaceWithChildrenElements": ["head"] }
+#document
+| <html>
+|   <meta>
+|   <body>
+|     "x"
+
+#data
+<head></head><body>x<p>y
+#config
+{ "replaceWithChildrenElements": ["body"] }
+#document
+| <html>
+|   <head>
+|   "x"
+|   <p>
+|     "y"
+
+#data
+<head></head><meta><body>x
+#config
+{ "replaceWithChildrenElements": ["head"] }
+#document
+| <html>
+|   <meta>
+|   <body>
+|     "x"
+
+#data
+<div></div><frameset>
+#config
+{ "replaceWithChildrenElements": ["body"] }
+#document
+| <html>
+|   <head>
+|   <div>
+|   <frameset>
+
+#data
+<div></div><frameset>
+#config
+{ "removeElements": ["body"] }
+#document
+| <html>
+|   <head>
+|   <frameset>
 
 </script>
 <script id="document" type="html5lib-testcases">
@@ -290,10 +402,17 @@ const safe = parse_html5lib_testcases(
     document.getElementById("safe").textContent);
 const unsafe = parse_html5lib_testcases(
     document.getElementById("unsafe").textContent);
-all.forEach(test_safe);
-all.forEach(test_unsafe);
-safe.forEach(test_safe);
-unsafe.forEach(test_unsafe);
+all.concat(safe).forEach(test_safe);
+all.concat(unsafe).forEach(test_unsafe);
+
+// Without an options argument there is no sanitizer, so nothing is removed.
+test(_ => {
+  const doc = Document.parseHTMLUnsafe("<div>a<!-- xx -->b");
+  const div = doc.body.firstChild;
+  assert_equals(div.childNodes.length, 3);
+  assert_equals(div.childNodes[1].nodeType, Node.COMMENT_NODE);
+  assert_equals(div.childNodes[1].data, " xx ");
+}, "parseHTMLUnsafe() without options keeps comments");
 
 
 // DOM only supports Document Type Declarations as children of documents. This

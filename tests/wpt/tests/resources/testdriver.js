@@ -928,6 +928,38 @@
                         params);
                 },
                 /**
+                 * Overrides the values of various media features for the
+                 * specified browsing contexts.
+                 * Matches the `emulation.setMediaFeaturesOverride
+                 * <https://w3c.github.io/webdriver-bidi/#command-emulation-setMediaFeaturesOverride>`_
+                 * WebDriver BiDi command.
+                 *
+                 * @example
+                 * await test_driver.bidi.emulation.set_media_features_override({
+                 *     features: {
+                 *         "prefers-color-scheme": "dark"
+                 *     }
+                 * });
+                 *
+                 * @param {object} params - Parameters for the command.
+                 * @param {null|object} [params.features] - An object mapping media feature
+                 * names to their overridden values (or null to reset a feature).
+                 * If null or omitted, all media features overrides will be removed.
+                 * @param {null|Array.<(Context)>} [params.contexts] The
+                 * optional contexts parameter specifies which browsing contexts
+                 * to set the media features override on. It should be either an
+                 * array of Context objects (window or browsing context id), or
+                 * null. If null or omitted, the override will be set on the
+                 * current browsing context.
+                 * @returns {Promise<void>} Resolves when the media features
+                 * override is successfully set.
+                 */
+                set_media_features_override: function (params) {
+                    assertBidiIsEnabled();
+                    return window.test_driver_internal.bidi.emulation.set_media_features_override(
+                        params);
+                },
+                /**
                  * Overrides the screen orientation for the specified browsing
                  * contexts.
                  * Matches the `emulation.setScreenOrientationOverride
@@ -2607,6 +2639,10 @@
                 set_locale_override: function (params) {
                     throw new Error(
                         "bidi.emulation.set_locale_override is not implemented by testdriver-vendor.js");
+                },
+                set_media_features_override: function (params) {
+                    throw new Error(
+                        "bidi.emulation.set_media_features_override is not implemented by testdriver-vendor.js");
                 },
                 set_screen_orientation_override: function (params) {
                     throw new Error(

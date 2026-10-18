@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>HTML collections over a detached tree keep working after garbage collection</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-collection">
+<link rel="help" href="https://html.spec.whatwg.org/#collections">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/gc.js"></script>
+<script>
+"use strict";
+
+function parse(html) {
+  const root = document.createElement("div");
+  root.innerHTML = html;
+  return root.firstElementChild;
+}
+
+async function collect(t) {
+  await garbageCollect();
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+  await garbageCollect();
+}
+
+// makeCollection must return only the collection, so that the collection is
+// the only reference script keeps to the tree. makeMatching returns a new
+// element that the collection matches when it is appended next to the
+// collection's first item.
+function collectionTest(name, makeCollection, expectedLength, makeMatching) {
+  promise_test(async t => {
+    const collection = makeCollection();
+    await collect(t);
+
+    assert_equals(collection.length, expectedLength, "length after GC");
+    const first = collection[0];
+    assert_not_equals(first.parentNode, null,
+                      "first item is still in its tree");
+
+    first.parentNode.append(makeMatching());
+    assert_equals(collection.length, expectedLength + 1,
+                  "collection is still live");
+  }, name);
+}
+
+collectionTest(
+  "form.elements",
+  () => parse("<form><input><input></form>").elements,
+  2,
+  () => document.createElement("input"));
+
+collectionTest(
+  "fieldset.elements",
+  () => parse("<fieldset><input><input></fieldset>").elements,
+  2,
+  () => document.createElement("input"));
+
+collectionTest(
+  "select.options",
+  () => parse("<select><option><option></select>").options,
+  2,
+  () => document.createElement("option"));
+
+collectionTest(
+  "select.selectedOptions",
+  () => parse("<select multiple><option selected><option selected></select>")
+          .selectedOptions,
+  2,
+  () => {
+    const option = document.createElement("option");
+    option.selected = true;
+    return option;
+  });
+
+collectionTest(
+  "datalist.options",
+  () => parse("<datalist><option><option></datalist>").options,
+  2,
+  () => document.createElement("option"));
+
+collectionTest(
+  "table.tBodies",
+  () => parse("<table><tbody></tbody><tbody></tbody></table>").tBodies,
+  2,
+  () => document.createElement("tbody"));
+
+collectionTest(
+  "table.rows",
+  () => parse("<table><tbody><tr></tr><tr></tr></tbody></table>").rows,
+  2,
+  () => document.createElement("tr"));
+
+collectionTest(
+  "tbody.rows",
+  () => parse("<table><tbody><tr></tr><tr></tr></tbody></table>").tBodies[0]
+          .rows,
+  2,
+  () => document.createElement("tr"));
+
+collectionTest(
+  "tr.cells",
+  () => parse("<table><tr><td></td><td></td></tr></table>").rows[0].cells,
+  2,
+  () => document.createElement("td"));
+
+collectionTest(
+  "map.areas",
+  () => parse("<map><area><area></map>").areas,
+  2,
+  () => document.createElement("area"));
+
+collectionTest(
+  "input.labels",
+  () => parse('<div><label><input id="x"></label></div>')
+          .querySelector("input").labels,
+  1,
+  () => {
+    const label = document.createElement("label");
+    label.htmlFor = "x";
+    return label;
+  });
+</script>

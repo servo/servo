@@ -6,16 +6,21 @@
 </head>
 <body>
 <script>
-  // This is a helper function to convert an array of `RegisteredTool`
-  // dictionaries to objects that can be sent over `postMessage()`. This exists
-  // because the `RegisteredTool#window` member is not cloneable, so we must
+  // This is a helper function to convert an array of `Tool` objects to plain
+  // objects that can be sent over `postMessage()`. This exists because `Tool`
+  // itself is not cloneable, and neither is its `window` attribute, so we must
   // reduce the tool structure a bit before sending it.
+  //
+  // `Tool`'s attributes are accessors on `Tool.prototype`, not own properties
+  // of each instance, so we enumerate the prototype's getters to copy every
+  // attribute (except `window`).
+  const kToolKeys =
+      Object.entries(Object.getOwnPropertyDescriptors(Tool.prototype))
+          .filter(([key, desc]) => desc.get && key !== 'window')
+          .map(([key, _]) => key);
   function convertToCloneableTools(tools) {
-    return tools.map(tool => {
-      // An array of all relevant key/value pairs EXCEPT `window`.
-      const entries = Object.entries(tool).filter(([key, _]) => key !== "window")
-      return Object.fromEntries(entries);
-    });
+    return tools.map(tool =>
+        Object.fromEntries(kToolKeys.map(key => [key, tool[key]])));
   }
   // Map from tool_name => `AbortController`, so that this iframe document can
   // manage/unregister any tool that it registers.
@@ -106,18 +111,6 @@
         }).catch(err => {
           parent.postMessage({action: 'executeResponse', result: String(err), success: false}, '*');
         });
-      });
-    } else if (action === 'execute_fake_tool') {
-      const fakeTool = {
-        name: e.data.name || 'dummy',
-        description: 'fake desc',
-        window: window,
-        origin: self.origin
-      };
-      document.modelContext.executeTool(fakeTool).then(result => {
-        parent.postMessage({action: 'executeFakeToolResponse', result: result, success: true}, '*');
-      }).catch(err => {
-        parent.postMessage({action: 'executeFakeToolResponse', result: String(err), success: false, error_name: err.name}, '*');
       });
     } else if (action === 'listenForToolchange') {
       let timerId;

@@ -21,6 +21,8 @@ test_valid_value("background-image", 'none, url("http://www.example.com/")', ['n
 test_valid_value("background-image", 'light-dark(url("a.png"), url("b.png"))');
 test_valid_value("background-image", 'light-dark(linear-gradient(red), url("b.png"))');
 test_valid_value("background-image", 'light-dark(image(blue), url("b.png"))');
+test_valid_value("background-image", 'light-dark(image-set(url("a.png") 1x), image-set(url("b.png") 2x))');
+test_valid_value("background-image", 'light-dark(image-set("a.png" 1x), image-set("b.png" 2x))', ['light-dark(image-set("a.png" 1x), image-set("b.png" 2x))', 'light-dark(image-set(url("a.png") 1x), image-set(url("b.png") 2x))']);
 
 test_valid_value(
     "background-image",

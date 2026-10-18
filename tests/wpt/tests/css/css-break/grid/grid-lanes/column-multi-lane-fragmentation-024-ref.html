@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<style>
+  .square {
+    background: green;
+    height: 100px;
+    margin-bottom: 10px;
+    position: relative;
+    width: 100px;
+  }
+  .blue {
+    background: blue;
+    height: 50px;
+    position: absolute;
+    width: 25px;
+  }
+</style>
+<p>The blue rectangles on green backgrounds must match the reference.</p>
+<div class="square">
+  <div class="blue" style="left: 25px; top: 50px;"></div>
+  <div class="blue" style="left: 75px; top: 0;"></div>
+</div>
+<div class="square">
+  <div class="blue" style="left: 25px; top: 25px; height: 75px;"></div>
+  <div class="blue" style="left: 75px; top: 0; height: 25px;"></div>
+</div>

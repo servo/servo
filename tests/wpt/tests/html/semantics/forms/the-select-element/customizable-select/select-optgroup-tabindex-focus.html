@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:annevk@annevk.nl">
+<link rel=help href="https://html.spec.whatwg.org/multipage/interaction.html#focusable-area">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<style>
+select, select::picker(select) {
+  appearance: base-select;
+}
+</style>
+
+<select>
+  <optgroup id=optgroup label=Fruit tabindex=0>
+    <option>Apple</option>
+    <option>Banana</option>
+  </optgroup>
+</select>
+
+<script>
+const select = document.querySelector('select');
+const optgroup = document.getElementById('optgroup');
+
+promise_test(async () => {
+  assert_equals(getComputedStyle(select).appearance, 'base-select',
+    'appearance:base-select must be supported in order to run this test.');
+  await test_driver.click(select);
+  assert_true(select.matches(':open'), 'Select should open after clicking it.');
+  optgroup.focus();
+  assert_equals(document.activeElement, optgroup);
+}, 'An optgroup with a tabindex in a base appearance picker is focusable');
+</script>

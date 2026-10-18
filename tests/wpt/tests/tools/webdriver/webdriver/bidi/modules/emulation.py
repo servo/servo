@@ -195,3 +195,16 @@ class Emulation(BidiModule):
             "contexts": contexts,
             "userContexts": user_contexts,
         }
+
+    @command
+    def set_scrollbar_type_override(
+            self,
+            scrollbar_type: Nullable[Literal["classic", "overlay"]],
+            contexts: Maybe[List[str]] = UNDEFINED,
+            user_contexts: Maybe[List[str]] = UNDEFINED,
+    ) -> Mapping[str, Any]:
+        return {
+            "scrollbarType": scrollbar_type,
+            "contexts": contexts,
+            "userContexts": user_contexts,
+        }

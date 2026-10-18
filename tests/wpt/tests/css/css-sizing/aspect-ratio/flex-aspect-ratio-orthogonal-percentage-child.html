@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Percentage block-size inside an orthogonal aspect-ratio flex item tracks its current size</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#definite-sizes">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes/#orthogonal-flows">
+<meta name="assert" content="A vertical-lr flex item in a row flex container with a definite cross size derives its block size from aspect-ratio, and a child's block-size:100% resolves against the current block size across relayouts rather than a stale one.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#ancestor {
+  height: 100px;
+}
+.flexbox {
+  display: flex;
+  height: 100%;
+}
+.item {
+  writing-mode: vertical-lr;
+  display: flex;
+  aspect-ratio: 1 / 1;
+  background-color: red;
+}
+.child {
+  block-size: 100%;
+  inline-size: 100%;
+  background-color: green;
+}
+</style>
+<div id="ancestor">
+  <div class="flexbox">
+    <div class="item">
+      <div>
+        <div class="child"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+const ancestor = document.getElementById("ancestor");
+const item = document.querySelector(".item");
+const child = document.querySelector(".child");
+
+[100, 200, 100, 150].forEach((height, step) => {
+  test(() => {
+    ancestor.style.height = height + "px";
+    assert_equals(item.getBoundingClientRect().height, height, "item cross size");
+    assert_equals(item.getBoundingClientRect().width, height, "item main size from aspect-ratio");
+    assert_equals(child.getBoundingClientRect().width, height, "child block-size:100% resolves against item");
+  }, "step " + (step + 1) + ": orthogonal flex item at ancestor height " + height + "px");
+});
+</script>

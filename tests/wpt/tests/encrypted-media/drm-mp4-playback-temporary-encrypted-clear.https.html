@@ -32,8 +32,8 @@
       <video id="videoelement" width="200px"></video>
     </div>
 
-    <script>
-        var keysystem = getSupportedKeySystem(),
+    <script type="module">
+        var keysystem = await getSupportedKeySystem(),
             contentitem = content['mp4-encrypted-clear'],
             handler = new MessageHandler(keysystem, contentitem),
             config = {  video:              document.getElementById('videoelement'),

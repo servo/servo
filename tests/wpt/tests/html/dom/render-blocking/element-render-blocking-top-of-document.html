@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<meta name="variant" content="?empty">
+<meta name="variant" content="?top">
+<title>rel=expect treats top of the document as a non-element target</title>
+<link rel="help" href="https://html.spec.whatwg.org/#process-internal-resource-link">
+<link rel="help" href="https://html.spec.whatwg.org/#select-the-indicated-part">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/utils.js"></script>
+<script>
+const link = document.createElement("link");
+link.rel = "expect";
+link.setAttribute("blocking", "render");
+link.href = location.search === "?empty" ? "#" : "#top";
+document.head.append(link);
+async_test(t => {
+  requestAnimationFrame(t.step_func_done(() => {
+    assert_not_equals(document.readyState, "loading",
+                      "A non-element target blocks rendering until parsing finishes");
+  }));
+}, "rel=expect blocks for the top-of-document value from " +
+   link.getAttribute("href"));
+</script>
+<body>
+<script>
+generateParserDelay();
+</script>

@@ -312,4 +312,22 @@ promise_test(async t => {
   assert_equals(await runInContext(frameUUID, accessChild(dip_none)), "SecurityError", "same-origin child without a policy");
   assert_equals(await runInContext(frameUUID, accessChild(dip_require_corp)), "object", "same-origin child with a policy");
 }, "A frame with a policy that is cross origin with a cross-origin isolated top-level document is not in the agent cluster of same-origin documents without one");
+
+promise_test(async t => {
+  const uuid = token();
+  // The opener has no Cross-Origin-Opener-Policy, so the response switches the popup to another browsing context group.
+  window.open(origin + executor_path + coopSameOrigin + dip_require_corp + `&uuid=${uuid}`);
+  t.add_cleanup(() => send(uuid, "window.close();"));
+  const result = await runInContext(uuid, `
+    let fetchResult;
+    try {
+      await fetch(${JSON.stringify(noCorpURL)}, { mode: "no-cors" });
+      fetchResult = "allowed";
+    } catch (e) {
+      fetchResult = "blocked";
+    }
+    return { originAgentCluster, fetchResult };
+  `);
+  assert_object_equals(result, { originAgentCluster: true, fetchResult: "blocked" });
+}, "A popup with a policy keeps it when its response switches browsing context groups");
 </script>

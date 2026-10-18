@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: fit-content() implicit row with an indefinite percentage is not stretched</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#valdef-grid-template-columns-fit-content">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-stretch">
+<link rel="match" href="../../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="A fit-content() row whose percentage argument is treated as auto against an indefinite height behaves as minmax(auto, max-content), so Stretch auto Tracks does not expand it into the space provided by min-height.">
+<p>Test passes if there is a filled green square.</p>
+<div style="display: grid; grid-template-columns: 100px; grid-auto-rows: fit-content(50%); min-height: 200px;">
+  <div style="background: green;"><div style="height: 100px;"></div></div>
+</div>

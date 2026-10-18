@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>drawElementImage paints CSS backdrop filter in DOM content combined with mix-blend-mode - ref</title>
+  <link rel="author" href="mailto:schenney@chromium.org">
+  <style>
+    .outer {
+      background-color: gray;
+      position: absolute;
+      width: 200px;
+      height: 150px;
+    }
+    .backdrop {
+      background-color: black;
+      position: absolute;
+      top: 50px;
+      left: 50px;
+      width: 100px;
+      height: 50px;
+    }
+    .foreground {
+      backdrop-filter: blur(20px);
+      background-color: lightgray;
+      mix-blend-mode: multiply;
+      position: absolute;
+      top: 25px;
+      left: 25px;
+      width: 75px;
+      height: 100px;
+    }
+  </style>
+</head>
+<body>
+  <div drawable id="outer" class="outer">
+    <div class="backdrop"></div>
+    <div class="foreground"></div>
+  </div>
+</body>
+</html>

@@ -26,9 +26,9 @@
       <video id="videoelement" width="200px"></video>
     </div>
 
-    <script>
+    <script type="module">
         var contentItem = content['mp4-av-multikey'],
-            keysystem = getSupportedKeySystem(),
+            keysystem = await getSupportedKeySystem(),
             config = {
                 video: document.getElementById('videoelement'),
                 keysystem: keysystem,

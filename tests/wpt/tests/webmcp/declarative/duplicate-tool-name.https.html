@@ -4,6 +4,7 @@
 <link rel="author" href="mailto:dom@chromium.org">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="../resources/helpers.js"></script>
 <body>
 <script>
 promise_test(async t => {
@@ -91,5 +92,68 @@ promise_test(async t => {
   assert_equals(tool.name, "duplicate_same_desc", "Tool name matches form attribute");
   assert_equals(tool.description, "Same tool description");
 }, "Test that duplicate declarative tools with identical descriptions do not crash and only the first is registered");
+
+promise_test(async t => {
+  const f1 = document.createElement('form');
+  f1.setAttribute('toolname', 'duplicate_removed_first');
+  f1.setAttribute('tooldescription', 'First tool description');
+
+  const f2 = document.createElement('form');
+  f2.setAttribute('toolname', 'duplicate_removed_first');
+  f2.setAttribute('tooldescription', 'Second tool description');
+
+  t.add_cleanup(() => {
+    f1.remove();
+    f2.remove();
+  });
+
+  const registered = new Promise(resolve => {
+    document.modelContext.addEventListener('toolchange', resolve, {once: true});
+  });
+  document.body.append(f1);
+  document.body.append(f2);
+  await registered;
+
+  // Removing the *rejected* duplicate must not unregister the first form's
+  // tool, even though they share a name. Unregistration on removal happens
+  // synchronously, so no barrier is needed before checking.
+  f2.remove();
+
+  const tools = await document.modelContext.getTools();
+  assert_equals(tools.length, 1, "The first form's tool should remain registered");
+  assert_equals(tools[0].description, "First tool description");
+}, "Test that removing a rejected duplicate declarative tool does not unregister the registered tool sharing its name");
+
+promise_test(async t => {
+  const f1 = document.createElement('form');
+  f1.setAttribute('toolname', 'duplicate_retried');
+  f1.setAttribute('tooldescription', 'First tool description');
+
+  const f2 = document.createElement('form');
+  f2.setAttribute('toolname', 'duplicate_retried');
+  f2.setAttribute('tooldescription', 'Second tool description');
+
+  t.add_cleanup(() => {
+    f1.remove();
+    f2.remove();
+  });
+
+  document.body.append(f1);
+  document.body.append(f2);
+  const firstTool = await waitForTool('duplicate_retried');
+  assert_equals(firstTool.description, "First tool description");
+
+  // Free up the name. Unregistration on removal happens synchronously. `f2` is
+  // not retried automatically.
+  f1.remove();
+  assert_equals((await document.modelContext.getTools()).length, 0,
+      "No tool is registered once the first form is removed");
+
+  // Any later mutation of the rejected form retries its registration, even one
+  // that changes neither its tool attributes nor its input schema.
+  f2.append(document.createElement('div'));
+  const secondTool = await waitForTool('duplicate_retried');
+  assert_equals(secondTool.description, "Second tool description");
+}, "Test that a rejected duplicate declarative tool is registered upon a later mutation, once its name is free");
 </script>
 </body>

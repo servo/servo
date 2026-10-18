@@ -152,6 +152,24 @@ class EditorTestUtils {
     );
   }
 
+  sendUndoShortcutKey() {
+    return this.sendKey(
+      "z",
+      this.window.navigator.platform.includes("Mac")
+        ? this.kMeta
+        : this.kControl
+    );
+  }
+
+  sendRedoShortcutKey() {
+    const accel = this.window.navigator.platform.includes("Mac") ? this.kMeta : this.kControl;
+    let actions = new this.window.test_driver.Actions();
+    actions = actions.keyDown(accel).keyDown(this.kShift);
+    actions = actions.keyDown("z").keyUp("z");
+    actions = actions.keyUp(accel).keyUp(this.kShift);
+    return actions.send();
+  }
+
   sendPasteAsPlaintextShortcutKey() {
     // Ctrl/Cmd - Shift - v on Chrome and Firefox
     // Cmd - Alt - Shift - v on Safari

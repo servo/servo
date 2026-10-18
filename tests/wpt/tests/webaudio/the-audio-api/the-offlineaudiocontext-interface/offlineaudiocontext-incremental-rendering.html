@@ -40,6 +40,9 @@ promise_test(async () => {
       'The default buffer size should be one render quantum');
   assert_equals(context.length, null,
       'Rendering a chunk should not set the context length');
+  await context.close();
+  assert_equals(context.state, 'closed',
+      'The context should be closed after close resolves');
 }, 'Null length and no chunk size returns one render quantum');
 
 promise_test(async () => {
@@ -55,6 +58,9 @@ promise_test(async () => {
       'The chunk size should be rounded up to a render quantum boundary');
   assert_equals(context.length, null,
       'Rendering a chunk should not set the context length');
+  await context.close();
+  assert_equals(context.state, 'closed',
+      'The context should be closed after close resolves');
 }, 'Null length and a chunk size returns the rounded chunk size');
 
 promise_test(async () => {

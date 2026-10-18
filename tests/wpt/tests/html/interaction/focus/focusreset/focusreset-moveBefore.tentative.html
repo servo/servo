@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>focusreset event: moveBefore() preserves focus and doesn't fire focusreset</title>
+<link rel="help" href="https://github.com/whatwg/html/pull/13050">
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-parentnode-movebefore">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/focusreset-helpers.js"></script>
+
+<script>
+"use strict";
+
+promise_test(async t => {
+  await settle(t);
+  const events = recordFocusResets(t);
+  const from = createFocusable(t, "div");
+  const to = createFocusable(t, "div");
+  const button = createFocusable(t, "button", from);
+  button.focus();
+  to.moveBefore(button, null);
+  assert_equals(document.activeElement, button,
+                "moveBefore() preserves focus");
+  await afterNextRenderingUpdateAndTask(t);
+  assert_equals(events.length, 0, "no focusreset");
+}, "moveBefore() of the focused element doesn't fire focusreset");
+
+promise_test(async t => {
+  await settle(t);
+  const events = recordFocusResets(t);
+  const from = createFocusable(t, "div");
+  const to = createFocusable(t, "div");
+  const container = createFocusable(t, "div", from);
+  const button = createFocusable(t, "button", container);
+  button.focus();
+  to.moveBefore(container, null);
+  assert_equals(document.activeElement, button,
+                "moveBefore() preserves focus");
+  await afterNextRenderingUpdateAndTask(t);
+  assert_equals(events.length, 0, "no focusreset");
+}, "moveBefore() of an ancestor of the focused element doesn't fire focusreset");
+
+promise_test(async t => {
+  await settle(t);
+  const events = recordFocusResets(t);
+  const from = createFocusable(t, "div");
+  const to = createFocusable(t, "div");
+  const button = createFocusable(t, "button", from);
+  button.focus();
+  to.moveBefore(button, null);
+  button.remove();
+  assert_equals(document.activeElement, document.body);
+  await afterNextRenderingUpdate();
+  assert_equals(events.length, 1, "focusreset fired for the later removal");
+}, "Removing the focused element after moveBefore() fires focusreset");
+</script>

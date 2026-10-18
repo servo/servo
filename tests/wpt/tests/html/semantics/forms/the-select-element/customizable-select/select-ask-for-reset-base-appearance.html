@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<link rel=author href="mailto:annevk@annevk.nl">
+<link rel=help href="https://html.spec.whatwg.org/multipage/form-elements.html#selectedness-setting-algorithm">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+select, select::picker(select) {
+  appearance: base-select;
+}
+</style>
+
+<select id=property>
+  <option>apple</option>
+  <option>banana</option>
+  <option>cherry</option>
+</select>
+
+<select id=attribute>
+  <option>apple</option>
+  <option>banana</option>
+  <option>cherry</option>
+</select>
+
+<script>
+function assertAppearance(select) {
+  assert_equals(getComputedStyle(select).appearance, 'base-select',
+    'appearance:base-select must be supported in order to run this test.');
+}
+
+test(() => {
+  const select = document.getElementById('property');
+  assertAppearance(select);
+  select.options[1].selected = true;
+  select.options[1].selected = false;
+  assert_equals(select.value, 'apple');
+}, 'Deselecting the selected option of a base appearance select with a closed picker selects its first option');
+
+test(() => {
+  const select = document.getElementById('attribute');
+  assertAppearance(select);
+  select.options[1].setAttribute('selected', '');
+  select.options[1].removeAttribute('selected');
+  assert_equals(select.value, 'apple');
+}, 'Removing the selected attribute of the selected option of a base appearance select with a closed picker selects its first option');
+</script>

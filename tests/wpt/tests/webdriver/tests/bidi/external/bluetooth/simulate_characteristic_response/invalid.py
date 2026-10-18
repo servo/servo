@@ -49,7 +49,7 @@ async def test_context_unknown_value(bidi_session):
 async def test_address_invalid_type(bidi_session, top_context, address):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.bluetooth.simulate_characteristic_response(
-            context=top_context,
+            context=top_context["context"],
             address=address,
             service_uuid=HEART_RATE_SERVICE_UUID,
             characteristic_uuid=MEASUREMENT_INTERVAL_CHARACTERISTIC_UUID,
@@ -60,7 +60,7 @@ async def test_address_invalid_type(bidi_session, top_context, address):
 async def test_address_unknown_value(bidi_session, top_context):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.bluetooth.simulate_characteristic_response(
-            context=top_context,
+            context=top_context["context"],
             address=TEST_DEVICE_2_ADDRESS,
             service_uuid=HEART_RATE_SERVICE_UUID,
             characteristic_uuid=MEASUREMENT_INTERVAL_CHARACTERISTIC_UUID,
@@ -73,7 +73,7 @@ async def test_address_unknown_value(bidi_session, top_context):
 async def test_service_uuid_invalid_type(bidi_session, top_context, service_uuid):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.bluetooth.simulate_characteristic_response(
-            context=top_context,
+            context=top_context["context"],
             address=TEST_DEVICE_ADDRESS,
             service_uuid=service_uuid,
             characteristic_uuid=MEASUREMENT_INTERVAL_CHARACTERISTIC_UUID,
@@ -85,7 +85,7 @@ async def test_service_uuid_invalid_type(bidi_session, top_context, service_uuid
 async def test_service_uuid_unknown_value(bidi_session, top_context):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.bluetooth.simulate_characteristic_response(
-            context=top_context,
+            context=top_context["context"],
             address=TEST_DEVICE_ADDRESS,
             service_uuid=BATTERY_SERVICE_UUID,
             characteristic_uuid=MEASUREMENT_INTERVAL_CHARACTERISTIC_UUID,
@@ -98,7 +98,7 @@ async def test_service_uuid_unknown_value(bidi_session, top_context):
 async def test_characteristic_uuid_invalid_type(bidi_session, top_context, characteristic_uuid):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.bluetooth.simulate_characteristic_response(
-            context=top_context,
+            context=top_context["context"],
             address=TEST_DEVICE_ADDRESS,
             service_uuid=HEART_RATE_SERVICE_UUID,
             characteristic_uuid=characteristic_uuid,

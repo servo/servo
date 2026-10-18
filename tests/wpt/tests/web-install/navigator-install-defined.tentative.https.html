@@ -6,8 +6,10 @@
 <body>
 <script>
 test(function() {
-  assert_true(typeof navigator.install === 'function',
-      'navigator.install should be defined');
+  assert_true(isSecureContext, 'The test must run in a secure context');
+  assert_true('install' in navigator, 'navigator.install should be present');
+  assert_equals(typeof navigator.install, 'function',
+      'navigator.install should be a function');
 }, 'navigator.install() is defined.');
 </script>
 </body>

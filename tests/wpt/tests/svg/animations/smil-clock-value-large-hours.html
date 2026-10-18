@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<title>SMIL full clock values with large hours are not truncated</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="help" href="https://www.w3.org/TR/SMIL/smil-timing.html#q22">
+<svg height="0">
+  <rect id="rect" fill="green" width="20" height="20">
+    <!-- 1193047 hours = 4294969200s, which does not fit in a 32-bit unsigned integer. -->
+    <animate id="anim" attributeName="x" from="0" to="200" dur="1193047:00:00" fill="freeze"/>
+  </rect>
+</svg>
+<script>
+test(() => {
+  assert_equals(document.getElementById("anim").getSimpleDuration(), Math.fround(1193047 * 60 * 60));
+}, "dur='1193047:00:00' is parsed as 4294969200 seconds");
+
+promise_test(async () => {
+  if (document.readyState !== "complete")
+    await new Promise(resolve => window.addEventListener("load", resolve, { once: true }));
+  const svg = document.querySelector("svg");
+  svg.pauseAnimations();
+  // If the duration were truncated to 32 bits (1904s), the animation would be frozen at 200 here.
+  svg.setCurrentTime(2000);
+  await new Promise(requestAnimationFrame);
+  assert_not_equals(document.getElementById("rect").x.animVal.value, 200);
+}, "Animation with dur='1193047:00:00' is still running at t=2000s");
+</script>

@@ -1,0 +1,217 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Re-entrant stream operations from streamed scripts and custom element reactions</title>
+<link rel="help" href="https://html.spec.whatwg.org/#html-streaming-methods" />
+<link rel="help" href="https://html.spec.whatwg.org/#run-a-fragment-parser" />
+<link rel="help" href="https://html.spec.whatwg.org/#abort-a-fragment-parser" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<div id="target"></div>
+<script>
+  // An abort requested while the parser is running (from a streamed inline
+  // script or from a custom element reaction) is deferred until the parser
+  // returns: the rest of the current chunk is still parsed, nothing after it
+  // is. Writes and closes issued from inside a streamed script are queued by
+  // the WritableStream and processed, in order, after the current chunk.
+
+  customElements.define("abort-on-connect", class extends HTMLElement {
+    connectedCallback() {
+      window.reaction_log.push("connected");
+      window.current_writer.abort("aborted-from-reaction");
+    }
+  });
+
+  customElements.define("write-on-connect", class extends HTMLElement {
+    connectedCallback() {
+      window.reaction_log.push("connected");
+      window.current_writer.write("<p id='from-reaction'>from reaction</p>");
+    }
+  });
+
+  function ids(target) {
+    return Array.from(target.querySelectorAll("[id]"), (e) => e.id);
+  }
+
+  function parser_blocking_script(name) {
+    return `<script src='resources/slow.js?pipe=trickle(d0.2)&${name}=1'></` + "script>";
+  }
+
+  function after_task(t) {
+    return new Promise((resolve) => t.step_timeout(resolve, 0));
+  }
+
+  for (const method of ["streamHTMLUnsafe", "streamAppendHTMLUnsafe", "streamPrependHTMLUnsafe"]) {
+    promise_test(async (t) => {
+      const target = document.getElementById("target");
+      target.replaceChildren();
+      const writer = target[method]({ runScripts: true }).getWriter();
+      window.current_writer = writer;
+      t.add_cleanup(() => { delete window.current_writer; });
+
+      const abortPromise = new Promise((resolve) => { window.resolve_abort = resolve; });
+      await writer.write(
+        "<p id='a'>a</p>" +
+        "<script>window.abort_promise = window.current_writer.abort('aborted-from-script');" +
+        "window.resolve_abort();</" + "script>" +
+        "<p id='b'>b</p><div id='c'><p id='d'>d</p>"
+      );
+      await abortPromise;
+      assert_array_equals(ids(target), ["a", "b", "c", "d"], "the rest of the chunk is parsed before the deferred abort takes effect");
+      await window.abort_promise;
+      await promise_rejects_exactly(t, "aborted-from-script", writer.write("<p id='e'>e</p>"), "subsequent writes reject with the abort reason");
+      await promise_rejects_exactly(t, "aborted-from-script", writer.closed);
+      assert_array_equals(ids(target), ["a", "b", "c", "d"]);
+    }, `${method}: abort() from a streamed inline script is deferred until the current chunk is parsed`);
+
+    promise_test(async (t) => {
+      const target = document.getElementById("target");
+      target.replaceChildren();
+      const writer = target[method]().getWriter();
+      window.current_writer = writer;
+      window.reaction_log = [];
+      t.add_cleanup(() => { delete window.current_writer; });
+
+      await writer.write(
+        "<p id='a'>a</p><abort-on-connect id='ce'></abort-on-connect><p id='b'>b</p>"
+      );
+      assert_array_equals(window.reaction_log, ["connected"]);
+      assert_array_equals(ids(target), ["a", "ce", "b"], "the rest of the chunk is parsed before the deferred abort takes effect");
+      await promise_rejects_exactly(t, "aborted-from-reaction", writer.write("<p id='c'>c</p>"));
+      await promise_rejects_exactly(t, "aborted-from-reaction", writer.closed);
+      assert_array_equals(ids(target), ["a", "ce", "b"]);
+    }, `${method}: abort() from a custom element reaction is deferred until the current chunk is parsed`);
+
+    promise_test(async (t) => {
+      const target = document.getElementById("target");
+      target.replaceChildren();
+      const writer = target[method]({ runScripts: true }).getWriter();
+      window.current_writer = writer;
+      t.add_cleanup(() => { delete window.current_writer; });
+
+      await writer.write(
+        "<p id='a'>a</p>" +
+        "<script>window.current_writer.write('<p id=\"c\">c</p>'); window.current_writer.close();" +
+        "window.ids_at_script = Array.from(document.getElementById('target').querySelectorAll('[id]'), e => e.id);</" + "script>" +
+        "<p id='b'>b</p>"
+      );
+      assert_array_equals(window.ids_at_script, ["a"], "the re-entrant write is not parsed while the script runs");
+      await writer.closed;
+      assert_array_equals(ids(target), ["a", "b", "c"], "the queued write is parsed after the current chunk, then the stream is closed");
+      await promise_rejects_js(t, TypeError, writer.write("<p id='d'>d</p>"), "the stream is closed");
+    }, `${method}: write() and close() from a streamed inline script are processed after the current chunk`);
+
+    promise_test(async (t) => {
+      const target = document.getElementById("target");
+      target.replaceChildren();
+      const writer = target[method]().getWriter();
+      window.current_writer = writer;
+      window.reaction_log = [];
+      t.add_cleanup(() => { delete window.current_writer; });
+
+      await writer.write(
+        "<p id='a'>a</p><write-on-connect id='ce'></write-on-connect><p id='b'>b</p>"
+      );
+      assert_array_equals(window.reaction_log, ["connected"]);
+      await writer.close();
+      assert_array_equals(ids(target), ["a", "ce", "b", "from-reaction"], "the re-entrant write is queued behind the current chunk");
+    }, `${method}: write() from a custom element reaction is processed after the current chunk`);
+
+    // After a parser-blocking external script, the parser resumes from a task.
+    // There is no write in progress then, so the stream invokes the sink's
+    // algorithms synchronously while the parser is running: an abort is
+    // deferred until the parser returns ("fragment parser abort requested"),
+    // and written input is consumed by the ongoing run. slow.js calls
+    // window.on_slow(); the parser then resumes synchronously in the same task,
+    // so the rest of the chunk has been parsed by the time a timeout fires.
+    promise_test(async (t) => {
+      const target = document.getElementById("target");
+      target.replaceChildren();
+      const writer = target[method]({ runScripts: true }).getWriter();
+      window.current_writer = writer;
+      window.events = [];
+      window.rest_parsed = false;
+      const slowRan = new Promise((resolve) => { window.on_slow = resolve; });
+      t.add_cleanup(() => { delete window.current_writer; delete window.on_slow; });
+
+      await writer.write(
+        "<p id='a'>a</p>" +
+        parser_blocking_script("abort_from_task") +
+        "<script>window.abort_promise = window.current_writer.abort('aborted-from-task');" +
+        "window.ids_at_script = ids(document.getElementById('target'));</" + "script>" +
+        "<p id='b'>b</p>" +
+        "<script>window.rest_parsed = true;</" + "script>"
+      );
+      assert_array_equals(ids(target), ["a"], "the write promise does not wait for the parser-blocking script");
+      await slowRan;
+      await after_task(t);
+      assert_array_equals(window.events, ["slow"]);
+      assert_array_equals(window.ids_at_script, ["a"]);
+      assert_array_equals(ids(target), ["a", "b"], "the rest of the chunk is parsed before the deferred abort takes effect");
+      assert_true(window.rest_parsed, "scripts in the rest of the chunk still run");
+      await window.abort_promise;
+      await promise_rejects_exactly(t, "aborted-from-task", writer.closed);
+      await promise_rejects_exactly(t, "aborted-from-task", writer.write("<p id='c'>c</p>"), "subsequent writes reject with the abort reason");
+      assert_array_equals(ids(target), ["a", "b"]);
+    }, `${method}: abort() from a streamed inline script after a parser-blocking script is deferred until the current chunk is parsed`);
+
+    promise_test(async (t) => {
+      const target = document.getElementById("target");
+      target.replaceChildren();
+      const writer = target[method]({ runScripts: true }).getWriter();
+      window.current_writer = writer;
+      window.events = [];
+      const slowRan = new Promise((resolve) => { window.on_slow = resolve; });
+      t.add_cleanup(() => { delete window.current_writer; delete window.on_slow; });
+
+      await writer.write(
+        "<p id='a'>a</p>" +
+        parser_blocking_script("write_from_task") +
+        "<script>window.write_promise = window.current_writer.write('<p id=\"c\">c</p>');" +
+        "window.ids_at_script = ids(document.getElementById('target'));</" + "script>" +
+        "<p id='b'>b</p>" +
+        "<script>window.ids_at_rest = ids(document.getElementById('target'));</" + "script>"
+      );
+      assert_array_equals(ids(target), ["a"], "the write promise does not wait for the parser-blocking script");
+      await slowRan;
+      await after_task(t);
+      assert_array_equals(window.events, ["slow"]);
+      assert_array_equals(window.ids_at_script, ["a"], "the re-entrant write is not parsed while the script runs");
+      assert_array_equals(window.ids_at_rest, ["a", "b"], "the re-entrant write is parsed after the rest of the chunk");
+      assert_array_equals(ids(target), ["a", "b", "c"], "the re-entrant write is consumed by the ongoing run of the parser");
+      await window.write_promise;
+      await writer.close();
+      assert_array_equals(ids(target), ["a", "b", "c"]);
+    }, `${method}: write() from a streamed inline script after a parser-blocking script is parsed after the current chunk`);
+
+    promise_test(async (t) => {
+      const target = document.getElementById("target");
+      target.replaceChildren();
+      const writer = target[method]({ runScripts: true }).getWriter();
+      window.current_writer = writer;
+      window.events = [];
+      window.rest_parsed = false;
+      const slowRan = new Promise((resolve) => { window.on_slow = resolve; });
+      t.add_cleanup(() => { delete window.current_writer; delete window.on_slow; });
+
+      await writer.write(
+        "<p id='a'>a</p>" +
+        parser_blocking_script("close_from_task") +
+        "<script>window.close_promise = window.current_writer.close();</" + "script>" +
+        "<p id='b'>b</p>" +
+        "<script>window.rest_parsed = true;</" + "script>"
+      );
+      assert_array_equals(ids(target), ["a"], "the write promise does not wait for the parser-blocking script");
+      await slowRan;
+      await after_task(t);
+      assert_array_equals(window.events, ["slow"]);
+      assert_array_equals(ids(target), ["a", "b"], "the rest of the chunk is parsed before the stream is closed");
+      assert_true(window.rest_parsed, "scripts in the rest of the chunk still run");
+      await window.close_promise;
+      await writer.closed;
+      await promise_rejects_js(t, TypeError, writer.write("<p id='c'>c</p>"), "the stream is closed");
+      assert_array_equals(ids(target), ["a", "b"]);
+    }, `${method}: close() from a streamed inline script after a parser-blocking script closes the stream after the current chunk`);
+  }
+</script>
+</body>

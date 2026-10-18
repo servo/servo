@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>focusreset event: not fired when focus is explicitly updated</title>
+<link rel="help" href="https://github.com/whatwg/html/pull/13050">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#focus-update-steps">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/focusreset-helpers.js"></script>
+
+<script>
+"use strict";
+
+// Any explicit focus update between the removal and the mutation observer
+// microtask that fires focusreset cancels the pending focusreset.
+
+promise_test(async t => {
+  await settle(t);
+  const events = recordFocusResets(t);
+  const button = createFocusable(t);
+  const other = createFocusable(t);
+  button.focus();
+  button.remove();
+  other.focus();
+  assert_equals(document.activeElement, other, "sanity: other is focused");
+  await afterNextRenderingUpdateAndTask(t);
+  assert_equals(events.length, 0, "no focusreset");
+}, "Focusing another element after the removal cancels focusreset");
+
+promise_test(async t => {
+  await settle(t);
+  const events = recordFocusResets(t);
+  const button = createFocusable(t);
+  button.focus();
+  button.remove();
+  document.body.append(button);
+  button.focus();
+  assert_equals(document.activeElement, button, "sanity: button is focused");
+  await afterNextRenderingUpdateAndTask(t);
+  assert_equals(events.length, 0, "no focusreset");
+}, "Re-inserting and re-focusing the same element cancels focusreset");
+
+promise_test(async t => {
+  await settle(t);
+  const events = recordFocusResets(t);
+  const button = createFocusable(t);
+  button.focus();
+  button.remove();
+  document.body.append(button);
+  assert_equals(document.activeElement, document.body,
+                "re-inserting doesn't restore focus");
+  await afterNextRenderingUpdate();
+  assert_equals(events.length, 1,
+                "focusreset is fired, as focus wasn't explicitly updated");
+}, "Re-inserting the element without re-focusing it doesn't cancel focusreset");
+
+promise_test(async t => {
+  await settle(t);
+  const events = recordFocusResets(t);
+  const button = createFocusable(t);
+  const other = createFocusable(t);
+  button.focus();
+  button.remove();
+  other.focus();
+  other.blur();
+  assert_equals(document.activeElement, document.body,
+                "sanity: body is active");
+  await afterNextRenderingUpdateAndTask(t);
+  assert_equals(events.length, 0,
+                "no focusreset, even though the viewport ended up focused");
+}, "Focusing then blurring another element after the removal cancels focusreset");
+
+promise_test(async t => {
+  await settle(t);
+  const events = recordFocusResets(t);
+  const button = createFocusable(t);
+  const other = createFocusable(t);
+  button.focus();
+  // This microtask is queued before the mutation observer microtask, so it
+  // runs first.
+  queueMicrotask(() => other.focus());
+  button.remove();
+  await afterNextRenderingUpdateAndTask(t);
+  assert_equals(document.activeElement, other);
+  assert_equals(events.length, 0, "no focusreset");
+}, "Focusing another element in a microtask that runs before the focusreset microtask cancels focusreset");
+
+promise_test(async t => {
+  await settle(t);
+  const events = recordFocusResets(t);
+  const button = createFocusable(t);
+  const other = createFocusable(t);
+  button.focus();
+  button.remove();
+  queueMicrotask(t.step_func(() => {
+    assert_equals(events.length, 1, "already fired");
+    other.focus();
+  }));
+  await afterNextRenderingUpdateAndTask(t);
+  assert_equals(document.activeElement, other);
+  assert_equals(events.length, 1, "focusreset was fired");
+}, "Focusing another element in a microtask queued after the removal doesn't cancel focusreset");
+
+promise_test(async t => {
+  await settle(t);
+  const events = recordFocusResets(t);
+  const button = createFocusable(t);
+  const other = createFocusable(t);
+  button.focus();
+  button.remove();
+  await nextTask(t);
+  other.focus();
+  await afterNextRenderingUpdateAndTask(t);
+  assert_equals(events.length, 1, "focusreset was fired");
+}, "Focusing another element in a later task doesn't cancel focusreset");
+
+promise_test(async t => {
+  await settle(t);
+  const events = recordFocusResets(t);
+  const button = createFocusable(t);
+  const other = createFocusable(t);
+  button.focus();
+  button.remove();
+
+  await new Promise(resolve => {
+    requestAnimationFrame(t.step_func(() => {
+      assert_equals(events.length, 1, "fired before rAF callbacks");
+      other.focus();
+      resolve();
+    }));
+  });
+  await afterNextRenderingUpdateAndTask(t);
+  assert_equals(events.length, 1, "focusreset was fired once");
+}, "Focusing another element in a rAF callback doesn't cancel focusreset");
+
+promise_test(async t => {
+  await settle(t);
+  const events = recordFocusResets(t);
+  const button = createFocusable(t);
+  const other = createFocusable(t);
+  button.focus();
+  // Set up the other element to steal focus in response to the removal, via a
+  // mutation observer. MutationObserver callbacks are invoked before
+  // focusreset is fired, in the same microtask.
+  const mo = new MutationObserver(() => other.focus());
+  mo.observe(document.body, { childList: true });
+  t.add_cleanup(() => mo.disconnect());
+  button.remove();
+  await afterNextRenderingUpdateAndTask(t);
+  assert_equals(document.activeElement, other);
+  assert_equals(events.length, 0, "no focusreset");
+}, "Focusing another element from a MutationObserver callback cancels focusreset");
+
+// Non-removal focus fixups don't involve focusreset: those run the focusing
+// steps for the viewport, which fire blur and are themselves an explicit focus
+// update.
+function test_no_focusreset_for_fixup(description, change) {
+  promise_test(async t => {
+    await settle(t);
+    const focusResets = recordFocusResets(t);
+    const button = createFocusable(t);
+    button.focus();
+    const events = recordEvents(t, document, ["blur", "focusreset"]);
+    change(button);
+    await afterNextRenderingUpdateAndTask(t);
+    assert_equals(document.activeElement, document.body,
+                  "focus was fixed up");
+    assert_equals(focusResets.length, 0, "no focusreset");
+    assert_array_equals(events, ["blur"], "blur fired instead");
+  }, description);
+}
+
+test_no_focusreset_for_fixup(
+  "Making the focused element disabled doesn't fire focusreset",
+  button => { button.disabled = true; });
+
+test_no_focusreset_for_fixup(
+  "Making the focused element hidden doesn't fire focusreset",
+  button => { button.hidden = true; });
+
+test_no_focusreset_for_fixup(
+  "Making the focused element display:none doesn't fire focusreset",
+  button => { button.style.display = "none"; });
+
+test_no_focusreset_for_fixup(
+  "Making the focused element inert doesn't fire focusreset",
+  button => { button.inert = true; });
+</script>

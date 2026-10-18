@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Aspect-ratio block inside a shrink-to-fit ancestor keeps its size across relayouts</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="match" href="block-aspect-ratio-shrink-to-fit-ancestor-relayout-ref.html">
+<meta name="assert" content="When a shrink-to-fit ancestor queries the intrinsic widths of a block-level aspect-ratio box between layouts, the box's percentage-height descendants must not resolve against the previous layout's width and grow the box.">
+<style>
+.float {
+  float: left;
+}
+.inline-block {
+  display: inline-block;
+}
+.table-cell {
+  display: table-cell;
+}
+.inline-grid {
+  display: inline-grid;
+}
+.aspect-ratio-box {
+  aspect-ratio: 1 / 1;
+}
+.child {
+  height: 100%;
+  aspect-ratio: 2 / 1;
+  background-color: green;
+}
+.content {
+  width: 20px;
+  height: 5px;
+}
+</style>
+<div class="float"><div class="aspect-ratio-box"><div class="child"><div class="content"></div></div></div></div>
+<div style="clear: both"></div>
+<div class="inline-block"><div class="aspect-ratio-box"><div class="child"><div class="content"></div></div></div></div>
+<div class="table-cell"><div class="aspect-ratio-box"><div class="child"><div class="content"></div></div></div></div>
+<div class="inline-grid"><div class="aspect-ratio-box"><div class="child"><div class="content"></div></div></div></div>
+<script>
+// Each min-width change invalidates the intrinsic widths up to the shrink-to-fit ancestor without changing any size.
+for (const content of document.querySelectorAll(".content")) {
+  for (let i = 0; i < 4; ++i) {
+    content.style.minWidth = (i % 2 ? 0 : 1) + "px";
+    document.body.offsetHeight;
+  }
+}
+</script>

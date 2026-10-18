@@ -23,8 +23,8 @@
   <body>
     <div id='log'></div>
 
-    <script>
-        var keysystem = getSupportedKeySystem(),
+    <script type="module">
+        var keysystem = await getSupportedKeySystem(),
             contentItem = content['mp4-basic'],
             config = {
                 keysystem: keysystem,

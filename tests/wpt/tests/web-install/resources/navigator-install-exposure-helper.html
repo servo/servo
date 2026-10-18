@@ -1,0 +1,8 @@
+<!DOCTYPE html>
+<script>
+window.parent.postMessage({
+  isSecureContext,
+  hasInstall: 'install' in navigator,
+  installType: typeof navigator.install,
+}, '*');
+</script>

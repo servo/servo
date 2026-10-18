@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: A rejected declarative tool does not unregister an imperative tool sharing its name</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/helpers.js"></script>
+<body>
+<script>
+// A `<form>` whose declarative registration is rejected still holds on to a
+// tool object internally. When the form later stops being a valid tool — it is
+// removed from the document, or its attributes change — it asks to unregister
+// "its" tool. These tests pin down that this request cannot take out the
+// unrelated tool that happens to share its name.
+
+async function toolNames() {
+  const tools = await document.modelContext.getTools();
+  return tools.map(tool => tool.name).sort();
+}
+
+// Declarative tool registration runs in a posted task, and a *rejected*
+// registration fires no `toolchange` that we could await. So after appending a
+// form whose registration is expected to be rejected, append a valid "sentinel"
+// form and wait for *it* to register: registration tasks run in order, so by
+// then the rejected attempt has already happened. The sentinel is removed
+// before returning, so it doesn't affect later assertions.
+async function waitForPendingDeclarativeRegistrations() {
+  const sentinel = document.createElement('form');
+  sentinel.setAttribute('toolname', 'sentinel');
+  sentinel.setAttribute('tooldescription', 'Sentinel tool');
+  document.body.append(sentinel);
+  await waitForTool('sentinel');
+  sentinel.remove();
+}
+
+function registerImperativeTool(t, name) {
+  const controller = new AbortController();
+  t.add_cleanup(async () => {
+    controller.abort();
+    await document.modelContext.getTools();
+  });
+  return document.modelContext.registerTool({
+    name,
+    description: 'Imperative tool',
+    execute: async () => 'imperative result',
+  }, { signal: controller.signal });
+}
+
+function appendCollidingForm(t, toolname) {
+  const form = document.createElement('form');
+  form.setAttribute('toolname', toolname);
+  form.setAttribute('tooldescription', 'Declarative tool');
+  t.add_cleanup(() => form.remove());
+  document.body.append(form);
+  return form;
+}
+
+promise_test(async t => {
+  await registerImperativeTool(t, 'collides_on_removal');
+  const form = appendCollidingForm(t, 'collides_on_removal');
+
+  await waitForPendingDeclarativeRegistrations();
+  assert_array_equals(await toolNames(), ['collides_on_removal'],
+      'The declarative registration should be rejected, since the name is taken');
+
+  // Unregistration on removal happens synchronously, so no barrier is needed.
+  form.remove();
+
+  assert_array_equals(await toolNames(), ['collides_on_removal'],
+      'Removing the form must not unregister the imperative tool');
+
+  // Prove the tool is genuinely still usable, not merely still listed. This
+  // deliberately avoids asserting the exact serialization of the result, which
+  // is covered by executeTool-json-serialization.https.html.
+  const [tool] = await document.modelContext.getTools();
+  const result = await document.modelContext.executeTool(tool, {});
+  assert_true(result.includes('imperative result'),
+      'The imperative tool should still be executable');
+}, 'Removing a rejected declarative form does not unregister the imperative ' +
+   'tool sharing its name');
+
+promise_test(async t => {
+  await registerImperativeTool(t, 'collides_on_rename');
+  const form = appendCollidingForm(t, 'collides_on_rename');
+
+  await waitForPendingDeclarativeRegistrations();
+  assert_array_equals(await toolNames(), ['collides_on_rename'],
+      'The declarative registration should be rejected, since the name is taken');
+
+  // Renaming makes the form registrable. It must register itself under the new
+  // name without unregistering the tool holding its old one.
+  form.setAttribute('toolname', 'no_longer_collides');
+  await waitForTool('no_longer_collides');
+
+  assert_array_equals(await toolNames(),
+      ['collides_on_rename', 'no_longer_collides'],
+      'Renaming the form must register the declarative tool and leave the ' +
+      'imperative tool alone');
+}, 'Renaming a rejected declarative form does not unregister the imperative ' +
+   'tool sharing its old name');
+</script>
+</body>

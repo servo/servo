@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>img sizes="auto,auto,…" with many entries must not overflow the stack</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#parsing-a-sizes-attribute">
+<body>
+<script>
+const img = document.createElement("img");
+img.srcset = "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw== 100w, data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw== 200w";
+img.sizes = "auto,".repeat(1000000) + "auto";
+document.body.appendChild(img);
+</script>
+</body>
+</html>

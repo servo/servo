@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Line breaking after an overflow retry does not crash</title>
+<link rel="help" href="https://drafts.csswg.org/css-text/#overflow-wrap-property">
+<link rel="help" href="https://crbug.com/559557312">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+div {
+  font: 16px Ahem;
+  overflow-wrap: anywhere;
+}
+</style>
+<!--
+  crbug.com/559557312: when a fractional advance makes the shaped width of a
+  fitting break opportunity land 1/64px above the available width,
+  BreakText() reports an overflow but keeps a ShapeResult, and the
+  HandleOverflow() retry caps the available width at the shaped width minus
+  1px. If that returns no result, the stale shape remains attached to an
+  extended text range.
+  letter-spacing provides a fractional advance that does not depend on
+  subpixel positioning, which web tests disable on some platforms. The last
+  div is the reviewer-provided zoom-based variant for environments where
+  subpixel positioning applies.
+-->
+<div style="letter-spacing: 0.3px; width: 16.28125px;">XXX XX</div>
+<div style="letter-spacing: 0.3px; width: 32.578125px;">XXX XX</div>
+<div style="letter-spacing: 0.5px; width: 16.484375px;">XXX XX</div>
+<div style="letter-spacing: 0.5px; width: 32.984375px;">XXX XX</div>
+<div style="letter-spacing: 0.9px; width: 16.875px;">XXX XX</div>
+<div style="letter-spacing: 0.9px; width: 33.78125px;">XXX XX</div>
+<div style="zoom: 1.2; width: 31.99px;">XXX XX</div>
+<script>
+document.documentElement.classList.add("test-wait");
+document.fonts.ready.then(() => {
+  document.body.offsetHeight;
+  document.documentElement.classList.remove("test-wait");
+});
+</script>

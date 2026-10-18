@@ -1,0 +1,33 @@
+<!doctype html>
+<html>
+<head>
+  <title>Tentative: Empty Container Role Verification Tests</title>
+  <script src="/resources/testharness.js"></script>
+  <script src="/resources/testharnessreport.js"></script>
+  <script src="/resources/testdriver.js"></script>
+  <script src="/resources/testdriver-vendor.js"></script>
+  <script src="/resources/testdriver-actions.js"></script>
+  <script src="/wai-aria/scripts/aria-utils.js"></script>
+</head>
+<body>
+
+<!--
+  Lists and menus without items.
+  https://github.com/w3c/aria/issues/2930
+-->
+<div role="list" data-testname="role is list (empty)" data-expectedrole="list" class="ex"></div>
+<div role="list" data-testname="role is list (no listitem)" data-expectedrole="list" class="ex">
+  <div>x</div>
+</div>
+
+<div role="menu" data-testname="role is menu (empty)" data-expectedrole="menu" class="ex"></div>
+<div role="menu" data-testname="role is menu (no menuitem)" data-expectedrole="menu" class="ex">
+  <div>x</div>
+</div>
+
+<script>
+AriaUtils.verifyRolesBySelector(".ex");
+</script>
+
+</body>
+</html>

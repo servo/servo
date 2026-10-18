@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<title>Mixed-case attribute selectors match descendants of HTML elements in XHTML</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#attribute-case"/>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/semantics-other.html#case-sensitivity-of-selectors"/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  .target { color: rgb(255, 0, 0); }
+  [fooBar] .descendant { color: rgb(0, 128, 0); }
+  [dataItem] > .child { color: rgb(0, 128, 0); }
+  [foobar] .lowercase-descendant { color: rgb(0, 128, 0); }
+</style>
+</head>
+<body>
+<div id="log"></div>
+<div fooBar="1"><span id="descendant" class="target descendant"></span></div>
+<div dataItem="1"><span id="child" class="target child"></span></div>
+<div fooBar="1"><section><span id="deep" class="target descendant"></span></section></div>
+<div fooBar="1"><span id="lowercase" class="target lowercase-descendant"></span></div>
+<script><![CDATA[
+const green = "rgb(0, 128, 0)";
+const red = "rgb(255, 0, 0)";
+
+test(() => {
+  assert_equals(getComputedStyle(document.getElementById("descendant")).color, green);
+}, "[fooBar] descendant combinator matches mixed-case attribute on HTML element");
+
+test(() => {
+  assert_equals(getComputedStyle(document.getElementById("child")).color, green);
+}, "[dataItem] child combinator matches mixed-case attribute on HTML element");
+
+test(() => {
+  assert_equals(getComputedStyle(document.getElementById("deep")).color, green);
+}, "[fooBar] matches through an intermediate ancestor");
+
+test(() => {
+  assert_equals(getComputedStyle(document.getElementById("lowercase")).color, red);
+}, "[foobar] does not match fooBar attribute in XHTML");
+]]></script>
+</body>
+</html>

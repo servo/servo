@@ -1,11 +1,70 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
 <title>Input type switch on blur event should clean up properly</title>
+<meta name="variant" content="?include=to-text-true-0">
+<meta name="variant" content="?include=to-text-true-1">
+<meta name="variant" content="?include=to-text-true-2">
+<meta name="variant" content="?include=to-text-true-3">
+<meta name="variant" content="?include=to-text-true-4">
+<meta name="variant" content="?include=to-text-false-0">
+<meta name="variant" content="?include=to-text-false-1">
+<meta name="variant" content="?include=to-text-false-2">
+<meta name="variant" content="?include=to-text-false-3">
+<meta name="variant" content="?include=to-text-false-4">
+<meta name="variant" content="?include=from-text-true-0">
+<meta name="variant" content="?include=from-text-true-1">
+<meta name="variant" content="?include=from-text-true-2">
+<meta name="variant" content="?include=from-text-true-3">
+<meta name="variant" content="?include=from-text-true-4">
+<meta name="variant" content="?include=from-text-false-0">
+<meta name="variant" content="?include=from-text-false-1">
+<meta name="variant" content="?include=from-text-false-2">
+<meta name="variant" content="?include=from-text-false-3">
+<meta name="variant" content="?include=from-text-false-4">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/common/subset-tests-by-key.js"></script>
 <body>
 <script type=module>
 import inputTypes from "./input-types.js";
+
+// Selecting an active element before the document receives system focus can
+// defer its first focus event until after the unexpected-focus listener is
+// installed. Start with a loaded, focused document and let focus dispatch finish.
+promise_test(t => new Promise(resolve => {
+  const signal = t.get_signal();
+  let frame = null;
+  function cancelPendingFrame() {
+    if (frame !== null) {
+      cancelAnimationFrame(frame);
+      frame = null;
+    }
+  }
+  t.add_cleanup(cancelPendingFrame);
+  function cleanup() {
+    window.removeEventListener("load", ready);
+    window.removeEventListener("focus", ready);
+    cancelPendingFrame();
+  }
+  function ready() {
+    if (frame !== null || document.readyState !== "complete" ||
+        !document.hasFocus()) {
+      return;
+    }
+    frame = requestAnimationFrame(() => {
+      frame = null;
+      if (!document.hasFocus()) {
+        return;
+      }
+      resolve();
+    });
+  }
+  window.addEventListener("load", ready, {signal});
+  window.addEventListener("focus", ready, {signal});
+  // Global timeouts skip per-test cleanup.
+  add_completion_callback(cleanup);
+  ready();
+}), "Document is loaded and focused before blur tests");
 
 function tick() {
   return new Promise(resolve => {
@@ -13,24 +72,25 @@ function tick() {
   });
 }
 
-function test_from_to(fromType, toType, capture) {
+function test_from_to(fromType, toType, capture, group) {
   if (fromType == toType) {
     return;
   }
-  promise_test(async function(t) {
+  const key = `${fromType === "text" ? "from-text" : "to-text"}-${capture}-${group}`;
+  subsetTestByKey(key, promise_test, async function(t) {
     const input = document.createElement("input");
     input.type = fromType;
+    const onFocus = t.unreached_func("shouldn't be getting spurious focus events");
+    const signal = t.get_signal();
+    t.add_cleanup(() => input.remove());
     document.body.appendChild(input);
     input.focus();
     assert_equals(document.activeElement, input, `${fromType} input should be focused`);
-    function onFocus() {
-      t.assert_unreached("shouldn't be getting spurious focus events");
-    }
     function onBlur() {
       input.type = toType;
     }
-    input.addEventListener("focus", onFocus);
-    input.addEventListener("blur", onBlur, capture);
+    input.addEventListener("focus", onFocus, {signal});
+    input.addEventListener("blur", onBlur, {capture, signal});
     await tick();
 
     assert_equals(document.activeElement, input, `${fromType} input should still be focused after tick`);
@@ -43,18 +103,15 @@ function test_from_to(fromType, toType, capture) {
     assert_false(input.matches(":focus"), `${fromType} input should not match :focus`);
     assert_false(input.matches(":focus-visible"), `${fromType} input should not match :focus-visible`);
     assert_equals(input.type, toType, `${fromType} input should have changed to ${toType}`);
-    input.removeEventListener("focus", onFocus);
-    input.removeEventListener("blur", onBlur);
   }, `${fromType} -> ${toType} ${capture}`);
 }
 
-for (let type of inputTypes) {
-  if (type == "hidden") {
-    continue; // hidden inputs are not focusable
-  }
+const types = inputTypes.filter(type => type !== "hidden" && type !== "text");
+for (const [index, type] of types.entries()) {
+  const group = index % 5;
   for (let capture of [true, false]) {
-    test_from_to(type, "text", capture);
-    test_from_to("text", type, capture);
+    test_from_to(type, "text", capture, group);
+    test_from_to("text", type, capture, group);
   }
 }
 </script>

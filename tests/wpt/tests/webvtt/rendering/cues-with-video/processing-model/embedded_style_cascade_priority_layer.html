@@ -5,6 +5,8 @@
 <link rel="help" href="https://w3c.github.io/webvtt/#obtaining-css-boxes">
 <link rel="help" href="https://drafts.csswg.org/css-cascade-5/#cascade-sort">
 <link rel="author" href="mailto:xiaochengh@chromium.org">
+<link rel="stylesheet" href="support/webvtt-test.css">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css"/>
 <script src="/common/reftest-wait.js"></script>
 <style>
 /* Embedded important style should take precedence over author important style
@@ -15,7 +17,7 @@
   }
 }
 </style>
-<video width="320" height="180" autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
+<video autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
     <source src="/media/white.webm" type="video/webm">
     <source src="/media/white.mp4" type="video/mp4">
     <track src="support/embedded_style_cascade_priority_layer.vtt" default>

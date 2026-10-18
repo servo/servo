@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<meta name="variant" content="?uncached">
+<meta name="variant" content="?cached">
+<title>rel=expect finds an inserted named anchor with a cached name collection</title>
+<link rel="help" href="https://html.spec.whatwg.org/#process-internal-resource-link">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/utils.js"></script>
+<link rel="expect" href="#target" blocking="render">
+<script>
+let targetInserted = false;
+let parsingFinished = false;
+let targets;
+const t = async_test("Inserting a named anchor satisfies rel=expect with " +
+                     location.search.slice(1) + " getElementsByName results");
+requestAnimationFrame(t.step_func_done(() => {
+  assert_true(targetInserted, "Rendering waits for the target");
+  assert_false(parsingFinished,
+               "Inserting the named anchor unblocks rendering");
+}));
+</script>
+<body>
+<script>
+generateParserDelay();
+</script>
+<script>
+t.step(() => {
+  if (location.search === "?cached") {
+    targets = document.getElementsByName("target");
+    assert_equals(targets.length, 0, "Populate the cached collection before insertion");
+  }
+  const anchor = document.createElement("a");
+  anchor.name = "target";
+  document.body.append(anchor);
+  targetInserted = true;
+});
+generateParserDelay();
+</script>
+<script>
+parsingFinished = true;
+</script>

@@ -1,0 +1,326 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>
+  HTML partial updates - {append|prepend|before|after|replaceWith}HTML{Unsafe}
+</title>
+<link rel="help" href="https://html.spec.whatwg.org/#html-parsing-methods" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<body>
+  <script>
+    function create_tests(target_type, pos, ref_type, safe) {
+      const method_name = `${pos}HTML${safe ? "" : "Unsafe"}`;
+      const variant = `${ref_type}.${method_name} (${target_type})`;
+
+      function prepare(t) {
+        return prepare_html_partial_update(target_type, ref_type, pos, t);
+      }
+
+      test((t) => {
+        const { target, ref, object } = prepare(t);
+        object[method_name]("<span>html;</span>");
+        check_position(target, pos, ref);
+      }, `Position check: ${variant}`);
+
+      for (const runScripts of [true, false]) {
+        test((t) => {
+          const { target, ref, object } = prepare(t);
+          window.did_run = false;
+          t.add_cleanup(() => {
+            delete window.did_run;
+          });
+          object[method_name](
+            "<span>html;</span><script>window.did_run = true<" + "/script>",
+            { runScripts },
+          );
+          const script = target.querySelector("script");
+          assert_equals(!!script, !safe);
+          if (script) script.remove();
+          assert_equals(window.did_run, runScripts && !safe && target_type !== "template.content");
+
+          check_position(target, pos, ref);
+        }, `Only unsafe variants should run scripts: ${variant} (runScripts=${runScripts})`);
+      }
+
+      test((t) => {
+        const { target, ref, object } = prepare(t);
+        object[method_name]("<span>html;</span><p>forbidden</p>", {
+          sanitizer: { removeElements: ["p"] },
+        });
+        check_position(target, pos, ref);
+        assert_equals(target.querySelector("p"), null);
+      }, `Sanitizer should remove forbidden elements: ${variant}`);
+    }
+
+    for (const target of ["Element", "ShadowRoot", "template.content"]) {
+      for (const pos of ["append", "prepend"]) {
+        for (const safe of [true, false]) {
+          create_tests(target, pos, "Element", safe);
+        }
+      }
+
+      for (const ref of [
+        "Element",
+        "Comment",
+        "Text",
+        "ProcessingInstruction",
+      ]) {
+        for (const pos of ["before", "after", "replaceWith"]) {
+          for (const safe of [true, false]) {
+            create_tests(target, pos, ref, safe);
+          }
+        }
+      }
+    }
+
+    for (const safe of [true, false]) {
+      for (const method of ["afterHTML", "beforeHTML", "replaceWithHTML"]) {
+        const method_name = `${method}${safe ? "" : "Unsafe"}`;
+        test(() => {
+          const doc = document.implementation.createHTMLDocument();
+          const comment = doc.appendChild(doc.createComment("ref"));
+          assert_throws_dom("HierarchyRequestError", () => {
+            comment[method_name]("<span>fails</span>");
+          });
+        }, `${method_name} throws HierarchyRequestError if parent is a Document (Comment node)`);
+
+        test(() => {
+          assert_own_property(Element.prototype, method_name);
+          assert_own_property(CharacterData.prototype, method_name);
+          assert_false(method_name in Node.prototype, "Node.prototype");
+          assert_false(method_name in DocumentType.prototype, "DocumentType.prototype");
+        }, `${method_name} is exposed via the NonDocumentTypeChildNode mixin`);
+
+        test(() => {
+          const doc = document.implementation.createHTMLDocument();
+          assert_equals(doc.doctype[method_name], undefined);
+          const doctype = document.implementation.createDocumentType("html", "", "");
+          assert_equals(doctype[method_name], undefined);
+        }, `${method_name} is not available on DocumentType nodes`);
+
+        test(() => {
+          const fragment = document.createDocumentFragment();
+          const span = document.createElement("span");
+          fragment.appendChild(span);
+          assert_throws_dom("HierarchyRequestError", () => {
+            span[method_name]("<p>fails</p>");
+          });
+        }, `${method_name} throws HierarchyRequestError if parent is a DocumentFragment`);
+
+        test(() => {
+          const doc = document.implementation.createHTMLDocument();
+          assert_throws_dom("HierarchyRequestError", () => {
+            doc.body[method_name]("<p>fails</p>");
+          });
+          assert_throws_dom("HierarchyRequestError", () => {
+            doc.head[method_name]("<p>fails</p>");
+          });
+        }, `${method_name} throws HierarchyRequestError if parent is an html element`);
+
+        test(() => {
+          const html = document.createElement("html");
+          const child = document.createElement("body");
+          html.appendChild(child);
+          assert_throws_dom("HierarchyRequestError", () => {
+            child[method_name]("<p>fails</p>");
+          });
+        }, `${method_name} throws HierarchyRequestError if parent is a disconnected html element`);
+
+        test(() => {
+          const element = document.createElement("div");
+          assert_equals(element[method_name]("<span>fails</span>"), undefined);
+        }, `${method_name} on Element without a parent returns undefined and does not throw`);
+
+        test(() => {
+          const comment = document.createComment("comment");
+          assert_equals(comment[method_name]("<span>fails</span>"), undefined);
+        }, `${method_name} on Comment without a parent returns undefined and does not throw`);
+
+        test(() => {
+          const text = document.createTextNode("text");
+          assert_equals(text[method_name]("<span>fails</span>"), undefined);
+        }, `${method_name} on Text without a parent returns undefined and does not throw`);
+
+        test(() => {
+          const pi = document.createProcessingInstruction("target", "data");
+          assert_equals(pi[method_name]("<span>fails</span>"), undefined);
+        }, `${method_name} on ProcessingInstruction without a parent returns undefined and does not throw`);
+      }
+
+      for (const method of ["appendHTML", "prependHTML"]) {
+        const method_name = `${method}${safe ? "" : "Unsafe"}`;
+        test(() => {
+          assert_own_property(Element.prototype, method_name);
+          assert_own_property(ShadowRoot.prototype, method_name);
+          assert_false(method_name in Node.prototype, "Node.prototype");
+          assert_false(method_name in Document.prototype, "Document.prototype");
+          assert_false(method_name in DocumentFragment.prototype, "DocumentFragment.prototype");
+        }, `${method_name} is exposed on Element and ShadowRoot only`);
+
+        test(() => {
+          const doc = document.implementation.createHTMLDocument();
+          assert_throws_dom("HierarchyRequestError", () => {
+            doc.documentElement[method_name]("<p>fails</p>");
+          });
+        }, `${method_name} on an html element throws HierarchyRequestError`);
+
+        test(() => {
+          const html = document.createElement("html");
+          assert_throws_dom("HierarchyRequestError", () => {
+            html[method_name]("<p>fails</p>");
+          });
+        }, `${method_name} on a disconnected html element throws HierarchyRequestError`);
+      }
+
+      test(() => {
+        const set_method = `setHTML${safe ? "" : "Unsafe"}`;
+        const doc = document.implementation.createHTMLDocument();
+        doc.documentElement[set_method]("<head><title>t</title></head><body><p>ok</p></body>");
+        assert_equals(doc.querySelectorAll("head").length, 1);
+        assert_equals(doc.querySelectorAll("body").length, 1);
+        assert_equals(doc.body.querySelector("p").textContent, "ok");
+      }, `setHTML${safe ? "" : "Unsafe"} on an html element succeeds`);
+
+      for (const pos of ["append", "prepend", "before", "after", "replaceWith"]) {
+        const method_name = `${pos}HTML${safe ? "" : "Unsafe"}`;
+        test(() => {
+          const xml_doc = document.implementation.createDocument(
+            "http://www.w3.org/1999/xhtml",
+            "html",
+            null,
+          );
+          const container = xml_doc.createElement("div");
+          xml_doc.documentElement.appendChild(container);
+          const ref = xml_doc.createElement("b");
+          ref.textContent = "ref";
+          container.appendChild(ref);
+
+          const receiver =
+            pos === "append" || pos === "prepend" ? container : ref;
+          // Pass ill-formed XML ("<span id=s>unclosed<p id=p>dropped") and a
+          // sanitizer config to verify that the HTML parser and sanitizer are
+          // used even in an XML document.
+          receiver[method_name]("<span id=s>unclosed<p id=p>dropped", {
+            sanitizer: { removeElements: ["p"] },
+          });
+
+          assert_not_equals(container.querySelector("#s"), null);
+          assert_equals(container.querySelector("#p"), null);
+          if (pos === "replaceWith") {
+            assert_equals(ref.parentNode, null);
+          } else {
+            assert_equals(ref.parentNode, container);
+          }
+        }, `${method_name} in an XML document uses the HTML parser and supports sanitization`);
+
+        test((t) => {
+          const { target, object } =
+            prepare_html_partial_update("Element", "Element", pos, t);
+          object[method_name](
+            "<div id='dsd-host'><template shadowrootmode='open'><span id='dsd-inner'>shadow</span></template></div>",
+            safe ? { sanitizer: {} } : undefined,
+          );
+          const host = target.querySelector("#dsd-host");
+          assert_not_equals(host, null, "host element should be inserted");
+          assert_not_equals(host.shadowRoot, null, "declarative shadow root should be attached");
+          assert_not_equals(host.shadowRoot.querySelector("#dsd-inner"), null);
+        }, `${method_name} supports declarative shadow roots`);
+
+        test(() => {
+          const tr = document.createElement("tr");
+          const existing = document.createElement("td");
+          existing.textContent = "ref";
+          tr.appendChild(existing);
+
+          const receiver =
+            pos === "append" || pos === "prepend" ? tr : existing;
+          receiver[method_name]("<td>x</td>");
+
+          if (pos === "replaceWith") {
+            assert_equals(tr.children.length, 1);
+            assert_equals(tr.children[0].localName, "td");
+            assert_equals(tr.children[0].textContent, "x");
+          } else {
+            assert_equals(tr.children.length, 2, "<td> should be kept when parsed in <tr> context");
+            const new_td =
+              pos === "prepend" || pos === "before"
+                ? tr.children[0]
+                : tr.children[1];
+            assert_equals(new_td.localName, "td");
+            assert_equals(new_td.textContent, "x");
+          }
+        }, `${method_name} parses using parent Element (<tr>) as context`);
+
+        test(() => {
+          const div = document.createElement("div");
+          const ref = document.createElement("span");
+          ref.textContent = "ref";
+          div.appendChild(ref);
+
+          const receiver =
+            pos === "append" || pos === "prepend" ? div : ref;
+          receiver[method_name]("<td>x</td>");
+
+          assert_equals(div.querySelector("td"), null, "<td> should be dropped when parsed in <div> context");
+          assert_true(div.textContent.includes("x"));
+        }, `${method_name} drops <td> when parsed using parent <div> as context`);
+
+        test(() => {
+          const template = document.createElement("template");
+          const ref = document.createElement("span");
+          ref.textContent = "ref";
+          template.content.appendChild(ref);
+
+          const receiver =
+            pos === "append" || pos === "prepend" ? template : ref;
+          receiver[method_name]("<td>x</td>");
+
+          const td = template.content.querySelector("td");
+          assert_not_equals(td, null, "<td> should be kept when parsed in <template> context");
+          assert_equals(td.textContent, "x");
+          if (pos === "replaceWith") {
+            assert_array_equals(Array.from(template.content.children), [td]);
+          } else if (pos === "prepend" || pos === "before") {
+            assert_array_equals(Array.from(template.content.children), [td, ref]);
+          } else {
+            assert_array_equals(Array.from(template.content.children), [ref, td]);
+          }
+        }, `${method_name} parses using <template> host as context`);
+
+        test(() => {
+          const host = document.createElement("div");
+          const shadow = host.attachShadow({ mode: "open" });
+          const ref = document.createElement("span");
+          ref.textContent = "ref";
+          shadow.appendChild(ref);
+
+          const receiver =
+            pos === "append" || pos === "prepend" ? shadow : ref;
+          receiver[method_name]("<td>x</td>");
+
+          assert_equals(shadow.querySelector("td"), null, "<td> should be dropped when parsed using ShadowRoot's <div> host as context");
+          assert_true(shadow.textContent.includes("x"));
+        }, `${method_name} parses using ShadowRoot host as context`);
+
+        test(() => {
+          // Verify that a disconnected node that *does* have a parent does not no-op.
+          const detached_parent = document.createElement("div");
+          const detached_child = document.createElement("span");
+          detached_child.textContent = "ref";
+          detached_parent.appendChild(detached_child);
+
+          const receiver =
+            pos === "append" || pos === "prepend"
+              ? detached_parent
+              : detached_child;
+          receiver[method_name]("<b>inserted</b>");
+
+          const b = detached_parent.querySelector("b");
+          assert_not_equals(b, null, "<b> should be inserted into disconnected parent");
+          assert_equals(b.textContent, "inserted");
+        }, `${method_name} on disconnected node with a parent inserts content`);
+      }
+    }
+  </script>
+</body>

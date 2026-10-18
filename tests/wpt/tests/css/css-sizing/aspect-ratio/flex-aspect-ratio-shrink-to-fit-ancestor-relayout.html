@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Aspect-ratio flex item inside a shrink-to-fit ancestor keeps its size across relayouts</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#definite-sizes">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<meta name="assert" content="When a shrink-to-fit ancestor queries a row flex container's intrinsic widths between layouts, an aspect-ratio flex item's percentage-height descendants must not resolve against the previous layout's width and grow the item.">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.wrapper {
+  font: 20px/1 Ahem;
+}
+.float { float: left; }
+.inline-block { display: inline-block; }
+.table-cell { display: table-cell; }
+.inline-grid { display: inline-grid; }
+.flexbox {
+  display: flex;
+}
+.item {
+  aspect-ratio: 1 / 1;
+}
+.inner {
+  display: flex;
+  aspect-ratio: 1 / 1;
+}
+.child {
+  height: 100%;
+  aspect-ratio: 2 / 1;
+}
+</style>
+<div class="wrapper float"><div class="flexbox"><div class="item"><div class="child">X</div></div></div></div>
+<div class="wrapper float"><div class="flexbox"><div class="inner"><div><div class="child">X</div></div></div></div></div>
+<div style="clear: both"></div>
+<div class="wrapper inline-block"><div class="flexbox"><div class="item"><div class="child">X</div></div></div></div>
+<div class="wrapper inline-block"><div class="flexbox"><div class="inner"><div><div class="child">X</div></div></div></div></div>
+<div class="wrapper table-cell"><div class="flexbox"><div class="item"><div class="child">X</div></div></div></div>
+<div class="wrapper table-cell"><div class="flexbox"><div class="inner"><div><div class="child">X</div></div></div></div></div>
+<div class="wrapper inline-grid"><div class="flexbox"><div class="item"><div class="child">X</div></div></div></div>
+<div class="wrapper inline-grid"><div class="flexbox"><div class="inner"><div><div class="child">X</div></div></div></div></div>
+<script>
+setup({ explicit_done: true });
+document.fonts.ready.then(() => {
+  for (const wrapper of document.querySelectorAll(".wrapper")) {
+    const box = wrapper.querySelector(".item, .inner");
+    const child = wrapper.querySelector(".child");
+    test(() => {
+      const initialWidth = box.getBoundingClientRect().width;
+      for (let i = 0; i < 5; i++) {
+        wrapper.style.paddingTop = (i % 2 ? 0 : 1) + "px";
+        child.textContent = "X";
+        assert_equals(box.getBoundingClientRect().width, initialWidth, "width after relayout " + (i + 1));
+      }
+    }, wrapper.classList[1] + " ancestor, " + box.className + " box");
+  }
+  done();
+});
+</script>

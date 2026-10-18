@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Install element: installresult event handlers</title>
+<link rel="help" href="https://github.com/WICG/install-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="ancestor">
+  <install id="first"></install>
+  <install id="second"></install>
+</div>
+
+<script>
+const ancestorElement = document.getElementById("ancestor");
+const firstElement = document.getElementById("first");
+const secondElement = document.getElementById("second");
+
+test(() => {
+  const interfaces = [
+    HTMLElement,
+    Document,
+    SVGElement,
+    MathMLElement,
+  ];
+  for (const interfaceObject of interfaces) {
+    assert_true("oninstallresult" in interfaceObject.prototype,
+        `oninstallresult should be exposed on ${interfaceObject.name}`);
+  }
+  assert_true("oninstallresult" in window,
+      "oninstallresult should be exposed on Window");
+  assert_false(
+      Object.hasOwn(HTMLInstallElement.prototype, "oninstallresult"),
+      "HTMLInstallElement should inherit oninstallresult");
+}, "oninstallresult is exposed through GlobalEventHandlers");
+
+test(t => {
+  let received = null;
+  let currentTarget = null;
+  firstElement.oninstallresult = event => {
+    received = event;
+    currentTarget = event.currentTarget;
+  };
+  t.add_cleanup(() => {
+    firstElement.oninstallresult = null;
+  });
+
+  const event = new InstallResultEvent("installresult", {result: "success"});
+  firstElement.dispatchEvent(event);
+
+  assert_equals(received, event);
+  assert_equals(currentTarget, firstElement);
+  assert_equals(received.target, firstElement);
+}, "HTMLInstallElement keeps its oninstallresult handler");
+
+test(t => {
+  const received = [];
+  ancestorElement.oninstallresult = event => {
+    received.push([event.target, event.result]);
+  };
+  t.add_cleanup(() => {
+    ancestorElement.oninstallresult = null;
+  });
+
+  firstElement.dispatchEvent(new InstallResultEvent(
+      "installresult", {bubbles: true, result: "success"}));
+  secondElement.dispatchEvent(new InstallResultEvent(
+      "installresult", {bubbles: true, result: "aborted"}));
+
+  assert_array_equals(received[0], [firstElement, "success"]);
+  assert_array_equals(received[1], [secondElement, "aborted"]);
+}, "An ancestor handler distinguishes install elements by event.target");
+
+test(t => {
+  const targets = [];
+  document.oninstallresult = event => {
+    targets.push(["document", event.target]);
+  };
+  window.oninstallresult = event => {
+    targets.push(["window", event.target]);
+  };
+  t.add_cleanup(() => {
+    document.oninstallresult = null;
+    window.oninstallresult = null;
+  });
+
+  firstElement.dispatchEvent(new InstallResultEvent(
+      "installresult", {bubbles: true, result: "success"}));
+
+  assert_array_equals(targets[0], ["document", firstElement]);
+  assert_array_equals(targets[1], ["window", firstElement]);
+}, "Document and Window handlers receive bubbling installresult events");
+</script>

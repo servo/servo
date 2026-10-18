@@ -1,0 +1,39 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSS transitions don't override UA !important declarations</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade/#cascade-origin">
+<link rel="help" href="https://html.spec.whatwg.org/#the-marquee-element-2">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2081760">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  marquee {
+    color: red;
+    transition: color 100s;
+  }
+  marquee.tweak {
+    color: green;
+  }
+</style>
+<marquee id="marquee"></marquee>
+<script>
+'use strict';
+
+promise_test(async t => {
+  const marquee = document.getElementById("marquee");
+  const cs = getComputedStyle(marquee);
+  assert_equals(cs.overflow, "hidden", "Initial overflow value");
+
+  marquee.classList.add("tweak");
+  const animations = marquee.getAnimations();
+  assert_equals(animations.length, 1, "Should have started a transition");
+
+  const transition = animations[0];
+  t.add_cleanup(() => transition.cancel());
+  transition.effect.setKeyframes([{ overflow: "visible" }, { overflow: "visible" }]);
+  assert_equals(cs.overflow, "hidden", "Transition shouldn't override UA !important overflow");
+
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+  assert_equals(cs.overflow, "hidden", "Transition shouldn't override UA !important overflow after a frame");
+}, "Transitions can't override UA !important declarations on <marquee>");
+</script>

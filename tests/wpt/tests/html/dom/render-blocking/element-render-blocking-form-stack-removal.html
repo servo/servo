@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta name="timeout" content="long">
+<meta name="variant" content="?nested">
+<meta name="variant" content="?misnested">
+<title>rel=expect stops blocking after a form leaves the parser stack</title>
+<link rel="help" href="https://html.spec.whatwg.org/#process-internal-resource-link">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/utils.js"></script>
+<link rel="expect" href="#target" blocking="render">
+<script>
+let targetParsed = false;
+let parsingFinished = false;
+async_test(t => {
+  requestAnimationFrame(t.step_func_done(() => {
+    assert_true(targetParsed, "Rendering waits for the target");
+    assert_false(parsingFinished,
+                 "Removing the form from the parser stack unblocks rendering");
+  }));
+}, "A form removed from the parser stack satisfies rel=expect");
+</script>
+<body>
+<script>
+generateParserDelay();
+</script>
+<script>
+if (location.search === "?misnested") {
+  document.write('<form id="target"><div></form></div>');
+} else {
+  document.write('<form id="target"><div></div></form>');
+}
+targetParsed = true;
+</script>
+<script>
+generateParserDelay();
+</script>
+<script>
+parsingFinished = true;
+</script>

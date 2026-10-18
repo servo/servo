@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Forced colors mode: AccentColor/AccentColorText do not mirror accent-color</title>
+<link rel="help" href="https://www.w3.org/TR/css-color-4/#css-system-colors">
+<link rel="help" href="https://www.w3.org/TR/css-color-adjust-1/#forced-colors-properties">
+<meta name="assert" content="In forced colors mode, the AccentColor and AccentColorText system color keywords keep the user's system accent color instead of mirroring the accent-color property set on the element. When forced-color-adjust is none, the element opts out of forced colors and the keywords mirror accent-color again.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<!-- No accent-color: the keywords use the forced system accent color. -->
+<div id="system"></div>
+<!-- A non-auto accent-color that must NOT leak through in forced colors. -->
+<div id="specified" style="accent-color: rgb(255, 165, 0)"></div>
+<!-- forced-color-adjust: none opts out, so the keywords mirror accent-color. -->
+<div id="optout"
+     style="accent-color: rgb(255, 165, 0); forced-color-adjust: none"></div>
+
+<script>
+  const kSpecifiedAccent = "rgb(255, 165, 0)";
+
+  function bg(id) {
+    const el = document.getElementById(id);
+    el.style.backgroundColor = "AccentColor";
+    return getComputedStyle(el).backgroundColor;
+  }
+
+  function fg(id) {
+    const el = document.getElementById(id);
+    el.style.color = "AccentColorText";
+    return getComputedStyle(el).color;
+  }
+
+  test(function() {
+    // With forced-color-adjust: auto (the default), an accent-color set on the
+    // element must not override the user's forced system accent color.
+    assert_equals(bg("specified"), bg("system"),
+                  "the set accent-color resolves to the system AccentColor");
+    assert_not_equals(bg("specified"), kSpecifiedAccent,
+                      "the set accent-color must not leak through AccentColor");
+  }, "AccentColor keeps the system accent color in forced colors mode");
+
+  test(function() {
+    // AccentColorText is the contrast color of AccentColor. Since AccentColor is
+    // the system value (not the value set on the element), AccentColorText must
+    // match the value produced when no accent-color is set.
+    assert_equals(fg("specified"), fg("system"),
+                  "AccentColorText tracks the system AccentColor's contrast");
+  }, "AccentColorText keeps the system value in forced colors mode");
+
+  test(function() {
+    // forced-color-adjust: none opts the element out of forced colors, so
+    // AccentColor mirrors the accent-color set on the element again.
+    assert_equals(bg("optout"), kSpecifiedAccent,
+                  "forced-color-adjust: none restores accent-color mirroring");
+  }, "AccentColor mirrors accent-color when forced-color-adjust is none");
+</script>

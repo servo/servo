@@ -85,4 +85,17 @@ testText("<div id='target'>", "abcdef",
              el.appendChild(d);
            }
          });
+
+testText("<span id='target'>abc<br>def<br><span id='child'>ghi</span></span>",
+         "abc\ndef\njkl",
+         "change text on last line of multi-line inline", function() {
+           document.getElementById("child").firstChild.data = "jkl";
+         });
+testText("<span id='target'>abc<br>def<br><span id='child' " +
+         "style='display: inline-block; contain: size layout; width: 50px; height: 20px'>" +
+         "ghi</span></span>",
+         "abc\ndef\njkl",
+         "change text in reflow root on last line of multi-line inline", function() {
+           document.getElementById("child").firstChild.data = "jkl";
+         });
 </script>

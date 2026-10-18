@@ -110,3 +110,31 @@ kArgMinMaxOperators.forEach((operatorName) => {
   validateInputFromAnotherBuilder(operatorName);
   runTests(operatorName, tests);
 });
+
+kArgMinMaxOperators.forEach((operatorName) => {
+  validateOperandRank(operatorName, 'input', (builder, input) => {
+    return builder[operatorName](input, 0);
+  });
+
+  // Accept every valid (rank, axis) pair where rank is in the opSupportLimits
+  // rankRange for `input` and axis is in [0, rank - 1].
+  promise_test(async t => {
+    const opLimits = context.opSupportLimits()[operatorName];
+    if (!opLimits)
+      return;
+    const {min: rankMin, max: rankMax} = opLimits.input.rankRange;
+    const dataTypeInfo = pickSupportedDataTypeInfo(opLimits.input);
+    if (!dataTypeInfo)
+      return;
+    for (let rank = rankMin; rank <= rankMax; rank++) {
+      for (let axis = 0; axis < rank; axis++) {
+        const shape = Array(rank).fill(kExampleDimSize);
+        const builder = new MLGraphBuilder(context);
+        const input = buildInputOperand(builder, 'input', dataTypeInfo, shape);
+        const output = builder[operatorName](input, axis);
+        assert_true(output instanceof MLOperand,
+                    `rank ${rank} axis ${axis} should be accepted`);
+      }
+    }
+  }, `[${operatorName}] accept every axis in [0, rank - 1] for every in-range input rank`);
+});

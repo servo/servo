@@ -1,0 +1,21 @@
+[Exposed=Window]
+interface HTMLPersistentWidgetElement : HTMLElement {
+  [Reflect, URL, CEReactions] attribute USVString src;
+  [Reflect, CEReactions] attribute DOMString name;
+  undefined postMessage(any message, USVString targetOrigin);
+  undefined postMessage(any message, optional WindowPostMessageOptions options = {});
+};
+
+[Exposed=Window]
+interface PersistentWidgetOpener : EventTarget {
+  undefined postMessage(any message, USVString targetOrigin);
+  undefined postMessage(any message, optional WindowPostMessageOptions options = {});
+};
+
+partial interface Window {
+  [SameObject] readonly attribute PersistentWidgetOpener? persistentWidgetOpener;
+};
+
+partial interface mixin WindowEventHandlers {
+  attribute EventHandler onopenerchange;
+};

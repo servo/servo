@@ -20,6 +20,10 @@ enum GetUserMediaSemantics {
 partial interface MediaStreamTrack {
 };
 
+[Exposed=(Window,DedicatedWorker)]
+partial interface OverconstrainedError {
+};
+
 partial interface MediaStreamTrack {
   [SameObject] readonly attribute
       (MediaStreamTrackAudioStats or MediaStreamTrackVideoStats)? stats;
@@ -190,6 +194,10 @@ dictionary MediaEffectInfo {
 
 [Exposed=(Window,DedicatedWorker)]
 partial interface MediaStream {
+};
+
+[Exposed=(Window,DedicatedWorker)]
+partial interface MediaStreamTrackEvent {
 };
 
 partial dictionary MediaTrackSupportedConstraints {

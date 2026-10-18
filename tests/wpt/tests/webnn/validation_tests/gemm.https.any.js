@@ -172,3 +172,17 @@ tests.forEach(
             () => builder.gemm(a, b, test.options), regrexp);
       }
     }, test.name));
+
+validateOperandRank('gemm', 'a', (builder, a) => {
+  const b = builder.input(
+      'b', {dataType: a.dataType, shape: [kExampleDimSize, kExampleDimSize]});
+  return builder.gemm(a, b);
+});
+
+validateOperandRank('gemm', 'c', (builder, c) => {
+  const a = builder.input(
+      'a', {dataType: c.dataType, shape: [kExampleDimSize, kExampleDimSize]});
+  const b = builder.input(
+      'b', {dataType: c.dataType, shape: [kExampleDimSize, kExampleDimSize]});
+  return builder.gemm(a, b, {c});
+});

@@ -244,54 +244,10 @@ const assertDescriptorsEquals = (outputOperand, expected) => {
       'actual output shape should be equal to expected output shape');
 };
 
-// ref:
-// http://stackoverflow.com/questions/32633585/how-do-you-convert-to-half-floats-in-javascript
+// Convert a JavaScript Number directly to binary16, rounding ties to even.
+// Narrowing through float32 first can double-round values near a midpoint.
 const toHalf = (value) => {
-  let floatView = new Float32Array(1);
-  let int32View = new Int32Array(floatView.buffer);
-
-  /* This method is faster than the OpenEXR implementation (very often
-   * used, eg. in Ogre), with the additional benefit of rounding, inspired
-   * by James Tursa's half-precision code. */
-
-  floatView[0] = value;
-  let x = int32View[0];
-
-  let bits = (x >> 16) & 0x8000; /* Get the sign */
-  let m = (x >> 12) & 0x07ff;    /* Keep one extra bit for rounding */
-  let e = (x >> 23) & 0xff;      /* Using int is faster here */
-
-  /* If zero, or denormal, or exponent underflows too much for a denormal
-   * half, return signed zero. */
-  if (e < 103) {
-    return bits;
-  }
-
-  /* If NaN, return NaN. If Inf or exponent overflow, return Inf. */
-  if (e > 142) {
-    bits |= 0x7c00;
-    /* If exponent was 0xff and one mantissa bit was set, it means NaN,
-     * not Inf, so make sure we set one mantissa bit too. */
-    if (e == 255 && (x & 0x007fffff)) {
-      bits |= 1;
-    }
-    return bits;
-  }
-
-  /* If exponent underflows but not too much, return a denormal */
-  if (e < 113) {
-    m |= 0x0800;
-    /* Extra rounding may overflow and set mantissa to 0 and exponent
-     * to 1, which is OK. */
-    bits |= (m >> (114 - e)) + ((m >> (113 - e)) & 1);
-    return bits;
-  }
-
-  bits |= ((e - 112) << 10) | (m >> 1);
-  /* Extra rounding. An overflow will set mantissa to 0 and increment
-   * the exponent, which is OK. */
-  bits += m & 1;
-  return bits;
+  return new Uint16Array(Float16Array.of(value).buffer)[0];
 };
 
 const getTypedArrayData = (type, size, data) => {
@@ -351,8 +307,7 @@ const sizeOfShape = (array) => {
 /**
  * Get bitwise of the given value.
  * @param {Number} value
- * @param {String} dataType - A data type string; currently only "float32" is
- *     supported by this function.
+ * @param {String} dataType - Either "float16" or "float32".
  * @return {BigInt} A 64-bit signed integer.
  */
 const getBitwise = (value, dataType) => {
@@ -361,6 +316,8 @@ const getBitwise = (value, dataType) => {
   let typedArray;
   if (dataType === "float32") {
     typedArray = new Float32Array(buffer);
+  } else if (dataType === "float16") {
+    typedArray = new Float16Array(buffer);
   } else {
     throw new AssertionError(`Data type ${dataType} is not supported`);
   }
@@ -391,9 +348,18 @@ const assert_array_approx_equals_ulp = (actual, expected, nulp, dataType, descri
       actual.length, expected.length,
       `assert_array_approx_equals_ulp: ${description} lengths differ`);
   for (let i = 0; i < actual.length; i++) {
-    if (actual[i] === expected[i]) {
+    if (dataType !== 'float16' && actual[i] === expected[i]) {
       continue;
     } else {
+      const actualValue = dataType === 'float16' ?
+          float16AsUint16ToNumber(actual[i]) : actual[i];
+      if (Number.isNaN(actualValue) || Number.isNaN(expected[i])) {
+        // NaN payloads are not numerical values and have no ULP distance.
+        assert_equals(Number.isNaN(actualValue), Number.isNaN(expected[i]),
+            `assert_array_approx_equals_ulp: ${description} NaN classification ` +
+                `differs at index ${i}`);
+        continue;
+      }
       let distance = ulpDistance(actual[i], expected[i], dataType);
 
       // TODO: See if callers can be updated to pass matching type.
@@ -426,17 +392,11 @@ const ulpDistance = (a, b, dataType) => {
     aBitwise = getBitwise(a, dataType);
     bBitwise = getBitwise(b, dataType);
   } else if (dataType === 'float16') {
-    aBitwise = a;
-    // convert b data of Float16 to Uint16
-    bBitwise = toHalf(b);
-
-    // Workaround to use mask to check returned special float16 value -0.0 which
-    // is 32768 (1000 0000 0000 0000) of uint16
-    const signExclusionMask = 0x00007FFF;
-    if ((aBitwise & signExclusionMask) === 0 &&
-        (bBitwise & signExclusionMask) === 0) {
-      return 0;
-    }
+    // The current tensor-readback helpers return Uint16 storage encodings,
+    // whereas expected values are numbers. Decode before sharing the same
+    // signed ordering as float32; preserve the float16 distance's Number type.
+    aBitwise = Number(getBitwise(float16AsUint16ToNumber(a), dataType));
+    bBitwise = Number(getBitwise(b, dataType));
   } else if (dataType === 'int64' || dataType === 'uint64') {
     aBitwise = BigInt(a);
     bBitwise = BigInt(b);

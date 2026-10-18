@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="help" href="https://crbug.com/573058979">
+<div id="moved"></div><div id="target"></div>
+<script>
+  target.offsetTop;
+  target.attachShadow({mode:"open"});
+  target.moveBefore(moved, null);
+  moved.style.color = "red";
+  target.offsetTop;
+</script>

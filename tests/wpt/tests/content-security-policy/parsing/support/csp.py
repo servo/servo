@@ -12,12 +12,15 @@ def main(request, response):
         </head>
         <body>
           <p>{csp}</p>
-          <img src="/content-security-policy/support/pass.png" />
           <script>
-            let img = document.querySelector("img");
+            // Attach the handlers before setting `src`, so a cached or
+            // quickly-blocked image can't fire load/error before they exist.
+            let img = document.createElement("img");
             img.onload = img.onerror = (event) => {{
               window.parent.postMessage(event.type, '*');
             }};
+            img.src = "/content-security-policy/support/pass.png";
+            document.body.appendChild(img);
           </script>
         </body>
         </html>

@@ -53,5 +53,42 @@ for (const method of ["streamAppendHTMLUnsafe", "streamHTMLUnsafe"]) {
         await writer.close();
         assert_true(window.did_run);
     }, `shadowRoot.${method} with runScripts: true`);
+
+    // F9: SVG <script> does not run with runScripts: false
+    promise_test(async t => {
+        const placeholder = document.getElementById("placeholder");
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        placeholder.append(svg);
+        t.add_cleanup(() => svg.remove());
+        window.did_run = false;
+        const writer = svg[method]({runScripts: false}).getWriter();
+        await writer.write("<script>window.did_run = true;<" + "/script>");
+        await writer.close();
+        assert_false(window.did_run, "SVG <script> must not execute when runScripts is false");
+    }, `svg.${method} with runScripts: false does not execute SVG <script>`);
+
+    // F10: runScripts: true into template contents or a DOMParser document does not execute scripts
+    promise_test(async t => {
+        const template = document.createElement("template");
+        document.body.appendChild(template);
+        t.add_cleanup(() => template.remove());
+        window.did_run = false;
+        const writer = template[method]({runScripts: true}).getWriter();
+        await writer.write("<script>window.did_run = true;<" + "/script><p>in-template</p>");
+        await writer.close();
+        assert_false(window.did_run, "Scripts streamed into <template> must not execute even with runScripts: true");
+        assert_equals(template.content.querySelector("p").textContent, "in-template");
+    }, `template.${method} with runScripts: true does not execute scripts`);
+
+    promise_test(async t => {
+        const parsedDoc = new DOMParser().parseFromString("<!doctype html><body><div id='target'></div></body>", "text/html");
+        const target = parsedDoc.getElementById("target");
+        window.did_run = false;
+        const writer = target[method]({runScripts: true}).getWriter();
+        await writer.write("<script>window.did_run = true;<" + "/script><p>in-domparser</p>");
+        await writer.close();
+        assert_false(window.did_run, "Scripts streamed into a DOMParser document must not execute");
+        assert_equals(target.querySelector("p").textContent, "in-domparser");
+    }, `DOMParser document ${method} with runScripts: true does not execute scripts`);
 }
 </script>

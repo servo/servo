@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<link rel="author" title="David Shin" href="mailto:dshin@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="line-clamp-invalidation-002-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+#container {
+  font: 16px/normal Ahem;
+  width: 5em;
+}
+</style>
+<div id=container style="line-clamp: 2 no-ellipsis;">
+XXXXX<br>
+XXXXX<br>
+XXXXX<br>
+XXXXX<br>
+</div>
+<script>
+requestAnimationFrame(() => { requestAnimationFrame(() => {
+  container.style = "";
+  document.body.offsetTop;
+  document.documentElement.removeAttribute("class");
+})});
+</script>
+</html>

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<link rel="author" title="Nico Burns" href="mailto:nico@nicoburns.com">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#intrinsic-sizes">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert"
+  content="a negative block-axis margin on a flex item is subtracted from a column flex container's automatic block size even when the item contains a grid item with overflow hidden" />
+
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+</style>
+
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id=reference-overlapped-red></div>
+
+<div style="display: flex; flex-direction: column; width: 100px; background: green;">
+  <div style="display: flex; flex-direction: column; margin-top: -32px;">
+    <div style="display: grid; grid-template-columns: 100px;">
+      <div style="display: flex; flex-direction: column; overflow: hidden;">
+        <div style="width: 100px; height: 132px;"></div>
+      </div>
+    </div>
+  </div>
+</div>

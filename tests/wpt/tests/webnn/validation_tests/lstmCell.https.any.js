@@ -537,3 +537,31 @@ tests.forEach(
             regrexp);
       }
     }, test.name));
+
+validateOperandRank('lstmCell', 'input', (builder, input) => {
+  // The input shape is [batchSize, inputSize] with each dim equal to
+  // `kExampleDimSize`. Build weight/recurrentWeight/hiddenState/cellState to
+  // match the derived `batchSize`/`inputSize` and use `kExampleDimSize` as
+  // `hiddenSize` so companion shapes stay consistent.
+  const derivedBatchSize = kExampleDimSize;
+  const derivedInputSize = kExampleDimSize;
+  const derivedHiddenSize = kExampleDimSize;
+  const weight = builder.input('weight', {
+    dataType: input.dataType,
+    shape: [4 * derivedHiddenSize, derivedInputSize]
+  });
+  const recurrentWeight = builder.input('recurrentWeight', {
+    dataType: input.dataType,
+    shape: [4 * derivedHiddenSize, derivedHiddenSize]
+  });
+  const hiddenState = builder.input(
+      'hiddenState',
+      {dataType: input.dataType, shape: [derivedBatchSize, derivedHiddenSize]});
+  const cellState = builder.input(
+      'cellState',
+      {dataType: input.dataType, shape: [derivedBatchSize, derivedHiddenSize]});
+  // `lstmCell()` returns a sequence of MLOperands; return the first output so
+  // the rank-validation helper can assert on a single MLOperand.
+  return builder.lstmCell(input, weight, recurrentWeight, hiddenState,
+                          cellState, derivedHiddenSize)[0];
+});

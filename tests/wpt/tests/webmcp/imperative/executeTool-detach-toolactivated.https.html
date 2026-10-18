@@ -41,7 +41,7 @@ promise_test(async t => {
   const tool = tools.find(tool => tool.name === 'detaching_tool');
   assert_true(!!tool, '"detaching_tool" is visible to the parent document');
 
-  await promise_rejects_dom(t, 'UnknownError',
+  await promise_rejects_dom(t, 'AbortError',
       document.modelContext.executeTool(tool, {}));
 
   assert_false(iframe.isConnected, 'the iframe is detached');
@@ -75,7 +75,7 @@ promise_test(async t => {
   const tool = tools.find(tool => tool.name === 'self_detaching_tool');
   assert_true(!!tool, '"self_detaching_tool" is visible to the parent document');
 
-  await promise_rejects_dom(t, 'UnknownError',
+  await promise_rejects_dom(t, 'AbortError',
       document.modelContext.executeTool(tool, {}));
 
   assert_false(iframe.isConnected, 'the iframe is detached');

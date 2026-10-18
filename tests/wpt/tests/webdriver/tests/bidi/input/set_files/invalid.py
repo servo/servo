@@ -129,10 +129,12 @@ async def test_params_element_invalid_element(
         wait="complete",
     )
 
+    # Keep detached nodes alive in the sharedId map until set_files runs.
     node = await bidi_session.script.evaluate(
         expression=expression,
         target=ContextTarget(top_context["context"]),
         await_promise=False,
+        result_ownership="root",
     )
 
     with pytest.raises(NoSuchElementException):

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Range.expand() should not cross shadow boundaries</title>
+<link rel=help href="https://issues.chromium.org/issues/567936269">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="before-host-container">
+  x<span id="before-host">
+    <template shadowrootmode="closed"><span>shadow word. Second sentence.</span></template>
+  </span>y
+</div>
+
+<div id="flex-container">
+  <div id="flex-box" style="display:flex;height:10px;width:10px"></div>
+  <div id="flex-host">
+    <template shadowrootmode="closed">
+      <div>shadow word.</div>
+    </template>
+  </div>
+</div>
+
+<div id="after-host-container">
+  <span id="after-host">
+    <template shadowrootmode="closed"><span>hello</span></template>
+  </span>world
+</div>
+
+<div id="inside-shadow-container">
+  before<span id="inside-host">
+    <template shadowrootmode="open"><span id="inside-span">inside</span></template>
+  </span>after
+</div>
+
+<div id="video-container">x<video id="vid" controls width="400" height="300"></video>y</div>
+
+<div id="nested-container">
+  x<div id="outer-host">
+    <template shadowrootmode="open">
+      <div id="nested-box" style="display:flex;height:10px;width:10px"></div>
+      <div id="inner-host">
+        <template shadowrootmode="closed">
+          <div>nested secret</div>
+        </template>
+      </div>
+    </template>
+  </div>y
+</div>
+
+<div id="hidden">hidden</div>
+
+<script>
+for (const unit of ['word', 'sentence']) {
+  test(() => {
+    const container = document.getElementById('before-host-container');
+    const host = document.getElementById('before-host');
+    const range = document.createRange();
+    const hostIndex = [...container.childNodes].indexOf(host);
+    range.setStart(container, hostIndex);
+    range.collapse(true);
+    range.expand(unit);
+
+    assert_equals(range.startContainer.getRootNode(), document,
+                  'startContainer must remain in document');
+    assert_equals(range.endContainer.getRootNode(), document,
+                  'endContainer must remain in document');
+  }, `Range.expand('${unit}') before shadow host with preceding text does not enter shadow tree`);
+
+  test(() => {
+    const box = document.getElementById('flex-box');
+    const range = document.createRange();
+    range.setStart(box, 0);
+    range.collapse(true);
+    range.expand(unit);
+
+    assert_equals(range.startContainer.getRootNode(), document,
+                  'startContainer must remain in document');
+    assert_equals(range.endContainer.getRootNode(), document,
+                  'endContainer must remain in document');
+  }, `Range.expand('${unit}') from empty flex box before shadow host does not enter shadow tree`);
+
+  test(() => {
+    const host = document.getElementById('after-host');
+    const textAfter = host.nextSibling;
+    const range = document.createRange();
+    range.setStart(textAfter, 0);
+    range.collapse(true);
+    range.expand(unit);
+
+    assert_equals(range.startContainer.getRootNode(), document,
+                  'startContainer must remain in document');
+    assert_equals(range.endContainer.getRootNode(), document,
+                  'endContainer must remain in document');
+    assert_equals(range.toString(), 'world');
+  }, `Range.expand('${unit}') after shadow host does not enter shadow tree`);
+}
+
+for (const unit of ['word', 'sentence', 'block', 'document']) {
+  test(() => {
+    const host = document.getElementById('inside-host');
+    const shadowRoot = host.shadowRoot;
+    const shadowSpan = shadowRoot.getElementById('inside-span');
+    const range = document.createRange();
+    range.setStart(shadowSpan.firstChild, 2);
+    range.collapse(true);
+    range.expand(unit);
+
+    assert_equals(range.startContainer.getRootNode(), shadowRoot,
+                  'startContainer must remain in shadowRoot');
+    assert_equals(range.endContainer.getRootNode(), shadowRoot,
+                  'endContainer must remain in shadowRoot');
+  }, `Range.expand('${unit}') starting inside shadow root does not escape to document`);
+}
+
+test(() => {
+  const container = document.getElementById('video-container');
+  const vid = document.getElementById('vid');
+  const range = document.createRange();
+  const vidIndex = [...container.childNodes].indexOf(vid);
+  range.setStart(container, vidIndex);
+  range.collapse(true);
+  range.expand('word');
+
+  assert_equals(range.startContainer.getRootNode(), document,
+                'startContainer must remain in document');
+  assert_equals(range.endContainer.getRootNode(), document,
+                'endContainer must remain in document');
+}, 'Range.expand("word") before <video controls> does not leak user-agent shadow tree nodes');
+
+test(() => {
+  const outerHost = document.getElementById('outer-host');
+  const outerRoot = outerHost.shadowRoot;
+  const box = outerRoot.getElementById('nested-box');
+  const range = document.createRange();
+  range.setStart(box, 0);
+  range.collapse(true);
+  range.expand('word');
+
+  assert_equals(range.startContainer.getRootNode(), outerRoot,
+                'startContainer must remain in outerRoot');
+  assert_equals(range.endContainer.getRootNode(), outerRoot,
+                'endContainer must remain in outerRoot');
+}, 'Range.expand("word") inside a shadow root does not enter a nested closed shadow root');
+
+test(t => {
+  t.add_cleanup(() => {
+    document.documentElement.style.display = '';
+  });
+  document.documentElement.style.display = 'none';
+  const hidden = document.getElementById('hidden');
+  const range = document.createRange();
+  range.setStart(hidden, 0);
+  range.collapse(true);
+  range.expand('word');
+
+  assert_equals(range.startContainer, hidden);
+  assert_equals(range.endContainer, hidden);
+}, 'Range.expand("word") when document has display:none does not crash');
+</script>

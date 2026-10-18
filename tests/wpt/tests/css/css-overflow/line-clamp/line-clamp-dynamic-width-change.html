@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp container with a width change</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-dynamic-width-change-ref.html">
+<meta name="assert" content="Content after the clamp point stays hidden when the width of the line-clamp container changes.">
+<style>
+.clamp {
+  line-clamp: 2;
+  width: 300px;
+  font: 16px / 32px serif;
+  background-color: yellow;
+}
+</style>
+<div class="clamp" id="container"><div>Line 1</div><div>Line 2</div><div>Line 3</div></div>
+<script>
+document.body.offsetHeight;
+container.style.width = "200px";
+</script>

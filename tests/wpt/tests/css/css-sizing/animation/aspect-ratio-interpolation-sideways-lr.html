@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>aspect-ratio interpolation with writing-mode: sideways-lr</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<meta name="assert" content="The computed value of aspect-ratio is physical (width / height) and independent of writing mode, so its interpolation produces the same result in sideways-lr as in horizontal-tb.">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/css/support/interpolation-testcommon.js"></script>
+
+<style>
+.target {
+  font-size: 16px;
+  background-color: black;
+  width: 10px;
+  writing-mode: sideways-lr;
+  aspect-ratio: 0.5;
+}
+</style>
+
+<body>
+  <template id="target-template">
+    <div class="container">
+      <div class="target"></div>
+    </div>
+  </template>
+</body>
+
+<script>
+// Regression test: WebKit used to interpolate the writing-mode-relative (logical)
+// aspect ratio and store it as the physical value, inverting the result at every
+// non-midpoint sample in vertical writing modes. These expectations are identical
+// to the horizontal-writing-mode test because the computed value of aspect-ratio
+// is physical and writing-mode independent.
+test_interpolation({
+  property: 'aspect-ratio',
+  from: '0.5',
+  to: '2',
+}, [
+  {at: -0.5, expect: '0.25 / 1'},
+  {at: 0, expect: '0.5 / 1'},
+  {at: 0.5, expect: '1 / 1'},
+  {at: 1, expect: '2 / 1'},
+  {at: 1.5, expect: '4 / 1'}
+]);
+
+test_interpolation({
+  property: 'aspect-ratio',
+  from: '1 / 2',
+  to: '2 / 1',
+}, [
+  {at: -0.5, expect: '0.25 / 1'},
+  {at: 0, expect: '0.5 / 1'},
+  {at: 0.5, expect: '1 / 1'},
+  {at: 1, expect: '2 / 1'},
+  {at: 1.5, expect: '4 / 1'}
+]);
+</script>
+</body>

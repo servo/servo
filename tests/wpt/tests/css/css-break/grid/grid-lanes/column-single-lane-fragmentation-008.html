@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>
+  Tests that an aspect-ratio grid-lanes item with a fixed block-size container grows due to fragmentation.
+</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square.xht">
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div style="width: 100px; height: 100px; columns: 2; column-gap: 0; background: red;">
+  <div style="display: grid-lanes; grid-template-columns: 50px; height: 100px;">
+    <div style="aspect-ratio: 1 / 3; min-height: 0; line-height: 0; background: green;">
+      <div style="display: inline-block; width: 50px; height: 50px;"></div>
+      <div style="display: inline-block; width: 50px; height: 100px;"></div>
+    </div>
+  </div>
+</div>

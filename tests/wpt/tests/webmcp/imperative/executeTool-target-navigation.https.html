@@ -44,8 +44,7 @@ promise_test(async t => {
   iframe.src = 'about:blank';
 
   // The promise should be rejected because the target document died.
-  // We expect AbortError or similar. Let's assume AbortError for now.
-  await promise_rejects_dom(t, 'UnknownError', promise, 'Promise should be rejected when target document dies');
+  await promise_rejects_dom(t, 'AbortError', promise, 'Promise should be rejected when target document dies');
 }, 'executeTool() rejects when target document navigates away');
 </script>
 </body>

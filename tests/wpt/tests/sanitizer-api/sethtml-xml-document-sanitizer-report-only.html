@@ -138,51 +138,72 @@
         assert_not_equals(fragment.querySelector("#xml-span"), null);
       }, "createContextualFragment on XML document does not call createParserOptions or throw TypeError in report-only mode and reports violation when createHTML is missing");
 
-      promise_test(async (t) => {
-        t.add_cleanup(() => {
-          createParserOptions = null;
+      for (const method of [
+        "setHTMLUnsafe",
+        "appendHTMLUnsafe",
+        "prependHTMLUnsafe",
+        "beforeHTMLUnsafe",
+        "afterHTMLUnsafe",
+        "replaceWithHTMLUnsafe",
+      ]) {
+        promise_test(async (t) => {
+          t.add_cleanup(() => {
+            createParserOptions = null;
+            createHTML = null;
+          });
+          let createParserOptionsCalled = false;
+          createParserOptions = (options) => {
+            createParserOptionsCalled = true;
+            return { sanitizer: { removeElements: ["div"] } };
+          };
           createHTML = null;
-        });
-        let createParserOptionsCalled = false;
-        createParserOptions = (options) => {
-          createParserOptionsCalled = true;
-          return { sanitizer: { removeElements: ["div"] } };
-        };
-        createHTML = null;
 
-        const doc = createXmlDoc();
-        const elem = createXmlElem(doc);
+          const doc = createXmlDoc();
+          const elem = createXmlElem(doc);
+          let receiver = elem;
+          if (["beforeHTMLUnsafe", "afterHTMLUnsafe", "replaceWithHTMLUnsafe"].includes(method)) {
+            const ref = doc.createElement("div");
+            elem.appendChild(ref);
+            receiver = ref;
+          }
 
-        // setHTMLUnsafe should NOT report a violation because it uses HTML parser mode with createParserOptions sanitizer
-        await no_trusted_type_violation_for(() => {
-          elem.setHTMLUnsafe("<span id='xml-span'></span>");
-        });
-        assert_true(createParserOptionsCalled, "createParserOptions must be called for setHTMLUnsafe on XML document");
-        assert_not_equals(elem.querySelector("#xml-span"), null);
-      }, "setHTMLUnsafe on XML document does not report violation in report-only mode when createParserOptions has sanitizer");
+          // Unsafe HTML methods should NOT report a violation because they use HTML parser mode with createParserOptions sanitizer
+          await no_trusted_type_violation_for(() => {
+            receiver[method]("<span id='xml-span'></span>");
+          });
+          assert_true(createParserOptionsCalled, `createParserOptions must be called for ${method} on XML document`);
+          assert_not_equals(elem.querySelector("#xml-span"), null);
+        }, `${method} on XML document does not report violation in report-only mode when createParserOptions has sanitizer`);
 
-      promise_test(async (t) => {
-        t.add_cleanup(() => {
-          createParserOptions = null;
+        promise_test(async (t) => {
+          t.add_cleanup(() => {
+            createParserOptions = null;
+            createHTML = null;
+          });
+          let createParserOptionsCalled = false;
+          createParserOptions = (options) => {
+            createParserOptionsCalled = true;
+            return {};
+          };
           createHTML = null;
-        });
-        let createParserOptionsCalled = false;
-        createParserOptions = (options) => {
-          createParserOptionsCalled = true;
-          return {};
-        };
-        createHTML = null;
 
-        const doc = createXmlDoc();
-        const elem = createXmlElem(doc);
+          const doc = createXmlDoc();
+          const elem = createXmlElem(doc);
+          let receiver = elem;
+          if (["beforeHTMLUnsafe", "afterHTMLUnsafe", "replaceWithHTMLUnsafe"].includes(method)) {
+            const ref = doc.createElement("div");
+            elem.appendChild(ref);
+            receiver = ref;
+          }
 
-        // setHTMLUnsafe should NOT report a violation because it uses HTML parser mode with createParserOptions even without sanitizer
-        await no_trusted_type_violation_for(() => {
-          elem.setHTMLUnsafe("<span id='xml-span'></span>");
-        });
-        assert_true(createParserOptionsCalled, "createParserOptions must be called for setHTMLUnsafe on XML document");
-        assert_not_equals(elem.querySelector("#xml-span"), null);
-      }, "setHTMLUnsafe on XML document does not report violation in report-only mode when createParserOptions has no sanitizer");
+          // Unsafe HTML methods should NOT report a violation because they use HTML parser mode with createParserOptions even without sanitizer
+          await no_trusted_type_violation_for(() => {
+            receiver[method]("<span id='xml-span'></span>");
+          });
+          assert_true(createParserOptionsCalled, `createParserOptions must be called for ${method} on XML document`);
+          assert_not_equals(elem.querySelector("#xml-span"), null);
+        }, `${method} on XML document does not report violation in report-only mode when createParserOptions has no sanitizer`);
+      }
 
       promise_test(async (t) => {
         t.add_cleanup(() => {

@@ -1,0 +1,30 @@
+<!DOCTYPE HTML>
+<html><head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="/fonts/ahem.css">
+  <style>
+    body { margin: 0; font: 10px/1 Ahem; }
+    grid {
+      display: grid;
+      grid-template-rows: 100px;
+      width: max-content;
+      margin-bottom: 10px;
+    }
+    subgrid {
+      display: grid;
+      grid-template-rows: subgrid;
+      grid-row: 1;
+      background: lightblue;
+    }
+    item { color: green; }
+  </style>
+</head>
+<body>
+<grid>
+  <subgrid><item>AAAA BBBB</item></subgrid>
+</grid>
+<grid>
+  <subgrid><item>AAAA BBBB</item></subgrid>
+</grid>
+</body>
+</html>

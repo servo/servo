@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<title>CSS Cascade Layers: style invalidation on CSSOM layer mutations after style has been computed</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade-5/#layering">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2079147">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="target"></div>
+<div id="host"></div>
+<script>
+const GREEN = "rgb(0, 128, 0)";
+const RED = "rgb(255, 0, 0)";
+
+const testCases = [
+  {
+    title: "Inserting a layer block reorders existing layers",
+    sheets: [
+      "",
+      "@layer first { #target { color: green } } @layer second { #target { color: red } }",
+    ],
+    initial: RED,
+    update: sheets => sheets[0].insertRule("@layer second {}", 0),
+  },
+  {
+    title: "Inserting a layer statement reorders existing layers",
+    sheets: [
+      "",
+      "@layer first { #target { color: green } } @layer second { #target { color: red } }",
+    ],
+    initial: RED,
+    update: sheets => sheets[0].insertRule("@layer second;", 0),
+  },
+  {
+    title: "Inserting a multi-name layer statement in the same sheet reorders existing layers",
+    sheets: [
+      "@layer first { #target { color: green } } @layer second { #target { color: red } }",
+    ],
+    initial: RED,
+    update: sheets => sheets[0].insertRule("@layer second, first;", 0),
+  },
+  {
+    title: "Inserting a nested layer block reorders existing sublayers",
+    sheets: [
+      "@layer outer { @layer a { #target { color: green } } @layer b { #target { color: red } } }",
+    ],
+    initial: RED,
+    update: sheets => sheets[0].cssRules[0].insertRule("@layer b {}", 0),
+  },
+  {
+    title: "Inserting a dotted layer statement reorders existing sublayers",
+    sheets: [
+      "",
+      "@layer outer { @layer a { #target { color: green } } @layer b { #target { color: red } } }",
+    ],
+    initial: RED,
+    update: sheets => sheets[0].insertRule("@layer outer.b;", 0),
+  },
+  {
+    title: "Deleting a layer statement reorders existing layers",
+    sheets: [
+      "@layer second;",
+      "@layer first { #target { color: red } } @layer second { #target { color: green } }",
+    ],
+    initial: RED,
+    update: sheets => sheets[0].deleteRule(0),
+  },
+  {
+    title: "Deleting a layer block reorders existing layers",
+    sheets: [
+      "@layer second {}",
+      "@layer first { #target { color: red } } @layer second { #target { color: green } }",
+    ],
+    initial: RED,
+    update: sheets => sheets[0].deleteRule(0),
+  },
+  {
+    title: "Inserting a new layer at the end applies its rules",
+    sheets: [
+      "@layer first { #target { color: red } }",
+    ],
+    initial: RED,
+    update: sheets => sheets[0].insertRule("@layer second { #target { color: green } }", 1),
+  },
+  {
+    title: "Inserting a new layer at the start doesn't override existing layers",
+    sheets: [
+      "",
+      "@layer first { #target { color: green } }",
+    ],
+    initial: GREEN,
+    update: sheets => sheets[0].insertRule("@layer zeroth { #target { color: red } }", 0),
+  },
+  {
+    title: "Inserting a new layer doesn't override unlayered styles",
+    sheets: [
+      "#target { color: green }",
+    ],
+    initial: GREEN,
+    update: sheets => sheets[0].insertRule("@layer new { #target { color: red } }", 1),
+  },
+  {
+    title: "Inserting an existing layer name without changing order doesn't change styles",
+    sheets: [
+      "",
+      "@layer first { #target { color: red } } @layer second { #target { color: green } }",
+    ],
+    initial: GREEN,
+    update: sheets => sheets[0].insertRule("@layer first;", 0),
+  },
+];
+
+for (const testCase of testCases) {
+  test(t => {
+    const elements = testCase.sheets.map(text => {
+      const element = document.createElement("style");
+      element.textContent = text;
+      document.head.appendChild(element);
+      return element;
+    });
+    t.add_cleanup(() => elements.forEach(e => e.remove()));
+    const sheets = elements.map(e => e.sheet);
+    assert_equals(getComputedStyle(target).color, testCase.initial, "Initial color");
+    testCase.update(sheets);
+    assert_equals(getComputedStyle(target).color, GREEN, "Color after update");
+  }, testCase.title);
+}
+
+test(t => {
+  const root = host.attachShadow({ mode: "open" });
+  root.innerHTML = `
+    <style></style>
+    <style>
+      @layer first { #inner { color: green } }
+      @layer second { #inner { color: red } }
+    </style>
+    <div id="inner"></div>
+  `;
+  const inner = root.getElementById("inner");
+  const sheet = root.querySelector("style").sheet;
+  assert_equals(getComputedStyle(inner).color, RED, "Initial color");
+  sheet.insertRule("@layer second {}", 0);
+  assert_equals(getComputedStyle(inner).color, GREEN, "Color after update");
+}, "Inserting a layer block in a shadow tree reorders existing layers");
+</script>

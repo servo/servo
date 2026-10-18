@@ -43,6 +43,35 @@
 #document
 | <svg svg>
 |   <svg a>
+
+</script>
+
+<script id="mathml" type="html5lib-testcases">
+#data
+<math><mrow href="javascript:alert(1)"></mrow></math>
+#document
+| <math math>
+|   <math mrow>
+
+#data
+<math><msqrt href="javascript:alert(1)"></msqrt></math>
+#document
+| <math math>
+|   <math msqrt>
+
+#data
+<math><mtext href="javascript:alert(1)">Test</mtext></math>
+#document
+| <math math>
+|   <math mtext>
+|     "Test"
+
+#data
+<math><mrow xlink:href="javascript:alert(1)"></mrow></math>
+#document
+| <math math>
+|   <math mrow>
+
 </script>
 
 <script id="built-in-animating-url-attributes-list" type="html5lib-testcases">
@@ -96,6 +125,7 @@
 #document
 | <svg svg>
 |   <svg set>
+
 </script>
 
 <script id="allowed" type="html5lib-testcases">
@@ -118,6 +148,7 @@
 | <svg svg>
 |   <svg set>
 |     attributeName=" href "
+
 </script>
 
 <script id="url-normalization" type="html5lib-testcases">
@@ -161,6 +192,7 @@
 #document
 | <svg svg>
 |   <svg a>
+
 </script>
 
 <script>

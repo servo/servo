@@ -176,49 +176,70 @@
         xhr.send();
       }, "innerHTML on XML document from XHR response throws TypeError without calling createParserOptions if default policy provides only a sanitizer without createHTML");
 
-      test((t) => {
-        t.add_cleanup(() => {
-          createParserOptions = null;
+      for (const method of [
+        "setHTMLUnsafe",
+        "appendHTMLUnsafe",
+        "prependHTMLUnsafe",
+        "beforeHTMLUnsafe",
+        "afterHTMLUnsafe",
+        "replaceWithHTMLUnsafe",
+      ]) {
+        test((t) => {
+          t.add_cleanup(() => {
+            createParserOptions = null;
+            createHTML = null;
+          });
+          let createParserOptionsCalled = false;
+          createParserOptions = (options) => {
+            createParserOptionsCalled = true;
+            return { sanitizer: { removeElements: ["span"] } };
+          };
           createHTML = null;
-        });
-        let createParserOptionsCalled = false;
-        createParserOptions = (options) => {
-          createParserOptionsCalled = true;
-          return { sanitizer: { removeElements: ["span"] } };
-        };
-        createHTML = null;
 
-        const doc = createXmlDoc();
-        const elem = createXmlElem(doc);
+          const doc = createXmlDoc();
+          const elem = createXmlElem(doc);
+          let receiver = elem;
+          if (["beforeHTMLUnsafe", "afterHTMLUnsafe", "replaceWithHTMLUnsafe"].includes(method)) {
+            const ref = doc.createElement("div");
+            elem.appendChild(ref);
+            receiver = ref;
+          }
 
-        // setHTMLUnsafe parses as HTML, so it uses createParserOptions and does NOT throw TypeError
-        elem.setHTMLUnsafe("<div id='allowed'><span id='forbidden'></span></div>");
-        assert_true(createParserOptionsCalled, "createParserOptions must be called for setHTMLUnsafe on XML document");
-        assert_not_equals(elem.querySelector("#allowed"), null);
-        assert_equals(elem.querySelector("#forbidden"), null);
-      }, "setHTMLUnsafe on XML document does not throw TypeError and applies createParserOptions sanitizer");
+          // Unsafe HTML methods parse as HTML, so they use createParserOptions and do NOT throw TypeError
+          receiver[method]("<div id='allowed'><span id='forbidden'></span></div>");
+          assert_true(createParserOptionsCalled, `createParserOptions must be called for ${method} on XML document`);
+          assert_not_equals(elem.querySelector("#allowed"), null);
+          assert_equals(elem.querySelector("#forbidden"), null);
+        }, `${method} on XML document does not throw TypeError and applies createParserOptions sanitizer`);
 
-      test((t) => {
-        t.add_cleanup(() => {
-          createParserOptions = null;
+        test((t) => {
+          t.add_cleanup(() => {
+            createParserOptions = null;
+            createHTML = null;
+          });
+          let createParserOptionsCalled = false;
+          createParserOptions = (options) => {
+            createParserOptionsCalled = true;
+            return {};
+          };
           createHTML = null;
-        });
-        let createParserOptionsCalled = false;
-        createParserOptions = (options) => {
-          createParserOptionsCalled = true;
-          return {};
-        };
-        createHTML = null;
 
-        const doc = createXmlDoc();
-        const elem = createXmlElem(doc);
+          const doc = createXmlDoc();
+          const elem = createXmlElem(doc);
+          let receiver = elem;
+          if (["beforeHTMLUnsafe", "afterHTMLUnsafe", "replaceWithHTMLUnsafe"].includes(method)) {
+            const ref = doc.createElement("div");
+            elem.appendChild(ref);
+            receiver = ref;
+          }
 
-        // setHTMLUnsafe parses as HTML, so it uses createParserOptions and does NOT throw TypeError even without a sanitizer
-        elem.setHTMLUnsafe("<div id='allowed'><span id='allowed-child'></span></div>");
-        assert_true(createParserOptionsCalled, "createParserOptions must be called for setHTMLUnsafe on XML document");
-        assert_not_equals(elem.querySelector("#allowed"), null);
-        assert_not_equals(elem.querySelector("#allowed-child"), null);
-      }, "setHTMLUnsafe on XML document does not throw TypeError when createParserOptions has no sanitizer");
+          // Unsafe HTML methods parse as HTML, so they use createParserOptions and do NOT throw TypeError even without a sanitizer
+          receiver[method]("<div id='allowed'><span id='allowed-child'></span></div>");
+          assert_true(createParserOptionsCalled, `createParserOptions must be called for ${method} on XML document`);
+          assert_not_equals(elem.querySelector("#allowed"), null);
+          assert_not_equals(elem.querySelector("#allowed-child"), null);
+        }, `${method} on XML document does not throw TypeError when createParserOptions has no sanitizer`);
+      }
 
       /* -------------------------------------------------------------
        * Scenario 2: Default policy supplies BOTH createParserOptions

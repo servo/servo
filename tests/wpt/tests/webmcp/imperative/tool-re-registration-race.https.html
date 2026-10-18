@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>WebMCP: executeTool() on a stale Tool does not hit a re-registered tool</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+<script>
+// A `Tool` is backed by a unique identity minted at registration time, not by
+// its name. So a `Tool` obtained before a tool was unregistered must not be
+// able to execute a *different* tool that was subsequently registered under the
+// same name.
+promise_test(async t => {
+  const name = 'race_tool';
+  const controller = new AbortController();
+
+  let first_executed = false;
+  let second_executed = false;
+
+  await document.modelContext.registerTool({
+    name,
+    description: 'the original tool',
+    execute: () => {
+      first_executed = true;
+      return {which: 'first'};
+    },
+  }, {signal: controller.signal});
+
+  const [stale_tool] = await document.modelContext.getTools();
+  assert_equals(stale_tool.description, 'the original tool');
+
+  // Unregister the original tool, then register a brand new one that happens to
+  // reuse its name.
+  controller.abort();
+  await document.modelContext.registerTool({
+    name,
+    description: 'a different tool that reused the name',
+    execute: () => {
+      second_executed = true;
+      return {which: 'second'};
+    },
+  });
+
+  // `stale_tool` still describes the tool it was created for, not whatever
+  // currently holds that name.
+  assert_equals(stale_tool.name, name);
+  assert_equals(stale_tool.description, 'the original tool');
+
+  await promise_rejects_dom(
+      t, 'NotFoundError', document.modelContext.executeTool(stale_tool, {}),
+      'Executing a Tool whose underlying tool was unregistered must reject');
+
+  assert_false(first_executed,
+               'The unregistered tool must not have been executed');
+  assert_false(second_executed,
+               'The re-registered tool must not have been executed');
+
+  // Sanity check that we rejected for the right reason, i.e. that executing the
+  // re-registered tool through a freshly-obtained `Tool` still works.
+  const [fresh_tool] = await document.modelContext.getTools();
+  assert_equals(fresh_tool.description, 'a different tool that reused the name');
+  assert_equals(await document.modelContext.executeTool(fresh_tool, {}),
+                '{"which":"second"}');
+  assert_false(first_executed);
+  assert_true(second_executed);
+}, 'executeTool() rejects for a Tool that was unregistered and whose name was ' +
+   'subsequently reused by a different tool');
+</script>
+</body>
+</html>

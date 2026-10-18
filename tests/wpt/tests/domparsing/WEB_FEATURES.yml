@@ -5,3 +5,4 @@ rules:
 - xml-parse-serialize-roundtrip.html: [domparser]
 - XMLSerializer-serializeToString.html: [xml-serializer]
 - xml-serialization.xhtml: [xml-serializer]
+- positional-*: [html-setters]

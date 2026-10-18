@@ -63,3 +63,8 @@ promise_test(async t => {
   await ensureEmbedder();
   await testAbortPromise(t, signal => createEmbedder({ signal }));
 }, 'SemanticEmbedder.create() can be aborted');
+
+promise_test(async t => {
+  await ensureEmbedder();
+  await testCreateMonitorCallbackThrowsError(t, createEmbedder);
+}, 'If monitor throws an error, SemanticEmbedder.create() rejects with that error');

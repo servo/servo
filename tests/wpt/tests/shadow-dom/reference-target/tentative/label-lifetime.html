@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>.labels keeps working across garbage collection when the labels cross shadow roots with reference targets</title>
+<link rel="help" href="https://github.com/WICG/webcomponents/blob/gh-pages/proposals/reference-target-explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/gc.js"></script>
+<body>
+<script>
+"use strict";
+
+async function collect(t) {
+  await garbageCollect();
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+  await garbageCollect();
+}
+
+// Builds <div><label><x-outer> in the document, with two nested shadow roots
+// whose reference targets resolve to an input in the inner shadow root. The
+// label wraps the outer host, so it labels the input.
+function makeTree(t) {
+  const root = document.createElement("div");
+  document.body.append(root);
+  t.add_cleanup(() => root.remove());
+  const label = document.createElement("label");
+  root.append(label);
+
+  const outer = document.createElement("x-outer");
+  label.append(outer);
+  const outerShadow =
+    outer.attachShadow({ mode: "open", referenceTarget: "inner" });
+  const inner = document.createElement("x-inner");
+  inner.id = "inner";
+  outerShadow.append(inner);
+
+  const innerShadow =
+    inner.attachShadow({ mode: "open", referenceTarget: "input" });
+  const input = document.createElement("input");
+  input.id = "input";
+  innerShadow.append(input);
+
+  return { root, label, inner, input };
+}
+
+promise_test(async t => {
+  const labels = (() => {
+    const { input, label } = makeTree(t);
+    assert_array_equals(Array.from(input.labels), [label], "before GC");
+    return input.labels;
+  })();
+
+  await collect(t);
+
+  assert_equals(labels.length, 1, "length after GC");
+  const label = labels[0];
+  assert_true(label instanceof HTMLLabelElement, "item after GC");
+  label.remove();
+  assert_equals(labels.length, 0, "labels is still live after GC");
+}, ".labels across shadow roots keeps working across GC");
+
+promise_test(async t => {
+  const labels = (() => {
+    const { input, label, inner } = makeTree(t);
+    assert_array_equals(Array.from(input.labels), [label], "before removal");
+    inner.remove();
+    assert_array_equals(Array.from(input.labels), [],
+                        "after the inner host is removed");
+    return input.labels;
+  })();
+
+  await collect(t);
+
+  assert_equals(labels.length, 0, "length after GC");
+  assert_equals(labels[0], undefined, "item after GC");
+}, ".labels keeps working after an intermediate shadow host is removed and collected");
+
+promise_test(async t => {
+  const labels = (() => {
+    const { input, label, root } = makeTree(t);
+    assert_array_equals(Array.from(input.labels), [label], "before removal");
+    root.remove();
+    return input.labels;
+  })();
+
+  await collect(t);
+
+  assert_equals(labels.length, 0, "length after GC");
+  assert_equals(labels[0], undefined, "item after GC");
+}, ".labels keeps working after its whole tree is removed from the document and only the list is referenced");
+</script>

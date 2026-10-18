@@ -73,8 +73,17 @@
 
         // For outerHTML and replaceWithHTMLUnsafe, we can't operate on the container directly
         // without losing it as an attachment point, so we create an inner target.
+        // beforeHTMLUnsafe and afterHTMLUnsafe can't operate on the body either,
+        // as inserting HTML around a child of the html element throws.
         let targetElement = iframeDoc.body;
-        if (["outerHTML", "replaceWithHTMLUnsafe"].includes(method)) {
+        if (
+          [
+            "outerHTML",
+            "replaceWithHTMLUnsafe",
+            "afterHTMLUnsafe",
+            "beforeHTMLUnsafe",
+          ].includes(method)
+        ) {
           targetElement = container;
         }
 

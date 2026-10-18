@@ -34,7 +34,7 @@ promise_test(async t => {
   const events = [];
   iframeModelContext.addEventListener('toolactivated', e => events.push(e));
 
-  await promise_rejects_dom(t, 'UnknownError',
+  await promise_rejects_dom(t, 'AbortError',
       document.modelContext.executeTool(tool, { text: 'hello' }));
 
   assert_false(iframe.isConnected, 'the iframe is detached');

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../resources/helpers.js"></script>
+<script type="module">
+await trySettingPermission("granted");
+const w = window.open("");
+const notification = new w.Notification("", {
+  icon: "foo",
+});
+w.navigator.locks.request("foo", () => new w.Promise(() => {}));
+w.close();
+await navigator.locks.request("foo", () => {});
+notification.close();
+document.documentElement.classList.remove("test-wait");
+</script>

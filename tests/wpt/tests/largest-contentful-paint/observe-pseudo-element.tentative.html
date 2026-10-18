@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<title>Largest Contentful Paint Test: pseudo-elements should not be exposed to javascript</title>
+<link rel="help" href="https://w3c.github.io/largest-contentful-paint">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  #target::before {
+    content: "Content";
+    display: block;
+  }
+</style>
+<div id="target"></div>
+<script>
+  async_test(t => {
+    new PerformanceObserver(l => {
+      t.step(() => {
+        assert_equals(l.getEntries()[0].element, target);
+      }, "#target is reported as node for lcp");
+      t.done();
+    }).observe({ type: 'largest-contentful-paint' });
+  }, "largest-contentful-paint should not expose pseudo-elements");
+</script>

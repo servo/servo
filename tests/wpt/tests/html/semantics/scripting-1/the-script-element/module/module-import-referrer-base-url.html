@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Referrer for imports from an inline module script with a base URL override</title>
+<base href="/html/semantics/scripting-1/the-script-element/module/resources/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>setup({ explicit_done: true })</script>
+</head>
+<body>
+<script type="module">
+
+// The referrer of a descendant fetch is the importing module script's base URL, which for an inline
+// module script is the document's base URL. The <base> element above moves that away from the document
+// URL, so a referrer of the document URL cannot pass by coincidence.
+import { referrer } from "/html/semantics/scripting-1/the-script-element/module/resources/referrer-checker.py?name=inline-base-url";
+
+test(t => {
+  assert_not_equals(document.baseURI, document.URL,
+    "The <base> element should move the base URL away from the document URL");
+}, "The document's base URL differs from the document URL");
+
+test(t => {
+  assert_equals(referrer, document.baseURI,
+    "Referrer should be the inline module script's base URL");
+}, "Static imports from inline modules in a document with a base URL override");
+
+done();
+
+</script>
+</body>
+</html>

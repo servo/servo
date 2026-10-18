@@ -59,7 +59,9 @@ for (const {methodName, mathType} of gArithmeticOps) {
   }, 'Calling ' + mathType.name + '.' + methodName + ' with number CSSUnitValues simplifies to a CSSUnitValue');
 
   test(() => {
-    assert_throws_js(TypeError, () => new CSS.px(0)[methodName](CSS.px(1), CSS.s(2)));
+    const a = new CSSMathSum(CSS.px(1), CSS.percent(1));
+    const b = new CSSMathSum(CSS.s(1), CSS.percent(1));
+    assert_throws_js(TypeError, () => a[methodName](b));
   }, 'Calling CSSNumericValue.' + methodName + ' with incompatible types throws TypeError');
 }
 

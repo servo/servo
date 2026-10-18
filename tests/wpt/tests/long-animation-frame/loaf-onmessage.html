@@ -25,7 +25,7 @@ for (const origin of ["ORIGIN", "REMOTE_ORIGIN", "HTTP_NOTSAMESITE_ORIGIN"]) {
         document.body.append(iframe);
         t.add_cleanup(() => iframe.remove());
         await promise;
-    }, "DOMWindow.onmessage", `onmessage from iframe - ${origin}`);
+    }, "Window.onmessage", `onmessage from iframe - ${origin}`);
 
     test_self_event_listener(async (t, busy_wait) => {
         const iframe = document.createElement("iframe");

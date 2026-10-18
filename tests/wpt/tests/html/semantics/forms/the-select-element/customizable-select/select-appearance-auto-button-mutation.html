@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>Changing the first child button's text updates the label and the width of a select with appearance:auto</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/rendering.html#the-select-element-2">
+<link rel=help href="https://github.com/whatwg/html/issues/12474">
+<link rel=match href=select-appearance-auto-button-mutation-ref.html>
+
+<p><select><button>S</button><option>One</option></select>
+<p><select><button>VeryLongButtonLabel</button><option>One</option></select>
+<p><select><button>Pre <selectedcontent></selectedcontent></button><option>Foo</option><option>Two</option></select>
+
+<script>
+const buttons = document.querySelectorAll('select > button');
+buttons[0].textContent = 'VeryLongButtonLabel';
+buttons[1].textContent = 'S';
+buttons[2].insertBefore(document.createTextNode(' Post'), null);
+</script>

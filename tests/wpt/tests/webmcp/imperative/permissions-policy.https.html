@@ -85,11 +85,24 @@ promise_test(async t => {
 }, 'getTools() throws NotAllowedError in iframe when permissions policy is disabled');
 
 promise_test(async t => {
-  const iframe = document.createElement('iframe');
-  const originB = hostInfo.HTTPS_REMOTE_ORIGIN;
+  // A document without the `tools` permission can't obtain a `Tool` of its
+  // own (`getTools()` rejects), so obtain a real one in this document, and
+  // hand it to a same-origin child whose `tools` permission is disabled.
+  const controller = new AbortController();
+  t.add_cleanup(() => controller.abort());
+  await document.modelContext.registerTool({
+    name: 'parent_tool',
+    description: 'Parent tool',
+    execute: async () => 'success',
+  }, {signal: controller.signal});
 
-  iframe.src = originB + '/webmcp/imperative/resources/iframe-register-tool.html';
-  // No `allow` attribute.
+  const tools = await document.modelContext.getTools();
+  const tool = tools.find(t => t.name === 'parent_tool');
+  assert_true(!!tool, 'Tool must be successfully discovered');
+
+  const iframe = document.createElement('iframe');
+  iframe.src = '/common/blank.html';
+  iframe.allow = "tools 'none'";
 
   const { promise: loadPromise, resolve: resolveLoad } = Promise.withResolvers();
   iframe.onload = resolveLoad;
@@ -97,19 +110,11 @@ promise_test(async t => {
   t.add_cleanup(() => iframe.remove());
   await loadPromise;
 
-  const { promise: failurePromise, resolve: resolveFailure } = Promise.withResolvers();
-  window.addEventListener('message', e => {
-    if (e.data.action === 'executeFakeToolResponse') {
-      resolveFailure(e.data);
-    }
-  }, {once: true});
-
-  // Direct the iframe to construct a conceivable `RegisteredTool` and call
-  // `executeTool()` on it.
-  iframe.contentWindow.postMessage({ action: 'execute_fake_tool', name: 'dummy_tool' }, '*');
-  const response = await failurePromise;
-
-  assert_equals(response.error_name, 'NotAllowedError', 'Should reject with NotAllowedError');
+  await promise_rejects_dom(
+    t, 'NotAllowedError', iframe.contentWindow.DOMException,
+    iframe.contentDocument.modelContext.executeTool(tool),
+    'executeTool() must reject with NotAllowedError when the calling ' +
+    'document does not have the tools permission');
 }, 'executeTool() throws NotAllowedError in iframe when permissions policy is disabled');
 
 promise_test(async t => {
@@ -164,7 +169,7 @@ promise_test(async t => {
   // Executing the previously retrieved RegisteredTool reference must now reject
   // because the target frame no longer exposes the tool to the caller's origin.
   await promise_rejects_dom(
-      t, 'UnknownError', document.modelContext.executeTool(tool),
+      t, 'NotFoundError', document.modelContext.executeTool(tool),
       'executeTool() should reject when target frame revokes origin exposure');
 }, 'executeTool() rejects when target frame revokes exposedTo permission after getTools()');
 </script>

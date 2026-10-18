@@ -1,0 +1,20 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Hiding content in a replicated fixed-position element with a container query</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2081977">
+<!-- Really a crashtest but since we can't really have print crashtests, we assert that we print something -->
+<link rel="mismatch" href="/css/reference/blank.html">
+<style>
+@page { size: 360px 420px; margin: 15px; }
+body { font-size: 12px; }
+#fixed { position: fixed; top: 0; right: 0; width: 200px; container-type: inline-size; }
+#target::before { content: "before"; }
+@container (min-width: 100px) {
+  #target { display: none; }
+}
+.spacer { height: 2000px; }
+</style>
+<div id="fixed"><div id="target">fixed</div></div>
+<div class="spacer">hello</div>

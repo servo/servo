@@ -1,0 +1,63 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>caretPositionFromPoint() in a textarea</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view-1/#dom-document-caretpositionfrompoint">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<link rel="stylesheet" href="/fonts/ahem.css">
+<style>
+  textarea {
+    font: 20px/1 Ahem;
+    padding: 0;
+    border: 0;
+    margin: 0;
+    width: 200px;
+    height: 200px;
+    display: block;
+  }
+</style>
+<textarea id="ta">ABCDE</textarea>
+<script>
+  function caretAt(element, xFraction, yOffsetFromBottom) {
+    const rect = element.getBoundingClientRect();
+    return document.caretPositionFromPoint(
+      rect.left + rect.width * xFraction,
+      rect.bottom - yOffsetFromBottom
+    );
+  }
+
+  test(() => {
+    const ta = document.getElementById("ta");
+    const pos = caretAt(ta, 0.5, 10);
+    assert_not_equals(pos, null);
+    assert_equals(pos.offsetNode, ta, "offsetNode");
+    assert_equals(pos.offset, ta.value.length, "offset");
+  }, "Point in blank space below the text of a textarea resolves to the end of the value");
+
+  test(() => {
+    const ta = document.getElementById("ta");
+    const rect = ta.getBoundingClientRect();
+    const pos = document.caretPositionFromPoint(rect.left + 1, rect.top + 10);
+    assert_not_equals(pos, null);
+    assert_equals(pos.offsetNode, ta, "offsetNode");
+    assert_equals(pos.offset, 0, "offset");
+  }, "Point at the start of the first line of a textarea resolves to offset 0");
+
+  test(() => {
+    const ta = document.getElementById("ta");
+    const rect = ta.getBoundingClientRect();
+    const pos = document.caretPositionFromPoint(rect.left + 190, rect.top + 10);
+    assert_not_equals(pos, null);
+    assert_equals(pos.offsetNode, ta, "offsetNode");
+    assert_equals(pos.offset, ta.value.length, "offset");
+  }, "Point past the end of the first line of a textarea resolves to the end of the value");
+
+  test(() => {
+    const ta = document.getElementById("ta");
+    ta.value = "かきくけこ";
+    const pos = caretAt(ta, 0.5, 10);
+    assert_not_equals(pos, null);
+    assert_equals(pos.offsetNode, ta, "offsetNode");
+    assert_equals(pos.offset, ta.value.length, "offset");
+  }, "Point in blank space below non-Latin text of a textarea resolves to the end of the value");
+</script>

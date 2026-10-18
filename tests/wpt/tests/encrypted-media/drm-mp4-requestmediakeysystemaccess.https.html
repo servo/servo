@@ -24,9 +24,9 @@
   <body>
     <div id='log'></div>
 
-    <script>
+    <script type="module">
         var contentitem = content['mp4-basic'],
-            keySystem = getSupportedKeySystem(),
+            keySystem = await getSupportedKeySystem(),
             config = {  keysystem:          keySystem,
                         audioType:          contentitem.audio.type,
                         videoType:          contentitem.video.type,

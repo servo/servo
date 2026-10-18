@@ -50,7 +50,11 @@ def test_do_handshake_prepares_h3_response_headers():
     ])
     dispatcher = _FakeDispatcher(
         protocol='chat',
-        extra_headers=[('x-extra', 'value')],
+        extra_headers=[
+            ('x-extra', 'value'),
+            ('Set-Cookie', 'first=one'),
+            ('Set-Cookie', 'second=two'),
+        ],
     )
 
     WsH3Handshaker(request, dispatcher).do_handshake()
@@ -60,7 +64,13 @@ def test_do_handshake_prepares_h3_response_headers():
     assert request.headers_out['upgrade'] == common.WEBSOCKET_UPGRADE_TYPE
     assert request.headers_out['connection'] == common.UPGRADE_CONNECTION_TYPE
     assert request.headers_out['sec-websocket-protocol'] == 'chat'
-    assert request.headers_out['x-extra'] == 'value'
+    assert request.extra_headers == [
+        ('x-extra', 'value'),
+        ('Set-Cookie', 'first=one'),
+        ('Set-Cookie', 'second=two'),
+    ]
+    assert 'x-extra' not in request.headers_out
+    assert 'Set-Cookie' not in request.headers_out
     assert 'sec-websocket-accept' not in request.headers_out
     assert request.ws_resource == '/echo'
     assert request.ws_version == common.VERSION_HYBI_LATEST

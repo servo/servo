@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Live collections over a detached tree keep working after garbage collection</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#concept-collection">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/gc.js"></script>
+<script>
+"use strict";
+
+function makeTree() {
+  const root = document.createElement("div");
+  root.innerHTML =
+    '<span class="c"><b class="c"></b><b class="c"></b><i></i></span>';
+  return root;
+}
+
+async function collect(t) {
+  await garbageCollect();
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+  await garbageCollect();
+}
+
+// makeCollection must return only the collection, so that the collection is
+// the only reference script keeps to the tree. makeMatching returns a new
+// element that the collection matches when it is appended next to the
+// collection's first item.
+function collectionTest(name, makeCollection, expectedLength, makeMatching) {
+  promise_test(async t => {
+    const collection = makeCollection();
+    await collect(t);
+
+    assert_equals(collection.length, expectedLength, "length after GC");
+    const first = collection[0];
+    assert_not_equals(first.parentNode, null,
+                      "first item is still in its tree");
+
+    first.parentNode.append(makeMatching());
+    assert_equals(collection.length, expectedLength + 1,
+                  "collection is still live");
+  }, name);
+}
+
+collectionTest(
+  "getElementsByTagName()",
+  () => makeTree().getElementsByTagName("b"),
+  2,
+  () => document.createElement("b"));
+
+collectionTest(
+  "getElementsByTagNameNS()",
+  () => makeTree().getElementsByTagNameNS("http://www.w3.org/1999/xhtml", "b"),
+  2,
+  () => document.createElement("b"));
+
+collectionTest(
+  "getElementsByClassName()",
+  () => makeTree().getElementsByClassName("c"),
+  3,
+  () => {
+    const element = document.createElement("span");
+    element.className = "c";
+    return element;
+  });
+
+collectionTest(
+  "getElementsByTagName() rooted at a descendant",
+  () => makeTree().firstChild.getElementsByTagName("*"),
+  3,
+  () => document.createElement("b"));
+
+collectionTest(
+  "children",
+  () => makeTree().firstChild.children,
+  3,
+  () => document.createElement("b"));
+</script>

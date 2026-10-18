@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS Text: Miscellaneous Text Breaking Tests</title>
+<!-- Add random basic text breaking regression tests to this file. -->
+<style>
+  :root {
+    font: 10px monospace;
+  }
+  div {
+    border: 1px silver;
+    padding: 0.25em 0;
+    margin: 0.5em;
+  }
+</style>
+
+<div style="width: 4ch;">abc&NoBreak;-&NoBreak;def: <br>break</div>
+<div style="width: 1ch;">ดี<br>มาก<br>文-<br>xy<br>字</div>
+
+<!-- This page must remain under 600px. Apply `columns: 2` to <body> to double its capacity. -->

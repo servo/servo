@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: A declarative tool form adopted out of a removed iframe's document</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/helpers.js"></script>
+<body>
+<script>
+// A `<form>` registers a declarative tool in an iframe's document. The iframe
+// is then removed, which leaves the form in a document without a frame, and
+// the form is adopted into this document. These tests pin down that the form
+// behaves as a tool of its *new* document from then on, and that later
+// unregistering it (by mutating or removing it) only ever affects this
+// document.
+
+async function toolNames() {
+  const tools = await document.modelContext.getTools();
+  return tools.map(tool => tool.name).sort();
+}
+
+// A form whose tool doesn't get registered fires no `toolchange` event that we
+// could await. Instead, callers make the change under test first (e.g., append
+// a form), and *then* call this, which appends a valid "sentinel" form and
+// waits for *its* tool to be registered. Form tools, like all tools, are
+// registered in order, so by the time this sentinel form has registered, we
+// know the earlier form's registration has been attempted, and the caller can
+// safely assert whether it succeeded. The sentinel is removed before returning.
+async function waitForPendingDeclarativeRegistrations() {
+  const sentinel = document.createElement('form');
+  sentinel.setAttribute('toolname', 'sentinel');
+  sentinel.setAttribute('tooldescription', 'Sentinel tool');
+  document.body.append(sentinel);
+  await waitForTool('sentinel');
+  sentinel.remove();
+}
+
+// Registers a declarative tool named `toolname` in a same-origin iframe, waits
+// for it to register, removes the iframe, and returns the (now frameless)
+// form.
+async function formFromRemovedIframe(t, toolname) {
+  const iframe = document.createElement('iframe');
+  iframe.srcdoc = `<form toolname="${toolname}"
+                        tooldescription="Declarative tool"></form>`;
+  const {promise: loaded, resolve: resolveLoaded} = Promise.withResolvers();
+  iframe.onload = resolveLoaded;
+  document.body.append(iframe);
+  await loaded;
+  await waitForTool(toolname);
+
+  const form = iframe.contentDocument.querySelector('form');
+  iframe.remove();
+  assert_false((await toolNames()).includes(toolname),
+      'The iframe\'s tool is gone once the iframe is removed');
+  t.add_cleanup(() => form.remove());
+  return form;
+}
+
+promise_test(async t => {
+  const form = await formFromRemovedIframe(t, 'adopted_unchanged');
+
+  document.body.append(form);
+  await waitForPendingDeclarativeRegistrations();
+
+  assert_true((await toolNames()).includes('adopted_unchanged'),
+      'The adopted form registers its tool in its new document');
+}, 'A form adopted from a removed iframe registers its tool in its new ' +
+   'document');
+
+promise_test(async t => {
+  const form = await formFromRemovedIframe(t, 'adopted_then_mutated');
+
+  document.body.append(form);
+  await waitForPendingDeclarativeRegistrations();
+
+  form.setAttribute('tooldescription', 'Changed description');
+  const tool = await new Promise(resolve => {
+    const handler = async () => {
+      const tool = (await document.modelContext.getTools())
+          .find(tool => tool.name === 'adopted_then_mutated');
+      if (tool?.description === 'Changed description') {
+        document.modelContext.removeEventListener('toolchange', handler);
+        resolve(tool);
+      }
+    };
+    document.modelContext.addEventListener('toolchange', handler);
+  });
+  assert_equals(tool.description, 'Changed description',
+      'The mutated form\'s tool is registered in its new document');
+}, 'Mutating a form adopted from a removed iframe registers its tool in its ' +
+   'new document');
+
+promise_test(async t => {
+  const form = await formFromRemovedIframe(t, 'adopted_then_removed');
+
+  document.body.append(form);
+  await waitForPendingDeclarativeRegistrations();
+
+  form.remove();
+  await waitForPendingDeclarativeRegistrations();
+  assert_false((await toolNames()).includes('adopted_then_removed'),
+      'Removing the adopted form leaves no tool behind');
+}, 'Removing a form adopted from a removed iframe leaves no tool behind');
+</script>
+</body>

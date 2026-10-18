@@ -60,3 +60,41 @@ async def test_status_code_before_request_sent(
         response_completed_event,
         expected_event={"response": {"status": status_code, "statusText": status_text}},
     )
+
+
+async def test_status_code_without_body_before_request_sent(
+    setup_blocked_request,
+    subscribe_events,
+    bidi_session,
+    wait_for_event,
+    wait_for_future_safe,
+):
+    request = await setup_blocked_request(phase="beforeRequestSent")
+
+    await subscribe_events(
+        events=[
+            RESPONSE_COMPLETED_EVENT,
+            RESPONSE_STARTED_EVENT,
+        ]
+    )
+
+    on_response_started = wait_for_event(RESPONSE_STARTED_EVENT)
+    on_response_completed = wait_for_event(RESPONSE_COMPLETED_EVENT)
+
+    await bidi_session.network.provide_response(
+        request=request,
+        status_code=201,
+        reason_phrase="Created",
+    )
+
+    response_started_event = await wait_for_future_safe(on_response_started)
+    assert_response_event(
+        response_started_event,
+        expected_event={"response": {"status": 201, "statusText": "Created"}},
+    )
+
+    response_completed_event = await wait_for_future_safe(on_response_completed)
+    assert_response_event(
+        response_completed_event,
+        expected_event={"response": {"status": 201, "statusText": "Created"}},
+    )

@@ -404,6 +404,10 @@ class WebDriverBidiEmulationProtocolPart(BidiEmulationProtocolPart):
         return await self.webdriver.bidi_session.emulation.set_locale_override(
             locale=locale, contexts=contexts)
 
+    async def set_media_features_override(self, features, contexts):
+        return await self.webdriver.bidi_session.emulation.set_media_features_override(
+            features=features, contexts=contexts)
+
     async def set_screen_orientation_override(self, screen_orientation,
             contexts):
         return await self.webdriver.bidi_session.emulation.set_screen_orientation_override(

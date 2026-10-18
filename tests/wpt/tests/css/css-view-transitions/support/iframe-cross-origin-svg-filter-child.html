@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<script src="/common/rendering-utils.js"></script>
+<style>
+body { margin: 0; }
+div {
+  width: 20px;
+  height: 20px;
+  background: black;
+}
+</style>
+<div></div>
+<script>
+// Let the embedder know once this frame has rendered its content.
+onload = async () => {
+  await waitForAtLeastOneFrame();
+  parent.postMessage("rendered", "*");
+};
+</script>

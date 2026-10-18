@@ -95,7 +95,7 @@ async def test_script_order(
 
     assert len(events) > 0
     # Make sure that console event from preload script comes first
-    events[0]["text"] == preload_script_console_text
+    assert events[0]["text"] == preload_script_console_text
 
     remove_listener()
 

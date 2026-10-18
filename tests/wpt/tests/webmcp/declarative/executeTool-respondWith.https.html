@@ -72,7 +72,7 @@ promise_test(async t => {
   const tool = await waitForTool('no_respond_tool');
   await promise_rejects_dom(
     t,
-    'UnknownError',
+    'OperationError',
     document.modelContext.executeTool(tool, { query: 'testing' }),
     'executeTool should reject when submit is preventDefaulted without calling respondWith'
   );

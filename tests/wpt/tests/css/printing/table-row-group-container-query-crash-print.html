@@ -1,0 +1,31 @@
+<!doctype html>
+<meta charset="utf-8">
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2081977">
+<!-- Really a crashtest but since we can't really have print crashtests, we assert that we print something -->
+<link rel="mismatch" href="/css/reference/blank.html">
+<style>
+.c { container-type: inline-size; }
+table { border-collapse: collapse; width: 100%; }
+td { border: 1px solid black; height: 100px; }
+@container (min-width: 1px) {
+  thead, tfoot { display: none; }
+}
+</style>
+<div class="c">
+<table>
+<thead><tr><td>h</td></tr></thead>
+<tbody>
+<tr><td>a</td></tr>
+<tr><td>a</td></tr>
+<tr><td>a</td></tr>
+<tr><td>a</td></tr>
+<tr><td>a</td></tr>
+<tr><td>a</td></tr>
+<tr><td>a</td></tr>
+<tr><td>a</td></tr>
+</tbody>
+<tfoot><tr><td>f</td></tr></tfoot>
+</table>
+</div>

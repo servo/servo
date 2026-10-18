@@ -614,3 +614,12 @@ tests.forEach(
             regrexp);
       }
     }, test.name));
+
+validateOperandRank('convTranspose2d', 'input', (builder, input) => {
+  // Default layouts are inputLayout='nchw' and filterLayout='iohw', so the
+  // filter's input-channel dim (I) must equal the input's C dim
+  // (kExampleDimSize) for the default groups=1 to divide evenly.
+  const filter = builder.input(
+      'filter', {dataType: input.dataType, shape: [kExampleDimSize, 1, 1, 1]});
+  return builder.convTranspose2d(input, filter);
+});

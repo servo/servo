@@ -70,7 +70,7 @@ promise_test(async t => {
 }, 'If monitor throws an error, LanguageDetector.create() rejects with that error');
 
 promise_test(async t => {
-  testMonitor(createLanguageDetector);
+  await testMonitor(createLanguageDetector);
 }, 'LanguageDetector.create() notifies its monitor on downloadprogress');
 
 promise_test(async t => {

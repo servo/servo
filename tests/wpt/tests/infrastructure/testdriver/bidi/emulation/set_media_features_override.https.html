@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<meta charset="utf-8"/>
+<title>TestDriver bidi.emulation.set_media_features_override method</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js?feature=bidi"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+
+<script>
+    promise_test(async () => {
+        // Check initial state of prefers-color-scheme.
+        const isInitialDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const targetScheme = isInitialDark ? "light" : "dark";
+
+        // Assert target scheme does not match initially.
+        assert_false(window.matchMedia(`(prefers-color-scheme: ${targetScheme})`).matches);
+
+        // Override prefers-color-scheme.
+        await test_driver.bidi.emulation.set_media_features_override({
+            features: {
+                "prefers-color-scheme": targetScheme
+            }
+        });
+        assert_true(window.matchMedia(`(prefers-color-scheme: ${targetScheme})`).matches);
+
+        // Reset individual feature using null value and verify reversion to initial.
+        await test_driver.bidi.emulation.set_media_features_override({
+            features: {
+                "prefers-color-scheme": null
+            }
+        });
+        assert_equals(window.matchMedia("(prefers-color-scheme: dark)").matches, isInitialDark);
+
+        // Override prefers-color-scheme again.
+        await test_driver.bidi.emulation.set_media_features_override({
+            features: {
+                "prefers-color-scheme": targetScheme
+            }
+        });
+        assert_true(window.matchMedia(`(prefers-color-scheme: ${targetScheme})`).matches);
+
+        // Clear all media features overrides using null.
+        await test_driver.bidi.emulation.set_media_features_override({
+            features: null
+        });
+        assert_equals(window.matchMedia("(prefers-color-scheme: dark)").matches, isInitialDark);
+
+        // Override prefers-color-scheme again.
+        await test_driver.bidi.emulation.set_media_features_override({
+            features: {
+                "prefers-color-scheme": targetScheme
+            }
+        });
+        assert_true(window.matchMedia(`(prefers-color-scheme: ${targetScheme})`).matches);
+
+        // Clear all media features overrides by omitting features.
+        await test_driver.bidi.emulation.set_media_features_override({});
+        assert_equals(window.matchMedia("(prefers-color-scheme: dark)").matches, isInitialDark);
+    }, "emulate media features and clear override");
+</script>

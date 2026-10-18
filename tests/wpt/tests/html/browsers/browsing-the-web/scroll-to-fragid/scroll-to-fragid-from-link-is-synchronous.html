@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Fragment navigation from link activation is synchronous</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#navigate">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#navigate-fragid">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#scroll-to-the-fragment-identifier">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<a id="link" href="#target">jump to</a>
+<a id="link2" target="foo" href="#top">jump back</a>
+
+<div id="top">top</div>
+<div style="height: 200vh"></div>
+<div id="target">target</div>
+<div style="height: 200vh"></div>
+
+<script>
+test(t => {
+  assert_greater_than(target.getBoundingClientRect().top, 1,
+                      "target is not at the top of the viewport initially");
+
+  link.click();
+
+  assert_equals(location.hash, "#target",
+                "fragment navigation happened synchronously");
+  assert_approx_equals(target.getBoundingClientRect().top, 0, 1,
+                       "scroll to fragment happened synchronously");
+}, "Following a hyperlink to a fragment scrolls synchronously");
+
+test(t => {
+  window.name = "foo";
+  t.add_cleanup(() => {
+    window.name = "";
+  });
+  link2.click();
+  assert_equals(location.hash, "#top", "fragment navigation happened synchronously");
+}, "Hyperlink to a fragment with target equals window name is synchronous");
+</script>

@@ -1,26 +1,26 @@
 <!doctype html>
 <title>removing the candidate source, addEventListener</title>
+<link rel=help href="https://html.spec.whatwg.org/#concept-media-load-algorithm">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <div id=log></div>
 <script>
-var v;
 function createSource(src) {
-  var source = document.createElement('source');
+  const source = document.createElement('source');
   source.src = src;
   return source;
 }
-var t = async_test(function(t) {
-  v = document.createElement('video');
-  v.appendChild(createSource('resources/delayed-broken-video.py')); // invokes resource selection
-  v.firstChild.addEventListener('error', t.step_func(function() { t.done(); }), false);
-});
-</script>
-<!-- now resource selection algorithm will continue its sync section (the </script> tag below provides a stable state) -->
-<!-- the <source> is candidate -->
-<!-- pointer is between the <source> and the end of the list -->
-<script>
-t.step(function() {
-  v.removeChild(v.firstChild); // tests that we fire 'error' on it despite being removed
+promise_test(async t => {
+  const v = document.createElement('video');
+  const s = createSource('resources/delayed-broken-video.py');
+  v.appendChild(s); // invokes resource selection
+  const s2 = createSource('resources/delayed-broken-video.py?second');
+  v.appendChild(s2);
+  s.addEventListener('error', t.unreached_func('error fired on removed source'));
+  const s2Error = new Promise(resolve => s2.addEventListener('error', resolve));
+  await t.step_wait(() => v.currentSrc == s.src, 'candidate selected', 3000, 5);
+  assert_equals(v.networkState, v.NETWORK_LOADING, 'networkState');
+  v.removeChild(s);
+  await s2Error;
 });
 </script>

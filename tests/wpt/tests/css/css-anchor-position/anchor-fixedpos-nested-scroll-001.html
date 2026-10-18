@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Fixed-pos anchored box inside a fixed-pos ancestor: laid out after scrolling to bottom</title>
+<link rel="author" href="mailto:fantasai@inkedblade.net">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#scroll">
+<link rel="match" href="anchor-fixedpos-nested-scroll-001-ref.html">
+<meta name="assert" content="A fixed-positioned anchored box whose anchor is a static (layerless) element nested inside a fixed-positioned ancestor stays directly below its anchor, even when it is first laid out while the page is scrolled.">
+<style>
+body {
+  margin: 0;
+  border-bottom: 20px solid blue;
+}
+
+.filler {
+  height: 350vh;
+}
+
+/* Stand-in for a fixed-positioned modal dialog, opened after scrolling. */
+#fixed {
+  display: none;
+  position: fixed;
+  top: 60px;
+  left: 60px;
+  width: 200px;
+  height: 150px;
+  background: silver;
+}
+
+/* Static, layerless anchor nested inside the fixed ancestor. */
+#anchor {
+  width: 60px;
+  height: 60px;
+  anchor-name: --a;
+  background: orange;
+}
+
+/* Fixed-positioned anchored box, opened after the anchor is laid out. */
+.anchored {
+  display: none;
+  position: fixed;
+  position-anchor: --a;
+  width: 15px;
+  height: 60px;
+  background: green;
+}
+.anchored.area {
+  position-area: bottom center;
+  justify-self: start;
+}
+.anchored.inset {
+  position-area: none;
+  top: anchor(bottom);
+  left: anchor(left);
+}
+</style>
+
+<div class="filler"></div>
+
+<div id="fixed">
+  <div id="anchor"></div>
+  <div class="anchored inset" style="margin-left: 30px"></div>
+  <div class="anchored area" style="margin-left: 45px"></div>
+</div>
+
+<div class="anchored inset" style="margin-left: 0px"></div>
+<div class="anchored area" style="margin-left: 15px"></div>
+
+<script src="support/test-common.js"></script>
+<script type="module">
+  // Scroll to the bottom of the page *before* the anchor and anchored boxes are laid out.
+  document.documentElement.scrollTop = document.documentElement.scrollHeight;
+
+  // Open the fixed "dialog": its static anchor is now first laid out while scrolled.
+  await waitUntilNextAnimationFrame();
+  document.getElementById("fixed").style.display = "block";
+
+  // Then open its anchored boxes, likewise first laid out while scrolled.
+  await waitUntilNextAnimationFrame();
+  document.querySelectorAll(".anchored").forEach(el => el.style.display = "block");
+
+  await waitUntilNextAnimationFrame();
+  document.documentElement.classList.remove("reftest-wait");
+</script>

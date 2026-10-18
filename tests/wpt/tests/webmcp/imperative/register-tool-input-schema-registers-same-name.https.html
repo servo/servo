@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: registerTool() whose inputSchema serialization registers a tool with the same name</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// `registerTool()` rejects a duplicate name, but serializing `inputSchema`
+// happens afterwards and can run script. If that script registers a tool with
+// the same name, the outer registration must be rejected as a duplicate.
+//
+// See https://crbug.com/573722078.
+promise_test(async t => {
+  const controller = new AbortController();
+  t.add_cleanup(() => controller.abort());
+
+  let innerPromise;
+  const outerPromise = document.modelContext.registerTool({
+    name: 'same_name',
+    description: 'Outer tool',
+    inputSchema: {
+      toJSON() {
+        innerPromise = document.modelContext.registerTool({
+          name: 'same_name',
+          description: 'Inner tool',
+          execute: () => 'inner',
+        }, {signal: controller.signal});
+        return {type: 'object'};
+      },
+    },
+    execute: () => 'outer',
+  }, {signal: controller.signal});
+
+  await promise_rejects_dom(t, 'InvalidStateError', outerPromise,
+      'The outer registration is rejected as a duplicate');
+  await innerPromise;
+
+  const tools = (await document.modelContext.getTools())
+      .filter(tool => tool.name === 'same_name');
+  assert_equals(tools.length, 1, 'Exactly one tool named same_name');
+  assert_equals(tools[0].description, 'Inner tool');
+}, 'A tool registered during inputSchema serialization makes the outer ' +
+   'registration a duplicate');
+</script>
+</body>

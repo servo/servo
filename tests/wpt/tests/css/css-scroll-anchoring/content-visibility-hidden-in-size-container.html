@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="author" title="Vladimir Levin" href="mailto:vmpstr@chromium.org">
+<link rel="help" href="https://drafts.csswg.org/css-scroll-anchoring/">
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<meta name="assert" content="Scroll anchoring works when a content-visibility: hidden element is added or locked inside a size container.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="list" style="container-type: inline-size"></div>
+
+<script>
+function populateList() {
+  list.innerHTML = "";
+  for (let i = 0; i < 100; i++) {
+    list.insertAdjacentHTML("beforeend", `<p style="height: 20px; margin: 0">row ${i}</p>`);
+  }
+}
+
+test(() => {
+  populateList();
+  window.scrollTo(0, 200);
+  const initialY = window.scrollY;
+  assert_equals(initialY, 200);
+
+  list.insertAdjacentHTML(
+    "afterbegin",
+    '<div style="content-visibility: hidden; height: 20px"></div>'
+  );
+  // Replacing a rendered text node in the same task marks the size container
+  // as needing layout so style recalc of its subtree is deferred to layout.
+  const last = list.lastElementChild;
+  last.textContent = "updated";
+
+  assert_equals(window.scrollY, initialY + 20);
+}, "Scroll anchoring when inserting a content-visibility: hidden element inside a size container");
+
+test(() => {
+  populateList();
+  const target = document.createElement("div");
+  target.style.height = "0px";
+  list.insertBefore(target, list.firstChild);
+
+  window.scrollTo(0, 200);
+  const initialY = window.scrollY;
+  assert_equals(initialY, 200);
+
+  target.style.contentVisibility = "hidden";
+  target.style.height = "20px";
+  const last = list.lastElementChild;
+  last.textContent = "updated";
+
+  assert_equals(window.scrollY, initialY + 20);
+}, "Scroll anchoring when locking an existing element with content-visibility: hidden inside a size container");
+</script>

@@ -137,13 +137,19 @@ promise_test(async t => {
   });
   await toolchangePromise;
 
+  let innerError;
   await document.modelContext.registerTool({
     name: 'parent_outer_tool',
     description: 'Outer tool in parent that calls iframe_inner_tool',
     execute: async () => {
       const tools = await document.modelContext.getTools();
       const innerTool = tools.find(t => t.name === 'iframe_inner_tool');
-      return await document.modelContext.executeTool(innerTool);
+      try {
+        return await document.modelContext.executeTool(innerTool);
+      } catch (e) {
+        innerError = e;
+        throw e;
+      }
     }
   }, { signal: regController.signal });
 
@@ -156,8 +162,10 @@ promise_test(async t => {
   // Detach the target iframe while the nested `executeTool()` is pending.
   iframe.remove();
 
-  await promise_rejects_dom(t, 'UnknownError', outerPromise,
-      'Detaching child target frame during nested executeTool() should reject outer tool');
+  await promise_rejects_dom(t, 'OperationError', outerPromise,
+      'Detaching child target frame during nested executeTool() should reject outer tool with OperationError');
+  assert_equals(innerError?.name, 'AbortError',
+      'Inner executeTool() should reject with AbortError when its target frame detaches');
 }, 'detaching inner target frame during re-entrant executeTool() rejects inner and outer tool executions');
 </script>
 </body>

@@ -66,9 +66,15 @@ function conditionally_register_element(role) {
     }
 }
 
+// Adding children because browsers differ on empty lists and menus (https://github.com/w3c/aria/issues/2930).
 function generate_role_element(role) {
     conditionally_register_element(role);
     const el = document.createElement(`${role}-element`);
+    const child_roles = child_test_roles.find((roles) => roles[0] === role)?.slice(1) ?? [];
+    let parent = el;
+    for (const child_role of child_roles) {
+        parent = generate_child_role_element(child_role, parent);
+    }
     document.body.append(el);
     return el;
 }

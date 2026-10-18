@@ -74,6 +74,19 @@ test(function() {
   unselectedExcept(select, null); // size > 1 so should not default to any
 }, "change selectedness of option, non multiple.");
 
+test(function() {
+  var select = document.createElement("select");
+  var optgroup = document.createElement("optgroup");
+  for (var i = 0; i < 3; ++i)
+    optgroup.appendChild(document.createElement("option"));
+  select.appendChild(optgroup);
+
+  var options = select.options;
+  options[2].selected = true;
+  options[2].selected = false; // none selected
+  assert_equals(select.selectedIndex, 0, "the first option should be selected.");
+}, "change selectedness of option in optgroup, non multiple.");
+
 
 function unselectedExcept(sel, opt) {
   for (var i = 0; i < sel.children.length; ++i) {

@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+.float {
+  float: left;
+}
+.inline-block {
+  display: inline-block;
+}
+.table-cell {
+  display: table-cell;
+}
+.inline-grid {
+  display: inline-grid;
+}
+.box {
+  width: 20px;
+  height: 20px;
+}
+.child {
+  width: 40px;
+  height: 20px;
+  background-color: green;
+}
+</style>
+<div class="float"><div class="box"><div class="child"></div></div></div>
+<div style="clear: both"></div>
+<div class="inline-block"><div class="box"><div class="child"></div></div></div>
+<div class="table-cell"><div class="box"><div class="child"></div></div></div>
+<div class="inline-grid"><div class="box"><div class="child"></div></div></div>

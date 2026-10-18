@@ -1,0 +1,10 @@
+<!DOCTYPE html>
+<link rel="help" href="https://drafts.csswg.org/cssom/#dom-cssgroupingrule-insertrule">
+<style>@media all {}</style>
+<script>
+const sheet = document.styleSheets[0];
+const media = sheet.cssRules[0];
+sheet.deleteRule(0);
+try { media.insertRule("@page foo {}", 0); } catch (e) { }
+try { media.insertRule("@page foo:first {}", 0); } catch (e) { }
+</script>

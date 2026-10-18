@@ -10,7 +10,7 @@ from pywebsocket3.handshake import AbortedByUserException
 def web_socket_do_extra_handshake(request):
     authorization = request.headers_in.get('authorization')
     if authorization is None or authorization != 'Basic Zm9vOmJhcg==':
-        if request.protocol == "HTTP/2":
+        if request.protocol in ("HTTP/2", "HTTP/3"):
             request.status = 401
             request.headers_out["Content-Length"] = "0"
             request.headers_out['www-authenticate'] = 'Basic realm="camelot"'

@@ -26,7 +26,7 @@ promise_test(async t => {
   const tool = await waitForTool('reject_tool');
   await promise_rejects_dom(
     t,
-    'UnknownError',
+    'OperationError',
     document.modelContext.executeTool(tool, { query: 'testing' }),
     'executeTool should reject when respondWith promise is rejected'
   );

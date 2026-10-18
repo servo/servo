@@ -2,6 +2,14 @@
 // META: script=resources/webtransport-test-helpers.sub.js
 
 function validate_rtt_stats(stats) {
+  assert_true('datagrams' in stats, 'datagrams is required');
+  assert_equals(typeof stats.datagrams, 'object');
+  assert_not_equals(stats.datagrams, null);
+  assert_true('estimatedSendRate' in stats,
+              'estimatedSendRate defaults to null');
+  if (stats.estimatedSendRate !== null) {
+    assert_greater_than_equal(stats.estimatedSendRate, 0, 'estimatedSendRate');
+  }
   // The assumption below is that the RTT to localhost is under 5 seconds,
   // which is fairly generous.
   if ("minRtt" in stats) {
@@ -11,6 +19,9 @@ function validate_rtt_stats(stats) {
   if ("smoothedRtt" in stats) {
     assert_greater_than(stats.smoothedRtt, 0, "smoothedRtt");
     assert_less_than(stats.smoothedRtt, 5 * 1000, "smoothedRtt");
+  }
+  if ('rttVariation' in stats) {
+    assert_greater_than_equal(stats.rttVariation, 0, 'rttVariation');
   }
 }
 
@@ -24,6 +35,9 @@ promise_test(async t => {
   }
   if ("droppedIncoming" in stats.datagrams) {
     assert_equals(stats.datagrams.droppedIncoming, 0);
+  }
+  if ('expiredIncoming' in stats.datagrams) {
+    assert_equals(stats.datagrams.expiredIncoming, 0);
   }
   if ("lostOutgoing" in stats.datagrams) {
     assert_equals(stats.datagrams.lostOutgoing, 0);
@@ -103,7 +117,7 @@ promise_test(async t => {
   const maxAttempts = 40;
   let stats;
   for (let i = 0; i < maxAttempts; i++) {
-    wait(50);
+    await wait(50);
     stats = await wt.getStats();
     if ("droppedIncoming" in stats.datagrams && stats.datagrams.droppedIncoming > 0) {
       break;

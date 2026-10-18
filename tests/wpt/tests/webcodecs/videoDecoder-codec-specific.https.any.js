@@ -508,3 +508,25 @@ promise_test(async t => {
   await decoder.flush();
   assert_equals(outputs, 1, 'outputs');
 }, 'Test configure, reset, configure does not stall');
+
+promise_test(async t => {
+  await checkImplements();
+  const callbacks = {};
+  const decoder = createVideoDecoder(t, callbacks);
+
+  decoder.configure(CONFIG);
+  decoder.decode(new EncodedVideoChunk(
+      {type: 'key', timestamp: 0, duration: 111, data: CHUNK_DATA[0]}));
+  decoder.decode(new EncodedVideoChunk(
+      {type: 'key', timestamp: 0, duration: 222, data: CHUNK_DATA[0]}));
+
+  const durations = [];
+  callbacks.output = frame => {
+    assert_equals(frame.timestamp, 0, 'timestamp');
+    durations.push(frame.duration);
+    frame.close();
+  };
+
+  await decoder.flush();
+  assert_array_equals(durations, [111, 222], 'durations');
+}, 'Test decoding chunks with duplicate timestamps preserves durations');

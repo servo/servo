@@ -177,10 +177,30 @@ promise_test(async t => {
 
   const sendGroupFromWt1 = wt1.createSendGroup();
 
-  assert_throws_dom('InvalidStateError', () => {
+  assert_throws_js(TypeError, () => {
     wt2.datagrams.createWritable({ sendGroup: sendGroupFromWt1 });
-  }, 'createWritable should throw InvalidStateError when sendGroup is from different transport');
-}, 'createWritable throws InvalidStateError when sendGroup is from different transport');
+  }, 'createWritable should throw TypeError when sendGroup is from different transport');
+}, 'createWritable throws TypeError when sendGroup is from different transport');
+
+promise_test(async t => {
+  const wt1 = new WebTransport(webtransport_url('echo.py'));
+  wt1.closed.catch(() => {});
+  t.add_cleanup(() => wt1.close());
+  await wt1.ready;
+
+  const wt2 = new WebTransport(webtransport_url('echo.py'));
+  wt2.closed.catch(() => {});
+  await wt2.ready;
+  wt2.close();
+  await wt2.closed;
+
+  const sendGroupFromWt1 = wt1.createSendGroup();
+
+  // The sendGroup check comes before the state check.
+  assert_throws_js(TypeError, () => {
+    wt2.datagrams.createWritable({ sendGroup: sendGroupFromWt1 });
+  }, 'createWritable should throw TypeError, not InvalidStateError');
+}, 'createWritable checks the sendGroup before the transport state');
 
 promise_test(async t => {
   // NOTE: aioquic doesn't handle sending large datagrams well, and doesn't expose

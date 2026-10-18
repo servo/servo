@@ -124,7 +124,9 @@ rm -f temp.jxl 3x3.png 3x3a.png 3x3.jpg 3x3_recovered.jpg
 # a different intensity_target. The pair differs only in the peak luminance that
 # the codestream states, and both state a peak at or above the content's.
 convert -size 8x8 "xc:rgb(177,177,177)" -depth 8 pq_flat.ppm
-for nits in 600 10000; do
+# 255 is the codestream default, so that file carries no intensity_target
+# field at all.
+for nits in 255 600 10000; do
   cjxl pq_flat.ppm "pq_intensity_target_${nits}.jxl" -d 0 \
     -x color_space=RGB_D65_202_Rel_PeQ "--intensity_target=${nits}"
 done

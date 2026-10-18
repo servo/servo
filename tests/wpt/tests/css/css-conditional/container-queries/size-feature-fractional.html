@@ -1,0 +1,65 @@
+<!doctype html>
+<title>Size features evaluate against fractional container sizes</title>
+<link rel="help" href="https://drafts.csswg.org/css-conditional-5/#size-container">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/cq-testcommon.js"></script>
+<style>
+  #container {
+    container-type: size;
+    width: 100.5px;
+    height: 50.5px;
+  }
+  #container.zoomed {
+    zoom: 2;
+  }
+  #container.vertical {
+    writing-mode: vertical-rl;
+  }
+</style>
+<div id=container>
+  <div id=target>Test</div>
+</div>
+<script>
+setup(() => assert_implements_size_container_queries());
+
+function test_evaluation(container_class, query, expected) {
+  test(t => {
+    const style_node = document.createElement('style');
+    t.add_cleanup(() => {
+      if (container_class)
+        container.classList.remove(container_class);
+      style_node.remove();
+    });
+    style_node.textContent = `@container ${query} { #target { --applied: true; } }`;
+    if (container_class)
+      container.classList.add(container_class);
+    document.head.append(style_node);
+    assert_equals(getComputedStyle(target).getPropertyValue('--applied'), expected ? 'true' : '');
+  }, `${query}${container_class ? ` (.${container_class})` : ''}`);
+}
+
+for (const container_class of ['', 'zoomed']) {
+  test_evaluation(container_class, '(width > 100px)', true);
+  test_evaluation(container_class, '(width >= 100.5px)', true);
+  test_evaluation(container_class, '(width = 100.5px)', true);
+  test_evaluation(container_class, '(width < 100.5px)', false);
+  test_evaluation(container_class, '(width > 100.5px)', false);
+  test_evaluation(container_class, '(width <= 100px)', false);
+
+  test_evaluation(container_class, '(height > 50px)', true);
+  test_evaluation(container_class, '(height = 50.5px)', true);
+  test_evaluation(container_class, '(height < 50.5px)', false);
+  test_evaluation(container_class, '(height > 50.5px)', false);
+
+  test_evaluation(container_class, '(inline-size > 100px)', true);
+  test_evaluation(container_class, '(inline-size = 100.5px)', true);
+  test_evaluation(container_class, '(block-size > 50px)', true);
+  test_evaluation(container_class, '(block-size = 50.5px)', true);
+}
+
+test_evaluation('vertical', '(inline-size > 50px)', true);
+test_evaluation('vertical', '(inline-size = 50.5px)', true);
+test_evaluation('vertical', '(block-size > 100px)', true);
+test_evaluation('vertical', '(block-size = 100.5px)', true);
+</script>

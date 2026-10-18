@@ -140,7 +140,7 @@ promise_test(async t => {
   // Removing the form before submission cancels the pending execution.
   form.remove();
 
-  await promise_rejects_dom(t, 'UnknownError', executePromise,
+  await promise_rejects_dom(t, 'AbortError', executePromise,
       'Pre-submission form removal should cancel and reject executeTool()');
   assert_false(form.matches(':tool-form-active'), ':tool-form-active should be cleared');
   await new Promise(resolve => t.step_timeout(resolve, 0));
@@ -187,7 +187,7 @@ promise_test(async t => {
   // Removing required attribute before submission unregisters and cancels the tool.
   form.removeAttribute('tooldescription');
 
-  await promise_rejects_dom(t, 'UnknownError', executePromise,
+  await promise_rejects_dom(t, 'AbortError', executePromise,
       'Pre-submission attribute removal should cancel and reject executeTool()');
   assert_false(form.matches(':tool-form-active'), ':tool-form-active should be cleared');
   await new Promise(resolve => t.step_timeout(resolve, 0));
@@ -234,7 +234,7 @@ promise_test(async t => {
   // Detach the target iframe while the declarative tool's respondWith() promise is pending.
   iframe.remove();
 
-  await promise_rejects_dom(t, 'UnknownError', executePromise,
+  await promise_rejects_dom(t, 'AbortError', executePromise,
       'Detaching target frame mid-execution should reject declarative executeTool()');
 }, 'Target frame detachment during pending declarative executeTool() rejects caller promise');
 </script>

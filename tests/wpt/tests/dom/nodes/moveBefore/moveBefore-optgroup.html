@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<title>moveBefore() of an optgroup element</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-parentnode-movebefore">
+<link rel="help" href="https://html.spec.whatwg.org/#the-optgroup-element">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+function createSelects(html) {
+  const container = document.createElement("div");
+  container.innerHTML = html;
+  return id => container.querySelector(`#${id}`);
+}
+
+test(t => {
+  const get = createSelects(`<select id=first><optgroup id=moved label=group><option id=option>a</option></optgroup><option>b</option></select>
+    <select id=second><option>c</option></select>`);
+  get("second").moveBefore(get("moved"), null);
+  assert_array_equals([...get("first").options].map(option => option.textContent), ["b"]);
+  assert_array_equals([...get("second").options].map(option => option.textContent), ["c", "a"]);
+}, "Moving an optgroup between selects moves its options with it");
+
+test(t => {
+  const get = createSelects(`<select id=first><optgroup id=moved label=group><option>a</option></optgroup></select>
+    <div id=destination></div><select id=second><option>b</option></select>`);
+  get("destination").moveBefore(get("moved"), null);
+  assert_equals(get("first").length, 0);
+  get("second").appendChild(get("moved"));
+  assert_array_equals([...get("second").options].map(option => option.textContent), ["b", "a"]);
+}, "An optgroup moved out of a select can be inserted into another select");
+
+test(t => {
+  const select = document.body.appendChild(document.createElement("select"));
+  select.style.display = "none";
+  const destination = document.body.appendChild(document.createElement("div"));
+  const reference = document.body.appendChild(document.createElement("div"));
+  t.add_cleanup(() => { select.remove(); destination.remove(); reference.remove(); });
+
+  const moved = select.appendChild(document.createElement("optgroup"));
+  moved.label = "Group label";
+  const inserted = reference.appendChild(document.createElement("optgroup"));
+  inserted.label = "Group label";
+  document.body.offsetTop;
+
+  destination.moveBefore(moved, null);
+  assert_equals(moved.getBoundingClientRect().height, inserted.getBoundingClientRect().height);
+}, "An optgroup moved out of a select renders like one inserted outside a select");
+</script>

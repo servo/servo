@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>EditContext: Firing beforeinput for undo and redo.</title>
+<link rel="help" href="https://github.com/w3c/edit-context/issues/153">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/editing/include/editor-test-utils.js"></script>
+</head>
+<body>
+<div></div>
+<script>
+'use strict';
+const host = document.querySelector('div');
+let beforeInput;
+host.addEventListener('beforeinput', e => beforeInput = e);
+const utils = new EditorTestUtils(host);
+
+promise_test(async () => {
+  const editContext = host.editContext = new EditContext();
+  host.focus();
+  await test_driver.send_keys(host, 'hello');
+  await utils.sendUndoShortcutKey();
+  assert_equals(beforeInput.inputType, 'historyUndo',
+    'Should fire historyUndo beforeinput.');
+  assert_equals(editContext.text, 'hello',
+    'Undo should not change EditContext text.');
+}, 'Undo in EditContext.');
+
+promise_test(async () => {
+  const editContext = host.editContext = new EditContext();
+  host.focus();
+  await test_driver.send_keys(host, 'hello');
+  await utils.sendRedoShortcutKey();
+  assert_equals(beforeInput.inputType, 'historyRedo',
+    'Should fire historyRedo beforeinput.');
+  assert_equals(editContext.text, 'hello',
+    'Redo should not change EditContext text.');
+}, 'Redo in EditContext.');
+
+</script>
+</body>
+</html>

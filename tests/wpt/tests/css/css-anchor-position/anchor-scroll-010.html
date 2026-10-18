@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test a tall positioned element anchoring to a sticky anchor and scrolling</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#scroll">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2072683">
+<meta name="assert" content="Scrolling a scroll container down shouldn't grow its scrollHeight when it contains a sticky anchor and a positioned element anchored to it that is taller than the scrollport.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
+
+<!-- This testcase is adapted from https://bugzilla.mozilla.org/show_bug.cgi?id=2072683#c0 -->
+
+<style>
+#scroller {
+  position: relative;
+  width: 300px;
+  height: 200px;
+  overflow-y: auto;
+  border: 5px solid black;
+  box-sizing: border-box;
+}
+#sticky {
+  position: sticky;
+  top: 0px;
+  height: 10px;
+  width: 10px;
+  background: orange;
+  anchor-name: --foo;
+}
+
+#positioned {
+  position: absolute;
+  position-anchor: --foo;
+  position-area: bottom right;
+  width: 16px;
+  height: 300px; /* Must extend past the bottom of the scrollport to trigger the bug. */
+  background: lime;
+}
+</style>
+
+<div id="scroller">
+  <div id="sticky"></div>
+  <div id="positioned"></div>
+</div>
+
+<script>
+promise_test(async () => {
+  const scroller = document.getElementById("scroller");
+
+  scroller.scrollTop = scroller.scrollHeight;
+  await waitForAtLeastOneFrame();
+  const expectedScrollHeight = scroller.scrollHeight;
+
+  // Scroll the scroller down again
+  scroller.scrollTop = scroller.scrollHeight;
+  await waitForAtLeastOneFrame();
+  assert_equals(scroller.scrollHeight, expectedScrollHeight,
+                "scroller.scrollHeight should remain the same");
+}, "Scrolling the scroller down shouldn't keep growing its scrollHeight");
+</script>

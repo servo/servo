@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Changing a table cell's block size resizes its row in a vertical-rl table</title>
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#computing-the-table-height">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#vertical-layout">
+<link rel="match" href="../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="In a vertical-rl table, a row's width follows the width (block size) of its cell, so making the cell narrower makes the row narrower.">
+<style>
+table {
+  writing-mode: vertical-rl;
+  border-spacing: 0;
+}
+td {
+  width: 200px;
+  height: 100px;
+  padding: 0;
+  background-color: red;
+}
+.content {
+  width: 100px;
+  height: 100px;
+  background-color: green;
+}
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<table><tr><td id="cell"><div class="content"></div></td></tr></table>
+<script>
+document.body.offsetTop;
+cell.style.width = "100px";
+</script>

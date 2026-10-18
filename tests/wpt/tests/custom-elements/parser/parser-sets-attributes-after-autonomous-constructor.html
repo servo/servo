@@ -1,0 +1,82 @@
+<!doctype html>
+<title>
+  Custom Elements: HTML parser appends attributes observably after an autonomous
+  custom element constructor
+</title>
+<meta name="author" title="Keith Cirkel" href="mailto:wpt@keithcirkel.co.uk" />
+<link
+  rel="help"
+  href="https://html.spec.whatwg.org/#create-an-element-for-the-token"
+/>
+<link
+  rel="help"
+  href="https://dom.spec.whatwg.org/#concept-element-attributes-append"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  customElements.define(
+    "observed-element",
+    class extends HTMLElement {
+      constructor() {
+        super();
+        this.records = [];
+        this.observer = new MutationObserver((records) =>
+          this.records.push(...records),
+        );
+        this.observer.observe(this, {
+          attributes: true,
+          attributeOldValue: true,
+        });
+      }
+    },
+  );
+</script>
+<observed-element
+  class="parser-class"
+  data-atom="1"
+  data-string="parser-value"
+  data-empty
+  data-duplicate="first"
+  data-duplicate="ignored"
+></observed-element>
+<observed-element class=""></observed-element>
+<observed-element></observed-element>
+<script>
+  const [element, emptyClassElement, noAttributesElement] =
+    document.querySelectorAll("observed-element");
+  const cases = [
+    [
+      element,
+      [
+        ["class", "parser-class"],
+        ["data-atom", "1"],
+        ["data-string", "parser-value"],
+        ["data-empty", ""],
+        ["data-duplicate", "first"],
+      ],
+      "Non-empty, empty, and duplicate attributes",
+    ],
+    [emptyClassElement, [["class", ""]], "An empty class attribute"],
+    [noAttributesElement, [], "No attributes"],
+  ];
+
+  for (const [target, attributes, description] of cases) {
+    test(() => {
+      const records = [...target.records, ...target.observer.takeRecords()];
+      assert_array_equals(
+        records.map((record) => record.attributeName),
+        attributes.map(([name]) => name),
+      );
+      for (const record of records) {
+        assert_equals(record.target, target);
+        assert_equals(record.type, "attributes");
+        assert_equals(record.attributeNamespace, null);
+        assert_equals(record.oldValue, null);
+      }
+      for (const [name, value] of attributes) {
+        assert_equals(target.getAttribute(name), value);
+      }
+    }, `${description}: parser attribute mutation records on an autonomous custom element without observedAttributes`);
+  }
+</script>

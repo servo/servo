@@ -96,19 +96,19 @@ promise_test(async (t) => {
   await test_driver.send_keys(document.activeElement, Space);
   assert_true(menu.matches(':popover-open'), 'Menu should be open after pressing Space on the button.');
 
-  // In dialog mode, the standard focus-forwarding should put focus on the first focusable child
+  // In violation mode, the standard focus-forwarding should put focus on the first focusable child
   assert_equals(document.activeElement, item1, 'Focus should move to the first menuitem.');
 
-  // In standard menu mode, Tab closes the menu. In dialog mode, Tab should route to the next focusable element.
+  // In standard menu mode, Tab closes the menu. In violation mode, Tab should route to the next focusable element.
   await test_driver.send_keys(document.activeElement, Tab);
-  assert_equals(document.activeElement, badBtn, 'Tab should focus the invalid button inside the dialog.');
+  assert_equals(document.activeElement, badBtn, 'Tab should focus the invalid button inside the menu.');
 
   await test_driver.send_keys(document.activeElement, Tab);
-  assert_equals(document.activeElement, item2, 'Tab should focus the next menuitem inside the dialog.');
+  assert_equals(document.activeElement, item2, 'Tab should focus the next menuitem inside the menu.');
 
   // Clean up
   menu.hidePopover();
-}, 'In dialog mode, Tab navigates between interactive children and natively focusable menuitems instead of closing the menu.');
+}, 'In violation mode, Tab navigates between interactive children and natively focusable menuitems instead of closing the menu.');
 
 promise_test(async (t) => {
   const badBtnOuter = document.getElementById('bad-btn-outer');
@@ -120,19 +120,19 @@ promise_test(async (t) => {
   badBtnOuter.focus();
   assert_equals(document.activeElement, badBtnOuter, 'Button inside outer menubar should be focused.');
 
-  // The outer menubar is in dialog mode due to the invalid button, so Tab should route focus to the next item
+  // The outer menubar is in violation mode due to the invalid button, so Tab should route focus to the next item
   await test_driver.send_keys(document.activeElement, Tab);
-  assert_equals(document.activeElement, outerItem, 'Tab should focus the menuitem inside the outer dialog menubar.');
+  assert_equals(document.activeElement, outerItem, 'Tab should focus the menuitem inside the outer menubar.');
 
   // Space should open the inner menulist and move focus to its first item
   await test_driver.send_keys(document.activeElement, Space);
   assert_true(innerMenu.matches(':popover-open'), 'Inner menu should be open.');
   assert_equals(document.activeElement, innerItem1, 'Focus should move to the first item in the inner menu.');
 
-  // The inner menu is forced into dialog mode, so Tab should focus the next menuitem instead of closing it
+  // The inner menu is forced into violation mode, so Tab should focus the next menuitem instead of closing it
   await test_driver.send_keys(document.activeElement, Tab);
   assert_equals(document.activeElement, innerItem2, 'Tab should focus the next menuitem in the inner menu.');
-}, 'Dialog mode fallback applies to the specific menu and all nested menus.');
+}, 'Violation mode fallback applies to the specific menu and all nested menus.');
 
 promise_test(async (t) => {
   const trigger = document.getElementById('focus-sub1-trigger');
@@ -148,10 +148,10 @@ promise_test(async (t) => {
   assert_equals(document.activeElement, item1, 'Focus should move to the first item.');
 
   await test_driver.send_keys(document.activeElement, Tab);
-  assert_equals(document.activeElement, item2, 'Tab should focus the next menuitem because sub1 inherited dialog mode from sub2.');
+  assert_equals(document.activeElement, item2, 'Tab should focus the next menuitem because sub1 inherited violation mode from sub2.');
 
   sub1.hidePopover();
-}, 'Global dialog propagation correctly applies dialog keyboard routing to lateral structurally-valid submenus.');
+}, 'Global violation mode propagation correctly applies violation mode keyboard routing to lateral structurally-valid submenus.');
 
 promise_test(async (t) => {
   const sub2Trigger = document.getElementById('complex-sub2-trigger');
@@ -188,7 +188,7 @@ promise_test(async (t) => {
   sub3.hidePopover();
   sub4.hidePopover();
   sub2.hidePopover();
-}, 'Dialog mode allows tabbing across deep submenu boundaries.');
+}, 'Violation mode allows tabbing across deep submenu boundaries.');
 
 promise_test(async (t) => {
   const btn = document.getElementById('test3-btn');
@@ -213,6 +213,6 @@ promise_test(async (t) => {
   assert_equals(document.activeElement, item2, 'Tab should focus the next valid menuitem.');
 
   menu.hidePopover();
-}, 'Tab navigation skips disabled menuitems in dialog mode');
+}, 'Tab navigation skips disabled menuitems in violation mode');
 
 </script>

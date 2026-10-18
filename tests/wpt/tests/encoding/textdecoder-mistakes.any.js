@@ -355,6 +355,39 @@ test(() => {
   }
 }
 
+// https://encoding.spec.whatwg.org/#euc-jp-decoder
+{
+  const vectors = [
+    [[0x8f, 0xa2, 0x20, 0xa1, 0xa1], '\uFFFD \u3000'],
+    [[0x8f, 0xa2, 0xa0, 0xa1, 0xa1], '\uFFFD\u3000'],
+    [[0x8f, 0xa2, 0xff, 0xb0, 0xa1], '\uFFFD\u4E9C'],
+    [[0x8f, 0xa2, 0xaf, 0xa1, 0xa1], '\u02D8\u3000'],
+  ];
+
+  for (const [bytes, expected] of vectors) {
+    const input = Uint8Array.from(bytes);
+    test(() => {
+      assert_equals(new TextDecoder('euc-jp').decode(input), expected);
+    }, `EUC-JP JIS0212 state: ${bytes}`);
+
+    for (let split = 1; split < input.length; split++) {
+      test(() => {
+        const d = new TextDecoder('euc-jp');
+        const first = d.decode(input.subarray(0, split), {stream: true});
+        assert_equals(first + d.decode(input.subarray(split)), expected);
+      }, `EUC-JP JIS0212 state: ${bytes}, split at ${split}`);
+    }
+  }
+}
+
+test(() => {
+  const d = new TextDecoder('euc-jp', {fatal: true});
+  assert_throws_js(TypeError,
+                   () => d.decode(u(0x8f, 0xa2, 0x20), {stream: true}));
+  // The ASCII byte is restored to the input queue before the error is returned.
+  assert_equals(d.decode(u(0xa1, 0xa1)), ' \u3000');
+}, 'EUC-JP JIS0212 state after a fatal streaming error');
+
 // Chrome, Firefox and Safari all fail on this
 // https://issues.chromium.org/issues/467624168
 {

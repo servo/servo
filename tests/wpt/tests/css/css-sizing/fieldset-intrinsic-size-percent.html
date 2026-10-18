@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Fieldset intrinsic sizes with percentage block sizes and padding</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-sizes">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#anonymous-fieldset-content-box">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  fieldset {
+    margin: 0;
+    border: 0;
+    padding: 0;
+  }
+  img {
+    display: block;
+    block-size: 100%;
+  }
+</style>
+<body>
+<script>
+async function createFieldset(t, writingMode, inlineSize) {
+  const container = document.createElement('div');
+  container.style.cssText = `writing-mode: ${writingMode}; inline-size: 300px`;
+  const fieldset = document.createElement('fieldset');
+  fieldset.style.inlineSize = inlineSize;
+  const image = document.createElement('img');
+  image.src = 'aspect-ratio/support/200x200-green.png';
+  fieldset.append(image);
+  container.append(fieldset);
+  document.body.append(container);
+  t.add_cleanup(() => container.remove());
+  await image.decode();
+  return {container, fieldset, image};
+}
+
+for (const writingMode of ['horizontal-tb', 'vertical-rl']) {
+  const inlineDimension = writingMode === 'horizontal-tb' ? 'width' : 'height';
+  const inlineSizeOf = element => element.getBoundingClientRect()[inlineDimension];
+  for (const inlineSize of ['min-content', 'max-content', 'fit-content']) {
+    promise_test(async t => {
+      const {fieldset, image} = await createFieldset(t, writingMode, inlineSize);
+      fieldset.style.cssText += '; block-size: 100px; padding-block: 10%';
+      assert_equals(inlineSizeOf(image), 100, 'Image inline size');
+      assert_equals(inlineSizeOf(fieldset), 100, 'Fieldset inline size');
+    }, `${writingMode}, ${inlineSize}: percentage block padding is excluded from the image percentage basis`);
+
+    promise_test(async t => {
+      const {container, fieldset, image} = await createFieldset(t, writingMode, inlineSize);
+      fieldset.style.blockSize = '100%';
+      assert_equals(inlineSizeOf(fieldset), 200, 'Initially indefinite block size');
+      container.style.blockSize = '100px';
+      assert_equals(inlineSizeOf(image), 100, 'Image after parent block size becomes definite');
+      assert_equals(inlineSizeOf(fieldset), 100, 'Fieldset after parent block size becomes definite');
+      container.style.blockSize = '150px';
+      assert_equals(inlineSizeOf(fieldset), 150, 'Fieldset after parent block size changes');
+      container.style.blockSize = 'auto';
+      assert_equals(inlineSizeOf(fieldset), 200, 'Fieldset after parent block size becomes indefinite');
+    }, `${writingMode}, ${inlineSize}: intrinsic size tracks changes to the parent block size`);
+  }
+}
+</script>

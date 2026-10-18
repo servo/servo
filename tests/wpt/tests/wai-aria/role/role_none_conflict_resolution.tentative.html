@@ -1,7 +1,7 @@
 <!doctype html>
 <html>
   <head>
-    <title>Role None Conflict Resolution Verification Tests</title>
+    <title>Role None/Presentation Conflict Resolution Verification Tests</title>
     <script src="/resources/testharness.js"></script>
     <script src="/resources/testharnessreport.js"></script>
     <script src="/resources/testdriver.js"></script>
@@ -48,6 +48,24 @@
       </button>
     </div>
 
+    <!-- This test case is specifically designed to check the role, but a separate test case has been created in accname/name/comp_host_language_label.tentative.html to check the acc name -->
+    <h2>HTML input with role="none" (presentational roles conflict resolution)</h2>
+    <label for="irn">input label</label>
+    <input id="irn" type="text" data-expectedrole="textbox" data-testname="HTML input[role=none] but focusable" class="ex-role" role="none">
+
+    <!-- This test case is specifically designed to check the role, but a separate test case has been created in accname/name/comp_host_language_label.tentative.html to check the acc name -->
+    <h2>HTML input with role="none" and disabled (presentational roles conflict resolution does not apply due to disabled attr)</h2>
+    <label for="irpd">input label</label>
+    <input id="irpd" type="text" data-testname="HTML input[role=none][disabled]" class="ex-generic" role="none" disabled>
+
+    <h2>HTML input with role="none" and readonly (presentational roles conflict resolution)</h2>
+    <label for="irnro">input label</label>
+    <input id="irnro" type="text" data-expectedrole="textbox" data-testname="HTML input[role=none][readonly] but focusable" class="ex-role" role="none" readonly>
+
+    <h2>HTML input with role="none", disabled and readonly (presentational roles conflict resolution does not apply due to disabled attr)</h2>
+    <label for="irpdro">input label</label>
+    <input id="irpdro" type="text" data-testname="HTML input[role=none][disabled][readonly]" class="ex-generic" role="none" disabled readonly>
+
     <script>
       //https://github.com/web-platform-tests/interop-accessibility/issues/161 starts
       const innerButton = document.createElement("button");
@@ -59,6 +77,7 @@
       document.getElementById("inner-button-container").appendChild(innerButton);
 
       AriaUtils.verifyRolesBySelector(".ex-role");
+      AriaUtils.verifyGenericRolesBySelector(".ex-generic");
     </script>
 
   </body>

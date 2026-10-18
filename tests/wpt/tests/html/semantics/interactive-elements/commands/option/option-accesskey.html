@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>The access key of an option picks it, or toggles it in a select with multiple</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interactive-elements.html#option-command">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/accesskey.js"></script>
+
+<select id="dropdown">
+  <option accesskey="a">Apple</option>
+  <option accesskey="b">Banana</option>
+</select>
+
+<select id="listbox" size="2">
+  <option accesskey="c">Cherry</option>
+  <option accesskey="d">Date</option>
+</select>
+
+<select id="multiple" multiple>
+  <option accesskey="e" selected>Eggplant</option>
+  <option accesskey="f">Fig</option>
+</select>
+
+<script>
+function selectedness(select) {
+  return Array.from(select.options, option => option.selected);
+}
+
+function changeEvent(select) {
+  return new Promise(resolve => select.addEventListener("change", resolve, { once: true }));
+}
+
+for (const [id, key, description] of [["dropdown", "b", "dropdown box"], ["listbox", "d", "list box"]]) {
+  promise_test(async () => {
+    const select = document.getElementById(id);
+    const change = changeEvent(select);
+    await pressAccessKey(key);
+    await change;
+    assert_array_equals(selectedness(select), [false, true], "the option is picked");
+
+    await pressAccessKey(key);
+    assert_array_equals(selectedness(select), [false, true], "picking the option again keeps it selected");
+  }, `The access key of an option picks it in a ${description}`);
+}
+
+promise_test(async () => {
+  const select = document.getElementById("multiple");
+  const selectedOptions = select.selectedOptions;
+  assert_equals(selectedOptions.length, 1);
+
+  let change = changeEvent(select);
+  await pressAccessKey("f");
+  await change;
+  assert_array_equals(selectedness(select), [true, true], "the option is selected");
+  assert_equals(selectedOptions.length, 2);
+
+  change = changeEvent(select);
+  await pressAccessKey("e");
+  await change;
+  assert_array_equals(selectedness(select), [false, true], "the selected option is deselected");
+  assert_equals(selectedOptions.length, 1);
+  assert_equals(selectedOptions[0], select.options[1]);
+}, "The access key of an option toggles it in a select with multiple");
+</script>

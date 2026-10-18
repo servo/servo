@@ -1,0 +1,87 @@
+<!doctype html>
+<html>
+<meta charset="utf-8">
+<title>Test animation of SVGLengthList percentage values.</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/text.html#TextElementYAttribute">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/SVGAnimationTestCase-testharness.js"></script>
+
+<svg>
+</svg>
+
+<script>
+var rootSVGElement = document.querySelector("svg");
+var epsilon = 1.0;
+
+// Setup test document
+rootSVGElement.setAttribute("width", "600");
+rootSVGElement.setAttribute("height", "400");
+
+var text = createSVGElement("text");
+text.setAttribute("id", "text");
+text.textContent = "ABCD";
+text.setAttribute("x", "0");
+text.setAttribute("y", "0");
+text.setAttribute("dx", "0");
+text.setAttribute("dy", "0");
+rootSVGElement.appendChild(text);
+
+function createAnimate(attributeName, id) {
+    var animate = createSVGElement("animate");
+    if (id)
+        animate.setAttribute("id", id);
+    animate.setAttribute("attributeName", attributeName);
+    animate.setAttribute("begin", "0s");
+    animate.setAttribute("dur", "4s");
+    animate.setAttribute("from", "0%");
+    animate.setAttribute("to", "50%");
+    text.appendChild(animate);
+}
+
+createAnimate("y", "animation");
+createAnimate("dy");
+createAnimate("x");
+createAnimate("dx");
+
+// Setup animation test
+function checkValues(expectedX, expectedY) {
+    assert_approx_equals(text.x.animVal.getItem(0).value, expectedX, epsilon, "x");
+    assert_approx_equals(text.dx.animVal.getItem(0).value, expectedX, epsilon, "dx");
+    assert_approx_equals(text.y.animVal.getItem(0).value, expectedY, epsilon, "y");
+    assert_approx_equals(text.dy.animVal.getItem(0).value, expectedY, epsilon, "dy");
+
+    assert_equals(text.x.baseVal.getItem(0).value, 0);
+    assert_equals(text.dx.baseVal.getItem(0).value, 0);
+    assert_equals(text.y.baseVal.getItem(0).value, 0);
+    assert_equals(text.dy.baseVal.getItem(0).value, 0);
+}
+
+function sample1() {
+    // Check initial/end conditions
+    checkValues(0, 0);
+}
+
+function sample2() {
+    // 25% of width 600 and 25% of height 400.
+    checkValues(150, 100);
+}
+
+function sample3() {
+    // 50% of width 600 and 50% of height 400.
+    checkValues(300, 200);
+}
+
+smil_async_test((t) => {
+    const expectedValues = [
+        // [animationId, time, sampleCallback]
+        ["animation", 0.0,   sample1],
+        ["animation", 2.0,   sample2],
+        ["animation", 3.999, sample3],
+        ["animation", 4.001, sample1]
+    ];
+
+    runAnimationTest(t, expectedValues);
+});
+
+</script>

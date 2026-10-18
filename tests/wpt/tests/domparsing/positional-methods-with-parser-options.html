@@ -1,0 +1,275 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>
+  HTML partial updates - {append|prepend|before|after|replaceWith}HTML{Unsafe}
+  with trusted types parser options
+</title>
+<link rel="help" href="https://html.spec.whatwg.org/#html-parsing-methods" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<meta
+  http-equiv="Content-Security-Policy"
+  content="require-trusted-types-for 'script';"
+/>
+
+<body>
+  <script>
+    let createParserOptions = (options) => options;
+    let createHTMLCalled = false;
+    const default_policy = trustedTypes.createPolicy("default", {
+      createHTML: (html) => {
+        createHTMLCalled = true;
+        return html;
+      },
+      createParserOptions: (options, type, sink) =>
+        createParserOptions(options, type, sink),
+    });
+
+    const passthrough_policy = trustedTypes.createPolicy("passthrough", {
+      createHTML: (html) => html,
+      createParserOptions: (options) => options,
+    });
+
+    let policy_id = 0;
+
+    function expected_sink_name(target_type, pos, method_name) {
+      if (pos === "append" || pos === "prepend") {
+        const iface = target_type === "ShadowRoot" ? "ShadowRoot" : "Element";
+        return `${iface} ${method_name}`;
+      }
+      return `Node ${method_name}`;
+    }
+
+    function create_tests(target_type, pos, safe) {
+      const method_name = `${pos}HTML${safe ? "" : "Unsafe"}`;
+      const variant = `${target_type}.${method_name}`;
+      const prepare = (t) => {
+        createHTMLCalled = false;
+        t.add_cleanup(() => {
+          createParserOptions = (options) => options;
+          createHTMLCalled = false;
+        });
+        return prepare_html_partial_update(target_type, "Element", pos, t);
+      };
+
+      for (const run_scripts_at_caller of [true, false]) {
+        for (const run_scripts_at_policy of [true, false]) {
+          test((t) => {
+            let recorded_type = null;
+            let recorded_sink = null;
+            createParserOptions = (options, type, sink) => {
+              recorded_type = type;
+              recorded_sink = sink;
+              return {
+                ...options,
+                runScripts: run_scripts_at_policy,
+              };
+            };
+
+            const { target, ref, object } = prepare(t);
+            window.did_run = false;
+            t.add_cleanup(() => {
+              delete window.did_run;
+            });
+            object[method_name](
+              "<span>html;</span><script>window.did_run = true<" + "/script>",
+              { runScripts: run_scripts_at_caller },
+            );
+            const script = target.querySelector("script");
+            assert_equals(!!script, !safe);
+            if (script) script.remove();
+            assert_equals(
+              window.did_run,
+              run_scripts_at_policy && !safe && target_type !== "template.content",
+            );
+            assert_false(createHTMLCalled, "createHTML should not be called");
+            if (safe) {
+              assert_equals(recorded_type, null);
+              assert_equals(recorded_sink, null);
+            } else {
+              assert_equals(recorded_type, "TrustedHTMLParserOptions");
+              assert_equals(
+                recorded_sink,
+                expected_sink_name(target_type, pos, method_name),
+              );
+            }
+
+            check_position(target, pos, ref);
+          }, `Policies determine runScripts: ${variant} (runScripts=${run_scripts_at_caller} => ${run_scripts_at_policy})`);
+        }
+      }
+
+      if (!safe) {
+        test((t) => {
+          createParserOptions = (options) => ({
+            ...options,
+            sanitizer: { removeElements: ["p"] },
+          });
+          const { target, ref, object } = prepare(t);
+          object[method_name]("<span>html;</span><p>forbidden</p>");
+          check_position(target, pos, ref);
+          assert_equals(target.querySelector("p"), null);
+          assert_false(createHTMLCalled, "createHTML should not be called");
+        }, `Policy can inject sanitizer: ${variant}`);
+
+        test((t) => {
+          let recorded_sink = null;
+          createParserOptions = (options, type, sink) => {
+            recorded_sink = sink;
+            return {
+              ...options,
+              sanitizer: { removeElements: ["p"] },
+            };
+          };
+          const { target, ref, object } = prepare(t);
+          object[method_name](
+            passthrough_policy.createHTML("<span>html;</span><p>forbidden</p>"),
+          );
+          check_position(target, pos, ref);
+          assert_equals(target.querySelector("p"), null);
+          assert_equals(
+            recorded_sink,
+            expected_sink_name(target_type, pos, method_name),
+          );
+          assert_false(createHTMLCalled, "createHTML should not be called");
+        }, `createParserOptions runs and injects sanitizer even when TrustedHTML is passed: ${variant}`);
+
+        test((t) => {
+          let createParserOptionsCalled = false;
+          createParserOptions = (options) => {
+            createParserOptionsCalled = true;
+            return {
+              sanitizer: {
+                removeElements: ["span"],
+              },
+              runScripts: false,
+            };
+          };
+          window.did_run = false;
+          t.add_cleanup(() => {
+            delete window.did_run;
+          });
+          const trusted_policy = trustedTypes.createPolicy("trusted" + (policy_id++), {
+            createParserOptions: (options) => ({
+              ...options,
+              sanitizer: { removeElements: ["p"] },
+            }),
+          });
+          const { target, ref, object } = prepare(t);
+          const trusted_options = trusted_policy.createParserOptions({
+            runScripts: true,
+          });
+          assert_true(trusted_options instanceof TrustedHTMLParserOptions);
+          object[method_name](
+            "<span>html;</span><p>forbidden</p><script>window.did_run = true;<" +
+              "/script>",
+            trusted_options,
+          );
+          target.querySelector("script")?.remove();
+          check_position(target, pos, ref);
+          assert_equals(target.querySelector("p"), null);
+          assert_equals(window.did_run, target_type !== "template.content");
+          assert_false(
+            createParserOptionsCalled,
+            "default createParserOptions should not be called when TrustedHTMLParserOptions is passed",
+          );
+          assert_false(
+            createHTMLCalled,
+            "default createHTML should not be called when TrustedHTMLParserOptions is passed",
+          );
+        }, `TrustedHTMLParserOptions overrides default policy: ${variant}`);
+
+        for (const bad_value of [null, undefined, 0, 123, "foo", true, false]) {
+          test((t) => {
+            createParserOptions = () => bad_value;
+            const { target, object } = prepare(t);
+            const initial = target.innerHTML;
+            assert_throws_js(TypeError, () => {
+              object[method_name]("<span>html;</span>");
+            });
+            assert_false(
+              createHTMLCalled,
+              "default createHTML should not be called when createParserOptions returns an invalid value",
+            );
+            assert_equals(target.innerHTML, initial, "Tree should not be modified");
+          }, `createParserOptions returning ${JSON.stringify(bad_value)} throws TypeError without calling createHTML: ${variant}`);
+        }
+      }
+    }
+
+    for (const target of ["Element", "ShadowRoot", "template.content"]) {
+      for (const pos of [
+        "before",
+        "after",
+        "replaceWith",
+        "append",
+        "prepend",
+      ]) {
+        for (const safe of [true, false]) {
+          create_tests(target, pos, safe);
+        }
+      }
+    }
+
+    for (const ref_type of ["Comment", "Text", "ProcessingInstruction"]) {
+      for (const pos of ["before", "after", "replaceWith"]) {
+        const method_name = `${pos}HTMLUnsafe`;
+        test((t) => {
+          let recorded_type = null;
+          let recorded_sink = null;
+          createParserOptions = (options, type, sink) => {
+            recorded_type = type;
+            recorded_sink = sink;
+            return options;
+          };
+          createHTMLCalled = false;
+          t.add_cleanup(() => {
+            createParserOptions = (options) => options;
+            createHTMLCalled = false;
+          });
+          const { target, ref, object } =
+            prepare_html_partial_update("Element", ref_type, pos, t);
+          object[method_name]("<span>html;</span>");
+          check_position(target, pos, ref);
+          assert_equals(recorded_type, "TrustedHTMLParserOptions");
+          assert_equals(recorded_sink, `Node ${method_name}`);
+          assert_false(createHTMLCalled, "createHTML should not be called");
+        }, `${ref_type}.${method_name} passes a "Node" sink name to createParserOptions`);
+      }
+    }
+
+    // Test that createParserOptions is checked before validation checks (like null parent / invalid parent).
+    for (const pos of ["before", "after", "replaceWith", "append", "prepend"]) {
+      const is_container_method = pos === "append" || pos === "prepend";
+      const expected_iface = is_container_method ? "Element" : "Node";
+
+      test((t) => {
+        let recorded_type = null;
+        let recorded_sink = null;
+        createParserOptions = (options, type, sink) => {
+          recorded_type = type;
+          recorded_sink = sink;
+          throw new Error("createParserOptions called");
+        };
+        createHTMLCalled = false;
+        t.add_cleanup(() => {
+          createParserOptions = (options) => options;
+          createHTMLCalled = false;
+        });
+
+        const element = document.createElement("div");
+        try {
+          element[`${pos}HTMLUnsafe`]("<span>test</span>");
+          assert_unreached("Should have thrown");
+        } catch (e) {
+          assert_equals(e.message, "createParserOptions called");
+          assert_equals(recorded_type, "TrustedHTMLParserOptions");
+          assert_equals(recorded_sink, `${expected_iface} ${pos}HTMLUnsafe`);
+          assert_false(createHTMLCalled, "createHTML should not be called");
+        }
+      }, `${pos}HTMLUnsafe checks createParserOptions before hierarchy checks`);
+    }
+  </script>
+</body>
+

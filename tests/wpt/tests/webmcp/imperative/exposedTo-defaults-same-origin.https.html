@@ -139,6 +139,7 @@ promise_test(async t => {
   assert_true(toolsAreEqual(tool, {
     name: 'iframe_tool_default',
     description: 'Iframe tool with default exposure',
+    inputSchema: null,
     origin: iframe.contentWindow.origin
   }), 'Tool details should match');
 
@@ -178,6 +179,7 @@ promise_test(async t => {
   assert_true(toolsAreEqual(tool, {
     name: 'iframe_tool_empty',
     description: 'Iframe tool with empty exposedTo',
+    inputSchema: null,
     origin: iframe.contentWindow.origin
   }), 'Tool details should match');
 

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Declaration restrictions follow the innermost rule</title>
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#fallback-rule">
+<link rel="help" href="https://drafts.csswg.org/css-cascade-6/#scoped-declarations">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function createSheet(t, text) {
+  const style = document.createElement('style');
+  style.textContent = text;
+  document.head.appendChild(style);
+  t.add_cleanup(() => style.remove());
+  return style.sheet;
+}
+
+function wrapRules(groups, text) {
+  for (let i = groups.length - 1; i >= 0; --i) {
+    text = `${groups[i]} { ${text} }`;
+  }
+  return text;
+}
+
+function innermostGroup(sheet, groups) {
+  let group = sheet;
+  for (let i = 0; i < groups.length; ++i) {
+    group = group.cssRules[0];
+  }
+  return group;
+}
+
+const allowed = {
+  left: '0px',
+  width: '105px',
+  height: 'var(--allowed-height)',
+  'place-self': 'center',
+};
+const disallowed = {
+  'border-collapse': 'collapse',
+  display: 'grid',
+  position: 'static',
+  all: 'var(--reset)',
+  '--border-model': 'collapse',
+};
+const declarations = Object.entries({...allowed, ...disallowed})
+    .map(([name, value]) => `${name}: ${value};`).join(' ');
+const positionTry = `@position-try --fallback { ${declarations} }`;
+
+function checkPositionTry(rule) {
+  assert_true(rule instanceof CSSPositionTryRule);
+  for (const [name, value] of Object.entries(allowed)) {
+    assert_equals(rule.style.getPropertyValue(name), value, name);
+  }
+  for (const name of Object.keys(disallowed)) {
+    assert_equals(rule.style.getPropertyValue(name), '', name);
+  }
+}
+
+for (const groups of [
+  [],
+  ['@scope (:root)'],
+  ['@media all', '@scope (:root)', '@supports (display: grid)', '@layer inner'],
+]) {
+  const context = groups.join(' / ') || 'stylesheet';
+
+  test(t => {
+    const sheet = createSheet(t, wrapRules(groups, positionTry));
+    checkPositionTry(innermostGroup(sheet, groups).cssRules[0]);
+  }, `@position-try declarations parsed in ${context}`);
+
+  test(t => {
+    const sheet = createSheet(t, '');
+    sheet.insertRule(wrapRules(groups, positionTry), 0);
+    checkPositionTry(innermostGroup(sheet, groups).cssRules[0]);
+  }, `@position-try declarations inserted with ${context}`);
+
+  test(t => {
+    const sheet = createSheet(t, wrapRules(groups, ''));
+    const group = innermostGroup(sheet, groups);
+    group.insertRule(positionTry, 0);
+    checkPositionTry(group.cssRules[0]);
+  }, `@position-try declarations inserted into ${context}`);
+
+  test(t => {
+    const sheet = createSheet(t, wrapRules(groups, '@position-try --fallback {}'));
+    const rule = innermostGroup(sheet, groups).cssRules[0];
+    rule.style.cssText = declarations;
+    checkPositionTry(rule);
+  }, `@position-try cssText set in ${context}`);
+
+  test(t => {
+    const sheet = createSheet(t, wrapRules(groups, '@position-try --fallback {}'));
+    const rule = innermostGroup(sheet, groups).cssRules[0];
+    for (const [name, value] of Object.entries({...allowed, ...disallowed})) {
+      rule.style.setProperty(name, value);
+    }
+    checkPositionTry(rule);
+  }, `@position-try properties set in ${context}`);
+}
+
+test(t => {
+  const sheet = createSheet(t, `@scope (:root) {
+    @keyframes restricted {
+      to { animation-name: other; opacity: 0.5; }
+    }
+  }`);
+  const style = sheet.cssRules[0].cssRules[0].cssRules[0].style;
+  assert_equals(style.getPropertyValue('animation-name'), '');
+  assert_equals(style.getPropertyValue('opacity'), '0.5');
+}, '@scope cannot relax keyframe declaration restrictions');
+
+test(t => {
+  const sheet = createSheet(t, `@scope (:root) {
+    @page { display: grid; }
+  }`);
+  const style = sheet.cssRules[0].cssRules[0].style;
+  assert_equals(style.getPropertyValue('display'), '');
+}, '@scope cannot relax page declaration restrictions');
+
+test(t => {
+  const sheet = createSheet(t, `@scope (:root) {
+    @page { size: 100px 200px; margin-left: 7px; }
+  }`);
+  const style = sheet.cssRules[0].cssRules[0].style;
+  assert_equals(style.getPropertyValue('size'), '100px 200px');
+  assert_equals(style.getPropertyValue('margin-left'), '7px');
+}, '@page inside @scope accepts page declarations');
+
+test(t => {
+  const sheet = createSheet(t, `@scope (:root) {
+    @page {}
+    display: grid;
+  }`);
+  const style = sheet.cssRules[0].cssRules[1].style;
+  assert_equals(style.getPropertyValue('display'), 'grid');
+}, 'Declarations after a nested @page inside @scope are not restricted');
+
+const computed = getComputedStyle(document.documentElement);
+const allProperties = Array.from(computed, name => [name, computed.getPropertyValue(name)]);
+const allDeclarations = allProperties.map(([name, value]) => `${name}: ${value};`).join(' ');
+
+function checkMatches(scoped, unscoped) {
+  for (const [name] of allProperties) {
+    assert_equals(scoped.getPropertyValue(name), unscoped.getPropertyValue(name), name);
+  }
+}
+
+function testScopedMatches(description, getUnscopedStyle, getScopedStyle) {
+  test(t => {
+    checkMatches(getScopedStyle(t, allDeclarations), getUnscopedStyle(t, allDeclarations));
+  }, `${description} parses the same declarations`);
+
+  test(t => {
+    const unscoped = getUnscopedStyle(t, '');
+    const scoped = getScopedStyle(t, '');
+    for (const [name, value] of allProperties) {
+      unscoped.setProperty(name, value);
+      scoped.setProperty(name, value);
+    }
+    checkMatches(scoped, unscoped);
+  }, `${description} accepts the same properties set`);
+}
+
+for (const [kind, ruleText, getStyle] of [
+  ['@position-try', body => `@position-try --fallback { ${body} }`, rule => rule.style],
+  ['@keyframes', body => `@keyframes k { to { ${body} } }`, rule => rule.cssRules[0].style],
+  ['@page', body => `@page { ${body} }`, rule => rule.style],
+]) {
+  testScopedMatches(
+    `${kind} inside @scope vs. in the stylesheet`,
+    (t, body) => getStyle(createSheet(t, ruleText(body)).cssRules[0]),
+    (t, body) => getStyle(createSheet(t, `@scope (:root) { ${ruleText(body)} }`).cssRules[0].cssRules[0]));
+}
+
+testScopedMatches(
+  'Bare declarations inside @scope vs. in a style rule',
+  (t, body) => createSheet(t, `:root { --unused: 0; ${body} }`).cssRules[0].style,
+  (t, body) => {
+    const rule = createSheet(t, `@scope (:root) { --unused: 0; ${body} }`).cssRules[0].cssRules[0];
+    assert_true(rule instanceof CSSNestedDeclarations);
+    return rule.style;
+  });
+
+test(t => {
+  const groups = [':root', '@scope (:root)', '@media all'];
+  const sheet = createSheet(t, wrapRules(groups, ''));
+  const group = innermostGroup(sheet, groups);
+  group.insertRule('animation: none; place-self: center; border-collapse: collapse; --border-model: collapse;', 0);
+  const style = group.cssRules[0].style;
+  assert_equals(style.getPropertyValue('animation-name'), 'none');
+  assert_equals(style.getPropertyValue('place-self'), 'center');
+  assert_equals(style.getPropertyValue('border-collapse'), 'collapse');
+  assert_equals(style.getPropertyValue('--border-model'), 'collapse');
+}, 'Ordinary declarations inserted into a scoped group retain their context');
+</script>

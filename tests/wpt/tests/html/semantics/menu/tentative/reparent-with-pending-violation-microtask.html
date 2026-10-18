@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<meta name="timeout" content="long">
-<title>Menu reparenting with pending dialog microtask</title>
+<title>Menu reparenting with violation</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/resources/testdriver.js"></script>
@@ -14,24 +13,22 @@ promise_test(async () => {
 
   const inner = document.createElement('menulist');
   const btn = document.createElement('button');
-  inner.appendChild(btn); // inner is disconnected, no observer logic runs
-
-  // Append inner to the document. As a top-level menu, its InsertedInto will
-  // run synchronously, instantiate an observer, traverse the tree, find the
-  // button, and call ScheduleViolationModeUpdate(), queueing a microtask.
+   // inner menulist now has violating content.
+  inner.appendChild(btn);
   document.body.appendChild(inner);
 
-  // Synchronously reparent inner into outer. inner's RemovedFrom runs, disconnecting
-  // its observer. Then inner's InsertedInto runs, finding outer as the root.
-  // The microtask previously scheduled by inner is still in the queue!
+  // Synchronously reparent inner into outer, so we can later check that outer
+  // is also marked as violated.
   outer.appendChild(inner);
 
-  // Yield to allow microtasks (like UpdateDialogModeForAllMenusInTree) to execute.
+  // Yield to allow microtasks to execute that, in some implementations, sync
+  // the violated state of the menu tree.
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
+  // Populate the a11y tree.
   inner.showPopover();
 
-  assert_equals(await test_driver.get_computed_role(outer), 'dialog', 'Outer menu should assume dialog mode because the violation was reparented into it');
-  assert_equals(await test_driver.get_computed_role(inner), 'list', 'Inner menu should assume list mode via synchronous inheritance during the reparent');
-}, 'Synchronous reparenting correctly delegates dialog role updates to the new root');
+  assert_equals(await test_driver.get_computed_role(outer), 'list', 'Outer menu should get list role because the violation was reparented into it');
+  assert_equals(await test_driver.get_computed_role(inner), 'list', 'Inner menu should retain its list role');
+}, 'Synchronous reparenting correctly distributes the list role to the new root');
 </script>

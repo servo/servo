@@ -29,6 +29,7 @@ promise_test(async t => {
   });
 
   anchor.click();
+  assert_equals(location.hash, "#3", "Fragment navigations are synchronous");
   await navigationsPromise;
 
   // We were on #2 when history.back() was called so we should be on #1 now.
