@@ -4608,7 +4608,7 @@ impl Document {
 
         self.get_document_element_unrooted(no_gc)
             .into_iter()
-            .flat_map(move |element| {
+            .flat_map(|element| {
                 element
                     .upcast::<Node>()
                     .traverse_preorder_unrooted(no_gc, ShadowIncluding::No)
