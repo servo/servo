@@ -820,8 +820,13 @@ The `url` and `title` arguments are only valid for the duration of the callback.
   `text` may be `NULL` to indicate no status text.
 - `notify_favicon_changed`: Fired when the favicon URL changes. `url` may be `NULL`
   to indicate no favicon.
-- `show_console_message`: Fired when page content logs to the console. `level` is a
-  `SERVO_CONSOLE_LOG_LEVEL_*` constant; `message` is the log text.
+- `show_console_message`: Fired when page content logs to the console (for
+  example `console.log`, `console.warn`, or an uncaught script error reported to
+  the console). `level` is a `SERVO_CONSOLE_LOG_LEVEL_*` constant (`DEBUG`,
+  `LOG`, `INFO`, `WARN`, `ERROR`); `message` is the log text. **The C API applies
+  no severity filtering** — every message logs through this callback, so filter
+  in the callback if you only care about some levels. Engine-internal log output
+  does not come through here (see `servo_setup_logging`).
 
 **Lifespan category** (new):
 - `notify_closed`: Fired when the `WebView` has been closed, either by the embedder
@@ -1441,33 +1446,52 @@ window.servoMessageRouter.addEventListener("pong", function(data) {
 
 ## DevTools remote debugging
 
-When the `devtools_server_enabled` preference is set to `true`, Servo starts a
-DevTools-compatible HTTP/WebSocket server on an ephemeral port. Embedders can
-use the `ServoDelegate` to be notified when the server starts and to gate
-incoming connections.
+Servo can expose a remote debugging server so a DevTools frontend can inspect the
+WebViews it hosts. **The server is off by default.** Enable it *before* building
+the `Servo` instance, because the server is started inside
+`servo_builder_build`:
 
 ```c
-/* Enable the DevTools server via preferences. */
-servo_preferences_set_bool(preferences, "devtools_server_enabled", true);
+ServoPreferences* preferences = servo_preferences_create();
+/* enabled, port (0 means "use the default port", which is 7000) */
+servo_preferences_set_devtools_server(preferences, true, 9222);
+servo_builder_set_preferences(builder, preferences);
+```
 
-/* Configure the Servo delegate. */
+`servo_preferences_set_devtools_server` is a convenience wrapper for the
+`devtools_server_enabled` and `devtools_server_listen_address` preferences; the
+same thing can be expressed with `servo_preferences_set_bool(preferences,
+"devtools_server_enabled", true)` (which leaves the address at its default,
+`127.0.0.1:7000`).
+
+The server speaks the **legacy Firefox Remote Debugging Protocol** (length-prefixed
+JSON packets over a plain TCP connection; see `components/devtools/protocol.rs`).
+It is *not* the Chrome DevTools Protocol, not HTTP and not WebSocket, so
+`chrome://inspect` and Chrome DevTools cannot attach to it — a client has to
+speak that protocol.
+
+### Authorization flow
+
+`notify_devtools_server_started` fires once the server has started, carrying the
+port and a one-time auth token that is only valid for the duration of the
+callback:
+
+```c
 static void on_devtools_started(struct Servo* servo, uint16_t port,
                                 const char* token, void* user_data)
 {
     (void)servo;
     (void)user_data;
     /* `token` is only valid for the duration of this call. Copy it if needed. */
-    printf("[devtools] Server started on port %u, token: %s\n", port, token);
-    printf("[devtools] Connect Chrome DevTools to http://localhost:%u\n", port);
+    printf("[devtools] Server started on port %u\n", port);
 }
 
 static bool on_devtools_connection_request(struct Servo* servo, void* user_data)
 {
     (void)servo;
     (void)user_data;
-    /* In a real embedder, show a permissions prompt to the user here.
-     * For this example, we always allow. */
-    return true;
+    /* In a real embedder, ask the user before granting access. */
+    return false;
 }
 
 ServoDelegate servo_delegate = {
@@ -1479,15 +1503,38 @@ ServoDelegate servo_delegate = {
 servo_builder_set_delegate(builder, servo_delegate);
 ```
 
-The `notify_devtools_server_started` callback receives the port number and a
-one-time token. The embedder can print the port so the user knows where to
-connect Chrome DevTools (or any compatible frontend). The token can be appended
-to the WebSocket URL (`ws://localhost:<port>/devtools/page/<token>`) to bypass
-the permission prompt.
+A client that already knows the token may present it in its first packet
+(`<length>:{"auth_token":"<token>"}`) to connect without a prompt. Every other
+connection is handed to `request_devtools_connection`, which returns `true` to
+allow it and `false` to deny it. If no callback is set, the connection is
+**denied**, so no client can attach by accident.
 
-The `request_devtools_connection` callback is invoked when a DevTools client
-attempts to connect. Return `true` to allow the connection, `false` to deny it.
-A typical embedder would show a confirmation dialog here.
+Both callbacks currently receive `NULL` for their `servo` argument — the Rust
+`ServoDelegate` trait does not hand the delegate a `Servo` handle, so there is no
+temporary handle to pass. Do not dereference it; use `user_data` to reach
+embedder state (`ffi/capi/servo_delegate.rs`).
+
+> **Security — authorizing a DevTools connection is a remote-code-execution
+> grant.** A connected client can evaluate arbitrary script in *every* `WebView`
+> of the process, read page content and cookie/storage data, and drive
+> navigation. Treat it like handing a debugger to whoever asked:
+>
+> - Keep the server disabled in production embedders unless the user turned it
+>   on deliberately. The API always binds `127.0.0.1`; never forward that port
+>   to a network.
+> - Treat the auth token as a password: it bypasses the prompt, so do not log it
+>   where page content or other users could read it.
+> - If the address cannot be bound, no server is started and
+>   `notify_devtools_server_started` never fires. There is currently **no C
+>   callback for that failure** (the Rust
+>   `ServoDelegate::notify_error(ServoError::DevtoolsFailedToStart)` path has no C
+>   equivalent), so treat a missing start callback as "the server did not
+>   start".
+
+The C test suite covers the start notification on all three platforms
+(`tests/capi/c/test_integration.c`, `test_devtools_server_started`). The
+connection gate itself is not covered by an automated test: exercising it needs a
+client that completes the Remote Debugging Protocol connection.
 
 ## Taking screenshots
 

@@ -21,14 +21,17 @@ use servo_api::{AllowOrDenyRequest, Servo, ServoDelegate as RustServoDelegate};
 ///
 /// # Ownership of callback arguments
 ///
-/// The `servo` argument passed to each callback is a temporary handle.
-/// Its lifetime is limited to the duration of the callback. The
-/// embedder must not retain or use handle after the callback returns.
-/// The callback must not pass it to `servo_free` or any other
-/// function that takes ownership of a `Servo`.
-///
 /// The `user_data` pointer is owned by the embedder.
 /// The validity and lifetime of `user_data` is the embedder's responsibility.
+///
+/// The `servo` argument is currently **always `NULL`** for the callbacks of
+/// this struct: the Rust `ServoDelegate` trait does not hand the delegate a
+/// `Servo` handle, so there is no temporary handle to pass. Do not dereference
+/// it; use `user_data` to reach embedder state. If a later version does pass a
+/// temporary handle, its lifetime is limited to the duration of the callback,
+/// it must not be retained or used after the callback returns, and it must not
+/// be passed to `servo_free` or any other function that takes ownership of a
+/// `Servo`.
 ///
 /// # Safety
 ///
@@ -99,7 +102,8 @@ impl RustServoDelegate for ServoDelegateWrapper {
         // SAFETY: The embedder is assumed to uphold the safety requirements of the
         // `ServoDelegate` struct.
         //
-        // The `servo` raw pointer is derived from a valid `servo` handle.
+        // The `servo` argument is `NULL`: the Rust `ServoDelegate` trait does not
+        // give the delegate a `Servo` handle, and the C contract documents that.
         // `token` outlives the call.
         unsafe { callback(std::ptr::null_mut(), port, token.as_ptr(), self.delegate.user_data) };
     }
@@ -114,7 +118,7 @@ impl RustServoDelegate for ServoDelegateWrapper {
         // SAFETY: The embedder is assumed to uphold the safety requirements of the
         // `ServoDelegate` struct.
         //
-        // The `servo` raw pointer is derived from a valid `servo` handle.
+        // The `servo` argument is `NULL`; see `notify_devtools_server_started`.
         let allow = unsafe { callback(std::ptr::null_mut(), self.delegate.user_data) };
 
         if allow {

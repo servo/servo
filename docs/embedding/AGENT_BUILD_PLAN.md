@@ -809,8 +809,11 @@ dedicated modules only if they are not webview-scoped.
 `show_console_message`). What does not exist is evidence they work.
 
 **Steps**
-1. Exercise them: enable the devtools pref via `servo_options_set_debug_option`, start the
-   event loop, assert `notify_devtools_server_started` fires (integration test).
+1. Exercise them: enable the DevTools server with
+   `servo_preferences_set_devtools_server` (`servo_options_set_debug_option` only controls
+   diagnostics logging, it does not touch the DevTools server), start the event loop, assert
+   `notify_devtools_server_started` fires (integration test in
+   `tests/capi/c/test_integration.c`).
 2. Document the authorization flow (`request_devtools_connection` accept/deny) in
    `C_API_GUIDE.md`, including the security warning (authorizing a DevTools connection is
    a remote-code-execution grant — say that plainly).
@@ -1389,6 +1392,7 @@ baseline) and only then pick root causes — not to touch `tests/wpt/meta` whole
 | `docs/embedding/GRAPHICS_AND_WEBGPU_STATUS.md` | WebGL "Production" on 4 platforms | no hardware evidence recorded on this branch |
 | `docs/embedding/ACCESSIBILITY_AND_PRINTING.md` §1 | AccessKit integration described as working incl. "C Embedding Exposure" | no `components/accessibility` crate; no a11y export in `ffi/capi`; unverified → W6.4 |
 | `docs/embedding/AUDIT.md` | not updated for W4.1/W4.3 | inventory lags the branch |
+| `docs/embedding/AUDIT.md` §3 | C API "still no … dialogs, DevTools" and "DevTools not reachable from C" | the DevTools server is reachable from C: `servo_preferences_set_devtools_server` plus the `ServoDelegate` callbacks `notify_devtools_server_started` / `request_devtools_connection` (exercised by the W4.4 integration test) |
 | `PRODUCTION_REPORT.md` §3 and `IMPLEMENTATION_REVIEW.md` §2/§5, `IMPLEMENTATION_REVIEW_PASS2.md` §0/§5/§6 | `capi-artifacts.yml` "**Never run**"/"never dispatched" | ran green on all three platforms: run `39145918170`; artifacts `servo-capi-0.1.0-<platform>-7dba370`; `workflow_dispatch` proven (run `39149442966`)... a stale claim this plan's W5.2 closed |
 
 **Rule:** fixing a stale document is a legitimate, committable outcome on its own

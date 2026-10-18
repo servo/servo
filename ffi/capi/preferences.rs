@@ -558,8 +558,11 @@ pub unsafe extern "C" fn servo_preferences_get_u64(
 /// Configures the Chrome DevTools remote debugging server.
 ///
 /// This provides parity with CEF's `CefSettings.remote_debugging_port`.
-/// When enabled, the DevTools HTTP server listens on the specified `port`
-/// on 127.0.0.1.
+/// When enabled, the DevTools server listens on the specified `port` on
+/// 127.0.0.1 and speaks the legacy Firefox Remote Debugging Protocol
+/// (length-prefixed JSON packets over TCP, not HTTP and not the Chrome
+/// DevTools Protocol). The server is started by `servo_builder_build` and its
+/// start is reported through `ServoDelegate::notify_devtools_server_started`.
 ///
 /// `preferences` is a handle to a `ServoPreferences` object.
 /// `enabled` turns the DevTools server on or off.

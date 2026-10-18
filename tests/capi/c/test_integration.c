@@ -1158,6 +1158,103 @@ static int test_site_storage(struct Servo* servo)
     return 0;
 }
 
+/* DevTools server coverage.
+ *
+ * The DevTools server is a Servo-level feature: it is switched on with
+ * `servo_preferences_set_devtools_server` and reported through the
+ * `ServoDelegate` callbacks. The server is started while the `Servo` is being
+ * built, but the start notification travels through the embedder event loop, so
+ * it is only delivered once that loop is pumped.
+ */
+#define TEST_DEVTOOLS_PORT 9222
+
+typedef struct {
+    // Set by `notify_devtools_server_started`.
+    int started_fired;
+    int started_port;
+    int token_empty;
+    char token[64];
+    // Set by `request_devtools_connection`.
+    int connection_requests;
+} test_devtools_state_t;
+
+static test_devtools_state_t g_devtools_state;
+
+static void on_devtools_server_started(struct Servo* servo, uint16_t port, const char* token, void* user_data)
+{
+    // `servo` is NULL by contract for this callback (see
+    // `ffi/capi/servo_delegate.rs`): the Rust `ServoDelegate` trait does not
+    // pass a handle, so there is nothing to check here.
+    (void)servo;
+    log("  [devtools] notify_devtools_server_started -> port=%u\n", port);
+    test_devtools_state_t* state = (test_devtools_state_t*)user_data;
+    state->started_fired = 1;
+    state->started_port = port;
+    if (token == NULL || token[0] == '\0') {
+        state->token_empty = 1;
+        return;
+    }
+    // The `token` argument is only valid for the duration of the callback.
+    strncpy(state->token, token, sizeof(state->token) - 1);
+    state->token[sizeof(state->token) - 1] = '\0';
+}
+
+static bool on_request_devtools_connection(struct Servo* servo, void* user_data)
+{
+    (void)servo;
+    test_devtools_state_t* state = (test_devtools_state_t*)user_data;
+    state->connection_requests++;
+    log("  [devtools] request_devtools_connection -> denying\n");
+    // Deny by default: authorizing a DevTools connection lets that client run
+    // script in every WebView, so a real embedder has to ask its user first.
+    return false;
+}
+
+/* Integration test that verifies the DevTools server enabled by the entry point
+ * really started (the start notification is only sent when the listen address
+ * could be bound) and that it carries a usable port and auth token.
+ *
+ * `request_devtools_connection` is deliberately not exercised here: reaching it
+ * needs a client that completes the Remote Debugging Protocol connection without
+ * the auth token, which this test does not implement. The deny-when-no-callback
+ * default is covered in `ffi/capi/servo_delegate.rs`.
+ */
+static int test_devtools_server_started(struct Servo* servo)
+{
+    log("running test_devtools_server_started\n");
+    int result = 1;
+    int elapsed_ms = 0;
+    const int poll_ms = 15;
+
+    while (elapsed_ms < 10000 && !g_devtools_state.started_fired) {
+        servo_spin_event_loop(servo);
+        sleep_ms(poll_ms);
+        elapsed_ms += poll_ms;
+    }
+
+    if (!g_devtools_state.started_fired) {
+        log("  FAIL: notify_devtools_server_started never fired after %dms "
+            "(is port %d free?)\n", elapsed_ms, TEST_DEVTOOLS_PORT);
+        goto cleanup;
+    }
+    if (g_devtools_state.started_port != TEST_DEVTOOLS_PORT) {
+        log("  FAIL: server reported port %d, expected %d\n",
+            g_devtools_state.started_port, TEST_DEVTOOLS_PORT);
+        goto cleanup;
+    }
+    if (g_devtools_state.token_empty) {
+        log("  FAIL: server reported an empty auth token\n");
+        goto cleanup;
+    }
+
+    log("  [devtools] auth token: '%s'\n", g_devtools_state.token);
+    log("  PASS: DevTools server started and the delegate was notified\n");
+    result = 0;
+
+cleanup:
+    return result;
+}
+
 // Entry point for the integration test. This is called from the Rust-side test
 // runner.
 //
@@ -1182,6 +1279,27 @@ int run_c_integration_tests(void)
     servo_options_set_multiprocess(options, false);
     servo_builder_set_options(builder, options);
 
+    // Enable the DevTools server before building the Servo: the server is
+    // started inside `servo_builder_build` and `test_devtools_server_started`
+    // then only has to wait for the notification to arrive.
+    ServoPreferences* preferences = servo_preferences_create();
+    if (servo_preferences_set_devtools_server(preferences, true, TEST_DEVTOOLS_PORT) != SERVO_ERROR_OK) {
+        log("  FAIL: servo_preferences_set_devtools_server failed\n");
+        return 1;
+    }
+    servo_builder_set_preferences(builder, preferences);
+
+    ServoDelegate servo_delegate = {
+        .struct_size = sizeof(ServoDelegate),
+        .user_data = &g_devtools_state,
+        .notify_devtools_server_started = on_devtools_server_started,
+        .request_devtools_connection = on_request_devtools_connection,
+    };
+    if (servo_builder_set_delegate(builder, servo_delegate) != SERVO_ERROR_OK) {
+        log("  FAIL: servo_builder_set_delegate failed\n");
+        return 1;
+    }
+
     // Register custom scheme protocol handler
     servo_builder_register_protocol_handler(builder, "custom", on_custom_protocol_handler, NULL);
 
@@ -1193,7 +1311,10 @@ int run_c_integration_tests(void)
 
     servo_setup_logging(servo);
 
-    result = test_webview_load_and_screenshot(servo);
+    result = test_devtools_server_started(servo);
+    if (result == 0) {
+        result = test_webview_load_and_screenshot(servo);
+    }
     if (result == 0) {
         result = test_webview_custom_scheme(servo);
     }
