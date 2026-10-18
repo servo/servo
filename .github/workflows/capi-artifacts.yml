@@ -167,6 +167,14 @@ jobs:
           # cargo-c does not work with sccache, so explicitly disable it.
           RUSTC_WRAPPER: ""
           SCCACHE_GHA_ENABLED: "false"
+          # Git-bash (MSYS) rewrites POSIX-path-looking arguments when spawning
+          # native exes: `--prefix /` arrived as `--prefix C:/Program Files/Git`
+          # and buried the whole sysroot under
+          # `target/artifacts/Program Files/Git/`. MSYS_NO_PATHCONV=1 disables
+          # that (verified against Git for Windows bash; MSYS2_ARG_CONV_EXSL
+          # does not). Scoped to this step only: the cmake/gcc steps below
+          # still want `/d/a/...` converted to `D:/a/...`.
+          MSYS_NO_PATHCONV: "1"
         run: |
           cargo cinstall -p servo-capi \
             --library-type cdylib \
