@@ -22,6 +22,7 @@ prioritised workstreams.
 | [`docs/embedding/COMPATIBILITY.md`](docs/embedding/COMPATIBILITY.md) | What works on which platform/feature |
 | [`IMPLEMENTATION_REVIEW.md`](IMPLEMENTATION_REVIEW.md) | Independent verification of the first implementation pass (blockers B1–B7) |
 | [`IMPLEMENTATION_REVIEW_PASS2.md`](IMPLEMENTATION_REVIEW_PASS2.md) | Independent verification of the repair + W5.2 + W4.1 pass (blockers B8–B10, R2 follow-up) |
+| [`docs/embedding/AGENT_BUILD_PLAN.md`](docs/embedding/AGENT_BUILD_PLAN.md) | **Executable build plan for W2–W6** — ground rules, CI gates, per-ticket touch points and acceptance criteria |
 
 ---
 
@@ -91,7 +92,7 @@ Evidence, not opinion:
 |---|---|
 | Windows builds, smoketests, unit-tests, packages | **Verified by CI on every push** |
 | C API compiles + tests on Linux/macOS/Windows | **Verified** (`embedding-api.yml`, `windows.yml:capi`) |
-| Web conformance on Windows | **Not measured** — no `windows-wpt.yml` exists (checked: zero matches in `.github/workflows/`) |
+| Web conformance on Windows | **Not measured** — `windows-wpt.yml` now exists in `.github/workflows/` but has never been dispatched (the workflow API returns 404 for it) |
 | Windowed/GPU present path on Windows | **Not covered by CI** — runners are headless, tests assert windowed context returns `NULL` |
 | This pass's Rust changes (SameSite, panic fix) | **Unverified** — no toolchain here; must be proven by `cargo test -p servo-net` + WPT `cookies`/`same-site`/`fetch` |
 | `examples/c-embedder` vs the real generated header | **Unverified** — only compiled against a stub |
