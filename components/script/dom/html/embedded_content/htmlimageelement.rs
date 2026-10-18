@@ -12,6 +12,7 @@ use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use mime::{self, Mime};
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::image_cache::{
     Image, ImageCache, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable,
     ImageResponse, PendingImageId,
@@ -306,7 +307,11 @@ impl HTMLImageElement {
                 self.register_image_cache_callback(id, ChangeType::Element);
             },
             ImageCacheResult::ReadyForRequest(id) => {
-                self.fetch_request(img_url, id);
+                let url_with_claim = ensure_blob_referenced_by_url_is_kept_alive(
+                    &self.owner_global(),
+                    img_url.clone(),
+                );
+                self.fetch_request(url_with_claim, id);
                 self.register_image_cache_callback(id, ChangeType::Element);
             },
             ImageCacheResult::FailedToLoadOrDecode => {
@@ -356,7 +361,7 @@ impl HTMLImageElement {
         ));
     }
 
-    fn fetch_request(&self, img_url: &ServoUrl, id: PendingImageId) {
+    fn fetch_request(&self, img_url: UrlWithBlobClaim, id: PendingImageId) {
         let document = self.owner_document();
         let window = self.owner_window();
 
@@ -367,17 +372,16 @@ impl HTMLImageElement {
             aborted: false,
             doc: Trusted::new(&document),
             element: Trusted::new(self),
-            url: img_url.clone(),
+            url: img_url.url(),
         };
 
         // https://html.spec.whatwg.org/multipage/#update-the-image-data steps 17-20
         // This function is also used to prefetch an image in `script::dom::servoparser::prefetch`.
         let global = document.global();
 
-        let url_record = ensure_blob_referenced_by_url_is_kept_alive(&global, img_url.clone());
         let mut request = create_a_potential_cors_request_with_claim(
             Some(window.webview_id()),
-            url_record,
+            img_url,
             Destination::Image,
             cors_setting_for_element(self.upcast()),
             None,
@@ -1077,7 +1081,11 @@ impl HTMLImageElement {
                 );
             },
             ImageCacheResult::ReadyForRequest(id) => {
-                self.fetch_request(&image_url, id);
+                let url_with_claim = ensure_blob_referenced_by_url_is_kept_alive(
+                    &self.owner_global(),
+                    image_url.clone(),
+                );
+                self.fetch_request(url_with_claim, id);
                 self.register_image_cache_callback(id, change_type);
             },
             ImageCacheResult::Pending(id) => {
