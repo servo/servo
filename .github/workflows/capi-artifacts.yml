@@ -7,13 +7,34 @@
 # .github/workflows/embedding-api.yml, which builds and *tests* the C API on
 # every relevant PR and does not upload anything.
 #
-# The build is heavy (it compiles the whole engine), so it runs only on demand
-# or for `capi-v*` tags, never on pull requests.
+# The build is heavy (it compiles the whole engine in release mode), so it runs
+# only for `capi-v*` tags or for pushes to this branch that touch
+# packaging-relevant paths — never on pull requests and never on ordinary
+# engine-code pushes.
+#
+# NOTE: `workflow_dispatch` only receives events when the workflow file exists
+# on the repository's default branch (GitHub docs, `on.workflow_dispatch`), and
+# this file exists only on `embedding/cef-parity`. Manual dispatch therefore
+# fails with HTTP 404 "not found on the default branch"; the `push` trigger
+# below is the supported way to start a run. Push events read the workflow file
+# from the pushed ref, so they work without the file being on the default
+# branch (the same property `embedding-api.yml` relies on).
 name: C API prebuilt artifacts
 
 on:
   workflow_dispatch:
   push:
+    branches:
+      - embedding/cef-parity
+    paths:
+      - '.github/workflows/capi-artifacts.yml'
+      - 'examples/c-embedder/**'
+      - 'ffi/capi/Cargo.toml'
+      - 'ffi/capi/cbindgen.toml'
+      - 'support/cmake/**'
+      - 'support/pkgconfig/**'
+    # Path filters are not evaluated for pushes of tags, so this trigger keeps
+    # working regardless of the `paths` list above.
     tags:
       - 'capi-v*'
 
