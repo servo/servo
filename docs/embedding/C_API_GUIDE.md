@@ -313,6 +313,7 @@ void servo_options_set_hard_fail(ServoOptions*, bool);
 void servo_options_set_multiprocess(ServoOptions*, bool);
 void servo_options_set_force_ipc(ServoOptions*, bool);
 void servo_options_set_background_hang_monitor(ServoOptions*, bool);
+void servo_options_set_hang_monitor_kill_script(ServoOptions*, bool);
 void servo_options_set_sandbox(ServoOptions*, bool);
 void servo_options_set_temporary_storage(ServoOptions*, bool);
 void servo_options_set_ignore_certificate_errors(ServoOptions*, bool);
@@ -1611,6 +1612,37 @@ typedef enum ServoError {
 1. **Fallible functions**: Return `ServoError`. Embedders should check return codes for `< 0`.
 2. **Object constructors**: Return a pointer (`*mut T`), returning `NULL` on failure or allocation error.
 3. **Panic-free boundary guarantee**: All FFI entry points are protected by panic boundaries (`catch_unwind`). No invalid argument or internal panic can cross the C ABI to crash the host process. If a panic occurs inside Servo during an FFI call, `SERVO_ERROR_INTERNAL_PANIC` (`-8`) or `NULL` is returned.
+
+## Hang monitoring and hung-script recovery
+
+Servo runs a background hang monitor (BHM) and a hung-script kill switch, **both
+enabled by default** (`servo_options_create()` returns defaults with both on).
+What that means for an embedder:
+
+- The script thread reports activity to the BHM. A component that stops
+  servicing checkpoints for 1 second produces a transient warning (diagnostics
+  only); one that stays wedged for **5 seconds** is treated as permanently
+  hung.
+- On a permanent hang, with the kill option enabled, Servo terminates the hung
+  JavaScript: an in-flight `servo_webview_evaluate_javascript` completes with
+  an **error** instead of never returning, the WebView goes inert (no further
+  delegate callbacks, no frames), and nothing aborts. That error is the
+  defined outcome of a kill.
+- After a kill the WebView cannot be revived. Recovery: free the inert
+  WebViews and create new ones — Servo spawns a fresh script thread for them —
+  or exit and restart the engine. In multiprocess builds, letting the browser
+  process reap the content process is the equivalent.
+- Opt out per flag before `servo_builder_build`:
+  - `servo_options_set_background_hang_monitor(options, false)` — no
+    monitoring at all.
+  - `servo_options_set_hang_monitor_kill_script(options, false)` — monitor and
+    warn, but leave hung scripts running (the pre-W5.1 behaviour).
+- Limitation: the kill is cooperative and interrupts **JavaScript**. A script
+  thread wedged inside native code that never re-enters JavaScript is not
+  interrupted; guard such work yourself or enforce app-level timeouts.
+
+`test_hang_monitor_kills_hung_script` in `tests/capi/c/test_integration.c`
+exercises this end to end with the shipped defaults.
 
 ## Common pitfalls
 

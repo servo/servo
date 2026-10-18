@@ -654,6 +654,147 @@ cleanup:
     return result;
 }
 
+/* State for the hang-monitor test is the shared `test_state_t`; the
+ * interrupted evaluation is reported through `js_error_received` / `js_error`. */
+static void on_javascript_hang_kill(const char* result_json, const char* error_message, void* user_data)
+{
+    test_state_t* state = (test_state_t*)user_data;
+    if (error_message != NULL) {
+        state->js_error_received = 1;
+        strncpy(state->js_error, error_message, sizeof(state->js_error) - 1);
+        state->js_error[sizeof(state->js_error) - 1] = '\0';
+        log("  [js] infinite loop interrupted by the hang monitor: %s\n", error_message);
+    } else {
+        log("  [js] infinite loop unexpectedly completed: %s\n",
+            result_json ? result_json : "(null)");
+    }
+}
+
+/* Proves that a component that stops servicing hang-monitor checkpoints is
+ * terminated within the permanent hang timeout (5s) and that the embedder
+ * observes a defined outcome rather than a silent hang.
+ *
+ * The background hang monitor and the hung-script kill are enabled by default
+ * (`servo_options_create()` -> `Opts::default()`). Evaluating an infinite
+ * JavaScript loop wedges the script thread; the background hang monitor
+ * detects the permanent hang, the constellation broadcasts
+ * `SignalComponentExit`, and the script thread's JS interrupt terminates the
+ * loop. The observable is the interrupted evaluation completing with an error
+ * (it would otherwise never return).
+ *
+ * This test runs last: a kill leaves the event loop's script thread inert for
+ * good, so the WebViews of this Servo instance are dead afterwards. The
+ * suite's final `servo_free` then doubles as the clean-shutdown assertion:
+ * if the kill wedged teardown, the process would hang here and the CI job
+ * would time out instead of printing PASS.
+ */
+int test_hang_monitor_kills_hung_script(struct Servo* servo)
+{
+    log("running test_hang_monitor_kills_hung_script\n");
+    int result = 1; // default to fail
+    struct WebView* webview = NULL;
+    test_state_t state;
+    memset(&state, 0, sizeof(state));
+
+    state.expected_width = 100;
+    state.expected_height = 100;
+    RenderingContext* context = servo_rendering_context_create_software(
+        state.expected_width, state.expected_height);
+    if (!context) {
+        log("  FAIL: servo_rendering_context_create_software returned NULL\n");
+        goto cleanup;
+    }
+
+    ServoWebViewBuilder* webview_builder = servo_webview_builder_create(servo, context);
+    if (!webview_builder) {
+        log("  FAIL: servo_webview_builder_create returned NULL\n");
+        goto cleanup;
+    }
+
+    ServoWebViewDelegate delegate = {
+        .struct_size = sizeof(ServoWebViewDelegate),
+        .user_data = &state,
+        .notify_load_status_changed = on_load_status_changed,
+    };
+    servo_webview_builder_set_delegate(webview_builder, delegate);
+
+    const char* url = "data:text/html,<html><head><title>Hang%20Monitor</title></head>"
+                      "<body>before the hang</body></html>";
+    if (servo_webview_builder_set_url(webview_builder, url) != 0) {
+        log("  FAIL: servo_webview_builder_set_url failed for url '%s'\n", url);
+        servo_webview_builder_free(webview_builder);
+        goto cleanup;
+    }
+
+    webview = servo_webview_builder_build(webview_builder);
+    if (!webview) {
+        log("  FAIL: servo_webview_builder_build returned NULL\n");
+        goto cleanup;
+    }
+
+    // Let the trivial page load finish so the script thread is up and idle
+    // before wedging it.
+    log("  Spinning event loop until load completes... (timeout 10s)\n");
+    {
+        int elapsed_ms = 0;
+        while (elapsed_ms < 10000) {
+            servo_spin_event_loop(servo);
+
+            if (state.step >= TEST_STEP_LOAD_COMPLETE) {
+                break;
+            }
+            sleep_ms(15);
+            elapsed_ms += 15;
+        }
+    }
+    if (state.step < TEST_STEP_LOAD_COMPLETE) {
+        log("  FAIL: page load did not complete in time\n");
+        goto cleanup;
+    }
+
+    // Wedge the script thread. The callback fires exactly once: with an error
+    // once the hang monitor interrupts the loop (expected), or never if the
+    // kill is broken.
+    log("  Evaluating an infinite loop; expecting the hang monitor to kill it\n");
+    if (servo_webview_evaluate_javascript(webview, "while (true) {}",
+            on_javascript_hang_kill, &state) != 0) {
+        log("  FAIL: servo_webview_evaluate_javascript failed to queue\n");
+        goto cleanup;
+    }
+
+    log("  Spinning event loop until the interrupted evaluation reports... (timeout 12s)\n");
+    {
+        int elapsed_ms = 0;
+        while (elapsed_ms < 12000) {
+            servo_spin_event_loop(servo);
+
+            if (state.js_error_received) {
+                break;
+            }
+            sleep_ms(15);
+            elapsed_ms += 15;
+        }
+        log("  hang observed after ~%d ms\n", elapsed_ms);
+    }
+
+    if (!state.js_error_received) {
+        log("  FAIL: infinite loop was not interrupted within 12s "
+            "(permanent hang timeout is 5s; hung-script kill not working?)\n");
+        goto cleanup;
+    }
+
+    result = 0;
+    log("  PASS: hung script terminated with a defined outcome\n");
+
+cleanup:
+    // Safe after the kill: closing the WebView is handled by the constellation,
+    // and the inert script thread only serves exit messages.
+    if (webview) {
+        servo_webview_free(webview);
+    }
+    return result;
+}
+
 static bool on_custom_protocol_handler(const struct ServoWebResourceRequest* request,
                                        struct ServoWebResourceResponse* response,
                                        void* user_data)
@@ -1332,6 +1473,11 @@ int run_c_integration_tests(void)
     }
     if (result == 0) {
         result = test_webview_close(servo);
+    }
+    // Registered last: a hang-monitor kill leaves the script thread inert for
+    // good, and the suite's servo_free() below then asserts clean shutdown.
+    if (result == 0) {
+        result = test_hang_monitor_kills_hung_script(servo);
     }
 
     log("%s\n", result == 0 ? "PASS" : "FAIL");

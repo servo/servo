@@ -20,103 +20,90 @@ bounded engineering steps with exact touch points.
 
 ### A.1 Background hang monitor (BHM)
 
+**Status: implemented.** Both flags default to `true` and a permanent hang
+terminates the hung component's script; the embedder observes the interrupted
+JavaScript call completing with an error. The design text below is kept for
+provenance; claims that no longer hold are corrected in place.
+
 **Where it lives**
 
-- Config flag: `components/config/opts.rs` — `background_hang_monitor: bool`,
-  default `false` (line 251).
-- Shell flag: `ports/servoshell/prefs.rs` — `-B` / `--bhm` (line 384), piped to
-  `opts` at line 762.
-- C API: `ffi/capi/options.rs` — `servo_options_set_background_hang_monitor`
-  (line 287) already plumbs through to `Opts::background_hang_monitor`.
+- Config flags: `components/config/opts.rs` — `background_hang_monitor` and
+  `hang_monitor_kill_script`, **both default `true`**.
+- C API: `ffi/capi/options.rs` — `servo_options_create()` returns
+  `Opts::default()`, so C embedders get both on; the individual setters
+  (`servo_options_set_background_hang_monitor`,
+  `servo_options_set_hang_monitor_kill_script`) remain the opt-outs.
+- Shell flags: `ports/servoshell/prefs.rs` — `-B` / `--bhm` and
+  `--bhm-kill-hung-scripts`. servoshell parses these as explicit CLI booleans
+  (default `false`) and **overrides** `Opts::default()`, so the shell stays
+  opt-in. Changing the shell's CLI default requires a bpaf two-flag construct
+  and cannot be verified by this branch's CI gate (no workflow compiles
+  `ports/servoshell` on a push to `embedding/cef-parity`), so it is left as a
+  follow-up.
 - Worker: `components/background_hang_monitor/background_hang_monitor.rs`.
 - Alert API: `components/shared/background_hang_monitor/lib.rs`
   (`HangAlert::{Transient,Permanent}`, `MonitoredComponentId`,
-  `BackgroundHangMonitorExitSignal`).
+  `BackgroundHangMonitorExitSignal`, `BackgroundHangMonitorControlMsg`).
 - Consumer: `components/constellation/constellation.rs`
-  `handle_request_from_background_hang_monitor` (line 1225) and
+  `handle_request_from_background_hang_monitor` and
   `components/constellation/event_loop.rs`
-  `send_message_to_background_hang_monitor` (line 206).
+  `send_message_to_background_hang_monitor`.
 
-**What it does today**
+**How a kill plays out (verified end to end, W5.1)**
 
-- It samples monitored script components and, when a component's
-  `last_activity` exceeds its **transient** or **permanent** hang timeout, sends
-  `HangAlert::Transient` / `HangAlert::Permanent` to the constellation
-  (`background_hang_monitor.rs:375-407`). Each alert is sent at most once until
-  activity resumes.
-- The constellation's handler does one thing:
-  `warn!("Component hang alert: {:?}", message)` — and carries a TODO for a
-  "kill script" workflow (line 1226).
-- The script thread **already implements the kill primitive**. It registers a
-  `BHMExitSignal` (`script_thread.rs:427-437`) whose `signal_to_exit()` sets a
-  `closing` flag and requests a JS interrupt callback; the registered
-  `interrupt_callback` (`script_thread.rs:440-446`) then returns `false`, which
-  makes `can_continue_running_inner()` false and runs
-  `prepare_for_shutdown_inner()` (`script_thread.rs:997-1005`). In other words,
-  calling `signal_to_exit` on a script thread **stops its script**, by design.
-- The gap: `signal_to_exit` is only ever called during **shutdown** — on
-  `BhmMessage::Exit`, on control-port disconnect, and on late registration while
-  shutting down (`background_hang_monitor.rs:260-287, 316-323`). It is **never**
-  called in response to a hang alert. So today a permanently hung script is
-  reported and then left running.
+1. The BHM worker ticks every 100ms while monitoring is enabled. For each
+   registered component it compares `last_activity` against the transient (1s)
+   and permanent (5s, hard-coded in `script_thread.rs`) timeouts, skipping
+   components that are waiting for events. Each alert is sent at most once
+   until activity resumes.
+2. On `HangAlert::Permanent`, the constellation logs the alert and, when
+   `hang_monitor_kill_script` is set, broadcasts
+   `BackgroundHangMonitorControlMsg::SignalComponentExit(component_id)`.
+3. The worker looks up the named component and calls
+   `component.exit_signal.signal_to_exit()`. For a script thread this sets a
+   `closing` flag and requests a JS interrupt; the interrupt callback runs
+   `prepare_for_shutdown()` (cancelling all pending tasks) and returns
+   `false`, which makes SpiderMonkey terminate the running script. An
+   in-flight `servo_webview_evaluate_javascript` therefore completes **with an
+   error** — that is the embedder-visible outcome of a kill.
+4. Afterwards the script thread is inert, not dead: `handle_msgs` only services
+   `ExitScriptThread` / `ExitPipeline` and drops everything else, and
+   rendering updates stop. It exits cleanly when the constellation drops its
+   `EventLoop` (`EventLoop::drop` sends `ExitScriptThread`), which happens
+   once the killed pipelines are closed — normally at embedder teardown, or
+   earlier if the embedder frees the WebViews.
+5. Shutdown is not blocked by a killed thread: sends to its queue fail fast and
+   `close_pipeline` treats an unreachable pipeline as already exited;
+   `handle_shutdown`'s joins return normally because the kill is cooperative.
+   (The `run_content_process` join sites named in the original W5.1 ticket,
+   `components/servo/servo.rs`, only panic if the script thread itself
+   panicked — unchanged behaviour — and that `#[cfg(feature = "multiprocess")]`
+   code is not compiled by this branch's CI gate, so no speculative edit was
+   made there.)
 
-#### A.1.1 Decide the default (policy, one line)
+**Known limitations (documented, not fixed)**
 
-`background_hang_monitor` is off by default. Turning it on by default is a
-one-line change in `components/config/opts.rs`, but it is a **behavioural**
-change (new threads, new sampling) and should be made deliberately:
+- The kill is cooperative: it interrupts **JavaScript execution**. A script
+  thread wedged in native code that never re-enters JS never sees the
+  interrupt; recovery then relies on embedder-level timeouts. True force-kill
+  needs OS-level thread termination, which is out of scope.
+- After a kill the event loop's script thread stays shut down for good: its
+  WebViews are inert (no further delegate callbacks, no frames). The embedder
+  recovery recipe is to free the killed WebViews and create new ones (a fresh
+  script thread is spawned), or to exit and restart the engine; in
+  multiprocess builds, letting the browser process reap the content process is
+  the equivalent.
+- Transient alerts (1s) never kill; they are diagnostics only.
 
-1. Turn it on by default for desktop embedders (it is already reachable from the
-   C API), keeping `--bhm=false` / the C setter as the opt-out.
-2. Gate it behind the existing `multiprocess`/sandbox story only if sampling
-   proves to be a problem in single-process mode.
-3. Land it with the kill-script workflow below so alerts have an effect.
+**Tests**
 
-#### A.1.2 Kill-script workflow (the real work)
-
-Goal: when a **permanent** hang is reported for a script component, stop that
-component's script instead of only logging.
-
-The clean path reuses the existing exit-signal plumbing rather than inventing a
-new cross-thread mechanism:
-
-1. **Add a per-component control message.**
-   `components/shared/background_hang_monitor/lib.rs`: extend
-   `BackgroundHangMonitorControlMsg` (currently only `Exit`) with a variant that
-   names the component, e.g.
-   `SignalComponentExit(MonitoredComponentId)`.
-2. **Handle it in the worker.**
-   `components/background_hang_monitor/background_hang_monitor.rs`, next to
-   `BhmMessage::Exit`: on `SignalComponentExit(id)`, look up
-   `self.monitored_components.get_mut(&id)` and call
-   `component.exit_signal.signal_to_exit()`. The existing script-thread signal
-   does the rest.
-3. **Trigger it from the constellation.**
-   `components/constellation/constellation.rs:1225`: in
-   `handle_request_from_background_hang_monitor`, on `HangAlert::Permanent`,
-   send `SignalComponentExit` via
-   `self.send_message_to_all_background_hang_monitors(..)` (single-process) or
-   the per-process control sender (multiprocess). Keep the `warn!` (it is useful
-   diagnostics and should log before the kill).
-4. **Gate it.** Killing a page on a *permanent* hang is a user-visible,
-   destructive recovery. Make it opt-in at first (a pref such as
-   `hang_monitor_kill_script`, defaulting off), then consider defaulting it on for
-   the shell once validated. Never kill on a **transient** alert — those are
-   normal (GC pauses, slow layout) and recover on their own.
-
-**Why per-component and not the global `Exit`:** `BhmMessage::Exit` signals
-*every* component and is part of shutdown. A hang recovery must affect only the
-hung component, or one bad page take down the whole embedder.
-
-**Tests to add**
-
-- A `background_hang_monitor` unit test mirroring
-  `components/background_hang_monitor/tests/hang_monitor_tests.rs` that
-  registers a component with a mock exit signal and asserts
-  `SignalComponentExit` calls it exactly once and only for the named component.
-- A `constellation` test (or a servoshell integration test) that a synthetic
-  `HangAlert::Permanent` produces exactly one `SignalComponentExit` when the gate
-  pref is on, and none when it is off.
+- `components/background_hang_monitor/tests/hang_monitor_tests.rs::test_hang_monitoring_signal_component_exit`
+  covers the worker arm: `SignalComponentExit` fires the named component's
+  exit signal exactly once and leaves other components alone.
+- `tests/capi/c/test_integration.c::test_hang_monitor_kills_hung_script`
+  covers the end-to-end path with the shipped defaults: evaluating
+  `while (true) {}` is interrupted with an error within the permanent timeout,
+  and the suite's final `servo_free` proves teardown stays clean.
 
 ### A.2 Remaining reachable panics
 

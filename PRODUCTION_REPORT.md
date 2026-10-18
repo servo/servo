@@ -138,8 +138,9 @@ All changes are **uncommitted** on `embedding/cef-parity`.
 
 3. `SECURITY.md` — proper vulnerability-reporting policy (was 3 lines).
 4. `docs/embedding/SECURITY_AUDIT.md` — findings + prioritised remediation (§9).
-5. `docs/embedding/HARDENING_PLAN.md` — **design only**: hang-monitor
-   kill-script and FFI hardening, with exact file/line touch points.
+5. `docs/embedding/HARDENING_PLAN.md` — hang-monitor kill-script (implemented
+   by W5.1: defaults on, permanent hangs terminate the hung script) plus FFI
+   hardening design, with exact file/line touch points.
 6. `docs/embedding/IOS_PORT_SPIKE.md` — **design only**: 6-experiment go/no-go
    spike; recommends declaring iOS unsupported until it passes.
 
@@ -224,7 +225,7 @@ Remaining:
 
 | # | Task | Effort |
 |---|---|---|
-| W5.1 | **Hang monitor: enable by default and kill permanently-hung scripts** — implement `HARDENING_PLAN.md` §A.1 (`SignalComponentExit` → `signal_to_exit()` on `HangAlert::Permanent` → constellation tears down the script thread), behind a pref. Today it is opt-in and warn-only. | M |
+| W5.1 | **Hang monitor: enable by default and kill permanently-hung scripts** — **done**: both defaults on in `Opts::default()` (what `servo_options_create()` returns); `HangAlert::Permanent` → `SignalComponentExit` → `signal_to_exit()` terminates the hung script and the interrupted JS call errors out. Verified end to end by `test_hang_monitor_kills_hung_script` (C API suite). See `HARDENING_PLAN.md` §A.1. servoshell's CLI flags remain opt-in (follow-up). | M |
 | W5.2 | **Prove `capi-artifacts.yml`**: dispatch it, fix failures, then compile `examples/c-embedder` against a real `cargo cinstall` sysroot in CI. | M |
 | W5.3 | **Prebuilt binaries per platform** (Linux x86_64/aarch64, macOS x86_64/arm64, Windows x86_64) with header + CMake/pkg-config, **signed** (macOS notarization, Windows Authenticode), checksums, release cadence. | L |
 | W5.4 | **Move the C API from 0.1.0 to a 1.0 ABI commitment**: freeze the symbol set, exercise the deprecation policy once, publish support window. This is policy + release discipline, enforced by the existing CI allowlist. | M |
@@ -249,7 +250,7 @@ Remaining:
 | ~146k WPT `FAIL` | **No — not by a small team** | W1 (measure it, target sites, upstream). Years. |
 | No Windows sandbox | **Yes — bounded but large** | W2.1; interim: `multiprocess` (crash isolation) already works on Windows |
 | v0.1.0, no prebuilt binaries | **Yes — most tractable** | W5.2, W5.3, W5.4 |
-| Hang monitor opt-in + warn-only | **Yes — most tractable code fix** | W5.1 (`HARDENING_PLAN.md` §A.1) |
+| Hang monitor opt-in + warn-only | **Yes — most tractable code fix** | **Fixed by W5.1**: both defaults on; permanent hangs kill the hung script (`HARDENING_PLAN.md` §A.1) |
 
 ---
 
@@ -261,8 +262,9 @@ Remaining:
 2. **Dispatch `capi-artifacts.yml`** and fix it until it produces three working
    artifacts; then build `examples/c-embedder` against the real sysroot (W5.2).
 3. **Add `windows-wpt.yml`** (W1.1) so the Windows conformance number exists.
-4. **Implement W5.1** (hang-monitor kill) behind a pref — the highest-value code
-   change still outstanding; requires CI validation of no regressions.
+4. ~~Implement W5.1 (hang-monitor kill)~~ **Done** — both defaults on; a
+   permanently hung script is killed and the interrupted JS call errors out;
+   C API suite green on all three platforms with no regressions.
 5. **Decide the iOS question** (`IOS_PORT_SPIKE.md` §4) and write the answer into
    README + `COMPATIBILITY.md`.
 6. **Decide the blanc integration question** (§2.3): recommend *don't swap*;
