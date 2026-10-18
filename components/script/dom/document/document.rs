@@ -4602,10 +4602,8 @@ impl Document {
     pub(crate) fn elements_by_name_iter<'a>(
         &self,
         no_gc: &'a NoGC,
-        name: &DOMString,
+        name: &'a DOMString,
     ) -> impl Iterator<Item = UnrootedDom<'a, Node>> + 'a {
-        let name = name.clone();
-
         self.get_document_element_unrooted(no_gc)
             .into_iter()
             .flat_map(|element| {
