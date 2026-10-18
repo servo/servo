@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>MediaStreamTrackHandle cannot be transferred to another agent cluster</title>
+<link rel="help" href="https://w3c.github.io/mediacapture-transform/">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/mediacapture-streams/permission-helper.js"></script>
+<body>
+<script>
+const RECEIVER = '/mediacapture-streams/resources/cross-agent-cluster-receiver.html';
+
+function appendIframe(t, origin) {
+  const frame = document.createElement('iframe');
+  t.add_cleanup(() => frame.remove());
+  const loaded = new Promise(resolve => frame.onload = resolve);
+  frame.src = origin + RECEIVER;
+  document.body.append(frame);
+  return loaded.then(() => frame);
+}
+
+function post(frame, value, transfer = []) {
+  const result = new Promise(resolve => window.addEventListener('message', e => resolve(e.data), { once: true }));
+  frame.contentWindow.postMessage(value, '*', transfer);
+  return result;
+}
+
+async function createTransferable(t) {
+  await setMediaPermission('granted', ['camera']);
+  const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+  const track = stream.getVideoTracks()[0];
+  t.add_cleanup(() => track.stop());
+  return new MediaStreamTrackHandle(track);
+}
+
+promise_test(async t => {
+  const frame = await appendIframe(t, get_host_info().HTTPS_NOTSAMESITE_ORIGIN);
+  assert_equals(await post(frame, { value: 1 }), 'message');
+}, 'A plain object can be posted to a cross-site iframe');
+
+promise_test(async t => {
+  const frame = await appendIframe(t, get_host_info().HTTPS_ORIGIN);
+  const transferable = await createTransferable(t);
+  assert_equals(await post(frame, transferable, [transferable]), 'message');
+}, 'MediaStreamTrackHandle can be transferred to a same-origin iframe');
+
+promise_test(async t => {
+  const frame = await appendIframe(t, get_host_info().HTTPS_NOTSAMESITE_ORIGIN);
+  const transferable = await createTransferable(t);
+  assert_equals(await post(frame, transferable, [transferable]), 'messageerror');
+}, 'MediaStreamTrackHandle cannot be transferred to a cross-site iframe');
+</script>

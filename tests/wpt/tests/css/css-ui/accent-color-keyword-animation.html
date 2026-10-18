@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<title>CSS: AccentColor and AccentColorText animation</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#widget-accent">
+<link rel="help" href="https://www.w3.org/TR/css-color-4/#css-system-colors">
+<meta name="assert" content="AccentColor and AccentColorText resolve against the computed accent-color property during color interpolation, and animated values update when accent-color changes.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="ancestor">
+  <div id="descendant"></div>
+</div>
+
+<script>
+  const ancestor = document.getElementById("ancestor");
+  const descendant = document.getElementById("descendant");
+
+  test(() => {
+    ancestor.style.accentColor = "rgb(255, 165, 0)";
+    const anim = descendant.animate(
+        [{ backgroundColor: "AccentColor" },
+         { backgroundColor: "AccentColor" }],
+        { duration: 1000 });
+    anim.pause();
+    anim.currentTime = anim.effect.getComputedTiming().duration / 2;
+    assert_equals(getComputedStyle(descendant).backgroundColor,
+                  "rgb(255, 165, 0)");
+    anim.cancel();
+  }, "AccentColor mirrors accent-color while animating");
+
+  test(() => {
+    ancestor.style.accentColor = "rgb(1, 2, 3)";
+    const anim = descendant.animate(
+        [{ backgroundColor: "rgb(0, 0, 0)" },
+         { backgroundColor: "AccentColor" }],
+        { duration: 1000, fill: "both" });
+    anim.pause();
+    anim.currentTime = anim.effect.getComputedTiming().duration;
+    assert_equals(getComputedStyle(descendant).backgroundColor,
+                  "rgb(1, 2, 3)");
+    ancestor.style.accentColor = "rgb(4, 5, 6)";
+    assert_equals(getComputedStyle(descendant).backgroundColor,
+                  "rgb(4, 5, 6)");
+    anim.cancel();
+  }, "Animated AccentColor updates when accent-color changes");
+
+  test(() => {
+    ancestor.style.accentColor = "rgb(240, 240, 240)";
+    const anim = descendant.animate(
+        [{ color: "rgb(128, 128, 128)" },
+         { color: "AccentColorText" }],
+        { duration: 1000, fill: "both" });
+    anim.pause();
+    anim.currentTime = anim.effect.getComputedTiming().duration;
+    assert_equals(getComputedStyle(descendant).color, "rgb(0, 0, 0)");
+    ancestor.style.accentColor = "rgb(10, 10, 10)";
+    assert_equals(getComputedStyle(descendant).color, "rgb(255, 255, 255)");
+    anim.cancel();
+  }, "Animated AccentColorText updates when accent-color changes");
+</script>

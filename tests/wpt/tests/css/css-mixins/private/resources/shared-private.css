@@ -1,0 +1,5 @@
+.target {
+  @private {
+    --x <length>: 10px;
+  }
+}

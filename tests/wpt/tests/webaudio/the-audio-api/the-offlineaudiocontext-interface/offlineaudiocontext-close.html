@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<head>
+<title>Test OfflineAudioContext close</title>
+</head>
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+"use strict";
+const QUANTUM_SIZE = 256;
+const CHUNK_SIZE = 300;
+const LARGE_CHUNK_SIZE = 10 * 44100;
+
+function createContext() {
+  return new OfflineAudioContext({
+    numberOfChannels: 2,
+    sampleRate: 44100,
+    renderSizeHint: QUANTUM_SIZE,
+    length: null,
+  });
+}
+
+promise_test(async () => {
+  const context = createContext();
+
+  await context.close();
+
+  assert_equals(context.state, 'closed',
+      'The context should be closed after close resolves');
+}, 'close before rendering closes the context');
+
+promise_test(async t => {
+  const context = createContext();
+
+  const closePromise = context.close();
+  await promise_rejects_dom(t, 'InvalidStateError', context.close(),
+      'The second close call should reject');
+  await closePromise;
+
+  assert_equals(context.state, 'closed',
+      'The context should be closed after the first close resolves');
+}, 'calling close twice rejects the second call');
+
+promise_test(async () => {
+  const context = createContext();
+
+  const buffer = await context.startRendering(CHUNK_SIZE);
+  assert_equals(buffer.length, 2 * QUANTUM_SIZE,
+      'The chunk should finish before close is called');
+
+  await context.close();
+
+  assert_equals(context.state, 'closed',
+      'The context should be closed after close resolves');
+}, 'close after rendering a chunk closes the context');
+
+promise_test(async t => {
+  const context = createContext();
+  const renderPromise = context.startRendering(LARGE_CHUNK_SIZE);
+
+  assert_equals(context.state, 'running',
+      'The context should be running before close is called');
+
+  const renderRejectionPromise =
+      promise_rejects_dom(t, 'AbortError', renderPromise);
+  await context.close();
+  await renderRejectionPromise;
+
+  assert_equals(context.state, 'closed',
+      'The context should be closed after close resolves');
+}, 'close while rendering a large chunk stops the context');
+
+promise_test(async t => {
+  const context = createContext();
+  let completionFired = false;
+  context.oncomplete = () => completionFired = true;
+
+  const initialSuspendPromise = context.suspend(0);
+  const futureSuspendPromise = context.suspend(1);
+  const renderPromises = [
+    context.startRendering(CHUNK_SIZE),
+    context.startRendering(CHUNK_SIZE),
+    context.startRendering(CHUNK_SIZE),
+  ];
+
+  await initialSuspendPromise;
+  assert_equals(context.state, 'suspended',
+      'The context should be suspended before close is called');
+
+  const rejectionPromises = renderPromises.map(promise => {
+    return promise_rejects_dom(t, 'AbortError', promise);
+  });
+  const suspendRejectionPromise =
+      promise_rejects_dom(t, 'InvalidStateError', futureSuspendPromise);
+
+  await context.close();
+  await Promise.all(rejectionPromises);
+  await suspendRejectionPromise;
+  await new Promise(resolve => t.step_timeout(resolve, 0));
+
+  assert_equals(context.state, 'closed',
+      'The context should remain closed after canceling queued renders');
+  assert_false(completionFired, 'Closing should not fire the complete event');
+}, 'close while suspended rejects current and queued incremental renders');
+
+</script>
+</html>

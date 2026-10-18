@@ -37,6 +37,10 @@ promise_test(async t => {
 }, 'Progress events are not emitted after aborted.');
 
 promise_test(async t => {
+  await testCreateMonitorCallbackThrowsError(t, createLanguageModel);
+}, 'If monitor throws an error, LanguageModel.create() rejects with that error');
+
+promise_test(async t => {
   let session = await createLanguageModel({
     initialPrompts: [
       {role: 'system', content: 'you are a robot'},

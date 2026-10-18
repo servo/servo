@@ -1,0 +1,52 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>
+  HTML partial updates - stream{Append|Prepend|Before|After|ReplaceWith}HTMLUnsafe
+  check createParserOptions before hierarchy checks
+</title>
+<link rel="help" href="https://github.com/WICG/declarative-partial-updates" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta
+  http-equiv="Content-Security-Policy"
+  content="require-trusted-types-for 'script';"
+/>
+
+<body>
+  <script>
+    let createParserOptions = (options) => options;
+    trustedTypes.createPolicy("default", {
+      createHTML: (html) => html,
+      createParserOptions: (options, type, sink) =>
+        createParserOptions(options, type, sink),
+    });
+
+    for (const pos of ["Before", "After", "ReplaceWith", "Append", "Prepend"]) {
+      const method_name = `stream${pos}HTMLUnsafe`;
+      const expected_iface =
+        pos === "Append" || pos === "Prepend" ? "Element" : "Node";
+      test((t) => {
+        let recorded_type = null;
+        let recorded_sink = null;
+        createParserOptions = (options, type, sink) => {
+          recorded_type = type;
+          recorded_sink = sink;
+          throw new Error("createParserOptions called");
+        };
+        t.add_cleanup(() => {
+          createParserOptions = (options) => options;
+        });
+
+        const element = document.createElement("div");
+        try {
+          element[method_name]();
+          assert_unreached("Should have thrown");
+        } catch (e) {
+          assert_equals(e.message, "createParserOptions called");
+          assert_equals(recorded_type, "TrustedHTMLParserOptions");
+          assert_equals(recorded_sink, `${expected_iface} ${method_name}`);
+        }
+      }, `${method_name} checks createParserOptions before hierarchy checks`);
+    }
+  </script>
+</body>

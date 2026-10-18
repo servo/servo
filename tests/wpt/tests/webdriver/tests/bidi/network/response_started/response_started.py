@@ -4,6 +4,7 @@
 
 import asyncio
 import random
+from urllib.parse import urlencode
 
 import pytest
 from webdriver.bidi.modules.script import ContextTarget
@@ -287,6 +288,56 @@ async def test_response_headers(wait_for_event, wait_for_future_safe, url, fetch
             "redirectCount": 0,
         },
     )
+
+
+@pytest.mark.parametrize(
+    "header_name, header_values",
+    [
+        ("Proxy-Authenticate", ["Basic realm=foo", "Digest realm=bar"]),
+        ("Set-Cookie", ["foo=bar;Max-Age=0", "baz=qux;Max-Age=0"]),
+        ("WWW-Authenticate", ["Basic realm=foo", "Digest realm=bar"]),
+    ],
+)
+async def test_response_headers_multiple_values(
+    wait_for_event,
+    wait_for_future_safe,
+    url,
+    fetch,
+    setup_network_test,
+    header_name,
+    header_values,
+):
+    # individual pipe header values using append=True as third parameter.
+    pipe = "|".join(f"header({header_name},{value},True)" for value in header_values)
+    headers_url = url(PAGE_EMPTY_TEXT, query=urlencode({"pipe": pipe}))
+
+    network_events = await setup_network_test(events=[RESPONSE_STARTED_EVENT])
+    events = network_events[RESPONSE_STARTED_EVENT]
+
+    on_response_started = wait_for_event(RESPONSE_STARTED_EVENT)
+    await fetch(headers_url, method="GET")
+    await wait_for_future_safe(on_response_started)
+
+    assert len(events) == 1
+
+    expected_headers = tuple(
+        {"name": header_name, "value": {"type": "string", "value": value}}
+        for value in header_values
+    )
+    assert_response_event(
+        events[0],
+        expected_event={
+            "request": {"method": "GET", "url": headers_url},
+            "response": {"url": headers_url, "headers": expected_headers},
+        },
+    )
+
+    matching_headers = [
+        h
+        for h in events[0]["response"]["headers"]
+        if h["name"].lower() == header_name.lower()
+    ]
+    assert len(matching_headers) == len(header_values)
 
 
 @pytest.mark.parametrize(

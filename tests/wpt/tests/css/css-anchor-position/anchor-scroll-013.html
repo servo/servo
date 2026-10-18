@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test that changing the default anchor updates the scroll container's scrollHeight</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#scroll">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#remembered-scroll-offset">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2072683">
+<meta name="assert" content="The remembered scroll offset belongs to the default anchor it was captured for, so after the default anchor changes, the scroll container's scrollHeight should reflect the positioned element's new position.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
+
+<style>
+#scroller1 {
+  width: 200px;
+  height: 200px;
+  position: relative;
+  overflow: scroll;
+}
+#scroller2 {
+  width: 100px;
+  height: 100px;
+  overflow: scroll;
+}
+#anchor-a {
+  anchor-name: --a;
+  height: 20px;
+  background: orange;
+}
+#anchor-b {
+  anchor-name: --b;
+  width: 50px;
+  height: 20px;
+  background: purple;
+}
+#positioned {
+  position: absolute;
+  position-anchor: --a;
+  position-visibility: always;
+  left: 120px;
+  top: anchor(bottom);
+  width: 50px;
+  height: 20px;
+  background: lime;
+}
+#overflow {
+  /* Overflows #positioned, so it determines scroller1's scrollHeight. */
+  width: 10px;
+  height: 400px;
+  background: cyan;
+}
+</style>
+
+<div id="scroller1">
+  <div style="height: 100px"></div>
+  <div id="scroller2">
+    <div style="height: 100px"></div>
+    <div id="anchor-a"></div>
+    <div style="height: 300px"></div>
+  </div>
+  <div id="anchor-b"></div>
+  <div style="height: 100px"></div>
+  <div id="positioned"><div id="overflow"></div></div>
+</div>
+
+<script>
+promise_test(async () => {
+  const scroller1 = document.getElementById("scroller1");
+  const scroller2 = document.getElementById("scroller2");
+  const anchorB = document.getElementById("anchor-b");
+  const positioned = document.getElementById("positioned");
+
+  // Scroll before the first frame, so the remembered scroll offset of --a is
+  // non-zero.
+  scroller2.scrollTop = 50;
+  await waitForAtLeastOneFrame();
+
+  // Switch the default anchor to one outside scroller2.
+  positioned.style.positionAnchor = "--b";
+  await waitForAtLeastOneFrame();
+  assert_equals(positioned.getBoundingClientRect().top,
+                anchorB.getBoundingClientRect().bottom,
+                "#positioned should be anchored to --b");
+  const scrollHeightAfterSwitch = scroller1.scrollHeight;
+
+  // Starting to generate boxes again is an anchor recalculation point.
+  positioned.style.display = "none";
+  await waitForAtLeastOneFrame();
+  positioned.style.display = "";
+  await waitForAtLeastOneFrame();
+  assert_equals(scrollHeightAfterSwitch, scroller1.scrollHeight,
+                "scroller1.scrollHeight after changing the default anchor should match the one after an anchor recalculation point");
+}, "Changing the default anchor updates the scroller's scrollHeight");
+</script>

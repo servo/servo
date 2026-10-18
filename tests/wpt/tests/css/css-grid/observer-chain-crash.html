@@ -1,0 +1,23 @@
+<!doctype html>
+<html class="tets-wait">
+<style>
+#grid{display:grid;grid-template-columns:100px;align-items:start}
+</style>
+<svg width="100" height="40">
+<linearGradient id="paint" href="#item"><stop stop-color="red"/><stop offset="1" stop-color="blue"/></linearGradient>
+<path id="curve" d="M0 0H90V35H0Z" fill="url(#paint)"/>
+</svg>
+<div id="grid"><div id="item"><svg width="70" height="50"><defs><text><textPath href="#curve">x</textPath></text></defs></svg></div><div id="sibling">x</div></div>
+<script>
+async function run() {
+  const grid = document.getElementById("grid");
+  grid.getBoundingClientRect();
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  await new Promise(resolve => requestAnimationFrame(resolve));
+  document.getElementById("sibling").firstChild.data += "x";
+  grid.getBoundingClientRect();
+  document.documentElement.className = "";
+}
+run();
+</script>
+</html>

@@ -28,8 +28,8 @@
   <body>
     <div id='log'></div>
 
-    <script>
-        var keysystem = getSupportedKeySystem();
+    <script type="module">
+        var keysystem = await getSupportedKeySystem();
 
         getSupportedContentAndInitDataTypes( keysystem ).then( function( supported ) {
             // This test requires initData for supported content.
@@ -61,7 +61,6 @@
                         expiration:         Date.now().valueOf() + 120000    // Two minutes from now
                     } );
         } );
-
     </script>
   </body>
 </html>

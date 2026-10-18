@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<title>CSS Lists: changing list-style-type on a list item that skips its contents must not crash</title>
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#list-style-type-property">
+<link rel="help" href="https://drafts.csswg.org/css-counter-styles-3/">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#skips-its-contents">
+<body>
+<li id="target" style="list-style-type:'a2b'"></li>
+<script>
+document.body.offsetTop;
+target.style.contentVisibility = 'hidden';
+target.style.listStyleType = '';
+document.body.offsetTop;
+</script>
+</body>

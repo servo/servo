@@ -28,8 +28,8 @@
   <body>
     <div id='log'></div>
 
-    <script>
-        var keysystem = getSupportedKeySystem();
+    <script type="module">
+        var keysystem = await getSupportedKeySystem();
         getSupportedContent( keysystem ).then( function( contents ) {
             // Select a content item with multiple keys and initData that retrieves all keys
             var contentitem = contents.filter( function( item ) {

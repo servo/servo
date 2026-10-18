@@ -11,8 +11,8 @@ function waitForIframeMessage(action) {
   });
 }
 
-// Helper to compare tool objects that should conform to the `RegisteredTool`
-// dictionary.
+// Helper to compare tool objects. `actual` may either be a `Tool`, or a plain
+// object derived from one (see `convertToCloneableTools()`).
 function toolsAreEqual(actual, expected) {
   if (actual.name !== expected.name) {
     return `names are unequal: ${actual.name} !== ${expected.name}`;

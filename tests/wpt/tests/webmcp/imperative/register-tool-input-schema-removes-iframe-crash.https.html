@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>WebMCP: registerTool() whose inputSchema serialization removes the registering iframe</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<body>
+<script>
+// `registerTool()` checks that its document is fully active up front, but then
+// serializes `inputSchema`, which can run script. This must not crash even if
+// that script makes the registering document inactive (here, by removing its
+// iframe).
+//
+// See https://crbug.com/573671121.
+window.onload = async () => {
+  const iframe = document.createElement('iframe');
+  const loaded = new Promise(resolve => iframe.onload = resolve);
+  document.body.append(iframe);
+  await loaded;
+
+  const modelContext = iframe.contentDocument.modelContext;
+  // Everything that could crash here happens synchronously within
+  // `registerTool()`, so the test can finish as soon as it returns. Don't await
+  // the returned promise: it belongs to the now-inactive iframe document.
+  modelContext.registerTool({
+    name: 'iframe_tool',
+    description: 'A tool whose inputSchema removes the registering iframe',
+    inputSchema: {
+      toJSON() {
+        iframe.remove();
+        return {type: 'object'};
+      },
+    },
+    execute: async () => 'unused',
+  }).catch(() => {});
+
+  document.documentElement.classList.remove('test-wait');
+};
+</script>
+</body>
+</html>

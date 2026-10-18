@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>ElementInternals ARIA element reflection only returns elements that have the same shadow-including root as the target element</title>
+<link rel="help" href="https://github.com/whatwg/html/pull/8932">
+<link rel="help" href="https://html.spec.whatwg.org/#attr-associated-element">
+<link rel="help" href="https://html.spec.whatwg.org/#attr-associated-elements">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+"use strict";
+
+class CustomElement extends HTMLElement {
+  constructor() {
+    super();
+    this.i = this.attachInternals();
+  }
+}
+customElements.define("custom-element", CustomElement);
+
+function makeConnectedCustomElement(t) {
+  const custom = document.createElement("custom-element");
+  document.body.append(custom);
+  t.add_cleanup(() => custom.remove());
+  return custom;
+}
+
+test(t => {
+  const custom = makeConnectedCustomElement(t);
+  const target = document.createElement("div");
+
+  custom.i.ariaActiveDescendantElement = target;
+  assert_equals(custom.i.ariaActiveDescendantElement, null,
+                "disconnected element is not returned");
+
+  document.body.append(target);
+  t.add_cleanup(() => target.remove());
+  assert_equals(custom.i.ariaActiveDescendantElement, target,
+                "element is returned once it is in the same document");
+
+  target.remove();
+  assert_equals(custom.i.ariaActiveDescendantElement, null,
+                "element is not returned after it is removed");
+}, "ariaActiveDescendantElement on ElementInternals ignores an element with a different shadow-including root");
+
+test(t => {
+  const custom = makeConnectedCustomElement(t);
+  const target = document.createElement("div");
+  custom.attachShadow({ mode: "open" }).append(target);
+
+  custom.i.ariaActiveDescendantElement = target;
+  assert_equals(custom.i.ariaActiveDescendantElement, target);
+
+  custom.i.ariaLabelledByElements = [target];
+  assert_array_equals(custom.i.ariaLabelledByElements, [target]);
+}, "ARIA element reflection on ElementInternals returns an element in the custom element's own shadow tree");
+
+test(t => {
+  const custom = makeConnectedCustomElement(t);
+  const host = document.createElement("div");
+  document.body.append(host);
+  t.add_cleanup(() => host.remove());
+  const target = document.createElement("div");
+  host.attachShadow({ mode: "open" }).append(target);
+
+  custom.i.ariaActiveDescendantElement = target;
+  assert_equals(custom.i.ariaActiveDescendantElement, target);
+}, "ariaActiveDescendantElement on ElementInternals returns an element in another shadow tree in the same document");
+
+test(t => {
+  const host = document.createElement("div");
+  document.body.append(host);
+  t.add_cleanup(() => host.remove());
+  const custom = document.createElement("custom-element");
+  host.attachShadow({ mode: "open" }).append(custom);
+  const target = document.createElement("div");
+  document.body.append(target);
+  t.add_cleanup(() => target.remove());
+
+  custom.i.ariaActiveDescendantElement = target;
+  assert_equals(custom.i.ariaActiveDescendantElement, target);
+}, "ariaActiveDescendantElement on ElementInternals returns an element in a shadow-including ancestor tree");
+
+test(t => {
+  const root = document.createElement("div");
+  const custom = document.createElement("custom-element");
+  const target = document.createElement("div");
+  root.append(custom, target);
+
+  custom.i.ariaActiveDescendantElement = target;
+  assert_equals(custom.i.ariaActiveDescendantElement, target);
+}, "ariaActiveDescendantElement on ElementInternals returns an element in the same disconnected tree");
+
+test(t => {
+  const custom = document.createElement("custom-element");
+  const inOwnShadow = document.createElement("div");
+  custom.attachShadow({ mode: "open" }).append(inOwnShadow);
+  const inDocument = document.createElement("div");
+  document.body.append(inDocument);
+  t.add_cleanup(() => inDocument.remove());
+
+  custom.i.ariaActiveDescendantElement = inOwnShadow;
+  assert_equals(custom.i.ariaActiveDescendantElement, inOwnShadow,
+                "own shadow tree of a disconnected element");
+
+  custom.i.ariaActiveDescendantElement = inDocument;
+  assert_equals(custom.i.ariaActiveDescendantElement, null,
+                "document element, seen from a disconnected element");
+}, "ariaActiveDescendantElement on ElementInternals of a disconnected element");
+
+test(t => {
+  const custom = makeConnectedCustomElement(t);
+  const connected = document.createElement("div");
+  document.body.append(connected);
+  t.add_cleanup(() => connected.remove());
+  const disconnected = document.createElement("div");
+
+  custom.i.ariaLabelledByElements = [connected, disconnected];
+  assert_array_equals(custom.i.ariaLabelledByElements, [connected],
+                      "disconnected element is skipped");
+
+  document.body.append(disconnected);
+  t.add_cleanup(() => disconnected.remove());
+  assert_array_equals(custom.i.ariaLabelledByElements,
+                      [connected, disconnected],
+                      "element is included once it is in the same document");
+}, "ariaLabelledByElements on ElementInternals skips elements with a different shadow-including root");
+</script>

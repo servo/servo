@@ -1,0 +1,135 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Streaming methods and the html element</title>
+<link rel="help" href="https://html.spec.whatwg.org/#html-streaming-methods" />
+<link rel="help" href="https://html.spec.whatwg.org/#dom-element-streamappendhtml" />
+<link rel="help" href="https://html.spec.whatwg.org/#get-the-parent-for-html-streaming" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  // streamAppendHTML()/streamPrependHTML() on the html element, and the
+  // positional methods on a node whose parent is the html element, throw a
+  // "HierarchyRequestError" DOMException. streamHTML()/streamHTMLUnsafe() on
+  // the html element are allowed: they replace all of its children and parse
+  // with the html element as context.
+
+  // The live-document cases run against an iframe's document so that a
+  // non-conforming implementation cannot remove this document's head/body.
+  function load_iframe(t) {
+    return new Promise((resolve) => {
+      const iframe = document.createElement("iframe");
+      iframe.srcdoc = "<!doctype html><title>old</title><p>old</p>";
+      iframe.onload = () => resolve(iframe);
+      t.add_cleanup(() => iframe.remove());
+      document.body.appendChild(iframe);
+    });
+  }
+
+  const invalidSanitizer = { sanitizer: { elements: ["div"], removeElements: ["div"] } };
+
+  for (const safe of [true, false]) {
+    const suffix = safe ? "" : "Unsafe";
+
+    for (const method of [`streamAppendHTML${suffix}`, `streamPrependHTML${suffix}`]) {
+      promise_test(async (t) => {
+        const iframe = await load_iframe(t);
+        const html = iframe.contentDocument.documentElement;
+        assert_throws_dom("HierarchyRequestError", iframe.contentWindow.DOMException, () => {
+          html[method]();
+        });
+        assert_equals(html.childNodes.length, 2, "head and body are untouched");
+      }, `${method} on the html element throws HierarchyRequestError`);
+
+      test(() => {
+        const doc = document.implementation.createHTMLDocument();
+        assert_throws_dom("HierarchyRequestError", () => {
+          doc.documentElement[method]();
+        });
+      }, `${method} on the html element of an inert document throws HierarchyRequestError`);
+
+      test(() => {
+        const html = document.createElement("html");
+        assert_throws_dom("HierarchyRequestError", () => {
+          html[method]();
+        });
+        assert_throws_dom("HierarchyRequestError", () => {
+          html[method](invalidSanitizer);
+        }, "HierarchyRequestError is thrown before the sanitizer config is validated");
+      }, `${method} on a detached html element throws HierarchyRequestError`);
+    }
+
+    for (const method of [`streamBeforeHTML${suffix}`, `streamAfterHTML${suffix}`, `streamReplaceWithHTML${suffix}`]) {
+      promise_test(async (t) => {
+        const iframe = await load_iframe(t);
+        const doc = iframe.contentDocument;
+        const DOMException = iframe.contentWindow.DOMException;
+        assert_throws_dom("HierarchyRequestError", DOMException, () => {
+          doc.head[method]();
+        }, "head");
+        assert_throws_dom("HierarchyRequestError", DOMException, () => {
+          doc.body[method]();
+        }, "body");
+        assert_equals(doc.head.parentNode, doc.documentElement, "head is not removed");
+        assert_equals(doc.body.parentNode, doc.documentElement, "body is not removed");
+      }, `${method} on head/body (parent is the html element) throws HierarchyRequestError`);
+
+      test(() => {
+        const html = document.createElement("html");
+        const comment = html.appendChild(document.createComment("c"));
+        assert_throws_dom("HierarchyRequestError", () => {
+          comment[method]();
+        });
+        assert_throws_dom("HierarchyRequestError", () => {
+          comment[method](invalidSanitizer);
+        }, "HierarchyRequestError is thrown before the sanitizer config is validated");
+        assert_equals(comment.parentNode, html, "the node is not removed");
+      }, `${method} on a child of a detached html element throws HierarchyRequestError`);
+    }
+
+    promise_test(async (t) => {
+      const iframe = await load_iframe(t);
+      const doc = iframe.contentDocument;
+      const html = doc.documentElement;
+      const oldHead = doc.head;
+      const oldBody = doc.body;
+
+      const writer = html[`streamHTML${suffix}`]().getWriter();
+      assert_equals(html.childNodes.length, 0, "existing children are removed immediately");
+      assert_equals(oldHead.parentNode, null);
+      assert_equals(oldBody.parentNode, null);
+
+      await writer.write("<head><meta name='x'></head><bo");
+      await writer.write("dy><p>new</p></body>");
+      await writer.close();
+
+      assert_equals(html.childNodes.length, 2);
+      assert_equals(html.firstChild.localName, "head");
+      assert_equals(html.lastChild.localName, "body");
+      assert_equals(doc.head, html.firstChild);
+      assert_equals(doc.body, html.lastChild);
+      assert_equals(doc.body.innerHTML, "<p>new</p>");
+      assert_equals(doc.body.firstChild.ownerDocument, doc);
+      assert_equals(doc.title, "", "the old title was removed");
+    }, `streamHTML${suffix} on the html element replaces head and body`);
+
+    promise_test(async (t) => {
+      const iframe = await load_iframe(t);
+      const doc = iframe.contentDocument;
+      const html = doc.documentElement;
+
+      const writer = html[`streamHTML${suffix}`]().getWriter();
+      await writer.write("<p>implied head and body</p>");
+      await writer.close();
+
+      // The html context element starts the parser in the "before head"
+      // insertion mode, so head and body are implied.
+      assert_equals(html.childNodes.length, 2);
+      assert_equals(html.firstChild.localName, "head");
+      assert_equals(html.firstChild.childNodes.length, 0);
+      assert_equals(html.lastChild.localName, "body");
+      assert_equals(doc.body.innerHTML, "<p>implied head and body</p>");
+    }, `streamHTML${suffix} on the html element implies head and body`);
+  }
+</script>
+</body>

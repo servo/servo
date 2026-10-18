@@ -248,6 +248,26 @@ def has_openh264_gmp(gmp_path):
                for entry in gmp_path.split(os.pathsep) if entry)
 
 
+def has_vmp_signature(binary):
+    """Whether the Firefox binary has a Widevine Verified Media Path (VMP)
+    signature, i.e. the .sig file that signing places alongside it.
+
+    On macOS the signature files live in the bundle's Resources directory
+    rather than next to the binary.
+    """
+    if not binary:
+        return False
+    binary = os.path.abspath(binary)
+    if binary.endswith(".app"):
+        return os.path.isfile(os.path.join(binary, "Contents", "Resources",
+                                           "firefox.sig"))
+    name = os.path.basename(binary) + ".sig"
+    return any(os.path.isfile(path) for path in (
+        os.path.join(os.path.dirname(binary), name),
+        os.path.join(os.path.dirname(os.path.dirname(binary)), "Resources", name),
+    ))
+
+
 def run_info_extras(logger, default_prefs=None, **kwargs):
     extra_prefs = kwargs.get("extra_prefs", [])
     default_prefs = list(default_prefs.items()) if default_prefs is not None else []
@@ -271,6 +291,8 @@ def run_info_extras(logger, default_prefs=None, **kwargs):
           "sessionHistoryInParent": True,
           "swgl": bool_pref("gfx.webrender.software"),
           "useDrawSnapshot": bool_pref("reftest.use-draw-snapshot"),
+          "nativePrinter": any(key == "remote.print.printer_name" and value
+                               for key, value in extra_prefs + default_prefs),
           "privateBrowsing": bool_pref("browser.privatebrowsing.autostart"),
           "remoteAsyncMouseEvents": bool_pref("remote.events.async.mouse.enabled"),
           "remoteAsyncTouchEvents": bool_pref("remote.events.async.touch.enabled"),
@@ -278,6 +300,8 @@ def run_info_extras(logger, default_prefs=None, **kwargs):
           "incOriginInit": os.environ.get("MOZ_ENABLE_INC_ORIGIN_INIT") == "1",
           "openh264": prefers_openh264(),
           "isolated_process": kwargs.get("isolated_process"),
+          "vmpSigned": has_vmp_signature(kwargs.get("binary")),
+          "playready": bool_pref("media.eme.playready.enabled"),
           }
     rv.update(run_info_browser_version(**kwargs))
 
@@ -315,6 +339,7 @@ def update_properties():
             "remoteAsyncWheelEvents",
             "sessionHistoryInParent",
             "openh264",
+            "playready",
             "subsuite",
         ],
         {"os": ["display", "version", "os_version"], "processor": ["bits"]},

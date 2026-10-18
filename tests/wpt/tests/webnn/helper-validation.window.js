@@ -9,6 +9,73 @@
 // Largest integer uniquely representable as a float32.
 const MAX_FLOAT32_INTEGER = 2 ** 24;
 
+test(() => {
+  [
+    [1.00048828125, 0x3c00],
+    [1.00146484375, 0x3c02],
+    [-1.00048828125, 0xbc00],
+    [-1.00146484375, 0xbc02],
+    [0, 0x0000],
+    [-0, 0x8000],
+  ].forEach(([value, bits]) => {
+    assert_equals(toHalf(value), bits, `binary16 encoding of ${value}`);
+  });
+}, 'float16 conversion rounds normal midpoints to even and preserves zero sign');
+
+test(() => {
+  [
+    [1.5 * 2 ** -24, 0x0002],
+    [2.5 * 2 ** -24, 0x0002],
+    [-1.5 * 2 ** -24, 0x8002],
+    [-2.5 * 2 ** -24, 0x8002],
+    [1023.5 * 2 ** -24, 0x0400],
+    [-1023.5 * 2 ** -24, 0x8400],
+  ].forEach(([value, bits]) => {
+    assert_equals(toHalf(value), bits, `binary16 encoding of ${value}`);
+  });
+}, 'float16 conversion rounds subnormal and normal-boundary midpoints to even');
+
+test(() => {
+  [
+    [2 ** -25, 0x0000],
+    [2 ** -25 * (1 + 2 ** -20), 0x0001],
+    [2 ** -25 * (1 - 2 ** -20), 0x0000],
+    [-(2 ** -25), 0x8000],
+    [-(2 ** -25) * (1 + 2 ** -20), 0x8001],
+    [-(2 ** -25) * (1 - 2 ** -20), 0x8000],
+  ].forEach(([value, bits]) => {
+    assert_equals(toHalf(value), bits, `binary16 encoding of ${value}`);
+  });
+}, 'float16 conversion distinguishes values around the underflow midpoint');
+
+test(() => {
+  [
+    [65520, 0x7c00],
+    [65520 - 2 ** -20, 0x7bff],
+    [-65520, 0xfc00],
+    [-65520 + 2 ** -20, 0xfbff],
+    [Infinity, 0x7c00],
+    [-Infinity, 0xfc00],
+  ].forEach(([value, bits]) => {
+    assert_equals(toHalf(value), bits, `binary16 encoding of ${value}`);
+  });
+  const nan = toHalf(NaN);
+  assert_equals(nan & 0x7c00, 0x7c00, 'NaN exponent');
+  assert_not_equals(nan & 0x03ff, 0, 'NaN fraction');
+}, 'float16 conversion distinguishes overflow from the largest finite value');
+
+test(() => {
+  const midpoint = 1.00048828125;
+  const data = [midpoint - 2 ** -40, midpoint + 2 ** -40,
+                -midpoint + 2 ** -40, -midpoint - 2 ** -40];
+  const bits = [0x3c00, 0x3c01, 0xbc00, 0xbc01];
+  data.forEach((value, index) => {
+    assert_equals(toHalf(value), bits[index], `binary16 encoding of ${value}`);
+  });
+  assert_array_equals(getTypedArrayData('float16', data.length, data), bits);
+  assert_array_equals(getTypedArrayData('float16', 2, midpoint), [0x3c00, 0x3c00]);
+}, 'float16 conversion does not double-round binary64 inputs through float32');
+
 test(t => {
   const dataType = 'float32';
   [[0.0, 0.0, 0n],
@@ -38,6 +105,41 @@ test(t => {
 }, 'ULP Distance - float32');
 
 // TODO: Add test cases for 'float16' data type.
+
+test(() => {
+  for (const bits of [0x7c01, 0x7e00, 0x7fff, 0xfc01, 0xfe00, 0xffff]) {
+    assert_array_approx_equals_ulp(
+        [bits], [NaN], 0, 'float16', 'NaN payload ' + bits);
+  }
+  const values = new Float32Array(
+      new Uint32Array([0x7fc00001, 0x7fffffff, 0xffc00001]).buffer);
+  for (const value of values) {
+    assert_array_approx_equals_ulp(
+        [value], [NaN], 0, 'float32', 'float32 NaN payload');
+  }
+}, 'ULP comparison accepts NaN independently of sign and payload');
+
+test(() => {
+  for (const [actual, expected, dataType] of [
+    [0x7c01, Infinity, 'float16'],
+    [0x7c00, NaN, 'float16'],
+    [0xfc00, NaN, 'float16'],
+    [0, NaN, 'float16'],
+    [NaN, Infinity, 'float32'],
+    [Infinity, NaN, 'float32'],
+    [0, NaN, 'float32']
+  ]) {
+    let error;
+    try {
+      assert_array_approx_equals_ulp(
+          [actual], [expected], 1, dataType, 'mismatched NaN classification');
+    } catch (caught) {
+      error = caught;
+    }
+    assert_true(error instanceof AssertionError,
+        'Mismatched NaN classification must fail the comparison');
+  }
+}, 'ULP comparison rejects NaN versus a non-NaN even within tolerance');
 
 test(t => {
   const dataType = 'int64';
@@ -220,3 +322,40 @@ test(t => {
         `ULP distance between ${b} and ${a} (commutative)`);
   });
 }, 'ULP Distance - uint4');
+
+test(() => {
+  for (const [a, b, expected] of [
+    [0, -0, 0], [2 ** -24, 0, 1], [-(2 ** -24), 0, 1],
+    [-(2 ** -24), 2 ** -24, 2], [-(2 ** -23), -(2 ** -24), 1],
+    [1, -1, 30720], [-1, -1.0009765625, 1],
+    [2 ** -14, 1023 * 2 ** -24, 1], [65504, Infinity, 1]
+  ]) {
+    assert_equals(ulpDistance(toHalf(a), b, 'float16'), expected,
+        'forward distance between ' + a + ' and ' + b);
+    assert_equals(ulpDistance(toHalf(b), a, 'float16'), expected,
+        'reverse distance between ' + a + ' and ' + b);
+    assert_equals(ulpDistance(toHalf(-a), -b, 'float16'), expected,
+        'negated distance between ' + a + ' and ' + b);
+  }
+}, 'ULP Distance - float16, including opposite signs and zero');
+
+test(() => {
+  assert_array_approx_equals_ulp([0x8001], [0], 1, 'float16',
+      'negative minimum subnormal is one ULP from zero');
+  assert_array_approx_equals_ulp([0x8001], [2 ** -24], 2, 'float16',
+      'opposite minimum subnormals are two ULPs apart');
+}, 'Float16 array comparison uses ordered numerical ULP distance');
+
+test(() => {
+  for (const [bits, expected] of [[1, 1], [2, 2], [3, 3]]) {
+    let error;
+    try {
+      assert_array_approx_equals_ulp([bits], [expected], 0, 'float16',
+          'storage encoding must not equal the expected numerical value');
+    } catch (caught) {
+      error = caught;
+    }
+    assert_true(error instanceof AssertionError,
+        'A subnormal storage encoding must not match the integer value');
+  }
+}, 'Float16 array comparison does not confuse raw bits with values');

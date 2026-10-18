@@ -33,3 +33,17 @@ promise_test(async (t) => {
   for await (const chunk of streamingResponse);  // Do nothing
   controller.abort();
 }, 'Aborting Summarizer.summarizeStreaming() after finished reading');
+
+promise_test(async t => {
+  const summarizer = await createSummarizer();
+  await testAbortPromise(t, signal => {
+    return summarizer.measureInputUsage(kTestPrompt, { signal });
+  });
+  const controller = new AbortController();
+  controller.signal.addEventListener('abort', () => summarizer.destroy());
+  const promise = summarizer.measureInputUsage(
+      kTestPrompt, { signal: controller.signal });
+  const err = new Error('test');
+  controller.abort(err);
+  await promise_rejects_exactly(t, err, promise);
+}, 'Aborting Summarizer.measureInputUsage() and destroying on abort');

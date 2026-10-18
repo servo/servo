@@ -57,146 +57,172 @@
         createParserOptions: (options) => ({}),
       });
 
+      function createMethodTarget(target_type, method, t) {
+        const root = createTarget(target_type, t);
+        if (["beforeHTMLUnsafe", "afterHTMLUnsafe", "replaceWithHTMLUnsafe"].includes(method)) {
+          const ref = document.createElement("div");
+          root.appendChild(ref);
+          return { receiver: ref, root };
+        }
+        return { receiver: root, root };
+      }
+
       for (const target of ["ShadowRoot", "Element"]) {
-        test((t) => {
-          const node = createTarget(target, t);
-          node.setHTMLUnsafe(
-            "<div id='allowed'><span id=forbidden></span></div>",
-            passthrough.createParserOptions({
-              sanitizer: { removeElements: ["span"] },
-            }),
-          );
-          assert_equals(node.querySelector("#forbidden"), null);
-          assert_not_equals(node.querySelector("#allowed"), null);
-        }, `${target}.setHTMLUnsafe: passing a TrustedHTMLParserOptions overrides default policy`);
+        for (const method of [
+          "setHTMLUnsafe",
+          "appendHTMLUnsafe",
+          "prependHTMLUnsafe",
+          "beforeHTMLUnsafe",
+          "afterHTMLUnsafe",
+          "replaceWithHTMLUnsafe",
+        ]) {
+          if (
+            target === "ShadowRoot" &&
+            ["beforeHTMLUnsafe", "afterHTMLUnsafe", "replaceWithHTMLUnsafe"].includes(method)
+          ) {
+            continue;
+          }
 
-        test((t) => {
-          const node = createTarget(target, t);
-          node.setHTMLUnsafe(
-            "<div id='allowed'><span id=forbidden></span></div>",
-            noCreateHTMLPolicy.createParserOptions({
-              sanitizer: { removeElements: ["span"] },
-            }),
-          );
-          assert_equals(node.querySelector("#forbidden"), null);
-          assert_not_equals(node.querySelector("#allowed"), null);
-        }, `${target}.setHTMLUnsafe: policy with only createParserOptions allows raw strings when sanitizer is present`);
-
-        test((t) => {
-          const node = createTarget(target, t);
-          node.setHTMLUnsafe(
-            "<div id='allowed'><span id='child'></span></div>",
-            noCreateHTMLPolicy.createParserOptions({}),
-          );
-          assert_not_equals(node.querySelector("#allowed"), null);
-          assert_not_equals(node.querySelector("#child"), null);
-        }, `${target}.setHTMLUnsafe: policy with only createParserOptions allows raw strings without sanitizer`);
-
-        test((t) => {
-          const node = createTarget(target, t);
-          createHTML = (html) => {
-            throw new Error("createHTML should not be called when TrustedHTMLParserOptions is passed");
-          };
-          node.setHTMLUnsafe(
-            "<div id='allowed'><span id='allowed-child'></span></div>",
-            noSanitizerPolicy.createParserOptions({}),
-          );
-          assert_not_equals(node.querySelector("#allowed"), null);
-          assert_not_equals(node.querySelector("#allowed-child"), null);
-        }, `${target}.setHTMLUnsafe: TrustedHTMLParserOptions without sanitizer satisfies Trusted Types and does not require createHTML`);
-
-        test((t) => {
-          const node = createTarget(target, t);
-          let createHTMLCalled = false;
-          createParserOptions = (options) => {
-            throw new Error("createParserOptions failed");
-          };
-          createHTML = (html) => {
-            createHTMLCalled = true;
-            return html;
-          };
-          assert_throws_js(Error, () => {
-            node.setHTMLUnsafe("<div id='allowed'></div>");
-          });
-          assert_false(
-            createHTMLCalled,
-            "createHTML should not have been called",
-          );
-        }, `${target}.setHTMLUnsafe: exception in default createParserOptions prevents createHTML from running`);
-
-        test((t) => {
-          const node = createTarget(target, t);
-          createParserOptions = (options) => ({
-            sanitizer: { removeElements: ["span"] },
-          });
-          createHTML = (html) => {
-            throw new Error(
-              "createHTML should not be called when sanitizer is present",
+          test((t) => {
+            const { receiver, root } = createMethodTarget(target, method, t);
+            receiver[method](
+              "<div id='allowed'><span id=forbidden></span></div>",
+              passthrough.createParserOptions({
+                sanitizer: { removeElements: ["span"] },
+              }),
             );
-          };
-          node.setHTMLUnsafe(
-            "<div id='allowed'><span id=forbidden></span></div>",
-          );
-          assert_equals(node.querySelector("#forbidden"), null);
-          assert_not_equals(node.querySelector("#allowed"), null);
-        }, `${target}.setHTMLUnsafe: default policy createParserOptions with sanitizer prevents createHTML from running`);
+            assert_equals(root.querySelector("#forbidden"), null);
+            assert_not_equals(root.querySelector("#allowed"), null);
+          }, `${target}.${method}: passing a TrustedHTMLParserOptions overrides default policy`);
 
-        test((t) => {
-          const node = createTarget(target, t);
-          createParserOptions = (options) => ({});
-          createHTML = (html) => {
-            throw new Error("createHTML should not be called when default policy provides createParserOptions");
-          };
-          node.setHTMLUnsafe(
-            "<div id='allowed'><span id='allowed-child'></span></div>",
-          );
-          assert_not_equals(node.querySelector("#allowed"), null);
-          assert_not_equals(node.querySelector("#allowed-child"), null);
-        }, `${target}.setHTMLUnsafe: default policy createParserOptions without sanitizer prevents createHTML from running`);
+          test((t) => {
+            const { receiver, root } = createMethodTarget(target, method, t);
+            receiver[method](
+              "<div id='allowed'><span id=forbidden></span></div>",
+              noCreateHTMLPolicy.createParserOptions({
+                sanitizer: { removeElements: ["span"] },
+              }),
+            );
+            assert_equals(root.querySelector("#forbidden"), null);
+            assert_not_equals(root.querySelector("#allowed"), null);
+          }, `${target}.${method}: policy with only createParserOptions allows raw strings when sanitizer is present`);
 
-        test((t) => {
-          const node = createTarget(target, t);
-          window.did_run = false;
-          t.add_cleanup(() => {
+          test((t) => {
+            const { receiver, root } = createMethodTarget(target, method, t);
+            receiver[method](
+              "<div id='allowed'><span id='child'></span></div>",
+              noCreateHTMLPolicy.createParserOptions({}),
+            );
+            assert_not_equals(root.querySelector("#allowed"), null);
+            assert_not_equals(root.querySelector("#child"), null);
+          }, `${target}.${method}: policy with only createParserOptions allows raw strings without sanitizer`);
+
+          test((t) => {
+            const { receiver, root } = createMethodTarget(target, method, t);
+            createHTML = (html) => {
+              throw new Error("createHTML should not be called when TrustedHTMLParserOptions is passed");
+            };
+            receiver[method](
+              "<div id='allowed'><span id='allowed-child'></span></div>",
+              noSanitizerPolicy.createParserOptions({}),
+            );
+            assert_not_equals(root.querySelector("#allowed"), null);
+            assert_not_equals(root.querySelector("#allowed-child"), null);
+          }, `${target}.${method}: TrustedHTMLParserOptions without sanitizer satisfies Trusted Types and does not require createHTML`);
+
+          test((t) => {
+            const { receiver } = createMethodTarget(target, method, t);
+            let createHTMLCalled = false;
+            createParserOptions = (options) => {
+              throw new Error("createParserOptions failed");
+            };
+            createHTML = (html) => {
+              createHTMLCalled = true;
+              return html;
+            };
+            assert_throws_js(Error, () => {
+              receiver[method]("<div id='allowed'></div>");
+            });
+            assert_false(
+              createHTMLCalled,
+              "createHTML should not have been called",
+            );
+          }, `${target}.${method}: exception in default createParserOptions prevents createHTML from running`);
+
+          test((t) => {
+            const { receiver, root } = createMethodTarget(target, method, t);
+            createParserOptions = (options) => ({
+              sanitizer: { removeElements: ["span"] },
+            });
+            createHTML = (html) => {
+              throw new Error(
+                "createHTML should not be called when sanitizer is present",
+              );
+            };
+            receiver[method](
+              "<div id='allowed'><span id=forbidden></span></div>",
+            );
+            assert_equals(root.querySelector("#forbidden"), null);
+            assert_not_equals(root.querySelector("#allowed"), null);
+          }, `${target}.${method}: default policy createParserOptions with sanitizer prevents createHTML from running`);
+
+          test((t) => {
+            const { receiver, root } = createMethodTarget(target, method, t);
+            createParserOptions = (options) => ({});
+            createHTML = (html) => {
+              throw new Error("createHTML should not be called when default policy provides createParserOptions");
+            };
+            receiver[method](
+              "<div id='allowed'><span id='allowed-child'></span></div>",
+            );
+            assert_not_equals(root.querySelector("#allowed"), null);
+            assert_not_equals(root.querySelector("#allowed-child"), null);
+          }, `${target}.${method}: default policy createParserOptions without sanitizer prevents createHTML from running`);
+
+          test((t) => {
+            const { receiver, root } = createMethodTarget(target, method, t);
             window.did_run = false;
-          });
-          createParserOptions = (options) => ({
-            runScripts: true,
-          });
-          createHTML = (html) => html;
-          node.setHTMLUnsafe(
-            "<div id='allowed'><script>window.did_run = true;<" +
-              "/script></div>",
-            { runScripts: false },
-          );
-          assert_true(
-            window.did_run,
-            "Default policy createParserOptions can enable runScripts even if caller passed false",
-          );
-          assert_not_equals(node.querySelector("#allowed"), null);
-        }, `${target}.setHTMLUnsafe: default policy createParserOptions can override runScripts from false to true`);
+            t.add_cleanup(() => {
+              window.did_run = false;
+            });
+            createParserOptions = (options) => ({
+              runScripts: true,
+            });
+            createHTML = (html) => html;
+            receiver[method](
+              "<div id='allowed'><script>window.did_run = true;<" +
+                "/script></div>",
+              { runScripts: false },
+            );
+            assert_true(
+              window.did_run,
+              "Default policy createParserOptions can enable runScripts even if caller passed false",
+            );
+            assert_not_equals(root.querySelector("#allowed"), null);
+          }, `${target}.${method}: default policy createParserOptions can override runScripts from false to true`);
 
-        test((t) => {
-          const node = createTarget(target, t);
-          window.did_run = false;
-          t.add_cleanup(() => {
+          test((t) => {
+            const { receiver, root } = createMethodTarget(target, method, t);
             window.did_run = false;
-          });
-          createParserOptions = (options) => ({
-            runScripts: false,
-          });
-          createHTML = (html) => html;
-          node.setHTMLUnsafe(
-            "<div id='allowed'><script>window.did_run = true;<" +
-              "/script></div>",
-            { runScripts: true },
-          );
-          assert_false(
-            window.did_run,
-            "Default policy createParserOptions can override runScripts from true to false",
-          );
-          assert_not_equals(node.querySelector("#allowed"), null);
-        }, `${target}.setHTMLUnsafe: default policy createParserOptions can override runScripts from true to false`);
+            t.add_cleanup(() => {
+              window.did_run = false;
+            });
+            createParserOptions = (options) => ({
+              runScripts: false,
+            });
+            createHTML = (html) => html;
+            receiver[method](
+              "<div id='allowed'><script>window.did_run = true;<" +
+                "/script></div>",
+              { runScripts: true },
+            );
+            assert_false(
+              window.did_run,
+              "Default policy createParserOptions can override runScripts from true to false",
+            );
+            assert_not_equals(root.querySelector("#allowed"), null);
+          }, `${target}.${method}: default policy createParserOptions can override runScripts from true to false`);
+        }
       }
 
       test((t) => {

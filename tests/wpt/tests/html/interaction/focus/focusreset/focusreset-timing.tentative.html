@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>focusreset event: microtask timing</title>
+<link rel="help" href="https://github.com/whatwg/html/pull/13050">
+<link rel="help" href="https://dom.spec.whatwg.org/#notify-mutation-observers">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/focusreset-helpers.js"></script>
+
+<script>
+"use strict";
+
+// focusreset is fired from the mutation observer microtask that is queued when
+// the focused element is removed, similar to slotchange.
+
+promise_test(async t => {
+  await settle(t);
+  const order = [];
+  document.addEventListener("focusreset", () => order.push("focusreset"),
+                            { once: true });
+  const button = createFocusable(t);
+  button.focus();
+
+  queueMicrotask(() => order.push("microtask queued before removal"));
+  button.remove();
+  queueMicrotask(() => order.push("microtask queued after removal"));
+  order.push("sync");
+
+  await nextTask(t);
+  assert_array_equals(order, [
+    "sync",
+    "microtask queued before removal",
+    "focusreset",
+    "microtask queued after removal",
+  ]);
+}, "focusreset is fired from a microtask queued at the time of removal");
+
+promise_test(async t => {
+  await settle(t);
+  const order = [];
+  document.addEventListener("focusreset", () => order.push("focusreset"),
+                            { once: true });
+  const button = createFocusable(t);
+  button.focus();
+  button.remove();
+
+  t.step_timeout(() => order.push("task"), 0);
+  requestAnimationFrame(() => order.push("raf"));
+  await afterNextRenderingUpdateAndTask(t);
+  assert_equals(order[0], "focusreset",
+                "fired before any subsequent task or rendering update");
+}, "focusreset is fired before the next task and the next rendering update");
+
+promise_test(async t => {
+  await settle(t);
+  const order = [];
+  const button = createFocusable(t);
+  button.focus();
+
+  const mo = new MutationObserver(() => order.push("mutationobserver"));
+  mo.observe(document.body, { childList: true });
+  t.add_cleanup(() => mo.disconnect());
+  document.addEventListener("focusreset", () => order.push("focusreset"),
+                            { once: true });
+
+  button.remove();
+  await nextTask(t);
+  assert_array_equals(order, ["mutationobserver", "focusreset"]);
+}, "focusreset is fired after MutationObserver callbacks");
+
+promise_test(async t => {
+  await settle(t);
+  const order = [];
+  const host = createFocusable(t, "div");
+  const root = host.attachShadow({ mode: "open" });
+  const slot = document.createElement("slot");
+  root.append(slot);
+  const button = createFocusable(t, "button", host);
+  button.focus();
+  // Let the slotchange from the initial assignment fire.
+  await nextTask(t);
+
+  const mo = new MutationObserver(() => order.push("mutationobserver"));
+  mo.observe(host, { childList: true });
+  t.add_cleanup(() => mo.disconnect());
+  slot.addEventListener("slotchange", () => order.push("slotchange"));
+  document.addEventListener("focusreset", () => order.push("focusreset"),
+                            { once: true });
+
+  button.remove();
+  await nextTask(t);
+  assert_array_equals(order, ["mutationobserver", "slotchange", "focusreset"]);
+}, "focusreset is fired after slotchange events");
+
+promise_test(async t => {
+  await settle(t);
+  const order = [];
+  document.addEventListener("focusreset", () => order.push("focusreset"),
+                            { once: true });
+  const button = createFocusable(t);
+  button.focus();
+
+  await new Promise(resolve => {
+    requestAnimationFrame(() => {
+      order.push("raf1");
+      button.remove();
+    });
+    requestAnimationFrame(() => {
+      order.push("raf2");
+      resolve();
+    });
+  });
+  assert_array_equals(order, ["raf1", "focusreset", "raf2"]);
+}, "Removal during a rAF callback fires focusreset right after that callback");
+
+promise_test(async t => {
+  await settle(t);
+  const order = [];
+  document.addEventListener("focusreset", () => order.push("focusreset"),
+                            { once: true });
+  const button = createFocusable(t);
+  button.focus();
+
+  const div = createFocusable(t, "div");
+  const ro = new ResizeObserver(() => {
+    if (order.includes("resizeobserver")) {
+      return;
+    }
+    order.push("resizeobserver");
+    button.remove();
+  });
+  t.add_cleanup(() => ro.disconnect());
+  ro.observe(div);
+
+  await new Promise(resolve => {
+    requestAnimationFrame(() => {
+      order.push("raf1");
+      requestAnimationFrame(() => {
+        order.push("raf2");
+        resolve();
+      });
+    });
+  });
+  assert_array_equals(order,
+                      ["raf1", "resizeobserver", "focusreset", "raf2"]);
+}, "Removal during a ResizeObserver callback fires focusreset before the next frame");
+
+promise_test(async t => {
+  await settle(t);
+  const events = recordFocusResets(t);
+  const button = createFocusable(t);
+  button.focus();
+  await new Promise(resolve => {
+    queueMicrotask(() => {
+      button.remove();
+      resolve();
+    });
+  });
+  assert_equals(events.length, 1);
+}, "Removal during a microtask fires focusreset in the same microtask checkpoint");
+
+promise_test(async t => {
+  await settle(t);
+  const events = recordFocusResets(t);
+  const button = createFocusable(t);
+  button.focus();
+  button.remove();
+
+  // Forcing style/layout synchronously doesn't fire the event.
+  document.body.offsetWidth;
+  getComputedStyle(document.body).color;
+  assert_equals(events.length, 0, "not fired synchronously");
+
+  await nextTask(t);
+  assert_equals(events.length, 1, "fired from the microtask");
+}, "focusreset is not fired synchronously");
+
+promise_test(async t => {
+  await settle(t);
+  const events = recordFocusResets(t);
+  const button = createFocusable(t);
+  button.focus();
+  button.remove();
+
+  // Dirty style and layout from the focusreset handler. The event must still
+  // only be fired once, and the document must end up rendered consistently.
+  const div = createFocusable(t, "div");
+  document.addEventListener("focusreset", t.step_func(() => {
+    div.style.height = "100px";
+    assert_equals(div.offsetHeight, 100);
+  }), { once: true });
+
+  await afterNextRenderingUpdateAndTask(t);
+  assert_equals(events.length, 1, "fired once");
+  assert_equals(div.getBoundingClientRect().height, 100);
+}, "Dirtying layout from a focusreset handler is handled gracefully");
+</script>

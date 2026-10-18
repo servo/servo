@@ -40,7 +40,11 @@ function run() {
   f6.unicodeRange = "U+0000";
 
   document.fonts.ready.then(function() {
-    document.documentElement.classList.remove("reftest-wait");
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        document.documentElement.classList.remove("reftest-wait");
+      });
+    });
   })
 }
 </script>

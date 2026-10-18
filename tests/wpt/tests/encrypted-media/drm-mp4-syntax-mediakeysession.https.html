@@ -25,8 +25,8 @@
     <div id='video'>
       <video id="videoelement" width="200px"></video>
     </div>
-    <script>
-        var keysystem = getSupportedKeySystem();
+    <script type="module">
+        var keysystem = await getSupportedKeySystem();
         var contentItem = content['mp4-basic'],
             config = {
                 keysystem: keysystem,

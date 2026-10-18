@@ -1,0 +1,72 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Name Comp: Host Language Label</title>
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+    <script src="/resources/testdriver.js"></script>
+    <script src="/resources/testdriver-vendor.js"></script>
+    <script src="/resources/testdriver-actions.js"></script>
+    <script src="/wai-aria/scripts/aria-utils.js"></script>
+  </head>
+  <body>
+    <!-- Ambiguity coming from Host Language Label in accname specs (https://www.w3.org/TR/accname-1.2/#comp_host_language_label) - PR that tries to solve it https://github.com/w3c/aria/pull/2405 -->
+    <h2>HTML input with label with role none</h2>
+    <h3>HTML input label/for</h3>
+    <label role="none" for="lrp">input label</label>
+    <input id="lrp" type="text" data-expectedlabel="input label" data-testname="html: label[for][role=none]" class="ex-label">
+    <h3>HTML label encapsulation</h3>
+    <label role="none">
+      <span>input label</span>
+      <input type="text" data-expectedlabel="input label" data-testname="html: label[role=none] encapsulation" class="ex-label">
+    </label>
+
+    <!-- This test case is specifically designed to check the accessible name, but a separate test case has been created in wai-aria/role/role_none_conflict_resolution.tentative.html to check the role -->
+    <h2>HTML input with role="none" and label associated (presentational roles conflict resolution)</h2>
+    <h3>HTML input label/for</h3>
+    <label for="irn">input label</label>
+    <input id="irn" type="text" data-expectedlabel="input label" data-testname="html:label[for]+input[role=none] (role invalidated due to focusability)" class="ex-label" role="none">
+    <h3>HTML label encapsulation</h3>
+    <label>
+      <span>input label</span>
+      <input type="text" data-expectedlabel="input label" data-testname="html: label>input[role=none] (with label encapsulation, role invalidated due to focusability)" class="ex-label" role="none">
+    </label>
+
+    <h2>HTML input with role="none" and label with role none (presentational roles conflict resolution)</h2>
+    <h3>HTML input label/for</h3>
+    <label role="none" for="lirp">input label</label>
+    <input id="lirp" type="text" data-expectedlabel="input label" data-testname="html: label[for][role=none]+input[role=none] (role invalidated due to focusability)" class="ex-label" role="none">
+    <h3>HTML label encapsulation</h3>
+    <label role="none">
+      <span>input label</span>
+      <input type="text" data-expectedlabel="input label" data-testname="html: label[role=none]>input[role=none] (with label encapsulation, role invalidated due to focusability)" class="ex-label" role="none">
+    </label>
+
+    <h2>SVG wrapping title with role="none"</h2>
+    <svg viewBox="0 0 20 10" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="5" cy="5" r="4" data-expectedlabel="circle" data-testname="svg: svg>circle>title[role=none] (role none set on title doesn't affect circle acc name)" class="ex-label">
+        <title role="none">circle</title>
+      </circle>
+    </svg>
+
+    <h2>HTML fieldset wrapping legend with role="none"</h2>
+    <fieldset data-expectedlabel="legend" data-testname="html: fieldset>legend[role=none] (role none set on legend doesn't affect fieldset acc name)" class="ex-label"><legend role="none">legend</legend></fieldset>
+
+    <h2>HTML table wrapping caption with role="none"</h2>
+    <table data-expectedlabel="caption" data-testname="html: table>caption[role=none] (role none set on caption doesn't affect table acc name)" class="ex-label">
+      <caption role="none">caption</caption>
+      <tr>
+        <th>th1</th>
+        <th>th2</th>
+      </tr>
+      <tr>
+        <td>td1</td>
+        <td>td2</td>
+      </tr>
+    </table>
+
+    <script>
+      AriaUtils.verifyLabelsBySelector(".ex-label");
+    </script>
+  </body>
+</html>

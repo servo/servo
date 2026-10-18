@@ -1,0 +1,84 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>RTCPeerConnection description attributes are replaced, not mutated, by candidates</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+'use strict';
+
+const remoteCandidate = 'candidate:1 1 udp 2113929471 192.0.2.1 50000 typ host';
+
+function assertReplaced(before, sdpBefore, after, {candidate}) {
+  assert_not_equals(after, before, 'attribute is a new object');
+  assert_equals(before.sdp, sdpBefore, 'old object sdp is unchanged');
+  assert_equals(after.type, before.type, 'type is preserved');
+  // Browsers may reorder or drop extension attributes (e.g. ufrag) in SDP.
+  candidate = candidate.split(' ').slice(0, 8).join(' ');
+  assert_false(before.sdp.includes(candidate), 'old object still lacks candidate');
+  assert_true(after.sdp.includes(candidate), 'new object has candidate');
+}
+
+promise_test(async t => {
+  const pc = new RTCPeerConnection();
+  t.add_cleanup(() => pc.close());
+  pc.addTransceiver('audio');
+  await pc.setLocalDescription();
+  const before = pc.pendingLocalDescription;
+  const sdpBefore = before.sdp;
+  assert_equals(pc.pendingLocalDescription, before, 'same object across gets');
+  const {candidate} = await new Promise(r => pc.onicecandidate = r);
+  assert_equals(pc.localDescription, pc.pendingLocalDescription);
+  assertReplaced(before, sdpBefore, pc.pendingLocalDescription, candidate);
+}, 'pendingLocalDescription is replaced, not mutated, by a gathered candidate');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  pc1.addTransceiver('audio');
+  await pc2.setRemoteDescription(await pc1.createOffer());
+  await pc2.setLocalDescription();
+  const before = pc2.currentLocalDescription;
+  const sdpBefore = before.sdp;
+  assert_equals(pc2.currentLocalDescription, before, 'same object across gets');
+  const {candidate} = await new Promise(r => pc2.onicecandidate = r);
+  assert_equals(pc2.localDescription, pc2.currentLocalDescription);
+  assertReplaced(before, sdpBefore, pc2.currentLocalDescription, candidate);
+}, 'currentLocalDescription is replaced, not mutated, by a gathered candidate');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  pc1.addTransceiver('audio');
+  await pc2.setRemoteDescription(await pc1.createOffer());
+  const before = pc2.pendingRemoteDescription;
+  const sdpBefore = before.sdp;
+  assert_equals(pc2.pendingRemoteDescription, before, 'same object across gets');
+  const candidate = {candidate: remoteCandidate, sdpMid: pc2.getTransceivers()[0].mid};
+  await pc2.addIceCandidate(candidate);
+  assert_equals(pc2.remoteDescription, pc2.pendingRemoteDescription);
+  assertReplaced(before, sdpBefore, pc2.pendingRemoteDescription, candidate);
+}, 'pendingRemoteDescription is replaced, not mutated, by addIceCandidate');
+
+promise_test(async t => {
+  const pc1 = new RTCPeerConnection();
+  t.add_cleanup(() => pc1.close());
+  const pc2 = new RTCPeerConnection();
+  t.add_cleanup(() => pc2.close());
+  pc1.addTransceiver('audio');
+  await pc1.setLocalDescription();
+  await pc2.setRemoteDescription(pc1.localDescription);
+  await pc2.setLocalDescription();
+  await pc1.setRemoteDescription(pc2.localDescription);
+  const before = pc1.currentRemoteDescription;
+  const sdpBefore = before.sdp;
+  assert_equals(pc1.currentRemoteDescription, before, 'same object across gets');
+  const candidate = {candidate: remoteCandidate, sdpMid: pc1.getTransceivers()[0].mid};
+  await pc1.addIceCandidate(candidate);
+  assert_equals(pc1.remoteDescription, pc1.currentRemoteDescription);
+  assertReplaced(before, sdpBefore, pc1.currentRemoteDescription, candidate);
+}, 'currentRemoteDescription is replaced, not mutated, by addIceCandidate');
+</script>

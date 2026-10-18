@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>XPath evaluation with detached attributes and disconnected nodes</title>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-xpathevaluatorbase-evaluate">
+<link rel="help" href="https://crbug.com/535260636">
+<link rel="help" href="https://crbug.com/552841764">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="target"></div>
+
+<script>
+test(() => {
+  const target = document.getElementById('target');
+  const detachedAttr = document.createAttribute('data-test');
+
+  // Minimal PoC from crbug.com/535260636:
+  // Union of a connected element and a detached attribute, evaluated on the detached attribute.
+  const result = document.evaluate(
+    '(id("target") | .)',
+    detachedAttr,
+    null,
+    XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+    null
+  );
+  assert_equals(result.snapshotLength, 2);
+  const items = [result.snapshotItem(0), result.snapshotItem(1)];
+  assert_true(items.includes(target));
+  assert_true(items.includes(detachedAttr));
+}, 'ORDERED_NODE_SNAPSHOT_TYPE with union of connected element and detached attribute');
+
+test(() => {
+  const target = document.getElementById('target');
+  const detachedAttr = document.createAttribute('data-test');
+
+  const result = document.evaluate(
+    '(id("target") | .)',
+    detachedAttr,
+    null,
+    XPathResult.ORDERED_NODE_ITERATOR_TYPE,
+    null
+  );
+  const items = [result.iterateNext(), result.iterateNext()];
+  assert_equals(result.iterateNext(), null);
+  assert_true(items.includes(target));
+  assert_true(items.includes(detachedAttr));
+}, 'ORDERED_NODE_ITERATOR_TYPE with union of connected element and detached attribute');
+
+test(() => {
+  const target = document.getElementById('target');
+  const detachedAttr = document.createAttribute('data-test');
+
+  const result = document.evaluate(
+    '(id("target") | .)',
+    detachedAttr,
+    null,
+    XPathResult.FIRST_ORDERED_NODE_TYPE,
+    null
+  );
+  assert_true(result.singleNodeValue === target || result.singleNodeValue === detachedAttr);
+}, 'FIRST_ORDERED_NODE_TYPE with union of connected element and detached attribute');
+
+test(() => {
+  const target = document.getElementById('target');
+  const detachedAttr = document.createAttribute('data-test');
+
+  const result = document.evaluate(
+    '(id("target") | .)',
+    detachedAttr,
+    null,
+    XPathResult.ANY_UNORDERED_NODE_TYPE,
+    null
+  );
+  assert_true(result.singleNodeValue === target || result.singleNodeValue === detachedAttr);
+}, 'ANY_UNORDERED_NODE_TYPE with union of connected element and detached attribute');
+
+test(() => {
+  const target = document.getElementById('target');
+  const detachedAttr = document.createAttribute('data-test');
+
+  const result = document.evaluate(
+    '(id("target") | .)',
+    detachedAttr,
+    null,
+    XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE,
+    null
+  );
+  assert_equals(result.snapshotLength, 2);
+}, 'UNORDERED_NODE_SNAPSHOT_TYPE with union of connected element and detached attribute');
+
+test(() => {
+  const target = document.getElementById('target');
+  const detachedAttr = document.createAttribute('data-test');
+
+  const result = document.evaluate(
+    '(id("target") | .)',
+    detachedAttr,
+    null,
+    XPathResult.UNORDERED_NODE_ITERATOR_TYPE,
+    null
+  );
+  const items = [result.iterateNext(), result.iterateNext()];
+  assert_equals(result.iterateNext(), null);
+  assert_true(items.includes(target));
+  assert_true(items.includes(detachedAttr));
+}, 'UNORDERED_NODE_ITERATOR_TYPE with union of connected element and detached attribute');
+
+test(() => {
+  const detachedAttr = document.createAttribute('data-test');
+  detachedAttr.value = 'hello';
+
+  // string(...) on a node-set uses the string-value of the first node in document order.
+  const strResult = document.evaluate(
+    'string((id("target") | .))',
+    detachedAttr,
+    null,
+    XPathResult.STRING_TYPE,
+    null
+  );
+  assert_true(strResult.stringValue === '' || strResult.stringValue === 'hello');
+
+  const selfStrResult = document.evaluate(
+    'string((. | .))',
+    detachedAttr,
+    null,
+    XPathResult.STRING_TYPE,
+    null
+  );
+  assert_equals(selfStrResult.stringValue, 'hello');
+}, 'String value evaluation with node-set containing detached attribute');
+
+test(() => {
+  const detachedAttr1 = document.createAttribute('data-first');
+  const detachedAttr2 = document.createAttribute('data-second');
+
+  // Both attributes are detached (different roots).
+  const result = document.evaluate(
+    '(. | .)',
+    detachedAttr1,
+    null,
+    XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+    null
+  );
+  assert_equals(result.snapshotLength, 1);
+  assert_equals(result.snapshotItem(0), detachedAttr1);
+}, 'ORDERED_NODE_SNAPSHOT_TYPE with self-union on detached attribute');
+
+test(() => {
+  const target = document.getElementById('target');
+  const detachedElement = document.createElement('div');
+
+  const result = document.evaluate(
+    '(id("target") | .)',
+    detachedElement,
+    null,
+    XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+    null
+  );
+  assert_equals(result.snapshotLength, 2);
+  const items = [result.snapshotItem(0), result.snapshotItem(1)];
+  assert_true(items.includes(target));
+  assert_true(items.includes(detachedElement));
+}, 'ORDERED_NODE_SNAPSHOT_TYPE with union of connected element and disconnected element');
+
+test(() => {
+  const disconnectedParent = document.createElement('div');
+  const child1 = document.createElement('span');
+  const child2 = document.createElement('p');
+  disconnectedParent.append(child1, child2);
+
+  const target = document.getElementById('target');
+
+  // Union of connected element and multiple nodes from a disconnected tree.
+  const result = document.evaluate(
+    '(id("target") | ./p | ./span)',
+    disconnectedParent,
+    null,
+    XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+    null
+  );
+  assert_equals(result.snapshotLength, 3);
+  const items = [result.snapshotItem(0), result.snapshotItem(1), result.snapshotItem(2)];
+  assert_true(items.includes(target));
+  assert_true(items.includes(child1));
+  assert_true(items.includes(child2));
+}, 'ORDERED_NODE_SNAPSHOT_TYPE does not crash with union of connected and disconnected nodes');
+
+test(() => {
+  const disconnectedParent = document.createElement('div');
+  disconnectedParent.setAttribute('data-test', 'val');
+  const attr = disconnectedParent.getAttributeNode('data-test');
+  const child = document.createElement('span');
+  disconnectedParent.append(child);
+
+  const target = document.getElementById('target');
+
+  const result = document.evaluate(
+    '(id("target") | . | @* | ./*)',
+    disconnectedParent,
+    null,
+    XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+    null
+  );
+  assert_equals(result.snapshotLength, 4);
+  const items = [result.snapshotItem(0), result.snapshotItem(1), result.snapshotItem(2), result.snapshotItem(3)];
+  assert_true(items.includes(target));
+  assert_true(items.includes(disconnectedParent));
+  assert_true(items.includes(attr));
+  assert_true(items.includes(child));
+}, 'ORDERED_NODE_SNAPSHOT_TYPE does not crash with union containing disconnected element, attribute, and child');
+
+test(() => {
+  const detachedAttr = document.createAttribute('data-test');
+
+  const result = document.evaluate(
+    '(id("target") | .)[1]',
+    detachedAttr,
+    null,
+    XPathResult.FIRST_ORDERED_NODE_TYPE,
+    null
+  );
+  const target = document.getElementById('target');
+  assert_true(result.singleNodeValue === target || result.singleNodeValue === detachedAttr);
+}, 'Positional predicate [1] on union containing detached attribute');
+
+test(() => {
+  const detachedAttr = document.createAttribute('data-test');
+
+  const result = document.evaluate(
+    '(id("target") | .)[last()]',
+    detachedAttr,
+    null,
+    XPathResult.FIRST_ORDERED_NODE_TYPE,
+    null
+  );
+  const target = document.getElementById('target');
+  assert_true(result.singleNodeValue === target || result.singleNodeValue === detachedAttr);
+}, 'Positional predicate [last()] on union containing detached attribute');
+
+test(() => {
+  const detachedAttr = document.createAttribute('data-test');
+
+  // Testing node-set equality comparison which invokes EqTestOp::Compare.
+  const result = document.evaluate(
+    '(id("target") | .) = (id("target") | .)',
+    detachedAttr,
+    null,
+    XPathResult.BOOLEAN_TYPE,
+    null
+  );
+  assert_true(result.booleanValue);
+}, 'Equality comparison of node-sets containing detached attribute');
+
+test(() => {
+  const detachedAttr = document.createAttribute('data-test');
+
+  for (const expr of ['parent::*', 'ancestor::*', 'ancestor-or-self::*', 'following::*', 'preceding::*']) {
+    const result = document.evaluate(
+      expr,
+      detachedAttr,
+      null,
+      XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+      null
+    );
+    assert_equals(result.snapshotLength, 0, `Expression "${expr}" on detached attribute should return empty node-set`);
+  }
+}, 'Axis traversal on detached attribute does not crash and returns empty node-set');
+
+test(() => {
+  const container = document.createElement('div');
+  document.body.appendChild(container);
+  // Create > 10,000 elements so node_count > kTraversalSortCutoff (10,000)
+  // to exercise TraversalSort().
+  const N = 10005;
+  const frag = document.createDocumentFragment();
+  const ids = [];
+  for (let i = 0; i < N; ++i) {
+    const span = document.createElement('span');
+    span.id = 'ts' + i;
+    ids.push(span.id);
+    frag.appendChild(span);
+  }
+  container.appendChild(frag);
+
+  const detachedAttr = document.createAttribute('data-test');
+
+  // id("ts0 ts1 ...") selects N connected elements.
+  // Union with . (detachedAttr) gives N + 1 > 10,000 nodes, triggering TraversalSort().
+  const result = document.evaluate(
+    '(id("' + ids.join(' ') + '") | .)',
+    detachedAttr,
+    null,
+    XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+    null
+  );
+  assert_equals(result.snapshotLength, N + 1);
+
+  container.remove();
+}, 'TraversalSort with >10000 connected nodes and a detached attribute');
+
+test(() => {
+  const target = document.getElementById('target');
+  const disconnectedTree = document.createElement('div');
+  disconnectedTree.setAttribute('data-foo', 'bar');
+  const disconnectedAttr = disconnectedTree.getAttributeNode('data-foo');
+  const N = 10005;
+  const frag = document.createDocumentFragment();
+  for (let i = 0; i < N; ++i) {
+    frag.appendChild(document.createElement('span'));
+  }
+  disconnectedTree.appendChild(frag);
+
+  // Union of 1 connected node (target) with disconnectedTree and its 10,005 children
+  // and attribute. Total = 10,008 nodes > 10,000, triggering TraversalSort().
+  const result = document.evaluate(
+    '(id("target") | . | @* | ./*)',
+    disconnectedTree,
+    null,
+    XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
+    null
+  );
+  assert_equals(result.snapshotLength, N + 3);
+}, 'TraversalSort with connected node and a disconnected subtree with >10000 nodes');
+</script>

@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Featureless elements: :host and a default namespace</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#featureless">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+  // A default namespace applies to type selectors, and a compound with no type selector written out
+  // behaves as though it has an implied universal selector: with a foreign default namespace `.foo`
+  // stops matching an ordinary HTML element with that class. A featureless element is never matched
+  // by a universal selector, so `defaultns|*:is(:host)` cannot match the shadow host. A compound
+  // containing only :host is exempt.
+  const NONE = ["no namespace", ""];
+  const FOREIGN = ["a foreign default namespace", "@namespace url(http://example.org/ns);"];
+  const HOSTS_OWN = ["a default namespace the host is in", "@namespace url(http://www.w3.org/1999/xhtml);"];
+  const PREFIXED = ["a foreign prefixed namespace", "@namespace ns url(http://example.org/ns);"];
+
+  function hostMatches(prelude, selector) {
+    const host = document.createElement("div");
+    host.className = "host";
+    document.body.appendChild(host);
+    host.attachShadow({ mode: "open" }).innerHTML =
+      `<style>${prelude} ${selector} { --matched: yes }</style>`;
+    const matched = getComputedStyle(host).getPropertyValue("--matched").trim() === "yes";
+    host.remove();
+    return matched;
+  }
+
+  function test_host(label, prelude, selector, expected) {
+    test(() => {
+      assert_equals(hostMatches(prelude, selector), expected);
+    }, `${selector} ${expected ? "matches" : "does not match"} the shadow host with ${label}`);
+  }
+
+  // A compound containing only :host is exempt from the default namespace.
+  for (const declaration of [NONE, FOREIGN, HOSTS_OWN, PREFIXED]) {
+    test_host(...declaration, ":host", true);
+    test_host(...declaration, ":host:host", true);
+  }
+
+  // Any other compound picks up the implied universal selector.
+  for (const selector of [":is(:host)", ":where(:host)", ":not(:not(:host))"]) {
+    test_host(...NONE, selector, true);
+    test_host(...FOREIGN, selector, false);
+    test_host(...HOSTS_OWN, selector, false);
+    test_host(...PREFIXED, selector, true);
+  }
+
+  // :host(...)'s argument is matched against the shadow host as an ordinary element, which does have
+  // a namespace, so the default namespace applies to the argument normally.
+  test_host(...NONE, ":host(.host)", true);
+  test_host(...FOREIGN, ":host(.host)", false);
+  test_host(...HOSTS_OWN, ":host(.host)", true);
+  test_host(...PREFIXED, ":host(.host)", true);
+</script>

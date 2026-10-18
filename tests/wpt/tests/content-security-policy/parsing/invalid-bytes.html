@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
+<meta name="timeout" content="long">
 <title>Content-Security-Policy Invalid Bytes Parsing Tests</title>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
-<script src="./support/helper.sub.js"></script>
 <body>
 <script>
 "use strict";
@@ -21,6 +21,7 @@ function csp_parsing_test(policy, expectBlock, message) {
     let iframe = document.createElement("iframe");
     iframe.src = "/content-security-policy/parsing/support/csp.py?policy=" + encodeURIComponent(policy);
     document.body.appendChild(iframe);
+    t.add_cleanup(() => iframe.remove());
 
     let {data} = await new Promise(resolve => window.addEventListener("message", resolve, {once: true}));
     assert_equals(data, expectBlock ? "error" : "load", "img state is correct");

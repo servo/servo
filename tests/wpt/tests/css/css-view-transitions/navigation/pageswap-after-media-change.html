@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<meta name="variant" content="?initial">
+<meta name="variant" content="?resize">
+<title>A media query change updates the outbound view transition opt-in</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/#view-transition-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  const frame = document.createElement("iframe");
+  frame.width = location.search === "?resize" ? "200" : "400";
+  frame.src = "resources/pageswap-media-change.html";
+  const loaded = new Promise(resolve => frame.onload = resolve);
+  document.body.append(frame);
+  t.add_cleanup(() => frame.remove());
+  await loaded;
+  const win = frame.contentWindow;
+  const twoFrames = () => new Promise(resolve =>
+    win.requestAnimationFrame(() => win.requestAnimationFrame(resolve)));
+  await twoFrames();
+  if (location.search === "?resize") {
+    assert_false(win.matchMedia("(min-width: 300px)").matches);
+    frame.width = "400";
+    await twoFrames();
+  }
+  assert_true(win.matchMedia("(min-width: 300px)").matches);
+  const swapped = new Promise(resolve => {
+    win.addEventListener("pageswap", event => {
+      resolve(event.viewTransition !== null);
+      event.viewTransition?.skipTransition();
+    }, { once: true });
+  });
+  frame.src = "/resources/blank.html?destination";
+  assert_true(await swapped, "The matching rule enables an outbound transition");
+}, "pageswap includes a view transition after " + location.search.slice(1) + " media matching");
+</script>

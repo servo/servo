@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>CSSNumericValue.type() for container query length units</title>
+    <link rel="help" href="https://drafts.css-houdini.org/css-typed-om-1/#numeric-typing">
+    <link rel="help" href="https://drafts.csswg.org/css-conditional-5/#container-lengths">
+    <meta name="assert" content="Container query length units have the length type">
+    <script src="/resources/testharness.js"></script>
+    <script src="/resources/testharnessreport.js"></script>
+</head>
+<body>
+    <script>
+        "use strict";
+
+        const units = ["cqw", "cqh", "cqi", "cqb", "cqmin", "cqmax"];
+
+        for (const unit of units) {
+            test(() => {
+                const value = CSS[unit](1);
+                assert_equals(value.unit, unit);
+                assert_object_equals(value.type(), { length: 1 });
+            }, `CSS.${unit}() has length type`);
+
+            test(() => {
+                const value = new CSSUnitValue(1, unit);
+                assert_object_equals(value.type(), { length: 1 });
+            }, `new CSSUnitValue(1, "${unit}") has length type`);
+
+            test(() => {
+                const sum = CSS[unit](1).add(CSS.px(1));
+                assert_true(sum instanceof CSSMathSum);
+                assert_object_equals(sum.type(), { length: 1 });
+            }, `${unit} can be added to px`);
+
+            test(() => {
+                assert_throws_js(TypeError, () => CSS[unit](1).add(CSS.number(1)));
+            }, `${unit} cannot be added to a number`);
+
+            test(() => {
+                const product = CSS[unit](1).mul(CSS[unit](1));
+                assert_object_equals(product.type(), { length: 2 });
+            }, `${unit} multiplied by ${unit} has length^2 type`);
+        }
+    </script>
+</body>
+</html>

@@ -656,6 +656,12 @@ class BidiEmulationProtocolPart(ProtocolPart):
         pass
 
     @abstractmethod
+    async def set_media_features_override(self,
+            features: Optional[Mapping[str, Any]],
+            contexts: List[str]) -> None:
+        pass
+
+    @abstractmethod
     async def set_screen_orientation_override(self,
             screen_orientation: Optional[Mapping[str, Any]],
             contexts: List[str]) -> None:

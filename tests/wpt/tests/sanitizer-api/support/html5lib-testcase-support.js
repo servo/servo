@@ -85,6 +85,8 @@ function parse_html5lib_testcases(content) {
       // Error handling is for another day.
     }
   }
+  // Flush the last testcase if the content doesn't end with an empty line.
+  add_html5lib_testcase(testcases, current);
   return testcases;
 }
 

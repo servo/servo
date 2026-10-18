@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Navigating an iframe from the container's load event during reload and traversal</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/helpers.js"></script>
+
+<script>
+"use strict";
+
+// Note: bfcache won't mess with any windows with openers, so it doesn't
+// interfere with these tests.
+
+function iframeSearch(w) {
+  return w.document.querySelector("iframe").contentWindow.location.search;
+}
+
+// Open a container whose load event navigates its iframe to ?onload, and
+// navigate the iframe to ?manual. Then call `historyOp`, which is intended to
+// reload / traverse the container. Finally assert we ended up at ?onload rather
+// than restoring ?manual from SH.
+function testOnloadNavigationWins(historyOp, name) {
+  promise_test(async t => {
+    const w = window.open("../resources/navigates-iframe-in-load.html");
+    t.add_cleanup(() => w.close());
+    let data = await waitForMessage(w);
+    assert_true(data.href && data.href.endsWith("?onload"));
+    assert_equals(iframeSearch(w), "?onload");
+
+    const iframe = w.document.querySelector("iframe");
+    iframe.src = "/common/blank.html?manual";
+    data = await waitForMessage(w);
+    assert_true(data.href && data.href.endsWith("?manual"));
+    assert_equals(iframeSearch(w), "?manual");
+
+    await historyOp(w);
+    assert_equals(iframeSearch(w), "?onload");
+  }, name);
+}
+
+testOnloadNavigationWins(async w => {
+  const reloaded = waitForMessage(w);
+  w.location.reload();
+  const data = await reloaded;
+  assert_true(data.href && data.href.endsWith("?onload"));
+}, "Reload: Iframe navigation from the container's load event takes effect");
+
+testOnloadNavigationWins(async w => {
+  const away = waitForMessage(w);
+  w.location.href = "../resources/post-top-opener-on-load.html";
+  let data = await away;
+  assert_equals(data, "ready", "Got expected message from popup");
+
+  const restored = waitForMessage(w);
+  w.history.back();
+  data = await restored;
+  assert_true(data.href && data.href.endsWith("?onload"));
+}, "Back traversal: Iframe navigation from container's load event takes effect");
+</script>

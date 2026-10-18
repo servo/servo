@@ -76,7 +76,7 @@ promise_test(async t => {
 
   await promise_rejects_dom(
     t,
-    'UnknownError',
+    'AbortError',
     executePromise,
     'executeTool should reject when form is reset while execution is pending'
   );
@@ -108,7 +108,7 @@ promise_test(async t => {
 
   await promise_rejects_dom(
     t,
-    'UnknownError',
+    'AbortError',
     executePromise,
     'executeTool should reject when unrelated submit and remove occurs'
   );

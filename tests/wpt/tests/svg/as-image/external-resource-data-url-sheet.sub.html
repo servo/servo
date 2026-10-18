@@ -1,0 +1,23 @@
+<!doctype html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>SVG as image doesn't load cross-origin resources from a cached data: URL sheet</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2079209">
+<link rel="author" href="mailto:emilio@crisal.io" title="Emilio Cobos Álvarez">
+<link rel="author" href="https://mozilla.com" title="Mozilla">
+<link rel="match" href="/svg/struct/reftests/reference/green-100x100.html">
+<link rel="stylesheet" href="data:text/css,svg{background-image:url(http://{{domains[www1]}}:{{ports[http][0]}}/images/red.png);background-size:100px 100px}">
+<svg width="100" height="100" style="position: absolute; left: -1000px"></svg>
+<img width="100" height="100" style="background-color: green">
+<script>
+  window.addEventListener("load", () => {
+    const img = document.querySelector("img");
+    img.onload = img.onerror = () => {
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        document.documentElement.classList.remove("reftest-wait");
+      }));
+    };
+    img.src = "external-resource-data-url-sheet-helper.sub.svg";
+  });
+</script>
+</html>

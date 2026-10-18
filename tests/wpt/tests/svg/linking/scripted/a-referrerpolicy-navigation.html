@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVGAElement referrerpolicy is used when following the link</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/linking.html#AElementReferrerpolicyAttribute">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/links.html#following-hyperlinks-2">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// The link is in an iframe, because a test must not navigate its own top level
+// browsing context. The frame clicks an SVG <a> built from the query string,
+// and the target page posts back its document.referrer.
+function followLink(t, query) {
+  const src = "resources/a-referrerpolicy-navigation-frame.html?" + query;
+  return new Promise(resolve => {
+    const iframe = document.createElement("iframe");
+    t.add_cleanup(() => iframe.remove());
+    window.addEventListener("message", function onMessage(event) {
+      if (event.source !== iframe.contentWindow)
+        return;
+      window.removeEventListener("message", onMessage);
+      resolve({ referrer: event.data, frameURL: new URL(src, location.href).href });
+    });
+    iframe.src = src;
+    document.body.appendChild(iframe);
+  });
+}
+
+promise_test(async t => {
+  const { referrer, frameURL } = await followLink(t, "");
+  assert_equals(referrer, frameURL);
+}, "no referrerpolicy attribute sends the full URL to a same-origin page");
+
+promise_test(async t => {
+  const { referrer } = await followLink(t, "referrerpolicy=no-referrer");
+  assert_equals(referrer, "");
+}, "referrerpolicy=no-referrer sends no referrer");
+
+promise_test(async t => {
+  const { referrer } = await followLink(t, "referrerpolicy=origin");
+  assert_equals(referrer, location.origin + "/");
+}, "referrerpolicy=origin sends only the origin");
+
+promise_test(async t => {
+  const { referrer, frameURL } = await followLink(t, "referrerpolicy=invalid-policy");
+  assert_equals(referrer, frameURL);
+}, "an invalid referrerpolicy value is ignored");
+
+promise_test(async t => {
+  const { referrer } = await followLink(t, "referrerpolicy=unsafe-url&rel=noreferrer");
+  assert_equals(referrer, "");
+}, "rel=noreferrer wins over referrerpolicy");
+</script>

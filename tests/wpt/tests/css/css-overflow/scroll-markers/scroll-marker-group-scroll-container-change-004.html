@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<title>CSS Overflow Test: Becoming a nested scroll container moves scroll markers to the inner group</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-property">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<style>
+  #outer {
+    scroll-marker-group: before;
+    overflow: hidden;
+    width: 100px;
+    height: 0;
+  }
+
+  #inner {
+    scroll-marker-group: before;
+    overflow: visible;
+  }
+
+  #outer-item::scroll-marker,
+  #inner-item::scroll-marker {
+    content: "";
+    display: block;
+    width: 100px;
+    height: 100px;
+  }
+
+  #outer-item::scroll-marker {
+    background: green;
+  }
+
+  #inner-item::scroll-marker {
+    background: red;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div id="outer">
+  <div id="outer-item"></div>
+  <div id="inner"><div id="inner-item"></div></div>
+</div>
+<script>
+  outer.offsetTop;
+  inner.style.overflow = "hidden";
+</script>

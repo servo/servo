@@ -5,6 +5,8 @@ rules:
 - parser-constructs-custom-elements.html: [autonomous-custom-elements]
 - parser-custom-element-in-foreign-content.html: [autonomous-custom-elements]
 - parser-fallsback-to-unknown-element.html: [autonomous-custom-elements]
+- parser-sets-attributes-after-autonomous-constructor.html: [autonomous-custom-elements]
+- parser-sets-attributes-after-built-in-constructor.html: [customized-built-in-elements]
 - parser-sets-attributes-and-children.html: [autonomous-custom-elements]
 - parser-uses-constructed-element.html: [autonomous-custom-elements]
 - parser-uses-registry-of-owner-document.html: [autonomous-custom-elements]

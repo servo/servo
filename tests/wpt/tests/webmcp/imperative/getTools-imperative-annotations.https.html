@@ -101,7 +101,7 @@ promise_test(async t => {
 
   const tools = await document.modelContext.getTools();
   const registeredTool = tools.find(t => t.name === "unannotated_tool");
-  assert_equals(registeredTool.annotations, undefined, "annotations property should be undefined when omitted at registration");
-}, "Test that getTools() returns undefined annotations when omitted at registration");
+  assert_equals(registeredTool.annotations, null, "annotations property should be null when omitted at registration");
+}, "Test that getTools() returns null annotations when omitted at registration");
 </script>
 </body>

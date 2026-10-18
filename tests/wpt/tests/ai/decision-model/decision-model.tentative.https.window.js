@@ -2,6 +2,7 @@
 // META: script=/resources/testdriver.js
 // META: script=/resources/testdriver-vendor.js
 // META: script=../resources/util.js
+// META: timeout=long
 
 'use strict';
 
@@ -216,6 +217,14 @@ promise_test(async t => {
   await promise_rejects_js(t, TypeError, decisionModel.decide(''));
   await promise_rejects_js(t, TypeError, decisionModel.decide('   '));
 }, 'decisionModel.decide() rejects empty or whitespace-only input with TypeError');
+
+promise_test(async t => {
+  await testMonitor(createDecisionModel, kSampleSchema);
+}, 'DecisionModel.create() notifies its monitor on downloadprogress');
+
+promise_test(async t => {
+  await testCreateMonitorWithAbort(t, createDecisionModel, kSampleSchema);
+}, 'Progress events are not emitted after DecisionModel.create() is aborted');
 
 promise_test(async t => {
   const decisionModel = await createDecisionModel(kSampleSchema);

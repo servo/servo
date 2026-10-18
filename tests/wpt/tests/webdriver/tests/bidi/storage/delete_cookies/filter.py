@@ -249,6 +249,10 @@ async def test_filter_name(bidi_session, new_tab, test_page, add_document_cookie
         ("strict", "none"),
         ("lax", "strict"),
         ("strict", "lax"),
+        ("none", "default"),
+        ("default", "none"),
+        ("default", "lax"),
+        ("default", "strict"),
     ],
 )
 async def test_filter_same_site(

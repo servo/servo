@@ -28,8 +28,8 @@
   <body>
     <div id='log'></div>
 
-    <script>
-        var keysystem = getSupportedKeySystem();
+    <script type="module">
+        var keysystem = await getSupportedKeySystem();
 
         getSupportedContentAndInitDataTypes( keysystem )
         .then( function( supported )
@@ -65,7 +65,6 @@
                         initData:           initData
                     } );
         } );
-
     </script>
   </body>
 </html>

@@ -40,6 +40,25 @@
   <div id="slottedincvhidden" slot="slot">slotted</div>
 </div>
 
+<select multiple>
+  <option id=listboxoption>option</option>
+  <optgroup id=listboxoptgroup label=optgroup>
+    <option id=listboxoptgroupoption>option</option>
+  </optgroup>
+  <option id=hiddenlistboxoption hidden>option</option>
+  <optgroup style="display:none">
+    <option id=listboxoptionindisplaynoneoptgroup>option</option>
+  </optgroup>
+</select>
+
+<select size=2>
+  <option id=sizelistboxoption>option</option>
+</select>
+
+<select multiple style="display:none">
+  <option id=optionindisplaynonelistbox>option</option>
+</select>
+
 <div style="height:10000px">spacer</div>
 
 <div style="content-visibility:auto">
@@ -106,6 +125,19 @@ test(() => {
 test(() => {
   assert_false(displaynone.checkVisibility());
 }, 'checkVisibility on display:none element.');
+
+test(() => {
+  assert_true(listboxoption.checkVisibility(), 'option');
+  assert_true(listboxoptgroup.checkVisibility(), 'optgroup');
+  assert_true(listboxoptgroupoption.checkVisibility(), 'option in optgroup');
+  assert_true(sizelistboxoption.checkVisibility(), 'option in select with size');
+}, 'checkVisibility on option and optgroup elements in a list box.');
+
+test(() => {
+  assert_false(hiddenlistboxoption.checkVisibility(), 'hidden option');
+  assert_false(listboxoptionindisplaynoneoptgroup.checkVisibility(), 'option in display:none optgroup');
+  assert_false(optionindisplaynonelistbox.checkVisibility(), 'option in display:none list box');
+}, 'checkVisibility on hidden option elements in a list box.');
 
 test(() => {
   assert_false(slottedindisplaynone.checkVisibility());

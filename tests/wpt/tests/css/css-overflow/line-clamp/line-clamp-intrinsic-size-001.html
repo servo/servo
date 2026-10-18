@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: line-clamp interaction with intrinsic size</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-text-intrinsic-size-001-ref.html">
+<meta name="assert" content="displacing content for the sake of inserting the block ellipsis does not change the max-content size">
+<style>
+.clamp {
+  line-clamp: 3;
+}
+div {
+    border: solid black 5px;
+    margin: 1em;
+    width: max-content;
+    color: transparent;
+}
+</style>
+<p>Test passes if both boxes below are the same size.
+<div class=ref>
+    short text<br>
+    medium text<br>
+    very loooong text<br>
+</div>
+<div class="clamp">
+    short text<br>
+    medium text<br>
+    very loooong text<br>
+    text<br>
+    text<br>
+    text<br>
+    text<br>
+</div>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>Loading a FontFace from an ArrayBuffer must not crash</title>
+<link rel="author" href="mailto:dholbert@mozilla.com">
+<link rel="help" href="https://drafts.csswg.org/css-font-loading/#font-face-constructor">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2079768">
+<script>
+  fetch("/fonts/Ahem.ttf")
+    .then(res => res.arrayBuffer())
+    .then(async buffer => {
+      const face = new FontFace("bufferFont", buffer);
+      document.fonts.add(face);
+      await face.load();
+      document.documentElement.className = "";
+    });
+</script>
+</html>

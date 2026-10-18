@@ -21,6 +21,10 @@ interface TrustedScriptURL {
   USVString toJSON();
 };
 
+[Exposed=Window]
+interface TrustedHTMLParserOptions {
+};
+
 [Exposed=(Window,Worker)] interface TrustedTypePolicyFactory {
     TrustedTypePolicy createPolicy(
         DOMString policyName, optional TrustedTypePolicyOptions policyOptions = {});
@@ -47,16 +51,19 @@ interface TrustedTypePolicy {
   TrustedHTML createHTML(DOMString input, any... arguments);
   TrustedScript createScript(DOMString input, any... arguments);
   TrustedScriptURL createScriptURL(DOMString input, any... arguments);
+  [Exposed=Window] TrustedHTMLParserOptions createParserOptions(optional SetHTMLUnsafeOptions options = {}, any... arguments);
 };
 
 dictionary TrustedTypePolicyOptions {
    CreateHTMLCallback createHTML;
    CreateScriptCallback createScript;
    CreateScriptURLCallback createScriptURL;
+   CreateParserOptionsCallback createParserOptions;
 };
 callback CreateHTMLCallback = DOMString? (DOMString input, any... arguments);
 callback CreateScriptCallback = DOMString? (DOMString input, any... arguments);
 callback CreateScriptURLCallback = USVString? (DOMString input, any... arguments);
+callback CreateParserOptionsCallback = SetHTMLUnsafeOptions? (SetHTMLUnsafeOptions options, any... arguments);
 
 typedef (TrustedHTML or TrustedScript or TrustedScriptURL) TrustedType;
 

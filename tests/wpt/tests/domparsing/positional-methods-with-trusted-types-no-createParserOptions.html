@@ -1,0 +1,105 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>
+  HTML partial updates - {append|prepend|before|after|replaceWith}HTML{Unsafe}
+  with trusted types and a default policy without createParserOptions
+</title>
+<link rel="help" href="https://html.spec.whatwg.org/#html-parsing-methods" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/util.js"></script>
+<meta
+  http-equiv="Content-Security-Policy"
+  content="require-trusted-types-for 'script';"
+/>
+
+<body>
+  <script>
+    let createHTMLCalls = 0;
+    trustedTypes.createPolicy("default", {
+      createHTML: (html) => {
+        createHTMLCalls++;
+        return html;
+      },
+    });
+    const passthrough_policy = trustedTypes.createPolicy("passthrough", {
+      createHTML: (html) => html,
+      createParserOptions: (options) => options,
+    });
+
+    for (const target_type of ["Element", "ShadowRoot", "template.content"]) {
+      for (const pos of ["before", "after", "replaceWith", "append", "prepend"]) {
+        for (const safe of [true, false]) {
+          const method_name = `${pos}HTML${safe ? "" : "Unsafe"}`;
+          const variant = `${target_type}.${method_name}`;
+
+          test((t) => {
+            createHTMLCalls = 0;
+            const { target, ref, object } =
+              prepare_html_partial_update(target_type, "Element", pos, t);
+            object[method_name]("<span>html;</span>");
+            check_position(target, pos, ref);
+            assert_equals(createHTMLCalls, safe ? 0 : 1);
+          }, `${variant} does not throw with vetting-free options and no createParserOptions in the default policy`);
+
+          if (safe) continue;
+
+          test((t) => {
+            createHTMLCalls = 0;
+            const { target, ref, object } =
+              prepare_html_partial_update(target_type, "Element", pos, t);
+            object[method_name](passthrough_policy.createHTML("<span>html;</span>"));
+            check_position(target, pos, ref);
+            assert_equals(createHTMLCalls, 0, "Default createHTML should not be called for TrustedHTML");
+          }, `${variant} does not throw with TrustedHTML and vetting-free options when default policy lacks createParserOptions`);
+
+          for (const [label, getOptions] of [
+            ["{ sanitizer: 'default' }", () => ({ sanitizer: "default" })],
+            ["{ sanitizer: { removeElements: [] } }", () => ({ sanitizer: { removeElements: [] } })],
+            ["{ sanitizer: new Sanitizer() }", () => ({ sanitizer: new Sanitizer() })],
+            ["{ runScripts: true }", () => ({ runScripts: true })],
+          ]) {
+            test((t) => {
+              createHTMLCalls = 0;
+              const { target, object } =
+                prepare_html_partial_update(target_type, "Element", pos, t);
+              const initial = target.innerHTML;
+              assert_throws_js(TypeError, () => {
+                object[method_name]("<span>html;</span>", getOptions());
+              });
+              assert_equals(createHTMLCalls, 0, "Default createHTML should not be called when options fail vetting");
+              assert_equals(target.innerHTML, initial, "Tree should not be modified");
+            }, `${variant} throws TypeError with string and unvetted options ${label} when default policy lacks createParserOptions`);
+
+            test((t) => {
+              createHTMLCalls = 0;
+              const { target, object } =
+                prepare_html_partial_update(target_type, "Element", pos, t);
+              const initial = target.innerHTML;
+              assert_throws_js(TypeError, () => {
+                object[method_name](
+                  passthrough_policy.createHTML("<span>html;</span>"),
+                  getOptions(),
+                );
+              });
+              assert_equals(createHTMLCalls, 0, "Default createHTML should not be called");
+              assert_equals(target.innerHTML, initial, "Tree should not be modified");
+            }, `${variant} throws TypeError with TrustedHTML and unvetted options ${label} when default policy lacks createParserOptions`);
+          }
+
+          test((t) => {
+            createHTMLCalls = 0;
+            const { target, ref, object } =
+              prepare_html_partial_update(target_type, "Element", pos, t);
+            object[method_name](
+              "<span>html;</span>",
+              passthrough_policy.createParserOptions({}),
+            );
+            check_position(target, pos, ref);
+            assert_equals(createHTMLCalls, 0, "Default createHTML should not be called when TrustedHTMLParserOptions is passed");
+          }, `${variant} does not throw or call createHTML when passed TrustedHTMLParserOptions`);
+        }
+      }
+    }
+  </script>
+</body>

@@ -32,9 +32,9 @@
       <video id="videoelement" width="200px"></video>
     </div>
 
-    <script>
+    <script type="module">
         var contentitem = content['mp4-basic'],
-            keysystem = getSupportedKeySystem(),
+            keysystem = await getSupportedKeySystem(),
             handler = new MessageHandler( keysystem, contentitem ),
             config = {  video:              document.getElementById('videoelement'),
                         keysystem:          keysystem,

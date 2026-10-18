@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Scoped view transition overlay is outside the scope mask</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="mask-image-overlay-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  .scope {
+    contain: layout;
+    width: 120px;
+    height: 80px;
+    background: yellow;
+    mask-image: linear-gradient(to right, transparent 50%, black 50%);
+    view-transition-name: target;
+  }
+
+  .scope::view-transition {
+    background: green;
+  }
+
+  .scope::view-transition-group(*) {
+    animation-duration: 100000s;
+    opacity: 0;
+  }
+</style>
+
+<div class="scope"></div>
+
+<script>
+  async function runTest() {
+    await waitForCompositorReady();
+    const transition =
+        document.querySelector(".scope").startViewTransition();
+    await transition.ready;
+    await Promise.all(
+        document.getAnimations().map(animation => animation.ready));
+    takeScreenshot();
+  }
+
+  runTest();
+</script>
+</html>

@@ -181,10 +181,12 @@ async def test_params_actions_origin_no_such_element(
         wait="complete",
     )
 
+    # Keep detached nodes alive in the sharedId map until perform_actions runs.
     node = await bidi_session.script.evaluate(
         expression=expression,
         target=ContextTarget(top_context["context"]),
         await_promise=False,
+        result_ownership="root",
     )
 
     actions = Actions()

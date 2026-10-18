@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<title>
+  Multi-lane row fragmentation with stacking-axis stretch before a spanner.
+</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
+<link rel="match" href="../../../reference/ref-filled-green-100px-square.xht">
+<style>
+  .multicol {
+    background: red;
+    column-count: 4;
+    column-fill: auto;
+    column-gap: 0px;
+    height: 100px;
+    width: 100px;
+  }
+  .grid-lanes {
+    display: grid-lanes;
+    grid-template-rows: repeat(2, 200px);
+    height: 400px;
+    justify-items: stretch;
+    width: 25px;
+  }
+  .grid-lanes > div {
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+<div class="multicol">
+  <div class="grid-lanes">
+    <div style="height: 200px; width: 15px;"></div>
+    <!-- The spanner opens 10px of extra space for the auto-width item. -->
+    <div style="height: 200px;">
+      <div style="height: 50px; width: 5px;"></div>
+    </div>
+    <div style="grid-row: 1 / span 2; width: 10px;"></div>
+  </div>
+</div>

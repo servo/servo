@@ -1,0 +1,26 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Focus navigation order when popover source is contenteditable</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2072458">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="resources/popover-utils.js"></script>
+
+<a href=# id=beforeSource1>before source1</a>
+<div contenteditable id=source1>source1</div>
+<a href=# id=afterSource1>after source1</a>
+<div popover id=popover1 tabindex=0>popover1</div>
+
+<script>
+'use strict';
+
+promise_test(async t => {
+  t.add_cleanup(() => popover1.hidePopover());
+  popover1.showPopover({source: source1})
+  await verifyFocusOrder([beforeSource1, source1, popover1, afterSource1],
+    'Test with contenteditable source.');
+}, 'Focus navigation goes to popover after contenteditable source.');
+</script>

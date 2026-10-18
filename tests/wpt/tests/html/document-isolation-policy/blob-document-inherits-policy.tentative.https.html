@@ -1,0 +1,40 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Document-Isolation-Policy: a blob: document inherits the policy of the document that created it</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script>
+"use strict";
+
+// Resolves with whether the creator frame and the blob: document it creates can fetch a cross-origin resource without CORP.
+function loadCreatorFrame(t, sandbox) {
+  return new Promise(resolve => {
+    const results = {};
+    const listener = event => {
+      Object.assign(results, event.data);
+      if ("creator" in results && "blob" in results)
+        resolve(results);
+    };
+    window.addEventListener("message", listener);
+    t.add_cleanup(() => window.removeEventListener("message", listener));
+    const frame = document.createElement("iframe");
+    if (sandbox)
+      frame.sandbox = "allow-scripts";
+    // A sandboxed frame cannot load scripts without CORP, so it gets the URL to fetch from its query.
+    const noCorpURL = get_host_info().HTTPS_REMOTE_ORIGIN + "/html/document-isolation-policy/resources/nothing-no-corp.js";
+    frame.src = `resources/blob-creator-frame.html?pipe=header(Document-Isolation-Policy,isolate-and-require-corp)&url=${encodeURIComponent(noCorpURL)}`;
+    t.add_cleanup(() => frame.remove());
+    document.body.append(frame);
+  });
+}
+
+promise_test(async t => {
+  assert_object_equals(await loadCreatorFrame(t, false), { creator: "blocked", blob: "blocked" });
+}, "A blob: document created by a document with a policy inherits it");
+
+promise_test(async t => {
+  assert_object_equals(await loadCreatorFrame(t, true), { creator: "blocked", blob: "blocked" });
+}, "A blob: document created by a sandboxed document with a policy inherits it");
+</script>

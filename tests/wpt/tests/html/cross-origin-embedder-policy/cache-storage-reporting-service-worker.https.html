@@ -24,7 +24,7 @@ promise_test(async (t) => {
   add_completion_callback(() => reg.unregister());
   const worker = reg.installing || reg.waiting || reg.active;
   const mc = new MessageChannel();
-  worker.postMessage({script: eval_script, port: mc.port2}, [mc.port2]);
+  worker.postMessage({script: eval_script, port: mc.port2, expected_count: 1}, [mc.port2]);
   const reports = (await new Promise(r => mc.port1.onmessage = r)).data;
   assert_not_equals(reports, 'TIMEOUT');
   assert_equals(reports.length, 1);
@@ -47,7 +47,7 @@ promise_test(async (t) => {
   add_completion_callback(() => reg.unregister());
   const worker = reg.installing || reg.waiting || reg.active;
   const mc = new MessageChannel();
-  worker.postMessage({script: eval_script, port: mc.port2}, [mc.port2]);
+  worker.postMessage({script: eval_script, port: mc.port2, expected_count: 1}, [mc.port2]);
   const reports = (await new Promise(r => mc.port1.onmessage = r)).data;
   assert_not_equals(reports, 'TIMEOUT');
   assert_equals(reports.length, 1);

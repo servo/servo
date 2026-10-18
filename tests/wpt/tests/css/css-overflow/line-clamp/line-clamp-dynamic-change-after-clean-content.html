@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: content after the clamp point changes while the content before it does not</title>
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-dynamic-change-after-clean-content-ref.html">
+<meta name="assert" content="Lines of content that does not change still count towards the clamp point when content after it changes.">
+<style>
+.clamp {
+  line-clamp: 1;
+  font: 16px / 32px serif;
+}
+p {
+  margin: 0;
+}
+</style>
+<div class="clamp"><p>Line 1</p><p id="after">Line 2</p></div>
+<script>
+document.body.offsetHeight;
+after.textContent = "Line 2 changed";
+</script>

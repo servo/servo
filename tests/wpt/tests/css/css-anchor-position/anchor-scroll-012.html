@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test that switching position fallbacks after scrolling updates the scroll container's scroll height</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#scroll">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#anchor-recalculation-point">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2072683">
+<meta name="assert" content="Changing position fallbacks is an anchor recalculation point, so the scroll container's scrollHeight should reflect the positioned element's position right after the switch, without waiting for another reflow.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
+
+<style>
+#scroller1 {
+  width: 200px;
+  height: 200px;
+  position: relative;
+  overflow: scroll;
+}
+#scroller2 {
+  width: 100px;
+  height: 100px;
+  overflow: scroll;
+}
+#anchor {
+  anchor-name: --a;
+  height: 20px;
+  background: orange;
+}
+#positioned {
+  position: absolute;
+  position-anchor: --a;
+  position-visibility: always;
+  position-try-fallbacks: --below;
+  left: anchor(left);
+  bottom: anchor(top);
+  width: 50px;
+  height: 20px;
+  background: lime;
+}
+@position-try --below {
+  bottom: auto;
+  top: anchor(bottom);
+}
+#overflow {
+  /* Overflows #positioned, so it determines scroller1's scroll height without
+     affecting which position fallback #positioned fits in. */
+  width: 10px;
+  height: 400px;
+  background: cyan;
+}
+</style>
+
+<div id="scroller1">
+  <div style="height: 100px"></div>
+  <div id="scroller2">
+    <div style="height: 100px"></div>
+    <div id="anchor"></div>
+    <div style="height: 300px"></div>
+  </div>
+  <div style="height: 100px"></div>
+  <div id="positioned"><div id="overflow"></div></div>
+</div>
+
+<script>
+promise_test(async () => {
+  const scroller1 = document.getElementById("scroller1");
+  const scroller2 = document.getElementById("scroller2");
+  const anchor = document.getElementById("anchor");
+  const positioned = document.getElementById("positioned");
+  await waitForAtLeastOneFrame();
+  const initialScrollHeight = scroller1.scrollHeight;
+
+  // The base position still fits.
+  scroller2.scrollTop = 150;
+  await waitForAtLeastOneFrame();
+  assert_equals(positioned.getBoundingClientRect().bottom,
+                anchor.getBoundingClientRect().top,
+                "#positioned should use the base position");
+  assert_equals(scroller1.scrollHeight, initialScrollHeight,
+                "scroller1.scrollHeight shouldn't change before the switch");
+
+  // The base position no longer fits, so switch to the --below fallback.
+  scroller2.scrollTop = 200;
+  await waitForAtLeastOneFrame();
+  assert_equals(positioned.getBoundingClientRect().top,
+                anchor.getBoundingClientRect().bottom,
+                "#positioned should use the --below fallback");
+  const scrollHeightAfterSwitch = scroller1.scrollHeight;
+
+  // Trigger a reflow of #positioned that doesn't change its layout.
+  positioned.style.minWidth = "1px";
+  assert_equals(scrollHeightAfterSwitch, scroller1.scrollHeight,
+                "scroller1.scrollHeight right after the switch should match the one after a reflow");
+}, "Switching position fallbacks after scrolling updates the scroller's scrollHeight");
+</script>

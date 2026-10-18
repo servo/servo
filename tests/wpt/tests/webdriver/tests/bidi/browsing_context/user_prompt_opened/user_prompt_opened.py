@@ -243,13 +243,15 @@ async def test_two_prompts(
 
     await wait_for_future_safe(on_first_event)
 
+    # Subscribe before navigating, as the prompt opens right after the
+    # navigation is committed.
+    on_second_event = wait_for_event(USER_PROMPT_OPENED_EVENT)
+
     # Open a prompt in the second context.
     await bidi_session.browsing_context.navigate(
         context=another_new_context["context"],
         url=inline("<script>window.confirm('second tab')</script>"),
     )
-
-    on_second_event = wait_for_event(USER_PROMPT_OPENED_EVENT)
 
     await wait_for_future_safe(on_second_event)
 

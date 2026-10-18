@@ -46,6 +46,8 @@ test_valid_value("grid-template", '"a" [a] "b" 10px');
 test_valid_value("grid-template", '"a" [a] "b" 10px [a]');
 test_valid_value("grid-template", '"a" [a] [a] "b" 10px', '"a" [a a] "b" 10px');
 test_valid_value("grid-template", '"a" [a] [] "b" 10px', '"a" [a] "b" 10px');
+test_valid_value("grid-template", '"a" 10px [] [b] "b" 20px', '"a" 10px [b] "b" 20px');
+test_valid_value("grid-template", '"a" 10px [] [b] "b" 20px / 30px', '"a" 10px [b] "b" 20px / 30px');
 test_valid_value("grid-template", '"a" 10px [a] "b" [a]');
 test_valid_value("grid-template", '"a" [a] "b" [a]');
 test_valid_value("grid-template", '[a] "a" [a] "b" [a]');

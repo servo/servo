@@ -55,12 +55,13 @@ async def test_navigate_history_replacestate_beforeunload(
     # navigationStarted caused by browsing_context.navigate call should happen
     # first: https://html.spec.whatwg.org/#beginning-navigation
     # network.beforeRequestSent should arrive before the page becomes
-    # interactive.
-    assert events == [
-        NAVIGATION_STARTED_EVENT,
-        HISTORY_UPDATED_EVENT,
-        BEFORE_REQUEST_SENT_EVENT
-    ]
+    # interactive. browsingContext.historyUpdated is emitted from the session
+    # history traversal queue, which is not ordered with the navigation fetch:
+    # https://html.spec.whatwg.org/#url-and-history-update-steps
+    assert events[0] == NAVIGATION_STARTED_EVENT
+    assert sorted(events[1:]) == sorted(
+        [HISTORY_UPDATED_EVENT, BEFORE_REQUEST_SENT_EVENT]
+    )
 
     remove_navigation_started_listener()
     remove_history_updated_listener()

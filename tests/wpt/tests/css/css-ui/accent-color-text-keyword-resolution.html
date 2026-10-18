@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>CSS: AccentColorText contrasts with the computed accent-color property</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#widget-accent">
+<link rel="help" href="https://www.w3.org/TR/css-color-4/#css-system-colors">
+<meta name="assert" content="The AccentColorText system color keyword resolves to a contrasting foreground for the element's own computed accent-color property when it is not auto.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="ancestor">
+  <div id="descendant"></div>
+</div>
+<div id="ownancestor" style="accent-color: rgb(10, 10, 10)">
+  <div id="ownchild"></div>
+</div>
+
+<script>
+  const ancestor = document.getElementById("ancestor");
+  const descendant = document.getElementById("descendant");
+
+  test(() => {
+    ancestor.style.accentColor = "rgb(255, 165, 0)";
+    descendant.style.color = "AccentColorText";
+    assert_equals(getComputedStyle(descendant).color, "rgb(0, 0, 0)");
+  }, "AccentColorText is black for a light accent-color");
+
+  test(() => {
+    ancestor.style.accentColor = "rgb(10, 10, 10)";
+    descendant.style.color = "AccentColorText";
+    assert_equals(getComputedStyle(descendant).color, "rgb(255, 255, 255)");
+  }, "AccentColorText is white for a dark accent-color");
+
+  test(() => {
+    const child = document.getElementById("ownchild");
+    child.style.accentColor = "rgb(245, 245, 245)";
+    child.style.color = "AccentColorText";
+    assert_equals(getComputedStyle(child).color, "rgb(0, 0, 0)");
+  }, "AccentColorText contrasts against the element's own accent-color");
+</script>

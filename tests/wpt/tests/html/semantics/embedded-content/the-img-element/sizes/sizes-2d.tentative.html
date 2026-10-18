@@ -1,0 +1,182 @@
+<!doctype html>
+<title>img parse a sizes attribute: two-dimensional sizes with an explicit fit</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#parse-a-sizes-attribute">
+<link rel="help" href="https://github.com/whatwg/html/pull/13053">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+/* Keep images small so that lazy images are in the viewport and load. */
+img { width: 10px; height: 100px; }
+</style>
+<div id=log></div>
+<!-- ref1 selects the 50w candidate, ref2 selects the 51w candidate. -->
+<img srcset='/images/green-1x1.png?ref1 50w, /images/green-16x16.png?ref1 51w' sizes='1px' id=ref1>
+<img srcset='/images/green-1x1.png?ref2 50w, /images/green-16x16.png?ref2 51w' sizes='1000px' id=ref2>
+<script>
+"use strict";
+
+// https://github.com/web-platform-tests/rfcs/pull/75
+let async_promise_test = (promise, description) => {
+  async_test(test => {
+    promise(test)
+      .then(() => {test.done();})
+      .catch(test.step_func(error => { throw error; }));
+  }, description);
+};
+
+function check(imgOrPicture, img, refId) {
+  const ref = document.getElementById(refId);
+  async_promise_test(async (t) => {
+    let expect = ref.currentSrc;
+    if (expect) {
+      expect = expect.split('?')[0];
+    }
+    if (expect === '' || expect === null || expect === undefined) {
+      assert_unreached('ref currentSrc was ' + format_value(expect));
+    }
+    await new Promise((resolve, reject) => {
+      img.onload = resolve;
+      img.onerror = reject;
+    });
+    t.step(() => {
+      let got = img.currentSrc;
+      assert_greater_than(got.indexOf('?'), -1, 'expected a "?" in currentSrc');
+      got = got.split('?')[0];
+      assert_equals(got, expect);
+    })
+  }, imgOrPicture.outerHTML);
+}
+
+// `h` holds the height descriptors (if any) of the 50w and 51w candidates.
+// With h = [' 50h', ' 51h'] both candidates have an aspect ratio of 1, so
+// 'contain 10px 1000px' gives min(10px, 1000px * 1) = 10px (ref1) and
+// 'cover 10px 1000px' gives max(10px, 1000px * 1) = 1000px (ref2).
+const square = [' 50h', ' 51h'];
+const tests = [
+  {sizes: 'contain 10px 1000px', h: square, ref: 'ref1'},
+  {sizes: 'CONTAIN 10px 1000px', h: square, ref: 'ref1'},
+  {sizes: 'cover 10px 1000px', h: square, ref: 'ref2'},
+  {sizes: 'cover 10px calc(500px + 500px)', h: square, ref: 'ref2'},
+  {sizes: 'contain 10px 1000px, cover 10px 1000px', h: square, ref: 'ref1'},
+  // 'h' descriptors give aspect ratios of 50 and 25.5;
+  // max(10px, 10px * 50) = 500px and max(10px, 10px * 25.5) = 255px.
+  {sizes: 'cover 10px 10px', h: [' 1h', ' 2h'], ref: 'ref2'},
+  // ... and min(10px, 10px * 50) = min(10px, 10px * 25.5) = 10px.
+  {sizes: 'contain 10px 10px', h: [' 1h', ' 2h'], ref: 'ref1'},
+
+  // Media conditions combined with an explicit fit.
+  {sizes: '(min-width: 0px) contain 10px 1000px, cover 10px 1000px', h: square, ref: 'ref1'},
+  {sizes: '(max-width: 0px) contain 10px 1000px, cover 10px 1000px', h: square, ref: 'ref2'},
+  {sizes: '(max-width: 0px) cover 10px 1000px, contain 10px 1000px', h: square, ref: 'ref1'},
+  {sizes: '(min-width: 0px) contain 10px 1000px, 1000px', h: square, ref: 'ref1'},
+  {sizes: '(max-width: 0px) contain 1000px 1000px, contain 10px 1000px', h: square, ref: 'ref1'},
+  {sizes: '(max-width: 0px) cover 10px 1000px, (min-width: 0px) contain 10px 1000px, 1000px', h: square, ref: 'ref1'},
+  {sizes: 'not (max-width: 0px) cover 10px 1000px, 1px', h: square, ref: 'ref2'},
+  {sizes: 'not (min-width: 0px) cover 10px 1000px, 1px', h: square, ref: 'ref1'},
+  {sizes: '(min-width: 0px) and (min-height: 0px) cover 10px 1000px, 1px', h: square, ref: 'ref2'},
+  {sizes: '(min-width: 0px) and (max-height: 0px) cover 10px 1000px, 1px', h: square, ref: 'ref1'},
+  {sizes: '(max-width: 0px) or (min-height: 0px) cover 10px 1000px, 1px', h: square, ref: 'ref2'},
+  {sizes: '(width >= 0px) cover 10px 1000px, 1px', h: square, ref: 'ref2'},
+  {sizes: '(width < 0px) cover 10px 1000px, 1px', h: square, ref: 'ref1'},
+  // One-dimensional and two-dimensional sizes with media conditions mixed.
+  {sizes: '(max-width: 0px) 1px, (min-width: 0px) cover 10px 1000px', h: square, ref: 'ref2'},
+  {sizes: '(min-width: 0px) 1px, (min-width: 0px) cover 10px 1000px', h: square, ref: 'ref1'},
+  {sizes: '(min-width: 0px) cover 10px 1000px, (min-width: 0px) 1px', h: square, ref: 'ref2'},
+
+  // Invalid two-dimensional sizes are skipped.
+  {sizes: 'contain 1000px, 1px', h: [' 1h', ' 1h'], ref: 'ref1'},
+  {sizes: 'contain 1000px 1000px 1000px, 1px', h: [' 1h', ' 1h'], ref: 'ref1'},
+  {sizes: 'contain -1000px 1000px, 1px', h: [' 1h', ' 1h'], ref: 'ref1'},
+  {sizes: 'fill 1000px 1000px, 1px', h: ['', ''], ref: 'ref1'},
+  {sizes: 'scale-down 1000px 1000px, 1px', h: ['', ''], ref: 'ref1'},
+  {sizes: '(min-width: 0px) cover 10px 1000px 5px, 1px', h: square, ref: 'ref1'},
+  {sizes: '(min-width: 0px) contain 1000px, cover 10px 1000px', h: square, ref: 'ref2'},
+
+  // With no aspect ratio at all, the width is used.
+  {sizes: 'cover 10px 1000px', h: ['', ''], ref: 'ref1'},
+  // An explicit fit in sizes is not affected by the computed 'object-fit'.
+  {sizes: 'contain 10px 1000px', style: 'object-fit: cover', h: square, ref: 'ref1'},
+  {sizes: 'cover 10px 1000px', style: 'object-fit: contain', h: square, ref: 'ref2'},
+  // 'auto' on a non-lazy img is skipped in favor of the next source size.
+  {sizes: 'auto, (min-width: 0px) cover 10px 1000px, 1px', h: square, ref: 'ref2'},
+];
+
+function srcsetFor(prefix, h) {
+  return `/images/green-1x1.png?${prefix} 50w${h[0]}, /images/green-16x16.png?${prefix} 51w${h[1]}`;
+}
+
+function test_img(obj, i) {
+  const img = document.createElement('img');
+  for (const attr in obj) {
+    if (attr !== 'h' && attr !== 'ref') {
+      img.setAttribute(attr, obj[attr]);
+    }
+  }
+  img.srcset = srcsetFor(`img${i}`, obj.h);
+  document.body.appendChild(img);
+  check(img, img, obj.ref);
+}
+
+function test_picture(obj, i) {
+  const picture = document.createElement('picture');
+  const source = document.createElement('source');
+  const img = document.createElement('img');
+  for (const attr in obj) {
+    switch (attr) {
+      case 'h':
+      case 'ref':
+        break;
+      case 'sizes':
+      case 'width':
+      case 'height':
+        source.setAttribute(attr, obj[attr]);
+        break;
+      default:
+        img.setAttribute(attr, obj[attr]);
+        break;
+    }
+  }
+  source.srcset = srcsetFor(`picture${i}`, obj.h);
+  picture.appendChild(source);
+  picture.appendChild(img);
+  document.body.appendChild(picture);
+  check(picture, img, obj.ref);
+}
+
+function test_link_preload(obj, i) {
+  // <link rel=preload> has no dimension attributes or computed style.
+  if (obj.width || obj.height || obj.style) {
+    return;
+  }
+  const link = document.createElement('link');
+  link.rel = 'preload';
+  link.as = 'image';
+  link.setAttribute('imagesizes', obj.sizes);
+  link.setAttribute('imagesrcset', srcsetFor(`link${i}`, obj.h));
+  const ref = document.getElementById(obj.ref);
+  async_promise_test(async (t) => {
+    const expect = ref.currentSrc.split('?')[0];
+    const loaded = new Promise((resolve, reject) => {
+      link.onload = resolve;
+      link.onerror = reject;
+    });
+    document.head.appendChild(link);
+    await loaded;
+    const entries = performance.getEntriesByType('resource')
+        .filter(e => e.name.endsWith(`?link${i}`));
+    assert_equals(entries.length, 1, 'exactly one candidate is preloaded');
+    assert_equals(entries[0].name.split('?')[0], expect);
+  }, link.outerHTML);
+}
+
+onload = () => {
+  let i = 0;
+  for (const obj of tests) {
+    i++;
+    test_img(obj, i);
+    test_picture(obj, i);
+    test_link_preload(obj, i);
+  }
+  done();
+}
+</script>

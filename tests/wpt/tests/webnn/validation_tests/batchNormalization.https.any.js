@@ -287,3 +287,11 @@ tests.forEach(
             regrexp);
       }
     }, test.name));
+
+validateOperandRank('batchNormalization', 'input', (builder, input) => {
+  const mean = builder.input(
+      'mean', {dataType: input.dataType, shape: [kExampleDimSize]});
+  const variance = builder.input(
+      'variance', {dataType: input.dataType, shape: [kExampleDimSize]});
+  return builder.batchNormalization(input, mean, variance, {axis: 0});
+});

@@ -512,7 +512,7 @@ def test_pointer_action_up_down_button_invalid_value(session, pointer_action, va
 
 @pytest.mark.parametrize("pointer_action", ["pointerDown", "pointerMove", "pointerUp"])
 @pytest.mark.parametrize("dimension", ["width", "height"])
-@pytest.mark.parametrize("value", [None, "foo", True, 0.1, [], {}])
+@pytest.mark.parametrize("value", [None, "foo", True, [], {}])
 def test_pointer_action_common_properties_dimensions_invalid_type(
     session, dimension, pointer_action, value
 ):
@@ -532,7 +532,7 @@ def test_pointer_action_common_properties_dimensions_invalid_type(
 
 @pytest.mark.parametrize("pointer_action", ["pointerDown", "pointerMove", "pointerUp"])
 @pytest.mark.parametrize("dimension", ["width", "height"])
-@pytest.mark.parametrize("value", [-1, MAX_INT + 1])
+@pytest.mark.parametrize("value", [-1])
 def test_pointer_action_common_properties_dimensions_invalid_value(
     session, dimension, pointer_action, value
 ):

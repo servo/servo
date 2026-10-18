@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<title>
+  Column fragmentation with stacking-axis end and center alignment above a spanner.
+</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
+<link rel="match" href="column-multi-lane-fragmentation-024-ref.html">
+<style>
+  .multicol {
+    background: green;
+    column-count: 2;
+    column-fill: auto;
+    column-gap: 0px;
+    height: 100px;
+    margin-bottom: 10px;
+    width: 100px;
+  }
+  .grid-lanes {
+    display: grid-lanes;
+    grid-template-columns: repeat(2, 25px);
+    height: 200px;
+    width: 50px;
+  }
+  .grid-lanes > .aligned {
+    background: blue;
+    height: 100px;
+  }
+</style>
+<p>The blue rectangles on green backgrounds must match the reference.</p>
+<!-- The 150px opening gives the blue item 50px of block-axis alignment space. -->
+<div class="multicol">
+  <div class="grid-lanes" style="align-items: end;">
+    <div style="height: 150px;"></div>
+    <div class="aligned"></div>
+    <div style="grid-column: 1 / span 2; height: 50px;"></div>
+  </div>
+</div>
+<div class="multicol">
+  <div class="grid-lanes" style="align-items: center;">
+    <div style="height: 150px;"></div>
+    <div class="aligned"></div>
+    <div style="grid-column: 1 / span 2; height: 50px;"></div>
+  </div>
+</div>

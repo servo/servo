@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2079036">
+
+<style>
+#d { position: absolute; left: 0; top: 0; }
+table { border-collapse: collapse; }
+td { border: 1px solid black; }
+.x { border-left: 5px solid red; }
+</style>
+
+<div id="d"><table id="t"></table></div>
+
+<script>
+for (let r = 0; r < 7; r++) {
+  let row = t.insertRow();
+  for (let i = 0; i < 15; i++) {
+    row.insertCell().textContent = "a";
+  }
+}
+onload = () => {
+  document.body.offsetWidth;
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    let c = t.rows[3].cells[1];
+    c.colSpan = 60;
+    c.className = "x";
+    t.rows[5].cells[3].firstChild.data = "bbbb";
+    d.style.left = "10px";
+    document.body.offsetWidth;
+  }));
+};
+</script>

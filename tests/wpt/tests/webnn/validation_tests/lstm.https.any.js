@@ -433,3 +433,25 @@ multi_builder_test(async (t, builder, otherBuilder) => {
       () => builder.lstm(
           input, weight, recurrentWeight, steps, hiddenSize, options));
 }, '[lstm] throw if initialCellState option is from another builder');
+
+validateOperandRank('lstm', 'input', (builder, input) => {
+  // The input shape is [steps, batchSize, inputSize] with each dim equal to
+  // `kExampleDimSize`. Build weight/recurrentWeight to match the derived
+  // `inputSize` and use `kExampleDimSize` as `hiddenSize` so `steps` (from
+  // the input) and companion shapes stay consistent.
+  const derivedSteps = kExampleDimSize;
+  const derivedInputSize = kExampleDimSize;
+  const derivedHiddenSize = kExampleDimSize;
+  const weight = builder.input('weight', {
+    dataType: input.dataType,
+    shape: [numDirections, 4 * derivedHiddenSize, derivedInputSize]
+  });
+  const recurrentWeight = builder.input('recurrentWeight', {
+    dataType: input.dataType,
+    shape: [numDirections, 4 * derivedHiddenSize, derivedHiddenSize]
+  });
+  // `lstm()` returns a sequence of MLOperands; return the first output so the
+  // rank-validation helper can assert on a single MLOperand.
+  return builder.lstm(input, weight, recurrentWeight, derivedSteps,
+                      derivedHiddenSize)[0];
+});

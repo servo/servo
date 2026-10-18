@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: effect of line-clamp on baselines</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-baseline-001-ref.html">
+<meta name="assert" content="visually suppressed line boxes are not taken into account when determining the last baseline set">
+<style>
+aside {
+    margin: 1em;
+    border: solid;
+    width: max-content;
+    font-family: monospaced;
+    width: 35ch;
+div {
+    width: 12ch;
+    display: inline-block;
+    line-clamp: 1;
+}
+</style>
+<p>Test passes if both boxes below are identical.
+<aside class=ref>
+    ALIGNED ALIGNED ALIGNED…
+</aside>
+<aside class=test>
+    ALIGNED ALIGNED <div>ALIGNED<br>FAIL</div>
+</aside>

@@ -29,5 +29,11 @@ def stream_data_received(session,
     session.send_stream_data(stream_id, data, end_stream=stream_ended)
 
 
+def session_closed(session, close_info, abruptly):
+    keys_to_delete = [key for key in streams_dict if key[0] == session.session_id]
+    for key in keys_to_delete:
+        del streams_dict[key]
+
+
 def datagram_received(session, data: bytes):
     session.send_datagram(data)

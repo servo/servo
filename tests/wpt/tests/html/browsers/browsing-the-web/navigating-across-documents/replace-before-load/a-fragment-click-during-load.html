@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/helpers.js"></script>
+
+<body>
+<script>
+"use strict";
+promise_test(async t => {
+  const startingHistoryLength = history.length;
+
+  const iframe = document.createElement("iframe");
+  t.add_cleanup(() => iframe.remove());
+
+  const result = await new Promise(resolve => {
+    window.addEventListener("message", e => resolve(e.data), {once: true});
+    iframe.src = "resources/fragment-click-during-load-helper.html";
+    document.body.append(iframe);
+  });
+
+  assert_equals(result.syncHash, "#target",
+    "fragment navigation is synchronous");
+  assert_equals(result.after, result.before + 1,
+    "iframe history.length incremented (fragment link click during load must not replace)");
+  assert_equals(history.length, startingHistoryLength + 1,
+    "outer history.length also incrmented");
+}, "anchor.click() on a fragment href during onload does a push navigation and is synchronous");
+</script>

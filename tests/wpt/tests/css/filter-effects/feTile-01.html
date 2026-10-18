@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<title>flood tiles properly</title>
+<link rel="help" href="https://drafts.csswg.org/filter-effects-1/#feTileElement"/>
+<link rel="match" href="reference/green-100x100.html"/>
+<body>
+<div style="width: 100px; height: 100px; background-color: green;"></div>
+<div class="red"></div>
+<canvas id="c" width="16" height="64" style="transform: scale(5, 1);"></canvas>
+<svg width="0" height="0">
+  <filter id="f" x="0" y="0" width="100%" height="100%" filterUnits="userSpaceOnUse" primitiveUnits="userSpaceOnUse"color-interpolation-filters="sRGB">
+    <feFlood flood-color="black" flood-opacity="1" x="0" y="0" width="4" height="64"/>
+    <feTile/>
+    <feColorMatrix type="matrix" values="
+        0 0 0 0 0
+        0 0 0 0 0.5
+        0 0 0 0 0
+        0 0 0 1 0"/>
+  </filter>
+</svg>
+<style>
+.red {
+  background-color: red;
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  top: 30px;
+  left: 35px;
+}
+canvas {
+  position: absolute;
+  top: 20px;
+  left: 50px;
+}
+</style>
+<script>
+const ctx = document.getElementById('c').getContext('2d');
+ctx.filter = 'url(#f)';
+ctx.fillStyle = 'white';
+ctx.fillRect(0, 0, 16, 64);
+</script>
+</body>
+</html>

@@ -13,17 +13,27 @@
     </script>
   </head>
   <body>
-  <img src="http://{{domains[]}}:{{ports[http][0]}}/images/smiley.png?img_src">
+  <!-- Plain <img src="http://..."> is optionally-blockable mixed content and
+       is auto-upgraded to https:// (but the port is preserved, so it will fail)
+       Use the HTTPS port instead so the upgraded load succeeds. -->
+  <img src="http://{{domains[]}}:{{ports[https][0]}}/images/smiley.png?img_src">
   <picture>
-    <source srcset="http://{{domains[]}}:{{ports[http][0]}}/images/smiley.png?picture">
+    <source srcset="http://{{domains[]}}:{{ports[https][0]}}/images/smiley.png?picture">
     <img>
   </picture>
-  <img srcset="http://{{domains[]}}:{{ports[http][0]}}/images/smiley.png?img_srcset">
+  <img srcset="http://{{domains[]}}:{{ports[https][0]}}/images/smiley.png?img_srcset">
   <script>
+    function verifyNotDownloaded(url) {
+      for (const entry of performance.getEntriesByName(getAbsoluteURL(url))) {
+        assert_equals(entry.transferSize, 0, url + " should not be downloaded");
+      }
+    }
     window.addEventListener("load", t.step_func(function() {
-        verifyNumberOfResourceTimingEntries("http://{{domains[]}}:{{ports[http][0]}}/images/smiley.png?img_src", 1);
-        verifyNumberOfResourceTimingEntries("http://{{domains[]}}:{{ports[http][0]}}/images/smiley.png?picture", 0);
-        verifyNumberOfResourceTimingEntries("http://{{domains[]}}:{{ports[http][0]}}/images/smiley.png?img_srcset", 0);
+        verifyLoadedAndNoDoubleDownload("https://{{domains[]}}:{{ports[https][0]}}/images/smiley.png?img_src");
+        verifyNotDownloaded("http://{{domains[]}}:{{ports[https][0]}}/images/smiley.png?picture");
+        verifyNumberOfResourceTimingEntries("https://{{domains[]}}:{{ports[https][0]}}/images/smiley.png?picture", 0);
+        verifyNotDownloaded("http://{{domains[]}}:{{ports[https][0]}}/images/smiley.png?img_srcset");
+        verifyNumberOfResourceTimingEntries("https://{{domains[]}}:{{ports[https][0]}}/images/smiley.png?img_srcset", 0);
         t.done();
     }));
   </script>

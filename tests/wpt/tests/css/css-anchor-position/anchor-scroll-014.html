@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Test that reframing the default anchor keeps the remembered scroll offset</title>
+<link rel="author" title="Ting-Yu Lin" href="mailto:tlin@mozilla.com">
+<link rel="author" title="Mozilla" href="https://www.mozilla.org/">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#scroll">
+<link rel="help" href="https://drafts.csswg.org/css-anchor-position-1/#remembered-scroll-offset">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2072683">
+<meta name="assert" content="Changing the default anchor's display type isn't an anchor recalculation point for the positioned element, so its remembered scroll offset is kept, and the scroll container's scrollHeight doesn't change.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/rendering-utils.js"></script>
+
+<style>
+#scroller1 {
+  width: 200px;
+  height: 200px;
+  position: relative;
+  overflow: scroll;
+}
+#scroller2 {
+  width: 100px;
+  height: 100px;
+  overflow: scroll;
+}
+#anchor {
+  anchor-name: --a;
+  height: 20px;
+  background: orange;
+}
+#positioned {
+  position: absolute;
+  position-anchor: --a;
+  position-visibility: always;
+  left: 120px;
+  top: anchor(bottom);
+  width: 50px;
+  height: 20px;
+  background: lime;
+}
+#overflow {
+  /* Overflows #positioned, so it determines scroller1's scrollHeight. */
+  width: 10px;
+  height: 400px;
+  background: cyan;
+}
+</style>
+
+<div id="scroller1">
+  <div style="height: 100px"></div>
+  <div id="scroller2">
+    <div style="height: 100px"></div>
+    <div id="anchor"></div>
+    <div style="height: 300px"></div>
+  </div>
+  <div style="height: 100px"></div>
+  <div id="positioned"><div id="overflow"></div></div>
+</div>
+
+<script>
+promise_test(async () => {
+  const scroller1 = document.getElementById("scroller1");
+  const scroller2 = document.getElementById("scroller2");
+  const anchor = document.getElementById("anchor");
+  const positioned = document.getElementById("positioned");
+  await waitForAtLeastOneFrame();
+
+  // Scroll after the remembered scroll offset is captured, so #positioned has
+  // a default scroll shift.
+  scroller2.scrollTop = 50;
+  await waitForAtLeastOneFrame();
+  const scrollHeightBeforeReframe = scroller1.scrollHeight;
+
+  // Change the anchor's display type, and then reflow #positioned.
+  anchor.style.display = "flex";
+  await waitForAtLeastOneFrame();
+  positioned.style.minWidth = "1px";
+  await waitForAtLeastOneFrame();
+  assert_equals(positioned.getBoundingClientRect().top,
+                anchor.getBoundingClientRect().bottom,
+                "#positioned should still be anchored to #anchor");
+  assert_equals(scroller1.scrollHeight, scrollHeightBeforeReframe,
+                "scroller1.scrollHeight shouldn't change after changing the anchor's display type");
+}, "Changing the default anchor's display type keeps the remembered scroll offset");
+</script>

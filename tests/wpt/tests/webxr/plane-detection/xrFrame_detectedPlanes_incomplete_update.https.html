@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+
+<script>
+let testName = "XRFrame tolerates incomplete plane detection updates";
+
+xr_session_promise_test(
+  testName,
+  (session, controller, t) => {
+    controller.setWorld(DEFAULT_WORLD_WITH_FLOOR);
+
+    return new Promise((resolve) => {
+      session.requestAnimationFrame((time, frame) => {
+        t.step(() => {
+          assert_equals(frame.detectedPlanes.size, 1);
+        });
+
+        controller.clearWorld();
+        session.requestAnimationFrame((time, frame) => {
+          t.step(() => {
+            assert_equals(frame.detectedPlanes.size, 0);
+          });
+
+          controller.setWorld(DEFAULT_WORLD_WITH_FLOOR);
+          controller.simulateIncompletePlaneDetectionData();
+          session.requestAnimationFrame((time, frame) => {
+            t.step(() => {
+              assert_equals(frame.detectedPlanes.size, 0);
+            });
+
+            controller.setWorld(DEFAULT_WORLD_WITH_FLOOR);
+            session.requestAnimationFrame((time, frame) => {
+              t.step(() => {
+                assert_equals(frame.detectedPlanes.size, 1);
+              });
+
+              resolve();
+            });
+          });
+        });
+      });
+    });
+  },
+  IMMERSIVE_AR_DEVICE,
+  "immersive-ar",
+  { requiredFeatures: ["plane-detection"] }
+);
+</script>

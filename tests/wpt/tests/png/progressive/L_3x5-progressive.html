@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>PNG: progressive display of interlaced image L_3x5</title>
+<link rel="author" title="Chris Lilley" href="mailto:chris@w3.org">
+<link rel="help" href="https://w3c.github.io/png/#13Progressive-display">
+<link rel="match" href="L_3x5-progressive-ref.html">
+<meta name="assert" content="When an Adam7-interlaced PNG has been received up to the end of pass N, for N from 1 to 6, the pixels received so far are displayed with their final values. Positions not yet received, which a viewer may fill in any way, are hidden by a mask.">
+<style>
+  .pass { position: relative; display: inline-block; margin: 0 8px 8px 0; line-height: 0; }
+  .pass img { display: block; image-rendering: pixelated; }
+  .pass img.mask { position: absolute; left: 0; top: 0; }
+</style>
+<p>Test passes if the images below match the reference: the grey masks
+leave visible only the pixels received by the end of each pass, which
+must show their final values.</p>
+<div class="pass"><img src="support/L_3x5-trunc1.png" width="57" height="95" alt=""><img class="mask" src="support/L_3x5-mask1.png" width="57" height="95" alt=""></div>
+<div class="pass"><img src="support/L_3x5-trunc2.png" width="57" height="95" alt=""><img class="mask" src="support/L_3x5-mask2.png" width="57" height="95" alt=""></div>
+<div class="pass"><img src="support/L_3x5-trunc3.png" width="57" height="95" alt=""><img class="mask" src="support/L_3x5-mask3.png" width="57" height="95" alt=""></div>
+<div class="pass"><img src="support/L_3x5-trunc4.png" width="57" height="95" alt=""><img class="mask" src="support/L_3x5-mask4.png" width="57" height="95" alt=""></div>
+<div class="pass"><img src="support/L_3x5-trunc5.png" width="57" height="95" alt=""><img class="mask" src="support/L_3x5-mask5.png" width="57" height="95" alt=""></div>
+<div class="pass"><img src="support/L_3x5-trunc6.png" width="57" height="95" alt=""><img class="mask" src="support/L_3x5-mask6.png" width="57" height="95" alt=""></div>

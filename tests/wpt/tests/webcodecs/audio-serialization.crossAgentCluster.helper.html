@@ -1,0 +1,7 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>Reports whether posted values could be deserialized</title>
+<script>
+window.onmessage = () => parent.postMessage('message', '*');
+window.onmessageerror = () => parent.postMessage('messageerror', '*');
+</script>

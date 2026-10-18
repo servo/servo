@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<title>Signature-based SRI for WebBundle subresource loading</title>
+<link rel="help" href="https://wicg.github.io/signature-based-sri/" />
+<link
+  rel="help"
+  href="https://github.com/WICG/webpackage/blob/main/explainers/subresource-loading.md"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+  <script type="webbundle">
+    {
+      "source": "../resources/sri-message-signatures-bundle.py",
+      "resources": [
+        "../resources/valid-signature.json",
+        "../resources/invalid-signature.json",
+        "../resources/tampered-body.json",
+        "../resources/unsigned.json",
+        "../resources/valid-signature.js",
+        "../resources/invalid-signature.js"
+      ]
+    }
+  </script>
+  <script>
+    "use strict";
+
+    setup(() => {
+      assert_true(HTMLScriptElement.supports("webbundle"));
+    });
+
+    const kValidKey = "JrQLj5P/89iXES9+vFgrIy29clF9CC/oPPsw3c5D0bs=";
+    const kInvalidKey = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+
+    promise_test(async () => {
+      const response = await fetch("../resources/valid-signature.json", {
+        integrity: `ed25519-${kValidKey}`,
+      });
+      assert_equals(response.status, 200);
+      assert_equals(await response.text(), '{"hello": "world"}');
+    }, "Subresource fetch with valid signature and matching integrity loads.");
+
+    promise_test(async (t) => {
+      await promise_rejects_js(
+        t,
+        TypeError,
+        fetch("../resources/valid-signature.json", {
+          integrity: `ed25519-${kInvalidKey}`,
+        })
+      );
+    }, "Subresource fetch with valid signature and mismatched integrity is blocked.");
+
+    promise_test(async (t) => {
+      await promise_rejects_js(
+        t,
+        TypeError,
+        fetch("../resources/invalid-signature.json")
+      );
+    }, "Subresource fetch with invalid signature is blocked without client integrity.");
+
+    promise_test(async (t) => {
+      await promise_rejects_js(
+        t,
+        TypeError,
+        fetch("../resources/invalid-signature.json", {
+          integrity: `ed25519-${kValidKey}`,
+        })
+      );
+    }, "Subresource fetch with invalid signature and matching keyid is blocked.");
+
+    promise_test(async (t) => {
+      await promise_rejects_js(
+        t,
+        TypeError,
+        fetch("../resources/tampered-body.json", {
+          integrity: `ed25519-${kValidKey}`,
+        })
+      );
+    }, "Subresource fetch with valid signature over mismatched Unencoded-Digest body is blocked.");
+
+    promise_test(async (t) => {
+      const unguarded = await fetch("../resources/unsigned.json");
+      assert_equals(unguarded.status, 200);
+
+      await promise_rejects_js(
+        t,
+        TypeError,
+        fetch("../resources/unsigned.json", {
+          integrity: `ed25519-${kValidKey}`,
+        })
+      );
+    }, "Unsigned subresource fetch loads without integrity, but is blocked when signature integrity is required.");
+
+    promise_test(async (t) => {
+      window.hello = undefined;
+      await new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = "../resources/valid-signature.js";
+        s.integrity = `ed25519-${kValidKey}`;
+        s.onload = resolve;
+        s.onerror = t.unreached_func("Validly signed script should load.");
+        document.body.appendChild(s);
+      });
+      assert_equals(window.hello, "world");
+    }, "Subresource script with valid signature and matching integrity executes.");
+
+    promise_test(async (t) => {
+      await new Promise((resolve) => {
+        const s = document.createElement("script");
+        s.src = "../resources/invalid-signature.js";
+        s.integrity = `ed25519-${kValidKey}`;
+        s.onload = t.unreached_func("Invalidly signed script should not execute.");
+        s.onerror = resolve;
+        document.body.appendChild(s);
+      });
+    }, "Subresource script with invalid signature and matching keyid is blocked.");
+  </script>
+</body>

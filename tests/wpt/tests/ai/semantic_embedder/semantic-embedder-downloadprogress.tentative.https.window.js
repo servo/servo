@@ -11,4 +11,6 @@ async function createSemanticEmbedder(options) {
 
 promise_test(async t => {
   await testMonitor(createSemanticEmbedder);
+  // Verify progress events are still dispatched when the model is already available.
+  await testMonitor(createSemanticEmbedder);
 }, 'SemanticEmbedder.create() notifies its monitor on downloadprogress');

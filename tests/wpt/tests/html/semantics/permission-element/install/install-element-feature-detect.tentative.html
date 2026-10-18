@@ -11,4 +11,29 @@
     assert_true(el instanceof HTMLInstallElement,
         "install element should be an instance of HTMLInstallElement");
   }, "Test HTMLInstallElement existence and instanceof");
+
+  test(() => {
+    for (const property of [
+      "manifest",
+      "manifestId",
+      "isValid",
+      "invalidReason",
+      "onvalidationstatuschange",
+    ]) {
+      assert_true(Object.hasOwn(HTMLInstallElement.prototype, property),
+          `${property} should be an own property of HTMLInstallElement.prototype`);
+    }
+  }, "Test HTMLInstallElement manifest and validation properties");
+
+  test(() => {
+    for (const property of [
+      "initialPermissionStatus",
+      "permissionStatus",
+      "onpromptaction",
+      "onpromptdismiss",
+    ]) {
+      assert_false(property in HTMLInstallElement.prototype,
+          `${property} should not be exposed on HTMLInstallElement`);
+    }
+  }, "Test HTMLInstallElement permission properties");
 </script>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>WebMCP: Aborting a tool's signal after its registering iframe is removed</title>
+<link rel="author" href="mailto:dom@chromium.org">
+<body>
+<script>
+// An imperative tool is unregistered when the `AbortSignal` passed to
+// `registerTool()` is aborted. This must not crash even if the signal is
+// aborted after the registering document has become inactive (here, because its
+// iframe was removed).
+//
+// See https://crbug.com/573454028.
+window.onload = async () => {
+  const iframe = document.createElement('iframe');
+  const loaded = new Promise(resolve => iframe.onload = resolve);
+  document.body.append(iframe);
+  await loaded;
+
+  // Register a tool in the iframe's document, with a signal that this document
+  // can still abort after the iframe is removed.
+  const controller = new AbortController();
+  await iframe.contentDocument.modelContext.registerTool({
+    name: 'iframe_tool',
+    description: 'A tool registered by an iframe that gets removed',
+    execute: async () => 'unused',
+  }, {signal: controller.signal});
+
+  iframe.remove();
+  controller.abort();
+
+  document.documentElement.classList.remove('test-wait');
+};
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<script>
+const foreign = window.open("about:blank");
+const stream = new foreign.ReadableStream({
+  type: "bytes",
+  pull(controller) {
+    ReadableByteStreamController.prototype.error.call(controller, new Error("cross-compartment"));
+  }
+});
+new Response(stream).text().catch(() => {});
+</script>

@@ -171,6 +171,31 @@ a <!-- comment --> b
 | <p>
 |   data-x="1"
 
+#description
+"data-" prefix with an empty suffix is still covered by dataAttributes
+#data
+<div data-="x"></div>
+#config
+{
+  "attributes": [],
+  "dataAttributes": true
+}
+#document
+| <div>
+|   data-="x"
+
+#description
+"data-" prefix with an empty suffix is still covered by dataAttributes
+#data
+<div data-="x"></div>
+#config
+{
+  "attributes": [],
+  "dataAttributes": false
+}
+#document
+| <div>
+
 </script>
 <script id="namespaces" type="html5lib-testcases">
 #data
@@ -257,6 +282,150 @@ a <!-- comment --> b
 | <svg svg>
 |   xlink href="about:blank"
 
+#data
+<svg>Hello</svg>
+#config
+{ "elements": ["svg"] }
+#document
+
+#data
+<svg>Hello</svg>
+#config
+{ "elements": [{ "name": "svg", "namespace": "http://www.w3.org/2000/svg" }] }
+#document
+| <svg svg>
+|   "Hello"
+
+#data
+<math>Hello</math>
+#config
+{ "elements": ["math"] }
+#document
+
+#data
+<math>Hello</math>
+#config
+{ "elements": [{ "name": "math", "namespace": "http://www.w3.org/2000/svg" }] }
+#document
+
+#data
+<math>Hello</math>
+#config
+{ "elements": [{ "name": "math", "namespace": "http://www.w3.org/1998/Math/MathML" }] }
+#document
+| <math math>
+|   "Hello"
+
+#data
+<p style="bla"></p>
+#config
+{ "attributes": [{ "name": "style" }],
+  "elements": ["p", { "name": "svg", "namespace": "http://www.w3.org/2000/svg" }] }
+#document
+| <p>
+|   style="bla"
+
+#data
+<p href="bla"></p>
+#config
+{ "attributes": [{ "name": "href" }],
+  "elements": ["p", { "name": "svg", "namespace": "http://www.w3.org/2000/svg" }] }
+#document
+| <p>
+|   href="bla"
+
+</script>
+<!--
+  In HTML content, the HTML parser parses "xlink:href" as an attribute named
+  "xlink:href" in the null namespace.
+-->
+<script id="xlink-href-html-content" type="html5lib-testcases">
+#data
+<p xlink:href="bla"></p>
+#config
+{ "attributes": [{ "name": "xlink:href" }],
+  "elements": ["p", { "name": "svg", "namespace": "http://www.w3.org/2000/svg" }] }
+#document
+| <p>
+|   xlink:href="bla"
+
+#data
+<p xlink:href="bla"></p>
+#config
+{ "attributes": [{ "name": "href", "namespace": "http://www.w3.org/1999/xlink" }],
+  "elements": ["p", { "name": "svg", "namespace": "http://www.w3.org/2000/svg" }] }
+#document
+| <p>
+
+#data
+<p href='bla'></p>
+#config
+{ "attributes": [{ "name": "href", "namespace": "http://www.w3.org/1999/xlink" }],
+  "elements": ["p", { "name": "svg", "namespace": "http://www.w3.org/2000/svg" }] }
+#document
+| <p>
+
+#data
+<p xlink:href='bla'></p>
+#config
+{ "attributes": [{ "name": "href" }],
+  "elements": ["p", { "name": "svg", "namespace": "http://www.w3.org/2000/svg" }] }
+#document
+| <p>
+
+</script>
+<!--
+  For "foreign elements" like <svg>, the HTML parser parses "xlink:href" as an
+  attribute named "href" in the XLink namespace.
+-->
+<script id="xlink-href-foreign-content" type="html5lib-testcases">
+#data
+<svg xlink:href="bla"></svg>
+#config
+{ "attributes": [{ "name": "xlink:href" }],
+  "elements": ["p", { "name": "svg", "namespace": "http://www.w3.org/2000/svg" }] }
+#document
+| <svg svg>
+
+#data
+<svg xlink:href="bla"></svg>
+#config
+{ "attributes": [{ "name": "href", "namespace": "http://www.w3.org/1999/xlink" }],
+  "elements": ["p", { "name": "svg", "namespace": "http://www.w3.org/2000/svg" }] }
+#document
+| <svg svg>
+|   xlink href="bla"
+
+#data
+<svg href='bla'></svg>
+#config
+{ "attributes": [{ "name": "href", "namespace": "http://www.w3.org/1999/xlink" }],
+  "elements": ["p", { "name": "svg", "namespace": "http://www.w3.org/2000/svg" }] }
+#document
+| <svg svg>
+
+#data
+<svg xlink:href='bla'></svg>
+#config
+{ "attributes": [{ "name": "href" }],
+  "elements": ["p", { "name": "svg", "namespace": "http://www.w3.org/2000/svg" }] }
+#document
+| <svg svg>
+
+#description
+Namespaced attribute xlink:href inside SVG tree
+#data
+<svg><a xlink:href="bla"></a></svg>
+#config
+{ "elements": [
+    { "name": "svg", "namespace": "http://www.w3.org/2000/svg" },
+    { "name": "a", "namespace": "http://www.w3.org/2000/svg",
+      "attributes": [{ "name": "href", "namespace": "http://www.w3.org/1999/xlink" }] }] }
+#document
+| <svg svg>
+|   <svg a>
+|     xlink href="bla"
+
 </script>
 <script id="defaults-with-attributes-per-element" type="html5lib-testcases">
 #data
@@ -275,6 +444,165 @@ a <!-- comment --> b
 |       "xx"
 
 </script>
+<!--
+  Names are case-sensitive. Most element and attribute names are lower-cased,
+  but "foreign content" like SVG and MathML have some mixed-cased names. Check
+  this is supported.
+-->
+<script id="mixed-case-element-names" type="html5lib-testcases">
+#data
+<svg><feBlend></feBlend></svg>
+#config
+{ "elements": [{ "name": "svg", "namespace": "http://www.w3.org/2000/svg" },
+               { "name": "feBlend", "namespace": "http://www.w3.org/2000/svg" }] }
+#document
+| <svg svg>
+|   <svg feBlend>
+
+#data
+<svg><feColorMatrix></feColorMatrix></svg>
+#config
+{ "elements": [{ "name": "svg", "namespace": "http://www.w3.org/2000/svg" },
+               { "name": "feColorMatrix", "namespace": "http://www.w3.org/2000/svg" }] }
+#document
+| <svg svg>
+|   <svg feColorMatrix>
+
+#data
+<svg><textPath></textPath></svg>
+#config
+{ "elements": [{ "name": "svg", "namespace": "http://www.w3.org/2000/svg" },
+               { "name": "textPath", "namespace": "http://www.w3.org/2000/svg" }] }
+#document
+| <svg svg>
+|   <svg textPath>
+
+</script>
+<!--
+  A name whose case does not match the parsed name matches nothing.
+  Configurations are never case-folded.
+  https://html.spec.whatwg.org/#parsing-main-inforeign
+-->
+<script id="element-name-case-mismatch" type="html5lib-testcases">
+#data
+<div>text</div>
+#config
+{ "elements": [{ "name": "svg", "namespace": "http://www.w3.org/2000/svg" },
+               { "name": "DIV", "namespace": "http://www.w3.org/2000/svg" },
+               { "name": "DIV" }] }
+#document
+
+#data
+<svg><feBlend></feBlend></svg>
+#config
+{ "elements": [{ "name": "svg", "namespace": "http://www.w3.org/2000/svg" },
+               { "name": "feblend", "namespace": "http://www.w3.org/2000/svg" },
+               { "name": "feblend" }] }
+#document
+| <svg svg>
+
+#data
+<svg><feBlend></feBlend></svg>
+#config
+{ "elements": [{ "name": "svg", "namespace": "http://www.w3.org/2000/svg" },
+               { "name": "FEBLEND", "namespace": "http://www.w3.org/2000/svg" },
+               { "name": "FEBLEND" }] }
+#document
+| <svg svg>
+
+</script>
+<!--
+  Attribute names are not case folded. The parser adjusts "viewbox" to
+  "viewBox" in foreign content, so only the adjusted name matches.
+  https://html.spec.whatwg.org/#adjust-svg-attributes
+
+  The default configuration lists <marker> and the adjusted attribute names,
+  so they survive.
+-->
+<script id="adjusted-svg-attribute-names" type="html5lib-testcases">
+#data
+<svg><marker viewbox="0 0 1 1"></marker></svg>
+#config
+{ "elements": [{ "name": "svg", "namespace": "http://www.w3.org/2000/svg" },
+               { "name": "marker", "namespace": "http://www.w3.org/2000/svg" }],
+  "attributes": ["viewBox"] }
+#document
+| <svg svg>
+|   <svg marker>
+|     viewBox="0 0 1 1"
+
+#data
+<svg><marker viewbox="0 0 1 1"></marker></svg>
+#config
+{ "elements": [{ "name": "svg", "namespace": "http://www.w3.org/2000/svg" },
+               { "name": "marker", "namespace": "http://www.w3.org/2000/svg" }],
+  "attributes": ["viewbox"] }
+#document
+| <svg svg>
+|   <svg marker>
+
+#data
+<svg><marker viewbox="0 0 1 1"></marker></svg>
+#config
+{ "elements": [{ "name": "svg", "namespace": "http://www.w3.org/2000/svg" },
+               { "name": "marker", "namespace": "http://www.w3.org/2000/svg" }],
+  "attributes": ["VIEWBOX"] }
+#document
+| <svg svg>
+|   <svg marker>
+
+#description
+Default config keeps case-adjusted SVG attribute names
+#data
+<svg><marker viewbox="0 0 1 1" refx="1" markerwidth="2"></marker></svg>
+#document
+| <svg svg>
+|   <svg marker>
+|     markerWidth="2"
+|     refX="1"
+|     viewBox="0 0 1 1"
+
+</script>
+<script id="unknown" type="html5lib-testcases">
+#description
+Unknown element names get blocked without being allowed.
+#data
+<hello><world>
+#config
+{ "elements": ["b", "em"] }
+#document
+
+#description
+Unknown element names pass when allowed.
+#data
+<hello><world>
+#config
+{ "elements": ["hello", "world"] }
+#document
+| <hello>
+|   <world>
+
+#description
+Unknown attribute names get blocked without being allowed.
+#data
+<b hello='1' world>
+#config
+{ "attributes": ["name", "href"] }
+#document
+| <b>
+
+#description
+Unknown attribute names pass when allowed.
+#data
+<b hello='1' world>
+#config
+{ "attributes": ["hello", "world"] }
+#document
+| <b>
+|   hello="1"
+|   world=""
+
+</script>
 <script>
 for(const group of
     document.querySelectorAll("script[type='html5lib-testcases']")) {
@@ -284,29 +612,32 @@ for(const group of
       config = { sanitizer: JSON.parse(testcase.config) };
     }
 
+    const name = `${group.id}/${index}, "${testcase.data}"` +
+        (testcase.description ? `: ${testcase.description}` : "");
+
     test(_ => {
       const div = document.createElement("div");
       div.setHTML(testcase.data, config);
       assert_testcase(div, testcase);
-    }, `setHTML testcase ${group.id}/${index}, "${testcase.data}"`);
+    }, `setHTML testcase ${name}`);
     test(_ => {
       const div = document.createElement("div");
       div.setHTMLUnsafe(testcase.data, config);
       assert_testcase(div, testcase);
-    }, `setHTMLUnsafe testcase ${group.id}/${index}, "${testcase.data}"`);
+    }, `setHTMLUnsafe testcase ${name}`);
 
     test(_ => {
       const div = document.createElement("div");
       const shadowRoot = div.attachShadow({ mode: "open" });
       shadowRoot .setHTML(testcase.data, config);
       assert_testcase(shadowRoot, testcase);
-    }, `ShadowRoot.setHTML testcase ${group.id}/${index}, "${testcase.data}"`);
+    }, `ShadowRoot.setHTML testcase ${name}`);
     test(_ => {
       const div = document.createElement("div");
       const shadowRoot = div.attachShadow({ mode: "open" });
       shadowRoot .setHTMLUnsafe(testcase.data, config);
       assert_testcase(shadowRoot, testcase);
-    }, `ShadowRoot.setHTMLUnsafe testcase ${group.id}/${index}, "${testcase.data}"`);
+    }, `ShadowRoot.setHTMLUnsafe testcase ${name}`);
 
    // parseHTML and parseHTMLUnsafe need to allow "html" and "body" for these
    // tests to be useful. Update the config, if necessary.
@@ -319,11 +650,11 @@ for(const group of
    test(_ => {
       assert_testcase(
         Document.parseHTML(testcase.data, config).body, testcase);
-    }, `parseHTML testcase ${group.id}/${index}, "${testcase.data}"`);
+    }, `parseHTML testcase ${name}`);
     test(_ => {
       assert_testcase(
         Document.parseHTMLUnsafe(testcase.data, config).body, testcase);
-    }, `parseHTMLUnsafe testcase ${group.id}/${index}, "${testcase.data}"`);
+    }, `parseHTMLUnsafe testcase ${name}`);
   });
 }
 </script>

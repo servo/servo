@@ -103,9 +103,9 @@ async def test_drag_and_drop_with_draggable_element(bidi_session, top_context,
     assert "dragstart" in drag_events_captured
     assert "dragenter" in drag_events_captured
     # dragleave never happens if the mouse moves directly into the drop element
-    # without intermediate movements.
-    if drag_duration != 0:
-        assert "dragleave" in drag_events_captured
+    # without intermediate movements. With a duration, the number and timing of
+    # the intermediate movements are implementation-defined, so dragleave is
+    # not guaranteed either.
     assert "dragover" in drag_events_captured
     assert "drop" in drag_events_captured
     assert "dragend" in drag_events_captured
@@ -130,7 +130,7 @@ async def test_drag_and_drop_with_draggable_element(bidi_session, top_context,
     #
     assert drag_events_captured.index(
         "dragstart") < drag_events_captured.index("dragenter")
-    if drag_duration != 0:
+    if "dragleave" in drag_events_captured:
         assert last_index(drag_events_captured,
                       "dragenter") < last_index(drag_events_captured, "dragleave")
         assert last_index(drag_events_captured,

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>The outbound transition is skipped when the old document is hidden</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/#page-visibility-change-steps">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  const frame = document.createElement("iframe");
+  frame.width = "400";
+  frame.src = "resources/pageswap-media-change.html";
+  const loaded = new Promise(resolve => frame.onload = resolve);
+  document.body.append(frame);
+  t.add_cleanup(() => frame.remove());
+  await loaded;
+  const win = frame.contentWindow;
+  await new Promise(resolve =>
+    win.requestAnimationFrame(() => win.requestAnimationFrame(resolve)));
+  let pagehideFired = false;
+  let hadTransition = false;
+  let settledBeforePagehide = false;
+  win.addEventListener("pagehide", () => pagehideFired = true);
+  win.addEventListener("pageswap", event => {
+    hadTransition = event.viewTransition !== null;
+    if (hadTransition) {
+      const settled = () => settledBeforePagehide = !pagehideFired;
+      event.viewTransition.ready.then(settled, settled);
+    }
+  }, { once: true });
+  const navigated = new Promise(resolve => frame.onload = resolve);
+  frame.src = "/resources/blank.html?destination";
+  await navigated;
+  assert_true(hadTransition, "pageswap supplies an outbound transition");
+  assert_true(pagehideFired, "The old document was hidden");
+  assert_false(settledBeforePagehide,
+               "The outbound ready promise stays pending until pagehide");
+}, "The outbound ready promise is not rejected while waiting to commit");
+</script>

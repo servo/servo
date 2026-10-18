@@ -22,16 +22,49 @@
         }
       }
 
+      const positionalSinks = [
+        ...["setHTMLUnsafe", "appendHTMLUnsafe", "prependHTMLUnsafe"].map((method) => ({
+          name: `Element.${method}`,
+          sample: `Element ${method}`,
+          create(t) {
+            const el = createTarget("Element", t);
+            return { receiver: el, root: el };
+          },
+        })),
+        ...["setHTMLUnsafe", "appendHTMLUnsafe", "prependHTMLUnsafe"].map((method) => ({
+          name: `ShadowRoot.${method}`,
+          sample: `ShadowRoot ${method}`,
+          create(t) {
+            const sr = createTarget("ShadowRoot", t);
+            return { receiver: sr, root: sr };
+          },
+        })),
+        ...["beforeHTMLUnsafe", "afterHTMLUnsafe", "replaceWithHTMLUnsafe"].map((method) => ({
+          name: `Node.${method}`,
+          sample: `Node ${method}`,
+          create(t) {
+            const parent = createTarget("Element", t);
+            const ref = document.createElement("div");
+            parent.appendChild(ref);
+            return { receiver: ref, root: parent };
+          },
+        })),
+      ];
+
       // 1. Tests BEFORE default policy is created:
-      promise_test(async (t) => {
-        const node = createTarget("Element", t);
-        const violation = await trusted_type_violation_without_exception_for(() => {
-          node.setHTMLUnsafe("<span id='report-span'></span>");
-        });
-        assert_equals(violation.effectiveDirective, "require-trusted-types-for");
-        assert_equals(violation.disposition, "report");
-        assert_not_equals(node.querySelector("#report-span"), null);
-      }, "Element.setHTMLUnsafe: without default policy, report-only does not throw and reports violation");
+      for (const sink of positionalSinks) {
+        const method = sink.name.split(".")[1];
+        promise_test(async (t) => {
+          const { receiver, root } = sink.create(t);
+          const violation = await trusted_type_violation_without_exception_for(() => {
+            receiver[method]("<span id='report-span'></span>");
+          });
+          assert_equals(violation.effectiveDirective, "require-trusted-types-for");
+          assert_equals(violation.disposition, "report");
+          assert_equals(violation.sample, `${sink.sample}|<span id='report-span'></span>`);
+          assert_not_equals(root.querySelector("#report-span"), null);
+        }, `${sink.name}: without default policy, report-only does not throw and reports violation`);
+      }
 
       promise_test(async (t) => {
         const node = createTarget("Element", t);
@@ -69,17 +102,46 @@
           createHTML: (html, ...args) => createHTML(html, ...args),
           createParserOptions: (options, ...args) => createParserOptions(options, ...args),
         });
-        const node = createTarget("Element", t);
-        createParserOptions = (options) => ({
-          ...options,
-          sanitizer: { removeElements: ["span"] },
-        });
-        await no_trusted_type_violation_for(() => {
-          node.setHTMLUnsafe("<div id='allowed'><span id='forbidden'></span></div>");
-        });
-        assert_equals(node.querySelector("#forbidden"), null, "Sanitizer must remove forbidden");
-        assert_not_equals(node.querySelector("#allowed"), null, "Allowed element must remain");
-      }, "Element.setHTMLUnsafe: default policy createParserOptions with sanitizer does not report violation");
+      }, "Initialize default policy");
+
+      for (const sink of positionalSinks) {
+        const method = sink.name.split(".")[1];
+
+        promise_test(async (t) => {
+          const { receiver, root } = sink.create(t);
+          createParserOptions = (options) => ({
+            ...options,
+            sanitizer: { removeElements: ["span"] },
+          });
+          await no_trusted_type_violation_for(() => {
+            receiver[method]("<div id='allowed'><span id='forbidden'></span></div>");
+          });
+          assert_equals(root.querySelector("#forbidden"), null, "Sanitizer must remove forbidden");
+          assert_not_equals(root.querySelector("#allowed"), null, "Allowed element must remain");
+        }, `${sink.name}: default policy createParserOptions with sanitizer does not report violation`);
+
+        promise_test(async (t) => {
+          const { receiver, root } = sink.create(t);
+          createParserOptions = (options) => ({});
+          await no_trusted_type_violation_for(() => {
+            receiver[method]("<div id='allowed'><span id='allowed-child'></span></div>");
+          });
+          assert_not_equals(root.querySelector("#allowed"), null);
+          assert_not_equals(root.querySelector("#allowed-child"), null);
+        }, `${sink.name}: default policy createParserOptions without sanitizer does not report violation`);
+
+        promise_test(async (t) => {
+          const { receiver, root } = sink.create(t);
+          await no_trusted_type_violation_for(() => {
+            receiver[method](
+              "<div id='allowed'><span id='allowed-child'></span></div>",
+              testPolicy.createParserOptions({}),
+            );
+          });
+          assert_not_equals(root.querySelector("#allowed"), null);
+          assert_not_equals(root.querySelector("#allowed-child"), null);
+        }, `${sink.name}: caller-provided TrustedHTMLParserOptions without sanitizer does not report violation`);
+      }
 
       promise_test(async (t) => {
         const node = createTarget("Element", t);
@@ -107,56 +169,40 @@
         assert_not_equals(doc.querySelector("#allowed"), null);
       }, "Document.parseHTMLUnsafe: default policy createParserOptions with sanitizer does not report violation");
 
-      promise_test(async (t) => {
-        const node = createTarget("Element", t);
-        createParserOptions = (options) => ({});
-        await no_trusted_type_violation_for(() => {
-          node.setHTMLUnsafe("<div id='allowed'><span id='allowed-child'></span></div>");
-        });
-        assert_not_equals(node.querySelector("#allowed"), null);
-        assert_not_equals(node.querySelector("#allowed-child"), null);
-      }, "Element.setHTMLUnsafe: default policy createParserOptions without sanitizer does not report violation");
-
-      promise_test(async (t) => {
-        const node = createTarget("Element", t);
-        await no_trusted_type_violation_for(() => {
-          node.setHTMLUnsafe(
-            "<div id='allowed'><span id='allowed-child'></span></div>",
-            testPolicy.createParserOptions({}),
-          );
-        });
-        assert_not_equals(node.querySelector("#allowed"), null);
-        assert_not_equals(node.querySelector("#allowed-child"), null);
-      }, "Element.setHTMLUnsafe: caller-provided TrustedHTMLParserOptions without sanitizer does not report violation");
-
       // When createParserOptions returns null/undefined:
       // In enforcement mode it would throw TypeError, but in report-only mode it must NOT throw and report a violation.
       for (const value of [null, undefined]) {
-        promise_test(async (t) => {
-          const node = createTarget("Element", t);
-          createParserOptions = () => value;
-          createHTML = (html) => html;
+        for (const sink of positionalSinks) {
+          const method = sink.name.split(".")[1];
 
-          const violation = await trusted_type_violation_without_exception_for(() => {
-            node.setHTMLUnsafe("<span id='report-span'></span>");
-          });
-          assert_equals(violation.effectiveDirective, "require-trusted-types-for");
-          assert_equals(violation.disposition, "report");
-          assert_not_equals(node.querySelector("#report-span"), null);
-        }, `Element.setHTMLUnsafe: default createParserOptions returning ${JSON.stringify(value)} does not throw in report-only mode and reports violation`);
+          promise_test(async (t) => {
+            const { receiver, root } = sink.create(t);
+            createParserOptions = () => value;
+            createHTML = (html) => html;
 
-        promise_test(async (t) => {
-          const node = createTarget("Element", t);
-          createParserOptions = () => value;
+            const violation = await trusted_type_violation_without_exception_for(() => {
+              receiver[method]("<span id='report-span'></span>");
+            });
+            assert_equals(violation.effectiveDirective, "require-trusted-types-for");
+            assert_equals(violation.disposition, "report");
+            assert_equals(violation.sample, `${sink.sample}|`);
+            assert_not_equals(root.querySelector("#report-span"), null);
+          }, `${sink.name}: default createParserOptions returning ${JSON.stringify(value)} does not throw in report-only mode and reports violation`);
 
-          const trustedHTML = testPolicy.createHTML("<span id='report-span'></span>");
-          const violation = await trusted_type_violation_without_exception_for(() => {
-            node.setHTMLUnsafe(trustedHTML);
-          });
-          assert_equals(violation.effectiveDirective, "require-trusted-types-for");
-          assert_equals(violation.disposition, "report");
-          assert_not_equals(node.querySelector("#report-span"), null);
-        }, `Element.setHTMLUnsafe: default createParserOptions returning ${JSON.stringify(value)} with TrustedHTML does not throw in report-only mode and reports violation`);
+          promise_test(async (t) => {
+            const { receiver, root } = sink.create(t);
+            createParserOptions = () => value;
+
+            const trustedHTML = testPolicy.createHTML("<span id='report-span'></span>");
+            const violation = await trusted_type_violation_without_exception_for(() => {
+              receiver[method](trustedHTML);
+            });
+            assert_equals(violation.effectiveDirective, "require-trusted-types-for");
+            assert_equals(violation.disposition, "report");
+            assert_equals(violation.sample, `${sink.sample}|`);
+            assert_not_equals(root.querySelector("#report-span"), null);
+          }, `${sink.name}: default createParserOptions returning ${JSON.stringify(value)} with TrustedHTML does not throw in report-only mode and reports violation`);
+        }
 
         promise_test(async (t) => {
           const node = createTarget("Element", t);
@@ -185,24 +231,28 @@
         }, `Document.parseHTMLUnsafe: default createParserOptions returning ${JSON.stringify(value)} with TrustedHTML does not throw in report-only mode and reports violation`);
 
         for (const htmlValue of [null, undefined]) {
-          promise_test(async (t) => {
-            const node = createTarget("Element", t);
-            createParserOptions = () => value;
-            createHTML = () => htmlValue;
+          for (const sink of positionalSinks) {
+            const method = sink.name.split(".")[1];
 
-            const { violations, exception } = await trusted_type_violations_and_exception_for(() => {
-              node.setHTMLUnsafe("<span id='report-span'></span>");
-            });
-            assert_equals(exception, null, "no exception thrown");
-            assert_equals(violations.length, 2, "two violations reported (one for createParserOptions, one for createHTML)");
-            assert_equals(violations[0].effectiveDirective, "require-trusted-types-for");
-            assert_equals(violations[0].disposition, "report");
-            assert_equals(violations[0].sample, "Element setHTMLUnsafe|");
-            assert_equals(violations[1].effectiveDirective, "require-trusted-types-for");
-            assert_equals(violations[1].disposition, "report");
-            assert_equals(violations[1].sample, "Element setHTMLUnsafe|<span id='report-span'></span>");
-            assert_not_equals(node.querySelector("#report-span"), null);
-          }, `Element.setHTMLUnsafe: default createParserOptions returning ${JSON.stringify(value)} and createHTML returning ${JSON.stringify(htmlValue)} reports two violations in report-only mode`);
+            promise_test(async (t) => {
+              const { receiver, root } = sink.create(t);
+              createParserOptions = () => value;
+              createHTML = () => htmlValue;
+
+              const { violations, exception } = await trusted_type_violations_and_exception_for(() => {
+                receiver[method]("<span id='report-span'></span>");
+              });
+              assert_equals(exception, null, "no exception thrown");
+              assert_equals(violations.length, 2, "two violations reported (one for createParserOptions, one for createHTML)");
+              assert_equals(violations[0].effectiveDirective, "require-trusted-types-for");
+              assert_equals(violations[0].disposition, "report");
+              assert_equals(violations[0].sample, `${sink.sample}|`);
+              assert_equals(violations[1].effectiveDirective, "require-trusted-types-for");
+              assert_equals(violations[1].disposition, "report");
+              assert_equals(violations[1].sample, `${sink.sample}|<span id='report-span'></span>`);
+              assert_not_equals(root.querySelector("#report-span"), null);
+            }, `${sink.name}: default createParserOptions returning ${JSON.stringify(value)} and createHTML returning ${JSON.stringify(htmlValue)} reports two violations in report-only mode`);
+          }
 
           promise_test(async (t) => {
             const node = createTarget("Element", t);
@@ -245,15 +295,18 @@
       }
 
       // Script exceptions inside createParserOptions are still rethrown even in report-only mode
-      promise_test(async (t) => {
-        const node = createTarget("Element", t);
-        createParserOptions = () => {
-          throw new Error("createParserOptions JS error");
-        };
-        assert_throws_js(Error, () => {
-          node.setHTMLUnsafe("<span></span>");
-        });
-      }, "Element.setHTMLUnsafe: JS exception in createParserOptions is rethrown in report-only mode");
+      for (const sink of positionalSinks) {
+        const method = sink.name.split(".")[1];
+        promise_test(async (t) => {
+          const { receiver } = sink.create(t);
+          createParserOptions = () => {
+            throw new Error("createParserOptions JS error");
+          };
+          assert_throws_js(Error, () => {
+            receiver[method]("<span></span>");
+          });
+        }, `${sink.name}: JS exception in createParserOptions is rethrown in report-only mode`);
+      }
     </script>
   </body>
 </html>

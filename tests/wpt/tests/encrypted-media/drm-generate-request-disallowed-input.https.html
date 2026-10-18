@@ -20,12 +20,11 @@
   <body>
     <div id='log'></div>
 
-    <script>
-        var config = {  keysystem:          getSupportedKeySystem()
+    <script type="module">
+        var config = {  keysystem:          await getSupportedKeySystem()
                      };
 
         runTest(config);
-
     </script>
   </body>
 </html>

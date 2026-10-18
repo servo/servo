@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: stretch alignment respects border-box min size constraints of the grid container with border</title>
+<link rel="author" title="Sammy Gill" href="mailto:sammy.gill@apple.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-1/#algo-stretch">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#box-sizing">
+<link rel="match" href="../../reference/ref-filled-green-100px-square.xht">
+<meta name="assert" content="The test checks that during the last step of the track sizing algorithm (stretch auto tracks), a min-height on a grid container with box-sizing: border-box excludes the container's border.">
+<style>
+  #reference-overlapped-red {
+    position: absolute;
+    background-color: red;
+    width: 100px;
+    height: 100px;
+    z-index: -1;
+  }
+
+  #grid {
+    display: grid;
+    grid-template-columns: auto;
+    box-sizing: border-box;
+    width: 100px;
+    min-height: 100px;
+    border: 10px solid green;
+  }
+
+  #test-item-overlapping-green {
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square and <strong>no red</strong>.</p>
+
+<div id="reference-overlapped-red"></div>
+<div id="grid">
+  <div id="test-item-overlapping-green"></div>
+</div>

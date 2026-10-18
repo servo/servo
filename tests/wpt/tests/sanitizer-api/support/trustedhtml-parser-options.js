@@ -4,9 +4,9 @@ const scriptMarkup = "<script>window.scriptRan = true;<" + "/script>";
 const NO_OPTIONS = Symbol("no options");
 
 const sinks = [
-  {
-    name: "Element.setHTMLUnsafe",
-    sample: "Element setHTMLUnsafe",
+  ...["setHTMLUnsafe", "appendHTMLUnsafe", "prependHTMLUnsafe"].map(method => ({
+    name: `Element.${method}`,
+    sample: `Element ${method}`,
     hasRunScripts: true,
     createTarget(t) {
       const element = document.createElement("div");
@@ -16,16 +16,16 @@ const sinks = [
     },
     parse(target, html, options) {
       if (options === NO_OPTIONS) {
-        target.setHTMLUnsafe(html);
+        target[method](html);
       } else {
-        target.setHTMLUnsafe(html, options);
+        target[method](html, options);
       }
       return target;
     },
-  },
-  {
-    name: "ShadowRoot.setHTMLUnsafe",
-    sample: "ShadowRoot setHTMLUnsafe",
+  })),
+  ...["setHTMLUnsafe", "appendHTMLUnsafe", "prependHTMLUnsafe"].map(method => ({
+    name: `ShadowRoot.${method}`,
+    sample: `ShadowRoot ${method}`,
     hasRunScripts: true,
     createTarget(t) {
       const host = document.createElement("div");
@@ -35,13 +35,35 @@ const sinks = [
     },
     parse(target, html, options) {
       if (options === NO_OPTIONS) {
-        target.setHTMLUnsafe(html);
+        target[method](html);
       } else {
-        target.setHTMLUnsafe(html, options);
+        target[method](html, options);
       }
       return target;
     },
-  },
+  })),
+  ...["beforeHTMLUnsafe", "afterHTMLUnsafe", "replaceWithHTMLUnsafe"].map(method => ({
+    name: `Node.${method}`,
+    sample: `Node ${method}`,
+    hasRunScripts: true,
+    createTarget(t) {
+      const parent = document.createElement("div");
+      const target = document.createElement("div");
+      parent.append(target);
+      document.body.append(parent);
+      t.add_cleanup(() => parent.remove());
+      return target;
+    },
+    parse(target, html, options) {
+      const parent = target.parentNode;
+      if (options === NO_OPTIONS) {
+        target[method](html);
+      } else {
+        target[method](html, options);
+      }
+      return parent;
+    },
+  })),
   {
     name: "Document.parseHTMLUnsafe",
     sample: "Document parseHTMLUnsafe",

@@ -35,7 +35,7 @@ promise_test(async t => {
 
   await promise_rejects_dom(
     t,
-    'UnknownError',
+    'DataError',
     document.modelContext.executeTool(tool, { nonexistent: 'value' }),
     'executeTool should reject when input contains parameter not in form'
   );
@@ -47,7 +47,7 @@ promise_test(async t => {
 
   await promise_rejects_dom(
     t,
-    'UnknownError',
+    'DataError',
     document.modelContext.executeTool(tool, { choice: 'c' }),
     'executeTool should reject when select option is invalid'
   );
@@ -59,7 +59,7 @@ promise_test(async t => {
 
   await promise_rejects_dom(
     t,
-    'UnknownError',
+    'OperationError',
     document.modelContext.executeTool(tool, { query: '123' }),
     'executeTool should reject when input violates pattern constraint'
   );
@@ -71,7 +71,7 @@ promise_test(async t => {
 
   await promise_rejects_dom(
     t,
-    'UnknownError',
+    'OperationError',
     document.modelContext.executeTool(tool, { text_required: '', number_min: 5 }),
     'executeTool should reject when form input violates required and min constraints'
   );

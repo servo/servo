@@ -1441,7 +1441,6 @@ scroll-animations/css/timeline-scope-all.html @web-platform-tests/interop
 scroll-animations/css/timeline-scope-computed.html @web-platform-tests/interop
 scroll-animations/css/timeline-scope-parsing.html @web-platform-tests/interop
 scroll-animations/css/timeline-scope.html @web-platform-tests/interop
-scroll-animations/css/view-timeline-animation.html @web-platform-tests/interop
 scroll-animations/css/view-timeline-axis-computed.html @web-platform-tests/interop
 scroll-animations/css/view-timeline-axis-parsing.html @web-platform-tests/interop
 scroll-animations/css/view-timeline-dynamic.html @web-platform-tests/interop

@@ -68,6 +68,11 @@ test(() => {
 }, 'Parsing calc() with subtraction is successful');
 
 test(() => {
+  const expected = new CSSMathSum(CSS.number(5));
+  assert_style_value_equals(CSSNumericValue.parse('calc(1 + 4)'), expected);
+}, 'Parsing calc() with numbers is successful');
+
+test(() => {
   const expected = new CSSMathProduct(
     CSS.number(2),
     new CSSMathMin(CSS.px(10), CSS.percent(20))

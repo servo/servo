@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<title>Chrome crash bug 570167919</title>
+<link rel="help" href="https://crbug.com/570167919">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-5/#scroll-marker-group-property">
+<div id="host"><span id="host_child"></span></div>
+<script>
+  // A carousel with a ::scroll-marker-group lives in a nested shadow tree. Its
+  // ancestors are removed from the flat tree and from the document, and then
+  // the slot assignment of a shadow root in the now disconnected tree is
+  // dirtied. Updating the scroll marker group after the next layout must not
+  // crash.
+  const host_root = host.attachShadow({mode: "open"});
+  host_root.innerHTML =
+    `<slot name="q"><span id="fallback" style="display:contents"></span></slot>`;
+
+  const outer = document.createElement("div");
+  outer.style.display = "contents";
+  host_root.getElementById("fallback").append(outer);
+  outer.attachShadow({mode: "open"}).innerHTML =
+    `<slot name="s1"></slot><slot name="s2"></slot>`;
+  outer.innerHTML = `
+    <div id="locked" slot="s1"
+         style="content-visibility:hidden;contain-intrinsic-size:10px 10px">x</div>
+    <div slot="s2">
+      <div id="sibling">n</div>
+      <div id="inner_host"><span id="inner_child" slot="unknown">k</span></div>
+    </div>`;
+  const locked = outer.querySelector("#locked");
+  const sibling = outer.querySelector("#sibling");
+  const inner_host = outer.querySelector("#inner_host");
+  const inner_child = outer.querySelector("#inner_child");
+
+  inner_host.attachShadow({mode: "open"}).innerHTML = `
+    <style>
+      .carousel {
+        overflow: auto;
+        width: 50%;
+        height: 40px;
+        scroll-marker-group: after;
+        white-space: nowrap;
+      }
+      .carousel span {
+        display: inline-block;
+        width: 2px;
+        height: 2px;
+      }
+      .carousel span::scroll-marker {
+        content: "";
+        width: 1px;
+        height: 1px;
+      }
+      .carousel::scroll-marker-group {
+        display: flex;
+        height: 4px;
+        overflow: hidden;
+      }
+    </style>
+    <slot name="q">
+      <div class="carousel">${"<span></span>".repeat(3)}<slot name="s"><span></span></slot>${"<span></span>".repeat(11)}</div>
+    </slot>`;
+
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    // Dirty the slot assignment of the shadow root of #host: #host_child
+    // replaces the fallback content (which contains the carousel) of slot "q".
+    host_child.slot = "q";
+    // Dirty the slot assignment of the shadow root of `outer`.
+    locked.slot = "none";
+    // Force a style and layout update.
+    sibling.getBoundingClientRect();
+    // Disconnect the tree which contains the carousel.
+    outer.remove();
+    // Dirty the slot assignment of the shadow root of #inner_host, which is
+    // now in a disconnected tree.
+    inner_child.slot = "q";
+    host.style.width = "400px";
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      document.documentElement.classList.remove("test-wait");
+    }));
+  }));
+</script>

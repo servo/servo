@@ -20,10 +20,22 @@ interface HTMLMenuItemElement : HTMLElement {
   [HTMLConstructor] constructor();
 
   [CEReactions, Reflect] attribute boolean disabled;
+};
+
+[Exposed=Window]
+interface HTMLMenuItemCheckboxElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
+  [CEReactions, Reflect] attribute boolean disabled;
   [CEReactions] attribute boolean checked;
   [CEReactions, Reflect] attribute boolean defaultChecked;
 };
 
-partial interface HTMLFieldSetElement {
-  [CEReactions, Reflect] attribute DOMString? checkable;
+[Exposed=Window]
+interface HTMLMenuItemRadioElement : HTMLElement {
+  [HTMLConstructor] constructor();
+
+  [CEReactions, Reflect] attribute boolean disabled;
+  [CEReactions] attribute boolean checked;
+  [CEReactions, Reflect] attribute boolean defaultChecked;
 };

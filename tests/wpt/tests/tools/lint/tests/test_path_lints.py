@@ -155,8 +155,13 @@ def test_gitignore_negative(path):
 @pytest.mark.parametrize("paths,errors",
                          [(["a/b.html", "a/B.html"], ["a/B.html"]),
                           (["A/b.html", "a/b.html"], ["a/b.html"]),
-                          (["a/b.html", "a/c.html"], [])])
+                          (["a/b.html", "a/c.html"], []),
+                          (["a/b.html", "A/c.html"], ["A/c.html"]),
+                          (["a/b/c.html", "a/B/d.html", "a/B/e.html", "a/b/f.html"], ["a/B/d.html", "a/B/e.html"]),
+                          (["WebIDL/a.html", "webidl/b.html", "webidl/c.html"], ["WebIDL/a.html"])])
 def test_unique_case_insensitive_paths(paths, errors):
+    paths = [os.path.join(*path.split("/")) for path in paths]
+    errors = [os.path.join(*path.split("/")) for path in errors]
     got_errors = check_unique_case_insensitive_paths(None, paths)
     assert len(got_errors) == len(errors)
     for (name, _, path, _), expected_path in zip(got_errors, errors):

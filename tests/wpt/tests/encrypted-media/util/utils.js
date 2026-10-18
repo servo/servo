@@ -75,7 +75,7 @@ function createKeyIDs() {
     return keyIds;
 }
 
-function getSupportedKeySystem() {
+async function getSupportedKeySystem() {
     var userAgent = navigator.userAgent.toLowerCase();
     var keysystem = undefined;
     if (userAgent.indexOf('edge') > -1 ) {
@@ -83,10 +83,18 @@ function getSupportedKeySystem() {
     } else if (userAgent.indexOf('chrome') > -1) {
         keysystem = 'com.widevine.alpha';
     } else if (userAgent.indexOf('firefox') > -1) {
+        keysystem = 'com.widevine.alpha';
         if (userAgent.includes("win")) {
-            keysystem = 'com.microsoft.playready.recommendation';
-        } else {
-            keysystem = 'com.widevine.alpha';
+            // Firefox on Windows may use PlayReady via Media Foundation or
+            // Widevine, depending on its configuration.
+            try {
+                await navigator.requestMediaKeySystemAccess(
+                    'com.microsoft.playready.recommendation',
+                    [{ initDataTypes: ['cenc'],
+                       videoCapabilities: [{ contentType: 'video/mp4;codecs="avc1.4d401e"' }] }]);
+                keysystem = 'com.microsoft.playready.recommendation';
+            } catch (e) {
+            }
         }
     }
     return keysystem;

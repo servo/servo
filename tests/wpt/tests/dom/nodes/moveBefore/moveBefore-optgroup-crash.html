@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<link rel="help" href="https://dom.spec.whatwg.org/#dom-parentnode-movebefore">
+<p>Passes if no crash</p>
+<script>
+  function createSelects() {
+    const container = document.createElement("div");
+    container.innerHTML = `<select id="first"><optgroup label="group"><option>a</option></optgroup></select>
+      <select id="second"><option>b</option></select>
+      <select id="third"><option>c</option></select>
+      <div id="destination"></div>`;
+    const get = id => container.querySelector(`#${id}`);
+    return { get, optgroup: container.querySelector("optgroup") };
+  }
+
+  {
+    // Move an optgroup to another select, then remove it.
+    const { get, optgroup } = createSelects();
+    get("second").moveBefore(optgroup, null);
+    optgroup.remove();
+  }
+
+  {
+    // Move an optgroup out of a select, insert it into another one, then remove it.
+    const { get, optgroup } = createSelects();
+    get("destination").moveBefore(optgroup, null);
+    get("third").appendChild(optgroup);
+    optgroup.remove();
+  }
+</script>

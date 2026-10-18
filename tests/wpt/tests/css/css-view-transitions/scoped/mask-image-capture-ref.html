@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Reference for masks captured from old and new states</title>
+<style>
+  html {
+    background: blue;
+  }
+
+  .row {
+    display: flex;
+    gap: 10px;
+  }
+
+  .masked {
+    width: 120px;
+    height: 80px;
+    background: green;
+    mask-image: linear-gradient(to right, transparent 50%, black 50%);
+  }
+</style>
+
+<div class="row">
+  <div class="masked"></div>
+  <div class="masked"></div>
+</div>

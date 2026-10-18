@@ -15,6 +15,8 @@
       window.defer_resolver = Promise.withResolvers();
       window.async_resolver = Promise.withResolvers();
       window.module_resolver = Promise.withResolvers();
+      window.immediate_resolver = Promise.withResolvers();
+      window.immediate_2_resolver = Promise.withResolvers();
       function write_script(script, {defer, async, type} = {}) {
         const script_element = document.createElement("script");
         if (type)
@@ -28,14 +30,16 @@
       }
       await write_script("window.events.push('defer'); window.defer_resolver.resolve();", {defer: true});
       assert_array_equals(window.events, []);
-      await write_script("window.events.push('immediate');");
+      await write_script("window.events.push('immediate'); window.immediate_resolver.resolve();");
+      await window.immediate_resolver.promise;
       assert_array_equals(window.events, ["immediate"]);
       await write_script("window.events.push('module');window.module_resolver.resolve();", {type: "module"});
       assert_array_equals(window.events, ["immediate"]);
       await write_script("window.events.push('async'); window.async_resolver.resolve();", {async: true});
       await window.async_resolver.promise;
       assert_array_equals(window.events, ["immediate", "async"]);
-      await write_script("window.events.push('immediate-2');");
+      await write_script("window.events.push('immediate-2'); window.immediate_2_resolver.resolve();");
+      await window.immediate_2_resolver.promise;
       assert_array_equals(window.events, ["immediate", "async", "immediate-2"]);
       await writer.close();
       await Promise.all([window.defer_resolver.promise, window.module_resolver.promise]);
@@ -47,6 +51,98 @@
         "module"
       ]);
     }, `element.${method} with defer/async scripts`);
+
+    promise_test(async (t) => {
+      window.events = [];
+      window.done_resolver = Promise.withResolvers();
+      const placeholder = document.getElementById("placeholder");
+      const writable = placeholder[method]({ runScripts: true });
+      const writer = writable.getWriter();
+
+      function write_script(script, {defer, type} = {}) {
+        const script_element = document.createElement("script");
+        if (type)
+          script_element.type = type;
+        if (defer)
+          script_element.defer = true;
+        script_element.src = `data:text/javascript,${encodeURIComponent(script)};{let cache_buster=${Math.random()}}`;
+        return writer.write(script_element.outerHTML);
+      }
+
+      await write_script(
+        "window.events.push('d1'); Promise.resolve().then(() => window.events.push('d1-microtask'));",
+        { defer: true }
+      );
+      await write_script(
+        "window.events.push('d2'); Promise.resolve().then(() => window.events.push('d2-microtask'));",
+        { defer: true }
+      );
+      await write_script(
+        "window.events.push('module'); Promise.resolve().then(() => { window.events.push('module-microtask'); window.done_resolver.resolve(); });",
+        { type: "module" }
+      );
+
+      // Give data: scripts time to finish fetching before close() so they are ready at close() time.
+      await new Promise(resolve => t.step_timeout(resolve, 20));
+      assert_array_equals(window.events, [], "Defer and module scripts must not run before close()");
+
+      await writer.close();
+      assert_array_equals(window.events, [], "Defer and module scripts must run in tasks queued after close() resolves");
+
+      await window.done_resolver.promise;
+      assert_array_equals(window.events, [
+        "d1",
+        "d1-microtask",
+        "d2",
+        "d2-microtask",
+        "module",
+        "module-microtask",
+      ]);
+    }, `element.${method}: defer and module scripts run after close() resolves, one per task`);
+
+    promise_test(async (t) => {
+      window.events = [];
+      const placeholder = document.getElementById("placeholder");
+      const writable = placeholder[method]({ runScripts: true });
+      const writer = writable.getWriter();
+
+      await writer.write(
+        `<script type="importmap">{"imports":{}}<` + `/script>` +
+        `<script type="speculationrules">{"prefetch":[{"source":"list","urls":["/"]}]}<` + `/script>` +
+        `<script defer>window.events.push("inline-defer");<` + `/script>`
+      );
+      assert_array_equals(window.events, ["inline-defer"], "Inline script with defer attribute runs synchronously");
+      await writer.close();
+    }, `element.${method}: inline defer, importmap, and speculationrules scripts`);
+
+    promise_test(async (t) => {
+      window.events = [];
+      window.slow_async = Promise.withResolvers();
+      window.fast_async = Promise.withResolvers();
+      window.on_slow = () => window.slow_async.resolve();
+      t.add_cleanup(() => { delete window.on_slow; });
+      const placeholder = document.getElementById("placeholder");
+      const writable = placeholder[method]({ runScripts: true });
+      const writer = writable.getWriter();
+
+      await writer.write(
+        `<script async src="resources/slow.js?pipe=trickle(d0.3)&async_slow=${method}"><` + `/script>` +
+        `<script async src="data:text/javascript,window.events.push('fast-async');window.fast_async.resolve();"><` + `/script>` +
+        `<p id="after-async">after</p>` +
+        `<script>window.events.push('sync-inline');<` + `/script>`
+      );
+
+      assert_not_equals(placeholder.querySelector("#after-async"), null, "Async scripts must not block subsequent DOM parsing");
+      assert_true(window.events.includes("sync-inline"), "Inline script runs without waiting for async script");
+
+      await window.fast_async.promise;
+      assert_equals(window.events[0], "sync-inline");
+      assert_equals(window.events[1], "fast-async");
+
+      await writer.close();
+      await window.slow_async.promise;
+      assert_array_equals(window.events, ["sync-inline", "fast-async", "slow"]);
+    }, `element.${method}: async scripts do not block parsing and run in load order`);
 
     promise_test(async (t) => {
       window.events = [];

@@ -1,6 +1,8 @@
 import pytest
 from webdriver.bidi.modules.script import ContextTarget
 
+from tests.support.sync import AsyncPoll
+
 
 pytestmark = pytest.mark.asyncio
 
@@ -10,7 +12,7 @@ REALM_CREATED_EVENT = "script.realmCreated"
 
 @pytest.mark.parametrize("window_url", ["", "about:blank", "inline"])
 async def test_window_open(
-    bidi_session, subscribe_events, top_context, wait_for_bidi_events, inline, window_url
+    bidi_session, configuration, subscribe_events, top_context, inline, window_url
 ):
     await subscribe_events(events=[REALM_CREATED_EVENT])
 
@@ -30,15 +32,21 @@ async def test_window_open(
         target=ContextTarget(top_context["context"]),
     )
 
-    await wait_for_bidi_events(events, 1, equal_check=True)
+    # The initial about:blank document of the new window can get its own realm
+    # before it is replaced, so wait until the last event matches the realm of
+    # the window's active document.
+    async def check_window_realm(_):
+        realms = await bidi_session.script.get_realms()
+        window_realm = None
+        for realm in realms:
+            if realm["context"] != top_context["context"]:
+                window_realm = realm
 
-    realms = await bidi_session.script.get_realms()
-    window_realm = None
-    for realm in realms:
-        if realm["context"] != top_context["context"]:
-            window_realm = realm
+        assert len(events) > 0
+        assert events[-1] == window_realm
 
-    assert events[-1] == window_realm
+    wait = AsyncPoll(bidi_session, timeout=2 * configuration["timeout_multiplier"])
+    await wait.until(check_window_realm)
 
     remove_listener()
 
@@ -72,7 +80,8 @@ async def test_event_order(
         target=ContextTarget(new_tab["context"]),
     )
 
-    await wait_for_bidi_events(events, 2, equal_check=True)
+    # A realm for the initial about:blank document might be reported as well.
+    await wait_for_bidi_events(events, 2, equal_check=False)
 
     assert events[0] == CONTEXT_CREATED_EVENT
     assert events[1] == REALM_CREATED_EVENT

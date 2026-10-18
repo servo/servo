@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Overflow: interaction with text-overflo</title>
+<link rel="author" title="Florian Rivoal" href="https://florian.rivoal.net/">
+<link rel="help" href="https://drafts.csswg.org/css-overflow-4/#line-clamp">
+<link rel="match" href="reference/line-clamp-text-overflow-001-ref.html">
+<meta name="assert" content="clamping happens first, then if the line still overflows, text-overflow applies to the line including the block ellipsis">
+<style>
+.clamp {
+  line-clamp: 3 "very long block ellipsis";
+  text-overflow: ellipsis;
+  overflow: hidden;
+  font-family: monospace;
+  width: 10ch;
+}
+.ref {
+  font-family: monospace;
+  width: 10ch;
+}
+div {
+    border: solid;
+    margin: 1em;
+    float: left;
+}
+span {
+    white-space: pre;
+}
+</style>
+<p>Test passes if both box below have identical content
+<div class=ref>
+    text text
+    text text
+    very long…
+</div>
+<div class="clamp">
+    text text
+    text text
+    text text
+    text text
+    text text
+    text text
+    text text
+    text text
+    text text
+</div>

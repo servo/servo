@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Scoped view transition captures masks from the old and new states</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/">
+<link rel="match" href="mask-image-capture-ref.html">
+<script src="/common/reftest-wait.js"></script>
+<script src="/web-animations/testcommon.js"></script>
+<style>
+  html {
+    background: blue;
+  }
+
+  .row {
+    display: flex;
+    gap: 10px;
+  }
+
+  .scope {
+    contain: layout;
+    width: 120px;
+    height: 80px;
+    background: green;
+    view-transition-name: target;
+  }
+
+  .masked {
+    mask-image: linear-gradient(to right, transparent 50%, black 50%);
+  }
+
+  .scope::view-transition-group(target) {
+    animation-play-state: paused;
+  }
+
+  #remove-mask::view-transition-old(target),
+  #add-mask::view-transition-new(target) {
+    animation: none;
+    opacity: 1;
+  }
+
+  #remove-mask::view-transition-new(target),
+  #add-mask::view-transition-old(target) {
+    animation: none;
+    opacity: 0;
+  }
+</style>
+
+<div class="row">
+  <div id="remove-mask" class="scope masked"></div>
+  <div id="add-mask" class="scope"></div>
+</div>
+
+<script>
+  async function runTest() {
+    await waitForCompositorReady();
+
+    const removeMask = document.querySelector("#remove-mask");
+    const addMask = document.querySelector("#add-mask");
+    const removeTransition = removeMask.startViewTransition(() => {
+      removeMask.classList.remove("masked");
+    });
+    const addTransition = addMask.startViewTransition(() => {
+      addMask.classList.add("masked");
+    });
+
+    await Promise.all([removeTransition.ready, addTransition.ready]);
+    await Promise.all(
+        document.getAnimations().map(animation => animation.ready));
+    takeScreenshot();
+  }
+
+  runTest();
+</script>
+</html>

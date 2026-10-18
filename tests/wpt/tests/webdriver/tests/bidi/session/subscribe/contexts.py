@@ -2,6 +2,8 @@ import pytest
 
 from ... import create_console_api_message, recursive_compare
 
+pytestmark = pytest.mark.asyncio
+
 
 # The basic use case of subscribing to all contexts for a single event
 # is covered by tests for each event in the dedicated folders.
@@ -124,6 +126,7 @@ async def test_subscribe_to_one_context_and_then_to_all(
     )
 
     # Trigger again events in each context
+    on_entry_added = wait_for_event("log.entryAdded")
     expected_text = await create_console_api_message(bidi_session, new_tab, "text3")
     await wait_for_future_safe(on_entry_added)
 
@@ -135,6 +138,7 @@ async def test_subscribe_to_one_context_and_then_to_all(
         events[1],
     )
 
+    on_entry_added = wait_for_event("log.entryAdded")
     expected_text = await create_console_api_message(bidi_session, top_context, "text4")
     await wait_for_future_safe(on_entry_added)
 

@@ -9,8 +9,8 @@ dictionary WebAssemblyInstantiatedSource {
 };
 
 dictionary WebAssemblyCompileOptions {
-    USVString? importedStringConstants;
-    sequence<USVString> builtins;
+    USVString? importedStringConstants = null;
+    sequence<USVString> builtins = [];
 };
 
 [Exposed=*]

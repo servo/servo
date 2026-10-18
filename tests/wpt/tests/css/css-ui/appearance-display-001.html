@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Basic User Interface Test: `appearance` does not affect `display`</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#appearance-switching">
+<link rel="help" href="https://drafts.csswg.org/css-display-3/#the-display-properties">
+<meta name="assert" content="The `appearance` property does not change the computed value of `display` on elements which have no native appearance.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="container"></div>
+<script>
+// None of these elements has a native appearance, so `appearance` resolves to
+// `none` on all of them.
+const tags = ["span", "a", "div", "li", "summary"];
+const appearances = ["auto", "none", "button", "textfield", "menulist-button"];
+const displays = ["inline", "inline-block", "block", "list-item", "table",
+                  "inline-table", "table-row-group", "table-header-group",
+                  "table-footer-group", "table-row", "table-column-group",
+                  "table-column", "table-cell", "table-caption", "flow-root",
+                  "flex", "inline-flex", "grid", "inline-grid"];
+for (const display of ["grid-lanes", "inline-grid-lanes"]) {
+  if (CSS.supports("display", display)) {
+    displays.push(display);
+  }
+}
+
+for (const tag of tags) {
+  for (const appearance of appearances) {
+    for (const display of displays) {
+      test(() => {
+        const element = document.createElement(tag);
+        element.style.appearance = appearance;
+        element.style.display = display;
+        container.appendChild(element);
+        try {
+          assert_equals(getComputedStyle(element).display, display);
+        } finally {
+          element.remove();
+        }
+      }, `<${tag}> with appearance:${appearance} computes display:${display}`);
+    }
+  }
+}
+</script>

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<title>CSS Syntax Test: Block balancing syntax error in margin-trim declaration</title>
+<link rel="help" href="https://drafts.csswg.org/css-syntax/#consume-declaration">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  div { color: red; }
+  .foo { margin-trim: block-start block(); }
+  .green { color: green; }
+</style>
+<div class="green">Green</div>
+<script>
+  test(() => {
+    assert_equals(getComputedStyle(document.querySelector(".green")).color, "rgb(0, 128, 0)");
+  }, "Check that syntax error in .foo rule does not consume .green rule");
+</script>

@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<title>navigator.install() is not defined in an insecure context</title>
+<link rel="help" href="https://github.com/MicrosoftEdge/MSEdgeExplainers/blob/main/WebInstall/explainer.md">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script>
+test(function() {
+  assert_false(isSecureContext, 'The test must run in an insecure context');
+  assert_false('install' in navigator,
+      'navigator.install should not be present');
+  assert_equals(typeof navigator.install, 'undefined',
+      'navigator.install should be undefined');
+}, 'navigator.install() is not defined in an insecure context.');
+
+promise_test(async t => {
+  assert_false(isSecureContext, 'The parent must run in an insecure context');
+
+  const iframe = document.createElement('iframe');
+  t.add_cleanup(() => iframe.remove());
+
+  const response = new Promise(resolve => {
+    const onMessage = t.step_func(event => {
+      if (event.source !== iframe.contentWindow) {
+        return;
+      }
+      window.removeEventListener('message', onMessage);
+      resolve(event.data);
+    });
+    window.addEventListener('message', onMessage);
+    t.add_cleanup(() => window.removeEventListener('message', onMessage));
+  });
+
+  const helperUrl = new URL(
+      'resources/navigator-install-exposure-helper.html', location.href);
+  helperUrl.protocol = 'https:';
+  helperUrl.port = get_host_info().HTTPS_PORT;
+  iframe.src = helperUrl;
+  document.body.appendChild(iframe);
+
+  const result = await response;
+  assert_false(result.isSecureContext,
+      'An HTTPS iframe with an insecure ancestor must be an insecure context');
+  assert_false(result.hasInstall, 'navigator.install should not be present');
+  assert_equals(result.installType, 'undefined',
+      'navigator.install should be undefined');
+}, 'navigator.install() is not defined in an HTTPS iframe with an insecure ' +
+   'ancestor.');
+</script>
+</body>

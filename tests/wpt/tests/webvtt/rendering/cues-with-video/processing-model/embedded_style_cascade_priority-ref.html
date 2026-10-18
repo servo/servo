@@ -1,21 +1,10 @@
 <!DOCTYPE html>
-<html class="reftest-wait">
 <title>Reference for Embedded Style: Cascade Priority</title>
-<style>
-::cue {
-    color: green;
-}
-::cue {
-    background: green;
-}
-::cue {
-    opacity: 0.5;
-}
-</style>
-<script src="/common/reftest-wait.js"></script>
-<video width="320" height="180" autoplay onplaying="this.onplaying = null; this.pause(); takeScreenshot();">
-    <source src="/media/white.webm" type="video/webm">
-    <source src="/media/white.mp4" type="video/mp4">
-    <track src="support/embedded_style_without_style.vtt" default>
-</video>
-</html>
+<link rel="stylesheet" href="support/webvtt-ref.css">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css"/>
+<div class="video">
+    <div class="cue" style="bottom:5%; color:green; opacity:0.5;"><span class="cue-background" style="background-color:green;">Here <i>is</i> a <b>second</b> subtitle</span>
+    </div>
+    <div class="cue" style="color:green; opacity:0.5;"><span class="cue-background" style="background-color:green;">This <i>is</i> a <b>test</b> subtitle</span>
+    </div>
+</div>

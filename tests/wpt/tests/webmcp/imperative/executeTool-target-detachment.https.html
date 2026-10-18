@@ -49,8 +49,6 @@ promise_test(async t => {
 
   // Calling executeTool() on the detached tool will internally fail to locate
   // the frame, and thus reject the caller's Promise.
-  //
-  // TODO(https://crbug.com/509555636): It should probably reject with a `NotFoundError`.
   await promise_rejects_dom(
     t,
     'InvalidStateError',
@@ -99,14 +97,12 @@ promise_test(async t => {
 
   iframe.remove();
 
-  // The execute promise rejects because the target document died
-  // mid-execution. See the bug referenced from the above test, about making
-  // the reason more specific.
+  // The execute promise rejects because the target document died mid-execution.
   await promise_rejects_dom(
     t,
-    'UnknownError',
+    'AbortError',
     execute_promise,
-    'Promise should be rejected with UnknownError when target frame is detached mid-execution'
+    'Promise should be rejected with AbortError when target frame is detached mid-execution'
   );
 }, 'executeTool() rejects when target frame is detached mid-execution');
 
@@ -141,7 +137,7 @@ promise_test(async t => {
 
   await promise_rejects_dom(
     t,
-    'UnknownError',
+    'AbortError',
     document.modelContext.executeTool(tool),
     'Promise should reject when target frame synchronously detaches itself during execute()'
   );

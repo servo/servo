@@ -1,0 +1,22 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>DIP is ignored by an HTTPS iframe in an HTTP page, as it is not a secure context</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<div id=log></div>
+<script>
+promise_test(async t => {
+  const { HTTPS_ORIGIN, HTTPS_REMOTE_ORIGIN } = get_host_info();
+  const frame = document.body.appendChild(document.createElement("iframe"));
+  t.add_cleanup(() => frame.remove());
+  const frameLoaded = new Promise(resolve => frame.onload = resolve);
+  frame.src = `${HTTPS_ORIGIN}/html/cross-origin-embedder-policy/resources/iframe.html?pipe=header(Document-Isolation-Policy,isolate-and-require-corp)`;
+  await frameLoaded;
+
+  const url = `${HTTPS_REMOTE_ORIGIN}/html/document-isolation-policy/resources/nothing-no-corp.js`;
+  const reply = new Promise(resolve => window.onmessage = ({ data }) => resolve(data));
+  frame.contentWindow.postMessage(`fetch(${JSON.stringify(url)}, { mode: "no-cors" }).then(response => parent.postMessage(response.type, "*"), () => parent.postMessage("blocked", "*"));`, "*");
+  assert_equals(await reply, "opaque");
+}, "DIP requires a secure context, which an HTTPS iframe in an HTTP page is not");
+</script>

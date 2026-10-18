@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Percentage width child of a vertical writing mode box follows the box's width after the box's style changes</title>
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#dimension-mapping">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#percentage-sizing">
+<link rel="match" href="vertical-containing-block-width-changes-ref.html">
+<meta name="assert" content="A percentage width resolves against the width of the containing block, which is the block size of a vertical writing mode containing block. It keeps following that width after any style change on the containing block, whether the change resizes it or not.">
+<style>
+.outer {
+  width: 50px;
+}
+.container {
+  writing-mode: vertical-rl;
+  width: 50px;
+  height: 100px;
+  background-color: red;
+}
+.fill-outer {
+  width: 100%;
+}
+.child {
+  width: 100%;
+  background-color: green;
+}
+</style>
+<div class="container" id="resized"><div class="child"></div></div>
+<div class="outer" id="outer"><div class="container fill-outer" id="restyled"><div class="child"></div></div></div>
+<script>
+document.body.offsetHeight;
+resized.style.width = "100px";
+restyled.style.color = "blue";
+document.body.offsetHeight;
+outer.style.width = "100px";
+</script>

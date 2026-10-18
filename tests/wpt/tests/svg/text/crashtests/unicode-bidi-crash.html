@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html class="reftest-wait"><head><meta charset="utf-8"></head><body>
+<svg id="O" width="600" height="400" xmlns="http://www.w3.org/2000/svg">
+  <path id="MP" d="M50 50 L 200 50" stroke="black" marker-start="url(#M)"/>
+  <defs>
+    <marker id="M" markerWidth="100" markerHeight="50" viewBox="0 0 100 50"><text id="T2" y="20" font-size="10" style="white-space:pre">k<textPath id="TP" href="#P">xx</textPath><tspan id="OUT">aa<tspan id="S" style="unicode-bidi:isolate">bb</tspan>cc</tspan><tspan id="X">dd<tspan id="S2" style="unicode-bidi:isolate">ee
+</tspan></tspan><tspan id="A2">v1</tspan>v2
+ww</text></marker>
+  </defs>
+  <path id="P" d="M20 150 C 150 20, 350 280, 580 150" fill="none" stroke="gray" style="mask:url(#S2)"/>
+  <path id="PB" d="M20 250 C 150 120, 350 380, 580 250" fill="none" stroke="gray" style="mask:url(#X)"/>
+  <text id="T3" y="300" font-size="12" style="white-space:pre"><textPath href="#PB">q</textPath><tspan id="T3s">r</tspan></text>
+</svg>
+<script>
+function paint(){ return new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))); }
+async function run() {
+  await paint(); await paint();
+  document.title = String.fromCharCode(0x5D0);
+  document.getElementById("MP").setAttribute("d", "M60 60 L 220 60");
+  document.getElementById("T3s").firstChild.data = "r\ns\nt\nu";
+  document.getElementById("T2").appendChild(document.createComment("x"));
+  await paint(); await paint();
+  document.documentElement.classList.remove("reftest-wait");
+}
+run();
+</script>
+</body></html>

@@ -1,0 +1,25 @@
+<!doctype html>
+<meta charset="utf-8">
+<body>
+<script>
+"use strict";
+
+// Reports to the top-level document whether this document and a blob: document it creates can fetch a cross-origin resource without CORP.
+const fetchResult = async url => {
+  try {
+    await fetch(url, { mode: "no-cors" });
+    return "allowed";
+  } catch (e) {
+    return "blocked";
+  }
+};
+
+(async () => {
+  const noCorpURL = new URLSearchParams(location.search).get("url");
+  const blobSource = `<!doctype html><script>(${fetchResult})(${JSON.stringify(noCorpURL)}).then(blob => top.postMessage({ blob }, "*"));<\/script>`;
+  const child = document.createElement("iframe");
+  child.src = URL.createObjectURL(new Blob([blobSource], { type: "text/html" }));
+  document.body.append(child);
+  top.postMessage({ creator: await fetchResult(noCorpURL) }, "*");
+})();
+</script>

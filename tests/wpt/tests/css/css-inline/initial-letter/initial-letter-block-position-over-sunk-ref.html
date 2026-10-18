@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>Tests initial letter whose size is smaller than its sink</title>
+<link rel="author" title="ChangSeok Oh" href="mailto:changseok@chromium.org">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" >
+<style>
+.sample {
+    border: solid 1px green;
+    font-family: Ahem;
+    font-size: 20px;
+    line-height: 24px;
+    width: 230px;
+}
+
+/* The cap-height of the first line is at 2px, and the margin box ends
+   at the end of the third line, 72px. */
+.fake-initial-letter {
+    background: lime;
+    float: left;
+    margin-top: 2px;
+}
+
+#size-1-5 { height: 35px; margin-bottom: 35px; width: 35px; }
+#size-2 { height: 50px; margin-bottom: 20px; width: 50px; }
+#size-2-5 { height: 65px; margin-bottom: 5px; width: 65px; }
+</style>
+<div class="sample">
+<div class="fake-initial-letter" id="size-1-5"></div>
+bc<br>def<br>ghi<br>jkl<br>mno<br>
+</div>
+<div class="sample">
+<div class="fake-initial-letter" id="size-2"></div>
+bc<br>def<br>ghi<br>jkl<br>mno<br>
+</div>
+<div class="sample">
+<div class="fake-initial-letter" id="size-2-5"></div>
+bc<br>def<br>ghi<br>jkl<br>mno<br>
+</div>

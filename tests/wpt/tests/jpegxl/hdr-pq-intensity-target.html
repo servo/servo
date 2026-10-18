@@ -7,18 +7,29 @@
 <script src="resources/helpers.js"></script>
 <script>
 
-// Both fixtures are a flat patch of 588 cd/m2 in BT.2100 PQ. They differ only
-// in intensity_target: 600 states a peak just above the content, 10000 states
-// the peak of PQ itself.
+// All fixtures are a flat patch of 588 cd/m2 in BT.2100 PQ and differ only in
+// intensity_target: 600 states a peak just above the content, 10000 is the
+// peak of PQ itself (what encoders write by default), and in the 255 fixture
+// the field is absent.
+const sample = async (file) =>
+    samplePixel(await loadImage(`resources/${file}`), 4, 4);
+
 promise_test(async () => {
-  const stated = samplePixel(
-      await loadImage('resources/pq_intensity_target_600.jxl'), 4, 4);
-  const unstated = samplePixel(
-      await loadImage('resources/pq_intensity_target_10000.jxl'), 4, 4);
+  const stated = await sample('pq_intensity_target_600.jxl');
+  const unstated = await sample('pq_intensity_target_10000.jxl');
 
   assert_greater_than(stated[0], unstated[0],
       'content peaking at its stated intensity_target should not be ' +
       'compressed as if it peaked at 10000 cd/m2');
 }, 'intensity_target sets the peak luminance that a PQ image tone maps from.');
+
+promise_test(async () => {
+  const pq_default = await sample('pq_intensity_target_10000.jxl');
+  const absent = await sample('pq_intensity_target_255.jxl');
+
+  assert_approx_equals(pq_default[0], absent[0], 1,
+      'intensity_target 10000 states the peak of PQ itself, not a content ' +
+      'peak; it should tone map like a file with no intensity_target');
+}, 'The default intensity_target of 10000 is not a content peak statement.');
 
 </script>

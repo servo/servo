@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<title>CSS: AccentColor / AccentColorText cyclic and currentcolor resolution</title>
+<link rel="help" href="https://drafts.csswg.org/css-ui-4/#widget-accent">
+<link rel="help" href="https://www.w3.org/TR/css-color-4/#css-system-colors">
+<meta name="assert" content="Using the AccentColor/AccentColorText keywords in the accent-color property looks at the parent element's accent-color (breaking the otherwise cyclic self-reference); using them anywhere else, including in color, resolves normally against this element's own computed accent-color. accent-color: currentcolor resolves against the element's own color.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="currentcolorancestor" style="color: rgb(0, 128, 0); accent-color: currentcolor">
+  <div id="currentcolordescendant"></div>
+</div>
+<div id="cycleaccentparent" style="accent-color: rgb(20, 40, 60)">
+  <div id="cycleaccentchild"></div>
+</div>
+<div id="cyclecolorparent" style="color: rgb(70, 80, 90); accent-color: rgb(1, 2, 3)">
+  <div id="cyclecolorchild"
+       style="color: AccentColor; accent-color: currentcolor"></div>
+</div>
+<div id="owncolorparent" style="color: rgb(1, 2, 3)">
+  <div id="owncolorchild"
+       style="color: rgb(9, 8, 7); accent-color: currentcolor"></div>
+</div>
+
+<script>
+  test(function() {
+    // accent-color: currentcolor resolves against the current color, and
+    // AccentColor should mirror that resolved value.
+    const el = document.getElementById("currentcolordescendant");
+    el.style.backgroundColor = "AccentColor";
+    assert_equals(getComputedStyle(el).backgroundColor, "rgb(0, 128, 0)");
+  }, "AccentColor mirrors accent-color: currentcolor");
+
+  test(function() {
+    // accent-color: currentcolor resolves against the used value of THIS
+    // element's own color property (not the parent's). The child's own color
+    // (9, 8, 7) differs from both the parent color (1, 2, 3) and its inherited
+    // value, so a background-color: AccentColor that mirrors the own resolved
+    // accent-color must be (9, 8, 7). This distinguishes a correct own-element
+    // resolution from a fallback to the parent/inherited color.
+    const child = document.getElementById("owncolorchild");
+    child.style.backgroundColor = "AccentColor";
+    assert_equals(getComputedStyle(child).backgroundColor, "rgb(9, 8, 7)");
+  }, "accent-color: currentcolor resolves against the element's own color");
+
+  test(function() {
+    // accent-color: AccentColor should resolve to the parent element's
+    // accent-color rather than forming a cycle.
+    const child = document.getElementById("cycleaccentchild");
+    child.style.accentColor = "AccentColor";
+    child.style.backgroundColor = "AccentColor";
+    assert_equals(getComputedStyle(child).backgroundColor, "rgb(20, 40, 60)");
+  }, "accent-color: AccentColor resolves to the parent's accent-color");
+
+  test(function() {
+    // color: AccentColor combined with accent-color: currentcolor is cyclic on
+    // the same element: AccentColor resolves against this element's own
+    // accent-color (currentcolor), which in turn resolves to the used value of
+    // color on the same element. Since color is itself AccentColor here, this
+    // breaks the cycle and falls back to the parent element's color.
+    const child = document.getElementById("cyclecolorchild");
+    assert_equals(getComputedStyle(child).color, "rgb(70, 80, 90)");
+  }, "Cyclic color: AccentColor with accent-color: currentcolor uses the parent color");
+</script>

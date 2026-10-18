@@ -13,4 +13,4 @@ promise_test(async t => {
   // should be thrown before language support is checked.
   await testCreateMonitorCallbackThrowsError(
       t, createTranslator, {sourceLanguage: 'und', targetLanguage: 'und'});
-}, 'If monitor throws an error, LanguageDetector.create() rejects with that error');
+}, 'If monitor throws an error, Translator.create() rejects with that error');

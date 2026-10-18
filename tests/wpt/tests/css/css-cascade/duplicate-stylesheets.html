@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Cascade: duplicated stylesheets do not change the result</title>
+<link rel="help" href="https://drafts.csswg.org/css-cascade/#cascade-sort">
+<meta name="assert" content="Repeating an identical stylesheet does not change the
+cascade, a repeated stylesheet separated from its twin by an intervening sheet
+still wins over that sheet, and repeating a stylesheet that declares a cascade
+layer does not disturb the order of the other layers.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<div id="host"></div>
+
+<script>
+// Pages built from components routinely emit hundreds of byte-identical inline
+// <style> elements, one per instance -- an SVG icon set is the usual source.
+// Engines may collapse those copies, but collapsing has to be invisible: a copy
+// separated from its twin by a sheet touching the same property is not redundant,
+// because the later copy has to win on order of appearance.
+const host = document.getElementById("host");
+const RED = "rgb(255, 0, 0)";
+const BLUE = "rgb(0, 0, 255)";
+
+let added = [];
+
+function sheet(text) {
+  const s = document.createElement("style");
+  s.textContent = text;
+  document.head.appendChild(s);
+  added.push(s);
+}
+
+function probe(cls, id) {
+  const d = document.createElement("div");
+  d.className = cls;
+  if (id) {
+    d.id = id;
+  }
+  host.appendChild(d);
+  return d;
+}
+
+function colorOf(el) {
+  return getComputedStyle(el).color;
+}
+
+function reset() {
+  for (const s of added) {
+    s.remove();
+  }
+  added = [];
+  host.replaceChildren();
+}
+
+test(() => {
+  for (let i = 0; i < 20; i++) {
+    sheet(".probe { color: red }");
+  }
+  assert_equals(colorOf(probe("probe")), RED);
+  reset();
+}, "A run of 20 identical sheets applies");
+
+test(() => {
+  for (let i = 0; i < 20; i++) {
+    sheet(".probe { color: red }");
+  }
+  sheet(".probe { color: blue }");
+  assert_equals(colorOf(probe("probe")), BLUE);
+  reset();
+}, "A later sheet wins over a run of duplicates");
+
+test(() => {
+  for (let i = 0; i < 5; i++) {
+    sheet(".probe { color: red }");
+  }
+  sheet(".probe { color: blue }");
+  for (let i = 0; i < 5; i++) {
+    sheet(".probe { color: red }");
+  }
+  assert_equals(colorOf(probe("probe")), RED);
+  reset();
+}, "Duplicates after an intervening sheet still win over it");
+
+test(() => {
+  for (let i = 0; i < 10; i++) {
+    sheet(".probe { color: red !important }");
+  }
+  sheet(".probe { color: blue }");
+  assert_equals(colorOf(probe("probe")), RED);
+  reset();
+}, "!important in a run of duplicates wins over a later normal declaration");
+
+test(() => {
+  for (let i = 0; i < 10; i++) {
+    sheet(".probe { color: red !important }");
+  }
+  sheet(".probe { color: blue !important }");
+  assert_equals(colorOf(probe("probe")), BLUE);
+  reset();
+}, "A later !important wins over an !important run of duplicates");
+
+test(() => {
+  for (let i = 0; i < 10; i++) {
+    sheet(".probe { color: red }");
+  }
+  sheet("#specific { color: blue }");
+  assert_equals(colorOf(probe("probe", "specific")), BLUE);
+  reset();
+}, "Higher specificity wins over a run of duplicates");
+
+test(() => {
+  sheet("@layer base { .probe { color: blue } }");
+  for (let i = 0; i < 10; i++) {
+    sheet(".probe { color: red }");
+  }
+  assert_equals(colorOf(probe("probe")), RED);
+  reset();
+}, "An unlayered run of duplicates wins over a layered declaration");
+
+// Cascade layers are the one place where duplicate sheets are not simply
+// redundant. A named layer is registered once and both copies contribute rules to
+// it, but an anonymous layer belongs to its occurrence, so N copies of a sheet
+// containing `@layer { ... }` declare N distinct layers. An engine that collapses
+// the copies declares fewer layers, which must not disturb the order of those
+// that remain.
+
+test(() => {
+  for (let i = 0; i < 10; i++) {
+    sheet("@layer { .probe { color: red } }");
+  }
+  sheet("@layer { .probe { color: blue } }");
+  assert_equals(colorOf(probe("probe")), BLUE);
+  reset();
+}, "A later anonymous layer wins over a run of duplicate anonymous layers");
+
+test(() => {
+  sheet("@layer { .probe { color: blue } }");
+  for (let i = 0; i < 10; i++) {
+    sheet("@layer { .probe { color: red } }");
+  }
+  assert_equals(colorOf(probe("probe")), RED);
+  reset();
+}, "A run of duplicate anonymous layers wins over an earlier anonymous layer");
+
+test(() => {
+  for (let i = 0; i < 10; i++) {
+    sheet("@layer { .probe { color: red !important } }");
+  }
+  sheet("@layer { .probe { color: blue !important } }");
+  assert_equals(colorOf(probe("probe")), RED);
+  reset();
+}, "!important reverses anonymous layer order across a run of duplicates");
+
+test(() => {
+  sheet("@layer dup-a, dup-b;");
+  for (let i = 0; i < 10; i++) {
+    sheet("@layer dup-b { .probe { color: blue } }");
+  }
+  for (let i = 0; i < 10; i++) {
+    sheet("@layer dup-a { .probe { color: red } }");
+  }
+  assert_equals(colorOf(probe("probe")), BLUE);
+  reset();
+}, "Duplicates in named layers cascade by layer order, not sheet order");
+
+test(() => {
+  sheet("@layer imp-a, imp-b;");
+  for (let i = 0; i < 10; i++) {
+    sheet("@layer imp-a { .probe { color: red !important } }");
+  }
+  for (let i = 0; i < 10; i++) {
+    sheet("@layer imp-b { .probe { color: blue !important } }");
+  }
+  assert_equals(colorOf(probe("probe")), RED);
+  reset();
+}, "!important reverses named layer order across runs of duplicates");
+
+test(() => {
+  // revert-layer is the only construct that refers to a layer's position rather
+  // than to its declarations, so it is where dropping a layer could show up.
+  sheet("@layer { .probe { color: blue } }");
+  for (let i = 0; i < 10; i++) {
+    sheet("@layer { .probe { color: red } }");
+  }
+  sheet("@layer { .probe { color: revert-layer } }");
+  assert_equals(colorOf(probe("probe")), RED);
+  reset();
+}, "revert-layer past a run of duplicates reverts to the duplicated value");
+
+test(() => {
+  sheet("@layer { .probe { color: blue } }");
+  for (let i = 0; i < 10; i++) {
+    sheet("@layer { .probe { color: revert-layer } }");
+  }
+  assert_equals(colorOf(probe("probe")), BLUE);
+  reset();
+}, "A run of duplicate revert-layer declarations chains back to the same value");
+
+test(() => {
+  // Sheets added after style has already been resolved once. An engine that
+  // collapses duplicates has to stay correct across separate style updates, not
+  // only within one.
+  for (let i = 0; i < 10; i++) {
+    sheet(".probe { color: red }");
+  }
+  const el = probe("probe");
+  assert_equals(colorOf(el), RED, "initial run applies");
+  sheet(".probe { color: blue }");
+  assert_equals(colorOf(el), BLUE, "sheet added afterwards wins");
+  for (let i = 0; i < 10; i++) {
+    sheet(".probe { color: red }");
+  }
+  assert_equals(colorOf(el), RED, "duplicate run added afterwards wins");
+  reset();
+}, "Duplicates added incrementally cascade in order of appearance");
+
+// Puts `text` in its own <style> inside each of two sibling subtrees, with a
+// probe in each, and returns the probes. The implicit @scope root is a property
+// of the stylesheet -- its own parent element -- not of the identical text, so
+// the two copies are not interchangeable even though they share contents.
+function scopedInTwoSubtrees(text) {
+  const parents = [document.createElement("div"), document.createElement("div")];
+  host.append(...parents);
+  return parents.map(parent => {
+    const probe = document.createElement("span");
+    probe.className = "probe";
+    parent.appendChild(probe);
+    const s = document.createElement("style");
+    s.textContent = text;
+    parent.appendChild(s);
+    return probe;
+  });
+}
+
+test(() => {
+  const [inA, inB] = scopedInTwoSubtrees("@scope { .probe { color: red } }");
+  assert_equals(colorOf(inA), RED,
+                "the first sheet's implicitly scoped rule applies in its subtree");
+  assert_equals(colorOf(inB), RED,
+                "the second sheet keeps its own scope root rather than being dropped");
+  const outside = document.createElement("span");
+  outside.className = "probe";
+  host.appendChild(outside);
+  assert_not_equals(colorOf(outside), RED,
+                    "implicitly scoped duplicate does not apply outside either subtree");
+  reset();
+}, "Identical implicitly scoped sheets keep their own scope roots");
+
+test(() => {
+  // An implicitly scoped rule nested inside another rule has to be noticed too,
+  // so whatever detects it has to see the whole rule list, not just its top level.
+  const [inA, inB] = scopedInTwoSubtrees(
+    "@media all { @scope { .probe { color: red } } }");
+  assert_equals(colorOf(inA), RED,
+                "the first sheet's nested implicitly scoped rule applies");
+  assert_equals(colorOf(inB), RED,
+                "the second sheet keeps its own scope root for a nested rule");
+  reset();
+}, "A nested implicitly scoped rule keeps each sheet's own scope root");
+</script>

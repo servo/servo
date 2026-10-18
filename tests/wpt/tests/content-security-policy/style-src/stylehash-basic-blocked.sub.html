@@ -13,8 +13,8 @@
             alert_assert("violated-directive=" + e.violatedDirective);
         });
 
-        var t_alert = async_test('Expecting alerts: ["PASS: The \'p\' element\'s text is green, which means the style was correctly applied.", "violated-directive=style-src-elem"]');
-        var expected_alerts = ["PASS: The 'p' element's text is green, which means the style was correctly applied.", "violated-directive=style-src-elem"];
+        var t_alert = async_test('Expecting alerts: ["PASS: The \'p\' element\'s text is green, which means the style was correctly applied.", "violated-directive=style-src-elem", "violated-directive=style-src-elem", "violated-directive=style-src-elem"]');
+        var expected_alerts = ["PASS: The 'p' element's text is green, which means the style was correctly applied.", "violated-directive=style-src-elem", "violated-directive=style-src-elem", "violated-directive=style-src-elem"];
 
         function alert_assert(msg) {
             t_alert.step(function() {
@@ -33,7 +33,7 @@
                     }
                 }
                 assert_unreached('unexpected alert: ' + msg);
-                t_log.done();
+                t_alert.done();
             });
         }
 

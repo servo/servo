@@ -1,0 +1,53 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Detaching iframe during geolocation registration layout should not crash</title>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md">
+<body>
+<svg width="0" height="0"><defs>
+<g id="a"><rect id="r" width="10" height="10" tabindex="0"/></g>
+<g id="b"><rect width="10" height="10" tabindex="0"/></g>
+</defs></svg>
+<dialog id="d"><svg width="20" height="20"><use id="v" href="#a"/></svg></dialog>
+<script>
+let useInstance = null;
+r.addEventListener('focus', (e) => {
+  useInstance = e.currentTarget;
+}, { once: true });
+
+d.show();
+
+const inner = document.createElement('iframe');
+if (useInstance) {
+  const fo = document.createElementNS('http://www.w3.org/2000/svg', 'foreignObject');
+  fo.appendChild(inner);
+  useInstance.parentNode.appendChild(fo);
+} else {
+  document.body.appendChild(inner);
+}
+
+let inside = false;
+const iterator = {
+  next() { return new Promise(() => {}); },
+  get return() {
+    if (inside) {
+      inner.remove();
+    }
+  }
+};
+if (typeof Observable !== 'undefined' && document.when) {
+  Observable.from({ [Symbol.asyncIterator]() { return iterator; } })
+      .takeUntil(document.when('focusout'))
+      .subscribe({});
+}
+
+const doc = inner.contentDocument;
+const control = doc.createElement('geolocation');
+doc.body.appendChild(control);
+inner.contentWindow.getComputedStyle(control).color;
+
+v.setAttribute('href', '#b');
+inside = true;
+control.setAttribute('data-x', '1');
+inside = false;
+</script>
+</body>

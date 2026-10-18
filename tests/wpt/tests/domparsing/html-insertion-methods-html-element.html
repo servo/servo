@@ -1,0 +1,111 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>HTML insertion methods and the html element</title>
+<link rel="help" href="https://html.spec.whatwg.org/#filter-and-pre-insert-html" />
+<link rel="help" href="https://html.spec.whatwg.org/#filter-and-replace-with-html" />
+<link rel="help" href="https://html.spec.whatwg.org/#dom-element-appendhtml" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  // appendHTML()/prependHTML() on the html element, and the positional methods
+  // on a node whose parent is the html element, throw a "HierarchyRequestError"
+  // DOMException, before the sanitizer config is validated. setHTML() and
+  // setHTMLUnsafe() on the html element are allowed: they replace all of its
+  // children and parse with the html element as context.
+
+  // The live-document cases run against an iframe's document so that a
+  // non-conforming implementation cannot remove this document's head/body.
+  function load_iframe(t) {
+    return new Promise((resolve) => {
+      const iframe = document.createElement("iframe");
+      iframe.srcdoc = "<!doctype html><title>old</title><p>old</p>";
+      iframe.onload = () => resolve(iframe);
+      t.add_cleanup(() => iframe.remove());
+      document.body.appendChild(iframe);
+    });
+  }
+
+  const invalidSanitizer = { sanitizer: { elements: ["div"], removeElements: ["div"] } };
+
+  for (const safe of [true, false]) {
+    const suffix = safe ? "" : "Unsafe";
+
+    for (const method of [`appendHTML${suffix}`, `prependHTML${suffix}`]) {
+      promise_test(async (t) => {
+        const iframe = await load_iframe(t);
+        const html = iframe.contentDocument.documentElement;
+        assert_throws_dom("HierarchyRequestError", iframe.contentWindow.DOMException, () => {
+          html[method]("<p>new</p>");
+        });
+        assert_equals(html.childNodes.length, 2, "head and body are untouched");
+      }, `${method} on the html element throws HierarchyRequestError`);
+
+      test(() => {
+        const doc = document.implementation.createHTMLDocument();
+        assert_throws_dom("HierarchyRequestError", () => {
+          doc.documentElement[method]("<p>new</p>");
+        });
+      }, `${method} on the html element of an inert document throws HierarchyRequestError`);
+
+      test(() => {
+        const html = document.createElement("html");
+        assert_throws_dom("HierarchyRequestError", () => {
+          html[method]("<p>new</p>");
+        });
+        assert_throws_dom("HierarchyRequestError", () => {
+          html[method]("<p>new</p>", invalidSanitizer);
+        }, "HierarchyRequestError is thrown before the sanitizer config is validated");
+        assert_equals(html.childNodes.length, 0);
+      }, `${method} on a detached html element throws HierarchyRequestError`);
+    }
+
+    for (const method of [`beforeHTML${suffix}`, `afterHTML${suffix}`, `replaceWithHTML${suffix}`]) {
+      promise_test(async (t) => {
+        const iframe = await load_iframe(t);
+        const doc = iframe.contentDocument;
+        const DOMException = iframe.contentWindow.DOMException;
+        assert_throws_dom("HierarchyRequestError", DOMException, () => {
+          doc.head[method]("<p>new</p>");
+        }, "head");
+        assert_throws_dom("HierarchyRequestError", DOMException, () => {
+          doc.body[method]("<p>new</p>");
+        }, "body");
+        assert_equals(doc.head.parentNode, doc.documentElement, "head is not removed");
+        assert_equals(doc.body.parentNode, doc.documentElement, "body is not removed");
+        assert_equals(doc.documentElement.childNodes.length, 2);
+      }, `${method} on head/body (parent is the html element) throws HierarchyRequestError`);
+
+      test(() => {
+        const html = document.createElement("html");
+        const comment = html.appendChild(document.createComment("c"));
+        assert_throws_dom("HierarchyRequestError", () => {
+          comment[method]("<p>new</p>");
+        });
+        assert_throws_dom("HierarchyRequestError", () => {
+          comment[method]("<p>new</p>", invalidSanitizer);
+        }, "HierarchyRequestError is thrown before the sanitizer config is validated");
+        assert_equals(comment.parentNode, html, "the node is not removed");
+        assert_equals(html.childNodes.length, 1);
+      }, `${method} on a child of a detached html element throws HierarchyRequestError`);
+    }
+
+    promise_test(async (t) => {
+      const iframe = await load_iframe(t);
+      const doc = iframe.contentDocument;
+      const html = doc.documentElement;
+      const oldHead = doc.head;
+      const oldBody = doc.body;
+
+      html[`setHTML${suffix}`]("<head><meta name='x'></head><body><p>new</p></body>");
+      assert_equals(oldHead.parentNode, null);
+      assert_equals(oldBody.parentNode, null);
+      assert_equals(html.childNodes.length, 2);
+      assert_equals(doc.head, html.firstChild);
+      assert_equals(doc.body, html.lastChild);
+      assert_equals(doc.body.innerHTML, "<p>new</p>");
+      assert_equals(doc.title, "", "the old title was removed");
+    }, `setHTML${suffix} on the html element replaces head and body`);
+  }
+</script>
+</body>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>View transition content clamps to its logical render pass bounds</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-1/">
+<link rel="match" href="render-pass-backing-logical-bounds-ref.html">
+<script src="/common/reftest-wait.js"></script>
+
+<!--
+  Verifies that a scaled view-transition snapshot remains entirely blue. The
+  composited child forces the snapshot through an intermediate backing.
+  Sampling outside the snapshot's logical bounds could include transparent
+  allocation padding and expose the red page background.
+-->
+<style>
+body {
+  margin: 0;
+  background: red;
+}
+
+#box {
+  position: relative;
+  width: 100px;
+  height: 120px;
+  contain: paint;
+  background: blue;
+}
+
+#composited-child {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 50px;
+  height: 120px;
+  background: blue;
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+::view-transition-group(*) {
+  animation-delay: 300s;
+}
+
+::view-transition-new(*) {
+  animation: unset;
+  opacity: 1;
+}
+
+::view-transition-old(*) {
+  animation: unset;
+  opacity: 0;
+}
+</style>
+
+<div id="box"><div id="composited-child"></div></div>
+
+<script>
+function runTest() {
+  document.startViewTransition(() => {
+    document.documentElement.style.viewTransitionName = "none";
+    box.style.viewTransitionName = "root";
+    requestAnimationFrame(() => requestAnimationFrame(takeScreenshot));
+  });
+}
+
+onload = () => requestAnimationFrame(() => requestAnimationFrame(runTest));
+</script>

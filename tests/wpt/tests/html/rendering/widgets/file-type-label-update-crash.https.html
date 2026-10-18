@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<body>
+<script>
+// Use application/xml rather than application/xhtml+xml so that editing setup
+// is retried during the file input's native-anonymous text update.
+const xml = `<?xml version="1.0"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><title>child</title></head>
+<body><div contenteditable="true">edit</div>
+<input type="file" id="file" style="width:200px"/></body></html>`;
+const frame = document.createElement("iframe");
+frame.onload = () => {
+  const doc = frame.contentDocument;
+  if (doc.contentType !== "application/xml") {
+    return;
+  }
+  const input = doc.getElementById("file");
+  input.getBoundingClientRect();
+  const dt = new DataTransfer();
+  dt.items.add(new File(["test"], "a-long-file-name-for-middle-cropping.txt"));
+  // Leave this style change pending until the label's text mutation flushes it.
+  frame.style.display = "none";
+  input.files = dt.files;
+  document.documentElement.classList.remove("test-wait");
+};
+frame.src = URL.createObjectURL(new Blob([xml], {type: "application/xml"}));
+document.body.append(frame);
+</script>
+</html>

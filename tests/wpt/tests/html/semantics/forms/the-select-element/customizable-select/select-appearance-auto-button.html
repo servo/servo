@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<title>The first child button supplies the label and the width of a select with appearance:auto</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/rendering.html#the-select-element-2">
+<link rel=help href="https://github.com/whatwg/html/issues/12474">
+<link rel=match href=select-appearance-auto-button-ref.html>
+
+<p><select><button>Foo</button><option>One</option></select>
+<p><select><button><span>Foo</span></button><option>One</option></select>
+<p><select><button><img src=/images/blue.png alt="">Foo</button><option>One</option></select>
+<p><select><button><script>"NotShown"</script>Foo</button><option>One</option></select>
+<p><select><button>Foo&#x20;&#x20;&#x20;Bar</button><option>One</option></select>
+<p><select><button><selectedcontent></selectedcontent></button><option>Foo</option><option>Two</option></select>
+<p><select><button>Pre <selectedcontent></selectedcontent></button><option>Foo</option><option>Two</option></select>
+<p><select><button><span><selectedcontent></selectedcontent></span></button><option>Foo</option><option>Two</option></select>
+<p><select><button>Empty <selectedcontent></selectedcontent></button></select>
+<p><select><button>VeryLongButtonLabel</button><option>S</option></select>
+<p><select><button><selectedcontent></selectedcontent></button><option>S</option><option>VeryLongOptionLabel</option></select>

@@ -32,7 +32,7 @@ promise_test(async t => {
   assert_true(!!tool, 'Should find the registered tool');
 
   // `executeTool()` should reject since the tool execution failed.
-  await promise_rejects_dom(t, 'UnknownError',
+  await promise_rejects_dom(t, 'OperationError',
       document.modelContext.executeTool(tool),
       'executeTool() rejects when the tool execution throws');
 
@@ -65,7 +65,7 @@ promise_test(async t => {
   assert_true(!!tool, 'Should find the registered tool');
 
   // `executeTool()` should reject since serializing the return value throws a TypeError.
-  await promise_rejects_dom(t, 'UnknownError',
+  await promise_rejects_dom(t, 'OperationError',
       document.modelContext.executeTool(tool),
       'executeTool() rejects when the tool execution returns a circular object');
 

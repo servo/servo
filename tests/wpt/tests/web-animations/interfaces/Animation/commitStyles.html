@@ -372,6 +372,32 @@ promise_test(async t => {
 
 promise_test(async t => {
   const div = createDiv(t);
+
+  const animation = div.animate(
+    { opacity: 0.2 },
+    { duration: 1, fill: 'forwards' }
+  );
+  await animation.finished;
+
+  const replacingAnimation = div.animate(
+    { opacity: 0.3 },
+    { duration: 1, fill: 'forwards' }
+  );
+  await replacingAnimation.finished;
+
+  assert_equals(animation.replaceState, 'removed');
+
+  animation.cancel();
+
+  assert_equals(animation.replaceState, 'removed');
+  assert_equals(animation.currentTime, null);
+
+  animation.commitStyles();
+}, 'Calling commitStyles() on a canceled animation with a removed replace'
+   + ' state does not throw');
+
+promise_test(async t => {
+  const div = createDiv(t);
   div.style.opacity = '0.1';
 
   const animA = div.animate(

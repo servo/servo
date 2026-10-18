@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>DOMException and QuotaExceededError in AudioWorkletGlobalScope</title>
+<link rel="help" href="https://webidl.spec.whatwg.org/#idl-DOMException">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+function nextMessage(port) {
+  return new Promise(resolve => port.addEventListener('message', e => resolve(e.data), { once: true }));
+}
+
+let port;
+let ready;
+promise_setup(async () => {
+  const context = new AudioContext();
+  add_completion_callback(() => context.close());
+  await context.audioWorklet.addModule('DOMException-audioworklet-processor.js');
+  const node = new AudioWorkletNode(context, 'domexception-processor');
+  port = node.port;
+  const readyMessage = nextMessage(port);
+  port.start();
+  ready = await readyMessage;
+  assert_equals(ready.type, 'ready');
+});
+
+async function post(value) {
+  const result = nextMessage(port);
+  port.postMessage(value);
+  return result;
+}
+
+promise_test(async () => {
+  assert_equals(ready.typeofDOMException, 'function', 'DOMException');
+  assert_equals(ready.typeofQuotaExceededError, 'function', 'QuotaExceededError');
+}, 'DOMException and QuotaExceededError are exposed in AudioWorkletGlobalScope');
+
+promise_test(async () => {
+  assert_equals(ready.created.error, undefined, 'constructing in the worklet does not throw');
+  const exception = ready.created.domException;
+  assert_true(exception instanceof DOMException);
+  assert_equals(exception.name, 'SyntaxError');
+  assert_equals(exception.message, 'created in a worklet');
+}, 'A DOMException created in AudioWorkletGlobalScope can be posted to the window');
+
+promise_test(async () => {
+  assert_equals(ready.created.error, undefined, 'constructing in the worklet does not throw');
+  const exception = ready.created.quotaExceededError;
+  assert_true(exception instanceof QuotaExceededError);
+  assert_equals(exception.message, 'also created in a worklet');
+  assert_equals(exception.quota, 1);
+  assert_equals(exception.requested, 2);
+}, 'A QuotaExceededError created in AudioWorkletGlobalScope can be posted to the window');
+
+promise_test(async () => {
+  const result = await post(new DOMException('posted from the window', 'DataError'));
+  assert_equals(result.type, 'message');
+  assert_true(result.isDOMException);
+  assert_equals(result.name, 'DataError');
+  assert_equals(result.message, 'posted from the window');
+}, 'A DOMException can be posted to AudioWorkletGlobalScope');
+
+promise_test(async () => {
+  const result = await post(new QuotaExceededError('posted from the window', { quota: 3, requested: 4 }));
+  assert_equals(result.type, 'message');
+  assert_true(result.isQuotaExceededError);
+  assert_equals(result.message, 'posted from the window');
+}, 'A QuotaExceededError can be posted to AudioWorkletGlobalScope');
+</script>

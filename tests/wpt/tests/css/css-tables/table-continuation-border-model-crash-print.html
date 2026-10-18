@@ -1,0 +1,36 @@
+<!doctype html>
+<meta charset="utf-8">
+<!--
+  This is really a crashtest, so we just ensure we don't render blank.
+-->
+<link rel="mismatch" href="/common/blank.html">
+<link rel="help" href="https://drafts.csswg.org/css-tables/">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2075432">
+<style>
+  * { margin: 0; padding: 0; }
+  #container { --border-model: separate; --border-color: blue; }
+  #container::first-line {
+    --border-model: collapse;
+    --border-color: red;
+  }
+  table { float: left; border-collapse: var(--border-model); }
+  td { border: 4px solid var(--border-color); }
+  tr { height: 30px; break-inside: avoid; }
+  @media print {
+    tr { border-top: 4px solid; }
+    col { border-right: 2px solid; }
+    #cell { container-type: inline-size; }
+  }
+  @page { size: 400px 220px; margin: 0; }
+</style>
+<div id="container"><span>Y<table cellspacing="3">
+  <col><col><col><col><col>
+  <thead><tr><td>Header<td>Header<td>Header<td>Header<td>Header</thead>
+  <tbody id="rows"></tbody>
+</table></span></div>
+<script>
+  for (let i = 0; i < 12; ++i) {
+    rows.insertAdjacentHTML("beforeend",
+      `<tr><td>A<td>B<td ${i === 9 ? 'id="cell"' : ''}>${i}<td>D<td>E</tr>`);
+  }
+</script>

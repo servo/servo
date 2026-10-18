@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Grid Layout Test: Flexible rows and calc() max sizes</title>
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#algo-flex-tracks">
+<meta name="assert" content="This test checks that flexible rows are limited by the grid container's calc() max-height when its height is indefinite.">
+<link rel="stylesheet" href="/css/support/grid.css">
+<style>
+.grid {
+  position: relative;
+  display: grid;
+  grid: repeat(4, minmax(0, 1fr)) / repeat(3, 100px);
+  max-width: calc(40% + 60px);
+  max-height: calc(70% + 25px);
+}
+.wrapper {
+  width: 600px;
+  height: 250px;
+}
+.item {
+  background: lime;
+  height: 100px;
+  /* Place item on the last cell. */
+  grid-column: -2;
+  grid-row: -2;
+}
+</style>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/check-layout-th.js"></script>
+<body onload="checkLayout('.grid');">
+<div id="log"></div>
+<div class="wrapper">
+  <div class="grid" data-expected-width="300" data-expected-height="200">
+    <div class="item" data-offset-x="200" data-offset-y="150" data-expected-width="100" data-expected-height="100"></div>
+  </div>
+</div>
+<div class="wrapper">
+  <div class="grid" style="width: 200px; height: 100px;" data-expected-width="200" data-expected-height="100">
+    <div class="item" data-offset-x="200" data-offset-y="75" data-expected-width="100" data-expected-height="100"></div>
+  </div>
+</div>
+<div class="wrapper">
+  <div class="grid" style="width: min-content; height: min-content;" data-expected-width="300" data-expected-height="200">
+    <div class="item" data-offset-x="200" data-offset-y="150" data-expected-width="100" data-expected-height="100"></div>
+  </div>
+</div>
+<div class="wrapper">
+  <div class="grid" style="width: max-content; height: max-content;" data-expected-width="300" data-expected-height="200">
+    <div class="item" data-offset-x="200" data-offset-y="150" data-expected-width="100" data-expected-height="100"></div>
+  </div>
+</div>
+</body>

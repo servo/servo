@@ -634,3 +634,12 @@ tests.forEach(
             () => builder.conv2d(input, filter, test.options), regrexp);
       }
     }, test.name));
+
+validateOperandRank('conv2d', 'input', (builder, input) => {
+  // Default layouts are inputLayout='nchw' and filterLayout='oihw', so the
+  // filter's input-channel dim (I) must equal the input's C dim
+  // (kExampleDimSize) for the default groups=1 to divide evenly.
+  const filter = builder.input(
+      'filter', {dataType: input.dataType, shape: [1, kExampleDimSize, 1, 1]});
+  return builder.conv2d(input, filter);
+});

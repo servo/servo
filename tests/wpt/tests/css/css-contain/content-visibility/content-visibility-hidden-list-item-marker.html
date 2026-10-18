@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8">
+<title>Content Visibility: a list item that skips its contents is sized without its marker</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#skips-its-contents">
+<link rel="help" href="https://drafts.csswg.org/css-contain-2/#containment-size">
+<link rel="help" href="https://drafts.csswg.org/css-lists-3/#list-style-type-property">
+<meta name="assert" content="A list item that skips its contents is sized as if it had no content, not even through the ::marker pseudo-element, so its used block-size comes from size containment alone.">
+
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+body {
+  margin: 0;
+}
+li {
+  font-size: 100px;
+  line-height: 1;
+  contain-intrinsic-size: 0 10px;
+}
+.hidden {
+  content-visibility: hidden;
+}
+</style>
+
+<body>
+<li id="target"></li>
+</body>
+
+<script>
+test(() => {
+  const target = document.getElementById("target");
+  target.getBoundingClientRect();
+  target.classList.add("hidden");
+  assert_equals(target.getBoundingClientRect().height, 10,
+      "the list item is sized by contain-intrinsic-size once it skips its contents");
+}, "A list item that starts skipping its contents after its marker box exists is sized without the marker");
+</script>
+</html>

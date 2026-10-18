@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>The access key of an option sets its dirtiness</title>
+<link rel="author" href="mailto:annevk@annevk.nl">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interactive-elements.html#option-command">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/form-elements.html#concept-option-dirtiness">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/accesskey.js"></script>
+
+<select id="dropdown">
+  <option accesskey="a">Apple</option>
+  <option accesskey="b" selected>Banana</option>
+</select>
+
+<select id="multiple" multiple>
+  <option accesskey="e" selected>Eggplant</option>
+  <option accesskey="f">Fig</option>
+</select>
+
+<script>
+function changeEvent(select) {
+  return new Promise(resolve => select.addEventListener("change", resolve, { once: true }));
+}
+
+function selectedValues(select) {
+  return Array.from(select.selectedOptions, option => option.value);
+}
+
+promise_test(async () => {
+  const select = document.getElementById("dropdown");
+  await pressAccessKey("b");
+  assert_equals(select.value, "Banana", "picking the selected option keeps it selected");
+
+  // Without dirtiness, removing the attribute would reset the select to its first option.
+  select.options[1].removeAttribute("selected");
+  assert_equals(select.value, "Banana");
+}, "The access key of the selected option of a dropdown box sets its dirtiness");
+
+promise_test(async () => {
+  const select = document.getElementById("multiple");
+  const fig = select.options[1];
+  let change = changeEvent(select);
+  await pressAccessKey("f");
+  await change;
+  assert_array_equals(selectedValues(select), ["Eggplant", "Fig"], "the option is selected");
+
+  fig.setAttribute("selected", "");
+  fig.removeAttribute("selected");
+  assert_array_equals(selectedValues(select), ["Eggplant", "Fig"], "the selected option is dirty");
+
+  const eggplant = select.options[0];
+  change = changeEvent(select);
+  await pressAccessKey("e");
+  await change;
+  assert_array_equals(selectedValues(select), ["Fig"], "the option is deselected");
+
+  eggplant.removeAttribute("selected");
+  eggplant.setAttribute("selected", "");
+  assert_array_equals(selectedValues(select), ["Fig"], "the deselected option is dirty");
+}, "The access key of an option sets its dirtiness when it toggles the option in a select with multiple");
+</script>

@@ -26,6 +26,9 @@ t.step(function() {
 
   ctx.font = '20PX   SERIF';
   _assertSame(ctx.font, '20px serif', "ctx.font", "'20px serif'");
+
+  ctx.font = '  15px sans-serif  ';
+  _assertSame(ctx.font, '15px sans-serif', "ctx.font", "'15px sans-serif'");
   t.done();
 
 });

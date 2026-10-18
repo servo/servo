@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<title>CSS @private: shared stylesheet name mappings</title>
+<link rel="help" href="https://github.com/w3c/csswg-drafts/issues/14427">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+  function loadFrame(t) {
+    return new Promise(resolve => {
+      const frame = document.createElement('iframe');
+      t.add_cleanup(() => frame.remove());
+      frame.onload = () => resolve(frame);
+      frame.srcdoc = `
+        <link rel="stylesheet" href="resources/shared-private.css">
+        <div class="target"></div>
+      `;
+      document.body.append(frame);
+    });
+  }
+
+  function getPrivateRule(frame) {
+    const sheet = frame.contentDocument.styleSheets[0];
+    assert_equals(sheet.cssRules.length, 1);
+    const styleRule = sheet.cssRules[0];
+    assert_equals(styleRule.cssRules.length, 1);
+    return styleRule.cssRules[0];
+  }
+
+  promise_test(async t => {
+    const firstFrame = await loadFrame(t);
+    const secondFrame = await loadFrame(t);
+    const firstRule = getPrivateRule(firstFrame);
+    const secondRule = getPrivateRule(secondFrame);
+    const expected = '@private { --x <length>: 10px; }';
+
+    assert_equals(firstRule.cssText, expected);
+    assert_equals(secondRule.cssText, expected);
+
+    firstRule.parentRule.deleteRule(0);
+    assert_equals(firstRule.cssText, expected);
+  }, 'Shared stylesheets and detached rules preserve authored private names');
+</script>

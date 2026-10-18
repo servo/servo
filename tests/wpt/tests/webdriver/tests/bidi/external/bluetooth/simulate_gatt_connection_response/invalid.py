@@ -24,7 +24,7 @@ async def test_context_unknown_value(bidi_session):
 async def test_address_invalid_type(bidi_session, top_context, address):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.bluetooth.simulate_gatt_connection_response(
-            context=top_context,
+            context=top_context["context"],
             address=address, code=0x0)
 
 
@@ -32,5 +32,5 @@ async def test_address_invalid_type(bidi_session, top_context, address):
 async def test_code_invalid_type(bidi_session, top_context, code):
     with pytest.raises(error.InvalidArgumentException):
         await bidi_session.bluetooth.simulate_gatt_connection_response(
-            context=top_context,
+            context=top_context["context"],
             address=TEST_DEVICE_ADDRESS, code=code)

@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>CSS Text: Miscellaneous Text Breaking Tests</title>
+<link rel="help" href="https://www.w3.org/TR/css-text-3/#line-breaking">
+<!-- Add random basic text breaking regression tests to this file. -->
+<link rel="match" href="line-breaking-text-001-ref.html">
+<style>
+  :root {
+    font: 10px monospace;
+  }
+  div {
+    border: 1px solid silver;
+    padding: 0.25em 0;
+    margin: 0.5em;
+  }
+</style>
+
+<div style="width: 4ch;">abc&NoBreak;-&NoBreak;def: break</div>
+
+<!-- This page must remain under 600px. Apply `columns: 2` to <body> to double its capacity. -->

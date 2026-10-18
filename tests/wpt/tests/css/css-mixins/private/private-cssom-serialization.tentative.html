@@ -22,7 +22,8 @@
   testSerialization('Empty @private rule', '@private { }');
   testSerialization('Untyped variable with a default', '@private { --x: red; }');
   testSerialization('Multiple variables', '@private { --a: red; --b <color>: green; }');
-  testSerialization('Repeated variable name', '@private { --x: 1px; --x: 2px; }');
+  testSerialization('Repeated variable name', '@private { --x: 1px; --x: 2px; }',
+                                               '@private { --x: 2px; }');
   testSerialization('Trailing whitespace is omitted', '@private { --a    ; --b: 1px    ; --c <length>    ; --d <length>: 2px    ; }',
                                                       '@private { --b: 1px; --d <length>: 2px; }');
 

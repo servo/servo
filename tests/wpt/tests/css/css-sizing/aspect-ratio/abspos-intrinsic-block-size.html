@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS aspect-ratio: min-content, max-content and fit-content block sizes behave as auto on absolutely positioned boxes</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#sizing-values">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio-minimum">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  .cb {
+    position: relative;
+    display: inline-block;
+    margin: 0 8px 8px 0;
+    background: red;
+  }
+  .cb.vertical { writing-mode: vertical-rl; }
+  .abspos {
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: green;
+  }
+</style>
+
+<p>Test passes if there are green rectangles and <strong>no red</strong>.</p>
+<div id="container"></div>
+<div id="log"></div>
+
+<script>
+// In the block axis min-content, max-content and fit-content behave as the automatic size, and a box with
+// a preferred aspect ratio gets its automatic block size from the ratio. Each keyword has to produce what auto does.
+// Every box sits on a red containing block that has the size the box is expected to have.
+const keywords = ["auto", "min-content", "max-content", "fit-content"];
+
+const cases = [
+  {
+    css: "width: 160px; aspect-ratio: 16 / 9",
+    content: "height: 20px",
+    size: [160, 90],
+    note: "the block size comes from the ratio",
+  },
+  {
+    css: "width: 160px; aspect-ratio: 16 / 9; bottom: -90px",
+    content: "height: 20px",
+    size: [160, 90],
+    note: "the ratio wins over the insets",
+  },
+  {
+    css: "width: 160px; aspect-ratio: 16 / 9",
+    content: "height: 120px",
+    size: [160, 120],
+    note: "the automatic minimum size keeps the content from overflowing",
+  },
+  {
+    css: "width: 160px; aspect-ratio: 16 / 9; min-height: 0",
+    content: "height: 120px",
+    size: [160, 90],
+    note: "no automatic minimum size, the content overflows",
+  },
+  {
+    css: "width: 160px; aspect-ratio: 16 / 9; padding: 10px",
+    content: "height: 20px",
+    size: [180, 110],
+    note: "the ratio applies to the content box",
+  },
+  {
+    css: "width: 160px; aspect-ratio: 16 / 9; padding: 10px; box-sizing: border-box",
+    content: "height: 20px",
+    size: [160, 90],
+    note: "the ratio applies to the border box",
+  },
+  {
+    css: "width: 160px; aspect-ratio: 16 / 9; display: flex",
+    content: "width: 20px; height: 20px",
+    size: [160, 90],
+    note: "flex container",
+  },
+  {
+    vertical: true,
+    css: "height: 90px; aspect-ratio: 16 / 9",
+    content: "width: 20px",
+    size: [160, 90],
+    note: "vertical writing mode",
+  },
+];
+
+const container = document.getElementById("container");
+
+for (const testCase of cases) {
+  const row = document.createElement("div");
+  testCase.boxes = keywords.map(keyword => {
+    const containingBlock = document.createElement("div");
+    containingBlock.className = testCase.vertical ? "cb vertical" : "cb";
+    containingBlock.style.width = testCase.size[0] + "px";
+    containingBlock.style.height = testCase.size[1] + "px";
+    containingBlock.innerHTML = '<div class="abspos"><div></div></div>';
+    const box = containingBlock.firstChild;
+    box.style.cssText = testCase.css + "; " + (testCase.vertical ? "width: " : "height: ") + keyword;
+    box.firstChild.style.cssText = testCase.content;
+    row.appendChild(containingBlock);
+    return { keyword, box };
+  });
+  container.appendChild(row);
+}
+
+for (const testCase of cases) {
+  for (const { keyword, box } of testCase.boxes) {
+    test(() => {
+      const rect = box.getBoundingClientRect();
+      assert_equals(rect.width, testCase.size[0], "width");
+      assert_equals(rect.height, testCase.size[1], "height");
+    }, (testCase.vertical ? "width: " : "height: ") + keyword + "; " + testCase.css + " — " + testCase.note);
+  }
+}
+</script>

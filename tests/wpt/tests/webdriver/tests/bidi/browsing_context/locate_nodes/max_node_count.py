@@ -1,11 +1,12 @@
 import pytest
+from webdriver.bidi.undefined import UNDEFINED
 
 from ... import any_string, recursive_compare
 
 pytestmark = pytest.mark.asyncio
 
 
-@pytest.mark.parametrize("type,value,max_count,expected", [
+@pytest.mark.parametrize("locator_type,value,max_count,expected", [
     ("css", "div", 1, [
         {
             "type": "node",
@@ -239,7 +240,15 @@ pytestmark = pytest.mark.asyncio
     "accessibility_name_multiple",
     "accessibility_role_name_multiple",
 ])
-async def test_find_by_locator_limit_return_count(bidi_session, inline, top_context, type, value, max_count, expected):
+async def test_find_by_locator_limit_return_count(
+    bidi_session,
+    inline,
+    top_context,
+    locator_type,
+    value,
+    max_count,
+    expected,
+):
     url = inline("""
         <div data-class="one" role="banner" aria-label="bar">foo</div>
         <div data-class="two" role="banner" aria-label="bar">foo</div>
@@ -250,30 +259,36 @@ async def test_find_by_locator_limit_return_count(bidi_session, inline, top_cont
 
     nodes = await bidi_session.browsing_context.locate_nodes(
         context=top_context["context"],
-        locator={ "type": type, "value": value },
-        max_node_count = max_count
+        locator={"type": locator_type, "value": value},
+        max_node_count=max_count,
     )
 
     recursive_compare(expected, nodes)
 
 
-async def test_several_context_nodes(bidi_session, inline, top_context):
+@pytest.mark.parametrize("locator_type,value", [
+    ("css", "div"),
+    ("xpath", ".//div"),
+    ("innerText", "foo"),
+    ("accessibility", {"role": "banner"}),
+    ("accessibility", {"name": "bar"}),
+    ("accessibility", {"role": "banner", "name": "bar"}),
+])
+@pytest.mark.parametrize("max_node_count", [1, 3, 4, UNDEFINED])
+@pytest.mark.parametrize("reverse_start_nodes", [False, True])
+async def test_several_context_nodes(bidi_session, inline, top_context,
+                                     locator_type, value, max_node_count,
+                                     reverse_start_nodes):
     url = inline(
         """
-        <div class="context-node">
-            <div>should be returned</div>
-        </div>
-        <div class="context-node">
-            <div>should not be returned</div>
-            <div>should not be returned</div>
-            <div>should not be returned</div>
-            <div>should not be returned</div>
-            <div>should not be returned</div>
-            <div>should not be returned</div>
-            <div>should not be returned</div>
-            <div>should not be returned</div>
-            <div>should not be returned</div>
-        </div>
+        <section class="context-node">
+            <div id="first" role="banner" aria-label="bar">foo</div>
+        </section>
+        <section class="context-node">
+            <div id="second-a" role="banner" aria-label="bar">foo</div>
+            <div id="second-b" role="banner" aria-label="bar">foo</div>
+            <div id="second-c" role="banner" aria-label="bar">foo</div>
+        </section>
     """
     )
     await bidi_session.browsing_context.navigate(
@@ -284,15 +299,21 @@ async def test_several_context_nodes(bidi_session, inline, top_context):
         context=top_context["context"],
         locator={"type": "css", "value": ".context-node"},
     )
+    start_nodes = [
+        {"sharedId": node["sharedId"]} for node in context_nodes
+    ]
+    expected_ids = ["first", "second-a", "second-b", "second-c"]
+    if reverse_start_nodes:
+        start_nodes.reverse()
+        expected_ids = ["second-a", "second-b", "second-c", "first"]
 
     nodes = await bidi_session.browsing_context.locate_nodes(
         context=top_context["context"],
-        locator={"type": "css", "value": "div"},
-        max_node_count=1,
-        start_nodes=[
-            {"sharedId": context_nodes[0]["sharedId"]},
-            {"sharedId": context_nodes[1]["sharedId"]},
-        ],
+        locator={"type": locator_type, "value": value},
+        max_node_count=max_node_count,
+        start_nodes=start_nodes,
     )
 
-    assert len(nodes) == 1
+    if max_node_count is not UNDEFINED:
+        expected_ids = expected_ids[:max_node_count]
+    assert [node["value"]["attributes"]["id"] for node in nodes] == expected_ids

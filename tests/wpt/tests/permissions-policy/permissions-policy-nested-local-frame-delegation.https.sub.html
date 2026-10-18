@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Permissions-Policy: same-origin local-URL child can delegate to cross-origin grandchild</title>
+<link rel="help" href="https://w3c.github.io/webappsec-permissions-policy/#algo-define-inherited-policy-in-container">
+<link rel="help" href="https://github.com/w3c/webappsec-permissions-policy/issues/599">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<body>
+<!-- Permissions-Policy: fullscreen=self -->
+<script>
+
+// Appends a cross-origin remote executor iframe to `container_doc` with the
+// given `allow` attribute, and returns the value of document.fullscreenEnabled
+// in that iframe.
+async function fullscreen_enabled_in_cross_origin_frame(t, container_doc, allow) {
+  const uuid = token();
+  const frame = container_doc.createElement('iframe');
+  if (allow !== undefined) {
+    frame.allow = allow;
+  }
+  const cross_origin_host = '{{hosts[][www]}}:{{ports[https][0]}}';
+  frame.src = remoteExecutorUrl(uuid, {host: cross_origin_host});
+  container_doc.body.appendChild(frame);
+  t.add_cleanup(() => frame.remove());
+  return new RemoteContext(uuid).execute_script(
+      () => document.fullscreenEnabled);
+}
+
+// Creates a same-origin child iframe without src, which stays on its initial
+// about:blank document.
+function create_about_blank_child(t) {
+  const child = document.createElement('iframe');
+  t.add_cleanup(() => child.remove());
+  document.body.appendChild(child);
+  return child;
+}
+
+promise_test(async t => {
+  assert_false(
+      await fullscreen_enabled_in_cross_origin_frame(t, document, 'fullscreen'),
+      'fullscreen should be disabled in the cross-origin iframe');
+}, 'Top-level document with "fullscreen=self" cannot delegate fullscreen ' +
+   'to a cross-origin child via allow="fullscreen".');
+
+promise_test(async t => {
+  const child = create_about_blank_child(t);
+  assert_true(child.contentDocument.fullscreenEnabled,
+              'fullscreen should be enabled in the same-origin child');
+  assert_true(
+      await fullscreen_enabled_in_cross_origin_frame(t, child.contentDocument, 'fullscreen'),
+      'fullscreen should be enabled in the cross-origin grandchild');
+}, 'Same-origin about:blank child can delegate fullscreen to a cross-origin ' +
+   'grandchild via allow="fullscreen".');
+
+promise_test(async t => {
+  const child = create_about_blank_child(t);
+  assert_false(
+      await fullscreen_enabled_in_cross_origin_frame(t, child.contentDocument),
+      'fullscreen should be disabled in the cross-origin grandchild');
+}, 'Same-origin about:blank child does not delegate fullscreen to a ' +
+   'cross-origin grandchild without an allow attribute.');
+</script>
+</body>

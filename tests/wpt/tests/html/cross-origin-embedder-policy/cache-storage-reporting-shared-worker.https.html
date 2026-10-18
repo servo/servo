@@ -17,7 +17,7 @@ promise_test(async (t) => {
   const worker_url = local(encode(worker_path + header_coep));
   const worker = new SharedWorker(worker_url);
   const mc = new MessageChannel();
-  worker.port.postMessage({script: eval_script, port: mc.port2}, [mc.port2]);
+  worker.port.postMessage({script: eval_script, port: mc.port2, expected_count: 1}, [mc.port2]);
   const reports = (await new Promise(r => mc.port1.onmessage = r)).data;
   assert_equals(reports.length, 1);
   const report = reports[0];
@@ -33,7 +33,7 @@ promise_test(async (t) => {
   const worker_url = local(encode(worker_path + header_coep_report_only));
   const worker = new SharedWorker(worker_url);
   const mc = new MessageChannel();
-  worker.port.postMessage({script: eval_script, port: mc.port2}, [mc.port2]);
+  worker.port.postMessage({script: eval_script, port: mc.port2, expected_count: 1}, [mc.port2]);
   const reports = (await new Promise(r => mc.port1.onmessage = r)).data;
   assert_equals(reports.length, 1);
   const report = reports[0];

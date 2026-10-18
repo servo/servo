@@ -15,7 +15,7 @@ promise_test(async () => {
   document.body.appendChild(outer);
 
   await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-  assert_equals(await test_driver.get_computed_role(outer), 'dialog', 'Outer is dialog initially');
+  assert_equals(await test_driver.get_computed_role(outer), 'list', 'Outer is list initially');
 
   const inner = document.createElement('menulist');
   const item = document.createElement('menuitem');

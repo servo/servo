@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>focusreset event: basic behavior</title>
+<link rel="help" href="https://github.com/whatwg/html/pull/13050">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#focus-fixup-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/focusreset-helpers.js"></script>
+
+<script>
+"use strict";
+
+test(() => {
+  assert_true("onfocusreset" in document, "document has onfocusreset");
+  assert_true("onfocusreset" in Document.prototype,
+              "onfocusreset is on Document.prototype");
+  assert_equals(document.onfocusreset, null, "initial value is null");
+  const handler = () => {};
+  document.onfocusreset = handler;
+  assert_equals(document.onfocusreset, handler, "can be set");
+  document.onfocusreset = null;
+  assert_equals(document.onfocusreset, null, "can be reset");
+}, "onfocusreset event handler IDL attribute on Document");
+
+test(() => {
+  assert_false("onfocusreset" in window,
+               "onfocusreset isn't a GlobalEventHandlers member (window)");
+  assert_false("onfocusreset" in HTMLElement.prototype,
+               "onfocusreset isn't a GlobalEventHandlers member (elements)");
+}, "onfocusreset is only defined on Document");
+
+promise_test(async t => {
+  await settle(t);
+  const events = recordFocusResets(t);
+  const button = createFocusable(t);
+  button.focus();
+  assert_equals(document.activeElement, button, "sanity: button is focused");
+
+  button.remove();
+  assert_equals(document.activeElement, document.body,
+                "removal resets focus synchronously");
+  assert_equals(events.length, 0, "focusreset isn't fired synchronously");
+
+  await afterNextRenderingUpdate();
+  assert_equals(events.length, 1, "focusreset fired once");
+  const event = events[0];
+  assert_equals(event.type, "focusreset");
+  assert_equals(event.target, document, "target is the document");
+  assert_equals(event.constructor, Event, "it's a plain Event");
+  assert_true(event.isTrusted, "isTrusted");
+  assert_false(event.bubbles, "doesn't bubble");
+  assert_false(event.cancelable, "isn't cancelable");
+  assert_false(event.composed, "isn't composed");
+
+  await afterNextRenderingUpdateAndTask(t);
+  assert_equals(events.length, 1, "focusreset isn't fired again");
+}, "Removing the focused element fires focusreset at the document");
+
+promise_test(async t => {
+  await settle(t);
+  const button = createFocusable(t);
+  button.focus();
+  button.remove();
+
+  let handlerCalled = 0;
+  let activeElementDuringEvent, hasFocusDuringEvent;
+  document.onfocusreset = t.step_func(e => {
+    handlerCalled++;
+    activeElementDuringEvent = document.activeElement;
+    hasFocusDuringEvent = document.hasFocus();
+    assert_equals(e.currentTarget, document);
+  });
+  t.add_cleanup(() => { document.onfocusreset = null; });
+
+  await afterNextRenderingUpdate();
+  assert_equals(handlerCalled, 1, "onfocusreset handler was called once");
+  assert_equals(activeElementDuringEvent, document.body,
+                "activeElement is the body when focusreset is fired");
+  assert_true(hasFocusDuringEvent,
+              "document still has focus when focusreset is fired");
+}, "onfocusreset event handler is invoked, with focus reset to the viewport");
+
+promise_test(async t => {
+  await settle(t);
+  const button = createFocusable(t);
+  button.focus();
+
+  const events = recordEvents(t, document,
+                              ["blur", "focusout", "focusin", "focus",
+                               "focusreset"]);
+  button.remove();
+  await afterNextRenderingUpdate();
+  assert_array_equals(events, ["focusreset"],
+                      "no focus-related events other than focusreset");
+}, "Removing the focused element doesn't fire blur/focusout, only focusreset");
+
+promise_test(async t => {
+  await settle(t);
+  const events = recordFocusResets(t);
+  const button = createFocusable(t);
+  button.focus();
+  button.remove();
+
+  // The focus reset is observable through document.activeElement and
+  // focusreset even when the removed element is focused again while detached
+  // (which is a no-op).
+  button.focus();
+  assert_equals(document.activeElement, document.body,
+                "focusing a disconnected element is a no-op");
+  await afterNextRenderingUpdate();
+  assert_equals(events.length, 1, "focusreset fired once");
+}, "Trying to focus the removed element while disconnected doesn't cancel focusreset");
+
+promise_test(async t => {
+  await settle(t);
+  const events = recordFocusResets(t);
+  const button = createFocusable(t);
+  // Not focused.
+  button.remove();
+  await afterNextRenderingUpdateAndTask(t);
+  assert_equals(events.length, 0, "no focusreset");
+}, "Removing an unfocused element doesn't fire focusreset");
+
+promise_test(async t => {
+  await settle(t);
+  const events = recordFocusResets(t);
+  const button = createFocusable(t);
+  const other = createFocusable(t);
+  button.focus();
+  other.focus();
+  assert_equals(document.activeElement, other, "sanity: other is focused");
+  button.remove();
+  await afterNextRenderingUpdateAndTask(t);
+  assert_equals(events.length, 0, "no focusreset");
+  assert_equals(document.activeElement, other, "other is still focused");
+}, "Removing a previously focused element doesn't fire focusreset");
+
+promise_test(async t => {
+  await settle(t);
+  const events = recordFocusResets(t);
+  const button = createFocusable(t);
+  button.focus();
+  button.blur();
+  assert_equals(document.activeElement, document.body, "sanity: body is active");
+  button.remove();
+  await afterNextRenderingUpdateAndTask(t);
+  assert_equals(events.length, 0, "no focusreset");
+}, "Removing an element that was blurred before removal doesn't fire focusreset");
+</script>

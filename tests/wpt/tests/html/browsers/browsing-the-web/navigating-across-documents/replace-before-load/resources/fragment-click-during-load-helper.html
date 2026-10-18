@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<a id="link" href="#target">jump</a>
+<div id="target">target</div>
+<script>
+window.addEventListener("load", () => {
+  const before = history.length;
+  navigation.addEventListener("navigatesuccess", () => {
+    parent.postMessage({before, after: history.length, syncHash}, "*");
+  }, {once: true});
+  document.getElementById("link").click();
+  var syncHash = location.hash;
+}, {once: true});
+</script>

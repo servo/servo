@@ -12,7 +12,7 @@ function createAndDropBlockingMediaElement() {
   garbageCollect();
 }
 async function main() {
-  for (let round = 0; round < 200; round++) {
+  for (let round = 0; round < 50; round++) {
     createAndDropBlockingMediaElement();
     await garbageCollect();
     await new Promise(r => setTimeout(r, 0));

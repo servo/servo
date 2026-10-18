@@ -223,4 +223,105 @@ promise_test(async () => {
     'Only one mutation batch should fire (the synchronous update), not a redundant async one.');
   observer.disconnect();
 }, 'Setting HTMLOptionElement.selected does not cause a redundant async selectedcontent update.');
+
+test(() => {
+  const form = document.createElement('form');
+  form.innerHTML = `
+    <select>
+      <button><selectedcontent></selectedcontent></button>
+      <option class=one value=one>one</option>
+      <option class=two value=two selected>two</option>
+    </select>`;
+  document.body.appendChild(form);
+  const select = form.querySelector('select');
+  const optionOne = select.querySelector('option.one');
+  const optionTwo = select.querySelector('option.two');
+  const selectedcontent = select.querySelector('selectedcontent');
+
+  assert_equals(selectedcontent.innerHTML, optionTwo.innerHTML,
+    'The <selectedcontent> should initially reflect the option with the selected attribute.');
+
+  select.value = 'one';
+  assert_equals(selectedcontent.innerHTML, optionOne.innerHTML,
+    'Changing select.value should update the <selectedcontent>.');
+
+  form.reset();
+  assert_equals(select.value, 'two',
+    'form.reset() should restore select.value to two.');
+  assert_equals(selectedcontent.innerHTML, optionTwo.innerHTML,
+    'form.reset() should update the <selectedcontent> to the default selected option.');
+}, 'form.reset() updates <selectedcontent> when an option has the selected attribute.');
+
+test(() => {
+  const select = makeOptionSelectedSelect();
+  const optionOne = select.querySelector('option.one');
+  const optionTwo = select.querySelector('option.two');
+  const selectedcontent = select.querySelector('selectedcontent');
+
+  optionTwo.selected = true;
+  assert_equals(selectedcontent.innerHTML, optionTwo.innerHTML);
+
+  optionTwo.selected = false;
+  assert_equals(select.value, optionOne.value,
+    'Deselecting the second option in single-select should fall back to selecting the first enabled option.');
+  assert_equals(selectedcontent.innerHTML, optionOne.innerHTML,
+    'Setting HTMLOptionElement.selected = false should update <selectedcontent> to the newly selected option.');
+}, 'Setting HTMLOptionElement.selected = false updates the <selectedcontent>.');
+
+test(() => {
+  const select = makeOptionSelectedSelect();
+  const optionOne = select.querySelector('option.one');
+  const selectedcontent = select.querySelector('selectedcontent');
+
+  assert_equals(selectedcontent.innerHTML, optionOne.innerHTML);
+
+  optionOne.innerHTML = '<span class=modified>modified span</span> one';
+  assert_not_equals(selectedcontent.innerHTML, optionOne.innerHTML,
+    '<selectedcontent> should not automatically observe DOM modifications inside <option>.');
+
+  optionOne.selected = true;
+  assert_equals(selectedcontent.innerHTML, optionOne.innerHTML,
+    'Re-assigning option.selected = true should update <selectedcontent> with the modified option contents.');
+}, 'Re-assigning option.selected = true updates the <selectedcontent>.');
+
+test(() => {
+  const select = document.createElement('select');
+  select.size = 2;
+  select.innerHTML = `
+    <button><selectedcontent></selectedcontent></button>
+    <option class=one selected>one</option>
+    <option class=two>two</option>`;
+  document.body.appendChild(select);
+  const optionOne = select.querySelector('option.one');
+  const selectedcontent = select.querySelector('selectedcontent');
+
+  assert_equals(selectedcontent.innerHTML, optionOne.innerHTML);
+
+  optionOne.selected = false;
+  assert_equals(selectedcontent.innerHTML, '',
+    'Setting option.selected = false in a listbox where no option remains selected should clear <selectedcontent>.');
+}, 'Setting option.selected = false in a listbox clears the <selectedcontent>.');
+
+promise_test(async () => {
+  const select = document.createElement('select');
+  select.innerHTML = `
+    <button><selectedcontent></selectedcontent></button>
+    <option id=a disabled>A</option>
+    <option id=b disabled>B</option>`;
+  document.body.appendChild(select);
+  const a = select.querySelector('#a');
+  const b = select.querySelector('#b');
+  const selectedcontent = select.querySelector('selectedcontent');
+
+  assert_equals(select.value, '');
+  assert_equals(selectedcontent.innerHTML, '');
+
+  a.disabled = false;
+  b.remove();
+  assert_equals(select.value, 'A');
+
+  await new Promise(queueMicrotask);
+  assert_equals(selectedcontent.innerHTML, a.innerHTML,
+    'Removing an unselected option that triggers selectedness setting should update <selectedcontent> after microtask.');
+}, 'Removing an unselected option when another option became enabled updates <selectedcontent>.');
 </script>

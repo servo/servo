@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Featureless elements: selectors that target the shadow host directly</title>
+<link rel="help" href="https://drafts.csswg.org/selectors-4/#featureless">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+<script>
+  // featureless-001 through featureless-005 use the shadow host as the ancestor of a descendant
+  // selector; these use it as the subject.
+  function hostMatches(selector, pseudoElement) {
+    const host = document.createElement("div");
+    host.className = "host";
+    document.body.appendChild(host);
+    host.attachShadow({ mode: "open" }).innerHTML =
+      `<style>${selector} { content: "x" }</style><div class="inner"></div>`;
+    const matched = getComputedStyle(host, pseudoElement).content === '"x"';
+    host.remove();
+    return matched;
+  }
+
+  function test_host(selector, expected) {
+    test(() => {
+      assert_equals(hostMatches(selector), expected);
+    }, `${selector} ${expected ? "matches" : "does not match"} the shadow host`);
+  }
+
+  // A pseudo-element originates from the compound to its left, which is an implied universal
+  // selector when nothing is written there.
+  function test_host_before(selector, expected) {
+    test(() => {
+      assert_equals(hostMatches(selector, "::before"), expected);
+    }, `${selector} ${expected ? "matches" : "does not match"} the shadow host`);
+  }
+
+  test_host("*", false);
+  test_host("div", false);
+  test_host(".host", false);
+  test_host(":nth-of-type(1)", false);
+
+  test_host(":host", true);
+  test_host(":host(.host)", true);
+  test_host(":host(.nope)", false);
+
+  test_host(":not(:host)", false);
+  test_host(":not(:not(:host))", true);
+  test_host(":not(:not(:not(:host)))", false);
+  test_host(":not(:is(:host, div))", false);
+  test_host(":is(:not(:not(:host)))", true);
+  test_host(":where(:host)", true);
+
+  test_host(":not(div)", false);
+  test_host(":not(span)", false);
+  test_host(":not(.foo)", false);
+  test_host(":not(:nth-of-type(99))", false);
+  test_host(":not(:hover)", false);
+  test_host(":not(:host.host)", false);
+  test_host(":not(.foo:host)", false);
+  test_host(":not(:host > .foo)", false);
+
+  test_host(":not(:host(.nope))", true);
+  test_host(":not(:host(.host))", false);
+  test_host(":is(:not(:host(.nope)))", true);
+
+  test_host(":has(.inner)", false);
+  test_host(":host:has(.inner)", true);
+  test_host(":not(:has(.inner))", false);
+  test_host(":not(:host:has(.inner))", false);
+  test_host(":not(:host:has(.nope))", true);
+  // Where :has() sits in the compound makes no difference.
+  test_host(":not(:has(.inner):host)", false);
+  test_host(":not(:has(.nope):host)", true);
+
+  // Selectors a featureless element is not allowed to match, in a compound that also has :host.
+  test_host("[a]:host", false);
+  test_host(":nth-child(1):host", false);
+  test_host(":host:nth-child(1 of :host)", false);
+  test_host("[a^='']:host", false);
+  test_host(":nth-child(0):host", false);
+  test_host(":nth-child(0 of :host)", false);
+
+  test_host_before("::before", false);
+  test_host_before(":host::before", true);
+  test_host_before(":is(:host)::before", true);
+  test_host_before(":not(:not(:host))::before", true);
+  test_host_before(":not(:hover)::before", false);
+
+  function hostMatchesAfter(selector, mutate) {
+    const host = document.createElement("div");
+    host.className = "host";
+    document.body.appendChild(host);
+    host.attachShadow({ mode: "open" }).innerHTML = `<style>${selector} { --matched: yes }</style>`;
+    getComputedStyle(host).getPropertyValue("--matched");
+    mutate(host);
+    const matched = getComputedStyle(host).getPropertyValue("--matched").trim() === "yes";
+    host.remove();
+    return matched;
+  }
+
+  function test_host_after(selector, expected, change, mutate) {
+    test(() => {
+      assert_equals(hostMatchesAfter(selector, mutate), expected);
+    }, `${selector} ${expected ? "matches" : "does not match"} the shadow host after ${change}`);
+  }
+
+  test_host_after(":not(:host(.nope))", false, "a class change", host => host.classList.add("nope"));
+  test_host_after(":not(:host(#nope))", false, "an id change", host => host.id = "nope");
+  test_host_after(":not(:host([a]))", false, "an attribute change", host => host.setAttribute("a", "1"));
+  test_host_after(":host(.nope)", true, "a class change", host => host.classList.add("nope"));
+</script>

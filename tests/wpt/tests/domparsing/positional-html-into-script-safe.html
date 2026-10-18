@@ -1,0 +1,339 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>Safe HTML insertion methods targeting or relative to a script element are a silent no-op</title>
+<link rel="help" href="https://html.spec.whatwg.org/#html-parsing-methods" />
+<link rel="help" href="https://github.com/whatwg/html/pull/12753" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+  const direct_methods = ["setHTML", "appendHTML", "prependHTML"];
+  const positional_methods = ["beforeHTML", "afterHTML", "replaceWithHTML"];
+
+  // 1. Direct methods on HTML <script> element.
+  for (const method of direct_methods) {
+    for (const connected of [true, false]) {
+      test((t) => {
+        const script = document.createElement("script");
+        if (connected) {
+          document.body.appendChild(script);
+          t.add_cleanup(() => script.remove());
+        }
+
+        const result = script[method]("<span>content</span>");
+        assert_equals(result, undefined, "Calling method should return undefined");
+        assert_equals(script.childNodes.length, 0, "Script element must have no children");
+        assert_equals(script.innerHTML, "", "Script element innerHTML must remain empty");
+      }, `Element.${method}() on ${connected ? "connected" : "disconnected"} HTML script element is a silent no-op`);
+    }
+
+    test((t) => {
+      const script = document.createElement("script");
+      document.body.appendChild(script);
+      t.add_cleanup(() => script.remove());
+      const existingText = script.appendChild(document.createTextNode("/* existing text */"));
+      const existingComment = script.appendChild(document.createComment("/* comment */"));
+
+      const result = script[method]("<span>new content</span>");
+      assert_equals(result, undefined, "Calling method should return undefined");
+      assert_equals(script.childNodes.length, 2, "Existing child count should be unchanged");
+      assert_equals(script.firstChild, existingText, "First child should remain unchanged");
+      assert_equals(script.lastChild, existingComment, "Last child should remain unchanged");
+      assert_equals(script.firstChild.textContent, "/* existing text */");
+    }, `Element.${method}() on HTML script element with existing children does not modify or remove children`);
+
+    test((t) => {
+      const script = document.createElement("script");
+      document.body.appendChild(script);
+      t.add_cleanup(() => script.remove());
+      window.did_run = false;
+      t.add_cleanup(() => { delete window.did_run; });
+
+      const result = script[method]("<span>content</span><script>window.did_run = true;<" + "/script>");
+      assert_equals(result, undefined, "Calling method should return undefined");
+      assert_false(window.did_run, "Script inside markup should not execute");
+      assert_equals(script.childNodes.length, 0, "Script element must remain empty");
+    }, `Element.${method}() on HTML script element does not execute scripts in markup`);
+
+    test((t) => {
+      const script = document.createElementNS("http://www.w3.org/1999/xhtml", "x:script");
+      document.body.appendChild(script);
+      t.add_cleanup(() => script.remove());
+
+      const result = script[method]("<span>content</span>");
+      assert_equals(result, undefined, "Calling method should return undefined");
+      assert_equals(script.childNodes.length, 0, "Script element must have no children");
+    }, `Element.${method}() on HTML script element with prefix is a silent no-op`);
+
+    test((t) => {
+      const script = document.createElement("script");
+      document.body.appendChild(script);
+      t.add_cleanup(() => script.remove());
+
+      const result = script[method]("<span>content</span>", { sanitizer: {} });
+      assert_equals(result, undefined, "Calling method should return undefined");
+      assert_equals(script.childNodes.length, 0, "Script element must have no children");
+    }, `Element.${method}() on HTML script element with options is a silent no-op`);
+  }
+
+  // 2. Direct methods on SVG <script> element.
+  for (const method of direct_methods) {
+    for (const connected of [true, false]) {
+      test((t) => {
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        const script = document.createElementNS("http://www.w3.org/2000/svg", "script");
+        svg.appendChild(script);
+        if (connected) {
+          document.body.appendChild(svg);
+          t.add_cleanup(() => svg.remove());
+        }
+
+        const result = script[method]("<span>content</span>");
+        assert_equals(result, undefined, "Calling method should return undefined");
+        assert_equals(script.childNodes.length, 0, "SVG script element must have no children");
+      }, `Element.${method}() on ${connected ? "connected" : "disconnected"} SVG script element is a silent no-op`);
+    }
+
+    test((t) => {
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      const script = document.createElementNS("http://www.w3.org/2000/svg", "script");
+      svg.appendChild(script);
+      document.body.appendChild(svg);
+      t.add_cleanup(() => svg.remove());
+
+      const existingText = script.appendChild(document.createTextNode("/* existing svg text */"));
+      const result = script[method]("<span>new content</span>");
+      assert_equals(result, undefined, "Calling method should return undefined");
+      assert_equals(script.childNodes.length, 1, "SVG script element child count must be unchanged");
+      assert_equals(script.firstChild, existingText, "SVG script element child must remain unchanged");
+    }, `Element.${method}() on SVG script element with existing children does not modify or remove children`);
+
+    test((t) => {
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      const script = document.createElementNS("http://www.w3.org/2000/svg", "script");
+      svg.appendChild(script);
+      document.body.appendChild(svg);
+      t.add_cleanup(() => svg.remove());
+      window.did_run = false;
+      t.add_cleanup(() => { delete window.did_run; });
+
+      const result = script[method]("<script>window.did_run = true;<" + "/script>");
+      assert_equals(result, undefined, "Calling method should return undefined");
+      assert_false(window.did_run, "Script inside markup should not execute");
+      assert_equals(script.childNodes.length, 0, "SVG script element must remain empty");
+    }, `Element.${method}() on SVG script element does not execute scripts in markup`);
+
+    test((t) => {
+      const script = document.createElementNS("http://www.w3.org/2000/svg", "x:script");
+      document.body.appendChild(script);
+      t.add_cleanup(() => script.remove());
+
+      const result = script[method]("<span>content</span>");
+      assert_equals(result, undefined, "Calling method should return undefined");
+      assert_equals(script.childNodes.length, 0, "SVG script element must have no children");
+    }, `Element.${method}() on SVG script element with prefix is a silent no-op`);
+  }
+
+  // 3. Positional methods relative to HTML <script> element (called on child nodes).
+  for (const method of positional_methods) {
+    for (const child_type of ["Text", "Comment", "Element"]) {
+      for (const connected of [true, false]) {
+        test((t) => {
+          const script = document.createElement("script");
+          if (connected) {
+            document.body.appendChild(script);
+            t.add_cleanup(() => script.remove());
+          }
+
+          let child;
+          if (child_type === "Text") {
+            child = document.createTextNode("/* text */");
+          } else if (child_type === "Comment") {
+            child = document.createComment("comment;");
+          } else {
+            child = document.createElement("span");
+          }
+          script.appendChild(child);
+
+          const result = child[method]("<span>inserted;</span>");
+          assert_equals(result, undefined, "Calling method should return undefined");
+          assert_equals(script.childNodes.length, 1, "Script should still have exactly 1 child");
+          assert_equals(script.firstChild, child, "Child should remain intact");
+          assert_equals(child.parentNode, script, "Child should still be in script");
+        }, `NonDocumentTypeChildNode.${method}() on ${child_type} child of ${connected ? "connected" : "disconnected"} HTML script element is a silent no-op`);
+      }
+    }
+
+    test((t) => {
+      const script = document.createElement("script");
+      document.body.appendChild(script);
+      t.add_cleanup(() => script.remove());
+
+      const before = script.appendChild(document.createTextNode("/* before */"));
+      const target = script.appendChild(document.createTextNode("/* target */"));
+      const after = script.appendChild(document.createTextNode("/* after */"));
+
+      const result = target[method]("<span>inserted;</span>");
+      assert_equals(result, undefined, "Calling method should return undefined");
+      assert_equals(script.childNodes.length, 3, "Script child count should remain 3");
+      assert_equals(script.childNodes[0], before, "First sibling should remain unchanged");
+      assert_equals(script.childNodes[1], target, "Target child should remain unchanged");
+      assert_equals(script.childNodes[2], after, "Last sibling should remain unchanged");
+    }, `NonDocumentTypeChildNode.${method}() on child of HTML script element with siblings does not modify DOM order or structure`);
+
+    test((t) => {
+      const script = document.createElement("script");
+      document.body.appendChild(script);
+      t.add_cleanup(() => script.remove());
+      const child = script.appendChild(document.createTextNode("/* code */"));
+      window.did_run = false;
+      t.add_cleanup(() => { delete window.did_run; });
+
+      const result = child[method]("<script>window.did_run = true;<" + "/script>");
+      assert_equals(result, undefined, "Calling method should return undefined");
+      assert_false(window.did_run, "Script inside markup should not execute");
+      assert_equals(script.childNodes.length, 1, "Script child count should remain 1");
+      assert_equals(script.firstChild, child, "Child should remain intact");
+    }, `NonDocumentTypeChildNode.${method}() on child of HTML script element does not execute scripts in markup`);
+
+    test((t) => {
+      const script = document.createElementNS("http://www.w3.org/1999/xhtml", "x:script");
+      document.body.appendChild(script);
+      t.add_cleanup(() => script.remove());
+      const child = script.appendChild(document.createTextNode("/* text */"));
+
+      const result = child[method]("<span>content</span>");
+      assert_equals(result, undefined, "Calling method should return undefined");
+      assert_equals(script.childNodes.length, 1, "Script should still have 1 child");
+      assert_equals(child.parentNode, script, "Child should still be in script");
+    }, `NonDocumentTypeChildNode.${method}() on child of HTML script element with prefix is a silent no-op`);
+
+    test((t) => {
+      const script = document.createElement("script");
+      document.body.appendChild(script);
+      t.add_cleanup(() => script.remove());
+      const child = script.appendChild(document.createTextNode("/* text */"));
+
+      const result = child[method]("<span>content</span>", { sanitizer: {} });
+      assert_equals(result, undefined, "Calling method should return undefined");
+      assert_equals(script.childNodes.length, 1, "Script should still have 1 child");
+      assert_equals(child.parentNode, script, "Child should still be in script");
+    }, `NonDocumentTypeChildNode.${method}() on child of HTML script element with options is a silent no-op`);
+  }
+
+  // 4. Positional methods relative to SVG <script> element (called on child nodes).
+  for (const method of positional_methods) {
+    for (const child_type of ["Text", "Element"]) {
+      for (const connected of [true, false]) {
+        test((t) => {
+          const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+          const script = document.createElementNS("http://www.w3.org/2000/svg", "script");
+          svg.appendChild(script);
+          if (connected) {
+            document.body.appendChild(svg);
+            t.add_cleanup(() => svg.remove());
+          }
+
+          const child = child_type === "Text"
+            ? document.createTextNode("/* text */")
+            : document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+          script.appendChild(child);
+
+          const result = child[method]("<span>inserted;</span>");
+          assert_equals(result, undefined, "Calling method should return undefined");
+          assert_equals(script.childNodes.length, 1, "SVG script should still have exactly 1 child");
+          assert_equals(script.firstChild, child, "Child should remain intact");
+          assert_equals(child.parentNode, script, "Child should still be in SVG script");
+        }, `NonDocumentTypeChildNode.${method}() on ${child_type} child of ${connected ? "connected" : "disconnected"} SVG script element is a silent no-op`);
+      }
+    }
+
+    test((t) => {
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      const script = document.createElementNS("http://www.w3.org/2000/svg", "script");
+      svg.appendChild(script);
+      document.body.appendChild(svg);
+      t.add_cleanup(() => svg.remove());
+      const child = script.appendChild(document.createTextNode("/* text */"));
+      window.did_run = false;
+      t.add_cleanup(() => { delete window.did_run; });
+
+      const result = child[method]("<script>window.did_run = true;<" + "/script>");
+      assert_equals(result, undefined, "Calling method should return undefined");
+      assert_false(window.did_run, "Script inside markup should not execute");
+      assert_equals(script.childNodes.length, 1, "SVG script child count should remain 1");
+    }, `NonDocumentTypeChildNode.${method}() on child of SVG script element does not execute scripts in markup`);
+
+    test((t) => {
+      const script = document.createElementNS("http://www.w3.org/2000/svg", "x:script");
+      document.body.appendChild(script);
+      t.add_cleanup(() => script.remove());
+      const child = script.appendChild(document.createTextNode("/* text */"));
+
+      const result = child[method]("<span>content</span>");
+      assert_equals(result, undefined, "Calling method should return undefined");
+      assert_equals(script.childNodes.length, 1, "SVG script should still have 1 child");
+      assert_equals(child.parentNode, script, "Child should still be in SVG script");
+    }, `NonDocumentTypeChildNode.${method}() on child of SVG script element with prefix is a silent no-op`);
+  }
+
+  // 5. Contrast: calling positional methods ON <script> when <script> is a child of <div>.
+  // The context element is <div> (parent), NOT <script>, so it must NOT no-op.
+  for (const method of positional_methods) {
+    test((t) => {
+      const div = document.createElement("div");
+      document.body.appendChild(div);
+      t.add_cleanup(() => div.remove());
+
+      const script = div.appendChild(document.createElement("script"));
+      script[method]("<span>inserted</span>");
+
+      if (method === "replaceWithHTML") {
+        assert_equals(script.parentNode, null, "Script element should have been replaced");
+        assert_equals(div.firstElementChild.localName, "span", "Span should have replaced script in div");
+      } else {
+        assert_equals(div.querySelectorAll("span").length, 1, "Span should have been inserted into div");
+        assert_equals(script.parentNode, div, "Script element should still be in div");
+      }
+    }, `NonDocumentTypeChildNode.${method}() on HTML script element inside div uses div as context and inserts markup`);
+  }
+
+  // 6. Contrast: Unsafe variants are NOT no-ops on or relative to script elements.
+  for (const method of ["setHTMLUnsafe", "appendHTMLUnsafe", "prependHTMLUnsafe"]) {
+    test((t) => {
+      const script = document.createElement("script");
+      document.body.appendChild(script);
+      t.add_cleanup(() => script.remove());
+
+      script[method]("/* unsafe text */");
+      assert_true(script.childNodes.length > 0, `${method} on script element should not be a no-op`);
+    }, `Element.${method}() on HTML script element is not a no-op`);
+  }
+
+  for (const method of ["beforeHTMLUnsafe", "afterHTMLUnsafe", "replaceWithHTMLUnsafe"]) {
+    test((t) => {
+      const script = document.createElement("script");
+      document.body.appendChild(script);
+      t.add_cleanup(() => script.remove());
+      const child = script.appendChild(document.createTextNode("/* child */"));
+
+      child[method]("/* new text */");
+      if (method === "replaceWithHTMLUnsafe") {
+        assert_not_equals(script.firstChild, child, "Child should have been replaced");
+      } else {
+        assert_equals(script.childNodes.length, 2, "Sibling should have been inserted");
+      }
+    }, `NonDocumentTypeChildNode.${method}() on child of HTML script element is not a no-op`);
+  }
+
+  // 7. Contrast: Script element in non-HTML, non-SVG namespace does not no-op.
+  test((t) => {
+    const customScript = document.createElementNS("http://example.com/custom", "script");
+    document.body.appendChild(customScript);
+    t.add_cleanup(() => customScript.remove());
+
+    customScript.setHTML("<span>content</span>");
+    assert_true(customScript.childNodes.length > 0, "setHTML on custom-namespaced script element should not be a no-op");
+  }, "Element.setHTML() on script element in non-HTML, non-SVG namespace is not a no-op");
+</script>
+</body>

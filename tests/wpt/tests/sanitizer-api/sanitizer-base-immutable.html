@@ -465,6 +465,58 @@ test(t => {
     "s.get() must be unchanged after Document.parseHTML() when s contains unsafe entries"
   );
 }, "s.get() is unchanged after Document.parseHTML() when Sanitizer has unsafe entries");
+
+for (const method of ["appendHTML", "prependHTML", "beforeHTML", "afterHTML", "replaceWithHTML"]) {
+  test(t => {
+    const initialDefault = new Sanitizer().get();
+    const s = new Sanitizer({
+      elements: [
+        { name: "div", attributes: ["id", "onclick"] },
+        "script",
+        "p"
+      ],
+      attributes: ["onload"]
+    });
+    const beforeConfig = s.get();
+
+    const parent = document.createElement("div");
+    document.querySelector("#container").appendChild(parent);
+    t.add_cleanup(() => parent.remove());
+
+    function getReceiver() {
+      parent.replaceChildren();
+      if (["beforeHTML", "afterHTML", "replaceWithHTML"].includes(method)) {
+        const ref = document.createElement("div");
+        parent.appendChild(ref);
+        return ref;
+      }
+      return parent;
+    }
+
+    getReceiver()[method]("<div id='d'><script>alert(1)<\/script><p onclick='alert(2)'>test</p></div>");
+    assert_equals(parent.querySelector("script"), null, `script must be stripped by ${method}()`);
+    assert_object_equals(
+      new Sanitizer().get(),
+      initialDefault,
+      `default configuration must be unchanged after ${method}()`
+    );
+
+    getReceiver()[method](
+      "<div id='d' onclick='alert(1)' onload='alert(2)'><script>alert(3)<\/script><p>kept</p></div>",
+      { sanitizer: s }
+    );
+    assert_not_equals(parent.querySelector("#d"), null, "div is allowed");
+    assert_false(parent.querySelector("#d").hasAttribute("onclick"), `onclick must be stripped by ${method}()`);
+    assert_false(parent.querySelector("#d").hasAttribute("onload"), `onload must be stripped by ${method}()`);
+    assert_equals(parent.querySelector("script"), null, `script must be stripped by ${method}()`);
+
+    assert_object_equals(
+      s.get(),
+      beforeConfig,
+      `s.get() must be unchanged after ${method}() when s contains unsafe entries`
+    );
+  }, `Sanitization with ${method}() does not change default base configuration or mutate passed Sanitizer`);
+}
 </script>
 </body>
 </html>

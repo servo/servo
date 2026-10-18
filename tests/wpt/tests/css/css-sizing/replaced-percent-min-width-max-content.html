@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>min-width: max-content floors the min-content contribution of a percentage-width replaced element</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#intrinsic-contribution">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#min-content-zero">
+<link rel="match" href="../reference/ref-filled-green-100px-square-only.html">
+<meta name="assert" content="A replaced element with a percentage inline size contributes zero to its container's min-content size (CSS Sizing 3 §5.2.1: a cyclic percentage is resolved against zero for the min-content contribution). That contribution is then floored by the minimum size in the axis; with min-width: max-content the floor is the element's max-content size, i.e. its 100px natural width. So the min-content-sized container is 100px wide and clips nothing.">
+<style>
+  #container {
+    width: min-content;
+    height: 100px;
+    overflow: hidden;
+  }
+  #replaced {
+    display: block;
+    width: 50%;
+    height: 100px;
+    min-width: max-content;
+    background: green;
+  }
+</style>
+<p>Test passes if there is a filled green square.</p>
+<div id="container">
+  <canvas id="replaced" width="100" height="100"></canvas>
+</div>

@@ -1,0 +1,199 @@
+<!doctype html>
+<title>
+  Custom Elements: HTML parser appends attributes observably when a customized
+  built-in element constructor inserted the element
+</title>
+<meta name="author" title="Keith Cirkel" href="mailto:wpt@keithcirkel.co.uk" />
+<link
+  rel="help"
+  href="https://html.spec.whatwg.org/#create-an-element-for-the-token"
+/>
+<link
+  rel="help"
+  href="https://dom.spec.whatwg.org/#concept-element-attributes-append"
+/>
+<link
+  rel="help"
+  href="https://html.spec.whatwg.org/multipage/obsolete.html#dom-document-anchors"
+/>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<div id="container"></div>
+<div id="anchor-container"></div>
+<script>
+  const container = document.getElementById("container");
+  const anchorContainer = document.getElementById("anchor-container");
+  const records = [];
+  const observer = new MutationObserver((r) => records.push(...r));
+  observer.observe(container, {
+    subtree: true,
+    attributes: true,
+    attributeOldValue: true,
+  });
+  const classMatches = document.getElementsByClassName("parser-class");
+
+  customElements.define(
+    "class-div",
+    class extends HTMLDivElement {
+      static observedAttributes = ["class"];
+      constructor() {
+        super();
+        this.records = [];
+        this.observer = new MutationObserver((records) =>
+          this.records.push(...records),
+        );
+        this.observer.observe(this, {
+          attributes: true,
+          attributeOldValue: true,
+        });
+        container.append(this);
+        classMatches.length;
+      }
+      attributeChangedCallback() {
+        this.classMatchesInCallback = Array.from(classMatches);
+      }
+    },
+    { extends: "div" },
+  );
+
+  customElements.define(
+    "named-anchor",
+    class extends HTMLAnchorElement {
+      static observedAttributes = ["name"];
+      constructor() {
+        super();
+        this.records = [];
+        this.observer = new MutationObserver((records) =>
+          this.records.push(...records),
+        );
+        this.observer.observe(this, {
+          attributes: true,
+          attributeOldValue: true,
+        });
+        anchorContainer.append(this);
+        document.anchors.length;
+      }
+      attributeChangedCallback() {
+        this.anchorsInCallback = Array.from(document.anchors);
+      }
+    },
+    { extends: "a" },
+  );
+</script>
+<div
+  class="parser-class"
+  data-atom="1"
+  data-string="parser-value"
+  data-empty
+  data-duplicate="first"
+  data-duplicate="ignored"
+  is="class-div"
+></div>
+<div class="" is="class-div"></div>
+<a is="named-anchor" name="parser-anchor"></a>
+<a is="named-anchor" name=""></a>
+<script>
+  const [classElement, emptyClassElement] =
+    document.querySelectorAll("[is=class-div]");
+  const [anchorElement, emptyNameElement] =
+    document.querySelectorAll("[is=named-anchor]");
+  const cases = [
+    [
+      classElement,
+      [
+        ["class", "parser-class"],
+        ["data-atom", "1"],
+        ["data-string", "parser-value"],
+        ["data-empty", ""],
+        ["data-duplicate", "first"],
+        ["is", "class-div"],
+      ],
+      "Non-empty, empty, and duplicate attributes",
+    ],
+    [
+      emptyClassElement,
+      [
+        ["class", ""],
+        ["is", "class-div"],
+      ],
+      "An empty class attribute",
+    ],
+    [
+      anchorElement,
+      [
+        ["is", "named-anchor"],
+        ["name", "parser-anchor"],
+      ],
+      "A non-empty name attribute",
+    ],
+    [
+      emptyNameElement,
+      [
+        ["is", "named-anchor"],
+        ["name", ""],
+      ],
+      "An empty name attribute",
+    ],
+  ];
+
+  for (const [target, attributes, description] of cases) {
+    test(() => {
+      const records = [...target.records, ...target.observer.takeRecords()];
+      assert_array_equals(
+        records.map((record) => record.attributeName),
+        attributes.map(([name]) => name),
+      );
+      for (const record of records) {
+        assert_equals(record.target, target);
+        assert_equals(record.type, "attributes");
+        assert_equals(record.attributeNamespace, null);
+        assert_equals(record.oldValue, null);
+      }
+      for (const [name, value] of attributes) {
+        assert_equals(target.getAttribute(name), value);
+      }
+    }, `${description}: parser attribute mutation records on a customized built-in element`);
+  }
+
+  records.push(...observer.takeRecords());
+  const observedCases = cases.slice(0, 2);
+
+  test(() => {
+    assert_array_equals(
+      records.map((record) => record.target),
+      observedCases.flatMap(([target, attributes]) =>
+        attributes.map(() => target),
+      ),
+    );
+    assert_array_equals(
+      records.map((record) => record.attributeName),
+      observedCases.flatMap(([, attributes]) =>
+        attributes.map(([name]) => name),
+      ),
+    );
+    for (const record of records) {
+      assert_equals(record.oldValue, null);
+    }
+  }, "Attributes appended by the parser queue mutation records when the constructor inserted the element into an observed subtree");
+
+  for (const target of [classElement, emptyClassElement]) {
+    test(
+      () => {
+        assert_array_equals(target.classMatchesInCallback, [classElement]);
+      },
+      `Live getElementsByClassName reflects a ${target.className ? "non-empty" : "empty"} class attribute appended by the parser after the constructor inserted the element`,
+    );
+  }
+
+  for (const [target, expected] of [
+    [anchorElement, [anchorElement]],
+    [emptyNameElement, [emptyNameElement, anchorElement]],
+  ]) {
+    test(
+      () => {
+        assert_array_equals(target.anchorsInCallback, expected);
+      },
+      `Live document.anchors reflects a ${target.name ? "non-empty" : "empty"} name attribute appended by the parser after the constructor inserted the element`,
+    );
+  }
+</script>

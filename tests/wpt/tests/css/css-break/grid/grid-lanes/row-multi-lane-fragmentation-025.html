@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<title>
+  Row fragmentation with stacking-axis end and center alignment before a spanner.
+</title>
+<link rel="author" title="Alison Maher" href="mailto:almaher@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#pagination">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#alignment">
+<link rel="match" href="row-multi-lane-fragmentation-025-ref.html">
+<style>
+  .multicol {
+    background: green;
+    column-count: 4;
+    column-fill: auto;
+    column-gap: 0px;
+    height: 100px;
+    margin-bottom: 10px;
+    width: 100px;
+  }
+  .grid-lanes {
+    display: grid-lanes;
+    grid-template-rows: repeat(2, 200px);
+    height: 400px;
+    width: 25px;
+  }
+  .grid-lanes > .aligned {
+    background: blue;
+    grid-row: 2;
+    height: 200px;
+    width: 5px;
+  }
+</style>
+<p>The blue rectangles on green backgrounds must match the reference.</p>
+<!-- The 21px opening gives the blue item 16px of inline-axis alignment space. -->
+<div class="multicol">
+  <div class="grid-lanes" style="justify-items: end;">
+    <div style="height: 200px; width: 21px;"></div>
+    <div class="aligned"></div>
+    <div style="grid-row: 1 / span 2; width: 4px;"></div>
+  </div>
+</div>
+<div class="multicol">
+  <div class="grid-lanes" style="justify-items: center;">
+    <div style="height: 200px; width: 21px;"></div>
+    <div class="aligned"></div>
+    <div style="grid-row: 1 / span 2; width: 4px;"></div>
+  </div>
+</div>

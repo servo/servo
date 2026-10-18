@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html class=reftest-wait>
+<title>CSS Test Reference</title>
+<style>
+body {
+  margin: 0;
+  border-bottom: 20px solid blue;
+}
+
+.filler {
+  height: 350vh;
+}
+
+#fixed {
+  position: fixed;
+  top: 60px;
+  left: 60px;
+  width: 200px;
+  height: 150px;
+  background: silver;
+}
+
+#anchor {
+  position: fixed;
+  top: 60px;
+  left: 60px;
+  width: 60px;
+  height: 60px;
+  background: orange;
+}
+
+#anchored {
+  position: fixed;
+  top: 120px;
+  left: 60px;
+  width: 60px;
+  height: 60px;
+  background: green;
+}
+</style>
+
+<div class="filler"></div>
+
+<div id="fixed"></div>
+<div id="anchor"></div>
+<div id="anchored"></div>
+
+<script src="support/test-common.js"></script>
+<script type="module">
+document.documentElement.scrollTop = document.documentElement.scrollHeight;
+
+// Allow the scrolled layout to settle before capturing, matching the test.
+await waitUntilNextAnimationFrame();
+document.documentElement.classList.remove("reftest-wait");
+</script>

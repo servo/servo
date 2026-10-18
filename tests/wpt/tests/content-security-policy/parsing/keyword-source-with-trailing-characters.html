@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<title>Parsing: a keyword source expression must match the source expression in its entirety</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// Each sub-test loads its own policy in a srcdoc iframe via <meta>. 'self' there resolves to this page's origin.
+
+function loadIframe(policy, body) {
+    return new Promise(resolve => {
+        const iframe = document.createElement("iframe");
+        iframe.srcdoc = `<meta http-equiv="Content-Security-Policy" content="${policy}">` + body;
+        iframe.onload = () => resolve(iframe);
+        document.body.appendChild(iframe);
+    });
+}
+
+promise_test(async t => {
+    const iframe = await loadIframe("script-src 'unsafe-inline'X", "<script>window.ran = true;</scr" + "ipt>");
+    t.add_cleanup(() => iframe.remove());
+    assert_equals(iframe.contentWindow.ran, undefined, "'unsafe-inline'X must not be treated as 'unsafe-inline'.");
+}, "script-src 'unsafe-inline'X ignores the invalid token, so inline script is blocked.");
+
+promise_test(async t => {
+    const iframe = await loadIframe("script-src 'self''unsafe-inline'", "<script>window.ran = true;</scr" + "ipt>");
+    t.add_cleanup(() => iframe.remove());
+    assert_equals(iframe.contentWindow.ran, undefined, "'self''unsafe-inline' must not be treated as 'self' or 'unsafe-inline'.");
+}, "script-src 'self''unsafe-inline' ignores the invalid token, so inline script is blocked.");
+
+promise_test(async t => {
+    const iframe = await loadIframe("script-src 'unsafe-inline' 'unsafe-eval'X", "<script>window.evalThrew = false; try { eval('1'); } catch (e) { window.evalThrew = true; }</scr" + "ipt>");
+    t.add_cleanup(() => iframe.remove());
+    assert_true(iframe.contentWindow.evalThrew, "'unsafe-eval'X must not be treated as 'unsafe-eval'.");
+}, "script-src 'unsafe-inline' 'unsafe-eval'X ignores the invalid token, so eval() is blocked.");
+
+promise_test(async t => {
+    const iframe = await loadIframe("script-src 'self'/foo/", "<script src=\"/content-security-policy/support/var-a.js\"></scr" + "ipt>");
+    t.add_cleanup(() => iframe.remove());
+    assert_equals(iframe.contentWindow.a, undefined, "'self'/foo/ must not be treated as 'self'.");
+}, "script-src 'self'/foo/ ignores the invalid token, so a same-origin script is blocked.");
+
+promise_test(t => {
+    return new Promise(resolve => {
+        window.addEventListener("message", function handler(e) {
+            window.removeEventListener("message", handler);
+            resolve(e.data);
+        });
+        const body = `<body><script nonce="abc">
+            var s = document.createElement("script");
+            s.src = "/content-security-policy/support/var-a.js";
+            s.onload = () => parent.postMessage("load", "*");
+            s.onerror = () => parent.postMessage("error", "*");
+            document.body.appendChild(s);
+        </scr` + `ipt>`;
+        const iframe = document.createElement("iframe");
+        iframe.srcdoc = `<meta http-equiv="Content-Security-Policy" content="script-src 'nonce-abc' 'strict-dynamic'X">` + body;
+        t.add_cleanup(() => iframe.remove());
+        document.body.appendChild(iframe);
+    }).then(result => assert_equals(result, "error", "'strict-dynamic'X must not be treated as 'strict-dynamic'."));
+}, "script-src 'nonce-abc' 'strict-dynamic'X ignores the invalid token, so a dynamically inserted script is blocked.");
+
+promise_test(async t => {
+    const iframe = await loadIframe("style-src 'strict-dynamic''unsafe-inline'", "<div id=\"target\">target</div><style>#target { background-color: rgb(0, 128, 0); }</style>");
+    t.add_cleanup(() => iframe.remove());
+    const color = iframe.contentWindow.getComputedStyle(iframe.contentDocument.getElementById("target")).backgroundColor;
+    assert_not_equals(color, "rgb(0, 128, 0)", "'strict-dynamic''unsafe-inline' must not be split into two keywords.");
+}, "style-src 'strict-dynamic''unsafe-inline' ignores the invalid token, so inline style is blocked.");
+</script>

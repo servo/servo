@@ -31,19 +31,25 @@ function waitForDocumentReady() {
  */
 async function callWithTrustedClick(callback) {
   await waitForDocumentReady();
-  return new Promise(resolve => {
-    let button = document.createElement('button');
-    button.textContent = 'click to continue test';
-    button.style.display = 'block';
-    button.style.fontSize = '20px';
-    button.style.padding = '10px';
-    button.onclick = () => {
-      document.body.removeChild(button);
-      resolve(callback());
-    };
-    document.body.appendChild(button);
-    test_driver.click(button);
+  let button = document.createElement('button');
+  button.textContent = 'click to continue test';
+  button.style.display = 'block';
+  button.style.fontSize = '20px';
+  button.style.padding = '10px';
+  const clicked = new Promise(resolve => {
+    button.onclick = resolve;
   });
+  document.body.appendChild(button);
+  // Run the callback only after test_driver.click() has completed, rather
+  // than from the click handler. The transient activation is still valid at
+  // that point, and this avoids a race in Chrome, which checks for activation
+  // again in the browser process for requestDevice(). That check receives the
+  // request on a different IPC channel than the activation notification, so
+  // it can see the request first.
+  await test_driver.click(button);
+  await clicked;
+  document.body.removeChild(button);
+  return callback();
 }
 
 /**

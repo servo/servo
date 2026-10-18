@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Percentage height inside a row flex item resolves against its aspect-ratio derived height</title>
+<link rel="help" href="https://drafts.csswg.org/css-flexbox/#definite-sizes">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-4/#aspect-ratio">
+<meta name="assert" content="A row flex item whose height:100% behaves as auto gets a definite height from its aspect-ratio and definite width, so a child's height:100% resolves against it.">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+.flexbox {
+  display: flex;
+  width: 100px;
+  height: 100%;
+}
+.item {
+  flex: 1 1 0%;
+  height: 100%;
+  aspect-ratio: 1 / 1;
+  background-color: red;
+}
+.child {
+  height: 100%;
+  background-color: green;
+}
+</style>
+<div class="flexbox">
+  <div class="item">
+    <div class="child"></div>
+  </div>
+</div>
+<script>
+test(() => {
+  const item = document.querySelector(".item");
+  const child = document.querySelector(".child");
+  assert_equals(item.getBoundingClientRect().height, 100, "item height from aspect-ratio");
+  assert_equals(child.getBoundingClientRect().height, 100, "child height:100% resolves against item");
+}, "child height:100% resolves against a row flex item's aspect-ratio derived height");
+</script>

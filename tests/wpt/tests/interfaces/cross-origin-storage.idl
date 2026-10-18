@@ -5,17 +5,17 @@
 
 [Exposed=(Window,Worker), SecureContext]
 interface CrossOriginStorageManager {
-  Promise<FileSystemFileHandle> requestFileHandle(
-      CrossOriginStorageRequestFileHandleHash hash,
-      optional CrossOriginStorageRequestFileHandleOptions options = {});
+  Promise<FileSystemFileHandle> getFileHandle(
+      CrossOriginStorageGetFileHandleHash hash,
+      optional CrossOriginStorageGetFileHandleOptions options = {});
 };
 
-dictionary CrossOriginStorageRequestFileHandleHash {
+dictionary CrossOriginStorageGetFileHandleHash {
   required DOMString value;
   required DOMString algorithm;
 };
 
-dictionary CrossOriginStorageRequestFileHandleOptions {
+dictionary CrossOriginStorageGetFileHandleOptions {
   boolean create = false;
   (DOMString or sequence<DOMString>) origins;
 };

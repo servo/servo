@@ -13,7 +13,7 @@ promise_test(_ => {
       then(testcases => {
         testcases.forEach((testcase, index) => {
           test(_ => {
-            const div = document.createElement("div");
+            const div = document.createElement(testcase["document-fragment"] ?? "div");
             let config = undefined;
             try {
               config = JSON.parse(testcase.config);

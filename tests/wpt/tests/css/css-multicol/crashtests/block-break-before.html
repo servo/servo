@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<style>
+body { margin: 0; }
+#mc { column-width: 200px; column-gap: 0; width: 600px; font: 16px/20px monospace; }
+#G { display: flex; flex-direction: column; }
+#G > div { height: 20px; }
+#g2 { break-before: always; }
+</style>
+<div id="mc"></div>
+<script>
+let html = "";
+for (let i = 0; i < 10; i++) html += '<span id="a' + i + '">A' + i + '</span><br>';
+html += '<div id="G"><div id="g1">g1</div><div id="g2">g2</div><div id="g3">g3</div></div>';
+for (let i = 0; i < 8; i++) html += '<span id="u' + i + '">U' + i + '</span><br>';
+mc.innerHTML = html;
+onload = () => {
+  document.body.offsetHeight;
+  u0.scrollIntoView();
+  mc.style.width = "400px";
+  g3.style.breakBefore = "always";
+  document.body.offsetHeight;
+  u0.scrollIntoView();
+};
+</script>

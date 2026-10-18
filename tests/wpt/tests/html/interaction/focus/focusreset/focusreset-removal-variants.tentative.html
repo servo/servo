@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>focusreset event: different ways of removing the focused element</title>
+<link rel="help" href="https://github.com/whatwg/html/pull/13050">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/interaction.html#focus-fixup-rule">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="support/focusreset-helpers.js"></script>
+
+<script>
+"use strict";
+
+function test_removal(description, setup) {
+  promise_test(async t => {
+    await settle(t);
+    const events = recordFocusResets(t);
+    const { focusTarget, remove } = setup(t);
+    focusTarget.focus();
+    assert_equals(document.activeElement,
+                  focusTarget.getRootNode() === document ?
+                      focusTarget : focusTarget.getRootNode().host,
+                  "sanity: element is focused");
+    remove();
+    assert_equals(document.activeElement, document.body,
+                  "focus is reset synchronously");
+    assert_equals(events.length, 0, "not fired synchronously");
+    await nextTask(t);
+    assert_equals(events.length, 1, "focusreset fired once");
+    assert_equals(events[0].target, document);
+    await afterNextRenderingUpdateAndTask(t);
+    assert_equals(events.length, 1, "focusreset isn't fired again");
+  }, description);
+}
+
+test_removal("Removing an ancestor of the focused element", t => {
+  const container = createFocusable(t, "div");
+  const inner = createFocusable(t, "div", container);
+  const button = createFocusable(t, "button", inner);
+  return { focusTarget: button, remove: () => container.remove() };
+});
+
+test_removal("Removing via parent.removeChild()", t => {
+  const button = createFocusable(t);
+  return { focusTarget: button, remove: () => document.body.removeChild(button) };
+});
+
+test_removal("Removing via replaceChild()", t => {
+  const container = createFocusable(t, "div");
+  const button = createFocusable(t, "button", container);
+  return {
+    focusTarget: button,
+    remove: () => container.replaceChild(document.createElement("span"), button),
+  };
+});
+
+test_removal("Removing via replaceWith()", t => {
+  const button = createFocusable(t);
+  return {
+    focusTarget: button,
+    remove: () => button.replaceWith(document.createElement("span")),
+  };
+});
+
+test_removal("Removing via innerHTML", t => {
+  const container = createFocusable(t, "div");
+  const button = createFocusable(t, "button", container);
+  return { focusTarget: button, remove: () => { container.innerHTML = ""; } };
+});
+
+test_removal("Removing via textContent", t => {
+  const container = createFocusable(t, "div");
+  const button = createFocusable(t, "button", container);
+  return { focusTarget: button, remove: () => { container.textContent = "x"; } };
+});
+
+test_removal("Removing via replaceChildren()", t => {
+  const container = createFocusable(t, "div");
+  const button = createFocusable(t, "button", container);
+  return { focusTarget: button, remove: () => container.replaceChildren() };
+});
+
+test_removal("Removing via outerHTML", t => {
+  const container = createFocusable(t, "div");
+  const button = createFocusable(t, "button", container);
+  return { focusTarget: button, remove: () => { button.outerHTML = "<span></span>"; } };
+});
+
+test_removal("Removing via Range.deleteContents()", t => {
+  const container = createFocusable(t, "div");
+  const button = createFocusable(t, "button", container);
+  return {
+    focusTarget: button,
+    remove: () => {
+      const range = document.createRange();
+      range.selectNodeContents(container);
+      range.deleteContents();
+    },
+  };
+});
+
+test_removal("Moving the focused element into a different document", t => {
+  const button = createFocusable(t);
+  const otherDocument = document.implementation.createHTMLDocument("");
+  return { focusTarget: button, remove: () => otherDocument.body.append(button) };
+});
+
+test_removal("Moving the focused element into a DocumentFragment", t => {
+  const button = createFocusable(t);
+  const fragment = document.createDocumentFragment();
+  return { focusTarget: button, remove: () => fragment.append(button) };
+});
+
+test_removal("Removing a focused element in a shadow tree", t => {
+  const host = createFocusable(t, "div");
+  const root = host.attachShadow({ mode: "open" });
+  const button = document.createElement("button");
+  root.append(button);
+  return { focusTarget: button, remove: () => button.remove() };
+});
+
+test_removal("Removing a shadow host whose shadow tree contains the focused element", t => {
+  const host = createFocusable(t, "div");
+  const root = host.attachShadow({ mode: "open" });
+  const button = document.createElement("button");
+  root.append(button);
+  return { focusTarget: button, remove: () => host.remove() };
+});
+
+test_removal("Removing a focused element that is slotted", t => {
+  const host = createFocusable(t, "div");
+  const root = host.attachShadow({ mode: "open" });
+  root.append(document.createElement("slot"));
+  const button = createFocusable(t, "button", host);
+  return { focusTarget: button, remove: () => button.remove() };
+});
+
+test_removal("Removing a focused element inside an open <dialog>", t => {
+  const dialog = createFocusable(t, "dialog");
+  const button = createFocusable(t, "button", dialog);
+  dialog.show();
+  t.add_cleanup(() => dialog.close());
+  return { focusTarget: button, remove: () => button.remove() };
+});
+
+test_removal("Removing a focused <input>", t => {
+  const input = createFocusable(t, "input");
+  return { focusTarget: input, remove: () => input.remove() };
+});
+
+test_removal("Removing a focused contenteditable element", t => {
+  const div = createFocusable(t, "div");
+  div.contentEditable = "true";
+  return { focusTarget: div, remove: () => div.remove() };
+});
+
+test_removal("Removing a focused element with tabindex", t => {
+  const div = createFocusable(t, "div");
+  div.tabIndex = -1;
+  return { focusTarget: div, remove: () => div.remove() };
+});
+
+promise_test(async t => {
+  await settle(t);
+  const events = recordFocusResets(t);
+  const a = createFocusable(t);
+  const b = createFocusable(t);
+  const c = createFocusable(t);
+  a.focus();
+  a.remove();
+  b.focus();
+  b.remove();
+  c.focus();
+  c.remove();
+  await afterNextRenderingUpdateAndTask(t);
+  assert_equals(events.length, 1,
+                "multiple focus resets in one task produce a single event");
+}, "Multiple removals of focused elements in the same task coalesce into one focusreset");
+
+promise_test(async t => {
+  await settle(t);
+  const events = recordFocusResets(t);
+  const a = createFocusable(t);
+  a.focus();
+  a.remove();
+  await nextTask(t);
+  assert_equals(events.length, 1, "first focusreset");
+
+  const b = createFocusable(t);
+  b.focus();
+  b.remove();
+  await nextTask(t);
+  assert_equals(events.length, 2, "second focusreset");
+}, "Focus resets in separate tasks each fire their own focusreset");
+
+promise_test(async t => {
+  await settle(t);
+  const events = recordFocusResets(t);
+  const a = createFocusable(t);
+  const b = createFocusable(t);
+  a.focus();
+  a.remove();
+  document.addEventListener("focusreset", t.step_func(() => {
+    // Trigger another focus reset from within the handler.
+    b.focus();
+    b.remove();
+    assert_equals(events.length, 1, "no re-entrant focusreset");
+  }), { once: true });
+  await nextTask(t);
+  assert_equals(events.length, 2,
+                "the reset from the handler fires in a subsequent microtask");
+}, "A focus reset from within a focusreset handler fires another focusreset asynchronously");
+
+promise_test(async t => {
+  await settle(t);
+  const events = recordFocusResets(t);
+  const a = createFocusable(t);
+  const b = createFocusable(t);
+  a.focus();
+  a.remove();
+  document.addEventListener("focusreset", t.step_func(() => {
+    b.focus();
+  }), { once: true });
+  await afterNextRenderingUpdateAndTask(t);
+  assert_equals(events.length, 1);
+  assert_equals(document.activeElement, b,
+                "focus can be restored from the focusreset handler");
+}, "Focus can be moved from a focusreset handler");
+</script>

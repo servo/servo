@@ -26,6 +26,15 @@
             assert_equals(template.content.childNodes[1].tagName, "SPAN", "Second child is span");
           }
         }, `${method_name} on a child of a template content`);
+
+        test(() => {
+          const template = document.createElement("template");
+          const child = document.createElement("div");
+          template.appendChild(child);
+          assert_throws_dom("HierarchyRequestError", () => {
+            child[method_name]();
+          });
+        }, `${method_name} on a direct child of a template element throws HierarchyRequestError`);
       }
     }
   </script>

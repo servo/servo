@@ -1,8 +1,39 @@
 <!DOCTYPE html>
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="../../popovers/resources/popover-utils.js"></script>
 <link rel=author href=mailto:dizhangg@chromium.org>
 <link rel=help href=https://open-ui.org/components/menu.explainer>
+<link rel=help href=https://html.spec.whatwg.org/multipage/rendering.html#flow-content-3>
+
+<style>
+  #target {
+    position: fixed;
+    left: 10px;
+    top: 10px;
+    width: 40px;
+    height: 40px;
+  }
+  #menu {
+    position: fixed;
+    margin: 0;
+    position-area: none;
+    inset: 100px auto auto 100px;
+  }
+  #menu:popover-open {
+    overlay: auto;
+  }
+  #menu:popover-open::backdrop {
+    position: fixed;
+    inset: 0;
+    pointer-events: auto;
+  }
+</style>
+
+<div id="target"></div>
 
 <menulist id="menu">
  <menuitem>Command 1</menuitem>
@@ -34,4 +65,27 @@ test(() => {
   assert_true(menu.matches(':popover-open'));
   menu.hidePopover();
 }, "menulist is a popover by default.");
+
+promise_test(async t => {
+  const menu = document.getElementById('menu');
+  const target = document.getElementById('target');
+
+  assert_false(menu.hasAttribute('popover'));
+  assert_false(menu.matches(':popover-open'));
+  let clicked = false;
+  target.addEventListener('click', () => {
+    clicked = true;
+  }, {signal: t.get_signal()});
+
+  await clickOn(target);
+  assert_true(clicked, 'The target receives the click while the menulist is closed');
+
+  clicked = false;
+  menu.showPopover();
+  t.add_cleanup(() => menu.hidePopover());
+  assert_true(menu.matches(':popover-open'));
+
+  await clickOn(target);
+  assert_true(clicked, 'The element outside the menulist receives the click');
+}, 'Clicks outside a menulist without a popover attribute reach the target');
 </script>
