@@ -1650,10 +1650,13 @@ exercises this end to end with the shipped defaults.
   `servo_webview_evaluate_javascript`, `servo_webview_take_screenshot`,
   `servo_webview_go_back` and friends only queue work. If your program never
   calls `servo_spin_event_loop`, no navigation, callback or frame will happen.
-- **Wrong thread.** Calling any function other than the waker from a different
-  thread than the one that built the `Servo` is undefined behavior. Keep
-  `user_data` access on that thread too (or protect it with your own
-  synchronization).
+- **Wrong thread.** The C API is single-threaded: the thread that first calls
+  through the FFI boundary is the *owning* thread. Any call to a boundary-wrapped
+  function from another thread returns `SERVO_ERROR_WRONG_THREAD` (`-10`). The
+  only cross-thread exceptions are the pure `servo_capi_*` queries and the
+  protocol-handler response/request accessors called directly from a registered
+  protocol handler. Keep `user_data` access on the owning thread too (or protect
+  it with your own synchronization).
 - **Doing too much in the waker.** The waker may run on a Servo-internal thread.
   It must not block, allocate heavily, or call Servo functions. Signal your
   event loop and return.

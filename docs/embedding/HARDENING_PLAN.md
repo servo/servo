@@ -196,8 +196,10 @@ Several callbacks pass pointers valid **only for the duration of the call**
 - Add a debug mode that, when a callback returns, poisons the buffer it handed
   out (writes a sentinel) so a late read by the embedder is observable in tests.
 - Document and test the **thread-affinity contract**: handles are
-  main-thread-affine; assert `is_main_thread()` under `debug_assertions` in the
-  entry macro in `ffi/capi/lib.rs`.
+  main-thread-affine; the FFI boundary enforces `is_main_thread()` in all builds
+  and returns `SERVO_ERROR_WRONG_THREAD` on violations (`ffi/capi/lib.rs::
+  entry_checks`). The thread-agnostic exceptions (pure queries, plain callback
+  accessors) are listed in `docs/embedding/ABI_STABILITY.md` §5.1.
 
 ### B.3 `Send`/`Sync` assertions
 

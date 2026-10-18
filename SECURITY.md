@@ -97,8 +97,9 @@ data from other origins, or crash the browser process. Relevant surfaces:
   browsing context, partitioned cookies are currently stored but never sent (fail-closed).
 - **Embedding FFI (C ABI).** Every `extern "C"` entry point is wrapped in a
   `catch_unwind` boundary and returns an error code (`ffi/capi/lib.rs`).
-  Handles are opaque and thread-affine; main-thread affinity is checked in debug
-  builds via `debug_checks::assert_main_thread`.
+  Handles are opaque and thread-affine; main-thread affinity is enforced at the
+  FFI boundary (`ffi/capi/lib.rs::entry_checks`) in all builds, and an off-thread
+  call returns `SERVO_ERROR_WRONG_THREAD`.
 
 ## Known security limitations
 

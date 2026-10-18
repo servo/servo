@@ -371,6 +371,32 @@ Templates by function shape:
   set by the caller before the call.
   ```
 
+### 5.1 Threading enforcement and exceptions (W4.6)
+
+The C API is single-threaded: the thread that first calls through the FFI
+boundary is the *owning* thread, and every boundary-wrapped entry point must be
+called from it. A call from any other thread returns `SERVO_ERROR_WRONG_THREAD`
+(-10). This check is compiled into release builds (a check that disappears in
+release is a footgun) and costs one uncontended mutex acquisition per call.
+
+Not every exported function goes through the boundary. The following apply:
+
+| Entry points | Thread | Notes |
+|-------------|--------|-------|
+| Functions wrapped by `ServoError::catch_ffi*` (the majority) | owning thread; **enforced** | These touch `Rc`-based handles or process-global Servo state. |
+| `servo_capi_version`, `servo_capi_get_version`, `servo_capi_platform_name`, `servo_capi_is_multiprocess_enabled`, `servo_capi_is_sandboxing_supported` | any thread | Pure functions over compile-time constants; no Servo state. |
+| `servo_web_resource_request_get_*`, `servo_web_resource_response_set_*`, `servo_web_resource_load_get_request`, `servo_web_resource_request_free`, `servo_web_resource_response_free` (plain accessors) | the thread invoking the callback (possibly a network/background thread) | These are called directly from a protocol handler or delegate callback; they do not go through the main-thread boundary. |
+
+The five `servo_web_resource_load_*` streaming functions do go through the
+boundary and are therefore owning-thread only: drive the streaming continuation
+from the embedder thread (for example in a later `servo_spin_event_loop`
+iteration), not from a worker thread.
+
+A small number of non-wrapped getter functions (e.g. `servo_webview_get_size`,
+`servo_webview_can_go_back`) read handle state but have no error channel; they
+are documented as main-thread-only but are not currently enforced (caller
+error).
+
 ### 6.1 ABI Support Window and Deprecation Cadence
 
 - **Support Window:** A deprecated symbol or struct field remains fully supported and

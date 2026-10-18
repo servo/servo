@@ -254,89 +254,112 @@ pub enum ServoError {
 
     /// An invalid argument was provided.
     InvalidArgument = -9,
+
+    /// The call was made from a thread other than the one that first entered
+    /// the C API.
+    ///
+    /// The C API is single-threaded from the embedder's point of view: every
+    /// handle is affine to the thread that first called into the library. This
+    /// is enforced at the FFI boundary (see `docs/embedding/ABI_STABILITY.md`
+    /// section 5) so a contract violation returns this error instead of
+    /// performing unsynchronized access.
+    WrongThread = -10,
 }
 
 impl ServoError {
     /// Creates a `catch_unwind` boundary for FFI functions.
     ///
-    /// This ensures that no panic can cross the `extern "C"` boundary,
-    /// which would be undefined behavior. If a panic occurs, it is caught
-    /// and `ServoError::InternalPanic` is returned.
+    /// The boundary does two things, in order:
+    ///
+    /// 1. It enforces the C API's single-threaded contract by rejecting calls
+    ///    from a thread other than the one that first entered the library
+    ///    (`ServoError::WrongThread`). This check cannot panic and runs in
+    ///    release builds too.
+    /// 2. It ensures that no panic can cross the `extern "C"` boundary, which
+    ///    would be undefined behavior. A panic is caught and converted to
+    ///    `ServoError::InternalPanic`.
     #[inline]
     pub fn catch_ffi<F: FnOnce() -> ServoError>(f: F) -> ServoError {
-        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            debug_checks::assert_main_thread();
-            f()
-        }))
-        .unwrap_or(ServoError::InternalPanic)
+        if let Err(error) = entry_checks::check_main_thread() {
+            return error;
+        }
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f))
+            .unwrap_or(ServoError::InternalPanic)
     }
 
-    /// Creates a `catch_unwind` boundary for FFI functions that return a raw
-    /// `i32` (for example, an identifier). Panics are caught and converted to
+    /// Like [`ServoError::catch_ffi`], for FFI functions that return a raw `i32`
+    /// (for example, an identifier). An off-thread call returns
+    /// `ServoError::WrongThread` as an `i32`; panics are converted to
     /// `ServoError::InternalPanic` as an `i32`.
     #[inline]
     pub fn catch_ffi_i32<F: FnOnce() -> i32>(f: F) -> i32 {
-        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            debug_checks::assert_main_thread();
-            f()
-        }))
-        .unwrap_or(ServoError::InternalPanic as i32)
+        if entry_checks::check_main_thread().is_err() {
+            return ServoError::WrongThread as i32;
+        }
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f))
+            .unwrap_or(ServoError::InternalPanic as i32)
     }
 
-    /// Creates a `catch_unwind` boundary for FFI functions that return a raw pointer.
-    /// Panics are caught and `NULL` (`null_mut()`) is returned.
+    /// Like [`ServoError::catch_ffi`], for FFI functions that return a raw
+    /// pointer. An off-thread call or a panic returns `NULL`.
     #[inline]
     pub fn catch_ffi_ptr<T, F: FnOnce() -> *mut T>(f: F) -> *mut T {
-        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            debug_checks::assert_main_thread();
-            f()
-        }))
-        .unwrap_or(std::ptr::null_mut())
+        if entry_checks::check_main_thread().is_err() {
+            return std::ptr::null_mut();
+        }
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).unwrap_or(std::ptr::null_mut())
     }
 
-    /// Creates a `catch_unwind` boundary for FFI functions that return a const pointer.
-    /// Panics are caught and `NULL` (`null()`) is returned.
+    /// Like [`ServoError::catch_ffi`], for FFI functions that return a const
+    /// pointer. An off-thread call or a panic returns `NULL`.
     #[inline]
     pub fn catch_ffi_const_ptr<T, F: FnOnce() -> *const T>(f: F) -> *const T {
-        std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
-            debug_checks::assert_main_thread();
-            f()
-        }))
-        .unwrap_or(std::ptr::null())
+        if entry_checks::check_main_thread().is_err() {
+            return std::ptr::null();
+        }
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).unwrap_or(std::ptr::null())
     }
 }
 
-#[cfg(debug_assertions)]
-pub(crate) mod debug_checks {
+/// Entry-point checks shared by the FFI boundary helpers.
+///
+/// The C API is single-threaded from the embedder's point of view: every handle
+/// is `Rc`-based and affine to the thread that first entered the API. This
+/// check turns a contract violation into `ServoError::WrongThread` instead of
+/// unsynchronized access. It is compiled into release builds as well -- a check
+/// that vanishes in release is a footgun, because release is where embedders
+/// actually ship.
+pub(crate) mod entry_checks {
     use std::sync::Mutex;
     use std::thread::ThreadId;
-    use log::warn;
 
+    use crate::ServoError;
+
+    /// The thread that first called through the FFI boundary, or `None` until
+    /// the first call.
     static MAIN_THREAD: Mutex<Option<ThreadId>> = Mutex::new(None);
 
-    /// Asserts that the current thread is the main FFI thread.
+    /// Returns `Err(ServoError::WrongThread)` when the current thread is not the
+    /// thread that first called into the C API.
     ///
-    /// All Servo C API handles are affine to the thread on which Servo/ServoBuilder
-    /// was created.
-    pub fn assert_main_thread() {
+    /// The first caller wins: the API is single-threaded, so whoever enters
+    /// first defines the owning thread. If the tracking lock is ever poisoned
+    /// the check fails open (returns `Ok`): thread affinity is a correctness
+    /// guard, and an unrelated poisoned lock must not wedge every entry point.
+    pub fn check_main_thread() -> Result<(), ServoError> {
         let current = std::thread::current().id();
-        let Ok(mut lock) = MAIN_THREAD.lock() else {
-            return;
+        let Ok(mut main_thread) = MAIN_THREAD.lock() else {
+            return Ok(());
         };
-        if let Some(main_id) = *lock {
-            if current != main_id {
-                warn!("Thread affinity warning: Servo C API entry invoked from non-main thread!");
-            }
-        } else {
-            *lock = Some(current);
+        match *main_thread {
+            None => {
+                *main_thread = Some(current);
+                Ok(())
+            },
+            Some(id) if id == current => Ok(()),
+            Some(_) => Err(ServoError::WrongThread),
         }
     }
-}
-
-#[cfg(not(debug_assertions))]
-pub(crate) mod debug_checks {
-    #[inline(always)]
-    pub fn assert_main_thread() {}
 }
 
 /// Returns `true` when the `struct_size` field supplied by an embedder is

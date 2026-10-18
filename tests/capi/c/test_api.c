@@ -4,6 +4,9 @@
 
 #ifdef _WIN32
 #define _CRT_SECURE_NO_WARNINGS
+#include <windows.h>
+#else
+#include <pthread.h>
 #endif
 #include "servo/servo_capi.h"
 #include <math.h>
@@ -623,17 +626,70 @@ int test_capi_capabilities(void)
     return 0;
 }
 
-/* Test that main thread FFI calls execute cleanly and verify assert_main_thread behavior. */
-int test_debug_thread_checks(void)
+static volatile int g_off_thread_result = 0;
+
+static void off_thread_call_main_thread_only(void)
 {
-    /* C API functions wrapped in catch_ffi execute assert_main_thread internally.
-     * Verify that invoking queries on the calling thread succeeds without error or panic. */
+    /* `servo_builder_free` goes through the FFI boundary, which rejects calls
+     * from a thread other than the one that first entered the C API. */
+    g_off_thread_result = (int)servo_builder_free(NULL);
+}
+
+#ifdef _WIN32
+static DWORD WINAPI off_thread_entry(LPVOID param)
+{
+    (void)param;
+    off_thread_call_main_thread_only();
+    return 0;
+}
+#else
+static void* off_thread_entry(void* param)
+{
+    (void)param;
+    off_thread_call_main_thread_only();
+    return NULL;
+}
+#endif
+
+/* An off-thread call to a main-thread-only function returns
+ * SERVO_ERROR_WRONG_THREAD rather than risking unsynchronized access. */
+int test_thread_affinity_enforcement(void)
+{
+    /* Establish this thread as the owning (main) thread. */
+    if (servo_builder_free(NULL) != SERVO_ERROR_NULL_ARGUMENT) {
+        return 1;
+    }
+
+#ifdef _WIN32
+    HANDLE thread = CreateThread(NULL, 0, off_thread_entry, NULL, 0, NULL);
+    if (thread == NULL) {
+        return 1;
+    }
+    WaitForSingleObject(thread, INFINITE);
+    CloseHandle(thread);
+#else
+    pthread_t thread;
+    if (pthread_create(&thread, NULL, off_thread_entry, NULL) != 0) {
+        return 1;
+    }
+    pthread_join(thread, NULL);
+#endif
+
+    if (g_off_thread_result != (int)SERVO_ERROR_WRONG_THREAD) {
+        return 1;
+    }
+
+    /* The owning thread is unaffected by the rejected call. */
+    if (servo_builder_free(NULL) != SERVO_ERROR_NULL_ARGUMENT) {
+        return 1;
+    }
+
+    /* Pure queries remain callable from any context and set no owning thread. */
     const char* platform = servo_capi_platform_name();
     if (platform == NULL || platform[0] == '\0')
         return 1;
 
-    bool multiprocess = servo_capi_is_multiprocess_enabled();
-    (void)multiprocess;
+    (void)servo_capi_is_multiprocess_enabled();
     return 0;
 }
 
@@ -2631,7 +2687,7 @@ int run_c_api_tests(void)
     RUN_TEST(test_webview_builder_build);
     RUN_TEST(test_capi_version);
     RUN_TEST(test_capi_capabilities);
-    RUN_TEST(test_debug_thread_checks);
+    RUN_TEST(test_thread_affinity_enforcement);
     RUN_TEST(test_webview_get_url);
     RUN_TEST(test_webview_get_title);
     RUN_TEST(test_webview_get_status_text);
