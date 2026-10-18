@@ -10,11 +10,62 @@ description, affected revision/commit, the platform, and (where possible) a
 minimal reproduction. We will acknowledge reports through the private advisory
 and coordinate disclosure once a fix is available.
 
+The private advisory form above is the only intake channel: reports are not
+tracked in public issues, and there is no security mailing list. Private
+vulnerability reporting is enabled on `servo/servo` (the form above) but not on
+this fork, so branch-specific findings (the C API / embedding surface under
+`ffi/capi` and `docs/embedding/`) go through the same advisory, naming the branch
+and the affected revision.
+
+## Response process
+
+These are targets, not contractual terms; a report that needs a large
+architectural change may take longer, in which case the reason is communicated to
+the reporter.
+
+| Stage | Target |
+|---|---|
+| Acknowledge the report | 3 working days |
+| Initial triage: severity, affected revisions/platforms, reproducibility | 10 working days |
+| Fix or documented mitigation for a confirmed issue | 30 days for high/critical, 90 days otherwise |
+| Public advisory | within 14 days of a fix being available, or on the date agreed with the reporter |
+
+## Publishing an advisory
+
+1. Fix on a private branch and keep the report private until publication.
+2. Publish the advisory through the GitHub security advisory for the affected
+   repository, marking it as a vulnerability (GitHub is a CNA and can assign a
+   CVE): state the affected revisions, the severity (CVSS vector), the fix
+   commit, and the action an embedder must take (for example "update the pinned
+   revision" or "stop passing `servo_options_set_ignore_certificate_errors`").
+3. Credit the reporter unless they ask to stay anonymous, and link the advisory
+   from the affected document under `docs/embedding/` so the claim that it
+   corrects does not stay stale.
+
 ## Supported versions
 
 Servo is a prototype engine under active development on `main` and active
 embedding branches. Security fixes are applied to active development branches;
 there are no maintained long-term-support (LTS) releases.
+
+## Dependency and supply-chain cadence
+
+- **Policy.** `deny.toml` at the repository root: RustSec advisories (each
+  `ignore` entry carries a written rationale), the license allowlist, and
+  duplicate/blocked-package bans.
+- **Check.** `cargo deny check` is wired into `./mach test-tidy`
+  (`python/tidy/tidy.py`, `run_cargo_deny_lints`), so it runs wherever tidy runs
+  and is the same command an embedder can run before pinning a revision.
+- **Updates.** `.github/dependabot.yml` opens grouped Cargo update PRs twice a
+  week (Monday-Wednesday-Sunday cron `0 1 * * WED,SUN`, Europe/Berlin) with a
+  7-day cooldown for every dependency, plus Cargo/`wgpu`-specific ignores.
+  Advisories are not left to that cadence: a failing `cargo deny check` (or an
+  advisory that requires an immediate bump) is handled out of band.
+- **Current gap.** On this fork, `mach test-tidy` is only run by `lint.yml`,
+  which is invoked on demand (`workflow_call`/`workflow_dispatch`, currently from
+  `dispatch-workflow.yml`); the embedding workflows do not call it. Until a
+  scheduled or push-triggered job is added, advisory and license checks are on
+  demand, not continuous.
 
 ## Threat model
 
@@ -67,7 +118,7 @@ data from other origins, or crash the browser process. Relevant surfaces:
 4. **Certificate-error bypasses.** `servo_options_set_ignore_certificate_errors`
    disables TLS verification globally if explicitly enabled by embedders.
    Off by default.
-4. **Fuzzing & Telemetry.** Initial in-tree fuzz targets are established under
+5. **Fuzzing & Telemetry.** Initial in-tree fuzz targets are established under
    `/fuzz` (`fuzz_cookie_parser`), and cross-platform crash handling is
    installed in `ports/servoshell/crash_handler.rs`. Continuous OSS-Fuzz integration
    is planned.
