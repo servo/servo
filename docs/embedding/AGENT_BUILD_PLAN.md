@@ -196,14 +196,14 @@ Effort: **S** days · **M** 1–3 weeks · **L** 1–3 months · **XL** quarters
 | **W2.6** | CHIPS: derive request partition key (never sent today) | M | `partial` (store+fail-closed done, key never derived) | — | embedding-api.yml |
 | **W2.7** | CSP/COOP/CORP/XCTO/TLS behaviour review | L | `todo` | — | linux.yml + WPT |
 | **W2.8** | Fuzzing + security regression in CI | L | `partial` | — | embedding-api.yml |
-| **W2.9** | Operationalise `SECURITY.md` | S | `partial` | — | — |
+| **W2.9** | Operationalise `SECURITY.md` | S | ✅ verified (`31f9a22abdc`; docs/process — no CI gate) | — | — |
 | **W3.1** | Android embeddable AAR (not just a demo app) | L | `partial` | — | android.yml |
 | **W3.2** | iOS: run spike → decide (commit or declare unsupported) | S | `blocked` (needs decision) | human | — |
 | **W3.3** | arm64 sandbox gap | XL | `todo` | W2.1/W2.2 | — |
 | **W3.4** | Signed/notarized release pipeline | L | `todo` | W5.3 | release.yml |
 | **W3.5** | Windowed/GPU validation harness + checklist | S | `partial` (harness exists, never run) | human+GPU | manual |
 | **W4.2** | Clipboard + gamepad + embedder controls in C | L | `partial` | — | embedding-api.yml |
-| **W4.4** | DevTools/console exposure: verify + document + test | S | `unproven` | — | embedding-api.yml |
+| **W4.4** | DevTools/console exposure: verify + document + test | S | ✅ verified (run `39152343582`, 3 platforms) | — | embedding-api.yml |
 | **W4.5** | Manual windowed/GPU validation on real hardware | S | `blocked` (needs GPU) | W3.5 | manual |
 | **W4.6** | `Send`/`Sync` handles *or* documented main-thread contract | M | `todo` | W2.5 | embedding-api.yml |
 | **W4.7** | Language bindings beyond C/C++ | L | `partial` (C++ RAII exists) | W5.4 | — |
@@ -588,7 +588,7 @@ or WPT expectation paths; no item silently closed.
 
 #### W2.9 — Operationalise `SECURITY.md`
 
-**State:** `partial` · **Effort:** S · **Gate:** none (docs/process)
+**State:** ✅ verified (`31f9a22abdc` — docs/process, no CI gate) · **Effort:** S · **Gate:** none (docs/process)
 
 **Goal.** Make the vulnerability policy operational: intake address, triage SLA, advisory
 publication process, dependency cadence via `deny.toml` (verify it exists —
@@ -802,7 +802,7 @@ dedicated modules only if they are not webview-scoped.
 
 #### W4.4 — DevTools / console exposure: verify, document, test (re-scoped)
 
-**State:** `unproven` · **Effort:** S · **Gate:** `embedding-api.yml`
+**State:** ✅ verified — run `39152343582` (all three platforms observed the callback) · **Effort:** S · **Gate:** `embedding-api.yml`
 
 **Why re-scoped.** The callbacks already exist (`servo_builder_set_delegate` with
 `notify_devtools_server_started` + `request_devtools_connection`, plus
@@ -992,7 +992,7 @@ clean-shutdown test.
 
 #### W5.2 — Prove `capi-artifacts.yml` (first dispatch)
 
-**State:** `unproven` · **Effort:** M · **Gate:** `capi-artifacts.yml`
+**State:** ✅ verified — runs `39145918170` (push) + `39149442966` (dispatch) · **Effort:** M · **Gate:** `capi-artifacts.yml`
 
 **Goal.** Convert a written-but-never-executed workflow into a producing one, and build
 `examples/c-embedder` against a **real** sysroot rather than a stub header.
@@ -1318,6 +1318,13 @@ see §D.2) so the absence is a decision rather than an omission.
 | `windows-wpt.yml` | (file exists) | Windows WPT | **never run** → W1.1 (out of scope here, but dispatch is cheap) |
 | `release.yml` / `release-github.yml` | release | packaging | signing status unverified → W3.4 |
 | `bencher.yml` | | perf | candidate for W5.6 |
+
+**Run-evidence rule.** Cite *run id + sha* for every green claim:
+`concurrency: cancel-in-progress` means a later push cancels an in-flight run of the same
+workflow. Live example: `embedding-api` run `39151946182` (sha `c3a81a6510f`) was
+cancelled by the next push. The Wave A evidence runs are `39145918170` (push) and
+`39149442966` (dispatch) on `7dba3701af9`, `39151946057` on `c3a81a6510f`, and
+`39152343582` on `4e0eefbcb77`.
 
 Commands:
 
