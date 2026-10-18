@@ -7,8 +7,8 @@
 interface HTMLModElement : HTMLElement {
   [HTMLConstructor] constructor();
 
-  // [CEReactions]
-  //         attribute DOMString cite;
-  // [CEReactions]
-  //         attribute DOMString dateTime;
+  [CEReactions]
+           attribute USVString cite;
+  [CEReactions]
+           attribute DOMString dateTime;
 };
