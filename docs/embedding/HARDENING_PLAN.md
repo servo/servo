@@ -102,8 +102,11 @@ provenance; claims that no longer hold are corrected in place.
   exit signal exactly once and leaves other components alone.
 - `tests/capi/c/test_integration.c::test_hang_monitor_kills_hung_script`
   covers the end-to-end path with the shipped defaults: evaluating
-  `while (true) {}` is interrupted with an error within the permanent timeout,
-  and the suite's final `servo_free` proves teardown stays clean.
+  `while (true) {}` is interrupted with an error just after the 5s permanent
+  timeout. The test also rejects an interruption earlier than 3s, since an
+  unrelated shutdown signal could complete the evaluation early and would not
+  prove the permanent-hang path. The suite's final `servo_free` proves teardown
+  stays clean.
 
 ### A.2 Remaining reachable panics
 

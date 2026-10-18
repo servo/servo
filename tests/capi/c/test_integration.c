@@ -37,6 +37,21 @@ static void sleep_ms(long period)
 #endif
 }
 
+// Monotonic milliseconds. Unlike a counter that adds a fixed step per spin
+// iteration, this measures real elapsed time no matter how long each
+// `servo_spin_event_loop` call takes.
+static long now_ms(void)
+{
+#ifdef _WIN32
+    return (long)GetTickCount64();
+#else
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (long)(ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
+#endif
+}
+
+
 typedef enum {
     TEST_STEP_STARTING = 0,
     TEST_STEP_HEAD_PARSED,
@@ -671,8 +686,9 @@ static void on_javascript_hang_kill(const char* result_json, const char* error_m
 }
 
 /* Proves that a component that stops servicing hang-monitor checkpoints is
- * terminated within the permanent hang timeout (5s) and that the embedder
- * observes a defined outcome rather than a silent hang.
+ * terminated shortly after the permanent hang timeout (5s), not immediately
+ * and not never, and that the embedder observes a defined outcome rather than
+ * a silent hang.
  *
  * The background hang monitor and the hung-script kill are enabled by default
  * (`servo_options_create()` -> `Opts::default()`). Evaluating an infinite
@@ -736,15 +752,14 @@ int test_hang_monitor_kills_hung_script(struct Servo* servo)
     // before wedging it.
     log("  Spinning event loop until load completes... (timeout 10s)\n");
     {
-        int elapsed_ms = 0;
-        while (elapsed_ms < 10000) {
+        long deadline = now_ms() + 10000;
+        while (now_ms() < deadline) {
             servo_spin_event_loop(servo);
 
             if (state.step >= TEST_STEP_LOAD_COMPLETE) {
                 break;
             }
             sleep_ms(15);
-            elapsed_ms += 15;
         }
     }
     if (state.step < TEST_STEP_LOAD_COMPLETE) {
@@ -762,26 +777,39 @@ int test_hang_monitor_kills_hung_script(struct Servo* servo)
         goto cleanup;
     }
 
+    long eval_started = now_ms();
     log("  Spinning event loop until the interrupted evaluation reports... (timeout 12s)\n");
     {
-        int elapsed_ms = 0;
-        while (elapsed_ms < 12000) {
+        long deadline = eval_started + 12000;
+        while (now_ms() < deadline) {
             servo_spin_event_loop(servo);
 
             if (state.js_error_received) {
                 break;
             }
             sleep_ms(15);
-            elapsed_ms += 15;
         }
-        log("  hang observed after ~%d ms\n", elapsed_ms);
     }
+    long observed_ms = now_ms() - eval_started;
 
     if (!state.js_error_received) {
         log("  FAIL: infinite loop was not interrupted within 12s "
             "(permanent hang timeout is 5s; hung-script kill not working?)\n");
         goto cleanup;
     }
+
+    // Only a *permanent* hang alert kills (transient alerts are diagnostics
+    // only), and the permanent timeout is 5s, so the interruption must land
+    // after that timeout. A much earlier interruption would mean something
+    // else ended the evaluation -- e.g. an unrelated shutdown signal -- and
+    // would not prove the hang-monitor kill.
+    if (observed_ms < 3000) {
+        log("  FAIL: evaluation interrupted after only %ld ms, too early to be "
+            "the permanent-hang kill (permanent timeout is 5s)\n",
+            observed_ms);
+        goto cleanup;
+    }
+    log("  hang observed after ~%ld ms\n", observed_ms);
 
     result = 0;
     log("  PASS: hung script terminated with a defined outcome\n");
