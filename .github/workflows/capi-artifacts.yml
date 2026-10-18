@@ -152,6 +152,15 @@ jobs:
       # Build the cdylib and install the header + library under target/artifacts.
       # `shell: bash` so the `\` line continuations work on the Windows runner
       # (whose default run shell is PowerShell).
+      #
+      # --libdir lib: without --target, cargo-c's default_libdir() consults the
+      #   build machine and on Debian/Ubuntu returns the multiarch directory
+      #   `lib/x86_64-linux-gnu`, which ServoConfig.cmake and servo_capi.pc
+      #   (both hard-code `lib/`) would then miss. tests/capi/build.rs only
+      #   got plain `lib` because it passes an explicit --target.
+      # --meson-paths: installs the Windows import library as `servo_capi.lib`
+      #   instead of `servo_capi.dll.lib`, which is what ServoConfig.cmake's
+      #   find_library looks for; same flag tests/capi/build.rs uses.
       - name: Build servo-capi (release)
         shell: bash
         env:
@@ -165,6 +174,8 @@ jobs:
             --target-dir target/cinstall \
             --destdir target/artifacts \
             --prefix / \
+            --libdir lib \
+            --meson-paths \
             --locked
 
       - name: Install CMake package config and pkg-config files
@@ -183,10 +194,28 @@ jobs:
           set -euo pipefail
           SYSROOT="$(pwd)/target/artifacts"
 
-          # 1. Verify sysroot structure
-          test -f "$SYSROOT/include/servo/servo_capi.h"
-          test -f "$SYSROOT/lib/cmake/Servo/ServoConfig.cmake"
-          test -f "$SYSROOT/lib/pkgconfig/servo_capi.pc"
+          # 1. Verify sysroot structure. The full tree is printed first, and
+          #    every check names the missing path, so a failure explains
+          #    itself in the log instead of dying silently like a bare
+          #    `test -f` does.
+          echo "=== Sysroot tree ==="
+          find target/artifacts -maxdepth 4 | sort
+
+          check() {
+            if [ ! -f "$1" ]; then
+              echo "::error::missing sysroot file: $1"
+              exit 1
+            fi
+          }
+          check "$SYSROOT/include/servo/servo_capi.h"
+          check "$SYSROOT/lib/cmake/Servo/ServoConfig.cmake"
+          check "$SYSROOT/lib/pkgconfig/servo_capi.pc"
+          case "${{ runner.os }}" in
+            Linux)   check "$SYSROOT/lib/libservo_capi.so" ;;
+            macOS)   check "$SYSROOT/lib/libservo_capi.dylib" ;;
+            Windows) check "$SYSROOT/bin/servo_capi.dll"
+                     check "$SYSROOT/lib/servo_capi.lib" ;;
+          esac
 
           # 2. Compile and link examples/c-embedder using CMake (using find_package)
           echo "=== Building examples/c-embedder with CMake (find_package) ==="
@@ -250,9 +279,17 @@ jobs:
 
           echo "=== C embedder verification passed on ${{ matrix.name }} ==="
 
+      # Artifact names carry version + platform + sha (W5.2 step 4). The
+      # version is hard-coded: keep it in sync with SERVO_CAPI_VERSION in
+      # ffi/capi/lib.rs and the `version` in support/pkgconfig/servo_capi.pc.
+      - name: Compute artifact identity
+        id: meta
+        shell: bash
+        run: echo "short_sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
       - name: Upload servo-capi artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: servo-capi-${{ matrix.name }}
+          name: servo-capi-0.1.0-${{ matrix.name }}-${{ steps.meta.outputs.short_sha }}
           path: target/artifacts
           if-no-files-found: error

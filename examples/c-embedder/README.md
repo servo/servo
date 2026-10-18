@@ -31,8 +31,19 @@ cargo cinstall -p servo-capi \
     --library-type cdylib \
     --release \
     --destdir /path/to/servo-sysroot \
-    --prefix /
+    --prefix / \
+    --libdir lib \
+    --meson-paths
 ```
+
+The last two flags match what CI passes and what `tests/capi/build.rs` uses:
+
+- `--libdir lib` — without it, cargo-c on Debian/Ubuntu defaults to the
+  multiarch directory `lib/x86_64-linux-gnu`, where neither
+  `ServoConfig.cmake` nor `servo_capi.pc` (both hard-code `lib/`) looks.
+- `--meson-paths` — on Windows, installs the import library as
+  `servo_capi.lib` instead of `servo_capi.dll.lib`, which is the name
+  `ServoConfig.cmake`'s `find_library` looks for.
 
 Copy the CMake and pkg-config integration files into the sysroot:
 
@@ -49,7 +60,7 @@ cp support/pkgconfig/servo_capi.pc /path/to/servo-sysroot/lib/pkgconfig/
 
 This populates:
 - `<sysroot>/include/servo/servo_capi.h`
-- `<sysroot>/lib/` (shared libraries: `.so` on Linux, `.dylib` on macOS, `.dll.a` and `bin/*.dll` on Windows)
+- `<sysroot>/lib/` (shared libraries: `.so` on Linux, `.dylib` on macOS, `servo_capi.lib` and `../bin/servo_capi.dll` on Windows)
 - `<sysroot>/lib/cmake/Servo/ServoConfig.cmake`
 - `<sysroot>/lib/pkgconfig/servo_capi.pc`
 
