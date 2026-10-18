@@ -654,7 +654,7 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
         // Step 2. If font face’s [[Urls]] slot is null, or its status attribute is anything
         // other than "unloaded", return font face’s [[FontStatusPromise]] and abort these
         // steps.
-        let Some(sources) = self.urls.borrow_mut().take() else {
+        let Some(sources) = self.urls.safe_borrow_mut(cx.no_gc()).take() else {
             return self.font_status_promise.root(cx);
         };
         if self.status.get() != FontFaceLoadStatus::Unloaded {
