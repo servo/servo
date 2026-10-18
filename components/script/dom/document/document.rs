@@ -4611,7 +4611,7 @@ impl Document {
                     .upcast::<Node>()
                     .traverse_preorder_unrooted(no_gc, ShadowIncluding::No)
             })
-            .filter(move |node| Document::is_element_in_get_by_name(node, &name))
+            .filter(move |node| Document::is_element_in_get_by_name(node, name))
     }
 
     // Note that document.getByName does not match on the same conditions
