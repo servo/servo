@@ -1584,7 +1584,13 @@ pub fn create_sandbox() {
     any(target_os = "android", target_os = "ios")
 ))]
 pub fn create_sandbox() {
-    log::info!("Sandbox active: Operating-system isolated container runtime enforced.");
+    // No engine-level renderer sandbox is applied on these targets. Any
+    // containment would come from the OS process model (Android isolated
+    // process / iOS app container), which Servo neither creates nor verifies.
+    // TODO(W2.2b): enforce or verify a real sandbox here, or have the capability
+    // query reflect exactly what is enforced. See
+    // docs/embedding/MULTI_PLATFORM_SANDBOX_DESIGN.md.
+    warn!("No renderer sandbox is enforced by Servo here; relying on the OS process model.");
 }
 
 #[cfg(all(
@@ -1596,7 +1602,13 @@ pub fn create_sandbox() {
     any(target_arch = "arm", target_arch = "aarch64")
 ))]
 pub fn create_sandbox() {
-    log::info!("Sandbox active: AArch64 isolated sandbox PoC active.");
+    // No engine-level renderer sandbox is applied on ARM/AArch64 today (this
+    // includes Apple-Silicon macOS and ARM64 Linux). The gaol/Seatbelt profiles
+    // are only wired up for x86_64.
+    // TODO(W2.2b): port the profiles to arm64, or have the capability query
+    // reflect exactly what is enforced. See
+    // docs/embedding/MULTI_PLATFORM_SANDBOX_DESIGN.md.
+    warn!("No renderer sandbox is enforced by Servo on this target; running unsandboxed.");
 }
 
 #[cfg(any(

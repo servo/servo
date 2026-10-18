@@ -34,14 +34,14 @@ This document describes the unified multi-platform sandboxing strategy to achiev
   - The Android OS assigns a dedicated, disposable UID from the isolated UID pool (`u0_i1`..`u0_i999`).
   - Android SELinux domain transition enforces `isolated_app` domain rules (no direct filesystem access, no external socket permissions, no IPC except via binder to the parent application).
   - Android Zygote applies strict seccomp-bpf filters to all untrusted isolated processes.
-- **Servo Integration:** Content processes running under Android inherit this OS-level sandbox automatically. Calling `create_sandbox()` on Android confirms the isolated container runtime status.
+- **Servo Integration:** Servo applies **no** renderer sandbox here today. `create_sandbox()` on Android is a no-op: it neither spawns an isolated process nor verifies one, and `servo_capi_is_sandboxing_supported()` returns `false`. Any containment comes from the embedder spawning the content process as an Android isolated process (the roadmap above); Servo does not create or confirm it.
 
 ### 2.4 iOS
 - **Mechanism:** iOS App Sandbox Container + Hardened Runtime.
 - **Enforcement:**
   - On iOS, every process and extension runs within a containerized sandbox managed by the iOS kernel.
   - Direct network raw sockets, unauthorized filesystem traversals, and arbitrary dynamic code execution (W^X memory protection) are enforced at the kernel level.
-  - Calling `create_sandbox()` confirms compliance with the iOS sandboxed execution environment.
+  - Servo applies **no** renderer sandbox on iOS today: `create_sandbox()` is a no-op. The iOS application sandbox is provided by the embedder's packaged app, not by Servo, and `servo_capi_is_sandboxing_supported()` returns `false`.
 
 ---
 
