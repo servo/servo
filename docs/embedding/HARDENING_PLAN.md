@@ -129,6 +129,36 @@ because they need case-by-case review. The process to clear them:
 This is a long-tail task; prioritise `components/net` and the DOM bindings,
 which take the most attacker-controlled input.
 
+#### A.2.1 FFI entry paths — tracked inventory (W5.5)
+
+Inventory command:
+
+```sh
+git grep -nE "\.unwrap\(\)|\.expect\(|panic!\(|unreachable!\(|assert!\(|assert_eq!\(|assert_ne!\(" \
+  -- ffi/capi components/servo/servo.rs components/servo/webview.rs components/servo/lib.rs
+```
+
+Counts: **23 sites before** W5.5 (1 in `ffi/capi`, 22 in `components/servo`),
+**22 after** (the one genuinely reachable site is fixed; the rest are tracked
+below). Classification and status:
+
+| Location | Site | Classification |
+|---|---|---|
+| `components/servo/servo.rs` `Servo::setup_logging` (was `:1141`) | `log::set_boxed_logger(..).expect("Failed to set logger.")` | **Reachable from C** — `servo_setup_logging` called twice panicked, surfacing `SERVO_ERROR_INTERNAL_PANIC` through `catch_ffi`. **Fixed:** `Servo::try_setup_logging() -> Result<(), log::SetLoggerError>`; the FFI maps the error to `SERVO_ERROR_INVALID_STATE`; C test `test_servo_setup_logging_repeated`. |
+| `ffi/capi/webview.rs:351` | `.expect("A builder without a create request must have a Servo")` | Unreachable by construction. `servo_webview_builder_create` sets `servo: Some`; `servo_create_new_webview_builder_create` sets `create_new_request: Some`, so `create_new_request == None ⟹ servo.is_some()`. |
+| `components/servo/webview.rs:239` | `.expect("Should always be able to parse 'about:blank'.")` | Unreachable by construction: parse of a constant, always-valid URL. |
+| `components/servo/webview.rs:513` and `:521` | `.expect("BUG: invalid WebView instance")` (`show`/`hide`) | Unreachable for a valid handle: every `WebViewBuilder::build` registers with paint (`webview.rs:204`). An invalid handle is UB, not this panic. |
+| `components/servo/webview.rs:1053` | `unreachable!("…routed through the FileManagerThread")` | Unreachable by construction: `FilePicker` is routed via `ForwardEmbedderControlResponseFromFileManager` (`document_embedder_controls.rs:152`); only SelectElement/ColorPicker/InputMethod/ContextMenu send `ShowEmbedderControl`. |
+| `components/servo/servo.rs:1281` | `GenericCallback::new(..).expect("Failed to create callback")` | Unreachable in practice (callback-registry exhaustion is not reachable from input); also guarded by `catch_ffi`. |
+| `components/servo/servo.rs:1590` | `.expect("Failed to activate sandbox!")` | Guarded: compiled only with `multiprocess` on x86_64, and `servo_create_sandbox` calls it inside `catch_unwind`. |
+| `components/servo/servo.rs:1642` | `panic!("Sandboxing is not supported on single-process, RISC-V, or OpenHarmony targets.")` | Dead/guarded: never called in a single-process build (`servo_create_sandbox` returns `false`), and gated + `catch_unwind`d under `multiprocess`. |
+| `components/servo/servo.rs:201`/`:203`/`:205` | `debug_assert_eq!` on literal channel indices | Unreachable by construction (literal indices); debug-only. |
+| `components/servo/servo.rs:720`/`:737` | `.expect("Could not send message via callback")` (`gamepad`) | Feature-gated (`gamepad`); not compiled by `embedding-api.yml`. |
+| `components/servo/servo.rs:1399`/`:1407`/`:1409`/`:1412`/`:1414`/`:1457`/`:1460`/`:1725` | content-process setup, IPC `unwrap`s, thread joins, memory-reporter callback | Feature-gated (`multiprocess`); not compiled by `embedding-api.yml`. |
+| `components/servo/servo.rs:128` | `std::env::current_exe().unwrap()` | Feature-gated (`media-gstreamer`, only under `mod media_platform`); not compiled by `embedding-api.yml`, and not reachable from C input. |
+
+`components/servo/lib.rs` has **0** sites (re-exports only).
+
 ### A.3 Fuzzing and crash telemetry (projects, not one-liners)
 
 - **Fuzzing.** There is no libFuzzer/AFL harness today. Add `cargo-fuzz` targets

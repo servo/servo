@@ -80,6 +80,10 @@ pub unsafe extern "C" fn servo_spin_event_loop(servo: *mut Servo) -> ServoError 
 /// `servo` is a handle to a `Servo` object.
 /// The ownership of `servo` remains with the caller after the call.
 ///
+/// Returns `ServoError::Ok` on success or `ServoError::InvalidState` if a
+/// logger has already been installed for this process (logging is global, so
+/// the first call wins). It never panics on a repeated call.
+///
 /// # Safety
 ///
 /// The caller must ensure that:
@@ -100,9 +104,10 @@ pub unsafe extern "C" fn servo_setup_logging(servo: *mut Servo) -> ServoError {
         // for `servo` documented above.
         let servo = unsafe { &*servo };
 
-        servo.setup_logging();
-
-        ServoError::Ok
+        match servo.try_setup_logging() {
+            Ok(()) => ServoError::Ok,
+            Err(_) => ServoError::InvalidState,
+        }
     })
 }
 

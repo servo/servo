@@ -1292,6 +1292,32 @@ int test_error_null_arguments(void)
     return 0;
 }
 
+/* A repeated `servo_setup_logging` call is reported as SERVO_ERROR_INVALID_STATE
+ * instead of panicking: logging is process-global, so the first call wins and
+ * later calls cannot take effect. This uses the shared singleton Servo (whose
+ * logger `create_test_servo` already installed), so it must not free it. */
+int test_servo_setup_logging_repeated(void)
+{
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    /* `create_test_servo` already installed the process-global logger, so this
+     * reports the already-initialized state. Either call must be non-panicking. */
+    ServoError first = servo_setup_logging(servo);
+    if (first != SERVO_ERROR_OK && first != SERVO_ERROR_INVALID_STATE) {
+        return 1;
+    }
+
+    /* The second call must not panic; it reports the already-initialized state. */
+    if (servo_setup_logging(servo) != SERVO_ERROR_INVALID_STATE) {
+        return 1;
+    }
+
+    /* Do NOT free: `test_servo` is a process-wide singleton reused by later tests. */
+    return 0;
+}
+
 /* Covers error returns for invalid UTF-8 strings. */
 int test_error_invalid_utf8(void)
 {
@@ -2717,6 +2743,7 @@ int run_c_api_tests(void)
     RUN_TEST(test_site_data_clear_site_data);
 
     RUN_TEST(test_error_null_arguments);
+    RUN_TEST(test_servo_setup_logging_repeated);
     RUN_TEST(test_error_invalid_utf8);
     RUN_TEST(test_webview_query_null_webview);
     RUN_TEST(test_builder_free_null);

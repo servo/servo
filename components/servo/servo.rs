@@ -1129,7 +1129,22 @@ impl Servo {
         self.0.spin_event_loop();
     }
 
+    /// Sets up logging for this [`Servo`] instance.
+    ///
+    /// Logging is process-global, so this fails if a logger has already been
+    /// installed. Prefer [`Servo::try_setup_logging`] when the caller can act
+    /// on that failure; this method logs a warning instead of panicking.
     pub fn setup_logging(&self) {
+        if let Err(error) = self.try_setup_logging() {
+            warn!("Failed to set logger ({error}); leaving the existing logger in place.");
+        }
+    }
+
+    /// Sets up logging for this [`Servo`] instance, returning an error when a
+    /// logger has already been installed for this process.
+    ///
+    /// This is the fallible form of [`Servo::setup_logging`].
+    pub fn try_setup_logging(&self) -> Result<(), log::SetLoggerError> {
         let constellation_chan = self.0.constellation_proxy.sender();
         let env = env_logger::Env::default();
         let env_logger = EnvLoggerBuilder::from_env(env).build();
@@ -1138,8 +1153,9 @@ impl Servo {
         let filter = max(env_logger.filter(), con_logger.filter());
         let logger = BothLogger(env_logger, con_logger);
 
-        log::set_boxed_logger(Box::new(logger)).expect("Failed to set logger.");
+        log::set_boxed_logger(Box::new(logger))?;
         log::set_max_level(filter);
+        Ok(())
     }
 
     pub fn create_memory_report(&self, snd: GenericCallback<MemoryReportResult>) {

@@ -298,10 +298,16 @@ int servo_web_resource_load_free(ServoWebResourceLoad* load);
 ### Servo
 
 ```c
-void servo_free(struct Servo*);
-void servo_spin_event_loop(struct Servo*);
-void servo_setup_logging(struct Servo*);
+ServoError servo_free(struct Servo*);
+ServoError servo_spin_event_loop(struct Servo*);
+ServoError servo_setup_logging(struct Servo*);
 ```
+
+`servo_setup_logging` installs the process-global logger. Because logging is
+global, only the first call takes effect; a later call returns
+`SERVO_ERROR_INVALID_STATE` (it does not panic). `servo_free` and
+`servo_spin_event_loop` return `ServoError` and follow the usual null/threading
+rules.
 
 ### Options
 
