@@ -96,7 +96,7 @@ Evidence, not opinion:
 | Windowed/GPU present path on Windows | **Not covered by CI** — runners are headless, tests assert windowed context returns `NULL` |
 | This pass's Rust changes (SameSite, panic fix) | **Unverified** — no toolchain here; must be proven by `cargo test -p servo-net` + WPT `cookies`/`same-site`/`fetch` |
 | `examples/c-embedder` vs the real generated header | **Unverified** — only compiled against a stub |
-| `.github/workflows/capi-artifacts.yml` | **Never run** — written this session, needs its first dispatch |
+| `.github/workflows/capi-artifacts.yml` | **Verified** — green run `39145918170` on Linux/macOS/Windows (prebuilt `servo-capi` artifacts + `examples/c-embedder` compiled and linked against the installed sysroot) |
 
 ### 2.3 Embedding into an existing Windows browser (blanc-tauri)
 
@@ -149,7 +149,8 @@ All changes are **uncommitted** on `embedding/cef-parity`.
    embedder; passes tidy license/whitespace checks and
    `gcc -std=c11 -Wall -Wextra -Werror -pedantic` against a stub header.
 8. `.github/workflows/capi-artifacts.yml` — prebuilt `servo-capi` artifacts for
-   Linux/macOS/Windows (never executed).
+   Linux/macOS/Windows; **green run `39145918170`** on all three platforms
+   (artifacts named `servo-capi-0.1.0-<platform>-<sha>`).
 
 **Explicitly *not* done here:** WPT conformance, the Windows sandbox, iOS, and
 any change requiring a build to validate.

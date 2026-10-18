@@ -209,7 +209,7 @@ Effort: **S** days · **M** 1–3 weeks · **L** 1–3 months · **XL** quarters
 | **W4.7** | Language bindings beyond C/C++ | L | `partial` (C++ RAII exists) | W5.4 | — |
 | **W4.8** | CEF P2 leftovers: drag/drop, audio, frame rate, task post, user-gesture JS | L | `todo` | — | embedding-api.yml |
 | **W5.1** | Hang monitor: on by default + kill hung scripts | M | `partial` (impl, pref off) | — | all platforms |
-| **W5.2** | Prove `capi-artifacts.yml` (never dispatched) | M | `unproven` | — | capi-artifacts.yml |
+| **W5.2** | Prove `capi-artifacts.yml` (prebuilt C API artifacts) | M | ✅ verified (run `39145918170`, 3 platforms) | — | capi-artifacts.yml |
 | **W5.3** | Prebuilt signed binaries (5 targets) + CMake/pkg-config | L | `todo` | W5.2 | release workflows |
 | **W5.4** | C API 0.1.0 → 1.0 ABI commitment | M | `partial` | W5.2 | embedding-api.yml |
 | **W5.5** | Remaining reachable-panic review (tracked list) | M | `partial` | W2.5 | embedding-api.yml |
@@ -929,14 +929,16 @@ entries as part of the work — stale docs are defects here).
     when `opts::get().hang_monitor_kill_script`**, then broadcasts
     `BackgroundHangMonitorControlMsg::SignalComponentExit`.
   - Test precedent: `components/background_hang_monitor/tests/hang_monitor_tests.rs`.
-- `capi-artifacts.yml` — has `on: workflow_dispatch` (`:15`) and `on: push` (`:16`) but
-  **has never run** (the Actions workflow endpoint returns 404 for it → GitHub has never
-  registered a run). Same for `windows-wpt.yml`.
+- `capi-artifacts.yml` — **runs and produces** (first green run `39145918170`, all three
+  platforms, artifacts `servo-capi-0.1.0-<platform>-<sha>`; trigger fixed to a path-filtered
+  push on this branch, and `workflow_dispatch` works after the first run registered it).
+  `windows-wpt.yml` is still **never run**.
 - C API version: `SERVO_CAPI_VERSION_MAJOR/MINOR/PATCH = 0/1/0` at
   `ffi/capi/lib.rs:361-367`, packed at `:373`. `SERVO_DEPRECATED` is already wired in
   `ffi/capi/cbindgen.toml:33-37` for `#[deprecated]` items.
 - `examples/c-embedder/{main.c,CMakeLists.txt,README.md}` exists and was fixed in
-  `6fe2549874b`; it is built by `capi-artifacts.yml`, **which has never run**.
+  `6fe2549874b`; it is now compiled **and linked** against the real `cargo cinstall` sysroot
+  on Linux/macOS/Windows by `capi-artifacts.yml` (run `39145918170`).
 
 ---
 
@@ -1309,7 +1311,7 @@ see §D.2) so the absence is a decision rather than an omission.
 | `linux.yml` / `linux-common.yml` / `linux-wpt.yml` | push/PR | Linux build + unit/WPT | |
 | `mac.yml` / `mac-arm64.yml` / `mac-wpt.yml` | push/PR | macOS builds | |
 | `android.yml` | push/PR | Android build/smoketest | W3.1 extends it |
-| `capi-artifacts.yml` | `workflow_dispatch` (`:15`), `push` (`:16`) | prebuilt `servo-capi` artifacts, builds `examples/c-embedder` | **never run** → W5.2 |
+| `capi-artifacts.yml` | `push` (branch `embedding/cef-parity`, path-filtered) + `capi-v*` tags + `workflow_dispatch` (usable after the first run) | prebuilt `servo-capi` artifacts, builds **and links** `examples/c-embedder` against the installed sysroot | ✅ green run `39145918170` (3 platforms) → W5.2 |
 | `windows-wpt.yml` | (file exists) | Windows WPT | **never run** → W1.1 (out of scope here, but dispatch is cheap) |
 | `release.yml` / `release-github.yml` | release | packaging | signing status unverified → W3.4 |
 | `bencher.yml` | | perf | candidate for W5.6 |
@@ -1387,6 +1389,7 @@ baseline) and only then pick root causes — not to touch `tests/wpt/meta` whole
 | `docs/embedding/GRAPHICS_AND_WEBGPU_STATUS.md` | WebGL "Production" on 4 platforms | no hardware evidence recorded on this branch |
 | `docs/embedding/ACCESSIBILITY_AND_PRINTING.md` §1 | AccessKit integration described as working incl. "C Embedding Exposure" | no `components/accessibility` crate; no a11y export in `ffi/capi`; unverified → W6.4 |
 | `docs/embedding/AUDIT.md` | not updated for W4.1/W4.3 | inventory lags the branch |
+| `PRODUCTION_REPORT.md` §3 and `IMPLEMENTATION_REVIEW.md` §2/§5, `IMPLEMENTATION_REVIEW_PASS2.md` §0/§5/§6 | `capi-artifacts.yml` "**Never run**"/"never dispatched" | ran green on all three platforms: run `39145918170`; artifacts `servo-capi-0.1.0-<platform>-7dba370`; `workflow_dispatch` proven (run `39149442966`)... a stale claim this plan's W5.2 closed |
 
 **Rule:** fixing a stale document is a legitimate, committable outcome on its own
 (`docs(embedding): …`). Prefer *correct the doc* over *leave the lie*.
