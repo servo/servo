@@ -777,7 +777,7 @@ impl HTMLImageElement {
 
         // Step 12. Let urlString be the result of encoding-parsing-and-serializing a URL given
         // selected source, relative to the element's node document.
-        let Ok(image_url) = self.owner_document().base_url().join(&selected_source) else {
+        let Ok(image_url) = self.owner_document().encoding_parse_a_url(&selected_source) else {
             // Step 13. If urlString is failure, then:
 
             // Step 13.1. Abort the image request for the current request and the pending request.
@@ -877,7 +877,7 @@ impl HTMLImageElement {
             // Step 7.1. Let urlString be the result of encoding-parsing-and-serializing a URL given
             // selected source, relative to the element's node document.
             // Step 7.2. If urlString is failure, then abort this inner set of steps.
-            if let Ok(image_url) = self.owner_document().base_url().join(&selected_source) {
+            if let Ok(image_url) = self.owner_document().encoding_parse_a_url(&selected_source) {
                 // Step 7.3. Let key be a tuple consisting of urlString, the img element's
                 // crossorigin attribute's mode, and, if that mode is not No CORS, the node
                 // document's origin.
@@ -1024,7 +1024,7 @@ impl HTMLImageElement {
         // Step 6. Let urlString be the result of encoding-parsing-and-serializing a URL given
         // selected source, relative to the element's node document.
         // Step 7. If urlString is failure, then return.
-        let Ok(image_url) = document.base_url().join(&selected_source) else {
+        let Ok(image_url) = document.encoding_parse_a_url(&selected_source) else {
             return;
         };
 
