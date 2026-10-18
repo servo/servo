@@ -971,20 +971,15 @@ impl Window {
             .task_manager()
             .dom_manipulation_task_source()
             .to_sendable();
-        let target_global = Trusted::new(global);
         let document = self.document_unrooted(no_gc);
         WebFontDocumentContext {
             policy_container: document.policy_container().clone(),
             request_client: self.request_client(Some(no_gc)),
             document_url: document.base_url(),
             csp_handler: Box::new(FontCspHandler {
-                global: target_global.clone(),
                 task_source: task_source.clone(),
             }),
-            network_timing_handler: Box::new(FontNetworkTimingHandler {
-                global: target_global,
-                task_source,
-            }),
+            network_timing_handler: Box::new(FontNetworkTimingHandler { task_source }),
         }
     }
 
@@ -1040,21 +1035,20 @@ impl Window {
 
 #[derive(Debug, MallocSizeOf)]
 struct FontCspHandler {
-    global: Trusted<GlobalScope>,
     task_source: SendableTaskSource,
 }
 
 impl CspViolationHandler for FontCspHandler {
     fn process_violations(&self, violations: Vec<Violation>) {
-        let global = self.global.clone();
         self.task_source.queue(task!(csp_violation: move |cx| {
-            global.root().report_csp_violations(cx, violations, None, None);
+            if let Some(global) = GlobalScope::current() {
+                global.report_csp_violations(cx, violations, None, None);
+            }
         }));
     }
 
     fn clone(&self) -> Box<dyn CspViolationHandler> {
         Box::new(Self {
-            global: self.global.clone(),
             task_source: self.task_source.clone(),
         })
     }
@@ -1062,19 +1056,21 @@ impl CspViolationHandler for FontCspHandler {
 
 #[derive(Debug, MallocSizeOf)]
 struct FontNetworkTimingHandler {
-    global: Trusted<GlobalScope>,
     task_source: SendableTaskSource,
 }
 
 impl NetworkTimingHandler for FontNetworkTimingHandler {
     fn submit_timing(&self, url: ServoUrl, response: ResourceFetchTiming) {
-        let global = self.global.clone();
         self.task_source.queue(task!(network_timing: move |cx| {
+            let Some(global) = GlobalScope::current() else {
+                return
+            };
+
             submit_timing(
                 cx,
+                &global,
                 &FontFetchListener {
                     url,
-                    global
                 },
                 &Ok(()),
                 &response,
@@ -1084,7 +1080,6 @@ impl NetworkTimingHandler for FontNetworkTimingHandler {
 
     fn clone(&self) -> Box<dyn NetworkTimingHandler> {
         Box::new(Self {
-            global: self.global.clone(),
             task_source: self.task_source.clone(),
         })
     }
@@ -1092,17 +1087,12 @@ impl NetworkTimingHandler for FontNetworkTimingHandler {
 
 #[derive(Debug)]
 struct FontFetchListener {
-    global: Trusted<GlobalScope>,
     url: ServoUrl,
 }
 
 impl ResourceTimingListener for FontFetchListener {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
         (InitiatorType::Css, self.url.clone())
-    }
-
-    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-        self.global.root()
     }
 }
 

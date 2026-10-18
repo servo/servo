@@ -175,8 +175,6 @@ struct ImageContext {
     id: PendingImageId,
     /// Used to mark abort
     aborted: bool,
-    /// The document associated with this request
-    doc: Trusted<Document>,
     url: ServoUrl,
     element: Trusted<HTMLImageElement>,
 }
@@ -186,11 +184,12 @@ impl FetchResponseListener for ImageContext {
         !self.aborted
     }
 
-    fn process_request_body(&mut self, _: RequestId) {}
+    fn process_request_body(&mut self, _: &GlobalScope, _: RequestId) {}
 
     fn process_response(
         &mut self,
         _: &mut JSContext,
+        _: &GlobalScope,
         request_id: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
@@ -222,7 +221,13 @@ impl FetchResponseListener for ImageContext {
         };
     }
 
-    fn process_response_chunk(&mut self, _: &mut JSContext, request_id: RequestId, payload: Bytes) {
+    fn process_response_chunk(
+        &mut self,
+        _: &mut JSContext,
+        _: &GlobalScope,
+        request_id: RequestId,
+        payload: Bytes,
+    ) {
         if self.status.is_ok() {
             self.image_cache.notify_pending_response(
                 self.id,
@@ -234,6 +239,7 @@ impl FetchResponseListener for ImageContext {
     fn process_response_eof(
         self,
         cx: &mut JSContext,
+        global: &GlobalScope,
         request_id: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -242,16 +248,16 @@ impl FetchResponseListener for ImageContext {
             self.id,
             FetchResponseMsg::ProcessResponseEOF(request_id, response.clone(), timing.clone()),
         );
-        network_listener::submit_timing(cx, &self, &response, &timing);
+        network_listener::submit_timing(cx, global, &self, &response, &timing);
     }
 
     fn process_csp_violations(
         &mut self,
         cx: &mut JSContext,
+        global: &GlobalScope,
         _request_id: RequestId,
         violations: Vec<Violation>,
     ) {
-        let global = &self.resource_timing_global();
         let elem = self.element.root();
         let source_position = elem
             .upcast::<Element>()
@@ -270,10 +276,6 @@ impl FetchResponseListener for ImageContext {
 impl ResourceTimingListener for ImageContext {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
         (InitiatorType::LocalName("img".into()), self.url.clone())
-    }
-
-    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-        self.doc.root().global()
     }
 }
 
@@ -364,7 +366,6 @@ impl HTMLImageElement {
             status: Ok(()),
             id,
             aborted: false,
-            doc: Trusted::new(&document),
             element: Trusted::new(self),
             url: img_url.clone(),
         };

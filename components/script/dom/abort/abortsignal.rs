@@ -4,7 +4,6 @@
 
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
-use std::sync::{Arc, Mutex};
 
 use dom_struct::dom_struct;
 use indexmap::IndexSet;
@@ -32,7 +31,7 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::readablestream::PipeTo;
-use crate::fetch::fetch::{DeferredFetchRecordId, FetchContext};
+use crate::fetch::fetch::{DeferredFetchRecordId, FetchCallState};
 use crate::realms::enter_auto_realm;
 
 impl js::gc::Rootable for AbortAlgorithm {}
@@ -48,11 +47,7 @@ pub(crate) enum AbortAlgorithm {
     /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
     StreamPiping(PipeTo),
     /// <https://fetch.spec.whatwg.org/#dom-global-fetch>
-    Fetch(
-        #[no_trace]
-        #[conditional_malloc_size_of]
-        Arc<Mutex<Option<FetchContext>>>,
-    ),
+    Fetch(#[conditional_malloc_size_of] Rc<FetchCallState>),
     /// <https://fetch.spec.whatwg.org/#dom-window-fetchlater>
     FetchLater(#[no_trace] DeferredFetchRecordId),
 }
@@ -191,12 +186,10 @@ impl AbortSignal {
                 reason.set(self.abort_reason.get());
                 pipe.abort_with_reason(cx, global, reason.handle());
             },
-            AbortAlgorithm::Fetch(fetch_context) => {
+            AbortAlgorithm::Fetch(fetch_call_state) => {
                 rooted!(&in(cx) let mut reason = UndefinedValue());
                 reason.set(self.abort_reason.get());
-                if let Some(fetch_context) = &mut *fetch_context.lock().unwrap() {
-                    fetch_context.abort_fetch(reason.handle(), cx);
-                }
+                fetch_call_state.abort_fetch(cx, reason.handle(), global);
             },
             AbortAlgorithm::FetchLater(deferred_fetch_record_id) => {
                 global

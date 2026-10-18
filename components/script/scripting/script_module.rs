@@ -58,7 +58,6 @@ use crate::dom::bindings::codegen::Bindings::CSSStyleSheetBinding::{
 use crate::dom::bindings::codegen::UnionTypes::MediaListOrString;
 use crate::dom::bindings::error::throw_dom_exception;
 use crate::dom::bindings::inheritance::Castable;
-use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::trace::RootedTraceableBox;
@@ -381,8 +380,6 @@ impl Callback for ModuleHandler {
 
 /// The context required for asynchronously loading an external module script source.
 struct ModuleContext {
-    /// The owner of the module that initiated the request.
-    owner: Trusted<GlobalScope>,
     /// The response body received to date.
     data: BytesMut,
     /// The response metadata received to date.
@@ -401,11 +398,12 @@ struct ModuleContext {
 
 impl FetchResponseListener for ModuleContext {
     // TODO(cybai): Perhaps add custom steps to perform fetch here?
-    fn process_request_body(&mut self, _: RequestId) {}
+    fn process_request_body(&mut self, _: &GlobalScope, _: RequestId) {}
 
     fn process_response(
         &mut self,
         _: &mut JSContext,
+        _: &GlobalScope,
         _: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
@@ -433,7 +431,13 @@ impl FetchResponseListener for ModuleContext {
         };
     }
 
-    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, chunk: Bytes) {
+    fn process_response_chunk(
+        &mut self,
+        _: &mut JSContext,
+        _: &GlobalScope,
+        _: RequestId,
+        chunk: Bytes,
+    ) {
         if self.status.is_ok() {
             self.data.extend_from_slice(&chunk);
         }
@@ -444,15 +448,15 @@ impl FetchResponseListener for ModuleContext {
     fn process_response_eof(
         mut self,
         cx: &mut JSContext,
+        global: &GlobalScope,
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        let global = self.owner.root();
         let (_url, module_type) = &self.module_request;
 
         if !global.is::<WorkletGlobalScope>() {
-            network_listener::submit_timing(cx, &self, &response, &timing);
+            network_listener::submit_timing(cx, global, &self, &response, &timing);
         }
 
         // Step 1. If any of the following are true: bodyBytes is null or failure; or response's
@@ -506,7 +510,7 @@ impl FetchResponseListener for ModuleContext {
             self.options.referrer_policy = referrer_policy;
         }
 
-        let mut realm = enter_auto_realm(cx, &*global);
+        let mut realm = enter_auto_realm(cx, global);
         let cx = &mut realm.current_realm();
 
         // TODO Step 6. If mimeType's essence is "application/wasm" and moduleType is "javascript-or-wasm", then set
@@ -536,7 +540,7 @@ impl FetchResponseListener for ModuleContext {
                 let module_tree = Rc::new(ModuleTree::create_a_javascript_module_script(
                     cx,
                     source_text,
-                    &global,
+                    global,
                     &final_url,
                     self.options,
                     true,
@@ -552,7 +556,7 @@ impl FetchResponseListener for ModuleContext {
                 let module_tree = Rc::new(ModuleTree::create_a_css_module_script(
                     cx,
                     &source_text,
-                    &global,
+                    global,
                     final_url.clone(),
                 ));
                 module_script = Some(module_tree);
@@ -608,10 +612,10 @@ impl FetchResponseListener for ModuleContext {
     fn process_csp_violations(
         &mut self,
         cx: &mut JSContext,
+        global: &GlobalScope,
         _request_id: RequestId,
         violations: Vec<Violation>,
     ) {
-        let global = self.owner.root();
         if let Some(scope) = global.downcast::<DedicatedWorkerGlobalScope>() {
             scope.report_csp_violations(violations);
         } else if let Some(scope) = global.downcast::<SharedWorkerGlobalScope>() {
@@ -631,10 +635,6 @@ impl ResourceTimingListener for ModuleContext {
         let initiator_type = InitiatorType::LocalName("module".into());
         let (url, _) = &self.module_request;
         (initiator_type, url.clone())
-    }
-
-    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-        self.owner.root()
     }
 }
 
@@ -1187,7 +1187,6 @@ pub(crate) fn fetch_a_single_module_script(
         .pipeline_id(Some(global.pipeline_id()));
 
     let context = ModuleContext {
-        owner: Trusted::new(global),
         data: BytesMut::new(),
         metadata: None,
         module_request,

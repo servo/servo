@@ -50,7 +50,6 @@ use crate::dom::bindings::codegen::Bindings::WorkerBinding::{WorkerOptions, Work
 use crate::dom::bindings::error::{Error, ErrorInfo, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
@@ -1124,11 +1123,7 @@ pub(crate) fn fetch_a_classic_worker_script(
         // and whose use-URL-credentials flag is set.
         .use_url_credentials(true);
 
-    let context = ScriptFetchContext::new(
-        Trusted::new(workerscope),
-        url_with_blob_lock.url(),
-        policy_container,
-    );
+    let context = ScriptFetchContext::new(url_with_blob_lock.url(), policy_container);
     let global = workerscope.upcast::<GlobalScope>();
     let task_source = global.task_manager().networking_task_source().to_sendable();
     global.fetch(request, context, task_source);

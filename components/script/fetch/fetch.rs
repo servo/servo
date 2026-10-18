@@ -27,6 +27,7 @@ use net_traits::{
 use rustc_hash::FxHashMap;
 use script_bindings::cformat;
 use script_bindings::js::{JS_IsExceptionPending, JS_SetPendingException};
+use script_bindings::root::Dom;
 use serde::{Deserialize, Serialize};
 use servo_base::generic_channel::GenericCallback;
 use servo_base::id::WebViewId;
@@ -34,6 +35,7 @@ use servo_url::ServoUrl;
 use timers::TimerEventRequest;
 use uuid::Uuid;
 
+use crate::dom::TracedPromise;
 use crate::dom::abortsignal::AbortAlgorithm;
 use crate::dom::bindings::codegen::Bindings::AbortSignalBinding::AbortSignalMethods;
 use crate::dom::bindings::codegen::Bindings::RequestBinding::{
@@ -45,9 +47,9 @@ use crate::dom::bindings::codegen::Bindings::WindowBinding::{DeferredRequestInit
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::num::Finite;
-use crate::dom::bindings::refcounted::{Trusted, TrustedPromise};
-use crate::dom::bindings::reflector::DomGlobal;
+use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::trace::NoTrace;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::fetchlaterresult::FetchLaterResult;
 use crate::dom::globalscope::GlobalScope;
@@ -77,27 +79,29 @@ impl Default for DeferredFetchRecordId {
 pub(crate) type QueuedDeferredFetchRecord = Rc<DeferredFetchRecord>;
 
 /// <https://fetch.spec.whatwg.org/#fetch-record>
-#[derive(MallocSizeOf)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct FetchRecord {
     /// <https://fetch.spec.whatwg.org/#concept-fetch-record-fetch>
+    #[no_trace]
     controller: Option<FetchController>,
-    /// Whether or not the [`Request`] has finished.
-    ///
-    /// TODO: In the specification this is in the [`Request`], so it should be moved there and the
-    /// [`Request`] stored here, which requires making everything traceable.
-    done: bool,
+    /// If this record was created by a call to `fetch()`, this holds the captured state
+    /// that is used to complete the fetch request.
+    #[conditional_malloc_size_of]
+    state: Option<Rc<FetchCallState>>,
 }
 
 /// <https://fetch.spec.whatwg.org/#concept-fetch-group>
-#[derive(MallocSizeOf)]
+#[derive(JSTraceable, MallocSizeOf)]
 pub(crate) struct FetchGroup {
     /// The [`CoreResourceThread`] for this [`FetchGroup`].
+    #[no_trace]
     core_resource_thread: CoreResourceThread,
     /// <https://fetch.spec.whatwg.org/#fetch-group-deferred-fetch-records>
     #[conditional_malloc_size_of]
+    #[no_trace]
     pub(crate) deferred_fetch_records: FxHashMap<DeferredFetchRecordId, QueuedDeferredFetchRecord>,
     /// <https://fetch.spec.whatwg.org/#concept-fetch-record>
-    pub(crate) fetch_records: FxHashMap<RequestId, FetchRecord>,
+    pub(crate) fetch_records: FxHashMap<NoTrace<RequestId>, FetchRecord>,
 }
 
 impl FetchGroup {
@@ -113,16 +117,17 @@ impl FetchGroup {
         &mut self,
         request: RequestBuilder,
         listener: NetworkListener<Listener>,
+        state: Option<Rc<FetchCallState>>,
     ) {
         self.fetch_records.insert(
-            request.id,
+            NoTrace(request.id),
             FetchRecord {
                 controller: Some(FetchController::new(
                     request.id,
                     request.keep_alive,
                     self.core_resource_thread.clone(),
                 )),
-                done: false,
+                state,
             },
         );
         fetch_async(
@@ -161,7 +166,14 @@ impl FetchGroup {
         &mut self,
         request_id: &RequestId,
     ) -> Option<&mut FetchController> {
-        self.fetch_records.get_mut(request_id)?.controller.as_mut()
+        self.fetch_records
+            .get_mut(&NoTrace(*request_id))?
+            .controller
+            .as_mut()
+    }
+
+    pub(crate) fn fetch_call_state(&self, request_id: &RequestId) -> Option<Rc<FetchCallState>> {
+        self.fetch_records.get(&NoTrace(*request_id))?.state.clone()
     }
 
     /// <https://fetch.spec.whatwg.org/#concept-fetch-group-terminate>
@@ -171,14 +183,15 @@ impl FetchGroup {
         // Step 1. For each fetch record record of fetchGroup’s fetch records,
         // if record’s controller is non-null and record’s request’s done flag
         // is unset and keepalive is false, terminate record’s controller.
+        //
+        // Fetches that are done are removed from our set of fetch records as soon as they finish,
+        // so they do not need to be skipped here. This approach differs from the specification
+        // text, but is behaviorally identical.
         let mut cancelled_any = false;
         self.fetch_records.retain(|_, fetch_record| {
             let Some(controller) = fetch_record.controller.as_mut() else {
                 return false;
             };
-            if fetch_record.done {
-                return false;
-            }
             if !controller.keep_alive() {
                 controller.terminate();
                 cancelled_any = true;
@@ -219,20 +232,18 @@ impl FetchGroup {
         // Step 3. Fetch deferredRecord’s request.
         let fetch_later_listener = FetchLaterListener {
             url: deferred_fetch.request.url(),
-            global: Trusted::new(global),
         };
         let task_source = global.task_manager().networking_task_source().to_sendable();
         self.fetch(
             request_init_from_request(deferred_fetch.request.clone(), global),
-            NetworkListener::new(fetch_later_listener, task_source, global),
+            NetworkListener::new(fetch_later_listener, task_source),
+            None, /* state */
         );
         // Step 4 is handled by caller
     }
 
     pub(crate) fn mark_fetch_request_as_done(&mut self, request_id: &RequestId) {
-        if let Some(fetch_record) = self.fetch_records.get_mut(request_id) {
-            fetch_record.done = true;
-        }
+        self.fetch_records.remove(&NoTrace(*request_id));
     }
 }
 
@@ -326,6 +337,7 @@ pub(crate) fn Fetch(
     };
     // Step 3. Let request be requestObject’s request.
     let request = request_object.request().clone();
+    let request_id = request.id;
 
     // Step 4. If requestObject’s signal is aborted, then:
     let signal = request_object.Signal();
@@ -361,29 +373,30 @@ pub(crate) fn Fetch(
 
     // Step 9. Let locallyAborted be false.
     // Step 10. Let controller be null.
+    let fetch_state = Rc::new(FetchCallState {
+        promise: promise.to_traced(),
+        response: response.as_traced(),
+        request: request_object.as_traced(),
+        locally_aborted: Cell::new(false),
+        request_id,
+    });
     let fetch_context = FetchContext {
-        fetch_promise: Some(TrustedPromise::from(&promise)),
-        response_object: Trusted::new(&*response),
-        request: Trusted::new(&*request_object),
-        global: Trusted::new(global),
-        locally_aborted: false,
+        request_id,
         url: request_builder.url.url(),
     };
     let network_listener = NetworkListener::new(
         fetch_context,
         global.task_manager().networking_task_source().to_sendable(),
-        global,
     );
-    let fetch_context = network_listener.context.clone();
 
     // Step 11. Add the following abort steps to requestObject’s signal:
-    signal.add(&AbortAlgorithm::Fetch(fetch_context));
+    signal.add(&AbortAlgorithm::Fetch(fetch_state.clone()));
 
     // Step 12. Set controller to the result of calling fetch given request and
     // processResponse given response being these steps:
     global
         .fetch_group_mut()
-        .fetch(request_builder, network_listener);
+        .fetch(request_builder, network_listener, Some(fetch_state));
 
     // Step 13. Return p.
     promise
@@ -557,23 +570,27 @@ impl DeferredFetchRecord {
     }
 }
 
+/// The captured state that is kept during a fetch operation.
 #[derive(JSTraceable, MallocSizeOf)]
-pub(crate) struct FetchContext {
-    #[ignore_malloc_size_of = "unclear ownership semantics"]
-    fetch_promise: Option<TrustedPromise>,
-    response_object: Trusted<Response>,
-    request: Trusted<Request>,
-    global: Trusted<GlobalScope>,
-    locally_aborted: bool,
+pub(crate) struct FetchCallState {
+    promise: TracedPromise,
+    response: Dom<Response>,
+    request: Dom<Request>,
+    locally_aborted: Cell<bool>,
     #[no_trace]
-    url: ServoUrl,
+    request_id: RequestId,
 }
 
-impl FetchContext {
+impl FetchCallState {
     /// Step 11 of <https://fetch.spec.whatwg.org/#dom-global-fetch>
-    pub(crate) fn abort_fetch(&mut self, abort_reason: HandleValue, cx: &mut JSContext) {
+    pub(crate) fn abort_fetch(
+        &self,
+        cx: &mut JSContext,
+        abort_reason: HandleValue,
+        global: &GlobalScope,
+    ) {
         // Step 11.1. Set locallyAborted to true.
-        self.locally_aborted = true;
+        self.locally_aborted.set(true);
 
         // Step 11.2. Assert: controller is non-null.
         //
@@ -582,141 +599,160 @@ impl FetchContext {
         // the case that the `FetchRecord` is gone and the controller inaccessible.
 
         // Step 11.3. Abort controller with requestObject’s signal’s abort reason.
-        let global = self.global.root();
-        let request = self.request.root();
         if let Some(controller) = global
             .fetch_group_mut()
-            .fetch_controller(&request.request().id)
+            .fetch_controller(&self.request.request().id)
         {
             controller.abort();
         }
 
         // Step 11.4. Abort the fetch() call with p, request, responseObject,
         // and requestObject’s signal’s abort reason.
-        let promise = self
-            .fetch_promise
-            .take()
-            .expect("fetch promise is missing")
-            .root(cx);
+        let promise = self.promise.root(cx);
         abort_fetch_call(
             &promise,
-            &request,
-            Some(&self.response_object.root()),
+            &self.request,
+            Some(&self.response),
             abort_reason,
-            &global,
+            global,
             cx,
         );
     }
-}
-
-/// Step 12 of <https://fetch.spec.whatwg.org/#dom-global-fetch>
-impl FetchResponseListener for FetchContext {
-    fn process_request_body(&mut self, _: RequestId) {
-        // TODO
-    }
 
     fn process_response(
-        &mut self,
+        &self,
         cx: &mut JSContext,
-        _: RequestId,
         fetch_metadata: Result<FetchMetadata, NetworkError>,
     ) {
         // Step 12.1. If locallyAborted is true, then abort these steps.
-        if self.locally_aborted {
+        if self.locally_aborted.get() {
             return;
         }
-        let promise = self
-            .fetch_promise
-            .take()
-            .expect("fetch promise is missing")
-            .root(cx);
-
-        let mut realm = enter_auto_realm(cx, &*promise);
+        let mut realm = enter_auto_realm(cx, &*self.promise);
         let cx = &mut realm.current_realm();
         match fetch_metadata {
             // Step 12.3. If response is a network error, then reject
             // p with a TypeError and abort these steps.
             Err(error) => {
-                promise.reject_error(cx, Error::Type(cformat!("Network error: {:?}", error)));
-                self.fetch_promise = Some(TrustedPromise::from(&promise));
-                let response = self.response_object.root();
-                response.set_type(cx, DOMResponseType::Error);
-                response.error_stream(cx, Error::Type(c"Network error occurred".to_owned()));
+                self.promise
+                    .reject_error(cx, Error::Type(cformat!("Network error: {:?}", error)));
+                self.response.set_type(cx, DOMResponseType::Error);
+                self.response
+                    .error_stream(cx, Error::Type(c"Network error occurred".to_owned()));
                 return;
             },
             // Step 12.4. Set responseObject to the result of creating a Response object,
             // given response, "immutable", and relevantRealm.
             Ok(metadata) => match metadata {
                 FetchMetadata::Unfiltered(m) => {
-                    let r = self.response_object.root();
-                    fill_headers_with_metadata(cx, &r, m);
-                    r.set_type(cx, DOMResponseType::Default);
+                    fill_headers_with_metadata(cx, &self.response, m);
+                    self.response.set_type(cx, DOMResponseType::Default);
                 },
                 FetchMetadata::Filtered { filtered, .. } => match filtered {
                     FilteredMetadata::Basic(m) => {
-                        let r = self.response_object.root();
-                        fill_headers_with_metadata(cx, &r, m);
-                        r.set_type(cx, DOMResponseType::Basic);
+                        fill_headers_with_metadata(cx, &self.response, m);
+                        self.response.set_type(cx, DOMResponseType::Basic);
                     },
                     FilteredMetadata::Cors(m) => {
-                        let r = self.response_object.root();
-                        fill_headers_with_metadata(cx, &r, m);
-                        r.set_type(cx, DOMResponseType::Cors);
+                        fill_headers_with_metadata(cx, &self.response, m);
+                        self.response.set_type(cx, DOMResponseType::Cors);
                     },
                     FilteredMetadata::Opaque => {
-                        self.response_object
-                            .root()
-                            .set_type(cx, DOMResponseType::Opaque);
+                        self.response.set_type(cx, DOMResponseType::Opaque);
                     },
                     FilteredMetadata::OpaqueRedirect(url) => {
-                        let r = self.response_object.root();
-                        r.set_type(cx, DOMResponseType::Opaqueredirect);
-                        r.set_final_url(url);
+                        self.response.set_type(cx, DOMResponseType::Opaqueredirect);
+                        self.response.set_final_url(url);
                     },
                 },
             },
         }
 
         // Step 12.5. Resolve p with responseObject.
-        promise.resolve_native(cx, &self.response_object.root());
-        self.fetch_promise = Some(TrustedPromise::from(&promise));
+        self.promise.resolve_native(cx, &*self.response);
     }
 
-    fn process_response_chunk(&mut self, cx: &mut JSContext, _: RequestId, chunk: Bytes) {
-        let response = self.response_object.root();
-        response.stream_chunk(cx, chunk);
+    fn process_response_chunk(&self, cx: &mut JSContext, chunk: Bytes) {
+        self.response.stream_chunk(cx, chunk);
+    }
+
+    fn process_response_eof(&self, cx: &mut JSContext, response: &Result<(), NetworkError>) {
+        let mut realm = enter_auto_realm(cx, &*self.response);
+        let cx = &mut realm.current_realm();
+        if let Err(NetworkError::DecompressionError) = response {
+            self.response
+                .error_stream(cx, Error::Type(c"Network error occurred".to_owned()));
+        }
+        self.response.finish(cx);
+        // TODO
+        // ... trailerObject is not supported in Servo yet.
+    }
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+pub(crate) struct FetchContext {
+    #[no_trace]
+    request_id: RequestId,
+    #[no_trace]
+    url: ServoUrl,
+}
+
+/// Step 12 of <https://fetch.spec.whatwg.org/#dom-global-fetch>
+impl FetchResponseListener for FetchContext {
+    fn process_request_body(&mut self, _: &GlobalScope, _: RequestId) {
+        // TODO
+    }
+
+    fn process_response(
+        &mut self,
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        request_id: RequestId,
+        fetch_metadata: Result<FetchMetadata, NetworkError>,
+    ) {
+        let Some(call_state) = global.fetch_group().fetch_call_state(&request_id) else {
+            return;
+        };
+        call_state.process_response(cx, fetch_metadata);
+    }
+
+    fn process_response_chunk(
+        &mut self,
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        request_id: RequestId,
+        chunk: Bytes,
+    ) {
+        let Some(call_state) = global.fetch_group().fetch_call_state(&request_id) else {
+            return;
+        };
+        call_state.process_response_chunk(cx, chunk);
     }
 
     fn process_response_eof(
         self,
         cx: &mut JSContext,
-        _: RequestId,
+        global: &GlobalScope,
+        request_id: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        let response_object = self.response_object.root();
-        let mut realm = enter_auto_realm(cx, &*response_object);
-        let cx = &mut realm.current_realm();
-        if let Err(ref error) = response &&
-            *error == NetworkError::DecompressionError
-        {
-            response_object.error_stream(cx, Error::Type(c"Network error occurred".to_owned()));
-        }
-        response_object.finish(cx);
-        // TODO
-        // ... trailerObject is not supported in Servo yet.
+        let call_state = global.fetch_group().fetch_call_state(&request_id);
+        if let Some(call_state) = call_state {
+            call_state.process_response_eof(cx, &response);
+        };
 
         // navigation submission is handled in servoparser/mod.rs
-        network_listener::submit_timing(cx, &self, &response, &timing);
+        network_listener::submit_timing(cx, global, &self, &response, &timing);
     }
 
     fn process_csp_violations(
         &mut self,
         cx: &mut JSContext,
+        global: &GlobalScope,
         _request_id: RequestId,
         violations: Vec<Violation>,
     ) {
-        let global = &self.resource_timing_global();
         global.report_csp_violations(cx, violations, None, None);
     }
 }
@@ -725,52 +761,54 @@ impl ResourceTimingListener for FetchContext {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
         (InitiatorType::Fetch, self.url.clone())
     }
-
-    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-        self.response_object.root().global()
-    }
 }
 
 struct FetchLaterListener {
     /// URL of this request.
     url: ServoUrl,
-    /// The global object fetching the report uri violation
-    global: Trusted<GlobalScope>,
 }
 
 impl FetchResponseListener for FetchLaterListener {
-    fn process_request_body(&mut self, _: RequestId) {}
+    fn process_request_body(&mut self, _: &GlobalScope, _: RequestId) {}
 
     fn process_response(
         &mut self,
         _: &mut JSContext,
+        _: &GlobalScope,
         _: RequestId,
         fetch_metadata: Result<FetchMetadata, NetworkError>,
     ) {
         _ = fetch_metadata;
     }
 
-    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, chunk: Bytes) {
+    fn process_response_chunk(
+        &mut self,
+        _: &mut JSContext,
+        _: &GlobalScope,
+        _: RequestId,
+        chunk: Bytes,
+    ) {
         _ = chunk;
     }
 
     fn process_response_eof(
         self,
         cx: &mut JSContext,
+        global: &GlobalScope,
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        network_listener::submit_timing(cx, &self, &response, &timing);
+        network_listener::submit_timing(cx, global, &self, &response, &timing);
     }
 
     fn process_csp_violations(
         &mut self,
         cx: &mut JSContext,
+        global: &GlobalScope,
         _request_id: RequestId,
         violations: Vec<Violation>,
     ) {
-        let global = self.resource_timing_global();
         global.report_csp_violations(cx, violations, None, None);
     }
 }
@@ -778,10 +816,6 @@ impl FetchResponseListener for FetchLaterListener {
 impl ResourceTimingListener for FetchLaterListener {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
         (InitiatorType::Fetch, self.url.clone())
-    }
-
-    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-        self.global.root()
     }
 }
 
