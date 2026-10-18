@@ -451,10 +451,9 @@ impl DevtoolsInstance {
         let Some(browsing_context_name) = self.browsing_contexts.get(&browsing_context_id) else {
             return;
         };
-        let browsing_context_name = browsing_context_name.clone();
         let browsing_context_actor = self
             .registry
-            .find::<BrowsingContextActor>(&browsing_context_name);
+            .find::<BrowsingContextActor>(browsing_context_name);
         let watcher_actor = self
             .registry
             .find::<WatcherActor>(&browsing_context_actor.watcher_name);
@@ -791,8 +790,9 @@ impl DevtoolsInstance {
                 .registry
                 .find::<BrowsingContextActor>(browsing_context_name);
 
-            let thread_actor_name = browsing_context_actor.thread_name.clone();
-            let thread_actor = self.registry.find::<ThreadActor>(&thread_actor_name);
+            let thread_actor = self
+                .registry
+                .find::<ThreadActor>(&browsing_context_actor.thread_name);
             thread_actor.source_manager.add_source(source_actor.name());
 
             for stream in self.connections.lock().unwrap().values_mut() {
