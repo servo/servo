@@ -69,7 +69,9 @@ typedef struct {
 
 /* The waker may be called from any Servo-internal thread. Keep it tiny: just
  * record that work is pending. Do not touch Servo handles here. */
-static atomic_bool g_wake_pending = ATOMIC_VAR_INIT(false);
+/* Direct scalar initialization, not ATOMIC_VAR_INIT: that macro was removed
+ * in C23 and MSVC's <stdatomic.h> never provided it. */
+static atomic_bool g_wake_pending = false;
 
 static void on_wake(void)
 {
