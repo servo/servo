@@ -82,11 +82,14 @@ impl UAShadowRoot<ShadowTree> for HTMLDetailsElement {
             .upcast::<Node>()
             .set_implemented_pseudo_element(PseudoElement::DetailsContent);
 
-        let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
-            summary: summary.as_traced(),
-            details_content: details_content.as_traced(),
-            implicit_summary: fallback_summary.as_traced(),
-        });
+        let _ = self
+            .shadow_tree
+            .safe_borrow_mut(cx.no_gc())
+            .insert(ShadowTree {
+                summary: summary.as_traced(),
+                details_content: details_content.as_traced(),
+                implicit_summary: fallback_summary.as_traced(),
+            });
     }
 
     fn borrow_for_shadow_tree(&self) -> Ref<'_, Option<ShadowTree>> {

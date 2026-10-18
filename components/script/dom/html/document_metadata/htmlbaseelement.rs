@@ -92,11 +92,11 @@ impl HTMLBaseElement {
                 ))
         {
             // then set element's frozen base URL to document's fallback base URL and return.
-            *self.frozen_base_url.borrow_mut() = Some(document_fallback_url);
+            *self.frozen_base_url.safe_borrow_mut(cx.no_gc()) = Some(document_fallback_url);
             return;
         }
         // Step 4. Set element's frozen base URL to urlRecord.
-        *self.frozen_base_url.borrow_mut() = url_record;
+        *self.frozen_base_url.safe_borrow_mut(cx.no_gc()) = url_record;
         // Step 5. Respond to base URL changes given document.
         // TODO
     }

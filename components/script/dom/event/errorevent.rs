@@ -91,8 +91,8 @@ impl ErrorEvent {
         {
             let event = ev.upcast::<Event>();
             event.init_event(type_, bool::from(bubbles), bool::from(cancelable));
-            *ev.message.borrow_mut() = message;
-            *ev.filename.borrow_mut() = filename;
+            *ev.message.safe_borrow_mut(cx.no_gc()) = message;
+            *ev.filename.safe_borrow_mut(cx.no_gc()) = filename;
             ev.lineno.set(lineno);
             ev.colno.set(colno);
         }

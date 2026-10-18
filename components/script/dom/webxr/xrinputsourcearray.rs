@@ -58,7 +58,9 @@ impl XRInputSourceArray {
                 "Should never add a duplicate input id!"
             );
             let input = XRInputSource::new(cx, window, session, info.clone());
-            self.input_sources.borrow_mut().push(Dom::from_ref(&input));
+            self.input_sources
+                .safe_borrow_mut(cx.no_gc())
+                .push(Dom::from_ref(&input));
             added.push(input);
         }
 
@@ -95,7 +97,9 @@ impl XRInputSourceArray {
             &[],
             &removed,
         );
-        self.input_sources.borrow_mut().retain(|i| i.id() != id);
+        self.input_sources
+            .safe_borrow_mut(cx.no_gc())
+            .retain(|i| i.id() != id);
         event.upcast::<Event>().fire(cx, session.upcast());
     }
 
@@ -117,9 +121,13 @@ impl XRInputSourceArray {
             warn!("Could not find removed input source with id {:?}", id);
             &[]
         };
-        self.input_sources.borrow_mut().retain(|i| i.id() != id);
+        self.input_sources
+            .safe_borrow_mut(cx.no_gc())
+            .retain(|i| i.id() != id);
         let input = XRInputSource::new(cx, window, session, info);
-        self.input_sources.borrow_mut().push(Dom::from_ref(&input));
+        self.input_sources
+            .safe_borrow_mut(cx.no_gc())
+            .push(Dom::from_ref(&input));
 
         let added = [input];
 
