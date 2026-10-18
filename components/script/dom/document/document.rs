@@ -4599,18 +4599,19 @@ impl Document {
         self.count_node_list(|n| Document::is_element_in_get_by_name(n, name))
     }
 
-    pub(crate) fn nth_element_by_name<'a>(
+    pub(crate) fn elements_by_name_iter<'a>(
         &self,
         no_gc: &'a NoGC,
-        index: u32,
-        name: &DOMString,
-    ) -> Option<UnrootedDom<'a, Node>> {
-        if name.is_empty() {
-            return None;
-        }
-        self.nth_in_node_list(no_gc, index, |n| {
-            Document::is_element_in_get_by_name(n, name)
-        })
+        name: &'a DOMString,
+    ) -> impl Iterator<Item = UnrootedDom<'a, Node>> + 'a {
+        self.get_document_element_unrooted(no_gc)
+            .into_iter()
+            .flat_map(|element| {
+                element
+                    .upcast::<Node>()
+                    .traverse_preorder_unrooted(no_gc, ShadowIncluding::No)
+            })
+            .filter(move |node| Document::is_element_in_get_by_name(node, name))
     }
 
     // Note that document.getByName does not match on the same conditions
@@ -4634,19 +4635,6 @@ impl Document {
             .flat_map(|node| node.traverse_preorder(ShadowIncluding::No))
             .filter(|node| callback(node))
             .count() as u32
-    }
-
-    fn nth_in_node_list<'a, F: Fn(&Node) -> bool>(
-        &self,
-        no_gc: &'a NoGC,
-        index: u32,
-        callback: F,
-    ) -> Option<UnrootedDom<'a, Node>> {
-        let doc = self.get_document_element_unrooted(no_gc)?;
-        doc.upcast::<Node>()
-            .traverse_preorder_unrooted(no_gc, ShadowIncluding::No)
-            .filter(|node| callback(node))
-            .nth(index as usize)
     }
 
     fn get_html_element(&self) -> Option<DomRoot<HTMLHtmlElement>> {
