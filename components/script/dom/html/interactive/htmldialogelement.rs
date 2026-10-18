@@ -217,7 +217,7 @@ impl HTMLDialogElement {
 
         // Step 9. If result is not null, then set subject's returnValue attribute to result.
         if let Some(new_value) = result {
-            *self.return_value.borrow_mut() = new_value;
+            *self.return_value.safe_borrow_mut(cx.no_gc()) = new_value;
         }
 
         // TODO: Step 10. Set subject's request close return value to null.
@@ -362,8 +362,8 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-dialog-returnvalue>
-    fn SetReturnValue(&self, _cx: &mut JSContext, return_value: DOMString) {
-        *self.return_value.borrow_mut() = return_value;
+    fn SetReturnValue(&self, cx: &mut JSContext, return_value: DOMString) {
+        *self.return_value.safe_borrow_mut(cx.no_gc()) = return_value;
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-dialog-show>
