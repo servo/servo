@@ -138,6 +138,7 @@ mod font_context {
                         break;
                     },
                     SystemFontServiceMessage::PrefetchFontKeys(_) => {},
+                    SystemFontServiceMessage::RemovePainter(_) => {},
                     SystemFontServiceMessage::Ping => {},
                     SystemFontServiceMessage::CollectMemoryReport(..) => {},
                 }
