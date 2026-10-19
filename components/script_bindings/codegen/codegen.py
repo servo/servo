@@ -3360,6 +3360,23 @@ def InitLegacyUnforgeablePropertiesOnHolder(descriptor: Descriptor, properties: 
     for template, array in unforgeableMembers:
         if array.length() > 0:
             unforgeables.append(CGGeneric(template % f"unsafe {{ {array.variableName()}.get() }}"))
+
+    if descriptor.interface.getExtendedAttribute("LegacyUnforgeable"):
+        # We do our undefined toPrimitive here, not as a regular property
+        # because we don't have a concept of value props anywhere in IDL.
+        unforgeables.append(
+            CGGeneric(
+                fill(
+                    f"""
+            rooted!(&in(cx) let to_primitive = GetWellKnownSymbolKey(cx, SymbolCode::toPrimitive));
+            assert!(JS_DefinePropertyById2(cx, {unforgeable_holder}.handle(), to_primitive.handle(),
+                                           HandleValue::undefined(),
+                                           (JSPROP_READONLY | JSPROP_PERMANENT).into()));
+            """,
+                )
+            )
+        )
+
     return CGList(unforgeables, "\n")
 
 
