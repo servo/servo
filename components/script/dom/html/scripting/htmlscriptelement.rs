@@ -938,7 +938,7 @@ impl HTMLScriptElement {
                     let script = DomRoot::from_ref(self);
                     // Step 32.2.2.3 Fetch an inline module script graph, given source text, base
                     // URL, settings object, options, and with the following steps given result:
-                    fetch_inline_module_script(
+                    let module = fetch_inline_module_script(
                         cx,
                         global,
                         text,
@@ -947,11 +947,9 @@ impl HTMLScriptElement {
                         self.line_number as u32,
                         introduction_type,
                         move |_, module_tree| {
-                            let load = module_tree
-                                .map(|module| Script::Module(RootedTraceableBox::new(module)))
-                                .ok_or(());
-                            *script.result.borrow_mut() = Some(load.map(Into::into));
-
+                            if module_tree.is_none() {
+                                *script.result.borrow_mut() = Some(Err(()));
+                            }
                             let trusted = Trusted::new(&*script);
 
                             // Queue an element task on the networking task source given el to perform the following steps:
@@ -966,6 +964,8 @@ impl HTMLScriptElement {
                                 }));
                         },
                     );
+
+                    *self.result.borrow_mut() = Some(Ok(TracedScript::Module(*module.into_box())));
                 },
                 ScriptType::ImportMap => {
                     // Step 32.1 Let result be the result of creating an import map

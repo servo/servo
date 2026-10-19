@@ -1032,12 +1032,12 @@ pub(crate) fn fetch_inline_module_script(
     line_number: u32,
     introduction_type: Option<&'static CStr>,
     on_complete: impl FnOnce(&mut JSContext, Option<Rc<ModuleTree>>) + Clone + 'static,
-) {
+) -> RootedTraceableBox<Rc<ModuleTree>> {
     let mut realm = enter_auto_realm(cx, global);
     let cx = &mut realm.current_realm();
 
     // Step 1. Let script be the result of creating a JavaScript module script using sourceText, settingsObject, baseURL, and options.
-    let module_tree = ModuleTree::create_a_javascript_module_script(
+    let script = RootedTraceableBox::new(ModuleTree::create_a_javascript_module_script(
         cx,
         module_script_text,
         global,
@@ -1046,18 +1046,20 @@ pub(crate) fn fetch_inline_module_script(
         false,
         line_number,
         introduction_type,
-    );
+    ));
     let fetch_client = global.request_client(Some(cx.no_gc()));
 
     // Step 2. Fetch the descendants of and link script, given settingsObject, "script", and onComplete.
     fetch_the_descendants_and_link_module_script(
         cx,
         global,
-        module_tree,
+        script.clone(),
         fetch_client,
         Destination::Script,
         on_complete,
     );
+
+    script
 }
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script>
