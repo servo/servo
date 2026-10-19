@@ -105,7 +105,6 @@ pub struct FetchContext {
     pub file_token: FileTokenCheck,
     pub request_interceptor: Arc<TokioMutex<RequestInterceptor>>,
     pub cancellation_listener: Arc<CancellationListener>,
-    pub timing: ResourceFetchTimingContainer,
     pub protocols: Arc<ProtocolRegistry>,
     pub websocket_chan: Option<Arc<Mutex<WebSocketChannel>>>,
     pub ca_certificates: CACertificates<'static>,
@@ -194,10 +193,9 @@ pub async fn fetch_with_cors_cache(
     // and post-redirect start time are the coarsened shared current time
     // given crossOriginIsolatedCapability,
     // and render-blocking is set to request’s render-blocking.
-    //
-    // TODO(49036): For now we modify the timing from fetch context,
-    // but this should be created once FetchContext no longer has the relevant timing
-    context.timing.set_attributes(&[
+    let timing_info: ResourceFetchTimingContainer =
+        ResourceFetchTiming::new(request.timing_type()).into();
+    timing_info.set_attributes(&[
         ResourceAttribute::FetchStart,
         ResourceAttribute::StartTime(ResourceTimeValue::FetchStart),
     ]);
@@ -212,7 +210,7 @@ pub async fn fetch_with_cors_cache(
     // process response end-of-body is processResponseEndOfBody,
     // task destination is taskDestination,
     // and cross-origin isolated capability is crossOriginIsolatedCapability.
-    let mut fetch_params = FetchParams::new(request, context.timing.clone());
+    let mut fetch_params = FetchParams::new(request, timing_info);
     // Each net side fetch invocation owns closing its local deserialized request-body sender state
     // once this function returns, even if navigation redirect replay later starts a new fetch with
     // a fresh "RequestBody" copy.
@@ -568,7 +566,7 @@ pub async fn main_fetch(
         .request_interceptor
         .lock()
         .await
-        .intercept_request(request, &mut response, context)
+        .intercept_request(request, &mut response, &fetch_params.timing_info)
         .await;
 
     let mut response = match response {
