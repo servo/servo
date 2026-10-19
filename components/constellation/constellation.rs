@@ -3402,6 +3402,19 @@ where
             }
         }
 
+        // Drop the font keys the service pre-allocated for this painter. They
+        // are shared with every other `WebView` drawing to the same rendering
+        // context, so they can only go once that painter has no WebViews left,
+        // otherwise a surviving WebView would find its pool of keys emptied.
+        let painter_id = PainterId::from(webview_id);
+        let painter_is_still_used = self
+            .webviews
+            .keys()
+            .any(|id| PainterId::from(*id) == painter_id);
+        if !painter_is_still_used {
+            self.system_font_service.remove_painter(painter_id);
+        }
+
         debug!("{webview_id}: Closed");
     }
 

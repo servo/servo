@@ -71,7 +71,8 @@ pub struct SystemFontService {
     /// `Paint` asynchronously for creating WebRender fonts, while immediately
     /// returning a font key for that data. Once the free keys are exhausted, the
     /// [`SystemFontService`] will fetch a new batch.
-    /// TODO: We currently do not delete the free keys if a `WebView` is removed.
+    /// The keys are dropped again by [`Self::remove_painter`] once the painter
+    /// they were allocated for is gone.
     free_font_keys: FxHashMap<PainterId, Vec<FontKey>>,
 
     /// This is an optimization that allows the [`SystemFontService`] to create WebRender font
@@ -168,6 +169,9 @@ impl SystemFontService {
                 SystemFontServiceMessage::PrefetchFontKeys(painter_id) => {
                     self.fetch_font_keys_if_needed(painter_id);
                 },
+                SystemFontServiceMessage::RemovePainter(painter_id) => {
+                    self.remove_painter(painter_id);
+                },
                 SystemFontServiceMessage::CollectMemoryReport(report_sender) => {
                     self.collect_memory_report(report_sender);
                 },
@@ -209,6 +213,21 @@ impl SystemFontService {
 
         free_font_keys.append(&mut new_font_keys);
         free_font_instance_keys.append(&mut new_font_instance_keys);
+    }
+
+    /// Forget everything this service holds on behalf of a `Painter` that no
+    /// longer exists.
+    ///
+    /// The keys were allocated from that painter's WebRender namespace, so once
+    /// the painter is dropped they are unreachable and keeping them only grows
+    /// this process for every `WebView` an embedder ever creates and closes.
+    /// The font and font instance maps are keyed by painter for the same reason:
+    /// their entries name a namespace that is gone.
+    fn remove_painter(&mut self, painter_id: PainterId) {
+        self.free_font_keys.remove(&painter_id);
+        self.free_font_instance_keys.remove(&painter_id);
+        self.webrender_fonts.retain(|(_, key), _| *key != painter_id);
+        self.font_instances.retain(|key, _| key.painter_id != painter_id);
     }
 
     #[servo_tracing::instrument(skip_all)]

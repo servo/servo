@@ -37,6 +37,9 @@ pub enum SystemFontServiceMessage {
         GenericSender<FontInstanceKey>,
     ),
     PrefetchFontKeys(PainterId),
+    /// The `Painter` these keys were pre-allocated for no longer exists, so
+    /// they can never be handed out and are only wasting memory.
+    RemovePainter(PainterId),
     GetFontKey(PainterId, GenericSender<FontKey>),
     GetFontInstanceKey(PainterId, GenericSender<FontInstanceKey>),
     CollectMemoryReport(ReportsChan),
@@ -195,5 +198,16 @@ impl SystemFontServiceProxy {
         let _ = self
             .sender
             .send(SystemFontServiceMessage::PrefetchFontKeys(painter_id));
+    }
+
+    /// Tell the [`SystemFontService`] that `painter_id` has gone away, so that
+    /// every per-painter entry it holds - the pre-allocated font and font
+    /// instance keys, plus the font and instance maps keyed by painter - can be
+    /// dropped. Callers must only do this once the painter's last `WebView` is
+    /// gone, since the keys are shared by every `WebView` drawing to it.
+    pub fn remove_painter(&self, painter_id: PainterId) {
+        let _ = self
+            .sender
+            .send(SystemFontServiceMessage::RemovePainter(painter_id));
     }
 }
