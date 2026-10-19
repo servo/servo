@@ -414168,6 +414168,34 @@
         ]
        ]
       },
+      "textfieldselection": {
+       "setRangeText-repaint-input.html": [
+        "9128105316ac2ea3233dc75217a10bfb4bc97b81",
+        [
+         null,
+         [
+          [
+           "/html/semantics/forms/textfieldselection/setRangeText-repaint-input-ref.html",
+           "=="
+          ]
+         ],
+         {}
+        ]
+       ],
+       "setRangeText-repaint-textarea.html": [
+        "1b9506fa4e5d3cb716993152dccc6031d12dfac0",
+        [
+         null,
+         [
+          [
+           "/html/semantics/forms/textfieldselection/setRangeText-repaint-textarea-ref.html",
+           "=="
+          ]
+         ],
+         {}
+        ]
+       ]
+      },
       "the-datalist-element": {
        "input-text-datalist-appearance.html": [
         "c1663de2f2f181305f5d988f1e36a0f54ea4b4c6",
@@ -566647,6 +566675,14 @@
       "textfieldselection": {
        "original-id.json": [
         "d9fe4358563fe333bcba5f943eaf151e32aba003",
+        []
+       ],
+       "setRangeText-repaint-input-ref.html": [
+        "fcd86b6a478c014fee457c53fc196593cc0d6c6e",
+        []
+       ],
+       "setRangeText-repaint-textarea-ref.html": [
+        "57e327571c8210d078b806112485972fdfee8734",
         []
        ]
       },
