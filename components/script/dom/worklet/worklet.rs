@@ -477,7 +477,7 @@ pub(crate) enum WorkletControl {
         promise: TrustedPromise,
         inherited_secure_context: Option<bool>,
     },
-    Common(CommonScriptMsg),
+    Common(WorkletId, CommonScriptMsg),
 }
 
 /// A role that a worklet thread can be playing.
@@ -932,8 +932,12 @@ impl WorkletThread {
                     cx,
                 )
             },
-            WorkletControl::Common(script_msg) => {
-                if let CommonScriptMsg::Task(_, task, _, _) = script_msg {
+            WorkletControl::Common(worklet_id, script_msg) => {
+                if let CommonScriptMsg::Task(_, task, _, _) = script_msg &&
+                    let Some(global) = self.global_scopes.get(&worklet_id)
+                {
+                    let mut realm = enter_auto_realm(cx, global.upcast::<GlobalScope>());
+                    let cx = &mut realm;
                     task.run_box(cx);
                 }
             },
@@ -1009,12 +1013,13 @@ impl WorkletExecutor {
             .send(WorkletData::Task(self.worklet_id, task));
     }
 
-    pub(crate) fn send_control_message(
+    /// Send a [`CommonScriptMsg`] to be send to the worklet thread pool.
+    pub(crate) fn send_common_message(
         &self,
-        control_message: WorkletControl,
+        common_message: CommonScriptMsg,
     ) -> Result<(), SendError<()>> {
         self.control_sender
-            .send(control_message)
+            .send(WorkletControl::Common(self.worklet_id, common_message))
             .map_err(|_| SendError(()))?;
         self.wake_threads()
     }

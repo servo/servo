@@ -28,6 +28,7 @@ use timers::TimerScheduler;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::WebGPUMsg;
 
+use crate::dom::WorkletExecutor;
 use crate::dom::abstractworker::WorkerScriptMsg;
 use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::csp::Violation;
@@ -35,7 +36,6 @@ use crate::dom::dedicatedworkerglobalscope::DedicatedWorkerScriptMsg;
 use crate::dom::serviceworkerglobalscope::ServiceWorkerScriptMsg;
 use crate::dom::sharedworkerglobalscope::SharedWorkerScriptMsg;
 use crate::dom::worker::TrustedWorkerAddress;
-use crate::dom::{WorkletControl, WorkletExecutor};
 use crate::runtime::script_runtime::ScriptThreadEventCategory;
 use crate::tasks::task::TaskBox;
 use crate::tasks::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
@@ -265,9 +265,7 @@ impl ScriptEventLoopSender {
                     ))
                     .map_err(|_| SendError(()))
             },
-            Self::Worklet(executor) => {
-                executor.send_control_message(WorkletControl::Common(message))
-            },
+            Self::Worklet(executor) => executor.send_common_message(message),
         }
     }
 }
