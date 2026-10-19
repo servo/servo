@@ -83,6 +83,7 @@ pub const SERVO_MEDIA_SESSION_ACTION_SKIP_AD: c_int = 6;
 pub const SERVO_MEDIA_SESSION_ACTION_STOP: c_int = 7;
 
 use crate::clipboard::ServoClipboardDelegate;
+use crate::gamepad::ServoGamepadDelegate;
 use crate::rendering_context::RenderingContext;
 use crate::webview_delegate::ServoWebViewDelegate;
 
@@ -103,6 +104,7 @@ pub struct ServoWebViewBuilder {
     url: Option<url::Url>,
     delegate: Option<ServoWebViewDelegate>,
     clipboard_delegate: Option<Rc<dyn servo_api::ClipboardDelegate>>,
+    gamepad_delegate: Option<Rc<dyn servo_api::GamepadDelegate>>,
     pub(crate) user_content_manager: Option<Rc<servo_api::UserContentManager>>,
     pub(crate) request_context: Option<servo_api::RequestContext>,
     hidpi_scale_factor: Option<f32>,
@@ -164,6 +166,7 @@ pub unsafe extern "C" fn servo_webview_builder_create(
             url: None,
             delegate: None,
             clipboard_delegate: None,
+            gamepad_delegate: None,
             user_content_manager: None,
             request_context: None,
             hidpi_scale_factor: None,
@@ -325,6 +328,59 @@ pub unsafe extern "C" fn servo_webview_builder_set_clipboard_delegate(
     })
 }
 
+/// Sets the delegate that will handle gamepad haptic effects for the `WebView`
+/// being built.
+///
+/// `builder` is a handle to a `ServoWebViewBuilder` object.
+/// The ownership of `builder` remains with the caller after the call.
+///
+/// `delegate` is a `ServoGamepadDelegate` struct with the callbacks you are
+/// interested in. Servo copies the struct, so the caller may free or reuse its
+/// own storage after the call.
+///
+/// When no gamepad delegate is set, haptic effect requests are failed
+/// immediately, so a page asking for rumble is told the effect did not play
+/// rather than being left waiting.
+///
+/// The delegate is only ever consulted if the engine was built with the
+/// `gamepad` feature and a gamepad is connected; see `C_API_GUIDE.md`.
+///
+/// Returns `ServoError::Ok` on success, `ServoError::NullArgument` if `builder`
+/// is NULL, or `ServoError::InvalidArgument` if `delegate.struct_size` is
+/// smaller than the size of `ServoGamepadDelegate` compiled into this
+/// library.
+///
+/// # Safety
+///
+/// The caller must ensure that:
+///
+/// - `builder` is a non-null pointer to a `ServoWebViewBuilder`
+///   previously returned by `servo_webview_builder_create` and has not
+///   yet been freed nor passed to another API that takes ownership of
+///   it.
+/// - `delegate` must uphold the safety requirements documented on the
+///   `ServoGamepadDelegate` type.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_webview_builder_set_gamepad_delegate(
+    builder: *mut ServoWebViewBuilder,
+    delegate: ServoGamepadDelegate,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if builder.is_null() {
+            return ServoError::NullArgument;
+        }
+        if !crate::is_compatible_struct_size(
+            delegate.struct_size,
+            std::mem::size_of::<ServoGamepadDelegate>(),
+        ) {
+            return ServoError::InvalidArgument;
+        }
+        let builder = unsafe { &mut *builder };
+        builder.gamepad_delegate = Some(Rc::new(delegate));
+        ServoError::Ok
+    })
+}
+
 /// Sets the HiDPI scale factor for the `WebView` being built.
 ///
 /// `builder` is a handle to a `ServoWebViewBuilder` object.
@@ -387,6 +443,7 @@ pub unsafe extern "C" fn servo_webview_builder_build(
             url,
             delegate,
             clipboard_delegate,
+            gamepad_delegate,
             user_content_manager,
             request_context,
             hidpi_scale_factor,
@@ -416,6 +473,10 @@ pub unsafe extern "C" fn servo_webview_builder_build(
 
         if let Some(clipboard_delegate) = clipboard_delegate {
             webview_builder = webview_builder.clipboard_delegate(clipboard_delegate);
+        }
+
+        if let Some(gamepad_delegate) = gamepad_delegate {
+            webview_builder = webview_builder.gamepad_delegate(gamepad_delegate);
         }
 
         if let Some(user_content_manager) = user_content_manager {
@@ -537,6 +598,7 @@ pub unsafe extern "C" fn servo_create_new_webview_builder_create(
             url: None,
             delegate: None,
             clipboard_delegate: None,
+            gamepad_delegate: None,
             user_content_manager: None,
             request_context: None,
             hidpi_scale_factor: None,

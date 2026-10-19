@@ -908,6 +908,56 @@ designated initializers so future fields cannot shift the ones you set. A delega
 `struct_size` is smaller than the size it was compiled with is rejected with
 `SERVO_ERROR_INVALID_ARGUMENT`.
 
+### Gamepad delegate (new)
+
+`ServoGamepadDelegate`, set with `servo_webview_builder_set_gamepad_delegate`, takes over
+gamepad haptics for a `WebView`. Servo never rumble-effects a pad itself: the engine asks
+the host to do it, and the host reports whether it did.
+
+```c
+ServoGamepadDelegate gamepad = {
+    .struct_size = sizeof(ServoGamepadDelegate),
+    .user_data = app,
+    .handle_haptic_effect_request = on_haptic_effect,
+};
+
+void on_haptic_effect(struct ServoGamepadHapticEffectRequest* request, void* user_data)
+{
+    ServoGamepadHapticEffectInfo info = {
+        .struct_size = sizeof(ServoGamepadHapticEffectInfo),
+    };
+    servo_webview_gamepad_haptic_effect_request_info(request, &info);
+
+    /* info.gamepad_index identifies the pad. info.effect_type is
+     * SERVO_GAMEPAD_HAPTIC_EFFECT_STOP or SERVO_GAMEPAD_HAPTIC_EFFECT_DUAL_RUMBLE;
+     * for dual-rumble, duration/start_delay are milliseconds and the two
+     * magnitudes run 0.0 to 1.0. */
+
+    servo_webview_gamepad_haptic_effect_request_succeeded(request);
+}
+```
+
+`servo_webview_gamepad_haptic_effect_request_info` only *reads* the request: it does not
+resolve it and does not take ownership. Exactly one of
+`servo_webview_gamepad_haptic_effect_request_succeeded` or
+`servo_webview_gamepad_haptic_effect_request_failed` resolves it, and either transfers
+ownership, so the handle must not be used afterwards. Resolve it from the event loop that
+runs `servo_spin_event_loop`. If it is dropped unresolved - including when the callback
+is `NULL` - the engine reports the effect as failed to the page rather than leaving it
+waiting.
+
+Two things distinguish this delegate from the others:
+
+- **The callback receives no `WebView`.** The engine's own `GamepadDelegate` does not
+  supply one, because a rumble request is addressed to a gamepad rather than to a page.
+  The delegate is already bound to the `WebView` it was installed on.
+- **It needs hardware to be consulted at all.** A request only exists when the engine was
+  built with the `gamepad` feature *and* a gamepad is connected. A CI runner has neither,
+  so `test_gamepad_delegate_abi` covers only the ABI contract - a well-formed struct is
+  accepted, `struct_size = 0` is rejected, and a NULL builder is reported - and the
+  haptic round trip itself is unverified here. Treat the round trip as untested until you
+  have run it on a machine with a pad attached.
+
 ### Close flow example
 
 To close a `WebView` cooperatively, call `servo_webview_close` and wait for the

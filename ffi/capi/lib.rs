@@ -7,6 +7,7 @@ mod clipboard;
 mod cookie_manager;
 mod download;
 mod find;
+mod gamepad;
 mod javascript;
 mod message_router;
 mod multiprocess;
@@ -119,6 +120,15 @@ pub use clipboard::{
     ServoClipboardClearCallback, ServoClipboardDelegate, ServoClipboardGetTextCallback,
     ServoClipboardSetTextCallback, ServoClipboardStringRequest,
     servo_webview_clipboard_request_failure, servo_webview_clipboard_request_success,
+};
+
+// Re-export gamepad types
+pub use gamepad::{
+    SERVO_GAMEPAD_HAPTIC_EFFECT_DUAL_RUMBLE, SERVO_GAMEPAD_HAPTIC_EFFECT_STOP,
+    ServoGamepadDelegate, ServoGamepadHapticEffectCallback, ServoGamepadHapticEffectInfo,
+    ServoGamepadHapticEffectRequest, servo_webview_gamepad_haptic_effect_request_failed,
+    servo_webview_gamepad_haptic_effect_request_info,
+    servo_webview_gamepad_haptic_effect_request_succeeded,
 };
 
 // Re-export download constants

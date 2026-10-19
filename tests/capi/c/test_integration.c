@@ -933,6 +933,85 @@ cleanup:
     return result;
 }
 
+/* W4.2b. A haptic effect request only exists when the engine was built with the
+ * `gamepad` feature and a gamepad is physically connected. CI has neither, so
+ * the round trip itself cannot be exercised here - see the "Gamepad delegate"
+ * section of C_API_GUIDE.md, which records that rather than implying the round
+ * trip is covered.
+ *
+ * What can be checked without hardware is the ABI contract every other delegate
+ * is held to: a well-formed struct is accepted, a struct compiled against a
+ * smaller header is rejected instead of being read past its end, and a NULL
+ * builder is reported rather than dereferenced. Building a WebView with the
+ * delegate installed also proves the `Rc<dyn GamepadDelegate>` wiring does not
+ * panic on the way in. */
+static int test_gamepad_delegate_abi(struct Servo* servo)
+{
+    log("running test_gamepad_delegate_abi\n");
+    int result = 1; // default to fail
+    struct WebView* webview = NULL;
+
+    RenderingContext* context = servo_rendering_context_create_software(100, 100);
+    if (!context) {
+        log("  FAIL: servo_rendering_context_create_software returned NULL\n");
+        return 1;
+    }
+
+    ServoWebViewBuilder* builder = servo_webview_builder_create(servo, context);
+    if (!builder) {
+        log("  FAIL: servo_webview_builder_create returned NULL\n");
+        return 1;
+    }
+
+    ServoGamepadDelegate delegate = {
+        .struct_size = sizeof(ServoGamepadDelegate),
+        .user_data = NULL,
+        // No handler: an unhandled request is failed immediately by the engine,
+        // which is the documented default.
+        .handle_haptic_effect_request = NULL,
+    };
+
+    if (servo_webview_builder_set_gamepad_delegate(NULL, delegate)
+        != SERVO_ERROR_NULL_ARGUMENT) {
+        log("  FAIL: set_gamepad_delegate did not report a NULL builder\n");
+        goto cleanup;
+    }
+    if (servo_webview_builder_set_gamepad_delegate(builder, delegate) != SERVO_ERROR_OK) {
+        log("  FAIL: set_gamepad_delegate rejected a well-formed struct\n");
+        goto cleanup;
+    }
+
+    // A delegate compiled against a smaller struct must be rejected instead of
+    // being read past its end (ABI_STABILITY.md section 3.3).
+    {
+        ServoGamepadDelegate truncated_delegate = delegate;
+        truncated_delegate.struct_size = 0;
+        if (servo_webview_builder_set_gamepad_delegate(builder, truncated_delegate)
+            != SERVO_ERROR_INVALID_ARGUMENT) {
+            log("  FAIL: set_gamepad_delegate accepted struct_size = 0\n");
+            goto cleanup;
+        }
+    }
+
+    webview = servo_webview_builder_build(builder);
+    if (!webview) {
+        log("  FAIL: servo_webview_builder_build returned NULL\n");
+        goto cleanup;
+    }
+
+    log("  PASS: the gamepad delegate is ABI-versioned like the other delegates\n");
+    result = 0;
+
+cleanup:
+    if (webview) {
+        servo_webview_close(webview);
+        servo_webview_free(webview);
+    } else {
+        servo_webview_builder_free(builder);
+    }
+    return result;
+}
+
 /* State for the hang-monitor test is the shared `test_state_t`; the
  * interrupted evaluation is reported through `js_error_received` / `js_error`. */
 static void on_javascript_hang_kill(const char* result_json, const char* error_message, void* user_data)
@@ -2142,6 +2221,9 @@ int run_c_integration_tests(void)
     }
     if (result == 0) {
         result = test_clipboard_round_trip(servo);
+    }
+    if (result == 0) {
+        result = test_gamepad_delegate_abi(servo);
     }
     if (result == 0) {
         result = test_repeated_load_cycles(servo);

@@ -228,6 +228,14 @@ clipboard, and both on-screen and offscreen rendering.
     / `_failure`. Round-tripped by `test_clipboard_round_trip` in both directions
     (paste reads through `get_text`, copy writes through `set_text`).
   - `GamepadDelegate` C struct + `GamepadHapticEffectRequest` success/failure.
+    *Done on this branch:* `ServoGamepadDelegate` + `servo_webview_builder_set_gamepad_delegate`,
+    with an opaque `ServoGamepadHapticEffectRequest` read through
+    `servo_webview_gamepad_haptic_effect_request_info` and resolved by
+    `servo_webview_gamepad_haptic_effect_request_succeeded` / `_failed`; the `gamepad`
+    feature is now enabled in `ffi/capi`. The haptic round trip is **not** exercised in
+    CI - a request needs a physically connected gamepad - so only the ABI contract is
+    covered (`test_gamepad_delegate_abi`); see the "Gamepad delegate" section of
+    `C_API_GUIDE.md`.
 - Reference host: document and test a minimal C "browser window" sample driving input.
 
 **Files / crates**
