@@ -35,6 +35,7 @@ use servo_base::generic_channel::GenericCallback;
 use servo_base::id::{
     ContainerTimingID, LCPCandidateID, MessagePortId, PipelineId, ScriptEventLoopId, WebViewId,
 };
+use servo_canvas_traits::webgl::GenericSender;
 use servo_config::prefs::PrefValue;
 use servo_url::{ImmutableOrigin, ServoUrl};
 pub use structured_data::*;
@@ -126,6 +127,8 @@ pub enum EmbedderToConstellationMessage {
     /// Inform the `Constellation` that the embedder has changed the network
     /// online state.
     SetNetworkOnlineState(bool),
+    /// Stores the http cache to disk and sends a message back when it is done.
+    StoreCacheToDisk(GenericSender<()>),
 }
 
 pub enum UserContentManagerAction {
