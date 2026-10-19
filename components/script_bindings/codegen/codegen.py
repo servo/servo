@@ -2063,6 +2063,19 @@ class MethodDefiner(PropertyDefiner):
                     "flags": "JSPROP_ENUMERATE",
                     "condition": PropertyDefiner.getControllingCondition(stringifier, descriptor)
                 })
+            if unforgeable and descriptor.interface.getExtendedAttribute(
+                "LegacyUnforgeable"
+            ):
+                # Synthesize our valueOf method
+                self.regular.append({
+                    "name": "valueOf",
+                    "selfHostedName": "Object_valueOf",
+                    "methodInfo": False,
+                    "length": 0,
+                    "flags": "0",  # readonly/permanent added automatically.
+                    "condition": "Condition::Satisfied",
+                })
+
         self.unforgeable = unforgeable
         self.crossorigin = crossorigin
 
