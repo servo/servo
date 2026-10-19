@@ -510,7 +510,6 @@ impl ShapingOptions {
 /// An entry in the shape cache.
 #[derive(Clone, Debug, Eq, Hash, PartialEq)]
 struct ShapeCacheEntry {
-    text: String,
     letter_spacing: Au,
     word_spacing: Au,
     script: Script,
@@ -526,7 +525,6 @@ impl Font {
             compute_used_font_features(options, self.template.borrow().font_face_rule.as_deref())
                 .collect();
         let lookup_key = ShapeCacheEntry {
-            text: text.to_owned(),
             letter_spacing: options.letter_spacing,
             word_spacing: options.word_spacing,
             script: options.script,
