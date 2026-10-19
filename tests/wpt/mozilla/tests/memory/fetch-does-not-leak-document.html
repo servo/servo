@@ -5,14 +5,42 @@
 <script src="resources/leak-helpers.js"></script>
 <body>
     <script>
-    promise_test(async () => {
-      assert_true(await createAndDestroyIframeWithHTML("<script>window.simple = \"true\"<\/script>"));
-    }, "A simple <iframe> creation does not leak the Document");
-    promise_test(async () => {
-      assert_true(await createAndDestroyIframeWithHTML("<script>fetch(\"data:text/plain,simple\").then(response => response.text());<\/script>"));
-    }, "An <iframe> that launches a simple fetch does not leak the Document");
-    promise_test(async () => {
-      assert_true(await createAndDestroyIframeWithHTML("<script>fetch(\"/fetch/api/resources/infinite-slow-response.py\");<\/script>"));
-    }, "An <iframe> with an in-progress fetch does not leak the Document");
+      const tests = [
+        "<script>window.simple = \"true\"<\/script>",
+        "<script>fetch(\"data:text/plain,simple\").then(response => response.text());<\/script>",
+        "<script>fetch(\"/fetch/api/resources/infinite-slow-response.py\");<\/script>",
+        "<script>fetch(\"/common/slow.py?delay=60000\");<\/script>",
+        "<script>fetch(\"/fetch/api/resources/infinite-slow-response.py\", {keepalive: true});<\/script>",
+        "<script>fetch(\"/fetch/api/resources/infinite-slow-response.py\", {signal: new AbortController().signal});<\/script>",
+        "<script>const x = new XMLHttpRequest(); x.open(\"GET\", \"/fetch/api/resources/infinite-slow-response.py\"); x.send();<\/script>",
+        "<script>const x = new XMLHttpRequest(); x.open(\"GET\", \"/common/slow.py?delay=60000\"); x.send();<\/script>",
+        "<script>new EventSource(\"/fetch/api/resources/infinite-slow-response.py\");<\/script>",
+        "<script>navigator.sendBeacon(\"/common/slow.py?delay=60000\", \"data\");<\/script>",
+        "<img src=\"/fetch/api/resources/infinite-slow-response.py\">",
+        "<img src=\"/common/slow.py?delay=60000\">",
+        "<picture><source srcset=\"/common/slow.py?delay=60000\"><img></picture>",
+        "<div style=\"background-image: url(/common/slow.py?delay=60000); width: 10px; height: 10px\"></div>",
+        "<link rel=\"stylesheet\" href=\"/fetch/api/resources/infinite-slow-response.py\">",
+        "<link rel=\"stylesheet\" href=\"/common/slow.py?delay=60000\">",
+        "<style>@import url(\"/common/slow.py?delay=60000\");</style>",
+        "<link rel=\"preload\" as=\"image\" href=\"/common/slow.py?delay=60000\">",
+        "<link rel=\"prefetch\" href=\"/common/slow.py?delay=60000\">",
+        "<script src=\"/fetch/api/resources/infinite-slow-response.py\"><\/script>",
+        "<script src=\"/common/slow.py?delay=60000\"><\/script>",
+        "<video src=\"/common/slow.py?delay=60000\"></video>",
+        "<audio src=\"/common/slow.py?delay=60000\"></audio>",
+        "<video poster=\"/common/slow.py?delay=60000\"></video>",
+        "<video><track default kind=\"subtitles\" src=\"/common/slow.py?delay=60000\"></video>",
+        "<style>@font-face { font-family: slow; src: url(\"/common/slow.py?delay=60000\"); } body { font-family: slow; }</style><body>text</body>",
+        "<iframe src=\"/common/slow.py?delay=60000\"></iframe>",
+        "<script>new Worker(\"/common/slow.py?delay=60000\");<\/script>",
+        "<script>fetchLater(\"/common/slow.py?delay=60000\", {activateAfter: 60000});<\/script>",
+      ];
+
+      for (const test of tests) {
+          promise_test(async () => {
+            assert_true(await createAndDestroyIframeWithHTML(test));
+          }, `'${test}' does not leak the document`);
+      }
     </script>
 </body>
