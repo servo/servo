@@ -18,11 +18,10 @@
 #include <psapi.h> // `GetProcessMemoryInfo`, used by the W5.7 leak test
 #elif defined(__APPLE__)
 #include <time.h>
-#include <malloc/malloc.h> // `malloc_zone_pressure_relief`, used by the W5.7 leak test
-#include <mach/mach.h>     // `task_info`, used by the W5.7 leak test
+#include <mach/mach.h> // `task_info`, used by the W5.7 leak test
 #else
 #include <time.h>
-#include <malloc.h> // `malloc_trim`, used by the W5.7 leak test
+#include <malloc.h> // `mallinfo2`, used by the W5.7 leak-test diagnostic
 #include <unistd.h> // `sysconf`, used by the W5.7 leak test
 #endif
 
@@ -1448,17 +1447,29 @@ cleanup:
  * `heap_reports()` is empty on Windows, so it is not portable across the three
  * jobs that run this test.
  *
- * Raw RSS is dominated by allocator high-water marks rather than by live
- * memory: freed blocks are usually kept in per-thread arenas and free lists,
- * so RSS climbs until an arena stops growing and only then plateaus. The size
- * of that effect is not reproducible - the same workload grew ~1900 KiB per
- * cycle before flattening on one Linux run and only ~90 KiB per cycle on
- * another - which makes raw RSS useless as a leak tripwire. Every sample is
- * therefore preceded by `trim_process_memory()`, which asks the allocator to
- * release free pages back to the OS (`malloc_trim` on glibc,
- * `malloc_zone_pressure_relief` on macOS, an empty working set on Windows).
- * Live memory is unaffected by trimming, so a genuine leak still shows up
- * while allocator high-water marks do not.
+ * RSS measures allocator and OS bookkeeping as well as live memory, so the
+ * verdict needs a window that has left allocator warm-up behind. Two runs of
+ * this test show how large that warm-up can be: a 50-cycle run grew 42540 KiB
+ * over cycles 10..49, almost all of it in a spike between cycles ~23 and ~38,
+ * and then settled to ~90 KiB per cycle; a 200-cycle run of the same code grew
+ * only ~90 KiB per cycle from cycle 100 onwards. The spike was arena growth,
+ * not retention, so `LEAK_TEST_WARMUP` discards more than it: nothing before
+ * cycle 250 feeds the verdict, and the run reports both halves of the measured
+ * window so a tailing-off curve is visible in the raw log.
+ *
+ * Trimming the allocator before each sample does not fix this. An earlier
+ * revision called `malloc_trim(0)` (glibc), `malloc_zone_pressure_relief`
+ * (macOS) or emptied the working set (Windows) first; measured, it changed
+ * nothing on Linux (9572 KiB of growth over cycles 100..199 with the trim
+ * against 8604 KiB without it) and on Windows it collapsed the metric - every
+ * sample read 124 KiB, because the trim evicted the very pages the sample was
+ * supposed to be looking at. Trimming is gone and the samples are raw.
+ *
+ * `heap_in_use_bytes()` supplies a second, tighter signal on glibc: the bytes
+ * the allocator considers in use, which excludes the free blocks that inflate
+ * RSS. RSS growth with flat in-use bytes is allocator behaviour; growth in both
+ * is retention. It is a diagnostic, not an assertion, because macOS and Windows
+ * have no equivalent that is cheap enough to call once per cycle.
  *
  * The bound below is a regression tripwire, not a target: it sits above the
  * growth measured on a healthy build, so ordinary noise cannot make the test
@@ -1467,31 +1478,32 @@ cleanup:
  * samples.
  */
 
-/* Number of create/load/free cycles to run. */
-#define LEAK_TEST_CYCLES 200
-/* Cycles discarded before growth is measured (one-off initialisation). */
-#define LEAK_TEST_WARMUP 100
+/* Number of create/load/free cycles to run. MEASUREMENT MODE: raised to 500 so
+ * that each platform reports two 250-cycle slopes; the committed value is set
+ * from that data. */
+#define LEAK_TEST_CYCLES 500
+/* Cycles discarded before growth is measured, so that allocator warm-up cannot
+ * reach the verdict (see the comment block above). */
+#define LEAK_TEST_WARMUP 250
 /* Maximum allowed RSS growth in bytes, from the warm-up sample to the last.
  * MEASUREMENT MODE: set to 512 MiB so this run reports the full curve on every
  * platform instead of failing; the real bound is set from that data. */
 #define LEAK_TEST_MAX_GROWTH_BYTES (512 * 1024 * 1024)
 
-/* Asks the allocator to release free pages back to the OS, so that the RSS
- * sampled immediately afterwards is close to the process' live set instead of
- * its allocator high-water mark. See the comment block above. */
-static void trim_process_memory(void)
+/* Reports the bytes the allocator considers in use, or 0 where that is
+ * unavailable. Unlike RSS this excludes the free blocks the allocator is
+ * holding on to, so it separates engine retention from allocator high-water
+ * marks. See the comment block above. */
+static size_t heap_in_use_bytes(void)
 {
-#ifdef _WIN32
-    // Emptying the working set evicts every page that is not referenced by the
-    // trim itself, so the next sample re-faults only what is live.
-    SetProcessWorkingSetSizeEx(GetCurrentProcess(), (SIZE_T)-1, (SIZE_T)-1, 0);
-#elif defined(__APPLE__)
-    // Release free malloc zones back to the OS (macOS' counterpart of glibc's
-    // `malloc_trim`).
-    malloc_zone_pressure_relief(NULL, 0);
+    // `mallinfo2` is glibc 2.33+; everywhere else (and older glibc) this is 0.
+    // The version is compared arithmetically because `__GLIBC_PREREQ` may be
+    // undefined outside glibc, and a function-like macro in `#if` is a syntax
+    // error rather than a false condition.
+#if defined(__GLIBC__) && (__GLIBC__ * 1000 + __GLIBC_MINOR__) >= 2033
+    return (size_t)mallinfo2().uordblks;
 #else
-    // glibc: return free heap pages to the OS.
-    malloc_trim(0);
+    return 0;
 #endif
 }
 
@@ -1556,6 +1568,7 @@ static int test_repeated_load_cycles(struct Servo* servo)
     log("running test_repeated_load_cycles\n");
     int result = 1; // default to fail
     size_t samples[LEAK_TEST_CYCLES];
+    size_t heaps[LEAK_TEST_CYCLES];
 
     for (int i = 0; i < LEAK_TEST_CYCLES; i++) {
         leak_cycle_state_t state;
@@ -1630,24 +1643,30 @@ static int test_repeated_load_cycles(struct Servo* servo)
         }
 
         servo_webview_free(webview);
-        // Hand free pages back to the OS before sampling so this sample
-        // reflects live memory rather than an allocator high-water mark (see
-        // the comment on `process_rss_bytes`).
-        trim_process_memory();
+        // Raw samples: see the comment block above for why nothing is trimmed
+        // out of them first.
         samples[i] = process_rss_bytes();
+        heaps[i] = heap_in_use_bytes();
         if (samples[i] == 0) {
             log("  FAIL: cycle %d: process RSS sampling is unavailable "
                 "(see process_rss_bytes in this file)\n", i);
             goto cleanup;
         }
-        log("  [leak] cycle %3d: rss=%zu KiB\n", i, samples[i] / 1024);
+        if (heaps[i] != 0) {
+            log("  [leak] cycle %3d: rss=%zu KiB; heap_in_use=%zu KiB\n", i, samples[i] / 1024,
+                heaps[i] / 1024);
+        } else {
+            log("  [leak] cycle %3d: rss=%zu KiB\n", i, samples[i] / 1024);
+        }
         if ((i + 1) % 25 == 0) {
             if (i >= LEAK_TEST_WARMUP) {
-                log("  [leak] === %d cycles done, rss=%zu KiB (delta since cycle %d: %ld KiB) ===\n",
-                    i + 1, samples[i] / 1024, LEAK_TEST_WARMUP,
+                log("  [leak] === %d cycles, rss=%zu KiB (last 25: %+ld KiB, since cycle %d: "
+                    "%+ld KiB) ===\n",
+                    i + 1, samples[i] / 1024,
+                    (long)(samples[i] / 1024) - (long)(samples[i - 24] / 1024), LEAK_TEST_WARMUP,
                     (long)(samples[i] / 1024) - (long)(samples[LEAK_TEST_WARMUP] / 1024));
             } else {
-                log("  [leak] === %d cycles done, rss=%zu KiB ===\n", i + 1, samples[i] / 1024);
+                log("  [leak] === %d cycles, rss=%zu KiB ===\n", i + 1, samples[i] / 1024);
             }
         }
     }
@@ -1662,6 +1681,19 @@ static int test_repeated_load_cycles(struct Servo* servo)
     log("  [leak] growth over cycles %d..%d: %zu KiB (bound: %d KiB)\n",
         LEAK_TEST_WARMUP, LEAK_TEST_CYCLES - 1, growth / 1024,
         LEAK_TEST_MAX_GROWTH_BYTES / 1024);
+
+    // Both halves of the measured window: equal slopes mean the growth is
+    // steady (retention), a shrinking second half means it is tailing off.
+    const int midpoint = LEAK_TEST_WARMUP + measured_cycles / 2;
+    log("  [leak] first half (cycles %d..%d): %+ld KiB; second half (cycles %d..%d): %+ld KiB\n",
+        LEAK_TEST_WARMUP, midpoint - 1,
+        (long)(samples[midpoint] / 1024) - (long)(warmup_rss / 1024), midpoint,
+        LEAK_TEST_CYCLES - 1, (long)(final_rss / 1024) - (long)(samples[midpoint] / 1024));
+    if (heaps[LEAK_TEST_WARMUP] != 0) {
+        log("  [leak] in-use heap: baseline %zu KiB; final %zu KiB; growth %+ld KiB\n",
+            heaps[LEAK_TEST_WARMUP] / 1024, heaps[LEAK_TEST_CYCLES - 1] / 1024,
+            (long)(heaps[LEAK_TEST_CYCLES - 1] / 1024) - (long)(heaps[LEAK_TEST_WARMUP] / 1024));
+    }
 
     if (growth > LEAK_TEST_MAX_GROWTH_BYTES) {
         log("  FAIL: RSS grew by %zu KiB over %d create/load/close cycles, "
