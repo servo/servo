@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="windows-1252">
+<title>img uses encoding-parse</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+async_test(t => {
+    const img = document.createElement('img');
+
+    img.onload = t.step_func(() => {
+        assert_equals(
+        new URL(img.currentSrc).search,
+        '?x=%DF',
+        'image URL should use windows-1252 encoding');
+        t.done();
+    });
+
+    img.onerror = t.unreached_func('image should load');
+
+    img.src = 'image.png?x=\u00DF';
+    document.body.appendChild(img);
+}, 'img src should use document encoding.');
+</script>
+</body>
