@@ -6,7 +6,9 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix};
 use js::rust::HandleObject;
 
+use crate::dom::bindings::codegen::Bindings::HTMLModElementBinding::HTMLModElementMethods;
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::document::Document;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::Node;
@@ -41,4 +43,18 @@ impl HTMLModElement {
             proto,
         )
     }
+}
+
+impl HTMLModElementMethods<crate::DomTypeHolder> for HTMLModElement {
+    // https://html.spec.whatwg.org/multipage/#dom-mod-cite
+    make_url_getter!(Cite, "cite");
+
+    // https://html.spec.whatwg.org/multipage/#dom-mod-cite
+    make_url_setter!(SetCite, "cite");
+
+    // https://html.spec.whatwg.org/multipage/#dom-mod-datetime
+    make_getter!(DateTime, "datetime");
+
+    // https://html.spec.whatwg.org/multipage/#dom-mod-datetime
+    make_setter!(SetDateTime, "datetime");
 }
