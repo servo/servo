@@ -159,7 +159,52 @@ jobs:
           # `cargo-c` does not work with sccache, so explicitly disable it.
           RUSTC_WRAPPER: ""
           SCCACHE_GHA_ENABLED: "false"
+          # W5.6: the integration tests write their observability metrics to
+          # this file. It is an absolute path so that it does not depend on the
+          # test binary's working directory. See
+          # docs/embedding/OBSERVABILITY.md.
+          SERVO_OBSERVABILITY_FILE: ${{ github.workspace }}/observability-metrics-${{ matrix.name }}.json
         run: cargo test -p servo-capi-tests --locked
+
+      # Collect the metrics the tests recorded and add the cdylib size, which
+      # only the build can see. Runs even when the tests failed: the metrics of
+      # a failing run are part of the crash proxy.
+      - name: Collect observability metrics
+        if: always()
+        shell: bash
+        run: |
+          metrics="observability-metrics-${{ matrix.name }}.json"
+          if [ ! -f "$metrics" ]; then
+            echo "::warning::$metrics was not written; the integration tests did not reach the end of the suite."
+            printf '%s\n' '{"startup_ms":null,"load_complete_ms":null,"screenshot_ms":null,"js_ms":null}' > "$metrics"
+          fi
+
+          lib=""
+          for candidate in target/cinstall/*/*/libservo_capi.so target/cinstall/*/*/libservo_capi.dylib target/cinstall/*/*/servo_capi.dll; do
+            if [ -f "$candidate" ]; then
+              lib="$candidate"
+              break
+            fi
+          done
+
+          if [ -z "$lib" ]; then
+            echo "::warning::no servo_capi cdylib found under target/cinstall; the artifact size was not measured."
+            bytes=null
+          else
+            bytes=$(wc -c < "$lib" | tr -d '[:space:]')
+            echo "cdylib: $lib ($bytes bytes)"
+          fi
+
+          sed "s/}\$/,\"cdylib_bytes\":${bytes},\"platform\":\"${{ matrix.name }}\"}/" "$metrics" > observability-report.json
+          cat observability-report.json
+
+      - name: Upload observability metrics
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: observability-metrics-${{ matrix.name }}
+          path: observability-report.json
+          if-no-files-found: warn
 
       # Regenerate the public C header from ffi/capi/cbindgen.toml and fail if
       # generation errors out or produces an empty header.
@@ -211,3 +256,48 @@ jobs:
             exit 1
           fi
           echo "Deprecation path exercised: ${expected} is emitted as SERVO_DEPRECATED."
+
+  # W5.6: the observability report. It aggregates the per-platform metrics that
+  # the `capi` job collected and compares them against the committed baseline in
+  # `docs/embedding/observability_baseline.json`.
+  #
+  # This is deliberately a reporting job, not a gate: see
+  # docs/embedding/OBSERVABILITY.md for why the timings are not enforced yet.
+  # It runs even when the `capi` job failed, because the failure is itself one of
+  # the four recorded signals (the crash proxy).
+  observability:
+    name: Observability report
+    needs:
+      - capi
+    if: always()
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+
+      # A failed platform writes no artifact; that is reported, not fatal.
+      - name: Download the per-platform metrics
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          pattern: observability-metrics-*
+          path: observability
+
+      - name: Compare against the baseline
+        env:
+          CAPI_RESULT: ${{ needs.capi.result }}
+        run: |
+          python3 etc/ci/embedding_observability.py \
+            --metrics observability \
+            --baseline docs/embedding/observability_baseline.json \
+            --capi-result "$CAPI_RESULT" \
+            --summary observability/summary.md \
+            --out observability/summary.json
+          cat observability/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the report
+        uses: actions/upload-artifact@v7
+        with:
+          name: observability-summary
+          path: |
+            observability/summary.md
+            observability/summary.json

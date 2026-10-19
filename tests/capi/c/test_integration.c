@@ -58,6 +58,69 @@ static long now_ms(void)
 }
 
 
+// W5.6 observability metrics. `-1` means "not measured" and is written to the
+// report as `null`, so a metric that stops being collected shows up as a gap
+// instead of a silent zero. See docs/embedding/OBSERVABILITY.md.
+static long g_metric_servo_build_ms = -1;
+static long g_metric_load_complete_ms = -1;
+static long g_metric_screenshot_start_ms = -1;
+static long g_metric_screenshot_ms = -1;
+static long g_metric_js_start_ms = -1;
+static long g_metric_js_ms = -1;
+
+// The fixed JavaScript workload timed by the `js_ms` metric. Same script and
+// same iteration count on every platform and every run: the absolute number is
+// not a benchmark, only its change against the committed baseline matters.
+#define JS_WORKLOAD \
+    "(function () { var s = 0; for (var i = 0; i < 100000; i++) { s += i; } return s; })()"
+
+// Formats one metric as a JSON member, or as `"name":null` when it was never
+// measured.
+static void format_metric(char* out, size_t out_len, const char* name, long value)
+{
+    if (value < 0) {
+        snprintf(out, out_len, "\"%s\":null", name);
+    } else {
+        snprintf(out, out_len, "\"%s\":%ld", name, value);
+    }
+}
+
+// W5.6. Writes the metrics as a single-line JSON object to the file named by
+// `SERVO_OBSERVABILITY_FILE`. The "Collect observability metrics" step of
+// `embedding-api.yml` reads that file and adds the cdylib size, which the C
+// side cannot see. When the variable is not set (a plain `cargo test` run) the
+// numbers are only logged.
+static void write_observability_metrics(void)
+{
+    char startup[64];
+    char load_complete[64];
+    char screenshot[64];
+    char js[64];
+    char json[320];
+
+    format_metric(startup, sizeof(startup), "startup_ms", g_metric_servo_build_ms);
+    format_metric(load_complete, sizeof(load_complete), "load_complete_ms",
+        g_metric_load_complete_ms);
+    format_metric(screenshot, sizeof(screenshot), "screenshot_ms", g_metric_screenshot_ms);
+    format_metric(js, sizeof(js), "js_ms", g_metric_js_ms);
+
+    snprintf(json, sizeof(json), "{%s,%s,%s,%s}", startup, load_complete, screenshot, js);
+    log("  [observability] %s\n", json);
+
+    const char* path = getenv("SERVO_OBSERVABILITY_FILE");
+    if (path == NULL || path[0] == '\0') {
+        return;
+    }
+
+    FILE* file = fopen(path, "w");
+    if (file == NULL) {
+        log("  [observability] could not write '%s'\n", path);
+        return;
+    }
+    fprintf(file, "%s\n", json);
+    fclose(file);
+}
+
 typedef enum {
     TEST_STEP_STARTING = 0,
     TEST_STEP_HEAD_PARSED,
@@ -113,6 +176,9 @@ typedef struct {
     int js_error_requested;
     int js_error_received;
     char js_error[256];
+    // W5.6: the fixed JavaScript workload that the `js_ms` metric times.
+    int js_workload_requested;
+    int js_workload_received;
     // Close test state.
     int closed_fired;
 } test_state_t;
@@ -289,6 +355,20 @@ static void on_javascript_error(const char* result_json, const char* error_messa
     }
 }
 
+// W5.6: completion callback for the fixed JavaScript workload. The value is
+// only freed here; the metric is the time between the request and this call.
+static void on_javascript_workload(struct ServoValue* result_value, const char* error_message,
+    void* user_data)
+{
+    test_state_t* state = (test_state_t*)user_data;
+    if (result_value == NULL) {
+        log("  [js] workload failed: %s\n", error_message ? error_message : "(no message)");
+        return;
+    }
+    servo_value_free(result_value);
+    state->js_workload_received = 1;
+}
+
 static void on_screenshot(const uint8_t* data, uint32_t width, uint32_t height,
     int32_t error, void* user_data);
 
@@ -299,6 +379,7 @@ static void on_new_frame_ready(struct WebView* webview, void* user_data)
     test_state_t* state = (test_state_t*)user_data;
     state->step = TEST_STEP_FRAME_READY;
     servo_webview_paint(webview);
+    g_metric_screenshot_start_ms = now_ms();
     servo_webview_take_screenshot(webview, on_screenshot, user_data);
 }
 
@@ -399,12 +480,25 @@ int test_webview_load_and_screenshot(struct Servo* servo)
 
     // Spin the event loop until screenshot completes and both JavaScript
     // evaluations have finished, or we timeout.
+    long load_start_ms = now_ms();
     log("  Spinning event loop... (timeout 30s)\n");
     {
         int elapsed_ms = 0;
         int poll_ms = 15;
         while (elapsed_ms < 30000) {
             servo_spin_event_loop(servo);
+
+            // W5.6: record the observability metrics as the page settles.
+            if (state.step >= TEST_STEP_LOAD_COMPLETE && g_metric_load_complete_ms < 0) {
+                g_metric_load_complete_ms = now_ms() - load_start_ms;
+            }
+            if (state.step == TEST_STEP_SCREENSHOT_DONE && g_metric_screenshot_ms < 0
+                && g_metric_screenshot_start_ms >= 0) {
+                g_metric_screenshot_ms = now_ms() - g_metric_screenshot_start_ms;
+            }
+            if (state.js_workload_received && g_metric_js_ms < 0 && g_metric_js_start_ms >= 0) {
+                g_metric_js_ms = now_ms() - g_metric_js_start_ms;
+            }
 
             // Once the page has reached load completion, exercise the
             // asynchronous JavaScript evaluation API with a simple expression.
@@ -424,7 +518,18 @@ int test_webview_load_and_screenshot(struct Servo* servo)
                     on_javascript_error, &state);
             }
 
-            if (state.step >= TEST_STEP_SCREENSHOT_DONE && state.js_error_received) {
+            // W5.6: time a fixed JavaScript workload, so the report has a
+            // throughput sentinel next to the page-load and paint numbers.
+            if (state.js_error_received && !state.js_workload_requested) {
+                state.js_workload_requested = 1;
+                log("  Evaluating the JavaScript workload...\n");
+                g_metric_js_start_ms = now_ms();
+                servo_webview_evaluate_javascript_v2(webview, JS_WORKLOAD,
+                    on_javascript_workload, &state);
+            }
+
+            if (state.step >= TEST_STEP_SCREENSHOT_DONE && state.js_error_received
+                && state.js_workload_received) {
                 break;
             }
             sleep_ms(poll_ms);
@@ -2659,7 +2764,9 @@ int run_c_integration_tests(void)
     // Register custom scheme protocol handler
     servo_builder_register_protocol_handler(builder, "custom", on_custom_protocol_handler, NULL);
 
+    long build_start_ms = now_ms();
     servo = servo_builder_build(builder);
+    g_metric_servo_build_ms = now_ms() - build_start_ms;
     if (!servo) {
         log("  FAIL: servo_builder_build returned NULL\n");
         return 1;
@@ -2711,6 +2818,10 @@ int run_c_integration_tests(void)
     }
 
     log("%s\n", result == 0 ? "PASS" : "FAIL");
+
+    // W5.6: report the metrics even when a test failed, so a regression in an
+    // unrelated test does not hide the numbers.
+    write_observability_metrics();
 
     servo_free(servo);
     return result;
