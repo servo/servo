@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::Arc;
 
+use atomic_refcell::AtomicRefCell;
 use bytes::Bytes;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
@@ -30,8 +31,8 @@ use script_bindings::error::Fallible;
 use servo_media::player::video::VideoFrame;
 use servo_url::ServoUrl;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
-use atomic_refcell::AtomicRefCell;
 
+use crate::dom::bindings::cell::AtomicSafeBorrowMut;
 use crate::dom::bindings::codegen::Bindings::HTMLVideoElementBinding::HTMLVideoElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -227,7 +228,7 @@ impl HTMLVideoElement {
 
         // Step 2. If the poster attribute's value is the empty string or
         // if the attribute is absent, then there is no poster frame; return.
-        *self.poster_url.borrow_mut() = None;
+        *self.poster_url.safe_borrow_mut(cx.no_gc()) = None;
         let Some(url) = poster_attribute.filter(|poster_attribute| !poster_attribute.is_empty())
         else {
             self.htmlmediaelement.set_poster_frame(cx.no_gc(), None);
@@ -247,7 +248,7 @@ impl HTMLVideoElement {
             self.htmlmediaelement.set_poster_frame(cx.no_gc(), None);
             return;
         };
-        *self.poster_url.borrow_mut() = Some(poster_url.clone());
+        *self.poster_url.safe_borrow_mut(cx.no_gc()) = Some(poster_url.clone());
 
         // We use the image cache for poster frames so we save as much
         // network activity as possible.
@@ -617,11 +618,7 @@ impl LayoutDom<'_, HTMLVideoElement> {
             current_frame,
             metadata,
             poster_or_src_url: if video.htmlmediaelement.show_poster() {
-                video
-                    .poster_url
-                    .borrow()
-                    .clone()
-                    .map(|url| url.url())
+                video.poster_url.borrow().clone().map(|url| url.url())
             } else {
                 unsafe { video.htmlmediaelement.current_src_url() }
             },
