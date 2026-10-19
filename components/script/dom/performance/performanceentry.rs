@@ -105,7 +105,8 @@ pub(crate) struct PerformanceEntry {
     reflector_: Reflector,
 
     /// <https://www.w3.org/TR/performance-timeline/#dom-performanceentry-name>
-    /// We perform a small optimization here by not converting the url to a string unless it is requested at least once.
+    /// The name of this entry or the URL. This conversion is done lazily in order
+    /// to optimize the size of the [`PerformanceEntry`].
     name: RefCell<NameOrUrl>,
 
     /// <https://www.w3.org/TR/performance-timeline/#dom-performanceentry-entrytype>
