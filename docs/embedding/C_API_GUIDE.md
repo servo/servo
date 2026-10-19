@@ -459,6 +459,10 @@ struct ServoWebViewDelegate {
                               const char* handler_name,
                               const char* message_json,
                               void* user_data);
+
+    // Embedder controls category (new) - alert/confirm/prompt, select, color,
+    // file, context menu and IME. Abbreviated here; see "Embedder controls"
+    // below for the full list and the answer protocol.
 };
 
 /* Clipboard delegate (new). Set with
@@ -957,6 +961,68 @@ Two things distinguish this delegate from the others:
   accepted, `struct_size = 0` is rejected, and a NULL builder is reported - and the
   haptic round trip itself is unverified here. Treat the round trip as untested until you
   have run it on a machine with a pad attached.
+
+### Embedder controls (new)
+
+Form controls a page cannot draw for itself are delivered through `ServoWebViewDelegate`:
+the `alert()`/`confirm()`/`prompt()` family, `<select>`, `<input type=color>`,
+`<input type=file>`, the context menu, and the IME. Each is an `Option` field, so a host
+only implements the ones it actually wants to render:
+
+| Field | Triggered by | Answer with |
+|---|---|---|
+| `show_alert_dialog` | `alert()` | `callback(...)` - the `bool` is ignored, the dialog just closes |
+| `show_confirm_dialog` | `confirm()` | `callback(true/false, ...)` |
+| `show_prompt_dialog` | `prompt()` | `callback(text, ...)` or `NULL` to cancel |
+| `show_select_element` | activating a `<select>` | `callback(ids, count, ...)` - an empty list selects nothing |
+| `show_color_picker` | `<input type=color>` | `callback(&color, ...)` or `NULL` to cancel |
+| `show_file_picker` | `<input type=file>` | `callback(paths, count, ...)` or `NULL`/0 to cancel |
+| `show_context_menu` | a right click in web content | `callback(SERVO_CONTEXT_MENU_ACTION_*, ...)` |
+| `show_ime` / `hide_ime` | an editable element gains / loses focus | none - fire-and-forget |
+
+Every one of them takes `user_data` as its last argument. **That `user_data` is the
+opaque handle Rust handed you, not your own delegate's `user_data`** - pass it straight
+back into the `callback` unchanged. The `callback` is a `Once`: exactly one call
+consumes it, and the control is answered.
+
+```c
+void on_color_picker(struct WebView* webview, const ServoRgbColor* current_color,
+                     ServoColorPickerCallback callback, void* user_data)
+{
+    /* `current_color` is the value the element held when the picker opened, or
+     * NULL if it had none yet. */
+    ServoRgbColor chosen = { 0x12, 0x34, 0x56 };
+    callback(&chosen, user_data);      /* NULL here cancels the picker */
+}
+
+void on_select(struct WebView* webview, const ServoSelectElementParams* params,
+               ServoSelectElementCallback callback, void* user_data)
+{
+    /* Answer with the option *ids* - each ServoSelectElementOption's `id` -
+     * NOT an index into params->options, which counts each optgroup as one
+     * entry while their options keep their own ids. */
+    uintptr_t chosen[] = { params->options[0].option.id };
+    callback(chosen, 1, user_data);
+}
+```
+
+Answer from the event loop that runs `servo_spin_event_loop`, i.e. directly inside the
+callback, unless you have a specific reason to defer. The responder is a `Once`, and it
+holds the control: if you never call it, nothing is ever answered - the request stays
+pending in the engine and the page waits indefinitely - and the responder allocation
+leaks. A field left as `NULL` is different: Servo resolves the control itself with the
+non-destructive answer, so the selection, color, and files the element already had are
+submitted unchanged and the page sees no edit rather than a silently swallowed one.
+Setting a field to `NULL` is the intended way to opt out of a control you do not want to
+render.
+
+Two of these are only reachable from **trusted** input, so script cannot trigger them:
+`show_select_element` (`HTMLSelectElement::activation_behavior` returns early for
+untrusted events) and `show_context_menu` (built only from the embedder's own mouse
+handling). Reaching them from a test means injecting mouse events at a known layout
+position. The color and file controls have no such gate, and the CI suite drives them
+end to end in `test_embedder_controls_round_trip`: the control is triggered, the
+delegate answers, and the page is read back to confirm the answer landed.
 
 ### Close flow example
 

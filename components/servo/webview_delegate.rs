@@ -528,7 +528,10 @@ impl SelectElement {
 
     /// Set the options that are selected.
     ///
-    /// `selected_options` is a vector of indices into the array returned by [`Self::options`].
+    /// `selected_options` is a vector of `SelectElementOption::id` values: one per
+    /// `<option>` element in document order, counting the options inside an
+    /// `<optgroup>` individually. These are *not* indices into the array returned by
+    /// [`Self::options`], which represents each `<optgroup>` as a single entry.
     ///
     /// If other options have previously been selected, this set of options
     /// will replace them.
@@ -536,8 +539,9 @@ impl SelectElement {
         self.select_element_request.selected_options = selected_options
     }
 
-    /// Get the currently selected options, represented by indices into the array
-    /// returned by [`Self::options`].
+    /// Get the currently selected options, as `SelectElementOption::id` values.
+    ///
+    /// The same indexing applies as for [`Self::select`].
     pub fn selected_options(&self) -> Vec<usize> {
         self.select_element_request.selected_options.clone()
     }

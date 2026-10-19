@@ -1012,6 +1012,280 @@ cleanup:
     return result;
 }
 
+/* State for the W4.2c embedder-control round-trip test. */
+typedef struct {
+    int load_complete;
+    int closed;
+    /* Number of completed JavaScript evaluations and the last result. */
+    int js_calls;
+    char js_result[64];
+    /* Calls received by the embedder's show_color_picker/show_file_picker. */
+    int color_picker_calls;
+    int file_picker_calls;
+    /* The color the engine said the control was opened with. */
+    char opened_with_color[16];
+} embedder_control_state_t;
+
+/* The color the delegate answers with. The page's input starts at #000000, so
+ * landing on this value is only possible if the host's answer travelled back
+ * into the engine. */
+static const ServoRgbColor EMBEDDER_CHOSEN_COLOR = { 0x12, 0x34, 0x56 };
+
+/* A real file for the file picker to hand back. It is created in the working
+ * directory so that the path resolves for the file-manager thread exactly as it
+ * does here: the manager opens every path the delegate returns and reports an
+ * empty selection when one cannot be opened, so a fabricated path cannot make
+ * the test pass. */
+#define EMBEDDER_PICKER_FILE "capi_embedder_controls_test.tmp"
+
+static void on_ec_load_status(struct WebView* webview, int32_t load_status, void* user_data)
+{
+    (void)webview;
+    if (load_status == SERVO_LOAD_STATUS_COMPLETE) {
+        ((embedder_control_state_t*)user_data)->load_complete = 1;
+    }
+}
+
+static void on_ec_closed(struct WebView* webview, void* user_data)
+{
+    (void)webview;
+    ((embedder_control_state_t*)user_data)->closed = 1;
+}
+
+static void on_ec_js(const char* result_json, const char* error_message, void* user_data)
+{
+    embedder_control_state_t* state = (embedder_control_state_t*)user_data;
+    state->js_calls++;
+    state->js_result[0] = '\0';
+    if (result_json != NULL) {
+        strncpy(state->js_result, result_json, sizeof(state->js_result) - 1);
+        state->js_result[sizeof(state->js_result) - 1] = '\0';
+    } else {
+        log("  [js] evaluation failed: %s\n", error_message ? error_message : "(null)");
+    }
+}
+
+static void on_ec_color_picker(struct WebView* webview, const ServoRgbColor* current_color,
+    ServoColorPickerCallback callback, void* user_data)
+{
+    (void)webview;
+    embedder_control_state_t* state = (embedder_control_state_t*)user_data;
+    state->color_picker_calls++;
+    if (current_color != NULL) {
+        snprintf(state->opened_with_color, sizeof(state->opened_with_color), "#%02x%02x%02x",
+            current_color->red, current_color->green, current_color->blue);
+    } else {
+        state->opened_with_color[0] = '\0';
+    }
+    log("  [color] show_color_picker (opened with '%s')\n",
+        state->opened_with_color[0] ? state->opened_with_color : "(no color)");
+
+    /* Answer right away. `user_data` is passed through unchanged because it is
+     * the opaque handle Rust handed to this callback, not our own state. */
+    if (callback != NULL) {
+        callback(&EMBEDDER_CHOSEN_COLOR, user_data);
+    }
+}
+
+static void on_ec_file_picker(struct WebView* webview, bool allow_multiple,
+    ServoFilePickerCallback callback, void* user_data)
+{
+    (void)webview;
+    embedder_control_state_t* state = (embedder_control_state_t*)user_data;
+    state->file_picker_calls++;
+    log("  [file] show_file_picker (allow_multiple=%d)\n", allow_multiple ? 1 : 0);
+
+    /* Hand back a file this test created: it exists wherever the suite runs
+     * from, and the file manager drops paths it cannot open by returning an
+     * empty selection. A non-empty `files` list below is therefore only
+     * reachable if the host's answer really did travel back into the engine. */
+    const char* const files[] = { EMBEDDER_PICKER_FILE };
+    if (callback != NULL) {
+        callback(files, 1, user_data);
+    }
+}
+
+/* Evaluate `script` and wait for the evaluation to complete. */
+static int evaluate_and_wait(struct Servo* servo, struct WebView* webview, const char* script,
+    embedder_control_state_t* state, int timeout_ms)
+{
+    int before = state->js_calls;
+    servo_webview_evaluate_javascript(webview, script, on_ec_js, state);
+    return spin_until_count(servo, &state->js_calls, before + 1, timeout_ms);
+}
+
+/* Re-evaluate `script` until its JSON result equals `expected`, spinning the
+ * event loop between attempts.
+ *
+ * The file picker needs this: its answer travels embedder -> file-manager
+ * thread -> script, so the page can trail the delegate callback by a few spins.
+ * Polling instead of reading once keeps the test off that timing. */
+static int spin_until_js_equals(struct Servo* servo, struct WebView* webview, const char* script,
+    const char* expected, embedder_control_state_t* state, int timeout_ms)
+{
+    int waited_ms = 0;
+    while (waited_ms < timeout_ms) {
+        int before = state->js_calls;
+        state->js_result[0] = '\0';
+        servo_webview_evaluate_javascript(webview, script, on_ec_js, state);
+        if (!spin_until_count(servo, &state->js_calls, before + 1, 1000)) {
+            return 0;
+        }
+        if (strcmp(state->js_result, expected) == 0) {
+            return 1;
+        }
+        sleep_ms(10);
+        waited_ms += 10;
+    }
+    return 0;
+}
+
+/* W4.2c. Drives two embedder controls end to end: the host is asked, the host
+ * answers, and the page is read back to prove the answer arrived.
+ *
+ * ColorPicker. A synthetic click on `<input type=color value="#000000">` is
+ * enough because neither `ColorInputActivation::activation_behavior` nor the
+ * input activation path checks `IsTrusted`. The delegate reports the color the
+ * control was opened with (proving the request payload crossed too) and answers
+ * with `EMBEDDER_CHOSEN_COLOR`; reading `input.value` back must yield "#123456".
+ *
+ * FilePicker. A synthetic click on `<input type=file>` reaches the file manager,
+ * which asks the embedder to pick. The delegate answers with a file this test
+ * created, and the test expects `files.length == 1` - the manager only returns
+ * entries for paths it could actually open, so this cannot pass by accident.
+ *
+ * SelectElement and ContextMenu are deliberately not driven here. Both are gated
+ * on a *trusted* input event - `HTMLSelectElement::activation_behavior` returns
+ * early for untrusted ones, and the context menu is only built from the
+ * embedder's own mouse handling - so reaching them needs synthesised input at a
+ * known layout position. Their wiring ships but is unverified in CI; see the
+ * "Embedder controls" section of C_API_GUIDE.md. */
+static int test_embedder_controls_round_trip(struct Servo* servo)
+{
+    log("running test_embedder_controls_round_trip\n");
+    int result = 1; // default to fail
+    struct WebView* webview = NULL;
+    embedder_control_state_t state;
+    memset(&state, 0, sizeof(state));
+
+    // The rendering context is owned by the WebView once the builder is
+    // created, so only the WebView is freed (see C_API_GUIDE.md).
+    RenderingContext* context = servo_rendering_context_create_software(100, 100);
+    if (!context) {
+        log("  FAIL: servo_rendering_context_create_software returned NULL\n");
+        return 1;
+    }
+
+    ServoWebViewBuilder* builder = servo_webview_builder_create(servo, context);
+    if (!builder) {
+        log("  FAIL: servo_webview_builder_create returned NULL\n");
+        return 1;
+    }
+
+    ServoWebViewDelegate delegate = {
+        .struct_size = sizeof(ServoWebViewDelegate),
+        .user_data = &state,
+        .notify_load_status_changed = on_ec_load_status,
+        .notify_closed = on_ec_closed,
+        .show_color_picker = on_ec_color_picker,
+        .show_file_picker = on_ec_file_picker,
+    };
+    if (servo_webview_builder_set_delegate(builder, delegate) != SERVO_ERROR_OK) {
+        log("  FAIL: servo_webview_builder_set_delegate failed\n");
+        servo_webview_builder_free(builder);
+        return 1;
+    }
+
+    // `#` must be escaped as `%23`: in a data: URL a literal `#` starts the
+    // fragment, which would truncate the document at the color value and leave
+    // the file input unparsed.
+    const char* url =
+        "data:text/html,<html><body>"
+        "<input type='color' id='c' value='%23000000'>"
+        "<input type='file' id='f'>"
+        "</body></html>";
+    if (servo_webview_builder_set_url(builder, url) != SERVO_ERROR_OK) {
+        log("  FAIL: servo_webview_builder_set_url failed\n");
+        servo_webview_builder_free(builder);
+        return 1;
+    }
+
+    webview = servo_webview_builder_build(builder);
+    if (!webview) {
+        log("  FAIL: servo_webview_builder_build returned NULL\n");
+        return 1;
+    }
+
+    if (!spin_until_count(servo, &state.load_complete, 1, 10000)) {
+        log("  FAIL: the page never finished loading\n");
+        goto cleanup;
+    }
+
+    // --- ColorPicker ---
+    if (!evaluate_and_wait(servo, webview, "document.getElementById('c').click()", &state, 10000)) {
+        log("  FAIL: clicking the color input timed out\n");
+        goto cleanup;
+    }
+    if (!spin_until_count(servo, &state.color_picker_calls, 1, 10000)) {
+        log("  FAIL: the color input never reached show_color_picker\n");
+        goto cleanup;
+    }
+    if (strcmp(state.opened_with_color, "#000000") != 0) {
+        log("  FAIL: show_color_picker reported the current color as '%s', expected "
+            "'#000000'\n",
+            state.opened_with_color);
+        goto cleanup;
+    }
+
+    // The delegate's color is only visible here if the engine applied it.
+    if (!spin_until_js_equals(servo, webview, "document.getElementById('c').value",
+            "\"#123456\"", &state, 10000)) {
+        log("  FAIL: color after the response is %s, expected \"#123456\"\n", state.js_result);
+        goto cleanup;
+    }
+
+    // --- FilePicker ---
+    // The file manager only accepts paths it can open, so create one.
+    FILE* picker_file = fopen(EMBEDDER_PICKER_FILE, "w");
+    if (!picker_file) {
+        log("  FAIL: could not create %s\n", EMBEDDER_PICKER_FILE);
+        goto cleanup;
+    }
+    fputs("servo capi embedder-controls round trip\n", picker_file);
+    fclose(picker_file);
+
+    if (!evaluate_and_wait(servo, webview, "document.getElementById('f').click()", &state, 10000)) {
+        log("  FAIL: clicking the file input timed out\n");
+        goto cleanup;
+    }
+    if (!spin_until_count(servo, &state.file_picker_calls, 1, 10000)) {
+        log("  FAIL: the file input never reached show_file_picker\n");
+        goto cleanup;
+    }
+
+    if (!spin_until_js_equals(servo, webview, "document.getElementById('f').files.length", "1",
+            &state, 10000)) {
+        log("  FAIL: files.length is %s, expected 1 - the host's file selection never "
+            "reached the engine\n",
+            state.js_result);
+        goto cleanup;
+    }
+
+    log("  PASS: color picker and file picker round-tripped through the C API\n");
+    result = 0;
+
+cleanup:
+    remove(EMBEDDER_PICKER_FILE);
+    if (webview) {
+        // Close cooperatively and wait for `notify_closed` before freeing, as
+        // documented in C_API_GUIDE.md.
+        servo_webview_close(webview);
+        spin_until_count(servo, &state.closed, 1, 10000);
+        servo_webview_free(webview);
+    }
+    return result;
+}
+
 /* State for the hang-monitor test is the shared `test_state_t`; the
  * interrupted evaluation is reported through `js_error_received` / `js_error`. */
 static void on_javascript_hang_kill(const char* result_json, const char* error_message, void* user_data)
@@ -2224,6 +2498,9 @@ int run_c_integration_tests(void)
     }
     if (result == 0) {
         result = test_gamepad_delegate_abi(servo);
+    }
+    if (result == 0) {
+        result = test_embedder_controls_round_trip(servo);
     }
     if (result == 0) {
         result = test_repeated_load_cycles(servo);

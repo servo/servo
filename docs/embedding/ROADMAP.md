@@ -218,7 +218,16 @@ clipboard, and both on-screen and offscreen rendering.
 - IME and form controls:
   - `show_embedder_control` / `hide_embedder_control` callbacks, at least for
     `InputMethodControl`, `SelectElement`, `ColorPicker`, `FilePicker`, `ContextMenu`,
-    and `SimpleDialog`, with respond functions.
+    and `SimpleDialog`, with respond functions. *Done on this branch:* all six are wired
+    as `ServoWebViewDelegate` fields - `show_alert_dialog`, `show_confirm_dialog`,
+    `show_prompt_dialog`, `show_select_element`, `show_color_picker`,
+    `show_file_picker`, `show_context_menu`, and `show_ime` / `hide_ime` - each
+    resolving through a one-shot `callback`. `test_embedder_controls_round_trip` drives
+    the color and file controls end to end: it triggers the control, answers from the
+    delegate, and reads the page back to prove the answer landed. The select and
+    context-menu controls are wired but **not** exercised in CI: both are gated on a
+    trusted input event, so they need synthetic mouse input at a known layout position.
+    See the "Embedder controls" section of `C_API_GUIDE.md`.
 - Clipboard and gamepad:
   - `ClipboardDelegate` C struct + `StringRequest` responder functions
     (`servo_webview_clipboard_request_success`/`_failure`), or a simpler synchronous

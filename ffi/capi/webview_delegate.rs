@@ -6,7 +6,8 @@ use std::ffi::{CStr, CString, c_char, c_int, c_void};
 use std::path::PathBuf;
 
 use embedder_traits::{
-    ConsoleLogLevel, ContextMenuAction, ContextMenuItem, Cursor, PermissionFeature,
+    ConsoleLogLevel, ContextMenuAction, ContextMenuItem, Cursor, PermissionFeature, RgbColor,
+    SelectElementOptionOrOptgroup,
 };
 
 use crate::download::{ServoDownloadContinueCallback, ServoDownloadItem};
@@ -238,7 +239,7 @@ pub struct ServoSelectElementParams {
     pub options: *const ServoSelectElementOptionOrOptgroup,
     /// Number of options/optgroups.
     pub options_count: usize,
-    /// Array of currently selected option indices.
+    /// Array of `ServoSelectElementOption::id` values that are currently selected.
     pub selected_options: *const usize,
     /// Number of currently selected options.
     pub selected_options_count: usize,
@@ -284,6 +285,22 @@ pub type ServoFilePickerCallback =
 pub type ServoSelectElementCallback = Option<
     unsafe extern "C" fn(selected_indices: *const usize, count: usize, user_data: *mut c_void),
 >;
+
+/// An 8-bit-per-channel sRGB color, matching `embedder_traits::RgbColor`.
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ServoRgbColor {
+    pub red: u8,
+    pub green: u8,
+    pub blue: u8,
+}
+
+/// Callback type for color picker responses.
+///
+/// `color` is the chosen color, or `NULL` when the picker was cancelled. The
+/// pointed-to value only has to stay valid for the duration of the call.
+pub type ServoColorPickerCallback =
+    Option<unsafe extern "C" fn(color: *const ServoRgbColor, user_data: *mut c_void)>;
 
 /// Context menu actions matching `embedder_traits::ContextMenuAction`.
 #[repr(i32)]
@@ -654,14 +671,34 @@ pub struct ServoWebViewDelegate {
 
     /// Called when a select element dropdown should be shown (for `<select>`).
     ///
-    /// `params` contains the select element parameters.
-    /// The embedder should show the dropdown and call `callback` with the
-    /// selected option indices.
+    /// `params` contains the select element parameters. The embedder should
+    /// show the dropdown and call `callback` with the chosen option ids: the
+    /// `id` field of each `ServoSelectElementOption` (options inside an
+    /// optgroup are listed with their own `id`), *not* an index into
+    /// `params.options`, which counts each optgroup as one entry. `NULL`/0
+    /// means nothing is selected.
     pub show_select_element: Option<
         unsafe extern "C" fn(
             webview: *mut WebView,
             params: *const ServoSelectElementParams,
             callback: ServoSelectElementCallback,
+            user_data: *mut c_void,
+        ),
+    >,
+
+    /// Called when a color picker should be shown (for `<input type=color>`).
+    ///
+    /// `current_color` is the element's color before the picker opened, or
+    /// `NULL` when it has none yet. The embedder should show the picker and
+    /// call `callback` with the chosen color, or `NULL` to cancel.
+    ///
+    /// When this callback is `NULL` the control is submitted with the color
+    /// unchanged, so the page sees no edit rather than a silent one.
+    pub show_color_picker: Option<
+        unsafe extern "C" fn(
+            webview: *mut WebView,
+            current_color: *const ServoRgbColor,
+            callback: ServoColorPickerCallback,
             user_data: *mut c_void,
         ),
     >,
@@ -1376,8 +1413,97 @@ impl WebViewDelegate for ServoWebViewDelegate {
                     }
                 }
             },
-            EmbedderControl::SelectElement(select_element) => {
-                select_element.submit();
+            EmbedderControl::SelectElement(mut select_element) => {
+                let Some(callback) = self.show_select_element else {
+                    // No handler: submit the current selection unchanged, which
+                    // is what dropping the control would have done anyway.
+                    select_element.submit();
+                    return;
+                };
+
+                // Every label and every option array has to stay alive until the
+                // callback returns, so they are all collected into locals first
+                // and `params` borrows them. Neither allocation moves once its
+                // pointer has been taken: a `CString`'s bytes live in their own
+                // box, and reallocating the outer `Vec<Vec<..>>` only moves the
+                // inner `Vec` headers, never the buffers they point at.
+                let mut label_cstrings: Vec<CString> = Vec::new();
+                let mut option_arrays: Vec<Vec<ServoSelectElementOption>> = Vec::new();
+                let mut c_options: Vec<ServoSelectElementOptionOrOptgroup> = Vec::new();
+
+                for entry in select_element.options() {
+                    match entry {
+                        SelectElementOptionOrOptgroup::Option(option) => {
+                            label_cstrings
+                                .push(CString::new(option.label.as_str()).unwrap_or_default());
+                            c_options.push(ServoSelectElementOptionOrOptgroup {
+                                tag: 0,
+                                option: ServoSelectElementOption {
+                                    id: option.id,
+                                    label: label_cstrings.last().unwrap().as_ptr(),
+                                    is_disabled: option.is_disabled,
+                                },
+                                optgroup_label: std::ptr::null(),
+                                optgroup_options: std::ptr::null(),
+                                optgroup_options_count: 0,
+                            });
+                        },
+                        SelectElementOptionOrOptgroup::Optgroup { label, options } => {
+                            label_cstrings.push(CString::new(label.as_str()).unwrap_or_default());
+                            let optgroup_label = label_cstrings.last().unwrap().as_ptr();
+
+                            let mut group = Vec::with_capacity(options.len());
+                            for option in options {
+                                label_cstrings
+                                    .push(CString::new(option.label.as_str()).unwrap_or_default());
+                                group.push(ServoSelectElementOption {
+                                    id: option.id,
+                                    label: label_cstrings.last().unwrap().as_ptr(),
+                                    is_disabled: option.is_disabled,
+                                });
+                            }
+                            let optgroup_options = group.as_ptr();
+                            let optgroup_options_count = group.len();
+                            option_arrays.push(group);
+
+                            c_options.push(ServoSelectElementOptionOrOptgroup {
+                                tag: 1,
+                                option: ServoSelectElementOption {
+                                    id: 0,
+                                    label: std::ptr::null(),
+                                    is_disabled: false,
+                                },
+                                optgroup_label,
+                                optgroup_options,
+                                optgroup_options_count,
+                            });
+                        },
+                    }
+                }
+
+                let selected_options = select_element.selected_options();
+                let params = ServoSelectElementParams {
+                    options: c_options.as_ptr(),
+                    options_count: c_options.len(),
+                    selected_options: selected_options.as_ptr(),
+                    selected_options_count: selected_options.len(),
+                    allow_select_multiple: select_element.allow_select_multiple(),
+                };
+
+                let responder: Box<dyn FnOnce(Vec<usize>)> = Box::new(move |indices| {
+                    select_element.select(indices);
+                    select_element.submit();
+                });
+                let responder_ptr = Box::into_raw(Box::new(responder)) as *mut c_void;
+
+                unsafe {
+                    callback(
+                        &mut webview as *mut WebView,
+                        &params,
+                        Some(select_element_trampoline),
+                        responder_ptr,
+                    );
+                }
             },
             EmbedderControl::ContextMenu(context_menu) => {
                 let Some(callback) = self.show_context_menu else {
@@ -1454,8 +1580,37 @@ impl WebViewDelegate for ServoWebViewDelegate {
                     );
                 }
             },
-            _ => {
-                // ColorPicker - not yet exposed to C
+            EmbedderControl::ColorPicker(color_picker) => {
+                let Some(callback) = self.show_color_picker else {
+                    // No handler: submit with the color unchanged, so the page
+                    // sees no edit rather than a silent one.
+                    color_picker.submit();
+                    return;
+                };
+
+                let current_color = color_picker.current_color().map(|color| ServoRgbColor {
+                    red: color.red,
+                    green: color.green,
+                    blue: color.blue,
+                });
+                let current_color_ptr = current_color
+                    .as_ref()
+                    .map_or(std::ptr::null(), |color| color as *const ServoRgbColor);
+
+                let responder: Box<dyn FnOnce(Option<RgbColor>)> = Box::new(move |color| {
+                    color_picker.select(color);
+                    color_picker.submit();
+                });
+                let responder_ptr = Box::into_raw(Box::new(responder)) as *mut c_void;
+
+                unsafe {
+                    callback(
+                        &mut webview as *mut WebView,
+                        current_color_ptr,
+                        Some(color_picker_trampoline),
+                        responder_ptr,
+                    );
+                }
             },
         }
     }
@@ -2170,6 +2325,50 @@ unsafe extern "C" fn context_menu_trampoline(action: i32, user_data: *mut c_void
     let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let responder = unsafe { Box::from_raw(user_data as *mut Box<dyn FnOnce(i32)>) };
         responder(action);
+    }));
+}
+
+unsafe extern "C" fn select_element_trampoline(
+    selected_indices: *const usize,
+    count: usize,
+    user_data: *mut c_void,
+) {
+    if user_data.is_null() {
+        return;
+    }
+    let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let responder = unsafe {
+            Box::from_raw(user_data as *mut Box<dyn FnOnce(Vec<usize>)>)
+        };
+        // A NULL array with a non-zero count would be a caller contract
+        // violation; treat it as a cancel rather than reading through it.
+        let indices = if selected_indices.is_null() || count == 0 {
+            Vec::new()
+        } else {
+            unsafe { std::slice::from_raw_parts(selected_indices, count) }.to_vec()
+        };
+        responder(indices);
+    }));
+}
+
+unsafe extern "C" fn color_picker_trampoline(color: *const ServoRgbColor, user_data: *mut c_void) {
+    if user_data.is_null() {
+        return;
+    }
+    let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let responder =
+            unsafe { Box::from_raw(user_data as *mut Box<dyn FnOnce(Option<RgbColor>)>) };
+        let color = if color.is_null() {
+            None
+        } else {
+            let color = unsafe { &*color };
+            Some(RgbColor {
+                red: color.red,
+                green: color.green,
+                blue: color.blue,
+            })
+        };
+        responder(color);
     }));
 }
 
