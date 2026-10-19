@@ -1580,7 +1580,7 @@ impl WebViewDelegate for ServoWebViewDelegate {
                     );
                 }
             },
-            EmbedderControl::ColorPicker(color_picker) => {
+            EmbedderControl::ColorPicker(mut color_picker) => {
                 let Some(callback) = self.show_color_picker else {
                     // No handler: submit with the color unchanged, so the page
                     // sees no edit rather than a silent one.
