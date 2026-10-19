@@ -9,6 +9,7 @@ use std::ops::Deref;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
+use atomic_refcell::AtomicRefCell;
 use bytes::Bytes;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
 use dom_struct::dom_struct;
@@ -42,6 +43,7 @@ use uuid::Uuid;
 
 use crate::dom::audio::audiotrack::AudioTrack;
 use crate::dom::audio::audiotracklist::AudioTrackList;
+use crate::dom::bindings::cell::AtomicSafeBorrowMut;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::{
     CanPlayTypeResult, HTMLMediaElementConstants, HTMLMediaElementMethods,
@@ -187,7 +189,8 @@ pub(crate) struct HTMLMediaElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-media-srcobject>
     src_object: DomRefCell<Option<SrcObject>>,
     /// <https://html.spec.whatwg.org/multipage/#dom-media-currentsrc>
-    current_src: DomRefCell<String>,
+    #[no_trace]
+    current_src: AtomicRefCell<String>,
     /// Incremented whenever tasks associated with this element are cancelled.
     generation_id: Cell<u32>,
     /// <https://html.spec.whatwg.org/multipage/#fire-loadeddata>
@@ -1238,7 +1241,7 @@ impl HTMLMediaElement {
         self.load_state.set(LoadState::LoadingFromSrcObject);
 
         // Step 9.object.1. Set the currentSrc attribute to the empty string.
-        "".clone_into(&mut self.current_src.borrow_mut());
+        "".clone_into(&mut self.current_src.safe_borrow_mut(cx.no_gc()));
 
         // Step 9.object.3. Run the resource fetch algorithm with the assigned media
         // provider object. If that algorithm returns without aborting this one, then the
@@ -1269,7 +1272,7 @@ impl HTMLMediaElement {
 
         // Step 9.attribute.3. If urlRecord is not failure, then set the currentSrc
         // attribute to the result of applying the URL serializer to urlRecord.
-        *self.current_src.borrow_mut() = url_record.as_str().into();
+        *self.current_src.safe_borrow_mut(cx.no_gc()) = url_record.as_str().into();
 
         // Step 9.attribute.5. If urlRecord is not failure, then run the resource fetch
         // algorithm with urlRecord. If that algorithm returns without aborting this one,
@@ -1343,7 +1346,7 @@ impl HTMLMediaElement {
 
         // Step 9.children.7. Set the currentSrc attribute to the result of applying the URL
         // serializer to urlRecord.
-        *self.current_src.borrow_mut() = url_record.as_str().into();
+        *self.current_src.safe_borrow_mut(cx.no_gc()) = url_record.as_str().into();
 
         // Step 9.children.9. Run the resource fetch algorithm with urlRecord. If that
         // algorithm returns without aborting this one, then the load failed.
@@ -3019,9 +3022,8 @@ impl HTMLMediaElement {
         self.show_poster.get()
     }
 
-    #[expect(unsafe_code)]
-    pub(crate) unsafe fn current_src_url(&self) -> Option<ServoUrl> {
-        ServoUrl::parse(unsafe { self.current_src.borrow_for_layout() }).ok()
+    pub(crate) fn current_src_url(&self) -> Option<ServoUrl> {
+        ServoUrl::parse(&self.current_src.borrow()).ok()
     }
 
     /// By default the audio is rendered through the audio sink automatically

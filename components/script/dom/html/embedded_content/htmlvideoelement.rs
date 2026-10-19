@@ -599,7 +599,6 @@ impl PosterFrameFetchContext {
 }
 
 impl LayoutDom<'_, HTMLVideoElement> {
-    #[expect(unsafe_code)]
     pub(crate) fn data(self) -> HTMLMediaData {
         let video = self.unsafe_get();
 
@@ -620,7 +619,7 @@ impl LayoutDom<'_, HTMLVideoElement> {
             poster_or_src_url: if video.htmlmediaelement.show_poster() {
                 video.poster_url.borrow().clone().map(|url| url.url())
             } else {
-                unsafe { video.htmlmediaelement.current_src_url() }
+                video.htmlmediaelement.current_src_url()
             },
         }
     }
