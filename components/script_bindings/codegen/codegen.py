@@ -2051,10 +2051,11 @@ class MethodDefiner(PropertyDefiner):
                                                                      descriptor)
             })
 
-        isLegacyUnforgeableInterface = bool(descriptor.interface.getExtendedAttribute("LegacyUnforgeable"))
-        if not static and unforgeable == isLegacyUnforgeableInterface and not crossorigin:
+        if not static:
             stringifier = descriptor.operations['Stringifier']
-            if stringifier:
+            if stringifier and unforgeable == MemberIsLegacyUnforgeable(
+                stringifier, descriptor
+            ):
                 self.regular.append({
                     "name": "toString",
                     "nativeName": stringifier.identifier.name,
