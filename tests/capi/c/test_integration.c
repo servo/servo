@@ -378,8 +378,11 @@ static void on_new_frame_ready(struct WebView* webview, void* user_data)
 
     test_state_t* state = (test_state_t*)user_data;
     state->step = TEST_STEP_FRAME_READY;
-    servo_webview_paint(webview);
+    /* W5.6: the screenshot is delivered synchronously by `take_screenshot`, so
+     * timing only the call itself would always read 0 ms. Time the paint and
+     * the screenshot together, which is what the metric's label claims. */
     g_metric_screenshot_start_ms = now_ms();
+    servo_webview_paint(webview);
     servo_webview_take_screenshot(webview, on_screenshot, user_data);
 }
 

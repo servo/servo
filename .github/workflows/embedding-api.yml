@@ -286,15 +286,22 @@ jobs:
         env:
           CAPI_RESULT: ${{ needs.capi.result }}
         run: |
+          # The reporter exits non-zero only when the collection itself broke
+          # (metrics missing although the C API job succeeded, or malformed
+          # input). Keep the step summary in that case, and fail the step after
+          # posting it.
+          rc=0
           python3 etc/ci/embedding_observability.py \
             --metrics observability \
             --baseline docs/embedding/observability_baseline.json \
             --capi-result "$CAPI_RESULT" \
             --summary observability/summary.md \
-            --out observability/summary.json
+            --out observability/summary.json || rc=$?
           cat observability/summary.md >> "$GITHUB_STEP_SUMMARY"
+          exit "$rc"
 
       - name: Upload the report
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: observability-summary

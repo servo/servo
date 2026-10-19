@@ -40,22 +40,30 @@ FLAG_RATIO = 0.25
 
 
 def load_metrics(directory: str) -> dict[str, dict[str, Any]]:
-    """Loads every metric file in `directory`, keyed by platform."""
+    """Loads every metric file under `directory`, keyed by platform.
+
+    The search is recursive because `actions/download-artifact` gives each
+    artifact a directory of its own, so the files arrive nested rather than
+    directly in `directory` (which is what the first version of this script
+    assumed, and it silently reported "no metrics" in CI).
+    """
     platforms: dict[str, dict[str, Any]] = {}
     if not os.path.isdir(directory):
         return platforms
 
-    for name in sorted(os.listdir(directory)):
-        if not name.endswith(".json"):
-            continue
-        path = os.path.join(directory, name)
-        with open(path, "r", encoding="utf-8") as handle:
-            data = json.load(handle)
-        if not isinstance(data, dict):
-            raise ValueError(f"{path}: expected a JSON object")
+    for root, _directories, names in os.walk(directory):
+        for name in sorted(names):
+            # `summary.json` is this script's own output, not a measurement.
+            if not name.endswith(".json") or name == "summary.json":
+                continue
+            path = os.path.join(root, name)
+            with open(path, "r", encoding="utf-8") as handle:
+                data = json.load(handle)
+            if not isinstance(data, dict):
+                raise ValueError(f"{path}: expected a JSON object")
 
-        platform = data.pop("platform", os.path.splitext(name)[0])
-        platforms[str(platform)] = data
+            platform = data.pop("platform", os.path.splitext(name)[0])
+            platforms[str(platform)] = data
 
     return platforms
 
@@ -125,6 +133,12 @@ def main() -> int:
     if not platforms:
         lines.append("No metric files were found. The collecting job either did "
                      "not run or failed before it wrote them.")
+        if args.capi_result == "success":
+            lines.append("")
+            lines.append("The C API test job **succeeded**, so the metrics it was "
+                         "supposed to write are missing for a reason other than a "
+                         "crash: failing this job is the point, otherwise the "
+                         "observability job reports success while measuring nothing.")
     else:
         header = [metric[1] for metric in METRICS]
         lines.append("| Platform | " + " | ".join(header) + " |")
@@ -172,6 +186,15 @@ def main() -> int:
         handle.write("\n")
 
     print(summary)
+
+    # Reporting never fails on a *measured* regression (see the module docstring),
+    # but collecting nothing while the job that produces the metrics succeeded
+    # means the pipeline is broken, and a green job that measures nothing is
+    # worse than a red one.
+    if not platforms and args.capi_result == "success":
+        print("error: no metric files found although the C API job succeeded",
+              file=sys.stderr)
+        return 1
     return 0
 
 
