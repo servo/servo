@@ -207,7 +207,7 @@ Effort: **S** days · **M** 1–3 weeks · **L** 1–3 months · **XL** quarters
 | **W4.5** | Manual windowed/GPU validation on real hardware | S | `blocked` (needs GPU) | W3.5 | manual |
 | **W4.6** | `Send`/`Sync` handles *or* documented main-thread contract | M | ✅ verified (`e4af43dd468`; run `39171002423`, 3 platforms) | W2.5 | embedding-api.yml |
 | **W4.7** | Language bindings beyond C/C++ | L | ✅ done (`419c43aa78b`, gate `39297450136` 3/3; consumer build `39270998848` 3/3) | W5.4 | embedding-api.yml |
-| **W4.8** | CEF P2 leftovers: drag/drop, audio, frame rate, task post, user-gesture JS | L | ✅ done (P2 table verified; nested value-container accessors closed; the rest deferred with written reasons) | — | embedding-api.yml |
+| **W4.8** | CEF P2 leftovers: drag/drop, audio, frame rate, task post, user-gesture JS | L | ✅ done (`669860959ed`, gate `39299153726` 3/3 + artifacts `39299153777` 3/3; nested value-container accessors closed, the rest deferred with written reasons) | — | embedding-api.yml |
 | **W5.1** | Hang monitor: on by default + kill hung scripts | M | ✅ verified (`115948c8334` + `5963519e4a8`; runs `39163255415`/`39165923943`, 3 platforms) | — | all platforms |
 | **W5.2** | Prove `capi-artifacts.yml` (prebuilt C API artifacts) | M | ✅ verified (run `39145918170`, 3 platforms) | — | capi-artifacts.yml |
 | **W5.3** | Prebuilt signed binaries (5 targets) + CMake/pkg-config | L | `todo` | W5.2 | release workflows |
@@ -942,7 +942,7 @@ two threads.
 
 #### W4.8 — CEF P2 leftovers
 
-**State:** `done` (✅ `CEF_PARITY.md` §9 P2 verified; value-container gap closed) · **Effort:** L · **Gate:** `embedding-api.yml`
+**State:** `done` (✅ `669860959ed`; run `39299153726`, 3 platforms) · **Effort:** L · **Gate:** `embedding-api.yml`
 
 Items from `docs/embedding/CEF_PARITY.md` §9 P2 that remain. **Verify current state
 before implementing each** — that section is stale in at least one known place.
