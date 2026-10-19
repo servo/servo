@@ -24,14 +24,16 @@ use crate::formatting_contexts::{Baselines, IndependentFormattingContext};
 use crate::fragment_tree::{
     BoxFragment, CollapsedBlockMargins, Fragment, FragmentFlags, SpecificLayoutInfo,
 };
-use crate::geom::{LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize};
+use crate::geom::{
+    LogicalVec2, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize, PhysicalVec,
+};
 use crate::layout_box_base::IndependentFormattingContextLayoutResult;
 use crate::positioned::{AbsolutelyPositionedBox, PositioningContext, PositioningContextLength};
 use crate::sizing::{
     ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, LazySize, Size,
     SizeConstraint,
 };
-use crate::style_ext::{ContentBoxSizesAndPBM, LayoutStyle};
+use crate::style_ext::{Clamp, ContentBoxSizesAndPBM, LayoutStyle};
 use crate::{ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock};
 
 const DUMMY_NODE_ID: taffy::NodeId = taffy::NodeId::new(u64::MAX);
@@ -69,6 +71,7 @@ struct TaffyContainerContext<'a> {
     positioning_context: &'a mut PositioningContext,
     content_box_size_override: &'a ContainingBlock<'a>,
     style: &'a ComputedValues,
+    fragment_flags: FragmentFlags,
     specific_layout_info: Option<SpecificLayoutInfo>,
 
     /// Temporary location for children specific info, which will be moved into child fragments
@@ -115,7 +118,7 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
         Self: 'a;
 
     fn get_core_container_style(&self, _node_id: taffy::NodeId) -> Self::CoreContainerStyle<'_> {
-        TaffyStyloStyle::new(self.style, false /* is_replaced */)
+        TaffyStyloStyle::new(self.style, self.fragment_flags)
     }
 
     fn set_unrounded_layout(&mut self, node_id: taffy::NodeId, layout: &taffy::Layout) {
@@ -168,8 +171,6 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                     .layout_style()
                     .content_box_sizes_and_padding_border_margin(&child_containing_block);
                 let pb_sum = pbm.padding_border_sums.map(|v| v.to_f32_px());
-                let margin_sum = pbm.margin.auto_is(Au::zero).sum().map(|v| v.to_f32_px());
-                let content_box_inset = pb_sum + margin_sum;
                 let content_box_known_dimensions = taffy::Size {
                     width: inputs
                         .known_dimensions
@@ -203,9 +204,19 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                     let adjusted_available_space = inputs
                         .available_space
                         .width
-                        .map_definite_value(|width| width - content_box_inset.inline);
+                        .map_definite_value(|width| (width - pb_sum.inline).max(0.0));
 
-                    resolve_content_size(adjusted_available_space, result.sizes)
+                    let stretch_size = adjusted_available_space.into_option().map(Au::from_f32_px);
+                    let (_, min_size, max_size) = content_box_sizes.inline.resolve_each(
+                        Size::FitContent,
+                        Au::zero,
+                        stretch_size,
+                        || result.sizes,
+                        independent_context.layout_style().is_table(),
+                    );
+                    Au::from_f32_px(resolve_content_size(adjusted_available_space, result.sizes))
+                        .clamp_between_extremums(min_size, max_size)
+                        .to_f32_px()
                 });
 
                 // Return early if only inline content sizes are requested
@@ -299,7 +310,7 @@ impl taffy::LayoutGridContainer for TaffyContainerContext<'_> {
         &self,
         _node_id: taffy::prelude::NodeId,
     ) -> Self::GridContainerStyle<'_> {
-        TaffyStyloStyle::new(self.style, false /* is_replaced */)
+        TaffyStyloStyle::new(self.style, self.fragment_flags)
     }
 
     fn get_grid_child_style(
@@ -308,10 +319,9 @@ impl taffy::LayoutGridContainer for TaffyContainerContext<'_> {
     ) -> Self::GridItemStyle<'_> {
         let id = usize::from(child_node_id);
         let child = (*self.source_child_nodes[id]).borrow();
-        // TODO: account for non-replaced elements that are "compressible replaced"
-        let is_replaced = child.is_in_flow_replaced();
+        let fragment_flags = child.with_base(|base| base.base_fragment_info.flags);
         let stylo_style = AtomicRef::map(child, |c| &*c.style);
-        TaffyStyloStyle::new(stylo_style, is_replaced)
+        TaffyStyloStyle::new(stylo_style, fragment_flags)
     }
 
     fn set_detailed_grid_info(
@@ -366,6 +376,7 @@ impl ComputeInlineContentSizes for TaffyContainer {
             positioning_context: &mut PositioningContext::default(),
             content_box_size_override: containing_block,
             style,
+            fragment_flags: self.fragment_flags,
             source_child_nodes: &self.children,
             specific_layout_info: None,
             child_specific_layout_infos: vec![None; self.children.len()],
@@ -422,6 +433,7 @@ impl TaffyContainer {
             positioning_context,
             content_box_size_override,
             style: content_box_size_override.style,
+            fragment_flags: self.fragment_flags,
             source_child_nodes: &self.children,
             specific_layout_info: None,
             child_specific_layout_infos: vec![None; self.children.len()],
@@ -471,6 +483,15 @@ impl TaffyContainer {
             },
             _ => panic!("Servo is only configured to use Taffy for CSS Grid layout"),
         };
+
+        let writing_mode = containing_block.style.writing_mode;
+        let physical_padding = pbm.padding.to_physical(writing_mode);
+        let physical_border = pbm.border.to_physical(writing_mode);
+        let content_box_offset = PhysicalVec::new(
+            physical_padding.left + physical_border.left,
+            physical_padding.top + physical_border.top,
+        );
+        let mut out_of_flow_candidates = output.oof_candidates.iter();
 
         // Convert `taffy::Layout` into Servo `Fragment`s
         // with container_ctx.child_specific_layout_infos will also moved to the corresponding `Fragment`s
@@ -584,17 +605,38 @@ impl TaffyContainer {
                             }
                         }
 
+                        let candidate = out_of_flow_candidates.next();
+                        debug_assert_eq!(
+                            candidate.map(|candidate| usize::from(candidate.node)),
+                            Some(child_id)
+                        );
+                        let static_position_rect = candidate
+                            .map(|candidate| {
+                                let taffy::Point { x, y } = candidate.static_position;
+                                PhysicalRect::new(
+                                    PhysicalPoint::new(
+                                        Au::from_f32_px(x.area.start),
+                                        Au::from_f32_px(y.area.start),
+                                    ) - content_box_offset,
+                                    PhysicalSize::new(
+                                        Au::from_f32_px(x.area.end - x.area.start),
+                                        Au::from_f32_px(y.area.end - y.area.start),
+                                    ),
+                                )
+                            })
+                            .unwrap_or_default();
+
                         let hoisted_box = AbsolutelyPositionedBox::to_hoisted(
                             abs_pos_box.clone(),
-                            content_size,
+                            static_position_rect,
                             LogicalVec2 {
                                 inline: resolve_alignment(
-                                    child.style.get_align_self().0,
-                                    align_items.0,
-                                ),
-                                block: resolve_alignment(
                                     child.style.get_justify_self().0,
                                     justify_items.computed.0.0,
+                                ),
+                                block: resolve_alignment(
+                                    child.style.get_align_self().0,
+                                    align_items.0,
                                 ),
                             },
                             container_ctx.style.writing_mode,
@@ -615,6 +657,7 @@ impl TaffyContainer {
                 fragment
             })
             .collect();
+        debug_assert!(out_of_flow_candidates.next().is_none());
 
         IndependentFormattingContextLayoutResult {
             fragments,

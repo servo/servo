@@ -493,7 +493,7 @@ fn resolve_grid_template(
         // > When an element generates a grid container box, the resolved value of its grid-template-rows or
         // > grid-template-columns property in a standalone axis is the used value, serialized with:
         GenericGridTemplateComponent::None | GenericGridTemplateComponent::TrackList(_) => {
-            (!track_info.positions.is_empty()).then(|| track_info.to_track_list_string())
+            (!track_info.positions.is_empty()).then(|| track_info.to_track_list_string(1.0))
         },
 
         // <https://drafts.csswg.org/css-grid/#resolved-track-list-subgrid>
