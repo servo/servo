@@ -374,6 +374,50 @@ When adding a test:
    is `<OUT_DIR>/include`), matching the installed layout.
 5. Compile as C11; the `build.rs` passes `.std("c11")`.
 
+### Leak testing
+
+`test_integration.c::test_repeated_lifecycle_leaks` is the long-uptime test: it runs
+three phases of 300 create/close cycles each (100 warm-up, 200 measured) and asserts
+that RSS growth across the measured window stays under `LEAK_TEST_MAX_GROWTH_BYTES`.
+The phases exist to localize growth rather than just to detect it:
+
+| Phase | What one cycle does | Isolates |
+|---|---|---|
+| `LEAK_PHASE_RENDERING_CONTEXT` | create + free a software rendering context | surfman / GL teardown |
+| `LEAK_PHASE_WEBVIEW_NO_LOAD` | build a WebView, close it, free it | WebView + painter teardown |
+| `LEAK_PHASE_FULL` | as above, plus load `about:blank` and wait for load complete | the navigation path |
+
+Read the `[leak]` lines in the test output: each phase logs the warm-up and final RSS,
+the growth in KiB, whether that exceeded the bound, and the growth rate in KiB/cycle
+next to the rate the bound allows. The bound is deliberately not zero — the measured
+lifecycle is not leak-free, and the reasons are recorded rather than papered over:
+
+- **Windows-only rendering-context growth** (~272 KiB/cycle, linear). Surfman's
+  `SurfmanRenderingContext::drop` destroys the surfman context but nothing destroys
+  the `Device`, so its GL resources are retained. This is in crates.io `surfman`,
+  upstream of this tree, so it is registered as an upstream issue rather than patched
+  here.
+- **WebView/Painter create-close growth** on all three platforms (in-use heap grows
+  ~16 KiB/cycle on Linux; RSS grows more on macOS and Windows). Page load adds little
+  on top — the full phase tracks the no-load phase — so the growth is in teardown, not
+  navigation.
+
+Two measurement caveats that the code also documents:
+
+- **RSS is reported raw, not trimmed.** WebView teardown is asynchronous, so any
+  per-cycle sample catches in-flight churn as well as retention. A per-step heap
+  diagnostic was tried and removed: its deltas summed to -490,317 KiB against a true
+  net of +16,141 KiB, because point samples caught the allocator mid-flight. Only
+  phase-level net growth is meaningful.
+- **The in-use heap figure is a diagnostic only.** It comes from glibc `mallinfo2()`
+  and is unavailable on macOS and Windows, where the test falls back to RSS.
+
+`LEAK_TEST_MAX_GROWTH_BYTES` is 128 MiB over the 200-cycle measured window, about
+1.55x the worst growth observed when it was set (Windows, no-load phase, 84,568 KiB).
+That headroom absorbs the roughly 11,000 KiB run-to-run swing seen on Windows while
+still failing on a regression of about 1.5x. If you change the cycle count, rescale
+the bound from the printed KiB/cycle rate rather than keeping the absolute value.
+
 ## Validation
 
 Before opening a pull request, run all of:

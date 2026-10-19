@@ -1477,6 +1477,30 @@ cleanup:
  * full cycle's is where the memory is going; a phase that is flat while the
  * full cycle grows puts it in the navigation path.
  *
+ * FINDINGS. The WebView lifecycle is not leak-free, so this test asserts a
+ * bound rather than flatness. Two leaks are known, and they are what the bound
+ * absorbs (measured rates are tabulated in the "Leak testing" section of
+ * `docs/embedding/CONTRIBUTING_EMBEDDING.md`):
+ *
+ *   1. WebView create/close/free retains roughly 80 KiB of allocator heap per
+ *      cycle on Linux and 105-133 KiB of RSS per cycle on macOS. It is
+ *      identical with and without a page load, and the rendering-context-only
+ *      phase is flat on Linux and macOS, so it sits in WebView/Painter
+ *      teardown rather than in navigation. On Linux the in-use heap tracks
+ *      RSS, so it is genuine retention and not allocator slack. Not yet
+ *      attributed to a component.
+ *   2. Windows leaks roughly 272 KiB of RSS per cycle from rendering-context
+ *      create/free ALONE, with no WebView involved. It is linear, with both
+ *      halves of the measured window equal, so it does not saturate. That
+ *      teardown goes through surfman, an external crate, so it is tracked as
+ *      an upstream issue rather than fixed here.
+ *
+ * A per-step heap sample was tried and then removed: WebView teardown is
+ * asynchronous, so point samples taken inside a cycle measure in-flight churn
+ * rather than retention - the per-step deltas summed to -490,317 KiB against a
+ * true net of +16,141 KiB on the same run. Only the phase-level net is
+ * meaningful.
+ *
  * The bound below is a regression tripwire, not a target: it sits above the
  * growth measured on a healthy build, so ordinary noise cannot make the test
  * flaky while a genuine per-cycle leak still trips it. `LEAK_PHASE_WARMUP`
@@ -1484,17 +1508,26 @@ cleanup:
  * samples.
  */
 
-/* Cycles run in each phase. MEASUREMENT MODE: every phase reports a 200-cycle
- * slope so the phases can be compared with each other; the committed value is
- * set from that data. */
+/* Cycles run in each phase: 200 measured after 100 of warm-up. That keeps the
+ * whole test under ~90 s on the slowest platform while giving a slope stable
+ * enough to compare phases (plan W5.7 asks for a bounded runtime). */
 #define LEAK_PHASE_CYCLES 300
 /* Cycles discarded before growth is measured, so that allocator warm-up cannot
  * reach the verdict (see the comment block above). */
 #define LEAK_PHASE_WARMUP 100
 /* Maximum allowed RSS growth in bytes over the measured window of one phase.
- * MEASUREMENT MODE: set to 512 MiB so this diagnostic run reports every phase's
- * curve instead of failing; the real bound is set from that data. */
-#define LEAK_TEST_MAX_GROWTH_BYTES (512 * 1024 * 1024)
+ *
+ * Set from measurement, not chosen to pass. Growth of 200 measured cycles was
+ * taken on all three platforms; the largest single figure was 84,568 KiB
+ * (Windows, cycling a WebView that is never navigated), against 31,772 KiB for
+ * the worst Linux phase and 26,576 KiB for the worst macOS phase. This bound is
+ * 131,072 KiB (128 MiB), about 1.55x that worst case, which absorbs the
+ * ~11,000 KiB run-to-run swing already seen on Windows while still failing on a
+ * ~1.5x regression of the leak rate.
+ *
+ * Passing therefore means "no worse than the leak we have already measured and
+ * registered", NOT "leak-free". See the comment block above. */
+#define LEAK_TEST_MAX_GROWTH_BYTES (128 * 1024 * 1024)
 
 /* Reports the bytes the allocator considers in use, or 0 where that is
  * unavailable. Unlike RSS this excludes the free blocks the allocator is
@@ -1580,18 +1613,6 @@ typedef enum {
     LEAK_PHASE_FULL,
 } leak_phase_kind_t;
 
-/* Steps of one cycle, sampled with `heap_in_use_bytes()` so a retained step is
- * visible on its own. `LEAK_STEP_END` is the step after the WebView is freed. */
-typedef enum {
-    LEAK_STEP_START,
-    LEAK_STEP_CONTEXT_CREATED,
-    LEAK_STEP_BUILDER_CREATED,
-    LEAK_STEP_WEBVIEW_BUILT,
-    LEAK_STEP_CLOSED,
-    LEAK_STEP_END,
-    LEAK_STEP_COUNT,
-} leak_step_t;
-
 /* Runs `LEAK_PHASE_CYCLES` cycles of one shape, logging RSS and (on glibc)
  * in-use heap for every cycle, and returns 0 when the phase's growth stays
  * within the bound. */
@@ -1604,19 +1625,9 @@ static int run_leak_phase(struct Servo* servo, leak_phase_kind_t kind, const cha
     size_t samples[LEAK_PHASE_CYCLES];
     size_t heaps[LEAK_PHASE_CYCLES];
 
-    // Diagnostic: the in-use heap sampled at each step of one cycle, so that a
-    // retained step shows up as a cumulative delta instead of being blamed on
-    // the cycle as a whole. Only meaningful where `heap_in_use_bytes()` works.
-    size_t step_heap[LEAK_STEP_COUNT];
-    long step_delta_sum[LEAK_STEP_COUNT];
-    memset(step_delta_sum, 0, sizeof(step_delta_sum));
-
     for (int i = 0; i < LEAK_PHASE_CYCLES; i++) {
         leak_cycle_state_t state;
         memset(&state, 0, sizeof(state));
-        memset(step_heap, 0, sizeof(step_heap));
-
-        step_heap[LEAK_STEP_START] = heap_in_use_bytes();
 
         if (kind == LEAK_PHASE_RENDERING_CONTEXT) {
             RenderingContext* context = servo_rendering_context_create_software(100, 100);
@@ -1624,7 +1635,6 @@ static int run_leak_phase(struct Servo* servo, leak_phase_kind_t kind, const cha
                 log("  FAIL: cycle %d: servo_rendering_context_create_software returned NULL\n", i);
                 goto cleanup;
             }
-            step_heap[LEAK_STEP_CONTEXT_CREATED] = heap_in_use_bytes();
             servo_rendering_context_free(context);
         } else {
             // The rendering context is owned by the WebView once the builder is
@@ -1640,8 +1650,6 @@ static int run_leak_phase(struct Servo* servo, leak_phase_kind_t kind, const cha
                 log("  FAIL: cycle %d: servo_webview_builder_create returned NULL\n", i);
                 goto cleanup;
             }
-            step_heap[LEAK_STEP_BUILDER_CREATED] = heap_in_use_bytes();
-
             ServoWebViewDelegate delegate = {
                 .struct_size = sizeof(ServoWebViewDelegate),
                 .user_data = &state,
@@ -1662,7 +1670,6 @@ static int run_leak_phase(struct Servo* servo, leak_phase_kind_t kind, const cha
                 log("  FAIL: cycle %d: servo_webview_builder_build returned NULL\n", i);
                 goto cleanup;
             }
-            step_heap[LEAK_STEP_WEBVIEW_BUILT] = heap_in_use_bytes();
 
             const int poll_ms = 5;
             int elapsed_ms = 0;
@@ -1700,24 +1707,7 @@ static int run_leak_phase(struct Servo* servo, leak_phase_kind_t kind, const cha
                 servo_webview_free(webview);
                 goto cleanup;
             }
-            step_heap[LEAK_STEP_CLOSED] = heap_in_use_bytes();
-
             servo_webview_free(webview);
-        }
-
-        step_heap[LEAK_STEP_END] = heap_in_use_bytes();
-
-        // Fold this cycle's step deltas into the phase totals, but only once
-        // the warm-up is behind us, so one-off allocator behaviour cannot reach
-        // the per-step verdict.
-        if (i >= LEAK_PHASE_WARMUP) {
-            for (int step = LEAK_STEP_CONTEXT_CREATED; step < LEAK_STEP_COUNT; step++) {
-                if (step_heap[step] == 0 || step_heap[step - 1] == 0) {
-                    continue;
-                }
-                step_delta_sum[step] +=
-                    (long)(step_heap[step] / 1024) - (long)(step_heap[step - 1] / 1024);
-            }
         }
 
         // Raw samples: see the comment block above for why nothing is trimmed
@@ -1773,17 +1763,14 @@ static int run_leak_phase(struct Servo* servo, leak_phase_kind_t kind, const cha
             heaps[LEAK_PHASE_WARMUP] / 1024, heaps[LEAK_PHASE_CYCLES - 1] / 1024,
             (long)(heaps[LEAK_PHASE_CYCLES - 1] / 1024)
                 - (long)(heaps[LEAK_PHASE_WARMUP] / 1024));
-
-        // Which step of the cycle retains it. A step that returns roughly what
-        // it took is not the culprit even if it is the largest allocator; the
-        // step whose total is still positive after the WebView is freed is.
-        log("  [leak] %s: per-step in-use heap over %d cycles (KiB): "
-            "context-created %+ld; builder-created %+ld; webview-built %+ld; "
-            "closed %+ld; after-free %+ld\n",
-            name, measured_cycles, step_delta_sum[LEAK_STEP_CONTEXT_CREATED],
-            step_delta_sum[LEAK_STEP_BUILDER_CREATED], step_delta_sum[LEAK_STEP_WEBVIEW_BUILT],
-            step_delta_sum[LEAK_STEP_CLOSED], step_delta_sum[LEAK_STEP_END]);
     }
+
+    // The rate `LEAK_TEST_MAX_GROWTH_BYTES` was derived from, printed so that a
+    // later run can be compared with that measurement instead of having to
+    // recompute it from two absolute samples.
+    log("  [leak] %s: RSS growth %.1f KiB/cycle (bound allows %.1f KiB/cycle)\n", name,
+        (double)growth / (double)measured_cycles,
+        (double)LEAK_TEST_MAX_GROWTH_BYTES / (double)measured_cycles);
 
     if (growth > LEAK_TEST_MAX_GROWTH_BYTES) {
         log("  FAIL: phase \"%s\" RSS grew by %zu KiB over %d cycles, above the %d KiB bound\n",
