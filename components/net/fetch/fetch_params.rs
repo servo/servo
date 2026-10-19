@@ -5,6 +5,7 @@
 use std::sync::{Arc, Mutex};
 
 use content_security_policy as csp;
+use net_traits::ResourceFetchTimingContainer;
 use net_traits::fetch::fetch_controller::{FetchController, FetchControllerState};
 use net_traits::request::{PreloadEntry, PreloadId, PreloadKey, Request, RequestClient};
 use net_traits::response::Response;
@@ -45,12 +46,15 @@ pub struct FetchParams {
     pub preload_response_candidate: PreloadResponseCandidate,
     /// <https://fetch.spec.whatwg.org/#fetch-params-controller>
     pub controller: FetchController,
+    /// <https://fetch.spec.whatwg.org/#fetch-params-timing-info>
+    pub timing_info: ResourceFetchTimingContainer,
 }
 
 impl FetchParams {
-    pub fn new(request: Request) -> FetchParams {
+    pub fn new(request: Request, timing_info: ResourceFetchTimingContainer) -> FetchParams {
         FetchParams {
             request,
+            timing_info,
             preload_response_candidate: PreloadResponseCandidate::None,
             controller: Default::default(),
         }

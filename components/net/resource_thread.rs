@@ -865,7 +865,7 @@ impl CoreResourceManager {
                 Some(res_init) => {
                     let response = Response::from_init(res_init, timing_type);
 
-                    let mut fetch_params = FetchParams::new(request);
+                    let mut fetch_params = FetchParams::new(request, context.timing.clone());
                     let mut request_body_stream_closer =
                         AutoRequestBodyStreamCloser::new(fetch_params.request.body.as_ref());
                     let response = http_redirect_fetch(
