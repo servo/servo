@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
@@ -26,7 +27,7 @@ pub(crate) struct TransitionEvent {
     #[no_trace]
     property_name: Atom,
     elapsed_time: Finite<f32>,
-    pseudo_element: DOMString,
+    pseudo_element: TracedDOMString,
 }
 
 impl TransitionEvent {
@@ -35,7 +36,7 @@ impl TransitionEvent {
             event: Event::new_inherited(),
             property_name: Atom::from(init.propertyName.clone()),
             elapsed_time: init.elapsedTime,
-            pseudo_element: init.pseudoElement.clone(),
+            pseudo_element: init.pseudoElement.clone().traced(),
         }
     }
 
@@ -99,7 +100,7 @@ impl TransitionEventMethods<crate::DomTypeHolder> for TransitionEvent {
 
     /// <https://drafts.csswg.org/css-transitions/#Events-TransitionEvent-pseudoElement>
     fn PseudoElement(&self) -> DOMString {
-        self.pseudo_element.clone()
+        self.pseudo_element.clone().root()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>

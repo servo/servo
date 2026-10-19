@@ -56,6 +56,18 @@ impl HTMLMarqueeElementMethods<crate::DomTypeHolder> for HTMLMarqueeElement {
     make_getter!(Height, "height");
     // <https://html.spec.whatwg.org/multipage/#dom-marquee-height>
     make_dimension_setter!(SetHeight, "height");
+
+    // https://html.spec.whatwg.org/multipage/#dom-marquee-hspace
+    make_dimension_uint_getter!(Hspace, "hspace");
+
+    // https://html.spec.whatwg.org/multipage/#dom-marquee-hspace
+    make_dimension_uint_setter!(SetHspace, "hspace");
+
+    // https://html.spec.whatwg.org/multipage/#dom-marquee-vspace
+    make_dimension_uint_getter!(Vspace, "vspace");
+
+    // https://html.spec.whatwg.org/multipage/#dom-marquee-vspace
+    make_dimension_uint_setter!(SetVspace, "vspace");
 }
 
 impl VirtualMethods for HTMLMarqueeElement {
@@ -65,7 +77,10 @@ impl VirtualMethods for HTMLMarqueeElement {
 
     fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
         match attr.local_name() {
-            &local_name!("width") | &local_name!("height") => true,
+            &local_name!("width") |
+            &local_name!("height") |
+            &local_name!("hspace") |
+            &local_name!("vspace") => true,
             _ => self
                 .super_type()
                 .unwrap()
@@ -75,8 +90,10 @@ impl VirtualMethods for HTMLMarqueeElement {
 
     fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
         match *name {
-            local_name!("width") => AttrValue::from_dimension(value.into()),
-            local_name!("height") => AttrValue::from_dimension(value.into()),
+            local_name!("width") |
+            local_name!("height") |
+            local_name!("hspace") |
+            local_name!("vspace") => AttrValue::from_dimension(value.into()),
             _ => self
                 .super_type()
                 .unwrap()
@@ -94,5 +111,15 @@ impl LayoutDom<'_, HTMLMarqueeElement> {
     pub(crate) fn height(self) -> LengthOrPercentageOrAuto {
         self.upcast::<Element>()
             .dimension_attr_value(local_name!("height"))
+    }
+
+    pub(crate) fn margin_right_left(self) -> LengthOrPercentageOrAuto {
+        self.upcast::<Element>()
+            .dimension_attr_value(local_name!("hspace"))
+    }
+
+    pub(crate) fn margin_top_bottom(self) -> LengthOrPercentageOrAuto {
+        self.upcast::<Element>()
+            .dimension_attr_value(local_name!("vspace"))
     }
 }

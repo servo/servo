@@ -20,8 +20,8 @@ use js::jsapi::{HandleValueArray, JSITER_OWNONLY, JSType, PropertyDescriptor};
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
 use js::rust::wrappers2::{
-    GetPropertyKeys, IsArgumentsObject, JS_CallFunctionName, JS_GetOwnPropertyDescriptorById,
-    JS_HasOwnProperty, JS_TypeOfValue,
+    IsArgumentsObject, JS_CallFunctionName, JS_GetOwnPropertyDescriptorById, JS_HasOwnProperty,
+    JS_TypeOfValue,
 };
 use js::rust::{HandleObject, HandleValue, IdVector};
 use net_traits::CookieSource::{HTTP, NonHTTP};
@@ -31,7 +31,9 @@ use script_bindings::codegen::GenericBindings::PermissionStatusBinding::{
 };
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::conversions::is_array_like;
-use script_bindings::js::{JS_GetProperty, JS_GetPropertyById, JS_IsExceptionPending};
+use script_bindings::js::{
+    GetPropertyKeys, JS_GetProperty, JS_GetPropertyById, JS_IsExceptionPending,
+};
 use script_bindings::num::Finite;
 use script_bindings::reflector::DomObject;
 use script_bindings::settings_stack::run_a_script;
@@ -561,8 +563,7 @@ fn clone_an_object(
         let mut result = HashMap::new();
 
         let mut ids = IdVector::new(cx);
-        let succeeded =
-            unsafe { GetPropertyKeys(cx, object_handle, JSITER_OWNONLY, ids.handle_mut()) };
+        let succeeded = GetPropertyKeys(cx, object_handle, JSITER_OWNONLY, ids.handle_mut());
         if !succeeded {
             return Err(JavaScriptEvaluationError::SerializationError(
                 JavaScriptEvaluationResultSerializationError::OtherJavaScriptError,

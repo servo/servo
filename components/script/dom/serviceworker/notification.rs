@@ -735,8 +735,6 @@ struct ResourceFetchListener {
     pending_image_id: PendingImageId,
     /// A reference to the global image cache.
     image_cache: Arc<dyn ImageCache>,
-    /// The notification instance which makes this request.
-    notification: Trusted<Notification>,
     /// Request status that indicates whether this request failed, and the reason.
     status: Result<(), NetworkError>,
     /// Resource URL of this request.
@@ -744,11 +742,12 @@ struct ResourceFetchListener {
 }
 
 impl FetchResponseListener for ResourceFetchListener {
-    fn process_request_body(&mut self, _: RequestId) {}
+    fn process_request_body(&mut self, _: &GlobalScope, _: RequestId) {}
 
     fn process_response(
         &mut self,
         _: &mut js::context::JSContext,
+        _: &GlobalScope,
         request_id: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
@@ -783,6 +782,7 @@ impl FetchResponseListener for ResourceFetchListener {
     fn process_response_chunk(
         &mut self,
         _: &mut js::context::JSContext,
+        _: &GlobalScope,
         request_id: RequestId,
         payload: Bytes,
     ) {
@@ -797,6 +797,7 @@ impl FetchResponseListener for ResourceFetchListener {
     fn process_response_eof(
         self,
         cx: &mut JSContext,
+        global: &GlobalScope,
         request_id: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -805,16 +806,16 @@ impl FetchResponseListener for ResourceFetchListener {
             self.pending_image_id,
             FetchResponseMsg::ProcessResponseEOF(request_id, response.clone(), timing.clone()),
         );
-        network_listener::submit_timing(cx, &self, &response, &timing);
+        network_listener::submit_timing(cx, global, &self, &response, &timing);
     }
 
     fn process_csp_violations(
         &mut self,
         cx: &mut js::context::JSContext,
+        global: &GlobalScope,
         _request_id: RequestId,
         violations: Vec<Violation>,
     ) {
-        let global = &self.resource_timing_global();
         global.report_csp_violations(cx, violations, None, None);
     }
 
@@ -829,10 +830,6 @@ impl FetchResponseListener for ResourceFetchListener {
 impl ResourceTimingListener for ResourceFetchListener {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
         (InitiatorType::Other, self.url.clone())
-    }
-
-    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-        self.notification.root().global()
     }
 }
 
@@ -1020,7 +1017,6 @@ impl Notification {
         let context = ResourceFetchListener {
             pending_image_id,
             image_cache: global.image_cache(),
-            notification: Trusted::new(self),
             url: request.url.url(),
             status: Ok(()),
         };

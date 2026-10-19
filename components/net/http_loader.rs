@@ -51,9 +51,9 @@ use net_traits::request::{
 use net_traits::response::{CacheState, RedirectTaint, Response, ResponseBody, ResponseType};
 use net_traits::{
     CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, DiscardFetch, NetworkError, RedirectEndValue,
-    RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTimingContainer,
-    ResourceTimeValue, ServoCipherSuite, ServoNamedGroup, ServoProtocolVersion, TlsSecurityInfo,
-    TlsSecurityState,
+    RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,
+    ResourceFetchTimingContainer, ResourceTimeValue, ResourceTimingType, ServoCipherSuite,
+    ServoNamedGroup, ServoProtocolVersion, TlsSecurityInfo, TlsSecurityState,
 };
 use parking_lot::{Mutex, RwLock};
 use profile_traits::mem::{Report, ReportKind};
@@ -63,7 +63,7 @@ use profile_traits::trace_span;
 use rustc_hash::FxHashMap;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_base::generic_channel::GenericSharedMemory;
-use servo_base::id::{BrowsingContextId, HistoryStateId, PipelineId};
+use servo_base::id::HistoryStateId;
 use servo_config::pref;
 use servo_url::{ImmutableOrigin, ServoUrl};
 use tokio::sync::mpsc::{
@@ -522,28 +522,35 @@ fn log_fetch_terminated_send_failure(terminated_with_error: bool, context: &str)
 
 const FRAGMENT: &AsciiSet = &CONTROLS.add(b'|').add(b'{').add(b'}');
 
-#[expect(clippy::too_many_arguments)]
 #[servo_tracing::instrument(skip_all, fields(url=url.as_str()))]
 /// This sets up the callback infrastructure to send body frames to `body_sender` and fires the client request.
 async fn obtain_response(
+    fetch_params: &mut FetchParams,
     client: &ServoClient,
     url: &ServoUrl,
-    method: &Method,
-    request_headers: &mut HeaderMap,
     body_sender: Option<StdArc<Mutex<Option<IpcSender<BodyChunkRequest>>>>>,
-    source_is_null: bool,
-    pipeline_id: &Option<PipelineId>,
     request_id: Option<&Uuid>,
-    destination: Destination,
-    is_xhr: bool,
     context: &FetchContext,
     fetch_terminated: UnboundedSender<bool>,
-    browsing_context_id: Option<BrowsingContextId>,
 ) -> Result<(HyperResponse<Decoder>, DevtoolsResponse), NetworkError> {
-    #[cfg(not(feature = "devtools"))]
-    let _ = (destination, is_xhr, browsing_context_id);
+    #[cfg(feature = "devtools")]
+    let (destination, pipeline_id, browsing_context_id) = {
+        let request = &fetch_params.request;
 
-    let mut headers = request_headers.clone();
+        (
+            request.destination,
+            request.pipeline_id,
+            request.target_webview_id.map(Into::into),
+        )
+    };
+
+    let method = &fetch_params.request.method;
+    let source_is_null = fetch_params
+        .request
+        .body
+        .as_ref()
+        .is_some_and(|body| body.source_is_null());
+    let headers = &mut fetch_params.request.headers;
 
     #[cfg(feature = "devtools")]
     let devtools_bytes = StdArc::new(Mutex::new(vec![]));
@@ -619,7 +626,7 @@ async fn obtain_response(
     // TODO(#21261) connect_start: set if a persistent connection is *not* used and the last non-redirected
     // fetch passes the timing allow check
     let connect_start = CrossProcessInstant::now();
-    context.timing.set_attributes(&[
+    fetch_params.timing_info.set_attributes(&[
         ResourceAttribute::DomainLookupStart,
         ResourceAttribute::ConnectStart(connect_start),
     ]);
@@ -628,8 +635,8 @@ async fn obtain_response(
     // so our best bet would be to set `secure_connection_start` here when we are currently
     // fetching on a HTTPS url.
     if url.scheme() == "https" {
-        context
-            .timing
+        fetch_params
+            .timing_info
             .set_attribute(ResourceAttribute::SecureConnectionStart);
     }
 
@@ -640,8 +647,8 @@ async fn obtain_response(
     *request.headers_mut() = headers.clone();
 
     let connect_end = CrossProcessInstant::now();
-    context
-        .timing
+    fetch_params
+        .timing_info
         .set_attribute(ResourceAttribute::ConnectEnd(connect_end));
 
     let host = request.uri().host().unwrap_or("").to_owned();
@@ -649,7 +656,7 @@ async fn obtain_response(
     #[cfg(feature = "devtools")]
     let (request_id, pipeline_id, closure_url, method, send_start, headers) = (
         request_id.map(|value| value.to_owned()),
-        *pipeline_id,
+        pipeline_id,
         url.clone(),
         method.clone(),
         CrossProcessInstant::now(),
@@ -660,8 +667,8 @@ async fn obtain_response(
     // Generally, we use a persistent connection, so we will also set other PerformanceResourceTiming
     //   attributes to this as well (domain_lookup_start, domain_lookup_end, connect_start, connect_end,
     //   secure_connection_start)
-    context
-        .timing
+    fetch_params
+        .timing_info
         .set_attribute(ResourceAttribute::RequestStart);
 
     let client_future = client
@@ -673,6 +680,12 @@ async fn obtain_response(
                 let send_end = CrossProcessInstant::now();
                 if let Some(pipeline_id) = pipeline_id {
                     if let Some(browsing_context_id) = browsing_context_id {
+                        // XHR uses the default destination;
+                        // other kinds of fetches (which haven't been implemented yet) do not.
+                        // Once we support other kinds of fetches we'll need to be more fine grained here
+                        // since things like image fetches are classified differently by devtools
+                        let is_xhr = destination == Destination::None;
+
                         Some(prepare_devtools_request(
                             request_id,
                             closure_url,
@@ -966,7 +979,7 @@ pub(crate) async fn http_fetch(
         // Step 4.5. If the TAO check for request and response returns failure,
         // then set request’s timing allow failed flag.
         if let Err(()) = tao_check(&fetch_params.request, &fetch_result) {
-            context.timing.inner().mark_timing_check_failed();
+            fetch_params.timing_info.inner().mark_timing_check_failed();
         }
         fetch_result.return_internal = false;
         response = Some(fetch_result);
@@ -1056,13 +1069,13 @@ pub(crate) async fn http_fetch(
 
     // set back to default
     response.return_internal = true;
-    context
-        .timing
+    fetch_params
+        .timing_info
         .set_attribute(ResourceAttribute::RedirectCount(
             fetch_params.request.redirect_count as u16,
         ));
 
-    response.resource_timing = context.timing.clone();
+    response.resource_timing = fetch_params.timing_info.clone();
 
     // Step 7. Return response
     response
@@ -1191,7 +1204,7 @@ pub async fn http_redirect_fetch(
     done_chan: &mut DoneChannel,
     context: &FetchContext,
 ) -> Response {
-    let mut redirect_end_timer = RedirectEndTimer(Some(context.timing.clone()));
+    let mut redirect_end_timer = RedirectEndTimer(Some(fetch_params.timing_info.clone()));
 
     // Step 1. Let request be fetchParams’s request.
     let request = &mut fetch_params.request;
@@ -1223,7 +1236,7 @@ pub async fn http_redirect_fetch(
     // TODO: check origin and timing allow check
     // start_time should equal redirect_start if nonzero; else fetch_start
     // updates start_time only if redirect_start is nonzero (implying TAO)
-    context.timing.set_attributes(&[
+    fetch_params.timing_info.set_attributes(&[
         ResourceAttribute::RedirectStart(RedirectStartValue::FetchStart),
         ResourceAttribute::FetchStart,
         ResourceAttribute::StartTime(ResourceTimeValue::FetchStart),
@@ -1338,9 +1351,11 @@ pub async fn http_redirect_fetch(
     .await;
 
     // TODO: timing allow check
-    context.timing.set_attribute(ResourceAttribute::RedirectEnd(
-        RedirectEndValue::ResponseEnd,
-    ));
+    fetch_params
+        .timing_info
+        .set_attribute(ResourceAttribute::RedirectEnd(
+            RedirectEndValue::ResponseEnd,
+        ));
     redirect_end_timer.neuter();
 
     fetch_response
@@ -1382,8 +1397,13 @@ async fn http_network_or_cache_fetch(
     else {
         // Step 8.2.1 - 8.2.3: Set httpRequest to a clone of request
         // and Set httpFetchParams to a copy of fetchParams.
-        fetch_params_copy =
-            std::mem::replace(fetch_params, FetchParams::new(fetch_params.request.clone()));
+        fetch_params_copy = std::mem::replace(
+            fetch_params,
+            FetchParams::new(
+                fetch_params.request.clone(),
+                fetch_params.timing_info.clone(),
+            ),
+        );
         http_fetch_params = &mut fetch_params_copy;
 
         &mut http_fetch_params.request
@@ -2154,7 +2174,7 @@ async fn http_network_fetch(
     done_chan: &mut DoneChannel,
     context: &FetchContext,
 ) -> Response {
-    let mut response_end_timer = ResponseEndTimer(Some(context.timing.clone()));
+    let mut response_end_timer = ResponseEndTimer(Some(fetch_params.timing_info.clone()));
 
     // Step 1: Let request be fetchParams’s request.
     let request = &mut fetch_params.request;
@@ -2177,11 +2197,6 @@ async fn http_network_fetch(
         }
     }
 
-    // XHR uses the default destination; other kinds of fetches (which haven't been implemented yet)
-    // do not. Once we support other kinds of fetches we'll need to be more fine grained here
-    // since things like image fetches are classified differently by devtools
-    let is_xhr = request.destination == Destination::None;
-
     // The receiver will receive true if there has been an error streaming the request body.
     let (fetch_terminated_sender, mut fetch_terminated_receiver) = unbounded_channel();
 
@@ -2194,8 +2209,6 @@ async fn http_network_fetch(
         // Send the confirmation now, ensuring the receiver will not dis-connect first.
         let _ = fetch_terminated_sender.send(false);
     }
-
-    let browsing_context_id = request.target_webview_id.map(Into::into);
 
     // Step 6. Let newConnection be "yes" if forceNewConnection is true; otherwise "no".
 
@@ -2253,22 +2266,13 @@ async fn http_network_fetch(
         // request’s current URL, includeCredentials, and newConnection.
         _ => {
             let response_future = obtain_response(
+                fetch_params,
                 &context.state.client,
                 &url,
-                &request.method,
-                &mut request.headers,
                 body,
-                request
-                    .body
-                    .as_ref()
-                    .is_some_and(|body| body.source_is_null()),
-                &request.pipeline_id,
                 Some(&request_id),
-                request.destination,
-                is_xhr,
                 context,
                 fetch_terminated_sender,
-                browsing_context_id,
             );
 
             // This will only get the headers, the body is read later
@@ -2279,6 +2283,8 @@ async fn http_network_fetch(
             (response_stream, msg)
         },
     };
+
+    let request = &mut fetch_params.request;
 
     if log_enabled!(log::Level::Info) {
         debug!("{:?} response for {}", response_stream.version(), url);
@@ -2295,7 +2301,7 @@ async fn http_network_fetch(
         _ => warn!("Failed to receive confirmation request was streamed without error."),
     }
 
-    let timing = context.timing.inner().clone();
+    let timing = fetch_params.timing_info.inner().clone();
     let mut response = Response::new(url.clone(), timing);
 
     if let Some(handshake_info) = response_stream.extensions().get::<TlsHandshakeInfo>() {
@@ -2365,8 +2371,8 @@ async fn http_network_fetch(
 
     let done_sender2 = done_sender.clone();
     let done_sender3 = done_sender.clone();
-    let timing_ptr2 = context.timing.clone();
-    let timing_ptr3 = context.timing.clone();
+    let timing_ptr2 = fetch_params.timing_info.clone();
+    let timing_ptr3 = fetch_params.timing_info.clone();
     let url1 = request.url();
     let url2 = url1.clone();
 
@@ -2568,7 +2574,10 @@ async fn cors_preflight_fetch(
 
     // Step 6. Let response be the result of running HTTP-network-or-cache fetch given a
     // new fetch params whose request is preflight.
-    let mut fetch_params = FetchParams::new(preflight);
+    let mut fetch_params = FetchParams::new(
+        preflight,
+        ResourceFetchTiming::new(ResourceTimingType::None).into(),
+    );
     let response =
         http_network_or_cache_fetch(&mut fetch_params, false, false, &mut None, context).await;
 

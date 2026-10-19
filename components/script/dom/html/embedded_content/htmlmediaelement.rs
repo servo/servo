@@ -42,6 +42,7 @@ use uuid::Uuid;
 
 use crate::dom::audio::audiotrack::AudioTrack;
 use crate::dom::audio::audiotracklist::AudioTrackList;
+use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::{
     CanPlayTypeResult, HTMLMediaElementConstants, HTMLMediaElementMethods,
 };
@@ -329,11 +330,24 @@ enum PlaybackPositionWasMoved {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct ShadowTree {
-    // TODO(22314): add cue element here
+    cue_container: Dom<Element>,
 }
 
 impl UAShadowRoot<ShadowTree> for HTMLMediaElement {
     fn store_for_shadow_tree(&self, cx: &mut JSContext, shadow_root: DomRoot<ShadowRoot>) {
+        let root = self.create_element_in_ua_shadowroot(cx, local_name!("div"));
+        root.SetClassName(cx, DOMString::from_static("root"));
+        shadow_root
+            .upcast::<Node>()
+            .AppendChild(cx, root.upcast::<Node>())
+            .unwrap();
+
+        let cue_container = self.create_element_in_ua_shadowroot(cx, local_name!("div"));
+        cue_container.SetClassName(cx, DOMString::from_static("cue-container"));
+        root.upcast::<Node>()
+            .AppendChild(cx, cue_container.upcast::<Node>())
+            .unwrap();
+
         let script = self.create_element_in_ua_shadowroot(cx, local_name!("script"));
         // This is our hacky way to temporarily workaround the lack of a privileged
         // JS context.
@@ -369,7 +383,9 @@ impl UAShadowRoot<ShadowTree> for HTMLMediaElement {
             warn!("Could not render media controls {:?}", e);
         }
 
-        let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {});
+        let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
+            cue_container: cue_container.as_traced(),
+        });
     }
 
     fn borrow_for_shadow_tree(&self) -> Ref<'_, Option<ShadowTree>> {
@@ -504,6 +520,10 @@ impl HTMLMediaElement {
         } else {
             LoadBlocker::terminate(cx, blocker);
         }
+    }
+
+    pub(crate) fn cue_container(&self, cx: &mut JSContext) -> DomRoot<Element> {
+        self.shadow_tree(cx).cue_container.as_rooted()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#time-marches-on>
@@ -3975,11 +3995,12 @@ struct HTMLMediaElementFetchListener {
 }
 
 impl FetchResponseListener for HTMLMediaElementFetchListener {
-    fn process_request_body(&mut self, _: RequestId) {}
+    fn process_request_body(&mut self, _: &GlobalScope, _: RequestId) {}
 
     fn process_response(
         &mut self,
         cx: &mut JSContext,
+        _: &GlobalScope,
         _: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
@@ -4066,7 +4087,13 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
         }
     }
 
-    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, chunk: Bytes) {
+    fn process_response_chunk(
+        &mut self,
+        _: &mut JSContext,
+        _: &GlobalScope,
+        _: RequestId,
+        chunk: Bytes,
+    ) {
         let element = self.element.root();
 
         self.fetched_content_length += chunk.len() as u64;
@@ -4123,6 +4150,7 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
     fn process_response_eof(
         self,
         cx: &mut JSContext,
+        global: &GlobalScope,
         _: RequestId,
         status: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -4184,16 +4212,16 @@ impl FetchResponseListener for HTMLMediaElementFetchListener {
             element.media_data_processing_failure_steps(cx);
         }
 
-        network_listener::submit_timing(cx, &self, &status, &timing);
+        network_listener::submit_timing(cx, global, &self, &status, &timing);
     }
 
     fn process_csp_violations(
         &mut self,
         cx: &mut JSContext,
+        global: &GlobalScope,
         _request_id: RequestId,
         violations: Vec<Violation>,
     ) {
-        let global = &self.resource_timing_global();
         global.report_csp_violations(cx, violations, None, None);
     }
 
@@ -4230,10 +4258,6 @@ impl ResourceTimingListener for HTMLMediaElementFetchListener {
         let initiator_type =
             InitiatorType::LocalName(self.element.root().upcast::<Element>().local_name().clone());
         (initiator_type, self.url.clone())
-    }
-
-    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-        self.element.root().owner_document().global()
     }
 }
 

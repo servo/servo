@@ -5,13 +5,12 @@
 use content_security_policy::Destination;
 use embedder_traits::{GenericEmbedderProxy, WebResourceRequest, WebResourceResponseMsg};
 use log::error;
-use net_traits::NetworkError;
 use net_traits::http_status::HttpStatus;
 use net_traits::request::Request;
 use net_traits::response::{Response, ResponseBody};
+use net_traits::{NetworkError, ResourceFetchTimingContainer};
 
 use crate::embedder::NetToEmbedderMsg;
-use crate::fetch::methods::FetchContext;
 
 #[derive(Clone)]
 pub struct RequestInterceptor {
@@ -23,11 +22,11 @@ impl RequestInterceptor {
         RequestInterceptor { embedder_proxy }
     }
 
-    pub async fn intercept_request(
+    pub(crate) async fn intercept_request(
         &self,
         request: &mut Request,
         response: &mut Option<Response>,
-        context: &FetchContext,
+        timing_info: &ResourceFetchTimingContainer,
     ) {
         let (sender, mut receiver) = tokio::sync::mpsc::unbounded_channel();
         let is_for_main_frame = matches!(request.destination, Destination::Document);
@@ -53,7 +52,7 @@ impl RequestInterceptor {
         while let Some(message) = receiver.recv().await {
             match message {
                 WebResourceResponseMsg::Start(webresource_response) => {
-                    let timing = context.timing.inner().clone();
+                    let timing = timing_info.inner().clone();
                     let mut response_override =
                         Response::new(webresource_response.url.into(), timing);
                     response_override.headers = webresource_response.headers;

@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::reflect_dom_object;
 use script_bindings::str::DOMString;
 
@@ -17,10 +18,10 @@ use crate::dom::types::{GlobalScope, PipelineId};
 /// Event for Rust → JS calls in [`crate::dom::debugger::DebuggerGlobalScope`].
 pub(crate) struct DebuggerEvalEvent {
     event: Event,
-    code: DOMString,
+    code: TracedDOMString,
     pipeline_id: Dom<PipelineId>,
-    worker_id: Option<DOMString>,
-    frame_actor_id: Option<DOMString>,
+    worker_id: Option<TracedDOMString>,
+    frame_actor_id: Option<TracedDOMString>,
     eager: bool,
 }
 
@@ -36,10 +37,10 @@ impl DebuggerEvalEvent {
     ) -> DomRoot<Self> {
         let result = Box::new(Self {
             event: Event::new_inherited(),
-            code,
+            code: code.traced(),
             pipeline_id: Dom::from_ref(pipeline_id),
-            worker_id,
-            frame_actor_id,
+            worker_id: worker_id.map(|domstring| domstring.traced()),
+            frame_actor_id: frame_actor_id.map(|domstring| domstring.traced()),
             eager,
         });
         let result = reflect_dom_object(cx, result, debugger_global);
@@ -52,7 +53,7 @@ impl DebuggerEvalEvent {
 impl DebuggerEvalEventMethods<crate::DomTypeHolder> for DebuggerEvalEvent {
     // check-tidy: no specs after this line
     fn Code(&self) -> DOMString {
-        self.code.clone()
+        self.code.clone().root()
     }
 
     fn PipelineId(
@@ -62,11 +63,13 @@ impl DebuggerEvalEventMethods<crate::DomTypeHolder> for DebuggerEvalEvent {
     }
 
     fn GetWorkerId(&self) -> Option<DOMString> {
-        self.worker_id.clone()
+        self.worker_id.clone().map(|domstring| domstring.root())
     }
 
     fn GetFrameActorId(&self) -> Option<DOMString> {
-        self.frame_actor_id.clone()
+        self.frame_actor_id
+            .clone()
+            .map(|domstring| domstring.root())
     }
 
     fn Eager(&self) -> bool {

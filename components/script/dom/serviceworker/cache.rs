@@ -139,7 +139,8 @@ impl Cache {
                         promise.reject_error(cx, Error::Type(c"Invalid URL".to_owned()));
                         return;
                     };
-                    let request = Request::new(cx, &self.global(), None, url);
+                    let request =
+                        Request::new(cx, &self.global(), None, url, None /* state */);
                     // TODO: associate request with a header.
                     request_list.push(request);
                 }
@@ -199,7 +200,7 @@ impl CacheMethods<crate::DomTypeHolder> for Cache {
                     promise.reject_error(cx, Error::Type(c"Invalid URL".to_owned()));
                     return promise;
                 };
-                let request = Request::new(cx, &global, None, url);
+                let request = Request::new(cx, &global, None, url, None /* state */);
                 r = Some(request);
             }
         }

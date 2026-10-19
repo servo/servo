@@ -1,0 +1,14 @@
+<!doctype html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>setRangeText() on input updates the rendering</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext">
+<link rel="match" href="setRangeText-repaint-input-ref.html">
+<input id="control" value="Hello">
+<script>
+requestAnimationFrame(() => requestAnimationFrame(() => {
+  document.getElementById("control").setRangeText("abaner", 1, 4);
+  document.documentElement.classList.remove("reftest-wait");
+}));
+</script>
+</html>

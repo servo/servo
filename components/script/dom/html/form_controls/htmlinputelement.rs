@@ -933,6 +933,14 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
         self.image_button_dimension(&local_name!("height"))
     }
 
+    pub(crate) fn margin_right_left(self) -> LengthOrPercentageOrAuto {
+        self.image_button_dimension(&local_name!("hspace"))
+    }
+
+    pub(crate) fn margin_top_bottom(self) -> LengthOrPercentageOrAuto {
+        self.image_button_dimension(&local_name!("vspace"))
+    }
+
     fn image_button_dimension(self, name: &LocalName) -> LengthOrPercentageOrAuto {
         let element = self.upcast::<Element>();
         let is_image_button = element
@@ -1108,6 +1116,26 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled");
+
+    // <https://html.spec.whatwg.org/multipage/#dom-input-width>
+    make_dimension_uint_getter!(Width, "width");
+    // <https://html.spec.whatwg.org/multipage/#dom-input-width>
+    make_dimension_uint_setter!(SetWidth, "width");
+
+    // <https://html.spec.whatwg.org/multipage/#dom-input-height>
+    make_dimension_uint_getter!(Height, "height");
+    // <https://html.spec.whatwg.org/multipage/#dom-input-height>
+    make_dimension_uint_setter!(SetHeight, "height");
+
+    // https://html.spec.whatwg.org/multipage/#dom-input-hspace
+    make_dimension_uint_getter!(Hspace, "hspace");
+    // https://html.spec.whatwg.org/multipage/#dom-input-hspace
+    make_dimension_uint_setter!(SetHspace, "hspace");
+
+    // https://html.spec.whatwg.org/multipage/#dom-input-vspace
+    make_dimension_uint_getter!(Vspace, "vspace");
+    // https://html.spec.whatwg.org/multipage/#dom-input-vspace
+    make_dimension_uint_setter!(SetVspace, "vspace");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-fae-form>
     fn GetForm(&self) -> Option<DomRoot<HTMLFormElement>> {
@@ -1549,24 +1577,30 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
-    fn SetRangeText(&self, replacement: DOMString) -> ErrorResult {
-        self.set_dom_range_text(replacement, None, None, Default::default())
+    fn SetRangeText(&self, cx: &mut JSContext, replacement: DOMString) -> ErrorResult {
+        self.set_dom_range_text(cx, replacement, None, None, Default::default())?;
+        self.value_changed(cx);
+        Ok(())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-textarea/input-setrangetext>
     fn SetRangeText_(
         &self,
+        cx: &mut JSContext,
         replacement: DOMString,
         start: u32,
         end: u32,
         selection_mode: SelectionMode,
     ) -> ErrorResult {
         self.set_dom_range_text(
+            cx,
             replacement,
             Some(Utf16CodeUnits::from(start)),
             Some(Utf16CodeUnits::from(end)),
             selection_mode,
-        )
+        )?;
+        self.value_changed(cx);
+        Ok(())
     }
 
     /// Select the files based on filepaths passed in, enabled by
@@ -2390,7 +2424,10 @@ impl VirtualMethods for HTMLInputElement {
             local_name!("minlength") => {
                 AttrValue::from_limited_i32(value.into(), DEFAULT_MIN_LENGTH)
             },
-            local_name!("width") | local_name!("height") => AttrValue::from_dimension(value.into()),
+            local_name!("width") |
+            local_name!("height") |
+            local_name!("hspace") |
+            local_name!("vspace") => AttrValue::from_dimension(value.into()),
             _ => self
                 .super_type()
                 .unwrap()
@@ -2490,7 +2527,10 @@ impl VirtualMethods for HTMLInputElement {
 
     fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
         match attr.local_name() {
-            &local_name!("width") | &local_name!("height") => {
+            &local_name!("width") |
+            &local_name!("height") |
+            &local_name!("hspace") |
+            &local_name!("vspace") => {
                 matches!(*self.input_type(), InputType::Image(_))
             },
             _ => self

@@ -1448,6 +1448,10 @@ impl<'dom> LayoutDom<'dom, Element> {
 
         let margin_right_left = if let Some(this) = self.downcast::<HTMLImageElement>() {
             this.margin_right_left()
+        } else if let Some(this) = self.downcast::<HTMLInputElement>() {
+            this.margin_right_left()
+        } else if let Some(this) = self.downcast::<HTMLMarqueeElement>() {
+            this.margin_right_left()
         } else {
             LengthOrPercentageOrAuto::Auto
         };
@@ -1459,6 +1463,10 @@ impl<'dom> LayoutDom<'dom, Element> {
         });
 
         let margin_top_bottom = if let Some(this) = self.downcast::<HTMLImageElement>() {
+            this.margin_top_bottom()
+        } else if let Some(this) = self.downcast::<HTMLInputElement>() {
+            this.margin_top_bottom()
+        } else if let Some(this) = self.downcast::<HTMLMarqueeElement>() {
             this.margin_top_bottom()
         } else {
             LengthOrPercentageOrAuto::Auto

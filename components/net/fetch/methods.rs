@@ -105,7 +105,6 @@ pub struct FetchContext {
     pub file_token: FileTokenCheck,
     pub request_interceptor: Arc<TokioMutex<RequestInterceptor>>,
     pub cancellation_listener: Arc<CancellationListener>,
-    pub timing: ResourceFetchTimingContainer,
     pub protocols: Arc<ProtocolRegistry>,
     pub websocket_chan: Option<Arc<Mutex<WebSocketChannel>>>,
     pub ca_certificates: CACertificates<'static>,
@@ -178,12 +177,6 @@ pub type DoneChannel = Option<(TokioSender<Data>, TokioReceiver<Data>)>;
 
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
 pub async fn fetch(request: Request, target: Target<'_>, context: &FetchContext) -> Response {
-    // Steps 7,4 of https://w3c.github.io/resource-timing/#processing-model
-    // rev order okay since spec says they're equal - https://w3c.github.io/resource-timing/#dfn-starttime
-    context.timing.set_attributes(&[
-        ResourceAttribute::FetchStart,
-        ResourceAttribute::StartTime(ResourceTimeValue::FetchStart),
-    ]);
     fetch_with_cors_cache(request, &mut CorsCache::default(), target, context).await
 }
 
@@ -196,8 +189,28 @@ pub async fn fetch_with_cors_cache(
     target: Target<'_>,
     context: &FetchContext,
 ) -> Response {
-    // Step 8. Let fetchParams be a new fetch params whose request is request
-    let mut fetch_params = FetchParams::new(request);
+    // Step 7. Let timingInfo be a new fetch timing info whose start time
+    // and post-redirect start time are the coarsened shared current time
+    // given crossOriginIsolatedCapability,
+    // and render-blocking is set to request’s render-blocking.
+    let timing_info: ResourceFetchTimingContainer =
+        ResourceFetchTiming::new(request.timing_type()).into();
+    timing_info.set_attributes(&[
+        ResourceAttribute::FetchStart,
+        ResourceAttribute::StartTime(ResourceTimeValue::FetchStart),
+    ]);
+
+    // Step 8. Let fetchParams be a new fetch params whose request is request,
+    // timing info is timingInfo,
+    // process request body chunk length is processRequestBodyChunkLength,
+    // process request end-of-body is processRequestEndOfBody,
+    // process early hints response is processEarlyHintsResponse,
+    // process response is processResponse,
+    // process response consume body is processResponseConsumeBody,
+    // process response end-of-body is processResponseEndOfBody,
+    // task destination is taskDestination,
+    // and cross-origin isolated capability is crossOriginIsolatedCapability.
+    let mut fetch_params = FetchParams::new(request, timing_info);
     // Each net side fetch invocation owns closing its local deserialized request-body sender state
     // once this function returns, even if navigation redirect replay later starts a new fetch with
     // a fresh "RequestBody" copy.
@@ -553,7 +566,7 @@ pub async fn main_fetch(
         .request_interceptor
         .lock()
         .await
-        .intercept_request(request, &mut response, context)
+        .intercept_request(request, &mut response, &fetch_params.timing_info)
         .await;
 
     let mut response = match response {

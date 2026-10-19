@@ -1,32 +1,41 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.cue-container {
+  flex: 1;
+  align-self: stretch;
+  position: relative;
+}
+
+.controls-container {
+  flex: 1;
+  max-height: 40px;
+}
+
+.controls {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(26,26,26,.8);
+  color: #ffffff;
+  align-items: center;
+  justify-content: space-between;
+}
+
 button {
   display: inline-block;
   width: 24px;
   height: 24px;
   min-width: var(--button-size);
   min-height: var(--button-size);
-  padding: 6px;
   border: 0;
-  margin: 0;
+  margin: 6px;
   background-color: transparent;
   background-repeat: no-repeat;
   background-position: center;
-}
-
-.root {
-  display: block;
-  position: relative;
-  min-height: 40px;
-  min-width: 230px;
-  height: 100%;
-}
-
-.controls {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  height: 40px;
-  background-color: rgba(26,26,26,.8);
-  color: #ffffff;
 }
 
 .hidden {
@@ -59,4 +68,21 @@ button {
 
 .fullscreen.fullscreen-active {
   background:  url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABGdBTUEAALGPC/xhBQAAAbtJREFUSA3tlj0vBFEUhnd8hFhrE4mPbSREovIfdFQ6hcJ/EJVColP6GRoqhZbEFqKmET2xDSpWYjxncu915u6ZzWS20DjJ6577no/3zL1mqNWwNE1HwKb4g5rrdcjayHo54oxVbG8QAepl0FNphLVBQ6bflZ2ySiLU6+a+3bY/Hq/qA0EEog4m4ieDmwOzwrNazUOPwgQKpfkVWDAEVuHvQAsUDhjqSLKmeIQXKxKQ2Jv8UPY7eejuHJIsEantJ6B6l/glIXsKvOgq/DICT+Rld6IHH9IbEursz8GM5kv68+RdxiKJLibYYr+sOeffJknyqXlyZbhJzTn/g9yuwf9Tf3QC8SUPM8eoMUuXi/vWPJcsuSuac36H3I7BZ98UeQduQGwbcQEJ03ES+3vQ8y7kakkQkQegrYzAKwXyLuQs96K5yDrrYi6r3KZJ2jEicnS2EdwCX8Dbu3P6PcGzT3brCWuvCGTc/BpOPsVyJ0UC2ZkT3wfa8iJErObZZ4BYEyzFzww3DsKF4tsiBNaAPhaZ3PrGxBo9e0PkQP6ajYELIFa5uVejh3+SNn74z0JEjkClyX1zv9Jnxzf/AaCJ561FockLAAAAAElFTkSuQmCC') no-repeat;
+}
+
+/* https://w3c.github.io/webvtt/#applying-css-properties */
+.cue-container > span {
+  position: absolute;
+  unicode-bidi: plaintext;
+  overflow-wrap: break-word;
+  text-wrap: balance;
+  font: 5vh sans-serif;
+  color: rgba(255, 255, 255, 1);
+  background: rgba(0, 0, 0, 0.8);
+  white-space: pre-line;
+}
+
+.cue-container > span > * {
+  position: relative;
+  width: auto;
 }

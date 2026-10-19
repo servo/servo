@@ -1651,7 +1651,32 @@ impl InitialFlexLineLayout<'_> {
             let justify_content_style = flex_context.config.justify_content.primary();
 
             // Inital values from the style system
-            let mut resolved_justify_content = justify_content_style.value();
+            let inline_axis_is_main_axis = flex_context.config.flex_axis == FlexAxis::Row;
+            let line_left_is_inline_start =
+                flex_context.config.writing_mode.line_left_is_inline_start();
+            let mut resolved_justify_content = match justify_content_style.value() {
+                // On the inline axis `left`/`right` are line-left/line-right.
+                // https://drafts.csswg.org/css-align/#valdef-justify-content-left
+                AlignFlags::LEFT if inline_axis_is_main_axis => {
+                    if line_left_is_inline_start {
+                        AlignFlags::FLEX_START
+                    } else {
+                        AlignFlags::FLEX_END
+                    }
+                },
+                // https://drafts.csswg.org/css-align/#valdef-justify-content-right
+                AlignFlags::RIGHT if inline_axis_is_main_axis => {
+                    if line_left_is_inline_start {
+                        AlignFlags::FLEX_END
+                    } else {
+                        AlignFlags::FLEX_START
+                    }
+                },
+                // On the block axis these keywords are not parallel with the
+                // left-right axis, so they behave as `start`.
+                AlignFlags::LEFT | AlignFlags::RIGHT => AlignFlags::FLEX_START,
+                justify_content => justify_content,
+            };
             let mut is_safe = justify_content_style.flags() == AlignFlags::SAFE;
 
             // Fallback occurs in two cases:

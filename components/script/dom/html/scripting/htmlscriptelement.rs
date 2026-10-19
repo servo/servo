@@ -293,11 +293,12 @@ struct ClassicContext {
 
 impl FetchResponseListener for ClassicContext {
     // TODO(KiChjang): Perhaps add custom steps to perform fetch here?
-    fn process_request_body(&mut self, _: RequestId) {}
+    fn process_request_body(&mut self, _: &GlobalScope, _: RequestId) {}
 
     fn process_response(
         &mut self,
         _: &mut JSContext,
+        _: &GlobalScope,
         _: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
@@ -328,7 +329,13 @@ impl FetchResponseListener for ClassicContext {
         };
     }
 
-    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, chunk: Bytes) {
+    fn process_response_chunk(
+        &mut self,
+        _: &mut JSContext,
+        _: &GlobalScope,
+        _: RequestId,
+        chunk: Bytes,
+    ) {
         if self.status.is_ok() {
             self.data.extend_from_slice(&chunk);
         }
@@ -339,12 +346,13 @@ impl FetchResponseListener for ClassicContext {
     fn process_response_eof(
         mut self,
         cx: &mut JSContext,
+        global: &GlobalScope,
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
         // Resource timing is expected to be available before "error" or "load" events are fired.
-        network_listener::submit_timing(cx, &self, &response, &timing);
+        network_listener::submit_timing(cx, global, &self, &response, &timing);
 
         let elem = self.elem.root();
 
@@ -440,10 +448,10 @@ impl FetchResponseListener for ClassicContext {
     fn process_csp_violations(
         &mut self,
         cx: &mut JSContext,
+        global: &GlobalScope,
         _request_id: RequestId,
         violations: Vec<Violation>,
     ) {
-        let global = &self.resource_timing_global();
         let elem = self.elem.root();
         global.report_csp_violations(cx, violations, Some(elem.upcast()), None);
     }
@@ -458,10 +466,6 @@ impl ResourceTimingListener for ClassicContext {
         let initiator_type =
             InitiatorType::LocalName(self.elem.root().upcast::<Element>().local_name().clone());
         (initiator_type, self.url.url())
-    }
-
-    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-        self.elem.root().owner_document().global()
     }
 }
 

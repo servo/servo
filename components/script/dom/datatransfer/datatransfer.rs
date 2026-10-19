@@ -10,6 +10,7 @@ use js::context::JSContext;
 use js::rust::{HandleObject, MutableHandleValue};
 use net_traits::image_cache::Image;
 use script_bindings::cell::DomRefCell;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::match_domstring_ascii;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
@@ -41,8 +42,8 @@ const VALID_EFFECTS_ALLOWED: [&str; 9] = [
 #[dom_struct]
 pub(crate) struct DataTransfer {
     reflector_: Reflector,
-    drop_effect: DomRefCell<DOMString>,
-    effect_allowed: DomRefCell<DOMString>,
+    drop_effect: DomRefCell<TracedDOMString>,
+    effect_allowed: DomRefCell<TracedDOMString>,
     items: Dom<DataTransferItemList>,
     #[conditional_malloc_size_of]
     #[no_trace]
@@ -56,8 +57,8 @@ impl DataTransfer {
     ) -> DataTransfer {
         DataTransfer {
             reflector_: Reflector::new(),
-            drop_effect: DomRefCell::new(DOMString::from_static("none")),
-            effect_allowed: DomRefCell::new(DOMString::from_static("none")),
+            drop_effect: DomRefCell::new(DOMString::from_static("none").traced()),
+            effect_allowed: DomRefCell::new(DOMString::from_static("none").traced()),
             items: Dom::from_ref(item_list),
             data_store,
         }
@@ -109,19 +110,19 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-dropeffect>
     fn DropEffect(&self) -> DOMString {
-        self.drop_effect.borrow().clone()
+        self.drop_effect.borrow().clone().root()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-dropeffect>
     fn SetDropEffect(&self, value: DOMString) {
         if VALID_DROP_EFFECTS.contains(&&*value.str()) {
-            *self.drop_effect.borrow_mut() = value;
+            *self.drop_effect.borrow_mut() = value.traced();
         }
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-effectallowed>
     fn EffectAllowed(&self) -> DOMString {
-        self.effect_allowed.borrow().clone()
+        self.effect_allowed.borrow().clone().root()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-datatransfer-effectallowed>
@@ -133,7 +134,7 @@ impl DataTransferMethods<crate::DomTypeHolder> for DataTransfer {
             .is_some_and(|data_store| data_store.mode() == Mode::ReadWrite) &&
             VALID_EFFECTS_ALLOWED.contains(&&*value.str())
         {
-            *self.drop_effect.borrow_mut() = value;
+            *self.drop_effect.borrow_mut() = value.traced();
         }
     }
 

@@ -33,7 +33,6 @@ use style::values::CssUrl;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::DomRoot;
 use crate::dom::csp::{GlobalCspReporting, Violation};
 use crate::dom::document::Document;
 use crate::dom::element::Element;
@@ -119,8 +118,8 @@ struct StylesheetContext {
 }
 
 impl StylesheetContext {
-    fn unminify_css(&mut self, file_url: ServoUrl) {
-        let Some(unminified_dir) = self.document.root().window().unminified_css_dir() else {
+    fn unminify_css(&mut self, document: &Document, file_url: ServoUrl) {
+        let Some(unminified_dir) = document.window().unminified_css_dir() else {
             return;
         };
 
@@ -341,11 +340,12 @@ impl StylesheetContext {
 }
 
 impl FetchResponseListener for StylesheetContext {
-    fn process_request_body(&mut self, _: RequestId) {}
+    fn process_request_body(&mut self, _: &GlobalScope, _: RequestId) {}
 
     fn process_response(
         &mut self,
         _: &mut js::context::JSContext,
+        _: &GlobalScope,
         _: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
@@ -363,6 +363,7 @@ impl FetchResponseListener for StylesheetContext {
     fn process_response_chunk(
         &mut self,
         _: &mut js::context::JSContext,
+        _: &GlobalScope,
         _: RequestId,
         payload: Bytes,
     ) {
@@ -372,11 +373,12 @@ impl FetchResponseListener for StylesheetContext {
     fn process_response_eof(
         mut self,
         cx: &mut js::context::JSContext,
+        global: &GlobalScope,
         _: RequestId,
         status: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        network_listener::submit_timing(cx, &self, &status, &timing);
+        network_listener::submit_timing(cx, global, &self, &status, &timing);
 
         let document = self.document.root();
         let Some(metadata) = self.metadata.as_ref() else {
@@ -424,7 +426,7 @@ impl FetchResponseListener for StylesheetContext {
             return;
         }
 
-        self.unminify_css(metadata.final_url.clone());
+        self.unminify_css(&document, metadata.final_url.clone());
 
         let loader = if pref!(dom_parallel_css_parsing_enabled) {
             ElementStylesheetLoader::Asynchronous(AsynchronousStylesheetLoader::new(&element))
@@ -437,10 +439,10 @@ impl FetchResponseListener for StylesheetContext {
     fn process_csp_violations(
         &mut self,
         cx: &mut js::context::JSContext,
+        global: &GlobalScope,
         _request_id: RequestId,
         violations: Vec<Violation>,
     ) {
-        let global = &self.resource_timing_global();
         global.report_csp_violations(cx, violations, None, None);
     }
 
@@ -454,10 +456,6 @@ impl ResourceTimingListener for StylesheetContext {
         let initiator_type =
             InitiatorType::LocalName(self.element.root().upcast::<Element>().local_name().clone());
         (initiator_type, self.url.clone())
-    }
-
-    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-        self.element.root().owner_document().global()
     }
 }
 

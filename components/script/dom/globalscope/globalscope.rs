@@ -336,8 +336,7 @@ pub(crate) struct GlobalScope {
     resolved_module_set: DomRefCell<HashSet<ResolvedModule>>,
 
     /// <https://fetch.spec.whatwg.org/#environment-settings-object-fetch-group>
-    #[no_trace]
-    fetch_group: RefCell<FetchGroup>,
+    fetch_group: DomRefCell<FetchGroup>,
 }
 
 impl GlobalScope {
@@ -399,7 +398,7 @@ impl GlobalScope {
         inherited_secure_context: Option<bool>,
         unminify_js: bool,
     ) -> Self {
-        let fetch_group = RefCell::new(FetchGroup::new(resource_threads.sender()));
+        let resource_threads_sender = resource_threads.sender();
         Self {
             message_port_state: DomRefCell::new(MessagePortState::UnManaged),
             broadcast_channel_state: DomRefCell::new(BroadcastChannelState::UnManaged),
@@ -441,7 +440,7 @@ impl GlobalScope {
             notification_permission_request_callback_map: Default::default(),
             import_map: Default::default(),
             resolved_module_set: Default::default(),
-            fetch_group,
+            fetch_group: DomRefCell::new(FetchGroup::new(resource_threads_sender)),
         }
     }
 
@@ -3051,7 +3050,8 @@ impl GlobalScope {
     ) {
         self.fetch_group_mut().fetch(
             request_builder,
-            NetworkListener::new(context, task_source, self),
+            NetworkListener::new(context, task_source),
+            None, /* state */
         );
     }
 

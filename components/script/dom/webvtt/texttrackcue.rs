@@ -14,6 +14,7 @@ use crate::dom::bindings::num::Finite;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::node::Node;
 use crate::dom::texttrack::TextTrack;
 use crate::dom::webvtt::rules_for_rendering::RulesForUpdatingTheTextTrackRendering;
 
@@ -38,6 +39,8 @@ pub(crate) struct TextTrackCue {
     initial_index_in_list: Cell<usize>,
     /// <https://html.spec.whatwg.org/multipage/#rules-for-updating-the-text-track-rendering>
     rules_for_updating_the_text_track_rendering: RulesForUpdatingTheTextTrackRendering,
+    /// <https://html.spec.whatwg.org/multipage/#text-track-cue-display-state>
+    display_state: MutNullableDom<Node>,
 }
 
 impl TextTrackCue {
@@ -58,6 +61,7 @@ impl TextTrackCue {
             active: Default::default(),
             initial_index_in_list: Default::default(),
             rules_for_updating_the_text_track_rendering,
+            display_state: Default::default(),
         }
     }
 
@@ -103,6 +107,14 @@ impl TextTrackCue {
         // > These rules are used specifically when the object representing the cue
         // > is added to a TextTrack object using the addCue() method.
         self.rules_for_updating_the_text_track_rendering
+    }
+
+    pub(crate) fn display_state(&self) -> Option<DomRoot<Node>> {
+        self.display_state.get()
+    }
+
+    pub(crate) fn set_display_state(&self, display_state: Option<&Node>) {
+        self.display_state.set(display_state)
     }
 }
 

@@ -490,13 +490,14 @@ struct PosterFrameFetchContext {
 }
 
 impl FetchResponseListener for PosterFrameFetchContext {
-    fn process_request_body(&mut self, _: RequestId) {
+    fn process_request_body(&mut self, _: &GlobalScope, _: RequestId) {
         self.fetch_controller.ignore()
     }
 
     fn process_response(
         &mut self,
         _: &mut JSContext,
+        _: &GlobalScope,
         request_id: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
@@ -517,7 +518,13 @@ impl FetchResponseListener for PosterFrameFetchContext {
         }
     }
 
-    fn process_response_chunk(&mut self, _: &mut JSContext, request_id: RequestId, payload: Bytes) {
+    fn process_response_chunk(
+        &mut self,
+        _: &mut JSContext,
+        _: &GlobalScope,
+        request_id: RequestId,
+        payload: Bytes,
+    ) {
         if self.cancelled {
             // An error was received previously, skip processing the payload.
             return;
@@ -532,6 +539,7 @@ impl FetchResponseListener for PosterFrameFetchContext {
     fn process_response_eof(
         self,
         cx: &mut JSContext,
+        global: &GlobalScope,
         request_id: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -540,16 +548,16 @@ impl FetchResponseListener for PosterFrameFetchContext {
             self.id,
             FetchResponseMsg::ProcessResponseEOF(request_id, response.clone(), timing.clone()),
         );
-        network_listener::submit_timing(cx, &self, &response, &timing);
+        network_listener::submit_timing(cx, global, &self, &response, &timing);
     }
 
     fn process_csp_violations(
         &mut self,
         cx: &mut JSContext,
+        global: &GlobalScope,
         _request_id: RequestId,
         violations: Vec<Violation>,
     ) {
-        let global = &self.resource_timing_global();
         global.report_csp_violations(cx, violations, None, None);
     }
 
@@ -566,10 +574,6 @@ impl ResourceTimingListener for PosterFrameFetchContext {
         let initiator_type =
             InitiatorType::LocalName(self.elem.root().upcast::<Element>().local_name().clone());
         (initiator_type, self.url.clone())
-    }
-
-    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-        self.elem.root().owner_document().global()
     }
 }
 
