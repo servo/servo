@@ -1250,6 +1250,142 @@ int test_site_data_clear_cookies(void)
     return 0;
 }
 
+/* Covers the nested value-container accessors: a `ServoValue` can hold a
+ * dictionary or a list, `servo_value_get_dictionary` / `_get_list` hand back a
+ * copy of it, and `servo_value_set_dictionary` / `_set_list` store one back.
+ *
+ * This is what makes an object or array returned by
+ * `servo_webview_evaluate_javascript_v2` navigable from C: before these
+ * accessors existed the type was reported as `SERVO_VALUE_TYPE_DICTIONARY` /
+ * `SERVO_VALUE_TYPE_LIST` but the contents could only be read by serialising
+ * the whole value to JSON. */
+int test_value_nested_containers(void)
+{
+    int32_t type = SERVO_VALUE_TYPE_INVALID;
+
+    /* --- A dictionary stored inside a value. --- */
+    ServoDictionaryValue* dict = servo_dictionary_create();
+    ServoValue* count = servo_value_create();
+    ServoValue* label = servo_value_create();
+    if (dict == NULL || count == NULL || label == NULL) {
+        servo_dictionary_free(dict);
+        servo_value_free(count);
+        servo_value_free(label);
+        return 1;
+    }
+    if (servo_value_set_int(count, 7) != SERVO_ERROR_OK
+        || servo_value_set_string(label, "servo") != SERVO_ERROR_OK) {
+        servo_dictionary_free(dict);
+        servo_value_free(count);
+        servo_value_free(label);
+        return 1;
+    }
+    /* Both calls take ownership of the value handle. */
+    if (servo_dictionary_set_key(dict, "count", count) != SERVO_ERROR_OK
+        || servo_dictionary_set_key(dict, "label", label) != SERVO_ERROR_OK) {
+        servo_dictionary_free(dict);
+        return 1;
+    }
+
+    ServoValue* value = servo_value_create();
+    if (value == NULL) {
+        servo_dictionary_free(dict);
+        return 1;
+    }
+    /* A value that holds no dictionary must be rejected, not silently treated
+     * as an empty one. */
+    ServoDictionaryValue* nested = NULL;
+    if (servo_value_get_dictionary(value, &nested) != SERVO_ERROR_INVALID_STATE) {
+        servo_dictionary_free(nested);
+        servo_value_free(value);
+        return 1;
+    }
+    if (servo_value_set_dictionary(value, dict) != SERVO_ERROR_OK) {
+        servo_value_free(value);
+        return 1;
+    }
+    /* `dict` was consumed by the setter. */
+    if (servo_value_get_type(value, &type) != SERVO_ERROR_OK
+        || type != SERVO_VALUE_TYPE_DICTIONARY) {
+        servo_value_free(value);
+        return 1;
+    }
+    if (servo_value_get_dictionary(value, &nested) != SERVO_ERROR_OK || nested == NULL) {
+        servo_value_free(value);
+        return 1;
+    }
+    uintptr_t size = 0;
+    ServoValue* read_back = NULL;
+    int64_t read_int = 0;
+    if (servo_dictionary_get_size(nested, &size) != SERVO_ERROR_OK || size != 2
+        || servo_dictionary_get_key(nested, "count", &read_back) != SERVO_ERROR_OK
+        || read_back == NULL
+        || servo_value_get_int(read_back, &read_int) != SERVO_ERROR_OK || read_int != 7) {
+        servo_value_free(read_back);
+        servo_dictionary_free(nested);
+        servo_value_free(value);
+        return 1;
+    }
+    servo_value_free(read_back);
+    servo_dictionary_free(nested);
+    servo_value_free(value);
+
+    /* --- A list stored inside a value. --- */
+    ServoListValue* list = servo_list_create();
+    ServoValue* first = servo_value_create();
+    ServoValue* second = servo_value_create();
+    if (list == NULL || first == NULL || second == NULL) {
+        servo_list_free(list);
+        servo_value_free(first);
+        servo_value_free(second);
+        return 1;
+    }
+    servo_value_set_int(first, 1);
+    servo_value_set_int(second, 2);
+    /* Both calls take ownership of the value handle. */
+    if (servo_list_set_value(list, 0, first) != SERVO_ERROR_OK
+        || servo_list_set_value(list, 1, second) != SERVO_ERROR_OK) {
+        servo_list_free(list);
+        return 1;
+    }
+
+    ServoValue* list_holder = servo_value_create();
+    if (list_holder == NULL) {
+        servo_list_free(list);
+        return 1;
+    }
+    if (servo_value_set_list(list_holder, list) != SERVO_ERROR_OK) {
+        servo_value_free(list_holder);
+        return 1;
+    }
+    if (servo_value_get_type(list_holder, &type) != SERVO_ERROR_OK
+        || type != SERVO_VALUE_TYPE_LIST) {
+        servo_value_free(list_holder);
+        return 1;
+    }
+    ServoListValue* nested_list = NULL;
+    uintptr_t list_size = 0;
+    ServoValue* second_read = NULL;
+    int64_t second_value = 0;
+    if (servo_value_get_list(list_holder, &nested_list) != SERVO_ERROR_OK
+        || nested_list == NULL
+        || servo_list_get_size(nested_list, &list_size) != SERVO_ERROR_OK || list_size != 2
+        || servo_list_get_value(nested_list, 1, &second_read) != SERVO_ERROR_OK
+        || second_read == NULL
+        || servo_value_get_int(second_read, &second_value) != SERVO_ERROR_OK
+        || second_value != 2) {
+        servo_value_free(second_read);
+        servo_list_free(nested_list);
+        servo_value_free(list_holder);
+        return 1;
+    }
+    servo_value_free(second_read);
+    servo_list_free(nested_list);
+    servo_value_free(list_holder);
+
+    return 0;
+}
+
 /* Covers error returns for null pointer arguments. */
 int test_error_null_arguments(void)
 {
@@ -2791,6 +2927,8 @@ int run_c_api_tests(void)
     RUN_TEST(test_network_manager_cache);
     RUN_TEST(test_network_manager_null_arguments);
     RUN_TEST(test_script_message_router);
+
+    RUN_TEST(test_value_nested_containers);
 
     free_test_servo();
 

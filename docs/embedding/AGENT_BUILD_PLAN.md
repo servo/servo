@@ -206,8 +206,8 @@ Effort: **S** days · **M** 1–3 weeks · **L** 1–3 months · **XL** quarters
 | **W4.4** | DevTools/console exposure: verify + document + test | S | ✅ verified (run `39152343582`, 3 platforms) | — | embedding-api.yml |
 | **W4.5** | Manual windowed/GPU validation on real hardware | S | `blocked` (needs GPU) | W3.5 | manual |
 | **W4.6** | `Send`/`Sync` handles *or* documented main-thread contract | M | ✅ verified (`e4af43dd468`; run `39171002423`, 3 platforms) | W2.5 | embedding-api.yml |
-| **W4.7** | Language bindings beyond C/C++ | L | ✅ done (`BINDINGS.md`; C++ exercised by `39293372763`, consumer build `39270998848`) | W5.4 | embedding-api.yml |
-| **W4.8** | CEF P2 leftovers: drag/drop, audio, frame rate, task post, user-gesture JS | L | `todo` | — | embedding-api.yml |
+| **W4.7** | Language bindings beyond C/C++ | L | ✅ done (`419c43aa78b`, gate `39297450136` 3/3; consumer build `39270998848` 3/3) | W5.4 | embedding-api.yml |
+| **W4.8** | CEF P2 leftovers: drag/drop, audio, frame rate, task post, user-gesture JS | L | ✅ done (P2 table verified; nested value-container accessors closed; the rest deferred with written reasons) | — | embedding-api.yml |
 | **W5.1** | Hang monitor: on by default + kill hung scripts | M | ✅ verified (`115948c8334` + `5963519e4a8`; runs `39163255415`/`39165923943`, 3 platforms) | — | all platforms |
 | **W5.2** | Prove `capi-artifacts.yml` (prebuilt C API artifacts) | M | ✅ verified (run `39145918170`, 3 platforms) | — | capi-artifacts.yml |
 | **W5.3** | Prebuilt signed binaries (5 targets) + CMake/pkg-config | L | `todo` | W5.2 | release workflows |
@@ -942,28 +942,33 @@ two threads.
 
 #### W4.8 — CEF P2 leftovers
 
-**State:** `todo` · **Effort:** L · **Gate:** `embedding-api.yml`
+**State:** `done` (✅ `CEF_PARITY.md` §9 P2 verified; value-container gap closed) · **Effort:** L · **Gate:** `embedding-api.yml`
 
 Items from `docs/embedding/CEF_PARITY.md` §9 P2 that remain. **Verify current state
 before implementing each** — that section is stale in at least one known place.
 
-| Sub-item | Verified state at writing | Notes |
+| Sub-item | Verified state | Disposition |
 |---|---|---|
-| Downloads | **done** — `ffi/capi/download.rs` has 8 exports | *`CEF_PARITY.md` P2 #15 says "absent even in Rust" — stale; fix the doc* |
-| Drag-and-drop | not present in `ffi/capi` | needs Rust-side delegate first |
-| Audio (autoplay/output routing) | engine-level only | likely `deferred` with written reason |
-| Shared/accelerated texture OSR + frame-rate control | not exposed | ties to `rendering_context.rs`; large |
-| `CefRequestContext`-style isolation | `ffi/capi/request_context.rs` exists (8 exports) | **verify what it covers** before writing a ticket |
-| Value containers (dict/list) | `value.rs` has 27 exports incl. `ServoValue` | verify whether nested containers exist |
-| Reference-counted handles | absent | overlaps W4.6/W5.4 |
-| Task-runner post API | absent | overlaps the `spin_event_loop` model |
-| User-gesture flag for JS eval | absent | small, self-contained: add a flags param or a separate function (**append-only** — do not change an existing signature) |
+| Downloads | **present** — `ffi/capi/download.rs`, 8 exports | done (already shipped); the "absent even in Rust" claim in P2 #15 was stale and is corrected |
+| Drag-and-drop | not present in `ffi/capi`; it is an `embedder_traits`/`servoshell` concern | **deferred** — there is no Rust-side delegate to receive one, so this is upstream work |
+| Audio (autoplay/output routing) | engine-level only (`components/audio`) | **deferred** — engine/policy work; a C wrapper would have nothing to wrap |
+| Shared/accelerated texture OSR + frame-rate control | offscreen composition and `take_screenshot` exist; no shared-texture handoff and no frame-rate control | **deferred** — large; ties to the surfman rendering context |
+| `CefRequestContext`-style isolation | `ffi/capi/request_context.rs`, 8 exports: cache path, cookie path, proxy config (`ServoProxyConfig`), accept language, and both builder setters | done (already shipped); not covered: per-context resource/permission handlers |
+| Value containers (dict/list) | 27 exports; nested containers existed in `ValueData` but had **no C accessors** | **done here**: `servo_value_get_dictionary`/`_get_list`/`_set_dictionary`/`_set_list`, plus the `SERVO_VALUE_TYPE_*` constants that `servo_value_get_type`'s own doc already promised without emitting |
+| Reference-counted handles | absent; handles are owned pointers with a matching `servo_*_free` | **deferred** — the engine's handles are `Rc` and thread-affine, so this is engine work (see `BINDINGS.md` §4) |
+| Task-runner post API | absent; `servo_spin_event_loop` on the embedder thread is the only loop | **deferred** — a new threading model, not a wrapper around an existing one |
+| User-gesture flag for JS eval | absent | **deferred** — *not* small or self-contained: the flag has to be added to `EmbedderToConstellationMessage::EvaluateJavaScript`, carried through `ScriptThreadMessage::EvaluateJavaScript` and the `JavaScriptEvaluator` trait, and turned into a `UserActivation` notification on the script thread (§D.2.1) |
 
 **Steps.** One sub-item per commit. Each: state verified → implement → C test →
 `symbols.txt` → docs.
 
-**Acceptance.** The `CEF_PARITY.md` §9 P2 table reflects verified reality (fix stale
-entries as part of the work — stale docs are defects here).
+**Acceptance**
+- [x] The `CEF_PARITY.md` §9 P2 table reflects verified reality (fix stale entries as part
+      of the work — stale docs are defects here). *§9 P2 is now a table with a verified state
+      and a disposition for every item. The two comparison-table rows it invalidated
+      ("Request context / isolation", "Value containers") and the stale P0 entries for the
+      delegate surface and the rendering contexts were corrected in the same commit rather
+      than left as known lies.*
 
 ---
 
@@ -1527,6 +1532,8 @@ documented bound and is ~1.55x the worst measured growth.
 | **W3.4 / W5.3** — signed/notarized release pipeline | Signing identities (Apple Developer ID + notarization, a Windows code-signing certificate) have to be purchased and held; the workflows cannot be validated, let alone exercised, without them | the maintainer, with signing credentials |
 | **W4.5 / W3.5** — windowed/GPU validation harness + checklist | Windowed present, WebGL, WebGPU, HiDPI and touch need real GPU hardware and a human at the keyboard. `servo_rendering_context_create_window` returns `NULL` on the CI runners by design, and the smoketest is headless | a human on a GPU machine |
 | **W4.2** select + context-menu *exercise* (the wiring itself shipped) | Both activation paths are gated on a trusted input event (`IsTrusted` in `HTMLSelectElement::activation_behavior` and `maybe_show_context_menu`), so driving them from a C test needs synthesized input at a known layout position. Injecting it is possible (`servo_webview_notify_mouse_button_event`) but makes the test depend on paint/hit-test timing across three platforms; a flaky gate is worse than a documented gap | a session willing to debug a coordinate-dependent test in CI |
+| **W4.8** — the P2 leftovers that stay unimplemented (drag-and-drop, audio output routing, shared-texture OSR + frame-rate control, reference-counted handles, a task-post API) | Each is engine or policy work rather than FFI plumbing: there is no Rust delegate that receives a drop, audio routing lives in `components/audio`, the texture path needs the surfman context, the handles are `Rc` and thread-affine, and the API deliberately exposes no task queue | a session willing to change the engine, not the wrapper |
+| **W4.8** — user-gesture flag for JS evaluation | *Not* small or self-contained: the flag has to be added to `EmbedderToConstellationMessage::EvaluateJavaScript`, carried through `ScriptThreadMessage::EvaluateJavaScript` and the `JavaScriptEvaluator` trait, and turned into a `UserActivation` notification on the script thread | a session willing to touch the constellation↔script message path |
 | **W6.6** — extension / enterprise policy surface | XL and needs a product decision about which enterprise features Servo will commit to at all (already `deferred` in §2.1) | the maintainer |
 
 ### D.3 Definition of done for the whole plan

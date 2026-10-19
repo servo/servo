@@ -6,7 +6,7 @@
 //! CefDictionaryValue, CefListValue).
 
 use std::collections::HashMap;
-use std::ffi::{CStr, c_char};
+use std::ffi::{CStr, c_char, c_int};
 
 use base64::Engine;
 use servo_api::JSValue;
@@ -33,6 +33,24 @@ impl From<ServoValueType> for i32 {
         v as i32
     }
 }
+
+/// Value type constants, as reported by [`servo_value_get_type`] in `*out_type`.
+///
+/// These mirror `ServoValueType`, which is not emitted into the generated
+/// header because it never appears in an `extern "C"` signature - the C API
+/// speaks in `int32_t` there - so without these a C host has no way to name the
+/// values it is comparing against. They are the same numbers `CefValueType`
+/// uses.
+pub const SERVO_VALUE_TYPE_INVALID: c_int = 0;
+pub const SERVO_VALUE_TYPE_NULL: c_int = 1;
+pub const SERVO_VALUE_TYPE_BOOL: c_int = 2;
+pub const SERVO_VALUE_TYPE_INT: c_int = 3;
+pub const SERVO_VALUE_TYPE_DOUBLE: c_int = 4;
+pub const SERVO_VALUE_TYPE_STRING: c_int = 5;
+pub const SERVO_VALUE_TYPE_BINARY: c_int = 6;
+pub const SERVO_VALUE_TYPE_DICTIONARY: c_int = 7;
+pub const SERVO_VALUE_TYPE_LIST: c_int = 8;
+
 /// The actual value data, mirroring JSValue but owned.
 #[derive(Clone, Debug)]
 enum ValueData {
@@ -132,6 +150,14 @@ impl ServoValue {
 
     fn set_binary(&mut self, val: Vec<u8>) {
         self.value = ValueData::Binary(val);
+    }
+
+    fn set_dictionary(&mut self, val: HashMap<String, ServoValue>) {
+        self.value = ValueData::Dictionary(val);
+    }
+
+    fn set_list(&mut self, val: Vec<ServoValue>) {
+        self.value = ValueData::List(val);
     }
 
     pub(crate) fn from_jsvalue(value: &JSValue) -> Self {
@@ -510,6 +536,71 @@ pub unsafe extern "C" fn servo_value_get_binary(
     }
 }
 
+/// Gets the dictionary stored in `value`, if it holds one.
+///
+/// The returned dictionary is a **copy** of the one inside `value`: keys edited
+/// through `servo_dictionary_set_key` do not write back into `value`. Servo's
+/// value containers are plain Rust data behind a `const` pointer here, so a
+/// copy is the only shape this can be exposed in without reference counting.
+/// The CEF equivalent, `CefValue::GetDictionary()`, returns a refcounted
+/// object; a host that wants shared mutation has to keep `value` and the copy
+/// in step itself.
+///
+/// On success a freshly allocated `ServoDictionaryValue` handle is written to
+/// `out_dict`. The caller owns it and must release it with
+/// `servo_dictionary_free`. Returns `ServoError::InvalidState` if `value` does
+/// not hold a dictionary (the same answer `servo_value_get_int` gives for a
+/// non-int), and `ServoError::NullArgument` if either argument is `NULL`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_value_get_dictionary(
+    value: *const ServoValue,
+    out_dict: *mut *mut ServoDictionaryValue,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if value.is_null() {
+            return ServoError::NullArgument;
+        }
+        if out_dict.is_null() {
+            return ServoError::NullArgument;
+        }
+        let value = unsafe { &*value };
+        let Some(map) = value.as_dictionary() else {
+            return ServoError::InvalidState;
+        };
+        let mut dict = ServoDictionaryValue::new();
+        *dict.get_map_mut() = map.clone();
+        unsafe { *out_dict = Box::into_raw(Box::new(dict)) };
+        ServoError::Ok
+    })
+}
+
+/// Gets the list stored in `value`, if it holds one.
+///
+/// Same copy semantics as [`servo_value_get_dictionary`]: the returned list is
+/// a snapshot, not a view. Release the handle with `servo_list_free`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_value_get_list(
+    value: *const ServoValue,
+    out_list: *mut *mut ServoListValue,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if value.is_null() {
+            return ServoError::NullArgument;
+        }
+        if out_list.is_null() {
+            return ServoError::NullArgument;
+        }
+        let value = unsafe { &*value };
+        let Some(list) = value.as_list() else {
+            return ServoError::InvalidState;
+        };
+        let mut list_value = ServoListValue::new();
+        *list_value.get_list_mut() = list.clone();
+        unsafe { *out_list = Box::into_raw(Box::new(list_value)) };
+        ServoError::Ok
+    })
+}
+
 /// Sets `value` to a boolean.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_value_set_bool(value: *mut ServoValue, val: bool) -> ServoError {
@@ -598,6 +689,58 @@ pub unsafe extern "C" fn servo_value_set_binary(
         };
         let value = unsafe { &mut *value };
         value.set_binary(vec);
+        ServoError::Ok
+    })
+}
+
+/// Sets `value` to the dictionary held by `dict`.
+///
+/// On success `dict` is **consumed**: its keys are moved into `value` and the
+/// caller must not use or free it again. `value` keeps its previous contents
+/// and ownership until then, so a `NULL` `value` or `NULL` `dict` leaves the
+/// caller in full possession of whatever it passed in.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_value_set_dictionary(
+    value: *mut ServoValue,
+    dict: *mut ServoDictionaryValue,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        // Validate `value` before `dict` is consumed, so a rejected call never
+        // leaves the caller holding a handle they may not free.
+        if value.is_null() {
+            return ServoError::NullArgument;
+        }
+        if dict.is_null() {
+            return ServoError::NullArgument;
+        }
+        let mut dict = unsafe { Box::from_raw(dict) };
+        let map = std::mem::take(dict.get_map_mut());
+        let value = unsafe { &mut *value };
+        value.set_dictionary(map);
+        ServoError::Ok
+    })
+}
+
+/// Sets `value` to the list held by `list`.
+///
+/// Same ownership rule as [`servo_value_set_dictionary`]: `list` is consumed on
+/// success and stays the caller's on failure.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_value_set_list(
+    value: *mut ServoValue,
+    list: *mut ServoListValue,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if value.is_null() {
+            return ServoError::NullArgument;
+        }
+        if list.is_null() {
+            return ServoError::NullArgument;
+        }
+        let mut list = unsafe { Box::from_raw(list) };
+        let entries = std::mem::take(list.get_list_mut());
+        let value = unsafe { &mut *value };
+        value.set_list(entries);
         ServoError::Ok
     })
 }

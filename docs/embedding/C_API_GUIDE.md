@@ -681,6 +681,56 @@ void servo_webview_evaluate_javascript(struct WebView* webview,
                                        void* user_data); /* (new, deprecated) */
 ```
 
+### Value containers (new)
+
+`servo_webview_evaluate_javascript_v2` hands back a `ServoValue`, and the same
+containers are usable for anything else that crosses the boundary. A `ServoValue` is
+one of null, bool, int (`int64_t`), double, string, binary, dictionary or list;
+`servo_value_get_type` reports which, and the `SERVO_VALUE_TYPE_*` constants name the
+answers (the Rust enum itself is not emitted into the header, so compare against the
+constants).
+
+```c
+/* Build { "count": 7 } from scratch. */
+ServoDictionaryValue* dict = servo_dictionary_create();
+ServoValue* count = servo_value_create();
+servo_value_set_int(count, 7);
+servo_dictionary_set_key(dict, "count", count);  /* takes ownership of `count` */
+
+ServoValue* value = servo_value_create();
+servo_value_set_dictionary(value, dict);         /* takes ownership of `dict` */
+
+/* Read it back: `_get_dictionary` returns a *copy*, which you free like any
+ * other dictionary handle. */
+int32_t type = 0;
+servo_value_get_type(value, &type);              /* == SERVO_VALUE_TYPE_DICTIONARY */
+ServoDictionaryValue* copy = NULL;
+servo_value_get_dictionary(value, &copy);
+ServoValue* read = NULL;
+if (servo_dictionary_get_key(copy, "count", &read) == SERVO_ERROR_OK) {
+    int64_t n = 0;
+    servo_value_get_int(read, &n);               /* n == 7 */
+    servo_value_free(read);
+}
+servo_dictionary_free(copy);
+servo_value_free(value);
+```
+
+Rules:
+
+- **Ownership moves on set.** `servo_dictionary_set_key`, `servo_list_set_value`,
+  `servo_value_set_dictionary` and `servo_value_set_list` consume the value/container
+  handle they are given; do not free it afterwards. They check for `NULL` arguments
+  *before* taking ownership, so a rejected call leaves you holding the handle.
+- **Getters copy.** `servo_dictionary_get_key`, `servo_list_get_value`,
+  `servo_value_get_dictionary` and `servo_value_get_list` allocate a fresh handle that
+  you own. Editing the copy does not write back into the original. This is the one
+  place the C API deliberately differs from CEF, whose containers are refcounted.
+- **A wrong type is `SERVO_ERROR_INVALID_STATE`** - the same answer the typed
+  `servo_value_get_*` accessors give for a mismatch - not `SERVO_ERROR_NULL_ARGUMENT`.
+- `servo_value_from_json` / `servo_value_to_json` convert to and from a JSON string,
+  which is still the simplest way to move a whole tree across.
+
 ### Message router (native↔JS messaging)
 
 ```c

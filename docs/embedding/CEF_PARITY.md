@@ -110,7 +110,7 @@ and readiness) and [`ROADMAP.md`](ROADMAP.md) (sequencing).
 | Request / response objects | `CefRequest`, `CefResponse` | `WebResourceRequest` / `WebResourceResponse` (`webview_delegate.rs`); `net_traits::request::Request`, `net_traits::response::Response` | **Exposed** (partial) | *(done on this branch)* C: `ServoWebResourceRequest` / `ServoWebResourceResponse` opaque types with getters/setters for method, URL, headers, status, body. Available in `intercept_request` delegate callback and protocol handler callback. |
 | Custom scheme / resource handler | `CefSchemeHandlerFactory`, `CefResourceHandler`, `RegisterSchemeHandlerFactory` | `protocol_handler::{ProtocolHandler, ProtocolRegistry}`; `ServoBuilder::protocol_registry` | **Exposed** | *(done on this branch)* C: `servo_builder_register_protocol_handler` registers a callback for a custom scheme. The callback receives `ServoWebResourceRequest` and populates `ServoWebResourceResponse`. |
 | Cookies | `CefCookieManager` | `SiteDataManager::{cookies_for_url, cookies_for_url_async, set_cookie_for_url, clear_cookies, clear_session_cookies}`; `CookieSource` | **Exposed** | *(done on this branch)* C: `servo_site_data_cookies_for_url`, `servo_site_data_set_cookie`, `servo_site_data_clear_cookies`, `servo_site_data_clear_session_cookies`, plus `servo_get_site_data_manager` / `servo_site_data_manager_free`. Async variants remain Rust-only. |
-| Request context / isolation | `CefRequestContext` (isolation, cache path, proxy) | Internal public/private browsing contexts (no embedder-selectable context); `NetworkManager` for HTTP cache | Missing | No `CefRequestContext` analogue; no proxy/cache-path configuration in the embedding API. |
+| Request context / isolation | `CefRequestContext` (isolation, cache path, proxy) | `RequestContext` / `ProxyConfig` (`components/servo/request_context.rs`) | **Exposed** | *(done on this branch)* C: `servo_request_context_create`/`_free` with `_set_cache_path`, `_set_cookie_path`, `_set_proxy_config` (`ServoProxyConfig`, matching `cef_proxy_type_t`) and `_set_accept_language`; attach with `servo_builder_set_request_context` / `servo_webview_builder_set_request_context`. Not covered: per-context resource or permission handlers. |
 | Certificate errors | `CefRequestHandler::OnCertificateError` | `Opts::ignore_certificate_errors` | Partial | Global boolean only (C: `servo_options_set_ignore_certificate_errors`); no per-request decision callback. |
 
 ---
@@ -122,7 +122,7 @@ and readiness) and [`ROADMAP.md`](ROADMAP.md) (sequencing).
 | JS bindings / context | `CefV8Handler`, `CefV8Context`, `CefV8Value` | none (no embedder JS binding API) | Missing | Servo does not expose V8/SpiderMonkey bindings to embedders. |
 | Extension registration | `CefRegisterExtension` | `UserContentManager::{add_script, remove_script}` (`UserScript`); `add_stylesheet`/`remove_stylesheet` (`UserStyleSheet`) | Partial | Rust injects scripts/styles on load; not exposed to C, and not the same as a persistent extension/context API. |
 | Message router | `CefMessageRouter` (`CefMessageRouterBrowserSide`, `AddHandler`) | `MessageRouter` (`message_router.rs`) + `WebView::{post_message, add_message_handler, remove_message_handler}`; JS `window.servoMessageRouter` | **Partial/Exposed** | Native→JS via `servo_webview_post_message` + `CustomEvent`; JS→native via `servo_webview_add_message_handler` + `navigator.sendBeacon` to `servo:message` scheme. JS API: `postMessage`, `addEventListener`, `removeEventListener`. `UserContentManager::inject_message_router` enables it. |
-| Value containers | `CefValue`, `CefDictionaryValue`, `CefListValue` | `JSValue` enum (result of `WebView::evaluate_javascript`) | Partial | *(done on this branch, JSValue→JSON only)* C: `servo_webview_evaluate_javascript` returns results serialized to JSON text; there are no structured C value types (`CefValue`/dictionary/list equivalents) for richer interop. |
+| Value containers | `CefValue`, `CefDictionaryValue`, `CefListValue` | `JSValue` enum (result of `WebView::evaluate_javascript`) | **Exposed** | *(done on this branch)* C: `ServoValue` (null/bool/int/double/string/binary/dictionary/list) with typed getters/setters, `servo_value_from_json`/`_to_json`, `SERVO_VALUE_TYPE_*` constants for `servo_value_get_type`, standalone `servo_dictionary_*` / `servo_list_*` types, and `servo_value_get_dictionary`/`_get_list`/`_set_dictionary`/`_set_list` for a value that holds a container. Those four accessors hand back a **copy**, not a shared reference: the containers are plain Rust data, not refcounted objects. |
 
 ---
 
@@ -165,21 +165,35 @@ and readiness) and [`ROADMAP.md`](ROADMAP.md) (sequencing).
    returns across `ffi/capi` (currently dozens of `assert!` call sites and
    `.to_str().unwrap()`).
 3. **JavaScript execution in C** — *done on this branch:*
-   `servo_webview_evaluate_javascript` returns JSON text via a callback. Remaining:
-   a user-gesture flag and the message router (P1 #8).
+   `servo_webview_evaluate_javascript` returns JSON text via a callback and
+   `servo_webview_evaluate_javascript_v2` returns a structured `ServoValue`; the
+   message router (P1 #8, §6) is exposed as well. Remaining: a **user-gesture flag**.
+   An evaluation cannot be marked as user-activated, and adding that means a new flag
+   on the constellation→script `EvaluateJavaScript` messages plus a user-activation
+   notification on the script side — engine work, not FFI plumbing. Registered as
+   deferred in §D.2.1 of the build plan.
 4. **Navigation controls in C** — *done on this branch:* `servo_webview_can_go_back`
    / `servo_webview_can_go_forward`, `servo_webview_go_back` /
    `servo_webview_go_forward`, `servo_webview_reload`,
    `servo_webview_clear_session_history`. History-change notifications stay
    Rust-only.
-5. **Core C delegate surface** — *partially done:* `ServoWebViewDelegate` now
-   carries `notify_url_changed`, `notify_page_title_changed`, and `notify_closed`;
-   the load start/end/error, display (cursor/favicon/console), and other lifespan
-   callbacks are still missing.
-6. **Windowed + offscreen rendering contexts in C** — expose
-   `WindowRenderingContext` and `OffscreenRenderingContext` (plus view-rect/cursor
-   hooks), not just `SoftwareRenderingContext`. `servo_webview_resize` now covers
-   the view-resize half.
+5. **Core C delegate surface** — *done on this branch:* `ServoWebViewDelegate`
+   carries the lifespan callbacks (`notify_url_changed`, `notify_page_title_changed`,
+   `notify_load_status_changed`, `notify_load_started`, `notify_load_ended`,
+   `notify_load_error`, `notify_closed`, `notify_crashed`, `notify_history_changed`),
+   the display callbacks (`notify_cursor_changed`, `notify_favicon_changed`,
+   `notify_status_text_changed`, `show_console_message`), focus
+   (`notify_focus_changed`/`notify_got_focus`), frames
+   (`notify_new_frame_ready`/`notify_animating_changed`), and the request/control
+   families (permission, authentication, unload, alert/confirm/prompt, select, color,
+   file, context menu, IME).
+6. **Windowed + offscreen rendering contexts in C** — *done on this branch:*
+   `servo_rendering_context_create_window`, `_create_offscreen` (an FBO context
+   parented to a window context) and `_create_software` are all exposed, with
+   `servo_webview_resize`, `request_resize_to` and `notify_cursor_changed` covering
+   the view half. `create_window` returns `NULL` on a headless runner by design, so
+   only the software and (deprecated-free) offscreen paths run in CI — the GPU/human
+   verification is registered as deferred in §D.2.1 of the build plan.
 7. **Explicit close** — *done on this branch:* `servo_webview_close` +
    `ServoWebViewDelegate::notify_closed`.
 
@@ -202,13 +216,21 @@ and readiness) and [`ROADMAP.md`](ROADMAP.md) (sequencing).
 
 ### P2 — parity polish
 
-15. **Downloads, drag-and-drop, audio** APIs (currently absent
-    even in Rust).
-16. **Shared/accelerated texture OSR** and frame-rate control.
-17. **`CefRequestContext`-style isolation** (cache path, profiles, proxy config).
-18. **Value containers** (`CefValue`/dictionary/list) for JS interop.
-19. **Reference-counted handles** / safer ownership model.
-20. **Task-runner-style post API** and a `CefCommandLine` equivalent.
+| # | Item | Verified state in `ffi/capi` | Disposition |
+|---|---|---|---|
+| 15 | Downloads | **Present**, in Rust and in C: `servo_download_item_*` (8 exports - state, received/total bytes, suggested filename, URL, cancel, pause, resume), driven from the `ServoDownloadDelegate` callbacks | — |
+| 15 | Drag-and-drop | **Absent.** Drag-and-drop is an embedder-side concern (`embedder_traits` + `servoshell`); nothing in `ffi/capi` receives or starts one | **deferred** - needs a Rust-side delegate first, so this is upstream work, not FFI plumbing |
+| 15 | Audio (autoplay / output routing) | **Absent** from `ffi/capi`. Playback, autoplay policy and device routing are engine-level (`components/audio`) or platform-host concerns | **deferred** - engine/policy work; a C wrapper would have nothing to wrap |
+| 16 | Shared/accelerated texture OSR + frame-rate control | **Partly present:** offscreen composition exists (`servo_rendering_context_create_offscreen`, an FBO context parented to a window context, with `servo_webview_take_screenshot` for readback). Missing: a shared-texture/accelerated-paint handoff and any frame-rate control | **deferred** (the missing half) - large, and it ties into the surfman rendering context |
+| 17 | `CefRequestContext`-style isolation | **Present:** `servo_request_context_create`/`_free` with `_set_cache_path`, `_set_cookie_path`, `_set_proxy_config` (`ServoProxyConfig`, matching `cef_proxy_type_t`) and `_set_accept_language`; attach with `servo_builder_set_request_context` / `servo_webview_builder_set_request_context` (8 exports) | — (per-context resource/permission handlers are not covered) |
+| 18 | Value containers (`CefValue` / dictionary / list) | **Present:** `ServoValue` with typed getters/setters, `servo_value_from_json`/`_to_json`, `SERVO_VALUE_TYPE_*` for `servo_value_get_type`, standalone `servo_dictionary_*`/`servo_list_*`, and `servo_value_get_dictionary`/`_get_list`/`_set_dictionary`/`_set_list` for a value that holds a container | — (the container accessors hand back a copy, not a shared reference) |
+| 19 | Reference-counted handles / safer ownership | **Absent.** Handles are owned pointers released with a matching `servo_*_free`; `BINDINGS.md` documents the contract (including the Windows mixed-CRT `free` caveat) | **deferred** - the engine's core types are single-threaded `Rc` handles, so a shared, thread-safe C handle is an engine-wide change, not a wrapper |
+| 20 | Task-runner post API | **Absent.** `servo_spin_event_loop` on the embedder thread is the only loop; there is no public post-task queue to expose (see `C_API_GUIDE.md`, "Runtime model") | **deferred** - a new threading model, not a wrapper around an existing one |
+| 20 | `CefCommandLine` equivalent | **Not applicable in the same form.** CEF needs a command line for its multi-process bootstrap; the C API's knobs are `servo_options_*` / `servo_preferences_*`, and process bootstrap is `servo_run_content_process(token)` | — |
+
+Entries above were verified by reading `ffi/capi` and `ffi/capi/symbols.txt` while closing
+W4.8; the ones still wrong elsewhere in this document are listed where they were found
+rather than assumed correct.
 
 ---
 
