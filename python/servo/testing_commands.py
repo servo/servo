@@ -1001,7 +1001,7 @@ class MachCommands(CommandBase):
 
         Try strings:
 
-          Platforms (combine with modifiers, e.g. linux-wpt):
+          Platforms (combine with modifiers, e.g. linux-wpt, default: linux):
             linux
             mac/macos
             mac-arm/macos-arm64
@@ -1010,13 +1010,14 @@ class MachCommands(CommandBase):
             ohos/openharmony
             lint/tidy
 
-          Modifiers (runs on linux by default if no platform given):
+          Modifiers (runs on checked-release if no profile given):
             unit-tests          Run unit tests
             build-libservo      Build libservo library
             wpt                 Run web-platform-tests
             bencher             Run benchmarking
             coverage            Run code coverage
             capi                Run C API build
+            perf-analysis       Page load benchmarks via perf-analysis-tools (default: release)
             production          Use production build profile
             release             Use release build profile
             debug               Use dev build profile
@@ -1026,7 +1027,6 @@ class MachCommands(CommandBase):
             webgpu              WebGPU CTS (linux, production)
             webdriver/wd        WebDriver classic tests (linux)
             vello               Vello canvas WPT subsuite (linux)
-            perf-analysis       Page load benchmarks via perf-analysis-tools (linux, release)
 
           Meta keywords:
             full                Run all jobs (default)
