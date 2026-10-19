@@ -1372267,6 +1372267,20 @@
       {}
      ]
     ],
+    "link-blob-url-revoked.window.js": [
+     "5ad635ff712054ce7a9ff31e772d82d354e74b12",
+     [
+      "preload/link-blob-url-revoked.window.html",
+      {
+       "script_metadata": [
+        [
+         "title",
+         "Link preload and prefetch of a blob URL succeed when the URL is revoked after the link is inserted"
+        ]
+       ]
+      }
+     ]
+    ],
     "link-header-modulepreload.html": [
      "fd759f6251f2073f9c0015f6b4df692951520ded",
      [

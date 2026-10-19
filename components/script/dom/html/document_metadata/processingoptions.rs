@@ -33,10 +33,11 @@ use crate::dom::node::NodeTraits;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::srcset::SourceSet;
 use crate::dom::types::HTMLLinkElement;
-use crate::fetch::fetch::create_a_potential_cors_request;
+use crate::fetch::fetch::create_a_potential_cors_request_with_claim;
 use crate::fetch::network_listener::{
     FetchResponseListener, ResourceTimingListener, submit_timing,
 };
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 trait ValueForKeyInLinkHeader {
     fn has_key_in_link_header(&self, key: &str) -> bool;
@@ -179,7 +180,11 @@ impl LinkProcessingOptions {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#create-a-link-request>
-    pub(crate) fn create_link_request(self, webview_id: WebViewId) -> Option<RequestBuilder> {
+    pub(crate) fn create_link_request(
+        self,
+        webview_id: WebViewId,
+        global: &GlobalScope,
+    ) -> Option<RequestBuilder> {
         // Step 1. Assert: options's href is not the empty string.
         assert!(!self.href.is_empty());
 
@@ -188,6 +193,7 @@ impl LinkProcessingOptions {
             // Step 4. If url is failure, then return null.
             return None;
         };
+        let url = ensure_blob_referenced_by_url_is_kept_alive(global, url);
 
         // Step 5. Let request be the result of creating a potential-CORS request given
         //         url, options's destination, and options's crossorigin.
@@ -197,7 +203,7 @@ impl LinkProcessingOptions {
         // Step 9. Set request's referrer policy to options's referrer policy.
         // Step 10. Set request's client to options's environment.
         // FIXME: Step 11. Set request's priority to options's fetch priority.
-        let builder = create_a_potential_cors_request(
+        let builder = create_a_potential_cors_request_with_claim(
             Some(webview_id),
             url,
             self.destination,
@@ -292,7 +298,7 @@ impl LinkProcessingOptions {
             );
         }
         // Step 3. Let request be the result of creating a link request given options.
-        let Some(request) = self.create_link_request(webview_id) else {
+        let Some(request) = self.create_link_request(webview_id, &document.owner_global()) else {
             // Step 4. If request is null, then return.
             return;
         };

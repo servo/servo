@@ -587,7 +587,9 @@ impl HTMLLinkElement {
         let options = self.processing_options();
 
         // Step 2. Let request be the result of creating a link request given options.
-        let Some(request) = options.create_link_request(self.owner_window().webview_id()) else {
+        let Some(request) =
+            options.create_link_request(self.owner_window().webview_id(), &self.owner_global())
+        else {
             // Step 3. If request is null, then return.
             return None;
         };
@@ -661,7 +663,9 @@ impl HTMLLinkElement {
         options.destination = Destination::None;
 
         // Step 4. Let request be the result of creating a link request given options.
-        let Some(request) = options.create_link_request(self.owner_window().webview_id()) else {
+        let Some(request) =
+            options.create_link_request(self.owner_window().webview_id(), &self.owner_global())
+        else {
             // Step 5. If request is null, then return.
             return;
         };
