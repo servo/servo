@@ -420,13 +420,25 @@ Servo.
   (x86_64), published with headers and a pkg-config/CMake package.
 - Language bindings: a C++ RAII wrapper over the C API, plus community bindings
   (Python/Rust/etc.) kept out of tree if they need their own release cadence.
+  *Done on this branch:* the header compiles as C++ and is exercised that way by
+  `tests/capi/cpp/test_cpp_api.cpp` through `cargo test -p servo-capi-tests`, and
+  [`BINDINGS.md`](../embedding/BINDINGS.md) writes down the ABI contract a binding has to
+  honour - the one-thread model and its three callback-thread exceptions, `struct_size`
+  skew (`your header must be at least as new as the library`), borrowed strings,
+  ownership and the Windows mixed-CRT `free()` caveat, one-shot callbacks, the
+  error/panic policy, language-specific notes, and the checklist for vendoring a
+  binding against a release. Bindings stay out of tree on purpose: the header plus the
+  packaged library is the interface, and a binding living in this repository would tie
+  its release cadence to the engine's.
 - Packaging: versioned tarballs/MSIs, checksums, and a documented release process.
 - Documentation and samples: a complete C sample app, an integration guide, and a
   compatibility matrix (which functions are present on which platforms/features).
-  *Partly done on this branch:* [`C_API_GUIDE.md`](../embedding/C_API_GUIDE.md) is the
-  integration guide (with a complete C11 example), and
+  *Done on this branch:* [`C_API_GUIDE.md`](../embedding/C_API_GUIDE.md) is the
+  integration guide (with a complete C11 example),
   [`COMPATIBILITY.md`](../embedding/COMPATIBILITY.md) is the platform/feature/symbol
-  matrix. A standalone sample-app project is still outstanding.
+  matrix, and [`examples/c-embedder`](../../examples/c-embedder/README.md) is a standalone
+  consumer project that builds against the generated header and the packaged library in
+  CI (`capi-artifacts.yml`), through both CMake `find_package` and pkg-config.
 - Observability/perf: track cdylib size, startup time, and basic rendering throughput in CI
   to catch regressions.
 

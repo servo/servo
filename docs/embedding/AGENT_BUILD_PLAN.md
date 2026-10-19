@@ -206,7 +206,7 @@ Effort: **S** days · **M** 1–3 weeks · **L** 1–3 months · **XL** quarters
 | **W4.4** | DevTools/console exposure: verify + document + test | S | ✅ verified (run `39152343582`, 3 platforms) | — | embedding-api.yml |
 | **W4.5** | Manual windowed/GPU validation on real hardware | S | `blocked` (needs GPU) | W3.5 | manual |
 | **W4.6** | `Send`/`Sync` handles *or* documented main-thread contract | M | ✅ verified (`e4af43dd468`; run `39171002423`, 3 platforms) | W2.5 | embedding-api.yml |
-| **W4.7** | Language bindings beyond C/C++ | L | `partial` (C++ RAII exists) | W5.4 | — |
+| **W4.7** | Language bindings beyond C/C++ | L | ✅ done (`BINDINGS.md`; C++ exercised by `39293372763`, consumer build `39270998848`) | W5.4 | embedding-api.yml |
 | **W4.8** | CEF P2 leftovers: drag/drop, audio, frame rate, task post, user-gesture JS | L | `todo` | — | embedding-api.yml |
 | **W5.1** | Hang monitor: on by default + kill hung scripts | M | ✅ verified (`115948c8334` + `5963519e4a8`; runs `39163255415`/`39165923943`, 3 platforms) | — | all platforms |
 | **W5.2** | Prove `capi-artifacts.yml` (prebuilt C API artifacts) | M | ✅ verified (run `39145918170`, 3 platforms) | — | capi-artifacts.yml |
@@ -909,20 +909,34 @@ two threads.
 
 #### W4.7 — Language bindings beyond C/C++
 
-**State:** `partial` (C++ RAII covered by `tests/capi/cpp/test_cpp_api.cpp`) · **Effort:** L · **Depends:** W5.4
+**State:** `done` (✅ `BINDINGS.md`; the C++ path and the packaged consumer both build in CI) · **Effort:** L · **Depends:** W5.4
 
 **Goal.** Rust wrapper is in-tree value; Python etc. belong out-of-tree.
 
 **Steps**
-1. Ensure the header is genuinely consumable from C++17 (already asserted by the C++ test
-   — verify it runs on all three platforms in `embedding-api.yml`).
-2. Add a documented `pkg-config`/CMake package consumer test (this overlaps W5.2/W5.3 —
-   coordinate rather than duplicate).
-3. For Python: write `docs/embedding/BINDINGS.md` describing the ABI rules a binding must
-   honour (ownership, callbacks, threading) and explicitly keep bindings out-of-tree.
+1. Ensure the header is genuinely consumable from C++17 — *done:* `cpp_compat = true` in
+   `cbindgen.toml`, and `tests/capi/cpp/test_cpp_api.cpp` is compiled as `-std=c++17`
+   against the cbindgen-generated header by `tests/capi/build.rs`, in every
+   `embedding-api.yml` job.
+2. A documented `pkg-config`/CMake package consumer test — *done by W5.2/W5.3, referenced
+   rather than duplicated here:* `capi-artifacts.yml` packages the library with
+   `ServoConfig.cmake` and `servo_capi.pc`, then builds `examples/c-embedder` twice, once
+   through CMake `find_package` and once by calling the compiler directly against the
+   sysroot.
+3. Write `docs/embedding/BINDINGS.md` — *done:* it states the ABI rules a binding must
+   honour and keeps bindings out-of-tree on purpose.
 
-**Acceptance.** A sample consumer project builds against a generated header + packaged
-library in CI. Out-of-tree bindings are a documented target, not a promise of shipped code.
+**Acceptance**
+- [x] A sample consumer project builds against a generated header + packaged library in
+      CI. *`examples/c-embedder` builds against the packaged sysroot in `capi-artifacts.yml`
+      on linux-x86_64, macos-aarch64 and windows-x86_64 (run `39270998848`, 3/3 green; the
+      commit is docs-only, so it does not re-trigger that workflow).*
+- [x] Out-of-tree bindings are a documented target, not a promise of shipped code.
+      *`BINDINGS.md` ends with the checklist for vendoring a binding against a release; no
+      binding lives in this repository.*
+- [x] The header is consumable from C++17 on every supported platform. *`cpp_api_tests`
+      compiles `tests/capi/cpp/test_cpp_api.cpp` in each job of `embedding-api.yml` (e.g.
+      run `39293372763`, 3/3 green).*
 
 ---
 
