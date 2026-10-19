@@ -114,7 +114,10 @@ use crate::webview_delegate::{
     FilePicker, NavigationRequest, PermissionRequest, ProtocolHandlerRegistration, WebResourceLoad,
 };
 
-#[cfg(feature = "media-gstreamer")]
+#[cfg(all(
+    feature = "media-gstreamer",
+    not(any(target_os = "android", target_env = "ohos"))
+))]
 mod media_platform {
     use servo_media_gstreamer::GStreamerBackend;
 
@@ -123,6 +126,8 @@ mod media_platform {
     #[cfg(any(windows, target_os = "macos"))]
     pub fn init() {
         ServoMedia::init_with_backend(|| {
+            use servo_media::BackendInit;
+
             let mut plugin_dir = std::env::current_exe().unwrap();
             plugin_dir.pop();
 
@@ -132,12 +137,16 @@ mod media_platform {
 
             let plugin_list = crate::gstreamer_plugins::gstreamer_plugins();
             match GStreamerBackend::init_with_plugins(plugin_dir, &plugin_list) {
-                Ok(b) => b,
-                Err(e) => {
-                    log::error!("Error initializing GStreamer: {:?}", e);
-                    std::process::exit(1);
+                Ok(backend) => return backend,
+                Err(error) => {
+                    log::warn!(
+                        "Error initializing GStreamer: {error:?}. \
+                        Trying fallback initialization."
+                    );
                 },
             }
+
+            GStreamerBackend::init()
         });
     }
 
@@ -147,7 +156,7 @@ mod media_platform {
     }
 }
 
-#[cfg(all(not(feature = "media-gstreamer"), target_env = "ohos"))]
+#[cfg(target_env = "ohos")]
 mod media_platform {
     use servo_media_ohos::OhosBackend;
 
@@ -157,7 +166,10 @@ mod media_platform {
     }
 }
 
-#[cfg(all(not(feature = "media-gstreamer"), not(target_env = "ohos")))]
+#[cfg(all(
+    not(target_env = "ohos"),
+    not(all(feature = "media-gstreamer", not(target_os = "android")))
+))]
 mod media_platform {
     use super::ServoMedia;
     pub fn init() {

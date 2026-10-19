@@ -44,7 +44,10 @@
 mod clipboard_delegate;
 #[cfg(feature = "gamepad")]
 mod gamepad_delegate;
-#[cfg(feature = "media-gstreamer")]
+#[cfg(all(
+    feature = "media-gstreamer",
+    not(any(target_os = "android", target_env = "ohos"))
+))]
 mod gstreamer_plugins;
 mod javascript_evaluator;
 mod network_manager;
