@@ -33,8 +33,10 @@ Concretely:
 - It has **no iOS port** and **no iOS CI**. `ports/` contains only `servoshell`.
   Sandboxing explicitly is not supported on iOS, Windows, Android, ARM, or
   RISC-V (`components/servo/servo.rs:1485`).
-- The C embedding API is at **version 0.2.0** (`ffi/capi/lib.rs:384-397`),
-  pre-1.0, with no ABI stability guarantee yet.
+- The C embedding API is at **version 0.3.0** (`ffi/capi/lib.rs:486-515`),
+  pre-1.0. While it is pre-1.0 an incompatible change bumps the MINOR version
+  and is listed in `ABI_STABILITY.md` §2.4; there is no 1.0 stability guarantee
+  yet.
 - The engine's own compatibility work is tracked but far from Blink's; Servo
   has been in development since 2012 and, even with recent investment, remains
   a fraction of Chromium's conformance, security architecture, and platform
@@ -137,9 +139,17 @@ owns, and it is in reasonable shape:
 - Handles are opaque and documented as main-thread-affine.
 
 Residual FFI risks (inherent to a C ABI, shared with CEF): the embedder can pass
-dangling or double-freed pointers, and thread-affinity is documented rather than
-enforced. Mitigations (handle "magic" cookies, debug validation) are possible
-but not implemented; see §9.
+dangling or double-freed pointers. Two mitigations are in place. Thread affinity
+is *enforced* at the boundary in every build (`entry_checks::check_main_thread`
+returns `SERVO_ERROR_WRONG_THREAD`). And the handle types that have adopted the
+live-handle registry (`ServoOptions` today) reject a stale, double-freed,
+wrong-typed, or never-created handle with `SERVO_ERROR_INVALID_ARGUMENT` instead
+of dereferencing it — see `ABI_STABILITY.md` §4.5 and `HARDENING_PLAN.md` §B.1.
+The remaining handle types still dereference unchecked (mechanically the same
+edit, each tracked in `AGENT_BUILD_PLAN.md` §D.2.1). A memory "magic" cookie was
+rejected as the mechanism: a magic field has to be read *through* the pointer to
+find out whether the pointer is valid, which is the dereference that must not
+happen.
 
 **Dependencies.** Supply-chain policy exists (`deny.toml`); keeping it current is
 an ongoing operational task, not a one-time fix.
@@ -175,7 +185,7 @@ documented, memory-safe C ABI over libservo with a consistent
 buffer-query string convention, a version query, and a documented
 ABI-stability policy. That is a solid foundation.
 
-It is, however, a **foundation**, not a CEF replacement. It is version 0.2.0,
+It is, however, a **foundation**, not a CEF replacement. It is version 0.3.0,
 covers a subset of the engine, and (as of this branch) has no shipped prebuilt
 binaries, no long-term support commitment, and no iOS/mobile embedding path.
 
@@ -201,9 +211,14 @@ Ordered by value-per-unit-risk for *this* repository:
 1. **Finish the documented roadmap.** `ROADMAP.md` Phases 1–5 are the correct,
    already-scoped plan. Executing them is the real path to a credible embedding
    API. (Effort: the roadmap itself.)
-2. **Harden the FFI boundary further.** Add optional debug validation
-   (handle magic/state cookies) and document dangling/double-free contracts
-   precisely. Cheap, contained, directly improves the surface this branch owns.
+2. **Harden the FFI boundary further.** The first piece has landed: a handle that
+   is not live is diagnosed for `ServoOptions` (`ABI_STABILITY.md` §4.5,
+   `HARDENING_PLAN.md` §B.1) and thread affinity is enforced at every entry
+   point. What remains is the same registry for the other handle types
+   (`AGENT_BUILD_PLAN.md` §D.2.1) and making the "valid only for the duration of
+   this call" pointer contract observable in a debug build
+   (`HARDENING_PLAN.md` §B.2). Cheap, contained, directly improves the surface
+   this branch owns.
 3. **State platform support truthfully in the API.** Expose a runtime capability
    query (sandbox available? multi-process? platform) so embedders can't assume
    security properties that are absent on Windows/iOS/Android.

@@ -29,12 +29,12 @@ phases described in [`ROADMAP.md`](./ROADMAP.md).
 The header must define the C API version. The C API version is managed
 independently of the workspace crate version (`0.7.0`). The version in the
 header must match `SERVO_CAPI_VERSION` in `ffi/capi/lib.rs`; the current
-version is `0.2.0`:
+version is `0.3.0`:
 
 ```c
 /* servo/version.h (generated or hand-maintained), included by servo/servo_capi.h */
 #define SERVO_CAPI_VERSION_MAJOR 0
-#define SERVO_CAPI_VERSION_MINOR 2
+#define SERVO_CAPI_VERSION_MINOR 3
 #define SERVO_CAPI_VERSION_PATCH 0
 #define SERVO_CAPI_VERSION \
     ((SERVO_CAPI_VERSION_MAJOR << 16) | \
@@ -46,7 +46,7 @@ Plus a runtime query so hosts can detect a mismatched library at load time.
 Today the query returns the release version string:
 
 ```c
-/* Returns the release version string of the loaded library, e.g. "0.2.0". */
+/* Returns the release version string of the loaded library, e.g. "0.3.0". */
 const char* servo_capi_version(void);
 ```
 
@@ -87,7 +87,27 @@ version skew.
 
 A frequent mistake to avoid: adding a field to a `#[repr(C)]` struct is **breaking** for
 existing callers unless the struct is versioned (§3.3). Treat every layout change as
-MAJOR unless it uses the extension mechanism.
+incompatible (see §2.4) unless it uses the extension mechanism.
+
+### 2.4 While `MAJOR` is `0`: incompatible changes bump `MINOR`
+
+`1.0.0` is deliberately deferred until the surface settles (§6.1), which means the
+`MAJOR`-bump rule above cannot be the way incompatible changes are numbered yet: a
+`1.0.0` today would claim a compatibility promise this API does not keep. The
+convention while `SERVO_CAPI_VERSION_MAJOR` is `0` is therefore ordinary 0.x
+semver:
+
+- an **incompatible** change (anything on the §2.3 "breaking" list) bumps `MINOR`
+  and **must be recorded in the table below**, because callers cannot infer it from
+  the number alone the way they can after 1.0; and
+- `PATCH` stays for compatible fixes, and appending to `symbols.txt` stays `MINOR`.
+
+| Version | Incompatible change | Affects |
+|---|---|---|
+| `0.3.0` | `ServoCookieFilter` and `ServoProxyConfig` gained the `struct_size` and `_reserved` fields required by §3.3, shifting every other field | Callers that fill in either struct must set `struct_size` and recompile. No in-tree caller used them, and the library rejects a stale layout with `SERVO_ERROR_INVALID_ARGUMENT` rather than misreading it. |
+
+Every later incompatible 0.x release adds a row here, so the compatibility story
+is checkable without diffing the header.
 
 ### 2.3 What counts as a breaking change (checklist)
 
@@ -172,16 +192,29 @@ read "within `struct_size`" safely. Requiring `struct_size >= size_of::<T>()` co
 that out-of-bounds read into a clean error, while still accepting a larger `struct_size`
 (a caller built against a newer header), since Servo only reads the fields it was
 compiled with. This is implemented by `is_compatible_struct_size()` (`ffi/capi/lib.rs`)
-and enforced in `servo_webview_builder_set_delegate`, `servo_builder_set_delegate`, and
-`servo_builder_set_event_loop_waker`.
+and enforced in `servo_webview_builder_set_delegate`, `servo_builder_set_delegate`,
+`servo_builder_set_event_loop_waker`,
+`servo_webview_builder_set_clipboard_delegate`,
+`servo_webview_builder_set_gamepad_delegate`,
+`servo_webview_gamepad_haptic_effect_request_info`,
+`servo_site_data_delete_all_cookies` and `servo_request_context_set_proxy_config`.
 
 Callers must initialize `struct_size` to `sizeof(...)`; a zero-initialized delegate is
 rejected. When a field is appended in a later MINOR release, existing callers must
 recompile and will then pass the new size automatically.
 
-For structs passed **by pointer** (introduced later), read only the fields within
-`struct_size` using `std::ptr::read_unaligned` into a prefix/fallback so older callers
-keep working without recompiling.
+The two structs the embedder fills in and passes **by pointer** —
+`ServoCookieFilter` (`cookie_manager.rs`) and `ServoProxyConfig`
+(`request_context.rs`) — gained these fields in `0.3.0` (§2.4). Their entry points
+use the same `struct_size >= size_of::<T>()` test as the by-value delegates, so a
+caller that predates the field is rejected with `SERVO_ERROR_INVALID_ARGUMENT`
+rather than misread; such a caller cannot be distinguished from a corrupt one, and
+nothing in the tree called either struct. When a field is *first appended* to one
+of them, the entry point must switch to reading only the fields inside
+`struct_size` (a bounds-checked `read_unaligned` prefix, with defaults for the
+missing tail) so that callers built against the previous header keep working. That
+work is registered in `AGENT_BUILD_PLAN.md` §D.2.1 and must land *with* the first
+appended field: with no growth to accommodate, the strict check is safer.
 
 For Rust-owned output structs that grow over time, use reserved fields instead:
 
@@ -314,6 +347,28 @@ Rules:
   string-returning functions and test for leaks.
 - Embedded NUL is not representable in a C string; use `(ptr, len)` forms for arbitrary
   byte data and document it.
+
+### 4.5 Handle liveness
+
+Handles are opaque `Box` pointers (§3.2). Using one after `free`, freeing it
+twice, passing a handle of another type, or passing a pointer that was never a
+handle at all is undefined behaviour by contract, and it used to be silent. The
+C API keeps a live-handle registry (`ffi/capi/lib.rs::handle_registry`) keyed on
+the handle's **address**, which is looked up rather than dereferenced, so a bad
+pointer is rejected without touching memory that may no longer belong to the
+process. A handle that is not live makes the entry point return
+`SERVO_ERROR_INVALID_ARGUMENT`; a second `_free` returns the same error instead
+of double-freeing.
+
+- Adopted by: `ServoOptions` — `servo_options_create` (registers), the 20
+  `servo_options_set_*` / `servo_options_enable_*` entry points (reject a
+  non-live handle), `servo_options_free` (unregisters, and rejects a second
+  free), and the consuming `servo_builder_set_options` (unregisters).
+- Limits: address reuse can defeat the check, and the tag distinguishes handle
+  *types* only among the types that have adopted the registry. The remaining
+  handle types are tracked in `AGENT_BUILD_PLAN.md` §D.2.1.
+- The registry is compiled into release builds as well — a check that exists
+  only in debug builds does not protect anyone who ships this.
 
 ## 5. Ownership and threading contract template
 

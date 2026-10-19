@@ -188,7 +188,51 @@ panic-safe: every fallible entry point is wrapped in `catch_unwind` and returns
 risks are all **the embedder's misuse of opaque handles**, which the engine
 cannot detect today.
 
-### B.1 Debug handle validation
+### B.0 `struct_size` coverage across the ABI (W2.5 inventory)
+
+`ABI_STABILITY.md` §3.3 requires every `#[repr(C)]` struct the **embedder fills
+in** to carry `struct_size` first, and every entry point that reads one to
+reject a size smaller than the one compiled into the library
+(`is_compatible_struct_size`, `ffi/capi/lib.rs`). All 20 `#[repr(C)]` items in
+`ffi/capi/` are accounted for below.
+
+**Embedder fills, library reads — validated.**
+
+| Struct | Passed | Checked at |
+|---|---|---|
+| `ServoDelegate` | by value | `lib.rs` `servo_builder_set_delegate` |
+| `ServoEventLoopWaker` | by value | `lib.rs` `servo_builder_set_event_loop_waker` |
+| `ServoWebViewDelegate` | by value | `webview.rs` `servo_webview_builder_set_delegate` |
+| `ServoClipboardDelegate` | by value | `webview.rs` `..._builder_set_clipboard_delegate` |
+| `ServoGamepadDelegate` | by value | `webview.rs` `..._builder_set_gamepad_delegate` |
+| `ServoGamepadHapticEffectInfo` | via pointer (out) | `gamepad.rs` `..._haptic_effect_request_info` |
+| `ServoCookieFilter` | via pointer (in) | `cookie_manager.rs` `servo_site_data_delete_all_cookies` — **added by W2.5** |
+| `ServoProxyConfig` | via pointer (in) | `request_context.rs` `..._set_proxy_config` — **added by W2.5** |
+
+The last two are the only structs the embedder allocates *and* passes by
+pointer, so a caller built against a smaller header would have been read past
+the end of its own allocation. Neither had a `struct_size`; W2.5 added one while
+the API is still pre-1.0 and nothing in the tree called either struct, which is
+why the change is a MINOR bump (0.2.0 → 0.3.0) instead of a break for an
+existing population.
+
+**Library fills, embedder reads — no runtime guard possible, and why that is
+safe.** `ServoCookie`, `ServoSiteData`, `ServoCertificateError`,
+`ServoScreenGeometry`, `ServoRgbColor`, `ServoContextMenuItem`,
+`ServoContextMenuParams`, `ServoFileFilterPattern`, `ServoFilePickerParams`,
+`ServoSelectElementOption`, `ServoSelectElementOptionOrOptgroup`,
+`ServoSelectElementParams`.
+
+Servo owns the storage for all twelve and hands out a pointer (or a by-value
+copy) to its own struct; the embedder never supplies one, so there is no
+caller-controlled size to check, and no path where Servo writes past memory the
+embedder owns. A host built against an older header reads a *prefix* of the
+struct, which is why these are append-only: adding, removing or reordering a
+field is the ordinary breaking change of §2.3 and needs the version discipline,
+not a runtime guard. `ServoScreenGeometry` does carry a `struct_size` (Servo
+fills in the value) so a host can tell how many fields this build provided.
+
+### B.1 Handle validation — liveness registry (W2.5)
 
 **The problem.** Handles are raw `Box` pointers: created with
 `Box::into_raw(Box::new(..))` and destroyed with `Box::from_raw(..)` (e.g.
@@ -198,54 +242,83 @@ or passes the wrong handle type, the engine reads freed or aliased memory. That
 is undefined behaviour by contract, but it is silent and hard for embedders to
 diagnose.
 
-**Design (opt-in, debug-only).**
+**What landed (W2.5).** `ffi/capi/lib.rs::handle_registry` is a
+`Mutex<HashSet<(usize, HandleKind)>>` keyed on the handle's **address**, so a
+check is a lookup and never a dereference — safe even on a pointer the process
+never owned. `servo_options_create` registers; `servo_options_free`
+unregisters, so a second free is `ServoError::InvalidArgument` instead of a
+double free; `servo_builder_set_options`, which consumes the handle, does the
+same; and each of the 20 `servo_options_set_*` / `servo_options_enable_*` entry
+points returns `ServoError::InvalidArgument` when the handle is not live.
+Verified by
+`tests/capi/c/test_api.c::test_options_handle_validation` (garbage pointer
+`(ServoOptions*)0x1`, freed handle, double free, consumed handle; the process
+survives each).
 
-1. Add a `cfg(debug_assertions)`-gated handle registry in `ffi/capi/lib.rs`: a
-   `Mutex<HashSet<usize>>` (lock-free not needed) plus a small `HandleKind` tag.
-   Register on creation, unregister on free.
-2. Add checked constructors/destructors (e.g.
-   `debug_register_handle(ptr, Kind::Options)` /
-   `debug_take_handle(ptr, Kind::Options)`). On a miss — unknown pointer, wrong
-   kind, or double free — emit a clear diagnostic (`ServoError::InvalidHandle`
-   or a log line) instead of undefined behaviour. Do **not** change release
-   behaviour or the ABI; keep it behind `debug_assertions`.
-3. Adopt it incrementally: start with the handle types that cross into callbacks
-   and have documented lifetime hazards (`ServoOptions`, `ServoBuilder`,
-   `RenderingContext`, `ServoValue`, `ServoUserContentManager`,
-   `ServoWebViewBuilder`, `Servo`).
-4. Existing C tests can be extended to assert that a double-free and a
-   use-after-free are *diagnosed* in debug builds, and skip that assertion in
-   release.
+Deviations from the sketch below, both deliberate:
 
-**A cheaper first cut.** If a full registry is too invasive, embed a
-`u32` magic value as the first field of each concrete handle struct and validate
-it on entry/free under `debug_assertions`. It catches wrong-type and stale-handle
-misuse (not address reuse) with a one-field change per struct.
+- **Not gated on `debug_assertions`.** Release is where embedders ship, which is
+  the same reason `entry_checks::check_main_thread` is compiled into every
+  build. The cost is one mutex-guarded hash lookup per entry point of an adopted
+  handle type; no other handle type pays anything.
+- **Address lookup instead of a magic field.** A magic value has to be read
+  through the pointer to find out whether the pointer is valid, which is exactly
+  the dereference that must not happen. The trade-offs are that address reuse
+  can defeat the check (a recycled address looks live) and that a live handle of
+  another type is a miss only because of the `HandleKind` tag — the tag is
+  unexercised until a second kind is adopted, and exists so that the next
+  adopted type cannot silently satisfy another type's entry point.
+
+**Still uncovered**, registered in `AGENT_BUILD_PLAN.md` §D.2.1: the other
+handle types (`ServoBuilder`, `RenderingContext`, `ServoValue`,
+`ServoUserContentManager`, `ServoWebViewBuilder`, `Servo`,
+`ServoSiteDataManager`, `ServoRequestContext`). Each is the same mechanical
+edit — register in the constructor, check in the entry points, unregister where
+ownership moves — plus one `HandleKind` variant.
+
+**Original design sketch (kept for the record).**
+
+1. A `cfg(debug_assertions)`-gated `Mutex<HashSet<usize>>` with a `HandleKind`
+   tag; register on creation, unregister on free.
+2. Checked constructors/destructors emitting a diagnostic on a miss instead of
+   undefined behaviour.
+3. Adopt incrementally, starting with the handle types that cross into callbacks
+   and have documented lifetime hazards.
+4. Extend the C tests to assert that a double free and a use-after-free are
+   *diagnosed*.
+
+The cheaper alternative considered and rejected — a `u32` magic value as the
+first field of each concrete handle struct — cannot work for the types this
+matters most for, because `ServoOptions` is a type alias for `servo::Opts` and
+`RenderingContext` for another upstream type: there is no field to add.
 
 ### B.2 Temporary pointers and thread affinity (make contracts explicit)
 
-Several callbacks pass pointers valid **only for the duration of the call**
-(document the same rule as the CEF docs). Today this is prose only
-(`docs/embedding/C_API_GUIDE.md`, `CEF_PARITY.md`). Steps:
-
-- Centralise the rule in one place and reference it from every callback's
-  doc-comment in `ffi/capi/webview_delegate.rs` and `cert_error.rs`.
-- Add a debug mode that, when a callback returns, poisons the buffer it handed
-  out (writes a sentinel) so a late read by the embedder is observable in tests.
-- Document and test the **thread-affinity contract**: handles are
-  main-thread-affine; the FFI boundary enforces `is_main_thread()` in all builds
-  and returns `SERVO_ERROR_WRONG_THREAD` on violations (`ffi/capi/lib.rs::
-  entry_checks`). The thread-agnostic exceptions (pure queries, plain callback
-  accessors) are listed in `docs/embedding/ABI_STABILITY.md` §5.1.
+- **Thread affinity: landed.** Handles are main-thread-affine and the FFI
+  boundary enforces the owning thread in all builds, returning
+  `SERVO_ERROR_WRONG_THREAD` on violations (`ffi/capi/lib.rs::entry_checks`).
+  The thread-agnostic exceptions (pure queries, plain callback accessors) are
+  listed in `ABI_STABILITY.md` §5.1.
+- **Temporary pointers: documented, not enforced.** The rule — a pointer handed
+  to a callback is valid only for the duration of that call unless the
+  callback's own documentation says otherwise — is stated on each delegate type
+  and in `C_API_GUIDE.md`, and the callbacks that must retain anything copy it.
+  Still missing is the second step: a debug mode that poisons a callback's
+  buffer when it returns, so that a late read by the embedder is observable in a
+  test. Registered in `AGENT_BUILD_PLAN.md` §D.2.1.
 
 ### B.3 `Send`/`Sync` assertions
 
 `ffi/capi/protocol_handler.rs` asserts `unsafe impl Send/Sync` for a
-caller-supplied handler, which the compiler cannot verify. Either (a) keep it but
-document the requirement precisely at the FFI entry that installs the handler,
-plus a test that a handler is only invoked from the expected thread, or (b)
-marshal the handler calls onto the thread that installed them. Decide and
-document; do not leave the assertion unexplained.
+caller-supplied handler, which the compiler cannot verify. The decision taken is
+option (a): the requirement ("`callback` and `user_data` must be thread-safe
+(`Send` + `Sync`) as protocol handlers may be called concurrently from network
+or worker threads") is documented in the `# Safety` section of
+`servo_builder_register_protocol_handler`, and the assertion itself carries the
+rationale. The remaining piece of (a) — a test that exercises the contract under
+concurrency — needs a real protocol-handler workload rather than a synchronous
+assertion, so it belongs with the stress/fuzz work in W2.8 and is registered in
+`AGENT_BUILD_PLAN.md` §D.2.1.
 
 ---
 

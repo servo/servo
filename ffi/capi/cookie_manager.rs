@@ -54,6 +54,18 @@ pub type ServoFlushStoreCallback = Option<unsafe extern "C" fn(user_data: *mut c
 /// `ServoCookieFilterFlags` to indicate which ones are active.
 #[repr(C)]
 pub struct ServoCookieFilter {
+    /// Size of this struct in bytes, as seen by the caller.
+    ///
+    /// The caller must set this to `sizeof(ServoCookieFilter)`. Servo rejects
+    /// filters whose `struct_size` is smaller than the size it was compiled
+    /// with, returning `ServoError::InvalidArgument`, so that a caller built
+    /// against an older header cannot make the library read past its struct.
+    /// See `ABI_STABILITY.md` §3.3.
+    pub struct_size: u32,
+
+    /// Reserved for future use; must be `0`.
+    pub _reserved: u32,
+
     /// Filter by URL (domain + path). NULL = match all URLs.
     pub url: *const c_char,
     /// Filter by cookie name. NULL = match all names.
@@ -302,6 +314,9 @@ pub unsafe extern "C" fn servo_site_data_visit_cookies_for_url(
 /// `user_data` - Opaque user data passed to the callback.
 ///
 /// Returns `ServoError::Ok` on success, or an error code on failure.
+/// Returns `ServoError::InvalidArgument` if `filter` is not NULL and
+/// `filter.struct_size` is smaller than the size of `ServoCookieFilter`
+/// compiled into this library.
 ///
 /// # Safety
 ///
@@ -331,6 +346,14 @@ pub unsafe extern "C" fn servo_site_data_delete_all_cookies(
             (None, None, None, None, None, None)
         } else {
             let filter = unsafe { &*filter };
+            // W2.5/`ABI_STABILITY.md` §3.3: reject a filter from a caller built
+            // against an older header before reading any of its fields.
+            if !crate::is_compatible_struct_size(
+                filter.struct_size,
+                std::mem::size_of::<ServoCookieFilter>(),
+            ) {
+                return crate::ServoError::InvalidArgument;
+            }
             let url = if filter.url.is_null() {
                 None
             } else {

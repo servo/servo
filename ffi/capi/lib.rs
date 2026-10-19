@@ -380,6 +380,90 @@ pub(crate) mod entry_checks {
     }
 }
 
+/// Tracks the opaque handles that are currently alive (W2.5, `HARDENING_PLAN.md`
+/// §B.1).
+///
+/// The C API hands out raw `Box` pointers. Misusing one — using it after
+/// freeing it, freeing it twice, or passing a handle of the wrong type — is
+/// undefined behaviour by contract, and the pointer is not dereferenced until
+/// after the embedder's mistake has already happened, so the engine cannot
+/// notice it today.
+///
+/// This registry keys on the *address* of every live handle, so a check is a
+/// lookup rather than a dereference: a stale or bogus pointer is rejected
+/// without touching memory that may no longer belong to us. A handle that was
+/// never registered (garbage) or that was unregistered by its own destructor
+/// fails the check, and the entry point returns
+/// [`ServoError::InvalidArgument`] instead of corrupting memory.
+///
+/// Limits, stated honestly:
+///
+/// Entries are `(address, kind)` pairs, so passing a handle of the wrong type
+/// is a miss as well — otherwise a live handle of another type would satisfy
+/// the lookup and be interpreted as the wrong struct.
+///
+/// Limits, stated honestly:
+///
+/// - Address reuse defeats it. If the allocator hands the same address to a
+///   later handle of the same kind, a stale pointer to the earlier one looks
+///   live again.
+/// - It only knows about the handle types that have adopted it. See
+///   `HARDENING_PLAN.md` §B.1 for the list and for what is still uncovered.
+///
+/// Like [`entry_checks::check_main_thread`], a poisoned lock **fails open**
+/// (the handle is treated as live): a lock problem elsewhere in the process
+/// must not wedge every entry point. Unlike the main-thread check this is
+/// compiled into release builds too, so it protects shipping embedders rather
+/// than only the test run; the lock is only taken on the entry points of the
+/// handle types that have adopted it.
+pub(crate) mod handle_registry {
+    use std::collections::HashSet;
+    use std::sync::{Mutex, OnceLock};
+
+    /// The handle types that have adopted the registry. One variant per type,
+    /// so a handle cannot be used through an entry point of another type.
+    #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+    pub(crate) enum HandleKind {
+        /// A `ServoOptions` handle.
+        Options,
+    }
+
+    fn live_handles() -> &'static Mutex<HashSet<(usize, HandleKind)>> {
+        static LIVE: OnceLock<Mutex<HashSet<(usize, HandleKind)>>> = OnceLock::new();
+        LIVE.get_or_init(|| Mutex::new(HashSet::new()))
+    }
+
+    /// Records `handle` as alive. Call it from the constructor that hands the
+    /// handle to the embedder.
+    pub(crate) fn register<T>(handle: *const T, kind: HandleKind) {
+        if let Ok(mut live) = live_handles().lock() {
+            live.insert((handle as usize, kind));
+        }
+    }
+
+    /// Forgets `handle`. Call it from the destructor that takes ownership of
+    /// it.
+    ///
+    /// Returns `false` when `handle` was not alive, which is what a double free
+    /// looks like. The caller must check the return value **before** dropping
+    /// the box: dropping it twice is the corruption this exists to prevent.
+    pub(crate) fn unregister<T>(handle: *const T, kind: HandleKind) -> bool {
+        match live_handles().lock() {
+            Ok(mut live) => live.remove(&(handle as usize, kind)),
+            Err(_) => true,
+        }
+    }
+
+    /// Returns `true` when `handle` is a live handle of this API with this
+    /// kind.
+    pub(crate) fn is_live<T>(handle: *const T, kind: HandleKind) -> bool {
+        match live_handles().lock() {
+            Ok(live) => live.contains(&(handle as usize, kind)),
+            Err(_) => true,
+        }
+    }
+}
+
 /// Returns `true` when the `struct_size` field supplied by an embedder is
 /// compatible with the size of the corresponding Rust type.
 ///
@@ -402,7 +486,14 @@ pub(crate) fn is_compatible_struct_size(struct_size: u32, rust_size: usize) -> b
 pub const SERVO_CAPI_VERSION_MAJOR: u32 = 0;
 
 /// Minor version of the Servo C API.
-pub const SERVO_CAPI_VERSION_MINOR: u32 = 2;
+///
+/// 0.3.0 is a breaking MINOR release: `ServoCookieFilter` and
+/// `ServoProxyConfig`, the two `#[repr(C)]` structs the embedder fills in and
+/// passes by pointer, gain the `struct_size` field required by
+/// `ABI_STABILITY.md` §3.3. Both structs were unusable before — no in-tree
+/// caller used them — so the change costs embedders a recompile (they must set
+/// `struct_size`) and buys forward compatibility for every future field.
+pub const SERVO_CAPI_VERSION_MINOR: u32 = 3;
 
 /// Patch version of the Servo C API.
 pub const SERVO_CAPI_VERSION_PATCH: u32 = 0;
@@ -421,7 +512,7 @@ pub const SERVO_CAPI_VERSION: u32 =
 /// `test_capi_version` (`tests/capi/c/test_api.c`) compares this string against
 /// the `MAJOR.MINOR.PATCH` macros expanded from the generated header, so a
 /// mismatch fails CI instead of shipping a header/library version skew.
-const SERVO_CAPI_VERSION_STRING: &CStr = c"0.2.0";
+const SERVO_CAPI_VERSION_STRING: &CStr = c"0.3.0";
 
 /// Returns the version of the Servo C API as a NUL terminated UTF-8 string.
 ///
@@ -680,6 +771,8 @@ pub unsafe extern "C" fn servo_builder_set_preferences(
 /// # Errors
 ///
 /// Returns `ServoError::NullArgument` if `builder` or `options` is null.
+/// Returns `ServoError::InvalidArgument` if `options` is not a live handle:
+/// never created, already freed, or already consumed by another call.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_builder_set_options(
     builder: *mut ServoBuilder,
@@ -691,6 +784,15 @@ pub unsafe extern "C" fn servo_builder_set_options(
         }
         if options.is_null() {
             return ServoError::NullArgument;
+        }
+
+        // W2.5: this call consumes the `options` handle, so it must also forget
+        // it in the handle registry. A handle that is no longer live is a
+        // double consume or a use after a previous free, and taking ownership
+        // of it again would free the same allocation twice.
+        if !crate::handle_registry::unregister(options, crate::handle_registry::HandleKind::Options)
+        {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements

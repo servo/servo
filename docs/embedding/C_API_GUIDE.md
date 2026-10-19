@@ -1899,6 +1899,8 @@ typedef enum ServoError {
     SERVO_ERROR_UNSUPPORTED = -6,      /* Operation unsupported on this platform or build */
     SERVO_ERROR_INTERNAL = -7,         /* Internal bug in Servo */
     SERVO_ERROR_INTERNAL_PANIC = -8,   /* Panic caught at the FFI boundary */
+    SERVO_ERROR_INVALID_ARGUMENT = -9, /* Bad struct_size, or a handle that is not live */
+    SERVO_ERROR_WRONG_THREAD = -10,    /* Called from a thread that does not own the handle */
 } ServoError;
 ```
 
@@ -1987,9 +1989,19 @@ exercises this end to end with the shipped defaults.
   string.
 - **Positional delegate initializers.** `ServoWebViewDelegate` gained leading
   `struct_size`/`_reserved` fields. Always use designated initializers and set
-  `.struct_size = sizeof(...)` on `ServoWebViewDelegate`, `ServoDelegate`, and
-  `ServoEventLoopWaker`; Servo rejects a too-small `struct_size` with
-  `SERVO_ERROR_INVALID_ARGUMENT`.
+  `.struct_size = sizeof(...)` on every `#[repr(C)]` struct you fill in:
+  `ServoWebViewDelegate`, `ServoDelegate`, `ServoEventLoopWaker`,
+  `ServoClipboardDelegate`, `ServoGamepadDelegate`,
+  `ServoGamepadHapticEffectInfo`, `ServoCookieFilter` and `ServoProxyConfig`.
+  Servo rejects a too-small `struct_size` with `SERVO_ERROR_INVALID_ARGUMENT`,
+  so a zeroed struct is rejected rather than silently read as "all defaults".
+- **Reusing a handle after freeing it.** Handles are opaque pointers; using one
+  after `free`, or freeing it twice, used to be a silent double free or
+  use-after-free. The entry points of the handle types that have adopted the
+  live-handle registry (`ServoOptions` today, see `ABI_STABILITY.md` §4.5) now
+  return `SERVO_ERROR_INVALID_ARGUMENT` for a handle that is not live, including
+  one that was consumed by `servo_builder_set_options`. Not every handle type
+  is covered yet, so `NULL` your pointers after freeing regardless.
 
 ## Multi-process support (multiprocess feature)
 

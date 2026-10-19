@@ -16,6 +16,17 @@ use crate::ServoError;
 #[repr(C)]
 #[derive(Debug, Clone, Copy)]
 pub struct ServoProxyConfig {
+    /// Size of this struct in bytes, as seen by the caller.
+    ///
+    /// The caller must set this to `sizeof(ServoProxyConfig)`. Servo rejects
+    /// configurations whose `struct_size` is smaller than the size it was
+    /// compiled with, returning `ServoError::InvalidArgument`. See
+    /// `ABI_STABILITY.md` §3.3.
+    pub struct_size: u32,
+
+    /// Reserved for future use; must be `0`.
+    pub _reserved: u32,
+
     /// The proxy mode. One of `SERVO_PROXY_*` constants.
     pub mode: i32,
     /// The proxy server address in "host:port" format.
@@ -221,6 +232,8 @@ pub unsafe extern "C" fn servo_request_context_set_cookie_path(
 /// # Errors
 ///
 /// Returns `ServoError::NullArgument` if `context` or `config` is null.
+/// Returns `ServoError::InvalidArgument` if `config.struct_size` is smaller
+/// than the size of `ServoProxyConfig` compiled into this library.
 /// Returns `ServoError::InvalidUtf8` if any string is not valid UTF-8.
 /// Returns `ServoError::InvalidState` if the proxy mode is invalid.
 #[unsafe(no_mangle)]
@@ -239,6 +252,15 @@ pub unsafe extern "C" fn servo_request_context_set_proxy_config(
         // SAFETY: The caller is assumed to uphold the safety requirements
         // for `config` documented above.
         let config_ref = unsafe { &*config };
+
+        // W2.5/`ABI_STABILITY.md` §3.3: a caller built against an older header
+        // would pass a smaller struct, which this function would read past.
+        if !crate::is_compatible_struct_size(
+            config_ref.struct_size,
+            std::mem::size_of::<ServoProxyConfig>(),
+        ) {
+            return ServoError::InvalidArgument;
+        }
 
         let mode = match servo_api::ProxyMode::from_i32(config_ref.mode) {
             Some(m) => m,

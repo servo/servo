@@ -2045,6 +2045,171 @@ int test_delegate_struct_size_validation(void)
     return 0;
 }
 
+/* Test that a handle which is not live is diagnosed instead of being
+ * dereferenced (W2.5, HARDENING_PLAN.md section B.1).
+ *
+ * The registry keys on the handle's address, so the "garbage" case below never
+ * touches memory the process does not own: the pointer is only used as a key. */
+int test_options_handle_validation(void)
+{
+    /* Never created at all. */
+    ServoOptions* garbage = (ServoOptions*)(uintptr_t)0x1;
+    if (servo_options_set_multiprocess(garbage, false) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 1;
+
+    /* NULL still reports NullArgument: the registry does not replace the null
+     * checks, it sits behind them. */
+    if (servo_options_set_multiprocess(NULL, false) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+
+    /* A live handle works... */
+    ServoOptions* options = servo_options_create();
+    if (options == NULL)
+        return 1;
+    if (servo_options_set_multiprocess(options, false) != SERVO_ERROR_OK)
+        return 1;
+
+    /* ...is forgotten when it is freed... */
+    if (servo_options_free(options) != SERVO_ERROR_OK)
+        return 1;
+
+    /* ...so using it again, or freeing it a second time, is an error rather
+     * than undefined behaviour. */
+    if (servo_options_set_multiprocess(options, false) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 1;
+    if (servo_options_free(options) != SERVO_ERROR_INVALID_ARGUMENT)
+        return 1;
+
+    /* The same holds for a handle that was consumed by another API: ownership
+     * of `options` moves into the builder in `servo_builder_set_options`. */
+    ServoOptions* consumed = servo_options_create();
+    if (consumed == NULL)
+        return 1;
+
+    ServoBuilder* builder = servo_builder_create();
+    if (builder == NULL)
+        return 1;
+
+    if (servo_builder_set_options(builder, consumed) != SERVO_ERROR_OK) {
+        servo_builder_free(builder);
+        return 1;
+    }
+
+    if (servo_options_set_multiprocess(consumed, false) != SERVO_ERROR_INVALID_ARGUMENT) {
+        servo_builder_free(builder);
+        return 1;
+    }
+
+    servo_builder_free(builder);
+    return 0;
+}
+
+/* Test the `struct_size` guard on the by-pointer input structs (W2.5,
+ * ABI_STABILITY.md section 3.3): `ServoProxyConfig` and `ServoCookieFilter`
+ * are filled in by the embedder, so a caller built against an older header
+ * would pass a smaller struct that the library must not read past. */
+int test_proxy_config_struct_size_validation(void)
+{
+    ServoRequestContext* context = servo_request_context_create();
+    if (context == NULL)
+        return 1;
+
+    ServoProxyConfig config = {
+        .struct_size = sizeof(ServoProxyConfig),
+        .mode = SERVO_PROXY_FIXED_SERVERS,
+        .server = "127.0.0.1:3128",
+        .bypass_list = "localhost",
+    };
+
+    /* Exact size: accepted. */
+    if (servo_request_context_set_proxy_config(context, &config) != SERVO_ERROR_OK) {
+        servo_request_context_free(context);
+        return 1;
+    }
+
+    /* Zero, i.e. the caller never set it: rejected. */
+    config.struct_size = 0;
+    if (servo_request_context_set_proxy_config(context, &config) != SERVO_ERROR_INVALID_ARGUMENT) {
+        servo_request_context_free(context);
+        return 1;
+    }
+
+    /* One byte short of what this library was compiled with: rejected. */
+    config.struct_size = (uint32_t)sizeof(ServoProxyConfig) - 1;
+    if (servo_request_context_set_proxy_config(context, &config) != SERVO_ERROR_INVALID_ARGUMENT) {
+        servo_request_context_free(context);
+        return 1;
+    }
+
+    /* Larger than the compiled-in size: accepted, because Servo only reads the
+     * fields it knows about. This is what lets a caller built against a newer
+     * header run against an older library. */
+    config.struct_size = (uint32_t)sizeof(ServoProxyConfig) + 16;
+    if (servo_request_context_set_proxy_config(context, &config) != SERVO_ERROR_OK) {
+        servo_request_context_free(context);
+        return 1;
+    }
+
+    /* NULL is still NullArgument. */
+    if (servo_request_context_set_proxy_config(context, NULL) != SERVO_ERROR_NULL_ARGUMENT) {
+        servo_request_context_free(context);
+        return 1;
+    }
+
+    servo_request_context_free(context);
+    return 0;
+}
+
+/* Test the `struct_size` guard on `ServoCookieFilter` (W2.5). */
+int test_cookie_filter_struct_size_validation(void)
+{
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    struct ServoSiteDataManager* manager = servo_get_site_data_manager(servo);
+    if (manager == NULL)
+        return 1;
+
+    ServoCookieFilter filter = {
+        .struct_size = sizeof(ServoCookieFilter),
+        .url = "https://example.com/",
+        .name = "session",
+        .secure = false,
+        .session = false,
+        .flags = 0,
+    };
+
+    /* Exact size: accepted. */
+    if (servo_site_data_delete_all_cookies(manager, &filter, NULL, NULL) != SERVO_ERROR_OK) {
+        servo_site_data_manager_free(manager);
+        return 1;
+    }
+
+    /* Zero: rejected. */
+    filter.struct_size = 0;
+    if (servo_site_data_delete_all_cookies(manager, &filter, NULL, NULL) != SERVO_ERROR_INVALID_ARGUMENT) {
+        servo_site_data_manager_free(manager);
+        return 1;
+    }
+
+    /* Too small: rejected. */
+    filter.struct_size = (uint32_t)sizeof(ServoCookieFilter) - 1;
+    if (servo_site_data_delete_all_cookies(manager, &filter, NULL, NULL) != SERVO_ERROR_INVALID_ARGUMENT) {
+        servo_site_data_manager_free(manager);
+        return 1;
+    }
+
+    /* NULL still means "no filter, match everything". */
+    if (servo_site_data_delete_all_cookies(manager, NULL, NULL, NULL) != SERVO_ERROR_OK) {
+        servo_site_data_manager_free(manager);
+        return 1;
+    }
+
+    servo_site_data_manager_free(manager);
+    return 0;
+}
+
 /* Test that find-in-page API functions exist and handle NULL arguments. */
 int test_find_null_arguments(void)
 {
@@ -2908,6 +3073,9 @@ int run_c_api_tests(void)
     RUN_TEST(test_webview_window_geometry_delegate_callbacks);
     RUN_TEST(test_webview_popup_delegate_callback);
     RUN_TEST(test_delegate_struct_size_validation);
+    RUN_TEST(test_options_handle_validation);
+    RUN_TEST(test_proxy_config_struct_size_validation);
+    RUN_TEST(test_cookie_filter_struct_size_validation);
     RUN_TEST(test_find_null_arguments);
     RUN_TEST(test_find_valid_arguments);
     RUN_TEST(test_find_result_getters);

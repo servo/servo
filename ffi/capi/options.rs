@@ -15,6 +15,15 @@ use crate::ServoError;
 ///
 /// Handles to this object can be created using [`servo_options_create`].
 ///
+/// # Handle validity
+///
+/// Every entry point that takes a `ServoOptions` handle checks it against the
+/// live-handle registry (`HARDENING_PLAN.md` §B.1). A handle that was never
+/// created, was already freed or consumed, or is not an options handle at all
+/// returns `ServoError::InvalidArgument` instead of being dereferenced. The
+/// check is a lookup on the handle's address, so it does not touch memory that
+/// may no longer belong to the caller; address reuse is its one blind spot.
+///
 /// # Thread safety
 ///
 /// `ServoOptions` has no internal synchronization, so the embedder is
@@ -32,7 +41,12 @@ pub use servo::DiagnosticsLoggingOption;
 /// must free it using [`servo_options_free`]. Returns `NULL` on allocation failure.
 #[unsafe(no_mangle)]
 pub extern "C" fn servo_options_create() -> *mut ServoOptions {
-    ServoError::catch_ffi_ptr(|| Box::into_raw(Box::new(servo::Opts::default())))
+    ServoError::catch_ffi_ptr(|| {
+        let options = Box::into_raw(Box::new(servo::Opts::default()));
+        // W2.5: hand the handle to the registry before the embedder can use it.
+        crate::handle_registry::register(options, crate::handle_registry::HandleKind::Options);
+        options
+    })
 }
 
 /// Enables and configures Servo's time profiler to write profiling data in TSV
@@ -56,6 +70,8 @@ pub extern "C" fn servo_options_create() -> *mut ServoOptions {
 ///
 /// # Errors
 ///
+/// Returns `ServoError::InvalidArgument` if `options` is not a live handle:
+/// never created, already freed, or not an options handle at all.
 /// Returns `ServoError::NullArgument` if `options` or `file_path` is null.
 /// Returns `ServoError::InvalidUtf8` if `file_path` is not valid UTF-8.
 #[unsafe(no_mangle)]
@@ -66,6 +82,12 @@ pub unsafe extern "C" fn servo_options_enable_time_profiling_to_file(
     ServoError::catch_ffi(|| {
         if options.is_null() {
             return ServoError::NullArgument;
+        }
+        // W2.5: reject a handle that is not live (never created, already freed,
+        // or a pointer to something that is not an options handle) instead of
+        // dereferencing it.
+        if !crate::handle_registry::is_live(options, crate::handle_registry::HandleKind::Options) {
+            return ServoError::InvalidArgument;
         }
         if file_path.is_null() {
             return ServoError::NullArgument;
@@ -108,6 +130,8 @@ pub unsafe extern "C" fn servo_options_enable_time_profiling_to_file(
 ///
 /// # Errors
 ///
+/// Returns `ServoError::InvalidArgument` if `options` is not a live handle:
+/// never created, already freed, or not an options handle at all.
 /// Returns `ServoError::NullArgument` if `options` or `trace_path` is null.
 /// Returns `ServoError::InvalidUtf8` if `trace_path` is not valid UTF-8.
 #[unsafe(no_mangle)]
@@ -118,6 +142,12 @@ pub unsafe extern "C" fn servo_options_set_time_profiler_trace_path(
     ServoError::catch_ffi(|| {
         if options.is_null() {
             return ServoError::NullArgument;
+        }
+        // W2.5: reject a handle that is not live (never created, already freed,
+        // or a pointer to something that is not an options handle) instead of
+        // dereferencing it.
+        if !crate::handle_registry::is_live(options, crate::handle_registry::HandleKind::Options) {
+            return ServoError::InvalidArgument;
         }
         if trace_path.is_null() {
             return ServoError::NullArgument;
@@ -146,6 +176,8 @@ pub unsafe extern "C" fn servo_options_set_time_profiler_trace_path(
 ///
 /// # Errors
 ///
+/// Returns `ServoError::InvalidArgument` if `options` is not a live handle:
+/// never created, already freed, or not an options handle at all.
 /// Returns `ServoError::NullArgument` if `options` is null.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_enable_time_profiling_to_stdout(
@@ -155,6 +187,12 @@ pub unsafe extern "C" fn servo_options_enable_time_profiling_to_stdout(
     ServoError::catch_ffi(|| {
         if options.is_null() {
             return ServoError::NullArgument;
+        }
+        // W2.5: reject a handle that is not live (never created, already freed,
+        // or a pointer to something that is not an options handle) instead of
+        // dereferencing it.
+        if !crate::handle_registry::is_live(options, crate::handle_registry::HandleKind::Options) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements
@@ -181,6 +219,8 @@ pub unsafe extern "C" fn servo_options_enable_time_profiling_to_stdout(
 ///
 /// # Errors
 ///
+/// Returns `ServoError::InvalidArgument` if `options` is not a live handle:
+/// never created, already freed, or not an options handle at all.
 /// Returns `ServoError::NullArgument` if `options` is null.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_set_hard_fail(
@@ -190,6 +230,12 @@ pub unsafe extern "C" fn servo_options_set_hard_fail(
     ServoError::catch_ffi(|| {
         if options.is_null() {
             return ServoError::NullArgument;
+        }
+        // W2.5: reject a handle that is not live (never created, already freed,
+        // or a pointer to something that is not an options handle) instead of
+        // dereferencing it.
+        if !crate::handle_registry::is_live(options, crate::handle_registry::HandleKind::Options) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements
@@ -214,6 +260,8 @@ pub unsafe extern "C" fn servo_options_set_hard_fail(
 ///
 /// # Errors
 ///
+/// Returns `ServoError::InvalidArgument` if `options` is not a live handle:
+/// never created, already freed, or not an options handle at all.
 /// Returns `ServoError::NullArgument` if `options` is null.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_set_multiprocess(
@@ -223,6 +271,12 @@ pub unsafe extern "C" fn servo_options_set_multiprocess(
     ServoError::catch_ffi(|| {
         if options.is_null() {
             return ServoError::NullArgument;
+        }
+        // W2.5: reject a handle that is not live (never created, already freed,
+        // or a pointer to something that is not an options handle) instead of
+        // dereferencing it.
+        if !crate::handle_registry::is_live(options, crate::handle_registry::HandleKind::Options) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements
@@ -249,6 +303,8 @@ pub unsafe extern "C" fn servo_options_set_multiprocess(
 ///
 /// # Errors
 ///
+/// Returns `ServoError::InvalidArgument` if `options` is not a live handle:
+/// never created, already freed, or not an options handle at all.
 /// Returns `ServoError::NullArgument` if `options` is null.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_set_force_ipc(
@@ -258,6 +314,12 @@ pub unsafe extern "C" fn servo_options_set_force_ipc(
     ServoError::catch_ffi(|| {
         if options.is_null() {
             return ServoError::NullArgument;
+        }
+        // W2.5: reject a handle that is not live (never created, already freed,
+        // or a pointer to something that is not an options handle) instead of
+        // dereferencing it.
+        if !crate::handle_registry::is_live(options, crate::handle_registry::HandleKind::Options) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements
@@ -282,6 +344,8 @@ pub unsafe extern "C" fn servo_options_set_force_ipc(
 ///
 /// # Errors
 ///
+/// Returns `ServoError::InvalidArgument` if `options` is not a live handle:
+/// never created, already freed, or not an options handle at all.
 /// Returns `ServoError::NullArgument` if `options` is null.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_set_background_hang_monitor(
@@ -291,6 +355,12 @@ pub unsafe extern "C" fn servo_options_set_background_hang_monitor(
     ServoError::catch_ffi(|| {
         if options.is_null() {
             return ServoError::NullArgument;
+        }
+        // W2.5: reject a handle that is not live (never created, already freed,
+        // or a pointer to something that is not an options handle) instead of
+        // dereferencing it.
+        if !crate::handle_registry::is_live(options, crate::handle_registry::HandleKind::Options) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements
@@ -316,6 +386,8 @@ pub unsafe extern "C" fn servo_options_set_background_hang_monitor(
 ///
 /// # Errors
 ///
+/// Returns `ServoError::InvalidArgument` if `options` is not a live handle:
+/// never created, already freed, or not an options handle at all.
 /// Returns `ServoError::NullArgument` if `options` is null.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_set_hang_monitor_kill_script(
@@ -325,6 +397,12 @@ pub unsafe extern "C" fn servo_options_set_hang_monitor_kill_script(
     ServoError::catch_ffi(|| {
         if options.is_null() {
             return ServoError::NullArgument;
+        }
+        // W2.5: reject a handle that is not live (never created, already freed,
+        // or a pointer to something that is not an options handle) instead of
+        // dereferencing it.
+        if !crate::handle_registry::is_live(options, crate::handle_registry::HandleKind::Options) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements
@@ -349,6 +427,8 @@ pub unsafe extern "C" fn servo_options_set_hang_monitor_kill_script(
 ///
 /// # Errors
 ///
+/// Returns `ServoError::InvalidArgument` if `options` is not a live handle:
+/// never created, already freed, or not an options handle at all.
 /// Returns `ServoError::NullArgument` if `options` is null.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_set_sandbox(
@@ -358,6 +438,12 @@ pub unsafe extern "C" fn servo_options_set_sandbox(
     ServoError::catch_ffi(|| {
         if options.is_null() {
             return ServoError::NullArgument;
+        }
+        // W2.5: reject a handle that is not live (never created, already freed,
+        // or a pointer to something that is not an options handle) instead of
+        // dereferencing it.
+        if !crate::handle_registry::is_live(options, crate::handle_registry::HandleKind::Options) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements
@@ -383,6 +469,8 @@ pub unsafe extern "C" fn servo_options_set_sandbox(
 ///
 /// # Errors
 ///
+/// Returns `ServoError::InvalidArgument` if `options` is not a live handle:
+/// never created, already freed, or not an options handle at all.
 /// Returns `ServoError::NullArgument` if `options` is null.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_set_temporary_storage(
@@ -392,6 +480,12 @@ pub unsafe extern "C" fn servo_options_set_temporary_storage(
     ServoError::catch_ffi(|| {
         if options.is_null() {
             return ServoError::NullArgument;
+        }
+        // W2.5: reject a handle that is not live (never created, already freed,
+        // or a pointer to something that is not an options handle) instead of
+        // dereferencing it.
+        if !crate::handle_registry::is_live(options, crate::handle_registry::HandleKind::Options) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements
@@ -417,6 +511,8 @@ pub unsafe extern "C" fn servo_options_set_temporary_storage(
 ///
 /// # Errors
 ///
+/// Returns `ServoError::InvalidArgument` if `options` is not a live handle:
+/// never created, already freed, or not an options handle at all.
 /// Returns `ServoError::NullArgument` if `options` is null.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_set_ignore_certificate_errors(
@@ -426,6 +522,12 @@ pub unsafe extern "C" fn servo_options_set_ignore_certificate_errors(
     ServoError::catch_ffi(|| {
         if options.is_null() {
             return ServoError::NullArgument;
+        }
+        // W2.5: reject a handle that is not live (never created, already freed,
+        // or a pointer to something that is not an options handle) instead of
+        // dereferencing it.
+        if !crate::handle_registry::is_live(options, crate::handle_registry::HandleKind::Options) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements
@@ -450,6 +552,8 @@ pub unsafe extern "C" fn servo_options_set_ignore_certificate_errors(
 ///
 /// # Errors
 ///
+/// Returns `ServoError::InvalidArgument` if `options` is not a live handle:
+/// never created, already freed, or not an options handle at all.
 /// Returns `ServoError::NullArgument` if `options` is null.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_set_unminify_js(
@@ -459,6 +563,12 @@ pub unsafe extern "C" fn servo_options_set_unminify_js(
     ServoError::catch_ffi(|| {
         if options.is_null() {
             return ServoError::NullArgument;
+        }
+        // W2.5: reject a handle that is not live (never created, already freed,
+        // or a pointer to something that is not an options handle) instead of
+        // dereferencing it.
+        if !crate::handle_registry::is_live(options, crate::handle_registry::HandleKind::Options) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements
@@ -483,6 +593,8 @@ pub unsafe extern "C" fn servo_options_set_unminify_js(
 ///
 /// # Errors
 ///
+/// Returns `ServoError::InvalidArgument` if `options` is not a live handle:
+/// never created, already freed, or not an options handle at all.
 /// Returns `ServoError::NullArgument` if `options` is null.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_set_unminify_css(
@@ -492,6 +604,12 @@ pub unsafe extern "C" fn servo_options_set_unminify_css(
     ServoError::catch_ffi(|| {
         if options.is_null() {
             return ServoError::NullArgument;
+        }
+        // W2.5: reject a handle that is not live (never created, already freed,
+        // or a pointer to something that is not an options handle) instead of
+        // dereferencing it.
+        if !crate::handle_registry::is_live(options, crate::handle_registry::HandleKind::Options) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements
@@ -523,6 +641,8 @@ pub unsafe extern "C" fn servo_options_set_unminify_css(
 ///
 /// # Errors
 ///
+/// Returns `ServoError::InvalidArgument` if `options` is not a live handle:
+/// never created, already freed, or not an options handle at all.
 /// Returns `ServoError::NullArgument` if `options` or `certificate_path` is null.
 /// Returns `ServoError::InvalidUtf8` if `certificate_path` is not valid UTF-8.
 #[unsafe(no_mangle)]
@@ -533,6 +653,12 @@ pub unsafe extern "C" fn servo_options_set_certificate_path(
     ServoError::catch_ffi(|| {
         if options.is_null() {
             return ServoError::NullArgument;
+        }
+        // W2.5: reject a handle that is not live (never created, already freed,
+        // or a pointer to something that is not an options handle) instead of
+        // dereferencing it.
+        if !crate::handle_registry::is_live(options, crate::handle_registry::HandleKind::Options) {
+            return ServoError::InvalidArgument;
         }
         if certificate_path.is_null() {
             return ServoError::NullArgument;
@@ -574,6 +700,8 @@ pub unsafe extern "C" fn servo_options_set_certificate_path(
 ///
 /// # Errors
 ///
+/// Returns `ServoError::InvalidArgument` if `options` is not a live handle:
+/// never created, already freed, or not an options handle at all.
 /// Returns `ServoError::NullArgument` if `options` or `local_script_source` is null.
 /// Returns `ServoError::InvalidUtf8` if `local_script_source` is not valid UTF-8.
 #[unsafe(no_mangle)]
@@ -584,6 +712,12 @@ pub unsafe extern "C" fn servo_options_set_local_script_source(
     ServoError::catch_ffi(|| {
         if options.is_null() {
             return ServoError::NullArgument;
+        }
+        // W2.5: reject a handle that is not live (never created, already freed,
+        // or a pointer to something that is not an options handle) instead of
+        // dereferencing it.
+        if !crate::handle_registry::is_live(options, crate::handle_registry::HandleKind::Options) {
+            return ServoError::InvalidArgument;
         }
         if local_script_source.is_null() {
             return ServoError::NullArgument;
@@ -624,6 +758,8 @@ pub unsafe extern "C" fn servo_options_set_local_script_source(
 ///
 /// # Errors
 ///
+/// Returns `ServoError::InvalidArgument` if `options` is not a live handle:
+/// never created, already freed, or not an options handle at all.
 /// Returns `ServoError::NullArgument` if `options` or `shaders_path` is null.
 /// Returns `ServoError::InvalidUtf8` if `shaders_path` is not valid UTF-8.
 #[unsafe(no_mangle)]
@@ -634,6 +770,12 @@ pub unsafe extern "C" fn servo_options_set_shaders_path(
     ServoError::catch_ffi(|| {
         if options.is_null() {
             return ServoError::NullArgument;
+        }
+        // W2.5: reject a handle that is not live (never created, already freed,
+        // or a pointer to something that is not an options handle) instead of
+        // dereferencing it.
+        if !crate::handle_registry::is_live(options, crate::handle_registry::HandleKind::Options) {
+            return ServoError::InvalidArgument;
         }
         if shaders_path.is_null() {
             return ServoError::NullArgument;
@@ -674,6 +816,8 @@ pub unsafe extern "C" fn servo_options_set_shaders_path(
 ///
 /// # Errors
 ///
+/// Returns `ServoError::InvalidArgument` if `options` is not a live handle:
+/// never created, already freed, or not an options handle at all.
 /// Returns `ServoError::NullArgument` if `options` or `config_dir` is null.
 /// Returns `ServoError::InvalidUtf8` if `config_dir` is not valid UTF-8.
 #[unsafe(no_mangle)]
@@ -684,6 +828,12 @@ pub unsafe extern "C" fn servo_options_set_config_dir(
     ServoError::catch_ffi(|| {
         if options.is_null() {
             return ServoError::NullArgument;
+        }
+        // W2.5: reject a handle that is not live (never created, already freed,
+        // or a pointer to something that is not an options handle) instead of
+        // dereferencing it.
+        if !crate::handle_registry::is_live(options, crate::handle_registry::HandleKind::Options) {
+            return ServoError::InvalidArgument;
         }
         if config_dir.is_null() {
             return ServoError::NullArgument;
@@ -719,6 +869,8 @@ pub unsafe extern "C" fn servo_options_set_config_dir(
 ///
 /// # Errors
 ///
+/// Returns `ServoError::InvalidArgument` if `options` is not a live handle:
+/// never created, already freed, or not an options handle at all.
 /// Returns `ServoError::NullArgument` if `options` is null.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_set_random_pipeline_closure_probability(
@@ -728,6 +880,12 @@ pub unsafe extern "C" fn servo_options_set_random_pipeline_closure_probability(
     ServoError::catch_ffi(|| {
         if options.is_null() {
             return ServoError::NullArgument;
+        }
+        // W2.5: reject a handle that is not live (never created, already freed,
+        // or a pointer to something that is not an options handle) instead of
+        // dereferencing it.
+        if !crate::handle_registry::is_live(options, crate::handle_registry::HandleKind::Options) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements
@@ -754,6 +912,8 @@ pub unsafe extern "C" fn servo_options_set_random_pipeline_closure_probability(
 ///
 /// # Errors
 ///
+/// Returns `ServoError::InvalidArgument` if `options` is not a live handle:
+/// never created, already freed, or not an options handle at all.
 /// Returns `ServoError::NullArgument` if `options` is null.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_set_random_pipeline_closure_seed(
@@ -763,6 +923,12 @@ pub unsafe extern "C" fn servo_options_set_random_pipeline_closure_seed(
     ServoError::catch_ffi(|| {
         if options.is_null() {
             return ServoError::NullArgument;
+        }
+        // W2.5: reject a handle that is not live (never created, already freed,
+        // or a pointer to something that is not an options handle) instead of
+        // dereferencing it.
+        if !crate::handle_registry::is_live(options, crate::handle_registry::HandleKind::Options) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements
@@ -789,6 +955,8 @@ pub unsafe extern "C" fn servo_options_set_random_pipeline_closure_seed(
 ///
 /// # Errors
 ///
+/// Returns `ServoError::InvalidArgument` if `options` is not a live handle:
+/// never created, already freed, or not an options handle at all.
 /// Returns `ServoError::NullArgument` if `options` is null.
 /// Returns `ServoError::InvalidState` if `option` is not a valid diagnostics option.
 #[unsafe(no_mangle)]
@@ -800,6 +968,12 @@ pub unsafe extern "C" fn servo_options_set_debug_option(
     ServoError::catch_ffi(|| {
         if options.is_null() {
             return ServoError::NullArgument;
+        }
+        // W2.5: reject a handle that is not live (never created, already freed,
+        // or a pointer to something that is not an options handle) instead of
+        // dereferencing it.
+        if !crate::handle_registry::is_live(options, crate::handle_registry::HandleKind::Options) {
+            return ServoError::InvalidArgument;
         }
         let Ok(diagnostics_option) = DiagnosticsLoggingOption::try_from(option) else {
             warn!("invalid diagnostics option value: {option}");
@@ -831,11 +1005,23 @@ pub unsafe extern "C" fn servo_options_set_debug_option(
 /// # Errors
 ///
 /// Returns `ServoError::NullArgument` if `servo_options` is null.
+/// Returns `ServoError::InvalidArgument` if `servo_options` is not a live
+/// handle: never created, or already freed or consumed. A second free is
+/// therefore an error instead of a double free.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_options_free(servo_options: *mut ServoOptions) -> ServoError {
     ServoError::catch_ffi(|| {
         if servo_options.is_null() {
             return ServoError::NullArgument;
+        }
+        // W2.5: a handle that is not live was never created, or has already
+        // been freed. Return instead of dropping it a second time: a double
+        // free is memory corruption, not a diagnostic.
+        if !crate::handle_registry::unregister(
+            servo_options,
+            crate::handle_registry::HandleKind::Options,
+        ) {
+            return ServoError::InvalidArgument;
         }
 
         // SAFETY: The caller is assumed to uphold the safety requirements
