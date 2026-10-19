@@ -59,6 +59,10 @@ red one. The reporter still reports rather than fails on a *measured*
 regression, and a missing metric file from a platform whose job failed is
 reported (that platform's column is simply absent from the table).
 
+Run `39310767848` is the first run whose report read the committed baseline and
+printed the change table, so the "metrics are collected and diffed" path is
+CI-verified rather than only locally exercised.
+
 ## Why `mach smoketest` is not used for startup
 
 The plan suggested `mach smoketest` startup wall-time. That cannot run here:

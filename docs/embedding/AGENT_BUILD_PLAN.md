@@ -213,7 +213,7 @@ Effort: **S** days · **M** 1–3 weeks · **L** 1–3 months · **XL** quarters
 | **W5.3** | Prebuilt signed binaries (5 targets) + CMake/pkg-config | L | `todo` | W5.2 | release workflows |
 | **W5.4** | C API 0.1.0 → 0.2.0 ABI commitment (1.0 deliberately deferred) | M | ✅ verified (`718b8a9e191`; run `39195005399`, 3 platforms; symbol-gate probe run `39193637805`) | W5.2 | embedding-api.yml |
 | **W5.5** | Remaining reachable-panic review (tracked list) | M | ✅ verified (`39d6b6fd58d`; run `39177714141`, 3 platforms) | W2.5 | embedding-api.yml |
-| **W5.6** | Observability: size/startup/throughput/crash in CI | M | ✅ verified (`541c7864ea3` + baseline; run `39307687792`, 3 platforms) | — | new job |
+| **W5.6** | Observability: size/startup/throughput/crash in CI | M | ✅ verified (`541c7864ea3` + baseline; runs `39307687792`, `39310767848`, 3 platforms) | — | new job |
 | **W5.7** | Long-uptime / repeated load-unload leak testing | L | ✅ verified (`361ae2a09b6`; run `39264174241`, 3 platforms) | — | embedding-api.yml |
 | **W6.1** | GPU/WebGL/WebGPU validation + honest status doc | L | `partial` (claims untested) | W4.5 | manual |
 | **W6.2** | Video/audio playback readiness (GStreamer packaging) | L | `partial` | W5.3 | — |
@@ -1226,6 +1226,14 @@ the metrics are missing although the `capi` job succeeded; `mach smoketest` was
 not used for startup and `bencher.yml` cannot carry these metrics — both reasons
 are recorded in `docs/embedding/OBSERVABILITY.md`.
 
+Run `39310767848` (sha `8b18004956c`, 3 platforms plus the report job green) is
+the first run that printed the **diff table** against the committed baseline,
+which is the evidence that the baseline is actually read; it also shows the
+corrected `paint + screenshot` metric producing real values (Linux 867 ms,
+Windows 47 ms, macOS 34 ms) instead of the `0` the old timer always produced.
+That metric has no baseline entry on purpose (see `OBSERVABILITY.md`), so its
+column reads `-` until a later baseline refresh records it.
+
 **Deviations.** The plan asked for `mach smoketest` startup wall-time; that
 measures `servoshell`, which this job does not build and which needs a display,
 so `servo_builder_build()` is the equivalent the gate can afford — stated as a
@@ -1544,6 +1552,7 @@ baseline) and only then pick root causes — not to touch `tests/wpt/meta` whole
 | `docs/embedding/ACCESSIBILITY_AND_PRINTING.md` §1 | AccessKit integration described as working incl. "C Embedding Exposure" | already reconciled: the §1 claim was verified against the tree and the C exposure it promised now exists — `90cd8411e4c` (W6.4), run `39305923519`. The section's remaining "C Embedding Exposure" text is accurate for the tree-update half; the action-forwarding half is recorded in §D.2.1 |
 | `docs/embedding/AUDIT.md` | not updated for W4.1/W4.3 | inventory lags the branch |
 | `docs/embedding/AUDIT.md` :342 | "76 functions … 5 delegate fields" as the C API's size | a snapshot taken before Wave C; the export surface is now 241 `servo_*` symbols in `ffi/capi/symbols.txt` and `ServoWebViewDelegate` has 5+ callback fields. Re-counting is part of W2.8's audit pass, not a per-ticket edit, because the number changes with almost every Wave-C ticket |
+| `docs/embedding/SECURITY_AUDIT.md` :178-188 | "the embedder can pass dangling or double-freed handles … not enforced", and "adding optional debug validation (handle state/magic cookies)" as future work | partly closed after the audit was written: thread affinity is enforced at every entry point (`entry_checks::check_main_thread`, all builds) and the live-handle registry rejects a non-live `ServoOptions` handle (`ABI_STABILITY.md` §4.5, W2.5). What remains of the audit's list is the handle types that have not adopted the registry and the temporary-pointer rule, both in §D.2.1 |
 | `docs/embedding/AUDIT.md` §3 | C API "still no … dialogs, DevTools" and "DevTools not reachable from C" | the DevTools server is reachable from C: `servo_preferences_set_devtools_server` plus the `ServoDelegate` callbacks `notify_devtools_server_started` / `request_devtools_connection` (exercised by the W4.4 integration test) |
 | `PRODUCTION_REPORT.md` §3 and `IMPLEMENTATION_REVIEW.md` §2/§5, `IMPLEMENTATION_REVIEW_PASS2.md` §0/§5/§6 | `capi-artifacts.yml` "**Never run**"/"never dispatched" | ran green on all three platforms: run `39145918170`; artifacts `servo-capi-0.1.0-<platform>-7dba370`; `workflow_dispatch` proven (run `39149442966`)... a stale claim this plan's W5.2 closed |
 | `IMPLEMENTATION_REVIEW.md` §5 W5.1 bullet | "BHM left default-off: *correct call*, needs perf evidence" | superseded by W5.1 on this branch: `Opts::default()` (what `servo_options_create()` returns) enables both `background_hang_monitor` and `hang_monitor_kill_script`, and the kill + clean-teardown path is exercised end to end by `tests/capi/c/test_integration.c::test_hang_monitor_kills_hung_script` |
