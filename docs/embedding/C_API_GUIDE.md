@@ -982,8 +982,10 @@ only implements the ones it actually wants to render:
 
 Every one of them takes `user_data` as its last argument. **That `user_data` is the
 opaque handle Rust handed you, not your own delegate's `user_data`** - pass it straight
-back into the `callback` unchanged. The `callback` is a `Once`: exactly one call
-consumes it, and the control is answered.
+back into the `callback` unchanged. Because your own state is not delivered to these
+callbacks at all, keep it reachable another way: a file-scope pointer when your process
+embeds one `WebView`, or a table keyed on the `webview` argument when it embeds several.
+The `callback` is a `Once`: exactly one call consumes it, and the control is answered.
 
 ```c
 void on_color_picker(struct WebView* webview, const ServoRgbColor* current_color,

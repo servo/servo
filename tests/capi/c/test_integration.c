@@ -1026,6 +1026,14 @@ typedef struct {
     char opened_with_color[16];
 } embedder_control_state_t;
 
+/* The two picker callbacks below do *not* receive the delegate's `user_data`:
+ * their last argument is the opaque responder the C API handed over, which must
+ * be passed straight back into `callback`. The test's own state therefore has to
+ * be reachable another way, and a file-scope pointer is what a single-instance
+ * host uses too (a host with several WebViews would key its state on `webview`).
+ * See "Embedder controls" in C_API_GUIDE.md. */
+static embedder_control_state_t* g_ec_state = NULL;
+
 /* The color the delegate answers with. The page's input starts at #000000, so
  * landing on this value is only possible if the host's answer travelled back
  * into the engine. */
@@ -1066,10 +1074,10 @@ static void on_ec_js(const char* result_json, const char* error_message, void* u
 }
 
 static void on_ec_color_picker(struct WebView* webview, const ServoRgbColor* current_color,
-    ServoColorPickerCallback callback, void* user_data)
+    ServoColorPickerCallback callback, void* responder)
 {
     (void)webview;
-    embedder_control_state_t* state = (embedder_control_state_t*)user_data;
+    embedder_control_state_t* state = g_ec_state;
     state->color_picker_calls++;
     if (current_color != NULL) {
         snprintf(state->opened_with_color, sizeof(state->opened_with_color), "#%02x%02x%02x",
@@ -1080,18 +1088,18 @@ static void on_ec_color_picker(struct WebView* webview, const ServoRgbColor* cur
     log("  [color] show_color_picker (opened with '%s')\n",
         state->opened_with_color[0] ? state->opened_with_color : "(no color)");
 
-    /* Answer right away. `user_data` is passed through unchanged because it is
-     * the opaque handle Rust handed to this callback, not our own state. */
+    /* Answer right away, handing the responder back untouched: it is the token
+     * Rust needs to resolve this particular control, not our own state. */
     if (callback != NULL) {
-        callback(&EMBEDDER_CHOSEN_COLOR, user_data);
+        callback(&EMBEDDER_CHOSEN_COLOR, responder);
     }
 }
 
 static void on_ec_file_picker(struct WebView* webview, bool allow_multiple,
-    ServoFilePickerCallback callback, void* user_data)
+    ServoFilePickerCallback callback, void* responder)
 {
     (void)webview;
-    embedder_control_state_t* state = (embedder_control_state_t*)user_data;
+    embedder_control_state_t* state = g_ec_state;
     state->file_picker_calls++;
     log("  [file] show_file_picker (allow_multiple=%d)\n", allow_multiple ? 1 : 0);
 
@@ -1101,7 +1109,7 @@ static void on_ec_file_picker(struct WebView* webview, bool allow_multiple,
      * reachable if the host's answer really did travel back into the engine. */
     const char* const files[] = { EMBEDDER_PICKER_FILE };
     if (callback != NULL) {
-        callback(files, 1, user_data);
+        callback(files, 1, responder);
     }
 }
 
@@ -1167,6 +1175,7 @@ static int test_embedder_controls_round_trip(struct Servo* servo)
     struct WebView* webview = NULL;
     embedder_control_state_t state;
     memset(&state, 0, sizeof(state));
+    g_ec_state = &state;
 
     // The rendering context is owned by the WebView once the builder is
     // created, so only the WebView is freed (see C_API_GUIDE.md).
@@ -1275,6 +1284,7 @@ static int test_embedder_controls_round_trip(struct Servo* servo)
     result = 0;
 
 cleanup:
+    g_ec_state = NULL;
     remove(EMBEDDER_PICKER_FILE);
     if (webview) {
         // Close cooperatively and wait for `notify_closed` before freeing, as
