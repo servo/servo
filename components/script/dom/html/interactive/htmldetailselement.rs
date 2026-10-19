@@ -41,7 +41,7 @@ use crate::dom::text::Text;
 use crate::dom::toggleevent::ToggleEvent;
 
 /// The summary that should be presented if no `<summary>` element is present
-const DEFAULT_SUMMARY: &str = "Details";
+static DEFAULT_SUMMARY: &str = "Details";
 
 /// Holds handles to all slots in the UA shadow tree
 ///
@@ -68,7 +68,7 @@ impl UAShadowRoot<ShadowTree> for HTMLDetailsElement {
         let fallback_summary = DomRoot::downcast::<HTMLElement>(fallback_summary).unwrap();
         fallback_summary
             .upcast::<Node>()
-            .set_text_content_for_element(cx, Some(DEFAULT_SUMMARY.into()));
+            .set_text_content_for_element(cx, Some(DOMString::from_static(DEFAULT_SUMMARY)));
         summary
             .upcast::<Node>()
             .AppendChild(cx, fallback_summary.upcast::<Node>())
