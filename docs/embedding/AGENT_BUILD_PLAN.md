@@ -189,7 +189,7 @@ Effort: **S** days · **M** 1–3 weeks · **L** 1–3 months · **XL** quarters
 | ID | Title | Effort | State | Depends on | Gate |
 |---|---|---|---|---|---|
 | **W2.1** | Windows renderer sandbox (real containment) | L–XL | `partial` (mitigation-only PoC) | — | windows.yml |
-| **W2.2** | Android/iOS/arm64 sandbox honesty + real path | XL | `partial` (false log claims) | W2.1 learnings | android.yml |
+| **W2.2** | Android/iOS/arm64 sandbox honesty + real path | XL | `partial` (W2.2a ✅ `77446edfa4d`, run `39166954265`; W2.2b `todo`) | W2.1 learnings | android.yml |
 | **W2.3** | Site isolation / origin-keyed processes | XL | `todo` | — | linux.yml |
 | **W2.4** | Multiprocess bootstrap for C embedders | L | `partial` | — | embedding-api.yml |
 | **W2.5** | FFI hardening Part B (cookies/pointers/threads) | M | `partial` | — | embedding-api.yml |
@@ -205,14 +205,14 @@ Effort: **S** days · **M** 1–3 weeks · **L** 1–3 months · **XL** quarters
 | **W4.2** | Clipboard + gamepad + embedder controls in C | L | `partial` | — | embedding-api.yml |
 | **W4.4** | DevTools/console exposure: verify + document + test | S | ✅ verified (run `39152343582`, 3 platforms) | — | embedding-api.yml |
 | **W4.5** | Manual windowed/GPU validation on real hardware | S | `blocked` (needs GPU) | W3.5 | manual |
-| **W4.6** | `Send`/`Sync` handles *or* documented main-thread contract | M | `todo` | W2.5 | embedding-api.yml |
+| **W4.6** | `Send`/`Sync` handles *or* documented main-thread contract | M | ✅ verified (`e4af43dd468`; run `39171002423`, 3 platforms) | W2.5 | embedding-api.yml |
 | **W4.7** | Language bindings beyond C/C++ | L | `partial` (C++ RAII exists) | W5.4 | — |
 | **W4.8** | CEF P2 leftovers: drag/drop, audio, frame rate, task post, user-gesture JS | L | `todo` | — | embedding-api.yml |
-| **W5.1** | Hang monitor: on by default + kill hung scripts | M | `partial` (impl, pref off) | — | all platforms |
+| **W5.1** | Hang monitor: on by default + kill hung scripts | M | ✅ verified (`115948c8334` + `5963519e4a8`; runs `39163255415`/`39165923943`, 3 platforms) | — | all platforms |
 | **W5.2** | Prove `capi-artifacts.yml` (prebuilt C API artifacts) | M | ✅ verified (run `39145918170`, 3 platforms) | — | capi-artifacts.yml |
 | **W5.3** | Prebuilt signed binaries (5 targets) + CMake/pkg-config | L | `todo` | W5.2 | release workflows |
 | **W5.4** | C API 0.1.0 → 1.0 ABI commitment | M | `partial` | W5.2 | embedding-api.yml |
-| **W5.5** | Remaining reachable-panic review (tracked list) | M | `partial` | W2.5 | embedding-api.yml |
+| **W5.5** | Remaining reachable-panic review (tracked list) | M | ✅ verified (`39d6b6fd58d`; run `39177714141`, 3 platforms) | W2.5 | embedding-api.yml |
 | **W5.6** | Observability: size/startup/throughput/crash in CI | M | `todo` | — | new job |
 | **W5.7** | Long-uptime / repeated load-unload leak testing | L | `todo` | — | embedding-api.yml |
 | **W6.1** | GPU/WebGL/WebGPU validation + honest status doc | L | `partial` (claims untested) | W4.5 | manual |
@@ -228,8 +228,8 @@ Each wave is independently shippable; do not start a wave before the previous on
 
 | Wave | Tickets | Why this order |
 |---|---|---|
-| **A — Prove what exists** | W5.2, W4.4, W2.9 | Turns `unproven` into evidence cheaply; nothing else is trustworthy until CI-covered workflows have actually run. |
-| **B — Truthfulness & quick wins** | W5.1, W2.2a (log honesty), W4.6, W5.5 | Small, high-value, mostly docs/pref/default changes with clear tests. |
+| **A — Prove what exists** | W5.2, W4.4, W2.9 | ✅ complete (all three ✅ in §2.1). Turns `unproven` into evidence cheaply; nothing else is trustworthy until CI-covered workflows have actually run. |
+| **B — Truthfulness & quick wins** | W5.1, W2.2a (log honesty), W4.6, W5.5 | ✅ complete (all four ✅ in §2.1). Small, high-value, mostly docs/pref/default changes with clear tests. W2.2b is **not** in this wave — it is the XL half of W2.2 and stays in wave F. |
 | **C — Embedding API gaps** | W4.2, W4.8, W5.4, W5.7 | The surface embedders actually feel. |
 | **D — Distribution** | W5.3, W3.4, W3.1 | Depends on A/C being stable. |
 | **E — Security depth** | W2.5, W2.6, W2.4, W2.8, W2.7 | Each is a real project; sequence after the cheap wins. |
@@ -246,17 +246,20 @@ Each wave is independently shippable; do not start a wave before the previous on
 
 ### 3.0 W2 current-state brief (read before any W2 ticket)
 
-Facts verified at `6fe2549874b`:
+Facts verified at `6fe2549874b`; **re-verified and partly superseded at
+`39d6b6fd58d`** — see the "W2.2a" note at the end of this section, which is now
+landed. The `Line` column below is point-in-time: the anchors have moved (the
+search command at the end finds them again).
 
 - `create_sandbox()` has **five** `cfg`-selected definitions in
   `components/servo/servo.rs`:
-  | Line | Predicate | What it actually does |
+  | Line (at `6fe2549874b`) | Predicate | What it actually does |
   |---|---|---|
   | `1571` | `multiprocess`, not windows/ios/android/arm/aarch64/riscv/ohos | `gaol` `ChildSandbox::new(content_process_sandbox_profile()).activate()` — **real** (Linux/macOS x86_64 only) |
   | `1578` | `multiprocess` + windows | `windows_sandbox::apply_windows_sandbox()` (`mod` at `1458`, fn at `1496`) — **four `SetProcessMitigationPolicy` calls (DEP, ASLR, strict handle check, extension point disable). Not a sandbox: no broker, no restricted token, no AppContainer, no job object, no IPC ACL.** |
-  | `1586` | `multiprocess` + android/ios | **no-op that logs** `"Sandbox active: Operating-system isolated container runtime enforced."` |
-  | `1598` | `multiprocess` + arm/aarch64 (not android/ios/ohos) | **no-op that logs** `"AArch64 isolated sandbox PoC active."` |
-  | `1613` | `not(multiprocess)` or riscv/ohos | `panic!("Sandboxing is not supported on single-process, RISC-V, or OpenHarmony targets.")` |
+  | `1586` | `multiprocess` + android/ios | *(W2.2a)* **no-op that now logs an accurate message** — previously `"Sandbox active: Operating-system isolated container runtime enforced."`, a false claim |
+  | `1598` | `multiprocess` + arm/aarch64 (not android/ios/ohos) | *(W2.2a)* **no-op that now logs an accurate message** — previously `"AArch64 isolated sandbox PoC active."`, a false claim |
+  | `1613` | `not(multiprocess)` or riscv/ohos | `panic!("Sandboxing is not supported on single-process, RISC-V, or OpenHarmony targets.")` — dead in a single-process build, `catch_unwind`-guarded under `multiprocess` (see `HARDENING_PLAN.md` §A.2.1) |
 - Activation call site: `run_content_process()` — `cfg(feature = "multiprocess")` at
   `1388`, `if opts::get().sandbox { create_sandbox(); }` at `1403-1404`.
   `Opts.sandbox` defaults to `false` (`components/config/opts.rs:55`, `:258`).
@@ -265,11 +268,21 @@ Facts verified at `6fe2549874b`:
   windows/ios/android/arm/aarch64/riscv/ohos, and its doc comment at `449-451` states
   that Windows mitigations are not an OS sandbox. `ffi/capi/multiprocess.rs:95` refuses
   to proceed when the query is false.
-- Therefore: **the C API does not lie about the sandbox. The log lines at `servo.rs:1586`
-  and `servo.rs:1598` do.** That asymmetry is W2.2a.
+- **The C API never lied about the sandbox — and since W2.2a neither do the logs.**
+  Historically `servo.rs:1586` and `servo.rs:1598` (point-in-time anchors) logged
+  `"Sandbox active…"` / `"AArch64 isolated sandbox PoC active."` from no-op
+  `create_sandbox()` bodies, which was the only lie. **Closed by W2.2a**
+  (`77446edfa4d`, run `39166954265`): both `log::info!` no-ops were replaced with
+  `warn!` lines that state no OS sandbox is enforced, and
+  `MULTI_PLATFORM_SANDBOX_DESIGN.md`, `COMPATIBILITY.md` §5 and `C_API_GUIDE.md`
+  were corrected to agree with the capability query.
+  `git grep -n "Sandbox active\|sandbox enforced\|sandboxing is" -- components ffi docs`
+  now matches **no `components/**` code path at all** — only this plan's own record of
+  the old claim, plus accurate capability prose (`ffi/capi/lib.rs:466`,
+  `ffi/capi/multiprocess.rs:72`, `ARCHITECTURE.md:544`).
 
 Search command for these anchors (they will move):
-`git grep -n "fn create_sandbox\|apply_windows_sandbox\|Sandbox active" -- components/servo/servo.rs`
+`git grep -n "fn create_sandbox\|apply_windows_sandbox" -- components/servo/servo.rs`
 
 ---
 
@@ -350,10 +363,10 @@ tree for other claims: `git grep -n "Sandbox active\|sandbox enforced\|sandboxin
 components ffi docs`.
 
 **Acceptance**
-- [ ] No code path prints a message asserting sandboxing that does not occur.
-- [ ] `docs/embedding/COMPATIBILITY.md`, `C_API_GUIDE.md`, and `MULTI_PLATFORM_SANDBOX_DESIGN.md`
+- [x] No code path prints a message asserting sandboxing that does not occur.
+- [x] `docs/embedding/COMPATIBILITY.md`, `C_API_GUIDE.md`, and `MULTI_PLATFORM_SANDBOX_DESIGN.md`
       agree with the capability query (all say: no sandbox on windows/ios/android/arm*/riscv/ohos).
-- [ ] CI green; no behaviour change.
+- [x] CI green; no behaviour change. (run `39166954265`, `77446edfa4d`)
 
 ##### W2.2b — Real per-platform sandbox paths (XL)
 
@@ -844,7 +857,7 @@ honestly is a successful ticket; a claim without output is not.
 
 #### W4.6 — Threading contract: `Send`/`Sync` handles *or* documented main-thread-only
 
-**State:** `todo` · **Effort:** M · **Gate:** `embedding-api.yml` · **Depends:** W2.5
+**State:** `done` (✅ `e4af43dd468`; run `39171002423`, 3 platforms) · **Effort:** M · **Gate:** `embedding-api.yml` · **Depends:** W2.5
 
 **Goal.** End the ambiguity about which C calls may be made from which thread. Per
 `ROADMAP.md` Phase 5: evaluate first, **document rather than over-promise**.
@@ -947,7 +960,7 @@ entries as part of the work — stale docs are defects here).
 
 #### W5.1 — Hang monitor on by default + kill permanently-hung scripts
 
-**State:** `partial` · **Effort:** M · **Gate:** every platform workflow · **Highest-value code fix remaining**
+**State:** `done` (✅ `115948c8334` impl + `5963519e4a8` clock fix; runs `39163255415`/`39165923943`, 3 platforms) · **Effort:** M · **Gate:** every platform workflow
 
 **Goal.** Implement `HARDENING_PLAN.md` §A.1 for real: BHM on, permanent hang ⇒ script
 thread torn down, pref available to disable.
@@ -977,11 +990,12 @@ plus wherever `Opts.background_hang_monitor` is read to start the monitor
    `C_API_GUIDE.md` how an embedder sees this.
 
 **Acceptance**
-- [ ] Defaults are `true` for both flags; both remain individually overridable.
-- [ ] A test proves termination **and** proves the process still exits cleanly (no
-      deadlock on shutdown, no `expect()` panic).
-- [ ] CI green on Linux/macOS/Windows.
-- [ ] `HARDENING_PLAN.md` §A.1 marked implemented with the commit sha.
+- [x] Defaults are `true` for both flags; both remain individually overridable.
+- [x] A test proves termination **and** proves the process still exits cleanly (no
+      deadlock on shutdown, no `expect()` panic). (`test_hang_monitor_kills_hung_script`;
+      eval→kill ~5019 ms Linux / ~5047 ms Windows / ~5122 ms macOS)
+- [x] CI green on Linux/macOS/Windows. (runs `39163255415`, `39165923943`)
+- [x] `HARDENING_PLAN.md` §A.1 marked implemented with the commit sha.
 
 **Gotchas.** This is the one ticket here that can *widen* a failure mode if done badly
 (killing the wrong component, or hanging shutdown). Keep the pref default change and the
@@ -1082,7 +1096,7 @@ published with header + CMake package.
 
 #### W5.5 — Remaining reachable-panic review (tracked list)
 
-**State:** `partial` · **Effort:** M · **Gate:** `embedding-api.yml` · **Depends:** W2.5
+**State:** `done` (✅ `39d6b6fd58d`; run `39177714141`, 3 platforms) · **Effort:** M · **Gate:** `embedding-api.yml` · **Depends:** W2.5
 
 **Goal.** `HARDENING_PLAN.md` §A.2 — a tracked, owner-per-item list of every reachable
 panic on an FFI path, not a one-line "audit done".
@@ -1403,6 +1417,7 @@ baseline) and only then pick root causes — not to touch `tests/wpt/meta` whole
 | `PRODUCTION_REPORT.md` §3 and `IMPLEMENTATION_REVIEW.md` §2/§5, `IMPLEMENTATION_REVIEW_PASS2.md` §0/§5/§6 | `capi-artifacts.yml` "**Never run**"/"never dispatched" | ran green on all three platforms: run `39145918170`; artifacts `servo-capi-0.1.0-<platform>-7dba370`; `workflow_dispatch` proven (run `39149442966`)... a stale claim this plan's W5.2 closed |
 | `IMPLEMENTATION_REVIEW.md` §5 W5.1 bullet | "BHM left default-off: *correct call*, needs perf evidence" | superseded by W5.1 on this branch: `Opts::default()` (what `servo_options_create()` returns) enables both `background_hang_monitor` and `hang_monitor_kill_script`, and the kill + clean-teardown path is exercised end to end by `tests/capi/c/test_integration.c::test_hang_monitor_kills_hung_script` |
 | `IMPLEMENTATION_REVIEW.md` §B5 and `IMPLEMENTATION_REVIEW_PASS2.md` §6 | thread check "runs *outside* `catch_unwind`" with a panicking `lock().unwrap()`; `debug_checks::assert_main_thread()` is warn-only under `debug_assertions`; coverage is `test_debug_thread_checks` | superseded by W4.6: the check is `entry_checks::check_main_thread()`, poison-safe (no `unwrap`), compiled in all builds, and returns `SERVO_ERROR_WRONG_THREAD`; the C test is renamed `test_thread_affinity_enforcement` and asserts an off-thread call is rejected |
+| `docs/embedding/C_API_GUIDE.md` "### Servo" signature block | listed `void servo_free(struct Servo*)`, `void servo_spin_event_loop(struct Servo*)`, `void servo_setup_logging(struct Servo*)` | all three return `ServoError` in the generated header (`servo_capi.h`); corrected in the W5.5 commit (`39d6b6fd58d`), which also documents `servo_setup_logging`'s `SERVO_ERROR_INVALID_STATE` on a repeated call |
 
 **Rule:** fixing a stale document is a legitimate, committable outcome on its own
 (`docs(embedding): …`). Prefer *correct the doc* over *leave the lie*.

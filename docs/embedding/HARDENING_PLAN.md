@@ -1,6 +1,6 @@
 # Servo Embedding — Hardening Plan (Stability & FFI)
 
-Status: **Plan — not implemented** · Branch: `embedding/cef-parity` · Baseline
+Status: **partially implemented** (A.1 landed; A.2's FFI-entry inventory landed — the rest of this document is still design) · Branch: `embedding/cef-parity` · Baseline
 commit: `68719ce75c2`
 
 This document turns the *recommendations* in
@@ -8,11 +8,13 @@ This document turns the *recommendations* in
 [`PRODUCTION_READINESS.md`](PRODUCTION_READINESS.md) §9 (items 2, 3) into concrete,
 bounded engineering steps with exact touch points.
 
-> **Nothing here is implemented.** These are designs, not landed code. They are
-> written to be reviewable and executable by someone who can build and test the
-> engine (the environment this plan was produced in could not: no MSVC/clang/
-> GStreamer, empty `target/`). Each step names the files to change and the tests
-> that must gate it.
+> **Most of this document is not yet implemented.** What has landed is marked
+> in place: **A.1** (background hang monitor on by default, with a green gate)
+> and **A.2.1** (the FFI-entry reachable-panic inventory, with the one reachable
+> site fixed). The remainder are designs, written to be reviewable and
+> executable by someone who can build and test the engine (the environment this
+> plan was produced in could not: no MSVC/clang/GStreamer, empty `target/`).
+> Each step names the files to change and the tests that must gate it.
 
 ---
 
@@ -22,8 +24,13 @@ bounded engineering steps with exact touch points.
 
 **Status: implemented.** Both flags default to `true` and a permanent hang
 terminates the hung component's script; the embedder observes the interrupted
-JavaScript call completing with an error. The design text below is kept for
-provenance; claims that no longer hold are corrected in place.
+JavaScript call completing with an error. Landed in `115948c8334` (defaults flip)
+plus `5963519e4a8` (monotonic clock + ≥3 s lower bound), gated green on
+Linux/macOS/Windows in runs `39163255415` and `39165923943`. Honest eval→kill
+latencies: Linux ~5019 ms, Windows ~5047 ms, macOS ~5122 ms, from
+`tests/capi/c/test_integration.c::test_hang_monitor_kills_hung_script`.
+The design text below is kept for provenance; claims that no longer hold are
+corrected in place.
 
 **Where it lives**
 
