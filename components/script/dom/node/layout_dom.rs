@@ -247,7 +247,6 @@ impl<'dom> LayoutDom<'dom, Node> {
             .data_for_layout()
     }
 
-    #[expect(unsafe_code)]
     pub(crate) fn selection_for_text_node(&self) -> Option<RangeAny<Utf32CodeUnits>> {
         if let Some(shadow_root) = self.containing_shadow_root_for_layout() {
             let host = shadow_root.get_host_for_layout();
@@ -269,16 +268,12 @@ impl<'dom> LayoutDom<'dom, Node> {
         let text_node = self.downcast::<Text>()?;
         let text = text_node.upcast().data_for_layout();
         let selection = self.owner_doc_for_layout().visible_selection_for_layout()?;
-        let range = selection.range_for_layout();
+        let ((start_node, start_offset), (end_node, end_offset)) = selection.range_for_layout()?;
 
-        let range = range.as_ref()?;
-        let is_start_node = unsafe { range.start.container.to_layout() } == *self;
-        let is_end_node = unsafe { range.end.container.to_layout() } == *self;
-
-        let start =
-            is_start_node.then(|| Utf16CodeUnits(range.start.offset).to_utf32_code_units_in(&text));
+        let start = (start_node == *self)
+            .then(|| Utf16CodeUnits(start_offset).to_utf32_code_units_in(&text));
         let end =
-            is_end_node.then(|| Utf16CodeUnits(range.end.offset).to_utf32_code_units_in(&text));
+            (end_node == *self).then(|| Utf16CodeUnits(end_offset).to_utf32_code_units_in(&text));
         Some(RangeAny::new(start, end))
     }
 

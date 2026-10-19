@@ -5,6 +5,7 @@
 use std::cell::{Cell, LazyCell};
 use std::cmp::Ordering;
 
+use atomic_refcell::AtomicRefCell;
 use bitflags::bitflags;
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
@@ -19,6 +20,7 @@ use servo_base::text::{
 };
 
 use crate::dom::abstractrange::bp_position;
+use crate::dom::bindings::cell::AtomicSafeBorrowMut;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
 use crate::dom::bindings::codegen::Bindings::SelectionBinding::{
@@ -28,7 +30,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::comparator::compare_dom_positions;
 use crate::dom::document::Document;
@@ -73,7 +75,8 @@ pub(crate) struct Selection {
     ///
     /// * It is `None` if the selection is unrenderable.
     /// * Boundaries are in flat tree order.
-    visible_range: DomRefCell<Option<SelectionRange>>,
+    #[custom_trace]
+    visible_range: AtomicRefCell<Option<SelectionRange>>,
     /// The [`Direction`] of this [`Selection`] which determines which endpoint of
     /// [`Self::range`] is the anchor and which is the focus.
     direction: Cell<Direction>,
@@ -321,8 +324,8 @@ impl Selection {
         })
     }
 
-    fn set_visible_range(&self, flat_tree_selection: Option<FlatTreeSelection>) {
-        *self.visible_range.borrow_mut() = flat_tree_selection.map(|selection| {
+    fn set_visible_range(&self, no_gc: &NoGC, flat_tree_selection: Option<FlatTreeSelection>) {
+        *self.visible_range.safe_borrow_mut(no_gc) = flat_tree_selection.map(|selection| {
             SelectionRange::new(
                 SelectionBoundary::new(&selection.start.container, selection.start.offset),
                 SelectionBoundary::new(&selection.end.container, selection.end.offset),
@@ -345,7 +348,7 @@ impl Selection {
             flat_tree_selection.as_ref(),
             &self.document,
         );
-        self.set_visible_range(flat_tree_selection);
+        self.set_visible_range(no_gc, flat_tree_selection);
     }
 
     /// <https://w3c.github.io/selection-api/#dfn-schedule-a-selectionchange-event>
@@ -1442,8 +1445,19 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 
 impl<'dom> LayoutDom<'dom, Selection> {
     #[expect(unsafe_code)]
-    pub(crate) fn range_for_layout(&self) -> &Option<SelectionRange> {
-        unsafe { self.unsafe_get().visible_range.borrow_for_layout() }
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))] // Borrow of a traced field, never escapes.
+    pub(crate) fn range_for_layout(
+        &self,
+    ) -> Option<((LayoutDom<'dom, Node>, u32), (LayoutDom<'dom, Node>, u32))> {
+        let range = self.unsafe_get().visible_range.borrow();
+        let range = range.as_ref()?;
+        // Layout runs while script is blocked, and `visible_range` traces these nodes.
+        unsafe {
+            Some((
+                (range.start.container.to_layout(), range.start.offset),
+                (range.end.container.to_layout(), range.end.offset),
+            ))
+        }
     }
 }
 
