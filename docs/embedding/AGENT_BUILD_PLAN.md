@@ -213,12 +213,12 @@ Effort: **S** days · **M** 1–3 weeks · **L** 1–3 months · **XL** quarters
 | **W5.3** | Prebuilt signed binaries (5 targets) + CMake/pkg-config | L | `todo` | W5.2 | release workflows |
 | **W5.4** | C API 0.1.0 → 0.2.0 ABI commitment (1.0 deliberately deferred) | M | ✅ verified (`718b8a9e191`; run `39195005399`, 3 platforms; symbol-gate probe run `39193637805`) | W5.2 | embedding-api.yml |
 | **W5.5** | Remaining reachable-panic review (tracked list) | M | ✅ verified (`39d6b6fd58d`; run `39177714141`, 3 platforms) | W2.5 | embedding-api.yml |
-| **W5.6** | Observability: size/startup/throughput/crash in CI | M | `todo` | — | new job |
+| **W5.6** | Observability: size/startup/throughput/crash in CI | M | ✅ verified (`541c7864ea3` + baseline; run `39307687792`, 3 platforms) | — | new job |
 | **W5.7** | Long-uptime / repeated load-unload leak testing | L | ✅ verified (`361ae2a09b6`; run `39264174241`, 3 platforms) | — | embedding-api.yml |
 | **W6.1** | GPU/WebGL/WebGPU validation + honest status doc | L | `partial` (claims untested) | W4.5 | manual |
 | **W6.2** | Video/audio playback readiness (GStreamer packaging) | L | `partial` | W5.3 | — |
 | **W6.3** | DRM/EME: define CDM adapter interface, declare non-support | L | `todo` (design only) | — | — |
-| **W6.4** | Accessibility exposure to C embedders | M | `unproven` | — | embedding-api.yml |
+| **W6.4** | Accessibility exposure to C embedders | M | ✅ verified (`90cd8411e4c`; run `39305923519`, 3 platforms) | — | embedding-api.yml |
 | **W6.5** | Printing / `servo_webview_print_to_pdf` | L | `todo` (design only) | — | — |
 | **W6.6** | Extensions / enterprise policy | XL | `deferred` | decision | — |
 
@@ -1202,6 +1202,36 @@ in a release.
 **Acceptance.** A CI job that emits the four metrics on every `embedding-api.yml` run and
 a baseline file with the first recorded values.
 
+**Result.** ✅ The `Observability report` job aggregates five signals — `startup_ms`
+(`servo_builder_build()`), `load_complete_ms`, `screenshot_ms`, a fixed `js_ms`
+workload, and `cdylib_bytes` — plus the `capi` job result as the crash proxy
+(there is no core-dump service on hosted runners, so a crash *is* a failed job
+and nothing else). They come from work the gate already does: no extra build,
+process, or test time. Run `39307687792` (sha `541c7864ea3`) emitted the first
+values on all three platforms — Linux 8/59/16 ms and 1,184,882,128 B, Windows
+15/78/31 ms and 218,656,768 B, macOS 7/190/72 ms and 358,184,680 B — and
+`docs/embedding/observability_baseline.json` records them with that run and sha.
+`etc/ci/embedding_observability.py` diffs every later run against the baseline
+and flags a change beyond 25% with `(!)`; it never fails on a measured
+regression, because hosted-runner timings move by tens of percent between runs
+on the same commit.
+
+Two things the first CI run of the job proved and fixed in the same push: the
+report found **no** metric files (it looked one level deep in the artifact
+download directory, and reported success while measuring nothing), and
+`screenshot_ms` always read `0` because the raster callback is delivered
+synchronously by `servo_webview_take_screenshot()`, so the timer now starts
+before `servo_webview_paint()`. The reporter now walks recursively and fails when
+the metrics are missing although the `capi` job succeeded; `mach smoketest` was
+not used for startup and `bencher.yml` cannot carry these metrics — both reasons
+are recorded in `docs/embedding/OBSERVABILITY.md`.
+
+**Deviations.** The plan asked for `mach smoketest` startup wall-time; that
+measures `servoshell`, which this job does not build and which needs a display,
+so `servo_builder_build()` is the equivalent the gate can afford — stated as a
+different quantity in `OBSERVABILITY.md`. `bencher.yml` is try/benchmark-driven,
+needs `BENCHER_API_TOKEN`, and selects self-hosted bench runners.
+
 ---
 
 #### W5.7 — Long-uptime / repeated load-unload leak testing
@@ -1323,7 +1353,7 @@ the API docs (an error code, not a silent failure).
 
 #### W6.4 — Accessibility exposure to embedders
 
-**State:** `unproven` · **Effort:** M · **Gate:** `embedding-api.yml`
+**State:** ✅ verified — `90cd8411e4c`; run `39305923519` (3 platforms) · **Effort:** M · **Gate:** `embedding-api.yml`
 
 **Steps**
 1. Verify the claim first: `git grep -n "accesskit" -- components Cargo.toml` and locate
@@ -1336,6 +1366,22 @@ the API docs (an error code, not a silent failure).
 
 **Acceptance.** Either a working, tested C exposure, or a corrected doc — both acceptable
 outcomes; leaving the claim unverified is not.
+
+**Result.** Step 1 found the adapter update reaching the embedder side but nothing in
+the C API, so the first outcome was taken: `90cd8411e4c` adds
+`ServoWebViewDelegate::notify_accessibility_tree_update(webview, value, user_data)`,
+which delivers the `accesskit::TreeUpdate` as a `ServoValue` dictionary in AccessKit's
+own JSON schema (the same shape CEF hands a `CefValue` for the equivalent event), plus
+`servo_webview_set_accessibility_active(webview, bool)`. The C test
+(`tests/capi/c/test_integration.c::test_accessibility_tree_update`) turns
+accessibility on *before* activating the WebView, mutates the DOM, spins the event loop,
+and asserts the tree arrives with the node that the mutation added; run `39305923519`
+is green on all three platforms. The activate-before-build ordering is not cosmetic:
+`Constellation` stores `accessibility_active` per WebView and forwards it to a pipeline
+only when that pipeline becomes active, and the pref defaults to `false`.
+
+Exposing AccessKit *action forwarding* from C is **not** part of this ticket and is
+registered in §D.2.1; the printing half of `ACCESSIBILITY_AND_PRINTING.md` is W6.5.
 
 ---
 
@@ -1495,8 +1541,9 @@ baseline) and only then pick root causes — not to touch `tests/wpt/meta` whole
 | `docs/embedding/CEF_PARITY.md` §9 P0 #5 | "load start/end/error, display (cursor/favicon/console) callbacks are still missing" | `notify_cursor_changed`, `notify_history_changed`, `show_console_message`, load callbacks are wired in `webview_delegate.rs` |
 | `docs/embedding/PRODUCTION_READINESS.md` | exists as a ~136-byte stub | linked from the master report as the scorecard; write it or unlink it |
 | `docs/embedding/GRAPHICS_AND_WEBGPU_STATUS.md` | WebGL "Production" on 4 platforms | no hardware evidence recorded on this branch |
-| `docs/embedding/ACCESSIBILITY_AND_PRINTING.md` §1 | AccessKit integration described as working incl. "C Embedding Exposure" | no `components/accessibility` crate; no a11y export in `ffi/capi`; unverified → W6.4 |
+| `docs/embedding/ACCESSIBILITY_AND_PRINTING.md` §1 | AccessKit integration described as working incl. "C Embedding Exposure" | already reconciled: the §1 claim was verified against the tree and the C exposure it promised now exists — `90cd8411e4c` (W6.4), run `39305923519`. The section's remaining "C Embedding Exposure" text is accurate for the tree-update half; the action-forwarding half is recorded in §D.2.1 |
 | `docs/embedding/AUDIT.md` | not updated for W4.1/W4.3 | inventory lags the branch |
+| `docs/embedding/AUDIT.md` :342 | "76 functions … 5 delegate fields" as the C API's size | a snapshot taken before Wave C; the export surface is now 241 `servo_*` symbols in `ffi/capi/symbols.txt` and `ServoWebViewDelegate` has 5+ callback fields. Re-counting is part of W2.8's audit pass, not a per-ticket edit, because the number changes with almost every Wave-C ticket |
 | `docs/embedding/AUDIT.md` §3 | C API "still no … dialogs, DevTools" and "DevTools not reachable from C" | the DevTools server is reachable from C: `servo_preferences_set_devtools_server` plus the `ServoDelegate` callbacks `notify_devtools_server_started` / `request_devtools_connection` (exercised by the W4.4 integration test) |
 | `PRODUCTION_REPORT.md` §3 and `IMPLEMENTATION_REVIEW.md` §2/§5, `IMPLEMENTATION_REVIEW_PASS2.md` §0/§5/§6 | `capi-artifacts.yml` "**Never run**"/"never dispatched" | ran green on all three platforms: run `39145918170`; artifacts `servo-capi-0.1.0-<platform>-7dba370`; `workflow_dispatch` proven (run `39149442966`)... a stale claim this plan's W5.2 closed |
 | `IMPLEMENTATION_REVIEW.md` §5 W5.1 bullet | "BHM left default-off: *correct call*, needs perf evidence" | superseded by W5.1 on this branch: `Opts::default()` (what `servo_options_create()` returns) enables both `background_hang_monitor` and `hang_monitor_kill_script`, and the kill + clean-teardown path is exercised end to end by `tests/capi/c/test_integration.c::test_hang_monitor_kills_hung_script` |
@@ -1523,6 +1570,17 @@ deferred with a written reason") is satisfiable by reading this table.
 The W5.7 acceptance does not require zero growth: it requires a bounded, justified,
 stable test, which is what shipped. `LEAK_TEST_MAX_GROWTH_BYTES` (128 MiB) is the
 documented bound and is ~1.55x the worst measured growth.
+
+**Registered gaps (limbs of a shipped ticket that remain open, so that the
+ticket's own status is not read as "everything in this area is done").**
+
+| Gap | What is missing | Where it is recorded |
+|---|---|---|
+| Accessibility *action forwarding* from C (W6.4) | The tree updates reach the embedder, but an embedder cannot ask Servo to perform an AccessKit `ActionRequest` (press, focus, …) on a node. Needs an engine-side path from a C call to the accesskit action handler, not FFI plumbing | `ACCESSIBILITY_AND_PRINTING.md` §1, this table |
+| Handle-liveness registry adopted for `ServoOptions` only (W2.5) | `ServoBuilder`, `RenderingContext`, `ServoValue`, `ServoUserContentManager`, `ServoWebViewBuilder`, `Servo`, `ServoSiteDataManager`, `ServoRequestContext` still dereference a handle with no liveness check. Each is the same mechanical edit | `HARDENING_PLAN.md` §B.1 |
+| Bounds-checked prefix reading for by-pointer structs (W2.5) | `ServoCookieFilter` / `ServoProxyConfig` currently *reject* a `struct_size` smaller than the compiled-in size. When a field is first appended to either, the entry point must switch to reading only the fields inside `struct_size`, or every caller built against the previous header breaks | `ABI_STABILITY.md` §3.3, §2.4 |
+| Callback-buffer poisoning in debug builds (HARDENING_PLAN §B.2) | The "valid only for this call" rule is documented but not observable: a test cannot yet catch an embedder that retains a callback pointer | `HARDENING_PLAN.md` §B.2 |
+| Protocol-handler concurrency test (HARDENING_PLAN §B.3) | The `Send + Sync` requirement is documented at the install entry point, but nothing exercises a handler from the network/worker threads the contract allows. Belongs with the stress/fuzz work | `HARDENING_PLAN.md` §B.3, W2.8 |
 
 **Deferred tickets.**
 

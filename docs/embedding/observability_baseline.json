@@ -1,0 +1,26 @@
+{
+  "recorded_at": "2026-10-19",
+  "source_run": 39307687792,
+  "source_sha": "541c7864ea33031939a446613aa68ebd5f17d196",
+  "note": "Measured by the `embedding-api.yml` C API jobs on GitHub-hosted runners (run 39307687792, all three platforms green). Timings are single samples of a debug build, so they are a trend line, not a budget: `etc/ci/embedding_observability.py` reports the change against them and never fails on it. `screenshot_ms` is deliberately absent: that run measured the metric with the pre-fix timing, which always read 0 because the screenshot is delivered synchronously; the timing was corrected in the same push that added this file, so the next run establishes the first real value. See docs/embedding/OBSERVABILITY.md.",
+  "platforms": {
+    "Linux": {
+      "startup_ms": 8,
+      "load_complete_ms": 59,
+      "js_ms": 16,
+      "cdylib_bytes": 1184882128
+    },
+    "Windows": {
+      "startup_ms": 15,
+      "load_complete_ms": 78,
+      "js_ms": 31,
+      "cdylib_bytes": 218656768
+    },
+    "macOS": {
+      "startup_ms": 7,
+      "load_complete_ms": 190,
+      "js_ms": 72,
+      "cdylib_bytes": 358184680
+    }
+  }
+}
