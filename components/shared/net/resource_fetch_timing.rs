@@ -15,12 +15,16 @@ pub struct ResourceFetchTiming {
     pub timing_type: ResourceTimingType,
     /// Number of redirects until final resource (currently limited to 20)
     pub redirect_count: u16,
+    /// <https://fetch.spec.whatwg.org/#fetch-timing-info-start-time>
     pub request_start: Option<CrossProcessInstant>,
     pub secure_connection_start: Option<CrossProcessInstant>,
     pub response_start: Option<CrossProcessInstant>,
     pub fetch_start: Option<CrossProcessInstant>,
+    /// <https://fetch.spec.whatwg.org/#fetch-timing-info-end-time>
     pub response_end: Option<CrossProcessInstant>,
+    /// <https://fetch.spec.whatwg.org/#fetch-timing-info-redirect-start-time>
     pub redirect_start: Option<CrossProcessInstant>,
+    /// <https://fetch.spec.whatwg.org/#fetch-timing-info-redirect-end-time>
     pub redirect_end: Option<CrossProcessInstant>,
     pub connect_start: Option<CrossProcessInstant>,
     pub connect_end: Option<CrossProcessInstant>,
