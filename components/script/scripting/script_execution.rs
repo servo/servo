@@ -70,7 +70,6 @@ pub(crate) struct ClassicScript {
 }
 
 impl ClassicScript {
-    #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
     #[expect(unsafe_code)]
     fn record<'a>(&'a self) -> Option<Handle<'a, *mut JSScript>> {
         self.record
@@ -78,7 +77,6 @@ impl ClassicScript {
             .map(|value| unsafe { Handle::from_raw(value.handle()) })
     }
 
-    #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
     #[expect(unsafe_code)]
     fn error_to_rethrow<'a>(&'a self) -> Option<HandleValue<'a>> {
         self.error_to_rethrow
