@@ -379,8 +379,15 @@ Servo.
     `SERVO_ERROR_INVALID_ARGUMENT`. The Servo-filled `ServoScreenGeometry` output struct
     also carries a `struct_size` set by Servo.
   - A symbol-export allowlist / link check in CI so accidental exports or renames fail
-    the build. *Done on this branch:* `ffi/capi/symbols.txt` allowlist (218 symbols)
-    checked against the cbindgen-generated header in `embedding-api.yml`.
+    the build. *Done on this branch:* `ffi/capi/symbols.txt` allowlist (229 symbols)
+    checked against the cbindgen-generated header in `embedding-api.yml`. The check fails
+    on a removal as well as an addition: deleting one line on a throwaway branch turned
+    all three jobs red at the symbol step (run `39193637805`, sha `bb481e01d0c7`).
+  - An exercised deprecation path: `#[deprecated]` ⇒ `SERVO_DEPRECATED(...)` in the header,
+    the symbol kept exported, and a documented removal window. *Done on this branch:*
+    `servo_webview_evaluate_javascript` is deprecated in C API `0.2.0` in favour of
+    `servo_webview_evaluate_javascript_v2`; `embedding-api.yml` asserts the deprecation is
+    still emitted. See `ABI_STABILITY.md` §6.1.
   - A header that both C and C++ can include. *Done on this branch:* `cbindgen.toml`
     sets `cpp_compat = true`, and the C++ test (`tests/capi/cpp/test_cpp_api.cpp`)
     compiles the header as C++ on every supported platform.

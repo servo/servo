@@ -25,7 +25,7 @@ mod webview_delegate;
 
 extern crate servo as servo_api;
 
-use std::ffi::c_char;
+use std::ffi::{CStr, c_char};
 use std::rc::Rc;
 
 use options::ServoOptions;
@@ -384,7 +384,7 @@ pub(crate) fn is_compatible_struct_size(struct_size: u32, rust_size: usize) -> b
 pub const SERVO_CAPI_VERSION_MAJOR: u32 = 0;
 
 /// Minor version of the Servo C API.
-pub const SERVO_CAPI_VERSION_MINOR: u32 = 1;
+pub const SERVO_CAPI_VERSION_MINOR: u32 = 2;
 
 /// Patch version of the Servo C API.
 pub const SERVO_CAPI_VERSION_PATCH: u32 = 0;
@@ -396,6 +396,15 @@ pub const SERVO_CAPI_VERSION_PATCH: u32 = 0;
 pub const SERVO_CAPI_VERSION: u32 =
     (SERVO_CAPI_VERSION_MAJOR << 16) | (SERVO_CAPI_VERSION_MINOR << 8) | SERVO_CAPI_VERSION_PATCH;
 
+/// The version of the Servo C API as a NUL terminated string.
+///
+/// This must stay in sync with [`SERVO_CAPI_VERSION_MAJOR`],
+/// [`SERVO_CAPI_VERSION_MINOR`] and [`SERVO_CAPI_VERSION_PATCH`]. The C test
+/// `test_capi_version` (`tests/capi/c/test_api.c`) compares this string against
+/// the `MAJOR.MINOR.PATCH` macros expanded from the generated header, so a
+/// mismatch fails CI instead of shipping a header/library version skew.
+const SERVO_CAPI_VERSION_STRING: &CStr = c"0.2.0";
+
 /// Returns the version of the Servo C API as a NUL terminated UTF-8 string.
 ///
 /// The returned pointer refers to static memory and must not be freed or
@@ -405,7 +414,7 @@ pub const SERVO_CAPI_VERSION: u32 =
 /// the header they compiled against reports.
 #[unsafe(no_mangle)]
 pub extern "C" fn servo_capi_version() -> *const c_char {
-    c"0.1.0".as_ptr()
+    SERVO_CAPI_VERSION_STRING.as_ptr()
 }
 
 /// Returns the version of the Servo C API as a packed integer.

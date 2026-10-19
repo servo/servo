@@ -5,6 +5,7 @@
 //! JavaScript evaluation support for the Servo C API.
 
 use std::ffi::{CStr, CString, c_char, c_void};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use servo_api::{JSValue, WebView};
 
@@ -63,6 +64,11 @@ pub type ServoJavaScriptCallbackV2 = Option<
     ),
 >;
 
+/// Guards the one-time runtime deprecation warning emitted by
+/// [`servo_webview_evaluate_javascript`], as required by `ABI_STABILITY.md`
+/// §6.1 ("a runtime diagnostic warning is logged on first invocation").
+static DEPRECATED_EVALUATE_JAVASCRIPT_WARNED: AtomicBool = AtomicBool::new(false);
+
 /// Asynchronously evaluates `script` in the context of the document currently
 /// loaded in `webview`.
 ///
@@ -108,6 +114,15 @@ pub unsafe extern "C" fn servo_webview_evaluate_javascript(
     callback: ServoJavaScriptCallback,
     user_data: *mut c_void,
 ) -> ServoError {
+    if !DEPRECATED_EVALUATE_JAVASCRIPT_WARNED.swap(true, Ordering::Relaxed) {
+        log::warn!(
+            "servo_webview_evaluate_javascript is deprecated since Servo C API 0.2.0; \
+             use servo_webview_evaluate_javascript_v2, which returns a ServoValue. \
+             The deprecated symbol stays exported and will be removed no earlier than \
+             the next MAJOR release (see docs/embedding/ABI_STABILITY.md section 6.1)."
+        );
+    }
+
     ServoError::catch_ffi(|| {
         if webview.is_null() {
             return ServoError::NullArgument;

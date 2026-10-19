@@ -33,7 +33,7 @@ Concretely:
 - It has **no iOS port** and **no iOS CI**. `ports/` contains only `servoshell`.
   Sandboxing explicitly is not supported on iOS, Windows, Android, ARM, or
   RISC-V (`components/servo/servo.rs:1485`).
-- The C embedding API is at **version 0.1.0** (`ffi/capi/lib.rs:248-254`),
+- The C embedding API is at **version 0.2.0** (`ffi/capi/lib.rs:384-397`),
   pre-1.0, with no ABI stability guarantee yet.
 - The engine's own compatibility work is tracked but far from Blink's; Servo
   has been in development since 2012 and, even with recent investment, remains
@@ -175,7 +175,7 @@ documented, memory-safe C ABI over libservo with a consistent
 buffer-query string convention, a version query, and a documented
 ABI-stability policy. That is a solid foundation.
 
-It is, however, a **foundation**, not a CEF replacement. It is version 0.1.0,
+It is, however, a **foundation**, not a CEF replacement. It is version 0.2.0,
 covers a subset of the engine, and (as of this branch) has no shipped prebuilt
 binaries, no long-term support commitment, and no iOS/mobile embedding path.
 

@@ -27,13 +27,14 @@ phases described in [`ROADMAP.md`](./ROADMAP.md).
 ### 2.1 Version macros and runtime query
 
 The header must define the C API version. The C API version is managed
-independently of the workspace crate version (`0.7.0`); the head commit on this
-branch introduces version `0.1.0` as a starting point:
+independently of the workspace crate version (`0.7.0`). The version in the
+header must match `SERVO_CAPI_VERSION` in `ffi/capi/lib.rs`; the current
+version is `0.2.0`:
 
 ```c
 /* servo/version.h (generated or hand-maintained), included by servo/servo_capi.h */
 #define SERVO_CAPI_VERSION_MAJOR 0
-#define SERVO_CAPI_VERSION_MINOR 1
+#define SERVO_CAPI_VERSION_MINOR 2
 #define SERVO_CAPI_VERSION_PATCH 0
 #define SERVO_CAPI_VERSION \
     ((SERVO_CAPI_VERSION_MAJOR << 16) | \
@@ -45,7 +46,7 @@ Plus a runtime query so hosts can detect a mismatched library at load time.
 Today the query returns the release version string:
 
 ```c
-/* Returns the release version string of the loaded library, e.g. "0.1.0". */
+/* Returns the release version string of the loaded library, e.g. "0.2.0". */
 const char* servo_capi_version(void);
 ```
 
@@ -60,8 +61,17 @@ uint32_t servo_capi_get_version(void);
 `SERVO_CAPI_VERSION` constant (`ffi/capi/lib.rs`). Embedders that need the string can
 still compare `servo_capi_version()` against the macros.
 
-The Rust side obtains the values from `env!("CARGO_PKG_VERSION")` / build metadata so the
-header and library cannot drift silently.
+The Rust side defines the components as literal `u32` constants and the version
+string as a separate literal (`SERVO_CAPI_VERSION_STRING`) in `ffi/capi/lib.rs`;
+they are **not** derived from `env!("CARGO_PKG_VERSION")`. A version bump
+therefore touches four places — `SERVO_CAPI_VERSION_MAJOR`,
+`SERVO_CAPI_VERSION_MINOR`, `SERVO_CAPI_VERSION_PATCH` and
+`SERVO_CAPI_VERSION_STRING` — and they must all agree. That agreement is
+CI-enforced: `tests/capi/c/test_api.c::test_capi_version` stringifies the
+`MAJOR.MINOR.PATCH` macros from the generated header and `strcmp`s them against
+`servo_capi_version()`, so a bump that updates the numbers but not the string
+(or vice versa) fails `embedding-api.yml` instead of shipping a header/library
+version skew.
 
 ### 2.2 Semantic versioning rules
 
@@ -411,6 +421,29 @@ error).
   3. *Removal:* Removal occurs exclusively in a MAJOR release bump (`1.0.0`), with advance
      notice in release notes.
 - **Never reuse a name** that has been deprecated or removed for a different purpose.
+
+**Enforcement (what makes the above more than a promise).** Two CI checks in
+`embedding-api.yml` back this policy:
+
+- *Deprecation is emitted:* the generated header must contain at least one
+  `SERVO_DEPRECATED("...")` declaration, and it must be attached to the expected
+  symbol. Without this, removing `cbindgen.toml`'s `deprecated` /
+  `deprecated_with_note` keys or dropping the `#[deprecated]` attribute would
+  silently stop emitting the deprecation and this section would be a claim with
+  nothing enforcing it.
+- *The symbol stays exported:* `symbols.txt` keeps the deprecated symbol in the
+  allowlist, so `embedding-api.yml` fails if a deprecation is turned into a
+  removal by accident.
+
+**Current deprecations**
+
+| Symbol | Deprecated in | Replacement | Removal window |
+|---|---|---|---|
+| `servo_webview_evaluate_javascript` | `0.2.0` | `servo_webview_evaluate_javascript_v2`, which returns a structured `ServoValue` instead of a JSON string | No earlier than the next MAJOR release; the symbol stays exported and functional through `0.(X+1).0` |
+
+`servo_webview_evaluate_javascript` also logs a one-time runtime warning
+(`log::warn!`, guarded by an `AtomicBool`, in `ffi/capi/javascript.rs`) on first
+invocation, as step 1 of the lifecycle above requires.
 
 ### 6.2 Release Signing and Distribution Verification
 

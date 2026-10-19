@@ -190,3 +190,24 @@ jobs:
             exit 1
           fi
           echo "Exported C API symbols match the allowlist ($(wc -l < ffi/capi/symbols.txt) symbols)."
+
+      # Assert the deprecation path is real. cbindgen must emit
+      # SERVO_DEPRECATED(...) for #[deprecated] declarations. Without this check,
+      # dropping the #[deprecated] attribute or the `deprecated`/`deprecated_with_note`
+      # keys in cbindgen.toml would silently stop emitting the deprecation, and the
+      # policy in docs/embedding/ABI_STABILITY.md section 6.1 would be a claim with
+      # nothing enforcing it.
+      - name: Check deprecation path is exercised
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected=servo_webview_evaluate_javascript
+          if ! grep -qE 'SERVO_DEPRECATED\("[^"]+"\)' target/servo_capi.h; then
+            echo "::error::No SERVO_DEPRECATED(\"...\") declaration in the generated header; the deprecation path is not exercised."
+            exit 1
+          fi
+          if ! grep -B1 "^ServoError ${expected}(" target/servo_capi.h | grep -q 'SERVO_DEPRECATED('; then
+            echo "::error::${expected} is not declared SERVO_DEPRECATED in the generated header."
+            exit 1
+          fi
+          echo "Deprecation path exercised: ${expected} is emitted as SERVO_DEPRECATED."

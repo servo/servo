@@ -20,6 +20,16 @@
 // The test runner expects us to return 0 for success and
 // non-zero for failure.
 
+// Stringify the version components so `test_capi_version` can compare the
+// runtime version string against the macros the embedder compiled against.
+// Without this, bumping SERVO_CAPI_VERSION_* but forgetting the string literal
+// in `servo_capi_version()` would compile and pass.
+#define SERVO_STRINGIFY_HELPER(x) #x
+#define SERVO_STRINGIFY(x) SERVO_STRINGIFY_HELPER(x)
+#define SERVO_CAPI_VERSION_STRING_EXPECTED     \
+    SERVO_STRINGIFY(SERVO_CAPI_VERSION_MAJOR)  \
+    "." SERVO_STRINGIFY(SERVO_CAPI_VERSION_MINOR) "." SERVO_STRINGIFY(SERVO_CAPI_VERSION_PATCH)
+
 static int tests_run;
 static int tests_failed;
 
@@ -567,18 +577,22 @@ static struct WebView* get_test_webview(void)
     return create_about_blank_webview();
 }
 
-/* Covers `servo_capi_version()`: the version string must be non-NULL,
- * non-empty, and start with the "0." prefix of the current 0.x API. Also
- * covers the packed integer query and the `SERVO_CAPI_VERSION` macros. */
+/* Covers `servo_capi_version()`: the runtime version string must be non-NULL
+ * and must match the `MAJOR.MINOR.PATCH` macros the caller compiled against.
+ * That is what makes a header/library version skew (a bump that changed the
+ * macros but not the string, or vice versa) fail CI instead of shipping. It
+ * also covers the packed integer query and the `SERVO_CAPI_VERSION` macro. */
 int test_capi_version(void)
 {
     const char* version = servo_capi_version();
     if (version == NULL)
         return 1;
-    if (version[0] == '\0')
+
+    if (strcmp(version, SERVO_CAPI_VERSION_STRING_EXPECTED) != 0) {
+        printf("  FAIL: servo_capi_version() returned \"%s\", expected \"%s\"\n", version,
+               SERVO_CAPI_VERSION_STRING_EXPECTED);
         return 1;
-    if (version[0] != '0' || version[1] != '.')
-        return 1;
+    }
 
     /* The packed integer query must agree with the constant compiled into the
      * header (a mismatch means a header/library version skew). */
