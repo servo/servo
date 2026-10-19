@@ -342,7 +342,7 @@ Maturity labels are qualitative: **prototype** (not safe to depend on),
 | C API surface | **prototype→alpha** | 76 functions on this branch (25 added: navigation, getters, zoom/resize/focus/show–hide, runtime preference setters, JS evaluation, theme); single rendering context (software); 5 delegate fields; still no close/stop-load, cookies, schemes, request interception, dialogs, DevTools, or process bootstrap. |
 | C API ABI stability | **prototype** | Version query (`servo_capi_version`) + macros added on this branch; policy drafted in `ABI_STABILITY.md`; no deprecation mechanism yet, header regenerated unversioned. |
 | C API safety at the boundary | **prototype** | Manual pointer ownership; pervasive `assert!` and `.unwrap()` on inputs; panics can unwind toward the FFI boundary (see §5). |
-| Accessibility / WebXR / WebDriver | **alpha** | Reachable from Rust (`forward_accessibility_action`, `register_webxr_registry`, `execute_webdriver_command`); not exposed to C. |
+| Accessibility / WebXR / WebDriver | **alpha** | Accessibility tree **updates** are reachable from C as well as Rust as of W6.4 (`notify_accessibility_tree_update` plus `servo_webview_set_accessibility_active`); forwarding an a11y action, WebXR (`register_webxr_registry`) and WebDriver (`execute_webdriver_command`) remain Rust-only. |
 | Process model | **alpha** | Either single- or multi-process, configured via options; no C-level process bootstrap. |
 | Tooling | **alpha (Rust)** / **missing (C)** | DevTools server notifications via `ServoDelegate`; DevTools not reachable from C. |
 

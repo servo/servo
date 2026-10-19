@@ -933,6 +933,192 @@ cleanup:
     return result;
 }
 
+/* State for the W6.4 accessibility-exposure test. */
+typedef struct {
+    int load_complete;
+    int closed;
+    /* Number of accessibility tree updates delivered to the delegate. */
+    int update_calls;
+    /* How many of those carried a dictionary payload (the `ServoValue` shape
+     * documented for `notify_accessibility_tree_update`). */
+    int updates_with_dictionary;
+    /* How many carried at least one AccessKit node. */
+    int updates_with_nodes;
+} accessibility_test_state_t;
+
+static void on_a11y_load_status(struct WebView* webview, int32_t load_status, void* user_data)
+{
+    (void)webview;
+    if (load_status == SERVO_LOAD_STATUS_COMPLETE) {
+        ((accessibility_test_state_t*)user_data)->load_complete = 1;
+    }
+}
+
+static void on_a11y_closed(struct WebView* webview, void* user_data)
+{
+    (void)webview;
+    ((accessibility_test_state_t*)user_data)->closed = 1;
+}
+
+/* The callback owns the payload, so it is inspected and freed here. */
+static void on_a11y_tree_update(struct WebView* webview, ServoValue* tree_update, void* user_data)
+{
+    (void)webview;
+    accessibility_test_state_t* state = (accessibility_test_state_t*)user_data;
+    state->update_calls++;
+
+    if (tree_update == NULL) {
+        log("  [a11y] update with a NULL payload\n");
+        return;
+    }
+
+    int32_t type = SERVO_VALUE_TYPE_INVALID;
+    if (servo_value_get_type(tree_update, &type) == SERVO_ERROR_OK
+        && type == SERVO_VALUE_TYPE_DICTIONARY) {
+        state->updates_with_dictionary++;
+
+        // AccessKit names the node list "nodes"; the focus-only update that
+        // follows a graft carries an empty one.
+        ServoDictionaryValue* dict = NULL;
+        if (servo_value_get_dictionary(tree_update, &dict) == SERVO_ERROR_OK && dict != NULL) {
+            ServoValue* nodes = NULL;
+            if (servo_dictionary_get_key(dict, "nodes", &nodes) == SERVO_ERROR_OK && nodes != NULL) {
+                ServoListValue* nodes_list = NULL;
+                if (servo_value_get_list(nodes, &nodes_list) == SERVO_ERROR_OK
+                    && nodes_list != NULL) {
+                    uintptr_t node_count = 0;
+                    if (servo_list_get_size(nodes_list, &node_count) == SERVO_ERROR_OK
+                        && node_count > 0) {
+                        state->updates_with_nodes++;
+                    }
+                    servo_list_free(nodes_list);
+                }
+                servo_value_free(nodes);
+            }
+            servo_dictionary_free(dict);
+        }
+    } else {
+        log("  [a11y] update payload was not a dictionary (type %d)\n", (int)type);
+    }
+
+    if (state->update_calls == 1) {
+        // Show the first payload once, so a failure in this test can be read
+        // straight out of the CI log.
+        size_t needed = servo_value_to_json(tree_update, NULL, 0);
+        if (needed > 1) {
+            char* json = (char*)malloc(needed);
+            if (json != NULL) {
+                if (servo_value_to_json(tree_update, json, needed) > 0) {
+                    log("  [a11y] first update (%zu bytes): %.400s%s\n", needed, json,
+                        needed > 401 ? "..." : "");
+                }
+                free(json);
+            }
+        }
+    }
+
+    servo_value_free(tree_update);
+}
+
+/* Proves that a C embedder can receive the page's AccessKit tree.
+ *
+ * Accessibility is off by default and gated on the `accessibility_enabled`
+ * preference, so the test turns both on, loads a small page, and waits for the
+ * delegate to report an update carrying nodes. Before W6.4 there was no C API
+ * for any of this, although ACCESSIBILITY_AND_PRINTING.md section 1 claimed
+ * "C Embedding Exposure" existed. */
+static int test_accessibility_tree_update(struct Servo* servo)
+{
+    log("running test_accessibility_tree_update\n");
+    int result = 1; // default to fail
+    struct WebView* webview = NULL;
+    accessibility_test_state_t state;
+    memset(&state, 0, sizeof(state));
+
+    // Off by default: without this the activation below is a silent no-op.
+    if (servo_set_preference_bool(servo, "accessibility_enabled", true) != SERVO_ERROR_OK) {
+        log("  FAIL: could not set the accessibility_enabled preference\n");
+        goto cleanup;
+    }
+
+    RenderingContext* context = servo_rendering_context_create_software(200, 200);
+    if (!context) {
+        log("  FAIL: servo_rendering_context_create_software returned NULL\n");
+        goto cleanup;
+    }
+
+    ServoWebViewBuilder* builder = servo_webview_builder_create(servo, context);
+    if (!builder) {
+        log("  FAIL: servo_webview_builder_create returned NULL\n");
+        goto cleanup;
+    }
+
+    ServoWebViewDelegate delegate = {
+        .struct_size = sizeof(ServoWebViewDelegate),
+        .user_data = &state,
+        .notify_load_status_changed = on_a11y_load_status,
+        .notify_closed = on_a11y_closed,
+        .notify_accessibility_tree_update = on_a11y_tree_update,
+    };
+
+    if (servo_webview_builder_set_delegate(builder, delegate) != SERVO_ERROR_OK) {
+        log("  FAIL: servo_webview_builder_set_delegate failed\n");
+        servo_webview_builder_free(builder);
+        goto cleanup;
+    }
+
+    const char* url =
+        "data:text/html,<html><body><button id='b'>Press me</button></body></html>";
+    if (servo_webview_builder_set_url(builder, url) != SERVO_ERROR_OK) {
+        log("  FAIL: servo_webview_builder_set_url failed\n");
+        servo_webview_builder_free(builder);
+        goto cleanup;
+    }
+
+    webview = servo_webview_builder_build(builder);
+    if (!webview) {
+        log("  FAIL: servo_webview_builder_build returned NULL\n");
+        goto cleanup;
+    }
+
+    // Activate before the page loads, so the tree is built with the first
+    // layout rather than requiring a second round trip.
+    if (servo_webview_set_accessibility_active(webview, true) != SERVO_ERROR_OK) {
+        log("  FAIL: servo_webview_set_accessibility_active returned an error\n");
+        goto cleanup;
+    }
+
+    if (!spin_until_count(servo, &state.update_calls, 1, 15000)) {
+        log("  FAIL: no accessibility tree update reached the delegate\n");
+        goto cleanup;
+    }
+    if (!spin_until_count(servo, &state.updates_with_nodes, 1, 15000)) {
+        log("  FAIL: no accessibility tree update carried any nodes\n");
+        goto cleanup;
+    }
+    if (state.updates_with_dictionary != state.update_calls) {
+        log("  FAIL: %d of %d updates did not carry a dictionary payload\n",
+            state.update_calls - state.updates_with_dictionary, state.update_calls);
+        goto cleanup;
+    }
+
+    log("  PASS: %d accessibility tree update(s) reached the delegate, "
+        "%d carrying nodes\n", state.update_calls, state.updates_with_nodes);
+    result = 0;
+
+cleanup:
+    if (webview) {
+        // Close cooperatively and wait for `notify_closed` before freeing, as
+        // documented in C_API_GUIDE.md.
+        servo_webview_close(webview);
+        spin_until_count(servo, &state.closed, 1, 10000);
+        servo_webview_free(webview);
+    }
+    // Leave the shared Servo as it was found.
+    servo_set_preference_bool(servo, "accessibility_enabled", false);
+    return result;
+}
+
 /* W4.2b. A haptic effect request only exists when the engine was built with the
  * `gamepad` feature and a gamepad is physically connected. CI has neither, so
  * the round trip itself cannot be exercised here - see the "Gamepad delegate"
@@ -2511,6 +2697,9 @@ int run_c_integration_tests(void)
     }
     if (result == 0) {
         result = test_embedder_controls_round_trip(servo);
+    }
+    if (result == 0) {
+        result = test_accessibility_tree_update(servo);
     }
     if (result == 0) {
         result = test_repeated_load_cycles(servo);

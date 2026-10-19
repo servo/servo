@@ -15,6 +15,7 @@ use crate::find::ServoFindResult;
 use crate::protocol_handler::{
     ResourceLoadInner, ServoWebResourceLoad, ServoWebResourceRequest, ServoWebResourceResponse,
 };
+use crate::value::ServoValue;
 use crate::webview::ServoCreateNewWebViewRequest;
 pub use servo_api::LoadStatus;
 use servo_api::{
@@ -1086,6 +1087,31 @@ pub struct ServoWebViewDelegate {
             user_data: *mut c_void,
         ) -> bool,
     >,
+
+    // Accessibility category (new)
+    /// Called when the accessibility tree of the associated `WebView` changes.
+    ///
+    /// `tree_update` is a `ServoValue` holding one AccessKit tree update, using
+    /// AccessKit's own JSON schema (the schema `accesskit` serialises
+    /// `TreeUpdate` with). It is a dictionary with `nodes`, `treeId` and
+    /// `focus` entries and can be walked with the `servo_value_*`,
+    /// `servo_dictionary_*` and `servo_list_*` functions.
+    ///
+    /// Ownership of `tree_update` passes to the callback, which must free it
+    /// with `servo_value_free` once it is done with it. A host that feeds
+    /// AccessKit's platform adapter can hand the payload to it directly; a host
+    /// that does not can ignore the callback.
+    ///
+    /// Updates only arrive after accessibility has been activated for the
+    /// `WebView` with `servo_webview_set_accessibility_active`, which in turn
+    /// only works when the `accessibility_enabled` preference is `true`.
+    pub notify_accessibility_tree_update: Option<
+        unsafe extern "C" fn(
+            webview: *mut WebView,
+            tree_update: *mut ServoValue,
+            user_data: *mut c_void,
+        ),
+    >,
 }
 
 /// Inherent methods for `ServoWebViewDelegate`.
@@ -1248,6 +1274,42 @@ impl WebViewDelegate for ServoWebViewDelegate {
             callback(
                 &mut webview as *mut WebView,
                 std::ptr::null(),
+                self.user_data,
+            )
+        };
+    }
+
+    fn notify_accessibility_tree_update(
+        &self,
+        mut webview: WebView,
+        tree_update: servo_api::accesskit::TreeUpdate,
+    ) {
+        let Some(callback) = self.notify_accessibility_tree_update else {
+            return;
+        };
+
+        // The C payload is a `ServoValue` rather than a live AccessKit handle,
+        // matching CEF, which hands the host a `CefValue` for the same event.
+        // AccessKit already defines a JSON schema for `TreeUpdate` and derives
+        // `Serialize` for it, so the generated header does not have to repeat
+        // the whole AccessKit type graph.
+        let Ok(json) = serde_json::to_string(&tree_update) else {
+            return;
+        };
+        let Ok(value) = ServoValue::from_json_string(&json) else {
+            return;
+        };
+
+        // SAFETY: The embedder is assumed to uphold the safety requirements of
+        // the `ServoWebViewDelegate` struct.
+        //
+        // The `webview` raw pointer is derived from a valid `webview` handle,
+        // and ownership of the boxed value passes to the callback, which is
+        // documented to free it with `servo_value_free`.
+        unsafe {
+            callback(
+                &mut webview as *mut WebView,
+                Box::into_raw(Box::new(value)),
                 self.user_data,
             )
         };

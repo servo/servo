@@ -1076,6 +1076,62 @@ position. The color and file controls have no such gate, and the CI suite drives
 end to end in `test_embedder_controls_round_trip`: the control is triggered, the
 delegate answers, and the page is read back to confirm the answer landed.
 
+### Accessibility delegate (new)
+
+Servo maintains an [AccessKit](https://accesskit.dev/) tree for every `WebView`, but it is
+**off by default** because of the cost of keeping it up to date, and the feature is gated
+on the `accessibility_enabled` preference. Both switches have to be on before any update
+is delivered:
+
+```c
+/* 1. The preference is off by default. Any time after servo_builder_build: */
+servo_set_preference_bool(servo, "accessibility_enabled", true);
+
+/* 2. Ask for the tree for this WebView. */
+servo_webview_set_accessibility_active(webview, true);
+```
+
+`servo_webview_set_accessibility_active` reports no error when accessibility cannot be
+turned on: with the preference `false` the call is a no-op and no updates ever arrive,
+which mirrors the Rust API, where `WebView::set_accessibility_active` returns `None`. Set
+the preference **before** activating, or the activation is silently dropped. Deactivating
+with `false` frees the tree and stops the callbacks.
+
+Once active, every tree change is reported to the delegate:
+
+```c
+ServoWebViewDelegate delegate = {
+    .struct_size = sizeof(ServoWebViewDelegate),
+    .user_data = app,
+    .notify_accessibility_tree_update = on_accessibility_tree_update,
+};
+
+void on_accessibility_tree_update(struct WebView* webview, struct ServoValue* tree_update,
+    void* user_data)
+{
+    /* ...inspect tree_update... */
+    servo_value_free(tree_update);   /* the callback owns the payload */
+}
+```
+
+`tree_update` is a `ServoValue` dictionary rather than an opaque engine handle: it is
+AccessKit's own JSON schema for a `TreeUpdate`, decoded into the value containers this API
+already exposes (`nodes`, `treeId`, `focus`). Walk it with the `servo_value_*`,
+`servo_dictionary_*` and `servo_list_*` functions, or hand the payload to a host-side
+AccessKit binding. CEF hands the host a `CefValue` for the same event; this is the
+equivalent.
+
+Notes:
+
+- **Ownership.** The value is allocated for the duration of the callback. Free it with
+  `servo_value_free` or the payload leaks.
+- **Shape.** The first update creates the tree and carries the viewport root and graft
+  nodes; a later update for the document carries the page's own nodes; a focus change
+  carries an empty `nodes` list. An empty `nodes` list is normal, not an error.
+- **Not exposed yet:** forwarding an AccessKit *action* (a screen reader click, for
+  example) back to the page. The Rust API has `Servo::forward_accessibility_action`; the C
+  API does not, which is recorded in the build plan's §D.2.1.
+
 ### Close flow example
 
 To close a `WebView` cooperatively, call `servo_webview_close` and wait for the

@@ -227,6 +227,7 @@ servo_webview_resize
 servo_webview_scroll_by
 servo_webview_scroll_to_end
 servo_webview_scroll_to_start
+servo_webview_set_accessibility_active
 servo_webview_set_focused
 servo_webview_set_fullscreen
 servo_webview_set_hidpi_scale_factor

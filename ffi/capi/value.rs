@@ -262,7 +262,7 @@ impl ServoValue {
         }
     }
 
-    fn from_json_string(json: &str) -> Result<Self, serde_json::Error> {
+    pub(crate) fn from_json_string(json: &str) -> Result<Self, serde_json::Error> {
         let value: serde_json::Value = serde_json::from_str(json)?;
         Ok(Self::from_serde_value(&value))
     }

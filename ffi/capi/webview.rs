@@ -1271,6 +1271,46 @@ pub unsafe extern "C" fn servo_webview_focused(webview: *const WebView) -> bool 
     unsafe { &*webview }.focused()
 }
 
+/// Turns accessibility on or off for `webview`.
+///
+/// With accessibility active, Servo builds an AccessKit tree for the page and
+/// reports every change to the `notify_accessibility_tree_update` callback of
+/// the WebView's delegate. Accessibility is off by default because of the cost
+/// of maintaining the tree, so a host that wants the callback must both set the
+/// `accessibility_enabled` preference to `true` (with
+/// `servo_set_preference_bool`) and call this function with `active` set to
+/// `true`.
+///
+/// Like the Rust API, this reports no error when accessibility cannot be
+/// activated: if `accessibility_enabled` is `false`, the call is a no-op and no
+/// updates are delivered. There is no way to distinguish that from the case
+/// where accessibility was already in the requested state, so hosts that need
+/// the callback should set the preference before calling this.
+///
+/// Deactivating frees the tree and stops the callback.
+///
+/// # Safety
+///
+/// See [`servo_webview_go_back`] for the safety requirements, which apply
+/// identically here.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_webview_set_accessibility_active(
+    webview: *mut WebView,
+    active: bool,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if webview.is_null() {
+            return ServoError::NullArgument;
+        }
+
+        // SAFETY: The caller is assumed to uphold the safety requirements for
+        // `webview` documented above.
+        let _ = unsafe { &*webview }.set_accessibility_active(active);
+
+        ServoError::Ok
+    })
+}
+
 /// Marks `webview` as visible so that it resumes producing frames.
 ///
 /// # Safety
