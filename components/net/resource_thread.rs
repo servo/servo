@@ -887,7 +887,8 @@ impl CoreResourceManager {
                 },
                 None => {
                     let preload_id = request.preload_id.clone();
-                    let response = fetch(request, &mut sender, &context).await;
+                    let response =
+                        fetch(request, &mut Default::default(), &mut sender, &context).await;
                     if let Some(preload_id) = preload_id {
                         Self::handle_preloaded_response(preloaded_resources, preload_id, response);
                     }
@@ -960,7 +961,13 @@ impl CoreResourceManager {
                         preloaded_resources,
                         in_flight_keep_alive_records,
                     };
-                    fetch(request, &mut event_sender, &context).await;
+                    fetch(
+                        request,
+                        &mut Default::default(),
+                        &mut event_sender,
+                        &context,
+                    )
+                    .await;
                 },
                 Err(e) => {
                     trace!("unable to create websocket handshake request {:?}", e);

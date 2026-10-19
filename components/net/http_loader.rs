@@ -1482,7 +1482,7 @@ async fn http_network_or_cache_fetch(
                     .map(|record| {
                         if record.request_id == http_request.id {
                             // Don't double count for this request. We have already added it in
-                            // `fetch::methods::fetch_with_cors_cache`
+                            // `fetch::methods::fetch`
                             0
                         } else {
                             record.keep_alive_body_length
@@ -1984,7 +1984,13 @@ fn spawn_stale_while_revalidate(
     spawn_task(async move {
         let mut target = DiscardFetch;
 
-        let _ = fetch(revalidation_request, &mut target, &context).await;
+        let _ = fetch(
+            revalidation_request,
+            &mut Default::default(),
+            &mut target,
+            &context,
+        )
+        .await;
         revalidation_guard.store(false, Ordering::Release);
     });
 }

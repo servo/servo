@@ -176,14 +176,7 @@ pub(crate) fn transfers_request_body_stream_to_later_manual_redirect(
 pub type DoneChannel = Option<(TokioSender<Data>, TokioReceiver<Data>)>;
 
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
-pub async fn fetch(request: Request, target: Target<'_>, context: &FetchContext) -> Response {
-    fetch_with_cors_cache(request, &mut CorsCache::default(), target, context).await
-}
-
-/// Continuation of fetch from step 8.
-///
-/// <https://fetch.spec.whatwg.org#concept-fetch>
-pub async fn fetch_with_cors_cache(
+pub async fn fetch(
     request: Request,
     cache: &mut CorsCache,
     target: Target<'_>,

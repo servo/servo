@@ -225,7 +225,15 @@ impl ProtocolHandler for WebPageContentProtocolHandler {
             .push(UrlWithBlobClaim::new(result_url, None));
         let request2 = request.clone();
         let context2 = context.clone();
-        Box::pin(async move { fetch(request2, &mut DiscardFetch, &context2).await })
+        Box::pin(async move {
+            fetch(
+                request2,
+                &mut Default::default(),
+                &mut DiscardFetch,
+                &context2,
+            )
+            .await
+        })
     }
 }
 
