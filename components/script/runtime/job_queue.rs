@@ -297,8 +297,8 @@ pub(crate) fn job_queue_microtask_checkpoint(
     // Step 4. For each environment settings object settingsObject whose responsible
     // event loop is this event loop, notify about rejected promises given
     // settingsObject's global object.
-    for global in globalscopes.clone().into_iter() {
-        notify_about_rejected_promises(cx, &global);
+    for global in &globalscopes {
+        notify_about_rejected_promises(cx, global);
     }
 
     // https://html.spec.whatwg.org/multipage/#perform-a-microtask-checkpoint
