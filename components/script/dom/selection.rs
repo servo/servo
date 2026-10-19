@@ -5,7 +5,7 @@
 use std::cell::{Cell, LazyCell};
 use std::cmp::Ordering;
 
-use atomic_refcell::AtomicRefCell;
+use atomic_refcell::{AtomicRef, AtomicRefCell};
 use bitflags::bitflags;
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
@@ -30,7 +30,7 @@ use crate::dom::bindings::error::{Error, ErrorResult, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
-use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom, ToLayout};
+use crate::dom::bindings::root::{Dom, DomRoot, LayoutDom, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::comparator::compare_dom_positions;
 use crate::dom::document::Document;
@@ -1444,20 +1444,8 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 }
 
 impl<'dom> LayoutDom<'dom, Selection> {
-    #[expect(unsafe_code)]
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))] // Borrow of a traced field, never escapes.
-    pub(crate) fn range_for_layout(
-        &self,
-    ) -> Option<((LayoutDom<'dom, Node>, u32), (LayoutDom<'dom, Node>, u32))> {
-        let range = self.unsafe_get().visible_range.borrow();
-        let range = range.as_ref()?;
-        // Layout runs while script is blocked, and `visible_range` traces these nodes.
-        unsafe {
-            Some((
-                (range.start.container.to_layout(), range.start.offset),
-                (range.end.container.to_layout(), range.end.offset),
-            ))
-        }
+    pub(crate) fn range_for_layout(&self) -> Option<AtomicRef<'dom, SelectionRange>> {
+        AtomicRef::filter_map(self.unsafe_get().visible_range.borrow(), Option::as_ref)
     }
 }
 
