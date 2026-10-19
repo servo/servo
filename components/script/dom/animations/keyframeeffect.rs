@@ -16,7 +16,7 @@ use js::conversions::{
 use js::gc::{HandleValue, RootedVec};
 use js::jsapi::{Heap, JS_GetPropertyById, JSITER_OWNONLY, JSObject};
 use js::jsval::{ObjectValue, UndefinedValue};
-use js::rust::wrappers2::{GetPropertyKeys, JS_NewObject};
+use js::rust::wrappers2::JS_NewObject;
 use js::rust::{
     ForOfIterationFailure, HandleObject, IdVector, IntoHandle, IntoMutableHandle, for_of,
 };
@@ -30,7 +30,7 @@ use script_bindings::codegen::GenericUnionTypes::UnrestrictedDoubleOrKeyframeEff
 use script_bindings::conversions::StringificationBehavior;
 use script_bindings::error::{Error, Fallible};
 use script_bindings::inheritance::Castable;
-use script_bindings::js::{JS_DefineProperty, JS_IdToValue, PropertyFlags};
+use script_bindings::js::{GetPropertyKeys, JS_DefineProperty, JS_IdToValue, PropertyFlags};
 use script_bindings::num::Finite;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_bindings::root::DomRoot;
@@ -402,7 +402,7 @@ fn get_property_declarations(
     // on the object. Instead we can iterate over the own properties of the object and see
     // if they're animated properties, that's easier.
     let mut ids = IdVector::new(cx);
-    if !unsafe { GetPropertyKeys(cx, object, JSITER_OWNONLY, ids.handle_mut()) } {
+    if !GetPropertyKeys(cx, object, JSITER_OWNONLY, ids.handle_mut()) {
         return Ok(Vec::new());
     }
 

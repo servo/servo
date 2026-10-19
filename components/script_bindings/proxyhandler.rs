@@ -30,12 +30,12 @@ use js::jsid::SymbolId;
 use js::jsval::{ObjectValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers2::{
-    AppendToIdVector, Call, GetObjectProto, GetPropertyKeys, GetRealmKeyObject, GetWeakMapEntry,
-    GetWellKnownSymbol, JS_AlreadyHasOwnPropertyById, JS_AtomizeAndPinString, JS_DefineFunctions,
-    JS_DefineProperties, JS_DefinePropertyById, JS_DeletePropertyById,
-    JS_GetOwnPropertyDescriptorById, JS_ValueToSource, JS_WrapObject, JS_WrapValue,
-    NewWeakMapObject, RUST_INTERNED_STRING_TO_JSID, RUST_JSID_IS_VOID, SetDataPropertyDescriptor,
-    SetPropertyIgnoringNamedGetter, SetWeakMapEntry, int_to_jsid,
+    AppendToIdVector, Call, GetObjectProto, GetRealmKeyObject, GetWeakMapEntry, GetWellKnownSymbol,
+    JS_AlreadyHasOwnPropertyById, JS_AtomizeAndPinString, JS_DefineFunctions, JS_DefineProperties,
+    JS_DefinePropertyById, JS_DeletePropertyById, JS_GetOwnPropertyDescriptorById,
+    JS_ValueToSource, JS_WrapObject, JS_WrapValue, NewWeakMapObject, RUST_INTERNED_STRING_TO_JSID,
+    RUST_JSID_IS_VOID, SetDataPropertyDescriptor, SetPropertyIgnoringNamedGetter, SetWeakMapEntry,
+    int_to_jsid,
 };
 use js::rust::{
     Handle, HandleId, HandleObject, HandleValue, IntoHandle, MutableHandle, MutableHandleObject,
@@ -46,7 +46,7 @@ use crate::DomTypes;
 use crate::conversions::{is_dom_proxy, jsid_to_string, native_from_object};
 use crate::error::Error;
 use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
-use crate::js::{JS_IdToValue, JS_IsExceptionPending, JS_NewObjectWithGivenProto};
+use crate::js::{GetPropertyKeys, JS_IdToValue, JS_IsExceptionPending, JS_NewObjectWithGivenProto};
 use crate::principals::ServoJSPrincipalsRef;
 use crate::reflector::DomObject;
 use crate::str::DOMString;

@@ -3,13 +3,14 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::ffi::CStr;
+use std::os::raw::c_uint;
 use std::ptr;
 
 use bitflags::bitflags;
 use js::context::JSContext;
 use js::jsapi::{
     ExceptionStackBehavior, JSClass, JSObject, JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY,
-    jsid,
+    MutableHandleIdVector, jsid,
 };
 use js::rust::{HandleId, HandleObject, HandleValue, MutableHandleObject, MutableHandleValue};
 
@@ -124,6 +125,18 @@ pub fn JS_GetProperty(
 #[inline]
 pub fn JS_GetPrototype(cx: &mut JSContext, obj: HandleObject, result: MutableHandleObject) -> bool {
     unsafe { js::rust::wrappers2::JS_GetPrototype(cx, obj, result) }
+}
+
+/// Safe wrapper around [`js::rust::wrappers2::GetPropertyKeys`].
+#[allow(non_snake_case)]
+#[inline]
+pub fn GetPropertyKeys(
+    cx: &mut JSContext,
+    obj: HandleObject,
+    flags: c_uint,
+    props: MutableHandleIdVector,
+) -> bool {
+    unsafe { js::rust::wrappers2::GetPropertyKeys(cx, obj, flags, props) }
 }
 
 #[cfg(test)]
