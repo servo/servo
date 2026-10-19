@@ -675,6 +675,264 @@ cleanup:
     return result;
 }
 
+/* Spins the event loop until the counter at `counter` reaches `target` or
+ * `timeout_ms` elapses. Returns 1 if the counter reached the target, 0 if the
+ * timeout expired first. */
+static int spin_until_count(struct Servo* servo, const int* counter, int target, int timeout_ms)
+{
+    int waited_ms = 0;
+    const int poll_ms = 5;
+    while (*counter < target && waited_ms < timeout_ms) {
+        servo_spin_event_loop(servo);
+        sleep_ms(poll_ms);
+        waited_ms += poll_ms;
+    }
+    return *counter >= target;
+}
+
+/* State for the W4.2 clipboard round-trip test. */
+typedef struct {
+    int load_complete;
+    int closed;
+    /* Calls received by the embedder's clipboard delegate. */
+    int get_text_calls;
+    int set_text_calls;
+    char set_text_value[128];
+    /* Number of completed JavaScript evaluations and the last result. */
+    int js_calls;
+    char js_result[64];
+} clipboard_test_state_t;
+
+/* The text the delegate reports as the clipboard contents. */
+static const char CLIPBOARD_TEXT[] = "servo-clipboard-round-trip";
+
+/* The editing shortcuts are `Cmd` based on macOS and `Ctrl` based everywhere
+ * else, matching `CMD_OR_CONTROL` in
+ * `components/script/dom/document/editing.rs`. */
+#ifdef __APPLE__
+#define CLIPBOARD_SHORTCUT_MODIFIER SERVO_MODIFIER_META
+#else
+#define CLIPBOARD_SHORTCUT_MODIFIER SERVO_MODIFIER_CONTROL
+#endif
+
+static void on_clipboard_load_status(struct WebView* webview, int32_t load_status, void* user_data)
+{
+    (void)webview;
+    if (load_status == SERVO_LOAD_STATUS_COMPLETE) {
+        ((clipboard_test_state_t*)user_data)->load_complete = 1;
+    }
+}
+
+static void on_clipboard_closed(struct WebView* webview, void* user_data)
+{
+    (void)webview;
+    ((clipboard_test_state_t*)user_data)->closed = 1;
+}
+
+static void on_clipboard_js(const char* result_json, const char* error_message, void* user_data)
+{
+    clipboard_test_state_t* state = (clipboard_test_state_t*)user_data;
+    state->js_calls++;
+    state->js_result[0] = '\0';
+    if (result_json != NULL) {
+        strncpy(state->js_result, result_json, sizeof(state->js_result) - 1);
+        state->js_result[sizeof(state->js_result) - 1] = '\0';
+    } else {
+        log("  [js] evaluation failed: %s\n", error_message ? error_message : "(null)");
+    }
+}
+
+static void on_clipboard_get_text(struct WebView* webview, ServoClipboardStringRequest* request,
+    void* user_data)
+{
+    (void)webview;
+    clipboard_test_state_t* state = (clipboard_test_state_t*)user_data;
+    state->get_text_calls++;
+    log("  [clipboard] get_text\n");
+
+    // Answer right away. The script thread blocks waiting for this request to
+    // be resolved, so deferring the answer past this callback would deadlock
+    // the page.
+    ServoError error = servo_webview_clipboard_request_success(request, CLIPBOARD_TEXT);
+    if (error != SERVO_ERROR_OK) {
+        log("  FAIL: servo_webview_clipboard_request_success returned %d\n", (int)error);
+    }
+}
+
+static void on_clipboard_set_text(struct WebView* webview, const char* text, void* user_data)
+{
+    (void)webview;
+    clipboard_test_state_t* state = (clipboard_test_state_t*)user_data;
+    state->set_text_calls++;
+    log("  [clipboard] set_text('%s')\n", text ? text : "(null)");
+    if (text != NULL) {
+        strncpy(state->set_text_value, text, sizeof(state->set_text_value) - 1);
+        state->set_text_value[sizeof(state->set_text_value) - 1] = '\0';
+    }
+}
+
+/* Proves that the `ServoClipboardDelegate` installed on a builder is the
+ * delegate the engine actually consults, in both directions.
+ *
+ * The page is a focused `<textarea>`. A paste shortcut makes the engine ask the
+ * embedder for the clipboard contents (`get_text`); the delegate answers with
+ * `CLIPBOARD_TEXT`, and the test then asks the page whether that text landed in
+ * the textarea. A copy shortcut makes the engine hand the embedder the selected
+ * text (`set_text`), which the test compares against `CLIPBOARD_TEXT`.
+ *
+ * Those assertions only hold if the delegate replaced Servo's built-in system
+ * clipboard implementation, which is what W4.2 requires. */
+static int test_clipboard_round_trip(struct Servo* servo)
+{
+    log("running test_clipboard_round_trip\n");
+    int result = 1; // default to fail
+    struct WebView* webview = NULL;
+    clipboard_test_state_t state;
+    memset(&state, 0, sizeof(state));
+
+    // The rendering context is owned by the WebView once the builder is
+    // created, so only the WebView is freed (see C_API_GUIDE.md).
+    RenderingContext* context = servo_rendering_context_create_software(100, 100);
+    if (!context) {
+        log("  FAIL: servo_rendering_context_create_software returned NULL\n");
+        goto cleanup;
+    }
+
+    ServoWebViewBuilder* builder = servo_webview_builder_create(servo, context);
+    if (!builder) {
+        log("  FAIL: servo_webview_builder_create returned NULL\n");
+        goto cleanup;
+    }
+
+    ServoWebViewDelegate delegate = {
+        .struct_size = sizeof(ServoWebViewDelegate),
+        .user_data = &state,
+        .notify_load_status_changed = on_clipboard_load_status,
+        .notify_closed = on_clipboard_closed,
+    };
+    ServoClipboardDelegate clipboard_delegate = {
+        .struct_size = sizeof(ServoClipboardDelegate),
+        .user_data = &state,
+        .clear = NULL,
+        .get_text = on_clipboard_get_text,
+        .set_text = on_clipboard_set_text,
+    };
+
+    if (servo_webview_builder_set_delegate(builder, delegate) != SERVO_ERROR_OK) {
+        log("  FAIL: servo_webview_builder_set_delegate failed\n");
+        servo_webview_builder_free(builder);
+        goto cleanup;
+    }
+    if (servo_webview_builder_set_clipboard_delegate(builder, clipboard_delegate)
+        != SERVO_ERROR_OK) {
+        log("  FAIL: servo_webview_builder_set_clipboard_delegate failed\n");
+        servo_webview_builder_free(builder);
+        goto cleanup;
+    }
+
+    // A delegate compiled against a smaller struct must be rejected instead of
+    // being read past its end (ABI_STABILITY.md section 3.3).
+    {
+        ServoClipboardDelegate truncated_delegate = clipboard_delegate;
+        truncated_delegate.struct_size = 0;
+        if (servo_webview_builder_set_clipboard_delegate(builder, truncated_delegate)
+            != SERVO_ERROR_INVALID_ARGUMENT) {
+            log("  FAIL: set_clipboard_delegate accepted struct_size = 0\n");
+            servo_webview_builder_free(builder);
+            goto cleanup;
+        }
+    }
+
+    const char* url = "data:text/html,<html><body><textarea id='t'></textarea></body></html>";
+    if (servo_webview_builder_set_url(builder, url) != SERVO_ERROR_OK) {
+        log("  FAIL: servo_webview_builder_set_url failed\n");
+        servo_webview_builder_free(builder);
+        goto cleanup;
+    }
+
+    webview = servo_webview_builder_build(builder);
+    if (!webview) {
+        log("  FAIL: servo_webview_builder_build returned NULL\n");
+        goto cleanup;
+    }
+
+    if (!spin_until_count(servo, &state.load_complete, 1, 10000)) {
+        log("  FAIL: the page never finished loading\n");
+        goto cleanup;
+    }
+    servo_webview_set_focused(webview, true);
+
+    // Put the cursor in the textarea so that the paste has a target.
+    servo_webview_evaluate_javascript(webview,
+        "const t = document.getElementById('t'); t.focus(); t.setSelectionRange(0, 0);",
+        on_clipboard_js, &state);
+    if (!spin_until_count(servo, &state.js_calls, 1, 10000)) {
+        log("  FAIL: focusing the textarea timed out\n");
+        goto cleanup;
+    }
+
+    // Paste: the engine has to ask the embedder for the clipboard contents.
+    log("  Sending the paste shortcut...\n");
+    servo_webview_notify_key_event(webview, SERVO_KEY_EVENT_DOWN, "v", "KeyV", 0,
+        CLIPBOARD_SHORTCUT_MODIFIER, false, false);
+    servo_webview_notify_key_event(webview, SERVO_KEY_EVENT_UP, "v", "KeyV", 0,
+        CLIPBOARD_SHORTCUT_MODIFIER, false, false);
+    if (!spin_until_count(servo, &state.get_text_calls, 1, 10000)) {
+        log("  FAIL: the paste never reached ServoClipboardDelegate::get_text\n");
+        goto cleanup;
+    }
+
+    // Read the textarea back from the page: the delegate's text is only visible
+    // here if the engine actually inserted it.
+    servo_webview_evaluate_javascript(webview,
+        "document.getElementById('t').value === 'servo-clipboard-round-trip'", on_clipboard_js,
+        &state);
+    if (!spin_until_count(servo, &state.js_calls, 2, 10000)) {
+        log("  FAIL: reading the textarea back timed out\n");
+        goto cleanup;
+    }
+    if (strcmp(state.js_result, "true") != 0) {
+        log("  FAIL: the textarea value after paste is not the delegate's clipboard "
+            "text (expression returned '%s')\n", state.js_result);
+        goto cleanup;
+    }
+
+    // Copy: the engine has to hand the embedder the selected text.
+    log("  Sending the copy shortcut...\n");
+    servo_webview_evaluate_javascript(webview, "document.getElementById('t').select()",
+        on_clipboard_js, &state);
+    if (!spin_until_count(servo, &state.js_calls, 3, 10000)) {
+        log("  FAIL: selecting the textarea timed out\n");
+        goto cleanup;
+    }
+    servo_webview_notify_key_event(webview, SERVO_KEY_EVENT_DOWN, "c", "KeyC", 0,
+        CLIPBOARD_SHORTCUT_MODIFIER, false, false);
+    servo_webview_notify_key_event(webview, SERVO_KEY_EVENT_UP, "c", "KeyC", 0,
+        CLIPBOARD_SHORTCUT_MODIFIER, false, false);
+    if (!spin_until_count(servo, &state.set_text_calls, 1, 10000)) {
+        log("  FAIL: the copy never reached ServoClipboardDelegate::set_text\n");
+        goto cleanup;
+    }
+    if (strcmp(state.set_text_value, CLIPBOARD_TEXT) != 0) {
+        log("  FAIL: set_text received '%s', expected '%s'\n", state.set_text_value,
+            CLIPBOARD_TEXT);
+        goto cleanup;
+    }
+
+    log("  PASS: clipboard get_text/set_text round-tripped through the C API\n");
+    result = 0;
+
+cleanup:
+    if (webview) {
+        // Close cooperatively and wait for `notify_closed` before freeing, as
+        // documented in C_API_GUIDE.md.
+        servo_webview_close(webview);
+        spin_until_count(servo, &state.closed, 1, 10000);
+        servo_webview_free(webview);
+    }
+    return result;
+}
+
 /* State for the hang-monitor test is the shared `test_state_t`; the
  * interrupted evaluation is reported through `js_error_received` / `js_error`. */
 static void on_javascript_hang_kill(const char* result_json, const char* error_message, void* user_data)
@@ -1881,6 +2139,9 @@ int run_c_integration_tests(void)
     }
     if (result == 0) {
         result = test_webview_close(servo);
+    }
+    if (result == 0) {
+        result = test_clipboard_round_trip(servo);
     }
     if (result == 0) {
         result = test_repeated_load_cycles(servo);

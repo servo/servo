@@ -402,6 +402,7 @@ parent, non-window parent, zero size, or FBO creation failure).
 ServoWebViewBuilder* servo_webview_builder_create(struct Servo*, RenderingContext*); /* takes ownership of context */
 int  servo_webview_builder_set_url(ServoWebViewBuilder*, const char* url); /* 0 ok, -1 bad URL */
 void servo_webview_builder_set_delegate(ServoWebViewBuilder*, ServoWebViewDelegate);
+void servo_webview_builder_set_clipboard_delegate(ServoWebViewBuilder*, ServoClipboardDelegate); /* (new) */
 struct WebView* servo_webview_builder_build(ServoWebViewBuilder*); /* consumes builder */
 void servo_webview_builder_free(ServoWebViewBuilder*);
 
@@ -459,6 +460,22 @@ struct ServoWebViewDelegate {
                               const char* message_json,
                               void* user_data);
 };
+
+/* Clipboard delegate (new). Set with
+ * servo_webview_builder_set_clipboard_delegate. */
+struct ServoClipboardDelegate {
+    uint32_t struct_size;   /* set to sizeof(ServoClipboardDelegate) */
+    uint32_t _reserved;     /* 0 */
+    void* user_data;
+    void (*clear)(struct WebView*, void* user_data);
+    void (*get_text)(struct WebView*, struct ServoClipboardStringRequest* request, void* user_data);
+    void (*set_text)(struct WebView*, const char* text, void* user_data);
+};
+
+/* Opaque handle passed to `get_text`. Exactly one of these resolves it and
+ * takes ownership of the handle. */
+ServoError servo_webview_clipboard_request_success(struct ServoClipboardStringRequest*, const char* text);
+ServoError servo_webview_clipboard_request_failure(struct ServoClipboardStringRequest*, const char* message);
 ```
 
 Any delegate field may be `NULL`. Function pointers are copied by value and must
@@ -843,6 +860,53 @@ The `url` and `title` arguments are only valid for the duration of the callback.
 
 All string arguments (`url`, `title`, `text`, `error_text`, `message`) are only valid
 for the duration of the callback. Copy them if you need to retain the value.
+
+### Clipboard delegate (new)
+
+`ServoClipboardDelegate`, set with `servo_webview_builder_set_clipboard_delegate`, takes
+over system clipboard access for a `WebView`. Install it when the host wants copy, cut
+and paste to go through its own clipboard instead of Servo's built-in implementation.
+
+```c
+ServoClipboardDelegate clipboard = {
+    .struct_size = sizeof(ServoClipboardDelegate),
+    .user_data = app,
+    .clear = NULL,             /* optional                       */
+    .get_text = on_get_text,   /* required for paste to work     */
+    .set_text = on_set_text,   /* required for copy/cut to work  */
+};
+
+void on_get_text(struct WebView* webview, struct ServoClipboardStringRequest* request,
+                 void* user_data)
+{
+    /* Answer immediately; the page is waiting for this. */
+    servo_webview_clipboard_request_success(request, "text on the clipboard");
+}
+
+void on_set_text(struct WebView* webview, const char* text, void* user_data)
+{
+    /* `text` is only valid for the duration of the callback. */
+}
+```
+
+`get_text` hands the embedder an opaque `ServoClipboardStringRequest`. Exactly one of
+`servo_webview_clipboard_request_success` (with the clipboard text) or
+`servo_webview_clipboard_request_failure` (with a message) resolves it; either transfers
+ownership of the handle, so it must not be used afterwards. Resolve it from the event
+loop that runs `servo_spin_event_loop`: the paste editing action blocks the script
+thread until the request is answered, so deferring the answer past the callback wedges
+the page. A `NULL` `get_text` fails every request immediately, which keeps a
+half-configured delegate from wedging the page.
+
+`clear` and `set_text` are fire-and-forget: there is no response, and a `NULL` callback
+simply means the request is ignored. When no clipboard delegate is set at all, Servo
+uses its built-in system clipboard implementation.
+
+Like the other delegates, `ServoClipboardDelegate` is ABI-versioned: set
+`.struct_size = sizeof(ServoClipboardDelegate)`, leave `_reserved` zero, and prefer
+designated initializers so future fields cannot shift the ones you set. A delegate whose
+`struct_size` is smaller than the size it was compiled with is rejected with
+`SERVO_ERROR_INVALID_ARGUMENT`.
 
 ### Close flow example
 

@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 mod cert_error;
+mod clipboard;
 mod cookie_manager;
 mod download;
 mod find;
@@ -111,6 +112,13 @@ pub use cert_error::{
     SERVO_CERT_ERROR_TRANSPARENCY_REQUIRED, SERVO_CERT_ERROR_UNKNOWN_CA, SERVO_CERT_ERROR_WEAK_KEY,
     SERVO_CERT_ERROR_WEAK_SIGNATURE_ALGORITHM, ServoCertErrorCallback, ServoCertErrorCode,
     ServoCertificateError, servo_certificate_error_continue,
+};
+
+// Re-export clipboard types
+pub use clipboard::{
+    ServoClipboardClearCallback, ServoClipboardDelegate, ServoClipboardGetTextCallback,
+    ServoClipboardSetTextCallback, ServoClipboardStringRequest,
+    servo_webview_clipboard_request_failure, servo_webview_clipboard_request_success,
 };
 
 // Re-export download constants

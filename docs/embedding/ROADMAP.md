@@ -222,13 +222,18 @@ clipboard, and both on-screen and offscreen rendering.
 - Clipboard and gamepad:
   - `ClipboardDelegate` C struct + `StringRequest` responder functions
     (`servo_webview_clipboard_request_success`/`_failure`), or a simpler synchronous
-    text API where the platform allows.
+    text API where the platform allows. *Done on this branch:* `ServoClipboardDelegate`
+    + `servo_webview_builder_set_clipboard_delegate`, with an opaque
+    `ServoClipboardStringRequest` resolved by `servo_webview_clipboard_request_success`
+    / `_failure`. Round-tripped by `test_clipboard_round_trip` in both directions
+    (paste reads through `get_text`, copy writes through `set_text`).
   - `GamepadDelegate` C struct + `GamepadHapticEffectRequest` success/failure.
 - Reference host: document and test a minimal C "browser window" sample driving input.
 
 **Files / crates**
 
-- `ffi/capi/{input.rs (new), rendering_context.rs, webview_delegate.rs, webview.rs, lib.rs}`.
+- `ffi/capi/{input.rs (new), clipboard.rs (new), rendering_context.rs, webview_delegate.rs,
+  webview.rs, lib.rs}`.
 - `tests/capi/c/*.c`, `tests/capi/build.rs` (if new sources).
 - `ports/servoshell` is the behavioral reference for input/cursor/IME/clipboard/refresh.
 

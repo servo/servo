@@ -82,6 +82,7 @@ pub const SERVO_MEDIA_SESSION_ACTION_NEXT_TRACK: c_int = 5;
 pub const SERVO_MEDIA_SESSION_ACTION_SKIP_AD: c_int = 6;
 pub const SERVO_MEDIA_SESSION_ACTION_STOP: c_int = 7;
 
+use crate::clipboard::ServoClipboardDelegate;
 use crate::rendering_context::RenderingContext;
 use crate::webview_delegate::ServoWebViewDelegate;
 
@@ -101,6 +102,7 @@ pub struct ServoWebViewBuilder {
     rendering_context: Rc<dyn servo_api::RenderingContext>,
     url: Option<url::Url>,
     delegate: Option<ServoWebViewDelegate>,
+    clipboard_delegate: Option<Rc<dyn servo_api::ClipboardDelegate>>,
     pub(crate) user_content_manager: Option<Rc<servo_api::UserContentManager>>,
     pub(crate) request_context: Option<servo_api::RequestContext>,
     hidpi_scale_factor: Option<f32>,
@@ -161,6 +163,7 @@ pub unsafe extern "C" fn servo_webview_builder_create(
             rendering_context: boxed_c_context.inner,
             url: None,
             delegate: None,
+            clipboard_delegate: None,
             user_content_manager: None,
             request_context: None,
             hidpi_scale_factor: None,
@@ -273,6 +276,55 @@ pub unsafe extern "C" fn servo_webview_builder_set_delegate(
     })
 }
 
+/// Sets the delegate that will handle clipboard access for the `WebView` being
+/// built.
+///
+/// `builder` is a handle to a `ServoWebViewBuilder` object.
+/// The ownership of `builder` remains with the caller after the call.
+///
+/// `delegate` is a `ServoClipboardDelegate` struct with the callbacks you are
+/// interested in. Servo copies the struct, so the caller may free or reuse its
+/// own storage after the call.
+///
+/// When no clipboard delegate is set, Servo uses its built-in implementation,
+/// which reads and writes the system clipboard directly.
+///
+/// Returns `ServoError::Ok` on success, `ServoError::NullArgument` if `builder`
+/// is NULL, or `ServoError::InvalidArgument` if `delegate.struct_size` is
+/// smaller than the size of `ServoClipboardDelegate` compiled into this
+/// library.
+///
+/// # Safety
+///
+/// The caller must ensure that:
+///
+/// - `builder` is a non-null pointer to a `ServoWebViewBuilder`
+///   previously returned by `servo_webview_builder_create` and has not
+///   yet been freed nor passed to another API that takes ownership of
+///   it.
+/// - `delegate` must uphold the safety requirements documented on the
+///   `ServoClipboardDelegate` type.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_webview_builder_set_clipboard_delegate(
+    builder: *mut ServoWebViewBuilder,
+    delegate: ServoClipboardDelegate,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if builder.is_null() {
+            return ServoError::NullArgument;
+        }
+        if !crate::is_compatible_struct_size(
+            delegate.struct_size,
+            std::mem::size_of::<ServoClipboardDelegate>(),
+        ) {
+            return ServoError::InvalidArgument;
+        }
+        let builder = unsafe { &mut *builder };
+        builder.clipboard_delegate = Some(Rc::new(delegate));
+        ServoError::Ok
+    })
+}
+
 /// Sets the HiDPI scale factor for the `WebView` being built.
 ///
 /// `builder` is a handle to a `ServoWebViewBuilder` object.
@@ -334,6 +386,7 @@ pub unsafe extern "C" fn servo_webview_builder_build(
             rendering_context,
             url,
             delegate,
+            clipboard_delegate,
             user_content_manager,
             request_context,
             hidpi_scale_factor,
@@ -359,6 +412,10 @@ pub unsafe extern "C" fn servo_webview_builder_build(
 
         if let Some(delegate) = delegate {
             webview_builder = webview_builder.delegate(std::rc::Rc::new(delegate));
+        }
+
+        if let Some(clipboard_delegate) = clipboard_delegate {
+            webview_builder = webview_builder.clipboard_delegate(clipboard_delegate);
         }
 
         if let Some(user_content_manager) = user_content_manager {
@@ -479,6 +536,7 @@ pub unsafe extern "C" fn servo_create_new_webview_builder_create(
             rendering_context: boxed_c_context.inner,
             url: None,
             delegate: None,
+            clipboard_delegate: None,
             user_content_manager: None,
             request_context: None,
             hidpi_scale_factor: None,
