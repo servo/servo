@@ -1431,9 +1431,12 @@ cleanup:
 
 /* W5.7 — repeated create/load/close leak test.
  *
- * Cycles a WebView through create -> load -> wait-for-complete -> free and
- * samples the process RSS after every cycle. A leak in the per-WebView path
- * (the classic embedder defect) shows up as monotonic growth in those samples.
+ * Cycles a WebView through create -> load -> wait-for-complete -> close ->
+ * wait-for-closed -> free and samples the process RSS after every cycle. A leak
+ * in the per-WebView path (the classic embedder defect) shows up as monotonic
+ * growth in those samples. The cooperative close is part of the cycle on
+ * purpose: a WebView that is freed while still open leaves its engine-side
+ * state registered on the Servo (see C_API_GUIDE.md "Close flow example").
  *
  * Why RSS rather than an internal allocator counter: RSS is what an embedder
  * actually watches, and it covers allocations made inside the `servo_capi`
@@ -1495,6 +1498,7 @@ static size_t process_rss_bytes(void)
 
 typedef struct {
     int load_complete;
+    int closed;
 } leak_cycle_state_t;
 
 static void on_leak_cycle_load_status(struct WebView* webview, int32_t load_status,
@@ -1504,6 +1508,12 @@ static void on_leak_cycle_load_status(struct WebView* webview, int32_t load_stat
     if (load_status == SERVO_LOAD_STATUS_COMPLETE) {
         ((leak_cycle_state_t*)user_data)->load_complete = 1;
     }
+}
+
+static void on_leak_cycle_closed(struct WebView* webview, void* user_data)
+{
+    (void)webview;
+    ((leak_cycle_state_t*)user_data)->closed = 1;
 }
 
 static int test_repeated_load_cycles(struct Servo* servo)
@@ -1534,6 +1544,7 @@ static int test_repeated_load_cycles(struct Servo* servo)
             .struct_size = sizeof(ServoWebViewDelegate),
             .user_data = &state,
             .notify_load_status_changed = on_leak_cycle_load_status,
+            .notify_closed = on_leak_cycle_closed,
         };
         servo_webview_builder_set_delegate(builder, delegate);
         if (servo_webview_builder_set_url(builder, "data:text/html,<title>leak</title>cycle")
@@ -1558,6 +1569,27 @@ static int test_repeated_load_cycles(struct Servo* servo)
 
         if (!state.load_complete) {
             log("  FAIL: cycle %d: load never completed after %dms\n", i, elapsed_ms);
+            servo_webview_free(webview);
+            goto cleanup;
+        }
+
+        // Close cooperatively and wait for `notify_closed` before freeing.
+        // Freeing a still-open WebView leaves the engine-side `WebView` (and its
+        // painter and rendering context) registered on the `Servo`, which is a
+        // leak by construction. See C_API_GUIDE.md "Close flow example".
+        if (servo_webview_close(webview) != SERVO_ERROR_OK) {
+            log("  FAIL: cycle %d: servo_webview_close failed\n", i);
+            servo_webview_free(webview);
+            goto cleanup;
+        }
+        elapsed_ms = 0;
+        while (!state.closed && elapsed_ms < 10000) {
+            servo_spin_event_loop(servo);
+            sleep_ms(poll_ms);
+            elapsed_ms += poll_ms;
+        }
+        if (!state.closed) {
+            log("  FAIL: cycle %d: notify_closed never fired after %dms\n", i, elapsed_ms);
             servo_webview_free(webview);
             goto cleanup;
         }
