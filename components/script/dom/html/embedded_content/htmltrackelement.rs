@@ -589,18 +589,25 @@ impl HTMLTrackElementFetchListener {
 }
 
 impl FetchResponseListener for HTMLTrackElementFetchListener {
-    fn process_request_body(&mut self, _: RequestId) {}
+    fn process_request_body(&mut self, _: &GlobalScope, _: RequestId) {}
 
     fn process_response(
         &mut self,
         _: &mut JSContext,
+        _: &GlobalScope,
         _: RequestId,
         _: Result<FetchMetadata, NetworkError>,
     ) {
     }
 
     /// Step 10.4 of <https://html.spec.whatwg.org/multipage/#start-the-track-processing-model>
-    fn process_response_chunk(&mut self, _: &mut JSContext, _: RequestId, payload: Bytes) {
+    fn process_response_chunk(
+        &mut self,
+        _: &mut JSContext,
+        _: &GlobalScope,
+        _: RequestId,
+        payload: Bytes,
+    ) {
         // > If, while fetching is ongoing, either:
         //     > the track URL changes so that it is no longer equal to URL,
         //       > while the text track mode is set to hidden or showing; or
@@ -628,6 +635,7 @@ impl FetchResponseListener for HTMLTrackElementFetchListener {
     fn process_response_eof(
         self,
         cx: &mut JSContext,
+        global: &GlobalScope,
         _: RequestId,
         status: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -687,16 +695,16 @@ impl FetchResponseListener for HTMLTrackElementFetchListener {
         }
         *element.controller.borrow_mut() = None;
         element.is_running_processing_model_algorithm.set(false);
-        network_listener::submit_timing(cx, &self, &status, &timing);
+        network_listener::submit_timing(cx, global, &self, &status, &timing);
     }
 
     fn process_csp_violations(
         &mut self,
         cx: &mut JSContext,
+        global: &GlobalScope,
         _: RequestId,
         violations: Vec<Violation>,
     ) {
-        let global = &self.resource_timing_global();
         global.report_csp_violations(cx, violations, None, None);
     }
 
@@ -709,9 +717,5 @@ impl ResourceTimingListener for HTMLTrackElementFetchListener {
     /// Step 10.3. of <https://html.spec.whatwg.org/multipage/#start-the-track-processing-model>
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
         (InitiatorType::Track, self.url.clone())
-    }
-
-    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-        self.element.root().owner_document().global()
     }
 }

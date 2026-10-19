@@ -117,13 +117,12 @@ struct XHRContext {
 }
 
 impl FetchResponseListener for XHRContext {
-    fn process_request_body(&mut self, _: RequestId) {
-        // todo
-    }
+    fn process_request_body(&mut self, _: &GlobalScope, _: RequestId) {}
 
     fn process_response(
         &mut self,
         cx: &mut JSContext,
+        _: &GlobalScope,
         _: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
@@ -134,7 +133,13 @@ impl FetchResponseListener for XHRContext {
         }
     }
 
-    fn process_response_chunk(&mut self, cx: &mut JSContext, _: RequestId, chunk: Bytes) {
+    fn process_response_chunk(
+        &mut self,
+        cx: &mut JSContext,
+        _: &GlobalScope,
+        _: RequestId,
+        chunk: Bytes,
+    ) {
         self.xhr
             .root()
             .process_data_available(cx, self.gen_id, chunk);
@@ -143,11 +148,12 @@ impl FetchResponseListener for XHRContext {
     fn process_response_eof(
         self,
         cx: &mut JSContext,
+        global: &GlobalScope,
         _: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        network_listener::submit_timing(cx, &self, &response, &timing);
+        network_listener::submit_timing(cx, global, &self, &response, &timing);
 
         let rv = self
             .xhr
@@ -159,10 +165,10 @@ impl FetchResponseListener for XHRContext {
     fn process_csp_violations(
         &mut self,
         cx: &mut js::context::JSContext,
+        global: &GlobalScope,
         _request_id: RequestId,
         violations: Vec<Violation>,
     ) {
-        let global = &self.resource_timing_global();
         global.report_csp_violations(cx, violations, None, None);
     }
 
@@ -174,10 +180,6 @@ impl FetchResponseListener for XHRContext {
 impl ResourceTimingListener for XHRContext {
     fn resource_timing_information(&self) -> (InitiatorType, ServoUrl) {
         (InitiatorType::XMLHttpRequest, self.url.clone())
-    }
-
-    fn resource_timing_global(&self) -> DomRoot<GlobalScope> {
-        self.xhr.root().global()
     }
 }
 

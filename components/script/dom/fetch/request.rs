@@ -5,20 +5,22 @@
 use std::cell::Ref;
 use std::str::FromStr;
 
+use bytes::Bytes;
 use cssparser::match_ignore_ascii_case;
 use dom_struct::dom_struct;
 use http::Method as HttpMethod;
 use http::header::{CONTENT_TYPE, HeaderValue};
 use http::method::InvalidMethod;
 use js::context::JSContext;
+use js::gc::HandleValue;
 use js::rust::HandleObject;
-use net_traits::ReferrerPolicy as MsgReferrerPolicy;
 use net_traits::fetch::headers::is_forbidden_method;
 use net_traits::request::{
     CacheMode, CredentialsMode, Destination, Origin, RedirectMode, Referrer,
     Request as NetTraitsRequest, RequestBuilder, RequestMode as NetTraitsRequestMode,
     TraversableForUserPrompts,
 };
+use net_traits::{FetchMetadata, NetworkError, ReferrerPolicy as MsgReferrerPolicy};
 use script_bindings::cell::DomRefCell;
 use script_bindings::cformat;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
@@ -43,7 +45,7 @@ use crate::fetch::body::{
     BodyMixin, BodyType, Extractable, body_text_stream, clone_body_stream_for_dom_body,
     consume_body,
 };
-use crate::fetch::fetch::RequestWithGlobalScope;
+use crate::fetch::fetch::{FetchCallState, RequestWithGlobalScope};
 use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 #[dom_struct]
@@ -58,16 +60,23 @@ pub(crate) struct Request {
     headers: MutNullableDom<Headers>,
     /// <https://fetch.spec.whatwg.org/#request-signal>
     signal: MutNullableDom<AbortSignal>,
+    /// The [`FetchCallState`] of this request.
+    state: Option<FetchCallState>,
 }
 
 impl Request {
-    fn new_inherited(global: &GlobalScope, url: ServoUrl) -> Request {
+    fn new_inherited(
+        global: &GlobalScope,
+        url: ServoUrl,
+        state: Option<&FetchCallState>,
+    ) -> Request {
         Request {
             reflector_: Reflector::new(),
             request: DomRefCell::new(net_request_from_global(global, url)),
             body_stream: MutNullableDom::new(None),
             headers: Default::default(),
             signal: MutNullableDom::new(None),
+            state: state.cloned(),
         }
     }
 
@@ -76,10 +85,11 @@ impl Request {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         url: ServoUrl,
+        state: Option<&FetchCallState>,
     ) -> DomRoot<Request> {
         reflect_dom_object_with_proto(
             cx,
-            Box::new(Request::new_inherited(global, url)),
+            Box::new(Request::new_inherited(global, url, state)),
             global,
             proto,
         )
@@ -90,19 +100,21 @@ impl Request {
         global: &GlobalScope,
         proto: Option<HandleObject>,
         net_request: NetTraitsRequest,
+        state: Option<&FetchCallState>,
     ) -> DomRoot<Request> {
-        let r = Request::new(cx, global, proto, net_request.current_url());
-        *r.request.borrow_mut() = net_request;
-        r
+        let request = Request::new(cx, global, proto, net_request.current_url(), state);
+        *request.request.borrow_mut() = net_request;
+        request
     }
 
-    // https://fetch.spec.whatwg.org/#dom-request
+    /// <https://fetch.spec.whatwg.org/#dom-request>
     pub(crate) fn constructor(
         cx: &mut js::context::JSContext,
         global: &GlobalScope,
         proto: Option<HandleObject>,
         mut input: RequestInfo,
         init: &RequestInit,
+        state: Option<&FetchCallState>,
     ) -> Fallible<DomRoot<Request>> {
         // Step 1. Let request be null.
         let temporary_request: NetTraitsRequest;
@@ -353,7 +365,7 @@ impl Request {
         // TODO
 
         // Step 28. Set this’s request to request.
-        let request = Request::from_net_request(cx, global, proto, request);
+        let request = Request::from_net_request(cx, global, proto, request, state);
 
         // Step 29. Let signals be « signal » if signal is non-null; otherwise « ».
         let signals = signal.map_or(vec![], |s| vec![s]);
@@ -550,7 +562,7 @@ impl Request {
         let mut new_req_inner = req.clone();
         let body = new_req_inner.body.take();
 
-        let r_clone = Request::new(cx, &r.global(), None, url);
+        let r_clone = Request::new(cx, &r.global(), None, url, None /* state */);
         *r_clone.request.borrow_mut() = new_req_inner;
 
         // Step 2. If request’s body is non-null, set newRequest’s body
@@ -570,6 +582,44 @@ impl Request {
 
     pub(crate) fn request(&self) -> Ref<'_, NetTraitsRequest> {
         self.request.borrow()
+    }
+
+    /// Step 11 of <https://fetch.spec.whatwg.org/#dom-global-fetch>
+    pub(crate) fn abort_fetch(
+        &self,
+        cx: &mut JSContext,
+        abort_reason: HandleValue,
+        global: &GlobalScope,
+    ) {
+        if let Some(fetch_call_state) = &self.state {
+            fetch_call_state.abort_fetch(cx, self, abort_reason, global);
+        }
+    }
+
+    pub(crate) fn process_response(
+        &self,
+        cx: &mut JSContext,
+        fetch_metadata: Result<FetchMetadata, NetworkError>,
+    ) {
+        if let Some(fetch_call_state) = &self.state {
+            fetch_call_state.process_response(cx, fetch_metadata);
+        }
+    }
+
+    pub(crate) fn process_response_chunk(&self, cx: &mut JSContext, chunk: Bytes) {
+        if let Some(fetch_call_state) = &self.state {
+            fetch_call_state.process_response_chunk(cx, chunk);
+        }
+    }
+
+    pub(crate) fn process_response_eof(
+        &self,
+        cx: &mut JSContext,
+        response: &Result<(), NetworkError>,
+    ) {
+        if let Some(fetch_call_state) = &self.state {
+            fetch_call_state.process_response_eof(cx, response);
+        }
     }
 }
 
@@ -619,7 +669,7 @@ impl RequestMethods<crate::DomTypeHolder> for Request {
         input: RequestInfo,
         init: &RequestInit,
     ) -> Fallible<DomRoot<Request>> {
-        Self::constructor(cx, global, proto, input, init)
+        Self::constructor(cx, global, proto, input, init, None /* state */)
     }
 
     /// <https://fetch.spec.whatwg.org/#dom-request-method>
