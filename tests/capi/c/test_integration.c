@@ -1448,14 +1448,13 @@ cleanup:
  * jobs that run this test.
  *
  * RSS measures allocator and OS bookkeeping as well as live memory, so the
- * verdict needs a window that has left allocator warm-up behind. Two runs of
- * this test show how large that warm-up can be: a 50-cycle run grew 42540 KiB
- * over cycles 10..49, almost all of it in a spike between cycles ~23 and ~38,
- * and then settled to ~90 KiB per cycle; a 200-cycle run of the same code grew
- * only ~90 KiB per cycle from cycle 100 onwards. The spike was arena growth,
- * not retention, so `LEAK_TEST_WARMUP` discards more than it: nothing before
- * cycle 250 feeds the verdict, and the run reports both halves of the measured
- * window so a tailing-off curve is visible in the raw log.
+ * verdict needs a window that has left allocator warm-up behind. Two early runs
+ * of this test show how large that warm-up can be: a 50-cycle run grew 42540
+ * KiB over cycles 10..49, almost all of it in a spike between cycles ~23 and
+ * ~38, and then settled to ~90 KiB per cycle; a 200-cycle run of the same code
+ * grew only ~90 KiB per cycle from cycle 100 onwards. The spike was arena
+ * growth, not retention, so a long warm-up is needed and early samples cannot
+ * feed the verdict.
  *
  * Trimming the allocator before each sample does not fix this. An earlier
  * revision called `malloc_trim(0)` (glibc), `malloc_zone_pressure_relief`
@@ -1471,23 +1470,30 @@ cleanup:
  * is retention. It is a diagnostic, not an assertion, because macOS and Windows
  * have no equivalent that is cheap enough to call once per cycle.
  *
+ * The test runs THREE phases of the same cycle with one step taken away at a
+ * time, so growth can be attributed instead of merely observed: cycling only
+ * the software rendering context, cycling a WebView that is never navigated,
+ * and the full create/load/close/free cycle. A phase whose slope matches the
+ * full cycle's is where the memory is going; a phase that is flat while the
+ * full cycle grows puts it in the navigation path.
+ *
  * The bound below is a regression tripwire, not a target: it sits above the
  * growth measured on a healthy build, so ordinary noise cannot make the test
- * flaky while a genuine per-cycle leak still trips it. `LEAK_TEST_WARMUP`
+ * flaky while a genuine per-cycle leak still trips it. `LEAK_PHASE_WARMUP`
  * cycles are discarded because one-off initialisation dominates the earliest
  * samples.
  */
 
-/* Number of create/load/free cycles to run. MEASUREMENT MODE: raised to 500 so
- * that each platform reports two 250-cycle slopes; the committed value is set
- * from that data. */
-#define LEAK_TEST_CYCLES 500
+/* Cycles run in each phase. MEASUREMENT MODE: every phase reports a 200-cycle
+ * slope so the phases can be compared with each other; the committed value is
+ * set from that data. */
+#define LEAK_PHASE_CYCLES 300
 /* Cycles discarded before growth is measured, so that allocator warm-up cannot
  * reach the verdict (see the comment block above). */
-#define LEAK_TEST_WARMUP 250
-/* Maximum allowed RSS growth in bytes, from the warm-up sample to the last.
- * MEASUREMENT MODE: set to 512 MiB so this run reports the full curve on every
- * platform instead of failing; the real bound is set from that data. */
+#define LEAK_PHASE_WARMUP 100
+/* Maximum allowed RSS growth in bytes over the measured window of one phase.
+ * MEASUREMENT MODE: set to 512 MiB so this diagnostic run reports every phase's
+ * curve instead of failing; the real bound is set from that data. */
 #define LEAK_TEST_MAX_GROWTH_BYTES (512 * 1024 * 1024)
 
 /* Reports the bytes the allocator considers in use, or 0 where that is
@@ -1563,86 +1569,116 @@ static void on_leak_cycle_closed(struct WebView* webview, void* user_data)
     ((leak_cycle_state_t*)user_data)->closed = 1;
 }
 
-static int test_repeated_load_cycles(struct Servo* servo)
-{
-    log("running test_repeated_load_cycles\n");
-    int result = 1; // default to fail
-    size_t samples[LEAK_TEST_CYCLES];
-    size_t heaps[LEAK_TEST_CYCLES];
+/* The three lifecycle shapes the leak test compares, each one step short of the
+ * previous. See the comment block above. */
+typedef enum {
+    // Only `servo_rendering_context_create_software` + `_free`.
+    LEAK_PHASE_RENDERING_CONTEXT,
+    // A whole WebView that is never navigated.
+    LEAK_PHASE_WEBVIEW_NO_LOAD,
+    // The real thing: create, navigate, wait for the load, close, free.
+    LEAK_PHASE_FULL,
+} leak_phase_kind_t;
 
-    for (int i = 0; i < LEAK_TEST_CYCLES; i++) {
+/* Runs `LEAK_PHASE_CYCLES` cycles of one shape, logging RSS and (on glibc)
+ * in-use heap for every cycle, and returns 0 when the phase's growth stays
+ * within the bound. */
+static int run_leak_phase(struct Servo* servo, leak_phase_kind_t kind, const char* name)
+{
+    log("--- [leak] phase \"%s\": %d cycles (%d warm-up + %d measured) ---\n", name,
+        LEAK_PHASE_CYCLES, LEAK_PHASE_WARMUP, LEAK_PHASE_CYCLES - LEAK_PHASE_WARMUP);
+
+    int result = 1; // default to fail
+    size_t samples[LEAK_PHASE_CYCLES];
+    size_t heaps[LEAK_PHASE_CYCLES];
+
+    for (int i = 0; i < LEAK_PHASE_CYCLES; i++) {
         leak_cycle_state_t state;
         memset(&state, 0, sizeof(state));
 
-        // The rendering context is owned by the WebView once the builder is
-        // created, so only the WebView is freed (see C_API_GUIDE.md).
-        RenderingContext* context = servo_rendering_context_create_software(100, 100);
-        if (!context) {
-            log("  FAIL: cycle %d: servo_rendering_context_create_software returned NULL\n", i);
-            goto cleanup;
-        }
+        if (kind == LEAK_PHASE_RENDERING_CONTEXT) {
+            RenderingContext* context = servo_rendering_context_create_software(100, 100);
+            if (!context) {
+                log("  FAIL: cycle %d: servo_rendering_context_create_software returned NULL\n", i);
+                goto cleanup;
+            }
+            servo_rendering_context_free(context);
+        } else {
+            // The rendering context is owned by the WebView once the builder is
+            // created, so only the WebView is freed (see C_API_GUIDE.md).
+            RenderingContext* context = servo_rendering_context_create_software(100, 100);
+            if (!context) {
+                log("  FAIL: cycle %d: servo_rendering_context_create_software returned NULL\n", i);
+                goto cleanup;
+            }
 
-        ServoWebViewBuilder* builder = servo_webview_builder_create(servo, context);
-        if (!builder) {
-            log("  FAIL: cycle %d: servo_webview_builder_create returned NULL\n", i);
-            goto cleanup;
-        }
+            ServoWebViewBuilder* builder = servo_webview_builder_create(servo, context);
+            if (!builder) {
+                log("  FAIL: cycle %d: servo_webview_builder_create returned NULL\n", i);
+                goto cleanup;
+            }
 
-        ServoWebViewDelegate delegate = {
-            .struct_size = sizeof(ServoWebViewDelegate),
-            .user_data = &state,
-            .notify_load_status_changed = on_leak_cycle_load_status,
-            .notify_closed = on_leak_cycle_closed,
-        };
-        servo_webview_builder_set_delegate(builder, delegate);
-        if (servo_webview_builder_set_url(builder, "data:text/html,<title>leak</title>cycle")
-            != SERVO_ERROR_OK) {
-            log("  FAIL: cycle %d: servo_webview_builder_set_url failed\n", i);
-            goto cleanup;
-        }
+            ServoWebViewDelegate delegate = {
+                .struct_size = sizeof(ServoWebViewDelegate),
+                .user_data = &state,
+                .notify_load_status_changed = on_leak_cycle_load_status,
+                .notify_closed = on_leak_cycle_closed,
+            };
+            servo_webview_builder_set_delegate(builder, delegate);
 
-        struct WebView* webview = servo_webview_builder_build(builder);
-        if (!webview) {
-            log("  FAIL: cycle %d: servo_webview_builder_build returned NULL\n", i);
-            goto cleanup;
-        }
+            if (kind == LEAK_PHASE_FULL
+                && servo_webview_builder_set_url(builder, "data:text/html,<title>leak</title>cycle")
+                    != SERVO_ERROR_OK) {
+                log("  FAIL: cycle %d: servo_webview_builder_set_url failed\n", i);
+                goto cleanup;
+            }
 
-        int elapsed_ms = 0;
-        const int poll_ms = 5;
-        while (!state.load_complete && elapsed_ms < 10000) {
-            servo_spin_event_loop(servo);
-            sleep_ms(poll_ms);
-            elapsed_ms += poll_ms;
-        }
+            struct WebView* webview = servo_webview_builder_build(builder);
+            if (!webview) {
+                log("  FAIL: cycle %d: servo_webview_builder_build returned NULL\n", i);
+                goto cleanup;
+            }
 
-        if (!state.load_complete) {
-            log("  FAIL: cycle %d: load never completed after %dms\n", i, elapsed_ms);
+            const int poll_ms = 5;
+            int elapsed_ms = 0;
+            if (kind == LEAK_PHASE_FULL) {
+                while (!state.load_complete && elapsed_ms < 10000) {
+                    servo_spin_event_loop(servo);
+                    sleep_ms(poll_ms);
+                    elapsed_ms += poll_ms;
+                }
+                if (!state.load_complete) {
+                    log("  FAIL: cycle %d: load never completed after %dms\n", i, elapsed_ms);
+                    servo_webview_free(webview);
+                    goto cleanup;
+                }
+                elapsed_ms = 0;
+            }
+
+            // Close cooperatively and wait for `notify_closed` before freeing.
+            // Freeing a still-open WebView leaves the engine-side `WebView` (and
+            // its painter and rendering context) registered on the `Servo`,
+            // which is a leak by construction. See C_API_GUIDE.md "Close flow
+            // example".
+            if (servo_webview_close(webview) != SERVO_ERROR_OK) {
+                log("  FAIL: cycle %d: servo_webview_close failed\n", i);
+                servo_webview_free(webview);
+                goto cleanup;
+            }
+            while (!state.closed && elapsed_ms < 10000) {
+                servo_spin_event_loop(servo);
+                sleep_ms(poll_ms);
+                elapsed_ms += poll_ms;
+            }
+            if (!state.closed) {
+                log("  FAIL: cycle %d: notify_closed never fired after %dms\n", i, elapsed_ms);
+                servo_webview_free(webview);
+                goto cleanup;
+            }
+
             servo_webview_free(webview);
-            goto cleanup;
         }
 
-        // Close cooperatively and wait for `notify_closed` before freeing.
-        // Freeing a still-open WebView leaves the engine-side `WebView` (and its
-        // painter and rendering context) registered on the `Servo`, which is a
-        // leak by construction. See C_API_GUIDE.md "Close flow example".
-        if (servo_webview_close(webview) != SERVO_ERROR_OK) {
-            log("  FAIL: cycle %d: servo_webview_close failed\n", i);
-            servo_webview_free(webview);
-            goto cleanup;
-        }
-        elapsed_ms = 0;
-        while (!state.closed && elapsed_ms < 10000) {
-            servo_spin_event_loop(servo);
-            sleep_ms(poll_ms);
-            elapsed_ms += poll_ms;
-        }
-        if (!state.closed) {
-            log("  FAIL: cycle %d: notify_closed never fired after %dms\n", i, elapsed_ms);
-            servo_webview_free(webview);
-            goto cleanup;
-        }
-
-        servo_webview_free(webview);
         // Raw samples: see the comment block above for why nothing is trimmed
         // out of them first.
         samples[i] = process_rss_bytes();
@@ -1653,61 +1689,81 @@ static int test_repeated_load_cycles(struct Servo* servo)
             goto cleanup;
         }
         if (heaps[i] != 0) {
-            log("  [leak] cycle %3d: rss=%zu KiB; heap_in_use=%zu KiB\n", i, samples[i] / 1024,
-                heaps[i] / 1024);
+            log("  [leak] %s cycle %3d: rss=%zu KiB; heap_in_use=%zu KiB\n", name, i,
+                samples[i] / 1024, heaps[i] / 1024);
         } else {
-            log("  [leak] cycle %3d: rss=%zu KiB\n", i, samples[i] / 1024);
+            log("  [leak] %s cycle %3d: rss=%zu KiB\n", name, i, samples[i] / 1024);
         }
         if ((i + 1) % 25 == 0) {
-            if (i >= LEAK_TEST_WARMUP) {
-                log("  [leak] === %d cycles, rss=%zu KiB (last 25: %+ld KiB, since cycle %d: "
+            if (i >= LEAK_PHASE_WARMUP) {
+                log("  [leak] === %s %d cycles, rss=%zu KiB (last 25: %+ld KiB, since cycle %d: "
                     "%+ld KiB) ===\n",
-                    i + 1, samples[i] / 1024,
-                    (long)(samples[i] / 1024) - (long)(samples[i - 24] / 1024), LEAK_TEST_WARMUP,
-                    (long)(samples[i] / 1024) - (long)(samples[LEAK_TEST_WARMUP] / 1024));
+                    name, i + 1, samples[i] / 1024,
+                    (long)(samples[i] / 1024) - (long)(samples[i - 24] / 1024), LEAK_PHASE_WARMUP,
+                    (long)(samples[i] / 1024) - (long)(samples[LEAK_PHASE_WARMUP] / 1024));
             } else {
-                log("  [leak] === %d cycles, rss=%zu KiB ===\n", i + 1, samples[i] / 1024);
+                log("  [leak] === %s %d cycles, rss=%zu KiB ===\n", name, i + 1,
+                    samples[i] / 1024);
             }
         }
     }
 
-    size_t warmup_rss = samples[LEAK_TEST_WARMUP];
-    size_t final_rss = samples[LEAK_TEST_CYCLES - 1];
+    size_t warmup_rss = samples[LEAK_PHASE_WARMUP];
+    size_t final_rss = samples[LEAK_PHASE_CYCLES - 1];
     size_t growth = final_rss > warmup_rss ? final_rss - warmup_rss : 0;
-    const int measured_cycles = LEAK_TEST_CYCLES - LEAK_TEST_WARMUP;
+    const int measured_cycles = LEAK_PHASE_CYCLES - LEAK_PHASE_WARMUP;
 
-    log("  [leak] baseline (cycle %d): %zu KiB; final (cycle %d): %zu KiB\n",
-        LEAK_TEST_WARMUP, warmup_rss / 1024, LEAK_TEST_CYCLES - 1, final_rss / 1024);
-    log("  [leak] growth over cycles %d..%d: %zu KiB (bound: %d KiB)\n",
-        LEAK_TEST_WARMUP, LEAK_TEST_CYCLES - 1, growth / 1024,
+    log("  [leak] %s: baseline (cycle %d): %zu KiB; final (cycle %d): %zu KiB\n", name,
+        LEAK_PHASE_WARMUP, warmup_rss / 1024, LEAK_PHASE_CYCLES - 1, final_rss / 1024);
+    log("  [leak] %s: growth over cycles %d..%d: %zu KiB (bound: %d KiB)\n", name,
+        LEAK_PHASE_WARMUP, LEAK_PHASE_CYCLES - 1, growth / 1024,
         LEAK_TEST_MAX_GROWTH_BYTES / 1024);
 
     // Both halves of the measured window: equal slopes mean the growth is
     // steady (retention), a shrinking second half means it is tailing off.
-    const int midpoint = LEAK_TEST_WARMUP + measured_cycles / 2;
-    log("  [leak] first half (cycles %d..%d): %+ld KiB; second half (cycles %d..%d): %+ld KiB\n",
-        LEAK_TEST_WARMUP, midpoint - 1,
+    const int midpoint = LEAK_PHASE_WARMUP + measured_cycles / 2;
+    log("  [leak] %s: first half (cycles %d..%d): %+ld KiB; second half (cycles %d..%d): %+ld "
+        "KiB\n",
+        name, LEAK_PHASE_WARMUP, midpoint - 1,
         (long)(samples[midpoint] / 1024) - (long)(warmup_rss / 1024), midpoint,
-        LEAK_TEST_CYCLES - 1, (long)(final_rss / 1024) - (long)(samples[midpoint] / 1024));
-    if (heaps[LEAK_TEST_WARMUP] != 0) {
-        log("  [leak] in-use heap: baseline %zu KiB; final %zu KiB; growth %+ld KiB\n",
-            heaps[LEAK_TEST_WARMUP] / 1024, heaps[LEAK_TEST_CYCLES - 1] / 1024,
-            (long)(heaps[LEAK_TEST_CYCLES - 1] / 1024) - (long)(heaps[LEAK_TEST_WARMUP] / 1024));
+        LEAK_PHASE_CYCLES - 1, (long)(final_rss / 1024) - (long)(samples[midpoint] / 1024));
+    if (heaps[LEAK_PHASE_WARMUP] != 0) {
+        log("  [leak] %s: in-use heap: baseline %zu KiB; final %zu KiB; growth %+ld KiB\n", name,
+            heaps[LEAK_PHASE_WARMUP] / 1024, heaps[LEAK_PHASE_CYCLES - 1] / 1024,
+            (long)(heaps[LEAK_PHASE_CYCLES - 1] / 1024)
+                - (long)(heaps[LEAK_PHASE_WARMUP] / 1024));
     }
 
     if (growth > LEAK_TEST_MAX_GROWTH_BYTES) {
-        log("  FAIL: RSS grew by %zu KiB over %d create/load/close cycles, "
-            "above the %d KiB bound\n",
-            growth / 1024, measured_cycles, LEAK_TEST_MAX_GROWTH_BYTES / 1024);
+        log("  FAIL: phase \"%s\" RSS grew by %zu KiB over %d cycles, above the %d KiB bound\n",
+            name, growth / 1024, measured_cycles, LEAK_TEST_MAX_GROWTH_BYTES / 1024);
         goto cleanup;
     }
 
-    log("  PASS: %d create/load/close cycles stayed within the RSS growth bound\n",
-        LEAK_TEST_CYCLES);
+    log("  PASS: phase \"%s\" stayed within the RSS growth bound\n", name);
     result = 0;
 
 cleanup:
     return result;
+}
+
+static int test_repeated_load_cycles(struct Servo* servo)
+{
+    log("running test_repeated_load_cycles\n");
+
+    // Least to most involved: whatever grows here is what the later phases add
+    // on top of.
+    if (run_leak_phase(servo, LEAK_PHASE_RENDERING_CONTEXT, "rendering-context-only") != 0) {
+        return 1;
+    }
+    if (run_leak_phase(servo, LEAK_PHASE_WEBVIEW_NO_LOAD, "webview-no-load") != 0) {
+        return 1;
+    }
+    if (run_leak_phase(servo, LEAK_PHASE_FULL, "webview-load-close-free") != 0) {
+        return 1;
+    }
+
+    return 0;
 }
 
 // Entry point for the integration test. This is called from the Rust-side test
