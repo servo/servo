@@ -42,6 +42,7 @@ use uuid::Uuid;
 
 use crate::dom::audio::audiotrack::AudioTrack;
 use crate::dom::audio::audiotracklist::AudioTrackList;
+use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLMediaElementBinding::{
     CanPlayTypeResult, HTMLMediaElementConstants, HTMLMediaElementMethods,
 };
@@ -329,11 +330,24 @@ enum PlaybackPositionWasMoved {
 #[derive(Clone, JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct ShadowTree {
-    // TODO(22314): add cue element here
+    cue_container: Dom<Element>,
 }
 
 impl UAShadowRoot<ShadowTree> for HTMLMediaElement {
     fn store_for_shadow_tree(&self, cx: &mut JSContext, shadow_root: DomRoot<ShadowRoot>) {
+        let root = self.create_element_in_ua_shadowroot(cx, local_name!("div"));
+        root.SetClassName(cx, DOMString::from_static("root"));
+        shadow_root
+            .upcast::<Node>()
+            .AppendChild(cx, root.upcast::<Node>())
+            .unwrap();
+
+        let cue_container = self.create_element_in_ua_shadowroot(cx, local_name!("div"));
+        cue_container.SetClassName(cx, DOMString::from_static("cue-container"));
+        root.upcast::<Node>()
+            .AppendChild(cx, cue_container.upcast::<Node>())
+            .unwrap();
+
         let script = self.create_element_in_ua_shadowroot(cx, local_name!("script"));
         // This is our hacky way to temporarily workaround the lack of a privileged
         // JS context.
@@ -369,7 +383,9 @@ impl UAShadowRoot<ShadowTree> for HTMLMediaElement {
             warn!("Could not render media controls {:?}", e);
         }
 
-        let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {});
+        let _ = self.shadow_tree.borrow_mut().insert(ShadowTree {
+            cue_container: cue_container.as_traced(),
+        });
     }
 
     fn borrow_for_shadow_tree(&self) -> Ref<'_, Option<ShadowTree>> {
@@ -504,6 +520,10 @@ impl HTMLMediaElement {
         } else {
             LoadBlocker::terminate(cx, blocker);
         }
+    }
+
+    pub(crate) fn cue_container(&self, cx: &mut JSContext) -> DomRoot<Element> {
+        self.shadow_tree(cx).cue_container.as_rooted()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#time-marches-on>
