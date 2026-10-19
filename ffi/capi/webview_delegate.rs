@@ -1384,7 +1384,10 @@ impl WebViewDelegate for ServoWebViewDelegate {
                 let allow_multiple = file_picker.allow_select_multiple();
                 let responder: Box<dyn FnOnce(Option<Vec<PathBuf>>)> = Box::new(move |paths| {
                     if let Some(paths) = paths {
+                        // `select` only records the paths; `submit` is what sends
+                        // them back. Without it the picker is dropped unsent.
                         file_picker.select(&paths);
+                        file_picker.submit();
                     } else {
                         file_picker.dismiss();
                     }
