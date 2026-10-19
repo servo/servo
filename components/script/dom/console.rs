@@ -28,14 +28,14 @@ use js::rust::wrappers2::{
     JS_ValueToFunction, MapEntries, MapSize,
 };
 use js::rust::wrappers2::{
-    GetBuiltinClass, GetPropertyKeys, JS_ClearPendingException, JS_GetOwnPropertyDescriptorById,
-    JS_Stringify, JS_ValueToSource,
+    GetBuiltinClass, JS_ClearPendingException, JS_GetOwnPropertyDescriptorById, JS_Stringify,
+    JS_ValueToSource,
 };
 #[cfg(feature = "devtools")]
 use js::rust::{CapturedJSStack, describe_scripted_caller, for_of};
 use js::rust::{HandleObject, HandleValue, IdVector, ToNumber, ToString};
 use script_bindings::conversions::get_dom_class;
-use script_bindings::js::{JS_GetPropertyById, JS_GetPrototype, JS_IdToValue};
+use script_bindings::js::{GetPropertyKeys, JS_GetPropertyById, JS_GetPrototype, JS_IdToValue};
 
 use crate::dom::bindings::codegen::Bindings::ConsoleBinding::consoleMethods;
 #[cfg(feature = "devtools")]
@@ -401,14 +401,12 @@ mod devtools {
         let mut ids = IdVector::new(cx);
         // https://console.spec.whatwg.org/#printer
         // Objects with either generic JavaScript object formatting or optimally useful formatting applied.
-        if !unsafe {
-            GetPropertyKeys(
-                cx,
-                object.handle(),
-                jsapi::JSITER_OWNONLY | jsapi::JSITER_SYMBOLS | jsapi::JSITER_HIDDEN,
-                ids.handle_mut(),
-            )
-        } {
+        if !GetPropertyKeys(
+            cx,
+            object.handle(),
+            jsapi::JSITER_OWNONLY | jsapi::JSITER_SYMBOLS | jsapi::JSITER_HIDDEN,
+            ids.handle_mut(),
+        ) {
             return None;
         }
 
@@ -567,14 +565,12 @@ pub(crate) fn stringify_handle_value(cx: &mut JSContext, message: HandleValue) -
             return DOMString::from_static("/* invalid */");
         }
         let mut ids = IdVector::new(cx);
-        if !unsafe {
-            GetPropertyKeys(
-                cx,
-                obj.handle(),
-                jsapi::JSITER_OWNONLY | jsapi::JSITER_SYMBOLS,
-                ids.handle_mut(),
-            )
-        } {
+        if !GetPropertyKeys(
+            cx,
+            obj.handle(),
+            jsapi::JSITER_OWNONLY | jsapi::JSITER_SYMBOLS,
+            ids.handle_mut(),
+        ) {
             return DOMString::from_static("/* invalid */");
         }
         let truncate = ids.len() > MAX_LOG_CHILDREN;

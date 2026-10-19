@@ -30,7 +30,7 @@ use js::jsapi::{
 use js::jsval::{NullValue, PrivateValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers2::{
-    AppendToIdVector, GetPropertyKeys, JS_ForwardGetPropertyTo, JS_GetOwnPropertyDescriptorById,
+    AppendToIdVector, JS_ForwardGetPropertyTo, JS_GetOwnPropertyDescriptorById,
     JS_HasOwnPropertyById, JS_HasPropertyById, JS_TransplantObject, NewWindowProxy, SetWindowProxy,
     int_to_jsid,
 };
@@ -49,6 +49,7 @@ use script_bindings::codegen::GenericBindings::WindowBinding::{
 };
 use script_bindings::conversions::jsid_to_string;
 use script_bindings::domstring::TracedDOMString;
+use script_bindings::js::GetPropertyKeys;
 use script_bindings::proxyhandler::{
     self, CROSS_ORIGIN_PROPERTY_HOLDER_WEAK_MAP_SLOT, CrossOriginProperties,
     cross_origin_get_own_property_helper, cross_origin_own_property_keys,
@@ -1654,14 +1655,12 @@ unsafe extern "C" fn own_property_keys(
     if is_platform_object_same_origin(cx, proxy) {
         // Step 4. If IsPlatformObjectSameOrigin(W) is true, then return the concatenation of keys and
         // OrdinaryOwnPropertyKeys(W).
-        return unsafe {
-            GetPropertyKeys(
-                cx,
-                target.handle(),
-                JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS,
-                property_keys,
-            )
-        };
+        return GetPropertyKeys(
+            cx,
+            target.handle(),
+            JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS,
+            property_keys,
+        );
     }
 
     // Step 5. Return the concatenation of keys and ! CrossOriginOwnPropertyKeys(W).
@@ -1700,7 +1699,7 @@ unsafe extern "C" fn get_own_enumerable_property_keys(
     if is_platform_object_same_origin(cx, proxy) {
         // Step 4. If IsPlatformObjectSameOrigin(W) is true, then return the concatenation of keys and
         // OrdinaryOwnPropertyKeys(W).
-        return unsafe { GetPropertyKeys(cx, target.handle(), JSITER_OWNONLY, property_keys) };
+        return GetPropertyKeys(cx, target.handle(), JSITER_OWNONLY, property_keys);
     }
 
     // There are no other enumerable property keys for cross-origin WindowProxy other than
@@ -1721,7 +1720,7 @@ unsafe extern "C" fn enumerate(
     let cx = &mut cx;
     let proxy = unsafe { Handle::from_raw(proxy) };
 
-    unsafe { GetPropertyKeys(cx, proxy, 0, property_keys) }
+    GetPropertyKeys(cx, proxy, 0, property_keys)
 }
 
 static PROXY_TRAPS: ProxyTraps = ProxyTraps {
