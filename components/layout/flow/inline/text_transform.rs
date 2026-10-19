@@ -312,8 +312,7 @@ impl<'a> TextTransformationIterator<'a> {
                 text.len(),
                 on_word_boundary,
                 style
-                    .get_font()
-                    ._x_lang
+                    .get__x_lang()
                     .0
                     .parse()
                     .unwrap_or(LanguageIdentifier::UNKNOWN),
