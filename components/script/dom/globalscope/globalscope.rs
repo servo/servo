@@ -398,7 +398,7 @@ impl GlobalScope {
         inherited_secure_context: Option<bool>,
         unminify_js: bool,
     ) -> Self {
-        let fetch_group = DomRefCell::new(FetchGroup::new(resource_threads.sender()));
+        let resource_threads_sender = resource_threads.sender();
         Self {
             message_port_state: DomRefCell::new(MessagePortState::UnManaged),
             broadcast_channel_state: DomRefCell::new(BroadcastChannelState::UnManaged),
@@ -440,7 +440,7 @@ impl GlobalScope {
             notification_permission_request_callback_map: Default::default(),
             import_map: Default::default(),
             resolved_module_set: Default::default(),
-            fetch_group,
+            fetch_group: DomRefCell::new(FetchGroup::new(resource_threads_sender)),
         }
     }
 

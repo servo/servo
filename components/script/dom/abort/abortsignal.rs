@@ -31,7 +31,8 @@ use crate::dom::bindings::str::DOMString;
 use crate::dom::eventtarget::EventTarget;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::readablestream::PipeTo;
-use crate::fetch::fetch::{DeferredFetchRecordId, FetchCallState};
+use crate::dom::request::Request;
+use crate::fetch::fetch::DeferredFetchRecordId;
 use crate::realms::enter_auto_realm;
 
 impl js::gc::Rootable for AbortAlgorithm {}
@@ -47,7 +48,7 @@ pub(crate) enum AbortAlgorithm {
     /// <https://streams.spec.whatwg.org/#readable-stream-pipe-to>
     StreamPiping(PipeTo),
     /// <https://fetch.spec.whatwg.org/#dom-global-fetch>
-    Fetch(#[conditional_malloc_size_of] Rc<FetchCallState>),
+    Fetch(Dom<Request>),
     /// <https://fetch.spec.whatwg.org/#dom-window-fetchlater>
     FetchLater(#[no_trace] DeferredFetchRecordId),
 }
@@ -186,10 +187,10 @@ impl AbortSignal {
                 reason.set(self.abort_reason.get());
                 pipe.abort_with_reason(cx, global, reason.handle());
             },
-            AbortAlgorithm::Fetch(fetch_call_state) => {
+            AbortAlgorithm::Fetch(request) => {
                 rooted!(&in(cx) let mut reason = UndefinedValue());
                 reason.set(self.abort_reason.get());
-                fetch_call_state.abort_fetch(cx, reason.handle(), global);
+                request.abort_fetch(cx, reason.handle(), global);
             },
             AbortAlgorithm::FetchLater(deferred_fetch_record_id) => {
                 global

@@ -10,6 +10,7 @@ use std::time::Duration;
 
 use bytes::Bytes;
 use js::context::JSContext;
+use js::gc::Rootable;
 use js::jsapi::ExceptionStackBehavior;
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
@@ -80,18 +81,19 @@ pub(crate) type QueuedDeferredFetchRecord = Rc<DeferredFetchRecord>;
 
 /// <https://fetch.spec.whatwg.org/#fetch-record>
 #[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct FetchRecord {
     /// <https://fetch.spec.whatwg.org/#concept-fetch-record-fetch>
     #[no_trace]
     controller: Option<FetchController>,
-    /// If this record was created by a call to `fetch()`, this holds the captured state
-    /// that is used to complete the fetch request.
-    #[conditional_malloc_size_of]
-    state: Option<Rc<FetchCallState>>,
+    /// If this record was created by a call to `fetch()`, this holds the [`Request`]
+    /// that started this operation.
+    request: Option<Dom<Request>>,
 }
 
 /// <https://fetch.spec.whatwg.org/#concept-fetch-group>
 #[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct FetchGroup {
     /// The [`CoreResourceThread`] for this [`FetchGroup`].
     #[no_trace]
@@ -117,7 +119,7 @@ impl FetchGroup {
         &mut self,
         request: RequestBuilder,
         listener: NetworkListener<Listener>,
-        state: Option<Rc<FetchCallState>>,
+        request_object: Option<&Request>,
     ) {
         self.fetch_records.insert(
             NoTrace(request.id),
@@ -127,7 +129,7 @@ impl FetchGroup {
                     request.keep_alive,
                     self.core_resource_thread.clone(),
                 )),
-                state,
+                request: request_object.map(Dom::from_ref),
             },
         );
         fetch_async(
@@ -172,8 +174,10 @@ impl FetchGroup {
             .as_mut()
     }
 
-    pub(crate) fn fetch_call_state(&self, request_id: &RequestId) -> Option<Rc<FetchCallState>> {
-        self.fetch_records.get(&NoTrace(*request_id))?.state.clone()
+    pub(crate) fn fetch_call_request(&self, request_id: &RequestId) -> Option<DomRoot<Request>> {
+        let fetch_record = self.fetch_records.get(&NoTrace(*request_id))?;
+        let request = fetch_record.request.as_ref()?;
+        Some(request.as_rooted())
     }
 
     /// <https://fetch.spec.whatwg.org/#concept-fetch-group-terminate>
@@ -327,14 +331,20 @@ pub(crate) fn Fetch(
 
     // Step 2. Let requestObject be the result of invoking the initial value of Request as constructor
     //         with input and init as arguments. If this throws an exception, reject p with it and return p.
-    let request_object = match Request::Constructor(cx, global, None, input, init) {
-        Err(e) => {
-            response.error_stream(cx, e.clone());
-            promise.reject_error(cx, e);
-            return promise;
-        },
-        Ok(r) => r,
-    };
+    rooted!(&in(cx) let mut fetch_call_state = FetchCallState {
+        promise: promise.to_traced(),
+        response: response.as_traced(),
+        locally_aborted: Cell::new(false),
+    });
+    let request_object =
+        match Request::constructor(cx, global, None, input, init, Some(&fetch_call_state)) {
+            Err(error) => {
+                response.error_stream(cx, error.clone());
+                promise.reject_error(cx, error);
+                return promise;
+            },
+            Ok(request) => request,
+        };
     // Step 3. Let request be requestObject’s request.
     let request = request_object.request().clone();
     let request_id = request.id;
@@ -373,13 +383,6 @@ pub(crate) fn Fetch(
 
     // Step 9. Let locallyAborted be false.
     // Step 10. Let controller be null.
-    let fetch_state = Rc::new(FetchCallState {
-        promise: promise.to_traced(),
-        response: response.as_traced(),
-        request: request_object.as_traced(),
-        locally_aborted: Cell::new(false),
-        request_id,
-    });
     let fetch_context = FetchContext {
         request_id,
         url: request_builder.url.url(),
@@ -390,13 +393,13 @@ pub(crate) fn Fetch(
     );
 
     // Step 11. Add the following abort steps to requestObject’s signal:
-    signal.add(&AbortAlgorithm::Fetch(fetch_state.clone()));
+    signal.add(&AbortAlgorithm::Fetch(request_object.as_traced()));
 
     // Step 12. Set controller to the result of calling fetch given request and
     // processResponse given response being these steps:
     global
         .fetch_group_mut()
-        .fetch(request_builder, network_listener, Some(fetch_state));
+        .fetch(request_builder, network_listener, Some(&request_object));
 
     // Step 13. Return p.
     promise
@@ -469,7 +472,14 @@ pub(crate) fn FetchLater(
     let document = window.Document();
     // Step 1. Let requestObject be the result of invoking the initial value
     // of Request as constructor with input and init as arguments.
-    let request_object = Request::constructor(cx, global_scope, None, input, &init.parent)?;
+    let request_object = Request::constructor(
+        cx,
+        global_scope,
+        None,
+        input,
+        &init.parent,
+        None, /* state */
+    )?;
     // Step 2. If requestObject’s signal is aborted, then throw signal’s abort reason.
     let signal = request_object.Signal();
     if signal.aborted() {
@@ -571,21 +581,22 @@ impl DeferredFetchRecord {
 }
 
 /// The captured state that is kept during a fetch operation.
-#[derive(JSTraceable, MallocSizeOf)]
+#[derive(Clone, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct FetchCallState {
-    promise: TracedPromise,
-    response: Dom<Response>,
-    request: Dom<Request>,
-    locally_aborted: Cell<bool>,
-    #[no_trace]
-    request_id: RequestId,
+    pub promise: TracedPromise,
+    pub response: Dom<Response>,
+    pub locally_aborted: Cell<bool>,
 }
+
+impl Rootable for FetchCallState {}
 
 impl FetchCallState {
     /// Step 11 of <https://fetch.spec.whatwg.org/#dom-global-fetch>
     pub(crate) fn abort_fetch(
         &self,
         cx: &mut JSContext,
+        request: &Request,
         abort_reason: HandleValue,
         global: &GlobalScope,
     ) {
@@ -601,7 +612,7 @@ impl FetchCallState {
         // Step 11.3. Abort controller with requestObject’s signal’s abort reason.
         if let Some(controller) = global
             .fetch_group_mut()
-            .fetch_controller(&self.request.request().id)
+            .fetch_controller(&request.request().id)
         {
             controller.abort();
         }
@@ -611,7 +622,7 @@ impl FetchCallState {
         let promise = self.promise.root(cx);
         abort_fetch_call(
             &promise,
-            &self.request,
+            request,
             Some(&self.response),
             abort_reason,
             global,
@@ -619,7 +630,7 @@ impl FetchCallState {
         );
     }
 
-    fn process_response(
+    pub(crate) fn process_response(
         &self,
         cx: &mut JSContext,
         fetch_metadata: Result<FetchMetadata, NetworkError>,
@@ -672,11 +683,15 @@ impl FetchCallState {
         self.promise.resolve_native(cx, &*self.response);
     }
 
-    fn process_response_chunk(&self, cx: &mut JSContext, chunk: Bytes) {
+    pub(crate) fn process_response_chunk(&self, cx: &mut JSContext, chunk: Bytes) {
         self.response.stream_chunk(cx, chunk);
     }
 
-    fn process_response_eof(&self, cx: &mut JSContext, response: &Result<(), NetworkError>) {
+    pub(crate) fn process_response_eof(
+        &self,
+        cx: &mut JSContext,
+        response: &Result<(), NetworkError>,
+    ) {
         let mut realm = enter_auto_realm(cx, &*self.response);
         let cx = &mut realm.current_realm();
         if let Err(NetworkError::DecompressionError) = response {
@@ -710,10 +725,10 @@ impl FetchResponseListener for FetchContext {
         request_id: RequestId,
         fetch_metadata: Result<FetchMetadata, NetworkError>,
     ) {
-        let Some(call_state) = global.fetch_group().fetch_call_state(&request_id) else {
+        let Some(request) = global.fetch_group().fetch_call_request(&request_id) else {
             return;
         };
-        call_state.process_response(cx, fetch_metadata);
+        request.process_response(cx, fetch_metadata);
     }
 
     fn process_response_chunk(
@@ -723,7 +738,7 @@ impl FetchResponseListener for FetchContext {
         request_id: RequestId,
         chunk: Bytes,
     ) {
-        let Some(call_state) = global.fetch_group().fetch_call_state(&request_id) else {
+        let Some(call_state) = global.fetch_group().fetch_call_request(&request_id) else {
             return;
         };
         call_state.process_response_chunk(cx, chunk);
@@ -737,7 +752,7 @@ impl FetchResponseListener for FetchContext {
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        let call_state = global.fetch_group().fetch_call_state(&request_id);
+        let call_state = global.fetch_group().fetch_call_request(&request_id);
         if let Some(call_state) = call_state {
             call_state.process_response_eof(cx, &response);
         };
