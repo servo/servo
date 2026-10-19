@@ -15,6 +15,7 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 use std::{fmt, mem};
 
 use app_units::Au;
+use atomic_refcell::{AtomicRef, AtomicRefCell};
 use cssparser::match_ignore_ascii_case;
 use dom_struct::dom_struct;
 use euclid::Rect;
@@ -82,6 +83,7 @@ use crate::dom::activation::Activatable;
 use crate::dom::animation::Animation;
 use crate::dom::animations::keyframeeffect::KeyframeEffect;
 use crate::dom::attr::{Attr, is_relevant_attribute};
+use crate::dom::bindings::cell::AtomicSafeBorrowMut;
 use crate::dom::bindings::codegen::Bindings::AttrBinding::AttrMethods;
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::{
@@ -207,7 +209,7 @@ pub struct Element {
     prefix: DomRefCell<Option<Prefix>>,
     attrs: AttributeStorage,
     #[no_trace]
-    id_attribute: DomRefCell<Option<Atom>>,
+    id_attribute: AtomicRefCell<Option<Atom>>,
     #[conditional_malloc_size_of]
     #[no_trace]
     style_attribute: DomRefCell<Option<ServoArc<Locked<PropertyDeclarationBlock>>>>,
@@ -327,7 +329,7 @@ impl Element {
             namespace,
             prefix: DomRefCell::new(prefix),
             attrs: Default::default(),
-            id_attribute: DomRefCell::new(None),
+            id_attribute: Default::default(),
             style_attribute: DomRefCell::new(None),
             attr_list: Default::default(),
             class_list: Default::default(),
@@ -1624,9 +1626,17 @@ impl<'dom> LayoutDom<'dom, Element> {
         *self.namespace() == ns!(html)
     }
 
+    pub(crate) fn id_attribute(self) -> Option<AtomicRef<'dom, Atom>> {
+        AtomicRef::filter_map(self.unsafe_get().id_attribute.borrow(), Option::as_ref)
+    }
+
+    /// Like [`Self::id_attribute`], but without a borrow guard, for stylo's `TElement::id`.
+    ///
+    /// # Safety
+    /// The id must not be mutated while the returned reference is alive.
     #[expect(unsafe_code)]
-    pub(crate) fn id_attribute(self) -> *const Option<Atom> {
-        unsafe { (self.unsafe_get()).id_attribute.borrow_for_layout() }
+    pub(crate) unsafe fn id_attribute_unguarded(self) -> Option<&'dom Atom> {
+        unsafe { (*self.unsafe_get().id_attribute.as_ptr()).as_ref() }
     }
 
     #[expect(unsafe_code)]
@@ -4807,7 +4817,7 @@ impl VirtualMethods for Element {
             local_name!("style") => self.update_style_attribute(cx, attr, mutation),
             local_name!("id") => {
                 // https://dom.spec.whatwg.org/#ref-for-concept-element-attributes-change-ext%E2%91%A2
-                *self.id_attribute.borrow_mut() = mutation.new_value(attr).and_then(|value| {
+                let id = mutation.new_value(attr).and_then(|value| {
                     let value = value.as_atom();
                     if value != &atom!("") {
                         // Step 2. Otherwise, if localName is id, namespace is null, then set element’s ID to value.
@@ -4817,6 +4827,7 @@ impl VirtualMethods for Element {
                         None
                     }
                 });
+                *self.id_attribute.safe_borrow_mut(cx.no_gc()) = id;
 
                 let containing_shadow_root = self.containing_shadow_root();
                 if node.is_in_a_document_tree() || node.is_in_a_shadow_tree() {
