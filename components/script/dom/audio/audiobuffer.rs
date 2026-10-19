@@ -110,10 +110,9 @@ impl AudioBuffer {
     ) -> DomRoot<AudioBuffer> {
         let buffer = AudioBuffer::new_inherited(channels.len() as u32, length, sample_rate);
         let buffer = reflect_dom_object_with_proto(cx, Box::new(buffer), global, None);
-        *buffer.shared_channels.borrow_mut() = Some(Arc::new(ServoMediaAudioBuffer::from_buffers(
-            channels,
-            sample_rate,
-        )));
+        *buffer.shared_channels.safe_borrow_mut(cx.no_gc()) = Some(Arc::new(
+            ServoMediaAudioBuffer::from_buffers(channels, sample_rate),
+        ));
         buffer
     }
 
@@ -170,7 +169,7 @@ impl AudioBuffer {
             }
         }
 
-        *self.shared_channels.borrow_mut() = None;
+        *self.shared_channels.safe_borrow_mut(cx.no_gc()) = None;
 
         true
     }

@@ -525,7 +525,7 @@ impl TaskOnce for ConnectionEstablishedTask {
 
         // Step 3.
         if let Some(protocol_name) = self.protocol_in_use {
-            *ws.protocol.borrow_mut() = protocol_name;
+            *ws.protocol.safe_borrow_mut(cx.no_gc()) = protocol_name;
         };
 
         // Step 4.
