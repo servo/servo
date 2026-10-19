@@ -8,6 +8,7 @@ publish.workspace = true
 rust-version.workspace = true
 repository.workspace = true
 description.workspace = true
+build = "build.rs"
 
 [lib]
 path = "lib.rs"
@@ -26,6 +27,8 @@ workspace = true
 
 [target.'cfg(not(any(windows, target_env = "ohos")))'.dependencies]
 libc = { workspace = true }
+
+[target.'cfg(not(any(windows, target_env = "ohos", sanitizer = "address", sanitizer = "memory", sanitizer = "thread")))'.dependencies]
 tikv-jemalloc-sys = { workspace = true, optional = true, features = ["stats"] }
 tikv-jemallocator = { workspace = true, optional = true }
 

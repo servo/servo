@@ -162,9 +162,7 @@ class MachCommands(CommandBase):
             for key in env:
                 print((key, env[key]))
 
-        status = self.run_cargo_build_like_command(
-            "rustc", opts, env=env, verbose=verbose, sanitizer=sanitizer, **kwargs
-        )
+        status = self.run_cargo_build_like_command("rustc", opts, env=env, verbose=verbose, **kwargs)
 
         if status == 0:
             if not no_package and self.target.needs_packaging():
