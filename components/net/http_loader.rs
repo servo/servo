@@ -51,9 +51,9 @@ use net_traits::request::{
 use net_traits::response::{CacheState, RedirectTaint, Response, ResponseBody, ResponseType};
 use net_traits::{
     CookieSource, DOCUMENT_ACCEPT_HEADER_VALUE, DiscardFetch, NetworkError, RedirectEndValue,
-    RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTimingContainer,
-    ResourceTimeValue, ServoCipherSuite, ServoNamedGroup, ServoProtocolVersion, TlsSecurityInfo,
-    TlsSecurityState,
+    RedirectStartValue, ReferrerPolicy, ResourceAttribute, ResourceFetchTiming,
+    ResourceFetchTimingContainer, ResourceTimeValue, ResourceTimingType, ServoCipherSuite,
+    ServoNamedGroup, ServoProtocolVersion, TlsSecurityInfo, TlsSecurityState,
 };
 use parking_lot::{Mutex, RwLock};
 use profile_traits::mem::{Report, ReportKind};
@@ -1075,7 +1075,7 @@ pub(crate) async fn http_fetch(
             fetch_params.request.redirect_count as u16,
         ));
 
-    response.resource_timing = context.timing.clone();
+    response.resource_timing = fetch_params.timing_info.clone();
 
     // Step 7. Return response
     response
@@ -2574,7 +2574,10 @@ async fn cors_preflight_fetch(
 
     // Step 6. Let response be the result of running HTTP-network-or-cache fetch given a
     // new fetch params whose request is preflight.
-    let mut fetch_params = FetchParams::new(preflight, context.timing.clone());
+    let mut fetch_params = FetchParams::new(
+        preflight,
+        ResourceFetchTiming::new(ResourceTimingType::None).into(),
+    );
     let response =
         http_network_or_cache_fetch(&mut fetch_params, false, false, &mut None, context).await;
 
