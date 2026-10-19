@@ -4,6 +4,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::realm::CurrentRealm;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use script_bindings::str::{DOMString, USVString};
 
@@ -18,7 +19,7 @@ use crate::dom::window::Window;
 pub(crate) struct Credential {
     reflector_: Reflector,
     id: USVString,
-    credential_type: DOMString,
+    credential_type: TracedDOMString,
 }
 
 impl Credential {
@@ -26,7 +27,7 @@ impl Credential {
         Credential {
             reflector_: Reflector::new(),
             id,
-            credential_type,
+            credential_type: credential_type.traced(),
         }
     }
 
@@ -53,7 +54,7 @@ impl CredentialMethods<DomTypeHolder> for Credential {
 
     /// <https://www.w3.org/TR/credential-management-1/#dom-credential-type>
     fn Type(&self) -> DOMString {
-        self.credential_type.clone()
+        self.credential_type.clone().root()
     }
 
     /// <https://www.w3.org/TR/credential-management-1/#dom-credential-isconditionalmediationavailable>

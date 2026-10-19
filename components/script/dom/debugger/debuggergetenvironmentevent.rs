@@ -7,6 +7,7 @@ use std::fmt::Debug;
 use devtools_traits::GetEnvironmentRequest;
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::inheritance::Castable;
 use script_bindings::reflector::reflect_dom_object;
 use script_bindings::str::DOMString;
@@ -23,7 +24,7 @@ use crate::dom::types::DebuggerGlobalScope;
 /// Event for Rust → JS calls in [`crate::dom::debugger::DebuggerGlobalScope`].
 pub(crate) struct DebuggerGetEnvironmentEvent {
     event: Event,
-    frame_actor_id: Option<DOMString>,
+    frame_actor_id: Option<TracedDOMString>,
     pipeline_id: Option<Dom<PipelineId>>,
 }
 
@@ -61,7 +62,9 @@ impl DebuggerGetEnvironmentEvent {
 impl DebuggerGetEnvironmentEventMethods<crate::DomTypeHolder> for DebuggerGetEnvironmentEvent {
     // check-tidy: no specs after this line
     fn GetFrameActorId(&self) -> Option<DOMString> {
-        self.frame_actor_id.clone()
+        self.frame_actor_id
+            .clone()
+            .map(|domstring| domstring.root())
     }
 
     fn GetPipelineId(&self) -> Option<DomRoot<PipelineId>> {

@@ -6,6 +6,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
@@ -23,10 +24,10 @@ use crate::dom::window::Window;
 #[dom_struct]
 pub(crate) struct StorageEvent {
     event: Event,
-    key: DomRefCell<Option<DOMString>>,
-    old_value: DomRefCell<Option<DOMString>>,
-    new_value: DomRefCell<Option<DOMString>>,
-    url: DomRefCell<DOMString>,
+    key: DomRefCell<Option<TracedDOMString>>,
+    old_value: DomRefCell<Option<TracedDOMString>>,
+    new_value: DomRefCell<Option<TracedDOMString>>,
+    url: DomRefCell<TracedDOMString>,
     storage_area: MutNullableDom<Storage>,
 }
 
@@ -41,10 +42,10 @@ impl StorageEvent {
     ) -> StorageEvent {
         StorageEvent {
             event: Event::new_inherited(),
-            key: DomRefCell::new(key),
-            old_value: DomRefCell::new(old_value),
-            new_value: DomRefCell::new(new_value),
-            url: DomRefCell::new(url),
+            key: DomRefCell::new(key.map(|domstring| domstring.traced())),
+            old_value: DomRefCell::new(old_value.map(|domstring| domstring.traced())),
+            new_value: DomRefCell::new(new_value.map(|domstring| domstring.traced())),
+            url: DomRefCell::new(url.traced()),
             storage_area: MutNullableDom::new(storage_area),
         }
     }
@@ -168,22 +169,28 @@ impl StorageEventMethods<crate::DomTypeHolder> for StorageEvent {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-storageevent-key>
     fn GetKey(&self) -> Option<DOMString> {
-        self.key.borrow().clone()
+        self.key.borrow().clone().map(|domstring| domstring.root())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-storageevent-oldvalue>
     fn GetOldValue(&self) -> Option<DOMString> {
-        self.old_value.borrow().clone()
+        self.old_value
+            .borrow()
+            .clone()
+            .map(|domstring| domstring.root())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-storageevent-newvalue>
     fn GetNewValue(&self) -> Option<DOMString> {
-        self.new_value.borrow().clone()
+        self.new_value
+            .borrow()
+            .clone()
+            .map(|domstring| domstring.root())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-storageevent-url>
     fn Url(&self) -> DOMString {
-        self.url.borrow().clone()
+        self.url.borrow().clone().root()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-storageevent-storagearea>
@@ -210,10 +217,11 @@ impl StorageEventMethods<crate::DomTypeHolder> for StorageEvent {
     ) {
         self.event
             .init_event(Atom::from(type_), bubbles, cancelable);
-        *self.key.borrow_mut() = key;
-        *self.old_value.borrow_mut() = oldValue;
-        *self.new_value.borrow_mut() = newValue;
-        *self.url.borrow_mut() = url.into();
+        *self.key.borrow_mut() = key.map(|domstring| domstring.traced());
+        *self.old_value.borrow_mut() = oldValue.map(|domstring| domstring.traced());
+        *self.new_value.borrow_mut() = newValue.map(|domstring| domstring.traced());
+        let url: DOMString = url.into();
+        *self.url.borrow_mut() = url.traced();
         self.storage_area.set(storageArea);
     }
 }

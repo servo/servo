@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::{reflect_dom_object, reflect_dom_object_with_proto};
 use style::Atom;
 
@@ -21,14 +22,14 @@ use crate::dom::window::Window;
 #[dom_struct]
 pub(crate) struct CompositionEvent {
     uievent: UIEvent,
-    data: DOMString,
+    data: TracedDOMString,
 }
 
 impl CompositionEvent {
     pub(crate) fn new_inherited() -> CompositionEvent {
         CompositionEvent {
             uievent: UIEvent::new_inherited(),
-            data: DOMString::new(),
+            data: DOMString::new().traced(),
         }
     }
 
@@ -71,7 +72,7 @@ impl CompositionEvent {
             cx,
             Box::new(CompositionEvent {
                 uievent: UIEvent::new_inherited(),
-                data,
+                data: data.traced(),
             }),
             window,
             proto,
@@ -107,7 +108,7 @@ impl CompositionEventMethods<crate::DomTypeHolder> for CompositionEvent {
 
     /// <https://w3c.github.io/uievents/#dom-compositionevent-data>
     fn Data(&self) -> DOMString {
-        self.data.clone()
+        self.data.clone().root()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
