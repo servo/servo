@@ -412,8 +412,13 @@ class OpenHarmonyTarget(CrossBuildTarget):
         # CC and CXX should already be set to appropriate host compilers by `build_env()`
         # TODO: HOST_CC and HOST_CXX are needed for mozjs, and should be set in the mozjs
         # buildscript in the future (also for android).
-        env["HOST_CC"] = env["CC"]
-        env["HOST_CXX"] = env["CXX"]
+        host_cc = env.get("HOST_CC") or shutil.which("clang")
+        host_cxx = env.get("HOST_CXX") or shutil.which("clang++")
+        assert host_cc
+        assert host_cxx
+
+        env["HOST_CC"] = host_cc
+        env["HOST_CXX"] = host_cxx
         env["HOST_CFLAGS"] = ""
         env["HOST_CXXFLAGS"] = ""
 
