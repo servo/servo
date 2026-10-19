@@ -5,6 +5,7 @@
 use std::collections::HashSet;
 
 use net_traits::ResourceThreads;
+use servo_base::generic_channel;
 use servo_constellation_traits::EmbedderToConstellationMessage;
 
 use crate::proxies::ConstellationProxy;
@@ -92,5 +93,13 @@ impl NetworkManager {
             .send(EmbedderToConstellationMessage::SetNetworkOnlineState(
                 online,
             ));
+    }
+
+    /// Stores the http cache to disk.
+    pub fn store_http_cache_to_disk(&self) {
+        let (sender, receiver) = generic_channel::channel().unwrap();
+        self.constellation_proxy
+            .send(EmbedderToConstellationMessage::StoreCacheToDisk(sender));
+        let _ = receiver.recv();
     }
 }
