@@ -15,8 +15,13 @@
 
 #ifdef _WIN32
 #include <windows.h>
+#include <psapi.h> // `GetProcessMemoryInfo`, used by the W5.7 leak test
+#elif defined(__APPLE__)
+#include <time.h>
+#include <mach/mach.h> // `task_info`, used by the W5.7 leak test
 #else
 #include <time.h>
+#include <unistd.h> // `sysconf`, used by the W5.7 leak test
 #endif
 
 #define log(fmt, ...)               \
@@ -1424,6 +1429,175 @@ cleanup:
     return result;
 }
 
+/* W5.7 — repeated create/load/close leak test.
+ *
+ * Cycles a WebView through create -> load -> wait-for-complete -> free and
+ * samples the process RSS after every cycle. A leak in the per-WebView path
+ * (the classic embedder defect) shows up as monotonic growth in those samples.
+ *
+ * Why RSS rather than an internal allocator counter: RSS is what an embedder
+ * actually watches, and it covers allocations made inside the `servo_capi`
+ * shared library too. `servo-allocator`'s counting allocator is not usable
+ * here — it lives behind the `allocation-tracking` feature (which records a
+ * backtrace per allocation and is far too slow to run in CI) and its
+ * `heap_reports()` is empty on Windows, so it is not portable across the three
+ * jobs that run this test.
+ *
+ * The bound below is a regression tripwire, not a target: it sits well above
+ * the growth measured on a healthy build, so ordinary allocator noise (arena
+ * rounding, lazily created caches) cannot make the test flaky while a genuine
+ * per-cycle leak still trips it. `LEAK_TEST_WARMUP` cycles are discarded
+ * because one-off initialisation dominates the earliest samples.
+ */
+
+/* Number of create/load/free cycles to run. */
+#define LEAK_TEST_CYCLES 50
+/* Cycles discarded before growth is measured (one-off initialisation). */
+#define LEAK_TEST_WARMUP 10
+/* Maximum allowed RSS growth in bytes, from the warm-up sample to the last. */
+#define LEAK_TEST_MAX_GROWTH_BYTES (16 * 1024 * 1024)
+
+/* Samples the resident set size of the process, or 0 if unavailable. */
+static size_t process_rss_bytes(void)
+{
+#ifdef _WIN32
+    PROCESS_MEMORY_COUNTERS counters;
+    if (!GetProcessMemoryInfo(GetCurrentProcess(), &counters, (DWORD)sizeof(counters))) {
+        return 0;
+    }
+    return (size_t)counters.WorkingSetSize;
+#elif defined(__APPLE__)
+    struct mach_task_basic_info info;
+    mach_msg_type_number_t count = MACH_TASK_BASIC_INFO_COUNT;
+    if (task_info(mach_task_self(), MACH_TASK_BASIC_INFO, (task_info_t)&info, &count)
+        != KERN_SUCCESS) {
+        return 0;
+    }
+    return (size_t)info.resident_size;
+#else
+    // Linux: field 2 of /proc/self/statm is the resident set size in pages.
+    FILE* statm = fopen("/proc/self/statm", "r");
+    if (!statm) {
+        return 0;
+    }
+    long virtual_pages = 0;
+    long resident_pages = 0;
+    int scanned = fscanf(statm, "%ld %ld", &virtual_pages, &resident_pages);
+    fclose(statm);
+    (void)virtual_pages;
+    long page_size = sysconf(_SC_PAGESIZE);
+    if (scanned != 2 || page_size <= 0) {
+        return 0;
+    }
+    return (size_t)resident_pages * (size_t)page_size;
+#endif
+}
+
+typedef struct {
+    int load_complete;
+} leak_cycle_state_t;
+
+static void on_leak_cycle_load_status(struct WebView* webview, int32_t load_status,
+    void* user_data)
+{
+    (void)webview;
+    if (load_status == SERVO_LOAD_STATUS_COMPLETE) {
+        ((leak_cycle_state_t*)user_data)->load_complete = 1;
+    }
+}
+
+static int test_repeated_load_cycles(struct Servo* servo)
+{
+    log("running test_repeated_load_cycles\n");
+    int result = 1; // default to fail
+    size_t samples[LEAK_TEST_CYCLES];
+
+    for (int i = 0; i < LEAK_TEST_CYCLES; i++) {
+        leak_cycle_state_t state;
+        memset(&state, 0, sizeof(state));
+
+        // The rendering context is owned by the WebView once the builder is
+        // created, so only the WebView is freed (see C_API_GUIDE.md).
+        RenderingContext* context = servo_rendering_context_create_software(100, 100);
+        if (!context) {
+            log("  FAIL: cycle %d: servo_rendering_context_create_software returned NULL\n", i);
+            goto cleanup;
+        }
+
+        ServoWebViewBuilder* builder = servo_webview_builder_create(servo, context);
+        if (!builder) {
+            log("  FAIL: cycle %d: servo_webview_builder_create returned NULL\n", i);
+            goto cleanup;
+        }
+
+        ServoWebViewDelegate delegate = {
+            .struct_size = sizeof(ServoWebViewDelegate),
+            .user_data = &state,
+            .notify_load_status_changed = on_leak_cycle_load_status,
+        };
+        servo_webview_builder_set_delegate(builder, delegate);
+        if (servo_webview_builder_set_url(builder, "data:text/html,<title>leak</title>cycle")
+            != SERVO_ERROR_OK) {
+            log("  FAIL: cycle %d: servo_webview_builder_set_url failed\n", i);
+            goto cleanup;
+        }
+
+        struct WebView* webview = servo_webview_builder_build(builder);
+        if (!webview) {
+            log("  FAIL: cycle %d: servo_webview_builder_build returned NULL\n", i);
+            goto cleanup;
+        }
+
+        int elapsed_ms = 0;
+        const int poll_ms = 5;
+        while (!state.load_complete && elapsed_ms < 10000) {
+            servo_spin_event_loop(servo);
+            sleep_ms(poll_ms);
+            elapsed_ms += poll_ms;
+        }
+
+        if (!state.load_complete) {
+            log("  FAIL: cycle %d: load never completed after %dms\n", i, elapsed_ms);
+            servo_webview_free(webview);
+            goto cleanup;
+        }
+
+        servo_webview_free(webview);
+        samples[i] = process_rss_bytes();
+        if (samples[i] == 0) {
+            log("  FAIL: cycle %d: process RSS sampling is unavailable "
+                "(see process_rss_bytes in this file)\n", i);
+            goto cleanup;
+        }
+        log("  [leak] cycle %2d: rss=%zu KiB\n", i, samples[i] / 1024);
+    }
+
+    size_t warmup_rss = samples[LEAK_TEST_WARMUP];
+    size_t final_rss = samples[LEAK_TEST_CYCLES - 1];
+    size_t growth = final_rss > warmup_rss ? final_rss - warmup_rss : 0;
+    const int measured_cycles = LEAK_TEST_CYCLES - LEAK_TEST_WARMUP;
+
+    log("  [leak] baseline (cycle %d): %zu KiB; final (cycle %d): %zu KiB\n",
+        LEAK_TEST_WARMUP, warmup_rss / 1024, LEAK_TEST_CYCLES - 1, final_rss / 1024);
+    log("  [leak] growth over cycles %d..%d: %zu KiB (bound: %d KiB)\n",
+        LEAK_TEST_WARMUP, LEAK_TEST_CYCLES - 1, growth / 1024,
+        LEAK_TEST_MAX_GROWTH_BYTES / 1024);
+
+    if (growth > LEAK_TEST_MAX_GROWTH_BYTES) {
+        log("  FAIL: RSS grew by %zu KiB over %d create/load/close cycles, "
+            "above the %d KiB bound\n",
+            growth / 1024, measured_cycles, LEAK_TEST_MAX_GROWTH_BYTES / 1024);
+        goto cleanup;
+    }
+
+    log("  PASS: %d create/load/close cycles stayed within the RSS growth bound\n",
+        LEAK_TEST_CYCLES);
+    result = 0;
+
+cleanup:
+    return result;
+}
+
 // Entry point for the integration test. This is called from the Rust-side test
 // runner.
 //
@@ -1501,6 +1675,9 @@ int run_c_integration_tests(void)
     }
     if (result == 0) {
         result = test_webview_close(servo);
+    }
+    if (result == 0) {
+        result = test_repeated_load_cycles(servo);
     }
     // Registered last: a hang-monitor kill leaves the script thread inert for
     // good, and the suite's servo_free() below then asserts clean shutdown.

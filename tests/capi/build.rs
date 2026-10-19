@@ -162,6 +162,12 @@ fn main() {
     println!("cargo:rustc-link-search=native={}", lib_dir.display());
     println!("cargo:rustc-link-lib=dylib=servo_capi");
 
+    // `GetProcessMemoryInfo`, used by the W5.7 leak test in
+    // `test_integration.c`, is exported from psapi.
+    if cfg!(target_os = "windows") {
+        println!("cargo:rustc-link-lib=psapi");
+    }
+
     // cargo cinstall installs headers under "<prefix>/include/servo".
     // See [package.metadata.capi.header] in servo_capi/Cargo.toml.
     let include_dir = out_dir.join("include");
