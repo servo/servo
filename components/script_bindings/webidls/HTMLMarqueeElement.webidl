@@ -11,12 +11,12 @@ interface HTMLMarqueeElement : HTMLElement {
   // [CEReactions, Reflect] attribute DOMString bgColor;
   // [CEReactions, Reflect] attribute DOMString direction;
   [CEReactions] attribute DOMString height;
-  // [CEReactions, Reflect] attribute unsigned long hspace;
+  [CEReactions] attribute unsigned long hspace;
   // [CEReactions] attribute long loop;
   // [CEReactions, Reflect, ReflectDefault=6] attribute unsigned long scrollAmount;
   // [CEReactions, Reflect, ReflectDefault=85] attribute unsigned long scrollDelay;
   // [CEReactions, Reflect] attribute boolean trueSpeed;
-  // [CEReactions, Reflect] attribute unsigned long vspace;
+  [CEReactions] attribute unsigned long vspace;
   [CEReactions] attribute DOMString width;
 
   // undefined start();
