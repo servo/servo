@@ -194,10 +194,6 @@ skip = [
     "digest",
     "block-buffer",
 
-    # Duplicated by ml-kem. This should be gone in next version (>0.3.2)
-    # of ml-kem.
-    "sha3",
-
     # Duplicated by bindgen
     "shlex",
 
