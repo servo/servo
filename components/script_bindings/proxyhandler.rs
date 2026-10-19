@@ -32,10 +32,9 @@ use js::realm::{AutoRealm, CurrentRealm};
 use js::rust::wrappers2::{
     AppendToIdVector, Call, GetObjectProto, GetRealmKeyObject, GetWeakMapEntry, GetWellKnownSymbol,
     JS_AlreadyHasOwnPropertyById, JS_AtomizeAndPinString, JS_DefineFunctions, JS_DefineProperties,
-    JS_DefinePropertyById, JS_DeletePropertyById, JS_GetOwnPropertyDescriptorById,
-    JS_ValueToSource, JS_WrapObject, JS_WrapValue, NewWeakMapObject, RUST_INTERNED_STRING_TO_JSID,
-    RUST_JSID_IS_VOID, SetDataPropertyDescriptor, SetPropertyIgnoringNamedGetter, SetWeakMapEntry,
-    int_to_jsid,
+    JS_DefinePropertyById, JS_DeletePropertyById, JS_ValueToSource, JS_WrapObject, JS_WrapValue,
+    NewWeakMapObject, RUST_INTERNED_STRING_TO_JSID, RUST_JSID_IS_VOID, SetDataPropertyDescriptor,
+    SetPropertyIgnoringNamedGetter, SetWeakMapEntry, int_to_jsid,
 };
 use js::rust::{
     Handle, HandleId, HandleObject, HandleValue, IntoHandle, MutableHandle, MutableHandleObject,
@@ -46,7 +45,10 @@ use crate::DomTypes;
 use crate::conversions::{is_dom_proxy, jsid_to_string, native_from_object};
 use crate::error::Error;
 use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
-use crate::js::{GetPropertyKeys, JS_IdToValue, JS_IsExceptionPending, JS_NewObjectWithGivenProto};
+use crate::js::{
+    GetPropertyKeys, JS_GetOwnPropertyDescriptorById, JS_IdToValue, JS_IsExceptionPending,
+    JS_NewObjectWithGivenProto,
+};
 use crate::principals::ServoJSPrincipalsRef;
 use crate::reflector::DomObject;
 use crate::str::DOMString;
@@ -460,7 +462,7 @@ pub fn cross_origin_get_own_property_helper(
     {
         return false;
     }
-    unsafe { JS_GetOwnPropertyDescriptorById(cx, holder.handle(), id, desc, is_none) }
+    JS_GetOwnPropertyDescriptorById(cx, holder.handle(), id, desc, is_none)
 }
 
 const ALLOWLISTED_SYMBOL_CODES: &[SymbolCode] = &[
@@ -801,9 +803,7 @@ pub fn cross_origin_get<D: DomTypes>(
     // > 1. Let `desc` be `? O.[[GetOwnProperty]](P)`.
     rooted!(&in(cx) let mut descriptor = PropertyDescriptor::default());
     let mut is_none = false;
-    if !unsafe {
-        JS_GetOwnPropertyDescriptorById(cx, proxy, id, descriptor.handle_mut(), &mut is_none)
-    } {
+    if !JS_GetOwnPropertyDescriptorById(cx, proxy, id, descriptor.handle_mut(), &mut is_none) {
         return false;
     }
 
@@ -868,9 +868,7 @@ pub unsafe fn cross_origin_set<D: DomTypes>(
     // > 1. Let desc be ? O.[[GetOwnProperty]](P).
     rooted!(&in(cx) let mut descriptor = PropertyDescriptor::default());
     let mut is_none = false;
-    if !unsafe {
-        JS_GetOwnPropertyDescriptorById(cx, proxy, id, descriptor.handle_mut(), &mut is_none)
-    } {
+    if !JS_GetOwnPropertyDescriptorById(cx, proxy, id, descriptor.handle_mut(), &mut is_none) {
         return false;
     }
 

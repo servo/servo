@@ -10,9 +10,11 @@ use bitflags::bitflags;
 use js::context::JSContext;
 use js::jsapi::{
     ExceptionStackBehavior, JSClass, JSObject, JSPROP_ENUMERATE, JSPROP_PERMANENT, JSPROP_READONLY,
-    MutableHandleIdVector, jsid,
+    MutableHandleIdVector, PropertyDescriptor, jsid,
 };
-use js::rust::{HandleId, HandleObject, HandleValue, MutableHandleObject, MutableHandleValue};
+use js::rust::{
+    HandleId, HandleObject, HandleValue, MutableHandle, MutableHandleObject, MutableHandleValue,
+};
 
 bitflags! {
     /// Flags for property definitions in JavaScript.
@@ -137,6 +139,19 @@ pub fn GetPropertyKeys(
     props: MutableHandleIdVector,
 ) -> bool {
     unsafe { js::rust::wrappers2::GetPropertyKeys(cx, obj, flags, props) }
+}
+
+/// Safe wrapper around [`js::rust::wrappers2::JS_GetOwnPropertyDescriptorById`].
+#[allow(non_snake_case)]
+#[inline]
+pub fn JS_GetOwnPropertyDescriptorById(
+    cx: &mut JSContext,
+    obj: HandleObject,
+    id: HandleId,
+    desc: MutableHandle<PropertyDescriptor>,
+    is_none: &mut bool,
+) -> bool {
+    unsafe { js::rust::wrappers2::JS_GetOwnPropertyDescriptorById(cx, obj, id, desc, is_none) }
 }
 
 #[cfg(test)]
