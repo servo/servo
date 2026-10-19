@@ -32,6 +32,7 @@ struct LayoutImageContext {
     cache: Arc<dyn ImageCache>,
     doc: Trusted<Document>,
     url: ServoUrl,
+    is_internal_request: InternalRequest,
 }
 
 impl FetchResponseListener for LayoutImageContext {
@@ -71,7 +72,9 @@ impl FetchResponseListener for LayoutImageContext {
             self.id,
             FetchResponseMsg::ProcessResponseEOF(request_id, response.clone(), timing.clone()),
         );
-        network_listener::submit_timing(cx, &self, &response, &timing);
+        if self.is_internal_request == InternalRequest::No {
+            network_listener::submit_timing(cx, &self, &response, &timing);
+        }
         self.doc.root().finish_load(LoadType::Image(self.url), cx);
     }
 
@@ -110,12 +113,22 @@ pub(crate) fn fetch_image_for_layout(
     is_internal_request: InternalRequest,
     cache: Arc<dyn ImageCache>,
 ) {
+    let is_internal_request = if node
+        .containing_shadow_root()
+        .is_some_and(|shadow_root| shadow_root.is_user_agent_widget())
+    {
+        InternalRequest::Yes
+    } else {
+        is_internal_request
+    };
+
     let document = node.owner_document();
     let context = LayoutImageContext {
         id,
         cache,
         doc: Trusted::new(&document),
         url: url.clone(),
+        is_internal_request,
     };
 
     let global = node.owner_global();
