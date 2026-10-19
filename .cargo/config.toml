@@ -31,6 +31,22 @@ linker = "lld-link.exe"
 [env]
 MACOSX_DEPLOYMENT_TARGET = "13.0"
 RUSTC_BOOTSTRAP = "crown,script,script_webcrypto,script_webgpu,script_bindings,style_tests,mozjs,mozjs_sys"
+# Increase Stylo thread stack size to 8 MiB for all builds to match the recursion depth of
+# Chromium. This only reserves virtual memory space and has almost no overhead.
+# See https://github.com/servo/servo/pull/43888
+SERVO_STYLE_THREAD_STACK_SIZE_KB = "8192"
+# jemalloc must be compiled with a page size that is at least equal to the one used by the kernel of
+# the machine on which it will run. Some linux distributions for arm64 configure the page size to
+# 16KB (e.g. Raspberry Pi OS 13) and a few others use a 64KB page size. The upstream `jemalloc` has
+# switched to 64KB pages as the default, but this is not available in `tikv-jemalloc-sys` yet, so we
+# configure it here. FIXME: Remove after `tikv-jemalloc-sys` ships the change to default to 64KB
+# page size.
+# See https://github.com/servo/servo/issues/47114
+#
+# Note: The value is the base-2 logarithm of the page size so 2^16 = 64 KiB pages.
+# Note: `tikv-jemalloc-sys` will along ready this variable on the platform specified in the
+# variable name.
+AARCH64_UNKNOWN_LINUX_GNU_JEMALLOC_SYS_WITH_LG_PAGE = "16"
 
 [build]
 rustdocflags = ["--document-private-items"]
