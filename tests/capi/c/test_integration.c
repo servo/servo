@@ -18,9 +18,11 @@
 #include <psapi.h> // `GetProcessMemoryInfo`, used by the W5.7 leak test
 #elif defined(__APPLE__)
 #include <time.h>
-#include <mach/mach.h> // `task_info`, used by the W5.7 leak test
+#include <malloc/malloc.h> // `malloc_zone_pressure_relief`, used by the W5.7 leak test
+#include <mach/mach.h>     // `task_info`, used by the W5.7 leak test
 #else
 #include <time.h>
+#include <malloc.h> // `malloc_trim`, used by the W5.7 leak test
 #include <unistd.h> // `sysconf`, used by the W5.7 leak test
 #endif
 
@@ -1446,11 +1448,23 @@ cleanup:
  * `heap_reports()` is empty on Windows, so it is not portable across the three
  * jobs that run this test.
  *
- * The bound below is a regression tripwire, not a target: it sits well above
- * the growth measured on a healthy build, so ordinary allocator noise (arena
- * rounding, lazily created caches) cannot make the test flaky while a genuine
- * per-cycle leak still trips it. `LEAK_TEST_WARMUP` cycles are discarded
- * because one-off initialisation dominates the earliest samples.
+ * Raw RSS is dominated by allocator high-water marks rather than by live
+ * memory: freed blocks are usually kept in per-thread arenas and free lists,
+ * so RSS climbs until an arena stops growing and only then plateaus. The size
+ * of that effect is not reproducible - the same workload grew ~1900 KiB per
+ * cycle before flattening on one Linux run and only ~90 KiB per cycle on
+ * another - which makes raw RSS useless as a leak tripwire. Every sample is
+ * therefore preceded by `trim_process_memory()`, which asks the allocator to
+ * release free pages back to the OS (`malloc_trim` on glibc,
+ * `malloc_zone_pressure_relief` on macOS, an empty working set on Windows).
+ * Live memory is unaffected by trimming, so a genuine leak still shows up
+ * while allocator high-water marks do not.
+ *
+ * The bound below is a regression tripwire, not a target: it sits above the
+ * growth measured on a healthy build, so ordinary noise cannot make the test
+ * flaky while a genuine per-cycle leak still trips it. `LEAK_TEST_WARMUP`
+ * cycles are discarded because one-off initialisation dominates the earliest
+ * samples.
  */
 
 /* Number of create/load/free cycles to run. */
@@ -1461,6 +1475,25 @@ cleanup:
  * MEASUREMENT MODE: set to 512 MiB so this run reports the full curve on every
  * platform instead of failing; the real bound is set from that data. */
 #define LEAK_TEST_MAX_GROWTH_BYTES (512 * 1024 * 1024)
+
+/* Asks the allocator to release free pages back to the OS, so that the RSS
+ * sampled immediately afterwards is close to the process' live set instead of
+ * its allocator high-water mark. See the comment block above. */
+static void trim_process_memory(void)
+{
+#ifdef _WIN32
+    // Emptying the working set evicts every page that is not referenced by the
+    // trim itself, so the next sample re-faults only what is live.
+    SetProcessWorkingSetSizeEx(GetCurrentProcess(), (SIZE_T)-1, (SIZE_T)-1, 0);
+#elif defined(__APPLE__)
+    // Release free malloc zones back to the OS (macOS' counterpart of glibc's
+    // `malloc_trim`).
+    malloc_zone_pressure_relief(NULL, 0);
+#else
+    // glibc: return free heap pages to the OS.
+    malloc_trim(0);
+#endif
+}
 
 /* Samples the resident set size of the process, or 0 if unavailable. */
 static size_t process_rss_bytes(void)
@@ -1597,6 +1630,10 @@ static int test_repeated_load_cycles(struct Servo* servo)
         }
 
         servo_webview_free(webview);
+        // Hand free pages back to the OS before sampling so this sample
+        // reflects live memory rather than an allocator high-water mark (see
+        // the comment on `process_rss_bytes`).
+        trim_process_memory();
         samples[i] = process_rss_bytes();
         if (samples[i] == 0) {
             log("  FAIL: cycle %d: process RSS sampling is unavailable "
