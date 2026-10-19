@@ -51,7 +51,7 @@ impl LargestContentfulPaint {
         let render_time = paint_timing_info.default_paint_timestamp();
         LargestContentfulPaint {
             entry: PerformanceEntry::new_inherited(
-                DOMString::new(),
+                DOMString::new().into(),
                 EntryType::LargestContentfulPaint,
                 Some(render_time),
                 Duration::ZERO,

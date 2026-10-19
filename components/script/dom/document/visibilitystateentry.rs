@@ -35,7 +35,7 @@ impl VisibilityStateEntry {
         };
         VisibilityStateEntry {
             entry: PerformanceEntry::new_inherited(
-                name,
+                name.into(),
                 EntryType::VisibilityState,
                 Some(timestamp),
                 Duration::ZERO,

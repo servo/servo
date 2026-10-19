@@ -39,7 +39,7 @@ impl PerformancePaintTiming {
         };
         PerformancePaintTiming {
             entry: PerformanceEntry::new_inherited(
-                name,
+                name.into(),
                 EntryType::Paint,
                 // From: <https://www.w3.org/TR/paint-timing/#report-paint-timing>
                 //
