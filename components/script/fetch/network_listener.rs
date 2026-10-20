@@ -120,13 +120,7 @@ pub(crate) trait FetchResponseListener: Send + 'static {
     fn process_response_eof_with_body(
         self,
         cx: &mut JSContext,
-        request_id: RequestId,
-        response: Result<(), NetworkError>,
-        timing: ResourceFetchTiming,
-    );
-    fn process_response_eof_with_body(
-        self,
-        cx: &mut JSContext,
+        global: &GlobalScope,
         request_id: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
@@ -135,7 +129,7 @@ pub(crate) trait FetchResponseListener: Send + 'static {
         Self: Sized,
     {
         let _ = body;
-        self.process_response_eof(cx, request_id, response, timing);
+        self.process_response_eof(cx, global, request_id, response, timing);
     }
     fn process_csp_violations(
         &mut self,

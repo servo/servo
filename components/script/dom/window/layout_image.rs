@@ -68,12 +68,13 @@ impl FetchResponseListener for LayoutImageContext {
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
     ) {
-        self.process_response_eof_with_body(cx, request_id, response, timing, None);
+        self.process_response_eof_with_body(cx, global, request_id, response, timing, None);
     }
 
     fn process_response_eof_with_body(
         self,
         cx: &mut js::context::JSContext,
+        global: &GlobalScope,
         request_id: RequestId,
         response: Result<(), NetworkError>,
         timing: ResourceFetchTiming,
