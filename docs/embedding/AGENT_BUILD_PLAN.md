@@ -192,7 +192,7 @@ Effort: **S** days · **M** 1–3 weeks · **L** 1–3 months · **XL** quarters
 | **W2.2** | Android/iOS/arm64 sandbox honesty + real path | XL | `partial` (W2.2a ✅ `77446edfa4d`, run `39166954265`; W2.2b `todo`) | W2.1 learnings | android.yml |
 | **W2.3** | Site isolation / origin-keyed processes | XL | `todo` | — | linux.yml |
 | **W2.4** | Multiprocess bootstrap for C embedders | L | `partial` | — | embedding-api.yml |
-| **W2.5** | FFI hardening Part B (cookies/pointers/threads) | M | `partial` | — | embedding-api.yml |
+| **W2.5** | FFI hardening Part B (cookies/pointers/threads) | M | ✅ verified (`dd6f4cf2aed`; run `39312873470`, 3 platforms) | — | embedding-api.yml |
 | **W2.6** | CHIPS: derive request partition key (never sent today) | M | `partial` (store+fail-closed done, key never derived) | — | embedding-api.yml |
 | **W2.7** | CSP/COOP/CORP/XCTO/TLS behaviour review | L | `todo` | — | linux.yml + WPT |
 | **W2.8** | Fuzzing + security regression in CI | L | `partial` | — | embedding-api.yml |
@@ -232,7 +232,7 @@ Each wave is independently shippable; do not start a wave before the previous on
 | **B — Truthfulness & quick wins** | W5.1, W2.2a (log honesty), W4.6, W5.5 | ✅ complete (all four ✅ in §2.1). Small, high-value, mostly docs/pref/default changes with clear tests. W2.2b is **not** in this wave — it is the XL half of W2.2 and stays in wave F. |
 | **C — Embedding API gaps** | W4.2, W4.8, W5.4, W5.7 | The surface embedders actually feel. |
 | **D — Distribution** | W5.3, W3.4, W3.1 | Depends on A/C being stable. |
-| **E — Security depth** | W2.5, W2.6, W2.4, W2.8, W2.7 | Each is a real project; sequence after the cheap wins. |
+| **E — Security depth** | W2.5 ✅, W2.6, W2.4, W2.8, W2.7 | Each is a real project; sequence after the cheap wins. |
 | **F — Platform & media** | W2.1, W2.2b, W2.3, W3.3, W3.5/W4.5, W6.x | Needs hardware, human decisions, or deep OS work. |
 
 ### 2.3 Explicitly not in this document
@@ -452,43 +452,124 @@ copying `ports/servoshell`'s bootstrap.
 
 #### W2.5 — FFI hardening: Part B (debug cookies, temporary pointers, thread contracts)
 
-**State:** `partial` · **Effort:** M · **Gate:** `embedding-api.yml`
+**State:** ✅ verified — `dd6f4cf2aed`; run `39312873470` (3 platforms) · **Effort:** M · **Gate:** `embedding-api.yml`
 
 **Goal.** Finish `docs/embedding/HARDENING_PLAN.md` **Part B**: B.1 debug handle
 validation (`164`), B.2 temporary pointers & thread affinity (`198`), B.3 `Send`/`Sync`
 assertions (`212`).
 
-**Touch points**
-- `ffi/capi/servo.rs`, `ffi/capi/lib.rs` — debug handle validation exists at ~2 sites in
-  `lib.rs` and ~3 in `servo.rs`
-- `ffi/capi/cert_error.rs` — hand-rolled magic-cookie check worth folding into the shared
-  helper
-- `ffi/capi/webview_delegate.rs` — `struct_size` validation + `CFFI_ASSERT`
-- `components/servo/{servo,webview}.rs` — thread-affinity assertions
+**Touch points.** The brief's premises were already stale when this ticket ran, and the
+ticket's report should say so rather than pretend the work described it: `grep` finds no
+magic-cookie or state-cookie check anywhere in `ffi/capi` (so there was nothing to fold
+into a shared helper), and `CFFI_ASSERT` does not exist either. What was actually
+touched:
+- `ffi/capi/lib.rs` — the `handle_registry` module (`HandleKind` tag, address-keyed set,
+  fails open on a poisoned lock), and `servo_builder_set_options` unregisters the handle
+  it consumes
+- `ffi/capi/options.rs` — register in `servo_options_create`, 20 `is_live` checks, one
+  `unregister` in `servo_options_free`, an `# Errors` block on each, and a "Handle
+  validity" section on the `ServoOptions` type
+- `ffi/capi/cookie_manager.rs`, `ffi/capi/request_context.rs` — `struct_size`/`_reserved`
+  on `ServoCookieFilter` and `ServoProxyConfig`, validated before the first field read
+- `tests/capi/c/test_api.c` — three negative tests, registered after
+  `test_delegate_struct_size_validation`
+- `HARDENING_PLAN.md` §B.0–§B.3, `ABI_STABILITY.md` §2.1/§2.4/§3.3/§4.5,
+  `C_API_GUIDE.md`, `PRODUCTION_READINESS.md`, `CEF_PARITY.md`
+- `ffi/capi/lib.rs` version consts — `SERVO_CAPI_VERSION_MINOR` 2 → 3, string `c"0.3.0"`
+  (no symbol added, so `ffi/capi/symbols.txt` stays at 241)
 
 **Steps**
 1. Inventory: `git grep -n "struct_size" -- ffi/capi` vs. every `#[repr(C)]` struct
    exposed by the header. Produce the list of structs lacking validation and put it in the
-   ticket report.
+   ticket report. → **Done:** `HARDENING_PLAN.md` §B.0 accounts for all 20, split 8
+   validated / 12 library-filled, with the reason for each of the 12. The split was
+   re-derived mechanically rather than by eye: a throwaway script over `ffi/capi/*.rs`
+   that pairs each `#[repr(C)]` with the `struct_size` field that follows it reports 9
+   types with the field — the 8 validated plus the Servo-filled `ServoScreenGeometry` —
+   and 11 without, which matches §B.0 exactly.
 2. Extract one shared helper for magic/state cookie + `struct_size` validation; use it at
-   every handle entry point instead of ad-hoc checks.
+   every handle entry point instead of ad-hoc checks. → **Partly, and the cookie half was
+   a non-target:** there is no magic/state cookie anywhere in `ffi/capi` to share (the
+   brief was written against an older tree), and `is_compatible_struct_size` was already
+   the single shared `struct_size` helper — §B.0's "Checked at" column shows all eight
+   reads of one going through it. What every handle entry point of an adopted type instead
+   gets is the live-handle registry, which does not have to read the memory to decide it
+   is invalid.
 3. Temporary-pointer contract: functions taking a borrowed `*const c_char`/buffer must
    document that the pointer is only used synchronously, and must copy before any
    deferred use. Find deferred uses:
    `git grep -n "from_raw\|to_string_lossy" -- ffi/capi` and audit each for escaping the
-   call.
+   call. → **Documented half was already done** (stated on each delegate type and in
+   `C_API_GUIDE.md`); the *observable* half — poisoning a retained callback buffer in a
+   debug build — is deferred with its reason in §D.2.1 (`HARDENING_PLAN.md` §B.2).
 4. Thread affinity: assert, on entry to every main-thread-only function, that we are on
-   the thread Servo ran on (the mechanism already exists — extend it).
+   the thread Servo ran on (the mechanism already exists — extend it). → **Already landed
+   as W4.6**, `ffi/capi/lib.rs::entry_checks`, all builds, `SERVO_ERROR_WRONG_THREAD`.
+   §B.2 records it as done and points at `ABI_STABILITY.md` §5.1 for the exceptions.
 
 **Acceptance**
-- [ ] Every `#[repr(C)]` struct crossing the ABI has `struct_size` validation or a
-      written reason it cannot grow.
-- [ ] A negative C test passes: pass a garbage handle / zero `struct_size` / handle from a
-      freed object → error code, **process survives**.
-- [ ] `HARDENING_PLAN.md` Part B checkboxes updated to reflect reality.
+- [x] Every `#[repr(C)]` struct crossing the ABI has `struct_size` validation or a
+      written reason it cannot grow. — all 20 accounted for in `HARDENING_PLAN.md` §B.0
+      (8 validated, 12 library-filled with the append-only argument written out);
+      mechanically re-listed from the source rather than asserted.
+- [x] A negative C test passes: pass a garbage handle / zero `struct_size` / handle from a
+      freed object → error code, **process survives**. — `test_options_handle_validation`
+      (`(ServoOptions*)0x1`, freed handle, double free, consumed handle),
+      `test_proxy_config_struct_size_validation` and `test_cookie_filter_struct_size_validation`
+      (zero, one byte short, larger than compiled-in, NULL), all in `tests/capi/c/test_api.c`,
+      run `39312873470`.
+- [x] `HARDENING_PLAN.md` Part B checkboxes updated to reflect reality. — the file has no
+      literal checkbox list (it never did: `git log -S'- [ ]'` on the path is empty), so
+      "reflect reality" is satisfied by §B.0–§B.3 each stating landed / not-landed /
+      decided, including what is *not* covered.
+
+**Result.** Landed in `dd6f4cf2aed` (run `39312873470`, Windows + Linux + macOS green,
+plus the `Observability report` job). Two mechanisms, one scope decision:
+
+The **live-handle registry** (`ffi/capi/lib.rs::handle_registry`) is a
+`Mutex<HashSet<(usize, HandleKind)>>` keyed on the handle's address, so checking is a
+lookup and never a dereference — which is the property a magic cookie cannot have (it
+must be read through the pointer you are unsure about). It is adopted for `ServoOptions`
+only: `create` registers, `free` unregisters and so refuses a second free,
+`servo_builder_set_options` unregisters the handle it consumes, and the 20 setter/enable
+entry points refuse a handle that is not live, all with `SERVO_ERROR_INVALID_ARGUMENT`
+and an `# Errors` doc line. The `HandleKind` tag exists so a later adopted type cannot
+satisfy this one's entry points; it is honest to say it is unexercised until a second
+type is adopted.
+
+The **`struct_size` gap** closed: `ServoCookieFilter` and `ServoProxyConfig` were the
+only two embedder-allocated, pass-by-pointer structs without the field, so a caller built
+against a smaller header was read past. Both gained `struct_size`/`_reserved` and both
+entry points reject a too-small size before reading any payload field.
+
+**Deviations.** (1) Not debug-gated — release is where embedders ship, which is exactly
+the argument `entry_checks::check_main_thread` already rested on. (2) Address keyed rather
+than magic-field keyed, with address reuse as the known blind spot; both points are argued
+in `HARDENING_PLAN.md` §B.1 rather than buried here. (3) The by-pointer entry points use
+the same strict `>= size_of::<T>()` test as by-value delegates; the prefix/fallback reading
+(`ABI_STABILITY.md` §3.3) is needed when a field is *first appended* to these structs, not
+yet, and is registered in §D.2.1. (4) Because the struct change is breaking under §2.3,
+the version moved 0.2.0 → **0.3.0**, and `ABI_STABILITY.md` gained §2.4 recording the 0.x
+convention (incompatible change bumps MINOR while MAJOR is 0 and must be listed) so the
+bump is a documented rule rather than an exception. `PRODUCTION_READINESS.md` and
+`C_API_GUIDE.md` quotes of the version and the error list were corrected with it.
+(5) `CEF_PARITY.md` §9 P0 #1's `struct_size` coverage list is older than this change and
+was corrected here rather than in the code commit.
+
+**Local verification, stated for what it is.** `rustfmt --edition 2024 --check` over
+`ffi/capi` parses every module reachable from `lib.rs`: no parse errors, and its only
+complaints are pre-existing format differences (the repo's own rustfmt config/version) —
+none in the new code; `gcc -std=c11 -fsyntax-only -Wall -Wextra` over
+`tests/capi/c/test_api.c` against a header patched to match cbindgen's output exits 0; and
+the exact registry shape was compiled and run standalone with `rustc`, where the garbage
+pointer, use-after-free, double-free, wrong-kind and consumed-handle cases all behave as
+the C test asserts. The crate itself is only compiled by CI — run `39312873470` is the
+authority on that.
 
 **Gotchas.** Debug-only cookie checks that vanish in release builds are a footgun; state
-in the doc which checks are compiled out in release.
+in the doc which checks are compiled out in release. → The question inverted: there are no
+debug-only checks. Every check W2.5 added is compiled into all builds, and §B.1 states
+that choice and its cost (one hash lookup per entry point of an adopted type).
 
 ---
 
@@ -1553,6 +1634,7 @@ baseline) and only then pick root causes — not to touch `tests/wpt/meta` whole
 | `docs/embedding/AUDIT.md` | not updated for W4.1/W4.3 | inventory lags the branch |
 | `docs/embedding/AUDIT.md` :342 | "76 functions … 5 delegate fields" as the C API's size | a snapshot taken before Wave C; the export surface is now 241 `servo_*` symbols in `ffi/capi/symbols.txt` and `ServoWebViewDelegate` has 5+ callback fields. Re-counting is part of W2.8's audit pass, not a per-ticket edit, because the number changes with almost every Wave-C ticket |
 | `docs/embedding/SECURITY_AUDIT.md` :178-188 | "the embedder can pass dangling or double-freed handles … not enforced", and "adding optional debug validation (handle state/magic cookies)" as future work | partly closed after the audit was written: thread affinity is enforced at every entry point (`entry_checks::check_main_thread`, all builds) and the live-handle registry rejects a non-live `ServoOptions` handle (`ABI_STABILITY.md` §4.5, W2.5). What remains of the audit's list is the handle types that have not adopted the registry and the temporary-pointer rule, both in §D.2.1 |
+| `docs/embedding/CEF_PARITY.md` §9 P0 #2 | "replace `assert!`/`unwrap` with structured error returns across `ffi/capi` (currently dozens of `assert!` call sites and `.to_str().unwrap()`)" | gone: `grep 'assert!\(\|panic!\(\|unwrap()' -- ffi/capi` finds no `assert!`/`panic!` at all and three `.unwrap()`, each on `last()` of a vector that was just pushed to. W5.5 closed the reachable half and its table in `HARDENING_PLAN.md` §A.2 is the surviving classification; the P0 line itself was never re-worded, so it still described a workload that does not exist. Corrected here, together with §A.2's count line, which Wave C's three additions had made stale in the other direction |
 | `docs/embedding/AUDIT.md` §3 | C API "still no … dialogs, DevTools" and "DevTools not reachable from C" | the DevTools server is reachable from C: `servo_preferences_set_devtools_server` plus the `ServoDelegate` callbacks `notify_devtools_server_started` / `request_devtools_connection` (exercised by the W4.4 integration test) |
 | `PRODUCTION_REPORT.md` §3 and `IMPLEMENTATION_REVIEW.md` §2/§5, `IMPLEMENTATION_REVIEW_PASS2.md` §0/§5/§6 | `capi-artifacts.yml` "**Never run**"/"never dispatched" | ran green on all three platforms: run `39145918170`; artifacts `servo-capi-0.1.0-<platform>-7dba370`; `workflow_dispatch` proven (run `39149442966`)... a stale claim this plan's W5.2 closed |
 | `IMPLEMENTATION_REVIEW.md` §5 W5.1 bullet | "BHM left default-off: *correct call*, needs perf evidence" | superseded by W5.1 on this branch: `Opts::default()` (what `servo_options_create()` returns) enables both `background_hang_monitor` and `hang_monitor_kill_script`, and the kill + clean-teardown path is exercised end to end by `tests/capi/c/test_integration.c::test_hang_monitor_kills_hung_script` |

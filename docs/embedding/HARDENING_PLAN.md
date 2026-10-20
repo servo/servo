@@ -147,7 +147,11 @@ git grep -nE "\.unwrap\(\)|\.expect\(|panic!\(|unreachable!\(|assert!\(|assert_e
 
 Counts: **23 sites before** W5.5 (1 in `ffi/capi`, 22 in `components/servo`),
 **22 after** (the one genuinely reachable site is fixed; the rest are tracked
-below). Classification and status:
+below). Wave C then added three more to `ffi/capi` —
+`webview_delegate.rs:1508/1518/1526`, each `label_cstrings.last().unwrap()`
+immediately after the `push` that created that element, so provably non-empty —
+which leaves `ffi/capi` at 3 sites today, all of that shape. Classification and
+status:
 
 | Location | Site | Classification |
 |---|---|---|
@@ -235,9 +239,10 @@ fills in the value) so a host can tell how many fields this build provided.
 ### B.1 Handle validation — liveness registry (W2.5)
 
 **The problem.** Handles are raw `Box` pointers: created with
-`Box::into_raw(Box::new(..))` and destroyed with `Box::from_raw(..)` (e.g.
-`ffi/capi/options.rs:35,810`; `ffi/capi/rendering_context.rs:52,212`;
-throughout `value.rs`). If an embedder frees a handle twice, uses it after free,
+`Box::into_raw(Box::new(..))` and destroyed with `Box::from_raw(..)`
+(`ffi/capi/options.rs::servo_options_create` / `::servo_options_free`, the same pair in
+`ffi/capi/rendering_context.rs`, throughout `value.rs`). If an embedder frees a handle
+twice, uses it after free,
 or passes the wrong handle type, the engine reads freed or aliased memory. That
 is undefined behaviour by contract, but it is silent and hard for embedders to
 diagnose.

@@ -156,14 +156,22 @@ and readiness) and [`ROADMAP.md`](ROADMAP.md) (sequencing).
    (`servo_capi_version()` plus the packed integer `servo_capi_get_version()` /
    `SERVO_CAPI_VERSION`) and `SERVO_CAPI_VERSION_*` macros now exist;
    `ABI_STABILITY.md` defines the policy; `struct_size`/`_reserved` versioning is
-   implemented for the delegate structs (`ServoWebViewDelegate`, `ServoDelegate`,
-   `ServoEventLoopWaker`) and the Servo-filled `ServoScreenGeometry` output
-   struct; and a symbol-export allowlist (`ffi/capi/symbols.txt`) is enforced in
-   CI. Structured `ServoError` returns and a deprecation path (§7) are still
-   outstanding.
+   implemented for every struct the embedder fills in — the delegate structs
+   (`ServoWebViewDelegate`, `ServoDelegate`, `ServoEventLoopWaker`,
+   `ServoClipboardDelegate`, `ServoGamepadDelegate`), the
+   `ServoGamepadHapticEffectInfo` output, and the two by-pointer input structs
+   (`ServoCookieFilter`, `ServoProxyConfig`) — while the twelve structs Servo
+   fills in are append-only instead (`HARDENING_PLAN.md` §B.0 has the
+   inventory); and a symbol-export allowlist (`ffi/capi/symbols.txt`) is
+   enforced in CI. Structured `ServoError` returns and a deprecation path (§7)
+   are still outstanding.
 2. **Panic-free FFI boundary** — replace `assert!`/`unwrap` with structured error
-   returns across `ffi/capi` (currently dozens of `assert!` call sites and
-   `.to_str().unwrap()`).
+   returns across `ffi/capi`. *Progress on this branch:* `ffi/capi` has no `assert!`
+   or `panic!` left at all and three `.unwrap()` calls, each on `last()` of a vector
+   the same block just pushed to; the one site in `components/servo` reachable from
+   C input (`Servo::setup_logging`) was made fallible as W5.5 and the remaining 22
+   sites are classified one by one in `HARDENING_PLAN.md` §A.2 as unreachable by
+   construction or feature-gated behind flags this gate does not enable.
 3. **JavaScript execution in C** — *done on this branch:*
    `servo_webview_evaluate_javascript` returns JSON text via a callback and
    `servo_webview_evaluate_javascript_v2` returns a structured `ServoValue`; the
