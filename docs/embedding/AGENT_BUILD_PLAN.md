@@ -197,7 +197,7 @@ Effort: **S** days · **M** 1–3 weeks · **L** 1–3 months · **XL** quarters
 | **W2.7** | CSP/COOP/CORP/XCTO/TLS behaviour review | L | ✅ verified (`aed70287661` Mixed Content 1.4, `SECURITY_AUDIT.md` §3/§5 completed) | — | linux.yml + WPT |
 | **W2.8** | Fuzzing + security regression in CI | L | ✅ verified (`b420a94e7d2`,`7811d06863a`; run `39374199869`, 4 jobs) | — | embedding-api.yml (+ scheduled job) |
 | **W2.9** | Operationalise `SECURITY.md` | S | ✅ verified (`31f9a22abdc`; docs/process — no CI gate) | — | — |
-| **W3.1** | Android embeddable AAR (not just a demo app) | L | `partial` | — | android.yml |
+| **W3.1** | Android embeddable AAR (not just a demo app) | L | `partial` (AAR versioned, CI passes SERVO_VERSION; produced by android.yml) | - | android.yml |
 | **W3.2** | iOS: run spike → decide (commit or declare unsupported) | S | `blocked` (needs decision) | human | — |
 | **W3.3** | arm64 sandbox gap | XL | `todo` | W2.1/W2.2 | — |
 | **W3.4** | Signed/notarized release pipeline | L | `todo` | W5.3 | release.yml |
