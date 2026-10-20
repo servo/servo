@@ -55,19 +55,17 @@ impl MediaStreamAudioDestinationNodeMethods<crate::DomTypeHolder>
         }
         let audio_node_init = AudioNodeInit::MediaStreamDestinationNode(socket);
         let node_id =
-            AudioNode::generate_audio_node_id(&node_options, audio_node_init, context.upcast());
-        AudioNode::inert_node_warning(cx, context.upcast(), node_id);
-        let node = AudioNode::new_inherited(
-            node_id,
-            context.upcast(),
-            node_options,
-            1, // inputs
-            0, // outputs
-        );
+            AudioNode::generate_audio_node_id(cx, &node_options, audio_node_init, context.upcast());
         Ok(reflect_dom_object_with_proto(
             cx,
             Box::new(MediaStreamAudioDestinationNode {
-                node,
+                node: AudioNode::new_inherited(
+                    node_id,
+                    context.upcast(),
+                    node_options,
+                    1, // inputs
+                    0, // outputs
+                ),
                 stream: Dom::from_ref(&stream),
             }),
             window,

@@ -46,19 +46,17 @@ impl MediaStreamTrackAudioSourceNodeMethods<crate::DomTypeHolder>
         let track = &(*options.mediaStreamTrack);
         let audio_node_init = AudioNodeInit::MediaStreamSourceNode(track.id());
         let node_id =
-            AudioNode::generate_audio_node_id(&node_options, audio_node_init, context.upcast());
-        AudioNode::inert_node_warning(cx, context.upcast(), node_id);
-        let node = AudioNode::new_inherited(
-            node_id,
-            context.upcast(),
-            node_options,
-            0, // inputs
-            1, // outputs
-        );
+            AudioNode::generate_audio_node_id(cx, &node_options, audio_node_init, context.upcast());
         Ok(reflect_dom_object_with_proto(
             cx,
             Box::new(MediaStreamTrackAudioSourceNode {
-                node,
+                node: AudioNode::new_inherited(
+                    node_id,
+                    context.upcast(),
+                    node_options,
+                    0, // inputs
+                    1, // outputs
+                ),
                 track: Dom::from_ref(track),
             }),
             window,

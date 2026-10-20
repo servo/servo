@@ -50,8 +50,7 @@ impl GainNodeMethods<crate::DomTypeHolder> for GainNode {
 
         let gain = *options.gain;
         let gain_init = AudioNodeInit::GainNode(options.convert());
-        let node_id = AudioNode::generate_audio_node_id(&node_options, gain_init, context);
-        AudioNode::inert_node_warning(cx, context, node_id);
+        let node_id = AudioNode::generate_audio_node_id(cx, &node_options, gain_init, context);
 
         // <https://webaudio.github.io/web-audio-api/#dom-gainnode-gain>
         let gain = AudioParam::new(
@@ -66,17 +65,16 @@ impl GainNodeMethods<crate::DomTypeHolder> for GainNode {
             f32::MIN, // min value
             f32::MAX, // max value
         );
-        let node = AudioNode::new_inherited(
-            node_id,
-            context,
-            node_options,
-            1, // inputs
-            1, // outputs
-        );
         Ok(reflect_dom_object_with_proto(
             cx,
             Box::new(GainNode {
-                node,
+                node: AudioNode::new_inherited(
+                    node_id,
+                    context,
+                    node_options,
+                    1, // inputs
+                    1, // outputs
+                ),
                 gain: Dom::from_ref(&gain),
             }),
             window,

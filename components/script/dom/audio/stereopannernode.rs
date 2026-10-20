@@ -59,15 +59,8 @@ impl StereoPannerNodeMethods<crate::DomTypeHolder> for StereoPannerNode {
         }
         let pan = *options.pan;
         let audio_node_init = AudioNodeInit::StereoPannerNode(options.convert());
-        let node_id = AudioNode::generate_audio_node_id(&node_options, audio_node_init, context);
-        AudioNode::inert_node_warning(cx, context, node_id);
-        let source_node = AudioScheduledSourceNode::new_inherited(
-            node_id,
-            context,
-            node_options,
-            1, /* inputs */
-            1, /* outputs */
-        );
+        let node_id =
+            AudioNode::generate_audio_node_id(cx, &node_options, audio_node_init, context);
         // <https://webaudio.github.io/web-audio-api/#dom-stereopannernode-pan>
         let pan = AudioParam::new(
             cx,
@@ -84,7 +77,13 @@ impl StereoPannerNodeMethods<crate::DomTypeHolder> for StereoPannerNode {
         Ok(reflect_dom_object_with_proto(
             cx,
             Box::new(StereoPannerNode {
-                source_node,
+                source_node: AudioScheduledSourceNode::new_inherited(
+                    node_id,
+                    context,
+                    node_options,
+                    1, /* inputs */
+                    1, /* outputs */
+                ),
                 pan: Dom::from_ref(&pan),
             }),
             window,

@@ -84,16 +84,9 @@ impl OscillatorNodeMethods<crate::DomTypeHolder> for OscillatorNode {
             detune: *options.detune,
         };
         let audio_node_init = AudioNodeInit::OscillatorNode(options);
-        let node_id = AudioNode::generate_audio_node_id(&node_options, audio_node_init, context);
-        AudioNode::inert_node_warning(cx, context, node_id);
+        let node_id =
+            AudioNode::generate_audio_node_id(cx, &node_options, audio_node_init, context);
 
-        let source_node = AudioScheduledSourceNode::new_inherited(
-            node_id,
-            context,
-            node_options,
-            0, /* inputs */
-            1, /* outputs */
-        );
         let nyquist = (*context.SampleRate()) / 2.;
         // <https://webaudio.github.io/web-audio-api/#dom-oscillatornode-frequency>
         let frequency = AudioParam::new(
@@ -125,7 +118,13 @@ impl OscillatorNodeMethods<crate::DomTypeHolder> for OscillatorNode {
         Ok(reflect_dom_object_with_proto(
             cx,
             Box::new(OscillatorNode {
-                source_node,
+                source_node: AudioScheduledSourceNode::new_inherited(
+                    node_id,
+                    context,
+                    node_options,
+                    0, /* inputs */
+                    1, /* outputs */
+                ),
                 oscillator_type: Cell::new(oscillator_type),
                 frequency: Dom::from_ref(&frequency),
                 detune: Dom::from_ref(&detune),

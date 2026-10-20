@@ -46,30 +46,30 @@ impl MediaElementAudioSourceNodeMethods<crate::DomTypeHolder> for MediaElementAu
         let context = context.base();
         let media_element = &(*options.mediaElement);
         let node_id = AudioNode::generate_audio_node_id(
+            cx,
             &node_options,
             AudioNodeInit::MediaElementSourceNode,
             &context,
         );
-        AudioNode::inert_node_warning(cx, &context, node_id);
 
-        let node = AudioNode::new_inherited(node_id, &context, node_options, 0, 1);
-        let (sender, receiver) = mpsc::channel();
-        node.message(AudioNodeMessage::MediaElementSourceNode(
-            MediaElementSourceNodeMessage::GetAudioRenderer(sender),
-        ));
-        let audio_renderer = receiver.recv();
-        media_element.set_audio_renderer(cx, audio_renderer.ok());
-        let media_element = Dom::from_ref(media_element);
-
-        Ok(reflect_dom_object_with_proto(
+        let node = reflect_dom_object_with_proto(
             cx,
             Box::new(MediaElementAudioSourceNode {
-                node,
-                media_element,
+                node: AudioNode::new_inherited(node_id, &context, node_options, 0, 1),
+                media_element: Dom::from_ref(media_element),
             }),
             window,
             proto,
-        ))
+        );
+        let (sender, receiver) = mpsc::channel();
+        node.node.message(AudioNodeMessage::MediaElementSourceNode(
+            MediaElementSourceNodeMessage::GetAudioRenderer(sender),
+        ));
+        let audio_renderer = receiver.recv();
+        node.media_element
+            .set_audio_renderer(cx, audio_renderer.ok());
+
+        Ok(node)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-mediaelementaudiosourcenode-mediaelement>

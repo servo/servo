@@ -77,8 +77,8 @@ impl AnalyserNodeMethods<crate::DomTypeHolder> for AnalyserNode {
         }
         let callback_oncelock = Arc::new(OnceLock::new());
         let audio_node_init = AudioNodeInit::AnalyserNode(callback_oncelock.clone());
-        let node_id = AudioNode::generate_audio_node_id(&node_options, audio_node_init, context);
-        AudioNode::inert_node_warning(cx, context, node_id);
+        let node_id =
+            AudioNode::generate_audio_node_id(cx, &node_options, audio_node_init, context);
 
         let engine = AnalysisEngine::new(
             options.fftSize as usize,
@@ -86,17 +86,16 @@ impl AnalyserNodeMethods<crate::DomTypeHolder> for AnalyserNode {
             *options.minDecibels,
             *options.maxDecibels,
         );
-        let audio_node = AudioNode::new_inherited(
-            node_id,
-            context,
-            node_options,
-            1, // inputs
-            1, // outputs
-        );
         let node = reflect_dom_object_with_proto(
             cx,
             Box::new(AnalyserNode {
-                node: audio_node,
+                node: AudioNode::new_inherited(
+                    node_id,
+                    context,
+                    node_options,
+                    1, // inputs
+                    1, // outputs
+                ),
                 engine: DomRefCell::new(engine),
             }),
             window,

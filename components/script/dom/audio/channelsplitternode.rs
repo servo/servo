@@ -58,19 +58,20 @@ impl ChannelSplitterNodeMethods<crate::DomTypeHolder> for ChannelSplitterNode {
         }
 
         let audio_node_init = AudioNodeInit::ChannelSplitterNode;
-        let node_id = AudioNode::generate_audio_node_id(&node_options, audio_node_init, context);
-        AudioNode::inert_node_warning(cx, context, node_id);
+        let node_id =
+            AudioNode::generate_audio_node_id(cx, &node_options, audio_node_init, context);
 
-        let node = AudioNode::new_inherited(
-            node_id,
-            context,
-            node_options,
-            1,                       // inputs
-            options.numberOfOutputs, // outputs
-        );
         Ok(reflect_dom_object_with_proto(
             cx,
-            Box::new(ChannelSplitterNode { node }),
+            Box::new(ChannelSplitterNode {
+                node: AudioNode::new_inherited(
+                    node_id,
+                    context,
+                    node_options,
+                    1,                       // inputs
+                    options.numberOfOutputs, // outputs
+                ),
+            }),
             window,
             proto,
         ))

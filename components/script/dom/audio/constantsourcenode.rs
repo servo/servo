@@ -47,17 +47,10 @@ impl ConstantSourceNodeMethods<crate::DomTypeHolder> for ConstantSourceNode {
         }
         let offset = *options.offset;
         let node_id = AudioNode::generate_audio_node_id(
+            cx,
             &node_options,
             AudioNodeInit::ConstantSourceNode(options.convert()),
             context,
-        );
-        AudioNode::inert_node_warning(cx, context, node_id);
-        let source_node = AudioScheduledSourceNode::new_inherited(
-            node_id,
-            context,
-            node_options, /* 2, MAX, Speakers */
-            0,            /* inputs */
-            1,            /* outputs */
         );
         // <https://webaudio.github.io/web-audio-api/#dom-constantsourcenode-offset>
         let offset = AudioParam::new(
@@ -76,7 +69,13 @@ impl ConstantSourceNodeMethods<crate::DomTypeHolder> for ConstantSourceNode {
         Ok(reflect_dom_object_with_proto(
             cx,
             Box::new(ConstantSourceNode {
-                source_node,
+                source_node: AudioScheduledSourceNode::new_inherited(
+                    node_id,
+                    context,
+                    node_options, /* 2, MAX, Speakers */
+                    0,            /* inputs */
+                    1,            /* outputs */
+                ),
                 offset: Dom::from_ref(&offset),
             }),
             window,

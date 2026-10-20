@@ -54,11 +54,9 @@ impl DelayNodeMethods<crate::DomTypeHolder> for DelayNode {
         let delay_time = *options.delayTime;
         let max_delay_time = *options.maxDelayTime;
         let audio_node_init = AudioNodeInit::DelayNode(options.convert());
-        let node_id = AudioNode::generate_audio_node_id(&node_options, audio_node_init, context);
-        AudioNode::inert_node_warning(cx, context, node_id);
+        let node_id =
+            AudioNode::generate_audio_node_id(cx, &node_options, audio_node_init, context);
 
-        let source_node = AudioNode::new_inherited(node_id, context, node_options, 1, 1);
-        let node_id = source_node.node_id();
         let delay_time = AudioParam::new(
             cx,
             window,
@@ -72,14 +70,12 @@ impl DelayNodeMethods<crate::DomTypeHolder> for DelayNode {
             max_delay_time as f32,
         );
 
-        let node = DelayNode {
-            source_node,
-            delay_time: Dom::from_ref(&delay_time),
-        };
-
         Ok(reflect_dom_object_with_proto(
             cx,
-            Box::new(node),
+            Box::new(DelayNode {
+                source_node: AudioNode::new_inherited(node_id, context, node_options, 1, 1),
+                delay_time: Dom::from_ref(&delay_time),
+            }),
             window,
             proto,
         ))

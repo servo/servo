@@ -75,6 +75,7 @@ impl AudioNode {
     }
 
     pub(crate) fn generate_audio_node_id(
+        cx: &mut JSContext,
         node_options: &UnwrappedAudioNodeOptions,
         audio_node_init: AudioNodeInit,
         context: &BaseAudioContext,
@@ -85,18 +86,11 @@ impl AudioNode {
             interpretation: node_options.interpretation.convert(),
             context_channel_count: context.channel_count() as u8,
         };
-        context
+        let node_id = context
             .audio_context_impl()
             .lock()
             .unwrap()
-            .create_node(audio_node_init, ch)
-    }
-
-    pub(crate) fn inert_node_warning(
-        cx: &mut JSContext,
-        context: &BaseAudioContext,
-        node_id: Option<NodeId>,
-    ) {
+            .create_node(audio_node_init, ch);
         if node_id.is_none() {
             // Follow Chromuim and Gecko, we just warn and create an inert AudioNode.
             const MESSAGE: &str =
@@ -104,6 +98,7 @@ impl AudioNode {
             warn!("{MESSAGE}");
             Console::internal_warn(cx, &context.global(), MESSAGE.to_string());
         }
+        node_id
     }
 
     pub(crate) fn message(&self, message: AudioNodeMessage) {

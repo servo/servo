@@ -67,21 +67,19 @@ impl IIRFilterNodeMethods<crate::DomTypeHolder> for IIRFilterNode {
         let feedback = (*options.feedback).to_vec();
         let init_options = options.clone().convert();
         let audio_node_init = AudioNodeInit::IIRFilterNode(init_options);
-        let node_id = AudioNode::generate_audio_node_id(&node_options, audio_node_init, context);
-        AudioNode::inert_node_warning(cx, context, node_id);
-
-        let node = AudioNode::new_inherited(
-            node_id,
-            context,
-            node_options,
-            1, // inputs
-            1, // outputs
-        );
+        let node_id =
+            AudioNode::generate_audio_node_id(cx, &node_options, audio_node_init, context);
 
         Ok(reflect_dom_object_with_proto(
             cx,
             Box::new(IIRFilterNode {
-                node,
+                node: AudioNode::new_inherited(
+                    node_id,
+                    context,
+                    node_options,
+                    1, // inputs
+                    1, // outputs
+                ),
                 feedforward,
                 feedback,
             }),

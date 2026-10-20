@@ -60,15 +60,7 @@ impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNod
             ))));
         }
         let source_options = AudioNodeInit::AudioBufferSourceNode(options.convert(cx));
-        let node_id = AudioNode::generate_audio_node_id(&node_options, source_options, context);
-        AudioNode::inert_node_warning(cx, context, node_id);
-        let source_node = AudioScheduledSourceNode::new_inherited(
-            node_id,
-            context,
-            node_options,
-            0, /* inputs */
-            1, /* outputs */
-        );
+        let node_id = AudioNode::generate_audio_node_id(cx, &node_options, source_options, context);
         // <https://webaudio.github.io/web-audio-api/#dom-audiobuffersourcenode-playbackrate>
         let playback_rate = AudioParam::new(
             cx,
@@ -98,7 +90,13 @@ impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNod
         let node = reflect_dom_object_with_proto(
             cx,
             Box::new(AudioBufferSourceNode {
-                source_node,
+                source_node: AudioScheduledSourceNode::new_inherited(
+                    node_id,
+                    context,
+                    node_options,
+                    0, /* inputs */
+                    1, /* outputs */
+                ),
                 buffer: Default::default(),
                 buffer_set: Cell::new(false),
                 playback_rate: Dom::from_ref(&playback_rate),

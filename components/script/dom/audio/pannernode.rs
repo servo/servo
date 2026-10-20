@@ -93,16 +93,9 @@ impl PannerNodeMethods<crate::DomTypeHolder> for PannerNode {
         }
         let options = options.convert();
         let audio_node_init = AudioNodeInit::PannerNode(options);
-        let node_id = AudioNode::generate_audio_node_id(&node_options, audio_node_init, context);
-        AudioNode::inert_node_warning(cx, context, node_id);
+        let node_id =
+            AudioNode::generate_audio_node_id(cx, &node_options, audio_node_init, context);
 
-        let node = AudioNode::new_inherited(
-            node_id,
-            context,
-            node_options,
-            1, // inputs
-            1, // outputs
-        );
         // <https://webaudio.github.io/web-audio-api/#dom-pannernode-positionx>
         let position_x = AudioParam::new(
             cx,
@@ -184,7 +177,13 @@ impl PannerNodeMethods<crate::DomTypeHolder> for PannerNode {
         Ok(reflect_dom_object_with_proto(
             cx,
             Box::new(PannerNode {
-                node,
+                node: AudioNode::new_inherited(
+                    node_id,
+                    context,
+                    node_options,
+                    1, // inputs
+                    1, // outputs
+                ),
                 position_x: Dom::from_ref(&position_x),
                 position_y: Dom::from_ref(&position_y),
                 position_z: Dom::from_ref(&position_z),
