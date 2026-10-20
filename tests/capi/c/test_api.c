@@ -3115,6 +3115,44 @@ int test_webview_print_to_pdf(void)
     return 0;
 }
 
+static void dummy_context_menu_callback(struct WebView* webview,
+                                        const struct ServoContextMenuParams* params,
+                                        ServoContextMenuCallback callback,
+                                        void* user_data)
+{
+    (void)webview;
+    (void)params;
+    (void)user_data;
+    if (callback) {
+        callback(SERVO_CONTEXT_MENU_ACTION_DISMISS, NULL);
+    }
+}
+
+int test_webview_delegate_context_menu(void)
+{
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    struct ServoWebViewBuilder* builder = servo_webview_builder_create(servo);
+    if (builder == NULL)
+        return 1;
+
+    struct ServoWebViewDelegate delegate = {
+        .struct_size = sizeof(struct ServoWebViewDelegate),
+        .show_context_menu = dummy_context_menu_callback,
+    };
+
+    servo_webview_builder_set_delegate(builder, delegate);
+
+    struct WebView* webview = servo_webview_builder_build(builder);
+    if (webview == NULL)
+        return 1;
+
+    servo_webview_free(webview);
+    return 0;
+}
+
 int run_c_api_tests(void)
 {
     tests_run = 0;
@@ -3219,6 +3257,7 @@ int run_c_api_tests(void)
 
     RUN_TEST(test_value_nested_containers);
     RUN_TEST(test_webview_print_to_pdf);
+    RUN_TEST(test_webview_delegate_context_menu);
 
     free_test_servo();
 
