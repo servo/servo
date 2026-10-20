@@ -1411,10 +1411,10 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         features: DOMString,
     ) -> Fallible<Option<DomRoot<WindowProxy>>> {
         let result = self.window_proxy().open(cx, url, target, features);
-        if let Ok(Some(ref window_proxy)) = result {
-            if !window_proxy.is_disowned() {
-                self.Document().make_document_unsalvageable();
-            }
+        if let Ok(Some(ref window_proxy)) = result &&
+            !window_proxy.is_disowned()
+        {
+            self.Document().make_document_unsalvageable();
         }
         result
     }
