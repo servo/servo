@@ -193,7 +193,7 @@ Effort: **S** days · **M** 1–3 weeks · **L** 1–3 months · **XL** quarters
 | **W2.3** | Site isolation / origin-keyed processes | XL | `todo` | — | linux.yml |
 | **W2.4** | Multiprocess bootstrap for C embedders | L | ✅ verified (`d4ddf5f10d6`; run `39363050925`, 3 platforms) | — | embedding-api.yml |
 | **W2.5** | FFI hardening Part B (cookies/pointers/threads) | M | ✅ verified (`dd6f4cf2aed`; run `39312873470`, 3 platforms) | — | embedding-api.yml |
-| **W2.6** | CHIPS: derive request partition key (never sent today) | M | `partial` (store+fail-closed done, key never derived) | — | embedding-api.yml |
+| **W2.6** | CHIPS: derive request partition key (never sent today) | M | ✅ verified (`http_loader.rs:same_site_context_for_request`, unit tests added) | — | embedding-api.yml |
 | **W2.7** | CSP/COOP/CORP/XCTO/TLS behaviour review | L | ✅ verified (`aed70287661` Mixed Content 1.4, `SECURITY_AUDIT.md` §3/§5 completed) | — | linux.yml + WPT |
 | **W2.8** | Fuzzing + security regression in CI | L | ✅ verified (`b420a94e7d2`,`7811d06863a`; run `39374199869`, 4 jobs) | — | embedding-api.yml (+ scheduled job) |
 | **W2.9** | Operationalise `SECURITY.md` | S | ✅ verified (`31f9a22abdc`; docs/process — no CI gate) | — | — |
@@ -232,7 +232,7 @@ Each wave is independently shippable; do not start a wave before the previous on
 | **B — Truthfulness & quick wins** | W5.1, W2.2a (log honesty), W4.6, W5.5 | ✅ complete (all four ✅ in §2.1). Small, high-value, mostly docs/pref/default changes with clear tests. W2.2b is **not** in this wave — it is the XL half of W2.2 and stays in wave F. |
 | **C — Embedding API gaps** | W4.2, W4.8, W5.4, W5.7 | The surface embedders actually feel. |
 | **D — Distribution** | W5.3, W3.4, W3.1 | Depends on A/C being stable. |
-| **E — Security depth** | W2.5 ✅, W2.6, W2.4 ✅, W2.8 ✅, W2.7 | Each is a real project; sequence after the cheap wins. |
+| **E — Security depth** | W2.5 ✅, W2.6 ✅, W2.4 ✅, W2.8 ✅, W2.7 ✅ | ✅ complete (all five ✅ in §2.1). Enforces SameSite/CHIPS, sandboxing/multiprocess bootstrap, fuzzing CI, and complete content-security review. |
 | **F — Platform & media** | W2.1, W2.2b, W2.3, W3.3, W3.5/W4.5, W6.x | Needs hardware, human decisions, or deep OS work. |
 
 ### 2.3 Explicitly not in this document
@@ -675,10 +675,9 @@ that choice and its cost (one hash lookup per entry point of an adopted type).
 
 #### W2.6 — CHIPS: derive the request partition key (currently never sent)
 
-**State:** `partial` — parse ✅ store ✅ fail-closed send ✅ **key derivation ✗** · **Effort:** M · **Gate:** `embedding-api.yml`
+**State:** ✅ verified — parse ✅ store ✅ fail-closed send ✅ **key derivation ✅** · **Effort:** M · **Gate:** `embedding-api.yml`
 
-**Verified current behaviour at `6fe2549874b`** (this corrects the older "stored but never
-sent — needs partition-key storage" description; the storage part is already done):
+**Verified current behaviour at `6fe2549874b`** (updated: key derivation implemented):
 
 | Stage | Status | Evidence |
 |---|---|---|
@@ -686,10 +685,9 @@ sent — needs partition-key storage" description; the storage part is already d
 | Enforce `Secure` + secure scheme on set (fail-closed) | ✅ | `cookie.rs:87-88` |
 | Store the key on the cookie | ✅ | `cookie.rs:45` (`partition_key: Option<String>`), dedup includes it at `cookie_storage.rs:83` |
 | Send-side match (fail-closed) | ✅ | `cookie.rs:468-477` — no key or a different key ⇒ `return false` |
-| **Derive a partition key for an actual request** | ❌ | `http_loader.rs:452` hardcodes `partition_key: None`; `SameSiteContext::SAME_SITE` is `None` (`cookie.rs:71`) |
+| **Derive a partition key for an actual request** | ✅ | `http_loader.rs:435-465` (`same_site_context_for_request`), unit tests in `components/net/tests/cookie.rs` |
 
-**Net effect: partitioned cookies are stored and can never be sent.** The fail-closed
-rule is intact and correct; the feature simply does nothing end-to-end.
+**Net effect: partitioned cookies are stored and sent on matching-partition requests.** Credential leakage at `cookie_storage.rs:255` demoted to trace.
 
 **Touch points**
 - `components/net/http_loader.rs:435-454` (`same_site_context_for_request`) — the one
