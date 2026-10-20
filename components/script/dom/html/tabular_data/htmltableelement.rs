@@ -563,6 +563,7 @@ impl VirtualMethods for HTMLTableElement {
 
     fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
         match attr.local_name() {
+            &local_name!("bgcolor") |
             &local_name!("border") |
             &local_name!("cellspacing") |
             &local_name!("height") |
