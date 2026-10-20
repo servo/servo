@@ -361,6 +361,12 @@ impl ServoShellWindow {
                         }
                     }
                 },
+                UserInterfaceCommand::Stop => {
+                    self.set_needs_update();
+                    if let Some(active_webview) = self.active_webview() {
+                        active_webview.stop();
+                    }
+                },
                 UserInterfaceCommand::NewWebView => {
                     self.set_needs_update();
                     let url = Url::parse("servo:newtab").expect("Should always be able to parse");

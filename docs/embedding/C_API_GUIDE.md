@@ -512,6 +512,7 @@ bool servo_webview_can_go_forward(const struct WebView* webview);
 void servo_webview_go_back(struct WebView* webview, uintptr_t amount);
 void servo_webview_go_forward(struct WebView* webview, uintptr_t amount);
 void servo_webview_reload(struct WebView* webview);
+void servo_webview_stop(struct WebView* webview);
 void servo_webview_clear_session_history(struct WebView* webview);
 
 void  servo_webview_set_page_zoom(struct WebView* webview, float zoom); /* clamped to [0.1, 10.0] */

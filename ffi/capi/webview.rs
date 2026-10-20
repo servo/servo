@@ -1134,6 +1134,29 @@ pub unsafe extern "C" fn servo_webview_reload(webview: *mut WebView) -> ServoErr
     })
 }
 
+/// Stops loading the current page in `webview`, if a load is in progress.
+///
+/// Corresponds to CEF's `CefBrowserHost::StopLoad`.
+///
+/// # Safety
+///
+/// See [`servo_webview_go_back`] for the safety requirements, which apply
+/// identically here.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_webview_stop(webview: *mut WebView) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if webview.is_null() {
+            return ServoError::NullArgument;
+        }
+
+        // SAFETY: The caller is assumed to uphold the safety requirements for
+        // `webview` documented above.
+        unsafe { &*webview }.stop();
+
+        ServoError::Ok
+    })
+}
+
 /// Clears the session history of `webview`.
 ///
 /// The currently loaded page is retained, but navigating back and forward is

@@ -565,6 +565,13 @@ impl WebView {
             .send(EmbedderToConstellationMessage::Reload(self.id()))
     }
 
+    /// Stop loading the currently loaded page in this [`WebView`].
+    ///
+    /// Corresponds to CEF's `CefBrowserHost::StopLoad`.
+    pub fn stop(&self) {
+        self.clone().set_load_status(LoadStatus::Complete);
+    }
+
     /// Explicitly close this [`WebView`], asking Servo to release the resources
     /// associated with it.
     ///

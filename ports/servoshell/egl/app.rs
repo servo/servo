@@ -445,7 +445,9 @@ impl App {
 
     /// Stop loading the page.
     pub fn stop(&self) {
-        warn!("TODO can't stop won't stop");
+        self.window()
+            .queue_user_interface_command(UserInterfaceCommand::Stop);
+        self.spin_event_loop();
     }
 
     /// Go back in history.

@@ -464,7 +464,10 @@ impl Gui {
                                         info
                                     });
                                     if stop_button.clicked() {
-                                        warn!("Do not support stop yet.");
+                                        *location_dirty = false;
+                                        window.queue_user_interface_command(
+                                            UserInterfaceCommand::Stop,
+                                        );
                                     }
                                 },
                                 LoadStatus::Complete => {
