@@ -20,7 +20,7 @@ use js::rust::{HandleObject, MutableHandleObject};
 use num_traits::ToPrimitive;
 use script_bindings::cell::{DomRefCell, Ref};
 use script_bindings::codegen::GenericBindings::SelectionBinding::SelectionMethods;
-use script_bindings::domstring::parse_floating_point_number;
+use script_bindings::domstring::{TracedDOMString, parse_floating_point_number};
 use servo_base::generic_channel::GenericSender;
 use servo_base::text::{RangeAny, Utf16CodeUnits, Utf32CodeUnits};
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
@@ -106,7 +106,7 @@ pub(crate) struct HTMLInputElement {
     /// textual input. This is cached so that it can be read during layout.
     is_textual_or_password: Cell<bool>,
 
-    placeholder: DomRefCell<DOMString>,
+    placeholder: DomRefCell<TracedDOMString>,
     size: Cell<u32>,
     maxlength: Cell<i32>,
     minlength: Cell<i32>,
@@ -171,7 +171,7 @@ impl HTMLInputElement {
             ),
             input_type: DomRefCell::new(InputType::new_text()),
             is_textual_or_password: Cell::new(true),
-            placeholder: DomRefCell::new(DOMString::new()),
+            placeholder: DomRefCell::new(DOMString::new().traced()),
             checkedness: Cell::new(false),
             checked_changed: Cell::new(false),
             indeterminateness: Cell::new(false),
@@ -1048,7 +1048,7 @@ impl TextControlElement for HTMLInputElement {
         matches!(*self.input_type(), InputType::Password(_))
     }
 
-    fn placeholder_text<'a>(&'a self) -> Ref<'a, DOMString> {
+    fn placeholder_text<'a>(&'a self) -> Ref<'a, TracedDOMString> {
         self.placeholder.borrow()
     }
 

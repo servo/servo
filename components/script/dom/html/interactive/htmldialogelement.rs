@@ -8,6 +8,7 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElementMethods;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::error::{Error, ErrorResult};
 use stylo_dom::ElementState;
 
@@ -31,7 +32,7 @@ use crate::dom::toggleevent::ToggleEvent;
 #[dom_struct]
 pub(crate) struct HTMLDialogElement {
     htmlelement: HTMLElement,
-    return_value: DomRefCell<DOMString>,
+    return_value: DomRefCell<TracedDOMString>,
 }
 
 impl HTMLDialogElement {
@@ -42,7 +43,7 @@ impl HTMLDialogElement {
     ) -> HTMLDialogElement {
         HTMLDialogElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
-            return_value: DomRefCell::new(DOMString::new()),
+            return_value: DomRefCell::new(DOMString::new().traced()),
         }
     }
 
@@ -217,7 +218,7 @@ impl HTMLDialogElement {
 
         // Step 9. If result is not null, then set subject's returnValue attribute to result.
         if let Some(new_value) = result {
-            *self.return_value.safe_borrow_mut(cx.no_gc()) = new_value;
+            *self.return_value.safe_borrow_mut(cx.no_gc()) = new_value.traced();
         }
 
         // TODO: Step 10. Set subject's request close return value to null.
@@ -358,12 +359,12 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
     /// <https://html.spec.whatwg.org/multipage/#dom-dialog-returnvalue>
     fn ReturnValue(&self) -> DOMString {
         let return_value = self.return_value.borrow();
-        return_value.clone()
+        return_value.clone().root()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-dialog-returnvalue>
     fn SetReturnValue(&self, cx: &mut JSContext, return_value: DOMString) {
-        *self.return_value.safe_borrow_mut(cx.no_gc()) = return_value;
+        *self.return_value.safe_borrow_mut(cx.no_gc()) = return_value.traced();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-dialog-show>

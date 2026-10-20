@@ -8,6 +8,7 @@ use dom_struct::dom_struct;
 use html5ever::local_name;
 use js::context::{JSContext, NoGC};
 use script_bindings::cell::DomRefCell;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::ElementInternalsBinding::{
@@ -70,8 +71,8 @@ pub(crate) struct ElementInternals {
     attached: Cell<bool>,
     target_element: Dom<HTMLElement>,
     validity_state: MutNullableDom<ValidityState>,
-    validation_message: DomRefCell<DOMString>,
-    custom_validity_error_message: DomRefCell<DOMString>,
+    validation_message: DomRefCell<TracedDOMString>,
+    custom_validity_error_message: DomRefCell<TracedDOMString>,
     validation_anchor: MutNullableDom<HTMLElement>,
     submission_value: DomRefCell<SubmissionValue>,
     state: DomRefCell<SubmissionValue>,
@@ -89,8 +90,8 @@ impl ElementInternals {
             attached: Cell::new(false),
             target_element: Dom::from_ref(target_element),
             validity_state: Default::default(),
-            validation_message: DomRefCell::new(DOMString::new()),
-            custom_validity_error_message: DomRefCell::new(DOMString::new()),
+            validation_message: DomRefCell::new(DOMString::new().traced()),
+            custom_validity_error_message: DomRefCell::new(DOMString::new().traced()),
             validation_anchor: MutNullableDom::new(None),
             submission_value: DomRefCell::new(SubmissionValue::None),
             state: DomRefCell::new(SubmissionValue::None),
@@ -114,11 +115,11 @@ impl ElementInternals {
     }
 
     fn set_validation_message(&self, message: DOMString) {
-        *self.validation_message.borrow_mut() = message;
+        *self.validation_message.borrow_mut() = message.traced();
     }
 
     fn set_custom_validity_error_message(&self, message: DOMString) {
-        *self.custom_validity_error_message.borrow_mut() = message;
+        *self.custom_validity_error_message.borrow_mut() = message.traced();
     }
 
     pub(crate) fn set_form_owner(&self, form: Option<&HTMLFormElement>) {
@@ -284,7 +285,7 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
         // message to element's validation message. Otherwise, set element's custom validity error
         // message to the empty string.
         if bits.contains(ValidationFlags::CUSTOM_ERROR) {
-            self.set_custom_validity_error_message(self.validation_message.borrow().clone());
+            self.set_custom_validity_error_message(self.validation_message.borrow().clone().root());
         } else {
             self.set_custom_validity_error_message(DOMString::new());
         }
@@ -323,7 +324,7 @@ impl ElementInternalsMethods<crate::DomTypeHolder> for ElementInternals {
                 "The target element is not a form-associated custom element".to_owned(),
             )));
         }
-        Ok(self.validation_message.borrow().clone())
+        Ok(self.validation_message.borrow().clone().root())
     }
 
     /// <https://html.spec.whatwg.org/multipage#dom-elementinternals-validity>
