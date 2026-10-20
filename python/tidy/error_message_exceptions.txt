@@ -1,7 +1,5 @@
 ./components/script/dom/abort/abortsignal.rs 3
 ./components/script/dom/animations/keyframeeffect.rs 3
-./components/script/dom/attributes/domstringmap.rs 2
-./components/script/dom/attributes/domtokenlist.rs 4
 ./components/script/dom/audio/analysernode.rs 7
 ./components/script/dom/audio/audiobuffer.rs 7
 ./components/script/dom/audio/audiobuffersourcenode.rs 1
@@ -31,16 +29,12 @@
 ./components/script/dom/canvas/imagebitmaprenderingcontext.rs 1
 ./components/script/dom/canvas/imagedata.rs 7
 ./components/script/dom/canvas/offscreencanvas.rs 12
-./components/script/dom/characterdata/characterdata.rs 2
-./components/script/dom/characterdata/text.rs 1
 ./components/script/dom/clipboard/clipboard.rs 1
 ./components/script/dom/clipboard/clipboarditem.rs 2
 ./components/script/dom/cookiestore/cookiestore.rs 8
 ./components/script/dom/credentialmanagement/credentialscontainer.rs 8
 ./components/script/dom/credentialmanagement/passwordcredential.rs 1
 ./components/script/dom/datatransfer/datatransferitemlist.rs 1
-./components/script/dom/element/element.rs 11
-./components/script/dom/element/namednodemap.rs 2
 ./components/script/dom/event/eventtarget.rs 1
 ./components/script/dom/eventsource.rs 1
 ./components/script/dom/file/blob.rs 1
@@ -65,8 +59,6 @@
 ./components/script/dom/navigator/navigator.rs 3
 ./components/script/dom/node/customelementregistry.rs 7
 ./components/script/dom/performance/performanceobserver.rs 4
-./components/script/dom/range/range.rs 20
-./components/script/dom/selection.rs 11
 ./components/script/dom/serviceworker/extendableevent.rs 1
 ./components/script/dom/serviceworker/serviceworker.rs 1
 ./components/script/dom/serviceworker/serviceworkercontainer.rs 2

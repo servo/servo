@@ -156,11 +156,15 @@ impl DOMStringMapMethods<crate::DomTypeHolder> for DOMStringMap {
         let Some(name) = to_snake_case(&name, true) else {
             // Step 1. If name contains a U+002D HYPHEN-MINUS character (-) followed by an ASCII lower alpha,
             // then throw a "SyntaxError" DOMException.
-            return Err(Error::Syntax(None));
+            return Err(Error::Syntax(Some(
+                "Name contains a hyphen followed by a lowercase ASCII letter".into(),
+            )));
         };
         // Step 4. If name is not a valid attribute local name, then throw an "InvalidCharacterError" DOMException.
         if !matches_name_production(&name) {
-            return Err(Error::InvalidCharacter(None));
+            return Err(Error::InvalidCharacter(Some(
+                "Invalid attribute name".into(),
+            )));
         }
         // Step 5. Set an attribute value for the DOMStringMap's associated element using name and value.
         let name = LocalName::from(name);

@@ -60,10 +60,10 @@ impl DOMTokenList {
     fn check_token_exceptions(&self, token: &DOMString) -> Fallible<Atom> {
         let token = token.str();
         match &*token {
-            "" => Err(Error::Syntax(None)),
-            slice if slice.find(HTML_SPACE_CHARACTERS).is_some() => {
-                Err(Error::InvalidCharacter(None))
-            },
+            "" => Err(Error::Syntax(Some("Token is empty".into()))),
+            slice if slice.find(HTML_SPACE_CHARACTERS).is_some() => Err(Error::InvalidCharacter(
+                Some("Token contains whitespace".into()),
+            )),
             slice => Ok(Atom::from(slice)),
         }
     }
@@ -189,11 +189,13 @@ impl DOMTokenListMethods<crate::DomTypeHolder> for DOMTokenList {
     ) -> Fallible<bool> {
         if token.is_empty() || new_token.is_empty() {
             // Step 1.
-            return Err(Error::Syntax(None));
+            return Err(Error::Syntax(Some("Token is empty".into())));
         }
         if token.contains_html_space_characters() || new_token.contains_html_space_characters() {
             // Step 2.
-            return Err(Error::InvalidCharacter(None));
+            return Err(Error::InvalidCharacter(Some(
+                "Token contains whitespace".into(),
+            )));
         }
         // Steps 3-4.
         let token = Atom::from(token);
