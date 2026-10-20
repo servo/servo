@@ -2149,6 +2149,7 @@ class MethodDefiner(PropertyDefiner):
             '        name: %s,\n'
             '        call: JSNativeWrapper { op: %s, info: %s },\n'
             '        nargs: %s,\n'
+            '        #[allow(clippy::identity_op)]\n'
             '        flags: %s,\n'
             '        selfHostedName: %s\n'
             '    }')
