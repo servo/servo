@@ -6,6 +6,7 @@ use std::cell::Cell;
 use std::rc::Rc;
 use std::sync::Arc;
 
+use atomic_refcell::AtomicRefCell;
 use bytes::Bytes;
 use dom_struct::dom_struct;
 use euclid::default::Size2D;
@@ -31,6 +32,7 @@ use servo_media::player::video::VideoFrame;
 use servo_url::ServoUrl;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
+use crate::dom::bindings::cell::AtomicSafeBorrowMut;
 use crate::dom::bindings::codegen::Bindings::HTMLVideoElementBinding::HTMLVideoElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
@@ -60,7 +62,7 @@ pub(crate) struct HTMLVideoElement {
     video_height: Cell<Option<u32>>,
     /// <https://html.spec.whatwg.org/multipage/#dom-video-poster>
     #[no_trace]
-    poster_url: DomRefCell<Option<UrlWithBlobClaim>>,
+    poster_url: AtomicRefCell<Option<UrlWithBlobClaim>>,
     /// Incremented whenever tasks associated with this element are cancelled.
     generation_id: Cell<u32>,
     /// Load event blocker. Will block the load event while the poster frame
@@ -616,13 +618,7 @@ impl LayoutDom<'_, HTMLVideoElement> {
             current_frame,
             metadata,
             poster_or_src_url: if video.htmlmediaelement.show_poster() {
-                unsafe {
-                    video
-                        .poster_url
-                        .borrow_for_layout()
-                        .clone()
-                        .map(|url| url.url())
-                }
+                video.poster_url.borrow().clone().map(|url| url.url())
             } else {
                 unsafe { video.htmlmediaelement.current_src_url() }
             },
