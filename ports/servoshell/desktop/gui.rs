@@ -361,10 +361,8 @@ impl Gui {
 
             let tab = tab_frame
                 .content_ui
-                .add(Button::selectable(
-                    active,
-                    truncate_with_ellipsis(&label, 20),
-                ))
+                // No frame: its interact rect is taller than the tab, so only the tab frame is filled.
+                .add(Button::selectable(active, truncate_with_ellipsis(&label, 20)).frame(false))
                 .on_hover_ui(|ui| {
                     ui.label(&label);
                 });
