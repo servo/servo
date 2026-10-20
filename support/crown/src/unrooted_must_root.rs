@@ -143,6 +143,8 @@ fn is_unrooted_ty<'tcx>(
                     }
                 } else if match_def_path(cx, did.did(), &[sym::core, sym.cell, sym.Ref]) ||
                     match_def_path(cx, did.did(), &[sym::core, sym.cell, sym.RefMut]) ||
+                    match_def_path(cx, did.did(), &[sym.atomic_refcell, sym.AtomicRef]) ||
+                    match_def_path(cx, did.did(), &[sym.atomic_refcell, sym.AtomicRefMut]) ||
                     match_def_path(cx, did.did(), &[sym::core, sym::slice, sym::iter, sym.Iter]) ||
                     match_def_path(
                         cx,
@@ -574,6 +576,9 @@ symbols! {
     cell
     Ref
     RefMut
+    atomic_refcell
+    AtomicRef
+    AtomicRefMut
     Iter
     IterMut
     Values

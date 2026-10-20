@@ -248,7 +248,6 @@ impl<'dom> LayoutDom<'dom, Node> {
     }
 
     #[expect(unsafe_code)]
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))] // Borrow of a traced field, never escapes.
     pub(crate) fn selection_for_text_node(&self) -> Option<RangeAny<Utf32CodeUnits>> {
         if let Some(shadow_root) = self.containing_shadow_root_for_layout() {
             let host = shadow_root.get_host_for_layout();
