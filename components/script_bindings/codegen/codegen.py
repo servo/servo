@@ -907,7 +907,7 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
     if type.isSequence() or type.isRecord():
         innerInfo = getJSToNativeConversionInfo(innerContainerType(type),
                                                 descriptorProvider,
-                                                isMember="Sequence",
+                                                isMember=isMember,
                                                 isAutoRooted=isAutoRooted)
         assert innerInfo.declType is not None
         declType = wrapInNativeContainerType(type, innerInfo.declType)
@@ -1333,9 +1333,6 @@ def getJSToNativeConversionInfo(type: IDLType, descriptorProvider: DescriptorPro
                               handleDefault(default))
 
     if type.isDictionary():
-        # There are no nullable dictionaries
-        assert not type.nullable() or (isMember and isMember != "Dictionary")
-
         # pyrefly: ignore  # missing-attribute
         typeName = f"{CGDictionary.makeModuleName(type.inner)}::{CGDictionary.makeDictionaryName(type.inner)}"
         if containsDomInterface(type):

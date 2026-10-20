@@ -38,7 +38,7 @@ use js::context::{JSContext, NoGC};
 use js::conversions::ToJSValConvertible;
 use js::glue::DumpJSStack;
 use js::jsapi::{
-    GCReason, GetObjectRealmOrNull, Heap, JSContext as RawJSContext, JSObject, SetRealmPrincipals,
+    GCReason, GetObjectRealmOrNull, JSContext as RawJSContext, JSObject, SetRealmPrincipals,
 };
 use js::jsval::{NullValue, UndefinedValue};
 use js::realm::{AutoRealm, CurrentRealm};
@@ -141,9 +141,7 @@ use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot, MutNullableDom};
 use crate::dom::bindings::str::{DOMString, USVString};
 use crate::dom::bindings::structuredclone;
-use crate::dom::bindings::trace::{
-    CustomTraceable, HashMapTracedValues, JSTraceable, RootedTraceableBox,
-};
+use crate::dom::bindings::trace::{CustomTraceable, HashMapTracedValues, JSTraceable};
 use crate::dom::bindings::utils::GlobalStaticData;
 use crate::dom::bindings::weakref::DOMTracker;
 #[cfg(feature = "bluetooth")]
@@ -1886,7 +1884,7 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
                 .parent
                 .transfer
                 .iter()
-                .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+                .map(|js| js.get())
                 .collect::<Vec<_>>());
 
         let incumbent = GlobalScope::incumbent().expect("no incumbent global?");

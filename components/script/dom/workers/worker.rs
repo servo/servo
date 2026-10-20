@@ -13,7 +13,7 @@ use crossbeam_channel::{Sender, unbounded};
 use devtools_traits::{DevtoolsPageInfo, ScriptToDevtoolsControlMsg};
 use dom_struct::dom_struct;
 use js::context::JSContext;
-use js::jsapi::{Heap, JSObject};
+use js::jsapi::JSObject;
 use js::jsval::UndefinedValue;
 use js::rust::{CustomAutoRooterGuard, HandleObject, HandleValue};
 use net_traits::request::Referrer;
@@ -34,7 +34,7 @@ use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::structuredclone;
-use crate::dom::bindings::trace::{CustomTraceable, RootedTraceableBox};
+use crate::dom::bindings::trace::CustomTraceable;
 use crate::dom::dedicatedworkerglobalscope::{
     DedicatedWorkerGlobalScope, DedicatedWorkerScriptMsg,
 };
@@ -331,7 +331,7 @@ impl WorkerMethods<crate::DomTypeHolder> for Worker {
             options
                 .transfer
                 .iter()
-                .map(|js: &RootedTraceableBox<Heap<*mut JSObject>>| js.get())
+                .map(|js| js.get())
                 .collect::<Vec<_>>());
         self.post_message_impl(cx, message, guard)
     }
