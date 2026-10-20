@@ -206,6 +206,16 @@ jobs:
           path: observability-report.json
           if-no-files-found: warn
 
+      # W2.8: keep the in-tree fuzz crate compiling (separate workspace, not
+      # built by `cargo test -p servo-capi-tests`). Run on Linux only; the
+      # targets are platform-independent and the job already has nightly available
+      # via rustup on hosted runners.
+      - name: Check fuzz targets compile
+        if: runner.os == 'Linux'
+        run: |
+          rustup toolchain install nightly --profile minimal --no-self-update
+          cargo +nightly check --manifest-path fuzz/Cargo.toml --bins
+
       # Regenerate the public C header from ffi/capi/cbindgen.toml and fail if
       # generation errors out or produces an empty header.
       - name: Generate C API header (cbindgen)

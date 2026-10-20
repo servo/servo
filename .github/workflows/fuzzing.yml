@@ -1,0 +1,78 @@
+# Fuzzing targets run on a schedule (weekly) and via workflow_dispatch to
+# validate parser/network invariants (cookies) using cargo-fuzz + libFuzzer.
+#
+# Schedule runs only from the default branch; workflow_dispatch can be used
+# on feature branches to prove the pipeline works.
+
+name: Fuzzing
+
+on:
+  schedule:
+    - cron: '0 4 * * 1'  # Mondays at 04:00 UTC
+  workflow_dispatch:
+    inputs:
+      budget_seconds:
+        description: 'Maximum seconds to run each target'
+        required: false
+        default: '60'
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz:
+    name: Fuzz (${{ matrix.target }})
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - fuzz_cookie_parser
+          - fuzz_cookie_domain_joining
+          - fuzz_cookie_partitioning
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Rust toolchain (nightly)
+        run: rustup toolchain install nightly --profile minimal --no-self-update
+
+      - name: Install cargo-fuzz
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-fuzz
+
+      - name: Build and run ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          budget="${{ inputs.budget_seconds || '60' }}"
+          echo "Running ${{ matrix.target }} for ${budget}s against checked-in corpus"
+          cargo +nightly fuzz run "${{ matrix.target }}" \
+            --manifest-path fuzz/Cargo.toml \
+            -- \
+            -max_total_time="${budget}" \
+            -timeout=10
+        env:
+          RUST_BACKTRACE: 1
+
+      - name: Upload artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fuzz-artifacts-${{ matrix.target }}
+          path: fuzz/artifacts/${{ matrix.target }}/
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Upload corpus on failure (if present)
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fuzz-corpus-${{ matrix.target }}
+          path: fuzz/corpus/${{ matrix.target }}/
+          if-no-files-found: warn
+          retention-days: 7
