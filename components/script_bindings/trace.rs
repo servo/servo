@@ -9,6 +9,7 @@ use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Deref, DerefMut};
 
+use atomic_refcell::AtomicRefCell;
 use crossbeam_channel::Sender;
 use html5ever::interface::{Tracer as HtmlTracer, TreeSink};
 use html5ever::tokenizer::{TokenSink, Tokenizer};
@@ -136,6 +137,12 @@ unsafe impl<T: JSTraceable> CustomTraceable for ServoArc<T> {
 unsafe impl<T: JSTraceable> CustomTraceable for RwLock<T> {
     unsafe fn trace(&self, trc: *mut JSTracer) {
         unsafe { self.read().trace(trc) }
+    }
+}
+
+unsafe impl<T: JSTraceable> CustomTraceable for AtomicRefCell<T> {
+    unsafe fn trace(&self, trc: *mut JSTracer) {
+        unsafe { self.borrow().trace(trc) }
     }
 }
 

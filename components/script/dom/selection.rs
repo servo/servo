@@ -5,6 +5,7 @@
 use std::cell::{Cell, LazyCell};
 use std::cmp::Ordering;
 
+use atomic_refcell::{AtomicRef, AtomicRefCell};
 use bitflags::bitflags;
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
@@ -19,6 +20,7 @@ use servo_base::text::{
 };
 
 use crate::dom::abstractrange::bp_position;
+use crate::dom::bindings::cell::AtomicSafeBorrowMut;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::{GetRootNodeOptions, NodeMethods};
 use crate::dom::bindings::codegen::Bindings::RangeBinding::RangeMethods;
 use crate::dom::bindings::codegen::Bindings::SelectionBinding::{
@@ -73,7 +75,8 @@ pub(crate) struct Selection {
     ///
     /// * It is `None` if the selection is unrenderable.
     /// * Boundaries are in flat tree order.
-    visible_range: DomRefCell<Option<SelectionRange>>,
+    #[custom_trace]
+    visible_range: AtomicRefCell<Option<SelectionRange>>,
     /// The [`Direction`] of this [`Selection`] which determines which endpoint of
     /// [`Self::range`] is the anchor and which is the focus.
     direction: Cell<Direction>,
@@ -321,8 +324,8 @@ impl Selection {
         })
     }
 
-    fn set_visible_range(&self, flat_tree_selection: Option<FlatTreeSelection>) {
-        *self.visible_range.borrow_mut() = flat_tree_selection.map(|selection| {
+    fn set_visible_range(&self, no_gc: &NoGC, flat_tree_selection: Option<FlatTreeSelection>) {
+        *self.visible_range.safe_borrow_mut(no_gc) = flat_tree_selection.map(|selection| {
             SelectionRange::new(
                 SelectionBoundary::new(&selection.start.container, selection.start.offset),
                 SelectionBoundary::new(&selection.end.container, selection.end.offset),
@@ -345,7 +348,7 @@ impl Selection {
             flat_tree_selection.as_ref(),
             &self.document,
         );
-        self.set_visible_range(flat_tree_selection);
+        self.set_visible_range(no_gc, flat_tree_selection);
     }
 
     /// <https://w3c.github.io/selection-api/#dfn-schedule-a-selectionchange-event>
@@ -1441,9 +1444,8 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
 }
 
 impl<'dom> LayoutDom<'dom, Selection> {
-    #[expect(unsafe_code)]
-    pub(crate) fn range_for_layout(&self) -> &Option<SelectionRange> {
-        unsafe { self.unsafe_get().visible_range.borrow_for_layout() }
+    pub(crate) fn range_for_layout(&self) -> Option<AtomicRef<'dom, SelectionRange>> {
+        AtomicRef::filter_map(self.unsafe_get().visible_range.borrow(), Option::as_ref)
     }
 }
 
