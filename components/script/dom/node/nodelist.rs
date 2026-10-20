@@ -7,6 +7,7 @@ use std::cell::RefCell;
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use script_bindings::dom::UnrootedDom;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use stylo_atoms::Atom;
 
@@ -293,14 +294,14 @@ impl RadioList {
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ElementsByNameList {
     document: Dom<Document>,
-    name: DOMString,
+    name: TracedDOMString,
 }
 
 impl ElementsByNameList {
     pub(crate) fn new(document: &Document, name: DOMString) -> ElementsByNameList {
         ElementsByNameList {
             document: Dom::from_ref(document),
-            name,
+            name: name.traced(),
         }
     }
 

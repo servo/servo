@@ -8,6 +8,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::TestBindingPairIterableBinding::TestBindingPairIterableMethods;
@@ -20,11 +21,11 @@ use crate::dom::globalscope::GlobalScope;
 #[dom_struct]
 pub(crate) struct TestBindingPairIterable {
     reflector: Reflector,
-    map: DomRefCell<Vec<(DOMString, u32)>>,
+    map: DomRefCell<Vec<(TracedDOMString, u32)>>,
 }
 
 impl Iterable for TestBindingPairIterable {
-    type Key = DOMString;
+    type Key = TracedDOMString;
     type Value = u32;
 
     fn get_iterable_length(&self, _cx: &mut JSContext) -> u32 {
@@ -33,7 +34,7 @@ impl Iterable for TestBindingPairIterable {
     fn get_value_at_index(&self, _cx: &mut JSContext, index: u32) -> u32 {
         *self.map.borrow().get(index as usize).map(|a| &a.1).unwrap()
     }
-    fn get_key_at_index(&self, _cx: &mut JSContext, index: u32) -> DOMString {
+    fn get_key_at_index(&self, _cx: &mut JSContext, index: u32) -> TracedDOMString {
         self.map
             .borrow()
             .get(index as usize)
@@ -71,6 +72,6 @@ impl TestBindingPairIterableMethods<crate::DomTypeHolder> for TestBindingPairIte
     }
 
     fn Add(&self, key: DOMString, value: u32) {
-        self.map.borrow_mut().push((key, value));
+        self.map.borrow_mut().push((key.traced(), value));
     }
 }

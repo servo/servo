@@ -60,6 +60,7 @@ use regex::bytes::Regex;
 use rustc_hash::{FxBuildHasher, FxHashMap, FxHashSet};
 use script_bindings::callback::{RootedCallback, ThisReflector};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::interfaces::DocumentHelpers;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use script_bindings::trace::CustomTraceable;
@@ -4591,7 +4592,7 @@ impl Document {
         })
     }
 
-    pub(crate) fn elements_by_name_count(&self, name: &DOMString) -> u32 {
+    pub(crate) fn elements_by_name_count(&self, name: &TracedDOMString) -> u32 {
         if name.is_empty() {
             return 0;
         }
@@ -4601,7 +4602,7 @@ impl Document {
     pub(crate) fn elements_by_name_iter<'a>(
         &self,
         no_gc: &'a NoGC,
-        name: &'a DOMString,
+        name: &'a TracedDOMString,
     ) -> impl Iterator<Item = UnrootedDom<'a, Node>> + 'a {
         self.get_document_element_unrooted(no_gc)
             .into_iter()
@@ -4615,7 +4616,7 @@ impl Document {
 
     // Note that document.getByName does not match on the same conditions
     // as the document named getter.
-    fn is_element_in_get_by_name(node: &Node, name: &DOMString) -> bool {
+    fn is_element_in_get_by_name(node: &Node, name: &TracedDOMString) -> bool {
         let element = match node.downcast::<Element>() {
             Some(element) => element,
             None => return false,

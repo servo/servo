@@ -96,7 +96,7 @@ impl ReportingEndpoint {
             // Step 5.4. Let endpoint be a new endpoint whose properties are set as follows:
             // Step 5.5. Add endpoint to endpoints.
             endpoints.push(ReportingEndpoint {
-                name: name.into(),
+                name: DOMString::from(name),
                 url: endpoint_url,
                 failures: 0,
             });
