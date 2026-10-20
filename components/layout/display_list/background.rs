@@ -152,9 +152,8 @@ impl<'a> BackgroundPainter<'a> {
         if let Some(clip_chain_id) = clip {
             common.clip_chain_id = clip_chain_id;
         }
-        if self.clips_to_text(layer_index)
-            && self
-                .text_clip(fragment_builder, builder, state, layer_index)
+        if self.clips_to_text(layer_index) &&
+            self.text_clip(fragment_builder, builder, state, layer_index)
                 .is_none()
         {
             // No glyph coverage must not turn a text-clipped layer into an unclipped one.
