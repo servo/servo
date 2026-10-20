@@ -72,6 +72,7 @@ use crate::scripting::script_execution::{RethrowErrors, ScriptOptions};
 use crate::tasks::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 
 /// Messages used to control service worker event loop
+#[derive(MallocSizeOf)]
 pub(crate) enum ServiceWorkerScriptMsg {
     /// Message common to all workers
     CommonWorker(WorkerScriptMsg),
@@ -158,7 +159,6 @@ impl CspViolationsProcessor for ServiceWorkerCspProcessor {
 pub(crate) struct ServiceWorkerGlobalScope {
     workerglobalscope: WorkerGlobalScope,
 
-    #[ignore_malloc_size_of = "Defined in std"]
     #[no_trace]
     task_queue: TaskQueue<ServiceWorkerScriptMsg>,
 

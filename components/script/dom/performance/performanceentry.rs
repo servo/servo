@@ -121,7 +121,6 @@ pub(crate) struct PerformanceEntry {
     ///
     /// <https://www.w3.org/TR/performance-timeline/#dom-performanceentry-duration>
     #[no_trace]
-    #[ignore_malloc_size_of = "No MallocSizeOf support for `time` crate"]
     duration: Duration,
 }
 

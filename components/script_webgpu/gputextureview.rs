@@ -22,7 +22,6 @@ use crate::traits::Equivalence;
 
 #[derive(JSTraceable, MallocSizeOf)]
 struct DroppableGPUTextureView {
-    #[ignore_malloc_size_of = "defined in webgpu"]
     #[no_trace]
     channel: WebGPU,
     #[no_trace]

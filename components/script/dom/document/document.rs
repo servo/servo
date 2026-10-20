@@ -443,7 +443,6 @@ pub(crate) struct Document {
     document_or_shadow_root: DocumentOrShadowRoot,
     window: Dom<Window>,
     implementation: MutNullableDom<DOMImplementation>,
-    #[ignore_malloc_size_of = "type from external crate"]
     #[no_trace]
     content_type: Mime,
     last_modified: Option<String>,

@@ -428,7 +428,7 @@ impl TryFrom<MouseButton> for MouseButtons {
 }
 
 /// Input events from the embedder that are sent via the `Constellation`` to the `ScriptThread`.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct ConstellationInputEvent {
     /// The hit test result of this input event, if any.
     pub hit_test_result: Option<PaintHitTestResult>,

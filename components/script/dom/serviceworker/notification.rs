@@ -104,15 +104,15 @@ pub(crate) struct Notification {
     #[no_trace] // RequestId is not traceable
     pending_request_ids: DomRefCell<FxHashSet<RequestId>>,
     /// <https://notifications.spec.whatwg.org/#image-resource>
-    #[ignore_malloc_size_of = "RasterImage"]
+    #[conditional_malloc_size_of]
     #[no_trace]
     image_resource: DomRefCell<Option<Arc<RasterImage>>>,
     /// <https://notifications.spec.whatwg.org/#icon-resource>
-    #[ignore_malloc_size_of = "RasterImage"]
+    #[conditional_malloc_size_of]
     #[no_trace]
     icon_resource: DomRefCell<Option<Arc<RasterImage>>>,
     /// <https://notifications.spec.whatwg.org/#badge-resource>
-    #[ignore_malloc_size_of = "RasterImage"]
+    #[conditional_malloc_size_of]
     #[no_trace]
     badge_resource: DomRefCell<Option<Arc<RasterImage>>>,
 }
@@ -581,8 +581,8 @@ struct Action {
     /// <https://notifications.spec.whatwg.org/#action-icon-url>
     icon_url: Option<USVString>,
     /// <https://notifications.spec.whatwg.org/#action-icon-resource>
-    #[ignore_malloc_size_of = "RasterImage"]
     #[no_trace]
+    #[conditional_malloc_size_of]
     icon_resource: DomRefCell<Option<Arc<RasterImage>>>,
 }
 

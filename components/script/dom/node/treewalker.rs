@@ -26,7 +26,6 @@ pub(crate) struct TreeWalker {
     root_node: Dom<Node>,
     current_node: MutDom<Node>,
     what_to_show: u32,
-    #[ignore_malloc_size_of = "function pointers and Rc<T> are hard"]
     filter: Filter,
     active: Cell<bool>,
 }
@@ -508,7 +507,7 @@ impl Iterator for &TreeWalker {
     }
 }
 
-#[derive(JSTraceable)]
+#[derive(JSTraceable, MallocSizeOf)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum Filter {
     None,

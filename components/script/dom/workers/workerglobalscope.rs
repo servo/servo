@@ -332,14 +332,12 @@ pub(crate) struct WorkerGlobalScope {
     #[conditional_malloc_size_of]
     policy_container: DomRefCell<Arc<PolicyContainer>>,
 
-    #[ignore_malloc_size_of = "Defined in base"]
     #[no_trace]
     /// A `Sender` for sending messages to devtools. This is unused but is stored here to
     /// keep the channel alive.
     #[cfg(feature = "devtools")]
     _devtools_sender: Option<GenericSender<DevtoolScriptControlMsg>>,
 
-    #[ignore_malloc_size_of = "Defined in base"]
     #[no_trace]
     /// A `Receiver` for receiving messages from devtools.
     #[cfg(feature = "devtools")]

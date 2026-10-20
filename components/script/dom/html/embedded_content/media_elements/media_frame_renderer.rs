@@ -75,7 +75,6 @@ pub(crate) struct MediaFrameRenderer {
     #[conditional_malloc_size_of]
     glplayer_id: Arc<RwLock<Option<u64>>>,
     paint_api: CrossProcessPaintApi,
-    #[ignore_malloc_size_of = "Defined in other crates"]
     player_context: WindowGLContext,
     current_frame: Option<MediaFrame>,
     old_frame: Option<ImageKey>,
