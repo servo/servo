@@ -7,8 +7,9 @@
 //!
 //! <https://html.spec.whatwg.org/multipage/#textFieldSelection>
 
-use std::cell::{Ref, RefMut};
+use std::cell::Ref;
 
+use atomic_refcell::{AtomicRef, AtomicRefMut};
 use embedder_traits::EditingAction;
 use js::context::JSContext;
 use layout_api::QueryMsg;
@@ -33,8 +34,8 @@ use crate::dom::{Element, Event};
 
 pub(crate) trait TextControlElement {
     fn as_element(&self) -> &Element;
-    fn text_input<'a>(&'a self) -> Ref<'a, TextInput<EmbedderClipboardProvider>>;
-    fn text_input_mut<'a>(&'a self) -> RefMut<'a, TextInput<EmbedderClipboardProvider>>;
+    fn text_input<'a>(&'a self) -> AtomicRef<'a, TextInput<EmbedderClipboardProvider>>;
+    fn text_input_mut<'a>(&'a self) -> AtomicRefMut<'a, TextInput<EmbedderClipboardProvider>>;
     fn selection_api_applies(&self) -> bool;
     fn has_selectable_text(&self) -> bool;
     fn has_uncollapsed_selection(&self) -> bool;

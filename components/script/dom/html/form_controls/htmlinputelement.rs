@@ -2,9 +2,10 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::{Cell, RefCell, RefMut};
+use std::cell::{Cell, RefCell};
 use std::{f64, ptr};
 
+use atomic_refcell::{AtomicRef, AtomicRefCell, AtomicRefMut};
 use dom_struct::dom_struct;
 use embedder_traits::{EmbedderControlRequest, InputMethodRequest, RgbColor, SelectedFile};
 use encoding_rs::Encoding;
@@ -33,6 +34,7 @@ use webdriver::error::ErrorStatus;
 use xml5ever::ns;
 
 use crate::dom::activation::Activatable;
+use crate::dom::bindings::cell::AtomicSafeBorrowMut;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLFormElementBinding::SelectionMode;
@@ -123,7 +125,7 @@ pub(crate) struct HTMLInputElement {
     /// groupo is checked, which is fully independent of the interminateness of the input element.
     indeterminateness: Cell<bool>,
     #[no_trace]
-    text_input: DomRefCell<TextInput<EmbedderClipboardProvider>>,
+    text_input: AtomicRefCell<TextInput<EmbedderClipboardProvider>>,
     form_owner: MutNullableDom<HTMLFormElement>,
     labels_node_list: MutNullableDom<NodeList>,
     validity_state: MutNullableDom<ValidityState>,
@@ -178,7 +180,7 @@ impl HTMLInputElement {
             maxlength: Cell::new(DEFAULT_MAX_LENGTH),
             minlength: Cell::new(DEFAULT_MIN_LENGTH),
             size: Cell::new(DEFAULT_INPUT_SIZE),
-            text_input: DomRefCell::new(TextInput::new(
+            text_input: AtomicRefCell::new(TextInput::new(
                 Lines::Single,
                 DOMString::new(),
                 EmbedderClipboardProvider {
@@ -920,8 +922,7 @@ impl<'dom> LayoutDom<'dom, HTMLInputElement> {
         if !element.is_textual_or_password.get() {
             return None;
         }
-        #[expect(unsafe_code)]
-        let text_input = unsafe { element.text_input.borrow_for_layout() };
+        let text_input = element.text_input.borrow_mut();
         text_input.selection_for_layout
     }
 
@@ -964,11 +965,11 @@ impl TextControlElement for HTMLInputElement {
         self.upcast()
     }
 
-    fn text_input(&self) -> Ref<'_, TextInput<EmbedderClipboardProvider>> {
+    fn text_input(&self) -> AtomicRef<'_, TextInput<EmbedderClipboardProvider>> {
         self.text_input.borrow()
     }
 
-    fn text_input_mut(&self) -> RefMut<'_, TextInput<EmbedderClipboardProvider>> {
+    fn text_input_mut(&self) -> AtomicRefMut<'_, TextInput<EmbedderClipboardProvider>> {
         self.text_input.borrow_mut()
     }
 
