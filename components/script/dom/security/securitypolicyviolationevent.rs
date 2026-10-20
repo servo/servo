@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
 
@@ -26,11 +27,11 @@ pub(crate) struct SecurityPolicyViolationEvent {
     document_uri: USVString,
     referrer: USVString,
     blocked_uri: USVString,
-    effective_directive: DOMString,
-    violated_directive: DOMString,
-    original_policy: DOMString,
+    effective_directive: TracedDOMString,
+    violated_directive: TracedDOMString,
+    original_policy: TracedDOMString,
     source_file: USVString,
-    sample: DOMString,
+    sample: TracedDOMString,
     disposition: SecurityPolicyViolationEventDisposition,
     status_code: u16,
     line_number: u32,
@@ -44,11 +45,11 @@ impl SecurityPolicyViolationEvent {
             document_uri: init.documentURI.clone(),
             referrer: init.referrer.clone(),
             blocked_uri: init.blockedURI.clone(),
-            effective_directive: init.effectiveDirective.clone(),
-            violated_directive: init.violatedDirective.clone(),
-            original_policy: init.originalPolicy.clone(),
+            effective_directive: init.effectiveDirective.clone().traced(),
+            violated_directive: init.violatedDirective.clone().traced(),
+            original_policy: init.originalPolicy.clone().traced(),
             source_file: init.sourceFile.clone(),
-            sample: init.sample.clone(),
+            sample: init.sample.clone().traced(),
             disposition: init.disposition,
             status_code: init.statusCode,
             line_number: init.lineNumber,
@@ -141,17 +142,17 @@ impl SecurityPolicyViolationEventMethods<crate::DomTypeHolder> for SecurityPolic
 
     /// <https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-effectivedirective>
     fn EffectiveDirective(&self) -> DOMString {
-        self.effective_directive.clone()
+        self.effective_directive.clone().root()
     }
 
     /// <https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-violateddirective>
     fn ViolatedDirective(&self) -> DOMString {
-        self.violated_directive.clone()
+        self.violated_directive.clone().root()
     }
 
     /// <https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-originalpolicy>
     fn OriginalPolicy(&self) -> DOMString {
-        self.original_policy.clone()
+        self.original_policy.clone().root()
     }
 
     /// <https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-sourcefile>
@@ -161,7 +162,7 @@ impl SecurityPolicyViolationEventMethods<crate::DomTypeHolder> for SecurityPolic
 
     /// <https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-sample>
     fn Sample(&self) -> DOMString {
-        self.sample.clone()
+        self.sample.clone().root()
     }
 
     /// <https://w3c.github.io/webappsec-csp/#dom-securitypolicyviolationevent-disposition>

@@ -8,6 +8,7 @@ use dom_struct::dom_struct;
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 
 use crate::dom::bindings::codegen::Bindings::TestBindingIterableBinding::TestBindingIterableMethods;
@@ -19,7 +20,7 @@ use crate::dom::globalscope::GlobalScope;
 #[dom_struct]
 pub(crate) struct TestBindingIterable {
     reflector: Reflector,
-    vals: DomRefCell<Vec<DOMString>>,
+    vals: DomRefCell<Vec<TracedDOMString>>,
 }
 
 impl TestBindingIterable {
@@ -50,7 +51,7 @@ impl TestBindingIterableMethods<crate::DomTypeHolder> for TestBindingIterable {
     }
 
     fn Add(&self, v: DOMString) {
-        self.vals.borrow_mut().push(v);
+        self.vals.borrow_mut().push(v.traced());
     }
     fn Length(&self) -> u32 {
         self.vals.borrow().len() as u32
@@ -59,6 +60,10 @@ impl TestBindingIterableMethods<crate::DomTypeHolder> for TestBindingIterable {
         self.IndexedGetter(n).unwrap_or_default()
     }
     fn IndexedGetter(&self, n: u32) -> Option<DOMString> {
-        self.vals.borrow().get(n as usize).cloned()
+        self.vals
+            .borrow()
+            .get(n as usize)
+            .cloned()
+            .map(|domstring| domstring.root())
     }
 }

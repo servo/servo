@@ -10,6 +10,7 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::callback::{OwnerWindow, RootedCallback, TracedCallback};
 use script_bindings::cell::DomRefCell;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::match_domstring_ascii;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use script_bindings::str::DOMString;
@@ -36,7 +37,7 @@ pub(crate) struct ReportingObserver {
 
     callback: TracedCallback<ReportingObserverCallback>,
     buffered: Cell<bool>,
-    types: DomRefCell<Vec<DOMString>>,
+    types: DomRefCell<Vec<TracedDOMString>>,
     report_queue: DomRefCell<Vec<Report>>,
 }
 
@@ -49,7 +50,15 @@ impl ReportingObserver {
             reflector_: Reflector::new(),
             callback: callback.to_traced(),
             buffered: Cell::new(options.buffered),
-            types: DomRefCell::new(options.types.clone().unwrap_or_default()),
+            types: DomRefCell::new(
+                options
+                    .types
+                    .clone()
+                    .unwrap_or_default()
+                    .into_iter()
+                    .map(|domstring| domstring.traced())
+                    .collect(),
+            ),
             report_queue: Default::default(),
         }
     }
