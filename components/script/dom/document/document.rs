@@ -146,7 +146,7 @@ use crate::dom::customelementregistry::{CustomElementReactionStack, CustomElemen
 use crate::dom::customevent::CustomEvent;
 use crate::dom::document::accessibility_data::AccessibilityData;
 use crate::dom::document::animation_manager::AnimationManager;
-use crate::dom::document::focus::{DocumentFocusHandler, FocusableArea};
+use crate::dom::document::focus::{DocumentFocusHandler, RootedFocusableArea};
 use crate::dom::document::iframe_collection::IFrameCollection;
 use crate::dom::document::tree_ordered_index_map::TreeOrderedIndexMap;
 use crate::dom::document::websocket::WebSocket;
@@ -1540,7 +1540,7 @@ impl Document {
         // target.
         indicated_part.run_the_focusing_steps(
             cx,
-            Some(FocusableArea::Viewport),
+            Some(RootedFocusableArea::Viewport),
             FocusTrigger::Other,
         );
 

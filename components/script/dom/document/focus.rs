@@ -50,6 +50,86 @@ bitflags! {
     }
 }
 
+#[derive(Clone)]
+pub(crate) enum RootedFocusableArea {
+    Node {
+        node: DomRoot<Node>,
+        kind: FocusableAreaKind,
+    },
+    /// The viewport of an `<iframe>` element in its containing `Document`. `<iframe>`s
+    /// are focusable areas, but have special behavior when focusing.
+    IFrameViewport {
+        iframe_element: DomRoot<HTMLIFrameElement>,
+        kind: FocusableAreaKind,
+    },
+    Viewport,
+}
+
+impl RootedFocusableArea {
+    pub(crate) fn kind(&self) -> FocusableAreaKind {
+        match self {
+            Self::Node { kind, .. } | Self::IFrameViewport { kind, .. } => *kind,
+            Self::Viewport => FocusableAreaKind::Click | FocusableAreaKind::Sequential,
+        }
+    }
+
+    pub(crate) fn focus_chain(&self) -> Vec<FocusableArea> {
+        FocusableArea::from(self).focus_chain()
+    }
+
+    /// If this focusable area is a node, return it as an [`Element`] if it is possible, otherwise
+    /// return `None`. This is the [`Element`] to use for applying `:focus` state and for firing
+    /// `blur` and `focus` events if any.
+    ///
+    /// Note: This is currently in a transitional state while the code moves more toward the
+    /// specification.
+    pub(crate) fn element(&self) -> Option<&Element> {
+        match self {
+            Self::Node { node, .. } => node.downcast(),
+            Self::IFrameViewport { iframe_element, .. } => Some(iframe_element.upcast()),
+            Self::Viewport => None,
+        }
+    }
+}
+
+impl From<&'_ RootedFocusableArea> for FocusableArea {
+    fn from(area: &'_ RootedFocusableArea) -> Self {
+        match area {
+            RootedFocusableArea::Node { node, kind } => FocusableArea::Node {
+                node: Dom::from_ref(&node),
+                kind: *kind,
+            },
+            RootedFocusableArea::IFrameViewport {
+                iframe_element,
+                kind,
+            } => FocusableArea::IFrameViewport {
+                iframe_element: Dom::from_ref(&iframe_element),
+                kind: *kind,
+            },
+            RootedFocusableArea::Viewport => FocusableArea::Viewport,
+        }
+    }
+}
+
+impl From<&'_ FocusableArea> for RootedFocusableArea {
+    fn from(area: &'_ FocusableArea) -> Self {
+        match area {
+            FocusableArea::Node { node, kind } => RootedFocusableArea::Node {
+                node: DomRoot::from_ref(&node),
+                kind: *kind,
+            },
+            FocusableArea::IFrameViewport {
+                iframe_element,
+                kind,
+            } => RootedFocusableArea::IFrameViewport {
+                iframe_element: DomRoot::from_ref(&iframe_element),
+                kind: *kind,
+            },
+            FocusableArea::Viewport => RootedFocusableArea::Viewport,
+        }
+    }
+}
+
 /// <https://html.spec.whatwg.org/multipage/#focusable-area>
 #[derive(Clone, Default, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
@@ -92,10 +172,14 @@ impl std::fmt::Debug for FocusableArea {
 }
 
 impl FocusableArea {
-    pub(crate) fn kind(&self) -> FocusableAreaKind {
+    /// <https://html.spec.whatwg.org/multipage/#dom-anchor>
+    pub(crate) fn dom_anchor(&self, document: &Document) -> DomRoot<Node> {
         match self {
-            Self::Node { kind, .. } | Self::IFrameViewport { kind, .. } => *kind,
-            Self::Viewport => FocusableAreaKind::Click | FocusableAreaKind::Sequential,
+            Self::Node { node, .. } => node.as_rooted(),
+            Self::IFrameViewport { iframe_element, .. } => {
+                DomRoot::from_ref(iframe_element.upcast())
+            },
+            Self::Viewport => DomRoot::from_ref(document.upcast()),
         }
     }
 
@@ -110,17 +194,6 @@ impl FocusableArea {
             Self::Node { node, .. } => node.downcast(),
             Self::IFrameViewport { iframe_element, .. } => Some(iframe_element.upcast()),
             Self::Viewport => None,
-        }
-    }
-
-    /// <https://html.spec.whatwg.org/multipage/#dom-anchor>
-    pub(crate) fn dom_anchor(&self, document: &Document) -> DomRoot<Node> {
-        match self {
-            Self::Node { node, .. } => node.as_rooted(),
-            Self::IFrameViewport { iframe_element, .. } => {
-                DomRoot::from_ref(iframe_element.upcast())
-            },
-            Self::Viewport => DomRoot::from_ref(document.upcast()),
         }
     }
 
@@ -198,9 +271,8 @@ impl DocumentFocusHandler {
     /// set element (if any) and the new one, as well as the new one. This will not do anything if
     /// the new element is the same as the previous one. Note that this *will not* fire any focus
     /// events. If that is necessary the [`DocumentFocusHandler::focus`] should be used.
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn set_focused_area(&self, new_focusable_area: FocusableArea) {
-        if new_focusable_area == *self.focused_area.borrow() {
+    pub(crate) fn set_focused_area(&self, new_focusable_area: RootedFocusableArea) {
+        if FocusableArea::from(&new_focusable_area) == *self.focused_area.borrow() {
             return;
         }
         self.window
@@ -234,7 +306,7 @@ impl DocumentFocusHandler {
             recursively_set_focus_status(newly_focused_element, true);
         }
 
-        *self.focused_area.borrow_mut() = new_focusable_area;
+        *self.focused_area.borrow_mut() = FocusableArea::from(&new_focusable_area);
     }
 
     /// Get the last sequence number sent to the constellation.
@@ -274,8 +346,8 @@ impl DocumentFocusHandler {
 
     /// Reassign the focus context to the element that last requested focus during this
     /// transaction, or the document if no elements requested it.
-    pub(crate) fn focus(&self, cx: &mut JSContext, new_focus_target: &FocusableArea) {
-        rooted!(&in(cx) let new_focus_chain = new_focus_target.focus_chain());
+    pub(crate) fn focus(&self, cx: &mut JSContext, new_focus_target: &RootedFocusableArea) {
+        rooted!(&in(cx) let new_focus_chain = FocusableArea::from(new_focus_target).focus_chain());
         rooted!(&in(cx) let old_focus_chain = self.current_focus_chain());
 
         self.focus_update_steps(
@@ -309,7 +381,7 @@ impl DocumentFocusHandler {
         // >     `new focus target` to the nested browsing context's
         // >     active document.
         let child_browsing_context_id = match new_focus_target {
-            FocusableArea::IFrameViewport { iframe_element, .. } => {
+            RootedFocusableArea::IFrameViewport { iframe_element, .. } => {
                 iframe_element.browsing_context_id()
             },
             _ => None,
@@ -340,7 +412,7 @@ impl DocumentFocusHandler {
         cx: &mut JSContext,
         mut new_focus_chain: RootedGuard<'_, Vec<FocusableArea>>,
         mut old_focus_chain: RootedGuard<'_, Vec<FocusableArea>>,
-        new_focus_target: &FocusableArea,
+        new_focus_target: &RootedFocusableArea,
         for_system_focus_change: bool,
     ) {
         let new_focus_chain_was_empty = new_focus_chain.is_empty();
@@ -374,7 +446,7 @@ impl DocumentFocusHandler {
         //
         // See https://github.com/whatwg/html/issues/1569
         if !for_system_focus_change {
-            self.set_focused_area(FocusableArea::Viewport);
+            self.set_focused_area(RootedFocusableArea::Viewport);
         }
 
         // Step 2: For each entry entry in old chain, in order, run these substeps:
@@ -441,7 +513,7 @@ impl DocumentFocusHandler {
             // Step 3: Apply any relevant platform-specific conventions for focusing new focus
             // target. (For example, some platforms select the contents of a text control when that
             // control is focused.)
-            if &*self.focused_area() != new_focus_target &&
+            if *self.focused_area() != FocusableArea::from(new_focus_target) &&
                 let Some(html_element) = new_focus_target
                     .element()
                     .and_then(|element| element.downcast::<HTMLElement>())
@@ -469,7 +541,7 @@ impl DocumentFocusHandler {
 
                 // Step 4.1.2: Designate entry as the focused area of the document.
                 if !for_system_focus_change {
-                    self.set_focused_area(entry.clone());
+                    self.set_focused_area(entry.into());
                 }
             }
 
@@ -572,7 +644,7 @@ impl DocumentFocusHandler {
         {
             return;
         }
-        self.focus(cx, &FocusableArea::Viewport);
+        self.focus(cx, &RootedFocusableArea::Viewport);
     }
 
     pub(crate) fn set_sequential_focus_navigation_starting_point(&self, node: &Node) {
@@ -716,7 +788,7 @@ impl DocumentFocusHandler {
         // a child `<iframe>` and within a Document. If no suitable focusable area can be found
         // when moving into an `<iframe>`, we want to focus the `<iframe>`'s viewport itself.
         if allow_focusing_viewport {
-            self.focus(cx, &FocusableArea::Viewport);
+            self.focus(cx, &RootedFocusableArea::Viewport);
             return;
         }
 
@@ -819,7 +891,7 @@ impl DocumentFocusHandler {
             return;
         }
 
-        rooted!(&in(cx) let focused_area = self.focused_area().clone());
+        let focused_area = RootedFocusableArea::from(&*self.focused_area());
         rooted!(&in(cx) let new_focus_chain = if gained_focus {
             self.current_focus_chain()
         } else {
