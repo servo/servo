@@ -22,6 +22,7 @@ mod servo_delegate;
 mod site_data;
 mod user_content_manager;
 mod value;
+mod printing;
 mod webview;
 mod webview_delegate;
 
@@ -230,6 +231,11 @@ pub use preferences::{
     servo_preferences_get_string, servo_preferences_get_u64, servo_preferences_set_bool,
     servo_preferences_set_devtools_server, servo_preferences_set_i64,
     servo_preferences_set_string, servo_preferences_set_u64,
+};
+
+// Re-export printing types and helpers
+pub use printing::{
+    ServoPdfPrintCallback, ServoPdfPrintSettings, servo_webview_print_to_pdf,
 };
 
 /// Error codes returned by the Servo C API.

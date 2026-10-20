@@ -37,10 +37,15 @@ node, so a host with several WebViews can keep them in one adapter.
 
 ## 2. Printing and PDF Export
 
-CEF exposes `CefBrowserHost::PrintToPDF`. In Servo:
-- **WebRender Vector / PDF Surface:** WebRender display lists can be directed to a vector recording backend (such as Cairo or Skia PDF) to generate paginated PDF documents.
-- **Page Setup:** Print media styles (`@media print`) and page margins are calculated during print layout pagination.
-- **C API Roadmap:** Expose `servo_webview_print_to_pdf(webview, print_settings, callback, user_data)`.
+CEF exposes `CefBrowserHost::PrintToPDF`.
+
+### 2.1 Feasibility Assessment (Dated: 2026-10-20)
+- **WebRender Vector vs Raster Pipeline:** WebRender's display lists contain vector primitives, clips, text runs, and image keys. While directing raw WebRender commands to a vector recording backend (such as Skia PDF or Cairo) provides scalable text, it requires paginated layout re-flows (`@media print` pagination).
+- **Embedded PDF Generation:** For embedders and full consumer browser printing, `servo_webview_print_to_pdf` generates a compliant PDF container (`%PDF-1.4`) with page catalog, dimensions (Letter/A4), margins, and orientation settings.
+- **C API Exposure (W6.5):** Implemented in `ffi/capi/printing.rs`:
+  - `ServoPdfPrintSettings` controls page width, height, margins, scale, background printing, and landscape flags.
+  - `servo_webview_print_to_pdf` writes to the target file path and reports completion via `ServoPdfPrintCallback`.
+  - Exercised end-to-end by `test_webview_print_to_pdf` in `tests/capi/c/test_api.c`, verifying non-null argument checks, file generation, and `%PDF` magic header validation.
 
 ---
 

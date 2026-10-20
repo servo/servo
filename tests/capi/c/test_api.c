@@ -1110,6 +1110,7 @@ int test_webview_navigation_noops(void)
         return 1;
     servo_webview_clear_session_history(webview);
     servo_webview_reload(webview);
+    servo_webview_stop(webview);
     servo_webview_go_back(webview, 1);
     servo_webview_go_forward(webview, 1);
     servo_webview_free(webview);
@@ -1586,6 +1587,8 @@ int test_webview_setters_null(void)
     if (servo_webview_notify_theme_change(NULL, SERVO_THEME_LIGHT) != SERVO_ERROR_NULL_ARGUMENT)
         return 1;
     if (servo_webview_reload(NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_webview_stop(NULL) != SERVO_ERROR_NULL_ARGUMENT)
         return 1;
     if (servo_webview_clear_session_history(NULL) != SERVO_ERROR_NULL_ARGUMENT)
         return 1;
@@ -3032,6 +3035,67 @@ int test_webview_delegate_intercept_request_streaming(void)
     return 0;
 }
 
+static void print_pdf_cb(bool success, const char* output_path, void* user_data)
+{
+    (void)output_path;
+    int* called = (int*)user_data;
+    if (success) {
+        *called = 1;
+    }
+}
+
+int test_webview_print_to_pdf(void)
+{
+    struct WebView* webview = create_about_blank_webview();
+    if (webview == NULL)
+        return 1;
+
+    /* Null argument checks */
+    if (servo_webview_print_to_pdf(NULL, "dummy.pdf", NULL, NULL, NULL) != SERVO_ERROR_NULL_ARGUMENT) {
+        servo_webview_free(webview);
+        return 1;
+    }
+    if (servo_webview_print_to_pdf(webview, NULL, NULL, NULL, NULL) != SERVO_ERROR_NULL_ARGUMENT) {
+        servo_webview_free(webview);
+        return 1;
+    }
+
+    const char* pdf_path = "test_print_output.pdf";
+    remove(pdf_path);
+
+    int callback_called = 0;
+    int err = servo_webview_print_to_pdf(webview, pdf_path, NULL, print_pdf_cb, &callback_called);
+    if (err != SERVO_ERROR_OK) {
+        servo_webview_free(webview);
+        return 1;
+    }
+
+    if (!callback_called) {
+        servo_webview_free(webview);
+        return 1;
+    }
+
+    /* Verify file exists, is non-empty, and begins with %PDF */
+    FILE* f = fopen(pdf_path, "rb");
+    if (!f) {
+        servo_webview_free(webview);
+        return 1;
+    }
+
+    char header[5] = {0};
+    size_t read_bytes = fread(header, 1, 4, f);
+    fclose(f);
+    remove(pdf_path);
+
+    if (read_bytes < 4 || strncmp(header, "%PDF", 4) != 0) {
+        servo_webview_free(webview);
+        return 1;
+    }
+
+    servo_webview_free(webview);
+    return 0;
+}
+
 int run_c_api_tests(void)
 {
     tests_run = 0;
@@ -3135,6 +3199,7 @@ int run_c_api_tests(void)
     RUN_TEST(test_script_message_router);
 
     RUN_TEST(test_value_nested_containers);
+    RUN_TEST(test_webview_print_to_pdf);
 
     free_test_servo();
 
