@@ -329,6 +329,7 @@ pub(crate) fn handle_get_children(
             pref!(inspector_show_servo_internal_shadow_roots))
     {
         children.push(shadow_root.upcast::<Node>().summarize(cx));
+        pipeline_state.register_node(shadow_root.upcast::<Node>());
     }
     let children_iter = parent.children().enumerate().filter_map(|(i, child)| {
         // Filter whitespace only text nodes that are not inline level
