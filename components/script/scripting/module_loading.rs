@@ -109,21 +109,18 @@ unsafe extern "C" fn on_load_requested_modules_resolved(
     let on_complete = state.on_complete.safe_borrow_mut(cx).take().unwrap();
     let module_script = state.module_script.safe_borrow_mut(cx).take().unwrap();
 
-    let record = module_script
-        .get_record()
-        .map(|module| module.handle())
-        .unwrap();
+    let record = module_script.record().unwrap();
 
     // https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script
     // Step 6. Upon fulfillment of loadingPromise, run the following steps:
 
     // Step 6.1. Perform record.Link().
-    let link = unsafe { ModuleLink(cx, record) };
+    let link = unsafe { ModuleLink(cx, record.handle()) };
 
     // If this throws an exception, catch it, and set moduleScript's error to rethrow to that exception.
     if !link {
         let exception = RethrowError::from_pending_exception(cx);
-        module_script.set_rethrow_error(exception);
+        module_script.set_rethrow_error(exception.handle());
     }
 
     // Step 6.2. Run onComplete given moduleScript.
@@ -157,7 +154,7 @@ unsafe extern "C" fn on_load_requested_modules_rejected(
     // Step 7.1. If state.[[ErrorToRethrow]] is not null, set moduleScript's error to rethrow to
     // state.[[ErrorToRethrow]] and run onComplete given moduleScript.
     if !error.is_undefined() {
-        module_script.set_rethrow_error(RethrowError::new(Heap::boxed(*error.as_ref(cx))));
+        module_script.set_rethrow_error(error);
         on_complete(cx, Some(module_script));
     } else {
         // Step 7.2. Otherwise, run onComplete given null.
@@ -529,7 +526,7 @@ pub(crate) fn host_load_imported_module(
                 Some(module_tree) => {
                     // Step 3. Otherwise, if moduleScript's parse error is not null, then:
                     // Step 3.1. Let parseError be moduleScript's parse error.
-                    if let Some(parse_error) = module_tree.get_parse_error() {
+                    if let Some(parse_error) = module_tree.parse_error() {
                         // Step 3.3. If loadState is not undefined and loadState.[[ErrorToRethrow]]
                         // is null, set loadState.[[ErrorToRethrow]] to parseError.
                         // Note: ErrorToRethrow is retrieved inside the rejection handler of loadingPromise.
@@ -545,10 +542,7 @@ pub(crate) fn host_load_imported_module(
                         };
                     } else {
                         // Step 4. Otherwise, set completion to NormalCompletion(moduleScript's record).
-                        let completion = module_tree
-                            .get_record()
-                            .map(|module| module.handle())
-                            .unwrap();
+                        let completion = module_tree.record().unwrap();
 
                         // Step 5. Perform FinishLoadingImportedModule(referrer, moduleRequest, payload, completion).
                         finish_loading_imported_module(
@@ -556,7 +550,7 @@ pub(crate) fn host_load_imported_module(
                             request.referrer.handle(),
                             request.module_request.handle(),
                             request.payload.handle(),
-                            completion,
+                            completion.handle(),
                         );
                     }
                 },

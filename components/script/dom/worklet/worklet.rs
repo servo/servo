@@ -822,9 +822,9 @@ impl WorkletThread {
 
                         // Step 6.4.2. If script's error to rethrow is not null:
                         // NOTE: The `AddModule` specification in the Step 6.4.2.1.1.2. requires the promise to be rejected with the script's "rethrow error".
-                        // However, the `JSVal` from `get_rethrow_error` cannot be used with the `promise_task` here because they are from different runtimes.
+                        // However, the `JSVal` from `rethrow_error` cannot be used with the `promise_task` here because they are from different runtimes.
                         // So we throw an AbortError instead.
-                        if script.get_rethrow_error().take().is_some() {
+                        if script.has_rethrow_error() {
                             // Step 6.4.2.1. and its substeps are handled by `reject_promise` function
                             reject_promise(
                                 &pending_tasks_struct,
@@ -837,7 +837,8 @@ impl WorkletThread {
                         }
 
                         // Step 6.4.4. Run a module script given script.
-                        rooted_global.run_a_module_script(cx, script, false);
+                        let module = RootedTraceableBox::new(script);
+                        rooted_global.run_a_module_script(cx, module, false);
 
                         // NOTE: we are treating all negative values as -1
                         // Step 6.4.5.1. If pendingTasks is not −1:

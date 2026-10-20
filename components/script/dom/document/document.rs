@@ -181,7 +181,7 @@ use crate::dom::html::htmlheadelement::HTMLHeadElement;
 use crate::dom::html::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::html::htmliframeelement::HTMLIFrameElement;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
-use crate::dom::html::htmlscriptelement::{HTMLScriptElement, ScriptResult};
+use crate::dom::html::htmlscriptelement::{HTMLScriptElement, ScriptResult, TracedScriptResult};
 use crate::dom::html::htmltitleelement::HTMLTitleElement;
 use crate::dom::htmldetailselement::DetailsNameGroups;
 use crate::dom::intersectionobserver::IntersectionObserver;
@@ -7397,8 +7397,7 @@ impl PendingInOrderScriptVec {
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 struct PendingScript {
     element: Dom<HTMLScriptElement>,
-    // TODO(sagudev): could this be all no_trace?
-    load: Option<ScriptResult>,
+    load: Option<TracedScriptResult>,
 }
 
 impl PendingScript {
@@ -7412,19 +7411,19 @@ impl PendingScript {
     fn new_with_load(element: &HTMLScriptElement, load: Option<ScriptResult>) -> Self {
         Self {
             element: Dom::from_ref(element),
-            load,
+            load: load.map(|result| result.map(Into::into)),
         }
     }
 
     fn loaded(&mut self, result: ScriptResult) {
         assert!(self.load.is_none());
-        self.load = Some(result);
+        self.load = Some(result.map(Into::into));
     }
 
     fn take_result(&mut self) -> Option<(DomRoot<HTMLScriptElement>, ScriptResult)> {
         self.load
             .take()
-            .map(|result| (DomRoot::from_ref(&*self.element), result))
+            .map(|result| (DomRoot::from_ref(&*self.element), result.map(Into::into)))
     }
 }
 

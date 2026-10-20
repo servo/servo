@@ -6,7 +6,6 @@
 //! related to `type=module` for script thread or worker threads.
 
 use std::borrow::Cow;
-use std::cell::OnceCell;
 use std::collections::hash_map::Entry;
 use std::ffi::CStr;
 use std::fmt::Debug;
@@ -48,7 +47,6 @@ use net_traits::request::{
 use net_traits::{FetchMetadata, Metadata, NetworkError, ReferrerPolicy, ResourceFetchTiming};
 use script_bindings::cell::DomRefCell;
 use script_bindings::reflector::DomObject;
-use script_bindings::trace::CustomTraceable;
 use servo_config::pref;
 use servo_url::ServoUrl;
 
@@ -56,7 +54,7 @@ use crate::dom::bindings::codegen::Bindings::CSSStyleSheetBinding::{
     CSSStyleSheetInit, CSSStyleSheetMethods,
 };
 use crate::dom::bindings::codegen::UnionTypes::MediaListOrString;
-use crate::dom::bindings::error::throw_dom_exception;
+use crate::dom::bindings::error::{ErrorToJsval, throw_dom_exception};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::{DOMString, USVString};
@@ -140,34 +138,59 @@ pub(crate) enum ModuleStatus {
 }
 
 #[derive(Default, JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_in_rc)]
 pub(crate) struct ModuleTree {
     #[ignore_malloc_size_of = "mozjs"]
-    record: OnceCell<ModuleObject>,
+    record: DomRefCell<Option<Heap<*mut JSObject>>>,
     #[ignore_malloc_size_of = "mozjs"]
-    parse_error: OnceCell<RethrowError>,
+    parse_error: DomRefCell<Option<Heap<JSVal>>>,
     #[ignore_malloc_size_of = "mozjs"]
-    rethrow_error: DomRefCell<Option<RethrowError>>,
+    rethrow_error: DomRefCell<Option<Heap<JSVal>>>,
 }
 
 impl ModuleTree {
-    pub(crate) fn get_record(&self) -> Option<&ModuleObject> {
-        self.record.get()
+    fn set_record(&self, record: HandleObject) {
+        *self.record.borrow_mut() = Some(Heap::default());
+        self.record.borrow().as_ref().unwrap().set(record.get());
     }
 
-    pub(crate) fn get_parse_error(&self) -> Option<&RethrowError> {
-        self.parse_error.get()
+    pub(crate) fn record(&self) -> Option<RootedTraceableBox<Heap<*mut JSObject>>> {
+        (*self.record.borrow())
+            .as_ref()
+            .map(|record| RootedTraceableBox::from_box(Heap::boxed(record.get())))
     }
 
-    pub(crate) fn get_rethrow_error(&self) -> &DomRefCell<Option<RethrowError>> {
-        &self.rethrow_error
+    fn set_parse_error(&self, error: HandleValue) {
+        *self.parse_error.borrow_mut() = Some(Heap::default());
+        self.parse_error.borrow().as_ref().unwrap().set(error.get());
     }
 
-    pub(crate) fn set_rethrow_error(&self, rethrow_error: RethrowError) {
-        *self.rethrow_error.borrow_mut() = Some(rethrow_error);
+    pub(crate) fn parse_error(&self) -> Option<RethrowError> {
+        (*self.parse_error.borrow())
+            .as_ref()
+            .map(|error| RethrowError::new(Heap::boxed(error.get())))
     }
-}
 
-impl ModuleTree {
+    pub(crate) fn set_rethrow_error(&self, error: HandleValue) {
+        *self.rethrow_error.borrow_mut() = Some(Heap::default());
+        self.rethrow_error
+            .borrow()
+            .as_ref()
+            .unwrap()
+            .set(error.get());
+    }
+
+    pub(crate) fn rethrow_error(&self) -> Option<RethrowError> {
+        (*self.rethrow_error.borrow())
+            .as_ref()
+            .map(|error| RethrowError::new(Heap::boxed(error.get())))
+    }
+
+    pub(crate) fn has_rethrow_error(&self) -> bool {
+        self.rethrow_error.borrow().is_some()
+    }
+
     #[expect(unsafe_code)]
     #[expect(clippy::too_many_arguments)]
     /// <https://html.spec.whatwg.org/multipage/#creating-a-javascript-module-script>
@@ -180,10 +203,10 @@ impl ModuleTree {
         external: bool,
         line_number: u32,
         introduction_type: Option<&'static CStr>,
-    ) -> Self {
+    ) -> Rc<ModuleTree> {
         // Step 2. Let script be a new module script that this algorithm will subsequently initialize.
         // Step 6. Set script's parse error and error to rethrow to null.
-        let module = ModuleTree::default();
+        let module = Rc::new(ModuleTree::default());
 
         let compile_options = fill_compile_options(
             cx,
@@ -212,9 +235,8 @@ impl ModuleTree {
                 warn!("fail to compile module script of {}", url);
 
                 // Step 8.1. Set script's parse error to result[0].
-                let _ = module
-                    .parse_error
-                    .set(RethrowError::from_pending_exception(cx));
+                let exception = RethrowError::from_pending_exception(cx);
+                module.set_parse_error(exception.handle());
 
                 // Step 8.2. Return script.
                 return module;
@@ -233,7 +255,7 @@ impl ModuleTree {
             );
 
             // Step 9. Set script's record to result.
-            let _ = module.record.set(ModuleObject::new(module_script.handle()));
+            module.set_record(module_script.handle());
         }
 
         // Step 10. Return script.
@@ -247,10 +269,10 @@ impl ModuleTree {
         source: &str,
         url: &ServoUrl,
         introduction_type: Option<&'static CStr>,
-    ) -> Self {
+    ) -> Rc<ModuleTree> {
         // Step 1. Let script be a new module script that this algorithm will subsequently initialize.
         // Step 4. Set script's parse error and error to rethrow to null.
-        let module = ModuleTree::default();
+        let module = Rc::new(ModuleTree::default());
 
         // Step 2. Set script's settings object to settings.
         // Step 3. Set script's base URL and fetch options to null.
@@ -273,14 +295,13 @@ impl ModuleTree {
         if module_script.is_null() {
             warn!("fail to compile module script of {}", url);
 
-            let _ = module
-                .parse_error
-                .set(RethrowError::from_pending_exception(cx));
+            let exception = RethrowError::from_pending_exception(cx);
+            module.set_parse_error(exception.handle());
             return module;
         }
 
         // Step 6. Set script's record to result.
-        let _ = module.record.set(ModuleObject::new(module_script.handle()));
+        module.set_record(module_script.handle());
 
         // Step 7. Return script.
         module
@@ -293,10 +314,10 @@ impl ModuleTree {
         source: &str,
         global: &GlobalScope,
         url: ServoUrl,
-    ) -> Self {
+    ) -> Rc<ModuleTree> {
         // Step 1. Let script be a new module script that this algorithm will subsequently initialize.
         // Step 4. Set script's parse error and error to rethrow to null.
-        let script = ModuleTree::default();
+        let script = Rc::new(ModuleTree::default());
 
         // Step 2. Set script's settings object to settings.
         // Step 3. Set script's base URL and fetch options to null.
@@ -316,18 +337,17 @@ impl ModuleTree {
         if let Err(error) = sheet.ReplaceSync(cx, USVString::from(source.to_owned())) {
             // If this throws an exception, catch it, and set script's parse error to that exception,
             // and return script.
-            throw_dom_exception(cx, global, error);
+            rooted!(&in(cx) let mut exception = UndefinedValue());
+            error.to_jsval(cx, global, exception.handle_mut());
 
-            let _ = script
-                .parse_error
-                .set(RethrowError::from_pending_exception(cx));
+            script.set_parse_error(exception.handle());
             return script;
         }
 
         // Step 7. Set script's record to the result of CreateDefaultExportSyntheticModule(sheet).
         rooted!(&in(cx) let sheet = ObjectValue(sheet.reflector().get_jsobject().get()));
         rooted!(&in(cx) let module_script = unsafe { CreateDefaultExportSyntheticModule(cx, sheet.handle()) });
-        let _ = script.record.set(ModuleObject::new(module_script.handle()));
+        script.set_record(module_script.handle());
 
         // Step 8. Return script.
         script
@@ -335,10 +355,10 @@ impl ModuleTree {
 
     #[expect(unsafe_code)]
     /// <https://html.spec.whatwg.org/multipage/#creating-a-text-module-script>
-    fn create_a_text_module_script(cx: &mut CurrentRealm, source: &str) -> Self {
+    fn create_a_text_module_script(cx: &mut CurrentRealm, source: &str) -> Rc<ModuleTree> {
         // Step 1. Let script be a new module script that this algorithm will subsequently initialize.
         // Step 4. Set script's parse error and error to rethrow to null.
-        let script = ModuleTree::default();
+        let script = Rc::new(ModuleTree::default());
 
         // Step 2. Set script's settings object to settings.
         // Step 3. Set script's base URL and fetch options to null.
@@ -350,7 +370,7 @@ impl ModuleTree {
         rooted!(&in(cx) let result = unsafe { CreateDefaultExportSyntheticModule(cx, text.handle()) });
 
         // Step 6. Set script's record to result.
-        let _ = script.record.set(ModuleObject::new(result.handle()));
+        script.set_record(result.handle());
 
         // Step 7. Return script.
         script
@@ -523,9 +543,7 @@ impl FetchResponseListener for ModuleContext {
             // Step 7.2. If moduleType is "text", then set moduleScript to the result of creating a
             // text module script given sourceText and settingsObject.
             (ModuleType::Text, _) => {
-                let module_tree =
-                    Rc::new(ModuleTree::create_a_text_module_script(cx, &source_text));
-                module_script = Some(module_tree);
+                module_script = Some(ModuleTree::create_a_text_module_script(cx, &source_text));
             },
             // Step 7.3. If mimeType is a JavaScript MIME type and moduleType is
             // "javascript-or-wasm", then set moduleScript to the result of creating a JavaScript
@@ -537,7 +555,7 @@ impl FetchResponseListener for ModuleContext {
                     substitute_with_local_script(script_souce, &mut source_text, &final_url);
                 }
 
-                let module_tree = Rc::new(ModuleTree::create_a_javascript_module_script(
+                module_script = Some(ModuleTree::create_a_javascript_module_script(
                     cx,
                     source_text,
                     global,
@@ -547,30 +565,27 @@ impl FetchResponseListener for ModuleContext {
                     1,
                     self.introduction_type,
                 ));
-                module_script = Some(module_tree);
             },
             // Step 7.4. If the MIME type essence of mimeType is "text/css" and moduleType is "css",
             // then set moduleScript to the result of creating a CSS module script given sourceText
             // and settingsObject.
             (ModuleType::CSS, Some(mime)) if MimeClassifier::is_css(&mime) => {
-                let module_tree = Rc::new(ModuleTree::create_a_css_module_script(
+                module_script = Some(ModuleTree::create_a_css_module_script(
                     cx,
                     &source_text,
                     global,
                     final_url.clone(),
                 ));
-                module_script = Some(module_tree);
             },
             // Step 7.5. If mimeType is a JSON MIME type and moduleType is "json", then set
             // moduleScript to the result of creating a JSON module script given sourceText and settingsObject.
             (ModuleType::JSON, Some(mime)) if MimeClassifier::is_json(&mime) => {
-                let module_tree = Rc::new(ModuleTree::create_a_json_module_script(
+                module_script = Some(ModuleTree::create_a_json_module_script(
                     cx,
                     &source_text,
                     &final_url,
                     self.introduction_type,
                 ));
-                module_script = Some(module_tree);
             },
             _ => {},
         }
@@ -1017,12 +1032,12 @@ pub(crate) fn fetch_inline_module_script(
     line_number: u32,
     introduction_type: Option<&'static CStr>,
     on_complete: impl FnOnce(&mut JSContext, Option<Rc<ModuleTree>>) + Clone + 'static,
-) {
+) -> RootedTraceableBox<Rc<ModuleTree>> {
     let mut realm = enter_auto_realm(cx, global);
     let cx = &mut realm.current_realm();
 
     // Step 1. Let script be the result of creating a JavaScript module script using sourceText, settingsObject, baseURL, and options.
-    let module_tree = Rc::new(ModuleTree::create_a_javascript_module_script(
+    let script = RootedTraceableBox::new(ModuleTree::create_a_javascript_module_script(
         cx,
         module_script_text,
         global,
@@ -1038,11 +1053,13 @@ pub(crate) fn fetch_inline_module_script(
     fetch_the_descendants_and_link_module_script(
         cx,
         global,
-        module_tree,
+        script.clone(),
         fetch_client,
         Destination::Script,
         on_complete,
     );
+
+    script
 }
 
 /// <https://html.spec.whatwg.org/multipage/#fetch-the-descendants-of-and-link-a-module-script>
@@ -1056,11 +1073,11 @@ fn fetch_the_descendants_and_link_module_script(
 ) {
     // Step 1. Let record be moduleScript's record.
     // Step 2. If record is null, then:
-    let Some(record) = module_script.get_record() else {
-        let parse_error = module_script.get_parse_error().cloned();
+    let Some(record) = module_script.record() else {
+        let parse_error = module_script.parse_error().unwrap();
 
         // Step 2.1. Set moduleScript's error to rethrow to moduleScript's parse error.
-        module_script.set_rethrow_error(parse_error.unwrap());
+        module_script.set_rethrow_error(parse_error.handle());
 
         // Step 2.2. Run onComplete given moduleScript.
         on_complete(cx, Some(module_script));
@@ -1074,7 +1091,7 @@ fn fetch_the_descendants_and_link_module_script(
     let state = Box::new(LoadState {
         destination,
         fetch_client,
-        module_script: DomRefCell::new(Some(module_script.clone())),
+        module_script: DomRefCell::new(Some(module_script)),
         on_complete: DomRefCell::new(Some(Box::new(on_complete))),
     });
 

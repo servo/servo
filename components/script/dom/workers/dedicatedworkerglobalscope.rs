@@ -612,7 +612,10 @@ impl DedicatedWorkerGlobalScope {
                                 credentials,
                                 Some(IntroductionType::WORKER),
                                 move |cx, module_tree| {
-                                    worker_scope.on_complete(cx, module_tree.map(Script::Module));
+                                    let module_script = module_tree.map(|module| {
+                                        Script::Module(RootedTraceableBox::new(module))
+                                    });
+                                    worker_scope.on_complete(cx, module_script);
                                 },
                             );
                         },
