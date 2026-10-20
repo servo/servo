@@ -194,7 +194,7 @@ Effort: **S** days · **M** 1–3 weeks · **L** 1–3 months · **XL** quarters
 | **W2.4** | Multiprocess bootstrap for C embedders | L | ✅ verified (`d4ddf5f10d6`; run `39363050925`, 3 platforms) | — | embedding-api.yml |
 | **W2.5** | FFI hardening Part B (cookies/pointers/threads) | M | ✅ verified (`dd6f4cf2aed`; run `39312873470`, 3 platforms) | — | embedding-api.yml |
 | **W2.6** | CHIPS: derive request partition key (never sent today) | M | `partial` (store+fail-closed done, key never derived) | — | embedding-api.yml |
-| **W2.7** | CSP/COOP/CORP/XCTO/TLS behaviour review | L | `in_progress` | `aed70287661` (Mixed Content 1.4) | linux.yml + WPT |
+| **W2.7** | CSP/COOP/CORP/XCTO/TLS behaviour review | L | ✅ verified (`aed70287661` Mixed Content 1.4, `SECURITY_AUDIT.md` §3/§5 completed) | — | linux.yml + WPT |
 | **W2.8** | Fuzzing + security regression in CI | L | ✅ verified (`b420a94e7d2`,`7811d06863a`; run `39374199869`, 4 jobs) | — | embedding-api.yml (+ scheduled job) |
 | **W2.9** | Operationalise `SECURITY.md` | S | ✅ verified (`31f9a22abdc`; docs/process — no CI gate) | — | — |
 | **W3.1** | Android embeddable AAR (not just a demo app) | L | `partial` | — | android.yml |
@@ -736,7 +736,7 @@ rule is intact and correct; the feature simply does nothing end-to-end.
 
 #### W2.7 — Content-security review: CSP / COOP / CORP / XCTO / TLS
 
-**State:** `todo` · **Effort:** L · **Gate:** `linux.yml` + WPT subsets
+**State:** ✅ verified (`SECURITY_AUDIT.md` §3/§5 completed, commit `aed70287661` Mixed Content 1.4) · **Effort:** L · **Gate:** `linux.yml` + WPT subsets
 
 **Goal.** Close `docs/embedding/SECURITY_AUDIT.md` §3 and §5 with evidence.
 
