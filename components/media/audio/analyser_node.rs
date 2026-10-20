@@ -65,7 +65,6 @@ pub struct AnalysisEngine {
     max_decibels: f64,
     /// This is a ring buffer containing the last MAX_FFT_SIZE
     /// sample-frames
-    #[ignore_malloc_size_of = "Do not know how"]
     data: Box<[f32; MAX_FFT_SIZE]>,
     /// The index of the current block
     current_block: usize,

@@ -714,13 +714,11 @@ pub struct WebResourceResponse {
         deserialize_with = "::hyper_serde::deserialize",
         serialize_with = "::hyper_serde::serialize"
     )]
-    #[ignore_malloc_size_of = "Defined in hyper"]
     pub headers: HeaderMap,
     #[serde(
         deserialize_with = "::hyper_serde::deserialize",
         serialize_with = "::hyper_serde::serialize"
     )]
-    #[ignore_malloc_size_of = "Defined in hyper"]
     pub status_code: StatusCode,
     pub status_message: Vec<u8>,
 }
@@ -929,7 +927,7 @@ impl UntrustedNodeAddress {
 }
 
 /// The result of a hit test in `Paint`.
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub struct PaintHitTestResult {
     /// The pipeline id of the resulting item.
     pub pipeline_id: PipelineId,

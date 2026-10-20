@@ -183,6 +183,7 @@ pub(crate) enum MainThreadScriptMsg {
 
 /// Common messages used to control the event loops in both the script, the worker, and the
 /// worklet
+#[derive(MallocSizeOf)]
 pub(crate) enum CommonScriptMsg {
     /// Requests that the script thread measure its memory usage. The results are sent back via the
     /// supplied channel.
@@ -190,7 +191,7 @@ pub(crate) enum CommonScriptMsg {
     /// Generic message that encapsulates event handling.
     Task(
         ScriptThreadEventCategory,
-        Box<dyn TaskBox>,
+        #[ignore_malloc_size_of = "dyn is difficult"] Box<dyn TaskBox>,
         Option<PipelineId>,
         TaskSourceName,
     ),

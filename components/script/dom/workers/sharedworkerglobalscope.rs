@@ -69,6 +69,7 @@ use crate::scripting::script_module::fetch_a_module_script_graph;
 use crate::tasks::task_queue::{QueuedTask, QueuedTaskConversion, TaskQueue};
 use crate::tasks::task_source::TaskSourceName;
 
+#[derive(MallocSizeOf)]
 pub(crate) enum SharedWorkerScriptMsg {
     CommonWorker(WorkerScriptMsg),
     Connect(MessagePortImpl),
@@ -168,7 +169,6 @@ pub(crate) struct SharedWorkerGlobalScope {
     /// The [`WebViewId`] of the `WebView` that this worker is associated with.
     #[no_trace]
     webview_id: WebViewId,
-    #[ignore_malloc_size_of = "Defined in std"]
     task_queue: TaskQueue<SharedWorkerScriptMsg>,
     own_sender: Sender<SharedWorkerScriptMsg>,
     worker: DomRefCell<Option<TrustedSharedWorkerAddress>>,

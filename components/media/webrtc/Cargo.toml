@@ -15,6 +15,8 @@ path = "lib.rs"
 [dependencies]
 log = { workspace = true }
 servo-media-streams = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
 uuid = { workspace = true, features = ["v4"] }
 
 [lints]

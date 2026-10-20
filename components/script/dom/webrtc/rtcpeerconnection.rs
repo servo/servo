@@ -58,7 +58,6 @@ use crate::tasks::task_source::SendableTaskSource;
 #[dom_struct]
 pub(crate) struct RTCPeerConnection {
     eventtarget: EventTarget,
-    #[ignore_malloc_size_of = "defined in servo-media"]
     #[no_trace]
     controller: DomRefCell<Option<WebRtcController>>,
     closed: Cell<bool>,
@@ -72,7 +71,6 @@ pub(crate) struct RTCPeerConnection {
     gathering_state: Cell<RTCIceGatheringState>,
     ice_connection_state: Cell<RTCIceConnectionState>,
     signaling_state: Cell<RTCSignalingState>,
-    #[ignore_malloc_size_of = "defined in servo-media"]
     data_channels: DomRefCell<FxHashMap<DataChannelId, Dom<RTCDataChannel>>>,
 }
 

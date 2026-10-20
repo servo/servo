@@ -32,7 +32,6 @@ use crate::dom::window::Window;
 #[dom_struct]
 pub(crate) struct AnalyserNode {
     node: AudioNode,
-    #[ignore_malloc_size_of = "Defined in servo-media"]
     #[no_trace]
     engine: DomRefCell<AnalysisEngine>,
 }
