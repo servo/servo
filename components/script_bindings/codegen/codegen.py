@@ -6927,12 +6927,27 @@ class CGDOMJSProxyHandler_getPrototype(CGAbstractExternMethod):
 
 class CGDOMJSProxyHandler_className(CGAbstractExternMethod):
     def __init__(self, descriptor: Descriptor) -> None:
-        args = [Argument('*mut RawJSContext', 'cx'), Argument('RawHandleObject', '_proxy')]
+        args = [Argument('*mut RawJSContext', 'cx'), Argument('RawHandleObject', 'proxy')]
         CGAbstractExternMethod.__init__(self, descriptor, "className", "*const libc::c_char", args, doesNotPanic=True)
         self.descriptor = descriptor
 
     def getBody(self) -> str:
-        return str_to_cstr_ptr(self.descriptor.name)
+        if self.descriptor.isMaybeCrossOriginObject():
+            crossOrigin = dedent(
+                f"""
+                let mut cx = JSContext::from_ptr(ptr::NonNull::new(cx).unwrap());
+                let mut cx = CurrentRealm::assert(&mut cx);
+                let cx = &mut cx;
+
+                let proxy = Handle::from_raw(proxy);
+                if !is_platform_object_same_origin(cx, proxy) {{
+                    return {str_to_cstr_ptr("Object")};
+                }}
+                """)
+        else:
+            crossOrigin = ""
+
+        return f"{crossOrigin}{str_to_cstr_ptr(self.descriptor.name)}"
 
     def definition_body(self) -> CGThing:
         return CGGeneric(self.getBody())
