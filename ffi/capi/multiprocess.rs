@@ -7,23 +7,29 @@ use std::ffi::c_char;
 #[cfg(feature = "multiprocess")]
 use servo::{run_content_process, create_sandbox};
 
-/// Called by the embedder in a separate process to run the content process.
+/// Runs a content process that this binary was re-executed to create.
 ///
-/// This function must be called with the `multiprocess` feature enabled.
-/// The `token` is an IPC connection token passed from the browser process
-/// to the content process. The embedder is responsible for launching the
-/// content process and passing the token (e.g., via command line argument
-/// or environment variable).
+/// Servo launches content processes itself: the constellation spawns
+/// `current_exe()` with exactly `--content-process <token>` as its arguments
+/// (`components/constellation/sandboxing.rs::setup_common`), so no token ever
+/// reaches the embedder and there is no process for it to launch. The embedder's
+/// `main` is expected to route that argument to this function as its first
+/// action; see the "Multi-process support" section of the C API guide. Nothing
+/// else has to be initialised first.
 ///
 /// # Arguments
 ///
-/// * `token` - A NUL-terminated UTF-8 string containing the IPC token.
-///   The pointer must not be null.
+/// * `token` - A NUL-terminated UTF-8 string containing the IPC token, as
+///   passed on the command line by the browser process. The pointer must not
+///   be null.
 ///
 /// # Returns
 ///
-/// The exit code of the content process. Returns -1 if the `multiprocess`
-/// feature is not enabled, or if the token is null/invalid.
+/// The exit code of the content process, or -1 if `token` is null or not valid
+/// UTF-8, if the `multiprocess` feature is not enabled, or if starting the
+/// content process fails or panics. A stale or wrong token is a refused call,
+/// not a crash: the handshake unwraps internally, so the panic is caught here
+/// rather than reaching the FFI boundary.
 ///
 /// # Safety
 ///
@@ -46,10 +52,17 @@ pub unsafe extern "C" fn servo_run_content_process(token: *const c_char) -> i32 
             Err(_) => return -1,
         };
 
-        run_content_process(token_str);
-        // run_content_process never returns (it runs the content process event loop)
-        // but we return 0 for type compatibility.
-        0
+        // `run_content_process` unwraps its IPC handshake, so a token nobody is
+        // listening on panics. The hook prints the panic before unwinding; what
+        // must not happen is the unwind reaching this `extern "C"` function,
+        // which would abort the process. Catch it and report -1 like every other
+        // refusal, the same way `servo_create_sandbox` below does. CI builds
+        // `servo-capi` without this feature, so this branch is compiled there
+        // but only executed by a real multiprocess embedder.
+        match std::panic::catch_unwind(|| run_content_process(token_str)) {
+            Ok(()) => 0,
+            Err(_) => -1,
+        }
     }
 
     #[cfg(not(feature = "multiprocess"))]
@@ -60,11 +73,13 @@ pub unsafe extern "C" fn servo_run_content_process(token: *const c_char) -> i32 
 
 /// Creates and activates the sandbox for the content process.
 ///
-/// This function should be called early in the content process initialization,
-/// before any other Servo initialization. It is automatically called by
-/// `servo_run_content_process` if the sandbox option is enabled, but can
-/// also be called manually by embedders who need more control over the
-/// initialization sequence.
+/// Calling this manually is optional. `servo_run_content_process` does it
+/// itself, after the options arrive from the browser process, so that the
+/// decision matches what was asked for; reach for this only when the embedder
+/// needs to place the step itself (a log line, a probe), and then it must be
+/// the first thing the content process does, before any other Servo
+/// initialization. On platforms without an OS sandbox this applies the
+/// in-process mitigation policies instead and returns `false`.
 ///
 /// # Returns
 ///

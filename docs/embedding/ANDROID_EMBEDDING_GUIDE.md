@@ -129,5 +129,5 @@ class MainActivity : AppCompatActivity() {
 ## 5. Security & Isolation on Android
 
 Per `MULTI_PLATFORM_SANDBOX_DESIGN.md`:
-- For multi-process rendering, specify `android:isolatedProcess="true"` on the content process service in `AndroidManifest.xml`.
-- The Android OS enforces UID isolation and an isolated SELinux domain, preventing direct file or network access from the renderer.
+- Roadmap, **not current behaviour**: for multi-process rendering, specify `android:isolatedProcess="true"` on the content process service in `AndroidManifest.xml`. Today Servo spawns content processes itself by re-executing `current_exe()` with no profile (see `ARCHITECTURE.md` §8.1), so the isolated-process UID/SELinux isolation described below only exists once that engine change lands — Servo neither creates nor confirms it.
+- When that exists, the Android OS enforces UID isolation and an isolated SELinux domain, preventing direct file or network access from the renderer.

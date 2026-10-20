@@ -2026,48 +2026,112 @@ underlying `servo` crate).
    servo_options_set_force_ipc(options, true);     // use IPC channels even for single-process testing
    ```
 
-3. Build the `Servo` instance as normal. The browser process will now expect to
+3. Make your own `main` route `--content-process <token>` to
+   `servo_run_content_process` — **Servo launches your executable for you**, it
+   does not ask you to launch anything (see *Launching content processes* below).
+
+4. Build the `Servo` instance as normal. The browser process will now expect to
    communicate with content processes over IPC.
 
 ### Launching content processes
 
-The embedder is responsible for launching content processes. Each content process
-runs the same `servo_capi` binary (or a dedicated helper binary) and must call
-`servo_run_content_process` with a token that identifies the IPC connection.
+**Servo launches them.** This is the part that surprises embedders: there is no
+token for you to obtain and no child for you to start. When the constellation
+needs a content process — a script event loop, or the service worker manager —
+and `opts.multiprocess` is on, `spawn_multiprocess`
+(`components/constellation/sandboxing.rs`) creates an `IpcOneShotServer`, keeps
+the token, and spawns **`current_exe()` — your own executable** — with exactly
+two arguments:
 
-**Launch flow:**
+```
+<your executable> --content-process <token>
+```
 
-1. **Browser process** creates an IPC one-shot server (via `servo_builder_build`
-   with `multiprocess=true`). Servo internally creates an `IpcOneShotServer`
-   and generates a token string.
+`RUST_BACKTRACE` and `RUST_LOG` are the only environment variables passed
+through; there is no `SERVO_CONTENT_TOKEN`. On Linux and macOS with a sandbox
+enabled the same executable is started through `gaol::sandbox::Command::me()`,
+so the child arrives already inside the sandbox profile.
 
-2. **Embedder** launches N content processes (as child processes of the browser
-   process), passing the token to each. The token can be passed:
-   - As a command-line argument: `--content-process <token>`
-   - Via an environment variable: `SERVO_CONTENT_TOKEN=<token>`
-   - Or any other IPC mechanism the embedder prefers.
+So the entire embedder-side protocol is: **route that argument in your own
+`main`, before anything else, and hand the token to
+`servo_run_content_process`.**
 
-3. **Each content process** starts up and immediately calls:
-   ```c
-   // In the content process main():
-   int main(int argc, char** argv) {
-       // Extract token from argv or environment
-       const char* token = get_token_from_args_or_env(argc, argv);
-       if (!token) return 1;
+```c
+/* Returns -1 when this process is not a Servo-spawned content child, so the
+ * caller falls through to the browser path. Called first thing in main. */
+static int run_as_content_process(int argc, char** argv) {
+    for (int i = 1; i + 1 < argc; i++) {
+        if (strcmp(argv[i], "--content-process") == 0) {
+            /* Never returns while the content process runs; -1 on refusal. */
+            int rc = servo_run_content_process(argv[i + 1]);
+            return rc == 0 ? 0 : 1;
+        }
+    }
+    return -1;
+}
+```
 
-       // Optional: explicitly create the sandbox before Servo initialization
-       // (servo_run_content_process does this automatically if sandbox is enabled)
-       servo_create_sandbox();
+Three consequences worth knowing before the examples:
 
-       // Run the content process event loop (never returns)
-       return servo_run_content_process(token);
-   }
-   ```
+- **The child is your binary.** `current_exe()` must be the program that
+  contains this routing. If the process that builds the `Servo` instance is not
+  the one that can be re-executed and routed like this, content processes will
+  not start, and there is no callback or query with which to redirect the spawn.
+- **If you do not route the token, the browser stalls.** The parent blocks in
+  `server.accept()` waiting for that child to connect, so an embedder that
+  ignores `--content-process` hangs the first time an event loop is spawned.
+  This is a hard failure mode, not a silent fallback to single process.
+- **One process per event loop, spawned on demand.** Not a fixed pool and no
+  zygote: the number of children grows with what the document does.
 
-4. **Content process** connects to the browser process via the token, receives
-   its configuration (options, preferences), enters the sandbox (if enabled),
-   and runs its internal event loop (script, layout, paint) until the browser
-   process shuts it down.
+### What the content process does
+
+`servo_run_content_process(token)` (`ffi/capi/multiprocess.rs`) connects to the
+one-shot server, receives its `Opts` and preferences **from the browser process
+over IPC**, and only then, if those options say so, enters the sandbox
+(`components/servo/servo.rs::run_content_process`). Nothing has to be
+initialised beforehand, so it is correct to call it as the first statement of
+the child's `main`:
+
+```c
+int main(int argc, char** argv) {
+    int content = run_as_content_process(argc, argv);
+    if (content >= 0) return content;
+
+    /* Normal browser process: build Servo, spin the event loop, … */
+    return run_browser(argc, argv);
+}
+```
+
+- It returns `-1` if `token` is NULL, if the `multiprocess` feature is off, or
+  if the run fails; otherwise it does not return at all.
+- The export exists in **both** builds: a binary linked against a
+  non-multiprocess `servo-capi` still links, and reports the refusal at runtime.
+  `tests/capi/c/test_api.c::test_multiprocess_single_process_path` asserts that
+  refusal (CI builds `servo-capi` *without* the feature, so the child spawn
+  itself cannot be exercised in this harness — said here rather than faked).
+- An explicit `servo_create_sandbox()` before it is **redundant**: the sandbox is
+  applied inside, after the options arrive, so that it matches what the browser
+  process asked for. The function exists for embedders that want to place the
+  step themselves (it must then be the first thing in `main`), and on Windows it
+  returns `false` *after* applying the in-process mitigation policies — see
+  **Sandbox** below.
+
+### Capability queries
+
+```c
+bool servo_capi_is_multiprocess_enabled(void);  /* the build was compiled with the `multiprocess` feature */
+bool servo_capi_is_sandboxing_supported(void);  /* …and this target can activate a real OS sandbox */
+```
+
+Query rather than assume. Set `servo_options_set_multiprocess(options, true)`
+**only** when `servo_capi_is_multiprocess_enabled()` is true: with the feature
+off the spawn sites do not exist, while the runtime flag is still read by some
+browser-process paths (the hang monitor is initialised as though a content
+process were coming, `components/constellation/constellation.rs`), and that
+combination is exercised by no test on this branch. Likewise query
+`servo_capi_is_sandboxing_supported()` instead of inferring it from the platform
+string.
 
 ### Sandbox
 
@@ -2082,22 +2146,26 @@ allows only:
 On Linux (with `gaol`) and macOS (with `sandbox-exec`), content processes enter
 the sandbox profile. On Windows, content processes apply in-process mitigation
 policies (DEP, ASLR HighEntropy, strict handle check, extension-point disable) —
-but mitigations are not a sandbox (no token lockdown or AppContainer). On Android
-and iOS, execution relies on the OS process model or application container — not an
-engine sandbox. On those platforms and on ARM architectures, `servo_create_sandbox()`
-and `servo_capi_is_sandboxing_supported()` return `false`, and content processes run
-without renderer sandboxing. The embedder should query `servo_capi_is_sandboxing_supported()`
-at runtime.
+but mitigations are not a sandbox (no token lockdown or AppContainer). On
+Android, OpenHarmony and ARM/RISC-V targets the engine itself spawns content
+processes **unsandboxed** — any isolated-process containment must come from the
+embedder's own process model — and on iOS there are no content processes at all
+(multiprocess exits the process). On all of those `servo_create_sandbox()`
+and `servo_capi_is_sandboxing_supported()` return `false`. Query
+`servo_capi_is_sandboxing_supported()` at runtime rather than inferring it; the
+per-platform table under **Platform notes** below is the summary.
 
 ### API summary
 
 ```c
-/* Called by the embedder in a content process to run the content process
- * event loop. Requires the `multiprocess` feature. */
+/* Runs the content process event loop in a child that Servo spawned for your
+ * executable. The export exists in every build; without the `multiprocess`
+ * feature it refuses with -1. */
 int servo_run_content_process(const char* token);
 
-/* Creates and activates the sandbox. Returns true on success.
- * Called automatically by servo_run_content_process if sandbox is enabled. */
+/* Creates and activates the sandbox. Returns true on success, false (and
+ * applies mitigations only on Windows) when unsupported. Called automatically
+ * by servo_run_content_process if sandbox is enabled. */
 bool servo_create_sandbox(void);
 ```
 
@@ -2110,36 +2178,32 @@ bool servo_create_sandbox(void);
 #include <stdlib.h>
 #include <string.h>
 
-/* Platform-specific process launch helper */
-static int launch_content_process(const char* token) {
-#ifdef _WIN32
-    /* Windows: use CreateProcess with token as argument */
-    char cmd[1024];
-    snprintf(cmd, sizeof(cmd), "servo_content_process.exe --content-process %s", token);
-    STARTUPINFOA si = { sizeof(si) };
-    PROCESS_INFORMATION pi;
-    if (!CreateProcessA(NULL, cmd, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
-        return -1;
+/* Servo spawns this same executable for every content process, so the routing
+ * belongs here rather than in a launcher of your own. Returns -1 when this
+ * process is not a Servo-spawned content child. */
+static int run_as_content_process(int argc, char** argv) {
+    for (int i = 1; i + 1 < argc; i++) {
+        if (strcmp(argv[i], "--content-process") == 0) {
+            /* Never returns while the content process runs. */
+            return servo_run_content_process(argv[i + 1]) == 0 ? 0 : 1;
+        }
     }
-    CloseHandle(pi.hThread);
-    CloseHandle(pi.hProcess);
-    return 0;
-#else
-    /* POSIX: fork + exec */
-    pid_t pid = fork();
-    if (pid == 0) {
-        execl("./servo_content_process", "servo_content_process", "--content-process", token, NULL);
-        _exit(1);
-    }
-    return pid > 0 ? 0 : -1;
-#endif
+    return -1;
 }
 
-int main(void) {
+int main(int argc, char** argv) {
+    /* First statement: a child re-executes this binary with the token. */
+    int content = run_as_content_process(argc, argv);
+    if (content >= 0) return content;
+
+    if (!servo_capi_is_multiprocess_enabled()) {
+        fprintf(stderr, "servo-capi was built without the `multiprocess` feature\n");
+        return 1;
+    }
+
     ServoOptions* options = servo_options_create();
     servo_options_set_multiprocess(options, true);
     servo_options_set_sandbox(options, true);
-    servo_options_set_force_ipc(options, true);
 
     ServoPreferences* prefs = servo_preferences_create();
     servo_preferences_set_string(prefs, "user_agent", "MultiProcessServo/1.0");
@@ -2156,18 +2220,10 @@ int main(void) {
     struct Servo* servo = servo_builder_build(builder);
     servo_setup_logging(servo);
 
-    /* At this point, Servo has created the IPC server and is waiting for
-     * content processes to connect. In a real embedder, you would extract
-     * the token from Servo's internal state or via a delegate callback.
-     * For this example, we assume a helper function that retrieves it. */
-    const char* token = get_servo_ipc_token(servo); /* pseudo-code */
-
-    /* Launch 2 content processes */
-    for (int i = 0; i < 2; i++) {
-        if (launch_content_process(token) != 0) {
-            fprintf(stderr, "Failed to launch content process %d\n", i);
-        }
-    }
+    /* There is deliberately no token here to collect and no child to launch:
+     * whenever the constellation needs a content process it re-executes this
+     * binary as `<exe> --content-process <token>`, which run_as_content_process()
+     * above already handles. */
 
     /* Normal event loop */
     for (;;) {
@@ -2182,56 +2238,72 @@ int main(void) {
 
 ### Complete example (content process)
 
-```c
-/* content_process.c - content process entry point */
-#include <servo/servo_capi.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+There is no separate `content_process.c` to build: Servo re-executes **the same
+binary**, so the routing at the top of `main` in the browser example *is* the
+content-process entry point. Shown on its own for clarity:
 
-static const char* get_token(int argc, char** argv) {
-    for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "--content-process") == 0 && i + 1 < argc) {
-            return argv[i + 1];
+```c
+/* Same binary as the browser process. */
+static int run_as_content_process(int argc, char** argv) {
+    for (int i = 1; i + 1 < argc; i++) {
+        if (strcmp(argv[i], "--content-process") == 0) {
+            /* Connects to the one-shot server, receives Opts/prefs over IPC,
+             * applies the sandbox if the browser process asked for one, then
+             * runs the content event loop. Never returns on success. */
+            return servo_run_content_process(argv[i + 1]) == 0 ? 0 : 1;
         }
     }
-    /* Fallback: environment variable */
-    return getenv("SERVO_CONTENT_TOKEN");
-}
-
-int main(int argc, char** argv) {
-    const char* token = get_token(argc, argv);
-    if (!token) {
-        fprintf(stderr, "Usage: %s --content-process <token>\n", argv[0]);
-        return 1;
-    }
-
-    /* Create sandbox before any other initialization */
-    if (!servo_create_sandbox()) {
-        fprintf(stderr, "Warning: sandbox not available on this platform\n");
-    }
-
-    /* Run content process (never returns) */
-    return servo_run_content_process(token);
+    return -1;
 }
 ```
 
+If you want to observe the sandbox step yourself (a log line, say), call
+`servo_create_sandbox()` before `servo_run_content_process` — it must then be
+the first thing in `main`, and its result is safe to ignore: the sandbox is
+applied again inside with the options the browser process actually sent.
+
 ### Platform notes
 
-- **Linux/macOS**: Full sandbox support via `gaol` (Linux) or `sandbox-exec` (macOS).
-  Requires the `multiprocess` feature and a supported architecture (x86_64).
-- **Windows**: No sandbox support. Content processes run unsandboxed.
-  `servo_create_sandbox()` returns `false`.
-- **iOS/Android/OHOS**: Multi-process is not supported.
-- **ARM/RISC-V**: Sandbox not supported; content processes run unsandboxed if
-  `multiprocess` is enabled.
+- **Linux/macOS (x86_64)**: content processes are spawned already inside an OS
+  sandbox profile — `gaol` on Linux, `sandbox-exec` on macOS — when
+  `servo_options_set_sandbox(options, true)` is set. `servo_capi_is_sandboxing_supported()`
+  returns `true` here.
+- **Windows**: **crash isolation without OS containment.** `multiprocess` still
+  gives you a separate content process (a crash there does not take down the
+  browser process), but there is no broker, no token lockdown and no
+  AppContainer. With `opts.sandbox` set, `servo_create_sandbox()` applies
+  in-process mitigation policies (DEP, ASLR HighEntropy, strict handle check,
+  extension-point disable) — a proof of concept, not a sandbox — and then
+  returns `false`. The capability query returns `false` on Windows, so an
+  embedder must not present Windows as sandboxed.
+- **Android / OpenHarmony / ARM / RISC-V / Apple-Silicon macOS**: content
+  processes are spawned unsandboxed (the engine launches `current_exe()` with no
+  profile); `servo_capi_is_sandboxing_supported()` returns `false`. Any
+  containment on those platforms has to come from the OS process model the
+  embedder sets up — see `MULTI_PLATFORM_SANDBOX_DESIGN.md`, which is explicit
+  that Servo enforces nothing there today.
+- **iOS**: not supported at all: `spawn_multiprocess` logs and exits, so the
+  feature must not be enabled on iOS.
 
 ### Limitations
 
-- The C API does not yet expose a way to retrieve the IPC token from the
-  browser process programmatically. Embedders must use the Rust API directly
-  or wait for `servo_get_ipc_token` (planned).
+- **No token API exists, and none is needed.** The token never reaches the
+  embedder: Servo keeps it and passes it to the child it spawns. The earlier
+  "wait for `servo_get_ipc_token`" placeholder is gone because the premise was
+  wrong, not because the API is missing. The constraint that follows is that
+  your process model must tolerate `current_exe()` being re-executed with
+  `--content-process <token>`; if it cannot (a host binary that is not your
+  embedder, a launcher that must not be re-run), there is no override and
+  multiprocess is unusable through this API.
 - Process lifecycle management (crash detection, restart, resource limits)
-  is the embedder's responsibility.
+  is the embedder's responsibility. The browser process does wait on the
+  children it spawned (`components/constellation/process_manager.rs`).
 - No zygote/fork-server abstraction is provided; each content process is
-  launched independently.
+  launched independently, on demand, as `current_exe()`.
+- **Not exercised by this branch's CI.** `tests/capi` links a `servo-capi`
+  built *without* the `multiprocess` feature, so only the refusal side of the
+  contract can be asserted there
+  (`test_multiprocess_single_process_path`): a NULL token, a non-NULL token, and
+  `servo_create_sandbox()` all refuse, and `servo_capi_is_multiprocess_enabled()`
+  reports `false`. The spawn side is documented above and can only be proven by
+  an embedder running a real multiprocess build.

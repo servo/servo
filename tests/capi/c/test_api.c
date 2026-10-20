@@ -2210,6 +2210,43 @@ int test_cookie_filter_struct_size_validation(void)
     return 0;
 }
 
+/* Test the single-process side of the multi-process contract documented in
+ * C_API_GUIDE.md ("Multi-process support"). CI links servo-capi *without* the
+ * `multiprocess` feature, so what is asserted here is the refusal path: the
+ * content-process entry point is exported in both builds (or linking would
+ * fail) and refuses to run, and no sandbox is reported. The spawn side cannot
+ * be exercised in this harness and is deliberately not faked here. */
+int test_multiprocess_single_process_path(void)
+{
+    /* NULL token: refused in every build, feature or not. */
+    if (servo_run_content_process(NULL) != -1)
+        return 1;
+
+    /* Capability queries are build-time, so they are stable under a test. */
+    if (servo_capi_is_multiprocess_enabled()) {
+        /* A feature-enabled build would do a real IPC handshake on the token
+         * here, and `servo_create_sandbox()` would activate a real OS sandbox
+         * on the running test process: neither is something a unit test may do
+         * in-process. Skip them and say so instead of pretending to test. */
+        printf("      (multiprocess build: spawn path not exercised here)\n");
+        fflush(stdout);
+        return 0;
+    }
+
+    /* Feature off: a non-NULL token is refused as well, returning rather than
+     * letting a panic reach the `extern "C"` boundary. */
+    if (servo_run_content_process("not-a-real-token") != -1)
+        return 1;
+
+    /* No OS sandbox exists in a build without the feature. */
+    if (servo_capi_is_sandboxing_supported())
+        return 1;
+    if (servo_create_sandbox())
+        return 1;
+
+    return 0;
+}
+
 /* Test that find-in-page API functions exist and handle NULL arguments. */
 int test_find_null_arguments(void)
 {
@@ -3076,6 +3113,7 @@ int run_c_api_tests(void)
     RUN_TEST(test_options_handle_validation);
     RUN_TEST(test_proxy_config_struct_size_validation);
     RUN_TEST(test_cookie_filter_struct_size_validation);
+    RUN_TEST(test_multiprocess_single_process_path);
     RUN_TEST(test_find_null_arguments);
     RUN_TEST(test_find_valid_arguments);
     RUN_TEST(test_find_result_getters);

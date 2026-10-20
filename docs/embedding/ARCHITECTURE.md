@@ -536,28 +536,41 @@ Implications for the C API:
 
 When the `multiprocess` feature is enabled, Servo supports running content (script,
 layout, paint) in separate **content processes**. The C API exposes two functions
-for content-process bootstrap (guarded by `#[cfg(feature = "multiprocess")]`):
+for content-process bootstrap — **exported in every build**, not feature-gated at
+the symbol level: without the feature they exist and refuse (`-1` / `false`),
+which is what the C test `test_multiprocess_single_process_path` asserts. The
+feature decides whether the work can happen at all.
 
 | Function | Purpose |
 | --- | --- |
-| `servo_run_content_process(token)` | Entry point for a content process. Connects to the browser process via the IPC `token`, receives configuration, enters the sandbox (if enabled), and runs the content event loop. Never returns. |
-| `servo_create_sandbox()` | Creates and activates the platform sandbox profile. Called automatically by `servo_run_content_process` when `Opts::sandbox` is true, but can be invoked manually for custom initialization order. Returns `true` on success, `false` if sandboxing is unsupported on the current platform. |
+| `servo_run_content_process(token)` | Entry point for a content process. Connects to the browser process via the IPC `token`, receives configuration, enters the sandbox (if enabled), and runs the content event loop. Never returns on success; returns `-1` for a null token, a build without the feature, or a failed handshake — a stale token refuses rather than aborting the process. |
+| `servo_create_sandbox()` | Creates and activates the platform sandbox profile. Called automatically by `servo_run_content_process` when `Opts::sandbox` is true, but can be invoked manually — in which case it must be the first thing the content process does. Returns `true` on success, `false` if the feature is off, if sandboxing is unsupported on the current platform (on Windows it applies in-process mitigation policies first, then still returns `false`), or if activation fails. |
 
-**Launch flow:**
+**Launch flow** (verified against `components/constellation/sandboxing.rs`):
 
 1. **Browser process** (embedder's main process) creates a `Servo` with
-   `servo_options_set_multiprocess(true)` and `servo_options_set_sandbox(true)`.
-   Internally, `ServoBuilder::build` creates an `IpcOneShotServer` and generates
-   a connection token.
+   `servo_options_set_multiprocess(true)` and, optionally,
+   `servo_options_set_sandbox(true)`.
 
-2. **Embedder** retrieves the token (currently via Rust API; a C accessor is
-   planned) and launches N content processes as children, passing the token
-   via command line (`--content-process <token>`) or environment variable
-   (`SERVO_CONTENT_TOKEN`).
+2. When the constellation needs a content process — a script event loop, or the
+   service worker manager — **Servo creates the `IpcOneShotServer`, keeps the
+   token, and spawns `current_exe()`, the embedder's own binary, with exactly
+   `--content-process <token>` as its two arguments**. The embedder launches no
+   children and retrieves no token: there is no token accessor because no token
+   ever leaves the browser process. (A sandboxed spawn on Linux/macOS x86_64
+   goes through `gaol::sandbox::Command::me()` — the same executable, already
+   inside the profile.)
 
-3. **Each content process** executes a minimal `main()` that calls
-   `servo_create_sandbox()` followed by `servo_run_content_process(token)`.
-   The content process then runs until the browser process terminates it.
+3. **The embedder's `main`**, before doing anything else, recognizes that
+   argument and calls `servo_run_content_process(token)`, which connects,
+   receives `Opts`/preferences over IPC, enters the sandbox if the browser
+   process asked for one, and runs the content event loop.
+
+The consequence is stated plainly because it is a hard failure mode: an embedder
+that does **not** route `--content-process` hangs the browser process on the
+first spawn (the parent blocks in `server.accept()` waiting for a child that
+never connects), rather than degrading to single process. The child is your own
+binary, so nothing has to be rebuilt as a separate helper.
 
 **Sandbox support matrix:**
 
@@ -565,11 +578,10 @@ for content-process bootstrap (guarded by `#[cfg(feature = "multiprocess")]`):
 | --- | --- | --- |
 | Linux (x86_64) | `gaol` (seccomp-bpf + namespaces) | Requires `multiprocess` feature; `servo_create_sandbox()` returns `true`. |
 | macOS (x86_64) | `sandbox-exec` (Seatbelt) | Requires `multiprocess` feature; `servo_create_sandbox()` returns `true`. |
-| Linux / macOS arm64 | None | Planned; `servo_create_sandbox()` returns `false`. |
-| Windows (x86_64) | None (in-process mitigations only) | In-process mitigation policies (DEP, ASLR, strict handle) applied, but not a sandbox; `servo_create_sandbox()` returns `false` (see `WINDOWS_SANDBOX_DESIGN.md`). |
-| Android | None (OS process model) | OS isolated process model — not a sandbox; `servo_create_sandbox()` returns `false`. |
-| iOS | None (OS app container) | OS application container — not a sandbox; `servo_create_sandbox()` returns `false`. |
-| OpenHarmony / RISC-V | None | Single-process / unsupported; `servo_create_sandbox()` returns `false`. |
+| Linux / macOS arm64 | None | No sandbox profile is implemented for arm64; `servo_create_sandbox()` returns `false` and `servo_capi_is_sandboxing_supported()` reports `false`. |
+| Windows (x86_64) | None (in-process mitigations only) | **Crash isolation without OS containment.** In-process mitigation policies (DEP, ASLR, strict handle) applied, but not a sandbox; `servo_create_sandbox()` returns `false` (see `WINDOWS_SANDBOX_DESIGN.md`). |
+| Android / OpenHarmony / ARM / RISC-V | None | Content processes are spawned **unsandboxed** by Servo itself; `servo_create_sandbox()` returns `false`. Isolated-process containment, where it exists at all, must come from the embedder's own process model — `MULTI_PLATFORM_SANDBOX_DESIGN.md` is explicit that Servo creates and confirms nothing (roadmap, not current behaviour). |
+| iOS | n/a | Multiprocess is unsupported outright: `spawn_multiprocess` logs and exits the process, so the feature must stay off (see W3.2's deferral). |
 
 The embedder is responsible for process lifecycle management (crash detection,
 restart, resource limits). No zygote/fork-server abstraction is provided.
