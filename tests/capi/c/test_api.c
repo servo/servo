@@ -1410,6 +1410,12 @@ int test_error_null_arguments(void)
     if (servo_spin_event_loop(NULL) != SERVO_ERROR_NULL_ARGUMENT)
         return 1;
 
+    // Test servo_post_task with NULL
+    if (servo_post_task(NULL, NULL, NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_post_task(servo, NULL, NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+
     // Test servo_setup_logging with NULL
     if (servo_setup_logging(NULL) != SERVO_ERROR_NULL_ARGUMENT)
         return 1;
@@ -3153,6 +3159,38 @@ int test_webview_delegate_context_menu(void)
     return 0;
 }
 
+static void dummy_post_task_callback(void* user_data)
+{
+    int* counter = (int*)user_data;
+    if (counter != NULL) {
+        (*counter)++;
+    }
+}
+
+int test_servo_post_task(void)
+{
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 1;
+
+    int counter = 0;
+    if (servo_post_task(servo, dummy_post_task_callback, &counter) != SERVO_ERROR_OK)
+        return 1;
+
+    // Task should not have run yet before event loop spins
+    if (counter != 0)
+        return 1;
+
+    if (servo_spin_event_loop(servo) != SERVO_ERROR_OK)
+        return 1;
+
+    // Task must have executed during spin_event_loop
+    if (counter != 1)
+        return 1;
+
+    return 0;
+}
+
 int run_c_api_tests(void)
 {
     tests_run = 0;
@@ -3258,6 +3296,7 @@ int run_c_api_tests(void)
     RUN_TEST(test_value_nested_containers);
     RUN_TEST(test_webview_print_to_pdf);
     RUN_TEST(test_webview_delegate_context_menu);
+    RUN_TEST(test_servo_post_task);
 
     free_test_servo();
 

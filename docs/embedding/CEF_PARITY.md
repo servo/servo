@@ -134,7 +134,7 @@ and readiness) and [`ROADMAP.md`](ROADMAP.md) (sequencing).
 | Multi-process | `CefSettings.multi_process`, `CefExecuteProcess`, `CefProcessMessage` | `Opts::{multiprocess, force_ipc}`; feature-gated `servo::run_content_process(token)`; `#[cfg(feature = "multiprocess")]` | **Partial** | C can set the flags (`servo_options_set_multiprocess`, `servo_options_set_force_ipc`) and bootstrap content processes via `servo_run_content_process(token)` / `servo_create_sandbox()` (requires `multiprocess` feature). |
 | Sandbox | `CefSettings.no_sandbox` | `Opts::sandbox`; `create_sandbox()` in the content process | **Partial** | C exposes `servo_options_set_sandbox` and `servo_create_sandbox()` for content-process bootstrap; guidance added in `C_API_GUIDE.md`. |
 | Zygote / fork server | `CefSettings` (browser/zygote launch) | Content process spawn (`servo_run_content_process`) | **Non-goal / Internal** | Servo manages process spawning internally through cross-platform IPC channels rather than requiring embedders to run a manual zygote fork loop. |
-| Task runner / post task | `CefTaskRunner`, `CefPostTask` | none public; internal `ConstellationProxy` message channel (`proxies.rs`) | Partial | `spin_event_loop` is the only embedder-driven loop; no public post-task/run-on-loop API. |
+| Task runner / post task | `CefTaskRunner`, `CefPostTask` | `Servo::post_task(&self, Box<dyn FnOnce() + Send>)`; `servo_post_task` in C | **Exposed** | *(done on this branch)* C: `servo_post_task(servo, callback, user_data)`. Embedder can post tasks from any thread to execute on the event loop during `servo_spin_event_loop`, waking the loop via `EventLoopWaker`. |
 | Reference counting | `CefRefPtr`, `CefBaseRefCounted` | Rust `Rc`/`Box`; C handles are manual ownership | Partial | No intrusive refcount across the boundary; C uses raw pointers + `*_free`. |
 
 ---
@@ -183,9 +183,10 @@ and readiness) and [`ROADMAP.md`](ROADMAP.md) (sequencing).
    deferred in §D.2.1 of the build plan.
 4. **Navigation controls in C** — *done on this branch:* `servo_webview_can_go_back`
    / `servo_webview_can_go_forward`, `servo_webview_go_back` /
-   `servo_webview_go_forward`, `servo_webview_reload`,
-   `servo_webview_clear_session_history`. History-change notifications stay
-   Rust-only.
+   `servo_webview_go_forward`, `servo_webview_reload`, `servo_webview_stop`,
+   `servo_webview_clear_session_history`, session history traversal
+   (`servo_webview_get_history_count`, `servo_webview_get_history_index`,
+   `servo_webview_traverse_history`), and `notify_history_changed` in `ServoWebViewDelegate`.
 5. **Core C delegate surface** — *done on this branch:* `ServoWebViewDelegate`
    carries the lifespan callbacks (`notify_url_changed`, `notify_page_title_changed`,
    `notify_load_status_changed`, `notify_load_started`, `notify_load_ended`,

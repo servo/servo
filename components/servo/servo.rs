@@ -272,6 +272,8 @@ struct ServoInner {
     pending_handled_input_events: RefCell<Vec<PendingHandledInputEvent>>,
     /// An [`EventLoopWaker`] used to wake up the main embedder event loop.
     event_loop_waker: Box<dyn EventLoopWaker>,
+    task_sender: Sender<Box<dyn FnOnce() + Send>>,
+    task_receiver: Receiver<Box<dyn FnOnce() + Send>>,
 }
 
 impl ServoInner {
@@ -280,6 +282,12 @@ impl ServoInner {
             .borrow()
             .get(&id)
             .and_then(WebView::from_weak_handle)
+    }
+
+    fn post_task(&self, task: Box<dyn FnOnce() + Send>) {
+        if self.task_sender.send(task).is_ok() {
+            self.event_loop_waker.wake();
+        }
     }
 
     #[servo_tracing::instrument(level = "debug", skip_all)]
@@ -352,6 +360,10 @@ impl ServoInner {
         self.send_new_frame_ready_messages();
         self.handle_delegate_errors();
         self.clean_up_destroyed_webview_handles();
+
+        while let Ok(task) = self.task_receiver.try_recv() {
+            task();
+        }
 
         if self.shutdown_state.get() == ShutdownState::FinishedShuttingDown {
             return false;
@@ -1077,6 +1089,8 @@ impl Servo {
             prefs::add_observer(Box::new(constellation_proxy.clone()));
         }
 
+        let (task_sender, task_receiver) = unbounded();
+
         Servo(Rc::new(ServoInner {
             delegate: RefCell::new(Rc::new(DefaultServoDelegate)),
             paint,
@@ -1103,6 +1117,8 @@ impl Servo {
             _js_engine_setup: js_engine_setup,
             pending_handled_input_events: Default::default(),
             event_loop_waker,
+            task_sender,
+            task_receiver,
         }))
     }
 
@@ -1127,6 +1143,12 @@ impl Servo {
     ///   - Maybe update the rendered `Paint` output, but *without* swapping buffers.
     pub fn spin_event_loop(&self) {
         self.0.spin_event_loop();
+    }
+
+    /// Post a task to be executed on the Servo event loop thread during the next
+    /// [`Servo::spin_event_loop`] call, and wake up the event loop via [`EventLoopWaker`].
+    pub fn post_task(&self, task: Box<dyn FnOnce() + Send>) {
+        self.0.post_task(task);
     }
 
     /// Sets up logging for this [`Servo`] instance.

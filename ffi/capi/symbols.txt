@@ -68,6 +68,7 @@ servo_options_set_temporary_storage
 servo_options_set_time_profiler_trace_path
 servo_options_set_unminify_css
 servo_options_set_unminify_js
+servo_post_task
 servo_preferences_create
 servo_preferences_free
 servo_preferences_get_bool

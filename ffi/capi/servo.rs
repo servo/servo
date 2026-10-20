@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::ffi::CStr;
-use std::os::raw::c_char;
+use std::os::raw::{c_char, c_void};
 
 use servo_api::{PrefValue, Servo};
 
@@ -70,6 +70,42 @@ pub unsafe extern "C" fn servo_spin_event_loop(servo: *mut Servo) -> ServoError 
         let servo = unsafe { &*servo };
 
         servo.spin_event_loop();
+
+        ServoError::Ok
+    })
+}
+
+/// Post a task callback to be executed on the thread driving `servo_spin_event_loop`.
+///
+/// This is the Servo equivalent of `CefPostTask`. The task will be executed during the
+/// next call to `servo_spin_event_loop`, and the registered event loop waker is invoked.
+///
+/// If `callback` is `None` or `servo` is `NULL`, returns `ServoError::NullArgument`.
+///
+/// # Safety
+///
+/// `servo` must be a valid pointer to a `Servo` instance. `callback` must be safe
+/// to invoke with `user_data`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_post_task(
+    servo: *mut Servo,
+    callback: Option<extern "C" fn(user_data: *mut c_void)>,
+    user_data: *mut c_void,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if servo.is_null() {
+            return ServoError::NullArgument;
+        }
+        let Some(callback) = callback else {
+            return ServoError::NullArgument;
+        };
+
+        let servo = unsafe { &*servo };
+        let user_data_raw = user_data as usize;
+
+        servo.post_task(Box::new(move || {
+            callback(user_data_raw as *mut c_void);
+        }));
 
         ServoError::Ok
     })
