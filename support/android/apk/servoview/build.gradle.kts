@@ -13,7 +13,11 @@ android {
 
     ndkPath = getNdkDir()
 
-    defaultConfig { minSdk = libs.versions.android.sdk.min.get().toInt() }
+    defaultConfig {
+        minSdk = libs.versions.android.sdk.min.get().toInt()
+        // W3.1: version the embeddable AAR for consumers
+        versionName = project.findProperty("servoVersion")?.toString() ?: System.getenv("SERVO_VERSION") ?: "0.0.1"
+    }
 
     lint { targetSdk = 33 }
 
