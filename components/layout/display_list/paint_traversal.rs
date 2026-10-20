@@ -6,7 +6,10 @@ use std::rc::Rc;
 use std::sync::Arc;
 
 use app_units::Au;
+use paint_api::display_list::ScrollTree;
 use servo_base::id::ScrollTreeNodeId;
+use style::computed_values::transform_style::T as ComputedTransformStyle;
+use style::properties::longhands::backface_visibility::computed_value::T as BackfaceVisiblity;
 use style::values::computed::TextDecorationLine;
 
 use crate::display_list::{
@@ -18,6 +21,7 @@ use crate::fragment_tree::{
     PositioningFragment, Tag, TextFragment,
 };
 use crate::geom::{PhysicalPoint, PhysicalRect};
+use crate::style_ext::ComputedValuesExt;
 
 pub(crate) struct PaintTraversal<'a, Handler: PaintTraversalHandler> {
     handler: &'a mut Handler,
@@ -35,6 +39,25 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
         .traverse_stacking_context(&TraversalState::default(), root_stacking_context);
     }
 
+    /// Whether the accumulated transform of the given scroll tree node orients its
+    /// content away from the viewer. An uninvertible transform is treated as facing
+    /// away, because such content is never displayed.
+    fn faces_away(&self, node: ScrollTreeNodeId) -> bool {
+        let scroll_tree = self.handler.scroll_tree();
+        match scroll_tree.cumulative_root_to_node_transform(node) {
+            Some(transform) => transform.is_backface_visible(),
+            None => true,
+        }
+    }
+
+    /// Whether an ancestor's `backface-visibility: hidden` culls the fragments painted
+    /// with this state.
+    fn subtree_is_hidden(&self, state: &TraversalState) -> bool {
+        state
+            .backface_hidden_node
+            .is_some_and(|node| self.faces_away(node))
+    }
+
     /// <https://drafts.csswg.org/css-position-4/#paint-a-stacking-context>
     fn traverse_stacking_context(
         &mut self,
@@ -43,6 +66,9 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
     ) {
         let old_outlines_length = self.outlines.len();
         let state = state.push_stacking_context(stacking_context);
+        if self.subtree_is_hidden(&state) {
+            return;
+        }
         let stacking_context_state = self.handler.visit_stacking_context(stacking_context);
 
         // > Step 1: If root is an element, paint a stacking context given root’s principal
@@ -124,6 +150,9 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
         // > Step 6: For each of root’s in-flow, non-positioned, block-level descendants, in
         // > tree order, paint a block’s decorations given the descendant and canvas.
         let inner_state = state.push_box_fragment(root);
+        if self.subtree_is_hidden(&inner_state) {
+            return;
+        }
         for child in root.children.iter() {
             saw_inline_level_or_replaced |=
                 self.traverse_block_level_descendants_decorations(&inner_state, child);
@@ -251,9 +280,14 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
                 }
 
                 let state_for_children = state.push_box_fragment(box_fragment);
-                for child in box_fragment.children.iter() {
-                    saw_inline_level_or_replaced |= self
-                        .traverse_block_level_descendants_decorations(&state_for_children, child);
+                if !self.subtree_is_hidden(&state_for_children) {
+                    for child in box_fragment.children.iter() {
+                        saw_inline_level_or_replaced |= self
+                            .traverse_block_level_descendants_decorations(
+                                &state_for_children,
+                                child,
+                            );
+                    }
                 }
 
                 // Collapsed table borders are painted after block-level descendants. This isn't
@@ -306,7 +340,9 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
             }
 
             let inner_state = state.push_box_fragment(fragment);
-            self.traverse_replaced_content(&inner_state, fragment);
+            if !self.subtree_is_hidden(&inner_state) {
+                self.traverse_replaced_content(&inner_state, fragment);
+            }
             return;
         }
 
@@ -316,12 +352,14 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
         }
 
         let inner_state = state.push_box_fragment(fragment);
-        for child in fragment.children.iter() {
-            self.traverse_line_boxes_and_replaced(
-                &inner_state,
-                child,
-                false, /* at_root_of_stacking_context */
-            );
+        if !self.subtree_is_hidden(&inner_state) {
+            for child in fragment.children.iter() {
+                self.traverse_line_boxes_and_replaced(
+                    &inner_state,
+                    child,
+                    false, /* at_root_of_stacking_context */
+                );
+            }
         }
     }
 
@@ -446,7 +484,9 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
         // >   Paint the replaced content into canvas, atomically.
         if box_fragment.is_replaced() {
             let state = state.push_box_fragment(box_fragment);
-            self.traverse_replaced_content(&state, box_fragment);
+            if !self.subtree_is_hidden(&state) {
+                self.traverse_replaced_content(&state, box_fragment);
+            }
 
         // > ↪ If root is an inline-level block or table wrapper box
         // >   Paint a stacking container given root and canvas.
@@ -457,8 +497,10 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
         // Note: This is handled via recursion into `paint_a_fragment_in_a_line_box`.
         } else {
             let state = state.push_box_fragment(box_fragment);
-            for child in &box_fragment.children {
-                self.traverse_fragment_in_a_line_box(&state, child, line_box_rect);
+            if !self.subtree_is_hidden(&state) {
+                for child in &box_fragment.children {
+                    self.traverse_fragment_in_a_line_box(&state, child, line_box_rect);
+                }
             }
         }
     }
@@ -509,6 +551,8 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
 
 pub(crate) trait PaintTraversalHandler {
     type StackingContextState;
+
+    fn scroll_tree(&self) -> &ScrollTree;
 
     fn visit_stacking_context(
         &mut self,
@@ -564,6 +608,9 @@ pub(crate) struct TraversalState {
     /// Note that this does not include the box currently being visited, see
     /// [`Self::container_timing_roots_including`].
     pub container_timing_roots: ContainerTimingRoots,
+    /// The scroll tree node of the nearest flattening ancestor with
+    /// `backface-visibility: hidden`, used to cull these fragments when it faces away.
+    pub backface_hidden_node: Option<ScrollTreeNodeId>,
 }
 
 impl Default for TraversalState {
@@ -583,6 +630,22 @@ impl Default for TraversalState {
 impl TraversalState {
     pub(crate) fn push_box_fragment(&self, box_fragment: &BoxFragmentWithStyle<'_>) -> Self {
         let style = box_fragment.style();
+
+        // A flattening fragment with `backface-visibility: hidden` hides its flattened
+        // subtree based on its own accumulated transform; preserve-3d children do not.
+        let backface_hidden_node = if style.used_transform_style(box_fragment.base.flags) ==
+            ComputedTransformStyle::Preserve3d
+        {
+            self.backface_hidden_node
+        } else if style.get_box().backface_visibility == BackfaceVisiblity::Hidden {
+            Some(
+                box_fragment
+                    .generated_scroll_tree_node_id()
+                    .unwrap_or(self.spatial_id),
+            )
+        } else {
+            self.backface_hidden_node
+        };
 
         // Text decorations are not propagated to atomic inline-level descendants.
         // From https://drafts.csswg.org/css2/#lining-striking-props:
@@ -626,6 +689,7 @@ impl TraversalState {
             accumulated_opacity: self.accumulated_opacity * style.slow_clone_opacity(),
             containing_element_tag: box_fragment.base.tag.or(self.containing_element_tag),
             container_timing_roots: self.container_timing_roots_including(box_fragment),
+            backface_hidden_node,
         }
     }
 
@@ -659,6 +723,7 @@ impl TraversalState {
                 positioning_fragment.style.borrow().slow_clone_opacity(),
             containing_element_tag: self.containing_element_tag,
             container_timing_roots: self.container_timing_roots.clone(),
+            backface_hidden_node: self.backface_hidden_node,
         }
     }
 
@@ -674,6 +739,7 @@ impl TraversalState {
                     .map_or(1.0, |fragment| fragment.style().slow_clone_opacity()),
             containing_element_tag: self.containing_element_tag,
             container_timing_roots: stacking_context.container_timing_roots.clone(),
+            backface_hidden_node: stacking_context.backface_hidden_node,
         }
     }
 }

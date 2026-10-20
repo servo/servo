@@ -24,6 +24,8 @@ use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
 use style::computed_values::text_decoration_style::T as TextDecorationStyle;
 use style::computed_values::text_decoration_thickness::T as TextDecorationThickness;
+use style::computed_values::transform_style::T as ComputedTransformStyle;
+use style::properties::longhands::backface_visibility::computed_value::T as BackfaceVisiblity;
 use style::values::computed::angle::Angle;
 use style::values::computed::{ClipRectOrAuto, Length, TextDecorationLine};
 use style::values::generics::box_::{OverflowClipMarginBox, Perspective};
@@ -205,6 +207,7 @@ impl StackingContextTree {
                 &text_decorations,
                 &None, /* container_timing_roots */
                 false, /* participates_in_3d_rendering_context */
+                None,
             );
         }
 
@@ -395,6 +398,10 @@ pub struct StackingContext {
     #[ignore_malloc_size_of = "Small and shared with other stacking contexts"]
     pub(crate) container_timing_roots: ContainerTimingRoots,
 
+    /// The scroll tree node of the nearest flattening ancestor with
+    /// `backface-visibility: hidden`, used to cull this subtree when it faces away.
+    pub(crate) backface_hidden_node: Option<ScrollTreeNodeId>,
+
     /// If this [`StackingContext`] also created a WebRender reference frame, this field
     /// holds information about that reference frame.
     pub(crate) reference_frame_info: Option<StackingContextReferenceFrameInfo>,
@@ -416,6 +423,7 @@ impl StackingContext {
             z_index: 0,
             text_decorations: Default::default(),
             container_timing_roots: None,
+            backface_hidden_node: None,
             reference_frame_info: None,
             participates_in_a_3d_rendering_context: false,
         }
@@ -431,6 +439,7 @@ impl StackingContext {
         initializing_fragment: Arc<BoxFragment>,
         text_decorations: Rc<Vec<FragmentTextDecoration>>,
         container_timing_roots: ContainerTimingRoots,
+        backface_hidden_node: Option<ScrollTreeNodeId>,
         reference_frame_info: Option<StackingContextReferenceFrameInfo>,
         participates_in_a_3d_rendering_context: bool,
     ) -> Self {
@@ -447,6 +456,7 @@ impl StackingContext {
             z_index,
             text_decorations,
             container_timing_roots,
+            backface_hidden_node,
             reference_frame_info,
             participates_in_a_3d_rendering_context,
         }
@@ -503,6 +513,7 @@ impl Fragment {
         text_decorations: &Rc<Vec<FragmentTextDecoration>>,
         container_timing_roots: &ContainerTimingRoots,
         participates_in_3d_rendering_context: bool,
+        inherited_backface_hidden_node: Option<ScrollTreeNodeId>,
     ) {
         let containing_block = containing_block_info.get_containing_block_for_fragment(self);
         let cumulative_containing_block = containing_block
@@ -544,6 +555,7 @@ impl Fragment {
                     text_decorations,
                     container_timing_roots,
                     participates_in_3d_rendering_context,
+                    inherited_backface_hidden_node,
                 );
             },
             Fragment::LayoutRoot(..) => {
@@ -565,6 +577,7 @@ impl Fragment {
                     &Default::default(),
                     container_timing_roots,
                     participates_in_3d_rendering_context,
+                    inherited_backface_hidden_node,
                 );
             },
             Fragment::Positioning(fragment) => {
@@ -576,6 +589,7 @@ impl Fragment {
                     text_decorations,
                     container_timing_roots,
                     participates_in_3d_rendering_context,
+                    inherited_backface_hidden_node,
                 );
             },
             Fragment::Text(_) | Fragment::Image(_) | Fragment::IFrame(_) => {},
@@ -625,6 +639,7 @@ impl BoxFragment {
         text_decorations: &Rc<Vec<FragmentTextDecoration>>,
         container_timing_roots: &ContainerTimingRoots,
         participates_in_3d_rendering_context: bool,
+        inherited_backface_hidden_node: Option<ScrollTreeNodeId>,
     ) {
         self.clear_stacking_context_tree_traversal_data();
         self.build_stacking_context_tree_maybe_creating_reference_frame(
@@ -636,6 +651,7 @@ impl BoxFragment {
             text_decorations,
             container_timing_roots,
             participates_in_3d_rendering_context,
+            inherited_backface_hidden_node,
         );
     }
 
@@ -650,6 +666,7 @@ impl BoxFragment {
         text_decorations: &Rc<Vec<FragmentTextDecoration>>,
         container_timing_roots: &ContainerTimingRoots,
         participates_in_3d_rendering_context: bool,
+        inherited_backface_hidden_node: Option<ScrollTreeNodeId>,
     ) {
         let reference_frame_data =
             match self.reference_frame_data_if_necessary(&containing_block.rect) {
@@ -663,6 +680,7 @@ impl BoxFragment {
                         parent_stacking_context,
                         text_decorations,
                         container_timing_roots,
+                        inherited_backface_hidden_node,
                         None, /* reference_frame_info */
                         participates_in_3d_rendering_context,
                     );
@@ -728,6 +746,7 @@ impl BoxFragment {
             parent_stacking_context,
             text_decorations,
             container_timing_roots,
+            inherited_backface_hidden_node,
             Some(reference_frame_info),
             participates_in_3d_rendering_context,
         );
@@ -743,6 +762,7 @@ impl BoxFragment {
         parent_stacking_context: &mut StackingContext,
         text_decorations: &Rc<Vec<FragmentTextDecoration>>,
         container_timing_roots: &ContainerTimingRoots,
+        inherited_backface_hidden_node: Option<ScrollTreeNodeId>,
         reference_frame_info: Option<StackingContextReferenceFrameInfo>,
         participates_in_3d_rendering_context: bool,
     ) {
@@ -757,6 +777,7 @@ impl BoxFragment {
                 text_decorations,
                 container_timing_roots,
                 participates_in_3d_rendering_context,
+                inherited_backface_hidden_node,
             );
             return;
         };
@@ -819,6 +840,7 @@ impl BoxFragment {
             box_fragment,
             text_decorations.clone(),
             container_timing_roots.clone(),
+            inherited_backface_hidden_node,
             reference_frame_info,
             participates_in_3d_rendering_context,
         );
@@ -830,6 +852,7 @@ impl BoxFragment {
             text_decorations,
             container_timing_roots,
             participates_in_3d_rendering_context,
+            inherited_backface_hidden_node,
         );
 
         let mut stolen_children = vec![];
@@ -860,6 +883,7 @@ impl BoxFragmentWithStyle<'_> {
         text_decorations: &Rc<Vec<FragmentTextDecoration>>,
         container_timing_roots: &ContainerTimingRoots,
         participates_in_3d_rendering_context: bool,
+        inherited_backface_hidden_node: Option<ScrollTreeNodeId>,
     ) {
         let style = self.style();
         let establishes_containing_block_for_all_descendants =
@@ -966,6 +990,19 @@ impl BoxFragmentWithStyle<'_> {
         let container_timing_roots =
             ContainerTimingRootChain::for_contents_of(container_timing_roots, &self.base);
 
+        // A flattening fragment with `backface-visibility: hidden` hides its whole
+        // flattened subtree when facing away, while preserve-3d children evaluate
+        // their own accumulated matrix. Applied to every fragment, not only ones
+        // establishing stacking contexts, so the state survives hoisting.
+        let child_backface_hidden_node =
+            if style.used_transform_style(self.base.flags) == ComputedTransformStyle::Preserve3d {
+                inherited_backface_hidden_node
+            } else if style.get_box().backface_visibility == BackfaceVisiblity::Hidden {
+                Some(new_scroll_node_id)
+            } else {
+                inherited_backface_hidden_node
+            };
+
         for child in &self.children {
             child.build_stacking_context_tree(
                 stacking_context_tree,
@@ -975,6 +1012,7 @@ impl BoxFragmentWithStyle<'_> {
                 text_decorations,
                 &container_timing_roots,
                 participates_in_3d_rendering_context,
+                child_backface_hidden_node,
             );
         }
     }
@@ -1480,6 +1518,7 @@ impl PositioningFragment {
         text_decorations: &Rc<Vec<FragmentTextDecoration>>,
         container_timing_roots: &ContainerTimingRoots,
         participates_in_3d_rendering_context: bool,
+        inherited_backface_hidden_node: Option<ScrollTreeNodeId>,
     ) {
         let rect = self
             .base
@@ -1498,6 +1537,7 @@ impl PositioningFragment {
                 text_decorations,
                 container_timing_roots,
                 participates_in_3d_rendering_context,
+                inherited_backface_hidden_node,
             );
         }
     }
