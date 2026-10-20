@@ -37,18 +37,29 @@ pub(crate) struct AnalyserNode {
 }
 
 impl AnalyserNode {
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn new_inherited(
+    pub(crate) fn push_block(&self, block: Block) {
+        self.engine.borrow_mut().push(block)
+    }
+}
+
+impl AnalyserNodeMethods<crate::DomTypeHolder> for AnalyserNode {
+    /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-analysernode>
+    fn Constructor(
         cx: &mut JSContext,
-        _: &Window,
+        window: &Window,
+        proto: Option<HandleObject>,
         context: &BaseAudioContext,
         options: &AnalyserOptions,
-        callback: Arc<OnceLock<GenericCallback<Block>>>,
-    ) -> Fallible<AnalyserNode> {
+    ) -> Fallible<DomRoot<AnalyserNode>> {
         let node_options =
             options
                 .parent
                 .unwrap_or(2, ChannelCountMode::Max, ChannelInterpretation::Speakers);
+        if AudioNode::channel_count_check(node_options.count) {
+            return Err(Error::NotSupported(Some(String::from(
+                "Channel count not supported",
+            ))));
+        }
 
         if options.fftSize > 32768 ||
             options.fftSize < 32 ||
@@ -64,15 +75,10 @@ impl AnalyserNode {
         if *options.smoothingTimeConstant < 0. || *options.smoothingTimeConstant > 1. {
             return Err(Error::IndexSize(None));
         }
-
-        let node = AudioNode::new_inherited(
-            cx,
-            AudioNodeInit::AnalyserNode(callback),
-            context,
-            node_options,
-            1, // inputs
-            1, // outputs
-        )?;
+        let callback_oncelock = Arc::new(OnceLock::new());
+        let audio_node_init = AudioNodeInit::AnalyserNode(callback_oncelock.clone());
+        let node_id = AudioNode::generate_audio_node_id(&node_options, audio_node_init, context);
+        AudioNode::inert_node_warning(cx, context, node_id);
 
         let engine = AnalysisEngine::new(
             options.fftSize as usize,
@@ -80,39 +86,28 @@ impl AnalyserNode {
             *options.minDecibels,
             *options.maxDecibels,
         );
-        Ok(AnalyserNode {
-            node,
-            engine: DomRefCell::new(engine),
-        })
-    }
-
-    pub(crate) fn new(
-        cx: &mut JSContext,
-        window: &Window,
-        context: &BaseAudioContext,
-        options: &AnalyserOptions,
-    ) -> Fallible<DomRoot<AnalyserNode>> {
-        Self::new_with_proto(cx, window, None, context, options)
-    }
-
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn new_with_proto(
-        cx: &mut JSContext,
-        window: &Window,
-        proto: Option<HandleObject>,
-        context: &BaseAudioContext,
-        options: &AnalyserOptions,
-    ) -> Fallible<DomRoot<AnalyserNode>> {
-        let callback_oncelock = Arc::new(OnceLock::new());
-        let node =
-            AnalyserNode::new_inherited(cx, window, context, options, callback_oncelock.clone())?;
-        let object = reflect_dom_object_with_proto(cx, Box::new(node), window, proto);
+        let audio_node = AudioNode::new_inherited(
+            node_id,
+            context,
+            node_options,
+            1, // inputs
+            1, // outputs
+        );
+        let node = reflect_dom_object_with_proto(
+            cx,
+            Box::new(AnalyserNode {
+                node: audio_node,
+                engine: DomRefCell::new(engine),
+            }),
+            window,
+            proto,
+        );
         let task_source = window
             .as_global_scope()
             .task_manager()
             .dom_manipulation_task_source()
             .to_sendable();
-        let this = Trusted::new(&*object);
+        let this = Trusted::new(&*node);
 
         let callback = GenericCallback::new(move |block| {
             let this = this.clone();
@@ -125,25 +120,7 @@ impl AnalyserNode {
         if callback_oncelock.set(callback).is_err() {
             log::error!("AnalyzerNode callback is already set. Not setting it again");
         }
-
-        Ok(object)
-    }
-
-    pub(crate) fn push_block(&self, block: Block) {
-        self.engine.borrow_mut().push(block)
-    }
-}
-
-impl AnalyserNodeMethods<crate::DomTypeHolder> for AnalyserNode {
-    /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-analysernode>
-    fn Constructor(
-        cx: &mut JSContext,
-        window: &Window,
-        proto: Option<HandleObject>,
-        context: &BaseAudioContext,
-        options: &AnalyserOptions,
-    ) -> Fallible<DomRoot<AnalyserNode>> {
-        AnalyserNode::new_with_proto(cx, window, proto, context, options)
+        Ok(node)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-analysernode-getfloatfrequencydata>

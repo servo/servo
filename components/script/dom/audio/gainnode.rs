@@ -8,14 +8,12 @@ use js::rust::HandleObject;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::audio_node::{AudioNodeInit, AudioNodeType};
 use servo_media::audio::gain_node::GainNodeOptions;
-use servo_media::audio::graph::NodeId;
 use servo_media::audio::param::ParamType;
 
 use crate::conversions::Convert;
 use crate::dom::audio::audionode::{AudioNode, AudioNodeOptionsHelper};
 use crate::dom::audio::audioparam::AudioParam;
 use crate::dom::audio::baseaudiocontext::BaseAudioContext;
-use crate::dom::audionode::UnwrappedAudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };
@@ -29,50 +27,6 @@ use crate::dom::window::Window;
 pub(crate) struct GainNode {
     node: AudioNode,
     gain: Dom<AudioParam>,
-}
-
-impl GainNode {
-    pub(crate) fn new_inherited(
-        context: &BaseAudioContext,
-        node_options: UnwrappedAudioNodeOptions,
-        node_id: Option<NodeId>,
-        gain: DomRoot<AudioParam>,
-    ) -> GainNode {
-        let node = AudioNode::new_inherited(
-            node_id,
-            context,
-            node_options,
-            1, // inputs
-            1, // outputs
-        );
-
-        GainNode {
-            node,
-            gain: Dom::from_ref(&gain),
-        }
-    }
-
-    fn new_with_proto(
-        window: &Window,
-        cx: &mut JSContext,
-        proto: Option<HandleObject>,
-        context: &BaseAudioContext,
-        node_options: UnwrappedAudioNodeOptions,
-        node_id: Option<NodeId>,
-        gain: DomRoot<AudioParam>,
-    ) -> DomRoot<GainNode> {
-        reflect_dom_object_with_proto(
-            cx,
-            Box::new(GainNode::new_inherited(
-                context,
-                node_options,
-                node_id,
-                gain,
-            )),
-            window,
-            proto,
-        )
-    }
 }
 
 impl GainNodeMethods<crate::DomTypeHolder> for GainNode {
@@ -112,7 +66,22 @@ impl GainNodeMethods<crate::DomTypeHolder> for GainNode {
             f32::MIN, // min value
             f32::MAX, // max value
         );
-        Ok(GainNode::new_with_proto(window, cx, proto, context, node_options, node_id, gain))
+        let node = AudioNode::new_inherited(
+            node_id,
+            context,
+            node_options,
+            1, // inputs
+            1, // outputs
+        );
+        Ok(reflect_dom_object_with_proto(
+            cx,
+            Box::new(GainNode {
+                node,
+                gain: Dom::from_ref(&gain),
+            }),
+            window,
+            proto,
+        ))
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-gainnode-gain>

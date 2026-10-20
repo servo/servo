@@ -67,6 +67,9 @@ impl AudioNode {
         }
     }
 
+    /// <https://webaudio.github.io/web-audio-api/#dom-audionode-channelcount>
+    /// > If this value is set to zero or to a value greater than the implementation’s
+    /// > maximum number of channels the implementation MUST throw a NotSupportedError exception.
     pub(crate) fn channel_count_check(count: u32) -> bool {
         count == 0 || count > MAX_CHANNEL_COUNT
     }

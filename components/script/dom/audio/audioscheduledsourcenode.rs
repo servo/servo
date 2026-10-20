@@ -5,10 +5,10 @@
 use std::cell::Cell;
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
 use servo_media::audio::audio_node::{
-    AudioNodeInit, AudioNodeMessage, AudioScheduledSourceNodeMessage, OnEndedCallback,
+    AudioNodeMessage, AudioScheduledSourceNodeMessage, OnEndedCallback,
 };
+use servo_media::audio::graph::NodeId;
 
 use crate::dom::audio::audionode::{AudioNode, UnwrappedAudioNodeOptions};
 use crate::dom::audio::baseaudiocontext::BaseAudioContext;
@@ -27,27 +27,24 @@ pub(crate) struct AudioScheduledSourceNode {
 }
 
 impl AudioScheduledSourceNode {
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn new_inherited(
-        cx: &mut JSContext,
-        node_type: AudioNodeInit,
+        node_id: Option<NodeId>,
         context: &BaseAudioContext,
         options: UnwrappedAudioNodeOptions,
         number_of_inputs: u32,
         number_of_outputs: u32,
-    ) -> Fallible<AudioScheduledSourceNode> {
-        Ok(AudioScheduledSourceNode {
+    ) -> AudioScheduledSourceNode {
+        AudioScheduledSourceNode {
             node: AudioNode::new_inherited(
-                cx,
-                node_type,
+                node_id,
                 context,
                 options,
                 number_of_inputs,
                 number_of_outputs,
-            )?,
+            ),
             has_start: Cell::new(false),
             has_stop: Cell::new(false),
-        })
+        }
     }
 
     pub(crate) fn node(&self) -> &AudioNode {

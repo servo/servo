@@ -19,7 +19,7 @@ use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };
 use crate::dom::bindings::codegen::Bindings::AudioParamBinding::AutomationRate;
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::types::AudioNode;
 use crate::dom::window::Window;
@@ -33,7 +33,6 @@ pub(crate) struct DelayNode {
 
 impl DelayNodeMethods<crate::DomTypeHolder> for DelayNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-delaynode-delaynode>
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn Constructor(
         cx: &mut JSContext,
         window: &Window,
@@ -45,10 +44,20 @@ impl DelayNodeMethods<crate::DomTypeHolder> for DelayNode {
             options
                 .parent
                 .unwrap_or(2, ChannelCountMode::Max, ChannelInterpretation::Speakers);
+
+        if AudioNode::channel_count_check(node_options.count) {
+            return Err(Error::NotSupported(Some(String::from(
+                "Channel count not supported",
+            ))));
+        }
+
         let delay_time = *options.delayTime;
         let max_delay_time = *options.maxDelayTime;
-        let delay_options = AudioNodeInit::DelayNode(options.convert());
-        let source_node = AudioNode::new_inherited(cx, delay_options, context, node_options, 1, 1)?;
+        let audio_node_init = AudioNodeInit::DelayNode(options.convert());
+        let node_id = AudioNode::generate_audio_node_id(&node_options, audio_node_init, context);
+        AudioNode::inert_node_warning(cx, context, node_id);
+
+        let source_node = AudioNode::new_inherited(node_id, context, node_options, 1, 1);
         let node_id = source_node.node_id();
         let delay_time = AudioParam::new(
             cx,
@@ -62,6 +71,7 @@ impl DelayNodeMethods<crate::DomTypeHolder> for DelayNode {
             0.,
             max_delay_time as f32,
         );
+
         let node = DelayNode {
             source_node,
             delay_time: Dom::from_ref(&delay_time),

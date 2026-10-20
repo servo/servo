@@ -54,19 +54,25 @@ pub(crate) struct PannerNode {
     cone_outer_gain: Cell<f64>,
 }
 
-impl PannerNode {
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn new_inherited(
+impl PannerNodeMethods<crate::DomTypeHolder> for PannerNode {
+    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-pannernode>
+    fn Constructor(
         cx: &mut JSContext,
         window: &Window,
+        proto: Option<HandleObject>,
         context: &BaseAudioContext,
         options: &PannerOptions,
-    ) -> Fallible<PannerNode> {
+    ) -> Fallible<DomRoot<PannerNode>> {
         let node_options = options.parent.unwrap_or(
             2,
             ChannelCountMode::Clamped_max,
             ChannelInterpretation::Speakers,
         );
+        if AudioNode::channel_count_check(node_options.count) {
+            return Err(Error::NotSupported(Some(String::from(
+                "Channel count not supported",
+            ))));
+        }
         if node_options.mode == ChannelCountMode::Max {
             return Err(Error::NotSupported(None));
         }
@@ -86,21 +92,23 @@ impl PannerNode {
             return Err(Error::InvalidState(None));
         }
         let options = options.convert();
+        let audio_node_init = AudioNodeInit::PannerNode(options);
+        let node_id = AudioNode::generate_audio_node_id(&node_options, audio_node_init, context);
+        AudioNode::inert_node_warning(cx, context, node_id);
+
         let node = AudioNode::new_inherited(
-            cx,
-            AudioNodeInit::PannerNode(options),
+            node_id,
             context,
             node_options,
             1, // inputs
             1, // outputs
-        )?;
-        let id = node.node_id();
+        );
         // <https://webaudio.github.io/web-audio-api/#dom-pannernode-positionx>
         let position_x = AudioParam::new(
             cx,
             window,
             context,
-            id,
+            node_id,
             AudioNodeType::PannerNode,
             ParamType::Position(ParamDir::X),
             AutomationRate::A_rate,
@@ -113,7 +121,7 @@ impl PannerNode {
             cx,
             window,
             context,
-            id,
+            node_id,
             AudioNodeType::PannerNode,
             ParamType::Position(ParamDir::Y),
             AutomationRate::A_rate,
@@ -126,7 +134,7 @@ impl PannerNode {
             cx,
             window,
             context,
-            id,
+            node_id,
             AudioNodeType::PannerNode,
             ParamType::Position(ParamDir::Z),
             AutomationRate::A_rate,
@@ -139,7 +147,7 @@ impl PannerNode {
             cx,
             window,
             context,
-            id,
+            node_id,
             AudioNodeType::PannerNode,
             ParamType::Orientation(ParamDir::X),
             AutomationRate::A_rate,
@@ -152,7 +160,7 @@ impl PannerNode {
             cx,
             window,
             context,
-            id,
+            node_id,
             AudioNodeType::PannerNode,
             ParamType::Orientation(ParamDir::Y),
             AutomationRate::A_rate,
@@ -165,7 +173,7 @@ impl PannerNode {
             cx,
             window,
             context,
-            id,
+            node_id,
             AudioNodeType::PannerNode,
             ParamType::Orientation(ParamDir::Z),
             AutomationRate::A_rate,
@@ -173,62 +181,28 @@ impl PannerNode {
             f32::MIN,              // min value
             f32::MAX,              // max value
         );
-        Ok(PannerNode {
-            node,
-            position_x: Dom::from_ref(&position_x),
-            position_y: Dom::from_ref(&position_y),
-            position_z: Dom::from_ref(&position_z),
-            orientation_x: Dom::from_ref(&orientation_x),
-            orientation_y: Dom::from_ref(&orientation_y),
-            orientation_z: Dom::from_ref(&orientation_z),
-            panning_model: Cell::new(options.panning_model),
-            distance_model: Cell::new(options.distance_model),
-            ref_distance: Cell::new(options.ref_distance),
-            max_distance: Cell::new(options.max_distance),
-            rolloff_factor: Cell::new(options.rolloff_factor),
-            cone_inner_angle: Cell::new(options.cone_inner_angle),
-            cone_outer_angle: Cell::new(options.cone_outer_angle),
-            cone_outer_gain: Cell::new(options.cone_outer_gain),
-        })
-    }
-
-    pub(crate) fn new(
-        cx: &mut JSContext,
-        window: &Window,
-        context: &BaseAudioContext,
-        options: &PannerOptions,
-    ) -> Fallible<DomRoot<PannerNode>> {
-        Self::new_with_proto(cx, window, None, context, options)
-    }
-
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    fn new_with_proto(
-        cx: &mut JSContext,
-        window: &Window,
-        proto: Option<HandleObject>,
-        context: &BaseAudioContext,
-        options: &PannerOptions,
-    ) -> Fallible<DomRoot<PannerNode>> {
-        let node = PannerNode::new_inherited(cx, window, context, options)?;
         Ok(reflect_dom_object_with_proto(
             cx,
-            Box::new(node),
+            Box::new(PannerNode {
+                node,
+                position_x: Dom::from_ref(&position_x),
+                position_y: Dom::from_ref(&position_y),
+                position_z: Dom::from_ref(&position_z),
+                orientation_x: Dom::from_ref(&orientation_x),
+                orientation_y: Dom::from_ref(&orientation_y),
+                orientation_z: Dom::from_ref(&orientation_z),
+                panning_model: Cell::new(options.panning_model),
+                distance_model: Cell::new(options.distance_model),
+                ref_distance: Cell::new(options.ref_distance),
+                max_distance: Cell::new(options.max_distance),
+                rolloff_factor: Cell::new(options.rolloff_factor),
+                cone_inner_angle: Cell::new(options.cone_inner_angle),
+                cone_outer_angle: Cell::new(options.cone_outer_angle),
+                cone_outer_gain: Cell::new(options.cone_outer_gain),
+            }),
             window,
             proto,
         ))
-    }
-}
-
-impl PannerNodeMethods<crate::DomTypeHolder> for PannerNode {
-    /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-pannernode>
-    fn Constructor(
-        cx: &mut JSContext,
-        window: &Window,
-        proto: Option<HandleObject>,
-        context: &BaseAudioContext,
-        options: &PannerOptions,
-    ) -> Fallible<DomRoot<PannerNode>> {
-        PannerNode::new_with_proto(cx, window, proto, context, options)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-positionx>

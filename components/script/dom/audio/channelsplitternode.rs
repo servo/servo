@@ -25,14 +25,15 @@ pub(crate) struct ChannelSplitterNode {
     node: AudioNode,
 }
 
-impl ChannelSplitterNode {
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn new_inherited(
+impl ChannelSplitterNodeMethods<crate::DomTypeHolder> for ChannelSplitterNode {
+    /// <https://webaudio.github.io/web-audio-api/#dom-channelsplitternode-channelsplitternode>
+    fn Constructor(
         cx: &mut JSContext,
-        _: &Window,
+        window: &Window,
+        proto: Option<HandleObject>,
         context: &BaseAudioContext,
         options: &ChannelSplitterOptions,
-    ) -> Fallible<ChannelSplitterNode> {
+    ) -> Fallible<DomRoot<ChannelSplitterNode>> {
         if options.numberOfOutputs < 1 || options.numberOfOutputs > MAX_CHANNEL_COUNT {
             return Err(Error::IndexSize(None));
         }
@@ -43,6 +44,12 @@ impl ChannelSplitterNode {
             ChannelInterpretation::Discrete,
         );
 
+        if AudioNode::channel_count_check(node_options.count) {
+            return Err(Error::NotSupported(Some(String::from(
+                "Channel count not supported",
+            ))));
+        }
+
         if node_options.count != options.numberOfOutputs ||
             node_options.mode != ChannelCountMode::Explicit ||
             node_options.interpretation != ChannelInterpretation::Discrete
@@ -50,53 +57,22 @@ impl ChannelSplitterNode {
             return Err(Error::InvalidState(None));
         }
 
+        let audio_node_init = AudioNodeInit::ChannelSplitterNode;
+        let node_id = AudioNode::generate_audio_node_id(&node_options, audio_node_init, context);
+        AudioNode::inert_node_warning(cx, context, node_id);
+
         let node = AudioNode::new_inherited(
-            cx,
-            AudioNodeInit::ChannelSplitterNode,
+            node_id,
             context,
             node_options,
             1,                       // inputs
             options.numberOfOutputs, // outputs
-        )?;
-        Ok(ChannelSplitterNode { node })
-    }
-
-    pub(crate) fn new(
-        cx: &mut JSContext,
-        window: &Window,
-        context: &BaseAudioContext,
-        options: &ChannelSplitterOptions,
-    ) -> Fallible<DomRoot<ChannelSplitterNode>> {
-        Self::new_with_proto(cx, window, None, context, options)
-    }
-
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    fn new_with_proto(
-        cx: &mut JSContext,
-        window: &Window,
-        proto: Option<HandleObject>,
-        context: &BaseAudioContext,
-        options: &ChannelSplitterOptions,
-    ) -> Fallible<DomRoot<ChannelSplitterNode>> {
-        let node = ChannelSplitterNode::new_inherited(cx, window, context, options)?;
+        );
         Ok(reflect_dom_object_with_proto(
             cx,
-            Box::new(node),
+            Box::new(ChannelSplitterNode { node }),
             window,
             proto,
         ))
-    }
-}
-
-impl ChannelSplitterNodeMethods<crate::DomTypeHolder> for ChannelSplitterNode {
-    /// <https://webaudio.github.io/web-audio-api/#dom-channelsplitternode-channelsplitternode>
-    fn Constructor(
-        cx: &mut JSContext,
-        window: &Window,
-        proto: Option<HandleObject>,
-        context: &BaseAudioContext,
-        options: &ChannelSplitterOptions,
-    ) -> Fallible<DomRoot<ChannelSplitterNode>> {
-        ChannelSplitterNode::new_with_proto(cx, window, proto, context, options)
     }
 }
