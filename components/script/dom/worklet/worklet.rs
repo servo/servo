@@ -895,7 +895,13 @@ impl WorkletThread {
     fn process_control(&mut self, control: WorkletControl, cx: &mut js::context::JSContext) {
         match control {
             WorkletControl::ExitWorklet(worklet_id) => {
-                self.global_scopes.remove(&worklet_id);
+                if let Some(global_scope) = self
+                    .global_scopes
+                    .remove(&worklet_id)
+                    .map(|global_scope| global_scope.as_rooted())
+                {
+                    global_scope.upcast::<GlobalScope>().tear_down();
+                }
             },
             WorkletControl::FetchAndInvokeAWorkletScript {
                 pipeline_id,

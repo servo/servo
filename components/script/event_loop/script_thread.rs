@@ -3291,6 +3291,10 @@ impl ScriptThread {
                 // garbage collected. See servo/servo#45239.
                 window.image_cache().clear();
 
+                // Tear down the GlobalScope to ensure that garbage collection happens
+                // immediately.
+                window.as_global_scope().tear_down();
+
                 debug!("{pipeline_id}: Clearing JavaScript runtime");
                 window.clear_js_runtime();
             }
