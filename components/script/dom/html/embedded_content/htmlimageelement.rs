@@ -5,6 +5,7 @@
 use std::cell::Cell;
 use std::sync::Arc;
 
+use atomic_refcell::{AtomicRef, AtomicRefCell};
 use bytes::Bytes;
 use dom_struct::dom_struct;
 use euclid::default::Point2D;
@@ -30,6 +31,7 @@ use style::Atom;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_unsigned_integer};
 
 use crate::dom::activation::Activatable;
+use crate::dom::bindings::cell::AtomicSafeBorrowMut;
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRect_Binding::DOMRectMethods;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::Element_Binding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
@@ -115,7 +117,8 @@ struct ImageRequest {
 #[dom_struct]
 pub(crate) struct HTMLImageElement {
     htmlelement: HTMLElement,
-    current_request: DomRefCell<Box<ImageRequest>>,
+    #[custom_trace]
+    current_request: AtomicRefCell<Box<ImageRequest>>,
     pending_request: DomRefCell<Option<Box<ImageRequest>>>,
     form_owner: MutNullableDom<HTMLFormElement>,
     source_set: DomRefCell<SourceSet>,
@@ -599,7 +602,7 @@ impl HTMLImageElement {
     fn init_image_request(
         &self,
         cx: &mut JSContext,
-        request: &DomRefCell<Box<ImageRequest>>,
+        request: &AtomicRefCell<Box<ImageRequest>>,
         url: &ServoUrl,
         src: &USVString,
     ) {
@@ -1271,7 +1274,7 @@ impl HTMLImageElement {
         HTMLImageElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             image_request: Cell::new(ImageRequestPhase::Current),
-            current_request: DomRefCell::new(Box::new(ImageRequest {
+            current_request: AtomicRefCell::new(Box::new(ImageRequest {
                 state: State::Unavailable,
                 parsed_url: None,
                 source_url: None,
@@ -1537,9 +1540,10 @@ impl MicrotaskRunnable for ImageElementMicrotask {
 }
 
 impl<'dom> LayoutDom<'dom, HTMLImageElement> {
-    #[expect(unsafe_code)]
-    fn current_request(self) -> &'dom ImageRequest {
-        unsafe { self.unsafe_get().current_request.borrow_for_layout() }
+    fn current_request(self) -> AtomicRef<'dom, ImageRequest> {
+        AtomicRef::map(self.unsafe_get().current_request.borrow(), |request| {
+            &**request
+        })
     }
 
     #[expect(unsafe_code)]

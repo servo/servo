@@ -9,6 +9,7 @@ use js::context::NoGC;
 
 /// A borrowed mutable reference to the contents of an AtomicRefCell,
 /// anchored to the lifetime of a [NoGC] token.
+#[cfg_attr(crown, crown::unrooted_must_root_lint::allow_unrooted_interior)]
 pub(crate) struct AtomicRefMutNoGC<'a, T> {
     ref_mut: AtomicRefMut<'a, T>,
     _anchor: &'a NoGC,
