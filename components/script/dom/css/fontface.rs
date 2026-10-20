@@ -12,6 +12,7 @@ use fonts::{
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::{Reflector, reflect_dom_object_with_proto};
 use servo_arc::Arc as ServoArc;
 use style::error_reporting::ParseErrorReporter;
@@ -44,7 +45,7 @@ use crate::dom::window::Window;
 pub struct FontFace {
     reflector: Reflector,
     status: Cell<FontFaceLoadStatus>,
-    family_name: DomRefCell<DOMString>,
+    family_name: DomRefCell<TracedDOMString>,
 
     #[no_trace = "Does not contain managed objects"]
     descriptors: DomRefCell<FontFaceDescriptors>,
@@ -85,7 +86,7 @@ pub struct FontFace {
 /// to implement than parsing each declaration on its own.
 fn parse_font_face_descriptors(
     global: &GlobalScope,
-    family_name: &DOMString,
+    family_name: &TracedDOMString,
     sources: Option<&DOMString>,
     input_descriptors: &FontFaceDescriptors,
 ) -> Fallible<FontFaceRule> {
@@ -292,7 +293,7 @@ impl FontFace {
             descriptors: DomRefCell::new(serialize_parsed_descriptors(descriptors)),
 
             font_face_set: MutNullableDom::default(),
-            family_name: DomRefCell::new(family_name),
+            family_name: DomRefCell::new(family_name.traced()),
             urls: DomRefCell::new(urls),
             template: RefCell::default(),
             font_status_promise: font_status_promise.to_traced(),
@@ -336,7 +337,7 @@ impl FontFace {
             status: Cell::new(FontFaceLoadStatus::Loading),
             descriptors: DomRefCell::new(descriptors),
             font_face_set: MutNullableDom::default(),
-            family_name: DomRefCell::new(family_name),
+            family_name: DomRefCell::new(family_name.traced()),
             urls: DomRefCell::new(src),
             template: RefCell::default(),
             font_status_promise: font_status_promise.to_traced(),
@@ -509,7 +510,7 @@ impl FontFace {
 impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontface-family>
     fn Family(&self) -> DOMString {
-        self.family_name.borrow().clone()
+        self.family_name.borrow().clone().root()
     }
 
     /// <https://drafts.csswg.org/css-font-loading/#dom-fontface-family>
@@ -517,7 +518,7 @@ impl FontFaceMethods<crate::DomTypeHolder> for FontFace {
         let descriptors = self.descriptors.borrow();
         let global = self.global();
         let _ = parse_font_face_descriptors(&global, &family_name, None, &descriptors)?;
-        *self.family_name.borrow_mut() = family_name;
+        *self.family_name.borrow_mut() = family_name.traced();
         Ok(())
     }
 

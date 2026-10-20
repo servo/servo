@@ -31,6 +31,7 @@ use layout_api::{
 };
 use libc::{self, uintptr_t};
 use script_bindings::cell::{DomRefCell, Ref, RefMut};
+use script_bindings::codegen::GenericBindings::DocumentTypeBinding::DocumentTypeMethods;
 use script_bindings::codegen::GenericBindings::ElementBinding::ElementMethods;
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
 use script_bindings::codegen::GenericBindings::ProcessingInstructionBinding::ProcessingInstructionMethods;
@@ -3140,9 +3141,9 @@ impl Node {
                 let doctype = node.downcast::<DocumentType>().unwrap();
                 let doctype = DocumentType::new(
                     cx,
-                    doctype.name().clone(),
-                    Some(doctype.public_id().clone()),
-                    Some(doctype.system_id().clone()),
+                    doctype.Name(),
+                    Some(doctype.PublicId()),
+                    Some(doctype.SystemId()),
                     &document,
                 );
                 DomRoot::upcast::<Node>(doctype)
@@ -3709,7 +3710,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
             NodeTypeId::CharacterData(CharacterDataTypeId::Comment) => {
                 DOMString::from_static("#comment")
             },
-            NodeTypeId::DocumentType => self.downcast::<DocumentType>().unwrap().name().clone(),
+            NodeTypeId::DocumentType => self.downcast::<DocumentType>().unwrap().Name(),
             NodeTypeId::DocumentFragment(_) => DOMString::from_static("#document-fragment"),
             NodeTypeId::Document(_) => DOMString::from_static("#document"),
         }

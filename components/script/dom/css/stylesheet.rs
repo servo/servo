@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::Reflector;
 use xml5ever::local_name;
 
@@ -19,16 +20,16 @@ use crate::dom::medialist::MediaList;
 #[dom_struct]
 pub(crate) struct StyleSheet {
     reflector_: Reflector,
-    type_: DOMString,
-    href: Option<DOMString>,
+    type_: TracedDOMString,
+    href: Option<TracedDOMString>,
 }
 
 impl StyleSheet {
     pub(crate) fn new_inherited(type_: DOMString, href: Option<DOMString>) -> StyleSheet {
         StyleSheet {
             reflector_: Reflector::new(),
-            type_,
-            href,
+            type_: type_.traced(),
+            href: href.map(|domstring| domstring.traced()),
         }
     }
 }
@@ -36,12 +37,12 @@ impl StyleSheet {
 impl StyleSheetMethods<crate::DomTypeHolder> for StyleSheet {
     /// <https://drafts.csswg.org/cssom/#dom-stylesheet-type>
     fn Type(&self) -> DOMString {
-        self.type_.clone()
+        self.type_.clone().root()
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-stylesheet-href>
     fn GetHref(&self) -> Option<DOMString> {
-        self.href.clone()
+        self.href.clone().map(|domstring| domstring.root())
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-stylesheet-ownernode>
