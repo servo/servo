@@ -23,6 +23,7 @@ use style::computed_values::_webkit_text_security::T as WebKitTextSecurity;
 use style::computed_values::white_space_collapse::T as WhiteSpaceCollapse;
 use style::properties::ComputedValues;
 use style::values::specified::text::{TextTransform, TextTransformCase};
+use writeable::Writeable;
 
 use crate::flow::inline::construct::InlineFormattingContextBuilder;
 
@@ -378,21 +379,36 @@ fn is_typographic_letter_unit(character: char) -> bool {
         GeneralCategoryGroup::Number.contains(category)
 }
 
-#[cfg(feature = "icu-casemap")]
-fn title_case(character: char, language: &LanguageIdentifier) -> CharacterTransformIteration {
-    let mut buffer = [0; 4];
-    let titlecase = icu_casemap::CaseMapper::new().titlecase_segment_with_only_case_data_to_string(
-        character.encode_utf8(&mut buffer),
-        language,
-        icu_casemap::options::TitlecaseOptions::default(),
-    );
-    let characters: ArrayVec<char, MAX_CASE_MAPPING_LENGTH> = titlecase.chars().collect();
-    CharacterTransformIteration::case_mapped(characters.into_iter())
+#[derive(Default)]
+struct CaseMappingSink(ArrayVec<char, MAX_CASE_MAPPING_LENGTH>);
+
+impl std::fmt::Write for CaseMappingSink {
+    fn write_str(&mut self, string: &str) -> std::fmt::Result {
+        string
+            .chars()
+            .try_for_each(|character| self.write_char(character))
+    }
+
+    fn write_char(&mut self, character: char) -> std::fmt::Result {
+        self.0.try_push(character).map_err(|_| std::fmt::Error)
+    }
 }
 
-#[cfg(not(feature = "icu-casemap"))]
-fn title_case(character: char, _language: &LanguageIdentifier) -> CharacterTransformIteration {
-    CharacterTransformIteration::case_mapped(character.to_uppercase())
+fn title_case(character: char, language: &LanguageIdentifier) -> CharacterTransformIteration {
+    let mut buffer = [0; 4];
+    let mut titlecase = CaseMappingSink::default();
+    let result = icu_casemap::CaseMapper::new()
+        .titlecase_segment_with_only_case_data(
+            character.encode_utf8(&mut buffer),
+            language,
+            icu_casemap::options::TitlecaseOptions::default(),
+        )
+        .write_to(&mut titlecase);
+    debug_assert!(
+        result.is_ok(),
+        "CaseMapping of {character} for language {language:?} required more than MAX_CASE_MAPPING_LENGTH ({MAX_CASE_MAPPING_LENGTH}) characters."
+    );
+    CharacterTransformIteration::case_mapped(titlecase.0.into_iter())
 }
 
 /// Given an input iterator, a size hint for the number items in the iterator,

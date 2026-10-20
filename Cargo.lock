@@ -8739,6 +8739,7 @@ dependencies = [
  "uuid",
  "web_atoms",
  "webrender_api",
+ "writeable",
 ]
 
 [[package]]

@@ -78,6 +78,7 @@ url = { workspace = true }
 uuid = { workspace = true }
 web_atoms = { workspace = true }
 webrender_api = { workspace = true }
+writeable = { workspace = true }
 
 [dev-dependencies]
 quickcheck = { workspace = true }

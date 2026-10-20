@@ -292,6 +292,7 @@ windows-sys = "0.61"
 winit = "0.30.13"
 winresource = "0.1"
 wio = "0.2"
+writeable = "0.6"
 wr_malloc_size_of = "0.2.2"
 x-wing = { version = "0.1.0", features = ["zeroize"] }
 x25519-dalek = { version = "3.0", features = ["getrandom", "static_secrets", "zeroize"] }
