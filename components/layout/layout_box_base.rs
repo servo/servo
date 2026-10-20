@@ -198,11 +198,10 @@ impl LayoutBoxBase {
         self.invalidate_caches(damage_set)
     }
 
-    pub(crate) fn cached_independent_formatting_context_layout_if_applicable(
+    pub(crate) fn cached_content_block_size_under_default_constraint_if_applicable(
         &self,
-        positioning_context: &mut PositioningContext,
-        containing_block_for_children: &ContainingBlock<'_>,
-    ) -> Option<IndependentFormattingContextLayoutResult> {
+        inline_size: Au,
+    ) -> Option<Au> {
         if self.cached_layout_result_dirty.load(Ordering::Relaxed) {
             return None;
         }
@@ -213,38 +212,66 @@ impl LayoutBoxBase {
         };
 
         let cache = &**cache;
-        if cache.containing_block_for_children_size.inline !=
-            containing_block_for_children.size.inline
-        {
-            return None;
-        }
-        if cache.containing_block_for_children_size.block !=
-            containing_block_for_children.size.block &&
-            cache.result.depends_on_block_constraints
-        {
+        if !cache.applicable_for_inline_size(inline_size) {
             return None;
         }
 
+        cache.content_block_size_under_default_constraint
+    }
+
+    /// Attempts to retrieve the cached layout results. In case of error (the cache is empty,
+    /// dirty, or the value isn't suitable) it provides the cached content block size that
+    /// we would get under a default constraint, if applicable.
+    pub(crate) fn cached_independent_formatting_context_layout_if_applicable(
+        &self,
+        positioning_context: &mut PositioningContext,
+        containing_block_for_children: &ContainingBlock<'_>,
+    ) -> Result<IndependentFormattingContextLayoutResult, Option<Au>> {
+        if self.cached_layout_result_dirty.load(Ordering::Relaxed) {
+            return Err(None);
+        }
+
+        let cache = self.cached_layout_result.borrow();
+        let Some(LayoutResultAndInputs::IndependentFormattingContext(cache)) = &*cache else {
+            return Err(None);
+        };
+
+        let cache = &**cache;
+        if !cache.applicable_for_inline_size(containing_block_for_children.size.inline) {
+            return Err(None);
+        }
+        if !cache.applicable_for_block_size(containing_block_for_children.size.block) {
+            return Err(cache.content_block_size_under_default_constraint);
+        }
+
         positioning_context.append(cache.positioning_context.clone());
-        Some(cache.result.clone())
+        Ok(cache.result.clone())
     }
 
     pub(crate) fn cache_independent_formatting_context_layout(
         &self,
         containing_block_for_children: &ContainingBlock<'_>,
         child_positioning_context: &PositioningContext,
+        content_block_size_under_default_constraint: Option<Au>,
         result: &IndependentFormattingContextLayoutResult,
     ) {
         self.cached_layout_result_dirty
             .store(false, Ordering::Relaxed);
-        *self.cached_layout_result.borrow_mut() =
-            Some(LayoutResultAndInputs::IndependentFormattingContext(
-                Box::new(IndependentFormattingContextLayoutResultAndInputs {
-                    result: result.clone(),
-                    positioning_context: child_positioning_context.clone(),
-                    containing_block_for_children_size: containing_block_for_children.size.clone(),
-                }),
-            ));
+        let mut result_and_inputs = IndependentFormattingContextLayoutResultAndInputs {
+            result: result.clone(),
+            positioning_context: child_positioning_context.clone(),
+            containing_block_for_children_size: containing_block_for_children.size.clone(),
+            content_block_size_under_default_constraint,
+        };
+        if content_block_size_under_default_constraint.is_none() &&
+            result_and_inputs.applicable_for_block_size(SizeConstraint::default())
+        {
+            result_and_inputs.content_block_size_under_default_constraint =
+                Some(result.content_block_size);
+        }
+        *self.cached_layout_result.borrow_mut() = Some(
+            LayoutResultAndInputs::IndependentFormattingContext(Box::new(result_and_inputs)),
+        );
     }
 
     pub(crate) fn cached_same_formatting_context_block_if_applicable(
@@ -399,6 +426,27 @@ pub(crate) struct IndependentFormattingContextLayoutResultAndInputs {
     /// A [`PositioningContext`] holding absolutely-positioned descendants
     /// collected during the layout of this box.
     pub positioning_context: PositioningContext,
+
+    /// The [`IndependentFormattingContextLayoutResult::content_block_size`]
+    /// that we would get if [`Self::containing_block_for_children_size`] had
+    /// a block size of [`SizeConstraint::default()`], if we know that.
+    /// This is not an input, but we don't always need it, so it's not a
+    /// direct output either. Also note it's not necessarily computed from
+    /// the current inputs, can be reused from previous compatible ones.
+    content_block_size_under_default_constraint: Option<Au>,
+}
+
+impl IndependentFormattingContextLayoutResultAndInputs {
+    #[inline]
+    fn applicable_for_inline_size(&self, inline_size: Au) -> bool {
+        self.containing_block_for_children_size.inline == inline_size
+    }
+
+    #[inline]
+    fn applicable_for_block_size(&self, block_size: SizeConstraint) -> bool {
+        !self.result.depends_on_block_constraints ||
+            self.containing_block_for_children_size.block == block_size
+    }
 }
 
 #[derive(Clone, MallocSizeOf)]

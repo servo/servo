@@ -2713,7 +2713,6 @@ impl FlexItemBox {
     ) -> Au {
         let content_block_size = || {
             let mut positioning_context = PositioningContext::default();
-            let style = self.independent_formatting_context.style();
 
             // We are computing the intrinsic block size, so the tentative block size that we use
             // as an input to the intrinsic inline sizes needs to ignore the values of the sizing
@@ -2741,23 +2740,15 @@ impl FlexItemBox {
                     false,
                 )
             };
-            let item_as_containing_block = ContainingBlock {
-                size: ContainingBlockSize {
-                    inline: inline_size,
-                    block: tentative_block_size,
-                },
-                style,
-            };
+
             self.independent_formatting_context
-                .layout(
+                .content_block_size_under_default_constraint(
                     flex_context.layout_context,
                     &mut positioning_context,
-                    &item_as_containing_block,
+                    inline_size,
                     flex_context.containing_block,
                     preferred_aspect_ratio,
-                    &LazySize::intrinsic(),
                 )
-                .content_block_size
         };
         match intrinsic_sizing_mode {
             IntrinsicSizingMode::Contribution => {
