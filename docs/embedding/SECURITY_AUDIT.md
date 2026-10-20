@@ -54,14 +54,20 @@ default, and cannot on three of the five target platforms.
 
 | Feature | Where | Notes |
 |---|---|---|
-| CSP | external `content-security-policy` crate; enforced in `components/net/fetch/methods.rs`; parsed in `components/script/dom/security/csp.rs` | functional, WPT-covered |
-| CORS | `components/net/http_loader.rs`, `components/net/cors_cache.rs` | functional, unit + WPT tested |
-| HSTS | `components/net/hsts.rs` (+ preload list) | functional |
-| Referrer-Policy | `components/net/http_loader.rs` | functional |
-| X-Frame-Options | `components/script/dom/security/xframeoptions.rs` | functional |
-| Mixed Content | `components/net/fetch/methods.rs` | **changed/verified** — target-browsing-context (step 1.4) implemented for both fetch/response checks (`should_request_be_blocked_as_mixed_content`, `should_response_be_blocked_as_mixed_content`); spec-1.3 clause remains a UA policy opt-out (no user control exposed). Unit test: `components/net/tests/fetch.rs::test_mixed_content_document_navigation_blocking`. |
-| Same-origin / principals | `components/script_bindings/proxyhandler.rs` | functional |
-| SRI / Trusted Types | engine + WPT dirs | functional |
+| CSP | external `content-security-policy` crate; enforced in `components/net/fetch/methods.rs`; parsed in `components/script/dom/security/csp.rs` | **verified** — functional, WPT-covered (`tests/wpt/meta/content-security-policy/`) |
+| CORS | `components/net/http_loader.rs`, `components/net/cors_cache.rs` | **verified** — functional, unit + WPT tested |
+| HSTS | `components/net/hsts.rs` (+ preload list) | **verified** — functional |
+| Referrer-Policy | `components/net/http_loader.rs` | **verified** — functional, WPT-covered |
+| X-Frame-Options | `components/script/dom/security/xframeoptions.rs` | **verified** — functional |
+| Mixed Content | `components/net/fetch/methods.rs` | **changed/verified** — target-browsing-context (step 1.4) implemented for both fetch/response checks (`should_request_be_blocked_as_mixed_content`, `should_response_be_blocked_as_mixed_content`); spec-1.3 clause remains a UA policy opt-out (no user control exposed). Unit test: `components/net/tests/fetch.rs::test_mixed_content_document_navigation_blocking`. WPT: `tests/wpt/meta/mixed-content/`. |
+| COOP/COEP | `components/script/event_loop/script_thread.rs` (COOP), `components/net/http_loader.rs` (COEP/CORP checks) | **verified** — present with WPT coverage (`tests/wpt/meta/fetch/cross-origin-*`) |
+| CORP/XCTO (nosniff) | `components/net/http_loader.rs` (`cross_origin_resource_policy_*`), `components/shared/net/fetch/headers.rs::determine_nosniff`, enforced in `components/net/fetch/methods.rs` | **verified** — CORP enforced, XCTO/nosniff enforced |
+| Same-origin / principals | `components/script_bindings/proxyhandler.rs` | **verified** — functional |
+| SRI / Trusted Types | engine + WPT dirs | **verified** — functional, WPT-covered |
+| CORP | `components/net/http_loader.rs:2094` (`cross_origin_resource_policy_check`), `:2144` (`cross_origin_resource_policy_internal_check`) | **verified/functional** — enforces `same-origin`, `same-site`, `cross-origin` policy against request origin and destination. |
+| COEP | `components/net/http_loader.rs` (step 8.4 credentials check), `components/script/event_loop/script_thread.rs:4687` | **in-progress/deferred** — credentials check active; `same-origin-plus-COEP` navigation isolation mode switch is stubbed (TODO). |
+| COOP | `components/script/event_loop/script_thread.rs:4003-4030`, `:4686-4697` | **in-progress/deferred** — opener policy parsing outlined in navigation params, but browsing context group switch is stubbed (TODO, depends on site isolation). |
+| X-Content-Type-Options (XCTO) | `components/shared/net/fetch/headers.rs:287` (`determine_nosniff`), `components/net/fetch/methods.rs:1154`, `components/shared/net/lib.rs:1360` | **verified/functional** — rejects MIME type mismatches when `nosniff` present. Unit test: `components/net/tests/fetch.rs::test_fetch_x_content_type_options_nosniff`. |
 
 **Gap:** Mixed Content step 1.4 (top-level vs nested document navigation) is now implemented; step 1.3 (UA-instructed allowance) remains unimplemented by design (no embedder/user control exposed).
 
