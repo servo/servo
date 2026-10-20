@@ -4736,6 +4736,13 @@ impl Document {
     }
 
     pub(crate) fn element_attr_will_change(&self, el: &Element, attr: AttrRef<'_>) {
+        if !el.upcast::<Node>().is_connected() {
+            // Disconnected elements don’t need styling, and will get a full restyle when/if
+            // connected later. For elements created by scripts, it is common to set attributes
+            // before inserting them.
+            return;
+        }
+
         // FIXME(emilio): Kind of a shame we have to duplicate this.
         //
         // I'm getting rid of the whole hashtable soon anyway, since all it does
