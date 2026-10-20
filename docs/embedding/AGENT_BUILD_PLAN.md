@@ -191,7 +191,7 @@ Effort: **S** days · **M** 1–3 weeks · **L** 1–3 months · **XL** quarters
 | **W2.1** | Windows renderer sandbox (real containment) | L–XL | `partial` (mitigation-only PoC) | — | windows.yml |
 | **W2.2** | Android/iOS/arm64 sandbox honesty + real path | XL | `partial` (W2.2a ✅ `77446edfa4d`, run `39166954265`; W2.2b `todo`) | W2.1 learnings | android.yml |
 | **W2.3** | Site isolation / origin-keyed processes | XL | `todo` | — | linux.yml |
-| **W2.4** | Multiprocess bootstrap for C embedders | L | `partial` | — | embedding-api.yml |
+| **W2.4** | Multiprocess bootstrap for C embedders | L | ✅ verified (`d4ddf5f10d6`; run `39363050925`, 3 platforms) | — | embedding-api.yml |
 | **W2.5** | FFI hardening Part B (cookies/pointers/threads) | M | ✅ verified (`dd6f4cf2aed`; run `39312873470`, 3 platforms) | — | embedding-api.yml |
 | **W2.6** | CHIPS: derive request partition key (never sent today) | M | `partial` (store+fail-closed done, key never derived) | — | embedding-api.yml |
 | **W2.7** | CSP/COOP/CORP/XCTO/TLS behaviour review | L | `todo` | — | linux.yml + WPT |
@@ -232,7 +232,7 @@ Each wave is independently shippable; do not start a wave before the previous on
 | **B — Truthfulness & quick wins** | W5.1, W2.2a (log honesty), W4.6, W5.5 | ✅ complete (all four ✅ in §2.1). Small, high-value, mostly docs/pref/default changes with clear tests. W2.2b is **not** in this wave — it is the XL half of W2.2 and stays in wave F. |
 | **C — Embedding API gaps** | W4.2, W4.8, W5.4, W5.7 | The surface embedders actually feel. |
 | **D — Distribution** | W5.3, W3.4, W3.1 | Depends on A/C being stable. |
-| **E — Security depth** | W2.5 ✅, W2.6, W2.4, W2.8, W2.7 | Each is a real project; sequence after the cheap wins. |
+| **E — Security depth** | W2.5 ✅, W2.6, W2.4 ✅, W2.8, W2.7 | Each is a real project; sequence after the cheap wins. |
 | **F — Platform & media** | W2.1, W2.2b, W2.3, W3.3, W3.5/W4.5, W6.x | Needs hardware, human decisions, or deep OS work. |
 
 ### 2.3 Explicitly not in this document
@@ -419,34 +419,134 @@ in the same run.
 
 #### W2.4 — Multiprocess bootstrap for C embedders
 
-**State:** `partial` · **Effort:** L · **Gate:** `embedding-api.yml`
+**State:** ✅ verified — `d4ddf5f10d6`; run `39363050925` (3 platforms) · **Effort:** L · **Gate:** `embedding-api.yml`
 
 **Goal.** An embedder that links `servo-capi` can get content-process isolation without
 copying `ports/servoshell`'s bootstrap.
 
-**Touch points**
-- `ffi/capi/multiprocess.rs` (2 exports; `95` validates against the capability query)
-- `ffi/capi/lib.rs:429-437` (`servo_capi_is_multiprocess_enabled`)
-- `components/servo/servo.rs:1388-1404` (`run_content_process`)
-- `docs/embedding/ARCHITECTURE.md` §8.1 (prescribed design)
+**Touch points (line refs resolved to names — the brief's had drifted)**
+- `ffi/capi/multiprocess.rs` — the two exports; `servo_create_sandbox` is the site that
+  validates against `servo_capi_is_sandboxing_supported()` (the brief's "`95` validates")
+- `ffi/capi/lib.rs` — `servo_capi_is_multiprocess_enabled()` = `cfg!(feature = "multiprocess")`
+- `components/servo/servo.rs::run_content_process` (now `:1405`) — read, not modified: it
+  receives `Opts`/prefs over IPC, then calls `create_sandbox()` itself if they say so
+- `components/constellation/sandboxing.rs` — read, not modified: the authority on the
+  launch flow (`setup_common` emits exactly `--content-process <token>`; the child is
+  `current_exe()`)
+- `docs/embedding/C_API_GUIDE.md` §"Multi-process support" (rewritten),
+  `docs/embedding/ARCHITECTURE.md` §8.1 + its versioning row (corrected),
+  `docs/embedding/ANDROID_EMBEDDING_GUIDE.md` §5 (roadmap framing)
+- `tests/capi/c/test_api.c` — `test_multiprocess_single_process_path`
 
 **Steps**
 1. Verify what `servo-capi` currently expects of its embedder: does the child process have
    to re-enter Servo via a documented entry point? Read `ARCHITECTURE.md` §8.1 and say so
    in `C_API_GUIDE.md` — an accurate "here is how you launch the child" section is the
-   minimum deliverable.
+   minimum deliverable. → **Done, and the answer was the opposite of what both documents
+   said.** The child does re-enter through a documented entry point
+   (`servo_run_content_process`), but **the embedder neither launches it nor ever sees a
+   token**: the constellation creates the one-shot server, keeps the token, and spawns
+   `current_exe()` — the embedder's own binary — with exactly `--content-process <token>`,
+   once per script event loop and for the service worker manager
+   (`components/constellation/sandboxing.rs::setup_common`). Both `C_API_GUIDE.md` and
+   `ARCHITECTURE.md` §8.1 described an embedder-driven flow with a token accessor that
+   has never existed (the guide carried `get_servo_ipc_token()` pseudo-code and a
+   "wait for it (planned)" limitation; the architecture doc a "C accessor is planned"),
+   plus a `SERVO_CONTENT_TOKEN` fallback Servo never sends. Both were rewritten to the
+   real protocol.
 2. If the child entry needs a C-callable function, export one
    (`servo_run_content_process(...)`) wired to `run_content_process`, guarded by the
-   `multiprocess` feature and the capability query.
+   `multiprocess` feature and the capability query. → **Already shipped, in a stronger
+   shape than specified:** both `servo_run_content_process` and `servo_create_sandbox`
+   are exported in *every* build (the `cfg` gates only their bodies, so a
+   non-multiprocess library still links and refuses at runtime with `-1`/`false`), and
+   `servo_create_sandbox` already validated against the capability query. No new symbol,
+   so `symbols.txt` stays at 241. What the step's contract lacked was one hardening fix:
+   the token handshake `unwrap()`s inside `run_content_process`, so a stale token
+   unwound into the `extern "C"` boundary and aborted the process; it is now caught with
+   the same `catch_unwind` shape `servo_create_sandbox` already used, returning `-1`
+   (the panic hook still prints; only the abort is gone).
 3. C test that exercises the single-process path still works, plus a documented snippet
    for the multiprocess path (CI cannot spawn the real child in the capi harness — say
-   so rather than faking it).
+   so rather than faking it). → **Done:** `test_multiprocess_single_process_path` asserts
+   the refusal path (NULL token, non-NULL token, both capability queries,
+   `servo_create_sandbox()`) and, in a feature-enabled build, says out loud in the test
+   that the spawn path is skipped — a unit test may not do a real IPC handshake or
+   install a real OS sandbox on the running test process. The multiprocess snippet in
+   the guide is the routing that belongs in the embedder's `main`, and the Limitations
+   section states that this branch's CI links a build *without* the feature, so the
+   spawn side is compile-verified only.
 
 **Acceptance**
-- [ ] `C_API_GUIDE.md` documents the exact embedder-side steps for multiprocess.
-- [ ] Any new export appended to `symbols.txt`; header regenerates; tests pass.
-- [ ] The interim reality is stated plainly: on Windows `multiprocess` gives **crash
-      isolation without OS containment** (`opts.sandbox` + mitigation PoC only).
+- [x] `C_API_GUIDE.md` documents the exact embedder-side steps for multiprocess. —
+      the rewritten §"Multi-process support": route the argument first thing in `main`
+      (snippet included), what the content process then does, the capability queries
+      (including why `servo_options_set_multiprocess(true)` must not be set without the
+      feature), the platform matrix, and the two hard consequences spelled out — an
+      unrouted token hangs the browser process on the first spawn, and a process model
+      that cannot tolerate `current_exe()` being re-executed cannot use multiprocess,
+      with no override.
+- [x] Any new export appended to `symbols.txt`; header regenerates; tests pass. —
+      **no new export** (both entry points predate the ticket and exist in every build),
+      so the first clause is vacuous and `symbols.txt` stays at 241; the header
+      regenerates — `cbindgen 0.29.4` exits 0 locally against the rewritten doc
+      comments, and CI regenerates and compiles it; tests pass — run `39363050925`.
+- [x] The interim reality is stated plainly: on Windows `multiprocess` gives **crash
+      isolation without OS containment** (`opts.sandbox` + mitigation PoC only). —
+      stated in `C_API_GUIDE.md` §Platform notes *and* §Sandbox and in
+      `ARCHITECTURE.md` §8.1's matrix row: mitigations are a proof of concept, there is
+      no broker/token/AppContainer, and `servo_capi_is_sandboxing_supported()` returns
+      `false` so an embedder cannot present Windows as sandboxed.
+
+**Result.** Landed in `d4ddf5f10d6` (run `39363050925`, Windows + Linux + macOS green).
+The deliverable that was specified as documentation turned into a documentation fix, one
+hardening fix, and one test, because the documented contract was fiction:
+
+**Docs.** `C_API_GUIDE.md` §"Multi-process support" and `ARCHITECTURE.md` §8.1 now
+describe what the code does: Servo re-executes `current_exe()` with
+`--content-process <token>` (`components/constellation/sandboxing.rs`), the embedder's
+`main` routes that argument to `servo_run_content_process` as its first statement, and
+nothing is launched or retrieved by the embedder. The sandbox matrix was corrected per
+platform (Android/OHOS/ARM/RISC-V spawn *unsandboxed* rather than being "single-process /
+unsupported"; iOS exits outright rather than leaning on an "application container"; both
+exports are exported in every build), the false `servo_get_ipc_token` limitation was
+replaced with the true constraint, and `ANDROID_EMBEDDING_GUIDE.md` now labels its
+`isolatedProcess` advice roadmap rather than current behaviour.
+
+**Code.** `servo_run_content_process` returns `-1` instead of aborting when the
+handshake fails (the `unwrap()`s in `servo.rs::run_content_process` used to unwind into
+the `extern "C"` boundary on a stale token), and both exports' doc comments — which are
+cbindgen'd into the public header — no longer tell embedders to launch children.
+
+**Test.** `test_multiprocess_single_process_path` pins the refusal contract that a
+single-process build can actually prove, and names the part it cannot.
+
+**Local verification, stated for what it is.** `cbindgen` 0.29.4 regenerates the header
+from the edited doc comments with exit 0; `gcc -std=c11 -fsyntax-only -Wall -Wextra`
+over `tests/capi/c/test_api.c` against that fresh header exits 0 (only the pre-existing
+deprecation warnings); `rustfmt --edition 2024 --check` parses the `ffi/capi` tree and
+shows only the two style diffs already present at HEAD in `multiprocess.rs`; and the
+exact `catch_unwind` closure shape was compiled and run standalone with `rustc` (panic
+caught → `-1`, hook prints first). The crate itself is only compiled by CI — run
+`39363050925` is the authority on that, and the `#[cfg(feature = "multiprocess")]` body
+is compiled there but executed only by a real multiprocess embedder, which the code
+comments and the guide both say.
+
+**Deviations.** (1) Step 2 shipped no new export — the entry point already existed in
+the stronger "every build" shape, and inventing a second one would have been busywork.
+(2) Scope went slightly beyond the step list with the `catch_unwind` hardening: a doc
+that says "a stale token is a refused call" would otherwise be false for exactly the
+builds the ticket is about, so the code had to move with the doc. (3) The spawn side has
+no automated test here — `embedding-api.yml` builds `servo-capi` without the feature —
+registered as a gate decision in §D.2.1 rather than faked. (4) One stale claim
+discovered in passing and corrected in the evidence commit: `ARCHITECTURE.md`'s
+CEF-comparison table still called versioning "Not yet formalized (proposed in
+`ABI_STABILITY.md`)" though W5.4 shipped it; registered in §D.2.
+
+**Gotchas.** Multiprocess is not "set a flag": it requires a *build* of `servo-capi`
+with the feature **and** a binary that routes `--content-process` in `main`, and the
+failure mode for forgetting the routing is a hang in the parent's `server.accept()`, not
+a fallback to single process. Both documents now say that in their first screenful.
 
 ---
 
@@ -1640,6 +1740,7 @@ baseline) and only then pick root causes — not to touch `tests/wpt/meta` whole
 | `IMPLEMENTATION_REVIEW.md` §5 W5.1 bullet | "BHM left default-off: *correct call*, needs perf evidence" | superseded by W5.1 on this branch: `Opts::default()` (what `servo_options_create()` returns) enables both `background_hang_monitor` and `hang_monitor_kill_script`, and the kill + clean-teardown path is exercised end to end by `tests/capi/c/test_integration.c::test_hang_monitor_kills_hung_script` |
 | `IMPLEMENTATION_REVIEW.md` §B5 and `IMPLEMENTATION_REVIEW_PASS2.md` §6 | thread check "runs *outside* `catch_unwind`" with a panicking `lock().unwrap()`; `debug_checks::assert_main_thread()` is warn-only under `debug_assertions`; coverage is `test_debug_thread_checks` | superseded by W4.6: the check is `entry_checks::check_main_thread()`, poison-safe (no `unwrap`), compiled in all builds, and returns `SERVO_ERROR_WRONG_THREAD`; the C test is renamed `test_thread_affinity_enforcement` and asserts an off-thread call is rejected |
 | `docs/embedding/C_API_GUIDE.md` "### Servo" signature block | listed `void servo_free(struct Servo*)`, `void servo_spin_event_loop(struct Servo*)`, `void servo_setup_logging(struct Servo*)` | all three return `ServoError` in the generated header (`servo_capi.h`); corrected in the W5.5 commit (`39d6b6fd58d`), which also documents `servo_setup_logging`'s `SERVO_ERROR_INVALID_STATE` on a repeated call |
+| `docs/embedding/ARCHITECTURE.md` §8.1 (and its CEF-comparison "Versioning" row) | the launch flow: "`ServoBuilder::build` creates an `IpcOneShotServer` and generates a connection token", "**Embedder** retrieves the token (currently via Rust API; a C accessor is planned) and launches N content processes … or environment variable (`SERVO_CONTENT_TOKEN`)", each child calling `servo_create_sandbox()` before the entry point; and, separately, "Versioning: Not yet formalized (proposed in `ABI_STABILITY.md`)" | the flow was fiction on this tree: the constellation (not `ServoBuilder::build`) creates the one-shot server per spawn and re-executes `current_exe()` with `--content-process <token>`, so no token API exists or is needed and no `SERVO_CONTENT_TOKEN` is ever sent. §8.1's flow, function table and sandbox matrix were corrected with W2.4 (`d4ddf5f10d6`). The versioning row was stale since W5.4 shipped the policy (version table in `ABI_STABILITY.md` §2.1/§2.4, `0.3.0`) and was corrected in the evidence commit |
 
 **Rule:** fixing a stale document is a legitimate, committable outcome on its own
 (`docs(embedding): …`). Prefer *correct the doc* over *leave the lie*.
@@ -1672,6 +1773,7 @@ ticket's own status is not read as "everything in this area is done").**
 | Bounds-checked prefix reading for by-pointer structs (W2.5) | `ServoCookieFilter` / `ServoProxyConfig` currently *reject* a `struct_size` smaller than the compiled-in size. When a field is first appended to either, the entry point must switch to reading only the fields inside `struct_size`, or every caller built against the previous header breaks | `ABI_STABILITY.md` §3.3, §2.4 |
 | Callback-buffer poisoning in debug builds (HARDENING_PLAN §B.2) | The "valid only for this call" rule is documented but not observable: a test cannot yet catch an embedder that retains a callback pointer | `HARDENING_PLAN.md` §B.2 |
 | Protocol-handler concurrency test (HARDENING_PLAN §B.3) | The `Send + Sync` requirement is documented at the install entry point, but nothing exercises a handler from the network/worker threads the contract allows. Belongs with the stress/fuzz work | `HARDENING_PLAN.md` §B.3, W2.8 |
+| Multiprocess spawn side has no automated test (W2.4) | `embedding-api.yml` builds `servo-capi` **without** the `multiprocess` feature, so `test_multiprocess_single_process_path` can only assert the refusal path; the spawn, the IPC handshake, and the `catch_unwind` on a genuinely stale token are compiled but never executed in CI. Unblocking needs a second capi job with `--features multiprocess` and a decision about what it may safely do (it would re-exec the test binary), the same gate-decision class as W2.6 | `C_API_GUIDE.md` "Multi-process support" §Limitations, this table |
 
 **Deferred tickets.**
 

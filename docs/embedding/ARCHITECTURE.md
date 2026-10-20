@@ -518,7 +518,7 @@ interface ABI with per-struct versioning (`struct_size`/`api_hash`). By contrast
 | Multi-process | Core architecture | Optional: compile with the `multiprocess` feature and set `ServoOptions`/`Opts::multiprocess`; content runs in child processes over `ipc_channel`, with a `gaol` sandbox on supported Linux targets (`components/servo/servo.rs::run_content_process`, `create_sandbox`) |
 | API language | C API + C++ wrappers, `RefCounted` handles | C ABI over Rust; opaque handles, `Box` ownership |
 | Threading | Browser UI thread + IO + renderer threads; ref-counted handles usable across threads | One embedder main thread owns `Rc`-based, non-`Send` handles; engine threads are internal |
-| Versioning | `CEF_VERSION` macros + struct size/api hash | Not yet formalized (proposed in `ABI_STABILITY.md`) |
+| Versioning | `CEF_VERSION` macros + struct size/api hash | `servo_capi_version()` / `servo_capi_get_version()` (packed `MAJOR/MINOR/PATCH`) + `SERVO_CAPI_VERSION_*` macros for header/library skew, `struct_size`/`_reserved` on ABI structs, and a written policy in `ABI_STABILITY.md` (while `MAJOR == 0`, incompatible changes bump MINOR and must be listed in its version table) |
 | Input/rendering | CEF owns the message pump and OSR/windowed rendering | Embedder owns the event loop, window/GL context, and calls `spin_event_loop`/`paint`/`present` |
 
 Implications for the C API:
