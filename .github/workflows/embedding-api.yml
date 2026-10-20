@@ -212,9 +212,11 @@ jobs:
       # via rustup on hosted runners.
       - name: Check fuzz targets compile
         if: runner.os == 'Linux'
+        env:
+          # freetype-sys on ubuntu-22.04 needs a newer freetype than available;
+          # build the bundled copy instead of using system pkg-config.
+          FREETYPE2_NO_PKG_CONFIG: "1"
         run: |
-          sudo apt update
-          sudo apt install -y libfreetype6-dev libfontconfig1-dev
           rustup toolchain install nightly --profile minimal --no-self-update
           cargo +nightly check --manifest-path fuzz/Cargo.toml --bins
 
