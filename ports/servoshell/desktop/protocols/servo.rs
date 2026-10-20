@@ -88,8 +88,15 @@ impl ProtocolHandler for ServoProtocolHandler {
             "about" | "version" => {
                 let user_agent = UserAgentPlatform::default().to_user_agent_string();
                 let body = format!(
-                    "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>About Servo</title><link rel=\"stylesheet\" href=\"resource:///newtab.css\" /></head><body><div style=\"max-width: 600px; margin: 40px auto; font-family: sans-serif;\"><h1>Servo Browser</h1><p><b>Engine:</b> Servo Full Browser Engine</p><p><b>User Agent:</b> {}</p><hr/><p><a href=\"servo:newtab\">New Tab</a> &bull; <a href=\"servo:history\">History</a> &bull; <a href=\"servo:preferences\">Preferences</a> &bull; <a href=\"servo:config\">Config</a> &bull; <a href=\"servo:license\">License</a></p></div></body></html>",
+                    "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>About Servo</title><link rel=\"stylesheet\" href=\"resource:///newtab.css\" /></head><body><div style=\"max-width: 600px; margin: 40px auto; font-family: sans-serif;\"><h1>Servo Browser</h1><p><b>Engine:</b> Servo Full Browser Engine</p><p><b>User Agent:</b> {}</p><hr/><p><a href=\"servo:newtab\">New Tab</a> &bull; <a href=\"servo:history\">History</a> &bull; <a href=\"servo:downloads\">Downloads</a> &bull; <a href=\"servo:preferences\">Preferences</a> &bull; <a href=\"servo:config\">Config</a> &bull; <a href=\"servo:license\">License</a></p></div></body></html>",
                     user_agent
+                );
+                html_response(request, body)
+            },
+
+            "downloads" => {
+                let body = format!(
+                    "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>Downloads</title><link rel=\"stylesheet\" href=\"resource:///newtab.css\" /></head><body><div style=\"max-width: 600px; margin: 40px auto; font-family: sans-serif;\"><h1>Downloads</h1><p>Active and completed downloads will appear here.</p><hr/><p><a href=\"servo:newtab\">New Tab</a> &bull; <a href=\"servo:history\">History</a> &bull; <a href=\"servo:about\">About</a></p></div></body></html>"
                 );
                 html_response(request, body)
             },

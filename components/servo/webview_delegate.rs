@@ -1246,6 +1246,7 @@ pub trait WebViewDelegate {
 }
 
 /// A download item representing an in-progress or completed download.
+#[derive(Clone, Debug)]
 pub struct DownloadItem {
     pub(crate) id: u64,
     pub(crate) url: Url,

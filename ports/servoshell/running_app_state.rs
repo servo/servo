@@ -249,6 +249,9 @@ pub(crate) struct RunningAppState {
     /// [`WebView::set_accessibility_active()`], in [`Self::set_accessibility_active()`] and
     /// and [`ServoShellWindow::create_toplevel_webview()`].
     accessibility_active: Cell<bool>,
+
+    /// Active and completed download items.
+    downloads: RefCell<Vec<servo::DownloadItem>>,
 }
 
 impl RunningAppState {
@@ -299,6 +302,7 @@ impl RunningAppState {
             user_content_manager,
             experimental_preferences_enabled,
             accessibility_active: Cell::new(false),
+            downloads: Default::default(),
         }
     }
 
@@ -999,6 +1003,39 @@ impl WebViewDelegate for RunningAppState {
     ) {
         self.platform_window_for_webview(&webview)
             .notify_accessibility_tree_update(webview, tree_update);
+    }
+
+    fn on_before_download(
+        &self,
+        webview: WebView,
+        download: servo::DownloadItem,
+        continue_callback: servo::DownloadContinueCallback,
+    ) {
+        log::info!(
+            "Download starting: {} ({})",
+            download.suggested_filename(),
+            download.url()
+        );
+        self.downloads.borrow_mut().push(download);
+        self.window_for_webview(&webview).set_needs_update();
+        continue_callback(true);
+    }
+
+    fn on_download_updated(&self, webview: WebView, download: servo::DownloadItem) {
+        log::debug!(
+            "Download update: {} - {}/{} bytes ({:?})",
+            download.suggested_filename(),
+            download.received_bytes(),
+            download.total_bytes(),
+            download.state()
+        );
+        let mut list = self.downloads.borrow_mut();
+        if let Some(existing) = list.iter_mut().find(|d| d.id() == download.id()) {
+            *existing = download;
+        } else {
+            list.push(download);
+        }
+        self.window_for_webview(&webview).set_needs_update();
     }
 }
 
