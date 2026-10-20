@@ -711,13 +711,11 @@ impl Framebuffer {
 
         // flip image vertically (texture is upside down)
         let source_rectangle = source_rectangle.to_usize();
-        let orig_pixels = pixels.clone();
         let stride = source_rectangle.width() * 4;
-        for y in 0..source_rectangle.height() {
-            let dst_start = y * stride;
-            let src_start = (source_rectangle.height() - y - 1) * stride;
-            let src_slice = &orig_pixels[src_start..src_start + stride];
-            pixels[dst_start..dst_start + stride].clone_from_slice(&src_slice[..stride]);
+        let height = source_rectangle.height();
+        for y in 0..height / 2 {
+            let (top, bottom) = pixels.split_at_mut((height - y - 1) * stride);
+            top[y * stride..(y + 1) * stride].swap_with_slice(&mut bottom[..stride]);
         }
 
         RgbaImage::from_raw(
