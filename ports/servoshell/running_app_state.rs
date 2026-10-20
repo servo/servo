@@ -181,6 +181,7 @@ pub(crate) enum UserInterfaceCommand {
     Reload,
     ReloadAll,
     Stop,
+    BookmarkCurrentPage,
     NewWebView,
     CloseWebView(WebViewId),
     NewWindow(TopLevelWebViewCreationRequest),
@@ -797,6 +798,53 @@ impl RunningAppState {
             if entries.len() > 500 {
                 entries.drain(0..entries.len() - 500);
             }
+
+            if let Ok(serialized) = serde_json::to_string_pretty(&entries) {
+                let _ = std::fs::write(&path, serialized);
+            }
+        }
+    }
+
+    pub(crate) fn persist_bookmark(url: &str, title: &str) {
+        if url.starts_with("servo:") || url.starts_with("about:") {
+            return;
+        }
+        let Some(mut path) = crate::prefs::default_config_dir() else {
+            return;
+        };
+        if let Err(e) = std::fs::create_dir_all(&path) {
+            log::debug!("Could not create config directory for bookmarks: {e}");
+            return;
+        }
+        path.push("bookmarks.json");
+
+        #[derive(serde::Serialize, serde::Deserialize)]
+        struct PersistedBookmark {
+            url: String,
+            title: String,
+            timestamp: u64,
+        }
+
+        let mut entries: Vec<PersistedBookmark> = if path.exists() {
+            std::fs::read_to_string(&path)
+                .ok()
+                .and_then(|data| serde_json::from_str(&data).ok())
+                .unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+
+        if !entries.iter().any(|e| e.url == url) {
+            let timestamp = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or_default();
+
+            entries.push(PersistedBookmark {
+                url: url.to_string(),
+                title: title.to_string(),
+                timestamp,
+            });
 
             if let Ok(serialized) = serde_json::to_string_pretty(&entries) {
                 let _ = std::fs::write(&path, serialized);

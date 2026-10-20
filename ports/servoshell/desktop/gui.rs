@@ -559,6 +559,21 @@ impl Gui {
                                         );
                                     }
 
+                                    let bookmark_btn = ui
+                                        .add(Gui::toolbar_button("★"))
+                                        .on_hover_text("Bookmark this page (Ctrl+D)");
+                                    bookmark_btn.widget_info(|| {
+                                        let mut info = WidgetInfo::new(WidgetType::Button);
+                                        info.label = Some("Bookmark current page".into());
+                                        info
+                                    });
+                                    let ctrl_d = ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::D));
+                                    if bookmark_btn.clicked() || ctrl_d {
+                                        window.queue_user_interface_command(
+                                            UserInterfaceCommand::BookmarkCurrentPage,
+                                        );
+                                    }
+
                                     let location_id = egui::Id::new("location_input");
                                     let location_field = ui.add_sized(
                                         ui.available_size(),

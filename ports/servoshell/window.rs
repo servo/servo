@@ -377,6 +377,16 @@ impl ServoShellWindow {
                         active_webview.stop();
                     }
                 },
+                UserInterfaceCommand::BookmarkCurrentPage => {
+                    if let Some(active_webview) = self.active_webview() {
+                        if let Some(url) = active_webview.url() {
+                            let title = active_webview
+                                .page_title()
+                                .unwrap_or_else(|| url.to_string());
+                            RunningAppState::persist_bookmark(url.as_str(), &title);
+                        }
+                    }
+                },
                 UserInterfaceCommand::NewWebView => {
                     self.set_needs_update();
                     let url = Url::parse("servo:newtab").expect("Should always be able to parse");
