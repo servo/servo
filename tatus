@@ -1,0 +1,19 @@
+[1mdiff --git a/tests/wpt/tests/eventsource/eventsource-blob-url.window.js b/tests/wpt/tests/eventsource/eventsource-blob-url.window.js[m
+[1mnew file mode 100644[m
+[1mindex 000000000..03cce0a28[m
+[1m--- /dev/null[m
+[1m+++ b/tests/wpt/tests/eventsource/eventsource-blob-url.window.js[m
+[36m@@ -0,0 +1,13 @@[m
+[32m+[m[32m// META: title=EventSource: blob URL[m
+[32m+[m
+[32m+[m[32masync_test(t => {[m
+[32m+[m[32m  const blob = new Blob(["data: hello\n\n"], { type: "text/event-stream" });[m
+[32m+[m[32m  const url = URL.createObjectURL(blob);[m
+[32m+[m[32m  const source = new EventSource(url);[m
+[32m+[m[32m  source.onmessage = t.step_func_done(e => {[m
+[32m+[m[32m    assert_equals(e.data, "hello");[m
+[32m+[m[32m    source.close();[m
+[32m+[m[32m    URL.revokeObjectURL(url);[m
+[32m+[m[32m  });[m
+[32m+[m[32m  source.onerror = t.unreached_func("error should not fire");[m
+[32m+[m[32m}, "EventSource can connect to a blob URL");[m

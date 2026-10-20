@@ -102,6 +102,7 @@ pub(crate) struct EventSource {
     generation_id: Cell<GenerationId>,
 
     ready_state: Cell<ReadyState>,
+   
     with_credentials: bool,
     droppable: DroppableEventSource,
 }
@@ -525,6 +526,7 @@ impl EventSource {
             ready_state: Cell::new(ReadyState::Connecting),
             with_credentials,
             droppable: DroppableEventSource::new(DomRefCell::new(Default::default())),
+           
         }
     }
 
