@@ -213,6 +213,8 @@ jobs:
       - name: Check fuzz targets compile
         if: runner.os == 'Linux'
         run: |
+          sudo apt update
+          sudo apt install -y libfreetype6-dev
           rustup toolchain install nightly --profile minimal --no-self-update
           cargo +nightly check --manifest-path fuzz/Cargo.toml --bins
 
