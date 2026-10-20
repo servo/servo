@@ -13,16 +13,28 @@ const HTTP_TAB_OR_SPACE: &[char] = &['\u{0009}', '\u{0020}'];
 
 /// <https://fetch.spec.whatwg.org/#concept-header-list-get>
 pub fn get_value_from_header_list(name: &str, headers: &HeaderMap) -> Option<Vec<u8>> {
-    let values = headers.get_all(name).iter().map(|val| val.as_bytes());
-
     // Step 1: If list does not contain name, then return null.
-    if values.size_hint() == (0, Some(0)) {
+    if !headers.contains_key(name) {
         return None;
     }
 
     // Step 2: Return the values of all headers in list whose name is a byte-case-insensitive match
     // for name, separated from each other by 0x2C 0x20, in order.
-    Some(values.collect::<Vec<&[u8]>>().join(&[0x2C, 0x20][..]))
+    let mut iter = headers.get_all(name).iter();
+    let first = iter.next()?.as_bytes();
+    let second = match iter.next() {
+        Some(s) => s.as_bytes(),
+        None => return Some(first.to_vec()),
+    };
+    let mut res = Vec::with_capacity(first.len() + 2 + second.len());
+    res.extend_from_slice(first);
+    res.extend_from_slice(b", ");
+    res.extend_from_slice(second);
+    for val in iter {
+        res.extend_from_slice(b", ");
+        res.extend_from_slice(val.as_bytes());
+    }
+    Some(res)
 }
 
 /// <https://fetch.spec.whatwg.org/#forbidden-method>

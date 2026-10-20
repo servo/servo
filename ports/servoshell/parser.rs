@@ -71,6 +71,13 @@ pub fn get_default_url(
 /// interpret the string as a search term.
 pub(crate) fn location_bar_input_to_url(request: &str, searchpage: &str) -> Option<ServoUrl> {
     let request = request.trim();
+    if let Some(rest) = request.strip_prefix("about:") {
+        if rest != "blank" {
+            if let Ok(mapped) = ServoUrl::parse(&format!("servo:{rest}")) {
+                return Some(mapped);
+            }
+        }
+    }
     let input_url = ServoUrl::parse(request).ok();
     if let Some(url) = input_url {
         match (url.scheme(), url.host(), url.to_file_path()) {

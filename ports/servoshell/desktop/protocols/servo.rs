@@ -28,7 +28,7 @@ pub struct ServoProtocolHandler {}
 
 impl ProtocolHandler for ServoProtocolHandler {
     fn privileged_paths(&self) -> &'static [&'static str] {
-        &["config", "preferences"]
+        &["config", "preferences", "settings"]
     }
 
     fn is_fetchable(&self) -> bool {
@@ -57,7 +57,7 @@ impl ProtocolHandler for ServoProtocolHandler {
                 "/newtab.html",
             ),
 
-            "preferences" => ResourceProtocolHandler::response_for_path(
+            "preferences" | "settings" => ResourceProtocolHandler::response_for_path(
                 request,
                 done_chan,
                 context,
@@ -88,7 +88,7 @@ impl ProtocolHandler for ServoProtocolHandler {
             "about" | "version" => {
                 let user_agent = UserAgentPlatform::default().to_user_agent_string();
                 let body = format!(
-                    "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>About Servo</title><link rel=\"stylesheet\" href=\"resource:///newtab.css\" /></head><body><div style=\"max-width: 600px; margin: 40px auto; font-family: sans-serif;\"><h1>Servo Browser</h1><p><b>Engine:</b> Servo Full Browser Engine</p><p><b>User Agent:</b> {}</p><hr/><p><a href=\"servo:newtab\">New Tab</a> &bull; <a href=\"servo:history\">History</a> &bull; <a href=\"servo:downloads\">Downloads</a> &bull; <a href=\"servo:preferences\">Preferences</a> &bull; <a href=\"servo:config\">Config</a> &bull; <a href=\"servo:license\">License</a></p></div></body></html>",
+                    "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>About Servo</title><link rel=\"stylesheet\" href=\"resource:///newtab.css\" /></head><body><div style=\"max-width: 600px; margin: 40px auto; font-family: sans-serif;\"><h1>Servo Browser</h1><p><b>Engine:</b> Servo Full Browser Engine</p><p><b>User Agent:</b> {}</p><hr/><p><a href=\"servo:newtab\">New Tab</a> &bull; <a href=\"servo:history\">History</a> &bull; <a href=\"servo:downloads\">Downloads</a> &bull; <a href=\"servo:preferences\">Preferences</a> &bull; <a href=\"servo:settings\">Settings</a> &bull; <a href=\"servo:config\">Config</a> &bull; <a href=\"servo:license\">License</a></p></div></body></html>",
                     user_agent
                 );
                 html_response(request, body)

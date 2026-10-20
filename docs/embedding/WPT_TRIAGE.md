@@ -41,7 +41,7 @@ Analysis of the 154,583 non-pass metadata entries across `tests/wpt/meta` reveal
 - **Real-World Impact:** Modern sites (YouTube, GitHub, Twitter/X) rely on `fetch` response streaming, CORS redirect handling, and `ReadableStream` upload/download bodies.
 - **Key Focus Areas:**
   1. Stream pipe-to / tee operations in `components/script/dom/readablestream.rs`.
-  2. CORS header parsing edge cases in `components/net/cors_cache.rs`.
+  2. CORS header parsing edge cases in `components/net/cors_cache.rs` and header list null check in `components/shared/net/fetch/headers.rs` (Landed).
   3. Chunked transfer decoding and keep-alive handling in `components/net/http_loader.rs`.
 - **Milestone:** M1
 
