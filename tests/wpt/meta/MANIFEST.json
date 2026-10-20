@@ -411710,6 +411710,21 @@
         ]
        ]
       },
+      "the-input-element": {
+       "input-update-while-disconnected.html": [
+        "226b6e755eeb08f735ba1f39915288559d969784",
+        [
+         null,
+         [
+          [
+           "/html/rendering/replaced-elements/the-input-element/input-update-while-disconnected-ref.html",
+           "=="
+          ]
+         ],
+         {}
+        ]
+       ]
+      },
       "the-option-element": {
        "option-label-whitespace-2.html": [
         "95b3a3c73db92ee641384fb54c599c9765bf9004",
@@ -564446,6 +564461,12 @@
       "svg-inline-sizing": {
        "svg-inline.js": [
         "9b7fca0502c3066a4af832d1d09819d62b1061cf",
+        []
+       ]
+      },
+      "the-input-element": {
+       "input-update-while-disconnected-ref.html": [
+        "6353ccd1e64a16b6ef84f77537a7cc4c5f864c3c",
         []
        ]
       },

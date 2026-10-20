@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Disconnected input element</title>
+<meta name="assert" content="Changes made to a disconnect <input> element should be accounted for in later rendering">
+<link rel="match" href="input-update-while-disconnected-ref.html">
+<style>
+  input { color: green }
+</style>
+<p>Test passes if the input below contains visible green text.</p>
+<script>
+  const el = document.createElement("input");
+  el.type = "text";
+  el.value = "This text should be visible";
+  document.body.appendChild(el);
+</script>
