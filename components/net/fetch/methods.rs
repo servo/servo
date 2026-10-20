@@ -1261,11 +1261,22 @@ pub fn should_request_be_blocked_as_mixed_content(
     }
 
     // 1.3. The user agent has been instructed to allow mixed content.
+    // Servo exposes no such user control, so this condition is never met.
 
     // 1.4. request’s destination is "document", and request’s target browsing context has
     // no parent browsing context.
-    if request.destination == Destination::Document {
-        // TODO: request's target browsing context has no parent browsing context
+    //
+    // Only top-level document navigations bypass the mixed content check; a nested
+    // browsing context (an iframe) does not, so an insecure iframe navigation is
+    // blocked here (the note in the spec: "We exclude top-level navigations from mixed
+    // content checks, but user agents MAY choose to enforce mixed content checks on
+    // insecure form submissions").
+    if request.destination == Destination::Document &&
+        request
+            .client
+            .as_ref()
+            .is_some_and(|client| !client.is_nested_browsing_context)
+    {
         return false;
     }
 
@@ -1296,12 +1307,17 @@ pub fn should_response_be_blocked_as_mixed_content(
         return false;
     }
 
-    // 1.3. TODO: The user agent has been instructed to allow mixed content.
+    // 1.3. The user agent has been instructed to allow mixed content.
+    // Servo exposes no such user control, so this condition is never met.
 
     // 1.4. request’s destination is "document", and request’s target browsing context
     // has no parent browsing context.
-    if request.destination == Destination::Document {
-        // TODO: if requests target browsing context has no parent browsing context
+    if request.destination == Destination::Document &&
+        request
+            .client
+            .as_ref()
+            .is_some_and(|client| !client.is_nested_browsing_context)
+    {
         return false;
     }
 

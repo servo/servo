@@ -35,8 +35,10 @@ use net::request_interceptor::RequestInterceptor;
 use net_traits::blob_url_store::{BlobTokenCommunicator, UrlWithBlobClaim};
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::http_status::HttpStatus;
+use net_traits::policy_container::PolicyContainer;
 use net_traits::request::{
-    Destination, RedirectMode, Referrer, Request, RequestBuilder, RequestMode,
+    Destination, InsecureRequestsPolicy, RedirectMode, Referrer, Request, RequestBuilder,
+    RequestClient, RequestMode,
 };
 use net_traits::response::{CacheState, Response, ResponseBody, ResponseType};
 use net_traits::{
@@ -1068,6 +1070,55 @@ fn test_fetch_blocked_nosniff() {
         let (destination, mime, should_error) = test;
         test_nosniff_request(destination, mime, should_error);
     }
+}
+
+/// Mixed content (`docs/embedding/SECURITY_AUDIT.md` §3, W2.7): the spec excludes
+/// *top-level* document navigations from the mixed content check, but a request whose
+/// target browsing context has a parent (i.e. an iframe navigation) must still be
+/// blocked. This covers step 1.4 of
+/// <https://w3c.github.io/webappsec-mixed-content/#should-block-fetch>.
+#[test]
+fn test_mixed_content_document_navigation_blocking() {
+    fn document_request(is_nested_browsing_context: bool) -> Request {
+        let secure_origin = ServoUrl::parse("https://secure.example.com")
+            .unwrap()
+            .origin();
+        let client = RequestClient {
+            preloaded_resources: Default::default(),
+            policy_container: Arc::new(PolicyContainer::default()),
+            origin: net_traits::request::Origin::Origin(secure_origin),
+            is_nested_browsing_context,
+            insecure_requests_policy: InsecureRequestsPolicy::DoNotUpgrade,
+            has_trustworthy_ancestor_origin: false,
+        };
+        RequestBuilder::new(
+            Some(TEST_WEBVIEW_ID),
+            ServoUrl::parse("http://insecure.example.com").unwrap(),
+            Referrer::NoReferrer,
+        )
+        .origin(ServoUrl::parse("https://secure.example.com").unwrap().origin())
+        .destination(Destination::Document)
+        .policy_container(Default::default())
+        .client(client)
+        .build()
+    }
+
+    let protocols = ProtocolRegistry::with_internal_protocols();
+
+    // A top-level document navigation is not mixed content and is allowed.
+    assert!(
+        !methods::should_request_be_blocked_as_mixed_content(
+            &document_request(false),
+            &protocols
+        ),
+        "a top-level insecure document navigation must not be blocked as mixed content"
+    );
+
+    // A nested (iframe) document navigation is mixed content and is blocked.
+    assert!(
+        methods::should_request_be_blocked_as_mixed_content(&document_request(true), &protocols),
+        "a nested insecure document navigation must be blocked as mixed content"
+    );
 }
 
 fn setup_server_and_fetch(message: &'static [u8], redirect_cap: u32) -> Response {
