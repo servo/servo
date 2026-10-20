@@ -11040,7 +11040,7 @@
    "memory": {
     "resources": {
      "leak-helpers.js": [
-      "d780efd2629760c1eeef158e8db22f2fae129b2b",
+      "732a61ff517138e7b445d8459c8b72120a6075e2",
       []
      ],
      "set-global-module.js": [
@@ -13847,14 +13847,14 @@
    },
    "memory": {
     "fetch-does-not-leak-document.html": [
-     "9eba4fcd4194aa006b7fd02e908a8eee2cf30c98",
+     "5d795effda7bce5ff5bf9992f3a2c7bcfec76453",
      [
       null,
       {}
      ]
     ],
     "modules-do-not-leak-document.html": [
-     "57b6a70381b4475c5622f118ba18563eb1a43839",
+     "e94e6ed4bf5f43d30970e4da29bd35ed59394f08",
      [
       null,
       {}

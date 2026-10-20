@@ -5,7 +5,7 @@
 use malloc_size_of_derive::MallocSizeOf;
 
 use crate::request::RequestId;
-use crate::{CoreResourceThread, cancel_async_fetch};
+use crate::{CoreResourceThread, cancel_and_forget_async_fetch, cancel_async_fetch};
 
 /// <https://fetch.spec.whatwg.org/#fetch-controller-state>
 #[derive(Default, MallocSizeOf, PartialEq)]
@@ -51,15 +51,19 @@ impl FetchController {
     }
 
     fn cancel(&mut self) {
-        if let Some(request_id) = self.request_id.take() {
-            // stop trying to make fetch happen
-            // it's not going to happen
+        // stop trying to make fetch happen
+        // it's not going to happen
+        let Some(request_id) = self.request_id.take() else {
+            return;
+        };
+        let Some(core_resource_thread) = &self.core_resource_thread else {
+            return;
+        };
 
-            if let Some(ref core_resource_thread) = self.core_resource_thread {
-                // No error handling here. Cancellation is a courtesy call,
-                // we don't actually care if the other side heard.
-                cancel_async_fetch(vec![request_id], core_resource_thread);
-            }
+        if self.state == FetchControllerState::Terminated {
+            cancel_and_forget_async_fetch(vec![request_id], core_resource_thread);
+        } else {
+            cancel_async_fetch(vec![request_id], core_resource_thread);
         }
     }
 

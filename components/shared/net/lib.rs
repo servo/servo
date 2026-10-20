@@ -4,6 +4,7 @@
 
 #![deny(unsafe_code)]
 
+use std::collections::hash_map::Entry;
 use std::fmt::{self, Debug, Display};
 use std::sync::{LazyLock, OnceLock};
 use std::thread::{self, JoinHandle};
@@ -885,7 +886,11 @@ impl CacheEntryDescriptor {
 // FIXME: https://github.com/servo/servo/issues/34591
 #[expect(clippy::large_enum_variant)]
 enum ToFetchThreadMessage {
-    Cancel(Vec<RequestId>, CoreResourceThread),
+    Cancel {
+        request_ids: Vec<RequestId>,
+        forget: bool,
+        core_resource_thread: CoreResourceThread,
+    },
     StartFetch(
         /* request_builder */ RequestBuilder,
         /* response_init */ Option<ResponseInit>,
@@ -984,18 +989,31 @@ impl FetchThread {
                     let request_id = fetch_response_msg.request_id();
                     let fetch_finished =
                         matches!(fetch_response_msg, FetchResponseMsg::ProcessResponseEOF(..));
+                    let mut active_fetch = match self.active_fetches.entry(request_id) {
+                        Entry::Occupied(occupied_entry) => occupied_entry,
+                        Entry::Vacant(..) => {
+                            // The callback might no longer be in the map if it was cancelled and forgotten
+                            // (for instance, during a Document teardown).
+                            continue;
+                        },
+                    };
 
-                    self.active_fetches
-                        .get_mut(&request_id)
-                        .expect("Got fetch response for unknown fetch")(
-                        fetch_response_msg
-                    );
-
+                    active_fetch.get_mut()(fetch_response_msg);
                     if fetch_finished {
-                        self.active_fetches.remove(&request_id);
+                        let _ = active_fetch.remove();
                     }
                 },
-                Ok(ToFetchThreadMessage::Cancel(request_ids, core_resource_thread)) => {
+                Ok(ToFetchThreadMessage::Cancel {
+                    request_ids,
+                    forget,
+                    core_resource_thread,
+                }) => {
+                    if forget {
+                        for request_id in &request_ids {
+                            self.active_fetches.remove(request_id);
+                        }
+                    }
+
                     // Errors are ignored here, because Servo sends many cancellation requests when shutting down.
                     // At this point the networking task might be shut down completely, so just ignore errors
                     // during this time.
@@ -1022,12 +1040,17 @@ impl FetchThread {
         );
     }
 
-    fn cancel_async_fetch(request_ids: Vec<RequestId>, core_resource_thread: &CoreResourceThread) {
+    fn cancel_async_fetch(
+        request_ids: Vec<RequestId>,
+        core_resource_thread: &CoreResourceThread,
+        forget: bool,
+    ) {
         if let Some(fetch_thread) = FETCH_THREAD.get() {
-            let _ = fetch_thread.sender.send(ToFetchThreadMessage::Cancel(
+            let _ = fetch_thread.sender.send(ToFetchThreadMessage::Cancel {
                 request_ids,
-                core_resource_thread.clone(),
-            ));
+                forget,
+                core_resource_thread: core_resource_thread.clone(),
+            });
         }
     }
 
@@ -1065,7 +1088,17 @@ pub fn fetch_async(
 /// Instruct the resource thread to cancel an existing request. Does nothing if the
 /// request has already completed or has not been fetched yet.
 pub fn cancel_async_fetch(request_ids: Vec<RequestId>, core_resource_thread: &CoreResourceThread) {
-    FetchThread::cancel_async_fetch(request_ids, core_resource_thread);
+    FetchThread::cancel_async_fetch(request_ids, core_resource_thread, false /* forget */);
+}
+
+/// Instruct the resource thread to cancel an existing request. Does nothing if the
+/// request has already completed or has not been fetched yet. This also "forgets"
+/// the request, which means that no further callbacks will be called when canceled.
+pub fn cancel_and_forget_async_fetch(
+    request_ids: Vec<RequestId>,
+    core_resource_thread: &CoreResourceThread,
+) {
+    FetchThread::cancel_async_fetch(request_ids, core_resource_thread, true /* forget */);
 }
 
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]

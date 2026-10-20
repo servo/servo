@@ -5,25 +5,20 @@
 <script src="resources/leak-helpers.js"></script>
 <body>
     <script>
-    promise_test(async () => {
-      assert_true(await createAndDestroyIframeWithHTML(
-        "<script type=\"module\">window.moduleLoaded = \"true\";<\/script>"
-      ));
-    }, "An inline module does not leak the document");
-    promise_test(async () => {
-      assert_true(await createAndDestroyIframeWithHTML(
-        "<script type=\"module\">import \"./resources/set-global-module.js\";<\/script>"
-      ));
-    }, "An inline module with an import does not leak the document");
-    promise_test(async () => {
-      assert_true(await createAndDestroyIframeWithHTML(
-        "<script type=\"module\">import(\"./resources/set-global-module.js\");<\/script>"
-      ));
-    }, "An inline module with a dynamic import does not leak the document");
-    promise_test(async () => {
-      assert_true(await createAndDestroyIframeWithHTML(
-        "<script type=\"module\" src=\"resources/set-global-module.js\"><\/script>"
-      ));
-    }, "An external module  does not leak the document");
+      let tests = [
+        "<script type=\"module\">window.moduleLoaded = \"true\";<\/script>",
+        "<script type=\"module\">import \"./resources/set-global-module.js\";<\/script>",
+        "<script type=\"module\">import(\"./resources/set-global-module.js\");<\/script>",
+        "<script type=\"module\" src=\"resources/set-global-module.js\"><\/script>",
+        "<script type=\"module\" src=\"/common/slow.py?delay=60000\"><\/script>",,
+        "<script type=\"module\">import \"/common/slow.py?delay=60000\";<\/script>",
+        "<script type=\"module\">import(\"/common/slow.py?delay=60000\");<\/script>",
+      ];
+
+      for (const test of tests) {
+          promise_test(async () => {
+            assert_true(await createAndDestroyIframeWithHTML(test));
+          }, `'${test}' does not leak the document`);
+      }
     </script>
 </body>
