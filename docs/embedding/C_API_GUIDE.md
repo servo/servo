@@ -514,6 +514,9 @@ void servo_webview_go_forward(struct WebView* webview, uintptr_t amount);
 void servo_webview_reload(struct WebView* webview);
 void servo_webview_stop(struct WebView* webview);
 void servo_webview_clear_session_history(struct WebView* webview);
+enum ServoError servo_webview_get_history_count(struct WebView* webview, uintptr_t* out_count);
+enum ServoError servo_webview_get_history_index(struct WebView* webview, uintptr_t* out_index);
+enum ServoError servo_webview_traverse_history(struct WebView* webview, intptr_t offset);
 
 void  servo_webview_set_page_zoom(struct WebView* webview, float zoom); /* clamped to [0.1, 10.0] */
 float servo_webview_page_zoom(const struct WebView* webview);

@@ -84,6 +84,12 @@ pub struct Gui {
     /// Whether or not the current `WebView` can navigate forward.
     can_go_forward: bool,
 
+    /// Session history entries of the active `WebView`.
+    history_entries: Vec<Url>,
+
+    /// Active index within `history_entries`.
+    history_index: usize,
+
     /// Handle to the GPU texture of the favicon.
     ///
     /// These need to be cached across egui draw calls.
@@ -261,6 +267,8 @@ impl Gui {
             status_text: None,
             can_go_back: false,
             can_go_forward: false,
+            history_entries: Vec::new(),
+            history_index: 0,
             favicon_textures: Default::default(),
             pending_accesskit_updates: vec![],
         }
@@ -442,6 +450,25 @@ impl Gui {
                                 *location_dirty = false;
                                 window.queue_user_interface_command(UserInterfaceCommand::Back);
                             }
+                            back_button.context_menu(|ui| {
+                                ui.label("History");
+                                if self.history_index > 0 {
+                                    let start = self.history_index.saturating_sub(10);
+                                    for idx in (start..self.history_index).rev() {
+                                        if let Some(entry) = self.history_entries.get(idx) {
+                                            let steps = self.history_index - idx;
+                                            let title = truncate_with_ellipsis(entry.as_str(), 40);
+                                            if ui.button(title).clicked() {
+                                                *location_dirty = false;
+                                                window.queue_user_interface_command(
+                                                    UserInterfaceCommand::Traverse(-(steps as isize)),
+                                                );
+                                                ui.close_menu();
+                                            }
+                                        }
+                                    }
+                                }
+                            });
 
                             let forward_button =
                                 ui.add_enabled(self.can_go_forward, Gui::toolbar_button("⏵"));
@@ -454,6 +481,26 @@ impl Gui {
                                 *location_dirty = false;
                                 window.queue_user_interface_command(UserInterfaceCommand::Forward);
                             }
+                            forward_button.context_menu(|ui| {
+                                ui.label("Forward History");
+                                if self.history_index + 1 < self.history_entries.len() {
+                                    let end =
+                                        (self.history_index + 11).min(self.history_entries.len());
+                                    for idx in (self.history_index + 1)..end {
+                                        if let Some(entry) = self.history_entries.get(idx) {
+                                            let steps = idx - self.history_index;
+                                            let title = truncate_with_ellipsis(entry.as_str(), 40);
+                                            if ui.button(title).clicked() {
+                                                *location_dirty = false;
+                                                window.queue_user_interface_command(
+                                                    UserInterfaceCommand::Traverse(steps as isize),
+                                                );
+                                                ui.close_menu();
+                                            }
+                                        }
+                                    }
+                                }
+                            });
 
                             match self.load_status {
                                 LoadStatus::Started | LoadStatus::HeadParsed => {
@@ -756,13 +803,26 @@ impl Gui {
     }
 
     fn update_can_go_back_and_forward(&mut self, window: &ServoShellWindow) -> bool {
-        let (can_go_back, can_go_forward) = window
+        let (can_go_back, can_go_forward, history_entries, history_index) = window
             .active_webview()
-            .map(|webview| (webview.can_go_back(), webview.can_go_forward()))
-            .unwrap_or((false, false));
+            .map(|webview| {
+                (
+                    webview.can_go_back(),
+                    webview.can_go_forward(),
+                    webview.back_forward_list(),
+                    webview.back_forward_list_index(),
+                )
+            })
+            .unwrap_or((false, false, Vec::new(), 0));
         let old_can_go_back = std::mem::replace(&mut self.can_go_back, can_go_back);
         let old_can_go_forward = std::mem::replace(&mut self.can_go_forward, can_go_forward);
-        old_can_go_back != self.can_go_back || old_can_go_forward != self.can_go_forward
+        let history_changed =
+            self.history_entries != history_entries || self.history_index != history_index;
+        self.history_entries = history_entries;
+        self.history_index = history_index;
+        old_can_go_back != self.can_go_back ||
+            old_can_go_forward != self.can_go_forward ||
+            history_changed
     }
 
     /// Updates all fields taken from the given [`ServoShellWindow`], such as the location field.

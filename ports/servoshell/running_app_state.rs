@@ -177,6 +177,7 @@ pub(crate) enum UserInterfaceCommand {
     Go(String),
     Back,
     Forward,
+    Traverse(isize),
     Reload,
     ReloadAll,
     Stop,
@@ -749,6 +750,55 @@ impl RunningAppState {
     pub(crate) fn accessibility_active(&self) -> bool {
         self.accessibility_active.get()
     }
+
+    fn persist_history_entry(url: &Url) {
+        if url.scheme() == "about" || url.as_str() == "servo:newtab" {
+            return;
+        }
+        let Some(mut path) = crate::prefs::default_config_dir() else {
+            return;
+        };
+        if let Err(e) = std::fs::create_dir_all(&path) {
+            log::debug!("Could not create config directory for history: {e}");
+            return;
+        }
+        path.push("history.json");
+
+        #[derive(serde::Serialize, serde::Deserialize)]
+        struct PersistedHistoryEntry {
+            url: String,
+            timestamp: u64,
+        }
+
+        let mut entries: Vec<PersistedHistoryEntry> = if path.exists() {
+            std::fs::read_to_string(&path)
+                .ok()
+                .and_then(|data| serde_json::from_str(&data).ok())
+                .unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+
+        if entries.last().map(|e| e.url.as_str()) != Some(url.as_str()) {
+            let timestamp = std::time::SystemTime::now()
+                .duration_since(std::time::UNIX_EPOCH)
+                .map(|d| d.as_secs())
+                .unwrap_or_default();
+
+            entries.push(PersistedHistoryEntry {
+                url: url.as_str().to_string(),
+                timestamp,
+            });
+
+            if entries.len() > 500 {
+                entries.drain(0..entries.len() - 500);
+            }
+
+            if let Ok(serialized) = serde_json::to_string_pretty(&entries) {
+                let _ = std::fs::write(&path, serialized);
+            }
+        }
+    }
 }
 
 impl WebViewDelegate for RunningAppState {
@@ -848,6 +898,9 @@ impl WebViewDelegate for RunningAppState {
         self.window_for_webview(&webview).set_needs_update();
 
         if status == LoadStatus::Complete {
+            if let Some(url) = webview.url() {
+                Self::persist_history_entry(&url);
+            }
             if let Some(sender) = self
                 .webdriver_senders
                 .borrow_mut()

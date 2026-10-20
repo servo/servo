@@ -1181,6 +1181,77 @@ pub unsafe extern "C" fn servo_webview_clear_session_history(webview: *mut WebVi
     })
 }
 
+/// Returns the number of entries in the session history of `webview`.
+///
+/// # Safety
+///
+/// See [`servo_webview_go_back`] for safety requirements. `out_count` must point to valid memory.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_webview_get_history_count(
+    webview: *mut WebView,
+    out_count: *mut usize,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if webview.is_null() || out_count.is_null() {
+            return ServoError::NullArgument;
+        }
+
+        let count = unsafe { &*webview }.back_forward_list().len();
+        unsafe { *out_count = count };
+
+        ServoError::Ok
+    })
+}
+
+/// Returns the current 0-based index in the session history of `webview`.
+///
+/// # Safety
+///
+/// See [`servo_webview_go_back`] for safety requirements. `out_index` must point to valid memory.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_webview_get_history_index(
+    webview: *mut WebView,
+    out_index: *mut usize,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if webview.is_null() || out_index.is_null() {
+            return ServoError::NullArgument;
+        }
+
+        let index = unsafe { &*webview }.back_forward_list_index();
+        unsafe { *out_index = index };
+
+        ServoError::Ok
+    })
+}
+
+/// Navigates `webview` relative to the current session history entry by `offset` steps.
+/// Negative values navigate backwards; positive values navigate forwards.
+///
+/// # Safety
+///
+/// See [`servo_webview_go_back`] for safety requirements.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_webview_traverse_history(
+    webview: *mut WebView,
+    offset: isize,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if webview.is_null() {
+            return ServoError::NullArgument;
+        }
+
+        let webview_ref = unsafe { &*webview };
+        if offset < 0 {
+            let _ = webview_ref.go_back((-offset) as usize);
+        } else if offset > 0 {
+            let _ = webview_ref.go_forward(offset as usize);
+        }
+
+        ServoError::Ok
+    })
+}
+
 /// Sets the page zoom factor of `webview`.
 ///
 /// The value is clamped by Servo to the range `[0.1, 10.0]`. A value of `1.0`

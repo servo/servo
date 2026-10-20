@@ -347,6 +347,16 @@ impl ServoShellWindow {
                         active_webview.go_forward(1);
                     }
                 },
+                UserInterfaceCommand::Traverse(delta) => {
+                    self.set_needs_update();
+                    if let Some(active_webview) = self.active_webview() {
+                        if delta < 0 {
+                            active_webview.go_back((-delta) as usize);
+                        } else if delta > 0 {
+                            active_webview.go_forward(delta as usize);
+                        }
+                    }
+                },
                 UserInterfaceCommand::Reload => {
                     self.set_needs_update();
                     if let Some(active_webview) = self.active_webview() {

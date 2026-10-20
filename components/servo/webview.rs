@@ -352,6 +352,16 @@ impl WebView {
             .cloned()
     }
 
+    /// Returns the back-forward navigation list of URLs for this [`WebView`].
+    pub fn back_forward_list(&self) -> Vec<Url> {
+        self.inner().back_forward_list.clone()
+    }
+
+    /// Returns the current index within the back-forward navigation list.
+    pub fn back_forward_list_index(&self) -> usize {
+        self.inner().back_forward_list_index
+    }
+
     /// Get the current status text for this [`WebView`]. Returns `None` if there is no status text.
     ///
     /// The status text changes as the user interacts with the page, for example, by hovering over

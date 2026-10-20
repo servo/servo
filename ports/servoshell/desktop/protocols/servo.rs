@@ -88,8 +88,39 @@ impl ProtocolHandler for ServoProtocolHandler {
             "about" | "version" => {
                 let user_agent = UserAgentPlatform::default().to_user_agent_string();
                 let body = format!(
-                    "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>About Servo</title><link rel=\"stylesheet\" href=\"resource:///newtab.css\" /></head><body><div style=\"max-width: 600px; margin: 40px auto; font-family: sans-serif;\"><h1>Servo Browser</h1><p><b>Engine:</b> Servo Full Browser Engine</p><p><b>User Agent:</b> {}</p><hr/><p><a href=\"servo:newtab\">New Tab</a> &bull; <a href=\"servo:preferences\">Preferences</a> &bull; <a href=\"servo:config\">Config</a> &bull; <a href=\"servo:license\">License</a></p></div></body></html>",
+                    "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>About Servo</title><link rel=\"stylesheet\" href=\"resource:///newtab.css\" /></head><body><div style=\"max-width: 600px; margin: 40px auto; font-family: sans-serif;\"><h1>Servo Browser</h1><p><b>Engine:</b> Servo Full Browser Engine</p><p><b>User Agent:</b> {}</p><hr/><p><a href=\"servo:newtab\">New Tab</a> &bull; <a href=\"servo:history\">History</a> &bull; <a href=\"servo:preferences\">Preferences</a> &bull; <a href=\"servo:config\">Config</a> &bull; <a href=\"servo:license\">License</a></p></div></body></html>",
                     user_agent
+                );
+                html_response(request, body)
+            },
+
+            "history" => {
+                let items = crate::prefs::default_config_dir()
+                    .map(|mut p| {
+                        p.push("history.json");
+                        p
+                    })
+                    .and_then(|p| std::fs::read_to_string(p).ok())
+                    .and_then(|data| serde_json::from_str::<Vec<serde_json::Value>>(&data).ok())
+                    .unwrap_or_default();
+
+                let mut list_html = String::new();
+                for item in items.iter().rev() {
+                    if let Some(url) = item.get("url").and_then(|u| u.as_str()) {
+                        list_html.push_str(&format!(
+                            "<li><a href=\"{url}\">{url}</a></li>"
+                        ));
+                    }
+                }
+                if list_html.is_empty() {
+                    list_html = "<p>No history entries recorded yet.</p>".to_string();
+                } else {
+                    list_html = format!("<ul>{list_html}</ul>");
+                }
+
+                let body = format!(
+                    "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>Browsing History</title><link rel=\"stylesheet\" href=\"resource:///newtab.css\" /></head><body><div style=\"max-width: 600px; margin: 40px auto; font-family: sans-serif;\"><h1>Browsing History</h1>{}<hr/><p><a href=\"servo:newtab\">New Tab</a> &bull; <a href=\"servo:about\">About</a></p></div></body></html>",
+                    list_html
                 );
                 html_response(request, body)
             },
