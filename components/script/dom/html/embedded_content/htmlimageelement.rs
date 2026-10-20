@@ -26,7 +26,8 @@ use script_bindings::cell::DomRefCell;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_url::ServoUrl;
 use servo_url::origin::MutableOrigin;
-use style::attr::{AttrValue, LengthOrPercentageOrAuto};
+use style::Atom;
+use style::attr::{AttrValue, LengthOrPercentageOrAuto, parse_unsigned_integer};
 
 use crate::dom::activation::Activatable;
 use crate::dom::bindings::codegen::Bindings::DOMRectBinding::DOMRect_Binding::DOMRectMethods;
@@ -34,6 +35,7 @@ use crate::dom::bindings::codegen::Bindings::ElementBinding::Element_Binding::El
 use crate::dom::bindings::codegen::Bindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use crate::dom::bindings::codegen::Bindings::MouseEventBinding::MouseEventMethods;
 use crate::dom::bindings::codegen::Bindings::NodeBinding::Node_Binding::NodeMethods;
+use crate::dom::bindings::codegen::Bindings::ShadowRootBinding::ShadowRootMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
@@ -412,6 +414,23 @@ impl HTMLImageElement {
         self.resolve_image_decode_promises(cx);
     }
 
+    fn fire_event_including_host(&self, cx: &mut JSContext, event: Atom) {
+        // https://html.spec.whatwg.org/multipage/#image-button-state-(type=image)
+        // This is the case for an `<input type="image">` where in the shadow
+        // tree of that `<input>` element we use an `<img>`
+        let node = self.upcast::<Node>();
+        if node.is_in_ua_widget() &&
+            let Some(containing_shadow_root) = node.containing_shadow_root()
+        {
+            containing_shadow_root
+                .Host()
+                .upcast::<EventTarget>()
+                .fire_event(cx, event);
+        } else {
+            self.upcast::<EventTarget>().fire_event(cx, event);
+        }
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#update-the-image-data>
     fn process_image_response(&self, cx: &mut JSContext, image: ImageResponse) {
         // Step 27. As soon as possible, jump to the first applicable entry from the following list:
@@ -493,15 +512,15 @@ impl HTMLImageElement {
 
         // Fire image.onload and loadend
         if trigger_image_load {
+            self.fire_event_including_host(cx, atom!("load"));
             // TODO: https://html.spec.whatwg.org/multipage/#fire-a-progress-event-or-event
-            self.upcast::<EventTarget>().fire_event(cx, atom!("load"));
             self.upcast::<EventTarget>()
                 .fire_event(cx, atom!("loadend"));
         }
 
         // Fire image.onerror
         if trigger_image_error {
-            self.upcast::<EventTarget>().fire_event(cx, atom!("error"));
+            self.fire_event_including_host(cx, atom!("error"));
             self.upcast::<EventTarget>()
                 .fire_event(cx, atom!("loadend"));
         }
@@ -941,7 +960,7 @@ impl HTMLImageElement {
                             // Step 7.4.7.3. If maybe omit events is not set or previousURL is not
                             // equal to urlString, then fire an event named load at the img element.
                             // TODO: Add missing `maybe omit events` flag and previousURL.
-                            this.upcast::<EventTarget>().fire_event(cx, atom!("load"));
+                            this.fire_event_including_host(cx, atom!("load"));
                         }));
 
                     // Step 7.4.8. Abort the update the image data algorithm.
@@ -1364,6 +1383,104 @@ impl HTMLImageElement {
         self.dimension_attribute_source.set(value);
         self.upcast::<Node>().dirty(no_gc, NodeDamage::Other);
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#img-available>
+    fn image_is_available(&self) -> bool {
+        // > When an image request's state is either partially available
+        // > or completely available, the image request is said to be available.
+        matches!(
+            self.current_request.borrow().state,
+            State::PartiallyAvailable | State::CompletelyAvailable
+        )
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#img-dimensions>
+    fn dimensions(&self) -> (u32, u32) {
+        // Step 2. If image is available, then set naturalDimensions to
+        // image's density-corrected natural width and height.
+        let natural_dimensions = if self.image_is_available() {
+            Some(self.density_corrected_natural_width_and_height())
+        } else {
+            // Step 1. Let naturalDimensions be null.
+            None
+        };
+        // Step 3. Return the result of determining the dimensions of image given naturalDimensions.
+        self.determine_dimensions(self.upcast(), natural_dimensions)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#determine-dimensions>
+    pub(crate) fn determine_dimensions(
+        &self,
+        element: &Element,
+        natural_dimensions: Option<(u32, u32)>,
+    ) -> (u32, u32) {
+        // Step 1. If element is being rendered,
+        // then return the width and height of element's content box, in CSS pixels. [CSS]
+        if let Some(content_box) = element.upcast::<Node>().content_box() {
+            return (
+                content_box.size.width.to_px() as u32,
+                content_box.size.height.to_px() as u32,
+            );
+        }
+        // Step 2. Let width and height be 0.
+        // Step 3. If naturalDimensions is not null,
+        // then set width to naturalDimensions's width and height to naturalDimensions's height.
+        let (mut width, mut height) = natural_dimensions.unwrap_or_default();
+        // Step 4. If element has a width attribute:
+        if let Some(width_value) = element.get_attribute_string_ref(&local_name!("width")) {
+            // Step 4.1. Let attributeWidth be the result of parsing that attribute's value.
+            // Step 4.2. If attributeWidth is not an error, then set width to attributeWidth.
+            if let Ok(attribute_width) =
+                parse_unsigned_integer(width_value.as_attr_ref().value().as_ref().chars())
+            {
+                width = attribute_width;
+            }
+        }
+        // Step 5. If element has a height attribute:
+        if let Some(height_value) = element.get_attribute_string_ref(&local_name!("height")) {
+            // Step 5.1. Let attributeHeight be the result of parsing that attribute's value.
+            // Step 5.2. If attributeHeight is not an error, then set height to attributeHeight.
+            if let Ok(attribute_height) =
+                parse_unsigned_integer(height_value.as_attr_ref().value().as_ref().chars())
+            {
+                height = attribute_height;
+            }
+        }
+        // Step 6. Return a width of width and a height of height, in CSS pixels.
+        (width, height)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#density-corrected-intrinsic-width-and-height>
+    fn density_corrected_natural_width_and_height(&self) -> (u32, u32) {
+        // Step 1. Let density be img's current request's current pixel density.
+        let current_request = self.current_request.borrow();
+        let density = current_request.current_pixel_density.unwrap_or(1f64);
+
+        // Step 2. Let dimensions be img's current request's preferred density-corrected dimensions.
+        // TODO
+
+        // Step 3. If dimensions is not null,
+        // then set dimensions's width to dimensions's width divided by density,
+        // set dimensions's height to dimensions's height divided by density,
+        // and return dimensions.
+        // TODO
+
+        // Step 4. Let intrinsicWidth, intrinsicHeight, and intrinsicRatio be img's intrinsic width,
+        // intrinsic height, and intrinsic aspect ratio, if any, respectively.
+        // Step 5. If intrinsicWidth is not absent, then set intrinsicWidth to intrinsicWidth divided by density.
+        // Step 6. If intrinsicHeight is not absent, then set intrinsicHeight to intrinsicHeight divided by density.
+        // Step 7. Return the result of applying the default sizing algorithm with intrinsicWidth,
+        // intrinsicHeight, and intrinsicRatio, using a default object size of 300 by 150.
+        let intrinsic_width = current_request
+            .metadata
+            .map(|metadata| (metadata.width as f64 / density) as u32)
+            .unwrap_or(300);
+        let intrinsic_height = current_request
+            .metadata
+            .map(|metadata| (metadata.height as f64 / density) as u32)
+            .unwrap_or(150);
+        (intrinsic_width, intrinsic_height)
+    }
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -1562,10 +1679,8 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
 
     // <https://html.spec.whatwg.org/multipage/#dom-img-width>
     fn Width(&self) -> u32 {
-        let node = self.upcast::<Node>();
-        node.content_box()
-            .map(|rect| rect.size.width.to_px() as u32)
-            .unwrap_or_else(|| self.NaturalWidth())
+        // > The width getter steps are to return the width of this's dimensions.
+        self.dimensions().0
     }
 
     // <https://html.spec.whatwg.org/multipage/#dom-img-width>
@@ -1573,10 +1688,8 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
 
     // <https://html.spec.whatwg.org/multipage/#dom-img-height>
     fn Height(&self) -> u32 {
-        let node = self.upcast::<Node>();
-        node.content_box()
-            .map(|rect| rect.size.height.to_px() as u32)
-            .unwrap_or_else(|| self.NaturalHeight())
+        // > The height getter steps are to return the height of this's dimensions.
+        self.dimensions().1
     }
 
     // <https://html.spec.whatwg.org/multipage/#dom-img-height>
@@ -1584,30 +1697,26 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-img-naturalwidth>
     fn NaturalWidth(&self) -> u32 {
-        let request = self.current_request.borrow();
-        if matches!(request.state, State::Broken) {
+        // Step 1. If the image is not available, then return 0.
+        if !self.image_is_available() {
             return 0;
         }
 
-        let pixel_density = request.current_pixel_density.unwrap_or(1f64);
-        match request.metadata {
-            Some(ref metadata) => (metadata.width as f64 / pixel_density) as u32,
-            None => 0,
-        }
+        // Step 2. Return the respective component of the image's
+        // density-corrected natural width and height, in CSS pixels. [CSS]
+        self.density_corrected_natural_width_and_height().0
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-img-naturalheight>
     fn NaturalHeight(&self) -> u32 {
-        let request = self.current_request.borrow();
-        if matches!(request.state, State::Broken) {
+        // Step 1. If the image is not available, then return 0.
+        if !self.image_is_available() {
             return 0;
         }
 
-        let pixel_density = request.current_pixel_density.unwrap_or(1f64);
-        match request.metadata {
-            Some(ref metadata) => (metadata.height as f64 / pixel_density) as u32,
-            None => 0,
-        }
+        // Step 2. Return the respective component of the image's
+        // density-corrected natural width and height, in CSS pixels. [CSS]
+        self.density_corrected_natural_width_and_height().1
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-img-complete>

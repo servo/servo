@@ -899,6 +899,17 @@ impl HTMLInputElement {
                 }),
             );
     }
+
+    /// <https://html.spec.whatwg.org/multipage/#input-img-dimensions>
+    fn dimensions(&self) -> (u32, u32) {
+        // Step 1. If input's type attribute is not in the Image Button state,
+        // then return a width of 0 and a height of 0. (In that case no image is available.)
+        let InputType::Image(ref image_input_type) = *self.input_type() else {
+            return Default::default();
+        };
+        // The rest of the steps
+        image_input_type.dimensions(self)
+    }
 }
 
 impl<'dom> LayoutDom<'dom, HTMLInputElement> {
@@ -1117,13 +1128,22 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     // https://html.spec.whatwg.org/multipage/#dom-fe-disabled
     make_bool_setter!(SetDisabled, "disabled");
 
-    // <https://html.spec.whatwg.org/multipage/#dom-input-width>
-    make_dimension_uint_getter!(Width, "width");
+    /// <https://html.spec.whatwg.org/multipage/#dom-input-width>
+    fn Width(&self) -> u32 {
+        // > The width and height getter steps are to return the
+        // > respective component of the result of determining the dimensions of this.
+        self.dimensions().0
+    }
+
     // <https://html.spec.whatwg.org/multipage/#dom-input-width>
     make_dimension_uint_setter!(SetWidth, "width");
 
     // <https://html.spec.whatwg.org/multipage/#dom-input-height>
-    make_dimension_uint_getter!(Height, "height");
+    fn Height(&self) -> u32 {
+        // > The width and height getter steps are to return the
+        // > respective component of the result of determining the dimensions of this.
+        self.dimensions().1
+    }
     // <https://html.spec.whatwg.org/multipage/#dom-input-height>
     make_dimension_uint_setter!(SetHeight, "height");
 

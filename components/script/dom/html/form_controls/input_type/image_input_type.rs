@@ -15,8 +15,11 @@ use style_traits::CSSPixel;
 use xml5ever::{local_name, ns};
 
 use crate::dom::bindings::root::DomRoot;
+use crate::dom::element::AttributeMutation;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::event::Event;
 use crate::dom::eventtarget::EventTarget;
+use crate::dom::html::embedded_content::htmlimageelement::HTMLImageElement;
 use crate::dom::html::form_controls::htmlinputelement::HTMLInputElement;
 use crate::dom::html::form_controls::input_type::{SpecificInputActivationType, SpecificInputType};
 use crate::dom::htmlformelement::{FormControl, FormSubmitterElement, SubmittedFrom};
@@ -49,6 +52,18 @@ impl SpecificInputType for ImageInputType {
         self.ensure_shadow_tree(cx, input.upcast())
             .update(cx, self, input)
     }
+
+    fn attribute_mutated(
+        &self,
+        cx: &mut JSContext,
+        input: &HTMLInputElement,
+        attr: AttrRef<'_>,
+        _: AttributeMutation,
+    ) {
+        if matches!(*attr.local_name(), local_name!("src") | local_name!("alt")) {
+            self.update_shadow_tree(cx, input);
+        }
+    }
 }
 
 impl ImageInputType {
@@ -68,6 +83,26 @@ impl ImageInputType {
 
     pub(crate) fn selected_coordinate(&self) -> Point2D<i32, CSSPixel> {
         self.selected_coordinate.get()
+    }
+
+    /// Step 2 and later of <https://html.spec.whatwg.org/multipage/#input-img-dimensions>
+    pub(crate) fn dimensions(&self, input: &HTMLInputElement) -> (u32, u32) {
+        let Some(ref shadow_tree) = *self.borrow_for_shadow_tree() else {
+            return Default::default();
+        };
+        // Step 2. Let naturalDimensions be null.
+        // Step 3. If an image is available,
+        // then set naturalDimensions to the result of applying the default sizing algorithm
+        // with that image's natural width, natural height, and natural aspect ratio,
+        // if any, using a default object size of 300 by 150.
+        let natural_dimensions = shadow_tree.image_element.image_data().map(|image_data| {
+            let metadata = image_data.metadata();
+            (metadata.width, metadata.height)
+        });
+        // Step 4. Return the result of determining the dimensions of input given naturalDimensions.
+        shadow_tree
+            .image_element
+            .determine_dimensions(input.upcast(), natural_dimensions)
     }
 }
 
@@ -109,7 +144,7 @@ impl SpecificInputActivationType for ImageInputActivation {
 #[derive(Clone, JSTraceable, MallocSizeOf, PartialEq)]
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct ImageInputShadowTree {
-    image_element: Dom<Element>,
+    image_element: Dom<HTMLImageElement>,
 }
 
 impl ImageInputShadowTree {
@@ -117,8 +152,11 @@ impl ImageInputShadowTree {
         let document = shadow_root.owner_document();
         let img = Self::create_element_in_ua_shadowroot(cx, &document, local_name!("img"));
         Node::replace_all(cx, Some(img.upcast()), shadow_root);
+        let img = img
+            .downcast::<HTMLImageElement>()
+            .expect("Must always create an image element");
         Self {
-            image_element: img.as_traced(),
+            image_element: Dom::from_ref(img),
         }
     }
 }
@@ -128,13 +166,14 @@ impl SpecificShadowTree<HTMLInputElement, ImageInputType> for ImageInputShadowTr
         let input_element = input_element.upcast::<Element>();
         for name in [&local_name!("src"), &local_name!("alt")] {
             let new = input_element.get_attribute_string_value(name);
-            if new == self.image_element.get_attribute_string_value(name) {
+            let image_element = self.image_element.upcast::<Element>();
+            if new == image_element.get_attribute_string_value(name) {
                 continue;
             }
             match new {
-                Some(value) => self.image_element.set_attribute(cx, name, value.into()),
+                Some(value) => image_element.set_attribute(cx, name, value.into()),
                 None => {
-                    self.image_element.remove_attribute(cx, &ns!(), name);
+                    image_element.remove_attribute(cx, &ns!(), name);
                 },
             }
         }
