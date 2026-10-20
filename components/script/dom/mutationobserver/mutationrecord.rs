@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace};
 use js::context::JSContext;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::MutationRecordBinding::MutationRecord_Binding::MutationRecordMethods;
@@ -16,11 +17,11 @@ use crate::dom::nodelist::NodeList;
 #[dom_struct]
 pub(crate) struct MutationRecord {
     reflector_: Reflector,
-    record_type: DOMString,
+    record_type: TracedDOMString,
     target: Dom<Node>,
-    attribute_name: Option<DOMString>,
-    attribute_namespace: Option<DOMString>,
-    old_value: Option<DOMString>,
+    attribute_name: Option<TracedDOMString>,
+    attribute_namespace: Option<TracedDOMString>,
+    old_value: Option<TracedDOMString>,
     added_nodes: MutNullableDom<NodeList>,
     removed_nodes: MutNullableDom<NodeList>,
     next_sibling: Option<Dom<Node>>,
@@ -117,11 +118,11 @@ impl MutationRecord {
     ) -> MutationRecord {
         MutationRecord {
             reflector_: Reflector::new(),
-            record_type: DOMString::from(record_type),
+            record_type: DOMString::from(record_type).traced(),
             target: Dom::from_ref(target),
-            attribute_name,
-            attribute_namespace,
-            old_value,
+            attribute_name: attribute_name.map(|domstring| domstring.traced()),
+            attribute_namespace: attribute_namespace.map(|domstring| domstring.traced()),
+            old_value: old_value.map(|domstring| domstring.traced()),
             added_nodes: MutNullableDom::new(added_nodes),
             removed_nodes: MutNullableDom::new(removed_nodes),
             next_sibling: next_sibling.map(Dom::from_ref),
@@ -133,7 +134,7 @@ impl MutationRecord {
 impl MutationRecordMethods<crate::DomTypeHolder> for MutationRecord {
     /// <https://dom.spec.whatwg.org/#dom-mutationrecord-type>
     fn Type(&self) -> DOMString {
-        self.record_type.clone()
+        self.record_type.clone().root()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-mutationrecord-target>
@@ -143,17 +144,21 @@ impl MutationRecordMethods<crate::DomTypeHolder> for MutationRecord {
 
     /// <https://dom.spec.whatwg.org/#dom-mutationrecord-attributename>
     fn GetAttributeName(&self) -> Option<DOMString> {
-        self.attribute_name.clone()
+        self.attribute_name
+            .clone()
+            .map(|domstring| domstring.root())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-mutationrecord-attributenamespace>
     fn GetAttributeNamespace(&self) -> Option<DOMString> {
-        self.attribute_namespace.clone()
+        self.attribute_namespace
+            .clone()
+            .map(|domstring| domstring.root())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-mutationrecord-oldvalue>
     fn GetOldValue(&self) -> Option<DOMString> {
-        self.old_value.clone()
+        self.old_value.clone().map(|domstring| domstring.root())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-mutationrecord-addednodes>

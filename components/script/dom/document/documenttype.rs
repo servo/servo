@@ -4,6 +4,7 @@
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
+use script_bindings::domstring::TracedDOMString;
 
 use crate::dom::bindings::codegen::Bindings::DocumentTypeBinding::DocumentTypeMethods;
 use crate::dom::bindings::codegen::UnionTypes::NodeOrString;
@@ -19,9 +20,9 @@ use crate::dom::node::Node;
 #[dom_struct]
 pub(crate) struct DocumentType {
     node: Node,
-    name: DOMString,
-    public_id: DOMString,
-    system_id: DOMString,
+    name: TracedDOMString,
+    public_id: TracedDOMString,
+    system_id: TracedDOMString,
 }
 
 impl DocumentType {
@@ -33,9 +34,9 @@ impl DocumentType {
     ) -> DocumentType {
         DocumentType {
             node: Node::new_inherited(document),
-            name,
-            public_id: public_id.unwrap_or_default(),
-            system_id: system_id.unwrap_or_default(),
+            name: name.traced(),
+            public_id: public_id.unwrap_or_default().traced(),
+            system_id: system_id.unwrap_or_default().traced(),
         }
     }
     pub(crate) fn new(
@@ -55,17 +56,17 @@ impl DocumentType {
     }
 
     #[inline]
-    pub(crate) fn name(&self) -> &DOMString {
+    pub(crate) fn name(&self) -> &TracedDOMString {
         &self.name
     }
 
     #[inline]
-    pub(crate) fn public_id(&self) -> &DOMString {
+    pub(crate) fn public_id(&self) -> &TracedDOMString {
         &self.public_id
     }
 
     #[inline]
-    pub(crate) fn system_id(&self) -> &DOMString {
+    pub(crate) fn system_id(&self) -> &TracedDOMString {
         &self.system_id
     }
 }
@@ -73,17 +74,17 @@ impl DocumentType {
 impl DocumentTypeMethods<crate::DomTypeHolder> for DocumentType {
     /// <https://dom.spec.whatwg.org/#dom-documenttype-name>
     fn Name(&self) -> DOMString {
-        self.name.clone()
+        self.name.clone().root()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-documenttype-publicid>
     fn PublicId(&self) -> DOMString {
-        self.public_id.clone()
+        self.public_id.clone().root()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-documenttype-systemid>
     fn SystemId(&self) -> DOMString {
-        self.system_id.clone()
+        self.system_id.clone().root()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-childnode-before>
