@@ -1902,29 +1902,20 @@ class PropertyDefiner(Generic[PropertyDefinerElementType]):
             if specTerminator:
                 currentSpecs.append(specTerminator)
             joinedCurrentSpecs = ',\n'.join(currentSpecs)
-            specs.append(f"&Box::leak(Box::new([\n{joinedCurrentSpecs}]))[..]\n")
+            specs.append(f"&[\n{joinedCurrentSpecs}]\n")
             conds = ','.join(cond) if isinstance(cond, list) else cond
             prefableSpecs.append(
-                prefableTemplate % (f"&[{conds}]", f"unsafe {{ {name}_specs.get() }}", len(specs) - 1)
+                prefableTemplate % (f"&[{conds}]", f"Self::{name}_specs", len(specs) - 1)
             )
 
         joinedSpecs = ',\n'.join(specs)
-        specsArray = f"static {name}_specs: ThreadUnsafeOnceLock<&[&[{specType}]]> = ThreadUnsafeOnceLock::new();\n"
-
-        initSpecs = f"""
-pub(crate) fn init_{name}_specs<D: DomTypes>() {{
-    {name}_specs.set(Box::leak(Box::new([{joinedSpecs}])));
-}}"""
-
         joinedPrefableSpecs = ',\n'.join(prefableSpecs)
-        prefArray = f"static {name}: ThreadUnsafeOnceLock<&[Guard<&[{specType}]>]> = ThreadUnsafeOnceLock::new();\n"
-
-        initPrefs = f"""
-pub(crate) fn init_{name}_prefs<D: DomTypes>() {{
-    {name}.set(Box::leak(Box::new([{joinedPrefableSpecs}])));
-}}"""
-
-        return f"{specsArray}{initSpecs}{prefArray}{initPrefs}"
+        return f"""
+impl<D: DomTypes> BindingTables<D> {{
+    const {name}_specs: &'static [&'static [{specType}]] = &[{joinedSpecs}];
+    const {name}: &'static [Guard<&'static [{specType}]>] = &[{joinedPrefableSpecs}];
+}}
+"""
 
     def generateUnguardedArray(
             self,
@@ -1955,12 +1946,11 @@ pub(crate) fn init_{name}_prefs<D: DomTypes>() {{
         specsArray.append(specTerminator)
 
         joinedSpecs = ',\n'.join(specsArray)
-        initialSpecs = f"static {name}: ThreadUnsafeOnceLock<&[{specType}]> = ThreadUnsafeOnceLock::new();\n"
-        initSpecs = f"""
-pub(crate) fn init_{name}<D: DomTypes>() {{
-    {name}.set(Box::leak(Box::new([{joinedSpecs}])));
-}}"""
-        return dedent(f"{initialSpecs}{initSpecs}")
+        return f"""
+impl<D: DomTypes> BindingTables<D> {{
+    const {name}: &'static [{specType}] = &[{joinedSpecs}];
+}}
+"""
 
 
 # The length of a method is the minimum of the lengths of the
@@ -2145,12 +2135,11 @@ class MethodDefiner(PropertyDefiner):
                     # easy to tell whether the methodinfo is a JSJitInfo or
                     # a JSTypedMethodJitInfo here.  The compiler knows, though,
                     # so let it do the work.
-                    jitinfo = (f"unsafe {{ {identifier}_methodinfo.get() }}"
-                               " as *const _ as *const JSJitInfo")
+                    jitinfo = f"Self::{identifier}_methodinfo as *const _ as *const JSJitInfo"
                     accessor = f"Some(generic_method::<D, call_policies::{callPolicy}, {exceptionToRejection}>)"
                 else:
                     if m.get("returnsPromise", False):
-                        jitinfo = f"unsafe {{ {m.get('nativeName', m['name'])}_methodinfo.get() }}"
+                        jitinfo = f"Self::{m.get('nativeName', m['name'])}_methodinfo"
                         accessor = "Some(generic_static_promise_method)"
                     else:
                         jitinfo = "ptr::null()"
@@ -2269,7 +2258,7 @@ class AttrDefiner(PropertyDefiner):
 
                 accessor = f"generic_getter::<D, call_policies::{callPolicy}, {exceptionToRejection}>"
                 internalName = self.descriptor.internalNameFor(attr.identifier.name)
-                jitinfo = f"unsafe {{ {internalName}_getterinfo.get() }}"
+                jitinfo = f"Self::{internalName}_getterinfo"
 
             return f"JSNativeWrapper {{ op: Some({accessor}), info: {jitinfo} }}"
 
@@ -2302,7 +2291,7 @@ class AttrDefiner(PropertyDefiner):
 
                 accessor = f"generic_setter::<D, call_policies::{callPolicy}>"
                 internalName = self.descriptor.internalNameFor(attr.identifier.name)
-                jitinfo = f"unsafe {{ {internalName}_setterinfo.get() }}"
+                jitinfo = f"Self::{internalName}_setterinfo"
 
             return f"JSNativeWrapper {{ op: Some({accessor}), info: {jitinfo} }}"
 
@@ -3383,7 +3372,7 @@ def InitLegacyUnforgeablePropertiesOnHolder(descriptor: Descriptor, properties: 
     ]
     for template, array in unforgeableMembers:
         if array.length() > 0:
-            unforgeables.append(CGGeneric(template % f"unsafe {{ {array.variableName()}.get() }}"))
+            unforgeables.append(CGGeneric(template % f"BindingTables::<D>::{array.variableName()}"))
     return CGList(unforgeables, "\n")
 
 
@@ -3498,7 +3487,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             ("define_guarded_methods", self.properties.methods),
             ("define_guarded_constants", self.properties.consts)
         ]
-        members = [f"{function}::<D>(cx, obj.handle(), unsafe {{ {array.variableName()}.get() }}, obj.handle());"
+        members = [f"{function}::<D>(cx, obj.handle(), BindingTables::<D>::{array.variableName()}, obj.handle());"
                    for (function, array) in pairs if array.length() > 0]
         membersStr = "\n".join(members)
         name = self.descriptor.name
@@ -3777,12 +3766,7 @@ class PropertyArrays():
         return names
 
     def __str__(self) -> str:
-        define = ""
-        for array in self.arrayNames():
-            val = str(getattr(self, array))
-            if val:
-                define += "pub(crate) " + str(getattr(self, array))
-        return define
+        return "".join(str(getattr(self, array)) for array in self.arrayNames())
 
 
 class CGCrossOriginProperties(CGThing):
@@ -3799,8 +3783,8 @@ class CGCrossOriginProperties(CGThing):
 
             pub(crate) fn init_cross_origin_properties<D: DomTypes>() {
                 CROSS_ORIGIN_PROPERTIES.set(CrossOriginProperties {
-                    attributes: unsafe { sCrossOriginAttributes.get() },
-                    methods: unsafe { sCrossOriginMethods.get() },
+                    attributes: BindingTables::<D>::sCrossOriginAttributes,
+                    methods: BindingTables::<D>::sCrossOriginMethods,
                 });
             }
             """
@@ -3879,19 +3863,19 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
 
 
         if self.properties.static_methods.length():
-            methods = f"{self.properties.static_methods.variableName()}.get()"
+            methods = f"BindingTables::<D>::{self.properties.static_methods.variableName()}"
         else:
             methods = "&[]"
 
         if self.descriptor.interface.hasConstants():
-            constants = "sConstants.get()"
+            constants = "BindingTables::<D>::sConstants"
         else:
             constants = "&[]"
 
 
         if self.descriptor.interface.isNamespace():
             if self.properties.static_attrs.length():
-                attrs = f"{self.properties.static_attrs.variableName()}.get()"
+                attrs = f"BindingTables::<D>::{self.properties.static_attrs.variableName()}"
             else:
                 attrs = "&[]"
 
@@ -3950,7 +3934,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         for arrayName in self.properties.arrayNames():
             array = getattr(self.properties, arrayName)
             if array.length():
-                properties[arrayName] = f"{array.variableName()}.get()"
+                properties[arrayName] = f"BindingTables::<D>::{array.variableName()}"
             else:
                 properties[arrayName] = "&[]"
 
@@ -5349,13 +5333,11 @@ class CGMemberJITInfo(CGThing):
             return fill(
                 """
                 $*{argTypesDecl}
-                static ${infoName}: ThreadUnsafeOnceLock<JSTypedMethodJitInfo> = ThreadUnsafeOnceLock::new();
-
-                pub(crate) fn init_${infoName}<D: DomTypes>() {
-                    ${infoName}.set(JSTypedMethodJitInfo {
+                impl<D: DomTypes> BindingTables<D> {
+                    const ${infoName}: &'static JSTypedMethodJitInfo = &JSTypedMethodJitInfo {
                         base: ${jitInfoInit},
                         argTypes: &${argTypes} as *const _ as *const JSJitInfo_ArgType,
-                    });
+                    };
                 }
                 """,
                 argTypesDecl=argTypesDecl,
@@ -5364,10 +5346,8 @@ class CGMemberJITInfo(CGThing):
                 argTypes=argTypesArray)
 
         return f"""
-static {infoName}: ThreadUnsafeOnceLock<JSJitInfo> = ThreadUnsafeOnceLock::new();
-
-pub(crate) fn init_{infoName}<D: DomTypes>() {{
-    {infoName}.set({jitInfoInitializer(False)});
+impl<D: DomTypes> BindingTables<D> {{
+    const {infoName}: &'static JSJitInfo = &{jitInfoInitializer(False)};
 }}"""
 
     def define(self) -> str:
@@ -5655,10 +5635,8 @@ class CGStaticMethodJitinfo(CGGeneric):
         CGGeneric.__init__(
             self,
             f"""
-            static {method.identifier.name}_methodinfo: ThreadUnsafeOnceLock<JSJitInfo> = ThreadUnsafeOnceLock::new();
-
-            pub(crate) fn init_{method.identifier.name}_methodinfo<D: DomTypes>() {{
-                {method.identifier.name}_methodinfo.set(JSJitInfo {{
+            impl<D: DomTypes> BindingTables<D> {{
+                const {method.identifier.name}_methodinfo: &'static JSJitInfo = &JSJitInfo {{
                     __bindgen_anon_1: JSJitInfo__bindgen_ty_1 {{
                         staticMethod: Some({CGDictionary.makeMemberName(method.identifier.name)}::<D>)
                     }},
@@ -5681,7 +5659,7 @@ class CGStaticMethodJitinfo(CGGeneric):
                             0,
                         ).to_ne_bytes()
                     ),
-                }});
+                }};
             }}
             """
         )
@@ -7669,65 +7647,11 @@ class CGInitStatics(CGThing):
     def __init__(self, descriptor: Descriptor) -> None:
         CGThing.__init__(self)
 
-        def internal(method: IDLMethod) -> str:
-            return descriptor.internalNameFor(method.identifier.name)
-
-        properties = PropertyArrays(descriptor)
-        all_names = PropertyArrays.arrayNames()
-        arrays = [getattr(properties, name) for name in all_names]
-        nonempty = map(lambda x: x.variableName(), filter(lambda x: x.length() != 0, arrays))
-        specs = [[
-            f'init_{name}_specs::<D>();',
-            f'init_{name}_prefs::<D>();',
-        ] for name in nonempty]
-        flat_specs = [x for xs in specs for x in xs]
-        specs = '\n'.join(flat_specs)
-        module = f"crate::codegen::GenericBindings::{toBindingPath(descriptor)}"
-        relevantMethods = [
-            m for m in descriptor.interface.members if m.isMethod()
-        ] if not descriptor.interface.isCallback() else []
-        allOperations = descriptor.operations.keys()
-        relevantOperations = list(map(lambda x: f"__{x.lower()}", filter(lambda o: o != "Stringifier", allOperations)))
-        relevantMethods = filter(
-            lambda m: internal(m) not in relevantOperations,
-            relevantMethods,
-        )
-        relevantMethods = filter(
-            lambda x: (
-                not x.isStatic()
-                or any([r.isPromise() for r, _ in x.signatures()])
-            ),
-            relevantMethods
-        )
-
-        methods = [f'{module}::init_{internal(m)}_methodinfo::<D>();' for m in relevantMethods]
-        getters = [
-            f'init_{internal(m)}_getterinfo::<D>();'
-            for m in descriptor.interface.members if m.isAttr() and not m.isStatic()
-        ]
-        setters = [
-            f'init_{internal(m)}_setterinfo::<D>();'
-            for m in descriptor.interface.members
-            if m.isAttr() and (
-                not m.readonly
-                or m.getExtendedAttribute("PutForwards")
-                or m.getExtendedAttribute("Replaceable")
-            ) and not m.isStatic()
-        ]
-        observable_arrays = [
-            f'ObservableArray{MakeNativeName(m.identifier.name)}::init_proxy_handler::<D>();'
-            for m in descriptor.interface.members if m.isAttr() and m.type.isObservableArray()
-        ]
-        methods = '\n'.join(methods)
-        getters = '\n'.join(getters)
-        setters = '\n'.join(setters)
-        observable_arrays = '\n'.join(observable_arrays)
-        crossorigin = [
-            "init_sCrossOriginMethods::<D>();",
-            "init_sCrossOriginAttributes::<D>();",
+        crossorigin = (
             "init_cross_origin_properties::<D>();"
-        ] if descriptor.emitsCrossOriginPropertyTable() else []
-        crossorigin_joined = '\n'.join(crossorigin)
+            if descriptor.emitsCrossOriginPropertyTable()
+            else ""
+        )
         interface = (
             "init_interface_object::<D>();"
             if descriptor.interface.hasInterfaceObject()
@@ -7747,12 +7671,7 @@ class CGInitStatics(CGThing):
         pub(crate) fn init_statics<D: DomTypes>() {{
             {interface}
             {nonproxy}
-            {methods}
-            {getters}
-            {setters}
-            {crossorigin_joined}
-            {observable_arrays}
-            {specs}
+            {crossorigin}
         }}
         """
 
@@ -7921,7 +7840,8 @@ class CGDescriptor(CGThing):
                                            name in legacyWindowAliases], ",\n")),
                         CGGeneric("];\n")], "\n"))
 
-        cgThings.append(CGGeneric(str(properties)))
+        propertyArrays = str(properties)
+        cgThings.append(CGGeneric(propertyArrays))
 
         if not descriptor.interface.getExtendedAttribute("Inline"):
             if not descriptor.interface.isCallback() and not descriptor.interface.isNamespace():
@@ -7946,6 +7866,13 @@ class CGDescriptor(CGThing):
                                                            haveLegacyWindowAliases))
 
         cgThings.append(CGInitStatics(descriptor))
+
+        cgThings.insert(0, CGGeneric(
+            # This only silences the warning on the struct being unused, unused associated constants
+            # will still be warned on. BindingTables itself has no size, so it being unused in some
+            # cases is fine and avoids needing to check here if we need to add it or not.
+            "#[allow(dead_code)]\n"
+            "pub(crate) struct BindingTables<D: DomTypes>(std::marker::PhantomData<D>);\n"))
 
         cgRoot: CGThing = CGList(cgThings, '\n')
 
