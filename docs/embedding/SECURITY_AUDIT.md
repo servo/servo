@@ -59,12 +59,11 @@ default, and cannot on three of the five target platforms.
 | HSTS | `components/net/hsts.rs` (+ preload list) | functional |
 | Referrer-Policy | `components/net/http_loader.rs` | functional |
 | X-Frame-Options | `components/script/dom/security/xframeoptions.rs` | functional |
-| Mixed Content | `components/net/fetch/methods.rs` | **incomplete** — TODOs for spec-1.3 clause and target-browsing-context handling |
+| Mixed Content | `components/net/fetch/methods.rs` | **changed/verified** — target-browsing-context (step 1.4) implemented for both fetch/response checks (`should_request_be_blocked_as_mixed_content`, `should_response_be_blocked_as_mixed_content`); spec-1.3 clause remains a UA policy opt-out (no user control exposed). Unit test: `components/net/tests/fetch.rs::test_mixed_content_document_navigation_blocking`. |
 | Same-origin / principals | `components/script_bindings/proxyhandler.rs` | functional |
 | SRI / Trusted Types | engine + WPT dirs | functional |
 
-**Gap:** the Mixed Content TODOs are the concrete "security feature not fully
-implemented" items in this layer.
+**Gap:** Mixed Content step 1.4 (top-level vs nested document navigation) is now implemented; step 1.3 (UA-instructed allowance) remains unimplemented by design (no embedder/user control exposed).
 
 ---
 
