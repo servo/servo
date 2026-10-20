@@ -108,8 +108,9 @@ Applied in `create_sandbox()` inside the child process before JS engine initiali
 - Dynamically configures `SetProcessMitigationPolicy` for DEP, ASLR, strict handle checking, and extension-point disabling.
 - Controlled via existing `--sandbox` / `opts.sandbox` preference (default: off).
 
-### Phase 2: Broker Job Object Assignment (Planned)
-- Enhance `servo_constellation` pipeline spawner on Windows to create a Job Object per pipeline and bind `JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE` and `JOB_OBJECT_LIMIT_ACTIVE_PROCESS`.
+### Phase 2: Job Object Containment (Landed)
+- Bound sandboxed process to an anonymous Windows Job Object (`CreateJobObjectW`, `SetInformationJobObject`, `AssignProcessToJobObject`).
+- Enforces `JOB_OBJECT_LIMIT_ACTIVE_PROCESS = 1`, blocking sandboxed content processes from creating subprocesses (calls to `CreateProcess` fail with `ERROR_ACCESS_DENIED`).
 
 ### Phase 3: Restricted Token & AppContainer Profile (Planned)
 - Implement `CreateAppContainerProfile` for production builds with a dedicated package family name `org.servo.content`.

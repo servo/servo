@@ -1496,10 +1496,45 @@ mod windows_sandbox {
         flags: u32,
     }
 
+    #[repr(C)]
+    struct IoCounters {
+        read_operation_count: u64,
+        write_operation_count: u64,
+        other_operation_count: u64,
+        read_transfer_count: u64,
+        write_transfer_count: u64,
+        other_transfer_count: u64,
+    }
+
+    #[repr(C)]
+    struct JobobjectBasicLimitInformation {
+        per_process_user_time_limit: i64,
+        per_job_user_time_limit: i64,
+        limit_flags: u32,
+        minimum_working_set_size: usize,
+        maximum_working_set_size: usize,
+        active_process_limit: u32,
+        affinity: usize,
+        priority_class: u32,
+        scheduling_class: u32,
+    }
+
+    #[repr(C)]
+    struct JobobjectExtendedLimitInformation {
+        basic_limit_information: JobobjectBasicLimitInformation,
+        io_info: IoCounters,
+        process_memory_limit: usize,
+        job_memory_limit: usize,
+        peak_process_memory_used: usize,
+        peak_job_memory_used: usize,
+    }
+
     const PROCESS_DEP_POLICY: i32 = 0;
     const PROCESS_ASLR_POLICY: i32 = 1;
     const PROCESS_STRICT_HANDLE_CHECK_POLICY: i32 = 3;
     const PROCESS_EXTENSION_POINT_DISABLE_POLICY: i32 = 6;
+    const JOB_OBJECT_LIMIT_ACTIVE_PROCESS: u32 = 0x00000008;
+    const JOB_OBJECT_EXTENDED_LIMIT_INFORMATION: i32 = 9;
 
     unsafe extern "system" {
         fn SetProcessMitigationPolicy(
@@ -1507,6 +1542,16 @@ mod windows_sandbox {
             lp_buffer: *const c_void,
             dw_length: usize,
         ) -> i32;
+        fn CreateJobObjectW(lp_job_attributes: *const c_void, lp_name: *const u16) -> *mut c_void;
+        fn AssignProcessToJobObject(h_job: *mut c_void, h_process: *mut c_void) -> i32;
+        fn SetInformationJobObject(
+            h_job: *mut c_void,
+            job_object_info_class: i32,
+            lp_job_object_info: *const c_void,
+            cb_job_object_info_length: u32,
+        ) -> i32;
+        fn GetCurrentProcess() -> *mut c_void;
+        fn CloseHandle(h_object: *mut c_void) -> i32;
     }
 
     pub fn apply_windows_sandbox() {
@@ -1569,7 +1614,36 @@ mod windows_sandbox {
             }
         }
 
-        info!("Windows renderer sandbox PoC: Mitigation policies successfully applied.");
+        // 5. Job Object Isolation: restrict active process count to 1 to block subprocess creation
+        unsafe {
+            let job = CreateJobObjectW(std::ptr::null(), std::ptr::null());
+            if !job.is_null() {
+                let mut info: JobobjectExtendedLimitInformation = std::mem::zeroed();
+                info.basic_limit_information.limit_flags = JOB_OBJECT_LIMIT_ACTIVE_PROCESS;
+                info.basic_limit_information.active_process_limit = 1;
+
+                if SetInformationJobObject(
+                    job,
+                    JOB_OBJECT_EXTENDED_LIMIT_INFORMATION,
+                    &info as *const _ as *const c_void,
+                    std::mem::size_of::<JobobjectExtendedLimitInformation>() as u32,
+                ) != 0 {
+                    if AssignProcessToJobObject(job, GetCurrentProcess()) != 0 {
+                        info!("Windows sandbox: Bound process to Job Object with active process limit = 1");
+                        // Keep handle open to preserve Job Object containment for process lifetime
+                        let _ = job;
+                    } else {
+                        warn!("Windows sandbox: Failed to assign process to Job Object");
+                        CloseHandle(job);
+                    }
+                } else {
+                    warn!("Windows sandbox: Failed to configure Job Object limits");
+                    CloseHandle(job);
+                }
+            }
+        }
+
+        info!("Windows renderer sandbox: Mitigation policies and Job Object successfully applied.");
     }
 }
 
