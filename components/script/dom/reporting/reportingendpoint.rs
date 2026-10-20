@@ -121,6 +121,7 @@ pub(crate) trait SendReportsToEndpoints {
 }
 
 impl SendReportsToEndpoints for GlobalScope {
+    #[expect(clippy::mutable_key_type)]
     fn send_reports_to_endpoints(
         &self,
         mut reports: Vec<Report>,
