@@ -56,7 +56,7 @@ impl FetchController {
         let Some(request_id) = self.request_id.take() else {
             return;
         };
-        let Some(ref core_resource_thread) = self.core_resource_thread else {
+        let Some(core_resource_thread) = &self.core_resource_thread else {
             return;
         };
 

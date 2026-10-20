@@ -886,7 +886,11 @@ impl CacheEntryDescriptor {
 // FIXME: https://github.com/servo/servo/issues/34591
 #[expect(clippy::large_enum_variant)]
 enum ToFetchThreadMessage {
-    Cancel(Vec<RequestId>, CoreResourceThread, bool /* forget */),
+    Cancel {
+        request_ids: Vec<RequestId>,
+        forget: bool,
+        core_resource_thread: CoreResourceThread,
+    },
     StartFetch(
         /* request_builder */ RequestBuilder,
         /* response_init */ Option<ResponseInit>,
@@ -996,10 +1000,14 @@ impl FetchThread {
 
                     active_fetch.get_mut()(fetch_response_msg);
                     if fetch_finished {
-                        self.active_fetches.remove(&request_id);
+                        let _ = active_fetch.remove();
                     }
                 },
-                Ok(ToFetchThreadMessage::Cancel(request_ids, core_resource_thread, forget)) => {
+                Ok(ToFetchThreadMessage::Cancel {
+                    request_ids,
+                    forget,
+                    core_resource_thread,
+                }) => {
                     if forget {
                         for request_id in &request_ids {
                             self.active_fetches.remove(request_id);
@@ -1038,11 +1046,11 @@ impl FetchThread {
         forget: bool,
     ) {
         if let Some(fetch_thread) = FETCH_THREAD.get() {
-            let _ = fetch_thread.sender.send(ToFetchThreadMessage::Cancel(
+            let _ = fetch_thread.sender.send(ToFetchThreadMessage::Cancel {
                 request_ids,
-                core_resource_thread.clone(),
                 forget,
-            ));
+                core_resource_thread: core_resource_thread.clone(),
+            });
         }
     }
 
