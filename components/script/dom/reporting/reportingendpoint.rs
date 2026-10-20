@@ -14,7 +14,6 @@ use net_traits::request::{
     create_request_body_with_content,
 };
 use net_traits::{FetchMetadata, NetworkError, ResourceFetchTiming};
-use script_bindings::domstring::TracedDOMString;
 use script_bindings::str::DOMString;
 use serde::Serialize;
 use servo_url::{ImmutableOrigin, ServoUrl};
@@ -35,7 +34,7 @@ use crate::fetch::network_listener::{
 #[derive(Clone, Eq, Hash, MallocSizeOf, PartialEq)]
 pub(crate) struct ReportingEndpoint {
     /// <https://w3c.github.io/reporting/#dom-endpoint-name>
-    name: TracedDOMString,
+    name: DOMString,
     /// <https://w3c.github.io/reporting/#dom-endpoint-url>
     url: ServoUrl,
     /// <https://w3c.github.io/reporting/#dom-endpoint-failures>
@@ -97,7 +96,7 @@ impl ReportingEndpoint {
             // Step 5.4. Let endpoint be a new endpoint whose properties are set as follows:
             // Step 5.5. Add endpoint to endpoints.
             endpoints.push(ReportingEndpoint {
-                name: DOMString::from(name).traced(),
+                name: DOMString::from(name),
                 url: endpoint_url,
                 failures: 0,
             });
@@ -133,7 +132,7 @@ impl SendReportsToEndpoints for GlobalScope {
         reports.retain(|report| {
             // Step 2.1. If there exists an endpoint (endpoint) in context’s endpoints
             // list whose name is report’s destination:
-            if let Some(endpoint) = endpoints.iter().find(|e| e.name == *report.destination) {
+            if let Some(endpoint) = endpoints.iter().find(|e| e.name == report.destination) {
                 // Step 2.1.1. Append report to endpoint map’s list of reports for endpoint.
                 endpoint_map
                     .entry(endpoint)
