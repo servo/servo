@@ -240,6 +240,24 @@ class TestInspectorTab:
             string_actor = StringActor(devtools.client, inner_html["actor"])
             assert len(string_actor.substring(0, inner_html["length"])) == inner_html["length"]
 
+    def test_inspector_shadow_root(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/inspector/shadow_root.html")
+        with Devtools.connect() as devtools:
+            inspector = InspectorActor(devtools.client, devtools.targets[0]["inspectorActor"])
+            walker_info = inspector.get_walker()
+            walker = WalkerActor(devtools.client, walker_info["actor"])
+
+            root_node = walker_info["root"]["actor"]
+            host_node = walker.query_selector(root_node, "div")["node"]["actor"]
+
+            host_children = walker.children(host_node)
+            assert host_children[0]["isShadowRoot"] is True
+
+            shadow_root = host_children[0]["actor"]
+            shadow_children = walker.children(shadow_root)
+
+            assert any(node["nodeName"] == "B" for node in shadow_children)
+
     def test_inspector_outer_html(self, run_servoshell, web_server_urls):
         run_servoshell(url=f"{web_server_urls[0]}/inspector/event_listeners.html")
         with Devtools.connect() as devtools:
