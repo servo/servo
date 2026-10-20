@@ -7,6 +7,7 @@ use html5ever::{LocalName, Prefix, local_name};
 use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
+use script_bindings::domstring::TracedDOMString;
 
 use crate::dom::bindings::codegen::Bindings::HTMLOutputElementBinding::HTMLOutputElementMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -28,7 +29,7 @@ pub(crate) struct HTMLOutputElement {
     htmlelement: HTMLElement,
     form_owner: MutNullableDom<HTMLFormElement>,
     labels_node_list: MutNullableDom<NodeList>,
-    default_value_override: DomRefCell<Option<DOMString>>,
+    default_value_override: DomRefCell<Option<TracedDOMString>>,
     validity_state: MutNullableDom<ValidityState>,
 }
 
@@ -83,7 +84,7 @@ impl HTMLOutputElementMethods<crate::DomTypeHolder> for HTMLOutputElement {
     fn DefaultValue(&self) -> DOMString {
         let dvo = self.default_value_override.borrow();
         if let Some(ref dv) = *dvo {
-            dv.clone()
+            dv.clone().root()
         } else {
             self.upcast::<Node>().descendant_text_content()
         }
@@ -96,7 +97,7 @@ impl HTMLOutputElementMethods<crate::DomTypeHolder> for HTMLOutputElement {
             Node::string_replace_all(cx, value, self.upcast::<Node>());
         } else {
             // Step 2, if not returned from step 1
-            *self.default_value_override.safe_borrow_mut(cx.no_gc()) = Some(value);
+            *self.default_value_override.safe_borrow_mut(cx.no_gc()) = Some(value.traced());
         }
     }
 
@@ -107,7 +108,8 @@ impl HTMLOutputElementMethods<crate::DomTypeHolder> for HTMLOutputElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-output-value>
     fn SetValue(&self, cx: &mut JSContext, value: DOMString) {
-        *self.default_value_override.safe_borrow_mut(cx.no_gc()) = Some(self.DefaultValue());
+        *self.default_value_override.safe_borrow_mut(cx.no_gc()) =
+            Some(self.DefaultValue().traced());
         Node::string_replace_all(cx, value, self.upcast::<Node>());
     }
 

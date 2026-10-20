@@ -11,7 +11,7 @@ use html5ever::{LocalName, Prefix, local_name, ns};
 use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
-use script_bindings::domstring::DOMString;
+use script_bindings::domstring::{DOMString, TracedDOMString};
 use style::selector_parser::PseudoElement;
 
 use crate::dom::bindings::codegen::Bindings::HTMLDetailsElementBinding::HTMLDetailsElementMethods;
@@ -112,7 +112,7 @@ pub(crate) struct HTMLDetailsElement {
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) struct DetailsNameGroups {
     /// Map from `name` attribute to a list of details elements.
-    pub(crate) groups: HashMap<DOMString, Vec<Dom<HTMLDetailsElement>>>,
+    pub(crate) groups: HashMap<TracedDOMString, Vec<Dom<HTMLDetailsElement>>>,
 }
 
 /// Describes how to proceed in case two details elements in the same
@@ -132,7 +132,7 @@ impl DetailsNameGroups {
         }
 
         debug!("Registering details element with name={name:?}");
-        let details_elements_with_the_same_name = self.groups.entry(name).or_default();
+        let details_elements_with_the_same_name = self.groups.entry(name.traced()).or_default();
 
         // The spec tells us to keep the list in tree order, but that's not actually necessary.
         details_elements_with_the_same_name.push(Dom::from_ref(details_element));
@@ -148,7 +148,7 @@ impl DetailsNameGroups {
         }
 
         debug!("Unregistering details element with name={name:?}");
-        let Entry::Occupied(mut entry) = self.groups.entry(name) else {
+        let Entry::Occupied(mut entry) = self.groups.entry(name.traced()) else {
             panic!("details element is not registered");
         };
         entry

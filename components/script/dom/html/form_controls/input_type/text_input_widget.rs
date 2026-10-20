@@ -186,8 +186,8 @@ impl TextInputWidgetShadowTree {
     pub(crate) fn update_placeholder(&self, cx: &mut JSContext, element: &impl TextControlElement) {
         if let Some(character_data) = self.placeholder_character_data(cx, element) {
             let placeholder_value = element.placeholder_text();
-            if character_data.Data() != *placeholder_value {
-                character_data.SetData(cx, placeholder_value.clone());
+            if *character_data.Data() != *placeholder_value {
+                character_data.SetData(cx, placeholder_value.clone().root());
             }
         }
     }
