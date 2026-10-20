@@ -1,0 +1,40 @@
+# W2.8: ensure the in-tree fuzz workspace compiles on every push/pull_request
+# that touches fuzz targets or the fuzz crate.
+
+name: Fuzz compile
+
+on:
+  push:
+    paths:
+      - 'fuzz/**'
+      - '.github/workflows/fuzz-compile.yml'
+      - '.github/workflows/fuzzing.yml'
+  pull_request:
+    paths:
+      - 'fuzz/**'
+      - '.github/workflows/fuzz-compile.yml'
+      - '.github/workflows/fuzzing.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  fuzz-check:
+    name: Check fuzz targets compile
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup Rust toolchain (nightly)
+        run: rustup toolchain install nightly --profile minimal --no-self-update
+      - name: Install system deps for font dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential pkg-config libfreetype6-dev libfontconfig1-dev
+      - name: Check fuzz crate
+        env:
+          FREETYPE2_NO_PKG_CONFIG: "0"
+        run: cargo +nightly check --manifest-path fuzz/Cargo.toml --bins
