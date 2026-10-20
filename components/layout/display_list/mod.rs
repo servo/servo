@@ -26,7 +26,6 @@ use servo_url::ServoUrl;
 use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
 use style::computed_values::background_blend_mode::SingleComputedValue as BackgroundBlendMode;
-use style::computed_values::background_clip::single_value::T as BackgroundClip;
 use style::computed_values::border_image_outset::T as BorderImageOutset;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::overflow_x::T as ComputedOverflow;
@@ -1656,6 +1655,7 @@ struct BuilderForBoxFragment<'a> {
     border_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
     padding_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
     content_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
+    text_mask_clip_chain_id: OnceCell<Option<ClipChainId>>,
 }
 
 impl<'a> BuilderForBoxFragment<'a> {
@@ -1677,6 +1677,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             border_edge_clip_chain_id: RefCell::new(None),
             padding_edge_clip_chain_id: RefCell::new(None),
             content_edge_clip_chain_id: RefCell::new(None),
+            text_mask_clip_chain_id: OnceCell::new(),
         }
     }
 
@@ -1930,9 +1931,20 @@ impl<'a> BuilderForBoxFragment<'a> {
             let layer_index = b.background_image.0.len() - 1;
             let bounds = painter.painting_area(self, builder, layer_index);
             let common = painter.common_properties(self, builder, state, layer_index, bounds);
+            let text_clip = painter.text_clip(self, builder, state, layer_index);
+            let pushed_stacking_context = Self::push_background_stacking_context(
+                builder,
+                state,
+                BackgroundBlendMode::Normal,
+                StackingContextFlags::empty(),
+                text_clip,
+            );
             builder
                 .wr()
                 .push_rect(&common, bounds, rgba(background_color));
+            if pushed_stacking_context {
+                builder.wr().pop_stacking_context();
+            }
 
             // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
             // First paint ... includes non-default background paint and the enclosing box of an iframe.
@@ -2024,38 +2036,33 @@ impl<'a> BuilderForBoxFragment<'a> {
             positioning_area_override: None,
         };
 
-        // When any background layer uses `background-clip: text`,
-        // wrap the whole background in a stacking context carrying the glyph mask.
-        let text_mask_clip = self
-            .fragment
-            .style()
-            .get_background()
-            .background_clip
-            .0
-            .iter()
-            .any(|clip| matches!(clip, BackgroundClip::Text))
-            .then(|| self.text_mask_clip(builder, state))
-            .flatten();
+        self.build_background_for_painter(builder, state, &painter);
+    }
 
-        if let Some(mask_clip) = text_mask_clip {
-            let spatial_id = builder.spatial_id(state.spatial_id);
-            builder.wr().push_stacking_context(
-                spatial_id,
-                PrimitiveFlags::empty(),
-                Some(mask_clip),
-                webrender_api::TransformStyle::Flat,
-                webrender_api::MixBlendMode::Normal,
-                &[],
-                &[],
-                RasterSpace::Screen,
-                StackingContextFlags::empty(),
-                None,
-            );
-            self.build_background_for_painter(builder, state, &painter);
-            builder.wr().pop_stacking_context();
-        } else {
-            self.build_background_for_painter(builder, state, &painter);
+    fn push_background_stacking_context(
+        builder: &mut DisplayListBuilder,
+        state: &TraversalState,
+        blend_mode: BackgroundBlendMode,
+        flags: StackingContextFlags,
+        text_clip: Option<ClipChainId>,
+    ) -> bool {
+        if blend_mode == BackgroundBlendMode::Normal && flags.is_empty() && text_clip.is_none() {
+            return false;
         }
+        let spatial_id = builder.spatial_id(state.spatial_id);
+        builder.wr().push_stacking_context(
+            spatial_id,
+            PrimitiveFlags::empty(),
+            text_clip,
+            TransformStyle::Flat,
+            blend_mode.to_webrender(),
+            &[],
+            &[],
+            RasterSpace::Screen,
+            flags,
+            None,
+        );
+        true
     }
 
     fn build_background_image(
@@ -2073,31 +2080,13 @@ impl<'a> BuilderForBoxFragment<'a> {
             .take(b.background_image.0.len())
             .any(|background_blend_mode| background_blend_mode != &BackgroundBlendMode::Normal);
 
-        let push_stacking_context = |builder: &mut DisplayListBuilder,
-                                     blend_mode: BackgroundBlendMode,
-                                     flags: StackingContextFlags|
-         -> bool {
-            let spatial_id = builder.spatial_id(state.spatial_id);
-            builder.wr().push_stacking_context(
-                spatial_id,
-                PrimitiveFlags::empty(),
-                None,
-                TransformStyle::Flat,
-                blend_mode.to_webrender(),
-                &[],
-                &[],
-                RasterSpace::Screen,
-                flags,
-                None,
-            );
-            true
-        };
-
         if need_blend_container {
-            push_stacking_context(
+            Self::push_background_stacking_context(
                 builder,
+                state,
                 BackgroundBlendMode::Normal,
                 StackingContextFlags::IS_BLEND_CONTAINER,
+                None,
             );
         }
 
@@ -2116,10 +2105,14 @@ impl<'a> BuilderForBoxFragment<'a> {
                         continue;
                     };
 
-                    let needs_blending = layer.blend_mode != BackgroundBlendMode::Normal;
-                    if needs_blending {
-                        push_stacking_context(builder, layer.blend_mode, Default::default());
-                    }
+                    let text_clip = painter.text_clip(self, builder, state, index);
+                    let pushed_stacking_context = Self::push_background_stacking_context(
+                        builder,
+                        state,
+                        layer.blend_mode,
+                        StackingContextFlags::empty(),
+                        text_clip,
+                    );
 
                     match resolved_image {
                         ResolvedImage::Gradient(gradient) => {
@@ -2160,7 +2153,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                         _ => {},
                     }
 
-                    if needs_blending {
+                    if pushed_stacking_context {
                         builder.wr().pop_stacking_context();
                     }
 
@@ -2196,10 +2189,14 @@ impl<'a> BuilderForBoxFragment<'a> {
                     };
 
                     if let Some(layer) = layer {
-                        let needs_blending = layer.blend_mode != BackgroundBlendMode::Normal;
-                        if needs_blending {
-                            push_stacking_context(builder, layer.blend_mode, Default::default());
-                        }
+                        let text_clip = painter.text_clip(self, builder, state, index);
+                        let pushed_stacking_context = Self::push_background_stacking_context(
+                            builder,
+                            state,
+                            layer.blend_mode,
+                            StackingContextFlags::empty(),
+                            text_clip,
+                        );
 
                         if layer.repeat {
                             builder.wr().push_repeating_image(
@@ -2223,7 +2220,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                             )
                         }
 
-                        if needs_blending {
+                        if pushed_stacking_context {
                             builder.wr().pop_stacking_context();
                         }
 
