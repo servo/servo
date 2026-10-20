@@ -149,21 +149,12 @@ Unit tests were added in `components/net/tests/cookie.rs`
 Core: `components/net/connector.rs` (rustls + `rustls-platform-verifier`,
 `aws-lc-rs`).
 
-- Validation is real by default.
-- **Bypass #1 (global):** `ignore_certificate_errors` accepts every certificate
-  for every host. Default `false`; exposed to embedders via
-  `servo_options_set_ignore_certificate_errors` (`ffi/capi/options.rs`).
-- **Bypass #2 (per-certificate):** the `CertificateErrorOverrideManager` accepts
-  a matching **DER certificate** regardless of hostname/SAN — weaker than
-  Chromium's per-host exception model. Failed certs are surfaced to the embedder
-  (`components/net/http_loader.rs`, `ffi/capi/cert_error.rs`).
-- The FFI certificate-error continuation (`ffi/capi/cert_error.rs`) carries a raw
-  `user_data` pointer and a documented-but-unenforced "do not use after the
-  callback returns" lifetime.
+- **Validation real by default** — verified in `components/net/connector.rs` (`CertificateVerificationOverrideVerifier`, `create_tls_config`).
+- **Bypass #1 (global):** `ignore_certificate_errors` accepts every certificate for every host. Default `false`; exposed to embedders via `servo_options_set_ignore_certificate_errors` (`ffi/capi/options.rs:176-190`). **Verified** (present by design; off by default).
+- **Bypass #2 (per-certificate):** `CertificateErrorOverrideManager` accepts a matching **DER certificate** regardless of hostname/SAN (weaker than Chromium's per-host exception model). Failed certs are surfaced to the embedder (`components/net/http_loader.rs`, `ffi/capi/cert_error.rs`). **Verified**.
+- The FFI certificate-error continuation (`ffi/capi/cert_error.rs`) carries a raw `user_data` pointer and a documented-but-unenforced "do not use after the callback returns" lifetime. **Documented/deferred** (see recommendation).
 
-**Recommendation:** keep both off by default (done); require an explicit
-per-host decision for overrides; add regression tests for the bypass logic
-(currently untested in isolation).
+**Recommendation:** keep both off by default (done); require an explicit per-host decision for overrides; add regression tests for the bypass logic (currently untested in isolation). **Gap registered** (no isolated tests added in this pass).
 
 ---
 
