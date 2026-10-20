@@ -216,13 +216,13 @@ fuzzing.
 
 Ordered by value-per-unit-risk:
 
-1. **Enforce partitioned (CHIPS) cookies on send.** `SameSite` is now enforced
-   (see §4.3), but `ServoCookie` still does not implement the `Partitioned`
-   attribute: cookie selection has no partition key, so partitioned cookies are
-   stored and sent unpartitioned. This requires extending the storage model
-   (`components/net/cookie_storage.rs`) to key cookies by
-   `(domain, partition_key)` and threading the top-level-site partition key
-   through `http_loader`. `Cookie::partitioned()` is already parsed by
+1. **Enforce partitioned (CHIPS) cookies on send.** **Implemented and verified.**
+   `SameSiteContext.partition_key` is populated in `components/net/http_loader.rs:same_site_context_for_request`
+   for top-level document navigations and non-nested client requests, failing closed
+   (`None`) for unresolvable/nested origins. Unit tests added in
+   `components/net/tests/cookie.rs::test_partitioned_cookie_matching` and
+   `test_partitioned_cookie_storage_filtering`. Full credential logging in
+   `cookie_storage.rs:255` demoted to trace.
    `cookie` 0.18.
 2. **Keep the JS-reachable panic fixed** (§4.1) and audit the remaining
    reachable-panic candidates (§4.2) into non-fatal paths.

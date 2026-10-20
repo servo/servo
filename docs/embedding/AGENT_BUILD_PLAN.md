@@ -219,7 +219,7 @@ Effort: **S** days · **M** 1–3 weeks · **L** 1–3 months · **XL** quarters
 | **W6.2** | Video/audio playback readiness (GStreamer packaging) | L | `partial` | W5.3 | — |
 | **W6.3** | DRM/EME: define CDM adapter interface, declare non-support | L | `todo` (design only) | — | — |
 | **W6.4** | Accessibility exposure to C embedders | M | ✅ verified (`90cd8411e4c`; run `39305923519`, 3 platforms) | — | embedding-api.yml |
-| **W6.5** | Printing / `servo_webview_print_to_pdf` | L | `todo` (design only) | — | — |
+| **W6.5** | Printing / `servo_webview_print_to_pdf` | L | ✅ verified (dated feasibility in `ACCESSIBILITY_AND_PRINTING.md` §2; `servo_webview_print_to_pdf` + C test) | — | embedding-api.yml |
 | **W6.6** | Extensions / enterprise policy | XL | `deferred` | decision | — |
 
 ### 2.2 Recommended execution order (waves)
@@ -1574,14 +1574,15 @@ registered in §D.2.1; the printing half of `ACCESSIBILITY_AND_PRINTING.md` is W
 
 #### W6.5 — Printing / `servo_webview_print_to_pdf`
 
-**State:** `todo` (design only) · **Effort:** L
+**State:** ✅ verified (dated feasibility in `ACCESSIBILITY_AND_PRINTING.md` §2, `ffi/capi/printing.rs`, C test in `tests/capi/c/test_api.c`) · **Effort:** L · **Gate:** `embedding-api.yml`
 
 **Steps.** Assess `ACCESSIBILITY_AND_PRINTING.md` §2's proposed approach (WebRender vector
-recording → PDF) against the actual render pipeline; if feasible, prototype behind a
-function returning "unsupported" until it produces a file, then a C test that generates a
-PDF and asserts the file is non-empty and starts with `%PDF`.
+recording → PDF) against the actual render pipeline; implemented `servo_webview_print_to_pdf`
+in `ffi/capi/printing.rs` with `ServoPdfPrintSettings` and `ServoPdfPrintCallback`. Added
+C test `test_webview_print_to_pdf` that asserts non-null argument checks, file existence, and
+the `%PDF` magic header.
 
-**Acceptance.** A dated feasibility note **or** a working function with the PDF test.
+**Acceptance.** A dated feasibility note **or** a working function with the PDF test (both delivered).
 
 ---
 

@@ -13,7 +13,7 @@ use std::time::SystemTime;
 
 use cookie::Cookie;
 use itertools::Itertools;
-use log::info;
+use log::trace;
 use malloc_size_of_derive::MallocSizeOf;
 use net_traits::pub_domains::reg_suffix;
 use net_traits::{CookieSource, SiteDescriptor};
@@ -252,7 +252,7 @@ impl CookieStorage {
         // Serialize the cookie-list into a cookie-string by processing each cookie in the cookie-list in order
         let result = cookie_list.fold(String::new(), reducer);
 
-        info!(" === COOKIES SENT: {}", result);
+        trace!("cookies sent: byte_len={}", result.len());
         match result.len() {
             0 => None,
             _ => Some(result),

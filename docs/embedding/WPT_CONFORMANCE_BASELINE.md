@@ -60,7 +60,7 @@
 
 ## Cookie Partitioning (CHIPS) Status Note
 
-Partitioned (`Partitioned`) cookie parsing and storage keying are implemented (`components/net/cookie.rs`), but `SameSiteContext.partition_key` is not currently populated with the top-level site on send. Partitioned cookies are currently stored but never sent.
+Partitioned (`Partitioned`) cookie parsing and storage keying are implemented (`components/net/cookie.rs`), and `SameSiteContext.partition_key` is populated with the top-level site on send in `components/net/http_loader.rs:same_site_context_for_request` (W2.6). Partitioned cookies are now transmitted on matching-partition requests and withheld otherwise.
 
 ## Execution & Regeneration
 

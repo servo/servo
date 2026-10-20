@@ -80,7 +80,7 @@ use crate::connector::{
     CertificateErrorOverrideManager, ServoClient, TlsHandshakeInfo, create_tls_config,
 };
 use crate::cookie::{SameSiteContext, ServoCookie};
-use crate::cookie_storage::CookieStorage;
+use crate::cookie_storage::{CookieStorage, reg_host};
 use crate::decoder::Decoder;
 use crate::devtools::{
     prepare_devtools_request, send_request_to_devtools, send_response_values_to_devtools,
@@ -431,7 +431,8 @@ pub fn determine_requests_referrer(
 }
 
 /// Computes the [`SameSiteContext`] used when selecting cookies to send, per
-/// <https://www.ietf.org/archive/id/draft-ietf-httpbis-rfc6265bis-20.html#section-5.4>.
+/// <https://www.ietf.org/archive/id/draft-ietf-httpbis-rfc6265bis-20.html#section-5.4>
+/// and CHIPS (<https://github.com/privacycg/CHIPS>).
 fn same_site_context_for_request(request: &Request) -> SameSiteContext {
     // The request's "site for cookies" is its initiator origin. When the origin
     // is "client" (for example a user-initiated navigation), there is no
@@ -443,13 +444,36 @@ fn same_site_context_for_request(request: &Request) -> SameSiteContext {
         Origin::Client => false,
     };
 
+    let top_level_navigation = matches!(request.destination, Destination::Document);
+
+    // CHIPS partition key:
+    // 1. For a top-level document navigation, the partition key is the site of the target URL.
+    // 2. For non-nested client requests (subresources of a top-level document), the client
+    //    origin's site is the partition key.
+    // 3. For nested contexts (iframes) without propagated top-level site or undetermined
+    //    origins, fail closed to `None` so partitioned cookies are withheld.
+    let partition_key = if top_level_navigation {
+        request.current_url().host_str().map(reg_host)
+    } else if let Some(ref client) = request.client {
+        if !client.is_nested_browsing_context {
+            match &client.origin {
+                Origin::Origin(origin) => origin.host().map(|h| reg_host(&h.to_string())),
+                Origin::Client => None,
+            }
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
     SameSiteContext {
         cross_site,
         // Only a main-frame (top-level) navigation may use the `Lax` exception;
         // cross-site iframe navigations must not receive `Lax` cookies.
-        top_level_navigation: matches!(request.destination, Destination::Document),
+        top_level_navigation,
         safe_method: matches!(request.method, Method::GET | Method::HEAD),
-        partition_key: None,
+        partition_key,
     }
 }
 
