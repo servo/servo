@@ -768,7 +768,7 @@ impl HeadedWindow {
                 },
                 egui_winit::accesskit_winit::WindowEvent::ActionRequested(req) => {
                     if req.target_tree != accesskit::TreeId::ROOT {
-                        // TODO(#4344): Forward action to Servo
+                        state.servo.forward_accessibility_action(req.clone());
                     }
                 },
                 egui_winit::accesskit_winit::WindowEvent::AccessibilityDeactivated => {

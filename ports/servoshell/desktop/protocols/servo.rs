@@ -85,6 +85,15 @@ impl ProtocolHandler for ServoProtocolHandler {
                 json_response(request, format!("\"{user_agent}\""))
             },
 
+            "about" | "version" => {
+                let user_agent = UserAgentPlatform::default().to_user_agent_string();
+                let body = format!(
+                    "<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>About Servo</title><link rel=\"stylesheet\" href=\"resource:///newtab.css\" /></head><body><div style=\"max-width: 600px; margin: 40px auto; font-family: sans-serif;\"><h1>Servo Browser</h1><p><b>Engine:</b> Servo Full Browser Engine</p><p><b>User Agent:</b> {}</p><hr/><p><a href=\"servo:newtab\">New Tab</a> &bull; <a href=\"servo:preferences\">Preferences</a> &bull; <a href=\"servo:config\">Config</a> &bull; <a href=\"servo:license\">License</a></p></div></body></html>",
+                    user_agent
+                );
+                html_response(request, body)
+            },
+
             _ => Box::pin(std::future::ready(Response::network_error(
                 NetworkError::ResourceLoadError("Invalid shortcut".to_owned()),
             ))),
@@ -101,6 +110,19 @@ fn json_response(
         ResourceFetchTiming::new(request.timing_type()),
     );
     response.headers.typed_insert(ContentType::json());
+    *response.body.lock() = ResponseBody::Done(body.into_bytes());
+    Box::pin(std::future::ready(response))
+}
+
+fn html_response(
+    request: &Request,
+    body: String,
+) -> Pin<Box<dyn Future<Output = Response> + Send>> {
+    let mut response = Response::new(
+        request.current_url(),
+        ResourceFetchTiming::new(request.timing_type()),
+    );
+    response.headers.typed_insert(ContentType::html());
     *response.body.lock() = ResponseBody::Done(body.into_bytes());
     Box::pin(std::future::ready(response))
 }
