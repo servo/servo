@@ -73,7 +73,7 @@ pub(crate) trait Validatable {
         // report the problem, run focusing steps, scroll into view.
         if report {
             let flags = self.validity_state(cx).invalid_flags();
-            println!(
+            log::debug!(
                 "Validation error: {}",
                 validation_message_for_flags(&self.validity_state(cx), flags)
             );
