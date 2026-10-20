@@ -414,10 +414,10 @@ unsafe extern "C" fn delete_(
     let mut cx = unsafe { JSContext::from_ptr(NonNull::new(cx).unwrap()) };
     let proxy = unsafe { HandleObject::from_raw(proxy) };
     let id = unsafe { Handle::from_raw(id) };
-    let mut result_ptr = unsafe { *result };
+    let result_ptr = unsafe { &mut *result };
 
     if is_length_id(&cx, id) {
-        return (result_ptr).fail_cant_delete();
+        return result_ptr.fail_cant_delete();
     }
 
     if let Some(index) = get_array_index_from_id(id) {
@@ -432,7 +432,7 @@ unsafe extern "C" fn delete_(
         }
 
         if old_len != index + 1 {
-            return (result_ptr).fail_bad_index();
+            return result_ptr.fail_bad_index();
         }
 
         rooted!(&in(cx) let mut value = UndefinedValue());
@@ -450,7 +450,7 @@ unsafe extern "C" fn delete_(
             return false;
         }
 
-        return (result_ptr).succeed();
+        return result_ptr.succeed();
     }
 
     rooted!(&in(cx) let mut target = ptr::null_mut::<JSObject>());

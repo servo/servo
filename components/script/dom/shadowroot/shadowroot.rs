@@ -584,12 +584,18 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         value: DomRoot<CSSStyleSheet>,
         index: u32,
     ) -> ErrorResult {
-        DocumentOrShadowRoot::on_set_adopted_stylesheets(
+        let result = DocumentOrShadowRoot::on_set_adopted_stylesheets(
             self.adopted_stylesheets.safe_borrow_mut(cx).as_mut(),
             &value,
             index,
             &StyleSheetListOwner::ShadowRoot(Dom::from_ref(self)),
-        )
+        );
+
+        if result.is_ok() && self.author_styles.borrow().stylesheets.dirty() {
+            self.invalidate_stylesheets(cx.no_gc());
+        }
+
+        result
     }
 
     /// <https://drafts.csswg.org/cssom/#dom-documentorshadowroot-adoptedstylesheets>
@@ -599,11 +605,17 @@ impl ShadowRootMethods<crate::DomTypeHolder> for ShadowRoot {
         _value: DomRoot<CSSStyleSheet>,
         index: u32,
     ) -> ErrorResult {
-        DocumentOrShadowRoot::on_delete_adopted_stylesheets(
+        let result = DocumentOrShadowRoot::on_delete_adopted_stylesheets(
             self.adopted_stylesheets.safe_borrow_mut(cx).as_mut(),
             index,
             &StyleSheetListOwner::ShadowRoot(Dom::from_ref(self)),
-        )
+        );
+
+        if result.is_ok() && self.author_styles.borrow().stylesheets.dirty() {
+            self.invalidate_stylesheets(cx.no_gc());
+        }
+
+        result
     }
 
     /// <https://fullscreen.spec.whatwg.org/#dom-document-fullscreenelement>

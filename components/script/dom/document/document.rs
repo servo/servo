@@ -64,6 +64,7 @@ use script_bindings::cell::{DomRefCell, Ref, RefMut};
 use script_bindings::domstring::TracedDOMString;
 use script_bindings::interfaces::DocumentHelpers;
 use script_bindings::reflector::reflect_dom_object_with_proto;
+use script_bindings::tasks::NonSendTaskBox;
 use script_bindings::trace::CustomTraceable;
 use script_traits::{DocumentActivity, ProgressiveWebMetricType};
 use servo_arc::Arc;
