@@ -545,7 +545,7 @@ impl DedicatedWorkerGlobalScope {
                 let worker_id = init.worker_id;
                 #[cfg(feature = "devtools")]
                 let devtools_enabled = init.to_devtools_sender.is_some();
-                let global = DedicatedWorkerGlobalScope::new(
+                let dedicated_worker_global_scope = DedicatedWorkerGlobalScope::new(
                     init,
                     webview_id,
                     worker_name.into(),
@@ -576,21 +576,22 @@ impl DedicatedWorkerGlobalScope {
                 if devtools_enabled {
                     debugger_global.fire_add_debuggee(
                         cx,
-                        global.upcast(),
+                        dedicated_worker_global_scope.upcast(),
                         pipeline_id,
                         Some(worker_id),
                     );
                 }
-                let scope = global.upcast::<WorkerGlobalScope>();
-                let global_scope = global.upcast::<GlobalScope>();
+                let worker_global_scope =
+                    dedicated_worker_global_scope.upcast::<WorkerGlobalScope>();
+                let global_scope = dedicated_worker_global_scope.upcast::<GlobalScope>();
 
                 // Step 12. Obtain script by switching on options["type"]:
                 {
-                    let _ar = AutoWorkerReset::new(&global, worker.clone());
+                    let _ar = AutoWorkerReset::new(&dedicated_worker_global_scope, worker.clone());
                     match worker_type {
                         WorkerType::Classic => {
                             fetch_a_classic_worker_script(
-                                scope,
+                                worker_global_scope,
                                 worker_url,
                                 request_client,
                                 Destination::Worker,
@@ -599,7 +600,7 @@ impl DedicatedWorkerGlobalScope {
                             );
                         },
                         WorkerType::Module => {
-                            let worker_scope = DomRoot::from_ref(scope);
+                            let worker_scope = DomRoot::from_ref(worker_global_scope);
                             fetch_a_module_script_graph(
                                 cx,
                                 global_scope,
@@ -620,29 +621,31 @@ impl DedicatedWorkerGlobalScope {
                     }
 
                     let reporter_name = format!("dedicated-worker-reporter-{}", worker_id);
-                    scope
-                        .upcast::<GlobalScope>()
-                        .mem_profiler_chan()
-                        .run_with_memory_reporting(
-                            || {
-                                // Step 27, Run the responsible event loop specified
-                                // by inside settings until it is destroyed.
-                                // The worker processing model remains on this step
-                                // until the event loop is destroyed,
-                                // which happens after the closing flag is set to true.
-                                while !scope.is_closing() {
-                                    run_worker_event_loop(&*global, Some(&worker), cx);
-                                }
-                            },
-                            reporter_name,
-                            event_loop_sender,
-                            CommonScriptMsg::CollectReports,
-                        );
+                    global_scope.mem_profiler_chan().run_with_memory_reporting(
+                        || {
+                            // Step 27, Run the responsible event loop specified
+                            // by inside settings until it is destroyed.
+                            // The worker processing model remains on this step
+                            // until the event loop is destroyed,
+                            // which happens after the closing flag is set to true.
+                            while !worker_global_scope.is_closing() {
+                                run_worker_event_loop(
+                                    &*dedicated_worker_global_scope,
+                                    Some(&worker),
+                                    cx,
+                                );
+                            }
+                        },
+                        reporter_name,
+                        event_loop_sender,
+                        CommonScriptMsg::CollectReports,
+                    );
                 }
 
                 // Drop worker rAF state before destroying the JS runtime.
-                global.clear_animation_frame_callbacks_and_unregister();
-                scope.clear_js_runtime();
+                dedicated_worker_global_scope.clear_animation_frame_callbacks_and_unregister();
+                global_scope.fetch_group_mut().terminate(global_scope);
+                worker_global_scope.clear_js_runtime();
             })
             .expect("Thread spawning failed")
     }
