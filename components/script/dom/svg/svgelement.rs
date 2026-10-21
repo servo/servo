@@ -26,7 +26,7 @@ use crate::dom::css::cssstyledeclaration::{
     CSSModificationAccess, CSSStyleDeclaration, CSSStyleOwner,
 };
 use crate::dom::document::Document;
-use crate::dom::document::focus::FocusableArea;
+use crate::dom::document::focus::RootedFocusableArea;
 use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
 use crate::dom::node::focus::FocusTrigger;
@@ -238,7 +238,7 @@ impl SVGElementMethods<crate::DomTypeHolder> for SVGElement {
         // <https://html.spec.whatwg.org/multipage/#unfocusing-steps>
         self.owner_document()
             .focus_handler()
-            .focus(cx, &FocusableArea::Viewport);
+            .focus(cx, &RootedFocusableArea::Viewport);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-tabindex>

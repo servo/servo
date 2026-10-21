@@ -55,7 +55,7 @@ use crate::dom::document::FireMouseEventType;
 use crate::dom::document::editing::{
     editing_action_from_composition_event, editing_action_from_keyboard_event,
 };
-use crate::dom::document::focus::FocusableArea;
+use crate::dom::document::focus::{FocusableArea, RootedFocusableArea};
 use crate::dom::document::interactive_element_command::InteractiveElementCommand;
 use crate::dom::event::{EventBubbles, EventCancelable, EventComposed, EventFlags};
 #[cfg(feature = "gamepad")]
@@ -1769,7 +1769,9 @@ impl DocumentEventHandler {
         let document = self.window.Document();
         let composition_event = match event {
             ImeEvent::Dismissed => {
-                document.focus_handler().focus(cx, &FocusableArea::Viewport);
+                document
+                    .focus_handler()
+                    .focus(cx, &RootedFocusableArea::Viewport);
                 return Default::default();
             },
             ImeEvent::Composition(composition_event) => composition_event,

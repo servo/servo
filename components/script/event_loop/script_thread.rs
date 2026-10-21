@@ -132,7 +132,7 @@ use crate::dom::csp::{CspReporting, GlobalCspReporting, Violation};
 use crate::dom::customelementregistry::{
     CallbackReaction, CustomElementDefinition, CustomElementReactionStack,
 };
-use crate::dom::document::focus::FocusableArea;
+use crate::dom::document::focus::RootedFocusableArea;
 use crate::dom::document::{
     AbortReason, Document, HasBrowsingContext, IsHTMLDocument, RenderingUpdateReason,
 };
@@ -2945,15 +2945,14 @@ impl ScriptThread {
         let iframe_element = browsing_context_id
             .and_then(|browsing_context_id| document.iframes().element(browsing_context_id));
 
-        rooted!(&in(cx) let focusable_area = iframe_element
-            .map(|iframe_element| FocusableArea::IFrameViewport {
-                iframe_element: iframe_element.as_traced(),
+        let focusable_area = iframe_element
+            .map(|iframe_element| RootedFocusableArea::IFrameViewport {
                 kind: iframe_element
                     .upcast::<Element>()
                     .focusable_area_kind(cx.no_gc()),
+                iframe_element,
             })
-            .unwrap_or(FocusableArea::Viewport)
-        );
+            .unwrap_or(RootedFocusableArea::Viewport);
 
         rooted!(&in(cx) let new_focus_chain = focusable_area.focus_chain());
         rooted!(&in(cx) let old_focus_chain = focus_handler.current_focus_chain());
@@ -3023,7 +3022,7 @@ impl ScriptThread {
             cx,
             new_focus_chain,
             old_focus_chain,
-            &FocusableArea::Viewport,
+            &RootedFocusableArea::Viewport,
             false, /* for_system_focus_change */
         );
 
