@@ -609,7 +609,7 @@ impl FileReader {
                     Trusted::new(&filereader_success.clone()),
                     gen_id,
                     load_data.clone(),
-                    blob_contents.to_vec(),
+                    blob_contents,
                 ));
             }),
             Rc::new(move |_cx, _error| {
