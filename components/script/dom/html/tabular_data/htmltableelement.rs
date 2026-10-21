@@ -563,7 +563,7 @@ impl VirtualMethods for HTMLTableElement {
 
     fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
         match attr.local_name() {
-            &local_name!("width") | &local_name!("height") => true,
+            &local_name!("width") | &local_name!("height") | &local_name!("cellspacing") => true,
             _ => self
                 .super_type()
                 .unwrap()
