@@ -5,7 +5,7 @@
 use std::sync::Arc;
 
 use fft_convolver::FFTConvolver;
-use log::{error, warn};
+use log::error;
 use malloc_size_of_derive::MallocSizeOf;
 
 use crate::audio_node::{
@@ -112,10 +112,7 @@ fn linear_convolution(input: &[f32], convolver: &mut FFTConvolver<f32>) -> Optio
 }
 
 fn downmix_four_channel_output_to_stereo(outputs: Vec<Vec<f32>>) -> Vec<f32> {
-    if outputs.len() != 4 {
-        warn!("Output does not have four channels.");
-        return Vec::new();
-    }
+    assert_eq!(outputs.len(), 4, "Output does not have four channels.");
     let mut output = Vec::with_capacity(outputs[0].len() * 2);
     let mixed_output_0 = outputs[0]
         .iter()
@@ -157,8 +154,8 @@ impl ConvolverNode {
         match message {
             ConvolverNodeMessage::SetBuffer(maybe_buffer) => {
                 let mut buffer = maybe_buffer;
-                // > Changes to this value do not take effect until the next time the buffer attribute is set.
                 // <https://webaudio.github.io/web-audio-api/#dom-convolvernode-normalize>
+                // > Changes to this value do not take effect until the next time the buffer attribute is set.
                 if let Some(input_buffer) = buffer.as_ref() &&
                     self.normalize
                 {

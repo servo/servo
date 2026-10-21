@@ -366,6 +366,7 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
     // https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-onstatechange
     event_handler!(statechange, GetOnstatechange, SetOnstatechange);
 
+    /// <https://webaudio.github.io/web-audio-api/#dom-baseaudiocontext-createconvolver>
     fn CreateConvolver(&self, cx: &mut JSContext) -> Fallible<DomRoot<ConvolverNode>> {
         ConvolverNode::Constructor(
             cx,
