@@ -199,7 +199,8 @@ impl<'dom> style::dom::TElement for ServoDangerousStyleElement<'dom> {
 
     #[inline]
     fn id(&self) -> Option<&Atom> {
-        unsafe { (*self.element.id_attribute()).as_ref() }
+        // Script can't mutate the element while layout runs.
+        unsafe { self.element.id_attribute_unguarded() }
     }
 
     #[inline(always)]
@@ -856,11 +857,9 @@ impl<'dom> ::selectors::Element for ServoDangerousStyleElement<'dom> {
 
     #[inline]
     fn has_id(&self, id: &AtomIdent, case_sensitivity: CaseSensitivity) -> bool {
-        unsafe {
-            (*self.element.id_attribute())
-                .as_ref()
-                .is_some_and(|atom| case_sensitivity.eq_atom(atom, id))
-        }
+        self.element
+            .id_attribute()
+            .is_some_and(|atom| case_sensitivity.eq_atom(&atom, id))
     }
 
     #[inline]
