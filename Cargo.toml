@@ -214,6 +214,7 @@ realfft = "3.5.0"
 regex = "1.12"
 resvg = "0.48.1"
 rsa = "=0.10.0-rc.19"
+rtnetlink = "0.23.0"
 rusqlite = { version = "0.38", features = ["bundled"] }
 rustc-demangle = "0.1"
 rustc-hash = "2.1.2"

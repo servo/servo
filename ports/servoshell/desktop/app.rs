@@ -27,9 +27,9 @@ use crate::desktop::protocols;
 use crate::desktop::tracing::trace_winit_event;
 use crate::parser::get_default_url;
 use crate::prefs::ServoShellPreferences;
-use crate::running_app_state::RunningAppState;
 #[cfg(feature = "gamepad")]
 use crate::running_app_state::ServoshellGamepadDelegate;
+use crate::running_app_state::{NetworkMonitor, RunningAppState};
 use crate::window::{PlatformWindow, ServoShellWindowId, TopLevelWebViewCreationRequest};
 
 pub(crate) enum AppState {
@@ -133,6 +133,10 @@ impl App {
             self.event_loop_proxy
                 .clone()
                 .map(ServoshellGamepadDelegate::new)
+                .map(Rc::new),
+            self.event_loop_proxy
+                .clone()
+                .map(NetworkMonitor::new)
                 .map(Rc::new),
         ));
         let initial_url = self.initial_url.as_url().clone();
@@ -238,6 +242,9 @@ impl ApplicationHandler<AppEvent> for App {
             #[cfg(feature = "gamepad")]
             AppEvent::Gamepad(event, gamepad_name, gamepad_index) => {
                 state.handle_gamepad_events(event, gamepad_name, gamepad_index);
+            },
+            AppEvent::SetNetworkOnlineState(online) => {
+                state.servo.network_manager().set_online_state(online);
             },
         }
 

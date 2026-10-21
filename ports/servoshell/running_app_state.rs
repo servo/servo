@@ -44,6 +44,8 @@ use url::Url;
     not(any(target_os = "android", target_env = "ohos"))
 ))]
 pub(crate) use crate::desktop::gamepad::ServoshellGamepadDelegate;
+#[cfg(not(any(target_os = "android", target_env = "ohos")))]
+pub(crate) use crate::desktop::network_monitor::NetworkMonitor;
 use crate::prefs::{EXPERIMENTAL_PREFS, ServoShellPreferences};
 use crate::webdriver::WebDriverEmbedderControls;
 use crate::window::{
@@ -193,6 +195,11 @@ pub(crate) struct RunningAppState {
     ))]
     gamepad_delegate: Option<Rc<ServoshellGamepadDelegate>>,
 
+    /// The network state provider, used for detecting system network online state.
+    /// May be `None` if network state support is disabled or failed to initialize.
+    #[cfg(not(any(target_os = "android", target_env = "ohos")))]
+    _network_monitor: Option<Rc<NetworkMonitor>>,
+
     /// The [`WebDriverSenders`] used to reply to pending WebDriver requests.
     pub(crate) webdriver_senders: RefCell<WebDriverSenders>,
 
@@ -261,6 +268,7 @@ impl RunningAppState {
             not(any(target_os = "android", target_env = "ohos"))
         ))]
         gamepad_delegate: Option<Rc<ServoshellGamepadDelegate>>,
+        network_monitor: Option<Rc<NetworkMonitor>>,
     ) -> Self {
         servo.set_delegate(Rc::new(ServoShellServoDelegate));
 
@@ -297,6 +305,7 @@ impl RunningAppState {
             user_content_manager,
             experimental_preferences_enabled,
             accessibility_active: Cell::new(false),
+            _network_monitor: network_monitor,
         }
     }
 
