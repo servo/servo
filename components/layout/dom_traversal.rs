@@ -288,6 +288,8 @@ impl Contents {
             Some(LayoutNodeType::Element(
                 LayoutElementType::HTMLButtonElement |
                     LayoutElementType::HTMLInputElement |
+                    LayoutElementType::HTMLMeterElement |
+                    LayoutElementType::HTMLProgressElement |
                     LayoutElementType::HTMLSelectElement |
                     LayoutElementType::HTMLTextAreaElement
             ))
