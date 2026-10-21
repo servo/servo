@@ -414657,6 +414657,19 @@
          ],
          {}
         ]
+       ],
+       "meter-widget.html": [
+        "a548a219162cd681dc340a66c84bc794cb9c89dd",
+        [
+         null,
+         [
+          [
+           "/html/semantics/forms/the-meter-element/meter-widget-ref.html",
+           "=="
+          ]
+         ],
+         {}
+        ]
        ]
       },
       "the-option-element": {
@@ -414687,6 +414700,21 @@
            ]
           ]
          }
+        ]
+       ]
+      },
+      "the-progress-element": {
+       "progress-widget.html": [
+        "afd2b8cf7ab05640fc124fe4996a9b939787252e",
+        [
+         null,
+         [
+          [
+           "/html/semantics/forms/the-progress-element/progress-widget-ref.html",
+           "=="
+          ]
+         ],
+         {}
         ]
        ]
       },
@@ -566910,6 +566938,10 @@
         "f253945968e49902d1f2c2d60d9d8cd230166c6b",
         []
        ],
+       "meter-widget-ref.html": [
+        "85fdda4985a893f4bf8bf53a026a234ae9756115",
+        []
+       ],
        "reference": {
         "meter-appearance-auto-even-less-good-value-rendering.html": [
          "854ec5d5e750d84b5fcf29e74be482e986e9cce2",
@@ -566958,6 +566990,10 @@
       "the-progress-element": {
        "WEB_FEATURES.yml": [
         "abd5b4016be88ad3f4d79c957718afcd10a8a175",
+        []
+       ],
+       "progress-widget-ref.html": [
+        "388763833ae6acd282d831a9e6e194e07c2ec042",
         []
        ]
       },

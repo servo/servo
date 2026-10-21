@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title&lt;progress&gt; is a widget</title>
+<link rel="author" title="Oriol Brufau" href="mailto:obrufau@igalia.com">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/rendering.html#widgets">
+<link rel="help" href="https://www.w3.org/TR/css-display-3/#atomic-inline">
+<link rel="help" href="https://www.w3.org/TR/css-sizing-3/#preferred-size-properties">
+<link rel="match" href="progress-widget-ref.html">
+<meta name="assert" content="
+  A `<progress>` is a widget. Therefore, with `display: inline` it should be atomic,
+  exactly like with `display: inline-block`. In particular, sizing properties should
+  still apply.
+">
+
+<style>
+progress {
+  display: inline;
+  width: 246px;
+  height: 50px;
+}
+</style>
+<progress max="2.0" value="1.0"></progress>
