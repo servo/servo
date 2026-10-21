@@ -37,7 +37,7 @@ use crate::dom::stream::readablestreamgenericreader::ReadableStreamGenericReader
 use crate::dom::types::ReadableStreamDefaultController;
 use crate::realms::enter_auto_realm;
 
-type ReadAllBytesSuccessSteps = dyn Fn(&mut js::context::JSContext, &[u8]);
+type ReadAllBytesSuccessSteps = dyn Fn(&mut js::context::JSContext, Vec<u8>);
 type ReadAllBytesFailureSteps = dyn Fn(&mut js::context::JSContext, SafeHandleValue);
 
 impl js::gc::Rootable for ContinueReadMicrotask {}
@@ -242,7 +242,8 @@ impl ReadRequest {
                 ..
             } => {
                 // Step 1. Call successSteps with bytes.
-                (success_steps)(cx, &bytes.borrow());
+                let bytes = mem::take(&mut *bytes.borrow_mut());
+                (success_steps)(cx, bytes);
 
                 reader
                     .release(cx)
