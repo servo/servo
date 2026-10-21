@@ -13846,6 +13846,13 @@
     ]
    },
    "memory": {
+    "FileReader-does-not-leak-document.https.html": [
+     "40ca0754ae6b3ef86d8b02f9933a5ba19bdda773",
+     [
+      null,
+      {}
+     ]
+    ],
     "fetch-does-not-leak-document.html": [
      "5d795effda7bce5ff5bf9992f3a2c7bcfec76453",
      [

@@ -113,8 +113,9 @@ pub(crate) enum FileReaderReadyState {
 }
 
 #[derive(JSTraceable, MallocSizeOf)]
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum FileReaderResult {
-    ArrayBuffer(#[ignore_malloc_size_of = "mozjs"] RootedTraceableBox<Heap<JSVal>>),
+    ArrayBuffer(#[ignore_malloc_size_of = "mozjs"] Heap<JSVal>),
     String(DOMString),
 }
 
@@ -386,9 +387,9 @@ impl FileReader {
             create_buffer_source::<ArrayBufferU8>(cx, bytes, array_buffer.handle_mut()).is_ok()
         );
 
-        *result.borrow_mut() = Some(FileReaderResult::ArrayBuffer(RootedTraceableBox::default()));
+        *result.borrow_mut() = Some(FileReaderResult::ArrayBuffer(Heap::default()));
 
-        if let Some(FileReaderResult::ArrayBuffer(ref mut heap)) = *result.borrow_mut() {
+        if let Some(FileReaderResult::ArrayBuffer(heap)) = &*result.borrow() {
             heap.set(jsval::ObjectValue(array_buffer.get()));
         };
     }
@@ -482,9 +483,9 @@ impl FileReaderMethods<crate::DomTypeHolder> for FileReader {
     fn GetResult(&self) -> Option<StringOrObject> {
         self.result.borrow().as_ref().map(|r| match *r {
             FileReaderResult::String(ref string) => StringOrObject::String(string.clone()),
-            FileReaderResult::ArrayBuffer(ref arr_buffer) => {
+            FileReaderResult::ArrayBuffer(ref array_buffer) => {
                 let result = RootedTraceableBox::new(Heap::default());
-                result.set(arr_buffer.handle().to_object());
+                result.set(array_buffer.get().to_object());
                 StringOrObject::Object(result)
             },
         })
