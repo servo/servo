@@ -146,7 +146,7 @@ impl BaseAudioContext {
             ClientContextId::build(pipeline_id.namespace_id.0, pipeline_id.index.0.get());
         let audio_context_impl = ServoMedia::get()
             .create_audio_context(&client_context_id, options.convert())
-            .map_err(|_| Error::NotSupported(None))?;
+            .map_err(|_| Error::NotSupported(Some("Failed to create audio context".into())))?;
 
         Ok(BaseAudioContext {
             eventtarget: EventTarget::new_inherited(),
@@ -315,7 +315,10 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
 
         // Step 2.
         if self.audio_context_impl.lock().unwrap().state() == ProcessingState::Closed {
-            promise.reject_error(cx, Error::InvalidState(None));
+            promise.reject_error(
+                cx,
+                Error::InvalidState(Some("Cannot resume a closed AudioContext".into())),
+            );
             return promise;
         }
 
@@ -515,7 +518,9 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
             length == 0 ||
             *sample_rate <= 0.
         {
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(
+                "Invalid number of channels, length or sample rate".into(),
+            )));
         }
         Ok(AudioBuffer::new(
             cx,

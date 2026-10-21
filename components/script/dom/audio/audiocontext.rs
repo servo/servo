@@ -155,7 +155,10 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
 
         // Step 2.
         if self.context.control_thread_state() == ProcessingState::Closed {
-            promise.reject_error(cx, Error::InvalidState(None));
+            promise.reject_error(
+                cx,
+                Error::InvalidState(Some("Cannot suspend a closed AudioContext".into())),
+            );
             return promise;
         }
 
@@ -211,7 +214,10 @@ impl AudioContextMethods<crate::DomTypeHolder> for AudioContext {
 
         // Step 2.
         if self.context.control_thread_state() == ProcessingState::Closed {
-            promise.reject_error(cx, Error::InvalidState(None));
+            promise.reject_error(
+                cx,
+                Error::InvalidState(Some("AudioContext is already closed".into())),
+            );
             return promise;
         }
 

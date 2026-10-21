@@ -70,11 +70,15 @@ impl ChannelMergerNodeMethods<crate::DomTypeHolder> for ChannelMergerNode {
         }
 
         if node_options.count != 1 || node_options.mode != ChannelCountMode::Explicit {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Invalid channel options for ChannelMergerNode".into(),
+            )));
         }
 
         if options.numberOfInputs < 1 || options.numberOfInputs > MAX_CHANNEL_COUNT {
-            return Err(Error::IndexSize(None));
+            return Err(Error::IndexSize(Some(
+                "numberOfInputs is out of range".into(),
+            )));
         }
 
         let audio_node_init = AudioNodeInit::ChannelMergerNode(options.convert());

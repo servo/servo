@@ -110,10 +110,14 @@ impl PannerNodeMethods<crate::DomTypeHolder> for PannerNode {
             ))));
         }
         if node_options.mode == ChannelCountMode::Max {
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(
+                "Channel count mode cannot be \"max\"".into(),
+            )));
         }
         if node_options.count > 2 || node_options.count == 0 {
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(
+                "Channel count must be 1 or 2".into(),
+            )));
         }
         if *options.maxDistance <= 0. {
             return Err(Error::Range(c"maxDistance should be positive".into()));
@@ -125,7 +129,9 @@ impl PannerNodeMethods<crate::DomTypeHolder> for PannerNode {
             return Err(Error::Range(c"rolloffFactor should be non-negative".into()));
         }
         if *options.coneOuterGain < 0. || *options.coneOuterGain > 1. {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "coneOuterGain must be between 0 and 1".into(),
+            )));
         }
         let options = options.convert();
         let audio_node_init = AudioNodeInit::PannerNode(options);
@@ -360,7 +366,9 @@ impl PannerNodeMethods<crate::DomTypeHolder> for PannerNode {
     /// <https://webaudio.github.io/web-audio-api/#dom-pannernode-coneoutergain>
     fn SetConeOuterGain(&self, val: Finite<f64>) -> Fallible<()> {
         if *val < 0. || *val > 1. {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "coneOuterGain must be between 0 and 1".into(),
+            )));
         }
         self.cone_outer_gain.set(*val);
         let msg = PannerNodeMessage::SetConeGain(self.cone_outer_gain.get());
