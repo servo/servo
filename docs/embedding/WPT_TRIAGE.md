@@ -60,13 +60,13 @@ Analysis of the 154,583 non-pass metadata entries across `tests/wpt/meta` reveal
 ---
 
 ### Ticket WPT-03: HTML5 Form Validation & Interactive Controls
-- **Target Suite:** `tests/wpt/meta/html/semantics/forms/`
+- **Target Suite:** `tests/wpt/meta/html/semantics/forms/`, `tests/wpt/meta/html/semantics/interactive-elements/the-dialog-element/`
 - **Current Failures:** ~4,200 in `html`
 - **Real-World Impact:** Broken login forms, date pickers, client-side validation errors preventing form submission.
 - **Key Focus Areas:**
-  1. Constraint validation API (`checkValidity()`, `reportValidity()`, `:invalid` pseudo-class).
+  1. Constraint validation API (`checkValidity()`, `reportValidity()`, `:invalid` pseudo-class, and `stepMismatch` precision calculations - Landed in `components/script/dom/html/form_controls/htmlinputelement.rs`).
   2. Embedder control event forwarding (`components/servo/lib.rs:EmbedderControl`).
-  3. `<dialog>` element modal backdrop and focus trapping.
+  3. `<dialog>` element modal request close, `cancel` event firing, and button `command="request-close"` (Landed in `components/script/dom/html/interactive/htmldialogelement.rs`).
 - **Milestone:** M1
 
 ---

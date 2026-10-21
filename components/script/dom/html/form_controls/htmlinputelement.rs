@@ -816,11 +816,12 @@ impl HTMLInputElement {
 
         // https://html.spec.whatwg.org/multipage/#the-step-attribute%3Asuffering-from-a-step-mismatch
         if let Some(step) = self.allowed_value_step() {
-            // TODO: Spec has some issues here, see https://github.com/whatwg/html/issues/5207.
-            // Chrome and Firefox parse values as decimals to get exact results,
-            // we probably should too.
-            let diff = (self.step_base() - value_as_number) % step / value_as_number;
-            if diff.abs() > 1e-12 {
+            let delta = (value_as_number - self.step_base()).abs();
+            let steps = delta / step;
+            let nearest = steps.round();
+            // Step mismatch if distance to the nearest integer multiple exceeds floating-point tolerance.
+            let step_error = (steps - nearest).abs();
+            if step_error > 1e-6 {
                 failed_flags.insert(ValidationFlags::STEP_MISMATCH);
             }
         }

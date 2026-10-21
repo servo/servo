@@ -261,6 +261,33 @@ impl HTMLDialogElement {
             .queue_simple_event(target, atom!("close"));
     }
 
+    /// <https://html.spec.whatwg.org/multipage/#request-to-close-the-dialog>
+    pub fn request_to_close_the_dialog(
+        &self,
+        cx: &mut js::context::JSContext,
+        result: Option<DOMString>,
+        source: Option<DomRoot<Element>>,
+    ) {
+        // Step 1. Let canPreventClose be the result of firing an event named cancel at subject,
+        // using Event, with the cancelable attribute initialized to true.
+        let event = Event::new(
+            &self.owner_window(),
+            atom!("cancel"),
+            EventBubbles::DoesNotBubble,
+            EventCancelable::Cancelable,
+        );
+        let event = event.upcast::<Event>();
+        let can_prevent_close = event.fire(cx, self.upcast::<EventTarget>());
+
+        // Step 2. If canPreventClose is false, then return.
+        if !can_prevent_close {
+            return;
+        }
+
+        // Step 3. Close the dialog subject with returnValue and source.
+        self.close_the_dialog(cx, result, source);
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#queue-a-dialog-toggle-event-task>
     pub fn queue_dialog_toggle_event_task(
         &self,
@@ -456,9 +483,12 @@ impl VirtualMethods for HTMLDialogElement {
 
     /// <https://html.spec.whatwg.org/multipage/#the-dialog-element:is-valid-command-steps>
     fn is_valid_command_steps(&self, command: CommandState) -> bool {
-        // Step 1. If command is in the Close state, the Request Close state (TODO), or the
+        // Step 1. If command is in the Close state, the Request Close state, or the
         // ShowModal state, then return true.
-        if command == CommandState::Close || command == CommandState::ShowModal {
+        if command == CommandState::Close ||
+            command == CommandState::RequestClose ||
+            command == CommandState::ShowModal
+        {
             return true;
         }
         // Step 2. Return false.
@@ -491,8 +521,13 @@ impl VirtualMethods for HTMLDialogElement {
             return true;
         }
 
-        // TODO Step 3. If command is in the Request Close state and element has an open attribute,
+        // Step 3. If command is in the Request Close state and element has an open attribute,
         // then request to close the dialog element with source's optional value and source.
+        if command == CommandState::RequestClose && element.has_attribute(&local_name!("open")) {
+            let button_element = DomRoot::from_ref(source.upcast::<Element>());
+            self.request_to_close_the_dialog(cx, source.optional_value(), Some(button_element));
+            return true;
+        }
 
         // Step 4. If command is the Show Modal state and element does not have an open attribute,
         // then show a modal dialog given element and source.
