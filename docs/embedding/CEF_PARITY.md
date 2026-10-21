@@ -221,8 +221,9 @@ and readiness) and [`ROADMAP.md`](ROADMAP.md) (sequencing).
     `show_embedder_control`, `request_permission`, `request_authentication`.
 12. **Keyboard/focus in C** — `notify_input_event`, `set_focused`. **Done on this branch:** `servo_webview_notify_key_event`, `servo_webview_notify_mouse_button_event`, `servo_webview_notify_mouse_move_event`, `servo_webview_notify_mouse_leave_event`, `servo_webview_notify_touch_event`, `servo_webview_notify_wheel_event`, `servo_webview_notify_input_event_handled`, and focus delegate callbacks `notify_focus_changed`, `notify_got_focus`.
 13. **DevTools in C** — *done on this branch:* `servo_builder_set_delegate` with `notify_devtools_server_started` and `request_devtools_connection` callbacks.
-14. **Multi-process bootstrap** for C embedders — content-process entry and
-    sandbox setup.
+14. **Multi-process bootstrap & origin isolation** for C embedders — content-process entry (`servo_run_content_process`), sandbox setup, and origin isolation (`servo_options_set_origin_isolation`). *(done on this branch)*
+15. **WebExtensions (Manifest v2 / v3)** — WebExtension manifest parser and loader in servoshell (`--load-extension`), injecting content scripts and stylesheets via `UserContentManager` with `chrome.runtime` / `browser.runtime` bridge. *(done on this branch)*
+16. **Media, ClearKey EME & WebRTC** — W3C WebRTC DOM implementation (`RTCPeerConnection`, `RTCDataChannel`, transceivers) backed by GStreamer; EME ClearKey baseline architecture in `docs/embedding/MEDIA_AND_DRM_DESIGN.md`. *(done on this branch)*
 
 ### P2 — parity polish
 

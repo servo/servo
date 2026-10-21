@@ -96,6 +96,7 @@ When this HTTP response header is received on the initial navigation to an origi
 ## 5. Phased Implementation Roadmap
 
 - **Phase 1 (Landed):** Architectural specification and isolation key design.
-- **Phase 2 (Configurable Isolation):** Plumb `opts.origin_isolation` allowing embedders to enforce origin-keyed process pooling.
+- **Phase 2 (Landed):** Configurable origin isolation. Plumbed `opts.origin_isolation`, `--origin-isolation` CLI flag in servoshell, and C API `servo_options_set_origin_isolation(options, bool)` allowing embedders to enforce origin-keyed process pooling directly at the constellation level. Subdomains and origins are partitioned into isolated event loops.
 - **Phase 3 (Header Support):** Wire `Origin-Agent-Cluster` response header parsing into the navigation response pipeline in constellation.
+- **Phase 4 (Full Out-of-Process Iframes):** WebRender scene aggregation for cross-origin child pipelines with out-of-process hit-testing and input event routing over constellation IPC.
 - **Phase 4 (OOPIF Compositing):** Enable cross-process pipeline embedding for non-same-origin `HTMLIFrameElement` nodes with asynchronous layout synchronization.
