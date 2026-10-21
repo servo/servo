@@ -267,7 +267,7 @@ impl Geolocation {
         self.deferred_until_visible.borrow_mut().clear();
         self.watch_ids.borrow_mut().clear();
 
-        for (_, request) in self.requests.borrow().iter() {
+        for request in self.requests.borrow().values() {
             if let Some(handle) = request.timeout_handle.take() {
                 self.global().unschedule_callback(handle);
             }
