@@ -105,7 +105,10 @@ impl VirtualMethods for HTMLBodyElement {
     }
 
     fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
-        if attr.local_name() == &local_name!("bgcolor") {
+        if matches!(
+            attr.local_name(),
+            &local_name!("bgcolor") | &local_name!("text")
+        ) {
             return true;
         }
 
