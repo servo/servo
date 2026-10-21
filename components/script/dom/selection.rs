@@ -934,7 +934,9 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
             self.set_range(no_gc, None);
             return Ok(());
         }
-        Err(Error::NotFound(None))
+        Err(Error::NotFound(Some(
+            "Range is not the selection's range".into(),
+        )))
     }
 
     /// <https://w3c.github.io/selection-api/#dom-selection-removeallranges>
@@ -1045,13 +1047,15 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // Step 2. If node is a DocumentType, throw an InvalidNodeTypeError exception and
         // abort these steps.
         if node.is_doctype() {
-            return Err(Error::InvalidNodeType(None));
+            return Err(Error::InvalidNodeType(Some("Node is a doctype".into())));
         }
 
         // Step 3. The method must throw an IndexSizeError exception if offset is longer
         // than node's length and abort these steps.
         if offset > node.len() {
-            return Err(Error::IndexSize(None));
+            return Err(Error::IndexSize(Some(
+                "Offset is greater than the node's length".into(),
+            )));
         }
 
         // Step 4. If document associated with this is not a shadow-including inclusive
@@ -1094,7 +1098,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
             .as_ref()
             .map(|range| (range.start.container.as_rooted(), range.start.offset))
         else {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some("Selection is empty".into())));
         };
         self.Collapse(cx, Some(&*start_container), start_offset)
     }
@@ -1110,7 +1114,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
             .as_ref()
             .map(|range| (range.end.container.as_rooted(), range.end.offset))
         else {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some("Selection is empty".into())));
         };
         self.Collapse(cx, Some(&*end_container), end_offset)
     }
@@ -1126,19 +1130,21 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // Step 2. If this is empty, throw an InvalidStateError exception and abort these steps.
         let range_borrow = self.range.borrow();
         let Some(range) = range_borrow.as_ref() else {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some("Selection is empty".into())));
         };
 
         // This isn't specified, but it appears to be implementation behavior of other
         // browsers. See w3c/selection-api#118.
         if node.is_doctype() {
-            return Err(Error::InvalidNodeType(None));
+            return Err(Error::InvalidNodeType(Some("Node is a doctype".into())));
         }
 
         // As with is_doctype, this is not explicit in the selection specification steps
         // here but implied by which exceptions are thrown in WPT tests.
         if offset > node.len() {
-            return Err(Error::IndexSize(None));
+            return Err(Error::IndexSize(Some(
+                "Offset is greater than the node's length".into(),
+            )));
         }
 
         // Step 3. Let oldAnchor and oldFocus be the this's anchor and focus, and let
@@ -1224,14 +1230,16 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // This isn't specified, but it appears to be implementation behavior of other
         // browsers. See w3c/selection-api#118.
         if anchor_node.is_doctype() || focus_node.is_doctype() {
-            return Err(Error::InvalidNodeType(None));
+            return Err(Error::InvalidNodeType(Some("Node is a doctype".into())));
         }
 
         // Step 1. If anchorOffset is longer than anchorNode's length or if focusOffset is
         // longer than focusNode's length, throw an IndexSizeError exception and abort
         // these steps.
         if anchor_offset > anchor_node.len() || focus_offset > focus_node.len() {
-            return Err(Error::IndexSize(None));
+            return Err(Error::IndexSize(Some(
+                "Offset is greater than the node's length".into(),
+            )));
         }
 
         // Step 2. If document associated with this is not a shadow-including inclusive
@@ -1297,7 +1305,7 @@ impl SelectionMethods<crate::DomTypeHolder> for Selection {
         // Step 1. If node is a DocumentType, throw an InvalidNodeTypeError exception and
         // abort these steps.
         if node.is_doctype() {
-            return Err(Error::InvalidNodeType(None));
+            return Err(Error::InvalidNodeType(Some("Node is a doctype".into())));
         }
 
         // Step 2. If node's root is not the document associated with this, abort these

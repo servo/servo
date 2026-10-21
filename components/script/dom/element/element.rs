@@ -278,7 +278,7 @@ impl FromStr for AdjacentPosition {
             "afterbegin"  => Ok(AdjacentPosition::AfterBegin),
             "beforeend"   => Ok(AdjacentPosition::BeforeEnd),
             "afterend"    => Ok(AdjacentPosition::AfterEnd),
-            _             => Err(Error::Syntax(None))
+            _             => Err(Error::Syntax(Some("Invalid position".into())))
         }
     }
 }
@@ -2497,7 +2497,9 @@ impl Element {
         if let Some(owner) = attr.GetOwnerElement() &&
             &*owner != self
         {
-            return Err(Error::InUseAttribute(None));
+            return Err(Error::InUseAttribute(Some(
+                "Attribute is already in use by another element".into(),
+            )));
         }
 
         let vtable = vtable_for(self.upcast());
@@ -3129,7 +3131,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 1. If qualifiedName is not a valid attribute local name,
         //      then throw an "InvalidCharacterError" DOMException.
         if !is_valid_attribute_local_name(&name.str()) {
-            return Err(Error::InvalidCharacter(None));
+            return Err(Error::InvalidCharacter(Some(
+                "Invalid attribute name".into(),
+            )));
         }
 
         // Step 3.
@@ -3178,7 +3182,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // Step 1. If qualifiedName does not match the Name production in XML,
         // then throw an "InvalidCharacterError" DOMException.
         if !is_valid_attribute_local_name(&name.str()) {
-            return Err(Error::InvalidCharacter(None));
+            return Err(Error::InvalidCharacter(Some(
+                "Invalid attribute name".into(),
+            )));
         }
 
         // Step 2. If this is in the HTML namespace and its node document is an HTML document,
@@ -3287,7 +3293,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         // The attr parameter passed here is already a Dom<Attr> that is somewhere present in the DOM,
         // hence already materialized. That means that `as_attr()` will never fail.
         self.remove_first_matching_attribute(cx, |a| a.as_attr().is_some_and(|a| a == attr))
-            .ok_or(Error::NotFound(None))
+            .ok_or(Error::NotFound(Some(
+                "Attribute is not owned by this element".into(),
+            )))
     }
 
     /// <https://dom.spec.whatwg.org/#dom-element-hasattribute>
@@ -3902,7 +3910,11 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
 
         let parent = match context_parent.type_id() {
             // Step 4: If parent is a Document, throw a "NoModificationAllowedError" DOMException.
-            NodeTypeId::Document(_) => return Err(Error::NoModificationAllowed(None)),
+            NodeTypeId::Document(_) => {
+                return Err(Error::NoModificationAllowed(Some(
+                    "Parent is a Document".into(),
+                )));
+            },
 
             // Step 5: If parent is a DocumentFragment, set parent to the result of
             // creating an element given this's node document, "body", and the HTML namespace.
@@ -4071,7 +4083,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
             &selectors.str(),
             &UrlExtraData(url.get_arc()),
         ) {
-            Err(_) => return Err(Error::Syntax(None)),
+            Err(_) => return Err(Error::Syntax(Some("Invalid selector".into()))),
             Ok(selectors) => selectors,
         };
 
@@ -4144,9 +4156,15 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
                 match self.upcast::<Node>().GetParentNode() {
                     // Step 3.2: If context is null or a Document, throw a "NoModificationAllowedError" DOMException.
                     Some(ref node) if node.is::<Document>() => {
-                        return Err(Error::NoModificationAllowed(None));
+                        return Err(Error::NoModificationAllowed(Some(
+                            "Parent is a Document".into(),
+                        )));
                     },
-                    None => return Err(Error::NoModificationAllowed(None)),
+                    None => {
+                        return Err(Error::NoModificationAllowed(Some(
+                            "Element has no parent".into(),
+                        )));
+                    },
                     // Step 3.1: Set context to this's parent.
                     Some(node) => node,
                 }
@@ -4182,7 +4200,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
                 a.enter_formal_activation_state();
                 Ok(())
             },
-            None => Err(Error::NotSupported(None)),
+            None => Err(Error::NotSupported(Some(
+                "Element is not activatable".into(),
+            ))),
         }
     }
 
@@ -4192,7 +4212,9 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
                 a.exit_formal_activation_state();
                 Ok(())
             },
-            None => Err(Error::NotSupported(None)),
+            None => Err(Error::NotSupported(Some(
+                "Element is not activatable".into(),
+            ))),
         }
     }
 
