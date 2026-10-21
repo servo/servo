@@ -5,6 +5,7 @@
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use net_traits::ResourceFetchTiming;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::reflect_dom_object;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_url::ServoUrl;
@@ -42,7 +43,7 @@ pub(crate) enum InitiatorType {
 pub(crate) struct PerformanceResourceTiming {
     entry: PerformanceEntry,
     initiator_type: InitiatorType,
-    next_hop: Option<DOMString>,
+    next_hop: Option<TracedDOMString>,
     #[no_trace]
     worker_start: Option<CrossProcessInstant>,
     #[no_trace]
@@ -166,7 +167,7 @@ impl PerformanceResourceTimingMethods<crate::DomTypeHolder> for PerformanceResou
     // when a proxy is configured
     fn NextHopProtocol(&self) -> DOMString {
         match self.next_hop {
-            Some(ref protocol) => protocol.clone(),
+            Some(ref protocol) => protocol.clone().root(),
             None => DOMString::new(),
         }
     }

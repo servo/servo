@@ -6,6 +6,7 @@ use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use layout_api::LCPCandidate;
 use paint_api::display_list::PaintTimingInfo;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::reflect_dom_object;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use time::Duration;
@@ -30,7 +31,7 @@ pub(crate) struct LargestContentfulPaint {
     #[no_trace]
     render_time: CrossProcessInstant,
     size: usize,
-    url: DOMString,
+    url: TracedDOMString,
     element: Option<Dom<Element>>,
     /// <https://www.w3.org/TR/paint-timing/#paint-timing-info>
     #[no_trace]
@@ -63,7 +64,8 @@ impl LargestContentfulPaint {
                 .url
                 .as_ref()
                 .map(|url| DOMString::from(url.as_str()))
-                .unwrap_or_default(),
+                .unwrap_or_default()
+                .traced(),
             element: element.map(Dom::from_ref),
             paint_timing_info,
         }
@@ -112,7 +114,7 @@ impl LargestContentfulPaintMethods<crate::DomTypeHolder> for LargestContentfulPa
 
     /// <https://www.w3.org/TR/largest-contentful-paint/#dom-largestcontentfulpaint-url>
     fn Url(&self) -> DOMString {
-        self.url.clone()
+        self.url.clone().root()
     }
 
     /// <https://www.w3.org/TR/largest-contentful-paint/#dom-largestcontentfulpaint-id>
