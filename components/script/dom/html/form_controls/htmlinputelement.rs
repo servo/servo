@@ -2086,7 +2086,9 @@ impl HTMLInputElement {
     fn value_changed(&self, cx: &mut JSContext) {
         self.maybe_update_shared_selection();
         self.update_related_validity_states(cx);
-        self.input_type().as_specific().update_shadow_tree(cx, self);
+        if self.upcast::<Node>().is_connected() {
+            self.input_type().as_specific().update_shadow_tree(cx, self);
+        }
     }
 
     /// Fire the events a value change asks for, in spec order.

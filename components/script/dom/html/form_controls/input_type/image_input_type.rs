@@ -87,22 +87,22 @@ impl ImageInputType {
 
     /// Step 2 and later of <https://html.spec.whatwg.org/multipage/#input-img-dimensions>
     pub(crate) fn dimensions(&self, input: &HTMLInputElement) -> (u32, u32) {
-        let Some(ref shadow_tree) = *self.borrow_for_shadow_tree() else {
-            return Default::default();
-        };
         // Step 2. Let naturalDimensions be null.
         // Step 3. If an image is available,
         // then set naturalDimensions to the result of applying the default sizing algorithm
         // with that image's natural width, natural height, and natural aspect ratio,
         // if any, using a default object size of 300 by 150.
-        let natural_dimensions = shadow_tree.image_element.image_data().map(|image_data| {
-            let metadata = image_data.metadata();
-            (metadata.width, metadata.height)
-        });
+        let natural_dimensions = self
+            .borrow_for_shadow_tree()
+            .as_ref()
+            .and_then(|shadow_tree| {
+                shadow_tree.image_element.image_data().map(|image_data| {
+                    let metadata = image_data.metadata();
+                    (metadata.width, metadata.height)
+                })
+            });
         // Step 4. Return the result of determining the dimensions of input given naturalDimensions.
-        shadow_tree
-            .image_element
-            .determine_dimensions(input.upcast(), natural_dimensions)
+        HTMLImageElement::determine_dimensions(input.upcast(), natural_dimensions)
     }
 }
 

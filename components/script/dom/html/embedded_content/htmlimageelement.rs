@@ -1408,12 +1408,11 @@ impl HTMLImageElement {
             None
         };
         // Step 3. Return the result of determining the dimensions of image given naturalDimensions.
-        self.determine_dimensions(self.upcast(), natural_dimensions)
+        Self::determine_dimensions(self.upcast(), natural_dimensions)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#determine-dimensions>
     pub(crate) fn determine_dimensions(
-        &self,
         element: &Element,
         natural_dimensions: Option<(u32, u32)>,
     ) -> (u32, u32) {
