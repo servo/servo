@@ -42,7 +42,7 @@ impl DOMStringList {
     pub(crate) fn new_sorted<'a>(
         cx: &mut JSContext,
         global: &GlobalScope,
-        strings: impl IntoIterator<Item = &'a DOMString>,
+        strings: impl IntoIterator<Item = &'a TracedDOMString>,
     ) -> DomRoot<DOMStringList> {
         let sorted = strings
             .into_iter()
