@@ -12,6 +12,7 @@ use servo_media::audio::audio_node::{AudioNodeInit, AudioNodeMessage, AudioNodeT
 use servo_media::audio::buffer_source_node::{
     AudioBufferSourceNodeMessage, AudioBufferSourceNodeOptions,
 };
+use servo_media::audio::graph::NodeId;
 use servo_media::audio::param::ParamType;
 
 use crate::conversions::ConvertWithCx;
@@ -42,6 +43,34 @@ pub(crate) struct AudioBufferSourceNode {
     loop_enabled: Cell<bool>,
     loop_start: Cell<f64>,
     loop_end: Cell<f64>,
+}
+
+impl AudioBufferSourceNode {
+    fn new_inherited(
+        node_id: Option<NodeId>,
+        context: &BaseAudioContext,
+        node_options: UnwrappedAudioNodeOptions,
+        playback_rate: &AudioParam,
+        detune: &AudioParam,
+        audio_buffer_source_options: &AudioBufferSourceOptions,
+    ) -> Self {
+        AudioBufferSourceNode {
+            source_node: AudioScheduledSourceNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                0, /* inputs */
+                1, /* outputs */
+            ),
+            buffer: Default::default(),
+            buffer_set: Cell::new(false),
+            playback_rate: Dom::from_ref(playback_rate),
+            detune: Dom::from_ref(detune),
+            loop_enabled: Cell::new(audio_buffer_source_options.loop_),
+            loop_start: Cell::new(*audio_buffer_source_options.loopStart),
+            loop_end: Cell::new(*audio_buffer_source_options.loopEnd),
+        }
+    }
 }
 
 impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNode {
@@ -89,22 +118,14 @@ impl AudioBufferSourceNodeMethods<crate::DomTypeHolder> for AudioBufferSourceNod
         );
         let node = reflect_dom_object_with_proto(
             cx,
-            Box::new(AudioBufferSourceNode {
-                source_node: AudioScheduledSourceNode::new_inherited(
-                    node_id,
-                    context,
-                    node_options,
-                    0, /* inputs */
-                    1, /* outputs */
-                ),
-                buffer: Default::default(),
-                buffer_set: Cell::new(false),
-                playback_rate: Dom::from_ref(&playback_rate),
-                detune: Dom::from_ref(&detune),
-                loop_enabled: Cell::new(options.loop_),
-                loop_start: Cell::new(*options.loopStart),
-                loop_end: Cell::new(*options.loopEnd),
-            }),
+            Box::new(AudioBufferSourceNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                &playback_rate,
+                &detune,
+                options,
+            )),
             window,
             proto,
         );

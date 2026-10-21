@@ -9,6 +9,7 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::audio_node::{AudioNodeInit, AudioNodeMessage, AudioNodeType};
+use servo_media::audio::graph::NodeId;
 use servo_media::audio::panner_node::{
     DistanceModel, PannerNodeMessage, PannerNodeOptions, PanningModel,
 };
@@ -18,6 +19,7 @@ use crate::conversions::Convert;
 use crate::dom::audio::audionode::{AudioNode, AudioNodeOptionsHelper};
 use crate::dom::audio::audioparam::AudioParam;
 use crate::dom::audio::baseaudiocontext::BaseAudioContext;
+use crate::dom::audionode::UnwrappedAudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };
@@ -52,6 +54,40 @@ pub(crate) struct PannerNode {
     cone_inner_angle: Cell<f64>,
     cone_outer_angle: Cell<f64>,
     cone_outer_gain: Cell<f64>,
+}
+
+impl PannerNode {
+    fn new_inherited(
+        node_id: Option<NodeId>,
+        context: &BaseAudioContext,
+        node_options: UnwrappedAudioNodeOptions,
+        audio_params: [&AudioParam; 6],
+        options: PannerNodeOptions,
+    ) -> Self {
+        PannerNode {
+            node: AudioNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                1, // inputs
+                1, // outputs
+            ),
+            position_x: Dom::from_ref(audio_params[0]),
+            position_y: Dom::from_ref(audio_params[1]),
+            position_z: Dom::from_ref(audio_params[2]),
+            orientation_x: Dom::from_ref(audio_params[3]),
+            orientation_y: Dom::from_ref(audio_params[4]),
+            orientation_z: Dom::from_ref(audio_params[5]),
+            panning_model: Cell::new(options.panning_model),
+            distance_model: Cell::new(options.distance_model),
+            ref_distance: Cell::new(options.ref_distance),
+            max_distance: Cell::new(options.max_distance),
+            rolloff_factor: Cell::new(options.rolloff_factor),
+            cone_inner_angle: Cell::new(options.cone_inner_angle),
+            cone_outer_angle: Cell::new(options.cone_outer_angle),
+            cone_outer_gain: Cell::new(options.cone_outer_gain),
+        }
+    }
 }
 
 impl PannerNodeMethods<crate::DomTypeHolder> for PannerNode {
@@ -176,29 +212,20 @@ impl PannerNodeMethods<crate::DomTypeHolder> for PannerNode {
         );
         Ok(reflect_dom_object_with_proto(
             cx,
-            Box::new(PannerNode {
-                node: AudioNode::new_inherited(
-                    node_id,
-                    context,
-                    node_options,
-                    1, // inputs
-                    1, // outputs
-                ),
-                position_x: Dom::from_ref(&position_x),
-                position_y: Dom::from_ref(&position_y),
-                position_z: Dom::from_ref(&position_z),
-                orientation_x: Dom::from_ref(&orientation_x),
-                orientation_y: Dom::from_ref(&orientation_y),
-                orientation_z: Dom::from_ref(&orientation_z),
-                panning_model: Cell::new(options.panning_model),
-                distance_model: Cell::new(options.distance_model),
-                ref_distance: Cell::new(options.ref_distance),
-                max_distance: Cell::new(options.max_distance),
-                rolloff_factor: Cell::new(options.rolloff_factor),
-                cone_inner_angle: Cell::new(options.cone_inner_angle),
-                cone_outer_angle: Cell::new(options.cone_outer_angle),
-                cone_outer_gain: Cell::new(options.cone_outer_gain),
-            }),
+            Box::new(PannerNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                [
+                    &position_x,
+                    &position_y,
+                    &position_z,
+                    &orientation_x,
+                    &orientation_y,
+                    &orientation_z,
+                ],
+                options,
+            )),
             window,
             proto,
         ))

@@ -9,12 +9,14 @@ use script_bindings::codegen::GenericBindings::DelayNodeBinding::{DelayNodeMetho
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::audio_node::{AudioNodeInit, AudioNodeType};
 use servo_media::audio::delay_node::DelayNodeOptions;
+use servo_media::audio::graph::NodeId;
 use servo_media::audio::param::ParamType;
 
 use crate::conversions::Convert;
 use crate::dom::audio::audionode::AudioNodeOptionsHelper;
 use crate::dom::audio::audioparam::AudioParam;
 use crate::dom::audio::baseaudiocontext::BaseAudioContext;
+use crate::dom::audionode::UnwrappedAudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };
@@ -29,6 +31,20 @@ pub(crate) struct DelayNode {
     source_node: AudioNode,
     /// <https://webaudio.github.io/web-audio-api/#dom-delaynode-delaytime>
     delay_time: Dom<AudioParam>,
+}
+
+impl DelayNode {
+    fn new_inherited(
+        node_id: Option<NodeId>,
+        context: &BaseAudioContext,
+        node_options: UnwrappedAudioNodeOptions,
+        delay_time: &AudioParam,
+    ) -> Self {
+        DelayNode {
+            source_node: AudioNode::new_inherited(node_id, context, node_options, 1, 1),
+            delay_time: Dom::from_ref(delay_time),
+        }
+    }
 }
 
 impl DelayNodeMethods<crate::DomTypeHolder> for DelayNode {
@@ -72,10 +88,12 @@ impl DelayNodeMethods<crate::DomTypeHolder> for DelayNode {
 
         Ok(reflect_dom_object_with_proto(
             cx,
-            Box::new(DelayNode {
-                source_node: AudioNode::new_inherited(node_id, context, node_options, 1, 1),
-                delay_time: Dom::from_ref(&delay_time),
-            }),
+            Box::new(DelayNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                &delay_time,
+            )),
             window,
             proto,
         ))

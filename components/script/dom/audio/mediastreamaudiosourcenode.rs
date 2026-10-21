@@ -7,10 +7,12 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::audio_node::AudioNodeInit;
+use servo_media::audio::graph::NodeId;
 use servo_media::streams::MediaStreamType;
 
 use crate::dom::audio::audiocontext::AudioContext;
 use crate::dom::audio::audionode::AudioNode;
+use crate::dom::audio::baseaudiocontext::BaseAudioContext;
 use crate::dom::audionode::UnwrappedAudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::MediaStreamAudioSourceNodeBinding::{
     MediaStreamAudioSourceNodeMethods, MediaStreamAudioSourceOptions,
@@ -25,6 +27,26 @@ use crate::dom::window::Window;
 pub(crate) struct MediaStreamAudioSourceNode {
     node: AudioNode,
     stream: Dom<MediaStream>,
+}
+
+impl MediaStreamAudioSourceNode {
+    fn new_inherited(
+        node_id: Option<NodeId>,
+        context: &BaseAudioContext,
+        node_options: UnwrappedAudioNodeOptions,
+        stream: &MediaStream,
+    ) -> Self {
+        MediaStreamAudioSourceNode {
+            node: AudioNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                0, // inputs
+                1, // outputs
+            ),
+            stream: Dom::from_ref(stream),
+        }
+    }
 }
 
 impl MediaStreamAudioSourceNodeMethods<crate::DomTypeHolder> for MediaStreamAudioSourceNode {
@@ -42,8 +64,8 @@ impl MediaStreamAudioSourceNodeMethods<crate::DomTypeHolder> for MediaStreamAudi
                 "Channel count not supported",
             ))));
         }
-        let stream = &(*options.mediaStream);
-        let track = stream
+        let track = options
+            .mediaStream
             .get_tracks()
             .iter()
             .find(|t| t.ty() == MediaStreamType::Audio)
@@ -54,16 +76,12 @@ impl MediaStreamAudioSourceNodeMethods<crate::DomTypeHolder> for MediaStreamAudi
             AudioNode::generate_audio_node_id(cx, &node_options, audio_node_init, context.upcast());
         Ok(reflect_dom_object_with_proto(
             cx,
-            Box::new(MediaStreamAudioSourceNode {
-                node: AudioNode::new_inherited(
-                    node_id,
-                    context.upcast(),
-                    node_options,
-                    0, // inputs
-                    1, // outputs
-                ),
-                stream: Dom::from_ref(stream),
-            }),
+            Box::new(MediaStreamAudioSourceNode::new_inherited(
+                node_id,
+                context.upcast(),
+                node_options,
+                &options.mediaStream,
+            )),
             window,
             proto,
         ))

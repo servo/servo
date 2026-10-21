@@ -7,6 +7,7 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::audio_node::{AudioNodeInit, AudioNodeType};
+use servo_media::audio::graph::NodeId;
 use servo_media::audio::param::ParamType;
 use servo_media::audio::stereo_panner::StereoPannerOptions as ServoMediaStereoPannerOptions;
 
@@ -15,6 +16,7 @@ use crate::dom::audio::audionode::{AudioNode, AudioNodeOptionsHelper};
 use crate::dom::audio::audioparam::AudioParam;
 use crate::dom::audio::audioscheduledsourcenode::AudioScheduledSourceNode;
 use crate::dom::audio::baseaudiocontext::BaseAudioContext;
+use crate::dom::audionode::UnwrappedAudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };
@@ -30,6 +32,26 @@ use crate::dom::window::Window;
 pub(crate) struct StereoPannerNode {
     source_node: AudioScheduledSourceNode,
     pan: Dom<AudioParam>,
+}
+
+impl StereoPannerNode {
+    fn new_inherited(
+        node_id: Option<NodeId>,
+        context: &BaseAudioContext,
+        node_options: UnwrappedAudioNodeOptions,
+        pan: &AudioParam,
+    ) -> Self {
+        StereoPannerNode {
+            source_node: AudioScheduledSourceNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                1, /* inputs */
+                1, /* outputs */
+            ),
+            pan: Dom::from_ref(pan),
+        }
+    }
 }
 
 impl StereoPannerNodeMethods<crate::DomTypeHolder> for StereoPannerNode {
@@ -76,16 +98,12 @@ impl StereoPannerNodeMethods<crate::DomTypeHolder> for StereoPannerNode {
         );
         Ok(reflect_dom_object_with_proto(
             cx,
-            Box::new(StereoPannerNode {
-                source_node: AudioScheduledSourceNode::new_inherited(
-                    node_id,
-                    context,
-                    node_options,
-                    1, /* inputs */
-                    1, /* outputs */
-                ),
-                pan: Dom::from_ref(&pan),
-            }),
+            Box::new(StereoPannerNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                &pan,
+            )),
             window,
             proto,
         ))

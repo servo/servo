@@ -8,10 +8,12 @@ use js::rust::HandleObject;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::audio_node::AudioNodeInit;
 use servo_media::audio::channel_node::ChannelNodeOptions;
+use servo_media::audio::graph::NodeId;
 
 use crate::conversions::Convert;
 use crate::dom::audio::audionode::{AudioNode, AudioNodeOptionsHelper, MAX_CHANNEL_COUNT};
 use crate::dom::audio::baseaudiocontext::BaseAudioContext;
+use crate::dom::audionode::UnwrappedAudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };
@@ -25,6 +27,25 @@ use crate::dom::window::Window;
 #[dom_struct]
 pub(crate) struct ChannelMergerNode {
     node: AudioNode,
+}
+
+impl ChannelMergerNode {
+    fn new_inherited(
+        node_id: Option<NodeId>,
+        context: &BaseAudioContext,
+        node_options: UnwrappedAudioNodeOptions,
+        number_of_inputs: u32,
+    ) -> Self {
+        ChannelMergerNode {
+            node: AudioNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                number_of_inputs, // inputs
+                1,                // outputs
+            ),
+        }
+    }
 }
 
 impl ChannelMergerNodeMethods<crate::DomTypeHolder> for ChannelMergerNode {
@@ -56,22 +77,18 @@ impl ChannelMergerNodeMethods<crate::DomTypeHolder> for ChannelMergerNode {
             return Err(Error::IndexSize(None));
         }
 
-        let num_inputs = options.numberOfInputs;
         let audio_node_init = AudioNodeInit::ChannelMergerNode(options.convert());
         let node_id =
             AudioNode::generate_audio_node_id(cx, &node_options, audio_node_init, context);
 
         Ok(reflect_dom_object_with_proto(
             cx,
-            Box::new(ChannelMergerNode {
-                node: AudioNode::new_inherited(
-                    node_id,
-                    context,
-                    node_options,
-                    num_inputs, // inputs
-                    1,          // outputs
-                ),
-            }),
+            Box::new(ChannelMergerNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                options.numberOfInputs, // inputs
+            )),
             window,
             proto,
         ))

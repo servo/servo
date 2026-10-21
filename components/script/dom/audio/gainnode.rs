@@ -8,12 +8,14 @@ use js::rust::HandleObject;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::audio_node::{AudioNodeInit, AudioNodeType};
 use servo_media::audio::gain_node::GainNodeOptions;
+use servo_media::audio::graph::NodeId;
 use servo_media::audio::param::ParamType;
 
 use crate::conversions::Convert;
 use crate::dom::audio::audionode::{AudioNode, AudioNodeOptionsHelper};
 use crate::dom::audio::audioparam::AudioParam;
 use crate::dom::audio::baseaudiocontext::BaseAudioContext;
+use crate::dom::audionode::UnwrappedAudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };
@@ -27,6 +29,26 @@ use crate::dom::window::Window;
 pub(crate) struct GainNode {
     node: AudioNode,
     gain: Dom<AudioParam>,
+}
+
+impl GainNode {
+    fn new_inherited(
+        node_id: Option<NodeId>,
+        context: &BaseAudioContext,
+        node_options: UnwrappedAudioNodeOptions,
+        gain: &AudioParam,
+    ) -> Self {
+        GainNode {
+            node: AudioNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                1, // inputs
+                1, // outputs
+            ),
+            gain: Dom::from_ref(gain),
+        }
+    }
 }
 
 impl GainNodeMethods<crate::DomTypeHolder> for GainNode {
@@ -67,16 +89,12 @@ impl GainNodeMethods<crate::DomTypeHolder> for GainNode {
         );
         Ok(reflect_dom_object_with_proto(
             cx,
-            Box::new(GainNode {
-                node: AudioNode::new_inherited(
-                    node_id,
-                    context,
-                    node_options,
-                    1, // inputs
-                    1, // outputs
-                ),
-                gain: Dom::from_ref(&gain),
-            }),
+            Box::new(GainNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                &gain,
+            )),
             window,
             proto,
         ))

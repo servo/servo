@@ -7,9 +7,11 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::audio_node::AudioNodeInit;
+use servo_media::audio::graph::NodeId;
 
 use crate::dom::audio::audionode::{AudioNode, AudioNodeOptionsHelper, MAX_CHANNEL_COUNT};
 use crate::dom::audio::baseaudiocontext::BaseAudioContext;
+use crate::dom::audionode::UnwrappedAudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };
@@ -23,6 +25,25 @@ use crate::dom::window::Window;
 #[dom_struct]
 pub(crate) struct ChannelSplitterNode {
     node: AudioNode,
+}
+
+impl ChannelSplitterNode {
+    fn new_inherited(
+        node_id: Option<NodeId>,
+        context: &BaseAudioContext,
+        node_options: UnwrappedAudioNodeOptions,
+        number_of_outputs: u32,
+    ) -> Self {
+        ChannelSplitterNode {
+            node: AudioNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                1,                 // inputs
+                number_of_outputs, // outputs
+            ),
+        }
+    }
 }
 
 impl ChannelSplitterNodeMethods<crate::DomTypeHolder> for ChannelSplitterNode {
@@ -63,15 +84,12 @@ impl ChannelSplitterNodeMethods<crate::DomTypeHolder> for ChannelSplitterNode {
 
         Ok(reflect_dom_object_with_proto(
             cx,
-            Box::new(ChannelSplitterNode {
-                node: AudioNode::new_inherited(
-                    node_id,
-                    context,
-                    node_options,
-                    1,                       // inputs
-                    options.numberOfOutputs, // outputs
-                ),
-            }),
+            Box::new(ChannelSplitterNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                options.numberOfOutputs, // outputs
+            )),
             window,
             proto,
         ))

@@ -10,6 +10,7 @@ use js::rust::HandleObject;
 use script_bindings::codegen::GenericBindings::BaseAudioContextBinding::BaseAudioContextMethods;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::audio_node::{AudioNodeInit, AudioNodeMessage, AudioNodeType};
+use servo_media::audio::graph::NodeId;
 use servo_media::audio::oscillator_node::{
     OscillatorNodeMessage, OscillatorNodeOptions as ServoMediaOscillatorOptions,
     OscillatorType as ServoMediaOscillatorType,
@@ -22,6 +23,7 @@ use crate::dom::audio::audionode::{AudioNode, AudioNodeOptionsHelper};
 use crate::dom::audio::audioparam::AudioParam;
 use crate::dom::audio::audioscheduledsourcenode::AudioScheduledSourceNode;
 use crate::dom::audio::baseaudiocontext::BaseAudioContext;
+use crate::dom::audionode::UnwrappedAudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };
@@ -40,6 +42,30 @@ pub(crate) struct OscillatorNode {
     detune: Dom<AudioParam>,
     frequency: Dom<AudioParam>,
     oscillator_type: Cell<OscillatorType>,
+}
+
+impl OscillatorNode {
+    fn new_inherited(
+        node_id: Option<NodeId>,
+        context: &BaseAudioContext,
+        node_options: UnwrappedAudioNodeOptions,
+        oscillator_type: OscillatorType,
+        frequency: &AudioParam,
+        detune: &AudioParam,
+    ) -> Self {
+        OscillatorNode {
+            source_node: AudioScheduledSourceNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                0, /* inputs */
+                1, /* outputs */
+            ),
+            oscillator_type: Cell::new(oscillator_type),
+            frequency: Dom::from_ref(frequency),
+            detune: Dom::from_ref(detune),
+        }
+    }
 }
 
 impl OscillatorNodeMethods<crate::DomTypeHolder> for OscillatorNode {
@@ -117,18 +143,14 @@ impl OscillatorNodeMethods<crate::DomTypeHolder> for OscillatorNode {
         );
         Ok(reflect_dom_object_with_proto(
             cx,
-            Box::new(OscillatorNode {
-                source_node: AudioScheduledSourceNode::new_inherited(
-                    node_id,
-                    context,
-                    node_options,
-                    0, /* inputs */
-                    1, /* outputs */
-                ),
-                oscillator_type: Cell::new(oscillator_type),
-                frequency: Dom::from_ref(&frequency),
-                detune: Dom::from_ref(&detune),
-            }),
+            Box::new(OscillatorNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                oscillator_type,
+                &frequency,
+                &detune,
+            )),
             window,
             proto,
         ))

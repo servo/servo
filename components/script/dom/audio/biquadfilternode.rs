@@ -13,12 +13,14 @@ use servo_media::audio::audio_node::{AudioNodeInit, AudioNodeMessage, AudioNodeT
 use servo_media::audio::biquad_filter_node::{
     BiquadFilterNodeMessage, BiquadFilterNodeOptions, FilterType,
 };
+use servo_media::audio::graph::NodeId;
 use servo_media::audio::param::ParamType;
 
 use crate::conversions::Convert;
 use crate::dom::audio::audionode::{AudioNode, AudioNodeOptionsHelper};
 use crate::dom::audio::audioparam::AudioParam;
 use crate::dom::audio::baseaudiocontext::BaseAudioContext;
+use crate::dom::audionode::UnwrappedAudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };
@@ -38,6 +40,31 @@ pub(crate) struct BiquadFilterNode {
     q: Dom<AudioParam>,
     detune: Dom<AudioParam>,
     filter: Cell<BiquadFilterType>,
+}
+
+impl BiquadFilterNode {
+    fn new_inherited(
+        node_id: Option<NodeId>,
+        context: &BaseAudioContext,
+        node_options: UnwrappedAudioNodeOptions,
+        filter: BiquadFilterType,
+        audio_params: [&AudioParam; 4],
+    ) -> Self {
+        BiquadFilterNode {
+            node: AudioNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                1, // inputs
+                1, // outputs
+            ),
+            filter: Cell::new(filter),
+            gain: Dom::from_ref(audio_params[0]),
+            q: Dom::from_ref(audio_params[1]),
+            frequency: Dom::from_ref(audio_params[2]),
+            detune: Dom::from_ref(audio_params[3]),
+        }
+    }
 }
 
 impl BiquadFilterNodeMethods<crate::DomTypeHolder> for BiquadFilterNode {
@@ -119,20 +146,13 @@ impl BiquadFilterNodeMethods<crate::DomTypeHolder> for BiquadFilterNode {
         );
         Ok(reflect_dom_object_with_proto(
             cx,
-            Box::new(BiquadFilterNode {
-                node: AudioNode::new_inherited(
-                    node_id,
-                    context,
-                    node_options,
-                    1, // inputs
-                    1, // outputs
-                ),
-                filter: Cell::new(filter),
-                gain: Dom::from_ref(&gain),
-                q: Dom::from_ref(&q),
-                frequency: Dom::from_ref(&frequency),
-                detune: Dom::from_ref(&detune),
-            }),
+            Box::new(BiquadFilterNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                filter,
+                [&gain, &q, &frequency, &detune],
+            )),
             window,
             proto,
         ))

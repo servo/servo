@@ -8,10 +8,13 @@ use js::rust::HandleObject;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::ServoMedia;
 use servo_media::audio::audio_node::AudioNodeInit;
+use servo_media::audio::graph::NodeId;
 use servo_media::streams::MediaStreamType;
 
 use crate::dom::audio::audiocontext::AudioContext;
 use crate::dom::audio::audionode::{AudioNode, AudioNodeOptionsHelper};
+use crate::dom::audio::baseaudiocontext::BaseAudioContext;
+use crate::dom::audionode::UnwrappedAudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     AudioNodeOptions, ChannelCountMode, ChannelInterpretation,
 };
@@ -27,6 +30,26 @@ use crate::dom::window::Window;
 pub(crate) struct MediaStreamAudioDestinationNode {
     node: AudioNode,
     stream: Dom<MediaStream>,
+}
+
+impl MediaStreamAudioDestinationNode {
+    fn new_inherited(
+        node_id: Option<NodeId>,
+        context: &BaseAudioContext,
+        node_options: UnwrappedAudioNodeOptions,
+        stream: &MediaStream,
+    ) -> Self {
+        MediaStreamAudioDestinationNode {
+            node: AudioNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                1, // inputs
+                0, // outputs
+            ),
+            stream: Dom::from_ref(stream),
+        }
+    }
 }
 
 impl MediaStreamAudioDestinationNodeMethods<crate::DomTypeHolder>
@@ -58,16 +81,12 @@ impl MediaStreamAudioDestinationNodeMethods<crate::DomTypeHolder>
             AudioNode::generate_audio_node_id(cx, &node_options, audio_node_init, context.upcast());
         Ok(reflect_dom_object_with_proto(
             cx,
-            Box::new(MediaStreamAudioDestinationNode {
-                node: AudioNode::new_inherited(
-                    node_id,
-                    context.upcast(),
-                    node_options,
-                    1, // inputs
-                    0, // outputs
-                ),
-                stream: Dom::from_ref(&stream),
-            }),
+            Box::new(MediaStreamAudioDestinationNode::new_inherited(
+                node_id,
+                context.upcast(),
+                node_options,
+                &stream,
+            )),
             window,
             proto,
         ))

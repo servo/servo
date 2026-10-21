@@ -12,11 +12,13 @@ use js::rust::HandleObject;
 use js::typedarray::Float32Array;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::audio_node::AudioNodeInit;
+use servo_media::audio::graph::NodeId;
 use servo_media::audio::iir_filter_node::{IIRFilterNode as IIRFilter, IIRFilterNodeOptions};
 
 use crate::conversions::Convert;
 use crate::dom::audio::audionode::{AudioNode, AudioNodeOptionsHelper};
 use crate::dom::audio::baseaudiocontext::BaseAudioContext;
+use crate::dom::audionode::UnwrappedAudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };
@@ -33,6 +35,28 @@ pub(crate) struct IIRFilterNode {
     node: AudioNode,
     feedforward: Vec<Finite<f64>>,
     feedback: Vec<Finite<f64>>,
+}
+
+impl IIRFilterNode {
+    fn new_inherited(
+        node_id: Option<NodeId>,
+        context: &BaseAudioContext,
+        node_options: UnwrappedAudioNodeOptions,
+        feedforward: Vec<Finite<f64>>,
+        feedback: Vec<Finite<f64>>,
+    ) -> Self {
+        IIRFilterNode {
+            node: AudioNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                1, // inputs
+                1, // outputs
+            ),
+            feedforward,
+            feedback,
+        }
+    }
 }
 
 impl IIRFilterNodeMethods<crate::DomTypeHolder> for IIRFilterNode {
@@ -72,17 +96,13 @@ impl IIRFilterNodeMethods<crate::DomTypeHolder> for IIRFilterNode {
 
         Ok(reflect_dom_object_with_proto(
             cx,
-            Box::new(IIRFilterNode {
-                node: AudioNode::new_inherited(
-                    node_id,
-                    context,
-                    node_options,
-                    1, // inputs
-                    1, // outputs
-                ),
+            Box::new(IIRFilterNode::new_inherited(
+                node_id,
+                context,
+                node_options,
                 feedforward,
                 feedback,
-            }),
+            )),
             window,
             proto,
         ))

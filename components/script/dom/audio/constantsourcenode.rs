@@ -8,6 +8,7 @@ use js::rust::HandleObject;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::audio_node::{AudioNodeInit, AudioNodeType};
 use servo_media::audio::constant_source_node::ConstantSourceNodeOptions as ServoMediaConstantSourceOptions;
+use servo_media::audio::graph::NodeId;
 use servo_media::audio::param::ParamType;
 
 use crate::conversions::Convert;
@@ -28,6 +29,26 @@ use crate::dom::window::Window;
 pub(crate) struct ConstantSourceNode {
     source_node: AudioScheduledSourceNode,
     offset: Dom<AudioParam>,
+}
+
+impl ConstantSourceNode {
+    fn new_inherited(
+        node_id: Option<NodeId>,
+        context: &BaseAudioContext,
+        node_options: UnwrappedAudioNodeOptions,
+        offset: &AudioParam,
+    ) -> Self {
+        ConstantSourceNode {
+            source_node: AudioScheduledSourceNode::new_inherited(
+                node_id,
+                context,
+                node_options, /* 2, MAX, Speakers */
+                0,            /* inputs */
+                1,            /* outputs */
+            ),
+            offset: Dom::from_ref(offset),
+        }
+    }
 }
 
 impl ConstantSourceNodeMethods<crate::DomTypeHolder> for ConstantSourceNode {
@@ -68,16 +89,12 @@ impl ConstantSourceNodeMethods<crate::DomTypeHolder> for ConstantSourceNode {
 
         Ok(reflect_dom_object_with_proto(
             cx,
-            Box::new(ConstantSourceNode {
-                source_node: AudioScheduledSourceNode::new_inherited(
-                    node_id,
-                    context,
-                    node_options, /* 2, MAX, Speakers */
-                    0,            /* inputs */
-                    1,            /* outputs */
-                ),
-                offset: Dom::from_ref(&offset),
-            }),
+            Box::new(ConstantSourceNode::new_inherited(
+                node_id,
+                context,
+                node_options, /* 2, MAX, Speakers */
+                &offset,
+            )),
             window,
             proto,
         ))

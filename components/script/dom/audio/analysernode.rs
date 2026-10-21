@@ -14,9 +14,11 @@ use servo_base::generic_channel::GenericCallback;
 use servo_media::audio::analyser_node::AnalysisEngine;
 use servo_media::audio::audio_node::AudioNodeInit;
 use servo_media::audio::block::Block;
+use servo_media::audio::graph::NodeId;
 
 use crate::dom::audio::audionode::{AudioNode, AudioNodeOptionsHelper};
 use crate::dom::audio::baseaudiocontext::BaseAudioContext;
+use crate::dom::audionode::UnwrappedAudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::AnalyserNodeBinding::{
     AnalyserNodeMethods, AnalyserOptions,
 };
@@ -37,6 +39,24 @@ pub(crate) struct AnalyserNode {
 }
 
 impl AnalyserNode {
+    fn new_inherited(
+        node_id: Option<NodeId>,
+        context: &BaseAudioContext,
+        node_options: UnwrappedAudioNodeOptions,
+        engine: AnalysisEngine,
+    ) -> AnalyserNode {
+        AnalyserNode {
+            node: AudioNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                1, // inputs
+                1, // outputs
+            ),
+            engine: DomRefCell::new(engine),
+        }
+    }
+
     pub(crate) fn push_block(&self, block: Block) {
         self.engine.borrow_mut().push(block)
     }
@@ -88,16 +108,12 @@ impl AnalyserNodeMethods<crate::DomTypeHolder> for AnalyserNode {
         );
         let node = reflect_dom_object_with_proto(
             cx,
-            Box::new(AnalyserNode {
-                node: AudioNode::new_inherited(
-                    node_id,
-                    context,
-                    node_options,
-                    1, // inputs
-                    1, // outputs
-                ),
-                engine: DomRefCell::new(engine),
-            }),
+            Box::new(AnalyserNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                engine,
+            )),
             window,
             proto,
         );
