@@ -82,7 +82,9 @@ impl OfflineAudioContext {
             length == 0 ||
             !(MIN_SAMPLE_RATE..=MAX_SAMPLE_RATE).contains(&sample_rate)
         {
-            return Err(Error::NotSupported(None));
+            return Err(Error::NotSupported(Some(
+                "Invalid number of channels, length or sample rate".into(),
+            )));
         }
         let pipeline_id = window.pipeline_id();
         let context =
@@ -138,7 +140,10 @@ impl OfflineAudioContextMethods<crate::DomTypeHolder> for OfflineAudioContext {
     fn StartRendering(&self, cx: &mut CurrentRealm) -> RootedPromise {
         let promise = Promise::new_in_realm(cx);
         if self.rendering_started.get() {
-            promise.reject_error(cx, Error::InvalidState(None));
+            promise.reject_error(
+                cx,
+                Error::InvalidState(Some("Rendering has already started".into())),
+            );
             return promise;
         }
         self.rendering_started.set(true);
