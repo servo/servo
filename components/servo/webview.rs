@@ -148,6 +148,9 @@ pub(crate) struct WebViewInner {
 
     /// The message router for bidirectional native ↔ JavaScript messaging.
     message_router: MessageRouter,
+
+    /// Whether this WebView is running in private browsing (incognito) mode.
+    is_private: bool,
 }
 
 impl Drop for WebViewInner {
@@ -198,6 +201,7 @@ impl WebView {
             user_content_manager: builder.user_content_manager.clone(),
             request_context: builder.request_context,
             message_router: MessageRouter::new(),
+            is_private: builder.is_private,
         })));
 
         let viewport_details = webview.viewport_details();
@@ -222,6 +226,7 @@ impl WebView {
             webview_id: webview.id(),
             viewport_details,
             user_content_manager_id,
+            is_private: builder.is_private,
         };
 
         // There are two possibilities here. Either the WebView is a new toplevel
@@ -324,6 +329,11 @@ impl WebView {
     /// Get the [`RenderingContext`] associated with this [`WebView`].
     pub fn rendering_context(&self) -> Rc<dyn RenderingContext> {
         self.inner().rendering_context.clone()
+    }
+
+    /// Returns whether this [`WebView`] operates in private browsing / incognito mode.
+    pub fn is_private(&self) -> bool {
+        self.inner().is_private
     }
 
     /// Get the load status for the page that is currently loading or loaded in this [`WebView`].
@@ -1354,6 +1364,7 @@ pub struct WebViewBuilder {
     #[cfg(feature = "gamepad")]
     gamepad_delegate: Option<Rc<dyn GamepadDelegate>>,
     request_context: Option<RequestContext>,
+    is_private: bool,
 }
 
 impl WebViewBuilder {
@@ -1374,6 +1385,7 @@ impl WebViewBuilder {
             #[cfg(feature = "gamepad")]
             gamepad_delegate: None,
             request_context: None,
+            is_private: false,
         }
     }
 
@@ -1439,6 +1451,15 @@ impl WebViewBuilder {
     /// request context set at the [`Servo`] level for this specific [`WebView`].
     pub fn request_context(mut self, request_context: RequestContext) -> Self {
         self.request_context = Some(request_context);
+        self
+    }
+
+    /// Set whether the [`WebView`] operates in private browsing / incognito mode.
+    ///
+    /// In private browsing mode, cookies, local storage, and session data are stored in an
+    /// isolated in-memory store and never persist to disk.
+    pub fn private(mut self, is_private: bool) -> Self {
+        self.is_private = is_private;
         self
     }
 

@@ -538,6 +538,10 @@ impl Gui {
                                 ui.available_size(),
                                 egui::Layout::right_to_left(egui::Align::Center),
                                 |ui| {
+                                    if state.servoshell_preferences.incognito {
+                                        ui.label(egui::RichText::new("🕶 Incognito").italics().color(egui::Color32::from_rgb(180, 180, 240)));
+                                    }
+
                                     let mut experimental_preferences_enabled =
                                         state.experimental_preferences_enabled();
                                     let prefs_toggle = ui
@@ -556,6 +560,30 @@ impl Gui {
                                         *location_dirty = false;
                                         window.queue_user_interface_command(
                                             UserInterfaceCommand::ReloadAll,
+                                        );
+                                    }
+
+                                    let downloads_btn = ui
+                                        .add(Gui::toolbar_button("📥"))
+                                        .on_hover_text("View downloads (Ctrl+J)");
+                                    downloads_btn.widget_info(|| {
+                                        let mut info = WidgetInfo::new(WidgetType::Button);
+                                        info.label = Some("View downloads".into());
+                                        info
+                                    });
+                                    let ctrl_j = ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::J));
+                                    if downloads_btn.clicked() || ctrl_j {
+                                        let url = Url::parse("servo:downloads").expect("Valid internal URL");
+                                        window.queue_user_interface_command(
+                                            UserInterfaceCommand::Navigate(url.into()),
+                                        );
+                                    }
+
+                                    let ctrl_h = ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::H));
+                                    if ctrl_h {
+                                        let url = Url::parse("servo:history").expect("Valid internal URL");
+                                        window.queue_user_interface_command(
+                                            UserInterfaceCommand::Navigate(url.into()),
                                         );
                                     }
 
@@ -641,25 +669,36 @@ impl Gui {
                                         Self::browser_tab(ui, window, webview, favicon);
                                     }
 
+                                    let ctrl_w = ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::W));
+                                    if ctrl_w {
+                                        if let Some(active_id) = window.webview_collection.borrow().active_id() {
+                                            window.queue_user_interface_command(
+                                                UserInterfaceCommand::CloseWebView(active_id),
+                                            );
+                                        }
+                                    }
+
+                                    let ctrl_t = ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::T));
                                     let new_tab_button = ui.add(Gui::toolbar_button("+"));
                                     new_tab_button.widget_info(|| {
                                         let mut info = WidgetInfo::new(WidgetType::Button);
-                                        info.label = Some("New tab".into());
+                                        info.label = Some("New tab (Ctrl+T)".into());
                                         info
                                     });
-                                    if new_tab_button.clicked() {
+                                    if new_tab_button.clicked() || ctrl_t {
                                         window.queue_user_interface_command(
                                             UserInterfaceCommand::NewWebView,
                                         );
                                     }
 
+                                    let ctrl_n = ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::N));
                                     let new_window_button = ui.add(Gui::toolbar_button("⊞"));
                                     new_window_button.widget_info(|| {
                                         let mut info = WidgetInfo::new(WidgetType::Button);
-                                        info.label = Some("New window".into());
+                                        info.label = Some("New window (Ctrl+N)".into());
                                         info
                                     });
-                                    if new_window_button.clicked() {
+                                    if new_window_button.clicked() || ctrl_n {
                                         let url = Url::parse("servo:newtab").expect("Should be able to unconditionally parse 'servo:newtab' as URL");
                                         window.queue_user_interface_command(
                                             UserInterfaceCommand::NewWindow(TopLevelWebViewCreationRequest::WithUrl(url)),

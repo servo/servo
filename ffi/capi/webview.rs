@@ -109,6 +109,7 @@ pub struct ServoWebViewBuilder {
     pub(crate) request_context: Option<servo_api::RequestContext>,
     hidpi_scale_factor: Option<f32>,
     create_new_request: Option<servo_api::CreateNewWebViewRequest>,
+    is_private: bool,
 }
 
 /// Creates a handle to a new `WebViewBuilder` object for the given
@@ -171,6 +172,7 @@ pub unsafe extern "C" fn servo_webview_builder_create(
             request_context: None,
             hidpi_scale_factor: None,
             create_new_request: None,
+            is_private: false,
         }))
     })
 }
@@ -406,6 +408,26 @@ pub unsafe extern "C" fn servo_webview_builder_set_hidpi_scale_factor(
     })
 }
 
+/// Sets whether the `WebView` operates in private browsing / incognito mode.
+///
+/// In private browsing mode, cookies, local storage, and session data are stored in an
+/// isolated in-memory store and never persist to disk.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_webview_builder_set_private_browsing(
+    builder: *mut ServoWebViewBuilder,
+    is_private: bool,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if builder.is_null() {
+            return ServoError::NullArgument;
+        }
+        unsafe {
+            (*builder).is_private = is_private;
+        }
+        ServoError::Ok
+    })
+}
+
 /// Consumes `builder` and creates a new `WebView` instance.
 ///
 /// `builder` is a handle to a `ServoWebViewBuilder` object.
@@ -448,6 +470,7 @@ pub unsafe extern "C" fn servo_webview_builder_build(
             request_context,
             hidpi_scale_factor,
             create_new_request,
+            is_private,
         } = *builder;
 
         // A builder either creates a toplevel `WebView` (from a `Servo`
@@ -489,6 +512,10 @@ pub unsafe extern "C" fn servo_webview_builder_build(
 
         if let Some(scale) = hidpi_scale_factor {
             webview_builder = webview_builder.hidpi_scale_factor(euclid::Scale::new(scale));
+        }
+
+        if is_private {
+            webview_builder = webview_builder.private(true);
         }
 
         Box::into_raw(Box::new(webview_builder.build()))
@@ -985,6 +1012,20 @@ pub unsafe extern "C" fn servo_webview_get_load_status(webview: *const WebView) 
     // SAFETY: The caller is assumed to uphold the safety requirements for
     // `webview` documented above.
     unsafe { &*webview }.load_status() as c_int
+}
+
+/// Returns whether `webview` operates in private browsing / incognito mode.
+///
+/// Returns false if `webview` is NULL.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_webview_is_private(webview: *const WebView) -> bool {
+    ServoError::catch_ffi(|| {
+        if webview.is_null() {
+            return false;
+        }
+        unsafe { (*webview).is_private() }
+    })
+    .unwrap_or(false)
 }
 
 /// Writes the size of the `WebView`'s viewport in device pixels into

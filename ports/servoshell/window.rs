@@ -130,6 +130,10 @@ impl ServoShellWindow {
             webview_builder = webview_builder.gamepad_delegate(gamepad_delegate);
         }
 
+        if state.servoshell_preferences.incognito {
+            webview_builder = webview_builder.private(true);
+        }
+
         let webview = webview_builder.build();
         self.add_webview(webview.clone());
 

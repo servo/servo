@@ -107,6 +107,8 @@ pub(crate) struct ServoShellPreferences {
     /// Enable memory output if tracing is enabled.
     #[allow(unused)]
     pub memory_output: bool,
+    /// Whether private browsing / incognito mode is active.
+    pub incognito: bool,
 }
 
 impl Default for ServoShellPreferences {
@@ -134,6 +136,7 @@ impl Default for ServoShellPreferences {
             log_to_file: false,
             experimental_preferences_enabled: false,
             memory_output: false,
+            incognito: false,
         }
     }
 }
@@ -458,6 +461,10 @@ struct CmdArgs {
     #[bpaf(long)]
     ignore_certificate_errors: bool,
 
+    /// Enable private browsing / incognito mode (isolated in-memory storage).
+    #[bpaf(long("incognito"), long("private"))]
+    incognito: bool,
+
     /// Number of threads to use for layout.
     #[bpaf(short('y'), long, argument("1"))]
     layout_threads: Option<i64>,
@@ -743,6 +750,7 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         #[cfg(target_env = "ohos")]
         log_to_file: cmd_args.log_to_file,
         memory_output: cmd_args.memory_output,
+        incognito: cmd_args.incognito,
         ..Default::default()
     };
 

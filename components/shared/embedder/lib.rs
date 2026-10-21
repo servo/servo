@@ -1153,6 +1153,7 @@ pub struct NewWebViewDetails {
     pub webview_id: WebViewId,
     pub viewport_details: ViewportDetails,
     pub user_content_manager_id: Option<UserContentManagerId>,
+    pub is_private: bool,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

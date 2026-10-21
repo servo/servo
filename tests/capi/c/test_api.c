@@ -3191,6 +3191,46 @@ int test_servo_post_task(void)
     return 0;
 }
 
+int test_webview_private_browsing(void)
+{
+    // Test null safety
+    if (servo_webview_builder_set_private_browsing(NULL, true) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
+    if (servo_webview_is_private(NULL))
+        return 2;
+
+    struct Servo* servo = create_test_servo();
+    if (servo == NULL)
+        return 3;
+
+    struct RenderingContext* context = servo_rendering_context_create_software(800, 600);
+    if (context == NULL)
+        return 4;
+
+    struct ServoWebViewBuilder* builder = servo_webview_builder_create(servo, context);
+    if (builder == NULL)
+        return 5;
+
+    if (servo_webview_builder_set_private_browsing(builder, true) != SERVO_ERROR_OK) {
+        servo_webview_builder_free(builder);
+        return 6;
+    }
+
+    struct WebView* webview = servo_webview_builder_build(builder);
+    if (webview == NULL)
+        return 7;
+
+    if (!servo_webview_is_private(webview)) {
+        servo_webview_close(webview);
+        servo_webview_free(webview);
+        return 8;
+    }
+
+    servo_webview_close(webview);
+    servo_webview_free(webview);
+    return 0;
+}
+
 int run_c_api_tests(void)
 {
     tests_run = 0;
@@ -3297,6 +3337,7 @@ int run_c_api_tests(void)
     RUN_TEST(test_webview_print_to_pdf);
     RUN_TEST(test_webview_delegate_context_menu);
     RUN_TEST(test_servo_post_task);
+    RUN_TEST(test_webview_private_browsing);
 
     free_test_servo();
 
