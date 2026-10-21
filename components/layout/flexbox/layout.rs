@@ -1135,7 +1135,7 @@ fn item_with_auto_cross_size_stretches_to_line_size(
 fn do_initial_flex_line_layout<'items>(
     flex_context: &mut FlexContext,
     container_main_size: Au,
-    mut items: Vec<FlexItem<'items>>,
+    items: Vec<FlexItem<'items>>,
     main_gap: Au,
 ) -> Vec<InitialFlexLineLayout<'items>> {
     let construct_line = |(items, outer_hypothetical_main_size)| {
@@ -1157,36 +1157,31 @@ fn do_initial_flex_line_layout<'items>(
     }
 
     let mut lines = Vec::new();
+    let mut line_items = Vec::new();
     let mut line_size_so_far = Au::zero();
-    let mut line_so_far_is_empty = true;
-    let mut index = 0;
 
-    while let Some(item) = items.get(index) {
+    for item in items {
         let item_size = item.hypothetical_main_size + item.pbm_auto_is_zero.main;
+
+        // Compute the size the line would be if we added this item.
         let mut line_size_would_be = line_size_so_far + item_size;
-        if !line_so_far_is_empty {
+        if !line_items.is_empty() {
             line_size_would_be += main_gap;
         }
+
         let item_fits = line_size_would_be <= container_main_size;
-        if item_fits || line_so_far_is_empty {
+        if item_fits || line_items.is_empty() {
+            line_items.push(item);
             line_size_so_far = line_size_would_be;
-            line_so_far_is_empty = false;
-            index += 1;
-            continue;
+        } else {
+            lines.push((std::mem::take(&mut line_items), line_size_so_far));
+            line_items.push(item);
+            line_size_so_far = item_size;
         }
-
-        // We found something that doesn’t fit. This line ends *before* this item.
-        let remaining = items.split_off(index);
-        lines.push((items, line_size_so_far));
-        items = remaining;
-
-        // The next line has this item.
-        line_size_so_far = item_size;
-        index = 1;
     }
 
     // We didn't reach the end of the last line, so add all remaining items there.
-    lines.push((items, line_size_so_far));
+    lines.push((line_items, line_size_so_far));
 
     let job_sizes = lines
         .iter()
