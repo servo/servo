@@ -540,7 +540,7 @@ pub(crate) fn navigate(
 
     // Step 24.1. Let unloadPromptCanceled be the result of checking if unloading
     // is canceled for navigable's active document's inclusive descendant navigables.
-    let unload_prompt_canceled = document.check_if_unloading_is_cancelled(cx, false);
+    let unload_prompt_canceled = document.steps_to_fire_beforeunload(cx, false);
     // Step 24.2. If unloadPromptCanceled is not "continue",
     // or navigable's ongoing navigation is no longer navigationId:
     //

@@ -935,7 +935,7 @@ impl Window {
         //
         // Implemented by passing `false` into the method below
         // Step 2. If the result of checking if unloading is canceled for toUnload is not "continue", then return.
-        if !document.check_if_unloading_is_cancelled(cx, false) {
+        if !document.steps_to_fire_beforeunload(cx, false) {
             return;
         }
         // Step 3. Append the following session history traversal steps to traversable:
@@ -1411,6 +1411,11 @@ impl WindowMethods<crate::DomTypeHolder> for Window {
         features: DOMString,
     ) -> Fallible<Option<DomRoot<WindowProxy>>> {
         let result = self.window_proxy().open(cx, url, target, features);
+
+        // bfcache eligibility rules are incoherent across browsers and largely
+        // unspecified. Per https://github.com/whatwg/html/issues/6858, we block
+        // any document that has synchronous access to another document from
+        // entering the bfcache.
         if let Ok(Some(ref window_proxy)) = result &&
             !window_proxy.is_disowned()
         {

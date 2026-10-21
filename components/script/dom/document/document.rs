@@ -2315,13 +2315,15 @@ impl Document {
             }));
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#checking-if-unloading-is-canceled>
     /// <https://html.spec.whatwg.org/multipage/#steps-to-fire-beforeunload>
-    pub(crate) fn check_if_unloading_is_cancelled(
+    pub(crate) fn steps_to_fire_beforeunload(
         &self,
         cx: &mut JSContext,
         recursive_flag: bool,
     ) -> bool {
+        // TODO: extract steps that match the caller (#checking-if-unloading-is-canceled)
+        //       into a new method.
+
         // Step 2. Increase the document's unload counter by 1.
         self.unload_counter.set(self.unload_counter.get() + 1);
 
@@ -2358,6 +2360,7 @@ impl Document {
             self.send_to_embedder(msg);
             can_unload = port.recv().unwrap() == AllowOrDeny::Allow;
         }
+        // TODO: this no longer matches the specification and should be rewritten.
         // Step 9
         if !recursive_flag {
             // `check_if_unloading_is_cancelled` might cause futher modifications to the DOM so collecting here prevents
@@ -2366,7 +2369,7 @@ impl Document {
             for iframe in &iframes {
                 // TODO: handle the case of cross origin iframes.
                 let document = iframe.owner_document();
-                can_unload = document.check_if_unloading_is_cancelled(cx, true);
+                can_unload = document.steps_to_fire_beforeunload(cx, true);
                 if !document.salvageable() {
                     self.salvageable.set(false);
                 }
