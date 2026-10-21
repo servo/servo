@@ -84,7 +84,7 @@ impl IDBIndex {
     pub(crate) fn verify_not_deleted(&self) -> ErrorResult {
         let stored_name = self.name.borrow().clone().root();
         let transaction = self.object_store.transaction();
-        if !self.object_store.has_index(&*stored_name) ||
+        if !self.object_store.has_index(&stored_name) ||
             !transaction
                 .get_db()
                 .object_store_exists(&self.object_store.get_name())

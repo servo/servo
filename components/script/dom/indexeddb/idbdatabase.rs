@@ -145,10 +145,7 @@ impl IDBDatabase {
     }
 
     pub(crate) fn object_store_exists(&self, name: &TracedDOMString) -> bool {
-        self.object_store_names
-            .borrow()
-            .iter()
-            .any(|store_name| *store_name == *name)
+        self.object_store_names.borrow().contains(name)
     }
 
     /// <https://w3c.github.io/IndexedDB/#dom-idbdatabase-version>
