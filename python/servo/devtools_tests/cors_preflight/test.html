@@ -1,0 +1,16 @@
+<!-- devtools/cors_preflight.html -->
+<!doctype html>
+<script>
+    const params = new URLSearchParams(window.location.search);
+    const baseUrl = params.get('baseurl');
+
+    if (baseUrl) {
+        // Delay so the test has time to start watching network events
+        setTimeout(() => {
+            fetch(baseUrl + "/cors_preflight/test.html", {
+                method: "PUT",
+                headers: { "X-Custom-Header": "1" },
+            }).catch(() => {});
+        }, 1500);
+    }
+</script>
