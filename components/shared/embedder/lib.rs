@@ -9,6 +9,7 @@
 //! is probably a better fit for the `servo_constellation_traits` crate.
 
 pub mod embedder_controls;
+pub mod geolocation;
 pub mod input_events;
 pub mod resources;
 pub mod user_contents;
@@ -50,6 +51,7 @@ use webrender_api::units::{
 };
 
 pub use crate::embedder_controls::*;
+pub use crate::geolocation::*;
 pub use crate::input_events::*;
 use crate::user_contents::UserContentManagerId;
 pub use crate::webdriver::*;
@@ -513,10 +515,23 @@ pub enum EmbedderMsg {
     ),
     /// Open interface to request permission specified by prompt.
     PromptPermission(WebViewId, PermissionFeature, GenericSender<AllowOrDeny>),
-    /// Async permission request for screen wake lock. The callback is invoked
-    /// with the user's decision, which resolves or rejects the pending promise
-    /// without blocking the script thread.
-    RequestWakeLockPermission(WebViewId, GenericCallback<AllowOrDeny>, WakeLockType),
+    /// Request permission without blocking the script thread. The callback is invoked with the user's
+    /// decision once it is known.
+    RequestPermission(WebViewId, PermissionFeature, GenericCallback<AllowOrDeny>),
+    /// Request a single geographic position fix. The callback is invoked exactly once.
+    RequestGeolocationPosition(
+        WebViewId,
+        GeolocationRequestOptions,
+        GenericCallback<GeolocationResult>,
+    ),
+    /// Begin delivering continuous position updates for the given watch.
+    StartGeolocationWatch(
+        GeolocationWatchId,
+        GeolocationRequestOptions,
+        GenericCallback<GeolocationResult>,
+    ),
+    /// Stop delivering updates for a watch started by [`EmbedderMsg::StartGeolocationWatch`].
+    StopGeolocationWatch(GeolocationWatchId),
     /// Report the status of Devtools Server with a token that can be used to bypass the permission prompt.
     OnDevtoolsStarted(Result<u16, ()>, String),
     /// Ask the user to allow a devtools client to connect.
