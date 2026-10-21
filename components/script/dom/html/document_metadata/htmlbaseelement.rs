@@ -140,6 +140,12 @@ impl HTMLBaseElementMethods<crate::DomTypeHolder> for HTMLBaseElement {
 
     // https://html.spec.whatwg.org/multipage/#dom-base-href
     make_setter!(SetHref, "href");
+
+    // https://html.spec.whatwg.org/multipage/#dom-base-target
+    make_getter!(Target, "target");
+
+    // https://html.spec.whatwg.org/multipage/#dom-base-target
+    make_setter!(SetTarget, "target");
 }
 
 impl VirtualMethods for HTMLBaseElement {

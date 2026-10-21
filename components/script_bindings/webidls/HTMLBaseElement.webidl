@@ -9,6 +9,6 @@ interface HTMLBaseElement : HTMLElement {
 
     [CEReactions]
     attribute DOMString href;
-    // [CEReactions]
-    // attribute DOMString target;
+    [CEReactions]
+    attribute DOMString target;
 };
