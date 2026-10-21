@@ -408,6 +408,9 @@ class OpenHarmonyTarget(CrossBuildTarget):
         # `cargo ohos` currently doesn't set RUSTFLAGS in the environment (since it uses the encoded rustflags),
         # So we explicitly add the flags here and preserve any existing rustflags.
         env["RUSTFLAGS"] += " " + " ".join(ohos_info["flags"]["rustflags"])
+        # Packing the relative relocations shrinks the binary size by about 3.5 MiB
+        # and is supported on OpenHarmony since 4.0.
+        env["RUSTFLAGS"] += " -Clink-arg=-Wl,-z,pack-relative-relocs"
 
         # CC and CXX should already be set to appropriate host compilers by `build_env()`
         # TODO: HOST_CC and HOST_CXX are needed for mozjs, and should be set in the mozjs
