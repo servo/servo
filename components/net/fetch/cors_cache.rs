@@ -96,13 +96,13 @@ impl CorsCache {
     fn find_entry_by_method<'a>(
         &'a mut self,
         request: &Request,
-        method: Method,
+        method: &Method,
     ) -> Option<&'a mut CorsCacheEntry> {
         // we can take the method from CorSRequest itself
         self.cleanup();
         self.0
             .iter_mut()
-            .find(|e| match_headers(e, request) && e.header_or_method.match_method(&method))
+            .find(|e| match_headers(e, request) && e.header_or_method.match_method(method))
     }
 
     /// Remove old entries
@@ -147,7 +147,7 @@ impl CorsCache {
 
     /// Returns true if an entry with a
     /// [matching method](https://fetch.spec.whatwg.org/#concept-cache-match-method) is found
-    pub fn match_method(&mut self, request: &Request, method: Method) -> bool {
+    pub fn match_method(&mut self, request: &Request, method: &Method) -> bool {
         self.find_entry_by_method(request, method).is_some()
     }
 
@@ -158,11 +158,11 @@ impl CorsCache {
     pub fn match_method_and_update(
         &mut self,
         request: &Request,
-        method: Method,
+        method: &Method,
         new_max_age: Duration,
     ) -> bool {
         match self
-            .find_entry_by_method(request, method.clone())
+            .find_entry_by_method(request, method)
             .map(|e| e.max_age = new_max_age)
         {
             Some(_) => true,
@@ -172,7 +172,7 @@ impl CorsCache {
                     request.current_url(),
                     new_max_age,
                     request.credentials_mode == CredentialsMode::Include,
-                    HeaderOrMethod::MethodData(method),
+                    HeaderOrMethod::MethodData(method.clone()),
                 ));
                 false
             },
