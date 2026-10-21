@@ -266,13 +266,10 @@ impl StackingContextTree {
 
         let mut root_stacking_context = StackingContext::root(root_scroll_node_id);
         if let Some(root_box_fragment) = fragment_tree.root_box_fragment() {
-            Fragment::Box(root_box_fragment).build_stacking_context_tree(
+            root_box_fragment.build_stacking_context_tree(
                 &mut stacking_context_tree,
                 &containing_block_info,
                 &mut root_stacking_context,
-                // The root element might be absolutely positioned and we still want
-                // to process it, if it is.
-                StackingContextBuildMode::IncludeHoisted,
                 &StackingContextParentInfo::default(),
             );
         }
@@ -554,43 +551,24 @@ impl StackingContext {
     }
 }
 
-#[derive(Clone, Copy, PartialEq)]
-pub(crate) enum StackingContextBuildMode {
-    IncludeHoisted,
-    SkipHoisted,
-}
-
 impl Fragment {
     pub(crate) fn build_stacking_context_tree(
         &self,
         stacking_context_tree: &mut StackingContextTree,
         containing_block_info: &ContainingBlockInfo,
         stacking_context: &mut StackingContext,
-        mode: StackingContextBuildMode,
         parent_info: &StackingContextParentInfo,
     ) {
-        let containing_block = containing_block_info.get_containing_block_for_fragment(self);
-        let cumulative_containing_block = containing_block
-            .rect
-            .translate(containing_block.accumulated_reference_frame_offset);
-        self.set_cumulative_content_rect(&cumulative_containing_block);
-
-        if self
-            .base()
-            .is_some_and(|base| base.flags.contains(FragmentFlags::IS_COLLAPSED))
-        {
-            return;
-        }
-
-        let fragment_clone = self.clone();
         match self {
             Fragment::Box(fragment) | Fragment::Float(fragment) => {
-                if mode == StackingContextBuildMode::SkipHoisted &&
-                    fragment
-                        .style()
-                        .get_box()
-                        .position
-                        .is_absolutely_positioned()
+                // Absolutely positioned elements are processed when their originating
+                // `Fragment::AbsoluteOrFixedPositionedPlaceholder` placeholder is
+                // processed.
+                if fragment
+                    .style()
+                    .get_box()
+                    .position
+                    .is_absolutely_positioned()
                 {
                     return;
                 }
@@ -601,9 +579,7 @@ impl Fragment {
                 };
 
                 fragment.build_stacking_context_tree(
-                    fragment_clone,
                     stacking_context_tree,
-                    containing_block,
                     containing_block_info,
                     stacking_context,
                     parent_info,
@@ -615,23 +591,21 @@ impl Fragment {
             },
             Fragment::AbsoluteOrFixedPositionedPlaceholder(fragment) => {
                 let shared_fragment = fragment.borrow();
-                let fragment_ref = match shared_fragment.fragment.as_ref() {
-                    Some(fragment_ref) => fragment_ref,
-                    None => unreachable!("Found hoisted box with missing fragment."),
+                let box_fragment = match shared_fragment.fragment.as_ref() {
+                    Some(Fragment::Box(box_fragment)) => box_fragment,
+                    _ => unreachable!("Found hoisted box with missing or non-BoxFragment."),
                 };
 
-                fragment_ref.build_stacking_context_tree(
+                box_fragment.build_stacking_context_tree(
                     stacking_context_tree,
                     containing_block_info,
                     stacking_context,
-                    StackingContextBuildMode::IncludeHoisted,
                     &parent_info.without_text_decorations(),
                 );
             },
             Fragment::Positioning(fragment) => {
                 fragment.build_stacking_context_tree(
                     stacking_context_tree,
-                    containing_block,
                     containing_block_info,
                     stacking_context,
                     parent_info,
@@ -675,16 +649,23 @@ impl BoxFragment {
 
     fn build_stacking_context_tree(
         self: &Arc<Self>,
-        fragment: Fragment,
         stacking_context_tree: &mut StackingContextTree,
-        containing_block: &ContainingBlock,
         containing_block_info: &ContainingBlockInfo,
         parent_stacking_context: &mut StackingContext,
         parent_info: &StackingContextParentInfo,
     ) {
+        let containing_block = containing_block_info.containing_block_for_box(self);
+        let cumulative_containing_block = containing_block
+            .rect
+            .translate(containing_block.accumulated_reference_frame_offset);
+        self.set_cumulative_content_rect(&cumulative_containing_block);
+
+        if self.base.flags.contains(FragmentFlags::IS_COLLAPSED) {
+            return;
+        }
+
         self.clear_stacking_context_tree_traversal_data();
         self.build_stacking_context_tree_maybe_creating_reference_frame(
-            fragment,
             stacking_context_tree,
             containing_block,
             containing_block_info,
@@ -695,7 +676,6 @@ impl BoxFragment {
 
     fn build_stacking_context_tree_maybe_creating_reference_frame(
         self: &Arc<Self>,
-        fragment: Fragment,
         stacking_context_tree: &mut StackingContextTree,
         containing_block: &ContainingBlock,
         containing_block_info: &ContainingBlockInfo,
@@ -707,7 +687,6 @@ impl BoxFragment {
                 Some(reference_frame_data) => reference_frame_data,
                 None => {
                     return self.build_stacking_context_tree_maybe_creating_stacking_context(
-                        fragment,
                         stacking_context_tree,
                         containing_block,
                         containing_block_info,
@@ -770,7 +749,6 @@ impl BoxFragment {
         };
 
         self.build_stacking_context_tree_maybe_creating_stacking_context(
-            fragment,
             stacking_context_tree,
             &adjusted_containing_block,
             &new_containing_block_info,
@@ -780,10 +758,8 @@ impl BoxFragment {
         );
     }
 
-    #[expect(clippy::too_many_arguments)]
     fn build_stacking_context_tree_maybe_creating_stacking_context(
         self: &Arc<Self>,
-        fragment: Fragment,
         stacking_context_tree: &mut StackingContextTree,
         containing_block: &ContainingBlock,
         containing_block_info: &ContainingBlockInfo,
@@ -849,11 +825,7 @@ impl BoxFragment {
             containing_block
         };
 
-        let box_fragment = fragment
-            .retrieve_box_fragment()
-            .expect("Should never try to make stacking context for non-BoxFragment")
-            .clone();
-
+        let box_fragment = self.clone();
         let mut child_stacking_context = parent_stacking_context.create_descendant(
             stacking_context_type,
             containing_block.rect.origin,
@@ -967,7 +939,6 @@ impl BoxFragmentWithStyle<'_> {
                 stacking_context_tree,
                 &new_containing_block_info,
                 stacking_context,
-                StackingContextBuildMode::SkipHoisted,
                 &parent_info_for_children,
             );
         }
@@ -1467,11 +1438,16 @@ impl PositioningFragment {
     fn build_stacking_context_tree(
         &self,
         stacking_context_tree: &mut StackingContextTree,
-        containing_block: &ContainingBlock,
         containing_block_info: &ContainingBlockInfo,
         stacking_context: &mut StackingContext,
         parent_info: &StackingContextParentInfo,
     ) {
+        let containing_block = containing_block_info.for_non_absolute_descendants;
+        let cumulative_containing_block = containing_block
+            .rect
+            .translate(containing_block.accumulated_reference_frame_offset);
+        self.set_cumulative_content_rect(&cumulative_containing_block);
+
         let rect = self
             .base
             .rect()
@@ -1485,7 +1461,6 @@ impl PositioningFragment {
                 stacking_context_tree,
                 &new_containing_block_info,
                 stacking_context,
-                StackingContextBuildMode::SkipHoisted,
                 parent_info,
             );
         }
