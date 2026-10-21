@@ -57,7 +57,7 @@ use crate::window::{
     ServoShellWindowId, TopLevelWebViewCreationRequest,
 };
 
-pub(crate) const INITIAL_WINDOW_TITLE: &str = "Servo";
+pub(crate) const INITIAL_WINDOW_TITLE: &str = "Servo Browser";
 
 pub struct HeadedWindow {
     /// The egui interface that is responsible for showing the user interface elements of
@@ -128,7 +128,7 @@ impl HeadedWindow {
 
         // Set a name so it can be pinned to taskbars in Linux.
         #[cfg(target_os = "linux")]
-        let window_attr = window_attr.with_name("org.servo.Servo", "Servo");
+        let window_attr = window_attr.with_name("org.servo.ServoBrowser", "Servo Browser");
 
         #[allow(deprecated)]
         let winit_window = event_loop
@@ -840,6 +840,7 @@ impl PlatformWindow for HeadedWindow {
                     .page_title()
                     .filter(|title| !title.is_empty())
                     .or_else(|| webview.url().map(|url| url.to_string()))
+                    .map(|title| format!("{title} — Servo Browser"))
             })
             .unwrap_or_else(|| INITIAL_WINDOW_TITLE.to_string());
         if title != *self.last_title.borrow() {

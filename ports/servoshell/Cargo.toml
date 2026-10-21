@@ -27,10 +27,10 @@ workspace = true
 winresource = { workspace = true }
 
 [package.metadata.winresource]
-FileDescription = "ServoShell"
+FileDescription = "Servo Browser"
 LegalCopyright = "© The Servo Project Developers"
-OriginalFilename = "servoshell.exe"
-ProductName = "ServoShell"
+OriginalFilename = "servobrowser.exe"
+ProductName = "Servo Browser"
 
 [features]
 # Don't add new features to `default` directly. Add to `default_without_allocator` instead.
