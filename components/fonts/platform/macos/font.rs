@@ -16,9 +16,9 @@ use euclid::default::{Point2D, Rect, Size2D};
 use fonts_traits::{FontIdentifier, FontTemplateRef, LocalFontIdentifier};
 use log::debug;
 use objc2_core_foundation::{
-    CFData, CFDictionary, CFIndex, CFNumber, CFRange, CFRetained, CFString, CFType,
+    CFData, CFDictionary, CFIndex, CFNumber, CFRange, CFRetained, CFString, CFType, CGPoint,
 };
-use objc2_core_graphics::{CGGlyph, CGPath, CGPathElement, CGPathElementType, CGPoint};
+use objc2_core_graphics::{CGGlyph, CGPath, CGPathElement, CGPathElementType};
 use objc2_core_text::{
     CTFont, CTFontOrientation, CTFontSymbolicTraits, CTFontTableOptions, CTFontTableTag,
     kCTFontSlantTrait, kCTFontSymbolicTrait, kCTFontWeightTrait, kCTFontWidthTrait,
