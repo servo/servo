@@ -7840,7 +7840,7 @@ class CGDescriptor(CGThing):
                                            name in legacyWindowAliases], ",\n")),
                         CGGeneric("];\n")], "\n"))
 
-        propertyArrays = str(properties)
+        propertyArrays = "" if descriptor.interface.getExtendedAttribute("Inline") else str(properties)
         cgThings.append(CGGeneric(propertyArrays))
 
         if not descriptor.interface.getExtendedAttribute("Inline"):
