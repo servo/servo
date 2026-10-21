@@ -575,7 +575,7 @@ impl Gui {
                                     if downloads_btn.clicked() || ctrl_j {
                                         let url = Url::parse("servo:downloads").expect("Valid internal URL");
                                         window.queue_user_interface_command(
-                                            UserInterfaceCommand::Navigate(url.into()),
+                                            UserInterfaceCommand::Go(url.to_string()),
                                         );
                                     }
 
@@ -583,7 +583,7 @@ impl Gui {
                                     if ctrl_h {
                                         let url = Url::parse("servo:history").expect("Valid internal URL");
                                         window.queue_user_interface_command(
-                                            UserInterfaceCommand::Navigate(url.into()),
+                                            UserInterfaceCommand::Go(url.to_string()),
                                         );
                                     }
 

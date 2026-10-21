@@ -5,10 +5,11 @@
 //! Lightweight WebExtensions (Manifest v2 / v3) loader and runtime compatibility layer.
 
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::rc::Rc;
 
-use embedder_traits::user_contents::{UserScript, UserStyleSheet};
+use servo::user_contents::UserStyleSheet;
+use servo::UserScript;
 use serde::Deserialize;
 use url::Url;
 

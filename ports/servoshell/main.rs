@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+#![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
+
 //! The `servoshell` test application.
 //!
 //! Creates a `Servo` instance with a example implementation of a working
@@ -22,13 +24,10 @@ fn main() {
     // SAFETY: No safety related side effects or requirements.
     // See <https://learn.microsoft.com/en-au/windows/console/freeconsole#remarks>
     unsafe {
-        // Free the console pop-up when started by double clicking.
-        // If started from the command line, nothing would happen.
-        let _ = Console::FreeConsole();
         // Try to attach to the console of the parent process.
         // If servo was started from the command line,
-        // this would allow continous stdout/stderr output to be seen in the console.
-        // Otherwise, the call will fail, which we can ignore.
+        // this allows continous stdout/stderr output to be seen in the console.
+        // Otherwise, if launched from GUI/Start Menu, this safely returns false.
         let _result = Console::AttachConsole(Console::ATTACH_PARENT_PROCESS);
     }
     cfg_if::cfg_if! {

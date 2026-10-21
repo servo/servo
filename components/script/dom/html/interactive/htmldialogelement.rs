@@ -271,7 +271,8 @@ impl HTMLDialogElement {
         // Step 1. Let canPreventClose be the result of firing an event named cancel at subject,
         // using Event, with the cancelable attribute initialized to true.
         let event = Event::new(
-            &self.owner_window(),
+            cx,
+            &self.owner_global(),
             atom!("cancel"),
             EventBubbles::DoesNotBubble,
             EventCancelable::Cancelable,
