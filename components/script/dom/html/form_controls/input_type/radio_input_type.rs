@@ -197,7 +197,7 @@ impl SpecificInputType for RadioInputType {
             for radio in radio_group_iter(input, group.as_ref(), form.as_deref(), &root) {
                 radio
                     .upcast::<Element>()
-                    .set_state(ElementState::INDETERMINATE, true);
+                    .set_state(cx.no_gc(), ElementState::INDETERMINATE, true);
             }
         }
     }
@@ -233,7 +233,7 @@ pub(crate) fn radio_group_updated(
     if input.Checked() {
         broadcast_radio_checked(cx, input, group);
     } else {
-        input.update_indeterminate_state();
+        input.update_indeterminate_state(cx.no_gc());
     }
 }
 
@@ -280,7 +280,7 @@ pub(crate) fn broadcast_radio_checked(
         // The radio button triggering the broadcast is checked, so the group is not indeterminate
         radio
             .upcast::<Element>()
-            .set_state(ElementState::INDETERMINATE, false);
+            .set_state(cx.no_gc(), ElementState::INDETERMINATE, false);
     }
 }
 

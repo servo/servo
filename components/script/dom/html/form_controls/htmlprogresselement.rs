@@ -221,6 +221,7 @@ impl VirtualMethods for HTMLProgressElement {
 
         if matches!(attr.local_name(), &local_name!("value")) {
             self.upcast::<Element>().set_state(
+                cx.no_gc(),
                 ElementState::INDETERMINATE,
                 matches!(mutation, AttributeMutation::Removed),
             );

@@ -409,8 +409,8 @@ impl Node {
 
         // Since both the initial traversal in light dom and the inner traversal
         // in shadow DOM share the same code, we define a closure to prevent omissions.
-        let document = root.owner_doc();
         let cleanup_node = |cx: &mut JSContext, node: &Node| {
+            let document = node.owner_document_unrooted(cx.no_gc());
             document.cancel_animations_for_node(node);
             document.clean_up_style_and_layout_data_for_node(node);
 
@@ -456,8 +456,10 @@ impl Node {
 
         // Make sure the node and its subtree aren't GCed until the accessibility tree has had a
         // chance to remove them.
-        if root.owner_document().accessibility_active() {
-            root.owner_document()
+        let no_gc = cx.no_gc();
+        let document = root.owner_document_unrooted(no_gc);
+        if document.accessibility_active() {
+            document
                 .accessibility_data_mut()
                 .root_removed_node(cx.no_gc(), root);
         }
@@ -2943,7 +2945,8 @@ impl Node {
 
     /// <https://dom.spec.whatwg.org/#concept-node-replace-all>
     pub(crate) fn replace_all(cx: &mut JSContext, node: Option<&Node>, parent: &Node) {
-        parent.owner_doc().add_script_and_layout_blocker();
+        let document = parent.owner_document();
+        document.add_script_and_layout_blocker();
 
         // Step 1. Let removedNodes be parent’s children.
         rooted_vec!(let removed_nodes <- parent.children().map(|child| DomRoot::as_traced(&child)));
@@ -2986,7 +2989,7 @@ impl Node {
             });
             MutationObserver::queue_a_mutation_record(cx, parent, mutation);
         }
-        parent.owner_doc().remove_script_and_layout_blocker(cx);
+        document.remove_script_and_layout_blocker(cx);
     }
 
     /// <https://dom.spec.whatwg.org/multipage/#string-replace-all>
@@ -3034,7 +3037,8 @@ impl Node {
         parent: &Node,
         suppress_observers: SuppressObserver,
     ) {
-        parent.owner_doc().add_script_and_layout_blocker();
+        let document = parent.owner_document();
+        document.add_script_and_layout_blocker();
 
         // Step 1. Let parent be node’s parent.
         // Step 2. Assert: parent is non-null.
@@ -3117,7 +3121,7 @@ impl Node {
             });
             MutationObserver::queue_a_mutation_record(cx, parent, mutation);
         }
-        parent.owner_doc().remove_script_and_layout_blocker(cx);
+        document.remove_script_and_layout_blocker(cx);
     }
 
     /// <https://dom.spec.whatwg.org/#concept-node-clone>
@@ -3743,7 +3747,7 @@ impl NodeMethods<crate::DomTypeHolder> for Node {
         }
 
         if self.is_connected() {
-            DomRoot::from_ref(self.owner_doc().upcast::<Node>())
+            DomRoot::upcast(self.owner_document())
         } else {
             self.inclusive_ancestors(ShadowIncluding::Yes)
                 .last()

@@ -384,7 +384,7 @@ impl Element {
     }
 
     pub(crate) fn restyle(&self, no_gc: &NoGC, damage: NodeDamage) {
-        let doc = self.node.owner_doc();
+        let doc = self.node.owner_document_unrooted(no_gc);
         let mut restyle = doc.ensure_pending_restyle(self);
 
         // FIXME(bholley): I think we should probably only do this for
@@ -451,7 +451,7 @@ impl Element {
             state,
             CustomElementState::Uncustomized | CustomElementState::Custom
         );
-        self.set_state(ElementState::DEFINED, in_defined_state)
+        self.set_state(no_gc, ElementState::DEFINED, in_defined_state)
     }
 
     pub(crate) fn get_custom_element_state(&self) -> CustomElementState {
@@ -2078,7 +2078,7 @@ impl Element {
             value,
         };
         let attr_ref = AttrRef::Raw(&data);
-        self.will_mutate_attr(attr_ref);
+        self.will_mutate_attr(cx.no_gc(), attr_ref);
         // Step 1: Append to attribute list (push clone, keep original on stack).
         self.attrs.push_raw(ContentAttributeData {
             identifier: data.identifier.clone(),
@@ -2140,7 +2140,7 @@ impl Element {
         // Clone to avoid double borrow
         let old_value = &attr.value().clone();
         // Step 2. Set attribute’s value to value.
-        self.will_mutate_attr(AttrRef::Dom(attr));
+        self.will_mutate_attr(cx.no_gc(), AttrRef::Dom(attr));
         attr.swap_value(&mut value);
         // Step 3. Handle attribute changes for attribute with attribute’s element, oldValue, and value.
         //
@@ -2164,7 +2164,7 @@ impl Element {
         // Handled by callers of this function and asserted here.
         assert!(attr.upcast::<Node>().owner_doc() == self.node.owner_doc());
         // Step 1. Append attribute to element’s attribute list.
-        self.will_mutate_attr(AttrRef::Dom(attr));
+        self.will_mutate_attr(cx.no_gc(), AttrRef::Dom(attr));
         self.attrs.push_dom(attr);
         // Step 4. Handle attribute changes for attribute with element, null, and attribute’s value.
         //
@@ -2326,7 +2326,7 @@ impl Element {
         if let Some(idx) = found_idx {
             let attr = self.attrs.ensure_dom(cx, idx, self);
             // Step 3. Change attribute to value.
-            self.will_mutate_attr(AttrRef::Dom(&attr));
+            self.will_mutate_attr(cx.no_gc(), AttrRef::Dom(&attr));
             self.change_attribute(cx, &attr, value);
         } else {
             // Step 2. If attribute is null, create an attribute whose namespace is namespace,
@@ -2383,7 +2383,7 @@ impl Element {
             let attr = self.attrs.ensure_dom(cx, idx, self);
 
             // Step 2. Remove attribute from element’s attribute list.
-            self.will_mutate_attr(AttrRef::Dom(&attr));
+            self.will_mutate_attr(cx.no_gc(), AttrRef::Dom(&attr));
             self.attrs.remove(idx);
             // Step 3. Set attribute’s element to null.
             attr.set_owner(cx, None);
@@ -2413,9 +2413,10 @@ impl Element {
             .any(|attr| attr.local_name() == local_name && attr.namespace() == &ns!())
     }
 
-    pub(crate) fn will_mutate_attr(&self, attr: AttrRef<'_>) {
-        let node = self.upcast::<Node>();
-        node.owner_doc().element_attr_will_change(self, attr);
+    pub(crate) fn will_mutate_attr(&self, no_gc: &NoGC, attr: AttrRef<'_>) {
+        self.upcast::<Node>()
+            .owner_doc_unrooted(no_gc)
+            .element_attr_will_change(self, attr);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#the-style-attribute>
@@ -2535,7 +2536,7 @@ impl Element {
             // Skipped, as that points to self.
 
             // Step 2. Replace oldAttribute by newAttribute in element’s attribute list.
-            self.will_mutate_attr(AttrRef::Dom(attr));
+            self.will_mutate_attr(cx.no_gc(), AttrRef::Dom(attr));
             self.attrs
                 .set(position, AttributeEntry::Dom(Dom::from_ref(attr)));
             // Step 3. Set newAttribute’s element to element.
@@ -2944,12 +2945,12 @@ impl Element {
                 shadow_root.register_element_id(self, id);
             }
         } else {
-            let document = self.owner_document();
             if let Some(ref id) = *self.id_attribute.borrow() {
-                document.register_element_id(cx, self, id);
+                self.owner_document().register_element_id(cx, self, id);
             }
             if let Some(ref name) = self.name_attribute() {
-                document.register_element_name(self, name);
+                self.owner_document_unrooted(cx.no_gc())
+                    .register_element_name(self, name);
             }
         }
     }
@@ -2966,12 +2967,12 @@ impl Element {
                 shadow_root.unregister_element_id(id);
             }
         } else {
-            let document = self.owner_document();
             if let Some(ref id) = *self.id_attribute.borrow() {
-                document.unregister_element_id(cx, id);
+                self.owner_document().unregister_element_id(cx, id);
             }
             if let Some(ref name) = self.name_attribute() {
-                document.unregister_element_name(name);
+                self.owner_document_unrooted(cx.no_gc())
+                    .unregister_element_name(name);
             }
         }
     }
@@ -4194,10 +4195,10 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     }
 
     // check-tidy: no specs after this line
-    fn EnterFormalActivationState(&self) -> ErrorResult {
+    fn EnterFormalActivationState(&self, cx: &JSContext) -> ErrorResult {
         match self.as_maybe_activatable() {
             Some(a) => {
-                a.enter_formal_activation_state();
+                a.enter_formal_activation_state(cx.no_gc());
                 Ok(())
             },
             None => Err(Error::NotSupported(Some(
@@ -4206,10 +4207,10 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
         }
     }
 
-    fn ExitFormalActivationState(&self) -> ErrorResult {
+    fn ExitFormalActivationState(&self, cx: &JSContext) -> ErrorResult {
         match self.as_maybe_activatable() {
             Some(a) => {
-                a.exit_formal_activation_state();
+                a.exit_formal_activation_state(cx.no_gc());
                 Ok(())
             },
             None => Err(Error::NotSupported(Some(
@@ -4806,7 +4807,6 @@ impl VirtualMethods for Element {
             .unwrap()
             .attribute_mutated(cx, attr, mutation);
         let node = self.upcast::<Node>();
-        let doc = node.owner_doc();
         match *attr.local_name() {
             // https://html.spec.whatwg.org/multipage/#event-handler-attributes:event-handler-content-attributes-3
             // Event handler content attributes are defined on `Element` rather than `HTMLElement`
@@ -4851,6 +4851,7 @@ impl VirtualMethods for Element {
                 let containing_shadow_root = self.containing_shadow_root();
                 if node.is_in_a_document_tree() || node.is_in_a_shadow_tree() {
                     let value = attr.value().as_atom().clone();
+                    let document = node.owner_document();
                     match mutation {
                         AttributeMutation::Set(old_value) => {
                             if let Some(old_value) = old_value {
@@ -4858,14 +4859,14 @@ impl VirtualMethods for Element {
                                 if let Some(ref shadow_root) = containing_shadow_root {
                                     shadow_root.unregister_element_id(old_value);
                                 } else {
-                                    doc.unregister_element_id(cx, old_value);
+                                    document.unregister_element_id(cx, old_value);
                                 }
                             }
                             if value != atom!("") {
                                 if let Some(ref shadow_root) = containing_shadow_root {
                                     shadow_root.register_element_id(self, &value);
                                 } else {
-                                    doc.register_element_id(cx, self, &value);
+                                    document.register_element_id(cx, self, &value);
                                 }
                             }
                         },
@@ -4874,7 +4875,7 @@ impl VirtualMethods for Element {
                                 if let Some(ref shadow_root) = containing_shadow_root {
                                     shadow_root.unregister_element_id(&value);
                                 } else {
-                                    doc.unregister_element_id(cx, &value);
+                                    document.unregister_element_id(cx, &value);
                                 }
                             }
                         },
@@ -4896,18 +4897,19 @@ impl VirtualMethods for Element {
                 // (if we're not in shadow DOM)
                 if node.is_connected() && node.containing_shadow_root().is_none() {
                     let value = attr.value().as_atom().clone();
+                    let document = node.owner_document_unrooted(cx.no_gc());
                     match mutation {
                         AttributeMutation::Set(old_value) => {
                             if let Some(old_value) = old_value {
-                                doc.unregister_element_name(old_value.as_atom());
+                                document.unregister_element_name(old_value.as_atom());
                             }
                             if value != atom!("") {
-                                doc.register_element_name(self, &value);
+                                document.register_element_name(self, &value);
                             }
                         },
                         AttributeMutation::Removed => {
                             if value != atom!("") {
-                                doc.unregister_element_name(&value);
+                                document.unregister_element_name(&value);
                             }
                         },
                     }
@@ -5253,10 +5255,10 @@ impl Element {
         false
     }
 
-    pub(crate) fn init_state_for_internals(&self) {
-        self.set_enabled_state(true);
-        self.set_state(ElementState::VALID, true);
-        self.set_state(ElementState::INVALID, false);
+    pub(crate) fn init_state_for_internals(&self, no_gc: &NoGC) {
+        self.set_enabled_state(no_gc, true);
+        self.set_state(no_gc, ElementState::VALID, true);
+        self.set_state(no_gc, ElementState::INVALID, false);
     }
 
     pub(crate) fn click_in_progress(&self) -> bool {
@@ -5272,7 +5274,7 @@ impl Element {
         self.state.get()
     }
 
-    pub(crate) fn set_state(&self, which: ElementState, value: bool) {
+    pub(crate) fn set_state(&self, no_gc: &NoGC, which: ElementState, value: bool) {
         let mut state = self.state.get();
         let previous_state = state;
         if value {
@@ -5289,7 +5291,7 @@ impl Element {
         // Add a pending restyle for this node which captures a snapshot of the state
         // before the change.
         {
-            let document = self.owner_document();
+            let document = self.owner_document_unrooted(no_gc);
             let mut entry = document.ensure_pending_restyle(self);
             if entry.snapshot.is_none() {
                 entry.snapshot = Some(Snapshot::new());
@@ -5304,11 +5306,11 @@ impl Element {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#concept-selector-active>
-    pub(crate) fn set_active_state(&self, value: bool) {
-        self.set_state(ElementState::ACTIVE, value);
+    pub(crate) fn set_active_state(&self, no_gc: &NoGC, value: bool) {
+        self.set_state(no_gc, ElementState::ACTIVE, value);
 
         if let Some(parent) = self.upcast::<Node>().GetParentElement() {
-            parent.set_active_state(value);
+            parent.set_active_state(no_gc, value);
         }
     }
 
@@ -5316,56 +5318,56 @@ impl Element {
         self.state.get().contains(ElementState::FOCUS)
     }
 
-    pub(crate) fn set_focus_state(&self, value: bool) {
-        self.set_state(ElementState::FOCUS, value);
+    pub(crate) fn set_focus_state(&self, no_gc: &NoGC, value: bool) {
+        self.set_state(no_gc, ElementState::FOCUS, value);
     }
 
-    pub(crate) fn set_hover_state(&self, value: bool) {
-        self.set_state(ElementState::HOVER, value);
+    pub(crate) fn set_hover_state(&self, no_gc: &NoGC, value: bool) {
+        self.set_state(no_gc, ElementState::HOVER, value);
     }
 
     pub(crate) fn enabled_state(&self) -> bool {
         self.state.get().contains(ElementState::ENABLED)
     }
 
-    pub(crate) fn set_enabled_state(&self, value: bool) {
-        self.set_state(ElementState::ENABLED, value)
+    pub(crate) fn set_enabled_state(&self, no_gc: &NoGC, value: bool) {
+        self.set_state(no_gc, ElementState::ENABLED, value)
     }
 
     pub(crate) fn disabled_state(&self) -> bool {
         self.state.get().contains(ElementState::DISABLED)
     }
 
-    pub(crate) fn set_disabled_state(&self, value: bool) {
-        self.set_state(ElementState::DISABLED, value)
+    pub(crate) fn set_disabled_state(&self, no_gc: &NoGC, value: bool) {
+        self.set_state(no_gc, ElementState::DISABLED, value)
     }
 
     pub(crate) fn read_write_state(&self) -> bool {
         self.state.get().contains(ElementState::READWRITE)
     }
 
-    pub(crate) fn set_read_write_state(&self, value: bool) {
-        self.set_state(ElementState::READWRITE, value)
+    pub(crate) fn set_read_write_state(&self, no_gc: &NoGC, value: bool) {
+        self.set_state(no_gc, ElementState::READWRITE, value)
     }
 
-    pub(crate) fn set_open_state(&self, value: bool) {
-        self.set_state(ElementState::OPEN, value);
+    pub(crate) fn set_open_state(&self, no_gc: &NoGC, value: bool) {
+        self.set_state(no_gc, ElementState::OPEN, value);
     }
 
-    pub(crate) fn set_placeholder_shown_state(&self, value: bool) {
-        self.set_state(ElementState::PLACEHOLDER_SHOWN, value);
+    pub(crate) fn set_placeholder_shown_state(&self, no_gc: &NoGC, value: bool) {
+        self.set_state(no_gc, ElementState::PLACEHOLDER_SHOWN, value);
     }
 
-    pub(crate) fn set_modal_state(&self, value: bool) {
-        self.set_state(ElementState::MODAL, value);
+    pub(crate) fn set_modal_state(&self, no_gc: &NoGC, value: bool) {
+        self.set_state(no_gc, ElementState::MODAL, value);
     }
 
-    pub(crate) fn set_target_state(&self, value: bool) {
-        self.set_state(ElementState::URLTARGET, value)
+    pub(crate) fn set_target_state(&self, no_gc: &NoGC, value: bool) {
+        self.set_state(no_gc, ElementState::URLTARGET, value)
     }
 
-    pub(crate) fn set_fullscreen_state(&self, value: bool) {
-        self.set_state(ElementState::FULLSCREEN, value)
+    pub(crate) fn set_fullscreen_state(&self, no_gc: &NoGC, value: bool) {
+        self.set_state(no_gc, ElementState::FULLSCREEN, value)
     }
 
     /// <https://dom.spec.whatwg.org/#connected>
@@ -5405,8 +5407,8 @@ impl Element {
                 continue;
             }
             if ancestor.is_parent_of(node) {
-                self.set_disabled_state(true);
-                self.set_enabled_state(false);
+                self.set_disabled_state(no_gc, true);
+                self.set_enabled_state(no_gc, false);
                 return;
             }
             if let Some(ref legend) = ancestor
@@ -5421,13 +5423,13 @@ impl Element {
                     continue;
                 }
             }
-            self.set_disabled_state(true);
-            self.set_enabled_state(false);
+            self.set_disabled_state(no_gc, true);
+            self.set_enabled_state(no_gc, false);
             return;
         }
     }
 
-    pub(crate) fn check_parent_disabled_state_for_option(&self) {
+    pub(crate) fn check_parent_disabled_state_for_option(&self, no_gc: &NoGC) {
         if self.disabled_state() {
             return;
         }
@@ -5436,20 +5438,20 @@ impl Element {
             parent.is::<HTMLOptGroupElement>() &&
             parent.downcast::<Element>().unwrap().disabled_state()
         {
-            self.set_disabled_state(true);
-            self.set_enabled_state(false);
+            self.set_disabled_state(no_gc, true);
+            self.set_enabled_state(no_gc, false);
         }
     }
 
-    pub(crate) fn check_disabled_attribute(&self) {
+    pub(crate) fn check_disabled_attribute(&self, no_gc: &NoGC) {
         let has_disabled_attrib = self.has_attribute(&local_name!("disabled"));
-        self.set_disabled_state(has_disabled_attrib);
-        self.set_enabled_state(!has_disabled_attrib);
+        self.set_disabled_state(no_gc, has_disabled_attrib);
+        self.set_enabled_state(no_gc, !has_disabled_attrib);
     }
 
-    pub(crate) fn update_read_write_state_from_readonly_attribute(&self) {
+    pub(crate) fn update_read_write_state_from_readonly_attribute(&self, no_gc: &NoGC) {
         let has_readonly_attribute = self.has_attribute(&local_name!("readonly"));
-        self.set_read_write_state(has_readonly_attribute);
+        self.set_read_write_state(no_gc, has_readonly_attribute);
     }
 }
 

@@ -458,7 +458,8 @@ impl VirtualMethods for HTMLDetailsElement {
                 );
             }
 
-            self.upcast::<Element>().set_open_state(self.Open());
+            self.upcast::<Element>()
+                .set_open_state(cx.no_gc(), self.Open());
         }
     }
 

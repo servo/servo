@@ -1117,9 +1117,9 @@ pub(crate) fn upgrade_element(
         // a fact that's true or false about a node at a given time,
         // not a flag that belongs to the node and is updated,
         // so it doesn't describe this check as an action.)
-        element.check_disabled_attribute();
+        element.check_disabled_attribute(cx.no_gc());
         element.check_ancestors_disabled_state_for_form_control(cx.no_gc());
-        element.update_read_write_state_from_readonly_attribute();
+        element.update_read_write_state_from_readonly_attribute(cx.no_gc());
 
         // Step 9.2: If element is disabled, then enqueue a custom element callback reaction
         // with element.

@@ -134,12 +134,12 @@ impl HTMLDialogElement {
 
         // Step 11. Add an open attribute to subject, whose value is the empty string.
         subject.set_bool_attribute(cx, &local_name!("open"), true);
-        subject.set_open_state(true);
+        subject.set_open_state(cx.no_gc(), true);
 
         // TODO: Step 12. Assert: subject's close watcher is not null.
 
         // Step 13. Set is modal of subject to true.
-        self.upcast::<Element>().set_modal_state(true);
+        self.upcast::<Element>().set_modal_state(cx.no_gc(), true);
 
         // TODO: Step 14. Set subject's node document to be blocked by the modal dialog subject.
 
@@ -206,7 +206,7 @@ impl HTMLDialogElement {
 
         // Step 5. Remove subject's open attribute.
         subject.remove_attribute(cx, &ns!(), &local_name!("open"));
-        subject.set_open_state(false);
+        subject.set_open_state(cx.no_gc(), false);
 
         // TODO: Step 6. If is modal of subject is true, then request an element to be removed from the top layer given subject.
 
@@ -214,7 +214,7 @@ impl HTMLDialogElement {
         let was_modal = subject.state().contains(ElementState::MODAL);
 
         // Step 8. Set is modal of subject to false.
-        self.upcast::<Element>().set_modal_state(false);
+        self.upcast::<Element>().set_modal_state(cx.no_gc(), false);
 
         // Step 9. If result is not null, then set subject's returnValue attribute to result.
         if let Some(new_value) = result {
@@ -410,7 +410,7 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
 
         // Step 6. Add an open attribute to this, whose value is the empty string.
         element.set_bool_attribute(cx, &local_name!("open"), true);
-        element.set_open_state(true);
+        element.set_open_state(cx.no_gc(), true);
 
         // Step 7. Set this's previously focused element to the focused element.
         self.upcast::<HTMLElement>().set_previously_focused_element(

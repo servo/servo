@@ -1501,13 +1501,13 @@ impl Document {
         // > For an HTML document document, its indicated part is the result of
         // > selecting the indicated part given document and document's URL.
         let Some(indicated_part) = self.select_indicated_part(cx, fragment) else {
-            self.set_target_element(None);
+            self.set_target_element(cx.no_gc(), None);
             return;
         };
         // Step 2. Otherwise, if document's indicated part is top of the document, then:
         if *indicated_part == *self.upcast() {
             // Step 2.1. Set document's target element to null.
-            self.set_target_element(None);
+            self.set_target_element(cx.no_gc(), None);
             // Step 2.2. Scroll to the beginning of the document for document. [CSSOMVIEW]
             //
             // FIXME(stshine): this should be the origin of the stacking context space,
@@ -1523,7 +1523,7 @@ impl Document {
             unreachable!("Indicated part should always be an element");
         };
         // Step 3.3. Set document's target element to target.
-        self.set_target_element(Some(target));
+        self.set_target_element(cx.no_gc(), Some(target));
         // Step 3.4. Run the ancestor revealing algorithm on target.
         // TODO
         // Step 3.5. Scroll target into view, with behavior set to "auto", block set to "start", and inline set to "nearest". [CSSOMVIEW]
@@ -4798,15 +4798,15 @@ impl Document {
         self.policy_container.borrow().get_referrer_policy()
     }
 
-    pub(crate) fn set_target_element(&self, node: Option<&Element>) {
+    pub(crate) fn set_target_element(&self, no_gc: &NoGC, node: Option<&Element>) {
         if let Some(ref element) = self.target_element.get() {
-            element.set_target_state(false);
+            element.set_target_state(no_gc, false);
         }
 
         self.target_element.set(node);
 
         if let Some(ref element) = self.target_element.get() {
-            element.set_target_state(true);
+            element.set_target_state(no_gc, true);
         }
     }
 

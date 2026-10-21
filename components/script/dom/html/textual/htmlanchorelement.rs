@@ -132,9 +132,11 @@ impl VirtualMethods for HTMLAnchorElement {
         // > links must be created for the keywords of the rel attribute
         // > as defined for those keywords in the link types section.
         match *attr.local_name() {
-            local_name!("href") => self
-                .upcast::<Element>()
-                .set_state(ElementState::UNVISITED, !mutation.is_removal()),
+            local_name!("href") => self.upcast::<Element>().set_state(
+                cx.no_gc(),
+                ElementState::UNVISITED,
+                !mutation.is_removal(),
+            ),
             local_name!("rel") | local_name!("rev") => {
                 self.relations
                     .set(LinkRelations::for_element(self.upcast()));

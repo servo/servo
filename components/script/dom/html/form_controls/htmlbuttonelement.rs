@@ -373,12 +373,12 @@ impl VirtualMethods for HTMLButtonElement {
                 match mutation {
                     AttributeMutation::Set(Some(_)) => {},
                     AttributeMutation::Set(None) => {
-                        el.set_disabled_state(true);
-                        el.set_enabled_state(false);
+                        el.set_disabled_state(cx.no_gc(), true);
+                        el.set_enabled_state(cx.no_gc(), false);
                     },
                     AttributeMutation::Removed => {
-                        el.set_disabled_state(false);
-                        el.set_enabled_state(true);
+                        el.set_disabled_state(cx.no_gc(), false);
+                        el.set_enabled_state(cx.no_gc(), true);
                         el.check_ancestors_disabled_state_for_form_control(cx.no_gc());
                     },
                 }
@@ -425,7 +425,7 @@ impl VirtualMethods for HTMLButtonElement {
         {
             el.check_ancestors_disabled_state_for_form_control(cx.no_gc());
         } else {
-            el.check_disabled_attribute();
+            el.check_disabled_attribute(cx.no_gc());
         }
     }
 }

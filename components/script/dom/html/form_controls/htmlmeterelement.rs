@@ -140,8 +140,9 @@ impl HTMLMeterElement {
 
         // Set the correct pseudo class
         self.upcast::<Element>()
-            .set_state(ElementState::METER_OPTIMUM_STATES, false);
-        self.upcast::<Element>().set_state(element_state, true);
+            .set_state(cx.no_gc(), ElementState::METER_OPTIMUM_STATES, false);
+        self.upcast::<Element>()
+            .set_state(cx.no_gc(), element_state, true);
 
         // Update the visual width of the meter
         let shadow_tree = self.shadow_tree(cx);
