@@ -17,7 +17,6 @@
 ./components/script/dom/audio/pannernode.rs 4
 ./components/script/dom/audio/stereopannernode.rs 2
 ./components/script/dom/bindings/constructor.rs 3
-./components/script/dom/bindings/domname.rs 9
 ./components/script/dom/bindings/error.rs 29
 ./components/script/dom/bindings/structuredclone.rs 2
 ./components/script/dom/bluetooth/bluetooth.rs 6
