@@ -8,15 +8,18 @@ use js::rust::HandleObject;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::ServoMedia;
 use servo_media::audio::audio_node::AudioNodeInit;
+use servo_media::audio::graph::NodeId;
 use servo_media::streams::MediaStreamType;
 
 use crate::dom::audio::audiocontext::AudioContext;
 use crate::dom::audio::audionode::{AudioNode, AudioNodeOptionsHelper};
+use crate::dom::audio::baseaudiocontext::BaseAudioContext;
+use crate::dom::audionode::UnwrappedAudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     AudioNodeOptions, ChannelCountMode, ChannelInterpretation,
 };
 use crate::dom::bindings::codegen::Bindings::MediaStreamAudioDestinationNodeBinding::MediaStreamAudioDestinationNodeMethods;
-use crate::dom::bindings::error::Fallible;
+use crate::dom::bindings::error::{Error, Fallible};
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
@@ -30,58 +33,22 @@ pub(crate) struct MediaStreamAudioDestinationNode {
 }
 
 impl MediaStreamAudioDestinationNode {
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn new_inherited(
-        cx: &mut JSContext,
-        context: &AudioContext,
-        options: &AudioNodeOptions,
-    ) -> Fallible<MediaStreamAudioDestinationNode> {
-        let media = ServoMedia::get();
-        let (socket, id) = media.create_stream_and_socket(MediaStreamType::Audio);
-        let stream = MediaStream::new_single(cx, &context.global(), id, MediaStreamType::Audio);
-        let node_options = options.unwrap_or(
-            2,
-            ChannelCountMode::Explicit,
-            ChannelInterpretation::Speakers,
-        );
-        let node = AudioNode::new_inherited(
-            cx,
-            AudioNodeInit::MediaStreamDestinationNode(socket),
-            context.upcast(),
-            node_options,
-            1, // inputs
-            0, // outputs
-        )?;
-        Ok(MediaStreamAudioDestinationNode {
-            node,
-            stream: Dom::from_ref(&stream),
-        })
-    }
-
-    pub(crate) fn new(
-        cx: &mut JSContext,
-        window: &Window,
-        context: &AudioContext,
-        options: &AudioNodeOptions,
-    ) -> Fallible<DomRoot<MediaStreamAudioDestinationNode>> {
-        Self::new_with_proto(cx, window, None, context, options)
-    }
-
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    fn new_with_proto(
-        cx: &mut JSContext,
-        window: &Window,
-        proto: Option<HandleObject>,
-        context: &AudioContext,
-        options: &AudioNodeOptions,
-    ) -> Fallible<DomRoot<MediaStreamAudioDestinationNode>> {
-        let node = MediaStreamAudioDestinationNode::new_inherited(cx, context, options)?;
-        Ok(reflect_dom_object_with_proto(
-            cx,
-            Box::new(node),
-            window,
-            proto,
-        ))
+    fn new_inherited(
+        node_id: Option<NodeId>,
+        context: &BaseAudioContext,
+        node_options: UnwrappedAudioNodeOptions,
+        stream: &MediaStream,
+    ) -> Self {
+        MediaStreamAudioDestinationNode {
+            node: AudioNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                1, // inputs
+                0, // outputs
+            ),
+            stream: Dom::from_ref(stream),
+        }
     }
 }
 
@@ -96,7 +63,33 @@ impl MediaStreamAudioDestinationNodeMethods<crate::DomTypeHolder>
         context: &AudioContext,
         options: &AudioNodeOptions,
     ) -> Fallible<DomRoot<MediaStreamAudioDestinationNode>> {
-        MediaStreamAudioDestinationNode::new_with_proto(cx, window, proto, context, options)
+        let media = ServoMedia::get();
+        let (socket, id) = media.create_stream_and_socket(MediaStreamType::Audio);
+        let stream = MediaStream::new_single(cx, &context.global(), id, MediaStreamType::Audio);
+        let node_options = options.unwrap_or(
+            2,
+            ChannelCountMode::Explicit,
+            ChannelInterpretation::Speakers,
+        );
+        if AudioNode::channel_count_check(node_options.count) {
+            return Err(Error::NotSupported(Some(String::from(
+                "Channel count not supported",
+            ))));
+        }
+        let audio_node_init = AudioNodeInit::MediaStreamDestinationNode(socket);
+        let node_id =
+            AudioNode::generate_audio_node_id(cx, &node_options, audio_node_init, context.upcast());
+        Ok(reflect_dom_object_with_proto(
+            cx,
+            Box::new(MediaStreamAudioDestinationNode::new_inherited(
+                node_id,
+                context.upcast(),
+                node_options,
+                &stream,
+            )),
+            window,
+            proto,
+        ))
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-mediastreamaudiodestinationnode-stream>

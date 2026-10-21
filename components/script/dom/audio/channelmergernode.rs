@@ -8,10 +8,12 @@ use js::rust::HandleObject;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::audio_node::AudioNodeInit;
 use servo_media::audio::channel_node::ChannelNodeOptions;
+use servo_media::audio::graph::NodeId;
 
 use crate::conversions::Convert;
 use crate::dom::audio::audionode::{AudioNode, AudioNodeOptionsHelper, MAX_CHANNEL_COUNT};
 use crate::dom::audio::baseaudiocontext::BaseAudioContext;
+use crate::dom::audionode::UnwrappedAudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };
@@ -28,63 +30,21 @@ pub(crate) struct ChannelMergerNode {
 }
 
 impl ChannelMergerNode {
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn new_inherited(
-        cx: &mut JSContext,
-        _: &Window,
+    fn new_inherited(
+        node_id: Option<NodeId>,
         context: &BaseAudioContext,
-        options: &ChannelMergerOptions,
-    ) -> Fallible<ChannelMergerNode> {
-        let node_options = options.parent.unwrap_or(
-            1,
-            ChannelCountMode::Explicit,
-            ChannelInterpretation::Speakers,
-        );
-
-        if node_options.count != 1 || node_options.mode != ChannelCountMode::Explicit {
-            return Err(Error::InvalidState(None));
+        node_options: UnwrappedAudioNodeOptions,
+        number_of_inputs: u32,
+    ) -> Self {
+        ChannelMergerNode {
+            node: AudioNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                number_of_inputs, // inputs
+                1,                // outputs
+            ),
         }
-
-        if options.numberOfInputs < 1 || options.numberOfInputs > MAX_CHANNEL_COUNT {
-            return Err(Error::IndexSize(None));
-        }
-
-        let num_inputs = options.numberOfInputs;
-        let node = AudioNode::new_inherited(
-            cx,
-            AudioNodeInit::ChannelMergerNode(options.convert()),
-            context,
-            node_options,
-            num_inputs, // inputs
-            1,          // outputs
-        )?;
-        Ok(ChannelMergerNode { node })
-    }
-
-    pub(crate) fn new(
-        cx: &mut JSContext,
-        window: &Window,
-        context: &BaseAudioContext,
-        options: &ChannelMergerOptions,
-    ) -> Fallible<DomRoot<ChannelMergerNode>> {
-        Self::new_with_proto(cx, window, None, context, options)
-    }
-
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    fn new_with_proto(
-        cx: &mut JSContext,
-        window: &Window,
-        proto: Option<HandleObject>,
-        context: &BaseAudioContext,
-        options: &ChannelMergerOptions,
-    ) -> Fallible<DomRoot<ChannelMergerNode>> {
-        let node = ChannelMergerNode::new_inherited(cx, window, context, options)?;
-        Ok(reflect_dom_object_with_proto(
-            cx,
-            Box::new(node),
-            window,
-            proto,
-        ))
     }
 }
 
@@ -97,7 +57,41 @@ impl ChannelMergerNodeMethods<crate::DomTypeHolder> for ChannelMergerNode {
         context: &BaseAudioContext,
         options: &ChannelMergerOptions,
     ) -> Fallible<DomRoot<ChannelMergerNode>> {
-        ChannelMergerNode::new_with_proto(cx, window, proto, context, options)
+        let node_options = options.parent.unwrap_or(
+            1,
+            ChannelCountMode::Explicit,
+            ChannelInterpretation::Speakers,
+        );
+
+        if AudioNode::channel_count_check(node_options.count) {
+            return Err(Error::NotSupported(Some(String::from(
+                "Channel count not supported",
+            ))));
+        }
+
+        if node_options.count != 1 || node_options.mode != ChannelCountMode::Explicit {
+            return Err(Error::InvalidState(None));
+        }
+
+        if options.numberOfInputs < 1 || options.numberOfInputs > MAX_CHANNEL_COUNT {
+            return Err(Error::IndexSize(None));
+        }
+
+        let audio_node_init = AudioNodeInit::ChannelMergerNode(options.convert());
+        let node_id =
+            AudioNode::generate_audio_node_id(cx, &node_options, audio_node_init, context);
+
+        Ok(reflect_dom_object_with_proto(
+            cx,
+            Box::new(ChannelMergerNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                options.numberOfInputs, // inputs
+            )),
+            window,
+            proto,
+        ))
     }
 }
 

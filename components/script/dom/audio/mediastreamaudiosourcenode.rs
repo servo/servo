@@ -7,10 +7,13 @@ use js::context::JSContext;
 use js::rust::HandleObject;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::audio_node::AudioNodeInit;
+use servo_media::audio::graph::NodeId;
 use servo_media::streams::MediaStreamType;
 
 use crate::dom::audio::audiocontext::AudioContext;
 use crate::dom::audio::audionode::AudioNode;
+use crate::dom::audio::baseaudiocontext::BaseAudioContext;
+use crate::dom::audionode::UnwrappedAudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::MediaStreamAudioSourceNodeBinding::{
     MediaStreamAudioSourceNodeMethods, MediaStreamAudioSourceOptions,
 };
@@ -27,56 +30,22 @@ pub(crate) struct MediaStreamAudioSourceNode {
 }
 
 impl MediaStreamAudioSourceNode {
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn new_inherited(
-        cx: &mut JSContext,
-        context: &AudioContext,
+    fn new_inherited(
+        node_id: Option<NodeId>,
+        context: &BaseAudioContext,
+        node_options: UnwrappedAudioNodeOptions,
         stream: &MediaStream,
-    ) -> Fallible<MediaStreamAudioSourceNode> {
-        let track = stream
-            .get_tracks()
-            .iter()
-            .find(|t| t.ty() == MediaStreamType::Audio)
-            .ok_or(Error::InvalidState(None))?
-            .id();
-        let node = AudioNode::new_inherited(
-            cx,
-            AudioNodeInit::MediaStreamSourceNode(track),
-            context.upcast(),
-            Default::default(),
-            0, // inputs
-            1, // outputs
-        )?;
-        Ok(MediaStreamAudioSourceNode {
-            node,
+    ) -> Self {
+        MediaStreamAudioSourceNode {
+            node: AudioNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                0, // inputs
+                1, // outputs
+            ),
             stream: Dom::from_ref(stream),
-        })
-    }
-
-    pub(crate) fn new(
-        cx: &mut JSContext,
-        window: &Window,
-        context: &AudioContext,
-        stream: &MediaStream,
-    ) -> Fallible<DomRoot<MediaStreamAudioSourceNode>> {
-        Self::new_with_proto(cx, window, None, context, stream)
-    }
-
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    fn new_with_proto(
-        cx: &mut JSContext,
-        window: &Window,
-        proto: Option<HandleObject>,
-        context: &AudioContext,
-        stream: &MediaStream,
-    ) -> Fallible<DomRoot<MediaStreamAudioSourceNode>> {
-        let node = MediaStreamAudioSourceNode::new_inherited(cx, context, stream)?;
-        Ok(reflect_dom_object_with_proto(
-            cx,
-            Box::new(node),
-            window,
-            proto,
-        ))
+        }
     }
 }
 
@@ -89,7 +58,33 @@ impl MediaStreamAudioSourceNodeMethods<crate::DomTypeHolder> for MediaStreamAudi
         context: &AudioContext,
         options: &MediaStreamAudioSourceOptions,
     ) -> Fallible<DomRoot<MediaStreamAudioSourceNode>> {
-        MediaStreamAudioSourceNode::new_with_proto(cx, window, proto, context, &options.mediaStream)
+        let node_options: UnwrappedAudioNodeOptions = Default::default();
+        if AudioNode::channel_count_check(node_options.count) {
+            return Err(Error::NotSupported(Some(String::from(
+                "Channel count not supported",
+            ))));
+        }
+        let track = options
+            .mediaStream
+            .get_tracks()
+            .iter()
+            .find(|t| t.ty() == MediaStreamType::Audio)
+            .ok_or(Error::InvalidState(None))?
+            .id();
+        let audio_node_init = AudioNodeInit::MediaStreamSourceNode(track);
+        let node_id =
+            AudioNode::generate_audio_node_id(cx, &node_options, audio_node_init, context.upcast());
+        Ok(reflect_dom_object_with_proto(
+            cx,
+            Box::new(MediaStreamAudioSourceNode::new_inherited(
+                node_id,
+                context.upcast(),
+                node_options,
+                &options.mediaStream,
+            )),
+            window,
+            proto,
+        ))
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-MediaStreamAudioSourceNode-stream>

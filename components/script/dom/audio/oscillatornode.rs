@@ -10,6 +10,7 @@ use js::rust::HandleObject;
 use script_bindings::codegen::GenericBindings::BaseAudioContextBinding::BaseAudioContextMethods;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use servo_media::audio::audio_node::{AudioNodeInit, AudioNodeMessage, AudioNodeType};
+use servo_media::audio::graph::NodeId;
 use servo_media::audio::oscillator_node::{
     OscillatorNodeMessage, OscillatorNodeOptions as ServoMediaOscillatorOptions,
     OscillatorType as ServoMediaOscillatorType,
@@ -18,10 +19,11 @@ use servo_media::audio::param::ParamType;
 use servo_media::audio::periodic_wave::PeriodicWave as ServoMediaPeriodicWave;
 
 use crate::conversions::Convert;
-use crate::dom::audio::audionode::AudioNodeOptionsHelper;
+use crate::dom::audio::audionode::{AudioNode, AudioNodeOptionsHelper};
 use crate::dom::audio::audioparam::AudioParam;
 use crate::dom::audio::audioscheduledsourcenode::AudioScheduledSourceNode;
 use crate::dom::audio::baseaudiocontext::BaseAudioContext;
+use crate::dom::audionode::UnwrappedAudioNodeOptions;
 use crate::dom::bindings::codegen::Bindings::AudioNodeBinding::{
     ChannelCountMode, ChannelInterpretation,
 };
@@ -43,13 +45,38 @@ pub(crate) struct OscillatorNode {
 }
 
 impl OscillatorNode {
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    pub(crate) fn new_inherited(
+    fn new_inherited(
+        node_id: Option<NodeId>,
+        context: &BaseAudioContext,
+        node_options: UnwrappedAudioNodeOptions,
+        oscillator_type: OscillatorType,
+        frequency: &AudioParam,
+        detune: &AudioParam,
+    ) -> Self {
+        OscillatorNode {
+            source_node: AudioScheduledSourceNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                0, /* inputs */
+                1, /* outputs */
+            ),
+            oscillator_type: Cell::new(oscillator_type),
+            frequency: Dom::from_ref(frequency),
+            detune: Dom::from_ref(detune),
+        }
+    }
+}
+
+impl OscillatorNodeMethods<crate::DomTypeHolder> for OscillatorNode {
+    /// <https://webaudio.github.io/web-audio-api/#dom-oscillatornode-oscillatornode>
+    fn Constructor(
         cx: &mut JSContext,
         window: &Window,
+        proto: Option<HandleObject>,
         context: &BaseAudioContext,
         options: &OscillatorOptions,
-    ) -> Fallible<OscillatorNode> {
+    ) -> Fallible<DomRoot<OscillatorNode>> {
         if matches!(options.type_, OscillatorType::Custom) && options.periodicWave.is_none() {
             return Err(Error::InvalidState(Some(String::from(
                 "Can not set oscillator type to custom without providing a periodic wave",
@@ -66,6 +93,11 @@ impl OscillatorNode {
             options
                 .parent
                 .unwrap_or(2, ChannelCountMode::Max, ChannelInterpretation::Speakers);
+        if AudioNode::channel_count_check(node_options.count) {
+            return Err(Error::NotSupported(Some(String::from(
+                "Channel count not supported",
+            ))));
+        }
 
         let maybe_periodic_wave = options
             .periodicWave
@@ -77,15 +109,10 @@ impl OscillatorNode {
             freq: *options.frequency,
             detune: *options.detune,
         };
-        let source_node = AudioScheduledSourceNode::new_inherited(
-            cx,
-            AudioNodeInit::OscillatorNode(options),
-            context,
-            node_options,
-            0, /* inputs */
-            1, /* outputs */
-        )?;
-        let node_id = source_node.node().node_id();
+        let audio_node_init = AudioNodeInit::OscillatorNode(options);
+        let node_id =
+            AudioNode::generate_audio_node_id(cx, &node_options, audio_node_init, context);
+
         let nyquist = (*context.SampleRate()) / 2.;
         // <https://webaudio.github.io/web-audio-api/#dom-oscillatornode-frequency>
         let frequency = AudioParam::new(
@@ -114,51 +141,19 @@ impl OscillatorNode {
             -detune_max,
             detune_max,
         );
-        Ok(OscillatorNode {
-            source_node,
-            oscillator_type: Cell::new(oscillator_type),
-            frequency: Dom::from_ref(&frequency),
-            detune: Dom::from_ref(&detune),
-        })
-    }
-
-    pub(crate) fn new(
-        cx: &mut JSContext,
-        window: &Window,
-        context: &BaseAudioContext,
-        options: &OscillatorOptions,
-    ) -> Fallible<DomRoot<OscillatorNode>> {
-        Self::new_with_proto(cx, window, None, context, options)
-    }
-
-    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
-    fn new_with_proto(
-        cx: &mut JSContext,
-        window: &Window,
-        proto: Option<HandleObject>,
-        context: &BaseAudioContext,
-        options: &OscillatorOptions,
-    ) -> Fallible<DomRoot<OscillatorNode>> {
-        let node = OscillatorNode::new_inherited(cx, window, context, options)?;
         Ok(reflect_dom_object_with_proto(
             cx,
-            Box::new(node),
+            Box::new(OscillatorNode::new_inherited(
+                node_id,
+                context,
+                node_options,
+                oscillator_type,
+                &frequency,
+                &detune,
+            )),
             window,
             proto,
         ))
-    }
-}
-
-impl OscillatorNodeMethods<crate::DomTypeHolder> for OscillatorNode {
-    /// <https://webaudio.github.io/web-audio-api/#dom-oscillatornode-oscillatornode>
-    fn Constructor(
-        cx: &mut JSContext,
-        window: &Window,
-        proto: Option<HandleObject>,
-        context: &BaseAudioContext,
-        options: &OscillatorOptions,
-    ) -> Fallible<DomRoot<OscillatorNode>> {
-        OscillatorNode::new_with_proto(cx, window, proto, context, options)
     }
 
     /// <https://webaudio.github.io/web-audio-api/#dom-oscillatornode-setperiodicwave>
