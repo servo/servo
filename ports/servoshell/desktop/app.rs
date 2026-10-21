@@ -23,13 +23,14 @@ use super::event_loop::AppEvent;
 use crate::desktop::event_loop::ServoShellEventLoop;
 use crate::desktop::headed_window::HeadedWindow;
 use crate::desktop::headless_window::HeadlessWindow;
+use crate::desktop::network_monitor::NetworkMonitor;
 use crate::desktop::protocols;
 use crate::desktop::tracing::trace_winit_event;
 use crate::parser::get_default_url;
 use crate::prefs::ServoShellPreferences;
+use crate::running_app_state::RunningAppState;
 #[cfg(feature = "gamepad")]
 use crate::running_app_state::ServoshellGamepadDelegate;
-use crate::running_app_state::{NetworkMonitor, RunningAppState};
 use crate::window::{PlatformWindow, ServoShellWindowId, TopLevelWebViewCreationRequest};
 
 pub(crate) enum AppState {
