@@ -123,6 +123,23 @@ impl App {
             user_content_manager.add_stylesheet(user_stylesheet.clone());
         }
 
+        if let Some(ref ext_dir) = self.servoshell_preferences.load_extension {
+            match crate::desktop::extensions::load_extension(ext_dir) {
+                Ok(ext) => {
+                    log::info!("Loaded WebExtension: {} v{}", ext.manifest.name, ext.manifest.version);
+                    for script in ext.scripts {
+                        user_content_manager.add_script(script);
+                    }
+                    for sheet in ext.stylesheets {
+                        user_content_manager.add_stylesheet(sheet);
+                    }
+                },
+                Err(err) => {
+                    log::error!("Failed to load extension from {:?}: {}", ext_dir, err);
+                },
+            }
+        }
+
         let running_state = Rc::new(RunningAppState::new(
             servo,
             self.servoshell_preferences.clone(),

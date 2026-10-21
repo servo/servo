@@ -109,6 +109,8 @@ pub(crate) struct ServoShellPreferences {
     pub memory_output: bool,
     /// Whether private browsing / incognito mode is active.
     pub incognito: bool,
+    /// Path to an unpacked WebExtension directory containing manifest.json to load.
+    pub load_extension: Option<PathBuf>,
 }
 
 impl Default for ServoShellPreferences {
@@ -137,6 +139,7 @@ impl Default for ServoShellPreferences {
             experimental_preferences_enabled: false,
             memory_output: false,
             incognito: false,
+            load_extension: None,
         }
     }
 }
@@ -465,6 +468,14 @@ struct CmdArgs {
     #[bpaf(long("incognito"), long("private"))]
     incognito: bool,
 
+    /// Path to an unpacked WebExtension directory containing manifest.json to load.
+    #[bpaf(long("load-extension"), argument("/path/to/extension"))]
+    load_extension: Option<PathBuf>,
+
+    /// Enforce origin-keyed process and event-loop isolation instead of registrable domain (eTLD+1).
+    #[bpaf(long("origin-isolation"), long("site-isolation"))]
+    origin_isolation: bool,
+
     /// Number of threads to use for layout.
     #[bpaf(short('y'), long, argument("1"))]
     layout_threads: Option<i64>,
@@ -751,6 +762,7 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         log_to_file: cmd_args.log_to_file,
         memory_output: cmd_args.memory_output,
         incognito: cmd_args.incognito,
+        load_extension: cmd_args.load_extension,
         ..Default::default()
     };
 
@@ -789,6 +801,7 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
             .local_script_source
             .map(|p| p.to_string_lossy().into_owned()),
         unminify_css: cmd_args.unminify_css,
+        origin_isolation: cmd_args.origin_isolation,
         force_ipc: cmd_args.force_ipc,
     };
 

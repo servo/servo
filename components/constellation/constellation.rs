@@ -925,6 +925,8 @@ where
             .contains(SandboxingFlagSet::SANDBOXED_ORIGIN_BROWSING_CONTEXT_FLAG)
         {
             None
+        } else if opts::get().origin_isolation {
+            load_data.url.host().map(|h| h.to_owned())
         } else {
             registered_domain_name(&load_data.url)
         };

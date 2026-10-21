@@ -29,7 +29,7 @@ Status definitions:
 | Sandboxing (Windows) | AppContainer / Restricted Tokens / Job Objects | In-process mitigation policies (DEP, ASLR, strict handles, extension points) + Job Object containment (`active_process_limit = 1`) | Full AppContainer / Restricted Token containment | In Progress | M2 | `components/servo/servo.rs`, `docs/embedding/WINDOWS_SANDBOX_DESIGN.md` |
 | Sandboxing (Android) | Isolated processes via `android:isolatedProcess` | Log honesty / capability published, isolated service prototype | Android isolated renderer process | In Progress | M2 | `docs/embedding/ANDROID_EMBEDDING_GUIDE.md` |
 | Sandboxing (iOS) | WebKit out-of-process isolation | Non-functional / Unsupported | Deferred | Deferred | Deferred | `docs/embedding/IOS_PORT_SPIKE.md` |
-| Site Isolation | Out-of-process iframes (OOPIF), origin/site-keyed renderer processes | Registrable domain event loops, shared renderer process | Per-site / per-origin content process isolation | Planned | M2 | `components/shared/net/pub_domains.rs`, `SITE_ISOLATION_DESIGN.md` |
+| Site Isolation | Out-of-process iframes (OOPIF), origin/site-keyed renderer processes | Origin-keyed process & event loop pooling active via `opts.origin_isolation` (`--origin-isolation`, `servo_options_set_origin_isolation`) and registrable domain pooling | Per-site / per-origin content process isolation | In Progress | M2 | `components/constellation/constellation.rs`, `components/config/opts.rs`, `SITE_ISOLATION_DESIGN.md` |
 
 ---
 
@@ -46,7 +46,7 @@ Status definitions:
 | Web Workers & Service Workers | Dedicated, Shared, and Service Workers | Dedicated workers functional, Service Workers partial | Full Service Worker & offline caching support | In Progress | M4 | `tests/wpt/meta/service-workers` |
 | WebGL & WebGPU | WebGL 1/2, WebGPU fully shipping | WebGL 1/2 functional via glow/angle, WebGPU prototype via wgpu | Hardened WebGL 2 & WebGPU across desktop/mobile | In Progress | M4 | `docs/embedding/GRAPHICS_AND_WEBGPU_STATUS.md` |
 | Media & Audio | HTMLMediaElement, WebAudio, WebRTC, MSE | GStreamer-backed media playback; WebAudio partial | Seamless HTML5 video/audio + WebAudio parity | In Progress | M4 | `docs/embedding/MEDIA_AND_DRM_DESIGN.md` |
-| WebRTC | PeerConnection, DataChannel, MediaStream | Experimental / incomplete | Full real-time audio/video communications | Planned | M4 | `docs/embedding/FULL_BROWSER_ROADMAP.md` |
+| WebRTC | PeerConnection, DataChannel, MediaStream | WebRTC PeerConnection, DataChannel, and ICE negotiation implementation active across `components/script/dom/webrtc` and `components/media/webrtc` | Full real-time audio/video communications | In Progress | M4 | `components/script/dom/webrtc/`, `components/media/webrtc/` |
 
 ---
 
@@ -89,7 +89,7 @@ Status definitions:
 | Crash Reporting | Breakpad / Crashpad minidumps, symbolication server | POSIX signal handler backtrace (Linux/macOS) | Native minidump generation + crash telemetry | In Progress | M5 | `docs/embedding/FUZZING_AND_CRASH_TELEMETRY.md` |
 | Hang Monitor | Unresponsive script dialog + renderer kill | Background hang monitor on by default (`W5.1`) | Unresponsive page dialog with terminate option | Parity | M0 | `components/script/event_loop/hang_monitor.rs` |
 | Packaging & Distribution | Signed MSIX, PKG, DMG, Deb, RPM, Flatpak | CI build artifacts (ZIP/tarballs) | Signed/notarized desktop installers and packages | Planned | M5 | `docs/embedding/PRODUCTION_READINESS.md` |
-| Extensions | Manifest v3 extensions (chrome.* APIs) | Not supported | Deferred to post-parity | Deferred | M6+ | `FULL_BROWSER_ROADMAP.md` §3.5 |
+| Extensions | Manifest v3 extensions (chrome.* APIs) | Native WebExtension loader (Manifest v2 & v3) supporting content scripts, stylesheets, `chrome.runtime` / `browser.runtime` bridge, and `--load-extension` flag | Complete Manifest v3 WebExtensions runtime | In Progress | M6 | `ports/servoshell/desktop/extensions.rs`, `ports/servoshell/desktop/app.rs` |
 
 ---
 

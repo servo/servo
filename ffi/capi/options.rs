@@ -287,6 +287,37 @@ pub unsafe extern "C" fn servo_options_set_multiprocess(
     })
 }
 
+/// Sets whether origin isolation is enforced. When enabled, different
+/// origins within the same registrable domain (eTLD+1) run in distinct
+/// event loops and content processes.
+///
+/// `options` is a handle to a `ServoOptions` object.
+/// The ownership of `options` remains with the caller after the call.
+///
+/// Returns `ServoError::InvalidArgument` if `options` is not a live handle:
+/// never created, already freed, or not an options handle at all.
+/// Returns `ServoError::NullArgument` if `options` is null.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_options_set_origin_isolation(
+    options: *mut ServoOptions,
+    origin_isolation: bool,
+) -> ServoError {
+    ServoError::catch_ffi(|| {
+        if options.is_null() {
+            return ServoError::NullArgument;
+        }
+        if !crate::handle_registry::is_live(options, crate::handle_registry::HandleKind::Options) {
+            return ServoError::InvalidArgument;
+        }
+
+        // SAFETY: The caller is assumed to uphold the safety requirements
+        // for `options` documented above.
+        unsafe { &mut *options }.origin_isolation = origin_isolation;
+
+        ServoError::Ok
+    })
+}
+
 /// Enables or disables the force IPC option. When enabled
 /// Servo uses `ipc_channel` instead of `crossbeam_channel` event in
 /// singleprocess mode. Does nothing in multiprocess mode.

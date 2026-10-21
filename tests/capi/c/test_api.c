@@ -178,6 +178,14 @@ int test_options_setters(void)
     servo_options_set_ignore_certificate_errors(options, true);
     servo_options_set_unminify_js(options, false);
     servo_options_set_unminify_css(options, true);
+    if (servo_options_set_origin_isolation(NULL, true) != SERVO_ERROR_NULL_ARGUMENT) {
+        servo_options_free(options);
+        return 1;
+    }
+    if (servo_options_set_origin_isolation(options, true) != SERVO_ERROR_OK) {
+        servo_options_free(options);
+        return 1;
+    }
     servo_options_set_debug_option(
         options, SERVO_DIAGNOSTICS_LOGGING_OPTION_STYLE_TREE, true);
     servo_options_enable_time_profiling_to_stdout(options, 0.5);
