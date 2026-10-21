@@ -15,6 +15,7 @@ use std::str::FromStr;
 use std::sync::{Arc as StdArc, LazyLock};
 use std::time::Duration;
 
+use atomic_refcell::{AtomicRef, AtomicRefCell};
 use bitflags::bitflags;
 use chrono::Local;
 use content_security_policy::sandboxing_directive::SandboxingFlagSet;
@@ -455,7 +456,7 @@ pub(crate) struct Document {
     activity: Cell<DocumentActivity>,
     /// <https://html.spec.whatwg.org/multipage/#the-document%27s-address>
     #[no_trace]
-    url: DomRefCell<ServoUrl>,
+    url: AtomicRefCell<ServoUrl>,
     /// <https://html.spec.whatwg.org/multipage/#concept-document-about-base-url>
     #[no_trace]
     about_base_url: DomRefCell<Option<ServoUrl>>,
@@ -798,7 +799,8 @@ pub(crate) struct Document {
     theme_override: Cell<Option<Theme>>,
 
     /// Language specific for this document, set by a meta element
-    default_language: DomRefCell<Option<String>>,
+    #[no_trace]
+    default_language: AtomicRefCell<Option<String>>,
 
     /// True if this document is no longer the active document of its associated
     /// window.
@@ -4029,9 +4031,8 @@ impl<'dom> LayoutDom<'dom, Document> {
         self.unsafe_get().id_map.get_all_for_layout(id)
     }
 
-    #[expect(unsafe_code)]
     pub(crate) fn url_for_layout(self) -> ServoUrl {
-        unsafe { self.unsafe_get().url.borrow_for_layout() }.clone()
+        self.unsafe_get().url.borrow().clone()
     }
 
     #[expect(unsafe_code)]
@@ -4039,9 +4040,8 @@ impl<'dom> LayoutDom<'dom, Document> {
         unsafe { self.unsafe_get().selection.to_layout() }
     }
 
-    #[expect(unsafe_code)]
-    pub(crate) fn default_language_for_layout(&self) -> Option<&'dom str> {
-        unsafe { self.unsafe_get().default_language.borrow_for_layout() }.as_deref()
+    pub(crate) fn default_language_for_layout(&self) -> AtomicRef<'dom, Option<String>> {
+        self.unsafe_get().default_language.borrow()
     }
 }
 
@@ -4181,7 +4181,7 @@ impl Document {
             implementation: Default::default(),
             content_type,
             last_modified,
-            url: DomRefCell::new(url),
+            url: AtomicRefCell::new(url),
             about_base_url: DomRefCell::new(about_base_url),
             quirks_mode: Cell::new(quirks_mode),
             event_handler: DocumentEventHandler::new(window),
