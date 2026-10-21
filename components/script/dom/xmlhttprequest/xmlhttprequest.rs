@@ -12,6 +12,7 @@ use std::time::{Duration, Instant};
 
 use atomic_refcell::AtomicRefCell;
 use bytes::{Bytes, BytesMut};
+use crossbeam_channel::RecvTimeoutError;
 use data_url::mime::Mime;
 use dom_struct::dom_struct;
 use encoding_rs::{Encoding, UTF_8};
@@ -1672,8 +1673,31 @@ impl XMLHttpRequest {
         global.fetch(request_builder, context, task_source);
 
         if let Some(script_port) = script_port {
+            // The timer scheduled by `set_timeout` cannot fire while this loop blocks the event
+            // loop, so the timeout of a synchronous request has to be enforced here instead.
+            let timeout = self.timeout.get();
+            let deadline = (!timeout.is_zero()).then(|| self.fetch_time.get() + timeout);
             loop {
-                if !global.process_event(cx, script_port.recv().unwrap()) {
+                let message = match deadline {
+                    None => script_port.recv().unwrap(),
+                    Some(deadline) => match script_port.recv_deadline(deadline) {
+                        Err(RecvTimeoutError::Timeout) => {
+                            // <https://xhr.spec.whatwg.org/#dom-xmlhttprequest-send>
+                            // Step 12.6. If processedResponse is false, then set this’s timed out
+                            // to true and terminate this’s fetch controller.
+                            self.controller.safe_borrow_mut(cx.no_gc()).terminate();
+                            self.process_partial_response(
+                                cx,
+                                XHRProgress::Errored(self.generation_id.get(), ErrorType::Timeout),
+                            );
+                            return Err(Error::Timeout(Some(
+                                "Synchronous request timed out".into(),
+                            )));
+                        },
+                        message => message.unwrap(),
+                    },
+                };
+                if !global.process_event(cx, message) {
                     // We're exiting.
                     return Err(Error::Abort(None));
                 }
