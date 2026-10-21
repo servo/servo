@@ -82,7 +82,7 @@ pub(crate) fn clone_body_stream_for_dom_body(
 
 /// The Dom object, or ReadableStream, that is the source of a body.
 /// <https://fetch.spec.whatwg.org/#concept-body-source>
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) enum BodySource {
     /// A ReadableStream comes with a null-source.
     Null,
@@ -92,12 +92,18 @@ pub(crate) enum BodySource {
     Object,
 }
 
-/// The reason to stop reading from the body.
-enum StopReading {
-    /// The stream has errored.
-    Error,
-    /// The stream is done.
-    Done,
+/// A body sent via [`TransmitBodyConnectHandler`]. Either in-memory or streamed.
+#[derive(Clone)]
+enum SendableBody {
+    InMemory {
+        data: GenericSharedMemory,
+        done: bool,
+    },
+    Stream {
+        stream: Trusted<ReadableStream>,
+        task_source: SendableTaskSource,
+        source: BodySource,
+    },
 }
 
 /// The IPC route handler
@@ -107,38 +113,24 @@ enum StopReading {
 /// on the stream and transmit body chunks over IPC.
 #[derive(Clone)]
 struct TransmitBodyConnectHandler {
-    stream: Trusted<ReadableStream>,
-    task_source: SendableTaskSource,
+    body: SendableBody,
     bytes_sender: Option<IpcSender<BodyChunkResponse>>,
-    control_sender: Option<IpcSender<BodyChunkRequest>>,
-    in_memory: Option<GenericSharedMemory>,
-    in_memory_done: bool,
-    source: BodySource,
 }
 
 impl TransmitBodyConnectHandler {
-    pub(crate) fn new(
-        stream: Trusted<ReadableStream>,
-        task_source: SendableTaskSource,
-        control_sender: IpcSender<BodyChunkRequest>,
-        in_memory: Option<GenericSharedMemory>,
-        source: BodySource,
-    ) -> TransmitBodyConnectHandler {
+    fn new(body: SendableBody) -> TransmitBodyConnectHandler {
         TransmitBodyConnectHandler {
-            stream,
-            task_source,
+            body,
             bytes_sender: None,
-            control_sender: Some(control_sender),
-            in_memory,
-            in_memory_done: false,
-            source,
         }
     }
 
-    /// Reset `in_memory_done`, called when a stream is
+    /// Reset the `done` flag when this is an in-memory body, called when a stream is
     /// re-extracted from the source to support a re-direct.
-    pub(crate) fn reset_in_memory_done(&mut self) {
-        self.in_memory_done = false;
+    fn reset_in_memory_done(&mut self) {
+        if let SendableBody::InMemory { done, .. } = &mut self.body {
+            *done = false;
+        }
     }
 
     /// Re-extract the source to support streaming it again for a re-direct.
@@ -159,16 +151,6 @@ impl TransmitBodyConnectHandler {
                         body_handler.re_extract(receiver);
                     },
                     BodyChunkRequest::Chunk => body_handler.transmit_source(),
-                    // Note: this is actually sent from this process
-                    // by the TransmitBodyPromiseHandler when reading stops.
-                    BodyChunkRequest::Done => {
-                        body_handler.stop_reading(StopReading::Done);
-                    },
-                    // Note: this is actually sent from this process
-                    // by the TransmitBodyPromiseHandler when the stream errors.
-                    BodyChunkRequest::Error => {
-                        body_handler.stop_reading(StopReading::Error);
-                    },
                 }
             }),
         );
@@ -181,27 +163,29 @@ impl TransmitBodyConnectHandler {
     /// in favor of making `re_extract` actually re-extract a stream from the source.
     /// See #26686
     fn transmit_source(&mut self) {
-        if self.in_memory_done {
-            // Step 5.1.3
-            self.stop_reading(StopReading::Done);
-            return;
+        match &mut self.body {
+            SendableBody::InMemory { done: true, .. } => {
+                // Step 5.1.3
+                self.stop_reading();
+            },
+            SendableBody::InMemory { data, done } => {
+                // The memoized bytes are sent so we mark it as done again
+                *done = true;
+                let _ = self
+                    .bytes_sender
+                    .as_ref()
+                    .expect("No bytes sender to transmit source.")
+                    .send(BodyChunkResponse::Chunk(data.clone()));
+            },
+            SendableBody::Stream { source, .. } => {
+                assert_ne!(
+                    *source,
+                    BodySource::Null,
+                    "ReadableStream(Null) sources should not re-direct."
+                );
+                warn!("Re-directs for file-based Blobs not supported yet.");
+            },
         }
-
-        if let BodySource::Null = self.source {
-            panic!("ReadableStream(Null) sources should not re-direct.");
-        }
-
-        if let Some(bytes) = self.in_memory.clone() {
-            // The memoized bytes are sent so we mark it as done again
-            self.in_memory_done = true;
-            let _ = self
-                .bytes_sender
-                .as_ref()
-                .expect("No bytes sender to transmit source.")
-                .send(BodyChunkResponse::Chunk(bytes));
-            return;
-        }
-        warn!("Re-directs for file-based Blobs not supported yet.");
     }
 
     /// Take the IPC sender sent by `net`, so we can send body chunks with it.
@@ -210,99 +194,98 @@ impl TransmitBodyConnectHandler {
         self.bytes_sender = Some(sender);
 
         // If we're using an actual ReadableStream, acquire a reader for it.
-        if self.source == BodySource::Null {
-            let stream = self.stream.clone();
-            self.task_source
-                .queue(task!(start_reading_request_body_stream: move |cx| {
-                    // Step 1, Let body be request’s body.
-                    let rooted_stream = stream.root();
+        if let SendableBody::Stream {
+            source: BodySource::Null,
+            stream,
+            task_source,
+        } = &self.body
+        {
+            let stream = stream.clone();
+            task_source.queue(task!(start_reading_request_body_stream: move |cx| {
+                // Step 1, Let body be request’s body.
+                let rooted_stream = stream.root();
 
-                    // TODO: Step 2, If body is null.
+                // TODO: Step 2, If body is null.
 
-                    // Step 3, get a reader for stream.
-                    rooted_stream.acquire_default_reader(cx)
-                        .expect("Couldn't acquire a reader for the body stream.");
+                // Step 3, get a reader for stream.
+                rooted_stream.acquire_default_reader(cx)
+                    .expect("Couldn't acquire a reader for the body stream.");
 
-                    // Note: this algorithm continues when the first chunk is requested by `net`.
-                }));
+                // Note: this algorithm continues when the first chunk is requested by `net`.
+            }));
         }
     }
 
-    /// Drop the IPC sender sent by `net`
-    /// It is important to drop the control_sender as this will allow us to clean ourselves up.
-    /// Otherwise, the following cycle will happen: The control sender is owned by us which keeps the control receiver
-    /// alive in the router which keeps us alive.
-    fn stop_reading(&mut self, reason: StopReading) {
+    /// Take and drop [`Self::bytes_sender`].
+    fn stop_reading(&mut self) {
         let bytes_sender = self
             .bytes_sender
             .take()
             .expect("Stop reading called multiple times on TransmitBodyConnectHandler.");
-        match reason {
-            StopReading::Error => {
-                let _ = bytes_sender.send(BodyChunkResponse::Error);
-            },
-            StopReading::Done => {
-                let _ = bytes_sender.send(BodyChunkResponse::Done);
-            },
-        }
-        let _ = self.control_sender.take();
+        let _ = bytes_sender.send(BodyChunkResponse::Done);
     }
 
     /// Step 4 and following of <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
     fn transmit_body_chunk(&mut self) {
-        if self.in_memory_done {
-            // Step 5.1.3
-            self.stop_reading(StopReading::Done);
-            return;
-        }
-
-        let stream = self.stream.clone();
-        let control_sender = self.control_sender.clone();
         let bytes_sender = self
             .bytes_sender
             .clone()
             .expect("No bytes sender to transmit chunk.");
 
-        // In case of the data being in-memory, send everything in one chunk, by-passing SpiderMonkey.
-        if let Some(bytes) = self.in_memory.clone() {
-            let _ = bytes_sender.send(BodyChunkResponse::Chunk(bytes));
-            // Mark this body as `done` so that we can stop reading in the next tick,
-            // matching the behavior of the promise-based flow
-            self.in_memory_done = true;
-            return;
+        match &mut self.body {
+            SendableBody::InMemory { done: true, .. } => {
+                // Step 5.1.3
+                self.stop_reading();
+            },
+            SendableBody::InMemory { data, done } => {
+                // In case of the data being in-memory, send everything in one chunk,
+                // by-passing SpiderMonkey.
+                let _ = bytes_sender.send(BodyChunkResponse::Chunk(data.clone()));
+                // Mark this body as `done` so that we can stop reading in the next tick,
+                // matching the behavior of the promise-based flow
+                *done = true;
+            },
+            SendableBody::Stream {
+                stream,
+                task_source,
+                ..
+            } => {
+                let stream = stream.clone();
+                task_source.queue(task!(setup_native_body_promise_handler: move |cx| {
+                    let rooted_stream = stream.root();
+                    let global = rooted_stream.global();
+
+                    // Step 4, the result of reading a chunk from body’s stream with reader.
+                    let promise = rooted_stream.read_a_chunk(cx);
+
+                    // Step 5, the parallel steps waiting for and handling the result of the read promise,
+                    // are a combination of the promise native handler here,
+                    // and the corresponding IPC route in `component::net::http_loader`.
+                    rooted!(&in(cx) let mut promise_handler = Some(TransmitBodyPromiseHandler {
+                        bytes_sender: bytes_sender.clone(),
+                        stream: Dom::from_ref(&rooted_stream),
+                    }));
+
+                    rooted!(&in(cx) let mut rejection_handler =
+                        Some(TransmitBodyPromiseRejectionHandler {
+                            bytes_sender,
+                            stream: Dom::from_ref(&rooted_stream),
+                        })
+                    );
+
+                    let handler = PromiseNativeHandler::new(
+                        cx,
+                        &global,
+                        promise_handler.take().map(|handler| Box::new(handler) as Box<_>),
+                        rejection_handler.take().map(|handler| Box::new(handler) as Box<_>),
+                    );
+
+                    let mut realm = enter_auto_realm(cx, &*global);
+                    let realm = &mut realm.current_realm();
+                    promise.append_native_handler(realm, &handler);
+                }));
+            },
         }
-
-        self.task_source.queue(
-            task!(setup_native_body_promise_handler: move |cx| {
-                let rooted_stream = stream.root();
-                let global = rooted_stream.global();
-
-                // Step 4, the result of reading a chunk from body’s stream with reader.
-                let promise = rooted_stream.read_a_chunk(cx);
-
-                // Step 5, the parallel steps waiting for and handling the result of the read promise,
-                // are a combination of the promise native handler here,
-                // and the corresponding IPC route in `component::net::http_loader`.
-                rooted!(&in(cx) let mut promise_handler = Some(TransmitBodyPromiseHandler {
-                    bytes_sender: bytes_sender.clone(),
-                    stream: Dom::from_ref(&rooted_stream),
-                    control_sender: control_sender.clone().unwrap(),
-                }));
-
-                rooted!(&in(cx) let mut rejection_handler = Some(TransmitBodyPromiseRejectionHandler {
-                    bytes_sender,
-                    stream: Dom::from_ref(&rooted_stream),
-                    control_sender: control_sender.unwrap(),
-                }));
-
-                let handler =
-                    PromiseNativeHandler::new(cx, &global, promise_handler.take().map(|h| Box::new(h) as Box<_>), rejection_handler.take().map(|h| Box::new(h) as Box<_>));
-
-                let mut realm = enter_auto_realm(cx, &*global);
-                let realm = &mut realm.current_realm();
-                promise.append_native_handler(realm, &handler);
-            })
-        );
     }
 }
 
@@ -314,8 +297,6 @@ struct TransmitBodyPromiseHandler {
     #[no_trace]
     bytes_sender: IpcSender<BodyChunkResponse>,
     stream: Dom<ReadableStream>,
-    #[no_trace]
-    control_sender: IpcSender<BodyChunkRequest>,
 }
 
 impl js::gc::Rootable for TransmitBodyPromiseHandler {}
@@ -328,7 +309,7 @@ impl Callback for TransmitBodyPromiseHandler {
             Err(_) => {
                 // Step 5.5, the "otherwise" steps.
                 // TODO: terminate fetch.
-                let _ = self.control_sender.send(BodyChunkRequest::Done);
+                let _ = self.bytes_sender.send(BodyChunkResponse::Done);
                 return self.stream.stop_reading(cx);
             },
         };
@@ -336,7 +317,7 @@ impl Callback for TransmitBodyPromiseHandler {
         if is_done {
             // Step 5.3, the "done" steps.
             // TODO: queue a fetch task on request to process request end-of-body.
-            let _ = self.control_sender.send(BodyChunkRequest::Done);
+            let _ = self.bytes_sender.send(BodyChunkResponse::Done);
             return self.stream.stop_reading(cx);
         }
 
@@ -344,7 +325,7 @@ impl Callback for TransmitBodyPromiseHandler {
             Ok(chunk) => chunk,
             Err(_) => {
                 // Step 5.5, the "otherwise" steps.
-                let _ = self.control_sender.send(BodyChunkRequest::Error);
+                let _ = self.bytes_sender.send(BodyChunkResponse::Error);
                 return self.stream.stop_reading(cx);
             },
         };
@@ -368,8 +349,6 @@ struct TransmitBodyPromiseRejectionHandler {
     #[no_trace]
     bytes_sender: IpcSender<BodyChunkResponse>,
     stream: Dom<ReadableStream>,
-    #[no_trace]
-    control_sender: IpcSender<BodyChunkRequest>,
 }
 
 impl js::gc::Rootable for TransmitBodyPromiseRejectionHandler {}
@@ -378,7 +357,7 @@ impl Callback for TransmitBodyPromiseRejectionHandler {
     /// <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
     fn callback(&self, cx: &mut CurrentRealm, _v: HandleValue) {
         // Step 5.4, the "rejection" steps.
-        let _ = self.control_sender.send(BodyChunkRequest::Error);
+        let _ = self.bytes_sender.send(BodyChunkResponse::Error);
         self.stream.stop_reading(cx);
     }
 }
@@ -422,12 +401,6 @@ impl ExtractedBody {
         //  from `components::script` to `components::net`.
         let (chunk_request_sender, chunk_request_receiver) = ipc::channel().unwrap();
 
-        let trusted_stream = Trusted::new(&*stream);
-
-        let global = stream.global();
-        let task_manager = global.task_manager();
-        let task_source = task_manager.networking_task_source();
-
         // In case of the data being in-memory, send everything in one chunk, by-passing SM.
         // Empty extracted bodies are always representable as an in-memory empty payload.
         let in_memory = stream.get_in_memory_bytes(cx).or_else(|| {
@@ -440,39 +413,34 @@ impl ExtractedBody {
 
         let net_source = match source {
             BodySource::Null => NetBodySource::Null,
-            _ => NetBodySource::Object,
+            BodySource::Object => NetBodySource::Object,
         };
 
-        let mut body_handler = TransmitBodyConnectHandler::new(
-            trusted_stream,
-            task_source.into(),
-            chunk_request_sender.clone(),
-            in_memory,
-            source,
-        );
+        let body = match in_memory {
+            Some(data) => SendableBody::InMemory { data, done: false },
+            None => {
+                let global = stream.global();
+                let task_manager = global.task_manager();
+                let task_source = task_manager.networking_task_source().into();
+                SendableBody::Stream {
+                    stream: Trusted::new(&*stream),
+                    task_source,
+                    source,
+                }
+            },
+        };
 
+        let mut body_handler = TransmitBodyConnectHandler::new(body);
         ROUTER.add_typed_route(
             chunk_request_receiver,
-            Box::new(move |message| {
-                match message.unwrap() {
-                    BodyChunkRequest::Connect(sender) => {
-                        body_handler.start_reading(sender);
-                    },
-                    BodyChunkRequest::Extract(receiver) => {
-                        body_handler.re_extract(receiver);
-                    },
-                    BodyChunkRequest::Chunk => body_handler.transmit_body_chunk(),
-                    // Note: this is actually sent from this process
-                    // by the TransmitBodyPromiseHandler when reading stops.
-                    BodyChunkRequest::Done => {
-                        body_handler.stop_reading(StopReading::Done);
-                    },
-                    // Note: this is actually sent from this process
-                    // by the TransmitBodyPromiseHandler when the stream errors.
-                    BodyChunkRequest::Error => {
-                        body_handler.stop_reading(StopReading::Error);
-                    },
-                }
+            Box::new(move |message| match message.unwrap() {
+                BodyChunkRequest::Connect(sender) => {
+                    body_handler.start_reading(sender);
+                },
+                BodyChunkRequest::Extract(receiver) => {
+                    body_handler.re_extract(receiver);
+                },
+                BodyChunkRequest::Chunk => body_handler.transmit_body_chunk(),
             }),
         );
 

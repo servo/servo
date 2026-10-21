@@ -13853,6 +13853,13 @@
       {}
      ]
     ],
+    "fetch-body-does-not-leak-document.https.html": [
+     "a14165df3bf875d45506b341fa24206db807d596",
+     [
+      null,
+      {}
+     ]
+    ],
     "fetch-does-not-leak-document.html": [
      "5d795effda7bce5ff5bf9992f3a2c7bcfec76453",
      [

@@ -305,9 +305,10 @@ pub enum BodyChunkResponse {
     Error,
 }
 
-/// Messages used to implement <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
-/// which are sent from net to script
-/// (with the exception of Done, which is sent from script to script).
+/// Messages used to implement [request body transmission] which are sent from
+/// net to script.
+///
+/// [request body transmission]: <https://fetch.spec.whatwg.org/#concept-request-transmit-body>
 #[derive(Debug, Deserialize, Serialize)]
 pub enum BodyChunkRequest {
     /// Connect a fetch in `net`, with a stream of bytes from `script`.
@@ -316,10 +317,6 @@ pub enum BodyChunkRequest {
     Extract(IpcReceiver<BodyChunkRequest>),
     /// Ask for another chunk.
     Chunk,
-    /// Signal the stream is done(sent from script to script).
-    Done,
-    /// Signal the stream has errored(sent from script to script).
-    Error,
 }
 
 /// A process local view into <https://fetch.spec.whatwg.org/#bodies>.
