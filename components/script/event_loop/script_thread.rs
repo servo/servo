@@ -2955,7 +2955,7 @@ impl ScriptThread {
                 kind: iframe_element
                     .upcast::<Element>()
                     .focusable_area_kind(cx.no_gc()),
-                iframe_element: iframe_element,
+                iframe_element,
             })
             .unwrap_or(RootedFocusableArea::Viewport);
 

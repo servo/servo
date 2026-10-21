@@ -96,14 +96,14 @@ impl From<&'_ RootedFocusableArea> for FocusableArea {
     fn from(area: &'_ RootedFocusableArea) -> Self {
         match area {
             RootedFocusableArea::Node { node, kind } => FocusableArea::Node {
-                node: Dom::from_ref(&node),
+                node: Dom::from_ref(node),
                 kind: *kind,
             },
             RootedFocusableArea::IFrameViewport {
                 iframe_element,
                 kind,
             } => FocusableArea::IFrameViewport {
-                iframe_element: Dom::from_ref(&iframe_element),
+                iframe_element: Dom::from_ref(iframe_element),
                 kind: *kind,
             },
             RootedFocusableArea::Viewport => FocusableArea::Viewport,
@@ -115,14 +115,14 @@ impl From<&'_ FocusableArea> for RootedFocusableArea {
     fn from(area: &'_ FocusableArea) -> Self {
         match area {
             FocusableArea::Node { node, kind } => RootedFocusableArea::Node {
-                node: DomRoot::from_ref(&node),
+                node: DomRoot::from_ref(node),
                 kind: *kind,
             },
             FocusableArea::IFrameViewport {
                 iframe_element,
                 kind,
             } => RootedFocusableArea::IFrameViewport {
-                iframe_element: DomRoot::from_ref(&iframe_element),
+                iframe_element: DomRoot::from_ref(iframe_element),
                 kind: *kind,
             },
             FocusableArea::Viewport => RootedFocusableArea::Viewport,
