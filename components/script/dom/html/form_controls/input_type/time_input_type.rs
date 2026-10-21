@@ -40,9 +40,26 @@ impl SpecificInputType for TimeInputType {
 
     /// <https://html.spec.whatwg.org/multipage/#time-state-(type=time):concept-input-value-string-number>
     fn convert_number_to_string(&self, input: f64) -> Option<DOMString> {
-        OffsetDateTime::from_unix_timestamp_nanos((input * 1e6) as i128)
-            .ok()
-            .map(|value| value.to_time_string().into())
+        if input.is_nan() || input.is_infinite() {
+            return None;
+        }
+        let day_ms = 86_400_000.0;
+        let ms = input.rem_euclid(day_ms);
+        let total_ms = ms.round() as u64;
+        let total_seconds = total_ms / 1000;
+        let millis = total_ms % 1000;
+        let hours = total_seconds / 3600;
+        let minutes = (total_seconds % 3600) / 60;
+        let seconds = total_seconds % 60;
+
+        let formatted = if millis > 0 {
+            format!("{hours:02}:{minutes:02}:{seconds:02}.{millis:03}")
+        } else if seconds > 0 {
+            format!("{hours:02}:{minutes:02}:{seconds:02}")
+        } else {
+            format!("{hours:02}:{minutes:02}")
+        };
+        Some(formatted.into())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#time-state-(type=time):concept-input-value-string-date>

@@ -65,8 +65,9 @@ Analysis of the 154,583 non-pass metadata entries across `tests/wpt/meta` reveal
 - **Real-World Impact:** Broken login forms, date pickers, client-side validation errors preventing form submission.
 - **Key Focus Areas:**
   1. Constraint validation API (`checkValidity()`, `reportValidity()`, `:invalid` pseudo-class, and `stepMismatch` precision calculations - Landed in `components/script/dom/html/form_controls/htmlinputelement.rs`).
-  2. Embedder control event forwarding (`components/servo/lib.rs:EmbedderControl`).
-  3. `<dialog>` element modal request close, `cancel` event firing, and button `command="request-close"` (Landed in `components/script/dom/html/interactive/htmldialogelement.rs`).
+  2. Date/Time input `valueAsNumber` conversions: Euclidean division for negative/positive months and modulo 24h millisecond time conversions (Landed in `month_input_type.rs` and `time_input_type.rs`).
+  3. Embedder control event forwarding (`components/servo/lib.rs:EmbedderControl`).
+  4. `<dialog>` element modal request close, `cancel` event firing, and button `command="request-close"` (Landed in `components/script/dom/html/interactive/htmldialogelement.rs`).
 - **Milestone:** M1
 
 ---

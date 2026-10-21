@@ -1,8 +1,6 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-use std::cmp::Ordering;
-
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
 use time::{Month, OffsetDateTime};
@@ -49,20 +47,18 @@ impl SpecificInputType for MonthInputType {
         // > The algorithm to convert a number to a string, given a number input,
         // > is as follows: Return a valid month string that represents the month
         // > that has input months between it and January 1970.
-        let date = OffsetDateTime::UNIX_EPOCH;
-        let years = (input / 12.) as i32;
-        let year = date.year() + years;
+        if input.is_nan() || input.is_infinite() {
+            return None;
+        }
+        let total_months = input.round() as i64;
+        let absolute_month = 1970i64 * 12 + total_months;
+        let year = absolute_month.div_euclid(12) as i32;
+        let month = (absolute_month.rem_euclid(12) + 1) as u8;
 
-        let months = input as i32 - (years * 12);
-        let months = match months.cmp(&0) {
-            Ordering::Less => (12 - months) as u8,
-            Ordering::Equal | Ordering::Greater => months as u8,
-        } + 1;
-
-        let date = date
+        let date = OffsetDateTime::UNIX_EPOCH
             .replace_year(year)
             .ok()?
-            .replace_month(Month::try_from(months).ok()?)
+            .replace_month(Month::try_from(month).ok()?)
             .ok()?;
         Some(date.to_month_string().into())
     }
