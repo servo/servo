@@ -77,7 +77,9 @@ impl TextMethods<crate::DomTypeHolder> for Text {
         let length = cdata.Length();
         // Step 2: If offset is greater than length, then throw an "IndexSizeError" DOMException.
         if offset > length {
-            return Err(Error::IndexSize(None));
+            return Err(Error::IndexSize(Some(
+                "Offset is greater than the node's length".into(),
+            )));
         }
         // Step 3: Let count be length − offset.
         let count = length - offset;
