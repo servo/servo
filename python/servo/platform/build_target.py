@@ -481,8 +481,10 @@ class OpenHarmonyTarget(CrossBuildTarget):
             link_args = [f"-Clink-arg={arg}" for arg in link_args]
             env["RUSTFLAGS"] += " " + " ".join(link_args)
             # If a non-SDK LLVM is used with cargo-ohos, then these flags will not be set.
-            env["TARGET_CFLAGS"] = env.get("TARGET_CFLAGS", "") + " " + " ".join(san_compile_flags)
-            env["TARGET_CXXFLAGS"] = env.get("TARGET_CXXFLAGS", "") + " " + " ".join(san_compile_flags)
+            triple = self.triple().replace("-", "_")
+            for flag_name in ("CFLAGS", "CXXFLAGS"):
+                target_var = f"{flag_name}_{triple}"
+                env[target_var] = env.get(target_var, "") + " " + " ".join(san_compile_flags)
 
     def runtime_libraries(self) -> List[pathlib.Path]:
         if self.cargo_ohos_info is None:
