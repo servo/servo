@@ -865,7 +865,7 @@ impl VirtualMethods for HTMLSelectElement {
             el.check_disabled_attribute(cx.no_gc());
         }
 
-        self.owner_document()
+        self.owner_document_unrooted(cx.no_gc())
             .embedder_controls()
             .hide_embedder_control(self.upcast());
     }

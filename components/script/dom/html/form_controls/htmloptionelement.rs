@@ -408,7 +408,6 @@ impl VirtualMethods for HTMLOptionElement {
                 match mutation {
                     AttributeMutation::Set(_) => {
                         el.set_disabled_state(cx.no_gc(), true);
-
                         el.set_enabled_state(cx.no_gc(), false);
                     },
                     AttributeMutation::Removed => {

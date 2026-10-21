@@ -461,7 +461,7 @@ impl Node {
         if document.accessibility_active() {
             document
                 .accessibility_data_mut()
-                .root_removed_node(cx.no_gc(), root);
+                .root_removed_node(no_gc, root);
         }
     }
 
