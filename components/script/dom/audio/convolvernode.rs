@@ -30,7 +30,9 @@ use crate::dom::window::Window;
 #[dom_struct]
 pub(crate) struct ConvolverNode {
     source_node: AudioNode,
+    /// <https://webaudio.github.io/web-audio-api/#dom-convolvernode-buffer>
     buffer: MutNullableDom<AudioBuffer>,
+    /// <https://webaudio.github.io/web-audio-api/#dom-convolvernode-normalize>
     normalize: Cell<bool>,
 }
 
@@ -119,14 +121,14 @@ impl ConvolverNodeMethods<crate::DomTypeHolder> for ConvolverNode {
             self.buffer.set(new_buffer);
             return Ok(());
         };
-        // > If the buffer number of channels is not 1, 2, 4, a NotSupportedError MUST be thrown.
+        // Step 1. If the buffer number of channels is not 1, 2, 4,
+        // or if the sample-rate of the buffer is not the same as the sample-rate of its associated BaseAudioContext,
+        // a NotSupportedError MUST be thrown.
         if ![1u32, 2, 4].contains(&new_buffer.NumberOfChannels()) {
             return Err(Error::NotSupported(Some(String::from(
                 "Buffer number of channels is not 1, 2 or 4",
             ))));
         }
-        // > If the sample-rate of the buffer is not the same
-        // > as the sample-rate of its associated BaseAudioContext, a NotSupportedError MUST be thrown.
         if new_buffer.SampleRate() != self.source_node.Context().SampleRate() {
             return Err(Error::NotSupported(Some(String::from(
                 "Buffer sample rate not equal to sample rate of convolver node's associated base audio context",
@@ -134,7 +136,7 @@ impl ConvolverNodeMethods<crate::DomTypeHolder> for ConvolverNode {
         }
         self.buffer.set(Some(new_buffer));
 
-        // > Acquire the AudioBuffer content.
+        // Step 2. Acquire the AudioBuffer content.
         if let Some(buffer) = self.buffer.get() {
             let buffer = buffer.get_channels(cx);
             if buffer.is_some() {
