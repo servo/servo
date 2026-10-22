@@ -742,7 +742,6 @@ class CommandBase(object):
         capture_output: bool = False,
         target_override: Optional[str] = None,
         subcommand: str | None = None,
-        sanitizer: SanitizerKind = SanitizerKind.NONE,
         **_kwargs: Any,
     ) -> CompletedProcess[bytes] | int:
         env = cast(dict[str, str], env or self.build_env())
@@ -794,17 +793,13 @@ class CommandBase(object):
         if "-p" not in cargo_args:  # We're building specific package, that may not have features
             features += list(self.features)
 
-            if not self.enable_media or sanitizer.is_asan():
+            if not self.enable_media:
                 if "--no-default-features" not in cargo_args:
                     cargo_args.append("--no-default-features")
                     features.append("default_base")
-                    if self.enable_media:
-                        features.append("media-gstreamer")
-                    if not sanitizer.is_asan():
-                        features.append("jemalloc")
                 else:
                     print(
-                        "Info: Explicit `--no-default-features` passed in an ASAN or `--media-stack dummy` build."
+                        "Info: Explicit `--no-default-features` passed in a `--media-stack dummy` build."
                         " Skipping `mach` override of default features. If you are not sure what"
                         " you are doing, consider removing `--no-default-features` from your invocation."
                     )
