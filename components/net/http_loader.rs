@@ -926,7 +926,7 @@ pub(crate) async fn http_fetch(
     if response.is_none() {
         // Step 4.1. If makeCORSPreflight is true and one of these conditions is true:
         if cors_preflight_flag {
-            let method_cache_match = cache.match_method(request, request.method.clone());
+            let method_cache_match = cache.match_method(request, &request.method);
 
             // There is no method cache entry match for request’s method using request, and either
             // request’s method is not a CORS-safelisted method or request’s use-CORS-preflight flag
@@ -2693,7 +2693,7 @@ async fn cors_preflight_fetch(
         // Step 7.13 For each method in methods for which there is no method cache entry match using request,
         // create a new cache entry with request, max-age, method, and null.
         for method in &methods {
-            cache.match_method_and_update(request, method.clone(), max_age);
+            cache.match_method_and_update(request, method, max_age);
         }
 
         // Step 7.14 For each headerName in headerNames for which there is a header-name cache entry match using request,
