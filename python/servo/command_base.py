@@ -383,13 +383,6 @@ class CommandBase(object):
                 if platform.is_macos:
                     util.prepend_paths_to_env(env, "DYLD_FALLBACK_LIBRARY_PATH", os.path.join(gstreamer_root, "lib"))
 
-        if sys.platform != "win32":
-            env.setdefault("CC", "clang")
-            env.setdefault("CXX", "clang++")
-        else:
-            env.setdefault("CC", "clang-cl.exe")
-            env.setdefault("CXX", "clang-cl.exe")
-
         if self.config["build"]["incremental"]:
             env["CARGO_INCREMENTAL"] = "1"
         elif self.config["build"]["incremental"] is not None:

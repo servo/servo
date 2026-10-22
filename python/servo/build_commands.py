@@ -269,15 +269,20 @@ class MachCommands(CommandBase):
         llvm_major: int = rustc_llvm_version[0]
         target_clang = f"clang-{llvm_major}"
         target_cxx = f"clang++-{llvm_major}"
+
+        # libasan can be compatible across multiple compiler versions and has a
+        # runtime check, which would fail if we used incompatible compilers, so
+        # we can try and fall back to the default clang.
         if shutil.which(target_clang) is None or shutil.which(target_cxx) is None:
-            env.setdefault("TARGET_CC", "clang")
-            env.setdefault("TARGET_CXX", "clang++")
-        else:
-            # libasan can be compatible across multiple compiler versions and has a
-            # runtime check, which would fail if we used incompatible compilers, so
-            # we can try and fallback to the default clang.
-            env.setdefault("TARGET_CC", target_clang)
-            env.setdefault("TARGET_CXX", target_cxx)
+            target_clang = "clang"
+            target_cxx = "clang++"
+
+        env.setdefault("TARGET_CC", target_clang)
+        env.setdefault("TARGET_CXX", target_cxx)
+        target_triple_env = target_triple.replace("-", "_")
+        env.setdefault(f"CC_{target_triple_env}", target_clang)
+        env.setdefault(f"CXX_{target_triple_env}", target_cxx)
+
         # By default, build mozjs from source to enable Sanitizers in mozjs.
         env.setdefault("MOZJS_FROM_SOURCE", "1")
 
