@@ -14,6 +14,9 @@ name = "servo_svg"
 path = "lib.rs"
 
 [dependencies]
+log = { workspace = true }
+malloc_size_of = { workspace = true }
+malloc_size_of_derive = { workspace = true }
 svgtypes = { workspace = true }
 
 [lints]

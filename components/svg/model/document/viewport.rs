@@ -2,9 +2,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use malloc_size_of_derive::MallocSizeOf;
+
 use crate::model::units::Length;
 
 // Viewport information for the root '<svg>' element.
+#[derive(Debug, MallocSizeOf)]
 pub struct ViewportInfo {
     pub width: Length,
     pub height: Length,
@@ -14,6 +17,7 @@ pub struct ViewportInfo {
 }
 
 // Viewport information for a nested '<svg>' element.
+#[derive(Debug, MallocSizeOf)]
 pub struct SvgViewport {
     pub x: Length,
     pub y: Length,
@@ -21,6 +25,7 @@ pub struct SvgViewport {
 }
 
 // 'viewbox' attribute.
+#[derive(Debug, MallocSizeOf)]
 pub struct ViewBox {
     pub min_x: Length,
     pub min_y: Length,
@@ -29,6 +34,7 @@ pub struct ViewBox {
 }
 
 // 'preserveAspectRatio attribute
+#[derive(Debug, MallocSizeOf)]
 pub struct AspectRatio {
     pub align: AspectAlign,
     pub meet_or_slice: MeetOrSlice,
@@ -43,6 +49,7 @@ impl Default for AspectRatio {
     }
 }
 
+#[derive(Debug, MallocSizeOf)]
 pub enum AspectAlign {
     None,
     XMinYMin,
@@ -56,6 +63,7 @@ pub enum AspectAlign {
     XMaxYMax,
 }
 
+#[derive(Debug, MallocSizeOf)]
 pub enum MeetOrSlice {
     Meet,
     Slice,

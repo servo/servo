@@ -2,6 +2,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use malloc_size_of_derive::MallocSizeOf;
+
+#[derive(Debug, MallocSizeOf)]
 pub struct Point {
     pub x: f32,
     pub y: f32,
@@ -13,6 +16,7 @@ impl Point {
     }
 }
 
+#[derive(Debug, MallocSizeOf)]
 pub enum PathCommand {
     MoveTo(Point),
     LineTo(Point),
@@ -21,6 +25,7 @@ pub enum PathCommand {
     Close,
 }
 
+#[derive(Debug, MallocSizeOf)]
 pub struct PathData {
     pub commands: Vec<PathCommand>,
 }
