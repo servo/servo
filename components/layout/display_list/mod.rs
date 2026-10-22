@@ -35,7 +35,8 @@ use style::properties::style_structs::Border;
 use style::values::computed::basic_shape::ClipPath as ComputedClipPath;
 use style::values::computed::{
     BorderImageSideWidth, BorderImageWidth, BorderStyle, LengthPercentage,
-    NonNegativeLengthOrNumber, NumberOrPercentage, OutlineStyle,
+    LengthPercentageOrAuto as ComputedLengthPercentageOrAuto, NonNegativeLengthOrNumber,
+    NumberOrPercentage, OutlineStyle,
 };
 use style::values::generics::NonNegative;
 use style::values::generics::color::ColorOrAuto;
@@ -1314,10 +1315,21 @@ impl Fragment {
 
         let font_size = parent_style.get_font().font_size;
         let dppx = builder.device_pixel_ratio.get();
+        let resolve_length_percentage = |length_percentage: &LengthPercentage| -> Au {
+            Au::from_f32_px(length_percentage.resolve(font_size.computed_size.0).px())
+        };
+        let resolve_underline_offset = |offset: &ComputedLengthPercentageOrAuto| -> Au {
+            match offset {
+                ComputedLengthPercentageOrAuto::Auto => Au::zero(),
+                ComputedLengthPercentageOrAuto::LengthPercentage(offset) => {
+                    resolve_length_percentage(offset)
+                },
+            }
+        };
         let resolve_thickness = |thickness: &TextDecorationThickness| -> Au {
             let resolved = match thickness {
                 TextDecorationThickness::LengthPercentage(length_percentage) => {
-                    length_percentage.resolve(font_size.computed_size.0).px()
+                    resolve_length_percentage(length_percentage).to_f32_px()
                 },
                 TextDecorationThickness::Auto | TextDecorationThickness::FromFont => {
                     font_metrics.underline_size.to_f32_px()
@@ -1344,7 +1356,11 @@ impl Fragment {
                 TextDecorationLine::UNDERLINE => (
                     text_decoration.color,
                     text_decoration.style,
-                    font_metrics.ascent - font_metrics.underline_offset,
+                    // <https://drafts.csswg.org/css-text-decor-4/#underline-offset>:
+                    // > Positive offsets represent distances outward from the text;
+                    // > negative offsets inward.
+                    font_metrics.ascent - font_metrics.underline_offset +
+                        resolve_underline_offset(&text_decoration.underline_offset),
                     resolve_thickness(&text_decoration.thickness),
                 ),
                 // <https://drafts.csswg.org/css-text-decor-4/#valdef-text-decoration-line-spelling-error>
