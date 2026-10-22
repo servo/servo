@@ -449,6 +449,7 @@ fn resolved_size_should_be_used_value(fragment: &Fragment) -> bool {
         Fragment::Positioning(_) |
         Fragment::AbsoluteOrFixedPositionedPlaceholder(_) |
         Fragment::Image(_) |
+        Fragment::Svg(_) |
         Fragment::IFrame(_) => true,
         Fragment::Text(_) => false,
     }

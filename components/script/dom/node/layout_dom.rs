@@ -50,6 +50,11 @@ impl<'dom> LayoutDom<'dom, Node> {
     }
 
     #[inline]
+    pub(crate) fn inclusive_descendants_version(self) -> u64 {
+        self.unsafe_get().inclusive_descendants_version()
+    }
+
+    #[inline]
     pub(crate) fn is_element_for_layout(&self) -> bool {
         (*self).is::<Element>()
     }

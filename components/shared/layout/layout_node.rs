@@ -110,6 +110,9 @@ pub trait LayoutNode<'dom>: Copy + Debug + NodeInfo + Send + Sync {
     /// Converts self into an `OpaqueNode`.
     fn opaque(&self) -> OpaqueNode;
 
+    /// The maximum dirty version of this node and all of its descendants.
+    fn inclusive_descendants_version(&self) -> u64;
+
     /// Returns the type ID of this node. Returns `None` if this is a pseudo-element; otherwise,
     /// returns `Some`.
     fn type_id(&self) -> Option<LayoutNodeType>;

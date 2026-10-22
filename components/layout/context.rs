@@ -30,6 +30,8 @@ use uuid::Uuid;
 use webrender_api::ImageKey;
 use webrender_api::units::{DeviceIntSize, DeviceSize};
 
+use crate::svg::SvgSubtreeCache;
+
 pub(crate) type CachedImageOrError = Result<CachedImage, ResolveImageError>;
 
 pub(crate) struct LayoutContext<'a> {
@@ -45,6 +47,9 @@ pub(crate) struct LayoutContext<'a> {
     /// An [`ImageResolver`] used for resolving images during box and fragment
     /// tree construction. Later passed to display list construction.
     pub image_resolver: Arc<ImageResolver>,
+
+    /// SVG subtree cache, reused across reflows for incremental SVG build.
+    pub svg_subtree_cache: Arc<RwLock<SvgSubtreeCache>>,
 
     /// The [`PainterId`] that identifies which `RenderingContext` that this layout targets.
     pub painter_id: PainterId,
