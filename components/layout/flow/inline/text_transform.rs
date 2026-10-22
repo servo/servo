@@ -11,6 +11,8 @@
 //! IFC text and vice-versa.
 
 use arrayvec::ArrayVec;
+use icu_casemap::CaseMapper;
+use icu_casemap::options::TitlecaseOptions;
 use icu_locale_core::LanguageIdentifier;
 use icu_properties::props::{EnumeratedProperty, GeneralCategory, GeneralCategoryGroup};
 use icu_segmenter::WordSegmenter;
@@ -397,16 +399,17 @@ impl std::fmt::Write for CaseMappingSink {
 fn title_case(character: char, language: &LanguageIdentifier) -> CharacterTransformIteration {
     let mut buffer = [0; 4];
     let mut titlecase = CaseMappingSink::default();
-    let result = icu_casemap::CaseMapper::new()
+    let result = CaseMapper::new()
         .titlecase_segment_with_only_case_data(
             character.encode_utf8(&mut buffer),
             language,
-            icu_casemap::options::TitlecaseOptions::default(),
+            TitlecaseOptions::default(),
         )
         .write_to(&mut titlecase);
     debug_assert!(
         result.is_ok(),
-        "CaseMapping of {character} for language {language:?} required more than MAX_CASE_MAPPING_LENGTH ({MAX_CASE_MAPPING_LENGTH}) characters."
+        "CaseMapping of {character} for language {language:?} required more than \
+        MAX_CASE_MAPPING_LENGTH ({MAX_CASE_MAPPING_LENGTH}) characters."
     );
     CharacterTransformIteration::case_mapped(titlecase.0.into_iter())
 }

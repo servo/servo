@@ -30,7 +30,7 @@ encoding_rs = { workspace = true }
 euclid = { workspace = true }
 fonts = { workspace = true }
 fonts_traits = { workspace = true }
-icu_casemap = { workspace = true, optional = true }
+icu_casemap = { workspace = true }
 icu_locale_core = { workspace = true }
 icu_properties = { workspace = true, features = ["compiled_data"] }
 icu_segmenter = { workspace = true }
