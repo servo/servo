@@ -23,6 +23,7 @@ pub enum AppEvent {
     Accessibility(egui_winit::accesskit_winit::Event),
     #[cfg(feature = "gamepad")]
     Gamepad(Event, String, GamepadIndex),
+    SetNetworkOnlineState(bool),
 }
 
 impl From<egui_winit::accesskit_winit::Event> for AppEvent {

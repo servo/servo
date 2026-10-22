@@ -155,9 +155,19 @@ winit = { workspace = true }
 [target.'cfg(any(all(target_os = "linux", not(target_env = "ohos")), target_os = "macos"))'.dependencies]
 signal-hook-registry = { workspace = true }
 
+[target.'cfg(target_os = "linux")'.dependencies]
+futures-util = { workspace = true }
+rtnetlink = { workspace = true }
+
 [target.'cfg(target_os = "windows")'.dependencies]
 servo = { workspace = true, features = ["no-wgl"] }
-windows-sys = { workspace = true, features = ["Win32_Graphics_Gdi", "Win32_System_Console"] }
+windows-sys = { workspace = true, features = [
+    "Win32_Graphics_Gdi",
+    "Win32_Networking_WinSock",
+    "Win32_NetworkManagement_Ndis",
+    "Win32_NetworkManagement_IpHelper",
+    "Win32_System_Console",
+] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 mach2 = { workspace = true }

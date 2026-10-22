@@ -16,6 +16,7 @@ mod gui;
 pub(crate) mod headed_window;
 mod headless_window;
 mod keyutils;
+pub(crate) mod network_monitor;
 mod protocols;
 mod tracing;
 #[cfg(feature = "webxr")]
