@@ -22,6 +22,13 @@
    "core-aam": {
     "aamtests": {
      "attribute": {
+      "aria_autocomplete_inline_list_both.py": [
+       "540f7b8719ed8098a8babc2d931d8fea83aa6e52",
+       [
+        null,
+        {}
+       ]
+      ],
       "aria_braillelabel.py": [
        "2b6dba50a0af1f6250c1932006a49fdf4a6e232f",
        [
@@ -402563,7 +402570,7 @@
        "2d.path.clip.scale.html": [
         "3e23feaa79332270cd50415a1c0c4027054101bf",
         [
-         "html/canvas/element/path-objects/2d.path.clip.scale.html",
+         null,
          [
           [
            "/html/canvas/element/path-objects/2d.path.clip.scale-expected.html",
@@ -406309,7 +406316,7 @@
        "2d.path.clip.scale.html": [
         "024ca718338d8a587e36605b18ee90849bb80518",
         [
-         "html/canvas/offscreen/path-objects/2d.path.clip.scale.html",
+         null,
          [
           [
            "/html/canvas/offscreen/path-objects/2d.path.clip.scale-expected.html",
@@ -410880,7 +410887,7 @@
        "Document-documentElement-remove-clears-content.html": [
         "7b83a7a403587b713b440485bf0f3eba823a1eb7",
         [
-         "html/rendering/non-replaced-elements/the-page/Document-documentElement-remove-clears-content.html",
+         null,
          [
           [
            "/css/reference/blank.html",
@@ -470260,12 +470267,6 @@
       "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
       []
      ],
-     "attribute": {
-      "aria_autocomplete_inline_list_both.py": [
-       "540f7b8719ed8098a8babc2d931d8fea83aa6e52",
-       []
-      ]
-     },
      "conftest.py": [
       "7e7cb00234a294779b1a279ce67dce0434ebf20e",
       []
