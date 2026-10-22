@@ -3,6 +3,9 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 // A single text span within an SVG '<text>' or '<tspan>' element.
+use malloc_size_of_derive::MallocSizeOf;
+
+#[derive(Debug, MallocSizeOf)]
 pub struct TextSpan {
     // TODO
 }
