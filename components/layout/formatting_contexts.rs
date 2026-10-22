@@ -399,7 +399,7 @@ impl IndependentFormattingContext {
                 taffy_container.repair_style(new_style)
             },
             IndependentFormattingContextContents::Table(table) => {
-                table.repair_style(context, new_style)
+                table.repair_style(context, new_style, &self.base)
             },
         }
     }
