@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<title>Document objects for added and removed iframes are collected after sending requests with bodies</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="resources/leak-helpers.js"></script>
+<body>
+    <script>
+      const tests = [
+          "<script>new Request(\"/common/slow.py?delay=60000\", {method: \"POST\", body: \"data\"});<\/script>",
+          "<script>fetch(\"data:text/plain,x\", {method: \"POST\", body: \"data\"});<\/script>",
+          "<script>fetch(\"/common/slow.py?delay=60000\", {method: \"POST\", body: \"data\"});<\/script>",
+          "<script>fetch(\"/common/slow.py?delay=60000\", {method: \"POST\", body: \"data\", keepalive: true});<\/script>",
+          "<script>fetch(\"/common/slow.py?delay=60000\", {method: \"POST\", body: \"\"});<\/script>",
+          "<script>new Request(\"/common/slow.py?delay=60000\", {method: \"POST\", body: \"data\"}).clone();<\/script>",
+          "<script>navigator.sendBeacon(\"/common/slow.py?delay=60000\", \"data\");<\/script>",
+          "<script>navigator.sendBeacon(\"/common/slow.py?delay=60000\", new Blob([\"data\"]));<\/script>",
+          "<script>navigator.sendBeacon(\"/common/slow.py?delay=60000\", new URLSearchParams(\"a=b\"));<\/script>",
+          "<script>navigator.sendBeacon(\"/common/slow.py?delay=60000\", new FormData());<\/script>",
+          "<script>navigator.sendBeacon(\"/common/slow.py?delay=60000\", new Uint8Array(1));<\/script>",
+          "<script>const x = new XMLHttpRequest(); x.open(\"POST\", \"/common/slow.py?delay=60000\"); x.send(\"data\");<\/script>",
+          "<form method=\"post\" action=\"/common/slow.py?delay=60000\" target=\"sink\"><input name=\"a\" value=\"b\"></form><iframe name=\"sink\"></iframe><script>document.forms[0].submit();<\/script>",
+          "<script>fetch(\"/common/redirect.py?status=307&location=%2Fcommon%2Fslow.py%3Fdelay%3D60000\", {method: \"POST\", body: \"data\"});<\/script>",
+          "<script>const w = new Worker(URL.createObjectURL(new Blob([\"onmessage = () => fetch('\" + parent.location.origin + \"/common/slow.py?delay=60000', {method: 'POST', body: 'data'});\"]))); w.postMessage(1);<\/script>",
+          "<script>fetch(\"/common/slow.py?delay=60000\", {method: \"POST\", duplex: \"half\", body: new ReadableStream({start(c) { c.enqueue(new Uint8Array([1])); c.close(); }})});<\/script>",
+          "<script>fetch(\"/common/slow.py?delay=60000\", {method: \"POST\", duplex: \"half\", body: new ReadableStream({start(c) { c.enqueue(new Uint8Array([1])); }})});<\/script>",
+      ];
+
+      for (const test of tests) {
+          promise_test(async () => {
+            assert_true(await createAndDestroyIframeWithHTML(test));
+          }, `'${test}' does not leak the document`);
+      }
+    </script>
+</body>
