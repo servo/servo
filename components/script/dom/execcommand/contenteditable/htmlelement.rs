@@ -88,7 +88,7 @@ impl HTMLElement {
         let element = self.upcast::<Element>();
 
         // Step 2. If element is not editable, return the empty list.
-        if !node.is_editable(cx.no_gc()) {
+        if !node.is_editable() {
             return;
         }
         // Step 3. If element's specified command value for command is null,

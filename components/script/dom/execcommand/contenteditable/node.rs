@@ -409,7 +409,7 @@ pub(crate) fn split_the_parent<'a>(cx: &mut JSContext, node_list: &'a [&'a Node]
     };
     let context_object = original_parent.owner_document();
     // Step 2. If original parent is not editable or its parent is null, do nothing and abort these steps.
-    if !original_parent.is_editable(cx.no_gc()) {
+    if !original_parent.is_editable() {
         return;
     }
     let Some(parent_of_original_parent) = original_parent.GetParentNode() else {
@@ -630,7 +630,7 @@ where
         .first()
         .and_then(|first| first.GetPreviousSibling())
         .filter(|previous_of_first| {
-            previous_of_first.is_editable(cx.no_gc()) && sibling_criteria(previous_of_first)
+            previous_of_first.is_editable() && sibling_criteria(previous_of_first)
         });
     // Step 7. Otherwise, if the nextSibling of the last member of node list is editable
     // and running sibling criteria on it returns true,
@@ -639,9 +639,7 @@ where
         node_list
             .last()
             .and_then(|last| last.GetNextSibling())
-            .filter(|next_of_last| {
-                next_of_last.is_editable(cx.no_gc()) && sibling_criteria(next_of_last)
-            })
+            .filter(|next_of_last| next_of_last.is_editable() && sibling_criteria(next_of_last))
     });
     // Step 8. Otherwise, run new parent instructions, and let new parent be the result.
     // Step 9. If new parent is null, abort these steps and return null.
@@ -761,12 +759,12 @@ where
         }
     }
     // Step 14. If original parent is editable and has no children, remove it from its parent.
-    if original_parent.is_editable(cx.no_gc()) && original_parent.children_count() == 0 {
+    if original_parent.is_editable() && original_parent.children_count() == 0 {
         original_parent.remove_self(cx);
     }
     // Step 15. If new parent's nextSibling is editable and running sibling criteria on it returns true:
     if let Some(next_of_new_parent) = new_parent.GetNextSibling() &&
-        next_of_new_parent.is_editable(cx.no_gc()) &&
+        next_of_new_parent.is_editable() &&
         sibling_criteria(&next_of_new_parent)
     {
         // Step 15.1. If new parent is not an inline node,
@@ -961,7 +959,7 @@ impl Node {
         // append current ancestor to ancestor list, then set current ancestor to its parent.
         while let Some(ancestor) = current_ancestor {
             let ancestor_node = ancestor.upcast::<Node>();
-            if ancestor_node.is_editable(cx.no_gc()) &&
+            if ancestor_node.is_editable() &&
                 !command.are_loosely_equivalent_values(
                     ancestor_node.effective_command_value(command).as_ref(),
                     new_value.as_ref(),
@@ -1568,7 +1566,7 @@ impl Node {
     /// <https://w3c.github.io/editing/docs/execCommand/#formattable-node>
     pub(crate) fn is_formattable(&self, no_gc: &NoGC) -> bool {
         // > A formattable node is an editable visible node that is either a Text node, an img, or a br.
-        self.is_editable(no_gc) &&
+        self.is_editable() &&
             self.is_visible(no_gc) &&
             (self.is::<Text>() || self.is::<HTMLImageElement>() || self.is::<HTMLBRElement>())
     }
@@ -1647,7 +1645,7 @@ impl Node {
     /// <https://w3c.github.io/editing/docs/execCommand/#fix-disallowed-ancestors>
     pub(crate) fn fix_disallowed_ancestors(&self, cx: &mut JSContext, context_object: &Document) {
         // Step 1. If node is not editable, abort these steps.
-        if !self.is_editable(cx.no_gc()) {
+        if !self.is_editable() {
             return;
         }
         // Step 2. If node is not an allowed child of any of its ancestors in the same editing host:
@@ -2162,7 +2160,7 @@ impl Node {
             break;
         }
         // Step 5. If ref is an editable extraneous line break, remove it from its parent.
-        if ref_.is_editable(cx.no_gc()) &&
+        if ref_.is_editable() &&
             ref_.downcast::<HTMLBRElement>()
                 .is_some_and(|br| br.is_extraneous_line_break())
         {
@@ -2197,14 +2195,14 @@ impl Node {
             break;
         }
         // Step 4. If ref is an editable extraneous line break:
-        if ref_.is_editable(cx.no_gc()) &&
+        if ref_.is_editable() &&
             ref_.downcast::<HTMLBRElement>()
                 .is_some_and(|br| br.is_extraneous_line_break())
         {
             // Step 4.1. While ref's parent is editable and invisible, set ref to its parent.
             loop {
                 if let Some(parent) = ref_.GetParentNode() &&
-                    parent.is_editable(cx.no_gc()) &&
+                    parent.is_editable() &&
                     parent.is_invisible(cx.no_gc())
                 {
                     ref_ = parent;

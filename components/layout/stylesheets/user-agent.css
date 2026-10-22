@@ -79,6 +79,21 @@ dialog::backdrop {
   background: rgba(0,0,0,0.1);
 }
 
+/* The internal-only -servo-inert property is used for propagating the inertness imposed by HTML.
+   https://html.spec.whatwg.org/multipage/#the-inert-attribute
+   https://html.spec.whatwg.org/multipage/#modal-dialogs-and-inert-subtrees
+   https://html.spec.whatwg.org/multipage/#the-button-element:inert */
+:-servo-inert { -servo-inert: inert; }
+select > button:first-child { -servo-inert: inert; }
+/* TODO: Uncomment once a :-servo-topmost-modal pseudo-class is supported. */
+/* :-servo-topmost-modal:not([inert]) { -servo-inert: none; } */
+
+/* The UA stylesheet is not specified yet. These rules match what the WPT tests expect.
+   https://drafts.csswg.org/css-ui-4/#inertness */
+[inert] { interactivity: inert !important; }
+dialog:modal { interactivity: auto; }
+:fullscreen { interactivity: auto; }
+
 cite, dfn, em, i, var { font-style: italic; }
 b, strong { font-weight: bolder; }
 code, kbd, samp, tt { font-family: monospace; }

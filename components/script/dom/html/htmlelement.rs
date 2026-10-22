@@ -1305,6 +1305,14 @@ impl VirtualMethods for HTMLElement {
             (&local_name!("accesskey"), ..) => {
                 self.update_assigned_access_key();
             },
+            // <https://html.spec.whatwg.org/multipage/#the-inert-attribute>
+            (&local_name!("inert"), mutation) => {
+                element.set_state(
+                    cx.no_gc(),
+                    ElementState::INERT,
+                    !matches!(mutation, AttributeMutation::Removed),
+                );
+            },
             (&local_name!("form"), mutation) if self.is_form_associated_custom_element() => {
                 self.form_attribute_mutated(cx, mutation);
             },

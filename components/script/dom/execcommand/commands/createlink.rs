@@ -34,7 +34,7 @@ pub(crate) fn execute_createlink_command(
         .expect("Must always have an active range");
     active_range.for_each_effectively_contained_child(cx, |cx, node| {
         for ancestor in node.inclusive_ancestors(ShadowIncluding::No) {
-            if !ancestor.is_editable(cx.no_gc()) {
+            if !ancestor.is_editable() {
                 return;
             }
             let Some(anchor) = ancestor.downcast::<HTMLAnchorElement>() else {

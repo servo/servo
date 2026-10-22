@@ -48,6 +48,7 @@ use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::dom_apis::{QueryAll, QueryFirst};
 use style::selector_parser::PseudoElement;
+use style::values::computed::{Inert, Interactivity};
 use style_traits::CSSPixel;
 use uuid::Uuid;
 use xml5ever::{local_name, serialize as xml_serialize};
@@ -117,9 +118,7 @@ use crate::dom::servoparser::serialize_html_fragment;
 use crate::dom::shadowroot::shadowroot::{IsUserAgentWidget, ShadowRoot};
 use crate::dom::text::Text;
 use crate::dom::traversal::LightDomNoGcTraversal;
-use crate::dom::types::{
-    CDATASection, HTMLButtonElement, HTMLSelectElement, KeyboardEvent, ProcessingInstruction,
-};
+use crate::dom::types::{CDATASection, KeyboardEvent, ProcessingInstruction};
 use crate::dom::window::Window;
 use crate::event_loop::document_loader::DocumentLoader;
 use crate::event_loop::script_thread::ScriptThread;
@@ -2264,10 +2263,10 @@ impl Node {
     }
 
     /// <https://w3c.github.io/editing/docs/execCommand/#editable>
-    pub(crate) fn is_editable(&self, no_gc: &NoGC) -> bool {
+    pub(crate) fn is_editable(&self) -> bool {
         // https://html.spec.whatwg.org/multipage/#inert
         // When a node is inert: If it is editable, the node behaves as if it were non-editable.
-        if self.is_inert(no_gc) {
+        if self.is_inert() {
             return false;
         }
 
@@ -2293,44 +2292,15 @@ impl Node {
 
     /// <https://html.spec.whatwg.org/multipage/#inert>
     /// A node (in particular elements and text nodes) can be inert.
-    pub(crate) fn is_inert(&self, no_gc: &NoGC) -> bool {
-        // https://html.spec.whatwg.org/multipage/#the-button-element:inert
-        // If a button element is the first child which is an element of a select element, then it is inert.
-        if self.is::<HTMLButtonElement>() &&
-            self.GetParentNode().is_some_and(|parent| {
-                parent
-                    .child_elements()
-                    .next()
-                    .is_some_and(|first_child_element| {
-                        self == first_child_element.upcast::<Node>() &&
-                            parent.is::<HTMLSelectElement>()
-                    })
+    ///
+    /// Inertness is propagated using the internal `-servo-inert` property.
+    pub(crate) fn is_inert(&self) -> bool {
+        self.downcast::<Element>()
+            .and_then(Element::style)
+            .is_some_and(|style| {
+                *style.get__servo_inert() == Inert::Inert ||
+                    *style.get_interactivity() == Interactivity::Inert
             })
-        {
-            return true;
-        }
-
-        // TODO: Handle document getting blocked by a modal dialog
-        // https://html.spec.whatwg.org/multipage/#modal-dialogs-and-inert-subtrees
-
-        // https://html.spec.whatwg.org/multipage/#the-inert-attribute:inert
-        // The inert attribute is a boolean attribute that indicates, by its presence, that the
-        // element and all its flat tree descendants which don't otherwise escape inertness
-        // (such as modal dialogs) are to be made inert by the user agent.
-        // TODO: Handle elements which escape inertness
-        let mut node = UnrootedDom::from_ref(self, no_gc);
-        loop {
-            if node
-                .downcast::<HTMLElement>()
-                .is_some_and(HTMLElement::Inert)
-            {
-                return true;
-            }
-            match node.parent_in_flat_tree(no_gc) {
-                FlatTreeParent::Parent(parent) => node = parent,
-                FlatTreeParent::NotInFlatTree | FlatTreeParent::RootNode => return false,
-            }
-        }
     }
 }
 

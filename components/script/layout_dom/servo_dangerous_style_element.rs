@@ -831,6 +831,7 @@ impl<'dom> ::selectors::Element for ServoDangerousStyleElement<'dom> {
             NonTSPseudoClass::PopoverOpen |
             NonTSPseudoClass::ReadWrite |
             NonTSPseudoClass::Required |
+            NonTSPseudoClass::ServoInert |
             NonTSPseudoClass::Target |
             NonTSPseudoClass::UserInvalid |
             NonTSPseudoClass::UserValid |

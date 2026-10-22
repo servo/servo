@@ -380,7 +380,7 @@ impl Node {
         // > 4. If new focus target is a focusable area and its DOM anchor is inert, then return.
         let document = self.owner_document();
         let focusable_area = focusable_area.take().unwrap();
-        if focusable_area.dom_anchor(&document).is_inert(cx.no_gc()) {
+        if focusable_area.dom_anchor(&document).is_inert() {
             return false;
         }
 

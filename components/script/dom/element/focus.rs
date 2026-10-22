@@ -32,7 +32,7 @@ impl Element {
         if !node.is_connected() ||
             !self.has_css_layout_box() ||
             self.is_actually_disabled() ||
-            node.is_inert(no_gc)
+            node.is_inert()
         {
             return Default::default();
         }
