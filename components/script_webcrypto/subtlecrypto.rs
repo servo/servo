@@ -4070,7 +4070,7 @@ struct EncapsulatedBits {
 
 impl ToJSValConvertible for EncapsulatedBits {
     fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
-        rooted!(&in(cx) let mut object = JS_NewObject(cx, None) );
+        rooted!(&in(cx) let mut object = JS_NewObject(cx, None));
 
         rooted!(&in(cx) let mut shared_key_js = UndefinedValue());
         self.shared_key
