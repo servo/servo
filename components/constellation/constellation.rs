@@ -148,7 +148,8 @@ use servo_base::generic_channel::{
 use servo_base::id::{
     BrowsingContextId, CONSTELLATION_PIPELINE_NAMESPACE_ID, FIRST_CONTENT_PIPELINE_NAMESPACE_ID,
     HistoryStateId, MessagePortId, MessagePortRouterId, PainterId, PipelineId, PipelineNamespace,
-    PipelineNamespaceId, PipelineNamespaceRequest, ScriptEventLoopId, WebViewId, WorkerId,
+    PipelineNamespaceId, PipelineNamespaceRequest, ScriptEventLoopId, ServiceWorkerId, WebViewId,
+    WorkerId,
 };
 use servo_base::threadboost::{BoostAffinity, ThreadPriority};
 #[cfg(feature = "bluetooth")]
@@ -284,6 +285,12 @@ struct WorkerAnimationFrameProvider {
     tick_pending: bool,
 }
 
+/// Information about service workers that are pending an update.
+struct ServiceWorkerPendingUpdate {
+    pipelines: Vec<PipelineId>,
+    origin: ImmutableOrigin,
+}
+
 /// The `Constellation` itself. In the servo browser, there is one
 /// constellation, which maintains all of the browser global data.
 /// In embedded applications, there may be more than one constellation,
@@ -345,6 +352,9 @@ pub struct Constellation<STF, SWF> {
     /// Necessary for algorithms like <https://w3c.github.io/ServiceWorker/#update-state-algorithm>,
     /// which broadcast messages to multiple pipelines.
     sw_manager_sender: GenericSender<ServiceWorkerManagerMsg>,
+
+    /// Service workers waiting for their state update tasks to complete,
+    service_workers_pending_update: HashMap<ServiceWorkerId, ServiceWorkerPendingUpdate>,
 
     /// A factory for creating layouts. This allows customizing the kind
     /// of layout created for a [`Constellation`] and prevents a circular crate
@@ -690,6 +700,7 @@ where
                     event_loops: Default::default(),
                     sw_manager_sender,
                     sw_manager_receiver,
+                    service_workers_pending_update: Default::default(),
                     namespace_receiver,
                     namespace_ipc_sender,
                     script_sender: script_ipc_sender,
@@ -1275,6 +1286,13 @@ where
             } => {
                 // Continuation of <https://w3c.github.io/ServiceWorker/#update-state-algorithm>
                 // Step 4: For each settingsObject of settingsObjects, queue a task on settingsObject’s responsible event loop
+
+                // Note: we need to track queued tasks per worker because of the "Wait for all the tasks queued"
+                // happening at Step 21.
+                let mut pending_update = ServiceWorkerPendingUpdate {
+                    origin: origin.clone(),
+                    pipelines: vec![],
+                };
                 self.pipelines
                     .values()
                     .filter(|pipeline| pipeline.url.origin() == origin)
@@ -1292,8 +1310,25 @@ where
                                 "Failed to send UpdateServiceWorkerState to pipeline {}",
                                 pipeline.id
                             );
+                        } else {
+                            pending_update.pipelines.push(pipeline.id);
                         }
                     });
+                if !pending_update.pipelines.is_empty() {
+                    self.service_workers_pending_update
+                        .insert(worker_id, pending_update);
+                } else {
+                    if let Some(manager) = self.sw_managers.get(&origin) {
+                        if manager
+                            .send(ServiceWorkerMsg::FinishInstall(worker_id))
+                            .is_err()
+                        {
+                            error!("Failed to send FinishInstall for worker {}", worker_id);
+                        } else {
+                            warn!("Unable to send FinishInstall for worker {}", worker_id);
+                        }
+                    }
+                }
             },
         }
     }
