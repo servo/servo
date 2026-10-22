@@ -281,6 +281,11 @@ impl SpecificShadowTree<HTMLInputElement, FileInputType> for FileInputShadowTree
                 );
         }
 
+        self.selector_button
+            .downcast::<HTMLButtonElement>()
+            .expect("The selector button should be a button")
+            .SetDisabled(cx, input_element.upcast::<Element>().disabled_state());
+
         self.value_container
             .upcast::<Node>()
             .set_text_content_for_element(cx, Some(file_input.value_for_shadow_dom(input_element)));
