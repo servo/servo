@@ -131,6 +131,10 @@ class MitmProxy:
                     # do not delete a request from the dump_file after fulfillment
                     "--set",
                     "server_replay_reuse=true",
+                    # This seems to prevent spurious stalls, where mitmproxy
+                    # apparently waits on a slow upstream server by default.
+                    "--set",
+                    "connection_strategy=lazy",
                 ]
             )
         elif self.use_proxy == MitmProxyRunType.FORWARD:
