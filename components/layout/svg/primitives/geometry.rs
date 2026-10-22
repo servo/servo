@@ -49,15 +49,15 @@ fn parse_rect(
         Some(cv) => {
             let svg = cv.get_svg();
             (
-                resolve_length_percentage(&svg.clone_x(), vw),
-                resolve_length_percentage(&svg.clone_y(), vh),
-                match svg.clone_rx() {
+                resolve_length_percentage(svg.get_x(), vw),
+                resolve_length_percentage(svg.get_y(), vh),
+                match svg.slow_clone_rx() {
                     GenericLengthPercentageOrAuto::LengthPercentage(nn_lp) => {
                         resolve_radius(&nn_lp.0, w)
                     },
                     _ => None,
                 },
-                match svg.clone_ry() {
+                match svg.slow_clone_ry() {
                     GenericLengthPercentageOrAuto::LengthPercentage(nn_lp) => {
                         resolve_radius(&nn_lp.0, h)
                     },
