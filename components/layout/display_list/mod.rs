@@ -64,7 +64,7 @@ use crate::display_list::paint_traversal::{PaintTraversal, PaintTraversalHandler
 use crate::fragment_tree::{
     BackgroundMode, BaseFragment, BoxFragment, BoxFragmentWithStyle,
     CumulativeContentRectCalculation, Fragment, FragmentFlags, FragmentStatus, FragmentTree,
-    IFrameFragment, ImageFragment, PositioningFragment, SpecificLayoutInfo, Tag, TextFragment,
+    IFrameFragment, ImageFragment, PositioningFragment, SpecificLayoutInfo, SvgFragment, Tag, TextFragment,
 };
 use crate::geom::{
     LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize,
@@ -1012,6 +1012,22 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
                 );
             }
         }
+    }
+
+    fn visit_svg(&mut self, fragment: &Arc<SvgFragment>) {
+        fragment.base.visit_fragment(self);
+
+        let style = fragment.style.borrow();
+        if style.get_inherited_box().visibility != Visibility::Visible {
+            return;
+        }
+
+        let Some(svg_tree) = fragment.tree.as_ref() else {
+            return;
+        };
+
+        // TODO: pass more parameters.
+        servo_svg::render_svg_tree(svg_tree);
     }
 
     fn visit_text(

@@ -8731,6 +8731,7 @@ dependencies = [
  "data-url",
  "encoding_rs",
  "euclid",
+ "html5ever",
  "icu_locale_core",
  "icu_properties",
  "icu_segmenter",
@@ -8762,6 +8763,7 @@ dependencies = [
  "servo-profile-traits",
  "servo-script",
  "servo-script-traits",
+ "servo-svg",
  "servo-tracing",
  "servo-url",
  "servo_arc",
@@ -8770,6 +8772,7 @@ dependencies = [
  "stylo",
  "stylo_atoms",
  "stylo_traits",
+ "svgtypes",
  "taffy",
  "tracing",
  "unicode-bidi",
@@ -9679,6 +9682,9 @@ dependencies = [
 name = "servo-svg"
 version = "0.7.0"
 dependencies = [
+ "log",
+ "malloc_size_of_derive",
+ "servo-malloc-size-of",
  "svgtypes",
 ]
 

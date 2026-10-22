@@ -323,6 +323,7 @@ pub struct Preferences {
     // feature: CSS writing modes | #2560 | Web/CSS/Guides/Writing_modes
     pub layout_css_writing_mode_enabled: bool,
     pub layout_style_sharing_cache_enabled: bool,
+    pub layout_servo_svg_enabled: bool,
     pub layout_threads: i64,
     /// The minimum number of parallelizable jobs required before turning on parallelism
     /// for a set of jobs.
@@ -577,6 +578,7 @@ impl Preferences {
             layout_css_font_variations_enabled: false,
             layout_css_writing_mode_enabled: false,
             layout_style_sharing_cache_enabled: true,
+            layout_servo_svg_enabled: false,
             // TODO(mrobinson): This should likely be based on the number of processors.
             layout_threads: 3,
             layout_parallelism_job_count_minimum: 4,

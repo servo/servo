@@ -611,7 +611,7 @@ impl Fragment {
                     parent_info,
                 );
             },
-            Fragment::Text(_) | Fragment::Image(_) | Fragment::IFrame(_) => {},
+            Fragment::Text(_) | Fragment::Image(_) | Fragment::Svg(_) | Fragment::IFrame(_) => {},
         }
     }
 }

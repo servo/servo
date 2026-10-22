@@ -15,7 +15,7 @@ use crate::display_list::{
 };
 use crate::fragment_tree::{
     BoxFragment, BoxFragmentWithStyle, Fragment, FragmentFlags, IFrameFragment, ImageFragment,
-    PositioningFragment, Tag, TextFragment,
+    PositioningFragment, SvgFragment, Tag, TextFragment,
 };
 use crate::geom::{PhysicalPoint, PhysicalRect};
 
@@ -287,6 +287,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
             Fragment::AbsoluteOrFixedPositionedPlaceholder(..) |
             Fragment::Text(..) |
             Fragment::Image(..) |
+            Fragment::Svg(..) |
             Fragment::IFrame(..) => {},
         }
 
@@ -372,6 +373,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
             Fragment::Float(..) |
             Fragment::IFrame(_) |
             Fragment::Image(_) |
+            Fragment::Svg(..) |
             Fragment::Text(..) => {},
         }
     }
@@ -401,7 +403,7 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
             Fragment::Positioning(..) => {
                 unreachable!("Unexpected direct descendant PositioningContext of inline.")
             },
-            Fragment::Image(..) | Fragment::IFrame(..) => {
+            Fragment::Image(..) | Fragment::Svg(..) | Fragment::IFrame(..) => {
                 unreachable!("Unexpected replaced content direct descendant of inline.")
             },
         }
@@ -483,6 +485,9 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
                     self.handler
                         .visit_image(state, containing_block, image_fragment);
                 },
+                Fragment::Svg(svg_fragment) => {
+                    self.handler.visit_svg(svg_fragment);
+                },
                 Fragment::IFrame(iframe_fragment) => {
                     self.handler.visit_iframe(state, iframe_fragment);
                 },
@@ -529,6 +534,7 @@ pub(crate) trait PaintTraversalHandler {
         _fragment: &Arc<ImageFragment>,
     ) {
     }
+    fn visit_svg(&mut self, _fragment: &Arc<SvgFragment>) {}
     fn visit_text(
         &mut self,
         state: &TraversalState,

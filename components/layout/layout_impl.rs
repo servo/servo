@@ -119,6 +119,9 @@ static HTML_MODE_CSS: &[u8] = include_bytes!("./stylesheets/html-mode.css");
 /// A CSS file to style the Servo browser.
 static SERVO_CSS: &[u8] = include_bytes!("./stylesheets/servo.css");
 
+/// Override `svg > * { display: none; }` in `servo.css`
+static SERVO_SVG_CSS: &[u8] = b"svg > * { display: inline; }";
+
 /// A CSS file to style the presentational hints.
 static PRESENTATIONAL_HINTS_CSS: &[u8] = include_bytes!("./stylesheets/presentational-hints.css");
 
@@ -207,6 +210,9 @@ pub struct LayoutThread {
     // for `background-image` or `content` properties) to either the final resolved
     // image data, or an error if the image cache failed to load/decode the image.
     resolved_images_cache: Arc<RwLock<HashMap<ServoUrl, CachedImageOrError>>>,
+
+    /// SVG subtree cache, reused across reflows for incremental SVG build.
+    svg_subtree_cache: Arc<RwLock<crate::svg::SvgSubtreeCache>>,
 
     /// The executors for paint worklets.
     registered_painters: RegisteredPaintersImpl,
@@ -715,6 +721,12 @@ impl Layout for LayoutThread {
             size: self.stacking_context_tree.size_of(ops),
         });
 
+        reports.push(Report {
+            path: path![formatted_url, "layout-thread", "svg-subtree-cache"],
+            kind: ReportKind::ExplicitJemallocHeapSize,
+            size: self.svg_subtree_cache.conditional_size_of(ops),
+        });
+
         reports.extend(self.image_cache.memory_reports(formatted_url, ops));
     }
 
@@ -909,6 +921,7 @@ impl LayoutThread {
             paint_api: config.paint_api,
             stylist: Stylist::new(device, QuirksMode::NoQuirks),
             resolved_images_cache: Default::default(),
+            svg_subtree_cache: Default::default(),
             debug: opts::get().debug.clone(),
             previously_highlighted_dom_node: Cell::new(None),
             paint_timing_handler: Default::default(),
@@ -1342,6 +1355,7 @@ impl LayoutThread {
             iframe_sizes: Mutex::default(),
             allow_parallel_layout: rayon_pool.is_some(),
             image_resolver: image_resolver.clone(),
+            svg_subtree_cache: self.svg_subtree_cache.clone(),
             painter_id: self.webview_id.into(),
             parallelism_job_count_minimum: pref!(layout_parallelism_job_count_minimum) as usize,
             parallelism_job_size_minimum: pref!(layout_parallelism_job_size_minimum) as usize,
@@ -1846,7 +1860,7 @@ fn get_ua_stylesheets(shared_lock: &SharedRwLock) -> Rc<UserAgentStylesheets> {
             .get_or_init(|| {
                 // FIXME: presentational-hints.css should be at author origin with zero specificity.
                 //        (Does it make a difference?)
-                let user_agent_stylesheets = vec![
+                let mut user_agent_stylesheets = vec![
                     parse_ua_stylesheet(shared_lock, "user-agent.css", USER_AGENT_CSS),
                     parse_ua_stylesheet(shared_lock, "servo.css", SERVO_CSS),
                     parse_ua_stylesheet(
@@ -1855,6 +1869,13 @@ fn get_ua_stylesheets(shared_lock: &SharedRwLock) -> Rc<UserAgentStylesheets> {
                         PRESENTATIONAL_HINTS_CSS,
                     ),
                 ];
+                if pref!(layout_servo_svg_enabled) {
+                    user_agent_stylesheets.push(parse_ua_stylesheet(
+                        shared_lock,
+                        "servo-svg.css",
+                        SERVO_SVG_CSS,
+                    ));
+                }
 
                 let html_mode_stylesheet =
                     parse_ua_stylesheet(shared_lock, "html-mode.css", HTML_MODE_CSS);

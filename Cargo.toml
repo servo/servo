@@ -368,6 +368,7 @@ servo-tracing = { version = "=0.7.0", path = "components/servo_tracing" }
 servo-url = { version = "=0.7.0", path = "components/url" }
 servo-wakelock = { version = "=0.7.0", path = "components/wakelock" }
 servo-webvtt = { version = "=0.7.0", path = "components/webvtt" }
+servo-svg = { version = "=0.7.0", path = "components/svg" }
 storage = { package = "servo-storage", version = "=0.7.0", path = "components/storage" }
 storage_traits = { package = "servo-storage-traits", version = "=0.7.0", path = "components/shared/storage" }
 timers = { package = "servo-timers", version = "=0.7.0", path = "components/timers" }
