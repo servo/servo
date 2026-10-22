@@ -3,13 +3,20 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use dom_struct::dom_struct;
-use html5ever::{LocalName, Prefix};
+use html5ever::{LocalName, Prefix, local_name};
 use js::rust::HandleObject;
+use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::Element;
+use crate::dom::bindings::codegen::Bindings::HTMLEmbedElementBinding::HTMLEmbedElementMethods;
+use crate::dom::bindings::root::{DomRoot, LayoutDom};
+use crate::dom::bindings::str::DOMString;
 use crate::dom::document::Document;
+use crate::dom::element::attributes::storage::AttrRef;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::Node;
+use crate::dom::node::virtualmethods::VirtualMethods;
+use crate::script_bindings::inheritance::Castable;
 
 #[dom_struct]
 pub(crate) struct HTMLEmbedElement {
@@ -42,5 +49,81 @@ impl HTMLEmbedElement {
             document,
             proto,
         )
+    }
+}
+
+impl HTMLEmbedElementMethods<crate::DomTypeHolder> for HTMLEmbedElement {
+    // <https://html.spec.whatwg.org/multipage/#dom-embed-width>
+    make_getter!(Width, "width");
+    // <https://html.spec.whatwg.org/multipage/#dom-embed-width>
+    make_dimension_setter!(SetWidth, "width");
+
+    // <https://html.spec.whatwg.org/multipage/#dom-embed-height>
+    make_getter!(Height, "height");
+    // <https://html.spec.whatwg.org/multipage/#dom-embed-height>
+    make_dimension_setter!(SetHeight, "height");
+
+    // https://html.spec.whatwg.org/multipage/#dom-embed-hspace
+    make_dimension_uint_getter!(Hspace, "hspace");
+    // https://html.spec.whatwg.org/multipage/#dom-embed-hspace
+    make_dimension_uint_setter!(SetHspace, "hspace");
+
+    // https://html.spec.whatwg.org/multipage/#dom-embed-vspace
+    make_dimension_uint_getter!(Vspace, "vspace");
+    // https://html.spec.whatwg.org/multipage/#dom-embed-vspace
+    make_dimension_uint_setter!(SetVspace, "vspace");
+}
+
+impl VirtualMethods for HTMLEmbedElement {
+    fn super_type(&self) -> Option<&dyn VirtualMethods> {
+        Some(self.upcast::<HTMLElement>() as &dyn VirtualMethods)
+    }
+
+    fn parse_plain_attribute(&self, name: &LocalName, value: DOMString) -> AttrValue {
+        match *name {
+            local_name!("width") |
+            local_name!("height") |
+            local_name!("hspace") |
+            local_name!("vspace") => AttrValue::from_dimension(value.into()),
+            _ => self
+                .super_type()
+                .unwrap()
+                .parse_plain_attribute(name, value),
+        }
+    }
+
+    fn attribute_affects_presentational_hints(&self, attr: AttrRef<'_>) -> bool {
+        match attr.local_name() {
+            &local_name!("width") |
+            &local_name!("height") |
+            &local_name!("hspace") |
+            &local_name!("vspace") => true,
+            _ => self
+                .super_type()
+                .unwrap()
+                .attribute_affects_presentational_hints(attr),
+        }
+    }
+}
+
+impl LayoutDom<'_, HTMLEmbedElement> {
+    pub(crate) fn width(self) -> LengthOrPercentageOrAuto {
+        self.upcast::<Element>()
+            .dimension_attr_value(local_name!("width"))
+    }
+
+    pub(crate) fn height(self) -> LengthOrPercentageOrAuto {
+        self.upcast::<Element>()
+            .dimension_attr_value(local_name!("height"))
+    }
+
+    pub(crate) fn margin_right_left(self) -> LengthOrPercentageOrAuto {
+        self.upcast::<Element>()
+            .dimension_attr_value(local_name!("hspace"))
+    }
+
+    pub(crate) fn margin_top_bottom(self) -> LengthOrPercentageOrAuto {
+        self.upcast::<Element>()
+            .dimension_attr_value(local_name!("vspace"))
     }
 }

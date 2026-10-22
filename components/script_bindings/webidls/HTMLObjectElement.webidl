@@ -16,10 +16,10 @@ interface HTMLObjectElement : HTMLElement {
   // [CEReactions]
   //         attribute DOMString name;
   readonly attribute HTMLFormElement? form;
-  // [CEReactions]
-  //         attribute DOMString width;
-  // [CEReactions]
-  //         attribute DOMString height;
+  [CEReactions]
+          attribute DOMString width;
+  [CEReactions]
+          attribute DOMString height;
   //readonly attribute Document? contentDocument;
   //readonly attribute WindowProxy? contentWindow;
 
@@ -41,9 +41,9 @@ partial interface HTMLObjectElement {
   //         attribute DOMString archive;
   //         attribute DOMString code;
   //         attribute boolean declare;
-  //         attribute unsigned long hspace;
+  [CEReactions] attribute unsigned long hspace;
   //         attribute DOMString standby;
-  //         attribute unsigned long vspace;
+  [CEReactions] attribute unsigned long vspace;
   //         attribute DOMString codeBase;
   //         attribute DOMString codeType;
   [CEReactions]

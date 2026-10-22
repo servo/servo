@@ -140,6 +140,7 @@ use crate::dom::html::htmlbodyelement::HTMLBodyElement;
 use crate::dom::html::htmlbuttonelement::HTMLButtonElement;
 use crate::dom::html::htmlcollection::HTMLCollection;
 use crate::dom::html::htmlelement::HTMLElement;
+use crate::dom::html::htmlembedelement::HTMLEmbedElement;
 use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlfontelement::HTMLFontElement;
 use crate::dom::html::htmlformelement::FormControlElementHelpers;
@@ -1391,13 +1392,17 @@ impl<'dom> LayoutDom<'dom, Element> {
             ));
         }
 
-        let width = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
+        let width = if let Some(this) = self.downcast::<HTMLEmbedElement>() {
+            this.width()
+        } else if let Some(this) = self.downcast::<HTMLIFrameElement>() {
             this.width()
         } else if let Some(this) = self.downcast::<HTMLImageElement>() {
             this.width()
         } else if let Some(this) = self.downcast::<HTMLInputElement>() {
             this.width()
         } else if let Some(this) = self.downcast::<HTMLMarqueeElement>() {
+            this.width()
+        } else if let Some(this) = self.downcast::<HTMLObjectElement>() {
             this.width()
         } else if let Some(this) = self.downcast::<HTMLVideoElement>() {
             this.width()
@@ -1420,13 +1425,17 @@ impl<'dom> LayoutDom<'dom, Element> {
             ));
         });
 
-        let height = if let Some(this) = self.downcast::<HTMLIFrameElement>() {
+        let height = if let Some(this) = self.downcast::<HTMLEmbedElement>() {
+            this.height()
+        } else if let Some(this) = self.downcast::<HTMLIFrameElement>() {
             this.height()
         } else if let Some(this) = self.downcast::<HTMLImageElement>() {
             this.height()
         } else if let Some(this) = self.downcast::<HTMLInputElement>() {
             this.height()
         } else if let Some(this) = self.downcast::<HTMLMarqueeElement>() {
+            this.height()
+        } else if let Some(this) = self.downcast::<HTMLObjectElement>() {
             this.height()
         } else if let Some(this) = self.downcast::<HTMLVideoElement>() {
             this.height()
@@ -1448,11 +1457,15 @@ impl<'dom> LayoutDom<'dom, Element> {
             ));
         });
 
-        let margin_right_left = if let Some(this) = self.downcast::<HTMLImageElement>() {
+        let margin_right_left = if let Some(this) = self.downcast::<HTMLEmbedElement>() {
+            this.margin_right_left()
+        } else if let Some(this) = self.downcast::<HTMLImageElement>() {
             this.margin_right_left()
         } else if let Some(this) = self.downcast::<HTMLInputElement>() {
             this.margin_right_left()
         } else if let Some(this) = self.downcast::<HTMLMarqueeElement>() {
+            this.margin_right_left()
+        } else if let Some(this) = self.downcast::<HTMLObjectElement>() {
             this.margin_right_left()
         } else {
             LengthOrPercentageOrAuto::Auto
@@ -1464,11 +1477,15 @@ impl<'dom> LayoutDom<'dom, Element> {
             push(PropertyDeclaration::MarginRight(value));
         });
 
-        let margin_top_bottom = if let Some(this) = self.downcast::<HTMLImageElement>() {
+        let margin_top_bottom = if let Some(this) = self.downcast::<HTMLEmbedElement>() {
+            this.margin_top_bottom()
+        } else if let Some(this) = self.downcast::<HTMLImageElement>() {
             this.margin_top_bottom()
         } else if let Some(this) = self.downcast::<HTMLInputElement>() {
             this.margin_top_bottom()
         } else if let Some(this) = self.downcast::<HTMLMarqueeElement>() {
+            this.margin_top_bottom()
+        } else if let Some(this) = self.downcast::<HTMLObjectElement>() {
             this.margin_top_bottom()
         } else {
             LengthOrPercentageOrAuto::Auto
