@@ -409912,6 +409912,19 @@
          {}
         ]
        ],
+       "table-attribute-border-dynamic.html": [
+        "15adbb9e24ba84c2ed65fff4a8916b96093c8ac3",
+        [
+         null,
+         [
+          [
+           "/css/reference/ref-filled-green-200px-square.html",
+           "=="
+          ]
+         ],
+         {}
+        ]
+       ],
        "table-attribute-cellspacing-dynamic.html": [
         "05334951ad0220c9da89cca1f4d324f2465b243b",
         [
