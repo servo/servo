@@ -16,9 +16,6 @@ test = true
 doctest = false
 
 [features]
-# Enables spec compliant titlecase. Without this feature we fallback to uppercase.
-# Binary size saving is ~14KB.
-icu-casemap = ["dep:icu_casemap"]
 tracing = ["dep:tracing"]
 
 [dependencies]
