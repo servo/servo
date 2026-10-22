@@ -677,10 +677,6 @@ impl FlexContainer {
                 }
             })
             .collect::<Vec<_>>();
-        let flex_item_boxes = flex_items.iter().map(|child| &**child);
-        let flex_items = flex_item_boxes
-            .map(|flex_item_box| FlexItem::new(&flex_context, flex_item_box))
-            .collect::<Vec<_>>();
 
         let row_gap = self.style.get_row_gap();
         let column_gap = self.style.get_column_gap();
@@ -716,7 +712,7 @@ impl FlexContainer {
         let initial_line_layouts = do_initial_flex_line_layout(
             &mut flex_context,
             container_main_size,
-            flex_items,
+            &flex_items,
             main_gap,
         );
 
@@ -1135,7 +1131,7 @@ fn item_with_auto_cross_size_stretches_to_line_size(
 fn do_initial_flex_line_layout<'items>(
     flex_context: &mut FlexContext,
     container_main_size: Au,
-    items: Vec<FlexItem<'items>>,
+    flex_item_boxes: &'items Vec<AtomicRef<'items, FlexItemBox>>,
     main_gap: Au,
 ) -> Vec<InitialFlexLineLayout<'items>> {
     let construct_line = |(items, outer_hypothetical_main_size)| {
@@ -1149,6 +1145,10 @@ fn do_initial_flex_line_layout<'items>(
     };
 
     if flex_context.config.container_is_single_line {
+        let items: Vec<_> = flex_item_boxes
+            .iter()
+            .map(|item_box| FlexItem::new(flex_context, item_box))
+            .collect();
         let outer_hypothetical_main_sizes_sum = items
             .iter()
             .map(|item| item.hypothetical_main_size + item.pbm_auto_is_zero.main)
@@ -1160,7 +1160,8 @@ fn do_initial_flex_line_layout<'items>(
     let mut line_items = Vec::new();
     let mut line_size_so_far = Au::zero();
 
-    for item in items {
+    for item_box in flex_item_boxes {
+        let item = FlexItem::new(flex_context, item_box);
         let item_size = item.hypothetical_main_size + item.pbm_auto_is_zero.main;
 
         // Compute the size the line would be if we added this item.
