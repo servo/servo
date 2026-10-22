@@ -7,6 +7,7 @@ use std::cell::Cell;
 use dom_struct::dom_struct;
 use js::context::JSContext;
 use script_bindings::cell::DomRefCell;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::reflect_dom_object;
 use servo_base::generic_channel::{GenericSend, GenericSender};
 use storage_traits::indexeddb::{AsyncSchemaOperation, IndexedDBThreadMsg, KeyPath, SyncOperation};
@@ -35,11 +36,11 @@ use crate::dom::indexeddb::key::is_valid_key_path;
 pub struct IDBDatabase {
     eventtarget: EventTarget,
     /// <https://w3c.github.io/IndexedDB/#database-name>
-    name: DOMString,
+    name: TracedDOMString,
     /// <https://w3c.github.io/IndexedDB/#database-version>
     version: Cell<u64>,
     /// <https://w3c.github.io/IndexedDB/#object-store>
-    object_store_names: DomRefCell<Vec<DOMString>>,
+    object_store_names: DomRefCell<Vec<TracedDOMString>>,
     /// <https://w3c.github.io/IndexedDB/#database-upgrade-transaction>
     upgrade_transaction: MutNullableDom<IDBTransaction>,
 
@@ -60,7 +61,7 @@ impl IDBDatabase {
     ) -> IDBDatabase {
         IDBDatabase {
             eventtarget: EventTarget::new_inherited(),
-            name,
+            name: name.traced(),
             id,
             version: Cell::new(version),
             object_store_names: DomRefCell::new(
@@ -96,38 +97,55 @@ impl IDBDatabase {
     }
 
     pub fn get_name(&self) -> DOMString {
-        self.name.clone()
+        self.name.clone().root()
     }
 
     pub fn object_stores(&self, cx: &mut JSContext) -> DomRoot<DOMStringList> {
-        DOMStringList::new(cx, &self.global(), self.object_store_names.borrow().clone())
+        DOMStringList::new(
+            cx,
+            &self.global(),
+            self.object_store_names
+                .borrow()
+                .clone()
+                .into_iter()
+                .map(|domstring| domstring.root())
+                .collect(),
+        )
     }
 
     pub(crate) fn object_store_names_snapshot(&self) -> Vec<DOMString> {
         // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
         // Step 4. Set connection’s object store set to the set of object stores in database if database previously existed,
         // or the empty set if database was newly created.
-        self.object_store_names.borrow().clone()
+        self.object_store_names
+            .borrow()
+            .clone()
+            .into_iter()
+            .map(|domstring| domstring.root())
+            .collect()
     }
 
     pub(crate) fn restore_object_store_names(&self, names: Vec<DOMString>) {
         // https://w3c.github.io/IndexedDB/#abort-an-upgrade-transaction
         // Step 4. NOTE: This reverts the value of objectStoreNames returned by the IDBDatabase object.
-        *self.object_store_names.borrow_mut() = names;
+        *self.object_store_names.borrow_mut() = names
+            .into_iter()
+            .map(|domstring| domstring.traced())
+            .collect();
     }
 
-    pub(crate) fn rename_object_store_name(&self, old_name: &DOMString, new_name: DOMString) {
+    pub(crate) fn rename_object_store_name(&self, old_name: &TracedDOMString, new_name: DOMString) {
         let mut object_store_names = self.object_store_names.borrow_mut();
-        if let Some(position) = object_store_names.iter().position(|name| name == old_name) {
-            object_store_names[position] = new_name;
+        if let Some(position) = object_store_names
+            .iter()
+            .position(|name| *name == *old_name)
+        {
+            object_store_names[position] = new_name.traced();
         }
     }
 
-    pub(crate) fn object_store_exists(&self, name: &DOMString) -> bool {
-        self.object_store_names
-            .borrow()
-            .iter()
-            .any(|store_name| store_name == name)
+    pub(crate) fn object_store_exists(&self, name: &TracedDOMString) -> bool {
+        self.object_store_names.borrow().contains(name)
     }
 
     /// <https://w3c.github.io/IndexedDB/#dom-idbdatabase-version>
@@ -329,7 +347,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         let object_store = IDBObjectStore::new(
             cx,
             &self.global(),
-            self.name.clone(),
+            self.name.clone().root(),
             name.clone(),
             Some(options),
             IDBObjectStoreAbortState {
@@ -365,7 +383,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
 
         self.object_store_names
             .safe_borrow_mut(cx.no_gc())
-            .push(name);
+            .push(name.traced());
         transaction.register_object_store_handle(&object_store.get_name(), &object_store);
 
         // Step 10. Return a new object store handle associated with store and transaction.
@@ -394,7 +412,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
         // Step 5
         self.object_store_names
             .borrow_mut()
-            .retain(|store_name| *store_name != name);
+            .retain(|store_name| *store_name != *name);
 
         // Step 6
         // FIXME:(arihant2math) Remove from index set ...
@@ -418,7 +436,7 @@ impl IDBDatabaseMethods<crate::DomTypeHolder> for IDBDatabase {
 
     /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbdatabase-name>
     fn Name(&self) -> DOMString {
-        self.name.clone()
+        self.name.clone().root()
     }
 
     /// <https://www.w3.org/TR/IndexedDB-3/#dom-idbdatabase-version>
