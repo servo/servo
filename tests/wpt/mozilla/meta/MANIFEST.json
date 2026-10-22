@@ -13860,14 +13860,14 @@
       {}
      ]
     ],
-    "fetch-does-not-leak-document.html": [
+    "fetch-does-not-leak-document.https.html": [
      "5d795effda7bce5ff5bf9992f3a2c7bcfec76453",
      [
       null,
       {}
      ]
     ],
-    "modules-do-not-leak-document.html": [
+    "modules-do-not-leak-document.https.html": [
      "e94e6ed4bf5f43d30970e4da29bd35ed59394f08",
      [
       null,
