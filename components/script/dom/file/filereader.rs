@@ -15,6 +15,7 @@ use js::rust::HandleObject;
 use js::typedarray::ArrayBufferU8;
 use mime::{self, Mime};
 use script_bindings::cell::DomRefCell;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::num::Finite;
 use script_bindings::reflector::reflect_dom_object_with_proto;
 use stylo_atoms::Atom;
@@ -116,7 +117,7 @@ pub(crate) enum FileReaderReadyState {
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 pub(crate) enum FileReaderResult {
     ArrayBuffer(#[ignore_malloc_size_of = "mozjs"] Heap<JSVal>),
-    String(DOMString),
+    String(TracedDOMString),
 }
 
 pub(crate) struct FileReaderSharedFunctionality;
@@ -351,7 +352,8 @@ impl FileReader {
                 blob_bytes,
                 &data.blobtype,
                 &data.encoding,
-            ),
+            )
+            .traced(),
         ));
     }
 
@@ -362,7 +364,7 @@ impl FileReader {
         bytes: &[u8],
     ) {
         *result.borrow_mut() = Some(FileReaderResult::String(
-            FileReaderSharedFunctionality::dataurl_for_bytes(bytes, &data.blobtype),
+            FileReaderSharedFunctionality::dataurl_for_bytes(bytes, &data.blobtype).traced(),
         ));
     }
 
@@ -371,7 +373,7 @@ impl FileReader {
     /// > is represented by a code unit of equal value [0..255].
     fn perform_readasbinarystring(result: &DomRefCell<Option<FileReaderResult>>, bytes: &[u8]) {
         *result.borrow_mut() = Some(FileReaderResult::String(
-            FileReaderSharedFunctionality::binary_string_for_bytes(bytes),
+            FileReaderSharedFunctionality::binary_string_for_bytes(bytes).traced(),
         ));
     }
 
@@ -482,7 +484,7 @@ impl FileReaderMethods<crate::DomTypeHolder> for FileReader {
     /// <https://w3c.github.io/FileAPI/#dfn-result>
     fn GetResult(&self) -> Option<StringOrObject> {
         self.result.borrow().as_ref().map(|r| match *r {
-            FileReaderResult::String(ref string) => StringOrObject::String(string.clone()),
+            FileReaderResult::String(ref string) => StringOrObject::String(string.clone().root()),
             FileReaderResult::ArrayBuffer(ref array_buffer) => {
                 let result = RootedTraceableBox::new(Heap::default());
                 result.set(array_buffer.get().to_object());
