@@ -2744,6 +2744,7 @@ impl FlexItemBox {
                     inline_size,
                     flex_context.containing_block,
                     preferred_aspect_ratio,
+                    &LazySize::intrinsic(),
                 )
         };
         match intrinsic_sizing_mode {
