@@ -329,16 +329,16 @@ impl ServiceWorkerManager {
                 for (scope_url, registration) in self.registrations.iter() {
                     if let Some(worker) = &registration.installing_worker {
                         if worker.id == worker_id {
-                            // <https://w3c.github.io/ServiceWorker/#install>
-                            // Now that the waiting condition of step 21 has been met,
-                            // we can continue.
-                            // Step 22: Invoke Try Activate with registration.
                             url = Some(scope_url.clone());
                             break;
                         }
                     }
                 }
                 if let Some(url) = url {
+                    // <https://w3c.github.io/ServiceWorker/#install>
+                    // Now that the waiting condition of step 21 has been met,
+                    // we can continue.
+                    // Step 22: Invoke Try Activate with registration.
                     self.try_activate_registration(url);
                 }
             },
