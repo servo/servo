@@ -50,6 +50,7 @@ pub(crate) static EXPERIMENTAL_PREFS: &[&str] = &[
     "layout_css_container_queries_enabled",
     "layout_css_ellipse_corners_enabled",
     "layout_css_font_variations_enabled",
+    "layout_css_text_underline_enabled",
 ];
 
 #[cfg_attr(any(target_os = "android", target_env = "ohos"), expect(dead_code))]
