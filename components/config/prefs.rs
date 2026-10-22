@@ -583,7 +583,7 @@ impl Preferences {
             layout_css_container_queries_enabled: false,
             layout_css_ellipse_corners_enabled: false,
             layout_css_font_variations_enabled: false,
-            layout_css_text_underline_enabled: true,
+            layout_css_text_underline_enabled: false,
             layout_css_writing_mode_enabled: false,
             layout_style_sharing_cache_enabled: true,
             // TODO(mrobinson): This should likely be based on the number of processors.
