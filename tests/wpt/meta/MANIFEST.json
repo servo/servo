@@ -330690,6 +330690,19 @@
        {}
       ]
      ],
+     "backface-visibility-hidden-background-blend-mode.html": [
+      "8e951079da33e0018756c533e203d8e0e9a08cf8",
+      [
+       null,
+       [
+        [
+         "/css/reference/ref-filled-green-100px-square.xht",
+         "=="
+        ]
+       ],
+       {}
+      ]
+     ],
      "backface-visibility-hidden-child-translate.html": [
       "f03d88f0187b746379e0a882b291411cb36ee1ad",
       [
@@ -330705,6 +330718,19 @@
      ],
      "backface-visibility-hidden-child-will-change-transform.html": [
       "dda7ba6827ff65686dff7a414a20c001effa33a2",
+      [
+       null,
+       [
+        [
+         "/css/reference/ref-filled-green-100px-square.xht",
+         "=="
+        ]
+       ],
+       {}
+      ]
+     ],
+     "backface-visibility-hidden-filter.html": [
+      "326f038e4fd0fc47fd74407afa62b74fbe32c109",
       [
        null,
        [
