@@ -14,11 +14,26 @@ from .utils import get_request_headers
 
 class TestCorsPreflight:
     def test_option_method_showed(self, run_servoshell, web_server_urls):
-        run_servoshell(url=f"{web_server_urls[0]}/cors_preflight/test.html?baseurl={web_server_urls[1]}")
+        run_servoshell(url=f"{web_server_urls[0]}/cors_preflight/test.html")
         with Devtools.connect() as devtools:
+
+            def evaluate_js(devtools, code):
+                console_actor = devtools.targets[0]["consoleActor"]
+                response = devtools.client.send_receive({"to": console_actor, "type": "evaluateJSAsync", "text": code})
+                assert "error" not in response, response
+
             preflight, seen = collect_network_events(
-                devtools,
-                lambda e: e.get("method") == "OPTIONS" and web_server_urls[1] in e.get("url", ""),
+                devtools=devtools,
+                predicate=lambda event: event.get("method") == "OPTIONS" and web_server_urls[1] in event.get("url", ""),
+                trigger=lambda: evaluate_js(
+                    devtools,
+                    f"""
+                    fetch("{web_server_urls[1]}/cors_preflight/test.html", {{
+                        method: "PUT",
+                        headers: {{ "X-Custom-Header": "1" }},
+                    }}).catch(() => {{}});
+                """,
+                ),
             )
 
             # Make sure it's really a preflight, not some unrelated OPTIONS request
@@ -27,4 +42,4 @@ class TestCorsPreflight:
             assert "x-custom-header" in headers.get("access-control-request-headers", "")
 
             # Optionally check the actual PUT request also shows up
-            assert any(e.get("method") == "PUT" for e in seen)
+            assert any(event.get("method") == "PUT" for event in seen)

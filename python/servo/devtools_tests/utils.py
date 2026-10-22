@@ -20,7 +20,7 @@ from geckordp.actors.descriptors.tab import TabActor
 from geckordp.actors.watcher import WatcherActor
 from geckordp.rdp_client import RDPClient
 
-import sys
+from collections.abc import Callable
 
 # Set this to true to log requests in the internal web servers.
 LOG_REQUESTS = False
@@ -350,7 +350,12 @@ def assert_source_breakable_lines_and_positions(
         assert response["positions"] == expected_positions
 
 
-def collect_network_events(devtools, predicate, timeout=3):
+def collect_network_events(
+    devtools: Devtools,
+    predicate: Callable[[dict[str, Any]], bool],
+    trigger: Optional[Callable[[], None]] = None,
+    timeout: int = 3,
+):
     """
     Watch network-event resources and return the first event matching `predicate`.
     Also returns every event seen, which helps when an assertion fails.
@@ -361,7 +366,6 @@ def collect_network_events(devtools, predicate, timeout=3):
     def on_resources(data):
         try:
             for [resource_type, resources] in data.get("array", []):
-                print(f"seen events: {resource_type} {resources}", file=sys.stderr)
                 if resource_type != "network-event":
                     continue
                 for event in resources:
@@ -373,9 +377,12 @@ def collect_network_events(devtools, predicate, timeout=3):
                 done.set_result(e)
 
     # Firefox emits network events on the watcher; listen on targets too to be safe.
-    for actor in [devtools.watcher.actor_id] + [t["actor"] for t in devtools.targets]:
+    for actor in [devtools.watcher.actor_id] + [target["actor"] for target in devtools.targets]:
         devtools.client.add_event_listener(actor, Events.Watcher.RESOURCES_AVAILABLE_ARRAY, on_resources)
     devtools.watcher.watch_resources([Resources.NETWORK_EVENT])
+
+    if trigger is not None:
+        trigger()
 
     try:
         result = done.result(timeout)
@@ -386,6 +393,6 @@ def collect_network_events(devtools, predicate, timeout=3):
     return result, seen
 
 
-def get_request_headers(devtools, network_event):
+def get_request_headers(devtools: Devtools, network_event: dict[str, Any]):
     response = devtools.client.send_receive({"to": network_event["actor"], "type": "getRequestHeaders"})
-    return {h["name"].lower(): h["value"] for h in response["headers"]}
+    return {header["name"].lower(): header["value"] for header in response["headers"]}
