@@ -6,7 +6,6 @@
 
 use std::cell::Cell;
 use std::marker::PhantomData;
-use std::ptr;
 
 use dom_struct::dom_struct;
 use js::context::JSContext;
@@ -14,7 +13,6 @@ use js::conversions::ToJSValConvertible;
 use js::jsapi::Heap;
 use js::jsval::UndefinedValue;
 use js::realm::CurrentRealm;
-use js::rust::wrappers2::JS_NewObject;
 use js::rust::{HandleObject, HandleValue, MutableHandleObject};
 
 use crate::codegen::GenericBindings::IterableIteratorBinding::{
@@ -23,6 +21,7 @@ use crate::codegen::GenericBindings::IterableIteratorBinding::{
 use crate::conversions::IDLInterface;
 use crate::error::Fallible;
 use crate::interfaces::{DomHelpers, GlobalScopeHelpers};
+use crate::js::JS_NewObject;
 use crate::reflector::{DomGlobalGeneric, DomObjectIteratorWrap, DomObjectWrap, Reflector};
 use crate::root::{Dom, DomRoot, Root};
 use crate::trace::NoTrace;
@@ -172,7 +171,7 @@ fn dict_return(
     dict.done = done;
     dict.value.set(value.get());
 
-    unsafe { result.set(JS_NewObject(cx, ptr::null())) };
+    result.set(JS_NewObject(cx, None));
     dict.to_jsobject(cx, result);
     Ok(())
 }
@@ -192,7 +191,7 @@ fn key_and_value_return(
             .collect(),
     );
 
-    unsafe { result.set(JS_NewObject(cx, ptr::null())) };
+    result.set(JS_NewObject(cx, None));
     dict.to_jsobject(cx, result);
     Ok(())
 }

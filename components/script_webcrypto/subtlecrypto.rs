@@ -49,7 +49,7 @@ use js::jsapi::{Heap, JSObject};
 use js::jsval::{ObjectOrNullValue, UndefinedValue};
 use js::realm::CurrentRealm;
 use js::rooted;
-use js::rust::wrappers2::{JS_NewObject, JS_ParseJSON};
+use js::rust::wrappers2::JS_ParseJSON;
 use js::rust::{HandleObject, MutableHandleValue, Trace};
 use js::typedarray::{ArrayBufferU8, HeapUint8Array};
 use jstraceable_derive::JSTraceable;
@@ -70,6 +70,7 @@ use script_bindings::error::{Error, Fallible};
 use script_bindings::interfaces::{
     PromiseHelpers, StackRootPromiseHelpers, ThreadTrustedPromiseHelpers,
 };
+use script_bindings::js::JS_NewObject;
 use script_bindings::refcounted::Trusted;
 use script_bindings::reflector::{DomGlobalGeneric, Reflector, reflect_dom_object_with_wrap};
 use script_bindings::root::DomRoot;
@@ -2727,9 +2728,8 @@ pub(crate) struct KeyAlgorithm {
 }
 
 impl ToJSValConvertible for KeyAlgorithm {
-    #[expect(unsafe_code)]
     fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
-        rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
+        rooted!(&in(cx) let mut object = JS_NewObject(cx, None));
 
         rooted!(&in(cx) let mut name_js = UndefinedValue());
         self.name.as_str().to_jsval(cx, name_js.handle_mut());
@@ -2872,9 +2872,8 @@ pub(crate) struct RsaHashedKeyAlgorithm {
 }
 
 impl ToJSValConvertible for RsaHashedKeyAlgorithm {
-    #[expect(unsafe_code)]
     fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
-        rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
+        rooted!(&in(cx) let mut object = JS_NewObject(cx, None));
 
         rooted!(&in(cx) let mut name_js = UndefinedValue());
         self.name.as_str().to_jsval(cx, name_js.handle_mut());
@@ -3095,9 +3094,8 @@ pub(crate) struct EcKeyAlgorithm {
 }
 
 impl ToJSValConvertible for EcKeyAlgorithm {
-    #[expect(unsafe_code)]
     fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
-        rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
+        rooted!(&in(cx) let mut object = JS_NewObject(cx, None));
 
         rooted!(&in(cx) let mut name_js = UndefinedValue());
         self.name.as_str().to_jsval(cx, name_js.handle_mut());
@@ -3235,9 +3233,8 @@ pub(crate) struct AesKeyAlgorithm {
 }
 
 impl ToJSValConvertible for AesKeyAlgorithm {
-    #[expect(unsafe_code)]
     fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
-        rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
+        rooted!(&in(cx) let mut object = JS_NewObject(cx, None));
 
         rooted!(&in(cx) let mut name_js = UndefinedValue());
         self.name.as_str().to_jsval(cx, name_js.handle_mut());
@@ -3436,9 +3433,8 @@ pub(crate) struct HmacKeyAlgorithm {
 }
 
 impl ToJSValConvertible for HmacKeyAlgorithm {
-    #[expect(unsafe_code)]
     fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
-        rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
+        rooted!(&in(cx) let mut object = JS_NewObject(cx, None));
 
         rooted!(&in(cx) let mut name_js = UndefinedValue());
         self.name.as_str().to_jsval(cx, name_js.handle_mut());
@@ -3888,9 +3884,8 @@ pub(crate) struct KmacKeyAlgorithm {
 }
 
 impl ToJSValConvertible for KmacKeyAlgorithm {
-    #[expect(unsafe_code)]
     fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
-        rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
+        rooted!(&in(cx) let mut object = JS_NewObject(cx, None));
 
         rooted!(&in(cx) let mut name_js = UndefinedValue());
         self.name.as_str().to_jsval(cx, name_js.handle_mut());
@@ -4033,9 +4028,8 @@ struct EncapsulatedKey<D: DomTypes> {
 }
 
 impl<D: DomTypes> ToJSValConvertible for EncapsulatedKey<D> {
-    #[expect(unsafe_code)]
     fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
-        rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
+        rooted!(&in(cx) let mut object = JS_NewObject(cx, None));
 
         rooted!(&in(cx) let mut shared_key_js = UndefinedValue());
         self.shared_key
@@ -4075,9 +4069,8 @@ struct EncapsulatedBits {
 }
 
 impl ToJSValConvertible for EncapsulatedBits {
-    #[expect(unsafe_code)]
     fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {
-        rooted!(&in(cx) let mut object = unsafe { JS_NewObject(cx, ptr::null()) });
+        rooted!(&in(cx) let mut object = JS_NewObject(cx, None) );
 
         rooted!(&in(cx) let mut shared_key_js = UndefinedValue());
         self.shared_key
