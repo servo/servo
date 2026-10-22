@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 
 use crate::dom::element::Element;
 use crate::dom::event::Event;
@@ -40,11 +40,11 @@ pub(crate) trait Activatable {
     );
 
     /// <https://html.spec.whatwg.org/multipage/#concept-selector-active>
-    fn enter_formal_activation_state(&self) {
-        self.as_element().set_active_state(true);
+    fn enter_formal_activation_state(&self, no_gc: &NoGC) {
+        self.as_element().set_active_state(no_gc, true);
     }
 
-    fn exit_formal_activation_state(&self) {
-        self.as_element().set_active_state(false);
+    fn exit_formal_activation_state(&self, no_gc: &NoGC) {
+        self.as_element().set_active_state(no_gc, false);
     }
 }

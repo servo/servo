@@ -116,8 +116,8 @@ impl VirtualMethods for HTMLOptGroupElement {
                 AttributeMutation::Removed => false,
             };
             let el = self.upcast::<Element>();
-            el.set_disabled_state(disabled_state);
-            el.set_enabled_state(!disabled_state);
+            el.set_disabled_state(cx.no_gc(), disabled_state);
+            el.set_enabled_state(cx.no_gc(), !disabled_state);
             let options = el
                 .upcast::<Node>()
                 .children()
@@ -126,13 +126,13 @@ impl VirtualMethods for HTMLOptGroupElement {
             if disabled_state {
                 for option in options {
                     let el = option.upcast::<Element>();
-                    el.set_disabled_state(true);
-                    el.set_enabled_state(false);
+                    el.set_disabled_state(cx.no_gc(), true);
+                    el.set_enabled_state(cx.no_gc(), false);
                 }
             } else {
                 for option in options {
                     let el = option.upcast::<Element>();
-                    el.check_disabled_attribute();
+                    el.check_disabled_attribute(cx.no_gc());
                 }
             }
         }

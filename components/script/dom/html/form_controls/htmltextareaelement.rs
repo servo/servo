@@ -322,7 +322,7 @@ impl TextControlElement for HTMLTextAreaElement {
         let placeholder_shown =
             self.text_input.borrow().is_empty() && !self.placeholder.borrow().is_empty();
         self.upcast::<Element>()
-            .set_placeholder_shown_state(placeholder_shown);
+            .set_placeholder_shown_state(cx.no_gc(), placeholder_shown);
 
         self.text_input_widget.borrow().update_shadow_tree(cx, self);
         self.text_input_widget
@@ -622,18 +622,18 @@ impl VirtualMethods for HTMLTextAreaElement {
                 let el = self.upcast::<Element>();
                 match mutation {
                     AttributeMutation::Set(_) => {
-                        el.set_disabled_state(true);
-                        el.set_enabled_state(false);
+                        el.set_disabled_state(cx.no_gc(), true);
+                        el.set_enabled_state(cx.no_gc(), false);
 
-                        el.set_read_write_state(false);
+                        el.set_read_write_state(cx.no_gc(), false);
                     },
                     AttributeMutation::Removed => {
-                        el.set_disabled_state(false);
-                        el.set_enabled_state(true);
+                        el.set_disabled_state(cx.no_gc(), false);
+                        el.set_enabled_state(cx.no_gc(), true);
                         el.check_ancestors_disabled_state_for_form_control(cx.no_gc());
 
                         if !el.disabled_state() && !el.read_write_state() {
-                            el.set_read_write_state(true);
+                            el.set_read_write_state(cx.no_gc(), true);
                         }
                     },
                 }
@@ -681,10 +681,10 @@ impl VirtualMethods for HTMLTextAreaElement {
                 let el = self.upcast::<Element>();
                 match mutation {
                     AttributeMutation::Set(_) => {
-                        el.set_read_write_state(false);
+                        el.set_read_write_state(cx.no_gc(), false);
                     },
                     AttributeMutation::Removed => {
-                        el.set_read_write_state(!el.disabled_state());
+                        el.set_read_write_state(cx.no_gc(), !el.disabled_state());
                     },
                 }
             },
@@ -742,7 +742,7 @@ impl VirtualMethods for HTMLTextAreaElement {
         {
             el.check_ancestors_disabled_state_for_form_control(cx.no_gc());
         } else {
-            el.check_disabled_attribute();
+            el.check_disabled_attribute(cx.no_gc());
         }
 
         self.validity_state(cx)

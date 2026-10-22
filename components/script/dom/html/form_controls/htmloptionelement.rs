@@ -90,7 +90,7 @@ impl HTMLOptionElement {
     pub(crate) fn set_selectedness(&self, no_gc: &NoGC, selected: bool) {
         self.selectedness.set(selected);
         self.upcast::<Element>()
-            .set_state(ElementState::CHECKED, selected);
+            .set_state(no_gc, ElementState::CHECKED, selected);
         // Bump the tree version so that any live HTMLCollection (e.g. selectedOptions)
         // rooted at an ancestor invalidates its cached length and cursor.
         self.upcast::<Node>().rev_version(no_gc);
@@ -407,13 +407,13 @@ impl VirtualMethods for HTMLOptionElement {
                 let el = self.upcast::<Element>();
                 match mutation {
                     AttributeMutation::Set(_) => {
-                        el.set_disabled_state(true);
-                        el.set_enabled_state(false);
+                        el.set_disabled_state(cx.no_gc(), true);
+                        el.set_enabled_state(cx.no_gc(), false);
                     },
                     AttributeMutation::Removed => {
-                        el.set_disabled_state(false);
-                        el.set_enabled_state(true);
-                        el.check_parent_disabled_state_for_option();
+                        el.set_disabled_state(cx.no_gc(), false);
+                        el.set_enabled_state(cx.no_gc(), true);
+                        el.check_parent_disabled_state_for_option(cx.no_gc());
                     },
                 }
                 self.update_select_validity(cx);
@@ -464,7 +464,7 @@ impl VirtualMethods for HTMLOptionElement {
         }
 
         self.upcast::<Element>()
-            .check_parent_disabled_state_for_option();
+            .check_parent_disabled_state_for_option(cx.no_gc());
 
         self.pick_if_selected_and_reset(cx);
         self.update_select_validity(cx);
@@ -487,9 +487,9 @@ impl VirtualMethods for HTMLOptionElement {
         let node = self.upcast::<Node>();
         let el = self.upcast::<Element>();
         if node.GetParentNode().is_some() {
-            el.check_parent_disabled_state_for_option();
+            el.check_parent_disabled_state_for_option(cx.no_gc());
         } else {
-            el.check_disabled_attribute();
+            el.check_disabled_attribute(cx.no_gc());
         }
     }
 
@@ -533,13 +533,13 @@ impl VirtualMethods for HTMLOptionElement {
             }
 
             if self.upcast::<Node>().GetParentNode().is_some() {
-                element.check_parent_disabled_state_for_option();
+                element.check_parent_disabled_state_for_option(cx.no_gc());
             } else {
-                element.check_disabled_attribute();
+                element.check_disabled_attribute(cx.no_gc());
             }
         }
 
-        element.check_parent_disabled_state_for_option();
+        element.check_parent_disabled_state_for_option(cx.no_gc());
 
         self.pick_if_selected_and_reset(cx);
         self.update_select_validity(cx);

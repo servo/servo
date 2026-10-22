@@ -715,9 +715,9 @@ impl HTMLFormElement {
             .any(|control| control.is_invalid(cx, false));
 
         self.upcast::<Element>()
-            .set_state(ElementState::VALID, !is_any_invalid);
+            .set_state(cx.no_gc(), ElementState::VALID, !is_any_invalid);
         self.upcast::<Element>()
-            .set_state(ElementState::INVALID, is_any_invalid);
+            .set_state(cx.no_gc(), ElementState::INVALID, is_any_invalid);
     }
 
     /// [Form submission](https://html.spec.whatwg.org/multipage/#concept-form-submit)

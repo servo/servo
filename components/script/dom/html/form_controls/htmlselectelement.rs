@@ -446,11 +446,11 @@ impl HTMLSelectElement {
                 }),
                 None,
             );
-        self.upcast::<Element>().set_open_state(true);
+        self.upcast::<Element>().set_open_state(no_gc, true);
     }
 
     pub(crate) fn handle_embedder_response(&self, cx: &mut JSContext, selected_values: Vec<usize>) {
-        self.upcast::<Element>().set_open_state(false);
+        self.upcast::<Element>().set_open_state(cx.no_gc(), false);
 
         let selected_values = if self.Multiple() {
             selected_values
@@ -817,12 +817,12 @@ impl VirtualMethods for HTMLSelectElement {
                 let el = self.upcast::<Element>();
                 match mutation {
                     AttributeMutation::Set(_) => {
-                        el.set_disabled_state(true);
-                        el.set_enabled_state(false);
+                        el.set_disabled_state(cx.no_gc(), true);
+                        el.set_enabled_state(cx.no_gc(), false);
                     },
                     AttributeMutation::Removed => {
-                        el.set_disabled_state(false);
-                        el.set_enabled_state(true);
+                        el.set_disabled_state(cx.no_gc(), false);
+                        el.set_enabled_state(cx.no_gc(), true);
                         el.check_ancestors_disabled_state_for_form_control(cx.no_gc());
                     },
                 }
@@ -862,10 +862,10 @@ impl VirtualMethods for HTMLSelectElement {
         {
             el.check_ancestors_disabled_state_for_form_control(cx.no_gc());
         } else {
-            el.check_disabled_attribute();
+            el.check_disabled_attribute(cx.no_gc());
         }
 
-        self.owner_document()
+        self.owner_document_unrooted(cx.no_gc())
             .embedder_controls()
             .hide_embedder_control(self.upcast());
     }

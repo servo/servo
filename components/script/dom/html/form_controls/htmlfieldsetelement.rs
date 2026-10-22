@@ -79,9 +79,9 @@ impl HTMLFieldSetElement {
             .any(|element| element.is_invalid(cx, false));
 
         self.upcast::<Element>()
-            .set_state(ElementState::VALID, !has_invalid_child);
+            .set_state(cx.no_gc(), ElementState::VALID, !has_invalid_child);
         self.upcast::<Element>()
-            .set_state(ElementState::INVALID, has_invalid_child);
+            .set_state(cx.no_gc(), ElementState::INVALID, has_invalid_child);
     }
 }
 
@@ -174,8 +174,8 @@ impl VirtualMethods for HTMLFieldSetElement {
                 };
                 let node = self.upcast::<Node>();
                 let element = self.upcast::<Element>();
-                element.set_disabled_state(disabled_state);
-                element.set_enabled_state(!disabled_state);
+                element.set_disabled_state(cx.no_gc(), disabled_state);
+                element.set_enabled_state(cx.no_gc(), !disabled_state);
                 let mut found_legend = false;
                 let children = node.children().filter(|node| {
                     if found_legend {
@@ -210,8 +210,8 @@ impl VirtualMethods for HTMLFieldSetElement {
                     for field in fields {
                         let element = field.downcast::<Element>().unwrap();
                         if element.enabled_state() {
-                            element.set_disabled_state(true);
-                            element.set_enabled_state(false);
+                            element.set_disabled_state(cx.no_gc(), true);
+                            element.set_enabled_state(cx.no_gc(), false);
                             if element
                                 .downcast::<HTMLElement>()
                                 .is_some_and(|h| h.is_form_associated_custom_element())
@@ -229,7 +229,7 @@ impl VirtualMethods for HTMLFieldSetElement {
                     for field in fields {
                         let element = field.downcast::<Element>().unwrap();
                         if element.disabled_state() {
-                            element.check_disabled_attribute();
+                            element.check_disabled_attribute(cx.no_gc());
                             element.check_ancestors_disabled_state_for_form_control(cx.no_gc());
                             // Fire callback only if this has actually enabled the custom element
                             if element.enabled_state() &&

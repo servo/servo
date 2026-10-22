@@ -643,8 +643,8 @@ impl VirtualMethods for ShadowRoot {
         // TODO(stevennovaryo): Handle adoptedStylesheet to deal with different
         //                      constructor document.
         if context.tree_connected {
-            let document = self.owner_document();
-            document.register_shadow_root(self);
+            self.owner_document_unrooted(cx.no_gc())
+                .register_shadow_root(self);
         }
 
         let shadow_root = self.upcast::<Node>();
@@ -669,8 +669,8 @@ impl VirtualMethods for ShadowRoot {
         }
 
         if context.tree_connected {
-            let document = self.owner_document();
-            document.unregister_shadow_root(self);
+            self.owner_document_unrooted(cx.no_gc())
+                .unregister_shadow_root(self);
         }
     }
 }
