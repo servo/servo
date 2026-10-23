@@ -53,6 +53,9 @@ mod from_winit {
                 Self::DeviceEvent { .. } => target!("DeviceEvent"),
                 Self::UserEvent(AppEvent::Waker) => target!("UserEvent(Waker)"),
                 Self::UserEvent(AppEvent::Accessibility(..)) => target!("UserEvent(Accessibility)"),
+                Self::UserEvent(AppEvent::RequestRepaint(..)) => {
+                    target!("UserEvent(RequestRepaint)")
+                },
                 #[cfg(feature = "gamepad")]
                 Self::UserEvent(AppEvent::Gamepad(..)) => target!("UserEvent(Gamepad)"),
                 Self::Suspended => target!("Suspended"),

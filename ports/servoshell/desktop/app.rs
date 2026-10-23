@@ -235,6 +235,11 @@ impl ApplicationHandler<AppEvent> for App {
                     headed_window.handle_winit_app_event(state.clone(), app_event);
                 }
             },
+            AppEvent::RequestRepaint(window_id) => {
+                if let Some(window) = state.window(window_id) {
+                    window.set_needs_repaint();
+                }
+            },
             #[cfg(feature = "gamepad")]
             AppEvent::Gamepad(event, gamepad_name, gamepad_index) => {
                 state.handle_gamepad_events(event, gamepad_name, gamepad_index);

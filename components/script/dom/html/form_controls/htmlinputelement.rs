@@ -2162,7 +2162,11 @@ impl HTMLInputElement {
     fn handle_focus_event(&self, cx: &mut JSContext, event: &FocusEvent) {
         let event_type = event.upcast::<Event>().type_();
         let document = self.owner_document();
-        if *event_type == *"blur" {
+
+        // This hides the control if the input element has lost focus, but doesn't do this for
+        // file selection dialogs, which are often modal dialogs that may be represented as
+        // separate windows.
+        if *event_type == *"blur" && !matches!(&*self.input_type(), InputType::File(..)) {
             document
                 .embedder_controls()
                 .hide_embedder_control(self.upcast());
