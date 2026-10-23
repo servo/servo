@@ -205,6 +205,31 @@ impl<'a> ImageDecoder for OhosImageDecoder<'a> {
         // the dereference here is important.
         (*self).read_image(buf)
     }
+
+    fn orientation(&mut self) -> ImageResult<image::metadata::Orientation> {
+        let mut orientation_string = "Orientation".to_owned();
+        let mut key_string = Image_String {
+            data: orientation_string.as_mut_ptr(),
+            size: orientation_string.len(),
+        };
+
+        let mut orientation = 0;
+
+        unsafe {
+            if OH_ImageSourceNative_GetImageProperty(self.image_source, &raw mut orientation) !=
+                OhosImageResult::SUCCESS
+            {
+                log::error!("Could not get orientation");
+                return ImageResult::Err(ImageError::Unsupported(ImageFormatHint::Unknown.into()));
+            }
+        }
+
+        if let Some(exif_orientation) = image::metadata::Orientation::from_exif(orientation) {
+            return ImageResult::Ok(exif_orientation);
+        } else {
+            ImageResult::Err(ImageError::Unsupported(ImageFormatHint::Unknown.into()))
+        }
+    }
 }
 
 /// We will only write as much data as the pixmap is given.
@@ -251,7 +276,7 @@ struct OhosAnimationIterator {
     height: u32,
     delay_time_list: Vec<i32>,
     count: usize,
-    sum: u32,
+    sum: NonZeroU32,
 }
 
 impl Iterator for OhosAnimationIterator {
@@ -278,7 +303,7 @@ impl Iterator for OhosAnimationIterator {
                 .get(self.count)
                 .and_then(|delay_time| (*delay_time).try_into().ok())
                 .unwrap_or(0),
-            self.sum,
+            self.sum.into(),
         );
         let result = Some(Ok(Frame::from_parts(rgba_image, 0, 0, delay)));
         self.count += 1;
@@ -325,11 +350,14 @@ impl<'a> ServoAnimation<'a> for OhosImageDecoder<'a> {
                 log::error!("Could not get delay times");
             }
 
-            let sum = delay_time_list
-                .iter()
-                .sum::<i32>()
-                .try_into()
-                .unwrap_or(delay_time_list.len() as u32);
+            let sum = NonZeroU32::try_from(
+                delay_time_list
+                    .iter()
+                    .sum::<i32>()
+                    .try_into()
+                    .unwrap_or(delay_time_list.len() as u32),
+            )
+            .unwrap_or(1);
             let frame_iterator = Box::new(OhosAnimationIterator {
                 inner_vector: pixmap_vector,
                 width,
