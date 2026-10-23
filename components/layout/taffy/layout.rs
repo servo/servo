@@ -230,14 +230,6 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                     });
                 }
 
-                let content_box_size_override = ContainingBlock {
-                    size: ContainingBlockSize {
-                        inline: Au::from_f32_px(inline_size),
-                        block: tentative_block_size,
-                    },
-                    style,
-                };
-
                 let lazy_block_size = match content_box_known_dimensions.height {
                     None => LazySize::new(
                         &content_box_sizes.block,
@@ -248,6 +240,44 @@ impl taffy::LayoutPartialTree for TaffyContainerContext<'_> {
                         independent_context.layout_style().is_table(),
                     ),
                     Some(height) => Au::from_f32_px(height).into(),
+                };
+
+                if inputs.run_mode == RunMode::ComputeSize {
+                    if let Some(height) = inputs.known_dimensions.height {
+                        return taffy::LayoutOutput::from_outer_size(taffy::Size {
+                            width: inline_size + pb_sum.inline,
+                            height,
+                        });
+                    }
+
+                    // When the height is unknown we can use a cached block size under default
+                    // constraints.
+                    //
+                    // Note: This throws away baselines, but that's okay because Taffy internally
+                    // performs a full layout of the item when sizing items for baseline alignment.
+                    // This is slow, but correct.
+                    let content_block_size = independent_context
+                        .content_block_size_under_default_constraint(
+                            self.layout_context,
+                            &mut PositioningContext::default(),
+                            Au::from_f32_px(inline_size),
+                            containing_block,
+                            preferred_aspect_ratio,
+                            &lazy_block_size,
+                        );
+                    let block_size = lazy_block_size.resolve(|| content_block_size).to_f32_px();
+                    return taffy::LayoutOutput::from_outer_size(taffy::Size {
+                        width: inline_size + pb_sum.inline,
+                        height: block_size + pb_sum.block,
+                    });
+                }
+
+                let content_box_size_override = ContainingBlock {
+                    size: ContainingBlockSize {
+                        inline: Au::from_f32_px(inline_size),
+                        block: tentative_block_size,
+                    },
+                    style,
                 };
 
                 child.positioning_context = PositioningContext::default();

@@ -580,6 +580,7 @@ impl IndependentFormattingContext {
         inline_size: Au,
         containing_block: &ContainingBlock,
         preferred_aspect_ratio: Option<AspectRatio>,
+        lazy_block_size: &LazySize,
     ) -> Au {
         if let Some(content_block_size) = self
             .base
@@ -599,7 +600,7 @@ impl IndependentFormattingContext {
             },
             containing_block,
             preferred_aspect_ratio,
-            &LazySize::intrinsic(),
+            lazy_block_size,
         )
         .content_block_size
     }
