@@ -409925,6 +409925,19 @@
          {}
         ]
        ],
+       "table-attribute-bgcolor-dynamic.html": [
+        "8f47505b5fae13da2a17bed7f9bc683e30832fc4",
+        [
+         null,
+         [
+          [
+           "/css/reference/ref-filled-green-200px-square.html",
+           "=="
+          ]
+         ],
+         {}
+        ]
+       ],
        "table-attribute-border-dynamic.html": [
         "15adbb9e24ba84c2ed65fff4a8916b96093c8ac3",
         [
