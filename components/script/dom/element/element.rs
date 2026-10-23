@@ -1713,7 +1713,7 @@ impl<'dom> LayoutDom<'dom, Element> {
         // that sets content-language. Hence, we only need to call
         // default_language here to cover both cases.
         let document = self.upcast::<Node>().owner_doc_for_layout();
-        if let Some(document_language) = document.default_language_for_layout() {
+        if let Some(document_language) = document.default_language_for_layout().as_deref() {
             return AtomString::from(document_language);
         }
         AtomString::default()
