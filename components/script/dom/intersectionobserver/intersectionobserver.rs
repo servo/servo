@@ -27,6 +27,7 @@ use crate::dom::bindings::callback::ExceptionHandling;
 use crate::dom::bindings::codegen::Bindings::IntersectionObserverBinding::{
     IntersectionObserverCallback, IntersectionObserverInit, IntersectionObserverMethods,
 };
+use crate::dom::bindings::codegen::Bindings::IntersectionObserverEntryBinding::IntersectionObserverEntryMethods;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::WindowMethods;
 use crate::dom::bindings::codegen::UnionTypes::{DoubleOrDoubleSequence, ElementOrDocument};
 use crate::dom::bindings::error::{Error, Fallible};
@@ -38,6 +39,7 @@ use crate::dom::bindings::utils::to_frozen_array;
 use crate::dom::document::{Document, RenderingUpdateReason};
 use crate::dom::domrectreadonly::DOMRectReadOnly;
 use crate::dom::element::Element;
+use crate::dom::html::htmliframeelement::HTMLIFrameElement;
 use crate::dom::intersectionobserverentry::IntersectionObserverEntry;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::window::Window;
@@ -451,8 +453,31 @@ impl IntersectionObserver {
                 let _ = callback.Call_(cx, self, queued_entries, self, ExceptionHandling::Report);
             },
             IntersectionObserverCallbackKind::LazyLoad => {
-                // TODO: resume the iframe's lazy load.
                 // <https://html.spec.whatwg.org/multipage/#lazy-load-intersection-observer>
+                //
+                // `queued_entries` is a Rust Vec, so no page script can
+                // interfere with the iteration.
+                for entry in &queued_entries {
+                    // Step 1. If entry.isIntersecting is true, ...
+                    if !entry.IsIntersecting() {
+                        continue;
+                    }
+                    let target = entry.Target();
+                    // Servo only lazy loads iframes so far.
+                    let Some(iframe) = target.downcast::<HTMLIFrameElement>() else {
+                        continue;
+                    };
+                    // Step 2. If resumptionSteps is null, then continue.
+                    if !iframe.has_lazy_load_resumption_steps() {
+                        continue;
+                    }
+                    // Step 3. Stop intersection-observing entry.target.
+                    target
+                        .owner_document()
+                        .stop_intersection_observing_a_lazy_loading_element(cx.no_gc(), &target);
+                    // Steps 4-5. Set the resumption steps to null and invoke them.
+                    iframe.resume_lazy_load(cx);
+                }
             },
         }
     }
