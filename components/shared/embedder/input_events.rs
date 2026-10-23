@@ -418,6 +418,13 @@ impl WheelEvent {
 #[derive(Clone, Debug, Deserialize, MallocSizeOf, Serialize)]
 pub enum ImeEvent {
     Composition(CompositionEvent),
+    /// Text that the input method has already committed.
+    ///
+    /// Unlike [`ImeEvent::Composition`] this does not rely on any composition
+    /// state living in the document: the text is inserted directly as a normal
+    /// editing action. Real sites frequently drop or reset composition state
+    /// (Baidu/Bing search boxes do), which silently swallowed CJK input.
+    Commit(String),
     Dismissed,
 }
 

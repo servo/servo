@@ -9,7 +9,8 @@ use std::mem;
 use std::time::{Duration, Instant};
 
 use embedder_traits::{
-    Cursor, EmbedderMsg, ImeEvent, InputEvent, InputEventId, InputEventOutcome, InputEventResult,
+    Cursor, EditingAction, EmbedderMsg, ImeEvent, InputEvent, InputEventId, InputEventOutcome,
+    InputEventResult,
     KeyboardEvent as EmbedderKeyboardEvent, MouseButton, MouseButtonAction, MouseButtonEvent,
     MouseLeftViewportEvent, MouseMoveEvent, TouchEvent as EmbedderTouchEvent, TouchEventType,
     TouchId, TouchPointerType, UntrustedNodeAddress, WheelEvent as EmbedderWheelEvent,
@@ -1770,6 +1771,24 @@ impl DocumentEventHandler {
         let composition_event = match event {
             ImeEvent::Dismissed => {
                 document.focus_handler().focus(cx, &FocusableArea::Viewport);
+                return Default::default();
+            },
+            ImeEvent::Commit(text) => {
+                // 已提交的文本不进入组合状态机：直接当作一次普通的文本编辑插入。
+                // 站点（百度/必应搜索框等）会在聚焦或输入过程中重置 "composition"，
+                // 走 Composition 时 EndComposition 会把已经插入的文本回滚掉。
+                if text.is_empty() {
+                    return Default::default();
+                }
+                let focused_area = document.focus_handler().focused_area();
+                let Some(focused_element) = focused_area.element() else {
+                    return Default::default();
+                };
+                let editing_host =
+                    document.editing_context(cx.no_gc(), focused_element.upcast());
+                if editing_host.perform_editing_action(cx, EditingAction::InsertText(text)) {
+                    return InputEventResult::Consumed;
+                }
                 return Default::default();
             },
             ImeEvent::Composition(composition_event) => composition_event,

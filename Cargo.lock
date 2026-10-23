@@ -6282,8 +6282,6 @@ dependencies = [
 [[package]]
 name = "ohos-ime"
 version = "0.4.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e3d9911e7da9c4d59d9438fc8612afa4a109825f7a90a30a0df2c9a5bb7aedce"
 dependencies = [
  "log",
  "ohos-ime-sys",
@@ -9920,6 +9918,7 @@ dependencies = [
  "servo",
  "servo-allocator",
  "servo-base",
+ "servo-config",
  "servo-webdriver-server",
  "signal-hook-registry",
  "surfman",

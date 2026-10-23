@@ -2343,6 +2343,35 @@ async fn http_network_fetch(
         request.url()
     );
     response.headers = response_stream.headers().clone();
+    // 附件响应（Content-Disposition: attachment）：通知嵌入方发起真正的下载。
+    // 判定为下载的两种情况，与 Chromium 一致：
+    // 1) 响应带 Content-Disposition: attachment；
+    // 2) 顶层导航命中“不可渲染类型”（pdf/zip/octet-stream…）。
+    // 只看 Document 目的地，避免把图片、脚本等子资源误判成下载。
+    let disposition = response
+        .headers
+        .get("content-disposition")
+        .and_then(|value| value.to_str().ok())
+        .map(str::to_owned);
+    let content_type = response
+        .headers
+        .get("content-type")
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or("")
+        .to_ascii_lowercase();
+    let is_attachment = disposition
+        .as_deref()
+        .map(|raw| raw.to_ascii_lowercase().contains("attachment"))
+        .unwrap_or(false);
+    let is_download_type = request.destination == Destination::Document
+        && crate::download_hook::is_download_content_type(&content_type);
+    if is_attachment || is_download_type {
+        let name = disposition
+            .as_deref()
+            .and_then(crate::download_hook::parse_filename);
+        let is_navigation = request.destination == Destination::Document;
+        crate::download_hook::notify(&request.url().to_string(), name.as_deref(), is_navigation);
+    }
     response.referrer = request.referrer.to_url().cloned();
     response.referrer_policy = request.referrer_policy;
 

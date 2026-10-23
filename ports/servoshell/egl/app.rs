@@ -10,7 +10,7 @@ use keyboard_types::{CompositionEvent, CompositionState, Key, KeyState, NamedKey
 use log::{info, warn};
 use raw_window_handle::{DisplayHandle, RawWindowHandle, WindowHandle};
 use servo::{
-    DeviceIndependentIntRect, DeviceIndependentPixel, DeviceIntSize, DevicePixel, DevicePoint,
+    Cursor, DeviceIndependentIntRect, DeviceIndependentPixel, DeviceIntSize, DevicePixel, DevicePoint,
     DeviceVector2D, EmbedderControl, EmbedderControlId, EventLoopWaker, ImeEvent, InputEvent,
     KeyboardEvent, LoadStatus, MediaSessionActionType, MediaSessionEvent, MouseButton,
     MouseButtonAction, MouseButtonEvent, MouseMoveEvent, Opts, Preferences, RefreshDriver,
@@ -181,9 +181,16 @@ impl PlatformWindow for EmbeddedPlatformWindow {
     fn show_embedder_control(&self, webview_id: WebViewId, embedder_control: EmbedderControl) {
         let control_id = embedder_control.id();
         match embedder_control {
-            EmbedderControl::InputMethod(input_method_control)
-                if input_method_control.allow_virtual_keyboard() =>
-            {
+            EmbedderControl::InputMethod(input_method_control) => {
+                info!(
+                    "show_embedder_control(InputMethod): allow_virtual_keyboard={} multiline={}",
+                    input_method_control.allow_virtual_keyboard(),
+                    input_method_control.multiline(),
+                );
+                // 不再用 allow_virtual_keyboard 做门控。
+                // 该标志来自 has_sticky_activation()，页面上没有“激活”过时为空，
+                // 而 Chromium 只要求可编辑节点获得焦点就接入输入法。
+                // 桌面端没有 attach 就没有中文（拉丁字母走物理键盘事件，所以看起来“英文正常”）。
                 self.visible_input_methods.borrow_mut().push(control_id);
                 self.host.on_ime_show(input_method_control);
             },
@@ -444,6 +451,24 @@ impl App {
         warn!("TODO can't stop won't stop");
     }
 
+    /// Cursor requested by the page (`cursor: pointer`, text caret, resize handles, ...),
+    /// used to keep the native cursor in sync with the web content.
+    pub fn current_cursor(&self) -> Option<Cursor> {
+        self.active_or_newest_webview()
+            .map(|webview| webview.cursor())
+    }
+
+    /// Evaluate JavaScript in the focused webview.
+    ///
+    /// This powers the user-script ("extension") support of the ArkTS chrome; the result of the
+    /// evaluation is currently discarded.
+    pub fn eval_js(&self, script: &str) {
+        if let Some(webview) = self.active_or_newest_webview() {
+            webview.evaluate_javascript(script, |_result| {});
+            self.spin_event_loop();
+        }
+    }
+
     /// Go back in history.
     pub fn go_back(&self) {
         self.window()
@@ -624,6 +649,67 @@ impl App {
         }
     }
 
+    /// 提交一段已确认的文本（IME 上屏）。
+    ///
+    /// 与 `ime_insert_text` 的区别：这里发 Update → End 两段 composition，
+    /// 页面会依次收到 `compositionupdate` / `compositionend` / `input`，
+    /// 在线编辑器（Google Docs 等）依赖这些事件。
+    pub fn ime_commit_text(&self, text: String) {
+        if text.is_empty() {
+            return;
+        }
+        let Some(webview) = self.active_or_newest_webview() else {
+            return;
+        };
+        // 已提交的文本直接走编辑动作插入（ImeEvent::Commit），
+        // 不再模拟 Start/Update/End 组合序列：真实站点会在输入过程中重置组合状态，
+        // 导致 EndComposition 把文本回滚，表现为“中文打不进去”。
+        // Chromium 的 NWebInputMethodHandler::InsertTextHandlerOnUI 会先发
+        // VKEY_PROCESSKEY 的 RAWKEYDOWN，再 ImeCommitText，最后 KEYUP。
+        // 这里保持一致：让渲染侧把这次插入当作输入法处理，而不是普通按键。
+        webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent::from_state_and_key(
+            KeyState::Down,
+            Key::Named(NamedKey::Process),
+        )));
+        webview.notify_input_event(InputEvent::Ime(ImeEvent::Commit(text)));
+        webview.notify_input_event(InputEvent::Keyboard(KeyboardEvent::from_state_and_key(
+            KeyState::Up,
+            Key::Named(NamedKey::Process),
+        )));
+        self.spin_event_loop();
+    }
+
+    /// 输入法组合串预览（Chromium: ImeSetComposingText）。
+    ///
+    /// servo 的 `InsertCompositionText` 会真的把文本插进编辑宿主并标记为组合中，
+    /// `EndComposition` 只结束组合、不改文本，因此“先 update 再 end”就是“显示并定格”。
+    pub fn ime_preview_text(&self, text: String) {
+        if text.is_empty() {
+            return;
+        }
+        let Some(webview) = self.active_or_newest_webview() else {
+            return;
+        };
+        webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
+            state: CompositionState::Update,
+            data: text,
+        })));
+        self.spin_event_loop();
+    }
+
+    /// 结束组合，把已经显示出来的组合串定格为正式文本
+    /// （Chromium: ImeFinishComposingText）。
+    pub fn ime_finish_preview(&self) {
+        let Some(webview) = self.active_or_newest_webview() else {
+            return;
+        };
+        webview.notify_input_event(InputEvent::Ime(ImeEvent::Composition(CompositionEvent {
+            state: CompositionState::End,
+            data: String::new(),
+        })));
+        self.spin_event_loop();
+    }
+
     pub fn ime_insert_text(&self, text: String) {
         // In OHOS, we get empty text after the intended text.
         if text.is_empty() {
@@ -654,6 +740,19 @@ impl App {
             webview.notify_media_session_action_event(action);
             self.spin_event_loop();
         }
+    }
+
+    /// 把系统深浅色同步给页面（驱动 prefers-color-scheme）。
+    pub fn set_page_theme(&self, dark: bool) {
+        let theme = if dark {
+            servo::Theme::Dark
+        } else {
+            servo::Theme::Light
+        };
+        if let Some(webview) = self.active_or_newest_webview() {
+            webview.notify_theme_change(theme);
+        }
+        self.spin_event_loop();
     }
 
     pub fn ime_dismissed(&self) {

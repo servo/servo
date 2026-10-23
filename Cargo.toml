@@ -468,6 +468,10 @@ codegen-units = 1
 #
 # webrender = { path = "../webrender/webrender" }
 # webrender_api = { path = "../webrender/webrender_api" }
+
+# 内置补丁版 ohos-ime：上游 crate 的 set_preview_text / finish_text_preview
+# 是空实现，中文（拼音）组合输入因此永远无法上屏。
+ohos-ime = { path = "support/ohos-ime" }
 # wr_malloc_size_of = { path = "../webrender/wr_malloc_size_of" }
 #
 # Or for mozjs:

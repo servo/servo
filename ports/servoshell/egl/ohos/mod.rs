@@ -62,9 +62,11 @@ use std::os::raw::c_void;
 use std::path::PathBuf;
 use std::ptr::NonNull;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI32, AtomicU32, AtomicU64, Ordering};
 use std::sync::mpsc::{Receiver, Sender};
-use std::sync::{LazyLock, Mutex, Once, OnceLock, mpsc};
+use std::sync::{LazyLock, Mutex, Once, mpsc};
+use std::collections::VecDeque;
+use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use std::{fs, thread};
 
 use euclid::{Point2D, Rect, Scale, Size2D};
@@ -87,7 +89,7 @@ use raw_window_handle::{
 };
 use servo::{
     self, DevicePixel, EventLoopWaker, InputMethodControl, InputMethodType, LoadStatus,
-    MediaSessionPlaybackState, PrefValue, SelectElement, WebViewId, Zero,
+    MediaSessionPlaybackState, MouseButton, PrefValue, SelectElement, WebViewId, Zero,
 };
 use xcomponent_sys::keyboard_types_compat::{KeyEventConverter, ModifierState};
 use xcomponent_sys::{
@@ -101,6 +103,38 @@ use xcomponent_sys::{
     OH_NativeXComponent_RegisterCallback, OH_NativeXComponent_RegisterKeyEventCallback,
     OH_NativeXComponent_TouchEvent, OH_NativeXComponent_TouchEventType,
 };
+use xcomponent_sys::{
+    OH_NativeXComponent_GetMouseEvent, OH_NativeXComponent_MouseEvent,
+    OH_NativeXComponent_MouseEvent_Callback, OH_NativeXComponent_RegisterMouseEventCallback,
+};
+
+/// Opaque handle to an ArkUI UI input event (`ArkUI_UIInputEvent`).
+///
+/// We only ever pass this pointer back to the `OH_ArkUI_*` accessor functions, so the
+/// layout does not matter here.
+#[repr(C)]
+pub struct ArkUI_UIInputEvent {
+    _private: [u8; 0],
+}
+
+/// `ARKUI_UIINPUTEVENT_TYPE_AXIS` from `arkui/ui_input_event.h`.
+const ARKUI_UIINPUTEVENT_TYPE_AXIS: i32 = 2;
+
+unsafe extern "C" {
+    fn OH_ArkUI_AxisEvent_GetVerticalAxisValue(event: *const ArkUI_UIInputEvent) -> f64;
+    fn OH_ArkUI_AxisEvent_GetHorizontalAxisValue(event: *const ArkUI_UIInputEvent) -> f64;
+    fn OH_NativeXComponent_RegisterUIInputEventCallback(
+        component: *mut OH_NativeXComponent,
+        callback: Option<
+            unsafe extern "C" fn(
+                component: *mut OH_NativeXComponent,
+                event: *mut ArkUI_UIInputEvent,
+                event_type: i32,
+            ),
+        >,
+        event_type: i32,
+    ) -> i32;
+}
 
 use super::app::{App, AppInitOptions};
 use super::host_trait::HostTrait;
@@ -115,22 +149,132 @@ const UPDATE_URL_QUEUE_SIZE: usize = 1;
 /// embedder thread. Specifying 4 as a max queue size seems reasonable for now, and can
 /// be adjusted later.
 const PROMPT_QUEUE_SIZE: usize = 4;
-// Todo: Need to check if OnceLock is suitable, or if the TS function can be destroyed, e.g.
-// if the activity gets suspended.
-static SET_URL_BAR_CB: OnceLock<
-    ThreadsafeFunction<String, (), String, napi_ohos::Status, false, false, UPDATE_URL_QUEUE_SIZE>,
-> = OnceLock::new();
-static TERMINATE_CALLBACK: OnceLock<
-    ThreadsafeFunction<(), (), (), napi_ohos::Status, false, false, 1>,
-> = OnceLock::new();
-static PROMPT_TOAST: OnceLock<
-    ThreadsafeFunction<String, (), String, napi_ohos::Status, false, false, PROMPT_QUEUE_SIZE>,
-> = OnceLock::new();
+// 回调槽位可在 ability 重建后覆盖，避免重开应用后旧闭包继续持有已销毁的页面。
+static SET_URL_BAR_CB: LazyLock<Mutex<Option<ThreadsafeFunction<String, (), String, napi_ohos::Status, false, false, UPDATE_URL_QUEUE_SIZE>>>> = LazyLock::new(|| Mutex::new(None));
+static TERMINATE_CALLBACK: LazyLock<Mutex<Option<ThreadsafeFunction<(), (), (), napi_ohos::Status, false, false, 1>>>> = LazyLock::new(|| Mutex::new(None));
+static PROMPT_TOAST: LazyLock<Mutex<Option<ThreadsafeFunction<String, (), String, napi_ohos::Status, false, false, PROMPT_QUEUE_SIZE>>>> = LazyLock::new(|| Mutex::new(None));
 static NEXT_WINDOW_ID: AtomicU64 = AtomicU64::new(0);
+
+/// 重建窗口时使用的 id 段，避开 ArkTS 使用的 0..N，避免与标签 id 冲突。
+static RECREATED_WINDOW_ID: AtomicU64 = AtomicU64::new(10000);
+
+/// Title of the currently focused webview, used for the ArkTS tab labels.
+static SET_TITLE_CB: LazyLock<Mutex<Option<ThreadsafeFunction<String, (), String, napi_ohos::Status, false, false, UPDATE_URL_QUEUE_SIZE>>>> = LazyLock::new(|| Mutex::new(None));
+/// Navigation state for the ArkTS toolbar: bit 0 = can go back, bit 1 = can go forward.
+static NAV_STATE_CB: LazyLock<Mutex<Option<ThreadsafeFunction<u32, (), u32, napi_ohos::Status, false, false, UPDATE_URL_QUEUE_SIZE>>>> = LazyLock::new(|| Mutex::new(None));
+/// Page load progress: 1 = started, 2 = head parsed, 3 = complete.
+static LOAD_STATUS_CB: LazyLock<Mutex<Option<ThreadsafeFunction<u32, (), u32, napi_ohos::Status, false, false, UPDATE_URL_QUEUE_SIZE>>>> = LazyLock::new(|| Mutex::new(None));
+/// Last known pointer position (vp), used as the anchor point of wheel events.
+static LAST_POINTER: Mutex<(f32, f32)> = Mutex::new((0.0, 0.0));
+/// Cursor updates for the focused webview.
+static CURSOR_CB: LazyLock<Mutex<Option<ThreadsafeFunction<u32, (), u32, napi_ohos::Status, false, false, UPDATE_URL_QUEUE_SIZE>>>> = LazyLock::new(|| Mutex::new(None));
+/// Last cursor id pushed to ArkTS, to avoid redundant callbacks on every mouse move.
+static LAST_CURSOR: Mutex<u32> = Mutex::new(u32::MAX);
+/// 站点图标（favicon）回调：payload 为 "宽,高:base64(RGBA)"。
+static FAVICON_CB: LazyLock<
+    Mutex<Option<ThreadsafeFunction<String, (), String, napi_ohos::Status, false, false, 4>>>,
+> = LazyLock::new(|| Mutex::new(None));
+/// 内核观测到的附件下载地址（Content-Disposition: attachment）。
+static DOWNLOAD_SINK_CB: LazyLock<
+    Mutex<Option<ThreadsafeFunction<String, (), String, napi_ohos::Status, false, false, 4>>>,
+> = LazyLock::new(|| Mutex::new(None));
+/// 求值结果转发通道（读取页面 blob 下载数据时使用）。
+static EVAL_RESULT_TX: LazyLock<Mutex<Option<Sender<String>>>> = LazyLock::new(|| Mutex::new(None));
+/// Browser keyboard shortcuts, forwarded to the ArkTS chrome as small integer ids.
+static SHORTCUT_CB: LazyLock<Mutex<Option<ThreadsafeFunction<u32, (), u32, napi_ohos::Status, false, false, UPDATE_URL_QUEUE_SIZE>>>> = LazyLock::new(|| Mutex::new(None));
+
+/// 是否已经上报过 IME 接入状态（只报一次，避免刷屏）。
+static IME_REPORTED: AtomicBool = AtomicBool::new(false);
+/// 设备像素比（vp → 物理像素）。servo 的输入坐标按设备像素解释，
+/// 漏乘它会让点击位置随纵坐标线性偏移（首页中部的大搜索框点不中、
+/// 结果页顶部的小搜索框却能点中，就是这个现象）。
+// 0.0 表示“尚未上报”，此时 device_scale() 会退回系统 density；
+// 若默认写 1.0，arkts 上报失败时会被误当成真实的 1x 缩放。
+static DEVICE_PIXEL_RATIO: LazyLock<Mutex<f32>> = LazyLock::new(|| Mutex::new(0.0));
+
+fn device_scale() -> f32 {
+    let scale = *DEVICE_PIXEL_RATIO.lock().unwrap();
+    if scale.is_finite() && scale > 0.1 {
+        scale
+    } else {
+        // ArkTS 还没上报 dpr 时，退回系统 density 作为兜底。
+        let fallback = get_display_density();
+        if fallback.is_finite() && fallback > 0.1 { fallback } else { 1.0 }
+    }
+}
+
+/// 已按下的鼠标键位图（bit = MOUSE_BUTTON 值）。
+/// ArkUI 在部分设备上会为同一次物理按下回调多次，
+/// 重复的 down 会被 servo 计成连击（detail=2/3），表现为“点一下却选中整段文字”。
+static MOUSE_BUTTONS_DOWN: AtomicU32 = AtomicU32::new(0);
+
+/// 是否手机形态：只有手机才需要软键盘，桌面端强行弹会失败并触发 detach。
+static IS_PHONE_DEVICE: AtomicBool = AtomicBool::new(false);
+
+/// ArkTS 侧的窗口 id。OHOS 输入法需要它才知道把输入投递给哪个窗口。
+static WINDOW_ID: AtomicI32 = AtomicI32::new(-1);
+
+/// 页面深浅色跟随系统（ArkTS 在启动、切换主题、系统主题变化时调用）。
+#[napi(js_name = "setPageTheme")]
+pub fn set_page_theme(dark: bool) {
+    info!("page theme: dark={dark}");
+    if let Err(e) = call(ServoAction::SetPageTheme(dark)) {
+        error!("setPageTheme failed: {e:?}");
+    }
+}
+
+#[napi(js_name = "setWindowId")]
+pub fn set_window_id(id: i32) {
+    WINDOW_ID.store(id, Ordering::Relaxed);
+    info!("window id for IME: {id}");
+}
+
+/// 当前是否处于输入法组合（preview）状态。
+static IME_COMPOSING: AtomicBool = AtomicBool::new(false);
+
+/// 触摸指针是否处于按下状态（同一次按下只派发一次 down）。
+static TOUCH_DOWN: AtomicBool = AtomicBool::new(false);
+
+/// 是否已经收到过鼠标事件（收到即认为是鼠标设备，忽略后续触摸事件）。
+static MOUSE_SEEN: AtomicBool = AtomicBool::new(false);
+
+fn report_ime_once(message: String) {
+    if IME_REPORTED.swap(true, Ordering::Relaxed) {
+        return;
+    }
+    if let Some(callback) = PROMPT_TOAST.lock().unwrap().as_ref() {
+        let _ = callback.call(message, ThreadsafeFunctionCallMode::NonBlocking);
+    }
+}
+
+/// 同一次物理点击可能同时以 touch 与 mouse 两种形式到达 XComponent。
+/// servo 会把它算成连续两次点击（click count 2 = 选中词，3 = 选中整行），
+/// 表现为“点一下输入框就选中了灰色的提示文字”。这里在 150ms 窗口内去重。
+static LAST_POINTER_KIND: Mutex<(u8, u64)> = Mutex::new((0, 0));
+
+fn now_millis() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_millis() as u64)
+        .unwrap_or(0)
+}
+
+/// kind: 1 = touch, 2 = mouse。返回 false 表示这是同一物理动作的重复上报。
+fn allow_pointer_press(kind: u8) -> bool {
+    let now = now_millis();
+    let mut guard = LAST_POINTER_KIND.lock().unwrap();
+    let (last_kind, last_time) = *guard;
+    if last_kind != 0 && last_kind != kind && now.saturating_sub(last_time) < 150 {
+        return false;
+    }
+    *guard = (kind, now);
+    true
+}
 
 static KEY_EVENT_CONVERTER: Mutex<KeyEventConverter> = Mutex::new(KeyEventConverter::new());
 
-static SERVO_CHANNEL: OnceLock<Sender<ServoAction>> = OnceLock::new();
+static SERVO_CHANNEL: LazyLock<Mutex<Option<Sender<ServoAction>>>> =
+    LazyLock::new(|| Mutex::new(None));
 
 /// set special mode for graphics operation, see [https://developer.huawei.com/consumer/en/doc/harmonyos-faqs/faqs-arkgraphics-2d-14]
 fn set_efficient_window_method(window: *mut c_void) {
@@ -162,15 +306,123 @@ fn set_efficient_window_method(window: *mut c_void) {
     }
 }
 
+/// 绘制表面的 hidpi（DevicePixel / DeviceIndependentPixel），由 buffer 像素尺寸
+/// 与 XComponent 的 vp 尺寸在现场测量得到，而不是依赖任何“约定”常量。
+static SURFACE_HIDPI: Mutex<f32> = Mutex::new(0.0);
+/// 供“关于”页读取的视口诊断信息。
+static VIEWPORT_DIAG: Mutex<String> = Mutex::new(String::new());
+
+/// 读取 native window 缓冲区的真实像素尺寸。这是绘制表面唯一权威的大小来源。
+fn get_buffer_geometry(window: *mut c_void) -> Option<Size2D<i32, DevicePixel>> {
+    let mut height: i32 = 0;
+    let mut width: i32 = 0;
+    // Safety: GET_BUFFER_GEOMETRY 的可变参数依次是两个 i32 输出指针（height 在前，width 在后）。
+    let result = unsafe {
+        ohos_window_sys::native_window::OH_NativeWindow_NativeWindowHandleOpt(
+            window as *mut ohos_sys_opaque_types::NativeWindow,
+            ohos_window_sys::native_window::NativeWindowOperation::GET_BUFFER_GEOMETRY as i32,
+            &mut height as *mut i32,
+            &mut width as *mut i32,
+        )
+    };
+    if result != 0 || width <= 0 || height <= 0 {
+        return None;
+    }
+    Some(Size2D::new(width, height))
+}
+
+/// 测量当前表面的 (物理像素尺寸, hidpi)。
+///
+/// 关键不变量：`物理尺寸 / hidpi == XComponent 的 vp 尺寸`。
+/// servo 的输入事件按 CSS 像素解释，而 vp 与 CSS 像素等值，
+/// 因此只要维持这个不变量，命中测试、光标、IME 就永远对得上，
+/// 与设备是 1x / 1.5x / 2x 无关。
+fn measure_surface(
+    xcomponent: *mut OH_NativeXComponent,
+    window: *mut c_void,
+) -> (Option<Size2D<i32, DevicePixel>>, Option<Size2D<i32, DevicePixel>>, f32) {
+    let reported_size = unsafe { get_xcomponent_size(xcomponent, window) }.ok();
+    let buffer_size = get_buffer_geometry(window);
+
+    // hidpi 只有一个可信来源：ArkTS 上报的系统 densityPixels。
+    // OH_NativeDisplayManager 的 density 在部分设备上返回 1.0（不可用），
+    // 而 buffer/GetXComponentSize 的比值同样不可靠——实测设备上
+    // GetXComponentSize 返回的已经是像素，比值恒为 1。
+    let hidpi = device_scale();
+    *SURFACE_HIDPI.lock().unwrap() = hidpi;
+
+    // 物理像素尺寸：buffer 几何最准，其次 GetXComponentSize（实测为像素）。
+    let physical = buffer_size.or(reported_size);
+    let css = physical.map(|size| {
+        (
+            (size.width as f32 / hidpi).round() as i32,
+            (size.height as f32 / hidpi).round() as i32,
+        )
+    });
+    *VIEWPORT_DIAG.lock().unwrap() = format!(
+        "buf={:?} size={:?} css={:?} dpr={hidpi:.2}",
+        buffer_size.map(|s| (s.width, s.height)),
+        reported_size.map(|s| (s.width, s.height)),
+        css,
+    );
+    (buffer_size, reported_size, hidpi)
+}
+
+fn effective_hidpi() -> f32 {
+    let hidpi = *SURFACE_HIDPI.lock().unwrap();
+    if hidpi.is_finite() && hidpi > 0.05 { hidpi } else { device_scale() }
+}
+
+static IME_COMMITS: AtomicU32 = AtomicU32::new(0);
+/// 收到的组合串（preview）次数，用于判断中文组合路径有没有被系统调用。
+static IME_PREVIEWS: AtomicU32 = AtomicU32::new(0);
+
+/// 输入法状态，供“关于”页显示——用来区分“没接入”和“接入了但没文字”。
+#[napi(js_name = "imeStatus")]
+pub fn ime_status() -> String {
+    format!(
+        "{} · 组合 {} · 提交 {} · 重复按键 {}",
+        if IME_ATTACHED.load(Ordering::Relaxed) { "已接入" } else { "未接入" },
+        IME_PREVIEWS.load(Ordering::Relaxed),
+        IME_COMMITS.load(Ordering::Relaxed),
+        DUP_PRESS_DROPPED.load(Ordering::Relaxed),
+    )
+}
+
+#[napi(js_name = "viewportDiagnostics")]
+pub fn viewport_diagnostics() -> String {
+    let base = VIEWPORT_DIAG.lock().unwrap().clone();
+    format!(
+        "{base} | ime={} commit={} dbl={}",
+        if IME_ATTACHED.load(Ordering::Relaxed) { "on" } else { "off" },
+        IME_COMMITS.load(Ordering::Relaxed),
+        DUP_PRESS_DROPPED.load(Ordering::Relaxed),
+    )
+}
+
+/// attach 成功后置位，便于在“关于”页确认输入法客户端是否还活着。
+static IME_ATTACHED: AtomicBool = AtomicBool::new(false);
+/// 被丢弃的重复按下次数（用于确认“单击变双击”是否已被挡住）。
+static DUP_PRESS_DROPPED: AtomicU32 = AtomicU32::new(0);
+
 pub(crate) fn get_raw_window_handle(
     xcomponent: *mut OH_NativeXComponent,
     window: *mut c_void,
 ) -> (RawWindowHandle, Rect<i32, DevicePixel>) {
-    let window_size = unsafe { get_xcomponent_size(xcomponent, window) }
-        .expect("Could not get native window size");
     let window_origin = unsafe { get_xcomponent_offset(xcomponent, window) }
         .expect("Could not get native window offset");
-    let viewport_rect = Rect::new(window_origin, window_size);
+    let (buffer_size, vp_size, _) = measure_surface(xcomponent, window);
+    // 物理尺寸优先取 buffer 的真实像素；拿不到时退回 vp × dpr。
+    let window_size = buffer_size
+        .or(vp_size)
+        .unwrap_or(Size2D::new(1, 1));
+    // origin 与 size 必须同一坐标系：size 是物理像素，origin 也换算成物理像素。
+    let hidpi = effective_hidpi();
+    let physical_origin = Point2D::new(
+        (window_origin.x as f32 * hidpi).round() as i32,
+        (window_origin.y as f32 * hidpi).round() as i32,
+    );
+    let viewport_rect = Rect::new(physical_origin, window_size);
     set_efficient_window_method(window);
 
     let native_window = NonNull::new(window).expect("Could not get native window");
@@ -238,6 +490,10 @@ fn init_app(
 
     let native_values = get_native_values();
     info!("Device Type {:?}", native_values.device_type);
+    IS_PHONE_DEVICE.store(
+        native_values.device_type == ohos_deviceinfo::OhosDeviceType::Phone,
+        Ordering::Relaxed,
+    );
     info!("OS Full Name {:?}", native_values.os_full_name);
     info!("ResourceDir {:?}", options.resource_dir);
 
@@ -250,6 +506,16 @@ fn init_app(
         .split("\u{1f}")
         .collect::<Vec<&str>>();
     debug!("Servo commandline args: {:?}", args);
+
+    // 把内核观测到的附件下载转给 ArkTS
+    servo::download_hook::set_sink(Box::new(|url: String| {
+        if let Some(callback) = DOWNLOAD_SINK_CB.lock().unwrap().as_ref() {
+            let _ = callback.call(url, ThreadsafeFunctionCallMode::NonBlocking);
+        }
+    }));
+
+    *DEVICE_PIXEL_RATIO.lock().unwrap() = native_values.display_density;
+    info!("device pixel ratio: {}", device_scale());
 
     let config_dir = PathBuf::from(&native_values.cache_dir).join("servo");
     debug!("Configs are located at: {:?}", config_dir);
@@ -283,16 +549,25 @@ fn init_app(
         });
     }
 
+    // 关键：参数解析失败**不能**直接退出进程。
+    // 之前 ArkTS 会注入 `--user-agent`（servoshell 并不支持这个参数），
+    // 一旦偏好里保存过 UA，之后每次启动都在这里 exit(1)，
+    // 表现就是“只有首次安装后能打开，之后一启动就闪退”。
     let (opts, mut preferences, servoshell_preferences) =
         match parse_command_line_arguments(args.as_slice()) {
-            ArgumentParsingResult::ContentProcess(..) => {
-                unreachable!("OHOS does not have support for multiprocess yet.")
-            },
             ArgumentParsingResult::ChromeProcess(opts, preferences, servoshell_preferences) => {
                 (opts, preferences, servoshell_preferences)
             },
             ArgumentParsingResult::Exit => std::process::exit(0),
-            ArgumentParsingResult::ErrorParsing => std::process::exit(1),
+            ArgumentParsingResult::ContentProcess(..) | ArgumentParsingResult::ErrorParsing => {
+                error!("invalid command line arguments {args:?}; falling back to defaults");
+                match parse_command_line_arguments(&[] as &[String]) {
+                    ArgumentParsingResult::ChromeProcess(opts, preferences, prefs) => {
+                        (opts, preferences, prefs)
+                    },
+                    _ => return Err("invalid command line arguments"),
+                }
+            },
         };
 
     crate::init_tracing(servoshell_preferences.tracing_filter.as_deref());
@@ -340,8 +615,11 @@ enum CallError {
 }
 
 fn call(action: ServoAction) -> Result<(), CallError> {
+    // 每次调用都从可替换的槽位里取当前通道，重开应用后不会误发到旧实例。
     let tx = SERVO_CHANNEL
-        .get()
+        .lock()
+        .unwrap()
+        .clone()
         .ok_or(CallError::ChannelNotInitialized)?;
     tx.send(action).map_err(|_| CallError::ChannelDied)?;
     Ok(())
@@ -370,6 +648,7 @@ pub(super) enum ServoAction {
     LoadUrl(String),
     GoBack,
     GoForward,
+    Reload,
     TouchEvent {
         kind: TouchEventType,
         x: f32,
@@ -377,7 +656,32 @@ pub(super) enum ServoAction {
         pointer_id: i32,
     },
     KeyEvent(keyboard_types::KeyboardEvent),
+    /// Mouse input: `action` follows `OH_NativeXComponent_MouseEventAction`
+    /// (1 = press, 2 = release, 3 = move), `button` follows `OH_NativeXComponent_MouseEventButton`.
+    MouseEvent {
+        action: u32,
+        button: u32,
+        x: f32,
+        y: f32,
+    },
+    /// Evaluate JavaScript in the focused webview (user scripts / extensions).
+    EvalJs(String),
+    /// Evaluate JavaScript and return the result through [`EVAL_RESULT_CB`].
+    EvalJsWithResult(String),
+    /// Ask the servo main thread to shut down (used when the ability is recreated).
+    Shutdown,
+    /// Wheel / touchpad scrolling, in CSS pixels. Positive `dy` scrolls up.
+    WheelEvent {
+        dx: f32,
+        dy: f32,
+    },
     InsertText(String),
+    /// 组合串（拼音等）预览：显示为“正在组合”的文本，不提交。
+    ImePreviewText(String),
+    /// 结束组合：把预览文本定格为正式文本。
+    ImeFinishPreview,
+    /// 系统深浅色（驱动网页的 prefers-color-scheme）。
+    SetPageTheme(bool),
     ImeDeleteForward(usize),
     ImeDeleteBackward(usize),
     ImeSendEnter,
@@ -399,6 +703,7 @@ impl std::fmt::Debug for ServoAction {
             Self::LoadUrl(arg0) => f.debug_tuple("LoadUrl").field(arg0).finish(),
             Self::GoBack => write!(f, "GoBack"),
             Self::GoForward => write!(f, "GoForward"),
+            Self::Reload => write!(f, "Reload"),
             Self::TouchEvent {
                 kind,
                 x,
@@ -412,6 +717,26 @@ impl std::fmt::Debug for ServoAction {
                 .field("pointer_id", pointer_id)
                 .finish(),
             Self::KeyEvent(_) => f.debug_struct("KeyEvent").finish(),
+            Self::MouseEvent {
+                action,
+                button,
+                x,
+                y,
+            } => f
+                .debug_struct("MouseEvent")
+                .field("action", action)
+                .field("button", button)
+                .field("x", x)
+                .field("y", y)
+                .finish(),
+            Self::EvalJs(_) => f.debug_struct("EvalJs").finish(),
+            Self::EvalJsWithResult(_) => f.debug_struct("EvalJsWithResult").finish(),
+            Self::Shutdown => write!(f, "Shutdown"),
+            Self::WheelEvent { dx, dy } => f
+                .debug_struct("WheelEvent")
+                .field("dx", dx)
+                .field("dy", dy)
+                .finish(),
             Self::InsertText(arg0) => f.debug_tuple("InsertText").field(arg0).finish(),
             Self::ImeDeleteForward(arg0) => f.debug_tuple("ImeDeleteForward").field(arg0).finish(),
             Self::ImeDeleteBackward(arg0) => {
@@ -419,6 +744,9 @@ impl std::fmt::Debug for ServoAction {
             },
             Self::ImeSendEnter => write!(f, "ImeSendEnter"),
             Self::ImeDismiss => write!(f, "ImeDismiss"),
+            Self::ImePreviewText(arg0) => f.debug_tuple("ImePreviewText").field(arg0).finish(),
+            Self::ImeFinishPreview => write!(f, "ImeFinishPreview"),
+            Self::SetPageTheme(dark) => write!(f, "SetPageTheme({dark})"),
             Self::Vsync => write!(f, "Vsync"),
             Self::Resize { width, height } => f
                 .debug_struct("Resize")
@@ -443,11 +771,88 @@ impl std::fmt::Debug for ServoAction {
 impl ServoAction {
     fn dispatch_touch_event(servo: &App, kind: TouchEventType, x: f32, y: f32, pointer_id: i32) {
         match kind {
-            TouchEventType::Down => servo.touch_down(x, y, pointer_id),
-            TouchEventType::Up => servo.touch_up(x, y, pointer_id),
+            TouchEventType::Down => {
+                if TOUCH_DOWN.swap(true, Ordering::SeqCst) {
+                    debug!("skip duplicated touch down");
+                    return;
+                }
+                servo.touch_down(x, y, pointer_id)
+            },
+            TouchEventType::Up => {
+                if !TOUCH_DOWN.swap(false, Ordering::SeqCst) {
+                    debug!("skip touch up without matching down");
+                    return;
+                }
+                servo.touch_up(x, y, pointer_id)
+            },
             TouchEventType::Move => servo.touch_move(x, y, pointer_id),
             TouchEventType::Cancel => servo.touch_cancel(x, y, pointer_id),
             TouchEventType::Unknown => warn!("Can't dispatch Unknown Touch Event"),
+        }
+    }
+
+    /// Maps `OH_NativeXComponent_MouseEventButton` onto servo's [`MouseButton`].
+    fn mouse_button(button: u32) -> MouseButton {
+        match button {
+            // OH_NATIVEXCOMPONENT_LEFT_BUTTON
+            1 => MouseButton::Primary,
+            // OH_NATIVEXCOMPONENT_RIGHT_BUTTON
+            2 => MouseButton::Secondary,
+            // OH_NATIVEXCOMPONENT_MIDDLE_BUTTON
+            4 => MouseButton::Auxiliary,
+            _ => MouseButton::None,
+        }
+    }
+
+    /// Pushes the page's CSS cursor to ArkTS, but only when it actually changed.
+    fn dispatch_cursor(servo: &App) {
+        let Some(cursor) = servo.current_cursor() else {
+            return;
+        };
+        let id = cursor_id(cursor);
+        {
+            let mut last = LAST_CURSOR.lock().unwrap();
+            if *last == id {
+                return;
+            }
+            *last = id;
+        }
+        if let Some(callback) = CURSOR_CB.lock().unwrap().as_ref() {
+            let _ = callback.call(id, ThreadsafeFunctionCallMode::NonBlocking);
+        }
+    }
+
+    /// Dispatches an `OH_NativeXComponent_MouseEvent` to servo.
+    fn dispatch_mouse_event(servo: &App, action: u32, button: u32, x: f32, y: f32) {
+        match action {
+            // OH_NATIVEXCOMPONENT_MOUSE_PRESS
+            1 => {
+                let bit = 1u32 << button.min(31);
+                if MOUSE_BUTTONS_DOWN.fetch_or(bit, Ordering::SeqCst) & bit != 0 {
+                    // 同一次按下已经派发过，重复的 down 会让 servo 计成连击。
+                    debug!("skip duplicated mouse press (button {button})");
+                    DUP_PRESS_DROPPED.fetch_add(1, Ordering::Relaxed);
+                    return;
+                }
+                // 先补一次 move：很多站点依赖 mousemove 建立 hover 状态，否则点击点不中输入框
+                servo.mouse_move(x, y);
+                servo.mouse_down(x, y, Self::mouse_button(button));
+            },
+            // OH_NATIVEXCOMPONENT_MOUSE_RELEASE
+            2 => {
+                let bit = 1u32 << button.min(31);
+                if MOUSE_BUTTONS_DOWN.fetch_and(!bit, Ordering::SeqCst) & bit == 0 {
+                    debug!("skip mouse release without matching press (button {button})");
+                    return;
+                }
+                servo.mouse_up(x, y, Self::mouse_button(button));
+            },
+            // OH_NATIVEXCOMPONENT_MOUSE_MOVE - also drives CSS `:hover` and the cursor.
+            3 => {
+                servo.mouse_move(x, y);
+                Self::dispatch_cursor(servo);
+            },
+            _ => {},
         }
     }
 
@@ -464,6 +869,7 @@ impl ServoAction {
             LoadUrl(url) => servo.load_uri(url.as_str()),
             GoBack => servo.go_back(),
             GoForward => servo.go_forward(),
+            Reload => servo.reload(),
             TouchEvent {
                 kind,
                 x,
@@ -471,7 +877,46 @@ impl ServoAction {
                 pointer_id,
             } => Self::dispatch_touch_event(servo, *kind, *x, *y, *pointer_id),
             KeyEvent(k) => servo.key_event(k.clone()),
-            InsertText(text) => servo.ime_insert_text(text.clone()),
+            MouseEvent {
+                action,
+                button,
+                x,
+                y,
+            } => Self::dispatch_mouse_event(servo, *action, *button, *x, *y),
+            EvalJs(script) => servo.eval_js(script.as_str()),
+            EvalJsWithResult(script) => {
+                let sender = EVAL_RESULT_TX.lock().unwrap().clone();
+                match (servo.active_or_newest_webview(), sender) {
+                    (Some(webview), Some(notify)) => {
+                        let source = script.clone();
+                        webview.evaluate_javascript(source, move |result| {
+                            let text = match result {
+                                Ok(servo::JSValue::String(value)) => value,
+                                Ok(servo::JSValue::Number(value)) => value.to_string(),
+                                Ok(servo::JSValue::Boolean(value)) => value.to_string(),
+                                Ok(_) => String::new(),
+                                Err(_) => String::new(),
+                            };
+                            if notify.send(text).is_err() {
+                                error!("eval_js_result: result channel closed");
+                            }
+                        });
+                        servo.spin_event_loop();
+                    },
+                    _ => error!("eval_js_result: no webview or no callback"),
+                }
+            },
+            Shutdown => {
+                warn!("Shutdown action should be handled by the main loop");
+            },
+            WheelEvent { dx, dy } => {
+                let (x, y) = *LAST_POINTER.lock().unwrap();
+                servo.scroll(*dx, *dy, x, y);
+            },
+            InsertText(text) => servo.ime_commit_text(text.clone()),
+            ImePreviewText(text) => servo.ime_preview_text(text.clone()),
+            ImeFinishPreview => servo.ime_finish_preview(),
+            SetPageTheme(dark) => servo.set_page_theme(*dark),
             ImeDeleteForward(len) => {
                 for _ in 0..*len {
                     servo.key_down(Key::Named(NamedKey::Delete));
@@ -485,9 +930,11 @@ impl ServoAction {
                 }
             },
             ImeSendEnter => {
+                // 只派发回车键，是否收起输入法由页面/焦点决定。
+                // 这里再调用 ime_dismissed() 会把焦点切回 Viewport，
+                // 多行输入框会因此无法换行，单行搜索框也会丢掉焦点。
                 servo.key_down(Key::Named(NamedKey::Enter));
                 servo.key_up(Key::Named(NamedKey::Enter));
-                servo.ime_dismissed();
             },
             ImeDismiss => {
                 servo.ime_dismissed();
@@ -506,7 +953,7 @@ impl ServoAction {
                     servo.state.set_window_has_focus(window.clone(), true);
                     if let Some(webview) = window.active_webview() {
                         if let Some(url) = webview.url() {
-                            SET_URL_BAR_CB.get().map(|f| {
+                            SET_URL_BAR_CB.lock().unwrap().as_ref().map(|f| {
                                 f.call(url.to_string(), ThreadsafeFunctionCallMode::Blocking)
                             });
                         }
@@ -536,16 +983,31 @@ impl ServoAction {
                     servo
                         .servoshell_preferences()
                         .device_pixel_ratio_override
-                        .unwrap_or_else(get_display_density),
+                        .unwrap_or_else(effective_hidpi),
                 );
+                // surface 被重建时（进入/退出全屏、窗口尺寸变化）ArkTS 会再次下发
+                // 同一个 window id。若直接用它建新窗口，servo 内部会出现同 id 的两个
+                // 平台窗口 —— 这是全屏必现闪退的根因。
+                let requested = ServoShellWindowId::from(
+                    NEXT_WINDOW_ID.load(std::sync::atomic::Ordering::SeqCst),
+                );
+                let window_id = if servo.state.window(requested).is_some() {
+                    warn!("surface recreated for window {requested:?}; replacing it");
+                    if let Some(old) = servo.state.window(requested) {
+                        old.schedule_close();
+                    }
+                    ServoShellWindowId::from(
+                        RECREATED_WINDOW_ID.fetch_add(1, std::sync::atomic::Ordering::SeqCst),
+                    )
+                } else {
+                    requested
+                };
                 servo.add_platform_window(
                     display_handle,
                     window_handle,
                     viewport_rect,
                     hidpi_factor,
-                    Some(ServoShellWindowId::from(
-                        NEXT_WINDOW_ID.load(std::sync::atomic::Ordering::SeqCst),
-                    )),
+                    Some(window_id),
                 );
             },
             RemovePlatformWindow(arkts_index, arkts_ids) => {
@@ -593,24 +1055,29 @@ unsafe extern "C" fn on_vsync_cb(
     }
 }
 
-fn main_thread(init_opts: InitOpts) {
-    let (tx, rx): (Sender<ServoAction>, Receiver<ServoAction>) = mpsc::channel();
-
-    SERVO_CHANNEL
-        .set(tx.clone())
-        .expect("Servo channel already initialized");
-
+fn main_thread(init_opts: InitOpts, rx: Receiver<ServoAction>, tx: Sender<ServoAction>) {
     log::info!("Servo main-thread channel initialized");
 
     let wakeup = Box::new(WakeupCallback::new(tx));
 
-    let servo = init_app(init_opts, wakeup).expect("Servo initialization failed");
+    let servo = match init_app(init_opts, wakeup) {
+        Ok(servo) => servo,
+        Err(error) => {
+            error!("Servo initialization failed: {error}");
+            return;
+        },
+    };
 
     while let Ok(action) = rx.recv() {
+        if matches!(action, ServoAction::Shutdown) {
+            info!("Servo main thread shutting down (ability recreated)");
+            break;
+        }
         trace!("Wakeup message received!");
         action.do_action(&servo);
     }
 
+    drop(servo);
     info!("Sender disconnected - Terminating main surface thread");
 }
 
@@ -634,13 +1101,13 @@ extern "C" fn on_surface_created_cb(xcomponent: *mut OH_NativeXComponent, window
             xc_wrapper,
             window_wrapper,
         ))
-        .expect("Servo main thread channel not initialized");
+        .unwrap_or_else(|e| error!("surface created before servo init: {e:?}"));
     } else {
         call(ServoAction::CreatePlatformWindow(
             xc_wrapper,
             window_wrapper,
         ))
-        .expect("Servo main thread channel not initialized");
+        .unwrap_or_else(|e| error!("surface created before servo init: {e:?}"));
     }
     info!("Returning from on_surface_created_cb");
 }
@@ -706,15 +1173,20 @@ extern "C" fn on_surface_changed_cb(
 ) {
     debug!("on_surface_changed_cb: xc: {xcomponent:?}, window: {native_window:?}");
     // SAFETY: We just obtained these pointers from the callback, so we can assume them to be valid.
-    if let Ok(size) = unsafe { get_xcomponent_size(xcomponent, native_window) } {
-        info!("on_surface_changed_cb: Resizing to {size:?}");
-        call(ServoAction::Resize {
-            width: size.width,
-            height: size.height,
-        })
-        .unwrap();
-    } else {
-        error!("on_surface_changed_cb: Surface changed, but failed to obtain new size")
+    let (buffer_size, reported_size, hidpi) = measure_surface(xcomponent, native_window);
+    let size = buffer_size.or(reported_size);
+    match size {
+        // 全屏切换的瞬间会拿到 0 或负的尺寸，直接下发会让 WebRender 除零/断言失败，
+        // 表现就是“一进全屏就闪退”。这里只接受合理范围内的尺寸。
+        Some(size) if size.width > 0 && size.height > 0 => {
+            let width = size.width.clamp(1, 16384);
+            let height = size.height.clamp(1, 16384);
+            info!("on_surface_changed_cb: Resizing to {width}x{height} (hidpi {hidpi})");
+            if let Err(e) = call(ServoAction::Resize { width, height }) {
+                error!("resize dispatch failed: {e:?}");
+            }
+        },
+        _ => warn!("on_surface_changed_cb: ignoring invalid surface size {size:?}"),
     }
 }
 
@@ -745,6 +1217,15 @@ extern "C" fn on_dispatch_touch_event_cb(component: *mut OH_NativeXComponent, wi
             TouchEventType::Unknown
         },
     };
+    // 鼠标设备上，触摸事件与鼠标事件是同一个物理动作的两种表示，
+    // 全部忽略触摸可彻底避免 servo 把它算成多击（多击会选中文字）。
+    if MOUSE_SEEN.load(Ordering::Relaxed) {
+        return;
+    }
+    if matches!(kind, TouchEventType::Down | TouchEventType::Up) && !allow_pointer_press(1) {
+        debug!("skip duplicated touch press (mouse already delivered)");
+        return;
+    }
     if let Err(e) = call(ServoAction::TouchEvent {
         kind,
         x: touch_event.x,
@@ -798,6 +1279,32 @@ extern "C" fn on_dispatch_key_event(xc: *mut OH_NativeXComponent, _window: *mut 
         scroll_lock,
     };
 
+    // PC keyboard shortcuts are handled by the ArkTS chrome and must not reach the page.
+    if action == OH_NativeXComponent_KeyAction::OH_NATIVEXCOMPONENT_KEY_ACTION_DOWN {
+        if let Some(shortcut) = shortcut_id(keycode, modifiers.ctrl) {
+            trace!("Intercepting browser shortcut {shortcut}");
+            if let Some(callback) = SHORTCUT_CB.lock().unwrap().as_ref() {
+                let _ = callback.call(shortcut, ThreadsafeFunctionCallMode::NonBlocking);
+            }
+            return;
+        }
+    }
+
+    // 可打印字符：PC 端没有软键盘，IME 不会产出字符。
+    // 这里构造 Key::Character 事件，交给 servo 同时完成 keydown 派发与文本插入。
+    let is_down = action == OH_NativeXComponent_KeyAction::OH_NATIVEXCOMPONENT_KEY_ACTION_DOWN;
+    let is_up = action == OH_NativeXComponent_KeyAction::OH_NATIVEXCOMPONENT_KEY_ACTION_UP;
+    if (is_down || is_up) && !modifiers.ctrl && !modifiers.alt {
+        if let Some(ch) = keycode_to_char(keycode, modifiers.shift) {
+            info!("printable key delivered to servo: '{}' down={}", ch, is_down);
+            let event = printable_key_event(ch, modifiers.shift, is_down);
+            if let Err(e) = call(ServoAction::KeyEvent(event)) {
+                error!("printable key failed: {e:?}");
+            }
+            return;
+        }
+    }
+
     let converted = KEY_EVENT_CONVERTER
         .lock()
         .unwrap()
@@ -811,8 +1318,307 @@ extern "C" fn on_dispatch_key_event(xc: *mut OH_NativeXComponent, _window: *mut 
     }
 }
 
-static LOGGER: LazyLock<hilog::Logger> = LazyLock::new(|| {
-    let mut builder = hilog::Builder::new();
+/// Maps servo's CSS cursor onto a small integer id that ArkTS turns into a `PointerStyle`.
+pub(crate) fn cursor_id(cursor: servo::Cursor) -> u32 {
+    use servo::Cursor;
+    match cursor {
+        Cursor::Default => 0,
+        Cursor::Pointer => 1,
+        Cursor::Text | Cursor::VerticalText => 2,
+        Cursor::Crosshair => 3,
+        Cursor::Move => 4,
+        Cursor::Grab => 5,
+        Cursor::Grabbing => 6,
+        Cursor::NotAllowed | Cursor::NoDrop => 7,
+        Cursor::Wait => 8,
+        Cursor::Progress => 9,
+        Cursor::ContextMenu => 10,
+        Cursor::Help => 11,
+        Cursor::Copy | Cursor::Alias => 12,
+        Cursor::Cell => 13,
+        Cursor::EResize | Cursor::WResize | Cursor::EwResize => 14,
+        Cursor::NResize | Cursor::SResize | Cursor::NsResize => 15,
+        Cursor::NeResize | Cursor::SwResize | Cursor::NeswResize => 16,
+        Cursor::NwResize | Cursor::SeResize | Cursor::NwseResize => 17,
+        _ => 0,
+    }
+}
+
+/// 构造一个可打印字符的键盘事件（servo 会在焦点可编辑元素上完成文本插入）。
+fn printable_key_event(ch: char, shift: bool, down: bool) -> keyboard_types::KeyboardEvent {
+    use keyboard_types::{Code, Key, KeyState, KeyboardEvent, Location, Modifiers};
+    let mut modifiers = Modifiers::empty();
+    if shift {
+        modifiers |= Modifiers::SHIFT;
+    }
+    KeyboardEvent {
+        state: if down { KeyState::Down } else { KeyState::Up },
+        key: Key::Character(ch.to_string().into()),
+        code: Code::Unidentified,
+        location: Location::Standard,
+        modifiers,
+        repeat: false,
+        is_composing: false,
+    }
+}
+
+/// 把 OHOS 键码映射成可打印字符（PC 上没有软键盘时，文本输入必须由这里补）。
+fn keycode_to_char(code: OH_NativeXComponent_KeyCode, shift: bool) -> Option<char> {
+    let value = code.0;
+    if (2000..=2009).contains(&value) {
+        let index = (value - 2000) as usize;
+        let digits = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+        let shifted = ['!', '@', '#', '$', '%', '^', '&', '*', '(', ')'];
+        return Some(if shift { shifted[index] } else { digits[index] });
+    }
+    if (2017..=2042).contains(&value) {
+        let index = (value - 2017) as u8;
+        let lower = b'a' + index;
+        let ch = lower as char;
+        return Some(if shift { ch.to_ascii_uppercase() } else { ch });
+    }
+    let pair: Option<(char, char)> = match value {
+        2043 => Some((',', '<')),
+        2044 => Some(('.', '>')),
+        2049 => None, // Tab
+        2050 => Some((' ', ' ')),
+        2056 => Some(('`', '~')),
+        2057 => Some(('-', '_')),
+        2058 => Some(('=', '+')),
+        2059 => Some(('[', '{')),
+        2060 => Some((']', '}')),
+        2061 => Some(('\\', '|')),
+        2062 => Some((';', ':')),
+        2063 => Some(('\'', '"')),
+        2064 => Some(('/', '?')),
+        2065 => Some(('@', '@')),
+        2010 => Some(('*', '*')),
+        _ => None,
+    };
+    pair.map(|(plain, with_shift)| if shift { with_shift } else { plain })
+}
+
+fn base64_encode(input: &[u8]) -> String {
+    const TABLE: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity((input.len() + 2) / 3 * 4);
+    for chunk in input.chunks(3) {
+        let b0 = chunk[0] as u32;
+        let b1 = *chunk.get(1).unwrap_or(&0) as u32;
+        let b2 = *chunk.get(2).unwrap_or(&0) as u32;
+        let triple = (b0 << 16) | (b1 << 8) | b2;
+        out.push(TABLE[((triple >> 18) & 0x3F) as usize] as char);
+        out.push(TABLE[((triple >> 12) & 0x3F) as usize] as char);
+        out.push(if chunk.len() > 1 {
+            TABLE[((triple >> 6) & 0x3F) as usize] as char
+        } else {
+            '='
+        });
+        out.push(if chunk.len() > 2 {
+            TABLE[(triple & 0x3F) as usize] as char
+        } else {
+            '='
+        });
+    }
+    out
+}
+
+pub(crate) fn notify_favicon(webview: &servo::WebView) {
+    let Some(image) = webview.favicon() else {
+        return;
+    };
+    let image = &*image;
+    let (width, height) = (image.width, image.height);
+    if width == 0 || height == 0 {
+        return;
+    }
+    // 0 = RGBA8, 1 = BGRA8，ArkTS 侧据此选择 PixelMapFormat
+    let format = match image.format {
+        servo::PixelFormat::RGBA8 => 0,
+        servo::PixelFormat::BGRA8 => 1,
+        _ => return,
+    };
+    const MAX_SIDE: u32 = 512;
+    let source = image.data();
+    // 超过 512 时居中裁切成正方形，而不是丢掉图标
+    let (out_width, out_height, out_data) = if width <= MAX_SIDE && height <= MAX_SIDE {
+        (width, height, source.to_vec())
+    } else {
+        let side = width.min(height).min(MAX_SIDE);
+        let start_x = (width - side) / 2;
+        let start_y = (height - side) / 2;
+        let bytes_per_pixel = 4usize;
+        let mut cropped: Vec<u8> =
+            Vec::with_capacity(side as usize * side as usize * bytes_per_pixel);
+        for row in 0..side {
+            let begin = (((row + start_y) * width + start_x) as usize) * bytes_per_pixel;
+            let end = begin + side as usize * bytes_per_pixel;
+            if end <= source.len() {
+                cropped.extend_from_slice(&source[begin..end]);
+            }
+        }
+        (side, side, cropped)
+    };
+    if out_data.is_empty() {
+        return;
+    }
+    // 统一编码成 PNG 再交给 ArkTS。
+    // 直接传裸像素时，RGBA/BGRA 的通道顺序在不同图标来源（PNG / ICO / SVG 栅格化）
+    // 和不同设备上会出现偏差，表现为“蓝色 logo 变成红色”。
+    // PNG 由平台解码器还原，颜色与格式不再依赖我们对像素布局的假设。
+    let mut rgba = out_data;
+    if format == 1 {
+        // BGRA8 -> RGBA8
+        for pixel in rgba.chunks_exact_mut(4) {
+            pixel.swap(0, 2);
+        }
+    }
+    let Some(buffer) = image::ImageBuffer::<image::Rgba<u8>, _>::from_raw(out_width, out_height, rgba)
+    else {
+        return;
+    };
+    let mut png_bytes: Vec<u8> = Vec::new();
+    if buffer
+        .write_to(
+            &mut std::io::Cursor::new(&mut png_bytes),
+            image::ImageFormat::Png,
+        )
+        .is_err()
+    {
+        return;
+    }
+    let payload = format!("png:{}", base64_encode(&png_bytes));
+    if let Some(callback) = FAVICON_CB.lock().unwrap().as_ref() {
+        let _ = callback.call(payload, ThreadsafeFunctionCallMode::NonBlocking);
+    }
+}
+
+/// 来自 `WebViewDelegate` 的导航状态（这是 servo 0.7 唯一有效的事件通道）。
+pub(crate) fn notify_nav_state(can_back: bool, can_forward: bool) {
+    let state = u32::from(can_back) | (u32::from(can_forward) << 1);
+    if let Some(callback) = NAV_STATE_CB.lock().unwrap().as_ref() {
+        let _ = callback.call(state, ThreadsafeFunctionCallMode::NonBlocking);
+    }
+}
+
+pub(crate) fn notify_title(title: Option<String>) {
+    let text = title.unwrap_or_default();
+    if let Some(callback) = SET_TITLE_CB.lock().unwrap().as_ref() {
+        let _ = callback.call(text, ThreadsafeFunctionCallMode::NonBlocking);
+    }
+}
+
+pub(crate) fn notify_url(url: &str) {
+    if let Some(callback) = SET_URL_BAR_CB.lock().unwrap().as_ref() {
+        let _ = callback.call(url.to_string(), ThreadsafeFunctionCallMode::NonBlocking);
+    }
+}
+
+pub(crate) fn notify_load_status(status: LoadStatus) {
+    let code = if status == LoadStatus::Started {
+        1
+    } else if status == LoadStatus::HeadParsed {
+        2
+    } else {
+        3
+    };
+    if let Some(callback) = LOAD_STATUS_CB.lock().unwrap().as_ref() {
+        let _ = callback.call(code, ThreadsafeFunctionCallMode::NonBlocking);
+    }
+}
+
+pub(crate) fn notify_cursor(cursor: servo::Cursor) {
+    let id = cursor_id(cursor);
+    {
+        let mut last = LAST_CURSOR.lock().unwrap();
+        if *last == id {
+            return;
+        }
+        *last = id;
+    }
+    if let Some(callback) = CURSOR_CB.lock().unwrap().as_ref() {
+        let _ = callback.call(id, ThreadsafeFunctionCallMode::NonBlocking);
+    }
+}
+
+/// Maps a key press onto the shortcut ids understood by the ArkTS browser chrome:
+/// 1 = new tab, 2 = close tab, 3 = focus address bar, 4 = reload, 5 = next tab.
+fn shortcut_id(keycode: OH_NativeXComponent_KeyCode, ctrl: bool) -> Option<u32> {
+    use OH_NativeXComponent_KeyCode as KeyCode;
+    if keycode == KeyCode::KEY_F5 {
+        return Some(4);
+    }
+    if !ctrl {
+        return None;
+    }
+    if keycode == KeyCode::KEY_T {
+        Some(1)
+    } else if keycode == KeyCode::KEY_W {
+        Some(2)
+    } else if keycode == KeyCode::KEY_L {
+        Some(3)
+    } else if keycode == KeyCode::KEY_R {
+        Some(4)
+    } else if keycode == KeyCode::KEY_TAB {
+        Some(5)
+    } else {
+        None
+    }
+}
+
+extern "C" fn on_dispatch_mouse_event_cb(component: *mut OH_NativeXComponent, window: *mut c_void) {    let mut mouse_event: MaybeUninit<OH_NativeXComponent_MouseEvent> = MaybeUninit::uninit();
+    let res = unsafe {
+        OH_NativeXComponent_GetMouseEvent(component, window, mouse_event.as_mut_ptr())
+    };
+    if res != 0 {
+        error!("OH_NativeXComponent_GetMouseEvent failed with {res}");
+        return;
+    }
+    let mouse_event = unsafe { mouse_event.assume_init() };
+    MOUSE_SEEN.store(true, Ordering::Relaxed);
+    let action_value = mouse_event.action.0;
+    if (action_value == 1 || action_value == 2) && !allow_pointer_press(2) {
+        debug!("skip duplicated mouse press (touch already delivered)");
+        return;
+    }
+    // 鼠标事件坐标单位是 vp，servo 的输入事件按 page pixel(CSS px) 解释，二者等价，不做缩放。
+    let point_x = mouse_event.x;
+    let point_y = mouse_event.y;
+    *LAST_POINTER.lock().unwrap() = (point_x, point_y);
+    if let Err(e) = call(ServoAction::MouseEvent {
+        action: mouse_event.action.0,
+        button: mouse_event.button.0,
+        x: point_x,
+        y: point_y,
+    }) {
+        error!("Failed to dispatch mouse event: {e:?}");
+    }
+}
+
+/// Wheel and touchpad scrolling arrive through the generic ArkUI axis-event callback:
+/// `OH_NativeXComponent_MouseEvent` has no wheel action of its own.
+unsafe extern "C" fn on_axis_event_cb(
+    _component: *mut OH_NativeXComponent,
+    event: *mut ArkUI_UIInputEvent,
+    _event_type: i32,
+) {
+    if event.is_null() {
+        return;
+    }
+    let vertical = unsafe { OH_ArkUI_AxisEvent_GetVerticalAxisValue(event) } as f32;
+    let horizontal = unsafe { OH_ArkUI_AxisEvent_GetHorizontalAxisValue(event) } as f32;
+    if vertical == 0.0 && horizontal == 0.0 {
+        return;
+    }
+    // Windows 习惯：滚轮向下 => 页面向下滚动（与 servo 的 delta 同向，不做取反）
+    if let Err(e) = call(ServoAction::WheelEvent {
+        dx: horizontal,
+        dy: vertical,
+    }) {
+        error!("Failed to dispatch wheel event: {e:?}");
+    }
+}
+
+static LOGGER: LazyLock<hilog::Logger> = LazyLock::new(|| {    let mut builder = hilog::Builder::new();
     builder.set_domain(hilog::LogDomain::new(0xE0C3));
     let filters = [
         "fonts",
@@ -838,12 +1644,81 @@ static LOGGER: LazyLock<hilog::Logger> = LazyLock::new(|| {
     builder.filter_level(LevelFilter::Warn).build()
 });
 
+/// 启动以来的日志环形缓冲，供「设置 → 调试与反馈」查看与复制。
+/// 设备上拿不到 hilog 时，这是唯一的取证手段。
+const LOG_CAP: usize = 3000;
+static LOG_RING: LazyLock<Mutex<VecDeque<String>>> =
+    LazyLock::new(|| Mutex::new(VecDeque::with_capacity(LOG_CAP)));
+
+fn push_log_line(line: String) {
+    let mut ring = match LOG_RING.lock() {
+        Ok(ring) => ring,
+        Err(_) => return,
+    };
+    if ring.len() >= LOG_CAP {
+        ring.pop_front();
+    }
+    ring.push_back(line);
+}
+
+fn log_timestamp() -> String {
+    static START: LazyLock<Instant> = LazyLock::new(Instant::now);
+    let elapsed = START.elapsed();
+    let ms = elapsed.as_millis();
+    format!("{:>4}.{:03}s", ms / 1000, ms % 1000)
+}
+
+struct RingLogger;
+
+impl log::Log for RingLogger {
+    fn enabled(&self, metadata: &log::Metadata<'_>) -> bool {
+        (*LOGGER).enabled(metadata)
+    }
+
+    fn log(&self, record: &log::Record<'_>) {
+        (*LOGGER).log(record);
+        push_log_line(format!(
+            "{} {:<5} {}: {}",
+            log_timestamp(),
+            record.level(),
+            record.target(),
+            record.args()
+        ));
+    }
+
+    fn flush(&self) {
+        (*LOGGER).flush();
+    }
+}
+
+static RING_LOGGER: RingLogger = RingLogger;
+
+#[napi(js_name = "debugLogs")]
+pub fn debug_logs() -> String {
+    match LOG_RING.lock() {
+        Ok(ring) => ring.iter().cloned().collect::<Vec<String>>().join("\n"),
+        Err(_) => String::new(),
+    }
+}
+
+/// ArkTS 侧的日志（hilog 那些）也写进同一份环形缓冲，导出时一并带走。
+#[napi(js_name = "appendJsLog")]
+pub fn append_js_log(line: String) {
+    push_log_line(format!("{} JS    servo.ui: {}", log_timestamp(), line));
+}
+
+#[napi(js_name = "clearDebugLogs")]
+pub fn clear_debug_logs() {
+    if let Ok(mut ring) = LOG_RING.lock() {
+        ring.clear();
+    }
+}
+
 fn initialize_logging_once() {
     static ONCE: Once = Once::new();
     ONCE.call_once(|| {
-        let logger: &'static hilog::Logger = &LOGGER;
-        let max_level = logger.filter();
-        let r = log::set_logger(logger).map(|()| log::set_max_level(max_level));
+        let max_level = (*LOGGER).filter();
+        let r = log::set_logger(&RING_LOGGER).map(|()| log::set_max_level(max_level));
         debug!("Attempted to register the logger: {r:?} and set max level to: {max_level}");
         info!("Servo Register callback called!");
 
@@ -938,6 +1813,36 @@ fn register_xcomponent_callbacks(env: &Env, xcomponent: &Object) -> napi_ohos::R
     } else {
         debug!("Registered key event callbacks successfully");
     }
+
+    let mouse_cbs = Box::new(OH_NativeXComponent_MouseEvent_Callback {
+        DispatchMouseEvent: Some(on_dispatch_mouse_event_cb),
+        DispatchHoverEvent: None,
+    });
+    let res = unsafe {
+        OH_NativeXComponent_RegisterMouseEventCallback(
+            nativeXComponent,
+            Box::leak(mouse_cbs) as *mut _,
+        )
+    };
+    if res != 0 {
+        error!("Failed to register mouse event callbacks with {res}");
+    } else {
+        debug!("Registered mouse event callbacks successfully");
+    }
+
+    let res = unsafe {
+        OH_NativeXComponent_RegisterUIInputEventCallback(
+            nativeXComponent,
+            Some(on_axis_event_cb),
+            ARKUI_UIINPUTEVENT_TYPE_AXIS,
+        )
+    };
+    if res != 0 {
+        // Not fatal: without this callback the app still works, it just cannot scroll with a wheel.
+        warn!("Failed to register wheel (axis) event callback with {res}");
+    } else {
+        debug!("Registered wheel (axis) event callback successfully");
+    }
     Ok(())
 }
 
@@ -971,17 +1876,188 @@ fn init(exports: Object, env: Env) -> napi_ohos::Result<()> {
 #[napi(js_name = "loadURL")]
 pub fn load_url(url: String) {
     debug!("load url");
-    call(ServoAction::LoadUrl(url)).expect("Failed to load url");
+    if let Err(e) = call(ServoAction::LoadUrl(url)) {
+        error!("load_url failed: {e:?}");
+    }
 }
 
 #[napi]
 pub fn go_back() {
-    call(ServoAction::GoBack).expect("Failed to call servo");
+    if let Err(e) = call(ServoAction::GoBack) {
+        error!("go_back failed: {e:?}");
+    }
 }
 
 #[napi]
 pub fn go_forward() {
-    call(ServoAction::GoForward).expect("Failed to call servo");
+    if let Err(e) = call(ServoAction::GoForward) {
+        error!("go_forward failed: {e:?}");
+    }
+}
+
+#[napi]
+pub fn reload() {
+    if let Err(e) = call(ServoAction::Reload) {
+        error!("reload failed: {e:?}");
+    }
+}
+
+#[napi(js_name = "registerTitleCallback")]
+pub fn register_title_callback(callback: Function<String, ()>) -> napi_ohos::Result<()> {
+    debug!("register_title_callback called!");
+    let tsfn_builder = callback.build_threadsafe_function();
+    let function = tsfn_builder
+        .max_queue_size::<UPDATE_URL_QUEUE_SIZE>()
+        .build()?;
+    *SET_TITLE_CB.lock().unwrap() = Some(function);
+    Ok(())
+}
+
+#[napi(js_name = "registerNavStateCallback")]
+pub fn register_nav_state_callback(callback: Function<u32, ()>) -> napi_ohos::Result<()> {
+    debug!("register_nav_state_callback called!");
+    let tsfn_builder = callback.build_threadsafe_function();
+    let function = tsfn_builder
+        .max_queue_size::<UPDATE_URL_QUEUE_SIZE>()
+        .build()?;
+    *NAV_STATE_CB.lock().unwrap() = Some(function);
+    Ok(())
+}
+
+/// 运行时切换 User-Agent：servo 每次请求都从全局 prefs 读 UA，所以改完立即生效，
+/// 已打开的页面需要 reload 才会看到新的 navigator.userAgent。
+#[napi(js_name = "setUserAgent")]
+pub fn set_user_agent(ua: String) {
+    debug!("set_user_agent called ({} bytes)", ua.len());
+    let preferences = {
+        let mut current = servo_config::prefs::get().clone();
+        if current.user_agent == ua {
+            return;
+        }
+        current.user_agent = ua;
+        current
+    };
+    servo_config::prefs::set(preferences);
+}
+
+/// 执行 JS 并把结果回传 ArkTS（用于读取页面内存里的 blob 下载内容）。
+/// 注册内核附件下载回调（Content-Disposition: attachment）。
+/// 注册站点图标回调。
+#[napi(js_name = "registerFaviconCallback")]
+pub fn register_favicon_callback(callback: Function<String, ()>) -> napi_ohos::Result<()> {
+    let function = callback
+        .build_threadsafe_function()
+        .max_queue_size::<4>()
+        .build()?;
+    *FAVICON_CB.lock().unwrap() = Some(function);
+    Ok(())
+}
+
+#[napi(js_name = "registerDownloadSink")]
+pub fn register_download_sink(callback: Function<String, ()>) -> napi_ohos::Result<()> {
+    let function = callback
+        .build_threadsafe_function()
+        .max_queue_size::<4>()
+        .build()?;
+    *DOWNLOAD_SINK_CB.lock().unwrap() = Some(function);
+    Ok(())
+}
+
+#[napi(js_name = "evalJsResult")]
+pub fn eval_js_result(script: String, callback: Function<String, ()>) -> napi_ohos::Result<()> {
+    let tsfn = callback
+        .build_threadsafe_function()
+        .max_queue_size::<4>()
+        .build()?;
+    let (tx, rx) = mpsc::channel::<String>();
+    thread::spawn(move || {
+        while let Ok(text) = rx.recv() {
+            if tsfn.call(text, ThreadsafeFunctionCallMode::NonBlocking) != napi_ohos::Status::Ok {
+                error!("eval_js_result: callback failed");
+            }
+        }
+    });
+    *EVAL_RESULT_TX.lock().unwrap() = Some(tx);
+    if let Err(e) = call(ServoAction::EvalJsWithResult(script)) {
+        error!("eval_js_result failed: {e:?}");
+    }
+    Ok(())
+}
+
+/// 供 ArkUI 键盘兜底使用：把字符直接插入当前聚焦的可编辑元素。
+/// 由 ArkTS 提供系统缩放比（display.getDefaultDisplaySync().densityPixels），
+/// 比 OH_NativeDisplayManager 返回的 density 可靠。
+#[napi(js_name = "setDevicePixelRatio")]
+pub fn set_device_pixel_ratio(ratio: f64) {
+    let value = ratio as f32;
+    if value.is_finite() && value > 0.1 {
+        *DEVICE_PIXEL_RATIO.lock().unwrap() = value;
+        info!("device pixel ratio updated: {value}");
+    }
+}
+
+#[napi(js_name = "insertText")]
+pub fn insert_text(text: String) {
+    if let Err(e) = call(ServoAction::InsertText(text)) {
+        error!("insert_text failed: {e:?}");
+    }
+}
+
+/// 退格：删除光标前 count 个字符。
+#[napi(js_name = "deleteBackward")]
+pub fn delete_backward(count: u32) {
+    if let Err(e) = call(ServoAction::ImeDeleteBackward(count as usize)) {
+        error!("delete_backward failed: {e:?}");
+    }
+}
+
+/// 回车：把 Enter 交给当前聚焦的可编辑元素。
+#[napi(js_name = "sendEnter")]
+pub fn send_enter() {
+    if let Err(e) = call(ServoAction::ImeSendEnter) {
+        error!("send_enter failed: {e:?}");
+    }
+}
+
+#[napi(js_name = "evalJs")]
+pub fn eval_js(script: String) {
+    debug!("eval_js called ({} bytes)", script.len());
+    if let Err(e) = call(ServoAction::EvalJs(script)) {
+        error!("eval_js failed: {e:?}");
+    }
+}
+
+#[napi(js_name = "registerCursorCallback")]
+pub fn register_cursor_callback(callback: Function<u32, ()>) -> napi_ohos::Result<()> {
+    debug!("register_cursor_callback called!");
+    let tsfn_builder = callback.build_threadsafe_function();
+    let function = tsfn_builder
+        .max_queue_size::<UPDATE_URL_QUEUE_SIZE>()
+        .build()?;
+    *CURSOR_CB.lock().unwrap() = Some(function);
+    Ok(())
+}
+
+#[napi(js_name = "registerShortcutCallback")]
+pub fn register_shortcut_callback(callback: Function<u32, ()>) -> napi_ohos::Result<()> {
+    debug!("register_shortcut_callback called!");
+    let tsfn_builder = callback.build_threadsafe_function();
+    let function = tsfn_builder
+        .max_queue_size::<UPDATE_URL_QUEUE_SIZE>()
+        .build()?;
+    *SHORTCUT_CB.lock().unwrap() = Some(function);
+    Ok(())
+}
+
+#[napi(js_name = "registerLoadStatusCallback")]
+pub fn register_load_status_callback(callback: Function<u32, ()>) -> napi_ohos::Result<()> {
+    debug!("register_load_status_callback called!");
+    let tsfn_builder = callback.build_threadsafe_function();
+    let function = tsfn_builder
+        .max_queue_size::<UPDATE_URL_QUEUE_SIZE>()
+        .build()?;
+    *LOAD_STATUS_CB.lock().unwrap() = Some(function);
+    Ok(())
 }
 
 #[napi(js_name = "registerURLcallback")]
@@ -992,20 +2068,16 @@ pub fn register_url_callback(callback: Function<String, ()>) -> napi_ohos::Resul
         .max_queue_size::<UPDATE_URL_QUEUE_SIZE>()
         .build()?;
 
-    SET_URL_BAR_CB.set(function).map_err(|_e| {
-        napi_ohos::Error::from_reason(
-            "Failed to set URL callback - register_url_callback called twice?",
-        )
-    })
+    *SET_URL_BAR_CB.lock().unwrap() = Some(function);
+    Ok(())
 }
 
 #[napi(js_name = "registerTerminateCallback")]
 pub fn register_terminate_callback(callback: Function<(), ()>) -> napi_ohos::Result<()> {
     let tsfn_builder = callback.build_threadsafe_function();
     let function = tsfn_builder.max_queue_size::<1>().build()?;
-    TERMINATE_CALLBACK
-        .set(function)
-        .map_err(|_| napi_ohos::Error::from_reason("Failed to set terminate function"))
+    *TERMINATE_CALLBACK.lock().unwrap() = Some(function);
+    Ok(())
 }
 
 #[napi]
@@ -1014,16 +2086,26 @@ pub fn register_prompt_toast_callback(callback: Function<String, ()>) -> napi_oh
     let tsfn_builder = callback.build_threadsafe_function();
     let function = tsfn_builder.max_queue_size::<PROMPT_QUEUE_SIZE>().build()?;
 
-    PROMPT_TOAST
-        .set(function)
-        .map_err(|_e| napi_ohos::Error::from_reason("Failed to set prompt toast callback"))
+    *PROMPT_TOAST.lock().unwrap() = Some(function);
+    Ok(())
 }
 
 #[napi]
 pub fn init_servo(init_opts: InitOpts) -> napi_ohos::Result<()> {
     info!("Servo is being initialised with the following Options: {init_opts:?}");
+    let (tx, rx): (Sender<ServoAction>, Receiver<ServoAction>) = mpsc::channel();
+    {
+        let mut slot = SERVO_CHANNEL.lock().unwrap();
+        if let Some(old) = slot.take() {
+            // 让上一次的 servo 实例干净退出，避免两个实例同时持有窗口/GL 资源
+            let _ = old.send(ServoAction::Shutdown);
+        }
+        *slot = Some(tx.clone());
+    }
+    // 新实例从 0 开始编号，ArkTS 的第 0 个标签对应 window 0
+    NEXT_WINDOW_ID.store(0, Ordering::SeqCst);
     let _main_surface_thread = thread::spawn(move || {
-        main_thread(init_opts);
+        main_thread(init_opts, rx, tx);
     });
     Ok(())
 }
@@ -1031,12 +2113,16 @@ pub fn init_servo(init_opts: InitOpts) -> napi_ohos::Result<()> {
 #[napi]
 fn focus_webview(index: u32, arkts_ids: Vec<u32>) {
     debug!("Focusing webview {index} from napi");
-    call(ServoAction::FocusWindow(index, arkts_ids)).expect("Could not focus webview");
+    if let Err(e) = call(ServoAction::FocusWindow(index, arkts_ids)) {
+        error!("focus_webview failed: {e:?}");
+    }
 }
 
 #[napi]
 fn delete_webview(index: u32, arkts_ids: Vec<u32>) {
-    call(ServoAction::RemovePlatformWindow(index, arkts_ids)).expect("Could not delete webview");
+    if let Err(e) = call(ServoAction::RemovePlatformWindow(index, arkts_ids)) {
+        error!("delete_webview failed: {e:?}");
+    }
 }
 
 #[napi]
@@ -1138,31 +2224,171 @@ impl HostCallbacks {
         &self,
         input_type: InputMethodType,
         multiline: bool,
+        text: String,
+        caret: Option<u32>,
     ) -> Result<ImeProxy, ImeError> {
-        let attach_options = AttachOptions::new(true);
+        // 桌面端有物理键盘：attach 时不请求软键盘。
+        // 请求软键盘会失败（12800009 IME_ERR_DETACHED），而且拿不到任何文本。
+        let attach_options = AttachOptions::new(false);
         let options = convert_ime_options(input_type, multiline);
-        let text_config = ohos_ime::TextConfigBuilder::new()
+        // preview_text_support 必须显式打开：关闭时系统输入法不会下发组合串，
+        // 中文（拼音）因此完全不会进入应用。window_id 让输入法知道投递目标窗口。
+        let mut builder = ohos_ime::TextConfigBuilder::new()
             .input_type(options.input_type)
             .enterkey_type(options.enterkey_type)
-            .build();
-        let editor = RawTextEditorProxy::new(Box::new(ServoIme { text_config }))
-            .map_err(ImeError::TextEditorProxy)?;
+            .preview_text_support(true);
+        let window_id = WINDOW_ID.load(Ordering::Relaxed);
+        if window_id >= 0 {
+            builder = builder.window_id(window_id);
+        }
+        let text_config = builder.build();
+        let editor = RawTextEditorProxy::new(Box::new(ServoIme {
+            text_config,
+            buffer: Mutex::new(ImeBuffer::new(&text, caret)),
+        }))
+        .map_err(ImeError::TextEditorProxy)?;
         ImeProxy::new(editor, attach_options).map_err(ImeError::ImeProxy)
+    }
+}
+
+/// 输入法的影子文本模型。
+///
+/// 系统输入法在组合中文时会**同步**询问“光标左边第 N 个字符”“光标索引”，
+/// 用来构建候选上下文。这些回调没有时间去做 IPC 查询，所以这里维护一份
+/// 与聚焦输入框同步的影子缓冲，立即回答。
+struct ImeBuffer {
+    chars: Vec<char>,
+    caret: usize,
+    composing: usize,
+}
+
+impl ImeBuffer {
+    fn new(text: &str, caret: Option<u32>) -> Self {
+        let chars: Vec<char> = text.chars().collect();
+        let caret = caret
+            .map(|c| c as usize)
+            .unwrap_or(chars.len())
+            .min(chars.len());
+        Self {
+            chars,
+            caret,
+            composing: 0,
+        }
+    }
+
+    fn clear_composing(&mut self) {
+        if self.composing > 0 {
+            let start = self.caret.saturating_sub(self.composing);
+            self.chars.drain(start..self.caret);
+            self.caret = start;
+            self.composing = 0;
+        }
+    }
+
+    fn insert(&mut self, text: &str) {
+        for (offset, ch) in text.chars().enumerate() {
+            self.chars.insert(self.caret + offset, ch);
+        }
+        self.caret += text.chars().count();
+    }
+
+    fn delete_backward(&mut self, len: usize) {
+        self.clear_composing();
+        let start = self.caret.saturating_sub(len);
+        self.chars.drain(start..self.caret);
+        self.caret = start;
+    }
+
+    fn delete_forward(&mut self, len: usize) {
+        self.clear_composing();
+        let end = (self.caret + len).min(self.chars.len());
+        self.chars.drain(self.caret..end);
+    }
+
+    fn left(&self, number: i32) -> String {
+        let n = number.max(0) as usize;
+        let start = self.caret.saturating_sub(n);
+        self.chars[start..self.caret].iter().collect()
+    }
+
+    fn right(&self, number: i32) -> String {
+        let n = number.max(0) as usize;
+        let end = (self.caret + n).min(self.chars.len());
+        self.chars[self.caret..end].iter().collect()
     }
 }
 
 struct ServoIme {
     text_config: ohos_ime::TextConfig,
+    buffer: Mutex<ImeBuffer>,
 }
 impl Ime for ServoIme {
     fn insert_text(&self, text: String) {
-        call(ServoAction::InsertText(text)).unwrap()
+        if let Ok(mut buffer) = self.buffer.lock() {
+            buffer.clear_composing();
+            buffer.insert(&text);
+        }
+        IME_COMMITS.fetch_add(1, Ordering::Relaxed);
+        // 有预览组合串时：用最终文本替换组合串再结束组合（等同 Chromium 的
+        // ImeCommitText 替换组合），否则直接作为一次普通文本插入。
+        let composing = IME_COMPOSING.swap(false, Ordering::SeqCst);
+        let result = if composing {
+            call(ServoAction::ImePreviewText(text)).and_then(|_| call(ServoAction::ImeFinishPreview))
+        } else {
+            call(ServoAction::InsertText(text))
+        };
+        if let Err(e) = result {
+            error!("insert_text failed: {e:?}");
+        }
+    }
+
+    fn set_preview_text(&self, text: String) {
+        if text.is_empty() {
+            return;
+        }
+        if let Ok(mut buffer) = self.buffer.lock() {
+            buffer.clear_composing();
+            buffer.insert(&text);
+            buffer.composing = text.chars().count();
+        }
+        IME_PREVIEWS.fetch_add(1, Ordering::Relaxed);
+        IME_COMPOSING.store(true, Ordering::SeqCst);
+        if let Err(e) = call(ServoAction::ImePreviewText(text)) {
+            error!("set_preview_text failed: {e:?}");
+        }
+    }
+
+    fn finish_text_preview(&self) {
+        if !IME_COMPOSING.swap(false, Ordering::SeqCst) {
+            return;
+        }
+        if let Err(e) = call(ServoAction::ImeFinishPreview) {
+            error!("finish_text_preview failed: {e:?}");
+        }
     }
     fn delete_forward(&self, len: usize) {
-        call(ServoAction::ImeDeleteForward(len)).unwrap()
+        if let Ok(mut buffer) = self.buffer.lock() {
+            buffer.delete_forward(len);
+        }
+        let _ = call(ServoAction::ImeDeleteForward(len));
     }
     fn delete_backward(&self, len: usize) {
-        call(ServoAction::ImeDeleteBackward(len)).unwrap()
+        if let Ok(mut buffer) = self.buffer.lock() {
+            buffer.delete_backward(len);
+        }
+        let _ = call(ServoAction::ImeDeleteBackward(len));
+    }
+
+    fn get_text_index_at_cursor(&self) -> i32 {
+        self.buffer.lock().map(|b| b.caret as i32).unwrap_or(0)
+    }
+
+    fn get_left_text_of_cursor(&self, number: i32) -> String {
+        self.buffer.lock().map(|b| b.left(number)).unwrap_or_default()
+    }
+
+    fn get_right_text_of_cursor(&self, number: i32) -> String {
+        self.buffer.lock().map(|b| b.right(number)).unwrap_or_default()
     }
 
     fn get_text_config(&self) -> &ohos_ime::TextConfig {
@@ -1174,9 +2400,12 @@ impl Ime for ServoIme {
     }
 
     fn keyboard_status_changed(&self, status: KeyboardStatus) {
-        if let KeyboardStatus::Hidden = status {
-            call(ServoAction::ImeDismiss).unwrap()
-        }
+        // 千万不要在软键盘隐藏时通知内核“输入法结束”。
+        // 桌面端有物理键盘，系统随时会隐藏软键盘；ImeDismiss 会让 script 把焦点
+        // 切回 Viewport（输入框失焦）并拆掉输入法，
+        // 表现就是“点进输入框后短暂进入输入状态，不到一秒又退出，之后中文打不进去”。
+        // Chromium 的 SetIMEStatus(false) 只清空组合文本，不改变编辑焦点。
+        info!("IME keyboard status changed: {status:?}");
     }
 }
 
@@ -1193,7 +2422,7 @@ impl HostTrait for HostCallbacks {
             }
         }
 
-        match PROMPT_TOAST.get() {
+        match PROMPT_TOAST.lock().unwrap().as_ref() {
             Some(prompt_fn) => {
                 let status = prompt_fn.call(message, ThreadsafeFunctionCallMode::NonBlocking);
                 if status != napi_ohos::Status::Ok {
@@ -1221,15 +2450,41 @@ impl HostTrait for HostCallbacks {
                 load_status
             ));
         }
+
+        // 1 = started, 2 = head parsed, 3 = complete. Drives the progress bar in ArkTS.
+        let code = if load_status == LoadStatus::Started {
+            1
+        } else if load_status == LoadStatus::HeadParsed {
+            2
+        } else {
+            3
+        };
+        if let Some(callback) = LOAD_STATUS_CB.lock().unwrap().as_ref() {
+            if callback.call(code, ThreadsafeFunctionCallMode::NonBlocking) != napi_ohos::Status::Ok
+            {
+                error!("notify_load_status_changed: failed to notify ArkTS");
+            }
+        }
     }
 
     fn on_title_changed(&self, title: Option<String>) {
-        warn!("on_title_changed not implemented")
+        let title = title.unwrap_or_default();
+        debug!("on_title_changed: {title}");
+        match SET_TITLE_CB.lock().unwrap().as_ref() {
+            Some(callback) => {
+                if callback.call(title, ThreadsafeFunctionCallMode::NonBlocking)
+                    != napi_ohos::Status::Ok
+                {
+                    error!("on_title_changed: failed to notify ArkTS");
+                }
+            },
+            None => debug!("on_title_changed called without a registered callback"),
+        }
     }
 
     fn on_url_changed(&self, url: String) {
         debug!("Hosttrait `on_url_changed` called with new url: {url}");
-        match SET_URL_BAR_CB.get() {
+        match SET_URL_BAR_CB.lock().unwrap().as_ref() {
             Some(update_url_fn) => {
                 let status = update_url_fn.call(url, ThreadsafeFunctionCallMode::Blocking);
                 if status != napi_ohos::Status::Ok {
@@ -1240,10 +2495,15 @@ impl HostTrait for HostCallbacks {
         }
     }
 
-    fn on_history_changed(&self, can_go_back: bool, can_go_forward: bool) {}
+    fn on_history_changed(&self, can_go_back: bool, can_go_forward: bool) {
+        let state = u32::from(can_go_back) | (u32::from(can_go_forward) << 1);
+        if let Some(callback) = NAV_STATE_CB.lock().unwrap().as_ref() {
+            let _ = callback.call(state, ThreadsafeFunctionCallMode::NonBlocking);
+        }
+    }
 
     fn on_shutdown_complete(&self) {
-        if let Some(terminate_fn) = TERMINATE_CALLBACK.get() {
+        if let Some(terminate_fn) = TERMINATE_CALLBACK.lock().unwrap().as_ref() {
             terminate_fn.call((), ThreadsafeFunctionCallMode::Blocking);
         } else {
             error!("Could not shut down despite servo shutting down");
@@ -1256,38 +2516,91 @@ impl HostTrait for HostCallbacks {
     /// and shows the soft keyboard with default settings.
     /// When the keyboard cannot be shown (because the application is not in focus)
     /// we just continue and try next time.
+    /// 内核原生输入法：通过 OH_InputMethodController_Attach 把当前窗口注册为
+    /// 输入法客户端，物理键盘与中文上屏都由系统输入法直接送到 servo。
     fn on_ime_show(&self, control: InputMethodControl) {
-        debug!("IME show!");
+        info!("IME show requested");
         let mut ime_proxy = self.ime_proxy.borrow_mut();
+        // 每次聚焦都重建客户端。系统会在切换窗口/输入法后把客户端 detach，
+        // 之后所有调用都返回 12800009 IME_ERR_DETACHED，复用旧代理永远收不到文本。
+        // Chromium 同样是按焦点反复 Attach/Reattach。
+        if ime_proxy.is_some() {
+            info!("IME re-attaching for new focus");
+            *ime_proxy = None;
+        }
         if ime_proxy.is_none() {
-            *ime_proxy =
-                match self.try_create_ime_proxy(control.input_method_type(), control.multiline()) {
-                    Err(ref e) => {
-                        error!("Could not show keyboard because of {e:?}");
-                        None
-                    },
-                    Ok(proxy) => Some(proxy),
-                };
+            match self.try_create_ime_proxy(
+                control.input_method_type(),
+                control.multiline(),
+                control.text(),
+                control.insertion_point(),
+            ) {
+                Err(ref e) => {
+                    error!("Could not attach IME because of {e:?}");
+                    // 失败详情见日志，不再弹窗打扰。
+                    None
+                },
+                Ok(proxy) => {
+                    info!("IME client attached");
+                    IME_ATTACHED.store(true, Ordering::Relaxed);
+                    Some(proxy)
+                },
+            }
+            .map(|proxy| *ime_proxy = Some(proxy))
+            .unwrap_or(());
         }
 
-        if let Some(ref ime) = *ime_proxy {
-            match ime.show_keyboard() {
-                Ok(()) => debug!("IME show keyboard - success"),
-                Err(_e) => error!("IME show keyboard error"),
+        // 激活文本输入会话（Chromium 的 ShowTextInput）。
+        // 物理键盘场景下，只有这一步会让输入法真正开始向本客户端投递组合文本；
+        // ShowKeyboard 是“弹软键盘”，桌面端没有软键盘可弹，调用它反而会失败。
+        if let Some(ime) = ime_proxy.as_ref() {
+            match ime.show_text_input() {
+                Ok(()) => info!("IME text input session started"),
+                Err(e) => warn!("IME show_text_input failed: {e:?}"),
+            }
+            // 把编辑框内容与光标交给输入法，候选窗口和组合上下文都依赖它。
+            let caret = control.insertion_point().unwrap_or(0) as i32;
+            let text = control.text();
+            if let Err(e) = ime.notify_selection(&text, caret, caret) {
+                warn!("IME notify_selection failed: {e:?}");
+            }
+            let rect = control.position();
+            if let Err(e) = ime.notify_cursor(
+                rect.min.x as f64,
+                rect.min.y as f64,
+                rect.width() as f64,
+                rect.height() as f64,
+            ) {
+                warn!("IME notify_cursor failed: {e:?}");
+            }
+        }
+
+        // 手机形态才请求软键盘。
+        if IS_PHONE_DEVICE.load(Ordering::Relaxed) {
+            if let Some(ime) = ime_proxy.as_ref() {
+                if let Err(e) = ime.show_keyboard() {
+                    warn!("IME show keyboard failed: {e:?}");
+                }
             }
         }
     }
 
     fn on_ime_hide(&self) {
         debug!("IME hide!");
-        let mut ime_proxy = self.ime_proxy.take();
-        if let Some(ime) = ime_proxy {
+        // 只收起软键盘，**不要**丢弃 proxy。
+        // 一旦 detach，系统输入法就不再向本窗口投递中文，
+        // 而物理键盘事件仍走 XComponent，于是表现为“英文能打、中文全丢”。
+        let mut ime_proxy = self.ime_proxy.borrow_mut();
+        if let Some(ime) = ime_proxy.as_ref() {
             match ime.hide_keyboard() {
                 Ok(()) => debug!("IME hide keyboard - success"),
-                Err(_e) => error!("IME hide keyboard error"),
+                // 没有软键盘会话时 hide 也会报 DETACHED，但那并不代表客户端失效
+                // （日志里 attach 后 1.5s 收到过一次，误删代理反而毁掉可用客户端）。
+                // 每次 show 都会重建，所以这里只记录，不销毁。
+                Err(e) => info!("IME hide keyboard reported {e:?}; keeping proxy"),
             }
         } else {
-            warn!("IME hide called, but no active IME found!")
+            debug!("IME hide called before any attach; nothing to do")
         }
     }
 
