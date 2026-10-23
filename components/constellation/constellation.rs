@@ -2117,30 +2117,32 @@ where
         let Some(source_pipeline) = self.pipelines.get(&source_pipeline_id) else {
             return warn!("{source_pipeline_id}: ScriptMsg from closed pipeline");
         };
-        let Some(host) = registered_domain_name(&source_pipeline.url) else {
-            return warn!("Invalid host url");
-        };
-
-        let mut browsing_context_group = browsing_context_group.borrow_mut();
-        let webgpu_chan = match browsing_context_group.webgpus.entry(host) {
-            Entry::Vacant(v) => start_webgpu_thread(
-                self.paint_proxy.cross_process_paint_api.clone(),
-                self.webrender_wgpu
-                    .webrender_external_image_id_manager
-                    .clone(),
-                self.webrender_wgpu.wgpu_image_map.clone(),
-            )
-            .map(|webgpu| {
-                let msg = ScriptThreadMessage::SetWebGPUPort(webgpu.1);
-                if let Err(e) = source_pipeline.event_loop.send(msg) {
-                    warn!(
-                        "{}: Failed to send SetWebGPUPort to pipeline ({:?})",
-                        source_pipeline_id, e
-                    );
-                }
-                v.insert(webgpu.0).clone()
-            }),
-            Entry::Occupied(o) => Some(o.get().clone()),
+        // Opaque origins get no WebGPU, but must still get a reply so script doesn't panic.
+        let webgpu_chan = match registered_domain_name(&source_pipeline.url) {
+            None => {
+                warn!("Invalid host url");
+                None
+            },
+            Some(host) => match browsing_context_group.borrow_mut().webgpus.entry(host) {
+                Entry::Vacant(v) => start_webgpu_thread(
+                    self.paint_proxy.cross_process_paint_api.clone(),
+                    self.webrender_wgpu
+                        .webrender_external_image_id_manager
+                        .clone(),
+                    self.webrender_wgpu.wgpu_image_map.clone(),
+                )
+                .map(|webgpu| {
+                    let msg = ScriptThreadMessage::SetWebGPUPort(webgpu.1);
+                    if let Err(e) = source_pipeline.event_loop.send(msg) {
+                        warn!(
+                            "{}: Failed to send SetWebGPUPort to pipeline ({:?})",
+                            source_pipeline_id, e
+                        );
+                    }
+                    v.insert(webgpu.0).clone()
+                }),
+                Entry::Occupied(o) => Some(o.get().clone()),
+            },
         };
         match request {
             ScriptToConstellationMessage::RequestAdapter(response_sender, options, adapter_id) => {
