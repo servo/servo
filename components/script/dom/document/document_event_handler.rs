@@ -1328,7 +1328,7 @@ impl DocumentEventHandler {
             self.window
                 .Document()
                 .embedder_controls()
-                .show_context_menu(cx.no_gc(), hit_test_result);
+                .show_context_menu(cx, hit_test_result);
         };
     }
 

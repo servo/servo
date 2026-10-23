@@ -179,6 +179,7 @@ impl HTMLTextAreaElement {
             }
 
             document.embedder_controls().show_embedder_control(
+                cx,
                 ControlElement::Ime(Dom::from_ref(self.upcast())),
                 EmbedderControlRequest::InputMethod(InputMethodRequest {
                     input_method_type: InputMethodType::Text,

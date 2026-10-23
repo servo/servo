@@ -442,9 +442,15 @@ pub(crate) trait SpecificInputType {
     ) {
     }
 
-    fn show_the_picker_if_applicable(&self, _input: &HTMLInputElement) {}
+    fn show_the_picker_if_applicable(&self, _cx: &mut JSContext, _input: &HTMLInputElement) {}
 
-    fn select_files(&self, _input: &HTMLInputElement, _test_paths: Option<Vec<DOMString>>) {}
+    fn select_files(
+        &self,
+        _cx: &mut JSContext,
+        _input: &HTMLInputElement,
+        _test_paths: Option<Vec<DOMString>>,
+    ) {
+    }
 
     fn get_files(&self) -> Option<DomRoot<FileList>> {
         None

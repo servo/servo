@@ -375,7 +375,7 @@ impl Activatable for HTMLAnchorElement {
             element.has_attribute(&local_name!("ismap"))
         {
             let target_node = element.upcast::<Node>();
-            let rect = target_node.border_box().unwrap_or_default();
+            let rect = target_node.border_box(cx).unwrap_or_default();
             ismap_suffix = Some(format!(
                 "?{},{}",
                 mouse_event.ClientX().to_f32().unwrap() - rect.origin.x.to_f32_px(),

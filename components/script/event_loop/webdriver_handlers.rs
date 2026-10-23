@@ -1193,6 +1193,7 @@ impl Element {
 }
 
 fn handle_send_keys_file(
+    cx: &mut JSContext,
     file_input: &HTMLInputElement,
     text: &str,
     reply_sender: GenericSender<Result<bool, ErrorStatus>>,
@@ -1234,7 +1235,7 @@ fn handle_send_keys_file(
     //
     // Do not reply to the response yet, as we are waiting for the files to arrive
     // asynchronously.
-    file_input.select_files_for_webdriver(files, reply_sender);
+    file_input.select_files_for_webdriver(cx, files, reply_sender);
 }
 
 /// We have verify previously that input element is not textual.
@@ -1344,7 +1345,7 @@ pub(crate) fn handle_will_send_keys(
     if let Some(input_element) = input_element {
         // Step 8 (Handle file upload)
         if is_file_input {
-            handle_send_keys_file(input_element, &text, reply);
+            handle_send_keys_file(cx, input_element, &text, reply);
             return;
         }
 

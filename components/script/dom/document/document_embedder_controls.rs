@@ -12,7 +12,7 @@ use embedder_traits::{
     EmbedderControlRequest, EmbedderControlResponse, EmbedderMsg,
 };
 use euclid::{Point2D, Rect, Size2D};
-use js::context::{JSContext, NoGC};
+use js::context::JSContext;
 use net_traits::CoreResourceMsg;
 use net_traits::filemanager_thread::FileManagerThreadMsg;
 use rustc_hash::FxHashMap;
@@ -104,6 +104,7 @@ impl DocumentEmbedderControls {
     #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     pub(crate) fn show_embedder_control(
         &self,
+        cx: &mut JSContext,
         element: ControlElement,
         request: EmbedderControlRequest,
         point: Option<DevicePoint>,
@@ -115,7 +116,7 @@ impl DocumentEmbedderControls {
                 let rect = element
                     .node()
                     .upcast::<Node>()
-                    .border_box()
+                    .border_box(cx)
                     .unwrap_or_default();
 
                 let rect = Rect::new(
@@ -247,7 +248,7 @@ impl DocumentEmbedderControls {
         }
     }
 
-    pub(crate) fn show_context_menu(&self, no_gc: &NoGC, hit_test_result: &HitTestResult) {
+    pub(crate) fn show_context_menu(&self, cx: &mut JSContext, hit_test_result: &HitTestResult) {
         {
             let mut visible_elements = self.visible_elements.borrow_mut();
             visible_elements.retain(|index, control_element| {
@@ -291,7 +292,7 @@ impl DocumentEmbedderControls {
         if let Some(anchor_element) = anchor_element.as_ref() {
             info.flags.insert(ContextMenuElementInformationFlags::Link);
             info.link_url = anchor_element
-                .full_href_url_for_user_interface(no_gc)
+                .full_href_url_for_user_interface(cx.no_gc())
                 .map(ServoUrl::into_url);
 
             items.extend(vec![
@@ -331,7 +332,7 @@ impl DocumentEmbedderControls {
         }
 
         let document = self.window.Document();
-        let editing_context = document.editing_context(no_gc, &hit_test_result.node);
+        let editing_context = document.editing_context(cx.no_gc(), &hit_test_result.node);
 
         let has_selection = editing_context.has_uncollapsed_selection();
         if has_selection {
@@ -389,6 +390,7 @@ impl DocumentEmbedderControls {
         ]);
 
         self.show_embedder_control(
+            cx,
             ControlElement::ContextMenu(ContextMenuNodes {
                 node: hit_test_result.node.as_traced(),
                 anchor_element: anchor_element.map(|element| element.as_traced()),

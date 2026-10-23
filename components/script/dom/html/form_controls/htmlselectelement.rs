@@ -392,7 +392,7 @@ impl HTMLSelectElement {
             .collect()
     }
 
-    pub(crate) fn show_menu(&self, no_gc: &NoGC) {
+    pub(crate) fn show_menu(&self, cx: &mut JSContext) {
         // Collect list of optgroups and options
         let mut index = 0;
         let mut embedder_option_from_option = |option: &HTMLOptionElement| {
@@ -429,7 +429,7 @@ impl HTMLSelectElement {
             .collect();
 
         let selected_options = self
-            .list_of_options(no_gc)
+            .list_of_options(cx.no_gc())
             .enumerate()
             .filter(|(_, option)| option.Selected())
             .map(|(index, _)| index)
@@ -438,6 +438,7 @@ impl HTMLSelectElement {
         self.owner_document()
             .embedder_controls()
             .show_embedder_control(
+                cx,
                 ControlElement::Select(Dom::from_ref(self)),
                 EmbedderControlRequest::SelectElement(SelectElementRequest {
                     options,
@@ -446,7 +447,7 @@ impl HTMLSelectElement {
                 }),
                 None,
             );
-        self.upcast::<Element>().set_open_state(no_gc, true);
+        self.upcast::<Element>().set_open_state(cx.no_gc(), true);
     }
 
     pub(crate) fn handle_embedder_response(&self, cx: &mut JSContext, selected_values: Vec<usize>) {
@@ -975,7 +976,7 @@ impl Activatable for HTMLSelectElement {
             return;
         }
 
-        self.show_menu(cx.no_gc());
+        self.show_menu(cx);
     }
 }
 

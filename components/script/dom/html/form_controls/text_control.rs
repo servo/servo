@@ -140,7 +140,7 @@ pub(crate) trait TextControlElement {
         let flags = event.flags();
         // We need to check if the event listener hid the text control during execution, so we
         // do a layout reflow.
-        window.layout_reflow(QueryMsg::StyleQuery);
+        window.layout_reflow(cx, QueryMsg::StyleQuery);
         let node = self.as_element().upcast::<Node>();
         flags.intersects(EventFlags::Canceled) ||
             !node.is_being_rendered_or_delegates_rendering(None)
