@@ -225,22 +225,18 @@ pub fn extract_mime_type_as_dataurl_mime(headers: &HeaderMap) -> Option<DataUrlM
                     continue;
                 }
 
+                let temp_charset = temp_mime.get_parameter("charset").map(|c| c.to_string());
                 // > 6.3: Set mimeType to temporaryMimeType.
-                mime_type = Some(DataUrlMime {
-                    type_: temp_mime.type_.to_string(),
-                    subtype: temp_mime.subtype.to_string(),
-                    parameters: temp_mime.parameters.clone(),
-                });
+                mime_type = Some(temp_mime);
 
                 // > 6.4: If mimeType’s essence is not essence, then:
-                let temp_charset = &temp_mime.get_parameter("charset");
                 if temp_essence != essence {
                     // > 6.4.1: Set charset to null.
                     // > 6.4.2: If mimeType’s parameters["charset"] exists, then set
                     //   charset to mimeType’s parameters["charset"].
-                    charset = temp_charset.map(|c| c.to_string());
+                    charset = temp_charset;
                     // > 6.4.3: Set essence to mimeType’s essence.
-                    essence = temp_essence.to_owned();
+                    essence = temp_essence;
                 } else {
                     // > 6.5: Otherwise, if mimeType’s parameters["charset"] does not exist,
                     //   and charset is non-null, set mimeType’s parameters["charset"] to charset.
@@ -253,8 +249,8 @@ pub fn extract_mime_type_as_dataurl_mime(headers: &HeaderMap) -> Option<DataUrlM
                         let mut params = p;
                         params.push(("charset".to_string(), charset.clone().unwrap()));
                         mime_type = Some(DataUrlMime {
-                            type_: t.to_string(),
-                            subtype: st.to_string(),
+                            type_: t,
+                            subtype: st,
                             parameters: params,
                         })
                     }
