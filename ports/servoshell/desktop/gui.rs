@@ -133,11 +133,10 @@ fn load_cjk_fonts(font_candidates: &[(&str, &str)]) -> FontDefinitions {
         }
     }
 
-    if !loaded_font_names.is_empty() {
-        let proportional = fonts.families.get_mut(&FontFamily::Proportional).unwrap();
-        for font_name in loaded_font_names.iter() {
-            proportional.insert(0, font_name.clone());
-        }
+    if !loaded_font_names.is_empty() &&
+        let Some(proportional) = fonts.families.get_mut(&FontFamily::Proportional)
+    {
+        proportional.append(&mut loaded_font_names);
     }
 
     fonts
