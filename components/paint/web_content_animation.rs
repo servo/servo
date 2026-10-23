@@ -5,7 +5,7 @@
 use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::time::Duration;
 
 use embedder_traits::EventLoopWaker;
@@ -33,6 +33,7 @@ pub(crate) struct WebContentAnimator {
     event_loop_waker: Box<dyn EventLoopWaker>,
     timer_refresh_driver: Rc<TimerRefreshDriver>,
     caret_visible: Cell<bool>,
+    caret_last_movement: Arc<AtomicU64>,
     timer_scheduled: Cell<bool>,
     need_update: Arc<AtomicBool>,
 }
@@ -45,6 +46,7 @@ impl WebContentAnimator {
         Self {
             event_loop_waker,
             timer_refresh_driver,
+            caret_last_movement: Default::default(),
             caret_visible: Cell::new(true),
             timer_scheduled: Default::default(),
             need_update: Default::default(),
@@ -60,13 +62,20 @@ impl WebContentAnimator {
             return;
         };
 
+        let caret_last_movement_on_timer_start = self.caret_last_movement.load(Ordering::Relaxed);
+        let caret_last_movement = self.caret_last_movement.clone();
         let event_loop_waker = self.event_loop_waker.clone();
         let need_update = self.need_update.clone();
         self.timer_refresh_driver.queue_timer(
             caret_blink_time,
             Box::new(move || {
-                need_update.store(true, Ordering::Relaxed);
-                event_loop_waker.wake();
+                let loaded_caret_last_movement = caret_last_movement.load(Ordering::Relaxed);
+                if caret_last_movement_on_timer_start > loaded_caret_last_movement {
+                    log::error!("Caret's movement counter when the timer starter {} is higher than the current movement counter {}, possible overflow?", caret_last_movement_on_timer_start, loaded_caret_last_movement);
+                } else if caret_last_movement_on_timer_start == loaded_caret_last_movement {
+                    need_update.store(true, Ordering::Relaxed);
+                    event_loop_waker.wake();
+                }
             }),
         );
         self.timer_scheduled.set(true);
@@ -137,7 +146,16 @@ impl PipelineAnimations {
 
         *self.caret.borrow_mut() = match caret_property_binding {
             Some((caret_property_key, original_caret_color)) => {
-                web_content_animator.schedule_timer_if_necessary();
+                web_content_animator
+                    .caret_last_movement
+                    .fetch_add(1, Ordering::Relaxed);
+
+                web_content_animator.caret_visible.set(true);
+                web_content_animator
+                    .need_update
+                    .store(true, Ordering::Relaxed);
+                web_content_animator.event_loop_waker.wake();
+
                 Some(CaretAnimation {
                     caret_property_key,
                     original_caret_color,
