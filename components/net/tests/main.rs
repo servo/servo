@@ -114,6 +114,7 @@ fn create_http_state(fc: Option<GenericEmbedderProxy<NetToEmbedderMsg>>) -> Http
         hsts_list: RwLock::new(net::hsts::HstsList::default()),
         cookie_jar: RwLock::new(net::cookie_storage::CookieStorage::new(150)),
         auth_cache: RwLock::new(net::resource_thread::AuthCache::default()),
+        cors_cache: RwLock::new(net::fetch::cors_cache::CorsCache::default()),
         history_states: RwLock::new(FxHashMap::default()),
         http_cache: net::http_cache::HttpCache::new(net::http_cache::HttpCacheAssignment::Public),
         client: create_http_client(create_tls_config(
@@ -178,10 +179,17 @@ fn fetch_with_cors_cache(request: Request, cache: &mut CorsCache) -> Response {
         sender: Some(sender),
     };
     let mut fetch_context = new_fetch_context(None, None);
-    spawn_blocking_task(async move {
-        methods::fetch_with_cors_cache(request, cache, &mut target, &mut fetch_context).await;
-        receiver.await.unwrap()
-    })
+    // Pre-seed the shared CORS cache in the context, then read it back after.
+    *fetch_context.state.cors_cache.write() = cache.clone();
+    let (response, new_cors_cache) = spawn_blocking_task(async move {
+        methods::fetch(request, &mut target, &mut fetch_context).await;
+        (
+            receiver.await.unwrap(),
+            fetch_context.state.cors_cache.read().clone(),
+        )
+    });
+    *cache = new_cors_cache;
+    response
 }
 
 pub(crate) fn mock_origin() -> ImmutableOrigin {

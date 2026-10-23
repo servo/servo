@@ -184,4 +184,16 @@ impl CorsCache {
         self.cleanup();
         self.0.push(entry);
     }
+
+    /// <https://fetch.spec.whatwg.org/#concept-cache-clear>
+    pub(crate) fn clear_entries_for_origin_and_url(&mut self, origin: &Origin, url: &ServoUrl) {
+        // > To clear cache entries, given a request,
+        // > remove any cache entries in the user agent’s CORS-preflight cache
+        // > whose key equals the result of determining the network partition key
+        // > given request, byte-serialized origin is the result of byte-serializing
+        // > a request origin with request, and URL equals request’s current URL.
+        self.cleanup();
+        self.0
+            .retain(|cache_entry| !(cache_entry.origin == *origin && cache_entry.url == *url));
+    }
 }
