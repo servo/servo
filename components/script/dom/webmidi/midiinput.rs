@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use script_bindings::inheritance::Castable;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use stylo_atoms::Atom;
 
 use crate::dom::bindings::codegen::Bindings::MIDIPortBinding::{
@@ -60,7 +60,8 @@ impl MIDIInput {
         connection: MIDIPortConnectionState,
         cx: &mut js::context::JSContext,
     ) -> DomRoot<MIDIInput> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(MIDIInput::new_inherited(
                 id,
                 manufacturer,
@@ -71,7 +72,6 @@ impl MIDIInput {
                 connection,
             )),
             window,
-            cx,
         )
     }
 

@@ -537,7 +537,7 @@ pub struct Constellation<STF, SWF> {
 
     /// Whether Servo is online or not. This is controlled by the embedder.
     online: bool,
-    
+
     /// An IPC channel for the constellation to send messages to the
     /// MIDI thread.
     #[cfg(feature = "webmidi")]

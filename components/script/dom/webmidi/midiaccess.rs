@@ -4,7 +4,7 @@
 
 use dom_struct::dom_struct;
 use script_bindings::like::Maplike;
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::generic_channel;
 use servo_constellation_traits::ScriptToConstellationMessage;
 use stylo_atoms::Atom;
@@ -108,14 +108,14 @@ impl MIDIAccess {
             },
         });
 
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(MIDIAccess::new_inherited(
                 &input_map,
                 &output_map,
                 use_software_synths,
             )),
             window,
-            cx,
         )
     }
 

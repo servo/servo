@@ -9,7 +9,8 @@ use servo_constellation_traits::ScriptToConstellationMessage;
 use webmidi_traits::{MIDIRequest, MidiPort, MidiPortInfo};
 
 use crate::dom::bindings::codegen::Bindings::MIDIPortBinding::{
-    MIDIPortConnectionState, MIDIPortDeviceState, MIDIPortMethods, MIDIOutput, MIDIOutputMethods, MIDIPortType,
+    MIDIOutput, MIDIOutputMethods, MIDIPortConnectionState, MIDIPortDeviceState, MIDIPortMethods,
+    MIDIPortType,
 };
 use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::DomRoot;
