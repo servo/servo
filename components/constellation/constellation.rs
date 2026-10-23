@@ -177,6 +177,10 @@ use storage_traits::webstorage_thread::{WebStorageThreadMsg, WebStorageType};
 use webgpu::canvas_context::WebGpuExternalImageMap;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPU, WebGPURequest};
+#[cfg(feature = "webmidi")]
+use webmidi::start_webmidi_thread;
+#[cfg(feature = "webmidi")]
+use webmidi_traits::{MIDIMsg, MIDIRequest};
 
 use super::embedder::ConstellationToEmbedderMsg;
 use crate::broadcastchannel::BroadcastChannels;
@@ -533,6 +537,15 @@ pub struct Constellation<STF, SWF> {
 
     /// Whether Servo is online or not. This is controlled by the embedder.
     online: bool,
+    
+    /// An IPC channel for the constellation to send messages to the
+    /// MIDI thread.
+    #[cfg(feature = "webmidi")]
+    pub(crate) midi_ipc_sender: GenericSender<MIDIRequest>,
+
+    /// An IPC channel to receive messages from the MIDI thread.
+    #[cfg(feature = "webmidi")]
+    pub(crate) midi_receiver: RoutedReceiver<MIDIMsg>,
 }
 
 /// State needed to construct a constellation.
@@ -676,6 +689,11 @@ where
                     )
                 };
 
+                #[cfg(feature = "webmidi")]
+                let (midi_ipc_sender, midi_receiver) = start_webmidi_thread().expect("Failed to launch WebMIDI thread!");
+                #[cfg(feature = "webmidi")]
+                let midi_receiver = midi_receiver.route_preserving_errors();
+
                 PipelineNamespace::install(CONSTELLATION_PIPELINE_NAMESPACE_ID);
 
                 #[cfg(feature = "webgpu")]
@@ -764,6 +782,10 @@ where
                     user_contents_for_manager_id: Default::default(),
                     // Servo is online by default.
                     online: true,
+                    #[cfg(feature = "webmidi")]
+                    midi_ipc_sender,
+                    #[cfg(feature = "webmidi")]
+                    midi_receiver,
                 };
 
                 constellation.run();
@@ -1167,6 +1189,8 @@ where
             Embedder(EmbedderToConstellationMessage),
             #[cfg_attr(not(feature = "multiprocess"), expect(unused))]
             RemoveProcess(usize),
+            #[cfg(feature = "webmidi")]
+            MIDI(MIDIMsg),
         }
         // Get one incoming request.
         // This is one of the few places where `Paint` is
@@ -1185,6 +1209,8 @@ where
         sel.recv(&self.script_receiver);
         sel.recv(&self.background_hang_monitor_receiver);
         sel.recv(&self.embedder_to_constellation_receiver);
+        #[cfg(feature = "webmidi")]
+        sel.recv(&self.midi_receiver);
 
         #[cfg(feature = "multiprocess")]
         self.process_manager.register(&mut sel);
@@ -1217,9 +1243,17 @@ where
                     oper.recv(&self.embedder_to_constellation_receiver)
                         .expect("Unexpected embedder channel panic in constellation"),
                 )),
+                #[cfg(feature = "webmidi")]
+                5 => oper
+                    .recv(&self.midi_receiver)
+                    .expect("Unexpected MIDI channel panic in constellation")
+                    .map(Request::MIDI),
                 _ => {
                     // This can only be a error reading on a closed lifeline receiver.
+                    #[cfg(feature = "webmidi")]
                     let process_index = index - 5;
+                    #[cfg(not(feature = "webmidi"))]
+                    let process_index = index - 4;
                     #[cfg(feature = "multiprocess")]
                     let _ = oper.recv(self.process_manager.receiver_at(process_index));
                     Ok(Request::RemoveProcess(process_index))
@@ -1250,6 +1284,10 @@ where
             Request::RemoveProcess(index) => self.process_manager.remove(index),
             #[cfg(not(feature = "multiprocess"))]
             Request::RemoveProcess(_) => {},
+            #[cfg(feature = "webmidi")]
+            Request::MIDI(msg) => {
+                self.handle_midi_msg(msg);
+            },
         }
     }
 
@@ -2076,6 +2114,10 @@ where
                     }
                 },
             },
+            #[cfg(feature = "webmidi")]
+            ScriptToConstellationMessage::MIDIRequest(request) => {
+                self.handle_webmidi_request(source_pipeline_id, request);
+            },
         }
     }
 
@@ -2171,6 +2213,61 @@ where
                 }
             },
             _ => warn!("Wrong message type in handle_wgpu_request"),
+        }
+    }
+
+    #[servo_tracing::instrument(skip_all)]
+    #[cfg(feature = "webmidi")]
+    fn handle_webmidi_request(&mut self, _pipeline_id: PipelineId, request: MIDIRequest) {
+        if self.midi_ipc_sender.send(request).is_err() {
+            warn!("Failed to send request to MIDI thread")
+        }
+    }
+
+    #[servo_tracing::instrument(skip_all)]
+    #[cfg(feature = "webmidi")]
+    fn handle_midi_msg(&mut self, msg: MIDIMsg) {
+        match msg.clone() {
+            MIDIMsg::PortAvailable(pipeline, _) => {
+                let msg = ScriptThreadMessage::MIDIMessage(pipeline, msg);
+                self.send_message_to_pipeline(
+                    pipeline,
+                    msg,
+                    "Failed to send MIDI port available event to pipeline!",
+                );
+            },
+            MIDIMsg::PortUnavailable(pipeline, _) => {
+                let msg = ScriptThreadMessage::MIDIMessage(pipeline, msg);
+                self.send_message_to_pipeline(
+                    pipeline,
+                    msg,
+                    "Failed to send MIDI port unavailable event to pipeline!",
+                );
+            },
+            MIDIMsg::Data(pipeline, _, _) => {
+                let msg = ScriptThreadMessage::MIDIMessage(pipeline, msg);
+                self.send_message_to_pipeline(
+                    pipeline,
+                    msg,
+                    "Failed to send MIDI data to pipeline!",
+                );
+            },
+            MIDIMsg::PortOpened(pipeline, _) => {
+                let msg = ScriptThreadMessage::MIDIMessage(pipeline, msg);
+                self.send_message_to_pipeline(
+                    pipeline,
+                    msg,
+                    "Failed to send MIDI port open event to pipeline!",
+                );
+            },
+            MIDIMsg::PortClosed(pipeline, _) => {
+                let msg = ScriptThreadMessage::MIDIMessage(pipeline, msg);
+                self.send_message_to_pipeline(
+                    pipeline,
+                    msg,
+                    "Failed to send MIDI port closed event to pipeline!",
+                );
+            },
         }
     }
 
