@@ -14,6 +14,7 @@ use embedder_traits::{EmbedderMsg, ProtocolHandlerUpdateRegistration, RegisterOr
 use headers::HeaderMap;
 use http::header::{self, HeaderValue};
 use js::context::JSContext;
+use js::realm::CurrentRealm;
 use js::rust::MutableHandleValue;
 use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::request::{
@@ -31,6 +32,8 @@ use servo_url::ServoUrl;
 
 use crate::ScriptThread;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
+#[cfg(feature = "webmidi")]
+use crate::dom::bindings::codegen::Bindings::NavigatorMIDIBinding::MIDIOptions;
 #[cfg(feature = "gamepad")]
 use crate::dom::bindings::codegen::Bindings::PermissionStatusBinding::PermissionName;
 use crate::dom::bindings::codegen::Bindings::WindowBinding::Window_Binding::WindowMethods;
@@ -56,9 +59,13 @@ use crate::dom::navigatorinfo;
 use crate::dom::performance::performanceresourcetiming::InitiatorType;
 use crate::dom::permissions::Permissions;
 use crate::dom::pluginarray::PluginArray;
+use crate::dom::promise::Promise;
+use crate::dom::promise::promise::RootedPromise;
 use crate::dom::serviceworkercontainer::ServiceWorkerContainer;
 use crate::dom::servointernals::ServoInternals;
 use crate::dom::storagemanager::StorageManager;
+#[cfg(feature = "webmidi")]
+use crate::dom::types::MIDIAccess;
 use crate::dom::types::UserActivation;
 use crate::dom::wakelock::WakeLock;
 #[cfg(feature = "webgpu")]
@@ -142,6 +149,8 @@ pub(crate) struct Navigator {
     servo_internals: MutNullableDom<ServoInternals>,
     user_activation: MutNullableDom<UserActivation>,
     wake_lock: MutNullableDom<WakeLock>,
+    #[cfg(feature = "webmidi")]
+    midi: MutNullableDom<MIDIAccess>,
 }
 
 impl Navigator {
@@ -171,6 +180,8 @@ impl Navigator {
             servo_internals: Default::default(),
             user_activation: Default::default(),
             wake_lock: Default::default(),
+            #[cfg(feature = "webmidi")]
+            midi: Default::default(),
         }
     }
 
@@ -244,6 +255,11 @@ impl Navigator {
     #[cfg(feature = "gamepad")]
     pub(crate) fn set_has_gamepad_gesture(&self, has_gamepad_gesture: bool) {
         self.has_gamepad_gesture.set(has_gamepad_gesture);
+    }
+
+    #[cfg(feature = "webmidi")]
+    pub(crate) fn midi(&self) -> Option<DomRoot<MIDIAccess>> {
+        self.midi.get()
     }
 
     /// <https://html.spec.whatwg.org/multipage/#normalize-protocol-handler-parameters>
@@ -674,6 +690,33 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
     /// <https://w3c.github.io/screen-wake-lock/#dom-navigator-wakelock>
     fn WakeLock(&self, cx: &mut js::context::JSContext) -> DomRoot<WakeLock> {
         self.wake_lock.or_init(|| WakeLock::new(cx, &self.global()))
+    }
+
+    /// <https://webaudio.github.io/web-midi-api/#dom-navigator-requestmidiaccess>
+    #[cfg(feature = "webmidi")]
+    fn RequestMIDIAccess(&self, cx: &mut CurrentRealm, options: &MIDIOptions) -> RootedPromise {
+        let p = Promise::new_in_realm(cx);
+
+        // TODO: Permissions integration
+
+        if options.sysex.is_some_and(|s| s) {
+            // TODO: Sysex implementation pending TSC discussion
+            p.reject_error(
+                cx,
+                Error::NotSupported(Some(
+                    "SysEx capability is not currently available.".to_string(),
+                )),
+            );
+            return p;
+        }
+
+        let use_software_synths = options.software.is_some_and(|s| s);
+
+        let midi_access = MIDIAccess::new(self.global().as_window(), cx, use_software_synths);
+        self.midi.set(Some(&midi_access));
+        p.resolve_native(cx, &midi_access);
+
+        p
     }
 }
 
