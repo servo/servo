@@ -3,7 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 use std::cell::{Cell, RefCell};
-use std::ptr;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
@@ -11,10 +10,10 @@ use js::context::JSContext;
 use js::conversions::ToJSValConvertible;
 use js::jsapi::JSObject;
 use js::jsval::UndefinedValue;
-use js::rust::wrappers2::JS_NewObject;
 use js::rust::{CustomAutoRooterGuard, HandleValue};
 use rustc_hash::FxHashMap;
 use script_bindings::callback::RootedCallback;
+use script_bindings::js::JS_NewObject;
 use script_bindings::reflector::reflect_weak_referenceable_dom_object;
 use script_bindings::structuredclone::StructuredData;
 use servo_base::id::{MessagePortId, MessagePortIndex};
@@ -212,7 +211,6 @@ impl MessagePort {
     }
 
     /// <https://streams.spec.whatwg.org/#abstract-opdef-packandpostmessage>
-    #[expect(unsafe_code)]
     pub(crate) fn pack_and_post_message(
         &self,
         cx: &mut JSContext,
@@ -220,7 +218,7 @@ impl MessagePort {
         value: HandleValue,
     ) -> ErrorResult {
         // Let message be OrdinaryObjectCreate(null).
-        rooted!(&in(cx) let mut message = unsafe { JS_NewObject(cx, ptr::null()) });
+        rooted!(&in(cx) let mut message = JS_NewObject(cx, None));
         rooted!(&in(cx) let mut type_string = UndefinedValue());
         type_.to_jsval(cx, type_string.handle_mut());
 

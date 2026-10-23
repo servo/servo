@@ -7874,7 +7874,7 @@ impl{self.generic} Clone for {self.makeClassName(self.dictionary)}{self.genericS
             "\n"
             f"impl{self.generic} ToJSValConvertible for {selfName}{self.genericSuffix} {{\n"
             "    fn to_jsval(&self, cx: &mut JSContext, mut rval: MutableHandleValue) {\n"
-            "        rooted!(&in(cx) let mut obj = unsafe { JS_NewObject(cx, ptr::null()) });\n"
+            "        rooted!(&in(cx) let mut obj = JS_NewObject(cx, None));\n"
             "        self.to_jsobject(cx, obj.handle_mut());\n"
             "        rval.set(ObjectOrNullValue(obj.get()))\n"
             "    }\n"

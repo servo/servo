@@ -20,7 +20,7 @@ pub(crate) mod base {
     pub(crate) use js::panic::maybe_resume_unwind;
     #[allow(unused_imports)]
     pub(crate) use js::realm::{AutoRealm, CurrentRealm};
-    pub(crate) use js::rust::wrappers2::{Call, JS_NewObject};
+    pub(crate) use js::rust::wrappers2::Call;
     pub(crate) use js::rust::{
         HandleObject, HandleValue, MutableHandle, MutableHandleObject, MutableHandleValue,
     };
@@ -41,6 +41,7 @@ pub(crate) mod base {
     pub(crate) use crate::error::Error::JSFailed;
     pub(crate) use crate::error::Fallible;
     pub(crate) use crate::interfaces::*;
+    pub(crate) use crate::js::JS_NewObject;
     pub(crate) use crate::lock::ThreadUnsafeOnceLock;
     pub(crate) use crate::num::Finite;
     pub(crate) use crate::proxyhandler::{CrossOriginProperties, is_platform_object_same_origin};
