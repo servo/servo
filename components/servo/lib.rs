@@ -44,6 +44,8 @@
 mod clipboard_delegate;
 #[cfg(feature = "gamepad")]
 mod gamepad_delegate;
+#[cfg(all(feature = "geolocation", target_os = "linux"))]
+mod geoclue;
 mod geolocation_delegate;
 #[cfg(all(
     feature = "media-gstreamer",
