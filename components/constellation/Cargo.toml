@@ -23,6 +23,7 @@ multiprocess = []
 vello = ["servo-canvas/vello"]
 webgpu = ["dep:webgpu", "dep:webgpu_traits", "script_traits/webgpu"]
 webgl = []
+webmidi = ["dep:webmidi", "servo-webmidi-traits"]
 
 [lints]
 workspace = true
@@ -61,12 +62,14 @@ servo-config = { workspace = true }
 servo-constellation-traits = { workspace = true }
 servo-tracing = { workspace = true }
 servo-url = { workspace = true }
+servo-webmidi-traits = { workspace = true, optional = true }
 storage_traits = { workspace = true }
 stylo = { workspace = true }
 stylo_traits = { workspace = true }
 tracing = { workspace = true, optional = true }
 webgpu = { workspace = true, optional = true }
 webgpu_traits = { workspace = true, optional = true }
+webmidi = { workspace = true, optional = true }
 webxr-api = { workspace = true }
 
 [target.'cfg(any(target_os="macos", all(not(target_os = "windows"), not(target_os = "ios"), not(target_os="android"), not(target_env="ohos"), not(target_arch="arm"), not(target_arch="aarch64"), not(target_arch="riscv32"), not(target_arch="riscv64"))))'.dependencies]
