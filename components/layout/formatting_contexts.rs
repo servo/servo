@@ -486,6 +486,7 @@ impl IndependentFormattingContext {
                 containing_block_for_children,
                 lazy_block_size,
                 Some(&self.base),
+                preferred_aspect_ratio,
             ),
             IndependentFormattingContextContents::Flex(fc) => fc.layout(
                 layout_context,
@@ -624,8 +625,18 @@ impl IndependentFormattingContext {
             IndependentFormattingContextContents::Replaced(replaced, _) => {
                 replaced.preferred_aspect_ratio(self.style(), padding_border_sums)
             },
-            // TODO: support preferred aspect ratios on non-replaced boxes.
-            _ => None,
+            IndependentFormattingContextContents::Flow(contents) => {
+                contents.preferred_aspect_ratio(&self.base, padding_border_sums)
+            },
+            IndependentFormattingContextContents::Flex(contents) => {
+                contents.preferred_aspect_ratio(padding_border_sums)
+            },
+            IndependentFormattingContextContents::Grid(contents) => {
+                contents.preferred_aspect_ratio(padding_border_sums)
+            },
+            IndependentFormattingContextContents::Table(contents) => {
+                contents.preferred_aspect_ratio(padding_border_sums)
+            },
         }
     }
 
