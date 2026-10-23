@@ -153,7 +153,8 @@ pub(crate) fn compress_and_enqueue_a_chunk(
 
     // Step 2. Let buffer be the result of compressing chunk with cs’s format and context.
     // NOTE: In our implementation, the enum type of context already indicates the format.
-    let buffer = {
+    rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
+    let array = {
         let mut compression_context = cs.context.borrow_mut();
         let buffer = compression_context
             .compress(get_buffer_source_slice(buffer_source, cx.no_gc()))
@@ -163,18 +164,15 @@ pub(crate) fn compress_and_enqueue_a_chunk(
         if buffer.is_empty() {
             return Ok(());
         }
-        buffer
+        // Step 4. Let arrays be the result of splitting buffer into one or more non-empty pieces and
+        // converting them into Uint8Arrays.
+        // NOTE: We process the result in a single Uint8Array.
+        create_buffer_source::<Uint8>(cx, buffer, js_object.handle_mut())
+            .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?
     };
-
-    // Step 4. Let arrays be the result of splitting buffer into one or more non-empty pieces and
-    // converting them into Uint8Arrays.
     // Step 5. For each Uint8Array array of arrays, enqueue array in cs’s transform.
-    // NOTE: We process the result in a single Uint8Array.
-    rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
-    let buffer_source = create_buffer_source::<Uint8>(cx, &buffer, js_object.handle_mut())
-        .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
     rooted!(&in(cx) let mut rval = UndefinedValue());
-    buffer_source.to_jsval(cx, rval.handle_mut());
+    array.to_jsval(cx, rval.handle_mut());
     controller.enqueue(cx, global, rval.handle())?;
 
     Ok(())
@@ -190,7 +188,8 @@ pub(crate) fn compress_flush_and_enqueue(
     // Step 1. Let buffer be the result of compressing an empty input with cs’s format and context,
     // with the finish flag.
     // NOTE: In our implementation, the enum type of context already indicates the format.
-    let buffer = {
+    rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
+    let array = {
         let mut compression_context = cs.context.borrow_mut();
         let buffer = compression_context.finalize().map_err(|_| {
             Error::Operation(Some("Failed to finalize the compression stream".into()))
@@ -200,18 +199,15 @@ pub(crate) fn compress_flush_and_enqueue(
         if buffer.is_empty() {
             return Ok(());
         }
-        buffer
+        // Step 3. Let arrays be the result of splitting buffer into one or more non-empty pieces and
+        // converting them into Uint8Arrays.
+        // NOTE: We process the result in a single Uint8Array.
+        create_buffer_source::<Uint8>(cx, buffer, js_object.handle_mut())
+            .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?
     };
-
-    // Step 3. Let arrays be the result of splitting buffer into one or more non-empty pieces and
-    // converting them into Uint8Arrays.
     // Step 4. For each Uint8Array array of arrays, enqueue array in cs’s transform.
-    // NOTE: We process the result in a single Uint8Array.
-    rooted!(&in(cx) let mut js_object = ptr::null_mut::<JSObject>());
-    let buffer_source = create_buffer_source::<Uint8>(cx, &buffer, js_object.handle_mut())
-        .map_err(|_| Error::Type(c"Cannot convert byte sequence to Uint8Array".to_owned()))?;
     rooted!(&in(cx) let mut rval = UndefinedValue());
-    buffer_source.to_jsval(cx, rval.handle_mut());
+    array.to_jsval(cx, rval.handle_mut());
     controller.enqueue(cx, global, rval.handle())?;
 
     Ok(())
@@ -272,43 +268,42 @@ impl CompressionContext {
         Ok(CompressionContext { encoder })
     }
 
-    fn compress(&mut self, chunk: &[u8]) -> Result<Vec<u8>, io::Error> {
-        let mut result = Vec::new();
-
+    fn compress(&mut self, chunk: &[u8]) -> Result<&[u8], io::Error> {
         match &mut self.encoder {
             #[cfg(feature = "brotli-compression-stream")]
             Encoder::Brotli(encoder) => {
+                encoder.get_mut().clear();
                 encoder.write_all(chunk)?;
                 encoder.flush()?;
-                result.append(encoder.get_mut());
+                Ok(encoder.get_ref().as_slice())
             },
             Encoder::Deflate(encoder) => {
+                encoder.get_mut().clear();
                 encoder.write_all(chunk)?;
                 encoder.flush()?;
-                result.append(encoder.get_mut());
+                Ok(encoder.get_ref().as_slice())
             },
             Encoder::DeflateRaw(encoder) => {
+                encoder.get_mut().clear();
                 encoder.write_all(chunk)?;
                 encoder.flush()?;
-                result.append(encoder.get_mut());
+                Ok(encoder.get_ref().as_slice())
             },
             Encoder::Gzip(encoder) => {
+                encoder.get_mut().clear();
                 encoder.write_all(chunk)?;
                 encoder.flush()?;
-                result.append(encoder.get_mut());
+                Ok(encoder.get_ref().as_slice())
             },
         }
-
-        Ok(result)
     }
 
-    fn finalize(&mut self) -> Result<Vec<u8>, io::Error> {
-        let mut result = Vec::new();
-
+    fn finalize(&mut self) -> Result<&[u8], io::Error> {
         match &mut self.encoder {
             #[cfg(feature = "brotli-compression-stream")]
             Encoder::Brotli(encoder) => {
-                let encoder = std::mem::replace(
+                encoder.get_mut().clear();
+                let finished_encoder = std::mem::replace(
                     encoder.borrow_mut(),
                     BrotliEncoder::new(
                         Vec::new(),
@@ -317,22 +312,24 @@ impl CompressionContext {
                         BROTLI_WINDOW_SIZE,
                     ),
                 );
-                result = encoder.into_inner();
+                *encoder.get_mut() = finished_encoder.into_inner();
+                Ok(encoder.get_ref().as_slice())
             },
             Encoder::Deflate(encoder) => {
+                encoder.get_mut().clear();
                 encoder.try_finish()?;
-                result.append(encoder.get_mut());
+                Ok(encoder.get_ref().as_slice())
             },
             Encoder::DeflateRaw(encoder) => {
+                encoder.get_mut().clear();
                 encoder.try_finish()?;
-                result.append(encoder.get_mut());
+                Ok(encoder.get_ref().as_slice())
             },
             Encoder::Gzip(encoder) => {
+                encoder.get_mut().clear();
                 encoder.try_finish()?;
-                result.append(encoder.get_mut());
+                Ok(encoder.get_ref().as_slice())
             },
         }
-
-        Ok(result)
     }
 }
