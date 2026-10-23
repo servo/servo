@@ -979,7 +979,7 @@ impl Element {
             }
         }
 
-        let window_proxy = self.owner_window().window_proxy();
+        let window_proxy = self.owner_window_unrooted(cx.no_gc()).window_proxy();
         let Some(frame_element) = window_proxy.frame_element() else {
             return;
         };
@@ -4848,7 +4848,7 @@ impl VirtualMethods for Element {
                         let source_line = 1; // TODO(#9604) get current JS execution line
                         evtarget.set_event_handler_uncompiled(
                             cx,
-                            self.owner_document_unrooted(cx.no_gc()).window().get_url(),
+                            self.owner_window_unrooted(cx.no_gc()).get_url(),
                             source_line,
                             event_name,
                             source,
@@ -4983,7 +4983,7 @@ impl VirtualMethods for Element {
         // Notify devtools that the DOM changed
         #[cfg(feature = "devtools")]
         {
-            let window = self.owner_window();
+            let window = self.owner_window_unrooted(cx.no_gc());
             if window.live_devtools_updates() {
                 let global = window.upcast::<GlobalScope>();
                 if let Some(sender) = global.devtools_chan() {
@@ -5146,7 +5146,7 @@ impl Element {
         }
 
         self.ensure_rare_data(no_gc).client_rect =
-            Some(self.owner_window().cache_layout_value(rect));
+            Some(self.owner_window_unrooted(no_gc).cache_layout_value(rect));
         rect
     }
 
