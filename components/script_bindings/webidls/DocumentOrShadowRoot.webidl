@@ -19,9 +19,8 @@ interface mixin DocumentOrShadowRoot {
 };
 
 partial interface mixin DocumentOrShadowRoot {
-  // TODO(37902): Use ObservableArray Array when available
   [Pref="dom_adoptedstylesheet_enabled", SetterThrows]
-  attribute /* ObservableArray<CSSStyleSheet> */ any adoptedStyleSheets;
+  attribute ObservableArray<CSSStyleSheet> adoptedStyleSheets;
 };
 
 // https://fullscreen.spec.whatwg.org/#api
