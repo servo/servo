@@ -42,6 +42,10 @@ use crate::dom::intersectionobserverentry::IntersectionObserverEntry;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::window::Window;
 
+/// The spec leaves the "lazy load scroll margin" implementation-defined.
+/// 600px on every side is the value Firefox uses.
+const LAZY_LOAD_SCROLL_MARGIN: &str = "600px";
+
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
 pub(crate) enum UnrootedElementOrDocument {
@@ -220,6 +224,21 @@ impl IntersectionObserver {
         observer.init_observer(init)?;
 
         Ok(observer)
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#start-intersection-observing-a-lazy-loading-element>
+    pub(crate) fn new_lazy_load(cx: &mut JSContext, window: &Window) -> DomRoot<Self> {
+        let mut init = IntersectionObserverInit::empty();
+        init.scrollMargin = Some(DOMString::from(LAZY_LOAD_SCROLL_MARGIN));
+
+        Self::new(
+            cx,
+            window,
+            None,
+            IntersectionObserverCallbackKind::LazyLoad,
+            &init,
+        )
+        .expect("Parsing shouldn't fail as the lazy load scroll margin is a valid constant")
     }
 
     /// Step 5-13 of <https://w3c.github.io/IntersectionObserver/#initialize-new-intersection-observer>
