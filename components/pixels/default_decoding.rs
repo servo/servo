@@ -14,7 +14,7 @@ use image::{
     AnimationDecoder, DynamicImage, Frames, ImageDecoder, ImageError, ImageFormat, ImageResult,
     Limits,
 };
-use log::{debug, error};
+use log::debug;
 use serde::{Deserialize, Serialize};
 
 use crate::image_encoder_decoder_factory::{
@@ -326,18 +326,14 @@ pub(crate) fn decode_animated_image(
         LoopCount::Finite(repeat_time) => Repeat::Finite(repeat_time),
         LoopCount::Infinite => Repeat::Infinite,
     };
-    let Ok(frames) = animation_decoder.boxed_into_frames().collect_frames() else {
-        error!("Could not get animation frames");
-        return None;
-    };
 
     // This uses `map_while`, because the first non-decodable frame seems to
     // send the frame iterator into an infinite loop. See
     // <https://github.com/image-rs/image/issues/2442>.
-    let frames: Vec<_> = frames
-        .into_iter()
+    let frames: Vec<_> = animation_decoder
+        .boxed_into_frames()
         .map_while(|decoded_frame| {
-            let mut animated_frame = decoded_frame;
+            let mut animated_frame = decoded_frame.ok()?;
             // Store pre-multiplied data as that prevents having to do conversions of the data at later
             // times. This does cause an issue with some canvas APIs. See:
             // https://github.com/servo/servo/issues/40257

@@ -7,7 +7,7 @@ use std::num::NonZeroU32;
 use std::{ptr, slice};
 
 use image::error::ImageFormatHint;
-use image::metadata::LoopCount;
+use image::metadata::{LoopCount, Orientation};
 use image::{Frame, Frames, ImageDecoder, ImageError, ImageResult, RgbaImage};
 use ohos_image_kit_sys::native_image::common::{Image_String, ImageResult as OhosImageResult};
 use ohos_image_kit_sys::native_image::image_source::{
@@ -206,6 +206,7 @@ impl<'a> ImageDecoder for OhosImageDecoder<'a> {
         (*self).read_image(buf)
     }
 
+    /// Returns the orientation. As not every image as an orientation, we fallback to `Orientation::NoTransform` for any error.
     fn orientation(&mut self) -> ImageResult<image::metadata::Orientation> {
         let mut orientation_string = "Orientation".to_owned();
         let mut key_string = Image_String {
@@ -213,21 +214,47 @@ impl<'a> ImageDecoder for OhosImageDecoder<'a> {
             size: orientation_string.len(),
         };
 
-        let mut orientation = 0;
+        let mut orientation = Image_String {
+            data: ptr::null_mut(),
+            size: 0,
+        };
 
         unsafe {
-            if OH_ImageSourceNative_GetImageProperty(self.image_source, &raw mut orientation) !=
-                OhosImageResult::SUCCESS
+            if OH_ImageSourceNative_GetImageProperty(
+                self.image_source,
+                &raw mut key_string,
+                &raw mut orientation,
+            ) != OhosImageResult::SUCCESS
             {
-                log::error!("Could not get orientation");
-                return ImageResult::Err(ImageError::Unsupported(ImageFormatHint::Unknown.into()));
+                log::error!("Could not get orientation1");
+                return ImageResult::Ok(Orientation::NoTransforms);
             }
         }
 
-        if let Some(exif_orientation) = image::metadata::Orientation::from_exif(orientation) {
-            return ImageResult::Ok(exif_orientation);
+        let orientation_string = String::from_utf8_lossy(unsafe {
+            slice::from_raw_parts(orientation.data, orientation.size)
+        });
+
+        // https://developer.huawei.com/consumer/cn/doc/doccenter-references/api/arkts-apis-image-e
+        let orientation_value = match &*orientation_string {
+            "Top-left" => Some(Orientation::NoTransforms),
+            "Top-right" => Some(Orientation::FlipHorizontal),
+            "Bottom-right" => Some(Orientation::Rotate180),
+            "Bottom-left" => Some(Orientation::FlipVertical),
+            "Left-top" => Some(Orientation::Rotate270FlipH),
+            "Right-top" => Some(Orientation::Rotate90),
+            "Right-bottom" => Some(Orientation::Rotate90FlipH),
+            "Left-bottom" => Some(Orientation::Rotate270),
+            _ => None,
+        };
+        unsafe {
+            libc::free(orientation.data as *mut libc::c_void);
+        }
+
+        if let Some(orientation) = orientation_value {
+            ImageResult::Ok(orientation)
         } else {
-            ImageResult::Err(ImageError::Unsupported(ImageFormatHint::Unknown.into()))
+            ImageResult::Ok(Orientation::NoTransforms)
         }
     }
 }
@@ -247,7 +274,10 @@ unsafe fn write_pixmap_to_buffer(
         }
 
         let mut buffer_size: usize = byte_count.try_into().map_err(|_| ())?;
-        debug_assert!(buffer.len() >= buffer_size);
+        if buffer.len() < buffer_size {
+            log::error!("Buffer not large enough");
+            return Err(());
+        }
         if OH_PixelmapNative_ReadPixels(pixmap, buffer.as_mut_ptr(), &raw mut buffer_size) !=
             OhosImageResult::SUCCESS
         {
@@ -357,7 +387,7 @@ impl<'a> ServoAnimation<'a> for OhosImageDecoder<'a> {
                     .try_into()
                     .unwrap_or(delay_time_list.len() as u32),
             )
-            .unwrap_or(1);
+            .unwrap_or_else(|_| 1.try_into().unwrap());
             let frame_iterator = Box::new(OhosAnimationIterator {
                 inner_vector: pixmap_vector,
                 width,
