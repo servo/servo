@@ -64,7 +64,8 @@ use crate::display_list::paint_traversal::{PaintTraversal, PaintTraversalHandler
 use crate::fragment_tree::{
     BackgroundMode, BaseFragment, BoxFragment, BoxFragmentWithStyle,
     CumulativeContentRectCalculation, Fragment, FragmentFlags, FragmentStatus, FragmentTree,
-    IFrameFragment, ImageFragment, PositioningFragment, SpecificLayoutInfo, SvgFragment, Tag, TextFragment,
+    IFrameFragment, ImageFragment, PositioningFragment, SpecificLayoutInfo, SvgFragment, Tag,
+    TextFragment,
 };
 use crate::geom::{
     LengthPercentageOrAuto, PhysicalPoint, PhysicalRect, PhysicalSides, PhysicalSize,

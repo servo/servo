@@ -125,9 +125,7 @@ impl<'dom, 'a> SvgTreeBuilder<'dom, 'a> {
         node: ServoLayoutNode<'dom>,
     ) -> Option<ServoArc<style::properties::ComputedValues>> {
         let element = node.as_element()?;
-        if element.style_data().is_none() {
-            return None;
-        }
+        element.style_data()?;
         Some(node.style(&self.context.style_context))
     }
 }

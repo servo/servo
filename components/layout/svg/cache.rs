@@ -11,17 +11,9 @@ use servo_svg::element::SvgNode;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 
-#[derive(MallocSizeOf)]
+#[derive(Default, MallocSizeOf)]
 pub(crate) struct SvgSubtreeCache {
     entries: HashMap<OpaqueNode, SvgSubtreeCacheEntry>,
-}
-
-impl Default for SvgSubtreeCache {
-    fn default() -> Self {
-        SvgSubtreeCache {
-            entries: HashMap::new(),
-        }
-    }
 }
 
 #[derive(MallocSizeOf)]
