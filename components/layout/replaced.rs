@@ -643,7 +643,7 @@ impl ReplacedContents {
                     tree: Some(tree.clone()),
                 }))]
             },
-            ReplacedContentKind::Svg(None) => return vec![],
+            ReplacedContentKind::Svg(None) => vec![],
             ReplacedContentKind::SVGElement {
                 vector_image,
                 has_viewbox,
