@@ -8,7 +8,7 @@ use servo_canvas_traits::webgl::WebGLError::*;
 use servo_canvas_traits::webgl::{TexDataType, TexFormat};
 
 use super::WebGLValidator;
-use super::tex_image_2d::TexImageValidationError;
+use super::tex_image_2d::{TexImageValidationError, bound_texture, validate_internal_format};
 use super::types::TexImageTarget;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::webgl::webglrenderingcontext::WebGLRenderingContext;
@@ -49,38 +49,12 @@ impl WebGLValidator for CommonTexImage3DValidator<'_> {
             },
         };
 
-        let texture = self
-            .context
-            .textures()
-            .active_texture_for_image_target(target);
         let limits = self.context.limits();
 
         let max_size = limits.max_3d_tex_size;
 
-        //  If an attempt is made to call this function with no WebGLTexture
-        //  bound, an INVALID_OPERATION error is generated.
-        let texture = match texture {
-            Some(texture) => texture,
-            None => {
-                self.context.webgl_error(InvalidOperation);
-                return Err(TexImageValidationError::TextureTargetNotBound(self.target));
-            },
-        };
-
-        // GL_INVALID_ENUM is generated if internal_format is not an accepted
-        // format.
-        let internal_format = match TexFormat::from_gl_constant(self.internal_format) {
-            Some(format)
-                if format.required_webgl_version() <= self.context.webgl_version() &&
-                    format.usable_as_internal() =>
-            {
-                format
-            },
-            _ => {
-                self.context.webgl_error(InvalidEnum);
-                return Err(TexImageValidationError::InvalidTextureFormat);
-            },
-        };
+        let texture = bound_texture(self.context, target)?;
+        let internal_format = validate_internal_format(self.context, self.internal_format)?;
 
         // GL_INVALID_VALUE is generated if width, height, or depth is less than 0 or greater than
         // GL_MAX_3D_TEXTURE_SIZE.
