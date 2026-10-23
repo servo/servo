@@ -686,7 +686,7 @@ pub enum SerializableCryptoKeyHandle {
     Aes192Key(Vec<u8>),
     Aes256Key(Vec<u8>),
     HkdfSecret(Vec<u8>),
-    Pbkdf2(Vec<u8>),
+    Pbkdf2Password(Vec<u8>),
     Hmac(Vec<u8>),
     MlKem512PrivateKey(Vec<u8>),
     MlKem768PrivateKey(Vec<u8>),
