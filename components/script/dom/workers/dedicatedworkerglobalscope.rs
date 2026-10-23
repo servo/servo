@@ -644,7 +644,7 @@ impl DedicatedWorkerGlobalScope {
 
                 // Drop worker rAF state before destroying the JS runtime.
                 dedicated_worker_global_scope.clear_animation_frame_callbacks_and_unregister();
-                global_scope.fetch_group_mut().terminate(global_scope);
+                global_scope.tear_down();
                 worker_global_scope.clear_js_runtime();
             })
             .expect("Thread spawning failed")

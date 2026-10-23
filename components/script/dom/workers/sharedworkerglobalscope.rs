@@ -511,6 +511,7 @@ impl SharedWorkerGlobalScope {
                 struct ClearJsRuntime<'a>(&'a WorkerGlobalScope);
                 impl Drop for ClearJsRuntime<'_> {
                     fn drop(&mut self) {
+                        self.0.upcast::<GlobalScope>().tear_down();
                         self.0.clear_js_runtime();
                     }
                 }

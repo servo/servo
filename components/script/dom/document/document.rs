@@ -2967,6 +2967,10 @@ impl Document {
         // Step 11. For each workletGlobalScope in document's worklet global scopes,
         // terminate workletGlobalScope.
         // TODO
+
+        // This is not a specification step but needs to be done in order to ensure proper
+        // garbage collection of this global scope.
+        exited_window.as_global_scope().tear_down();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#active-parser>
