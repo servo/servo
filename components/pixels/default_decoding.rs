@@ -293,7 +293,7 @@ pub(crate) fn decode_static_image(
     // Store pre-multiplied data as that prevents having to do conversions of the data at later
     // times. This does cause an issue with some canvas APIs. See:
     // https://github.com/servo/servo/issues/40257
-    let is_opaque = if is_premultiplied {
+    let is_opaque = if !is_premultiplied {
         rgba8_premultiply_inplace(&mut rgba)
     } else {
         rgba.pixels().all(|pixel| pixel.0[3] == 255)

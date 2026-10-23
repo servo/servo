@@ -230,7 +230,6 @@ impl<'a> ImageDecoder for OhosImageDecoder<'a> {
                 &raw mut orientation,
             ) != OhosImageResult::SUCCESS
             {
-                log::error!("Could not get orientation1");
                 return ImageResult::Ok(Orientation::NoTransforms);
             }
         }
@@ -245,9 +244,9 @@ impl<'a> ImageDecoder for OhosImageDecoder<'a> {
             "Top-right" => Some(Orientation::FlipHorizontal),
             "Bottom-right" => Some(Orientation::Rotate180),
             "Bottom-left" => Some(Orientation::FlipVertical),
-            "Left-top" => Some(Orientation::Rotate270FlipH),
+            "Left-top" => Some(Orientation::Rotate90FlipH),
             "Right-top" => Some(Orientation::Rotate90),
-            "Right-bottom" => Some(Orientation::Rotate90FlipH),
+            "Right-bottom" => Some(Orientation::Rotate270FlipH),
             "Left-bottom" => Some(Orientation::Rotate270),
             _ => None,
         };
@@ -310,7 +309,6 @@ struct OhosAnimationIterator {
     height: u32,
     delay_time_list: Vec<i32>,
     count: usize,
-    sum: NonZeroU32,
 }
 
 impl Iterator for OhosAnimationIterator {
@@ -337,7 +335,7 @@ impl Iterator for OhosAnimationIterator {
                 .get(self.count)
                 .and_then(|delay_time| (*delay_time).try_into().ok())
                 .unwrap_or(0),
-            self.sum.into(),
+            1,
         );
         let result = Some(Ok(Frame::from_parts(rgba_image, 0, 0, delay)));
         self.count += 1;
@@ -384,21 +382,12 @@ impl<'a> ServoAnimation<'a> for OhosImageDecoder<'a> {
                 log::error!("Could not get delay times");
             }
 
-            let sum = NonZeroU32::try_from(
-                delay_time_list
-                    .iter()
-                    .sum::<i32>()
-                    .try_into()
-                    .unwrap_or(delay_time_list.len() as u32),
-            )
-            .unwrap_or_else(|_| 1.try_into().unwrap());
             let frame_iterator = Box::new(OhosAnimationIterator {
                 inner_vector: pixmap_vector,
                 width,
                 height,
                 delay_time_list,
                 count: 0,
-                sum,
             });
 
             Frames::new(frame_iterator)
