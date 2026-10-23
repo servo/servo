@@ -288,7 +288,7 @@ impl ResourceTimingListener for ImageContext {
 impl HTMLImageElement {
     /// Update the current image with a valid URL.
     fn fetch_image(&self, cx: &mut JSContext, img_url: &ServoUrl) {
-        let window = self.owner_window();
+        let window = self.owner_window_unrooted(cx.no_gc());
 
         let cache_result = window.image_cache().get_cached_image_status(
             img_url.clone(),
