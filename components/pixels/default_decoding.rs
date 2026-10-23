@@ -255,6 +255,10 @@ impl<'a> ServoImageDecoder<'a> for DefaultImageDecoder<'a> {
     fn get_animated_decoder(self: Box<Self>) -> Box<dyn ServoAnimation<'a> + 'a> {
         Box::new(self.decoder)
     }
+
+    fn is_premultiplied(&self) -> bool {
+        false
+    }
 }
 
 impl<'a, T: AnimationDecoder<'a>> ServoAnimation<'a> for T {
@@ -271,6 +275,7 @@ pub(crate) fn decode_static_image(
     cors_status: CorsStatus,
     image_decoder: Box<dyn ServoImageDecoder<'_> + '_>,
 ) -> Option<RasterImage> {
+    let is_premultiplied = image_decoder.is_premultiplied();
     let mut image_decoder = image_decoder.get();
     let orientation = image_decoder.orientation();
 
@@ -288,7 +293,11 @@ pub(crate) fn decode_static_image(
     // Store pre-multiplied data as that prevents having to do conversions of the data at later
     // times. This does cause an issue with some canvas APIs. See:
     // https://github.com/servo/servo/issues/40257
-    let is_opaque = rgba8_premultiply_inplace(&mut rgba);
+    let is_opaque = if is_premultiplied {
+        rgba8_premultiply_inplace(&mut rgba)
+    } else {
+        rgba.pixels().all(|pixel| pixel.0[3] == 255)
+    };
 
     let frame = ImageFrame {
         delay: None,

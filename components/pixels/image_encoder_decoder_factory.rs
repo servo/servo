@@ -25,6 +25,8 @@ pub trait ServoImageDecoder<'a> {
     fn is_animated(&self) -> bool;
     /// Return an animation decoder.
     fn get_animated_decoder(self: Box<Self>) -> Box<dyn ServoAnimation<'a> + 'a>;
+    /// Returns if the data is already alpha premultiplied
+    fn is_premultiplied(&self) -> bool;
 }
 
 /// This is a simple trait to get AnimationDecoder into something we can use.

@@ -66,6 +66,10 @@ impl<'a> ServoImageDecoder<'a> for OhosImageDecoder<'a> {
     fn get_animated_decoder(self: Box<Self>) -> Box<dyn ServoAnimation<'a> + 'a> {
         self
     }
+
+    fn is_premultiplied(&self) -> bool {
+        true
+    }
 }
 
 struct OhosImageDecoder<'a> {
