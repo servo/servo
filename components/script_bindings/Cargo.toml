@@ -82,6 +82,7 @@ testbinding = []
 tracing = ["dep:tracing"]
 webgpu = []
 webgl = []
+webmidi = []
 webxr = ["gamepad", "webgl", "webxr-api"]
 
 [lints]

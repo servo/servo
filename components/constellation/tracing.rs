@@ -210,6 +210,8 @@ mod from_script {
                 Self::AddTupleToUpgradeInsecureNavigationsSet(..) => {
                     target!("AddTupleToUpgradeInsecureNavigationsSet")
                 },
+                #[cfg(feature = "webmidi")]
+                Self::MIDIRequest(..) => target!("MIDIRequest"),
             }
         }
     }
