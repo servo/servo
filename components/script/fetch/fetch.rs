@@ -836,7 +836,7 @@ impl ResourceTimingListener for FetchLaterListener {
 }
 
 fn fill_headers_with_metadata(cx: &mut JSContext, r: &Response, m: ExposedMetadata) {
-    r.set_headers(cx, m.headers);
+    r.set_headers(cx, Some(m.headers));
     r.set_status(&m.status);
     r.set_final_url(m.final_url);
     r.set_redirected(m.redirected);

@@ -385,7 +385,7 @@ impl Response {
                 }
             } else {
                 assert_eq!(self.response_type, ResponseType::Default);
-                Ok(FetchMetadata::Unfiltered(metadata.unwrap()))
+                Ok(FetchMetadata::Unfiltered(metadata))
             }
         } else {
             Err(NetworkError::ResourceLoadError(

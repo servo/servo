@@ -329,7 +329,7 @@ impl From<Metadata> for ExposedMetadata {
     fn from(value: Metadata) -> Self {
         ExposedMetadata {
             final_url: value.final_url,
-            headers,
+            headers: value.headers.unwrap(),
             status: value.status,
             redirected: value.redirected,
         }

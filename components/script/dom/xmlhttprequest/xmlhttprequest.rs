@@ -1094,8 +1094,8 @@ impl XMLHttpRequest {
             Ok(meta) => match meta {
                 FetchMetadata::Unfiltered(m) => (m.headers, m.status, m.final_url),
                 FetchMetadata::Filtered { filtered, .. } => match filtered {
-                    FilteredMetadata::Basic(m) => (m.headers, m.status, m.final_url),
-                    FilteredMetadata::Cors(m) => (m.headers, m.status, m.final_url),
+                    FilteredMetadata::Basic(m) => (Some(m.headers), m.status, m.final_url),
+                    FilteredMetadata::Cors(m) => (Some(m.headers), m.status, m.final_url),
                     FilteredMetadata::Opaque => return Err(Error::Network(None)),
                     FilteredMetadata::OpaqueRedirect(_) => return Err(Error::Network(None)),
                 },
