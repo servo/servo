@@ -81,6 +81,17 @@ impl From<&UnrootedElementOrDocument> for ElementOrDocument {
 /// <https://w3c.github.io/IntersectionObserver/#intersectionobserver-intersection-root>
 pub type IntersectionRoot = Option<UnrootedElementOrDocument>;
 
+/// What an [`IntersectionObserver`] does when it has queued entries to deliver.
+#[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
+#[derive(JSTraceable, MallocSizeOf)]
+pub(crate) enum IntersectionObserverCallbackKind {
+    /// A JavaScript function passed to `new IntersectionObserver(callback)`.
+    Script(TracedCallback<IntersectionObserverCallback>),
+    /// The observer used for lazy-loading iframes. It runs Rust code instead of a script callback.
+    /// <https://html.spec.whatwg.org/multipage/#lazy-load-intersection-observer>
+    LazyLoad,
+}
+
 /// The Intersection Observer interface
 ///
 /// > The IntersectionObserver interface can be used to observe changes in the intersection
@@ -104,7 +115,7 @@ pub(crate) struct IntersectionObserver {
     /// > with the intersection root, as per the processing model.
     ///
     /// <https://w3c.github.io/IntersectionObserver/#intersection-observer-callback>
-    callback: TracedCallback<IntersectionObserverCallback>,
+    callback: IntersectionObserverCallbackKind,
 
     /// <https://w3c.github.io/IntersectionObserver/#dom-intersectionobserver-queuedentries-slot>
     queued_entries: DomRefCell<Vec<Dom<IntersectionObserverEntry>>>,
@@ -136,9 +147,10 @@ pub(crate) struct IntersectionObserver {
 }
 
 impl IntersectionObserver {
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new_inherited(
         window: &Window,
-        callback: RootedCallback<IntersectionObserverCallback>,
+        callback: IntersectionObserverCallbackKind,
         root: &Option<ElementOrDocument>,
         root_margin: IntersectionObserverMargin,
         scroll_margin: IntersectionObserverMargin,
@@ -147,7 +159,7 @@ impl IntersectionObserver {
             reflector_: Reflector::new(),
             owner_doc: window.Document().as_traced(),
             root: root.as_ref().map(|root| root.into()),
-            callback: callback.to_traced(),
+            callback,
             queued_entries: Default::default(),
             observation_targets: Default::default(),
             root_margin: RefCell::new(root_margin),
@@ -160,11 +172,12 @@ impl IntersectionObserver {
     }
 
     /// <https://w3c.github.io/IntersectionObserver/#initialize-new-intersection-observer>
+    #[cfg_attr(crown, expect(crown::unrooted_must_root))]
     fn new(
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,
-        callback: RootedCallback<IntersectionObserverCallback>,
+        callback: IntersectionObserverCallbackKind,
         init: &IntersectionObserverInit,
     ) -> Fallible<DomRoot<Self>> {
         // Step 3.
@@ -414,9 +427,15 @@ impl IntersectionObserver {
             .collect();
 
         // Step 4-5
-        let _ = self
-            .callback
-            .Call_(cx, self, queued_entries, self, ExceptionHandling::Report);
+        match &self.callback {
+            IntersectionObserverCallbackKind::Script(callback) => {
+                let _ = callback.Call_(cx, self, queued_entries, self, ExceptionHandling::Report);
+            },
+            IntersectionObserverCallbackKind::LazyLoad => {
+                // TODO: resume the iframe's lazy load.
+                // <https://html.spec.whatwg.org/multipage/#lazy-load-intersection-observer>
+            },
+        }
     }
 
     /// Connect the observer itself into owner doc if it is unconnected.
@@ -844,7 +863,13 @@ impl IntersectionObserverMethods<crate::DomTypeHolder> for IntersectionObserver 
         callback: RootedCallback<IntersectionObserverCallback>,
         init: &IntersectionObserverInit,
     ) -> Fallible<DomRoot<IntersectionObserver>> {
-        Self::new(cx, window, proto, callback, init)
+        Self::new(
+            cx,
+            window,
+            proto,
+            IntersectionObserverCallbackKind::Script(callback.to_traced()),
+            init,
+        )
     }
 }
 
