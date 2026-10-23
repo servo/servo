@@ -68,4 +68,4 @@ partial interface HTMLElement {
 HTMLElement includes GlobalEventHandlers;
 HTMLElement includes ElementContentEditable;
 HTMLElement includes ElementCSSInlineStyle;
-HTMLElement includes HTMLOrSVGElement;
+HTMLElement includes HTMLOrSVGOrMathMLElement;
