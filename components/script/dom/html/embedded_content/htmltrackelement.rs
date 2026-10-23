@@ -46,10 +46,11 @@ use crate::dom::virtualmethods::VirtualMethods;
 use crate::dom::webvtt::vttcue::VTTCue;
 use crate::dom::{AttributeMutation, cors_setting_for_element};
 use crate::event_loop::script_thread::ScriptThread;
-use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
+use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request_with_claim};
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
 use crate::runtime::job_queue::MicrotaskRunnable;
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 #[derive(Clone, Copy, Default, JSTraceable, MallocSizeOf, PartialEq)]
 #[repr(u16)]
@@ -502,9 +503,11 @@ impl MicrotaskRunnable for TrackElementMicrotask {
                     // "track", and corsAttributeState, and with the same-origin fallback flag set.
                     let global = element.global();
                     let document = element.owner_document();
-                    let request = create_a_potential_cors_request(
+                    let url_with_blob_claim =
+                        ensure_blob_referenced_by_url_is_kept_alive(&global, url.clone());
+                    let request = create_a_potential_cors_request_with_claim(
                         Some(document.webview_id()),
-                        url.clone(),
+                        url_with_blob_claim,
                         Destination::Track,
                         cors_attribute_state,
                         Some(true),
