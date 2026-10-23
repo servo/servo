@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<meta charset="windows-1252">
+<title>Link stylesheet uses encoding-parse a URL</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/#create-a-link-request">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+async_test(t => {
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = 'resources/stylesheet.css?test=\u00DF';
+  link.onload = t.step_func(() => {
+    assert_equals(document.styleSheets.length, 1, 'stylesheet should be present in document.styleSheets');
+    const sheet = document.styleSheets[0];
+    assert_true(sheet.href.includes('?test=%DF'), 'stylesheet.href should use windows-1252 encoding (%DF)');
+    t.done();
+  });
+  link.onerror = t.unreached_func('link stylesheet should not fail to load');
+  document.head.appendChild(link);
+}, 'link element stylesheet should use document encoding (windows-1252)');
+</script>
+</body>

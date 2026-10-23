@@ -711,7 +711,7 @@ impl HTMLLinkElement {
         }
 
         // Step 2.
-        let link_url = match document.base_url().join(&href.str()) {
+        let link_url = match document.encoding_parse_a_url(&href.str()) {
             Ok(url) => url,
             Err(e) => {
                 debug!("Parsing url {} failed: {}", href, e);
