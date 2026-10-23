@@ -6,7 +6,7 @@ use dom_struct::dom_struct;
 use indexmap::IndexMap;
 use script_bindings::cell::DomRefCell;
 use script_bindings::like::Maplike;
-use script_bindings::reflector::{Reflector, reflect_dom_object_with_cx};
+use script_bindings::reflector::{Reflector, reflect_dom_object};
 
 use crate::dom::bindings::codegen::Bindings::MIDIOutputMapBinding::MIDIOutputMapMethods;
 use crate::dom::bindings::root::DomRoot;
@@ -35,7 +35,7 @@ impl MIDIOutputMap {
         global: &GlobalScope,
         cx: &mut js::context::JSContext,
     ) -> DomRoot<MIDIOutputMap> {
-        reflect_dom_object_with_cx(Box::new(MIDIOutputMap::new_inherited()), global, cx)
+        reflect_dom_object(cx, Box::new(MIDIOutputMap::new_inherited()), global)
     }
 }
 

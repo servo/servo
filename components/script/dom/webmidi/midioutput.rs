@@ -9,7 +9,7 @@ use js::realm::CurrentRealm;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::MIDIPortBinding::MIDIPortMethods;
 use script_bindings::error::{Error, Fallible};
-use script_bindings::reflector::reflect_dom_object_with_cx;
+use script_bindings::reflector::reflect_dom_object;
 use servo_base::cross_process_instant::CrossProcessInstant;
 use servo_constellation_traits::ScriptToConstellationMessage;
 use timers::{TimerEventRequest, TimerId};
@@ -72,7 +72,8 @@ impl MIDIOutput {
         connection: MIDIPortConnectionState,
         cx: &mut js::context::JSContext,
     ) -> DomRoot<MIDIOutput> {
-        reflect_dom_object_with_cx(
+        reflect_dom_object(
+            cx,
             Box::new(MIDIOutput::new_inherited(
                 id,
                 manufacturer,
@@ -83,7 +84,6 @@ impl MIDIOutput {
                 connection,
             )),
             window,
-            cx,
         )
     }
 
