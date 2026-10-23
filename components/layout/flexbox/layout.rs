@@ -454,6 +454,7 @@ impl FlexContainer {
                         containing_block_for_children,
                         &LogicalVec2::zero(),
                         false, /* auto_block_size_stretches_to_containing_block */
+                        false, /* skippable_for_block_percentage_quirk */
                     );
                     sizes.max_assign(result.sizes);
                     depends_on_block_constraints |= result.depends_on_block_constraints;
@@ -2539,6 +2540,7 @@ impl FlexItemBox {
                         containing_block,
                         &auto_minimum,
                         automatic_cross_size_for_intrinsic_sizing == Size::Stretch,
+                        false, /* skippable_for_block_percentage_quirk */
                     );
                 (sizes, depends_on_block_constraints)
             },

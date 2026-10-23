@@ -354,6 +354,7 @@ impl IndependentFormattingContext {
         containing_block: &IndefiniteContainingBlock,
         auto_minimum: &LogicalVec2<Au>,
         auto_block_size_stretches_to_containing_block: bool,
+        skippable_for_block_percentage_quirk: bool,
     ) -> InlineContentSizesResult {
         sizing::outer_inline(
             &self.base,
@@ -363,6 +364,7 @@ impl IndependentFormattingContext {
             auto_block_size_stretches_to_containing_block,
             self.is_replaced(),
             true, /* establishes_containing_block */
+            skippable_for_block_percentage_quirk,
             |padding_border_sums| self.preferred_aspect_ratio(padding_border_sums),
             |constraint_space| self.inline_content_sizes(layout_context, constraint_space),
             |preferred_aspect_ratio| {

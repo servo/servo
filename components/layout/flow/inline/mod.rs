@@ -3377,6 +3377,7 @@ impl<'layout_data> ContentSizesComputation<'layout_data> {
             &self.constraint_space.into(),
             &LogicalVec2::zero(),
             false, /* auto_block_size_stretches_to_containing_block */
+            false, /* skippable_for_block_percentage_quirk */
         );
         self.depends_on_block_constraints |= result.depends_on_block_constraints;
         result.sizes
