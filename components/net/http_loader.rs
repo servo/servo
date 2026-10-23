@@ -86,6 +86,9 @@ use crate::decoder::Decoder;
 use crate::devtools::{
     prepare_devtools_request, send_request_to_devtools, send_response_values_to_devtools,
 };
+use crate::devtools::{
+    send_early_httprequest_to_devtools, send_response_to_devtools, send_security_info_to_devtools,
+};
 use crate::embedder::NetToEmbedderMsg;
 use crate::fetch::cors_cache::CorsCache;
 use crate::fetch::fetch_params::FetchParams;
@@ -2575,11 +2578,17 @@ async fn cors_preflight_fetch(
     // Step 6. Let response be the result of running HTTP-network-or-cache fetch given a
     // new fetch params whose request is preflight.
     let mut fetch_params = FetchParams::new(
-        preflight,
+        preflight.clone(),
         ResourceFetchTiming::new(ResourceTimingType::None).into(),
     );
+
+    send_early_httprequest_to_devtools(&preflight, context);
+
     let response =
         http_network_or_cache_fetch(&mut fetch_params, false, false, &mut None, context).await;
+
+    send_response_to_devtools(&preflight, context, &response, None);
+    send_security_info_to_devtools(&preflight, context, &response);
 
     // Step 7. If a CORS check for request and response returns success and response’s status is an ok status, then:
     if cors_check(request, &response).is_ok() && response.status.code().is_success() {
