@@ -276,7 +276,7 @@ impl DissimilarOriginWindow {
             "/" => Some(source_origin.clone()),
             url => match ServoUrl::parse(url) {
                 Ok(url) => Some(url.origin()),
-                Err(_) => return Err(Error::Syntax(None)),
+                Err(_) => return Err(Error::Syntax(Some("Invalid target origin".into()))),
             },
         };
         let msg = ScriptToConstellationMessage::PostMessage {
