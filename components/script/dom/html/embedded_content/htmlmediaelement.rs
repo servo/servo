@@ -108,10 +108,11 @@ use crate::dom::videotracklist::VideoTrackList;
 use crate::dom::{RootedPromise, TracedPromise, referrer_policy_for_element};
 use crate::event_loop::document_loader::{LoadBlocker, LoadType};
 use crate::event_loop::script_thread::ScriptThread;
-use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
+use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request_with_claim};
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
 use crate::runtime::job_queue::MicrotaskRunnable;
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 /// A CSS file to style the media controls.
 static MEDIA_CONTROL_CSS: &str = include_str!("../../../resources/media-controls.css");
@@ -1524,9 +1525,10 @@ impl HTMLMediaElement {
 
         let cors_setting = cors_setting_for_element(self.upcast());
         let global = self.global();
-        let request = create_a_potential_cors_request(
+        let url_with_blob_claim = ensure_blob_referenced_by_url_is_kept_alive(&global, url.clone());
+        let request = create_a_potential_cors_request_with_claim(
             Some(document.webview_id()),
-            url.clone(),
+            url_with_blob_claim,
             destination,
             cors_setting,
             None,
