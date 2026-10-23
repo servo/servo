@@ -1634,6 +1634,11 @@ impl<'dom> LayoutDom<'dom, Element> {
         *self.namespace() == ns!(html)
     }
 
+    #[inline]
+    pub(crate) fn is_svg_element(&self) -> bool {
+        *self.namespace() == ns!(svg)
+    }
+
     pub(crate) fn id_attribute(self) -> Option<AtomicRef<'dom, Atom>> {
         AtomicRef::filter_map(self.unsafe_get().id_attribute.borrow(), Option::as_ref)
     }

@@ -6,6 +6,10 @@ pub mod image;
 pub mod shape;
 pub mod text;
 
+use std::sync::Arc;
+
+use malloc_size_of_derive::MallocSizeOf;
+
 pub use self::image::SvgImage;
 pub use self::shape::{Circle, Ellipse, Line, Path, Polygon, Polyline, Rectangle, Shape};
 pub use self::text::TextSpan;
@@ -15,6 +19,7 @@ use crate::model::transform::TransformOp;
 use crate::model::units::Id;
 
 /// A single node in SvgTree.
+#[derive(Debug, MallocSizeOf)]
 pub struct SvgNode {
     pub id: Option<Id>,
     pub tag: SvgTag,
@@ -22,9 +27,11 @@ pub struct SvgNode {
     pub transforms: Vec<TransformOp>,
     /// For nested '<svg>'
     pub viewport: Option<SvgViewport>,
-    pub children: Vec<SvgNode>,
+    #[conditional_malloc_size_of]
+    pub children: Vec<Arc<SvgNode>>,
 }
 
+#[derive(Debug, MallocSizeOf)]
 pub enum SvgTag {
     Shape(Shape),
     Text(TextSpan),
@@ -32,6 +39,7 @@ pub enum SvgTag {
     Container(Container),
 }
 
+#[derive(Debug, MallocSizeOf)]
 pub enum Container {
     Group,
     Svg,

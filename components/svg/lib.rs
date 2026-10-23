@@ -3,3 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 pub mod model;
+mod render;
+
+pub use model::{document, element, geometry, style, transform, units};
+pub use render::traversal::render_svg_tree;
