@@ -302451,6 +302451,19 @@
      ]
     },
     "css-tables": {
+     "absolute-row-001.html": [
+      "edf60722439c3c14988b1ec2075312ae03e8d82b",
+      [
+       null,
+       [
+        [
+         "/css/reference/ref-filled-green-200px-square.html",
+         "=="
+        ]
+       ],
+       {}
+      ]
+     ],
      "absolute-tables-006.html": [
       "d5d2265c491435359a6e96df87b18460a7fa5355",
       [
