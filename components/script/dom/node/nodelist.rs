@@ -2,12 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
 use script_bindings::dom::UnrootedDom;
 use script_bindings::domstring::TracedDOMString;
+use script_bindings::inheritance::Castable;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use stylo_atoms::Atom;
 
@@ -125,7 +126,7 @@ impl NodeListMethods<crate::DomTypeHolder> for NodeList {
             NodeListType::Children(ref list) => list.len(),
             NodeListType::Labels(ref list) => list.len(no_gc),
             NodeListType::Radio(ref list) => list.len(),
-            NodeListType::ElementsByName(ref list) => list.len(),
+            NodeListType::ElementsByName(ref list) => list.len(no_gc),
         }
     }
 
@@ -211,11 +212,11 @@ impl ChildrenList {
 
     pub(crate) fn children_changed(&self, mutation: &ChildrenMutation) {
         match mutation {
-            ChildrenMutation::Append { .. } |
-            ChildrenMutation::Insert { .. } |
-            ChildrenMutation::Prepend { .. } |
-            ChildrenMutation::Replace { .. } |
-            ChildrenMutation::ReplaceAll { .. } => *self.cached_children.borrow_mut() = None,
+            ChildrenMutation::Append { .. }
+            | ChildrenMutation::Insert { .. }
+            | ChildrenMutation::Prepend { .. }
+            | ChildrenMutation::Replace { .. }
+            | ChildrenMutation::ReplaceAll { .. } => *self.cached_children.borrow_mut() = None,
             ChildrenMutation::ChangeText => {},
         }
     }
@@ -295,6 +296,40 @@ impl RadioList {
 pub(crate) struct ElementsByNameList {
     document: Dom<Document>,
     name: TracedDOMString,
+    cache: Cache,
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+struct Cache {
+    length: Cell<Option<u32>>,
+    cursor: RefCell<Option<Cursor>>,
+    version: Cell<u64>,
+}
+
+impl Cache {
+    fn new(version: u64) -> Cache {
+        Cache {
+            length: Cell::new(None),
+            cursor: RefCell::new(None),
+            version: Cell::new(version),
+        }
+    }
+
+    fn validate(&self, document: &Document) {
+        let version = document.upcast::<Node>().inclusive_descendants_version();
+
+        if version != self.version.get() {
+            self.length.set(None);
+            self.cursor.replace(None);
+            self.version.set(version);
+        }
+    }
+}
+
+#[derive(JSTraceable, MallocSizeOf)]
+struct Cursor {
+    index: u32,
+    node: Dom<Node>,
 }
 
 impl ElementsByNameList {
@@ -302,16 +337,52 @@ impl ElementsByNameList {
         ElementsByNameList {
             document: Dom::from_ref(document),
             name: name.traced(),
+            cache: Cache::new(document.upcast::<Node>().inclusive_descendants_version()),
         }
     }
 
-    pub(crate) fn len(&self) -> u32 {
-        self.document.elements_by_name_count(&self.name)
+    pub(crate) fn len(&self, no_gc: &NoGC) -> u32 {
+        self.cache.validate(&self.document);
+
+        if let Some(length) = self.cache.length.get() {
+            length
+        } else {
+            let length = self
+                .document
+                .elements_by_name_iter(no_gc, &self.name)
+                .count() as u32;
+            self.cache.length.set(Some(length));
+            length
+        }
     }
 
     pub(crate) fn item<'a>(&'a self, no_gc: &'a NoGC, index: u32) -> Option<UnrootedDom<'a, Node>> {
-        self.document
-            .elements_by_name_iter(no_gc, &self.name)
-            .nth(index as usize)
+        self.cache.validate(&self.document);
+
+        let node = if let Some(ref cursor) = *self.cache.cursor.borrow()
+            && cursor.index == index
+        {
+            let node = cursor.node.clone();
+            Some(Dom::as_unrooted(&node, no_gc))
+        } else if let Some(ref cursor) = *self.cache.cursor.borrow()
+            && index > cursor.index
+        {
+            self.document
+                .elements_by_name_iter_after(no_gc, &self.name, &cursor.node)
+                .next()
+        } else {
+            self.document
+                .elements_by_name_iter(no_gc, &self.name)
+                .nth(index as usize)
+        };
+
+        if let Some(ref node) = node {
+            self.cache.cursor.borrow_mut().replace(Cursor {
+                index,
+                node: Dom::from_ref(&**node),
+            });
+        }
+
+        node
     }
 }
