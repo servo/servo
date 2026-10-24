@@ -32,6 +32,7 @@ use layout_api::{
     ACCESSKIT_ROLE_TO_ARIA_ROLE, AccessibilityDamage, LayoutDamage, QueryMsg,
     ScrollContainerQueryFlags, StyleData, with_layout_state,
 };
+use malloc_size_of::{MallocSizeOf as MallocSizeOfTrait, MallocSizeOfOps};
 use net_traits::ReferrerPolicy;
 use net_traits::request::{CorsSettings, CredentialsMode};
 use rustc_hash::FxBuildHasher;
@@ -44,7 +45,7 @@ use script_bindings::reflector::DomObject;
 use selectors::attr::CaseSensitivity;
 use selectors::matching::ElementSelectorFlags;
 use selectors::sink::Push;
-use servo_arc::Arc as ServoArc;
+use servo_arc::{Arc as ServoArc, ArcBorrow as ServoArcBorrow};
 use style::applicable_declarations::ApplicableDeclarationBlock;
 use style::attr::{AttrValue, LengthOrPercentageOrAuto};
 use style::context::QuirksMode;
@@ -56,7 +57,7 @@ use style::properties::{
     ComputedValues, Importance, PropertyDeclaration, PropertyDeclarationBlock,
     parse_style_attribute,
 };
-use style::rule_tree::{CascadeLevel, CascadeOrigin};
+use style::rule_tree::{CascadeLevel, CascadeOrigin, StyleSourceBorrow};
 use style::selector_parser::{RestyleDamage, SelectorParser, Snapshot};
 use style::shared_lock::Locked;
 use style::str::string_as_ascii_lowercase;
@@ -224,10 +225,14 @@ pub struct Element {
     selector_flags: AtomicUsize,
     rare_data: DomRefCell<Option<Box<ElementRareData>>>,
 
-    /// Style data for this node. This is accessed and mutated by style
-    /// passes and is used to lay out this node and populate layout data.
+    /// Style data and/or presentational hints for this node. For memory optimization,
+    /// they are stored in an enum with 3 variants: one for the style data (common case),
+    /// one for presentational hints, and one which boxes both of them.
+    /// The style data is accessed and mutated by style passes and is used to lay out
+    /// this node and populate layout data.
+    /// The presentational hints are read from Stylo during style resolution.
     #[no_trace]
-    style_data: DomRefCell<Option<Box<StyleData>>>,
+    style_data_or_pres_hints: DomRefCell<Option<Box<StyleDataOrPresHints>>>,
 }
 
 impl fmt::Debug for Element {
@@ -338,7 +343,7 @@ impl Element {
             state: Cell::new(state),
             selector_flags: Default::default(),
             rare_data: Default::default(),
-            style_data: Default::default(),
+            style_data_or_pres_hints: Default::default(),
         }
     }
 
@@ -384,7 +389,7 @@ impl Element {
     }
 
     pub(crate) fn clean_up_style_data(&self) {
-        self.style_data.borrow_mut().take();
+        StyleDataOrPresHints::clear_style_data(&mut self.style_data_or_pres_hints.borrow_mut())
     }
 
     pub(crate) fn restyle(&self, no_gc: &NoGC, damage: NodeDamage) {
@@ -1046,26 +1051,35 @@ impl Element {
     /// Do the same kind of query as [`Self::style`], but do not force a reflow. This is for
     /// callers that have just run another query and know the style data is already current.
     pub(crate) fn style_without_reflow(&self) -> Option<ServoArc<ComputedValues>> {
-        self.style_data
+        self.style_data_or_pres_hints
             .borrow()
             .as_ref()
+            .and_then(|data| data.style_data())
             .map(|data| data.element_data.borrow().styles.primary().clone())
     }
 
     pub(crate) fn is_styled(&self) -> bool {
-        self.style_data.borrow().is_some()
+        self.style_data_or_pres_hints
+            .borrow()
+            .as_ref()
+            .and_then(|data| data.style_data())
+            .is_some()
     }
 
     pub(crate) fn is_display_none(&self) -> bool {
-        self.style_data.borrow().as_ref().is_none_or(|data| {
-            data.element_data
-                .borrow()
-                .styles
-                .primary()
-                .get_box()
-                .display
-                .is_none()
-        })
+        self.style_data_or_pres_hints
+            .borrow()
+            .as_ref()
+            .and_then(|data| data.style_data())
+            .is_none_or(|data| {
+                data.element_data
+                    .borrow()
+                    .styles
+                    .primary()
+                    .get_box()
+                    .display
+                    .is_none()
+            })
     }
 
     /// Returns the computed value of the [`user-select`] property. Returns `None` if the
@@ -1074,9 +1088,10 @@ impl Element {
     /// [`user-select`]: <https://drafts.csswg.org/css-ui-4/#propdef-user-select>
     pub(crate) fn computed_user_select(&self) -> Option<UserSelect> {
         Some(
-            self.style_data
+            self.style_data_or_pres_hints
                 .borrow()
                 .as_ref()?
+                .style_data()?
                 .element_data
                 .borrow()
                 .styles
@@ -1090,8 +1105,12 @@ impl Element {
         &self,
         check_styles_fn: impl Fn(&ComputedValues) -> bool,
     ) -> bool {
-        let style_data = self.style_data.borrow();
-        let Some(data) = style_data.as_ref().map(|data| data.element_data.borrow()) else {
+        let data = self.style_data_or_pres_hints.borrow();
+        let Some(data) = data
+            .as_ref()
+            .and_then(|data| data.style_data())
+            .map(|data| data.element_data.borrow())
+        else {
             return false;
         };
 
@@ -1101,6 +1120,15 @@ impl Element {
 
         let mut pseudo_styles = data.styles.pseudos.as_array().iter();
         pseudo_styles.any(|style| style.as_deref().is_some_and(&check_styles_fn))
+    }
+
+    #[inline]
+    pub(crate) fn clear_presentational_hints(&self) {
+        self.upcast::<Node>()
+            .set_flag(NodeFlags::HAS_RESOLVED_PRESENTATIONAL_HINTS, false);
+        StyleDataOrPresHints::clear_presentational_hints(
+            &mut self.style_data_or_pres_hints.borrow_mut(),
+        );
     }
 }
 
@@ -1224,22 +1252,65 @@ impl<'dom> LayoutDom<'dom, Element> {
     #[inline]
     #[expect(unsafe_code)]
     pub(crate) fn style_data(self) -> Option<&'dom StyleData> {
-        unsafe { self.unsafe_get().style_data.borrow_for_layout().as_deref() }
+        unsafe {
+            self.unsafe_get()
+                .style_data_or_pres_hints
+                .borrow_for_layout()
+        }
+        .as_deref()
+        .and_then(|data| data.style_data())
     }
 
     #[inline]
     #[expect(unsafe_code)]
     pub(crate) unsafe fn initialize_style_data(self) {
-        let data = unsafe { self.unsafe_get().style_data.borrow_mut_for_layout() };
-        debug_assert!(data.is_none());
-        *data = Some(Box::default());
+        StyleDataOrPresHints::initialize_style_data(&mut *unsafe {
+            self.unsafe_get()
+                .style_data_or_pres_hints
+                .borrow_mut_for_layout()
+        });
     }
 
     #[inline]
     #[expect(unsafe_code)]
     pub(crate) unsafe fn clear_style_data(self) {
+        StyleDataOrPresHints::clear_style_data(&mut *unsafe {
+            self.unsafe_get()
+                .style_data_or_pres_hints
+                .borrow_mut_for_layout()
+        })
+    }
+
+    #[inline]
+    #[expect(unsafe_code)]
+    pub(crate) fn presentational_hints(
+        self,
+    ) -> Option<&'dom ServoArc<Locked<PropertyDeclarationBlock>>> {
         unsafe {
-            self.unsafe_get().style_data.borrow_mut_for_layout().take();
+            self.unsafe_get()
+                .style_data_or_pres_hints
+                .borrow_for_layout()
+        }
+        .as_deref()
+        .and_then(|data| data.presentational_hints())
+    }
+
+    #[inline]
+    #[expect(unsafe_code)]
+    pub(crate) unsafe fn ensure_presentational_hints(self) {
+        let node = self.upcast::<Node>();
+        if unsafe { node.get_flag(NodeFlags::HAS_RESOLVED_PRESENTATIONAL_HINTS) } {
+            return;
+        }
+        let pres_hints = self.compute_presentational_hints();
+        let data = unsafe {
+            self.unsafe_get()
+                .style_data_or_pres_hints
+                .borrow_mut_for_layout()
+        };
+        StyleDataOrPresHints::set_presentational_hints(data, pres_hints);
+        unsafe {
+            node.set_flag(NodeFlags::HAS_RESOLVED_PRESENTATIONAL_HINTS, true);
         }
     }
 
@@ -1268,10 +1339,7 @@ impl<'dom> LayoutDom<'dom, Element> {
         }
     }
 
-    pub(crate) fn synthesize_presentational_hints_for_legacy_attributes<V>(self, hints: &mut V)
-    where
-        V: Push<ApplicableDeclarationBlock>,
-    {
+    fn compute_presentational_hints(&self) -> Option<ServoArc<Locked<PropertyDeclarationBlock>>> {
         // TODO: Move HTML presentational hints handling into
         // HTMLElement::synthesize_presentational_hints_for_legacy_attributes
         let document = self.upcast::<Node>().owner_doc_for_layout();
@@ -1621,16 +1689,34 @@ impl<'dom> LayoutDom<'dom, Element> {
             }
         }
 
-        let Some(property_declaration_block) = property_declaration_block else {
-            return;
-        };
+        let property_declaration_block = property_declaration_block?;
 
         let shared_lock = &document.shared_style_locks().author;
-        hints.push(ApplicableDeclarationBlock::from_declarations(
-            ServoArc::new(shared_lock.wrap(property_declaration_block)),
-            CascadeLevel::new(CascadeOrigin::PresHints),
-            LayerOrder::root(),
-        ));
+        Some(ServoArc::new(shared_lock.wrap(property_declaration_block)))
+    }
+
+    pub(crate) fn synthesize_presentational_hints_for_legacy_attributes<'a, V>(self, hints: &mut V)
+    where
+        V: Push<ApplicableDeclarationBlock<'a>>,
+    {
+        #[expect(unsafe_code)]
+        unsafe {
+            assert!(
+                self.upcast::<Node>()
+                    .get_flag(NodeFlags::HAS_RESOLVED_PRESENTATIONAL_HINTS)
+            );
+        }
+        if let Some(declarations) = self.presentational_hints() {
+            // Safety: The declarations must outlive `'a`. That's the case for the presentational hints
+            // above, which are owned by the element, and which can't change while we're matching.
+            #[expect(unsafe_code)]
+            let declarations = unsafe { ServoArcBorrow::from_ref(&*(&**declarations as *const _)) };
+            hints.push(ApplicableDeclarationBlock::from_declarations(
+                StyleSourceBorrow::from_declarations(declarations),
+                CascadeLevel::new(CascadeOrigin::PresHints),
+                LayerOrder::root(),
+            ));
+        }
     }
 
     pub(crate) fn get_span(self) -> Option<u32> {
@@ -5653,5 +5739,138 @@ pub(crate) fn is_element_affected_by_legacy_background_presentational_hint(
 impl script_bindings::callback::OwnerWindow<crate::DomTypeHolder> for Element {
     fn owner_window(&self) -> Option<DomRoot<Window>> {
         Some(NodeTraits::owner_window(self))
+    }
+}
+
+type PresHints = ServoArc<Locked<PropertyDeclarationBlock>>;
+
+enum StyleDataOrPresHints {
+    // This is the typical case: we have StyleData, and no presentational hints.
+    StyleData(StyleData),
+
+    // In a `display: none` subtree, we don't have StyleData, but CSSOM can force
+    // the computation of presentational hints.
+    PresHints(PresHints),
+
+    // For elements that have both StyleData and presentational hints.
+    Both(Box<(StyleData, PresHints)>),
+}
+
+impl Default for StyleDataOrPresHints {
+    fn default() -> Self {
+        Self::StyleData(StyleData::default())
+    }
+}
+
+impl StyleDataOrPresHints {
+    fn style_data(&self) -> Option<&StyleData> {
+        match self {
+            Self::StyleData(style_data) => Some(style_data),
+            Self::PresHints(_) => None,
+            Self::Both(boxed_pair) => Some(&boxed_pair.0),
+        }
+    }
+
+    fn presentational_hints(&self) -> Option<&PresHints> {
+        match self {
+            Self::StyleData(_) => None,
+            Self::PresHints(pres_hints) => Some(pres_hints),
+            Self::Both(boxed_pair) => Some(&boxed_pair.1),
+        }
+    }
+
+    fn initialize_style_data(data: &mut Option<Box<Self>>) {
+        let Some(inner) = data.as_deref_mut() else {
+            *data = Some(Box::default());
+            return;
+        };
+        debug_assert!(matches!(inner, Self::PresHints(_)));
+        match inner {
+            Self::StyleData(old) => *old = StyleData::default(),
+            Self::PresHints(_) => {
+                let Some(mut value) = data.take() else {
+                    unreachable!();
+                };
+                let Self::PresHints(pres_hints) = *value else {
+                    unreachable!();
+                };
+                *value = Self::Both(Box::new((StyleData::default(), pres_hints)));
+                *data = Some(value);
+            },
+            Self::Both(boxed_pair) => boxed_pair.0 = StyleData::default(),
+        }
+    }
+
+    fn set_presentational_hints(data: &mut Option<Box<Self>>, pres_hints: Option<PresHints>) {
+        let Some(pres_hints) = pres_hints else {
+            Self::clear_presentational_hints(data);
+            return;
+        };
+        let Some(inner) = data.as_deref_mut() else {
+            *data = Some(Box::new(Self::PresHints(pres_hints)));
+            return;
+        };
+        match inner {
+            Self::StyleData(_) => {
+                let Some(mut value) = data.take() else {
+                    unreachable!();
+                };
+                let Self::StyleData(style_data) = *value else {
+                    unreachable!();
+                };
+                *value = Self::Both(Box::new((style_data, pres_hints)));
+                *data = Some(value);
+            },
+            Self::PresHints(old) => *old = pres_hints,
+            Self::Both(boxed_pair) => boxed_pair.1 = pres_hints,
+        }
+    }
+
+    fn clear_style_data(data: &mut Option<Box<Self>>) {
+        if let Some(inner) = data.as_deref_mut() {
+            match inner {
+                Self::StyleData(_) => *data = None,
+                Self::PresHints(_) => {},
+                Self::Both(_) => {
+                    let Some(mut value) = data.take() else {
+                        unreachable!();
+                    };
+                    let Self::Both(boxed_pair) = *value else {
+                        unreachable!();
+                    };
+                    *value = Self::PresHints(boxed_pair.1);
+                    *data = Some(value);
+                },
+            }
+        }
+    }
+
+    fn clear_presentational_hints(data: &mut Option<Box<Self>>) {
+        if let Some(inner) = data.as_deref_mut() {
+            match inner {
+                Self::StyleData(_) => {},
+                Self::PresHints(_) => *data = None,
+                Self::Both(_) => {
+                    let Some(mut value) = data.take() else {
+                        unreachable!();
+                    };
+                    let Self::Both(boxed_pair) = *value else {
+                        unreachable!();
+                    };
+                    *value = Self::StyleData(boxed_pair.0);
+                    *data = Some(value);
+                },
+            }
+        }
+    }
+}
+
+impl MallocSizeOfTrait for StyleDataOrPresHints {
+    fn size_of(&self, ops: &mut MallocSizeOfOps) -> usize {
+        match self {
+            Self::StyleData(style_data) => style_data.size_of(ops),
+            Self::PresHints(pres_hints) => pres_hints.size_of(ops),
+            Self::Both(boxed_pair) => boxed_pair.size_of(ops),
+        }
     }
 }
