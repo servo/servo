@@ -6,6 +6,7 @@ use std::collections::VecDeque;
 
 use html5ever::local_name;
 use js::context::JSContext;
+use script_bindings::codegen::GenericBindings::HTMLIFrameElementBinding::HTMLIFrameElementMethods;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::inheritance::Castable;
 use script_bindings::root::{Dom, DomRoot};
@@ -346,6 +347,67 @@ impl Node {
         None
     }
 
+    /// true if this node is the currently focused area of the top-level traversable, taking into
+    /// account this can be an iframe's document.
+    fn is_the_currently_focused_area(&self) -> bool {
+        fn no_other_document_has_focus(
+            document: &Document,
+            documents_with_focus: &[DomRoot<Document>],
+        ) -> bool {
+            document.iframes().iter().all(|iframe| {
+                if iframe.browsing_context_id().is_none() {
+                    return true;
+                }
+                let Some(content_document) = iframe
+                    .GetContentWindow()
+                    .and_then(|window_proxy| window_proxy.document())
+                else {
+                    return false;
+                };
+                (documents_with_focus.contains(&content_document) ||
+                    !content_document.focus_handler().has_focus()) &&
+                    no_other_document_has_focus(&content_document, documents_with_focus)
+            })
+        }
+
+        let mut document = self.owner_document();
+        let focus_handler = document.focus_handler();
+        if !focus_handler.has_focus() ||
+            !matches!(
+                &*focus_handler.focused_area(),
+                FocusableArea::Node { node, .. } if **node == *self
+            )
+        {
+            return false;
+        }
+
+        let mut documents_with_focus = vec![];
+        while !document.window().is_top_level() {
+            // The navigable container is only available when its `Document` is in this thread.
+            let window_proxy = document.window().window_proxy();
+            let Some(container) = window_proxy.frame_element() else {
+                return false;
+            };
+            let parent = container.owner_document();
+            let parent_focus_handler = parent.focus_handler();
+            if !parent_focus_handler.has_focus() ||
+                !matches!(
+                    &*parent_focus_handler.focused_area(),
+                    FocusableArea::IFrameViewport { iframe_element, .. }
+                        if iframe_element.upcast::<Element>() == container
+                )
+            {
+                return false;
+            }
+            documents_with_focus.push(document);
+            document = parent;
+        }
+        documents_with_focus.push(document);
+
+        let top_level_document = documents_with_focus.last().expect("Should have a Document");
+        no_other_document_has_focus(top_level_document, &documents_with_focus)
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#focusing-steps>
     ///
     /// This is an initial implementation of the "focusing steps" from the HTML specification. Note
@@ -361,6 +423,10 @@ impl Node {
         fallback_target: Option<FocusableArea>,
         focus_trigger: FocusTrigger,
     ) -> bool {
+        if fallback_target.is_none() && self.is_the_currently_focused_area() {
+            return false;
+        }
+
         // > 1. If new focus target is not a focusable area, then set new focus target to the result
         // >    of getting the focusable area for new focus target, given focus trigger if it was
         // >    passed.
