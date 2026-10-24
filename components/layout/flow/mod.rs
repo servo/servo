@@ -253,8 +253,9 @@ impl BlockLevelBox {
             return false;
         }
 
-        let available_inline_size =
-            containing_block.size.inline - pbm.padding_border_sums.inline - margin.inline_sum();
+        let available_inline_size = Au::zero().max(
+            containing_block.size.inline - pbm.padding_border_sums.inline - margin.inline_sum(),
+        );
         let available_block_size = containing_block.size.block.to_definite().map(|block_size| {
             Au::zero().max(block_size - pbm.padding_border_sums.block - margin.block_sum())
         });
