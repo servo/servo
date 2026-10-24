@@ -165,7 +165,7 @@ impl PartialEq for IndexedDBKeyType {
     }
 }
 
-// <https://www.w3.org/TR/IndexedDB-3/#key-range>
+/// <https://www.w3.org/TR/IndexedDB-3/#key-range>
 #[derive(Clone, Debug, Default, Deserialize, MallocSizeOf, Serialize)]
 pub struct IndexedDBKeyRange {
     pub lower: Option<IndexedDBKeyType>,
