@@ -64,10 +64,10 @@ impl TextInputWidget {
 
         let mut updated = false;
         if let Some(character_data) = shadow_tree.value_character_data() {
-            updated |= character_data.set_text_run_selection(new_range);
+            updated |= character_data.set_text_run_selection(new_range, true);
         }
         if let Some(character_data) = shadow_tree.placeholder_character_data_if_exists() {
-            updated |= character_data.set_text_run_selection(new_range);
+            updated |= character_data.set_text_run_selection(new_range, true);
         }
         updated
     }

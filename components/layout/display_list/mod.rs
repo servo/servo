@@ -1576,7 +1576,7 @@ impl Fragment {
             return;
         }
 
-        if !fragment.run_data.paints_caret {
+        if !fragment.run_data.paints_caret.load(Ordering::Relaxed) {
             return;
         }
 
