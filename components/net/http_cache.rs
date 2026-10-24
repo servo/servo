@@ -372,6 +372,17 @@ impl HttpCache {
     pub fn len(&self) -> usize {
         self.entries.len()
     }
+
+    /// Saves removes all elements from the memory cache and stores them in the disk cache.
+    pub async fn drain_to_disk(&self) {
+        if let Some(disk_cache) = &self.disk_cache {
+            log::info!("Storing http cache to disk");
+            let entries: Vec<_> = self.entries.drain().collect();
+            for (key, entry) in entries {
+                disk_cache.store(key, entry).await;
+            }
+        }
+    }
 }
 
 #[derive(Clone)]

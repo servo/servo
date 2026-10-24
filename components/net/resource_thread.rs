@@ -676,6 +676,13 @@ impl ResourceChannelManager {
                 let _ = sender.send(());
                 return false;
             },
+            CoreResourceMsg::StoreCacheToDisk(sender) => {
+                let http_state = http_state.clone();
+                spawn_task(async move {
+                    http_state.http_cache.drain_to_disk().await;
+                    let _ = sender.send(());
+                })
+            },
             // Ignore these messages as they are only sent on very specific channels.
             CoreResourceMsg::CollectMemoryReport(_) |
             CoreResourceMsg::RevokeTokenForFile(..) |

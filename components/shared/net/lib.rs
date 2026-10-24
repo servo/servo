@@ -704,6 +704,12 @@ impl ResourceThreads {
             .core_thread
             .send(CoreResourceMsg::EmbedderClearSessionCookies(id));
     }
+
+    pub fn store_cache_to_disk(&self, sender: GenericSender<()>) {
+        let _ = self
+            .core_thread
+            .send(CoreResourceMsg::StoreCacheToDisk(sender));
+    }
 }
 
 impl GenericSend<CoreResourceMsg> for ResourceThreads {
@@ -847,6 +853,7 @@ pub enum CoreResourceMsg {
     CollectMemoryReport(ReportsChan),
     RevokeTokenForFile(BlobTokenRevocationRequest),
     RefreshTokenForFile(BlobTokenRefreshRequest),
+    StoreCacheToDisk(GenericSender<()>),
 }
 
 #[derive(Debug, Deserialize, MallocSizeOf, Serialize)]

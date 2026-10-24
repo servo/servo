@@ -35,6 +35,8 @@ use crate::window::{PlatformWindow, ServoShellWindowId, TopLevelWebViewCreationR
 pub(crate) enum AppState {
     Initializing,
     Running(Rc<RunningAppState>),
+    /// A state were we are in the process of shuttding down but still need the reference to the [`RunningAppState`].
+    Teardown(Rc<RunningAppState>),
     ShuttingDown,
 }
 
@@ -176,7 +178,7 @@ impl App {
 
         let create_platform_window = |url: Url| self.create_platform_window(url, active_event_loop);
         if !state.spin_event_loop(Some(&create_platform_window)) {
-            self.state = AppState::ShuttingDown;
+            self.state = AppState::Teardown(state.clone());
             return false;
         }
         true
@@ -247,6 +249,15 @@ impl ApplicationHandler<AppEvent> for App {
 
         // Block until the window gets an event
         event_loop.set_control_flow(ControlFlow::Wait);
+    }
+
+    fn exiting(&mut self, _event_loop: &ActiveEventLoop) {
+        if !self.preferences.network_http_disk_cache.is_empty() &&
+            let AppState::Teardown(state) = &self.state
+        {
+            state.servo.network_manager().store_http_cache_to_disk();
+        }
+        self.state = AppState::ShuttingDown;
     }
 }
 
