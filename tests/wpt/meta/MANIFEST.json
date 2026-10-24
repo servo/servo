@@ -284292,6 +284292,19 @@
        }
       ]
      ],
+     "highlight-painting-006.html": [
+      "ec6aa9c6e0d47e93674bcbdc3513768c6be975ba",
+      [
+       null,
+       [
+        [
+         "/css/css-pseudo/highlight-painting-006-ref.html",
+         "=="
+        ]
+       ],
+       {}
+      ]
+     ],
      "highlight-painting-currentcolor-001.html": [
       "92f9d1c96d875e3cdb532831890dd90d03334fb2",
       [
@@ -523202,6 +523215,10 @@
      ],
      "highlight-painting-004-ref3.html": [
       "732f6bfe0dbfe2be32bfa225e53c1da84fa8a98b",
+      []
+     ],
+     "highlight-painting-006-ref.html": [
+      "291a994a0a58302b2084f0551d4f67de11f8911e",
       []
      ],
      "highlight-painting-currentcolor-001-ref.html": [
