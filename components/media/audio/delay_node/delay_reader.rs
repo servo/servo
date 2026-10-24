@@ -2,11 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::any::Any;
+
 use num_traits::Zero;
 
 use crate::audio_node::{AudioNodeEngine, AudioNodeType, BlockInfo, ChannelInfo};
 use crate::block::{Block, Chunk, FRAMES_PER_BLOCK_USIZE, Tick};
-use crate::delay_node::{CachedUpmixedBlock, DelayBuffer, UpmixedBlock};
+use crate::delay_node::{AccessLock, CachedUpmixedBlock, DelayBuffer, UpmixedBlock};
 use crate::param::{Param, ParamType};
 
 /// <https://webaudio.github.io/web-audio-api/#delayreader>
@@ -19,6 +21,9 @@ pub(crate) struct DelayReader {
     // Tracks the delay time in terms of number of frames, relative to each frame in the input block.
     // When reading from the buffer, we look for the stored block with the relevant frames
     delay_frames: [f32; FRAMES_PER_BLOCK_USIZE],
+    // Shared lock that determines whether the DelayReader or the DelayWriter is acting first during
+    // a render quantum.
+    accessed_first: AccessLock,
     // Ring buffer where we push to the front.
     // Easier mental model since entries in the back are the oldest.
     delay_line: DelayBuffer,
@@ -26,6 +31,8 @@ pub(crate) struct DelayReader {
     upmixed_block: CachedUpmixedBlock,
     // delay_time param passed on from the delay node. Delay time in seconds.
     delay_time: Param,
+    // Is the DelayReader part of a cycle breaker?
+    is_cycle_breaker: bool,
 }
 
 fn find_block_with_index(delay_frame_index: usize) -> usize {
@@ -34,6 +41,7 @@ fn find_block_with_index(delay_frame_index: usize) -> usize {
 
 impl DelayReader {
     pub(super) fn new(
+        accessed_first: AccessLock,
         buffer: DelayBuffer,
         upmixed_block: CachedUpmixedBlock,
         delay_time: Param,
@@ -42,13 +50,14 @@ impl DelayReader {
         DelayReader {
             channel_info,
             delay_frames: [0.; FRAMES_PER_BLOCK_USIZE],
+            accessed_first,
             delay_line: buffer,
             upmixed_block,
             delay_time,
+            is_cycle_breaker: false,
         }
     }
 
-    /// <https://webaudio.github.io/web-audio-api/#dom-delaynode-delaytime>
     fn update_parameters(&mut self, info: &BlockInfo, tick: Tick) -> bool {
         let updated = self.delay_time.update(info, tick);
         self.update_delay_frames(tick.0 as usize, self.delay_time.value() * info.sample_rate);
@@ -66,8 +75,27 @@ impl DelayReader {
     /// There are FRAMES_PER_BLOCK - 1 - t ticks to process after tick t.
     /// So after processing all ticks (FRAMES_PER_BLOCK - 1),
     /// delay_frames[t] = delay_time * sample_rate + FRAMES_PER_BLOCK - 1 - t
+    ///
+    /// If a delay node is a cycle breaker, then DelayReader and DelayWriter behave as separate nodes.
+    /// In this case, when processing the graph, it is not guaranteed that the DelayWriter writes to
+    /// delay line before the DelayReader begins reading.
+    /// Suppose the DelayReader begins reading before the corresponding DelayWriter has written to
+    /// the delay line.
+    /// We know delay_frames[t] at the end of a render quantum if the DelayWriter
+    /// is writing a frame every tick.
+    /// However, the write hasn't actually occurred yet. So delay_line is missing 128 frames.
+    /// Therefore, if read occurs before a write, we are looking for:
+    /// delay_frames[t] = delay_time * sample_rate - FRAMES_PER_BLOCK + (FRAMES_PER_BLOCK - 1 - t)
+    /// = delay_time * sample_rate - 1 - t
+    /// This is safe to subtract because in a cycle breaker the minimum delay time is one render quantum.
     fn update_delay_frames(&mut self, tick: usize, value: f32) {
-        self.delay_frames[tick] = value + FRAMES_PER_BLOCK_USIZE as f32 - 1. - tick as f32;
+        let t = tick as f32;
+        let offset = if *self.accessed_first.lock() {
+            -1. - t
+        } else {
+            FRAMES_PER_BLOCK_USIZE as f32 - 1. - t
+        };
+        self.delay_frames[tick] = value + offset;
     }
 
     /// Calculates the output channel count
@@ -130,6 +158,15 @@ impl DelayReader {
             self.channel_info.interpretation,
             block,
         )
+    }
+
+    fn update_accessed_first(&mut self) {
+        let mut accessed_first = self.accessed_first.lock();
+        *accessed_first = !(*accessed_first);
+    }
+
+    pub(crate) fn set_cycle_breaker_status(&mut self, status: bool) {
+        self.is_cycle_breaker = status;
     }
 
     /// Read frames from the delay line at the values indexed around the specified delays.
@@ -203,7 +240,13 @@ impl DelayReader {
         }
         // 1.5.3
         // > AudioNodes that are not actively processing output a single channel of silence.
-        Chunk::new(output_block)
+        // > A DelayNode in a cycle is actively processing only when the absolute value of
+        // > any output sample for the current render quantum is greater than or equal to 2^−126.
+        if self.is_cycle_breaker && !has_active_value {
+            Chunk::explicit_silence()
+        } else {
+            Chunk::new(output_block)
+        }
     }
 }
 
@@ -213,6 +256,15 @@ impl AudioNodeEngine for DelayReader {
     }
 
     fn process(&mut self, _inputs: Chunk, info: &BlockInfo) -> Chunk {
+        // <https://webaudio.github.io/web-audio-api/#dom-delaynode-delaytime>
+        // If DelayNode is part of a cycle, then the value of the delayTime attribute is clamped
+        // to a minimum of one render quantum.
+        if self.is_cycle_breaker {
+            self.delay_time
+                .set_range_minimum(FRAMES_PER_BLOCK_USIZE as f32 / info.sample_rate);
+        }
+        // Update the accessed_first lock
+        self.update_accessed_first();
         // Reset the delay frames array
         self.delay_frames = [0.; FRAMES_PER_BLOCK_USIZE];
 
@@ -230,5 +282,9 @@ impl AudioNodeEngine for DelayReader {
             ParamType::DelayTime => &mut self.delay_time,
             _ => panic!("Unknown param {:?} for DelayNode", id),
         }
+    }
+
+    fn into_any(self: Box<Self>) -> Box<dyn Any> {
+        self
     }
 }
