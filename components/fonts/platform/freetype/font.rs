@@ -17,7 +17,6 @@ use memmap2::Mmap;
 use parking_lot::ReentrantMutex;
 use read_fonts::types::Tag;
 use read_fonts::{FontRef, ReadError, TableProvider};
-use resvg::tiny_skia;
 use servo_arc::Arc;
 use skrifa::MetadataProvider;
 use skrifa::attribute::Weight;

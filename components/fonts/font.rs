@@ -27,7 +27,6 @@ use read_fonts::tables::name::Name as NameTable;
 use read_fonts::tables::os2::{Os2, SelectionFlags};
 use read_fonts::types::Tag;
 use read_fonts::{FontRead, ReadError};
-use resvg::tiny_skia;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use servo_base::id::PainterId;

@@ -22,7 +22,6 @@ use euclid::default::{Point2D, Rect, Size2D};
 use fonts_traits::LocalFontIdentifier;
 use log::debug;
 use read_fonts::TableProvider;
-use resvg::tiny_skia;
 use skrifa::Tag;
 use style::Zero;
 use webrender_api::{FontInstanceFlags, FontVariation};

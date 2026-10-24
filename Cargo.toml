@@ -258,6 +258,7 @@ tendril = { version = "0.5", features = ["encoding_rs"] }
 tikv-jemalloc-sys = "0.6.1"
 tikv-jemallocator = "0.6.1"
 time = { package = "time", version = "0.3", features = ["large-dates", "local-offset", "serde"] }
+tiny-skia = "0.12"
 tokio = "1"
 tokio-rustls = { version = "0.26", default-features = false, features = ["logging"] }
 tokio-stream = "0.1"
