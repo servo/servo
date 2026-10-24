@@ -1320019,6 +1320019,20 @@
           {}
          ]
         ],
+        "media-blob-url-revoked.window.js": [
+         "f050d2d1e65eddd0148c14d66dbc4cb34be6fd25",
+         [
+          "html/semantics/embedded-content/media-elements/loading-the-media-resource/media-blob-url-revoked.window.html",
+          {
+           "script_metadata": [
+            [
+             "title",
+             "media element with a blob: URL that is revoked"
+            ]
+           ]
+          }
+         ]
+        ],
         "resource-selection-candidate-insert-before.html": [
          "39c9887505271b157bdf1b27691c9315f729746d",
          [
