@@ -787,7 +787,10 @@ impl HTMLLinkElement {
         if !window.is_top_level() {
             return;
         }
-        let Ok(href) = self.Href().parse() else {
+
+        // Use the document's encoding to parse the URL, as the favicon URL is not necessarily UTF-8.
+        let document = self.upcast::<Node>().owner_doc();
+        let Ok(href) = document.encoding_parse_a_url(&self.Href()) else {
             return;
         };
 

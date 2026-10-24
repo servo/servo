@@ -585934,7 +585934,7 @@
       []
      ],
      "stash-read.py": [
-      "ff7ccebb3fa33fdb7471b13704a3c0d248b94f57",
+      "6bff190b916e2133acbf0dbd05c0bb2b66582cba",
       []
      ],
      "stash-referrer.py": [
@@ -585946,7 +585946,7 @@
       []
      ],
      "stash-url.py": [
-      "c583ded7dd92af696b2637ee23a0b21d772352ca",
+      "f3a44f1f7280c9374cc67971ebc41c6b0b3b7cea",
       []
      ],
      "syntax-error.css": [
@@ -1375406,6 +1375406,13 @@
       {}
      ]
     ],
+    "favicon-url-encoding.html": [
+     "4c5a34d7f9a3b56cdf07c6a511462bee025a634b",
+     [
+      null,
+      {}
+     ]
+    ],
     "link-blob-url-revoked.window.js": [
      "5ad635ff712054ce7a9ff31e772d82d354e74b12",
      [
@@ -1375662,6 +1375669,13 @@
       {}
      ]
     ],
+    "prefetch-url-encoding.html": [
+     "fbab82cffd66bb7031a0b143ef7275f4de317f1e",
+     [
+      null,
+      {}
+     ]
+    ],
     "preload-connect-to-doc.html": [
      "ba45f6f3f848068ee9120b89c41307af22d570d3",
      [
@@ -1375816,7 +1375830,7 @@
      ]
     ],
     "preload-url-encoding.html": [
-     "dce8b3e0e0708ce0a7cab8df2ac0082e1bc4f0a8",
+     "7e77eac859b63225627899eb1fcf3a4909e4d450",
      [
       null,
       {}
