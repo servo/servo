@@ -239,6 +239,7 @@
       this.controlEvents = [
         { el: this.elements.playPauseButton, type: "click" },
         { el: this.elements.volumeSwitch, type: "click" },
+        { el: this.elements.progress, type: "input" },
         { el: this.elements.volumeLevel, type: "input" }
       ];
 
@@ -385,6 +386,9 @@
           break;
         case "input":
           switch (event.currentTarget) {
+            case this.elements.progress:
+              this.seek();
+              break;
             case this.elements.volumeLevel:
               this.changeVolume();
               break;
@@ -451,6 +455,13 @@
                 this.elements.fullscreenSwitch.classList.add("fullscreen-active");
             });
         }
+    }
+
+    seek() {
+      const position = parseFloat(this.elements.progress.value);
+      if (!isNaN(position) && Number.isFinite(this.media.duration)) {
+        this.media.currentTime = (position / 100) * this.media.duration;
+      }
     }
 
     changeVolume() {

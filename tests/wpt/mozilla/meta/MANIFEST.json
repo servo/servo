@@ -14353,6 +14353,15 @@
       {}
      ]
     ],
+    "drag_range_input_in_shadow_root.html": [
+     "5b9fc35724f5bdb9ec8c8e233153bd92e44c9746",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
     "element-attribute.html": [
      "3ec766e133fea343ac645619a500c46e0e4af64c",
      [

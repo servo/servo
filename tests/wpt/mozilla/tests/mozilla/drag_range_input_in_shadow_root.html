@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<title>Mouse dragging on a range input inside a shadow root</title>
+<script src='/resources/testharness.js'></script>
+<script src='/resources/testharnessreport.js'></script>
+<script src='/resources/testdriver.js'></script>
+<script src='/resources/testdriver-actions.js'></script>
+<script src='/resources/testdriver-vendor.js'></script>
+
+<div id="host"></div>
+
+<script>
+"use strict";
+
+promise_test(async t => {
+  const root = host.attachShadow({ mode: "open" });
+  root.innerHTML = '<input type="range" min="0" max="10" value="5">';
+  const range = root.querySelector("input");
+  assert_equals(parseInt(range.value), 5, "initial value");
+
+  let inputEvents = 0;
+  let changeEvents = 0;
+  range.addEventListener("input", () => inputEvents++);
+  range.addEventListener("change", () => changeEvents++);
+
+  const rect = range.getBoundingClientRect();
+  await new test_driver.Actions()
+    .addPointer("pointer1", "mouse")
+    .pointerMove(rect.x + rect.width / 2, rect.y + rect.height / 2)
+    .pointerDown()
+    .pointerMove(rect.x + rect.width - 3, rect.y + rect.height / 2)
+    .pointerUp()
+    .send();
+
+  assert_equals(parseInt(range.value), 10, "final value");
+  assert_greater_than(inputEvents, 0, "input events fired");
+  assert_equals(changeEvents, 1, "change event fired once");
+}, 'Drag on a range input element inside a shadow root.');
+</script>
