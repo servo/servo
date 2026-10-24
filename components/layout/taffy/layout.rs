@@ -504,7 +504,10 @@ impl TaffyContainer {
             },
             known_dimensions,
             parent_size: taffy_containing_block,
-            available_space: taffy_containing_block.map(AvailableSpace::from),
+            available_space: taffy::Size {
+                width: AvailableSpace::from(taffy_containing_block.width),
+                height: AvailableSpace::MaxContent,
+            },
         };
 
         let output = match container_ctx.style.get_display().inside() {
