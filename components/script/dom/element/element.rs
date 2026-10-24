@@ -983,10 +983,8 @@ impl Element {
         };
 
         let inner_target_rect = Some(get_target_rect(cx));
-
         let mut realm = enter_auto_realm(cx, frame_element);
         let cx = &mut realm;
-
         frame_element.scroll_into_view_with_options(
             cx,
             behavior,
