@@ -99,6 +99,7 @@ stdenv.mkDerivation (androidEnvironment // {
     llvmPackages.bintools # provides lld
 
     udev # Needed by libudev-sys for GamePad API.
+    alsa-lib # Needed by alsa-sys for WebMIDI API.
 
     # Build utilities
     cmake dbus gcc git pkg-config which llvm perl yasm m4
