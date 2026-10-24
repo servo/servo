@@ -563,6 +563,20 @@ impl HTMLMediaElement {
     fn time_marches_on(&self, cx: &mut JSContext, playback_was_moved: PlaybackPositionWasMoved) {
         let playback_was_moved_monotonic_increase =
             playback_was_moved == PlaybackPositionWasMoved::NormalPlayback;
+
+        // Step 6. If the time was reached through the usual monotonic increase of the current
+        // playback position during normal playback, and if the user agent has not fired a
+        // timeupdate event at the element in the past 15 to 250ms and is not still running event
+        // handlers for such an event, then the user agent must queue a media element task given the
+        // media element to fire an event named timeupdate at the element.
+        if playback_was_moved_monotonic_increase &&
+            Instant::now() > self.next_timeupdate_event.get()
+        {
+            self.queue_media_element_task_to_fire_event(atom!("timeupdate"));
+            self.next_timeupdate_event
+                .set(Instant::now() + Duration::from_millis(250));
+        }
+
         // Step 1. Let current cues be a list of cues,
         // initialized to contain all the cues of all the hidden or
         // showing text tracks of the media element (not the disabled ones)
@@ -621,19 +635,6 @@ impl HTMLMediaElement {
                     .clear();
                 vec![]
             };
-
-        // Step 6. If the time was reached through the usual monotonic increase of the current
-        // playback position during normal playback, and if the user agent has not fired a
-        // timeupdate event at the element in the past 15 to 250ms and is not still running event
-        // handlers for such an event, then the user agent must queue a media element task given the
-        // media element to fire an event named timeupdate at the element.
-        if playback_was_moved_monotonic_increase &&
-            Instant::now() > self.next_timeupdate_event.get()
-        {
-            self.queue_media_element_task_to_fire_event(atom!("timeupdate"));
-            self.next_timeupdate_event
-                .set(Instant::now() + Duration::from_millis(250));
-        }
 
         // Step 7. If all of the cues in current cues have their text track cue active flag set,
         // none of the cues in other cues have their text track cue active flag set,

@@ -43,20 +43,26 @@
 
   function generateMarkup(isAudioOnly) {
     return `
-      <div class="controls">
-        <button id="play-pause-button"></button>
-        <div>
-          <input id="progress" type="range" value="0" min="0" max="100" step="1"></input>
-          <span id="position-duration-box" class="hidden">
-            <span id="position-text">#1</span>
-            <span id="duration"> / #2</span>
-          </span>
+      <div class="controlBar">
+        <button id="play-pause-button" class="button playPauseButton" paused="true"></button>
+        <div id="scrubber-stack" class="scrubberStack">
+          <div class="progressBackgroundBar">
+            <div class="progressStack">
+              <progress id="buffer-bar" class="bufferBar" value="0" max="100"></progress>
+              <progress id="progress-bar" class="progressBar" value="0" max="100"></progress>
+            </div>
+          </div>
+          <input type="range" id="scrubber" class="scrubber" value="0" min="0" max="100" step="1">
         </div>
-        <div>
-          <button id="volume-switch"></button>
-          <input id="volume-level" type="range" value="100" min="0" max="100" step="1"></input>
+        <span id="position-duration-box" class="positionDurationBox hidden">
+          <span id="position-text">#1</span>
+          <span id="duration" class="duration"> / #2</span>
+        </span>
+        <button id="mute-button" class="button muteButton"></button>
+        <div class="volumeStack">
+          <input type="range" id="volume-level" class="volumeLevel" value="100" min="0" max="100" step="1">
         </div>
-        ${isAudioOnly ? "" : '<button id="fullscreen-switch" class="fullscreen"></button>'}
+        ${isAudioOnly ? "" : '<button id="fullscreen-switch" class="button fullscreenSwitch"></button>'}
       </div>
     `;
   }
@@ -149,16 +155,19 @@
 
 
       const elementNames = [
-        "duration",
         "play-pause-button",
+        "buffer-bar",
+        "progress-bar",
+        "scrubber",
         "position-duration-box",
         "position-text",
-        "progress",
-        "volume-switch",
+        "duration",
+        "mute-button",
         "volume-level"
       ];
 
       if (!this.isAudioOnly) {
+        // add "click-to-play"
         elementNames.push("fullscreen-switch");
       }
 
@@ -174,7 +183,6 @@
       const durationFormat = durationSpan.textContent;
       const positionFormat = positionTextNode.textContent;
 
-      durationSpan.classList.add("duration");
       durationSpan.setAttribute("role", "none");
 
       Object.defineProperties(this.elements.positionDurationBox, {
@@ -238,11 +246,13 @@
 
       this.controlEvents = [
         { el: this.elements.playPauseButton, type: "click" },
-        { el: this.elements.volumeSwitch, type: "click" },
+        { el: this.elements.muteButton, type: "click" },
+        { el: this.elements.scrubber, type: "input" },
         { el: this.elements.volumeLevel, type: "input" }
       ];
 
       if (!this.isAudioOnly) {
+        // this.controlEvents.push({ el: this.elements.clickToPlay, type: "click" });
         this.controlEvents.push({ el: this.elements.fullscreenSwitch, type: "click" });
       }
 
@@ -277,13 +287,13 @@
 
           // Transition to the next state.
           this.state = to;
-          this.onStateChange(from);
+          this.onStateChange();
         };
       }
 
       // Set initial state.
       this.state = this.media.paused ? PAUSED : PLAYING;
-      this.onStateChange(null);
+      this.onStateChange();
     }
 
     cleanupDom() {
@@ -308,45 +318,76 @@
     }
 
     // State change handler
-    onStateChange(from) {
-      this.render(from);
+    onStateChange() {
+      this.render();
     }
 
-    render(from = this.state) {
+    render() {
       // Error
       if (this.state == ERRORED) {
         // XXX render errored state
         return;
       }
 
-      if (this.state != from) {
-        // Play/Pause button.
-        const playPauseButton = this.elements.playPauseButton;
-        playPauseButton.classList.remove(from);
-        playPauseButton.classList.add(this.state);
+      // Play button: show the play icon when paused or ended, the pause icon
+      // otherwise
+      const paused = this.state == PAUSED || this.state == ENDED;
+      if (paused) {
+        this.elements.playPauseButton.setAttribute("paused", "");
+      } else {
+        this.elements.playPauseButton.removeAttribute("paused");
       }
 
-      // Progress.
-      const positionPercent =
-        (this.media.currentTime / this.media.duration) * 100;
-      if (Number.isFinite(positionPercent)) {
-        this.elements.progress.value = positionPercent;
-      } else {
-        this.elements.progress.value = 0;
+      // Click-to-play overlay: shown while paused, hidden while playing.
+      if (this.elements.clickToPlay) {
+        if (paused) {
+          this.elements.clickToPlay.removeAttribute("hidden");
+        } else {
+          this.elements.clickToPlay.setAttribute("hidden", "");
+        }
       }
+
+      // Buffered and Playing progress 
+      const duration = this.media.duration;
+      const currentTime = this.media.currentTime;
+      const positionPercent = duration
+        ? (currentTime / duration) * 100
+        : 0;
+      this.elements.progressBar.value = Number.isFinite(positionPercent)
+        ? positionPercent
+        : 0;
+      
+      // TODO: Don't update the scrubber if the user is dragging it.
+      this.elements.scrubber.value = Number.isFinite(positionPercent)
+        ? positionPercent
+        : 0;
+
+      let bufferedEnd = 0;
+      if (this.media.buffered && this.media.buffered.length > 0) {
+        // Only use the last buffered range.
+        bufferedEnd = this.media.buffered.end(this.media.buffered.length - 1);
+      }
+      const bufferedPercent = duration ? (bufferedEnd / duration) * 100 : 0;
+      this.elements.bufferBar.value = Number.isFinite(bufferedPercent)
+        ? bufferedPercent
+        : 0;
 
       // Current time and duration.
-      let currentTime = formatTime(0);
-      let duration = formatTime(0);
-      if (!isNaN(this.media.currentTime) && !isNaN(this.media.duration)) {
-        currentTime = formatTime(Math.round(this.media.currentTime * 1000));
-        duration = formatTime(Math.round(this.media.duration * 1000));
+      let currentTimeText = formatTime(0);
+      let durationText = formatTime(0);
+      if ( !isNaN(currentTime) && !isNaN(duration)) {
+        currentTimeText = formatTime(currentTime * 1000);
+        durationText = formatTime(duration * 1000);
       }
-      this.elements.positionDurationBox.show(currentTime, duration);
+      this.elements.positionDurationBox.show(currentTimeText, durationText);
+      const muted = this.media.muted || this.media.volume == 0;
+      if (muted) {
+        this.elements.muteButton.setAttribute("muted","");
+      } else {
+        this.elements.muteButton.removeAttribute("muted");
+      }
 
-      // Volume.
-      this.elements.volumeSwitch.className =
-        this.media.muted || !this.media.volume ? "muted" : "volumeup";
+      // Volume slider.
       const volumeLevelValue = this.media.muted
         ? 0
         : Math.round(this.media.volume * 100);
@@ -375,12 +416,15 @@
             case this.elements.playPauseButton:
               this.playOrPause();
               break;
-            case this.elements.volumeSwitch:
+            case this.elements.clickToPlay:
+              this.media.play();
+              break;
+            case this.elements.muteButton:
               this.toggleMuted();
               break;
             case this.elements.fullscreenSwitch:
-                this.toggleFullscreen();
-                break;
+              this.toggleFullscreen();
+              break;
           }
           break;
         case "input":
@@ -409,9 +453,12 @@
         case "volumechange":
         case "timeupdate":
         case "resize":
-          this.render();
-          break;
+        case "loadeddata":
         case "loadedmetadata":
+        case "progress":
+        case "playing":
+        case "suspend":
+          this.render();
           break;
       }
     }
@@ -438,19 +485,19 @@
     }
 
     toggleFullscreen() {
-        const { fullscreenEnabled, fullscreenElement } = document;
+      const { fullscreenEnabled, fullscreenElement } = document;
 
-        const isElementFullscreen = fullscreenElement && fullscreenElement === this.media;
+      const isElementFullscreen = fullscreenElement && fullscreenElement === this.media;
 
-        if (fullscreenEnabled && isElementFullscreen) {
-            document.exitFullscreen().then(() => {
-                this.elements.fullscreenSwitch.classList.remove("fullscreen-active");
-            });
-        } else {
-            this.media.requestFullscreen().then(() => {
-                this.elements.fullscreenSwitch.classList.add("fullscreen-active");
-            });
-        }
+      if (fullscreenEnabled && isElementFullscreen) {
+        document.exitFullscreen().then(() => {
+          this.elements.fullscreenSwitch.removeAttribute("fullscreen-active");
+        });
+      } else {
+        this.media.requestFullscreen().then(() => {
+          this.elements.fullscreenSwitch.setAttribute("fullscreen-active","");
+        });
+      }
     }
 
     changeVolume() {
@@ -463,4 +510,3 @@
 
   new MediaControls();
 })();
-
