@@ -194,6 +194,7 @@ p256 = { version = "0.14", features = ["ecdh"] }
 p384 = { version = "0.14", features = ["ecdh"] }
 p521 = { version = "0.14", features = ["ecdh"] }
 parking_lot = { version = "0.12", features = ["serde"] }
+pbkdf2 = { version = "0.13", features = ["hmac"] }
 peniko = "0.6"
 percent-encoding = "2.3"
 petgraph = "0.8.3"
@@ -404,6 +405,16 @@ opt-level = 3
 # Reducing the codegen-units seems to significantly decrease the rlib size and
 # avoids the issue.
 codegen-units = 16
+
+# pbkdf2 could be very slow without compilation optimizations, which
+# causes timeout in the WPT tests for WebCrypto. Building with higher
+# optimization levels help prevent these false negative WPT results.
+[profile.dev.package.servo-script-webcrypto]
+opt-level = 3
+[profile.dev.package.sha1]
+opt-level = 3
+[profile.dev.package.sha2]
+opt-level = 3
 
 # Force tikv-jemalloc-sys to build with at least -O1.
 # This can help with build environments that force _FORTIFY_SOURCE, such as Nix.
