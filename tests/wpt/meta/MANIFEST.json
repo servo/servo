@@ -1321330,6 +1321330,20 @@
            {}
           ]
          ],
+         "track-blob-url-revoked.window.js": [
+          "8c743dc2d4d6f3c58d699ec76f10504641a34450",
+          [
+           "html/semantics/embedded-content/media-elements/track/track-element/track-blob-url-revoked.window.html",
+           {
+            "script_metadata": [
+             [
+              "title",
+              "track element with a blob: URL that is revoked"
+             ]
+            ]
+           }
+          ]
+         ],
          "track-change-event.html": [
           "7a17dee2a75394f29d4bfdf0df62d5aaaaeb26a7",
           [
