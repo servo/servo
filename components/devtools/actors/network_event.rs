@@ -148,6 +148,11 @@ struct ResponseFields {
     response_start_available: bool,
     status: String,
     status_text: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    mime_type: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    transferred_size: Option<u64>,
+    content_size: usize,
 }
 
 #[derive(Clone, Serialize)]
@@ -625,6 +630,18 @@ impl NetworkEventActor {
             response_start_available: true,
             status: status.code().to_string(),
             status_text: String::from_utf8_lossy(status.message()).to_string(),
+            mime_type: headers
+                .and_then(extract_mime_type_as_dataurl_mime)
+                .map(|url| url.to_string()),
+            transferred_size: headers
+                .and_then(|header| header.typed_get::<ContentLength>())
+                .map(|content_length_header| content_length_header.0),
+            content_size: response
+                .response
+                .body
+                .as_ref()
+                .map(|body| body.len())
+                .unwrap_or(0),
         })
     }
 
