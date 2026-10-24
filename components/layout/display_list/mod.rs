@@ -37,7 +37,8 @@ use style::properties::style_structs::Border;
 use style::values::computed::basic_shape::ClipPath as ComputedClipPath;
 use style::values::computed::{
     BorderImageSideWidth, BorderImageWidth, BorderStyle, LengthPercentage,
-    NonNegativeLengthOrNumber, NumberOrPercentage, OutlineStyle,
+    LengthPercentageOrAuto as ComputedLengthPercentageOrAuto, NonNegativeLengthOrNumber,
+    NumberOrPercentage, OutlineStyle,
 };
 use style::values::generics::NonNegative;
 use style::values::generics::color::ColorOrAuto;
@@ -1257,6 +1258,17 @@ impl Fragment {
                 if text_decoration.line.contains(bit) {
                     let mut rect = rect;
                     rect.origin.y += font_metrics.ascent - font_metrics.underline_offset;
+                    if bit == TextDecorationLine::UNDERLINE {
+                        // <https://drafts.csswg.org/css-text-decor-4/#underline-offset>:
+                        // > Positive offsets represent distances outward from the text;
+                        // > negative offsets inward.
+                        if let ComputedLengthPercentageOrAuto::LengthPercentage(offset) =
+                            &text_decoration.underline_offset
+                        {
+                            rect.origin.y +=
+                                Au::from_f32_px(offset.resolve(font_size.computed_size.0).px());
+                        }
+                    }
                     // `spelling-error`/`grammar-error` must disregard the specified thickness.
                     // https://drafts.csswg.org/css-text-decor-4/#ref-for-valdef-text-decoration-line-grammar-error
                     rect.size.height = resolve_thickness(if bit == TextDecorationLine::UNDERLINE {
