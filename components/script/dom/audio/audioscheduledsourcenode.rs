@@ -67,7 +67,9 @@ impl AudioScheduledSourceNodeMethods<crate::DomTypeHolder> for AudioScheduledSou
         }
 
         if self.has_start.get() || self.has_stop.get() {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Node has already been started".into(),
+            )));
         }
 
         let this = Trusted::new(self);
@@ -106,7 +108,9 @@ impl AudioScheduledSourceNodeMethods<crate::DomTypeHolder> for AudioScheduledSou
         }
 
         if !self.has_start.get() {
-            return Err(Error::InvalidState(None));
+            return Err(Error::InvalidState(Some(
+                "Cannot stop a node that has not been started".into(),
+            )));
         }
         self.has_stop.set(true);
         self.node
