@@ -6,7 +6,7 @@ use core::cmp::Ordering;
 use std::mem;
 use std::ops::Range;
 
-use app_units::Au;
+use app_units::{AU_PER_PX, Au};
 use atomic_refcell::AtomicRef;
 use log::warn;
 use rayon::iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelIterator};
@@ -2761,6 +2761,8 @@ impl Table {
     }
 }
 
+const TABLE_MAX_INLINE_SIZE: Au = Au(AU_PER_PX * 1_000_000);
+
 impl ComputeInlineContentSizes for Table {
     #[servo_tracing::instrument(name = "Table::compute_inline_content_sizes", skip_all)]
     fn compute_inline_content_sizes(
@@ -2789,8 +2791,20 @@ impl ComputeInlineContentSizes for Table {
                 layout.pbm.padding_border_sums.inline,
         );
 
+        let mut sizes = grid_content_sizes.max(caption_content_sizes);
+        if layout.is_in_fixed_mode {
+            let box_size = self.style.box_size(writing_mode);
+            let has_percentage = match box_size.inline {
+                Size::Numeric(ref lp) | Size::FitContentFunction(ref lp) => lp.has_percentage(),
+                _ => false,
+            };
+            if has_percentage {
+                sizes.max_content.max_assign(TABLE_MAX_INLINE_SIZE);
+            }
+        }
+
         InlineContentSizesResult {
-            sizes: grid_content_sizes.max(caption_content_sizes),
+            sizes,
             depends_on_block_constraints: false,
         }
     }
