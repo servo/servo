@@ -10197,6 +10197,13 @@
        null,
        {}
       ]
+     ],
+     "scrollIntoView-iframe-self-insertion-crash.html": [
+      "54920b5c481d69da72554393d8cc6144cb63dd8a",
+      [
+       null,
+       {}
+      ]
      ]
     },
     "filter-effects": {
