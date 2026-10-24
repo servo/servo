@@ -9,6 +9,7 @@ use js::rust::HandleObject;
 use script_bindings::str::DOMString;
 use stylo_dom::ElementState;
 
+use crate::dom::MoveContext;
 use crate::dom::bindings::codegen::Bindings::HTMLOptGroupElementBinding::HTMLOptGroupElementMethods;
 use crate::dom::bindings::codegen::GenericBindings::NodeBinding::Node_Binding::NodeMethods;
 use crate::dom::bindings::inheritance::Castable;
@@ -133,7 +134,13 @@ impl VirtualMethods for HTMLOptGroupElement {
         if let Some(super_type) = self.super_type() {
             super_type.bind_to_tree(cx, context);
         }
+        self.update_select_validity(cx);
+    }
 
+    fn moving_steps(&self, cx: &mut JSContext, context: &MoveContext) {
+        if let Some(super_type) = self.super_type() {
+            super_type.moving_steps(cx, context);
+        }
         self.update_select_validity(cx);
     }
 

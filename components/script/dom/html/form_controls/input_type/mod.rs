@@ -59,7 +59,7 @@ use crate::dom::html::form_controls::input_type::url_input_type::UrlInputType;
 use crate::dom::html::form_controls::input_type::week_input_type::WeekInputType;
 use crate::dom::htmlformelement::HTMLFormElement;
 use crate::dom::input_type::text_input_widget::TextInputWidget;
-use crate::dom::node::{BindContext, UnbindContext};
+use crate::dom::node::UnbindContext;
 
 pub(crate) mod button_input_type;
 pub(crate) mod checkbox_input_type;
@@ -476,7 +476,11 @@ pub(crate) trait SpecificInputType {
     ) {
     }
 
-    fn bind_to_tree(&self, _cx: &mut JSContext, _input: &HTMLInputElement, _context: &BindContext) {
+    fn run_shared_bind_to_tree_or_moving_steps(
+        &self,
+        _cx: &mut JSContext,
+        _input: &HTMLInputElement,
+    ) {
     }
 
     fn unbind_from_tree(

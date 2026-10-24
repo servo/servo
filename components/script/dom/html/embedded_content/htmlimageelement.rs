@@ -2009,10 +2009,9 @@ impl VirtualMethods for HTMLImageElement {
             super_type.moving_steps(cx, context);
         }
 
-        // Step 1. If oldParent is a picture element, then, count this as a relevant mutation for movedNode.
-        if let Some(old_parent) = context.old_parent &&
-            old_parent.is::<HTMLPictureElement>()
-        {
+        // Step 1. If isSubtreeRoot is true and oldAncestor is a picture element, then count this as
+        // a relevant mutation for movedNode.
+        if context.is_subtree_root && context.old_ancestor.is::<HTMLPictureElement>() {
             self.update_the_image_data(cx);
         }
     }

@@ -32,6 +32,7 @@ use unicode_bidi::{BidiClass, bidi_class};
 use webdriver::error::ErrorStatus;
 use xml5ever::ns;
 
+use crate::dom::MoveContext;
 use crate::dom::activation::Activatable;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
@@ -2450,13 +2451,22 @@ impl VirtualMethods for HTMLInputElement {
     }
 
     fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
-        if let Some(s) = self.super_type() {
-            s.bind_to_tree(cx, context);
+        if let Some(super_type) = self.super_type() {
+            super_type.bind_to_tree(cx, context);
         }
         self.input_type()
             .as_specific()
-            .bind_to_tree(cx, self, context);
+            .run_shared_bind_to_tree_or_moving_steps(cx, self);
         self.value_changed(cx);
+    }
+
+    fn moving_steps(&self, cx: &mut JSContext, context: &MoveContext) {
+        if let Some(super_type) = self.super_type() {
+            super_type.moving_steps(cx, context);
+        }
+        self.input_type()
+            .as_specific()
+            .run_shared_bind_to_tree_or_moving_steps(cx, self);
     }
 
     fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
