@@ -49,41 +49,45 @@ impl WebGLValidator for CommonTexImage3DValidator<'_> {
             },
         };
 
-        let limits = self.context.limits();
-
-        let max_size = limits.max_3d_tex_size;
-
         let texture = bound_texture(self.context, target)?;
         let internal_format = validate_internal_format(self.context, self.internal_format)?;
 
-        // GL_INVALID_VALUE is generated if width, height, or depth is less than 0 or greater than
-        // GL_MAX_3D_TEXTURE_SIZE.
+        // GL_INVALID_VALUE is generated if width, height, depth or level is less than 0.
         if self.width < 0 || self.height < 0 || self.depth < 0 {
             self.context.webgl_error(InvalidValue);
             return Err(TexImageValidationError::NegativeDimension);
+        }
+        if self.level < 0 {
+            self.context.webgl_error(InvalidValue);
+            return Err(TexImageValidationError::NegativeLevel);
         }
         let width = self.width as u32;
         let height = self.height as u32;
         let depth = self.depth as u32;
         let level = self.level as u32;
-        // The maximum width/height/depth values at level 0 are GL_MAX_3D_TEXTURE_SIZE,
-        // and per https://wikis.khronos.org/opengl/Texture#Texture_completeness,
-        // the ones at level N must be half of those at level N-1.
-        let max_size_for_level = max_size / 2u32.pow(level);
-        if width > max_size_for_level || height > max_size_for_level || depth > max_size_for_level {
-            self.context.webgl_error(InvalidValue);
-            return Err(TexImageValidationError::TextureTooBig);
-        }
 
-        // GL_INVALID_VALUE may be generated if level is greater than log2(max),
-        // where max is the returned value of GL_MAX_3D_TEXTURE_SIZE.
-        if self.level < 0 {
-            self.context.webgl_error(InvalidValue);
-            return Err(TexImageValidationError::NegativeLevel);
-        }
+        // A 2D array takes its width and height limit from GL_MAX_TEXTURE_SIZE and its
+        // layer count from GL_MAX_ARRAY_TEXTURE_LAYERS (OpenGL ES 3.0.6 section 3.8.3).
+        let limits = self.context.limits();
+        let (max_size, max_layers) = match target {
+            TexImageTarget::Texture2DArray => {
+                (limits.max_tex_size, Some(limits.max_array_texture_layers))
+            },
+            _ => (limits.max_3d_tex_size, None),
+        };
+
+        // GL_INVALID_VALUE may be generated if level is greater than log2(max_size).
         if level > max_size.ilog2() {
             self.context.webgl_error(InvalidValue);
             return Err(TexImageValidationError::LevelTooHigh);
+        }
+
+        // The size limit halves at each level; the layer limit holds at every level.
+        let max_size_for_level = max_size >> level;
+        let max_depth = max_layers.unwrap_or(max_size_for_level);
+        if width > max_size_for_level || height > max_size_for_level || depth > max_depth {
+            self.context.webgl_error(InvalidValue);
+            return Err(TexImageValidationError::TextureTooBig);
         }
 
         // GL_INVALID_VALUE is generated if border is not 0 or 1.
