@@ -387,13 +387,17 @@ pub(crate) fn navigate(
     // TODO: Important re security. See https://github.com/servo/servo/issues/23373
     // Step 5. check that the source browsing-context is "allowed to navigate" this window.
 
-    // Step 4 and 5
+    // Step 9. If navigable's active document's unload counter is greater than 0,
+    //   then invoke WebDriver BiDi navigation failed with navigable and a WebDriver
+    //   BiDi navigation status whose id is navigationId, status is "canceled",
+    //   and url is url, and return.
     let pipeline_id = window.pipeline_id();
     let window_proxy = window.window_proxy();
     if let Some(active) = window_proxy.currently_active() &&
         pipeline_id == active &&
         document.is_prompting_or_unloading()
     {
+        // TODO: WebDriver BiDi integration
         return;
     }
 
@@ -536,7 +540,7 @@ pub(crate) fn navigate(
 
     // Step 24.1. Let unloadPromptCanceled be the result of checking if unloading
     // is canceled for navigable's active document's inclusive descendant navigables.
-    let unload_prompt_canceled = document.check_if_unloading_is_cancelled(cx, false);
+    let unload_prompt_canceled = document.steps_to_fire_beforeunload(cx, false);
     // Step 24.2. If unloadPromptCanceled is not "continue",
     // or navigable's ongoing navigation is no longer navigationId:
     //

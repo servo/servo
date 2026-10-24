@@ -455,6 +455,10 @@ impl WindowProxy {
         self.disowned.set(true);
     }
 
+    pub(crate) fn is_disowned(&self) -> bool {
+        self.disowned.get()
+    }
+
     /// <https://html.spec.whatwg.org/multipage/#dom-window-close>
     /// Step 3.1, set BCs `is_closing` to true.
     pub(crate) fn close(&self) {
@@ -525,6 +529,12 @@ impl WindowProxy {
         if self.discarded.get() {
             return Ok(None);
         }
+
+        // Step 1. If the event loop's termination nesting level is nonzero, then return null.
+        if ScriptThread::termination_nesting_level_is_nonzero() {
+            return Ok(None);
+        }
+
         // Step 2. Let sourceDocument be the entry global object's associated Document.
         //
         // It's possible to end up in a situation where JS code is executing but
@@ -955,6 +965,8 @@ impl WindowProxy {
     fn set_window(&self, cx: &mut JSContext, window: &GlobalScope) {
         unsafe {
             debug!("Setting window of {:p}.", self);
+
+            self.discarded.set(false);
 
             let window_jsobject = window.reflector().get_jsobject();
             let old_js_proxy = self.reflector.get_jsobject();

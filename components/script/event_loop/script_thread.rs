@@ -431,6 +431,9 @@ pub struct ScriptThread {
 
     /// Whether the network is considered to be online as reported by the embedder.
     online: Cell<bool>,
+
+    /// <https://html.spec.whatwg.org/multipage/#termination-nesting-level>
+    termination_nesting_level: Cell<u32>,
 }
 
 struct BHMExitSignal {
@@ -726,6 +729,26 @@ impl ScriptThread {
         with_script_thread(|script_thread| script_thread.documents.borrow().find_document(id))
     }
 
+    pub(crate) fn increase_termination_nesting_level() {
+        with_script_thread(|script_thread| {
+            script_thread
+                .termination_nesting_level
+                .set(script_thread.termination_nesting_level.get() + 1)
+        })
+    }
+
+    pub(crate) fn decrease_termination_nesting_level() {
+        with_script_thread(|script_thread| {
+            script_thread
+                .termination_nesting_level
+                .set(script_thread.termination_nesting_level.get() - 1)
+        })
+    }
+
+    pub(crate) fn termination_nesting_level_is_nonzero() -> bool {
+        with_script_thread(|script_thread| script_thread.termination_nesting_level.get() > 0)
+    }
+
     /// Creates a guard that sets user_is_interacting to true and returns the
     /// state of user_is_interacting on drop of the guard.
     /// Notice that you need to use `let _guard = ...` as `let _ = ...` is not enough
@@ -1010,6 +1033,7 @@ impl ScriptThread {
                     #[cfg(feature = "devtools")]
                     devtools_state: Default::default(),
                     online: state.online.into(),
+                    termination_nesting_level: Default::default(),
                 }
             }),
             cx,
@@ -3282,9 +3306,12 @@ impl ScriptThread {
                 // to avoid running layout on detached iframes.
                 let window = document.window();
                 if discard_browsing_context == DiscardBrowsingContext::Yes {
-                    let browsing_context_id = window.window_proxy().browsing_context_id();
-                    window.discard_browsing_context();
-                    self.window_proxies.remove(browsing_context_id);
+                    let window_proxy = window.window_proxy();
+                    if window_proxy.currently_active() == Some(pipeline_id) {
+                        let browsing_context_id = window_proxy.browsing_context_id();
+                        window.discard_browsing_context();
+                        self.window_proxies.remove(browsing_context_id);
+                    }
                 }
 
                 // Clear the image cache now, instead of waiting for the Window to be

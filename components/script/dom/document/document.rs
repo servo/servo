@@ -556,8 +556,8 @@ pub(crate) struct Document {
     preloaded_resources: DomRefCell<PreloadedResources>,
     /// <https://html.spec.whatwg.org/multipage/#ignore-destructive-writes-counter>
     ignore_destructive_writes_counter: Cell<u32>,
-    /// <https://html.spec.whatwg.org/multipage/#ignore-opens-during-unload-counter>
-    ignore_opens_during_unload_counter: Cell<u32>,
+    /// <https://html.spec.whatwg.org/multipage/#unload-counter>
+    unload_counter: Cell<u32>,
     /// The number of spurious `requestAnimationFrame()` requests we've received.
     ///
     /// A rAF request is considered spurious if nothing was actually reflowed.
@@ -585,8 +585,6 @@ pub(crate) struct Document {
     salvageable: Cell<bool>,
     /// Whether the document was aborted with an active parser
     active_parser_was_aborted: Cell<bool>,
-    /// Whether the unload event has already been fired.
-    fired_unload: Cell<bool>,
     /// List of responsive images
     responsive_images: DomRefCell<Vec<Dom<HTMLImageElement>>>,
 
@@ -2316,16 +2314,24 @@ impl Document {
             }));
     }
 
-    /// <https://html.spec.whatwg.org/multipage/#checking-if-unloading-is-canceled>
-    pub(crate) fn check_if_unloading_is_cancelled(
+    /// <https://html.spec.whatwg.org/multipage/#steps-to-fire-beforeunload>
+    pub(crate) fn steps_to_fire_beforeunload(
         &self,
         cx: &mut JSContext,
         recursive_flag: bool,
     ) -> bool {
-        // TODO: Step 1, increase the event loop's termination nesting level by 1.
-        // Step 2
-        self.incr_ignore_opens_during_unload_counter();
-        // Step 3-5.
+        // TODO: extract steps that match the caller (#checking-if-unloading-is-canceled)
+        //       into a new method.
+
+        // Step 2. Increase the document's unload counter by 1.
+        self.unload_counter.set(self.unload_counter.get() + 1);
+
+        // Step 3. Increase document's relevant agent's event loop's termination nesting level by 1.
+        ScriptThread::increase_termination_nesting_level();
+
+        // Step 4. Let eventFiringResult be the result of firing an event named beforeunload
+        //   at document's relevant global object, using BeforeUnloadEvent, with the
+        //   cancelable attribute initialized to true.
         let beforeunload_event = BeforeUnloadEvent::new(
             cx,
             &self.window,
@@ -2335,14 +2341,10 @@ impl Document {
         );
         let event = beforeunload_event.upcast::<Event>();
         event.set_trusted(true);
-        let event_target = self.window.upcast::<EventTarget>();
-        let has_listeners = event_target.has_listeners_for(&atom!("beforeunload"));
         self.window.dispatch_event_with_target_override(cx, event);
-        // TODO: Step 6, decrease the event loop's termination nesting level by 1.
-        // Step 7
-        if has_listeners {
-            self.salvageable.set(false);
-        }
+        // Step 5. Decrease document's relevant agent's event loop's termination nesting level by 1.
+        ScriptThread::decrease_termination_nesting_level();
+
         let mut can_unload = true;
         // TODO: Step 8, also check sandboxing modals flag.
         let default_prevented = event.DefaultPrevented();
@@ -2357,6 +2359,7 @@ impl Document {
             self.send_to_embedder(msg);
             can_unload = port.recv().unwrap() == AllowOrDeny::Allow;
         }
+        // TODO: this no longer matches the specification and should be rewritten.
         // Step 9
         if !recursive_flag {
             // `check_if_unloading_is_cancelled` might cause futher modifications to the DOM so collecting here prevents
@@ -2365,7 +2368,7 @@ impl Document {
             for iframe in &iframes {
                 // TODO: handle the case of cross origin iframes.
                 let document = iframe.owner_document();
-                can_unload = document.check_if_unloading_is_cancelled(cx, true);
+                can_unload = document.steps_to_fire_beforeunload(cx, true);
                 if !document.salvageable() {
                     self.salvageable.set(false);
                 }
@@ -2374,8 +2377,8 @@ impl Document {
                 }
             }
         }
-        // Step 10
-        self.decr_ignore_opens_during_unload_counter();
+        // Step 7. Decrease document's unload counter by 1.
+        self.unload_counter.set(self.unload_counter.get() - 1);
         can_unload
     }
 
@@ -2385,14 +2388,39 @@ impl Document {
             return;
         }
 
-        // TODO: Step 1, increase the event loop's termination nesting level by 1.
-        // Step 2
-        self.incr_ignore_opens_during_unload_counter();
-        // Step 3-6 If oldDocument's page showing is true:
+        // Step 5. Let intendToKeepInBfcache be true if the user agent intends to keep
+        //   oldDocument alive in a session history entry, such that it can later
+        //   be used for history traversal.
+        //
+        // > This must be false if oldDocument is not salvageable, or if there are
+        // > any descendants of oldDocument which the user agent does not intend to
+        // > keep alive in the same way (including due to their lack of salvageability).
+        let intend_to_keep_in_bfcache = self.salvageable.get() &&
+            self.window.is_top_level() &&
+            ({
+                let window_proxy = self.window.window_proxy();
+                !window_proxy.is_auxiliary() || window_proxy.is_disowned()
+            }) &&
+            self.iframes
+                .iter()
+                .all(|iframe| iframe.GetContentDocument().is_none());
+
+        // Step 7. Increase eventLoop's termination nesting level by 1.
+        ScriptThread::increase_termination_nesting_level();
+
+        // Step 8. Increase oldDocument's unload counter by 1.
+        self.unload_counter.set(self.unload_counter.get() + 1);
+
+        // Step 9. If intendToKeepInBfcache is false, then set oldDocument's salvageable state to false.
+        if !intend_to_keep_in_bfcache {
+            self.salvageable.set(false);
+        }
+
+        // Step 10. If oldDocument's page showing is true:
         if self.page_showing.get() {
-            // Set oldDocument's page showing to false.
+            // Step 10.1. Set oldDocument's page showing to false.
             self.page_showing.set(false);
-            // Fire a page transition event named pagehide at oldDocument's relevant global object with oldDocument's
+            // Step 10.2. Fire a page transition event named pagehide at oldDocument's relevant global object with oldDocument's
             // salvageable state.
             let event = PageTransitionEvent::new(
                 cx,
@@ -2405,11 +2433,13 @@ impl Document {
             let event = event.upcast::<Event>();
             event.set_trusted(true);
             self.window.dispatch_event_with_target_override(cx, event);
-            // Step 6 Update the visibility state of oldDocument to "hidden".
+            // Step 10.3. Update the visibility state of oldDocument to "hidden".
             self.update_visibility_state(cx, DocumentVisibilityState::Hidden);
         }
-        // Step 7
-        if !self.fired_unload.get() {
+        // Step 12. If oldDocument's salvageable state is false, then fire an event
+        //   named unload at oldDocument's relevant global object, with legacy target
+        //   override flag set.
+        if !self.salvageable.get() {
             let event = Event::new(
                 cx,
                 self.window.upcast(),
@@ -2418,16 +2448,11 @@ impl Document {
                 EventCancelable::Cancelable,
             );
             event.set_trusted(true);
-            let event_target = self.window.upcast::<EventTarget>();
-            let has_listeners = event_target.has_listeners_for(&atom!("unload"));
             self.window.dispatch_event_with_target_override(cx, &event);
-            self.fired_unload.set(true);
-            // Step 9
-            if has_listeners {
-                self.salvageable.set(false);
-            }
         }
-        // TODO: Step 8, decrease the event loop's termination nesting level by 1.
+
+        // Step 14. Decrease eventLoop's termination nesting level by 1.
+        ScriptThread::decrease_termination_nesting_level();
 
         // Step 13
         if !recursive_flag {
@@ -2450,11 +2475,13 @@ impl Document {
         // https://w3c.github.io/FileAPI/#lifeTime
         self.window.as_global_scope().clean_up_all_file_resources();
 
-        // Step 15, End
-        self.decr_ignore_opens_during_unload_counter();
-
         // Step 20. If oldDocument's salvageable state is false, then destroy oldDocument.
-        // TODO
+        if !self.salvageable.get() {
+            self.destroy(cx);
+        }
+
+        // Step 21. Decrease oldDocument's unload counter by 1.
+        self.unload_counter.set(self.unload_counter.get() - 1);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#completely-finish-loading>
@@ -2949,7 +2976,9 @@ impl Document {
             .cancel_all_tasks_and_ignore_future_tasks();
 
         // Step 8. Set document's browsing context to null.
-        exited_window.discard_browsing_context();
+        if !self.window_detached() {
+            exited_window.discard_browsing_context();
+        }
 
         // Step 9. Set document's node navigable's active session history entry's
         // document state's document to null.
@@ -2957,9 +2986,11 @@ impl Document {
 
         // Step 10. Remove document from the owner set of each WorkerGlobalScope
         // object whose set contains document.
-        exited_window
-            .as_global_scope()
-            .disable_owned_worker_animation_frame_providers();
+        if !self.window_detached() {
+            exited_window
+                .as_global_scope()
+                .disable_owned_worker_animation_frame_providers();
+        }
 
         // Step 11. For each workletGlobalScope in document's worklet global scopes,
         // terminate workletGlobalScope.
@@ -4237,7 +4268,7 @@ impl Document {
             policy_container: DomRefCell::new(StdArc::new(PolicyContainer::default())),
             preloaded_resources: Default::default(),
             ignore_destructive_writes_counter: Default::default(),
-            ignore_opens_during_unload_counter: Default::default(),
+            unload_counter: Default::default(),
             spurious_animation_frames: Cell::new(0),
             fullscreen_element: MutNullableDom::new(None),
             form_id_listener_map: Default::default(),
@@ -4247,7 +4278,6 @@ impl Document {
             page_showing: Cell::new(false),
             salvageable: Cell::new(true),
             active_parser_was_aborted: Cell::new(false),
-            fired_unload: Cell::new(false),
             responsive_images: Default::default(),
             navigation_timing: Default::default(),
             resource_fetch_timing: RefCell::new(None),
@@ -4828,17 +4858,7 @@ impl Document {
     }
 
     pub(crate) fn is_prompting_or_unloading(&self) -> bool {
-        self.ignore_opens_during_unload_counter.get() > 0
-    }
-
-    fn incr_ignore_opens_during_unload_counter(&self) {
-        self.ignore_opens_during_unload_counter
-            .set(self.ignore_opens_during_unload_counter.get() + 1);
-    }
-
-    fn decr_ignore_opens_during_unload_counter(&self) {
-        self.ignore_opens_during_unload_counter
-            .set(self.ignore_opens_during_unload_counter.get() - 1);
+        self.unload_counter.get() > 0
     }
 
     pub(crate) fn set_fullscreen_element(&self, element: Option<&Element>) {
