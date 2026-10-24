@@ -32,6 +32,7 @@ use unicode_bidi::{BidiClass, bidi_class};
 use webdriver::error::ErrorStatus;
 use xml5ever::ns;
 
+use crate::dom::MoveContext;
 use crate::dom::activation::Activatable;
 use crate::dom::bindings::codegen::Bindings::ElementBinding::ElementMethods;
 use crate::dom::bindings::codegen::Bindings::FileListBinding::FileListMethods;
@@ -59,7 +60,6 @@ use crate::dom::html::form_controls::text_control::TextControlElement;
 use crate::dom::html::form_controls::text_input::{KeyReaction, Lines, TextInput};
 use crate::dom::html::htmldatalistelement::HTMLDataListElement;
 use crate::dom::html::htmlelement::HTMLElement;
-use crate::dom::html::htmlfieldsetelement::HTMLFieldSetElement;
 use crate::dom::html::htmlformelement::{
     FormControl, FormDatum, FormDatumValue, FormSubmitterElement, HTMLFormElement, SubmittedFrom,
 };
@@ -2216,22 +2216,10 @@ impl VirtualMethods for HTMLInputElement {
 
         match *attr.local_name() {
             local_name!("disabled") => {
-                let disabled_state = match mutation {
-                    AttributeMutation::Set(None) => true,
-                    AttributeMutation::Set(Some(_)) => {
-                        // Input was already disabled before.
-                        return;
-                    },
-                    AttributeMutation::Removed => false,
-                };
-                let el = self.upcast::<Element>();
-                el.set_disabled_state(cx.no_gc(), disabled_state);
-                el.set_enabled_state(cx.no_gc(), !disabled_state);
-                el.check_ancestors_disabled_state_for_form_control(cx.no_gc());
-
+                let element = self.upcast::<Element>();
                 if self.input_type().is_textual() {
-                    let read_write = !(self.ReadOnly() || el.disabled_state());
-                    el.set_read_write_state(cx.no_gc(), read_write);
+                    let read_write = !(self.ReadOnly() || element.disabled_state());
+                    element.set_read_write_state(cx.no_gc(), read_write);
                 }
             },
             local_name!("checked") if !self.checked_changed.get() => {
@@ -2463,17 +2451,22 @@ impl VirtualMethods for HTMLInputElement {
     }
 
     fn bind_to_tree(&self, cx: &mut JSContext, context: &BindContext) {
-        if let Some(s) = self.super_type() {
-            s.bind_to_tree(cx, context);
+        if let Some(super_type) = self.super_type() {
+            super_type.bind_to_tree(cx, context);
         }
-        self.upcast::<Element>()
-            .check_ancestors_disabled_state_for_form_control(cx.no_gc());
-
         self.input_type()
             .as_specific()
-            .bind_to_tree(cx, self, context);
-
+            .run_shared_bind_to_tree_or_moving_steps(cx, self);
         self.value_changed(cx);
+    }
+
+    fn moving_steps(&self, cx: &mut JSContext, context: &MoveContext) {
+        if let Some(super_type) = self.super_type() {
+            super_type.moving_steps(cx, context);
+        }
+        self.input_type()
+            .as_specific()
+            .run_shared_bind_to_tree_or_moving_steps(cx, self);
     }
 
     fn unbind_from_tree(&self, cx: &mut JSContext, context: &UnbindContext) {
@@ -2484,17 +2477,6 @@ impl VirtualMethods for HTMLInputElement {
 
         let form_owner = self.form_owner();
         self.super_type().unwrap().unbind_from_tree(cx, context);
-
-        let node = self.upcast::<Node>();
-        let el = self.upcast::<Element>();
-        if node
-            .ancestors()
-            .any(|ancestor| ancestor.is::<HTMLFieldSetElement>())
-        {
-            el.check_ancestors_disabled_state_for_form_control(cx.no_gc());
-        } else {
-            el.check_disabled_attribute(cx.no_gc());
-        }
 
         self.input_type()
             .as_specific()
