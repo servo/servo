@@ -3290,6 +3290,9 @@ impl ScriptThread {
                 // Clear the image cache now, instead of waiting for the Window to be
                 // garbage collected. See servo/servo#45239.
                 window.image_cache().clear();
+                window.send_to_constellation(ScriptToConstellationMessage::ClearCanvasResources(
+                    webview_id,
+                ));
 
                 // Tear down the GlobalScope to ensure that garbage collection happens
                 // immediately.
