@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use atomic_refcell::AtomicRefCell;
 use devtools_traits::DevtoolScriptControlMsg::{
-    GetChildren, GetDocumentElement, GetInnerOrOuterHTML, GetRootNode,
+    GetChildren, GetDocumentElement, GetInnerOrOuterHTML, GetRootNode, RemoveNode,
 };
 use devtools_traits::{DomMutation, GetHTMLType};
 use malloc_size_of_derive::MallocSizeOf;
@@ -55,6 +55,12 @@ struct DocumentElementReply {
 }
 
 #[derive(Serialize)]
+struct SiblingReply {
+    from: String,
+    node: Option<NodeActorMsg>,
+}
+
+#[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 struct ChildrenReply {
     has_first: bool,
@@ -96,6 +102,12 @@ enum MutationVariant {
         #[serde(rename = "newValue")]
         new_value: Option<String>,
     },
+    ChildList {
+        removed: Vec<String>,
+        added: Vec<String>,
+        #[serde(rename = "numChildren")]
+        num_children: usize,
+    },
 }
 
 #[derive(Serialize)]
@@ -108,6 +120,13 @@ struct GetMutationsReply {
 struct GetOffsetParentReply {
     from: String,
     node: Option<()>,
+}
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct RemoveNodeReply {
+    from: String,
+    next_sibling: Option<NodeActorMsg>,
 }
 
 #[derive(Serialize)]
@@ -239,6 +258,87 @@ impl Actor for WalkerActor {
                 };
                 request.reply_final(&msg)?
             },
+            "retainNode" | "releaseNode" => {
+                let msg = EmptyReplyMsg {
+                    from: self.name().into(),
+                };
+                request.reply_final(&msg)?
+            },
+            "previousSibling" | "nextSibling" => {
+                let target = msg
+                    .get("node")
+                    .ok_or(ActorError::MissingParameter)?
+                    .as_str()
+                    .ok_or(ActorError::BadParameterType)?;
+                let target_actor = registry.find::<NodeActor>(target);
+                let parent = target_actor.parent_script_id();
+                let Some((tx, rx)) = generic_channel::channel() else {
+                    return Err(ActorError::Internal);
+                };
+                browsing_context_actor
+                    .script_chan()
+                    .send(GetChildren(
+                        browsing_context_actor.pipeline_id(),
+                        parent,
+                        tx,
+                    ))
+                    .map_err(|_| ActorError::Internal)?;
+                let children = rx
+                    .recv()
+                    .map_err(|_| ActorError::Internal)?
+                    .unwrap_or_default();
+                let target_id = registry.actor_to_script(target.into());
+                let offset = usize::from(msg_type == "nextSibling");
+                let sibling_index = children
+                    .iter()
+                    .position(|child| child.unique_id == target_id)
+                    .and_then(|index| {
+                        if offset == 0 {
+                            index.checked_sub(1)
+                        } else {
+                            index.checked_add(1)
+                        }
+                    });
+                let previous = sibling_index
+                    .and_then(|index| children.into_iter().nth(index))
+                    .map(|node_info| {
+                        NodeActor::register_or_update(registry, &self.name, node_info)
+                            .encode(registry)
+                    });
+                request.reply_final(&SiblingReply {
+                    from: self.name().into(),
+                    node: previous,
+                })?
+            },
+            "removeNode" => {
+                let target = msg
+                    .get("node")
+                    .ok_or(ActorError::MissingParameter)?
+                    .as_str()
+                    .ok_or(ActorError::BadParameterType)?;
+                let Some((tx, rx)) = generic_channel::channel() else {
+                    return Err(ActorError::Internal);
+                };
+                browsing_context_actor
+                    .script_chan()
+                    .send(RemoveNode(
+                        browsing_context_actor.pipeline_id(),
+                        registry.actor_to_script(target.into()),
+                        tx,
+                    ))
+                    .map_err(|_| ActorError::Internal)?;
+                let next_sibling = rx
+                    .recv()
+                    .map_err(|_| ActorError::Internal)?
+                    .map(|node_info| {
+                        NodeActor::register_or_update(registry, &self.name, node_info)
+                            .encode(registry)
+                    });
+                request.reply_final(&RemoveNodeReply {
+                    from: self.name().into(),
+                    next_sibling,
+                })?
+            },
             "querySelector" => {
                 let selector = msg
                     .get("selector")
@@ -333,18 +433,21 @@ impl WalkerActor {
 
         // Discard all previous modifications to that same attribute
         // which we didn't tell the devtools client about yet.
-        let DomMutation::AttributeModified {
+        if let DomMutation::AttributeModified {
             node,
             attribute_name,
             ..
-        } = &dom_mutation;
-        pending_mutations.retain(|pending_mutation| match pending_mutation {
-            DomMutation::AttributeModified {
-                node: old_node,
-                attribute_name: old_attribute_name,
-                ..
-            } => old_node != node || old_attribute_name != attribute_name,
-        });
+        } = &dom_mutation
+        {
+            pending_mutations.retain(|pending_mutation| match pending_mutation {
+                DomMutation::AttributeModified {
+                    node: old_node,
+                    attribute_name: old_attribute_name,
+                    ..
+                } => old_node != node || old_attribute_name != attribute_name,
+                DomMutation::ChildList { .. } => true,
+            });
+        }
 
         pending_mutations.push(dom_mutation);
 
@@ -378,6 +481,19 @@ impl WalkerActor {
                         },
                         target: registry.script_to_actor(&node),
                         type_: "attributes".to_owned(),
+                    },
+                    DomMutation::ChildList {
+                        parent,
+                        removed,
+                        num_children,
+                    } => MutationMsg {
+                        variant: MutationVariant::ChildList {
+                            removed: vec![registry.script_to_actor(&removed)],
+                            added: vec![],
+                            num_children,
+                        },
+                        target: registry.script_to_actor(&parent),
+                        type_: "childList".to_owned(),
                     },
                 })
                 .collect(),
