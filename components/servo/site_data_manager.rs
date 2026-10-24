@@ -331,6 +331,81 @@ impl SiteDataManager {
         }
     }
 
+    /// Returns every cookie in the public cookie jar, regardless of its
+    /// domain, path or expiry policy. Expired cookies are removed from the jar
+    /// as a side effect. The cookies are returned in no particular order.
+    ///
+    /// This only reads the jar of the public browsing session; private
+    /// cookies are not included.
+    pub fn all_cookies(&self) -> Vec<Cookie<'static>> {
+        self.public_resource_threads.all_cookies_sync()
+    }
+
+    /// Asynchronously returns every cookie in the public cookie jar, in no
+    /// particular order.
+    ///
+    /// The callback is invoked when the event loop is spun and the response
+    /// from the network thread is received.
+    pub fn all_cookies_async(&self, callback: impl FnOnce(Vec<Cookie<'static>>) + 'static) {
+        let id = self.next_operation_id();
+        self.pending_cookie_callbacks
+            .borrow_mut()
+            .insert(id, CookieOperationCallback::Cookies(Box::new(callback)));
+        self.public_resource_threads.all_cookies_async(id);
+    }
+
+    /// Deletes all cookies from the public cookie jar that have the same name,
+    /// domain and path as the given cookie, matching the semantics of the
+    /// cookie-management APIs of other engine embedders (for example WebView2
+    /// and WebKit).
+    ///
+    /// The domain is compared case-insensitively ignoring a leading dot, and a
+    /// missing path is treated as "/"; otherwise the match is exact. The given
+    /// cookie must carry the domain it was stored with: without a domain it
+    /// will not match any stored cookie.
+    ///
+    /// An optional callback is provided for async operation.
+    pub fn delete_cookie(&self, cookie: Cookie<'static>, callback: Option<Box<dyn FnOnce()>>) {
+        match callback {
+            None => {
+                self.public_resource_threads.delete_cookie_sync(cookie);
+            },
+            Some(callback) => {
+                let id = self.next_operation_id();
+                self.pending_cookie_callbacks
+                    .borrow_mut()
+                    .insert(id, CookieOperationCallback::Done(callback));
+                self.public_resource_threads.delete_cookie_async(id, cookie);
+            },
+        }
+    }
+
+    /// Deletes all cookies from the public cookie jar that are stored for the
+    /// registrable domain of the given [`Url`].
+    ///
+    /// Note that the jar is bucketed by registrable domain, so this also
+    /// removes cookies stored for other hosts sharing the same registrable
+    /// domain (for instance, sub.example.com when given a URL on
+    /// example.com).
+    ///
+    /// An optional callback is provided for async operation.
+    pub fn delete_cookies_for_url(&self, url: Url, callback: Option<Box<dyn FnOnce()>>) {
+        match callback {
+            None => {
+                self.public_resource_threads
+                    .delete_cookies_for_url_sync(url.into());
+            },
+            Some(callback) => {
+                let id = self.next_operation_id();
+                self.pending_cookie_callbacks
+                    .borrow_mut()
+                    .insert(id, CookieOperationCallback::Done(callback));
+                self.public_resource_threads
+                    .delete_cookies_for_url_async(id, url.into());
+            },
+        }
+    }
+
     /// Handle a cookie operation response from the resource thread.
     ///
     /// This is called by the event loop when an embedder cookie response is received.
