@@ -113,6 +113,9 @@ impl HeadedWindow {
     ) -> Rc<Self> {
         let no_native_titlebar = servoshell_preferences.no_native_titlebar;
         let inner_size = servoshell_preferences.initial_window_size;
+        #[cfg(target_os = "linux")]
+        let theme = if servoshell_preferences.force_darkmode {Some(winit::window::Theme::Dark)} else {None};
+
         let window_attr = winit::window::Window::default_attributes()
             .with_title(INITIAL_WINDOW_TITLE.to_string())
             .with_decorations(!no_native_titlebar)
@@ -129,6 +132,9 @@ impl HeadedWindow {
         // Set a name so it can be pinned to taskbars in Linux.
         #[cfg(target_os = "linux")]
         let window_attr = window_attr.with_name("org.servo.Servo", "Servo");
+
+        #[cfg(target_os = "linux")]
+        let window_attr = window_attr.with_theme(theme);
 
         #[allow(deprecated)]
         let winit_window = event_loop
