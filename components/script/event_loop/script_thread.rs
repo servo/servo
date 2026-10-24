@@ -78,6 +78,9 @@ use profile_traits::time::ProfilerCategory;
 use profile_traits::time_profile;
 use rustc_hash::{FxHashMap, FxHashSet};
 use script_bindings::cell::DomRefCell;
+#[cfg(feature = "webmidi")]
+use script_bindings::codegen::GenericBindings::MIDIAccessBinding::MIDIAccessMethods;
+use script_bindings::like::Maplike;
 use script_traits::{
     ConstellationInputEvent, DiscardBrowsingContext, DocumentActivity, InitialScriptState,
     NewPipelineInfo, Painter, ScriptThreadMessage, UpdatePipelineIdReason, WebViewState,
@@ -117,6 +120,8 @@ use timers::{TimerEventRequest, TimerId, TimerScheduler};
 use url::Position;
 #[cfg(feature = "webgpu")]
 use webgpu_traits::{WebGPUDevice, WebGPUMsg};
+#[cfg(feature = "webmidi")]
+use webmidi_traits::MIDIMsg;
 
 use crate::dom::bindings::codegen::Bindings::DocumentBinding::DocumentMethods;
 use crate::dom::bindings::codegen::Bindings::NavigatorBinding::NavigatorMethods;
@@ -126,6 +131,7 @@ use crate::dom::bindings::conversions::{
 };
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::{LivePromiseReferences, Trusted};
+use crate::dom::bindings::reflector::DomGlobal;
 use crate::dom::bindings::root::{Dom, DomRoot};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::csp::{CspReporting, GlobalCspReporting, Violation};
@@ -2012,6 +2018,10 @@ impl ScriptThread {
             },
             ScriptThreadMessage::SetNetworkOnlineState(online) => {
                 self.handle_set_network_online_state(online);
+            },
+            #[cfg(feature = "webmidi")]
+            ScriptThreadMessage::MIDIMessage(pipeline_id, msg) => {
+                self.handle_midi_message(pipeline_id, msg, cx);
             },
         }
     }
@@ -4684,6 +4694,46 @@ impl ScriptThread {
         document
             .embedder_controls()
             .handle_embedder_control_response(cx, id, response);
+    }
+
+    #[cfg(feature = "webmidi")]
+    fn handle_midi_message(
+        &self,
+        pipeline_id: PipelineId,
+        msg: MIDIMsg,
+        cx: &mut js::context::JSContext,
+    ) {
+        let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
+            warn!("Failed to find document to send MIDI message to!");
+            return;
+        };
+        let Some(midi_access) = document.global().as_window().Navigator(cx).midi() else {
+            warn!("Failed to get MIDIAccess instance!");
+            return;
+        };
+        match msg {
+            MIDIMsg::PortAvailable(_, port) => midi_access.handle_midi_port_available(port, cx),
+            MIDIMsg::PortUnavailable(_, port) => midi_access.handle_midi_port_unavailable(port, cx),
+            MIDIMsg::Data(_, id, data) => {
+                if let Some(input) = midi_access.Inputs().get(cx, DOMString::from(id)) {
+                    input.handle_midi_message(data, cx);
+                } else {
+                    warn!("Failed to find the MIDIInput to send data to!");
+                }
+            },
+            MIDIMsg::PortOpened(_, id) => {
+                match midi_access.get_port(id, cx) {
+                    Ok(port) => port.handle_open_completed(cx),
+                    Err(e) => warn!("{}", e),
+                };
+            },
+            MIDIMsg::PortClosed(_, id) => {
+                match midi_access.get_port(id, cx) {
+                    Ok(port) => port.handle_close_completed(cx),
+                    Err(e) => warn!("{}", e),
+                };
+            },
+        }
     }
 
     pub(crate) fn handle_update_pinch_zoom_infos(

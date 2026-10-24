@@ -357,6 +357,10 @@ pub(crate) mod gpucanvascontext;
 pub(crate) mod webcrypto;
 #[cfg(feature = "webcrypto")]
 pub(crate) use self::webcrypto::*;
+#[cfg(feature = "webmidi")]
+pub(crate) mod webmidi;
+#[cfg(feature = "webmidi")]
+pub(crate) use self::webmidi::*;
 pub(crate) mod webrtc;
 pub(crate) use self::webrtc::*;
 pub(crate) mod webvtt;
