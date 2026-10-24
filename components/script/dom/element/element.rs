@@ -915,11 +915,11 @@ impl Element {
         container: Option<&Element>,
         inner_target_rect: Option<Rect<Au, CSSPixel>>,
     ) {
-        let get_target_rect = || match inner_target_rect {
-            None => self.upcast::<Node>().border_box().unwrap_or_default(),
+        let get_target_rect = |cx: &mut JSContext| match inner_target_rect {
+            None => self.upcast::<Node>().border_box(cx).unwrap_or_default(),
             Some(inner_target_rect) => inner_target_rect.translate(
                 self.upcast::<Node>()
-                    .content_box()
+                    .content_box(cx)
                     .unwrap_or_default()
                     .origin
                     .to_vector(),
@@ -942,12 +942,9 @@ impl Element {
             // determine the scroll-into-view position of `target` with `behavior` as the scroll
             // behavior, `block` as the block flow position, `inline` as the inline base direction
             // position and `scrolling box` as the scrolling box.
-            let position = scrolling_box.determine_scroll_into_view_position(
-                cx.no_gc(),
-                block,
-                inline,
-                get_target_rect(),
-            );
+            let target_rect = get_target_rect(cx);
+            let position =
+                scrolling_box.determine_scroll_into_view_position(cx, block, inline, target_rect);
 
             // Step 1.3: If `position` is not the same as `scrolling box`’s current scroll position, or
             // `scrolling box` has an ongoing smooth scroll,
@@ -985,7 +982,7 @@ impl Element {
             return;
         };
 
-        let inner_target_rect = Some(get_target_rect());
+        let inner_target_rect = Some(get_target_rect(cx));
 
         let mut realm = enter_auto_realm(cx, frame_element);
         let cx = &mut realm;
@@ -1039,7 +1036,8 @@ impl Element {
     }
 
     pub(crate) fn style(&self) -> Option<ServoArc<ComputedValues>> {
-        self.owner_window().layout_reflow(QueryMsg::StyleQuery);
+        self.owner_window()
+            .layout_reflow_deprecated(QueryMsg::StyleQuery);
         self.style_without_reflow()
     }
 
@@ -3400,7 +3398,7 @@ impl ElementMethods<crate::DomTypeHolder> for Element {
     /// <https://drafts.csswg.org/cssom-view/#dom-element-getboundingclientrect>
     fn GetBoundingClientRect(&self, cx: &mut JSContext) -> DomRoot<DOMRect> {
         let win = self.owner_window();
-        let rect = self.upcast::<Node>().border_box().unwrap_or_default();
+        let rect = self.upcast::<Node>().border_box(cx).unwrap_or_default();
         debug_assert!(rect.size.width.to_f64_px() >= 0.0 && rect.size.height.to_f64_px() >= 0.0);
         DOMRect::new(
             cx,

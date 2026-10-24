@@ -135,14 +135,19 @@ impl SpecificInputType for FileInputType {
         first_item.name().clone().root()
     }
 
-    fn show_the_picker_if_applicable(&self, input: &HTMLInputElement) {
-        self.select_files(input, None)
+    fn show_the_picker_if_applicable(&self, cx: &mut JSContext, input: &HTMLInputElement) {
+        self.select_files(cx, input, None)
     }
 
     /// Select files by invoking UI or by passed in argument.
     ///
     /// <https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file)>
-    fn select_files(&self, input: &HTMLInputElement, test_paths: Option<Vec<DOMString>>) {
+    fn select_files(
+        &self,
+        cx: &mut JSContext,
+        input: &HTMLInputElement,
+        test_paths: Option<Vec<DOMString>>,
+    ) {
         let current_paths = match &test_paths {
             Some(test_paths) => test_paths
                 .iter()
@@ -158,6 +163,7 @@ impl SpecificInputType for FileInputType {
             .owner_document()
             .embedder_controls()
             .show_embedder_control(
+                cx,
                 ControlElement::FileInput(Dom::from_ref(input)),
                 EmbedderControlRequest::FilePicker(FilePickerRequest {
                     origin: input.owner_window().origin().immutable().clone(),
@@ -188,12 +194,12 @@ impl SpecificInputActivationType for FileInputActivation {
     /// <https://html.spec.whatwg.org/multipage/#file-upload-state-(type=file):input-activation-behavior>
     fn activation_behavior(
         &self,
-        _cx: &mut js::context::JSContext,
+        cx: &mut js::context::JSContext,
         input: &HTMLInputElement,
         _event: &Event,
         _target: &EventTarget,
     ) {
-        input.show_the_picker_if_applicable();
+        input.show_the_picker_if_applicable(cx);
     }
 }
 

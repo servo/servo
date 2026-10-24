@@ -1398,7 +1398,7 @@ impl HTMLImageElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#img-dimensions>
-    fn dimensions(&self) -> (u32, u32) {
+    fn dimensions(&self, cx: &mut JSContext) -> (u32, u32) {
         // Step 2. If image is available, then set naturalDimensions to
         // image's density-corrected natural width and height.
         let natural_dimensions = if self.image_is_available() {
@@ -1408,17 +1408,18 @@ impl HTMLImageElement {
             None
         };
         // Step 3. Return the result of determining the dimensions of image given naturalDimensions.
-        Self::determine_dimensions(self.upcast(), natural_dimensions)
+        Self::determine_dimensions(cx, self.upcast(), natural_dimensions)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#determine-dimensions>
     pub(crate) fn determine_dimensions(
+        cx: &mut JSContext,
         element: &Element,
         natural_dimensions: Option<(u32, u32)>,
     ) -> (u32, u32) {
         // Step 1. If element is being rendered,
         // then return the width and height of element's content box, in CSS pixels. [CSS]
-        if let Some(content_box) = element.upcast::<Node>().content_box() {
+        if let Some(content_box) = element.upcast::<Node>().content_box(cx) {
             return (
                 content_box.size.width.to_px() as u32,
                 content_box.size.height.to_px() as u32,
@@ -1681,18 +1682,18 @@ impl HTMLImageElementMethods<crate::DomTypeHolder> for HTMLImageElement {
     make_bool_setter!(SetIsMap, "ismap");
 
     // <https://html.spec.whatwg.org/multipage/#dom-img-width>
-    fn Width(&self) -> u32 {
+    fn Width(&self, cx: &mut JSContext) -> u32 {
         // > The width getter steps are to return the width of this's dimensions.
-        self.dimensions().0
+        self.dimensions(cx).0
     }
 
     // <https://html.spec.whatwg.org/multipage/#dom-img-width>
     make_dimension_uint_setter!(SetWidth, "width");
 
     // <https://html.spec.whatwg.org/multipage/#dom-img-height>
-    fn Height(&self) -> u32 {
+    fn Height(&self, cx: &mut JSContext) -> u32 {
         // > The height getter steps are to return the height of this's dimensions.
-        self.dimensions().1
+        self.dimensions(cx).1
     }
 
     // <https://html.spec.whatwg.org/multipage/#dom-img-height>

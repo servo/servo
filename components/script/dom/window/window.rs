@@ -3003,12 +3003,16 @@ impl Window {
         }
     }
 
+    /// Trigger a reflow that is required by certain queries.
+    pub(crate) fn layout_reflow(&self, cx: &mut JSContext, query_msg: QueryMsg) {
+        self.reflow(cx, ReflowGoal::LayoutQuery(query_msg));
+    }
+
     /// Trigger a reflow that is required by a certain queries.
     #[expect(unsafe_code)]
-    pub(crate) fn layout_reflow(&self, query_msg: QueryMsg) {
+    pub(crate) fn layout_reflow_deprecated(&self, query_msg: QueryMsg) {
         // TODO https://github.com/servo/servo/issues/44499
         let mut cx = unsafe { script_bindings::script_runtime::temp_cx() };
-
         self.reflow(&mut cx, ReflowGoal::LayoutQuery(query_msg));
     }
 
@@ -3025,7 +3029,7 @@ impl Window {
         node: &Node,
         value: String,
     ) -> Option<ServoArc<Font>> {
-        self.layout_reflow(QueryMsg::ResolvedFontStyleQuery);
+        self.layout_reflow_deprecated(QueryMsg::ResolvedFontStyleQuery);
 
         let document = self.Document();
         let animations = document.animation_manager().sets();
@@ -3093,30 +3097,31 @@ impl Window {
 
     pub(crate) fn box_area_query(
         &self,
+        cx: &mut JSContext,
         node: &Node,
         area: BoxAreaType,
         exclude_transform_and_inline: bool,
     ) -> Option<Rect<Au, CSSPixel>> {
-        self.layout_reflow(QueryMsg::BoxArea);
+        self.layout_reflow(cx, QueryMsg::BoxArea);
         self.box_area_query_without_reflow(node, area, exclude_transform_and_inline)
     }
 
     pub(crate) fn box_areas_query(&self, node: &Node, area: BoxAreaType) -> CSSPixelRectVec {
-        self.layout_reflow(QueryMsg::BoxAreas);
+        self.layout_reflow_deprecated(QueryMsg::BoxAreas);
         self.layout
             .borrow()
             .query_box_areas(node.to_trusted_node_address(), area)
     }
 
     pub(crate) fn client_rect_query(&self, node: &Node) -> Rect<i32, CSSPixel> {
-        self.layout_reflow(QueryMsg::ClientRectQuery);
+        self.layout_reflow_deprecated(QueryMsg::ClientRectQuery);
         self.layout
             .borrow()
             .query_client_rect(node.to_trusted_node_address())
     }
 
     pub(crate) fn current_css_zoom_query(&self, node: &Node) -> f32 {
-        self.layout_reflow(QueryMsg::CurrentCSSZoomQuery);
+        self.layout_reflow_deprecated(QueryMsg::CurrentCSSZoomQuery);
         self.layout
             .borrow()
             .query_current_css_zoom(node.to_trusted_node_address())
@@ -3132,7 +3137,7 @@ impl Window {
     /// Find the scroll area of the given node, if it is not None. If the node
     /// is None, find the scroll area of the viewport.
     pub(crate) fn scrolling_area_query(&self, node: Option<&Node>) -> Rect<i32, CSSPixel> {
-        self.layout_reflow(QueryMsg::ScrollingAreaOrOffsetQuery);
+        self.layout_reflow_deprecated(QueryMsg::ScrollingAreaOrOffsetQuery);
         self.layout
             .borrow()
             .query_scrolling_area(node.map(Node::to_trusted_node_address))
@@ -3150,7 +3155,7 @@ impl Window {
         &self,
         external_scroll_id: ExternalScrollId,
     ) -> Vector2D<f32, LayoutPixel> {
-        self.layout_reflow(QueryMsg::ScrollingAreaOrOffsetQuery);
+        self.layout_reflow_deprecated(QueryMsg::ScrollingAreaOrOffsetQuery);
         self.scroll_offset_query_with_external_scroll_id_no_reflow(external_scroll_id)
     }
 
@@ -3194,7 +3199,7 @@ impl Window {
         pseudo: Option<PseudoElement>,
         property: PropertyId,
     ) -> DOMString {
-        self.layout_reflow(QueryMsg::ResolvedStyleQuery(property.clone()));
+        self.layout_reflow_deprecated(QueryMsg::ResolvedStyleQuery(property.clone()));
 
         let document = self.Document();
         let animations = document.animation_manager().sets();
@@ -3211,7 +3216,7 @@ impl Window {
         &self,
         element: TrustedNodeAddress,
     ) -> Option<accesskit::Node> {
-        self.layout_reflow(QueryMsg::AccessKitNodeQuery);
+        self.layout_reflow_deprecated(QueryMsg::AccessKitNodeQuery);
         self.layout.borrow().query_accesskit_node(element)
     }
 
@@ -3223,7 +3228,7 @@ impl Window {
         browsing_context_id: BrowsingContextId,
     ) -> Option<ViewportDetails> {
         // Reflow might fail, but do a best effort to return the right size.
-        self.layout_reflow(QueryMsg::InnerWindowDimensionsQuery);
+        self.layout_reflow_deprecated(QueryMsg::InnerWindowDimensionsQuery);
         self.Document()
             .iframes()
             .viewport_details(browsing_context_id)
@@ -3234,7 +3239,7 @@ impl Window {
         &self,
         node: &Node,
     ) -> (Option<DomRoot<Element>>, Rect<Au, CSSPixel>) {
-        self.layout_reflow(QueryMsg::OffsetParentQuery);
+        self.layout_reflow_deprecated(QueryMsg::OffsetParentQuery);
         let response = self
             .layout
             .borrow()
@@ -3251,7 +3256,7 @@ impl Window {
         node: Option<&Node>,
         flags: ScrollContainerQueryFlags,
     ) -> Option<ScrollContainerResponse> {
-        self.layout_reflow(QueryMsg::ScrollParentQuery);
+        self.layout_reflow_deprecated(QueryMsg::ScrollParentQuery);
         self.layout
             .borrow()
             .query_scroll_container(node.map(Node::to_trusted_node_address), flags)
@@ -3287,7 +3292,7 @@ impl Window {
         node: &Node,
         point_in_viewport: Point2D<Au, CSSPixel>,
     ) -> Option<(DomRoot<Node>, Utf32CodeUnits)> {
-        self.layout_reflow(QueryMsg::TextIndexOrSegmentQuery);
+        self.layout_reflow_deprecated(QueryMsg::TextIndexOrSegmentQuery);
         let result = self
             .layout
             .borrow()
@@ -3307,7 +3312,7 @@ impl Window {
         offset: Utf32CodeUnitsOrNodeOffset,
         granularity: SegmentGranularity,
     ) -> Option<(RootedSelectionBoundary, RootedSelectionBoundary)> {
-        self.layout_reflow(QueryMsg::TextIndexOrSegmentQuery);
+        self.layout_reflow_deprecated(QueryMsg::TextIndexOrSegmentQuery);
         let ((start_node, start_offset), (end_node, end_offset)) = self
             .layout()
             .query_text_segment(node.to_trusted_node_address(), offset, granularity)?;
@@ -3327,12 +3332,12 @@ impl Window {
         flags: HitTestFlags,
         point: LayoutPoint,
     ) -> layout_api::HitTestResult {
-        self.layout_reflow(QueryMsg::ElementsFromPoint);
+        self.layout_reflow_deprecated(QueryMsg::ElementsFromPoint);
         self.layout().hit_test(flags, point)
     }
 
     pub(crate) fn query_effective_overflow(&self, node: &Node) -> Option<AxesOverflow> {
-        self.layout_reflow(QueryMsg::EffectiveOverflow);
+        self.layout_reflow_deprecated(QueryMsg::EffectiveOverflow);
         self.query_effective_overflow_without_reflow(node)
     }
 

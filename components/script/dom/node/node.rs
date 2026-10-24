@@ -1150,14 +1150,14 @@ impl Node {
         self.owner_window().padding_query_without_reflow(self)
     }
 
-    pub(crate) fn content_box(&self) -> Option<Rect<Au, CSSPixel>> {
+    pub(crate) fn content_box(&self, cx: &mut JSContext) -> Option<Rect<Au, CSSPixel>> {
         self.owner_window()
-            .box_area_query(self, BoxAreaType::Content, false)
+            .box_area_query(cx, self, BoxAreaType::Content, false)
     }
 
-    pub(crate) fn border_box(&self) -> Option<Rect<Au, CSSPixel>> {
+    pub(crate) fn border_box(&self, cx: &mut JSContext) -> Option<Rect<Au, CSSPixel>> {
         self.owner_window()
-            .box_area_query(self, BoxAreaType::Border, false)
+            .box_area_query(cx, self, BoxAreaType::Border, false)
     }
 
     pub(crate) fn border_box_without_reflow(&self) -> Option<Rect<Au, CSSPixel>> {
@@ -1165,9 +1165,9 @@ impl Node {
             .box_area_query_without_reflow(self, BoxAreaType::Border, false)
     }
 
-    pub(crate) fn padding_box(&self) -> Option<Rect<Au, CSSPixel>> {
+    pub(crate) fn padding_box(&self, cx: &mut JSContext) -> Option<Rect<Au, CSSPixel>> {
         self.owner_window()
-            .box_area_query(self, BoxAreaType::Padding, false)
+            .box_area_query(cx, self, BoxAreaType::Padding, false)
     }
 
     pub(crate) fn padding_box_without_reflow(&self) -> Option<Rect<Au, CSSPixel>> {

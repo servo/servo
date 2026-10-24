@@ -198,7 +198,7 @@ impl ScrollingBox {
     /// <https://drafts.csswg.org/cssom-view/#determine-the-scroll-into-view-position>
     pub(crate) fn determine_scroll_into_view_position(
         &self,
-        no_gc: &NoGC,
+        cx: &mut JSContext,
         block: ScrollAxisState,
         inline: ScrollAxisState,
         target_rect: Rect<Au, CSSPixel>,
@@ -222,7 +222,7 @@ impl ScrollingBox {
             ScrollingBoxSource::Element(scrolling_element) => {
                 let scrolling_padding_rect_top_left = scrolling_element
                     .upcast::<Node>()
-                    .padding_box()
+                    .padding_box(cx)
                     .unwrap_or_default()
                     .origin
                     .map(to_pixel);
@@ -233,7 +233,7 @@ impl ScrollingBox {
             },
         };
 
-        let size = self.size(no_gc);
+        let size = self.size(cx.no_gc());
         let current_scroll_position = self.scroll_position();
         Vector2D::new(
             Self::calculate_scroll_position_one_axis(

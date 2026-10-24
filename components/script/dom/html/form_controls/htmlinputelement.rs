@@ -901,14 +901,14 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#input-img-dimensions>
-    fn dimensions(&self) -> (u32, u32) {
+    fn dimensions(&self, cx: &mut JSContext) -> (u32, u32) {
         // Step 1. If input's type attribute is not in the Image Button state,
         // then return a width of 0 and a height of 0. (In that case no image is available.)
         let InputType::Image(ref image_input_type) = *self.input_type() else {
             return Default::default();
         };
         // The rest of the steps
-        image_input_type.dimensions(self)
+        image_input_type.dimensions(cx, self)
     }
 }
 
@@ -1129,20 +1129,20 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
     make_bool_setter!(SetDisabled, "disabled");
 
     /// <https://html.spec.whatwg.org/multipage/#dom-input-width>
-    fn Width(&self) -> u32 {
+    fn Width(&self, cx: &mut JSContext) -> u32 {
         // > The width and height getter steps are to return the
         // > respective component of the result of determining the dimensions of this.
-        self.dimensions().0
+        self.dimensions(cx).0
     }
 
     // <https://html.spec.whatwg.org/multipage/#dom-input-width>
     make_dimension_uint_setter!(SetWidth, "width");
 
     // <https://html.spec.whatwg.org/multipage/#dom-input-height>
-    fn Height(&self) -> u32 {
+    fn Height(&self, cx: &mut JSContext) -> u32 {
         // > The width and height getter steps are to return the
         // > respective component of the result of determining the dimensions of this.
-        self.dimensions().1
+        self.dimensions(cx).1
     }
     // <https://html.spec.whatwg.org/multipage/#dom-input-height>
     make_dimension_uint_setter!(SetHeight, "height");
@@ -1625,10 +1625,10 @@ impl HTMLInputElementMethods<crate::DomTypeHolder> for HTMLInputElement {
 
     /// Select the files based on filepaths passed in, enabled by
     /// `dom_testing_html_input_element_select_files_enabled`, used for test purpose.
-    fn SelectFiles(&self, paths: Vec<DOMString>) {
+    fn SelectFiles(&self, cx: &mut JSContext, paths: Vec<DOMString>) {
         self.input_type()
             .as_specific()
-            .select_files(self, Some(paths));
+            .select_files(cx, self, Some(paths));
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-input-stepup>
@@ -1972,6 +1972,7 @@ impl HTMLInputElement {
 
     pub(crate) fn select_files_for_webdriver(
         &self,
+        cx: &mut JSContext,
         test_paths: Vec<DOMString>,
         response_sender: GenericSender<Result<bool, ErrorStatus>>,
     ) {
@@ -1985,7 +1986,7 @@ impl HTMLInputElement {
 
         self.input_type()
             .as_specific()
-            .select_files(self, Some(test_paths));
+            .select_files(cx, self, Some(test_paths));
     }
 
     pub(crate) fn take_pending_webdriver_response(&self) -> Option<Box<PendingWebDriverResponse>> {
@@ -2123,7 +2124,7 @@ impl HTMLInputElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#show-the-picker,-if-applicable>
-    pub(crate) fn show_the_picker_if_applicable(&self) {
+    pub(crate) fn show_the_picker_if_applicable(&self, cx: &mut JSContext) {
         // FIXME: Implement most of this algorithm
 
         // Step 2. If element is not mutable, then return.
@@ -2135,7 +2136,7 @@ impl HTMLInputElement {
         // in the way it normally would when the user interacts with the control.
         self.input_type()
             .as_specific()
-            .show_the_picker_if_applicable(self);
+            .show_the_picker_if_applicable(cx, self);
     }
 
     pub(crate) fn handle_color_picker_response(
@@ -2182,6 +2183,7 @@ impl HTMLInputElement {
             }
 
             document.embedder_controls().show_embedder_control(
+                cx,
                 ControlElement::Ime(Dom::from_ref(self.upcast())),
                 EmbedderControlRequest::InputMethod(InputMethodRequest {
                     input_method_type,

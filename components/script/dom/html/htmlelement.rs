@@ -147,7 +147,7 @@ impl HTMLElement {
             return node.GetTextContent().unwrap();
         }
 
-        window.layout_reflow(QueryMsg::ElementInnerOuterTextQuery);
+        window.layout_reflow_deprecated(QueryMsg::ElementInnerOuterTextQuery);
         let text = window
             .layout()
             .query_element_inner_outer_text(node.to_trusted_node_address());

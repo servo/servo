@@ -86,7 +86,7 @@ impl ImageInputType {
     }
 
     /// Step 2 and later of <https://html.spec.whatwg.org/multipage/#input-img-dimensions>
-    pub(crate) fn dimensions(&self, input: &HTMLInputElement) -> (u32, u32) {
+    pub(crate) fn dimensions(&self, cx: &mut JSContext, input: &HTMLInputElement) -> (u32, u32) {
         // Step 2. Let naturalDimensions be null.
         // Step 3. If an image is available,
         // then set naturalDimensions to the result of applying the default sizing algorithm
@@ -102,7 +102,7 @@ impl ImageInputType {
                 })
             });
         // Step 4. Return the result of determining the dimensions of input given naturalDimensions.
-        HTMLImageElement::determine_dimensions(input.upcast(), natural_dimensions)
+        HTMLImageElement::determine_dimensions(cx, input.upcast(), natural_dimensions)
     }
 }
 

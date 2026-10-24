@@ -3437,23 +3437,33 @@ impl Document {
     }
 
     /// <https://drafts.csswg.org/resize-observer/#dom-resizeobserver-resizeobserver>
-    pub(crate) fn add_resize_observer(&self, resize_observer: &ResizeObserver) {
+    pub(crate) fn add_resize_observer(&self, cx: &mut JSContext, resize_observer: &ResizeObserver) {
         self.resize_observers
-            .borrow_mut()
+            .safe_borrow_mut(cx)
             .push(Dom::from_ref(resize_observer));
+    }
+
+    pub(crate) fn rooted_clone_of_resize_observers(&self) -> Vec<DomRoot<ResizeObserver>> {
+        self.resize_observers
+            .borrow()
+            .iter()
+            .map(Dom::as_rooted)
+            .collect()
     }
 
     /// <https://drafts.csswg.org/resize-observer/#gather-active-observations-h>
     /// <https://drafts.csswg.org/resize-observer/#has-active-resize-observations>
     pub(crate) fn gather_active_resize_observations_at_depth(
         &self,
-        no_gc: &NoGC,
+        cx: &mut JSContext,
         depth: &ResizeObservationDepth,
     ) -> bool {
+        // As the interior of the loop can trigger garbage collection, we must clone the resize observers
+        // before iterating them.
         let mut has_active_resize_observations = false;
-        for observer in self.resize_observers.borrow_mut().iter_mut() {
+        for observer in self.rooted_clone_of_resize_observers() {
             observer.gather_active_resize_observations_at_depth(
-                no_gc,
+                cx,
                 depth,
                 &mut has_active_resize_observations,
             );
@@ -3466,17 +3476,10 @@ impl Document {
         &self,
         cx: &mut JSContext,
     ) -> ResizeObservationDepth {
+        // As the interior of the loop can trigger garbage collection we must clone the resize observers
+        // before iterating them.
         let mut shallowest = ResizeObservationDepth::max();
-        // Breaking potential re-borrow cycle on `resize_observers`:
-        // broadcasting resize observations calls into a JS callback,
-        // which can add new observers.
-        let iterator: Vec<DomRoot<ResizeObserver>> = self
-            .resize_observers
-            .borrow()
-            .iter()
-            .map(|obs| obs.as_rooted())
-            .collect();
-        for observer in iterator {
+        for observer in self.rooted_clone_of_resize_observers() {
             observer.broadcast_active_resize_observations(cx, &mut shallowest);
         }
         shallowest
