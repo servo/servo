@@ -172413,6 +172413,19 @@
          {}
         ]
        ],
+       "color-scheme-should-apply-to-root.html": [
+        "d414a651e32d603643c80b5c49ef214d62a9851b",
+        [
+         null,
+         [
+          [
+           "/css/css-color-adjust/rendering/dark-color-scheme/color-scheme-should-apply-to-root-ref.html",
+           "=="
+          ]
+         ],
+         {}
+        ]
+       ],
        "color-scheme-table-border-currentcolor-responsive.html": [
         "1d42a4fddabe8c3337ced4f9ad9b676b4b25c09b",
         [
@@ -493638,6 +493651,10 @@
        ],
        "color-scheme-rule-cache-ref.html": [
         "67eaec0f190dc2048ed150808425fb2a31b61492",
+        []
+       ],
+       "color-scheme-should-apply-to-root-ref.html": [
+        "e2901e3bc1586669becf0ee389cb05c2d72dcadb",
         []
        ],
        "color-scheme-table-border-currentcolor-responsive-ref.html": [
