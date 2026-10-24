@@ -572,7 +572,11 @@ fn compute_inline_content_sizes_for_block_level_boxes(
                     containing_block,
                     &LogicalVec2::zero(),
                     false, /* auto_block_size_stretches_to_containing_block */
-                    false, /* skippable_for_block_percentage_quirk */
+                    skippable_for_block_percentage_quirk(
+                        layout_context,
+                        &float_box.contents.base,
+                        Some(&float_box.contents),
+                    ),
                 );
                 let style = &float_box.contents.style();
                 let container_writing_mode = containing_block.style.writing_mode;
