@@ -8,13 +8,13 @@ use std::sync::Arc;
 use fonts_traits::LocalFontIdentifier;
 use ndk::font::FontMatcher;
 use style::values::computed::font::SingleFontFamily::{FamilyName, Generic};
-use style::values::computed::font::{FontStretch, FontStyle, FontWeight};
+use style::values::computed::font::{FontStyle, FontWeight, FontWidth};
 use stylo_atoms::Atom;
 
 use crate::platform::font_list::default_system_generic_font_family;
 use crate::{
     FallbackFontSelectionOptions, Font, FontIdentifier, FontRef, FontTemplate,
-    FontTemplateDescriptor, FontTemplateRef,
+    FontTemplateDescriptor, FontTemplateRef, LowercaseFontFamilyName,
 };
 
 impl Font {
@@ -23,16 +23,19 @@ impl Font {
         options: &FallbackFontSelectionOptions,
     ) -> Option<FontRef> {
         let mut a_font_matcher = FontMatcher::new();
-        let codepoint: Vec<u16> = options.character.to_string().encode_utf16().collect();
+        let mut codepoint = [0u16; 2];
+        let codepoint = options.character.encode_utf16(&mut codepoint[..]);
         let Some(preferred_font_families) = options.preferred_font_families else {
             return None;
         };
 
         for font_family in preferred_font_families {
+            let generic_family_name: LowercaseFontFamilyName;
             let family_name_string = match &font_family.family_descriptor.family {
-                FamilyName(family) => family.name.to_string(),
+                FamilyName(family) => family.name.as_str(),
                 Generic(generic_font) => {
-                    default_system_generic_font_family(*generic_font).to_string()
+                    generic_family_name = default_system_generic_font_family(*generic_font);
+                    &generic_family_name
                 },
             };
 
@@ -43,14 +46,11 @@ impl Font {
 
             let ndk_font = a_font_matcher.match_font(family_name, &codepoint, None);
 
+            let Some(path) = ndk_font.path().to_str() else {
+                continue;
+            };
             let identifier = LocalFontIdentifier {
-                path: Atom::from(
-                    ndk_font
-                        .path()
-                        .to_str()
-                        .expect("Failed to convert path to string!")
-                        .to_string(),
-                ),
+                path: Atom::from(path),
                 // According to https://docs.rs/ndk/latest/ndk/font/struct.Font.html,
                 // "This always returns 0 if the target font file is a regular font."
                 // So despite the function's name, this function will handle `.ttf` or `.otf` files just fine.
@@ -67,15 +67,14 @@ impl Font {
 
             // TODO(rtjkro): In the future, find a way to properly set this value,
             // possibly using the width axis if it exists in the font.
-            let font_stretch = FontStretch::NORMAL;
+            let font_width = FontWidth::NORMAL;
 
             let font_template_descriptor =
-                FontTemplateDescriptor::new(font_weight, font_stretch, font_style);
+                FontTemplateDescriptor::new(font_weight, font_width, font_style);
 
             let template = FontTemplate::new(
                 FontIdentifier::Local(identifier),
                 font_template_descriptor,
-                None,
                 None,
             );
             let template = FontTemplateRef::new(template);

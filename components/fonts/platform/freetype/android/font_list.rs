@@ -133,9 +133,9 @@ impl FontList {
         let filename = system_font.path().file_name()?.to_str()?;
 
         let style = if system_font.is_italic() {
-            FontStyle::Normal
-        } else {
             FontStyle::Italic
+        } else {
+            FontStyle::Normal
         };
 
         let font_entry = Font {
