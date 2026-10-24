@@ -323,6 +323,25 @@ impl ServiceWorkerManager {
                     }
                 }
             },
+            ServiceWorkerMsg::FinishInstall(worker_id) => {
+                // Find the relevant worker in the registration map.
+                let mut url = None;
+                for (scope_url, registration) in self.registrations.iter() {
+                    if let Some(worker) = &registration.installing_worker {
+                        if worker.id == worker_id {
+                            url = Some(scope_url.clone());
+                            break;
+                        }
+                    }
+                }
+                if let Some(url) = url {
+                    // <https://w3c.github.io/ServiceWorker/#install>
+                    // Now that the waiting condition of step 21 has been met,
+                    // we can continue.
+                    // Step 22: Invoke Try Activate with registration.
+                    self.try_activate_registration(url);
+                }
+            },
             ServiceWorkerMsg::ForwardWorkerMessage {
                 data,
                 url,
@@ -387,6 +406,11 @@ impl ServiceWorkerManager {
             },
         }
         true
+    }
+
+    /// <https://w3c.github.io/ServiceWorker/#try-activate>
+    fn try_activate_registration(&mut self, url: ServoUrl) {
+        // TODO: implement.
     }
 
     /// <https://w3c.github.io/ServiceWorker/#unregister>
