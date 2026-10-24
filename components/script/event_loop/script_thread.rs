@@ -2365,6 +2365,11 @@ impl ScriptThread {
                     window.pending_image_notification(pending_image_response, cx);
                 }
             },
+            ImageCacheResponseMessage::RasterDecodeReady(pipeline_id, id, generation) => {
+                if let Some(window) = self.documents.borrow().find_window(pipeline_id) {
+                    window.handle_encoded_raster_image_ready(id, generation);
+                }
+            },
             ImageCacheResponseMessage::VectorImageRasterizationComplete(response) => {
                 let window = self.documents.borrow().find_window(response.pipeline_id);
                 if let Some(ref window) = window {
@@ -4197,7 +4202,7 @@ impl ScriptThread {
             FetchResponseMsg::ProcessResponseChunk(_request_id, chunk) => {
                 self.handle_fetch_chunk(cx, pipeline_id, chunk)
             },
-            FetchResponseMsg::ProcessResponseEOF(_request_id, eof, timing) => {
+            FetchResponseMsg::ProcessResponseEOF(_request_id, eof, timing, _) => {
                 self.handle_fetch_eof(cx, pipeline_id, eof, timing)
             },
             FetchResponseMsg::ProcessCspViolations(request_id, violations) => {

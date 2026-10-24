@@ -169,6 +169,12 @@ where
         }
     }
 
+    /// Whether messages to this callback are serialized over IPC, including in
+    /// single-process mode with forced IPC.
+    pub fn uses_ipc(&self) -> bool {
+        matches!(&self.0, GenericCallbackVariants::CrossProcess(_))
+    }
+
     /// Send `value` to the callback.
     ///
     /// Note that a return value of `Ok()` simply means that value was sent successfully
