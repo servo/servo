@@ -248,6 +248,11 @@ impl Gui {
             // On platforms where winit fails to obtain a system theme, fall back to a light theme
             // since it is the more common default.
             options.fallback_theme = egui::Theme::Light;
+
+            #[cfg(target_os = "linux")]
+            if winit_window.theme() == Some(winit::window::Theme::Dark) {
+                options.fallback_theme = egui::Theme::Dark;
+            }
         });
 
         Self {

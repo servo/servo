@@ -108,6 +108,9 @@ pub(crate) struct ServoShellPreferences {
     /// Enable memory output if tracing is enabled.
     #[allow(unused)]
     pub memory_output: bool,
+    /// Force dark mode.
+    #[cfg(target_os = "linux")]
+    pub force_darkmode: bool,
 }
 
 impl Default for ServoShellPreferences {
@@ -135,6 +138,8 @@ impl Default for ServoShellPreferences {
             log_to_file: false,
             experimental_preferences_enabled: false,
             memory_output: false,
+            #[cfg(target_os = "linux")]
+            force_darkmode: false,
         }
     }
 }
@@ -552,6 +557,11 @@ struct CmdArgs {
     #[bpaf(long)]
     unminify_css: bool,
 
+    #[cfg(target_os = "linux")]
+    /// Run with darkmode enabled.
+    #[bpaf(long)]
+    force_darkmode: bool,
+
     ///
     ///  Set custom user agent string (or ios / android / desktop for platform default).
     #[bpaf(short('u'),long,argument::<String>("NCSA mosaic/1.0 (X11;SunOS 4.1.4 sun4m"))]
@@ -741,6 +751,8 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         #[cfg(target_env = "ohos")]
         log_to_file: cmd_args.log_to_file,
         memory_output: cmd_args.memory_output,
+        #[cfg(target_os = "linux")]
+        force_darkmode: cmd_args.force_darkmode,
         ..Default::default()
     };
 
