@@ -115,6 +115,8 @@ pub struct Preferences {
     pub devtools_server_enabled: bool,
     /// The address:port the devtools server listens to, default to 127.0.0.1:7000.
     pub devtools_server_listen_address: String,
+    /// Maximum number of bytes of each network response body that is sent to devtools.
+    pub devtools_network_response_body_limit: i64,
     // feature: WebGPU | #24706 | Web/API/WebGPU_API
     pub dom_webgpu_enabled: bool,
     /// List of comma-separated backends to be used by wgpu.
@@ -434,6 +436,7 @@ impl Preferences {
             editing_caret_blink_time: 600,
             devtools_server_enabled: false,
             devtools_server_listen_address: String::new(),
+            devtools_network_response_body_limit: 1024 * 1024, // 1 MB
             dom_adoptedstylesheet_enabled: false,
             dom_allow_preloading_module_descendants: false,
             dom_allow_scripts_to_close_windows: false,
