@@ -191,3 +191,15 @@ pub fn is_expr_kind_empty_str(expr_kind: &ExprKind<'_>) -> bool {
 
     value == rustc_span::sym::empty
 }
+
+pub fn is_dom_root_ty<'tcx>(path: &'_ [Symbol], cx: &LateContext<'tcx>, ty: ty::Ty<'tcx>) -> bool {
+    if let ty::Adt(did, _) = ty.kind() {
+        // DomRoot<T> desugars to `Root<Dom<T>>`
+        // In fact it's `Root` that can cause issues.
+        if match_def_path(cx, did.did(), path) {
+            return true;
+        }
+    }
+
+    false
+}
