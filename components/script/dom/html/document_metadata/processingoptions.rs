@@ -81,8 +81,6 @@ pub(crate) struct LinkProcessingOptions {
     pub(crate) policy_container: Arc<PolicyContainer>,
     /// <https://html.spec.whatwg.org/multipage/#link-options-source-set>
     pub(crate) source_set: Option<SourceSet>,
-    /// <https://html.spec.whatwg.org/multipage/#link-options-base-url>
-    pub(crate) base_url: ServoUrl,
     /// <https://html.spec.whatwg.org/multipage/#link-options-origin>
     pub(crate) origin: ImmutableOrigin,
     pub(crate) referrer: Referrer,
@@ -184,25 +182,26 @@ impl LinkProcessingOptions {
         self,
         webview_id: WebViewId,
         global: &GlobalScope,
+        document: &Document,
     ) -> Option<RequestBuilder> {
         // Step 1. Assert: options's href is not the empty string.
         assert!(!self.href.is_empty());
 
-        // Step 3. Let url be the result of encoding-parsing a URL given options's href, relative to options's base URL.
-        let Ok(url) = ServoUrl::parse_with_base(Some(&self.base_url), &self.href) else {
-            // Step 4. If url is failure, then return null.
+        // Step 2. Let url be the result of encoding-parsing a URL given options's href, relative to options's base URL.
+        let Ok(url) = document.encoding_parse_a_url(&self.href) else {
+            // Step 3. If url is failure, then return null.
             return None;
         };
         let url = ensure_blob_referenced_by_url_is_kept_alive(global, url);
 
-        // Step 5. Let request be the result of creating a potential-CORS request given
+        // Step 4. Let request be the result of creating a potential-CORS request given
         //         url, options's destination, and options's crossorigin.
-        // Step 6. Set request's policy container to options's policy container.
-        // Step 7. Set request's integrity metadata to options's integrity.
-        // Step 8. Set request's cryptographic nonce metadata to options's cryptographic nonce metadata.
-        // Step 9. Set request's referrer policy to options's referrer policy.
-        // Step 10. Set request's client to options's environment.
-        // FIXME: Step 11. Set request's priority to options's fetch priority.
+        // Step 5. Set request's policy container to options's policy container.
+        // Step 6. Set request's integrity metadata to options's integrity.
+        // Step 7. Set request's cryptographic nonce metadata to options's cryptographic nonce metadata.
+        // Step 8. Set request's referrer policy to options's referrer policy.
+        // Step 9. Set request's client to options's environment.
+        // FIXME: Step 10. Set request's priority to options's fetch priority.
         let builder = create_a_potential_cors_request_with_claim(
             Some(webview_id),
             url,
@@ -219,7 +218,7 @@ impl LinkProcessingOptions {
         .cryptographic_nonce_metadata(self.cryptographic_nonce_metadata)
         .referrer_policy(self.referrer_policy);
 
-        // Step 12. Return request.
+        // Step 11. Return request.
         Some(builder)
     }
 
@@ -298,7 +297,9 @@ impl LinkProcessingOptions {
             );
         }
         // Step 3. Let request be the result of creating a link request given options.
-        let Some(request) = self.create_link_request(webview_id, &document.owner_global()) else {
+        let Some(request) =
+            self.create_link_request(webview_id, &document.owner_global(), document)
+        else {
             // Step 4. If request is null, then return.
             return;
         };
@@ -419,7 +420,6 @@ pub(crate) fn process_link_headers(
             policy_container: document.policy_container().clone(),
             source_set: None,
             origin: document.origin().immutable().to_owned(),
-            base_url: document.base_url(),
             request_client: global.request_client(None),
             referrer: global.get_referrer(),
         };
