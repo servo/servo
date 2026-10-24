@@ -12,7 +12,24 @@ test_valid_selector('::cue');
 test_valid_selector('::cue(v)');
 test_valid_selector('::cue(*)');
 test_valid_selector('::cue(.loud)');
+test_valid_selector('::cue(.loud.big)');
+test_valid_selector('::cue(div, bar)');
 test_valid_selector('video::cue');
+test_valid_selector('div ::cue(*)');
+test_valid_selector('div + video::cue(*)');
+
+// Test various selectors inside and after pseudo element
+test_invalid_selector('::cue()');
+test_invalid_selector('::cue(42)');
+test_invalid_selector('::cue(div bar)');
+test_invalid_selector('::cue(div + bar)');
+test_invalid_selector('::cue(div ~ bar)');
+test_invalid_selector('::cue(div > bar)');
+test_invalid_selector('::cue(v):hover');
+test_invalid_selector('::cue(v) + bar');
+test_invalid_selector('::cue(v) bar');
+test_invalid_selector('::cue(v)::cue(.bar)');
+test_invalid_selector('::cue(.loud)::before');
 
 // ::cue is not one of the CSS Level 2 pseudo-elements, so the legacy
 // single-colon syntax does not apply to it.
