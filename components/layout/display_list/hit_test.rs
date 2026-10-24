@@ -19,6 +19,7 @@ use style::computed_values::visibility::T as Visibility;
 use style::dom::OpaqueNode;
 use style::properties::ComputedValues;
 use style::values::computed::ui::CursorKind;
+use style::values::computed::{Inert, Interactivity};
 use style_traits::CSSPixel;
 use webrender_api::BorderRadius;
 use webrender_api::units::{LayoutPoint, LayoutRect, LayoutSize, RectExt};
@@ -242,7 +243,13 @@ impl Fragment {
                 let is_root_element = fragment_flags.contains(FragmentFlags::IS_ROOT_ELEMENT);
 
                 if !is_root_element {
-                    if style.get_inherited_ui().pointer_events == PointerEvents::None {
+                    // <https://drafts.csswg.org/css-ui-4/#inertness>
+                    // > Hit-testing must act as if the pointer-events property were set to none.
+                    let inherited_ui = style.get_inherited_ui();
+                    if inherited_ui.pointer_events == PointerEvents::None ||
+                        inherited_ui._servo_inert == Inert::Inert ||
+                        inherited_ui.interactivity == Interactivity::Inert
+                    {
                         return false;
                     }
                     if style.get_inherited_box().visibility != Visibility::Visible {

@@ -2102,7 +2102,8 @@ fn is_element_in_view(element: &Element, paint_tree: &[DomRoot<Element>]) -> boo
     // if the resolved value of its "pointer-events" style property is "none".
     element
         .style()
-        .is_none_or(|style| style.get_inherited_ui().pointer_events != PointerEvents::None)
+        .is_none_or(|style| style.get_inherited_ui().pointer_events != PointerEvents::None) &&
+        !element.upcast::<Node>().is_inert()
 }
 
 /// <https://w3c.github.io/webdriver/#dfn-pointer-interactable-paint-tree>

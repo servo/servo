@@ -49,6 +49,7 @@ use style::context::QuirksMode;
 use style::dom::OpaqueNode;
 use style::dom_apis::{QueryAll, QueryFirst};
 use style::selector_parser::PseudoElement;
+use style::values::computed::{Inert, Interactivity};
 use style_traits::CSSPixel;
 use uuid::Uuid;
 use xml5ever::{local_name, serialize as xml_serialize};
@@ -2264,6 +2265,12 @@ impl Node {
 
     /// <https://w3c.github.io/editing/docs/execCommand/#editable>
     pub(crate) fn is_editable(&self) -> bool {
+        // https://html.spec.whatwg.org/multipage/#inert
+        // When a node is inert: If it is editable, the node behaves as if it were non-editable.
+        if self.is_inert() {
+            return false;
+        }
+
         // > Something is editable if it is a node; it is not an editing host;
         if self.is_editing_host() {
             return false;
@@ -2282,6 +2289,19 @@ impl Node {
         }
         // > and either it is an HTML element, or it is an svg or math element, or it is not an Element and its parent is an HTML element.
         html_element.is_some() || (!self.is::<Element>() && parent.is::<HTMLElement>())
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#inert>
+    /// A node (in particular elements and text nodes) can be inert.
+    ///
+    /// Inertness is propagated using the internal `-servo-inert` property.
+    pub(crate) fn is_inert(&self) -> bool {
+        self.downcast::<Element>()
+            .and_then(Element::style)
+            .is_some_and(|style| {
+                *style.get__servo_inert() == Inert::Inert ||
+                    *style.get_interactivity() == Interactivity::Inert
+            })
     }
 }
 
