@@ -13,6 +13,7 @@ use html5ever::{LocalName, Prefix, QualName, local_name, ns};
 use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use mime::{self, Mime};
+use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::image_cache::{
     Image, ImageCache, ImageCacheResult, ImageLoadListener, ImageOrMetadataAvailable,
     ImageResponse, PendingImageId,
@@ -72,10 +73,11 @@ use crate::dom::window::Window;
 use crate::dom::{RootedPromise, TracedPromise};
 use crate::event_loop::document_loader::{LoadBlocker, LoadType};
 use crate::event_loop::script_thread::ScriptThread;
-use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request};
+use crate::fetch::fetch::{RequestWithGlobalScope, create_a_potential_cors_request_with_claim};
 use crate::fetch::network_listener::{self, FetchResponseListener, ResourceTimingListener};
 use crate::realms::enter_auto_realm;
 use crate::runtime::job_queue::MicrotaskRunnable;
+use crate::url::ensure_blob_referenced_by_url_is_kept_alive;
 
 /// <https://html.spec.whatwg.org/multipage/#img-req-state>
 #[derive(Clone, Copy, Default, JSTraceable, MallocSizeOf)]
@@ -312,7 +314,11 @@ impl HTMLImageElement {
                 self.register_image_cache_callback(id, ChangeType::Element);
             },
             ImageCacheResult::ReadyForRequest(id) => {
-                self.fetch_request(img_url, id);
+                let url_with_claim = ensure_blob_referenced_by_url_is_kept_alive(
+                    &self.owner_global(),
+                    img_url.clone(),
+                );
+                self.fetch_request(url_with_claim, id);
                 self.register_image_cache_callback(id, ChangeType::Element);
             },
             ImageCacheResult::FailedToLoadOrDecode => {
@@ -362,7 +368,7 @@ impl HTMLImageElement {
         ));
     }
 
-    fn fetch_request(&self, img_url: &ServoUrl, id: PendingImageId) {
+    fn fetch_request(&self, img_url: UrlWithBlobClaim, id: PendingImageId) {
         let document = self.owner_document();
         let window = self.owner_window();
 
@@ -372,15 +378,16 @@ impl HTMLImageElement {
             id,
             aborted: false,
             element: Trusted::new(self),
-            url: img_url.clone(),
+            url: img_url.url(),
         };
 
         // https://html.spec.whatwg.org/multipage/#update-the-image-data steps 17-20
         // This function is also used to prefetch an image in `script::dom::servoparser::prefetch`.
         let global = document.global();
-        let mut request = create_a_potential_cors_request(
+
+        let mut request = create_a_potential_cors_request_with_claim(
             Some(window.webview_id()),
-            img_url.clone(),
+            img_url,
             Destination::Image,
             cors_setting_for_element(self.upcast()),
             None,
@@ -1097,7 +1104,11 @@ impl HTMLImageElement {
                 );
             },
             ImageCacheResult::ReadyForRequest(id) => {
-                self.fetch_request(&image_url, id);
+                let url_with_claim = ensure_blob_referenced_by_url_is_kept_alive(
+                    &self.owner_global(),
+                    image_url.clone(),
+                );
+                self.fetch_request(url_with_claim, id);
                 self.register_image_cache_callback(id, change_type);
             },
             ImageCacheResult::Pending(id) => {
