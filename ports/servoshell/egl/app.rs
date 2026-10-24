@@ -310,6 +310,10 @@ impl App {
             .opts(init.opts)
             .preferences(init.preferences.clone())
             .event_loop_waker(init.event_loop_waker.clone());
+        #[cfg(target_env = "ohos")]
+        let mut servo_builder = servo_builder.set_image_encoder_decoder_factory(
+            std::sync::Arc::new(servo::OhosImageEncoderDecoderFactory::default()),
+        );
         let servo = servo_builder.build();
         #[cfg(feature = "webxr")]
         servo.register_webxr_registry(Box::new(XrDiscoveryWebXrRegistry::new(init.xr_discovery)));
