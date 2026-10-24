@@ -50,7 +50,6 @@ parking_lot = { workspace = true }
 postcard = { workspace = true }
 profile_traits = { workspace = true }
 read-fonts = { workspace = true }
-resvg = { workspace = true }
 rustc-hash = { workspace = true }
 serde = { workspace = true }
 servo-base = { workspace = true }
@@ -62,6 +61,7 @@ skrifa = { workspace = true }
 smallvec = { workspace = true }
 stylo = { workspace = true }
 stylo_atoms = { workspace = true }
+tiny-skia = { workspace = true }
 tracing = { workspace = true, optional = true }
 unicode-properties = { workspace = true }
 unicode-script = { workspace = true }

@@ -23,7 +23,6 @@ use objc2_core_text::{
     CTFont, CTFontOrientation, CTFontSymbolicTraits, CTFontTableOptions, CTFontTableTag,
     kCTFontSlantTrait, kCTFontSymbolicTrait, kCTFontWeightTrait, kCTFontWidthTrait,
 };
-use resvg::tiny_skia;
 use skrifa::Tag;
 use style::values::computed::font::{FontStyle, FontWeight, FontWidth};
 use webrender_api::{FontInstanceFlags, FontVariation};
