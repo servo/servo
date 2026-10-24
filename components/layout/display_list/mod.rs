@@ -14,9 +14,11 @@ use fonts::ShapedTextSlice;
 use gradient::WebRenderGradient;
 use layout_api::ReflowStatistics;
 use paint_api::display_list::{PaintDisplayListInfo, SpatialTreeNodeInfo};
+use paint_api::{CrossProcessPaintApi, SerializableImageData};
 use servo_arc::Arc as ServoArc;
 use servo_base::cross_process_instant::CrossProcessInstant;
-use servo_base::id::{PipelineId, ScrollTreeNodeId};
+use servo_base::generic_channel::GenericSharedMemory;
+use servo_base::id::{PipelineId, ScrollTreeNodeId, WebViewId};
 use servo_config::opts::{DiagnosticsLogging, DiagnosticsLoggingOption};
 use servo_config::{pref, prefs};
 use servo_url::ServoUrl;
@@ -49,7 +51,8 @@ use webrender_api::units::{
 };
 use webrender_api::{
     self as wr, BorderDetails, BorderRadius, BorderSide, BoxShadowClipMode, BuiltDisplayList,
-    ClipChainId, ClipMode, ColorF, CommonItemProperties, ComplexClipRegion, GlyphInstance,
+    ClipChainId, ClipMode, ColorF, CommonItemProperties, ComplexClipRegion, FillRule,
+    GlyphInstance, ImageDescriptor, ImageDescriptorFlags, ImageFormat, ImageKey, ImageMask,
     MixBlendMode, NinePatchBorder, NinePatchBorderSource, NormalBorder, PrimitiveFlags,
     PropertyBinding, PropertyBindingKey, RasterSpace, SpatialId, StackingContextFlags,
     TransformStyle, units,
@@ -131,6 +134,16 @@ pub(crate) struct DisplayListBuilder<'a> {
     /// An [`ImageResolver`] to use during display list construction.
     image_resolver: Arc<ImageResolver>,
 
+    /// The cross-process paint API, used to register layout-generated images for
+    /// `background-clip: text` glyph masks.
+    paint_api: &'a CrossProcessPaintApi,
+
+    /// The [`WebViewId`] of the current document.
+    webview_id: WebViewId,
+
+    /// Pending image keys used for `background-clip: text` to be released.
+    text_mask_image_keys: Vec<ImageKey>,
+
     /// The device pixel ratio used for this `Document`'s display list.
     device_pixel_ratio: Scale<f32, StyloCSSPixel, StyloDevicePixel>,
 
@@ -202,13 +215,15 @@ impl DisplayListBuilder<'_> {
         stacking_context_tree: &mut StackingContextTree,
         fragment_tree: &FragmentTree,
         image_resolver: Arc<ImageResolver>,
+        paint_api: &CrossProcessPaintApi,
+        webview_id: WebViewId,
         device_pixel_ratio: Scale<f32, StyloCSSPixel, StyloDevicePixel>,
         highlighted_dom_node: Option<OpaqueNode>,
         debug: &DiagnosticsLogging,
         paint_timing_handler: &mut PaintTimingHandler,
         reflow_statistics: &mut ReflowStatistics,
         frame_focused: bool,
-    ) -> BuiltDisplayList {
+    ) -> (BuiltDisplayList, Vec<ImageKey>) {
         // Build the rest of the display list which inclues all of the WebRender primitives.
         let paint_info = &mut stacking_context_tree.paint_info;
         let pipeline_id = paint_info.pipeline_id;
@@ -246,6 +261,9 @@ impl DisplayListBuilder<'_> {
             paint_body_background: true,
             clip_map: Default::default(),
             image_resolver,
+            paint_api,
+            webview_id,
+            text_mask_image_keys: Vec::new(),
             device_pixel_ratio,
             paint_timing_handler,
             reflow_statistics,
@@ -281,7 +299,8 @@ impl DisplayListBuilder<'_> {
         PaintTraversal::traverse(&stacking_context_tree.root_stacking_context, &mut builder);
         builder.paint_dom_inspector_highlight();
 
-        webrender_display_list_builder.end().1
+        let text_mask_image_keys = std::mem::take(&mut builder.text_mask_image_keys);
+        (webrender_display_list_builder.end().1, text_mask_image_keys)
     }
 
     fn wr(&mut self) -> &mut wr::DisplayListBuilder {
@@ -1635,6 +1654,7 @@ struct BuilderForBoxFragment<'a> {
     border_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
     padding_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
     content_edge_clip_chain_id: RefCell<Option<ClipChainId>>,
+    text_mask_clip_chain_id: OnceCell<Option<ClipChainId>>,
 }
 
 impl<'a> BuilderForBoxFragment<'a> {
@@ -1656,6 +1676,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             border_edge_clip_chain_id: RefCell::new(None),
             padding_edge_clip_chain_id: RefCell::new(None),
             content_edge_clip_chain_id: RefCell::new(None),
+            text_mask_clip_chain_id: OnceCell::new(),
         }
     }
 
@@ -1817,6 +1838,83 @@ impl<'a> BuilderForBoxFragment<'a> {
         );
     }
 
+    /// Build an image-mask clip from the glyphs of this box's descendant text.
+    /// The mask is a single-channel (`R8`) coverage image which covers every descendant
+    /// glyph that is rasterized.
+    fn text_mask_clip(
+        &self,
+        builder: &mut DisplayListBuilder,
+        state: &TraversalState,
+    ) -> Option<ClipChainId> {
+        let device_scale = builder.device_pixel_ratio.get();
+        let border_rect = self.border_rect;
+        let mask_width = (border_rect.width() * device_scale).ceil() as u32;
+        let mask_height = (border_rect.height() * device_scale).ceil() as u32;
+
+        // Guard against degenerate or excessively large masks.
+        const MAX_MASK_DIMENSION: u32 = 4096;
+        if mask_width > MAX_MASK_DIMENSION || mask_height > MAX_MASK_DIMENSION {
+            return None;
+        }
+        let mut mask = tiny_skia::Mask::new(mask_width, mask_height)?;
+
+        // Children of this box are positioned relative to its content box. Express that
+        // origin relative to the border box, which is the origin of the mask.
+        let content_offset = self.content_rect().min - border_rect.min;
+        let mut any_glyphs = false;
+        for child in self.fragment.children.iter() {
+            composite_text_glyphs_into_mask(
+                child,
+                content_offset,
+                device_scale,
+                &mut mask,
+                &mut any_glyphs,
+            );
+        }
+
+        if !any_glyphs {
+            return None;
+        }
+
+        // Register the coverage buffer as a single-channel image with the paint thread.
+        let image_key = builder
+            .paint_api
+            .generate_image_key_blocking(builder.webview_id)?;
+        builder.text_mask_image_keys.push(image_key);
+        let descriptor = ImageDescriptor::new(
+            mask_width as i32,
+            mask_height as i32,
+            ImageFormat::R8,
+            ImageDescriptorFlags::empty(),
+        );
+        builder.paint_api.add_image(
+            image_key,
+            descriptor,
+            SerializableImageData::Raw(GenericSharedMemory::from_bytes(mask.data())),
+            false,
+        );
+
+        let image_mask = ImageMask {
+            image: image_key,
+            rect: border_rect,
+        };
+        let spatial_id = builder.spatial_id(state.spatial_id);
+        let clip_id =
+            builder
+                .wr()
+                .define_clip_image_mask(spatial_id, image_mask, &[], FillRule::Nonzero);
+
+        let parent_clip_chain_id = match builder.clip_chain_id(state.clip_id) {
+            ClipChainId::INVALID => None,
+            parent => Some(parent),
+        };
+        Some(
+            builder
+                .wr()
+                .define_clip_chain(parent_clip_chain_id, [clip_id]),
+        )
+    }
+
     fn build_background_for_painter(
         &mut self,
         builder: &mut DisplayListBuilder,
@@ -1832,9 +1930,20 @@ impl<'a> BuilderForBoxFragment<'a> {
             let layer_index = b.background_image.0.len() - 1;
             let bounds = painter.painting_area(self, builder, layer_index);
             let common = painter.common_properties(self, builder, state, layer_index, bounds);
+            let text_clip = painter.text_clip(self, builder, state, layer_index);
+            let pushed_stacking_context = Self::push_background_stacking_context(
+                builder,
+                state,
+                BackgroundBlendMode::Normal,
+                StackingContextFlags::empty(),
+                text_clip,
+            );
             builder
                 .wr()
                 .push_rect(&common, bounds, rgba(background_color));
+            if pushed_stacking_context {
+                builder.wr().pop_stacking_context();
+            }
 
             // From <https://www.w3.org/TR/paint-timing/#sec-terminology>:
             // First paint ... includes non-default background paint and the enclosing box of an iframe.
@@ -1925,7 +2034,34 @@ impl<'a> BuilderForBoxFragment<'a> {
             painting_area_override: None,
             positioning_area_override: None,
         };
+
         self.build_background_for_painter(builder, state, &painter);
+    }
+
+    fn push_background_stacking_context(
+        builder: &mut DisplayListBuilder,
+        state: &TraversalState,
+        blend_mode: BackgroundBlendMode,
+        flags: StackingContextFlags,
+        text_clip: Option<ClipChainId>,
+    ) -> bool {
+        if blend_mode == BackgroundBlendMode::Normal && flags.is_empty() && text_clip.is_none() {
+            return false;
+        }
+        let spatial_id = builder.spatial_id(state.spatial_id);
+        builder.wr().push_stacking_context(
+            spatial_id,
+            PrimitiveFlags::empty(),
+            text_clip,
+            TransformStyle::Flat,
+            blend_mode.to_webrender(),
+            &[],
+            &[],
+            RasterSpace::Screen,
+            flags,
+            None,
+        );
+        true
     }
 
     fn build_background_image(
@@ -1943,31 +2079,13 @@ impl<'a> BuilderForBoxFragment<'a> {
             .take(b.background_image.0.len())
             .any(|background_blend_mode| background_blend_mode != &BackgroundBlendMode::Normal);
 
-        let push_stacking_context = |builder: &mut DisplayListBuilder,
-                                     blend_mode: BackgroundBlendMode,
-                                     flags: StackingContextFlags|
-         -> bool {
-            let spatial_id = builder.spatial_id(state.spatial_id);
-            builder.wr().push_stacking_context(
-                spatial_id,
-                PrimitiveFlags::empty(),
-                None,
-                TransformStyle::Flat,
-                blend_mode.to_webrender(),
-                &[],
-                &[],
-                RasterSpace::Screen,
-                flags,
-                None,
-            );
-            true
-        };
-
         if need_blend_container {
-            push_stacking_context(
+            Self::push_background_stacking_context(
                 builder,
+                state,
                 BackgroundBlendMode::Normal,
                 StackingContextFlags::IS_BLEND_CONTAINER,
+                None,
             );
         }
 
@@ -1986,10 +2104,14 @@ impl<'a> BuilderForBoxFragment<'a> {
                         continue;
                     };
 
-                    let needs_blending = layer.blend_mode != BackgroundBlendMode::Normal;
-                    if needs_blending {
-                        push_stacking_context(builder, layer.blend_mode, Default::default());
-                    }
+                    let text_clip = painter.text_clip(self, builder, state, index);
+                    let pushed_stacking_context = Self::push_background_stacking_context(
+                        builder,
+                        state,
+                        layer.blend_mode,
+                        StackingContextFlags::empty(),
+                        text_clip,
+                    );
 
                     match resolved_image {
                         ResolvedImage::Gradient(gradient) => {
@@ -2030,7 +2152,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                         _ => {},
                     }
 
-                    if needs_blending {
+                    if pushed_stacking_context {
                         builder.wr().pop_stacking_context();
                     }
 
@@ -2066,10 +2188,14 @@ impl<'a> BuilderForBoxFragment<'a> {
                     };
 
                     if let Some(layer) = layer {
-                        let needs_blending = layer.blend_mode != BackgroundBlendMode::Normal;
-                        if needs_blending {
-                            push_stacking_context(builder, layer.blend_mode, Default::default());
-                        }
+                        let text_clip = painter.text_clip(self, builder, state, index);
+                        let pushed_stacking_context = Self::push_background_stacking_context(
+                            builder,
+                            state,
+                            layer.blend_mode,
+                            StackingContextFlags::empty(),
+                            text_clip,
+                        );
 
                         if layer.repeat {
                             builder.wr().push_repeating_image(
@@ -2093,7 +2219,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                             )
                         }
 
-                        if needs_blending {
+                        if pushed_stacking_context {
                             builder.wr().pop_stacking_context();
                         }
 
@@ -2792,6 +2918,94 @@ impl BaseFragment {
                 self.set_status(FragmentStatus::Clean)
             },
             FragmentStatus::Clean => {},
+        }
+    }
+}
+
+/// Recursively rasterize the glyphs of `fragment` and its descendants into `mask`, the
+/// coverage buffer used to implement `background-clip: text`.
+fn composite_text_glyphs_into_mask(
+    fragment: &Fragment,
+    offset: LayoutVector2D,
+    device_scale: f32,
+    mask: &mut tiny_skia::Mask,
+    any_glyphs: &mut bool,
+) {
+    let this_offset = {
+        let Some(base) = fragment.base() else {
+            return;
+        };
+        let fragment_origin = base.rect().origin;
+        offset + LayoutVector2D::new(fragment_origin.x.to_f32_px(), fragment_origin.y.to_f32_px())
+    };
+
+    if let Fragment::Text(text_fragment) = fragment {
+        composite_text_fragment_into_mask(
+            text_fragment,
+            this_offset,
+            device_scale,
+            mask,
+            any_glyphs,
+        );
+        return;
+    }
+
+    if let Some(children) = fragment.children() {
+        for child in children.iter() {
+            composite_text_glyphs_into_mask(child, this_offset, device_scale, mask, any_glyphs);
+        }
+    }
+}
+
+/// Rasterize the glyphs of a single [`TextFragment`] into the coverage `mask`. `content_offset`
+/// is the position, in CSS pixels, of the text fragment's content origin relative to the mask's
+/// origin.
+fn composite_text_fragment_into_mask(
+    text_fragment: &TextFragment,
+    content_offset: LayoutVector2D,
+    device_scale: f32,
+    mask: &mut tiny_skia::Mask,
+    any_glyphs: &mut bool,
+) {
+    let Some(font) = &text_fragment.font else {
+        return;
+    };
+    let device_font_size = font.descriptor.pt_size.to_f32_px() * device_scale;
+    if device_font_size <= 0.0 {
+        return;
+    }
+
+    let mut pen_x = Au::from_f32_px(content_offset.x);
+    let baseline_y = Au::from_f32_px(content_offset.y) + text_fragment.font_metrics.ascent;
+    let justification_adjustment = text_fragment.justification_adjustment;
+
+    for slice in text_fragment.glyphs.iter() {
+        for glyph in slice.glyphs() {
+            let glyph_offset = glyph.offset().unwrap_or(Point2D::zero());
+            let device_x = (pen_x + glyph_offset.x).to_f32_px() * device_scale;
+            let device_y = (baseline_y + glyph_offset.y).to_f32_px() * device_scale;
+
+            if let Some(path) = font.glyph_outline(glyph.id()) {
+                mask.fill_path(
+                    &path,
+                    tiny_skia::FillRule::Winding,
+                    true,
+                    tiny_skia::Transform::from_row(
+                        device_font_size,
+                        0.0,
+                        0.0,
+                        device_font_size,
+                        device_x,
+                        device_y,
+                    ),
+                );
+                *any_glyphs = true;
+            }
+
+            if glyph.char_is_word_separator() {
+                pen_x += justification_adjustment;
+            }
+            pen_x += glyph.advance();
         }
     }
 }

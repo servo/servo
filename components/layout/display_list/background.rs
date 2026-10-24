@@ -48,6 +48,27 @@ pub(super) struct BackgroundPainter<'a> {
 }
 
 impl<'a> BackgroundPainter<'a> {
+    fn clips_to_text(&self, layer_index: usize) -> bool {
+        // Background clipping does not apply to the canvas background.
+        let clip = get_cyclic(&self.style.get_background().background_clip.0, layer_index);
+        self.painting_area_override.is_none() && *clip == Clip::Text
+    }
+
+    pub(super) fn text_clip(
+        &self,
+        fragment_builder: &super::BuilderForBoxFragment,
+        builder: &mut DisplayListBuilder,
+        state: &TraversalState,
+        layer_index: usize,
+    ) -> Option<ClipChainId> {
+        if !self.clips_to_text(layer_index) {
+            return None;
+        }
+        *fragment_builder
+            .text_mask_clip_chain_id
+            .get_or_init(|| fragment_builder.text_mask_clip(builder, state))
+    }
+
     /// Get the painting area for this background, which is the actual rectangle in the
     /// current coordinate system that the background will be painted.
     pub(super) fn painting_area(
@@ -75,6 +96,7 @@ impl<'a> BackgroundPainter<'a> {
             Clip::ContentBox => *fragment_builder.content_rect(),
             Clip::PaddingBox => *fragment_builder.padding_rect(),
             Clip::BorderBox | Clip::BorderArea => fragment_builder.border_rect,
+            Clip::Text => fragment_builder.border_rect,
         }
     }
 
@@ -108,12 +130,14 @@ impl<'a> BackgroundPainter<'a> {
                 fragment_builder.border_edge_clip(builder, state, force_clip_creation)
             },
             Clip::BorderArea => unreachable!("Should be disabled behind a pref"),
+            Clip::Text => fragment_builder.border_edge_clip(builder, state, force_clip_creation),
         }
     }
 
     /// Get the [`wr::CommonItemProperties`] for this background. This includes any clipping
     /// established by border radii as well as special clipping and spatial node assignment
-    /// necessary for `background-attachment`.
+    /// necessary for `background-attachment`. Text masks are applied to per-layer stacking
+    /// contexts because WebRender does not support image masks on rectangle primitives.
     pub(super) fn common_properties(
         &self,
         fragment_builder: &'a super::BuilderForBoxFragment,
@@ -127,6 +151,13 @@ impl<'a> BackgroundPainter<'a> {
         let mut common = builder.common_properties(state, painting_area, style);
         if let Some(clip_chain_id) = clip {
             common.clip_chain_id = clip_chain_id;
+        }
+        if self.clips_to_text(layer_index) &&
+            self.text_clip(fragment_builder, builder, state, layer_index)
+                .is_none()
+        {
+            // No glyph coverage must not turn a text-clipped layer into an unclipped one.
+            common.clip_rect = units::LayoutRect::zero();
         }
         if &BackgroundAttachment::Fixed ==
             get_cyclic(&style.get_background().background_attachment.0, layer_index)

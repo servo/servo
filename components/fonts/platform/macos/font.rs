@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cmp::Ordering;
+use std::ffi::c_void;
 use std::ops::Range;
 use std::ptr::NonNull;
 use std::sync::Arc;
@@ -15,9 +16,9 @@ use euclid::default::{Point2D, Rect, Size2D};
 use fonts_traits::{FontIdentifier, FontTemplateRef, LocalFontIdentifier};
 use log::debug;
 use objc2_core_foundation::{
-    CFData, CFDictionary, CFIndex, CFNumber, CFRange, CFRetained, CFString, CFType,
+    CFData, CFDictionary, CFIndex, CFNumber, CFRange, CFRetained, CFString, CFType, CGPoint,
 };
-use objc2_core_graphics::CGGlyph;
+use objc2_core_graphics::{CGGlyph, CGPath, CGPathElement, CGPathElementType};
 use objc2_core_text::{
     CTFont, CTFontOrientation, CTFontSymbolicTraits, CTFontTableOptions, CTFontTableTag,
     kCTFontSlantTrait, kCTFontSymbolicTrait, kCTFontWeightTrait, kCTFontWidthTrait,
@@ -461,8 +462,75 @@ impl PlatformFontMethods for PlatformFont {
         )
     }
 
+    #[expect(unsafe_code)]
+    fn glyph_outline(&self, glyph_id: GlyphId) -> Option<tiny_skia::Path> {
+        let font_size = unsafe { self.ctfont.size() };
+        if !font_size.is_finite() || font_size <= 0.0 {
+            return None;
+        }
+
+        let path = unsafe {
+            self.ctfont
+                .path_for_glyph(glyph_id as CGGlyph, std::ptr::null())?
+        };
+        let mut outline = GlyphOutlineBuilder {
+            builder: tiny_skia::PathBuilder::new(),
+            scale: (1.0 / font_size) as f32,
+        };
+        unsafe {
+            CGPath::apply(
+                Some(&path),
+                (&mut outline as *mut GlyphOutlineBuilder).cast(),
+                Some(append_glyph_path_element),
+            );
+        }
+        outline.builder.finish()
+    }
+
     fn variations(&self) -> &[FontVariation] {
         &self.variations
+    }
+}
+
+struct GlyphOutlineBuilder {
+    builder: tiny_skia::PathBuilder,
+    scale: f32,
+}
+
+#[expect(unsafe_code)]
+unsafe extern "C-unwind" fn append_glyph_path_element(
+    info: *mut c_void,
+    element: NonNull<CGPathElement>,
+) {
+    let outline = unsafe { &mut *info.cast::<GlyphOutlineBuilder>() };
+    let element = unsafe { element.as_ref() };
+    let points = element.points.as_ptr();
+    let point = |index: usize| unsafe { *points.add(index) };
+    let scale = outline.scale;
+    let to_em = |point: CGPoint| (point.x as f32 * scale, -(point.y as f32) * scale);
+
+    match element.r#type {
+        CGPathElementType::MoveToPoint => {
+            let (x, y) = to_em(point(0));
+            outline.builder.move_to(x, y);
+        },
+        CGPathElementType::AddLineToPoint => {
+            let (x, y) = to_em(point(0));
+            outline.builder.line_to(x, y);
+        },
+        CGPathElementType::AddQuadCurveToPoint => {
+            let (cx, cy) = to_em(point(0));
+            let (x, y) = to_em(point(1));
+            outline.builder.quad_to(cx, cy, x, y);
+        },
+        CGPathElementType::AddCurveToPoint => {
+            let (cx0, cy0) = to_em(point(0));
+            let (cx1, cy1) = to_em(point(1));
+            let (x, y) = to_em(point(2));
+            outline.builder.cubic_to(cx0, cy0, cx1, cy1, x, y);
+        },
+        CGPathElementType::CloseSubpath => outline.builder.close(),
+        _ => {},
     }
 }
 
