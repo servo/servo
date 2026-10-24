@@ -183,6 +183,7 @@ use crate::dom::html::htmlheadelement::HTMLHeadElement;
 use crate::dom::html::htmlhtmlelement::HTMLHtmlElement;
 use crate::dom::html::htmliframeelement::HTMLIFrameElement;
 use crate::dom::html::htmlimageelement::HTMLImageElement;
+use crate::dom::html::htmlmediaelement::HTMLMediaElement;
 use crate::dom::html::htmlscriptelement::{HTMLScriptElement, ScriptResult, TracedScriptResult};
 use crate::dom::html::htmltitleelement::HTMLTitleElement;
 use crate::dom::htmldetailselement::DetailsNameGroups;
@@ -736,6 +737,10 @@ pub(crate) struct Document {
     /// All websockets created that are associated with this document.
     websockets: DOMTracker<WebSocket>,
 
+    /// <https://html.spec.whatwg.org/multipage/#playing-the-media-resource>
+    /// Active media elements that are kept alive while playing or eligible for autoplay.
+    active_media_elements: DomRefCell<FxHashSet<Dom<HTMLMediaElement>>>,
+
     /// <https://html.spec.whatwg.org/multipage/#details-name-group>
     details_name_groups: DomRefCell<Option<DetailsNameGroups>>,
 
@@ -875,6 +880,8 @@ impl Document {
             self.salvageable.set(false);
         }
 
+        self.clean_up_media_elements(cx.no_gc());
+
         // Step 3. For each WebTransport object transport whose relevant global object is window, run the context cleanup steps given transport.
         // TODO
 
@@ -906,6 +913,31 @@ impl Document {
             }
         });
         closed_any_websocket
+    }
+
+    pub(crate) fn register_active_media_element(&self, element: &HTMLMediaElement) {
+        self.active_media_elements
+            .borrow_mut()
+            .insert(Dom::from_ref(element));
+    }
+
+    pub(crate) fn unregister_active_media_element(&self, element: &HTMLMediaElement) {
+        self.active_media_elements
+            .borrow_mut()
+            .remove(&Dom::from_ref(element));
+    }
+
+    fn clean_up_media_elements(&self, no_gc: &NoGC) {
+        let media_elements: Vec<DomRoot<HTMLMediaElement>> = self
+            .active_media_elements
+            .borrow()
+            .iter()
+            .map(|e| DomRoot::from_ref(&**e))
+            .collect();
+        self.active_media_elements.borrow_mut().clear();
+        for element in &media_elements {
+            element.clean_up_on_document_unload(self, no_gc);
+        }
     }
 
     fn document_element_changed(&self) {
@@ -4296,6 +4328,7 @@ impl Document {
             creation_sandboxing_flag_set: Cell::new(creation_sandboxing_flag_set),
             favicon: RefCell::new(None),
             websockets: DOMTracker::new(),
+            active_media_elements: Default::default(),
             details_name_groups: Default::default(),
             protocol_handler_automation_mode: Default::default(),
             layout_animations_test_enabled: pref!(layout_animations_test_enabled),

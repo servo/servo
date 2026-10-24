@@ -503,6 +503,57 @@ impl HTMLMediaElement {
         {
             error!("Could not pause player: {error:?}");
         }
+
+        self.update_keep_alive();
+    }
+
+    /// <https://html.spec.whatwg.org/multipage/#playing-the-media-resource>
+    /// > Media elements must not stop playing just because all references to them have been
+    /// > removed; only once a media element is in a state where no further audio could ever be
+    /// > played by that element may the element be garbage collected.
+    fn should_keep_alive(&self) -> bool {
+        let document = self.owner_document();
+        if !document.is_active() || document.is_prompting_or_unloading() {
+            return false;
+        }
+
+        if self.in_error_state() {
+            return false;
+        }
+
+        if self.ended_playback(LoopCondition::Included) {
+            return false;
+        }
+
+        if !self.Paused() {
+            return true;
+        }
+
+        if self.eligible_for_autoplay() {
+            return true;
+        }
+
+        false
+    }
+
+    pub(crate) fn update_keep_alive(&self) {
+        let document = self.owner_document();
+        if self.should_keep_alive() {
+            document.register_active_media_element(self);
+        } else {
+            document.unregister_active_media_element(self);
+        }
+    }
+
+    pub(crate) fn clean_up_on_document_unload(&self, unloading_doc: &Document, no_gc: &NoGC) {
+        if &*self.owner_document() != unloading_doc {
+            return;
+        }
+        self.paused.set(true);
+        if let Some(ref mut current_fetch_context) = *self.current_fetch_context.borrow_mut() {
+            current_fetch_context.cancel(CancelReason::Abort);
+        }
+        self.reset_media_player(no_gc);
     }
 
     /// Marks that element as delaying the load event or not.
@@ -1733,6 +1784,8 @@ impl HTMLMediaElement {
                 // Step 7. Set the element's delaying-the-load-event flag to false. This stops
                 // delaying the load event.
                 this.delay_load_event(cx, false);
+
+                this.update_keep_alive();
             }));
     }
 
@@ -1884,6 +1937,7 @@ impl HTMLMediaElement {
         self.invoke_resource_selection_algorithm(cx);
 
         // Step 11. Note: Playback of any previously playing media resource for this element stops.
+        self.update_keep_alive();
     }
 
     /// Queue a media element task given the media element to fire an event at the media element.
@@ -2052,6 +2106,7 @@ impl HTMLMediaElement {
         self.upcast::<EventTarget>().fire_event(cx, atom!("error"));
 
         // Step 6. Abort the overall resource selection algorithm.
+        self.update_keep_alive();
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-media-seek>
@@ -3683,6 +3738,9 @@ impl VirtualMethods for HTMLMediaElement {
                     self.media_element_load_algorithm(cx);
                 }
             },
+            local_name!("autoplay") | local_name!("loop") => {
+                self.update_keep_alive();
+            },
             local_name!("controls") => {
                 if mutation.new_value(attr).is_some() {
                     self.render_controls(cx);
@@ -3713,6 +3771,9 @@ impl VirtualMethods for HTMLMediaElement {
 
     fn adopting_steps(&self, cx: &mut JSContext, old_doc: &Document) {
         self.super_type().unwrap().adopting_steps(cx, old_doc);
+
+        old_doc.unregister_active_media_element(self);
+        self.update_keep_alive();
 
         // Note that media control id should be adopting between documents so "privileged"
         // document.servoGetMediaControls(id) API is keeping access to the whitelist of media
