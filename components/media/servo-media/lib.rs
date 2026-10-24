@@ -10,10 +10,11 @@ pub extern crate servo_media_webrtc as webrtc;
 
 use std::ops::Deref;
 use std::sync::{Arc, Mutex, OnceLock};
-use std::thread;
+use std::time::Instant;
 
 use audio::context::{AudioContext, AudioContextOptions};
 use audio::sink::AudioSinkError;
+use log::{info, warn};
 use player::audio::AudioRenderer;
 use player::context::PlayerGLContext;
 use player::video::VideoFrameRenderer;
@@ -28,7 +29,11 @@ use webrtc::{WebRtcController, WebRtcSignaller};
 
 pub struct ServoMedia(Box<dyn Backend>);
 
+/// Constructs the backend.
+type BackendFactory = Box<dyn Fn() -> Box<dyn Backend> + Send + Sync>;
+
 static INSTANCE: OnceLock<Arc<ServoMedia>> = OnceLock::new();
+static BACKEND_FACTORY: OnceLock<BackendFactory> = OnceLock::new();
 
 pub trait BackendInit {
     fn init() -> Box<dyn Backend>;
@@ -96,19 +101,44 @@ pub enum SupportsMediaType {
 }
 
 impl ServoMedia {
-    pub fn init<B: BackendInit>() {
-        thread::spawn(|| INSTANCE.get_or_init(|| Arc::new(ServoMedia(B::init()))));
+    /// Register the backend to use, without constructing it.
+    pub fn init<B: BackendInit + 'static>() {
+        Self::init_with_backend(B::init)
     }
 
     pub fn init_with_backend<F>(backend_factory: F)
     where
-        F: Fn() -> Box<dyn Backend> + Send + 'static,
+        F: Fn() -> Box<dyn Backend> + Send + Sync + 'static,
     {
-        thread::spawn(move || INSTANCE.get_or_init(|| Arc::new(ServoMedia(backend_factory()))));
+        if BACKEND_FACTORY.set(Box::new(backend_factory)).is_err() {
+            warn!("A media backend is already registered; ignoring the new one.");
+        }
     }
 
+    /// The media backend, constructing it on first use.
+    ///
+    /// The first caller pays the construction cost, and anyone arriving while that is in progress
+    /// blocks until it finishes. Only call this where media is genuinely needed: see
+    /// [`try_get`](Self::try_get) for callers whose work is a no-op without it.
+    ///
+    /// Panics if no backend was registered.
     pub fn get() -> Arc<ServoMedia> {
-        INSTANCE.wait().clone()
+        INSTANCE
+            .get_or_init(|| {
+                let factory = BACKEND_FACTORY
+                    .get()
+                    .expect("ServoMedia::init was never called");
+                let start = Instant::now();
+                let backend = factory();
+                info!("Media backend initialized in {:?}", start.elapsed());
+                Arc::new(ServoMedia(backend))
+            })
+            .clone()
+    }
+
+    /// The media backend, if something has already constructed it.
+    pub fn try_get() -> Option<Arc<ServoMedia>> {
+        INSTANCE.get().cloned()
     }
 }
 
