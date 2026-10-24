@@ -498,7 +498,6 @@ impl DisplayListBuilder<'_> {
             })
         });
 
-        let primitive_flags;
         let mix_blend_mode;
         let mut filters: Vec<_>;
         let mut stacking_context_flags = StackingContextFlags::empty();
@@ -508,7 +507,6 @@ impl DisplayListBuilder<'_> {
                 let effects = style.get_effects();
 
                 mix_blend_mode = effects.mix_blend_mode.to_webrender();
-                primitive_flags = style.webrender_primitive_flags();
 
                 // Do not create another blend container stacking context started by the root
                 // element, because the root background is painted above of it (at the root
@@ -548,7 +546,6 @@ impl DisplayListBuilder<'_> {
             // WebRender only needs a stacking context at the root when the root stacking
             // context itself is a blend container.
             StackingContextFragments::Root if is_blend_container => {
-                primitive_flags = PrimitiveFlags::empty();
                 mix_blend_mode = MixBlendMode::Normal;
                 filters = Vec::new();
             },
@@ -571,7 +568,7 @@ impl DisplayListBuilder<'_> {
 
         self.wr().push_stacking_context(
             spatial_id,
-            primitive_flags,
+            PrimitiveFlags::default(),
             clip_chain_id,
             TransformStyle::Flat,
             mix_blend_mode,
@@ -1950,7 +1947,7 @@ impl<'a> BuilderForBoxFragment<'a> {
             let spatial_id = builder.spatial_id(state.spatial_id);
             builder.wr().push_stacking_context(
                 spatial_id,
-                PrimitiveFlags::empty(),
+                PrimitiveFlags::default(),
                 None,
                 TransformStyle::Flat,
                 blend_mode.to_webrender(),
