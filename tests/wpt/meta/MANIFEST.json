@@ -610176,7 +610176,7 @@
      []
     ],
     "viewport_support.js": [
-     "a82bd2b028010e053199e55bd7bb357361581e6f",
+     "015e75e00785efabbd1898b9e671a896c5efda55",
      []
     ]
    },
@@ -1425603,7 +1425603,16 @@
      ]
     ],
     "viewport-scale-clamped.html": [
-     "afee0742a0dd320a9c76249cd591c257d8764e1c",
+     "240612d23c6dac89c494a171cd6aca45dea01127",
+     [
+      null,
+      {
+       "testdriver": true
+      }
+     ]
+    ],
+    "viewport-scale-with-pinch-zoom.html": [
+     "1c3c1b482af34da3cbae9eff823f631e3eb50a08",
      [
       null,
       {
