@@ -410,3 +410,178 @@ class TestConsoleTab:
 
             assert "case_" in result_ll["matches"]
             assert "CASE_" in result_ll["matches"]
+
+        # console.table
+
+    # Firefox expects (see `prepareConsoleMessageForRemote` in devtools/server/actors/resources/console-messages.js):
+    # - level == "table"
+    # - at most 2 arguments (data, columns)
+    # - arguments[0]["preview"] is None and arguments[0]["ownProperties"] holds the rows,
+    #   with one level of sub-properties loaded on each row's value grip.
+
+    def test_console_table_array_of_objects(self, run_servoshell):
+        run_servoshell(url="data:text/html,")
+
+        result = evaluate_and_capture_console_log_output(
+            "console.table([{ name: 'Anna', age: 31 }, { name: 'Marco', age: 27 }]);"
+        )
+
+        assert result["level"] == "table"
+        assert len(result["arguments"]) == 1
+
+        data = result["arguments"][0]
+        assert data["class"] == "Array"
+        assert data.get("preview") is None
+
+        rows = data["ownProperties"]
+        assert list(rows.keys()) == ["0", "1"]
+
+        first_row = rows["0"]
+        assert first_row["configurable"] is True
+        assert first_row["enumerable"] is True
+        assert first_row["writable"] is True
+        assert first_row["value"]["class"] == "Object"
+
+        cells = first_row["value"]["ownProperties"]
+        assert cells["name"]["value"] == "Anna"
+        assert cells["age"]["value"] == 31
+
+        cells = rows["1"]["value"]["ownProperties"]
+        assert cells["name"]["value"] == "Marco"
+        assert cells["age"]["value"] == 27
+
+    def test_console_table_array_ignores_non_indexed_properties(self, run_servoshell):
+        run_servoshell(url="data:text/html,")
+
+        result = evaluate_and_capture_console_log_output("const a = [{ x: 1 }]; a.extra = 'no'; console.table(a);")
+
+        rows = result["arguments"][0]["ownProperties"]
+        # Firefox uses ignoreNonIndexedProperties for arrays: no `length`, no `extra`.
+        assert list(rows.keys()) == ["0"]
+
+    def test_console_table_array_of_primitives(self, run_servoshell):
+        run_servoshell(url="data:text/html,")
+
+        result = evaluate_and_capture_console_log_output("console.table(['apple', 2, true]);")
+
+        assert result["level"] == "table"
+        rows = result["arguments"][0]["ownProperties"]
+        assert rows["0"]["value"] == "apple"
+        assert rows["1"]["value"] == 2
+        assert rows["2"]["value"] is True
+        # Primitive rows have no sub-properties.
+        assert not isinstance(rows["0"]["value"], dict)
+
+    def test_console_table_nested_arrays(self, run_servoshell):
+        run_servoshell(url="data:text/html,")
+
+        result = evaluate_and_capture_console_log_output("console.table([[1, 2], [3, 4]]);")
+
+        rows = result["arguments"][0]["ownProperties"]
+        first_row = rows["0"]["value"]
+        assert first_row["class"] == "Array"
+        assert first_row["ownProperties"]["0"]["value"] == 1
+        assert first_row["ownProperties"]["1"]["value"] == 2
+        assert "length" not in first_row["ownProperties"]
+
+        second_row = rows["1"]["value"]
+        assert second_row["ownProperties"]["0"]["value"] == 3
+        assert second_row["ownProperties"]["1"]["value"] == 4
+
+    def test_console_table_object_of_objects(self, run_servoshell):
+        run_servoshell(url="data:text/html,")
+
+        result = evaluate_and_capture_console_log_output(
+            "console.table({ first: { a: 1 }, second: { a: 2, b: 'x' } });"
+        )
+
+        assert result["level"] == "table"
+        data = result["arguments"][0]
+        assert data["class"] == "Object"
+        assert data.get("preview") is None
+
+        rows = data["ownProperties"]
+        assert set(rows.keys()) == {"first", "second"}
+        assert rows["first"]["value"]["ownProperties"]["a"]["value"] == 1
+        assert rows["second"]["value"]["ownProperties"]["a"]["value"] == 2
+        assert rows["second"]["value"]["ownProperties"]["b"]["value"] == "x"
+
+    def test_console_table_sub_properties_are_one_level_deep(self, run_servoshell):
+        run_servoshell(url="data:text/html,")
+
+        result = evaluate_and_capture_console_log_output("console.table([{ inner: { deep: 1 } }]);")
+
+        row = result["arguments"][0]["ownProperties"]["0"]["value"]
+        inner = row["ownProperties"]["inner"]["value"]
+        assert inner["class"] == "Object"
+        # Firefox only loads one level of sub-properties.
+        assert "ownProperties" not in inner
+
+    def test_console_table_map(self, run_servoshell):
+        run_servoshell(url="data:text/html,")
+
+        result = evaluate_and_capture_console_log_output("console.table(new Map([['a', 1], ['b', true]]));")
+
+        assert result["level"] == "table"
+        data = result["arguments"][0]
+        assert data["class"] == "Map"
+        assert data.get("preview") is None
+
+        rows = data["ownProperties"]
+        assert rows["0"] == {
+            "configurable": False,
+            "enumerable": True,
+            "writable": False,
+            "value": {"type": "mapEntry", "preview": {"key": "a", "value": 1}},
+        }
+        assert rows["1"]["value"] == {"type": "mapEntry", "preview": {"key": "b", "value": True}}
+
+    def test_console_table_with_columns(self, run_servoshell):
+        run_servoshell(url="data:text/html,")
+
+        result = evaluate_and_capture_console_log_output("console.table([{ a: 1, b: 2 }], ['a']);")
+
+        assert result["level"] == "table"
+        assert len(result["arguments"]) == 2
+
+        columns = result["arguments"][1]
+        assert columns["class"] == "Array"
+        assert columns["preview"]["items"] == ["a"]
+
+        # Like Firefox, the server doesn't filter; the frontend uses arguments[1] to pick columns.
+        cells = result["arguments"][0]["ownProperties"]["0"]["value"]["ownProperties"]
+        assert cells["a"]["value"] == 1
+        assert cells["b"]["value"] == 2
+
+    def test_console_table_only_sends_two_arguments(self, run_servoshell):
+        run_servoshell(url="data:text/html,")
+
+        result = evaluate_and_capture_console_log_output("console.table([{ a: 1 }], ['a'], 'extra', 42);")
+
+        assert result["level"] == "table"
+        assert len(result["arguments"]) == 2
+
+    def test_console_table_empty_array(self, run_servoshell):
+        run_servoshell(url="data:text/html,")
+
+        result = evaluate_and_capture_console_log_output("console.table([]);")
+
+        assert result["level"] == "table"
+        assert result["arguments"][0]["ownProperties"] == {}
+
+    @pytest.mark.parametrize(
+        "js, expected",
+        [
+            ("console.table(5);", [5]),
+            ("console.table('hello');", ["hello"]),
+            ("console.table(true);", [True]),
+        ],
+    )
+    def test_console_table_non_tabular_data_falls_back_to_log(self, run_servoshell, js, expected):
+        run_servoshell(url="data:text/html,")
+
+        result = evaluate_and_capture_console_log_output(js)
+
+        # Spec: "Fall back to just logging the argument if it can't be parsed as tabular."
+        assert result["level"] == "log"
+        assert result["arguments"] == expected

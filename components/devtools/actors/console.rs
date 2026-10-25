@@ -15,6 +15,7 @@ use devtools_traits::{
     ConsoleMessage, ConsoleMessageFields, DevtoolScriptControlMsg, GetEnvironmentRequest,
     PageError, StackFrame, get_time_stamp,
 };
+use embedder_traits::ConsoleLogLevel;
 use malloc_size_of_derive::MallocSizeOf;
 use serde::Serialize;
 use serde_json::{self, Map, Value};
@@ -46,14 +47,22 @@ pub(crate) struct DevtoolsConsoleMessage {
 
 impl DevtoolsConsoleMessage {
     pub(crate) fn new(message: ConsoleMessage, registry: &ActorRegistry) -> Self {
-        Self {
-            fields: message.fields,
-            arguments: message
-                .arguments
-                .into_iter()
-                .map(|argument| debugger_value_to_json(registry, argument))
-                .collect(),
-            stacktrace: message.stacktrace,
+        if matches!(message.fields.level, ConsoleLogLevel::Table) {
+            Self {
+                fields: message.fields,
+                arguments: crate::console_table_arguments(registry, message.arguments),
+                stacktrace: message.stacktrace,
+            }
+        } else {
+            Self {
+                fields: message.fields,
+                arguments: message
+                    .arguments
+                    .into_iter()
+                    .map(|argument| debugger_value_to_json(registry, argument))
+                    .collect(),
+                stacktrace: message.stacktrace,
+            }
         }
     }
 }

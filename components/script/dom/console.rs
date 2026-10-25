@@ -547,6 +547,29 @@ mod devtools {
             },
         ))
     }
+
+    pub(super) fn string_array_debugger_value(strings: &[DOMString]) -> DebuggerValue {
+        let items: Vec<DebuggerValue> = strings
+            .iter()
+            .map(|s| DebuggerValue::StringValue(s.to_string()))
+            .collect();
+        DebuggerValue::ObjectValue {
+            actor: None,
+            class: "Array".into(),
+            own_property_length: Some(0),
+            preview: Some(Box::new(ObjectPreview {
+                kind: "ArrayLike".into(),
+                size: None,
+                entries: None,
+                own_properties_length: Some(0),
+                own_properties: None,
+                function: None,
+                array_length: Some(items.len() as u32),
+                items: Some(items),
+            })),
+            prototype: None,
+        }
+    }
 }
 
 #[expect(unsafe_code)]
@@ -905,6 +928,174 @@ fn stringify_debugger_value(value: &DebuggerValue) -> String {
     }
 }
 
+#[derive(Default)]
+struct ConsoleTable {
+    /// Column names in first-seen order (or the order given by `properties`).
+    columns: Vec<String>,
+    rows: Vec<TableRow>,
+}
+
+struct TableRow {
+    index: String,
+    /// (column name, cell text)
+    cells: Vec<(String, String)>,
+    /// Set when the row itself is a primitive -> goes in the "Values" column.
+    value: Option<String>,
+}
+
+impl ConsoleTable {
+    fn render(&self) -> String {
+        let has_values = self.rows.iter().any(|row| row.value.is_some());
+
+        let mut headers = vec!["(index)".to_string()];
+        headers.extend(self.columns.iter().cloned());
+        if has_values {
+            headers.push("Values".into());
+        }
+
+        let grid: Vec<Vec<String>> = self
+            .rows
+            .iter()
+            .map(|row| {
+                let mut line = vec![row.index.clone()];
+                for column in &self.columns {
+                    let cell = row
+                        .cells
+                        .iter()
+                        .find(|(key, _)| key == column)
+                        .map(|(_, v)| v.clone())
+                        .unwrap_or_default();
+                    line.push(cell);
+                }
+                if has_values {
+                    line.push(row.value.clone().unwrap_or_default());
+                }
+                line
+            })
+            .collect();
+
+        let widths: Vec<usize> = (0..headers.len())
+            .map(|i| {
+                std::iter::once(&headers[i])
+                    .chain(grid.iter().map(|row| &row[i]))
+                    .map(|s| s.chars().count())
+                    .max()
+                    .unwrap_or(0)
+            })
+            .collect();
+
+        let border = |left: &str, mid: &str, right: &str| {
+            let segments: Vec<String> = widths.iter().map(|w| "─".repeat(w + 2)).collect();
+            format!("{left}{}{right}", segments.join(mid))
+        };
+        let line = |cells: &[String]| {
+            let padded: Vec<String> = cells
+                .iter()
+                .zip(&widths)
+                .map(|(cell, &w)| format!(" {cell:<w$} "))
+                .collect();
+            format!("│{}│", padded.join("│"))
+        };
+
+        let mut out = vec![border("┌", "┬", "┐"), line(&headers), border("├", "┼", "┤")];
+        out.extend(grid.iter().map(|row| line(row)));
+        out.push(border("└", "┴", "┘"));
+        out.join("\n")
+    }
+}
+
+/// Calls `f(cx, key, value)` for each own enumerable string/index property of `obj`.
+/// Returns false if a JSAPI call failed (an exception may be pending).
+fn for_each_own_property(
+    cx: &mut JSContext,
+    obj: HandleObject,
+    mut f: impl FnMut(&mut JSContext, String, HandleValue),
+) -> bool {
+    let mut ids = IdVector::new(cx);
+    // No JSITER_HIDDEN -> enumerable only; no JSITER_SYMBOLS -> skip symbols (like Chrome/Firefox).
+    if !GetPropertyKeys(cx, obj, jsapi::JSITER_OWNONLY, ids.handle_mut()) {
+        return false;
+    }
+    for id in ids.iter() {
+        rooted!(&in(cx) let id = *id);
+        rooted!(&in(cx) let mut key = UndefinedValue());
+        if !JS_IdToValue(cx, id.handle().get(), key.handle_mut()) {
+            return false;
+        }
+        let key = stringify_handle_value(cx, key.handle()).to_string();
+
+        rooted!(&in(cx) let mut value = UndefinedValue());
+        // Note: this can run getters, which can throw.
+        if !JS_GetPropertyById(cx, obj, id.handle(), value.handle_mut()) {
+            return false;
+        }
+        f(cx, key, value.handle());
+    }
+    true
+}
+
+fn table_cell_string(cx: &mut JSContext, value: HandleValue) -> String {
+    if value.is_string() {
+        handle_value_to_string(cx, value).to_string() // JS_ValueToSource -> "\"Anna\""
+    } else {
+        stringify_handle_value(cx, value).to_string()
+    }
+}
+
+#[expect(unsafe_code)]
+fn build_console_table(
+    cx: &mut JSContext,
+    data: HandleValue,
+    properties: Option<&[DOMString]>,
+) -> Option<ConsoleTable> {
+    if !data.is_object() {
+        return None;
+    }
+    let filter: Option<Vec<String>> =
+        properties.map(|props| props.iter().map(|p| p.to_string()).collect());
+
+    let mut table = ConsoleTable::default();
+    if let Some(filter) = &filter {
+        // With an explicit `properties` list, columns follow that order.
+        table.columns = filter.clone();
+    }
+
+    rooted!(&in(cx) let data_obj = data.to_object());
+    let mut failed = false;
+    let ok = for_each_own_property(cx, data_obj.handle(), |cx, index, row| {
+        let mut cells = Vec::new();
+        let mut value = None;
+
+        if row.is_object() {
+            rooted!(&in(cx) let row_obj = row.to_object());
+            let columns = &mut table.columns;
+            let ok = for_each_own_property(cx, row_obj.handle(), |cx, key, cell| {
+                match &filter {
+                    Some(filter) if !filter.contains(&key) => return,
+                    None if !columns.contains(&key) => columns.push(key.clone()),
+                    _ => {},
+                }
+                cells.push((key, table_cell_string(cx, cell)));
+            });
+            failed |= !ok;
+        } else {
+            value = Some(table_cell_string(cx, row));
+        }
+
+        table.rows.push(TableRow {
+            index,
+            cells,
+            value,
+        });
+    });
+
+    if !ok || failed {
+        unsafe { JS_ClearPendingException(cx) };
+        return None;
+    }
+    Some(table)
+}
+
 #[derive(Debug, Eq, PartialEq)]
 enum IncludeStackTrace {
     Yes,
@@ -920,6 +1111,54 @@ impl consoleMethods<crate::DomTypeHolder> for Console {
             ConsoleLogLevel::Log,
             messages,
             IncludeStackTrace::No,
+        );
+    }
+
+    /// <https://developer.mozilla.org/en-US/docs/Web/API/Console/table>
+    fn Table(
+        cx: &mut JSContext,
+        global: &GlobalScope,
+        tabular_data: HandleValue,
+        properties: Option<Vec<DOMString>>,
+    ) {
+        let Some(table) = build_console_table(cx, tabular_data, properties.as_deref()) else {
+            // Spec: "Fall back to just logging the argument if it can't be parsed as tabular."
+            Console::method(
+                cx,
+                global,
+                ConsoleLogLevel::Log,
+                vec![tabular_data],
+                IncludeStackTrace::No,
+            );
+            return;
+        };
+
+        #[cfg(feature = "devtools")]
+        {
+            let data =
+                devtools::console_argument_from_handle_value(cx, tabular_data, &mut Vec::new());
+
+            // Types we can't preview (e.g. Set today) come back as a string like "<error>".
+            // Firefox's frontend also falls back to a plain log for unsupported data.
+            let level = if matches!(data, DebuggerValue::ObjectValue { .. }) {
+                ConsoleLogLevel::Table
+            } else {
+                ConsoleLogLevel::Log
+            };
+
+            let mut arguments = vec![data];
+            if let Some(properties) = &properties {
+                arguments.push(devtools::string_array_debugger_value(properties));
+            }
+
+            Console::send_to_devtools(global, Self::build_message(cx, level, arguments, None));
+        }
+
+        let prefix = global.current_group_label().unwrap_or_default();
+        Self::send_to_embedder(
+            global,
+            ConsoleLogLevel::Log,
+            format!("{prefix}\n{}", table.render()),
         );
     }
 

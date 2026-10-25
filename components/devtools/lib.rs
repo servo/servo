@@ -1067,3 +1067,136 @@ pub(crate) fn debugger_value_to_json(registry: &ActorRegistry, value: DebuggerVa
         },
     }
 }
+
+/// Port of the `message.level === "table"` branch of Firefox's
+/// `prepareConsoleMessageForRemote`:
+/// <https://searchfox.org/firefox-main/source/devtools/server/actors/resources/console-messages.js>
+///
+/// - `arguments[0].ownProperties` holds the table rows (with one level of sub-properties),
+/// - `arguments[0].preview` is set to null,
+/// - only the first two arguments (data, columns) are sent.
+pub(crate) fn console_table_arguments(
+    registry: &ActorRegistry,
+    arguments: Vec<DebuggerValue>,
+) -> Vec<Value> {
+    let table_items = arguments
+        .first()
+        .and_then(|data| console_table_items(registry, data, true));
+
+    // "Only return the 2 first params."
+    let mut grips: Vec<Value> = arguments
+        .into_iter()
+        .take(2)
+        .map(|argument| debugger_value_to_json(registry, argument))
+        .collect();
+
+    if let (Some(items), Some(grip)) = (
+        table_items,
+        grips.first_mut().and_then(Value::as_object_mut),
+    ) {
+        grip.insert("ownProperties".to_owned(), Value::Object(items));
+        grip.insert("preview".to_owned(), Value::Null);
+    }
+
+    grips
+}
+
+/// Port of Firefox's `getConsoleTableMessageItems`.
+fn console_table_items(
+    registry: &ActorRegistry,
+    value: &DebuggerValue,
+    load_sub_properties: bool,
+) -> Option<Map<String, Value>> {
+    let DebuggerValue::ObjectValue {
+        preview: Some(preview),
+        ..
+    } = value
+    else {
+        return None;
+    };
+
+    let mut items = Map::new();
+    if let Some(array_items) = &preview.items {
+        // isArray(grip) -> ignoreNonIndexedProperties: only indices, no `length`.
+        for (index, item) in array_items.iter().enumerate() {
+            items.insert(
+                index.to_string(),
+                table_descriptor(registry, item, load_sub_properties, true, true, true),
+            );
+        }
+    } else if let Some(entries) = &preview.entries {
+        // Map -> enumEntries()
+        for (index, (key, value)) in entries.iter().enumerate() {
+            let mut entry_preview = Map::new();
+            entry_preview.insert(
+                "key".to_owned(),
+                debugger_value_to_json(registry, key.clone()),
+            );
+            entry_preview.insert(
+                "value".to_owned(),
+                debugger_value_to_json(registry, value.clone()),
+            );
+
+            let mut entry = Map::new();
+            entry.insert("type".to_owned(), Value::String("mapEntry".to_owned()));
+            entry.insert("preview".to_owned(), Value::Object(entry_preview));
+
+            items.insert(
+                index.to_string(),
+                property_descriptor_json(Value::Object(entry), false, true, false),
+            );
+        }
+    } else if let Some(properties) = &preview.own_properties {
+        for property in properties {
+            items.insert(
+                property.name.clone(),
+                table_descriptor(
+                    registry,
+                    &property.value,
+                    load_sub_properties,
+                    property.configurable,
+                    property.enumerable,
+                    property.writable,
+                ),
+            );
+        }
+    }
+
+    Some(items)
+}
+
+fn table_descriptor(
+    registry: &ActorRegistry,
+    value: &DebuggerValue,
+    load_sub_properties: bool,
+    configurable: bool,
+    enumerable: bool,
+    writable: bool,
+) -> Value {
+    let mut grip = debugger_value_to_json(registry, value.clone());
+
+    // "We need to load sub-properties as well to render the table in a nice way."
+    // Firefox only goes one level deep.
+    if load_sub_properties &&
+        let Some(sub_properties) = console_table_items(registry, value, false) &&
+        let Some(grip_object) = grip.as_object_mut()
+    {
+        grip_object.insert("ownProperties".to_owned(), Value::Object(sub_properties));
+    }
+
+    property_descriptor_json(grip, configurable, enumerable, writable)
+}
+
+fn property_descriptor_json(
+    value: Value,
+    configurable: bool,
+    enumerable: bool,
+    writable: bool,
+) -> Value {
+    let mut descriptor = Map::new();
+    descriptor.insert("configurable".to_owned(), Value::Bool(configurable));
+    descriptor.insert("enumerable".to_owned(), Value::Bool(enumerable));
+    descriptor.insert("writable".to_owned(), Value::Bool(writable));
+    descriptor.insert("value".to_owned(), value);
+    Value::Object(descriptor)
+}
