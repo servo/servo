@@ -1222,38 +1222,21 @@ impl Fragment {
 
         Self::build_display_list_for_text_selection(fragment, builder, state, line_box_rect);
 
-        Self::build_display_list_for_text_decoration(
-            state,
-            &parent_style,
-            builder,
-            rect,
-            &fragment.font_metrics,
+        for decoration in [
             TextDecorationLine::UNDERLINE,
-        );
-        Self::build_display_list_for_text_decoration(
-            state,
-            &parent_style,
-            builder,
-            rect,
-            &fragment.font_metrics,
             TextDecorationLine::SPELLING_ERROR,
-        );
-        Self::build_display_list_for_text_decoration(
-            state,
-            &parent_style,
-            builder,
-            rect,
-            &fragment.font_metrics,
             TextDecorationLine::GRAMMAR_ERROR,
-        );
-        Self::build_display_list_for_text_decoration(
-            state,
-            &parent_style,
-            builder,
-            rect,
-            &fragment.font_metrics,
             TextDecorationLine::OVERLINE,
-        );
+        ] {
+            Self::build_display_list_for_text_decoration_line(
+                state,
+                &parent_style,
+                builder,
+                rect,
+                &fragment.font_metrics,
+                decoration,
+            );
+        }
 
         builder.webrender_display_list_builder.push_text(
             &common,
@@ -1303,7 +1286,7 @@ impl Fragment {
             }
         }
 
-        Self::build_display_list_for_text_decoration(
+        Self::build_display_list_for_text_decoration_line(
             state,
             &parent_style,
             builder,
@@ -1317,17 +1300,20 @@ impl Fragment {
         }
     }
 
-    fn build_display_list_for_text_decoration(
+    fn build_display_list_for_text_decoration_line(
         state: &TraversalState,
         parent_style: &ServoArc<ComputedValues>,
         builder: &mut DisplayListBuilder,
         rect: PhysicalRect<Au>,
         font_metrics: &FontMetrics,
-        line: TextDecorationLine,
+        text_decoration_line: TextDecorationLine,
     ) {
+        if state.text_decorations.is_empty() {
+            return;
+        }
+
         let font_size = parent_style.get_font().font_size;
         let dppx = builder.device_pixel_ratio.get();
-
         let resolve_thickness = |thickness: &TextDecorationThickness| -> Au {
             let resolved = match thickness {
                 TextDecorationThickness::LengthPercentage(length_percentage) => {
@@ -1349,58 +1335,56 @@ impl Fragment {
         };
 
         for text_decoration in state.text_decorations.iter() {
-            if !text_decoration.line.contains(line) {
+            if !text_decoration.line.contains(text_decoration_line) {
                 continue;
             }
 
-            // https://drafts.csswg.org/css-text-decor-4/#text-decoration-line-property
-            // > When spelling-error or grammar-error apply, the user agent
-            // > must disregard the other sub-properties of text-decoration,
-            let (color, style, y_offset, height) = match line {
-                // From <https://drafts.csswg.org/css-text-decor-4/#valdef-text-decoration-line-underline>
-                // > Each line of text is underlined.
+            let (color, style, y_offset, height) = match text_decoration_line {
+                // <https://drafts.csswg.org/css-text-decor-4/#valdef-text-decoration-line-underline>
                 TextDecorationLine::UNDERLINE => (
                     text_decoration.color,
                     text_decoration.style,
                     font_metrics.ascent - font_metrics.underline_offset,
                     resolve_thickness(&text_decoration.thickness),
                 ),
-                // From <https://drafts.csswg.org/css-text-decor-4/#valdef-text-decoration-line-spelling-error>
-                // > It is often rendered as a red wavy underline.
+                // <https://drafts.csswg.org/css-text-decor-4/#valdef-text-decoration-line-spelling-error>
+                //
+                // From <https://drafts.csswg.org/css-text-decor-4/#text-decoration-line-property>
+                // > When spelling-error or grammar-error apply, the user agent must disregard the other
+                // > sub-properties of text-decoration, as well any other properties typically affecting
+                // > the appearance of line decorations (such as text-underline-position, color, stroke,
+                // > or fill) when rendering these decorations. However, the user agent may take into
+                // > account the accent-color property.
+                //
+                // This is why color and style are ignored here and for grammar errors.
                 TextDecorationLine::SPELLING_ERROR => (
                     AbsoluteColor::srgb_legacy(255, 0, 0, 1.0),
                     ComputedTextDecorationStyle::Wavy,
                     font_metrics.ascent - font_metrics.underline_offset,
                     resolve_thickness(&TextDecorationThickness::Auto),
                 ),
-                // From <https://drafts.csswg.org/css-text-decor-4/#valdef-text-decoration-line-grammar-error>
-                // > It is often rendered as a green wavy underline.
+                // <https://drafts.csswg.org/css-text-decor-4/#valdef-text-decoration-line-grammar-error>
                 TextDecorationLine::GRAMMAR_ERROR => (
                     AbsoluteColor::srgb_legacy(0, 128, 0, 1.0),
                     ComputedTextDecorationStyle::Wavy,
                     font_metrics.ascent - font_metrics.underline_offset,
                     resolve_thickness(&TextDecorationThickness::Auto),
                 ),
-                // From <https://drafts.csswg.org/css-text-decor-4/#valdef-text-decoration-line-line-through>
-                // > Each line of text has a line through the middle.
+                // <https://drafts.csswg.org/css-text-decor-4/#valdef-text-decoration-line-line-through>
                 TextDecorationLine::LINE_THROUGH => (
                     text_decoration.color,
                     text_decoration.style,
                     font_metrics.ascent - font_metrics.strikeout_offset,
                     resolve_thickness(&text_decoration.thickness),
                 ),
-                // From <https://drafts.csswg.org/css-text-decor-4/#valdef-text-decoration-line-overline>
-                // > Each line of text has a line over it (i.e. on the opposite side from an underline).
+                // <https://drafts.csswg.org/css-text-decor-4/#valdef-text-decoration-line-overline>
                 TextDecorationLine::OVERLINE => (
                     text_decoration.color,
                     text_decoration.style,
                     Au::zero(),
                     resolve_thickness(&text_decoration.thickness),
                 ),
-                // From https://drafts.csswg.org/css-text-decor-4/#valdef-text-decoration-line-none
-                // From https://drafts.csswg.org/css-text-decor-4/#valdef-text-decoration-line-blink
-                // Note: the `none` and `blink` cases are unreachable here
-                _ => continue,
+                _ => unreachable!("Got unexpected text decoration line"),
             };
 
             if style == ComputedTextDecorationStyle::None {
@@ -1423,22 +1407,19 @@ impl Fragment {
             // the rectangle starts at the origin, all painted decorations will be in phase. As the
             // clipping rectangle is left unchanged, the actual painted region remains the size of
             // the original rectangle.
-            let expand_rect_for_text_decoration = |mut rect: Box2D<f32, LayoutPixel>| {
-                if matches!(
-                    style,
-                    ComputedTextDecorationStyle::Dotted |
-                        ComputedTextDecorationStyle::Dashed |
-                        ComputedTextDecorationStyle::Wavy,
-                ) {
-                    rect.min.x = rect.min.x.min(0.0);
-                }
-                rect
-            };
+            if matches!(
+                style,
+                ComputedTextDecorationStyle::Dotted |
+                    ComputedTextDecorationStyle::Dashed |
+                    ComputedTextDecorationStyle::Wavy,
+            ) {
+                rect.min.x = rect.min.x.min(0.0);
+            }
 
             let common_properties = builder.common_properties(state, rect, parent_style);
             builder.wr().push_line(
                 &common_properties,
-                &expand_rect_for_text_decoration(rect),
+                &rect,
                 wavy_line_thickness,
                 wr::LineOrientation::Horizontal,
                 &rgba(color),
@@ -1447,7 +1428,7 @@ impl Fragment {
 
             if style == ComputedTextDecorationStyle::Double {
                 let half_height = (rect.height() / 2.0).floor().max(1.0);
-                let y_offset = match line {
+                let y_offset = match text_decoration_line {
                     TextDecorationLine::OVERLINE => -rect.height() - half_height,
                     _ => rect.height() + half_height,
                 };
@@ -1458,8 +1439,8 @@ impl Fragment {
                     &rect,
                     wavy_line_thickness,
                     wr::LineOrientation::Horizontal,
-                    &rgba(text_decoration.color),
-                    text_decoration.style.to_webrender(),
+                    &rgba(color),
+                    style.to_webrender(),
                 );
             }
         }
