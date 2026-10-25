@@ -24,10 +24,8 @@ use raw_window_handle::{
     AndroidDisplayHandle, AndroidNdkWindowHandle, DisplayHandle, RawDisplayHandle, RawWindowHandle,
     WindowHandle,
 };
-pub use servo::MediaSessionPlaybackState;
 use servo::{
-    self, DevicePixel, EventLoopWaker, InputMethodControl, LoadStatus, MediaSessionActionType,
-    SelectElement, WebViewId,
+    self, DevicePixel, EventLoopWaker, InputMethodControl, LoadStatus, SelectElement, WebViewId,
 };
 
 use super::app::{App, AppInitOptions};
@@ -550,36 +548,6 @@ pub extern "C" fn Java_org_servo_servoview_JNIServo_resumePainting<'local>(
     .resolve::<ThrowRuntimeExAndDefault>()
 }
 
-#[unsafe(no_mangle)]
-pub extern "C" fn Java_org_servo_servoview_JNIServo_mediaSessionAction<'local>(
-    mut env: EnvUnowned<'local>,
-    _: JClass<'local>,
-    action: jint,
-) {
-    env.with_env(|env| -> jni::errors::Result<_> {
-        debug!("mediaSessionAction");
-
-        let action = match action {
-            1 => MediaSessionActionType::Play,
-            2 => MediaSessionActionType::Pause,
-            3 => MediaSessionActionType::SeekBackward,
-            4 => MediaSessionActionType::SeekForward,
-            5 => MediaSessionActionType::PreviousTrack,
-            6 => MediaSessionActionType::NextTrack,
-            7 => MediaSessionActionType::SkipAd,
-            8 => MediaSessionActionType::Stop,
-            9 => MediaSessionActionType::SeekTo,
-            _ => {
-                warn!("Ignoring unknown MediaSessionAction");
-                return Ok(());
-            },
-        };
-        call(env, |s| s.media_session_action(action.clone()));
-        Ok(())
-    })
-    .resolve::<ThrowRuntimeExAndDefault>()
-}
-
 pub struct WakeupCallback {
     jvm: Arc<JavaVM>,
 }
@@ -727,77 +695,6 @@ impl HostTrait for HostCallbacks {
         self.jvm
             .attach_current_thread(|env| -> Result<(), Error> {
                 env.call_method(callback_ref(), jni_str!("onImeHide"), jni_sig!("()V"), &[])?;
-                Ok(())
-            })
-            .unwrap();
-    }
-
-    fn on_media_session_metadata(&self, title: String, artist: String, album: String) {
-        info!("on_media_session_metadata");
-        self.jvm
-            .attach_current_thread(|env| -> Result<(), Error> {
-                let Ok(title) = new_string_as_jvalue(env, &title) else {
-                    return Ok(());
-                };
-
-                let Ok(artist) = new_string_as_jvalue(env, &artist) else {
-                    return Ok(());
-                };
-
-                let Ok(album) = new_string_as_jvalue(env, &album) else {
-                    return Ok(());
-                };
-
-                env.call_method(
-                    callback_ref(),
-                    jni_str!("onMediaSessionMetadata"),
-                    jni_sig!("(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V"),
-                    &[(&title).into(), (&artist).into(), (&album).into()],
-                )?;
-                Ok(())
-            })
-            .unwrap();
-    }
-
-    fn on_media_session_playback_state_change(&self, state: MediaSessionPlaybackState) {
-        info!("on_media_session_playback_state_change {:?}", state);
-        self.jvm
-            .attach_current_thread(|env| -> Result<(), Error> {
-                let state = state as i32;
-                let state = JValue::Int(state as jint);
-                env.call_method(
-                    callback_ref(),
-                    jni_str!("onMediaSessionPlaybackStateChange"),
-                    jni_sig!("(I)V"),
-                    &[state],
-                )?;
-                Ok(())
-            })
-            .unwrap();
-    }
-
-    fn on_media_session_set_position_state(
-        &self,
-        duration: f64,
-        position: f64,
-        playback_rate: f64,
-    ) {
-        info!(
-            "on_media_session_playback_state_change ({:?}, {:?}, {:?})",
-            duration, position, playback_rate
-        );
-        self.jvm
-            .attach_current_thread(|env| -> Result<(), Error> {
-                let duration = JValue::Float(duration as jfloat);
-                let position = JValue::Float(position as jfloat);
-                let playback_rate = JValue::Float(playback_rate as jfloat);
-
-                env.call_method(
-                    callback_ref(),
-                    jni_str!("onMediaSessionSetPositionState"),
-                    jni_sig!("(FFF)V"),
-                    &[duration, position, playback_rate],
-                )?;
                 Ok(())
             })
             .unwrap();
