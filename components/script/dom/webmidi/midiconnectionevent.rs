@@ -35,13 +35,13 @@ impl MIDIConnectionEvent {
     }
 
     pub fn new_with_proto(
+        cx: &mut js::context::JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
         port: Option<&MIDIPort>,
-        cx: &mut js::context::JSContext,
     ) -> DomRoot<MIDIConnectionEvent> {
         let connectionevent = reflect_dom_object_with_proto(
             cx,
@@ -68,13 +68,13 @@ impl MIDIConnectionEventMethods<crate::DomTypeHolder> for MIDIConnectionEvent {
         init: &MIDIConnectionEventInit,
     ) -> DomRoot<MIDIConnectionEvent> {
         MIDIConnectionEvent::new_with_proto(
+            cx,
             global.as_window(),
             proto,
             Atom::from(type_),
             init.parent.bubbles,
             init.parent.cancelable,
             init.port.as_deref(),
-            cx,
         )
     }
 

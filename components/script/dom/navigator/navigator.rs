@@ -712,7 +712,7 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
 
         let use_software_synths = options.software.is_some_and(|s| s);
 
-        let midi_access = MIDIAccess::new(self.global().as_window(), cx, use_software_synths);
+        let midi_access = MIDIAccess::new(cx, self.global().as_window(), use_software_synths);
         self.midi.set(Some(&midi_access));
         p.resolve_native(cx, &midi_access);
 
