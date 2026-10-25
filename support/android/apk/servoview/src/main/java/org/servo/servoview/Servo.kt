@@ -47,6 +47,7 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun Servo(
+    experimentalModeEnabled: Boolean,
     softKeyboardVisible: Boolean,
     servo: Servo,
     navigator: ServoNavigator,
@@ -62,6 +63,7 @@ fun Servo(
         }
     }
     LaunchedEffect(servo, navigator) { navigator.consumeNavigationEvents(servo) }
+    LaunchedEffect(experimentalModeEnabled) { servo.setExperimentalMode(experimentalModeEnabled) }
 
     val focusRequester = remember { FocusRequester() }
     AndroidView(
