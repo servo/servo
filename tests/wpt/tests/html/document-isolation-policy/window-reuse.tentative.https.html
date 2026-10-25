@@ -1,0 +1,77 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Document-Isolation-Policy: reuse of the Window of an initial about:blank document</title>
+<link rel="help" href="https://html.spec.whatwg.org/#initialise-the-document-object">
+<link rel="help" href="https://github.com/WICG/document-isolation-policy/issues/11">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="./resources/common.js"></script>
+<body>
+<script>
+"use strict";
+
+// When a navigation replaces an initial about:blank document with a same-origin document, HTML reuses the
+// initial document's Window. That also needs to require the same agent cluster (see the issue linked above),
+// and the agent cluster of a document with a policy is keyed by its origin and policy. Popups opened by
+// documents without a policy are covered by agent-cluster.tentative.https.html.
+
+const reuses = { expected: "number", description: "reuses its Window" };
+const doesNotReuse = { expected: "undefined", description: "does not reuse its Window" };
+
+[
+  { policy: "", label: "without a policy", ...reuses },
+  { policy: dip_require_corp, label: "with a policy", ...doesNotReuse },
+].forEach(({ policy, label, expected, description }) => {
+  promise_test(async t => {
+    const uuid = token();
+    const frame = document.createElement("iframe");
+    t.add_cleanup(() => frame.remove());
+    frame.src = executorURL(policy, uuid);
+    document.body.append(frame);
+    // The navigation to src is in parallel, so this is still the initial about:blank document's Window.
+    frame.contentWindow.expando = 1;
+    assert_equals(await runInContext(uuid, "return typeof window.expando;"), expected);
+  }, `A frame's initial about:blank document created by a document without a policy that navigates to a same-origin document ${label} ${description}`);
+});
+
+// Opens a popup with isolate-and-require-corp and returns its uuid.
+function openPopupWithPolicy(t) {
+  const uuid = token();
+  const popup = window.open(executorURL(dip_require_corp, uuid));
+  t.add_cleanup(() => popup.close());
+  return uuid;
+}
+
+[
+  { policy: dip_require_corp, label: "with a policy", ...reuses },
+  { policy: "", label: "without a policy", ...doesNotReuse },
+].forEach(({ policy, label, expected, description }) => {
+  promise_test(async t => {
+    const popup = openPopupWithPolicy(t);
+    const uuid = token();
+    await runInContext(popup, `
+      const frame = document.createElement("iframe");
+      frame.src = ${JSON.stringify(executorURL(policy, uuid))};
+      document.body.append(frame);
+      frame.contentWindow.expando = 1;
+      return "appended";
+    `);
+    assert_equals(await runInContext(uuid, "return typeof window.expando;"), expected);
+  }, `A frame's initial about:blank document created by a document with a policy that navigates to a same-origin document ${label} ${description}`);
+
+  promise_test(async t => {
+    const popup = openPopupWithPolicy(t);
+    const uuid = token();
+    await runInContext(popup, `
+      window.open(${JSON.stringify(executorURL(policy, uuid))}).expando = 1;
+      return "opened";
+    `);
+    t.add_cleanup(() => send(uuid, "window.close();"));
+    assert_equals(await runInContext(uuid, "return typeof window.expando;"), expected);
+  }, `A popup's initial about:blank document created by a document with a policy that navigates to a same-origin document ${label} ${description}`);
+});
+</script>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Test: hanging spaces at the end of an inline box take no part in justification</title>
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#hanging">
+<link rel="help" href="https://drafts.csswg.org/css-text-4/#white-space-phase-2">
+<link rel="match" href="reference/white-space-pre-wrap-justify-005-ref.html">
+<meta name="assert" content="With white-space: pre-wrap, the spaces at the end of a soft wrapped line hang, so they are not measured for justification, even when the inline box they are in ends right after them.">
+<style>
+div {
+    width: 9ch;
+    font: 20px/30px monospace;
+    white-space: pre-wrap;
+    text-align: justify;
+}
+</style>
+<p>Test passes if "cc" touches the right edge of the red box, and the text is identical to the reference.</p>
+<div><span>aa bb cc   </span>dd</div>

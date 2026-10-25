@@ -31,6 +31,12 @@ addEventListener('fetch', async event => {
     case 'use-stored-ranged-response':
       useStoredRangeResponse(event);
       return;
+    case 'cache-ranged-response':
+      cacheRangedResponse(event);
+      return;
+    case 'use-cached-ranged-response':
+      useCachedRangeResponse(event);
+      return;
     case 'broadcast-accept-encoding':
       broadcastAcceptEncoding(event);
       return;
@@ -146,6 +152,32 @@ function useStoredRangeResponse(event) {
     const response = await storedRangeResponseP;
     return response.clone();
   }());
+}
+
+const RANGE_CACHE_NAME = 'range-response-cache';
+const RANGE_CACHE_KEY = 'cached-ranged-response';
+
+function cacheRangedResponse(event) {
+  /** @type Request */
+  const request = event.request;
+  const id = new URL(request.url).searchParams.get('id');
+
+  event.waitUntil((async () => {
+    const response = await fetch(event.request);
+    const cache = await caches.open(RANGE_CACHE_NAME);
+    await cache.put(RANGE_CACHE_KEY, response);
+    broadcast({ id });
+  })());
+
+  // Just send back any response, it isn't important for the test.
+  event.respondWith(new Response(''));
+}
+
+function useCachedRangeResponse(event) {
+  event.respondWith((async () => {
+    const cache = await caches.open(RANGE_CACHE_NAME);
+    return cache.match(RANGE_CACHE_KEY);
+  })());
 }
 
 function broadcastAcceptEncoding(event) {

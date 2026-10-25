@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<html class="test-wait">
 <script>
   // The subframe navigates to a JavaScript URL, causing the default policy to
   // be called, which in turn removes the subframe's browsing context.
@@ -9,7 +10,9 @@
   window.addEventListener("load", _ => {
     trustedTypes.createPolicy("default", {
       createScript: s => {
+        const root = parent.document.documentElement;
         window.frameElement.remove();
+        root.classList.remove("test-wait");
         return s;
       }
     });
@@ -18,3 +21,4 @@
 <\u002Fscript>`;
   document.head.appendChild(iframe);
 </script>
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<title>Permissions Policy for Shared Workers: multiple Shared Worker connections</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+function createWorkerBlobUrl(code) {
+  const blob = new Blob([code], { type: 'application/javascript' });
+  return URL.createObjectURL(blob);
+}
+
+const workerUrl = createWorkerBlobUrl(`
+  self.onconnect = e => {
+    const port = e.ports[0];
+    port.postMessage('connected');
+  };
+`);
+
+promise_test(async t => {
+  const sw1 = new SharedWorker(workerUrl, { allow: 'serial; usb' });
+  const msg1 = await new Promise((resolve, reject) => {
+    sw1.onerror = () => reject(new Error('sw1 failed'));
+    sw1.port.onmessage = e => resolve(e.data);
+  });
+  assert_equals(msg1, 'connected');
+}, 'SharedWorker can be created with allow option.');
+
+promise_test(async t => {
+  const sw2 = new SharedWorker(workerUrl, { allow: 'serial; usb' });
+  const msg2 = await new Promise((resolve, reject) => {
+    sw2.onerror = () => reject(new Error('sw2 failed'));
+    sw2.port.onmessage = e => resolve(e.data);
+  });
+  assert_equals(msg2, 'connected');
+}, 'Connecting with matching allow policy succeeds.');
+
+promise_test(async t => {
+  const sw3 = new SharedWorker(workerUrl, { allow: 'geolocation' });
+  const errored3 = await new Promise(resolve => {
+    sw3.onerror = e => {
+      e.preventDefault();
+      resolve(true);
+    };
+    sw3.port.onmessage = () => resolve(false);
+  });
+  assert_true(errored3, 'Connecting to existing SharedWorker with mismatched ' +
+                        'permissions policy should fail');
+}, 'Connecting with mismatched allow policy fires error event.');
+
+promise_test(async t => {
+  const sw4 = new SharedWorker(workerUrl, { allow: 'serial' });
+  const errored4 = await new Promise(resolve => {
+    sw4.onerror = e => {
+      e.preventDefault();
+      resolve(true);
+    };
+    sw4.port.onmessage = () => resolve(false);
+  });
+  assert_true(errored4, 'Connecting to existing SharedWorker with stricter ' +
+                        'permissions policy should fail');
+}, 'Connecting with stricter allow policy fires error event.');
+</script>
+</body>

@@ -1,0 +1,72 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Display: reading-flow: grid-columns finishes reading each column across fragmentation blocks, before moving on to the next column</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="help" href="https://drafts.csswg.org/css-grid-2/#pagination">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../../resources/shadow-dom.js"></script>
+<script src="../../resources/focus-utils.js"></script>
+
+<style>
+  .multicol {
+    column-fill: auto;
+    column-gap: 0;
+    columns: 3;
+    height: 80px;
+    width: 900px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 100px);
+    grid-template-rows: repeat(5, 40px);
+    reading-flow: grid-columns;
+    width: 300px;
+  }
+  .grid > button {
+    background: #dceeff;
+    border: 1px solid black;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  .grid > button:nth-child(3n + 2) {
+    background: #e2f5df;
+  }
+  .grid > button:nth-child(3n) {
+    background: #fff0d5;
+  }
+</style>
+
+<div class="test-case"
+     data-expect="A1,A2,A3,A4,A5,B1,B2,B3,B4,B5,C1,C2,C3,C4,C5"
+     data-description="grid-columns follows complete grid columns across three multicol fragments">
+  <div class="multicol">
+    <div class="grid">
+      <button id="A1">A1</button>
+      <button id="B1">B1</button>
+      <button id="C1">C1</button>
+      <button id="A2">A2</button>
+      <button id="B2">B2</button>
+      <button id="C2">C2</button>
+      <button id="A3">A3</button>
+      <button id="B3">B3</button>
+      <button id="C3">C3</button>
+      <button id="A4">A4</button>
+      <button id="B4">B4</button>
+      <button id="C4">C4</button>
+      <button id="A5">A5</button>
+      <button id="B5">B5</button>
+      <button id="C5">C5</button>
+    </div>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

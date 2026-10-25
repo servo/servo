@@ -64,6 +64,10 @@ async def test_screen_orientation_change_event(
         context=new_tab["context"], url=inline("<div>foo</div>"), wait="complete"
     )
 
+    # The `default_screen_orientation` fixture activates the top context, and
+    # orientation change events are not fired for hidden documents.
+    await bidi_session.browsing_context.activate(context=new_tab["context"])
+
     on_script_message = wait_for_event("script.message")
 
     # Set screen orientation override.

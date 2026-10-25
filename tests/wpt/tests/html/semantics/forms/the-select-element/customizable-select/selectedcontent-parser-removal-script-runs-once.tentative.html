@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Parser-initiated option removal doesn't clone a not-yet-run script into selectedcontent</title>
+<link rel=help href="https://html.spec.whatwg.org/#the-option-element:stack-of-open-elements">
+<link rel=help href="https://html.spec.whatwg.org/#adoption-agency-algorithm">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script>
+  window.runs = 0;
+</script>
+<select>
+  <button><selectedcontent></selectedcontent></button>
+  <b><div><option selected>one</option></b></div>
+  <option selected><script>runs++</script><span>two</span></option>
+</select>
+<script>
+  test(() => {
+    assert_equals(document.querySelector("select div").parentNode,
+                  document.querySelector("select"),
+                  "The adoption agency algorithm should have moved the div");
+    assert_equals(runs, 1, "Script should run exactly once");
+    assert_equals(document.querySelector("selectedcontent span")?.textContent, "two",
+                  "selectedcontent should contain the selected option");
+  }, "An option removed by the parser doesn't cause a not-yet-run script in a selected option to be cloned");
+</script>

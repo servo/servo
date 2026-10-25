@@ -1,0 +1,14 @@
+<!doctype html>
+<script>
+  customElements.define(
+    "x-test-button",
+    class extends HTMLButtonElement {
+      constructor() {
+        super();
+        this.setAttribute("data-test", "constructor");
+      }
+    },
+    {extends: "button"}
+  );
+</script>
+<button is="x-test-button" data-test="parser"></button>

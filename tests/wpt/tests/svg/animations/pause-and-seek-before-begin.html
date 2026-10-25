@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<title>SVGSVGElement: pauseAnimations() and setCurrentTime() before the timeline begins</title>
+<link rel="help" href="https://w3c.github.io/svgwg/specs/animations/#InterfaceSVGSVGElement">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<svg id="pauseThenSeek">
+  <rect width="10" height="10">
+    <animate attributeName="x" from="0" to="100" dur="10s" fill="freeze"/>
+  </rect>
+</svg>
+<svg id="seekThenPause">
+  <rect width="10" height="10">
+    <animate attributeName="x" from="0" to="100" dur="10s" fill="freeze"/>
+  </rect>
+</svg>
+<script>
+  const pauseThenSeek = document.getElementById("pauseThenSeek");
+  pauseThenSeek.pauseAnimations();
+  pauseThenSeek.setCurrentTime(2);
+
+  const seekThenPause = document.getElementById("seekThenPause");
+  seekThenPause.setCurrentTime(2);
+  seekThenPause.pauseAnimations();
+
+  function waitForTimelineStart() {
+    return new Promise(resolve => {
+      window.addEventListener("load", () => {
+        // Seeking the timeline is only resolved after the next frame runs,
+        // so wait for an additional frame.
+        requestAnimationFrame(() => requestAnimationFrame(resolve));
+      });
+    });
+  }
+
+  function waitForFrames(count) {
+    return new Promise(resolve => {
+      function tick() {
+        if (!count--)
+          resolve();
+        else
+          requestAnimationFrame(tick);
+      }
+      tick();
+    });
+  }
+
+  const timelineStarted = waitForTimelineStart();
+
+  for (const svg of [pauseThenSeek, seekThenPause]) {
+    promise_test(async t => {
+      await timelineStarted;
+      const rect = svg.querySelector("rect");
+
+      assert_true(svg.animationsPaused(), "animations are paused");
+      assert_approx_equals(svg.getCurrentTime(), 2, 0.01, "current time while paused");
+      assert_approx_equals(rect.x.animVal.value, 20, 0.1, "animated value while paused");
+
+      svg.unpauseAnimations();
+      await waitForFrames(2);
+
+      assert_false(svg.animationsPaused(), "animations are unpaused");
+      assert_greater_than_equal(svg.getCurrentTime(), 2, "current time continues from the seeked time after unpausing");
+      assert_greater_than_equal(rect.x.animVal.value, 20, "animated value continues from the seeked time after unpausing");
+    }, `${svg.id}: paused timeline seeked before begin keeps its time and resumes from it`);
+  }
+</script>

@@ -1,0 +1,38 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Root scroll position is preserved when repeatedly inserting and removing an ib-split on the root element</title>
+<link rel="help" href="https://drafts.csswg.org/cssom-view/#dom-window-scrolly">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2081016">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+  body { margin: 0; }
+  #tall { height: 5000px; }
+</style>
+<div id="tall"></div>
+<script>
+const tick = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+function makeIBSplit() {
+  const span = document.createElement("span");
+  const div = document.createElement("div");
+  div.textContent = "x";
+  span.appendChild(div);
+  return span;
+}
+
+promise_test(async () => {
+  window.scrollTo(0, 800);
+  await tick();
+  assert_equals(window.scrollY, 800, "Initial scroll position");
+  for (let i = 0; i < 4; i++) {
+    const span = makeIBSplit();
+    document.documentElement.appendChild(span);
+    await tick();
+    assert_equals(window.scrollY, 800, `Scroll position after insertion ${i}`);
+    span.remove();
+    await tick();
+    assert_equals(window.scrollY, 800, `Scroll position after removal ${i}`);
+  }
+});
+</script>

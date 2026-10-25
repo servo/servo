@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>View transitions: rAF before outbound capture (subframe new page)</title>
+<link rel="author" href="mailto:opettay@mozilla.com">
+<style>
+@view-transition { navigation: auto; }
+:root { view-transition-name: none; }
+/* A different width from both the old (100px) and post-rAF (300px) sizes. */
+#box {
+  width: 200px;
+  height: 100px;
+  background: blue;
+  view-transition-name: target;
+}
+/* Freeze the group at the transition start so its width is the captured old
+   snapshot size. */
+::view-transition-group(target) { animation-play-state: paused; }
+</style>
+<div id="box"></div>
+<script>
+onpagereveal = (e) => {
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    let capturedWidth = null;
+    if (e.viewTransition) {
+      capturedWidth = getComputedStyle(
+          document.documentElement, "::view-transition-group(target)").width;
+    }
+    window.parent.postMessage(
+        { hadTransition: !!e.viewTransition, capturedWidth }, "*");
+  }));
+};
+</script>

@@ -38,6 +38,7 @@ RUN apt-get -qqy update \
     python3-venv \
     software-properties-common \
     qemu-kvm \
+    tini \
     tzdata \
     sudo \
     unzip \

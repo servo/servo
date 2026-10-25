@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="author" title="Anne van Kesteren" href="mailto:annevk@annevk.nl">
+<link rel="help" href="https://html.spec.whatwg.org/#the-meter-element-2">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#valdef-writing-mode-sideways-lr">
+<title>Meter appearance native writing mode sideways-lr</title>
+<meta charset="utf-8">
+<link rel="match" href="meter-appearance-native-sideways-lr-ref.html">
+<link rel="mismatch" href="meter-appearance-native-sideways-lr-rtl-ref.html">
+
+<!-- The minimum value is on the inline-start side, which is the bottom here. The match reference
+     has the same inline and block flow directions, using vertical-lr; the mismatch reference has
+     the opposite inline direction. -->
+<p>The meter element below should match the correct writing mode.</p>
+<meter value="70" min="0" max="100" style="writing-mode: sideways-lr"></meter>

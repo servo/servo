@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<title>Changing the descendants of the first child button updates the label and the width of a select with appearance:auto</title>
+<link rel=help href="https://html.spec.whatwg.org/multipage/rendering.html#the-select-element-2">
+<link rel=help href="https://github.com/whatwg/html/issues/12474">
+<link rel=match href=select-appearance-auto-button-descendant-mutation-ref.html>
+
+<p><select><button>Old</button><option>One</option></select>
+<p><select><button><span>Old</span></button><option>One</option></select>
+<p><select><button><span><span>Old</span></span></button><option>One</option></select>
+<p><select><button><span>Old<span> and removed</span></span></button><option>One</option></select>
+<p><select><button><selectedcontent></selectedcontent></button><option><span>Old</span></option><option>VeryLongOptionLabel</option></select>
+<p><select><button><span><selectedcontent></selectedcontent></span></button><option>Old</option><option>New</option></select>
+
+<script>
+const selects = document.querySelectorAll('select');
+document.documentElement.addEventListener('TestRendered', () => {
+  selects[0].querySelector('button').firstChild.data = 'VeryLongButtonLabel';
+  selects[1].querySelector('span').firstChild.data = 'VeryLongButtonLabel';
+  selects[2].querySelector('span span').textContent = 'VeryLongButtonLabel';
+  selects[3].querySelector('span span').remove();
+  selects[4].querySelector('selectedcontent span').firstChild.data = 'New';
+  selects[5].selectedIndex = 1;
+  document.documentElement.classList.remove('reftest-wait');
+});
+</script>

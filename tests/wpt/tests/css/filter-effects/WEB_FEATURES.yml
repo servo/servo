@@ -1,11 +1,11 @@
 rules:
 - backdrop-filter-*: [backdrop-filter]
 - backdrop-filters-*: [backdrop-filter]
-- css-backdrop-filters-*: [backdrop-filter]
 - repaint-added-backdrop-filter.html: [backdrop-filter]
 - background-image-blur-repaint.html: [filter]
 - blur-*: [filter]
 - clip-under-filter-*: [filter]
+- css-backdrop-filter-*: [backdrop-filter]
 - css-reference-large-svg-*: [filter]
 - css-filters-*: [filter]
 - drop-shadow-*: [filter]

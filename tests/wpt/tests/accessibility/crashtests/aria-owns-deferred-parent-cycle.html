@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>Accessibility crashtest: multi-pass aria-owns cycle check after owner removal</title>
+
+<div id="keeper" aria-owns="wrap"></div>
+<div id="group2" role="switch" aria-owns="relay1 panel"></div>
+
+<div id="panel" aria-hidden="true">
+  <div id="group1" role="group" aria-disabled="true"></div>
+  <div id="guard2" aria-owns="relay2"></div>
+  <div id="relay2"></div>
+  <div id="wrap">
+    <div id="guard1" aria-owns="relay1"></div>
+    <div id="relay1"></div>
+    <div id="owner1" aria-owns="item"></div>
+  </div>
+</div>
+
+<div id="box" aria-hidden="true">
+  <div id="item">
+    <div id="mid" aria-owns="leaf"></div>
+  </div>
+</div>
+
+<div id="leaf" aria-owns="relay2 box">
+  <div id="probe"></div>
+</div>
+<div id="extra"></div>
+
+<script>
+function nextFrame() {
+  return new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+}
+
+(async () => {
+  await nextFrame();
+
+  panel.removeAttribute('aria-hidden');
+  box.removeAttribute('aria-hidden');
+  keeper.removeAttribute('aria-owns');
+  await nextFrame();
+
+  group1.setAttribute('aria-owns', 'wrap');
+  await nextFrame();
+
+  probe.setAttribute('aria-owns', 'extra');
+  await nextFrame();
+
+  document.documentElement.classList.remove('test-wait');
+})();
+</script>
+</html>

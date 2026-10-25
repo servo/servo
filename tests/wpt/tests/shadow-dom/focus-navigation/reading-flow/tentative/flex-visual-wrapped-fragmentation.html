@@ -1,0 +1,74 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Display: reading-flow: flex-visual finishes reading down each column, across fragments, before moving on to the next column </title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="help" href="https://drafts.csswg.org/css-flexbox-1/#pagination">
+<link rel="author" title="Celeste Pan" href="mailto:celestepan@microsoft.com">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="../../resources/shadow-dom.js"></script>
+<script src="../../resources/focus-utils.js"></script>
+
+<style>
+  .multicol {
+    column-fill: auto;
+    column-gap: 0;
+    columns: 3;
+    height: 80px;
+    width: 900px;
+  }
+  .flex {
+    display: flex;
+    flex-flow: column wrap;
+    height: 200px;
+    reading-flow: flex-visual;
+    width: 300px;
+  }
+  .flex > button {
+    background: #dceeff;
+    border: 1px solid black;
+    box-sizing: border-box;
+    flex: none;
+    height: 40px;
+    margin: 0;
+    padding: 0;
+    width: 100px;
+  }
+  .flex > button:nth-child(n + 6):nth-child(-n + 10) {
+    background: #e2f5df;
+  }
+  .flex > button:nth-child(n + 11) {
+    background: #fff0d5;
+  }
+</style>
+
+<div class="test-case"
+     data-expect="lineA1,lineA2,lineA3,lineA4,lineA5,lineB1,lineB2,lineB3,lineB4,lineB5,lineC1,lineC2,lineC3,lineC4,lineC5">
+  <div class="multicol">
+    <div class="flex">
+      <button id="lineA1">A1</button>
+      <button id="lineA2">A2</button>
+      <button id="lineA3">A3</button>
+      <button id="lineA4">A4</button>
+      <button id="lineA5">A5</button>
+      <button id="lineB1">B1</button>
+      <button id="lineB2">B2</button>
+      <button id="lineB3">B3</button>
+      <button id="lineB4">B4</button>
+      <button id="lineB5">B5</button>
+      <button id="lineC1">C1</button>
+      <button id="lineC2">C2</button>
+      <button id="lineC3">C3</button>
+      <button id="lineC4">C4</button>
+      <button id="lineC5">C5</button>
+    </div>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

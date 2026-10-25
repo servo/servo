@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>View transitions: rAF before outbound capture (subframe old page)</title>
+<link rel="author" href="mailto:opettay@mozilla.com">
+<style>
+@view-transition { navigation: auto; }
+:root { view-transition-name: none; }
+#box {
+  width: 100px;
+  height: 100px;
+  background: green;
+  view-transition-name: target;
+}
+</style>
+<div id="box"></div>
+<script src="/common/rendering-utils.js"></script>
+<script>
+// Resize the captured element inside a requestAnimationFrame callback during
+// pageswap. rAF callbacks run before the outbound capture, so the captured old
+// snapshot must be 300px wide, not 100px.
+onpageswap = () => {
+  requestAnimationFrame(() => {
+    document.getElementById("box").style.width = "300px";
+  });
+};
+
+onload = async () => {
+  // Ensure the initial (100px) state has rendered before navigating.
+  await waitForAtLeastOneFrame();
+  location.href = "raf-before-outbound-capture-subframe-new.html";
+};
+</script>

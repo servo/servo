@@ -9,8 +9,9 @@
 <body>
 <script>
 // The methods are [CEReactions], so the reactions queued while they run
-// (disconnectedCallback for the replaced children, then construction and
-// connectedCallback for the parsed ones) are invoked before they return.
+// (construction and connectedCallback for the parsed elements, then
+// disconnectedCallback for the replaced children) are invoked before they
+// return.
 // setHTMLUnsafe() without a sanitizer is covered by
 // /html/webappapis/dynamic-markup-insertion/html-unsafe-methods/setHTMLUnsafe-CEReactions.html.
 const log = [];
@@ -48,7 +49,7 @@ for (const [name, run] of [
     parentOf(target).append(document.createElement("x-reaction"));
     log.length = 0;
     run(target);
-    assert_array_equals(log, ["disconnected", "constructed", "connected"]);
+    assert_array_equals(log, ["constructed", "connected", "disconnected"]);
   }, `${name} with a sanitizer runs disconnectedCallback for the replaced children before returning`);
 }
 </script>

@@ -411,13 +411,13 @@
     fuzzy_test_computed_color(`lch(from hwb(0 100% 100%) l c h)`, `lch(53.38896474 0 none)`);
 
     fuzzy_test_computed_color(`lch(from hwb(180 99.999% 0%) l c h)`, `lch(99.99912038 0 none)`);
-    fuzzy_test_computed_color(`lch(from hwb(180 99.998% 0%) l c h)`, `lch(99.99960858 0.00185022 199.69899791)`);
+    fuzzy_test_computed_color(`lch(from hwb(180 99.96% 0%) l c h)`, `lch(99.99217316 0.03700168 199.69671723)`);
     fuzzy_test_computed_color(`lch(from hwb(180 49.999% 50%) l c h)`, `lch(53.38796454 0 none)`);
-    fuzzy_test_computed_color(`lch(from hwb(180 49.998% 50%) l c h)`, `lch(53.38851967 0.00210384 199.69888976)`);
+    fuzzy_test_computed_color(`lch(from hwb(180 49.9% 50%) l c h)`, `lch(53.36673188 0.10515489 199.68771363)`);
     fuzzy_test_computed_color(`lch(from hwb(180 99.999% 0%) l calc(c * 1000) h)`, `lch(99.99912038 0 none)`);
-    fuzzy_test_computed_color(`lch(from hwb(180 99.998% 0%) l calc(c * 1000) h)`, `lch(99.99960858 1.85021709 199.69899791)`);
+    fuzzy_test_computed_color(`lch(from hwb(180 99.96% 0%) l calc(c * 1000) h)`, `lch(99.99217316 37.00167721 199.69671723)`);
     fuzzy_test_computed_color(`lch(from hwb(180 49.999% 50%) l calc(c * 1000) h)`, `lch(53.38796454 0 none)`);
-    fuzzy_test_computed_color(`lch(from hwb(180 49.998% 50%) l calc(c * 1000) h)`, `lch(53.38851967 2.1038419 199.69888976)`);
+    fuzzy_test_computed_color(`lch(from hwb(180 49.9% 50%) l calc(c * 1000) h)`, `lch(53.36673188 105.15489315 199.68771363)`);
 
     fuzzy_test_computed_color(`lch(from lch(0 20 180) l c h)`, `lch(0 20 180)`);
     fuzzy_test_computed_color(`lch(from lch(20 0 180) l c h)`, `lch(20 0 180)`);
@@ -450,8 +450,8 @@
     fuzzy_test_computed_color(`lch(from lab(0 0 0) l c h)`, `lch(0 0 none)`);
     fuzzy_test_computed_color(`lch(from oklab(0 0 0) l c h)`, `lch(0 0 none)`);
 
-    fuzzy_test_computed_color(`lch(from color(display-p3 0.1893689 0.18937814 0.18937561) l c h)`, `lch(19.99999973 0 none)`);
-    fuzzy_test_computed_color(`lch(from color(display-p3 0.18936885 0.18937816 0.18937561) l c h)`, `lch(19.99999994 0.00151062 180.02568063)`);
+    fuzzy_test_computed_color(`lch(from color(display-p3 0.18937027 0.189377662 0.189375638) l c h)`, `lch(20 0 none)`);
+    fuzzy_test_computed_color(`lch(from color(display-p3 0.18932064 0.18941374 0.18938824) l c h)`, `lch(20.00163173 0.01510584 180.02265083)`);
 
     fuzzy_test_computed_color(`color(from lch(20 0 180) display-p3 r g b)`, `color(display-p3 0.18937575 0.18937575 0.18937575)`);
     fuzzy_test_computed_color(`color(from lch(20 0.0015 180) display-p3 r g b)`, `color(display-p3 0.18937575 0.18937575 0.18937575)`);
@@ -478,7 +478,7 @@
     fuzzy_test_computed_color(`color-mix(in lch, hwb(0 100% 100%), lch(11 33 44))`, `lch(32.19448237 16.5 44)`);
 
     fuzzy_test_computed_color(`color-mix(in lch, hwb(180 99.999% 0%), lch(11 33 44))`, `lch(55.49956019 16.5 44)`);
-    fuzzy_test_computed_color(`color-mix(in lch, hwb(180 99.998% 0%), lch(11 33 44))`, `lch(55.49980429 16.50092511 121.84949895)`);
+    fuzzy_test_computed_color(`color-mix(in lch, hwb(180 99.96% 0%), lch(11 33 44))`, `lch(55.49608658 16.51850084 121.84835861)`);
 
     fuzzy_test_computed_color(`color-mix(in lch, lch(0 20 180), lch(11 33 44))`, `lch(5.5 26.5 112)`);
     fuzzy_test_computed_color(`color-mix(in lch, lch(20 0 180), lch(11 33 44))`, `lch(15.5 16.5 112)`);
@@ -507,8 +507,8 @@
     fuzzy_test_computed_color(`color-mix(in lch, lab(0 0 0), lch(11 33 44))`, `lch(5.5 16.5 44)`);
     fuzzy_test_computed_color(`color-mix(in lch, oklab(0 0 0), lch(11 33 44))`, `lch(5.5 16.5 44)`);
 
-    fuzzy_test_computed_color(`color-mix(in lch, color(display-p3 0.1893689 0.18937814 0.18937561), lch(11 33 44))`, `lch(15.49999987 16.5 44)`);
-    fuzzy_test_computed_color(`color-mix(in lch, color(display-p3 0.18936885 0.18937816 0.18937561), lch(11 33 44))`, `lch(15.49999997 16.50075531 112.01284031)`);
+    fuzzy_test_computed_color(`color-mix(in lch, color(display-p3 0.18937027 0.189377662 0.189375638), lch(11 33 44))`, `lch(15.5 16.5 44)`);
+    fuzzy_test_computed_color(`color-mix(in lch, color(display-p3 0.18932064 0.18941374 0.18938824), lch(11 33 44))`, `lch(15.50081587 16.50755292 112.01132542)`);
 
     // LCH - color-mix : single color input
     fuzzy_test_computed_color(`color-mix(in lch, hsl(0 50% 50%))`, `lch(46.42043661 59.74639249 29.95665674)`);
@@ -531,7 +531,7 @@
     fuzzy_test_computed_color(`color-mix(in lch, hwb(0 100% 100%))`, `lch(53.38896474 0 none)`);
 
     fuzzy_test_computed_color(`color-mix(in lch, hwb(180 99.999% 0%))`, `lch(99.99912038 0 none)`);
-    fuzzy_test_computed_color(`color-mix(in lch, hwb(180 99.998% 0%))`, `lch(99.99960858 0.00185022 199.69899791)`);
+    fuzzy_test_computed_color(`color-mix(in lch, hwb(180 99.96% 0%))`, `lch(99.99217316 0.03700168 199.69671723)`);
 
     fuzzy_test_computed_color(`color-mix(in lch, lch(0 20 180))`, `lch(0 20 180)`);
     fuzzy_test_computed_color(`color-mix(in lch, lch(20 0 180))`, `lch(20 0 180)`);
@@ -560,8 +560,8 @@
     fuzzy_test_computed_color(`color-mix(in lch, lab(0 0 0))`, `lch(0 0 none)`);
     fuzzy_test_computed_color(`color-mix(in lch, oklab(0 0 0))`, `lch(0 0 none)`);
 
-    fuzzy_test_computed_color(`color-mix(in lch, color(display-p3 0.1893689 0.18937814 0.18937561))`, `lch(19.99999973 0 none)`);
-    fuzzy_test_computed_color(`color-mix(in lch, color(display-p3 0.18936885 0.18937816 0.18937561))`, `lch(19.99999994 0.00151062 180.02568063)`);
+    fuzzy_test_computed_color(`color-mix(in lch, color(display-p3 0.18937027 0.189377662 0.189375638))`, `lch(20 0 none)`);
+    fuzzy_test_computed_color(`color-mix(in lch, color(display-p3 0.18932064 0.18941374 0.18938824))`, `lch(20.00163173 0.01510584 180.02265083)`);
 
     // oklch - RCS
     fuzzy_test_computed_color(`oklch(from hsl(0 50% 50%) l c h)`, `oklch(0.55233858 0.16366995 24.21253898)`);
@@ -586,9 +586,9 @@
     fuzzy_test_computed_color(`oklch(from hwb(0 100% 100%) l c h)`, `oklch(0.59818073 0 none)`);
 
     fuzzy_test_computed_color(`oklch(from hwb(180 99.999% 0%) l c h)`, `oklch(0.99999242 0 none)`);
-    fuzzy_test_computed_color(`oklch(from hwb(180 99.998% 0%) l c h)`, `oklch(0.99999614 0.00000541 197.15830446)`);
+    fuzzy_test_computed_color(`oklch(from hwb(180 99.96% 0%) l c h)`, `oklch(0.9999228 0.00010809 197.15662501)`);
     fuzzy_test_computed_color(`oklch(from hwb(180 99.999% 0%) l calc(c * 1000) h)`, `oklch(0.99999242 0 none)`);
-    fuzzy_test_computed_color(`oklch(from hwb(180 99.998% 0%) l calc(c * 1000) h)`, `oklch(0.99999614 0.00540505 197.15830446)`);
+    fuzzy_test_computed_color(`oklch(from hwb(180 99.96% 0%) l calc(c * 1000) h)`, `oklch(0.9999228 0.10809394 197.15662501)`);
 
     fuzzy_test_computed_color(`oklch(from lch(0 20 180) l c h)`, `oklch(0 0.26412556 175.27132911)`);
     fuzzy_test_computed_color(`oklch(from lch(20 0 180) l c h)`, `oklch(0.31034483 0 none)`);
@@ -599,9 +599,9 @@
     fuzzy_test_computed_color(`oklch(from lch(0 0 0) l c h)`, `oklch(0 0 none)`);
 
     fuzzy_test_computed_color(`oklch(from lch(20 0.0015 180) l c h)`, `oklch(0.31034483 0 none)`);
-    fuzzy_test_computed_color(`oklch(from lch(20 0.00151 180) l c h)`, `oklch(0.31034434 0.00000446 179.50900432)`);
+    fuzzy_test_computed_color(`oklch(from lch(20 0.01 180) l c h)`, `oklch(0.31034162 0.00002954 179.50905119)`);
     fuzzy_test_computed_color(`oklch(from lch(20 0.0015 180) l calc(c * 1000) h)`, `oklch(0.31034483 0 none)`);
-    fuzzy_test_computed_color(`oklch(from lch(20 0.00151 180) l calc(c * 1000) h)`, `oklch(0.31034434 0.00446082 179.50900432)`);
+    fuzzy_test_computed_color(`oklch(from lch(20 0.01 180) l calc(c * 1000) h)`, `oklch(0.31034162 0.02954142 179.50905119)`);
 
     fuzzy_test_computed_color(`oklch(from oklch(0 0.2 180) l c h)`, `oklch(0 0.2 180)`);
     fuzzy_test_computed_color(`oklch(from oklch(0.2 0 180) l c h)`, `oklch(0.2 0 180)`);
@@ -621,8 +621,8 @@
     fuzzy_test_computed_color(`oklch(from lab(0 0 0) l c h)`, `oklch(0 0 none)`);
     fuzzy_test_computed_color(`oklch(from oklab(0 0 0) l c h)`, `oklch(0 0 none)`);
 
-    fuzzy_test_computed_color(`oklch(from color(display-p3 0.08610937692934956 0.08610188202042188 0.08610387292083356) l c h)`, `oklch(0.2 0.000004 359.99999992)`);
-    fuzzy_test_computed_color(`oklch(from color(display-p3 0.0860989 0.08610658 0.08610454) l c h)`, `oklch(0.2 0.0000041 179.99967542)`);
+    fuzzy_test_computed_color(`oklch(from color(display-p3 0.08626827 0.08598627 0.08606127) l c h)`, `oklch(0.19996544 0.00015056 359.99644831)`);
+    fuzzy_test_computed_color(`oklch(from color(display-p3 0.08588134 0.08626534 0.08616334) l c h)`, `oklch(0.20004795 0.00020486 179.97939799)`);
 
     fuzzy_test_computed_color(`color(from oklch(0.5 0 180) display-p3 r g b)`, `color(display-p3 0.38857286 0.38857286 0.38857286)`);
     fuzzy_test_computed_color(`color(from oklch(0.5 0.000004 180) display-p3 r g b)`, `color(display-p3 0.38857286 0.38857286 0.38857286)`);
@@ -649,7 +649,7 @@
     fuzzy_test_computed_color(`color-mix(in oklch, hwb(0 100% 100%), oklch(0.11 0.33 0.44))`, `oklch(0.35409037 0.165 0.44)`);
 
     fuzzy_test_computed_color(`color-mix(in oklch, hwb(180 99.999% 0%), oklch(0.11 0.33 0.44))`, `oklch(0.55499621 0.165 0.44)`);
-    fuzzy_test_computed_color(`color-mix(in oklch, hwb(180 99.998% 0%), oklch(0.11 0.33 0.44))`, `oklch(0.55499807 0.1650027 278.79915223)`);
+    fuzzy_test_computed_color(`color-mix(in oklch, hwb(180 99.96% 0%), oklch(0.11 0.33 0.44))`, `oklch(0.5549614 0.16505405 278.79831251)`);
 
     fuzzy_test_computed_color(`color-mix(in oklch, lch(0 20 180), oklch(0.11 0.33 0.44))`, `oklch(0.02666949 0.29706278 87.85566456)`);
     fuzzy_test_computed_color(`color-mix(in oklch, lch(20 0 180), oklch(0.11 0.33 0.44))`, `oklch(0.21017241 0.165 0.44)`);
@@ -678,8 +678,8 @@
     fuzzy_test_computed_color(`color-mix(in oklch, lab(0 0 0), oklch(0.11 0.33 0.44))`, `oklch(0.055 0.165 0.44)`);
     fuzzy_test_computed_color(`color-mix(in oklch, oklab(0 0 0), oklch(0.11 0.33 0.44))`, `oklch(0.055 0.165 0.44)`);
 
-    fuzzy_test_computed_color(`color-mix(in oklch, color(display-p3 0.08610937692934956 0.08610188202042188 0.08610387292083356), oklch(0.11 0.33 0.44))`, `oklch(0.155 0.165002 0.21999996)`);
-    fuzzy_test_computed_color(`color-mix(in oklch, color(display-p3 0.0860989 0.08610658 0.08610454), oklch(0.11 0.33 0.44))`, `oklch(0.155 0.16500205 90.21983771)`);
+    fuzzy_test_computed_color(`color-mix(in oklch, color(display-p3 0.08626827 0.08598627 0.08606127), oklch(0.11 0.33 0.44))`, `oklch(0.15498272 0.16507528 0.21822416)`);
+    fuzzy_test_computed_color(`color-mix(in oklch, color(display-p3 0.08588134 0.08626534 0.08616334), oklch(0.11 0.33 0.44))`, `oklch(0.15502398 0.16510243 90.209699)`);
 
     // oklch - color-mix : single color input
     fuzzy_test_computed_color(`color-mix(in oklch, hsl(0 50% 50%))`, `oklch(0.55233858 0.16366995 24.21253898)`);
@@ -702,7 +702,7 @@
     fuzzy_test_computed_color(`color-mix(in oklch, hwb(0 100% 100%))`, `oklch(0.59818073 0 none)`);
 
     fuzzy_test_computed_color(`color-mix(in oklch, hwb(180 99.999% 0%))`, `oklch(0.99999242 0 none)`);
-    fuzzy_test_computed_color(`color-mix(in oklch, hwb(180 99.998% 0%))`, `oklch(0.99999614 0.0000054 197.15830446)`);
+    fuzzy_test_computed_color(`color-mix(in oklch, hwb(180 99.96% 0%))`, `oklch(0.9999228 0.00010809 197.15662501)`);
 
     fuzzy_test_computed_color(`color-mix(in oklch, lch(0 20 180))`, `oklch(-0.05666101 0.26412556 175.27132911)`);
     fuzzy_test_computed_color(`color-mix(in oklch, lch(20 0 180))`, `oklch(0.31034483 0 none)`);
@@ -713,7 +713,7 @@
     fuzzy_test_computed_color(`color-mix(in oklch, lch(0 0 0))`, `oklch(0 0 none)`);
 
     fuzzy_test_computed_color(`color-mix(in oklch, lch(20 0.0015 180))`, `oklch(0.31034483 0 none)`);
-    fuzzy_test_computed_color(`color-mix(in oklch, lch(20 0.00151 180))`, `oklch(0.31034434 0.00000446 179.50900432)`);
+    fuzzy_test_computed_color(`color-mix(in oklch, lch(20 0.01 180))`, `oklch(0.31034162 0.00002954 179.50905119)`);
 
     fuzzy_test_computed_color(`color-mix(in oklch, oklch(0 0.2 180))`, `oklch(0 0.2 180)`);
     fuzzy_test_computed_color(`color-mix(in oklch, oklch(0.2 0 180))`, `oklch(0.2 0 180)`);
@@ -731,8 +731,8 @@
     fuzzy_test_computed_color(`color-mix(in oklch, lab(0 0 0))`, `oklch(0 0 none)`);
     fuzzy_test_computed_color(`color-mix(in oklch, oklab(0 0 0))`, `oklch(0 0 none)`);
 
-    fuzzy_test_computed_color(`color-mix(in oklch, color(display-p3 0.08610937692934956 0.08610188202042188 0.08610387292083356))`, `oklch(0.2 0.000004 359.99999992)`);
-    fuzzy_test_computed_color(`color-mix(in oklch, color(display-p3 0.0860989 0.08610658 0.08610454))`, `oklch(0.2 0.0000041 179.99967542)`);
+    fuzzy_test_computed_color(`color-mix(in oklch, color(display-p3 0.08626827 0.08598627 0.08606127))`, `oklch(0.19996544 0.00015056 359.99644831)`);
+    fuzzy_test_computed_color(`color-mix(in oklch, color(display-p3 0.08588134 0.08626534 0.08616334))`, `oklch(0.20004795 0.00020486 179.97939799)`);
 </script>
 </body>
 </html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<style>
+  body {
+    margin: 0;
+  }
+  div {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+  }
+  #masked {
+    top: 50px;
+    left: 50px;
+    background: lime;
+    mask-image: linear-gradient(black, black);
+    mask-size: 50px 100px;
+    mask-repeat: no-repeat;
+  }
+  #below, #group {
+    top: 50px;
+    left: 200px;
+  }
+  #below {
+    background: black;
+  }
+  #group {
+    opacity: 0.5;
+  }
+  #group > div {
+    background: lime;
+  }
+</style>
+<div id="masked"></div>
+<div id="below"></div>
+<div id="group"><div></div></div>

@@ -1,0 +1,15 @@
+<!doctype html>
+<meta charset=utf-8>
+<meta http-equiv="Content-Security-Policy" content="img-src 'none'">
+<link rel="stylesheet" href="shared-stylesheet-mask-cache-bypass.css">
+<body style="margin:0">
+  <div class="bypass-mask"></div>
+  <script>
+    'use strict';
+    // Wait for style/layout to resolve the (shared) mask image before telling
+    // the parent we are ready to be captured.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      parent.postMessage('ready', '*');
+    }));
+  </script>
+</body>

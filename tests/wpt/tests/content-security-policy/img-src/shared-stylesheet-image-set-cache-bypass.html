@@ -1,0 +1,41 @@
+<!doctype html>
+<meta charset=utf-8>
+<title>CSP: img-src is enforced on image-set() background images from a memory-cached shared stylesheet</title>
+<link rel="author" title="Dileep Maurya" href="mailto:dileepmaurya@microsoft.com">
+<link rel="help" href="https://w3c.github.io/webappsec-csp/#directive-img-src">
+<link rel="match" href="shared-stylesheet-image-cache-bypass-ref.html">
+<!--
+  Regression test for crbug.com/504107363, image-set() variant.
+
+  Same scenario as shared-stylesheet-image-cache-bypass.html, but the shared
+  stylesheet references the image through image-set(). A same-origin iframe with
+  Content-Security-Policy: img-src 'none' must not render the cached image; the
+  box must paint blank, matching the reference.
+-->
+<link rel="stylesheet" href="support/shared-stylesheet-image-set-cache-bypass.css">
+<style>
+  html, body { margin: 0; }
+  #primer { position: absolute; top: -9999px; left: -9999px; }
+  iframe { border: none; width: 100px; height: 100px; display: block; }
+</style>
+<script>document.documentElement.classList.add('reftest-wait');</script>
+<div class="bypass-image" id="primer"></div>
+<script>
+  'use strict';
+  const primer = new Image();
+  primer.onload = () => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const iframe = document.createElement('iframe');
+      iframe.src = 'support/shared-stylesheet-image-set-cache-bypass-strict.html';
+      window.addEventListener('message', e => {
+        if (e.source === iframe.contentWindow && e.data === 'ready') {
+          requestAnimationFrame(() => requestAnimationFrame(() => {
+            document.documentElement.classList.remove('reftest-wait');
+          }));
+        }
+      });
+      document.body.appendChild(iframe);
+    }));
+  };
+  primer.src = '/images/green-100x100.png';
+</script>

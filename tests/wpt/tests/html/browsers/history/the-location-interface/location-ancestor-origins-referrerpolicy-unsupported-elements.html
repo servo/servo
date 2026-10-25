@@ -1,0 +1,72 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>location.ancestorOrigins on initial about:blank for unsupported elements</title>
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2068544">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2081573">
+<link rel="help" href="https://html.spec.whatwg.org/multipage/dom.html#ancestor-origins">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<body>
+  <script>
+    // <frame>: does not support referrerpolicy, so initial about:blank must NOT be masked
+    test((t) => {
+      assert_implements(location.ancestorOrigins);
+      const hostIframe = document.createElement("iframe");
+      document.body.append(hostIframe);
+      t.add_cleanup(() => hostIframe.remove());
+
+      const doc = hostIframe.contentDocument;
+      doc.open();
+      doc.write('<!doctype html><frameset><frame id="testFrame" referrerpolicy="no-referrer"></frameset>');
+      doc.close();
+
+      const frame = doc.getElementById("testFrame");
+      assert_equals(frame.contentWindow.location.href, "about:blank");
+
+      assert_array_equals(
+        Array.from(frame.contentWindow.location.ancestorOrigins),
+        [window.origin, window.origin],
+        "<frame> does not support referrerpolicy, so initial about:blank ancestorOrigins must not be masked"
+      );
+
+    }, "<frame> with referrerpolicy='no-referrer' does not mask initial about:blank ancestorOrigins");
+
+    // <object>: does not support referrerpolicy, so ancestorOrigins must strictly equal [window.origin]
+    promise_test(async (t) => {
+      assert_implements(location.ancestorOrigins);
+      const obj = document.createElement("object");
+      obj.setAttribute("referrerpolicy", "no-referrer");
+      obj.data = "about:blank";
+      const loaded = new Promise(resolve => obj.onload = resolve);
+      document.body.append(obj);
+      t.add_cleanup(() => obj.remove());
+      // https://html.spec.whatwg.org/multipage/iframe-embed-object.html#the-object-element
+      // <object> loading is asynchronous.
+      if (!obj.contentWindow) {
+        await loaded;
+      }
+      assert_array_equals(
+        Array.from(obj.contentWindow.location.ancestorOrigins),
+        [window.origin],
+        "<object> does not support referrerpolicy, so ancestorOrigins must be [window.origin]"
+      );
+    }, "<object> with referrerpolicy='no-referrer' ancestorOrigins must strictly equal [window.origin]");
+
+    // <embed>: WebIDL verification for initial about:blank, no contentWindow defined in the IDL.
+    test((t) => {
+      const embed = document.createElement("embed");
+      embed.setAttribute("referrerpolicy", "no-referrer");
+      embed.type = "text/html";
+      embed.src = "about:blank";
+      document.body.append(embed);
+      t.add_cleanup(() => embed.remove());
+
+      assert_equals(
+        embed.contentWindow,
+        undefined,
+        "<embed> does not expose contentWindow in WebIDL, so ancestorOrigins cannot be inspected"
+      );
+    }, "<embed> does not expose contentWindow on initial about:blank");
+  </script>
+</body>

@@ -7,6 +7,7 @@
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/common/get-host-info.sub.js"></script>
+<script src="/common/rendering-utils.js"></script>
 <style>
 iframe {
   frame-sizing: content-height;
@@ -29,50 +30,15 @@ async_test(t => {
   const heights = [];
 
   // Use `ResizeObserver` to catch all resizes.
-  const resizeObserver = new ResizeObserver((entries) => {
+  const resizeObserver = new ResizeObserver(t.step_func((entries) => {
     for (const entry of entries) {
       assert_equals(entry.target, iframe);
       if (!heights.length && !entry.contentRect.height) {
         continue;  // Disregard initial 0. It's sometimes flaky.
       }
       heights.push(entry.contentRect.height);
-      switch (numIframeLoadEvents) {
-        case 0:
-          break;
-        case 1:
-          if (origin === 'cross') {
-            // At this point, it could be either 2 or 3 heights.
-            if (heights.length === 3) {
-              assert_array_equals(heights, [150, 200, 150]);
-            } else {
-              assert_array_equals(heights, [150, 200]);
-            }
-          } else {
-            assert_array_equals(heights, [150, 200]);
-          }
-          break;
-        case 2:
-          if (origin === 'cross') {
-            // We expect heights to have transitioned: 150 -> 200 -> 150 -> 400.
-            const expect = [150, 200, 150, 400];
-            if (heights.length >= 4) {
-              assert_array_equals(heights, expect);
-            } else {
-              // Some resizes may be done before capturing start.
-              // Check if the last elements match.
-              assert_array_equals(heights, expect.splice(-heights.length));
-            }
-          } else {
-            assert_array_equals(heights, [150, 200, 400]);
-          }
-          t.done();
-          break;
-        default:
-          assert_less_than(numIframeLoadEvents, 3, "Unexpected iframe load events");
-          break;
-      }
     }
-  });
+  }));
   resizeObserver.observe(iframe);
 
   window.addEventListener('message', t.step_func((e) => {
@@ -91,11 +57,14 @@ async_test(t => {
     }
   }));
 
-  iframe.addEventListener('load', t.step_func(() => {
+  iframe.addEventListener('load', t.step_func(async () => {
     ++numIframeLoadEvents;
     switch (numIframeLoadEvents) {
-      case 1:
+      case 1: {
         assert_equals(iframe.offsetHeight, 200, "Initial height should be 200px");
+        // Wait for a frame so `ResizeObserver` captures the 200px height
+        // before navigating.
+        await waitForAtLeastOneFrame();
         let src = 'iframe-contents-slow.html';
         if (origin === 'cross') {
           const url = new URL(`resources/${src}`, window.location.href);
@@ -103,7 +72,21 @@ async_test(t => {
         }
         iframe.contentWindow.postMessage({action: 'navigate', url: src}, '*');
         break;
-      case 2:
+      }
+      case 2: {
+        await waitForAtLeastOneFrame();
+        const expect = origin === 'cross' ? [150, 200, 150, 400] : [150, 200, 400];
+        if (heights[0] !== 150) {
+          // The initial 150px height may not be captured if the first content
+          // finishes layout before the first rendering frame.
+          expect.shift();
+        }
+        assert_array_equals(heights, expect);
+        t.done();
+        break;
+      }
+      default:
+        assert_unreached("Unexpected iframe load events");
         break;
     }
   }));

@@ -1,0 +1,121 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Document-Isolation-Policy: crossOriginIsolated and SharedArrayBuffer in popups and frames</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="./resources/common.js"></script>
+<body>
+<script>
+"use strict";
+
+function openPopup(t, url) {
+  const popup = window.open(url);
+  t.add_cleanup(() => popup.close());
+}
+
+const getIsolation = "return { crossOriginIsolated, SharedArrayBuffer: typeof SharedArrayBuffer };";
+const isolated = { crossOriginIsolated: true, SharedArrayBuffer: "function" };
+const notIsolated = { crossOriginIsolated: false, SharedArrayBuffer: "undefined" };
+
+[
+  { policy: dip_require_corp, label: "with isolate-and-require-corp", expected: isolated, result: "is cross-origin isolated and exposes SharedArrayBuffer" },
+  { policy: "", label: "without a policy", expected: notIsolated, result: "is not cross-origin isolated and does not expose SharedArrayBuffer" },
+].forEach(({ policy, label, expected, result }) => {
+  promise_test(async t => {
+    const uuid = token();
+    openPopup(t, executorURL(policy, uuid));
+    assert_object_equals(await runInContext(uuid, getIsolation), expected);
+  }, `A popup ${label} ${result}`);
+
+  promise_test(async t => {
+    const uuid = token();
+    await createFrame(t, executorURL(policy, uuid));
+    assert_object_equals(await runInContext(uuid, getIsolation), expected);
+  }, `A same-origin frame ${label} in a document without a policy ${result}`);
+});
+
+promise_test(async t => {
+  const uuid = token();
+  await createFrame(t, executorURL(dip_require_corp, uuid, get_host_info().HTTPS_REMOTE_ORIGIN), "cross-origin-isolated");
+  assert_object_equals(await runInContext(uuid, getIsolation), isolated);
+}, `A cross-origin frame with isolate-and-require-corp and allow="cross-origin-isolated" in a document without a policy is cross-origin isolated and exposes SharedArrayBuffer`);
+
+promise_test(async t => {
+  const popupUUID = token();
+  openPopup(t, executorURL(dip_require_corp, popupUUID));
+  const frameUUID = token();
+  await runInContext(popupUUID, `
+    ${appendFrameScript(executorURL("", frameUUID))}
+    return "loaded";
+  `);
+  assert_object_equals(await runInContext(frameUUID, getIsolation), notIsolated);
+}, "A same-origin frame without a policy in a popup with isolate-and-require-corp is not cross-origin isolated and does not expose SharedArrayBuffer");
+
+promise_test(async t => {
+  const popupUUID = token();
+  openPopup(t, executorURL("", popupUUID, get_host_info().HTTP_ORIGIN));
+  const frameUUID = token();
+  await runInContext(popupUUID, `
+    ${appendFrameScript(executorURL(dip_require_corp, frameUUID))}
+    return "loaded";
+  `);
+  assert_object_equals(await runInContext(frameUUID, getIsolation), notIsolated);
+}, "A frame with isolate-and-require-corp in a popup that is not a secure context is not cross-origin isolated and does not expose SharedArrayBuffer");
+
+promise_test(async t => {
+  const uuid = token();
+  openPopup(t, executorURL(dip_require_corp, uuid));
+  assert_object_equals(await runInContext(uuid, `
+    const popup = window.open();
+    try {
+      return { crossOriginIsolated: popup.crossOriginIsolated, SharedArrayBuffer: typeof popup.SharedArrayBuffer };
+    } finally {
+      popup.close();
+    }
+  `), isolated);
+}, "An about:blank popup opened by a popup with isolate-and-require-corp is cross-origin isolated and exposes SharedArrayBuffer");
+
+[
+  { label: "A frame navigated to about:blank", navigate: `frame.src = "about:blank";` },
+  { label: "A srcdoc frame", navigate: `frame.srcdoc = "srcdoc";` },
+].forEach(({ label, navigate }) => {
+  promise_test(async t => {
+    const uuid = token();
+    openPopup(t, executorURL(dip_require_corp, uuid));
+    assert_object_equals(await runInContext(uuid, `
+      const frame = document.createElement("iframe");
+      await new Promise(resolve => {
+        frame.onload = resolve;
+        document.body.append(frame);
+      });
+      const loaded = new Promise(resolve => frame.onload = resolve);
+      ${navigate}
+      await loaded;
+      return { crossOriginIsolated: frame.contentWindow.crossOriginIsolated, SharedArrayBuffer: typeof frame.contentWindow.SharedArrayBuffer };
+    `), isolated);
+  }, `${label} in a popup with isolate-and-require-corp is cross-origin isolated and exposes SharedArrayBuffer`);
+});
+
+promise_test(async t => {
+  const frame = await createFrame(t, executorURL(dip_require_corp, token()));
+  const reply = new Promise(resolve => window.onmessage = ({ data }) => resolve(data));
+  frame.src = "data:text/html," + encodeURIComponent(`<script>parent.postMessage({ crossOriginIsolated, SharedArrayBuffer: typeof SharedArrayBuffer }, "*");<\/script>`);
+  assert_object_equals(await reply, notIsolated);
+}, "A data: URL document that a document without a policy navigates a frame with isolate-and-require-corp to is not cross-origin isolated and does not expose SharedArrayBuffer");
+
+promise_test(async t => {
+  const uuid = token();
+  openPopup(t, executorURL(dip_require_corp, uuid));
+  const dataURL = "data:text/html," + encodeURIComponent(`<script>parent.postMessage({ crossOriginIsolated, SharedArrayBuffer: typeof SharedArrayBuffer }, "*");<\/script>`);
+  assert_object_equals(await runInContext(uuid, `
+    ${appendFrameScript(executorURL("", token()), "cross-origin-isolated *")}
+    const reply = new Promise(resolve => window.onmessage = ({ data }) => resolve(data));
+    child.src = ${JSON.stringify(dataURL)};
+    return await reply;
+  `), isolated);
+}, "A data: URL document that a document with isolate-and-require-corp navigates a frame without a policy to is cross-origin isolated and exposes SharedArrayBuffer");
+</script>

@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>display on an SVG text content child element does not change how it is laid out</title>
+<link rel="help" href="https://svgwg.org/svg2-draft/render.html#VisibilityControl">
+<link rel="help" href="https://drafts.csswg.org/css-display/#unbox-svg">
+<link rel="match" href="display-on-svg-text-content-element-ref.html">
+<link rel="stylesheet" href="/fonts/ahem.css">
+<svg width="200" height="40">
+  <text x="0" y="20" style="font: 20px/1 Ahem; fill: green">
+    <tspan style="display: block">A</tspan><tspan style="display: inline-block">B</tspan><tspan style="display: table-cell">C</tspan><tspan style="display: flex">D</tspan>
+  </text>
+</svg>

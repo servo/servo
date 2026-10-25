@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<title>An @view-transition rule added right before a navigation enables an outbound transition</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/#setup-cross-document-view-transition">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+promise_test(async t => {
+  const frame = document.createElement("iframe");
+  frame.src = "resources/pageswap-no-opt-in.html";
+  const loaded = new Promise(resolve => frame.onload = resolve);
+  document.body.append(frame);
+  t.add_cleanup(() => frame.remove());
+  await loaded;
+  const win = frame.contentWindow;
+  await new Promise(resolve =>
+    win.requestAnimationFrame(() => win.requestAnimationFrame(resolve)));
+  const swapped = new Promise(resolve => {
+    win.addEventListener("pageswap", event => {
+      resolve(event.viewTransition !== null);
+      event.viewTransition?.skipTransition();
+    }, { once: true });
+  });
+  // Add the opt-in and navigate in the same task.
+  const style = win.document.createElement("style");
+  style.textContent = "@view-transition { navigation: auto; }";
+  win.document.head.append(style);
+  win.location.href = "/resources/blank.html?destination";
+  assert_true(await swapped, "The new rule enables an outbound transition");
+}, "pageswap includes a view transition when the opt-in is added in the navigating task");
+</script>

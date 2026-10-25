@@ -283,6 +283,55 @@ promise_test(t => {
 }, "Test that decodingInfo rejects if the audio configuration contentType has a codecs parameter that indicates both an audio and a video codec");
 
 promise_test(t => {
+  return navigator.mediaCapabilities
+      .decodingInfo({
+        type: 'file',
+        audio: {
+          contentType: 'audio/mp3',
+          channels: 2,
+          bitrate: 128000,
+          samplerate: 44100,
+        },
+      })
+      .then(ability => {
+        assert_equals(typeof ability.supported, 'boolean');
+      });
+}, 'Test that decodingInfo accepts a container implying a single codec without codecs parameter');
+
+promise_test(t => {
+  return navigator.mediaCapabilities
+      .decodingInfo({
+        type: 'file',
+        video: {
+          contentType: 'application/ogg; codecs=vp8',
+          width: 800,
+          height: 600,
+          bitrate: 3000,
+          framerate: 24,
+        },
+      })
+      .then(ability => {
+        assert_equals(typeof ability.supported, 'boolean');
+      });
+}, 'Test that decodingInfo accepts application/ogg with matching video codec');
+
+promise_test(t => {
+  return navigator.mediaCapabilities
+      .decodingInfo({
+        type: 'file',
+        audio: {
+          contentType: 'application/ogg; codecs=vorbis',
+          channels: 2,
+          bitrate: 128000,
+          samplerate: 44100,
+        },
+      })
+      .then(ability => {
+        assert_equals(typeof ability.supported, 'boolean');
+      });
+}, 'Test that decodingInfo accepts application/ogg with matching audio codec');
+
+promise_test(t => {
   return navigator.mediaCapabilities.decodingInfo({
     type: 'file',
     video: minimalVideoConfiguration,

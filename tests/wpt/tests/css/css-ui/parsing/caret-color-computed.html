@@ -30,16 +30,11 @@ test_computed_value("caret-color", "transparent", "rgba(0, 0, 0, 0)");
 // value is serialized.
 test_computed_value("caret-color", "red rgb(0, 255, 0)",
                     "rgb(255, 0, 0) rgb(0, 255, 0)");
-test_computed_value("caret-color", "auto rgb(0, 255, 0)",
-                    currentColor + " rgb(0, 255, 0)");
 test_computed_value("caret-color", "currentcolor red",
                     currentColor + " rgb(255, 0, 0)");
-test_computed_value("caret-color", "auto auto", currentColor);
 test_computed_value("caret-color", "rgb(0, 255, 0) auto",
                     "rgb(0, 255, 0)");
 test_computed_value("caret-color", "currentcolor currentcolor",
-                    currentColor + " " + currentColor);
-test_computed_value("caret-color", "auto currentcolor",
                     currentColor + " " + currentColor);
 test_computed_value("caret-color", "red transparent",
                     "rgb(255, 0, 0) rgba(0, 0, 0, 0)");

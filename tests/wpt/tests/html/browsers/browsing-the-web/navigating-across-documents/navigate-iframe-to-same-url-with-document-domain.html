@@ -1,0 +1,46 @@
+<!doctype html>
+<title>Navigating an iframe to its current URL replaces only when the initiator is same origin, whatever document.domain says</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/browsing-the-web.html#navigate-convert-to-replace">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script>
+// Same origin-domain is not same origin, and only a same-origin initiator turns a navigation to the current URL into a replace.
+document.domain = get_host_info().ORIGINAL_HOST;
+const path = "/html/browsers/browsing-the-web/navigating-across-documents/resources/set-document-domain.html";
+
+function loadFrame(frame, url) {
+  return new Promise(resolve => {
+    window.onmessage = event => {
+      if (event.source === frame.contentWindow)
+        resolve(event.data);
+    };
+    frame.src = url;
+  });
+}
+
+function testNavigationToCurrentURL(url, expectedNavigationType, description) {
+  promise_test(async t => {
+    const frame = document.createElement("iframe");
+    t.add_cleanup(() => frame.remove());
+    document.body.append(frame);
+    const initial = await loadFrame(frame, url);
+    const startingLength = history.length;
+    const result = await loadFrame(frame, url);
+    assert_equals(result.index, initial.index + (expectedNavigationType === "push" ? 1 : 0), "navigation.currentEntry.index");
+    assert_equals(history.length, startingLength + (expectedNavigationType === "push" ? 1 : 0), "history.length");
+    assert_equals(result.navigationType, expectedNavigationType, "navigationType");
+  }, description);
+}
+
+testNavigationToCurrentURL(get_host_info().HTTP_REMOTE_ORIGIN + path + "?domain=" + get_host_info().ORIGINAL_HOST, "push",
+  "Navigating a cross-origin iframe that is same origin-domain to its current URL pushes");
+testNavigationToCurrentURL(get_host_info().HTTP_ORIGIN + path, "replace",
+  "Navigating a same-origin iframe that is not same origin-domain to its current URL replaces");
+testNavigationToCurrentURL(get_host_info().HTTP_REMOTE_ORIGIN + path + "?domain=" + get_host_info().ORIGINAL_HOST + "#fragment", "push",
+  "Navigating a cross-origin iframe that is same origin-domain to its current URL with a fragment pushes");
+testNavigationToCurrentURL(get_host_info().HTTP_ORIGIN + path + "#fragment", "replace",
+  "Navigating a same-origin iframe that is not same origin-domain to its current URL with a fragment replaces");
+</script>
+</body>

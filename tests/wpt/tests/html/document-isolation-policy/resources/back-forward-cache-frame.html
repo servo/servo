@@ -1,0 +1,12 @@
+<!doctype html>
+<script>
+// The parent can be in another agent cluster, so it asks this document about itself.
+const id = crypto.randomUUID();
+const pageshows = [];
+addEventListener("pageshow", event => {
+  pageshows.push(event.persisted);
+  if (!event.persisted)
+    parent.postMessage("loaded", "*");
+});
+addEventListener("message", event => event.source.postMessage({ id, pageshows, crossOriginIsolated }, "*"));
+</script>

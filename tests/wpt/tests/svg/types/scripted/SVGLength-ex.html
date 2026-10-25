@@ -1,0 +1,44 @@
+<!DOCTYPE HTML>
+<title>SVGLength with 'ex' unit</title>
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/types.html#InterfaceSVGLength">
+<link rel="help" href="https://w3c.github.io/svgwg/svg2-draft/types.html#__svg__SVGLength__value">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+#ex_ref, text {
+  font-family:initial;
+  font-size:20px;
+}
+</style>
+<div id="ex_ref" style="height:10ex;"></div>
+<svg>
+  <text id="ex_test" x="10ex"/>
+</svg>
+<script>
+  let ex_ref = document.getElementById("ex_ref");
+  let ref_height = ex_ref.getBoundingClientRect().height;
+  let ex_test = document.getElementById("ex_test");
+  let ex_length = ex_test.x.baseVal[0];
+
+  test(() => {
+    assert_equals(ex_length.unitType, SVGLength.SVG_LENGTHTYPE_EXS);
+    assert_approx_equals(ex_length.value, ref_height, 0.1);
+  }, "ex unit in SVGLength");
+
+  test(() => {
+    ex_length.value = ref_height * 4;
+    assert_approx_equals(ex_length.valueInSpecifiedUnits, 40, 0.3);
+    ex_length.value = ref_height;
+    assert_approx_equals(ex_length.value, ref_height, 0.3);
+  }, "Convert back to ex from new user unit value");
+
+  test(() => {
+    let xHeight = ref_height / 10;
+    assert_not_equals(xHeight, Math.ceil(xHeight), "test font x-height must be fractional");
+    ex_test.setAttribute("x", "1ex");
+    // setAttribute rebuilds x.baseVal, so re-fetch the live SVGLength.
+    let ex_length_1 = ex_test.x.baseVal[0];
+    assert_approx_equals(ex_length_1.value, xHeight, 0.1);
+    assert_not_equals(ex_length_1.value, Math.ceil(xHeight));
+  }, "ex unit resolves against the fractional x-height");
+</script>

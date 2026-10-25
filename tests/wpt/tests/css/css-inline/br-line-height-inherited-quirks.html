@@ -1,0 +1,30 @@
+<!-- Quirks mode (no doctype) -->
+<html>
+<head>
+  <title>CSS Test: the line-height a BR inherits does not stretch the line box in quirks mode</title>
+  <link rel="help" href="https://quirks.spec.whatwg.org/#the-line-height-calculation-quirk">
+  <link rel="match" href="br-line-height-inherited-quirks-ref.html">
+  <link rel="stylesheet" type="text/css" href="/fonts/ahem.css">
+  <style>
+  body {
+      margin: 0;
+  }
+  .outer {
+      font: 20px/100px Ahem;
+  }
+  .box {
+      display: inline-block;
+      background: green;
+  }
+  .first {
+      line-height: 20px;
+  }
+  .second {
+      line-height: 40px;
+  }
+  </style>
+</head>
+<body>
+  <div class="outer"><div class="box"><span class="first">X</span><br><span class="second">X</span></div></div>
+</body>
+</html>
