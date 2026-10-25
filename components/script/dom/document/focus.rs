@@ -25,6 +25,7 @@ use crate::dom::bindings::root::MutNullableDom;
 use crate::dom::focusevent::FocusEventType;
 use crate::dom::node::focus::{FocusNavigationScopeOwner, FocusTrigger};
 use crate::dom::types::{Element, EventTarget, FocusEvent, HTMLElement, HTMLIFrameElement, Window};
+use crate::dom::virtualmethods::vtable_for;
 use crate::dom::{Document, Event, EventBubbles, EventCancelable, Node, NodeTraits};
 use crate::realms::enter_auto_realm;
 
@@ -229,9 +230,13 @@ impl DocumentFocusHandler {
 
         if let Some(previously_focused_element) = self.focused_area.borrow().element() {
             recursively_set_focus_status(no_gc, previously_focused_element, false);
+            previously_focused_element.set_focusring_state(no_gc, false);
         }
         if let Some(newly_focused_element) = new_focusable_area.element() {
             recursively_set_focus_status(no_gc, newly_focused_element, true);
+            if vtable_for(newly_focused_element.upcast()).focus_visible_applies() {
+                newly_focused_element.set_focusring_state(no_gc, true);
+            }
         }
 
         *self.focused_area.borrow_mut() = new_focusable_area;

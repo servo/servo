@@ -2250,6 +2250,8 @@ impl VirtualMethods for HTMLInputElement {
                 self.size.set(size.unwrap_or(DEFAULT_INPUT_SIZE));
             },
             local_name!("type") => {
+                let element = self.upcast::<Element>();
+
                 match mutation {
                     AttributeMutation::Set(previous_value) => {
                         // https://html.spec.whatwg.org/multipage/#input-type-change
@@ -2269,7 +2271,6 @@ impl VirtualMethods for HTMLInputElement {
                         self.is_textual_or_password
                             .set(self.input_type().is_textual_or_password());
 
-                        let element = self.upcast::<Element>();
                         if self.input_type().is_textual() {
                             let read_write = !(self.ReadOnly() || element.disabled_state());
                             element.set_read_write_state(cx.no_gc(), read_write);
@@ -2356,6 +2357,9 @@ impl VirtualMethods for HTMLInputElement {
 
                 self.update_checked_state(cx.no_gc());
                 self.update_indeterminate_state(cx.no_gc());
+                if element.focus_state() {
+                    element.set_focusring_state(cx.no_gc(), self.focus_visible_applies());
+                }
             },
             local_name!("value") if !self.value_dirty.get() => {
                 // This is only run when the `value` or `defaultValue` attribute is set. It
@@ -2565,6 +2569,16 @@ impl VirtualMethods for HTMLInputElement {
                 .unwrap()
                 .attribute_affects_presentational_hints(attr),
         }
+    }
+
+    /// <https://drafts.csswg.org/selectors/#the-focus-visible-pseudo>
+    fn focus_visible_applies(&self) -> bool {
+        // > If the element supports keyboard input (such as an input element,
+        // > or any other element that would triggers a virtual keyboard
+        // > to be shown on focus if a physical keyboard were not present), indicate focus.
+        // It is implementation-defined, but WPT tests expect it to be applied to textual
+        // input elements
+        self.is_textual_or_password()
     }
 }
 
