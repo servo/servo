@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::default::Default;
+use std::fmt::Write as _;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
@@ -111,7 +112,7 @@ impl URL {
         result.push('/');
 
         // Step 9. Generate a UUID [RFC4122] as a string and append it to result.
-        result.push_str(&id.to_string());
+        write!(result, "{id}").unwrap();
 
         // Step 10. Return result.
         result
