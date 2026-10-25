@@ -109,6 +109,7 @@ jobs:
           cp support/cmake/ServoConfigVersion.cmake target/artifacts/lib/cmake/Servo/
 
           # Copy C++ RAII header
+          mkdir -p target/artifacts/include/servo
           cp ffi/capi/servo_capi.hpp target/artifacts/include/servo/
 
           # Copy ANGLE EGL/GLES libraries from moztools/dependencies if available

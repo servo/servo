@@ -1121,7 +1121,11 @@ int test_webview_navigation_noops(void)
     servo_webview_stop(webview);
     size_t hist_count = 0;
     size_t hist_index = 0;
+    if (servo_webview_get_history_count(webview, NULL) != SERVO_ERROR_NULL_ARGUMENT)
+        return 1;
     if (servo_webview_get_history_count(webview, &hist_count) != SERVO_ERROR_OK)
+        return 1;
+    if (servo_webview_get_history_index(webview, NULL) != SERVO_ERROR_NULL_ARGUMENT)
         return 1;
     if (servo_webview_get_history_index(webview, &hist_index) != SERVO_ERROR_OK)
         return 1;
@@ -1615,11 +1619,7 @@ int test_webview_setters_null(void)
     size_t dummy_size = 0;
     if (servo_webview_get_history_count(NULL, &dummy_size) != SERVO_ERROR_NULL_ARGUMENT)
         return 1;
-    if (servo_webview_get_history_count(webview, NULL) != SERVO_ERROR_NULL_ARGUMENT)
-        return 1;
     if (servo_webview_get_history_index(NULL, &dummy_size) != SERVO_ERROR_NULL_ARGUMENT)
-        return 1;
-    if (servo_webview_get_history_index(webview, NULL) != SERVO_ERROR_NULL_ARGUMENT)
         return 1;
     if (servo_webview_traverse_history(NULL, 1) != SERVO_ERROR_NULL_ARGUMENT)
         return 1;
@@ -3148,9 +3148,15 @@ int test_webview_delegate_context_menu(void)
     if (servo == NULL)
         return 1;
 
-    struct ServoWebViewBuilder* builder = servo_webview_builder_create(servo);
-    if (builder == NULL)
+    RenderingContext* context = servo_rendering_context_create_software(100, 100);
+    if (context == NULL)
         return 1;
+
+    struct ServoWebViewBuilder* builder = servo_webview_builder_create(servo, context);
+    if (builder == NULL) {
+        servo_rendering_context_free(context);
+        return 1;
+    }
 
     struct ServoWebViewDelegate delegate = {
         .struct_size = sizeof(struct ServoWebViewDelegate),
