@@ -32,6 +32,7 @@ test_computed_value("outline-color", "red", "rgb(255, 0, 0)");
 test(() => {
   const target = document.getElementById('target');
   const target2 = document.getElementById('target2');
+  target.style.removeProperty('outline-color');
   assert_equals(getComputedStyle(target).outlineColor, 'auto');
   assert_equals(getComputedStyle(target2).outlineColor, currentColor);
 }, 'auto computes to itself or to currentColor depending on the value of outline-style');

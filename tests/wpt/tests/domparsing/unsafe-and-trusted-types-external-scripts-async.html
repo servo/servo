@@ -1,0 +1,120 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>External scripts from Trusted Types createParserOptions execute as async</title>
+<link rel="help" href="https://html.spec.whatwg.org/#html-parsing-methods" />
+<link rel="help" href="https://html.spec.whatwg.org/#prepare-the-script-element" />
+<link rel="help" href="https://html.spec.whatwg.org/#scriptTag" />
+<link rel="help" href="https://github.com/whatwg/html/issues/13079" />
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<meta
+  http-equiv="Content-Security-Policy"
+  content="require-trusted-types-for 'script';"
+/>
+<body>
+<script>
+  let createParserOptions = (options) => options;
+  trustedTypes.createPolicy("default", {
+    createHTML: (html) => html,
+    createScript: (script) => script,
+    createScriptURL: (url) => url,
+    createParserOptions: (options, type, sink) =>
+      createParserOptions(options, type, sink),
+  });
+
+  let counter = 0;
+  function setupEvents(t) {
+    const id = ++counter;
+    window.current_test_id = id;
+    window.events = [];
+    const slowRan = new Promise((resolve) => { window.on_slow = resolve; });
+    const fastRan = new Promise((resolve) => { window.resolve_fast = resolve; });
+    t.add_cleanup(() => {
+      if (window.current_test_id === id) {
+        delete window.current_test_id;
+      }
+      delete window.on_slow;
+      delete window.resolve_fast;
+      createParserOptions = (options) => options;
+    });
+    const markup =
+      `<script src="resources/slow.js?pipe=trickle(d0.3)&id=${id}"><` + "/script>" +
+      `<script src="data:text/javascript,if (window.current_test_id === ${id}) { window.events.push('fast'); window.resolve_fast(); }"><` + "/script>" +
+      `<script>if (window.current_test_id === ${id}) window.events.push('inline');<` + "/script>";
+    return { markup, slowRan, fastRan };
+  }
+
+  function invokeMethod(container, method, html, options) {
+    switch (method) {
+      case "setHTMLUnsafe":
+      case "appendHTMLUnsafe":
+      case "prependHTMLUnsafe":
+        container[method](html, options);
+        break;
+      case "beforeHTMLUnsafe":
+      case "afterHTMLUnsafe":
+      case "replaceWithHTMLUnsafe": {
+        const child = document.createElement("span");
+        container.replaceChildren(child);
+        child[method](html, options);
+        break;
+      }
+      case "innerHTML":
+        container.innerHTML = html;
+        break;
+      case "outerHTML": {
+        const child = document.createElement("span");
+        container.replaceChildren(child);
+        child.outerHTML = html;
+        break;
+      }
+      case "afterbegin":
+      case "beforeend":
+        container.insertAdjacentHTML(method, html);
+        break;
+      case "beforebegin":
+      case "afterend": {
+        const child = document.createElement("span");
+        container.replaceChildren(child);
+        child.insertAdjacentHTML(method, html);
+        break;
+      }
+    }
+  }
+
+  const trustedTypesVariants = [
+    "setHTMLUnsafe",
+    "appendHTMLUnsafe",
+    "prependHTMLUnsafe",
+    "beforeHTMLUnsafe",
+    "afterHTMLUnsafe",
+    "replaceWithHTMLUnsafe",
+    "innerHTML",
+    "outerHTML",
+    "beforebegin",
+    "afterbegin",
+    "beforeend",
+    "afterend",
+  ];
+
+  for (const variant of trustedTypesVariants) {
+    promise_test(async (t) => {
+      const { markup, slowRan, fastRan } = setupEvents(t);
+      createParserOptions = (options) => ({ ...options, runScripts: true });
+
+      const container = document.createElement("div");
+      document.body.append(container);
+      t.add_cleanup(() => container.remove());
+
+      invokeMethod(container, variant, markup, { runScripts: false });
+      for (const script of container.querySelectorAll("script")) {
+        assert_true(script.async, "script.async is true");
+      }
+      assert_array_equals(window.events, ["inline"], "inline script runs synchronously");
+      await Promise.all([slowRan, fastRan]);
+      assert_array_equals(window.events, ["inline", "fast", "slow"],
+                          "external scripts without async execute as async");
+    }, `${variant} with Trusted Types default policy setting runScripts: true: external scripts execute as async`);
+  }
+</script>
+</body>

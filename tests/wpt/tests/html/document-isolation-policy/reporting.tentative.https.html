@@ -1,0 +1,141 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Document-Isolation-Policy CORP violation reports</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/service-workers/service-worker/resources/test-helpers.sub.js"></script>
+<script src="./resources/common.js"></script>
+<body>
+<script>
+"use strict";
+
+// reporting-subresource-corp.tentative.https.html always sends Document-Isolation-Policy and
+// Document-Isolation-Policy-Report-Only together. These tests send them on their own, and with
+// Cross-Origin-Embedder-Policy. See https://github.com/WICG/document-isolation-policy/issues/10.
+
+const { ORIGIN, REMOTE_ORIGIN } = get_host_info();
+
+const header = (name, value) => `|header(${name},${value})`;
+const dip = header("document-isolation-policy", "isolate-and-require-corp");
+const dipReportOnly = header("document-isolation-policy-report-only", "isolate-and-require-corp");
+const coep = header("cross-origin-embedder-policy", "require-corp");
+
+function noCorpURL() {
+  return `${REMOTE_ORIGIN}/common/square.png?${token()}`;
+}
+
+function checkReport(report, type, contextURL, blockedURL, disposition) {
+  assert_equals(report.type, type, "type");
+  assert_equals(report.url, contextURL, "url");
+  assert_equals(report.body.type, "corp", "body.type");
+  assert_equals(report.body.blockedURL, blockedURL, "body.blockedURL");
+  assert_equals(report.body.disposition, disposition, "body.disposition");
+  assert_equals(report.body.destination, "", "body.destination");
+}
+
+// Creates a same-origin frame with headers, which no-cors fetches url and waits for count reports
+// through a ReportingObserver created with options. Resolves with what the frame saw, and its URL.
+async function fetchInFrameAndObserveReports(t, headers, url, count, options = {}) {
+  const [uuid, frameURL] = await createIframeContext(t, ORIGIN, headers);
+  const result = await new RemoteContext(uuid).execute_script(async (url, count, options) => {
+    const reports = [];
+    const observed = new Promise(resolve => {
+      if (!count) {
+        resolve();
+        return;
+      }
+      new ReportingObserver(list => {
+        reports.push(...list.map(report => report.toJSON()));
+        if (reports.length >= count)
+          resolve();
+      }, options).observe();
+    });
+
+    let blocked = false;
+    try {
+      await fetch(url, { mode: "no-cors", cache: "no-store" });
+    } catch {
+      blocked = true;
+    }
+
+    let canAccessParent = true;
+    try {
+      parent.document;
+    } catch {
+      canAccessParent = false;
+    }
+
+    await observed;
+    return { blocked, reports, crossOriginIsolated: self.crossOriginIsolated, canAccessParent };
+  }, [url, count, options]);
+  return { ...result, frameURL: new URL(frameURL).href };
+}
+
+promise_test(async t => {
+  const url = noCorpURL();
+  const { blocked, reports, crossOriginIsolated, canAccessParent, frameURL } = await fetchInFrameAndObserveReports(t, dipReportOnly, url, 1);
+  assert_false(blocked, "blocked");
+  assert_equals(reports.length, 1);
+  checkReport(reports[0], "dip", frameURL, url, "reporting");
+  assert_false(crossOriginIsolated, "crossOriginIsolated");
+  assert_true(canAccessParent, "same agent cluster as its parent");
+}, "Document-Isolation-Policy-Report-Only reports without blocking or isolating");
+
+promise_test(async t => {
+  const url = noCorpURL();
+  const { blocked, reports, frameURL } = await fetchInFrameAndObserveReports(t, dip, url, 1);
+  assert_true(blocked, "blocked");
+  assert_equals(reports.length, 1);
+  checkReport(reports[0], "dip", frameURL, url, "enforce");
+}, "Document-Isolation-Policy reports what it blocks without a report-only policy");
+
+promise_test(async t => {
+  const url = noCorpURL();
+  const { reports, frameURL } = await fetchInFrameAndObserveReports(t, dip, url, 1, { types: ["dip"] });
+  assert_equals(reports.length, 1);
+  checkReport(reports[0], "dip", frameURL, url, "enforce");
+}, "ReportingObserver can observe dip reports by type");
+
+promise_test(async t => {
+  const url = noCorpURL();
+  const { blocked, reports, frameURL } = await fetchInFrameAndObserveReports(t, coep + dip, url, 2);
+  assert_true(blocked, "blocked");
+  assert_equals(reports.length, 2);
+  assert_array_equals(reports.map(report => report.type).sort(), ["coep", "dip"]);
+  for (const report of reports)
+    checkReport(report, report.type, frameURL, url, "enforce");
+}, "A response that Cross-Origin-Embedder-Policy and Document-Isolation-Policy both block gets a report for each");
+
+async function takeEndpointReports(key) {
+  for (let i = 0; i < 50; ++i) {
+    const response = await fetch(`resources/report.py?key=${key}`, { cache: "no-store" });
+    const reports = await response.json();
+    if (reports.length)
+      return reports;
+    await new Promise(resolve => step_timeout(resolve, 100));
+  }
+  return [];
+}
+
+promise_test(async t => {
+  const endpoint = token();
+  const reportOnlyEndpoint = token();
+  const endpointURL = key => `/html/document-isolation-policy/resources/report.py?key=${key}`;
+  const headers = header("document-isolation-policy", `isolate-and-require-corp;report-to="endpoint"`) +
+    header("document-isolation-policy-report-only", `isolate-and-require-corp;report-to="report-only-endpoint"`) +
+    header("reporting-endpoints", `endpoint="${endpointURL(endpoint)}"\\, report-only-endpoint="${endpointURL(reportOnlyEndpoint)}"`);
+
+  const url = noCorpURL();
+  const { frameURL } = await fetchInFrameAndObserveReports(t, headers, url, 0);
+
+  const [enforceReports, reportOnlyReports] = await Promise.all([takeEndpointReports(endpoint), takeEndpointReports(reportOnlyEndpoint)]);
+  assert_equals(enforceReports.length, 1, "reports sent to endpoint");
+  checkReport(enforceReports[0], "dip", frameURL, url, "enforce");
+  assert_equals(reportOnlyReports.length, 1, "reports sent to report-only-endpoint");
+  checkReport(reportOnlyReports[0], "dip", frameURL, url, "reporting");
+}, "Document-Isolation-Policy reports go to the report-to endpoints");
+</script>

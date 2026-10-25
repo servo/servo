@@ -70,9 +70,16 @@ async def assert_pointer_events(
 
 
 async def get_inview_center_bidi(bidi_session, context, element):
-    elem_rect = await get_element_rect(bidi_session,
-                                       context=context,
-                                       element=element)
+    # The in-view center point is based on the element's first client rect,
+    # which differs from its bounding rect when it has multiple fragments:
+    # https://w3c.github.io/webdriver/#dfn-center-point
+    result = await bidi_session.script.call_function(
+        function_declaration="el => el.getClientRects()[0].toJSON()",
+        arguments=[element],
+        target=ContextTarget(context["context"]),
+        await_promise=False,
+    )
+    elem_rect = remote_mapping_to_dict(result["value"])
     viewport_rect = await get_viewport_rect(bidi_session, context=context)
 
     x = {

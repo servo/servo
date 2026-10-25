@@ -52,6 +52,8 @@ td {
 {{tests}}
 </div>
 <script>
+promise_setup(() => document.fonts.ready);
+
 if (window.location.search == "?wait") {
     console.log("Sleeping 5 secs for debug");
     setup({explicit_done:true});
@@ -63,7 +65,7 @@ if (window.location.search == "?wait") {
 function run() {
     Array.prototype.forEach.call(document.querySelectorAll(".test"), function (node) {
         var title = node.previousElementSibling.textContent;
-        test(function () {
+        promise_test(async function () {
             try {
                 var targetNode = node.querySelector(".target");
                 var fontSize = parseFloat(getComputedStyle(targetNode).fontSize);

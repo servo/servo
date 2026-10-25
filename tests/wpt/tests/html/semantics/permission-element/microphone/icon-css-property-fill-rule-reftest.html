@@ -1,0 +1,10 @@
+<!doctype html>
+<title>The microphone icon of the element should change if fill-rule is set to nonzero</title>
+<link rel="help" href="https://github.com/WICG/PEPC/blob/main/explainer.md">
+<link rel="mismatch" href="icon-css-property-fill-rule-reftest-ref.html">
+<style>
+  ::permission-icon {
+    fill-rule: nonzero;
+  }
+</style>
+<microphone id="microphone"></microphone>

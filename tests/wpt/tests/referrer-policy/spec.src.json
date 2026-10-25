@@ -861,6 +861,7 @@
       "subresource": [
         "a-tag",
         "area-tag",
+        "mathml-a-tag",
         "svg-a-tag"
       ],
       "expectation": "*"
@@ -1015,6 +1016,9 @@
       "iframe-blank": [
         "meta"
       ],
+      "iframe-data": [
+        "meta"
+      ],
       "srcdoc": [
         "meta"
       ],
@@ -1073,6 +1077,9 @@
       // TODO(https://github.com/web-platform-tests/wpt/issues/21815):
       // Support this.
       "picture-tag": [],
+      "mathml-a-tag": [
+        "attr"
+      ],
       "script-tag": [
         "attr"
       ],

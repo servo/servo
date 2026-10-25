@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Changing generated text in a repeated table header and footer</title>
+<link rel="author" title="Emilio Cobos Álvarez" href="mailto:emilio@crisal.io">
+<link rel="author" title="Mozilla" href="https://mozilla.org">
+<link rel="help" href="https://bugzilla.mozilla.org/show_bug.cgi?id=2081977">
+<!-- Really a crashtest but since we can't really have print crashtests, we assert that we print something -->
+<link rel="mismatch" href="/css/reference/blank.html">
+<style>
+@page { size: 360px 420px; margin: 15px; }
+body { font-size: 12px; }
+#box { container: box / inline-size; width: 220px; }
+table { width: 100%; }
+table::before { display: table-header-group; content: "a"; }
+table::after { display: table-footer-group; content: "a"; }
+@container box (min-width: 100px) {
+  table::before, table::after { content: " "; }
+}
+td { height: 180px; }
+</style>
+<div id="box">
+  <table>
+    <tr><td>one</td></tr>
+    <tr><td>two</td></tr>
+    <tr><td>three</td></tr>
+    <tr><td>four</td></tr>
+    <tr><td>five</td></tr>
+    <tr><td>six</td></tr>
+    <tr><td>seven</td></tr>
+    <tr><td>eight</td></tr>
+  </table>
+</div>

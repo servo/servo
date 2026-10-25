@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<title>Superseding a navigation discards its captured old state, even for a cross-origin page</title>
+<link rel="help" href="https://drafts.csswg.org/css-view-transitions-2/#cross-document-view-transitions">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="resources/common.js"></script>
+<script>
+// The popup pages report plain strings; ignore the harness's object messages.
+function waitForMessage(prefix) {
+  return new Promise(resolve => {
+    const onMessage = e => {
+      if (typeof e.data === 'string' && e.data.startsWith(prefix)) {
+        removeEventListener('message', onMessage);
+        resolve(e.data);
+      }
+    };
+    addEventListener('message', onMessage);
+  });
+}
+
+promise_test(async t => {
+  assertViewTransitionOnNavigationImplemented();
+
+  const dir = new URL('resources/', location.href);
+  const oldURL = new URL('aborted-navigation-old.html', dir).href;
+  const slowURL = new URL('aborted-navigation-slow.html?slow', dir).href;
+  // The final page is cross-origin. The captured state must never reach
+  // another origin, also on configurations where cross-site documents share a
+  // content process.
+  const newURL = new URL(
+      new URL('aborted-navigation-new.html', dir).pathname,
+      get_host_info().OTHER_ORIGIN).href;
+
+  // 1. Open the old page, which opts into cross-document view transitions,
+  // and wait until it has been revealed.
+  const loaded = waitForMessage('loaded');
+  let popup;
+  await test_driver.bless('open popup', () => {
+    popup = window.open(oldURL);
+  });
+  t.add_cleanup(() => popup.close());
+  await loaded;
+
+  // 2. Navigate to the slow page. The old page's pageswap must carry a view
+  // transition, so its old state is captured for the incoming document.
+  const pageswap = waitForMessage('pageswap:');
+  popup.location = slowURL;
+  assert_equals(await pageswap, 'pageswap:transition',
+                'old page started an outbound view transition');
+
+  // 3. Wait until the slow page is committed. It is render-blocked and never
+  // reveals, so the captured state stays waiting for a reveal.
+  await t.step_wait(() => {
+    try {
+      return popup.document.URL.includes('?slow');
+    } catch (e) {
+      return false;
+    }
+  }, 'slow document committed');
+
+  // 4. Supersede that navigation with the cross-origin final page.
+  const pagereveal = waitForMessage('pagereveal:');
+  popup.location = newURL;
+
+  // 5. The final page must not adopt the state captured for the slow page.
+  assert_equals(await pagereveal, 'pagereveal:null',
+                'final page must not adopt the aborted navigation\'s state');
+});
+</script>

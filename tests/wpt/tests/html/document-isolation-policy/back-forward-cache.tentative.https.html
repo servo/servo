@@ -1,0 +1,58 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Document-Isolation-Policy: back/forward cache</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="/html/browsers/browsing-the-web/back-forward-cache/resources/helper.sub.js"></script>
+<script>
+"use strict";
+
+const dip = "&pipe=header(Document-Isolation-Policy,isolate-and-require-corp)";
+const coopAndCoep = "&pipe=header(Cross-Origin-Opener-Policy,same-origin)|header(Cross-Origin-Embedder-Policy,require-corp)";
+
+// Opens a document with fromPolicy in a new top-level traversable, navigates it to a document on toOrigin with
+// toPolicy, and goes back. The first document has to come back from the back/forward cache, as cross-origin
+// isolated as it was.
+function runPolicyTest({ fromPolicy, toOrigin, toPolicy }, description) {
+  promise_test(async t => {
+    const pageA = new RemoteContext(token());
+    const pageB = new RemoteContext(token());
+    const urlA = originSameOrigin + executorPath + pageA.context_id + fromPolicy;
+    const urlB = toOrigin + executorPath + pageB.context_id + toPolicy;
+    window.open(urlA, "_blank", "noopener");
+    await pageA.execute_script(waitForPageShow);
+    const crossOriginIsolated = await pageA.execute_script(() => self.crossOriginIsolated);
+    assert_equals(crossOriginIsolated, fromPolicy !== "", "crossOriginIsolated before navigating");
+    await pageA.execute_script(() => window.marker = "before navigating");
+
+    await navigateAndThenBack(pageA, pageB, urlB);
+    await assert_bfcached(pageA);
+    assert_equals(await pageA.execute_script(() => window.marker), "before navigating");
+    assert_equals(await pageA.execute_script(() => self.crossOriginIsolated), crossOriginIsolated, "crossOriginIsolated after going back");
+  }, description);
+}
+
+runPolicyTest({ fromPolicy: "", toOrigin: originCrossSite, toPolicy: "" },
+  "A document without a policy is restored after a cross-site navigation");
+runPolicyTest({ fromPolicy: coopAndCoep, toOrigin: originCrossSite, toPolicy: "" },
+  "A cross-origin isolated document with COOP and COEP is restored after a cross-site navigation");
+runPolicyTest({ fromPolicy: dip, toOrigin: originCrossSite, toPolicy: "" },
+  "A document with a policy is restored after a cross-site navigation");
+runPolicyTest({ fromPolicy: dip, toOrigin: originCrossSite, toPolicy: dip },
+  "A document with a policy is restored after a cross-site navigation to a document with a policy");
+runPolicyTest({ fromPolicy: dip, toOrigin: originSameOrigin, toPolicy: "" },
+  "A document with a policy is restored after a same-origin navigation to a document without one");
+runPolicyTest({ fromPolicy: "", toOrigin: originSameOrigin, toPolicy: dip },
+  "A document without a policy is restored after a same-origin navigation to a document with one");
+runPolicyTest({ fromPolicy: dip, toOrigin: originSameOrigin, toPolicy: dip },
+  "A document with a policy is restored after a same-origin navigation to a document with a policy");
+runPolicyTest({ fromPolicy: dip, toOrigin: originSameSite, toPolicy: dip },
+  "A document with a policy is restored after a same-site navigation to a document with a policy");
+runPolicyTest({ fromPolicy: dip, toOrigin: originSameOrigin, toPolicy: coopAndCoep },
+  "A document with a policy is restored after a same-origin navigation to a cross-origin isolated document with COOP and COEP");
+runPolicyTest({ fromPolicy: coopAndCoep, toOrigin: originSameOrigin, toPolicy: dip },
+  "A cross-origin isolated document with COOP and COEP is restored after a same-origin navigation to a document with a policy");
+</script>

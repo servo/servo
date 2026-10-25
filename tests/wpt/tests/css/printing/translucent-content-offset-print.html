@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>Translucent content away from the page origin prints in the right place</title>
+<link rel="match" href="translucent-content-offset-print-ref.html">
+<link rel="help" href="https://drafts.csswg.org/css-color-4/#transparency">
+<style>
+  :root {
+    print-color-adjust: exact;
+  }
+  body {
+    margin: 0;
+  }
+  div {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+  }
+  #corner {
+    top: 0;
+    left: 0;
+    background: blue;
+  }
+  #below, #above {
+    top: 300px;
+    left: 300px;
+  }
+  #below {
+    background: black;
+  }
+  #above {
+    background: rgba(0, 255, 0, 0.5);
+  }
+</style>
+<div id="corner"></div>
+<div id="below"></div>
+<div id="above"></div>

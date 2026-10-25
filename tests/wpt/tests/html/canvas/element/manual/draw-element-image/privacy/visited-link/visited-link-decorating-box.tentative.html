@@ -1,0 +1,40 @@
+<!DOCTYPE HTML>
+<html class="reftest-wait">
+<head>
+  <title>drawElementImage does not belong to enclosing decorating box</title>
+  <link rel="match" href="visited-link-decorating-box-ref.html">
+  <script src="/common/reftest-wait.js"></script>
+  <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
+
+  <style>
+    a {
+      color: green;
+    }
+    a:visited {
+      color: red;
+    }
+    canvas {
+      vertical-align: bottom;
+    }
+  </style>
+</head>
+<body>
+  <a href="">hello <canvas id="canvas" width="100" height="100" content=drawable>
+    <div drawable>canvas</div>
+  </canvas> world</a>
+
+  <script type="module">
+    window.onload = () => {
+      new ResizeObserver(entries => {
+        canvas.width = entries[0].devicePixelContentBoxSize[0].inlineSize;
+        canvas.height = entries[0].devicePixelContentBoxSize[0].blockSize;
+        waitForCanvasPaint(canvas).then(() => {
+          const context = canvas.getContext("2d");
+          context.drawElementImage(canvas.firstElementChild, 0, 0);
+          takeScreenshot();
+        });
+      }).observe(canvas, {box: "device-pixel-content-box"});
+    };
+  </script>
+</body>
+</html>

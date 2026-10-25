@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>min-width: min-content contributes the content based min-content size, not a fixed width</title>
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#contributions">
+<link rel="help" href="https://drafts.csswg.org/css-sizing-3/#min-size-properties">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+
+<style>
+  .shrink { display: inline-block; }
+  .child > i { display: block; width: 60px; height: 20px; }
+</style>
+
+<div id="log"></div>
+<div id="container"></div>
+
+<script>
+// The child's content based min-content width is 60px throughout. A `width` declaration must not
+// stand in for that when min-width: min-content is resolved, because min-width is meant to floor the
+// box at what its own content needs.
+const cases = [
+  {
+    css: "min-width: min-content; max-width: 50px",
+    expected: 60,
+    note: "no width, for comparison: min-width floors above the 50px maximum",
+  },
+  {
+    css: "width: 200px; min-width: min-content; max-width: 50px",
+    expected: 60,
+    note: "the 200px must not be read as the min-content size",
+  },
+  {
+    css: "width: 200px; max-width: 50px",
+    expected: 50,
+    note: "no min-width, for comparison",
+  },
+];
+
+const container = document.getElementById("container");
+
+for (const testCase of cases) {
+  const shrink = document.createElement("div");
+  shrink.className = "shrink";
+  shrink.innerHTML = '<div class="child"><i></i></div>';
+  shrink.firstChild.style.cssText = testCase.css;
+  container.appendChild(shrink);
+  testCase.shrink = shrink;
+  testCase.child = shrink.firstChild;
+}
+
+for (const testCase of cases) {
+  const label = testCase.css + " — " + testCase.note;
+
+  test(() => {
+    assert_equals(testCase.child.getBoundingClientRect().width, testCase.expected);
+  }, "used width, " + label);
+
+  // The shrink-to-fit parent is sized from what the child contributes, so the two have to agree.
+  test(() => {
+    assert_equals(testCase.shrink.getBoundingClientRect().width, testCase.expected);
+  }, "shrink-to-fit parent, " + label);
+}
+</script>

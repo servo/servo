@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset=utf-8>
+<link rel="stylesheet" href="shared-stylesheet-image-set-cache-bypass.css">
+<body style="margin:0">
+  <div class="bypass-image"></div>
+  <script>
+    'use strict';
+    // No CSP here. Ensure the shared image-set() background image is fully
+    // loaded, then signal so the parent can capture a stable, painted frame.
+    const primer = new Image();
+    primer.onload = () => requestAnimationFrame(() => requestAnimationFrame(() => {
+      parent.postMessage('ready', '*');
+    }));
+    primer.onerror = () => parent.postMessage('ready', '*');
+    primer.src = '/images/green-100x100.png';
+  </script>
+</body>

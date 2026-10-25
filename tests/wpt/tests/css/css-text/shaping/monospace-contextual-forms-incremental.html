@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+<meta charset="utf-8">
+<title>Monospace contextual forms survive incremental text changes</title>
+<link rel="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
+<link rel="help" href="https://drafts.csswg.org/css-text/#boundary-shaping">
+<link rel="help" href="https://drafts.csswg.org/css-fonts/#font-variant-numeric-prop">
+<link rel="match" href="reference/monospace-contextual-forms-incremental-ref.html">
+<meta name="assert" content="Appending text must preserve contextual forms.">
+<style>
+@font-face {
+  font-family: HasubiMono;
+  src: url("/fonts/hasubi-mono/HasubiMono-Regular.woff2");
+}
+
+.sample {
+  font: 32px / 40px HasubiMono;
+  font-variant-numeric: ordinal;
+  white-space: pre;
+}
+</style>
+<body>
+<div class="sample" id="target">1a</div>
+<script>
+async function run() {
+  await document.fonts.load("32px HasubiMono");
+  // This test cases uses contextual ordinals to verify that appending text preserves the shaping.
+  const target = document.getElementById("target");
+  target.offsetWidth;  // Ensure the text is laid out before editing.
+  target.firstChild.appendData(" ");
+  document.documentElement.classList.remove("reftest-wait");
+}
+run();
+</script>
+</body>
+</html>

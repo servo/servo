@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Test Reference</title>
+<style>
+  :root {
+    print-color-adjust: exact;
+  }
+  body {
+    margin: 0;
+  }
+  div {
+    position: absolute;
+    width: 100px;
+    height: 100px;
+  }
+  #corner {
+    top: 0;
+    left: 0;
+    background: blue;
+  }
+  .left {
+    top: 250px;
+    left: 250px;
+  }
+  .right {
+    top: 250px;
+    left: 450px;
+  }
+  #masked {
+    background: lime;
+  }
+  #blended {
+    background: rgb(0, 128, 0);
+  }
+  .frame {
+    box-sizing: border-box;
+    border: 5px solid black;
+  }
+</style>
+<div id="corner"></div>
+<div id="masked" class="left"></div>
+<div id="blended" class="right"></div>
+<div class="left frame"></div>
+<div class="right frame"></div>

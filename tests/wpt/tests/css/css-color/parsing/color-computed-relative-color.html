@@ -244,6 +244,9 @@
   // color-mix
   fuzzy_test_computed_color(`hsl(from color-mix(in srgb, red, red) h s l / alpha)`, `color(srgb 1 0 0)`);
 
+  // A naive f32 implementation would yield a chromatic color after conversion from lch to hsl
+  fuzzy_test_computed_color(`hsl(from lch(0.1 0 0) h s l)`, `hsl(none 0% 0.14303169%)`);
+
   // hwb(from ...)
 
   // Testing no modifications.

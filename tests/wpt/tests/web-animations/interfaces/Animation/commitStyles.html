@@ -400,6 +400,82 @@ promise_test(async t => {
   const div = createDiv(t);
   div.style.opacity = '0.1';
 
+  const animation = div.animate(
+    { opacity: 0.2 },
+    { duration: 1, fill: 'forwards' }
+  );
+  await animation.finished;
+
+  const replacingAnimation = div.animate(
+    { opacity: 0.3 },
+    { duration: 1, fill: 'forwards' }
+  );
+  await replacingAnimation.finished;
+
+  assert_equals(animation.replaceState, 'removed');
+
+  animation.cancel();
+  animation.commitStyles();
+  replacingAnimation.cancel();
+
+  // The canceled animation is not in effect, and the replacing animation has a
+  // higher composite order, so neither should contribute to the committed
+  // value.
+  assert_numeric_style_equals(getComputedStyle(div).opacity, 0.1);
+}, 'Does not commit the value of the replacing animation when committing a'
+   + ' canceled animation with a removed replace state');
+
+test(t => {
+  const div = createDiv(t);
+  div.style.opacity = '0.1';
+
+  const animA = div.animate(
+    { opacity: 0.2 },
+    { duration: 1000, delay: 1000 }
+  );
+  const animB = div.animate({ opacity: 0.5 }, 1000);
+  animA.currentTime = 500;
+  animB.currentTime = 500;
+
+  // animA is in its start delay, so it is not in effect. animB has a higher
+  // composite order, so it should not contribute to the committed value.
+  animA.commitStyles();
+  animA.cancel();
+  animB.cancel();
+
+  assert_numeric_style_equals(getComputedStyle(div).opacity, 0.1);
+}, 'Does not commit values of animations with a higher composite order when'
+   + ' the animation is not in effect');
+
+test(t => {
+  const div = createDiv(t);
+  div.style.opacity = '0.1';
+
+  const animA = div.animate({ opacity: 0.2 }, 1000);
+  const animB = div.animate(
+    { opacity: 0.5 },
+    { duration: 1000, delay: 1000 }
+  );
+  const animC = div.animate({ opacity: 0.7 }, 1000);
+  animA.currentTime = 500;
+  animB.currentTime = 500;
+  animC.currentTime = 500;
+
+  // animB is in its start delay, so it is not in effect. The committed value
+  // should be the result of animA alone: 0.1 + (0.2 - 0.1) * 0.5 = 0.15.
+  animB.commitStyles();
+  animA.cancel();
+  animB.cancel();
+  animC.cancel();
+
+  assert_numeric_style_equals(getComputedStyle(div).opacity, 0.15);
+}, 'Commits values of animations with a lower composite order when the'
+   + ' animation is not in effect');
+
+promise_test(async t => {
+  const div = createDiv(t);
+  div.style.opacity = '0.1';
+
   const animA = div.animate(
     { opacity: '0.2', composite: 'add' },
     { duration: 1, fill: 'forwards' }

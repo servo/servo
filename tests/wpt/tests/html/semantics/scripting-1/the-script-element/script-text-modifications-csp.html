@@ -26,7 +26,7 @@ t.step_timeout(changeScriptText, 500);
 </script>
 
 <!-- This is "a style sheet that is blocking scripts" and thus ... -->
-<link rel="stylesheet" href="/common/slow.py?pipe=trickle(d1)"></link>
+<link rel="stylesheet" href="/common/slow.py?pipe=trickle(d1)">
 
 <!-- This inline script becomes a parser-blocking script, and thus
 the step_timeout is evaluated after script0 is inserted into DOM,

@@ -5,7 +5,7 @@
 <title>CSS UI Level 4: parsing caret-color with invalid values</title>
 <link rel="author" title="Eric Willigers" href="mailto:ericwilligers@chromium.org">
 <link rel="help" href="https://drafts.csswg.org/css-ui/#caret-color">
-<meta name="assert" content="caret-color supports only the grammar '[ auto | <color> ] [auto | <color>]?'.">
+<meta name="assert" content="caret-color supports the grammar 'auto | <color> [auto | <color>]?'.">
 <script src="/resources/testharness.js"></script>
 <script src="/resources/testharnessreport.js"></script>
 <script src="/css/support/parsing-testcommon.js"></script>
@@ -16,7 +16,12 @@ test_invalid_value("caret-color", "none");
 test_invalid_value("caret-color", "invert");
 test_invalid_value("caret-color", "50%");
 
-// Two-value form: only [ auto | <color> ] [auto | <color>]? is allowed.
+// Two-value forms must begin with a color, not auto.
+test_invalid_value("caret-color", "auto auto");
+test_invalid_value("caret-color", "auto rgba(10, 20, 30, 0.4)");
+test_invalid_value("caret-color", "auto transparent");
+test_invalid_value("caret-color", "auto rgb(0, 255, 0)");
+test_invalid_value("caret-color", "auto currentcolor");
 test_invalid_value("caret-color", "red green blue");
 test_invalid_value("caret-color", "red, green");
 test_invalid_value("caret-color", "red  none");

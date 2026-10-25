@@ -1,0 +1,123 @@
+<!doctype html>
+<title>img parse a sizes attribute: two-dimensional sizes=auto</title>
+<link rel="help" href="https://html.spec.whatwg.org/multipage/images.html#parse-a-sizes-attribute">
+<link rel="help" href="https://github.com/whatwg/html/pull/13053">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+/* Keep images small so that lazy images are in the viewport and load. */
+img { width: 10px; height: 100px; }
+</style>
+<div id=log></div>
+<!-- ref1 selects the 50w candidate, ref2 selects the 51w candidate. -->
+<img srcset='/images/green-1x1.png?ref1 50w, /images/green-16x16.png?ref1 51w' sizes='1px' id=ref1>
+<img srcset='/images/green-1x1.png?ref2 50w, /images/green-16x16.png?ref2 51w' sizes='1000px' id=ref2>
+<script>
+"use strict";
+
+// https://github.com/web-platform-tests/rfcs/pull/75
+let async_promise_test = (promise, description) => {
+  async_test(test => {
+    promise(test)
+      .then(() => {test.done();})
+      .catch(test.step_func(error => { throw error; }));
+  }, description);
+};
+
+function waitForLoad(img) {
+  return new Promise((resolve, reject) => {
+    img.onload = resolve;
+    img.onerror = reject;
+  });
+}
+
+function baseUrl(url) {
+  assert_greater_than(url.indexOf('?'), -1, 'expected a "?" in currentSrc');
+  return url.split('?')[0];
+}
+
+function check(imgOrPicture, img, refId) {
+  const ref = document.getElementById(refId);
+  async_promise_test(async (t) => {
+    let expect = ref.currentSrc;
+    if (expect) {
+      expect = expect.split('?')[0];
+    }
+    if (expect === '' || expect === null || expect === undefined) {
+      assert_unreached('ref currentSrc was ' + format_value(expect));
+    }
+    await waitForLoad(img);
+    t.step(() => {
+      assert_equals(baseUrl(img.currentSrc), expect);
+    });
+  }, imgOrPicture.outerHTML);
+}
+
+// `h` holds the height descriptors (if any) of the 50w and 51w candidates.
+// The concrete object size of each img is 10px x 100px.
+const tests = [
+  {loading: 'lazy', sizes: 'auto', width: '1', height: '1', h: ['', ''], ref: 'ref1'},
+  {loading: 'lazy', sizes: 'auto', width: '1', height: '1', style: 'object-fit: fill', h: ['', ''], ref: 'ref1'},
+  {loading: 'lazy', sizes: 'auto', width: '1', height: '1', style: 'object-fit: none', h: ['', ''], ref: 'ref1'},
+  {loading: 'lazy', sizes: 'auto', width: '1', height: '1', style: 'object-fit: contain', h: ['', ''], ref: 'ref1'},
+  {loading: 'lazy', sizes: 'auto', width: '1', height: '1', style: 'object-fit: scale-down', h: ['', ''], ref: 'ref1'},
+  // Without 'h' descriptors, the width (10px) is used.
+  {loading: 'lazy', sizes: 'auto', style: 'object-fit: cover', h: ['', ''], ref: 'ref1'},
+  {loading: 'lazy', sizes: 'auto', width: '1', style: 'object-fit: cover', h: ['', ''], ref: 'ref1'},
+  {loading: 'lazy', sizes: 'auto', height: '1', style: 'object-fit: cover', h: ['', ''], ref: 'ref1'},
+  // 'h' descriptors give aspect ratios of 50 and 25.5;
+  // max(10px, 100px * 50) = 5000px and max(10px, 100px * 25.5) = 2550px.
+  {loading: 'lazy', sizes: 'auto', style: 'object-fit: cover', h: [' 1h', ' 2h'], ref: 'ref2'},
+  // ... and min(10px, 100px * 50) = min(10px, 100px * 25.5) = 10px.
+  {loading: 'lazy', sizes: 'auto', style: 'object-fit: contain', h: [' 1h', ' 2h'], ref: 'ref1'},
+  {loading: 'lazy', sizes: 'auto', style: 'object-fit: scale-down', h: [' 1h', ' 2h'], ref: 'ref1'},
+  // Non-lazy img falls back to 1px and does not use CSS object-fit.
+  {sizes: 'auto, 1px', width: '1', height: '1', style: 'object-fit: cover', h: [' 1h', ' 2h'], ref: 'ref1'},
+];
+
+function srcsetFor(prefix, h) {
+  return `/images/green-1x1.png?${prefix} 50w${h[0]}, /images/green-16x16.png?${prefix} 51w${h[1]}`;
+}
+
+function test_img(obj, i) {
+  const img = document.createElement('img');
+  for (const attr in obj) {
+    if (attr !== 'h' && attr !== 'ref') {
+      img.setAttribute(attr, obj[attr]);
+    }
+  }
+  img.srcset = srcsetFor(`img${i}`, obj.h);
+  document.body.appendChild(img);
+  check(img, img, obj.ref);
+}
+
+onload = () => {
+  let i = 0;
+  for (const obj of tests) {
+    i++;
+    test_img(obj, i);
+  }
+
+  // Dynamic change to computed 'object-fit' on an auto-sized img triggers
+  // source re-selection.
+  async_promise_test(async (t) => {
+    const ref1 = document.getElementById('ref1').currentSrc.split('?')[0];
+    const ref2 = document.getElementById('ref2').currentSrc.split('?')[0];
+    const img = document.createElement('img');
+    img.loading = 'lazy';
+    img.sizes = 'auto';
+    img.style = 'object-fit: contain';
+    img.srcset = srcsetFor('dynamic-object-fit', [' 50h', ' 51h']);
+    document.body.appendChild(img);
+    await waitForLoad(img);
+    assert_equals(baseUrl(img.currentSrc), ref1);
+
+    const reloaded = waitForLoad(img);
+    img.style.objectFit = 'cover';
+    await reloaded;
+    assert_equals(baseUrl(img.currentSrc), ref2);
+  }, 'Changing computed object-fit on an auto-sized img updates currentSrc');
+
+  done();
+}
+</script>

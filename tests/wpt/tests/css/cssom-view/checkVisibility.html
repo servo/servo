@@ -59,6 +59,28 @@
   <option id=optionindisplaynonelistbox>option</option>
 </select>
 
+<div class="shadow-host-without-slot">
+  <div id=unslotted>unslotted</div>
+  <div><div id=unslotteddescendant>unslotted</div></div>
+</div>
+
+<div class="shadow-host-with-slot">
+  <div id=notassignedtonamedslot>unslotted</div>
+</div>
+
+<details>
+  <summary>summary</summary>
+  <div id=closeddetailscontent>hello</div>
+</details>
+
+<details>
+  <summary>summary</summary>
+  <details open>
+    <summary id=nestedsummary>summary</summary>
+    <div id=openinclosedetailscontent>hello</div>
+  </details>
+</details>
+
 <div style="height:10000px">spacer</div>
 
 <div style="content-visibility:auto">
@@ -82,6 +104,9 @@ for (const host of document.querySelectorAll(".shadow-host-with-slot")) {
   slot.name = "slot";
   shadowRoot.appendChild(slot);
 }
+
+for (const host of document.querySelectorAll(".shadow-host-without-slot"))
+  host.attachShadow({ mode: "open" });
 
 test(() => {
   assert_false(visibilityhidden.checkVisibility({
@@ -138,6 +163,24 @@ test(() => {
   assert_false(listboxoptionindisplaynoneoptgroup.checkVisibility(), 'option in display:none optgroup');
   assert_false(optionindisplaynonelistbox.checkVisibility(), 'option in display:none list box');
 }, 'checkVisibility on hidden option elements in a list box.');
+
+test(() => {
+  assert_false(unslotted.checkVisibility());
+  assert_false(unslotteddescendant.checkVisibility());
+}, 'checkVisibility on element not assigned to a slot.');
+
+test(() => {
+  assert_false(notassignedtonamedslot.checkVisibility());
+}, 'checkVisibility on element not assigned to the only named slot.');
+
+test(() => {
+  assert_false(closeddetailscontent.checkVisibility());
+}, 'checkVisibility on content of a closed details element.');
+
+test(() => {
+  assert_false(nestedsummary.checkVisibility());
+  assert_false(openinclosedetailscontent.checkVisibility());
+}, 'checkVisibility on content of an open details element nested in a closed one.');
 
 test(() => {
   assert_false(slottedindisplaynone.checkVisibility());

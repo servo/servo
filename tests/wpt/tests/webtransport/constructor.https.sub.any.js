@@ -55,7 +55,9 @@ const OPTIONS = [
   { protocols: ["test"] },
   { protocols: ["a", "b", "c"] },
   { allowPooling: true, requireUnreliable: true, congestionControl: "low-latency" },
-  // XXX Need to test serverCertificateHashes
+  // XXX Need to test non-empty serverCertificateHashes (requires a server
+  // cert hash); the empty list and the rejected forms are covered by
+  // constructor-certificate-hashes.https.sub.any.js
 ];
 
 for (const options of OPTIONS) {

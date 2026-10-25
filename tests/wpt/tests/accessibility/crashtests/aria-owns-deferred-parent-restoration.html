@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>Removing an aria-owns owner during relation updates keeps pending owners parented</title>
+
+<div id="outer" role="group" aria-disabled="true"></div>
+<div id="common" aria-owns="owner2_parent">
+  <div id="wrapper">
+    <div id="owner1" aria-owns="owner2"></div>
+  </div>
+</div>
+<div id="owner2_parent">
+  <div id="owner2"></div>
+</div>
+
+<script>
+function waitForFrames(count) {
+  return new Promise(resolve => {
+    function step() {
+      if (--count <= 0) {
+        resolve();
+      } else {
+        requestAnimationFrame(step);
+      }
+    }
+    requestAnimationFrame(step);
+  });
+}
+
+window.addEventListener('load', async () => {
+  await waitForFrames(20);
+  owner2.setAttribute('aria-owns', 'owner2 common');
+  outer.setAttribute('aria-owns', 'wrapper');
+  await waitForFrames(6);
+  document.documentElement.classList.remove('test-wait');
+});
+</script>
+</html>

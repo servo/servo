@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>CSS Grid Lanes: grid-columns reading flow with equal stacking axis offsets</title>
+<link rel="help" href="https://drafts.csswg.org/css-display-4/#reading-flow">
+<link rel="help" href="https://drafts.csswg.org/css-grid-3/#grid-lanes-layout">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/resources/testdriver-actions.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/shadow-dom.js"></script>
+<script src="/shadow-dom/focus-navigation/resources/focus-utils.js"></script>
+
+<style>
+#lanes {
+  display: grid-lanes;
+  grid-template-columns: 80px;
+  reading-flow: grid-columns;
+  width: 80px;
+  height: 80px;
+  height: 80px;
+}
+#lanes > button {
+  box-sizing: border-box;
+  height: 80px;
+  margin-block-end: -80px;
+  padding: 0;
+}
+</style>
+
+<div class="test-case" data-expect="item1,item2,item3">
+  <div id="lanes">
+    <button id="item1" style="width: 20px">1</button>
+    <button id="item2" style="width: 40px">2</button>
+    <button id="item3" style="width: 80px">3</button>
+  </div>
+</div>
+
+<script>
+runFocusTestCases();
+</script>

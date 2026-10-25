@@ -1,0 +1,181 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="timeout" content="long">
+<title>Document-Isolation-Policy: what same-origin documents with and without a policy can still do together</title>
+<link rel="help" href="https://github.com/WICG/document-isolation-policy/issues/8">
+<link rel="help" href="https://github.com/WICG/document-isolation-policy/issues/11">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<script src="/common/utils.js"></script>
+<script src="/common/dispatcher/dispatcher.js"></script>
+<script src="./resources/common.js"></script>
+<body>
+<script>
+"use strict";
+
+// When only some pages of an origin send a policy, same-origin documents with and without one end up in
+// different agent clusters. They then see each other as if they were cross-origin: synchronous access
+// throws (see agent-cluster.tentative.https.html), while messaging, cross-origin Window and Location
+// members, and storage keep working.
+
+// Opens a popup with embedderPolicy that has a same-origin frame with framePolicy, and returns their uuids.
+// The popup's script can refer to the frame as child.
+async function openPopupWithFrame(t, embedderPolicy, framePolicy) {
+  const embedder = token();
+  const frame = token();
+  const popup = window.open(executorURL(embedderPolicy, embedder));
+  t.add_cleanup(() => popup.close());
+  await runInContext(embedder, `
+    ${appendFrameScript(executorURL(framePolicy, frame))}
+    window.child = child;
+    return "loaded";
+  `);
+  return { embedder, frame };
+}
+
+[
+  { embedderPolicy: "", framePolicy: dip_require_corp, label: "A document without a policy and its same-origin frame with one" },
+  { embedderPolicy: dip_require_corp, framePolicy: "", label: "A document with a policy and its same-origin frame without one" },
+].forEach(({ embedderPolicy, framePolicy, label }) => {
+  promise_test(async t => {
+    const { embedder, frame } = await openPopupWithFrame(t, embedderPolicy, framePolicy);
+    assert_equals(await runInContext(embedder, "return typeof child.contentWindow.document;"), "SecurityError", "synchronous access");
+
+    await runInContext(frame, `
+      window.received = new Promise(resolve => {
+        onmessage = ({ data }) => resolve({ text: data.text, byteLength: data.buffer.byteLength });
+        onmessageerror = () => resolve("messageerror");
+      });
+      return "ready";
+    `);
+    assert_equals(await runInContext(embedder, `
+      const buffer = new ArrayBuffer(8);
+      child.contentWindow.postMessage({ text: "to frame", buffer }, "*", [buffer]);
+      return buffer.byteLength;
+    `), 0, "the transferred ArrayBuffer is detached");
+    assert_object_equals(await runInContext(frame, "return received;"), { text: "to frame", byteLength: 8 }, "message to the frame");
+
+    await runInContext(embedder, `
+      window.received = new Promise(resolve => {
+        onmessage = ({ data, source }) => resolve({ data, fromChild: source === child.contentWindow });
+        onmessageerror = () => resolve("messageerror");
+      });
+      return "ready";
+    `);
+    await runInContext(frame, `
+      parent.postMessage("to parent", "*");
+      return "posted";
+    `);
+    assert_object_equals(await runInContext(embedder, "return received;"), { data: "to parent", fromChild: true }, "message to the parent");
+  }, `${label} can post messages to each other`);
+
+  promise_test(async t => {
+    const { embedder, frame } = await openPopupWithFrame(t, embedderPolicy, framePolicy);
+    assert_object_equals(await runInContext(embedder, `
+      const w = child.contentWindow;
+      const attempt = get => {
+        try {
+          return typeof get();
+        } catch (e) {
+          return e.name;
+        }
+      };
+      return {
+        closed: w.closed,
+        length: w.length,
+        self: w.self === w,
+        window: w.window === w,
+        frames: w.frames === w,
+        parent: w.parent === window,
+        top: w.top === window,
+        opener: w.opener,
+        postMessage: typeof w.postMessage,
+        locationReplace: typeof w.location.replace,
+        document: attempt(() => w.document),
+        name: attempt(() => w.name),
+        locationHref: attempt(() => w.location.href),
+      };
+    `), {
+      closed: false,
+      length: 0,
+      self: true,
+      window: true,
+      frames: true,
+      parent: true,
+      top: true,
+      opener: null,
+      postMessage: "function",
+      locationReplace: "function",
+      document: "SecurityError",
+      name: "SecurityError",
+      locationHref: "SecurityError",
+    }, "the frame's Window seen from its parent");
+
+    assert_object_equals(await runInContext(frame, `
+      const attempt = get => {
+        try {
+          return typeof get();
+        } catch (e) {
+          return e.name;
+        }
+      };
+      return {
+        closed: parent.closed,
+        child: parent.length === 1 && parent[0] === window,
+        top: parent.top === parent,
+        postMessage: typeof parent.postMessage,
+        document: attempt(() => parent.document),
+        locationHref: attempt(() => parent.location.href),
+      };
+    `), {
+      closed: false,
+      child: true,
+      top: true,
+      postMessage: "function",
+      document: "SecurityError",
+      locationHref: "SecurityError",
+    }, "the parent's Window seen from the frame");
+  }, `${label} only have the cross-origin members of each other's Window and Location objects`);
+
+  promise_test(async t => {
+    const { embedder, frame } = await openPopupWithFrame(t, embedderPolicy, framePolicy);
+    const newFrame = token();
+    await runInContext(embedder, `
+      child.contentWindow.location.href = ${JSON.stringify(executorURL(framePolicy, newFrame))};
+      return "navigating";
+    `);
+    assert_equals(await runInContext(newFrame, "return 'loaded';"), "loaded", "the parent navigates the frame through location.href");
+
+    const newEmbedder = token();
+    await runInContext(newFrame, `
+      parent.location.replace(${JSON.stringify(executorURL(embedderPolicy, newEmbedder))});
+      return "navigating";
+    `);
+    assert_equals(await runInContext(newEmbedder, "return 'loaded';"), "loaded", "the frame navigates its parent through location.replace()");
+  }, `${label} can navigate each other`);
+
+  promise_test(async t => {
+    const { embedder, frame } = await openPopupWithFrame(t, embedderPolicy, framePolicy);
+    const key = token();
+    t.add_cleanup(() => localStorage.removeItem(key));
+    await runInContext(embedder, `
+      // A storage event only goes to documents that have a Storage object for the storage area.
+      localStorage.getItem(${JSON.stringify(key)});
+      window.storageEvent = new Promise(resolve => {
+        addEventListener("storage", event => {
+          if (event.key === ${JSON.stringify(key)})
+            resolve(event.newValue);
+        });
+      });
+      return "ready";
+    `);
+    await runInContext(frame, `
+      localStorage.setItem(${JSON.stringify(key)}, "set by the frame");
+      return "set";
+    `);
+    assert_equals(await runInContext(embedder, "return storageEvent;"), "set by the frame", "storage event in the parent");
+    assert_equals(await runInContext(embedder, `return localStorage.getItem(${JSON.stringify(key)});`), "set by the frame", "localStorage in the parent");
+  }, `${label} share localStorage`);
+});
+</script>

@@ -16,7 +16,7 @@ promise_test(async t => {
 
   const url = `${HTTPS_REMOTE_ORIGIN}/html/document-isolation-policy/resources/nothing-no-corp.js`;
   const reply = new Promise(resolve => window.onmessage = ({ data }) => resolve(data));
-  frame.contentWindow.postMessage(`fetch(${JSON.stringify(url)}, { mode: "no-cors" }).then(response => parent.postMessage(response.type, "*"), () => parent.postMessage("blocked", "*"));`, "*");
-  assert_equals(await reply, "opaque");
+  frame.contentWindow.postMessage(`fetch(${JSON.stringify(url)}, { mode: "no-cors" }).then(response => response.type, () => "blocked").then(fetchResult => parent.postMessage({ fetchResult, crossOriginIsolated, SharedArrayBuffer: typeof SharedArrayBuffer }, "*"));`, "*");
+  assert_object_equals(await reply, { fetchResult: "opaque", crossOriginIsolated: false, SharedArrayBuffer: "undefined" });
 }, "DIP requires a secure context, which an HTTPS iframe in an HTTP page is not");
 </script>

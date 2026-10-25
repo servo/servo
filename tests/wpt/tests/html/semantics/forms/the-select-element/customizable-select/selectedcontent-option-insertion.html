@@ -76,3 +76,172 @@ test(t => {
     'Inserting 10 non-selected options should not mutate selectedcontent.');
 }, 'Inserting many non-selected options does not repeatedly replace selectedcontent children.');
 </script>
+
+<select id=select3>
+  <button>
+    <selectedcontent></selectedcontent>
+  </button>
+  <option>one</option>
+  <option>two</option>
+</select>
+
+<script>
+// When no option is selected, inserting an option selects the first enabled
+// option, which need not be the inserted one.
+test(() => {
+  const select = document.getElementById('select3');
+  const selectedcontent = select.querySelector('selectedcontent');
+
+  select.selectedIndex = -1;
+  assert_equals(selectedcontent.innerHTML, '',
+    'selectedcontent should be cleared when no option is selected.');
+
+  select.appendChild(new Option('three'));
+
+  assert_equals(select.value, 'one',
+    'Inserting an option should select the first enabled option.');
+  assert_equals(selectedcontent.innerHTML, 'one',
+    'selectedcontent should be updated when inserting an option selects another option.');
+}, 'Inserting an option that causes another option to be selected updates selectedcontent.');
+</script>
+
+<select id=select4>
+  <button>
+    <selectedcontent></selectedcontent>
+  </button>
+  <option>one</option>
+</select>
+
+<script>
+// The option post-connection steps only update selectedcontent elements while
+// the select has a pending selectedcontent update, which updating clears.
+test(t => {
+  const select = document.getElementById('select4');
+  const selectedcontent = select.querySelector('selectedcontent');
+
+  const observer = new MutationObserver(() => {});
+  t.add_cleanup(() => observer.disconnect());
+  observer.observe(selectedcontent, {childList: true});
+
+  select.append(new Option('two'), new Option('three', 'three', true, true));
+
+  assert_equals(select.value, 'three',
+    'The inserted option with the selected attribute should be selected.');
+  assert_equals(selectedcontent.textContent, 'three',
+    'selectedcontent should match the selected option.');
+  assert_equals(observer.takeRecords().length, 1,
+    'Inserting two options together should update selectedcontent once.');
+}, 'Inserting multiple options together updates selectedcontent once.');
+</script>
+
+<select id=select5></select>
+
+<script>
+// Inserting an option queues an update of the select's selectedcontent
+// elements. The post-connection steps of a selectedcontent element inserted
+// before it leave that update to the option post-connection steps.
+test(t => {
+  const select = document.getElementById('select5');
+  const button = document.createElement('button');
+  const selectedcontent = button.appendChild(document.createElement('selectedcontent'));
+
+  const observer = new MutationObserver(() => {});
+  t.add_cleanup(() => observer.disconnect());
+  observer.observe(selectedcontent, {childList: true});
+
+  select.append(button, new Option('one'));
+
+  assert_equals(selectedcontent.textContent, 'one',
+    'selectedcontent should match the selected option.');
+  assert_equals(observer.takeRecords().length, 1,
+    'Inserting selectedcontent and an option together should update selectedcontent once.');
+}, 'Inserting selectedcontent followed by an option updates selectedcontent once.');
+</script>
+
+<select id=select6></select>
+
+<script>
+// The select has no selectedcontent element yet when the option is inserted,
+// so only the selectedcontent post-connection steps update it.
+test(t => {
+  const select = document.getElementById('select6');
+  const button = document.createElement('button');
+  const selectedcontent = button.appendChild(document.createElement('selectedcontent'));
+
+  const observer = new MutationObserver(() => {});
+  t.add_cleanup(() => observer.disconnect());
+  observer.observe(selectedcontent, {childList: true});
+
+  select.append(new Option('one'), button);
+
+  assert_equals(selectedcontent.textContent, 'one',
+    'selectedcontent should match the selected option.');
+  assert_equals(observer.takeRecords().length, 1,
+    'Inserting an option and selectedcontent together should update selectedcontent once.');
+}, 'Inserting an option followed by selectedcontent updates selectedcontent once.');
+</script>
+
+<select id=select7>
+  <button>
+    <selectedcontent></selectedcontent>
+  </button>
+  <option>one</option>
+</select>
+
+<script>
+// The post-connection steps of the inserted selectedcontent element leave the
+// update queued by inserting the option to the option post-connection steps,
+// which update the existing selectedcontent element as well.
+test(t => {
+  const select = document.getElementById('select7');
+  const selectedcontent = select.querySelector('selectedcontent');
+  const div = document.createElement('div');
+  const newSelectedcontent = div.appendChild(document.createElement('selectedcontent'));
+
+  const observer = new MutationObserver(() => {});
+  t.add_cleanup(() => observer.disconnect());
+  observer.observe(selectedcontent, {childList: true});
+  const newObserver = new MutationObserver(() => {});
+  t.add_cleanup(() => newObserver.disconnect());
+  newObserver.observe(newSelectedcontent, {childList: true});
+
+  select.append(div, new Option('two', 'two', true, true));
+
+  assert_equals(select.value, 'two',
+    'The inserted option with the selected attribute should be selected.');
+  assert_equals(selectedcontent.textContent, 'two',
+    'The existing selectedcontent should match the selected option.');
+  assert_equals(newSelectedcontent.textContent, 'two',
+    'The inserted selectedcontent should match the selected option.');
+  assert_equals(observer.takeRecords().length, 1,
+    'The existing selectedcontent should be updated once.');
+  assert_equals(newObserver.takeRecords().length, 1,
+    'The inserted selectedcontent should be updated once.');
+}, 'Inserting selectedcontent followed by an option that changes selectedness updates every selectedcontent once.');
+</script>
+
+<div id=container8></div>
+
+<script>
+// Inserting a select runs the post-connection steps of both its selectedcontent
+// and its option elements. As the options' select does not change, only the
+// selectedcontent element updates.
+test(t => {
+  const select = document.createElement('select');
+  const button = document.createElement('button');
+  const selectedcontent = document.createElement('selectedcontent');
+  button.append(selectedcontent);
+  select.append(button, new Option('one'), new Option('two', 'two', true, true));
+
+  const observer = new MutationObserver(() => {});
+  t.add_cleanup(() => observer.disconnect());
+  observer.observe(selectedcontent, {childList: true});
+
+  document.getElementById('container8').append(select);
+
+  assert_equals(selectedcontent.textContent, 'two',
+    'selectedcontent should match the selected option once connected.');
+  assert_equals(observer.takeRecords().length, 1,
+    'Inserting the select should update selectedcontent once.');
+}, 'Inserting a select that already contains options updates its selectedcontent once.');
+</script>

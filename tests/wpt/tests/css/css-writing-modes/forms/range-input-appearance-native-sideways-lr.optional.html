@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<link rel="author" title="Anne van Kesteren" href="mailto:annevk@annevk.nl">
+<link rel="help" href="https://html.spec.whatwg.org/#the-input-element-as-a-range-control">
+<link rel="help" href="https://drafts.csswg.org/css-writing-modes-4/#valdef-writing-mode-sideways-lr">
+<title>Range input appearance native writing mode sideways-lr</title>
+<meta charset="utf-8">
+<link rel="match" href="range-input-appearance-native-sideways-lr-ref.html">
+<link rel="mismatch" href="range-input-appearance-native-sideways-lr-rtl-ref.html">
+
+<!-- The lowest value is on the inline-start side, which is the bottom here. The match reference
+     has the same inline and block flow directions, using vertical-lr; the mismatch reference has
+     the opposite inline direction. -->
+<p>The range input below should match the correct writing mode.</p>
+<input type="range" min="0" max="100" value="10" style="writing-mode: sideways-lr">

@@ -73,4 +73,86 @@
     assert_equals(pastedMath.innerHTML, expectedInnerHTML,
       "Pasted MathML should preserve all structure and content");
   }, "MathML elements should preserve structure and content during copy-paste");
+
+  promise_test(async t => {
+    const sourceDiv = document.getElementById("source");
+    const targetDiv = document.getElementById("target");
+    sourceDiv.innerHTML =
+        "<math><mrow><mark id='m' style='display: inline'>a  b" +
+        "<iframe srcdoc='hello'></iframe></mark><mi id='c'>c</mi></mrow></math>";
+    targetDiv.innerHTML = "";
+
+    const mark = document.getElementById("m");
+    const c = document.getElementById("c");
+    getSelection().setBaseAndExtent(mark.firstChild, 1, c.firstChild, 1);
+
+    const utils = new EditorTestUtils(sourceDiv);
+    await utils.sendCopyShortcutKey();
+
+    await test_driver.click(targetDiv);
+    const targetUtils = new EditorTestUtils(targetDiv);
+    await targetUtils.sendPasteShortcutKey();
+
+    const pastedIframe = targetDiv.querySelector("iframe");
+    assert_not_equals(pastedIframe, null, "iframe element should be pasted");
+    assert_equals(pastedIframe.namespaceURI, "http://www.w3.org/1998/Math/MathML",
+      "Pasted iframe inside MathML should remain in MathML namespace");
+  }, "Copy-pasting collapsible spaces in MathML should not break out of MathML namespace");
+
+  promise_test(async t => {
+    const sourceDiv = document.getElementById("source");
+    const targetDiv = document.getElementById("target");
+    sourceDiv.innerHTML =
+        "<div id='p1'>Paragraph 1</div>" +
+        "<math><mrow><mi id='x'>x</mi><iframe srcdoc='hello'></iframe>" +
+        "<mi id='y'>y</mi></mrow></math>";
+    targetDiv.innerHTML = "";
+
+    const p1 = document.getElementById("p1");
+    const y = document.getElementById("y");
+    getSelection().setBaseAndExtent(p1.firstChild, 11, y.firstChild, 1);
+
+    const utils = new EditorTestUtils(sourceDiv);
+    await utils.sendCopyShortcutKey();
+
+    await test_driver.click(targetDiv);
+    const targetUtils = new EditorTestUtils(targetDiv);
+    await targetUtils.sendPasteShortcutKey();
+
+    const pastedIframe = targetDiv.querySelector("iframe");
+    assert_not_equals(pastedIframe, null, "iframe element should be pasted");
+    assert_equals(pastedIframe.namespaceURI, "http://www.w3.org/1998/Math/MathML",
+      "Pasted iframe inside MathML should remain in MathML namespace");
+  }, "Copy-pasting from end of block into MathML should not inject br inside MathML");
+
+  promise_test(async t => {
+    const sourceDiv = document.getElementById("source");
+    const targetDiv = document.getElementById("target");
+    sourceDiv.innerHTML =
+        "<div style='color: rgb(255, 0, 0)'>" +
+        "<math display='block'><mtable><mtr><mtd>" +
+        "<mi id='a'>a</mi><iframe srcdoc='hello'></iframe><mi id='b'>b</mi>" +
+        "</mtd></mtr></mtable></math></div>";
+    targetDiv.innerHTML = "";
+
+    const a = document.getElementById("a");
+    const b = document.getElementById("b");
+    getSelection().setBaseAndExtent(a.firstChild, 0, b.firstChild, 1);
+
+    const utils = new EditorTestUtils(sourceDiv);
+    await utils.sendCopyShortcutKey();
+
+    await test_driver.click(targetDiv);
+    const targetUtils = new EditorTestUtils(targetDiv);
+    await targetUtils.sendPasteShortcutKey();
+
+    const pastedMath = targetDiv.querySelector("math");
+    assert_not_equals(pastedMath, null, "MathML element should be pasted");
+    assert_not_equals(pastedMath.querySelector("mtr"), null,
+      "mtr element should be preserved");
+    const pastedIframe = targetDiv.querySelector("iframe");
+    assert_not_equals(pastedIframe, null, "iframe element should be pasted");
+    assert_equals(pastedIframe.namespaceURI, "http://www.w3.org/1998/Math/MathML",
+      "Pasted iframe inside mtd should remain in MathML namespace");
+  }, "Copy-pasting inside mtd with ancestor inline styles should preserve MathML namespace");
 </script>

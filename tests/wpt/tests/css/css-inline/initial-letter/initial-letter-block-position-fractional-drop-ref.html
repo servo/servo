@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<title>Tests initial letter whose non-integer size has a drop sink</title>
+<link rel="author" title="ChangSeok Oh" href="mailto:changseok@chromium.org">
+<meta name="flags" content="ahem">
+<link rel="stylesheet" type="text/css" href="/fonts/ahem.css" >
+<style>
+.sample {
+    border: solid 1px green;
+    font-family: Ahem;
+    font-size: 20px;
+    line-height: 32px;
+    width: 230px;
+}
+
+/* The sink is the size floored: 2.5 sinks 2 lines and 1.5 raises. The
+   letter's top is at 6px, and the text moves down by (size - sink) lines,
+   16px. */
+.fake-initial-letter {
+    background: lime;
+    float: left;
+    margin-top: 6px;
+}
+
+.text { padding-top: 16px; }
+
+#size-2-5, #size-2-5-drop { height: 80px; width: 80px; }
+#size-1-5 { height: 40px; width: 40px; }
+</style>
+<div class="sample">
+<div class="fake-initial-letter" id="size-2-5"></div>
+<div class="text">bc<br>def<br>ghi<br>jkl<br>mno<br></div>
+</div>
+<div class="sample">
+<div class="fake-initial-letter" id="size-2-5-drop"></div>
+<div class="text">bc<br>def<br>ghi<br>jkl<br>mno<br></div>
+</div>
+<div class="sample">
+<div class="fake-initial-letter" id="size-1-5"></div>
+<div class="text">bc<br>def<br>ghi<br>jkl<br>mno<br></div>
+</div>

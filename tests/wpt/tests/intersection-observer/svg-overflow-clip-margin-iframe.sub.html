@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG overflow clipping of intersection targets in nested frames</title>
+<link rel="author" title="Kurt Catti-Schmidt" href="mailto:kschmi@microsoft.com">
+<link rel="help" href="https://www.w3.org/TR/intersection-observer/#calculate-intersection-rect-algo">
+<link rel="help" href="https://www.w3.org/TR/css-overflow-3/#overflow-clip-margin">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<style>
+  iframe {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 400px;
+    height: 400px;
+    border: 0;
+  }
+</style>
+<body>
+<script>
+  const cases = [
+    ["hidden", "content-box", 100, 100],
+    ["hidden", "padding-box", 110, 110],
+    ["hidden", "border-box", 115, 115],
+    ["clip", "content-box 20px", 120, 120],
+    ["clip", "padding-box 20px", 130, 130],
+    ["clip visible", "padding-box", 110, 200],
+    ["visible clip", "padding-box", 200, 110],
+    ["visible", "padding-box", 200, 200],
+  ];
+
+  // A same-origin child of a cross-site frame also exercises mapping through
+  // a local frame owner beneath a remote frame in site-isolated browsers.
+  for (const origin of [location.origin,
+                        get_host_info().HTTP_NOTSAMESITE_ORIGIN]) {
+    for (const [overflow, overflowClipMargin, width, height] of cases) {
+      promise_test(async t => {
+        const frame = document.createElement("iframe");
+        t.add_cleanup(() => frame.remove());
+        const result = new Promise(resolve => {
+          const listener = t.step_func(event => {
+            if (event.source !== frame.contentWindow || event.origin !== origin)
+              return;
+            window.removeEventListener("message", listener);
+            resolve(event.data);
+          });
+          window.addEventListener("message", listener);
+          t.add_cleanup(() => window.removeEventListener("message", listener));
+        });
+        const loaded = new Promise(resolve => {
+          frame.onload = resolve;
+        });
+        frame.src = origin +
+            "/intersection-observer/resources/svg-overflow-clip-margin-iframe.html";
+        document.body.append(frame);
+        await loaded;
+        frame.contentWindow.postMessage({overflow, overflowClipMargin}, origin);
+
+        const entry = await result;
+        assert_equals(entry.targetWidth, 200, "Unclipped target width");
+        assert_equals(entry.targetHeight, 200, "Unclipped target height");
+        assert_approx_equals(entry.width, width, 0.01, "Intersection width");
+        assert_approx_equals(entry.height, height, 0.01, "Intersection height");
+        const expectedRatio =
+            width * height / (entry.targetWidth * entry.targetHeight);
+        assert_approx_equals(entry.ratio, expectedRatio, 0.0001,
+                             "Intersection ratio includes the SVG viewport clip");
+      }, `overflow: ${overflow}; overflow-clip-margin: ${overflowClipMargin}; ` +
+         `same-origin child of ${origin === location.origin ? "same-site" : "cross-site"} frame`);
+    }
+  }
+</script>

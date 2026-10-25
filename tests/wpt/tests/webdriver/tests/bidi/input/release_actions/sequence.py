@@ -57,7 +57,7 @@ async def test_release_char_sequence_with_modifier_sends_keyup_events_in_reverse
     )
     await bidi_session.input.release_actions(context=top_context["context"])
     expected = [
-        {"code": "KeyB", "key": "B", "type": "keyup"},
+        {"code": "KeyB", "key": "b", "type": "keyup"},
         {"code": "ShiftLeft", "key": "Shift", "type": "keyup"},
         {"code": "KeyA", "key": "a", "type": "keyup"},
     ]

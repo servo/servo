@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      touch-action: none;
+    }
+    .target {
+      width: 100px;
+      height: 100px;
+      touch-action: none;
+    }
+    #s1 { background: green; }
+    #s2 { background: red; }
+    #child-target { background: green; }
+    #deep { background: orange; }
+    iframe {
+      width: 100px;
+      height: 100px;
+      border: none;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div id="target" class="target"></div>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const frameId = params.get('frame_id') || 'child';
+    const targetId = params.get('target_id') || 'child-target';
+    const isNestedParent = params.get('nested_parent') === 'true';
+
+    const targetEl = document.getElementById('target');
+    targetEl.id = targetId;
+
+    if (isNestedParent) {
+      targetEl.remove();
+      const innerIframe = document.createElement('iframe');
+      innerIframe.id = 'inner-iframe';
+      innerIframe.src = params.get('inner_src');
+      document.body.appendChild(innerIframe);
+    } else {
+      targetEl.addEventListener('pointerdown', e => {
+        e.target.releasePointerCapture(e.pointerId);
+      });
+      ['pointerover', 'pointerenter', 'pointerout', 'pointerleave'].forEach(type => {
+        targetEl.addEventListener(type, e => {
+          window.top.postMessage({
+            source: 'boundary-event-test',
+            frameId: frameId,
+            type: e.type,
+            relatedTargetIsNull: e.relatedTarget === null
+          }, '*');
+        });
+      });
+      window.top.postMessage({ source: 'boundary-event-test', frameId: frameId, type: 'child-ready' }, '*');
+    }
+  </script>
+</body>
+</html>

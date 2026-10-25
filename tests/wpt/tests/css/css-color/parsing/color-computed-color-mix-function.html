@@ -117,6 +117,9 @@
     fuzzy_test_computed_color(`color-mix(in hsl, hsl(120deg 10% 20%) 0%, hsl(30deg 30% 40%) 0%)`, `color(srgb 0.33 0.36 0.24 / 0)`);
     fuzzy_test_computed_color(`color-mix(in hsl, hsl(120deg 10% 20% / .4) 0%, hsl(30deg 30% 40% / .8) 0%)`, `color(srgb 0.372222 0.411111 0.255556 / 0)`);
 
+    // A naive f32 implementation would yield a chromatic color after conversion from lch to hsl
+    fuzzy_test_computed_color(`color-mix(in hsl, lch(0.1 0 0), hsl(11 33 44))`, `color(srgb 0.25713316 0.19765042 0.18429716)`);
+
     // hwb()
     fuzzy_test_computed_color(`color-mix(in hwb, hwb(120deg 10% 20%), hwb(30deg 30% 40%))`, `color(srgb 0.575 0.7 0.2)`);
     fuzzy_test_computed_color(`color-mix(in hwb, hwb(120deg 10% 20%) 25%, hwb(30deg 30% 40%))`, `color(srgb 0.65 0.6 0.25)`);

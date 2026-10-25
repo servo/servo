@@ -44,6 +44,8 @@
     ctx.drawElementImage(elementImage, 30, 40);
     const event = await updatePromise;
     assert_true(event instanceof ElementGeometryUpdateEvent);
+    assert_true(Object.isFrozen(event.elements));
+    assert_equals(event.elements, event.elements);
     assert_equals(event.elements.length, 1);
     assert_equals(event.elements[0], target);
 

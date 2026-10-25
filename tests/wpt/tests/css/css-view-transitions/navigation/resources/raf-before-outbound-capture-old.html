@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<title>View transitions: rAF before outbound capture (old page)</title>
+<link rel="author" href="mailto:opettay@mozilla.com">
+<style>
+@view-transition { navigation: auto; }
+/* Isolate the box so only its snapshot (not the root's) is captured. */
+:root { view-transition-name: none; }
+#box {
+  width: 100px;
+  height: 100px;
+  background: green;
+  view-transition-name: target;
+}
+</style>
+<div id="box"></div>
+<script src="/common/rendering-utils.js"></script>
+<script>
+const channel = new URLSearchParams(location.search).get("channel");
+
+// Just before the outbound capture, resize the captured element inside a
+// requestAnimationFrame callback. rAF callbacks run before the capture, so the
+// captured old snapshot must be 300px wide, not 100px.
+onpageswap = () => {
+  requestAnimationFrame(() => {
+    document.getElementById("box").style.width = "300px";
+  });
+};
+
+onload = async () => {
+  // Ensure the initial (100px) state has rendered before navigating, so that a
+  // captured width of 300px can only come from the rAF callback above running
+  // before the capture.
+  await waitForAtLeastOneFrame();
+  location.href = `raf-before-outbound-capture-new.html?channel=${channel}`;
+};
+</script>

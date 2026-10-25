@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="../resources/webxr_util.js"></script>
+<script src="../resources/webxr_math_utils.js"></script>
+<script src="../resources/webxr_test_asserts.js"></script>
+<script src="../resources/webxr_test_constants.js"></script>
+<script src="../resources/webxr_test_constants_fake_world.js"></script>
+
+<script>
+
+// 1m above world origin.
+const VIEWER_ORIGIN_TRANSFORM = {
+  position: [0, 1, 0],
+  orientation: [0, 0, 0, 1],
+};
+
+const SCREEN_POINTER_TRANSFORM = VIEWER_ORIGIN_TRANSFORM;
+
+const screen_controller_init = {
+    handedness: "none",
+    targetRayMode: "screen",
+    pointerOrigin: SCREEN_POINTER_TRANSFORM,
+    profiles: ["generic-touchscreen",]
+};
+
+const fakeDeviceInitParams = {
+  supportedModes: ["immersive-ar"],
+  views: VALID_VIEWS,
+  viewerOrigin: VIEWER_ORIGIN_TRANSFORM,
+  supportedFeatures: ALL_FEATURES,
+  world: createFakeWorld(5.0, 2.0, 5.0),  // see webxr_test_constants_fake_world.js for details
+};
+
+const sessionInit = { 'requiredFeatures': ['hit-test'] };
+
+const nextAnimationFrame = function(session) {
+  return new Promise((resolve) => session.requestAnimationFrame((time, frame) => resolve(frame)));
+};
+
+// FakeXRDevice methods called outside of an animation frame only take effect on a subsequent one.
+const skipAnimationFrame = function(session) {
+  return new Promise((resolve) => requestSkipAnimationFrame(session, (time, frame) => resolve(frame)));
+};
+
+// offsetRay is optional and defaults to an identity XRRay, so subscribing without one has to produce the very same results as subscribing with an explicitly constructed default XRRay.
+const assertResultsMatch = function(defaultedResults, explicitResults, localRefSpace) {
+  assert_greater_than(explicitResults.length, 0, "An explicit default XRRay should hit the fake world");
+  assert_equals(defaultedResults.length, explicitResults.length, "An omitted offsetRay should produce as many results as an explicit default XRRay");
+  for (const [index, explicitResult] of explicitResults.entries()) {
+    const defaultedPose = defaultedResults[index].getPose(localRefSpace);
+    const explicitPose = explicitResult.getPose(localRefSpace);
+    assert_true(defaultedPose != null && explicitPose != null, "Each hit test result should have a pose in local space");
+    assert_transform_approx_equals(defaultedPose.transform, explicitPose.transform, FLOAT_EPSILON, "Result " + index + ": ");
+  }
+};
+
+xr_session_promise_test("Ensures an omitted offsetRay hit tests along the default ray",
+  async (session, fakeDeviceController, t) => {
+    const localRefSpace = await session.requestReferenceSpace('local');
+    const viewerRefSpace = await session.requestReferenceSpace('viewer');
+
+    const defaultedSource = await session.requestHitTestSource({ space: viewerRefSpace });
+    const explicitSource = await session.requestHitTestSource({ space: viewerRefSpace, offsetRay: new XRRay() });
+
+    const frame = await nextAnimationFrame(session);
+    t.step(() => {
+      assertResultsMatch(frame.getHitTestResults(defaultedSource), frame.getHitTestResults(explicitSource), localRefSpace);
+    });
+  }, fakeDeviceInitParams, 'immersive-ar', sessionInit);
+
+xr_session_promise_test("Ensures an omitted offsetRay hit tests along the default ray for transient input",
+  async (session, fakeDeviceController, t) => {
+    const localRefSpace = await session.requestReferenceSpace('local');
+
+    fakeDeviceController.simulateInputSourceConnection(screen_controller_init);
+    await skipAnimationFrame(session);
+    t.step(() => {
+      assert_equals(session.inputSources.length, 1, "The simulated screen input source should be connected");
+    });
+
+    const defaultedSource = await session.requestHitTestSourceForTransientInput({ profile: "generic-touchscreen" });
+    const explicitSource = await session.requestHitTestSourceForTransientInput({ profile: "generic-touchscreen", offsetRay: new XRRay() });
+
+    const frame = await nextAnimationFrame(session);
+    const defaultedResults = frame.getHitTestResultsForTransientInput(defaultedSource);
+    const explicitResults = frame.getHitTestResultsForTransientInput(explicitSource);
+    t.step(() => {
+      assert_equals(explicitResults.length, 1, "There should be exactly one group of transient hit test results");
+      assert_equals(defaultedResults.length, explicitResults.length, "An omitted offsetRay should produce as many result groups as an explicit default XRRay");
+      assertResultsMatch(defaultedResults[0].results, explicitResults[0].results, localRefSpace);
+    });
+  }, fakeDeviceInitParams, 'immersive-ar', sessionInit);
+
+xr_session_promise_test("Ensures a null offsetRay is rejected",
+  async (session, fakeDeviceController, t) => {
+    const viewerRefSpace = await session.requestReferenceSpace('viewer');
+    await promise_rejects_js(t, TypeError, session.requestHitTestSource({ space: viewerRefSpace, offsetRay: null }));
+  }, fakeDeviceInitParams, 'immersive-ar', sessionInit);
+
+xr_session_promise_test("Ensures a null offsetRay is rejected for transient input",
+  async (session, fakeDeviceController, t) => {
+    await promise_rejects_js(t, TypeError, session.requestHitTestSourceForTransientInput({ profile: "generic-touchscreen", offsetRay: null }));
+  }, fakeDeviceInitParams, 'immersive-ar', sessionInit);
+
+</script>

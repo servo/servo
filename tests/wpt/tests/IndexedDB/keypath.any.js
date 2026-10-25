@@ -131,8 +131,22 @@ keypath(
     [{name: 'orange', type: 'fruit'}, {name: 'cucumber', type: 'vegetable'}],
     [['fruit'], ['vegetable']], 'list with 1 field');
 
-let loop_array = [];
-loop_array.push(loop_array);
-keypath(
-    loop_array, ['a', 1, ['k']], [[1], ['a'], [['k']]],
-    'array loop -> stringify becomes [\'\']');
+// A key path that is a sequence is converted with the WebIDL sequence<DOMString> conversion, which
+// stringifies every item. Stringifying a self-referential array recurses without bound, because
+// ECMA-262 defines no cycle detection for Array.prototype.join
+// (https://tc39.es/ecma262/#sec-array.prototype.join): joining the array converts element 0, which
+// is the array itself, which is joined again. The conversion therefore exceeds an implementation
+// limit and reports an error. It must not quietly substitute the empty string on the repeat visit,
+// which would yield the key path [''] and make each value its own key.
+indexeddb_test(
+    function(t, db) {
+      let loop_array = [];
+      loop_array.push(loop_array);
+      assert_throws_js(RangeError, function() {
+        db.createObjectStore('store', {keyPath: loop_array});
+      }, 'Converting a self-referential key path array should exhaust the stack.');
+    },
+    function(t, db) {
+      t.done();
+    },
+    'Key path conversion: a self-referential array exhausts the stack');

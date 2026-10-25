@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<title>shape-outside: shape() and path()</title>
+<link rel="help" href="https://drafts.csswg.org/css-shapes-1/#propdef-shape-outside">
+<link rel="help" href="https://drafts.csswg.org/css-shapes-2/#shape-function">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<style>
+body {
+  margin: 0;
+}
+.container {
+  width: 200px;
+  line-height: 0;
+}
+
+.shape {
+  float: left;
+  width: 100px;
+  height: 100px;
+  background-color: orange;
+}
+
+.box {
+  display: inline-block;
+  width: 90px;
+  background-color: blue;
+}
+</style>
+
+<main class="container">
+  <div class="shape"></div>
+  <div class="box" style="height: 25px;"></div>
+  <div class="box" style="height: 25px;"></div>
+  <div class="box" style="height: 25px;"></div>
+  <div class="box" style="height: 25px;"></div>
+</main>
+
+<script>
+function shape_outside_test(value, expected, description) {
+  test(() => {
+    const shape = document.querySelector(".shape");
+    shape.style.setProperty("shape-outside", value);
+    const actual = Array.from(document.querySelectorAll(".container .box")).map(b => b.getBoundingClientRect().x);
+    assert_array_approx_equals(actual, expected, 2);
+  }, description);
+}
+
+shape_outside_test("path('M 0 0 L 0 100 L 100 100 Z')", [25, 50, 75, 100],
+  "shape-outside: path() with a triangle");
+shape_outside_test("shape(from 0px 0px, line to 0px 100px, line to 100px 100px, close)", [25, 50, 75, 100],
+  "shape-outside: shape() with a triangle");
+
+shape_outside_test("path('M 0 0 L 100 0 L 0 100 Z')", [100, 75, 50, 25],
+  "shape-outside: path() with a mirrored triangle");
+
+shape_outside_test("shape(from 0px 0px, line to 100px 0px, line to 100px 100px, line to 0px 100px, close)",
+  [100, 100, 100, 100], "shape-outside: shape() with a square");
+
+shape_outside_test("shape(from 0px 0px, curve to 100px 100px with 100px 0px, close)",
+  [75, 91, 98, 100], "shape-outside: shape() with a quadratic curve");
+</script>

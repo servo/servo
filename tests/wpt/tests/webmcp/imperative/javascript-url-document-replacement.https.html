@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>WebMCP: tools after a javascript: URL replaces a document</title>
+<link rel="author" href="mailto:khushalsagar@chromium.org">
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<body>
+<script>
+// The result of a javascript: URL replaces the iframe's document with a new
+// one. That new document registers its own tool and tells the parent.
+const kReplacementDocument = `<!DOCTYPE html><script>
+  document.modelContext.registerTool({
+    name: 'replacement_tool',
+    description: 'Tool registered by the replacement document',
+    execute: async () => {},
+  }).then(() => parent.postMessage('registered', '*'),
+          e => parent.postMessage(String(e), '*'));
+<\/script>`;
+
+async function toolNames() {
+  const tools = await document.modelContext.getTools();
+  return tools.map(t => t.name);
+}
+
+promise_test(async t => {
+  const iframe = document.createElement('iframe');
+  iframe.src = '/common/blank.html';
+  const loaded = new Promise(resolve => iframe.onload = resolve);
+  document.body.append(iframe);
+  t.add_cleanup(() => iframe.remove());
+  await loaded;
+
+  await iframe.contentDocument.modelContext.registerTool({
+    name: 'replaced_tool',
+    description: 'Tool registered by the replaced document',
+    execute: async () => {},
+  });
+  assert_array_equals(await toolNames(), ['replaced_tool']);
+
+  const message = new Promise(resolve => {
+    window.addEventListener('message', e => resolve(e.data), {once: true});
+  });
+  iframe.contentWindow.location.href =
+      'javascript:' + encodeURIComponent(JSON.stringify(kReplacementDocument));
+  assert_equals(await message, 'registered');
+
+  assert_array_equals(await toolNames(), ['replacement_tool']);
+}, 'A document that replaces another via a javascript: URL can register tools');
+</script>
+</body>

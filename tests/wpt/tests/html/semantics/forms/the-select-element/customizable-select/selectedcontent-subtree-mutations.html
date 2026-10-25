@@ -60,7 +60,7 @@ promise_test(async () => {
 <div id=newParent></div>
 
 <script>
-promise_test(async () => {
+promise_test(async t => {
   const wrapper = document.getElementById('wrapper2');
   const newParent = document.getElementById('newParent');
   const select = document.getElementById('select2');
@@ -70,6 +70,11 @@ promise_test(async () => {
 
   assert_equals(selectedcontent.innerHTML, 'one',
     'selectedcontent should match the selected option at the start of the test.');
+  const originalChild = selectedcontent.firstChild;
+
+  const observer = new MutationObserver(() => {});
+  t.add_cleanup(() => observer.disconnect());
+  observer.observe(selectedcontent, {childList: true, subtree: true});
 
   // The option moving steps also run for every shadow-including inclusive
   // descendant of the moved node. Moving an ancestor of the select does not
@@ -83,8 +88,10 @@ promise_test(async () => {
   assert_equals(selectedcontent.innerHTML, 'one',
     'selectedcontent should be unchanged after moving an ancestor of the select.');
   await new Promise(queueMicrotask);
-  assert_equals(selectedcontent.innerHTML, 'one',
-    'selectedcontent should not be updated by a microtask when no selectedness changed.');
+  assert_equals(selectedcontent.firstChild, originalChild,
+    'selectedcontent children should not be replaced by a microtask when no selectedness changed.');
+  assert_equals(observer.takeRecords().length, 0,
+    'Moving an ancestor of the select should not mutate selectedcontent.');
 
   optionB.selected = true;
 
@@ -93,4 +100,34 @@ promise_test(async () => {
   assert_equals(selectedcontent.innerHTML, 'two',
     'selectedcontent should be updated synchronously when selecting another option.');
 }, 'selectedcontent stays up to date after an ancestor of the select is moved.');
+</script>
+
+<select id=select3a>
+  <button>
+    <selectedcontent id=selectedcontent3></selectedcontent>
+  </button>
+  <option>one</option>
+</select>
+<select id=select3b>
+  <button></button>
+  <option>two</option>
+</select>
+
+<script>
+// The microtask queued by the selectedcontent moving steps finds the
+// selectedcontent's select when it runs, rather than when it was queued.
+promise_test(async () => {
+  const selectB = document.getElementById('select3b');
+  const selectedcontent = document.getElementById('selectedcontent3');
+
+  assert_equals(selectedcontent.innerHTML, 'one',
+    'selectedcontent should match the selected option at the start of the test.');
+
+  selectB.querySelector('button').moveBefore(selectedcontent, null);
+  selectB.multiple = true;
+  await new Promise(queueMicrotask);
+
+  assert_equals(selectedcontent.innerHTML, 'one',
+    'selectedcontent should not be updated once its select has the multiple attribute.');
+}, 'selectedcontent moved into a select that becomes multiple before the microtask runs is not updated.');
 </script>

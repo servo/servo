@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<meta charset=utf-8>
+<title>window.pushManager is not exposed in a non-secure context</title>
+<link rel=help href="https://w3c.github.io/push-api/#extensions-to-the-serviceworkerregistration-interface">
+<script src=/resources/testharness.js></script>
+<script src=/resources/testharnessreport.js></script>
+<script>
+test(() => {
+  assert_false(self.isSecureContext);
+}, "This page is not a secure context");
+
+test(() => {
+  assert_false("pushManager" in self);
+}, "pushManager is not exposed");
+</script>

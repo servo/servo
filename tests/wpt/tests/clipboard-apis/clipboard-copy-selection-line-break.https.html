@@ -43,8 +43,8 @@ Body needed for test_driver.click()<br>
   }
 
   function normalizeForComparison(s) {
-    // Convert LF to CRLF on Windows.
-    return navigator.platform.includes('Win') ? s.replace(/\r?\n/g, '\r\n') : s;
+    // Convert CR, LF and CRLF to CRLF on Windows.
+    return navigator.platform.includes('Win') ? s.replace(/\r\n|\r|\n/g, '\r\n') : s;
   }
 
   // Permissions are required in order to invoke navigator.clipboard functions in

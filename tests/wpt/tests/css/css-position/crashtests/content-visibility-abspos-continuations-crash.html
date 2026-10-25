@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta charset="utf-8">
+<title>Hiding fragmented absolute children with escaped fixed descendants</title>
+<link rel="help" href="https://drafts.csswg.org/css-contain/#content-visibility">
+<link rel="help" href="https://drafts.csswg.org/css-position-3/#abspos-breaking">
+<style>
+html, body { margin: 0 }
+.cols {
+  width: 620px;
+  height: 120px;
+  columns: 3;
+  column-gap: 10px;
+  column-fill: auto;
+}
+.outer { position: relative; contain: layout style paint }
+.normal { height: 700px }
+.victim {
+  position: absolute;
+  inset: 0 auto auto 0;
+  width: 170px;
+  display: flex;
+  flex-flow: column nowrap;
+}
+.item { flex: 0 0 auto; margin: 0; line-height: 17px; font-size: 12px }
+.row { height: 21px }
+.fx { position: fixed; inset: 2px auto auto 2px; width: 13px; height: 13px }
+.grid .victim { display: grid; grid-template-rows: repeat(7, 120px) }
+.grid .item { grid-row: 1 / -1; min-height: 0 }
+.hide-self .victim { contain: layout style paint }
+.hide-self.flex .item { flex-basis: 756px; min-height: 0; height: 756px }
+.case[popover] {
+  position: fixed;
+  inset: 0 auto auto 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+.case::backdrop { display: none }
+.fx[popover] { margin: 0; border: 0; padding: 0 }
+</style>
+<body>
+<template id="fixture">
+  <div class="cols"><div class="outer">
+    <div class="normal">normal</div>
+    <div class="victim"><div class="item"></div></div>
+  </div></div>
+</template>
+<script>
+function runTest(layout, topLayer, hideSelf) {
+  const test = document.createElement("div");
+  test.classList.add("case", layout);
+  if (hideSelf) {
+    test.classList.add("hide-self");
+  }
+  test.append(document.getElementById("fixture").content.cloneNode(true));
+  const cols = test.querySelector(".cols");
+  const outer = test.querySelector(".outer");
+  const victim = test.querySelector(".victim");
+  test.querySelector(".item").innerHTML = Array.from({length: 36}, (_, i) =>
+    '<div class="row">row ' + i +
+    (i === 20 ? '<span class="fx">x</span>' : '') + '</div>').join('');
+  const fixed = test.querySelector(".fx");
+  if (topLayer) {
+    test.setAttribute("popover", "manual");
+    fixed.setAttribute("popover", "manual");
+  }
+  document.body.append(test);
+  if (topLayer) {
+    test.showPopover();
+    fixed.showPopover();
+  }
+
+  // Create the flex/grid and item continuations, with the fixed descendant's
+  // placeholder in a later fragment. In the top-layer case, the fixed frame
+  // escapes even a paint-containing victim to the viewport's absolute list.
+  victim.getClientRects();
+  const hidden = hideSelf ? victim : outer;
+  hidden.style.contentVisibility = "hidden";
+  cols.offsetHeight;
+  hidden.style.contentVisibility = "visible";
+  cols.offsetHeight;
+  fixed.getClientRects();
+
+  if (topLayer) {
+    fixed.hidePopover();
+    test.hidePopover();
+  }
+  test.remove();
+}
+
+addEventListener("load", () => {
+  for (const layout of ["flex", "grid"]) {
+    runTest(layout, false, false);
+    runTest(layout, true, false);
+    runTest(layout, true, true);
+  }
+  document.documentElement.classList.remove("test-wait");
+});
+</script>

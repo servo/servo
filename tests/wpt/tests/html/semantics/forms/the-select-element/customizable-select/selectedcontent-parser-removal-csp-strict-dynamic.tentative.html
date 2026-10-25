@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="script-src 'nonce-abc' 'strict-dynamic'">
+<title>Parser-initiated option removal doesn't let parser-inserted scripts bypass 'strict-dynamic'</title>
+<link rel=help href="https://html.spec.whatwg.org/#the-option-element:stack-of-open-elements">
+<link rel=help href="https://html.spec.whatwg.org/#adoption-agency-algorithm">
+<link rel=help href="https://w3c.github.io/webappsec-csp/#strict-dynamic-usage">
+<script nonce="abc" src="/resources/testharness.js"></script>
+<script nonce="abc" src="/resources/testharnessreport.js"></script>
+<script nonce="abc">
+  window.runs = 0;
+</script>
+<select>
+  <button><selectedcontent></selectedcontent></button>
+  <b><div><option selected>one</option></b></div>
+  <option selected><script src="data:text/javascript,runs++"></script><span>two</span></option>
+</select>
+<script nonce="abc">
+  promise_test(async () => {
+    await new Promise(resolve => window.addEventListener("load", resolve));
+    await new Promise(resolve => step_timeout(resolve, 0));
+    assert_equals(document.querySelector("select div").parentNode,
+                  document.querySelector("select"),
+                  "The adoption agency algorithm should have moved the div");
+    assert_equals(runs, 0, "Nonce-less scripts shouldn't run");
+  }, "An option removed by the parser doesn't let a nonce-less script in a selected option run via selectedcontent");
+</script>

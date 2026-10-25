@@ -1,0 +1,54 @@
+<!doctype html>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/resources/testdriver.js"></script>
+<script src="/resources/testdriver-vendor.js"></script>
+<script src="/common/get-host-info.sub.js"></script>
+<body>
+<script>
+const iframe = document.createElement("iframe");
+
+// testdriver may relay the iframe's actions through messages too, so only take the helper's replies.
+function nextReply() {
+  return new Promise(resolve => {
+    window.addEventListener("message", function onMessage(e) {
+      if (e.source !== iframe.contentWindow || !e.data || !("reply" in e.data))
+        return;
+      window.removeEventListener("message", onMessage);
+      resolve(e.data.reply);
+    });
+  });
+}
+
+function sendCommand(command) {
+  const reply = nextReply();
+  iframe.contentWindow.postMessage({ command }, "*");
+  return reply;
+}
+
+promise_test(async t => {
+  // Wait for after the load event so that the iframe's navigations don't get converted into replace navigations.
+  await new Promise(resolve => window.onload = () => t.step_timeout(resolve, 0));
+
+  const ready = nextReply();
+  iframe.src = get_host_info().HTTP_NOTSAMESITE_ORIGIN + "/navigation-api/navigation-methods/resources/traverseTo-and-forward-in-cross-site-iframe-helper.html";
+  document.body.appendChild(iframe);
+  await ready;
+
+  const initial = await sendCommand("setup");
+  assert_equals(initial.index, 2, "index after two fragment navigations");
+  assert_equals(initial.length, 3, "entries after two fragment navigations");
+
+  // Each traversal changes only the iframe, and the second one must not wait on the first indefinitely.
+  const traversed = await sendCommand("traverseTo");
+  assert_equals(traversed.error, undefined, "traverseTo() is not rejected");
+  assert_equals(traversed.index, 0, "index after traverseTo()");
+  assert_equals(traversed.hash, "", "hash after traverseTo()");
+
+  const forwarded = await sendCommand("forward");
+  assert_equals(forwarded.error, undefined, "forward() is not rejected");
+  assert_equals(forwarded.index, 1, "index after forward()");
+  assert_equals(forwarded.hash, "#1", "hash after forward()");
+}, "navigation.traverseTo() then navigation.forward() in a cross-site iframe both complete");
+</script>
+</body>

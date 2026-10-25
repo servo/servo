@@ -7,7 +7,7 @@
 <script src="/html/canvas/resources/wait-for-canvas-paint.js"></script>
 
 <style>
-#child {
+#child, #dialogchild {
   width: 100px;
   height: 100px;
   background: green;
@@ -21,6 +21,9 @@
   <div id=child drawable>
     <div id=grandchild></div>
   </div>
+  <dialog id=dialog>
+    <div id=dialogchild drawable></div>
+  </dialog>
 </canvas>
 <canvas id=canvaswithoutlayout content=drawable>
   <div id=child2 drawable></div>
@@ -72,6 +75,26 @@ promise_test(async () => {
   assert_throws_dom("InvalidStateError",
     () => canvas.getElementImageDefaultSize(grandchild),
     "Can't get default size for non-drawable descendants.");
+  assert_throws_dom("InvalidStateError",
+    () => canvas.getElementTransform(grandchild, new DOMMatrix()),
+    "Can't get transform for non-drawable descendants.");
+
+  // Drawable descendants inside a top-layer ancestor cannot be drawn.
+  dialog.showModal();
+  await waitForCanvasPaint(canvas);
+  assert_throws_dom("InvalidStateError",
+    () => canvas.getContext("2d").drawElementImage(dialogchild, 20, 30),
+    "Can't draw drawable descendants inside a modal dialog.");
+  assert_throws_dom("InvalidStateError",
+    () => canvas.captureElementImage(dialogchild),
+    "Can't capture drawable descendants inside a modal dialog.");
+  dialog.close();
+  assert_throws_dom("InvalidStateError",
+    () => canvas.getContext("2d").drawElementImage(dialogchild, 20, 30),
+    "After closing modal dialog, children cannot be drawn until repainted.");
+  assert_throws_dom("InvalidStateError",
+    () => canvas.captureElementImage(dialogchild),
+    "After closing modal dialog, children cannot be captured until repainted.");
 });
 </script>
 </html>
