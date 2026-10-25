@@ -1089,7 +1089,10 @@ impl LayoutThread {
     /// The high-level routine that performs layout.
     #[servo_tracing::instrument(
         skip_all,
-        fields(goal = tracing::field::debug(&reflow_request.reflow_goal))
+        fields(
+            goal = tracing::field::debug(&reflow_request.reflow_goal),
+            webview_id = tracing::field::display(self.webview_id),
+        )
     )]
     fn handle_reflow(&mut self, mut reflow_request: ReflowRequest) -> Option<ReflowResult> {
         self.maybe_print_reflow_event(&reflow_request);
