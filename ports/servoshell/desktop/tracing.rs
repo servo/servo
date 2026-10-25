@@ -52,6 +52,9 @@ mod from_winit {
                 Self::WindowEvent { event, .. } => event.log_target(),
                 Self::DeviceEvent { .. } => target!("DeviceEvent"),
                 Self::UserEvent(AppEvent::Waker) => target!("UserEvent(Waker)"),
+                Self::UserEvent(AppEvent::TooltipDelayElapsed(..)) => {
+                    target!("UserEvent(TooltipDelayElapsed)")
+                },
                 Self::UserEvent(AppEvent::Accessibility(..)) => target!("UserEvent(Accessibility)"),
                 #[cfg(feature = "gamepad")]
                 Self::UserEvent(AppEvent::Gamepad(..)) => target!("UserEvent(Gamepad)"),

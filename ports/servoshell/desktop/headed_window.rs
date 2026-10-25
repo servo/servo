@@ -494,11 +494,16 @@ impl HeadedWindow {
         dialogs.retain(|_, dialogs| !dialogs.is_empty());
     }
 
-    fn has_active_dialog_for_webview(&self, webview_id: WebViewId) -> bool {
+    pub(crate) fn has_active_dialog_for_webview(&self, webview_id: WebViewId) -> bool {
         // First lazily clean up any empty dialog vectors.
         let mut dialogs = self.dialogs.borrow_mut();
         dialogs.retain(|_, dialogs| !dialogs.is_empty());
         dialogs.contains_key(&webview_id)
+    }
+
+    /// The position of the mouse cursor after the most recent `MouseMove` event.
+    pub(crate) fn mouse_position(&self) -> Option<Point2D<f32, DeviceIndependentPixel>> {
+        self.last_mouse_position.get()
     }
 
     fn toolbar_height(&self) -> Length<f32, DeviceIndependentPixel> {
@@ -534,6 +539,9 @@ impl HeadedWindow {
             self.last_mouse_position.set(Some(
                 winit_position_to_euclid_point(position).to_f32() / self.hidpi_scale_factor(),
             ));
+        }
+        if let WindowEvent::CursorLeft { .. } = event {
+            self.last_mouse_position.set(None);
         }
         let should_forward_mouse_event_to_egui = || {
             // If a dialog is showing, it always captures all mouse events.
@@ -847,7 +855,7 @@ impl PlatformWindow for HeadedWindow {
             *self.last_title.borrow_mut() = title;
         }
 
-        self.gui.borrow_mut().update_webview_data(window)
+        self.gui.borrow_mut().update_webview_data(window, self)
     }
 
     fn request_repaint(&self, _: &ServoShellWindow) {
@@ -1098,10 +1106,14 @@ impl PlatformWindow for HeadedWindow {
                 let offset = self.gui.borrow().toolbar_height();
                 self.add_dialog(webview_id, Dialog::new_context_menu(prompt, offset));
             },
+            EmbedderControl::Tooltip(tooltip) => {
+                self.gui.borrow_mut().show_tooltip(tooltip);
+            },
         }
     }
 
     fn hide_embedder_control(&self, webview_id: WebViewId, embedder_control_id: EmbedderControlId) {
+        self.gui.borrow_mut().hide_tooltip(embedder_control_id);
         if self.visible_input_method.get() == Some(embedder_control_id) {
             self.visible_input_method.set(None);
             self.winit_window.set_ime_allowed(false);

@@ -9,7 +9,7 @@ use std::cell::Cell;
 use embedder_traits::{
     ClipboardAction, ContextMenuAction, ContextMenuElementInformation,
     ContextMenuElementInformationFlags, ContextMenuItem, ContextMenuRequest, EmbedderControlId,
-    EmbedderControlRequest, EmbedderControlResponse, EmbedderMsg,
+    EmbedderControlRequest, EmbedderControlResponse, EmbedderMsg, TooltipRequest,
 };
 use euclid::{Point2D, Rect, Size2D};
 use js::context::JSContext;
@@ -51,6 +51,7 @@ pub(crate) enum ControlElement {
     FileInput(Dom<HTMLInputElement>),
     Ime(Dom<HTMLElement>),
     ContextMenu(ContextMenuNodes),
+    Tooltip(Dom<HTMLImageElement>),
 }
 
 impl ControlElement {
@@ -61,6 +62,7 @@ impl ControlElement {
             ControlElement::FileInput(element) => element.upcast::<Node>(),
             ControlElement::Ime(element) => element.upcast::<Node>(),
             ControlElement::ContextMenu(context_menu_nodes) => &context_menu_nodes.node,
+            ControlElement::Tooltip(element) => element.upcast::<Node>(),
         }
     }
 }
@@ -147,7 +149,8 @@ impl DocumentEmbedderControls {
             EmbedderControlRequest::SelectElement(..) |
             EmbedderControlRequest::ColorPicker(..) |
             EmbedderControlRequest::InputMethod(..) |
-            EmbedderControlRequest::ContextMenu(..) => self
+            EmbedderControlRequest::ContextMenu(..) |
+            EmbedderControlRequest::Tooltip(..) => self
                 .window
                 .send_to_embedder(EmbedderMsg::ShowEmbedderControl(id, rect, request)),
             EmbedderControlRequest::FilePicker(file_picker_request) => {
@@ -184,6 +187,33 @@ impl DocumentEmbedderControls {
             .borrow_mut()
             .retain(|index, control_element| {
                 if control_element.node() != element.upcast() {
+                    return true;
+                }
+                let id = EmbedderControlId {
+                    webview_id: self.window.webview_id(),
+                    pipeline_id: self.window.pipeline_id(),
+                    index: index.0,
+                };
+                self.window
+                    .send_to_embedder(EmbedderMsg::HideEmbedderControl(id));
+                false
+            });
+    }
+
+    pub(crate) fn show_tooltip(&self, cx: &mut JSContext, image: &HTMLImageElement, text: String) {
+        self.show_embedder_control(
+            cx,
+            ControlElement::Tooltip(Dom::from_ref(image)),
+            EmbedderControlRequest::Tooltip(TooltipRequest { text }),
+            None,
+        );
+    }
+
+    pub(crate) fn hide_tooltip(&self) {
+        self.visible_elements
+            .borrow_mut()
+            .retain(|index, control_element| {
+                if !matches!(control_element, ControlElement::Tooltip(..)) {
                     return true;
                 }
                 let id = EmbedderControlId {

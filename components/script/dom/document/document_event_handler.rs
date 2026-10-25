@@ -30,6 +30,7 @@ use script_bindings::codegen::GenericBindings::DocumentBinding::DocumentMethods;
 use script_bindings::codegen::GenericBindings::ElementBinding::ScrollLogicalPosition;
 use script_bindings::codegen::GenericBindings::EventBinding::EventMethods;
 use script_bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElementMethods;
+use script_bindings::codegen::GenericBindings::HTMLImageElementBinding::HTMLImageElementMethods;
 use script_bindings::codegen::GenericBindings::HTMLLabelElementBinding::HTMLLabelElementMethods;
 use script_bindings::codegen::GenericBindings::ShadowRootBinding::ShadowRootMethods;
 use script_bindings::codegen::GenericBindings::TouchBinding::TouchMethods;
@@ -71,7 +72,8 @@ use crate::dom::node::{self, Node, NodeTraits};
 use crate::dom::pointerevent::{PointerEvent, PointerId};
 use crate::dom::types::{
     CompositionEvent, Element, Event, EventTarget, GlobalScope, HTMLAnchorElement, HTMLElement,
-    HTMLLabelElement, MouseEvent, Touch, TouchEvent, TouchList, WheelEvent, Window,
+    HTMLImageElement, HTMLLabelElement, MouseEvent, Touch, TouchEvent, TouchList, WheelEvent,
+    Window,
 };
 use crate::dom::window::scrolling_box::{ScrollAxisState, ScrollRequirement, ScrollingBoxAxis};
 use crate::drag::drag_gesture::DragGesture;
@@ -512,6 +514,10 @@ impl DocumentEventHandler {
             }
         }
 
+        // The tooltip of the frame that the cursor is leaving is hidden, whether the cursor
+        // moved to another frame or left the `WebView` entirely.
+        self.window.Document().embedder_controls().hide_tooltip();
+
         // We do not want to always inform the embedder that cursor has been set to the
         // default cursor, in order to avoid a timing issue when moving between `<iframe>`
         // elements. There is currently no way to control which `SetCursor` message will
@@ -820,12 +826,12 @@ impl DocumentEventHandler {
         // Send mousemove event. Routed to the capture target when capture is active.
         mouse_event.upcast::<Event>().fire(cx, &pointer_target);
 
-        self.update_current_hover_target_and_status(cx.no_gc(), Some(new_target));
+        self.update_current_hover_target_and_status(cx, Some(new_target));
     }
 
     fn update_current_hover_target_and_status(
         &self,
-        no_gc: &NoGC,
+        cx: &mut JSContext,
         new_hover_target: Option<DomRoot<Element>>,
     ) {
         let current_hover_target = self.current_hover_target.get();
@@ -836,6 +842,18 @@ impl DocumentEventHandler {
         let previous_hover_target = self.current_hover_target.get();
         self.current_hover_target.set(new_hover_target.as_deref());
 
+        // A tooltip shown by the embedder for the previously hovered image is hidden when
+        // the hover target changes, so that only one tooltip can be shown at a time.
+        let document = self.window.Document();
+        let controls = document.embedder_controls();
+        controls.hide_tooltip();
+        if let Some(image) = hover_target_image(self.current_hover_target.get().as_deref()) {
+            let alt_text = String::from(image.Alt());
+            if !alt_text.is_empty() {
+                controls.show_tooltip(cx, &image, alt_text);
+            }
+        }
+
         // If the new hover target is an anchor with a status value, inform the embedder
         // of the new value.
         if let Some(target) = self.current_hover_target.get() &&
@@ -845,7 +863,7 @@ impl DocumentEventHandler {
                 .find_map(DomRoot::downcast::<HTMLAnchorElement>)
         {
             let status = anchor
-                .full_href_url_for_user_interface(no_gc)
+                .full_href_url_for_user_interface(cx.no_gc())
                 .map(|url| url.to_string());
             self.window
                 .send_to_embedder(EmbedderMsg::Status(self.window.webview_id(), status));
@@ -2980,6 +2998,14 @@ impl DocumentEventHandler {
     pub(crate) fn install_drag_gesture(&self, drag_gesture: DragGesture) {
         *self.drag_gesture.borrow_mut() = Some(drag_gesture);
     }
+}
+
+/// The image containing `hover_target`, whose `alt` text the embedder shows in a tooltip.
+fn hover_target_image(hover_target: Option<&Element>) -> Option<DomRoot<HTMLImageElement>> {
+    hover_target?
+        .upcast::<Node>()
+        .inclusive_ancestors(ShadowIncluding::Yes)
+        .find_map(DomRoot::downcast::<HTMLImageElement>)
 }
 
 /// Whether a given [`EmbedderKeyboardEvent`] should trigger a `keypress` event.

@@ -884,6 +884,11 @@ impl WebViewDelegate for RunningAppState {
 
     fn show_embedder_control(&self, webview: WebView, embedder_control: EmbedderControl) {
         if self.servoshell_preferences.webdriver_port.get().is_some() {
+            // Tooltips are only shown by the headed user interface.
+            if matches!(&embedder_control, EmbedderControl::Tooltip(..)) {
+                return;
+            }
+
             if matches!(&embedder_control, EmbedderControl::SimpleDialog(..)) {
                 self.interrupt_webdriver_script_evaluation();
 

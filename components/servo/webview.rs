@@ -44,7 +44,7 @@ use crate::responders::AutomaticResponder;
 use crate::servo::PendingHandledInputEvent;
 use crate::webview_delegate::{CreateNewWebViewRequest, DefaultWebViewDelegate, WebViewDelegate};
 use crate::{
-    ColorPicker, ContextMenu, EmbedderControl, InputMethodControl, SelectElement, Servo,
+    ColorPicker, ContextMenu, EmbedderControl, InputMethodControl, SelectElement, Servo, Tooltip,
     UserContentManager, WebRenderDebugOption,
 };
 
@@ -862,6 +862,11 @@ impl WebView {
                     response_sent: false,
                 })
             },
+            EmbedderControlRequest::Tooltip(tooltip_request) => EmbedderControl::Tooltip(Tooltip {
+                id: control_id,
+                position,
+                text: tooltip_request.text,
+            }),
             EmbedderControlRequest::FilePicker { .. } => {
                 unreachable!("This message should be routed through the FileManagerThread")
             },

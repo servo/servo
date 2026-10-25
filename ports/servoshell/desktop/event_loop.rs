@@ -15,11 +15,14 @@ use servo::GamepadIndex;
 use winit::event_loop::{EventLoop, EventLoop as WinitEventLoop, EventLoopProxy};
 
 use super::app::App;
+use crate::window::ServoShellWindowId;
 
 #[derive(Debug)]
 pub enum AppEvent {
     /// Another process or thread has kicked the OS event loop with EventLoopWaker.
     Waker,
+    /// The tooltip delay of the given window has passed, so it needs to update its user interface.
+    TooltipDelayElapsed(ServoShellWindowId),
     Accessibility(egui_winit::accesskit_winit::Event),
     #[cfg(feature = "gamepad")]
     Gamepad(Event, String, GamepadIndex),

@@ -227,6 +227,13 @@ impl ApplicationHandler<AppEvent> for App {
 
         match app_event {
             AppEvent::Waker => (),
+            // The tooltip delay of a window has passed without any other event, so that window
+            // needs to update its user interface in case the tooltip has to be shown or hidden.
+            AppEvent::TooltipDelayElapsed(window_id) => {
+                if let Some(window) = state.window(window_id) {
+                    window.set_needs_update();
+                }
+            },
             AppEvent::Accessibility(ref event) => {
                 if let Some(window) =
                     state.window(ServoShellWindowId::from(u64::from(event.window_id))) &&

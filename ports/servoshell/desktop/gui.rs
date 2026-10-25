@@ -19,6 +19,9 @@ use std::fs;
 use std::path::Path;
 use std::rc::Rc;
 use std::sync::Arc;
+use std::sync::mpsc::Sender;
+use std::thread;
+use std::time::{Duration, Instant};
 
 use accesskit::Affine;
 use dpi::PhysicalSize;
@@ -47,8 +50,8 @@ use euclid::{Length, Point2D, Rect, Scale, Size2D};
 use log::info;
 use log::warn;
 use servo::{
-    DeviceIndependentPixel, DevicePixel, Image, LoadStatus, OffscreenRenderingContext, PixelFormat,
-    RenderingContext, WebView, WebViewId,
+    DeviceIndependentPixel, DevicePixel, EmbedderControlId, Image, LoadStatus,
+    OffscreenRenderingContext, PixelFormat, RenderingContext, Tooltip, WebView, WebViewId,
 };
 use url::Url;
 use winit::event::WindowEvent;
@@ -58,7 +61,10 @@ use winit::window::Window;
 use crate::desktop::event_loop::AppEvent;
 use crate::desktop::headed_window;
 use crate::running_app_state::{RunningAppState, UserInterfaceCommand};
-use crate::window::{ServoShellWindow, TopLevelWebViewCreationRequest};
+use crate::window::{ServoShellWindow, ServoShellWindowId, TopLevelWebViewCreationRequest};
+
+/// How long the mouse must rest on an image before its `alt` text is shown as a tooltip.
+const TOOLTIP_DELAY: Duration = Duration::from_millis(500);
 
 /// The user interface of a headed servoshell. Currently this is implemented via
 /// egui.
@@ -77,6 +83,9 @@ pub struct Gui {
 
     /// The text to display in the status bar on the bottom of the window.
     status_text: Option<String>,
+
+    /// The tooltip showing the `alt` text of the image under the mouse.
+    tooltip: AltTextTooltip,
 
     /// Whether or not the current `WebView` can navigate backward.
     can_go_back: bool,
@@ -237,8 +246,11 @@ impl Gui {
 
         context
             .egui_winit
-            .init_accesskit(event_loop, winit_window, event_loop_proxy);
+            .init_accesskit(event_loop, winit_window, event_loop_proxy.clone());
         winit_window.set_visible(true);
+
+        let window_id = ServoShellWindowId::from(u64::from(winit_window.id()));
+        let tooltip = AltTextTooltip::new(spawn_tooltip_timer(event_loop_proxy, window_id));
 
         context.egui_ctx.options_mut(|options| {
             // Disable the builtin egui handlers for the Ctrl+Plus, Ctrl+Minus and Ctrl+0
@@ -258,6 +270,7 @@ impl Gui {
             location_dirty: false,
             load_status: LoadStatus::Complete,
             status_text: None,
+            tooltip,
             can_go_back: false,
             can_go_forward: false,
             favicon_textures: Default::default(),
@@ -284,7 +297,15 @@ impl Gui {
         winit_window: &Window,
         event: &WindowEvent,
     ) -> EventResponse {
-        self.context.on_window_event(winit_window, event)
+        let mut response = self.context.on_window_event(winit_window, event);
+        // Moving the mouse hides the tooltip and restarts its delay, which needs a repaint
+        // when it was visible.
+        if matches!(event, WindowEvent::CursorMoved { .. }) {
+            let tooltip_was_visible = self.tooltip.visible;
+            self.tooltip.restart_delay(Instant::now());
+            response.repaint |= tooltip_was_visible;
+        }
+        response
     }
 
     /// The height of the top toolbar of this user inteface ie the distance from the top of the
@@ -658,6 +679,12 @@ impl Gui {
                 .show(|ui| ui.add(Label::new(status_text.clone()).extend()));
             }
 
+            if self.tooltip.visible &&
+                let Some(alt_text) = &self.tooltip.text
+            {
+                show_tooltip_at_pointer(ctx, "alt-text-tooltip", alt_text);
+            }
+
             window.repaint_webviews();
 
             if let Some(render_to_parent) = rendering_context.render_to_parent_callback() {
@@ -749,6 +776,41 @@ impl Gui {
         old_status != self.status_text
     }
 
+    /// Track the tooltip under the mouse, which is shown once the mouse has rested for
+    /// [`TOOLTIP_DELAY`]. Returns `true` when the tooltip appeared or disappeared and the window
+    /// therefore needs to be repainted.
+    fn update_tooltip(
+        &mut self,
+        window: &ServoShellWindow,
+        headed_window: &headed_window::HeadedWindow,
+    ) -> bool {
+        // The tooltip is not shown while the mouse is over the toolbar or over a dialog on top
+        // of the `WebView`, or while it belongs to a `WebView` that is not active.
+        let active_webview_id = window.active_webview().map(|webview| webview.id());
+        let can_show = headed_window
+            .mouse_position()
+            .is_some_and(|position| !self.is_in_egui_toolbar_rect(position)) &&
+            !window.active_webview().is_some_and(|webview| {
+                headed_window.has_active_dialog_for_webview(webview.id())
+            }) &&
+            self.tooltip
+                .control_id
+                .is_none_or(|id| Some(id.webview_id) == active_webview_id);
+        self.tooltip.update(can_show, Instant::now())
+    }
+
+    /// Start tracking the tooltip described by the given embedder control, hiding any previous
+    /// tooltip and restarting the delay after which this one is shown.
+    pub(crate) fn show_tooltip(&mut self, tooltip: Tooltip) {
+        self.tooltip
+            .show(tooltip.id(), tooltip.text().to_owned(), Instant::now());
+    }
+
+    /// Hide the tooltip if it belongs to the given embedder control.
+    pub(crate) fn hide_tooltip(&mut self, control_id: EmbedderControlId) {
+        self.tooltip.hide(control_id);
+    }
+
     fn update_can_go_back_and_forward(&mut self, window: &ServoShellWindow) -> bool {
         let (can_go_back, can_go_forward) = window
             .active_webview()
@@ -761,7 +823,11 @@ impl Gui {
 
     /// Updates all fields taken from the given [`ServoShellWindow`], such as the location field.
     /// Returns true iff the egui needs an update.
-    pub(crate) fn update_webview_data(&mut self, window: &ServoShellWindow) -> bool {
+    pub(crate) fn update_webview_data(
+        &mut self,
+        window: &ServoShellWindow,
+        headed_window: &headed_window::HeadedWindow,
+    ) -> bool {
         // Note: We must use the "bitwise OR" (|) operator here instead of "logical OR" (||)
         //       because logical OR would short-circuit if any of the functions return true.
         //       We want to ensure that all functions are called. The "bitwise OR" operator
@@ -769,6 +835,7 @@ impl Gui {
         self.update_load_status(window) |
             self.update_location_in_toolbar(window) |
             self.update_status_text(window) |
+            self.update_tooltip(window, headed_window) |
             self.update_can_go_back_and_forward(window)
     }
 
@@ -859,5 +926,183 @@ fn load_pending_favicons(
         // We don't need the handle anymore but we can't drop it either since that would cause
         // the texture to be freed.
         texture_cache.insert(id, (handle, texture));
+    }
+}
+
+/// The tooltip, which is only shown once the mouse has rested for [`TOOLTIP_DELAY`].
+struct AltTextTooltip {
+    /// The embedder control that requested this tooltip.
+    control_id: Option<EmbedderControlId>,
+
+    /// The text of the tooltip, if any.
+    text: Option<String>,
+
+    /// When the mouse last moved, or the tooltip was last shown, whichever was later.
+    delay_started: Instant,
+
+    visible: bool,
+
+    /// Notifies the timer thread, which wakes the event loop up once the delay has passed.
+    timer: Sender<()>,
+}
+
+impl AltTextTooltip {
+    fn new(timer: Sender<()>) -> Self {
+        Self {
+            control_id: None,
+            text: None,
+            delay_started: Instant::now(),
+            visible: false,
+            timer,
+        }
+    }
+
+    /// Track the given tooltip control, hiding any previous tooltip and restarting the delay
+    /// after which it is shown.
+    fn show(&mut self, control_id: EmbedderControlId, text: String, now: Instant) {
+        self.control_id = Some(control_id);
+        self.text = Some(text);
+        self.restart_delay(now);
+    }
+
+    /// Hide the tooltip if it belongs to `control_id`.
+    fn hide(&mut self, control_id: EmbedderControlId) {
+        if self.control_id != Some(control_id) {
+            return;
+        }
+        self.control_id = None;
+        self.text = None;
+        self.visible = false;
+    }
+
+    /// Update whether the tooltip is visible, returning `true` when it appeared or disappeared.
+    fn update(&mut self, can_show: bool, now: Instant) -> bool {
+        let was_visible = self.visible;
+        self.visible = can_show &&
+            self.text.is_some() &&
+            now.saturating_duration_since(self.delay_started) >= TOOLTIP_DELAY;
+        self.visible != was_visible
+    }
+
+    /// Hide the tooltip and restart the delay after which it is shown again.
+    fn restart_delay(&mut self, now: Instant) {
+        self.visible = false;
+        self.delay_started = now;
+        // There is nothing to wake up for while there is no text to show.
+        if self.text.is_some() {
+            let _ = self.timer.send(());
+        }
+    }
+}
+
+/// Spawn a thread that wakes the event loop of `window_id` up once [`TOOLTIP_DELAY`] has passed
+/// since the delay was restarted, because nothing else will happen then to show the tooltip.
+/// The thread exits when the returned sender is dropped.
+fn spawn_tooltip_timer(
+    event_loop_proxy: EventLoopProxy<AppEvent>,
+    window_id: ServoShellWindowId,
+) -> Sender<()> {
+    let (tooltip_timer, tooltip_timer_receiver) = std::sync::mpsc::channel();
+    thread::Builder::new()
+        .name("tooltip timer".into())
+        .spawn(move || {
+            while tooltip_timer_receiver.recv().is_ok() {
+                // Restart the delay for as long as the mouse keeps moving.
+                while tooltip_timer_receiver.recv_timeout(TOOLTIP_DELAY).is_ok() {}
+                if event_loop_proxy
+                    .send_event(AppEvent::TooltipDelayElapsed(window_id))
+                    .is_err()
+                {
+                    return;
+                }
+            }
+        })
+        .expect("Could not spawn tooltip timer thread");
+    tooltip_timer
+}
+
+/// Show the tooltip with the given unique `name` containing `text` at the mouse position,
+/// returning the area it occupies.
+fn show_tooltip_at_pointer(
+    ctx: &egui::Context,
+    name: &'static str,
+    text: &str,
+) -> Option<egui::Rect> {
+    egui::Tooltip::always_open(
+        ctx.clone(),
+        LayerId::new(Order::Tooltip, Id::new(name)),
+        name.into(),
+        pos2(0.0, 0.0),
+    )
+    .at_pointer()
+    .show(|ui| {
+        // An egui tooltip area keeps the size it was first laid out with, so a tooltip that
+        // first appeared in a narrow window would stay a narrow column of text. Wrapping to the
+        // width of the current window instead lets it grow with the window.
+        let max_width = ui
+            .ctx()
+            .content_rect()
+            .width()
+            .min(ui.ctx().global_style().spacing.tooltip_width);
+        ui.set_max_width(max_width);
+        ui.add(Label::new(text));
+    })
+    .map(|response| response.response.rect)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// A test that the tooltip is only shown once the mouse has rested and that it is hidden
+    /// when the control is hidden or while it should not be shown.
+    #[test]
+    fn test_tooltip_state() {
+        let (timer, timer_receiver) = std::sync::mpsc::channel();
+        let mut tooltip = AltTextTooltip::new(timer);
+        let rest_started = Instant::now();
+        let control_id = EmbedderControlId {
+            webview_id: servo_base::id::TEST_WEBVIEW_ID,
+            pipeline_id: servo_base::id::TEST_PIPELINE_ID,
+            index: servo_base::Epoch(0),
+        };
+        let other_control_id = EmbedderControlId {
+            index: servo_base::Epoch(1),
+            ..control_id
+        };
+
+        // There is no tooltip without a tooltip control.
+        assert!(!tooltip.update(true, rest_started));
+        assert!(!tooltip.visible);
+
+        // The tooltip appears once the mouse has rested for `TOOLTIP_DELAY`.
+        tooltip.show(control_id, "alt text".into(), rest_started);
+        assert!(!tooltip.update(true, rest_started + TOOLTIP_DELAY / 2));
+        assert!(tooltip.update(true, rest_started + TOOLTIP_DELAY));
+        assert!(tooltip.visible);
+
+        // Moving the mouse hides the tooltip and restarts the delay.
+        let moved_at = rest_started + TOOLTIP_DELAY;
+        tooltip.restart_delay(moved_at);
+        assert!(!tooltip.visible);
+        assert!(!tooltip.update(true, moved_at + TOOLTIP_DELAY / 2));
+        assert!(tooltip.update(true, moved_at + TOOLTIP_DELAY));
+
+        // The tooltip is hidden while it should not be shown.
+        assert!(tooltip.update(false, moved_at + 2 * TOOLTIP_DELAY));
+        assert!(!tooltip.visible);
+        assert!(!tooltip.update(false, moved_at + 3 * TOOLTIP_DELAY));
+
+        // Hiding another control does not hide this tooltip.
+        tooltip.hide(other_control_id);
+        assert!(tooltip.text.is_some());
+
+        // Hiding the control clears the tooltip.
+        tooltip.hide(control_id);
+        assert!(tooltip.text.is_none());
+        assert!(!tooltip.update(true, moved_at + 4 * TOOLTIP_DELAY));
+
+        // The timer thread is only woken to show a tooltip, not to hide one.
+        assert_eq!(timer_receiver.try_iter().count(), 2);
     }
 }

@@ -171,3 +171,6 @@ objc2-app-kit = { workspace = true, features = [
 objc2-foundation = { workspace = true, features = [
     "std",
 ] }
+
+[dev-dependencies]
+servo-base = { workspace = true }

@@ -356,6 +356,8 @@ pub enum EmbedderControl {
     /// The menu that is actually shown the user may be customized, but custom menu entries
     /// must be handled by the embedder.
     ContextMenu(ContextMenu),
+    /// A tooltip for the element under the cursor.
+    Tooltip(Tooltip),
 }
 
 impl EmbedderControl {
@@ -368,7 +370,34 @@ impl EmbedderControl {
             EmbedderControl::InputMethod(input_method) => input_method.id,
             EmbedderControl::SimpleDialog(simple_dialog) => simple_dialog.id(),
             EmbedderControl::ContextMenu(context_menu) => context_menu.id,
+            EmbedderControl::Tooltip(tooltip) => tooltip.id,
         }
+    }
+}
+
+/// Represents a tooltip requested by web content.
+pub struct Tooltip {
+    pub(crate) id: EmbedderControlId,
+    pub(crate) position: DeviceIntRect,
+    pub(crate) text: String,
+}
+
+impl Tooltip {
+    /// Return the [`EmbedderControlId`] associated with this tooltip.
+    pub fn id(&self) -> EmbedderControlId {
+        self.id
+    }
+
+    /// Return the area occupied by the element that this tooltip describes.
+    ///
+    /// The embedder should use this value to position the tooltip near the element.
+    pub fn position(&self) -> DeviceIntRect {
+        self.position
+    }
+
+    /// The text to show in the tooltip.
+    pub fn text(&self) -> &str {
+        &self.text
     }
 }
 

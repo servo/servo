@@ -12,8 +12,8 @@ use dpi::PhysicalSize;
 use embedder_traits::EventLoopWaker;
 use paint_api::rendering_context::{RenderingContext, SoftwareRenderingContext};
 use servo::{
-    ConsoleLogLevel, EmbedderControl, InputEvent, InputEventId, InputEventResult, JSValue,
-    JavaScriptEvaluationError, LoadStatus, MouseButton, MouseButtonAction, MouseButtonEvent,
+    ConsoleLogLevel, EmbedderControl, EmbedderControlId, InputEvent, InputEventId, InputEventResult,
+    JSValue, JavaScriptEvaluationError, LoadStatus, MouseButton, MouseButtonAction, MouseButtonEvent,
     MouseMoveEvent, Preferences, Servo, ServoBuilder, SimpleDialog, WebView, WebViewDelegate,
 };
 use webrender_api::units::DevicePoint;
@@ -87,6 +87,8 @@ impl ServoTest {
 pub(crate) struct WebViewDelegateImpl {
     pub(crate) url_changed: Cell<bool>,
     pub(crate) cursor_changed: Cell<bool>,
+    pub(crate) tooltip: RefCell<Option<(EmbedderControlId, String)>>,
+    pub(crate) tooltip_changed: Cell<bool>,
     pub(crate) new_frame_ready: Cell<bool>,
     pub(crate) load_status_changed: Cell<bool>,
     pub(crate) controls_shown: RefCell<Vec<EmbedderControl>>,
@@ -105,6 +107,7 @@ impl WebViewDelegateImpl {
     pub(crate) fn reset(&self) {
         self.url_changed.set(false);
         self.cursor_changed.set(false);
+        self.tooltip_changed.set(false);
         self.new_frame_ready.set(false);
         self.load_status_changed.set(false);
         self.controls_shown.borrow_mut().clear();
@@ -145,6 +148,12 @@ impl WebViewDelegate for WebViewDelegateImpl {
             assert!(previous_dialog.is_none());
             return;
         }
+        if let EmbedderControl::Tooltip(tooltip) = &embedder_control {
+            self.tooltip
+                .borrow_mut()
+                .replace((tooltip.id(), tooltip.text().to_owned()));
+            self.tooltip_changed.set(true);
+        }
         // Even if not used, controls must be stored so that they do not automatically reply
         // when dropped.
         self.controls_shown.borrow_mut().push(embedder_control);
@@ -153,7 +162,12 @@ impl WebViewDelegate for WebViewDelegateImpl {
             .set(self.number_of_controls_shown.get() + 1);
     }
 
-    fn hide_embedder_control(&self, _webview: WebView, _control_id: servo::EmbedderControlId) {
+    fn hide_embedder_control(&self, _webview: WebView, control_id: servo::EmbedderControlId) {
+        let mut tooltip = self.tooltip.borrow_mut();
+        if tooltip.as_ref().is_some_and(|(id, _)| *id == control_id) {
+            tooltip.take();
+            self.tooltip_changed.set(true);
+        }
         self.number_of_controls_hidden
             .set(self.number_of_controls_hidden.get() + 1);
     }

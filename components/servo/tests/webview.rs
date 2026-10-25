@@ -442,6 +442,149 @@ fn test_cursor_unchanged_input_color() {
     assert_eq!(webview.cursor(), Cursor::Default);
 }
 
+const TEST_IMAGE_URL: &str =
+    "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
+
+/// A page with images in rows of 80px, so that they can be hovered at `(100, row * 80 + 40)`.
+fn alt_text_test_page() -> Url {
+    Url::parse(&format!(
+        r#"data:text/html,<!DOCTYPE html>
+        <div style="height: 80px"><a href="https://example.com/a"><img src="{TEST_IMAGE_URL}"
+            style="width: 200px; height: 80px" alt="Linked image alt text"></a></div>
+        <div style="height: 80px"><img src="{TEST_IMAGE_URL}"
+            style="width: 200px; height: 80px" alt="Image alt text"></div>
+        <div style="height: 80px"><img src="{TEST_IMAGE_URL}"
+            style="width: 200px; height: 80px"></div>
+        <div id="shadow-host" style="height: 80px"></div>
+        <script>
+            document.getElementById('shadow-host').attachShadow({{mode: 'open'}}).innerHTML =
+                '<img src="{TEST_IMAGE_URL}" style="width: 200px; height: 80px" ' +
+                'alt="Shadow image alt text">';
+        </script>"#
+    ))
+    .unwrap()
+}
+
+/// Return the text of the tooltip control currently shown by `delegate`.
+fn tooltip_text(delegate: &WebViewDelegateImpl) -> Option<String> {
+    delegate
+        .tooltip
+        .borrow()
+        .as_ref()
+        .map(|(_, text)| text.clone())
+}
+
+/// Move the mouse to `point` and wait for the tooltip control to change.
+fn hover_for_tooltip(
+    servo_test: &ServoTest,
+    webview: &WebView,
+    delegate: &Rc<WebViewDelegateImpl>,
+    point: (f32, f32),
+) {
+    delegate.reset();
+    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
+        DevicePoint::new(point.0, point.1).into(),
+    )));
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || !captured_delegate.tooltip_changed.get());
+}
+
+/// Wait until the status text of `webview` is `expected_status_text`.
+fn wait_for_status_text(
+    servo_test: &ServoTest,
+    webview: &WebView,
+    expected_status_text: Option<&str>,
+) {
+    let expected_status_text = expected_status_text.map(str::to_owned);
+    servo_test.spin(|| webview.status_text() != expected_status_text);
+}
+
+/// A test that the `alt` text of the image under the mouse is reported as a tooltip control,
+/// which is what browsers show as a tooltip.
+#[test]
+fn test_alt_text_on_hover() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(alt_text_test_page())
+        .build();
+
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+
+    // Rows: (100, 40) an image in a link, (100, 120) an image with `alt` text, (100, 200) an
+    // image without `alt` and (100, 280) an image in a shadow tree.
+    hover_for_tooltip(&servo_test, &webview, &delegate, (100., 40.));
+    assert_eq!(
+        tooltip_text(&delegate).as_deref(),
+        Some("Linked image alt text")
+    );
+    wait_for_status_text(&servo_test, &webview, Some("https://example.com/a"));
+
+    hover_for_tooltip(&servo_test, &webview, &delegate, (100., 120.));
+    assert_eq!(tooltip_text(&delegate).as_deref(), Some("Image alt text"));
+
+    // An image without `alt` text, and an image that is in a shadow tree.
+    hover_for_tooltip(&servo_test, &webview, &delegate, (100., 200.));
+    assert_eq!(tooltip_text(&delegate), None);
+    hover_for_tooltip(&servo_test, &webview, &delegate, (100., 280.));
+    assert_eq!(
+        tooltip_text(&delegate).as_deref(),
+        Some("Shadow image alt text")
+    );
+
+    // Loading a new page hides the tooltip even though the mouse has not moved.
+    delegate.reset();
+    webview.load(Url::parse("data:text/html,<!DOCTYPE html><p>New page").unwrap());
+    let captured_delegate = delegate.clone();
+    servo_test.spin(move || !captured_delegate.tooltip_changed.get());
+    assert_eq!(tooltip_text(&delegate), None);
+}
+
+/// A test that the tooltip is hidden when the mouse moves from an image inside a frame to an
+/// element outside that frame.
+#[test]
+fn test_alt_text_across_frames() {
+    let servo_test = ServoTest::new();
+    let delegate = Rc::new(WebViewDelegateImpl::default());
+    let page = format!(
+        r#"data:text/html,<!DOCTYPE html>
+        <style>body {{ margin: 0 }}</style>
+        <iframe style="position: absolute; left: 0; top: 0; width: 200px; height: 100px; border: 0"
+            srcdoc="<img src='{TEST_IMAGE_URL}' style='width: 200px; height: 100px' alt='Frame image'>"></iframe>
+        <div style="position: absolute; left: 200px; top: 0; width: 200px; height: 100px"></div>"#
+    );
+    let webview = WebViewBuilder::new(servo_test.servo(), servo_test.rendering_context.clone())
+        .delegate(delegate.clone())
+        .url(Url::parse(&page).unwrap())
+        .build();
+    show_webview_and_wait_for_rendering_to_be_ready(&servo_test, &webview, &delegate);
+
+    // The image is only hit-testable once the frame has loaded.
+    let mut tries = 0;
+    while tooltip_text(&delegate).as_deref() != Some("Frame image") && tries < 200 {
+        webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
+            DevicePoint::new(100., 40.).into(),
+        )));
+        servo_test.servo().spin_event_loop();
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        tries += 1;
+    }
+    assert_eq!(tooltip_text(&delegate).as_deref(), Some("Frame image"));
+
+    delegate.reset();
+    webview.notify_input_event(InputEvent::MouseMove(MouseMoveEvent::new(
+        DevicePoint::new(300., 50.).into(),
+    )));
+    let mut tries = 0;
+    while !delegate.tooltip_changed.get() && tries < 200 {
+        servo_test.servo().spin_event_loop();
+        std::thread::sleep(std::time::Duration::from_millis(10));
+        tries += 1;
+    }
+    assert_eq!(tooltip_text(&delegate), None);
+}
+
 /// A test that ensure that negative resize requests do not get passed to the embedder.
 #[test]
 fn test_negative_resize_to_request() {

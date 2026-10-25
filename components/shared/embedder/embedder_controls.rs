@@ -44,6 +44,14 @@ pub enum EmbedderControlRequest {
     InputMethod(InputMethodRequest),
     /// Indicates that the the user has triggered the display of a context menu.
     ContextMenu(ContextMenuRequest),
+    /// Indicates that the user is hovering over an element with a tooltip.
+    Tooltip(TooltipRequest),
+}
+
+/// Request to show a tooltip with the given text.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct TooltipRequest {
+    pub text: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
