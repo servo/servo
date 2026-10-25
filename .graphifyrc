@@ -1,0 +1,14 @@
+# Graphify project configuration (one key=value per line).
+
+# Servo's graph is large. Above this many nodes the HTML export renders an
+# aggregated community view instead of individual nodes, which keeps
+# graphify-out/graph.html responsive. JSON and report output are unaffected.
+viz_node_limit=5000
+
+# Ambiguous-extension overrides. Servo is primarily Rust today and has no
+# .h/.inc/.m files, so no overrides are needed. If C++, PHP, Objective-C or
+# similar sources are added, declare how graphify should parse them, e.g.:
+#
+#   language.h=cpp
+#   language.inc=php
+#   language.m=objc

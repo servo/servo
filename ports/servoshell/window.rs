@@ -246,11 +246,16 @@ impl ServoShellWindow {
     ///
     /// Note: This can happen because we can trigger a close with a UI action and then get
     /// the close notification via the [`WebViewDelegate`] later.
-    pub(crate) fn close_webview(&self, webview_id: WebViewId) {
-        let mut webview_collection = self.webview_collection.borrow_mut();
-        if webview_collection.remove(webview_id).is_none() {
+    pub(crate) fn close_webview(&self, webview_id: WebViewId, state: &RunningAppState) {
+        let Some(webview) = self.webview_collection.borrow_mut().remove(webview_id) else {
             return;
-        }
+        };
+
+        // Remember the tab before dropping our handle. `WebView::drop` sends the close
+        // request to Servo, after which this `WebView` can no longer be looked up.
+        state.record_closed_webview(&webview);
+        drop(webview);
+
         self.platform_window
             .dismiss_embedder_controls_for_webview(webview_id);
 
@@ -401,7 +406,10 @@ impl ServoShellWindow {
                 },
                 UserInterfaceCommand::CloseWebView(id) => {
                     self.set_needs_update();
-                    self.close_webview(id);
+                    self.close_webview(id, state);
+                },
+                UserInterfaceCommand::ReopenClosedWebView => {
+                    state.reopen_closed_webview(self);
                 },
                 UserInterfaceCommand::NewWindow(creation_request) => {
                     let Some(create_platform_window) = create_platform_window else {

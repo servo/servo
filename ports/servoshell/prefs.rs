@@ -36,7 +36,6 @@ pub(crate) static EXPERIMENTAL_PREFS: &[&str] = &[
     "dom_exec_command_enabled",
     "dom_fontface_enabled",
     "dom_indexeddb_enabled",
-    "dom_intersection_observer_enabled",
     "dom_navigator_protocol_handlers_enabled",
     "dom_notification_enabled",
     "dom_offscreen_canvas_enabled",
@@ -120,7 +119,7 @@ impl Default for ServoShellPreferences {
             device_pixel_ratio_override: None,
             headless: false,
             homepage: "https://servo.org".into(),
-            initial_window_size: Size2D::new(1024, 740),
+            initial_window_size: Size2D::new(1280, 740),
             no_native_titlebar: true,
             screen_size_override: None,
             simulate_touch_events: false,
@@ -596,7 +595,7 @@ struct CmdArgs {
 
     ///
     ///  Set the initial window size in logical (device independent) pixels.
-    #[bpaf(argument::<String>("1024x740"), parse(parse_resolution_string), fallback(None))]
+    #[bpaf(argument::<String>("1280x740"), parse(parse_resolution_string), fallback(None))]
     window_size: Option<Size2D<u32, DeviceIndependentPixel>>,
 
     /// Set js_mem_gc_zeal_level=2 and js_mem_gc_zeal_frequency=1
@@ -725,8 +724,10 @@ fn parse_arguments_helper(args_without_binary: Args) -> ArgumentParsingResult {
         preferences.js_ion_enabled = false;
     }
 
+    // Keep the default above the common 1024px tablet/desktop breakpoint, so that
+    // websites serve their desktop layout on first launch.
     // Make sure the default window size is not larger than any provided screen size.
-    let default_window_size = Size2D::new(1024, 740);
+    let default_window_size = Size2D::new(1280, 740);
     let default_window_size = cmd_args
         .screen_size_override
         .map_or(default_window_size, |screen_size_override| {

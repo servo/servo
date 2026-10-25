@@ -678,6 +678,18 @@ impl Gui {
                                         }
                                     }
 
+                                    let ctrl_shift_t = ui.input(|i| {
+                                        i.clone().consume_key(
+                                            Modifiers::COMMAND | Modifiers::SHIFT,
+                                            Key::T,
+                                        )
+                                    });
+                                    if ctrl_shift_t {
+                                        window.queue_user_interface_command(
+                                            UserInterfaceCommand::ReopenClosedWebView,
+                                        );
+                                    }
+
                                     let ctrl_t = ui.input(|i| i.clone().consume_key(Modifiers::COMMAND, Key::T));
                                     let new_tab_button = ui.add(Gui::toolbar_button("+"));
                                     new_tab_button.widget_info(|| {

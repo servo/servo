@@ -30,6 +30,12 @@ interface mixin NavigatorID {
   [Exposed=Window] readonly attribute DOMString vendorSub; // constant ""
 };
 
+// https://developer.mozilla.org/en-US/docs/Web/API/Navigator/oscpu
+// Firefox-specific OS/CPU hint used by legacy OS detection.
+partial interface Navigator {
+  readonly attribute DOMString oscpu;
+};
+
 // https://w3c.github.io/ServiceWorker/#navigator-service-worker
 partial interface Navigator {
   [SameObject, Pref="dom_serviceworker_enabled"] readonly attribute ServiceWorkerContainer serviceWorker;

@@ -80,3 +80,11 @@ justfile
 
 # devcontainer
 devcontainer-lock.json
+
+# Graphify (the graph itself is shared; local cache and cost reports are not)
+graphify-out/cache/
+graphify-out/cost.json
+
+# Tooling
+.opencode/
+

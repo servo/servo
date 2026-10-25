@@ -1,0 +1,25 @@
+# Graphify scan scope for the Servo repository.
+# Syntax is gitignore-compatible; patterns are relative to this file.
+
+# Build artifacts and local tool environments (also covered by .gitignore)
+/target/
+/python/_virtualenv*
+/python/_venv*
+/.servo/
+/.wpt/
+/servo.egg-info/
+/etc/notarization/
+
+# Vendored third-party code
+/third_party/
+
+# Large imported test corpora: fixtures, not Servo source. Keeping these out
+# of the graph prevents tens of thousands of test files from swamping the
+# architecture view. Remove a line here to index that suite deliberately.
+/tests/wpt/
+/tests/blink_perf_tests/
+/tests/dromaeo/
+/tests/html/
+
+# Generated graphify output must never be re-ingested as source
+/graphify-out/

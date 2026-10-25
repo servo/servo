@@ -40,6 +40,7 @@ below.
 | [C_API_GUIDE.md](C_API_GUIDE.md) | Practical, task-oriented guide for C/C++ embedders, including a complete example. |
 | [SECURITY_AUDIT.md](SECURITY_AUDIT.md) | Security & robustness audit of the engine and the embedding boundary, with file/line evidence and priorities. |
 | [HARDENING_PLAN.md](HARDENING_PLAN.md) | Concrete, bounded designs for the stability work (hang monitor, reachable panics, fuzzing) and FFI-boundary hardening. |
+| [WINDOWS_BROWSER_PLAN.md](WINDOWS_BROWSER_PLAN.md) | Executable plan & progress tracker for building a native Windows C++/C# browser using Rust Servo with Mica Alt styling. |
 | [IOS_PORT_SPIKE.md](IOS_PORT_SPIKE.md) | Feasibility spike and deliberate decision on an iOS port: what is missing and what the go/no-go experiment is. |
 | [CONTRIBUTING_EMBEDDING.md](CONTRIBUTING_EMBEDDING.md) | How to add or change C API functions safely and get them reviewed and tested. |
 

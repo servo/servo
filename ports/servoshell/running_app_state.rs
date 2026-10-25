@@ -184,8 +184,12 @@ pub(crate) enum UserInterfaceCommand {
     BookmarkCurrentPage,
     NewWebView,
     CloseWebView(WebViewId),
+    ReopenClosedWebView,
     NewWindow(TopLevelWebViewCreationRequest),
 }
+
+/// The maximum number of closed tabs remembered for "reopen closed tab".
+const MAX_CLOSED_WEBVIEWS: usize = 25;
 
 pub(crate) struct RunningAppState {
     /// The gamepad provider, used for handling gamepad events and set on each WebView.
@@ -253,6 +257,12 @@ pub(crate) struct RunningAppState {
 
     /// Active and completed download items.
     downloads: RefCell<Vec<servo::DownloadItem>>,
+
+    /// URLs of recently closed tabs, with the most recently closed tab at the end.
+    ///
+    /// This is shared by all windows so that closing a tab in one window and reopening it
+    /// from another still works.
+    closed_webviews: RefCell<Vec<Url>>,
 }
 
 impl RunningAppState {
@@ -304,6 +314,7 @@ impl RunningAppState {
             experimental_preferences_enabled,
             accessibility_active: Cell::new(false),
             downloads: Default::default(),
+            closed_webviews: Default::default(),
         }
     }
 
@@ -375,6 +386,32 @@ impl RunningAppState {
         self.windows()
             .iter()
             .find_map(|window| window.webview_by_id(webview_id))
+    }
+
+    /// Remember the URL of a closing tab so that it can be restored later.
+    pub(crate) fn record_closed_webview(&self, webview: &WebView) {
+        let Some(url) = webview.url() else {
+            return;
+        };
+
+        let mut closed_webviews = self.closed_webviews.borrow_mut();
+        closed_webviews.push(url);
+        if closed_webviews.len() > MAX_CLOSED_WEBVIEWS {
+            closed_webviews.remove(0);
+        }
+    }
+
+    /// Restore the most recently closed tab to the given window.
+    pub(crate) fn reopen_closed_webview(self: &Rc<Self>, window: &Rc<ServoShellWindow>) {
+        let url = self.closed_webviews.borrow_mut().pop();
+        let Some(url) = url else {
+            return;
+        };
+
+        window.create_and_activate_toplevel_webview(
+            self.clone(),
+            TopLevelWebViewCreationRequest::WithUrl(url),
+        );
     }
 
     pub(crate) fn webdriver_receiver(&self) -> Option<&Receiver<WebDriverCommandMsg>> {
@@ -926,7 +963,8 @@ impl WebViewDelegate for RunningAppState {
         self.pending_webdriver_events
             .borrow_mut()
             .retain(|_, (pending_webview_id, _)| *pending_webview_id != webview_id);
-        self.window_for_webview(&webview).close_webview(webview_id)
+        self.window_for_webview(&webview)
+            .close_webview(webview_id, self)
     }
 
     fn notify_input_event_handled(

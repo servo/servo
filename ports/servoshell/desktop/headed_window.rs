@@ -340,7 +340,7 @@ impl HeadedWindow {
         let mut handled = true;
         ShortcutMatcher::from_event(key_event.event.clone())
             .shortcut(CMD_OR_CONTROL, 'W', || {
-                window.close_webview(active_webview.id());
+                window.close_webview(active_webview.id(), &state);
             })
             .shortcut(Modifiers::CONTROL, Key::Named(NamedKey::F9), || {
                 active_webview.capture_webrender();
@@ -408,6 +408,9 @@ impl HeadedWindow {
                     let len = window.webviews().len();
                     window.activate_webview_by_index((index + len - 1) % len);
                 }
+            })
+            .shortcut(CMD_OR_CONTROL | Modifiers::SHIFT, 'T', || {
+                state.reopen_closed_webview(window);
             })
             .shortcut(CMD_OR_CONTROL, 'T', || {
                 let url = Url::parse("servo:newtab")

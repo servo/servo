@@ -1,0 +1,170 @@
+name: Native Windows Browser Build
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/windows-browser.yml'
+      - 'ports/windows/**'
+      - 'ffi/capi/**'
+      - 'support/cmake/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  RUST_BACKTRACE: 1
+  CARGO_INCREMENTAL: 0
+
+jobs:
+  build-windows-browser:
+    name: Build Native Windows Browser (x86_64)
+    runs-on: windows-2022
+    steps:
+      - uses: servo/ci-runners/actions/checkout@b42c96524cdd72126255602c69c4ad649c750ebf
+
+      - name: Setup Rust toolchain
+        run: rustup show
+
+      - name: Setup Python
+        uses: ./.github/actions/setup-python
+
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v2
+        with:
+          version: "20.1"
+          directory: ${{ runner.temp }}/llvm
+
+      - name: Set LIBCLANG_PATH env (Windows)
+        shell: pwsh
+        run: |
+          $llvm_bin = Join-Path $env:LLVM_PATH "bin"
+          echo "LIBCLANG_PATH=$llvm_bin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Cache cargo registry
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: windows-cargo-registry-${{ hashFiles('Cargo.lock') }}
+          restore-keys: |
+            windows-cargo-registry-
+
+      - name: Cache cargo-c build
+        uses: actions/cache@v5
+        with:
+          path: target/cinstall
+          key: windows-cargo-cinstall-${{ hashFiles('Cargo.lock', 'rust-toolchain.toml') }}
+          restore-keys: |
+            windows-cargo-cinstall-
+
+      - name: Install cargo-c
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-c@0.10.23
+
+      - name: Passive bootstrap (Windows)
+        run: .\mach fetch
+
+      - name: Configure Windows C compiler
+        shell: pwsh
+        run: |
+          "CC=clang-cl.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "CXX=clang-cl.exe" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "MOZTOOLS_PATH=${{ github.workspace }}\target\dependencies\moztools\4.0" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Build servo-capi (release)
+        shell: bash
+        env:
+          RUSTC_WRAPPER: ""
+          SCCACHE_GHA_ENABLED: "false"
+          MSYS_NO_PATHCONV: "1"
+        run: |
+          set -euo pipefail
+          PREFIX="$(pwd)/target/artifacts"
+          mkdir -p "$PREFIX"
+
+          cargo cinstall -p servo-capi \
+            --release \
+            --library-type cdylib \
+            --target-dir target/cinstall \
+            --prefix "$PREFIX" \
+            --libdir lib \
+            --meson-paths
+
+          # Ensure bin directory exists and has the DLL
+          mkdir -p target/artifacts/bin
+          if [ -f "target/artifacts/lib/servo_capi.dll" ]; then
+            mv target/artifacts/lib/servo_capi.dll target/artifacts/bin/
+          fi
+
+          # Install CMake configuration files
+          mkdir -p target/artifacts/lib/cmake/Servo
+          cp support/cmake/ServoConfig.cmake target/artifacts/lib/cmake/Servo/
+          cp support/cmake/ServoConfigVersion.cmake target/artifacts/lib/cmake/Servo/
+
+          # Copy C++ RAII header
+          cp ffi/capi/servo_capi.hpp target/artifacts/include/servo/
+
+          # Copy ANGLE EGL/GLES libraries from moztools/dependencies if available
+          find target/ -name "libEGL.dll" -exec cp {} target/artifacts/bin/ \; || true
+          find target/ -name "libGLESv2.dll" -exec cp {} target/artifacts/bin/ \; || true
+
+      - name: Build Native Windows Browser (CMake + MSVC)
+        shell: pwsh
+        run: |
+          $Sysroot = Join-Path (Get-Location) "target\artifacts"
+          New-Item -ItemType Directory -Force -Path "build-browser"
+          cmake -S ports/windows -B build-browser `
+            -DCMAKE_PREFIX_PATH="$Sysroot" `
+            -DCMAKE_BUILD_TYPE=Release
+          cmake --build build-browser --config Release --verbose
+
+      - name: Run Windows Browser Unit Tests
+        shell: pwsh
+        run: |
+          ctest --test-dir build-browser -C Release --output-on-failure
+
+      - name: Assemble Distribution Package
+        shell: pwsh
+        run: |
+          $Dist = "dist/servo-windows-browser"
+          New-Item -ItemType Directory -Force -Path $Dist
+          
+          # Copy browser executable
+          Copy-Item "build-browser/Release/servo_browser.exe" -Destination $Dist/ -ErrorAction SilentlyContinue
+          if (-not (Test-Path "$Dist/servo_browser.exe")) {
+            Copy-Item "build-browser/servo_browser.exe" -Destination $Dist/
+          }
+
+          # Copy servo_capi.dll and import lib
+          Copy-Item "target/artifacts/bin/servo_capi.dll" -Destination $Dist/
+          
+          # Copy ANGLE DLLs
+          Get-ChildItem -Path "target" -Filter "libEGL.dll" -Recurse | Select-Object -First 1 | Copy-Item -Destination $Dist/
+          Get-ChildItem -Path "target" -Filter "libGLESv2.dll" -Recurse | Select-Object -First 1 | Copy-Item -Destination $Dist/
+
+          # Copy icons / resources
+          if (Test-Path "resources") {
+            Copy-Item -Path "resources" -Destination "$Dist/resources" -Recurse
+          }
+
+          Write-Host "Distribution contents:"
+          Get-ChildItem -Path $Dist
+
+      - name: Self-Sign and Create Installable Package
+        shell: pwsh
+        run: |
+          .\ports\windows\packaging\sign_and_package.ps1 -DistDir "dist/servo-windows-browser"
+
+      - name: Upload Self-Signed Installable Browser Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: servo-windows-browser-setup
+          path: dist/servo-windows-browser-setup.zip
+

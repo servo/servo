@@ -415,7 +415,10 @@ impl Preferences {
             editing_caret_blink_time: 600,
             devtools_server_enabled: false,
             devtools_server_listen_address: String::new(),
-            dom_adoptedstylesheet_enabled: false,
+            // Enabled by default: constructable stylesheets are widely used by modern sites
+            // (for example Apple's App Store), and exposing the API is required for them to
+            // inject their styles instead of throwing during feature detection.
+            dom_adoptedstylesheet_enabled: true,
             dom_allow_preloading_module_descendants: false,
             dom_allow_scripts_to_close_windows: false,
             dom_async_clipboard_enabled: false,
@@ -439,7 +442,10 @@ impl Preferences {
             dom_geolocation_enabled: false,
             dom_wakelock_enabled: false,
             dom_indexeddb_enabled: false,
-            dom_intersection_observer_enabled: false,
+            // Enabled by default: many sites use IntersectionObserver for lazy-loaded images
+            // and scroll-driven UI. Without it those images never load and navigation widgets
+            // fail to initialize.
+            dom_intersection_observer_enabled: true,
             dom_microdata_testing_enabled: false,
             dom_navigator_protocol_handlers_enabled: false,
             dom_notification_enabled: false,
@@ -658,17 +664,17 @@ impl UserAgentPlatform {
                 if cfg!(all(target_os = "windows", target_arch = "x86_64")) =>
             {
                 format!(
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; {ARCH}; rv:153.0) Servo/{SERVO_VERSION} Firefox/153.0"
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:153.0) Gecko/20100101 Firefox/153.0 Servo/{SERVO_VERSION}"
                 )
             },
             UserAgentPlatform::Desktop if cfg!(target_os = "macos") => {
                 format!(
-                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:153.0) Servo/{SERVO_VERSION} Firefox/153.0"
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:153.0) Gecko/20100101 Firefox/153.0 Servo/{SERVO_VERSION}"
                 )
             },
             UserAgentPlatform::Desktop => {
                 format!(
-                    "Mozilla/5.0 (X11; Linux {ARCH}; rv:153.0) Servo/{SERVO_VERSION} Firefox/153.0"
+                    "Mozilla/5.0 (X11; Linux {ARCH}; rv:153.0) Gecko/20100101 Firefox/153.0 Servo/{SERVO_VERSION}"
                 )
             },
             UserAgentPlatform::Android => {

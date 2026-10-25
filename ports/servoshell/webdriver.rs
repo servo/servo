@@ -188,7 +188,8 @@ impl RunningAppState {
                     let Some(webview) = self.webview_by_id(webview_id) else {
                         continue;
                     };
-                    self.window_for_webview(&webview).close_webview(webview_id);
+                    self.window_for_webview(&webview)
+                        .close_webview(webview_id, self);
                     if let Err(error) = response_sender.send(()) {
                         warn!("Failed to send response of CloseWebView: {error}");
                     }

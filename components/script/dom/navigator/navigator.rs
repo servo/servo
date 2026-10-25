@@ -349,6 +349,11 @@ impl NavigatorMethods<crate::DomTypeHolder> for Navigator {
         navigatorinfo::AppVersion()
     }
 
+    /// <https://developer.mozilla.org/en-US/docs/Web/API/Navigator/oscpu>
+    fn Oscpu(&self) -> DOMString {
+        navigatorinfo::Oscpu()
+    }
+
     // https://webbluetoothcg.github.io/web-bluetooth/#dom-navigator-bluetooth
     #[cfg(feature = "bluetooth")]
     fn Bluetooth(&self, cx: &mut js::context::JSContext) -> DomRoot<Bluetooth> {
