@@ -311,7 +311,7 @@ impl HTMLDialogElement {
     /// <https://html.spec.whatwg.org/multipage/#dialog-request-close>
     pub(crate) fn request_to_close(
         &self,
-        cx: &mut js::context::JSContext,
+        cx: &mut JSContext,
         return_value: Option<DOMString>,
         source: Option<DomRoot<Element>>,
     ) {
