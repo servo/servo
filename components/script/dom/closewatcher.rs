@@ -85,14 +85,16 @@ impl InternalCloseWatcher {
         // Step 3. Let manager be window's close watcher manager.
         let mut manager = window.close_watcher_manager_mut();
 
-        // Step 4. If manager's groups's size is less than manager's allowed number of groups, then append « closeWatcher » to manager's groups.
         if manager.groups().len() < manager.allowed_number_of_groups() {
             manager.groups_mut().push(vec![close_watcher.clone()])
+        // Step 4. If manager's groups's size is less than manager's allowed number of groups, then
+        // append « closeWatcher » to manager's groups.
         }
         // Step 5. Otherwise:
         else {
-            // Step 5.1. Assert: manager's groups's size is at least 1 in this branch, since manager's allowed number of groups is always at least 1.
             assert!(!manager.groups().is_empty());
+            // Step 5.1. Assert: manager's groups's size is at least 1 in this branch, since
+            // manager's allowed number of groups is always at least 1.
 
             // Step 5.2. Append closeWatcher to manager's groups's last item.
             manager
@@ -120,7 +122,8 @@ impl InternalCloseWatcher {
             return true;
         }
 
-        // Step 2. If the result of running closeWatcher's get enabled state is false, then return true.
+        // Step 2. If the result of running closeWatcher's get enabled state is false, then return
+        // true.
         if !self.get_enabled_state() {
             return true;
         }
@@ -139,8 +142,9 @@ impl InternalCloseWatcher {
         }
 
         // Step 6. Let canPreventClose be true if requireHistoryActionActivation is false, or if
-        // window's close watcher manager's groups's size is less than window's close watcher manager's
-        // allowed number of groups, and window has history-action activation; otherwise false.
+        // window's close watcher manager's groups's size is less than window's close watcher
+        // manager's allowed number of groups, and window has history-action activation;
+        // otherwise false.
         let can_prevent_close = !require_history_action_activation || {
             let manager = window.close_watcher_manager();
             manager.groups().len() < manager.allowed_number_of_groups() &&
@@ -150,7 +154,8 @@ impl InternalCloseWatcher {
         // Step 7. Set closeWatcher's is running cancel action to true.
         self.is_running_cancel_action.set(true);
 
-        // Step 8. Let shouldContinue be the result of running closeWatcher's cancel action given canPreventClose.
+        // Step 8. Let shouldContinue be the result of running closeWatcher's cancel action given
+        // canPreventClose.
         let should_continue = self.cancel_action(cx, can_prevent_close);
 
         // Step 9. Set closeWatcher's is running cancel action to false.
@@ -249,7 +254,8 @@ impl InternalCloseWatcher {
                     },
                 );
                 event.fire(cx, dialog.upcast::<EventTarget>())
-                // - closeAction being to close the dialog given dialog, dialog's request close return value, and dialog's request close source element.
+                // - closeAction being to close the dialog given dialog, dialog's request close
+                //   return value, and dialog's request close source element.
             },
         }
     }
@@ -329,12 +335,15 @@ impl CloseWatcherMethods<DomTypeHolder> for CloseWatcher {
         proto: Option<HandleObject>,
         options: &CloseWatcherOptions,
     ) -> Fallible<DomRoot<CloseWatcher>> {
-        // Step 1. If this's relevant global object's associated Document is not fully active, then throw an "InvalidStateError" DOMException.
+        // Step 1. If this's relevant global object's associated Document is not fully active, then
+        // throw an "InvalidStateError" DOMException.
         if !window.Document().is_fully_active() {
             return Err(Error::InvalidState(Some("Failed to construct 'CloseWatcher': CloseWatchers cannot be created in detached Windows.".into())));
         }
-        // Step 2. Let closeWatcher be the result of establishing a close watcher given this's relevant global object, with:
-        // - cancelAction given canPreventClose being to return the result of firing an event named cancel at this, with the cancelable attribute initialized to canPreventClose.
+        // Step 2. Let closeWatcher be the result of establishing a close watcher given this's
+        // relevant global object, with:
+        // - cancelAction given canPreventClose being to return the result of firing an event named
+        //   cancel at this, with the cancelable attribute initialized to canPreventClose.
         // - closeAction being to fire an event named close at this.
         // - getEnabledState being to return true.
         let close_watcher = CloseWatcher::new_with_proto(cx, window, proto);
@@ -364,7 +373,8 @@ impl CloseWatcherMethods<DomTypeHolder> for CloseWatcher {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-closewatcher-requestclose>
     fn RequestClose(&self, cx: &mut JSContext) {
-        // > The requestClose() method steps are to request to close this's internal close watcher with false.
+        // > The requestClose() method steps are to request to close this's internal close watcher
+        // > with false.
         if let Some(internal) = &*self.internal_close_watcher.borrow() {
             internal.request_to_close(cx, false);
         }

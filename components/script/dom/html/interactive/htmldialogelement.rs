@@ -198,10 +198,14 @@ impl HTMLDialogElement {
             dialog.has_attribute(&local_name!("open")) && dialog.owner_document().is_fully_active()
         );
 
-        // Step 3. Set dialog's close watcher to the result of establishing a close watcher given dialog's relevant global object, with:
-        // - cancelAction given canPreventClose being to return the result of firing an event named cancel at dialog, with the cancelable attribute initialized to canPreventClose.
-        // - closeAction being to close the dialog given dialog, dialog's request close return value, and dialog's request close source element.
-        // - getEnabledState being to return true if dialog's enable close watcher for request close is true or dialog's computed closed-by state is not None; otherwise false.
+        // Step 3. Set dialog's close watcher to the result of establishing a close watcher given
+        // dialog's relevant global object, with:
+        // - cancelAction given canPreventClose being to return the result of firing an event named
+        //   cancel at dialog, with the cancelable attribute initialized to canPreventClose.
+        // - closeAction being to close the dialog given dialog, dialog's request close return
+        //   value, and dialog's request close source element.
+        // - getEnabledState being to return true if dialog's enable close watcher for request close
+        //   is true or dialog's computed closed-by state is not None; otherwise false.
         let close_watcher = InternalCloseWatcher::establish(
             dialog.owner_document().window(),
             InternalCloseWatcherOwner::Dialog(Dom::from_ref(self)),
@@ -318,7 +322,8 @@ impl HTMLDialogElement {
             return;
         }
 
-        // Step 2. If subject is not connected or subject's node document is not fully active, then return.
+        // Step 2. If subject is not connected or subject's node document is not fully active, then
+        // return.
         if !subject.is_connected() || !subject.owner_document().is_fully_active() {
             return;
         }
@@ -441,7 +446,8 @@ impl HTMLDialogElement {
         // Step 2. Assert: subject is connected.
         assert!(subject.is_connected());
 
-        // TODO Step 3. Assert: subject's node document's open dialogs list does not contain subject.
+        // TODO Step 3. Assert: subject's node document's open dialogs list does not contain
+        // subject.
         // TODO Step 4. Add subject to subject's node document's open dialogs list.
 
         // Step 5. Set the dialog close watcher with subject.
@@ -494,7 +500,8 @@ impl HTMLDialogElement {
 
         // Step 1. If the state of dialog's closedby attribute is Auto:
         // https://html.spec.whatwg.org/multipage/#attr-dialog-closedby-auto-state
-        // > The closedby attribute's invalid value default and missing value default are both the Auto state.
+        // > The closedby attribute's invalid value default and missing value default are both the
+        // > Auto state.
 
         // Step 1.1. If dialog's is modal is true, then return Close Request.
         if element.state().contains(ElementState::MODAL) {
@@ -702,7 +709,8 @@ impl VirtualMethods for HTMLDialogElement {
             return;
         }
 
-        // Step 2. If insertedNode has an open attribute and is connected, then run the dialog setup steps given insertedNode.
+        // Step 2. If insertedNode has an open attribute and is connected, then run the dialog setup
+        // steps given insertedNode.
         if inserted_node.has_attribute(&local_name!("open")) && inserted_node.is_connected() {
             self.dialog_setup_steps();
         }
@@ -713,12 +721,14 @@ impl VirtualMethods for HTMLDialogElement {
         self.super_type().unwrap().unbind_from_tree(cx, context);
         let removed_node = self.upcast::<Element>();
 
-        // Step 1. If removedNode has an open attribute, then run the dialog cleanup steps given removedNode.
+        // Step 1. If removedNode has an open attribute, then run the dialog cleanup steps given
+        // removedNode.
         if removed_node.has_attribute(&local_name!("open")) {
             self.dialog_cleanup_steps();
         }
 
-        // TODO Step 2. If removedNode's node document's top layer contains removedNode, then remove an element from the top layer immediately given removedNode.
+        // TODO Step 2. If removedNode's node document's top layer contains removedNode, then remove
+        // an element from the top layer immediately given removedNode.
 
         // Step 3. Set is modal of removedNode to false.
         removed_node.set_modal_state(cx.no_gc(), false)
@@ -744,7 +754,8 @@ impl VirtualMethods for HTMLDialogElement {
             return;
         }
 
-        // Step 3. If value is null and oldValue is not null, then run the dialog cleanup steps given element.
+        // Step 3. If value is null and oldValue is not null, then run the dialog cleanup steps
+        // given element.
         if matches!(mutation, AttributeMutation::Removed) {
             self.dialog_cleanup_steps();
         }
@@ -760,7 +771,8 @@ impl VirtualMethods for HTMLDialogElement {
             return;
         }
 
-        // Step 6. If value is not null and oldValue is null, then run the dialog setup steps given element.
+        // Step 6. If value is not null and oldValue is null, then run the dialog setup steps given
+        // element.
         if matches!(mutation, AttributeMutation::Set(..)) {
             self.dialog_setup_steps();
         }

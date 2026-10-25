@@ -985,7 +985,8 @@ impl Window {
         // Step 1. Let manager be window's close watcher manager.
         let manager = self.close_watcher_manager();
 
-        // Step 2. If manager's next user interaction allows a new group is true, then increment manager's allowed number of groups.
+        // Step 2. If manager's next user interaction allows a new group is true, then increment
+        // manager's allowed number of groups.
         if manager.next_user_interaction_allows_a_new_group() {
             manager.increment_allowed_number_of_groups();
         }
@@ -3993,7 +3994,9 @@ impl Window {
 
     /// <https://html.spec.whatwg.org/multipage/#history-action-activation>
     pub(crate) fn has_history_action_activation(&self) -> bool {
-        // > When the last history-action activation timestamp of W is not equal to the last activation timestamp of W, then W is said to have history-action activation.
+        // > When the last history-action activation timestamp of W
+        // > is not equal to the last activation timestamp of W,
+        // > then W is said to have history-action activation.
         self.last_history_action_activation_timestamp.get() != self.last_activation_timestamp.get()
     }
 
@@ -4058,8 +4061,10 @@ impl Window {
         };
 
         // Step 3. Let navigables be the inclusive descendant navigables of top's active document.
-        // Step 4. Let windows be the list of Window objects constructed by taking the active window of each item in navigables.
-        // Step 5. For each window in windows, set window's last history-action activation timestamp to window's last activation timestamp.
+        // Step 4. Let windows be the list of Window objects constructed by taking the active window
+        // of each item in navigables.
+        // Step 5. For each window in windows, set window's last history-action activation timestamp
+        // to window's last activation timestamp.
         // TODO: this would not work for disimilar origin descendant, since we doesn't store the document in this script thread.
         top_level_document
             .window()
