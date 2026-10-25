@@ -237,6 +237,9 @@ jobs:
         run: |
           sudo apt update
           ./mach bootstrap --yes --skip-lints
+      - name: Install libasound2-dev # Needed for alsa-sys crate for WebMIDI
+        shell: bash
+        run: sudo apt install libasound2-dev
       - name: Run unit-tests with coverage
         shell: bash
         env:
