@@ -300954,6 +300954,19 @@
        {}
       ]
      ],
+     "float-clearance-with-margin-collapse-and-stretch-and-padding-percentage.html": [
+      "97ac4afe7500a3ffcadbca26bb0e5fd7bc5bd760",
+      [
+       null,
+       [
+        [
+         "/css/reference/ref-filled-green-100px-square.xht",
+         "=="
+        ]
+       ],
+       {}
+      ]
+     ],
      "grid-item-image-percentage-min-height-computes-as-0.html": [
       "ef3da03100229a846ca77156bdf34e5e37c92508",
       [
