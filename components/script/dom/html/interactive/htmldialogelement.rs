@@ -329,7 +329,13 @@ impl HTMLDialogElement {
         }
 
         // Step 3. Assert: subject's close watcher is not null.
-        assert!(self.close_watcher.borrow().is_some());
+        // Clone the handle so the cell isn't borrowed while script runs: a `close` listener can
+        // call `dialog.close()`, which runs `dialog_cleanup_steps` and nulls the close watcher.
+        let close_watcher = self
+            .close_watcher
+            .borrow()
+            .clone()
+            .expect("Close watcher must always exist");
 
         // Step 4. Set subject's enable close watcher for request close to true.
         self.enable_close_watcher_for_request_close.set(true);
@@ -341,13 +347,6 @@ impl HTMLDialogElement {
         self.request_close_source_element.set(source.as_deref());
 
         // Step 7. Request to close subject's close watcher with false.
-        // Clone the handle so the cell isn't borrowed while script runs: a `close` listener can
-        // call `dialog.close()`, which runs `dialog_cleanup_steps` and nulls the close watcher.
-        let close_watcher = self
-            .close_watcher
-            .borrow()
-            .clone()
-            .expect("Just asserted subject's close watcher is not null");
         close_watcher.request_to_close(cx, false);
 
         // Step 8. Set subject's enable close watcher for request close to false.
