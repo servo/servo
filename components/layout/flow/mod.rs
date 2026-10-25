@@ -1411,8 +1411,12 @@ impl IndependentFormattingContext {
             loop {
                 // First try to place the block using the minimum size as the object size.
                 placement_rect = placement.place();
+
+                // PlacementAmongFloats should guarantee that the inline size of the placement rect
+                // is big enough, but that may fail when dealing with huge sizes that need to be
+                // saturated to MAX_AU. So floor by zero, see #49235.
                 let available_inline_size =
-                    placement_rect.size.inline - pbm.padding_border_sums.inline;
+                    Au::zero().max(placement_rect.size.inline - pbm.padding_border_sums.inline);
                 let proposed_inline_size = compute_inline_size(&mut cache, available_inline_size);
 
                 // Now lay out the block using the inline size we calculated from the placement.
