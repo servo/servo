@@ -79,14 +79,15 @@ class MainActivity : ComponentActivity(), Servo.Client {
         super.onCreate(savedInstanceState)
 
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(applicationContext)
-        var settings = Settings(sharedPreferences)
+        val settings = Settings(sharedPreferences)
         val navigator = ServoNavigator()
+        var experimentalModeEnabled by mutableStateOf(settings.experimental)
         val servo =
             Servo(
                 args = intent.getStringExtra("servoargs"),
                 url = if (Intent.ACTION_VIEW == intent.action) intent.data.toString() else null,
                 logStr = intent.getStringExtra("servolog"),
-                experimentalMode = settings.experimental,
+                experimentalMode = experimentalModeEnabled,
                 scope = lifecycleScope,
                 client = this,
                 context = this,
@@ -110,11 +111,8 @@ class MainActivity : ComponentActivity(), Servo.Client {
 
         setContent {
             LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
-                val updatedSettings = Settings(sharedPreferences)
-                if (updatedSettings.experimental != settings.experimental) {
-                    servo.setExperimentalMode(updatedSettings.experimental)
-                }
-                settings = updatedSettings
+                val settings = Settings(sharedPreferences)
+                experimentalModeEnabled = settings.experimental
             }
 
             val isWindowWidthAtLeastMedium =
@@ -248,6 +246,7 @@ class MainActivity : ComponentActivity(), Servo.Client {
                 },
             ) { innerPadding ->
                 Servo(
+                    experimentalModeEnabled = experimentalModeEnabled,
                     softKeyboardVisible = softKeyboardVisible,
                     servo = servo,
                     navigator = navigator,
