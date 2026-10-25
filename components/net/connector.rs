@@ -433,6 +433,7 @@ pub fn prewarm_tls() {
 
     if let Err(error) = std::thread::Builder::new()
         .name("Net-TLS-prewarm".into())
+        .stack_size(8 * 1024 * 1024)
         .spawn(prewarm_tls_impl)
     {
         warn!("Failed to spawn thread to prewarm TLS: {error:?}");

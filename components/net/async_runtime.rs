@@ -63,6 +63,7 @@ pub fn init_async_runtime() -> Box<dyn AsyncRuntime> {
             let id = ATOMIC_ID.fetch_add(1, Ordering::Relaxed);
             format!("tokio-runtime-{}", id)
         })
+        .thread_stack_size(8 * 1024 * 1024)
         .worker_threads(
             thread::available_parallelism()
                 .map(|i| i.get())

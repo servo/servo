@@ -59,6 +59,19 @@ $DestExe = Join-Path $InstallDir "servobrowser.exe"
 Copy-Item -Path $SourceExe -Destination $DestExe -Force
 Write-Host "[+] Installed executable to $DestExe" -ForegroundColor Green
 
+# Ensure 16 MiB stack reserve on servobrowser.exe
+$EditBinPaths = @(
+    "C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\14.44.35207\bin\Hostx64\x64\editbin.exe",
+    "editbin.exe"
+)
+foreach ($eb in $EditBinPaths) {
+    if (Test-Path $eb -ErrorAction SilentlyContinue) {
+        & $eb /STACK:16777216 $DestExe | Out-Null
+        Write-Host "[+] Configured 16 MiB stack reserve via editbin" -ForegroundColor Green
+        break
+    }
+}
+
 # Copy ANGLE runtime DLLs (libEGL.dll and libGLESv2.dll) required by surfman/graphics
 $AngleDlls = @("libEGL.dll", "libGLESv2.dll")
 foreach ($dll in $AngleDlls) {

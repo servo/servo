@@ -616,6 +616,7 @@ where
     ) {
         thread::Builder::new()
             .name("Constellation".to_owned())
+            .stack_size(8 * 1024 * 1024)
             .spawn(move || {
                 servo_base::threadboost::boost_thread(ThreadPriority::Elevated, BoostAffinity::Boost);
                 let (script_ipc_sender, script_ipc_receiver) =

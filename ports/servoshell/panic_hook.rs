@@ -24,6 +24,7 @@ pub(crate) fn panic_hook(info: &PanicHookInfo) {
     let name = current_thread.name().unwrap_or("<unnamed>");
     let stderr = std::io::stderr();
     let mut stderr = stderr.lock();
+    let mut crash_text = String::new();
     if let Some(location) = info.location() {
         let _ = writeln!(
             &mut stderr,
@@ -33,13 +34,37 @@ pub(crate) fn panic_hook(info: &PanicHookInfo) {
             location.file(),
             location.line()
         );
+        crash_text = format!("{} (thread {}, at {}:{})", msg, name, location.file(), location.line());
     } else {
         let _ = writeln!(&mut stderr, "{} (thread {})", msg, name);
+        crash_text = format!("{} (thread {})", msg, name);
     }
     if env::var("RUST_BACKTRACE").is_ok() {
         let _ = crate::backtrace::print(&mut stderr);
     }
     drop(stderr);
+
+    // Also persist panic information to a crash log file for diagnostics in GUI mode
+    if let Ok(mut file) = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open("servo_crash.log")
+    {
+        let _ = writeln!(file, "[CRASH] {}", crash_text);
+    }
+    if let Ok(local_app_data) = env::var("LOCALAPPDATA") {
+        let crash_path = std::path::PathBuf::from(local_app_data)
+            .join("Programs")
+            .join("ServoBrowser")
+            .join("servo_crash.log");
+        if let Ok(mut file) = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(crash_path)
+        {
+            let _ = writeln!(file, "[CRASH] {}", crash_text);
+        }
+    }
 
     // TODO: This shouldn't be using internal Servo options here. Perhaps this functionality should
     // move into libservo itself.

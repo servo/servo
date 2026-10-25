@@ -149,6 +149,7 @@ pub fn new_core_resource_thread(
     }));
     thread::Builder::new()
         .name("ResourceManager".to_owned())
+        .stack_size(8 * 1024 * 1024)
         .spawn(move || {
             let resource_manager = CoreResourceManager::new(
                 devtools_sender,

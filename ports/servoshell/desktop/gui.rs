@@ -729,10 +729,10 @@ impl Gui {
                 // WebView's own origin, so this node supplies the offset of the WebView within
                 // the window, and scales it to the same scale as the rest of the nodes in egui's
                 // AccessKit tree.
-                let scale = (1.0 / window.platform_window().hidpi_scale_factor().get()) as f64;
+                let accesskit_scale = (1.0 / window.platform_window().hidpi_scale_factor().get()) as f64;
                 let x = available_rect.min.x as f64;
                 let y = available_rect.min.y as f64;
-                Affine::new([scale, 0.0, 0.0, scale, x, y])
+                Affine::new([accesskit_scale, 0.0, 0.0, accesskit_scale, x, y])
             };
             for (webview_id, webview) in window.webviews() {
                 if let Some(tree_id) = webview.accesskit_tree_id() {
@@ -745,14 +745,18 @@ impl Gui {
                     });
                 }
             }
-            let size = Size2D::new(available_rect.width(), available_rect.height()) * scale;
+
+            let hidpi = window.platform_window().hidpi_scale_factor().get();
+            let physical_width = (available_rect.width() * hidpi).max(1.0).round();
+            let physical_height = (available_rect.height() * hidpi).max(1.0).round();
+            let target_device_size = Size2D::new(physical_width, physical_height);
             if let Some(webview) = window.active_webview() &&
-                size != webview.size()
+                target_device_size != webview.size()
             {
                 // `rect` is sized to just the WebView viewport, which is required by
                 // `OffscreenRenderingContext` See:
                 // <https://github.com/servo/servo/issues/38369#issuecomment-3138378527>
-                webview.resize(PhysicalSize::new(size.width as u32, size.height as u32))
+                webview.resize(PhysicalSize::new(physical_width as u32, physical_height as u32));
             }
 
             if let Some(status_text) = &self.status_text {

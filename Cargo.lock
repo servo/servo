@@ -6867,9 +6867,9 @@ dependencies = [
 
 [[package]]
 name = "pkcs1"
-version = "0.8.0-rc.5"
+version = "0.8.0-rc.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f485dbafe293ea6ccaa7d82bc591651a796eb8a9aec3df040b057b706073dbc3"
+checksum = "986d2e952779af96ea048f160fd9194e1751b4faea78bcf3ceb456efe008088e"
 dependencies = [
  "der",
  "spki",
@@ -9931,6 +9931,7 @@ dependencies = [
  "ohos-window-sys",
  "raw-window-handle",
  "rustls",
+ "serde",
  "serde_json",
  "servo",
  "servo-allocator",
