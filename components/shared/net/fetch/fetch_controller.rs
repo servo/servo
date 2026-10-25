@@ -2,13 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use std::sync::{Arc, Mutex};
+
 use malloc_size_of_derive::MallocSizeOf;
 
 use crate::request::RequestId;
 use crate::{CoreResourceThread, cancel_and_forget_async_fetch, cancel_async_fetch};
 
 /// <https://fetch.spec.whatwg.org/#fetch-controller-state>
-#[derive(Default, MallocSizeOf, PartialEq)]
+#[derive(Clone, Copy, Default, MallocSizeOf, PartialEq)]
 pub enum FetchControllerState {
     #[default]
     Ongoing,
@@ -29,6 +31,8 @@ pub struct FetchController {
     /// <https://fetch.spec.whatwg.org/#fetch-controller-state>
     pub state: FetchControllerState,
 }
+
+pub type ShareableFetchController = Arc<Mutex<FetchController>>;
 
 impl FetchController {
     /// Create a FetchController associated with a request,

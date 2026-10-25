@@ -6,7 +6,7 @@ use std::sync::{Arc, Mutex};
 
 use content_security_policy as csp;
 use net_traits::ResourceFetchTimingContainer;
-use net_traits::fetch::fetch_controller::{FetchController, FetchControllerState};
+use net_traits::fetch::fetch_controller::{FetchControllerState, ShareableFetchController};
 use net_traits::request::{PreloadEntry, PreloadId, PreloadKey, Request, RequestClient};
 use net_traits::response::Response;
 use rustc_hash::FxHashMap;
@@ -45,7 +45,7 @@ pub struct FetchParams {
     /// <https://fetch.spec.whatwg.org/#fetch-params-preloaded-response-candidate>
     pub preload_response_candidate: PreloadResponseCandidate,
     /// <https://fetch.spec.whatwg.org/#fetch-params-controller>
-    pub controller: FetchController,
+    pub controller: ShareableFetchController,
     /// <https://fetch.spec.whatwg.org/#fetch-params-timing-info>
     pub timing_info: ResourceFetchTimingContainer,
 }
@@ -60,11 +60,18 @@ impl FetchParams {
         }
     }
 
+    fn controller_state(&self) -> FetchControllerState {
+        self.controller
+            .lock()
+            .expect("Must always be able to inspect state of controller")
+            .state
+    }
+
     /// <https://fetch.spec.whatwg.org/#fetch-params-aborted>
     pub fn is_aborted(&self) -> bool {
         // > A fetch params fetchParams is aborted
         // > if its controller’s state is "aborted".
-        self.controller.state == FetchControllerState::Aborted
+        self.controller_state() == FetchControllerState::Aborted
     }
 
     /// <https://fetch.spec.whatwg.org/#fetch-params-canceled>
@@ -72,7 +79,7 @@ impl FetchParams {
         // > A fetch params fetchParams is canceled
         // > if its controller’s state is "aborted" or "terminated".
         matches!(
-            self.controller.state,
+            self.controller_state(),
             FetchControllerState::Aborted | FetchControllerState::Terminated
         )
     }

@@ -15,7 +15,7 @@ use net_traits::blob_url_store::UrlWithBlobClaim;
 use net_traits::filemanager_thread::RelativePos;
 use net_traits::request::Request;
 use net_traits::response::Response;
-use net_traits::{DiscardFetch, NetworkError};
+use net_traits::{DiscardFetch, NetworkError, ResourceFetchTiming};
 use rustc_hash::FxHashMap;
 use servo_url::ServoUrl;
 use url::Position;
@@ -222,10 +222,15 @@ impl ProtocolHandler for WebPageContentProtocolHandler {
         // Step 9. Navigate an appropriate navigable to resultURL.
         request
             .url_list
-            .push(UrlWithBlobClaim::new(result_url, None));
+            .push(UrlWithBlobClaim::new(result_url.clone(), None));
         let request2 = request.clone();
         let context2 = context.clone();
-        Box::pin(async move { fetch(request2, &mut DiscardFetch, &context2).await })
+        // TODO: Figure out how to take the fetch response and return that instead.
+        let _ = fetch(request2, &mut DiscardFetch, &context2);
+        Box::pin(future::ready(Response::new(
+            result_url,
+            ResourceFetchTiming::new(request.timing_type()),
+        )))
     }
 }
 

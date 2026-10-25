@@ -18,6 +18,7 @@ use ipc_channel::ipc;
 use log::{debug, trace, warn};
 use malloc_size_of_derive::MallocSizeOf;
 use mime::{self, Mime};
+use net_traits::fetch::fetch_controller::ShareableFetchController;
 use net_traits::fetch::headers::{determine_nosniff, extract_mime_type_as_mime};
 use net_traits::filemanager_thread::{FileTokenCheck, RelativePos};
 use net_traits::http_status::HttpStatus;
@@ -175,7 +176,11 @@ pub(crate) fn transfers_request_body_stream_to_later_manual_redirect(
 pub type DoneChannel = Option<(TokioSender<Data>, TokioReceiver<Data>)>;
 
 /// [Fetch](https://fetch.spec.whatwg.org#concept-fetch)
-pub async fn fetch(request: Request, target: Target<'_>, context: &FetchContext) -> Response {
+pub async fn fetch(
+    request: Request,
+    target: Target<'_>,
+    context: &FetchContext,
+) -> ShareableFetchController {
     // Step 7. Let timingInfo be a new fetch timing info whose start time
     // and post-redirect start time are the coarsened shared current time
     // given crossOriginIsolatedCapability,
@@ -281,6 +286,7 @@ pub async fn fetch(request: Request, target: Target<'_>, context: &FetchContext)
     let request_id = request.id;
 
     // Step 17: Run main fetch given fetchParams.
+    let controller = fetch_params.controller.clone();
     let response = main_fetch(&mut fetch_params, false, target, &mut None, context).await;
 
     if transfers_request_body_stream_to_later_manual_redirect(&fetch_params.request, &response) {
@@ -298,8 +304,7 @@ pub async fn fetch(request: Request, target: Target<'_>, context: &FetchContext)
     }
 
     // Step 18: Return fetchParams’s controller.
-    // TODO: We don't implement fetchParams as defined in the spec
-    response
+    controller
 }
 
 pub(crate) fn convert_request_to_csp_request(request: &Request) -> Option<csp::Request> {

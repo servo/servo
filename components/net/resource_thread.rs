@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 use std::sync::{Arc, Weak};
 use std::thread;
 
+use content_security_policy::{self as csp};
 use cookie::Cookie;
 use embedder_traits::GenericEmbedderProxy;
 use hyper_serde::Serde;
@@ -20,7 +21,9 @@ use malloc_size_of_derive::MallocSizeOf;
 use net_traits::blob_url_store::{BlobTokenCommunicator, parse_blob_url};
 use net_traits::filemanager_thread::FileTokenCheck;
 use net_traits::pub_domains::public_suffix_list_size_of;
-use net_traits::request::{Destination, PreloadEntry, PreloadId, RequestBuilder, RequestId};
+use net_traits::request::{
+    Destination, PreloadEntry, PreloadId, Request, RequestBuilder, RequestId,
+};
 use net_traits::response::{Response, ResponseInit};
 use net_traits::{
     AsyncRuntime, CookieAsyncResponse, CookieData, CookieSource, CoreResourceMsg,
@@ -745,28 +748,6 @@ impl CoreResourceManager {
         }
     }
 
-    fn handle_preloaded_response(
-        preloaded_resources: SharedPreloadedResources,
-        preload_id: PreloadId,
-        response: Response,
-    ) {
-        // https://html.spec.whatwg.org/multipage/#preload
-        // Step 11.1. If bodyBytes is a byte sequence, then set response's body to bodyBytes as a body.
-        // Step 11.2. Otherwise, set response to a network error.
-        let response = response
-            .get_network_error()
-            .map(|_| {
-                Response::network_error(NetworkError::ResourceLoadError("Failed to preload".into()))
-            })
-            .unwrap_or(response);
-        let mut preloaded_resources = preloaded_resources.lock().unwrap();
-        // Step 11.5. If entry's on response available is null, then set entry's response to response;
-        // otherwise call entry's on response available given response.
-        if let Some(entry) = preloaded_resources.get_mut(&preload_id) {
-            entry.with_response(response);
-        }
-    }
-
     /// Exit the core resource manager.
     pub fn exit(&mut self) {
         debug!("Exited CoreResourceManager");
@@ -887,11 +868,17 @@ impl CoreResourceManager {
                     }
                 },
                 None => {
-                    let preload_id = request.preload_id.clone();
-                    let response = fetch(request, &mut sender, &context).await;
-                    if let Some(preload_id) = preload_id {
-                        Self::handle_preloaded_response(preloaded_resources, preload_id, response);
-                    }
+                    if let Some(preload_id) = request.preload_id.clone() {
+                        let mut preload_response_handler = PreloadedResponseHandler {
+                            preload_target: sender,
+                            preload_id,
+                            preloaded_resources,
+                        };
+                        let _controller =
+                            fetch(request, &mut preload_response_handler, &context).await;
+                    } else {
+                        let _controller = fetch(request, &mut sender, &context).await;
+                    };
                 },
             };
 
@@ -969,5 +956,62 @@ impl CoreResourceManager {
                 },
             }
         });
+    }
+}
+
+struct PreloadedResponseHandler<PreloadTarget: 'static + FetchTaskTarget + Send> {
+    preload_target: PreloadTarget,
+    preload_id: PreloadId,
+    preloaded_resources: SharedPreloadedResources,
+}
+
+impl<PreloadTarget: 'static + FetchTaskTarget + Send> FetchTaskTarget
+    for PreloadedResponseHandler<PreloadTarget>
+{
+    /// <https://html.spec.whatwg.org/multipage/links.html#link-type-preload:processresponseconsumebody>
+    fn process_response_eof(&mut self, request: &Request, response: &Response) {
+        // Step 11.3. Set unsafeEndTime to the unsafe shared current time.
+        // TODO
+
+        // Step 11.4. If options's document is not null, then call reportTiming given options's document.
+        // TODO
+
+        // Step 11.5. If entry's on response available is null, then set entry's response to response;
+        // otherwise call entry's on response available given response.
+        let mut preloaded_resources = self.preloaded_resources.lock().unwrap();
+        if let Some(entry) = preloaded_resources.get_mut(&self.preload_id) {
+            // Step 11.1. If bodyBytes is a byte sequence, then set response's body to bodyBytes as a body.
+            // Step 11.2. Otherwise, set response to a network error.
+            let response = response
+                .get_network_error()
+                .map(|_| {
+                    Response::network_error(NetworkError::ResourceLoadError(
+                        "Failed to preload".into(),
+                    ))
+                })
+                .unwrap_or(response.clone());
+            entry.with_response(response);
+        }
+
+        // Step 11.6. If processResponse is given, then call processResponse with response.
+        self.preload_target.process_response_eof(request, response);
+    }
+
+    fn process_request_body(&mut self, request: &Request) {
+        self.preload_target.process_request_body(request);
+    }
+    fn process_response(&mut self, request: &Request, response: &Response) {
+        self.preload_target.process_response(request, response);
+    }
+    fn process_response_chunk(&mut self, request: &Request, bytes: bytes::Bytes) {
+        self.preload_target.process_response_chunk(request, bytes);
+    }
+    fn process_csp_violations(&mut self, request: &Request, violations: Vec<csp::Violation>) {
+        self.preload_target
+            .process_csp_violations(request, violations);
+    }
+    fn process_response_length_hint(&mut self, request: &Request, length: usize) {
+        self.preload_target
+            .process_response_length_hint(request, length);
     }
 }
