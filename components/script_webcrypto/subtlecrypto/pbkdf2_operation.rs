@@ -54,7 +54,7 @@ pub(crate) fn derive_bits<D: Equivalence>(
     // normalizedAlgorithm as the salt, S, the value of the iterations attribute of
     // normalizedAlgorithm as the iteration count, c, and length divided by 8 as the intended key
     // length, dkLen.
-    // Step 5. If the key derivation operation fails, then throw an OperationError.
+    // Step 6. If the key derivation operation fails, then throw an OperationError.
     let Handle::Pbkdf2Password(password) = key.handle() else {
         return Err(Error::Operation(Some(
             "[[handle]] internal slot of key is not a PBKDF2 password".into(),
@@ -101,7 +101,7 @@ pub(crate) fn derive_bits<D: Equivalence>(
         },
     };
 
-    // Step 6. Return result
+    // Step 7. Return result.
     Ok(result)
 }
 
