@@ -11741,8 +11741,8 @@
     "semantic_hash": ""
   },
   "ffi/capi/symbols.txt": {
-    "mtime": 1792551446.1587257,
-    "ast_hash": "5bbcd3596162fbfa6f37967066006e0f",
+    "mtime": 1792955699.8566258,
+    "ast_hash": "4ca0b73994bfa0756a49365a2c7442d0",
     "semantic_hash": ""
   },
   "python/README.md": {
@@ -12126,8 +12126,8 @@
     "semantic_hash": ""
   },
   ".github/workflows/windows-browser.yml": {
-    "mtime": 1792953306.4680438,
-    "ast_hash": "3b74c1098aba441f331dda8ba2e0c354",
+    "mtime": 1792955761.9178913,
+    "ast_hash": "be8559675fd1c4f49a3ee5f5c50b2cf2",
     "semantic_hash": ""
   },
   "ports/windows/csharp/ServoCapi.cs": {
@@ -12196,8 +12196,8 @@
     "semantic_hash": ""
   },
   "ports/windows/CMakeLists.txt": {
-    "mtime": 1792947287.973073,
-    "ast_hash": "0cd0bc92e9a067ba205a967bda269d47",
+    "mtime": 1792955726.1839054,
+    "ast_hash": "f3867e67690e218eeaa9a5f0a756289d",
     "semantic_hash": ""
   },
   "ports/windows/tests/mock_servo/servo/servo_capi.h": {
@@ -12206,8 +12206,8 @@
     "semantic_hash": ""
   },
   "ports/windows/tests/test_browser_unit.cpp": {
-    "mtime": 1792947288.0467436,
-    "ast_hash": "96c5c7f1c0cee84a5b4c075620755efc",
+    "mtime": 1792955746.448199,
+    "ast_hash": "cec60d4779733f837c927306a23ebffb",
     "semantic_hash": ""
   },
   "ports/windows/packaging/install.ps1": {
@@ -12226,8 +12226,8 @@
     "semantic_hash": ""
   },
   "ports/windows/src/download_manager.cpp": {
-    "mtime": 1792947287.999801,
-    "ast_hash": "d6c554838cff5fdd7dba707de6f3c48d",
+    "mtime": 1792955734.6786985,
+    "ast_hash": "c40a03d004f504c618a11fd30aa1baff",
     "semantic_hash": ""
   },
   "ports/windows/src/download_manager.h": {

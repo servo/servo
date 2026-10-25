@@ -16,7 +16,7 @@ void DownloadManager::RegisterWindowClass(HINSTANCE hInstance) {
     wc.style = CS_HREDRAW | CS_VREDRAW;
     wc.lpfnWndProc = DownloadManager::WndProc;
     wc.hInstance = hInstance;
-    wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
+    wc.hCursor = LoadCursorW(nullptr, MAKEINTRESOURCEW(32512));
     wc.hbrBackground = nullptr;
     wc.lpszClassName = DOWNLOAD_MGR_CLASS_NAME;
     RegisterClassExW(&wc);

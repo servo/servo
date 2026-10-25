@@ -25,12 +25,15 @@ if(NOT TARGET Servo::servo_capi)
 
         find_library(_SERVO_CAPI_IMPLIB
             NAMES servo_capi.dll.a servo_capi.lib servo_capi
-            PATHS "${_SERVO_PREFIX}/lib"
+            PATHS "${_SERVO_PREFIX}/lib" "${_SERVO_PREFIX}/bin"
             NO_DEFAULT_PATH)
 
         if(_SERVO_CAPI_IMPLIB)
             set_target_properties(Servo::servo_capi PROPERTIES
                 IMPORTED_IMPLIB "${_SERVO_CAPI_IMPLIB}")
+        elseif(_SERVO_CAPI_DLL)
+            set_target_properties(Servo::servo_capi PROPERTIES
+                IMPORTED_IMPLIB "${_SERVO_CAPI_DLL}")
         endif()
 
         if(_SERVO_CAPI_DLL)

@@ -4,6 +4,8 @@ project(servo_browser CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+add_compile_definitions(UNICODE _UNICODE NOMINMAX WIN32_LEAN_AND_MEAN)
+
 if(NOT DEFINED SERVO_SYSROOT OR SERVO_SYSROOT STREQUAL "")
     set(SERVO_SYSROOT "$ENV{SERVO_SYSROOT}")
 endif()
@@ -35,7 +37,7 @@ set(HEADERS
 
 add_executable(servo_browser WIN32 ${SOURCES} ${HEADERS})
 
-target_include_directories(servo_browser PRIVATE src)
+target_include_directories(servo_browser PRIVATE src ${CMAKE_PREFIX_PATH}/include)
 
 # 1. Try finding Servo package config
 find_package(Servo CONFIG QUIET)

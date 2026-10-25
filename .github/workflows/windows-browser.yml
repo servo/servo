@@ -97,19 +97,26 @@ jobs:
             --libdir lib \
             --meson-paths
 
-          # Ensure bin directory exists and has the DLL
-          mkdir -p target/artifacts/bin
+          # Ensure bin and lib directories exist
+          mkdir -p target/artifacts/bin target/artifacts/lib
           if [ -f "target/artifacts/lib/servo_capi.dll" ]; then
             mv target/artifacts/lib/servo_capi.dll target/artifacts/bin/
           fi
+
+          # Ensure import library exists in target/artifacts/lib
+          find target/ -name "servo_capi.lib" -exec cp {} target/artifacts/lib/ \; || true
+          find target/ -name "servo_capi.dll.a" -exec cp {} target/artifacts/lib/ \; || true
+          find target/ -name "servo_capi.dll" -exec cp {} target/artifacts/bin/ \; || true
 
           # Install CMake configuration files
           mkdir -p target/artifacts/lib/cmake/Servo
           cp support/cmake/ServoConfig.cmake target/artifacts/lib/cmake/Servo/
           cp support/cmake/ServoConfigVersion.cmake target/artifacts/lib/cmake/Servo/
 
-          # Copy C++ RAII header
+          # Copy C++ RAII header and ensure servo_capi.h is inside include/servo/
           mkdir -p target/artifacts/include/servo
+          find target/ -name "servo_capi.h" -exec cp {} target/artifacts/include/servo/ \; || true
+          find target/ -name "servo_capi.h" -exec cp {} target/artifacts/include/ \; || true
           cp ffi/capi/servo_capi.hpp target/artifacts/include/servo/
 
           # Copy ANGLE EGL/GLES libraries from moztools/dependencies if available
@@ -120,6 +127,8 @@ jobs:
         shell: pwsh
         run: |
           $Sysroot = Join-Path (Get-Location) "target\artifacts"
+          Write-Host "Artifacts tree:"
+          Get-ChildItem -Recurse $Sysroot | Select-Object FullName
           New-Item -ItemType Directory -Force -Path "build-browser"
           cmake -S ports/windows -B build-browser `
             -DCMAKE_PREFIX_PATH="$Sysroot" `

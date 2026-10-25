@@ -241,8 +241,8 @@ servo_webview_set_hidpi_scale_factor
 servo_webview_set_page_zoom
 servo_webview_show
 servo_webview_stop
-servo_webview_traverse_history
 servo_webview_take_screenshot
+servo_webview_traverse_history
 servo_webview_was_hidden
 servo_webview_was_maximized
 servo_webview_was_moved
