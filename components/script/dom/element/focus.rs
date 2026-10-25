@@ -61,6 +61,7 @@ impl Element {
         // > the element is not actually disabled;
         // Note: Checked above
         // > the element is not inert;
+        // Note: Checked above
         // > the element is either being rendered, delegating its rendering to its children, or
         // > being used as relevant canvas fallback content.
         // Note: Checked above

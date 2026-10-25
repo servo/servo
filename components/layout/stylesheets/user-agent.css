@@ -82,7 +82,10 @@ dialog::backdrop {
 /* The internal-only -servo-inert property is used for propagating the inertness imposed by HTML.
    https://html.spec.whatwg.org/multipage/#the-inert-attribute
    https://html.spec.whatwg.org/multipage/#modal-dialogs-and-inert-subtrees
-   https://html.spec.whatwg.org/multipage/#the-button-element:inert */
+   https://html.spec.whatwg.org/multipage/#the-button-element:inert
+   Adapted from Gecko:
+   https://searchfox.org/firefox-main/rev/efd2d1e6f77570ae6bc5294731a68101e45c81a3/layout/style/res/ua.css#187-190
+   https://searchfox.org/firefox-main/rev/efd2d1e6f77570ae6bc5294731a68101e45c81a3/layout/style/res/ua.css#379-384 */
 :-servo-inert { -servo-inert: inert; }
 select > button:first-child { -servo-inert: inert; }
 /* TODO: Uncomment once a :-servo-topmost-modal pseudo-class is supported. */
