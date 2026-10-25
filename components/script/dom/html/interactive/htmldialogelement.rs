@@ -18,7 +18,7 @@ use stylo_dom::ElementState;
 use crate::dom::bindings::codegen::Bindings::HTMLDialogElementBinding::HTMLDialogElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
-use crate::dom::bindings::root::DomRoot;
+use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
 use crate::dom::closewatcher::{InternalCloseWatcher, InternalCloseWatcherOwner};
 use crate::dom::document::Document;
@@ -44,7 +44,7 @@ pub(crate) struct HTMLDialogElement {
     /// <https://html.spec.whatwg.org/multipage/#request-close-return-value>
     request_close_return_value: DomRefCell<Option<TracedDOMString>>,
     /// <https://html.spec.whatwg.org/multipage/#request-close-source-element>
-    request_close_source_element: DomRefCell<Option<DomRoot<Element>>>,
+    request_close_source_element: MutNullableDom<Element>,
     /// <https://html.spec.whatwg.org/multipage/#enable-close-watcher-for-requestclose()>
     enable_close_watcher_for_request_close: Cell<bool>,
 }
@@ -269,7 +269,7 @@ impl HTMLDialogElement {
         *self.request_close_return_value.safe_borrow_mut(cx) = None;
 
         // Step 11. Set subject's request close source element to null.
-        *self.request_close_source_element.safe_borrow_mut(cx) = None;
+        self.request_close_source_element.set(None);
 
         // Step 12. If subject's previously focused element is not null, then:
         if let Some(element) = self
@@ -338,7 +338,7 @@ impl HTMLDialogElement {
         *self.request_close_return_value.safe_borrow_mut(cx) = return_value.map(DOMString::traced);
 
         // Step 6. Set subject's request close source element to source.
-        *self.request_close_source_element.safe_borrow_mut(cx) = source;
+        self.request_close_source_element.set(source.as_deref());
 
         // Step 7. Request to close subject's close watcher with false.
         // Clone the handle so the cell isn't borrowed while script runs: a `close` listener can
@@ -472,7 +472,7 @@ impl HTMLDialogElement {
             .borrow()
             .clone()
             .map(TracedDOMString::root);
-        let source = self.request_close_source_element.borrow().clone();
+        let source = self.request_close_source_element.get();
         self.close_the_dialog(cx, return_value, source)
     }
 
