@@ -569,6 +569,9 @@ impl HTMLMediaElement {
         // timeupdate event at the element in the past 15 to 250ms and is not still running event
         // handlers for such an event, then the user agent must queue a media element task given the
         // media element to fire an event named timeupdate at the element.
+        // We move this to the front of time_marches_on, because it is independent of the rest cues setup
+        // step, and it must be run. This way, it would not be skip because of the early return in below
+        // steps.
         if playback_was_moved_monotonic_increase &&
             Instant::now() > self.next_timeupdate_event.get()
         {
