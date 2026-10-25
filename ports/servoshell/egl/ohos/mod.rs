@@ -1291,23 +1291,6 @@ impl HostTrait for HostCallbacks {
         }
     }
 
-    fn on_media_session_metadata(&self, title: String, artist: String, album: String) {
-        warn!("on_media_session_metadata not implemented");
-    }
-
-    fn on_media_session_playback_state_change(&self, state: MediaSessionPlaybackState) {
-        warn!("on_media_session_playback_state_change not implemented");
-    }
-
-    fn on_media_session_set_position_state(
-        &self,
-        duration: f64,
-        position: f64,
-        playback_rate: f64,
-    ) {
-        warn!("on_media_session_set_position_state not implemented");
-    }
-
     fn on_show_select_element(&self, _webview_id: WebViewId, _prompt: SelectElement) {}
 
     fn on_panic(&self, reason: String, backtrace: Option<String>) {
