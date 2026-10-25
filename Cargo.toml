@@ -409,8 +409,6 @@ codegen-units = 16
 # pbkdf2 could be very slow without compilation optimizations, which
 # causes timeout in the WPT tests for WebCrypto. Building with higher
 # optimization levels help prevent these false negative WPT results.
-[profile.dev.package.servo-script-webcrypto]
-opt-level = 3
 [profile.dev.package.sha1]
 opt-level = 3
 [profile.dev.package.sha2]
