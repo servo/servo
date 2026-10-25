@@ -14,7 +14,7 @@ use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use net_traits::image_cache::{
     Image, ImageCache, ImageCacheResponseCallback, ImageCacheResult, ImageLoadListener,
-    ImageOrMetadataAvailable, ImageResponse, PendingImageId,
+    ImageOrMetadataAvailable, ImageResponse, PendingImageId, RasterizationResult,
 };
 use net_traits::request::{Destination, Initiator, ParserMetadata, RequestBuilder, RequestId};
 use net_traits::{
@@ -905,20 +905,23 @@ impl HTMLLinkElement {
                 let size = DeviceIntSize::new(250, 250);
 
                 let image_cache = window.image_cache();
-                if let Some(raster_image) =
-                    image_cache.rasterize_vector_image(vector_image.id, size, None)
-                {
-                    send_rasterized_favicon_to_embedder(&raster_image);
-                } else {
-                    // The rasterization callback will end up calling "process_favicon_response" again,
-                    // but this time with a raster image.
-                    let image_cache_sender = self.register_image_cache_callback(vector_image.id);
-                    image_cache.add_rasterization_complete_listener(
-                        window.pipeline_id(),
-                        vector_image.id,
-                        size,
-                        image_cache_sender,
-                    );
+                match image_cache.rasterize_vector_image(vector_image.id, size, None) {
+                    RasterizationResult::Image(raster_image) => {
+                        send_rasterized_favicon_to_embedder(&raster_image);
+                    },
+                    RasterizationResult::PendingRasterization => {
+                        // The rasterization callback will end up calling "process_favicon_response" again,
+                        // but this time with a raster image.
+                        let image_cache_sender =
+                            self.register_image_cache_callback(vector_image.id);
+                        image_cache.add_rasterization_complete_listener(
+                            window.pipeline_id(),
+                            vector_image.id,
+                            size,
+                            image_cache_sender,
+                        );
+                    },
+                    RasterizationResult::InvalidSvgParameters => {},
                 }
             },
         }

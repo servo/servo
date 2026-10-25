@@ -11,7 +11,7 @@ use net::image_cache::ImageCacheFactoryImpl;
 use net_traits::image_cache::{
     FontResolver, ImageCache, ImageCacheFactory, ImageCacheResponseMessage, ImageCacheResult,
     ImageLoadListener, ImageOrMetadataAvailable, ImageResponse, PendingImageId,
-    PendingImageResponse,
+    PendingImageResponse, RasterizationResult,
 };
 use net_traits::request::RequestId;
 use net_traits::{
@@ -709,21 +709,19 @@ fn test_svg_rasterization_do_not_double_rasterize() {
 
     let size = webrender_api::units::DeviceIntSize::new(100, 100);
     // Because we do not set image keys yet, the rasterization task will never finish, so we know the added tasks will stay in the queue.
-    assert!(
-        cache
-            .rasterize_vector_image(vec_img.id, size, None)
-            .is_none()
-    );
-    assert!(
-        cache
-            .rasterize_vector_image(vec_img.id, size, None)
-            .is_none()
-    );
+    assert!(matches!(
+        cache.rasterize_vector_image(vec_img.id, size, None),
+        RasterizationResult::PendingRasterization
+    ));
+    assert!(matches!(
+        cache.rasterize_vector_image(vec_img.id, size, None),
+        RasterizationResult::PendingRasterization
+    ));
     assert_eq!(cache.number_of_rasterize_tasks(), 1);
 }
 
 #[test]
-fn test_svg_not_rasterize_zero_size() {
+fn test_svg_rasterize_zero_size_fallback() {
     let (cache, key_receiver) = create_test_image_cache();
     let url = ServoUrl::parse("http://example.com/image.svg").unwrap();
     let origin = mock_origin();
@@ -769,21 +767,23 @@ fn test_svg_not_rasterize_zero_size() {
     };
 
     let size = webrender_api::units::DeviceIntSize::new(0, 100);
-    assert!(
-        cache
-            .rasterize_vector_image(vec_img.id, size, None)
-            .is_none()
-    );
+    assert!(matches!(
+        cache.rasterize_vector_image(vec_img.id, size, None),
+        RasterizationResult::PendingRasterization
+    ));
     let size = webrender_api::units::DeviceIntSize::new(100, 0);
-    assert!(
-        cache
-            .rasterize_vector_image(vec_img.id, size, None)
-            .is_none()
-    );
+    assert!(matches!(
+        cache.rasterize_vector_image(vec_img.id, size, None),
+        RasterizationResult::PendingRasterization
+    ));
     let size = webrender_api::units::DeviceIntSize::new(0, 0);
-    assert!(
-        cache
-            .rasterize_vector_image(vec_img.id, size, None)
-            .is_none()
-    );
+    assert!(matches!(
+        cache.rasterize_vector_image(vec_img.id, size, None),
+        RasterizationResult::PendingRasterization
+    ));
+
+    assert!(matches!(
+        cache.rasterize_vector_image(net_traits::image_cache::PendingImageId(99999), size, None),
+        RasterizationResult::InvalidSvgParameters
+    ));
 }

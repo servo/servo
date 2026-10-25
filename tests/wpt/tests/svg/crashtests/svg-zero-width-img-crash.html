@@ -1,0 +1,5 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>SVG at width=0 should not use unbounded memory</title>
+<link rel="help" href="https://github.com/servo/servo/issues/49222">
+<img width="0" src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='60000' height='60000'><rect width='100%' height='100%'/></svg>">
