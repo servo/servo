@@ -22,7 +22,7 @@ pub(crate) struct CloseWatcherManager {
 impl CloseWatcherManager {
     pub(crate) fn new() -> Self {
         Self {
-            groups: vec![],
+            groups: Default::default(),
             allowed_number_of_groups: Cell::new(1),
             next_user_interaction_allows_a_new_group: Cell::new(true),
         }

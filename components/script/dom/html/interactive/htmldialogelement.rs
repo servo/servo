@@ -58,10 +58,10 @@ impl HTMLDialogElement {
         HTMLDialogElement {
             htmlelement: HTMLElement::new_inherited(local_name, prefix, document),
             return_value: DomRefCell::new(DOMString::new().traced()),
-            close_watcher: DomRefCell::new(None),
+            close_watcher: Default::default(),
             request_close_return_value: Default::default(),
             request_close_source_element: Default::default(),
-            enable_close_watcher_for_request_close: Cell::new(false),
+            enable_close_watcher_for_request_close: Default::default(),
         }
     }
 
