@@ -7,6 +7,7 @@ mod common;
 
 use std::cell::Cell;
 use std::collections::VecDeque;
+use std::fmt::Write as _;
 use std::rc::Rc;
 
 use accesskit::Role::{self, GenericContainer};
@@ -182,7 +183,7 @@ fn test_accessibility_basic_mapping() {
 
     let mut url: String = "data:text/html,<!DOCTYPE html>".to_owned();
     for (element, _) in element_role_pairs.iter() {
-        url.push_str(format!("<{element}></{element}>").as_str());
+        write!(url, "<{element}></{element}>").unwrap();
     }
 
     let (_servo_test, _delegate, _webview, tree) = build_webview_and_tree(url.as_str());
