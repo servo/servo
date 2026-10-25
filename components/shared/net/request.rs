@@ -25,9 +25,13 @@ use uuid::Uuid;
 use crate::ReferrerPolicy;
 use crate::blob_url_store::UrlWithBlobClaim;
 use crate::policy_container::{PolicyContainer, RequestPolicyContainer};
-use crate::pub_domains::is_same_site;
+use crate::pub_domains::{Site, is_same_site};
 use crate::resource_fetch_timing::ResourceTimingType;
 use crate::response::{RedirectTaint, Response};
+
+/// A [network partition key](https://fetch.spec.whatwg.org/#network-partition-keys).
+/// Currently consists of a top-level site, or null if unpartitioned.
+pub type NetworkPartitionKey = Option<Site>;
 
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, MallocSizeOf, PartialEq, Serialize)]
 /// An id to differentiate one network request from another.
@@ -226,6 +230,8 @@ pub struct RequestClient {
     pub insecure_requests_policy: InsecureRequestsPolicy,
     /// <https://w3c.github.io/webappsec-secure-contexts/#potentially-trustworthy-origin>
     pub has_trustworthy_ancestor_origin: bool,
+    /// <https://fetch.spec.whatwg.org/#determining-the-network-partition-key>
+    pub network_partition_key: NetworkPartitionKey,
 }
 
 /// <https://html.spec.whatwg.org/multipage/#system-visibility-state>

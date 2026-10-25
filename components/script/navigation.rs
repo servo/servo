@@ -240,6 +240,7 @@ impl InProgressLoad {
             is_nested_browsing_context: self.parent_info.is_some(),
             insecure_requests_policy,
             has_trustworthy_ancestor_origin: self.load_data.has_trustworthy_ancestor_origin,
+            network_partition_key: None,
         };
 
         let mut request_builder = RequestBuilder::new(

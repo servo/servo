@@ -1006,6 +1006,7 @@ impl Window {
             has_trustworthy_ancestor_origin,
             policy_container,
             origin,
+            network_partition_key,
         ) = if let Some(no_gc) = no_gc {
             let document = self.document_unrooted(no_gc);
             (
@@ -1014,6 +1015,7 @@ impl Window {
                 document.has_trustworthy_ancestor_or_current_origin(),
                 document.policy_container().clone(),
                 document.origin().clone(),
+                document.determine_the_network_partition_key(),
             )
         } else {
             let document = self.Document();
@@ -1023,6 +1025,7 @@ impl Window {
                 document.has_trustworthy_ancestor_or_current_origin(),
                 document.policy_container().clone(),
                 document.origin().clone(),
+                document.determine_the_network_partition_key(),
             )
         };
         RequestClient {
@@ -1032,6 +1035,7 @@ impl Window {
             is_nested_browsing_context: !self.is_top_level(),
             insecure_requests_policy,
             has_trustworthy_ancestor_origin,
+            network_partition_key,
         }
     }
 

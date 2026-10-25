@@ -776,6 +776,7 @@ impl WorkletThread {
             is_nested_browsing_context: global.is_nested_browsing_context(),
             insecure_requests_policy: global.insecure_requests_policy(),
             has_trustworthy_ancestor_origin: global.has_trustworthy_ancestor_origin(),
+            network_partition_key: None,
         };
 
         // Step 2. If moduleResponsesMap[requestURL] is "fetching", wait in parallel until that entry's value changes, then queue a task on the networking task source to proceed with running the following steps.
