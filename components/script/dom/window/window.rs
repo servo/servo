@@ -513,7 +513,7 @@ pub(crate) struct Window {
     last_history_action_activation_timestamp: Cell<UserActivationTimestamp>,
 
     /// <https://html.spec.whatwg.org/multipage/#close-watcher-manager>
-    close_watcher_manager: DomRefCell<CloseWatcherManager>,
+    close_watcher_manager: CloseWatcherManager,
 }
 
 impl Window {
@@ -995,12 +995,8 @@ impl Window {
         manager.set_next_user_interaction_allows_a_new_group(false);
     }
 
-    pub(crate) fn close_watcher_manager(&self) -> Ref<'_, CloseWatcherManager> {
-        self.close_watcher_manager.borrow()
-    }
-
-    pub(crate) fn close_watcher_manager_mut(&self) -> RefMut<'_, CloseWatcherManager> {
-        self.close_watcher_manager.borrow_mut()
+    pub(crate) fn close_watcher_manager(&self) -> &CloseWatcherManager {
+        &self.close_watcher_manager
     }
 
     pub(crate) fn perform_a_microtask_checkpoint(&self, cx: &mut JSContext) {
@@ -4219,7 +4215,7 @@ impl Window {
             last_history_action_activation_timestamp: Cell::new(
                 UserActivationTimestamp::PositiveInfinity,
             ),
-            close_watcher_manager: DomRefCell::new(CloseWatcherManager::new()),
+            close_watcher_manager: CloseWatcherManager::new(),
         });
 
         WindowBinding::Wrap::<crate::DomTypeHolder>(cx, &origin, win)

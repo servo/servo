@@ -209,7 +209,7 @@ impl AbortSignal {
                 );
             },
             AbortAlgorithm::CloseWatcher(close_watcher) => {
-                close_watcher.destroy();
+                close_watcher.destroy(cx.no_gc());
             },
         }
     }

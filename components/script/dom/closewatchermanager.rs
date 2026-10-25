@@ -2,8 +2,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-use std::cell::Cell;
+use std::cell::{Cell, Ref, RefMut};
 use std::rc::Rc;
+
+use js::context::NoGC;
+use script_bindings::cell::DomRefCell;
 
 use crate::dom::closewatcher::InternalCloseWatcher;
 
@@ -12,7 +15,7 @@ use crate::dom::closewatcher::InternalCloseWatcher;
 pub(crate) struct CloseWatcherManager {
     /// <https://html.spec.whatwg.org/multipage/#close-watcher-manager-groups>
     #[conditional_malloc_size_of]
-    groups: Vec<Vec<Rc<InternalCloseWatcher>>>,
+    groups: DomRefCell<Vec<Vec<Rc<InternalCloseWatcher>>>>,
     /// <https://html.spec.whatwg.org/multipage/#close-watcher-manager-allowed-number-of-groups>
     allowed_number_of_groups: Cell<usize>,
     /// <https://html.spec.whatwg.org/multipage/#close-watcher-manager-next>
@@ -28,12 +31,15 @@ impl CloseWatcherManager {
         }
     }
 
-    pub(crate) fn groups(&self) -> &Vec<Vec<Rc<InternalCloseWatcher>>> {
-        &self.groups
+    pub(crate) fn groups(&self) -> Ref<'_, Vec<Vec<Rc<InternalCloseWatcher>>>> {
+        self.groups.borrow()
     }
 
-    pub(crate) fn groups_mut(&mut self) -> &mut Vec<Vec<Rc<InternalCloseWatcher>>> {
-        &mut self.groups
+    pub(crate) fn groups_mut<'a: 'r, 'no_gc: 'r, 'r>(
+        &'a self,
+        no_gc: &'no_gc NoGC,
+    ) -> RefMut<'r, Vec<Vec<Rc<InternalCloseWatcher>>>> {
+        self.groups.safe_borrow_mut(no_gc)
     }
 
     pub(crate) fn allowed_number_of_groups(&self) -> usize {

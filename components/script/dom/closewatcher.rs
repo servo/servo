@@ -7,7 +7,7 @@ use std::ptr;
 use std::rc::Rc;
 
 use dom_struct::dom_struct;
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::gc::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::WindowBinding::WindowMethods;
@@ -68,6 +68,7 @@ impl InternalCloseWatcher {
     /// <https://html.spec.whatwg.org/multipage/#establish-a-close-watcher>
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
     pub(crate) fn establish(
+        no_gc: &NoGC,
         window: &Window,
         owner: InternalCloseWatcherOwner,
     ) -> Rc<InternalCloseWatcher> {
@@ -83,22 +84,22 @@ impl InternalCloseWatcher {
         let close_watcher = Rc::new(Self::new(window, owner));
 
         // Step 3. Let manager be window's close watcher manager.
-        let mut manager = window.close_watcher_manager_mut();
+        let manager = window.close_watcher_manager();
+        let mut groups = manager.groups_mut(no_gc);
 
-        if manager.groups().len() < manager.allowed_number_of_groups() {
-            manager.groups_mut().push(vec![close_watcher.clone()])
         // Step 4. If manager's groups's size is less than manager's allowed number of groups, then
         // append « closeWatcher » to manager's groups.
+        if groups.len() < manager.allowed_number_of_groups() {
+            groups.push(vec![close_watcher.clone()])
         }
         // Step 5. Otherwise:
         else {
-            assert!(!manager.groups().is_empty());
             // Step 5.1. Assert: manager's groups's size is at least 1 in this branch, since
             // manager's allowed number of groups is always at least 1.
+            assert!(!groups.is_empty());
 
             // Step 5.2. Append closeWatcher to manager's groups's last item.
-            manager
-                .groups_mut()
+            groups
                 .last_mut()
                 .expect("There is at least one group at this point")
                 .push(close_watcher.clone());
@@ -198,24 +199,25 @@ impl InternalCloseWatcher {
         }
 
         // Step 4. Destroy closeWatcher.
-        self.destroy();
+        self.destroy(cx.no_gc());
 
         // Step 5. Run closeWatcher's close action.
         self.close_action(cx)
     }
 
     /// <https://html.spec.whatwg.org/multipage/#close-watcher-destroy>
-    pub(crate) fn destroy(&self) {
+    pub(crate) fn destroy(&self, no_gc: &NoGC) {
         // Step 1. Let manager be closeWatcher's window's close watcher manager.
-        let mut manager = self.window.close_watcher_manager_mut();
+        let manager = self.window.close_watcher_manager();
+        let mut groups = manager.groups_mut(no_gc);
 
         // Step 2. For each group of manager's groups: remove closeWatcher from group.
-        for group in manager.groups_mut() {
+        for group in groups.iter_mut() {
             group.retain(|watcher| !ptr::eq(Rc::as_ptr(watcher), self))
         }
 
         // Step 3. Remove any item from manager's groups that is empty.
-        manager.groups_mut().retain(|group| !group.is_empty())
+        groups.retain(|group| !group.is_empty())
     }
 
     /// <https://html.spec.whatwg.org/multipage/#create-close-watcher-cancelaction>
@@ -348,6 +350,7 @@ impl CloseWatcherMethods<DomTypeHolder> for CloseWatcher {
         // - getEnabledState being to return true.
         let close_watcher = CloseWatcher::new_with_proto(cx, window, proto);
         let internal_close_watcher = InternalCloseWatcher::establish(
+            cx.no_gc(),
             window,
             InternalCloseWatcherOwner::CloseWatcher(Dom::from_ref(&*close_watcher)),
         );
@@ -355,7 +358,7 @@ impl CloseWatcherMethods<DomTypeHolder> for CloseWatcher {
         if let Some(signal) = options.signal.as_ref() {
             // Step 3.1. If options["signal"] is aborted, then destroy closeWatcher.
             if signal.aborted() {
-                internal_close_watcher.destroy()
+                internal_close_watcher.destroy(cx.no_gc())
             }
             // Step 3.2. Add the following steps to options["signal"]:
             // Step 3.2.1. Destroy closeWatcher.
@@ -366,7 +369,7 @@ impl CloseWatcherMethods<DomTypeHolder> for CloseWatcher {
         // Step 4. Set this's internal close watcher to closeWatcher.
         close_watcher
             .internal_close_watcher
-            .borrow_mut()
+            .safe_borrow_mut(cx.no_gc())
             .replace(internal_close_watcher);
         Ok(close_watcher)
     }
@@ -389,10 +392,10 @@ impl CloseWatcherMethods<DomTypeHolder> for CloseWatcher {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dom-closewatcher-destroy>
-    fn Destroy(&self) {
+    fn Destroy(&self, cx: &mut JSContext) {
         // > The requestClose() method steps are to destroy this's internal close watcher.
         if let Some(internal) = &*self.internal_close_watcher.borrow() {
-            internal.destroy();
+            internal.destroy(cx.no_gc());
         }
     }
 

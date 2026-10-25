@@ -6,7 +6,7 @@ use std::rc::Rc;
 
 use dom_struct::dom_struct;
 use html5ever::{LocalName, Prefix, local_name, ns};
-use js::context::JSContext;
+use js::context::{JSContext, NoGC};
 use js::rust::HandleObject;
 use script_bindings::cell::DomRefCell;
 use script_bindings::codegen::GenericBindings::HTMLElementBinding::HTMLElementMethods;
@@ -188,7 +188,7 @@ impl HTMLDialogElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#set-the-dialog-close-watcher>
-    pub(crate) fn set_the_close_watcher(&self) {
+    pub(crate) fn set_the_close_watcher(&self, no_gc: &NoGC) {
         // Step 1. Assert: dialog's close watcher is null.
         assert!(self.close_watcher.borrow().is_none());
 
@@ -207,10 +207,13 @@ impl HTMLDialogElement {
         // - getEnabledState being to return true if dialog's enable close watcher for request close
         //   is true or dialog's computed closed-by state is not None; otherwise false.
         let close_watcher = InternalCloseWatcher::establish(
+            no_gc,
             dialog.owner_document().window(),
             InternalCloseWatcherOwner::Dialog(Dom::from_ref(self)),
         );
-        self.close_watcher.borrow_mut().replace(close_watcher);
+        self.close_watcher
+            .safe_borrow_mut(no_gc)
+            .replace(close_watcher);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#close-the-dialog>
@@ -437,7 +440,7 @@ impl HTMLDialogElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dialog-setup-steps>
-    pub(crate) fn dialog_setup_steps(&self) {
+    pub(crate) fn dialog_setup_steps(&self, no_gc: &NoGC) {
         // Step 1. Assert: subject has an open attribute.
         let subject = self.upcast::<Element>();
         assert!(subject.has_attribute(&local_name!("open")));
@@ -450,18 +453,19 @@ impl HTMLDialogElement {
         // TODO Step 4. Add subject to subject's node document's open dialogs list.
 
         // Step 5. Set the dialog close watcher with subject.
-        self.set_the_close_watcher();
+        self.set_the_close_watcher(no_gc);
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dialog-setup-steps>
-    pub(crate) fn dialog_cleanup_steps(&self) {
+    pub(crate) fn dialog_cleanup_steps(&self, no_gc: &NoGC) {
         // TODO Step 1. Remove subject from subject's node document's open dialogs list.
 
         // Step 2. If subject's close watcher is not null, then:
         // Step 2.1. Destroy subject's close watcher.
         // Step 2.2. Set subject's close watcher to null.
-        if let Some(close_watcher) = self.close_watcher.borrow_mut().take() {
-            close_watcher.destroy();
+        let close_watcher = self.close_watcher.safe_borrow_mut(no_gc).take();
+        if let Some(close_watcher) = close_watcher {
+            close_watcher.destroy(no_gc);
         }
     }
 
@@ -711,7 +715,7 @@ impl VirtualMethods for HTMLDialogElement {
         // Step 2. If insertedNode has an open attribute and is connected, then run the dialog setup
         // steps given insertedNode.
         if inserted_node.has_attribute(&local_name!("open")) && inserted_node.is_connected() {
-            self.dialog_setup_steps();
+            self.dialog_setup_steps(cx.no_gc());
         }
     }
 
@@ -723,7 +727,7 @@ impl VirtualMethods for HTMLDialogElement {
         // Step 1. If removedNode has an open attribute, then run the dialog cleanup steps given
         // removedNode.
         if removed_node.has_attribute(&local_name!("open")) {
-            self.dialog_cleanup_steps();
+            self.dialog_cleanup_steps(cx.no_gc());
         }
 
         // TODO Step 2. If removedNode's node document's top layer contains removedNode, then remove
@@ -756,7 +760,7 @@ impl VirtualMethods for HTMLDialogElement {
         // Step 3. If value is null and oldValue is not null, then run the dialog cleanup steps
         // given element.
         if matches!(mutation, AttributeMutation::Removed) {
-            self.dialog_cleanup_steps();
+            self.dialog_cleanup_steps(cx.no_gc());
         }
 
         // Step 4. If element's node document is not fully active, then return.
@@ -773,7 +777,7 @@ impl VirtualMethods for HTMLDialogElement {
         // Step 6. If value is not null and oldValue is null, then run the dialog setup steps given
         // element.
         if matches!(mutation, AttributeMutation::Set(..)) {
-            self.dialog_setup_steps();
+            self.dialog_setup_steps(cx.no_gc());
         }
     }
 }
