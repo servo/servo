@@ -45,11 +45,11 @@ impl CloseWatcherManager {
             .update(|allowed_number_of_groups| allowed_number_of_groups + 1);
     }
 
-    pub fn next_user_interaction_allows_a_new_group(&self) -> bool {
+    pub(crate) fn next_user_interaction_allows_a_new_group(&self) -> bool {
         self.next_user_interaction_allows_a_new_group.get()
     }
 
-    pub fn set_next_user_interaction_allows_a_new_group(&self, value: bool) {
+    pub(crate) fn set_next_user_interaction_allows_a_new_group(&self, value: bool) {
         self.next_user_interaction_allows_a_new_group.set(value);
     }
 }

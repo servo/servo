@@ -45,7 +45,7 @@ pub(crate) struct InternalCloseWatcher {
 
 impl InternalCloseWatcher {
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub fn new(window: &Window, owner: InternalCloseWatcherOwner) -> Self {
+    pub(crate) fn new(window: &Window, owner: InternalCloseWatcherOwner) -> Self {
         Self {
             window: Dom::from_ref(window),
             is_running_cancel_action: Cell::new(false),
@@ -54,7 +54,7 @@ impl InternalCloseWatcher {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#close-watcher-active>
-    pub fn is_active(&self) -> bool {
+    pub(crate) fn is_active(&self) -> bool {
         // > A close watcher closeWatcher is active if closeWatcher's window's close watcher manager
         // > contains any list which contains closeWatcher.
         self.window
@@ -67,7 +67,7 @@ impl InternalCloseWatcher {
 
     /// <https://html.spec.whatwg.org/multipage/#establish-a-close-watcher>
     #[cfg_attr(crown, allow(crown::unrooted_must_root))]
-    pub fn establish(
+    pub(crate) fn establish(
         window: &Window,
         owner: InternalCloseWatcherOwner,
     ) -> Rc<InternalCloseWatcher> {
@@ -110,7 +110,7 @@ impl InternalCloseWatcher {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#close-watcher-request-close>
-    pub fn request_to_close(
+    pub(crate) fn request_to_close(
         &self,
         cx: &mut JSContext,
         require_history_action_activation: bool,
@@ -176,7 +176,7 @@ impl InternalCloseWatcher {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#close-watcher-close>
-    pub fn close(&self, cx: &mut JSContext) {
+    pub(crate) fn close(&self, cx: &mut JSContext) {
         // Step 1. If closeWatcher is not active, then return.
         if !self.is_active() {
             return;
@@ -200,7 +200,7 @@ impl InternalCloseWatcher {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#close-watcher-destroy>
-    pub fn destroy(&self) {
+    pub(crate) fn destroy(&self) {
         // Step 1. Let manager be closeWatcher's window's close watcher manager.
         let mut manager = self.window.close_watcher_manager_mut();
 
@@ -214,7 +214,7 @@ impl InternalCloseWatcher {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#create-close-watcher-cancelaction>
-    pub fn cancel_action(&self, cx: &mut JSContext, can_prevent_close: bool) -> bool {
+    pub(crate) fn cancel_action(&self, cx: &mut JSContext, can_prevent_close: bool) -> bool {
         match &self.owner {
             InternalCloseWatcherOwner::CloseWatcher(close_watcher) => {
                 // cancelAction given canPreventClose being to return the result of firing an event
@@ -255,7 +255,7 @@ impl InternalCloseWatcher {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#create-close-watcher-closeaction>
-    pub fn close_action(&self, cx: &mut JSContext) {
+    pub(crate) fn close_action(&self, cx: &mut JSContext) {
         match &self.owner {
             InternalCloseWatcherOwner::CloseWatcher(close_watcher) => {
                 // closeAction being to fire an event named close at this.
@@ -277,7 +277,7 @@ impl InternalCloseWatcher {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#close-watcher-get-enabled-state>
-    pub fn get_enabled_state(&self) -> bool {
+    pub(crate) fn get_enabled_state(&self) -> bool {
         match &self.owner {
             InternalCloseWatcherOwner::Dialog(dialog) => dialog.close_watcher_enabled_state(),
             _ => true,
@@ -304,14 +304,14 @@ pub(crate) struct CloseWatcher {
 }
 
 impl CloseWatcher {
-    pub fn new_inherited() -> CloseWatcher {
+    pub(crate) fn new_inherited() -> CloseWatcher {
         Self {
             eventtarget: EventTarget::new_inherited(),
             internal_close_watcher: DomRefCell::new(None),
         }
     }
 
-    pub fn new_with_proto(
+    pub(crate) fn new_with_proto(
         cx: &mut JSContext,
         window: &Window,
         proto: Option<HandleObject>,

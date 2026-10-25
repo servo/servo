@@ -981,7 +981,7 @@ impl Window {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#notify-the-close-watcher-manager-about-user-activation>
-    pub fn notify_the_close_watcher_manager_about_user_activation(&self) {
+    pub(crate) fn notify_the_close_watcher_manager_about_user_activation(&self) {
         // Step 1. Let manager be window's close watcher manager.
         let manager = self.close_watcher_manager();
 

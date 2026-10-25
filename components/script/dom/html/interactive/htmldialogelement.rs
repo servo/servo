@@ -83,7 +83,7 @@ impl HTMLDialogElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#show-a-modal-dialog>
-    pub fn show_a_modal(
+    pub(crate) fn show_a_modal(
         &self,
         cx: &mut js::context::JSContext,
         source: Option<DomRoot<Element>>,
@@ -188,7 +188,7 @@ impl HTMLDialogElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#set-the-dialog-close-watcher>
-    pub fn set_the_close_watcher(&self) {
+    pub(crate) fn set_the_close_watcher(&self) {
         // Step 1. Assert: dialog's close watcher is null.
         assert!(self.close_watcher.borrow().is_none());
 
@@ -210,7 +210,7 @@ impl HTMLDialogElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#close-the-dialog>
-    pub fn close_the_dialog(
+    pub(crate) fn close_the_dialog(
         &self,
         cx: &mut js::context::JSContext,
         result: Option<DOMString>,
@@ -305,7 +305,7 @@ impl HTMLDialogElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dialog-request-close>
-    pub fn request_to_close(
+    pub(crate) fn request_to_close(
         &self,
         cx: &mut js::context::JSContext,
         return_value: Option<DOMString>,
@@ -350,7 +350,7 @@ impl HTMLDialogElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#queue-a-dialog-toggle-event-task>
-    pub fn queue_dialog_toggle_event_task(
+    pub(crate) fn queue_dialog_toggle_event_task(
         &self,
         old_state: &'static str,
         new_state: &'static str,
@@ -433,7 +433,7 @@ impl HTMLDialogElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dialog-setup-steps>
-    pub fn dialog_setup_steps(&self) {
+    pub(crate) fn dialog_setup_steps(&self) {
         // Step 1. Assert: subject has an open attribute.
         let subject = self.upcast::<Element>();
         assert!(subject.has_attribute(&local_name!("open")));
@@ -449,7 +449,7 @@ impl HTMLDialogElement {
     }
 
     /// <https://html.spec.whatwg.org/multipage/#dialog-setup-steps>
-    pub fn dialog_cleanup_steps(&self) {
+    pub(crate) fn dialog_cleanup_steps(&self) {
         // TODO Step 1. Remove subject from subject's node document's open dialogs list.
 
         // Step 2. If subject's close watcher is not null, then:
