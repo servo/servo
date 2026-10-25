@@ -1190,7 +1190,7 @@ where
             #[cfg_attr(not(feature = "multiprocess"), expect(unused))]
             RemoveProcess(usize),
             #[cfg(feature = "webmidi")]
-            MIDI(MIDIMsg),
+            Midi(MIDIMsg),
         }
         // Get one incoming request.
         // This is one of the few places where `Paint` is
@@ -1247,7 +1247,7 @@ where
                 5 => oper
                     .recv(&self.midi_receiver)
                     .expect("Unexpected MIDI channel panic in constellation")
-                    .map(Request::MIDI),
+                    .map(Request::Midi),
                 _ => {
                     // This can only be a error reading on a closed lifeline receiver.
                     #[cfg(feature = "webmidi")]
@@ -1285,7 +1285,7 @@ where
             #[cfg(not(feature = "multiprocess"))]
             Request::RemoveProcess(_) => {},
             #[cfg(feature = "webmidi")]
-            Request::MIDI(msg) => {
+            Request::Midi(msg) => {
                 self.handle_midi_msg(msg);
             },
         }

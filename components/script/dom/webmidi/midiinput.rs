@@ -50,6 +50,7 @@ impl MIDIInput {
 
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         window: &Window,
         id: DOMString,
         manufacturer: Option<DOMString>,
@@ -58,7 +59,6 @@ impl MIDIInput {
         version: Option<DOMString>,
         state: MIDIPortDeviceState,
         connection: MIDIPortConnectionState,
-        cx: &mut js::context::JSContext,
     ) -> DomRoot<MIDIInput> {
         reflect_dom_object(
             cx,
@@ -86,18 +86,18 @@ impl MIDIInputMethods<crate::DomTypeHolder> for MIDIInput {
 }
 
 impl MIDIInput {
-    pub(crate) fn handle_midi_message(&self, data: Vec<u8>, cx: &mut js::context::JSContext) {
+    pub(crate) fn handle_midi_message(&self, cx: &mut js::context::JSContext, data: Vec<u8>) {
         if data[0] == 0xF0 {
             // SysEx messages are currently not allowed, abort process
             return;
         }
         let event = MIDIMessageEvent::new_with_proto(
+            cx,
             self.global().as_window(),
             None,
             Atom::from("midimessage"),
             false,
             false,
-            cx,
         );
         event.set_data(cx, data);
         event

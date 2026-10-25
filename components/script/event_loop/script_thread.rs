@@ -2021,7 +2021,7 @@ impl ScriptThread {
             },
             #[cfg(feature = "webmidi")]
             ScriptThreadMessage::MIDIMessage(pipeline_id, msg) => {
-                self.handle_midi_message(pipeline_id, msg, cx);
+                self.handle_midi_message(cx, pipeline_id, msg);
             },
         }
     }
@@ -4699,9 +4699,9 @@ impl ScriptThread {
     #[cfg(feature = "webmidi")]
     fn handle_midi_message(
         &self,
+        cx: &mut js::context::JSContext,
         pipeline_id: PipelineId,
         msg: MIDIMsg,
-        cx: &mut js::context::JSContext,
     ) {
         let Some(document) = self.documents.borrow().find_document(pipeline_id) else {
             warn!("Failed to find document to send MIDI message to!");
@@ -4712,23 +4712,23 @@ impl ScriptThread {
             return;
         };
         match msg {
-            MIDIMsg::PortAvailable(_, port) => midi_access.handle_midi_port_available(port, cx),
-            MIDIMsg::PortUnavailable(_, port) => midi_access.handle_midi_port_unavailable(port, cx),
+            MIDIMsg::PortAvailable(_, port) => midi_access.handle_midi_port_available(cx, port),
+            MIDIMsg::PortUnavailable(_, port) => midi_access.handle_midi_port_unavailable(cx, port),
             MIDIMsg::Data(_, id, data) => {
                 if let Some(input) = midi_access.Inputs().get(cx, DOMString::from(id)) {
-                    input.handle_midi_message(data, cx);
+                    input.handle_midi_message(cx, data);
                 } else {
                     warn!("Failed to find the MIDIInput to send data to!");
                 }
             },
             MIDIMsg::PortOpened(_, id) => {
-                match midi_access.get_port(id, cx) {
+                match midi_access.get_port(cx, id) {
                     Ok(port) => port.handle_open_completed(cx),
                     Err(e) => warn!("{}", e),
                 };
             },
             MIDIMsg::PortClosed(_, id) => {
-                match midi_access.get_port(id, cx) {
+                match midi_access.get_port(cx, id) {
                     Ok(port) => port.handle_close_completed(cx),
                     Err(e) => warn!("{}", e),
                 };
