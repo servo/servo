@@ -291,7 +291,7 @@ thead, tbody, tfoot, tr { border-color: inherit; }
 
 table:is(
   [rules=none i], [rules=groups i], [rules=rows i],
-  [rules=cols i]
+  [rules=cols i],
   [frame=void i], [frame=above i], [frame=below i],
   [frame=hsides i], [frame=lhs i], [frame=rhs i],
   [frame=vsides i], [frame=box i], [frame=border i]
