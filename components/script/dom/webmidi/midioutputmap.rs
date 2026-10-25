@@ -32,8 +32,8 @@ impl MIDIOutputMap {
     }
 
     pub(crate) fn new(
-        global: &GlobalScope,
         cx: &mut js::context::JSContext,
+        global: &GlobalScope,
     ) -> DomRoot<MIDIOutputMap> {
         reflect_dom_object(cx, Box::new(MIDIOutputMap::new_inherited()), global)
     }

@@ -39,12 +39,12 @@ impl MIDIMessageEvent {
     }
 
     pub(crate) fn new_with_proto(
+        cx: &mut js::context::JSContext,
         window: &Window,
         proto: Option<HandleObject>,
         type_: Atom,
         bubbles: bool,
         cancelable: bool,
-        cx: &mut js::context::JSContext,
     ) -> DomRoot<MIDIMessageEvent> {
         let messageevent = reflect_dom_object_with_proto(
             cx,
@@ -71,12 +71,12 @@ impl MIDIMessageEventMethods<crate::DomTypeHolder> for MIDIMessageEvent {
         init: &MIDIMessageEventInit,
     ) -> DomRoot<MIDIMessageEvent> {
         MIDIMessageEvent::new_with_proto(
+            cx,
             global.as_window(),
             proto,
             Atom::from(type_),
             init.parent.bubbles,
             init.parent.cancelable,
-            cx,
         )
     }
 

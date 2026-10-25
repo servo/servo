@@ -52,8 +52,8 @@ impl MIDIAccess {
     }
 
     pub(crate) fn new(
-        window: &Window,
         cx: &mut js::context::JSContext,
+        window: &Window,
         use_software_synths: bool,
     ) -> DomRoot<MIDIAccess> {
         let (sender, receiver) = generic_channel::channel().expect("ipc channel failure");
@@ -65,13 +65,14 @@ impl MIDIAccess {
             .send(msg)
             .expect("Failed sending MIDIRequest::GetPorts to constellation");
         let ports = receiver.recv().expect("Failed to reach midir backend");
-        let input_map = MIDIInputMap::new(window.as_global_scope(), cx);
-        let output_map = MIDIOutputMap::new(window.as_global_scope(), cx);
+        let input_map = MIDIInputMap::new(cx, window.as_global_scope());
+        let output_map = MIDIOutputMap::new(cx, window.as_global_scope());
         ports.iter().for_each(|port| match port {
             MidiPort::Input(midi_port_info) => {
                 let id = DOMString::from(midi_port_info.id.clone());
                 let name = DOMString::from(midi_port_info.name.clone());
                 let input = MIDIInput::new(
+                    cx,
                     window,
                     id.clone(),
                     None,
@@ -80,7 +81,6 @@ impl MIDIAccess {
                     None,
                     MIDIPortDeviceState::Connected,
                     MIDIPortConnectionState::Closed,
-                    cx,
                 );
                 input_map.set(cx, id, DomRoot::from_ref(&input));
             },
@@ -94,6 +94,7 @@ impl MIDIAccess {
                     return;
                 }
                 let output = MIDIOutput::new(
+                    cx,
                     window,
                     id.clone(),
                     None,
@@ -102,7 +103,6 @@ impl MIDIAccess {
                     None,
                     MIDIPortDeviceState::Connected,
                     MIDIPortConnectionState::Closed,
-                    cx,
                 );
                 output_map.set(cx, id, DomRoot::from_ref(&output));
             },
@@ -121,8 +121,8 @@ impl MIDIAccess {
 
     pub(crate) fn get_port(
         &self,
-        port: MidiPort,
         cx: &mut js::context::JSContext,
+        port: MidiPort,
     ) -> Result<DomRoot<MIDIPort>, String> {
         let id = DOMString::from(port.id());
 
@@ -167,7 +167,7 @@ impl MIDIAccessMethods<crate::DomTypeHolder> for MIDIAccess {
 }
 
 impl MIDIAccess {
-    pub fn handle_midi_port_available(&self, port: MidiPort, cx: &mut js::context::JSContext) {
+    pub fn handle_midi_port_available(&self, cx: &mut js::context::JSContext, port: MidiPort) {
         let midi_port = match port {
             MidiPort::Input(midi_port_info) => {
                 match self
@@ -180,6 +180,7 @@ impl MIDIAccess {
                     },
                     None => {
                         let port = MIDIInput::new(
+                            cx,
                             self.global().as_window(),
                             DOMString::from(midi_port_info.id.clone()),
                             None,
@@ -188,7 +189,6 @@ impl MIDIAccess {
                             None,
                             MIDIPortDeviceState::Connected,
                             MIDIPortConnectionState::Closed,
-                            cx,
                         );
                         self.input_map.set(
                             cx,
@@ -210,6 +210,7 @@ impl MIDIAccess {
                     },
                     None => {
                         let port = MIDIOutput::new(
+                            cx,
                             self.global().as_window(),
                             DOMString::from(midi_port_info.id.clone()),
                             None,
@@ -218,7 +219,6 @@ impl MIDIAccess {
                             None,
                             MIDIPortDeviceState::Connected,
                             MIDIPortConnectionState::Closed,
-                            cx,
                         );
                         self.output_map.set(
                             cx,
@@ -231,20 +231,20 @@ impl MIDIAccess {
             },
         };
         let event = MIDIConnectionEvent::new_with_proto(
+            cx,
             self.global().as_window(),
             None,
             Atom::from("statechange"),
             false,
             false,
             Some(&midi_port),
-            cx,
         );
         event
             .upcast::<Event>()
             .fire(cx, self.upcast::<EventTarget>());
     }
 
-    pub fn handle_midi_port_unavailable(&self, port: MidiPort, cx: &mut js::context::JSContext) {
+    pub fn handle_midi_port_unavailable(&self, cx: &mut js::context::JSContext, port: MidiPort) {
         let midi_port = match port {
             MidiPort::Input(info) => {
                 if let Some(input) = self.input_map.get(cx, DOMString::from(info.id.clone())) {
@@ -266,13 +266,13 @@ impl MIDIAccess {
             },
         };
         let connection_event = MIDIConnectionEvent::new_with_proto(
+            cx,
             self.global().as_window(),
             None,
             Atom::from("statechange"),
             false,
             false,
             Some(&midi_port),
-            cx,
         );
         connection_event
             .upcast::<Event>()

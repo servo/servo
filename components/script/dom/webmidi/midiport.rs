@@ -181,7 +181,8 @@ impl MIDIPort {
     }
 
     pub fn handle_open_completed(&self, cx: &mut js::context::JSContext) {
-        if let Some(promise) = self.port_open_promise.borrow_mut().take() {
+        if let Some(ref promise) = self.port_open_promise.borrow_mut().take() {
+            let promise = promise.root(cx);
             promise.resolve_native(cx, &DomRoot::from_ref(self));
             *self.connection.borrow_mut() = MIDIPortConnectionState::Open;
             self.fire_statechange();
@@ -189,7 +190,8 @@ impl MIDIPort {
     }
 
     pub fn handle_close_completed(&self, cx: &mut js::context::JSContext) {
-        if let Some(promise) = self.port_close_promise.borrow_mut().take() {
+        if let Some(ref promise) = self.port_close_promise.borrow_mut().take() {
+            let promise = promise.root(cx);
             promise.resolve_native(cx, &DomRoot::from_ref(self));
             *self.connection.borrow_mut() = MIDIPortConnectionState::Closed;
             self.fire_statechange();

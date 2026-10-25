@@ -1194,7 +1194,7 @@ where
             #[cfg_attr(not(feature = "multiprocess"), expect(unused))]
             RemoveProcess(usize),
             #[cfg(feature = "webmidi")]
-            MIDI(MIDIMsg),
+            Midi(MIDIMsg),
         }
         // Get one incoming request.
         // This is one of the few places where `Paint` is
@@ -1296,7 +1296,7 @@ where
             #[cfg(not(feature = "multiprocess"))]
             Request::RemoveProcess(_) => {},
             #[cfg(feature = "webmidi")]
-            Request::MIDI(msg) => {
+            Request::Midi(msg) => {
                 self.handle_midi_msg(msg);
             },
         }

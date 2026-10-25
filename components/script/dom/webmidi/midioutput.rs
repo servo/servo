@@ -62,6 +62,7 @@ impl MIDIOutput {
 
     #[expect(clippy::too_many_arguments)]
     pub(crate) fn new(
+        cx: &mut js::context::JSContext,
         window: &Window,
         id: DOMString,
         manufacturer: Option<DOMString>,
@@ -70,7 +71,6 @@ impl MIDIOutput {
         version: Option<DOMString>,
         state: MIDIPortDeviceState,
         connection: MIDIPortConnectionState,
-        cx: &mut js::context::JSContext,
     ) -> DomRoot<MIDIOutput> {
         reflect_dom_object(
             cx,
