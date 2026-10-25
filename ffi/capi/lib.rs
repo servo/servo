@@ -343,6 +343,16 @@ impl ServoError {
         }
         std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).unwrap_or(std::ptr::null())
     }
+
+    /// Like [`ServoError::catch_ffi`], for FFI functions that return a boolean.
+    /// An off-thread call or a panic returns `false`.
+    #[inline]
+    pub fn catch_ffi_bool<F: FnOnce() -> bool>(f: F) -> bool {
+        if entry_checks::check_main_thread().is_err() {
+            return false;
+        }
+        std::panic::catch_unwind(std::panic::AssertUnwindSafe(f)).unwrap_or(false)
+    }
 }
 
 /// Entry-point checks shared by the FFI boundary helpers.

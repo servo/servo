@@ -630,6 +630,7 @@ pub unsafe extern "C" fn servo_create_new_webview_builder_create(
             request_context: None,
             hidpi_scale_factor: None,
             create_new_request: Some(inner),
+            is_private: false,
         }))
     })
 }
@@ -1019,13 +1020,12 @@ pub unsafe extern "C" fn servo_webview_get_load_status(webview: *const WebView) 
 /// Returns false if `webview` is NULL.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn servo_webview_is_private(webview: *const WebView) -> bool {
-    ServoError::catch_ffi(|| {
+    ServoError::catch_ffi_bool(|| {
         if webview.is_null() {
             return false;
         }
         unsafe { (*webview).is_private() }
     })
-    .unwrap_or(false)
 }
 
 /// Writes the size of the `WebView`'s viewport in device pixels into

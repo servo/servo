@@ -1,13 +1,13 @@
 # Graph Report - servo  (2026-10-25)
 
 ## Corpus Check
-- 2260 files · ~2,589,730 words
+- 2261 files · ~2,592,129 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 860 file(s) not represented in the graph (top: .webidl 579, .ttf 76, (none) 51)
 
 ## Summary
-- 60180 nodes · 164073 edges · 1406 communities (885 shown, 521 thin omitted)
-- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 3202 edges (avg confidence: 0.87)
+- 60257 nodes · 164223 edges · 1453 communities (893 shown, 560 thin omitted)
+- Extraction: 98% EXTRACTED · 2% INFERRED · 0% AMBIGUOUS · INFERRED: 3245 edges (avg confidence: 0.87)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
@@ -17,13 +17,13 @@
 
 ## Community Hubs (Navigation)
 - EventSource
-- HTMLElement
+- VirtualMethods
 - RequestId
 - Document
 - dialog.rs
 - WebViewId
 - ComputedValues
-- CSSStyleSheet
+- CSSGroupingRule
 - layout_impl.rs
 - macos/font.rs
 - Parser
@@ -37,18 +37,18 @@
 - shared/paint/lib.rs
 - aes_ocb_operation.rs
 - TestBinding
-- warn
+- constellation.rs
 - codegen.py
 - servo/webview_delegate.rs
 - XRRigidTransform
-- tests/resource_thread.rs
+- pathbuf
 - Au
 - USVString
 - Chunk
 - WebGLCommand
 - ComputedValues
 - WebGL2RenderingContext
-- script_module.rs
+- RequestBuilder
 - TextInputWidget
 - gpurenderpipeline.rs
 - text_run.rs
@@ -58,20 +58,20 @@
 - CGThing
 - WebGLRenderingContext
 - cookie_http_state.rs
-- WebGPU
+- webgl.rs
 - shared/webgpu/lib.rs
 - tests/http_loader.rs
-- PipelineId
+- flexbox/mod.rs
 - ActorRegistry
 - DataChannelId
 - .reflect_dom_object
 - display_list/mod.rs
 - painter.rs
-- gstreamer/player.rs
+- IndexedDBKeyType
 - Element
 - headed_window.rs
 - ScriptThreadMessage
-- ReferrerPolicy
+- prefetch.rs
 - TracedPromise
 - embedder/lib.rs
 - WebIDLError
@@ -80,7 +80,7 @@
 - Sink
 - servo/servo.rs
 - IDLType
-- animationeffect.rs
+- IdentityHub
 - os
 - Command
 - time
@@ -97,19 +97,19 @@
 - WebView
 - ImportKeyAlgorithm
 - canvas_state.rs
-- .as_str
+- WritableStream
 - openxr/mod.rs
 - net/http_cache.rs
 - warn
-- gstreamer/lib.rs
-- domstring.rs
+- XRInputSource
+- from_latin1
 - script_bindings/import.rs
 - CryptoAlgorithm
 - display_list.rs
 - net/http_loader.rs
 - ffi/capi/lib.rs
 - LayerId
-- gpudevice.rs
+- WebGLTexture
 - PlayerError
 - IDBTransaction
 - Node
@@ -121,19 +121,19 @@
 - WebGPURequest
 - table/layout.rs
 - HTMLImageElement
-- readablestreamdefaultcontroller.rs
+- ReadableStreamDefaultController
 - headless/mod.rs
 - Blob
 - tidy.py
-- Tick
-- DevtoolScriptControlMsg
+- FrameRef<'a>
+- PipelineId
 - canvas.rs
 - accessibility/mod.rs
 - capi/webview.rs
 - style/mod.rs
 - ImmutableOrigin
 - HTMLMediaElement
-- key.rs
+- IDBObjectStore
 - IDLInterfaceOrNamespace
 - components/fonts/lib.rs
 - ServoDangerousStyleElement<'dom>
@@ -145,16 +145,16 @@
 - XRSession
 - runtime/script_runtime.rs
 - components/net/image_cache.rs
-- HTMLSlotElement
+- key.rs
 - reflect_dom_object_with_proto
-- ToggleEvent
+- DomRoot
 - replaced.rs
-- paint/touch.rs
+- Report
 - net/protocols/mod.rs
 - ServoMedia
 - StorageThreads
 - SessionMode
-- dom/bluetooth/bluetooth.rs
+- BluetoothPermissionResult
 - WebGLFramebuffer
 - Expression
 - wpt/test.py
@@ -163,13 +163,13 @@
 - promise.rs
 - LayoutDom<'dom, HTMLTableCellElement>
 - interface.rs
-- fakexrinputcontroller.rs
+- VTTCue
 - MouseEvent
-- layout/context.rs
+- Locked
 - object.rs
 - AudioSinkError
 - freetype_face.rs
-- net/cookie.rs
+- CookieStorage
 - CanvasRenderingContext2D
 - WebDriverScriptCommand
 - async_html.rs
@@ -178,7 +178,7 @@
 - WebGLBuffer
 - TextTrack
 - FontFace
-- AudioNodeInit
+- gpucommandencoder.rs
 - xpath/src/lib.rs
 - proxyhandler.rs
 - worklet.rs
@@ -190,17 +190,17 @@
 - DOMMatrix
 - timeline.rs
 - basparse.py
-- Response
+- ServiceWorkerGlobalScope
 - Snapshot
 - windowproxy.rs
 - HTMLCanvasElementOrOffscreenCanvas
 - bindings/structuredclone.rs
-- FontTemplateRef
+- FontDescriptor
 - debug
-- HeaderMap
+- openxr/input.rs
 - harfbuzz.rs
 - Node
-- ReadableStreamBYOBReader
+- ReadableStreamDefaultReader
 - HTMLScriptElement
 - yacc.py
 - OffscreenCanvasRenderingContext2D
@@ -208,13 +208,13 @@
 - CommandName
 - webgpu/mod.rs
 - tests/cookie.rs
-- ScriptToConstellationMessage
+- opts.rs
 - VideoFrame
 - indexeddb/engines/sqlite.rs
 - graph.rs
 - XMLHttpRequest
-- ActorEncode
-- ReadableByteStreamController
+- CSSRule
+- MediaList
 - AbsoluteColor
 - XRWebGLLayer
 - IDLUnionType
@@ -224,7 +224,7 @@
 - ByteString
 - RasterImage
 - T
-- FocusableArea
+- DocumentFocusHandler
 - MessagePort
 - gpuadapter.rs
 - bindings/principals.rs
@@ -241,10 +241,11 @@
 - ServoParser
 - buffer_source.rs
 - HTMLLinkElement
-- wgpu_thread.rs
+- .layout_reflow
 - BluetoothRequest
 - GenericBufferedSender<T, U>
-- ActorError
+- CSSStyleSheet
+- NoGC
 - wpt/run.py
 - tests/mime_classifier.rs
 - Encoding
@@ -261,11 +262,11 @@
 - bluetooth/test.rs
 - sys
 - periodic_wave.rs
-- vello_cpu_backend.rs
+- .Constructor
 - DOMString
 - servo-base
 - DOMRectReadOnly
-- gui.rs
+- HTMLTrackElement
 - macos/font.rs
 - ServoWebViewDelegate
 - avplayer.rs
@@ -273,7 +274,7 @@
 - actors/stylesheets.rs
 - script_bindings/conversions.rs
 - Gamepad
-- Preferences
+- LineBreaker
 - Joint
 - android/font_list.rs
 - ReportsChan
@@ -281,7 +282,7 @@
 - functions.rs
 - DOMMatrixReadOnly
 - MediaStreamTrack
-- Request
+- Response
 - RopeIndex
 - wgpu_thread.rs
 - IntersectionObserver
@@ -301,14 +302,14 @@
 - animation_manager.rs
 - Attr
 - DOMPoint
-- DOMRect
+- Data
 - FindBar
 - TestDebuggerTab
 - tests/font_context.rs
-- buffer_source_node.rs
+- WebSocket
 - servoshell/prefs.rs
 - TrustedTypePolicyFactory
-- RenderingContext
+- update.py
 - freetype/font_list.rs
 - WindowGLContext
 - textinput.rs
@@ -322,19 +323,19 @@
 - network_event.rs
 - job_queue.rs
 - serviceworker_manager.rs
-- IDBDatabase
-- windows/font.rs
-- FetchResponseMsg
+- CanvasGradient
+- record.rs
+- shared/net/lib.rs
 - components/bluetooth/lib.rs
-- xrwebglbinding.rs
+- WebGLQuery
 - Handle
 - ByteMatcher
 - AnalysisEngine
 - HTMLCanvasElement
 - IDLTypedefType
 - HTMLStyleElement
-- script/test.rs
-- Type
+- dom/srcset.rs
+- call
 - clipboard_delegate.rs
 - generic_channel/mod.rs
 - user_prompt.rs
@@ -350,53 +351,54 @@
 - ServoViewHost
 - DragDataStore
 - DOMPointReadOnly
-- gpushadermodule.rs
+- gpu.rs
 - env
 - BrowserWindow
 - Length
-- desktop/gamepad.rs
-- DocumentType
+- EventLoopWaker
+- html.rs
 - WorkerGlobalScope
 - TaffyStyloStyle<T>
 - OmniboxToolbar
 - DownloadManager
 - DocumentEventHandler
-- listeners.rs
+- BroadcastChannel
 - InputType
 - Convert
 - WorkerNavigator
 - embedding/README.md
 - TestFullSyncRun
 - ServoSrc
-- Encoding
+- script/test.rs
 - Location
-- RequestMode
+- JSContext
 - CGClass
 - Storage
 - Origin
 - IDLMaplikeOrSetlikeOrIterableBase
-- Row
+- JSContext
 - lazy_callback.rs
 - AudioRenderer
-- bindings/error.rs
-- SpecificInputType
+- script_bindings/constructor.rs
+- DOMPointReadOnly
 - ProfilerCategory
 - publish_crates_io.py
 - tracking.rs
 - window_named_properties.rs
 - AudioDecoderCallbacks
 - debugger.js
-- Sink
-- servotestutils.rs
+- FontFaceSet
+- LayoutResult
+- servo_dangerous_style_element.rs
 - MimeType
-- layout/traversal.rs
-- bindings/utils.rs
-- gpuerror.rs
+- PipeTo
+- ServoAction
+- DataTransferItem
 - run_in_headless_android_emulator.py
 - bench-harmonyos-aarch64
-- components/devtools/lib.rs
+- actors/console.rs
 - Resource
-- record.rs
+- keyframeeffect.rs
 - JSTracer
 - with
 - TimeRangesContainer
@@ -405,7 +407,7 @@
 - inputs
 - FileSystemEntry
 - JSContext
-- Path2D
+- XRSystem
 - Node
 - TextControlElement
 - BackendError
@@ -421,7 +423,7 @@
 - webgpu/gpucanvascontext.rs
 - ImageData
 - CSSFontFaceDescriptors
-- byteteeunderlyingsource.rs
+- ExtendableMessageEvent
 - configuration.py
 - options.rs
 - JNIServo
@@ -431,15 +433,15 @@
 - HashMapTracedValues<K, V, S>
 - OffscreenCanvas
 - EditingContext
-- WorkletGlobalScope
+- OriginSnapshot
 - paintworkletglobalscope.rs
 - generic_channel/callback.rs
 - Error
 - .connect
-- convert.rs
-- ActorEncode
+- length_percentage
+- NativeStack
 - VideoTrack
-- BlendingStyle
+- TracedDOMString
 - net/subresource_integrity.rs
 - GenericSharedMemory
 - metrics/lib.rs
@@ -463,7 +465,7 @@
 - ServoCapi
 - inputs
 - CacheStorage
-- webstorage.rs
+- DOMString
 - assert_in_script
 - winit_minimal.rs
 - IDLBuiltinType
@@ -476,39 +478,39 @@
 - Error
 - Element
 - with
-- stylo_taffy/wrapper.rs
+- CSSStyleDeclaration
 - utils.py
 - stylist.rs
 - bench.rs
 - ServoCapabilities
-- fmt
+- ScriptHangAnnotation
 - sampler_linux.rs
 - BluetoothDevice
-- testworklet.rs
-- PermissionFeature
+- TestWorklet
+- PointerEvent
 - DOMString
 - GPURenderBundleEncoder<D>
 - steps
 - inputs
 - try_parser.py
 - Constrain
-- ServoDangerousStyleNode
+- TaskQueue
 - constellation/tracing.rs
 - tests/image_cache.rs
 - BasicInterpreter
-- ImageBitmap
+- DOMString
 - PerformanceTiming
 - generic_channelset.rs
 - cue/text.rs
 - servo_gdb.py
 - with
 - sync
-- urlpattern.rs
-- Data
+- KeyboardEvent
+- LoadStatus
 - guard.rs
 - wrap.rs
 - ServoLayoutElement<'dom>
-- ResourceAttribute
+- blob_url_store.rs
 - MainActivity
 - paint/rendering_context.rs
 - .send_message_to_embedder
@@ -516,7 +518,7 @@
 - parsing.rs
 - manual_domstring_new.rs
 - servo_tracing/lib.rs
-- AndroidTarget
+- background_hang_monitor.rs
 - finalize.rs
 - script_bindings/init.rs
 - YaccProduction
@@ -537,7 +539,7 @@
 - SanitizerAttribute
 - Sanitizer
 - servo_capi.hpp
-- WeakRef
+- WebGLTransformFeedback
 - debuggerblackboxevent.rs
 - ScrollingBox
 - GLenum
@@ -552,8 +554,8 @@
 - Worker
 - FetchGroup
 - gpucomputepipeline.rs
-- Convert
-- RootedCallback
+- UrlWithBlobClaim
+- HTMLElement
 - PerformanceObserver
 - bluetoothuuid.rs
 - PerformanceResourceTiming
@@ -561,14 +563,14 @@
 - components/bluetooth/bluetooth.rs
 - DOMString
 - border.rs
-- LayoutDom
+- assert_in_layout
 - mediasession.rs
-- hit_test.rs
+- geometry/lib.rs
 - IDBFactory
-- DOMException
+- DOMStringType
 - GenerateKeyAlgorithm
 - VisualViewport
-- gpubindgroup.rs
+- CSSConditionRule
 - with
 - MediaDeviceKind
 - shared/net/fetch/headers.rs
@@ -580,37 +582,36 @@
 - Mime
 - ExportKeyAlgorithm
 - DomRefCell<T>
-- Animation
-- AudioStreamReader
+- History
+- InputMethodControl
 - IDLTypedef
 - customevent.rs
 - CustomStateSet
-- canvas_paint_thread.rs
-- StorageEvent
-- servo_dangerous_style_document.rs
+- ImageKey
+- htmlfontelement.rs
+- EditingAction
 - ServoDangerousStyleNode<'dom>
 - webvtt_cue_text_parsing_rules
 - MediaSession.kt
 - src/jscontext_first_arg.rs
-- gpusampler.rs
+- .encoded_bytes
 - HTMLDialogElement
 - script_argument_extraction.rs
-- servo_raw_window.h
+- LayoutElementType
 - script_bindings/trace.rs
 - gpusupportedfeatures.rs
-- dom/mod.rs
-- 5.0 W4 current-state brief (verified at `6fe2549874b`)
+- bindings/trace.rs
 - IntroductionType
-- GPUAdapter<D>
+- ThemeColors
 - script_bindings/str.rs
-- audio/context.rs
+- ID
 - steps
 - jobs
 - with
 - build-openharmony
 - profile
 - LiveDOMReferences
-- .process_read_eof
+- WebGLSync
 - T
 - ServoContextMenuAction
 - CookieStore
@@ -620,9 +621,9 @@
 - dom_struct
 - WebViewRenderer
 - LocalFileServe
-- Directive
+- CSSKeyframesRule
 - TestBindingProxy
-- NodeList
+- mutationobserver.rs
 - shared/profile/lib.rs
 - with
 - with
@@ -630,33 +631,34 @@
 - with
 - painted_region.rs
 - download.rs
-- popstateevent.rs
+- GeolocationCoordinates
 - gamepadevent.rs
 - calceof/calc.py
 - pixels/lib.rs
 - LCPCandidate
 - PerformanceNavigationTiming
 - MessagePortImpl
-- RequestContext
+- .reflect_dom_object
 - inputs
 - with
 - AnimationEvent
 - capi/request_context.rs
 - CSSFontFeatureValuesMap
-- ControlElement
+- HTMLAnchorElement
 - script/conversions.rs
 - calc/calc.py
 - calcdebug/calc.py
-- BluetoothAdvertisingEvent
-- components/bluetooth/bluetooth.rs
+- PaintWorkletGlobalScope
+- domparser.rs
 - ylex.py
 - InputEventType
 - actors/worker.rs
+- macos_sign.py
 - LRGeneratedTable
 - textencoder.rs
-- domstringmap.rs
-- .start_offset
-- conftest.py
+- HostCallbacks
+- SequentialFocusNavigationSearch
+- FocusableArea
 - Serializable
 - jobs
 - with
@@ -664,26 +666,25 @@
 - with
 - ParseOperation
 - servo_tidy_tidy
-- gpuuncapturederrorevent.rs
+- LinkProcessingOptions
 - trace-dump.js
-- WakeLockType
+- .AllowElement
 - HTMLOptionsCollection
 - debuggeradddebuggeeevent.rs
 - SetParserReason
-- xrreferencespaceevent.rs
+- ServiceWorkerContainer
 - Servo C ABI Stability and Compatibility Policy
 - net/mime_classifier.rs
 - NoGC
-- components/bluetooth/lib.rs
+- DefaultTeeReadRequest
 - ImageInputType
 - HeadingLevel
-- CommandEvent
-- .attach_shadow
-- ReadableStreamBYOBRequest
+- XPathResultType
+- HostCallbacks
 - MediaControls
 - import_map.rs
 - TestBindingMaplikeWithPrimitive
-- rtcerrorevent.rs
+- Setlike
 - .visit_enum
 - Client
 - steps
@@ -694,23 +695,23 @@
 - jobs
 - dom_struct/lib.rs
 - SecurityPolicyViolationEvent
-- gpuexternaltexture.rs
-- SendError
-- uuid_is_blocklisted
-- data_loader.rs
+- warn
+- optcalc/calc.py
+- CSSFontFaceRule
+- servourl
 - geolocationpositionerror.rs
 - ServoCertErrorCode
 - javascript.rs
 - style/stylesheets.rs
 - capi/user_content_manager.rs
 - Implementation Review — Pass 2 (repair + W5.2 + W4.1)
-- base/lib.rs
+- PluginArray
 - TestBindingMaplikeWithInterface
 - make_calculator
 - FileInputType
 - ShadowRoot
-- GPUAdapterInfo<D>
-- RadioInputType
+- TrustedHTML
+- InputActivationState
 - Interop.kt
 - profile
 - with
@@ -722,33 +723,33 @@
 - datablock.rs
 - StylesheetSetRef
 - .is_effectively_contained_node
-- WeakRefCell
+- TrustedScript
 - preferences.rs
-- .new
-- TrustedScriptURL
+- cow
+- trustedtypepolicy.rs
 - AccessibilityData
-- 7.0 W6 current-state brief
-- TerminalFooter
-- bytelengthqueuingstrategy.rs
+- SvgTag
+- sys
+- DiagnosticsLoggingOption
 - PerformanceContainerTiming
-- target_configuration.rs
+- CSSMediaRule
 - servoparser/xml.rs
 - steps
 - jobs
 - inputs
 - with
-- dom_struct/lib.rs
+- CSSPropertyRule
 - LargestContentfulPaint
-- servo_automation_screenshot.py
+- TransitionEvent
 - debuggerresumeevent.rs
 - ParserReflect
 - DebuggerSetBreakpointEvent
 - DatetimeLocalInputType
 - htmldocument.rs
-- BroadcastChannelMsg
+- Geolocation
 - RangeAny<T>
-- create_element_for_token
-- HTMLTitleElement
+- MimeTypeArray
+- OperatorToken
 - groups
 - inputs
 - steps
@@ -764,15 +765,17 @@
 - WeakRangeVec
 - MediaMetadata
 - GStreamerRegistryScanner
-- shared/layout/lib.rs
-- ipc.rs
-- TestBindingPairIterable
+- ClipboardItem
+- .ensure_rare_data
+- BackgroundHangMonitor
+- shared/background_hang_monitor/lib.rs
 - main.c
 - test_sniff_with_flags
-- point2d
-- htmllielement.rs
+- mediastreamaudiosourcenode.rs
+- cssnamespacerule.rs
 - DebuggerClearBreakpointEvent
 - debuggergetpossiblebreakpointsevent.rs
+- stylesheetcontentscache.rs
 - thread
 - updates
 - bencher
@@ -782,8 +785,8 @@
 - build-result
 - ServoView.kt
 - JSContext
-- SizePresentationalHint
-- htmlpreelement.rs
+- IFrameCollection
+- PageTransitionEvent
 - android/xml.rs
 - Windows Renderer Sandbox Architecture and Design
 - testbindingsetlikewithprimitive.rs
@@ -793,15 +796,15 @@
 - debuggerinterruptevent.rs
 - Element
 - performancemeasure.rs
-- script_execution.rs
+- module_loading.rs
 - htmlmenuelement.rs
-- htmlparagraphelement.rs
+- Screen
 - htmlquoteelement.rs
 - MediaError
 - sha3_operation.rs
 - turboshake_operation.rs
 - ReceiveError
-- TestHarness
+- ANGLEInstancedArrays
 - LoadContext
 - GroupedClassifier
 - quality.rs
@@ -814,37 +817,37 @@
 - upload-artifacts-release
 - steps
 - MediaType
-- HTMLDataListElement
+- Element
 - CEF Parity — CEF concepts mapped to Servo's embedding API
 - Servo — Production Readiness Report & Master Work List
 - AbortSignal
 - capi/network_manager.rs
-- parsing/mod.rs
+- ParsingMode
 - IndentLexer
-- UrlInputType
+- UnderlyingSourceContainer
 - cross_process_instant.rs
 - PerformanceNavigation
 - TimeInputType
 - GPUComputePassEncoder<D>
-- DomOnceCell<T>
+- CSSLayerStatementRule
 - italic.rs
 - TextInputWidget
 - VisibilityStateEntry
 - .clear_the_value
-- SVGElement
+- DebuggerEvalEvent
 - capi/gamepad.rs
-- T
+- Document
 - testns.rs
 - sharedworkerglobalscope.rs
 - Error
 - NumberInputType
 - forecolor.rs
-- capi/servo.rs
-- MimeExt
+- cstr
+- CompositionEvent
 - .focusable_area_kind
-- htmlhtmlelement.rs
+- GamepadHapticActuator
 - backcolor.rs
-- DisplayLayoutInternal
+- .new
 - TokenizerState
 - .step
 - bencher
@@ -859,9 +862,9 @@
 - FlexRelativeVec2<T>
 - execute_fontname_command
 - hilitecolor.rs
-- PreloadEntry
+- navigatorinfo.rs
 - compile_fill_template
-- htmltimeelement.rs
+- capi/rendering_context.rs
 - bold.rs
 - strikethrough.rs
 - Media, WebCodecs, and DRM / Encrypted Media Extensions (EME) Architecture
@@ -870,9 +873,9 @@
 - capi/message_router.rs
 - with
 - htmlframeelement.rs
-- htmlframesetelement.rs
+- Servo — Security & Robustness Audit
 - execute_style_with_css_command
-- subscript.rs
+- Area
 - steps
 - steps
 - with
@@ -886,18 +889,19 @@
 - True
 - steps
 - build
-- FileReaderReadyState
+- WeekInputType
 - trace_in_no_trace_composable_works.rs
 - allow_interior_trait.rs
 - trace_in_no_trace_composable.rs
-- capi/servo_delegate.rs
-- ForceSlottableNodeReconciliation
-- quotes.rs
-- CommandMethods
-- SuppressObserver
-- refcounted_shallow.rs
+- TestBindingIterable
+- vtable_for
+- DragGesture
+- WakeLock
+- WebGLShaderPrecisionFormat
+- DebuggerNumberVisitor
+- arc
 - Servo Full Browser Roadmap
-- p_abstract_declarator_opt_2
+- visual_studio.py
 - .canonicalize
 - 3. Subsystem Breakdown
 - Site and Origin Isolation Architecture in Servo
@@ -922,19 +926,19 @@
 - trace_in_no_trace_ok.rs
 - .update_a_color_well_control_color
 - p_additive_expression_3
-- p_argument_expression_list
+- Part B — FFI boundary hardening
 - 4. Step-by-Step Implementation Roadmap
 - ServoValueType
 - AdjacentPosition
 - p_assignment_expression_2
 - capi-artifacts.yml
-- p_assignment_operator
+- MediaFrameRenderer
 - HTMLVideoElement
-- SVGGraphicsElement
+- svgtextelement.rs
 - with
 - steps
-- SVGGeometryElement
-- SendSource
+- htmldataelement.rs
+- XMLHttpRequestEventTarget
 - android.yml
 - build
 - artifact_ids
@@ -951,7 +955,6 @@
 - build-ohos
 - deployment
 - create-draft-release
-- p_cast_expression_1
 - hang_monitor_tests.rs
 - openharmony/hvigorfile.ts
 - missing_unrooted_interior_on_trait.rs
@@ -962,15 +965,15 @@
 - p_compound_statement_3
 - p_conditional_expression_1
 - TheEndLoadingPhase
-- p_conditional_expression_2
-- p_constant_expression
-- p_declaration_list_2
+- AspectAlign
+- KeyCode
+- Builder
 - p_declaration_specifiers_1
 - LoadState
 - Finite<T>
 - LayoutDom<'_, HTMLTableElement>
 - p_declaration_specifiers_2
-- p_declaration_specifiers_3
+- TestRunner
 - paintsize.rs
 - p_declaration_specifiers_4
 - env
@@ -982,15 +985,15 @@
 - DOMString
 - DOMString
 - unrooted_must_root_ok.rs
-- p_declaration_specifiers_6
-- p_declarator_1
+- CSS
+- TextEvent
 - scenario/README.md
-- p_declarator_2
+- htmlpictureelement.rs
 - embedding-api.yml
-- p_direct_abstract_declarator_1
-- p_direct_abstract_declarator_5
+- htmldirectoryelement.rs
+- htmldlistelement.rs
 - p_direct_declarator_1
-- servo-capi C embedder example
+- htmlspanelement.rs
 - gstreamer_plugins.rs
 - WebExtension (Manifest v2 & Manifest v3) Architecture in Servo
 - 2. In-Tree Fuzzing Infrastructure
@@ -1016,8 +1019,8 @@
 - audio/macros.rs
 - auto/lib.rs
 - Choice3<I, J, K>
-- selectors.rs
-- p_direct_declarator_3
+- htmlmodelement.rs
+- UserActivation
 - LayoutDom<'dom, HTMLTableColElement>
 - LengthOrPercentageOrAuto
 - p_direct_declarator_5
@@ -1084,14 +1087,13 @@
 - bindings/like.rs
 - p_enumerator_list_1
 - p_enumerator_list_2
-- p_equality_expression_2
+- NodeTypeIdWrapper
 - p_equality_expression_3
 - p_exclusive_or_expression_1
-- 2. High-Impact Remediation Tickets
+- UserActivationTimestamp
 - p_function_definition_2
-- p_function_definition_3
+- MediaDevices
 - p_function_definition_4
-- p_identifier_list_2
 - 2. Platform Sandboxing Strategies
 - Root Cause Triage & Findings
 - .fmt
@@ -1114,22 +1116,21 @@
 - jobs
 - CanvasData<D>
 - cleanup.sh
-- p_init_declarator_2
+- XMLSerializer
 - p_initializer_2
 - p_initializer_list_2
-- p_iteration_statement_1
 - p_iteration_statement_2
 - p_iteration_statement_3
-- p_jump_statement_2
+- Error
 - p_jump_statement_3
 - p_jump_statement_4
-- p_labeled_statement_2
+- AutoCloseWorker
 - artifact_ids
 - build-harmonyos-aarch64
-- p_multiplicative_expression_1
-- Getting started
+- SrcObject
+- LayoutDom<'dom, ShadowRoot>
 - Servo Browser (for Windows) — Installation & Packaging Guide
-- p_multiplicative_expression_3
+- BluetoothError
 - Box<dyn EventLoopWaker>
 - macos_package_smoketest.sh
 - prepare_manifest.sh
@@ -1194,25 +1195,24 @@
 - scenario-test-harmonyos
 - ImplicitWait
 - Bluetooth
-- unrooted_must_root_allowed_std_types.rs
+- T
 - SanitizerConfigAlgorithm
-- p_parameter_type_list_opt_1
+- TransformOp
 - p_pointer_1
 - ToMs
-- p_pointer_3
+- FireMouseEventType
 - p_pointer_4
 - Implementation
 - push
 - strategy
 - True
 - p_postfix_expression_3
-- p_postfix_expression_4
 - p_postfix_expression_5
 - p_postfix_expression_6
 - Graphics, WebGL, and WebGPU Architecture Status
 - env
 - env
-- p_postfix_expression_7
+- .data
 - p_postfix_expression_8
 - script_bindings/mem.rs
 - A/V Playback through HTMLMediaElement
@@ -1223,7 +1223,7 @@
 - License
 - p_primary_expression
 - p_relational_expression_1
-- .cast_unit
+- shared/webxr/lib.rs
 - p_relational_expression_2
 - servo-capi-tests
 - power/README.md
@@ -1231,7 +1231,7 @@
 - CODE_OF_CONDUCT.md
 - p_relational_expression_3
 - p_relational_expression_4
-- p_selection_statement_1
+- MediaElementMicrotask
 - CONTRIBUTING.md
 - COMMAND_LINE_ARGS.md
 - style.md
@@ -1248,16 +1248,16 @@
 - p_specifier_qualifier_list_1
 - p_specifier_qualifier_list_3
 - p_statement_list_1
-- p_statement_list_2
+- ReadyState
 - p_storage_class_specifier
-- p_struct_declaration
-- p_struct_declaration_list_1
+- LayoutBlocker
+- NamespaceResolver
 - p_struct_declarator_2
 - p_struct_declarator_3
 - p_struct_declarator_list_1
 - p_struct_declarator_list_2
-- p_struct_or_union
-- p_struct_or_union_specifier_1
+- LineJoin
+- extract
 - p_translation_unit_1
 - p_type_name
 - p_type_qualifier
@@ -1266,9 +1266,58 @@
 - p_type_specifier
 - p_unary_expression_3
 - p_unary_expression_4
-- p_unary_expression_5
+- SelectionGranularity
 - p_unary_expression_6
-- char
+- EventPhase
+- FocusEventType
+- LayoutDom<'_, HTMLIFrameElement>
+- NetworkState
+- LayoutNodeType
+- PaintWorkletError
+- LayoutValue<T>
+- BHMExitSignal
+- item_alignment
+- Convert
+- .handle_embedder_scroll_event
+- LazyLoadResumptionSteps
+- LoopCondition
+- PlaybackPositionWasMoved
+- StepDirection
+- WindowState
+- p_abstract_declarator_2
+- p_additive_expression_2
+- p_and_expression_2
+- p_assignment_expression_1
+- p_cast_expression_2
+- p_compound_statement_4
+- p_constant
+- p_constant_expression_opt_2
+- p_direct_abstract_declarator_2
+- p_direct_abstract_declarator_4
+- p_direct_declarator_2
+- p_direct_declarator_4
+- p_equality_expression_1
+- p_expression_1
+- p_external_declaration_1
+- p_external_declaration_2
+- p_function_definition_1
+- p_inclusive_or_expression_2
+- p_init_declarator_list_1
+- p_initializer_1
+- p_initializer_list_1
+- p_labeled_statement_1
+- p_labeled_statement_3
+- p_multiplicative_expression_2
+- p_parameter_type_list_opt_2
+- p_postfix_expression_1
+- p_postfix_expression_2
+- p_statement
+- p_struct_declarator_1
+- p_struct_or_union_specifier_2
+- p_struct_or_union_specifier_3
+- p_translation_unit_2
+- p_unary_expression_1
+- p_unary_expression_2
 
 ## God Nodes (most connected - your core abstractions)
 1. `DomRoot` - 3139 edges
@@ -1285,14 +1334,14 @@
 ## Surprising Connections (you probably didn't know these)
 - `W5.5 — Remaining reachable-panic review (tracked list)` --references--> `done()`  [INFERRED]
   docs/embedding/AGENT_BUILD_PLAN.md → etc/ci/performance/harness/harness.js
-- `3.5 `RefreshDriver` and vsync` --references--> `RenderingContext`  [INFERRED]
-  docs/embedding/ARCHITECTURE.md → ports/windows/tests/mock_servo/servo/servo_capi.h
-- `2.4 Rendering contexts (`components/shared/paint/rendering_context.rs`)` --references--> `RenderingContext`  [INFERRED]
-  docs/embedding/AUDIT.md → ports/windows/tests/mock_servo/servo/servo_capi.h
-- `Rendering context` --references--> `RenderingContext`  [INFERRED]
-  docs/embedding/C_API_GUIDE.md → ports/windows/tests/mock_servo/servo/servo_capi.h
 - `3.3 Security Hardening` --references--> `RenderingContext`  [INFERRED]
   docs/embedding/FULL_BROWSER_ROADMAP.md → ports/windows/tests/mock_servo/servo/servo_capi.h
+- `1. Scope: the C ABI is the compatibility boundary` --references--> `WebView`  [INFERRED]
+  docs/embedding/ABI_STABILITY.md → ports/windows/tests/mock_servo/servo/servo_capi.h
+- `3.1 Tab & Window Management` --references--> `WebView`  [INFERRED]
+  docs/embedding/MCB_ARCHITECTURE.md → ports/windows/tests/mock_servo/servo/servo_capi.h
+- `What it does` --references--> `WebView`  [INFERRED]
+  examples/c-embedder/README.md → ports/windows/tests/mock_servo/servo/servo_capi.h
 
 ## Import Cycles
 - 1-file cycle: `components/shared/layout/lib.rs -> components/shared/layout/lib.rs`
@@ -1316,55 +1365,55 @@
 - 1-file cycle: `components/layout/display_list/painted_region.rs -> components/layout/display_list/painted_region.rs`
 - 1-file cycle: `components/shared/paint/rendering_context.rs -> components/shared/paint/rendering_context.rs`
 
-## Communities (1406 total, 521 thin omitted)
+## Communities (1453 total, 560 thin omitted)
 
 ### Community 0 - "EventSource"
 Cohesion: 0.07
-Nodes (12): EventSource, EventSourceContext, GenerationId, ParserState, Comment, Eol, Field, Value (+4 more)
+Nodes (13): EventSource, EventSourceContext, EventSourceTimeoutCallback, GenerationId, ParserState, Comment, Eol, Field (+5 more)
 
-### Community 1 - "HTMLElement"
+### Community 1 - "VirtualMethods"
 Cohesion: 0.01
-Nodes (208): DerivedFrom, DomSlice, AsynchronousStylesheetLoader, ElementStylesheetLoader<'a>, Activatable, ToLayout, ToLayoutOptional, CharacterData (+200 more)
+Nodes (67): AttributesBorrow<'a>, AttrRef, Dom, Raw, create_element(), create_html_element(), create_native_html_element(), create_svg_element() (+59 more)
 
 ### Community 2 - "RequestId"
 Cohesion: 0.02
-Nodes (62): FaviconFetchContext, InitiatorType, LinkFetchContext, LinkFetchContextType, Prefetch, Preload, ImageContext, PosterFrameFetchContext (+54 more)
+Nodes (50): InFlightKeepAliveRecord, FaviconFetchContext, InitiatorType, LinkFetchContext, LinkFetchContextType, Prefetch, Preload, ImageContext (+42 more)
 
 ### Community 3 - "Document"
 Cohesion: 0.01
-Nodes (82): DocumentHelpers, Context, Attribute, Element, is_custom_data_attribute(), is_valid_attribute_local_name(), is_valid_doctype_name(), is_valid_element_local_name() (+74 more)
+Nodes (62): StylesheetContextId, DocumentTimeline, Context, Attribute, Element, is_custom_data_attribute(), is_valid_attribute_local_name(), is_valid_doctype_name() (+54 more)
 
 ### Community 4 - "dialog.rs"
-Cohesion: 0.02
-Nodes (76): assert_context_menu_items(), ContextMenuTest, SimpleClipboardDelegate, test_contextual_context_menu_items(), test_contextual_context_menu_select_all_and_copy(), test_open_context_menu_closes_existing(), test_simple_context_menu(), AlertDialog (+68 more)
+Cohesion: 0.01
+Nodes (82): assert_context_menu_items(), ContextMenuTest, SimpleClipboardDelegate, test_contextual_context_menu_items(), test_contextual_context_menu_select_all_and_copy(), test_open_context_menu_closes_existing(), test_simple_context_menu(), AlertDialog (+74 more)
 
 ### Community 5 - "WebViewId"
-Cohesion: 0.02
-Nodes (63): AllBrowsingContextsIterator, AllBrowsingContextsIterator<'a>, BrowsingContext, FullyActiveBrowsingContextsIterator, FullyActiveBrowsingContextsIterator<'a>, NewBrowsingContextInfo, BrowsingContextGroup, Constellation (+55 more)
+Cohesion: 0.03
+Nodes (23): Constellation<STF, SWF>, ExitPipelineMode, Force, Normal, MessagePortInfo, TransferState, CompletionFailed, CompletionInProgress (+15 more)
 
 ### Community 6 - "ComputedValues"
 Cohesion: 0.01
-Nodes (178): ArcRefCell, ModernContainerBuilder, ModernContainerBuilder<'a, 'dom>, ModernContainerBuilder<'_, 'dom>, ModernContainerJob, ModernContainerJob<'dom>, ElementOrPseudoElement, TextRuns (+170 more)
+Nodes (161): ModernContainerBuilder, ModernContainerBuilder<'a, 'dom>, ModernContainerBuilder<'_, 'dom>, ModernContainerJob, ModernContainerJob<'dom>, ElementOrPseudoElement, TextRuns, ModernContainerTextRun (+153 more)
 
-### Community 7 - "CSSStyleSheet"
-Cohesion: 0.01
-Nodes (39): Keyframe, CSSConditionRule, CSSFontFaceRule, CSSGroupingRule, CSSImportRule, CSSKeyframeRule, CSSKeyframesRule, CSSLayerBlockRule (+31 more)
+### Community 7 - "CSSGroupingRule"
+Cohesion: 0.07
+Nodes (6): CSSGroupingRule, CSSLayerBlockRule, CSSRuleList, RulesSource, Keyframes, Rules
 
 ### Community 8 - "layout_impl.rs"
 Cohesion: 0.01
-Nodes (107): ContainingBlockCalculation<'a>, get_ua_stylesheets(), HTML_MODE_CSS, LayoutFontMetricsProvider, LayoutThread, PRESENTATIONAL_HINTS_CSS, QUIRKS_MODE_CSS, ReflowPhases (+99 more)
+Nodes (143): DiagnosticsLogging, test_parsing_of_diagnostics_logging_options(), CachedImageOrError, ImageResolver, LayoutImageCacheResult, DataAvailable, LoadError, Pending (+135 more)
 
 ### Community 9 - "macos/font.rs"
 Cohesion: 0.03
-Nodes (18): CachedShapeData, compute_variations(), Font, FontMetrics, FontTableMethods, FractionalPixel, NoUsableFamilyName, PlatformFontMethods (+10 more)
+Nodes (22): FontTableMethods, FractionalPixel, PlatformFontMethods, GlyphId, fixed_26_dot_6_to_float(), FontTable, FreeTypeFaceTableProviderData, Local (+14 more)
 
 ### Community 10 - "Parser"
 Cohesion: 0.01
 Nodes (8): IDLMaplikeOrSetlike, getKeyArg(), getValueArg(), IDLUnresolvedIdentifier, IDLValue, matchIntegerValueToType(), Parser, simpleExtendedAttr()
 
 ### Community 11 - "BoxFragment"
-Cohesion: 0.02
-Nodes (86): RefOrAtomicRef, AtomicRef, Ref, Clip, ClipId, .INVALID, compute_shape_radius_for_circle(), compute_shape_radius_for_ellipse() (+78 more)
+Cohesion: 0.01
+Nodes (93): RefOrAtomicRef, AtomicRef, Ref, Clip, ClipId, .INVALID, compute_shape_radius_for_circle(), compute_shape_radius_for_ellipse() (+85 more)
 
 ### Community 12 - "UnicodeBlock"
 Cohesion: 0.01
@@ -1372,175 +1421,175 @@ Nodes (329): UnicodeBlock, Adlam, AegeanNumbers, Ahom, AlchemicalSymbols, Alphab
 
 ### Community 13 - "cparse.py"
 Cohesion: 0.01
-Nodes (69): p_abstract_declarator_1(), p_abstract_declarator_2(), p_abstract_declarator_3(), p_abstract_declarator_opt_1(), p_additive_expression_2(), p_and_expression_1(), p_and_expression_2(), p_assignment_expression_1() (+61 more)
+Nodes (69): p_abstract_declarator_1(), p_abstract_declarator_3(), p_abstract_declarator_opt_1(), p_abstract_declarator_opt_2(), p_and_expression_1(), p_argument_expression_list(), p_assignment_operator(), p_cast_expression_1() (+61 more)
 
 ### Community 14 - "Scale"
 Cohesion: 0.03
-Nodes (26): convert_rect_to_css_pixel(), DeviceIndependentIntRect, DeviceIndependentPixel, ScreenGeometry, DEFAULT_PAGE_ZOOM, MAX_PAGE_ZOOM, MIN_PAGE_ZOOM, SEPARATORS (+18 more)
+Nodes (23): convert_rect_to_css_pixel(), convert_size_to_css_pixel(), DeviceIndependentIntRect, DeviceIndependentPixel, TouchId, DEFAULT_PAGE_ZOOM, MAX_PAGE_ZOOM, MIN_PAGE_ZOOM (+15 more)
 
 ### Community 15 - "LayoutNode"
 Cohesion: 0.02
-Nodes (47): ElementTypeIdWrapper, LayoutElementType, LayoutNodeType, NodeTypeIdWrapper, LayoutDom<'dom, SVGSVGElement>, ServoLayoutDomTypeBundle<'dom>, ServoLayoutElement, ServoLayoutNode<'dom> (+39 more)
+Nodes (27): LayoutRoot, BoxDamageAction, CollectLayoutRoot, InvalidateFragmentTreeAboveLayoutRoot, InvalidateFragmentTreeBelowLayoutRoot, InvalidateScrollableOverflow, None, RebuildAncestor (+19 more)
 
 ### Community 16 - "inline/mod.rs"
 Cohesion: 0.02
-Nodes (67): inline_box_style_breaks_shaping(), InlineBox, InlineBoxContainerState, InlineBoxes, InlineBoxIdentifier, InlineBoxTreePathToken, End, Start (+59 more)
+Nodes (64): FontMetrics, inline_box_style_breaks_shaping(), InlineBox, InlineBoxContainerState, InlineBoxes, InlineBoxIdentifier, InlineBoxTreePathToken, End (+56 more)
 
 ### Community 17 - "Event"
-Cohesion: 0.06
-Nodes (13): Event, EventFlags, EventPathSegment, EventPhase, AtTarget, Bubbling, Capturing, None (+5 more)
+Cohesion: 0.07
+Nodes (7): Event, EventFlags, EventPathSegment, inner_invoke(), InputEventResult, invoke(), InputEventOutcome
 
 ### Community 18 - "shared/paint/lib.rs"
 Cohesion: 0.02
-Nodes (61): InitialPaintState, Paint, WebGLPaint, WebRenderDebugOption, Profiler, RenderTargetDebug, TextureCacheDebug, RenderNotifier (+53 more)
+Nodes (60): GLPlayerThread, InitialPaintState, Paint, WebGLPaint, UnknownWebView, ShutdownState, FinishedShuttingDown, NotShuttingDown (+52 more)
 
 ### Community 19 - "aes_ocb_operation.rs"
 Cohesion: 0.04
-Nodes (34): AeadParams, get_key_length(), get_key_length(), get_key_length(), decrypt(), encrypt(), gcm_decrypt(), gcm_encrypt() (+26 more)
+Nodes (39): decrypt(), encrypt(), export_key(), generate_key(), get_key_length(), import_key(), AesAlgorithm, AesCbc (+31 more)
 
-### Community 21 - "warn"
-Cohesion: 0.02
-Nodes (104): ConstellationToEmbedderMsg, AllowNavigationRequest, AllowOpeningWebView, FindResult, FinishJavaScriptEvaluation, HistoryChanged, HistoryTraversalComplete, InputEventsHandled (+96 more)
+### Community 21 - "constellation.rs"
+Cohesion: 0.01
+Nodes (226): BrowsingContextGroup, Constellation, PendingApprovalNavigations, WARNINGS_BUFFER_SIZE, WebRenderWGPU, ConstellationWebView, ConstellationToEmbedderMsg, AllowNavigationRequest (+218 more)
 
 ### Community 22 - "codegen.py"
 Cohesion: 0.02
 Nodes (78): Argument, AttrDefiner, condition(), getter(), setter(), specData(), callbackGetterName(), CallbackOperation (+70 more)
 
 ### Community 23 - "servo/webview_delegate.rs"
-Cohesion: 0.03
-Nodes (35): AbstractSender, AutomaticResponder, AutomaticResponder<T>, GenericCallback<T>, GenericSender<T>, OneshotSender, OneshotSender<T>, ServoErrorChannel (+27 more)
+Cohesion: 0.02
+Nodes (71): AbstractSender, AutomaticResponder, AutomaticResponder<T>, GenericCallback<T>, GenericSender<T>, OneshotSender, OneshotSender<T>, ServoErrorChannel (+63 more)
 
 ### Community 24 - "XRRigidTransform"
 Cohesion: 0.03
-Nodes (12): DOMPointReadOnly, DOMPointWriteMethods, XRBoundedReferenceSpace, XRPose, XRReferenceSpace, XRRigidTransform, ApiPose, ApiRigidTransform (+4 more)
+Nodes (12): XRBoundedReferenceSpace, XRJointPose, XRPose, XRReferenceSpace, XRReferenceSpaceEvent, XRRigidTransform, ApiPose, ApiRigidTransform (+4 more)
 
-### Community 25 - "tests/resource_thread.rs"
-Cohesion: 0.13
-Nodes (19): create_host_table(), HOST_TABLE, lookup_host_replacement(), parse_hostsfile(), replace_host(), ip(), test_exit(), test_parse_hostsfile() (+11 more)
+### Community 25 - "pathbuf"
+Cohesion: 0.05
+Nodes (31): create_host_table(), HOST_TABLE, lookup_host_replacement(), parse_hostsfile(), replace_host(), should_panic_hook_suppress_termination(), build_html_directory_listing(), fetch() (+23 more)
 
 ### Community 26 - "Au"
-Cohesion: 0.01
-Nodes (128): ZERO, FlexAxis, Column, FlexRelativeRect, FlexRelativeSides, FlexRelativeVec2, sides_mapping_methods!, MainStartCrossStart (+120 more)
+Cohesion: 0.02
+Nodes (120): ZERO, LayoutContext, WeakLayoutBox, BlockLevel, DisplayContents, FlexLevel, InlineLevel, TableLevelBox (+112 more)
 
 ### Community 27 - "USVString"
 Cohesion: 0.02
-Nodes (18): DOMString, String, USVString, PasswordCredential, FormData, HTMLAreaElement, SubmissionValue, File (+10 more)
+Nodes (18): DOMString, String, USVString, PasswordCredential, HTMLAreaElement, HyperlinkElementTraits, T, pref_to_jsval() (+10 more)
 
 ### Community 28 - "Chunk"
-Cohesion: 0.03
-Nodes (53): AnalyserNode, MAX_BLOCK_COUNT, MAX_FFT_SIZE, AudioNodeCommon, AudioNodeEngine, AudioNodeType, AnalyserNode, AudioBuffer (+45 more)
+Cohesion: 0.01
+Nodes (140): AnalyserNode, MAX_BLOCK_COUNT, MAX_FFT_SIZE, AudioNodeCommon, AudioNodeEngine, AudioNodeMessage, AudioBufferSourceNode, AudioScheduledSourceNode (+132 more)
 
 ### Community 29 - "WebGLCommand"
 Cohesion: 0.01
-Nodes (232): TruncatedDebug, TruncatedDebug<T>, WebGLCommand, ActiveTexture, AttachShader, BeginQuery, BeginTransformFeedback, BindAttribLocation (+224 more)
+Nodes (233): Operation, Fallible, Infallible, WebGLCommand, ActiveTexture, AttachShader, BeginQuery, BeginTransformFeedback (+225 more)
 
 ### Community 30 - "ComputedValues"
 Cohesion: 0.02
-Nodes (40): ComputedTransformStyle, LengthPercentageOrAuto, LogicalRect<Au>, LogicalRect<T>, LogicalSides, LogicalSides1D<T>, LogicalSides<Au>, LogicalSides<AutoOr<T>> (+32 more)
+Nodes (43): LengthPercentageOrAuto, LogicalRect<Au>, LogicalRect<T>, LogicalSides, LogicalSides1D<T>, LogicalSides<Au>, LogicalSides<AutoOr<T>>, LogicalSides<CSSPixelLength> (+35 more)
 
 ### Community 31 - "WebGL2RenderingContext"
-Cohesion: 0.01
-Nodes (8): IndexedBinding, ReadPixelsAllowedFormats, ReadPixelsSizes, WebGL2RenderingContext, WebGLActiveInfo, WebGLQuery, WebGLShaderPrecisionFormat, WebGLSync
+Cohesion: 0.02
+Nodes (8): IndexedBinding, ReadPixelsSizes, WebGL2RenderingContext, DroppableWebGLSampler, WebGLSampler, WebGLUniformLocation, BooleanValue, NullValue
 
-### Community 32 - "script_module.rs"
-Cohesion: 0.01
-Nodes (123): NonSendTaskBox, Destination, fetch_a_classic_script(), script_fetch_request(), fetch_a_classic_worker_script(), create_a_potential_cors_request(), create_a_potential_cors_request_with_claim(), RequestBuilder (+115 more)
+### Community 32 - "RequestBuilder"
+Cohesion: 0.02
+Nodes (94): ConsumePreloadedResources, PreloadResponseCandidate, None, Pending, Response, RequestClient, destination_as_str(), SEC_FETCH_DEST (+86 more)
 
 ### Community 33 - "TextInputWidget"
 Cohesion: 0.06
 Nodes (30): ValueMode, Default, DefaultOn, Filename, Value, ButtonInputActivation, ButtonInputType, CheckboxInputActivation (+22 more)
 
 ### Community 34 - "gpurenderpipeline.rs"
-Cohesion: 0.16
+Cohesion: 0.15
 Nodes (4): DroppableGPURenderPipeline, GPURenderPipeline, GPURenderPipeline<D>, WebGPURenderPipelineResponse
 
 ### Community 35 - "text_run.rs"
-Cohesion: 0.02
-Nodes (96): ResolvedFontVariantAlternates, character_is_word_separator(), DetailedGlyphEntry, FLAG_CHAR_IS_WORD_SEPARATOR, FLAG_IS_SIMPLE_GLYPH, GLYPH_ADVANCE_MASK, GLYPH_ADVANCE_SHIFT, GLYPH_ID_MASK (+88 more)
+Cohesion: 0.01
+Nodes (96): ShapingOptions, character_is_word_separator(), DetailedGlyphEntry, FLAG_CHAR_IS_WORD_SEPARATOR, FLAG_IS_SIMPLE_GLYPH, GLYPH_ADVANCE_MASK, GLYPH_ADVANCE_SHIFT, GLYPH_ID_MASK (+88 more)
 
 ### Community 36 - "MallocSizeOfOps"
 Cohesion: 0.02
 Nodes (103): (), Arc<T>, atomic_refcell::AtomicRefCell<T>, BinaryHeap<T>, Box<T>, bytes::Bytes, bytes::BytesMut, Cookie<'a> (+95 more)
 
 ### Community 37 - "Window"
-Cohesion: 0.01
-Nodes (45): DocumentTimeline, TestRunner, CSS, editing_action_from_composition_event(), CompositionEvent, HashChangeEvent, KeyboardEvent, legacy_keycode_for_keyboard_event() (+37 more)
+Cohesion: 0.02
+Nodes (5): OngoingNavigation, PendingImageCallback, PendingImageRasterizationKey, Window, PendingImageResponse
 
 ### Community 38 - "webgl_thread.rs"
-Cohesion: 0.02
-Nodes (71): WebGLExternalImages, bench(), create_data(), DroppableWebGLRenderingContext, ALPHA16F_ARB, ALPHA32F_ARB, COMPRESSED_RGB_ETC1_WEBGL, GLLimits (+63 more)
+Cohesion: 0.03
+Nodes (27): WebGLExternalImages, bench(), create_data(), GlType, Gl, Gles, WebGLContextId, ANGLE_NAME_PREFIX (+19 more)
 
 ### Community 39 - "CGThing"
 Cohesion: 0.02
 Nodes (94): builtin_return_type(), camel_to_upper_snake(), CGArgumentConverter, CGAssertInheritance, CGBindingRoot, CGCallbackFunctionImpl, CGCallbackTempRoot, CGCallGenerator (+86 more)
 
 ### Community 40 - "WebGLRenderingContext"
-Cohesion: 0.02
-Nodes (14): CommonCompressedTexImage2DValidator<'a>, CommonTexImage2DValidator<'a>, CompressedTexImage2DValidator<'a>, CompressedTexSubImage2DValidator<'a>, TexImage2DValidator<'a>, TexStorageValidator<'a>, has_invalid_blend_constants(), uniform_get() (+6 more)
+Cohesion: 0.03
+Nodes (13): CommonCompressedTexImage2DValidator<'a>, CommonTexImage2DValidator<'a>, CompressedTexImage2DValidator<'a>, CompressedTexSubImage2DValidator<'a>, TexImage2DValidator<'a>, TexStorageValidator<'a>, CommonTexImage3DValidator<'a>, TexImage3DValidator<'a> (+5 more)
 
 ### Community 41 - "cookie_http_state.rs"
 Cohesion: 0.02
 Nodes (219): run(), test_0001(), test_0002(), test_0003(), test_0004(), test_0005(), test_0006(), test_0007() (+211 more)
 
-### Community 42 - "WebGPU"
+### Community 42 - "webgl.rs"
 Cohesion: 0.03
-Nodes (15): DroppableGPUBindGroupLayout, GPUBindGroupLayout, GPUBindGroupLayout<D>, DroppableGPUCommandBuffer, GPUCommandBuffer, GPUCommandBuffer<D>, GPUQueue, GPUQueue<D> (+7 more)
+Nodes (42): DroppableWebGLRenderingContext, ALPHA16F_ARB, ALPHA32F_ARB, COMPRESSED_RGB_ETC1_WEBGL, GLLimits, LUMINANCE16F_ARB, LUMINANCE32F_ARB, LUMINANCE_ALPHA16F_ARB (+34 more)
 
 ### Community 43 - "shared/webgpu/lib.rs"
 Cohesion: 0.01
-Nodes (40): convert_bind_group_entry(), convert_bind_group_layout_entry(), convert_load_op(), convert_texture_descriptor(), convert_texture_for_wgpu_with_cx(), GPUAddressMode, &GPUBlendComponent, &GPUBlendFactor (+32 more)
+Nodes (48): convert_bind_group_entry(), convert_bind_group_layout_entry(), convert_load_op(), convert_texture_descriptor(), convert_texture_for_wgpu_with_cx(), GPUAddressMode, &GPUBlendComponent, &GPUBlendFactor (+40 more)
 
 ### Community 44 - "tests/http_loader.rs"
 Cohesion: 0.02
-Nodes (142): handle_network_event(), async_runtime_initialized(), spawn_blocking_task(), replace_host_table(), ASYNC_RUNTIME, create_embedder_proxy(), create_generic_embedder_proxy(), CRT_FILE (+134 more)
+Nodes (135): async_runtime_initialized(), spawn_blocking_task(), replace_host_table(), ASYNC_RUNTIME, create_embedder_proxy(), create_generic_embedder_proxy(), CRT_FILE, load_certificates_from_pem() (+127 more)
 
-### Community 45 - "PipelineId"
-Cohesion: 0.05
-Nodes (86): FramerateActor, is_boolean_attribute(), handle_set_timeline_markers(), DocumentCollection, DocumentsIter, DocumentTree, DocumentTreeNode, all_matching_links() (+78 more)
+### Community 45 - "flexbox/mod.rs"
+Cohesion: 0.04
+Nodes (34): FlexAxis, Column, FlexRelativeRect, FlexRelativeSides, FlexRelativeVec2, sides_mapping_methods!, MainStartCrossStart, BlockEndInlineEnd (+26 more)
 
 ### Community 46 - "ActorRegistry"
-Cohesion: 0.04
-Nodes (24): Actor, ActorAsAny, ActorRegistry, ActorRegistryInner, DowncastableActorArc<T>, new_actor_name(), RegisteredActor, T (+16 more)
+Cohesion: 0.02
+Nodes (47): Actor, ActorAsAny, ActorRegistry, ActorRegistryInner, base_name(), DowncastableActorArc, DowncastableActorArc<T>, new_actor_name() (+39 more)
 
 ### Community 47 - "DataChannelId"
 Cohesion: 0.02
-Nodes (87): DummyMediaDeviceMonitor, DummyWebRtcController, GStreamerWebRtcDataChannel, candidate(), construct(), DataChannelEventTarget, Buffered, Created (+79 more)
+Nodes (89): DummyMediaDeviceMonitor, DummyWebRtcController, GStreamerWebRtcDataChannel, candidate(), construct(), DataChannelEventTarget, Buffered, Created (+81 more)
 
 ### Community 48 - ".reflect_dom_object"
-Cohesion: 0.02
-Nodes (38): ANGLEInstancedArrays, EXTBlendMinmax, EXTColorBufferHalfFloat, EXTFragDepth, EXTShaderTextureLod, EXTTextureFilterAnisotropic, OESElementIndexUint, OESStandardDerivatives (+30 more)
+Cohesion: 0.01
+Nodes (27): EXTBlendMinmax, EXTColorBufferHalfFloat, EXTFragDepth, EXTShaderTextureLod, EXTTextureFilterAnisotropic, OESElementIndexUint, OESStandardDerivatives, OESTextureFloat (+19 more)
 
 ### Community 49 - "display_list/mod.rs"
-Cohesion: 0.02
-Nodes (44): LayoutRect, BackgroundLayer, BackgroundPainter, BackgroundPainter<'a>, get_cyclic(), Layout1DResult, layout_1d(), layout_layer() (+36 more)
+Cohesion: 0.03
+Nodes (30): LayoutRect, BackgroundLayer, BackgroundPainter, BackgroundPainter<'a>, get_cyclic(), Layout1DResult, layout_1d(), layout_layer() (+22 more)
 
 ### Community 50 - "painter.rs"
-Cohesion: 0.02
-Nodes (19): ScreenshotReadinessRequest, ScreenshotRequestState, Pending, WaitingOnScript, ImageKey, BoostWebRenderThread, FrameDelayer, Painter (+11 more)
-
-### Community 51 - "gstreamer/player.rs"
 Cohesion: 0.03
-Nodes (46): DEFAULT_CAN_RESUME, DEFAULT_MUTED, DEFAULT_PAUSED, DEFAULT_PLAYBACK_RATE, DEFAULT_TIME_RANGES, DEFAULT_VOLUME, GStreamerPlayer, inner_player_proxy! (+38 more)
+Nodes (12): WebRenderDebugOption, Profiler, RenderTargetDebug, TextureCacheDebug, BoostWebRenderThread, FrameDelayer, Painter, PaintMetricState (+4 more)
+
+### Community 51 - "IndexedDBKeyType"
+Cohesion: 0.04
+Nodes (40): IDBCursor, iterate_cursor(), ObjectStoreOrIndex, Index, ObjectStore, IDBCursorWithValue, IdbResult, Count (+32 more)
 
 ### Community 53 - "headed_window.rs"
 Cohesion: 0.03
-Nodes (22): Icon, api(), setup_gl_accelerated_media(), winit_position_to_euclid_point(), winit_size_to_euclid_size(), HeadedWindow, INITIAL_WINDOW_TITLE, load_icon() (+14 more)
+Nodes (22): Icon, EmbedderControlId, api(), setup_gl_accelerated_media(), winit_position_to_euclid_point(), winit_size_to_euclid_size(), HeadedWindow, INITIAL_WINDOW_TITLE (+14 more)
 
 ### Community 54 - "ScriptThreadMessage"
 Cohesion: 0.02
-Nodes (106): CommonScriptMsg, CollectReports, ReportCspViolations, Task, MainThreadScriptMsg, Common, ForwardEmbedderControlResponseFromFileManager, Inactive (+98 more)
+Nodes (108): MediaSessionAction, Task, MainThreadScriptMsg, Common, ForwardEmbedderControlResponseFromFileManager, Inactive, NavigationResponse, RegisterPaintWorklet (+100 more)
 
-### Community 55 - "ReferrerPolicy"
-Cohesion: 0.04
-Nodes (32): determine_cors_settings_for_token(), LinkHeader, LinkProcessingOptions, LinkProcessingPhase, Media, PreMedia, process_link_headers(), ValueForKeyInLinkHeader (+24 more)
+### Community 55 - "prefetch.rs"
+Cohesion: 0.13
+Nodes (4): PrefetchHandle, PrefetchSink, Tokenizer, TraceableTokenizer
 
 ### Community 56 - "TracedPromise"
-Cohesion: 0.01
-Nodes (81): root_from_handleobject(), root_from_object_static(), ErrorToJsval, RepresentationDataPromiseFulfillmentHandler, RepresentationDataPromiseRejectionHandler, ClipboardItem, CUSTOM_FORMAT_PREFIX, Representation (+73 more)
+Cohesion: 0.02
+Nodes (48): get_buffer_source_slice(), Encoding, TextDecoder, TextDecoderCommon, decode_and_enqueue_a_chunk(), flush_and_enqueue(), TextDecoderStream, code_point_type() (+40 more)
 
 ### Community 57 - "embedder/lib.rs"
 Cohesion: 0.02
-Nodes (128): ClipboardAction, Copy, Cut, Paste, EditingAction, Backspace, Clipboard, Delete (+120 more)
+Nodes (102): DeviceIndependentIntSize, WakeLockSentinel, ClipboardAction, Copy, Cut, Paste, GamepadEvent, Connected (+94 more)
 
 ### Community 58 - "WebIDLError"
 Cohesion: 0.02
@@ -1548,83 +1597,79 @@ Nodes (26): CGConstant, CGStaticMethodJitinfo, specData(), convertConstIDLValueT
 
 ### Community 59 - "CryptoKey"
 Cohesion: 0.01
-Nodes (202): CryptoKey, CryptoKeyOrCryptoKeyPair, CryptoKey, CryptoKeyPair, [KeyUsage], KeyUsageSliceHelper, decrypt(), encrypt() (+194 more)
+Nodes (182): get_buffer_source_copy(), CryptoKey, CryptoKeyOrCryptoKeyPair, CryptoKey, CryptoKeyPair, [KeyUsage], KeyUsageSliceHelper, export_key() (+174 more)
 
 ### Community 60 - "ScriptThread"
 Cohesion: 0.03
-Nodes (26): PipelineId, IframeContext, BHMExitSignal, interrupt_callback(), NodeIdSet, ScriptMemoryFailsafe, ScriptMemoryFailsafe<'a>, ScriptThread (+18 more)
+Nodes (20): IncompleteParserContexts, interrupt_callback(), NodeIdSet, ScriptMemoryFailsafe, ScriptMemoryFailsafe<'a>, ScriptThread, ScriptThreadUserContents, ScriptUserInteractingGuard (+12 more)
 
 ### Community 61 - "Sink"
-Cohesion: 0.09
-Nodes (11): during_gc_collection(), temp_cx(), NodeOrText, Node, attach_declarative_shadow_inner(), insert(), insert_an_element_at_the_adjusted_insertion_location(), ParsingAlgorithm (+3 more)
+Cohesion: 0.08
+Nodes (12): during_gc_collection(), temp_cx(), NodeOrText, Node, attach_declarative_shadow_inner(), ElementAttribute, insert(), insert_an_element_at_the_adjusted_insertion_location() (+4 more)
 
 ### Community 62 - "servo/servo.rs"
 Cohesion: 0.02
-Nodes (48): LayoutFactoryImpl, CertificateErrorResponse, Allow, Deny, CacheEntry, NetworkManager, apply_windows_sandbox(), AssignProcessToJobObject() (+40 more)
+Nodes (55): CertificateErrorResponse, Allow, Deny, ProxyConfig, ProxyMode, AutoDetect, Direct, FixedServers (+47 more)
 
 ### Community 63 - "IDLType"
 Cohesion: 0.02
 Nodes (30): argument_type(), CallbackMember, CallbackMethod, CallbackOperationBase, CallCallback, CGGetterCall, CGInterfaceTrait, attribute_arguments() (+22 more)
 
-### Community 64 - "animationeffect.rs"
-Cohesion: 0.11
-Nodes (9): AnimationEffect, IterationDurationOrAuto, Auto, Duration, SpecifiedTimingProperties, UnrestrictedDoubleOrString, PlaybackDirection, Backwards (+1 more)
-
 ### Community 65 - "os"
 Cohesion: 0.02
-Nodes (95): escape(), format_slice_cookies(), generate_code_for_test(), list_tests(), update_test_file(), filter_section(), get_source_range(), main() (+87 more)
+Nodes (76): escape(), format_slice_cookies(), generate_code_for_test(), list_tests(), update_test_file(), filter_section(), get_source_range(), main() (+68 more)
 
 ### Community 66 - "Command"
 Cohesion: 0.03
-Nodes (28): Command, CommandArgument, CommandArgumentGroup, CommandProvider(), _MachCommand, SubCommand, MachCommands, MachCommands (+20 more)
+Nodes (24): Command, CommandArgument, CommandArgumentGroup, CommandProvider(), _MachCommand, SubCommand, MachCommands, MachCommands (+16 more)
 
 ### Community 67 - "time"
-Cohesion: 0.03
-Nodes (69): create_gecko_session(), generate_placeholder(), run_gecko_test(), AbortReason, get_memory_report_str(), get_serve_path_for_file(), memory_report_to_bencher_metrics(), MemoryMetric (+61 more)
+Cohesion: 0.02
+Nodes (82): create_gecko_session(), generate_placeholder(), run_gecko_test(), collect_packages(), crates_io_version_exists(), load_metadata(), log(), main() (+74 more)
 
 ### Community 68 - "tests/webview.rs"
-Cohesion: 0.03
-Nodes (100): assert_rect_eq(), assert_tree_structure_and_get_root_web_area(), build_test(), build_tree(), build_webview_and_tree(), find_all_matching_nodes(), find_first_matching_node(), find_node_matching() (+92 more)
+Cohesion: 0.02
+Nodes (107): assert_rect_eq(), assert_tree_structure_and_get_root_web_area(), build_test(), build_tree(), build_webview_and_tree(), find_all_matching_nodes(), find_first_matching_node(), find_node_matching() (+99 more)
 
 ### Community 69 - "connector.rs"
 Cohesion: 0.04
-Nodes (23): Service, ALPN_H2, BoxError, BUF_SIZE, CertificateErrorOverrideManagerInternal, CertificateVerificationOverrideVerifier, ConnectionError, HttpError (+15 more)
+Nodes (22): Service, ALPN_H2, BoxError, BUF_SIZE, CertificateErrorOverrideManager, CertificateErrorOverrideManagerInternal, CertificateVerificationOverrideVerifier, ConnectionError (+14 more)
 
 ### Community 70 - "floats.rs"
-Cohesion: 0.04
-Nodes (45): Clear, Both, InlineEnd, InlineStart, None, ContainingBlockPositionInfo, FloatBand, FloatBandLink (+37 more)
+Cohesion: 0.02
+Nodes (65): au_rect_to_f32_rect(), f32_rect_to_au_rect(), Clear, Both, InlineEnd, InlineStart, None, ContainingBlockPositionInfo (+57 more)
 
 ### Community 71 - "timers.rs"
 Cohesion: 0.04
-Nodes (55): active_script_fetch_info(), clamp_duration(), collect_heap_args(), CompletionStep, InitiatingScriptFetchInfo, InternalTimerCallback, FunctionTimerCallback, StringTimerCallback (+47 more)
+Nodes (57): RefreshRedirectDue, active_script_fetch_info(), clamp_duration(), collect_heap_args(), CompletionStep, InitiatingScriptFetchInfo, InternalTimerCallback, FunctionTimerCallback (+49 more)
 
 ### Community 72 - "RunningAppState"
 Cohesion: 0.02
-Nodes (45): EmbedderControl, ColorPicker, ContextMenu, FilePicker, InputMethod, SelectElement, SimpleDialog, WebDriverUserPrompt (+37 more)
+Nodes (37): BluetoothDeviceSelectionRequest, BluetoothDeviceDescription, MediaSessionEvent, PlaybackStateChange, SetMetadata, SetPositionState, TraversalId, __llvm_profile_set_filename() (+29 more)
 
 ### Community 73 - "shared/net/lib.rs"
-Cohesion: 0.02
-Nodes (99): Serde, build_tls_security_info(), CookieOperationCallback, Cookies, Done, DoneAfterResponses, CookieOperationResponse, Cookies (+91 more)
+Cohesion: 0.03
+Nodes (64): ServoCookie, CacheEntry, NetworkManager, CookieOperationCallback, Cookies, Done, DoneAfterResponses, CookieOperationResponse (+56 more)
 
 ### Community 74 - "WebIDL.py"
 Cohesion: 0.01
 Nodes (39): WebIDLTest(), WebIDLTest(), WebIDLTest(), checkArgument(), checkMethod(), checkResults(), firstArgType(), WebIDLTest() (+31 more)
 
 ### Community 75 - "body.rs"
-Cohesion: 0.04
-Nodes (63): USVString, get_read_promise_bytes(), append_form_data_entry_from_part(), append_multipart_nodes(), Blob, BodyInit, BodySource, Null (+55 more)
+Cohesion: 0.02
+Nodes (104): should_be_blocked_due_to_mime_type(), should_be_blocked_due_to_nosniff(), is_no_store_cache(), set_default_accept_encoding(), test_mixed_content_document_navigation_blocking(), is_ascii_printable(), normalize_type_string(), generate_boundary() (+96 more)
 
 ### Community 76 - "StructuredSerializedData"
 Cohesion: 0.04
-Nodes (26): StructuredData, Reader, Writer, StructuredDataReader, StructuredDataWriter, StructuredSerializedData, BlobData, File (+18 more)
+Nodes (23): StructuredDataReader, StructuredDataWriter, StructuredSerializedData, BlobData, File, Memory, Sliced, BlobImpl (+15 more)
 
 ### Community 77 - "ServoUrl"
 Cohesion: 0.03
-Nodes (29): ServiceWorker, SimpleWorkerErrorHandler<ServiceWorker>, TrustedServiceWorkerAddress, UrlHelper, DATA_URL_DISPLAY_LENGTH, ServoUrl, UrlError, FromFilePath (+21 more)
+Nodes (32): WillNavigateMessage, serialize_without_fragment(), ServiceWorker, SimpleWorkerErrorHandler<ServiceWorker>, TrustedServiceWorkerAddress, UrlHelper, P, DATA_URL_DISPLAY_LENGTH (+24 more)
 
 ### Community 78 - "WebView"
-Cohesion: 0.03
-Nodes (13): MINIMUM_WEBVIEW_SIZE, ServoRendererWebView, WebView, WebViewBuilder, WebViewInner, TreeId, LoadStatus, Complete (+5 more)
+Cohesion: 0.04
+Nodes (7): MINIMUM_WEBVIEW_SIZE, ServoRendererWebView, WebView, WebViewBuilder, WebViewInner, TreeId, 3.4 Delegate callback dispatch
 
 ### Community 79 - "ImportKeyAlgorithm"
 Cohesion: 0.08
@@ -1632,287 +1677,283 @@ Nodes (24): ImportKeyAlgorithm, AesCbc, AesCtr, AesGcm, AesKw, AesOcb, Argon2, C
 
 ### Community 80 - "canvas_state.rs"
 Cohesion: 0.03
-Nodes (18): adjust_canvas_size(), adjust_size_sign(), CanvasContextState, .DEFAULT_FONT_STYLE, CanvasFillOrStrokeStyle, Color, Gradient, Pattern (+10 more)
+Nodes (26): adjust_canvas_size(), adjust_size_sign(), CanvasContextState, .DEFAULT_FONT_STYLE, CanvasFillOrStrokeStyle, Color, Gradient, Pattern (+18 more)
 
-### Community 81 - ".as_str"
-Cohesion: 0.07
-Nodes (26): set_dictionary_property(), AesKeyAlgorithm, EcKeyAlgorithm, EncapsulatedKey, HmacKeyAlgorithm, KmacKeyAlgorithm, normalize_algorithm(), RsaHashedKeyAlgorithm (+18 more)
+### Community 81 - "WritableStream"
+Cohesion: 0.05
+Nodes (7): WritableStream, WritableStreamState, Closed, Errored, Erroring, Writable, WritableStreamDefaultWriter
 
 ### Community 82 - "openxr/mod.rs"
 Cohesion: 0.03
-Nodes (24): Passthrough, ClipPlanes, fov_to_projection_matrix(), frustum_to_projection_matrix(), get_profiles_from_path(), AppInfo, ContextMenuFuture, ContextMenuProvider (+16 more)
+Nodes (23): ClipPlanes, fov_to_projection_matrix(), frustum_to_projection_matrix(), get_profiles_from_path(), AppInfo, ContextMenuFuture, ContextMenuProvider, ContextMenuResult (+15 more)
 
 ### Community 83 - "net/http_cache.rs"
-Cohesion: 0.03
-Nodes (46): DiskCache, DiskCacheInner, DiskCacheMetadata, storage_dir(), DoneChannel, ApproxDuration, CachedMetadata, CachedResource (+38 more)
+Cohesion: 0.02
+Nodes (79): Row, DiskCache, DiskCacheInner, DiskCacheMetadata, DiskCacheTable, Data, InsertionTimestamp, Key (+71 more)
 
 ### Community 84 - "warn"
 Cohesion: 0.03
-Nodes (53): InitialConstellationState, AsyncRuntimeHolder, init_async_runtime(), spawn_task(), CACertificates, Default, Override, CertificateErrorOverrideManager (+45 more)
+Nodes (71): InitialConstellationState, ASYNC_RUNTIME_HANDLE, AsyncRuntimeHolder, ExistingRuntimeHolder, init_async_runtime(), spawn_task(), CACertificates, Default (+63 more)
 
-### Community 85 - "gstreamer/lib.rs"
-Cohesion: 0.03
-Nodes (26): BACKEND_BASE_TIME, BACKEND_THREAD, ErrorLoadingPlugins, GStreamerBackend, WeakMediaInstance, WeakMediaInstanceHashMap, MediaInstanceMap, OhosBackend (+18 more)
+### Community 85 - "XRInputSource"
+Cohesion: 0.05
+Nodes (5): XRFrame, XRHitTestResult, XRInputSource, XRInputSourceEvent, XRSpace
 
-### Community 86 - "domstring.rs"
-Cohesion: 0.03
-Nodes (57): ASCII_CAPITAL_A, ASCII_CAPITAL_Z, ASCII_CR, ASCII_END, ASCII_FORMFEED, ASCII_LOWERCASE_A, ASCII_LOWERCASE_Z, ASCII_NEWLINE (+49 more)
+### Community 86 - "from_latin1"
+Cohesion: 0.12
+Nodes (22): atom(), contains_html_space_characters(), encoded_latin1_bytes(), from_latin1(), is_ascii_lowercase(), localname(), LocalName, match_domstring_ascii! (+14 more)
 
 ### Community 87 - "script_bindings/import.rs"
 Cohesion: 0.03
-Nodes (40): do_finalize_global(), finalize_common(), finalize_global(), finalize_weak_referenceable(), call_setter(), CallPolicy, .INFO, CallPolicyInfo (+32 more)
+Nodes (42): throw_invalid_this(), do_finalize_global(), finalize_common(), finalize_global(), finalize_weak_referenceable(), IteratorDerives, call_setter(), CallPolicy (+34 more)
 
 ### Community 88 - "CryptoAlgorithm"
-Cohesion: 0.02
-Nodes (175): get_property(), AesCbcParams, AesCtrParams, Algorithm, Argon2Params, check_support_for_algorithm(), ContextParams, CryptoAlgorithm (+167 more)
+Cohesion: 0.01
+Nodes (220): get_property(), set_dictionary_property(), AeadParams, decrypt(), encrypt(), AesCbcParams, AesCtrParams, AesGcmParams (+212 more)
 
 ### Community 89 - "display_list.rs"
-Cohesion: 0.05
-Nodes (26): FastLayoutTransform, root_transform_for_fragments(), AdjacencyListForPrint, AxesScrollSensitivity, PaintDisplayListInfo, ReferenceFrameNodeInfo, ScrollableNodeInfo, ScrollTree (+18 more)
+Cohesion: 0.04
+Nodes (40): FastLayoutTransform, ContainerRecord, ContainerTimingRootChain, LCPCandidateType, Image, Text, PaintTimingHandler, PendingContainer (+32 more)
 
 ### Community 90 - "net/http_loader.rs"
 Cohesion: 0.02
-Nodes (98): prepare_devtools_request(), ConsumePreloadedResources, FetchParams, PreloadResponseCandidate, None, Pending, Response, RequestClient (+90 more)
+Nodes (97): SameSiteContext, .SAME_SITE, prepare_devtools_request(), FetchParams, DoneChannel, append_a_request_origin_header(), append_cache_data_to_headers(), append_the_fetch_metadata_headers() (+89 more)
 
 ### Community 91 - "ffi/capi/lib.rs"
 Cohesion: 0.03
 Nodes (112): SERVO_CERT_ERROR_COMMON_NAME_INVALID, SERVO_CERT_ERROR_EXPIRED, SERVO_CERT_ERROR_INCOMPLETE_CHAIN, SERVO_CERT_ERROR_INVALID, SERVO_CERT_ERROR_INVALID_USAGE, SERVO_CERT_ERROR_NONE, SERVO_CERT_ERROR_NOT_YET_VALID, SERVO_CERT_ERROR_OTHER (+104 more)
 
 ### Community 92 - "LayerId"
-Cohesion: 0.02
-Nodes (50): DeviceAPI, (), ContextId, GLContexts, GLTypes, LayerGrandManager, LayerGrandManager<GL>, LayerGrandManagerAPI (+42 more)
+Cohesion: 0.04
+Nodes (25): DeviceAPI, (), ContextId, GLContexts, GLTypes, LayerGrandManager, LayerGrandManager<GL>, LayerGrandManagerAPI (+17 more)
 
-### Community 93 - "gpudevice.rs"
-Cohesion: 0.03
-Nodes (9): DroppableGPUDevice, GPUDevice, GPUDevice<D>, define_event_handler!, event_handler!, AsWebGpu, ErrorFilter, GPUErrorFilter (+1 more)
+### Community 93 - "WebGLTexture"
+Cohesion: 0.05
+Nodes (12): Textures, TextureUnit, DroppableWebGLTexture, ImageInfo, TexParameterValue, Bool, Float, Int (+4 more)
 
 ### Community 94 - "PlayerError"
-Cohesion: 0.03
-Nodes (18): DummyPlayer, GStreamerAudioChunk, notify!, PlayerInner, PlayerSource, Seekable, Stream, OhosAvPlayer (+10 more)
+Cohesion: 0.01
+Nodes (67): DummyPlayer, DEFAULT_CAN_RESUME, DEFAULT_MUTED, DEFAULT_PAUSED, DEFAULT_PLAYBACK_RATE, DEFAULT_TIME_RANGES, DEFAULT_VOLUME, GStreamerAudioChunk (+59 more)
 
-### Community 96 - "Node"
+### Community 95 - "IDBTransaction"
 Cohesion: 0.04
-Nodes (3): as_uintptr(), first_node_not_in(), Node
+Nodes (3): DOMStringList, IDBDatabase, IDBTransaction
 
 ### Community 97 - "methods.rs"
 Cohesion: 0.03
-Nodes (63): WriteGuard<'a>, RefOrAtomicRef<'_, T>, send_early_httprequest_to_devtools(), send_request_to_devtools(), send_response_to_devtools(), send_response_values_to_devtools(), send_security_info_to_devtools(), AutoRequestBodyStreamCloser (+55 more)
+Nodes (54): WriteGuard<'a>, RefOrAtomicRef<'_, T>, send_early_httprequest_to_devtools(), send_request_to_devtools(), send_response_to_devtools(), send_response_values_to_devtools(), send_security_info_to_devtools(), CorsCache (+46 more)
 
 ### Community 98 - "MediaStreamId"
-Cohesion: 0.03
-Nodes (33): DummyBackend, DummyMediaOutput, DummyMediaStream, DummySocket, GStreamerAudioStreamReader, AddToCaps, Constrain<f64>, Constrain<u32> (+25 more)
+Cohesion: 0.02
+Nodes (54): DummyBackend, DummyMediaOutput, DummyMediaStream, DummySocket, GStreamerAudioStreamReader, GStreamerDeviceMonitor, BACKEND_BASE_TIME, BACKEND_THREAD (+46 more)
 
 ### Community 99 - "WebGLProgram"
 Cohesion: 0.04
-Nodes (20): DroppableWebGLProgram, MAX_UNIFORM_AND_ATTRIBUTE_LEN, parse_uniform_name(), validate_glsl_char(), validate_glsl_name(), WebGLProgram, renderbuffer_format(), DroppableWebGLShader (+12 more)
+Nodes (18): WebGLActiveInfo, DroppableWebGLProgram, parse_uniform_name(), validate_glsl_char(), validate_glsl_name(), WebGLProgram, renderbuffer_format(), DroppableWebGLShader (+10 more)
 
 ### Community 100 - "storage/indexeddb/mod.rs"
-Cohesion: 0.05
-Nodes (45): StorageProxyMap, BackendResult, DatabaseInfo, DbResult, IndexedDBObjectStore, IndexedDBTxnMode, Readonly, Readwrite (+37 more)
+Cohesion: 0.04
+Nodes (54): StorageProxyMap, BackendResult, ConnectionMsg, AbortError, Blocked, Connection, DatabaseError, TxnMaybeCommit (+46 more)
 
 ### Community 101 - "Rect"
 Cohesion: 0.03
-Nodes (27): Convert, GenericDrawTarget, CanvasData, CanvasData<DrawTarget>, Filter, Bilinear, Nearest, MIN_WR_IMAGE_SIZE (+19 more)
+Nodes (28): CanvasStoreSizesPerType, Convert, GenericDrawTarget, CanvasData<DrawTarget>, write_image(), convert_to_brush(), extend3d(), State (+20 more)
 
 ### Community 102 - "WebGPURequest"
-Cohesion: 0.02
-Nodes (77): BufferUpdate, Read, PendingTexture, WebGPURequest, BeginComputePass, BeginRenderPass, BufferMapAsync, CommandEncoderCommand (+69 more)
+Cohesion: 0.01
+Nodes (121): BindingCommand, SetBindGroup, SetImmediates, CommandEncoderCommand, ClearBuffer, CopyBufferToBuffer, CopyBufferToTexture, CopyTextureToBuffer (+113 more)
 
 ### Community 103 - "table/layout.rs"
 Cohesion: 0.04
-Nodes (39): LogicalRect, LogicalRect<CSSPixelLength>, PhysicalRect<Au>, CellContentAlignment, Baseline, Bottom, Middle, Top (+31 more)
+Nodes (34): LogicalRect, LogicalRect<CSSPixelLength>, PhysicalRect<Au>, CellContentAlignment, Baseline, Bottom, Middle, Top (+26 more)
 
 ### Community 104 - "HTMLImageElement"
 Cohesion: 0.04
 Nodes (18): ChangeType, Element, Environment, HTMLImageElement, ImageElementMicrotask, Decode, EnvironmentChanges, UpdateImageData (+10 more)
 
-### Community 105 - "readablestreamdefaultcontroller.rs"
-Cohesion: 0.04
-Nodes (32): rooted_heap_handle(), EnqueuedValue, CloseSentinel, Js, Native, is_non_negative_number(), PullAlgorithmFulfillmentHandler, PullAlgorithmRejectionHandler (+24 more)
+### Community 105 - "ReadableStreamDefaultController"
+Cohesion: 0.09
+Nodes (7): EnqueuedValue, CloseSentinel, Js, Native, is_non_negative_number(), QueueWithSizes, ReadableStreamDefaultController
 
 ### Community 106 - "headless/mod.rs"
 Cohesion: 0.02
-Nodes (122): Metadata, FakeXRDevice, get_origin(), get_point(), get_views(), get_world(), view(), XRTest (+114 more)
+Nodes (95): FakeXRDevice, get_origin(), get_point(), get_views(), get_world(), view(), XRHandedness, XRTargetRayMode (+87 more)
 
 ### Community 107 - "Blob"
-Cohesion: 0.04
-Nodes (5): Blob, convert_line_endings_to_native(), process_blob_parts(), FileReaderSync, TestBindingCallback
+Cohesion: 0.07
+Nodes (4): Blob, convert_line_endings_to_native(), process_blob_parts(), FileReaderSync
 
 ### Community 108 - "tidy.py"
-Cohesion: 0.04
-Nodes (55): process_line(), UnicodeBlock, run_tests(), GithubAnnotation, GitHubAnnotationManager, CheckTidiness, assert_has_a_single_rustdoc_error(), iterFile() (+47 more)
-
-### Community 109 - "Tick"
 Cohesion: 0.03
-Nodes (48): FrameRef<'a>, Tick, .EPSILON, .FRAMES_PER_BLOCK, ConstantSourceNode, ConstantSourceNodeOptions, AudioListenerNode, AutomationEvent (+40 more)
+Nodes (63): process_line(), UnicodeBlock, GithubAnnotation, GitHubAnnotationManager, CheckTidiness, assert_has_a_single_rustdoc_error(), iterFile(), run_tests() (+55 more)
 
-### Community 110 - "DevtoolScriptControlMsg"
-Cohesion: 0.02
-Nodes (112): DevtoolsBrowserId, DevtoolsBrowsingContextId, DevtoolsOuterWindowId, IdMap, DevtoolsInstance, Pipeline, HasOrigin, DebuggerEvalEvent (+104 more)
+### Community 110 - "PipelineId"
+Cohesion: 0.01
+Nodes (176): AllBrowsingContextsIterator, AllBrowsingContextsIterator<'a>, BrowsingContext, FullyActiveBrowsingContextsIterator, FullyActiveBrowsingContextsIterator<'a>, NewBrowsingContextInfo, OngoingHistoryTraversalRequest, WorkerAnimationFrameProvider (+168 more)
 
 ### Community 111 - "canvas.rs"
-Cohesion: 0.04
-Nodes (46): round_rect_error(), CanvasGradientStyle, Linear, Radial, CanvasCommand, ClearRect, Destroy, DrawEmptyImage (+38 more)
+Cohesion: 0.03
+Nodes (64): round_rect_error(), BlendingStyle, Color, ColorBurn, ColorDodge, Darken, Difference, Exclusion (+56 more)
 
 ### Community 112 - "accessibility/mod.rs"
 Cohesion: 0.03
-Nodes (31): AccessibilityContext, AccessibilityDamageMap, AccessibilityNode, AccessibilityNodeIterator, AccessibilityNodeIterator<I>, AccessibilityTree, AccessibilityUpdate, AccessibilityUpdate<'update> (+23 more)
+Nodes (45): AccessibilityContext, AccessibilityDamageMap, AccessibilityNode, AccessibilityNodeIterator, AccessibilityNodeIterator<I>, AccessibilityTree, AccessibilityUpdate, AccessibilityUpdate<'update> (+37 more)
 
 ### Community 113 - "capi/webview.rs"
 Cohesion: 0.04
-Nodes (116): write_c_string(), servo_create_new_webview_builder_create(), servo_create_new_webview_request_free(), SERVO_KEY_EVENT_DOWN, SERVO_KEY_EVENT_UP, SERVO_MEDIA_SESSION_ACTION_NEXT_TRACK, SERVO_MEDIA_SESSION_ACTION_PAUSE, SERVO_MEDIA_SESSION_ACTION_PLAY (+108 more)
+Nodes (117): servo_create_new_webview_builder_create(), servo_create_new_webview_request_free(), SERVO_KEY_EVENT_DOWN, SERVO_KEY_EVENT_UP, SERVO_MEDIA_SESSION_ACTION_NEXT_TRACK, SERVO_MEDIA_SESSION_ACTION_PAUSE, SERVO_MEDIA_SESSION_ACTION_PLAY, SERVO_MEDIA_SESSION_ACTION_PREVIOUS_TRACK (+109 more)
 
 ### Community 114 - "style/mod.rs"
 Cohesion: 0.04
-Nodes (62): ClipPathDef, FilterDef, MaskDef, DefRef, Ref, Resolved, DefRef<T>, ColorInterpolation (+54 more)
+Nodes (54): MaskDef, DefRef, Ref, Resolved, DefRef<T>, ColorInterpolation, Auto, LinearRGB (+46 more)
 
 ### Community 115 - "ImmutableOrigin"
 Cohesion: 0.04
-Nodes (30): OriginDescriptor, WebStorageThreadMsg, Clear, ClearDataForSites, Clone, CollectMemoryReport, Exit, GetItem (+22 more)
+Nodes (44): BroadcastChannels, BroadcastChannelMsg, OriginDescriptor, WebStorageThreadMsg, Clear, ClearDataForSites, Clone, CollectMemoryReport (+36 more)
 
 ### Community 116 - "HTMLMediaElement"
-Cohesion: 0.03
-Nodes (49): BoxedSliceOfPromises, BufferedDataSource, CancelReason, Abort, Backoff, Error, DataBuffer, EndOfStream (+41 more)
+Cohesion: 0.04
+Nodes (18): BoxedSliceOfPromises, BufferedDataSource, CancelReason, Abort, Backoff, Error, DataBuffer, EndOfStream (+10 more)
 
-### Community 117 - "key.rs"
-Cohesion: 0.02
-Nodes (67): get_property_jsval(), has_own_property(), IDBCursor, iterate_cursor(), IterationParam, ObjectStoreOrIndex, Index, ObjectStore (+59 more)
+### Community 117 - "IDBObjectStore"
+Cohesion: 0.04
+Nodes (10): IDBIndex, IDBObjectStore, IDBObjectStoreRollbackState, indexeddb::KeyPath, KeyPath, String, StringSequence, IDBRequest (+2 more)
 
 ### Community 118 - "IDLInterfaceOrNamespace"
 Cohesion: 0.03
 Nodes (11): isDomInterface(), IDLExposureMixins, IDLInterface, IDLInterfaceMixin, IDLInterfaceOrInterfaceMixinOrNamespace, IDLInterfaceOrNamespace, checkDuplicateNames(), findForwardedAttr() (+3 more)
 
 ### Community 119 - "components/fonts/lib.rs"
-Cohesion: 0.03
-Nodes (36): FallbackKey, FontFamilyDescriptor, FontGroup, FontGroupFamily, FontGroupFamilyTemplate, FontSearchScope, Any, Local (+28 more)
+Cohesion: 0.04
+Nodes (29): FallbackKey, LAST_RESORT_GLYPH_ADVANCE, EmojiPresentationPreference, Emoji, None, Text, FallbackFontSelectionOptions, fixed_to_float() (+21 more)
 
 ### Community 121 - "fonts/font_context.rs"
 Cohesion: 0.04
-Nodes (31): Arc<FontContext>, CspViolationHandler, DownloaderResponseResult, Failure, Finished, InProcess, font_face_rules_conflict(), FontContext (+23 more)
+Nodes (28): Arc<FontContext>, CspViolationHandler, DownloaderResponseResult, Failure, Finished, InProcess, font_face_rules_conflict(), FontContext (+20 more)
 
 ### Community 122 - "IDLNullableType"
 Cohesion: 0.02
 Nodes (6): IDLNullableType, IDLObservableArrayType, IDLParametrizedType, IDLPromiseType, IDLRecordType, IDLSequenceType
 
 ### Community 123 - "components/storage/client_storage.rs"
-Cohesion: 0.06
-Nodes (34): SiteData, ClientStorageErrorr, BottleAlreadyExists, BucketDoesNotExist, DatabaseAlreadyExists, DatabaseDoesNotExist, DirectoryCreationFailed, DirectoryDeletionFailed (+26 more)
+Cohesion: 0.05
+Nodes (50): ClientStorageErrorr, BottleAlreadyExists, BucketDoesNotExist, DatabaseAlreadyExists, DatabaseDoesNotExist, DirectoryCreationFailed, DirectoryDeletionFailed, Internal (+42 more)
 
 ### Community 124 - "DedicatedWorkerGlobalScope"
-Cohesion: 0.03
-Nodes (32): WorkerAnimationFrameProvider, FrameRequestCallback, AutoCloseWorker, MessageData, SimpleWorkerErrorHandler, SimpleWorkerErrorHandler<T>, WorkerScriptMsg, Common (+24 more)
+Cohesion: 0.04
+Nodes (19): run_worker_event_loop(), WorkerEventLoopMethods, AutoWorkerReset, AutoWorkerReset<'a>, DedicatedWorkerControlMsg, AnimationFrameProviderUnsupported, Exit, DedicatedWorkerGlobalScope (+11 more)
 
 ### Community 125 - "HTMLInputElement"
 Cohesion: 0.04
-Nodes (8): check_js_regex_syntax(), compile_pattern(), HTMLInputElement, new_js_regex(), PendingWebDriverResponse, StepDirection, Down, Up
+Nodes (5): check_js_regex_syntax(), compile_pattern(), HTMLInputElement, new_js_regex(), PendingWebDriverResponse
 
 ### Community 126 - "XRSession"
-Cohesion: 0.02
-Nodes (20): XRHandedness, XRFrame, XRHitTestResult, XRHitTestSource, XRInputSource, XRInputSourceArray, XRInputSourceEvent, XRInputSourcesChangeEvent (+12 more)
+Cohesion: 0.03
+Nodes (8): XRHitTestSource, XRInputSourceArray, XRInputSourcesChangeEvent, XRMediaBinding, EnvironmentBlendMode, XRSession, XRSessionEvent, HitTestId
 
 ### Community 127 - "runtime/script_runtime.rs"
 Cohesion: 0.03
-Nodes (26): LivePromiseReferences, PromiseKey, trace_refcounted_objects(), EnsureModuleHooksInitialized(), code_for_eval_gets(), compute_size(), consume_stream(), content_security_policy_allows() (+18 more)
+Nodes (28): mark_runtime_dead(), trace_refcounted_objects(), EnsureModuleHooksInitialized(), code_for_eval_gets(), compute_size(), consume_stream(), content_security_policy_allows(), debug_gc_callback() (+20 more)
 
 ### Community 128 - "components/net/image_cache.rs"
 Cohesion: 0.02
-Nodes (84): AllPendingLoads, CacheResult, Hit, Miss, CompletedLoad, decode_bytes_sync(), DecodedImage, Raster (+76 more)
+Nodes (80): AllPendingLoads, CacheResult, Hit, Miss, CompletedLoad, decode_bytes_sync(), DecodedImage, Raster (+72 more)
 
-### Community 129 - "HTMLSlotElement"
-Cohesion: 0.08
-Nodes (7): HTMLSlotElement, Slottable, FocusNavigationScopeIterator, FocusNavigationScopeOwner, Document, ShadowHost, Slot
+### Community 129 - "key.rs"
+Cohesion: 0.07
+Nodes (16): has_own_property(), IDBKeyRange, can_inject_key_into_value(), convert_value_to_key(), evaluate_key_path_on_value(), EvaluationResult, Failure, Success (+8 more)
 
 ### Community 130 - "reflect_dom_object_with_proto"
-Cohesion: 0.06
-Nodes (29): dict_return(), Iterable, IterableIterator, IterableIterator<D, T>, .PROTO_ID, .WRAP, IteratorDerives, IteratorType (+21 more)
+Cohesion: 0.07
+Nodes (15): dict_return(), Iterable, IterableIterator, IterableIterator<D, T>, .PROTO_ID, .WRAP, IteratorType, Keys (+7 more)
 
-### Community 131 - "ToggleEvent"
-Cohesion: 0.04
-Nodes (6): CloseEvent, SubmitEvent, ToggleEvent, MediaQueryListEvent, TestBindingIterable, WebGLContextEvent
+### Community 131 - "DomRoot"
+Cohesion: 0.01
+Nodes (116): CallbackFunction, Atom, Fallible, GlobalScopeHelpers, (), reflect_dom_object(), reflect_dom_object_with_proto(), reflect_dom_object_with_proto_and_wrap() (+108 more)
 
 ### Community 132 - "replaced.rs"
 Cohesion: 0.03
-Nodes (18): InnerDOMLayoutData, NodeExt, ServoLayoutNode<'dom>, PhysicalSize, CanvasInfo, IFrameInfo, ImageInfo, NaturalSizes (+10 more)
+Nodes (23): DOMLayoutData, InnerDOMLayoutData, NodeExt, PseudoLayoutData, ServoLayoutNode<'dom>, CanvasInfo, IFrameInfo, ImageInfo (+15 more)
 
-### Community 133 - "paint/touch.rs"
-Cohesion: 0.05
-Nodes (43): FLING_MAX_SCREEN_PX, FLING_MIN_SCREEN_PX, FLING_SCALING_FACTOR, FlingAction, FlingRefreshDriverObserver, HitTestResultCache, PanAxis, Horizontal (+35 more)
+### Community 133 - "Report"
+Cohesion: 0.06
+Nodes (7): CSPReportEndpointFetchListener, GlobalScope, ReportingEndpoint, SendReportsToEndpoints, GlobalScope, ReportingObserver, Report
 
 ### Community 134 - "net/protocols/mod.rs"
-Cohesion: 0.04
-Nodes (24): ASYNC_RUNTIME_HANDLE, ExistingRuntimeHolder, FILE_CHUNK_SIZE, build_html_directory_listing(), fetch(), metadata_to_file_size_string(), script_string_literal(), script_string_literal_neutralises_script_close() (+16 more)
+Cohesion: 0.05
+Nodes (16): FILE_CHUNK_SIZE, BlobProtocolHander, DataProtocolHander, FileProtocolHander, FORBIDDEN_SCHEMES, FutureResponse, partial_content(), ProtocolHandler (+8 more)
 
 ### Community 135 - "ServoMedia"
-Cohesion: 0.06
-Nodes (50): AudioScheduledSourceNodeMessage, RegisterOnEndedCallback, Start, Stop, main(), run_example(), main(), run_example() (+42 more)
+Cohesion: 0.04
+Nodes (64): AudioScheduledSourceNodeMessage, RegisterOnEndedCallback, Start, Stop, AudioBufferSourceNodeMessage, SetBuffer, SetLoopEnabled, SetLoopEnd (+56 more)
 
 ### Community 136 - "StorageThreads"
 Cohesion: 0.04
-Nodes (44): SendResult, CacheStorageThreadHandle, CacheStorageThreadMessage, DeleteCache, Exit, HasCache, Keys, OpenCache (+36 more)
+Nodes (33): SendResult, GenericCallback, GenericCallback<T>, CacheStorageThreadHandle, CacheStorageThreadMessage, DeleteCache, Exit, HasCache (+25 more)
 
 ### Community 137 - "SessionMode"
-Cohesion: 0.05
-Nodes (26): Box<dyn DiscoveryAPI<GL>>, DiscoveryAPI, MainThreadRegistry, MainThreadRegistry<GL>, MainThreadWakerImpl, Registry, RegistryMsg, RequestSession (+18 more)
+Cohesion: 0.03
+Nodes (46): Box<dyn DiscoveryAPI<GL>>, MockDiscoveryAPI, MainThreadRegistry, MainThreadRegistry<GL>, MainThreadWakerImpl, Registry, RegistryMsg, RequestSession (+38 more)
 
-### Community 138 - "dom/bluetooth/bluetooth.rs"
-Cohesion: 0.04
-Nodes (30): AllowedBluetoothDevice, Bluetooth, BluetoothContext<T>, BluetoothError, BluetoothExtraPermissionData, BT_DESC_CONVERSION_ERROR, canonicalize_bluetooth_data_filter_init(), canonicalize_filter() (+22 more)
+### Community 138 - "BluetoothPermissionResult"
+Cohesion: 0.07
+Nodes (9): BluetoothPermissionResult, Operation, Query, Request, Revoke, PermissionAlgorithm, Permissions, PermissionStatus (+1 more)
 
 ### Community 139 - "WebGLFramebuffer"
 Cohesion: 0.04
-Nodes (14): CompleteForRendering, Complete, Incomplete, MissingColorAttachment, DroppableWebGLFramebuffer, INTERESTING_ATTACHMENT_POINTS, WebGLFramebuffer, WebGLFramebufferAttachment (+6 more)
+Nodes (10): DroppableWebGLFramebuffer, WebGLFramebuffer, WebGLFramebufferAttachment, Renderbuffer, Texture, WebGLFramebufferAttachmentRoot, Renderbuffer, Texture (+2 more)
 
 ### Community 140 - "Expression"
 Cohesion: 0.04
-Nodes (67): XPathWrapper<RootedCallback<XPathNSResolver>>, Axis, Ancestor, AncestorOrSelf, Attribute, Descendant, DescendantOrSelf, Following (+59 more)
+Nodes (63): Axis, Ancestor, AncestorOrSelf, Attribute, Descendant, DescendantOrSelf, Following, FollowingSibling (+55 more)
 
 ### Community 141 - "wpt/test.py"
 Cohesion: 0.05
 Nodes (21): wpt_branch_name_from_servo_pr_number(), authenticated(), GithubBranch, GithubRepository, PullRequest, LocalGitRepo, SyncRun, WPTSync (+13 more)
 
 ### Community 142 - "components/net/filemanager_thread.rs"
-Cohesion: 0.03
-Nodes (61): Data, Cancelled, Error, Payload, RangeRequestBounds, Final, Pending, BlobBounds (+53 more)
+Cohesion: 0.04
+Nodes (52): RangeRequestBounds, Final, Pending, BlobBounds, Resolved, Unresolved, FileImpl, Memory (+44 more)
 
 ### Community 143 - "serialize"
-Cohesion: 0.05
-Nodes (35): BrowsingContextActor, BrowsingContextActorMsg, BrowsingContextTraits, FrameUpdateMsg, FrameUpdateReply, ListWorkersReply, TargetType, Frame (+27 more)
+Cohesion: 0.04
+Nodes (39): BrowsingContextActor, BrowsingContextActorMsg, BrowsingContextTraits, FrameUpdateMsg, FrameUpdateReply, ListWorkersReply, TargetType, Frame (+31 more)
 
 ### Community 144 - "promise.rs"
-Cohesion: 0.05
-Nodes (16): StackRootPromiseHelpers, create_native_handler_function(), do_nothing_promise_executor(), native_handler_callback(), NativeHandlerTask, Reject, Resolve, Promise (+8 more)
+Cohesion: 0.04
+Nodes (16): create_native_handler_function(), do_nothing_promise_executor(), native_handler_callback(), NativeHandlerTask, Reject, Resolve, Promise, SLOT_NATIVEHANDLER (+8 more)
 
 ### Community 146 - "interface.rs"
-Cohesion: 0.03
-Nodes (63): DummyFontResolver, ConstantSpec, ConstantVal, Bool, Double, Int, Null, Uint (+55 more)
+Cohesion: 0.05
+Nodes (38): ConstantSpec, ConstantVal, Bool, Double, Int, Null, Uint, define_constants() (+30 more)
 
-### Community 147 - "fakexrinputcontroller.rs"
-Cohesion: 0.10
-Nodes (10): XRTargetRayMode, FakeXRButtonType, FakeXRInputController, init_to_mock_buttons(), MockButtonType, Grip, OptionalButton, OptionalThumbstick (+2 more)
+### Community 147 - "VTTCue"
+Cohesion: 0.07
+Nodes (12): LineAndPositionSetting, Auto, Double, VTTCue, VTTCueBinding::LineAndPositionSetting, WebVttCueSize, WebVttLineAlignment, WebVttLineAndPositionSetting (+4 more)
 
 ### Community 148 - "MouseEvent"
-Cohesion: 0.03
-Nodes (20): SelectionGranularity, LineIgnoringSoftWrap, Position, Word, MouseEvent, PointerEvent, PointerId, Mouse (+12 more)
+Cohesion: 0.07
+Nodes (11): MouseEvent, i16, MouseButton, Auxiliary, Back, Forward, None, Other (+3 more)
 
-### Community 149 - "layout/context.rs"
-Cohesion: 0.06
-Nodes (31): CachedImageOrError, ImageResolver, LayoutImageCacheResult, DataAvailable, LoadError, Pending, ResolvedImage, Color (+23 more)
+### Community 149 - "Locked"
+Cohesion: 0.07
+Nodes (5): Keyframe, CSSImportRule, CSSKeyframeRule, CSSStyleRule, Locked
 
 ### Community 150 - "object.rs"
-Cohesion: 0.09
-Nodes (27): EnumIterator, EnumIteratorType, PropertyIterator, SymbolIterator, EnumReply, FunctionPreview, ObjectActor, ObjectActorData (+19 more)
+Cohesion: 0.06
+Nodes (31): ActorEncode, EnvironmentActor, EnvironmentActorMsg, EnvironmentBindings, EnvironmentFunction, FrameActor, FrameActorMsg, FrameEnvironmentReply (+23 more)
 
 ### Community 151 - "AudioSinkError"
-Cohesion: 0.04
-Nodes (35): OfflineAudioSink, ProcessedAudio, AudioRenderThread, AudioRenderThreadMsg, Close, ConnectPorts, CreateNode, DisconnectAllFrom (+27 more)
+Cohesion: 0.03
+Nodes (56): AudioNodeInit, AnalyserNode, AudioBuffer, AudioBufferSourceNode, BiquadFilterNode, ChannelMergerNode, ChannelSplitterNode, ConstantSourceNode (+48 more)
 
 ### Community 152 - "freetype_face.rs"
 Cohesion: 0.03
 Nodes (18): enclosing_size, enclosing_size_impl(), EnclosingSizeFn, heap_reports(), HeapReport, usable_size(), fallback_free_type_hinting_load_flags(), FALLBACK_HINTING_STYLE (+10 more)
 
-### Community 153 - "net/cookie.rs"
-Cohesion: 0.05
-Nodes (17): SameSiteContext, .SAME_SITE, ServoCookie, CookieStorage, evict_one_cookie(), get_oldest_accessed(), is_cookie_expired(), reg_host() (+9 more)
+### Community 153 - "CookieStorage"
+Cohesion: 0.14
+Nodes (8): CookieStorage, evict_one_cookie(), get_oldest_accessed(), is_cookie_expired(), reg_host(), RemoveCookieError, NonHTTP, Overlapping
 
 ### Community 154 - "CanvasRenderingContext2D"
 Cohesion: 0.03
@@ -1920,86 +1961,86 @@ Nodes (3): CanvasRenderingContext2D, .ASSOCIATED_MEMORY_BUFFER_COUNT, .RGBA8_BYT
 
 ### Community 155 - "WebDriverScriptCommand"
 Cohesion: 0.02
-Nodes (91): CustomHandlersAutomationMode, AutoAccept, AutoReject, None, NewWindowTypeHint, Auto, Tab, Window (+83 more)
+Nodes (96): ScreenshotRequest, ScreenshotRequestPhase, ConstellationRequest, WaitingOnFrame, WaitingOnPipelineDisplayLists, ScreenshotTaker, ScreenshotCaptureError, CouldNotReadImage (+88 more)
 
 ### Community 156 - "async_html.rs"
-Cohesion: 0.08
-Nodes (15): Attribute, create_buffer_queue(), FromParserThreadMsg, EncodingIndicator, End, ProcessOperation, TokenizerResultDone, TokenizerResultScript (+7 more)
+Cohesion: 0.06
+Nodes (18): create_buffer_queue(), FromParserThreadMsg, EncodingIndicator, End, ProcessOperation, TokenizerResultDone, TokenizerResultScript, Text (+10 more)
 
 ### Community 157 - "fonts/font.rs"
-Cohesion: 0.07
-Nodes (46): AFRC, BASE, CALT, CBDT, CLIG, COLR, CWSH, DLIG (+38 more)
+Cohesion: 0.04
+Nodes (52): AFRC, BASE, CachedShapeData, CALT, CBDT, CLIG, COLR, compute_variations() (+44 more)
 
 ### Community 158 - "glwindow/mod.rs"
 Cohesion: 0.03
 Nodes (28): XRSubImage, XRViewport, XRWebGLSubImage, Viewport, ANAGLYPH_RED_CYAN_FRAGMENT_SHADER, ANAGLYPH_VERTEX_SHADER, FOV_UP, GlWindow (+20 more)
 
 ### Community 159 - "WebGLBuffer"
-Cohesion: 0.03
+Cohesion: 0.02
 Nodes (11): OESVertexArrayObject, VertexArrayObject, VertexAttribData, VertexAttribPointerKind, Float, Integer, DroppableWebGLBuffer, target_is_copy_buffer() (+3 more)
 
 ### Community 160 - "TextTrack"
-Cohesion: 0.02
-Nodes (38): HTMLTrackElement, HTMLTrackElementFetchListener, TextTrackCueSink, TextTrackReadinessState, FailedToLoad, Loaded, Loading, None (+30 more)
+Cohesion: 0.04
+Nodes (11): RulesForUpdatingTheTextTrackRendering, WebVTT, ShouldResetRenderingControls, No, Yes, TextTrack, TextTrackCue, TextTrackCueList (+3 more)
 
 ### Community 161 - "FontFace"
-Cohesion: 0.05
-Nodes (7): FontFace, FontFaceDescriptors, FontFaceErrorReporter, parse_font_face_descriptors(), serialize_parsed_descriptors(), FontFaceSet, FontQuerySyntaxError
+Cohesion: 0.07
+Nodes (7): FontFace, FontFaceDescriptors, FontFaceErrorReporter, parse_font_face_descriptors(), serialize_parsed_descriptors(), FontTemplate, FontFaceRuleInfo
 
-### Community 162 - "AudioNodeInit"
-Cohesion: 0.04
-Nodes (51): AudioNodeInit, AnalyserNode, AudioBuffer, AudioBufferSourceNode, BiquadFilterNode, ChannelMergerNode, ChannelSplitterNode, ConstantSourceNode (+43 more)
+### Community 162 - "gpucommandencoder.rs"
+Cohesion: 0.08
+Nodes (4): DroppableGPUCommandEncoder, GPUCommandEncoder, GPUCommandEncoder<D>, &GPUExtent3D
 
 ### Community 163 - "xpath/src/lib.rs"
 Cohesion: 0.04
-Nodes (17): Attribute, Document, Dom, DummyAttribute, DummyDocument, DummyElement, DummyNode, DummyProcessingInstruction (+9 more)
+Nodes (14): Attribute, Document, Dom, DummyAttribute, DummyDocument, DummyElement, DummyNode, DummyProcessingInstruction (+6 more)
 
 ### Community 164 - "proxyhandler.rs"
 Cohesion: 0.05
-Nodes (43): jsid_to_string(), ALLOWLISTED_SYMBOL_CODES, append_cross_origin_allowlisted_prop_keys(), cross_origin_get(), cross_origin_get_own_property_helper(), cross_origin_has_own(), cross_origin_own_property_keys(), cross_origin_property_fallback() (+35 more)
+Nodes (39): ALLOWLISTED_SYMBOL_CODES, append_cross_origin_allowlisted_prop_keys(), cross_origin_get(), cross_origin_get_own_property_helper(), cross_origin_has_own(), cross_origin_own_property_keys(), cross_origin_property_fallback(), CROSS_ORIGIN_PROPERTY_HOLDER_WEAK_MAP_SLOT (+31 more)
 
 ### Community 165 - "worklet.rs"
-Cohesion: 0.07
-Nodes (24): CredentialsMode, RequestCredentials, DroppableField, LazyCellWithBoxedInitializer, MIN_GC_THRESHOLD, PendingTasksStruct, reject_promise(), StatelessWorkletThreadPool (+16 more)
+Cohesion: 0.05
+Nodes (28): CredentialsMode, RequestCredentials, DroppableField, LazyCellWithBoxedInitializer, PendingTasksStruct, reject_promise(), StatelessWorkletThreadPool, Worklet (+20 more)
 
 ### Community 166 - "webdriver_server/lib.rs"
 Cohesion: 0.03
-Nodes (27): WebDriverCommand, convert_keyboard_event_to_string(), CustomHandlersSetModeParameters, extension_routes(), GetPrefsParameters, map_to_vec(), SendableJSValue, ServoExtensionCommand (+19 more)
+Nodes (26): WebDriverCommand, convert_keyboard_event_to_string(), cookie_msg_to_cookie(), CustomHandlersSetModeParameters, extension_routes(), GetPrefsParameters, map_to_vec(), SendableJSValue (+18 more)
 
 ### Community 167 - "WindowProxy"
-Cohesion: 0.04
-Nodes (10): DissimilarOriginWindow, CreatorBrowsingContextInfo, parse_open_feature_boolean(), tokenize_open_features(), WindowProxy, obtain_a_browsing_context(), window_for_replacement(), ScriptWindowProxies (+2 more)
+Cohesion: 0.05
+Nodes (4): DissimilarOriginWindow, parse_open_feature_boolean(), tokenize_open_features(), WindowProxy
 
 ### Community 168 - "webglrenderingcontext.rs"
 Cohesion: 0.02
-Nodes (93): WebGLContextAttributes, WebGLValidator, CommonCompressedTexImage2DValidator, CommonCompressedTexImage2DValidatorResult, CommonTexImage2DValidator, CommonTexImage2DValidatorResult, CompressedTexImage2DValidator, CompressedTexSubImage2DValidator (+85 more)
+Nodes (93): BorderImageRepeatKeyword, ComputedImageRendering, ComputedMixBlendMode, ComputedTextDecorationStyle, PhysicalPoint<Au>, PhysicalRect<Au>, PhysicalSides<Au>, PhysicalSize<Au> (+85 more)
 
 ### Community 169 - "writablestreamdefaultcontroller.rs"
-Cohesion: 0.08
+Cohesion: 0.07
 Nodes (17): CloseAlgorithmFulfillmentHandler, CloseAlgorithmRejectionHandler, StartAlgorithmFulfillmentHandler, StartAlgorithmRejectionHandler, TransferBackPressurePromiseReaction, UnderlyingSinkType, Js, Transfer (+9 more)
 
 ### Community 170 - "interfaces.rs"
-Cohesion: 0.06
-Nodes (13): DomHelpers, HeapTracedPromiseHelpers, Interface, PromiseHelpers, ServoInternalsHelpers, TestBindingHelpers, WebGL2RenderingContextHelpers, WindowHelpers (+5 more)
+Cohesion: 0.04
+Nodes (14): DomHelpers, Interface, TestBindingHelpers, WebGL2RenderingContextHelpers, StackEntry, StackEntryKind, Incumbent, crate::DomTypeHolder (+6 more)
 
 ### Community 172 - "timeline.rs"
-Cohesion: 0.10
-Nodes (15): MemoryActor, TimelineMemoryReply, DEFAULT_TIMELINE_DATA_PULL_TIMEOUT, Emitter, FramerateEmitterReply, HighResolutionStamp, IsRecordingReply, MarkersEmitterReply (+7 more)
+Cohesion: 0.04
+Nodes (44): FramerateActor, MemoryActor, TimelineMemoryReply, DEFAULT_TIMELINE_DATA_PULL_TIMEOUT, Emitter, FramerateEmitterReply, HighResolutionStamp, IsRecordingReply (+36 more)
 
 ### Community 173 - "basparse.py"
 Cohesion: 0.02
 Nodes (36): p_command_data(), p_command_def(), p_command_def_bad_arg(), p_command_def_bad_rhs(), p_command_dim(), p_command_for(), p_command_for_bad_final(), p_command_for_bad_initial() (+28 more)
 
-### Community 174 - "Response"
-Cohesion: 0.06
-Nodes (11): is_obs_text(), is_vchar(), initialize_response(), is_null_body_status(), is_redirect_status(), is_valid_status_text(), Response, serialize_without_fragment() (+3 more)
+### Community 174 - "ServiceWorkerGlobalScope"
+Cohesion: 0.09
+Nodes (18): MixedMessage, Control, Devtools, ServiceWorker, Timer, ServiceWorkerControlMsg, Exit, ServiceWorkerGlobalScope (+10 more)
 
 ### Community 175 - "Snapshot"
 Cohesion: 0.03
-Nodes (35): EncodedImageType, Jpeg, Png, Webp, Multiply, None, PreMultiply, UnMultiply (+27 more)
+Nodes (29): EncodedImageType, Jpeg, Png, Webp, Multiply, None, PreMultiply, UnMultiply (+21 more)
 
 ### Community 176 - "windowproxy.rs"
-Cohesion: 0.05
+Cohesion: 0.04
 Nodes (27): is_platform_object_same_origin(), get_array_index_from_id(), GlobalStaticData, define_property(), delete(), enumerate(), finalize(), get() (+19 more)
 
 ### Community 177 - "HTMLCanvasElementOrOffscreenCanvas"
@@ -2010,81 +2051,81 @@ Nodes (21): CanvasContext, CanvasHelpers, HTMLCanvasElementOrOffscreenCanvas, HT
 Cohesion: 0.04
 Nodes (50): can_transfer_callback(), can_transfer_for_type(), free_transfer_callback(), OperationError, Exception, InterfaceDoesNotMatch, read(), read_callback() (+42 more)
 
-### Community 179 - "FontTemplateRef"
-Cohesion: 0.03
-Nodes (20): FontTemplates, SimpleFamily, font_template_descriptor_from_ctfont_attributes(), CSSFontFaceDescriptors, FontDescriptor, FontMatchDistanceMethod, FontStyle, FontTemplate (+12 more)
+### Community 179 - "FontDescriptor"
+Cohesion: 0.04
+Nodes (16): FontFamilyDescriptor, FontGroup, FontGroupFamily, FontGroupFamilyTemplate, FontSearchScope, Any, Local, CrossThreadFontStore (+8 more)
 
 ### Community 180 - "debug"
-Cohesion: 0.05
-Nodes (28): Process, Sandboxed, Unsandboxed, ProcessManager, ProcessReceiver, DebuggerFrameEvent, boost_thread(), BoostAffinity (+20 more)
+Cohesion: 0.09
+Nodes (7): font_template_descriptor_from_ctfont_attributes(), FontMatchDistanceMethod, FontStyle, FontTemplateDescriptor, FontWeight, FontWidth, IsOblique
 
-### Community 181 - "HeaderMap"
+### Community 181 - "openxr/input.rs"
 Cohesion: 0.08
-Nodes (24): Error, BoundaryNotSpecified, EofBeforeFirstBoundary, EofInFile, EofInPart, EofInPartHeaders, HeaderValueNotMime, Httparse (+16 more)
+Nodes (22): FrameState, Dead, OnStack, Suspended, Handedness, Left, None, Right (+14 more)
 
 ### Community 182 - "harfbuzz.rs"
-Cohesion: 0.03
-Nodes (15): FontBaseline, destroy_blob_func(), font_table_func(), FontFuncs, glyph_func(), glyph_h_advance_func(), HarfbuzzGlyphShapingResult, HB_FONT_FUNCS (+7 more)
+Cohesion: 0.04
+Nodes (14): FontBaseline, destroy_blob_func(), font_table_func(), FontFuncs, glyph_func(), glyph_h_advance_func(), HarfbuzzGlyphShapingResult, HB_FONT_FUNCS (+6 more)
 
 ### Community 183 - "Node"
 Cohesion: 0.01
-Nodes (100): Rethrow, MutDom, UnrootedDom, ErrorResult, (DomRoot<Node>, u32), EquivalentPoint, Selection, DocumentOrShadowRoot (+92 more)
+Nodes (207): Rethrow, HandleObject<'_>, OwnerWindow, MutDom, UnrootedDom, LayoutDom, ToLayout, CharacterData (+199 more)
 
-### Community 184 - "ReadableStreamBYOBReader"
+### Community 184 - "ReadableStreamDefaultReader"
 Cohesion: 0.07
-Nodes (6): ByteTeeClosedPromiseRejectionHandler, ReadableStreamBYOBReader, ReadIntoRequest, ByteTee, Read, ReadableStreamGenericReader
+Nodes (11): ContinueReadMicrotask, read_loop(), ReadableStreamDefaultReader, ReadAllBytesFailureSteps, ReadAllBytesSuccessSteps, ReadRequest, ByteTee, DefaultTee (+3 more)
 
 ### Community 185 - "HTMLScriptElement"
-Cohesion: 0.04
-Nodes (13): DOMTokenList, ClassicContext, ExternalScriptKind, Asap, AsapInOrder, Deferred, ParsingBlocking, HTMLScriptElement (+5 more)
+Cohesion: 0.07
+Nodes (11): ExternalScriptKind, Asap, AsapInOrder, Deferred, ParsingBlocking, HTMLScriptElement, Classic, ScriptType (+3 more)
 
 ### Community 186 - "yacc.py"
 Cohesion: 0.05
 Nodes (17): digraph(), format_result(), format_stack_entry(), get_caller_module_dict(), Grammar, GrammarError, LRItem, LRTable (+9 more)
 
+### Community 187 - "OffscreenCanvasRenderingContext2D"
+Cohesion: 0.02
+Nodes (3): CanvasFillRule, OffscreenCanvasRenderingContext2D, Path2D
+
 ### Community 189 - "CommandName"
 Cohesion: 0.04
-Nodes (43): CommandName, BackColor, Bold, Copy, CreateLink, Cut, DefaultParagraphSeparator, Delete (+35 more)
+Nodes (42): CommandName, BackColor, Bold, Copy, CreateLink, Cut, DefaultParagraphSeparator, Delete (+34 more)
 
 ### Community 190 - "webgpu/mod.rs"
 Cohesion: 0.02
-Nodes (60): EventTarget, GlobalScope, GPU, GPUAdapter, GPUAdapterInfo, GPUBindGroup, GPUBindGroupLayout, GPUBuffer (+52 more)
+Nodes (64): DomGlobalGeneric, EventTarget, GlobalScope, GPU, GPUAdapter, GPUAdapterInfo, GPUBindGroup, GPUBindGroupLayout (+56 more)
 
 ### Community 191 - "tests/cookie.rs"
-Cohesion: 0.04
-Nodes (33): add_cookie_to_storage(), add_retrieve_cookies(), assert_ip_cookie_bucket_collision_eviction(), delay_to_ensure_different_timestamp(), test_clear_storage_for_url_expires_matching_cookies(), test_clear_storage_without_url_clears_everything(), test_cookie_eviction_all_nonsecure_new_nonsecure(), test_cookie_eviction_all_nonsecure_new_secure() (+25 more)
+Cohesion: 0.11
+Nodes (20): add_cookie_to_storage(), add_retrieve_cookies(), assert_ip_cookie_bucket_collision_eviction(), delay_to_ensure_different_timestamp(), test_clear_storage_for_url_expires_matching_cookies(), test_clear_storage_without_url_clears_everything(), test_cookie_eviction_all_nonsecure_new_nonsecure(), test_cookie_eviction_all_nonsecure_new_secure() (+12 more)
 
-### Community 192 - "ScriptToConstellationMessage"
-Cohesion: 0.02
-Nodes (74): FromEmbedderLogger, FromScriptLogger, log_entry(), ScriptToConstellationChan, ScriptToConstellationMessage, AbortLoadUrl, AcquireWakeLock, ActivateDocument (+66 more)
+### Community 192 - "opts.rs"
+Cohesion: 0.04
+Nodes (26): get(), initialize_options(), OPTIONS, Opts, NewScriptEventLoopProcessInfo, FromEmbedderLogger, FromScriptLogger, log_entry() (+18 more)
 
 ### Community 193 - "VideoFrame"
 Cohesion: 0.04
-Nodes (18): GStreamerDeviceMonitor, GStreamerBuffer, RenderAndroid, create_render(), GStreamerBuffer, GStreamerRender, Render, Render (+10 more)
+Nodes (19): GStreamerBuffer, RenderAndroid, create_render(), GStreamerBuffer, GStreamerRender, Render, RenderDummy, GStreamerBuffer (+11 more)
 
 ### Community 194 - "indexeddb/engines/sqlite.rs"
-Cohesion: 0.05
-Nodes (24): CreateObjectResult, AlreadyExists, Created, IndexedDBIndex, IndexedDBKeyRange, test_as_singleton(), KvsEngine, KvsOperation (+16 more)
+Cohesion: 0.06
+Nodes (26): CreateObjectResult, AlreadyExists, Created, IndexedDBIndex, IndexedDBKeyRange, KeyPath, Sequence, String (+18 more)
 
 ### Community 195 - "graph.rs"
-Cohesion: 0.08
-Nodes (12): AudioGraph, Connection, Edge, InputPort, Node, OutputPort, PortId, PortId<Kind> (+4 more)
+Cohesion: 0.04
+Nodes (34): AudioContext, AudioContextError, AudioContextOptions, OfflineAudioContext, RealTimeAudioContext, LatencyCategory, Balanced, Interactive (+26 more)
 
 ### Community 196 - "XMLHttpRequest"
-Cohesion: 0.04
-Nodes (23): is_ascii_printable(), normalize_type_string(), ErrorType, Abort, Timeout, GenerationId, TrustedXHRAddress, XHRContext (+15 more)
+Cohesion: 0.05
+Nodes (20): ErrorType, Abort, Timeout, GenerationId, is_field_value(), TrustedXHRAddress, XHRContext, XHRProgress (+12 more)
 
-### Community 197 - "ActorEncode"
-Cohesion: 0.06
-Nodes (14): ActorEncode, base_name(), BlackboxingActor, BlackboxRange, BlackboxRequest, BlackboxSourceLocation, BreakpointListActor, BreakpointRequest (+6 more)
-
-### Community 198 - "ReadableByteStreamController"
+### Community 198 - "MediaList"
 Cohesion: 0.08
-Nodes (10): PullAlgorithmFulfillmentHandler, PullAlgorithmRejectionHandler, PullIntoDescriptor, QueueEntry, ReadableByteStreamController, ReaderType, Byob, Default (+2 more)
+Nodes (5): MediaList, MediaQueryList, MediaQueryListMatchState, Changed, Same
 
 ### Community 199 - "AbsoluteColor"
-Cohesion: 0.05
-Nodes (22): AbsoluteColor, build(), build_conic(), build_linear(), build_radial(), conic_gradient_items_to_color_stops(), create_webrender_stops(), fixup_stops() (+14 more)
+Cohesion: 0.03
+Nodes (28): AbsoluteColor, ComputedTransformStyle, ToWebRender, build(), build_conic(), build_linear(), build_radial(), conic_gradient_items_to_color_stops() (+20 more)
 
 ### Community 200 - "XRWebGLLayer"
 Cohesion: 0.04
@@ -2108,91 +2149,87 @@ Nodes (26): ActionItem, Key, Null, Pointer, Wheel, ActionsByTick, compute_tick_d
 
 ### Community 205 - "ByteString"
 Cohesion: 0.03
-Nodes (16): ByteString, is_token(), Vec<u8>, Guard, Immutable, None, Request, RequestNoCors (+8 more)
+Nodes (18): ByteString, Vec<u8>, Guard, Immutable, None, Request, RequestNoCors, Response (+10 more)
 
 ### Community 206 - "RasterImage"
-Cohesion: 0.06
-Nodes (12): DefaultImageDecoder, DefaultImageDecoder<'a>, GenericImageDecoder, GenericImageDecoder<'a>, Apng, Bmp, Gif, Ico (+4 more)
+Cohesion: 0.05
+Nodes (15): DefaultImageDecoder, DefaultImageDecoder<'a>, GenericImageDecoder, GenericImageDecoder<'a>, Apng, Bmp, Gif, Ico (+7 more)
 
 ### Community 207 - "T"
-Cohesion: 0.04
-Nodes (22): Method, De, Ser, Ser<'a, T>, Ser<'_, ContentType>, Ser<'_, Cookie<'_>>, Ser<'_, HeaderMap>, Ser<'_, Method> (+14 more)
-
-### Community 208 - "FocusableArea"
 Cohesion: 0.05
-Nodes (28): compare_tab_indices(), Continue, No, Yes, DocumentFocusHandler, FocusableArea, IFrameViewport, Node (+20 more)
+Nodes (15): De, Ser, Ser<'a, T>, Ser<'_, ContentType>, Ser<'_, Cookie<'_>>, Ser<'_, HeaderMap>, Ser<'_, Method>, Ser<'_, Mime> (+7 more)
+
+### Community 208 - "DocumentFocusHandler"
+Cohesion: 0.13
+Nodes (9): DocumentFocusHandler, SequentialFocusNavigationMechanism, Dom, FirstOrLast, Sequential, SequentialFocusDirection, Backward, Forward (+1 more)
 
 ### Community 209 - "MessagePort"
-Cohesion: 0.04
-Nodes (13): MessageEvent, SrcObject, MessagePort, ServiceWorker, WindowProxy, MessageChannel, MessagePort, ClientOrServiceWorkerOrMessagePort (+5 more)
+Cohesion: 0.06
+Nodes (7): MessageEvent, SrcObject, MessagePort, ServiceWorker, WindowProxy, MessageChannel, MessagePort
 
 ### Community 210 - "gpuadapter.rs"
-Cohesion: 0.05
-Nodes (3): GPUSupportedLimits, GPUSupportedLimits<D>, set_limit()
+Cohesion: 0.04
+Nodes (7): CallbackContainer, DroppableGPUAdapter, GPUAdapter, GPUAdapter<D>, GPUSupportedLimits, GPUSupportedLimits<D>, set_limit()
 
 ### Community 211 - "bindings/principals.rs"
-Cohesion: 0.08
-Nodes (10): PermanentRoot, ServoJSPrincipals, ServoJSPrincipalsRef, destroy_servo_jsprincipal(), PRINCIPALS_CALLBACKS, principals_is_addon_principal(), principals_is_system_principal(), read_jsprincipal() (+2 more)
+Cohesion: 0.11
+Nodes (9): ServoJSPrincipals, ServoJSPrincipalsRef, destroy_servo_jsprincipal(), PRINCIPALS_CALLBACKS, principals_is_addon_principal(), principals_is_system_principal(), read_jsprincipal(), subsumes() (+1 more)
+
+### Community 212 - "File"
+Cohesion: 0.05
+Nodes (18): File, FileList, substitute_with_local_script(), BeautifyFileType, Css, Js, create_output_file(), create_temp_files() (+10 more)
 
 ### Community 213 - "dom/console.rs"
-Cohesion: 0.05
-Nodes (27): apply_sprintf_substitutions(), Console, console_argument_from_handle_value(), console_map_object_from_handle_value(), console_object_from_handle_value(), format_float_substitution(), format_integer_substitution(), get_js_stack() (+19 more)
+Cohesion: 0.04
+Nodes (45): DevtoolsConsoleMessage, accessor_value_from_property_descriptor(), apply_sprintf_substitutions(), Console, console_argument_from_handle_value(), console_map_object_from_handle_value(), console_object_from_handle_value(), format_float_substitution() (+37 more)
 
 ### Community 214 - "BluetoothGATTCharacteristic"
 Cohesion: 0.07
-Nodes (11): BluetoothGATTCharacteristic, Btleplug, Mock, BluetoothGATTDescriptor, Btleplug, Mock, BluetoothGATTService, Btleplug (+3 more)
+Nodes (9): BluetoothGATTCharacteristic, Btleplug, Mock, BluetoothGATTDescriptor, Btleplug, Mock, BluetoothGATTService, Btleplug (+1 more)
 
 ### Community 215 - "components/storage/cache_storage.rs"
-Cohesion: 0.06
-Nodes (17): CacheStorageError, Internal, CacheStorageEngine, CacheStorageThread, CacheStorageThread<E>, CacheStorageThreadFactory, CacheStorageThreadHandle, MemCacheStorageEngine (+9 more)
+Cohesion: 0.08
+Nodes (13): CacheStorageError, Internal, CacheStorageEngine, CacheStorageThread, CacheStorageThread<E>, CacheStorageThreadFactory, CacheStorageThreadHandle, MemCacheStorageEngine (+5 more)
 
 ### Community 216 - "Token"
-Cohesion: 0.03
-Nodes (57): is_valid_continuation(), is_valid_start(), create_binary_expression(), Literal, Parser, CNameToken, Error, ExpectedOperator (+49 more)
+Cohesion: 0.04
+Nodes (39): Literal, CNameToken, Error, ExpectedOperator, IllegalCharacter, InvalidNCName, InvalidVariableReference, UnterminatedStringLiteral (+31 more)
 
 ### Community 217 - "webgpu/canvas_context.rs"
-Cohesion: 0.07
-Nodes (15): ContextConfiguration, PRESENTATION_BUFFER_COUNT, Buffer, ContextData, crate::WGPU, image_data(), MappedBuffer, PresentationStagingBuffer (+7 more)
+Cohesion: 0.05
+Nodes (22): ScreenshotReadinessRequest, ScreenshotRequestState, Pending, WaitingOnScript, Epoch, WebRenderEpoch, WebRenderEpochToU16, ContextConfiguration (+14 more)
 
 ### Community 218 - "Handler"
-Cohesion: 0.17
-Nodes (4): cookie_msg_to_cookie(), Handler, unwrap_first_element_response(), wait_for_ipc_response_flatten()
+Cohesion: 0.16
+Nodes (3): Handler, unwrap_first_element_response(), wait_for_ipc_response_flatten()
 
 ### Community 219 - "ohos/mod.rs"
-Cohesion: 0.02
-Nodes (93): InputMethodControl, InputMethodType, Color, Date, DatetimeLocal, Email, Month, Number (+85 more)
+Cohesion: 0.04
+Nodes (22): debug_jsobject(), get_display_density(), get_native_values(), init(), init_app(), init_servo(), initialize_logging_once(), InitOpts (+14 more)
 
 ### Community 220 - "Mach"
 Cohesion: 0.02
-Nodes (30): CommandContext, FailedCommandError, MachError, MissingFileError, NoCommandError, UnknownCommandError, UnrecognizedArgumentError, SettingsProvider() (+22 more)
+Nodes (23): CommandContext, FailedCommandError, MachError, MissingFileError, NoCommandError, UnknownCommandError, UnrecognizedArgumentError, SettingsProvider() (+15 more)
 
 ### Community 221 - "TaskSourceName"
 Cohesion: 0.04
-Nodes (38): CancellableTask, CancellableTask<T>, task!, NonSendTaskOnce, T, TaskBox, TaskCanceller, task_source_functions! (+30 more)
+Nodes (37): CancellableTask, CancellableTask<T>, task!, NonSendTaskOnce, T, TaskBox, TaskCanceller, task_source_functions! (+29 more)
 
 ### Community 222 - "ServoParser"
 Cohesion: 0.08
 Nodes (11): Document, ParserContext, ParserKind, Normal, ScriptCreated, populate_about_blank(), ServoParser, Tokenizer (+3 more)
 
 ### Community 223 - "buffer_source.rs"
-Cohesion: 0.04
-Nodes (17): ArrayBufferViewOrArrayBufferRef, ArrayBufferViewOrArrayBufferRef<'a>, ArrayBuffer, ArrayBufferView, BufferSource, ArrayBuffer, ArrayBufferView, byte_size() (+9 more)
-
-### Community 225 - "wgpu_thread.rs"
 Cohesion: 0.03
-Nodes (55): DroppableGPURenderPassEncoder, GPURenderPassEncoder, GPURenderPassEncoder<D>, Global, BindingCommand, SetBindGroup, SetImmediates, CommandEncoderCommand (+47 more)
+Nodes (26): ArrayBufferViewOrArrayBufferRef, ArrayBufferViewOrArrayBufferRef<'a>, ArrayBuffer, ArrayBufferView, BufferSource, ArrayBuffer, ArrayBufferView, byte_size() (+18 more)
 
 ### Community 226 - "BluetoothRequest"
-Cohesion: 0.03
-Nodes (52): BluetoothDevice, BluetoothRemoteGATTServer, BluetoothCharacteristicsMsg, BluetoothDescriptorMsg, BluetoothDescriptorsMsg, BluetoothDeviceMsg, BluetoothError, InvalidState (+44 more)
-
-### Community 228 - "ActorError"
-Cohesion: 0.09
-Nodes (12): ActorError, BadParameterType, Internal, MissingParameter, UnrecognizedPacketType, PageStyleActor, PreferenceActor, ReflowActor (+4 more)
+Cohesion: 0.04
+Nodes (41): BluetoothThreadFactory, CONNECTION_TIMEOUT_MS, data_filter_matches(), DISCOVERY_TIMEOUT_MS, GenericSender<BluetoothRequest>, matches_filter(), MAXIMUM_TRANSACTION_TIME, BluetoothCharacteristicMsg (+33 more)
 
 ### Community 230 - "wpt/run.py"
-Cohesion: 0.05
-Nodes (27): GlobalTestData, LogData, ProcessOutputData, ServoFormatter, ServoHandler, SuiteStartData, TestEndData, TestStartData (+19 more)
+Cohesion: 0.06
+Nodes (19): GlobalTestData, LogData, ProcessOutputData, ServoFormatter, ServoHandler, SuiteStartData, TestEndData, TestStartData (+11 more)
 
 ### Community 231 - "tests/mime_classifier.rs"
 Cohesion: 0.05
@@ -2204,123 +2241,119 @@ Nodes (16): AtEndOfFile, No, Yes, Attribute, DecodingState, DetectingState, .BUF
 
 ### Community 233 - "RTCPeerConnection"
 Cohesion: 0.02
-Nodes (33): DataChannelId, GatheringState, Complete, Gathering, New, IceConnectionState, Checking, Closed (+25 more)
+Nodes (36): GatheringState, Complete, Gathering, New, IceConnectionState, Checking, Closed, Completed (+28 more)
 
 ### Community 235 - "capi/value.rs"
 Cohesion: 0.06
-Nodes (53): servo_dictionary_create(), servo_dictionary_free(), servo_dictionary_get_key(), servo_dictionary_get_keys(), servo_dictionary_get_size(), servo_dictionary_has_key(), servo_dictionary_set_key(), servo_list_create() (+45 more)
+Nodes (54): write_c_string(), servo_dictionary_create(), servo_dictionary_free(), servo_dictionary_get_key(), servo_dictionary_get_keys(), servo_dictionary_get_size(), servo_dictionary_has_key(), servo_dictionary_set_key() (+46 more)
 
 ### Community 236 - "HTMLIFrameElement"
-Cohesion: 0.05
-Nodes (22): PendingApprovalNavigation, IFrame, IFrameCollection, HTMLIFrameElement, IframeContext<'a>, LayoutDom<'_, HTMLIFrameElement>, LazyLoadResumptionSteps, None (+14 more)
+Cohesion: 0.11
+Nodes (8): HTMLIFrameElement, PipelineType, InitialAboutBlank, Navigation, ProcessingMode, FirstTime, NotFirstTime, snapshot_self()
 
 ### Community 238 - "base/id.rs"
-Cohesion: 0.05
+Cohesion: 0.06
 Nodes (27): CONSTELLATION_PIPELINE_NAMESPACE_ID, EMBEDDER_PIPELINE_NAMESPACE_ID, FIRST_CONTENT_PIPELINE_NAMESPACE_ID, Index<T>, Indexable, .DISPLAY_PREFIX, namespace_id!, size_of_test! (+19 more)
 
 ### Community 240 - "test_integration.c"
-Cohesion: 0.04
-Nodes (35): 10. Appendix C — Acceptance test patterns, W5.1 — Hang monitor on by default + kill permanently-hung scripts, W6.4 — Accessibility exposure to embedders, Phase 2 — Input and rendering parity, W5 — Stability, distribution, ecosystem (C6/C7) · L, evaluate_and_wait(), format_metric(), heap_in_use_bytes() (+27 more)
+Cohesion: 0.03
+Nodes (43): 1. Accessibility (AccessKit Integration), 2. Printing and PDF Export, 3. Credential Management & Autofill, Accessibility, Printing, and Credential Management Status, 10. Appendix C — Acceptance test patterns, W5.1 — Hang monitor on by default + kill permanently-hung scripts, W6.4 — Accessibility exposure to embedders, 4. Testing & build infrastructure (+35 more)
 
 ### Community 241 - "TextInput<T>"
-Cohesion: 0.07
-Nodes (9): DOMString, DispatchInput, SelectionDirection, Backward, Forward, None, SelectionState, TextInput<T> (+1 more)
+Cohesion: 0.06
+Nodes (15): DOMString, DispatchInput, SelectionDirection, Backward, Forward, None, TextInput<T>, TextInputSelectionDragHandler (+7 more)
 
 ### Community 242 - "RootedPromise"
-Cohesion: 0.02
-Nodes (27): get_buffer_source_copy(), InvalidModification, CurrentRealm, get_gatt_children(), response_async(), BluetoothRemoteGATTCharacteristic, MAXIMUM_ATTRIBUTE_LENGTH, BluetoothRemoteGATTDescriptor (+19 more)
+Cohesion: 0.01
+Nodes (61): InvalidModification, CurrentRealm, AllowedBluetoothDevice, AsyncBluetoothListener, Bluetooth, BluetoothContext<T>, BluetoothError, BluetoothExtraPermissionData (+53 more)
 
 ### Community 243 - "bluetooth/test.rs"
 Cohesion: 0.05
-Nodes (61): ADAPTER_ERROR, BLOCKLIST_DESCRIPTOR_UUID, BLOCKLIST_EXCLUDE_READS_CHARACTERISTIC_UUID, BLOCKLIST_EXCLUDE_READS_DESCRIPTOR_UUID, BLOCKLIST_TEST_ADAPTER, BLOCKLIST_TEST_SERVICE_UUID, BODY_SENSOR_LOCATION_CHARACTERISTIC_UUID, CHARACTERISTIC_USER_DESCRIPTION_UUID (+53 more)
+Nodes (63): ADAPTER_ERROR, BLOCKLIST_DESCRIPTOR_UUID, BLOCKLIST_EXCLUDE_READS_CHARACTERISTIC_UUID, BLOCKLIST_EXCLUDE_READS_DESCRIPTOR_UUID, BLOCKLIST_TEST_ADAPTER, BLOCKLIST_TEST_SERVICE_UUID, BODY_SENSOR_LOCATION_CHARACTERISTIC_UUID, CHARACTERISTIC_USER_DESCRIPTION_UUID (+55 more)
 
 ### Community 244 - "sys"
-Cohesion: 0.03
-Nodes (54): merge(), size(), delta_cell(), format_value(), load_baseline(), load_metrics(), main(), load_data() (+46 more)
+Cohesion: 0.05
+Nodes (39): merge(), size(), delta_cell(), format_value(), load_baseline(), load_metrics(), main(), load_data() (+31 more)
 
 ### Community 245 - "periodic_wave.rs"
-Cohesion: 0.15
-Nodes (7): CENTS_PER_RANGE, FFT_MAX_SIZE, FFT_MIN_SIZE, PeriodicWave, PeriodicWaveOptions, Wave, Wavetable
+Cohesion: 0.09
+Nodes (14): OscillatorType, Custom, Sawtooth, Sine, Square, Triangle, CENTS_PER_RANGE, FFT_MAX_SIZE (+6 more)
 
-### Community 246 - "vello_cpu_backend.rs"
+### Community 246 - ".Constructor"
 Cohesion: 0.07
-Nodes (16): CanvasStoreSizesPerType, FillOrStrokeStyle, paint(), snapshot_as_pixmap(), State, Drawing, Rendered, VelloCPUDrawTarget (+8 more)
+Nodes (21): find_matching_shared_worker(), find_or_claim_shared_worker(), prune_closed_shared_workers(), remove_creating_shared_worker(), send_connect_to_created_worker(), SharedWorker, SharedWorkerClaimResult, Claimed (+13 more)
 
 ### Community 248 - "servo-base"
 Cohesion: 0.09
 Nodes (68): servo, profile_tests, script_tests, servo-allocator, servo-background-hang-monitor, servo-background-hang-monitor-api, servo-base, servo-bluetooth (+60 more)
 
 ### Community 249 - "DOMRectReadOnly"
-Cohesion: 0.06
-Nodes (7): to_frozen_array(), CachedFrozenArray, create_a_domrectreadonly_from_the_dictionary(), DOMRectReadOnly, ResizeObserverEntry, ResizeObserverSize, ResizeObserverSizeImpl
+Cohesion: 0.04
+Nodes (7): to_frozen_array(), create_a_domrectreadonly_from_the_dictionary(), DOMRectReadOnly, IntersectionObserverEntry, ResizeObserverEntry, ResizeObserverSize, ResizeObserverSizeImpl
 
-### Community 250 - "gui.rs"
-Cohesion: 0.06
-Nodes (6): configure_fonts(), embedder_image_to_egui_image(), Gui, load_cjk_fonts(), load_pending_favicons(), truncate_with_ellipsis()
+### Community 250 - "HTMLTrackElement"
+Cohesion: 0.08
+Nodes (7): HTMLTrackElement, HTMLTrackElementFetchListener, TextTrackReadinessState, FailedToLoad, Loaded, Loading, None
 
 ### Community 251 - "macos/font.rs"
-Cohesion: 0.04
-Nodes (21): FontCacheKey, CACHE, CachedCTFont, CoreTextFontCache, CoreTextFontCacheKey, VariationAxisInformation, CachedKernTable, Font (+13 more)
+Cohesion: 0.03
+Nodes (28): FontCacheKey, CACHE, CachedCTFont, CoreTextFontCache, CoreTextFontCacheKey, VariationAxisInformation, CachedKernTable, FontTable (+20 more)
 
 ### Community 252 - "ServoWebViewDelegate"
-Cohesion: 0.05
-Nodes (18): context_menu_action_from_i32(), ServoAlertDialogCallback, ServoAuthenticationCallback, ServoCertErrorCallback, ServoColorPickerCallback, ServoConfirmDialogCallback, ServoConsoleLogLevel, Debug (+10 more)
+Cohesion: 0.04
+Nodes (25): ServoAlertDialogCallback, ServoAuthenticationCallback, ServoCertErrorCallback, ServoColorPickerCallback, ServoConfirmDialogCallback, ServoPermissionCallback, ServoPermissionType, BackgroundSync (+17 more)
 
 ### Community 254 - "actors/thread.rs"
 Cohesion: 0.06
-Nodes (26): DowncastableActorArc, GetBreakableLinesReply, GetBreakpointPositionsCompressedReply, GetBreakpointPositionsQuery, GetBreakpointPositionsRequest, SourceActor, SourceContentReply, SourceForm (+18 more)
+Nodes (26): GetBreakableLinesReply, GetBreakpointPositionsCompressedReply, GetBreakpointPositionsQuery, GetBreakpointPositionsRequest, SourceActor, SourceContentReply, SourceForm, SourceManager (+18 more)
 
 ### Community 255 - "actors/stylesheets.rs"
 Cohesion: 0.13
 Nodes (9): GetInnerOrOuterHTMLReply, INITIAL_LENGTH, LongStringActor, LongStringObj, SubstringReply, GetStyleSheetsReply, GetTextReply, StyleSheetData (+1 more)
 
 ### Community 256 - "script_bindings/conversions.rs"
-Cohesion: 0.05
-Nodes (36): ByteString, DomRoot<T>, DOMString, EventModifierInit<D>, Finite<T>, get_dom_class(), IDLInterface, .PROTO_FIRST (+28 more)
+Cohesion: 0.06
+Nodes (31): ByteString, DomRoot<T>, DOMString, EventModifierInit<D>, Finite<T>, get_dom_class(), is_array_like(), is_dom_proxy() (+23 more)
 
-### Community 257 - "Gamepad"
-Cohesion: 0.05
-Nodes (6): Gamepad, GamepadButton, GamepadHapticActuator, DualRumbleEffectParams, GamepadHapticEffectType, DualRumble
-
-### Community 258 - "Preferences"
-Cohesion: 0.04
-Nodes (37): [f64; 4], impl_from_pref!, impl_pref_from!, PrefValue, Array, Bool, Float, Int (+29 more)
+### Community 258 - "LineBreaker"
+Cohesion: 0.34
+Nodes (5): advance_to_linebreaks_in_range(), LineBreaker, linebreaks_in_range_after_current_offset(), test_linebreaker_ranges(), test_linebreaker_stateful_advance()
 
 ### Community 259 - "Joint"
-Cohesion: 0.06
-Nodes (31): JOINT_SPACE_MAP, XRHand, XRJointSpace, Finger, Finger<J>, FingerJoint, Metacarpal, PhalanxDistal (+23 more)
+Cohesion: 0.07
+Nodes (25): JOINT_SPACE_MAP, XRHand, XRJointSpace, Finger, Finger<J>, FingerJoint, Metacarpal, PhalanxDistal (+17 more)
 
 ### Community 260 - "android/font_list.rs"
-Cohesion: 0.15
+Cohesion: 0.16
 Nodes (8): default_system_generic_font_family(), Font, FONT_LIST, FontAlias, FontFamily, FontList, for_each_available_family(), for_each_variation()
 
 ### Community 261 - "ReportsChan"
-Cohesion: 0.04
-Nodes (40): LOG_FILE_VAR, Profiler, collect_reports(), macos_malloc_statistics(), mallinfo(), page_size(), proc_self_statm_field(), proportional_set_size() (+32 more)
+Cohesion: 0.05
+Nodes (36): LOG_FILE_VAR, Profiler, collect_reports(), macos_malloc_statistics(), mallinfo(), page_size(), proc_self_statm_field(), proportional_set_size() (+28 more)
 
 ### Community 263 - "functions.rs"
-Cohesion: 0.06
-Nodes (32): N, EvaluationCtx, PredicateCtx, Expression, FilterExpression, Literal, LocationStepExpression, PathExpression (+24 more)
+Cohesion: 0.05
+Nodes (33): N, EvaluationCtx, PredicateCtx, Expression, FilterExpression, Literal, LocationStepExpression, PathExpression (+25 more)
 
 ### Community 264 - "DOMMatrixReadOnly"
 Cohesion: 0.04
-Nodes (6): dommatrix2dinit_to_matrix(), dommatrixinit_to_matrix(), DOMMatrixReadOnly, normalize_point(), validate_and_fixup(), validate_and_fixup_2d()
+Nodes (8): dommatrix2dinit_to_matrix(), dommatrixinit_to_matrix(), DOMMatrixReadOnly, entries_to_matrix(), normalize_point(), transform_to_matrix(), validate_and_fixup(), validate_and_fixup_2d()
 
 ### Community 265 - "MediaStreamTrack"
 Cohesion: 0.04
-Nodes (6): MediaStream, MediaStreamTrack, RTCRtpReceiver, RTCRtpSender, RTCRtpTransceiver, RTCTrackEvent
+Nodes (7): MediaStreamTrackAudioSourceNode, MediaStream, MediaStreamTrack, RTCRtpReceiver, RTCRtpSender, RTCRtpTransceiver, RTCTrackEvent
 
-### Community 266 - "Request"
-Cohesion: 0.07
-Nodes (10): includes_credentials(), is_cors_safelisted_method(), is_method(), net_request_from_global(), normalize_method(), Request, body_text_stream(), BodyMixin (+2 more)
+### Community 266 - "Response"
+Cohesion: 0.04
+Nodes (13): includes_credentials(), is_cors_safelisted_method(), is_method(), net_request_from_global(), normalize_method(), Request, initialize_response(), is_null_body_status() (+5 more)
 
 ### Community 267 - "RopeIndex"
 Cohesion: 0.10
 Nodes (15): contents_vec(), Rope, RopeChars, RopeIndex, RopeMovementIterator, RopeSlice, RopeSlice<'a>, String (+7 more)
 
 ### Community 268 - "wgpu_thread.rs"
-Cohesion: 0.03
-Nodes (45): WebRenderWGPU, Error, Internal, OutOfMemory, Validation, ErrorFilter, Internal, OutOfMemory (+37 more)
+Cohesion: 0.02
+Nodes (50): Global, Error, Internal, OutOfMemory, Validation, ErrorFilter, Internal, OutOfMemory (+42 more)
 
 ### Community 269 - "IntersectionObserver"
 Cohesion: 0.07
@@ -2331,24 +2364,24 @@ Cohesion: 0.05
 Nodes (16): Duration, Performance, PerformanceEntryList, PerformanceObserver, ToDOMHighResTimeStamp, EntryType, ContainerTiming, LargestContentfulPaint (+8 more)
 
 ### Community 271 - "Block"
-Cohesion: 0.08
-Nodes (6): Block, FrameIterator, FrameIterator<'a>, FrameRef, UpmixedBlock, PortKind
+Cohesion: 0.06
+Nodes (6): Block, FrameIterator, FrameIterator<'a>, FrameRef, UpmixedBlock, DummyStreamReader
 
 ### Community 272 - "interaction_profiles.rs"
-Cohesion: 0.03
-Nodes (63): FrameState, Dead, OnStack, Suspended, Action, ClickState, Clicking, Done (+55 more)
+Cohesion: 0.05
+Nodes (49): BYTEDANCE_PICO_4_CONTROLLER_PROFILE, BYTEDANCE_PICO_G3_CONTROLLER_PROFILE, BYTEDANCE_PICO_NEO3_CONTROLLER_PROFILE, EXT_HAND_INTERACTION_PROFILE, FACEBOOK_TOUCH_CONTROLLER_PRO_PROFILE, FB_HAND_TRACKING_AIM_PROFILE, get_supported_interaction_profiles(), GOOGLE_DAYDREAM_CONTROLLER_PROFILE (+41 more)
 
 ### Community 273 - "ohos/font_list.rs"
 Cohesion: 0.06
 Nodes (38): FontRef, CACHE_FILENAME_SUFFIX, CACHE_REVISION, font_file_cached_on_disk(), get_directory(), parse_file_path(), parse_filename(), read_from_disk() (+30 more)
 
 ### Community 274 - "net/hsts.rs"
-Cohesion: 0.04
-Nodes (20): hsts_preload_size_of(), HstsEntry, HstsList, HstsPreloadList, PRELOAD_LIST_ENTRIES, unix_timestamp_to_nonzerou64(), is_schemelessy_same_site(), IncludeSubdomains (+12 more)
+Cohesion: 0.02
+Nodes (28): hsts_preload_size_of(), HstsEntry, HstsList, HstsPreloadList, PRELOAD_LIST_ENTRIES, unix_timestamp_to_nonzerou64(), is_schemelessy_same_site(), Blocklist (+20 more)
 
 ### Community 275 - "DOMErrorName"
-Cohesion: 0.06
-Nodes (32): DOMErrorName, AbortError, ConstraintError, DataCloneError, DataError, EncodingError, HierarchyRequestError, IndexSizeError (+24 more)
+Cohesion: 0.05
+Nodes (33): DOMErrorName, AbortError, ConstraintError, DataCloneError, DataError, EncodingError, HierarchyRequestError, IndexSizeError (+25 more)
 
 ### Community 276 - "AttributeStorage"
 Cohesion: 0.06
@@ -2356,7 +2389,7 @@ Nodes (13): AttributeEntry, Dom, Raw, AttributeStorage, AttrName, Qualified, Unq
 
 ### Community 277 - "HTMLFormElement"
 Cohesion: 0.01
-Nodes (46): Port, InteractiveElementCommand, Anchor, Button, HTMLElement, Input, Option, ValidityState (+38 more)
+Nodes (90): ToLayoutOptional, InteractiveElementCommand, Anchor, Button, HTMLElement, Input, Option, FormData (+82 more)
 
 ### Community 278 - "graphics_d3d11.rs"
 Cohesion: 0.05
@@ -2367,16 +2400,16 @@ Cohesion: 0.02
 Nodes (23): Calc, Parser, Calc, Parser, p_expression_binop(), p_expression_group(), p_expression_uminus(), p_statement_assign() (+15 more)
 
 ### Community 280 - "FileReader"
-Cohesion: 0.15
-Nodes (8): FileReader, FileReadingTask, ProcessRead, ProcessReadData, ProcessReadEOF, ProcessReadError, GenerationId, TrustedFileReader
+Cohesion: 0.08
+Nodes (22): FileReader, FileReaderFunction, ArrayBuffer, BinaryString, DataUrl, Text, FileReaderReadyState, Done (+14 more)
 
 ### Community 281 - "site_data.rs"
 Cohesion: 0.08
 Nodes (38): CookieStringStorage, servo_site_data_delete_all_cookies(), servo_site_data_delete_cookie(), servo_site_data_delete_cookies_for_url(), servo_site_data_flush_store(), servo_site_data_visit_all_cookies(), servo_site_data_visit_cookies_for_url(), ServoCookieFilter (+30 more)
 
 ### Community 282 - "android/mod.rs"
-Cohesion: 0.05
-Nodes (49): RenderingContext, servo_rendering_context_create_offscreen(), servo_rendering_context_create_software(), servo_rendering_context_create_window(), servo_rendering_context_free(), SERVO_RENDERING_CONTEXT_SOFTWARE, SERVO_RENDERING_CONTEXT_WINDOW, ANativeWindow_fromSurface() (+41 more)
+Cohesion: 0.10
+Nodes (29): ANativeWindow_fromSurface(), __android_log_write(), call(), CALLBACK_OBJECT, display_and_window_handle(), Java_org_servo_servoview_JNIServo_addPlatformWindow(), Java_org_servo_servoview_JNIServo_doFrame(), Java_org_servo_servoview_JNIServo_goBack() (+21 more)
 
 ### Community 283 - "animation_manager.rs"
 Cohesion: 0.09
@@ -2386,33 +2419,37 @@ Nodes (12): AnimationManager, root_node(), TransitionOrAnimationEvent, Transitio
 Cohesion: 0.08
 Nodes (4): Attr, is_relevant_attribute(), LayoutDom<'dom, Attr>, NamedNodeMap
 
+### Community 286 - "Data"
+Cohesion: 0.04
+Nodes (17): Data, Cancelled, Error, Payload, Serializable, MarkedAsSerializableInIdl, MarkedAsTransferableInIdl, StructuredData (+9 more)
+
 ### Community 287 - "FindBar"
-Cohesion: 0.06
-Nodes (17): BrowserWindow, CALLBACK FindBar::EditSubclassProc(), CALLBACK FindBar::WndProc(), FindBar, FindBar::FindBar(), m_browserWindow, m_closeBtnBounds, m_editHwnd (+9 more)
+Cohesion: 0.05
+Nodes (26): BrowserWindow, CALLBACK FindBar::EditSubclassProc(), CALLBACK FindBar::WndProc(), FindBar, FindBar::FindBar(), m_browserWindow, m_closeBtnBounds, m_editHwnd (+18 more)
 
 ### Community 288 - "TestDebuggerTab"
 Cohesion: 0.11
 Nodes (9): TestDebuggerTab, assert_source_breakable_lines_and_positions(), on_source_resource(), assert_source_content(), on_source_resource(), assert_sources_list(), on_source_resource(), frozen_multiset() (+1 more)
 
 ### Community 289 - "tests/font_context.rs"
-Cohesion: 0.05
-Nodes (15): font_family(), MockSystemFontService, style(), test_font_fallback(), test_font_group_find_by_codepoint(), test_font_group_is_cached_by_style(), test_font_template_is_cached(), TestContext (+7 more)
+Cohesion: 0.06
+Nodes (13): font_face_name(), font_family(), MockSystemFontService, style(), test_font_fallback(), test_font_group_find_by_codepoint(), test_font_group_is_cached_by_style(), test_font_template_is_cached() (+5 more)
 
-### Community 290 - "buffer_source_node.rs"
-Cohesion: 0.05
-Nodes (24): OnEndedCallback, ShouldPlay, Between, No, AudioBuffer, AudioBufferSourceNode, AudioBufferSourceNodeMessage, SetBuffer (+16 more)
+### Community 290 - "WebSocket"
+Cohesion: 0.07
+Nodes (10): ReportCSPViolationTask, WebSocket, WebSocketRequestState, Closed, Closing, Connecting, Open, WebSocketDomAction (+2 more)
 
 ### Community 291 - "servoshell/prefs.rs"
-Cohesion: 0.02
-Nodes (59): DiagnosticsLogging, DiagnosticsLoggingOption, AccessibilityTree, DisplayList, FlowTree, GcProfile, ProfileScriptEvents, ProgressiveWebMetrics (+51 more)
+Cohesion: 0.03
+Nodes (64): [f64; 4], impl_from_pref!, impl_pref_from!, PrefValue, Array, Bool, Float, Int (+56 more)
 
 ### Community 292 - "TrustedTypePolicyFactory"
-Cohesion: 0.06
-Nodes (9): TrustedScript, TrustedType, TrustedHTML, TrustedScript, TrustedScriptURL, TrustedTypePolicy, GlobalScope, TrustedTypeOrString (+1 more)
+Cohesion: 0.14
+Nodes (3): GlobalScope, TrustedTypeOrString, TrustedTypePolicyFactory
 
-### Community 293 - "RenderingContext"
-Cohesion: 0.04
-Nodes (52): 4.1 Paint / present flow, 4.2 Rendering contexts, 4.3 Screenshots, 4. Rendering pipeline and rendering contexts, 4. Testing & build infrastructure, C API (`servo-capi-tests`, `tests/capi`), CI, Rust (+44 more)
+### Community 293 - "update.py"
+Cohesion: 0.08
+Nodes (18): ArgumentParser, create_parser_create(), create_parser(), run_tests(), _check_clean(), create_parser(), diff_manifests(), log_error() (+10 more)
 
 ### Community 294 - "freetype/font_list.rs"
 Cohesion: 0.04
@@ -2423,32 +2460,32 @@ Cohesion: 0.06
 Nodes (30): GLPlayerExternalImages, GLPlayerMsg, Exit, Lock, RegisterPlayer, Unlock, UnregisterPlayer, GLPlayerMsgForward (+22 more)
 
 ### Community 296 - "textinput.rs"
-Cohesion: 0.07
-Nodes (38): ClipboardProvider, Lines, Multiple, Single, TextInput, DummyClipboardContext, make_text_input(), test_backspace_in_textarea_at_beginning_of_line() (+30 more)
+Cohesion: 0.09
+Nodes (34): ClipboardProvider, DummyClipboardContext, make_text_input(), test_backspace_in_textarea_at_beginning_of_line(), test_multi_line_text_input_with_maxlength_doesnt_allow_appending_characters_when_input_spans_lines(), test_perform_editing_action(), test_select_all(), test_selection_bounds() (+26 more)
 
 ### Community 297 - "Length"
-Cohesion: 0.05
-Nodes (42): SvgImage, Container, Defs, Group, Svg, Switch, Text, Use (+34 more)
+Cohesion: 0.10
+Nodes (22): Circle, Ellipse, Line, Path, Polygon, Polyline, Rectangle, Shape (+14 more)
 
 ### Community 298 - "walker.rs"
-Cohesion: 0.06
-Nodes (33): GetHighlighterReply, GetPageStyleReply, GetWalkerReply, InspectorActor, AttrMsg, DevtoolsEventListenerInfo, GetEventListenerInfoReply, GetUniqueSelectorReply (+25 more)
+Cohesion: 0.04
+Nodes (43): ActorError, BadParameterType, Internal, MissingParameter, UnrecognizedPacketType, GetHighlighterReply, GetPageStyleReply, GetWalkerReply (+35 more)
 
 ### Community 299 - "EventLoopWaker"
-Cohesion: 0.05
-Nodes (25): AnimationRefreshDriverObserver, BaseRefreshDriver, RefreshDriverObserver, TimerRefreshDriver, TimerThreadMessage, Quit, Request, CARET_BLINK_TIMEOUT (+17 more)
+Cohesion: 0.09
+Nodes (10): AnimationRefreshDriverObserver, RefreshDriverObserver, TimerRefreshDriver, TimerThreadMessage, Quit, Request, CARET_BLINK_TIMEOUT, CaretAnimation (+2 more)
 
 ### Community 300 - "OffsetDateTime"
-Cohesion: 0.05
-Nodes (12): FromInputValueString, is_leap_year(), max_day_in_month(), max_week_in_year(), OffsetDateTime, parse_date_component(), parse_month_component(), parse_time_component() (+4 more)
+Cohesion: 0.04
+Nodes (13): FromInputValueString, is_leap_year(), max_day_in_month(), max_week_in_year(), OffsetDateTime, parse_date_component(), parse_month_component(), parse_time_component() (+5 more)
 
 ### Community 301 - "panner_node.rs"
 Cohesion: 0.06
-Nodes (22): FRAMES_PER_BLOCK, DistanceModel, Exponential, Inverse, Linear, normalize_zero(), PannerNode, PannerNodeMessage (+14 more)
+Nodes (21): DistanceModel, Exponential, Inverse, Linear, normalize_zero(), PannerNode, PannerNodeMessage, SetConeGain (+13 more)
 
 ### Community 302 - "TabStrip"
-Cohesion: 0.07
-Nodes (19): BrowserTab, bounds, closeButtonBounds, id, title, url, viewHost, BrowserWindow (+11 more)
+Cohesion: 0.06
+Nodes (22): BrowserTab, bounds, closeButtonBounds, id, title, url, viewHost, BrowserWindow (+14 more)
 
 ### Community 303 - "net/decoder.rs"
 Cohesion: 0.08
@@ -2456,91 +2493,91 @@ Nodes (22): BoxedBody, BodyStream, BodyStreamError, Decoder, DECODER_BUFFER_SIZE
 
 ### Community 304 - "network_event.rs"
 Cohesion: 0.08
-Nodes (31): CacheDetails, CertificateFingerprint, CertificateIdentity, CertificateValidity, CookieWrapper, get_cookies_from_headers(), get_header_list(), get_raw_headers() (+23 more)
+Nodes (33): CacheDetails, CertificateFingerprint, CertificateIdentity, CertificateValidity, CookieWrapper, get_cookies_from_headers(), get_header_list(), get_raw_headers() (+25 more)
 
 ### Community 305 - "job_queue.rs"
 Cohesion: 0.05
-Nodes (13): mark_runtime_dead(), CustomElementReactionMicrotask, enqueue(), get_host_defined_data(), get_host_defined_global(), job_queue_clear(), JOB_QUEUE_TRAPS, JobQueue (+5 more)
+Nodes (11): CustomElementReactionMicrotask, enqueue(), get_host_defined_data(), get_host_defined_global(), job_queue_clear(), JOB_QUEUE_TRAPS, JobQueue, microtask_from_jsval() (+3 more)
 
 ### Community 306 - "serviceworker_manager.rs"
-Cohesion: 0.03
-Nodes (63): ServiceWorkerUnprivilegedContent, define_all_exposed_interfaces(), Message, FromConstellation, FromResource, RegistrationUpdateTarget, Active, Installing (+55 more)
+Cohesion: 0.06
+Nodes (37): Message, FromConstellation, FromResource, RegistrationUpdateTarget, Active, Installing, Waiting, ServiceWorker (+29 more)
 
-### Community 308 - "windows/font.rs"
-Cohesion: 0.04
-Nodes (18): au_from_em(), au_from_pt(), DirectWriteTableProvider, DirectWriteTableProvider<'platform_font>, em_to_px(), FontTable, Nondebug, Nondebug<T> (+10 more)
+### Community 307 - "CanvasGradient"
+Cohesion: 0.09
+Nodes (14): CanvasGradient, CanvasGradientStyle, Linear, Radial, ToFillOrStrokeStyle, CanvasPattern, CanvasGradientStop, LinearGradientStyle (+6 more)
 
-### Community 309 - "FetchResponseMsg"
-Cohesion: 0.07
-Nodes (14): NetworkListener<Listener>, NavigationListener, DiscardFetch, FetchResponseMsg, ProcessContentLength, ProcessCspViolations, ProcessRequestBody, ProcessResponse (+6 more)
+### Community 308 - "record.rs"
+Cohesion: 0.08
+Nodes (5): ByteString, DOMString, Record<K, V>, RecordKey, USVString
+
+### Community 309 - "shared/net/lib.rs"
+Cohesion: 0.02
+Nodes (64): NetworkListener<Listener>, NavigationListener, BlobTokenRefreshRequest, BlobTokenRevocationRequest, BoxedFetchCallback, cancel_async_fetch(), Fetch, FetchRedirect (+56 more)
 
 ### Community 310 - "components/bluetooth/lib.rs"
-Cohesion: 0.13
+Cohesion: 0.15
 Nodes (6): async_sleep(), BluetoothManager, is_mock_adapter(), matches_filters(), BluetoothResponseResult, BluetoothResult
 
-### Community 311 - "xrwebglbinding.rs"
+### Community 311 - "WebGLQuery"
 Cohesion: 0.08
-Nodes (8): XRCompositionLayer, XRCubeLayer, XRCylinderLayer, XREquirectLayer, XRMediaBinding, XRProjectionLayer, XRQuadLayer, XRWebGLBinding
+Nodes (13): DroppableWebGLQuery, WebGLQuery, validate_params(), WebGLSamplerValue, Float, GLenum, WebGLError, ContextLost (+5 more)
 
 ### Community 312 - "Handle"
-Cohesion: 0.09
-Nodes (44): Handle, Aes128Key, Aes192Key, Aes256Key, Argon2Password, ChaCha20Poly1305Key, Ed25519PrivateKey, Ed25519PublicKey (+36 more)
+Cohesion: 0.10
+Nodes (41): Handle, Aes128Key, Aes192Key, Aes256Key, Argon2Password, ChaCha20Poly1305Key, Ed25519PrivateKey, Ed25519PublicKey (+33 more)
 
 ### Community 316 - "IDLTypedefType"
 Cohesion: 0.04
 Nodes (3): IDLCallbackType, IDLTypedefType, IDLUnresolvedType
 
-### Community 317 - "HTMLStyleElement"
-Cohesion: 0.08
-Nodes (3): StylesheetContentsCache, StylesheetContentsCacheKey, HTMLStyleElement
+### Community 318 - "dom/srcset.rs"
+Cohesion: 0.09
+Nodes (14): collect_sequence_characters(), Descriptor, ImageSource, is_supported_image_mime_type(), is_valid_floating_point_number_string(), is_valid_non_negative_integer_string(), parse_a_sizes_attribute(), parse_a_srcset_attribute() (+6 more)
 
-### Community 318 - "script/test.rs"
-Cohesion: 0.03
-Nodes (32): ANONYMOUS_CONTENT_URL_DATA, parser_context_for_anonymous_content(), parser_context_for_document(), parser_context_for_document_with_reporter(), ParsingMode, Absolute, RelativeMinus, RelativePlus (+24 more)
-
-### Community 319 - "Type"
-Cohesion: 0.12
-Nodes (13): BorderImageRepeatKeyword, ComputedImageRendering, ComputedMixBlendMode, ComputedTextDecorationStyle, PhysicalPoint<Au>, PhysicalRect<Au>, PhysicalSides<Au>, PhysicalSize<Au> (+5 more)
+### Community 319 - "call"
+Cohesion: 0.09
+Nodes (21): call(), CallError, ChannelDied, ChannelNotInitialized, delete_webview(), get_raw_window_handle(), get_xcomponent_offset(), get_xcomponent_size() (+13 more)
 
 ### Community 320 - "clipboard_delegate.rs"
-Cohesion: 0.08
-Nodes (17): clear(), ClipboardDelegate, DefaultClipboardDelegate, get_text(), set_text(), SHARED_CLIPBOARD, SHARED_FALLBACK_CLIPBOARD, StringRequest (+9 more)
+Cohesion: 0.07
+Nodes (17): Clipboard, clear(), ClipboardDelegate, DefaultClipboardDelegate, get_text(), set_text(), SHARED_CLIPBOARD, SHARED_FALLBACK_CLIPBOARD (+9 more)
 
 ### Community 321 - "generic_channel/mod.rs"
-Cohesion: 0.11
+Cohesion: 0.10
 Nodes (32): create_crossbeam_receiver_set(), create_ipc_receiver_set(), channel(), generic_crossbeam_can_send(), generic_crossbeam_ping_pong(), generic_ipc_ping_pong(), GenericReceiver, GenericReceiver<T> (+24 more)
 
 ### Community 322 - "user_prompt.rs"
-Cohesion: 0.07
-Nodes (21): Handler, PageLoadStrategy, Eager, None, Normal, WebDriverSession, DEFAULT_IMPLICIT_WAIT, DEFAULT_PAGE_LOAD_TIMEOUT (+13 more)
+Cohesion: 0.04
+Nodes (33): WebDriverUserPrompt, Alert, BeforeUnload, Confirm, Default, FallbackDefault, File, Prompt (+25 more)
 
 ### Community 323 - "GlobalScope"
 Cohesion: 0.02
-Nodes (13): GlobalScopeHelpers, global_scope_from_global(), global_scope_from_global_static(), GlobalScope, BlobInfo, BlobResult, Bytes, File (+5 more)
+Nodes (14): global_scope_from_global(), global_scope_from_global_static(), GlobalScope, BlobInfo, BlobResult, Bytes, File, Option<CspList> (+6 more)
 
 ### Community 324 - "gpubuffer.rs"
-Cohesion: 0.10
-Nodes (5): ActiveBufferMapping, DroppableGPUBuffer, GPUBuffer, GPUBuffer<D>, Mapping
+Cohesion: 0.09
+Nodes (6): StackRootPromiseHelpers, ActiveBufferMapping, DroppableGPUBuffer, GPUBuffer, GPUBuffer<D>, Mapping
 
 ### Community 325 - "StylesheetContext"
-Cohesion: 0.08
-Nodes (9): ElementStylesheetLoader, Asynchronous, Synchronous, StylesheetContext, StylesheetContextId, StylesheetContextSource, Import, LinkElement (+1 more)
+Cohesion: 0.13
+Nodes (3): Asynchronous, StylesheetContext, StylesheetOwner
 
 ### Community 326 - "D"
-Cohesion: 0.03
-Nodes (31): De<ContentType>, De<Cookie<'static>>, De<HeaderMap>, De<Method>, De<Mime>, De<StatusCode>, De<(StatusCode, String)>, De<T> (+23 more)
+Cohesion: 0.04
+Nodes (24): De<ContentType>, De<Cookie<'static>>, De<HeaderMap>, De<Method>, De<Mime>, De<StatusCode>, De<(StatusCode, String)>, De<T> (+16 more)
 
 ### Community 327 - "yparse.py"
 Cohesion: 0.04
 Nodes (24): p_definition_literal(), p_definition_start(), p_definition_token(), p_definition_type(), p_definition_union(), p_definitions(), p_defsection(), p_idlist() (+16 more)
 
 ### Community 328 - "UserScript"
-Cohesion: 0.04
-Nodes (20): UserContentManager, USER_CONTENT_MANAGER_ID, USER_SCRIPT_ID, USER_STYLE_SHEET_ID, UserScript, UserScriptId, UserStyleSheet, UserStyleSheetId (+12 more)
+Cohesion: 0.03
+Nodes (43): UserContentManager, boost_thread(), BoostAffinity, Boost, No, capacity_of(), CoreId, NON_LITTLE_CPU_CORES (+35 more)
 
 ### Community 329 - "inputevent.rs"
-Cohesion: 0.04
-Nodes (11): ClipboardEvent, ClipboardEventType, Change, Copy, Cut, Other, Paste, DataTransfer (+3 more)
+Cohesion: 0.07
+Nodes (8): ClipboardEvent, ClipboardEventType, Change, Copy, Cut, Other, Paste, DataTransfer
 
 ### Community 330 - "GardenSnake.py"
 Cohesion: 0.03
@@ -2552,43 +2589,47 @@ Nodes (28): check_main_thread(), HandleKind, is_compatible_struct_size(), is_liv
 
 ### Community 332 - "ServoViewHost"
 Cohesion: 0.06
-Nodes (12): BrowserWindow, Servo, ServoViewHost, m_browserWindow, m_context, m_currentCursor, m_hwnd, m_parentHwnd (+4 more)
+Nodes (10): ServoViewHost, m_browserWindow, m_context, m_currentCursor, m_hwnd, m_parentHwnd, m_servo, m_trackingMouse (+2 more)
 
 ### Community 333 - "DragDataStore"
-Cohesion: 0.07
-Nodes (12): DataTransferItem, PendingStringCallback, Bitmap, DragDataStore, Kind, File, Text, Mode (+4 more)
+Cohesion: 0.10
+Nodes (10): Bitmap, DragDataStore, Kind, File, Text, Mode, Protected, ReadOnly (+2 more)
 
 ### Community 334 - "DOMPointReadOnly"
-Cohesion: 0.07
-Nodes (14): FakeXRRegionType, XRRay, EntityType, Mesh, Plane, Point, EntityTypes, HitTestResult (+6 more)
-
-### Community 335 - "gpushadermodule.rs"
 Cohesion: 0.06
-Nodes (8): GPUCompilationInfo, GPUCompilationInfo<D>, GPUCompilationMessage, GPUCompilationMessage<D>, DroppableGPUShaderModule, GPUShaderModule, GPUShaderModule<D>, ShaderCompilationInfo
+Nodes (23): FakeXRRegionType, XRRay, EntityType, Mesh, Plane, Point, EntityTypes, HitTestResult (+15 more)
+
+### Community 335 - "gpu.rs"
+Cohesion: 0.06
+Nodes (8): PromiseHelpers, RoutedPromiseListener, GPU, GPU<D>, DroppableGPUShaderModule, GPUShaderModule, GPUShaderModule<D>, WebGPUAdapterResponse
 
 ### Community 336 - "env"
 Cohesion: 0.05
 Nodes (48): permissions, runs-on, steps, strategy, if, needs, permissions, runs-on (+40 more)
 
 ### Community 337 - "BrowserWindow"
-Cohesion: 0.06
-Nodes (15): BrowserWindow, m_devtoolsPort, m_devtoolsToken, m_downloadManager, m_findBar, m_hwnd, m_isDark, m_omnibox (+7 more)
+Cohesion: 0.05
+Nodes (24): 2. Browser, Frames, Phase 1 — Complete the C API read/control surface, BrowserWindow, m_devtoolsPort, m_devtoolsToken, m_downloadManager, m_findBar (+16 more)
 
 ### Community 338 - "Length"
+Cohesion: 0.08
+Nodes (23): ClipPathDef, FilterDef, GradientDef, MarkerDef, PatternDef, SvgTree, AspectRatio, MeetOrSlice (+15 more)
+
+### Community 339 - "EventLoopWaker"
+Cohesion: 0.04
+Nodes (29): DefaultGamepadDelegate, GamepadDelegate, GamepadHapticEffectRequest, GamepadHapticEffectRequestType, Play, Stop, DefaultEventLoopWaker, GamepadIndex (+21 more)
+
+### Community 340 - "html.rs"
 Cohesion: 0.06
-Nodes (32): GradientDef, MarkerDef, PatternDef, SvgTree, AspectAlign, None, XMaxYMax, XMaxYMid (+24 more)
-
-### Community 339 - "desktop/gamepad.rs"
-Cohesion: 0.07
-Nodes (9): DefaultGamepadDelegate, GamepadDelegate, GamepadHapticEffectRequest, GamepadHapticEffectRequestType, Play, Stop, GamepadIndex, HapticEffect (+1 more)
-
-### Community 340 - "DocumentType"
-Cohesion: 0.07
-Nodes (3): DocumentType, DOMImplementation, XMLDocument
+Nodes (12): DocumentType, HTMLTemplateElement, HtmlSerialize, HtmlSerialize<'a>, SerializationCommand, CloseElement, OpenElement, SerializeNonelement (+4 more)
 
 ### Community 341 - "WorkerGlobalScope"
 Cohesion: 0.03
-Nodes (9): GlobalScope, ReportingEndpoint, SendReportsToEndpoints, GlobalScope, ReportingObserver, interrupt_callback(), ScriptFetchContext, WorkerGlobalScope (+1 more)
+Nodes (9): NavigationParams, Crypto, interrupt_callback(), ScriptFetchContext, WorkerGlobalScope, PolicyContainer, RequestPolicyContainer, Client (+1 more)
+
+### Community 342 - "TaffyStyloStyle<T>"
+Cohesion: 0.03
+Nodes (6): grid_line(), track_repeat(), as_clamped_i16(), RepetitionWrapper, StyloLineNameIter<'a>, TaffyStyloStyle<T>
 
 ### Community 343 - "OmniboxToolbar"
 Cohesion: 0.07
@@ -2599,28 +2640,20 @@ Cohesion: 0.06
 Nodes (16): ActiveDownload, filename, id, localPath, receivedBytes, state, totalBytes, url (+8 more)
 
 ### Community 345 - "DocumentEventHandler"
-Cohesion: 0.05
-Nodes (15): ClickCountingInfo, DocumentEventHandler, keyboard_event_fires_keypress_event(), InputEventResult, contains_user_gesture(), DragGesture, DragHandler, DocumentSelection (+7 more)
-
-### Community 346 - "listeners.rs"
-Cohesion: 0.07
-Nodes (21): BroadcastChannel, BlobTracker, Blob, File, BroadcastChannelState, Managed, UnManaged, FileListener (+13 more)
+Cohesion: 0.06
+Nodes (7): ClickCountingInfo, DocumentEventHandler, keyboard_event_fires_keypress_event(), GamepadUpdateType, Axis, Button, ConstellationInputEvent
 
 ### Community 347 - "InputType"
 Cohesion: 0.07
-Nodes (25): CheckboxInputType, InputMethodType, InputType, Button, Checkbox, Color, Date, DatetimeLocal (+17 more)
+Nodes (25): InputMethodType, InputType, Button, Checkbox, Color, Date, DatetimeLocal, Email (+17 more)
 
 ### Community 348 - "Convert"
-Cohesion: 0.06
+Cohesion: 0.07
 Nodes (16): Alpha, BlendingStyle, CanvasGradientStop, CompositionOrBlending, CompositionStyle, FillOrStrokeStyle, FillRule, Filter (+8 more)
 
-### Community 349 - "WorkerNavigator"
-Cohesion: 0.07
-Nodes (14): hardware_concurrency(), AppCodeName(), AppName(), AppVersion(), Language(), Oscpu(), Platform(), Product() (+6 more)
-
 ### Community 350 - "embedding/README.md"
-Cohesion: 0.14
-Nodes (13): 1. Current state (evidence), 2. Why iOS is not "one more target", 3. Time-boxed spike: the questions to answer, 4. Recommended decision (to be confirmed by the spike), 5. Immediate, safe follow-ups (independent of the spike outcome), See also, Servo on iOS — Feasibility Spike, Cookie Partitioning (CHIPS) Status Note (+5 more)
+Cohesion: 0.06
+Nodes (38): 1. Current state (evidence), 2. Why iOS is not "one more target", 3. Time-boxed spike: the questions to answer, 4. Recommended decision (to be confirmed by the spike), 5. Immediate, safe follow-ups (independent of the spike outcome), See also, Servo on iOS — Feasibility Spike, Cookie Partitioning (CHIPS) Status Note (+30 more)
 
 ### Community 351 - "TestFullSyncRun"
 Cohesion: 0.05
@@ -2630,17 +2663,13 @@ Nodes (20): 1. Verdict, 2. Build blockers (must be fixed first), 3. Security-cla
 Cohesion: 0.05
 Nodes (7): inner_appsrc_proxy!, MAX_SRC_QUEUE_SIZE, register_servo_src(), ServoSrc, .NAME, .URI_TYPE, Class
 
-### Community 353 - "Encoding"
-Cohesion: 0.08
-Nodes (5): get_buffer_source_slice(), Encoding, TextDecoder, TextDecoderCommon, encode_as_url_query_string()
+### Community 353 - "script/test.rs"
+Cohesion: 0.07
+Nodes (6): Lines, Multiple, Single, TextInput, HTMLDivElement, sizeof_checker!
 
 ### Community 354 - "Location"
 Cohesion: 0.11
 Nodes (8): Location, LocationWindow, DissimilarOrigin, SameOrigin, NavigationType, Normal, ReloadByConstellation, ReloadByScript
-
-### Community 355 - "RequestMode"
-Cohesion: 0.08
-Nodes (18): destination_as_str(), SEC_FETCH_DEST, SEC_FETCH_MODE, SEC_FETCH_SITE, SEC_FETCH_USER, SecFetchDest, SecFetchMode, Cors (+10 more)
 
 ### Community 356 - "CGClass"
 Cohesion: 0.04
@@ -2650,29 +2679,25 @@ Nodes (15): CGCallback, CGCallbackFunction, CGClass, declare(), ClassBase, Class
 Cohesion: 0.07
 Nodes (6): CGIterableMethodGenerator, CGMaplikeOrSetlikeMethodGenerator, iteratorNativeType(), IDLAsyncIterable, IDLIterable, IDLMaplikeOrSetlikeOrIterableBase
 
-### Community 360 - "Row"
-Cohesion: 0.06
-Nodes (34): Row, DiskCacheTable, Data, InsertionTimestamp, Key, Size, Table, Column (+26 more)
-
 ### Community 361 - "lazy_callback.rs"
-Cohesion: 0.08
+Cohesion: 0.09
 Nodes (19): CallbackSetter, CallbackSetter<T>, CallbackSetterVariants, InProcess, Ipc, lazy_callback(), lazy_callback_inprocess(), lazy_callback_ipc() (+11 more)
 
 ### Community 362 - "AudioRenderer"
 Cohesion: 0.12
 Nodes (14): OverSampleType, Double, None, Quadruple, OVERSAMPLING_QUALITY, TailtimeBlocks, One, Two (+6 more)
 
-### Community 363 - "bindings/error.rs"
+### Community 363 - "script_bindings/constructor.rs"
 Cohesion: 0.10
-Nodes (14): throw_constructor_without_new(), throw_invalid_this(), create_dom_exception(), Error, error_info_from_pending_exception(), ErrorInfo, javascript_error_info_from_error_info(), JsEngineError (+6 more)
+Nodes (19): call_default_constructor(), CallbackInit, create_callback_interface_objects(), create_interface(), create_namespace_interface_objects(), HasPropertyFn, init_cached_constructor(), InitType (+11 more)
 
 ### Community 365 - "ProfilerCategory"
 Cohesion: 0.04
 Nodes (61): TraceEntry, profile(), ProfilerCategory, ImageSaving, IpcBytesReceiver, IpcReceiver, Layout, Painting (+53 more)
 
 ### Community 366 - "publish_crates_io.py"
-Cohesion: 0.09
-Nodes (21): collect_packages(), crates_io_version_exists(), load_metadata(), log(), main(), parse_args(), publish_package(), publish_packages() (+13 more)
+Cohesion: 0.07
+Nodes (19): devtools_port(), pytest_sessionfinish(), pytest_sessionstart(), run_servoshell(), run(), servo_binary(), _start_web_servers(), _stop_web_servers() (+11 more)
 
 ### Community 367 - "tracking.rs"
 Cohesion: 0.07
@@ -2680,39 +2705,27 @@ Nodes (15): ALLOC, dump_unmeasured(), AccountingAlloc, AccountingAlloc<A>, ALLOC
 
 ### Community 368 - "window_named_properties.rs"
 Cohesion: 0.08
-Nodes (11): CLASS, class_name(), create(), define_property(), delete(), get_prototype_if_ordinary(), HANDLER, is_extensible() (+3 more)
+Nodes (12): CLASS, class_name(), create(), define_property(), delete(), get_own_property_descriptor(), get_prototype_if_ordinary(), HANDLER (+4 more)
 
 ### Community 369 - "AudioDecoderCallbacks"
-Cohesion: 0.07
-Nodes (17): AudioDecoder, AudioDecoderCallbacks, AudioDecoderCallbacksBuilder, AudioDecoderEosCallback, AudioDecoderError, Backend, BufferReadFailed, InvalidMediaFormat (+9 more)
+Cohesion: 0.06
+Nodes (18): AudioDecoder, AudioDecoderCallbacks, AudioDecoderCallbacksBuilder, AudioDecoderEosCallback, AudioDecoderError, Backend, BufferReadFailed, InvalidMediaFormat (+10 more)
 
 ### Community 370 - "debugger.js"
 Cohesion: 0.07
 Nodes (30): attachSteppingHooks(), blackboxing, buildBindings(), callPropertyOnObject(), clearSteppingHooks(), createEnvironmentActor(), createFrameActor(), createSideEffectFreeDebugger() (+22 more)
 
-### Community 371 - "Sink"
-Cohesion: 0.13
-Nodes (4): Text, ParseNode, ParseNodeData, Sink
+### Community 371 - "FontFaceSet"
+Cohesion: 0.11
+Nodes (3): FontFaceSet, FontQueryParameters, FontQuerySyntaxError
 
-### Community 372 - "servotestutils.rs"
+### Community 375 - "PipeTo"
+Cohesion: 0.12
+Nodes (13): PipeTo, PipeToState, Finalized, PendingRead, PendingReady, ShuttingDownPendingAction, ShuttingDownWithPendingWrites, Starting (+5 more)
+
+### Community 376 - "ServoAction"
 Cohesion: 0.07
-Nodes (3): AccessibilityUpdateResult, LayoutResult, ServoTestUtils
-
-### Community 374 - "MimeType"
-Cohesion: 0.06
-Nodes (4): MimeType, MimeTypeArray, Plugin, PluginArray
-
-### Community 375 - "layout/traversal.rs"
-Cohesion: 0.08
-Nodes (16): LayoutRoot, BoxDamageAction, CollectLayoutRoot, InvalidateFragmentTreeAboveLayoutRoot, InvalidateFragmentTreeBelowLayoutRoot, InvalidateScrollableOverflow, None, RebuildAncestor (+8 more)
-
-### Community 376 - "bindings/utils.rs"
-Cohesion: 0.07
-Nodes (7): crate::DomTypeHolder, DOM_CALLBACKS, extract_exception_info(), instance_class_has_proto_at_depth(), instance_class_is_error(), is_platform_object(), is_platform_object_static()
-
-### Community 377 - "gpuerror.rs"
-Cohesion: 0.05
-Nodes (10): GPUError, GPUError<D>, GPUInternalError, GPUInternalError<D>, GPUOutOfMemoryError, GPUOutOfMemoryError<D>, GPUValidationError, GPUValidationError<D> (+2 more)
+Nodes (24): focus_webview(), load_url(), on_surface_created_cb(), ServoAction, CreatePlatformWindow, FocusWindow, GoBack, GoForward (+16 more)
 
 ### Community 378 - "run_in_headless_android_emulator.py"
 Cohesion: 0.07
@@ -2722,20 +2735,20 @@ Nodes (19): colored(), parse_message(), process_data(), tshark(), call(), check_
 Cohesion: 0.20
 Nodes (10): continue-on-error, env, if, name, needs, runs-on, timeout-minutes, UV_PROJECT (+2 more)
 
-### Community 380 - "components/devtools/lib.rs"
-Cohesion: 0.04
-Nodes (33): AutocompleteReply, ConsoleActor, ConsoleClearMessage, ConsoleResource, ConsoleMessage, PageError, DevtoolsConsoleMessage, DevtoolsPageError (+25 more)
+### Community 380 - "actors/console.rs"
+Cohesion: 0.11
+Nodes (18): AutocompleteReply, ConsoleActor, ConsoleClearMessage, ConsoleResource, ConsoleMessage, PageError, DevtoolsPageError, EvaluateJSAsyncReply (+10 more)
 
 ### Community 381 - "Resource"
 Cohesion: 0.07
 Nodes (23): DefaultResourceReader, submit_resource_reader!, read_bytes(), read_string(), Resource, AboutMemoryHTML, BadCertHTML, BluetoothBlocklist (+15 more)
 
-### Community 382 - "record.rs"
-Cohesion: 0.04
-Nodes (13): ByteString, DOMString, Record<K, V>, RecordKey, USVString, animation_property_name_to_idl_attribute_name(), get_property_declarations(), KeyframeEffect (+5 more)
+### Community 382 - "keyframeeffect.rs"
+Cohesion: 0.03
+Nodes (33): Animation, AnimationEffect, IterationDurationOrAuto, Auto, Duration, SpecifiedTimingProperties, UnrestrictedDoubleOrString, AnimationTimeline (+25 more)
 
 ### Community 383 - "JSTracer"
-Cohesion: 0.09
+Cohesion: 0.08
 Nodes (21): AuthorStyles<S>, AuthorStylesheetSet<S>, Box<T>, CustomTraceable, DocumentStylesheetSet<S>, Finger<J>, Hand<J>, indexmap::IndexSet<T> (+13 more)
 
 ### Community 384 - "with"
@@ -2745,10 +2758,6 @@ Nodes (45): env, max_chunk_id, NAME, RUST_BACKTRACE, profile, wpt-args, jobs, re
 ### Community 385 - "TimeRangesContainer"
 Cohesion: 0.07
 Nodes (11): TimeRange, TimeRanges, TimeRangesContainer, TimeRangesError, EndOlderThanStart, OutOfRange, add_order(), add_overlapping() (+3 more)
-
-### Community 386 - "Navigator"
-Cohesion: 0.03
-Nodes (9): Clipboard, MediaDevices, matches_web_plus_protocol(), Navigator, ServiceWorkerContainer, WakeLock, WakeLockType, UserActivation (+1 more)
 
 ### Community 387 - "runner.py"
 Cohesion: 0.08
@@ -2760,38 +2769,42 @@ Nodes (42): default, required, type, default, required, type, default, required 
 
 ### Community 389 - "FileSystemEntry"
 Cohesion: 0.06
-Nodes (6): FileSystem, FileSystemDirectoryEntry, FileSystemDirectoryReader, PendingEntriesCallback, FileSystemEntry, PendingEntryCallback
+Nodes (5): FileSystem, FileSystemDirectoryEntry, FileSystemDirectoryReader, PendingEntriesCallback, FileSystemEntry
 
 ### Community 390 - "JSContext"
-Cohesion: 0.10
-Nodes (6): AtomicRefCell<IndexSet<K>>, DomRefCell<IndexMap<K, V>>, DomRefCell<IndexSet<K>>, Maplike, Setlike, T
+Cohesion: 0.11
+Nodes (5): AtomicRefCell<IndexSet<K>>, DomRefCell<IndexMap<K, V>>, DomRefCell<IndexSet<K>>, Maplike, T
+
+### Community 391 - "XRSystem"
+Cohesion: 0.09
+Nodes (3): XRSessionMode, XRSystem, XRTest
 
 ### Community 392 - "Node"
-Cohesion: 0.14
-Nodes (4): HTMLBRElement, Node, NodeOrString<'a>, wrap_node_list()
+Cohesion: 0.16
+Nodes (3): HTMLBRElement, Node, NodeOrString<'a>
 
 ### Community 394 - "BackendError"
 Cohesion: 0.06
-Nodes (31): AsyncOperation, ReadOnly, ReadWrite, Schema, AsyncReadOnlyOperation, Count, GetAllItems, GetAllKeys (+23 more)
+Nodes (28): AsyncOperation, ReadOnly, ReadWrite, Schema, AsyncReadOnlyOperation, Count, GetAllItems, GetAllKeys (+20 more)
 
 ### Community 395 - "XPathWrapper<DomRoot<Node>>"
 Cohesion: 0.06
-Nodes (10): PrecedingNodeIteratorWithoutAncestors, Done, NotDone, previous_non_ancestor_node(), XPathWrapper, XPathWrapper<DomRoot<Attr>>, XPathWrapper<DomRoot<Element>>, XPathWrapper<DomRoot<Node>> (+2 more)
+Nodes (8): previous_non_ancestor_node(), XPathWrapper, XPathWrapper<DomRoot<Attr>>, XPathWrapper<DomRoot<Document>>, XPathWrapper<DomRoot<Element>>, XPathWrapper<DomRoot<Node>>, XPathWrapper<DomRoot<ProcessingInstruction>>, XPathWrapper<T>
 
 ### Community 396 - "with"
 Cohesion: 0.05
 Nodes (40): env, CARGO_INCREMENTAL, CI_PULL_REQUEST_BODY, RUST_BACKTRACE, SHELL, jobs, lint, runner-select (+32 more)
 
 ### Community 397 - "page_style.rs"
-Cohesion: 0.08
-Nodes (19): AppliedEntry, DevtoolsAutoMargins, GetAppliedReply, GetComputedReply, GetLayoutReply, IsPositionEditableReply, AppliedDeclaration, AppliedRule (+11 more)
+Cohesion: 0.06
+Nodes (22): AppliedEntry, DevtoolsAutoMargins, GetAppliedReply, GetComputedReply, GetLayoutReply, IsPositionEditableReply, AppliedDeclaration, AppliedRule (+14 more)
 
 ### Community 398 - "unrooted_must_root.rs"
 Cohesion: 0.07
 Nodes (13): associated_type_has_attr(), ExprMustBeRootedDiagnostic, FnDefVisitor, FnDefVisitor<'a, 'tcx>, is_unrooted_ty(), MismatchedAllowUnrootedInRcDiagnostic, MismatchedAllowUnrootedInteriorDiagnostic, MismatchedMustRootDiagnostic (+5 more)
 
 ### Community 400 - "ServoCursorType"
-Cohesion: 0.02
+Cohesion: 0.03
 Nodes (80): Cursor, Alias, AllScroll, Cell, ColResize, ContextMenu, Copy, Crosshair (+72 more)
 
 ### Community 401 - "SerializableCryptoKeyHandle"
@@ -2800,19 +2813,19 @@ Nodes (40): SerializableCryptoKeyHandle, Aes128Key, Aes192Key, Aes256Key, Argon2
 
 ### Community 402 - "ReadableStream"
 Cohesion: 0.02
-Nodes (56): native_fn!, native_raw_obj_fn!, count_queuing_strategy_size(), CountQueuingStrategy, extract_high_water_mark(), extract_size_algorithm(), DefaultTeeReadRequest, DefaultTeeReadRequestMicrotask (+48 more)
+Nodes (60): native_fn!, native_raw_obj_fn!, stream_handle_eof(), stream_handle_incoming(), ByteTeeReadIntoRequest, ByteTeeReadRequest, ByteTeeReadRequestMicrotask, ByteTeeCancelAlgorithm (+52 more)
 
 ### Community 403 - "ohos_media/source.rs"
 Cohesion: 0.07
 Nodes (6): MediaSourceWrapper, MediaSourceBuilder, SeekDataClosure, DEFAULT_CACHE_SIZE, MediaSourceWrapper, PlaybackBuffer
 
 ### Community 404 - "webgpu/gpucanvascontext.rs"
-Cohesion: 0.04
+Cohesion: 0.05
 Nodes (9): DroppableGPUCanvasContext, GPUCanvasConfiguration, GPUCanvasContext, supported_context_format(), GPUTextureDimension, GPUTextureFormat, DroppableGPUTexture, GPUTexture (+1 more)
 
-### Community 407 - "byteteeunderlyingsource.rs"
+### Community 407 - "ExtendableMessageEvent"
 Cohesion: 0.12
-Nodes (9): ByteTeeReadRequest, ByteTeeReadRequestMicrotask, ByteTeeCancelAlgorithm, Cancel1Algorithm, Cancel2Algorithm, ByteTeePullAlgorithm, Pull1Algorithm, Pull2Algorithm (+1 more)
+Nodes (6): ClientOrServiceWorkerOrMessagePort, ExtendableMessageEvent, MessageSource, Client, MessagePort, ServiceWorker
 
 ### Community 408 - "configuration.py"
 Cohesion: 0.07
@@ -2824,31 +2837,27 @@ Nodes (24): servo_options_create(), servo_options_enable_time_profiling_to_file(
 
 ### Community 412 - "Notification"
 Cohesion: 0.07
-Nodes (9): create_notification(), create_notification_with_settings_object(), get_notifications_permission_state(), Notification, request_notification_permission(), ResourceType, ActionIcon, Badge (+1 more)
+Nodes (11): Action, create_notification(), create_notification_with_settings_object(), get_notifications_permission_state(), Notification, request_notification_permission(), ResourceType, ActionIcon (+3 more)
 
 ### Community 413 - "BluetoothAdapter"
-Cohesion: 0.14
-Nodes (5): BluetoothAdapter, Btleplug, Mock, BtleplugAdapter, set_adapter()
+Cohesion: 0.08
+Nodes (9): BluetoothAdapter, Btleplug, Mock, BtleplugAdapter, BluetoothDiscoverySession, Btleplug, Mock, BtleplugDiscoverySession (+1 more)
 
 ### Community 414 - "T"
 Cohesion: 0.07
-Nodes (9): Dom, Dom<T>, DomRoot<T>, MaybeUnreflectedDom<T>, Root, Root<MaybeUnreflectedDom<T>>, Root<T>, RootCollection (+1 more)
+Nodes (10): Dom, Dom<T>, DomRoot<T>, MaybeUnreflectedDom<T>, Root, Root<MaybeUnreflectedDom<T>>, Root<T>, RootCollection (+2 more)
 
 ### Community 415 - "HashMapTracedValues<K, V, S>"
-Cohesion: 0.06
-Nodes (10): HashMapTracedValues<K, V, FxBuildHasher>, HashMapTracedValues<K, V, RandomState>, HashMapTracedValues<K, V, S>, NoTrace, NoTrace<T>, trace_jsval(), trace_script(), trace_string() (+2 more)
+Cohesion: 0.13
+Nodes (4): HashMapTracedValues<K, V, FxBuildHasher>, HashMapTracedValues<K, V, RandomState>, HashMapTracedValues<K, V, S>, K
 
 ### Community 417 - "EditingContext"
 Cohesion: 0.14
 Nodes (7): Document, EditingContext, Document, TextControl, TextControlElementEditingContext, Input, TextArea
 
-### Community 418 - "WorkletGlobalScope"
-Cohesion: 0.09
-Nodes (5): TestWorkletGlobalScope, WorkletExecutor, WorkletGlobalScope, WorkletGlobalScopeInit, ScriptToEmbedderChan
-
-### Community 419 - "paintworkletglobalscope.rs"
-Cohesion: 0.11
-Nodes (4): PaintDefinition, PaintWorkletGlobalScope, WorkletPainter, DrawAPaintImageResult
+### Community 418 - "OriginSnapshot"
+Cohesion: 0.10
+Nodes (4): DomainComparable, OpaqueOrigin, OriginSnapshot, Ref<'_, MutableOrigin>
 
 ### Community 420 - "generic_channel/callback.rs"
 Cohesion: 0.11
@@ -2859,23 +2868,23 @@ Cohesion: 0.15
 Nodes (16): Error, CannotUseVariables, ExpectedClosingBracket, ExpectedClosingParenthesis, ExpectedNodeTest, ExpectedSeperatorBetweenFunctionArguments, FailedToResolveNamespacePrefix, Tokenization (+8 more)
 
 ### Community 422 - ".connect"
-Cohesion: 0.08
+Cohesion: 0.07
 Nodes (6): on_evaluation_result(), TestInspectorTab, on_new_mutations(), on_evaluation_result(), TestNetworkTab, on_resource()
 
-### Community 423 - "convert.rs"
-Cohesion: 0.06
-Nodes (20): aspect_ratio(), box_generation_mode(), box_sizing(), content_alignment(), dimension(), fit_content_function(), gap(), grid_auto_flow() (+12 more)
+### Community 423 - "length_percentage"
+Cohesion: 0.14
+Nodes (14): dimension(), fit_content_function(), gap(), inset(), length_percentage(), margin(), max_size(), max_track() (+6 more)
 
-### Community 424 - "ActorEncode"
+### Community 424 - "NativeStack"
 Cohesion: 0.12
-Nodes (10): EnvironmentActor, EnvironmentActorMsg, EnvironmentBindings, EnvironmentFunction, FrameActor, FrameActorMsg, FrameEnvironmentReply, FrameWhere (+2 more)
+Nodes (15): DummySampler, Address, check_kern_return(), frame_pointer_stack_walk(), get_registers(), MacOsSampler, MonitoredThreadId, Registers (+7 more)
 
-### Community 426 - "BlendingStyle"
-Cohesion: 0.06
-Nodes (32): BlendingStyle, Color, ColorBurn, ColorDodge, Darken, Difference, Exclusion, HardLight (+24 more)
+### Community 426 - "TracedDOMString"
+Cohesion: 0.10
+Nodes (3): parse_floating_point_number(), test_strip_whitespace(), TracedDOMString
 
 ### Community 427 - "net/subresource_integrity.rs"
-Cohesion: 0.07
+Cohesion: 0.08
 Nodes (25): Algorithm, Sha256, Sha384, Sha512, apply_algorithm_to_response(), BASE64_GRAMMAR, get_strongest_metadata(), HTML_SPACE_CHARACTERS (+17 more)
 
 ### Community 428 - "GenericSharedMemory"
@@ -2883,16 +2892,16 @@ Cohesion: 0.10
 Nodes (8): use_ipc(), GenericSharedMemory, GenericSharedMemoryVariant, InProcess, Ipc, GenericSharedMemoryVisitor, test_inprocess(), test_ipc()
 
 ### Community 429 - "metrics/lib.rs"
-Cohesion: 0.08
-Nodes (20): INTERACTIVE_WINDOW_SECONDS, InteractiveFlag, DOMContentLoaded, TimeToInteractive, InteractiveWindow, MAX_TASK_NS, ProgressiveWebMetrics, set_metric() (+12 more)
+Cohesion: 0.10
+Nodes (19): INTERACTIVE_WINDOW_SECONDS, InteractiveFlag, DOMContentLoaded, TimeToInteractive, InteractiveWindow, MAX_TASK_NS, ProgressiveWebMetrics, set_metric() (+11 more)
 
 ### Community 430 - "DomRoot"
 Cohesion: 0.01
-Nodes (109): ChannelCountMode, ClampedMax, Explicit, Max, ChannelInterpretation, Discrete, Speakers, ChannelNodeOptions (+101 more)
+Nodes (57): ChannelCountMode, ClampedMax, Explicit, Max, ChannelNodeOptions, GainNodeOptions, IIRFilterNodeOptions, StereoPannerOptions (+49 more)
 
 ### Community 431 - "PainterId"
-Cohesion: 0.07
-Nodes (16): FontInstancesMapKey, ResolvedGenericFontFamilies, SystemFontService, FontTemplateCacheKey, SystemFontServiceMessage, CollectMemoryReport, Exit, GetFontInstance (+8 more)
+Cohesion: 0.05
+Nodes (19): FontInstancesMapKey, ResolvedGenericFontFamilies, SystemFontService, RenderNotifier, IdNamespace, PainterId, FontTemplateCacheKey, SystemFontServiceMessage (+11 more)
 
 ### Community 432 - "Preprocessor"
 Cohesion: 0.09
@@ -2903,8 +2912,8 @@ Cohesion: 0.06
 Nodes (34): beforeunload_event_handler!, define_event_handler!, define_window_owned_event_handler!, error_event_handler!, event_handler!, global_event_handlers!, handle_potential_webgl_error!, make_atomic_setter! (+26 more)
 
 ### Community 436 - "actors/root.rs"
-Cohesion: 0.06
-Nodes (32): DeviceActor, GetDescriptionReply, SystemInfo, CanCurrentlyRecordReply, ConnectReply, Error, PerformanceActor, PerformanceFeatures (+24 more)
+Cohesion: 0.05
+Nodes (37): DeviceActor, GetDescriptionReply, SystemInfo, CanCurrentlyRecordReply, ConnectReply, Error, PerformanceActor, PerformanceFeatures (+29 more)
 
 ### Community 437 - "ScriptThreadEventCategory"
 Cohesion: 0.06
@@ -2915,32 +2924,36 @@ Cohesion: 0.09
 Nodes (8): GLOBAL_THREAD_POOL, ThreadPool, ThreadPoolState, DB_IN_MEMORY_INIT_PRAGMAS, DB_IN_MEMORY_PRAGMAS, DB_INIT_PRAGMAS, DB_PRAGMAS, SqliteEngine
 
 ### Community 439 - "WebVttCue"
-Cohesion: 0.08
-Nodes (29): WebVttCue, WebVttCueSize, WebVttLineAlignment, Center, End, Start, WebVttLineAndPositionSetting, Auto (+21 more)
+Cohesion: 0.07
+Nodes (30): TextTrackCueSink, WebVttCue, WebVttCueSize, WebVttLineAlignment, Center, End, Start, WebVttLineAndPositionSetting (+22 more)
 
 ### Community 440 - "test_api.c"
-Cohesion: 0.03
-Nodes (74): 7.2 What CI must verify on every change, W2.5 — FFI hardening: Part B (debug cookies, temporary pointers, thread contracts), 3. Verified correct (repair items 1–3, 5–9 and the ABI), servo_rendering_context_create_window(), approx_equal(), check_string_getter(), create_about_blank_webview(), create_test_servo() (+66 more)
+Cohesion: 0.02
+Nodes (91): 2.1 Version macros and runtime query, 7.2 What CI must verify on every change, 2.1 Feasibility Assessment (Dated: 2026-10-20), W2.5 — FFI hardening: Part B (debug cookies, temporary pointers, thread contracts), W5.4 — C API 0.1.0 → 0.2.0 ABI commitment (1.0 deferred until the surface settles), W6.5 — Printing / `servo_webview_print_to_pdf`, 9. Add tests, Leak testing (+83 more)
+
+### Community 441 - "AudioTrack"
+Cohesion: 0.06
+Nodes (7): AudioTrack, AudioTrackList, MediaTrack, Audio, Text, Video, TrackEvent
 
 ### Community 442 - "ServoMediaStreamSrc"
 Cohesion: 0.07
 Nodes (6): AUDIO_SRC_PAD_TEMPLATE, register_servo_media_stream_src(), ServoMediaStreamSrc, .NAME, .URI_TYPE, VIDEO_SRC_PAD_TEMPLATE
 
 ### Community 443 - "CssPropertyName"
-Cohesion: 0.08
-Nodes (17): BoolOrOptionalString, Bool, OptionalString, CssPropertyName, BackgroundColor, Color, FontFamily, FontSize (+9 more)
+Cohesion: 0.09
+Nodes (16): BoolOrOptionalString, Bool, OptionalString, CssPropertyName, BackgroundColor, Color, FontFamily, FontSize (+8 more)
 
 ### Community 444 - "test_browser_unit.cpp"
-Cohesion: 0.09
-Nodes (17): format_find_result(), MockTab, bounds, closeButtonBounds, id, url, MockTabStripState, activeIndex (+9 more)
+Cohesion: 0.04
+Nodes (46): BrowserAction, Back, CloseTab, DevTools, Downloads, Find, FocusOmnibox, ForceReload (+38 more)
 
 ### Community 445 - "RangeInputType"
 Cohesion: 0.12
 Nodes (7): ValueChangeEvents, client_point(), range_bounds(), RangeInputShadowTree, RangeInputType, round_halves_positive(), SliderAxis
 
 ### Community 446 - "protocol_handler.rs"
-Cohesion: 0.05
-Nodes (35): InterceptedWebResourceLoad, test_web_resource_load(), WebResourceLoad, WebResourceRequest, WebResourceResponse, WebResourceResponseMsg, CancelLoad, DoNotIntercept (+27 more)
+Cohesion: 0.11
+Nodes (23): CProtocolHandler, servo_builder_register_protocol_handler(), servo_web_resource_load_cancel(), servo_web_resource_load_finish(), servo_web_resource_load_free(), servo_web_resource_load_get_request(), servo_web_resource_load_intercept(), servo_web_resource_load_send_body_data() (+15 more)
 
 ### Community 447 - "ServoCapi"
 Cohesion: 0.10
@@ -2954,29 +2967,21 @@ Nodes (34): default, required, type, default, required, type, default, required 
 Cohesion: 0.11
 Nodes (8): Cache, CacheStorage, relevant_name_to_cache_map(), CacheStorageThreadResponse, DeleteCacheResult, HasCacheResult, KeysResult, OpenCacheResult
 
-### Community 450 - "webstorage.rs"
-Cohesion: 0.13
-Nodes (15): shutdown_storage_group(), test_new_storage_threads_create_independent_groups(), clear_data_for_sites_local(), clear_data_for_sites_local_in_memory(), clear_data_for_sites_session(), length_key_and_keys(), no_storage_type_conflict(), origin_descriptors_local() (+7 more)
-
 ### Community 451 - "assert_in_script"
-Cohesion: 0.10
+Cohesion: 0.11
 Nodes (5): assert_in_script(), MutDom<T>, MutNullableDom<T>, UnrootedDom<'a, T>, UnrootedDom<'b, T>
 
 ### Community 452 - "winit_minimal.rs"
-Cohesion: 0.09
+Cohesion: 0.10
 Nodes (8): App, Initial, Running, AppState, main(), Waker, WakerEvent, winit_size_to_euclid_size()
 
 ### Community 454 - "WebView"
-Cohesion: 0.03
-Nodes (79): 1. Layer stack, 2.1 Opaque handles, 2.2 Builder-to-object transitions, 2.3 Raw-pointer / `Box` lifecycle, 2.4 Callbacks and `user_data`, 2.5 The `WebView` in delegate callbacks is a temporary handle, 2. Object model and ownership, 3.1 Main-thread affinity (+71 more)
-
-### Community 455 - "RootedTraceableBox"
-Cohesion: 0.11
-Nodes (5): RootedTraceableBox, GamepadPose, ByteTeeReadIntoRequest, ByteTeeReadIntoRequestMicrotask, Float32
+Cohesion: 0.02
+Nodes (131): enum(), 3.1 Symbol naming and prefixing, 3.2 Opaque handles, 3.3 Struct layout extension: `struct_size`, 3.4 Enum extensibility, 3. Symbols, handles, structs, enums, D.2.1 Registered limitations and deferred tickets, 1. Layer stack (+123 more)
 
 ### Community 456 - ".AllowElement"
-Cohesion: 0.11
-Nodes (7): contains_javascript_url(), inner_sanitize_steps(), NameSlice, NameVec, [T], TargetSlice, Vec<T>
+Cohesion: 0.14
+Nodes (5): NameSlice, NameVec, [T], TargetSlice, Vec<T>
 
 ### Community 458 - "common.rs"
 Cohesion: 0.10
@@ -2998,49 +3003,41 @@ Nodes (6): AttrStrRef, AttrStrRef<'a>, AttrStrRefInner, Element, EMPTY_CONTENTAT
 Cohesion: 0.06
 Nodes (34): name, runs-on, steps, concurrency, cancel-in-progress, group, env, CARGO_INCREMENTAL (+26 more)
 
-### Community 463 - "stylo_taffy/wrapper.rs"
-Cohesion: 0.07
-Nodes (7): LineNameIter, LineNameSetIter, RepetitionWrapper, SliceMapIter, SliceMapRefIter, StyloLineNameIter, StyloLineNameIter<'a>
+### Community 463 - "CSSStyleDeclaration"
+Cohesion: 0.16
+Nodes (4): CSSStyleDeclaration, PotentiallyParsedPropertyId, NotParsed, Parsed
 
 ### Community 464 - "utils.py"
 Cohesion: 0.07
 Nodes (19): TestConnection, trigger(), trigger(), trigger(), trigger(), trigger(), trigger(), trigger() (+11 more)
 
 ### Community 465 - "stylist.rs"
-Cohesion: 0.08
-Nodes (10): LayoutDom<'dom, SVGElement>, DummyMetricsProvider, get_mock_rules(), mock_stylist(), parse_selectors(), test_insert(), test_revalidation_selectors(), test_rule_ordering_same_specificity() (+2 more)
+Cohesion: 0.10
+Nodes (9): DummyMetricsProvider, get_mock_rules(), mock_stylist(), parse_selectors(), test_insert(), test_revalidation_selectors(), test_rule_ordering_same_specificity(), test_stylist_device_accessors() (+1 more)
 
 ### Community 466 - "bench.rs"
-Cohesion: 0.13
+Cohesion: 0.14
 Nodes (12): RuleTree, AutoGCRuleTree, AutoGCRuleTree<'a>, bench_expensive_insertion(), bench_expensive_insertion_parallel(), bench_insertion_basic(), bench_insertion_basic_parallel(), bench_insertion_basic_per_element() (+4 more)
 
 ### Community 467 - "ServoCapabilities"
 Cohesion: 0.15
 Nodes (4): Capabilities, CapFlags, get_platform_name(), ServoCapabilities
 
-### Community 468 - "fmt"
-Cohesion: 0.03
-Nodes (70): BackgroundHangMonitorChan, BackgroundHangMonitorWorker, HangMonitorRegister, MonitoredComponent, MonitoredComponentMsg, NotifyActivity, NotifyWait, Register (+62 more)
+### Community 468 - "ScriptHangAnnotation"
+Cohesion: 0.06
+Nodes (32): ScriptHangAnnotation, ConstellationMsg, DatabaseAccessEvent, DevtoolsMsg, DocumentEvent, EnterFullscreen, ExitFullscreen, FileRead (+24 more)
 
 ### Community 469 - "sampler_linux.rs"
-Cohesion: 0.06
-Nodes (25): DummySampler, clear_shared_state(), LinuxSampler, MonitoredThreadId, PosixSemaphore, reset_shared_state(), send_sigprof(), SHARED_STATE (+17 more)
+Cohesion: 0.10
+Nodes (10): clear_shared_state(), LinuxSampler, MonitoredThreadId, PosixSemaphore, reset_shared_state(), send_sigprof(), SHARED_STATE, SharedState (+2 more)
 
 ### Community 470 - "BluetoothDevice"
 Cohesion: 0.10
 Nodes (4): BluetoothDevice, Btleplug, Mock, BtleplugDevice
 
-### Community 471 - "testworklet.rs"
-Cohesion: 0.10
-Nodes (6): TestWorklet, Worklet, WorkletThreadPool, WorkletGlobalScopeType, Paint, Test
-
-### Community 472 - "PermissionFeature"
-Cohesion: 0.07
-Nodes (28): PermissionFeature, BackgroundSync, Bluetooth, Camera, DeviceInfo, Gamepad, Geolocation, Microphone (+20 more)
-
 ### Community 473 - "DOMString"
 Cohesion: 0.09
-Nodes (3): NameCanonicalization, NameMember, SanitizerElement
+Nodes (5): Canonicalization, NameCanonicalization, NameMember, SanitizerElement, SanitizerElementWithAttributes
 
 ### Community 474 - "GPURenderBundleEncoder<D>"
 Cohesion: 0.08
@@ -3055,16 +3052,16 @@ Cohesion: 0.06
 Nodes (31): required, type, required, type, required, type, required, type (+23 more)
 
 ### Community 477 - "try_parser.py"
-Cohesion: 0.13
-Nodes (8): Config, Encoder, handle_modifier(), handle_preset(), JobConfig, main(), TestParser, Workflow
+Cohesion: 0.12
+Nodes (9): Config, Encoder, handle_modifier(), handle_preset(), JobConfig, main(), run_tests(), TestParser (+1 more)
 
 ### Community 478 - "Constrain"
 Cohesion: 0.18
 Nodes (9): Constrain, Range, Value, ConstrainBool, Exact, Ideal, ConstrainRange, convert_cdouble() (+1 more)
 
-### Community 479 - "ServoDangerousStyleNode"
-Cohesion: 0.08
-Nodes (11): DOMDescendantIterator, Children, DOMDescendantIterator<'dom>, Slottables, ReverseChildrenIterator, ReverseChildrenIterator<'dom>, ServoLayoutNodeChildrenIterator, ServoLayoutNodeChildrenIterator<'dom> (+3 more)
+### Community 479 - "TaskQueue"
+Cohesion: 0.14
+Nodes (4): QueuedTask, QueuedTaskConversion, TaskQueue, TaskQueue<T>
 
 ### Community 480 - "constellation/tracing.rs"
 Cohesion: 0.08
@@ -3077,6 +3074,10 @@ Nodes (25): create_request_id(), create_test_image_cache(), create_test_listener
 ### Community 482 - "BasicInterpreter"
 Cohesion: 0.10
 Nodes (8): BasicInterpreter, eval_func(), p_dimitem_double(), p_dimitem_single(), p_expr_number(), p_number(), p_number_signed(), t_H_EDIT_DESCRIPTOR()
+
+### Community 483 - "DOMString"
+Cohesion: 0.09
+Nodes (5): DOMString, str, String, StringView, Vec<u8>
 
 ### Community 485 - "generic_channelset.rs"
 Cohesion: 0.14
@@ -3098,13 +3099,9 @@ Nodes (13): with, allow-unsafe-pr-checkout, directory, fetch-depth, fixup-path, 
 Cohesion: 0.07
 Nodes (29): GH_TOKEN, UPDATE_BRANCH, jobs, linux, sync, if, name, uses (+21 more)
 
-### Community 491 - "urlpattern.rs"
-Cohesion: 0.11
-Nodes (5): map_component_result(), map_urlpattern_input(), map_urlpattern_result(), map_urlpatterninit(), URLPattern
-
-### Community 492 - "Data"
-Cohesion: 0.10
-Nodes (10): Serializable, MarkedAsSerializableInIdl, MarkedAsTransferableInIdl, NamespaceIndex<T>, StorageKey, Transferable, Index, NamespaceIndex (+2 more)
+### Community 492 - "LoadStatus"
+Cohesion: 0.08
+Nodes (9): LoadStatus, Complete, HeadParsed, Started, MediaSessionPlaybackState, None_, Paused, Playing (+1 more)
 
 ### Community 493 - "guard.rs"
 Cohesion: 0.16
@@ -3114,9 +3111,9 @@ Nodes (9): Condition, Exposed, Func, Pref, Satisfied, SecureContext, Guard, Guar
 Cohesion: 0.10
 Nodes (7): DOM_OBJECT_SLOT, MaybeUnreflectedDom, DOM_PROTO_UNFORGEABLE_HOLDER_SLOT, ProtoObjectFn, wrap(), wrap_object(), WrapConfig
 
-### Community 496 - "ResourceAttribute"
-Cohesion: 0.05
-Nodes (25): RedirectEndValue, ResponseEnd, Zero, RedirectStartValue, FetchStart, Zero, ResourceAttribute, ConnectEnd (+17 more)
+### Community 496 - "blob_url_store.rs"
+Cohesion: 0.02
+Nodes (52): BlobResolver, BlobResolver<'a>, BlobToken, parse_blob_url(), TokenSerializationGuard, RedirectEndValue, ResponseEnd, Zero (+44 more)
 
 ### Community 497 - "MainActivity"
 Cohesion: 0.08
@@ -3124,7 +3121,11 @@ Nodes (4): MainActivity, Settings, Navigate, ServoNavigator
 
 ### Community 498 - "paint/rendering_context.rs"
 Cohesion: 0.04
-Nodes (14): Surface, RefreshDriver, Framebuffer, OffscreenRenderingContext, print_diagnostics_information_on_context_creation_failure(), RenderingContext, RenderToParentCallback, SoftwareRenderingContext (+6 more)
+Nodes (15): PhysicalSize, Surface, RefreshDriver, Framebuffer, OffscreenRenderingContext, print_diagnostics_information_on_context_creation_failure(), RenderingContext, RenderToParentCallback (+7 more)
+
+### Community 499 - ".send_message_to_embedder"
+Cohesion: 0.13
+Nodes (7): VerifyBrowsingContextIsOpen, No, Yes, wait_for_ipc_response(), wait_for_oneshot_response(), wait_for_script_ipc_response_with_timeout(), Handler
 
 ### Community 500 - "webvtt/src/lib.rs"
 Cohesion: 0.08
@@ -3139,24 +3140,24 @@ Cohesion: 0.13
 Nodes (6): is_expr_kind_empty_str(), value_if_expr_is_str(), EmptyDOMStringDiagnostic, ManualDOMStringPass, register(), StaticDOMStringDiagnostic
 
 ### Community 503 - "servo_tracing/lib.rs"
-Cohesion: 0.14
-Nodes (14): evaluate(), extract_instrument_attribute(), function1(), function2(), inject_level_and_servo_profiling(), instrument(), instrument_all(), instrument_internal() (+6 more)
+Cohesion: 0.08
+Nodes (21): Directive, Fields, Level, Passthrough, evaluate(), extract_instrument_attribute(), Fields, function1() (+13 more)
 
-### Community 504 - "AndroidTarget"
-Cohesion: 0.11
-Nodes (4): AndroidTarget, CrossBuildTarget, OpenHarmonyTarget, get_target_dir()
+### Community 504 - "background_hang_monitor.rs"
+Cohesion: 0.15
+Nodes (15): BackgroundHangMonitorWorker, MonitoredComponent, MonitoredComponentMsg, NotifyWait, Unregister, MonitoredComponentReceiver, BackgroundHangMonitorControlMsg, Exit (+7 more)
 
 ### Community 506 - "script_bindings/init.rs"
-Cohesion: 0.12
-Nodes (5): DomJSClassConfig, init_domjs_class(), InitClassOpsConfig, ThreadUnsafeOnceLock, ThreadUnsafeOnceLock<T>
+Cohesion: 0.11
+Nodes (6): DomJSClassConfig, init_domjs_class(), InitClassOpsConfig, ThreadUnsafeOnceLock, ThreadUnsafeOnceLock<T>, DOMJSClass
 
 ### Community 507 - "YaccProduction"
 Cohesion: 0.13
 Nodes (4): call_errorfunc(), LRParser, YaccProduction, YaccSymbol
 
 ### Community 508 - "oneshot.rs"
-Cohesion: 0.12
-Nodes (9): GenericSenderVariants, Crossbeam, Ipc, serialize_generic_sender_variants(), GenericOneshotReceiver, GenericOneshotReceiver<T>, GenericOneshotSender, GenericOneshotSender<T> (+1 more)
+Cohesion: 0.11
+Nodes (9): GenericSenderVariants, Crossbeam, Ipc, GenericSenderVisitor, GenericOneshotReceiver, GenericOneshotReceiver<T>, GenericOneshotSender, GenericOneshotSender<T> (+1 more)
 
 ### Community 509 - "StylePropertyMapReadOnly"
 Cohesion: 0.12
@@ -3187,7 +3188,7 @@ Cohesion: 0.04
 Nodes (11): BooleanType, ConfigException, ConfigSettings, ConfigSection, ConfigType, DefaultValue, IntegerType, PathType (+3 more)
 
 ### Community 518 - ".list_of_options"
-Cohesion: 0.15
+Cohesion: 0.14
 Nodes (4): Choice3, First, Second, Third
 
 ### Community 519 - "HTMLMetaElement"
@@ -3195,28 +3196,16 @@ Cohesion: 0.15
 Nodes (3): HTMLMetaElement, IsColorSchemeValue, Option<T>
 
 ### Community 520 - "mediafragmentparser.rs"
-Cohesion: 0.15
+Cohesion: 0.14
 Nodes (13): decode_octets(), hms_to_seconds(), is_byte_number(), MediaFragmentParser, parse_hms(), parse_npt_minute(), parse_npt_seconds(), SpatialClipping (+5 more)
-
-### Community 522 - "SanitizerAttribute"
-Cohesion: 0.15
-Nodes (3): AttributeMember, SanitizerAttribute, SanitizerElementWithAttributes
-
-### Community 523 - "Sanitizer"
-Cohesion: 0.18
-Nodes (4): built_in_safe_baseline_configuration(), built_in_safe_default_configuration(), Sanitizer, SanitizerConfig
 
 ### Community 524 - "servo_capi.hpp"
 Cohesion: 0.06
 Nodes (21): Deleter, Handle, RenderingContext, Servo, ServoBuilder, ServoCreateNewWebViewRequest, ServoDictionaryValue, ServoListValue (+13 more)
 
-### Community 525 - "WeakRef"
-Cohesion: 0.03
-Nodes (23): AssociatedMemory, WeakRef, WebGLObject, DroppableWebGLQuery, DroppableWebGLRenderbuffer, capture_webgl_backtrace(), DroppableWebGLSampler, validate_params() (+15 more)
-
 ### Community 527 - "ScrollingBox"
-Cohesion: 0.14
-Nodes (4): ScrollingBox, ScrollingBoxSource, Element, Viewport
+Cohesion: 0.11
+Nodes (7): ScrollingBox, ScrollingBoxAxis, X, Y, ScrollingBoxSource, Element, Viewport
 
 ### Community 528 - "GLenum"
 Cohesion: 0.15
@@ -3247,28 +3236,28 @@ Cohesion: 0.07
 Nodes (26): concurrency, cancel-in-progress, group, GITHUB_EVENT, WPT_SYNC_TOKEN, jobs, upstream, name (+18 more)
 
 ### Community 536 - "components/profile/time.rs"
-Cohesion: 0.12
-Nodes (11): OutputOptions, FileName, Stdout, Formattable, Option<TimerMetadata>, Profiler, ProfilerBuckets, TraceDump (+3 more)
+Cohesion: 0.14
+Nodes (10): OutputOptions, FileName, Stdout, Formattable, Option<TimerMetadata>, Profiler, ProfilerBuckets, TraceDump (+2 more)
 
 ### Community 537 - "font_feature_values.rs"
-Cohesion: 0.13
-Nodes (17): AlternateKindRequiringResolution, Annotation, CharacterVariant, Ornaments, Styleset, Stylistic, Swash, FontFeatureValue (+9 more)
+Cohesion: 0.14
+Nodes (18): AlternateKindRequiringResolution, Annotation, CharacterVariant, Ornaments, Styleset, Stylistic, Swash, FontFeatureValue (+10 more)
 
 ### Community 539 - "FetchGroup"
-Cohesion: 0.13
-Nodes (10): DeferredFetchRecord, DeferredFetchRecordId, DeferredFetchRecordInvokeState, Aborted, Pending, Sent, FetchGroup, queue_deferred_fetch() (+2 more)
+Cohesion: 0.08
+Nodes (13): FetchLaterResult, DeferredFetchRecord, DeferredFetchRecordId, DeferredFetchRecordInvokeState, Aborted, Pending, Sent, Fetch() (+5 more)
 
 ### Community 540 - "gpucomputepipeline.rs"
-Cohesion: 0.14
+Cohesion: 0.15
 Nodes (4): DroppableGPUComputePipeline, GPUComputePipeline, GPUComputePipeline<D>, WebGPUComputePipelineResponse
 
-### Community 541 - "Convert"
-Cohesion: 0.13
-Nodes (9): CacheMode, MsgReferrerPolicy, NetTraitsRequestMode, RedirectMode, ReferrerPolicy, RequestCache, RequestDestination, RequestMode (+1 more)
+### Community 541 - "UrlWithBlobClaim"
+Cohesion: 0.06
+Nodes (27): Destination, RequestDestination, fetch_a_classic_script(), script_fetch_request(), fetch_a_classic_worker_script(), fetch_a_single_imported_module_script(), fetch_a_module_script_graph(), fetch_a_modulepreload_module() (+19 more)
 
-### Community 542 - "RootedCallback"
-Cohesion: 0.02
-Nodes (60): RootedCallback, create_element(), create_html_element(), create_native_html_element(), create_svg_element(), HTMLEmbedElement, HTMLParamElement, HTMLPictureElement (+52 more)
+### Community 542 - "HTMLElement"
+Cohesion: 0.01
+Nodes (38): RootedCallback, ElementStylesheetLoader<'a>, Activatable, DATA_HYPHEN_SEPARATOR, DATA_PREFIX, DOMStringMap, to_camel_case(), to_snake_case() (+30 more)
 
 ### Community 543 - "PerformanceObserver"
 Cohesion: 0.13
@@ -3278,41 +3267,37 @@ Nodes (5): ObserverType, Multiple, Single, Undefined, PerformanceObserver
 Cohesion: 0.11
 Nodes (17): BASE_UUID, BLUETOOTH_ASSIGNED_CHARCTERISTICS, BLUETOOTH_ASSIGNED_DESCRIPTORS, BLUETOOTH_ASSIGNED_SERVICES, BluetoothCharacteristicUUID, BluetoothDescriptorUUID, BluetoothUUID, canonical_uuid() (+9 more)
 
-### Community 546 - "ServiceWorkerRegistration"
-Cohesion: 0.07
-Nodes (4): CookieStoreManager, NavigationPreloadManager, longest_prefix_match(), ServiceWorkerRegistration
-
 ### Community 547 - "components/bluetooth/bluetooth.rs"
 Cohesion: 0.10
 Nodes (3): BtleplugGATTCharacteristic, BtleplugGATTDescriptor, BtleplugGATTService
 
 ### Community 548 - "DOMString"
-Cohesion: 0.22
-Nodes (6): bump_selection_out_of_invalid_node(), Document, DocumentExecCommandSupport, is_command_listed_in_miscellaneous_section(), mapped_value_of_command(), Node
+Cohesion: 0.17
+Nodes (7): execute_underline_command(), bump_selection_out_of_invalid_node(), Document, DocumentExecCommandSupport, is_command_listed_in_miscellaneous_section(), mapped_value_of_command(), Node
 
 ### Community 549 - "border.rs"
 Cohesion: 0.12
 Nodes (9): border_image_shorthand_should_parse_when_all_properties_specified(), border_image_shorthand_should_parse_with_just_source(), border_image_shorthand_should_parse_without_outset(), border_image_shorthand_should_parse_without_width(), border_image_shorthand_should_parse_without_width_or_outset(), assert_border_radius_values!, assert_initial!, assert_longhand! (+1 more)
 
-### Community 550 - "LayoutDom"
-Cohesion: 0.03
-Nodes (18): assert_in_layout(), Dom<T>, DomOnceCell, LayoutDom, LayoutDom<'dom, T>, LayoutDom<'_, T>, MutDom<T>, MutNullableDom<T> (+10 more)
+### Community 550 - "assert_in_layout"
+Cohesion: 0.08
+Nodes (9): assert_in_layout(), Dom<T>, DomOnceCell, DomOnceCell<T>, LayoutDom<'dom, T>, LayoutDom<'_, Node>, LayoutDom<'_, T>, MutDom<T> (+1 more)
 
-### Community 552 - "hit_test.rs"
+### Community 552 - "geometry/lib.rs"
 Cohesion: 0.05
-Nodes (27): au_rect_to_f32_rect(), convert_size_to_css_pixel(), DeviceIndependentBox2D, DeviceIndependentIntLength, DeviceIndependentIntPoint, DeviceIndependentIntSideOffsets, DeviceIndependentIntSize, DeviceIndependentIntVector2D (+19 more)
+Nodes (17): DeviceIndependentBox2D, DeviceIndependentIntLength, DeviceIndependentIntPoint, DeviceIndependentIntSideOffsets, DeviceIndependentIntVector2D, DeviceIndependentPoint, DeviceIndependentRect, DeviceIndependentSize (+9 more)
 
 ### Community 553 - "IDBFactory"
-Cohesion: 0.09
-Nodes (11): DBName, IDBFactory, ConnectionMsg, AbortError, Blocked, Connection, DatabaseError, TxnMaybeCommit (+3 more)
+Cohesion: 0.08
+Nodes (3): DBName, IDBFactory, IDBOpenDBRequest
+
+### Community 554 - "DOMStringType"
+Cohesion: 0.10
+Nodes (11): DOMStringErrorType, JSConversionError, DOMStringType, JSString, Latin1Vec, Rust, RustStatic, get_latin1_string_bytes() (+3 more)
 
 ### Community 555 - "GenerateKeyAlgorithm"
 Cohesion: 0.08
 Nodes (21): GenerateKeyAlgorithm, AesCbc, AesCtr, AesGcm, AesKw, AesOcb, ChaCha20Poly1305, Ecdh (+13 more)
-
-### Community 557 - "gpubindgroup.rs"
-Cohesion: 0.18
-Nodes (3): DroppableGPUBindGroup, GPUBindGroup, GPUBindGroup<D>
 
 ### Community 558 - "with"
 Cohesion: 0.08
@@ -3323,8 +3308,8 @@ Cohesion: 0.14
 Nodes (7): MediaDeviceInfo, MediaDeviceKind, AudioInput, AudioOutput, VideoInput, MediaDeviceInfo, ServoMediaDeviceKind
 
 ### Community 560 - "shared/net/fetch/headers.rs"
-Cohesion: 0.14
-Nodes (12): is_forbidden_request_header(), extract_links_from_headers(), check_a_navigation_response_adherence_to_x_frame_options(), collect_http_quoted_string(), collect_sequence(), extract_mime_type(), extract_mime_type_as_dataurl_mime(), get_decode_and_split_header_name() (+4 more)
+Cohesion: 0.23
+Nodes (9): is_forbidden_request_header(), collect_http_quoted_string(), collect_sequence(), extract_mime_type(), extract_mime_type_as_dataurl_mime(), get_decode_and_split_header_name(), get_decode_and_split_header_value(), HTTP_TAB_OR_SPACE (+1 more)
 
 ### Community 561 - "fontsize.rs"
 Cohesion: 0.36
@@ -3338,17 +3323,29 @@ Nodes (5): CSPReportUriViolationReport, CSPReportUriViolationReportBody, CSPViol
 Cohesion: 0.09
 Nodes (20): ExportKeyAlgorithm, AesCbc, AesCtr, AesGcm, AesKw, AesOcb, ChaCha20Poly1305, Ecdh (+12 more)
 
-### Community 571 - "AudioStreamReader"
-Cohesion: 0.11
-Nodes (4): AudioBackend, AudioStreamReader, MediaStreamSourceNode, DummyStreamReader
+### Community 570 - "History"
+Cohesion: 0.13
+Nodes (4): History, PushOrReplace, Push, Replace
+
+### Community 571 - "InputMethodControl"
+Cohesion: 0.08
+Nodes (17): InputMethodControl, InputMethodType, Color, Date, DatetimeLocal, Email, Month, Number (+9 more)
 
 ### Community 572 - "IDLTypedef"
 Cohesion: 0.05
 Nodes (6): BuiltinLocation, IDLTypedef, Location, ReflectedHTMLAttributesReturningFrozenArray, SqueakyCleanLogger, Tokenizer
 
-### Community 576 - "canvas_paint_thread.rs"
-Cohesion: 0.14
-Nodes (3): Vello, VelloCPU, CanvasPaintThread
+### Community 576 - "ImageKey"
+Cohesion: 0.05
+Nodes (14): CanvasData, Filter, Bilinear, Nearest, MIN_WR_IMAGE_SIZE, Rect<f64>, RectToi32, Canvas (+6 more)
+
+### Community 577 - "htmlfontelement.rs"
+Cohesion: 0.15
+Nodes (3): any_character_in_any_unicode_range(), HTMLFontElement, parse_size()
+
+### Community 578 - "EditingAction"
+Cohesion: 0.08
+Nodes (26): EditingAction, Backspace, Clipboard, Delete, EndComposition, InsertCompositionText, InsertNewline, InsertParagraph (+18 more)
 
 ### Community 580 - "webvtt_cue_text_parsing_rules"
 Cohesion: 0.12
@@ -3362,49 +3359,45 @@ Nodes (3): MediaSession, BroadcastReceiver, NotificationID
 Cohesion: 0.13
 Nodes (3): JSContextFirstArgPass, JSContextNotFirstArg, register()
 
-### Community 583 - "gpusampler.rs"
-Cohesion: 0.17
-Nodes (3): DroppableGPUSampler, GPUSampler, GPUSampler<D>
+### Community 583 - ".encoded_bytes"
+Cohesion: 0.14
+Nodes (4): BytesView, EncodedBytes, Latin1, Utf8
 
-### Community 585 - "script_argument_extraction.rs"
-Cohesion: 0.17
-Nodes (4): VerifyBrowsingContextIsOpen, No, Yes, Handler
+### Community 584 - "HTMLDialogElement"
+Cohesion: 0.15
+Nodes (7): CommandState, Close, Custom, RequestClose, ShowModal, Unknown, HTMLDialogElement
 
-### Community 586 - "servo_raw_window.h"
-Cohesion: 0.18
-Nodes (8): RawDisplayHandleWindows, reserved, tag, RawWindowHandleWin32, hinstance, hwnd, reserved, tag
+### Community 586 - "LayoutElementType"
+Cohesion: 0.08
+Nodes (25): LayoutElementType, Element, HTMLBodyElement, HTMLBRElement, HTMLButtonElement, HTMLCanvasElement, HTMLHtmlElement, HTMLIFrameElement (+17 more)
 
 ### Community 587 - "script_bindings/trace.rs"
 Cohesion: 0.07
-Nodes (6): unsafe_no_jsmanaged_fields!, NoTrace, NoTrace<T>, RootedTraceableBox<Heap<T>>, RootedTraceableBox<T>, trace_object()
+Nodes (8): trace_live_domreferences(), unsafe_no_jsmanaged_fields!, NoTrace, NoTrace<T>, RootedTraceableBox<Heap<T>>, RootedTraceableBox<T>, trace_object(), trace_reflector()
 
 ### Community 588 - "gpusupportedfeatures.rs"
 Cohesion: 0.21
 Nodes (3): gpu_to_wgt_feature(), GPUSupportedFeatures, GPUSupportedFeatures<D>
 
-### Community 589 - "dom/mod.rs"
-Cohesion: 0.04
-Nodes (9): Geolocation, Dependency and supply-chain cadence, Known security limitations, Publishing an advisory, Reporting a vulnerability, Response process, Security Policy, Supported versions (+1 more)
-
-### Community 590 - "5.0 W4 current-state brief (verified at `6fe2549874b`)"
-Cohesion: 0.11
-Nodes (18): 5.0 W4 current-state brief (verified at `6fe2549874b`), 5. W4 — Embedding API parity, W4.2 — Clipboard, gamepad, and embedder controls in C, W4.4 — DevTools / console exposure: verify, document, test (re-scoped), W4.5 — Manual windowed/GPU validation on real hardware, W4.6 — Threading contract: `Send`/`Sync` handles *or* documented main-thread-only, W4.7 — Language bindings beyond C/C++, W4.8 — CEF P2 leftovers (+10 more)
+### Community 590 - "bindings/trace.rs"
+Cohesion: 0.13
+Nodes (5): NoTrace, NoTrace<T>, trace_jsval(), trace_script(), trace_string()
 
 ### Community 591 - "IntroductionType"
 Cohesion: 0.08
 Nodes (25): IntroductionType, .DEBUGGER_EVAL, .DEBUGGER_EVAL_STR, .DOM_TIMER, .DOM_TIMER_STR, .EVAL, .EVAL_STR, .EVENT_HANDLER (+17 more)
 
-### Community 592 - "GPUAdapter<D>"
-Cohesion: 0.08
-Nodes (4): RoutedPromiseListener, DroppableGPUAdapter, GPUAdapter, GPUAdapter<D>
+### Community 592 - "ThemeColors"
+Cohesion: 0.09
+Nodes (21): CreateFluentFont(), CreateFluentIconFont(), GetDarkColors(), GetLightColors(), ThemeColors, Accent, CardBackground, CardBorder (+13 more)
 
 ### Community 593 - "script_bindings/str.rs"
-Cohesion: 0.16
-Nodes (8): CodeUnits, ConversionResult, CodeUnits, String, has_latin1_chars(), js_string_to_code_units(), serialize_jsval_to_json_utf8(), to_js_string()
+Cohesion: 0.15
+Nodes (7): CodeUnits, ConversionResult, CodeUnits, String, js_string_to_code_units(), serialize_jsval_to_json_utf8(), to_js_string()
 
-### Community 594 - "audio/context.rs"
-Cohesion: 0.06
-Nodes (18): AudioContext, AudioContextError, AudioContextOptions, OfflineAudioContext, RealTimeAudioContext, LatencyCategory, Balanced, Interactive (+10 more)
+### Community 594 - "ID"
+Cohesion: 0.10
+Nodes (9): DummyFontResolver, IDLInterface, .PROTO_FIRST, .PROTO_ID, .PROTO_LAST, ID, CanvasContext, CanvasId (+1 more)
 
 ### Community 595 - "steps"
 Cohesion: 0.10
@@ -3427,23 +3420,23 @@ Cohesion: 0.11
 Nodes (21): with, if, name, uses, with, with, if, name (+13 more)
 
 ### Community 600 - "LiveDOMReferences"
-Cohesion: 0.11
-Nodes (7): LiveDOMReferences, remove_nulls(), trace_live_domreferences(), Trusted<T>, TrustedReference, trace_roots(), trace_reflector()
+Cohesion: 0.17
+Nodes (4): LiveDOMReferences, remove_nulls(), Trusted<T>, TrustedReference
 
-### Community 601 - ".process_read_eof"
-Cohesion: 0.14
-Nodes (10): FileReaderFunction, ArrayBuffer, BinaryString, DataUrl, Text, FileReaderResult, ArrayBuffer, String (+2 more)
+### Community 601 - "WebGLSync"
+Cohesion: 0.12
+Nodes (3): DroppableWebGLSync, WebGLSync, WebGLSyncId
 
 ### Community 602 - "T"
-Cohesion: 0.11
-Nodes (8): DOMTracker, DOMTracker<T>, MutableWeakRef, MutableWeakRef<T>, WeakRefEntry, WeakRefEntry<'a, T>, WeakRefVec, WeakRefVec<T>
+Cohesion: 0.12
+Nodes (4): DOMTracker<T>, MutableWeakRef<T>, WeakRefEntry<'a, T>, WeakRefVec<T>
 
 ### Community 603 - "ServoContextMenuAction"
 Cohesion: 0.14
 Nodes (13): ServoContextMenuAction, Copy, CopyImageLink, CopyLink, Cut, Dismiss, GoBack, GoForward (+5 more)
 
 ### Community 604 - "CookieStore"
-Cohesion: 0.13
+Cohesion: 0.12
 Nodes (3): cookie_to_list_item(), CookieStore, DroppableCookieStore
 
 ### Community 605 - "MessageRouter"
@@ -3456,19 +3449,15 @@ Nodes (19): inputs, python-version-file-path, skip-python-setup, name, default, 
 
 ### Community 608 - "dom_struct"
 Cohesion: 0.01
-Nodes (214): Bytes, ExceptionHandling, Report, OwnerWindow, TracedCallback, DomRefCell, MutNullableDom, Atom (+206 more)
+Nodes (369): PendingApprovalNavigation, Serde, aspect_ratio(), box_generation_mode(), box_sizing(), content_alignment(), grid_auto_flow(), Metadata (+361 more)
 
 ### Community 609 - "WebViewRenderer"
-Cohesion: 0.04
-Nodes (22): RepaintReason, PaintMetricState, Seen, Sent, Waiting, PinchZoom, PipelineDetails, PinchZoomResult (+14 more)
+Cohesion: 0.02
+Nodes (63): RepaintReason, PinchZoom, PipelineDetails, BaseRefreshDriver, FLING_MAX_SCREEN_PX, FLING_MIN_SCREEN_PX, FLING_SCALING_FACTOR, FlingAction (+55 more)
 
-### Community 611 - "Directive"
-Cohesion: 0.16
-Nodes (6): Directive, Fields, Level, Fields, InstrumentConfiguration, Meta
-
-### Community 613 - "NodeList"
-Cohesion: 0.03
-Nodes (24): RadioNodeList, Mutation, Attribute, CharacterData, ChildList, MutationObserver, ObserverOptions, RegisteredObserver (+16 more)
+### Community 613 - "mutationobserver.rs"
+Cohesion: 0.09
+Nodes (7): Mutation, Attribute, CharacterData, ChildList, MutationObserver, ObserverOptions, ScriptMutationObservers
 
 ### Community 614 - "shared/profile/lib.rs"
 Cohesion: 0.13
@@ -3495,11 +3484,11 @@ Cohesion: 0.32
 Nodes (10): bounds_do_not_reach_back_to_the_origin(), disjoint_rects_sum(), empty_rect_is_a_noop(), fully_contained_rect_is_a_noop(), overlapping_rects_are_not_double_counted(), PaintedRegion, rect(), repeated_identical_rect_does_not_grow() (+2 more)
 
 ### Community 620 - "download.rs"
-Cohesion: 0.09
-Nodes (21): DownloadItem, DownloadState, Cancelled, Complete, InProgress, Interrupted, SERVO_DOWNLOAD_CANCELLED, SERVO_DOWNLOAD_COMPLETE (+13 more)
+Cohesion: 0.14
+Nodes (15): SERVO_DOWNLOAD_CANCELLED, SERVO_DOWNLOAD_COMPLETE, SERVO_DOWNLOAD_IN_PROGRESS, SERVO_DOWNLOAD_INTERRUPTED, servo_download_item_cancel(), servo_download_item_get_received_bytes(), servo_download_item_get_state(), servo_download_item_get_suggested_filename() (+7 more)
 
 ### Community 622 - "gamepadevent.rs"
-Cohesion: 0.18
+Cohesion: 0.17
 Nodes (4): GamepadEvent, GamepadEventType, Connected, Disconnected
 
 ### Community 623 - "calceof/calc.py"
@@ -3511,16 +3500,12 @@ Cohesion: 0.06
 Nodes (33): clip(), copy_rgba8_image(), detect_image_format(), FilterQuality, High, Low, Medium, None (+25 more)
 
 ### Community 625 - "LCPCandidate"
-Cohesion: 0.17
-Nodes (8): PerformancePaintTiming, LCPCandidateID, LCPCandidate, ProgressiveWebMetricType, FirstContentfulPaint, FirstPaint, LargestContentfulPaint, TimeToInteractive
+Cohesion: 0.13
+Nodes (7): PerformancePaintTiming, PaintTimingInfo, ProgressiveWebMetricType, FirstContentfulPaint, FirstPaint, LargestContentfulPaint, TimeToInteractive
 
 ### Community 627 - "MessagePortImpl"
 Cohesion: 0.13
-Nodes (14): PortMessageTask, MessagePortImpl, MessagePortState, Detached, Disabled, Enabled, Transferrable, ImageBitmap (+6 more)
-
-### Community 628 - "RequestContext"
-Cohesion: 0.16
-Nodes (10): ProxyConfig, ProxyMode, AutoDetect, Direct, FixedServers, PacScript, System, RequestContext (+2 more)
+Nodes (13): MessagePortImpl, MessagePortState, Detached, Disabled, Enabled, Transferrable, ImageBitmap, MessagePort (+5 more)
 
 ### Community 629 - "inputs"
 Cohesion: 0.07
@@ -3534,37 +3519,41 @@ Nodes (18): with, directory, disable_search, files, flags, force-github-hosted-r
 Cohesion: 0.21
 Nodes (15): servo_builder_set_request_context(), SERVO_PROXY_AUTO_DETECT, SERVO_PROXY_DIRECT, SERVO_PROXY_FIXED_SERVERS, SERVO_PROXY_PAC_SCRIPT, SERVO_PROXY_SYSTEM, servo_request_context_create(), servo_request_context_free() (+7 more)
 
-### Community 634 - "ControlElement"
-Cohesion: 0.12
-Nodes (8): ContextMenuNodes, ControlElement, ColorInput, ContextMenu, FileInput, Ime, Select, DocumentEmbedderControls
+### Community 634 - "HTMLAnchorElement"
+Cohesion: 0.05
+Nodes (10): DOMTokenList, ContextMenuNodes, ControlElement, ColorInput, ContextMenu, FileInput, Ime, Select (+2 more)
 
 ### Community 636 - "calc/calc.py"
-Cohesion: 0.06
-Nodes (10): p_expression_binop(), p_expression_group(), p_expression_uminus(), p_statement_assign(), p_statement_expr(), p_expression_binop(), p_expression_group(), p_expression_uminus() (+2 more)
+Cohesion: 0.12
+Nodes (5): p_expression_binop(), p_expression_group(), p_expression_uminus(), p_statement_assign(), p_statement_expr()
 
 ### Community 637 - "calcdebug/calc.py"
 Cohesion: 0.12
 Nodes (5): p_expression_binop(), p_expression_group(), p_expression_uminus(), p_statement_assign(), p_statement_expr()
-
-### Community 639 - "components/bluetooth/bluetooth.rs"
-Cohesion: 0.13
-Nodes (4): BluetoothDiscoverySession, Btleplug, Mock, BtleplugDiscoverySession
 
 ### Community 641 - "InputEventType"
 Cohesion: 0.11
 Nodes (17): bool, InputEventType, DeleteByCut, DeleteContentBackward, DeleteContentForward, InsertCompositionText, InsertFromPaste, InsertLineBreak (+9 more)
 
 ### Community 642 - "actors/worker.rs"
-Cohesion: 0.10
-Nodes (14): CssPropertiesActor, GetCssDatabaseReply, ListWorkersReply, AttachedReply, ConnectReply, DetachedReply, GetPushSubscriptionReply, WorkerTargetActor (+6 more)
-
-### Community 646 - "domstringmap.rs"
-Cohesion: 0.18
-Nodes (8): DATA_HYPHEN_SEPARATOR, DATA_PREFIX, DOMStringMap, to_camel_case(), to_snake_case(), is_valid_continuation(), is_valid_start(), matches_name_production()
-
-### Community 648 - "conftest.py"
 Cohesion: 0.15
-Nodes (11): devtools_port(), pytest_sessionfinish(), pytest_sessionstart(), run_servoshell(), run(), servo_binary(), _start_web_servers(), _stop_web_servers() (+3 more)
+Nodes (9): ListWorkersReply, AttachedReply, ConnectReply, DetachedReply, GetPushSubscriptionReply, WorkerTargetActor, WorkerTargetActorMsg, WorkerTraits (+1 more)
+
+### Community 643 - "macos_sign.py"
+Cohesion: 0.21
+Nodes (15): archive_basename(), archive_dmg(), default_entitlements_path(), ensure_notarization_dir(), extract_request_id(), latest_archived_dmg(), main(), notarization_dir() (+7 more)
+
+### Community 646 - "HostCallbacks"
+Cohesion: 0.17
+Nodes (4): callback_ref(), HostCallbacks, new_string_as_jvalue(), WakeupCallback
+
+### Community 647 - "SequentialFocusNavigationSearch"
+Cohesion: 0.22
+Nodes (9): compare_tab_indices(), Continue, No, Yes, SequentialFocusNavigationSearch, SequentialFocusNavigationSearchContext, Containing, Nested (+1 more)
+
+### Community 648 - "FocusableArea"
+Cohesion: 0.18
+Nodes (5): FocusableArea, IFrameViewport, Node, Viewport, Node
 
 ### Community 649 - "Serializable"
 Cohesion: 0.12
@@ -3588,43 +3577,51 @@ Nodes (17): with, directory, force-github-hosted-runner, github-hosted-runner-la
 
 ### Community 654 - "ParseOperation"
 Cohesion: 0.11
-Nodes (17): ParseOperation, AddAttrsIfMissing, Append, AppendBasedOnParentNode, AppendBeforeSibling, AppendDoctypeToDocument, AssociateWithForm, AttachDeclarativeShadowRoot (+9 more)
+Nodes (18): Attribute, ParseOperation, AddAttrsIfMissing, Append, AppendBasedOnParentNode, AppendBeforeSibling, AppendDoctypeToDocument, AssociateWithForm (+10 more)
 
 ### Community 655 - "servo_tidy_tidy"
 Cohesion: 0.12
 Nodes (4): Lint, Linter, Lint, Lint
 
+### Community 657 - "LinkProcessingOptions"
+Cohesion: 0.17
+Nodes (8): determine_cors_settings_for_token(), LinkHeader, LinkProcessingOptions, LinkProcessingPhase, Media, PreMedia, process_link_headers(), ValueForKeyInLinkHeader
+
 ### Community 658 - "trace-dump.js"
 Cohesion: 0.19
 Nodes (10): constructor(), findMaxTime(), findMinTime(), initialize(), moveSelection(), normalizeTimes(), pxToNs(), removeIdleTime() (+2 more)
 
-### Community 659 - "WakeLockType"
-Cohesion: 0.18
-Nodes (5): WakeLockSentinel, WakeLockDelegate, WakeLockType, Screen, DefaultWakeLockDelegate
+### Community 659 - ".AllowElement"
+Cohesion: 0.25
+Nodes (3): built_in_safe_baseline_configuration(), inner_sanitize_steps(), SanitizerConfig
 
 ### Community 662 - "SetParserReason"
 Cohesion: 0.12
 Nodes (15): AbortReason, Destroy, DocumentOpen, Navigate, PipelineExited, StopLoading, SetParserReason, Abort (+7 more)
 
 ### Community 664 - "Servo C ABI Stability and Compatibility Policy"
-Cohesion: 0.06
-Nodes (35): enum(), 1. Scope: the C ABI is the compatibility boundary, 2.1 Version macros and runtime query, 2.2 Semantic versioning rules, 2.3 What counts as a breaking change (checklist), 2.4 While `MAJOR` is `0`: incompatible changes bump `MINOR`, 2. Versioning, 3.1 Symbol naming and prefixing (+27 more)
+Cohesion: 0.10
+Nodes (20): 1. Scope: the C ABI is the compatibility boundary, 2.2 Semantic versioning rules, 2.3 What counts as a breaking change (checklist), 2.4 While `MAJOR` is `0`: incompatible changes bump `MINOR`, 2. Versioning, 4.1 No unwinding across FFI, 4.2 Error codes and result conventions, 4.3 Null-safety (+12 more)
 
 ### Community 665 - "net/mime_classifier.rs"
-Cohesion: 0.15
-Nodes (6): ApacheBugFlag, Off, On, BinaryOrPlaintextClassifier, MIMEChecker, Mp4Matcher
+Cohesion: 0.21
+Nodes (3): BinaryOrPlaintextClassifier, MIMEChecker, Mp4Matcher
 
 ### Community 666 - "NoGC"
-Cohesion: 0.11
+Cohesion: 0.10
 Nodes (3): UnrootedAncestorIterator, FlatTreeParent<'a>, Parent
-
-### Community 667 - "components/bluetooth/lib.rs"
-Cohesion: 0.13
-Nodes (9): BluetoothThreadFactory, CONNECTION_TIMEOUT_MS, data_filter_matches(), DISCOVERY_TIMEOUT_MS, GenericSender<BluetoothRequest>, matches_filter(), MAXIMUM_TRANSACTION_TIME, BluetoothCharacteristicMsg (+1 more)
 
 ### Community 669 - "HeadingLevel"
 Cohesion: 0.22
 Nodes (8): HeadingLevel, Heading1, Heading2, Heading3, Heading4, Heading5, Heading6, HTMLHeadingElement
+
+### Community 670 - "XPathResultType"
+Cohesion: 0.13
+Nodes (11): XPathResultType, Any, AnyUnorderedNode, Boolean, FirstOrderedNode, Number, OrderedNodeIterator, OrderedNodeSnapshot (+3 more)
+
+### Community 671 - "HostCallbacks"
+Cohesion: 0.14
+Nodes (4): HostCallbacks, ImeError, ImeProxy, TextEditorProxy
 
 ### Community 673 - "MediaControls"
 Cohesion: 0.23
@@ -3663,32 +3660,28 @@ Cohesion: 0.12
 Nodes (16): if, name, runs-on, if, name, runs-on, jobs, build-libservo (+8 more)
 
 ### Community 685 - "dom_struct/lib.rs"
-Cohesion: 0.13
-Nodes (4): servo_preferences_derive(), deny_public_fields_derive(), assert_not_impl_traceable(), js_traceable_derive()
+Cohesion: 0.08
+Nodes (10): servo_preferences_derive(), deny_public_fields_derive(), expand_dom_object(), dom_struct(), dom_struct_impl(), test_empty_struct_panic(), test_invalid_arguments_panic(), test_valid_dom_struct_generation() (+2 more)
 
-### Community 687 - "gpuexternaltexture.rs"
-Cohesion: 0.06
-Nodes (9): &GPUQuerySetDescriptor, DroppableGPUExternalTexture, GPUExternalTexture, GPUExternalTexture<D>, PlanarTexture, PlanarTexture<D>, DroppableGPUQuerySet, GPUQuerySet (+1 more)
+### Community 687 - "warn"
+Cohesion: 0.03
+Nodes (25): DroppableGPUBindGroup, GPUBindGroup, GPUBindGroup<D>, DroppableGPUCommandBuffer, GPUCommandBuffer, GPUCommandBuffer<D>, DroppableGPUExternalTexture, GPUExternalTexture (+17 more)
 
-### Community 688 - "SendError"
-Cohesion: 0.20
-Nodes (5): SendError, Disconnected, SerializationError, GenericCallback, GenericCallback<T>
+### Community 688 - "optcalc/calc.py"
+Cohesion: 0.12
+Nodes (5): p_expression_binop(), p_expression_group(), p_expression_uminus(), p_statement_assign(), p_statement_expr()
 
-### Community 689 - "uuid_is_blocklisted"
-Cohesion: 0.17
-Nodes (10): Blocklist, All, Reads, Writes, BluetoothBlocklist, EXCLUDE_READS, EXCLUDE_WRITES, parse_blocklist() (+2 more)
-
-### Community 690 - "data_loader.rs"
-Cohesion: 0.18
-Nodes (15): assert_parse(), base64(), base64_charset(), base64_ct(), empty_invalid(), plain(), plain_charset(), plain_ct() (+7 more)
+### Community 690 - "servourl"
+Cohesion: 0.08
+Nodes (10): assert_parse(), base64(), base64_charset(), base64_ct(), empty_invalid(), plain(), plain_charset(), plain_ct() (+2 more)
 
 ### Community 692 - "ServoCertErrorCode"
 Cohesion: 0.11
 Nodes (17): i32, ServoCertErrorCode, CommonNameInvalid, Expired, IncompleteChain, Invalid, InvalidUsage, None (+9 more)
 
 ### Community 693 - "javascript.rs"
-Cohesion: 0.14
-Nodes (12): cstring_or_empty(), DEPRECATED_EVALUATE_JAVASCRIPT_WARNED, jsvalue_to_json_string(), servo_webview_evaluate_javascript(), servo_webview_evaluate_javascript_v2(), ServoJavaScriptCallback, ServoJavaScriptCallbackV2, write_json_string() (+4 more)
+Cohesion: 0.26
+Nodes (9): cstring_or_empty(), DEPRECATED_EVALUATE_JAVASCRIPT_WARNED, jsvalue_to_json_string(), servo_webview_evaluate_javascript(), servo_webview_evaluate_javascript_v2(), ServoJavaScriptCallback, ServoJavaScriptCallbackV2, write_json_string() (+1 more)
 
 ### Community 694 - "style/stylesheets.rs"
 Cohesion: 0.21
@@ -3702,17 +3695,13 @@ Nodes (15): servo_user_content_manager_add_script(), servo_user_content_manager_
 Cohesion: 0.10
 Nodes (19): 1. Verdict, 2. New blockers (introduced by W4.1 — must fix before anything else), 4.1 The new native→JS path is redundant, broken, and unreachable, 4.2 `EmbedderMsg::OnScriptMessage` is never constructed, 4.3 `CustomEvent named servo-message` is not what the code does, 4.4 Duplicated script-building, 4. W4.1 — dead / redundant path and doc overclaims, 5. W5.2 — assessed (structurally correct, never executed) (+11 more)
 
-### Community 697 - "base/lib.rs"
-Cohesion: 0.14
-Nodes (10): read_json_from_file(), WebRenderEpochToU16, write_json_to_file(), RopeMovement, Character, Grapheme, Line, LineStartOrEnd (+2 more)
-
 ### Community 701 - "ShadowRoot"
-Cohesion: 0.02
-Nodes (27): StyleSheetList, StyleSheetListOwner, Document, ShadowRoot, DocumentOrShadowRoot, ServoStylesheetInDocument, StylesheetSource, Constructed (+19 more)
+Cohesion: 0.01
+Nodes (73): run_a_callback(), Entry, StyleSheetList, StyleSheetListOwner, Document, ShadowRoot, DocumentOrShadowRoot, ServoStylesheetInDocument (+65 more)
 
-### Community 703 - "RadioInputType"
-Cohesion: 0.20
-Nodes (4): broadcast_radio_checked(), radio_group_iter(), radio_group_updated(), RadioInputType
+### Community 703 - "InputActivationState"
+Cohesion: 0.09
+Nodes (4): InputActivationState, CheckboxInputType, radio_group_updated(), RadioInputType
 
 ### Community 704 - "Interop.kt"
 Cohesion: 0.17
@@ -3754,17 +3743,25 @@ Nodes (4): StylesheetSetRef, Author, Document, StylesheetSetRef<'_, S>
 Cohesion: 0.27
 Nodes (16): create_libc_string(), INVALID_PREFERENCE_NAME_MSG, servo_preferences_create(), servo_preferences_free(), servo_preferences_get_bool(), servo_preferences_get_devtools_server_enabled(), servo_preferences_get_devtools_server_port(), servo_preferences_get_i64() (+8 more)
 
-### Community 717 - ".new"
-Cohesion: 0.19
-Nodes (3): DroppableGPUPipelineLayout, GPUPipelineLayout, GPUPipelineLayout<D>
+### Community 717 - "cow"
+Cohesion: 0.09
+Nodes (6): DroppableGPUBindGroupLayout, GPUBindGroupLayout, GPUBindGroupLayout<D>, DroppableGPUPipelineLayout, GPUPipelineLayout, GPUPipelineLayout<D>
 
-### Community 720 - "7.0 W6 current-state brief"
-Cohesion: 0.14
-Nodes (13): 1. Accessibility (AccessKit Integration), 2.1 Feasibility Assessment (Dated: 2026-10-20), 2. Printing and PDF Export, 3. Credential Management & Autofill, Accessibility, Printing, and Credential Management Status, 7.0 W6 current-state brief, 7. W6 — Rendering & media, W6.1 — Validate GPU/WebGL/WebGPU and make the status doc honest (+5 more)
+### Community 718 - "trustedtypepolicy.rs"
+Cohesion: 0.10
+Nodes (6): TrustedScriptURL, TrustedType, TrustedHTML, TrustedScript, TrustedScriptURL, TrustedTypePolicy
 
-### Community 724 - "target_configuration.rs"
-Cohesion: 0.24
-Nodes (5): GetTargetConfigurationActorReply, JavascriptEnabledReply, TargetConfigurationActor, TargetConfigurationActorMsg, TargetConfigurationTraits
+### Community 720 - "SvgTag"
+Cohesion: 0.12
+Nodes (14): SvgImage, Container, Defs, Group, Svg, Switch, Text, Use (+6 more)
+
+### Community 721 - "sys"
+Cohesion: 0.04
+Nodes (23): get_latest_commit(), run_tests(), TestHarness, main(), extract_memory_reports(), parse_memory_report(), test(), test_extract_memory_reports() (+15 more)
+
+### Community 722 - "DiagnosticsLoggingOption"
+Cohesion: 0.12
+Nodes (12): DiagnosticsLoggingOption, AccessibilityTree, DisplayList, FlowTree, GcProfile, ProfileScriptEvents, ProgressiveWebMetrics, RelayoutEvent (+4 more)
 
 ### Community 726 - "steps"
 Cohesion: 0.14
@@ -3782,17 +3779,13 @@ Nodes (14): number-of-wpt-chunks, profile, wpt-args, default, required, type, re
 Cohesion: 0.14
 Nodes (14): with, command, disable_search, files, flags, if-no-files-found, max_attempts, name (+6 more)
 
-### Community 730 - "dom_struct/lib.rs"
-Cohesion: 0.24
-Nodes (6): expand_dom_object(), dom_struct(), dom_struct_impl(), test_empty_struct_panic(), test_invalid_arguments_panic(), test_valid_dom_struct_generation()
+### Community 739 - "RangeAny<T>"
+Cohesion: 0.20
+Nodes (6): RangeAny<T>, RangeAnyInner, Range, RangeFrom, RangeFull, RangeTo
 
-### Community 732 - "servo_automation_screenshot.py"
-Cohesion: 0.27
-Nodes (6): ensure_screenshots_directory_exists(), main(), print_help(), render_html_files(), servo_ready_to_accept(), start_servo()
-
-### Community 740 - "create_element_for_token"
-Cohesion: 0.24
-Nodes (4): is_execution_stack_empty(), trace(), create_element_for_token(), ElementAttribute
+### Community 741 - "OperatorToken"
+Cohesion: 0.12
+Nodes (15): create_binary_expression(), OperatorToken, Add, And, Divide, Equal, GreaterThan, GreaterThanOrEqual (+7 more)
 
 ### Community 742 - "groups"
 Cohesion: 0.15
@@ -3846,25 +3839,25 @@ Nodes (9): servo_find_result_get_active_match_ordinal(), servo_find_result_get_i
 Cohesion: 0.26
 Nodes (3): GSTREAMER_REGISTRY_SCANNER, GStreamerRegistryScanner, has_element_for_media_type()
 
-### Community 757 - "shared/layout/lib.rs"
-Cohesion: 0.05
-Nodes (15): LayoutDom<'_, HTMLCanvasElement>, PrefersColorScheme, Theme, Dark, Light, DomParallelInfo, HTMLCanvasData, HTMLMediaData (+7 more)
+### Community 759 - "BackgroundHangMonitor"
+Cohesion: 0.19
+Nodes (5): BackgroundHangMonitorChan, NotifyActivity, Register, MonitoredComponentSender, BackgroundHangMonitor
 
-### Community 759 - "ipc.rs"
-Cohesion: 0.30
-Nodes (3): channel(), IpcReceiver, IpcReceiver<T>
+### Community 760 - "shared/background_hang_monitor/lib.rs"
+Cohesion: 0.19
+Nodes (8): HangMonitorRegister, BackgroundHangMonitorClone, BackgroundHangMonitorRegister, Box<dyn BackgroundHangMonitorRegister>, HangProfile, HangProfileSymbol, MonitoredComponentType, Script
 
 ### Community 761 - "main.c"
-Cohesion: 0.08
-Nodes (11): find_python(), main(), try_python_command(), main(), on_javascript_result(), sleep_ms(), git_sha(), main() (+3 more)
+Cohesion: 0.10
+Nodes (6): main(), on_javascript_result(), sleep_ms(), Servo, find_and_copy_dll(), main()
 
 ### Community 762 - "test_sniff_with_flags"
-Cohesion: 0.17
-Nodes (11): NoSniffFlag, Off, On, read_file(), test_sniff_mp4_matcher(), test_sniff_mp4_video_apache_flag_on(), test_sniff_octet_stream_apache_flag_on(), test_sniff_utf_16be_bom_with_apache_flag_on() (+3 more)
+Cohesion: 0.12
+Nodes (14): ApacheBugFlag, Off, On, NoSniffFlag, Off, On, read_file(), test_sniff_mp4_matcher() (+6 more)
 
-### Community 763 - "point2d"
-Cohesion: 0.24
-Nodes (5): modes(), test_margin_round_trip(), test_point_round_trip(), test_rect_round_trip(), test_size_round_trip()
+### Community 767 - "stylesheetcontentscache.rs"
+Cohesion: 0.25
+Nodes (4): MAX_LENGTH_OF_TEXT_INSERTED_INTO_TABLE, StylesheetContentsCache, StylesheetContentsCacheKey, UNIQUE_OWNED
 
 ### Community 768 - "thread"
 Cohesion: 0.20
@@ -3902,10 +3895,6 @@ Nodes (11): 1. Overview, 2. Architecture, 3. Building the AAR Artifact, 4.1 Depe
 Cohesion: 0.41
 Nodes (5): JSContext, main(), second_arg_mutable(), second_arg_ref(), SomeImpl
 
-### Community 777 - "SizePresentationalHint"
-Cohesion: 0.22
-Nodes (5): LayoutDom<'_, HTMLHRElement>, SizePresentationalHint, SetAllBorderWidthValuesTo, SetBottomBorderWidthToZero, SetHeightTo
-
 ### Community 779 - "android/xml.rs"
 Cohesion: 0.22
 Nodes (4): Node, Element, Text, parse()
@@ -3918,9 +3907,9 @@ Nodes (16): 1. Executive Summary, 2.1 Threat Vectors, 2.2 Sandboxing Goals, 2. T
 Cohesion: 0.14
 Nodes (4): DomEventTrait, DomExceptionTrait, GPUPipelineError, GPUPipelineError<D>
 
-### Community 788 - "script_execution.rs"
-Cohesion: 0.07
-Nodes (22): ClassicScript, fill_compile_options(), GlobalScope, maybe_associate_with_script(), RethrowErrors, No, Yes, ScriptOptions (+14 more)
+### Community 788 - "module_loading.rs"
+Cohesion: 0.10
+Nodes (11): finish_loading_imported_module(), host_load_imported_module(), ImportRequest, LOAD_REACTION_HOST_DEFINED_SLOT, load_requested_modules(), load_state_from_handle_value(), LoadState, module_type_allowed() (+3 more)
 
 ### Community 795 - "turboshake_operation.rs"
 Cohesion: 0.25
@@ -3974,9 +3963,13 @@ Nodes (11): ACTIONS_RUN_URL, GH_TOKEN, PR_NUMBER, steps, steps, env, id, if (+3 
 Cohesion: 0.20
 Nodes (10): MediaType, AudioVideo, Css, Font, Html, Image, JavaScript, Json (+2 more)
 
+### Community 810 - "Element"
+Cohesion: 0.02
+Nodes (37): StyleSheet, DocumentFragment, LayoutDom<'dom, DocumentFragment>, IndexType, Id, Name, TreeOrderedIndexMap, TreeOrderedIndexMapEntry (+29 more)
+
 ### Community 811 - "CEF Parity — CEF concepts mapped to Servo's embedding API"
-Cohesion: 0.12
-Nodes (16): 10. Suggested phased path, 1. App / lifecycle, 2. Browser, 3. Handlers, 4. Rendering, 5. Networking, 6. JavaScript integration, 7. Process model (+8 more)
+Cohesion: 0.14
+Nodes (14): 10. Suggested phased path, 1. App / lifecycle, 3. Handlers, 4. Rendering, 5. Networking, 6. JavaScript integration, 7. Process model, 8. Tooling (+6 more)
 
 ### Community 812 - "Servo — Production Readiness Report & Master Work List"
 Cohesion: 0.12
@@ -3990,9 +3983,9 @@ Nodes (7): AbortController, AbortAlgorithm, DomEventListener, Fetch, FetchLater,
 Cohesion: 0.40
 Nodes (5): servo_get_network_manager(), servo_network_manager_clear_cache(), servo_network_manager_free(), servo_network_manager_get_cache_entries(), ServoNetworkManager
 
-### Community 815 - "parsing/mod.rs"
-Cohesion: 0.22
-Nodes (5): assert_parser_exhausted!, assert_roundtrip!, assert_roundtrip_with_context!, parse_longhand!, parse()
+### Community 815 - "ParsingMode"
+Cohesion: 0.15
+Nodes (13): ANONYMOUS_CONTENT_URL_DATA, parser_context_for_anonymous_content(), parser_context_for_document(), parser_context_for_document_with_reporter(), ParsingMode, Absolute, RelativeMinus, RelativePlus (+5 more)
 
 ### Community 816 - "IndentLexer"
 Cohesion: 0.24
@@ -4007,32 +4000,24 @@ Cohesion: 0.13
 Nodes (3): DroppableGPUComputePassEncoder, GPUComputePassEncoder, GPUComputePassEncoder<D>
 
 ### Community 824 - "TextInputWidget"
-Cohesion: 0.06
-Nodes (7): DateInputType, EmailInputType, HiddenInputType, PasswordInputType, SearchInputType, TelInputType, TextInputWidget
-
-### Community 827 - "SVGElement"
 Cohesion: 0.05
-Nodes (6): SVGElement, SVGGradientElement, SVGLinearGradientElement, SVGPatternElement, SVGRadialGradientElement, SVGStopElement
+Nodes (9): EmailInputType, HiddenInputType, PasswordInputType, SearchInputType, TelInputType, TextInputType, create_ua_widget_div_with_text_node(), TextInputWidget (+1 more)
 
 ### Community 828 - "capi/gamepad.rs"
-Cohesion: 0.23
-Nodes (10): SERVO_GAMEPAD_HAPTIC_EFFECT_DUAL_RUMBLE, SERVO_GAMEPAD_HAPTIC_EFFECT_STOP, servo_webview_gamepad_haptic_effect_request_failed(), servo_webview_gamepad_haptic_effect_request_info(), servo_webview_gamepad_haptic_effect_request_succeeded(), ServoGamepadDelegate, ServoGamepadHapticEffectCallback, ServoGamepadHapticEffectInfo (+2 more)
+Cohesion: 0.25
+Nodes (9): SERVO_GAMEPAD_HAPTIC_EFFECT_DUAL_RUMBLE, SERVO_GAMEPAD_HAPTIC_EFFECT_STOP, servo_webview_gamepad_haptic_effect_request_failed(), servo_webview_gamepad_haptic_effect_request_info(), servo_webview_gamepad_haptic_effect_request_succeeded(), ServoGamepadDelegate, ServoGamepadHapticEffectCallback, ServoGamepadHapticEffectInfo (+1 more)
 
 ### Community 831 - "sharedworkerglobalscope.rs"
-Cohesion: 0.03
-Nodes (55): WorkerType, Dedicated, Shared, find_matching_shared_worker(), find_or_claim_shared_worker(), prune_closed_shared_workers(), remove_creating_shared_worker(), send_connect_to_created_worker() (+47 more)
+Cohesion: 0.04
+Nodes (35): WorkerType, Dedicated, Shared, SharedWorkerRegistration, SharedWorkerStorageKey, TrustedSharedWorkerAddress, MixedMessage, Control (+27 more)
 
 ### Community 832 - "Error"
-Cohesion: 0.29
+Cohesion: 0.25
 Nodes (7): Error, BackendSpecific, CommunicationError, InlineSession, NoMatchingDevice, ThreadCreationError, UnsupportedFeature
 
-### Community 836 - "capi/servo.rs"
-Cohesion: 0.37
-Nodes (8): servo_free(), servo_post_task(), servo_set_preference_bool(), servo_set_preference_i64(), servo_set_preference_string(), servo_set_preference_u64(), servo_setup_logging(), servo_spin_event_loop()
-
-### Community 842 - "DisplayLayoutInternal"
-Cohesion: 0.20
-Nodes (10): DisplayLayoutInternal, TableCaption, TableCell, TableColumn, TableColumnGroup, TableFooterGroup, TableHeaderGroup, TableRow (+2 more)
+### Community 836 - "cstr"
+Cohesion: 0.11
+Nodes (12): PermanentRoot, servo_webview_print_to_pdf(), ServoPdfPrintCallback, ServoPdfPrintSettings, servo_free(), servo_post_task(), servo_set_preference_bool(), servo_set_preference_i64() (+4 more)
 
 ### Community 843 - "TokenizerState"
 Cohesion: 0.20
@@ -4074,6 +4059,14 @@ Nodes (5): JSContext, main(), second_arg_mutable(), second_arg_ref(), SomeImpl
 Cohesion: 0.25
 Nodes (5): Bar, Baz, Foo, TypeHolder, TypeHolderTrait
 
+### Community 857 - "navigatorinfo.rs"
+Cohesion: 0.26
+Nodes (11): AppCodeName(), AppName(), AppVersion(), Language(), Oscpu(), Platform(), Product(), ProductSub() (+3 more)
+
+### Community 859 - "capi/rendering_context.rs"
+Cohesion: 0.20
+Nodes (7): RenderingContext, servo_rendering_context_create_offscreen(), servo_rendering_context_create_software(), servo_rendering_context_create_window(), servo_rendering_context_free(), SERVO_RENDERING_CONTEXT_SOFTWARE, SERVO_RENDERING_CONTEXT_WINDOW
+
 ### Community 862 - "Media, WebCodecs, and DRM / Encrypted Media Extensions (EME) Architecture"
 Cohesion: 0.15
 Nodes (12): 1. Executive Summary, 2. Current Media Architecture: GStreamer Backend, 3. WebCodecs Status, 4.1 Legal & Policy Constraints, 4.2 Proposed CDM Host Architecture, 4.3 Native ClearKey CDM (`org.w3.clearkey`), 4. DRM and Encrypted Media Extensions (EME), 5.1 Implemented DOM Components (+4 more)
@@ -4093,6 +4086,14 @@ Nodes (8): servo_webview_add_message_handler(), servo_webview_add_script_message
 ### Community 866 - "with"
 Cohesion: 0.15
 Nodes (13): with, directory, if-no-files-found, key, large-packages, name, path, pattern (+5 more)
+
+### Community 868 - "Servo — Security & Robustness Audit"
+Cohesion: 0.15
+Nodes (13): test_partitioned_cookie_matching(), 1. Verdict, 2. Sandboxing & site isolation — weakest area, 4.1 Fixed in this pass — web-content-triggerable panic, 4.2 Other reachable-panic candidates (not changed), 4.3 Implemented in this pass — `SameSite` cookie enforcement, 4. Robustness: panics on web-controlled input, 5. TLS / certificate handling (+5 more)
+
+### Community 870 - "Area"
+Cohesion: 0.18
+Nodes (8): Area, Circle, Polygon, Rectangle, Shape, Circle, Polygon, Rectangle
 
 ### Community 871 - "steps"
 Cohesion: 0.22
@@ -4146,10 +4147,6 @@ Nodes (9): steps, steps, id, if, name, run, timeout-minutes, uses (+1 more)
 Cohesion: 0.22
 Nodes (9): name, needs, secrets, strategy, uses, build, include, fail-fast (+1 more)
 
-### Community 884 - "FileReaderReadyState"
-Cohesion: 0.50
-Nodes (4): FileReaderReadyState, Done, Empty, Loading
-
 ### Community 885 - "trace_in_no_trace_composable_works.rs"
 Cohesion: 0.31
 Nodes (5): Foo, JSTraceable, NoTraceComposable, NotTraceableStruct, TraceableStruct
@@ -4162,33 +4159,25 @@ Nodes (5): CanBeUnrooted, Foo, MustBeRooted, TypeHolder, TypeHolderTrait
 Cohesion: 0.33
 Nodes (5): Foo, JSTraceable, NoTraceComposable, NotTraceableStruct, TraceableStruct
 
-### Community 888 - "capi/servo_delegate.rs"
-Cohesion: 0.29
-Nodes (3): make_servo_delegate(), ServoDelegate, ServoDelegateWrapper
+### Community 889 - "vtable_for"
+Cohesion: 0.13
+Nodes (7): ForceSlottableNodeReconciliation, Force, Skip, SuppressObserver, Suppressed, Unsuppressed, vtable_for()
 
-### Community 889 - "ForceSlottableNodeReconciliation"
-Cohesion: 0.67
-Nodes (3): ForceSlottableNodeReconciliation, Force, Skip
+### Community 890 - "DragGesture"
+Cohesion: 0.23
+Nodes (4): DragGesture, DragHandler, DocumentSelection, TextInputSelection
 
-### Community 890 - "quotes.rs"
-Cohesion: 0.33
-Nodes (6): DEFAULT_QUOTES, QuotePair, quotes_data_for_lang(), quotes_for_lang(), QUOTES_MAP, QuotesData
-
-### Community 892 - "SuppressObserver"
-Cohesion: 0.67
-Nodes (3): SuppressObserver, Suppressed, Unsuppressed
-
-### Community 894 - "refcounted_shallow.rs"
-Cohesion: 0.29
-Nodes (7): arc_shallow_size_honors_alignment(), arc_shallow_size_is_the_allocation_size(), MINIMUM, ops(), PAYLOAD, rc_shallow_size_is_the_allocation_size(), SLACK
+### Community 894 - "arc"
+Cohesion: 0.05
+Nodes (20): WriteGuard, ActorMsg, allow_devtools_client(), DevtoolsInstance, handle_client(), start_server(), Pipeline, Cause (+12 more)
 
 ### Community 895 - "Servo Full Browser Roadmap"
 Cohesion: 0.17
 Nodes (12): 1. Mission & Vision, 2. Principles, 3.1 Web Platform Compatibility (highest leverage), 3.2 Site Isolation & Process Model, 3.3 Security Hardening, 3.4 Complete Consumer Browser, 3.5 Polish & Production Readiness, 3. Core Workstreams (+4 more)
 
-### Community 897 - ".canonicalize"
-Cohesion: 0.27
-Nodes (3): Canonicalization, SanitizerPI, TargetMember
+### Community 896 - "visual_studio.py"
+Cohesion: 0.30
+Nodes (8): find_compatible_msvc_with_environment_variables(), find_compatible_msvc_with_path(), find_compatible_msvc_with_vswhere(), find_msvc_installations(), find_msvc_redist_dirs(), find_vswhere(), find_windows_sdk_installation_path(), VisualStudioInstallation
 
 ### Community 898 - "3. Subsystem Breakdown"
 Cohesion: 0.17
@@ -4199,8 +4188,8 @@ Cohesion: 0.17
 Nodes (11): 1. Executive Summary, 2.1 The Site-Keying Policy (eTLD+1), 2. Current Architecture: Site-Keyed Browsing Contexts, 3.1 Comparison, 3. Target Architecture: Origin-Keyed Process Isolation, 4.1 Process Keying & Navigation, 4.2 Out-Of-Process Iframes (OOPIF), 4.3 `Origin-Agent-Cluster` Header Support (+3 more)
 
 ### Community 900 - "Reflector"
-Cohesion: 0.03
-Nodes (21): bench(), BenchDom, HasParent, MutDomObject, Reflector, Reflector<AssociatedMemory>, Reflector<T>, WeakReferenceable (+13 more)
+Cohesion: 0.02
+Nodes (36): bench(), BenchDom, HasParent, DomObjectIteratorWrap, DomObjectWrap, MutDomObject, Reflector, Reflector<AssociatedMemory> (+28 more)
 
 ### Community 901 - "steps"
 Cohesion: 0.25
@@ -4270,6 +4259,10 @@ Nodes (5): DOMString, func(), func_with_str(), func_with_string(), main()
 Cohesion: 0.36
 Nodes (5): Foo, JSTraceable, NoTrace, NotTraceableStruct, TraceableStruct
 
+### Community 921 - "Part B — FFI boundary hardening"
+Cohesion: 0.18
+Nodes (11): test_hang_monitoring_signal_component_exit(), A.1 Background hang monitor (BHM), A.3 Fuzzing and crash telemetry (projects, not one-liners), B.0 `struct_size` coverage across the ABI (W2.5 inventory), B.2 Temporary pointers and thread affinity (make contracts explicit), B.3 `Send`/`Sync` assertions, Part A — Stability, Part B — FFI boundary hardening (+3 more)
+
 ### Community 922 - "4. Step-by-Step Implementation Roadmap"
 Cohesion: 0.17
 Nodes (11): 1. Executive Summary, 2. WebRTC Calling Requirements for Major Platforms, 3. Inventory of Existing Foundations in Servo, 4. Step-by-Step Implementation Roadmap, 5. Key Source Files Reference, Phase 1: DOM Preferences & Unified Plan Modernization [COMPLETED], Phase 2: Local Capture & Permissions Pipeline [COMPLETED], Phase 3: GStreamer `webrtcbin` Core Engine [COMPLETED] (+3 more)
@@ -4286,9 +4279,13 @@ Nodes (5): AdjacentPosition, AfterBegin, AfterEnd, BeforeBegin, BeforeEnd
 Cohesion: 0.17
 Nodes (11): concurrency, cancel-in-progress, group, env, CARGO_INCREMENTAL, RUST_BACKTRACE, SHELL, jobs (+3 more)
 
-### Community 929 - "SVGGraphicsElement"
-Cohesion: 0.03
-Nodes (13): SVGAElement, SVGDefsElement, SVGGElement, SVGGraphicsElement, DEFAULT_HEIGHT, DEFAULT_WIDTH, SVGImageElement, SVGSymbolElement (+5 more)
+### Community 928 - "HTMLVideoElement"
+Cohesion: 0.06
+Nodes (6): MediaElementWeakRef, Audio, Video, HTMLVideoElement, LayoutDom<'_, HTMLVideoElement>, PosterFrameFetchContext
+
+### Community 929 - "svgtextelement.rs"
+Cohesion: 0.10
+Nodes (4): SVGTextContentElement, SVGTextElement, SVGTextPositioningElement, SVGTSpanElement
 
 ### Community 930 - "with"
 Cohesion: 0.17
@@ -4297,14 +4294,6 @@ Nodes (12): with, directory, if-no-files-found, key, large-packages, name, path,
 ### Community 931 - "steps"
 Cohesion: 0.41
 Nodes (12): steps, steps, steps, steps, steps, id, if, name (+4 more)
-
-### Community 932 - "SVGGeometryElement"
-Cohesion: 0.05
-Nodes (8): SVGCircleElement, SVGEllipseElement, SVGGeometryElement, SVGLineElement, SVGPathElement, SVGPolygonElement, SVGPolylineElement, SVGRectElement
-
-### Community 933 - "SendSource"
-Cohesion: 0.31
-Nodes (5): SendSource, ArrayBuffer, ArrayBufferView, Blob, String
 
 ### Community 934 - "android.yml"
 Cohesion: 0.29
@@ -4371,8 +4360,8 @@ Cohesion: 0.29
 Nodes (7): if, name, outputs, runs-on, create-draft-release, release-id, release-tag
 
 ### Community 951 - "hang_monitor_tests.rs"
-Cohesion: 0.07
-Nodes (24): SERIAL, test_hang_monitoring(), test_hang_monitoring_exit_signal1(), test_hang_monitoring_exit_signal2(), test_hang_monitoring_exit_signal3(), test_hang_monitoring_exit_signal4(), test_hang_monitoring_exit_signal_inner(), test_hang_monitoring_signal_component_exit() (+16 more)
+Cohesion: 0.15
+Nodes (9): SERIAL, test_hang_monitoring(), test_hang_monitoring_exit_signal1(), test_hang_monitoring_exit_signal2(), test_hang_monitoring_exit_signal3(), test_hang_monitoring_exit_signal4(), test_hang_monitoring_exit_signal_inner(), test_hang_monitoring_unregister() (+1 more)
 
 ### Community 953 - "missing_unrooted_interior_on_trait.rs"
 Cohesion: 0.33
@@ -4397,6 +4386,18 @@ Nodes (3): audio_scheduled_source_node(), channel_info(), impl_audio_scheduled_s
 ### Community 961 - "TheEndLoadingPhase"
 Cohesion: 0.33
 Nodes (6): TheEndLoadingPhase, Done, Initial, ProcessingAsSoonAsPossibleScripts, ProcessingDeferredScripts, WaitingForLoadEventBlockers
+
+### Community 962 - "AspectAlign"
+Cohesion: 0.18
+Nodes (11): AspectAlign, None, XMaxYMax, XMaxYMid, XMaxYMin, XMidYMax, XMidYMid, XMidYMin (+3 more)
+
+### Community 964 - "KeyCode"
+Cohesion: 0.20
+Nodes (9): Key, KeyCode, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Delete, Enter (+1 more)
+
+### Community 965 - "Builder"
+Cohesion: 0.29
+Nodes (4): AddToCaps, Constrain<f64>, Constrain<u32>, into_i32()
 
 ### Community 967 - "LoadState"
 Cohesion: 0.33
@@ -4441,10 +4442,6 @@ Nodes (10): Adding scenarios to CI, available arguments, How to develop scenario
 ### Community 987 - "embedding-api.yml"
 Cohesion: 0.18
 Nodes (10): concurrency, cancel-in-progress, group, env, CARGO_INCREMENTAL, RUST_BACKTRACE, SHELL, name (+2 more)
-
-### Community 991 - "servo-capi C embedder example"
-Cohesion: 0.22
-Nodes (9): 1. Install the C API into a sysroot, 2. Build the example locally, 3. Run it, Notes, Option A: CMake (Recommended — uses `find_package(Servo CONFIG)`), Option B: Direct compilation with `pkg-config`, Option C: Direct compiler invocation, servo-capi C embedder example (+1 more)
 
 ### Community 992 - "gstreamer_plugins.rs"
 Cohesion: 0.40
@@ -4699,12 +4696,16 @@ Cohesion: 0.83
 Nodes (3): Foo, foo2(), main()
 
 ### Community 1076 - "HTMLTableElement"
-Cohesion: 0.06
-Nodes (4): HTMLMapElement, HTMLTableCaptionElement, HTMLTableElement, HTMLTableSectionElement
+Cohesion: 0.05
+Nodes (5): HTMLTableCaptionElement, HTMLTableElement, TableRowFilter, HTMLTableRowElement, HTMLTableSectionElement
 
-### Community 1092 - "2. High-Impact Remediation Tickets"
+### Community 1089 - "NodeTypeIdWrapper"
+Cohesion: 0.28
+Nodes (4): ElementTypeIdWrapper, LayoutElementType, LayoutNodeType, NodeTypeIdWrapper
+
+### Community 1092 - "UserActivationTimestamp"
 Cohesion: 0.25
-Nodes (8): 1. Overview & Strategy, 2. High-Impact Remediation Tickets, Ticket WPT-01: WHATWG Fetch & Streams Conformance, Ticket WPT-02: CSS Grid & Flexbox Edge Cases, Ticket WPT-03: HTML5 Form Validation & Interactive Controls, Ticket WPT-04: IndexedDB Transaction & Key-Path Conformance, Ticket WPT-05: DOM Microtask & MutationObserver Ordering, WPT High-Impact Triage & Remediation Tickets
+Nodes (4): UserActivationTimestamp, NegativeInfinity, PositiveInfinity, TimeStamp
 
 ### Community 1097 - "2. Platform Sandboxing Strategies"
 Cohesion: 0.22
@@ -4719,8 +4720,8 @@ Cohesion: 0.22
 Nodes (8): 1. Context & Rationale, 2. Test Matrix, 3. Manual Hardware Validation Checklist, 4. Hardware Verification Automation Script, Step 1: Run Servoshell in Windowed Mode, Step 2: High-DPI Scaling Test, Step 3: Offscreen Rendering Test, Windows GPU & Windowed Rendering Hardware Validation
 
 ### Community 1104 - "Servo Embedding — Agent Build Plan (W2–W6)"
-Cohesion: 0.05
-Nodes (42): 0. How to use this document, 11. Appendix D — Out of scope, and the stale-document register, 1.1 Repository facts, 1.2 Build & verification reality — **read this twice**, 1.3 Session workflow (every ticket), 1.4 Non-negotiable coding rules, 1.5 Report template (end of every ticket), 1. Ground rules & operating manual (mandatory) (+34 more)
+Cohesion: 0.04
+Nodes (51): 0. How to use this document, 11. Appendix D — Out of scope, and the stale-document register, 1.1 Repository facts, 1.2 Build & verification reality — **read this twice**, 1.3 Session workflow (every ticket), 1.4 Non-negotiable coding rules, 1.5 Report template (end of every ticket), 1. Ground rules & operating manual (mandatory) (+43 more)
 
 ### Community 1106 - "ignore"
 Cohesion: 0.67
@@ -4754,6 +4755,10 @@ Nodes (9): name, runs-on, jobs, capi, observability, if, name, needs (+1 more)
 Cohesion: 0.22
 Nodes (8): name, needs, outputs, runs-on, jobs, collect-job-results, name, collected_job_status
 
+### Community 1127 - "Error"
+Cohesion: 0.25
+Nodes (6): QName, Error, CannotUseVariables, Internal, InvalidQName, NotANodeset
+
 ### Community 1144 - "artifact_ids"
 Cohesion: 0.22
 Nodes (9): description, value, outputs, description, value, artifact_ids, optional_job_status, signed (+1 more)
@@ -4762,17 +4767,21 @@ Nodes (9): description, value, outputs, description, value, artifact_ids, option
 Cohesion: 0.22
 Nodes (9): outputs, if, name, outputs, runs-on, timeout-minutes, build-harmonyos-aarch64, job_status (+1 more)
 
-### Community 1147 - "Getting started"
-Cohesion: 0.22
-Nodes (8): Android, Getting started, iOS, Linux, macOS, OpenHarmony, The Servo Parallel Browser Engine Project, Windows
+### Community 1146 - "SrcObject"
+Cohesion: 0.43
+Nodes (3): SrcObject, Blob, MediaStream
 
 ### Community 1148 - "Servo Browser (for Windows) — Installation & Packaging Guide"
 Cohesion: 0.22
 Nodes (8): 1. Quick Installation (PowerShell), 2. Silent / Automated Installation, 3. Uninstallation, 4. Building the Standalone Setup Installer (.exe), 5. Command-Line Options, Installation Features:, Overview, Servo Browser (for Windows) — Installation & Packaging Guide
 
+### Community 1149 - "BluetoothError"
+Cohesion: 0.29
+Nodes (7): BluetoothError, InvalidState, Network, NotFound, NotSupported, Security, Type
+
 ### Community 1301 - "Workstream 4: Complete Browser Controls & Event Integration"
-Cohesion: 0.06
-Nodes (35): 1. Executive Summary, 2.1 Process Model & Site Isolation, 2.2 Web Platform Compatibility (WPT), 2.3 Security & Privacy Hardening, 2.4 Consumer Browser Experience (MCB), 2.5 Polish, Observability & Distribution, 2. Core Feature Parity Matrix, 3. Milestone Progress Tracker (+27 more)
+Cohesion: 0.05
+Nodes (52): 5.0 W4 current-state brief (verified at `6fe2549874b`), W4.2 — Clipboard, gamepad, and embedder controls in C, W4.4 — DevTools / console exposure: verify, document, test (re-scoped), W4.5 — Manual windowed/GPU validation on real hardware, W4.6 — Threading contract: `Send`/`Sync` handles *or* documented main-thread-only, W4.7 — Language bindings beyond C/C++, W4.8 — CEF P2 leftovers, 1. Executive Summary (+44 more)
 
 ### Community 1302 - "steps"
 Cohesion: 0.36
@@ -4806,9 +4815,13 @@ Nodes (4): bool, ImplicitWait, Continue, Return
 Cohesion: 0.33
 Nodes (5): Bluetooth, Implementation, Usage, With the *bluetooth-test* feature, Without the *bluetooth-test* feature
 
-### Community 1311 - "unrooted_must_root_allowed_std_types.rs"
-Cohesion: 0.60
-Nodes (3): MustRoot, StdTypes, test_std_types()
+### Community 1313 - "TransformOp"
+Cohesion: 0.29
+Nodes (6): TransformOp, Matrix, Rotate, SkewX, SkewY, Translate
+
+### Community 1316 - "FireMouseEventType"
+Cohesion: 0.33
+Nodes (6): FireMouseEventType, Enter, Leave, Move, Out, Over
 
 ### Community 1318 - "Implementation"
 Cohesion: 0.33
@@ -4858,25 +4871,93 @@ Nodes (4): default, required, type, build-libservo
 Cohesion: 0.50
 Nodes (3): `servo`, `tidy`, `wpt`
 
+### Community 1340 - "shared/webxr/lib.rs"
+Cohesion: 0.09
+Nodes (33): LayerLayout, Mono, StereoLeftRight, StereoTopBottom, Capture, CUBE_BACK, CUBE_BOTTOM, CUBE_LEFT (+25 more)
+
+### Community 1348 - "MediaElementMicrotask"
+Cohesion: 0.33
+Nodes (6): MediaElementMicrotask, PauseIfNotInDocument, ResourceSelection, Seeked, SelectNextSourceChild, SelectNextSourceChildAfterWait
+
+### Community 1377 - "ReadyState"
+Cohesion: 0.33
+Nodes (6): ReadyState, HaveCurrentData, HaveEnoughData, HaveFutureData, HaveMetadata, HaveNothing
+
+### Community 1379 - "LayoutBlocker"
+Cohesion: 0.33
+Nodes (4): LayoutBlocker, FiredLoadEventOrParsingTimerExpired, Parsing, WaitingForParse
+
+### Community 1380 - "NamespaceResolver"
+Cohesion: 0.33
+Nodes (3): XPathWrapper<RootedCallback<XPathNSResolver>>, NamespaceResolver, DummyNamespaceResolver
+
+### Community 1385 - "LineJoin"
+Cohesion: 0.33
+Nodes (6): LineJoin, Arcs, Bevel, Miter, MiterClip, Round
+
+### Community 1395 - "SelectionGranularity"
+Cohesion: 0.40
+Nodes (4): SelectionGranularity, LineIgnoringSoftWrap, Position, Word
+
+### Community 1399 - "EventPhase"
+Cohesion: 0.40
+Nodes (5): EventPhase, AtTarget, Bubbling, Capturing, None
+
+### Community 1400 - "FocusEventType"
+Cohesion: 0.40
+Nodes (5): FocusEventType, Blur, Focus, FocusIn, FocusOut
+
+### Community 1402 - "NetworkState"
+Cohesion: 0.40
+Nodes (5): NetworkState, Empty, Idle, Loading, NoSource
+
+### Community 1406 - "LayoutNodeType"
+Cohesion: 0.40
+Nodes (3): LayoutNodeType, Element, Text
+
+### Community 1407 - "PaintWorkletError"
+Cohesion: 0.50
+Nodes (3): PaintWorkletError, Timeout, WorkletNotFound
+
+### Community 1413 - "LazyLoadResumptionSteps"
+Cohesion: 0.67
+Nodes (3): LazyLoadResumptionSteps, None, SrcDoc
+
+### Community 1414 - "LoopCondition"
+Cohesion: 0.67
+Nodes (3): LoopCondition, Ignored, Included
+
+### Community 1415 - "PlaybackPositionWasMoved"
+Cohesion: 0.67
+Nodes (3): PlaybackPositionWasMoved, ExplicitMove, NormalPlayback
+
+### Community 1416 - "StepDirection"
+Cohesion: 0.67
+Nodes (3): StepDirection, Down, Up
+
+### Community 1417 - "WindowState"
+Cohesion: 0.67
+Nodes (3): WindowState, Alive, Zombie
+
 ## Knowledge Gaps
-- **4776 isolated node(s):** `DEBIAN_FRONTEND`, `Unregister`, `NotifyWait`, `UncheckedSyncUnsafeCell<T>`, `Btleplug` (+4771 more)
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 16220 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **521 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **4820 isolated node(s):** `DEBIAN_FRONTEND`, `Unregister`, `NotifyWait`, `UncheckedSyncUnsafeCell<T>`, `Btleplug` (+4815 more)
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 16252 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **560 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `DomRoot` connect `DomRoot` to `EventSource`, `HTMLElement`, `RequestId`, `Document`, `.list_of_options`, `CSSStyleSheet`, `HTMLMetaElement`, `AudioBuffer`, `layout_impl.rs`, `Sanitizer`, `WeakRef`, `debuggerblackboxevent.rs`, `ScrollingBox`, `Event`, `aes_ocb_operation.rs`, `TestBinding`, `XRRigidTransform`, `Worker`, `USVString`, `gpucomputepipeline.rs`, `RootedCallback`, `PerformanceObserver`, `script_module.rs`, `TextInputWidget`, `ServiceWorkerRegistration`, `PerformanceResourceTiming`, `DOMString`, `Window`, `LayoutDom`, `mediasession.rs`, `WebGL2RenderingContext`, `IDBFactory`, `DOMException`, `WebGLRenderingContext`, `VisualViewport`, `PipelineId`, `gpubindgroup.rs`, `MediaDeviceKind`, `.reflect_dom_object`, `WebGPU`, `htmlsourceelement.rs`, `.suffers_from_pattern_mismatch`, `Element`, `HTMLTableElement`, `quotaexceedederror.rs`, `ScriptThreadMessage`, `TracedPromise`, `Animation`, `CryptoKey`, `ScriptThread`, `customevent.rs`, `CustomStateSet`, `animationeffect.rs`, `StorageEvent`, `timers.rs`, `HTMLDialogElement`, `gpusampler.rs`, `body.rs`, `gpusupportedfeatures.rs`, `dom/mod.rs`, `ServoUrl`, `canvas_state.rs`, `GPUAdapter<D>`, `script_bindings/import.rs`, `LiveDOMReferences`, `CryptoAlgorithm`, `T`, `CookieStore`, `gpudevice.rs`, `IDBTransaction`, `dom_struct`, `HTMLMeterElement`, `Node`, `WebGLProgram`, `NodeList`, `HTMLImageElement`, `readablestreamdefaultcontroller.rs`, `headless/mod.rs`, `Blob`, `popstateevent.rs`, `DevtoolScriptControlMsg`, `canvas.rs`, `gamepadevent.rs`, `LCPCandidate`, `PerformanceNavigationTiming`, `HTMLMediaElement`, `key.rs`, `AnimationEvent`, `ServoDangerousStyleElement<'dom>`, `CSSFontFeatureValuesMap`, `DedicatedWorkerGlobalScope`, `HTMLInputElement`, `BluetoothAdvertisingEvent`, `XRSession`, `HTMLSlotElement`, `reflect_dom_object_with_proto`, `ToggleEvent`, `.start_container`, `textencoder.rs`, `domstringmap.rs`, `.start_offset`, `dom/bluetooth/bluetooth.rs`, `WebGLFramebuffer`, `gpuuncapturederrorevent.rs`, `WakeLockType`, `MouseEvent`, `debuggeradddebuggeeevent.rs`, `HTMLOptionsCollection`, `fakexrinputcontroller.rs`, `xrreferencespaceevent.rs`, `CanvasRenderingContext2D`, `NoGC`, `ImageInputType`, `HeadingLevel`, `CommandEvent`, `.attach_shadow`, `TextTrack`, `FontFace`, `async_html.rs`, `ReadableStreamBYOBRequest`, `TestBindingMaplikeWithPrimitive`, `WebGLBuffer`, `Client`, `rtcerrorevent.rs`, `webglrenderingcontext.rs`, `writablestreamdefaultcontroller.rs`, `interfaces.rs`, `DOMMatrix`, `WindowProxy`, `worklet.rs`, `Response`, `Snapshot`, `windowproxy.rs`, `HTMLCanvasElementOrOffscreenCanvas`, `bindings/structuredclone.rs`, `geolocationpositionerror.rs`, `debug`, `gpuexternaltexture.rs`, `Node`, `ReadableStreamBYOBReader`, `HTMLScriptElement`, `TestBindingMaplikeWithInterface`, `OffscreenCanvasRenderingContext2D`, `FileInputType`, `ShadowRoot`, `GPUAdapterInfo<D>`, `RadioInputType`, `XMLHttpRequest`, `ReadableByteStreamController`, `BluetoothCharacteristicProperties`, `XRWebGLLayer`, `LocalName`, `bindings/constructor.rs`, `.is_effectively_contained_node`, `ByteString`, `TrustedScriptURL`, `.new`, `FocusableArea`, `MessagePort`, `bytelengthqueuingstrategy.rs`, `PerformanceContainerTiming`, `File`, `servoparser/xml.rs`, `gpuadapter.rs`, `LargestContentfulPaint`, `debuggerresumeevent.rs`, `ServoParser`, `DebuggerSetBreakpointEvent`, `HTMLLinkElement`, `htmldocument.rs`, `BluetoothRequest`, `wgpu_thread.rs`, `create_element_for_token`, `NoGC`, `HTMLTitleElement`, `RTCPeerConnection`, `PaintRenderingContext2D`, `HTMLIFrameElement`, `HTMLTextAreaElement`, `RootedPromise`, `WeakRangeVec`, `DOMString`, `TestBindingPairIterable`, `DOMRectReadOnly`, `htmllielement.rs`, `DebuggerClearBreakpointEvent`, `debuggergetpossiblebreakpointsevent.rs`, `JSContext`, `script_bindings/conversions.rs`, `Gamepad`, `Joint`, `HTMLSelectElement`, `DOMMatrixReadOnly`, `MediaStreamTrack`, `Request`, `htmlpreelement.rs`, `IntersectionObserver`, `Performance`, `PerformanceMark`, `testbindingsetlikewithprimitive.rs`, `debuggerinterruptevent.rs`, `gpupipelineerror.rs`, `performancemeasure.rs`, `AttributeStorage`, `HTMLFormElement`, `htmlmenuelement.rs`, `htmlparagraphelement.rs`, `FileReader`, `htmlquoteelement.rs`, `MediaError`, `animation_manager.rs`, `Attr`, `DOMPoint`, `DOMRect`, `glwindow/mod.rs`, `TrustedTypePolicyFactory`, `HTMLDataListElement`, `AbortSignal`, `job_queue.rs`, `serviceworker_manager.rs`, `IDBDatabase`, `PerformanceNavigation`, `GPUComputePassEncoder<D>`, `xrwebglbinding.rs`, `VisibilityStateEntry`, `HTMLCanvasElement`, `SVGElement`, `HTMLStyleElement`, `script/test.rs`, `T`, `testns.rs`, `sharedworkerglobalscope.rs`, `GlobalScope`, `.new`, `StylesheetContext`, `.new`, `gpubuffer.rs`, `htmlhtmlelement.rs`, `inputevent.rs`, `D`, `DragDataStore`, `DOMPointReadOnly`, `gpushadermodule.rs`, `DocumentType`, `WorkerGlobalScope`, `DocumentEventHandler`, `listeners.rs`, `htmltimeelement.rs`, `WorkerNavigator`, `gpurenderpipeline.rs`, `Encoding`, `Location`, `htmlframeelement.rs`, `htmlframesetelement.rs`, `Storage`, `Origin`, `bindings/error.rs`, `SpecificInputType`, `servotestutils.rs`, `servo_dangerous_style_element.rs`, `MimeType`, `bindings/utils.rs`, `gpuerror.rs`, `record.rs`, `TimeRangesContainer`, `Navigator`, `Reflector`, `FileSystemEntry`, `Path2D`, `Node`, `XPathWrapper<DomRoot<Node>>`, `ReadableStream`, `webgpu/gpucanvascontext.rs`, `ImageData`, `CSSFontFaceDescriptors`, `byteteeunderlyingsource.rs`, `Notification`, `T`, `OffscreenCanvas`, `EditingContext`, `HTMLVideoElement`, `SVGGraphicsElement`, `SVGGeometryElement`, `WorkletGlobalScope`, `paintworkletglobalscope.rs`, `VideoTrack`, `metrics/lib.rs`, `HTMLOptionElement`, `RTCError`, `AudioTrack`, `RangeInputType`, `CacheStorage`, `assert_in_script`, `RootedTraceableBox`, `RTCIceCandidate`, `paintsize.rs`, `testworklet.rs`, `GPURenderBundleEncoder<D>`, `ImageBitmap`, `PerformanceTiming`, `.scroll`, `urlpattern.rs`, `Data`, `wrap.rs`, `finalize.rs`, `StylePropertyMapReadOnly`?**
-  _High betweenness centrality (0.114) - this node is a cross-community bridge._
+- **Why does `DomRoot` connect `DomRoot` to `EventSource`, `VirtualMethods`, `RequestId`, `Document`, `CSSGroupingRule`, `Event`, `aes_ocb_operation.rs`, `TestBinding`, `XRRigidTransform`, `USVString`, `WebGL2RenderingContext`, `TextInputWidget`, `gpurenderpipeline.rs`, `Window`, `WebGLRenderingContext`, `shared/webgpu/lib.rs`, `.reflect_dom_object`, `IndexedDBKeyType`, `Element`, `ScriptThreadMessage`, `TracedPromise`, `embedder/lib.rs`, `CryptoKey`, `ScriptThread`, `timers.rs`, `body.rs`, `ServoUrl`, `canvas_state.rs`, `WritableStream`, `XRInputSource`, `script_bindings/import.rs`, `CryptoAlgorithm`, `WebGLTexture`, `IDBTransaction`, `Node`, `MediaStreamId`, `WebGLProgram`, `HTMLImageElement`, `ReadableStreamDefaultController`, `headless/mod.rs`, `Blob`, `PipelineId`, `HTMLMediaElement`, `IDBObjectStore`, `ServoDangerousStyleElement<'dom>`, `DedicatedWorkerGlobalScope`, `HTMLInputElement`, `XRSession`, `key.rs`, `reflect_dom_object_with_proto`, `Report`, `BluetoothPermissionResult`, `WebGLFramebuffer`, `promise.rs`, `VTTCue`, `MouseEvent`, `Locked`, `CanvasRenderingContext2D`, `async_html.rs`, `glwindow/mod.rs`, `WebGLBuffer`, `TextTrack`, `FontFace`, `gpucommandencoder.rs`, `worklet.rs`, `WindowProxy`, `webglrenderingcontext.rs`, `writablestreamdefaultcontroller.rs`, `interfaces.rs`, `DOMMatrix`, `ServiceWorkerGlobalScope`, `Snapshot`, `windowproxy.rs`, `HTMLCanvasElementOrOffscreenCanvas`, `bindings/structuredclone.rs`, `Node`, `ReadableStreamDefaultReader`, `HTMLScriptElement`, `OffscreenCanvasRenderingContext2D`, `Range`, `webgpu/mod.rs`, `XMLHttpRequest`, `CSSRule`, `MediaList`, `XRWebGLLayer`, `LocalName`, `bindings/constructor.rs`, `ByteString`, `DocumentFocusHandler`, `MessagePort`, `gpuadapter.rs`, `File`, `ServoParser`, `buffer_source.rs`, `HTMLLinkElement`, `.layout_reflow`, `CSSStyleSheet`, `NoGC`, `RTCPeerConnection`, `HTMLIFrameElement`, `HTMLTextAreaElement`, `RootedPromise`, `.Constructor`, `DOMString`, `DOMRectReadOnly`, `HTMLTrackElement`, `script_bindings/conversions.rs`, `Gamepad`, `Joint`, `HTMLSelectElement`, `DOMMatrixReadOnly`, `MediaStreamTrack`, `Response`, `IntersectionObserver`, `Performance`, `DOMErrorName`, `AttributeStorage`, `HTMLFormElement`, `FileReader`, `animation_manager.rs`, `Attr`, `DOMPoint`, `Data`, `WebSocket`, `TrustedTypePolicyFactory`, `OffsetDateTime`, `job_queue.rs`, `CanvasGradient`, `WebGLQuery`, `HTMLCanvasElement`, `HTMLStyleElement`, `clipboard_delegate.rs`, `GlobalScope`, `gpubuffer.rs`, `StylesheetContext`, `D`, `inputevent.rs`, `DragDataStore`, `DOMPointReadOnly`, `gpu.rs`, `html.rs`, `WorkerGlobalScope`, `DocumentEventHandler`, `BroadcastChannel`, `WorkerNavigator`, `script/test.rs`, `Location`, `JSContext`, `Storage`, `Origin`, `JSContext`, `DOMPointReadOnly`, `FontFaceSet`, `LayoutResult`, `servo_dangerous_style_element.rs`, `MimeType`, `DataTransferItem`, `keyframeeffect.rs`, `TimeRangesContainer`, `Navigator`, `FileSystemEntry`, `XRSystem`, `Node`, `XPathWrapper<DomRoot<Node>>`, `ReadableStream`, `webgpu/gpucanvascontext.rs`, `ImageData`, `CSSFontFaceDescriptors`, `ExtendableMessageEvent`, `Notification`, `T`, `OffscreenCanvas`, `EditingContext`, `paintworkletglobalscope.rs`, `VideoTrack`, `DomRoot`, `HTMLOptionElement`, `RTCError`, `AudioTrack`, `RangeInputType`, `CacheStorage`, `DOMString`, `assert_in_script`, `RootedTraceableBox`, `RTCIceCandidate`, `CSSStyleDeclaration`, `TestWorklet`, `PointerEvent`, `GPURenderBundleEncoder<D>`, `PerformanceTiming`, `.scroll`, `KeyboardEvent`, `wrap.rs`, `finalize.rs`, `StylePropertyMapReadOnly`, `.list_of_options`, `HTMLMetaElement`, `AudioBuffer`, `Sanitizer`, `WebGLTransformFeedback`, `debuggerblackboxevent.rs`, `ScrollingBox`, `font_feature_values.rs`, `Worker`, `FetchGroup`, `gpucomputepipeline.rs`, `UrlWithBlobClaim`, `HTMLElement`, `PerformanceObserver`, `PerformanceResourceTiming`, `ServiceWorkerRegistration`, `DOMString`, `mediasession.rs`, `IDBFactory`, `VisualViewport`, `CSSConditionRule`, `MediaDeviceKind`, `htmlsourceelement.rs`, `.suffers_from_pattern_mismatch`, `quotaexceedederror.rs`, `History`, `customevent.rs`, `CustomStateSet`, `htmlfontelement.rs`, `HTMLDialogElement`, `gpusupportedfeatures.rs`, `LiveDOMReferences`, `WebGLSync`, `T`, `CookieStore`, `HTMLMeterElement`, `dom_struct`, `CSSKeyframesRule`, `mutationobserver.rs`, `GeolocationCoordinates`, `gamepadevent.rs`, `LCPCandidate`, `PerformanceNavigationTiming`, `.reflect_dom_object`, `AnimationEvent`, `CSSFontFeatureValuesMap`, `HTMLAnchorElement`, `PaintWorkletGlobalScope`, `domparser.rs`, `textencoder.rs`, `SequentialFocusNavigationSearch`, `HTMLOptionsCollection`, `debuggeradddebuggeeevent.rs`, `ServiceWorkerContainer`, `NoGC`, `DefaultTeeReadRequest`, `ImageInputType`, `HeadingLevel`, `XPathResultType`, `TestBindingMaplikeWithPrimitive`, `Setlike`, `Client`, `SecurityPolicyViolationEvent`, `warn`, `CSSFontFaceRule`, `geolocationpositionerror.rs`, `PluginArray`, `TestBindingMaplikeWithInterface`, `FileInputType`, `ShadowRoot`, `TrustedHTML`, `InputActivationState`, `BluetoothCharacteristicProperties`, `.is_effectively_contained_node`, `TrustedScript`, `cow`, `trustedtypepolicy.rs`, `PerformanceContainerTiming`, `CSSMediaRule`, `servoparser/xml.rs`, `CSSPropertyRule`, `LargestContentfulPaint`, `TransitionEvent`, `debuggerresumeevent.rs`, `DebuggerSetBreakpointEvent`, `htmldocument.rs`, `Geolocation`, `MimeTypeArray`, `WeakRangeVec`, `MediaMetadata`, `ClipboardItem`, `.ensure_rare_data`, `mediastreamaudiosourcenode.rs`, `cssnamespacerule.rs`, `DebuggerClearBreakpointEvent`, `debuggergetpossiblebreakpointsevent.rs`, `IFrameCollection`, `PageTransitionEvent`, `testbindingsetlikewithprimitive.rs`, `PerformanceMark`, `gpupipelineerror.rs`, `debuggerinterruptevent.rs`, `performancemeasure.rs`, `module_loading.rs`, `htmlmenuelement.rs`, `Screen`, `htmlquoteelement.rs`, `MediaError`, `ANGLEInstancedArrays`, `Element`, `AbortSignal`, `UnderlyingSourceContainer`, `PerformanceNavigation`, `GPUComputePassEncoder<D>`, `CSSLayerStatementRule`, `TextInputWidget`, `VisibilityStateEntry`, `DebuggerEvalEvent`, `Document`, `testns.rs`, `sharedworkerglobalscope.rs`, `.new`, `.new`, `CompositionEvent`, `GamepadHapticActuator`, `.new`, `htmlframeelement.rs`, `TestBindingIterable`, `vtable_for`, `WakeLock`, `WebGLShaderPrecisionFormat`, `Reflector`, `.update_a_color_well_control_color`, `HTMLVideoElement`, `svgtextelement.rs`, `htmldataelement.rs`, `XMLHttpRequestEventTarget`, `TestRunner`, `paintsize.rs`, `CSS`, `TextEvent`, `htmlpictureelement.rs`, `htmldirectoryelement.rs`, `htmldlistelement.rs`, `htmlspanelement.rs`, `htmlmodelement.rs`, `UserActivation`, `HTMLTableElement`, `MediaDevices`, `XMLSerializer`?**
+  _High betweenness centrality (0.111) - this node is a cross-community bridge._
 - **What connects `DEBIAN_FRONTEND`, `Unregister`, `NotifyWait` to the rest of the system?**
-  _4776 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _4820 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `EventSource` be split into smaller, more focused modules?**
-  _Cohesion score 0.07493061979648474 - nodes in this community are weakly interconnected._
-- **Why does `MallocSizeOf` connect `MallocSizeOfOps` to `RequestId`, `ComputedValues`, `layout_impl.rs`, `macos/font.rs`, `BoxFragment`, `LayoutNode`, `inline/mod.rs`, `shared/paint/lib.rs`, `warn`, `font_feature_values.rs`, `Au`, `Chunk`, `gpucomputepipeline.rs`, `ComputedValues`, `script_module.rs`, `gpurenderpipeline.rs`, `text_run.rs`, `Window`, `webgl_thread.rs`, `hit_test.rs`, `WebGPU`, `shared/webgpu/lib.rs`, `PipelineId`, `ActorRegistry`, `gpubindgroup.rs`, `.reflect_dom_object`, `gstreamer/player.rs`, `ScriptThreadMessage`, `ReferrerPolicy`, `TracedPromise`, `embedder/lib.rs`, `CryptoKey`, `ScriptThread`, `floats.rs`, `gpusampler.rs`, `shared/net/lib.rs`, `script_bindings/trace.rs`, `gpusupportedfeatures.rs`, `StructuredSerializedData`, `ServoUrl`, `GPUAdapter<D>`, `audio/context.rs`, `net/http_cache.rs`, `warn`, `domstring.rs`, `display_list.rs`, `net/http_loader.rs`, `T`, `LayerId`, `gpudevice.rs`, `dom_struct`, `methods.rs`, `MediaStreamId`, `WebViewRenderer`, `storage/indexeddb/mod.rs`, `headless/mod.rs`, `Tick`, `DevtoolScriptControlMsg`, `canvas.rs`, `accessibility/mod.rs`, `pixels/lib.rs`, `LCPCandidate`, `MessagePortImpl`, `ImmutableOrigin`, `components/fonts/lib.rs`, `fonts/font_context.rs`, `runtime/script_runtime.rs`, `components/net/image_cache.rs`, `actors/worker.rs`, `reflect_dom_object_with_proto`, `replaced.rs`, `StorageThreads`, `Expression`, `components/net/filemanager_thread.rs`, `serialize`, `gpuuncapturederrorevent.rs`, `object.rs`, `AudioSinkError`, `freetype_face.rs`, `net/cookie.rs`, `WebDriverScriptCommand`, `fonts/font.rs`, `AudioNodeInit`, `interfaces.rs`, `timeline.rs`, `Snapshot`, `windowproxy.rs`, `gpuexternaltexture.rs`, `SendError`, `FontTemplateRef`, `base/lib.rs`, `ShadowRoot`, `GPUAdapterInfo<D>`, `VideoFrame`, `indexeddb/engines/sqlite.rs`, `graph.rs`, `ActorEncode`, `datablock.rs`, `.new`, `gpuadapter.rs`, `target_configuration.rs`, `wgpu_thread.rs`, `ActorError`, `base/id.rs`, `RootedPromise`, `periodic_wave.rs`, `vello_cpu_backend.rs`, `shared/layout/lib.rs`, `actors/thread.rs`, `actors/stylesheets.rs`, `ReportsChan`, `RopeIndex`, `gpupipelineerror.rs`, `net/hsts.rs`, `buffer_source_node.rs`, `WindowGLContext`, `walker.rs`, `panner_node.rs`, `network_event.rs`, `job_queue.rs`, `cross_process_instant.rs`, `script_bindings/mem.rs`, `serviceworker_manager.rs`, `GPUComputePassEncoder<D>`, `DomOnceCell<T>`, `windows/font.rs`, `Handle`, `sharedworkerglobalscope.rs`, `generic_channel/mod.rs`, `gpubuffer.rs`, `D`, `UserScript`, `DOMPointReadOnly`, `gpushadermodule.rs`, `lazy_callback.rs`, `AudioRenderer`, `ProfilerCategory`, `gpuerror.rs`, `components/devtools/lib.rs`, `Reflector`, `page_style.rs`, `webgpu/gpucanvascontext.rs`, `T`, `HashMapTracedValues<K, V, S>`, `generic_channel/callback.rs`, `ActorEncode`, `GenericSharedMemory`, `metrics/lib.rs`, `DomRoot`, `PainterId`, `actors/root.rs`, `assert_in_script`, `Finite<T>`, `GPURenderBundleEncoder<D>`, `tests/image_cache.rs`, `ResourceAttribute`, `finalize.rs`?**
-  _High betweenness centrality (0.068) - this node is a cross-community bridge._
-- **Should `HTMLElement` be split into smaller, more focused modules?**
-  _Cohesion score 0.005740553873752663 - nodes in this community are weakly interconnected._
-- **Why does `GlobalScope` connect `GlobalScope` to `EventSource`, `HTMLElement`, `RequestId`, `Document`, `WeakRef`, `debuggerblackboxevent.rs`, `Event`, `aes_ocb_operation.rs`, `TestBinding`, `XRRigidTransform`, `Worker`, `USVString`, `FetchGroup`, `gpucomputepipeline.rs`, `RootedCallback`, `PerformanceObserver`, `script_module.rs`, `PerformanceResourceTiming`, `ServiceWorkerRegistration`, `gpurenderpipeline.rs`, `Window`, `IDBFactory`, `DOMException`, `WebGPU`, `PipelineId`, `gpubindgroup.rs`, `MediaDeviceKind`, `csppolicyviolationreport.rs`, `quotaexceedederror.rs`, `ScriptThreadMessage`, `ReferrerPolicy`, `TracedPromise`, `Animation`, `CryptoKey`, `ScriptThread`, `customevent.rs`, `timers.rs`, `gpusampler.rs`, `shared/net/lib.rs`, `body.rs`, `gpusupportedfeatures.rs`, `dom/mod.rs`, `ServoUrl`, `canvas_state.rs`, `GPUAdapter<D>`, `CryptoAlgorithm`, `T`, `CookieStore`, `gpudevice.rs`, `IDBTransaction`, `dom_struct`, `readablestreamdefaultcontroller.rs`, `headless/mod.rs`, `Blob`, `DevtoolScriptControlMsg`, `canvas.rs`, `LCPCandidate`, `PerformanceNavigationTiming`, `HTMLMediaElement`, `key.rs`, `CSSFontFeatureValuesMap`, `fonts/font_context.rs`, `DedicatedWorkerGlobalScope`, `BluetoothAdvertisingEvent`, `XRSession`, `components/net/image_cache.rs`, `runtime/script_runtime.rs`, `reflect_dom_object_with_proto`, `ToggleEvent`, `textencoder.rs`, `StorageThreads`, `dom/bluetooth/bluetooth.rs`, `components/net/filemanager_thread.rs`, `promise.rs`, `gpuuncapturederrorevent.rs`, `interface.rs`, `WakeLockType`, `fakexrinputcontroller.rs`, `debuggeradddebuggeeevent.rs`, `CanvasRenderingContext2D`, `glwindow/mod.rs`, `TextTrack`, `FontFace`, `import_map.rs`, `ReadableStreamBYOBRequest`, `TestBindingMaplikeWithPrimitive`, `worklet.rs`, `Client`, `WindowProxy`, `webglrenderingcontext.rs`, `writablestreamdefaultcontroller.rs`, `interfaces.rs`, `Response`, `Snapshot`, `windowproxy.rs`, `HTMLCanvasElementOrOffscreenCanvas`, `bindings/structuredclone.rs`, `geolocationpositionerror.rs`, `debug`, `gpuexternaltexture.rs`, `ReadableStreamBYOBReader`, `HTMLScriptElement`, `TestBindingMaplikeWithInterface`, `OffscreenCanvasRenderingContext2D`, `ShadowRoot`, `webgpu/mod.rs`, `GPUAdapterInfo<D>`, `ScriptToConstellationMessage`, `XMLHttpRequest`, `ReadableByteStreamController`, `BluetoothCharacteristicProperties`, `XRWebGLLayer`, `bindings/constructor.rs`, `ByteString`, `TrustedScriptURL`, `.new`, `MessagePort`, `bytelengthqueuingstrategy.rs`, `PerformanceContainerTiming`, `File`, `dom/console.rs`, `gpuadapter.rs`, `debuggerresumeevent.rs`, `DebuggerSetBreakpointEvent`, `wgpu_thread.rs`, `BluetoothRequest`, `create_element_for_token`, `RTCPeerConnection`, `HTMLIFrameElement`, `RootedPromise`, `TestBindingPairIterable`, `DOMRectReadOnly`, `DebuggerClearBreakpointEvent`, `debuggergetpossiblebreakpointsevent.rs`, `Joint`, `DOMMatrixReadOnly`, `MediaStreamTrack`, `Request`, `wgpu_thread.rs`, `testbindingsetlikewithprimitive.rs`, `PerformanceMark`, `Performance`, `gpupipelineerror.rs`, `debuggerinterruptevent.rs`, `performancemeasure.rs`, `script_execution.rs`, `HTMLFormElement`, `FileReader`, `DOMPoint`, `DOMRect`, `TrustedTypePolicyFactory`, `AbortSignal`, `job_queue.rs`, `serviceworker_manager.rs`, `IDBDatabase`, `PerformanceNavigation`, `FetchResponseMsg`, `GPUComputePassEncoder<D>`, `VisibilityStateEntry`, `T`, `testns.rs`, `sharedworkerglobalscope.rs`, `gpubuffer.rs`, `StylesheetContext`, `D`, `DragDataStore`, `gpushadermodule.rs`, `WorkerGlobalScope`, `listeners.rs`, `WorkerNavigator`, `Encoding`, `Location`, `Origin`, `bindings/error.rs`, `window_named_properties.rs`, `servotestutils.rs`, `MimeType`, `bindings/utils.rs`, `gpuerror.rs`, `Navigator`, `Reflector`, `FileSystemEntry`, `Path2D`, `ReadableStream`, `webgpu/gpucanvascontext.rs`, `ImageData`, `CSSFontFaceDescriptors`, `byteteeunderlyingsource.rs`, `Notification`, `OffscreenCanvas`, `WorkletGlobalScope`, `metrics/lib.rs`, `DomRoot`, `CacheStorage`, `RootedTraceableBox`, `GPURenderBundleEncoder<D>`, `ImageBitmap`, `PerformanceTiming`, `urlpattern.rs`, `Data`, `wrap.rs`, `StylePropertyMapReadOnly`?**
+  _Cohesion score 0.07446808510638298 - nodes in this community are weakly interconnected._
+- **Why does `MallocSizeOf` connect `MallocSizeOfOps` to `ComputedValues`, `layout_impl.rs`, `BoxFragment`, `LayoutNode`, `inline/mod.rs`, `shared/paint/lib.rs`, `constellation.rs`, `font_feature_values.rs`, `Au`, `Chunk`, `gpucomputepipeline.rs`, `ComputedValues`, `RequestBuilder`, `gpurenderpipeline.rs`, `text_run.rs`, `assert_in_layout`, `geometry/lib.rs`, `DOMStringType`, `shared/webgpu/lib.rs`, `webgl.rs`, `flexbox/mod.rs`, `ActorRegistry`, `.reflect_dom_object`, `ScriptThreadMessage`, `TracedPromise`, `embedder/lib.rs`, `CryptoKey`, `ScriptThread`, `floats.rs`, `script_bindings/trace.rs`, `gpusupportedfeatures.rs`, `StructuredSerializedData`, `bindings/trace.rs`, `ServoUrl`, `net/http_cache.rs`, `warn`, `display_list.rs`, `net/http_loader.rs`, `T`, `LayerId`, `dom_struct`, `methods.rs`, `MediaStreamId`, `WebViewRenderer`, `storage/indexeddb/mod.rs`, `Rect`, `headless/mod.rs`, `PipelineId`, `canvas.rs`, `accessibility/mod.rs`, `pixels/lib.rs`, `MessagePortImpl`, `ImmutableOrigin`, `components/fonts/lib.rs`, `fonts/font_context.rs`, `runtime/script_runtime.rs`, `components/net/image_cache.rs`, `actors/worker.rs`, `DomRoot`, `replaced.rs`, `StorageThreads`, `SessionMode`, `Expression`, `components/net/filemanager_thread.rs`, `serialize`, `promise.rs`, `object.rs`, `AudioSinkError`, `freetype_face.rs`, `CookieStorage`, `WebDriverScriptCommand`, `fonts/font.rs`, `gpucommandencoder.rs`, `timeline.rs`, `Snapshot`, `windowproxy.rs`, `warn`, `FontDescriptor`, `debug`, `ShadowRoot`, `webgpu/mod.rs`, `indexeddb/engines/sqlite.rs`, `graph.rs`, `datablock.rs`, `cow`, `gpuadapter.rs`, `base/id.rs`, `periodic_wave.rs`, `macos/font.rs`, `actors/thread.rs`, `actors/stylesheets.rs`, `Joint`, `ReportsChan`, `RopeIndex`, `gpupipelineerror.rs`, `net/hsts.rs`, `WindowGLContext`, `walker.rs`, `panner_node.rs`, `network_event.rs`, `job_queue.rs`, `cross_process_instant.rs`, `script_bindings/mem.rs`, `GPUComputePassEncoder<D>`, `shared/net/lib.rs`, `Handle`, `shared/webxr/lib.rs`, `generic_channel/mod.rs`, `gpubuffer.rs`, `D`, `UserScript`, `DOMPointReadOnly`, `gpu.rs`, `lazy_callback.rs`, `AudioRenderer`, `ProfilerCategory`, `actors/console.rs`, `arc`, `Reflector`, `page_style.rs`, `webgpu/gpucanvascontext.rs`, `T`, `HashMapTracedValues<K, V, S>`, `OriginSnapshot`, `generic_channel/callback.rs`, `GenericSharedMemory`, `metrics/lib.rs`, `PainterId`, `actors/root.rs`, `assert_in_script`, `Finite<T>`, `GPURenderBundleEncoder<D>`, `tests/image_cache.rs`, `blob_url_store.rs`, `finalize.rs`?**
+  _High betweenness centrality (0.071) - this node is a cross-community bridge._
+- **Should `VirtualMethods` be split into smaller, more focused modules?**
+  _Cohesion score 0.008143781521172034 - nodes in this community are weakly interconnected._
+- **Why does `GlobalScope` connect `GlobalScope` to `EventSource`, `VirtualMethods`, `RequestId`, `Document`, `debuggerblackboxevent.rs`, `Event`, `aes_ocb_operation.rs`, `TestBinding`, `constellation.rs`, `XRRigidTransform`, `font_feature_values.rs`, `Worker`, `USVString`, `FetchGroup`, `UrlWithBlobClaim`, `HTMLElement`, `PerformanceObserver`, `RequestBuilder`, `PerformanceResourceTiming`, `ServiceWorkerRegistration`, `gpucomputepipeline.rs`, `gpurenderpipeline.rs`, `Window`, `IDBFactory`, `shared/webgpu/lib.rs`, `MediaDeviceKind`, `IndexedDBKeyType`, `csppolicyviolationreport.rs`, `quotaexceedederror.rs`, `TracedPromise`, `embedder/lib.rs`, `CryptoKey`, `ScriptThread`, `customevent.rs`, `MediaDevices`, `timers.rs`, `shared/net/lib.rs`, `body.rs`, `gpusupportedfeatures.rs`, `ServoUrl`, `dom/mod.rs`, `canvas_state.rs`, `WritableStream`, `XRInputSource`, `CryptoAlgorithm`, `CookieStore`, `IDBTransaction`, `dom_struct`, `MediaStreamId`, `ReadableStreamDefaultController`, `AutoCloseWorker`, `Blob`, `headless/mod.rs`, `GeolocationCoordinates`, `PipelineId`, `LCPCandidate`, `PerformanceNavigationTiming`, `HTMLMediaElement`, `IDBObjectStore`, `CSSFontFeatureValuesMap`, `fonts/font_context.rs`, `DedicatedWorkerGlobalScope`, `runtime/script_runtime.rs`, `components/net/image_cache.rs`, `key.rs`, `reflect_dom_object_with_proto`, `DomRoot`, `textencoder.rs`, `Report`, `StorageThreads`, `BluetoothPermissionResult`, `components/net/filemanager_thread.rs`, `promise.rs`, `debuggeradddebuggeeevent.rs`, `ServiceWorkerContainer`, `CanvasRenderingContext2D`, `DefaultTeeReadRequest`, `glwindow/mod.rs`, `FontFace`, `import_map.rs`, `TestBindingMaplikeWithPrimitive`, `Setlike`, `gpucommandencoder.rs`, `Client`, `WindowProxy`, `webglrenderingcontext.rs`, `writablestreamdefaultcontroller.rs`, `interfaces.rs`, `DOMMatrix`, `SecurityPolicyViolationEvent`, `Snapshot`, `windowproxy.rs`, `HTMLCanvasElementOrOffscreenCanvas`, `bindings/structuredclone.rs`, `geolocationpositionerror.rs`, `warn`, `Node`, `ReadableStreamDefaultReader`, `PluginArray`, `TestBindingMaplikeWithInterface`, `OffscreenCanvasRenderingContext2D`, `ShadowRoot`, `webgpu/mod.rs`, `TrustedHTML`, `XMLHttpRequest`, `BluetoothCharacteristicProperties`, `XRWebGLLayer`, `bindings/constructor.rs`, `TrustedScript`, `ByteString`, `trustedtypepolicy.rs`, `cow`, `MessagePort`, `gpuadapter.rs`, `PerformanceContainerTiming`, `File`, `dom/console.rs`, `debuggerresumeevent.rs`, `DebuggerSetBreakpointEvent`, `buffer_source.rs`, `Geolocation`, `MimeTypeArray`, `RTCPeerConnection`, `RootedPromise`, `.Constructor`, `DOMRectReadOnly`, `HTMLTrackElement`, `DebuggerClearBreakpointEvent`, `debuggergetpossiblebreakpointsevent.rs`, `Joint`, `DOMMatrixReadOnly`, `MediaStreamTrack`, `Response`, `testbindingsetlikewithprimitive.rs`, `Performance`, `PerformanceMark`, `gpupipelineerror.rs`, `debuggerinterruptevent.rs`, `DOMErrorName`, `performancemeasure.rs`, `HTMLFormElement`, `module_loading.rs`, `FileReader`, `DOMPoint`, `Data`, `WebSocket`, `TrustedTypePolicyFactory`, `Element`, `AbortSignal`, `UnderlyingSourceContainer`, `job_queue.rs`, `CanvasGradient`, `PerformanceNavigation`, `shared/net/lib.rs`, `GPUComputePassEncoder<D>`, `VisibilityStateEntry`, `DebuggerEvalEvent`, `Document`, `testns.rs`, `sharedworkerglobalscope.rs`, `clipboard_delegate.rs`, `gpubuffer.rs`, `StylesheetContext`, `D`, `.new`, `DragDataStore`, `gpu.rs`, `WorkerGlobalScope`, `BroadcastChannel`, `Location`, `Origin`, `JSContext`, `script_bindings/constructor.rs`, `DOMPointReadOnly`, `window_named_properties.rs`, `FontFaceSet`, `LayoutResult`, `PipeTo`, `TestBindingIterable`, `DataTransferItem`, `WakeLock`, `keyframeeffect.rs`, `Reflector`, `FileSystemEntry`, `XRSystem`, `ReadableStream`, `webgpu/gpucanvascontext.rs`, `ImageData`, `CSSFontFaceDescriptors`, `ExtendableMessageEvent`, `Notification`, `OffscreenCanvas`, `HTMLVideoElement`, `XMLHttpRequestEventTarget`, `DomRoot`, `CacheStorage`, `RootedTraceableBox`, `TestRunner`, `GPURenderBundleEncoder<D>`, `PerformanceTiming`, `wrap.rs`, `UserActivation`, `StylePropertyMapReadOnly`?**
   _High betweenness centrality (0.051) - this node is a cross-community bridge._
 - **Should `RequestId` be split into smaller, more focused modules?**
-  _Cohesion score 0.018506493506493506 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.020842572062084258 - nodes in this community are weakly interconnected._
