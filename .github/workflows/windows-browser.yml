@@ -119,6 +119,14 @@ jobs:
           find target/ -name "servo_capi.h" -exec cp {} target/artifacts/include/ \; || true
           cp ffi/capi/servo_capi.hpp target/artifacts/include/servo/
 
+          # Ensure #pragma once is present in installed servo_capi.h headers
+          if [ -f "target/artifacts/include/servo/servo_capi.h" ] && ! grep -q "#pragma once" target/artifacts/include/servo/servo_capi.h; then
+            sed -i '1s/^/#pragma once\n/' target/artifacts/include/servo/servo_capi.h
+          fi
+          if [ -f "target/artifacts/include/servo_capi.h" ] && ! grep -q "#pragma once" target/artifacts/include/servo_capi.h; then
+            sed -i '1s/^/#pragma once\n/' target/artifacts/include/servo_capi.h
+          fi
+
           # Copy ANGLE EGL/GLES libraries from moztools/dependencies if available
           find target/ -name "libEGL.dll" -exec cp {} target/artifacts/bin/ \; || true
           find target/ -name "libGLESv2.dll" -exec cp {} target/artifacts/bin/ \; || true

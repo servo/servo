@@ -12,6 +12,8 @@ header = """/* This Source Code Form is subject to the terms of the Mozilla Publ
 #  define SERVO_DEPRECATED(msg)
 #endif"""
 autogen_warning = """/* DO NOT MODIFY THIS MANUALLY! This file was generated using cbindgen. */"""
+include_guard = "SERVO_CAPI_H"
+pragma_once = true
 language = "C"
 # Wrap the declarations in `extern "C"` guards so the generated C header can be
 # included directly from C++ (see docs/embedding/C_API_GUIDE.md).
