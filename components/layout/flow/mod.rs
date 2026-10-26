@@ -1689,15 +1689,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         },
         style,
     };
-    // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
-    assert_eq!(
-        containing_block.style.writing_mode.is_horizontal(),
-        containing_block_for_children
-            .style
-            .writing_mode
-            .is_horizontal(),
-        "Vertical writing modes are not supported yet"
-    );
+    // TODO: https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
     ContainingBlockPaddingAndBorder {
         containing_block: containing_block_for_children,
         pbm,
