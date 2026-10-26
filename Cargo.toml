@@ -162,7 +162,6 @@ ml-kem = { version = "0.3", features = ["getrandom", "pkcs8", "zeroize"] }
 mozangle = "0.7"
 napi-derive-ohos = "1.2.0"
 napi-ohos = "1.2.0"
-ndk = { version = "0.9.0", features = ["api-level-29"] }
 nix = "0.30"
 nom = "8.0.0"
 nom-rfc8288 = "0.4.0"
@@ -295,12 +294,13 @@ windows-sys = "0.61"
 winit = "0.30.13"
 winresource = "0.1"
 wio = "0.2"
-wr_malloc_size_of = "0.2.2"
 writeable = "0.6"
+wr_malloc_size_of = "0.2.2"
 x-wing = { version = "0.1.0", features = ["zeroize"] }
 x25519-dalek = { version = "3.0", features = ["getrandom", "static_secrets", "zeroize"] }
 x448 = { version = "=0.14.0-pre.12", features = ["static_secrets"] }
 xcomponent-sys = "0.4.0"
+xml = "1.1"
 xml5ever = "0.40"
 yuv = { version = "0.8.14", features = ["rayon"] }
 zeroize = "1.8"
