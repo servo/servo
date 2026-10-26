@@ -247,7 +247,7 @@ impl Fragment {
                     // > Hit-testing must act as if the pointer-events property were set to none.
                     let inherited_ui = style.get_inherited_ui();
                     if inherited_ui.pointer_events == PointerEvents::None ||
-                        inherited_ui._servo_inert == Inert::Inert ||
+                        inherited_ui._moz_inert == Inert::Inert ||
                         inherited_ui.interactivity == Interactivity::Inert
                     {
                         return false;

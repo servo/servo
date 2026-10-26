@@ -821,6 +821,7 @@ impl<'dom> ::selectors::Element for ServoDangerousStyleElement<'dom> {
             NonTSPseudoClass::Indeterminate |
             NonTSPseudoClass::Invalid |
             NonTSPseudoClass::Modal |
+            NonTSPseudoClass::MozInert |
             NonTSPseudoClass::MozMeterOptimum |
             NonTSPseudoClass::MozMeterSubOptimum |
             NonTSPseudoClass::MozMeterSubSubOptimum |
@@ -831,7 +832,6 @@ impl<'dom> ::selectors::Element for ServoDangerousStyleElement<'dom> {
             NonTSPseudoClass::PopoverOpen |
             NonTSPseudoClass::ReadWrite |
             NonTSPseudoClass::Required |
-            NonTSPseudoClass::ServoInert |
             NonTSPseudoClass::Target |
             NonTSPseudoClass::UserInvalid |
             NonTSPseudoClass::UserValid |

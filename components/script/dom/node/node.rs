@@ -2293,12 +2293,12 @@ impl Node {
     /// <https://html.spec.whatwg.org/multipage/#inert>
     /// A node (in particular elements and text nodes) can be inert.
     ///
-    /// Inertness is propagated using the internal `-servo-inert` property.
+    /// Inertness is propagated using the internal `-moz-inert` property.
     pub(crate) fn is_inert(&self) -> bool {
         self.downcast::<Element>()
             .and_then(Element::style)
             .is_some_and(|style| {
-                *style.get__servo_inert() == Inert::Inert ||
+                *style.get__moz_inert() == Inert::Inert ||
                     *style.get_interactivity() == Interactivity::Inert
             })
     }
