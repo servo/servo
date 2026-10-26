@@ -677,12 +677,7 @@ impl IndependentFormattingContext {
             },
             style: &style,
         };
-        // https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
-        assert_eq!(
-            containing_block_writing_mode.is_horizontal(),
-            style.writing_mode.is_horizontal(),
-            "Mixed horizontal and vertical writing modes are not supported yet"
-        );
+        // TODO: https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
 
         let mut positioning_context = PositioningContext::default();
         let lazy_block_size = LazySize::new(
@@ -940,16 +935,8 @@ impl AbsoluteAxisSolver {
             },
         };
 
-        assert_eq!(
-            self_writing_mode.is_horizontal(),
-            original_parent_writing_mode.is_horizontal(),
-            "Mixed horizontal and vertical writing modes are not supported yet"
-        );
-        assert_eq!(
-            self_writing_mode.is_horizontal(),
-            containing_block_writing_mode.is_horizontal(),
-            "Mixed horizontal and vertical writing modes are not supported yet"
-        );
+        // TODO: https://drafts.csswg.org/css-writing-modes/#orthogonal-flows
+
         let self_value_matches_container = || {
             self.axis == LogicalAxis::Block ||
                 self_writing_mode.is_bidi_ltr() == alignment_container_writing_mode.is_bidi_ltr()
