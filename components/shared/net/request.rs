@@ -1274,14 +1274,13 @@ pub fn get_cors_unsafe_header_names(headers: &HeaderMap) -> Vec<HeaderName> {
 
 /// <https://fetch.spec.whatwg.org/#ref-for-convert-header-names-to-a-sorted-lowercase-set>
 pub fn convert_header_names_to_sorted_lowercase_set(
-    header_names: Vec<&HeaderName>,
+    mut header_names: Vec<&HeaderName>,
 ) -> Vec<HeaderName> {
     // HeaderName does not implement the needed traits to use a BTreeSet
-    // So create a new Vec, sort, then dedup
-    let mut ordered_set = header_names.to_vec();
-    ordered_set.sort_by(|a, b| a.as_str().partial_cmp(b.as_str()).unwrap());
-    ordered_set.dedup();
-    ordered_set.into_iter().cloned().collect()
+    // So sort the Vec, then dedup
+    header_names.sort_by(|a, b| a.as_str().partial_cmp(b.as_str()).unwrap());
+    header_names.dedup();
+    header_names.into_iter().cloned().collect()
 }
 
 pub fn create_request_body_with_content(content: String) -> RequestBody {
