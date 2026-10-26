@@ -349,6 +349,9 @@ impl UAShadowRoot<ShadowTree> for HTMLMediaElement {
         root.upcast::<Node>()
             .AppendChild(cx, cue_container.upcast::<Node>())
             .unwrap();
+        // Need to do this after `AppendChild`, as otherwise that would overwrite the flag again.
+        // TODO: Remove this once `should_mark_as_ua_widget` is removed
+        cue_container.upcast::<Node>().mark_in_ua_widget();
 
         let script = self.create_element_in_ua_shadowroot(cx, local_name!("script"));
         // This is our hacky way to temporarily workaround the lack of a privileged
