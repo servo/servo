@@ -32,11 +32,8 @@ pub use glyph::{GlyphInfo, ShapedText, ShapedTextSlice, ShapedTextSlicer, Traili
 use icu_locale_core::subtags::Language;
 pub use platform::font_list::fallback_font_families;
 pub(crate) use shapers::*;
-use smallvec::SmallVec;
 pub use system_font_service::SystemFontService;
 use unicode_properties::{EmojiStatus, UnicodeEmoji, emoji};
-
-use crate::FontGroupFamily;
 
 /// Whether or not font fallback selection prefers the emoji or text representation
 /// of a character. If `None` then either presentation is acceptable.
@@ -47,33 +44,25 @@ pub(crate) enum EmojiPresentationPreference {
     Emoji,
 }
 
-#[derive(Clone)]
-pub struct FallbackFontSelectionOptions<'a> {
+#[derive(Clone, Debug)]
+pub struct FallbackFontSelectionOptions {
     pub(crate) character: char,
     pub(crate) presentation_preference: EmojiPresentationPreference,
     pub(crate) language: Language,
-    #[cfg_attr(not(target_os = "android"), allow(unused))]
-    pub(crate) preferred_font_families: Option<&'a SmallVec<[FontGroupFamily; 8]>>,
 }
 
-impl Default for FallbackFontSelectionOptions<'_> {
+impl Default for FallbackFontSelectionOptions {
     fn default() -> Self {
         Self {
             character: ' ',
             presentation_preference: EmojiPresentationPreference::None,
             language: Language::UNKNOWN,
-            preferred_font_families: None,
         }
     }
 }
 
-impl<'a> FallbackFontSelectionOptions<'a> {
-    pub fn new(
-        character: char,
-        next_character: Option<char>,
-        language: Language,
-        preferred_font_families: Option<&'a SmallVec<[FontGroupFamily; 8]>>,
-    ) -> Self {
+impl FallbackFontSelectionOptions {
+    pub fn new(character: char, next_character: Option<char>, language: Language) -> Self {
         let presentation_preference = match next_character {
             Some(next_character) if emoji::is_emoji_presentation_selector(next_character) => {
                 EmojiPresentationPreference::Emoji
@@ -102,7 +91,6 @@ impl<'a> FallbackFontSelectionOptions<'a> {
             character,
             presentation_preference,
             language,
-            preferred_font_families,
         }
     }
 }
