@@ -13,7 +13,7 @@ use std::time::{Duration, Instant};
 
 use http::Method;
 use http::header::HeaderName;
-use net_traits::request::{CredentialsMode, Origin, Request};
+use net_traits::request::{CredentialsMode, NetworkPartitionKey, Origin, Request};
 use servo_url::ServoUrl;
 
 /// Union type for CORS cache entries
@@ -41,14 +41,23 @@ impl HeaderOrMethod {
     }
 }
 
-/// An entry in the CORS cache
+/// <https://fetch.spec.whatwg.org/#cache-entry>
 #[derive(Clone, Debug)]
 pub struct CorsCacheEntry {
+    /// <https://fetch.spec.whatwg.org/#concept-cache-origin>
     pub origin: Origin,
+    /// <https://fetch.spec.whatwg.org/#concept-cache-url>
     pub url: ServoUrl,
+    /// <https://fetch.spec.whatwg.org/#concept-cache-max-age>
     pub max_age: Duration,
+    /// <https://fetch.spec.whatwg.org/#concept-cache-credentials>
     pub credentials: bool,
+    /// <https://fetch.spec.whatwg.org/#concept-cache-method>
+    /// <https://fetch.spec.whatwg.org/#concept-cache-header-name>
     pub header_or_method: HeaderOrMethod,
+    /// <https://fetch.spec.whatwg.org/#cors-preflight-cache>
+    /// <https://fetch.spec.whatwg.org/#concept-cache-key>
+    pub network_partition_key: NetworkPartitionKey,
     created: Instant,
 }
 
@@ -59,6 +68,7 @@ impl CorsCacheEntry {
         max_age: Duration,
         credentials: bool,
         header_or_method: HeaderOrMethod,
+        network_partition_key: NetworkPartitionKey,
     ) -> CorsCacheEntry {
         CorsCacheEntry {
             origin,
@@ -66,15 +76,34 @@ impl CorsCacheEntry {
             max_age,
             credentials,
             header_or_method,
+            network_partition_key,
             created: Instant::now(),
         }
     }
 }
 
+/// <https://fetch.spec.whatwg.org/#request-determine-the-network-partition-key>
+fn network_partition_key_for_request(request: &Request) -> NetworkPartitionKey {
+    // Step 1. If request’s reserved client is non-null,
+    // then return the result of determining the network partition key
+    // given request’s reserved client.
+    // TODO
+
+    // Step 2. If request’s client is non-null,
+    // then return the result of determining the network partition key
+    // given request’s client.
+    // Step 3. Return null.
+    request
+        .client
+        .as_ref()
+        .and_then(|c| c.network_partition_key.clone())
+}
+
 fn match_headers(cors_cache: &CorsCacheEntry, cors_req: &Request) -> bool {
     cors_cache.origin == cors_req.origin &&
         cors_cache.url == cors_req.current_url() &&
-        (cors_cache.credentials || cors_req.credentials_mode != CredentialsMode::Include)
+        (cors_cache.credentials || cors_req.credentials_mode != CredentialsMode::Include) &&
+        cors_cache.network_partition_key == network_partition_key_for_request(cors_req)
 }
 
 /// A simple, vector-based CORS Cache
@@ -139,6 +168,7 @@ impl CorsCache {
                     new_max_age,
                     request.credentials_mode == CredentialsMode::Include,
                     HeaderOrMethod::HeaderData(header_name.clone()),
+                    network_partition_key_for_request(request),
                 ));
                 false
             },
@@ -173,6 +203,7 @@ impl CorsCache {
                     new_max_age,
                     request.credentials_mode == CredentialsMode::Include,
                     HeaderOrMethod::MethodData(method.clone()),
+                    network_partition_key_for_request(request),
                 ));
                 false
             },
