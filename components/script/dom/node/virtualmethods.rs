@@ -216,10 +216,15 @@ pub(crate) trait VirtualMethods {
 
     /// Called on an element when it is popped off the stack of open elements
     /// of a parser.
-    fn pop(&self, cx: &mut js::context::JSContext) {
+    fn pop(&self, cx: &mut JSContext) {
         if let Some(s) = self.super_type() {
             s.pop(cx);
         }
+    }
+
+    fn focus_visible_applies(&self) -> bool {
+        self.super_type()
+            .is_some_and(|super_type| super_type.focus_visible_applies())
     }
 }
 

@@ -5350,6 +5350,10 @@ impl Element {
         self.set_state(no_gc, ElementState::FOCUS, value);
     }
 
+    pub(crate) fn set_focusring_state(&self, no_gc: &NoGC, value: bool) {
+        self.set_state(no_gc, ElementState::FOCUSRING, value);
+    }
+
     pub(crate) fn set_hover_state(&self, no_gc: &NoGC, value: bool) {
         self.set_state(no_gc, ElementState::HOVER, value);
     }
