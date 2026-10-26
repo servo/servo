@@ -256,8 +256,8 @@ impl CacheStorageReceiver {
     }
 }
 
-#[derive(Default, MallocSizeOf)]
-pub(crate) struct DiskCacheMetadata {
+#[derive(Debug, Default, MallocSizeOf)]
+pub struct DiskCacheMetadata {
     /// The size of the entry in encoded bytes.
     size: usize,
     /// Last read or inserted as duration from unix epoch.
@@ -268,12 +268,11 @@ fn restore_metadata_from_disk(
     entries: &mut HashMap<CacheKey, DiskCacheMetadata>,
     db: &rusqlite::Connection,
 ) {
-    let (query, _params) = Query::select()
+    let (query, params) = Query::select()
         .columns([
-            DiskCacheEncodedTable::Index,
-            DiskCacheEncodedTable::DecoderType,
-            DiskCacheEncodedTable::Data,
             DiskCacheEncodedTable::InsertionTimestamp,
+            DiskCacheEncodedTable::Key,
+            DiskCacheEncodedTable::Data,
         ])
         .from(DiskCacheEncodedTable::Table)
         .build_rusqlite(SqliteQueryBuilder);
@@ -281,8 +280,9 @@ fn restore_metadata_from_disk(
         // Database probably not initialized yet
         return;
     };
+
     let value_iter = statement
-        .query_map([], |row| {
+        .query_map(&*params.as_params(), |row| {
             Ok((
                 row.get_unwrap::<_, usize>(DiskCacheEncodedTable::InsertionTimestamp.unquoted()),
                 row.get_unwrap::<_, String>(DiskCacheEncodedTable::Key.unquoted()),
@@ -306,15 +306,27 @@ fn restore_metadata_from_disk(
 /// As this data structure stores the state of the cache, if other instances share the same sqlite database, special care has to be taken
 /// to ensure conistency.
 #[derive(MallocSizeOf)]
-struct DiskCacheInner {
+pub struct DiskCacheInner {
     entries: HashMap<CacheKey, DiskCacheMetadata>,
     #[ignore_malloc_size_of = "Find a better way"]
     db: rusqlite::Connection,
 }
 
+impl DiskCacheInner {
+    #[cfg(feature = "test-util")]
+    pub fn entries(&self) -> &HashMap<CacheKey, DiskCacheMetadata> {
+        &self.entries
+    }
+
+    #[cfg(feature = "test-util")]
+    pub fn db(&self) -> &rusqlite::Connection {
+        &self.db
+    }
+}
+
 #[derive(MallocSizeOf)]
 /// A struct representing the disk cache.
-pub(crate) struct DiskCache {
+pub struct DiskCache {
     path: PathBuf,
     max_size: usize,
     cache_assignment: HttpCacheAssignment,
@@ -787,4 +799,58 @@ impl DiskCache {
 
         inner.entries.clear();
     }
+
+    #[cfg(feature = "test-util")]
+    pub fn inner(&self) -> &TokioMutex<DiskCacheInner> {
+        &self.inner
+    }
+
+    #[cfg(feature = "test-util")]
+    /// Do not call in async context
+    pub fn values_in_database(&self) -> Vec<TestDiskCacheEntry> {
+        let (query, params) = Query::select()
+            .columns([
+                DiskCacheEncodedTable::Index,
+                DiskCacheEncodedTable::InProgress,
+                DiskCacheEncodedTable::InsertionTimestamp,
+                DiskCacheEncodedTable::Key,
+                DiskCacheEncodedTable::Data,
+            ])
+            .from(DiskCacheEncodedTable::Table)
+            .build_rusqlite(SqliteQueryBuilder);
+        let inner = self.inner.blocking_lock();
+        let mut statement = inner.db.prepare(query.as_str()).unwrap();
+
+        let value_iter = statement
+            .query_map(&*params.as_params(), |row| {
+                Ok(TestDiskCacheEntry {
+                    index: row.get_unwrap(DiskCacheEncodedTable::Index.unquoted()),
+                    in_progress: row.get_unwrap(DiskCacheEncodedTable::InProgress.unquoted()),
+                    insertion_timestamp: row
+                        .get_unwrap(DiskCacheEncodedTable::InsertionTimestamp.unquoted()),
+                    key: ServoUrl::from_url(
+                        url::Url::parse(
+                            row.get_unwrap::<_, String>(DiskCacheEncodedTable::Key.unquoted())
+                                .as_str(),
+                        )
+                        .unwrap(),
+                    )
+                    .into(),
+                    data: row.get_unwrap(DiskCacheEncodedTable::Data.unquoted()),
+                })
+            })
+            .unwrap()
+            .flatten();
+        value_iter.collect()
+    }
+}
+
+#[cfg(feature = "test-util")]
+#[derive(Debug)]
+pub struct TestDiskCacheEntry {
+    pub index: usize,
+    pub in_progress: bool,
+    pub insertion_timestamp: usize,
+    pub key: CacheKey,
+    pub data: Vec<u8>,
 }
