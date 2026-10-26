@@ -541,11 +541,11 @@ pub struct Constellation<STF, SWF> {
     /// An IPC channel for the constellation to send messages to the
     /// MIDI thread.
     #[cfg(feature = "webmidi")]
-    pub(crate) midi_ipc_sender: GenericSender<MIDIRequest>,
+    pub(crate) midi_ipc_sender: Option<GenericSender<MIDIRequest>>,
 
     /// An IPC channel to receive messages from the MIDI thread.
     #[cfg(feature = "webmidi")]
-    pub(crate) midi_receiver: RoutedReceiver<MIDIMsg>,
+    pub(crate) midi_receiver: Option<RoutedReceiver<MIDIMsg>>,
 }
 
 /// State needed to construct a constellation.
@@ -690,9 +690,13 @@ where
                 };
 
                 #[cfg(feature = "webmidi")]
-                let (midi_ipc_sender, midi_receiver) = start_webmidi_thread().expect("Failed to launch WebMIDI thread!");
-                #[cfg(feature = "webmidi")]
-                let midi_receiver = midi_receiver.route_preserving_errors();
+                let (midi_ipc_sender, midi_receiver) = match start_webmidi_thread() {
+                    Some((sender, receiver)) => {
+                        let midi_receiver = receiver.route_preserving_errors();
+                        (Some(sender), Some(midi_receiver))
+                    },
+                    None => (None, None)
+                };
 
                 PipelineNamespace::install(CONSTELLATION_PIPELINE_NAMESPACE_ID);
 
@@ -1210,7 +1214,9 @@ where
         sel.recv(&self.background_hang_monitor_receiver);
         sel.recv(&self.embedder_to_constellation_receiver);
         #[cfg(feature = "webmidi")]
-        sel.recv(&self.midi_receiver);
+        if let Some(midi_receiver) = &self.midi_receiver {
+            sel.recv(midi_receiver);
+        }
 
         #[cfg(feature = "multiprocess")]
         self.process_manager.register(&mut sel);
@@ -1244,10 +1250,15 @@ where
                         .expect("Unexpected embedder channel panic in constellation"),
                 )),
                 #[cfg(feature = "webmidi")]
-                5 => oper
-                    .recv(&self.midi_receiver)
-                    .expect("Unexpected MIDI channel panic in constellation")
-                    .map(Request::Midi),
+                5 => {
+                    if let Some(midi_receiver) = &self.midi_receiver {
+                        oper.recv(midi_receiver)
+                            .expect("Unexpected MIDI channel panic in constellation")
+                            .map(Request::Midi)
+                    } else {
+                        Err(SendError::Disconnected)
+                    }
+                },
                 _ => {
                     // This can only be a error reading on a closed lifeline receiver.
                     #[cfg(feature = "webmidi")]
@@ -2232,7 +2243,9 @@ where
     #[servo_tracing::instrument(skip_all)]
     #[cfg(feature = "webmidi")]
     fn handle_webmidi_request(&mut self, _pipeline_id: PipelineId, request: MIDIRequest) {
-        if self.midi_ipc_sender.send(request).is_err() {
+        if let Some(midi_ipc_sender) = &self.midi_ipc_sender &&
+            midi_ipc_sender.send(request).is_err()
+        {
             warn!("Failed to send request to MIDI thread")
         }
     }
