@@ -18,6 +18,7 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::datatransfer::DataTransfer;
+use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::node::Node;
 use crate::dom::selection_range::RootedSelectionBoundary;
 use crate::dom::staticrange::StaticRange;
@@ -28,7 +29,7 @@ use crate::dom::window::Window;
 pub(crate) struct InputEvent {
     uievent: UIEvent,
     data: Option<TracedDOMString>,
-    is_composing: bool,
+    is_composing: IsComposing,
     input_type: TracedDOMString,
 }
 
@@ -39,12 +40,12 @@ impl InputEvent {
         window: &Window,
         proto: Option<HandleObject>,
         event_type: Atom,
-        can_bubble: bool,
-        cancelable: bool,
+        can_bubble: EventBubbles,
+        cancelable: EventCancelable,
         view: Option<&Window>,
         detail: i32,
         data: Option<DOMString>,
-        is_composing: bool,
+        is_composing: IsComposing,
         input_type: DOMString,
     ) -> DomRoot<InputEvent> {
         let event = reflect_dom_object_with_proto(
@@ -58,9 +59,13 @@ impl InputEvent {
             window,
             proto,
         );
-        event
-            .uievent
-            .init_event(event_type, can_bubble, cancelable, view, detail);
+        event.uievent.init_event(
+            event_type,
+            bool::from(can_bubble),
+            bool::from(cancelable),
+            view,
+            detail,
+        );
         event
     }
 }
@@ -79,12 +84,12 @@ impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
             window,
             proto,
             event_type.into(),
-            init.parent.parent.bubbles,
-            init.parent.parent.cancelable,
+            init.parent.parent.bubbles.into(),
+            init.parent.parent.cancelable.into(),
             init.parent.view.as_deref(),
             init.parent.detail,
             init.data.clone(),
-            init.isComposing,
+            init.isComposing.into(),
             init.inputType.clone(),
         );
         Ok(event)
@@ -97,7 +102,7 @@ impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
 
     /// <https://w3c.github.io/uievents/#dom-inputevent-iscomposing>
     fn IsComposing(&self) -> bool {
-        self.is_composing
+        bool::from(self.is_composing)
     }
 
     /// <https://w3c.github.io/uievents/#dom-inputevent-inputtype>
@@ -120,6 +125,31 @@ impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
     /// <https://dom.spec.whatwg.org/#dom-event-istrusted>
     fn IsTrusted(&self) -> bool {
         self.uievent.IsTrusted()
+    }
+}
+
+#[derive(Clone, Copy, PartialEq, MallocSizeOf, JSTraceable)]
+pub(crate) enum IsComposing {
+    Composing,
+    NotComposing,
+}
+
+impl From<IsComposing> for bool {
+    fn from(is_composing: IsComposing) -> Self {
+        match is_composing {
+            IsComposing::Composing => true,
+            IsComposing::NotComposing => false,
+        }
+    }
+}
+
+impl From<bool> for IsComposing {
+    fn from(boolean: bool) -> Self {
+        if boolean {
+            IsComposing::Composing
+        } else {
+            IsComposing::NotComposing
+        }
     }
 }
 

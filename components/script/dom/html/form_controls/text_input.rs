@@ -26,7 +26,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::editing::MouseButtonSelectionAction;
 use crate::dom::event::Event;
-use crate::dom::inputevent::HitTestResult;
+use crate::dom::inputevent::{HitTestResult, IsComposing};
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::text_control::TextControlElement;
 use crate::dom::types::{HTMLInputElement, HTMLTextAreaElement};
@@ -159,21 +159,6 @@ pub struct TextInput<T: ClipboardProvider> {
     pub(crate) selection_for_layout: Option<RangeAny<Utf32CodeUnits>>,
 }
 
-#[derive(Clone, Copy, PartialEq)]
-pub enum IsComposing {
-    Composing,
-    NotComposing,
-}
-
-impl From<IsComposing> for bool {
-    fn from(is_composing: IsComposing) -> Self {
-        match is_composing {
-            IsComposing::Composing => true,
-            IsComposing::NotComposing => false,
-        }
-    }
-}
-
 /// <https://www.w3.org/TR/input-events-2/#interface-InputEvent-Attributes>
 #[derive(Clone, Copy, PartialEq)]
 pub enum InputEventType {
@@ -203,13 +188,21 @@ impl InputEventType {
     pub(crate) fn is_beforeinput_cancelable(self) -> bool {
         self != Self::InsertCompositionText
     }
+
+    pub(crate) fn is_composing(self) -> IsComposing {
+        if self == Self::InsertCompositionText {
+            IsComposing::Composing
+        } else {
+            IsComposing::NotComposing
+        }
+    }
 }
 
 /// Resulting action to be taken by the owner of a text input that is handling an event.
 #[derive(PartialEq)]
 pub enum KeyReaction {
     TriggerDefaultAction,
-    DispatchInput(Option<String>, IsComposing, InputEventType),
+    DispatchInput(Option<String>, InputEventType),
     RedrawSelection,
     Nothing,
 }
@@ -507,11 +500,7 @@ impl<T: ClipboardProvider> TextInput<T> {
         match self.mode {
             Lines::Multiple => {
                 self.insert('\n');
-                KeyReaction::DispatchInput(
-                    None,
-                    IsComposing::NotComposing,
-                    InputEventType::InsertLineBreak,
-                )
+                KeyReaction::DispatchInput(None, InputEventType::InsertLineBreak)
             },
             Lines::Single => KeyReaction::TriggerDefaultAction,
         }
@@ -570,19 +559,11 @@ impl<T: ClipboardProvider> TextInput<T> {
             EditingAction::InsertNewline | EditingAction::InsertParagraph => self.handle_return(),
             EditingAction::InsertText(text) => {
                 self.insert(&text);
-                KeyReaction::DispatchInput(
-                    Some(text),
-                    IsComposing::NotComposing,
-                    InputEventType::InsertText,
-                )
+                KeyReaction::DispatchInput(Some(text), InputEventType::InsertText)
             },
             EditingAction::InsertCompositionText(text) => {
                 self.insert_for_composition(&text);
-                KeyReaction::DispatchInput(
-                    Some(text),
-                    IsComposing::Composing,
-                    InputEventType::InsertCompositionText,
-                )
+                KeyReaction::DispatchInput(Some(text), InputEventType::InsertCompositionText)
             },
             EditingAction::EndComposition(..) => {
                 self.clear_selection();
@@ -591,11 +572,7 @@ impl<T: ClipboardProvider> TextInput<T> {
             EditingAction::Delete => {
                 if self.delete_unit_or_selection(RopeMovement::Grapheme, EditingDirection::Forward)
                 {
-                    KeyReaction::DispatchInput(
-                        None,
-                        IsComposing::NotComposing,
-                        InputEventType::DeleteContentForward,
-                    )
+                    KeyReaction::DispatchInput(None, InputEventType::DeleteContentForward)
                 } else {
                     KeyReaction::Nothing
                 }
@@ -611,11 +588,7 @@ impl<T: ClipboardProvider> TextInput<T> {
                     EditingMotion::DocumentStartOrEnd => RopeMovement::RopeStartOrEnd,
                 };
                 if self.delete_unit_or_selection(movement, EditingDirection::Backward) {
-                    KeyReaction::DispatchInput(
-                        None,
-                        IsComposing::NotComposing,
-                        InputEventType::DeleteContentBackward,
-                    )
+                    KeyReaction::DispatchInput(None, InputEventType::DeleteContentBackward)
                 } else {
                     KeyReaction::Nothing
                 }
