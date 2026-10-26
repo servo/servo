@@ -1973,6 +1973,9 @@ where
                     "Document ancestor origin details retrieval after closure",
                 );
             },
+            ScriptToConstellationMessage::ServiceWorkerStateUpdateDone(worker_id, pipeline_id) => {
+                self.handle_service_worker_state_update_done(worker_id, pipeline_id);
+            },
             ScriptToConstellationMessage::ServiceWorkerAlgorithm(algorithm) => {
                 self.handle_serviceworker_algorithm(source_pipeline_id, algorithm);
             },
@@ -2548,6 +2551,15 @@ where
                 port2
             );
         }
+    }
+
+    #[servo_tracing::instrument(skip_all)]
+    fn handle_service_worker_state_update_done(
+        &mut self,
+        worker_id: ServiceWorkerId,
+        pipeline_id: PipelineId,
+    ) {
+        // TODO.
     }
 
     /// <https://www.w3.org/TR/service-workers/#algorithms>
