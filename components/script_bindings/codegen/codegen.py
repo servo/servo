@@ -8659,7 +8659,12 @@ def type_needs_tracing(t: IDLObject, isMember: Optional[str] = None) -> bool:
 
         if t.isUnion():
             assert isinstance(t, IDLUnionType) and t.flatMemberTypes is not None
-            return any(type_needs_tracing(member, isMember) for member in t.flatMemberTypes)
+            # TODO: Union types can contain rooted types, so they should be ignored when checking
+            # if a dictionary should be traced.
+            if isMember == "Dictionary":
+                return any(type_needs_tracing(member, "Union") for member in t.flatMemberTypes)
+            else:
+                return any(type_needs_tracing(member, isMember) for member in t.flatMemberTypes)
 
         if is_typed_array(t):
             return True
