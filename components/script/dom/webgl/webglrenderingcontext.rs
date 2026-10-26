@@ -2688,7 +2688,9 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn ActiveTexture(&self, texture: u32) {
-        handle_potential_webgl_error!(self, self.textures.set_active_unit_enum(texture), return);
+        if let Err(error) = self.textures.set_active_unit_enum(texture) {
+            return self.webgl_error(error);
+        }
         self.send_command(WebGLCommand::ActiveTexture(texture));
     }
 
@@ -2699,14 +2701,20 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn BlendEquation(&self, mode: u32) {
-        handle_potential_webgl_error!(self, self.validate_blend_mode(mode), return);
+        if let Err(error) = self.validate_blend_mode(mode) {
+            return self.webgl_error(error);
+        }
         self.send_command(WebGLCommand::BlendEquation(mode))
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.3>
     fn BlendEquationSeparate(&self, mode_rgb: u32, mode_alpha: u32) {
-        handle_potential_webgl_error!(self, self.validate_blend_mode(mode_rgb), return);
-        handle_potential_webgl_error!(self, self.validate_blend_mode(mode_alpha), return);
+        if let Err(error) = self.validate_blend_mode(mode_rgb) {
+            return self.webgl_error(error);
+        }
+        if let Err(error) = self.validate_blend_mode(mode_alpha) {
+            return self.webgl_error(error);
+        }
         self.send_command(WebGLCommand::BlendEquationSeparate(mode_rgb, mode_alpha));
     }
 
@@ -2748,22 +2756,38 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn AttachShader(&self, program: &WebGLProgram, shader: &WebGLShader) {
-        handle_potential_webgl_error!(self, self.validate_ownership(program), return);
-        handle_potential_webgl_error!(self, self.validate_ownership(shader), return);
-        handle_potential_webgl_error!(self, program.attach_shader(shader));
+        if let Err(error) = self.validate_ownership(program) {
+            return self.webgl_error(error);
+        }
+        if let Err(error) = self.validate_ownership(shader) {
+            return self.webgl_error(error);
+        }
+        if let Err(error) = program.attach_shader(shader) {
+            self.webgl_error(error);
+        }
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn DetachShader(&self, program: &WebGLProgram, shader: &WebGLShader) {
-        handle_potential_webgl_error!(self, self.validate_ownership(program), return);
-        handle_potential_webgl_error!(self, self.validate_ownership(shader), return);
-        handle_potential_webgl_error!(self, program.detach_shader(shader));
+        if let Err(error) = self.validate_ownership(program) {
+            return self.webgl_error(error);
+        }
+        if let Err(error) = self.validate_ownership(shader) {
+            return self.webgl_error(error);
+        }
+        if let Err(error) = program.detach_shader(shader) {
+            self.webgl_error(error);
+        }
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.9>
     fn BindAttribLocation(&self, program: &WebGLProgram, index: u32, name: DOMString) {
-        handle_potential_webgl_error!(self, self.validate_ownership(program), return);
-        handle_potential_webgl_error!(self, program.bind_attrib_location(index, name));
+        if let Err(error) = self.validate_ownership(program) {
+            return self.webgl_error(error);
+        }
+        if let Err(error) = program.bind_attrib_location(index, name) {
+            self.webgl_error(error);
+        }
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
@@ -2782,11 +2806,9 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.6>
     fn BindFramebuffer(&self, target: u32, framebuffer: Option<&WebGLFramebuffer>) {
-        handle_potential_webgl_error!(
-            self,
-            self.validate_new_framebuffer_binding(framebuffer),
-            return
-        );
+        if let Err(error) = self.validate_new_framebuffer_binding(framebuffer) {
+            return self.webgl_error(error);
+        }
 
         if target != constants::FRAMEBUFFER {
             return self.webgl_error(InvalidEnum);
@@ -2797,8 +2819,10 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7>
     fn BindRenderbuffer(&self, target: u32, renderbuffer: Option<&WebGLRenderbuffer>) {
-        if let Some(rb) = renderbuffer {
-            handle_potential_webgl_error!(self, self.validate_ownership(rb), return);
+        if let Some(rb) = renderbuffer &&
+            let Err(error) = self.validate_ownership(rb)
+        {
+            return self.webgl_error(error);
         }
 
         if target != constants::RENDERBUFFER {
@@ -2827,19 +2851,24 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn BindTexture(&self, target: u32, texture: Option<&WebGLTexture>) {
-        if let Some(texture) = texture {
-            handle_potential_webgl_error!(self, self.validate_ownership(texture), return);
+        if let Some(texture) = texture &&
+            let Err(error) = self.validate_ownership(texture)
+        {
+            return self.webgl_error(error);
         }
 
-        let texture_slot = handle_potential_webgl_error!(
-            self,
-            self.textures
-                .active_texture_slot(target, self.webgl_version()),
-            return
-        );
+        let texture_slot = match self
+            .textures
+            .active_texture_slot(target, self.webgl_version())
+        {
+            Ok(texture_slot) => texture_slot,
+            Err(error) => return self.webgl_error(error),
+        };
 
         if let Some(texture) = texture {
-            handle_potential_webgl_error!(self, texture.bind(target), return);
+            if let Err(error) = texture.bind(target) {
+                return self.webgl_error(error);
+            }
         } else {
             self.send_command(WebGLCommand::BindTexture(target, None));
         }
@@ -2848,15 +2877,19 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn GenerateMipmap(&self, target: u32) {
-        let texture_slot = handle_potential_webgl_error!(
-            self,
-            self.textures
-                .active_texture_slot(target, self.webgl_version()),
-            return
-        );
-        let texture =
-            handle_potential_webgl_error!(self, texture_slot.get().ok_or(InvalidOperation), return);
-        handle_potential_webgl_error!(self, texture.generate_mipmap());
+        let texture_slot = match self
+            .textures
+            .active_texture_slot(target, self.webgl_version())
+        {
+            Ok(texture_slot) => texture_slot,
+            Err(error) => return self.webgl_error(error),
+        };
+        let Some(texture) = texture_slot.get() else {
+            return self.webgl_error(InvalidOperation);
+        };
+        if let Err(error) = texture.generate_mipmap() {
+            self.webgl_error(error);
+        }
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
@@ -2867,17 +2900,27 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         data: Option<ArrayBufferViewOrArrayBuffer>,
         usage: u32,
     ) {
-        let usage = handle_potential_webgl_error!(self, self.buffer_usage(usage), return);
-        let bound_buffer =
-            handle_potential_webgl_error!(self, self.bound_buffer(cx, target), return);
+        let usage = match self.buffer_usage(usage) {
+            Ok(usage) => usage,
+            Err(error) => return self.webgl_error(error),
+        };
+        let bound_buffer = match self.bound_buffer(cx, target) {
+            Ok(bound_buffer) => bound_buffer,
+            Err(error) => return self.webgl_error(error),
+        };
         self.buffer_data(cx.no_gc(), target, data, usage, bound_buffer)
     }
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.5>
     fn BufferData(&self, cx: &mut JSContext, target: u32, size: i64, usage: u32) {
-        let usage = handle_potential_webgl_error!(self, self.buffer_usage(usage), return);
-        let bound_buffer =
-            handle_potential_webgl_error!(self, self.bound_buffer(cx, target), return);
+        let usage = match self.buffer_usage(usage) {
+            Ok(usage) => usage,
+            Err(error) => return self.webgl_error(error),
+        };
+        let bound_buffer = match self.bound_buffer(cx, target) {
+            Ok(bound_buffer) => bound_buffer,
+            Err(error) => return self.webgl_error(error),
+        };
         self.buffer_data_(target, size, usage, bound_buffer)
     }
 
@@ -2889,8 +2932,10 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
         offset: i64,
         data: ArrayBufferViewOrArrayBuffer,
     ) {
-        let bound_buffer =
-            handle_potential_webgl_error!(self, self.bound_buffer(cx, target), return);
+        let bound_buffer = match self.bound_buffer(cx, target) {
+            Ok(bound_buffer) => bound_buffer,
+            Err(error) => return self.webgl_error(error),
+        };
         self.buffer_sub_data(cx.no_gc(), target, offset, data, bound_buffer)
     }
 
