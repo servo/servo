@@ -129,11 +129,6 @@ impl CacheKey {
             url: request.current_url(),
         }
     }
-
-    /// Create a cache-key from a resolved URL.
-    pub fn from_url(url: ServoUrl) -> CacheKey {
-        CacheKey { url }
-    }
 }
 
 /// A complete cached resource.
@@ -141,6 +136,7 @@ impl CacheKey {
 pub struct CachedResource {
     request_headers: Serde<HeaderMap>,
     #[conditional_malloc_size_of]
+    #[serde(skip)]
     body: Arc<ParkingLotMutex<ResponseBody>>,
     #[conditional_malloc_size_of]
     aborted: Arc<AtomicBool>,
@@ -166,11 +162,6 @@ impl CachedResource {
 
     pub(crate) fn body(&self) -> &Arc<ParkingLotMutex<ResponseBody>> {
         &self.body
-    }
-
-    /// Sets the body to be empty. Used for disk cache when the encoded values are stored separately
-    pub(crate) fn empty_body(&self) {
-        *self.body.lock() = ResponseBody::Empty;
     }
 
     /// Whether this [`CachedResource`] can be used to answer the given `Request`. This
@@ -1165,7 +1156,7 @@ impl HttpCache {
         for header_name in &[header::LOCATION, header::CONTENT_LOCATION] {
             if let Some(location_url) = resolve_location_url(request, response, header_name.clone())
             {
-                let location_key = CacheKey::from_url(location_url);
+                let location_key = location_url.into();
                 if &location_key != skip_key {
                     self.invalidate_entry(&location_key).await;
                 }
