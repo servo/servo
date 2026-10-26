@@ -73,12 +73,12 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
         delegate.notify_page_title_changed = OnTitleChanged;
         delegate.notify_load_status_changed = OnLoadStatusChanged;
         delegate.notify_cursor_changed = OnCursorChanged;
-        delegate.show_alert_dialog = reinterpret_cast<ServoAlertDialogCallback>(OnAlertDialog);
-        delegate.show_confirm_dialog = reinterpret_cast<ServoConfirmDialogCallback>(OnConfirmDialog);
-        delegate.show_prompt_dialog = reinterpret_cast<ServoPromptDialogCallback>(OnPromptDialog);
-        delegate.show_file_picker = reinterpret_cast<ServoFilePickerCallback>(OnFilePicker);
-        delegate.show_context_menu = reinterpret_cast<ServoContextMenuCallback_>(OnContextMenu);
-        delegate.on_before_download = reinterpret_cast<ServoDownloadContinueCallback_>(OnBeforeDownload);
+        delegate.show_alert_dialog = reinterpret_cast<decltype(delegate.show_alert_dialog)>(OnAlertDialog);
+        delegate.show_confirm_dialog = reinterpret_cast<decltype(delegate.show_confirm_dialog)>(OnConfirmDialog);
+        delegate.show_prompt_dialog = reinterpret_cast<decltype(delegate.show_prompt_dialog)>(OnPromptDialog);
+        delegate.show_file_picker = reinterpret_cast<decltype(delegate.show_file_picker)>(OnFilePicker);
+        delegate.show_context_menu = reinterpret_cast<decltype(delegate.show_context_menu)>(OnContextMenu);
+        delegate.on_before_download = reinterpret_cast<decltype(delegate.on_before_download)>(OnBeforeDownload);
         delegate.on_download_updated = reinterpret_cast<decltype(delegate.on_download_updated)>(OnDownloadUpdated);
 
         servo_webview_builder_set_delegate(builder, delegate);
