@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html class="test-wait">
+<meta name="assert" content="No crash after garbage collection if audio element is reinserted during onerror handler">
+<script src="/common/gc.js"></script>
+<script>
+    async function triggerAudioReinsertion() {
+        document.body.append(audio);
+        garbageCollect();
+        scrollY;
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                document.documentElement.classList.remove("test-wait");
+            })
+        });
+    }
+</script>
+<div hidden>
+    <audio id=audio controls>
+        <source onerror="triggerAudioReinsertion()">
+    </audio>
+</div>

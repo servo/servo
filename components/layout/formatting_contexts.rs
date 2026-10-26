@@ -14,7 +14,7 @@ use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 
 use crate::context::LayoutContext;
-use crate::dom::WeakLayoutBox;
+use crate::dom::{LayoutBox, NodeExt, WeakLayoutBox};
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents};
 use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
@@ -195,25 +195,7 @@ impl IndependentFormattingContext {
                     node.is_root_of_user_agent_widget() &&
                     !contents.is_content_replacement;
                 let widget = should_make_widget.then(|| {
-                    let widget_info = node_and_style_info
-                        .with_pseudo_element(context, PseudoElement::ServoAnonymousBox)
-                        .expect("Should always be able to construct info for anonymous boxes.");
-                    // Use a block formatting context for the widget, since the display inside is always flow.
-                    let widget_contents = IndependentFormattingContextContents::Flow(
-                        BlockFormattingContext::construct(
-                            context,
-                            &widget_info,
-                            NonReplacedContents::OfElement,
-                            propagated_data,
-                            false, /* is_list_item */
-                        ),
-                    );
-                    let widget_base = LayoutBoxBase::new((&widget_info).into(), widget_info.style);
-                    ArcRefCell::new(IndependentFormattingContext::new(
-                        widget_base,
-                        widget_contents,
-                        propagated_data,
-                    ))
+                    Self::construct_for_widget(context, node_and_style_info, propagated_data)
                 });
 
                 return IndependentFormattingContextContents::Replaced(contents, widget);
@@ -271,6 +253,31 @@ impl IndependentFormattingContext {
                 ))
             },
         }
+    }
+
+    fn construct_for_widget(
+        context: &LayoutContext,
+        node_and_style_info: &NodeAndStyleInfo,
+        propagated_data: PropagatedBoxTreeData,
+    ) -> ArcRefCell<IndependentFormattingContext> {
+        let widget_info = node_and_style_info
+            .with_pseudo_element(context, PseudoElement::ServoAnonymousBox)
+            .expect("Should always be able to construct info for anonymous boxes.");
+        // Use a block formatting context for the widget, since the display inside is always flow.
+        let widget_contents =
+            IndependentFormattingContextContents::Flow(BlockFormattingContext::construct(
+                context,
+                &widget_info,
+                NonReplacedContents::OfElement,
+                propagated_data,
+                false, /* is_list_item */
+            ));
+
+        let box_slot = widget_info.node.box_slot();
+        let widget_base = LayoutBoxBase::new((&widget_info).into(), widget_info.style);
+        let widget = ArcRefCell::new(Self::new(widget_base, widget_contents, propagated_data));
+        box_slot.set(LayoutBox::Widget(widget.clone()));
+        widget
     }
 
     #[inline]
@@ -381,15 +388,8 @@ impl IndependentFormattingContext {
     ) {
         self.base.repair_style(new_style);
         match &mut self.contents {
-            IndependentFormattingContextContents::Replaced(replaced, widget) => {
+            IndependentFormattingContextContents::Replaced(replaced, ..) => {
                 *replaced.selected_style.borrow_mut() = node.selected_style(context);
-
-                if let Some(widget) = widget {
-                    let node = node
-                        .with_pseudo(PseudoElement::ServoAnonymousBox)
-                        .expect("Should always be able to construct info for anonymous boxes.");
-                    widget.borrow_mut().repair_style(context, &node, new_style);
-                }
             },
             IndependentFormattingContextContents::Flow(block_formatting_context) => {
                 block_formatting_context.repair_style(context, node, new_style);
