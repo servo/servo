@@ -21,7 +21,7 @@ set(SOURCES
     src/omnibox.cpp
     src/find_bar.cpp
     src/download_manager.cpp
-    src/browser.rc
+    src/browser.manifest
 )
 
 set(HEADERS
