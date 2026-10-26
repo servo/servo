@@ -158,6 +158,18 @@ pub(crate) fn handle_request_animation_frame(
     }
 }
 
+pub(crate) fn handle_get_favicon(
+    documents: &DocumentCollection,
+    pipeline: PipelineId,
+    reply: GenericSender<Option<Vec<u8>>>,
+) {
+    let favicon = documents
+        .find_document(pipeline)
+        .and_then(|doc| doc.favicon())
+        .map(|image| image.data().to_vec());
+    let _ = reply.send(favicon);
+}
+
 pub(crate) fn handle_get_css_database(reply: GenericSender<HashMap<String, CssDatabaseProperty>>) {
     let database: HashMap<_, _> = ENABLED_LONGHAND_PROPERTIES
         .iter()

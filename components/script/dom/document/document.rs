@@ -5423,6 +5423,10 @@ impl Document {
         self.notify_embedder_favicon();
     }
 
+    pub(crate) fn favicon(&self) -> Option<Image> {
+        self.favicon.borrow().clone()
+    }
+
     pub(crate) fn fullscreen_element(&self) -> Option<DomRoot<Element>> {
         self.fullscreen_element.get()
     }
