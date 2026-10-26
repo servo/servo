@@ -48,13 +48,14 @@ use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::html::htmlformelement::{FormControl, FormDatum, FormDatumValue, HTMLFormElement};
 use crate::dom::html::htmloptgroupelement::HTMLOptGroupElement;
 use crate::dom::html::htmloptionelement::HTMLOptionElement;
+use crate::dom::html::htmlhrelement::HTMLHRElement;
 use crate::dom::html::htmloptionscollection::HTMLOptionsCollection;
 use crate::dom::node::{ChildrenMutation, Node, NodeTraits,  UnbindContext};
 use crate::dom::nodelist::NodeList;
 use crate::dom::shadowroot::ShadowRoot;
 use crate::dom::shadowroot::ua_shadowroot::{CreateUAShadowRootForSelf, UAShadowRoot};
 use crate::dom::text::Text;
-use crate::dom::types::FocusEvent;
+use crate::dom::types::{FocusEvent, HTMLDataListElement};
 use crate::dom::validation::{is_barred_by_datalist_ancestor, Validatable};
 use crate::dom::validitystate::{ValidationFlags, ValidityState};
 use crate::dom::node::virtualmethods::VirtualMethods;
@@ -86,25 +87,18 @@ const CHEVRON_CONTAINER_STYLE: &str = "
 #[derive(JSTraceable, MallocSizeOf)]
 struct OptionsFilter;
 impl CollectionFilter for OptionsFilter {
-    fn filter<'a>(&self, elem: &'a Element, root: &'a Node) -> bool {
-        if !elem.is::<HTMLOptionElement>() {
+    fn filter<'a>(&self, element: &'a Element, root: &'a Node) -> bool {
+        let Some(option) = element.downcast::<HTMLOptionElement>() else {
             return false;
-        }
-
-        let node = elem.upcast::<Node>();
-        if root.is_parent_of(node) {
-            return true;
-        }
-
-        match node.GetParentNode() {
-            Some(optgroup) => optgroup.is::<HTMLOptGroupElement>() && root.is_parent_of(&optgroup),
-            None => false,
-        }
+        };
+        let Some(select) = option.cached_nearest_ancestor_select() else {
+            return false;
+        };
+        root == select.upcast()
     }
 }
 
-/// Provides selected options directly via [`HTMLSelectElement::list_of_options`],
-/// avoiding a full subtree traversal.
+/// Provides selected options directly via [`HTMLSelectElement::list_of_options`].
 #[derive(JSTraceable, MallocSizeOf)]
 struct SelectedOptionsSource;
 
@@ -239,31 +233,61 @@ impl HTMLSelectElement {
         &self,
         no_gc: &'b NoGC,
     ) -> impl Iterator<Item = UnrootedDom<'b, HTMLOptionElement>> + use<'b> {
-        self.upcast::<Node>()
-            .children_unrooted(no_gc)
-            .flat_map(|node| {
-                if node.is::<HTMLOptionElement>() {
-                    let node = UnrootedDom::downcast::<HTMLOptionElement>(node).unwrap();
-                    Choice3::First(iter::once(node))
-                } else if node.is::<HTMLOptGroupElement>() {
-                    Choice3::Second(
-                        node.children_unrooted(no_gc)
-                            .filter_map(UnrootedDom::downcast),
-                    )
+        let self_node = self.upcast::<Node>();
+
+        // Step 1. Let options be « ».
+        let mut iterator = self_node.traverse_preorder_unrooted(no_gc, ShadowIncluding::No);
+
+        // Step 2. Let node be the first child of select in tree order.
+        iterator.next();
+
+        // Step 3. While node is not null:
+        iter::from_fn(move || {
+            loop {
+                let node = iterator.peek()?.clone();
+
+                // Step 3.2. If any of the following conditions are true:
+                //   - node is a select element;
+                //   - node is an hr element;
+                //   - node is an option element;
+                //   - node is a datalist element;
+                //   - node is an optgroup element and node has an ancestor optgroup in between itself
+                //     and select,
+                // then set node to the next descendant of select in tree order, excluding node's
+                // descendants, if any such node exists; otherwise null.
+                if skip_descendants_for_list_of_options(no_gc, &node) {
+                    iterator.next_skipping_children();
                 } else {
-                    Choice3::Third(iter::empty())
+                    // Step 3.3. Otherwise, set node to the next descendant of select in tree order, if any
+                    // such node exists; otherwise null.
+                    iterator.next();
                 }
-            })
+
+                // Step 3.1. If node is an option element, then append node to options.
+                if let Some(option) = UnrootedDom::downcast::<HTMLOptionElement>(node) {
+                    return Some(option);
+                }
+            }
+        })
     }
 
     /// <https://html.spec.whatwg.org/multipage/#placeholder-label-option>
+    /// > If a select element has a required attribute specified, and has a display size of 1; and
+    /// > if the value of the first option element in the select element's list of options (if any) is
+    /// > the empty string, and that option element does not have an ancestor optgroup in between
+    /// > itself and the select element, then that option is the select element's placeholder label
+    /// > option.
+    /// >
+    /// > If a select element has a required attribute specified, does not have a multiple attribute
+    /// > specified, and has a display size of 1, then the select element must have a placeholder label
+    /// > option.
     fn get_placeholder_label_option(&self, no_gc: &NoGC) -> Option<DomRoot<HTMLOptionElement>> {
         if self.Required() && !self.Multiple() && self.display_size() == 1 {
             self.list_of_options(no_gc)
                 .next()
                 .filter(|node| {
-                    let parent = node.upcast::<Node>().GetParentNode();
-                    node.Value().is_empty() && parent.as_deref() == Some(self.upcast())
+                    node.Value().is_empty() &&
+                        !has_ancestor_optgroup_between_self_and_select(no_gc, node.upcast())
                 })
                 .map(|node| node.as_rooted())
         } else {
@@ -1017,33 +1041,43 @@ impl Activatable for HTMLSelectElement {
     }
 }
 
-enum Choice3<I, J, K> {
-    First(I),
-    Second(J),
-    Third(K),
+/// Implements Step 3.2 of <https://html.spec.whatwg.org/multipage/#concept-select-option-list>.
+fn skip_descendants_for_list_of_options(no_gc: &NoGC, node: &Node) -> bool {
+    // Step 3.2. If any of the following conditions are true:
+    //   - node is a select element;
+    //   - node is an hr element;
+    //   - node is an option element;
+    //   - node is a datalist element;
+    if node.is::<HTMLSelectElement>() ||
+        node.is::<HTMLHRElement>() ||
+        node.is::<HTMLOptionElement>() ||
+        node.is::<HTMLDataListElement>()
+    {
+        return true;
+    }
+
+    //   - node is an optgroup element and node has an ancestor optgroup in between itself
+    //     and select,
+    //
+    // We shouldn't recurse into them because of the check above and `select` here is the
+    // originating select element of this call.
+    if node.is::<HTMLOptGroupElement>() &&
+        has_ancestor_optgroup_between_self_and_select(no_gc, node)
+    {
+        return true;
+    }
+
+    false
 }
 
-impl<I, J, K, T> Iterator for Choice3<I, J, K>
-where
-    I: Iterator<Item = T>,
-    J: Iterator<Item = T>,
-    K: Iterator<Item = T>,
-{
-    type Item = T;
-
-    fn next(&mut self) -> Option<T> {
-        match *self {
-            Choice3::First(ref mut i) => i.next(),
-            Choice3::Second(ref mut j) => j.next(),
-            Choice3::Third(ref mut k) => k.next(),
+fn has_ancestor_optgroup_between_self_and_select(no_gc: &NoGC, node: &Node) -> bool {
+    for ancestor in node.ancestors_unrooted(no_gc) {
+        if ancestor.is::<HTMLSelectElement>() {
+            return false;
+        }
+        if ancestor.is::<HTMLOptGroupElement>() {
+            return true;
         }
     }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        match *self {
-            Choice3::First(ref i) => i.size_hint(),
-            Choice3::Second(ref j) => j.size_hint(),
-            Choice3::Third(ref k) => k.size_hint(),
-        }
-    }
+    false
 }
