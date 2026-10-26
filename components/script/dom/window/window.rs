@@ -733,12 +733,6 @@ impl Window {
         self.webgl_chan.clone()
     }
 
-    // TODO: rename the function to webgl_chan after the existing `webgl_chan` function is removed.
-    #[cfg(feature = "webgl")]
-    pub(crate) fn webgl_chan_value(&self) -> Option<WebGLChan> {
-        self.webgl_chan.clone()
-    }
-
     #[cfg(feature = "webxr")]
     pub(crate) fn webxr_registry(&self) -> Option<webxr_api::Registry> {
         self.webxr_registry.clone()
