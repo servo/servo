@@ -675,6 +675,8 @@ async fn obtain_response(
         .timing_info
         .set_attribute(ResourceAttribute::RequestStart);
 
+    let should_store =
+        request.method() == Method::GET && !request_headers.contains_key(header::AUTHORIZATION);
     let client_future = client
         .request(request)
         .and_then(move |res| {
@@ -724,6 +726,7 @@ async fn obtain_response(
                 Decoder::detect(
                     res.map(|r| r.boxed()),
                     is_secure_scheme,
+                    should_store,
                     url.clone().into(),
                     context.state.clone(),
                 ),
@@ -2265,6 +2268,8 @@ async fn http_network_fetch(
                 Decoder::detect(
                     response,
                     url.is_secure_scheme(),
+                    request.method == Method::GET &&
+                        !request.headers.contains_key(header::AUTHORIZATION),
                     url.clone().into(),
                     context.state.clone(),
                 ),

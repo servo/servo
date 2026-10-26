@@ -37,6 +37,7 @@ use sea_query::{
 };
 use sea_query_rusqlite::RusqliteBinder;
 use servo_config::pref;
+use servo_url::ServoUrl;
 use tokio::io::AsyncReadExt;
 use tokio::sync::mpsc::UnboundedSender;
 use tokio::sync::{Mutex as TokioMutex, RwLock as TokioRwLock};
@@ -47,7 +48,7 @@ use crate::decoder::DecoderType;
 use crate::http_cache::{
     CacheEntry, CacheKey, CachedResource, HttpCacheAssignment, MemoryCacheLifecycle,
 };
-use crate::test::HttpState;
+use crate::http_loader::HttpState;
 
 #[derive(Debug, Clone)]
 pub(crate) enum InnerDecoderType {
@@ -173,11 +174,13 @@ impl CacheStorage {
 impl CacheStorageReceiver {
     /// Delete data that is not finished for the same [`CacheKey`]
     async fn delete_old_data(&self) -> Result<(), ()> {
-        let inner = self.disk_cache.inner.lock().await;
+        let mut inner = self.disk_cache.inner.lock().await;
         let (query, params) = Query::delete()
             .from_table(DiskCacheEncodedTable::Table)
             .and_where(Expr::col(DiskCacheEncodedTable::Key).eq(self.key.as_ref()))
             .build_rusqlite(SqliteQueryBuilder);
+
+        let _ = inner.entries.remove(&self.key);
 
         if let Err(e) = inner.db.execute(query.as_str(), &*params.as_params()) {
             log::error!(
@@ -219,10 +222,13 @@ impl CacheStorageReceiver {
             ])
             .build_rusqlite(SqliteQueryBuilder);
 
-        disk_cache
+        if disk_cache
             .db
             .execute(query.as_str(), &*params.as_params())
-            .unwrap();
+            .is_err()
+        {
+            log::error!("Could not store bytes in encoded table");
+        }
         self.row_id += 1;
 
         let metadata = disk_cache.entries.entry(self.key.clone()).or_default();
@@ -240,10 +246,13 @@ impl CacheStorageReceiver {
             .and_where(Expr::col(DiskCacheEncodedTable::Key).eq(self.key.as_ref()))
             .build_rusqlite(SqliteQueryBuilder);
 
-        disk_cache
+        if disk_cache
             .db
             .execute(query.as_str(), &*params.as_params())
-            .unwrap();
+            .is_err()
+        {
+            log::error!("Could not finish storing encoded table row");
+        }
     }
 }
 
@@ -260,6 +269,12 @@ fn restore_metadata_from_disk(
     db: &rusqlite::Connection,
 ) {
     let (query, _params) = Query::select()
+        .columns([
+            DiskCacheEncodedTable::Index,
+            DiskCacheEncodedTable::DecoderType,
+            DiskCacheEncodedTable::Data,
+            DiskCacheEncodedTable::InsertionTimestamp,
+        ])
         .from(DiskCacheEncodedTable::Table)
         .build_rusqlite(SqliteQueryBuilder);
     let Ok(mut statement) = db.prepare(query.as_str()) else {
@@ -276,16 +291,15 @@ fn restore_metadata_from_disk(
         })
         .unwrap();
     for (timestamp, key, data) in value_iter.flatten() {
+        let key_servo_url: ServoUrl = Url::parse(&key).unwrap().into();
         entries.insert(
-            CacheKey::from_url(Url::parse(&key).unwrap().into()),
+            key_servo_url.into(),
             DiskCacheMetadata {
                 size: data.len(),
                 last_accessed: Some(Duration::from_secs(timestamp as u64)),
             },
         );
     }
-
-    todo!("NYI");
 }
 
 /// This data structure will be per [`HttpCacheAssignment`]. Currently, we only store HttpCacheAssignment::Public and otherwise return zero.
@@ -400,7 +414,7 @@ impl DiskCache {
                 return (None, MemoryCacheLifecycle::empty());
             };
 
-            let _ = db.execute_batch("PRAGMA journal_mode = WAL;PRAGMA schema.synchronous =  OFF");
+            let _ = db.execute_batch("PRAGMA journal_mode = WAL;PRAGMA synchronous =  NORMAL");
             let query = Table::create()
                 .table(DiskCacheTable::Table)
                 .if_not_exists()
@@ -440,7 +454,7 @@ impl DiskCache {
                 )
                 .col(
                     ColumnDef::new(DiskCacheEncodedTable::Data)
-                        .text()
+                        .blob()
                         .not_null(),
                 )
                 .col(
@@ -509,9 +523,9 @@ impl DiskCache {
     #[servo_tracing::instrument(skip(self))]
     pub(crate) async fn get(&self, key: CacheKey) -> Option<Arc<TokioRwLock<Vec<CachedResource>>>> {
         let decoded_data = {
-            let inner = self.inner.lock().await;
             let mut decoder_type = InnerDecoderType::Plain;
             let encoded_data: Vec<u8> = {
+                let inner = self.inner.lock().await;
                 let (query, query_values) = Query::select()
                     .columns([
                         DiskCacheEncodedTable::Index,
@@ -612,6 +626,27 @@ impl DiskCache {
                 *v[0].body().lock() = ResponseBody::Done(decoded_data);
             }
         }
+
+        // update times
+        let now = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_secs();
+        let inner = self.inner.lock().await;
+        let (query, query_values) = Query::update()
+            .table(DiskCacheEncodedTable::Table)
+            .values([(DiskCacheEncodedTable::InsertionTimestamp, now.into())])
+            .and_where(Expr::col(DiskCacheEncodedTable::Key).eq(key.as_ref()))
+            .build_rusqlite(SqliteQueryBuilder);
+
+        if inner
+            .db
+            .execute(query.as_str(), &*query_values.as_params())
+            .is_err()
+        {
+            log::error!("Could not update timestamp in cache");
+        }
+
         Some(deserialized_vec_cached_response)
     }
 
@@ -624,12 +659,6 @@ impl DiskCache {
             .any(|cached_resource| !cached_resource.is_done())
         {
             return;
-        }
-
-        // If we have more than one `CachedResource`, our current decoding via partials does not work, so we ignore it.
-        // Otherwise, we set an empty body as we will restore it from partial.
-        if entry.len() == 1 {
-            entry[0].empty_body();
         }
 
         let Ok(data) = postcard::to_stdvec(&*entry) else {

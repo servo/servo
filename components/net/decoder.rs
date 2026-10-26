@@ -39,7 +39,7 @@ use tokio_util::io::StreamReader;
 use crate::connector::BoxedBody;
 use crate::disk_cache::CacheStorage;
 use crate::http_cache::{CacheKey, status_and_headers_is_cacheable};
-use crate::test::HttpState;
+use crate::http_loader::HttpState;
 
 pub const DECODER_BUFFER_SIZE: usize = 8192;
 
@@ -177,10 +177,12 @@ impl Decoder {
     pub fn detect(
         response: Response<BoxedBody>,
         is_secure_scheme: bool,
+        should_store: bool,
         key: CacheKey,
         state: Arc<HttpState>,
     ) -> Response<Decoder> {
-        let cacheable = status_and_headers_is_cacheable(&response.status(), response.headers());
+        let cacheable =
+            status_and_headers_is_cacheable(&response.status(), response.headers()) && should_store;
         let values = response
             .headers()
             .get_all(CONTENT_ENCODING)
@@ -293,7 +295,8 @@ fn construct_inner(type_: DecoderType, body: Peekable<BodyStream>) -> DecoderInn
             ))
         },
         DecoderType::Deflate => {
-            let deflate_decoder = ZlibDecoder::new(stream_reader);
+            let mut deflate_decoder = ZlibDecoder::new(stream_reader);
+            deflate_decoder.multiple_members(true);
             DecoderInner::Deflate(FramedRead::with_capacity(
                 deflate_decoder,
                 BytesCodec::new(),
