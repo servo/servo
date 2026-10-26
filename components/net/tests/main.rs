@@ -14,6 +14,7 @@ mod fetch;
 fn fetch(request: Request, dc: Option<Sender<DevtoolsControlMsg>>) -> Response {
     fetch_with_context(request, &mut new_fetch_context(dc, None))
 }
+mod disk_cache;
 mod file_loader;
 mod filemanager_thread;
 mod hsts;

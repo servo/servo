@@ -355,7 +355,7 @@ impl MallocSizeOf for HttpCache {
 
 impl HttpCache {
     /// Returns and arc to the disk cache
-    pub(crate) fn disk_cache(&self) -> Option<std::sync::Arc<DiskCache>> {
+    pub fn disk_cache(&self) -> Option<std::sync::Arc<DiskCache>> {
         self.disk_cache.clone()
     }
 
@@ -389,6 +389,12 @@ impl HttpCache {
     /// The cache assignment state this cache is in.
     pub fn cache_assignment(&self) -> HttpCacheAssignment {
         self.cache_assignment
+    }
+
+    #[cfg(feature = "test-util")]
+    /// Show all entries for testing
+    pub fn entries(&self) -> &QuickCache {
+        &self.entries
     }
 }
 
@@ -1138,6 +1144,7 @@ impl HttpCache {
     }
 
     /// Insert a response for `request` into the cache (used by tests that need direct access).
+    #[cfg(feature = "test-util")]
     pub async fn store(&self, request: &Request, response: &Response) {
         let guard = self.get_or_guard(CacheKey::new(request)).await;
         guard.insert(request, response);
