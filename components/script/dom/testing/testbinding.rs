@@ -581,7 +581,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
             anyValue: Box::new(Heap::default()),
             booleanValue: None,
             byteValue: None,
-            dict: Box::new(TestDictionaryDefaults {
+            dict: TestDictionaryDefaults {
                 UnrestrictedDoubleValue: 0.0,
                 anyValue: Box::new(Heap::default()),
                 arrayValue: Vec::new(),
@@ -618,7 +618,7 @@ impl TestBindingMethods<crate::DomTypeHolder> for TestBinding {
                 unsignedLongValue: 0,
                 unsignedShortValue: 0,
                 usvstringValue: USVString(String::new()),
-            }),
+            },
             doubleValue: None,
             enumValue: None,
             floatValue: None,
