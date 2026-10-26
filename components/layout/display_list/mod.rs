@@ -1401,6 +1401,8 @@ impl Fragment {
                 rect = rect.inflate(0.0, wavy_line_thickness);
             }
 
+            let common_properties = builder.common_properties(state, rect, parent_style);
+
             // In Servo, text decorations can span multiple text fragments. In order to have dots,
             // dashes, and wavy line segments match up between multiple fragments, this code extends
             // the painting rect for the decoration types for which this matters to the origin. As
@@ -1416,7 +1418,6 @@ impl Fragment {
                 rect.min.x = rect.min.x.min(0.0);
             }
 
-            let common_properties = builder.common_properties(state, rect, parent_style);
             builder.wr().push_line(
                 &common_properties,
                 &rect,
