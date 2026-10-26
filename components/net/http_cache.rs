@@ -230,6 +230,12 @@ impl CachedResource {
 
         true
     }
+
+    #[cfg(feature = "test-util")]
+    /// Returns the inner body for testing.
+    pub fn body_for_testing(&self) -> Arc<ParkingLotMutex<ResponseBody>> {
+        self.body.clone()
+    }
 }
 
 #[derive(Debug, Deserialize, MallocSizeOf, Serialize)]
