@@ -2819,10 +2819,10 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.7>
     fn BindRenderbuffer(&self, target: u32, renderbuffer: Option<&WebGLRenderbuffer>) {
-        if let Some(rb) = renderbuffer {
-            if let Err(error) = self.validate_ownership(rb) {
-                return self.webgl_error(error);
-            }
+        if let Some(rb) = renderbuffer &&
+            let Err(error) = self.validate_ownership(rb)
+        {
+            return self.webgl_error(error);
         }
 
         if target != constants::RENDERBUFFER {
@@ -2851,10 +2851,10 @@ impl WebGLRenderingContextMethods<crate::DomTypeHolder> for WebGLRenderingContex
 
     /// <https://www.khronos.org/registry/webgl/specs/latest/1.0/#5.14.8>
     fn BindTexture(&self, target: u32, texture: Option<&WebGLTexture>) {
-        if let Some(texture) = texture {
-            if let Err(error) = self.validate_ownership(texture) {
-                return self.webgl_error(error);
-            }
+        if let Some(texture) = texture &&
+            let Err(error) = self.validate_ownership(texture)
+        {
+            return self.webgl_error(error);
         }
 
         let texture_slot = match self
