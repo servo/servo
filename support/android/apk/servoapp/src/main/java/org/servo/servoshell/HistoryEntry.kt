@@ -9,7 +9,7 @@ class HistoryEntry(val timestamp: Long, val url: String, val title: String?) {
         JSONObject().apply {
             put("timestamp", timestamp)
             put("url", url)
-            put("title", title.orEmpty())
+            putOpt("title", title)
         }
 
     companion object {
@@ -18,7 +18,7 @@ class HistoryEntry(val timestamp: Long, val url: String, val title: String?) {
             HistoryEntry(
                 timestamp = json.getLong("timestamp"),
                 url = json.getString("url"),
-                title = json.optString("title", ""),
+                title = if (json.has("title")) json.getString("title") else null,
             )
     }
 }
