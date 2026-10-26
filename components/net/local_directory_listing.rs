@@ -30,7 +30,7 @@ pub(crate) async fn fetch(request: &mut Request, url: ServoUrl, path_buf: PathBu
         return Response::network_error(NetworkError::LocalDirectoryError);
     }
 
-    let directory_contents = match tokio::fs::read_dir(path_buf.clone()).await {
+    let directory_contents = match tokio::fs::read_dir(&path_buf).await {
         Ok(directory_contents) => directory_contents,
         Err(error) => {
             return Response::network_error(NetworkError::ResourceLoadError(format!(
