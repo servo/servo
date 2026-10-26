@@ -26,7 +26,7 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::editing::MouseButtonSelectionAction;
 use crate::dom::event::Event;
-use crate::dom::inputevent::{HitTestResult, IsComposing};
+use crate::dom::inputevent::HitTestResult;
 use crate::dom::mouseevent::MouseEvent;
 use crate::dom::text_control::TextControlElement;
 use crate::dom::types::{HTMLInputElement, HTMLTextAreaElement};
@@ -189,12 +189,8 @@ impl InputEventType {
         self != Self::InsertCompositionText
     }
 
-    pub(crate) fn is_composing(self) -> IsComposing {
-        if self == Self::InsertCompositionText {
-            IsComposing::Composing
-        } else {
-            IsComposing::NotComposing
-        }
+    pub(crate) fn is_composing(self) -> bool {
+        self == Self::InsertCompositionText
     }
 }
 

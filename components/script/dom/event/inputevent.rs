@@ -2,6 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
+use bitflags::bitflags;
 use dom_struct::dom_struct;
 use embedder_traits::Cursor;
 use euclid::Point2D;
@@ -18,7 +19,6 @@ use crate::dom::bindings::error::Fallible;
 use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::datatransfer::DataTransfer;
-use crate::dom::event::{EventBubbles, EventCancelable};
 use crate::dom::node::Node;
 use crate::dom::selection_range::RootedSelectionBoundary;
 use crate::dom::staticrange::StaticRange;
@@ -29,7 +29,7 @@ use crate::dom::window::Window;
 pub(crate) struct InputEvent {
     uievent: UIEvent,
     data: Option<TracedDOMString>,
-    is_composing: IsComposing,
+    is_composing: bool,
     input_type: TracedDOMString,
 }
 
@@ -40,12 +40,10 @@ impl InputEvent {
         window: &Window,
         proto: Option<HandleObject>,
         event_type: Atom,
-        can_bubble: EventBubbles,
-        cancelable: EventCancelable,
+        flags: InputEventFlags,
         view: Option<&Window>,
         detail: i32,
         data: Option<DOMString>,
-        is_composing: IsComposing,
         input_type: DOMString,
     ) -> DomRoot<InputEvent> {
         let event = reflect_dom_object_with_proto(
@@ -53,7 +51,7 @@ impl InputEvent {
             Box::new(InputEvent {
                 uievent: UIEvent::new_inherited(),
                 data: data.map(|domstring| domstring.traced()),
-                is_composing,
+                is_composing: flags.intersects(InputEventFlags::COMPOSING),
                 input_type: input_type.traced(),
             }),
             window,
@@ -61,8 +59,8 @@ impl InputEvent {
         );
         event.uievent.init_event(
             event_type,
-            bool::from(can_bubble),
-            bool::from(cancelable),
+            flags.intersects(InputEventFlags::BUBBLES),
+            flags.intersects(InputEventFlags::CANCELABLE),
             view,
             detail,
         );
@@ -79,17 +77,25 @@ impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
         event_type: DOMString,
         init: &InputEventBinding::InputEventInit,
     ) -> Fallible<DomRoot<InputEvent>> {
+        let mut flags = InputEventFlags::empty();
+        if init.parent.parent.bubbles {
+            flags |= InputEventFlags::BUBBLES;
+        }
+        if init.parent.parent.cancelable {
+            flags |= InputEventFlags::CANCELABLE;
+        }
+        if init.isComposing {
+            flags |= InputEventFlags::COMPOSING;
+        }
         let event = InputEvent::new(
             cx,
             window,
             proto,
             event_type.into(),
-            init.parent.parent.bubbles.into(),
-            init.parent.parent.cancelable.into(),
+            flags,
             init.parent.view.as_deref(),
             init.parent.detail,
             init.data.clone(),
-            init.isComposing.into(),
             init.inputType.clone(),
         );
         Ok(event)
@@ -102,7 +108,7 @@ impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
 
     /// <https://w3c.github.io/uievents/#dom-inputevent-iscomposing>
     fn IsComposing(&self) -> bool {
-        bool::from(self.is_composing)
+        self.is_composing
     }
 
     /// <https://w3c.github.io/uievents/#dom-inputevent-inputtype>
@@ -128,31 +134,14 @@ impl InputEventMethods<crate::DomTypeHolder> for InputEvent {
     }
 }
 
-#[derive(Clone, Copy, PartialEq, MallocSizeOf, JSTraceable)]
-pub(crate) enum IsComposing {
-    Composing,
-    NotComposing,
-}
-
-impl From<IsComposing> for bool {
-    fn from(is_composing: IsComposing) -> Self {
-        match is_composing {
-            IsComposing::Composing => true,
-            IsComposing::NotComposing => false,
-        }
+bitflags! {
+    #[derive(Clone, Copy, Eq, PartialEq)]
+    pub struct InputEventFlags: u8 {
+        const BUBBLES = 1 << 0;
+        const CANCELABLE = 1 << 1;
+        const COMPOSING = 1 << 2;
     }
 }
-
-impl From<bool> for IsComposing {
-    fn from(boolean: bool) -> Self {
-        if boolean {
-            IsComposing::Composing
-        } else {
-            IsComposing::NotComposing
-        }
-    }
-}
-
 /// A [`HitTestResult`] that is the result of doing a hit test based on a less-fine-grained
 /// `PaintHitTestResult` against our current layout.
 pub(crate) struct HitTestResult {

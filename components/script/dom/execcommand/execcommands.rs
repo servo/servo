@@ -14,8 +14,8 @@ use crate::dom::bindings::root::DomRoot;
 use crate::dom::bindings::str::DOMString;
 use crate::dom::comment::Comment;
 use crate::dom::document::Document;
-use crate::dom::event::inputevent::{InputEvent, IsComposing};
-use crate::dom::event::{Event, EventBubbles, EventCancelable};
+use crate::dom::event::Event;
+use crate::dom::event::inputevent::{InputEvent, InputEventFlags};
 use crate::dom::execcommand::basecommand::CommandName;
 use crate::dom::execcommand::commands::fontsize::maybe_normalize_pixels;
 use crate::dom::html::htmlelement::HTMLElement;
@@ -296,12 +296,10 @@ impl DocumentExecCommandSupport for Document {
                 window,
                 None,
                 atom!("beforeinput"),
-                EventBubbles::Bubbles,
-                EventCancelable::Cancelable,
+                InputEventFlags::BUBBLES | InputEventFlags::CANCELABLE,
                 Some(window),
                 0,
                 None,
-                IsComposing::NotComposing,
                 mapped_value_of_command(command),
             );
             let event = event.upcast::<Event>();
@@ -349,12 +347,10 @@ impl DocumentExecCommandSupport for Document {
                 window,
                 None,
                 atom!("input"),
-                EventBubbles::Bubbles,
-                EventCancelable::NotCancelable,
+                InputEventFlags::BUBBLES,
                 Some(window),
                 0,
                 None,
-                IsComposing::NotComposing,
                 mapped_value_of_command(command),
             );
             let event = event.upcast::<Event>();
