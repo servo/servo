@@ -110,6 +110,12 @@ pub struct CacheKey {
     url: ServoUrl,
 }
 
+impl From<ServoUrl> for CacheKey {
+    fn from(url: ServoUrl) -> Self {
+        CacheKey { url }
+    }
+}
+
 impl AsRef<str> for CacheKey {
     fn as_ref(&self) -> &str {
         self.url.as_str()
@@ -157,6 +163,15 @@ pub struct CachedResource {
 impl CachedResource {
     pub(crate) fn is_done(&self) -> bool {
         self.body.lock().is_done()
+    }
+
+    pub(crate) fn body(&self) -> &Arc<ParkingLotMutex<ResponseBody>> {
+        &self.body
+    }
+
+    /// Sets the body to be empty. Used for disk cache when the encoded values are stored separately
+    pub(crate) fn empty_body(&self) {
+        *self.body.lock() = ResponseBody::Empty;
     }
 
     /// Whether this [`CachedResource`] can be used to answer the given `Request`. This
@@ -308,7 +323,7 @@ type QuickCachePlaceholderGuard<'a> = PlaceholderGuard<
 >;
 
 /// Is this state assigned to the private or public side.
-#[derive(Debug, MallocSizeOf, PartialEq)]
+#[derive(Copy, Clone, Debug, MallocSizeOf, PartialEq)]
 pub enum HttpCacheAssignment {
     /// Public Cache State, possibly stored to disk.
     Public,
@@ -324,6 +339,7 @@ pub enum HttpCacheAssignment {
 pub struct HttpCache {
     /// cached responses.
     entries: QuickCache,
+    cache_assignment: HttpCacheAssignment,
     disk_cache: Option<std::sync::Arc<DiskCache>>,
 }
 
@@ -347,12 +363,17 @@ impl MallocSizeOf for HttpCache {
 }
 
 impl HttpCache {
+    /// Returns and arc to the disk cache
+    pub(crate) fn disk_cache(&self) -> Option<std::sync::Arc<DiskCache>> {
+        self.disk_cache.clone()
+    }
+
     /// Create a new HttpCache with [`HttpCacheAssignment`]
-    pub fn new(assignment: HttpCacheAssignment) -> Self {
+    pub fn new(cache_assignment: HttpCacheAssignment) -> Self {
         let size = pref!(network_http_cache_size)
             .try_into()
             .expect("http_cache_size needs to fit into u64");
-        let (disk_cache, lifecycle) = DiskCache::new(assignment);
+        let (disk_cache, lifecycle) = DiskCache::new(cache_assignment);
         let memory_cache = Cache::with(
             size,
             size as u64,
@@ -364,6 +385,7 @@ impl HttpCache {
         Self {
             entries: memory_cache,
             disk_cache,
+            cache_assignment,
         }
     }
 
@@ -371,6 +393,11 @@ impl HttpCache {
     /// The number of entries in the memory cache. This does not say anything about the disk cache.
     pub fn len(&self) -> usize {
         self.entries.len()
+    }
+
+    /// The cache assignment state this cache is in.
+    pub fn cache_assignment(&self) -> HttpCacheAssignment {
+        self.cache_assignment
     }
 }
 
@@ -421,14 +448,22 @@ fn is_cacheable_by_default(status_code: StatusCode) -> bool {
 /// Determine if a given response is cacheable.
 /// Based on <https://tools.ietf.org/html/rfc7234#section-3>
 fn response_is_cacheable(metadata: &Metadata) -> bool {
+    status_and_headers_is_cacheable(
+        &metadata.status.code(),
+        &metadata.headers.as_ref().unwrap().0,
+    )
+}
+
+/// Determine if a given response is cacheable.
+/// Based on <https://tools.ietf.org/html/rfc7234#section-3>
+pub(crate) fn status_and_headers_is_cacheable(status: &StatusCode, headers: &HeaderMap) -> bool {
     // This kind of response does not have a body. It just freshens existing cached resources.
-    if metadata.status == StatusCode::NOT_MODIFIED {
+    if *status == StatusCode::NOT_MODIFIED {
         return false;
     }
 
     // Resources with `Vary: '*'` can never be returned as cache results, so
     // do not store them in the cache.
-    let headers = metadata.headers.as_ref().unwrap();
     if headers
         .typed_get::<Vary>()
         .is_some_and(|vary| vary.is_any())
