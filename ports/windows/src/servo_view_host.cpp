@@ -12,9 +12,12 @@
 static const wchar_t* SERVO_VIEW_CLASS_NAME = L"ServoViewHostWindow";
 
 void ServoViewHost::RegisterWindowClass(HINSTANCE hInstance) {
+    if (!hInstance) {
+        hInstance = GetModuleHandleW(nullptr);
+    }
     WNDCLASSEXW wc = {};
     wc.cbSize = sizeof(WNDCLASSEXW);
-    wc.style = CS_HREDRAW | CS_VREDRAW;
+    wc.style = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
     wc.lpfnWndProc = ServoViewHost::WndProc;
     wc.hInstance = hInstance;
     wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
@@ -35,6 +38,7 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
 {
     HINSTANCE hInstance = GetModuleHandleW(nullptr);
 
+    LogDebug("ServoViewHost creating child window...");
     // Create child window
     m_hwnd = CreateWindowExW(
         0,
@@ -47,6 +51,7 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
         hInstance,
         this
     );
+    LogDebug("ServoViewHost child window created: 0x%p", m_hwnd);
 
     // Create windowed rendering context
     RECT rc = {};
@@ -54,16 +59,20 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
     uint32_t width = rc.right > 0 ? rc.right : 800;
     uint32_t height = rc.bottom > 0 ? rc.bottom : 600;
 
+    LogDebug("Creating rendering context width=%u height=%u...", width, height);
     m_context = servo_win::create_win32_rendering_context(m_hwnd, width, height);
     if (!m_context) {
-        // Fallback to software context if GPU context fails
+        LogDebug("Win32 window context failed, attempting software rendering context...");
         m_context = servo_rendering_context_create_software(width, height);
     }
+    LogDebug("RenderingContext ready: 0x%p", m_context);
 
     // Build the WebView
+    LogDebug("Building Servo WebView with URL %s...", initialUrl.c_str());
     ServoWebViewBuilder* builder = servo_webview_builder_create(m_servo, m_context);
     if (builder) {
-        servo_webview_builder_set_url(builder, initialUrl.empty() ? "about:blank" : initialUrl.c_str());
+        ServoError urlErr = servo_webview_builder_set_url(builder, initialUrl.empty() ? "about:blank" : initialUrl.c_str());
+        LogDebug("servo_webview_builder_set_url returned %d", (int)urlErr);
 
         ServoWebViewDelegate delegate = {};
         delegate.struct_size = sizeof(ServoWebViewDelegate);
@@ -81,8 +90,10 @@ ServoViewHost::ServoViewHost(HWND parentHwnd, struct Servo* servo, BrowserWindow
         delegate.on_before_download = reinterpret_cast<decltype(delegate.on_before_download)>(OnBeforeDownload);
         delegate.on_download_updated = reinterpret_cast<decltype(delegate.on_download_updated)>(OnDownloadUpdated);
 
-        servo_webview_builder_set_delegate(builder, delegate);
+        ServoError delErr = servo_webview_builder_set_delegate(builder, delegate);
+        LogDebug("servo_webview_builder_set_delegate returned %d", (int)delErr);
         m_webview = servo_webview_builder_build(builder);
+        LogDebug("servo_webview_builder_build returned: 0x%p", m_webview);
     }
 }
 
@@ -192,7 +203,11 @@ LRESULT CALLBACK ServoViewHost::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPAR
     if (msg == WM_NCCREATE) {
         auto cs = reinterpret_cast<CREATESTRUCTW*>(lParam);
         self = reinterpret_cast<ServoViewHost*>(cs->lpCreateParams);
-        SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
+        if (self) {
+            self->m_hwnd = hwnd;
+            SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
+        }
+        return DefWindowProcW(hwnd, msg, wParam, lParam);
     } else {
         self = reinterpret_cast<ServoViewHost*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
     }
@@ -207,10 +222,39 @@ LRESULT ServoViewHost::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
     switch (msg) {
     case WM_PAINT: {
         PAINTSTRUCT ps;
-        BeginPaint(m_hwnd, &ps);
+        HDC hdc = BeginPaint(m_hwnd, &ps);
         if (m_webview) {
-            servo_webview_paint(m_webview);
+            ServoError err = servo_webview_paint(m_webview);
+            LogDebug("servo_webview_paint returned %d", (int)err);
         }
+
+        // 1. Try EGL swap (used when Servo is backed by ANGLE)
+        HMODULE hEgl = GetModuleHandleW(L"libEGL.dll");
+        if (hEgl) {
+            typedef void* (*PFN_eglGetCurrentDisplay)(void);
+            typedef void* (*PFN_eglGetCurrentSurface)(int readdraw);
+            typedef unsigned int (*PFN_eglSwapBuffers)(void* dpy, void* surface);
+
+            auto pfnGetCurrentDisplay = (PFN_eglGetCurrentDisplay)GetProcAddress(hEgl, "eglGetCurrentDisplay");
+            auto pfnGetCurrentSurface = (PFN_eglGetCurrentSurface)GetProcAddress(hEgl, "eglGetCurrentSurface");
+            auto pfnSwapBuffers = (PFN_eglSwapBuffers)GetProcAddress(hEgl, "eglSwapBuffers");
+
+            if (pfnGetCurrentDisplay && pfnGetCurrentSurface && pfnSwapBuffers) {
+                void* dpy = pfnGetCurrentDisplay();
+                void* surf = pfnGetCurrentSurface(0x3059); // EGL_DRAW
+                if (dpy && surf) {
+                    unsigned int ok = pfnSwapBuffers(dpy, surf);
+                    LogDebug("eglSwapBuffers(0x%p, 0x%p) returned %u", dpy, surf, ok);
+                } else {
+                    LogDebug("eglGetCurrentDisplay or Surface was null: dpy=0x%p surf=0x%p", dpy, surf);
+                }
+            }
+        }
+
+        // 2. Try GDI / WGL swap (used when Servo is backed by WGL)
+        BOOL gdiOk = SwapBuffers(hdc);
+        LogDebug("SwapBuffers(hdc) returned %d", gdiOk);
+
         EndPaint(m_hwnd, &ps);
         return 0;
     }
@@ -357,10 +401,12 @@ void ServoViewHost::OnNewFrameReady(struct WebView* webview, void* userData) {
     auto self = reinterpret_cast<ServoViewHost*>(userData);
     if (self && self->m_hwnd) {
         InvalidateRect(self->m_hwnd, nullptr, FALSE);
+        UpdateWindow(self->m_hwnd);
     }
 }
 
 void ServoViewHost::OnUrlChanged(struct WebView* webview, const char* url, void* userData) {
+    LogDebug("ServoViewHost::OnUrlChanged: %s", url ? url : "(null)");
     auto self = reinterpret_cast<ServoViewHost*>(userData);
     if (self && self->m_browserWindow && url) {
         self->m_browserWindow->OnActiveTabUrlChanged(url);
@@ -368,6 +414,7 @@ void ServoViewHost::OnUrlChanged(struct WebView* webview, const char* url, void*
 }
 
 void ServoViewHost::OnTitleChanged(struct WebView* webview, const char* title, void* userData) {
+    LogDebug("ServoViewHost::OnTitleChanged: %s", title ? title : "(null)");
     auto self = reinterpret_cast<ServoViewHost*>(userData);
     if (self && self->m_browserWindow && title) {
         self->m_browserWindow->OnActiveTabTitleChanged(title);
@@ -375,6 +422,7 @@ void ServoViewHost::OnTitleChanged(struct WebView* webview, const char* title, v
 }
 
 void ServoViewHost::OnLoadStatusChanged(struct WebView* webview, int32_t status, void* userData) {
+    LogDebug("ServoViewHost::OnLoadStatusChanged: %d", status);
     auto self = reinterpret_cast<ServoViewHost*>(userData);
     if (self && self->m_browserWindow) {
         self->m_browserWindow->OnActiveTabLoadStatusChanged(status);

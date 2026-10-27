@@ -48,7 +48,7 @@ inline RenderingContext* create_win32_rendering_context(HWND hwnd, uint32_t widt
     RawWindowHandleWin32 window_handle = {};
     window_handle.tag = 9; // RawWindowHandle::Win32
     window_handle.hwnd = reinterpret_cast<intptr_t>(hwnd);
-    window_handle.hinstance = reinterpret_cast<intptr_t>(GetModuleHandleW(nullptr));
+    window_handle.hinstance = 0;
 
     return servo_rendering_context_create_window(
         &display_handle,

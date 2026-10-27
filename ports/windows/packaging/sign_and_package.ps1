@@ -15,28 +15,45 @@ if (-not (Test-Path $DistDir)) {
 
 # 1. Generate Self-Signed Code-Signing Certificate
 Write-Host "[1/3] Generating Self-Signed Code-Signing Certificate..." -ForegroundColor Yellow
-$Cert = New-SelfSignedCertificate `
-    -Type CodeSigningCert `
-    -Subject "CN=Servo Browser, O=Servo Project" `
-    -CertStoreLocation "Cert:\CurrentUser\My" `
-    -NotAfter (Get-Date).AddYears(5)
+$Cert = $null
+try {
+    if (-not (Get-PSDrive -Name Cert -ErrorAction SilentlyContinue)) {
+        New-PSDrive -Name Cert -PSProvider Certificate -Root "\" -ErrorAction SilentlyContinue | Out-Null
+    }
+    $Cert = New-SelfSignedCertificate `
+        -Type CodeSigningCert `
+        -Subject "CN=Servo Browser, O=Servo Project" `
+        -CertStoreLocation "Cert:\CurrentUser\My" `
+        -NotAfter (Get-Date).AddYears(5) `
+        -ErrorAction Stop
 
-$CertPath = Join-Path $DistDir "ServoBrowser.cer"
-Export-Certificate -Cert $Cert -FilePath $CertPath -Force | Out-Null
-Write-Host "      Exported public certificate to $CertPath" -ForegroundColor Green
+    $CertPath = Join-Path $DistDir "ServoBrowser.cer"
+    Export-Certificate -Cert $Cert -FilePath $CertPath -Force | Out-Null
+    Write-Host "      Exported public certificate to $CertPath" -ForegroundColor Green
+} catch {
+    Write-Warning "Could not create self-signed certificate: $_"
+}
 
 # 2. Sign Binaries (Authenticode)
-Write-Host "[2/3] Signing application executables and libraries..." -ForegroundColor Yellow
-$Binaries = @(
-    (Join-Path $DistDir "servo_browser.exe"),
-    (Join-Path $DistDir "servo_capi.dll")
-)
+if ($Cert) {
+    Write-Host "[2/3] Signing application executables and libraries..." -ForegroundColor Yellow
+    $Binaries = @(
+        (Join-Path $DistDir "servo_browser.exe"),
+        (Join-Path $DistDir "servo_capi.dll")
+    )
 
-foreach ($Bin in $Binaries) {
-    if (Test-Path $Bin) {
-        $sig = Set-AuthenticodeSignature -FilePath $Bin -Certificate $Cert -HashAlgorithm SHA256
-        Write-Host "      Signed: $Bin (Status: $($sig.Status))" -ForegroundColor Green
+    foreach ($Bin in $Binaries) {
+        if (Test-Path $Bin) {
+            try {
+                $sig = Set-AuthenticodeSignature -FilePath $Bin -Certificate $Cert -HashAlgorithm SHA256
+                Write-Host "      Signed: $Bin (Status: $($sig.Status))" -ForegroundColor Green
+            } catch {
+                Write-Warning "Failed to sign $Bin : $_"
+            }
+        }
     }
+} else {
+    Write-Host "[2/3] Skipping code-signing (certificate unavailable)." -ForegroundColor Yellow
 }
 
 # 3. Copy Installer Scripts

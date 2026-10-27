@@ -27,6 +27,9 @@ static const wchar_t* BROWSER_WINDOW_CLASS_NAME = L"ServoBrowserMainWindow";
 static const int TOP_CHROME_HEIGHT = 82; // 38 (Tabs) + 44 (Omnibox)
 
 void BrowserWindow::RegisterWindowClass(HINSTANCE hInstance) {
+    if (!hInstance) {
+        hInstance = GetModuleHandleW(nullptr);
+    }
     WNDCLASSEXW wc = {};
     wc.cbSize = sizeof(WNDCLASSEXW);
     wc.style = CS_HREDRAW | CS_VREDRAW;
@@ -34,7 +37,7 @@ void BrowserWindow::RegisterWindowClass(HINSTANCE hInstance) {
     wc.hInstance = hInstance;
     wc.hIcon = LoadIconW(nullptr, IDI_APPLICATION);
     wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
-    wc.hbrBackground = nullptr;
+    wc.hbrBackground = CreateSolidBrush(RGB(32, 32, 32));
     wc.lpszClassName = BROWSER_WINDOW_CLASS_NAME;
     RegisterClassExW(&wc);
 }
@@ -43,6 +46,7 @@ BrowserWindow* BrowserWindow::Create(struct Servo* servo, const std::string& ini
     HINSTANCE hInstance = GetModuleHandleW(nullptr);
     auto window = new BrowserWindow(servo);
 
+    LogDebug("CreateWindowExW starting for BrowserWindow, hInstance=0x%p...", hInstance);
     HWND hwnd = CreateWindowExW(
         WS_EX_APPWINDOW,
         BROWSER_WINDOW_CLASS_NAME,
@@ -54,26 +58,44 @@ BrowserWindow* BrowserWindow::Create(struct Servo* servo, const std::string& ini
         hInstance,
         window
     );
+    LogDebug("CreateWindowExW for BrowserWindow returned hwnd=0x%p, GetLastError=%lu", hwnd, GetLastError());
 
     if (!hwnd) {
+        DWORD err = GetLastError();
+        LogDebug("BrowserWindow creation failed with error %lu", err);
+        wchar_t buf[256];
+        swprintf_s(buf, L"Failed to create main browser window (CreateWindowExW error %lu).", err);
+        MessageBoxW(nullptr, buf, L"Servo Browser Error", MB_ICONERROR);
         delete window;
         return nullptr;
     }
 
     window->m_hwnd = hwnd;
+    LogDebug("Applying Mica Alt theme...");
     window->ApplyMicaAltTheme();
 
+    LogDebug("Creating child UI components...");
     // Create child UI components
     window->m_tabStrip = std::make_unique<TabStrip>(hwnd, window);
     window->m_omnibox = std::make_unique<OmniboxToolbar>(hwnd, window);
     window->m_findBar = std::make_unique<FindBar>(hwnd, window);
     window->m_downloadManager = std::make_unique<DownloadManager>(hwnd);
 
+    LogDebug("Adding initial tab...");
     // Create initial tab
     window->m_tabStrip->AddTab(initialUrl);
+    window->LayoutChildren();
 
-    ShowWindow(hwnd, SW_SHOW);
+    LogDebug("Showing window...");
+    ShowWindow(hwnd, SW_SHOWNORMAL);
     UpdateWindow(hwnd);
+    SetForegroundWindow(hwnd);
+    BringWindowToTop(hwnd);
+
+    // Continuous 60 FPS tick timer to drive Servo event loop, animations and network progress
+    SetTimer(hwnd, 1, 16, nullptr);
+
+    LogDebug("BrowserWindow::Create completed successfully.");
     return window;
 }
 
@@ -90,6 +112,9 @@ BrowserWindow::BrowserWindow(struct Servo* servo)
 BrowserWindow::~BrowserWindow() = default;
 
 void BrowserWindow::ApplyMicaAltTheme() {
+    LogDebug("Mica Alt is currently disabled for testing.");
+    // Disabled Mica Alt for testing
+    /*
     if (!m_hwnd) return;
 
     // 1. Enable Windows 11 Mica Alt (DWMSBT_TABBEDWINDOW = 4)
@@ -102,6 +127,7 @@ void BrowserWindow::ApplyMicaAltTheme() {
     // 3. Extend frame into client area for seamless titlebar
     MARGINS margins = { -1 };
     DwmExtendFrameIntoClientArea(m_hwnd, &margins);
+    */
 }
 
 void BrowserWindow::SyncDarkMode() {
@@ -134,7 +160,7 @@ void BrowserWindow::LayoutChildren() {
     int height = rc.bottom;
 
     if (m_tabStrip) {
-        m_tabStrip->SetBounds(0, 0, width - 140, 38); // Leave 140px on right for caption controls
+        m_tabStrip->SetBounds(0, 0, width, 38);
     }
 
     if (m_omnibox) {
@@ -353,11 +379,16 @@ void BrowserWindow::UpdateActiveTabUI(const std::string& url, const std::wstring
 }
 
 LRESULT CALLBACK BrowserWindow::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) {
+    LogDebug("BrowserWindow::WndProc msg=0x%04X hwnd=0x%p", msg, hwnd);
     BrowserWindow* self = nullptr;
     if (msg == WM_NCCREATE) {
         auto cs = reinterpret_cast<CREATESTRUCTW*>(lParam);
         self = reinterpret_cast<BrowserWindow*>(cs->lpCreateParams);
-        SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
+        if (self) {
+            self->m_hwnd = hwnd;
+            SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
+        }
+        return DefWindowProcW(hwnd, msg, wParam, lParam);
     } else {
         self = reinterpret_cast<BrowserWindow*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
     }
@@ -493,10 +524,7 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
     }
 
     case WM_NCCALCSIZE: {
-        // Extend client area into non-client area while preserving window borders
-        if (wParam == TRUE) {
-            return 0;
-        }
+        // Mica Alt disabled: use default non-client framing
         break;
     }
 
@@ -517,7 +545,12 @@ LRESULT BrowserWindow::HandleMessage(UINT msg, WPARAM wParam, LPARAM lParam) {
         break;
     }
 
+    case WM_CLOSE:
+        LogDebug("BrowserWindow received WM_CLOSE");
+        break;
+
     case WM_DESTROY:
+        LogDebug("BrowserWindow received WM_DESTROY, posting quit message...");
         PostQuitMessage(0);
         return 0;
     }

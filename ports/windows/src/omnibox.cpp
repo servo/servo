@@ -13,6 +13,9 @@ static const wchar_t* OMNIBOX_CLASS_NAME = L"ServoOmniboxToolbarWindow";
 static const UINT_PTR EDIT_SUBCLASS_ID = 1001;
 
 void OmniboxToolbar::RegisterWindowClass(HINSTANCE hInstance) {
+    if (!hInstance) {
+        hInstance = GetModuleHandleW(nullptr);
+    }
     WNDCLASSEXW wc = {};
     wc.cbSize = sizeof(WNDCLASSEXW);
     wc.style = CS_HREDRAW | CS_VREDRAW;
@@ -198,7 +201,11 @@ LRESULT CALLBACK OmniboxToolbar::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPA
     if (msg == WM_NCCREATE) {
         auto cs = reinterpret_cast<CREATESTRUCTW*>(lParam);
         self = reinterpret_cast<OmniboxToolbar*>(cs->lpCreateParams);
-        SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
+        if (self) {
+            self->m_hwnd = hwnd;
+            SetWindowLongPtrW(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(self));
+        }
+        return DefWindowProcW(hwnd, msg, wParam, lParam);
     } else {
         self = reinterpret_cast<OmniboxToolbar*>(GetWindowLongPtrW(hwnd, GWLP_USERDATA));
     }

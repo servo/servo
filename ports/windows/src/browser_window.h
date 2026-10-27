@@ -13,6 +13,8 @@
 #include <memory>
 #include <servo/servo_capi.h>
 
+void LogDebug(const char* fmt, ...);
+
 class TabStrip;
 class OmniboxToolbar;
 class FindBar;

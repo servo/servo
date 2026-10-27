@@ -77,4 +77,4 @@ Write-Host " Servo Browser installation complete!     " -ForegroundColor Green
 Write-Host " Launching Servo Browser...               " -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 
-Start-Process -FilePath $ExePath
+Start-Process -FilePath $ExePath -WorkingDirectory $TargetDir
