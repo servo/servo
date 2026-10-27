@@ -27,7 +27,7 @@ use crate::sizing::{
     self, ComputeInlineContentSizes, ContentSizes, InlineContentSizesResult, LazySize,
     SizeConstraint,
 };
-use crate::style_ext::{AspectRatio, Display, DisplayInside, LayoutStyle};
+use crate::style_ext::{AspectRatio, ComputedValuesExt, Display, DisplayInside, LayoutStyle};
 use crate::table::Table;
 use crate::taffy::TaffyContainer;
 use crate::{
@@ -451,7 +451,7 @@ impl IndependentFormattingContext {
         preferred_aspect_ratio: Option<AspectRatio>,
         lazy_block_size: &LazySize,
     ) -> IndependentFormattingContextLayoutResult {
-        match &self.contents {
+        let mut result = match &self.contents {
             IndependentFormattingContextContents::Replaced(replaced, widget) => {
                 let mut replaced_layout = replaced.layout(
                     layout_context,
@@ -491,6 +491,7 @@ impl IndependentFormattingContext {
                 containing_block_for_children,
                 lazy_block_size,
                 Some(&self.base),
+                preferred_aspect_ratio,
             ),
             IndependentFormattingContextContents::Flex(fc) => fc.layout(
                 layout_context,
@@ -510,7 +511,19 @@ impl IndependentFormattingContext {
                 containing_block_for_children,
                 containing_block,
             ),
+        };
+
+        // FIXME: This ignores the automatic content-based minimum size in the
+        // ratio-dependent axis, which should clamp this value.
+        if let Some(ratio) = preferred_aspect_ratio {
+            let inline_size = result
+                .content_inline_size_for_table
+                .unwrap_or(containing_block_for_children.size.inline);
+            result.content_block_size =
+                ratio.compute_dependent_size(LogicalAxis::Block, inline_size);
         }
+
+        result
     }
 
     pub(crate) fn layout_and_is_cached(
@@ -626,12 +639,23 @@ impl IndependentFormattingContext {
         &self,
         padding_border_sums: &LogicalVec2<Au>,
     ) -> Option<AspectRatio> {
+        // `aspect-ratio` doesn't apply to internal table boxes.
+        if !self.is_replaced() && self.style().is_internal_table_box() {
+            return None;
+        }
+
         match &self.contents {
             IndependentFormattingContextContents::Replaced(replaced, _) => {
                 replaced.preferred_aspect_ratio(self.style(), padding_border_sums)
             },
-            // TODO: support preferred aspect ratios on non-replaced boxes.
-            _ => None,
+            // Aspect ratio on tables is underspecified.
+            // https://github.com/w3c/csswg-drafts/issues/11419
+            IndependentFormattingContextContents::Table(_) => None,
+            IndependentFormattingContextContents::Flow(_) |
+            IndependentFormattingContextContents::Flex(_) |
+            IndependentFormattingContextContents::Grid(_) => self
+                .style()
+                .preferred_aspect_ratio_for_non_replaced(padding_border_sums),
         }
     }
 
