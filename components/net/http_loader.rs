@@ -676,7 +676,7 @@ async fn obtain_response(
         .set_attribute(ResourceAttribute::RequestStart);
 
     let should_store =
-        request.method() == Method::GET && !request_headers.contains_key(header::AUTHORIZATION);
+        request.method() == Method::GET && !request.headers().contains_key(header::AUTHORIZATION);
     let client_future = client
         .request(request)
         .and_then(move |res| {
