@@ -1837,7 +1837,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d045de693cb712d0b22c6a64be5b953f67b3ce00ab5ad3dd5d8b441886ab8e1a"
 dependencies = [
  "quote",
- "syn 2.0.119",
+ "syn 3.0.4",
 ]
 
 [[package]]
@@ -12023,9 +12023,9 @@ dependencies = [
 
 [[package]]
 name = "webrender"
-version = "0.70.0"
+version = "0.70.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ede9dbc3cfb3e2c073a68e20f8fd54d9f6be8587be1c7c948e1ac51112421ef6"
+checksum = "b90e7e9f5be8b8e81a292dc5617bcb06661f5b110891499ff793ca55e364e0ca"
 dependencies = [
  "allocator-api2",
  "bincode",
@@ -12698,9 +12698,9 @@ dependencies = [
 
 [[package]]
 name = "wr_glyph_rasterizer"
-version = "0.70.0"
+version = "0.70.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bcda26d8788ba57a04cd75ae4a2c6da3aa8e5ab16ed1cfd5db09d0fbc04df2fb"
+checksum = "ab2dca02e2202d7472f6aa3ea67ef55bacd1aabdb71e2b0cd642b053a99545a9"
 dependencies = [
  "core-foundation 0.9.4",
  "core-graphics",
