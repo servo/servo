@@ -21,6 +21,8 @@ use style::logical_geometry::WritingMode;
 use style::properties::ComputedValues;
 use style::values::computed::Clear as StyleClear;
 
+use crate::PropagatedBoxTreeData;
+use crate::containing_block::ContainingBlock;
 use crate::context::LayoutContext;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo};
 use crate::formatting_contexts::IndependentFormattingContext;
@@ -28,7 +30,6 @@ use crate::fragment_tree::{BoxFragment, CollapsedMargin};
 use crate::geom::{LogicalRect, LogicalVec2, ToLogical};
 use crate::positioned::{PositioningContext, relative_adjustement};
 use crate::style_ext::{DisplayInside, PaddingBorderMargin};
-use crate::{ContainingBlock, PropagatedBoxTreeData};
 
 /// A floating box.
 #[derive(Debug, MallocSizeOf)]

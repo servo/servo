@@ -37,6 +37,8 @@ use url::Url;
 use web_atoms::local_name;
 use webrender_api::ImageKey;
 
+use crate::SharedStyle;
+use crate::containing_block::{ConstraintSpace, ContainingBlock};
 use crate::context::{LayoutContext, LayoutImageCacheResult};
 use crate::dom::NodeExt;
 use crate::fragment_tree::{
@@ -48,7 +50,6 @@ use crate::sizing::{
     ComputeInlineContentSizes, InlineContentSizesResult, LazySize, SizeConstraint,
 };
 use crate::style_ext::{AspectRatio, Clamp, ComputedValuesExt, LayoutStyle};
-use crate::{ConstraintSpace, ContainingBlock, SharedStyle};
 
 #[derive(Debug, MallocSizeOf)]
 pub(crate) struct ReplacedContents {

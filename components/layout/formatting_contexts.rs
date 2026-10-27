@@ -13,6 +13,9 @@ use style::logical_geometry::LogicalAxis;
 use style::properties::ComputedValues;
 use style::selector_parser::PseudoElement;
 
+use crate::containing_block::{
+    ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock,
+};
 use crate::context::LayoutContext;
 use crate::dom::WeakLayoutBox;
 use crate::dom_traversal::{Contents, NodeAndStyleInfo, NonReplacedContents};
@@ -20,6 +23,7 @@ use crate::flexbox::FlexContainer;
 use crate::flow::BlockFormattingContext;
 use crate::flow::inline::InlineFormattingContext;
 use crate::fragment_tree::{BaseFragmentInfo, FragmentFlags};
+use crate::geom::LogicalVec2;
 use crate::layout_box_base::{IndependentFormattingContextLayoutResult, LayoutBoxBase};
 use crate::positioned::{LayoutRootLayoutInputs, PositioningContext};
 use crate::replaced::ReplacedContents;
@@ -30,10 +34,7 @@ use crate::sizing::{
 use crate::style_ext::{AspectRatio, Display, DisplayInside, LayoutStyle};
 use crate::table::Table;
 use crate::taffy::TaffyContainer;
-use crate::{
-    ArcRefCell, ConstraintSpace, ContainingBlock, ContainingBlockSize, IndefiniteContainingBlock,
-    LogicalVec2, PropagatedBoxTreeData,
-};
+use crate::{ArcRefCell, PropagatedBoxTreeData};
 
 /// <https://drafts.csswg.org/css-display/#independent-formatting-context>
 #[derive(Debug, MallocSizeOf)]
@@ -305,7 +306,7 @@ impl IndependentFormattingContext {
     pub(crate) fn tentative_block_content_size(
         &self,
         preferred_aspect_ratio: Option<AspectRatio>,
-        inline_stretch_size: Au,
+        inline_stretch_size: Option<Au>,
     ) -> Option<ContentSizes> {
         let result = self.tentative_block_content_size_with_dependency(
             preferred_aspect_ratio,
@@ -320,7 +321,7 @@ impl IndependentFormattingContext {
     pub(crate) fn tentative_block_content_size_with_dependency(
         &self,
         preferred_aspect_ratio: Option<AspectRatio>,
-        inline_stretch_size: Au,
+        inline_stretch_size: Option<Au>,
     ) -> Option<(ContentSizes, bool)> {
         // See <https://github.com/w3c/csswg-drafts/issues/12333> regarding the difference
         // in behavior for the replaced and non-replaced cases.
@@ -338,7 +339,10 @@ impl IndependentFormattingContext {
                             false,
                         ),
                         (None, None) => (
-                            ratio.compute_dependent_size(LogicalAxis::Block, inline_stretch_size),
+                            ratio.compute_dependent_size(
+                                LogicalAxis::Block,
+                                inline_stretch_size.unwrap_or_default(),
+                            ),
                             true,
                         ),
                     };
@@ -368,7 +372,7 @@ impl IndependentFormattingContext {
             |padding_border_sums| self.preferred_aspect_ratio(padding_border_sums),
             |constraint_space| self.inline_content_sizes(layout_context, constraint_space),
             |preferred_aspect_ratio| {
-                self.tentative_block_content_size(preferred_aspect_ratio, Au(0))
+                self.tentative_block_content_size(preferred_aspect_ratio, None)
             },
         )
     }

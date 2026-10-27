@@ -18,6 +18,7 @@ use style::logical_geometry::LogicalAxis;
 use style::properties::ComputedValues;
 use style::servo::selector_parser::PseudoElement;
 
+use crate::containing_block::{ConstraintSpace, ContainingBlock};
 use crate::context::LayoutContext;
 use crate::flow::float::{Clear, ContainingBlockPositionInfo, SequentialLayoutState};
 use crate::flow::{
@@ -30,7 +31,6 @@ use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::PositioningContext;
 use crate::sizing::InlineContentSizesResult;
 use crate::style_ext::LayoutStyle;
-use crate::{ConstraintSpace, ContainingBlock};
 
 /// A block in block flow that does not establish a new formatting context.
 #[derive(Debug, MallocSizeOf)]
@@ -176,7 +176,7 @@ impl SameFormattingContextBlock {
             pbm,
             block_sizes,
             depends_on_block_constraints,
-            available_block_size,
+            block_stretch_size,
             justify_self,
             automatic_block_size,
             ..
@@ -353,7 +353,7 @@ impl SameFormattingContextBlock {
             LogicalAxis::Block,
             automatic_block_size,
             Au::zero,
-            available_block_size,
+            block_stretch_size,
             || content_block_size.into(),
             false, /* is_table */
         );
