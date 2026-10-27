@@ -48,8 +48,8 @@ enum WebGLTextureOwner {
 
 const MAX_LEVEL_COUNT: usize = 31;
 const MAX_FACE_COUNT: usize = 6;
-// The maximum physical size an image has so that the sum of all sizes fits in usize.
-const MAX_IMAGE_INFO_PHYSICAL_SIZE: usize = usize::MAX / (MAX_LEVEL_COUNT * MAX_FACE_COUNT) - 1;
+// The maximum physical size an image has so that the sum of all sizes fits in usize. Smaller than `usize::MAX / (MAX_LEVEL_COUNT * MAX_FACE_COUNT) - 1`
+const MAX_IMAGE_INFO_PHYSICAL_SIZE: usize = 5000 * 5000;
 
 #[cfg_attr(crown, crown::unrooted_must_root_lint::must_root)]
 #[derive(JSTraceable, MallocSizeOf)]
