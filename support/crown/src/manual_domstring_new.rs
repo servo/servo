@@ -22,7 +22,9 @@ declare_tool_lint! {
 pub fn register(lint_store: &mut LintStore) {
     let symbols = Symbols::new();
     lint_store.register_lints(&[MANUAL_DOMSTRING_NEW]);
-    lint_store.register_late_pass(move |_| Box::new(ManualDOMStringPass::new(symbols.clone())));
+    lint_store.register_late_lint_pass(Box::new(move |_| {
+        Box::new(ManualDOMStringPass::new(symbols.clone()))
+    }));
 }
 
 #[derive(Diagnostic)]
@@ -150,7 +152,7 @@ impl<'tcx> LateLintPass<'tcx> for ManualDOMStringPass {
                 let ty::FnDef(fn_, def_id) = ty.kind() else {
                     return;
                 };
-                let Some(inner) = def_id.first().and_then(|arg| arg.as_type()) else {
+                let Some(inner) = def_id.skip_binder().first().and_then(|arg| arg.as_type()) else {
                     return;
                 };
                 // The type we struct we call a function on is the DOMString

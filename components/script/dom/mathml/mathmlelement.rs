@@ -199,7 +199,7 @@ impl<'dom> LayoutDom<'dom, MathMLElement> {
         parse: F,
         push: &mut impl FnMut(PropertyDeclaration),
     ) where
-        F: for<'i, 't> FnOnce(
+        F: for<'i> FnOnce(
             &ParserContext,
             &mut cssparser::Parser<'i>,
         ) -> Result<PropertyDeclaration, style_traits::ParseError>,
@@ -216,7 +216,7 @@ impl<'dom> LayoutDom<'dom, MathMLElement> {
         push: &mut impl FnMut(PropertyDeclaration),
     ) where
         P: FnOnce(&PropertyDeclaration) -> bool,
-        F: for<'i, 't> FnOnce(
+        F: for<'i> FnOnce(
             &ParserContext,
             &mut cssparser::Parser<'i>,
         ) -> Result<PropertyDeclaration, style_traits::ParseError>,

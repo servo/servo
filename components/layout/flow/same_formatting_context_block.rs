@@ -204,9 +204,8 @@ impl SameFormattingContextBlock {
             pbm.padding.block_start.is_zero() && pbm.border.block_start.is_zero();
 
         let mut clearance = None;
-        let parent_containing_block_position_info;
-        match sequential_layout_state {
-            None => parent_containing_block_position_info = None,
+        let parent_containing_block_position_info = match sequential_layout_state {
+            None => None,
             Some(ref mut sequential_layout_state) => {
                 let clear = Clear::from_style_and_container_writing_mode(
                     style,
@@ -274,9 +273,7 @@ impl SameFormattingContextBlock {
                     inline_start,
                     inline_end: inline_start + containing_block_for_children.size.inline,
                 };
-                parent_containing_block_position_info = Some(
-                    sequential_layout_state.replace_containing_block_position_info(new_cb_offsets),
-                );
+                Some(sequential_layout_state.replace_containing_block_position_info(new_cb_offsets))
             },
         };
 
