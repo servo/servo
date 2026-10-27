@@ -7,119 +7,39 @@
 # option. This file may not be copied, modified, or distributed
 # except according to those terms.
 
-from concurrent.futures import Future
-
-from geckordp.actors.events import Events
-from geckordp.actors.resources import Resources
-
 from .utils import Devtools
+from .utils import collect_network_events
+from .utils import get_request_headers
 
 
 class TestNetworkTab:
-    def test_navigation(self, run_servoshell, web_server_urls):
-        run_servoshell(url=f"{web_server_urls[0]}/tab/page1.html")
+    def test_option_method_showed(self, run_servoshell, web_server_urls):
+        run_servoshell(url=f"{web_server_urls[0]}/cors_preflight/test.html")
         with Devtools.connect() as devtools:
-            for message_data, target_path in [
-                ({"type": "navigateTo", "url": f"{web_server_urls[0]}/tab/page2.html"}, "/tab/page2.html"),
-                ({"type": "goBack"}, "/tab/page1.html"),
-                ({"type": "goForward"}, "/tab/page2.html"),
-            ]:
-                done = Future()
 
-                def on_target_available(data):
-                    if data.get("target", {}).get("url", "").endswith(target_path):
-                        done.set_result(None)
+            def evaluate_js(devtools, code):
+                console_actor = devtools.targets[0]["consoleActor"]
+                response = devtools.client.send_receive({"to": console_actor, "type": "evaluateJSAsync", "text": code})
+                assert "error" not in response, response
 
-                devtools.client.add_event_listener(
-                    devtools.watcher.actor_id,
-                    Events.Watcher.TARGET_AVAILABLE_FORM,
-                    on_target_available,
-                )
-                devtools.client.send_receive({"to": devtools.tab.actor_id, **message_data})
-
-                done.result(1)
-
-    def test_stylesheet_inline(self, run_servoshell, web_server_urls):
-        run_servoshell(url=f"{web_server_urls[0]}/stylesheets/inline_style.html")
-        with Devtools.connect() as devtools:
-            done = Future()
-            stylesheets_data = []
-
-            def on_resource(data):
-                for [resource_type, resources] in data["array"]:
-                    if resource_type == "stylesheet":
-                        stylesheets_data.extend(resources)
-                        done.set_result(None)
-
-            devtools.client.add_event_listener(
-                devtools.targets[0]["actor"],
-                Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
-                on_resource,
+            preflight, seen = collect_network_events(
+                devtools=devtools,
+                predicate=lambda event: event.get("method") == "OPTIONS" and web_server_urls[1] in event.get("url", ""),
+                trigger=lambda: evaluate_js(
+                    devtools,
+                    f"""
+                    fetch("{web_server_urls[1]}/cors_preflight/test.html", {{
+                        method: "PUT",
+                        headers: {{ "X-Custom-Header": "1" }},
+                    }}).catch(() => {{}});
+                """,
+                ),
             )
-            devtools.watcher.watch_resources([Resources.STYLESHEET])
-            done.result(1)
 
-            # Inline sheets won't have href.
-            inline_sheet = stylesheets_data[0]
-            assert inline_sheet.get("href") is None
-            assert inline_sheet["ruleCount"] == 2
-            assert not inline_sheet["system"]
-            assert not inline_sheet["disabled"]
+            # Make sure it's really a preflight, not some unrelated OPTIONS request
+            headers = get_request_headers(devtools, preflight)
+            assert headers.get("access-control-request-method") == "PUT"
+            assert "x-custom-header" in headers.get("access-control-request-headers", "")
 
-    def test_stylesheet_linked(self, run_servoshell, web_server_urls):
-        run_servoshell(url=f"{web_server_urls[0]}/stylesheets/linked_style.html")
-        with Devtools.connect() as devtools:
-            done = Future()
-            stylesheets_data = []
-
-            def on_resource(data):
-                for [resource_type, resources] in data["array"]:
-                    if resource_type == "stylesheet":
-                        stylesheets_data.extend(resources)
-                        done.set_result(None)
-
-            devtools.client.add_event_listener(
-                devtools.targets[0]["actor"],
-                Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
-                on_resource,
-            )
-            devtools.watcher.watch_resources([Resources.STYLESHEET])
-            done.result(1)
-
-            # Linked sheets have linked css as href.
-            linked_sheet = stylesheets_data[0]
-            assert f"{web_server_urls[0]}/stylesheets/styles.css" == linked_sheet["href"]
-            assert not linked_sheet["system"]
-            assert linked_sheet["ruleCount"] == 1
-            assert not linked_sheet["disabled"]
-
-    def test_stylesheet_content(self, run_servoshell, web_server_urls):
-        run_servoshell(url=f"{web_server_urls[0]}/stylesheets/linked_style.html")
-        with Devtools.connect() as devtools:
-            founded_resources = []
-            done = Future()
-
-            def on_resource(data):
-                for [resource_type, resources] in data["array"]:
-                    if resource_type == "stylesheet":
-                        founded_resources.extend(resources)
-                        done.set_result(None)
-
-            devtools.client.add_event_listener(
-                devtools.targets[0]["actor"],
-                Events.Watcher.RESOURCES_AVAILABLE_ARRAY,
-                on_resource,
-            )
-            devtools.watcher.watch_resources([Resources.STYLESHEET])
-            done.result(1)
-
-            # Test getText by sending the resource id.
-            reply = devtools.client.send_receive(
-                {
-                    "to": devtools.targets[0]["styleSheetsActor"],
-                    "type": "getText",
-                    "resourceId": founded_resources[0]["resourceId"],
-                }
-            )
-            style_text = reply["text"]["initial"]
-            assert "body { background: green; font-size: small; }" in style_text
+            # Optionally check the actual PUT request also shows up
+            assert any(event.get("method") == "PUT" for event in seen)
