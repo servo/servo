@@ -812,9 +812,9 @@ fn embedder_image_to_egui_image(image: &Image) -> egui::ColorImage {
         PixelFormat::K8 => egui::ColorImage::from_gray([width, height], image.data()),
         PixelFormat::KA8 => {
             // Convert to rgba
-            let data: Vec<u8> = image
-                .data()
-                .chunks_exact(2)
+            let (chunks, _) = image.data().as_chunks::<2>();
+            let data: Vec<u8> = chunks
+                .iter()
                 .flat_map(|pixel| [pixel[0], pixel[0], pixel[0], pixel[1]])
                 .collect();
             egui::ColorImage::from_rgba_unmultiplied([width, height], &data)
@@ -825,9 +825,9 @@ fn embedder_image_to_egui_image(image: &Image) -> egui::ColorImage {
         },
         PixelFormat::BGRA8 => {
             // Convert from BGRA to RGBA
-            let data: Vec<u8> = image
-                .data()
-                .chunks_exact(4)
+            let (chunks, _) = image.data().as_chunks::<4>();
+            let data: Vec<u8> = chunks
+                .iter()
                 .flat_map(|chunk| [chunk[2], chunk[1], chunk[0], chunk[3]])
                 .collect();
             egui::ColorImage::from_rgba_unmultiplied([width, height], &data)
