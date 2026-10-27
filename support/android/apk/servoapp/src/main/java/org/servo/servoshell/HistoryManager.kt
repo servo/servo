@@ -15,7 +15,7 @@ class HistoryManager(context: Context) {
 
     /** Add a new history entry. Only adds if the URL is different from the most recent entry. */
     fun addEntry(url: String, title: String?) {
-        val history = loadHistory()
+        val history = loadHistory().toMutableList()
 
         // "about:blank" sometimes pops up while loading pages, so filter that out
         if (url == "about:blank") {
@@ -43,7 +43,7 @@ class HistoryManager(context: Context) {
         saveHistory(history)
     }
 
-    val history: MutableList<HistoryEntry>
+    val history: List<HistoryEntry>
         get() = loadHistory()
 
     /** Clear all history */
@@ -55,7 +55,7 @@ class HistoryManager(context: Context) {
     }
 
     /** Load history from JSON file */
-    private fun loadHistory(): MutableList<HistoryEntry> {
+    private fun loadHistory(): List<HistoryEntry> {
         val history = mutableListOf<HistoryEntry>()
 
         if (!historyFile.exists()) {
@@ -78,7 +78,7 @@ class HistoryManager(context: Context) {
     }
 
     /** Save history to JSON file */
-    private fun saveHistory(history: MutableList<HistoryEntry>) {
+    private fun saveHistory(history: List<HistoryEntry>) {
         try {
             val jsonArray = JSONArray()
             for (entry in history) {
