@@ -91,6 +91,9 @@ use crate::dom::webgl::webglvertexarrayobject::WebGLVertexArrayObject;
 use crate::dom::webgl::webglvertexarrayobjectoes::WebGLVertexArrayObjectOES;
 use crate::dom::window::Window;
 
+/// This is the maximum that we allow resize and should be bounded by the memory we allocate to the JS engine.
+const MAX_WEBGL_CONTEXT_AREA_SIZE: usize = usize::MAX / 4 - 1;
+
 fn has_invalid_blend_constants(arg1: u32, arg2: u32) -> bool {
     match (arg1, arg2) {
         (constants::CONSTANT_COLOR, constants::CONSTANT_ALPHA) => true,
@@ -2112,10 +2115,12 @@ impl CanvasContext for WebGLRenderingContext {
 
     fn resize(&self) {
         let size = self.size().cast();
-        let Some(new_memory_size) = size.cast::<usize>().area().checked_mul(4) else {
-            error!("Error resizing WebGLContext because the memory used is larger than usize");
+
+        let area = size.cast::<usize>().area();
+        if area >= MAX_WEBGL_CONTEXT_AREA_SIZE {
+            error!("Error resizing WebGLContext. Size too large.");
             return;
-        };
+        }
 
         let (sender, receiver) = webgl_channel().unwrap();
         self.droppable
@@ -2126,7 +2131,7 @@ impl CanvasContext for WebGLRenderingContext {
         // what was requested
         self.size.set(size);
 
-        self.reflector_.update_memory_size(self, new_memory_size);
+        self.reflector_.update_memory_size(self, area);
 
         if let Err(msg) = receiver.recv().unwrap() {
             error!("Error resizing WebGLContext: {}", msg);
