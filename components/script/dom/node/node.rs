@@ -4587,6 +4587,10 @@ pub(crate) trait NodeTraits {
     /// differ from the [`Document`] that the node was created in if it was adopted by a
     /// different [`Document`] (the owner).
     fn owner_window(&self) -> DomRoot<Window>;
+    /// Get the [`Window`] of the [`Document`] that owns this node. Note that this may
+    /// differ from the [`Document`] that the node was created in if it was adopted by a
+    /// different [`Document`] (the owner).
+    fn owner_window_unrooted<'no_gc>(&self, no_gc: &'no_gc NoGC) -> UnrootedDom<'no_gc, Window>;
     /// Get the [`GlobalScope`] of the [`Document`] that owns this node. Note that this may
     /// differ from the [`GlobalScope`] that the node was created in if it was adopted by a
     /// different [`Document`] (the owner).
@@ -4612,6 +4616,10 @@ impl<T: DerivedFrom<Node> + DomObject> NodeTraits for T {
 
     fn owner_window(&self) -> DomRoot<Window> {
         DomRoot::from_ref(self.owner_document().window())
+    }
+
+    fn owner_window_unrooted<'no_gc>(&self, no_gc: &'no_gc NoGC) -> UnrootedDom<'no_gc, Window> {
+        UnrootedDom::from_ref(self.owner_document_unrooted(no_gc).window(), no_gc)
     }
 
     fn owner_global(&self) -> DomRoot<GlobalScope> {

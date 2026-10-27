@@ -957,7 +957,7 @@ impl HTMLLinkElement {
         // Step 6. Preload options, with the following steps given a response response:
         let document = self.upcast::<Node>().owner_doc();
         options.preload(
-            self.owner_window().webview_id(),
+            self.owner_window_unrooted(no_gc).webview_id(),
             Some(Trusted::new(self)),
             &document,
         );
