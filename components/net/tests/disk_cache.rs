@@ -4,7 +4,7 @@
 
 use std::io::Write;
 
-use http::header::{CACHE_CONTROL, CONTENT_TYPE};
+use http::header::{CACHE_CONTROL, CONTENT_ENCODING};
 use http::{HeaderValue, Method, StatusCode};
 use http_body_util::combinators::BoxBody;
 use hyper::body::{Bytes, Incoming};
@@ -140,7 +140,7 @@ fn test_reconstructing_gzip_response() {
                     .insert(CACHE_CONTROL, HeaderValue::from_static("max-age=36000"));
                 response
                     .headers_mut()
-                    .insert(CONTENT_TYPE, HeaderValue::from_static("gzip"));
+                    .insert(CONTENT_ENCODING, HeaderValue::from_static("gzip"));
                 *response.body_mut() = make_body(encoded_vector.clone());
                 *response.status_mut() = StatusCode::OK;
             };
