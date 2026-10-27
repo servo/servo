@@ -1,0 +1,8 @@
+<body style="height: 10000px">
+<script>
+onscroll = () => {
+  const [a] = new ReadableStream({ type: "bytes", start(c) { c.enqueue(new Uint8Array([1])); } }).tee();
+  a.getReader().read();
+};
+scrollTo(0, 100);
+</script>
