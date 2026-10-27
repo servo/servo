@@ -4,6 +4,7 @@
 
 mod options;
 mod preferences;
+mod protocol;
 mod rendering_context;
 mod servo;
 mod webview;
@@ -11,8 +12,12 @@ mod webview_delegate;
 
 extern crate servo as servo_api;
 
+use std::ffi::{CStr, c_char, c_void};
+
 use options::ServoOptions;
 use preferences::ServoPreferences;
+use protocol::{CallbackProtocolHandler, ServoProtocolHandlerCallback};
+use servo_api::protocol_handler::ProtocolRegistry;
 
 /// An opaque struct representing builder for a `Servo` instance.
 /// Refer to the documentation of the corresponding
@@ -33,6 +38,7 @@ pub struct ServoBuilder {
     options: Option<Box<ServoOptions>>,
     event_loop_waker: ServoEventLoopWaker,
     preferences: Option<Box<ServoPreferences>>,
+    protocol_registry: ProtocolRegistry,
 }
 
 /// A callback used by Servo to wake the embedder thread when
@@ -195,6 +201,69 @@ pub unsafe extern "C" fn servo_builder_set_event_loop_waker(
     }
 }
 
+/// Registers a handler for a custom URL scheme, so that the embedder can
+/// serve resources of its own to the pages it loads, and pages can send
+/// requests to it with `fetch()`.
+///
+/// `builder` is a handle to a `ServoBuilder` object.
+/// The ownership of `builder` remains with the caller after the call.
+///
+/// `scheme` is a NUL terminated UTF-8 string, without the `:` separator.
+/// The function panics if it is not a valid UTF-8 string.
+/// The ownership of `scheme` remains with the caller after the call.
+///
+/// `callback` is invoked for every request of a resource of `scheme`, on
+/// one of Servo's internal threads. See [`ServoProtocolHandlerCallback`].
+///
+/// `user_data` is an opaque pointer that is passed to `callback` when it
+/// is invoked. The ownership and validity of `user_data` is the caller's
+/// responsibility.
+///
+/// Returns 0 on success, or -1 if `scheme` is already registered or is
+/// one that Servo does not allow to be registered, such as `http`.
+///
+/// # Safety
+///
+/// The caller must ensure that:
+///
+/// - `builder` is a non-null pointer to a `ServoBuilder` previously
+///   returned by `servo_builder_create` and has not yet been freed nor
+///   passed to another API that takes ownership of it.
+/// - `scheme` is a non-null pointer to a C string that remains unmodified
+///   for the duration of the call.
+/// - `callback` is a valid C ABI function matching the signature of
+///   `ServoProtocolHandlerCallback`, remains valid for the lifetime of the
+///   `Servo` instance, is safe to invoke from any thread, and does not
+///   unwind across the FFI boundary.
+/// - `user_data` is either null or remains valid for the lifetime of the
+///   `Servo` instance, and is safe to use from any thread.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_builder_add_protocol_handler(
+    builder: *mut ServoBuilder,
+    scheme: *const c_char,
+    callback: ServoProtocolHandlerCallback,
+    user_data: *mut c_void,
+) -> i32 {
+    assert!(!builder.is_null(), "builder pointer must not be null");
+    assert!(!scheme.is_null(), "scheme pointer must not be null");
+
+    // SAFETY: The caller is assumed to uphold the safety requirements
+    // for `builder` documented above.
+    let builder = unsafe { &mut *builder };
+
+    // SAFETY: The caller is assumed to uphold the safety requirements
+    // for `scheme` documented above.
+    let scheme = unsafe { CStr::from_ptr(scheme) }.to_str().unwrap();
+
+    match builder
+        .protocol_registry
+        .register(scheme, CallbackProtocolHandler::new(callback, user_data))
+    {
+        Ok(()) => 0,
+        Err(_) => -1,
+    }
+}
+
 /// Consumes the builder and creates a new `Servo` instance.
 ///
 /// `builder` is a handle to a `ServoBuilder` object.
@@ -229,6 +298,7 @@ pub unsafe extern "C" fn servo_builder_build(builder: *mut ServoBuilder) -> *mut
     }
 
     rust_builder = rust_builder.event_loop_waker(Box::new(builder.event_loop_waker));
+    rust_builder = rust_builder.protocol_registry(std::mem::take(&mut builder.protocol_registry));
 
     let servo = rust_builder.build();
     Box::into_raw(Box::new(servo))
