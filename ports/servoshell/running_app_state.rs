@@ -839,6 +839,10 @@ impl WebViewDelegate for RunningAppState {
     }
 
     fn notify_cursor_changed(&self, webview: WebView, cursor: servo::Cursor) {
+        #[cfg(target_env = "ohos")]
+        {
+            crate::egl::ohos::host_callbacks::notify_cursor(cursor);
+        }
         self.platform_window_for_webview(&webview)
             .set_cursor(cursor);
     }

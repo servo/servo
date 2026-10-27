@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 #![allow(non_snake_case)]
 pub(crate) mod host_callbacks;
+mod input_mouse;
 
 /// Servoshell for OpenHarmony
 ///
@@ -88,8 +89,8 @@ use raw_window_handle::{
     WindowHandle,
 };
 use servo::{
-    self, DevicePixel, EventLoopWaker, InputMethodControl, InputMethodType, LoadStatus,
-    MediaSessionPlaybackState, PrefValue, SelectElement, WebViewId, Zero,
+    self, DevicePixel, EventLoopWaker, InputMethodControl, InputMethodType, LoadStatus, PrefValue,
+    SelectElement, WebViewId, Zero,
 };
 use xcomponent_sys::keyboard_types_compat::{KeyEventConverter, ModifierState};
 use xcomponent_sys::{
@@ -379,6 +380,19 @@ pub(super) enum ServoAction {
         pointer_id: i32,
     },
     KeyEvent(keyboard_types::KeyboardEvent),
+    /// Mouse input: `action` follows `OH_NativeXComponent_MouseEventAction`
+    /// (1 = press, 2 = release, 3 = move), `button` follows `OH_NativeXComponent_MouseEventButton`.
+    MouseEvent {
+        action: u32,
+        button: u32,
+        x: f32,
+        y: f32,
+    },
+    /// Wheel / touchpad scrolling, in CSS pixels. Positive `dy` scrolls up.
+    WheelEvent {
+        dx: f32,
+        dy: f32,
+    },
     InsertText(String),
     ImeDeleteForward(usize),
     ImeDeleteBackward(usize),
@@ -414,6 +428,23 @@ impl std::fmt::Debug for ServoAction {
                 .field("pointer_id", pointer_id)
                 .finish(),
             Self::KeyEvent(_) => f.debug_struct("KeyEvent").finish(),
+            Self::MouseEvent {
+                action,
+                button,
+                x,
+                y,
+            } => f
+                .debug_struct("MouseEvent")
+                .field("action", action)
+                .field("button", button)
+                .field("x", x)
+                .field("y", y)
+                .finish(),
+            Self::WheelEvent { dx, dy } => f
+                .debug_struct("WheelEvent")
+                .field("dx", dx)
+                .field("dy", dy)
+                .finish(),
             Self::InsertText(arg0) => f.debug_tuple("InsertText").field(arg0).finish(),
             Self::ImeDeleteForward(arg0) => f.debug_tuple("ImeDeleteForward").field(arg0).finish(),
             Self::ImeDeleteBackward(arg0) => {
@@ -473,6 +504,13 @@ impl ServoAction {
                 pointer_id,
             } => Self::dispatch_touch_event(servo, *kind, *x, *y, *pointer_id),
             KeyEvent(k) => servo.key_event(k.clone()),
+            MouseEvent {
+                action,
+                button,
+                x,
+                y,
+            } => input_mouse::dispatch_mouse_event(servo, *action, *button, *x, *y),
+            WheelEvent { dx, dy } => input_mouse::dispatch_wheel_event(servo, *dx, *dy),
             InsertText(text) => servo.ime_insert_text(text.clone()),
             ImeDeleteForward(len) => {
                 for _ in 0..*len {
@@ -940,6 +978,9 @@ fn register_xcomponent_callbacks(env: &Env, xcomponent: &Object) -> napi_ohos::R
     } else {
         debug!("Registered key event callbacks successfully");
     }
+
+    input_mouse::register_callbacks(nativeXComponent);
+
     Ok(())
 }
 
