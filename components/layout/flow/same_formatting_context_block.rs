@@ -29,7 +29,7 @@ use crate::fragment_tree::{BoxFragment, CollapsedBlockMargins, CollapsedMargin, 
 use crate::geom::{LogicalRect, LogicalSides1D, LogicalVec2};
 use crate::layout_box_base::LayoutBoxBase;
 use crate::positioned::PositioningContext;
-use crate::sizing::InlineContentSizesResult;
+use crate::sizing::{InlineContentSizesResult, compute_ratio_dependent_block_size};
 use crate::style_ext::LayoutStyle;
 
 /// A block in block flow that does not establish a new formatting context.
@@ -179,6 +179,7 @@ impl SameFormattingContextBlock {
             tentative_block_size,
             block_stretch_size,
             justify_self,
+            preferred_aspect_ratio,
             automatic_block_size,
             ..
         } = solve_containing_block_padding_and_border_for_in_flow_box(
@@ -339,6 +340,10 @@ impl SameFormattingContextBlock {
             content_block_size += collapsible_margins_in_children.end.solve();
         }
 
+        let ratio_dependent_block_size = compute_ratio_dependent_block_size(
+            preferred_aspect_ratio,
+            containing_block_for_children.size.inline,
+        );
         let block_size = block_sizes.resolve(
             LogicalAxis::Block,
             automatic_block_size,
@@ -346,6 +351,7 @@ impl SameFormattingContextBlock {
             block_stretch_size,
             || content_block_size.into(),
             false, /* is_table */
+            ratio_dependent_block_size,
         );
 
         // If the final block size is different than the intrinsic size of the contents,

@@ -126,6 +126,17 @@ impl From<Au> for ContentSizes {
     }
 }
 
+/// Computes the block size imposed by a preferred aspect ratio given the used
+/// inline size of the box.
+#[inline]
+pub(crate) fn compute_ratio_dependent_block_size(
+    preferred_aspect_ratio: Option<AspectRatio>,
+    inline_size: Au,
+) -> Option<Au> {
+    preferred_aspect_ratio
+        .map(|ratio| ratio.compute_dependent_size(LogicalAxis::Block, inline_size))
+}
+
 #[expect(clippy::too_many_arguments)]
 pub(crate) fn outer_inline(
     base: &LayoutBoxBase,
@@ -178,6 +189,7 @@ pub(crate) fn outer_inline(
                         block_stretch_size,
                         || block_content_size,
                         is_table,
+                        None, /* ratio_dependent_block_size */
                     ))
                 } else {
                     content_box_sizes.block.resolve_extrinsic(
@@ -694,6 +706,11 @@ impl Sizes {
     }
 
     /// Resolves the three sizes into a single numerical value.
+    ///
+    /// `ratio_dependent_block_size` is the block size obtained from a preferred
+    /// aspect ratio and the resolved inline size, if any. When present, it is
+    /// used instead of the content size for intrinsic block sizes.
+    #[expect(clippy::too_many_arguments)]
     #[inline]
     pub(crate) fn resolve(
         &self,
@@ -703,7 +720,17 @@ impl Sizes {
         stretch_size: Option<Au>,
         get_content_size: impl FnOnce() -> ContentSizes,
         is_table: bool,
+        ratio_dependent_block_size: Option<Au>,
     ) -> Au {
+        let ratio_dependent_block_size = match axis {
+            LogicalAxis::Block => ratio_dependent_block_size,
+            LogicalAxis::Inline => None,
+        };
+        let get_content_size = || match ratio_dependent_block_size {
+            // FIXME: This ignores the automatic content-based minimum size.
+            Some(size) => ContentSizes::from(size),
+            None => get_content_size(),
+        };
         if is_table && axis == LogicalAxis::Block {
             // The intrinsic block size of a table already takes sizing properties into account,
             // but it can be a smaller amount if there are collapsed rows.
@@ -804,6 +831,7 @@ struct LazySizeData<'a> {
     get_automatic_minimum_size: fn() -> Au,
     stretch_size: Option<Au>,
     is_table: bool,
+    ratio_dependent_block_size: Option<Au>,
 }
 
 /// Represents a size that can't be fully resolved until the intrinsic size
@@ -822,6 +850,7 @@ impl<'a> LazySize<'a> {
         get_automatic_minimum_size: fn() -> Au,
         stretch_size: Option<Au>,
         is_table: bool,
+        ratio_dependent_block_size: Option<Au>,
     ) -> Self {
         Self {
             result: OnceCell::new(),
@@ -832,6 +861,7 @@ impl<'a> LazySize<'a> {
                 get_automatic_minimum_size,
                 stretch_size,
                 is_table,
+                ratio_dependent_block_size,
             }),
         }
     }
@@ -866,6 +896,7 @@ impl<'a> LazySize<'a> {
                 data.stretch_size,
                 || get_content_size().into(),
                 data.is_table,
+                data.ratio_dependent_block_size,
             )
         })
     }
