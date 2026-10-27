@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<link rel="author" title="Martin Robinson" href="mailto:mrobinson@igalia.com">
+<link rel="help" href="https://drafts.csswg.org/css-tables-3/#visibility-collapse-cell-rendering">
+<link rel="help" href="https://github.com/servo/servo/issues/49220">
+
+<body onload="colgroup.style.visibility = 'collapse'">
+<table>
+    <td>
+        <div style="overflow: scroll"></div>
+    </td>
+    <colgroup id=colgroup></colgroup>
+</table>
+

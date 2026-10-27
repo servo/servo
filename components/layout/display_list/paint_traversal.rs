@@ -227,6 +227,17 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
             },
             Fragment::Box(box_fragment) => {
                 let box_fragment = &box_fragment.with_style();
+
+                // The stacking context tree traversal doesn't descend into collapsed block-level
+                // fragments, so it is important not to do this here either.
+                if box_fragment
+                    .base
+                    .flags
+                    .contains(FragmentFlags::IS_COLLAPSED)
+                {
+                    return false;
+                }
+
                 // If this box establishes a stacking context or stacking container, do not paint
                 // it during this phase. Instead it is painted when the stacking context or container
                 // is processed.
@@ -338,6 +349,16 @@ impl<'a, Handler: PaintTraversalHandler> PaintTraversal<'a, Handler> {
                 at_root_of_stacking_context,
             ),
             Fragment::Box(box_fragment) => {
+                // The stacking context tree traversal doesn't descend into collapsed block-level
+                // fragments, so it is important not to do this here either.
+                if box_fragment
+                    .base
+                    .flags
+                    .contains(FragmentFlags::IS_COLLAPSED)
+                {
+                    return;
+                }
+
                 // If this box establishes a stacking context or stacking container, do not paint
                 // it during this phase. Instead it is painted when the stacking context or container
                 // is processed.
