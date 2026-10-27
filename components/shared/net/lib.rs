@@ -311,17 +311,17 @@ pub trait FetchTaskTarget {
     fn process_response_length_hint(&mut self, request_id: &Request, length: usize);
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
 /// <https://fetch.spec.whatwg.org/#concept-filtered-response>
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct ExposedMetadata {
-    /// Final URL after redirects.
+    // Final URL after redirects.
     pub final_url: ServoUrl,
-    /// Headers
+    // Headers
     pub headers: Serde<HeaderMap>,
 
-    /// HTTP Status
+    // HTTP Status
     pub status: HttpStatus,
-    /// True if the request comes from a redirection
+    // True if the request comes from a redirection
     pub redirected: bool,
 }
 
@@ -329,7 +329,7 @@ impl From<Metadata> for ExposedMetadata {
     fn from(value: Metadata) -> Self {
         ExposedMetadata {
             final_url: value.final_url,
-            headers: value.headers.unwrap(),
+            headers: value.headers.unwrap_or_else(|| Serde(HeaderMap::new())),
             status: value.status,
             redirected: value.redirected,
         }
@@ -356,7 +356,6 @@ impl From<FetchMetadata> for Metadata {
     }
 }
 
-// FIXME: https://github.com/servo/servo/issues/34591
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum FetchMetadata {
     Unfiltered(Metadata),
@@ -910,7 +909,6 @@ impl CacheEntryDescriptor {
     }
 }
 
-// FIXME: https://github.com/servo/servo/issues/34591
 enum ToFetchThreadMessage {
     Cancel {
         request_ids: Vec<RequestId>,

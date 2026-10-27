@@ -349,11 +349,8 @@ impl FetchResponseListener for StylesheetContext {
         _: RequestId,
         metadata: Result<FetchMetadata, NetworkError>,
     ) {
-        if metadata
-            .as_ref()
-            .map(|metadata| metadata.cors_status())
-            .unwrap_or(CorsStatus::Safe) ==
-            CorsStatus::Unsafe
+        if let Ok(metadata) = metadata.as_ref() &&
+            metadata.cors_status() == CorsStatus::Unsafe
         {
             self.origin_clean = false;
         }

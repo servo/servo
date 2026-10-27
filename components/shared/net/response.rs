@@ -352,7 +352,8 @@ impl Response {
             return Err(error.clone());
         }
 
-        // The url is only Some for Basic and Cors, not for Opaque and OpaqueRedirect. Hence, the later unwrap are fine
+        // `url`` is only Some for Basic and Cors, not for Opaque and OpaqueRedirect.
+        // Hence, the later unwrap are fine.
         let metadata = self.url.as_ref().map(|url| init_metadata(self, url));
         if let Some(ref response) = self.internal_response {
             match response.url {
