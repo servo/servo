@@ -8826,6 +8826,7 @@ dependencies = [
  "euclid",
  "html5ever",
  "libc",
+ "log",
  "malloc_size_of_derive",
  "parking_lot",
  "rustc-hash 2.1.3",

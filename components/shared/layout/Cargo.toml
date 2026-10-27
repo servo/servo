@@ -23,6 +23,7 @@ euclid = { workspace = true }
 fonts = { workspace = true }
 html5ever = { workspace = true }
 libc = { workspace = true }
+log = { workspace = true }
 malloc_size_of = { workspace = true }
 malloc_size_of_derive = { workspace = true }
 net_traits = { workspace = true }
