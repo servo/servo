@@ -39,8 +39,7 @@ impl MicrotaskRunnable for ByteTeeReadIntoRequestMicrotask {
         let tee_read_request = self.tee_read_request.root();
         let mut realm = enter_auto_realm(cx, &*tee_read_request);
         let cx = &mut realm;
-        self.tee_read_request
-            .root()
+        tee_read_request
             .chunk_steps(&self.chunk, cx)
             .expect("Failed to enqueue chunk");
     }
