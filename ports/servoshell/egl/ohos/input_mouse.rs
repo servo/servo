@@ -14,13 +14,14 @@ use std::os::raw::c_void;
 use std::sync::Mutex;
 
 use log::{debug, error, warn};
-use servo::MouseButton;
+use servo::{DevicePoint, InputEvent, MouseButton, MouseLeftViewportEvent, WheelEvent};
 use xcomponent_sys::{
     OH_NativeXComponent, OH_NativeXComponent_GetMouseEvent, OH_NativeXComponent_MouseEvent,
     OH_NativeXComponent_MouseEvent_Callback, OH_NativeXComponent_RegisterMouseEventCallback,
 };
 
 use super::{App, ServoAction, call};
+use crate::wheel::{AxisEventSource, wheel_delta_from_axis};
 
 /// Opaque handle to an ArkUI UI input event (`ArkUI_UIInputEvent`).
 ///
@@ -35,9 +36,17 @@ pub struct ArkUI_UIInputEvent {
 /// `ARKUI_UIINPUTEVENT_TYPE_AXIS` from `arkui/ui_input_event.h`.
 const ARKUI_UIINPUTEVENT_TYPE_AXIS: i32 = 2;
 
+/// `UI_INPUT_EVENT_TOOL_TYPE_*` from `arkui/ui_input_event.h`.
+///
+/// The tool type tells the two kinds of scroll input apart, which matters because the
+/// platform reports them in different units and reference frames.
+const UI_INPUT_EVENT_TOOL_TYPE_FINGER: i32 = 1;
+const UI_INPUT_EVENT_TOOL_TYPE_TOUCHPAD: i32 = 4;
+
 unsafe extern "C" {
     fn OH_ArkUI_AxisEvent_GetVerticalAxisValue(event: *const ArkUI_UIInputEvent) -> f64;
     fn OH_ArkUI_AxisEvent_GetHorizontalAxisValue(event: *const ArkUI_UIInputEvent) -> f64;
+    fn OH_ArkUI_UIInputEvent_GetToolType(event: *const ArkUI_UIInputEvent) -> i32;
     fn OH_NativeXComponent_RegisterUIInputEventCallback(
         component: *mut OH_NativeXComponent,
         callback: Option<
@@ -91,9 +100,45 @@ pub(super) fn dispatch_mouse_event(app: &App, action: u32, button: u32, x: f32, 
 }
 
 /// Dispatches a wheel / touchpad scroll to servo, anchored at the last pointer position.
-pub(super) fn dispatch_wheel_event(app: &App, dx: f32, dy: f32) {
+///
+/// The platform reports the scroll as an angle in degrees for a mouse wheel and as a
+/// distance in pixels for a touchpad, which [`wheel_delta_from_axis`] converts into the
+/// device-pixel delta that [`servo::InputEvent::Wheel`] expects.
+pub(super) fn dispatch_wheel_event(
+    app: &App,
+    horizontal: f32,
+    vertical: f32,
+    source: AxisEventSource,
+) {
+    let delta = wheel_delta_from_axis(horizontal, vertical, source);
     let (x, y) = *LAST_POINTER.lock().unwrap();
-    app.scroll(dx, dy, x, y);
+    let point = DevicePoint::new(x, y).into();
+    dispatch_input_event(app, InputEvent::Wheel(WheelEvent::new(delta, point)));
+}
+
+/// Dispatches a hover change of the pointer to servo.
+///
+/// Servo only needs to know when the pointer leaves the viewport, hover updates inside the
+/// viewport are covered by the mouse move events.
+pub(super) fn dispatch_hover_event(app: &App, is_hover: bool) {
+    if !is_hover {
+        dispatch_input_event(
+            app,
+            InputEvent::MouseLeftViewport(MouseLeftViewportEvent::default()),
+        );
+    }
+}
+
+/// Sends an input event to the active webview, and lets the embedder process it right away.
+///
+/// This is the same sequence that the input entry points of `App` perform (`App::mouse_move()`,
+/// `App::touch_down()`, ...), so the mouse and wheel input of this embedder reaches servo through
+/// the same `WebView::notify_input_event()` path as the input of the desktop port.
+fn dispatch_input_event(app: &App, event: InputEvent) {
+    if let Some(webview) = app.active_or_newest_webview() {
+        webview.notify_input_event(event);
+        app.spin_event_loop();
+    }
 }
 
 extern "C" fn on_dispatch_mouse_event_cb(component: *mut OH_NativeXComponent, window: *mut c_void) {
@@ -116,6 +161,13 @@ extern "C" fn on_dispatch_mouse_event_cb(component: *mut OH_NativeXComponent, wi
     }
 }
 
+/// Called when the mouse pointer enters or leaves the `XComponent`.
+extern "C" fn on_hover_event_cb(_component: *mut OH_NativeXComponent, is_hover: bool) {
+    if let Err(e) = call(ServoAction::HoverChanged { is_hover }) {
+        error!("Failed to dispatch hover event: {e:?}");
+    }
+}
+
 /// Wheel and touchpad scrolling arrive through the generic ArkUI axis-event callback:
 /// `OH_NativeXComponent_MouseEvent` has no wheel action of its own.
 unsafe extern "C" fn on_axis_event_cb(
@@ -131,12 +183,29 @@ unsafe extern "C" fn on_axis_event_cb(
     if vertical == 0.0 && horizontal == 0.0 {
         return;
     }
-    // No sign inversion: OHOS and servo agree that a positive delta scrolls the page up.
     if let Err(e) = call(ServoAction::WheelEvent {
-        dx: horizontal,
-        dy: vertical,
+        horizontal,
+        vertical,
+        source: axis_event_source(event),
     }) {
         error!("Failed to dispatch wheel event: {e:?}");
+    }
+}
+
+/// Classifies a scroll axis event into the source whose unit and frame it is reported in.
+///
+/// `arkui/ui_input_event.h` reports mouse wheel scrolling in degrees in the frame of the
+/// viewport, and touchpad scrolling in pixels in the frame of the finger, so the
+/// conversion has to know which device produced the event. Anything that is not reported
+/// as a touchpad keeps the mouse wheel interpretation, which is what this embedder used
+/// before the two sources were told apart.
+fn axis_event_source(event: *const ArkUI_UIInputEvent) -> AxisEventSource {
+    match unsafe { OH_ArkUI_UIInputEvent_GetToolType(event) } {
+        // A touchpad may report its gestures as finger movement.
+        UI_INPUT_EVENT_TOOL_TYPE_TOUCHPAD | UI_INPUT_EVENT_TOOL_TYPE_FINGER => {
+            AxisEventSource::Touchpad
+        },
+        _ => AxisEventSource::MouseWheel,
     }
 }
 
@@ -144,7 +213,7 @@ unsafe extern "C" fn on_axis_event_cb(
 pub(crate) fn register_callbacks(nativeXComponent: *mut OH_NativeXComponent) {
     let mouse_cbs = Box::new(OH_NativeXComponent_MouseEvent_Callback {
         DispatchMouseEvent: Some(on_dispatch_mouse_event_cb),
-        DispatchHoverEvent: None,
+        DispatchHoverEvent: Some(on_hover_event_cb),
     });
     let res = unsafe {
         OH_NativeXComponent_RegisterMouseEventCallback(

@@ -388,10 +388,19 @@ pub(super) enum ServoAction {
         x: f32,
         y: f32,
     },
-    /// Wheel / touchpad scrolling, in CSS pixels. Positive `dy` scrolls up.
+    /// Wheel / touchpad scrolling, as reported by the platform axis event (see
+    /// `OH_ArkUI_AxisEvent_GetVerticalAxisValue()`). The values are converted into a
+    /// [`servo::WheelEvent`] on the servo thread, where the scroll anchor point is known, so
+    /// the kind of device that produced them travels with the event: the two kinds are not
+    /// reported in the same unit nor in the same reference frame.
     WheelEvent {
-        dx: f32,
-        dy: f32,
+        horizontal: f32,
+        vertical: f32,
+        source: crate::wheel::AxisEventSource,
+    },
+    /// The mouse pointer entered or left the `XComponent`.
+    HoverChanged {
+        is_hover: bool,
     },
     InsertText(String),
     ImeDeleteForward(usize),
@@ -440,10 +449,19 @@ impl std::fmt::Debug for ServoAction {
                 .field("x", x)
                 .field("y", y)
                 .finish(),
-            Self::WheelEvent { dx, dy } => f
+            Self::WheelEvent {
+                horizontal,
+                vertical,
+                source,
+            } => f
                 .debug_struct("WheelEvent")
-                .field("dx", dx)
-                .field("dy", dy)
+                .field("horizontal", horizontal)
+                .field("vertical", vertical)
+                .field("source", source)
+                .finish(),
+            Self::HoverChanged { is_hover } => f
+                .debug_struct("HoverChanged")
+                .field("is_hover", is_hover)
                 .finish(),
             Self::InsertText(arg0) => f.debug_tuple("InsertText").field(arg0).finish(),
             Self::ImeDeleteForward(arg0) => f.debug_tuple("ImeDeleteForward").field(arg0).finish(),
@@ -510,7 +528,12 @@ impl ServoAction {
                 x,
                 y,
             } => input_mouse::dispatch_mouse_event(servo, *action, *button, *x, *y),
-            WheelEvent { dx, dy } => input_mouse::dispatch_wheel_event(servo, *dx, *dy),
+            WheelEvent {
+                horizontal,
+                vertical,
+                source,
+            } => input_mouse::dispatch_wheel_event(servo, *horizontal, *vertical, *source),
+            HoverChanged { is_hover } => input_mouse::dispatch_hover_event(servo, *is_hover),
             InsertText(text) => servo.ime_insert_text(text.clone()),
             ImeDeleteForward(len) => {
                 for _ in 0..*len {

@@ -23,6 +23,7 @@ mod prefs;
 mod resources;
 mod running_app_state;
 mod webdriver;
+mod wheel;
 mod window;
 
 pub mod platform {
