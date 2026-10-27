@@ -2724,7 +2724,9 @@ impl Activatable for HTMLInputElement {
     fn activation_behavior(&self, cx: &mut JSContext, event: &Event, target: &EventTarget) {
         // Step 1. If element is not mutable, and element's type attribute is
         // neither in the Checkbox nor in the Radio state, then return.
-        debug_assert!(self.is_instance_activatable());
+        if !self.is_instance_activatable() {
+            return;
+        }
 
         // Step 2. Run element's input activation behavior, if any, and do nothing otherwise.
         let input_activation_type = {
