@@ -24,6 +24,7 @@ use crate::dom::globalscope::GlobalScope;
 use crate::dom::promise::{RootedPromise, TracedPromise};
 use crate::dom::stream::byteteeunderlyingsource::ByteTeeUnderlyingSource;
 use crate::dom::stream::readablestream::ReadableStream;
+use crate::realms::enter_auto_realm;
 use crate::runtime::job_queue::MicrotaskRunnable;
 
 #[derive(JSTraceable, MallocSizeOf)]
@@ -35,6 +36,9 @@ pub(crate) struct ByteTeeReadIntoRequestMicrotask {
 
 impl MicrotaskRunnable for ByteTeeReadIntoRequestMicrotask {
     fn handler(&self, cx: &mut JSContext) {
+        let tee_read_request = self.tee_read_request.root();
+        let mut realm = enter_auto_realm(cx, &*tee_read_request);
+        let cx = &mut realm;
         self.tee_read_request
             .root()
             .chunk_steps(&self.chunk, cx)
