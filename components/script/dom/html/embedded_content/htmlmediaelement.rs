@@ -4,7 +4,6 @@
 
 use std::cell::{Cell, Ref, RefCell};
 use std::collections::VecDeque;
-use std::f64;
 use std::ops::Deref;
 use std::sync::{Arc, Mutex, OnceLock};
 use std::time::{Duration, Instant};

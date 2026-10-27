@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::cell::Cell;
-use std::{f64, ptr};
+use std::ptr;
 
 use cssparser::Parser;
 use dom_struct::dom_struct;
