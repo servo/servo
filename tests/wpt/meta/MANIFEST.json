@@ -12768,6 +12768,13 @@
           null,
           {}
          ]
+        ],
+        "reinsert-audio-element-onerror-crash.html": [
+         "96aa910b9712308325a882d43bc1c5da06be492c",
+         [
+          null,
+          {}
+         ]
         ]
        },
        "track": {
