@@ -1513,7 +1513,11 @@ impl VirtualMethods for HTMLElement {
         // movedNode and its form owner are no longer in the same tree, then reset the form owner of
         // movedNode.
         if let Some(form_control) = self.element.as_maybe_form_control() {
-            form_control.moving_steps(cx)
+            form_control.moving_steps(cx);
+
+            // This isn't a part of the steps, but disabledness is specified in relation to
+            // an element's ancestry which is changing here.
+            self.maybe_update_form_control_disabled(cx);
         }
     }
 }

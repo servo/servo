@@ -9,7 +9,6 @@ use html5ever::{LocalName, Prefix};
 use js::context::JSContext;
 use js::rust::HandleObject;
 
-use crate::dom::ElementCreator;
 use crate::dom::bindings::codegen::Bindings::HTMLTitleElementBinding::HTMLTitleElementMethods;
 use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::root::DomRoot;
@@ -18,6 +17,7 @@ use crate::dom::document::Document;
 use crate::dom::html::htmlelement::HTMLElement;
 use crate::dom::node::virtualmethods::VirtualMethods;
 use crate::dom::node::{BindContext, ChildrenMutation, Node};
+use crate::dom::{ElementCreator, MoveContext};
 
 #[dom_struct]
 pub(crate) struct HTMLTitleElement {
@@ -105,9 +105,20 @@ impl VirtualMethods for HTMLTitleElement {
         if let Some(s) = self.super_type() {
             s.bind_to_tree(cx, context);
         }
-        let node = self.upcast::<Node>();
         if context.tree_is_in_a_document_tree {
-            node.owner_doc().title_changed();
+            self.upcast::<Node>().owner_doc_unrooted(cx).title_changed();
+        }
+    }
+
+    fn moving_steps(&self, cx: &mut JSContext, context: &MoveContext) {
+        if let Some(super_type) = self.super_type() {
+            super_type.moving_steps(cx, context);
+        }
+        // Note: This is unspecified, but Servo needs to be informed whenever the title changes
+        // position in the tree.
+        let node = self.upcast::<Node>();
+        if node.is_in_a_document_tree() {
+            node.owner_doc_unrooted(cx).title_changed();
         }
     }
 
