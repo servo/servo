@@ -1314,13 +1314,10 @@ impl Fragment {
 
         let font_size = parent_style.get_font().font_size;
         let dppx = builder.device_pixel_ratio.get();
-        let resolve_length_percentage = |length_percentage: &LengthPercentage| -> Au {
-            Au::from_f32_px(length_percentage.resolve(font_size.computed_size.0).px())
-        };
         let resolve_thickness = |thickness: &TextDecorationThickness| -> Au {
             let resolved = match thickness {
                 TextDecorationThickness::LengthPercentage(length_percentage) => {
-                    resolve_length_percentage(length_percentage).to_f32_px()
+                    length_percentage.resolve(font_size.computed_size.0).px()
                 },
                 TextDecorationThickness::Auto | TextDecorationThickness::FromFont => {
                     font_metrics.underline_size.to_f32_px()

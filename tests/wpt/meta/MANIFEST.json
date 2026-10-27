@@ -330679,6 +330679,19 @@
        {}
       ]
      ],
+     "text-underline-offset-decorating-element.html": [
+      "9c286d26198b2f89f5da968aeaf02277703d87ab",
+      [
+       null,
+       [
+        [
+         "/css/css-text-decor/text-underline-offset-decorating-element-ref.html",
+         "=="
+        ]
+       ],
+       {}
+      ]
+     ],
      "text-underline-offset-negative.html": [
       "1c945cc40374e3a92ec517f29b119fafc9b03462",
       [
@@ -534397,6 +534410,10 @@
      },
      "text-underline-offset-calc-ref.html": [
       "ae82f4dac6e0a1e3ebef44dfcf5a6cbc5258e59b",
+      []
+     ],
+     "text-underline-offset-decorating-element-ref.html": [
+      "a7a8512b2a9e0e99ac142cb5ffe9350535cc18f9",
       []
      ],
      "text-underline-offset-percentage-ref.html": [
