@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset="windows-1252">
+<title>Make sure preload, prefetch and favicon urls are parsed using document encoding</title>
+<script src="/resources/testharness.js"></script>
+<script src="/resources/testharnessreport.js"></script>
+<script src="/common/utils.js"></script>
+
+<script>
+    async function assert_url_encoding(t, rel, as) {
+        const key = token();
+        const link = document.createElement("link");
+        link.rel = rel;
+        if (as) {
+            link.as = as;
+        }
+        link.href = `resources/stash-url.py?key=${key}&test=\u00DF`;
+
+        if (rel === "icon") {
+            // Icons don't have load or error events.
+            await new Promise(r => t.step_timeout(r, 2000));
+            document.head.append(link);
+        }else {
+            const loaded = new Promise((resolve, reject) => {
+                link.onload = () => resolve();
+                link.onerror = () => reject(new Error("Failed to load link"));
+            });
+            document.head.append(link);
+            await loaded;
+        }
+
+        const response = await fetch(`resources/stash-read.py?key=${key}`);
+        const recordedUrl = await response.text();
+        assert_true(
+            recordedUrl.includes("test=%DF"),
+            "Expected windows-1252 encoding (%DF), got: " + recordedUrl
+        );
+    }
+
+    promise_test(async (t) => {
+        await assert_url_encoding(t, "preload", "fetch");
+    }, "windows-1252 preload href");
+
+    promise_test(async (t) => {
+        await assert_url_encoding(t, "prefetch", null);
+    }, "windows-1252 prefetch href");
+
+    promise_test(async (t) => {
+        await assert_url_encoding(t, "icon", null);
+    }, "windows-1252 favicon href");
+</script>

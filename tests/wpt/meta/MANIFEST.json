@@ -1375407,7 +1375407,7 @@
      ]
     ],
     "favicon-url-encoding.html": [
-     "4c5a34d7f9a3b56cdf07c6a511462bee025a634b",
+     "48918467dedd1c1c2364e5aaee0e4f6c5b4c39ce",
      [
       null,
       {}
@@ -1375482,6 +1375482,13 @@
     ],
     "link-preload-as-case-insensitive.html": [
      "429fd2a13571177c518917d3493bdc02fc6d17a9",
+     [
+      null,
+      {}
+     ]
+    ],
+    "link-url-encoding.html": [
+     "cd993afe535786779269caa4dbf17b2cd7cebf6a",
      [
       null,
       {}
@@ -1375669,13 +1375676,6 @@
       {}
      ]
     ],
-    "prefetch-url-encoding.html": [
-     "fbab82cffd66bb7031a0b143ef7275f4de317f1e",
-     [
-      null,
-      {}
-     ]
-    ],
     "preload-connect-to-doc.html": [
      "ba45f6f3f848068ee9120b89c41307af22d570d3",
      [
@@ -1375827,13 +1375827,6 @@
       {
        "timeout": "long"
       }
-     ]
-    ],
-    "preload-url-encoding.html": [
-     "7e77eac859b63225627899eb1fcf3a4909e4d450",
-     [
-      null,
-      {}
      ]
     ],
     "preload-with-type.html": [
