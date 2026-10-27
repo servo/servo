@@ -65,7 +65,7 @@ use std::os::raw::c_void;
 use std::path::PathBuf;
 use std::ptr::NonNull;
 use std::rc::Rc;
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicI64, AtomicU64, Ordering};
 use std::sync::mpsc::{Receiver, Sender};
 use std::sync::{LazyLock, Mutex, Once, OnceLock, mpsc};
 use std::{fs, thread};
@@ -556,6 +556,9 @@ impl ServoAction {
                 servo.ime_dismissed();
             },
             Vsync => {
+                // The coasting animation is driven by the same frames as the rest of the port.
+                #[cfg(target_env = "ohos")]
+                axis_coasting_advance(servo, LAST_VSYNC_NS.load(Ordering::Relaxed));
                 servo.notify_vsync();
             },
             Resize { width, height } => {
@@ -631,6 +634,182 @@ impl ServoAction {
     }
 }
 
+/// The coasting animation that follows a touchpad gesture.
+///
+/// The axis callback runs on the ArkUI UI thread while the frames are advanced on the servo main
+/// thread, so the state sits behind a mutex, exactly like [`LAST_POINTER`]. The animation never
+/// touches the platform: it is fed the axis events while the fingers move, and asked for one
+/// frame's worth of motion at a time once the gesture is over.
+#[cfg(target_env = "ohos")]
+static AXIS_COASTING: LazyLock<Mutex<crate::wheel::Coasting>> =
+    LazyLock::new(|| Mutex::new(crate::wheel::Coasting::new()));
+
+/// Timestamp of the latest vsync callback, in nanoseconds.
+///
+/// `OH_NativeVSync` reports its deadline in nanoseconds, which is also the unit of
+/// `OH_ArkUI_UIInputEvent_GetEventTime()`.
+#[cfg(target_env = "ohos")]
+static LAST_VSYNC_NS: AtomicI64 = AtomicI64::new(0);
+
+/// Event-clock timestamp, in nanoseconds, of the axis event that launched the running animation.
+#[cfg(target_env = "ohos")]
+static COASTING_LAUNCH_EVENT_NS: AtomicI64 = AtomicI64::new(0);
+
+/// Vsync-clock timestamp, in nanoseconds, read when the running animation was launched.
+#[cfg(target_env = "ohos")]
+static COASTING_LAUNCH_VSYNC_NS: AtomicI64 = AtomicI64::new(0);
+
+/// Hands one axis event to the coasting animation of the gesture it belongs to.
+#[cfg(target_env = "ohos")]
+fn axis_coasting_feed(
+    time_ns: i64,
+    vertical: f32,
+    source: crate::wheel::AxisEventSource,
+    phase: crate::wheel::AxisPhase,
+) {
+    let tool = match source {
+        crate::wheel::AxisEventSource::MouseWheel => crate::wheel::CoastingTool::MouseWheel,
+        crate::wheel::AxisEventSource::Touchpad => crate::wheel::CoastingTool::Touchpad,
+    };
+    let mut coasting = AXIS_COASTING.lock().unwrap();
+    if phase == crate::wheel::AxisPhase::End {
+        // Remember when the animation was launched on the event clock: every frame is placed on that
+        // clock, so the frames of one launch are never mixed with the readings of another. The store
+        // happens under the same mutex that `axis_coasting_advance` takes to read it, so a frame can
+        // never see half of a launch: an `End` is the only phase that can start an animation, and the
+        // main thread may advance it as soon as it observes it.
+        COASTING_LAUNCH_EVENT_NS.store(time_ns, Ordering::Relaxed);
+        // The vsync base is left unset on purpose, so that the first frame always calibrates it on
+        // the vsync that frame is handled on (`axis_coasting_advance`).
+        // That is what makes the sampling timeline start at the launch time: the first frame lands on
+        // the launch time itself and asks for no motion, and every frame after it is exactly one
+        // frame interval later (`T, T + P, T + 2P, …`).
+        // Basing the animation on the latest reading taken *before* the release (`LAST_VSYNC_NS`)
+        // instead put that first frame wherever the glide had drifted to since that reading: on the
+        // device this is 2 to 4 frame intervals at 90 Hz, against exactly one interval for every
+        // later frame, a visible catch-up jump at the start of every glide. The total distance is
+        // unchanged either way, because the decay is integrated from the launch time in both cases;
+        // only its distribution over the frames changes.
+        COASTING_LAUNCH_VSYNC_NS.store(0, Ordering::Relaxed);
+        // The guard of `axis_coasting_advance` reads this, so it has to be defined for the first
+        // frame too. Seeded with the launch time it lets that frame through without re-timing, since
+        // the calibration above makes the frame's own time equal to it; a first frame that really did
+        // arrive more than 100 ms after the launch is still re-timed like any other late frame.
+        COASTING_LAST_FRAME_NS.store(time_ns, Ordering::Relaxed);
+    }
+    coasting.feed(time_ns, vertical, tool, phase);
+}
+
+/// How long a frame chain may be idle before the coasting animation treats the gap as broken, in
+/// nanoseconds.
+///
+/// The frames of this port are requested on demand, so nothing guarantees that a glide is advanced
+/// on every vsync: whatever stopped the requests (a frame dropped by the compositor, a long main
+/// thread stall) must not be turned into motion, because the decay is a function of time and one
+/// frame carrying several hundred milliseconds would jump the viewport to the end of the glide.
+#[cfg(target_env = "ohos")]
+const COASTING_MAX_FRAME_GAP_NS: i64 = 100_000_000;
+
+/// Length of one frame, in nanoseconds, used to re-time a frame that followed a broken chain
+/// (`~60 Hz`: an *assumption*, not a measurement).
+///
+/// It is the step the re-timing guard gives a frame that arrived after a stall, and the interval
+/// the re-timing keeps for that frame. The platform this port is built for delivers its frames at
+/// 90 Hz (11.1 ms) — the vsync interval the port already knows as `LAST_VSYNC_NS`, but does not
+/// use here because the re-timing only has to be of the right order, and a shorter step than the
+/// panel's would hide the stall rather than smooth it.
+#[cfg(target_env = "ohos")]
+const COASTING_NOMINAL_FRAME_NS: i64 = 16_666_667;
+
+/// The animation time, in nanoseconds, of the last frame that was advanced.
+///
+/// `0` when no frame of the running animation has been advanced yet. It is only read to notice a
+/// broken frame chain, see [`COASTING_MAX_FRAME_GAP_NS`].
+#[cfg(target_env = "ohos")]
+static COASTING_LAST_FRAME_NS: AtomicI64 = AtomicI64::new(0);
+
+/// Advances the coasting animation by one frame and scrolls the viewport by what it asks for.
+///
+/// The frame is dispatched on the frame that is being handled, the way the touch fling of servo
+/// dispatches its own, so coasting only ever adds movement, it never defines a second way to scroll
+/// (see [`App::queue_scroll`]).
+///
+/// `vsync_ns` is the deadline of the frame, in nanoseconds. The animation was launched from an axis
+/// event, so it lives on the event clock; the vsync reading is moved onto that clock by its
+/// *difference*, which makes the coasting independent of any constant offset, and of the epoch,
+/// of either clock.
+#[cfg(target_env = "ohos")]
+fn axis_coasting_advance(servo: &App, vsync_ns: i64) {
+    let mut coasting = AXIS_COASTING.lock().unwrap();
+    if !coasting.is_active() {
+        return;
+    }
+    let launch_event_ns = COASTING_LAUNCH_EVENT_NS.load(Ordering::Relaxed);
+    let mut launch_vsync_ns = COASTING_LAUNCH_VSYNC_NS.load(Ordering::Relaxed);
+    if launch_event_ns == 0 || vsync_ns <= 0 {
+        // The animation was never stamped on the event clock (or the frame has no time of its own),
+        // so there is nothing to place this frame relative to. Advancing anyway would feed the decay
+        // a garbage timestamp and turn the whole remaining glide into a single jump; waiting for the
+        // next frame costs nothing, and no frame was dropped.
+        return;
+    }
+    if launch_vsync_ns == 0 {
+        // The gesture ended before this port ever saw a vsync reading, so the animation has no base
+        // on the vsync clock yet. Calibrate on *this* frame: the frame then lands exactly on the
+        // launch time, asks for no motion at all, and every frame after it is timed by the distance
+        // between real vsync readings. Waiting for a later reading instead would leave the animation
+        // armed but never advancing.
+        launch_vsync_ns = vsync_ns;
+        COASTING_LAUNCH_VSYNC_NS.store(launch_vsync_ns, Ordering::Relaxed);
+    }
+    let mut now_ns = launch_event_ns + (vsync_ns - launch_vsync_ns);
+    // A frame that arrives long after the previous one means the chain was broken: re-time it as
+    // if it had followed its predecessor at a normal interval, by moving the base that maps the
+    // vsync clock onto the event clock back by the surplus. The decay then carries on at its own
+    // pace instead of dumping the missing interval in one go, and every frame after this one is
+    // timed smoothly again, because the shift stays constant.
+    let previous_ns = COASTING_LAST_FRAME_NS.load(Ordering::Relaxed);
+    if previous_ns > 0 && now_ns > previous_ns + COASTING_MAX_FRAME_GAP_NS {
+        let surplus_ns = now_ns - previous_ns - COASTING_NOMINAL_FRAME_NS;
+        launch_vsync_ns += surplus_ns;
+        COASTING_LAUNCH_VSYNC_NS.store(launch_vsync_ns, Ordering::Relaxed);
+        now_ns = launch_event_ns + (vsync_ns - launch_vsync_ns);
+    }
+    let frame = coasting.advance(now_ns);
+    drop(coasting);
+    COASTING_LAST_FRAME_NS.store(now_ns, Ordering::Relaxed);
+    // The motion is dispatched *before* the end of the animation is handled: the frame that
+    // finishes the animation can still carry the last few pixels, and dropping it would leave a
+    // visible notch at the end of the glide. The animation itself is already stopped by
+    // `advance`, so `is_active()` is false from here on.
+    if frame.delta != 0.0 {
+        let (x, y) = *input_mouse::LAST_POINTER.lock().unwrap();
+        // The frame is dispatched as a scroll notification of the frame being handled, not as a
+        // synthetic wheel event: only that path is applied by the very pump that follows this call
+        // (`App::notify_vsync`), whereas a wheel event would wait for the script thread to answer
+        // — and, on a document that is not fully active, would never be applied at all. Nor through
+        // `App::wheel`, which pumps the event loop: pumping here as well would run the whole servo
+        // update twice for every frame of the glide.
+        // `frame.delta` keeps its meaning, the device pixels of a wheel delta; the single sign flip
+        // into the scroll convention happens in `App::queue_scroll`. The narrowing to `f32` is the
+        // one the wheel path applies to the same value on its way in
+        // (`components/paint/webview_renderer.rs:1197`).
+        servo.queue_scroll(frame.delta as f32, x, y);
+    }
+    if frame.finished {
+        // Nothing will be advanced any more, so the launch readings of the animation that just
+        // came to rest must not be re-read by a later frame of a new gesture.
+        COASTING_LAUNCH_EVENT_NS.store(0, Ordering::Relaxed);
+        COASTING_LAUNCH_VSYNC_NS.store(0, Ordering::Relaxed);
+        COASTING_LAST_FRAME_NS.store(0, Ordering::Relaxed);
+    } else {
+        // Keep the glide alive: frames here are requested on demand and the animation is not one
+        // of servo's own observers, so without asking for the next one it would stop halfway
+        // through, still armed.
+        servo.request_next_frame();
+    }
+}
+
 /// Ask the OHOS framework to invoke [`on_vsync_cb`] once on the next vsync.
 ///
 /// Calling this multiple times in the same vsync period will result in
@@ -650,6 +829,9 @@ unsafe extern "C" fn on_vsync_cb(
     _data: *mut ::core::ffi::c_void,
 ) {
     trace!("Vsync callback at time {timestamp}");
+    // COASTING: the coasting frames are timed on this clock, see `axis_coasting_advance`.
+    #[cfg(target_env = "ohos")]
+    LAST_VSYNC_NS.store(timestamp as i64, Ordering::Relaxed);
     // Let's not panic here, that's been a source of confusion.
     if let Err(e) = call(ServoAction::Vsync) {
         error!("Failed to send Vsync event: {e:?} - Main thread died?");
@@ -783,6 +965,18 @@ extern "C" fn on_surface_changed_cb(
 
 extern "C" fn on_surface_destroyed_cb(_component: *mut OH_NativeXComponent, _window: *mut c_void) {
     error!("on_surface_destroyed_cb is currently not implemented");
+    // The surface is gone, so a coasting animation must not keep advancing: its frames would be
+    // dispatched into a webview that no longer has a window to draw into. Touching the touchpad
+    // again would brake it anyway, but the destruction can happen while the fingers are already
+    // away. Deliberately *this* callback rather than `on_surface_created_cb`: creation happens
+    // when the state is already inactive (nothing has been fed yet), while destruction is the
+    // moment the "no frames onto a dead surface" invariant has to be enforced.
+    #[cfg(target_env = "ohos")]
+    {
+        // The surface is gone, so nothing can advance the animation any more, and its launch
+        // readings must not outlive it either.
+        AXIS_COASTING.lock().unwrap().cancel();
+    }
 }
 
 extern "C" fn on_dispatch_touch_event_cb(component: *mut OH_NativeXComponent, window: *mut c_void) {
@@ -1277,6 +1471,13 @@ impl HostTrait for HostCallbacks {
         // e.g. including webview id, perhaps URL and some additional investigation effort.
         // For now we just add a trace event here, so that we can see in the trace if we
         // successfully loaded **a** page.
+        // COASTING: the document that is going away must not hand its glide to the new one — the
+        // viewport the user threw would have moved on a page they never touched.
+        #[cfg(target_env = "ohos")]
+        if load_status == LoadStatus::Started {
+            AXIS_COASTING.lock().unwrap().cancel();
+            COASTING_LAST_FRAME_NS.store(0, Ordering::Relaxed);
+        }
         if load_status == LoadStatus::Complete {
             #[cfg(feature = "tracing-hitrace")]
             let _scope = hitrace::ScopedTrace::start_trace(&c"PageLoadEndedPrompt");

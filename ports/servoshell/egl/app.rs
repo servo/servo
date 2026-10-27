@@ -15,7 +15,8 @@ use servo::{
     KeyboardEvent, LoadStatus, MouseButton, MouseButtonAction, MouseButtonEvent, MouseMoveEvent,
     Opts, Preferences, RefreshDriver, RenderingContext, ScreenGeometry, Scroll, Servo,
     ServoBuilder, SimpleDialog, TouchEvent, TouchEventType, TouchId, TouchPointerType,
-    UserContentManager, WebView, WebViewId, WindowRenderingContext, convert_rect_to_css_pixel,
+    UserContentManager, WebView, WebViewId, WebViewPoint, WebViewVector, WindowRenderingContext,
+    convert_rect_to_css_pixel,
 };
 use url::Url;
 
@@ -242,6 +243,27 @@ impl VsyncRefreshDriver {
             start_frame_callback()
         }
     }
+
+    /// Requests the next vsync callback, unconditionally.
+    ///
+    /// The frames of this port are requested on demand, and a caller that is not one of servo's own
+    /// observers is not served by [`RefreshDriver::observe_next_frame`]: that entry point only arms
+    /// the native vsync when its queue of callbacks was empty, and the arm that accompanied the
+    /// callbacks already in the queue is *consumed* by the vsync being handled right now. Pushing
+    /// another callback can therefore be a no-op with nothing left pending — and if servo itself
+    /// stops observing in that same frame, no frame would ever be requested again, leaving an
+    /// animation in flight with no frames to advance it.
+    ///
+    /// **Guarantee**: as long as the caller calls this on every frame it handles, a vsync callback
+    /// always arrives — whatever the state of the callback queue, and whether or not servo's own
+    /// observers are still alive. The caller stops calling it when its animation ends. Requesting
+    /// the frame directly cannot storm the platform either: a raw callback executes at most once per
+    /// vsync period (`egl/ohos/mod.rs`, `request_vsync_callback`: "Calling this multiple times in
+    /// the same vsync period will result in one callback execution").
+    #[cfg(target_env = "ohos")]
+    pub(crate) fn request_next_frame(&self) {
+        super::ohos::request_vsync_callback(&self.native_vsync);
+    }
 }
 
 impl RefreshDriver for VsyncRefreshDriver {
@@ -464,6 +486,52 @@ impl App {
         }
     }
 
+    /// Queues a scroll for the active webview *without* pumping the event loop.
+    ///
+    /// This is the entry point of the frames of the coasting animation. They must not go through
+    /// [`App::wheel`], and not through a synthetic wheel event at all: an `InputEvent::Wheel` is
+    /// only registered in `WebViewRenderer::pending_wheel_events`
+    /// (`components/paint/webview_renderer.rs:484-487` stores the raw, unscaled event), and the
+    /// scroll itself then waits for the script thread to answer `InputEventsHandled`
+    /// (`components/script/dom/document_event_handler.rs:346-424` →
+    /// `components/script/script_thread.rs:1495-1543` → `components/servo/servo.rs:340-363`). That
+    /// round trip is not synchronised with the frames, and a document that is not fully active, or
+    /// is render-blocked, never answers at all: the motion would be lost, and its entry in
+    /// `pending_wheel_events` would leak.
+    ///
+    /// A scroll notification takes the path of the touch fling of servo itself
+    /// (`components/paint/touch.rs:564/608` → `WebView::notify_scroll_event`,
+    /// `components/servo/webview.rs:601-607`), which ends in
+    /// `WebViewRenderer::pending_scroll_zoom_events` (`components/paint/webview_renderer.rs:779-782`)
+    /// and is consumed by `Painter::perform_updates` (`components/paint/painter.rs:310-311`). That
+    /// runs unconditionally inside `Servo::spin_event_loop` (`components/servo/servo.rs:360`), so
+    /// the motion is applied by the very pump that follows this call, with nothing to wait for.
+    ///
+    /// The values are the ones the wheel event would have carried, so the distance does not change:
+    /// the wheel path ends up calling this same function
+    /// (`components/paint/webview_renderer.rs:1192-1198`) with
+    /// `DeviceVector2D::new(-wheel_event.delta.x, -wheel_event.delta.y)` and the point of the event.
+    /// `Scroll::Delta` is positive towards the right and down, and `WebViewVector::Device` and
+    /// `WebViewPoint::Device` are used as they are (`components/shared/embedder/lib.rs:143-157`,
+    /// `:66-73`), so `delta` is the wheel delta *inverted* — the single flip the wheel path applies
+    /// to the value this module is given.
+    ///
+    /// [`App::wheel`] keeps pumping, because a platform wheel or touchpad event arrives outside of
+    /// any frame and must take effect immediately.
+    #[cfg_attr(
+        not(target_env = "ohos"),
+        expect(
+            dead_code,
+            reason = "only the OpenHarmony port dispatches frames from inside a vsync"
+        )
+    )]
+    pub(crate) fn queue_scroll(&self, delta: f32, x: f32, y: f32) {
+        if let Some(webview) = self.active_or_newest_webview() {
+            let scroll = Scroll::Delta(WebViewVector::Device(DeviceVector2D::new(0.0, -delta)));
+            webview.notify_scroll_event(scroll, WebViewPoint::Device(DevicePoint::new(x, y)));
+        }
+    }
+
     /// Touch event: press down
     pub fn touch_down(&self, x: f32, y: f32, pointer_id: i32) {
         if let Some(webview) = self.active_or_newest_webview() {
@@ -646,6 +714,21 @@ impl App {
         self.spin_event_loop();
     }
 
+    /// Asks for one more vsync, even when nothing else is waiting for a frame.
+    ///
+    /// The coasting animation is driven by the frames of the port without being one of servo's own
+    /// observers, so a glide would freeze halfway through as soon as servo no longer needs a frame
+    /// — with the animation still armed, which would make the next unrelated vsync dump the whole
+    /// remaining distance in a single jump. Requesting the frame here is what keeps the glide
+    /// alive; it stops being requested on the frame that finishes the animation.
+    #[cfg(target_env = "ohos")]
+    pub(crate) fn request_next_frame(&self) {
+        let platform_window = self.window().platform_window();
+        let embedded_platform_window = platform_window
+            .as_headed_window()
+            .expect("No headed window");
+        embedded_platform_window.refresh_driver.request_next_frame();
+    }
     pub fn pause_painting(&self) {
         let platform_window = self.window().platform_window();
         let embedded_platform_window = platform_window

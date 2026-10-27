@@ -41,11 +41,21 @@ const ARKUI_UIINPUTEVENT_TYPE_AXIS: i32 = 2;
 /// The tool type tells the two kinds of scroll input apart, which matters because the
 /// platform reports them in different units and reference frames.
 const UI_INPUT_EVENT_TOOL_TYPE_FINGER: i32 = 1;
+/// `UI_AXIS_EVENT_ACTION_*` from `arkui/ui_input_event.h` (`@since 15`).
+///
+/// The phase of the gesture an axis event belongs to. The header enumerates
+/// `NONE = 0 / BEGIN = 1 / UPDATE = 2 / END = 3 / CANCEL = 4`; only the phases the coasting
+/// animation has to act on get a name here, because the rest is plain movement.
+const UI_AXIS_EVENT_ACTION_BEGIN: i32 = 1;
+const UI_AXIS_EVENT_ACTION_END: i32 = 3;
+const UI_AXIS_EVENT_ACTION_CANCEL: i32 = 4;
 const UI_INPUT_EVENT_TOOL_TYPE_TOUCHPAD: i32 = 4;
 
 unsafe extern "C" {
     fn OH_ArkUI_AxisEvent_GetVerticalAxisValue(event: *const ArkUI_UIInputEvent) -> f64;
     fn OH_ArkUI_AxisEvent_GetHorizontalAxisValue(event: *const ArkUI_UIInputEvent) -> f64;
+    fn OH_ArkUI_AxisEvent_GetAxisAction(event: *const ArkUI_UIInputEvent) -> i32;
+    fn OH_ArkUI_UIInputEvent_GetEventTime(event: *const ArkUI_UIInputEvent) -> i64;
     fn OH_ArkUI_UIInputEvent_GetToolType(event: *const ArkUI_UIInputEvent) -> i32;
     fn OH_NativeXComponent_RegisterUIInputEventCallback(
         component: *mut OH_NativeXComponent,
@@ -61,7 +71,7 @@ unsafe extern "C" {
 }
 
 /// Last known pointer position (vp), used as the anchor point of wheel events.
-static LAST_POINTER: Mutex<(f32, f32)> = Mutex::new((0.0, 0.0));
+pub(super) static LAST_POINTER: Mutex<(f32, f32)> = Mutex::new((0.0, 0.0));
 
 /// Maps `OH_NativeXComponent_MouseEventButton` onto servo's [`MouseButton`].
 fn mouse_button(button: u32) -> MouseButton {
@@ -180,13 +190,19 @@ unsafe extern "C" fn on_axis_event_cb(
     }
     let vertical = unsafe { OH_ArkUI_AxisEvent_GetVerticalAxisValue(event) } as f32;
     let horizontal = unsafe { OH_ArkUI_AxisEvent_GetHorizontalAxisValue(event) } as f32;
+    // The gesture goes into the coasting animation *before* the early return below, because a
+    // gesture ends with an event that carries no movement at all.
+    let action = unsafe { OH_ArkUI_AxisEvent_GetAxisAction(event) };
+    let event_time = unsafe { OH_ArkUI_UIInputEvent_GetEventTime(event) };
+    let source = axis_event_source(event);
+    super::axis_coasting_feed(event_time, vertical, source, axis_event_phase(action));
     if vertical == 0.0 && horizontal == 0.0 {
         return;
     }
     if let Err(e) = call(ServoAction::WheelEvent {
         horizontal,
         vertical,
-        source: axis_event_source(event),
+        source,
     }) {
         error!("Failed to dispatch wheel event: {e:?}");
     }
@@ -206,6 +222,20 @@ fn axis_event_source(event: *const ArkUI_UIInputEvent) -> AxisEventSource {
             AxisEventSource::Touchpad
         },
         _ => AxisEventSource::MouseWheel,
+    }
+}
+
+/// Maps the `UI_AXIS_EVENT_ACTION_*` of an axis event onto the phase of a gesture.
+///
+/// `NONE` and any value the platform adds later keep the default interpretation of an event that
+/// carries movement but neither starts nor ends a gesture, which is what
+/// [`crate::wheel::AxisPhase`] documents.
+fn axis_event_phase(action: i32) -> crate::wheel::AxisPhase {
+    match action {
+        UI_AXIS_EVENT_ACTION_BEGIN => crate::wheel::AxisPhase::Begin,
+        UI_AXIS_EVENT_ACTION_END => crate::wheel::AxisPhase::End,
+        UI_AXIS_EVENT_ACTION_CANCEL => crate::wheel::AxisPhase::Cancel,
+        _ => crate::wheel::AxisPhase::Update,
     }
 }
 
