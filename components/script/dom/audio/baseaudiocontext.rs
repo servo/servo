@@ -642,12 +642,12 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                     decoded_audio[channel].extend_from_slice((*buffer).as_ref());
                 })
                 .eos(move || {
+                    let mut decoded_audio = std::mem::take(&mut *decoded_audio__.lock().unwrap());
+                    for channel in &mut decoded_audio {
+                        channel.shrink_to_fit();
+                    }
                     task_source.queue(task!(audio_decode_eos: move |cx| {
                         let this = this.root();
-                        let mut decoded_audio = std::mem::take(&mut *decoded_audio__.lock().unwrap());
-                        for channel in &mut decoded_audio {
-                            channel.shrink_to_fit();
-                        }
                         let length = if !decoded_audio.is_empty() {
                             decoded_audio[0].len()
                         } else {
