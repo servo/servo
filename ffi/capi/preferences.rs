@@ -3,7 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
 use std::ffi::{CStr, c_char, c_void};
-use std::ptr;
+use std::{ptr, slice};
 
 use servo::{PrefValue, Preferences};
 
@@ -487,4 +487,239 @@ pub unsafe extern "C" fn servo_preferences_get_u64(
         PrefValue::UInt(value) => value,
         _ => unreachable!(),
     }
+}
+
+/// Sets an f64 preference by name.
+///
+/// `preferences` is a handle to a `ServoPreferences` object.
+/// The ownership of `preferences` remains with the caller after the call.
+///
+/// `name` is a NUL terminated UTF-8 string.
+/// The function panics if it is not a valid UTF-8 string.
+/// The ownership of `name` remains with the caller after the call.
+///
+/// # Safety
+///
+/// The caller must ensure that:
+///
+/// - `preferences` is a non-null pointer to a `ServoPreferences` previously
+///   returned by `servo_preferences_create` and has not yet been freed
+///   nor passed to another API that takes ownership of it.
+/// - `name` is a non-null pointer to a C string that remains unmodified
+///   for the duration of the call.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_preferences_set_f64(
+    preferences: *mut ServoPreferences,
+    name: *const c_char,
+    value: f64,
+) {
+    assert!(
+        !preferences.is_null(),
+        "preferences pointer must not be null"
+    );
+    assert!(!name.is_null(), "name pointer must not be null");
+
+    // SAFETY: The caller is assumed to uphold the safety requirements
+    // for `name` documented above.
+    let name = unsafe { CStr::from_ptr(name) }
+        .to_str()
+        .expect(INVALID_PREFERENCE_NAME_MSG);
+    assert!(Preferences::exists(name), "unknown preference: {name}");
+    assert_eq!(
+        Preferences::type_of(name),
+        "f64",
+        "preference '{name}' is not an f64"
+    );
+
+    // SAFETY: The caller is assumed to uphold the safety requirements
+    // for `preferences` documented above.
+    unsafe { &mut *preferences }.set_value(name, PrefValue::Float(value));
+}
+
+/// Gets an f64 preference by name.
+///
+/// `preferences` is a handle to a `ServoPreferences` object.
+/// The ownership of `preferences` remains with the caller after the call.
+///
+/// `name` is a NUL terminated UTF-8 string.
+/// The function panics if it is not a valid UTF-8 string.
+/// The ownership of `name` remains with the caller after the call.
+///
+/// # Safety
+///
+/// The caller must ensure that:
+///
+/// - `preferences` is a non-null pointer to a `ServoPreferences` previously
+///   returned by `servo_preferences_create` and has not yet been freed
+///   nor passed to another API that takes ownership of it.
+/// - `name` is a non-null pointer to a C string that remains unmodified
+///   for the duration of the call.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_preferences_get_f64(
+    preferences: *const ServoPreferences,
+    name: *const c_char,
+) -> f64 {
+    assert!(
+        !preferences.is_null(),
+        "preferences pointer must not be null"
+    );
+    assert!(!name.is_null(), "name pointer must not be null");
+
+    // SAFETY: The caller is assumed to uphold the safety requirements
+    // for `name` documented above.
+    let name = unsafe { CStr::from_ptr(name) }
+        .to_str()
+        .expect(INVALID_PREFERENCE_NAME_MSG);
+    assert!(Preferences::exists(name), "unknown preference: {name}");
+    assert_eq!(
+        Preferences::type_of(name),
+        "f64",
+        "preference '{name}' is not an f64"
+    );
+
+    // SAFETY: The caller is assumed to uphold the safety requirements
+    // for `preferences` documented above.
+    match unsafe { &*preferences }.get_value(name) {
+        PrefValue::Float(value) => value,
+        _ => unreachable!(),
+    }
+}
+
+/// Sets an f64 array preference by name, e.g. `shell_background_color_rgba`.
+///
+/// `preferences` is a handle to a `ServoPreferences` object.
+/// The ownership of `preferences` remains with the caller after the call.
+///
+/// `name` is a NUL terminated UTF-8 string.
+/// The function panics if it is not a valid UTF-8 string.
+/// The ownership of `name` remains with the caller after the call.
+///
+/// `values` points to `count` f64 values.
+/// The function panics if `count` is not the length of the preference's array.
+/// The ownership of `values` remains with the caller after the call.
+///
+/// # Safety
+///
+/// The caller must ensure that:
+///
+/// - `preferences` is a non-null pointer to a `ServoPreferences` previously
+///   returned by `servo_preferences_create` and has not yet been freed
+///   nor passed to another API that takes ownership of it.
+/// - `name` is a non-null pointer to a C string that remains unmodified
+///   for the duration of the call.
+/// - `values` is a non-null pointer to `count` f64 values that remain
+///   unmodified for the duration of the call.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_preferences_set_f64_array(
+    preferences: *mut ServoPreferences,
+    name: *const c_char,
+    values: *const f64,
+    count: usize,
+) {
+    assert!(
+        !preferences.is_null(),
+        "preferences pointer must not be null"
+    );
+    assert!(!name.is_null(), "name pointer must not be null");
+    assert!(!values.is_null(), "values pointer must not be null");
+
+    // SAFETY: The caller is assumed to uphold the safety requirements
+    // for `name` documented above.
+    let name = unsafe { CStr::from_ptr(name) }
+        .to_str()
+        .expect(INVALID_PREFERENCE_NAME_MSG);
+    assert!(Preferences::exists(name), "unknown preference: {name}");
+
+    // SAFETY: The caller is assumed to uphold the safety requirements
+    // for `preferences` documented above.
+    let preferences = unsafe { &mut *preferences };
+    let PrefValue::Array(current) = preferences.get_value(name) else {
+        panic!("preference '{name}' is not an array");
+    };
+    assert!(
+        current
+            .iter()
+            .all(|value| matches!(value, PrefValue::Float(_))),
+        "preference '{name}' is not an f64 array"
+    );
+    assert_eq!(
+        current.len(),
+        count,
+        "preference '{name}' has {} values",
+        current.len()
+    );
+
+    // SAFETY: The caller is assumed to uphold the safety requirements
+    // for `values` documented above.
+    let values = unsafe { slice::from_raw_parts(values, count) };
+    preferences.set_value(
+        name,
+        PrefValue::Array(values.iter().copied().map(PrefValue::Float).collect()),
+    );
+}
+
+/// Gets an f64 array preference by name, e.g. `shell_background_color_rgba`.
+///
+/// `preferences` is a handle to a `ServoPreferences` object.
+/// The ownership of `preferences` remains with the caller after the call.
+///
+/// `name` is a NUL terminated UTF-8 string.
+/// The function panics if it is not a valid UTF-8 string.
+/// The ownership of `name` remains with the caller after the call.
+///
+/// Copies up to `capacity` values into `values` and returns the length of
+/// the array, which can be larger than `capacity`. `values` can be NULL
+/// when `capacity` is 0, to only get the length.
+///
+/// # Safety
+///
+/// The caller must ensure that:
+///
+/// - `preferences` is a non-null pointer to a `ServoPreferences` previously
+///   returned by `servo_preferences_create` and has not yet been freed
+///   nor passed to another API that takes ownership of it.
+/// - `name` is a non-null pointer to a C string that remains unmodified
+///   for the duration of the call.
+/// - `values` is a pointer to space for `capacity` f64 values, or NULL if
+///   `capacity` is 0.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_preferences_get_f64_array(
+    preferences: *const ServoPreferences,
+    name: *const c_char,
+    values: *mut f64,
+    capacity: usize,
+) -> usize {
+    assert!(
+        !preferences.is_null(),
+        "preferences pointer must not be null"
+    );
+    assert!(!name.is_null(), "name pointer must not be null");
+    assert!(
+        !values.is_null() || capacity == 0,
+        "values pointer must not be null"
+    );
+
+    // SAFETY: The caller is assumed to uphold the safety requirements
+    // for `name` documented above.
+    let name = unsafe { CStr::from_ptr(name) }
+        .to_str()
+        .expect(INVALID_PREFERENCE_NAME_MSG);
+    assert!(Preferences::exists(name), "unknown preference: {name}");
+
+    // SAFETY: The caller is assumed to uphold the safety requirements
+    // for `preferences` documented above.
+    let PrefValue::Array(current) = unsafe { &*preferences }.get_value(name) else {
+        panic!("preference '{name}' is not an array");
+    };
+    for (index, value) in current.iter().enumerate() {
+        let PrefValue::Float(value) = value else {
+            panic!("preference '{name}' is not an f64 array");
+        };
+        if index < capacity {
+            // SAFETY: The caller is assumed to uphold the safety requirements
+            // for `values` documented above, and `index` is below `capacity`.
+            unsafe { values.add(index).write(*value) };
+        }
+    }
+    current.len()
 }
