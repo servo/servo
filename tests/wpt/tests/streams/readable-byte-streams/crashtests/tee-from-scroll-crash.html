@@ -10,7 +10,7 @@ scrollTo(0, 100);
 <script>
 onscroll = () => {
   const [readableStream] = new ReadableStream({
-       type: "bytes", 
+       type: "bytes",
        start(c) { c.enqueue(new Uint8Array([1])); }
    }).tee();
   readableStream.getReader().read();
