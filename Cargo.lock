@@ -8407,6 +8407,7 @@ name = "servo-capi"
 version = "0.7.0"
 dependencies = [
  "dpi",
+ "euclid",
  "libc",
  "log",
  "servo",
