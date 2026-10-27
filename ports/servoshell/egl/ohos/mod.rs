@@ -2,6 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 #![allow(non_snake_case)]
+pub(crate) mod host_callbacks;
+
 /// Servoshell for OpenHarmony
 ///
 /// ## Overview
@@ -1098,7 +1100,7 @@ pub struct WakeupCallback {
 }
 
 impl WakeupCallback {
-    pub(crate) fn new(chan: Sender<ServoAction>) -> Self {
+    fn new(chan: Sender<ServoAction>) -> Self {
         WakeupCallback { chan }
     }
 }
