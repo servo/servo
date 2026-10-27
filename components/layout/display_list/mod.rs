@@ -2067,11 +2067,10 @@ impl<'a> BuilderForBoxFragment<'a> {
                     let default_size: DeviceIntSize =
                         Size2D::new(size.width * scale, size.height * scale).to_i32();
                     let preferred_size = layer.as_ref().map(|layer| {
-                        Size2D::new(
-                            layer.tile_size.width * scale,
-                            layer.tile_size.height * scale,
+                        DeviceIntSize::new(
+                            ((layer.tile_size.width * scale).ceil() as i32).max(1),
+                            ((layer.tile_size.height * scale).ceil() as i32).max(1),
                         )
-                        .to_i32()
                     });
 
                     let Some(image_key) = builder.image_resolver.image_key_from_cached_image(
