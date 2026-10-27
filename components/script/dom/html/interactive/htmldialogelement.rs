@@ -265,8 +265,8 @@ impl HTMLDialogElement {
     /// <https://html.spec.whatwg.org/multipage/#queue-a-dialog-toggle-event-task>
     pub fn queue_dialog_toggle_event_task(
         &self,
-        old_state: &str,
-        new_state: &str,
+        old_state: &'static str,
+        new_state: &'static str,
         source: Option<DomRoot<Element>>,
     ) {
         // TODO: Step 1. If element's dialog toggle task tracker is not null, then:
@@ -275,9 +275,6 @@ impl HTMLDialogElement {
         // TODO: Step 1.3. Set element's dialog toggle task tracker to null.
         // Step 2. Queue an element task given the DOM manipulation task source and element to run the following steps:
         let this = Trusted::new(self);
-        let old_state = old_state.to_string();
-        let new_state = new_state.to_string();
-
         let trusted_source = source.map(|el| Trusted::new(&*el));
 
         self.owner_global()
@@ -295,8 +292,8 @@ impl HTMLDialogElement {
                     atom!("toggle"),
                     EventBubbles::DoesNotBubble,
                     EventCancelable::NotCancelable,
-                    DOMString::from(old_state),
-                    DOMString::from(new_state),
+                    DOMString::from_static(old_state),
+                    DOMString::from_static(new_state),
                     source.as_deref(),
                 );
                 let event = event.upcast::<Event>();
