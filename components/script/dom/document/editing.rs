@@ -763,8 +763,7 @@ impl EditingContext {
             // hidden the event target. So we should re-check the layout and see if
             // the node is still being rendered before performing an editing action
             // on it.
-            node.owner_window_unrooted(cx.no_gc())
-                .layout_reflow(cx, QueryMsg::StyleQuery);
+            node.owner_window().layout_reflow(cx, QueryMsg::StyleQuery);
             if !node.is_being_rendered_or_delegates_rendering(None) {
                 return false;
             }
