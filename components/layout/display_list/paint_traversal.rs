@@ -11,7 +11,7 @@ use style::values::computed::TextDecorationLine;
 
 use crate::display_list::{
     ClipId, ContainerTimingRootChain, ContainerTimingRoots, FragmentTextDecoration,
-    StackingContext, StackingContextFragments,
+    StackingContext, StackingContextFragments, resolve_underline_offset,
 };
 use crate::fragment_tree::{
     BoxFragment, BoxFragmentWithStyle, Fragment, FragmentFlags, IFrameFragment, ImageFragment,
@@ -611,7 +611,7 @@ impl TraversalState {
                     color: style.get_text_decoration_color().resolve_to_absolute(color),
                     style: style.slow_clone_text_decoration_style(),
                     thickness: style.slow_clone_text_decoration_thickness(),
-                    underline_offset: style.slow_clone_text_underline_offset(),
+                    underline_offset: resolve_underline_offset(style),
                 });
                 Rc::new(new_vector)
             },

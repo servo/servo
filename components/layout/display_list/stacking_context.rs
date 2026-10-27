@@ -24,6 +24,7 @@ use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::position::T as ComputedPosition;
 use style::computed_values::text_decoration_style::T as TextDecorationStyle;
 use style::computed_values::text_decoration_thickness::T as TextDecorationThickness;
+use style::properties::ComputedValues;
 use style::values::computed::angle::Angle;
 use style::values::computed::{
     ClipRectOrAuto, Length, LengthPercentageOrAuto as ComputedLengthPercentageOrAuto,
@@ -162,7 +163,7 @@ impl StackingContextParentInfo {
                     color: style.get_text_decoration_color().resolve_to_absolute(color),
                     style: style.slow_clone_text_decoration_style(),
                     thickness: style.slow_clone_text_decoration_thickness(),
-                    underline_offset: style.slow_clone_text_underline_offset(),
+                    underline_offset: resolve_underline_offset(style),
                 });
                 Rc::new(new_vector)
             },
@@ -401,7 +402,20 @@ pub(crate) struct FragmentTextDecoration {
     pub color: AbsoluteColor,
     pub style: TextDecorationStyle,
     pub thickness: TextDecorationThickness,
-    pub underline_offset: ComputedLengthPercentageOrAuto,
+    pub underline_offset: Au,
+}
+
+/// Resolve the `text-underline-offset` against the used font-size of the element
+///
+/// <https://drafts.csswg.org/css-text-decor-4/#underline-offset>:
+pub(crate) fn resolve_underline_offset(style: &ComputedValues) -> Au {
+    let font_size = style.get_font().font_size.computed_size.0;
+    match style.get_inherited_text().text_underline_offset {
+        ComputedLengthPercentageOrAuto::Auto => Au::zero(),
+        ComputedLengthPercentageOrAuto::LengthPercentage(ref offset) => {
+            Au::from_f32_px(offset.resolve(font_size).px())
+        },
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, MallocSizeOf, PartialEq)]
