@@ -1344,7 +1344,8 @@ impl Fragment {
                 TextDecorationLine::UNDERLINE => (
                     text_decoration.color,
                     text_decoration.style,
-                    font_metrics.ascent - font_metrics.underline_offset,
+                    font_metrics.ascent - font_metrics.underline_offset +
+                        text_decoration.underline_offset,
                     resolve_thickness(&text_decoration.thickness),
                 ),
                 // <https://drafts.csswg.org/css-text-decor-4/#valdef-text-decoration-line-spelling-error>

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<meta charset="utf-8">
+<title>CSS Text Decoration Test: text-underline-offset percentage resolves on the decorating element</title>
+<link rel="author" title="Shubham Gupta" href="mailto:shubhamg13.work@gmail.com">
+<link rel="help" href="https://drafts.csswg.org/css-text-decor-4/#underline-offset">
+<link rel="match" href="text-underline-offset-decorating-element-ref.html">
+<style>
+  .decorated {
+    font-size: 20px;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+  }
+  .test {
+    text-underline-offset: 100%;
+  }
+  span {
+    font-size: 200%;
+  }
+</style>
+<p>The underline offset should resolve against the font-size of the decorating element (20px),
+  not the font-size of the text (40px), so all underlines must be at the same position.</p>
+<div class="decorated test">foo <span>bar</span></div>
