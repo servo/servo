@@ -1010,31 +1010,31 @@ impl BoxFragmentWithStyle<'_> {
 
             // The clipping region only gets rounded corners if both axes have `overflow: clip`.
             // https://drafts.csswg.org/css-overflow-3/#corner-clipping
-            let radii;
-            if overflow.x == ComputedOverflow::Clip && overflow.y == ComputedOverflow::Clip {
-                let builder = BuilderForBoxFragment::new(self, containing_block_rect.origin);
-                let mut offsets_from_border = SideOffsets2D::new_all_same(clip_margin_offset);
-                match overflow_clip_margin.visual_box {
-                    OverflowClipMarginBox::ContentBox => {
-                        offsets_from_border -= (self.border + self.padding).to_webrender();
-                    },
-                    OverflowClipMarginBox::PaddingBox => {
-                        offsets_from_border -= self.border.to_webrender();
-                    },
-                    OverflowClipMarginBox::BorderBox => {},
+            let radii =
+                if overflow.x == ComputedOverflow::Clip && overflow.y == ComputedOverflow::Clip {
+                    let builder = BuilderForBoxFragment::new(self, containing_block_rect.origin);
+                    let mut offsets_from_border = SideOffsets2D::new_all_same(clip_margin_offset);
+                    match overflow_clip_margin.visual_box {
+                        OverflowClipMarginBox::ContentBox => {
+                            offsets_from_border -= (self.border + self.padding).to_webrender();
+                        },
+                        OverflowClipMarginBox::PaddingBox => {
+                            offsets_from_border -= self.border.to_webrender();
+                        },
+                        OverflowClipMarginBox::BorderBox => {},
+                    };
+                    offset_radii(builder.border_radius(), offsets_from_border)
+                } else if overflow.x != ComputedOverflow::Clip {
+                    let max = LayoutRect::max_rect();
+                    overflow_clip_rect.min.x = max.min.x;
+                    overflow_clip_rect.max.x = max.max.x;
+                    BorderRadius::zero()
+                } else {
+                    let max = LayoutRect::max_rect();
+                    overflow_clip_rect.min.y = max.min.y;
+                    overflow_clip_rect.max.y = max.max.y;
+                    BorderRadius::zero()
                 };
-                radii = offset_radii(builder.border_radius(), offsets_from_border);
-            } else if overflow.x != ComputedOverflow::Clip {
-                let max = LayoutRect::max_rect();
-                overflow_clip_rect.min.x = max.min.x;
-                overflow_clip_rect.max.x = max.max.x;
-                radii = BorderRadius::zero();
-            } else {
-                let max = LayoutRect::max_rect();
-                overflow_clip_rect.min.y = max.min.y;
-                overflow_clip_rect.max.y = max.max.y;
-                radii = BorderRadius::zero();
-            }
 
             let clip_id = stacking_context_tree.clip_store.add(
                 radii,
