@@ -178,4 +178,11 @@ fn main() {
         .flag_if_supported("/experimental:c11atomics")
         .include(&include_dir)
         .compile("c_integration_tests");
+
+    cc::Build::new()
+        .file(crate_dir.join("c").join("test_javascript.c"))
+        .std("c11")
+        .flag_if_supported("/experimental:c11atomics")
+        .include(&include_dir)
+        .compile("c_javascript_tests");
 }

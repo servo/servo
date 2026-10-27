@@ -8,6 +8,7 @@ use std::rc::Rc;
 
 use servo_api::{Servo, WebView, WebViewBuilder};
 
+use crate::javascript::{ServoJSValue, ServoJavaScriptEvaluationError};
 use crate::rendering_context::RenderingContext;
 use crate::webview_delegate::ServoWebViewDelegate;
 
@@ -389,6 +390,104 @@ pub unsafe extern "C" fn servo_webview_take_screenshot(
                 // `data` pointer is null as part of the contract.
                 unsafe {
                     callback(std::ptr::null(), 0, 0, error_code, user_data);
+                }
+            },
+        }
+    });
+}
+
+/// Asynchronously evaluates `script` in the `WebView`'s main frame.
+///
+/// The provided `callback` will be invoked with either the value the
+/// script evaluated to, or error information if the script could not
+/// produce a value.
+///
+/// `webview` is a handle to a `WebView` object.
+/// The ownership of `webview` remains with the caller after the call.
+///
+/// `script` is a NUL terminated UTF-8 string.
+/// The function panics if it is not a valid UTF-8 string.
+/// The ownership of `script` remains with the caller after the call.
+///
+/// `callback` is a function pointer that will be invoked at most once
+/// when the evaluation completes, or NULL to ignore the result. The
+/// callback is invoked asynchronously on the embedder thread that runs
+/// `servo_spin_event_loop`.
+///
+/// The callback receives:
+/// - `value`: a handle to the value, or `NULL` on error. Inspect it with
+///            the `servo_js_value_*` functions.
+/// - `error`: error code represented by one of the
+///            `SERVO_JAVASCRIPT_EVALUATION_ERROR_*` constants.
+///            Only valid when `value` is `NULL`.
+/// - `user_data`: the user data pointer that was passed to
+///                `servo_webview_evaluate_javascript`.
+///
+/// `value`, and every value and string reached from it, is valid only for
+/// the duration of the callback. The ownership of `value` remains with Servo.
+///
+/// `user_data` is an opaque pointer that is passed to `callback` when it is invoked.
+///  The ownership and validity of `user_data` is the caller's responsibility.
+///
+/// # Safety
+///
+/// The caller must ensure that:
+///
+/// - `webview` is a non-null pointer to a `WebView` previously returned
+///   by `servo_webview_builder_build` and not yet passed to
+///   `servo_webview_free`. No other code may read or write `*webview`
+///   for the duration of this call.
+/// - `script` is a non-null pointer to a C string that remains unmodified
+///   for the duration of the call.
+/// - If `callback` is not null, it is a valid C ABI function matching
+///   the exact signature shown, remains valid until it is invoked or
+///   the `WebView` is freed, and does not unwind across the FFI
+///   boundary.
+/// - `user_data` is either null or remains valid until `callback` is
+///   invoked or the `WebView` is freed.
+/// - The call is made from the same thread that originally created the
+///   `WebView` via `servo_webview_builder_build`.
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn servo_webview_evaluate_javascript(
+    webview: *mut WebView,
+    script: *const c_char,
+    callback: Option<
+        unsafe extern "C" fn(value: *const ServoJSValue, error: i32, user_data: *mut c_void),
+    >,
+    user_data: *mut c_void,
+) {
+    assert!(!webview.is_null(), "webview pointer must not be null");
+    assert!(!script.is_null(), "script pointer must not be null");
+
+    // SAFETY: The caller is assumed to uphold the safety requirements
+    // for `webview` documented above.
+    let webview = unsafe { &*webview };
+
+    // SAFETY: The caller is assumed to uphold the safety requirements
+    // for `script` documented above.
+    let script = unsafe { CStr::from_ptr(script) }.to_str().unwrap();
+
+    webview.evaluate_javascript(script, move |result| {
+        let Some(callback) = callback else {
+            return;
+        };
+        match result {
+            Ok(value) => {
+                // SAFETY: The caller is assumed to uphold the safety
+                // requirements for `callback` documented above.
+                // `value` is valid for the call as it is dropped only
+                // after `callback` returns.
+                unsafe {
+                    callback(&value, 0, user_data);
+                }
+            },
+            Err(error) => {
+                let error_code = ServoJavaScriptEvaluationError::from(&error) as _;
+                // SAFETY: The caller is assumed to uphold the safety
+                // requirements for `callback` documented above.
+                // `value` pointer is null as part of the contract.
+                unsafe {
+                    callback(std::ptr::null(), error_code, user_data);
                 }
             },
         }
