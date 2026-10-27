@@ -153,7 +153,7 @@ impl PerformanceResourceTimingMethods<crate::DomTypeHolder> for PerformanceResou
         match self.initiator_type {
             InitiatorType::Beacon => DOMString::from_static("beacon"),
             InitiatorType::Css => DOMString::from_static("css"),
-            InitiatorType::LocalName(ref n) => n.as_str().into(),
+            InitiatorType::LocalName(ref n) => TracedDOMString::from(n).root(),
             InitiatorType::Navigation => DOMString::from_static("navigation"),
             InitiatorType::XMLHttpRequest => DOMString::from_static("xmlhttprequest"),
             InitiatorType::Fetch => DOMString::from_static("fetch"),

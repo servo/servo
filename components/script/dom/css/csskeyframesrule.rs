@@ -7,6 +7,7 @@ use std::cell::RefCell;
 use cssparser::Parser;
 use dom_struct::dom_struct;
 use js::context::{JSContext, NoGC};
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::reflect_dom_object;
 use servo_arc::Arc;
 use style::shared_lock::{Locked, SharedRwLockReadGuard, ToCssWithGuard};
@@ -173,14 +174,14 @@ impl CSSKeyframesRuleMethods<crate::DomTypeHolder> for CSSKeyframesRule {
     /// <https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name>
     fn Name(&self) -> DOMString {
         let guard = self.css_rule.shared_lock().read();
-        DOMString::from(
-            &**self
-                .keyframes_rule
+        TracedDOMString::from(
+            self.keyframes_rule
                 .borrow()
                 .read_with(&guard)
                 .name
                 .as_atom(),
         )
+        .root()
     }
 
     /// <https://drafts.csswg.org/css-animations/#dom-csskeyframesrule-name>
