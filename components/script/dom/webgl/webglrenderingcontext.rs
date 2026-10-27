@@ -2112,6 +2112,11 @@ impl CanvasContext for WebGLRenderingContext {
 
     fn resize(&self) {
         let size = self.size().cast();
+        let Some(new_memory_size) = size.cast::<usize>().area().checked_mul(4) else {
+            error!("Error resizing WebGLContext because the memory used is larger than usize");
+            return;
+        };
+
         let (sender, receiver) = webgl_channel().unwrap();
         self.droppable
             .webgl_sender
@@ -2120,8 +2125,8 @@ impl CanvasContext for WebGLRenderingContext {
         // FIXME(#21718) The backend is allowed to choose a size smaller than
         // what was requested
         self.size.set(size);
-        self.reflector_
-            .update_memory_size(self, size.cast::<usize>().area() * 4);
+
+        self.reflector_.update_memory_size(self, new_memory_size);
 
         if let Err(msg) = receiver.recv().unwrap() {
             error!("Error resizing WebGLContext: {}", msg);
