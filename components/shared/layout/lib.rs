@@ -178,6 +178,7 @@ pub struct SVGElementData<'dom> {
 
 impl SVGElementData<'_> {
     /// <https://www.w3.org/TR/SVG11/coords.html#ViewBoxAttribute>
+    // TODO: Negative values should set this element in an error state.
     pub fn ratio_from_view_box(&self) -> Option<f32> {
         let mut iter = self
             .view_box?
@@ -189,10 +190,16 @@ impl SVGElementData<'_> {
         let width = parse_double(iter.next()?).ok()?;
         if width == 0f64 {
             return None;
+        } else if width < 0f64 {
+            log::error!("Width of view box is negative");
+            return None;
         }
 
         let height = parse_double(iter.next()?).ok()?;
         if height == 0f64 {
+            return None;
+        } else if height < 0f64 {
+            log::error!("Height of view box is negative");
             return None;
         }
 
