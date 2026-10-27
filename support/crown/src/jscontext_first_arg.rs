@@ -22,7 +22,9 @@ declare_tool_lint! {
 pub fn register(lint_store: &mut LintStore) {
     let symbols = Symbols::new();
     lint_store.register_lints(&[JSCONTEXT_FIRST_ARG]);
-    lint_store.register_early_pass(move || Box::new(JSContextFirstArgPass::new(symbols.clone())));
+    lint_store.register_early_lint_pass(Box::new(move || {
+        Box::new(JSContextFirstArgPass::new(symbols.clone()))
+    }));
 }
 
 #[derive(Diagnostic)]
