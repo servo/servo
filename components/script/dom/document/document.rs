@@ -6897,7 +6897,7 @@ impl DocumentMethods<crate::DomTypeHolder> for Document {
 
         names_with_first_named_element_vec
             .into_iter()
-            .map(|(k, _)| DOMString::from(&*k))
+            .map(|(k, _)| TracedDOMString::from(&k).root())
             .collect()
     }
 

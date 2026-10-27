@@ -8,6 +8,7 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, QualName, local_name, namespace_url, ns};
 use js::context::{JSContext, NoGC};
 use script_bindings::dom::UnrootedDom;
+use script_bindings::domstring::TracedDOMString;
 use script_bindings::reflector::{Reflector, reflect_dom_object};
 use style::str::split_html_space_chars;
 use stylo_atoms::Atom;
@@ -517,7 +518,7 @@ impl HTMLCollectionMethods<crate::DomTypeHolder> for HTMLCollection {
         for elem in self.elements_iter(no_gc) {
             // Step 2.1
             if let Some(id_atom) = elem.get_id() {
-                let id_str = DOMString::from(&*id_atom);
+                let id_str = TracedDOMString::from(&id_atom).root();
                 if !result.contains(&id_str) {
                     result.push(id_str);
                 }
@@ -526,7 +527,7 @@ impl HTMLCollectionMethods<crate::DomTypeHolder> for HTMLCollection {
             if *elem.namespace() == ns!(html) &&
                 let Some(name_atom) = elem.get_name()
             {
-                let name_str = DOMString::from(&*name_atom);
+                let name_str = TracedDOMString::from(&name_atom).root();
                 if !result.contains(&name_str) {
                     result.push(name_str)
                 }

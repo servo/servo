@@ -9,6 +9,7 @@ use dom_struct::dom_struct;
 use html5ever::{LocalName, Namespace, Prefix, local_name, ns};
 use js::context::JSContext;
 use script_bindings::cell::{DomRefCell, Ref};
+use script_bindings::domstring::TracedDOMString;
 use style::attr::{AttrIdentifier, AttrValue};
 use style::values::GenericAtomIdent;
 
@@ -96,8 +97,7 @@ impl Attr {
 impl AttrMethods<crate::DomTypeHolder> for Attr {
     /// <https://dom.spec.whatwg.org/#dom-attr-localname>
     fn LocalName(&self) -> DOMString {
-        // FIXME(ajeffrey): convert directly from LocalName to DOMString
-        DOMString::from(&**self.local_name())
+        TracedDOMString::from(self.local_name()).root()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-attr-value>
@@ -140,22 +140,20 @@ impl AttrMethods<crate::DomTypeHolder> for Attr {
 
     /// <https://dom.spec.whatwg.org/#dom-attr-name>
     fn Name(&self) -> DOMString {
-        // FIXME(ajeffrey): convert directly from LocalName to DOMString
-        DOMString::from(&**self.name())
+        TracedDOMString::from(self.name()).root()
     }
 
     /// <https://dom.spec.whatwg.org/#dom-attr-namespaceuri>
     fn GetNamespaceURI(&self) -> Option<DOMString> {
         match *self.namespace() {
             ns!() => None,
-            ref url => Some(DOMString::from(&**url)),
+            ref url => Some(TracedDOMString::from(url).root()),
         }
     }
 
     /// <https://dom.spec.whatwg.org/#dom-attr-prefix>
     fn GetPrefix(&self) -> Option<DOMString> {
-        // FIXME(ajeffrey): convert directly from LocalName to DOMString
-        self.prefix().map(|p| DOMString::from(&**p))
+        self.prefix().map(|p| TracedDOMString::from(p).root())
     }
 
     /// <https://dom.spec.whatwg.org/#dom-attr-ownerelement>
@@ -217,7 +215,7 @@ impl Attr {
     pub(crate) fn qualified_name(&self) -> DOMString {
         match self.prefix() {
             Some(ref prefix) => DOMString::from(format!("{}:{}", prefix, &**self.local_name())),
-            None => DOMString::from(&**self.local_name()),
+            None => TracedDOMString::from(self.local_name()).root(),
         }
     }
 }
