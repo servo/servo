@@ -644,19 +644,21 @@ impl BaseAudioContextMethods<crate::DomTypeHolder> for BaseAudioContext {
                 .eos(move || {
                     task_source.queue(task!(audio_decode_eos: move |cx| {
                         let this = this.root();
-                        let decoded_audio = decoded_audio__.lock().unwrap();
+                        let mut decoded_audio = std::mem::take(&mut *decoded_audio__.lock().unwrap());
+                        for channel in &mut decoded_audio {
+                            channel.shrink_to_fit();
+                        }
                         let length = if !decoded_audio.is_empty() {
                             decoded_audio[0].len()
                         } else {
                             0
                         };
-                        let buffer = AudioBuffer::new(
+                        let buffer = AudioBuffer::new_with_channel_data(
                             cx,
                             this.global().as_window(),
-                            decoded_audio.len() as u32 /* number of channels */,
                             length as u32,
                             this.sample_rate,
-                            Some(decoded_audio.as_slice()),
+                            decoded_audio,
                         );
                         rooted!(&in(cx) let resolver = this
                             .decode_resolvers
