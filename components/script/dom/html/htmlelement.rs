@@ -303,6 +303,10 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
     // https://html.spec.whatwg.org/multipage/#dom-hidden
     make_bool_setter!(SetHidden, "hidden");
 
+    // https://html.spec.whatwg.org/multipage/#the-inert-attribute
+    make_bool_getter!(Inert, "inert");
+    make_bool_setter!(SetInert, "inert");
+
     // https://html.spec.whatwg.org/multipage/#globaleventhandlers
     global_event_handlers!(NoOnload);
 
@@ -1349,6 +1353,14 @@ impl VirtualMethods for HTMLElement {
         match (attr.local_name(), mutation) {
             (&local_name!("accesskey"), ..) => {
                 self.update_assigned_access_key();
+            },
+            // <https://html.spec.whatwg.org/multipage/#the-inert-attribute>
+            (&local_name!("inert"), mutation) => {
+                element.set_state(
+                    cx.no_gc(),
+                    ElementState::INERT,
+                    !matches!(mutation, AttributeMutation::Removed),
+                );
             },
             (&local_name!("form"), mutation) if self.is_form_associated_custom_element() => {
                 self.form_attribute_mutated(cx, mutation);

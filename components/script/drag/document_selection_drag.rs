@@ -296,6 +296,13 @@ impl Node {
         if let Some(&used_value) = cache.get(&cache_key) {
             return used_value;
         }
+        // https://html.spec.whatwg.org/multipage/#inert
+        // > When a node is inert: Text selection functionality must act as if
+        // > the 'user-select' CSS property were set to 'none'.
+        if self.is_inert() {
+            cache.insert(cache_key, UsedUserSelect::None);
+            return UsedUserSelect::None;
+        }
         // > The used value is the same as the computed value, except:
         // >
         // > 1. on editable elements where the used value is always `contain`

@@ -79,6 +79,24 @@ dialog::backdrop {
   background: rgba(0,0,0,0.1);
 }
 
+/* The internal-only -moz-inert property is used for propagating the inertness imposed by HTML.
+   https://html.spec.whatwg.org/multipage/#the-inert-attribute
+   https://html.spec.whatwg.org/multipage/#modal-dialogs-and-inert-subtrees
+   https://html.spec.whatwg.org/multipage/#the-button-element:inert
+   Adapted from Gecko:
+   https://searchfox.org/firefox-main/rev/efd2d1e6f77570ae6bc5294731a68101e45c81a3/layout/style/res/ua.css#187-190
+   https://searchfox.org/firefox-main/rev/efd2d1e6f77570ae6bc5294731a68101e45c81a3/layout/style/res/ua.css#379-384 */
+:-moz-inert { -moz-inert: inert; }
+select > button:first-child { -moz-inert: inert; }
+/* TODO: Uncomment once a :-moz-topmost-modal pseudo-class is supported. */
+/* :-moz-topmost-modal:not([inert]) { -moz-inert: none; } */
+
+/* The UA stylesheet is not specified yet. These rules match what the WPT tests expect.
+   https://drafts.csswg.org/css-ui-4/#inertness */
+[inert] { interactivity: inert !important; }
+dialog:modal { interactivity: auto; }
+:fullscreen { interactivity: auto; }
+
 cite, dfn, em, i, var { font-style: italic; }
 b, strong { font-weight: bolder; }
 code, kbd, samp, tt { font-family: monospace; }

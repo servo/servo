@@ -1000,7 +1000,6 @@ impl DocumentEventHandler {
 
         // https://w3c.github.io/uievents/#hit-test
         // Prevent mouse event if element is disabled.
-        // TODO: also inert.
         if element.is_actually_disabled() {
             return;
         }
