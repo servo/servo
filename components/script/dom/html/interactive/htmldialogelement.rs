@@ -250,7 +250,7 @@ impl HTMLDialogElement {
             {
                 element
                     .upcast::<Node>()
-                    .run_the_focusing_steps(cx, None, FocusTrigger::Other);
+                    .run_the_focusing_steps(cx, None, FocusTrigger::Script);
             }
         }
 
@@ -315,7 +315,7 @@ impl HTMLDialogElement {
         if self.upcast::<HTMLElement>().Autofocus() {
             control.set(
                 self.upcast::<Node>()
-                    .get_the_focusable_area(cx, FocusTrigger::Other),
+                    .get_the_focusable_area(cx, FocusTrigger::Script),
             );
         }
 
@@ -328,7 +328,7 @@ impl HTMLDialogElement {
         if control.is_none() {
             control.set(
                 self.upcast::<Node>()
-                    .get_the_focusable_area(cx, FocusTrigger::Other),
+                    .get_the_focusable_area(cx, FocusTrigger::Script),
             );
         }
 
@@ -336,7 +336,9 @@ impl HTMLDialogElement {
         // FIXME: Use the focusing step once they support a focusable area as an argument
         if control.is_some() {
             let document = self.owner_document();
-            document.focus_handler().focus(cx, &control.take().unwrap());
+            document
+                .focus_handler()
+                .focus(cx, &control.take().unwrap(), FocusTrigger::Script);
         }
 
         // TODO: Step 7. Let topDocument be control's node navigable's top-level traversable's active document.

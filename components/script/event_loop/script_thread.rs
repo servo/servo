@@ -139,6 +139,7 @@ use crate::dom::document::{
 use crate::dom::element::Element;
 use crate::dom::globalscope::GlobalScope;
 use crate::dom::html::htmliframeelement::{HTMLIFrameElement, IframeContext, ProcessingMode};
+use crate::dom::node::focus::FocusTrigger;
 use crate::dom::node::{Node, NodeTraits};
 use crate::dom::servoparser::{ParserContext, ServoParser};
 #[cfg(feature = "devtools")]
@@ -2965,6 +2966,7 @@ impl ScriptThread {
             old_focus_chain,
             &focusable_area,
             false, /* for_system_focus_change */
+            FocusTrigger::Script,
         );
 
         document.refresh_focus_rendering();
@@ -3026,6 +3028,7 @@ impl ScriptThread {
             old_focus_chain,
             &FocusableArea::Viewport,
             false, /* for_system_focus_change */
+            FocusTrigger::Script,
         );
 
         document.refresh_focus_rendering();

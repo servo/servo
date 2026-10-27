@@ -187,7 +187,7 @@ pub(crate) trait TextControlElement {
         // when you perform a programmatic text selection in that element.
         self.as_element()
             .upcast::<Node>()
-            .run_the_focusing_steps(cx, None, FocusTrigger::Other);
+            .run_the_focusing_steps(cx, None, FocusTrigger::Script);
 
         // Step 2 : Set the selection range with 0 and infinity.
         self.set_range(

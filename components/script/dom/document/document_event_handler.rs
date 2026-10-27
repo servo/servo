@@ -1153,9 +1153,11 @@ impl DocumentEventHandler {
                     // Note that this differs from the specification, because we are going to look
                     // for the first inclusive ancestor that is click focusable and then focus it.
                     // See documentation for [`Node::find_click_focusable_area`].
-                    document
-                        .focus_handler()
-                        .focus(cx, &node.find_click_focusable_area(cx));
+                    document.focus_handler().focus(
+                        cx,
+                        &node.find_click_focusable_area(cx),
+                        FocusTrigger::Click,
+                    );
                 }
 
                 // Step 9. If mbutton is the secondary mouse button, then
@@ -1825,7 +1827,9 @@ impl DocumentEventHandler {
         let document = self.window.Document();
         let composition_event = match event {
             ImeEvent::Dismissed => {
-                document.focus_handler().focus(cx, &FocusableArea::Viewport);
+                document
+                    .focus_handler()
+                    .focus(cx, &FocusableArea::Viewport, FocusTrigger::Script);
                 return Default::default();
             },
             ImeEvent::Composition(composition_event) => composition_event,
@@ -2553,7 +2557,7 @@ impl DocumentEventHandler {
     ) {
         element
             .upcast::<Node>()
-            .run_the_focusing_steps(cx, None, FocusTrigger::Other);
+            .run_the_focusing_steps(cx, None, FocusTrigger::Keyboard);
         let scroll_axis = ScrollAxisState {
             position: ScrollLogicalPosition::Center,
             requirement: ScrollRequirement::IfNotVisible,

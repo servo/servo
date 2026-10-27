@@ -100,7 +100,8 @@ impl Iterator for FocusNavigationScopeIterator {
 #[derive(Clone, Copy, PartialEq)]
 pub(crate) enum FocusTrigger {
     Click,
-    Other,
+    Keyboard,
+    Script,
 }
 
 impl Node {
@@ -235,7 +236,7 @@ impl Node {
         cx: &JSContext,
         focus_trigger: Option<FocusTrigger>,
     ) -> Option<FocusableArea> {
-        let focus_trigger = focus_trigger.unwrap_or(FocusTrigger::Other);
+        let focus_trigger = focus_trigger.unwrap_or(FocusTrigger::Script);
         // > 1. If focusTarget is a shadow host and its shadow root's delegates focus is false, then
         // >    return null.
         let shadow_root = self.downcast::<Element>().and_then(Element::shadow_root);
@@ -394,7 +395,9 @@ impl Node {
         //
         // TODO: Handle all of these steps by converting the focus transaction code to follow
         // the HTML focus specification.
-        document.focus_handler().focus(cx, &focusable_area);
+        document
+            .focus_handler()
+            .focus(cx, &focusable_area, focus_trigger);
         true
     }
 

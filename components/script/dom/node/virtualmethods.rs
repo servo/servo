@@ -221,11 +221,6 @@ pub(crate) trait VirtualMethods {
             s.pop(cx);
         }
     }
-
-    fn focus_visible_applies(&self) -> bool {
-        self.super_type()
-            .is_some_and(|super_type| super_type.focus_visible_applies())
-    }
 }
 
 /// Obtain a VirtualMethods instance for a given Node-derived object. Any

@@ -566,7 +566,7 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
         // 2. Run the focusing steps for this.
         if !self
             .upcast::<Node>()
-            .run_the_focusing_steps(cx, None, FocusTrigger::Other)
+            .run_the_focusing_steps(cx, None, FocusTrigger::Script)
         {
             // The specification seems to imply we should scroll into view even if this element
             // is not a focusable area. No browser does this, so we return early in that case.
@@ -604,9 +604,11 @@ impl HTMLElementMethods<crate::DomTypeHolder> for HTMLElement {
             return;
         }
         // <https://html.spec.whatwg.org/multipage/#unfocusing-steps>
-        self.owner_document()
-            .focus_handler()
-            .focus(cx, &FocusableArea::Viewport);
+        self.owner_document().focus_handler().focus(
+            cx,
+            &FocusableArea::Viewport,
+            FocusTrigger::Script,
+        );
     }
 
     /// <https://drafts.csswg.org/cssom-view/#dom-htmlelement-scrollparent>
