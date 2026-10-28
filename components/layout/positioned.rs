@@ -34,7 +34,7 @@ use crate::geom::{
     PhysicalSize, PhysicalVec, ToLogical, ToLogicalWithContainingBlock,
 };
 use crate::layout_box_base::{IndependentFormattingContextLayoutResult, LayoutBoxBase};
-use crate::sizing::{LazySize, Size, SizeConstraint, Sizes};
+use crate::sizing::{LazySize, Size, SizeConstraint, Sizes, compute_ratio_dependent_block_size};
 use crate::style_ext::{Clamp, ComputedValuesExt, ContentBoxSizesAndPBM, DisplayInside};
 
 #[derive(Debug, MallocSizeOf)]
@@ -696,6 +696,7 @@ impl IndependentFormattingContext {
             Au::zero,
             block_stretch_size,
             is_table,
+            compute_ratio_dependent_block_size(preferred_aspect_ratio, inline_size),
         );
 
         let containing_block = &containing_block.into();
