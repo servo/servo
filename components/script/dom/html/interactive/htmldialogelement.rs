@@ -490,7 +490,7 @@ impl HTMLDialogElement {
         let element = self.upcast::<Element>();
 
         // Step 2. Return the state of dialog's closedby attribute.
-        if let Some(closed_by) = element.get_attribute_string_value(&local_name!("closedby")) {
+        if let Some(closed_by) = element.get_attribute_string_ref(&local_name!("closedby")) {
             if closed_by.eq_ignore_ascii_case("any") {
                 return ComputedClosedByState::Any;
             }
