@@ -332,6 +332,7 @@ impl HTMLDialogElement {
         }
 
         // Step 3. Assert: subject's close watcher is not null.
+        //
         // Clone the handle so the cell isn't borrowed while script runs: a `close` listener can
         // call `dialog.close()`, which runs `dialog_cleanup_steps` and nulls the close watcher.
         let close_watcher = self
