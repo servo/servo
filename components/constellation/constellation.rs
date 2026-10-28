@@ -287,7 +287,7 @@ struct WorkerAnimationFrameProvider {
 
 /// Information about service workers that are pending an update.
 struct ServiceWorkerPendingUpdate {
-    pipelines: Vec<PipelineId>,
+    pipelines: HashSet<PipelineId>,
     origin: ImmutableOrigin,
 }
 
@@ -1291,7 +1291,7 @@ where
                 // happening at Step 21.
                 let mut pending_update = ServiceWorkerPendingUpdate {
                     origin: origin.clone(),
-                    pipelines: vec![],
+                    pipelines: Default::default(),
                 };
                 self.pipelines
                     .values()
@@ -1311,7 +1311,7 @@ where
                                 pipeline.id
                             );
                         } else {
-                            pending_update.pipelines.push(pipeline.id);
+                            pending_update.pipelines.insert(pipeline.id);
                         }
                     });
                 if !pending_update.pipelines.is_empty() {
@@ -3010,6 +3010,32 @@ where
         self.async_runtime.shutdown();
     }
 
+    /// Stops waiting for all pending service worker state updates for the given pipeline.
+    fn stop_waiting_for_pending_service_worker_state_update(&mut self, pipeline_id: &PipelineId) {
+        // loop over all service_workers_pending_update and remove the pipeline,
+        // message the sw manager if no pipelines are left.
+        self.service_workers_pending_update
+            .retain(|worker_id, pending| {
+                pending.pipelines.remove(pipeline_id);
+                if pending.pipelines.is_empty() {
+                    // message sw manager
+                    if let Some(manager) = self.sw_managers.get(&pending.origin) {
+                        if manager
+                            .send(ServiceWorkerMsg::FinishInstall(worker_id.clone()))
+                            .is_err()
+                        {
+                            error!("Failed to send FinishInstall for worker {}", worker_id);
+                        } else {
+                            warn!("Unable to send FinishInstall for worker {}", worker_id);
+                        }
+                    }
+                    false
+                } else {
+                    true
+                }
+            });
+    }
+
     fn handle_pipeline_exited(&mut self, pipeline_id: PipelineId, exit_source: PipelineExitSource) {
         debug!("{}: Exited", pipeline_id);
         self.remove_worker_animation_frame_providers_for_pipeline(pipeline_id);
@@ -3017,6 +3043,8 @@ where
         let Some(pipeline) = self.pipelines.remove(&pipeline_id) else {
             return;
         };
+
+        self.stop_waiting_for_pending_service_worker_state_update(&pipeline_id);
 
         // Let the embedding layer release resources it is holding on this pipeline's behalf.
         self.constellation_to_embedder_proxy
