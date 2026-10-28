@@ -8,7 +8,7 @@ use std::rc::Rc;
 use js::context::NoGC;
 use script_bindings::cell::DomRefCell;
 
-use crate::dom::closewatcher::InternalCloseWatcher;
+use crate::dom::internalclosewatcher::InternalCloseWatcher;
 
 /// <https://html.spec.whatwg.org/multipage/#close-watcher-manager>
 #[derive(JSTraceable, MallocSizeOf)]

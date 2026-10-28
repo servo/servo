@@ -20,7 +20,9 @@ use crate::dom::bindings::inheritance::Castable;
 use crate::dom::bindings::refcounted::Trusted;
 use crate::dom::bindings::root::{DomRoot, MutNullableDom};
 use crate::dom::bindings::str::DOMString;
-use crate::dom::closewatcher::{InternalCloseWatcher, InternalCloseWatcherOwner};
+use crate::dom::closewatcher::internalclosewatcher::{
+    InternalCloseWatcher, InternalCloseWatcherOwner,
+};
 use crate::dom::document::Document;
 use crate::dom::element::storage::AttrRef;
 use crate::dom::element::{AttributeMutation, Element};
