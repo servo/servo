@@ -159,6 +159,7 @@ impl AudioNodeEngine for AudioBufferSourceNode {
         0
     }
 
+    // <https://webaudio.github.io/web-audio-api/#playback-AudioBufferSourceNode>
     fn process(&mut self, mut inputs: Chunk, info: &BlockInfo) -> Chunk {
         debug_assert!(inputs.is_empty());
 
@@ -177,14 +178,24 @@ impl AudioNodeEngine for AudioBufferSourceNode {
 
         let buffer = self.buffer.as_ref().unwrap();
 
+        if buffer.is_empty() {
+            inputs.blocks.push(Default::default());
+            return inputs;
+        }
+
+        // Looping endpoint algorithm pseudocode described in playback section of specs.
         let (mut actual_loop_start, mut actual_loop_end) = (0., buffer.len() as f64);
         if self.loop_enabled {
+            let length = buffer.len() as f64;
             let loop_start = self.loop_start.unwrap_or(0.);
             let loop_end = self.loop_end.unwrap_or(0.);
 
-            if loop_start >= 0. && loop_end > loop_start {
+            if loop_start >= 0. && loop_end > 0. && loop_end > loop_start {
                 actual_loop_start = loop_start * (buffer.sample_rate as f64);
-                actual_loop_end = loop_end * (buffer.sample_rate as f64);
+                actual_loop_end = (loop_end * (buffer.sample_rate as f64)).min(length);
+            } else {
+                actual_loop_start = 0.;
+                actual_loop_end = length;
             }
         }
 
