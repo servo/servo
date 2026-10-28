@@ -964,10 +964,12 @@ fn compute_the_intersection(
 
                     intersection_rect = intersect_rectangle(&intersection_rect, &viewport_rect)?;
 
+                    // Layout may not provide a padding box for the frame element (for example,
+                    // some 3D-transformed frames). Treat that as "not intersecting" rather than
+                    // panicking, matching the `?` on the viewport intersection above.
                     let current_offset = frame_container
                         .upcast::<Node>()
-                        .padding_box(cx)
-                        .unwrap()
+                        .padding_box(cx)?
                         .origin
                         .to_vector();
                     intersection_rect.origin += current_offset;
