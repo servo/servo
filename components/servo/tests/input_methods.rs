@@ -265,6 +265,8 @@ fn test_ime_multiline_for_textarea() {
         <textarea id=my-text-area style=\"width: 200px; height: 200px;\">servo</textarea>",
     );
     test.focus("my-text-area");
+    test.servo_test
+        .spin(|| test.delegate.controls_shown.borrow().is_empty());
 
     let controls = test.delegate.controls_shown.borrow();
     let EmbedderControl::InputMethod(ime) = &controls[0] else {
