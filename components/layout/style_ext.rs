@@ -978,7 +978,7 @@ impl ComputedValuesExt for ComputedValues {
 
     #[inline]
     fn is_internal_table_box(&self) -> bool {
-        self.get_box().display.outside() == stylo::DisplayOutside::InternalTable
+        self.get_display().outside() == stylo::DisplayOutside::InternalTable
     }
 
     /// Resolve the preferred aspect ratio for a box that doesn't have a natural

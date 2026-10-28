@@ -482,16 +482,14 @@ impl BlockFormattingContext {
             sequential_layout_state.calculate_clearance(Clear::Both, &CollapsedMargin::zero())
         });
 
-        let content_block_size_without_ratio = flow_layout.content_block_size +
-            flow_layout.collapsible_margins_in_children.end.solve() +
-            clearance.unwrap_or_default();
-
         // CSS Sizing 4 § 4.2: non-replaced boxes with a preferred aspect ratio
         // calculate their automatic block size the same as replaced elements.
         let content_block_size = if let Some(ratio) = preferred_aspect_ratio {
             ratio.compute_dependent_size(LogicalAxis::Block, containing_block.size.inline)
         } else {
-            content_block_size_without_ratio
+            flow_layout.content_block_size +
+                flow_layout.collapsible_margins_in_children.end.solve() +
+                clearance.unwrap_or_default()
         };
 
         // Buttons center their contents in the block axis. Therefore, create an `AnonymousFragment`
@@ -1639,9 +1637,7 @@ fn solve_containing_block_padding_and_border_for_in_flow_box<'a>(
         Some(context) => context.preferred_aspect_ratio(&pbm.padding_border_sums),
         // `SameFormattingContextBlock` has no `IndependentFormattingContext`,
         // so resolve the ratio directly from its style.
-        None => layout_style
-            .style()
-            .preferred_aspect_ratio_for_non_replaced(&pbm.padding_border_sums),
+        None => style.preferred_aspect_ratio_for_non_replaced(&pbm.padding_border_sums),
     };
     let is_table = layout_style.is_table();
 
