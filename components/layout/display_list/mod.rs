@@ -24,6 +24,7 @@ use style::Zero;
 use style::color::{AbsoluteColor, ColorSpace};
 use style::computed_values::background_blend_mode::SingleComputedValue as BackgroundBlendMode;
 use style::computed_values::border_image_outset::T as BorderImageOutset;
+use style::computed_values::image_rendering::T as ComputedImageRendering;
 use style::computed_values::mix_blend_mode::T as ComputedMixBlendMode;
 use style::computed_values::overflow_x::T as ComputedOverflow;
 use style::computed_values::text_decoration_style::{
@@ -943,10 +944,16 @@ impl PaintTraversalHandler for DisplayListBuilder<'_> {
         let image_key = if let Some(source) = &fragment.encoded_source {
             let size = fragment.base.rect().size;
             let scale = self.device_pixel_ratio.get();
-            let requested = DeviceIntSize::new(
-                (size.width.to_f32_px() * scale).ceil() as i32,
-                (size.height.to_f32_px() * scale).ceil() as i32,
-            );
+            // Return scaled dimentions if set to auto, and fallback to original if pixelated/crisp-edges
+            // As currently only auto-Lanczos3 is covered (TODO: add support for pixelated instead of fallback)
+            let requested = if *style.get_image_rendering() == ComputedImageRendering::Auto {
+                DeviceIntSize::new(
+                    (size.width.to_f32_px() * scale).ceil() as i32,
+                    (size.height.to_f32_px() * scale).ceil() as i32,
+                )
+            } else {
+                DeviceIntSize::new(source.metadata.width as i32, source.metadata.height as i32)
+            };
             self.image_resolver
                 .raster_decode_demands
                 .lock()
@@ -2076,6 +2083,7 @@ impl<'a> BuilderForBoxFragment<'a> {
                     let Some(image_key) = builder.image_resolver.image_key_from_cached_image(
                         &image,
                         preferred_size.unwrap_or(default_size),
+                        *style.get_image_rendering(),
                         node,
                     ) else {
                         continue;
@@ -2324,11 +2332,12 @@ impl<'a> BuilderForBoxFragment<'a> {
             Ok(ResolvedImage::Image { image, size, .. }) => {
                 let scale = builder.device_pixel_ratio.get();
                 let raster_size = Size2D::new(size.width * scale, size.height * scale).to_i32();
-                let Some(key) =
-                    builder
-                        .image_resolver
-                        .image_key_from_cached_image(&image, raster_size, node)
-                else {
+                let Some(key) = builder.image_resolver.image_key_from_cached_image(
+                    &image,
+                    raster_size,
+                    *style.get_image_rendering(),
+                    node,
+                ) else {
                     return false;
                 };
 

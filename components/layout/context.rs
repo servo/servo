@@ -21,6 +21,7 @@ use pixels::RasterImage;
 use script::layout_dom::ServoLayoutNode;
 use servo_base::id::PainterId;
 use servo_url::{ImmutableOrigin, ServoUrl};
+use style::computed_values::image_rendering::T as ImageRendering;
 use style::context::SharedStyleContext;
 use style::dom::OpaqueNode;
 use style::values::computed::color::Color;
@@ -288,11 +289,18 @@ impl ImageResolver {
         &self,
         image: &CachedImage,
         size: DeviceIntSize,
+        image_rendering: ImageRendering,
         node: Option<OpaqueNode>,
     ) -> Option<ImageKey> {
         match image {
             CachedImage::Raster(raster_image) => raster_image.id,
             CachedImage::Encoded(source) => {
+                // Fallback to WebRender when image rendering set to pixelated and crisp-edges.
+                let size = if image_rendering == ImageRendering::Auto {
+                    size
+                } else {
+                    DeviceIntSize::new(source.metadata.width as i32, source.metadata.height as i32)
+                };
                 self.raster_decode_demands.lock().push((source.id, size));
                 self.image_cache.demand_driven_raster_image_key(source.id)
             },
