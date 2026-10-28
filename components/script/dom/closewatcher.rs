@@ -258,8 +258,6 @@ impl InternalCloseWatcher {
                     },
                 );
                 event.fire(cx, dialog.upcast::<EventTarget>())
-                // - closeAction being to close the dialog given dialog, dialog's request close
-                //   return value, and dialog's request close source element.
             },
         }
     }
