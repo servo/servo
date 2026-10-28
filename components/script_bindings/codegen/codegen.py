@@ -3821,8 +3821,11 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
         self.toJSONMethod = toJSONMethod
 
     def definition_body(self) -> CGThing:
-        ret = """let incumbent_global = D::GlobalScope::incumbent().expect("no incumbent global");
-let global = incumbent_global.reflector().get_jsobject();\n"""
+        ret = """
+              let unwrapped = CheckedUnwrapStatic(obj.get());
+              assert!(!unwrapped.is_null());
+              rooted!(&in(cx) let global = GetNonCCWObjectGlobal(unwrapped));
+              """
         interface = self.descriptor.interface
         for m in interface.members:
             if m.isAttr() and not m.isStatic() and m.type.isJSONType():
@@ -3836,7 +3839,7 @@ let global = incumbent_global.reflector().get_jsobject();\n"""
                          c.is_satisfied::<D>(
                            cx,
                            HandleObject::from_raw(obj),
-                           global));
+                           global.handle()));
                     if is_satisfied {
                       rooted!(&in(cx) let mut temp = UndefinedValue());
                       if !get_${name}::<D>(cx.raw_cx(), obj, this, JSJitGetterCallArgs { _base: temp.handle_mut().into() }) {

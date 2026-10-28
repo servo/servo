@@ -514,11 +514,17 @@ pub(crate) fn notify_about_rejected_promises(cx: &mut JSContext, global: &Global
                 // Step 4.1.3 If notCanceled is true, then the user agent may report
                 // p.[[PromiseResult]] to a developer console.
                 if not_canceled {
-                    let message = format!(
-                        "Unhandled promise rejection: {}",
-                        stringify_handle_value(cx, reason.handle())
+                    let global = target.global();
+                    let reason_string = run_a_script::<DomTypeHolder, _, _>(
+                        cx,
+                        &global,
+                        |cx: &mut JSContext| stringify_handle_value(cx, reason.handle()),
                     );
-                    Console::internal_error(cx, &target.global(), message);
+                    Console::internal_error(
+                        cx,
+                        &global,
+                        format!("Unhandled promise rejection: {reason_string}")
+                    );
                 }
 
                 // Step 4.1.4 If p.[[PromiseIsHandled]] is false, then append p to global's outstanding
