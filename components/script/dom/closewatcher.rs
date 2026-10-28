@@ -224,9 +224,10 @@ impl InternalCloseWatcher {
     pub(crate) fn cancel_action(&self, cx: &mut JSContext, can_prevent_close: bool) -> bool {
         match &self.owner {
             InternalCloseWatcherOwner::CloseWatcher(close_watcher) => {
-                // cancelAction given canPreventClose being to return the result of firing an event
-                // named cancel at this, with the cancelable attribute initialized to
-                // canPreventClose
+                // https://html.spec.whatwg.org/multipage/#the-closewatcher-interface:create-close-watcher-cancelaction
+                // > cancelAction given canPreventClose being to return the result of firing an event
+                // > named cancel at this, with the cancelable attribute initialized to
+                // > canPreventClose
                 let event = Event::new(
                     cx,
                     &self.window.global(),
