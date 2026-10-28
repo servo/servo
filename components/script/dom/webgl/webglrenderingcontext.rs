@@ -820,6 +820,11 @@ impl WebGLRenderingContext {
                         return Ok(None);
                     },
                 };
+                // `same_origin` is false for an image that has not loaded yet.
+                if !image.is_usable().is_ok_and(|usable| usable) {
+                    return Ok(None);
+                }
+
                 if !image.same_origin(&document.origin()) {
                     return Err(Error::Security(None));
                 }
