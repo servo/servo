@@ -678,7 +678,7 @@ impl ImageCacheStore {
             Some(load) => load,
             None => return,
         };
-        let url = pending_load.final_url.clone();
+        let url = pending_load.final_url;
         let image_response = match load_result {
             LoadResult::LoadedRasterImage(mut raster_image) => {
                 assert!(raster_image.id.is_some());
