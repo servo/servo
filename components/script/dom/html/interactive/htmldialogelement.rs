@@ -537,7 +537,8 @@ impl HTMLDialogElementMethods<crate::DomTypeHolder> for HTMLDialogElement {
 
     /// <https://html.spec.whatwg.org/multipage/#dom-dialog-closedby>
     fn ClosedBy(&self) -> DOMString {
-        // Step 1. Let command be this's command attribute.
+        // > The closedBy getter steps are to return the keyword
+        // > corresponding to the computed closed-by state given this.
         match self.computed_closed_by_state() {
             ComputedClosedByState::Any => DOMString::from_static("any"),
             ComputedClosedByState::CloseRequest => DOMString::from_static("closerequest"),
